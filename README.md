@@ -54,6 +54,8 @@ renders/              generated views
 tools/                headless render rig (three.js + Chromium)
 ```
 
+Second product: **SWEEP-1** waterless solar row cleaning robot — see [docs/SWEEP-1.md](docs/SWEEP-1.md).
+
 Regenerate everything:
 ```
 pip install cadquery

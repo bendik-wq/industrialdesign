@@ -16,21 +16,30 @@ const srv = createServer(async (req, res) => {
   } catch { res.writeHead(404); res.end(); }
 }).listen(8765);
 
-const views = [
+const SETS = {
+  aero1: { src: '../out/AERO-1_assembly.glb', dir: 'renders', views: [
   ['hero', 'az=-35&el=18'],
   ['exploded_internals', 'az=-30&el=25&hide=front_cover,mounting_plate'],
   ['section', 'zoom=0.42&az=90&el=0&hide=mounting_plate&section=1'],
   ['underside', 'az=-25&el=-30'],
   ['rear', 'az=150&el=15'],
-];
-await mkdir(join(ROOT, 'renders'), { recursive: true });
+  ] },
+  sweep1: { src: '../out/sweep1/SWEEP-1_on_row.glb', dir: 'renders/sweep1', views: [
+    ['hero', 'az=-145&el=28'],
+    ['robot_close', 'zoom=1.1&az=-120&el=40&focus=SWEEP-1_robot'],
+    ['side_on_row', 'zoom=0.8&az=-90&el=4'],
+  ] },
+};
+const set = SETS[process.env.SET ?? 'aero1'];
+const views = set.views;
+await mkdir(join(ROOT, set.dir), { recursive: true });
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 page.on('console', m => console.log('page:', m.text()));
 for (const [name, qs] of views.filter(v => !process.argv[2] || v[0] === process.argv[2])) {
-  await page.goto(`http://localhost:8765/tools/render.html?${qs}`);
+  await page.goto(`http://localhost:8765/tools/render.html?src=${encodeURIComponent(set.src)}&${qs}`);
   await page.waitForFunction(() => document.title === 'done', null, { timeout: 120000 });
-  await page.locator('canvas').screenshot({ path: join(ROOT, 'renders', `${name}.png`) });
+  await page.locator('canvas').screenshot({ path: join(ROOT, set.dir, `${name}.png`) });
   console.log('rendered', name);
 }
 await browser.close(); srv.close();

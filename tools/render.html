@@ -45,7 +45,9 @@ new GLTFLoader().load(q.get('src') ?? '../out/AERO-1_assembly.glb', (g) => {
   root.rotation.x = Math.PI / 2; // glTF Y-up -> CAD Z-up
   scene.add(root);
   root.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(root);
+  let fobj = root;
+  if (q.get('focus')) root.traverse(o => { if (o.name && o.name.includes(q.get('focus'))) fobj = o; });
+  const box = new THREE.Box3().setFromObject(fobj);
   const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
   window.__bbox = { min: box.min, max: box.max };
   const up = s.z > s.y * 0.9 && root.up ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
