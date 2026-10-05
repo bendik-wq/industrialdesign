@@ -1,0 +1,1104 @@
+<title>Villa Skive</title>
+<meta name="description" content="Concept design for a 64-metre stone disc villa on a Norwegian headland: French classical facades, black steel windows, cantilevered terraces over the sea.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Jost:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one 1180px drawing-set column. Hero model full width, then sheets like an architect's presentation set. */
+:root {
+  --paper: #eceeed;      /* pale granite */
+  --panel: #f7f8f7;
+  --ink: #172024;        /* blackened steel */
+  --muted: #5a676c;
+  --line: #c3cbcb;
+  --accent: #2d5d6c;     /* fjord water */
+  --brass: #8f6f36;
+  --glass: #b7c7cf;
+  --poche: #172024;
+  --display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --body: "Jost", "Futura", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #101618; --panel: #172024; --ink: #e2e8e7; --muted: #8f9da1; --line: #2c393d;
+    --accent: #7fb2c1; --brass: #c9a465; --glass: #2f4550; --poche: #d7dfde; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #101618; --panel: #172024; --ink: #e2e8e7; --muted: #8f9da1; --line: #2c393d;
+  --accent: #7fb2c1; --brass: #c9a465; --glass: #2f4550; --poche: #d7dfde; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-weight: 400; font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 24px; padding-block: 40px 80px; display: grid; gap: 72px; }
+@media (max-width: 600px) { .wrap { padding-inline: 16px; gap: 56px; } }
+
+.eyebrow, .label { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(56px, 11vw, 132px); line-height: .92; letter-spacing: -.02em; }
+h1 em { font-style: italic; color: var(--accent); }
+h2 { font-size: clamp(30px, 4.2vw, 44px); line-height: 1.08; }
+h3 { font-size: 22px; line-height: 1.2; }
+p { margin: 0; max-width: 65ch; }
+.lead { font-size: clamp(18px, 2vw, 21px); font-weight: 300; max-width: 60ch; }
+
+header.hero { display: grid; gap: 22px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; border-top: 1px solid var(--ink); margin-top: 8px; }
+.facts div { padding: 12px 16px 4px 0; display: grid; gap: 2px; }
+.facts dt { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--display); font-size: 26px; font-variant-numeric: tabular-nums lining-nums; }
+dl { margin: 0; }
+
+/* 3D viewer */
+.viewer { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 82vh; background: #9fb0b5; overflow: hidden; border: 1px solid var(--ink); }
+@media (max-width: 700px) { .viewer { aspect-ratio: 4 / 5; } }
+.viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.viewer .status { position: absolute; inset: 0; display: grid; place-items: center; color: #eef2f2; font-family: var(--mono); font-size: 13px; letter-spacing: .06em; background: #33424a; text-align: center; padding: 24px; }
+.viewer .status[hidden] { display: none; }
+.toolbar { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; pointer-events: none; }
+.toolbar .grp { display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto; }
+.toolbar .spacer { flex: 1; }
+.toolbar button { font: 500 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 9px 12px; border: 1px solid rgba(255,255,255,.55); background: rgba(16,22,26,.55); color: #f2f5f5; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.toolbar button:hover { background: rgba(16,22,26,.8); }
+.toolbar button[aria-pressed="true"] { background: #f2f5f5; color: #10161a; border-color: #f2f5f5; }
+.toolbar button:focus-visible { outline: 2px solid #f2f5f5; outline-offset: 2px; }
+.viewer-note { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; margin-top: 10px; }
+.viewer-note p { font-size: 14px; color: var(--muted); }
+
+section { display: grid; gap: 28px; }
+.sec-head { display: grid; gap: 10px; border-top: 1px solid var(--ink); padding-top: 14px; }
+.sec-head .row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+.ideas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+@media (max-width: 860px) { .ideas { grid-template-columns: 1fr; gap: 28px; } }
+.ideas article { display: grid; gap: 10px; align-content: start; }
+.ideas p { font-size: 15.5px; }
+.ideas .label { color: var(--accent); }
+
+.sheet { background: var(--panel); border: 1px solid var(--line); padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.sheet .scroll { overflow-x: auto; }
+.sheet svg { display: block; width: 100%; height: auto; }
+.sheet .scroll svg { min-width: 620px; }
+.sheet figcaption { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+figure { margin: 0; }
+
+.two { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+@media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+.legend { display: grid; gap: 0; }
+.legend div { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 15px; align-items: baseline; }
+.legend .n { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.legend .a { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 12px 14px 12px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--ink); }
+td.num { font-family: var(--mono); font-size: 13.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.lvl { font-family: var(--display); font-size: 19px; white-space: nowrap; }
+tfoot td { border-bottom: 0; border-top: 1px solid var(--ink); font-weight: 500; }
+.tbl { overflow-x: auto; }
+.tbl table { min-width: 620px; }
+
+.mats { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 28px 32px; }
+.mat { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: start; }
+.sw { width: 64px; height: 64px; border: 1px solid var(--line); }
+.mat h3 { font-size: 19px; }
+.mat p { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+.checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 48px; }
+@media (max-width: 800px) { .checks { grid-template-columns: 1fr; } }
+.checks article { padding: 18px 0; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
+.checks .tag { justify-self: start; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border: 1px solid currentColor; }
+.tag.block { color: #b04a3a; }
+.tag.design { color: var(--brass); }
+.tag.ok { color: var(--accent); }
+.checks p { font-size: 15px; }
+footer { font-family: var(--mono); font-size: 12px; color: var(--muted); border-top: 1px solid var(--ink); padding-top: 14px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+/* SVG drawing classes */
+.d-ink { stroke: var(--ink); fill: none; }
+.d-fill { fill: var(--panel); stroke: var(--ink); }
+.d-paper { fill: var(--paper); }
+.d-poche { fill: var(--poche); }
+.d-acc { stroke: var(--accent); fill: none; }
+.d-accfill { fill: var(--accent); }
+.d-muted { stroke: var(--muted); fill: none; }
+.d-glass { fill: var(--glass); }
+.d-t { fill: var(--ink); font-family: var(--body); }
+.d-tm { fill: var(--muted); font-family: var(--mono); }
+.d-td { fill: var(--ink); font-family: var(--display); font-style: italic; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Residence concept · Rev A · Sunnmøre coast, Norway</div>
+    <h1>Villa <em>Skive</em></h1>
+    <p class="lead">A 64-metre drum of pale Norwegian granite on a headland above the sea. The outside is French: rusticated base, pilasters, cornices, a slate mansard with round <i>œil-de-bœuf</i> windows. The seaward side breaks the rules. Two white discs slide out of the stone and hang over the cliff, the way Stark's Malibu house does. <i>Skive</i> is Norwegian for disc.</p>
+    <dl class="facts">
+      <div><dt>Diameter</dt><dd>64 m</dd></div>
+      <div><dt>Gross floor area</dt><dd>≈ 10 900 m²</dd></div>
+      <div><dt>Levels</dt><dd>4 + boathouse</dd></div>
+      <div><dt>Cantilever over cliff</dt><dd>14 m</dd></div>
+      <div><dt>Main windows</dt><dd>2.4 × 6.0 m</dd></div>
+    </dl>
+  </header>
+
+  <section aria-label="3D model">
+    <div>
+      <div class="viewer" id="viewer">
+        <div class="status" id="status">Building the model…</div>
+        <div class="toolbar">
+          <div class="grp" role="group" aria-label="Camera views">
+            <button type="button" id="v-sea" data-view="sea" aria-pressed="true">From the sea</button>
+            <button type="button" id="v-cliff" data-view="cliff" aria-pressed="false">Cantilevers</button>
+            <button type="button" id="v-arrival" data-view="arrival" aria-pressed="false">Arrival</button>
+            <button type="button" id="v-aerial" data-view="aerial" aria-pressed="false">Aerial</button>
+            <button type="button" id="v-court" data-view="court" aria-pressed="false">Under the dome</button>
+          </div>
+          <div class="spacer"></div>
+          <div class="grp" role="group" aria-label="Display">
+            <button type="button" id="t-night" aria-pressed="false">Blue hour</button>
+            <button type="button" id="t-cut" aria-pressed="false">Section cut</button>
+          </div>
+        </div>
+      </div>
+      <div class="viewer-note">
+        <p>Drag to orbit, scroll or pinch to zoom, right-drag to pan. Massing model at true scale; interiors are blocked out only.</p>
+        <p class="label">Sun: late-afternoon west · 62.4° N</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><div class="eyebrow">The idea</div><h2>Three buildings in one</h2></div>
+    <div class="ideas">
+      <article>
+        <div class="label">The disc</div>
+        <h3>A ring around a winter garden</h3>
+        <p>The plan is a perfect circle 64 m across with a 26 m courtyard at the centre, covered by a shallow glass dome on a black steel grid. Every room is on the ring, so every room gets daylight from two sides: the landscape outside and the garden inside. A 4 m gallery runs the full circle on the courtyard side, so you can walk the whole house in one loop of about 100 m.</p>
+      </article>
+      <article>
+        <div class="label">The French soul</div>
+        <h3>A château facade, bent into a circle</h3>
+        <p>The outer wall follows the rules of an 18th-century hôtel particulier. It has a rusticated stone base, a tall piano nobile with 6 m French windows, a smaller upper floor, a heavy cornice and a slate mansard roof. There are 48 equal bays at 7.5° each. Every window is black steel with square 600 mm panes. The window is the one detail that repeats everywhere, and it ties the old and the new together.</p>
+      </article>
+      <article>
+        <div class="label">The Stark edge</div>
+        <h3>Two discs over the cliff</h3>
+        <p>On the sea side the stone stops. A 70° sweep of floor-to-ceiling glass opens the Grand Salon, and two post-tensioned concrete discs slide out through the facade. The lower one carries a 22 m infinity pool and cantilevers 14 m past the cliff edge. The upper one is the master suite's terrace. Under the house, the Lab is a car and workshop level cut into the rock, with an inclined lift down to a boathouse at sea level.</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="row"><div class="eyebrow">Sheet A-101</div><div class="eyebrow">Scale bar in metres</div></div>
+      <h2>Plan of the piano nobile, +4.5</h2>
+    </div>
+    <div class="two">
+      <figure class="sheet">
+        <div class="scroll"><svg id="plan" viewBox="-64 -60 136 120" role="img" aria-label="Floor plan of the main level: a circular ring of rooms around a domed courtyard, with a circular terrace cantilevered west over the cliff and a columned portico to the east."></svg></div>
+        <figcaption><span>Level 0 · piano nobile</span><span>North up · sea to the west</span></figcaption>
+      </figure>
+      <div class="legend" aria-label="Rooms on the piano nobile">
+        <div><span class="n">01</span><span>Grand Salon, 7.5 m ceiling, glass to the sea</span><span class="a">≈ 520 m²</span></div>
+        <div><span class="n">02</span><span>Music room and bar</span><span class="a">≈ 260 m²</span></div>
+        <div><span class="n">03</span><span>Study, stair down to the Lab</span><span class="a">≈ 300 m²</span></div>
+        <div><span class="n">04</span><span>Library, double height</span><span class="a">≈ 370 m²</span></div>
+        <div><span class="n">05</span><span>Entrance hall behind the portico</span><span class="a">≈ 300 m²</span></div>
+        <div><span class="n">06</span><span>Orangerie and breakfast room</span><span class="a">≈ 370 m²</span></div>
+        <div><span class="n">07</span><span>Kitchen and pantries</span><span class="a">≈ 300 m²</span></div>
+        <div><span class="n">08</span><span>Dining hall, table for 30</span><span class="a">≈ 260 m²</span></div>
+        <div><span class="n">—</span><span>Gallery ring around the courtyard</span><span class="a">≈ 380 m²</span></div>
+        <div><span class="n">—</span><span>Winter garden under the dome</span><span class="a">≈ 530 m²</span></div>
+        <div><span class="n">—</span><span>Pool terrace, outside the drum</span><span class="a">≈ 1 000 m²</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="row"><div class="eyebrow">Sheet A-201</div><div class="eyebrow">Levels in metres above ground</div></div>
+      <h2>Section A–A, west to east</h2>
+    </div>
+    <figure class="sheet">
+      <div class="scroll"><svg id="section" viewBox="-66 -38 140 92" role="img" aria-label="Cross-section through the house from the sea on the left to the entrance on the right, showing the rock-cut lab level, three floors in the drum, the glass dome, the two cantilevered terraces and the inclined lift down to the boathouse."></svg></div>
+      <figcaption><span>Cut through the centre, looking north</span><span>Black = cut stone and concrete</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="row"><div class="eyebrow">Sheet A-501</div><div class="eyebrow">Dimensions in mm</div></div>
+      <h2>The window</h2>
+    </div>
+    <div class="two">
+      <figure class="sheet">
+        <svg id="window" viewBox="-120 -100 760 830" role="img" aria-label="Elevation of the main French window: 2400 by 6000 millimetres, black steel frame divided into forty 600 millimetre square panes, set in a granite architrave with a keystone and cornice, and a wrought-iron balconette at the bottom."></svg>
+        <figcaption><span>Piano nobile French window, type W1</span><span>1:50 at original size</span></figcaption>
+      </figure>
+      <div style="display:grid;gap:18px;align-content:start">
+        <p>This is the window you described: very large, very classical, very black. Each one is a pair of 6 m French doors made of slim, thermally broken steel. The doors are split into 600 mm squares by true glazing bars, not stick-on ones. The steel profile is 40 mm wide on the face, so from a few metres away the grid reads like a fine black drawing on the glass.</p>
+        <p>The stone around the window is pure 1780s Paris: a granite architrave, a keystone, a projecting cornice above and an iron balconette across the bottom. Behind the old-looking face the glass is modern. It is triple glazed with warm-edge spacers and Ug ≈ 0.5 W/m²K, which a house at 62° N needs.</p>
+        <table>
+          <thead><tr><th>Type</th><th>Size</th><th>Grid</th><th>Count</th></tr></thead>
+          <tbody>
+            <tr><td>W1 piano nobile</td><td class="num">2400 × 6000</td><td class="num">4 × 10</td><td class="num">44</td></tr>
+            <tr><td>W2 upper floor</td><td class="num">2400 × 3600</td><td class="num">4 × 6</td><td class="num">48</td></tr>
+            <tr><td>W3 œil-de-bœuf</td><td class="num">Ø 1500</td><td class="num">radial</td><td class="num">24</td></tr>
+            <tr><td>G1 salon curtain wall</td><td class="num">39 m × 8 m</td><td class="num">600 □</td><td class="num">1</td></tr>
+            <tr><td>Courtyard windows</td><td class="num">2400 × 5400</td><td class="num">4 × 9</td><td class="num">48</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><div class="eyebrow">Area schedule</div><h2>Levels</h2></div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Level</th><th>Height</th><th>What's there</th><th>Gross area</th></tr></thead>
+        <tbody>
+          <tr><td class="lvl">Boathouse</td><td class="num">−42.0</td><td>Covered berth for a 40 ft boat, carved into the cliff base. Inclined lift up to the Lab.</td><td class="num">≈ 400 m²</td></tr>
+          <tr><td class="lvl">L−1 The Lab</td><td class="num">−3.5</td><td>8 m tall workshop and car gallery for 12 cars with a vehicle lift, spa with grotto pool, wine vault, plant room. Lit by the small windows in the rusticated base.</td><td class="num">≈ 3 200 m²</td></tr>
+          <tr><td class="lvl">L0 Piano nobile</td><td class="num">+4.5</td><td>All reception rooms on the ring, gallery, winter garden, pool terrace on the lower disc.</td><td class="num">≈ 2 700 m²</td></tr>
+          <tr><td class="lvl">L1 Suites</td><td class="num">+13.0</td><td>Master suite of about 600 m², facing west onto the upper disc, plus 8 guest suites.</td><td class="num">≈ 2 700 m²</td></tr>
+          <tr><td class="lvl">L2 Mansard</td><td class="num">+20.5</td><td>Cinema, gym, staff flats, and the roof promenade around the dome.</td><td class="num">≈ 1 900 m²</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="3">Total gross floor area, excluding terraces (≈ 1 450 m²)</td><td class="num">≈ 10 900 m²</td></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><div class="eyebrow">Materials</div><h2>Norwegian stone, French manners</h2></div>
+    <div class="mats">
+      <div class="mat"><div class="sw" style="background:#d6d5cf"></div><div><h3>Iddefjord granite</h3><p>Pale grey, honed. Ashlar walls, pilasters, cornices and window surrounds. Quarried in Østfold.</p></div></div>
+      <div class="mat"><div class="sw" style="background:repeating-linear-gradient(180deg,#b8b6af 0 14px,#77756f 14px 16px)"></div><div><h3>Rusticated granite</h3><p>Same stone, split-face with deep horizontal joints, for the base storey.</p></div></div>
+      <div class="mat"><div class="sw" style="background:linear-gradient(135deg,#2a3340,#4a6178 45%,#22282f)"></div><div><h3>Larvikite</h3><p>Norway's blue-black stone with a silvery shimmer. Polished floor of the entrance hall and the pool coping.</p></div></div>
+      <div class="mat"><div class="sw" style="background:#3c4146"></div><div><h3>Otta slate</h3><p>Dark grey slate hung in fish-scale courses on the mansard, the way Paris roofs do it.</p></div></div>
+      <div class="mat"><div class="sw" style="background:#151a1d"></div><div><h3>Blackened steel</h3><p>All windows, the dome grid, the balconettes and the glass balustrade shoes.</p></div></div>
+      <div class="mat"><div class="sw" style="background:#e6e4de"></div><div><h3>White concrete</h3><p>Post-tensioned, board-marked. Used only for the two cantilevered discs, so they read as new objects pushed through the old stone.</p></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><div class="eyebrow">Reality check</div><h2>What has to be solved before this is real</h2></div>
+    <div class="checks">
+      <article><span class="tag block">Planning risk</span><h3>The 100-metre shoreline rule</h3><p>Norway's Planning and Building Act §1-8 generally bans building within 100 m of the sea unless the municipal plan sets another building line. A seafront site needs a zoning plan or a dispensation. Pick the site with this in mind, or move the house to a highland lake or valley edge where the rule works differently.</p></article>
+      <article><span class="tag design">Engineering</span><h3>14 m cantilevers in coastal wind</h3><p>The discs need post-tensioned concrete with back-spans anchored into the Lab walls. The pool adds about 150 t of water at the tip. Exposed west-coast wind and salt spray call for dynamic analysis and stainless reinforcement at the edges.</p></article>
+      <article><span class="tag design">Energy</span><h3>Glass area versus TEK17</h3><p>The simple compliance route in TEK17 caps windows and doors at about 25 % of heated floor area. This design will exceed that, so it needs a full energy calculation. Use ground-source heat pumps through the bedrock and very good walls behind the stone.</p></article>
+      <article><span class="tag design">Snow</span><h3>The glass dome</h3><p>A 26 m span on a shallow 6 m rise has to carry snow and drifts. Use laminated low-iron glass, heated perimeter gutters, and a steel grid sized for drift build-up against the mansard.</p></article>
+      <article><span class="tag ok">Feasible</span><h3>Stone facade construction</h3><p>Build it as a concrete or steel frame with 80–120 mm granite cladding on stainless anchors, not as solid load-bearing stone. The curved cornices and pilasters can be CNC-cut from 3D files like this one.</p></article>
+      <article><span class="tag ok">Rough budget</span><h3>Order of magnitude only</h3><p>At an assumed NOK 120 000–200 000 per m² for this level of stone, steel and engineering, about 10 900 m² comes to roughly NOK 1.3–2.2 billion before land. This is a guess for scale, not a quote. A Norwegian cost consultant should price it.</p></article>
+    </div>
+  </section>
+
+  <footer><span>Villa Skive · concept massing, Rev A</span><span>All dimensions are design intent; not for construction</span></footer>
+</div>
+
+<script>
+/* Shared site geometry. 3D axes: +x east, +z south, y up. Plan: x east, y south. */
+window.cliffEdge = function (z) {
+  return -37 + 0.0035 * z * z + 1.5 * Math.sin(z * 0.09) + 1.0 * Math.sin(z * 0.23 + 2);
+};
+window.ROOMS = [ // bearings in degrees, clockwise from north
+  { n: '01', name: ['Grand', 'Salon'], b0: 235, b1: 305 },
+  { n: '02', name: ['Music', 'Room'], b0: 305, b1: 340 },
+  { n: '03', name: ['Study'], b0: 340, b1: 380 },
+  { n: '04', name: ['Library'], b0: 20, b1: 70 },
+  { n: '05', name: ['Entrance', 'Hall'], b0: 70, b1: 110 },
+  { n: '06', name: ['Orangerie'], b0: 110, b1: 160 },
+  { n: '07', name: ['Kitchen'], b0: 160, b1: 200 },
+  { n: '08', name: ['Dining', 'Hall'], b0: 200, b1: 235 },
+];
+
+(function drawings() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const D = Math.PI / 180;
+  function el(tag, attrs, parent, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const P = (r, b) => [r * Math.sin(b * D), -r * Math.cos(b * D)];
+  const f = n => +n.toFixed(3);
+  function sector(r1, r2, b0, b1) {
+    const large = (b1 - b0) > 180 ? 1 : 0;
+    const [ax, ay] = P(r2, b0), [bx, by] = P(r2, b1), [cx, cy] = P(r1, b1), [dx, dy] = P(r1, b0);
+    return `M${f(ax)} ${f(ay)}A${r2} ${r2} 0 ${large} 1 ${f(bx)} ${f(by)}L${f(cx)} ${f(cy)}A${r1} ${r1} 0 ${large} 0 ${f(dx)} ${f(dy)}Z`;
+  }
+  function arc(r, b0, b1) {
+    const large = (b1 - b0) > 180 ? 1 : 0;
+    const [ax, ay] = P(r, b0), [bx, by] = P(r, b1);
+    return `M${f(ax)} ${f(ay)}A${r} ${r} 0 ${large} 1 ${f(bx)} ${f(by)}`;
+  }
+
+  /* ---------- PLAN ---------- */
+  const plan = document.getElementById('plan');
+  const defs = el('defs', {}, plan);
+  const hatch = el('pattern', { id: 'sea-hatch', width: 2.2, height: 2.2, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(0)' }, defs);
+  el('path', { d: 'M0 1.1H1.2', class: 'd-acc', 'stroke-width': 0.12, opacity: 0.7 }, hatch);
+  const outside = el('clipPath', { id: 'outside-drum' }, defs);
+  el('path', { d: 'M-80 -80H90V80H-80Z M32 0A32 32 0 1 0 -32 0A32 32 0 1 0 32 0Z', 'clip-rule': 'evenodd' }, outside);
+
+  // sea: everything west of the cliff edge
+  let cliff = [];
+  for (let z = -62; z <= 62; z += 2) cliff.push([cliffEdge(z), z]);
+  el('path', { d: 'M-66 -62' + cliff.map(p => `L${f(p[0])} ${f(p[1])}`).join('') + 'L-66 62Z', fill: 'url(#sea-hatch)' }, plan);
+  el('path', { d: 'M' + cliff.map(p => `${f(p[0])} ${f(p[1])}`).join('L'), class: 'd-ink', 'stroke-width': 0.35 }, plan);
+  el('text', { x: -58, y: -40, class: 'd-td', 'font-size': 3.2 }, plan, 'The sea');
+  el('text', { x: -58, y: -36.5, class: 'd-tm', 'font-size': 1.5 }, plan, 'CLIFF 42 M HIGH');
+
+  // forecourt & drive
+  el('circle', { cx: 68, cy: 0, r: 14, class: 'd-muted', 'stroke-width': 0.25, 'stroke-dasharray': '1 .8' }, plan);
+  el('path', { d: 'M44 -4H54.6M44 4H54.6', class: 'd-muted', 'stroke-width': 0.25 }, plan);
+  el('text', { x: 68, y: 0.6, 'text-anchor': 'middle', class: 'd-td', 'font-size': 2.2 }, plan, 'Cour');
+  el('text', { x: 68, y: 3.2, 'text-anchor': 'middle', class: 'd-td', 'font-size': 2.2 }, plan, "d'honneur");
+
+  // lower disc (pool terrace)
+  el('circle', { cx: -28, cy: 0, r: 22, class: 'd-fill', 'stroke-width': 0.35 }, plan);
+  el('rect', { x: -45.5, y: -11, width: 5, height: 22, class: 'd-accfill', opacity: 0.35 }, plan);
+  el('rect', { x: -45.5, y: -11, width: 5, height: 22, class: 'd-acc', 'stroke-width': 0.2 }, plan);
+  el('text', { x: -43, y: 0, class: 'd-tm', 'font-size': 1.4, 'text-anchor': 'middle', transform: 'rotate(-90 -43 0)' }, plan, 'INFINITY POOL 22 M');
+  el('text', { x: -36.5, y: -16.5, class: 'd-t', 'font-size': 1.7, 'text-anchor': 'middle' }, plan, 'Pool terrace');
+  // drum mask
+  el('circle', { cx: 0, cy: 0, r: 32.5, class: 'd-paper' }, plan);
+
+  // rooms
+  for (const rm of ROOMS) {
+    el('path', { d: sector(17, 32, rm.b0, rm.b1), class: 'd-fill', 'stroke-width': 0.3 }, plan);
+    const mid = (rm.b0 + rm.b1) / 2;
+    const [tx, ty] = P(24.5, mid);
+    const t = el('text', { x: f(tx), y: f(ty - (rm.name.length - 1) * 0.95 + 0.5), 'text-anchor': 'middle', class: 'd-t', 'font-size': 1.75 }, plan);
+    rm.name.forEach((w, i) => el('tspan', { x: f(tx), dy: i ? 2.1 : 0 }, t, w));
+    const [nx, ny] = P(29.6, mid);
+    el('text', { x: f(nx), y: f(ny + 0.5), 'text-anchor': 'middle', class: 'd-tm', 'font-size': 1.25 }, plan, rm.n);
+  }
+  // gallery ring + courtyard
+  el('path', { d: sector(13, 17, 0, 359.99), class: 'd-fill', 'stroke-width': 0.2 }, plan);
+  el('circle', { cx: 0, cy: 0, r: 13, class: 'd-accfill', opacity: 0.12 }, plan);
+  el('circle', { cx: 0, cy: 0, r: 13, class: 'd-acc', 'stroke-width': 0.2 }, plan);
+  for (let i = 0; i < 24; i++) { const [x, y] = P(13, i * 15 + 7.5); el('circle', { cx: f(x), cy: f(y), r: 0.45, class: 'd-poche' }, plan); }
+  el('circle', { cx: 0, cy: 0, r: 4, class: 'd-accfill', opacity: 0.3 }, plan);
+  el('text', { x: 0, y: -7, 'text-anchor': 'middle', class: 'd-td', 'font-size': 2.3 }, plan, 'Winter garden');
+  el('text', { x: 0, y: -4.9, 'text-anchor': 'middle', class: 'd-tm', 'font-size': 1.2 }, plan, 'UNDER GLASS DOME Ø 26 M');
+  el('text', { x: 0, y: 7.6, 'text-anchor': 'middle', class: 'd-tm', 'font-size': 1.2 }, plan, 'GALLERY RING');
+  el('text', { x: 0, y: 9.2, 'text-anchor': 'middle', class: 'd-tm', 'font-size': 1.2 }, plan, 'BEYOND');
+
+  // outer wall with 48 window bays; glass at the salon
+  el('path', { d: arc(32, 305, 595), class: 'd-ink', 'stroke-width': 1.1 }, plan);
+  el('path', { d: arc(32, 235, 305), class: 'd-acc', 'stroke-width': 0.45 }, plan);
+  for (let i = 0; i < 48; i++) {
+    const b = i * 7.5 + 3.75;
+    if (b > 235 && b < 305) continue;
+    const half = 1.2 / 32 / D;
+    el('path', { d: arc(32, b - half, b + half), stroke: 'var(--panel)', fill: 'none', 'stroke-width': 0.75 }, plan);
+    el('path', { d: arc(32, b - half, b + half), class: 'd-ink', 'stroke-width': 0.12 }, plan);
+  }
+  // upper disc (dashed, above)
+  el('circle', { cx: -36, cy: 0, r: 15, class: 'd-ink', 'stroke-width': 0.22, 'stroke-dasharray': '1.2 .8', 'clip-path': 'url(#outside-drum)' }, plan);
+  el('text', { x: -49, y: 20.5, class: 'd-tm', 'font-size': 1.2 }, plan, 'UPPER DISC +13.0 ABOVE');
+
+  // portico
+  el('rect', { x: 31.5, y: -8.6, width: 6.8, height: 17.2, class: 'd-fill', 'stroke-width': 0.3 }, plan);
+  for (const z of [-7.5, -4.5, -1.5, 1.5, 4.5, 7.5]) el('circle', { cx: 37, cy: z, r: 0.55, class: 'd-poche' }, plan);
+  for (let k = 0; k <= 8; k++) el('path', { d: `M${f(38.3 + k * 0.72)} -10V10`, class: 'd-ink', 'stroke-width': 0.12 }, plan);
+  el('text', { x: 41.2, y: -11.4, class: 'd-tm', 'font-size': 1.2, 'text-anchor': 'middle' }, plan, 'PORTICO');
+
+  // section markers, north arrow, scale bar
+  for (const [x, flip] of [[-60, 1], [64, 1]]) {
+    el('path', { d: `M${x} -3V3`, class: 'd-ink', 'stroke-width': 0.4 }, plan);
+    el('circle', { cx: x, cy: 5.2, r: 1.8, class: 'd-fill', 'stroke-width': 0.25 }, plan);
+    el('text', { x, y: 5.9, 'text-anchor': 'middle', class: 'd-t', 'font-size': 1.9 }, plan, 'A');
+  }
+  el('path', { d: 'M56 -44L58 -52L60 -44L58 -45.5Z', class: 'd-poche' }, plan);
+  el('text', { x: 58, y: -53.5, 'text-anchor': 'middle', class: 'd-t', 'font-size': 2 }, plan, 'N');
+  const sb = el('g', { transform: 'translate(-58 53)' }, plan);
+  el('rect', { x: 0, y: 0, width: 10, height: 1, class: 'd-poche' }, sb);
+  el('rect', { x: 10, y: 0, width: 10, height: 1, class: 'd-fill', 'stroke-width': 0.15 }, sb);
+  for (const [x, t] of [[0, '0'], [10, '10'], [20, '20 m']]) el('text', { x, y: 3.3, 'text-anchor': 'middle', class: 'd-tm', 'font-size': 1.4 }, sb, t);
+
+  /* ---------- SECTION ---------- */
+  const sec = document.getElementById('section');
+  const sd = el('defs', {}, sec);
+  const rk = el('pattern', { id: 'rock', width: 2.4, height: 2.4, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, sd);
+  el('path', { d: 'M0 0V2.4', class: 'd-muted', 'stroke-width': 0.14 }, rk);
+  const sh = el('pattern', { id: 'sea2', width: 3, height: 1.4, patternUnits: 'userSpaceOnUse' }, sd);
+  el('path', { d: 'M0 .7H1.6', class: 'd-acc', 'stroke-width': 0.12 }, sh);
+  const S = (x, h) => `${f(x)} ${f(-h)}`;
+  const poly = (pts, attrs) => el('path', Object.assign({ d: 'M' + pts.map(p => S(p[0], p[1])).join('L') + 'Z' }, attrs), sec);
+  const rect = (x0, h0, x1, h1, attrs) => poly([[x0, h0], [x1, h0], [x1, h1], [x0, h1]], attrs);
+  const line = (pts, attrs) => el('path', Object.assign({ d: 'M' + pts.map(p => S(p[0], p[1])).join('L') }, attrs), sec);
+  const txt = (x, h, s, cls, size, anchor = 'start') => el('text', { x, y: f(-h), class: cls, 'font-size': size, 'text-anchor': anchor }, sec, s);
+
+  rect(-66, -42, -38, -53, { fill: 'url(#sea2)' });
+  line([[-66, -42], [-39.6, -42]], { class: 'd-acc', 'stroke-width': 0.3 });
+  const rock = [[-66, -53], [-48, -53], [-44, -47], [-40, -42], [-38.6, -30], [-37.8, -18], [-37.3, -8], [-36.6, -2], [-36, 0], [74, 0], [74, -53]];
+  poly(rock, { fill: 'var(--panel)' });
+  poly(rock, { fill: 'url(#rock)', stroke: 'var(--ink)', 'stroke-width': 0.3 });
+  // excavation for the Lab and boathouse
+  rect(-33, -4.6, 33, 0, { class: 'd-paper' });
+  rect(-41.5, -42, -36.2, -36.5, { class: 'd-paper' });
+  rect(-41.5, -42.4, -36.2, -42, { class: 'd-poche' });
+  line([[-41.5, -36.5], [-36.2, -36.5]], { class: 'd-ink', 'stroke-width': 0.3 });
+  txt(-46.5, -34.6, 'Boathouse −42.0', 'd-tm', 1.35);
+  line([[-24, -3.5], [-38.2, -37.5]], { class: 'd-ink', 'stroke-width': 0.25, 'stroke-dasharray': '1 .7' });
+  txt(-29.5, -22, 'Inclined lift', 'd-tm', 1.3, 'middle');
+
+  // slabs and walls (poché)
+  const K = { class: 'd-poche' };
+  rect(-33, -4.6, 33, -3.5, K);                // lab floor
+  rect(-32.8, -3.5, -31.4, 4.5, K);            // basement walls
+  rect(31.4, -3.5, 32.8, 4.5, K);
+  rect(-33, 4.0, 33, 4.5, K);                  // L0 slab
+  rect(-32, 12.4, -13, 13, K); rect(13, 12.4, 32, 13, K);      // L1
+  rect(-32, 20.0, -13, 20.5, K); rect(13, 20.0, 32, 20.5, K);  // L2
+  rect(-28.4, 25.0, -13, 25.5, K); rect(13, 25.0, 28.4, 25.5, K); // roof
+  rect(-32.5, 12.4, -31.5, 20.5, K);          // west upper wall (salon below is glass)
+  rect(31.5, 10.5, 32.5, 20.5, K);            // east wall over entrance door
+  rect(-13.3, 4.5, -12.7, 25.5, K); rect(12.7, 4.5, 13.3, 25.5, K); // courtyard walls
+  rect(-17.15, 4.5, -16.85, 12.4, K); rect(16.85, 4.5, 17.15, 12.4, K);
+  rect(-17.15, 13, -16.85, 20, K); rect(16.85, 13, 17.15, 20, K);
+  // cornices and mansards
+  for (const s of [-1, 1]) {
+    poly([[s * 31.5, 19.6], [s * 33.4, 19.6], [s * 33.4, 20.5], [s * 31.5, 20.5]], K);
+    poly([[s * 32.4, 20.5], [s * 28.4, 25.5], [s * 27.6, 25.5], [s * 31.5, 20.5]], K);
+    poly([[s * 31.5, 12.0], [s * 32.9, 12.0], [s * 32.9, 13.0], [s * 31.5, 13.0]], K);
+  }
+  line([[-32, 4.5], [-32, 12.0]], { class: 'd-acc', 'stroke-width': 0.35 });
+  // dome
+  el('path', { d: `M${S(-13, 25.5)}A17.08 17.08 0 0 1 ${S(13, 25.5)}`, class: 'd-ink', 'stroke-width': 0.3 }, sec);
+  el('path', { d: `M${S(-12.6, 25.5)}A16.7 16.7 0 0 1 ${S(12.6, 25.5)}`, class: 'd-acc', 'stroke-width': 0.15 }, sec);
+  // lower disc with pool
+  poly([[-31.4, 4.5], [-50, 4.5], [-50, 3.6], [-46, 3.3], [-46, 2.7], [-40, 2.7], [-40, 3.0], [-31.4, 2.6]], K);
+  rect(-45.5, 3.3, -40.5, 4.4, { class: 'd-accfill', opacity: 0.5 });
+  line([[-49.9, 4.5], [-49.9, 5.6]], { class: 'd-acc', 'stroke-width': 0.3 });
+  // upper disc
+  poly([[-31.4, 13], [-51, 13], [-51, 12.5], [-31.4, 11.9]], K);
+  line([[-50.9, 13], [-50.9, 14.1]], { class: 'd-acc', 'stroke-width': 0.3 });
+  // portico
+  poly([[32.8, 0], [32.8, 4.5], [38, 4.5], ...Array.from({ length: 6 }, (_, k) => [[38 + k, 4.5 - k * 0.75], [39 + k, 4.5 - k * 0.75]]).flat(), [44, 0]], { fill: 'url(#rock)', stroke: 'var(--ink)', 'stroke-width': 0.25 });
+  rect(36.45, 4.5, 37.55, 11.5, { class: 'd-ink', 'stroke-width': 0.2 });
+  poly([[32.5, 11.5], [38.3, 11.5], [38.3, 13], [32.5, 13]], K);
+  poly([[32.5, 13], [38.3, 13], [38.3, 13.4], [32.5, 16.2]], { class: 'd-ink', 'stroke-width': 0.25 });
+
+  // room labels
+  txt(0, -1.2, 'L−1  The Lab', 'd-t', 1.8, 'middle');
+  txt(-24, 8, 'Grand Salon', 'd-t', 1.7, 'middle');
+  txt(24, 8, 'Entrance Hall', 'd-t', 1.7, 'middle');
+  txt(0, 8, 'Winter garden', 'd-td', 2.1, 'middle');
+  txt(-22.5, 16.2, 'Master suite', 'd-t', 1.6, 'middle');
+  txt(22.5, 16.2, 'Guest suites', 'd-t', 1.6, 'middle');
+  txt(-21, 22.3, 'Attic', 'd-tm', 1.3, 'middle');
+  txt(21, 22.3, 'Attic', 'd-tm', 1.3, 'middle');
+  txt(-43, 6.4, 'Pool terrace', 'd-tm', 1.3, 'middle');
+  // level ticks
+  for (const [h, s] of [[31.5, '+31.5 dome'], [25.5, '+25.5 roof'], [20.5, '+20.5 L2'], [13, '+13.0 L1'], [4.5, '+4.5 L0'], [0, '±0.0 ground'], [-3.5, '−3.5 L−1']]) {
+    line([[47, h], [50, h]], { class: 'd-ink', 'stroke-width': 0.2 });
+    txt(51, h + 0.35, s, 'd-tm', 1.4);
+  }
+  // dimensions
+  line([[-32, 33.5], [32, 33.5]], { class: 'd-ink', 'stroke-width': 0.15 });
+  line([[-32, 32.8], [-32, 34.2]], { class: 'd-ink', 'stroke-width': 0.15 }); line([[32, 32.8], [32, 34.2]], { class: 'd-ink', 'stroke-width': 0.15 });
+  txt(-22, 34.1, 'Ø 64.0', 'd-tm', 1.4, 'middle');
+  line([[-36, 8], [-50, 8]], { class: 'd-ink', 'stroke-width': 0.15 });
+  line([[-36, 7.3], [-36, 8.7]], { class: 'd-ink', 'stroke-width': 0.15 }); line([[-50, 7.3], [-50, 8.7]], { class: 'd-ink', 'stroke-width': 0.15 });
+  txt(-43, 8.6, '14.0 past cliff', 'd-tm', 1.25, 'middle');
+  txt(-63, -40.8, 'Sea level −42.0', 'd-tm', 1.4);
+  txt(-63, 2, 'West · the sea', 'd-td', 2.2);
+  txt(66, 2, 'East', 'd-td', 2.2, 'end');
+
+  /* ---------- WINDOW ---------- */
+  const w = document.getElementById('window');
+  const W = (tag, a, t) => el(tag, a, w, t);
+  W('rect', { x: -50, y: -78, width: 340, height: 22, class: 'd-fill', 'stroke-width': 2 });   // cornice
+  W('rect', { x: -40, y: -56, width: 320, height: 14, class: 'd-fill', 'stroke-width': 2 });
+  W('path', { d: 'M-30 -42H270V630H-30Z M0 0V600H240V0Z', class: 'd-fill', 'fill-rule': 'evenodd', 'stroke-width': 2 }); // architrave
+  W('path', { d: 'M-16 -42V616H256V-42', class: 'd-ink', 'stroke-width': 1, opacity: .6 });
+  W('path', { d: 'M100 -48H140L132 6H108Z', class: 'd-fill', 'stroke-width': 2 });           // keystone
+  W('rect', { x: 0, y: 0, width: 240, height: 600, class: 'd-glass' });
+  const g = el('g', { stroke: 'var(--poche)', fill: 'none' }, w);
+  for (let x = 60; x < 240; x += 60) el('path', { d: `M${x} 0V600`, 'stroke-width': 4 }, g);
+  for (let y = 60; y < 600; y += 60) el('path', { d: `M0 ${y}H240`, 'stroke-width': 4 }, g);
+  el('path', { d: 'M120 0V600', 'stroke-width': 7 }, g);                                       // meeting stiles
+  el('rect', { x: 3, y: 3, width: 234, height: 594, 'stroke-width': 7 }, g);
+  // balconette
+  const bal = el('g', { stroke: 'var(--poche)', fill: 'none', 'stroke-width': 3 }, w);
+  el('path', { d: 'M-24 500H264M-24 512H264M-24 592H264' }, bal);
+  for (let x = -24; x <= 264; x += 18) el('path', { d: `M${x} 512V592`, 'stroke-width': 1.6 }, bal);
+  el('circle', { cx: 120, cy: 552, r: 22, fill: 'var(--panel)', 'stroke-width': 3 }, bal);
+  el('circle', { cx: 120, cy: 552, r: 11, 'stroke-width': 2 }, bal);
+  W('rect', { x: -46, y: 630, width: 332, height: 18, class: 'd-fill', 'stroke-width': 2 });  // sill
+  // dimensions
+  const dim = el('g', { stroke: 'var(--ink)', 'stroke-width': 1.2, fill: 'none' }, w);
+  el('path', { d: 'M0 690H240M0 680V700M240 680V700' }, dim);
+  el('path', { d: 'M-80 0V600M-90 0H-70M-90 600H-70' }, dim);
+  el('path', { d: 'M180 60H240M180 52V68M240 52V68', stroke: 'var(--accent)' }, dim);
+  W('text', { x: 120, y: 718, 'text-anchor': 'middle', class: 'd-tm', 'font-size': 18 }, '2 400');
+  W('text', { x: -92, y: 300, 'text-anchor': 'middle', class: 'd-tm', 'font-size': 18, transform: 'rotate(-90 -92 300)' }, '6 000');
+  // callouts
+  const notes = [
+    [-66, 'Projecting granite cornice'],
+    [-20, 'Keystone'],
+    [90, 'Black steel, 40 mm sightline'],
+    [190, '600 × 600 true divided lites'],
+    [300, 'Triple glazing, Ug ≈ 0.5'],
+    [420, 'Granite architrave, 300 mm'],
+    [552, 'Wrought-iron balconette'],
+    [640, 'Granite sill'],
+  ];
+  const tx = { '-66': 290, '-20': 136, 90: 228, 190: 210, 300: 236, 420: 266, 552: 250, 640: 286 };
+  for (const [y, t] of notes) {
+    W('path', { d: `M${tx[y]} ${y}H320`, class: 'd-muted', 'stroke-width': 1 });
+    W('circle', { cx: tx[y], cy: y, r: 3, class: 'd-poche' });
+    W('text', { x: 330, y: y + 6, class: 'd-t', 'font-size': 19 }, t);
+  }
+})();
+</script>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const statusEl = document.getElementById('status');
+const host = document.getElementById('viewer');
+try { start(); } catch (err) {
+  console.error(err);
+  statusEl.textContent = 'The 3D model needs WebGL, which this browser or preview does not provide. The drawings below show the full design.';
+}
+
+function start() {
+  /* ---------- design constants (metres) ---------- */
+  const R = 32, RC = 13, RG = 17;           // outer wall, courtyard, gallery
+  const YP = 4.5, Y1 = 13, Y2 = 20.5, YR = 25.5; // floor levels
+  const NB = 48, BAY = Math.PI * 2 / NB;
+  const SEA = -42;
+  const DEG = Math.PI / 180;
+  // three.js cylinder angle φ: x = r·sinφ, z = r·cosφ.  Bearing b → φ = 180° − b.
+  const phiOf = b => (180 - b) * DEG;
+  const inSalon = phi => { const d = ((phi / DEG) % 360 + 360) % 360; return d > 235 && d < 305; };
+
+  /* ---------- renderer / scene ---------- */
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.localClippingEnabled = true;
+  host.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 16 / 9, 0.5, 12000);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.maxDistance = 1400;
+  controls.minDistance = 2;
+  controls.maxPolarAngle = Math.PI * 0.62;
+
+  const cutPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e5);
+  const houseMats = [];
+  const house = (m) => { m.clippingPlanes = [cutPlane]; m.clipShadows = true; houseMats.push(m); return m; };
+
+  /* ---------- noise ---------- */
+  const hash = (x, z) => { const h = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; return h - Math.floor(h); };
+  function vnoise(x, z) {
+    const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
+    const u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
+    const a = hash(xi, zi), b = hash(xi + 1, zi), c = hash(xi, zi + 1), d = hash(xi + 1, zi + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  function fbm(x, z, o = 5) { let s = 0, a = .5, f = 1; for (let i = 0; i < o; i++) { s += a * vnoise(x * f, z * f); f *= 2.03; a *= .5; } return s; }
+  const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  let seed = 7; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  /* ---------- procedural textures ---------- */
+  function canvasTex(w, h, draw, srgb = true) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    const t = new THREE.CanvasTexture(c);
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return t;
+  }
+  function speckle(g, w, h, n, base, dark, light) {
+    g.fillStyle = base; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < n; i++) { g.fillStyle = rand() < .55 ? dark : light; g.globalAlpha = .25 + rand() * .4; g.fillRect(rand() * w, rand() * h, 1 + rand() * 1.6, 1 + rand() * 1.6); }
+    g.globalAlpha = 1;
+  }
+  // 4 m × 4 m ashlar: 0.5 m courses, 1.0 m stones
+  const stoneTex = canvasTex(512, 512, (g, w, h) => {
+    speckle(g, w, h, 14000, '#d9d8d1', '#9d9c95', '#f4f3ee');
+    g.strokeStyle = 'rgba(80,80,76,.38)'; g.lineWidth = 1.4;
+    for (let r = 0; r < 8; r++) { const y = r * 64; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
+      for (let k = 0; k < 4; k++) { const x = k * 128 + (r % 2) * 64; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 64); g.stroke(); } }
+  });
+  // rustication: 0.75 m bands with deep joints
+  const rusticTex = canvasTex(512, 512, (g, w, h) => {
+    speckle(g, w, h, 12000, '#c3c1b9', '#8a8881', '#e6e4dd');
+    const ch = 512 / (4 / .75);
+    for (let r = 0; r < 6; r++) {
+      const y = Math.round(r * ch);
+      g.fillStyle = 'rgba(30,30,28,.6)'; g.fillRect(0, y, w, 7);
+      g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(0, y + 7, w, 3);
+      for (let k = 0; k < 3; k++) { const x = k * 192 + (r % 2) * 96; g.fillStyle = 'rgba(30,30,28,.5)'; g.fillRect(x, y, 5, ch); }
+    }
+  });
+  const slateTex = canvasTex(256, 256, (g, w, h) => {
+    g.fillStyle = '#3a3f44'; g.fillRect(0, 0, w, h);
+    for (let r = 0; r < 16; r++) for (let k = 0; k < 14; k++) {
+      const l = 50 + rand() * 18; g.fillStyle = `rgb(${l},${l + 4},${l + 9})`;
+      g.beginPath(); const x = k * 19 + (r % 2) * 9.5, y = r * 16; g.ellipse(x + 9, y + 12, 9.5, 10, 0, 0, Math.PI); g.fill();
+      g.fillRect(x, y, 19, 12);
+    }
+  });
+  function windowTex(cols, rows, night) {
+    const cw = 64, wpx = cols * cw, hpx = rows * cw;
+    return canvasTex(wpx, hpx, (g) => {
+      const gr = g.createLinearGradient(0, 0, wpx * .3, hpx);
+      if (night) { gr.addColorStop(0, '#ffd9a0'); gr.addColorStop(.6, '#f2a85a'); gr.addColorStop(1, '#b8692c'); }
+      else { gr.addColorStop(0, '#a9bcc6'); gr.addColorStop(.45, '#5f7380'); gr.addColorStop(1, '#25313a'); }
+      g.fillStyle = gr; g.fillRect(0, 0, wpx, hpx);
+      if (!night) { g.globalAlpha = .18; g.fillStyle = '#fff'; g.beginPath(); g.moveTo(wpx * .1, 0); g.lineTo(wpx * .45, 0); g.lineTo(0, hpx * .5); g.lineTo(0, hpx * .3); g.fill(); g.globalAlpha = 1; }
+      g.fillStyle = '#0d1012';
+      for (let i = 1; i < cols; i++) g.fillRect(i * cw - 2, 0, 4, hpx);
+      for (let j = 1; j < rows; j++) g.fillRect(0, j * cw - 2, wpx, 4);
+      g.fillRect(wpx / 2 - 3, 0, 6, hpx);
+      g.lineWidth = 10; g.strokeStyle = '#0d1012'; g.strokeRect(0, 0, wpx, hpx);
+    });
+  }
+  function curtainTex(night) { // seamless 4×4 grid of 600 mm squares
+    return canvasTex(256, 256, (g) => {
+      g.fillStyle = night ? '#f6b66a' : '#5a6e7b'; g.fillRect(0, 0, 256, 256);
+      if (!night) { const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, 'rgba(200,215,222,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256); }
+      g.fillStyle = '#0d1012';
+      for (let i = 0; i < 4; i++) { g.fillRect(i * 64 + 30, 0, 4, 256); g.fillRect(0, i * 64 + 30, 256, 4); }
+    });
+  }
+
+  /* ---------- materials ---------- */
+  function stoneMat(tex, rx, ry, extra = {}) {
+    const t = tex.clone(); t.repeat.set(rx, ry); t.needsUpdate = true;
+    return house(new THREE.MeshStandardMaterial(Object.assign({ map: t, roughness: .82, side: THREE.DoubleSide }, extra)));
+  }
+  const stonePlain = house(new THREE.MeshStandardMaterial({ color: 0xd8d6cf, roughness: .78, side: THREE.DoubleSide }));
+  const steel = house(new THREE.MeshStandardMaterial({ color: 0x14181b, roughness: .45, metalness: .7 }));
+  const concrete = house(new THREE.MeshStandardMaterial({ color: 0xe9e7e1, roughness: .62 }));
+  const plaster = house(new THREE.MeshStandardMaterial({ color: 0xefece6, roughness: .9, side: THREE.DoubleSide }));
+  const floorMat = house(new THREE.MeshStandardMaterial({ color: 0xcfc6b8, roughness: .7 }));
+  const roofMat = house(new THREE.MeshStandardMaterial({ color: 0x4b5055, roughness: .85 }));
+  const winMat = (cols, rows) => house(new THREE.MeshStandardMaterial({ map: windowTex(cols, rows, false), emissiveMap: windowTex(cols, rows, true), emissive: 0xffffff, emissiveIntensity: 0, roughness: .12, metalness: .55 }));
+  const W1 = winMat(4, 10), W2 = winMat(4, 6), WC = winMat(4, 9);
+  const labWin = house(new THREE.MeshStandardMaterial({ color: 0x1b2328, emissive: 0xbfe6ff, emissiveIntensity: 0, roughness: .15, metalness: .5 }));
+  const oculusMat = house(new THREE.MeshStandardMaterial({ color: 0x2a3640, emissive: 0xffc27a, emissiveIntensity: 0, roughness: .15, metalness: .5 }));
+  const curtain = (() => {
+    const len = R * 70 * DEG, rx = Math.round(len / 2.4), ry = (Y1 - 0.6 - YP) / 2.4;
+    const m = curtainTex(false), e = curtainTex(true); m.repeat.set(rx, ry); e.repeat.set(rx, ry);
+    return house(new THREE.MeshStandardMaterial({ map: m, emissiveMap: e, emissive: 0xffffff, emissiveIntensity: 0, roughness: .1, metalness: .55, side: THREE.DoubleSide }));
+  })();
+  const domeGlass = house(new THREE.MeshPhysicalMaterial({ color: 0xcfe0e6, roughness: .04, metalness: 0, transparent: true, opacity: .22, side: THREE.DoubleSide, emissive: 0xffd6a0, emissiveIntensity: 0, depthWrite: false }));
+  const balGlass = house(new THREE.MeshPhysicalMaterial({ color: 0xd9eef2, roughness: .05, transparent: true, opacity: .28, side: THREE.DoubleSide, depthWrite: false }));
+  const poolMat = house(new THREE.MeshStandardMaterial({ color: 0x1f7f93, roughness: .08, metalness: .1, emissive: 0x2fd0e8, emissiveIntensity: 0 }));
+  const ledMat = house(new THREE.MeshBasicMaterial({ color: 0x2b2b2b }));
+  const gardenMat = house(new THREE.MeshStandardMaterial({ color: 0x55673f, roughness: .95 }));
+  const treeMat = house(new THREE.MeshStandardMaterial({ color: 0x2f4a33, roughness: .9, flatShading: true }));
+  const lineMat = house(new THREE.LineBasicMaterial({ color: 0x0d1012 }));
+
+  /* ---------- batching helper: merge many small meshes per material ---------- */
+  const batches = new Map();
+  const tmp = new THREE.Object3D();
+  function put(geo, mat, x, y, z, ry = 0, rx = 0, rz = 0, s) {
+    tmp.position.set(x, y, z); tmp.rotation.set(rx, ry, rz, 'YXZ');
+    if (s) tmp.scale.set(...s); else tmp.scale.set(1, 1, 1);
+    tmp.updateMatrix();
+    const g = geo.clone().applyMatrix4(tmp.matrix);
+    if (!batches.has(mat)) batches.set(mat, []);
+    batches.get(mat).push(g.index ? g.toNonIndexed() : g);
+  }
+  function flush(group) {
+    for (const [mat, list] of batches) {
+      const m = new THREE.Mesh(mergeGeometries(list, false), mat);
+      m.castShadow = m.receiveShadow = !mat.transparent;
+      group.add(m);
+    }
+    batches.clear();
+  }
+  function addMesh(geo, mat, parent, shadow = true) {
+    const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = shadow; parent.add(m); return m;
+  }
+  const cyl = (rTop, rBot, h, seg = 160, open = true, t0 = 0, tl = Math.PI * 2) => new THREE.CylinderGeometry(rTop, rBot, h, seg, 1, open, t0, tl);
+
+  /* =========================================================
+     THE HOUSE
+     ========================================================= */
+  const villa = new THREE.Group(); scene.add(villa);
+  // a solid ring turned from an (r, y) profile: cornices, bands, parapets
+  const band = (pts) => addMesh(new THREE.LatheGeometry(pts.concat([pts[0]]).map(([r, y]) => new THREE.Vector2(r, y)), 180), stonePlain, villa);
+  const circ = r => 2 * Math.PI * r;
+
+  // rusticated base
+  addMesh(cyl(32.6, 32.6, YP + 1.0), stoneMat(rusticTex, circ(32.6) / 4, (YP + 1) / 4), villa).position.y = (YP - 1) / 2;
+  band([[32.0, YP - 0.45], [33.0, YP - 0.45], [33.0, YP - 0.12], [32.8, YP], [32.0, YP]]);
+  // piano nobile wall (open at the salon)
+  const pnH = Y1 - YP;
+  const pnWall = addMesh(cyl(R, R, pnH, 160, true, 305 * DEG, 290 * DEG), stoneMat(stoneTex, circ(R) * 290 / 360 / 4, pnH / 4), villa);
+  pnWall.position.y = YP + pnH / 2;
+  // salon curtain wall
+  addMesh(cyl(R - 0.3, R - 0.3, Y1 - 0.6 - YP, 120, true, 235 * DEG, 70 * DEG), curtain, villa, false).position.y = YP + (Y1 - 0.6 - YP) / 2;
+  // upper wall
+  const upH = Y2 - Y1;
+  addMesh(cyl(R, R, upH), stoneMat(stoneTex, circ(R) / 4, upH / 4), villa).position.y = Y1 + upH / 2;
+  // entablature & main cornice, turned as true profiles
+  band([[32, Y1 - 0.7], [32.7, Y1 - 0.7], [32.7, Y1 + 0.3], [32.85, Y1 + 0.35], [33.1, Y1 + 0.45], [33.1, Y1 + 0.7], [32, Y1 + 0.7]]);
+  band([[32, Y2 - 0.6], [32.5, Y2 - 0.6], [32.6, Y2 - 0.35], [33.0, Y2 - 0.2], [33.25, Y2 - 0.05], [33.55, Y2 + 0.1], [33.55, Y2 + 0.32], [32, Y2 + 0.32]]);
+  // mansard
+  const mansard = addMesh(cyl(28.4, 32.6, YR - Y2 - 0.3, 160, true), stoneMat(slateTex, circ(30.5) / 3, 1.5, { roughness: .7, metalness: .15 }), villa);
+  mansard.position.y = Y2 + 0.3 + (YR - Y2 - 0.3) / 2;
+  // flat roof ring and parapet
+  const roof = addMesh(new THREE.RingGeometry(RC, 28.5, 128, 1), roofMat, villa); roof.rotation.x = -Math.PI / 2; roof.position.y = YR;
+  band([[27.9, YR], [28.55, YR], [28.55, YR + 0.85], [28.7, YR + 0.95], [28.7, YR + 1.05], [27.9, YR + 1.05]]);
+  // courtyard facade (inner drum)
+  addMesh(cyl(RC, RC, YR - YP), stoneMat(stoneTex, circ(RC) / 4, (YR - YP) / 4), villa).position.y = (YR + YP) / 2;
+  band([[RC - 0.3, YR], [RC + 0.6, YR], [RC + 0.6, YR + 0.7], [RC - 0.3, YR + 0.7]]);
+
+  // ---- bays: pilasters, windows, hoods, balconettes ----
+  const gW1 = new THREE.PlaneGeometry(2.4, 6.0), gW2 = new THREE.PlaneGeometry(2.4, 3.6), gWC = new THREE.PlaneGeometry(2.4, 5.4);
+  const gSur1 = new THREE.BoxGeometry(3.0, 6.6, 0.16), gSur2 = new THREE.BoxGeometry(3.0, 4.2, 0.16);
+  const gHood = new THREE.BoxGeometry(3.4, 0.28, 0.5), gKey = new THREE.BoxGeometry(0.45, 0.6, 0.24);
+  const gPil = new THREE.BoxGeometry(0.95, 1, 0.45), gRail = new THREE.BoxGeometry(2.6, 0.06, 0.06), gBar = new THREE.BoxGeometry(0.025, 0.95, 0.025);
+  const gLab = new THREE.PlaneGeometry(1.4, 1.4), gLabSur = new THREE.BoxGeometry(1.9, 1.9, 0.12);
+  for (let i = 0; i < NB; i++) {
+    const pB = i * BAY, pW = pB + BAY / 2;                      // boundary & window angles
+    const sx = Math.sin(pW), sz = Math.cos(pW);
+    const at = (r) => [r * sx, r * sz];
+    // pilasters (skip inside the salon glazing)
+    const bx = Math.sin(pB), bz = Math.cos(pB);
+    if (!inSalon(pB)) {
+      put(gPil, stonePlain, (R + .18) * bx, YP + pnH / 2 - 0.4, (R + .18) * bz, pB, 0, 0, [1, pnH - 1.2, 1]);
+    }
+    put(gPil, stonePlain, (R + .18) * bx, Y1 + upH / 2, (R + .18) * bz, pB, 0, 0, [0.85, upH - 0.6, 1]);
+    // piano nobile window
+    if (!inSalon(pW)) {
+      const y = YP + 0.6 + 3.0;
+      put(gSur1, stonePlain, ...[at(R + 0.06)[0], y, at(R + 0.06)[1]], pW);
+      put(gW1, W1, at(R + 0.16)[0], y, at(R + 0.16)[1], pW);
+      put(gHood, stonePlain, at(R + 0.3)[0], y + 3.55, at(R + 0.3)[1], pW);
+      put(gKey, stonePlain, at(R + 0.2)[0], y + 3.15, at(R + 0.2)[1], pW);
+      for (const dy of [-1.9, -2.85]) put(gRail, steel, at(R + 0.45)[0], y + dy, at(R + 0.45)[1], pW);
+      for (let k = -6; k <= 6; k++) {
+        const off = k * 0.2, px = at(R + 0.45)[0] + Math.cos(pW) * off, pz = at(R + 0.45)[1] - Math.sin(pW) * off;
+        put(gBar, steel, px, y - 2.4, pz, pW);
+      }
+    }
+    // upper window
+    { const y = Y1 + 0.9 + 1.8;
+      put(gSur2, stonePlain, at(R + 0.06)[0], y, at(R + 0.06)[1], pW);
+      put(gW2, W2, at(R + 0.16)[0], y, at(R + 0.16)[1], pW);
+      put(gHood, stonePlain, at(R + 0.3)[0], y + 2.2, at(R + 0.3)[1], pW, 0, 0, [0.9, 0.8, 0.8]); }
+    // lab windows in the rusticated base (landward only; the discs cover the sea side)
+    if (!inSalon(pW) && i % 2 === 0) {
+      put(gLabSur, stonePlain, at(32.62)[0], 2.0, at(32.62)[1], pW);
+      put(gLab, labWin, at(32.7)[0], 2.0, at(32.7)[1], pW);
+    }
+    // courtyard windows, facing inward, every other bay
+    if (i % 2 === 0) {
+      const ri = RC - 0.12, x = ri * sx, z = ri * sz;
+      put(gWC, WC, x, YP + 0.4 + 2.7, z, pW + Math.PI);
+      put(gW2, W2, x, Y1 + 0.7 + 1.8, z, pW + Math.PI);
+    }
+    // œil-de-bœuf dormers, every other bay
+    if (i % 2 === 1) {
+      const rr = 30.7, x = rr * sx, z = rr * sz, y = Y2 + 2.4;
+      put(new THREE.BoxGeometry(2.0, 2.2, 2.0), roofMat, x - sx * .3, y - 0.2, z - sz * .3, pW);
+      put(new THREE.CylinderGeometry(1.0, 1.0, 2.0, 24, 1, false, 0, Math.PI), roofMat, x - sx * .3, y + 0.9, z - sz * .3, pW, 0, Math.PI / 2);
+      put(new THREE.TorusGeometry(0.78, 0.17, 10, 32), stonePlain, x + sx * .72, y, z + sz * .72, pW);
+      put(new THREE.CircleGeometry(0.66, 32), oculusMat, x + sx * .72, y, z + sz * .72, pW);
+    }
+  }
+  // salon mullions (black steel fins) and the salon's stone frame edges
+  for (let b = 235; b <= 305; b += 7) {
+    const p = b * DEG; put(new THREE.BoxGeometry(0.12, Y1 - 0.6 - YP, 0.5), steel, (R - 0.1) * Math.sin(p), YP + (Y1 - 0.6 - YP) / 2, (R - 0.1) * Math.cos(p), p);
+  }
+
+  // portico (east, φ = 90°)
+  const colG = new THREE.CylinderGeometry(0.48, 0.56, 7.0, 24), capG = new THREE.BoxGeometry(1.3, 0.5, 1.3);
+  for (const z of [-7.5, -4.5, -1.5, 1.5, 4.5, 7.5]) {
+    put(colG, stonePlain, 37, YP + 0.3 + 3.5, z); put(capG, stonePlain, 37, YP + 7.55, z); put(capG, stonePlain, 37, YP + 0.25, z);
+  }
+  put(new THREE.BoxGeometry(7.2, 1.5, 17.6), stonePlain, 34.6, Y1 - 0.75 + 0.05, 0);
+  put(new THREE.BoxGeometry(7.6, 4.5, 18.6), stoneMat(rusticTex, 2, 1.2), 34.4, YP / 2, 0);
+  for (let k = 0; k < 6; k++) put(new THREE.BoxGeometry(1.0, 0.75, 20), stonePlain, 38.7 + k, YP - 0.375 - k * 0.75, 0);
+  for (let k = 0; k < 6; k++) put(new THREE.BoxGeometry(1.0, YP - k * 0.75, 1), stonePlain, 38.7 + k, (YP - k * .75) / 2 - 0.01, -10.5);
+  flush(villa);
+  {
+    const sh = new THREE.Shape(); sh.moveTo(-9.0, 0); sh.lineTo(9.0, 0); sh.lineTo(0, 3.2); sh.lineTo(-9.0, 0);
+    const pg = new THREE.ExtrudeGeometry(sh, { depth: 7.4, bevelEnabled: false }); pg.rotateY(Math.PI / 2);
+    const ped = addMesh(pg, stonePlain, villa); ped.position.set(31.0, Y1 + 0.05, 0);
+  }
+
+  // floor slabs (visible in section)
+  function ringSlab(r0, r1, y, mat, th = 0.5) {
+    const s = new THREE.Shape(); s.absarc(0, 0, r1, 0, Math.PI * 2, false);
+    const hole = new THREE.Path(); hole.absarc(0, 0, r0, 0, Math.PI * 2, true); s.holes.push(hole);
+    const g = new THREE.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 96 }); g.rotateX(-Math.PI / 2);
+    const m = addMesh(g, mat, villa); m.position.y = y - th; return m;
+  }
+  ringSlab(0.01, R - 0.05, YP - 0.02, floorMat);
+  ringSlab(RC, R - 0.05, Y1, floorMat);
+  ringSlab(RC, R - 0.05, Y2, floorMat);
+  // gallery partitions and radial walls
+  addMesh(cyl(RG, RG, pnH - 0.5, 96), plaster, villa).position.y = YP + (pnH - 0.5) / 2;
+  addMesh(cyl(RG, RG, upH - 0.5, 96), plaster, villa).position.y = Y1 + (upH - 0.5) / 2;
+  for (const rm of window.ROOMS) {
+    const p = phiOf(rm.b0);
+    put(new THREE.BoxGeometry(0.3, pnH - 0.5, R - RG), plaster, (R + RG) / 2 * Math.sin(p), YP + (pnH - 0.5) / 2, (R + RG) / 2 * Math.cos(p), p);
+    put(new THREE.BoxGeometry(0.3, upH - 0.5, R - RG), plaster, (R + RG) / 2 * Math.sin(p), Y1 + (upH - 0.5) / 2, (R + RG) / 2 * Math.cos(p), p);
+  }
+  // the Lab (L−1) box below
+  put(new THREE.BoxGeometry(60, 0.6, 60), floorMat, 0, -3.8, 0, 0, 0, 0, [1, 1, 1]);
+  flush(villa);
+
+  // winter garden: lawn, pool, trees
+  const lawn = addMesh(new THREE.CircleGeometry(RC, 64), gardenMat, villa); lawn.rotation.x = -Math.PI / 2; lawn.position.y = YP + 0.02;
+  const rp = addMesh(new THREE.CircleGeometry(4, 48), poolMat, villa); rp.rotation.x = -Math.PI / 2; rp.position.y = YP + 0.05;
+  for (let k = 0; k < 7; k++) {
+    const a = k / 7 * Math.PI * 2 + .3, r = 8.6;
+    put(new THREE.ConeGeometry(1.5, 6.5, 7), treeMat, r * Math.sin(a), YP + 3.6, r * Math.cos(a));
+    put(new THREE.CylinderGeometry(.15, .2, 1, 6), steel, r * Math.sin(a), YP + 0.5, r * Math.cos(a));
+  }
+  flush(villa);
+
+  // glass dome with black steel grid
+  const domeRise = 6, Rd = (RC * RC + domeRise * domeRise) / (2 * domeRise), domeCy = YR + domeRise - Rd, th = Math.asin(RC / Rd);
+  addMesh(new THREE.SphereGeometry(Rd, 64, 16, 0, Math.PI * 2, 0, th), domeGlass, villa, false).position.y = domeCy;
+  {
+    const pts = [];
+    const pos = (az, t) => new THREE.Vector3(Rd * Math.sin(t) * Math.sin(az), domeCy + Rd * Math.cos(t), Rd * Math.sin(t) * Math.cos(az));
+    for (let m = 0; m < 48; m++) { const az = m / 48 * Math.PI * 2; for (let s = 0; s < 12; s++) { pts.push(pos(az, th * s / 12), pos(az, th * (s + 1) / 12)); } }
+    for (let p = 1; p <= 8; p++) { const t = th * p / 8; for (let s = 0; s < 96; s++) pts.push(pos(s / 96 * Math.PI * 2, t), pos((s + 1) / 96 * Math.PI * 2, t)); }
+    const lg = new THREE.BufferGeometry().setFromPoints(pts);
+    const grid = new THREE.LineSegments(lg, lineMat); grid.position.y = 0.02; villa.add(grid);
+  }
+
+  /* ---- the two discs ---- */
+  function disc(cx, rTop, rBot, th, yTop, balStart, balLen) {
+    const g = new THREE.Group(); g.position.set(cx, 0, 0); villa.add(g);
+    addMesh(new THREE.CylinderGeometry(rTop, rBot, th, 128), concrete, g).position.y = yTop - th / 2 - 0.02;
+    addMesh(new THREE.CylinderGeometry(rTop + 0.02, rTop + 0.02, 0.18, 128, 1, true), steel, g).position.y = yTop - 0.09;
+    addMesh(cyl(rTop - 0.15, rTop - 0.15, 1.1, 128, true, balStart, balLen), balGlass, g, false).position.y = yTop + 0.55;
+    const led = addMesh(new THREE.TorusGeometry(rBot - 0.4, 0.06, 6, 160), ledMat, g, false); led.rotation.x = Math.PI / 2; led.position.y = yTop - th - 0.04;
+    return g;
+  }
+  const lower = disc(-28, 22, 21.2, 1.5, YP, 2.95, 3.52);
+  const upper = disc(-36, 15, 14.4, 1.0, Y1, 2.67, 4.09);
+  // infinity pool on the lower disc
+  const pool = addMesh(new THREE.PlaneGeometry(5, 22), poolMat, villa, false); pool.rotation.x = -Math.PI / 2; pool.position.set(-43, YP + 0.03, 0);
+  put(new THREE.BoxGeometry(5.6, 0.12, 0.3), stonePlain, -43, YP + 0.06, 11.1); put(new THREE.BoxGeometry(5.6, 0.12, 0.3), stonePlain, -43, YP + 0.06, -11.1);
+  put(new THREE.BoxGeometry(0.3, 0.12, 22.4), stonePlain, -40.35, YP + 0.06, 0);
+  // terrace loungers
+  for (let k = -3; k <= 3; k++) put(new THREE.BoxGeometry(2.0, 0.35, 0.8), concrete, -37.6, YP + 0.18, k * 2.4);
+  flush(villa);
+
+  /* =========================================================
+     THE SITE
+     ========================================================= */
+  function landH(x, z) {
+    let h = (fbm(x * .02, z * .02) - .45) * 3;
+    h *= smooth(44, 70, Math.hypot(x, z)) * smooth(18, 30, Math.hypot(x - 68, z));
+    h += Math.max(0, x - 90) * .16 + Math.max(0, x - 200) * .22;
+    h += (fbm(x * .008 + 5, z * .008) - .3) * 70 * smooth(110, 260, x);
+    return h;
+  }
+  function terrainH(x, z) {
+    const d = x - window.cliffEdge(z);
+    const land = landH(x, z);
+    if (d > 2) return land;
+    const t = smooth(-9, 2, d);
+    const rock = (fbm(x * .16, z * .16 + 9) - .5) * 9;
+    return -50 * (1 - t) + land * t + rock * t * (1 - t) * 4;
+  }
+  {
+    const g = new THREE.PlaneGeometry(760, 760, 300, 300); g.rotateX(-Math.PI / 2); g.translate(160, 0, 0);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) p.setY(i, terrainH(p.getX(i), p.getZ(i)));
+    g.computeVertexNormals();
+    const n = g.attributes.normal, col = new Float32Array(p.count * 3);
+    const heath = new THREE.Color('#5f6a41'), heather = new THREE.Color('#7b6a4c'), rockC = new THREE.Color('#77786f'), rockD = new THREE.Color('#4c4f4c'), wet = new THREE.Color('#2a3333'), c = new THREE.Color();
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i), steep = 1 - n.getY(i);
+      const v = fbm(x * .05, z * .05 + 3);
+      c.copy(heath).lerp(heather, smooth(.45, .7, v));
+      c.lerp(rockC, smooth(.55, .8, fbm(x * .03 + 11, z * .03)) * .6);
+      c.lerp(v > .5 ? rockC : rockD, smooth(.28, .5, steep));
+      c.lerp(rockD, smooth(.28, .5, steep) * smooth(.35, .75, fbm(x * .06 + z * .06, y * .32, 3)) * .8);
+      if (y < SEA + 1.5) c.lerp(wet, smooth(SEA + 1.5, SEA - 3, y));
+      col.set([c.r, c.g, c.b], i * 3);
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const t = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .96 }));
+    t.receiveShadow = true; t.castShadow = true; scene.add(t);
+  }
+  // forecourt gravel and drive
+  {
+    const gm = new THREE.MeshStandardMaterial({ color: 0xbdb6a6, roughness: 1 });
+    const fc = new THREE.Mesh(new THREE.CircleGeometry(14, 64), gm); fc.rotation.x = -Math.PI / 2; fc.position.set(68, 0.08, 0); fc.receiveShadow = true; scene.add(fc);
+    const dr = new THREE.Mesh(new THREE.PlaneGeometry(12, 8), gm); dr.rotation.x = -Math.PI / 2; dr.position.set(49, 0.07, 0); dr.receiveShadow = true; scene.add(dr);
+    const tg = new THREE.ConeGeometry(2.2, 11, 7), tm = new THREE.MeshStandardMaterial({ color: 0x29402c, roughness: .9, flatShading: true });
+    const trees = [];
+    for (let x = 147; x < 260; x += 11) for (const z of [-9, 9]) trees.push([x, z, 1]);
+    for (let k = 0; k < 90; k++) { const x = 70 + rand() * 260, z = (rand() - .5) * 300; if (Math.abs(z) > 16 && x > window.cliffEdge(z) + 25 && Math.hypot(x, z) > 60) trees.push([x, z, .7 + rand() * .8]); }
+    const inst = new THREE.InstancedMesh(tg, tm, trees.length);
+    trees.forEach(([x, z, s], i) => { tmp.position.set(x, terrainH(x, z) + 5.5 * s, z); tmp.rotation.set(0, rand() * 6, 0); tmp.scale.set(s, s, s); tmp.updateMatrix(); inst.setMatrixAt(i, tmp.matrix); });
+    inst.castShadow = true; inst.receiveShadow = true; scene.add(inst);
+  }
+  // sea with ripples
+  const waterNormals = canvasTex(256, 256, (g, w, h) => {
+    const img = g.createImageData(w, h); const H = (x, y) => fbm(x / 22, y / 22, 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const dx = H((x + 1) % w, y) - H((x - 1 + w) % w, y), dy = H(x, (y + 1) % h) - H(x, (y - 1 + h) % h);
+      const i = (y * w + x) * 4; img.data[i] = 128 + dx * 500; img.data[i + 1] = 128 + dy * 500; img.data[i + 2] = 255; img.data[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+  }, false);
+  waterNormals.repeat.set(140, 140);
+  const seaMat = new THREE.MeshStandardMaterial({ color: 0x2f5a66, roughness: .2, metalness: .1, normalMap: waterNormals, normalScale: new THREE.Vector2(.35, .35) });
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), seaMat); sea.rotation.x = -Math.PI / 2; sea.position.y = SEA; sea.receiveShadow = true; scene.add(sea);
+  // mountains across the fjord and islands
+  {
+    const group = new THREE.Group(); scene.add(group);
+    const snow = new THREE.Color('#eef1f2'), rk = new THREE.Color('#58606a'), rk2 = new THREE.Color('#3f464d'), c = new THREE.Color();
+    function peak(x, z, r, h) {
+      const g = new THREE.ConeGeometry(r, h, 11, 6); const p = g.attributes.position; const col = [];
+      for (let i = 0; i < p.count; i++) {
+        const vx = p.getX(i), vy = p.getY(i), vz = p.getZ(i), f = 1 + (fbm(vx * .01 + x, vz * .01 + z) - .5) * .7;
+        p.setXYZ(i, vx * f, vy + (vy < h / 2 - 1 ? (fbm(vx * .02, vz * .02) - .5) * h * .25 : 0), vz * f);
+      }
+      g.computeVertexNormals();
+      const g2 = g.toNonIndexed(); const p2 = g2.attributes.position;
+      for (let i = 0; i < p2.count; i++) { const ty = (p2.getY(i) + h / 2) / h; c.copy(rand() < .5 ? rk : rk2).lerp(snow, smooth(.55, .7, ty + (rand() - .5) * .1)); col.push(c.r, c.g, c.b); }
+      g2.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g2.computeVertexNormals();
+      const m = new THREE.Mesh(g2, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .95 }));
+      m.position.set(x, SEA + h / 2 - 12, z); group.add(m);
+    }
+    for (let i = 0; i < 16; i++) peak(-900 - rand() * 700, -1500 + i * 190 + rand() * 80, 260 + rand() * 300, 260 + rand() * 420);
+    for (let i = 0; i < 6; i++) peak(1300 + rand() * 500, -1100 + i * 440, 320 + rand() * 200, 220 + rand() * 220);
+    const im = new THREE.MeshStandardMaterial({ color: 0x5a5f55, roughness: .95, flatShading: true });
+    for (let i = 0; i < 7; i++) { const s = new THREE.Mesh(new THREE.SphereGeometry(10 + rand() * 30, 10, 6), im); s.scale.y = .22 + rand() * .2; s.position.set(-170 - rand() * 380, SEA, -260 + rand() * 520); group.add(s); }
+  }
+
+  /* ---------- sky, light, mood ---------- */
+  const skyGeo = new THREE.SphereGeometry(6000, 48, 24);
+  const skyCol = new Float32Array(skyGeo.attributes.position.count * 3); skyGeo.setAttribute('color', new THREE.BufferAttribute(skyCol, 3));
+  const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
+  scene.add(sky);
+  const MOODS = {
+    day: { zen: '#6d92ac', hor: '#d8e1e3', low: '#a7b6bb', glow: '#f6e6c6', fog: '#cdd7da', sun: 2.6, sunCol: '#fff1dc', hemi: 1.25, exp: 1.0, win: 0, sea: 0x2f5a66 },
+    night: { zen: '#0a1322', hor: '#3c4b6a', low: '#1d2738', glow: '#b07a78', fog: '#2e3a52', sun: .12, sunCol: '#9fb3ff', hemi: .28, exp: 1.15, win: 1.5, sea: 0x0e1c26 },
+  };
+  function paintSky(m) {
+    const p = skyGeo.attributes.position, c = new THREE.Color(), zen = new THREE.Color(m.zen), hor = new THREE.Color(m.hor), low = new THREE.Color(m.low), glow = new THREE.Color(m.glow);
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i) / 6000, y = p.getY(i) / 6000;
+      if (y >= 0) c.copy(hor).lerp(zen, Math.pow(y, .55)); else c.copy(hor).lerp(low, Math.min(1, -y * 6));
+      const g = Math.pow(Math.max(0, -x * .8 + .2), 3) * Math.max(0, 1 - Math.abs(y) * 3.2);
+      c.lerp(glow, Math.min(.85, g));
+      skyCol.set([c.r, c.g, c.b], i * 3);
+    }
+    skyGeo.attributes.color.needsUpdate = true;
+  }
+  const hemi = new THREE.HemisphereLight(0xdfe8ee, 0x4a4a3c, .9); scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffffff, 2.6);
+  sun.position.set(-260, 150, 190); sun.target.position.set(-8, 0, 0); scene.add(sun, sun.target);
+  sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -95, right: 95, top: 95, bottom: -95, near: 50, far: 700 });
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.06;
+  const warm = new THREE.PointLight(0xffb36b, 0, 45, 1.8); warm.position.set(-40, YP + 3, 0); scene.add(warm);
+  const warm2 = new THREE.PointLight(0xffb36b, 0, 60, 1.6); warm2.position.set(0, YP + 8, 0); scene.add(warm2);
+  scene.fog = new THREE.Fog(0xcdd7da, 220, 2300);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envScene = new THREE.Scene(); const envSky = new THREE.Mesh(skyGeo, sky.material); envScene.add(envSky);
+  let envRT = null;
+  function setMood(night) {
+    const m = night ? MOODS.night : MOODS.day;
+    paintSky(m);
+    scene.fog.color.set(m.fog);
+    sun.intensity = m.sun; sun.color.set(m.sunCol);
+    hemi.intensity = m.hemi;
+    renderer.toneMappingExposure = m.exp;
+    for (const mat of [W1, W2, WC, curtain]) mat.emissiveIntensity = m.win;
+    labWin.emissiveIntensity = night ? 1.3 : 0;
+    oculusMat.emissiveIntensity = night ? 1.2 : 0;
+    poolMat.emissiveIntensity = night ? .9 : 0;
+    domeGlass.emissiveIntensity = night ? .35 : 0;
+    ledMat.color.set(night ? 0xffd9a8 : 0x2b2b2b);
+    warm.intensity = night ? 320 : 0; warm2.intensity = night ? 500 : 0;
+    seaMat.color.set(m.sea);
+    if (envRT) envRT.dispose();
+    envRT = pmrem.fromScene(envScene, 0.02);
+    scene.environment = envRT.texture;
+  }
+  setMood(false);
+
+  /* ---------- views ---------- */
+  const VIEWS = {
+    sea:     { p: [-138, -4, 88], t: [-14, 8, 0] },
+    cliff:   { p: [-70, 10, 62], t: [-30, 6, -6] },
+    arrival: { p: [128, 13, 0], t: [20, 12, 0] },
+    aerial:  { p: [120, 135, 165], t: [-6, 4, 0] },
+    court:   { p: [-1.6, 6.2, 10.9], t: [0.6, 19, -3], fov: 64 },
+  };
+  let tween = null;
+  function goTo(name, instant) {
+    const v = VIEWS[name];
+    const to = { p: new THREE.Vector3(...v.p), t: new THREE.Vector3(...v.t) };
+    if (instant) { camera.position.copy(to.p); controls.target.copy(to.t); controls.update(); return; }
+    controls.maxPolarAngle = Math.PI * 0.97;
+    tween = { name, fov0: camera.fov, fov1: v.fov || 38, from: { p: camera.position.clone(), t: controls.target.clone() }, to, t0: performance.now(), dur: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 1700 };
+  }
+  document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-view]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+    goTo(b.dataset.view);
+  }));
+  controls.addEventListener('start', () => { tween = null; });
+  const nightBtn = document.getElementById('t-night'), cutBtn = document.getElementById('t-cut');
+  nightBtn.addEventListener('click', () => { const on = nightBtn.getAttribute('aria-pressed') !== 'true'; nightBtn.setAttribute('aria-pressed', String(on)); setMood(on); });
+  cutBtn.addEventListener('click', () => { const on = cutBtn.getAttribute('aria-pressed') !== 'true'; cutBtn.setAttribute('aria-pressed', String(on)); cutPlane.constant = on ? 0 : 1e5; });
+  goTo('sea', true);
+
+  /* ---------- loop ---------- */
+  function resize() {
+    const w = host.clientWidth, h = host.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(host); resize();
+  let first = true;
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  renderer.setAnimationLoop((now) => {
+    if (tween) {
+      const k = Math.min(1, (now - tween.t0) / tween.dur), e = ease(k);
+      camera.position.lerpVectors(tween.from.p, tween.to.p, e);
+      controls.target.lerpVectors(tween.from.t, tween.to.t, e);
+      camera.fov = tween.fov0 + (tween.fov1 - tween.fov0) * e; camera.updateProjectionMatrix();
+      if (k >= 1) { controls.maxPolarAngle = Math.PI * (tween.name === 'court' ? 0.97 : 0.62); tween = null; }
+    }
+    waterNormals.offset.set(now * 0.0000035, now * 0.000002);
+    controls.update();
+    renderer.render(scene, camera);
+    if (first) { first = false; statusEl.hidden = true; window.__villaReady = true; }
+  });
+}
+</script>
