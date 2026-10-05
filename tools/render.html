@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><style>html,body{margin:0;background:#eef0f2}canvas{display:block}</style></head>
+<body>
+<script type="importmap">
+{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const q = new URLSearchParams(location.search);
+const az = parseFloat(q.get('az') ?? '35'), el = parseFloat(q.get('el') ?? '20');
+const hide = (q.get('hide') ?? '').split(',').filter(Boolean);
+const section = q.get('section') === '1';
+const Wd = 1600, Ht = 1000;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(Wd, Ht); renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.localClippingEnabled = true;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeef0f2);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(1, -2, 3); scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 1.1));
+const fill = new THREE.DirectionalLight(0xffffff, 0.6); fill.position.set(-2, 1, 1); scene.add(fill);
+
+new GLTFLoader().load(q.get('src') ?? '../out/AERO-1_assembly.glb', (g) => {
+  const root = g.scene;
+  // CadQuery writes Z-up mm; glTF is Y-up — orient so +Z (our up) is screen-up
+  const clip = section ? [new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0)] : [];
+  root.traverse(o => {
+    if (hide.some(h => o.name.includes(h))) o.visible = false;
+    if (o.isMesh) {
+      o.material = o.material.clone();
+      o.material.side = THREE.DoubleSide;
+      o.material.metalness = /tube|plate|fin/.test(o.parent?.name + o.name) ? 0.6 : 0.05;
+      o.material.roughness = 0.45;
+      o.material.clippingPlanes = clip;
+    }
+  });
+  root.rotation.x = Math.PI / 2; // glTF Y-up -> CAD Z-up
+  scene.add(root);
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  window.__bbox = { min: box.min, max: box.max };
+  const up = s.z > s.y * 0.9 && root.up ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+  const cam = new THREE.PerspectiveCamera(28, Wd / Ht, s.length() / 100, s.length() * 20);
+  cam.up.set(0, 0, 1);
+  const r = s.length() * 1.55 * parseFloat(q.get('zoom') ?? '1'), a = az * Math.PI / 180, e = el * Math.PI / 180;
+  // view from the room side (+Y) by default
+  cam.position.set(c.x + r * Math.cos(e) * Math.sin(a), c.y + r * Math.cos(e) * Math.cos(a), c.z + r * Math.sin(e));
+  cam.lookAt(c);
+  renderer.render(scene, cam);
+  document.title = 'done';
+});
+</script>
+</body>
+</html>

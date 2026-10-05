@@ -1,0 +1,13 @@
+item,part_no,name,qty,material,process,finish,source,cad_file,notes
+1,AERO1-101,Front cover,1,PC/ABS (Covestro Bayblend T85 or equiv) UL94 V-0,Injection molding (2-plate tool, slides for grille),Light texture MT-11010; RAL 9003,Make,out/step/front_cover.step,"2.5 mm nominal wall; 1.5° draft; 12 snap tabs"
+2,AERO1-102,Rear chassis w/ integrated drain pan,1,ABS UL94 V-0,Injection molding,Natural,Make,out/step/rear_chassis.step,"Ribs 0.6t, M4 bosses Ø3.4 pilot, hook tabs to wall plate"
+3,AERO1-201,Evaporator fin pack (3 slab A-coil),1,Al 1100-H22 hydrophilic coated fins 0.095 mm @ 1.4 mm pitch,Fin press + mechanical tube expansion,Blue hydrophilic coat,Buy (coil vendor),out/step/evap_fins.step,"3 rows; slabs modeled as solid envelopes"
+4,AERO1-202,Evaporator tubes,1 set,Cu C12200 Ø7 mm inner-grooved,Hairpin bend + braze,—,Buy (coil vendor),out/step/evap_tubes.step,"Circuiting TBD with coil vendor; R32 or R290"
+5,AERO1-203,Coil end plates,2,Galvanized steel 1.0 mm,Stamping,Zinc,Buy (coil vendor),out/step/evap_endplates.step,
+6,AERO1-301,Cross-flow fan Ø112 x 760,1,AS + 20% GF,Injection molding (segments) + ultrasonic weld,Black,Buy/Make,out/step/crossflow_fan.step,"35 blades, 6 segments, dynamic balance G6.3"
+7,AERO1-302,Fan motor 48 V BLDC 30 W,1,—,—,—,Buy (e.g. Nidec/Welling EC class),out/step/fan_motor.step,"Rubber-isolated cradle"
+8,AERO1-401,Horizontal louver,1,PC UV-stabilized,Injection molding,Gloss white,Make,out/step/louver.step,"Driven by 12 V stepper (28BYJ class)"
+9,AERO1-402,Air filter (pair),2,PP mesh in PP frame,Injection molding,Light blue,Make,out/step/filters.step,"Washable; slide-in from top"
+10,AERO1-501,Wall mounting plate,1,DX51D+Z galvanized steel 1.2 mm,Laser cut / punched + formed,Zinc,Make,out/step/mounting_plate.step,"Keyhole slots for 6 mm anchors"
+11,AERO1-601,Screw front cover to chassis,4,Steel ST4.2x12 PH pan head,—,Zinc,Buy,—,
+12,AERO1-701,Control PCB + display,1,FR4,SMT,—,Make (separate electronics track),—,"Not modeled in this revision"
