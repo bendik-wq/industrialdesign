@@ -193,10 +193,17 @@ async function renderResults(searchId, seq) {
     const cur = await api(`/api/searches/${searchId}`);
     const c = country(cur.country);
     $("#sub").textContent = `Source: ${c?.label} official data${cur.total != null ? ` · ${fmt(cur.total)} registered matches` : ""} · searched ${new Date(cur.created_at).toLocaleDateString()}`;
+    if (cur.status === "done" && cur.error) {
+      $("#progress").hidden = false;
+      $("#progressText").innerHTML = `⚠ ${esc(cur.error)} <button class="ghost" id="retry" type="button">Run again</button>`;
+      $("#bar").style.width = "100%";
+      $("#retry").onclick = async () => { await api(`/api/searches/${searchId}/retry`, { method: "POST" }); router(); };
+      return false;
+    }
     const running = cur.status === "running" || cur.status === "queued";
     $("#progress").hidden = !running && cur.status !== "failed";
     if (cur.status === "failed") {
-      $("#progressText").innerHTML = `Stopped after ${fmt(cur.found)} companies: ${esc(cur.error || "unknown error")} <button class="ghost" id="retry" type="button">Resume</button>`;
+      $("#progressText").innerHTML = `Stopped after ${fmt(cur.found)} companies: ${esc(cur.error || "unknown error")} <button class="ghost" id="retry" type="button">Run again</button>`;
       $("#bar").style.width = `${cur.pages ? Math.round((100 * cur.pages_done) / cur.pages) : 0}%`;
       $("#retry").onclick = async () => { await api(`/api/searches/${searchId}/retry`, { method: "POST" }); router(); };
     }
@@ -427,5 +434,8 @@ $("#settingsForm").addEventListener("submit", () => {
   for (const el of $("#settingsForm").elements) if (el.name) s[el.name] = el.value.trim();
   try { localStorage.setItem("dealflow.settings", JSON.stringify(s)); } catch { /* storage unavailable */ }
 });
-window.addEventListener("hashchange", router);
-(async () => { sources = await api("/api/sources"); router(); })();
+(async () => {
+  sources = await api("/api/sources");
+  window.addEventListener("hashchange", router); // only route once countries and industries are loaded
+  router();
+})();

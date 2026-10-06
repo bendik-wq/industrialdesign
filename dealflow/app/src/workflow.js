@@ -1,15 +1,23 @@
-// Runs one search in the background: plan → fetch pages → score → save. Each page batch is its own durable
-// step, so a slow registry or a transient error retries that batch instead of the whole search.
+// Runs searches in the background.
+//
+// A "plan" instance asks the registry how many pages match, then fans out one child instance per batch of pages.
+// Every instance is its own Worker invocation, so each batch gets a fresh subrequest budget (50 on the Workers
+// Free plan), and children start staggered so the registries' rate limits are respected. Google Places needs
+// page tokens in order, so it runs sequentially inside the plan instance (3 requests total).
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import { PROVIDERS } from "./providers.js";
 import { industryById } from "./data/industries.js";
 import { saveCompanies } from "./store.js";
 
-const RETRY = { retries: { limit: 4, delay: "10 seconds", backoff: "exponential" }, timeout: "5 minutes" };
+const RETRY = { retries: { limit: 5, delay: "15 seconds", backoff: "exponential" }, timeout: "5 minutes" };
+// Page batches don't retry in place: a retry would share the failed invocation's subrequest budget. Instead a
+// failed batch re-spawns itself as a new instance (fresh budget), up to MAX_ATTEMPTS times.
+const ONCE = { retries: { limit: 0, delay: "1 second" }, timeout: "5 minutes" };
+const MAX_ATTEMPTS = 6;
 
 export class SearchWorkflow extends WorkflowEntrypoint {
   async run(event, step) {
-    const { searchId } = event.payload;
+    const { searchId, first, last, delaySeconds = 0, attempt = 1 } = event.payload;
     const db = this.env.DB;
     const search = await step.do("load search", async () => db.prepare("SELECT * FROM searches WHERE id = ?1").bind(searchId).first());
     if (!search) return;
@@ -17,49 +25,102 @@ export class SearchWorkflow extends WorkflowEntrypoint {
     const industry = industryById(search.industry);
     const params = { codes: industry[search.country] || [], industry, region: search.region, minStaff: search.min_staff };
 
+    if (first) return this.batch(step, search, provider, params, { first, last, delaySeconds, attempt });
+
     try {
       const plan = await step.do("plan", RETRY, async () => {
         const p = await provider.plan(this.env, params);
-        await db.prepare("UPDATE searches SET status = 'running', total = ?2, pages = ?3 WHERE id = ?1").bind(searchId, p.total, p.pages).run();
+        await db.prepare("UPDATE searches SET status = 'running', total = ?2, pages = ?3, pages_done = 0, found = 0, error = NULL WHERE id = ?1")
+          .bind(searchId, p.total, p.pages).run();
         return p;
       });
+      if (!plan.pages) return this.finish(step, searchId);
 
-      const state = {}; // carries Google's nextPageToken between pages
-      // Resume after the last saved page when a failed search is retried.
-      const start = (search.status === "failed" ? search.pages_done : 0) + 1;
-      for (let first = start; first <= plan.pages; first += provider.pagesPerStep) {
-        // Sleeping hands the instance back to the engine, so the next batch runs in a fresh invocation with a
-        // fresh subrequest budget (50 on the Workers Free plan).
-        if (first > start) await step.sleep(`pause before page ${first}`, "1 second");
-        const last = Math.min(plan.pages, first + provider.pagesPerStep - 1);
-        const res = await step.do(`pages ${first}-${last}`, RETRY, async () => {
-          let saved = 0, empty = false;
-          for (let page = first; page <= last; page++) {
-            const companies = await provider.fetchPage(this.env, params, page, state);
-            saved += await saveCompanies(db, searchId, companies);
-            if (!companies.length && provider.id === "us") { empty = true; break; }
-            if (provider.id === "fr") await new Promise((r) => setTimeout(r, 400)); // ~2.5 req/s, under the 7/s cap
-          }
-          await db.prepare(
-            "UPDATE searches SET pages_done = ?2, found = (SELECT COUNT(*) FROM search_results WHERE search_id = ?1) WHERE id = ?1"
-          ).bind(searchId, last).run();
-          return { saved, empty, nextPageToken: state.nextPageToken ?? null };
-        });
-        state.nextPageToken = res.nextPageToken;
-        if (res.empty) break;
+      if (provider.sequential) {
+        let token = null;
+        for (let page = 1; page <= plan.pages; page++) {
+          const res = await step.do(`page ${page}`, RETRY, async () => {
+            const state = { nextPageToken: token };
+            const saved = await saveCompanies(db, searchId, await provider.fetchPage(this.env, params, page, state));
+            await this.progress(searchId, 1);
+            return { saved, nextPageToken: state.nextPageToken || null };
+          });
+          token = res.nextPageToken;
+          if (!token) break;
+        }
+        return this.finish(step, searchId);
       }
 
-      await step.do("finish", async () => {
-        await db.prepare(
-          "UPDATE searches SET status = 'done', finished_at = ?2, found = (SELECT COUNT(*) FROM search_results WHERE search_id = ?1) WHERE id = ?1"
-        ).bind(searchId, new Date().toISOString()).run();
+      await step.do("fan out", async () => {
+        const batches = [];
+        for (let f = 1, i = 0; f <= plan.pages; f += provider.pagesPerStep, i++) {
+          batches.push({
+            id: `search-${searchId}-p${f}-${Date.now()}`,
+            params: { searchId, first: f, last: Math.min(plan.pages, f + provider.pagesPerStep - 1), delaySeconds: i * provider.staggerSeconds },
+          });
+        }
+        for (let i = 0; i < batches.length; i += 100) await this.env.SEARCH.createBatch(batches.slice(i, i + 100));
+        return batches.length;
       });
     } catch (err) {
-      await step.do("mark failed", async () => {
-        await db.prepare("UPDATE searches SET status = 'failed', error = ?2, finished_at = ?3 WHERE id = ?1")
-          .bind(searchId, String(err?.message || err).slice(0, 500), new Date().toISOString()).run();
-      });
+      await this.fail(step, searchId, err);
       throw err;
     }
+  }
+
+  async batch(step, search, provider, params, { first, last, delaySeconds, attempt }) {
+    if (delaySeconds) await step.sleep("wait for turn", `${delaySeconds} seconds`);
+    let error = null;
+    try {
+      await step.do(`pages ${first}-${last}`, ONCE, async () => {
+        let saved = 0;
+        for (let page = first; page <= last; page++) {
+          saved += await saveCompanies(this.env.DB, search.id, await provider.fetchPage(this.env, params, page));
+          if (page < last && provider.pauseMs) await new Promise((r) => setTimeout(r, provider.pauseMs));
+        }
+        return saved;
+      });
+    } catch (err) {
+      error = String(err?.message || err).slice(0, 300);
+    }
+    if (error && attempt < MAX_ATTEMPTS) {
+      await step.do("try again in a fresh instance", async () => {
+        await this.env.SEARCH.create({
+          id: `search-${search.id}-p${first}-a${attempt + 1}-${Date.now()}`,
+          params: { searchId: search.id, first, last, delaySeconds: 45 * attempt, attempt: attempt + 1 },
+        });
+      });
+      return;
+    }
+    await step.do("report", async () => {
+      if (error) await this.env.DB.prepare("UPDATE searches SET error = ?2 WHERE id = ?1").bind(search.id, `Pages ${first}–${last} failed: ${error}`).run();
+      const s = await this.progress(search.id, last - first + 1);
+      if (s.pages_done >= s.pages) await this.markDone(search.id);
+    });
+  }
+
+  async progress(searchId, n) {
+    return this.env.DB.prepare(
+      `UPDATE searches SET pages_done = pages_done + ?2, found = (SELECT COUNT(*) FROM search_results WHERE search_id = ?1)
+       WHERE id = ?1 RETURNING pages_done, pages`
+    ).bind(searchId, n).first();
+  }
+
+  async markDone(searchId) {
+    await this.env.DB.prepare(
+      `UPDATE searches SET status = 'done', finished_at = ?2, found = (SELECT COUNT(*) FROM search_results WHERE search_id = ?1)
+       WHERE id = ?1 AND status != 'done'`
+    ).bind(searchId, new Date().toISOString()).run();
+  }
+
+  async finish(step, searchId) {
+    await step.do("finish", () => this.markDone(searchId));
+  }
+
+  async fail(step, searchId, err) {
+    await step.do("mark failed", async () => {
+      await this.env.DB.prepare("UPDATE searches SET status = 'failed', error = ?2, finished_at = ?3 WHERE id = ?1")
+        .bind(searchId, String(err?.message || err).slice(0, 500), new Date().toISOString()).run();
+    });
   }
 }

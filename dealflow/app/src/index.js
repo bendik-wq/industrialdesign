@@ -16,8 +16,8 @@ const API_DOCS = {
     "GET    /api/searches                     your searches with progress",
     "POST   /api/searches                     {country, industry, region?, minStaff?} → starts a background search",
     "GET    /api/searches/:id                 one search",
-    "DELETE /api/searches/:id                 remove a search (companies stay if used elsewhere)",
-    "POST   /api/searches/:id/retry           resume a failed search from the last saved page",
+    "DELETE /api/searches/:id                 remove a search and companies nothing else uses",
+    "POST   /api/searches/:id/retry           re-run a failed search (already-saved companies are updated, not duplicated)",
     "GET    /api/companies                    ?search=&country=&q=&verdict=&minFit=&minOwnerAge=&minStaff=&status=&sort=fit|size|succession|owner_age|founded|staff|name&page=&limit=",
     "GET    /api/companies/:id                full record: people, signals, pipeline",
     "PUT    /api/companies/:id/pipeline       {status?, notes?}",
@@ -95,11 +95,19 @@ async function route(request, env, url) {
   let r;
   if ((r = p.match(/^\/api\/searches\/(\d+)$/))) {
     if (m === "GET") return json(await env.DB.prepare("SELECT * FROM searches WHERE id = ?1").bind(+r[1]).first() ?? fail(404, "Search not found"));
-    if (m === "DELETE") { await env.DB.prepare("DELETE FROM searches WHERE id = ?1").bind(+r[1]).run(); await env.DB.prepare("DELETE FROM search_results WHERE search_id = ?1").bind(+r[1]).run(); return json({ ok: true }); }
+    if (m === "DELETE") {
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM search_results WHERE search_id = ?1").bind(+r[1]),
+        env.DB.prepare("DELETE FROM searches WHERE id = ?1").bind(+r[1]),
+        // Drop companies no other search or pipeline entry refers to.
+        env.DB.prepare(`DELETE FROM companies WHERE id NOT IN (SELECT company_id FROM search_results) AND id NOT IN (SELECT company_id FROM pipeline)`),
+      ]);
+      return json({ ok: true });
+    }
   }
   if ((r = p.match(/^\/api\/searches\/(\d+)\/retry$/)) && m === "POST") {
-    const row = await env.DB.prepare("UPDATE searches SET status = 'failed', error = NULL WHERE id = ?1 AND status = 'failed' RETURNING *").bind(+r[1]).first();
-    if (!row) fail(400, "Only failed searches can be retried");
+    const row = await env.DB.prepare("UPDATE searches SET status = 'queued', error = NULL WHERE id = ?1 AND (status = 'failed' OR (status = 'done' AND error IS NOT NULL)) RETURNING *").bind(+r[1]).first();
+    if (!row) fail(400, "Only failed or partly failed searches can be re-run");
     await env.SEARCH.create({ id: `search-${row.id}-${Date.now()}`, params: { searchId: row.id } });
     return json(row);
   }

@@ -11,8 +11,13 @@ async function getJson(url, init = {}, tries = 4) {
     const res = await fetch(url, { ...init, headers: { "User-Agent": UA, Accept: "application/json", ...(init.headers || {}) } });
     if (res.ok) return res.json();
     if (res.status === 404) return null;
-    if ((res.status === 429 || res.status >= 500) && i < tries - 1) { await sleep(800 * 2 ** i); continue; }
-    throw new Error(`${new URL(url).host} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    if ((res.status === 429 || res.status >= 500) && i < tries - 1) {
+      const wait = Number(res.headers.get("Retry-After")) * 1000 || 1500 * 2 ** i;
+      await sleep(Math.min(wait, 15000));
+      continue;
+    }
+    const detail = res.status === 429 ? "rate limited by the registry" : (await res.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
+    throw new Error(`${new URL(url).host} HTTP ${res.status}: ${detail}`);
   }
 }
 const year = (d) => (d ? Number(String(d).slice(0, 4)) || null : null);
@@ -33,7 +38,9 @@ const france = {
   regions: FR_DEPARTEMENTS.map((d) => ({ code: d.code, name: `${d.code} · ${d.nom}` })),
   publishes: ["Owner birth year", "Headcount band", "Founded date", "Sites", "Revenue (when filed publicly)"],
   pageSize: 25,
-  pagesPerStep: 6,
+  pagesPerStep: 6,   // 6 requests per batch
+  pauseMs: 900,      // ~1 req/s inside a batch (API allows 7/s per IP, shared across Cloudflare egress)
+  staggerSeconds: 9, // batches start 9 s apart, so batches rarely overlap
   query(p, page) {
     const u = new URL("https://recherche-entreprises.api.gouv.fr/search");
     u.searchParams.set("activite_principale", p.codes.join(","));
@@ -51,7 +58,8 @@ const france = {
   },
   async fetchPage(env, p, page) {
     const d = await getJson(this.query(p, page));
-    return (d?.results || []).map((r) => this.normalize(r, p));
+    // The API matches any establishment in the département; keep companies headquartered there.
+    return (d?.results || []).filter((r) => !p.region || r.siege?.departement === p.region).map((r) => this.normalize(r, p));
   },
   normalize(r, p) {
     const band = FR_BANDS[r.tranche_effectif_salarie];
@@ -78,7 +86,7 @@ const france = {
       revenueYear: fin ? Number(fin[0]) : null,
       currency: "EUR",
       people: (r.dirigeants || []).filter((x) => x.type_dirigeant === "personne physique").map((x) => ({
-        name: title(`${(x.prenoms || "").split(" ")[0]} ${x.nom || ""}`.trim()),
+        name: title(`${(x.prenoms || "").split(" ")[0]} ${(x.nom || "").replace(/\s*\(.*?\)\s*/g, " ")}`.replace(/\s+/g, " ").trim()),
         role: x.qualite,
         birthYear: Number(x.annee_de_naissance) || null,
         birthMonth: Number((x.date_de_naissance || "").split("-")[1]) || null,
@@ -102,7 +110,8 @@ const norway = {
   regions: NO_FYLKER.map((f) => ({ code: f.code, name: f.name })),
   publishes: ["Owner birth date", "Exact headcount", "Founded date", "Revenue (filed accounts)", "Website"],
   pageSize: 15,
-  pagesPerStep: 1,
+  pagesPerStep: 1,   // 1 + 15 × 2 = 31 requests per batch
+  staggerSeconds: 3,
   query(p, page) {
     const u = new URL("https://data.brreg.no/enhetsregisteret/api/enheter");
     u.searchParams.set("naeringskode", p.codes.join(","));
@@ -190,7 +199,8 @@ const uk = {
   regions: "text",
   publishes: ["Director birth month/year", "Size class from filed accounts", "Incorporation date"],
   pageSize: 15,
-  pagesPerStep: 1,
+  pagesPerStep: 1,    // 31 requests per batch
+  staggerSeconds: 20, // Companies House allows 600 requests / 5 min
   auth(env) { return { Authorization: `Basic ${btoa(`${env.COMPANIES_HOUSE_API_KEY}:`)}` }; },
   query(p, page) {
     const u = new URL("https://api.company-information.service.gov.uk/advanced-search/companies");
@@ -263,7 +273,7 @@ const places = {
   regions: "text",
   publishes: ["Phone & website", "Google rating & review count", "No owner age (add Texas license data or enrich)"],
   pageSize: 20,
-  pagesPerStep: 1,
+  sequential: true, // page tokens must be followed in order
   async plan() { return { total: null, pages: 3 }; },
   async fetchPage(env, p, page, state) {
     if (page > 1 && !state?.nextPageToken) return [];

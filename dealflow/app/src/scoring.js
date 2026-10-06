@@ -72,7 +72,11 @@ export function score(c) {
   const succession = clamp(s);
   const size = clamp(z);
   let fit = Math.round(0.55 * succession + 0.45 * size);
-  if (staff >= 250) { fit -= 15; add("flag", "Too big for most buyers", -15, "250+ staff: likely PE-backed or priced at large-company multiples"); }
+  if (staff >= 250) {
+    // Not a small-business acquisition: cap it out of the target verdicts regardless of other signals.
+    add("flag", "Too big for most buyers", Math.min(0, 30 - fit), "250+ staff: likely PE-backed or priced at large-company multiples");
+    fit = Math.min(fit, 30);
+  }
   if (c.excluded) fit = 0;
   fit = clamp(fit);
 
