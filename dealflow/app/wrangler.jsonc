@@ -13,8 +13,10 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "dealflow", "database_id": "66670c65-c5ea-4f51-8c3e-5b1d3e9d227a" }
   ],
+  "ai": { "binding": "AI" },
   "workflows": [
     { "binding": "SEARCH", "name": "dealflow-search", "class_name": "SearchWorkflow" }
   ]
-  // Secrets: DASHBOARD_PASSWORD (required), API_TOKEN (scripts), COMPANIES_HOUSE_API_KEY (UK), GOOGLE_PLACES_API_KEY (US)
+  // Secrets: DASHBOARD_PASSWORD (required), API_TOKEN (scripts + MCP), ANTHROPIC_API_KEY (Claude; else Workers AI),
+  //          COMPANIES_HOUSE_API_KEY (UK), GOOGLE_PLACES_API_KEY (US)
 }

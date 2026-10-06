@@ -1,3 +1,5 @@
+import { recommend, structure, STRUCTURES, money as dmoney } from "/deal.js";
+import { letterText } from "/letters.js";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -31,7 +33,7 @@ async function renderSearches(activeId) {
     const st = s.status === "done" ? `${fmt(s.found)} found · ${fmt(s.strong)} worth a call`
       : s.status === "failed" ? "Failed" : s.status === "queued" ? "Starting…" : `Searching… ${pct}%`;
     return `<a class="search-item ${s.id == activeId ? "active" : ""} ${s.status}" href="#/search/${s.id}">
-      <span class="flag">${country(s.country)?.flag || ""}</span>
+      <span class="flag">${country(s.country)?.flag || (s.label === "Inbound sellers" ? "📥" : "✚")}</span>
       <span><b>${esc(s.label)}</b><small>${esc(st)}</small></span></a>`;
   }).join("") : `<p class="muted small">No searches yet.</p>`;
   return list;
@@ -131,6 +133,7 @@ async function renderResults(searchId, seq) {
             <a data-f="full">Spreadsheet (all fields)</a>
             <a data-f="mail">Mailing list (owner + address)</a>
             <a data-f="email">Email leads (rows with an email)</a>
+            <a data-print="1">Print letters for top 50 ↗</a>
           </div></div>
       </div>
     </header>
@@ -145,12 +148,12 @@ async function renderResults(searchId, seq) {
       <span class="spacer"></span>
       <label>Sort <select id="sort">
         <option value="fit">Best fit</option><option value="succession">Most likely to sell</option><option value="size">Biggest</option>
-        <option value="owner_age">Oldest owner</option><option value="founded">Oldest company</option><option value="staff">Most staff</option><option value="name">Name</option>
+        <option value="owner_age">Oldest owner</option><option value="founded">Oldest company</option><option value="staff">Most staff</option><option value="value">Highest value</option><option value="name">Name</option>
       </select></label>
     </section>
     <section class="table-card">
       <div class="table-wrap"><table>
-        <thead><tr><th>Company</th><th>Owner</th><th class="num">Founded</th><th class="num">Staff</th><th class="num">Revenue</th><th>Verdict</th><th>Status</th></tr></thead>
+        <thead><tr><th>Company</th><th>Owner</th><th class="num">Founded</th><th class="num">Staff</th><th class="num">Revenue</th><th class="num" title="Indicative equity value, midpoint">Value</th><th>Verdict</th><th>Status</th></tr></thead>
         <tbody id="rows"></tbody>
       </table></div>
       <nav class="pager"><button id="prev" type="button">← Prev</button><span id="pageInfo"></span><button id="next" type="button">Next →</button></nav>
@@ -175,14 +178,15 @@ async function renderResults(searchId, seq) {
     $$(".vchip").forEach((b) => b.addEventListener("click", () => { listState.verdict = b.dataset.v; listState.page = 1; load(); }));
     $("#rows").innerHTML = data.rows.map((r) => `
       <tr data-id="${r.id}">
-        <td class="co"><b>${esc(r.name)}</b><small>${esc([r.city, r.legal_form].filter(Boolean).join(" · "))}${searchId ? "" : ` · ${country(r.country)?.flag || ""}`}</small></td>
+        <td class="co"><b>${esc(r.name)}${r.inbound ? ' <span class="pill inbound">Inbound</span>' : ""}</b><small>${esc([r.city, r.legal_form].filter(Boolean).join(" · "))}${searchId ? "" : ` · ${country(r.country)?.flag || ""}`}</small></td>
         <td>${r.owner_name ? `${esc(r.owner_name)}${r.owner_age != null ? ` <span class="age ${r.owner_age >= 60 ? "old" : ""}">${r.owner_age}</span>` : ""}` : '<span class="muted">Not published</span>'}</td>
         <td class="num">${r.founded ?? "–"}</td>
         <td class="num">${esc(r.employees_band ?? (r.reviews != null ? `${fmt(r.reviews)} reviews` : "–"))}</td>
         <td class="num">${money(r.revenue, r.currency)}</td>
+        <td class="num strong-num">${r.valuation_mid ? dmoney(r.valuation_mid, r.currency) : "–"}</td>
         <td><span class="pill ${VCLASS[r.verdict]}">${esc(r.verdict)}</span> <span class="fit">${r.fit_score}</span></td>
         <td class="status ${r.status !== "New" ? "active" : ""}">${esc(r.status)}</td>
-      </tr>`).join("") || `<tr><td colspan="7" class="empty">${s && s.status !== "done" && s.status !== "failed" ? "Companies will appear here as the search runs…" : "No companies match these filters."}</td></tr>`;
+      </tr>`).join("") || `<tr><td colspan="8" class="empty">${s && s.status !== "done" && s.status !== "failed" ? "Companies will appear here as the search runs…" : "No companies match these filters."}</td></tr>`;
     const pages = Math.max(1, Math.ceil(data.total / 50));
     $("#pageInfo").textContent = `${fmt(data.total)} companies · page ${listState.page} of ${fmt(pages)}`;
     $("#prev").disabled = listState.page <= 1;
@@ -192,7 +196,7 @@ async function renderResults(searchId, seq) {
     if (!s) { $("#sub").textContent = "Every company from every search, best fit first."; return; }
     const cur = await api(`/api/searches/${searchId}`);
     const c = country(cur.country);
-    $("#sub").textContent = `Source: ${c?.label} official data${cur.total != null ? ` · ${fmt(cur.total)} registered matches` : ""} · searched ${new Date(cur.created_at).toLocaleDateString()}`;
+    $("#sub").textContent = `Source: ${c?.label || "registry lookups"} official data${cur.total != null ? ` · ${fmt(cur.total)} registered matches` : ""} · searched ${new Date(cur.created_at).toLocaleDateString()}`;
     if (cur.status === "done" && cur.error) {
       $("#progress").hidden = false;
       $("#progressText").innerHTML = `⚠ ${esc(cur.error)} <button class="ghost" id="retry" type="button">Run again</button>`;
@@ -223,7 +227,11 @@ async function renderResults(searchId, seq) {
   $("#next").addEventListener("click", () => { listState.page++; load(); });
   $("#rows").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-id]"); if (tr) openCompany(+tr.dataset.id); });
   $("#exportBtn").addEventListener("click", (e) => { e.stopPropagation(); $("#exportMenu").hidden = !$("#exportMenu").hidden; });
-  $$("#exportMenu a").forEach((a) => a.addEventListener("click", () => { const p = qs(); p.set("format", a.dataset.f); location.href = `/api/export.csv?${p}`; }));
+  $$("#exportMenu a").forEach((a) => a.addEventListener("click", () => {
+    const p = qs();
+    if (a.dataset.print) { p.set("limit", "50"); window.open(`/print.html?${p}`, "_blank"); return; }
+    p.set("format", a.dataset.f); location.href = `/api/export.csv?${p}`;
+  }));
   $("#del")?.addEventListener("click", async () => {
     if (!confirm("Delete this search? Pipeline notes on its companies are kept.")) return;
     await api(`/api/searches/${searchId}`, { method: "DELETE" });
@@ -283,6 +291,13 @@ async function openCompany(id) {
       ${bar("Overall fit", c.fit_score, "55% likely to sell + 45% size")}
     </div>
 
+    <div class="d-sec deal" id="deal"></div>
+
+    <div class="d-sec"><h3>AI deal brief</h3>
+      <div class="ai-box" id="briefBox">${c.ai?.brief ? md(c.ai.brief.content) : `<p class="muted">A one-page read on why this could be a deal, the risks and how to open the conversation.</p>`}</div>
+      <div class="draft-actions"><span class="muted small" id="briefMeta">${c.ai?.brief ? aiMeta(c.ai.brief) : ""}</span><button class="primary" id="briefBtn" type="button">${c.ai?.brief ? "Rewrite" : "Write brief"}</button></div>
+    </div>
+
     <div class="d-sec"><h3>People on record</h3>
       ${c.people.length ? `<ul class="people">${c.people.map((p) => {
         const age = p.birthYear ? YEAR - p.birthYear - (p.birthMonth && p.birthMonth > new Date().getMonth() + 1 ? 1 : 0) : null;
@@ -322,19 +337,43 @@ async function openCompany(id) {
     </div>
 
     <div class="d-sec"><h3>Reach out</h3>
-      <div class="tabs">${["letter", "email", "call"].map((t, i) => `<button type="button" data-t="${t}" aria-selected="${i === 0}">${{ letter: "Letter", email: "Email sequence", call: "Call script" }[t]}</button>`).join("")}</div>
+      <div class="tabs">${["ai", "letter", "email", "call"].map((t, i) => `<button type="button" data-t="${t}" aria-selected="${i === 0}">${{ ai: `✦ AI letter${{ fr: " (French)", no: " (Norwegian)" }[c.country] || ""}`, letter: "Letter", email: "Email sequence", call: "Call script" }[t]}</button>`).join("")}</div>
       <div class="draft" id="draft"></div>
       <div class="draft-actions"><span id="draftNote" class="muted small"></span><button class="ghost" id="copy" type="button">Copy</button></div>
     </div>`;
 
+  let aiLetter = c.ai?.letter || null;
   const show = (t) => {
     $$(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.t === t));
+    if (t === "ai") {
+      $("#draft").textContent = aiLetter ? aiLetter.content : "Writes a personal letter in the owner's own language using the facts on record and your Outreach settings.";
+      $("#draftNote").innerHTML = `${aiLetter ? `${esc(aiMeta(aiLetter))} · ` : ""}<button class="link strong" id="aiLetterBtn" type="button">${aiLetter ? "Rewrite" : "Write it"}</button>`;
+      $("#aiLetterBtn").addEventListener("click", async () => {
+        $("#draftNote").textContent = "Writing…";
+        try {
+          aiLetter = await api(`/api/companies/${c.id}/ai`, { method: "POST", body: JSON.stringify({ kind: "letter", regenerate: true, me: settings() }) });
+        } catch (e) { $("#draftNote").textContent = e.message; return; }
+        show("ai");
+      });
+      return;
+    }
     const d = drafts(c, settings())[t];
     $("#draft").textContent = d.text;
     $("#draftNote").textContent = d.note;
   };
   $$(".tabs button").forEach((b) => b.addEventListener("click", () => show(b.dataset.t)));
-  show("letter");
+  show("ai");
+  $("#briefBtn").addEventListener("click", async () => {
+    $("#briefBtn").disabled = true; $("#briefBtn").textContent = "Writing…";
+    $("#briefBox").innerHTML = `<div class="skeleton"></div><div class="skeleton short"></div><div class="skeleton"></div>`;
+    try {
+      const b = await api(`/api/companies/${c.id}/ai`, { method: "POST", body: JSON.stringify({ kind: "brief", regenerate: true }) });
+      $("#briefBox").innerHTML = md(b.content);
+      $("#briefMeta").textContent = aiMeta(b);
+    } catch (e) { $("#briefBox").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+    $("#briefBtn").disabled = false; $("#briefBtn").textContent = "Rewrite";
+  });
+  renderDeal(c);
   $("#copy").addEventListener("click", async () => { await navigator.clipboard.writeText($("#draft").textContent); $("#copy").textContent = "Copied"; setTimeout(() => ($("#copy").textContent = "Copy"), 1200); });
   $("#pSave").addEventListener("click", async () => {
     const r = await api(`/api/companies/${c.id}/pipeline`, { method: "PUT", body: JSON.stringify({ status: $("#pStatus").value, notes: $("#pNotes").value }) });
@@ -346,6 +385,95 @@ async function openCompany(id) {
 }
 function closeDrawer() { $("#drawer").classList.remove("open"); $("#scrim").classList.remove("open"); $("#drawer").setAttribute("aria-hidden", "true"); }
 
+// ================================================================== deal builder
+function renderDeal(c) {
+  const box = $("#deal");
+  const base = recommend(c);
+  if (!base) {
+    box.innerHTML = `<h3>Deal</h3><p class="muted">Not enough published financials to value this company yet. Ask for three years of accounts on the first call.</p>`;
+    return;
+  }
+  const v = base.valuation, cur = c.currency;
+  const lo = Math.max(1, v.equity[0] * 0.5), hi = v.equity[2] * 1.4;
+  let price = Math.round(base.fundablePrice);
+  let key = base.best.key;
+  const draw = () => {
+    const s = structure(key, price, v.ebitda);
+    const pos = (x) => `${Math.max(0, Math.min(100, ((x - lo) / (hi - lo)) * 100))}%`;
+    const maxD = Math.max(2.5, ...s.dscr.filter(Boolean));
+    box.innerHTML = `
+      <h3>Deal</h3>
+      <div class="val">
+        <div class="val-head"><span>Indicative value</span><b>${dmoney(v.equity[0], cur)} – ${dmoney(v.equity[2], cur)}</b></div>
+        <div class="val-track"><div class="val-band" style="left:${pos(v.equity[0])};width:calc(${pos(v.equity[2])} - ${pos(v.equity[0])})"></div><div class="val-price" style="left:${pos(price)}"></div></div>
+        <div class="val-legend"><span><i class="sw band"></i>Fair value</span><span><i class="sw tick"></i>Your price</span><span class="fund">Self-funding price at 1.5× DSCR: <b>${dmoney(base.fundablePrice, cur)}</b> (${esc(base.fundableStructure)})</span></div>
+        <small class="muted">${esc(v.basis)} · ${v.multiple.join("–")}× EBITDA${v.netCash ? ` · net cash ${dmoney(v.netCash, cur)}` : ""} · <span class="conf ${v.confidence}">${v.confidence} confidence</span></small>
+      </div>
+      <label class="price">Your price <b>${dmoney(price, cur)}</b>
+        <input type="range" id="priceR" min="${Math.round(lo)}" max="${Math.round(hi)}" step="${Math.max(1000, Math.round((hi - lo) / 200))}" value="${price}"></label>
+      <div class="structs">${Object.entries(STRUCTURES).map(([k, x]) => `<button type="button" data-k="${k}" class="${k === key ? "on" : ""}">${esc(x.label)}${k === base.best.key ? ' <span class="rec">★</span>' : ""}</button>`).join("")}</div>
+      <p class="muted small">${esc(s.blurb)}</p>
+      <div class="deal-kpis">
+        <div><span>Cash at close</span><b>${dmoney(0, cur)}</b></div>
+        <div><span>Lowest coverage (DSCR)</span><b class="${s.bankable ? "good" : "bad"}">${s.minDscr ? s.minDscr.toFixed(2) + "×" : "–"}</b></div>
+        <div><span>Max price at 1.5×</span><b>${dmoney(s.maxPriceAt15, cur)}</b></div>
+      </div>
+      <div class="dscr">${s.dscr.map((d, i) => `<div class="col"><div class="bar ${d == null ? "none" : d >= 1.5 ? "ok" : "low"}" style="height:${d == null ? 4 : Math.min(100, (d / maxD) * 100)}%"><span>${d == null ? "holiday" : d.toFixed(1) + "×"}</span></div><small>Y${i + 1}</small></div>`).join("")}<div class="line" style="bottom:${(1.5 / maxD) * 100}%"><span>1.5× bank minimum</span></div></div>
+      <ul class="parts">${s.parts.map((p) => `<li><b>${{ bank: "Bank loan", seller: "Seller note", earnout: "Earn-out" }[p.k]}</b> ${dmoney(p.amount, cur)} <span class="muted">${Math.round(p.pct * 100)}%${p.terms ? ` · ${p.terms.rate}% over ${p.terms.years} yrs${p.terms.holiday ? ` · ${p.terms.holiday}-month holiday` : ""}` : " · paid years 2–3 if profit holds"}</span></li>`).join("")}</ul>
+      <div class="row-end"><span class="verdict-line ${s.bankable ? "good" : "bad"}">${s.bankable ? "Bankable: cash flow covers debt by 1.5× or more every year." : `Below 1.5× in some years. Lower the price to about ${dmoney(s.maxPriceAt15, cur)} or lengthen the seller note.`}</span>
+        <button class="ghost" id="offerBtn" type="button">Indicative offer ↗</button></div>`;
+    $("#priceR").addEventListener("input", (e) => { price = +e.target.value; draw(); $("#priceR").focus(); });
+    $$(".structs button").forEach((b) => b.addEventListener("click", () => { key = b.dataset.k; draw(); }));
+    $("#offerBtn").addEventListener("click", () => openOffer(c, v, s));
+  };
+  draw();
+}
+
+function openOffer(c, v, s) {
+  const me = settings(), cur = c.currency, today = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Indicative offer · ${esc(c.name)}</title><link rel="icon" href="data:,">
+  <style>body{font:15px/1.6 Georgia,serif;max-width:720px;margin:48px auto;padding:0 24px;color:#111}h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:28px 0 6px;text-transform:uppercase;letter-spacing:.06em;font-family:system-ui}table{border-collapse:collapse;width:100%}td{padding:6px 0;border-bottom:1px solid #ddd}td:last-child{text-align:right}.muted{color:#666}@media print{button{display:none}}</style></head><body>
+  <button onclick="print()">Print / save as PDF</button>
+  <p class="muted">${esc(today)}</p>
+  <h1>Non-binding indicative offer</h1>
+  <p>To: ${esc(c.owner_name || "The owners")}, ${esc(c.name)}${c.address ? `, ${esc(c.address)}` : ""}<br>From: ${esc(me.myName || "[Your name]")}, ${esc(me.myCompany || "[Your company]")}</p>
+  <p>Thank you for the conversation about the future of ${esc(c.name)}. Subject to the conditions below, we are pleased to set out the basis on which we would acquire 100% of the shares.</p>
+  <h2>Price and structure</h2>
+  <table><tr><td>Headline price (cash-free, debt-free, normal working capital)</td><td><b>${dmoney(s.price, cur)}</b></td></tr>
+  ${s.parts.map((p) => `<tr><td>${{ bank: "Paid at completion, funded by senior bank debt", seller: `Vendor loan note at ${p.terms.rate}% over ${p.terms.years} years${p.terms.holiday ? `, first payment after ${p.terms.holiday} months` : ""}`, earnout: "Earn-out, paid in years 2 and 3 subject to maintained profitability" }[p.k]}</td><td>${dmoney(p.amount, cur)}</td></tr>`).join("")}</table>
+  <p class="muted">Basis: ${esc(v.basis)}; ${v.multiple.join("–")}× EBITDA for comparable owner-operated companies.</p>
+  <h2>Conditions</h2>
+  <ul><li>Satisfactory financial, legal and commercial due diligence, including a quality-of-earnings review of the last three years.</li>
+  <li>${s.parts.some((p) => p.k === "bank") ? "Senior debt approval on terms acceptable to us." : "No external financing condition."}</li>
+  <li>Continuity of key staff and customer contracts; a handover period with you of 6–12 months on agreed terms.</li>
+  <li>Exclusivity for 60 days from acceptance of this letter.</li></ul>
+  <h2>Timetable</h2><p>Due diligence within 60 days of acceptance and signing within 30 days after that.</p>
+  <p>This letter is not legally binding except for confidentiality and exclusivity. We look forward to your thoughts.</p>
+  <p>${esc(me.myName || "[Your name]")}<br>${esc(me.myCompany || "[Your company]")}<br>${esc([me.myPhone, me.myEmail].filter(Boolean).join(" · "))}</p>
+  </body></html>`);
+  w.document.close();
+}
+
+const aiMeta = (o) => `${o.model.startsWith("claude") ? "Claude" : "Workers AI"} · ${new Date(o.created_at).toLocaleDateString()}`;
+// Minimal, safe markdown: escape first, then headings, bullets, bold, paragraphs.
+function md(src) {
+  const lines = esc(src).split(/\n/);
+  let out = "", inList = false;
+  for (const raw of lines) {
+    const l = raw.trim();
+    const bullet = l.match(/^[-*•]\s+(.*)/) || l.match(/^\d+[.)]\s+(.*)/);
+    if (bullet) { if (!inList) { out += "<ul>"; inList = true; } out += `<li>${inline(bullet[1])}</li>`; continue; }
+    if (inList) { out += "</ul>"; inList = false; }
+    if (!l) continue;
+    const h = l.match(/^#{1,4}\s+(.*)/);
+    out += h ? `<h4>${inline(h[1])}</h4>` : `<p>${inline(l)}</p>`;
+  }
+  return out + (inList ? "</ul>" : "");
+}
+const inline = (t) => t.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+
 // ================================================================== outreach drafts
 function drafts(c, s) {
   const first = (c.owner_name || "").split(" ")[0] || "there";
@@ -356,20 +484,7 @@ function drafts(c, s) {
   const foreign = { fr: "French", no: "Norwegian" }[c.country];
   const lang = foreign ? ` Translate to ${foreign} before sending; owners respond far better in their own language.` : "";
   const footer = `\n\n—\n${co} · ${s.myAddress || "[Your mailing address]"}\nNot interested? Reply "no thanks" and I won't contact you again.`;
-  const letter = `Dear ${first},
-
-My name is ${me}. ${angle}, and I'm writing to a small number of owners whose companies I genuinely respect.
-
-${c.name} has served ${where} ${tenure}. A reputation like that takes decades to build, and I'd like to help make sure it lasts.
-
-If you've thought about what happens to the business when you step back — retirement, slowing down, or taking some value off the table — I'd welcome a confidential conversation. No brokers and no pressure. We keep the name and the team, and we can structure things so you're paid well over time and stay as involved as you like.
-
-If now isn't the time, please keep this letter. I'll be in touch again in a few months.
-
-Warm regards,
-${me}
-${co}
-${phone} · ${email}`;
+  const letter = letterText(c, s);
   const e1 = `Subject: ${c.name} — a question
 
 Hi ${first},
@@ -423,6 +538,19 @@ $("#scrim").addEventListener("click", closeDrawer);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
 document.addEventListener("click", () => { const m = $("#exportMenu"); if (m) m.hidden = true; });
 $("#menuBtn").addEventListener("click", () => $("#side").classList.toggle("open"));
+$("#addBtn").addEventListener("click", () => { $("#addErr").textContent = ""; $("#addForm").reset(); $("#addDlg").showModal(); });
+$("#addCancel").addEventListener("click", () => $("#addDlg").close());
+$("#addForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  $("#addErr").textContent = "Looking it up…";
+  try {
+    const c = await api("/api/companies/add", { method: "POST", body: JSON.stringify({ country: f.get("country"), number: f.get("number") }) });
+    $("#addDlg").close();
+    renderSearches();
+    openCompany(c.id);
+  } catch (err) { $("#addErr").textContent = err.message; }
+});
 $("#logout").addEventListener("click", async () => { await fetch("/api/logout", { method: "POST" }); location.href = "/login"; });
 $("#settingsBtn").addEventListener("click", () => {
   const s = settings();

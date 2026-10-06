@@ -41,7 +41,7 @@ export class SearchWorkflow extends WorkflowEntrypoint {
         for (let page = 1; page <= plan.pages; page++) {
           const res = await step.do(`page ${page}`, RETRY, async () => {
             const state = { nextPageToken: token };
-            const saved = await saveCompanies(db, searchId, await provider.fetchPage(this.env, params, page, state));
+            const saved = await saveCompanies(db, searchId, await provider.fetchPage(this.env, params, page, state), search.industry);
             await this.progress(searchId, 1);
             return { saved, nextPageToken: state.nextPageToken || null };
           });
@@ -75,13 +75,14 @@ export class SearchWorkflow extends WorkflowEntrypoint {
       await step.do(`pages ${first}-${last}`, ONCE, async () => {
         let saved = 0;
         for (let page = first; page <= last; page++) {
-          saved += await saveCompanies(this.env.DB, search.id, await provider.fetchPage(this.env, params, page));
+          saved += await saveCompanies(this.env.DB, search.id, await provider.fetchPage(this.env, params, page), search.industry);
           if (page < last && provider.pauseMs) await new Promise((r) => setTimeout(r, provider.pauseMs));
         }
         return saved;
       });
     } catch (err) {
       error = String(err?.message || err).slice(0, 300);
+      if (/D1_ERROR: .*(limit|exceeded)/i.test(error)) attempt = MAX_ATTEMPTS; // retrying can't help until the quota resets
     }
     if (error && attempt < MAX_ATTEMPTS) {
       await step.do("try again in a fresh instance", async () => {

@@ -234,3 +234,51 @@ dialog .row-end { margin-top: 16px; }
   .sbars { grid-template-columns: 1fr; }
   .facts { grid-template-columns: 1fr; }
 }
+
+/* ---------- v3: deal builder, AI, inbound ---------- */
+.wide { width: 100%; }
+.strong-num { font-weight: 600; }
+.pill.inbound { background: var(--old); color: #fff; font-size: 10.5px; padding: 1px 7px; vertical-align: 2px; }
+.link.strong { color: var(--accent-ink); font-weight: 600; font-size: 12px; }
+.deal { background: linear-gradient(180deg, var(--accent-soft), transparent 70%); border: 1px solid var(--line); border-radius: 14px; padding: 16px 16px 14px; }
+.val-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.val-head b { font-size: 22px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.val-track { position: relative; height: 10px; background: var(--surface-2); border-radius: 5px; margin: 10px 0 6px; }
+.val-band { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .35; border-radius: 5px; }
+.val-price { position: absolute; top: -4px; width: 3px; height: 18px; margin-left: -1px; background: var(--ink); border-radius: 2px; }
+.conf.high { color: var(--strong); } .conf.medium { color: var(--call); } .conf.low { color: var(--old); }
+.price { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 12px; margin: 14px 0 10px; font-size: 13px; color: var(--muted); }
+.price b { color: var(--ink); font-size: 15px; font-variant-numeric: tabular-nums; }
+.price input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.structs { display: flex; flex-wrap: wrap; gap: 6px; }
+.structs button { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.structs button.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.structs .rec { color: #e3a008; }
+.deal-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.deal-kpis div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.deal-kpis span { display: block; font-size: 11.5px; color: var(--muted); }
+.deal-kpis b { font-size: 17px; font-variant-numeric: tabular-nums; }
+b.good, .verdict-line.good { color: var(--strong); } b.bad, .verdict-line.bad { color: var(--old); }
+.verdict-line { font-size: 13px; font-weight: 600; margin-right: auto; }
+.dscr { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 132px; align-items: end; margin: 18px 0 26px; padding-bottom: 0; }
+.dscr .col { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; }
+.dscr .bar { position: relative; border-radius: 5px 5px 2px 2px; min-height: 4px; transition: height .2s; }
+.dscr .bar.ok { background: var(--accent); } .dscr .bar.low { background: var(--old); } .dscr .bar.none { background: var(--line); }
+.dscr .bar span { position: absolute; top: -17px; left: 0; right: 0; text-align: center; font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dscr .col small { position: absolute; bottom: -17px; left: 0; right: 0; text-align: center; font-size: 10.5px; color: var(--muted); }
+.dscr .line { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--ink); opacity: .45; pointer-events: none; }
+.dscr .line span { position: absolute; right: 0; top: -15px; font-size: 10px; }
+.parts { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.ai-box { background: var(--surface-2); border-radius: 10px; padding: 12px 16px; font-size: 13.5px; line-height: 1.6; }
+.ai-box h4 { margin: 12px 0 4px; font-size: 13.5px; }
+.ai-box h4:first-child { margin-top: 0; }
+.ai-box p { margin: 4px 0; }
+.ai-box ul { margin: 4px 0; padding-left: 18px; }
+.skeleton { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--line), var(--surface), var(--line)); background-size: 200% 100%; animation: shimmer 1.2s infinite; margin: 8px 0; }
+.skeleton.short { width: 60%; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+dialog select { width: 100%; }
+.val-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
+.val-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.val-legend .sw.band { background: var(--accent); opacity: .35; } .val-legend .sw.tick { background: var(--ink); width: 3px; }
+.val-legend .fund { color: var(--ink); } .val-legend .fund b { color: var(--accent-ink); }

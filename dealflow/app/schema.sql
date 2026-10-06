@@ -1,4 +1,6 @@
 -- Dealflow schema (v2: multi-country). Apply with: npm run db:schema
+DROP TABLE IF EXISTS leads;
+DROP TABLE IF EXISTS ai_outputs;
 DROP TABLE IF EXISTS pipeline;
 DROP TABLE IF EXISTS search_results;
 DROP TABLE IF EXISTS searches;
@@ -42,6 +44,16 @@ CREATE TABLE companies (
   signals TEXT,                    -- JSON [{type, label, pts, detail}]
   excluded INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL,
+  industry TEXT,
+  fin_year INTEGER,
+  ebit REAL,
+  net_income REAL,
+  payroll REAL,
+  cash REAL,
+  equity REAL,
+  long_term_debt REAL,
+  valuation_mid REAL,
+  inbound INTEGER NOT NULL DEFAULT 0,
   UNIQUE (source, source_id)
 );
 CREATE INDEX companies_fit ON companies (excluded, fit_score DESC);
@@ -77,4 +89,22 @@ CREATE TABLE pipeline (
   status TEXT NOT NULL DEFAULT 'New',
   notes TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_outputs (
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,               -- brief | letter
+  model TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (company_id, kind)
+);
+
+CREATE TABLE IF NOT EXISTS leads (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL,
+  name TEXT, email TEXT, phone TEXT,
+  timeline TEXT, message TEXT,
+  valuation_low REAL, valuation_high REAL, currency TEXT,
+  created_at TEXT NOT NULL
 );

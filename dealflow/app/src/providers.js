@@ -84,6 +84,8 @@ const france = {
       establishments: r.nombre_etablissements_ouverts || null,
       revenue: fin ? fin[1].ca : null,
       revenueYear: fin ? Number(fin[0]) : null,
+      netIncome: fin?.[1].resultat_net ?? null,
+      finYear: fin ? Number(fin[0]) : null,
       currency: "EUR",
       people: (r.dirigeants || []).filter((x) => x.type_dirigeant === "personne physique").map((x) => ({
         name: title(`${(x.prenoms || "").split(" ")[0]} ${(x.nom || "").replace(/\s*\(.*?\)\s*/g, " ")}`.replace(/\s+/g, " ").trim()),
@@ -100,6 +102,20 @@ const france = {
 // --------------------------------------------------------------------------------------------
 // Norway — Brønnøysund Enhetsregisteret + roles (birth dates) + Regnskapsregisteret (revenue). No key.
 // --------------------------------------------------------------------------------------------
+function norwayFinancials(acc) {
+  if (!acc) return {};
+  const r = acc.resultatregnskapResultat || {}, eg = acc.egenkapitalGjeld || {}, e = acc.eiendeler || {};
+  return {
+    finYear: year(acc.regnskapsperiode?.tilDato),
+    ebit: r.driftsresultat?.driftsresultat ?? null,
+    netIncome: r.aarsresultat ?? null,
+    payroll: r.driftsresultat?.driftskostnad?.loennskostnad ?? null,
+    cash: e.sumBankinnskuddOgKontanter ?? null,
+    equity: eg.egenkapital?.sumEgenkapital ?? null,
+    longTermDebt: eg.gjeldOversikt?.langsiktigGjeld?.sumLangsiktigGjeld ?? null,
+  };
+}
+
 const NO_FORMS = { AS: "AS", ENK: "Sole proprietorship", ANS: "Partnership (ANS)", DA: "Partnership (DA)", ASA: "ASA", NUF: "Foreign branch" };
 const norway = {
   id: "no",
@@ -171,6 +187,7 @@ const norway = {
       employeesBand: e.harRegistrertAntallAnsatte ? String(e.antallAnsatte ?? 0) : null,
       revenue: revenue && revenue > 0 ? revenue : null,
       revenueYear: year(acc?.regnskapsperiode?.tilDato),
+      ...norwayFinancials(acc),
       currency: "NOK",
       website: e.hjemmeside ? (e.hjemmeside.startsWith("http") ? e.hjemmeside : `https://${e.hjemmeside}`) : null,
       people: unique,

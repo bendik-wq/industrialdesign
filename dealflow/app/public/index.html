@@ -13,6 +13,7 @@
   <aside class="side" id="side">
     <div class="brand"><span class="logo"></span><b>Dealflow</b></div>
     <a class="primary new" href="#/new">+ New search</a>
+    <button class="ghost wide" id="addBtn" type="button">+ Add company by number</button>
     <nav class="nav">
       <a href="#/all" data-nav="all">All targets</a>
       <a href="#/pipeline" data-nav="pipeline">Pipeline</a>
@@ -21,7 +22,8 @@
     <div class="searches" id="searches"></div>
     <div class="side-foot">
       <button class="link" id="settingsBtn" type="button">Outreach settings</button>
-      <a class="link" href="/api" target="_blank">API</a>
+      <a class="link" href="/value" target="_blank">Seller valuation page ↗</a>
+      <a class="link" href="/api" target="_blank">API & MCP</a>
       <button class="link" id="logout" type="button">Sign out</button>
     </div>
   </aside>
@@ -43,6 +45,17 @@
     <label>Mailing address (required in cold email)<input name="myAddress" placeholder="100 Congress Ave, Austin, TX 78701"></label>
     <label>Who you are, in one line<input name="myAngle" placeholder="We own and run a 40-person HVAC company"></label>
     <div class="row-end"><button class="primary" value="save">Save</button></div>
+  </form>
+</dialog>
+
+<dialog id="addDlg">
+  <form id="addForm">
+    <h2>Add a company by number</h2>
+    <p class="muted">Pulls the company live from the official registry, scores it and values it.</p>
+    <label>Country<select name="country"><option value="no">🇳🇴 Norway (organisation number)</option><option value="fr">🇫🇷 France (SIREN)</option></select></label>
+    <label>Number<input name="number" required placeholder="e.g. 981497023" inputmode="numeric" autocomplete="off"></label>
+    <p class="error" id="addErr"></p>
+    <div class="row-end"><button class="ghost" type="button" id="addCancel">Cancel</button><button class="primary" type="submit">Add and open</button></div>
   </form>
 </dialog>
 

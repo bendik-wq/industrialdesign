@@ -17,6 +17,21 @@ Live: https://dealflow.bendik-50e.workers.dev (password login; scripts use `Auth
 21 industries are mapped to each country's official activity codes in `app/src/data/industries.js`
 (NAF rév. 2, SN2025, SIC 2007).
 
+## What makes it different
+
+- **Deal engine** (`app/public/deal.js`, shared by browser, API and MCP): values each company from its own filed
+  accounts (Norway: operating profit, cash, debt; France: net income or revenue), then tests three seller-finance
+  structures year by year against a 1.5× debt-service-coverage bar. It shows fair value *and* the highest price the
+  company's own cash flow can fund, and prints a non-binding indicative offer.
+- **AI brief and owner letter** (`app/src/ai.js`): one-page acquisition brief and a personal letter in the owner's
+  own language (French, Norwegian, English). Uses Claude when `ANTHROPIC_API_KEY` is set, otherwise Cloudflare
+  Workers AI with no key. Cached per company.
+- **Seller valuation page** (`/value`, public): an owner types their company number, sees an instant valuation
+  from their filings, and can ask to talk to a buyer. They land in the pipeline as an inbound seller.
+- **MCP server** (`/mcp`, `app/src/mcp.js`): the buyer's own Claude can search registries, value deals, write
+  briefs and update the pipeline. Add it as a remote MCP server with header `Authorization: Bearer <API_TOKEN>`.
+- **Print batch** (`/print.html`): print-ready letters, one per page, for the top targets of any search.
+
 ## Scoring (`app/src/scoring.js`)
 
 - **Succession (55%)**: owner age (60+ scores high), company age, a single person on record, owner's name on
@@ -50,11 +65,13 @@ GET  /api/export.csv?search=2&format=mail  full | mail | email
 ```sh
 cd app && npm install
 npx wrangler d1 execute dealflow --remote --file schema.sql      # first time only: drops and recreates tables
+npx wrangler d1 execute dealflow --remote --file migrations.sql  # upgrading a v2 database instead
 npx wrangler deploy
 npx wrangler secret put DASHBOARD_PASSWORD
 npx wrangler secret put API_TOKEN
 npx wrangler secret put COMPANIES_HOUSE_API_KEY                   # optional: enables UK
 npx wrangler secret put GOOGLE_PLACES_API_KEY                     # optional: enables US
+npx wrangler secret put ANTHROPIC_API_KEY                         # optional: Claude for briefs and letters
 ```
 
 Texas license data (optional, US only): `node ingest/fetch.mjs && node ingest/build.mjs && node ingest/export-v2.mjs`,
@@ -66,3 +83,8 @@ Every company has a letter, a 3-step email sequence and a call script, filled in
 Email needs separate warmed-up sending domains, a postal address and an opt-out. Phone calls are made by people,
 not robocalls or AI voices, and numbers are checked against national do-not-call lists. French and Norwegian
 owners respond far better in their own language.
+
+## Limits on the Workers Free plan
+
+D1 allows 100,000 row writes per day on the free plan. A full Texas reseed is about 140,000 writes, so it doesn't
+fit in one day. The Workers Paid plan ($5/month) includes 50 million writes a month.
