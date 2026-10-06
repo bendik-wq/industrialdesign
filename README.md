@@ -81,3 +81,13 @@ PW=$(npm root -g)/playwright node tools/render.mjs
 - [ ] 2D drawings with GD&T for the molded parts; tooling DFM review with the molder
 - [ ] Safety certification: UL 60335-2-40 / IEC 60335-2-40 (critical for flammable R290/R32)
 - [ ] Prototype build and calorimeter test (AHRI 210/240)
+
+## Website
+
+`site/` builds a static showcase (product pages, 3D viewer, renders, BOM, CAD downloads) from this repo and deploys it to
+Cloudflare Workers static assets: https://industrialdesign.bendik-50e.workers.dev
+```
+cd site && npm install
+npm run preview   # local
+npm run deploy    # needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
+```
