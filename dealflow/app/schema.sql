@@ -1,4 +1,8 @@
--- Dealflow schema (v2: multi-country). Apply with: npm run db:schema
+-- Dealflow schema (v5: accounts + territories). Apply with: npm run db:schema
+DROP TABLE IF EXISTS territories;
+DROP TABLE IF EXISTS api_tokens;
+DROP TABLE IF EXISTS invites;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS agent_targets;
 DROP TABLE IF EXISTS agent_runs;
 DROP TABLE IF EXISTS agents;
@@ -8,6 +12,7 @@ DROP TABLE IF EXISTS pipeline;
 DROP TABLE IF EXISTS search_results;
 DROP TABLE IF EXISTS searches;
 DROP TABLE IF EXISTS companies;
+DROP TABLE IF EXISTS accounts;
 
 CREATE TABLE companies (
   id INTEGER PRIMARY KEY,
@@ -77,8 +82,10 @@ CREATE TABLE searches (
   pages_done INTEGER NOT NULL DEFAULT 0,
   error TEXT,
   created_at TEXT NOT NULL,
-  finished_at TEXT
+  finished_at TEXT,
+  account_id INTEGER NOT NULL DEFAULT 1
 );
+CREATE INDEX searches_account ON searches (account_id, id DESC);
 
 CREATE TABLE search_results (
   search_id INTEGER NOT NULL REFERENCES searches(id) ON DELETE CASCADE,
@@ -88,19 +95,23 @@ CREATE TABLE search_results (
 CREATE INDEX search_results_company ON search_results (company_id);
 
 CREATE TABLE pipeline (
-  company_id INTEGER PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  account_id INTEGER NOT NULL,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'New',
   notes TEXT NOT NULL DEFAULT '',
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, company_id)
 );
+CREATE INDEX pipeline_company ON pipeline (company_id);
 
-CREATE TABLE IF NOT EXISTS ai_outputs (
+CREATE TABLE ai_outputs (
+  account_id INTEGER NOT NULL,
   company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   kind TEXT NOT NULL,               -- brief | letter
   model TEXT NOT NULL,
   content TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  PRIMARY KEY (company_id, kind)
+  PRIMARY KEY (account_id, company_id, kind)
 );
 
 CREATE TABLE IF NOT EXISTS leads (
@@ -109,7 +120,8 @@ CREATE TABLE IF NOT EXISTS leads (
   name TEXT, email TEXT, phone TEXT,
   timeline TEXT, message TEXT,
   valuation_low REAL, valuation_high REAL, currency TEXT,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  account_id INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS agents (
@@ -120,7 +132,8 @@ CREATE TABLE IF NOT EXISTS agents (
   buyer TEXT NOT NULL DEFAULT '{}',-- JSON outreach settings used for letters
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
-  last_run_at TEXT
+  last_run_at TEXT,
+  account_id INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS agent_runs (
   id INTEGER PRIMARY KEY,
@@ -142,3 +155,60 @@ CREATE TABLE IF NOT EXISTS agent_targets (
   created_at TEXT NOT NULL,
   PRIMARY KEY (agent_id, company_id)
 );
+
+CREATE TABLE IF NOT EXISTS accounts (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  plan TEXT NOT NULL DEFAULT 'standard',
+  max_territories INTEGER NOT NULL DEFAULT 1,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+INSERT OR IGNORE INTO accounts (id, name, plan, max_territories, created_at) VALUES (1, 'Dealflow HQ', 'admin', 999, datetime('now'));
+
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  name TEXT NOT NULL DEFAULT '',
+  role TEXT NOT NULL DEFAULT 'member',      -- owner | member
+  is_admin INTEGER NOT NULL DEFAULT 0,      -- platform admin
+  password_hash TEXT NOT NULL,
+  session_epoch INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  last_login_at TEXT
+);
+CREATE INDEX IF NOT EXISTS users_account ON users (account_id);
+
+CREATE TABLE IF NOT EXISTS invites (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  email TEXT,
+  role TEXT NOT NULL DEFAULT 'member',
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  created_by INTEGER,
+  accepted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS api_tokens (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  last_used_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS territories (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  country TEXT NOT NULL,
+  industry TEXT NOT NULL,
+  region TEXT,                              -- NULL = the whole country
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS territories_lookup ON territories (country, industry);
+CREATE INDEX IF NOT EXISTS territories_account ON territories (account_id);
+

@@ -459,3 +459,48 @@ tbody tr { transition: background .12s; }
 .table-meta b { color: var(--ink); }
 .steps.static li { animation: none; }
 @media (max-width: 560px) { .stat b { font-size: 34px; } .page-head h1 { font-size: 28px; } }
+
+/* ---------- v5: accounts, territories, team, admin ---------- */
+.acct { display: grid; gap: 1px; margin: 4px 0 2px; padding: 9px 11px; border-radius: 10px; background: var(--side-2); border: 1px solid var(--side-line); color: var(--side-ink); text-decoration: none; }
+.acct b { font-size: 13.5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acct small { font-size: 11.5px; color: var(--side-muted); }
+.acct:hover { border-color: var(--glow); }
+.meter { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.meter span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--glow)); border-radius: 4px; transition: width .4s; }
+.terr-meter { margin-bottom: 14px; }
+.terr-list { display: grid; gap: 10px; margin-bottom: 18px; }
+.terr-card { display: grid; grid-template-columns: auto 1fr auto auto; gap: 14px; align-items: center; background: var(--surface); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); border-left: 3px solid var(--glow); }
+.terr-card b { display: block; font-size: 15px; }
+.terr-card small { color: var(--muted); font-size: 12.5px; }
+.terr-card .ghost { text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; }
+.area-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.area-picker label, .stack-form label, .panel > label { display: grid; gap: 5px; font-size: 12.5px; color: var(--muted); }
+.panel > label { margin-bottom: 12px; }
+.claim-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.avail { font-size: 13.5px; color: var(--muted); }
+.avail.ok { color: var(--strong); font-weight: 600; }
+.avail.ok::before { content: "● "; color: var(--glow); }
+.avail.no { color: var(--old); }
+.rows { list-style: none; margin: 0 0 12px; padding: 0; }
+.rows li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.rows li:last-child { border-bottom: 0; }
+.rows b { display: block; font-size: 14px; }
+.rows small { color: var(--muted); font-size: 12px; }
+.panel h4 { margin: 14px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.inline-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.inline-form input { flex: 1 1 180px; }
+.stack-form { display: grid; gap: 10px; }
+.secret { margin-top: 12px; padding: 12px; border-radius: 10px; background: var(--accent-soft); display: grid; gap: 8px; }
+.secret p { margin: 0; font-size: 13px; }
+.secret code { display: block; padding: 8px 10px; border-radius: 8px; background: var(--surface); font-size: 12.5px; word-break: break-all; user-select: all; }
+.secret .ghost { justify-self: start; }
+.secret pre { font-size: 11.5px; overflow-x: auto; background: var(--surface); padding: 8px; border-radius: 8px; }
+.link.danger { color: var(--old); }
+.panel.narrow { max-width: 720px; margin-top: 16px; }
+.num-in { width: 64px; padding: 4px 6px; }
+.admin-table { min-width: 860px; }
+.admin-table td small { font-size: 11.5px; }
+.grid2 { margin: 16px 0; }
+.login-card .switch-mode { font-size: 13px; margin-top: 14px; }
+.login-card .ok { color: var(--strong); font-size: 13px; }
+@media (max-width: 640px) { .terr-card { grid-template-columns: auto 1fr; } }

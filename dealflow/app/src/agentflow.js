@@ -3,7 +3,7 @@
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import { brief, letter } from "./ai.js";
 import { recommend } from "../public/deal.js";
-import { createSearch, company } from "./index.js"; // circular import is fine: used at run time only
+import { createSearch, company, saveAi, accountContext } from "./index.js"; // circular import is fine: used at run time only
 
 const RETRY = { retries: { limit: 3, delay: "20 seconds", backoff: "exponential" }, timeout: "5 minutes" };
 const FRESH_DAYS = 7;
@@ -23,16 +23,17 @@ export class AgentWorkflow extends WorkflowEntrypoint {
       return { run: r, agent: a };
     });
     const cfg = JSON.parse(agent.config);
+    const ctx = await accountContext(this.env, agent.account_id);
 
     try {
       // 1. Source: reuse a recent finished search with the same parameters, otherwise start one and wait.
       const searchId = await step.do("source", RETRY, async () => {
         const fresh = await db.prepare(
           `SELECT id FROM searches WHERE country = ?1 AND industry = ?2 AND IFNULL(region, '') = IFNULL(?3, '') AND min_staff = ?4
-             AND status = 'done' AND created_at > ?5 ORDER BY id DESC LIMIT 1`
-        ).bind(cfg.country, cfg.industry, cfg.region, cfg.minStaff, new Date(Date.now() - FRESH_DAYS * 864e5).toISOString()).first();
+             AND status = 'done' AND created_at > ?5 AND account_id = ?6 ORDER BY id DESC LIMIT 1`
+        ).bind(cfg.country, cfg.industry, cfg.region, cfg.minStaff, new Date(Date.now() - FRESH_DAYS * 864e5).toISOString(), agent.account_id).first();
         if (fresh) { await log(`Using search #${fresh.id} from the last ${FRESH_DAYS} days.`); return fresh.id; }
-        const s = await createSearch(this.env, { country: cfg.country, industry: cfg.industry, region: cfg.region, minStaff: cfg.minStaff });
+        const s = await createSearch(this.env, { country: cfg.country, industry: cfg.industry, region: cfg.region, minStaff: cfg.minStaff }, ctx);
         await log(`Started a fresh registry search (#${s.id}): ${s.label}.`);
         return s.id;
       });
@@ -65,24 +66,24 @@ export class AgentWorkflow extends WorkflowEntrypoint {
       const me = JSON.parse(agent.buyer || "{}");
       for (const pick of picks) {
         await step.do(`work ${pick.id}`, RETRY, async () => {
-          const c = await company(this.env, pick.id);
+          const c = await company(this.env, pick.id, ctx);
           const deal = recommend(c);
           const done = [];
           if (cfg.brief) {
             const b = await brief(this.env, c);
-            await saveAi(db, c.id, "brief", b);
+            await saveAi(db, agent.account_id, c.id, "brief", b);
             done.push("brief");
           }
           if (cfg.letter) {
             const l = await letter(this.env, c, me, cfg.voice);
-            await saveAi(db, c.id, "letter", l);
+            await saveAi(db, agent.account_id, c.id, "letter", l);
             done.push("letter");
           }
           if (cfg.stage) {
             await db.prepare(
-              `INSERT INTO pipeline (company_id, status, notes, updated_at) VALUES (?1, ?2, ?3, ?4)
-               ON CONFLICT (company_id) DO UPDATE SET status = CASE WHEN status IN ('New', 'Researching') THEN ?2 ELSE status END, updated_at = ?4`
-            ).bind(c.id, cfg.stage, `Added by agent “${agent.name}”.`, new Date().toISOString()).run();
+              `INSERT INTO pipeline (account_id, company_id, status, notes, updated_at) VALUES (?5, ?1, ?2, ?3, ?4)
+               ON CONFLICT (account_id, company_id) DO UPDATE SET status = CASE WHEN status IN ('New', 'Researching') THEN ?2 ELSE status END, updated_at = ?4`
+            ).bind(c.id, cfg.stage, `Added by agent “${agent.name}”.`, new Date().toISOString(), agent.account_id).run();
           }
           await db.prepare("INSERT OR IGNORE INTO agent_targets (agent_id, company_id, run_id, created_at) VALUES (?1, ?2, ?3, ?4)")
             .bind(agent.id, c.id, runId, new Date().toISOString()).run();
@@ -111,9 +112,3 @@ export class AgentWorkflow extends WorkflowEntrypoint {
   }
 }
 
-async function saveAi(db, companyId, kind, out) {
-  await db.prepare(
-    `INSERT INTO ai_outputs (company_id, kind, model, content, created_at) VALUES (?1, ?2, ?3, ?4, ?5)
-     ON CONFLICT (company_id, kind) DO UPDATE SET model = ?3, content = ?4, created_at = ?5`
-  ).bind(companyId, kind, out.model, out.text, new Date().toISOString()).run();
-}

@@ -9,6 +9,7 @@ const VERDICTS = ["Strong target", "Worth a call", "Watch list", "Long shot"];
 const VCLASS = { "Strong target": "v-strong", "Worth a call": "v-call", "Watch list": "v-watch", "Long shot": "v-long" };
 
 let sources = null;
+let me = null; // signed-in user, account, plan and territories
 let pollTimer = null;
 let routeSeq = 0; // a slower, older view must not overwrite the one the user just navigated to
 const stale = (seq) => seq !== routeSeq;
@@ -53,6 +54,9 @@ async function router() {
   if (view === "agents" && id) return renderAgent(Number(id), seq);
   if (view === "agents") return renderAgents(seq);
   if (view === "pipeline") return renderPipeline(seq);
+  if (view === "territories") return renderTerritories(seq);
+  if (view === "team") return renderTeam(seq);
+  if (view === "admin" && me.isAdmin) return renderAdmin(seq);
   if (view === "search" && id) return renderResults(Number(id), seq);
   const searches = await renderSearches();
   if (stale(seq)) return;
@@ -63,6 +67,7 @@ async function router() {
 // ================================================================== new search
 function renderNew() {
   renderSearches();
+  if (!me.isAdmin) return renderNewInTerritory();
   const st = { country: "fr", industry: "hvac", region: "", minStaff: 1 };
   const draw = () => {
     const c = country(st.country);
@@ -110,6 +115,46 @@ function renderNew() {
       $("#go").disabled = true; $("#goErr").textContent = "";
       try {
         const s = await api("/api/searches", { method: "POST", body: JSON.stringify(st) });
+        location.hash = `#/search/${s.id}`;
+      } catch (e) { $("#goErr").textContent = e.message; $("#go").disabled = false; }
+    });
+  };
+  draw();
+}
+
+// Members search only inside the territories they hold: pick one, optionally narrow a whole-country one.
+function renderNewInTerritory() {
+  const mine = me.territories;
+  if (!mine.length) {
+    $("#view").innerHTML = `<header class="page-head"><div><h1>New search</h1></div></header>
+      <div class="empty-state"><h3>Claim a territory first</h3><p class="muted">You search inside the industries and areas you hold exclusively. ${me.isOwner ? "" : "Ask your account owner to claim one."}</p>
+      ${me.isOwner ? `<a class="primary" href="#/territories">Claim a territory</a>` : ""}</div>`;
+    return;
+  }
+  const pre = Number(new URLSearchParams(location.hash.split("?")[1] || "").get("t"));
+  let t = mine.find((x) => x.id === pre) || mine[0];
+  const st = { region: t.region || "", minStaff: 1 };
+  const draw = () => {
+    const c = country(t.country);
+    $("#view").innerHTML = `
+      <header class="page-head"><div><h1>New search</h1><p class="muted">Pull every matching company in your territory from the official registry and score it on succession and size. Nobody else on Dealflow can search here.</p></div></header>
+      <section class="step"><h3><span>1</span> Territory</h3>
+        <div class="countries">${mine.map((x) => `<button type="button" class="country ${x.id === t.id ? "on" : ""}" data-t="${x.id}"><span class="flag big">${country(x.country)?.flag || ""}</span><b>${esc(x.label)}</b><span class="badge ok">Exclusive</span></button>`).join("")}</div>
+        ${c.ready ? "" : `<p class="notice">${esc(c.label)} needs <code>${esc(c.needsKey)}</code> on the server before it can be searched. We've been told.</p>`}
+      </section>
+      ${!t.region && Array.isArray(c.regions) ? `<section class="step"><h3><span>2</span> ${esc(c.regionLabel)} (optional)</h3>
+        <select id="region"><option value="">All of ${esc(c.label)}</option>${c.regions.map((r) => `<option value="${esc(r.code)}" ${r.code === st.region ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></section>` : ""}
+      <section class="step"><h3><span>${!t.region && Array.isArray(c.regions) ? 3 : 2}</span> Minimum staff</h3>
+        <div class="seg" id="staff">${[0, 1, 6, 10, 20, 50].map((n) => `<button type="button" data-n="${n}" class="${n === st.minStaff ? "on" : ""}">${n ? `${n}+` : "Any"}</button>`).join("")}</div>
+      </section>
+      <div class="go"><button class="primary big" id="go" type="button" ${c.ready ? "" : "disabled"}>Find companies</button><span class="error" id="goErr"></span></div>`;
+    $$("[data-t]").forEach((b) => b.addEventListener("click", () => { t = mine.find((x) => x.id === +b.dataset.t); st.region = t.region || ""; draw(); }));
+    $("#region")?.addEventListener("change", (e) => (st.region = e.target.value));
+    $$("#staff button").forEach((b) => b.addEventListener("click", () => { st.minStaff = +b.dataset.n; $$("#staff button").forEach((x) => x.classList.toggle("on", x === b)); }));
+    $("#go").addEventListener("click", async () => {
+      $("#go").disabled = true; $("#goErr").textContent = "";
+      try {
+        const s = await api("/api/searches", { method: "POST", body: JSON.stringify({ country: t.country, industry: t.industry, region: st.region, minStaff: st.minStaff }) });
         location.hash = `#/search/${s.id}`;
       } catch (e) { $("#goErr").textContent = e.message; $("#go").disabled = false; }
     });
@@ -602,10 +647,18 @@ $("#settingsForm").addEventListener("submit", () => {
   try { localStorage.setItem("dealflow.settings", JSON.stringify(s)); } catch { /* storage unavailable */ }
 });
 (async () => {
-  sources = await api("/api/sources");
+  [sources] = await Promise.all([api("/api/sources"), refreshMe()]);
   window.addEventListener("hashchange", router); // only route once countries and industries are loaded
   router();
 })();
+
+async function refreshMe() {
+  me = await api("/api/me");
+  $("#acctName").textContent = me.account.name;
+  $("#acctPlan").textContent = `${me.account.planLabel} · ${me.territories.length}/${me.account.maxTerritories} territories`;
+  $("#adminNav").hidden = !me.isAdmin;
+  return me;
+}
 
 // ================================================================== voice capture
 // Tap to record, tap again to stop. Audio goes to Whisper on the server; the transcript is handed to onText.
@@ -867,4 +920,212 @@ async function renderAgent(id, seq) {
   $("#agActive").addEventListener("change", async (e) => api(`/api/agents/${id}`, { method: "PATCH", body: JSON.stringify({ active: e.target.checked }) }));
   $$("tbody tr[data-id]").forEach((tr) => tr.addEventListener("click", () => openCompany(+tr.dataset.id)));
   if (live) pollTimer = setInterval(() => { if (location.hash === `#/agents/${id}`) renderAgent(id, routeSeq); }, 5000);
+}
+
+// ================================================================== account: territories, team, admin
+const COUNTRY_CUR = { fr: "€", no: "NOK ", uk: "£", us: "$" };
+const indLabel = (id) => sources.industries.find((i) => i.id === id)?.label || id;
+
+// Country + industry + area picker shared by Territories and Admin. onChange gets {country, industry, region}.
+function areaPicker(el, st, onChange) {
+  const draw = () => {
+    const c = country(st.country);
+    const inds = sources.industries.filter((i) => i.countries.includes(st.country));
+    if (!inds.find((i) => i.id === st.industry)) st.industry = inds[0]?.id;
+    el.innerHTML = `<div class="area-picker">
+      <label>Country<select data-k="country">${sources.countries.map((x) => `<option value="${x.id}" ${x.id === st.country ? "selected" : ""}>${x.flag} ${esc(x.label)}</option>`).join("")}</select></label>
+      <label>Industry<select data-k="industry">${inds.map((i) => `<option value="${i.id}" ${i.id === st.industry ? "selected" : ""}>${esc(i.label)}</option>`).join("")}</select></label>
+      <label>${esc(c.regionLabel)}${Array.isArray(c.regions)
+        ? `<select data-k="region"><option value="">All of ${esc(c.label)}</option>${c.regions.map((r) => `<option value="${esc(r.code)}" ${r.code === st.region ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select>`
+        : `<input data-k="region" placeholder="${st.country === "us" ? "e.g. Austin, TX" : "e.g. Manchester"}" value="${esc(st.region)}">`}</label>
+    </div>`;
+    $$("[data-k]", el).forEach((x) => {
+      const ev = x.tagName === "INPUT" ? "input" : "change";
+      x.addEventListener(ev, () => {
+        st[x.dataset.k] = x.value;
+        if (x.dataset.k === "country") { st.region = ""; draw(); }
+        else if (x.dataset.k === "industry") { /* keep region */ }
+        onChange(st);
+      });
+    });
+    onChange(st);
+  };
+  draw();
+}
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+async function renderTerritories(seq) {
+  renderSearches();
+  const d = await api("/api/territories");
+  if (stale(seq)) return;
+  const pct = Math.min(100, Math.round((100 * d.used) / Math.max(1, d.limit)));
+  $("#view").innerHTML = `
+    <header class="page-head"><div><h1>Territories</h1><p class="muted">A territory is one industry in one area. While you hold it, no other Dealflow buyer can search it, add companies from it or receive its inbound sellers.</p></div></header>
+    <section class="panel terr-meter"><header><h3>${d.used} of ${d.limit} on your ${esc(me.account.planLabel)} plan</h3>${d.used >= d.limit ? `<span class="muted small">Need more? Release one, or ask us to upgrade your plan.</span>` : ""}</header>
+      <div class="meter"><span style="width:${pct}%"></span></div></section>
+    <section class="terr-list">${d.territories.length ? d.territories.map((t) => `
+      <div class="terr-card"><span class="flag big">${country(t.country)?.flag || ""}</span>
+        <div><b>${esc(t.label)}</b><small>Exclusive since ${new Date(t.created_at).toLocaleDateString()}</small></div>
+        <a class="ghost" href="#/new?t=${t.id}">Search it</a>
+        ${me.isOwner ? `<button class="link danger" data-release="${t.id}" type="button">Release</button>` : ""}
+      </div>`).join("") : `<div class="empty-state"><h3>No territories yet</h3><p class="muted">Claim one below to start searching.</p></div>`}
+    </section>
+    ${me.isOwner ? `<section class="step claim"><h3><span>+</span> Claim a territory</h3>
+      <div id="claimPicker"></div>
+      <div class="claim-foot"><span id="claimState" class="avail"></span><button class="primary" id="claimBtn" type="button" disabled>Claim</button></div>
+      <p class="muted small">A whole-country territory covers every region in it, so it can only be claimed when no one holds any part of that industry there.</p>
+    </section>` : `<p class="muted">Only your account owner can claim or release territories.</p>`}`;
+  $$("[data-release]").forEach((b) => b.addEventListener("click", async () => {
+    if (!confirm("Release this territory? Another buyer could claim it straight away.")) return;
+    try { await api(`/api/territories/${b.dataset.release}`, { method: "DELETE" }); await refreshMe(); renderTerritories(routeSeq); } catch (e) { alert(e.message); }
+  }));
+  if (!me.isOwner) return;
+  const st = { country: "fr", industry: "hvac", region: "" };
+  let last = null;
+  const check = debounce(async () => {
+    const q = JSON.stringify(st);
+    last = q;
+    $("#claimState").className = "avail"; $("#claimState").textContent = "Checking…";
+    const r = await api("/api/territories/check", { method: "POST", body: q }).catch((e) => ({ available: false, reason: e.message }));
+    if (last !== q) return;
+    $("#claimState").className = `avail ${r.available ? "ok" : "no"}`;
+    $("#claimState").textContent = r.available ? `${r.label} is available` : r.reason;
+    $("#claimBtn").disabled = !r.available || !d.canClaim;
+    if (r.available && !d.canClaim) $("#claimState").textContent += ` · your plan is full`;
+  }, 250);
+  areaPicker($("#claimPicker"), st, check);
+  $("#claimBtn").addEventListener("click", async () => {
+    $("#claimBtn").disabled = true;
+    try { await api("/api/territories", { method: "POST", body: JSON.stringify(st) }); await refreshMe(); renderTerritories(routeSeq); }
+    catch (e) { $("#claimState").className = "avail no"; $("#claimState").textContent = e.message; }
+  });
+}
+
+async function renderTeam(seq) {
+  renderSearches();
+  const d = await api("/api/team");
+  if (stale(seq)) return;
+  const when = (t) => (t ? new Date(t).toLocaleDateString() : "never");
+  $("#view").innerHTML = `
+    <header class="page-head"><div><h1>Team</h1><p class="muted">${esc(me.account.name)} · ${esc(me.account.planLabel)} plan. Everyone here shares the same territories, pipeline, drafts and agents.</p></div></header>
+    <div class="grid2">
+      <section class="panel"><header><h3>People</h3></header>
+        <ul class="rows">${d.members.map((u) => `<li><div><b>${esc(u.name || u.email)}</b><small>${esc(u.email)} · ${u.is_admin ? "platform admin" : esc(u.role)} · last sign-in ${when(u.last_login_at)}</small></div>
+          ${d.isOwner && u.id !== d.me ? `<button class="link danger" data-rm="${u.id}" type="button">Remove</button>` : ""}</li>`).join("")}</ul>
+        ${d.invites.length ? `<h4>Waiting to join</h4><ul class="rows">${d.invites.map((i) => `<li><div><b>${esc(i.email || "Anyone with the link")}</b><small>${esc(i.role)} · expires ${when(i.expires_at)}</small></div><button class="link danger" data-revoke="${i.id}" type="button">Cancel</button></li>`).join("")}</ul>` : ""}
+        ${d.isOwner ? `<form id="invForm" class="inline-form"><input name="email" type="email" placeholder="colleague@company.com" required><select name="role"><option value="member">Member</option><option value="owner">Owner</option></select><button class="primary">Invite</button></form>
+        <div id="invOut"></div>` : ""}
+      </section>
+      <section class="panel"><header><h3>API & MCP tokens</h3></header>
+        <p class="muted small">Use a token with the REST API (<code>Authorization: Bearer …</code>) or add Dealflow to Claude as a remote MCP server at <code>${location.origin}/mcp</code>. Tokens act as you and only see your account.</p>
+        <ul class="rows">${d.tokens.map((t) => `<li><div><b>${esc(t.label)}</b><small>${esc(t.email)} · created ${when(t.created_at)} · last used ${when(t.last_used_at)}</small></div><button class="link danger" data-tok="${t.id}" type="button">Revoke</button></li>`).join("") || `<li class="muted small">No tokens yet.</li>`}</ul>
+        <form id="tokForm" class="inline-form"><input name="label" placeholder="e.g. Claude Desktop" maxlength="60"><button class="primary">Create token</button></form>
+        <div id="tokOut"></div>
+      </section>
+    </div>
+    <section class="panel narrow"><header><h3>Your password</h3></header>
+      <form id="pwForm" class="inline-form"><input name="current" type="password" placeholder="Current password" autocomplete="current-password" required><input name="next" type="password" placeholder="New password (10+ characters)" autocomplete="new-password" minlength="10" required><button class="ghost">Change</button></form>
+      <p class="small" id="pwOut"></p>
+    </section>`;
+  const reload = () => renderTeam(routeSeq);
+  $$("[data-rm]").forEach((b) => b.addEventListener("click", async () => { if (confirm("Remove this person? Their tokens stop working.")) { await api(`/api/team/members/${b.dataset.rm}`, { method: "DELETE" }); reload(); } }));
+  $$("[data-revoke]").forEach((b) => b.addEventListener("click", async () => { await api(`/api/team/invites/${b.dataset.revoke}`, { method: "DELETE" }); reload(); }));
+  $$("[data-tok]").forEach((b) => b.addEventListener("click", async () => { if (confirm("Revoke this token? Anything using it stops working.")) { await api(`/api/tokens/${b.dataset.tok}`, { method: "DELETE" }); reload(); } }));
+  $("#invForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    try {
+      const r = await api("/api/team/invites", { method: "POST", body: JSON.stringify(f) });
+      $("#invOut").innerHTML = `<div class="secret"><p>Send this link to <b>${esc(r.email)}</b>. It works once, for ${r.expiresInDays} days.</p><code>${esc(r.link)}</code><button class="ghost" type="button" data-copy="${esc(r.link)}">Copy</button></div>`;
+      wireCopy();
+    } catch (err) { $("#invOut").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
+  });
+  $("#tokForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const r = await api("/api/tokens", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(e.target))) });
+      $("#tokOut").innerHTML = `<div class="secret"><p>Copy it now. You won't see it again.</p><code>${esc(r.token)}</code><button class="ghost" type="button" data-copy="${esc(r.token)}">Copy</button>
+        <details><summary>Claude MCP config</summary><pre>${esc(JSON.stringify({ mcpServers: { dealflow: { type: "http", url: `${location.origin}/mcp`, headers: { Authorization: `Bearer ${r.token}` } } } }, null, 2))}</pre></details></div>`;
+      wireCopy();
+    } catch (err) { $("#tokOut").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
+  });
+  $("#pwForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try { await api("/api/me/password", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(e.target))) }); $("#pwOut").textContent = "Changed. Other devices have been signed out."; e.target.reset(); }
+    catch (err) { $("#pwOut").textContent = err.message; }
+  });
+}
+
+function wireCopy() {
+  $$("[data-copy]").forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied"; } catch { b.textContent = "Select and copy"; } }));
+}
+
+async function renderAdmin(seq) {
+  renderSearches();
+  const d = await api("/api/admin");
+  if (stale(seq)) return;
+  const planOpts = (sel) => Object.entries(d.plans).filter(([id]) => id !== "admin" || sel === "admin").map(([id, p]) => `<option value="${id}" ${id === sel ? "selected" : ""}>${esc(p.label)}${p.price ? ` · $${fmt(p.price)}/mo` : ""}</option>`).join("");
+  $("#view").innerHTML = `
+    <header class="page-head"><div><h1>Admin</h1><p class="muted">Buyer accounts, plans and the territory map.</p></div></header>
+    <section class="stats admin-kpis">
+      <div class="stat"><span>paying accounts</span><b>${fmt(d.accounts.filter((a) => a.plan !== "admin" && a.active).length)}</b></div>
+      <div class="stat"><span>monthly recurring</span><b>$${fmt(d.mrr)}</b></div>
+      <div class="stat"><span>territories held</span><b>${fmt(d.territories.length)}</b></div>
+    </section>
+    <section class="table-card"><div class="table-meta"><b>Accounts</b></div><div class="table-wrap"><table class="admin-table">
+      <thead><tr><th>Account</th><th>Owner</th><th>Plan</th><th>Territories</th><th>Users</th><th>Pipeline</th><th>Active</th><th></th></tr></thead>
+      <tbody>${d.accounts.map((a) => `<tr data-acct="${a.id}">
+        <td><b>${esc(a.name)}</b><small class="muted"> #${a.id}</small></td>
+        <td>${esc(a.owners || (a.open_invites ? "invite sent" : "–"))}</td>
+        <td><select data-f="plan" ${a.plan === "admin" ? "disabled" : ""}>${planOpts(a.plan)}</select></td>
+        <td>${a.territories} / <input data-f="maxTerritories" type="number" min="0" max="999" value="${a.max_territories}" class="num-in"></td>
+        <td>${a.users}</td><td>${a.pipeline}</td>
+        <td><input data-f="active" type="checkbox" ${a.active ? "checked" : ""} ${a.id === 1 ? "disabled" : ""}></td>
+        <td><button class="link" data-inv="${a.id}" type="button">New owner link</button></td></tr>`).join("")}</tbody></table></div></section>
+    <div class="grid2">
+      <section class="panel"><header><h3>New buyer account</h3></header>
+        <form id="acctForm" class="stack-form">
+          <label>Company<input name="name" required placeholder="Northstar Holdings"></label>
+          <label>Owner email<input name="ownerEmail" type="email" required placeholder="jane@northstar.com"></label>
+          <label>Plan<select name="plan">${planOpts("operator")}</select></label>
+          <button class="primary">Create and get invite link</button>
+        </form><div id="acctOut"></div>
+      </section>
+      <section class="panel"><header><h3>Assign a territory</h3></header>
+        <label>Account<select id="asAcct">${d.accounts.map((a) => `<option value="${a.id}">${esc(a.name)}</option>`).join("")}</select></label>
+        <div id="asPicker"></div>
+        <div class="claim-foot"><span id="asState" class="avail"></span><button class="primary" id="asBtn" type="button">Assign</button></div>
+      </section>
+    </div>
+    <section class="table-card"><div class="table-meta"><b>Territory map</b><span>${d.territories.length} held</span></div><div class="table-wrap"><table>
+      <thead><tr><th>Territory</th><th>Country</th><th>Held by</th><th>Since</th><th></th></tr></thead>
+      <tbody>${d.territories.map((t) => `<tr><td><b>${esc(t.label)}</b></td><td>${country(t.country)?.flag || ""} ${esc(t.country.toUpperCase())}</td><td>${esc(t.account_name)}</td><td>${new Date(t.created_at).toLocaleDateString()}</td>
+        <td><button class="link danger" data-unassign="${t.id}" type="button">Remove</button></td></tr>`).join("") || `<tr><td colspan="5" class="muted">No territories assigned yet.</td></tr>`}</tbody></table></div></section>`;
+  const reload = () => renderAdmin(routeSeq);
+  $$("tr[data-acct]").forEach((tr) => $$("[data-f]", tr).forEach((x) => x.addEventListener("change", async () => {
+    const v = x.type === "checkbox" ? x.checked : x.type === "number" ? Number(x.value) : x.value;
+    try { await api(`/api/admin/accounts/${tr.dataset.acct}`, { method: "PATCH", body: JSON.stringify({ [x.dataset.f]: v }) }); if (x.dataset.f === "plan") reload(); } catch (e) { alert(e.message); reload(); }
+  })));
+  $$("[data-inv]").forEach((b) => b.addEventListener("click", async () => {
+    const email = prompt("Owner's email (leave empty for an open link):") ?? null;
+    if (email === null) return;
+    try { const r = await api(`/api/admin/accounts/${b.dataset.inv}/invite`, { method: "POST", body: JSON.stringify({ email }) }); prompt("Invite link (works once, 7 days):", r.link); } catch (e) { alert(e.message); }
+  }));
+  $$("[data-unassign]").forEach((b) => b.addEventListener("click", async () => { if (confirm("Remove this territory from the account?")) { await api(`/api/admin/territories/${b.dataset.unassign}`, { method: "DELETE" }); reload(); } }));
+  $("#acctForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const r = await api("/api/admin/accounts", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(e.target))) });
+      $("#acctOut").innerHTML = `<div class="secret"><p>${esc(r.account.name)} created. Send this to ${esc(r.invite.email)}:</p><code>${esc(r.invite.link)}</code><button class="ghost" type="button" data-copy="${esc(r.invite.link)}">Copy</button><p class="small"><a href="#/admin" id="acctDone">Done, refresh the list</a></p></div>`;
+      wireCopy();
+      $("#acctDone").addEventListener("click", (ev) => { ev.preventDefault(); reload(); });
+    } catch (err) { $("#acctOut").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
+  });
+  const st = { country: "fr", industry: "hvac", region: "" };
+  areaPicker($("#asPicker"), st, () => { $("#asState").textContent = ""; });
+  $("#asBtn").addEventListener("click", async () => {
+    try { await api("/api/admin/territories", { method: "POST", body: JSON.stringify({ ...st, accountId: Number($("#asAcct").value) }) }); reload(); }
+    catch (e) { $("#asState").className = "avail no"; $("#asState").textContent = e.message; }
+  });
 }

@@ -15,6 +15,7 @@
 <div class="shell">
   <aside class="side" id="side">
     <div class="brand"><span class="logo"></span><b>Dealflow</b></div>
+    <a class="acct" href="#/team"><b id="acctName">&nbsp;</b><small id="acctPlan"></small></a>
     <a class="primary new" href="#/new">+ New search</a>
     <button class="ghost wide" id="addBtn" type="button">+ Add company by number</button>
     <nav class="nav">
@@ -22,13 +23,16 @@
       <a href="#/agents" data-nav="agents"><i>✦</i>Agents</a>
       <a href="#/all" data-nav="all"><i>☰</i>All targets</a>
       <a href="#/pipeline" data-nav="pipeline"><i>▤</i>Pipeline</a>
+      <a href="#/territories" data-nav="territories"><i>◈</i>Territories</a>
+      <a href="#/team" data-nav="team"><i>☺</i>Team & API</a>
+      <a href="#/admin" data-nav="admin" id="adminNav" hidden><i>⚙</i>Admin</a>
     </nav>
     <h4>Searches</h4>
     <div class="searches" id="searches"></div>
     <div class="side-foot">
       <button class="link" id="settingsBtn" type="button">Outreach settings</button>
       <a class="link" href="/value" target="_blank">Seller valuation page ↗</a>
-      <a class="link" href="/api" target="_blank">API & MCP</a>
+      <a class="link" href="/api" target="_blank">API reference</a>
       <button class="link" id="logout" type="button">Sign out</button>
     </div>
   </aside>

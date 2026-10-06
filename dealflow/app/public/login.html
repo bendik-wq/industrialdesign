@@ -14,11 +14,21 @@
   <h1>Find owners ready to sell.</h1>
   <p class="muted">Official company registries across France, Norway, the UK and the US, scored for owner age, company size and succession risk.</p>
   <form id="f">
+    <div id="setupFields" hidden>
+      <p class="ok">First run: create the platform admin login.</p>
+      <label for="key">Setup key (the dashboard password)</label>
+      <input id="key" type="password" autocomplete="off">
+      <label for="name">Your name</label>
+      <input id="name" autocomplete="name">
+    </div>
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" required autofocus>
     <label for="pw">Password</label>
-    <input id="pw" type="password" autocomplete="current-password" required autofocus>
+    <input id="pw" type="password" autocomplete="current-password" required>
     <p class="error" id="err" hidden></p>
-    <button class="primary" type="submit">Sign in</button>
+    <button class="primary" type="submit" id="go">Sign in</button>
   </form>
+  <p class="muted switch-mode">No login yet? Dealflow is invite-only: one buyer per industry and area.</p>
 </main>
 <script src="/login.js"></script>
 </body>

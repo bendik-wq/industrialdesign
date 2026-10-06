@@ -4,6 +4,8 @@ import { PROVIDERS } from "./providers.js";
 import { INDUSTRIES } from "./data/industries.js";
 import { toRow, saveCompanies } from "./store.js";
 import { valuation } from "../public/deal.js";
+import { ownerOf } from "./tenancy.js";
+import { bucketSearch } from "./index.js"; // circular import is fine: used at run time only
 
 const UA = { "User-Agent": "Dealflow/1.0 (acquisition research; contact bendik@asym.capital)", Accept: "application/json" };
 const get = async (url) => {
@@ -60,16 +62,13 @@ export function publicView(c) {
   };
 }
 
-// Saves the company plus the owner's details, puts it in the buyer's pipeline and the "Inbound sellers" list.
+// Saves the company plus the owner's details and routes it to the buyer holding that territory (the platform
+// account when nobody does): their pipeline, their "Inbound sellers" list.
 export async function captureLead(env, c, lead) {
   const db = env.DB;
-  let search = await db.prepare("SELECT id FROM searches WHERE label = 'Inbound sellers'").first();
-  if (!search) {
-    search = await db.prepare(
-      `INSERT INTO searches (country, industry, label, status, total, found, pages, pages_done, created_at, finished_at)
-       VALUES ('all', 'all', 'Inbound sellers', 'done', 0, 0, 1, 1, ?1, ?1) RETURNING id`
-    ).bind(new Date().toISOString()).first();
-  }
+  const holder = await ownerOf(env, c.country, c.industry, c.region);
+  const accountId = holder?.account_id || 1;
+  const search = await bucketSearch(db, accountId, "Inbound sellers");
   await saveCompanies(db, search.id, [c], c.industry);
   const company = await db.prepare("SELECT id, valuation_mid, currency FROM companies WHERE source = ?1 AND source_id = ?2").bind(c.source, String(c.sourceId)).first();
   const v = valuation(toRow(c));
@@ -80,13 +79,13 @@ Timeline: ${lead.timeline || "not given"}${lead.message ? `\nMessage: ${lead.mes
   await db.batch([
     db.prepare("UPDATE companies SET inbound = 1 WHERE id = ?1").bind(company.id),
     db.prepare(
-      `INSERT INTO leads (company_id, name, email, phone, timeline, message, valuation_low, valuation_high, currency, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
-    ).bind(company.id, lead.name, lead.email, lead.phone || null, lead.timeline || null, lead.message || null, v?.equity[0] ?? null, v?.equity[2] ?? null, c.currency, now),
+      `INSERT INTO leads (account_id, company_id, name, email, phone, timeline, message, valuation_low, valuation_high, currency, created_at)
+       VALUES (?11, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
+    ).bind(company.id, lead.name, lead.email, lead.phone || null, lead.timeline || null, lead.message || null, v?.equity[0] ?? null, v?.equity[2] ?? null, c.currency, now, accountId),
     db.prepare(
-      `INSERT INTO pipeline (company_id, status, notes, updated_at) VALUES (?1, 'Conversation', ?2, ?3)
-       ON CONFLICT (company_id) DO UPDATE SET status = 'Conversation', notes = ?2 || char(10) || char(10) || notes, updated_at = ?3`
-    ).bind(company.id, note, now),
+      `INSERT INTO pipeline (account_id, company_id, status, notes, updated_at) VALUES (?4, ?1, 'Conversation', ?2, ?3)
+       ON CONFLICT (account_id, company_id) DO UPDATE SET status = 'Conversation', notes = ?2 || char(10) || char(10) || notes, updated_at = ?3`
+    ).bind(company.id, note, now, accountId),
     db.prepare("UPDATE searches SET found = (SELECT COUNT(*) FROM search_results WHERE search_id = ?1), total = (SELECT COUNT(*) FROM search_results WHERE search_id = ?1) WHERE id = ?1").bind(search.id),
   ]);
   return company.id;

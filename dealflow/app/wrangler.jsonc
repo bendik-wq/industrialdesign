@@ -19,6 +19,7 @@
     { "binding": "AGENT", "name": "dealflow-agent", "class_name": "AgentWorkflow" }
   ],
   "triggers": { "crons": ["7 * * * *"] }
-  // Secrets: DASHBOARD_PASSWORD (required), API_TOKEN (scripts + MCP), ANTHROPIC_API_KEY (Claude; else Workers AI),
+  // Secrets: DASHBOARD_PASSWORD (required: first-run setup key and session signing), API_TOKEN (platform-admin scripts),
+  // SESSION_SECRET (optional: separate session signing key), ANTHROPIC_API_KEY (Claude; else Workers AI),
   //          COMPANIES_HOUSE_API_KEY (UK), GOOGLE_PLACES_API_KEY (US)
 }

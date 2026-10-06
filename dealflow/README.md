@@ -3,7 +3,7 @@
 Finds acquisition targets in official company registries and scores each company on **how likely the owner
 is to sell** and **how much business there is to buy**.
 
-Live: https://dealflow.bendik-50e.workers.dev (password login; scripts use `Authorization: Bearer <API_TOKEN>`)
+Live: https://dealflow.bendik-50e.workers.dev (email login, invite-only; scripts and MCP use a personal API token from the Team page)
 
 ## Coverage
 
@@ -29,7 +29,7 @@ Live: https://dealflow.bendik-50e.workers.dev (password login; scripts use `Auth
 - **Seller valuation page** (`/value`, public): an owner types their company number, sees an instant valuation
   from their filings, and can ask to talk to a buyer. They land in the pipeline as an inbound seller.
 - **MCP server** (`/mcp`, `app/src/mcp.js`): the buyer's own Claude can search registries, value deals, write
-  briefs and update the pipeline. Add it as a remote MCP server with header `Authorization: Bearer <API_TOKEN>`.
+  briefs and update the pipeline. Add it as a remote MCP server with header `Authorization: Bearer <your API token>`; it only sees your account.
 - **Print batch** (`/print.html`): print-ready letters, one per page, for the top targets of any search.
 - **Agents** (`app/src/agents.js`, `app/src/agentflow.js`): describe a goal in plain English, typed or spoken
   ("every week find HVAC owners over 60 around Lyon worth €1–5M, letters in the JL voice"). It becomes an explicit,
@@ -41,6 +41,22 @@ Live: https://dealflow.bendik-50e.workers.dev (password login; scripts use `Auth
   intent, timeline, asking price, numbers, concerns, next step and stage. Briefs can be read aloud (Deepgram Aura).
 - **Writing voices**: "Warm & respectful" or "JL: direct operator", the Owners Academy copy style toned for a
   first letter to a seller (specific, contrast with brokers and lowballers, a P.S. on the cost of waiting).
+
+## Accounts and exclusive territories (`app/src/auth.js`, `app/src/tenancy.js`)
+
+- **Accounts** are buyer companies. Each has owners and members (email + password, PBKDF2), joined by one-time invite
+  links. Everyone in an account shares its searches, pipeline, AI drafts and agents; nothing crosses accounts.
+- **Territories** are one industry in one area (a French département, a Norwegian county, a UK/US city, or a whole
+  country). A territory is held by exactly one account. A whole-country claim blocks every region in it, and the
+  other way round. Plans set how many an account may hold: Operator 1 ($1,000/mo), Roll-up 3 ($2,500/mo), Platform 10.
+- **Enforced everywhere**: searches and agents only run inside your territories; adding a company by number is refused
+  when it sits in another buyer's territory; inbound sellers from `/value` go to whoever holds their territory
+  (the platform account when nobody does); members are never told who holds a territory.
+- **API tokens** are per user, shown once, stored hashed. The `API_TOKEN` secret acts as platform admin.
+- **Admin** (`#/admin`, platform admins only): create buyer accounts (returns the owner's invite link), change plans and
+  limits, pause accounts, assign or remove territories, see MRR.
+- **First run**: open `/login`; while no users exist it asks for the setup key (`DASHBOARD_PASSWORD`) and creates the
+  platform admin in account 1, which keeps every pre-v5 search and pipeline entry.
 
 ## Scoring (`app/src/scoring.js`)
 
@@ -77,6 +93,7 @@ cd app && npm install
 npx wrangler d1 execute dealflow --remote --file schema.sql      # first time only: drops and recreates tables
 npx wrangler d1 execute dealflow --remote --file migrations.sql  # upgrading a v2 database instead
 npx wrangler d1 execute dealflow --remote --file migrations-4.sql # upgrading a v3 database (agents)
+npx wrangler d1 execute dealflow --remote --file migrations-5.sql # upgrading a v4 database (accounts, territories)
 npx wrangler deploy
 npx wrangler secret put DASHBOARD_PASSWORD
 npx wrangler secret put API_TOKEN
