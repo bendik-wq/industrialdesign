@@ -1,222 +1,249 @@
-// Dealflow: acquisition-target dashboard. Serves the static UI and a small JSON API over D1.
-// Every request requires HTTP Basic auth against the DASHBOARD_PASSWORD secret.
+// Dealflow API + app server.
+//   Browser: sign in at /login (session cookie).   Scripts: Authorization: Bearer <API_TOKEN>.
+//   GET /api lists every endpoint.
+import { PROVIDERS, providerInfo } from "./providers.js";
+import { INDUSTRIES, industryById } from "./data/industries.js";
+export { SearchWorkflow } from "./workflow.js";
 
-const STATUSES = ["New", "Researching", "Contacted", "Conversation", "NDA", "Financials", "LOI", "Passed", "Not a fit"];
-const SORTS = {
-  fit: "c.fit_score",
-  size: "c.size_score",
-  succession: "c.succession_score",
-  licensed: "c.licensed_since",
-  business: "c.business_since",
-  licenses: "c.license_count",
-  name: "c.name",
+const STATUSES = ["New", "Researching", "Contacted", "Conversation", "NDA signed", "Financials", "LOI", "Passed", "Not a fit"];
+const SESSION_DAYS = 30;
+const PUBLIC_PATHS = new Set(["/login", "/login.html", "/style.css", "/login.js", "/api/login"]);
+
+const API_DOCS = {
+  auth: "Session cookie from POST /api/login, or header Authorization: Bearer <API_TOKEN>",
+  endpoints: [
+    "GET    /api/sources                      countries (with readiness), regions, industries",
+    "GET    /api/searches                     your searches with progress",
+    "POST   /api/searches                     {country, industry, region?, minStaff?} → starts a background search",
+    "GET    /api/searches/:id                 one search",
+    "DELETE /api/searches/:id                 remove a search (companies stay if used elsewhere)",
+    "POST   /api/searches/:id/retry           resume a failed search from the last saved page",
+    "GET    /api/companies                    ?search=&country=&q=&verdict=&minFit=&minOwnerAge=&minStaff=&status=&sort=fit|size|succession|owner_age|founded|staff|name&page=&limit=",
+    "GET    /api/companies/:id                full record: people, signals, pipeline",
+    "PUT    /api/companies/:id/pipeline       {status?, notes?}",
+    "GET    /api/pipeline                     every company you are working, by stage",
+    "GET    /api/stats                        ?search= counts by verdict",
+    "GET    /api/export.csv                   same filters as /api/companies, &format=full|mail|email",
+  ],
 };
-const LIST_COLS = `c.id, c.name, c.legal_name, c.owner, c.city, c.county, c.metro, c.entity, c.licensed_since, c.business_since,
-  c.license_count, c.active_licenses, c.outlets, c.size_score, c.size_tier, c.succession_score, c.fit_score, c.non_target, c.reviews,
-  COALESCE(p.status, 'New') AS status`;
 
 export default {
   async fetch(request, env) {
-    const denied = checkAuth(request, env);
-    if (denied) return denied;
-
     const url = new URL(request.url);
-    if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
-
     try {
+      if (url.pathname === "/api/login" && request.method === "POST") return login(request, env);
+      if (url.pathname === "/api/logout" && request.method === "POST") return logout();
+      if (!PUBLIC_PATHS.has(url.pathname) && !(await authorized(request, env))) {
+        return url.pathname.startsWith("/api/") ? json({ error: "Not signed in" }, 401) : Response.redirect(`${url.origin}/login`, 302);
+      }
+      if (!url.pathname.startsWith("/api")) return env.ASSETS.fetch(request);
       return await route(request, env, url);
     } catch (err) {
       console.error(err);
-      return json({ error: "Internal error" }, 500);
+      return json({ error: err.status ? err.message : "Internal error" }, err.status || 500);
     }
   },
 };
 
+// ------------------------------------------------------------------ auth
+async function hmac(env, data) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(`session:${env.DASHBOARD_PASSWORD}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/[+/=]/g, (c) => ({ "+": "-", "/": "_", "=": "" })[c]);
+}
+function safeEqual(a, b) {
+  const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
+  let d = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) d |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return d === 0;
+}
+async function authorized(request, env) {
+  if (!env.DASHBOARD_PASSWORD) return false;
+  const bearer = (request.headers.get("Authorization") || "").match(/^Bearer (.+)$/)?.[1];
+  if (bearer && env.API_TOKEN && safeEqual(bearer, env.API_TOKEN)) return true;
+  const cookie = (request.headers.get("Cookie") || "").match(/(?:^|;\s*)df_session=([^;]+)/)?.[1];
+  if (!cookie) return false;
+  const [exp, sig] = cookie.split(".");
+  return Number(exp) > Date.now() && safeEqual(sig || "", await hmac(env, exp));
+}
+async function login(request, env) {
+  const { password = "" } = await request.json().catch(() => ({}));
+  if (!env.DASHBOARD_PASSWORD || !safeEqual(password, env.DASHBOARD_PASSWORD)) {
+    await new Promise((r) => setTimeout(r, 600));
+    return json({ error: "Wrong password" }, 401);
+  }
+  const exp = String(Date.now() + SESSION_DAYS * 864e5);
+  return json({ ok: true }, 200, {
+    "Set-Cookie": `df_session=${exp}.${await hmac(env, exp)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`,
+  });
+}
+function logout() {
+  return json({ ok: true }, 200, { "Set-Cookie": "df_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0" });
+}
+
+// ------------------------------------------------------------------ routing
 async function route(request, env, url) {
-  const { pathname } = url;
-  const method = request.method;
-
-  if (pathname === "/api/stats" && method === "GET") return json(await stats(env));
-  if (pathname === "/api/meta" && method === "GET") return json(await meta(env));
-  if (pathname === "/api/companies" && method === "GET") return json(await list(env, url.searchParams));
-  if (pathname === "/api/export.csv" && method === "GET") return exportCsv(env, url.searchParams);
-
-  const m = pathname.match(/^\/api\/companies\/(\d+)(\/pipeline)?$/);
-  if (m && !m[2] && method === "GET") return detail(env, Number(m[1]));
-  if (m && m[2] && method === "PUT") return savePipeline(env, Number(m[1]), request);
-
+  const p = url.pathname, m = request.method;
+  if (p === "/api" || p === "/api/") return json(API_DOCS);
+  if (p === "/api/sources" && m === "GET") return json({ countries: providerInfo(env), industries: INDUSTRIES.map(({ id, label, ...codes }) => ({ id, label, countries: Object.keys(codes).filter((k) => k !== "places" && codes[k].length).concat("us") })), statuses: STATUSES });
+  if (p === "/api/searches" && m === "GET") return json(await listSearches(env));
+  if (p === "/api/searches" && m === "POST") return createSearch(env, await request.json().catch(() => ({})));
+  if (p === "/api/companies" && m === "GET") return json(await listCompanies(env, url.searchParams));
+  if (p === "/api/pipeline" && m === "GET") return json(await pipeline(env));
+  if (p === "/api/stats" && m === "GET") return json(await stats(env, url.searchParams));
+  if (p === "/api/export.csv" && m === "GET") return exportCsv(env, url.searchParams);
+  let r;
+  if ((r = p.match(/^\/api\/searches\/(\d+)$/))) {
+    if (m === "GET") return json(await env.DB.prepare("SELECT * FROM searches WHERE id = ?1").bind(+r[1]).first() ?? fail(404, "Search not found"));
+    if (m === "DELETE") { await env.DB.prepare("DELETE FROM searches WHERE id = ?1").bind(+r[1]).run(); await env.DB.prepare("DELETE FROM search_results WHERE search_id = ?1").bind(+r[1]).run(); return json({ ok: true }); }
+  }
+  if ((r = p.match(/^\/api\/searches\/(\d+)\/retry$/)) && m === "POST") {
+    const row = await env.DB.prepare("UPDATE searches SET status = 'failed', error = NULL WHERE id = ?1 AND status = 'failed' RETURNING *").bind(+r[1]).first();
+    if (!row) fail(400, "Only failed searches can be retried");
+    await env.SEARCH.create({ id: `search-${row.id}-${Date.now()}`, params: { searchId: row.id } });
+    return json(row);
+  }
+  if ((r = p.match(/^\/api\/companies\/(\d+)$/)) && m === "GET") return json(await company(env, +r[1]));
+  if ((r = p.match(/^\/api\/companies\/(\d+)\/pipeline$/)) && m === "PUT") return json(await savePipeline(env, +r[1], await request.json().catch(() => ({}))));
   return json({ error: "Not found" }, 404);
 }
+function fail(status, message) { throw Object.assign(new Error(message), { status }); }
 
-function checkAuth(request, env) {
-  const expected = env.DASHBOARD_PASSWORD;
-  if (!expected) return new Response("DASHBOARD_PASSWORD secret is not set", { status: 503 });
-  const header = request.headers.get("Authorization") || "";
-  const [scheme, encoded] = header.split(" ");
-  if (scheme === "Basic" && encoded) {
-    const [, password = ""] = atob(encoded).split(/:(.*)/s);
-    if (timingSafeEqual(password, expected)) return null;
+// ------------------------------------------------------------------ searches
+async function createSearch(env, body) {
+  const provider = PROVIDERS[body.country];
+  const industry = industryById(body.industry);
+  if (!provider) fail(400, "Unknown country");
+  if (!industry) fail(400, "Unknown industry");
+  if (provider.needsKey && !env[provider.needsKey]) fail(400, `${provider.label} needs ${provider.needsKey}. ${provider.keyHelp}`);
+  if (provider.id !== "us" && !(industry[provider.id] || []).length) fail(400, `${industry.label} has no official code in ${provider.label} yet`);
+  let region = String(body.region || "").trim().slice(0, 80) || null;
+  let regionLabel = region;
+  if (Array.isArray(provider.regions) && region) {
+    const match = provider.regions.find((x) => x.code === region);
+    if (!match) fail(400, "Unknown region");
+    regionLabel = match.name.replace(/^\d+[AB]? · /, "");
   }
-  return new Response("Authentication required", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Dealflow", charset="UTF-8"' },
-  });
-}
-
-function timingSafeEqual(a, b) {
-  const enc = new TextEncoder();
-  const x = enc.encode(a), y = enc.encode(b);
-  let diff = x.length ^ y.length;
-  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
-  return diff === 0;
-}
-
-function filters(params) {
-  const where = [];
-  const binds = [];
-  if (params.get("excluded") !== "1") where.push("c.non_target = 0");
-  if (params.get("sole") === "0") where.push("c.sole = 0");
-  if (params.get("lapsed") === "1") where.push("c.active_licenses = 0");
-  const q = params.get("q")?.trim();
-  if (q) {
-    where.push("(c.name LIKE ?1 OR c.legal_name LIKE ?1 OR c.owner LIKE ?1 OR c.city LIKE ?1 OR c.county LIKE ?1)".replaceAll("?1", `?${binds.length + 1}`));
-    binds.push(`%${q}%`);
-  }
-  for (const [param, col] of [["metro", "c.metro"], ["county", "c.county"]]) {
-    const vals = params.getAll(param).filter(Boolean);
-    if (vals.length) {
-      where.push(`${col} IN (${vals.map((_, i) => `?${binds.length + i + 1}`).join(",")})`);
-      binds.push(...vals);
-    }
-  }
-  const tiers = params.getAll("tier").filter(Boolean);
-  if (tiers.length) {
-    where.push(`c.size_tier IN (${tiers.map((_, i) => `?${binds.length + i + 1}`).join(",")})`);
-    binds.push(...tiers);
-  }
-  for (const [param, col] of [["minSuccession", "c.succession_score"], ["minSize", "c.size_score"], ["minFit", "c.fit_score"]]) {
-    const v = Number(params.get(param));
-    if (v > 0) { where.push(`${col} >= ?${binds.length + 1}`); binds.push(v); }
-  }
-  const status = params.get("status");
-  if (status === "Any pipeline") where.push("p.status IS NOT NULL AND p.status NOT IN ('New')");
-  else if (STATUSES.includes(status)) {
-    where.push(status === "New" ? "(p.status IS NULL OR p.status = 'New')" : `p.status = ?${binds.length + 1}`);
-    if (status !== "New") binds.push(status);
-  }
-  return { sql: where.length ? `WHERE ${where.join(" AND ")}` : "", binds };
-}
-
-function orderBy(params) {
-  const col = SORTS[params.get("sort")] || SORTS.fit;
-  // Oldest-first is the useful default for "since" columns; biggest-first for scores.
-  const defaultDir = ["c.licensed_since", "c.business_since", "c.name"].includes(col) ? "ASC" : "DESC";
-  const dir = params.get("dir") === "asc" ? "ASC" : params.get("dir") === "desc" ? "DESC" : defaultDir;
-  return `ORDER BY ${col} IS NULL, ${col} ${dir}, c.fit_score DESC, c.id`;
-}
-
-async function list(env, params) {
-  const { sql, binds } = filters(params);
-  const limit = Math.min(200, Math.max(1, Number(params.get("limit")) || 50));
-  const page = Math.max(1, Number(params.get("page")) || 1);
-  const from = `FROM companies c LEFT JOIN pipeline p ON p.key = c.key ${sql}`;
-  const [rows, total] = await env.DB.batch([
-    env.DB.prepare(`SELECT ${LIST_COLS} ${from} ${orderBy(params)} LIMIT ${limit} OFFSET ${(page - 1) * limit}`).bind(...binds),
-    env.DB.prepare(`SELECT COUNT(*) AS n ${from}`).bind(...binds),
-  ]);
-  return { rows: rows.results, total: total.results[0].n, page, limit };
-}
-
-async function detail(env, id) {
+  if (provider.id === "us" && !region) fail(400, "Type a city or area, e.g. “Austin, TX”");
+  const minStaff = Math.max(0, Math.min(500, Number(body.minStaff) || 0));
+  const label = `${industry.label} · ${regionLabel || `all of ${provider.label}`}${minStaff ? ` · ${minStaff}+ staff` : ""}`;
   const row = await env.DB.prepare(
-    `SELECT c.*, COALESCE(p.status, 'New') AS status, COALESCE(p.notes, '') AS notes, p.updated_at
-     FROM companies c LEFT JOIN pipeline p ON p.key = c.key WHERE c.id = ?1`
-  ).bind(id).first();
-  if (!row) return json({ error: "Not found" }, 404);
-  row.signals = JSON.parse(row.signals || "[]");
-  row.licensees = JSON.parse(row.licensees || "[]");
-  return json(row);
+    `INSERT INTO searches (country, industry, region, region_label, min_staff, label, status, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'queued', ?7) RETURNING *`
+  ).bind(provider.id, industry.id, region, regionLabel, minStaff, label, new Date().toISOString()).first();
+  await env.SEARCH.create({ id: `search-${row.id}-${Date.now()}`, params: { searchId: row.id } });
+  return json(row, 201);
 }
 
-async function savePipeline(env, id, request) {
-  const body = await request.json().catch(() => ({}));
-  if (body.status && !STATUSES.includes(body.status)) return json({ error: "Invalid status" }, 400);
-  const company = await env.DB.prepare("SELECT key FROM companies WHERE id = ?1").bind(id).first();
-  if (!company) return json({ error: "Not found" }, 404);
+async function listSearches(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT s.*, (SELECT COUNT(*) FROM search_results r JOIN companies c ON c.id = r.company_id
+       WHERE r.search_id = s.id AND c.excluded = 0 AND c.fit_score >= 50) AS strong
+     FROM searches s ORDER BY s.id DESC`
+  ).all();
+  return results;
+}
+
+// ------------------------------------------------------------------ companies
+const SORTS = {
+  fit: "c.fit_score DESC", size: "c.size_score DESC", succession: "c.succession_score DESC",
+  owner_age: "c.owner_age IS NULL, c.owner_age DESC", founded: "c.founded IS NULL, c.founded ASC",
+  staff: "c.employees_min IS NULL, c.employees_min DESC", name: "c.name ASC",
+};
+function filters(q) {
+  const where = [], binds = [];
+  const bind = (v) => { binds.push(v); return `?${binds.length}`; };
+  let from = "companies c";
+  if (q.get("search")) from += ` JOIN search_results sr ON sr.company_id = c.id AND sr.search_id = ${bind(+q.get("search"))}`;
+  from += " LEFT JOIN pipeline p ON p.company_id = c.id";
+  if (q.get("excluded") !== "1") where.push("c.excluded = 0");
+  if (q.get("country")) where.push(`c.country = ${bind(q.get("country"))}`);
+  if (q.get("q")) { const b = bind(`%${q.get("q").trim()}%`); where.push(`(c.name LIKE ${b} OR c.city LIKE ${b} OR c.owner_name LIKE ${b} OR c.postcode LIKE ${b})`); }
+  const verdicts = q.getAll("verdict").filter(Boolean);
+  if (verdicts.length) where.push(`c.verdict IN (${verdicts.map(bind).join(",")})`);
+  for (const [k, col] of [["minFit", "c.fit_score"], ["minOwnerAge", "c.owner_age"], ["minStaff", "c.employees_min"]]) {
+    if (Number(q.get(k)) > 0) where.push(`${col} >= ${bind(Number(q.get(k)))}`);
+  }
+  if (q.get("ownerKnown") === "1") where.push("c.owner_age IS NOT NULL");
+  const status = q.get("status");
+  if (status === "Any") where.push("p.status IS NOT NULL AND p.status != 'New'");
+  else if (STATUSES.includes(status)) where.push(status === "New" ? "(p.status IS NULL OR p.status = 'New')" : `p.status = ${bind(status)}`);
+  return { from, where: where.length ? `WHERE ${where.join(" AND ")}` : "", binds, order: `ORDER BY ${SORTS[q.get("sort")] || SORTS.fit}, c.fit_score DESC, c.id` };
+}
+const LIST = `c.id, c.country, c.name, c.legal_form, c.city, c.region, c.founded, c.employees_min, c.employees_band, c.revenue, c.currency,
+  c.owner_name, c.owner_age, c.size_score, c.succession_score, c.fit_score, c.verdict, c.summary, c.reviews, c.rating,
+  COALESCE(p.status, 'New') AS status`;
+
+async function listCompanies(env, q) {
+  const f = filters(q);
+  const limit = Math.min(200, Math.max(1, Number(q.get("limit")) || 50));
+  const page = Math.max(1, Number(q.get("page")) || 1);
+  const [rows, total] = await env.DB.batch([
+    env.DB.prepare(`SELECT ${LIST} FROM ${f.from} ${f.where} ${f.order} LIMIT ${limit} OFFSET ${(page - 1) * limit}`).bind(...f.binds),
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM ${f.from} ${f.where}`).bind(...f.binds),
+  ]);
+  return { total: total.results[0].n, page, limit, rows: rows.results };
+}
+
+async function company(env, id) {
+  const c = await env.DB.prepare(
+    `SELECT c.*, COALESCE(p.status, 'New') AS status, COALESCE(p.notes, '') AS notes, p.updated_at AS pipeline_updated
+     FROM companies c LEFT JOIN pipeline p ON p.company_id = c.id WHERE c.id = ?1`
+  ).bind(id).first();
+  if (!c) fail(404, "Company not found");
+  c.people = JSON.parse(c.people || "[]");
+  c.signals = JSON.parse(c.signals || "[]");
+  return c;
+}
+
+async function savePipeline(env, id, body) {
+  if (body.status != null && !STATUSES.includes(body.status)) fail(400, "Invalid status");
   const now = new Date().toISOString();
   await env.DB.prepare(
-    `INSERT INTO pipeline (key, status, notes, updated_at) VALUES (?1, COALESCE(?2, 'New'), COALESCE(?3, ''), ?4)
-     ON CONFLICT(key) DO UPDATE SET status = COALESCE(?2, status), notes = COALESCE(?3, notes), updated_at = ?4`
-  ).bind(company.key, body.status ?? null, typeof body.notes === "string" ? body.notes.slice(0, 10000) : null, now).run();
-  return json({ ok: true, updated_at: now });
+    `INSERT INTO pipeline (company_id, status, notes, updated_at) VALUES (?1, COALESCE(?2, 'New'), COALESCE(?3, ''), ?4)
+     ON CONFLICT (company_id) DO UPDATE SET status = COALESCE(?2, status), notes = COALESCE(?3, notes), updated_at = ?4`
+  ).bind(id, body.status ?? null, typeof body.notes === "string" ? body.notes.slice(0, 20000) : null, now).run();
+  return { ok: true, updated_at: now };
 }
 
-async function stats(env) {
-  const [totals, tiers, pipeline] = await env.DB.batch([
-    env.DB.prepare(`SELECT COUNT(*) AS targets,
-        SUM(succession_score >= 50) AS high_succession,
-        SUM(size_tier IN ('Mid','Large')) AS mid_plus,
-        SUM(succession_score >= 50 AND size_tier IN ('Mid','Large')) AS prime,
-        SUM(active_licenses = 0) AS lapsed
-      FROM companies WHERE non_target = 0`),
-    env.DB.prepare("SELECT size_tier AS tier, COUNT(*) AS n FROM companies WHERE non_target = 0 GROUP BY size_tier"),
-    env.DB.prepare("SELECT status, COUNT(*) AS n FROM pipeline WHERE status != 'New' GROUP BY status"),
-  ]);
-  return { ...totals.results[0], tiers: tiers.results, pipeline: pipeline.results };
-}
-
-async function meta(env) {
-  const metros = await env.DB.prepare(
-    "SELECT metro, COUNT(*) AS n FROM companies WHERE non_target = 0 GROUP BY metro ORDER BY n DESC"
-  ).all();
-  return { metros: metros.results, statuses: STATUSES };
-}
-
-const CSV_FORMATS = {
-  full: [
-    ["Rank", "id"], ["Company", "name"], ["Legal name", "legal_name"], ["Owner", "owner"], ["Street", "street"], ["City", "city"],
-    ["ZIP", "zip"], ["County", "county"], ["Metro", "metro"], ["Entity", "entity"], ["Est. licensed since", "licensed_since"],
-    ["Business since", "business_since"], ["Licensed contractors", "license_count"], ["Locations", "outlets"],
-    ["Size tier", "size_tier"], ["Size score", "size_score"], ["Succession score", "succession_score"], ["Fit score", "fit_score"],
-    ["Phone", "phone"], ["Email", "email"], ["Website", "website"], ["Google rating", "rating"], ["Google reviews", "reviews"],
-    ["Status", "status"], ["Signals", (r) => JSON.parse(r.signals || "[]").filter((s) => s.pts).map((s) => s.label).join("; ")],
-  ],
-  // Lob / PostGrid address-book import.
-  lob: [
-    ["name", "owner"], ["company", "name"], ["address_line1", "street"], ["address_city", "city"],
-    ["address_state", () => "TX"], ["address_zip", "zip"], ["address_country", () => "US"],
-    ["first_name", (r) => (r.owner || "").split(" ")[0]], ["licensed_since", "licensed_since"],
-  ],
-  // Instantly / Smartlead lead import (rows without an email are skipped).
-  instantly: [
-    ["email", "email"], ["first_name", (r) => (r.owner || "").split(" ")[0]], ["last_name", (r) => (r.owner || "").split(" ").slice(1).join(" ")],
-    ["company_name", "name"], ["city", "city"], ["state", () => "TX"], ["licensed_since", "licensed_since"],
-    ["years_in_business", (r) => (r.business_since ? new Date().getFullYear() - r.business_since : "")],
-  ],
-};
-
-async function exportCsv(env, params) {
-  const format = CSV_FORMATS[params.get("format")] ? params.get("format") : "full";
-  const { sql, binds } = filters(params);
-  const need = { lob: "c.street != ''", instantly: "c.email IS NOT NULL" }[format];
-  const where = need ? (sql ? `${sql} AND ${need}` : `WHERE ${need}`) : sql;
+async function pipeline(env) {
   const { results } = await env.DB.prepare(
-    `SELECT c.*, COALESCE(p.status, 'New') AS status FROM companies c LEFT JOIN pipeline p ON p.key = c.key ${where} ${orderBy(params)} LIMIT 5000`
-  ).bind(...binds).all();
-  const cols = CSV_FORMATS[format];
-  const cell = (v) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const lines = [cols.map(([h]) => h).join(","), ...results.map((r) => cols.map(([, f]) => cell(typeof f === "function" ? f(r) : r[f])).join(","))];
-  return new Response(lines.join("\n") + "\n", {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="tx-hvac-targets-${format}.csv"`,
-    },
-  });
+    `SELECT ${LIST}, p.notes, p.updated_at FROM pipeline p JOIN companies c ON c.id = p.company_id
+     WHERE p.status != 'New' ORDER BY p.updated_at DESC`
+  ).all();
+  return { statuses: STATUSES, rows: results };
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+async function stats(env, q) {
+  const f = filters(new URLSearchParams(q.get("search") ? { search: q.get("search") } : {}));
+  const { results } = await env.DB.prepare(
+    `SELECT c.verdict, COUNT(*) AS n, SUM(c.owner_age >= 60) AS owner60 FROM ${f.from} ${f.where} GROUP BY c.verdict`
+  ).bind(...f.binds).all();
+  return results;
+}
+
+// ------------------------------------------------------------------ export
+const CSV = {
+  full: [["Company", "name"], ["Country", "country"], ["Verdict", "verdict"], ["Fit", "fit_score"], ["Succession", "succession_score"], ["Size", "size_score"],
+    ["Owner", "owner_name"], ["Owner age", "owner_age"], ["Founded", "founded"], ["Staff", "employees_band"], ["Revenue", "revenue"], ["Currency", "currency"],
+    ["Address", "address"], ["City", "city"], ["Postcode", "postcode"], ["Phone", "phone"], ["Website", "website"], ["Email", "email"],
+    ["Legal form", "legal_form"], ["Registry", "registry_url"], ["Status", "status"], ["Summary", "summary"]],
+  mail: [["name", "owner_name"], ["company", "name"], ["address", "address"], ["city", "city"], ["postcode", "postcode"], ["country", (r) => r.country.toUpperCase()]],
+  email: [["email", "email"], ["first_name", (r) => (r.owner_name || "").split(" ")[0]], ["last_name", (r) => (r.owner_name || "").split(" ").slice(1).join(" ")],
+    ["company_name", "name"], ["city", "city"], ["founded", "founded"], ["owner_age", "owner_age"]],
+};
+async function exportCsv(env, q) {
+  const format = CSV[q.get("format")] ? q.get("format") : "full";
+  const f = filters(q);
+  const extra = { mail: "c.address IS NOT NULL AND c.owner_name IS NOT NULL", email: "c.email IS NOT NULL" }[format];
+  const where = extra ? (f.where ? `${f.where} AND ${extra}` : `WHERE ${extra}`) : f.where;
+  const { results } = await env.DB.prepare(`SELECT c.*, COALESCE(p.status, 'New') AS status FROM ${f.from} ${where} ${f.order} LIMIT 10000`).bind(...f.binds).all();
+  const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const cols = CSV[format];
+  const body = [cols.map(([h]) => h).join(","), ...results.map((r) => cols.map(([, k]) => cell(typeof k === "function" ? k(r) : r[k])).join(","))].join("\n");
+  return new Response(body + "\n", { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="dealflow-${format}.csv"` } });
+}
+
+function json(data, status = 200, headers = {}) {
+  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...headers } });
 }

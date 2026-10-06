@@ -3,6 +3,7 @@
   "name": "dealflow",
   "main": "src/index.js",
   "compatibility_date": "2026-10-06",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "assets": {
     "directory": "./public",
@@ -11,6 +12,9 @@
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "dealflow", "database_id": "66670c65-c5ea-4f51-8c3e-5b1d3e9d227a" }
+  ],
+  "workflows": [
+    { "binding": "SEARCH", "name": "dealflow-search", "class_name": "SearchWorkflow" }
   ]
-  // Secret: DASHBOARD_PASSWORD (wrangler secret put DASHBOARD_PASSWORD)
+  // Secrets: DASHBOARD_PASSWORD (required), API_TOKEN (scripts), COMPANIES_HOUSE_API_KEY (UK), GOOGLE_PLACES_API_KEY (US)
 }

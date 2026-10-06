@@ -1,62 +1,68 @@
-# Dealflow: Texas HVAC acquisition targets
+# Dealflow
 
-Finds HVAC contractors in Texas, scores each one on **size** and **succession likelihood** (how likely the owner
-is to sell in the next 1–5 years), and runs outreach from a password-protected dashboard on Cloudflare.
+Finds acquisition targets in official company registries and scores each company on **how likely the owner
+is to sell** and **how much business there is to buy**.
 
-Live: https://dealflow.bendik-50e.workers.dev
+Live: https://dealflow.bendik-50e.workers.dev (password login; scripts use `Authorization: Bearer <API_TOKEN>`)
 
-## Data sources (all public, free)
+## Coverage
 
-| Source | What it gives |
-|---|---|
-| TDLR A/C contractor licenses (`ltairref.csv`) | Every licensed HVAC contractor: owner, business, county, class, endorsements, expiry. License number ≈ issue order |
-| Comptroller franchise taxpayers (`9cir-efmm`) | Legal name, entity type, Secretary of State charter date, address |
-| Comptroller sales tax permits, NAICS 238220 (`jrea-zgmq`) | Locations (outlets), first sale date, address |
-| Google Places API (optional, `enrich-places.mjs`) | Website, phone, rating, **review count** (best public size proxy), closed status |
-| Company websites (optional, `enrich-web.mjs`) | "Since 19xx", stale copyright, retirement mentions, truck/tech counts, emails |
+| Country | Source | Owner age | Size | Founded | Revenue | Key |
+|---|---|---|---|---|---|---|
+| 🇫🇷 France | recherche-entreprises.api.gouv.fr (INSEE Sirene + RNE) | director birth year | headcount band, sites | ✅ | when filed publicly | none |
+| 🇳🇴 Norway | Brønnøysund Enhetsregisteret + roles + Regnskapsregisteret | exact birth date | exact headcount | ✅ | filed accounts | none |
+| 🇬🇧 UK | Companies House | director birth month/year | size class from filed accounts | ✅ | – | `COMPANIES_HOUSE_API_KEY` (free) |
+| 🇺🇸 US | Google Places (any city) + Texas TDLR license data | Texas: license tenure | reviews, Texas licensees | Texas | – | `GOOGLE_PLACES_API_KEY` |
 
-TDLR leaves addresses and phone numbers out of its public data, so addresses come from the Comptroller match. About 85% of Mid/Large companies match.
+21 industries are mapped to each country's official activity codes in `app/src/data/industries.js`
+(NAF rév. 2, SN2025, SIC 2007).
 
-## Scoring
+## Scoring (`app/src/scoring.js`)
 
-**Succession (0–100):** estimated years licensed (from license number, calibrated against business start dates),
-business age, owner-named business, single licensed owner, license lapsed, stale website, retirement mentions;
-minus points when a younger family member holds a license or the site says "second generation".
+- **Succession (55%)**: owner age (60+ scores high), company age, a single person on record, owner's name on
+  the company, Texas license tenure; minus points when a younger family member is already in management.
+- **Size (45%)**: headcount, sites, revenue, Google review volume, Texas licensed contractors.
+- **Verdict**: Strong target (65+), Worth a call (50+), Watch list (35+), Long shot. 250+ staff is flagged as too
+  big for most buyers.
 
-**Size (0–100):** number of licensed contractors, locations, Class A license, both endorsements, entity type,
-years established, Google reviews, trucks/technicians stated on the website.
+## How a search runs
 
-**Fit** = 55% succession + 45% size. Excluded automatically: schools, cities, hospitals, manufacturers,
-national service brands, property managers, out-of-state.
+`POST /api/searches` stores the search and starts a Cloudflare Workflow (`app/src/workflow.js`). It fetches the
+registry page by page, scores each company and upserts it into D1. Each batch is a durable, retried step,
+with a short sleep between batches so every batch gets a fresh subrequest budget. Failed searches resume from
+the last saved page (`POST /api/searches/:id/retry`).
 
-## Run it
+## API
 
-```sh
-node ingest/fetch.mjs                 # download sources into data/raw
-node ingest/build.mjs                 # join, score → data/companies.json + data/seed.sql
+`GET /api` lists every endpoint. Main ones:
 
-# optional enrichment (cached in data/enrichment.json), then re-run build.mjs
-GOOGLE_PLACES_API_KEY=... node ingest/enrich-places.mjs --limit 500 --min-fit 40
-node ingest/enrich-web.mjs --limit 500
-
-cd app && npm install
-npm run db:seed                       # load data/seed.sql into D1 (pipeline notes are kept)
-npm run deploy
+```
+GET  /api/sources                          countries, regions, industries
+POST /api/searches                         {"country":"fr","industry":"hvac","region":"69","minStaff":6}
+GET  /api/companies?search=2&minOwnerAge=60&sort=fit
+GET  /api/companies/:id                    people, signals, pipeline
+PUT  /api/companies/:id/pipeline           {"status":"Contacted","notes":"…"}
+GET  /api/export.csv?search=2&format=mail  full | mail | email
 ```
 
-First-time setup: `wrangler d1 create dealflow` (put the id in `app/wrangler.jsonc`), `npm run db:schema`,
-`wrangler secret put DASHBOARD_PASSWORD`.
+## Deploy
 
-## Dashboard
+```sh
+cd app && npm install
+npx wrangler d1 execute dealflow --remote --file schema.sql      # first time only: drops and recreates tables
+npx wrangler deploy
+npx wrangler secret put DASHBOARD_PASSWORD
+npx wrangler secret put API_TOKEN
+npx wrangler secret put COMPANIES_HOUSE_API_KEY                   # optional: enables UK
+npx wrangler secret put GOOGLE_PLACES_API_KEY                     # optional: enables US
+```
 
-- Filter by metro, size tier, succession score, entity vs sole proprietor, lapsed licenses, pipeline status
-- Sort by fit, size, succession, oldest license, oldest business, number of licensed contractors
-- Company drawer: score breakdown, licensees, Comptroller facts, research links, pipeline status and notes
-- Outreach drafts per company (letter, 3-step email, call script) filled in from **Outreach settings**
-- Exports: full CSV, Lob/PostGrid mailing list, Instantly/Smartlead leads (rows with an email)
+Texas license data (optional, US only): `node ingest/fetch.mjs && node ingest/build.mjs && node ingest/export-v2.mjs`,
+then `npx wrangler d1 execute dealflow --remote --file ../data/seed-tx.sql` from `app/`.
 
-## Outreach compliance
+## Outreach
 
-- Email: send from separate warmed-up domains, include a physical address and opt-out (CAN-SPAM).
-- Phone: humans dial; no robocalls or AI voice without consent (TCPA); scrub against Do Not Call lists.
-- LinkedIn: manual only; automation tools violate LinkedIn's terms.
+Every company has a letter, a 3-step email sequence and a call script, filled in from "Outreach settings".
+Email needs separate warmed-up sending domains, a postal address and an opt-out. Phone calls are made by people,
+not robocalls or AI voices, and numbers are checked against national do-not-call lists. French and Norwegian
+owners respond far better in their own language.

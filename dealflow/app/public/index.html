@@ -3,87 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dealflow · Texas HVAC</title>
-<meta name="description" content="Acquisition targets: Texas HVAC contractors scored for size and succession likelihood.">
+<title>Dealflow</title>
+<meta name="description" content="Acquisition targets from official company registries, scored for succession and size.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%230f5c4d%22/%3E%3Cpath d=%22M9 21l5-5 4 3 6-8%22 stroke=%22white%22 stroke-width=%223%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header class="top">
-  <div class="brand"><span class="logo"></span><b>Dealflow</b><span class="crumb">Texas · HVAC contractors</span></div>
-  <button class="ghost" id="settingsBtn" type="button">Outreach settings</button>
-</header>
-
-<main>
-  <section class="kpis" id="kpis" aria-label="Summary"></section>
-
-  <section class="filters" aria-label="Filters">
-    <input id="q" type="search" placeholder="Search company, owner, city…" autocomplete="off">
-    <select id="metro" aria-label="Metro"><option value="">All metros</option></select>
-    <div class="chips" id="tiers" role="group" aria-label="Size tier">
-      <button data-tier="Large" type="button">Large</button>
-      <button data-tier="Mid" type="button">Mid</button>
-      <button data-tier="Small" type="button">Small</button>
-      <button data-tier="Micro" type="button">Micro</button>
+<div class="shell">
+  <aside class="side" id="side">
+    <div class="brand"><span class="logo"></span><b>Dealflow</b></div>
+    <a class="primary new" href="#/new">+ New search</a>
+    <nav class="nav">
+      <a href="#/all" data-nav="all">All targets</a>
+      <a href="#/pipeline" data-nav="pipeline">Pipeline</a>
+    </nav>
+    <h4>Searches</h4>
+    <div class="searches" id="searches"></div>
+    <div class="side-foot">
+      <button class="link" id="settingsBtn" type="button">Outreach settings</button>
+      <a class="link" href="/api" target="_blank">API</a>
+      <button class="link" id="logout" type="button">Sign out</button>
     </div>
-    <label class="range">Succession ≥ <output id="minSuccOut">0</output>
-      <input id="minSuccession" type="range" min="0" max="90" step="10" value="0"></label>
-    <select id="status" aria-label="Pipeline status"><option value="">Any status</option><option>Any pipeline</option></select>
-    <label class="check"><input id="hideSole" type="checkbox"> Entities only</label>
-    <label class="check"><input id="lapsed" type="checkbox"> License lapsed</label>
-    <label class="check"><input id="excluded" type="checkbox"> Show excluded</label>
-    <div class="spacer"></div>
-    <select id="sort" aria-label="Sort by">
-      <option value="fit">Sort: Fit score</option>
-      <option value="size">Sort: Size</option>
-      <option value="succession">Sort: Succession</option>
-      <option value="licensed">Sort: Oldest license</option>
-      <option value="business">Sort: Oldest business</option>
-      <option value="licenses">Sort: Licensed contractors</option>
-      <option value="name">Sort: Name</option>
-    </select>
-    <div class="menu">
-      <button class="primary" id="exportBtn" type="button">Export ▾</button>
-      <div class="menu-pop" id="exportMenu" hidden>
-        <a data-format="full">Full CSV (all fields + signals)</a>
-        <a data-format="lob">Mail list for Lob / PostGrid</a>
-        <a data-format="instantly">Leads for Instantly / Smartlead (rows with email)</a>
-      </div>
-    </div>
-  </section>
+  </aside>
+  <button class="menu-btn" id="menuBtn" type="button" aria-label="Menu">☰</button>
+  <main class="main" id="view"></main>
+</div>
 
-  <section class="table-card">
-    <div class="table-meta"><span id="count">Loading…</span><span class="legend">Licensed-since years are estimated from license number</span></div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th class="num">#</th><th>Company</th><th>Owner</th><th>Location</th>
-          <th class="num" title="Estimated from TDLR license number">Licensed</th><th class="num">Business since</th>
-          <th class="num" title="Licensed A/C contractors at this company">Lic.</th>
-          <th>Size</th><th>Succession</th><th class="num">Fit</th><th>Status</th>
-        </tr></thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
-    <nav class="pager"><button id="prev" type="button">← Prev</button><span id="pageInfo"></span><button id="next" type="button">Next →</button></nav>
-  </section>
-</main>
-
-<aside class="drawer" id="drawer" aria-hidden="true">
-  <div class="drawer-inner" id="drawerBody"></div>
-</aside>
+<aside class="drawer" id="drawer" aria-hidden="true"><div class="drawer-inner" id="drawerBody"></div></aside>
 <div class="scrim" id="scrim"></div>
 
 <dialog id="settings">
   <form method="dialog" id="settingsForm">
     <h2>Outreach settings</h2>
-    <p class="muted">Used to fill in letter, email and call drafts. Stored only in this browser.</p>
+    <p class="muted">Fills in the letter, email and call drafts. Stored only in this browser.</p>
     <label>Your name<input name="myName" placeholder="Jane Buyer"></label>
-    <label>Your company<input name="myCompany" placeholder="Lone Star Comfort Holdings"></label>
-    <label>Phone<input name="myPhone" placeholder="(512) 555-0100"></label>
-    <label>Email<input name="myEmail" placeholder="jane@example.com"></label>
+    <label>Your company<input name="myCompany" placeholder="Northstar Holdings"></label>
+    <label>Phone<input name="myPhone" placeholder="+1 512 555 0100"></label>
+    <label>Email<input name="myEmail" placeholder="jane@northstar.com"></label>
     <label>Mailing address (required in cold email)<input name="myAddress" placeholder="100 Congress Ave, Austin, TX 78701"></label>
-    <label>Your angle<input name="myAngle" placeholder="We run a 30-truck HVAC company in Austin"></label>
+    <label>Who you are, in one line<input name="myAngle" placeholder="We own and run a 40-person HVAC company"></label>
     <div class="row-end"><button class="primary" value="save">Save</button></div>
   </form>
 </dialog>
