@@ -15,8 +15,10 @@
   ],
   "ai": { "binding": "AI" },
   "workflows": [
-    { "binding": "SEARCH", "name": "dealflow-search", "class_name": "SearchWorkflow" }
-  ]
+    { "binding": "SEARCH", "name": "dealflow-search", "class_name": "SearchWorkflow" },
+    { "binding": "AGENT", "name": "dealflow-agent", "class_name": "AgentWorkflow" }
+  ],
+  "triggers": { "crons": ["7 * * * *"] }
   // Secrets: DASHBOARD_PASSWORD (required), API_TOKEN (scripts + MCP), ANTHROPIC_API_KEY (Claude; else Workers AI),
   //          COMPANIES_HOUSE_API_KEY (UK), GOOGLE_PLACES_API_KEY (US)
 }

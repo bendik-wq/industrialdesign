@@ -1,4 +1,7 @@
 -- Dealflow schema (v2: multi-country). Apply with: npm run db:schema
+DROP TABLE IF EXISTS agent_targets;
+DROP TABLE IF EXISTS agent_runs;
+DROP TABLE IF EXISTS agents;
 DROP TABLE IF EXISTS leads;
 DROP TABLE IF EXISTS ai_outputs;
 DROP TABLE IF EXISTS pipeline;
@@ -107,4 +110,35 @@ CREATE TABLE IF NOT EXISTS leads (
   timeline TEXT, message TEXT,
   valuation_low REAL, valuation_high REAL, currency TEXT,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agents (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  goal TEXT NOT NULL,
+  config TEXT NOT NULL,            -- JSON, see src/agents.js validateConfig
+  buyer TEXT NOT NULL DEFAULT '{}',-- JSON outreach settings used for letters
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  last_run_at TEXT
+);
+CREATE TABLE IF NOT EXISTS agent_runs (
+  id INTEGER PRIMARY KEY,
+  agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,            -- queued | running | done | failed
+  trigger TEXT NOT NULL,           -- manual | schedule | mcp
+  search_id INTEGER,
+  targets INTEGER NOT NULL DEFAULT 0,
+  summary TEXT,
+  log TEXT NOT NULL DEFAULT '[]',
+  started_at TEXT NOT NULL,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS agent_runs_agent ON agent_runs (agent_id, id DESC);
+CREATE TABLE IF NOT EXISTS agent_targets (
+  agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  run_id INTEGER,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (agent_id, company_id)
 );

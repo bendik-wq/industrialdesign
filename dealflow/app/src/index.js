@@ -3,12 +3,14 @@
 //   GET /api lists every endpoint.
 import { PROVIDERS, providerInfo } from "./providers.js";
 import { INDUSTRIES, industryById } from "./data/industries.js";
-import { brief, letter } from "./ai.js";
+import { brief, letter, transcribe, speak, extractCallNotes, VOICES } from "./ai.js";
+import { planFromGoal, validateConfig, describe, TEMPLATES } from "./agents.js";
 import { lookup, publicView, captureLead } from "./seller.js";
 import { saveCompanies } from "./store.js";
 import { handleMcp } from "./mcp.js";
 import { recommend, structure, STRUCTURES } from "../public/deal.js";
 export { SearchWorkflow } from "./workflow.js";
+export { AgentWorkflow } from "./agentflow.js";
 
 const STATUSES = ["New", "Researching", "Contacted", "Conversation", "NDA signed", "Financials", "LOI", "Passed", "Not a fit"];
 const SESSION_DAYS = 30;
@@ -39,10 +41,35 @@ const API_DOCS = {
     "GET    /api/leads                        inbound sellers from the public valuation page",
     "POST   /mcp                              MCP server (Streamable HTTP) for Claude and other agents; Bearer API_TOKEN",
     "PUBLIC /value                            seller-facing 'What is my business worth?' page",
+    "GET    /api/home                         dashboard: totals, funnel, inbound, agent activity, newest strong targets",
+    "GET    /api/agents                       agents with last run; templates",
+    "POST   /api/agents/plan                  {goal} → editable plan (config + steps) from plain English",
+    "POST   /api/agents                       {name, goal, config, buyer?, run?} create an agent (run: true starts it now)",
+    "GET    /api/agents/:id                   agent, plan steps, runs with logs",
+    "PATCH  /api/agents/:id                   {config?, name?, active?}",
+    "POST   /api/agents/:id/run               start a run now",
+    "DELETE /api/agents/:id                   delete an agent",
+    "POST   /api/voice/transcribe             raw audio body → {text} (Whisper)",
+    "POST   /api/companies/:id/voice-note     {text} → extracted call facts, saved to pipeline",
+    "GET    /api/companies/:id/brief.mp3      the AI brief read aloud",
   ],
 };
 
 export default {
+  // Hourly: start any agent whose daily/weekly schedule is due.
+  async scheduled(controller, env, ctx) {
+    const { results } = await env.DB.prepare("SELECT * FROM agents WHERE active = 1").all();
+    const now = Date.now();
+    for (const a of results) {
+      const cfg = JSON.parse(a.config);
+      const every = { daily: 864e5, weekly: 7 * 864e5 }[cfg.schedule];
+      if (!every) continue;
+      if (a.last_run_at && now - Date.parse(a.last_run_at) < every - 30 * 60e3) continue;
+      const busy = await env.DB.prepare("SELECT 1 FROM agent_runs WHERE agent_id = ?1 AND status IN ('queued','running')").bind(a.id).first();
+      if (!busy) ctx.waitUntil(startRun(env, a.id, "schedule"));
+    }
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
@@ -110,6 +137,16 @@ async function route(request, env, url) {
   if (p === "/api/searches" && m === "POST") return json(await createSearch(env, await request.json().catch(() => ({}))), 201);
   if (p === "/api/leads" && m === "GET") return json((await env.DB.prepare("SELECT l.*, c.name AS company FROM leads l LEFT JOIN companies c ON c.id = l.company_id ORDER BY l.id DESC").all()).results);
   if (p === "/api/companies/add" && m === "POST") return json(await addCompany(env, await request.json().catch(() => ({}))), 201);
+  if (p === "/api/home" && m === "GET") return json(await home(env));
+  if (p === "/api/agents" && m === "GET") return json(await listAgents(env));
+  if (p === "/api/agents/plan" && m === "POST") return json(await planFromGoal(env, (await request.json().catch(() => ({}))).goal));
+  if (p === "/api/agents" && m === "POST") return json(await createAgent(env, await request.json().catch(() => ({}))), 201);
+  if (p === "/api/voice/transcribe" && m === "POST") {
+    const buf = await request.arrayBuffer();
+    if (!buf.byteLength) fail(400, "No audio received");
+    if (buf.byteLength > 12e6) fail(413, "Recording too long; keep it under about 5 minutes");
+    return json(await transcribe(env, buf, url.searchParams.get("hint") || ""));
+  }
   if (p === "/api/companies" && m === "GET") return json(await listCompanies(env, url.searchParams));
   if (p === "/api/pipeline" && m === "GET") return json(await pipeline(env));
   if (p === "/api/stats" && m === "GET") return json(await stats(env, url.searchParams));
@@ -134,6 +171,18 @@ async function route(request, env, url) {
     return json(row);
   }
   if ((r = p.match(/^\/api\/companies\/(\d+)$/)) && m === "GET") return json(await company(env, +r[1]));
+  if ((r = p.match(/^\/api\/agents\/(\d+)$/))) {
+    if (m === "GET") return json(await getAgent(env, +r[1]));
+    if (m === "PATCH") return json(await updateAgent(env, +r[1], await request.json().catch(() => ({}))));
+    if (m === "DELETE") { await env.DB.batch([env.DB.prepare("DELETE FROM agent_targets WHERE agent_id = ?1").bind(+r[1]), env.DB.prepare("DELETE FROM agent_runs WHERE agent_id = ?1").bind(+r[1]), env.DB.prepare("DELETE FROM agents WHERE id = ?1").bind(+r[1])]); return json({ ok: true }); }
+  }
+  if ((r = p.match(/^\/api\/agents\/(\d+)\/run$/)) && m === "POST") return json(await startRun(env, +r[1], "manual"), 201);
+  if ((r = p.match(/^\/api\/companies\/(\d+)\/voice-note$/)) && m === "POST") return json(await voiceNote(env, +r[1], await request.json().catch(() => ({}))));
+  if ((r = p.match(/^\/api\/companies\/(\d+)\/brief\.mp3$/)) && m === "GET") {
+    const row = await env.DB.prepare("SELECT content FROM ai_outputs WHERE company_id = ?1 AND kind = 'brief'").bind(+r[1]).first();
+    if (!row) fail(404, "Write the brief first");
+    return new Response(await speak(env, row.content), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=3600" } });
+  }
   if ((r = p.match(/^\/api\/companies\/(\d+)\/deal$/)) && m === "GET") return json(await deal(env, +r[1], url.searchParams.get("price")));
   if ((r = p.match(/^\/api\/companies\/(\d+)\/ai$/)) && m === "POST") return json(await ai(env, +r[1], await request.json().catch(() => ({}))));
   if ((r = p.match(/^\/api\/companies\/(\d+)\/pipeline$/)) && m === "PUT") return json(await savePipeline(env, +r[1], await request.json().catch(() => ({}))));
@@ -142,7 +191,7 @@ async function route(request, env, url) {
 function fail(status, message) { throw Object.assign(new Error(message), { status }); }
 
 // ------------------------------------------------------------------ searches
-async function createSearch(env, body) {
+export async function createSearch(env, body) {
   const provider = PROVIDERS[body.country];
   const industry = industryById(body.industry);
   if (!provider) fail(400, "Unknown country");
@@ -182,7 +231,7 @@ async function ai(env, id, body) {
     if (cached) return cached;
   }
   const c = await company(env, id);
-  const out = kind === "brief" ? await brief(env, c) : await letter(env, c, body.me || {});
+  const out = kind === "brief" ? await brief(env, c) : await letter(env, c, body.me || {}, body.voice);
   const row = { company_id: id, kind, model: out.model, content: out.text, created_at: new Date().toISOString() };
   await env.DB.prepare(
     `INSERT INTO ai_outputs (company_id, kind, model, content, created_at) VALUES (?1, ?2, ?3, ?4, ?5)
@@ -227,6 +276,95 @@ async function publicRoute(request, env, url) {
   return json({ error: "Not found" }, 404);
 }
 
+// ------------------------------------------------------------------ agents
+async function listAgents(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT a.*, r.status AS last_status, r.summary AS last_summary, r.id AS last_run_id,
+       (SELECT COUNT(*) FROM agent_targets t WHERE t.agent_id = a.id) AS total_targets
+     FROM agents a LEFT JOIN agent_runs r ON r.id = (SELECT MAX(id) FROM agent_runs WHERE agent_id = a.id)
+     ORDER BY a.id DESC`
+  ).all();
+  return { agents: results.map((a) => ({ ...a, config: JSON.parse(a.config), buyer: undefined })), templates: TEMPLATES, voices: Object.entries(VOICES).map(([id, v]) => ({ id, label: v.label })) };
+}
+
+async function getAgent(env, id) {
+  const a = await env.DB.prepare("SELECT * FROM agents WHERE id = ?1").bind(id).first();
+  if (!a) fail(404, "Agent not found");
+  const { results: runs } = await env.DB.prepare("SELECT * FROM agent_runs WHERE agent_id = ?1 ORDER BY id DESC LIMIT 20").bind(id).all();
+  const { results: targets } = await env.DB.prepare(
+    `SELECT c.id, c.name, c.city, c.owner_name, c.owner_age, c.valuation_mid, c.currency, c.verdict, c.fit_score, COALESCE(p.status, 'New') AS status
+     FROM agent_targets t JOIN companies c ON c.id = t.company_id LEFT JOIN pipeline p ON p.company_id = c.id
+     WHERE t.agent_id = ?1 ORDER BY t.created_at DESC LIMIT 100`
+  ).bind(id).all();
+  const config = JSON.parse(a.config);
+  return { ...a, config, buyer: JSON.parse(a.buyer || "{}"), steps: describe(config), runs: runs.map((r) => ({ ...r, log: JSON.parse(r.log || "[]") })), targets };
+}
+
+async function createAgent(env, body) {
+  const config = validateConfig(body.config || {});
+  const name = String(body.name || "").trim().slice(0, 60) || "Agent";
+  const row = await env.DB.prepare(
+    "INSERT INTO agents (name, goal, config, buyer, created_at) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id"
+  ).bind(name, String(body.goal || "").slice(0, 1500), JSON.stringify(config), JSON.stringify(body.buyer || {}), new Date().toISOString()).first();
+  if (body.run !== false) await startRun(env, row.id, body.trigger || "manual");
+  return getAgent(env, row.id);
+}
+
+async function updateAgent(env, id, body) {
+  const a = await env.DB.prepare("SELECT * FROM agents WHERE id = ?1").bind(id).first();
+  if (!a) fail(404, "Agent not found");
+  const config = body.config ? validateConfig({ ...JSON.parse(a.config), ...body.config }) : JSON.parse(a.config);
+  await env.DB.prepare("UPDATE agents SET name = ?2, config = ?3, active = ?4, buyer = ?5 WHERE id = ?1")
+    .bind(id, body.name ?? a.name, JSON.stringify(config), body.active === undefined ? a.active : body.active ? 1 : 0, body.buyer ? JSON.stringify(body.buyer) : a.buyer).run();
+  return getAgent(env, id);
+}
+
+async function startRun(env, agentId, trigger) {
+  const busy = await env.DB.prepare("SELECT id FROM agent_runs WHERE agent_id = ?1 AND status IN ('queued','running')").bind(agentId).first();
+  if (busy) fail(409, "This agent is already running");
+  const run = await env.DB.prepare(
+    "INSERT INTO agent_runs (agent_id, status, trigger, log, started_at) VALUES (?1, 'queued', ?2, ?3, ?4) RETURNING *"
+  ).bind(agentId, trigger, JSON.stringify([{ at: new Date().toISOString(), kind: "info", text: `Run started (${trigger}).` }]), new Date().toISOString()).first();
+  await env.AGENT.create({ id: `agent-${agentId}-run-${run.id}`, params: { runId: run.id } });
+  return run;
+}
+
+// ------------------------------------------------------------------ voice notes and home
+async function voiceNote(env, id, body) {
+  const text = String(body.text || "").trim();
+  if (text.length < 5) fail(400, "The note is empty");
+  const c = await company(env, id);
+  const x = await extractCallNotes(env, c, text.slice(0, 8000));
+  const lines = [
+    `🎙 Voice note ${new Date().toISOString().slice(0, 10)}: ${x.summary}`,
+    x.intent && x.intent !== "unclear" ? `Intent: ${x.intent}` : null,
+    x.timeline ? `Timeline: ${x.timeline}` : null,
+    x.asking_price ? `Asking price: ${x.asking_price}` : null,
+    x.revenue || x.profit ? `Numbers: ${[x.revenue && `revenue ${x.revenue}`, x.profit && `profit ${x.profit}`].filter(Boolean).join(", ")}` : null,
+    x.concerns?.length ? `Concerns: ${x.concerns.join("; ")}` : null,
+    x.next_step ? `Next: ${x.next_step}${x.next_step_date ? ` (${x.next_step_date})` : ""}` : null,
+  ].filter(Boolean).join("\n");
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO pipeline (company_id, status, notes, updated_at) VALUES (?1, ?2, ?3, ?4)
+     ON CONFLICT (company_id) DO UPDATE SET status = ?2, notes = ?3 || char(10) || char(10) || notes, updated_at = ?4`
+  ).bind(id, STATUSES.includes(x.stage) ? x.stage : c.status, lines, now).run();
+  return { extracted: x, notes: lines, transcript: text };
+}
+
+async function home(env) {
+  const [totals, funnel, inbound, runs, fresh] = await env.DB.batch([
+    env.DB.prepare(`SELECT COUNT(*) AS companies, SUM(fit_score >= 50) AS good, SUM(owner_age >= 60) AS owners60,
+      SUM(valuation_mid IS NOT NULL) AS valued, COUNT(DISTINCT country) AS countries FROM companies WHERE excluded = 0`),
+    env.DB.prepare("SELECT status, COUNT(*) AS n FROM pipeline WHERE status != 'New' GROUP BY status"),
+    env.DB.prepare("SELECT l.id, l.name, l.timeline, l.created_at, l.valuation_low, l.valuation_high, l.currency, c.id AS company_id, c.name AS company FROM leads l LEFT JOIN companies c ON c.id = l.company_id ORDER BY l.id DESC LIMIT 5"),
+    env.DB.prepare("SELECT r.id, r.status, r.summary, r.targets, r.started_at, a.id AS agent_id, a.name FROM agent_runs r JOIN agents a ON a.id = r.agent_id ORDER BY r.id DESC LIMIT 6"),
+    env.DB.prepare(`SELECT id, name, city, country, owner_name, owner_age, valuation_mid, currency, verdict, fit_score, summary
+      FROM companies WHERE excluded = 0 AND fit_score >= 60 ORDER BY updated_at DESC, fit_score DESC LIMIT 6`),
+  ]);
+  return { totals: totals.results[0], funnel: funnel.results, statuses: STATUSES, inbound: inbound.results, runs: runs.results, fresh: fresh.results };
+}
+
 // ------------------------------------------------------------------ MCP tool implementations
 function mcpOps(env) {
   const slim = (r) => ({
@@ -268,6 +406,17 @@ function mcpOps(env) {
     update_pipeline: ({ id, ...rest }) => savePipeline(env, id, rest),
     write_brief: async ({ id }) => (await ai(env, id, { kind: "brief" })).content,
     add_company: async ({ country, number }) => slim(await addCompany(env, { country, number })),
+    plan_agent: async ({ goal }) => planFromGoal(env, goal),
+    launch_agent: async ({ goal }) => {
+      const plan = await planFromGoal(env, goal);
+      const a = await createAgent(env, { name: plan.name, goal: plan.goal, config: plan.config, trigger: "mcp" });
+      return { id: a.id, name: a.name, plan: a.steps.map((s) => `${s.title}: ${s.text}`), status: "running" };
+    },
+    agent_status: async ({ id }) => {
+      const a = await getAgent(env, id);
+      const r = a.runs[0];
+      return { name: a.name, schedule: a.config.schedule, last_run: r && { status: r.status, summary: r.summary, log: r.log.map((l) => l.text) }, targets: a.targets.slice(0, 20) };
+    },
   };
 }
 
@@ -324,7 +473,7 @@ async function listCompanies(env, q) {
   return { total: total.results[0].n, page, limit, rows: rows.results };
 }
 
-async function company(env, id) {
+export async function company(env, id) {
   const c = await env.DB.prepare(
     `SELECT c.*, COALESCE(p.status, 'New') AS status, COALESCE(p.notes, '') AS notes, p.updated_at AS pipeline_updated
      FROM companies c LEFT JOIN pipeline p ON p.company_id = c.id WHERE c.id = ?1`

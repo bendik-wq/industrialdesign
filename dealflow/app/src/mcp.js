@@ -92,6 +92,21 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "plan_agent",
+    description: "Turn a plain-English sourcing goal into an agent plan (country, industry, area, owner age, value band, how many, what to write) without running it.",
+    inputSchema: { type: "object", properties: { goal: { type: "string" } }, required: ["goal"], additionalProperties: false },
+  },
+  {
+    name: "launch_agent",
+    description: "Create and start an agent from a plain-English goal, e.g. 'every week find HVAC owners over 60 around Lyon, brief the top 10'. Returns the agent id; check agent_status.",
+    inputSchema: { type: "object", properties: { goal: { type: "string" } }, required: ["goal"], additionalProperties: false },
+  },
+  {
+    name: "agent_status",
+    description: "Latest run of an agent: status, step log and the companies it worked.",
+    inputSchema: { type: "object", properties: { id: { type: "integer" } }, required: ["id"], additionalProperties: false },
+  },
 ];
 
 export async function handleMcp(request, ops) {
@@ -115,7 +130,7 @@ async function handle(msg, ops) {
         protocolVersion: msg.params?.protocolVersion || PROTOCOL,
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "dealflow", title: "Dealflow acquisition targets", version: "1.0.0" },
-        instructions: "Find owner-operated companies whose owners are likely to sell, value them, and structure seller-financed offers. Typical flow: list_sources → start_search → list_searches (until done) → find_targets → get_company / value_deal → write_brief → update_pipeline.",
+        instructions: "Find owner-operated companies whose owners are likely to sell, value them, and structure seller-financed offers. Typical flow: list_sources → start_search → list_searches (until done) → find_targets → get_company / value_deal → write_brief → update_pipeline. Or hand a whole goal to launch_agent and poll agent_status.",
       });
     case "ping":
       return ok(msg.id, {});

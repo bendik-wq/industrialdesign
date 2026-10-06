@@ -45,14 +45,18 @@ async function router() {
   clearInterval(pollTimer);
   closeDrawer();
   $("#side").classList.remove("open");
-  const [, view, id] = location.hash.split("/");
+  const [, view, id] = location.hash.split("?")[0].split("/");
   $$(".nav a").forEach((a) => a.classList.toggle("active", a.dataset.nav === view));
   if (view === "new") return renderNew();
+  if (view === "home" || !view) return renderHome(seq);
+  if (view === "agents" && id === "new") return renderAgentNew(seq);
+  if (view === "agents" && id) return renderAgent(Number(id), seq);
+  if (view === "agents") return renderAgents(seq);
   if (view === "pipeline") return renderPipeline(seq);
   if (view === "search" && id) return renderResults(Number(id), seq);
   const searches = await renderSearches();
   if (stale(seq)) return;
-  if (!searches.length && view !== "all") { location.hash = "#/new"; return; }
+  if (!searches.length && view !== "all") { location.hash = "#/home"; return; }
   return renderResults(null, seq);
 }
 
@@ -295,7 +299,7 @@ async function openCompany(id) {
 
     <div class="d-sec"><h3>AI deal brief</h3>
       <div class="ai-box" id="briefBox">${c.ai?.brief ? md(c.ai.brief.content) : `<p class="muted">A one-page read on why this could be a deal, the risks and how to open the conversation.</p>`}</div>
-      <div class="draft-actions"><span class="muted small" id="briefMeta">${c.ai?.brief ? aiMeta(c.ai.brief) : ""}</span><button class="primary" id="briefBtn" type="button">${c.ai?.brief ? "Rewrite" : "Write brief"}</button></div>
+      <div class="draft-actions"><span class="muted small" id="briefMeta">${c.ai?.brief ? aiMeta(c.ai.brief) : ""}</span><span class="btns"><button class="ghost" id="listenBtn" type="button" ${c.ai?.brief ? "" : "hidden"}>▶ Listen</button><button class="primary" id="briefBtn" type="button">${c.ai?.brief ? "Rewrite" : "Write brief"}</button></span></div>
     </div>
 
     <div class="d-sec"><h3>People on record</h3>
@@ -328,6 +332,14 @@ async function openCompany(id) {
       </div>
     </div>
 
+    <div class="d-sec"><h3>Voice note</h3>
+      <div class="voice-note">
+        <button class="mic big" id="vnMic" type="button" aria-label="Record call notes"><span class="dot"></span></button>
+        <div><b>Talk through the call</b><p class="muted small">Say what the owner told you: timeline, price, numbers, worries, next step. It's transcribed and turned into pipeline notes.</p></div>
+      </div>
+      <div class="vn-result" id="vnResult"></div>
+    </div>
+
     <div class="d-sec"><h3>Pipeline</h3>
       <div class="pipe">
         <select id="pStatus">${sources.statuses.map((s) => `<option ${s === c.status ? "selected" : ""}>${s}</option>`).join("")}</select>
@@ -347,11 +359,12 @@ async function openCompany(id) {
     $$(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.t === t));
     if (t === "ai") {
       $("#draft").textContent = aiLetter ? aiLetter.content : "Writes a personal letter in the owner's own language using the facts on record and your Outreach settings.";
-      $("#draftNote").innerHTML = `${aiLetter ? `${esc(aiMeta(aiLetter))} · ` : ""}<button class="link strong" id="aiLetterBtn" type="button">${aiLetter ? "Rewrite" : "Write it"}</button>`;
+      $("#draftNote").innerHTML = `${aiLetter ? `${esc(aiMeta(aiLetter))} · ` : ""}<select id="voiceSel" class="voice-sel" aria-label="Voice"><option value="warm">Warm & respectful</option><option value="jl">JL: direct operator</option></select> <button class="link strong" id="aiLetterBtn" type="button">${aiLetter ? "Rewrite" : "Write it"}</button>`;
+      $("#voiceSel").value = settings().voice || "warm";
       $("#aiLetterBtn").addEventListener("click", async () => {
         $("#draftNote").textContent = "Writing…";
         try {
-          aiLetter = await api(`/api/companies/${c.id}/ai`, { method: "POST", body: JSON.stringify({ kind: "letter", regenerate: true, me: settings() }) });
+          aiLetter = await api(`/api/companies/${c.id}/ai`, { method: "POST", body: JSON.stringify({ kind: "letter", regenerate: true, me: settings(), voice: $("#voiceSel")?.value || settings().voice || "warm" }) });
         } catch (e) { $("#draftNote").textContent = e.message; return; }
         show("ai");
       });
@@ -370,10 +383,36 @@ async function openCompany(id) {
       const b = await api(`/api/companies/${c.id}/ai`, { method: "POST", body: JSON.stringify({ kind: "brief", regenerate: true }) });
       $("#briefBox").innerHTML = md(b.content);
       $("#briefMeta").textContent = aiMeta(b);
+      $("#listenBtn").hidden = false;
     } catch (e) { $("#briefBox").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
     $("#briefBtn").disabled = false; $("#briefBtn").textContent = "Rewrite";
   });
   renderDeal(c);
+  let audio;
+  $("#listenBtn").addEventListener("click", () => {
+    if (audio && !audio.paused) { audio.pause(); $("#listenBtn").textContent = "▶ Listen"; return; }
+    audio = new Audio(`/api/companies/${c.id}/brief.mp3?t=${Date.now()}`);
+    $("#listenBtn").textContent = "… loading";
+    audio.addEventListener("playing", () => ($("#listenBtn").textContent = "❚❚ Pause"));
+    audio.addEventListener("ended", () => ($("#listenBtn").textContent = "▶ Listen"));
+    audio.addEventListener("error", () => ($("#listenBtn").textContent = "Audio failed"));
+    audio.play();
+  });
+  micButton($("#vnMic"), async (text) => {
+    $("#vnResult").innerHTML = `<p class="muted">“${esc(text)}”</p><div class="skeleton"></div><div class="skeleton short"></div>`;
+    try {
+      const r = await api(`/api/companies/${c.id}/voice-note`, { method: "POST", body: JSON.stringify({ text }) });
+      const x = r.extracted;
+      const chip = (k, v) => (v ? `<span class="xchip"><i>${k}</i>${esc(v)}</span>` : "");
+      $("#vnResult").innerHTML = `<p class="transcript">“${esc(text)}”</p>
+        <p>${esc(x.summary)}</p>
+        <div class="xchips">${chip("Intent", x.intent)}${chip("Timeline", x.timeline)}${chip("Asking", x.asking_price)}${chip("Revenue", x.revenue)}${chip("Profit", x.profit)}${chip("Next", [x.next_step, x.next_step_date].filter(Boolean).join(" · "))}${chip("Stage", x.stage)}</div>
+        ${x.concerns?.length ? `<p class="small muted">Concerns: ${esc(x.concerns.join("; "))}</p>` : ""}`;
+      $("#pNotes").value = r.notes + ($("#pNotes").value ? "\n\n" + $("#pNotes").value : "");
+      if (x.stage) $("#pStatus").value = x.stage;
+      $("#pSaved").textContent = "Saved from voice note";
+    } catch (e) { $("#vnResult").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+  }, `Notes about ${c.name}. Owner ${c.owner_name || ""}.`);
   $("#copy").addEventListener("click", async () => { await navigator.clipboard.writeText($("#draft").textContent); $("#copy").textContent = "Copied"; setTimeout(() => ($("#copy").textContent = "Copy"), 1200); });
   $("#pSave").addEventListener("click", async () => {
     const r = await api(`/api/companies/${c.id}/pipeline`, { method: "PUT", body: JSON.stringify({ status: $("#pStatus").value, notes: $("#pNotes").value }) });
@@ -567,3 +606,265 @@ $("#settingsForm").addEventListener("submit", () => {
   window.addEventListener("hashchange", router); // only route once countries and industries are loaded
   router();
 })();
+
+// ================================================================== voice capture
+// Tap to record, tap again to stop. Audio goes to Whisper on the server; the transcript is handed to onText.
+function micButton(btn, onText, hint = "") {
+  let rec = null, chunks = [], stream = null;
+  btn.addEventListener("click", async () => {
+    if (rec && rec.state === "recording") { rec.stop(); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { alert("This browser can't record audio."); return; }
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch { alert("Microphone access was blocked. Allow it in the browser to use voice."); return; }
+    chunks = [];
+    rec = new MediaRecorder(stream);
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    rec.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      btn.classList.remove("rec"); btn.classList.add("busy");
+      try {
+        const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        const res = await fetch(`/api/voice/transcribe?hint=${encodeURIComponent(hint)}`, { method: "POST", headers: { "Content-Type": blob.type }, body: blob });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || "Transcription failed");
+        if (d.text) onText(d.text);
+      } catch (e) { alert(e.message); }
+      btn.classList.remove("busy");
+    };
+    rec.start();
+    btn.classList.add("rec");
+  });
+}
+
+// ================================================================== home
+async function renderHome(seq) {
+  renderSearches();
+  const h = await api("/api/home");
+  if (stale(seq)) return;
+  const t = h.totals || {};
+  const hr = new Date().getHours();
+  const hello = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  const stages = h.statuses.filter((s) => !["New", "Passed", "Not a fit"].includes(s));
+  const by = Object.fromEntries(h.funnel.map((f) => [f.status, f.n]));
+  const maxF = Math.max(1, ...stages.map((s) => by[s] || 0));
+  const name = settings().myName?.split(" ")[0];
+  $("#view").innerHTML = `
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow">${esc(new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }))}</p>
+        <h1>${hello}${name ? `, ${esc(name)}` : ""}.</h1>
+        <p class="lede">Tell an agent what you're looking for. It sources, values, briefs and drafts outreach while you do the calls.</p>
+        <div class="composer mini">
+          <button class="mic" id="homeMic" type="button" aria-label="Speak a goal"><span class="dot"></span></button>
+          <input id="homeGoal" placeholder="e.g. Every week find HVAC owners over 60 around Lyon, value them and brief the top 10">
+          <button class="primary" id="homeGo" type="button">Plan agent →</button>
+        </div>
+      </div>
+    </section>
+    <section class="stats">
+      ${[["Companies tracked", t.companies], ["Owners 60+", t.owners60], ["Worth a call or better", t.good], ["Valued from filings", t.valued]].map(([l, v], i) => `
+        <div class="stat"><span>${l}</span><b data-count="${v || 0}">${fmt(v || 0)}</b>${i === 0 ? `<small>${t.countries || 0} countries</small>` : ""}</div>`).join("")}
+    </section>
+    <div class="grid2">
+      <section class="panel">
+        <header><h3>Pipeline</h3><a href="#/pipeline">Open board →</a></header>
+        ${h.funnel.length ? `<div class="funnel">${stages.map((s) => `<div class="frow"><span>${esc(s)}</span><div class="fbar"><i style="width:${((by[s] || 0) / maxF) * 100}%"></i></div><b>${by[s] || 0}</b></div>`).join("")}</div>`
+          : `<p class="muted">Nothing in play yet. Open a company and move it to Researching, or let an agent do it.</p>`}
+      </section>
+      <section class="panel">
+        <header><h3>Agent activity</h3><a href="#/agents">All agents →</a></header>
+        ${h.runs.length ? `<ul class="feed">${h.runs.map((r) => `<li><a href="#/agents/${r.agent_id}"><span class="sdot ${r.status}"></span><b>${esc(r.name)}</b><small>${esc(r.summary || ({ queued: "Starting…", running: "Working…" }[r.status] || r.status))}</small></a></li>`).join("")}</ul>`
+          : `<div class="empty-mini"><p class="muted">No agents yet.</p><a class="primary" href="#/agents/new">Create your first agent</a></div>`}
+      </section>
+      <section class="panel">
+        <header><h3>Inbound sellers</h3><a href="/value" target="_blank">Valuation page ↗</a></header>
+        ${h.inbound.length ? `<ul class="feed">${h.inbound.map((l) => `<li><a href="#" data-co="${l.company_id}"><span class="sdot hot"></span><b>${esc(l.company || l.name)}</b><small>${esc(l.name)} · ${esc(l.timeline || "timeline not given")} · valued ${dmoney(l.valuation_low, l.currency)}–${dmoney(l.valuation_high, l.currency)}</small></a></li>`).join("")}</ul>`
+          : `<p class="muted">Owners who value their company on your public page land here. Share <b>/value</b> in letters and emails.</p>`}
+      </section>
+      <section class="panel">
+        <header><h3>Strong targets</h3><a href="#/all">All targets →</a></header>
+        ${h.fresh.length ? `<ul class="feed">${h.fresh.map((c) => `<li><a href="#" data-co="${c.id}"><span class="fitring" style="--v:${c.fit_score}">${c.fit_score}</span><b>${esc(c.name)}</b><small>${esc(c.summary || c.city || "")}</small></a></li>`).join("")}</ul>`
+          : `<p class="muted">Run a search or an agent to see targets here.</p>`}
+      </section>
+    </div>`;
+  const go = () => { const g = $("#homeGoal").value.trim(); location.hash = `#/agents/new${g ? `?goal=${encodeURIComponent(g)}` : ""}`; };
+  $("#homeGo").addEventListener("click", go);
+  $("#homeGoal").addEventListener("keydown", (e) => e.key === "Enter" && go());
+  micButton($("#homeMic"), (text) => { $("#homeGoal").value = text; go(); }, "An acquisition sourcing goal: industry, place, owner age, size, value.");
+  $$("[data-co]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); if (a.dataset.co) openCompany(+a.dataset.co); }));
+  countUp();
+}
+
+function countUp() {
+  $$("[data-count]").forEach((el) => {
+    const end = +el.dataset.count;
+    if (!end || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t0 = performance.now();
+    const tick = (t) => { const k = Math.min(1, (t - t0) / 700); el.textContent = fmt(Math.round(end * (1 - (1 - k) ** 3))); if (k < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+}
+
+// ================================================================== agents
+const SCHED = { manual: "Runs when you start it", daily: "Runs every day", weekly: "Runs every week" };
+const STEP_ICON = { source: "◎", filter: "⧩", value: "€", brief: "✎", letter: "✉", pipeline: "➜", report: "◷" };
+
+async function renderAgents(seq) {
+  renderSearches();
+  const d = await api("/api/agents");
+  if (stale(seq)) return;
+  $("#view").innerHTML = `
+    <header class="page-head"><div><h1>Agents</h1><p class="muted">Give an agent a goal. It turns it into a plan you can check, then sources, values, briefs and drafts outreach on its own, as often as you like.</p></div>
+      <a class="primary" href="#/agents/new">+ New agent</a></header>
+    ${d.agents.length ? `<section class="agent-list">${d.agents.map((a) => `
+      <a class="agent-card" href="#/agents/${a.id}">
+        <div class="ac-top"><span class="sdot ${a.last_status || "idle"}"></span><b>${esc(a.name)}</b><span class="badge ${a.config.schedule === "manual" ? "" : "ok"}">${a.config.schedule === "manual" ? "Manual" : a.config.schedule === "daily" ? "Daily" : "Weekly"}</span></div>
+        <p>${esc(a.goal)}</p>
+        <div class="ac-foot"><span>${fmt(a.total_targets)} companies worked</span><span>${a.last_run_at ? `Last run ${new Date(a.last_run_at).toLocaleDateString()}` : a.last_status ? esc(a.last_status) : "Not run yet"}</span></div>
+      </a>`).join("")}</section>` : ""}
+    <h3 class="section-title">${d.agents.length ? "Start from a template" : "Start from a template, or describe your own"}</h3>
+    <section class="templates">${d.templates.map((t) => `
+      <a class="template" href="#/agents/new?goal=${encodeURIComponent(t.goal)}"><b>${esc(t.title)}</b><p>${esc(t.blurb)}</p><span>Use template →</span></a>`).join("")}
+    </section>`;
+}
+
+async function renderAgentNew(seq) {
+  renderSearches();
+  const goal0 = new URLSearchParams(location.hash.split("?")[1] || "").get("goal") || "";
+  $("#view").innerHTML = `
+    <header class="page-head"><div><h1>New agent</h1><p class="muted">Say or type what you want. You'll see the plan before anything runs.</p></div></header>
+    <section class="composer big">
+      <button class="mic big" id="agMic" type="button" aria-label="Speak your goal"><span class="dot"></span></button>
+      <textarea id="agGoal" rows="3" placeholder="Every week, find HVAC companies around Lyon with 6+ staff and owners over 60. Value them, write a brief for the best 10 and put them in Researching.">${esc(goal0)}</textarea>
+      <button class="primary" id="agPlan" type="button">Plan it</button>
+    </section>
+    <p class="muted small hint">Mention the industry, the place, owner age, size or value, how many, and whether to write briefs or letters (say “in the JL voice” for the direct style) and how often.</p>
+    <div id="plan"></div>`;
+  const plan = async () => {
+    const goal = $("#agGoal").value.trim();
+    if (!goal) return;
+    $("#agPlan").disabled = true;
+    $("#plan").innerHTML = `<div class="plan-loading"><div class="skeleton"></div><div class="skeleton short"></div><div class="skeleton"></div></div>`;
+    try { renderPlan(await api("/api/agents/plan", { method: "POST", body: JSON.stringify({ goal }) })); }
+    catch (e) { $("#plan").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+    $("#agPlan").disabled = false;
+  };
+  $("#agPlan").addEventListener("click", plan);
+  micButton($("#agMic"), (text) => { $("#agGoal").value = text; plan(); }, "An acquisition sourcing goal: industry, place, owner age, size, value.");
+  if (goal0) plan();
+}
+
+function planSteps(c) {
+  const ctry = country(c.country), ind = sources.industries.find((i) => i.id === c.industry);
+  const cur = { fr: "€", no: "NOK ", uk: "£", us: "$" }[c.country];
+  const m = (v) => (v >= 1e6 ? `${cur}${+(v / 1e6).toFixed(1)}M` : `${cur}${Math.round(v / 1e3)}k`);
+  return [
+    ["source", "Source", `${(/s$/i.test(ind?.label || "") ? `All ${ind.label.toLowerCase()}` : `Every ${ind?.label} company`)} in ${c.regionLabel || `all of ${ctry?.label}`}${c.minStaff ? ` with ${c.minStaff}+ staff` : ""}, from ${c.country === "us" ? "Google Places" : "the official registry"}.`],
+    ["filter", "Shortlist", `Owners ${c.minOwnerAge ? `${c.minOwnerAge}+` : "of any age"}${c.minValue || c.maxValue ? `, valued ${c.minValue ? m(c.minValue) : "any"}–${c.maxValue ? m(c.maxValue) : "any"}` : ""}; best ${c.topN} by fit, new ones only.`],
+    ["value", "Value", "Valuation from filed accounts and the self-funding price at 1.5× debt cover."],
+    c.brief && ["brief", "Brief", "One-page acquisition brief for each."],
+    c.letter && ["letter", "Letter", `First letter in the owner's language, ${c.voice === "jl" ? "JL direct-operator" : "warm"} voice.`],
+    c.stage && ["pipeline", "Pipeline", `Move to ${c.stage}.`],
+    ["report", "Report", `Summary of what it found.${c.schedule !== "manual" ? ` Repeats ${c.schedule}.` : ""}`],
+  ].filter(Boolean);
+}
+
+function renderPlan(p) {
+  const c = { ...p.config };
+  const inds = () => sources.industries.filter((i) => i.countries.includes(c.country));
+  const draw = () => {
+    const ctry = country(c.country);
+    $("#plan").innerHTML = `
+      <section class="plan">
+        <div class="plan-head"><input id="agName" class="name-input" value="${esc(p.name)}" aria-label="Agent name"><span class="badge ${c.schedule === "manual" ? "" : "ok"}">${SCHED[c.schedule]}</span></div>
+        ${p.warnings.map((w) => `<p class="notice">${esc(w)}</p>`).join("")}
+        <ol class="steps">${planSteps(c).map(([k, t, x], i) => `<li style="--i:${i}"><span class="si">${STEP_ICON[k]}</span><div><b>${t}</b><p>${esc(x)}</p></div></li>`).join("")}</ol>
+        <details class="tune" open><summary>Adjust the plan</summary>
+          <div class="tune-grid">
+            <label>Country<select data-k="country">${sources.countries.map((x) => `<option value="${x.id}" ${x.id === c.country ? "selected" : ""} ${x.ready ? "" : "disabled"}>${x.flag} ${esc(x.label)}${x.ready ? "" : " (needs key)"}</option>`).join("")}</select></label>
+            <label>Industry<select data-k="industry">${inds().map((i) => `<option value="${i.id}" ${i.id === c.industry ? "selected" : ""}>${esc(i.label)}</option>`).join("")}</select></label>
+            <label>${esc(ctry.regionLabel)}${Array.isArray(ctry.regions)
+              ? `<select data-k="region"><option value="">All of ${esc(ctry.label)}</option>${ctry.regions.map((r) => `<option value="${esc(r.code)}" ${r.code === c.region ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select>`
+              : `<input data-k="region" value="${esc(c.region || "")}" placeholder="City or area">`}</label>
+            <label>Min staff<input data-k="minStaff" type="number" min="0" value="${c.minStaff}"></label>
+            <label>Owner age at least<input data-k="minOwnerAge" type="number" min="0" max="90" value="${c.minOwnerAge || ""}" placeholder="any"></label>
+            <label>How many per run<input data-k="topN" type="number" min="1" max="50" value="${c.topN}"></label>
+            <label>Min value<input data-k="minValue" type="number" min="0" step="100000" value="${c.minValue || ""}" placeholder="any"></label>
+            <label>Max value<input data-k="maxValue" type="number" min="0" step="100000" value="${c.maxValue || ""}" placeholder="any"></label>
+            <label>Move to stage<select data-k="stage"><option value="">Don't change</option><option ${c.stage === "Researching" ? "selected" : ""}>Researching</option><option ${c.stage === "Contacted" ? "selected" : ""}>Contacted</option></select></label>
+            <label>Schedule<select data-k="schedule">${Object.keys(SCHED).map((k) => `<option value="${k}" ${k === c.schedule ? "selected" : ""}>${SCHED[k]}</option>`).join("")}</select></label>
+            <label>Letter voice<select data-k="voice"><option value="warm" ${c.voice === "warm" ? "selected" : ""}>Warm & respectful</option><option value="jl" ${c.voice === "jl" ? "selected" : ""}>JL: direct operator</option></select></label>
+            <div class="toggles"><label class="check"><input type="checkbox" data-k="brief" ${c.brief ? "checked" : ""}> Write briefs</label><label class="check"><input type="checkbox" data-k="letter" ${c.letter ? "checked" : ""}> Write letters</label></div>
+          </div>
+        </details>
+        <div class="row-end"><span class="muted small">Letters are signed with your Outreach settings.</span><button class="ghost" id="agSave" type="button">Save without running</button><button class="primary big" id="agLaunch" type="button">Launch agent ▸</button></div>
+        <p class="error" id="agErr"></p>
+      </section>`;
+    $$("[data-k]").forEach((el) => el.addEventListener("change", () => {
+      const k = el.dataset.k;
+      c[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) || 0 : el.value || null;
+      if (k === "country") { c.region = null; c.regionLabel = null; if (!inds().find((i) => i.id === c.industry)) c.industry = inds()[0]?.id; }
+      if (k === "region") c.regionLabel = el.tagName === "SELECT" ? (el.selectedOptions[0]?.textContent.replace(/^\S+ · /, "") || null) : el.value || null;
+      p.name = $("#agName").value;
+      draw();
+    }));
+    const launch = async (run) => {
+      $("#agErr").textContent = "";
+      try {
+        const a = await api("/api/agents", { method: "POST", body: JSON.stringify({ name: $("#agName").value, goal: p.goal, config: c, buyer: settings(), run }) });
+        location.hash = `#/agents/${a.id}`;
+      } catch (e) { $("#agErr").textContent = e.message; }
+    };
+    $("#agLaunch").addEventListener("click", () => launch(true));
+    $("#agSave").addEventListener("click", () => launch(false));
+  };
+  draw();
+}
+
+async function renderAgent(id, seq) {
+  clearInterval(pollTimer);
+  renderSearches();
+  const a = await api(`/api/agents/${id}`);
+  if (stale(seq)) return;
+  const live = a.runs.some((r) => ["queued", "running"].includes(r.status));
+  $("#view").innerHTML = `
+    <header class="page-head">
+      <div><p class="eyebrow"><a href="#/agents">Agents</a></p><h1>${esc(a.name)}</h1><p class="muted">${esc(a.goal)}</p></div>
+      <div class="head-actions">
+        <label class="switch"><input type="checkbox" id="agActive" ${a.active ? "checked" : ""}><span></span>${esc(SCHED[a.config.schedule])}</label>
+        <button class="ghost" id="agDel" type="button">Delete</button>
+        <button class="primary" id="agRun" type="button" ${live ? "disabled" : ""}>${live ? "Running…" : "Run now ▸"}</button>
+      </div>
+    </header>
+    <div class="grid-agent">
+      <section class="panel">
+        <header><h3>Plan</h3></header>
+        <ol class="steps compact ${seq !== "first" && document.querySelector(".steps.compact") ? "static" : ""}">${a.steps.map((s, i) => `<li style="--i:${i}"><span class="si">${STEP_ICON[s.key]}</span><div><b>${esc(s.title)}</b><p>${esc(s.text)}</p></div></li>`).join("")}</ol>
+      </section>
+      <section class="panel">
+        <header><h3>Runs</h3></header>
+        ${a.runs.length ? a.runs.slice(0, 5).map((r, i) => `
+          <details class="run" ${i === 0 ? "open" : ""}>
+            <summary><span class="sdot ${r.status}"></span><b>${new Date(r.started_at).toLocaleString()}</b><span class="muted">${esc(r.trigger)} · ${esc(r.summary || r.status)}</span></summary>
+            <ol class="log">${r.log.map((l) => `<li class="${l.kind}"><time>${new Date(l.at).toLocaleTimeString()}</time><span>${esc(l.text)}</span></li>`).join("")}
+              ${["queued", "running"].includes(r.status) ? `<li class="working"><time></time><span>Working<i class="dots"></i></span></li>` : ""}</ol>
+          </details>`).join("") : `<p class="muted">Not run yet.</p>`}
+      </section>
+    </div>
+    <section class="table-card">
+      <div class="table-meta"><b>Companies this agent worked</b><span>${fmt(a.targets.length)}</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Company</th><th>Owner</th><th class="num">Value</th><th>Verdict</th><th>Status</th></tr></thead>
+        <tbody>${a.targets.map((t) => `<tr data-id="${t.id}"><td class="co"><b>${esc(t.name)}</b><small>${esc(t.city || "")}</small></td>
+          <td>${esc(t.owner_name || "–")}${t.owner_age != null ? ` <span class="age ${t.owner_age >= 60 ? "old" : ""}">${t.owner_age}</span>` : ""}</td>
+          <td class="num strong-num">${t.valuation_mid ? dmoney(t.valuation_mid, t.currency) : "–"}</td>
+          <td><span class="pill ${VCLASS[t.verdict]}">${esc(t.verdict)}</span></td><td class="status ${t.status !== "New" ? "active" : ""}">${esc(t.status)}</td></tr>`).join("")
+          || `<tr><td colspan="5" class="empty">${live ? "Companies appear here as the agent works through them." : "None yet."}</td></tr>`}</tbody>
+      </table></div>
+    </section>`;
+  $("#agRun").addEventListener("click", async () => { try { await api(`/api/agents/${id}/run`, { method: "POST" }); router(); } catch (e) { alert(e.message); } });
+  $("#agDel").addEventListener("click", async () => { if (confirm("Delete this agent? Companies and notes it created stay.")) { await api(`/api/agents/${id}`, { method: "DELETE" }); location.hash = "#/agents"; } });
+  $("#agActive").addEventListener("change", async (e) => api(`/api/agents/${id}`, { method: "PATCH", body: JSON.stringify({ active: e.target.checked }) }));
+  $$("tbody tr[data-id]").forEach((tr) => tr.addEventListener("click", () => openCompany(+tr.dataset.id)));
+  if (live) pollTimer = setInterval(() => { if (location.hash === `#/agents/${id}`) renderAgent(id, routeSeq); }, 5000);
+}

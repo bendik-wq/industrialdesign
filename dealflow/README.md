@@ -31,6 +31,16 @@ Live: https://dealflow.bendik-50e.workers.dev (password login; scripts use `Auth
 - **MCP server** (`/mcp`, `app/src/mcp.js`): the buyer's own Claude can search registries, value deals, write
   briefs and update the pipeline. Add it as a remote MCP server with header `Authorization: Bearer <API_TOKEN>`.
 - **Print batch** (`/print.html`): print-ready letters, one per page, for the top targets of any search.
+- **Agents** (`app/src/agents.js`, `app/src/agentflow.js`): describe a goal in plain English, typed or spoken
+  ("every week find HVAC owners over 60 around Lyon worth €1–5M, letters in the JL voice"). It becomes an explicit,
+  editable plan (source → shortlist → value → brief → letter → pipeline → report) that runs as a durable Cloudflare
+  Workflow, logs every step, never re-works the same company, and repeats daily or weekly via an hourly cron.
+  The model only fills a small schema; a deterministic parser and real region lookups (geo.api.gouv.fr, Kartverket)
+  validate everything it returns.
+- **Voice**: dictate goals or call notes (Workers AI Whisper). Call notes are turned into structured pipeline data:
+  intent, timeline, asking price, numbers, concerns, next step and stage. Briefs can be read aloud (Deepgram Aura).
+- **Writing voices**: "Warm & respectful" or "JL: direct operator", the Owners Academy copy style toned for a
+  first letter to a seller (specific, contrast with brokers and lowballers, a P.S. on the cost of waiting).
 
 ## Scoring (`app/src/scoring.js`)
 
@@ -66,6 +76,7 @@ GET  /api/export.csv?search=2&format=mail  full | mail | email
 cd app && npm install
 npx wrangler d1 execute dealflow --remote --file schema.sql      # first time only: drops and recreates tables
 npx wrangler d1 execute dealflow --remote --file migrations.sql  # upgrading a v2 database instead
+npx wrangler d1 execute dealflow --remote --file migrations-4.sql # upgrading a v3 database (agents)
 npx wrangler deploy
 npx wrangler secret put DASHBOARD_PASSWORD
 npx wrangler secret put API_TOKEN
