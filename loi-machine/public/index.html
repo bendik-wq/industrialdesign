@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The LOI Machine</title>
+<meta name="description" content="The LOI Machine: funnel, weekly tasks and congruency for the 7-figure, no-money-down LOI offer.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d1d1f'/%3E%3Ctext x='16' y='21.5' font-family='-apple-system,Helvetica,Arial' font-weight='700' font-size='13' text-anchor='middle' fill='%23fff'%3ELOI%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: Apple-style single app. Frosted top nav with tabs; each tab is a long, quiet scroll of big type and soft tiles. */
+:root {
+  --bg:#FFFFFF; --bg2:#F5F5F7; --bg3:#E8E8ED; --ink:#1D1D1F; --ink2:#6E6E73; --ink3:#86868B; --line:#D2D2D7;
+  --blue:#0071E3; --blue-ink:#0066CC; --green:#248A3D; --green-bg:#E3F5E8; --red:#D70015; --red-bg:#FDEAEA; --amber:#B25000; --amber-bg:#FFF3E0;
+  --font:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r:22px; --r-sm:14px;
+  color-scheme: light;
+}
+* { box-sizing:border-box; }
+html { background:var(--bg); scroll-behavior:smooth; overflow-x:clip; -webkit-text-size-adjust:100%; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--font); font-size:17px; line-height:1.47; letter-spacing:-.012em; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
+button, input, textarea, select { font:inherit; color:inherit; letter-spacing:inherit; }
+h1,h2,h3,h4 { margin:0; font-weight:700; text-wrap:balance; }
+p { margin:0; }
+a { color:var(--blue-ink); text-decoration:none; }
+a:hover { text-decoration:underline; }
+:focus-visible { outline:3px solid rgba(0,113,227,.45); outline-offset:2px; border-radius:8px; }
+.tnum { font-variant-numeric:tabular-nums; }
+
+/* nav */
+.nav { position:sticky; top:0; z-index:50; background:rgba(255,255,255,.78); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid rgba(0,0,0,.08); padding-top:env(safe-area-inset-top,0px); }
+.nav .in { max-width:1080px; margin:0 auto; height:52px; padding-inline:22px; display:flex; align-items:center; gap:22px; }
+.logo { font-weight:700; font-size:17px; letter-spacing:-.02em; white-space:nowrap; }
+.tabs { display:flex; gap:4px; margin-left:auto; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.tab { border:0; background:none; padding:6px 12px; border-radius:99px; font-size:13.5px; color:var(--ink2); cursor:pointer; white-space:nowrap; transition:color .2s, background .2s; }
+.tab:hover { color:var(--ink); }
+.tab.on { background:var(--ink); color:#fff; }
+.sync { font-size:12px; color:var(--ink3); white-space:nowrap; display:flex; align-items:center; gap:6px; }
+.sync i { width:7px; height:7px; border-radius:50%; background:var(--ink3); display:inline-block; }
+.sync.cloud i { background:#30D158; }
+@media (max-width:760px) { .sync span { display:none; } .logo { font-size:15px; } .nav .in { gap:12px; padding-inline:16px; } }
+
+/* page scaffolding */
+.view { display:block; }
+.view[hidden] { display:none; }
+.wrap { max-width:1080px; margin:0 auto; padding-inline:22px; }
+@media (max-width:760px) { .wrap { padding-inline:16px; } }
+.sec { padding-block:72px; }
+.sec.alt { background:var(--bg2); }
+.kicker { font-size:17px; font-weight:600; color:var(--ink2); letter-spacing:-.01em; }
+.kicker.blue { color:var(--blue); }
+.h-xl { font-size:clamp(48px,8.4vw,96px); line-height:1.02; letter-spacing:-.045em; font-weight:800; }
+.h-l { font-size:clamp(34px,5.2vw,56px); line-height:1.06; letter-spacing:-.035em; font-weight:700; }
+.h-m { font-size:clamp(26px,3.4vw,36px); line-height:1.1; letter-spacing:-.028em; font-weight:700; }
+.lead { font-size:clamp(19px,2.2vw,24px); line-height:1.36; letter-spacing:-.02em; color:var(--ink2); font-weight:500; max-width:34em; }
+.lead b { color:var(--ink); font-weight:600; }
+.muted { color:var(--ink2); }
+.small { font-size:14px; }
+.head { display:grid; gap:10px; margin-bottom:36px; max-width:760px; }
+.grad { background:linear-gradient(90deg,#1D1D1F 0%,#4B4B52 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+/* buttons */
+.btn { display:inline-flex; align-items:center; gap:6px; border:0; border-radius:99px; padding:10px 20px; font-size:15px; font-weight:500; cursor:pointer; background:var(--blue); color:#fff; transition:background .2s, transform .1s; white-space:nowrap; }
+.btn:hover { background:#0077ED; text-decoration:none; }
+.btn:active { transform:scale(.98); }
+.btn.ghost { background:transparent; color:var(--blue-ink); padding-inline:8px; }
+.btn.ghost:hover { text-decoration:underline; background:transparent; }
+.btn.light { background:var(--bg2); color:var(--ink); }
+.btn.light:hover { background:var(--bg3); }
+.btn.sm { padding:7px 14px; font-size:13.5px; }
+.btn.danger { color:var(--red); }
+.row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+
+/* hero */
+.hero { padding-block:96px 64px; text-align:center; display:grid; gap:22px; justify-items:center; }
+.hero .lead { margin-inline:auto; }
+.hero .claim { font-size:clamp(22px,3vw,32px); line-height:1.22; letter-spacing:-.028em; font-weight:600; max-width:26em; }
+.hero .claim em { font-style:normal; color:var(--blue); }
+.pill { display:inline-block; background:var(--bg2); border-radius:99px; padding:7px 14px; font-size:14px; font-weight:500; }
+.pill b { font-weight:700; }
+
+/* tiles */
+.tiles { display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
+.tile { background:var(--bg2); border-radius:var(--r); padding:28px; display:grid; gap:6px; align-content:start; min-width:0; }
+.sec.alt .tile { background:var(--bg); }
+.tile.s2 { grid-column:span 2; } .tile.s3 { grid-column:span 3; } .tile.s4 { grid-column:span 4; } .tile.s6 { grid-column:span 6; }
+.tile.dark, .sec.alt .tile.dark { background:var(--ink); color:#fff; }
+.tile.dark .muted { color:#A1A1A6; }
+.big { font-size:clamp(40px,5vw,60px); font-weight:800; letter-spacing:-.045em; line-height:1; font-variant-numeric:tabular-nums; }
+.mid { font-size:28px; font-weight:700; letter-spacing:-.03em; line-height:1.1; font-variant-numeric:tabular-nums; }
+.lbl { font-size:13px; font-weight:600; color:var(--ink2); letter-spacing:-.005em; }
+.tile.dark .lbl { color:#A1A1A6; }
+@media (max-width:860px) { .tiles { grid-template-columns:repeat(2,1fr); } .tile.s2, .tile.s3, .tile.s4, .tile.s6 { grid-column:span 2; } .tile.half { grid-column:span 1; } }
+
+/* ring */
+.ring { --p:0; --c:var(--green); width:120px; height:120px; border-radius:50%; background:conic-gradient(var(--c) calc(var(--p)*1%), var(--bg3) 0); display:grid; place-items:center; }
+.ring > div { width:100px; height:100px; border-radius:50%; background:var(--bg2); display:grid; place-items:center; font-size:38px; font-weight:800; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.sec.alt .ring > div, .tile .ring > div { background:var(--bg2); }
+.sec.alt .tile .ring > div { background:var(--bg); }
+.ring.lg { width:200px; height:200px; } .ring.lg > div { width:172px; height:172px; font-size:64px; background:var(--bg); }
+
+/* progress bar */
+.bar { height:8px; background:var(--bg3); border-radius:99px; overflow:hidden; }
+.bar > i { display:block; height:100%; background:var(--ink); border-radius:99px; transition:width .5s cubic-bezier(.2,.8,.2,1); }
+.bar.blue > i { background:var(--blue); } .bar.green > i { background:#30D158; }
+
+/* objectives list */
+.objs { display:grid; gap:2px; background:var(--line); border-radius:var(--r); overflow:hidden; }
+.obj { background:var(--bg); padding:22px 26px; display:grid; grid-template-columns:44px minmax(0,1.5fr) minmax(0,1fr) 120px; gap:18px; align-items:center; }
+.sec.alt .obj { background:var(--bg); }
+.obj .n { font-size:15px; font-weight:600; color:var(--ink3); font-variant-numeric:tabular-nums; }
+.obj h4 { font-size:19px; letter-spacing:-.022em; }
+.obj .k { font-size:19px; font-weight:700; letter-spacing:-.022em; }
+.obj .o { font-size:13px; color:var(--ink2); text-align:right; }
+@media (max-width:760px) { .obj { grid-template-columns:32px 1fr; } .obj .k, .obj .o { grid-column:2; text-align:left; } }
+
+/* math steps */
+.steps { display:grid; gap:12px; }
+.step { display:grid; grid-template-columns:minmax(0,1fr) 110px; gap:16px; align-items:center; }
+.step .fill { height:56px; border-radius:16px; background:var(--bg); display:flex; align-items:center; padding-inline:20px; font-weight:600; min-width:0; transition:width .5s cubic-bezier(.2,.8,.2,1); box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+.step .fill span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.step .fill.win { background:var(--ink); color:#fff; }
+.step .v { text-align:right; font-size:30px; font-weight:800; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.step .v small { display:block; font-size:12px; font-weight:500; color:var(--ink2); letter-spacing:0; }
+
+/* funnel builder */
+.builder { display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:28px; align-items:start; }
+@media (max-width:1000px) { .builder { grid-template-columns:1fr; } }
+.lane { display:grid; gap:12px; }
+.lane + .lane { margin-top:36px; }
+.lane-h { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.lane-h h3 { font-size:21px; letter-spacing:-.024em; }
+.chs { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
+.node { position:relative; text-align:left; width:100%; border:0; cursor:pointer; background:var(--bg2); border-radius:18px; padding:18px 20px; display:grid; gap:6px; transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
+.node:hover { transform:translateY(-2px); box-shadow:0 10px 30px -12px rgba(0,0,0,.18); }
+.node.sel { box-shadow:0 0 0 2px var(--blue), 0 12px 30px -14px rgba(0,113,227,.45); }
+.node .t { font-size:12px; font-weight:600; color:var(--ink2); text-transform:uppercase; letter-spacing:.04em; }
+.node h4 { font-size:19px; letter-spacing:-.022em; }
+.node p { font-size:14px; color:var(--ink2); line-height:1.4; }
+.node .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.chip { font-size:12px; font-weight:600; border-radius:99px; padding:3px 10px; background:var(--bg); color:var(--ink2); white-space:nowrap; }
+.chip.num { background:var(--ink); color:#fff; }
+.chip.money { background:var(--green-bg); color:var(--green); }
+.node.k-gate { background:var(--bg); box-shadow:inset 0 0 0 2px var(--ink); }
+.node.k-gate.sel { box-shadow:inset 0 0 0 2px var(--ink), 0 0 0 3px var(--blue); }
+.node.k-outcome { background:var(--ink); color:#fff; } .node.k-outcome p, .node.k-outcome .t { color:#A1A1A6; } .node.k-outcome .chip { background:#2C2C2E; color:#F5F5F7; }
+.node.k-side { background:#F3EEFC; } .node.k-nurture { background:var(--bg); box-shadow:inset 0 0 0 1px var(--line); }
+.node.off { opacity:.45; }
+.node.primary { background:linear-gradient(180deg,#EAF3FF, var(--bg2)); }
+.node .dot { position:absolute; top:16px; right:16px; width:10px; height:10px; border-radius:50%; }
+.dot.bad { background:var(--red); } .dot.warn { background:#FF9F0A; }
+.gno { font-size:12.5px; font-weight:600; color:var(--red); }
+.join { height:30px; display:flex; justify-content:center; position:relative; }
+.join::before { content:""; width:2px; background:var(--line); }
+.join span { position:absolute; left:calc(50% + 10px); top:6px; font-size:11px; font-weight:700; color:var(--ink3); letter-spacing:.04em; }
+.spinegrid { display:grid; grid-template-columns:minmax(0,1fr) 250px; gap:20px; align-items:start; }
+@media (max-width:700px) { .spinegrid { grid-template-columns:1fr; } }
+.adds { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+
+.editor { position:sticky; top:72px; background:var(--bg2); border-radius:var(--r); padding:24px; display:grid; gap:14px; max-height:calc(100vh - 92px); overflow:auto; }
+@media (max-width:1000px) { .editor { position:static; max-height:none; } }
+.editor h3 { font-size:24px; letter-spacing:-.028em; }
+.f { display:grid; gap:6px; }
+.f label { font-size:13px; font-weight:600; color:var(--ink2); }
+.f input[type=text], .f input[type=number], .f textarea, .f select { width:100%; background:var(--bg); border:1px solid transparent; border-radius:12px; padding:11px 14px; font-size:15px; transition:border-color .2s, box-shadow .2s; }
+.f input:focus, .f textarea:focus, .f select:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 4px rgba(0,113,227,.15); }
+.f textarea { min-height:84px; resize:vertical; line-height:1.4; }
+.f.chk { grid-template-columns:auto 1fr; align-items:center; gap:10px; }
+.f .hint { font-size:12.5px; color:var(--ink3); }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.alerts { display:grid; gap:8px; }
+.alert { font-size:14px; border-radius:12px; padding:10px 12px; line-height:1.35; }
+.alert.bad { background:var(--red-bg); color:#8A0010; } .alert.warn { background:var(--amber-bg); color:#7A3300; }
+.alert b { font-weight:600; }
+
+/* switch */
+.sw { appearance:none; -webkit-appearance:none; width:44px; height:26px; border-radius:99px; background:var(--bg3); position:relative; cursor:pointer; transition:background .2s; flex:none; margin:0; }
+.sw::after { content:""; position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); transition:transform .2s cubic-bezier(.2,.8,.2,1); }
+.sw:checked { background:#30D158; } .sw:checked::after { transform:translateX(18px); }
+
+/* sliders */
+.sl { display:grid; gap:8px; }
+.sl .top { display:flex; justify-content:space-between; font-size:15px; font-weight:600; }
+.sl .top b { font-variant-numeric:tabular-nums; }
+input[type=range] { width:100%; accent-color:var(--ink); }
+
+/* tasks */
+.wkhead { display:flex; flex-wrap:wrap; gap:20px; justify-content:space-between; align-items:end; }
+.areas { display:grid; gap:28px; }
+.area h3 { font-size:21px; letter-spacing:-.024em; margin-bottom:10px; display:flex; gap:10px; align-items:baseline; }
+.area h3 small { font-size:14px; font-weight:500; color:var(--ink2); }
+.tasks { background:var(--bg); border-radius:var(--r); overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
+.task { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:center; padding:16px 20px; border-top:1px solid var(--bg3); }
+.task:first-child { border-top:0; }
+.task .ck { appearance:none; -webkit-appearance:none; width:26px; height:26px; border-radius:50%; border:2px solid var(--line); cursor:pointer; display:grid; place-items:center; transition:all .2s; margin:0; flex:none; }
+.task .ck:checked { background:var(--blue); border-color:var(--blue); }
+.task .ck:checked::after { content:""; width:7px; height:12px; border:solid #fff; border-width:0 2.5px 2.5px 0; transform:rotate(45deg) translate(-1px,-1px); }
+.task .tt { font-size:16px; font-weight:500; letter-spacing:-.015em; line-height:1.35; }
+.task.done .tt { color:var(--ink3); text-decoration:line-through; text-decoration-color:var(--ink3); }
+.task .meta { font-size:12.5px; color:var(--ink2); margin-top:2px; display:flex; flex-wrap:wrap; gap:4px 10px; }
+.task .meta .carry { color:var(--amber); font-weight:600; }
+.task .meta .fix { color:var(--red); font-weight:600; }
+.task .act { display:flex; align-items:center; gap:6px; }
+.task .act input { width:64px; text-align:right; border:0; background:var(--bg2); border-radius:10px; padding:7px 9px; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
+.task .act input:focus { outline:none; box-shadow:0 0 0 3px rgba(0,113,227,.25); }
+.task .act span { font-size:14px; color:var(--ink2); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.task .x { border:0; background:none; color:var(--ink3); cursor:pointer; font-size:18px; padding:2px 6px; border-radius:8px; }
+.task .x:hover { color:var(--red); background:var(--red-bg); }
+.addtask { display:flex; gap:10px; flex-wrap:wrap; }
+.addtask input, .addtask select { background:var(--bg); border:0; box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); border-radius:12px; padding:11px 14px; font-size:15px; }
+.addtask input { flex:1; min-width:200px; }
+.hist { display:grid; gap:10px; }
+.hist details { background:var(--bg); border-radius:18px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
+.hist summary { list-style:none; cursor:pointer; padding:18px 20px; display:grid; grid-template-columns:minmax(0,1fr) repeat(3,auto); gap:18px; align-items:center; }
+.hist summary::-webkit-details-marker { display:none; }
+.hist summary b { font-size:17px; letter-spacing:-.02em; }
+.hist summary span { font-size:14px; color:var(--ink2); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.hist ul { margin:0; padding:0 20px 18px 20px; list-style:none; display:grid; gap:6px; font-size:14.5px; }
+.hist li.d { color:var(--ink3); }
+@media (max-width:640px) { .hist summary { grid-template-columns:1fr 1fr; } }
+.log { display:grid; gap:0; background:var(--bg); border-radius:18px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); max-height:420px; overflow:auto; }
+.log div { display:grid; grid-template-columns:150px minmax(0,1fr); gap:12px; padding:11px 18px; border-top:1px solid var(--bg3); font-size:14px; }
+.log div:first-child { border-top:0; }
+.log time { color:var(--ink3); font-variant-numeric:tabular-nums; }
+@media (max-width:640px) { .log div { grid-template-columns:1fr; gap:2px; } }
+
+/* congruency */
+.cg-top { display:grid; grid-template-columns:auto minmax(0,1fr); gap:44px; align-items:center; }
+@media (max-width:760px) { .cg-top { grid-template-columns:1fr; justify-items:center; text-align:center; } }
+.cats { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+.cat { background:var(--bg); border-radius:var(--r); padding:24px; display:grid; gap:14px; align-content:start; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
+.cat .ch { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+.cat h3 { font-size:21px; letter-spacing:-.024em; }
+.cat .st { font-size:14px; font-weight:600; }
+.cat .st.ok { color:var(--green); } .cat .st.bad { color:var(--red); } .cat .st.warn { color:var(--amber); }
+.chk { display:grid; grid-template-columns:22px minmax(0,1fr) auto; gap:10px; align-items:start; font-size:14.5px; line-height:1.4; }
+.chk .ic { width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; color:#fff; margin-top:1px; }
+.chk .ic.ok { background:#30D158; } .chk .ic.bad { background:var(--red); } .chk .ic.warn { background:#FF9F0A; }
+.chk small { display:block; color:var(--ink2); font-size:13px; margin-top:2px; }
+.trend { display:flex; align-items:end; gap:8px; height:120px; }
+.trend div { flex:1; max-width:48px; display:grid; gap:6px; justify-items:center; align-content:end; height:100%; }
+.trend i { width:100%; border-radius:8px 8px 4px 4px; background:var(--ink); display:block; }
+.trend span { font-size:11px; color:var(--ink2); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.principle { font-size:clamp(22px,2.6vw,28px); font-weight:600; letter-spacing:-.026em; line-height:1.25; max-width:30em; }
+
+/* playbook */
+.cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+.card { background:var(--bg2); border-radius:var(--r); padding:28px; display:grid; gap:14px; align-content:start; min-width:0; }
+.sec.alt .card { background:var(--bg); }
+.card h3 { font-size:22px; letter-spacing:-.026em; }
+.card ol, .card ul { margin:0; padding-left:20px; display:grid; gap:8px; font-size:15.5px; }
+.card li::marker { color:var(--ink3); font-weight:600; }
+.tbl { overflow-x:auto; background:var(--bg); border-radius:var(--r); box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
+.tbl table { width:100%; border-collapse:collapse; font-size:15px; }
+.tbl th, .tbl td { text-align:left; padding:14px 20px; border-top:1px solid var(--bg3); vertical-align:top; }
+.tbl tr:first-child th { border-top:0; }
+.tbl th { font-size:13px; font-weight:600; color:var(--ink2); }
+.tbl td:last-child { color:var(--ink2); white-space:nowrap; }
+.qs { display:grid; gap:10px; }
+.q { background:var(--bg); border-radius:16px; padding:16px 18px; display:grid; grid-template-columns:30px 1fr; gap:4px 12px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06); }
+.q.gate { box-shadow:inset 0 0 0 2px var(--ink); }
+.q .n { font-weight:700; color:var(--ink3); font-variant-numeric:tabular-nums; }
+.q .qt { font-weight:600; letter-spacing:-.015em; }
+.q .op { grid-column:2; display:flex; flex-wrap:wrap; gap:6px; }
+.q .op span { font-size:13px; background:var(--bg2); border-radius:99px; padding:3px 11px; }
+.q .op span.out { background:var(--red-bg); color:var(--red); }
+.q .why { grid-column:2; font-size:13.5px; color:var(--ink2); }
+
+.foot { padding-block:40px 64px; color:var(--ink3); font-size:12.5px; border-top:1px solid var(--bg3); }
+.toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,10px); background:rgba(29,29,31,.92); color:#fff; padding:10px 18px; border-radius:99px; font-size:14px; font-weight:500; opacity:0; transition:all .25s; pointer-events:none; z-index:60; backdrop-filter:blur(10px); }
+.toast.on { opacity:1; transform:translate(-50%,0); }
+.reveal { animation:rise .6s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes rise { from { opacity:.0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .reveal { animation:none; } .node, .bar > i, .step .fill { transition:none; } }
+</style>
+</head>
+<body>
+<nav class="nav"><div class="in">
+  <div class="logo">LOI Machine</div>
+  <div class="tabs" role="tablist">
+    <button class="tab" data-tab="overview" role="tab">Overview</button>
+    <button class="tab" data-tab="week" role="tab">This Week</button>
+    <button class="tab" data-tab="congruency" role="tab">Congruency</button>
+    <button class="tab" data-tab="funnel" role="tab">Funnel</button>
+    <button class="tab" data-tab="playbook" role="tab">Playbook</button>
+  </div>
+  <div class="sync" id="sync" title="Where your changes are saved"><i></i><span id="syncTxt">This device</span></div>
+</div></nav>
+
+<!-- ================= OVERVIEW ================= -->
+<main class="view" id="v-overview">
+  <section class="wrap hero reveal">
+    <div class="kicker" id="ovAudience"></div>
+    <h1 class="h-xl grad" id="ovName"></h1>
+    <p class="claim" id="ovClaim"></p>
+    <div class="row" style="justify-content:center">
+      <button class="btn" data-goto="week">Open this week</button>
+      <button class="btn light" data-goto="congruency">Check congruency</button>
+    </div>
+    <div class="row" style="justify-content:center" id="ovPills"></div>
+  </section>
+
+  <section class="sec alt">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">At a glance</div><h2 class="h-l">Built to make the number.</h2></div>
+      <div class="tiles" id="ovTiles"></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">Objectives</div><h2 class="h-l">One job per stage. One number per job.</h2><p class="lead">Pulled live from the funnel. Change a stage and this list changes with it.</p></div>
+      <div class="objs" id="ovObjs"></div>
+    </div>
+  </section>
+
+  <section class="sec alt">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">The math</div><h2 class="h-l" id="mathTitle"></h2><p class="lead">Drag the sliders. Every target in the funnel and this week’s tasks follows.</p></div>
+      <div class="tiles" style="margin-bottom:28px" id="sliders"></div>
+      <div class="steps" id="ovSteps"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= THIS WEEK ================= -->
+<main class="view" id="v-week" hidden>
+  <section class="wrap hero" style="padding-bottom:40px">
+    <div class="kicker" id="wkRange"></div>
+    <h1 class="h-xl">This week.</h1>
+    <p class="lead" style="text-align:center">Every task comes from what the funnel needs to hit the money goal. A new week starts every Monday, and unfinished tasks carry over.</p>
+  </section>
+  <section class="sec alt" style="padding-top:56px">
+    <div class="wrap">
+      <div class="tiles" id="wkTiles" style="margin-bottom:40px"></div>
+      <div class="areas" id="wkAreas"></div>
+      <div style="margin-top:28px" class="addtask">
+        <input type="text" id="newTask" placeholder="Add a task for this week" aria-label="New task">
+        <select id="newArea" aria-label="Area"></select>
+        <button class="btn" id="addTaskBtn" type="button">Add</button>
+        <button class="btn light" id="regenBtn" type="button">Refresh targets from funnel</button>
+      </div>
+    </div>
+  </section>
+  <section class="sec">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">History</div><h2 class="h-l">Every week, remembered.</h2></div>
+      <div class="hist" id="wkHist"></div>
+      <div class="head" style="margin-top:56px"><h3 class="h-m">Activity</h3><p class="muted">Who did what, and when.</p></div>
+      <div class="log" id="wkLog"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= CONGRUENCY ================= -->
+<main class="view" id="v-congruency" hidden>
+  <section class="wrap hero" style="padding-bottom:48px">
+    <div class="kicker">Congruency</div>
+    <h1 class="h-xl">Same promise.<br>Same buyer.<br>Every step.</h1>
+    <p class="lead" style="text-align:center">Every message, gate and number is checked against the offer. The first rule never bends: <b>only owners with money get a sales conversation.</b></p>
+  </section>
+  <section class="sec alt">
+    <div class="wrap">
+      <div class="cg-top" style="margin-bottom:48px">
+        <div class="ring lg" id="cgRing"><div id="cgNum">0</div></div>
+        <div style="display:grid;gap:12px">
+          <h2 class="h-l" id="cgHead"></h2>
+          <p class="lead" id="cgSub"></p>
+          <div class="row"><button class="btn" data-goto="funnel">Fix in the funnel</button></div>
+        </div>
+      </div>
+      <div class="cats" id="cgCats"></div>
+    </div>
+  </section>
+  <section class="sec">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">Trend</div><h2 class="h-m">Congruency score by week</h2></div>
+      <div class="trend" id="cgTrend"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= FUNNEL ================= -->
+<main class="view" id="v-funnel" hidden>
+  <section class="wrap hero" style="padding-bottom:40px">
+    <div class="kicker">Funnel</div>
+    <h1 class="h-xl">Edit anything.</h1>
+    <p class="lead" style="text-align:center">Click a stage to change it. Congruency, objectives and this week’s tasks update as you type.</p>
+    <div class="row" style="justify-content:center">
+      <button class="btn light sm" id="offerBtn" type="button">Edit offer</button>
+      <button class="btn light sm" id="exportBtn" type="button">Export</button>
+      <button class="btn light sm" id="importBtn" type="button">Import</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+      <button class="btn light sm danger" id="resetBtn" type="button">Reset funnel</button>
+    </div>
+  </section>
+  <section class="sec" style="padding-top:24px">
+    <div class="wrap builder">
+      <div>
+        <div class="lane">
+          <div class="lane-h"><h3>Channels</h3><span class="muted small" id="supplyTag"></span></div>
+          <div class="chs" id="fnChannels"></div>
+          <div class="adds"><button class="btn light sm" data-add="channel">+ Channel</button></div>
+        </div>
+        <div class="lane">
+          <div class="lane-h"><h3>Path to a signed LOI</h3></div>
+          <div class="spinegrid">
+            <div><div id="fnSpine"></div>
+              <div class="adds">
+                <button class="btn light sm" data-add="page">+ Page</button>
+                <button class="btn light sm" data-add="gate">+ Money gate</button>
+                <button class="btn light sm" data-add="system">+ System</button>
+                <button class="btn light sm" data-add="close">+ Sales step</button>
+              </div>
+            </div>
+            <div><div class="lbl" style="margin-bottom:10px">Off the path</div><div class="lane" id="fnSide"></div>
+              <div class="adds"><button class="btn light sm" data-add="side">+ Side engine</button></div></div>
+          </div>
+        </div>
+      </div>
+      <aside class="editor" id="editor" aria-live="polite"></aside>
+    </div>
+  </section>
+</main>
+
+<!-- ================= PLAYBOOK ================= -->
+<main class="view" id="v-playbook" hidden>
+  <section class="wrap hero" style="padding-bottom:48px">
+    <div class="kicker">Playbook</div>
+    <h1 class="h-xl">How it runs.</h1>
+    <p class="lead" style="text-align:center">Long-form YouTube is the engine. Every video is filmed so it cuts into Reels. Built on Jeremy Haynes’ call-funnel practices and Daniel Iles’ short-form principles.</p>
+    <div class="row" style="justify-content:center"><a class="btn" href="vsl-script.html">Read the VSL script</a></div>
+  </section>
+  <section class="sec alt">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">Content volume</div><h2 class="h-l">Four films. Thirty-five Reels.</h2></div>
+      <div class="tiles">
+        <div class="tile s2 dark"><div class="lbl">YouTube long-form</div><div class="big">4/wk</div><p class="muted small">The primary driver. One filming day.</p></div>
+        <div class="tile s2"><div class="lbl">Instagram Reels</div><div class="big">5/day</div><p class="muted small">35 a week, clipped from the long-form.</p></div>
+        <div class="tile s2"><div class="lbl">Clips per video</div><div class="big">~9</div><p class="muted small">So build 8–10 chapters into each video.</p></div>
+      </div>
+    </div>
+  </section>
+  <section class="sec">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">Film for the clip</div><h2 class="h-l">Every chapter is a Reel.</h2></div>
+      <div class="cols">
+        <div class="card"><h3>Rules for every video</h3><ol>
+          <li>One chapter answers one buyer question in 45–90 seconds.</li>
+          <li>Open every chapter with a hook, as if it were the first 3 seconds of a Reel.</li>
+          <li>Never say “like I said earlier.” Each chapter stands alone.</li>
+          <li>One real number or deal example per chapter.</li>
+          <li>Chapter titles on screen and in the description.</li>
+          <li>Talk strategy to owners. No beginner tips.</li>
+          <li>Topics come from real questions on calls, DMs and applications.</li>
+          <li>Every video ends the same way: watch the VSL, apply.</li></ol></div>
+        <div class="card"><div class="lbl">Example · 9 chapters = 9 Reels</div><h3>“How I’d buy a $3M business with no money down”</h3><ol>
+          <li>Banks don’t reject buyers. They reject structures.</li>
+          <li>Why the seller will finance a third of the price.</li>
+          <li>What overfinancing means, and why you walk in with $0.</li>
+          <li>The fastest way to double a $2M business is to buy another one.</li>
+          <li>Where the best businesses are, and why they’re never listed.</li>
+          <li>What a seller wants to hear on the first call.</li>
+          <li>The one number lenders look at first.</li>
+          <li>The LOI mistake that kills deals in due diligence.</li>
+          <li>What I’d buy if I owned your business.</li></ol></div>
+      </div>
+    </div>
+  </section>
+  <section class="sec alt">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">Sources</div><h2 class="h-l">What we took from the best.</h2></div>
+      <div class="tbl"><table>
+        <tr><th>Practice</th><th>What we do</th><th>From</th></tr>
+        <tr><td>Headline + VSL + application is the top call funnel</td><td>The VSL page has exactly those three parts</td><td>Haynes</td></tr>
+        <tr><td>Calendar embedded in the application</td><td>Qualified owners book on the same page</td><td>Haynes</td></tr>
+        <tr><td>Fewer application questions</td><td>7 before booking, 5 after</td><td>Haynes</td></tr>
+        <tr><td>Chapters in the VSL</td><td>On-screen chapter titles</td><td>Haynes</td></tr>
+        <tr><td>Breakout videos on the confirmation page</td><td>4–12 short answers to objections</td><td>Haynes</td></tr>
+        <tr><td>Value emails between booking and call</td><td>Up to 6 a day, call 2–3 days out</td><td>Haynes</td></tr>
+        <tr><td>“Hammer them” retargeting</td><td>15–20 content touches before the call</td><td>Haynes</td></tr>
+        <tr><td>Setter reaches out personally</td><td>SMS + selfie video within hours</td><td>Haynes</td></tr>
+        <tr><td>Consistency beats going viral</td><td>5 Reels a day, from a system</td><td>Iles</td></tr>
+        <tr><td>The first 3 seconds decide it</td><td>Every chapter opens with a hook</td><td>Iles</td></tr>
+        <tr><td>Specific stories beat opinions</td><td>Real deal numbers in every chapter</td><td>Iles</td></tr>
+      </table></div>
+    </div>
+  </section>
+  <section class="sec">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">Application</div><h2 class="h-l">Seven questions. Money first.</h2><p class="lead">Boxed questions decide who gets a call. Five more come after booking, so they don’t cost applications.</p></div>
+      <div class="cols">
+        <div class="qs" id="appBefore"></div>
+        <div class="qs" id="appAfter"></div>
+      </div>
+    </div>
+  </section>
+  <section class="sec alt">
+    <div class="wrap">
+      <div class="head"><div class="kicker blue">Pricing</div><h2 class="h-l">$20k to start. Then more.</h2></div>
+      <div class="cols">
+        <div class="card"><h3>Launch</h3><p class="muted">First 3–5 clients at $20k to earn case studies and a real LOI to show on calls.</p></div>
+        <div class="card"><h3>After proof</h3><p class="muted">$25k upfront plus a success fee at close (flat $25–50k or 1–2% of deal value).</p></div>
+        <div class="card"><h3>Guarantee</h3><p class="muted">Conditional: no signed LOI by day 90 and they did the work, we keep working at no cost. Check broker and finder rules before any fee tied to closing.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap foot">LOI Machine · Private · Sources: jeremyhaynes.com, Jeremy Haynes on X, The Hype Magazine interview with Daniel Iles.</footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ============ data ============ */
+const DEFAULT_FUNNEL = {
+  offer: { name:'The LOI Machine', claim:'A 7-figure, no-money-down LOI in 90 days, to double or triple your business.', terms:'7-figure, no-money-down, LOI, 90 days', audience:'Owners doing $1M+ a year', minRevenue:1000000, price:20000, days:90 },
+  math: { goalClients:4, bookRate:4, showRate:65, closeRate:25 },
+  nodes: [
+    { id:'yt', kind:'channel', title:'YouTube long-form', sub:'Strategy-level deal breakdowns, built in clippable chapters', volume:'4 / week', visits:480, enabled:true, primary:true, qualifies:false, message:'How owners doing $1M+ buy a 7-figure business with no-money-down LOI structures', next:'vsl', objective:'Turn viewers into VSL visitors', kpi:'480 VSL visits / mo', owner:'You', facing:true },
+    { id:'reels', kind:'channel', title:'Instagram Reels', sub:'Clipped from the long-form', volume:'5 / day', visits:80, enabled:true, primary:false, qualifies:false, message:'Clip: why the seller finances a third of a 7-figure deal', next:'yt', objective:'Send viewers to the full video', kpi:'35 Reels / week', owner:'Editor', facing:true },
+    { id:'dms', kind:'channel', title:'Instagram DMs', sub:'Setter answers every engager, asks revenue early', volume:'Daily', visits:60, enabled:true, primary:false, qualifies:true, message:'Quick one: what does your business do a year in revenue? We only work with owners doing $1M+ on no-money-down LOI deals.', next:'vsl', objective:'Qualify engagers on revenue', kpi:'100% answered in 24h', owner:'Setter', facing:true },
+    { id:'paid', kind:'channel', title:'Content ads', sub:'Retarget video viewers once organic proves the VSL', volume:'Optional', visits:0, enabled:false, primary:false, qualifies:false, message:'7-figure, no-money-down LOI in 90 days for owners doing $1M+', next:'vsl', objective:'Scale proven content', kpi:'2%+ CTR', owner:'Media buyer', facing:true },
+    { id:'vsl', kind:'page', title:'VSL page', sub:'Headline + VSL with chapters + application', message:'A 7-figure, no-money-down LOI in 90 days, to double or triple your business. For owners doing $1M+ a year.', next:'app', objective:'Turn visitors into applicants', kpi:'25–60% play rate', owner:'Funnel', facing:true, metric:'visitors' },
+    { id:'app', kind:'gate', title:'Application + calendar', sub:'7 questions. Revenue first, then readiness to invest.', threshold:1000000, readiness:true, message:'Apply if your business does $1M+ a year and you are ready to start a 90-day no-money-down LOI program.', next:'confirm', noNext:'nurture', objective:'Book only owners with money', kpi:'3–5% of visitors book', owner:'Funnel', facing:true, metric:'booked' },
+    { id:'confirm', kind:'page', title:'Confirmation page', sub:'Call 2–3 days out. Breakout videos + 5 follow-up questions.', message:'You are booked. Watch these before the call to see how a no-money-down LOI is structured.', next:'showup', objective:'Pre-sell before the call', kpi:'Breakout videos watched', owner:'Funnel', facing:true },
+    { id:'showup', kind:'system', title:'Show-up system', sub:'Value emails up to 6/day, retargeting 15–20 touches, setter SMS + selfie video', message:'', next:'call', objective:'Get booked owners to the call', kpi:'60–70% show rate', owner:'Setter', facing:false, metric:'shows' },
+    { id:'call', kind:'close', title:'Sales call', sub:'Diagnose buy box, show the LOI path', message:'Here is what a 7-figure, no-money-down LOI would look like for your business in 90 days.', next:'contract', objective:'Close qualified owners', kpi:'25% close rate', owner:'Closer', facing:true, metric:'closes' },
+    { id:'contract', kind:'close', title:'90-day contract', sub:'$20k+ upfront, conditional guarantee', message:'', next:'deliver', objective:'Collect payment, start day 1', kpi:'Paid in full', owner:'Closer', facing:false, metric:'revenue' },
+    { id:'deliver', kind:'deliver', title:'90-day delivery', sub:'Days 1–30 buy box · 31–60 owner calls · 61–90 structure + sign', days:90, message:'', next:'loi', objective:'Deliver the promise', kpi:'On schedule each phase', owner:'You', facing:false },
+    { id:'loi', kind:'outcome', title:'No-money-down LOI signed', sub:'7-figure, vendor financed + overfinanced', message:'', next:'', objective:'Signed LOI for every client', kpi:'100% of clients', owner:'You', facing:false },
+    { id:'nurture', kind:'nurture', title:'Unqualified page', sub:'YouTube playlist + email nurture. No call.', message:'Not a fit yet. These videos show how owners get to $1M+ and what to do when you get there.', next:'yt', objective:'Keep them watching until they qualify', kpi:'Re-applies at $1M+', owner:'Funnel', facing:true },
+    { id:'micro1', kind:'side', title:'micro1 referrals', sub:'Large companies only, by revenue or headcount. Up to $50k per referral.', message:'', next:'', objective:'Separate cash engine', kpi:'1 large-company intro / month', owner:'You', facing:false }
+  ]
+};
+const KIND = { channel:'Channel', page:'Page', gate:'Money gate', system:'System', close:'Sales step', deliver:'Delivery', outcome:'Outcome', nurture:'Unqualified route', side:'Side engine' };
+const SPINE = ['page','gate','system','close','deliver','outcome'];
+const SALES = ['close'];
+const AREAS = ['Congruency','Content','Traffic','Capture','Show-up','Sales','Delivery','Side engine','Review','Other'];
+const WEEKS_PER_MONTH = 4.33;
+
+let F, W, L, sel = { type:'offer' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const money = n => { n = +n || 0; if (n >= 1e6) return '$' + (+(n/1e6).toFixed(1)) + 'M'; if (n >= 1e3) return '$' + (+(n/1e3).toFixed(1)) + 'k'; return '$' + Math.round(n); };
+const byId = id => F.nodes.find(n => n.id === id);
+const terms = () => F.offer.terms.split(',').map(t => t.trim()).filter(Boolean);
+const toast = t => { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1800); };
+
+/* ============ storage: Cloudflare KV behind Access, else this device ============ */
+const store = {
+  mode:'local', who:'You',
+  async init() {
+    try {
+      const r = await fetch('api/data?key=me', { cache:'no-store', credentials:'same-origin' });
+      if (r.ok) { const d = await r.json(); this.mode = 'cloud'; this.who = d.email || 'You'; }
+    } catch (e) {}
+    $('sync').classList.toggle('cloud', this.mode === 'cloud');
+    $('syncTxt').textContent = this.mode === 'cloud' ? 'Synced · ' + this.who : 'Saved on this device';
+  },
+  async get(k) {
+    if (this.mode === 'cloud') {
+      try { const r = await fetch('api/data?key=' + k, { cache:'no-store', credentials:'same-origin' }); if (r.ok) return await r.json(); } catch (e) {}
+    }
+    try { const v = localStorage.getItem('loi:' + k); return v ? JSON.parse(v) : null; } catch (e) { return null; }
+  },
+  timers:{},
+  put(k, v) {
+    try { localStorage.setItem('loi:' + k, JSON.stringify(v)); } catch (e) {}
+    if (this.mode !== 'cloud') return;
+    clearTimeout(this.timers[k]);
+    this.timers[k] = setTimeout(() => {
+      fetch('api/data?key=' + k, { method:'PUT', credentials:'same-origin', headers:{'content-type':'application/json'}, body:JSON.stringify(v) })
+        .then(r => { if (!r.ok) toast('Couldn’t sync. Saved on this device.'); }).catch(() => toast('Offline. Saved on this device.'));
+    }, 700);
+  }
+};
+const saveF = () => store.put('funnel', F), saveW = () => store.put('weeks', W), saveL = () => store.put('log', L);
+function log(msg) { L.unshift({ t: Date.now(), who: store.who, msg }); L = L.slice(0, 400); saveL(); }
+
+/* ============ math ============ */
+function calc() {
+  const m = F.math, rate = (m.bookRate/100) * (m.showRate/100) * (m.closeRate/100);
+  const visitors = rate > 0 ? Math.ceil(m.goalClients / rate) : 0;
+  const booked = Math.round(visitors * m.bookRate / 100), shows = Math.round(booked * m.showRate / 100);
+  const supply = F.nodes.filter(n => n.kind === 'channel' && n.enabled).reduce((a, n) => a + (+n.visits || 0), 0);
+  return { visitors, booked, shows, closes: m.goalClients, revenue: m.goalClients * F.offer.price, supply };
+}
+const METRIC = { visitors: c => c.visitors + ' visitors / mo', booked: c => c.booked + ' booked / mo', shows: c => c.shows + ' shows / mo', closes: c => c.closes + ' clients / mo', revenue: c => money(c.revenue) + ' / mo' };
+
+/* ============ congruency ============ */
+function check() {
+  const items = [], o = F.offer, minRev = +o.minRevenue || 0, minTxt = money(minRev);
+  const spine = F.nodes.filter(n => SPINE.includes(n.kind));
+  const firstSale = spine.findIndex(n => SALES.includes(n.kind));
+  const gates = spine.filter(n => n.kind === 'gate');
+  const ch = F.nodes.filter(n => n.kind === 'channel' && n.enabled);
+  const hasMin = t => { t = (t || '').toLowerCase(); return t.includes(minTxt.toLowerCase()) || t.includes(String(minRev)) || t.includes(minRev.toLocaleString('en-US')); };
+  const fp = F.nodes.find(n => n.kind === 'page' && n.facing);
+  const T = terms();
+  const group = (cat, label, fails) => fails.length ? fails.forEach(f => items.push({ cat, label: f.msg, fix: f.fix, node: f.node ?? null, sev: f.sev || 'bad' })) : items.push({ cat, label, pass: true });
+
+  // Money first
+  group('Money first', 'A money gate sits before every sales step', firstSale >= 0 && !spine.slice(0, firstSale).some(n => n.kind === 'gate') ? [{ msg:'No money gate before the first sales step. Anyone could get on a call.', fix:`Add a money gate above “${spine[firstSale].title}”.`, node: spine[firstSale].id }] : []);
+  group('Money first', `Every gate demands ${minTxt}+ revenue`, gates.filter(g => (+g.threshold || 0) < minRev).map(g => ({ msg:`“${g.title}” lets in businesses under ${minTxt}.`, fix:`Set its threshold to at least ${minTxt}.`, node:g.id })));
+  group('Money first', 'Every gate asks if they’re ready to invest', gates.filter(g => !g.readiness).map(g => ({ msg:`“${g.title}” doesn’t ask if they’re ready to invest ${money(o.price)}.`, fix:'Turn on the readiness question.', node:g.id, sev:'warn' })));
+  group('Money first', 'People who fail a gate never reach a sales step', gates.filter(g => { const no = byId(g.noNext); return !no || SALES.includes(no.kind); }).map(g => ({ msg:`“${g.title}” has no safe route for people who fail it.`, fix:'Send them to the unqualified page or content.', node:g.id })));
+  group('Money first', `Owners at ${minTxt} can easily afford ${money(o.price)}`, o.price > minRev * 0.04 ? [{ msg:`${money(o.price)} is over 4% of the ${minTxt} minimum. Owners at the line may not have the money.`, fix:`Raise the minimum to ${money(o.price / 0.04)} or lower the price.` }] : []);
+  group('Money first', 'No channel skips the money gate', ch.filter(c => SALES.includes(byId(c.next)?.kind)).map(c => ({ msg:`“${c.title}” sends people straight to a sales step.`, fix:'Point it at the VSL page or the application.', node:c.id })));
+  group('Money first', 'DMs ask about revenue first', ch.filter(c => /\bdms?\b|message|chat/i.test(c.title) && !c.qualifies).map(c => ({ msg:`“${c.title}” doesn’t ask about revenue first.`, fix:'Turn on “asks revenue first”.', node:c.id, sev:'warn' })));
+
+  // Same promise
+  group('Same promise', 'The claim contains all of its key terms', T.every(t => o.claim.toLowerCase().includes(t.toLowerCase())) ? [] : [{ msg:'The offer claim is missing some of its own key terms.', fix:'Edit the claim or the key terms.' }]);
+  const miss = fp ? T.filter(t => !(fp.message || '').toLowerCase().includes(t.toLowerCase())) : [];
+  group('Same promise', `The ${fp ? fp.title : 'main page'} states the full offer`, miss.length ? [{ msg:`The ${fp.title} is missing: ${miss.join(', ')}.`, fix:'Use the exact offer wording.', node:fp.id }] : []);
+  const facing = F.nodes.filter(n => n.facing && (n.kind !== 'channel' || n.enabled) && n !== fp);
+  group('Same promise', 'Every customer-facing message echoes the offer', facing.filter(n => n.kind !== 'nurture' && (n.message || '').trim() && !T.some(t => n.message.toLowerCase().includes(t.toLowerCase()))).map(n => ({ msg:`“${n.title}” doesn’t use any of the offer’s key terms.`, fix:'Echo the offer so they know they’re in the right place.', node:n.id, sev:'warn' })));
+  group('Same promise', 'Every customer-facing stage has a message', F.nodes.filter(n => n.facing && (n.kind !== 'channel' || n.enabled) && !(n.message || '').trim()).map(n => ({ msg:`“${n.title}” is customer-facing but says nothing.`, fix:'Write what this stage says.', node:n.id, sev:'warn' })));
+
+  // Same buyer
+  group('Same buyer', `The ${fp ? fp.title : 'main page'} says ${minTxt}+ out loud`, fp && !hasMin(fp.message) ? [{ msg:`The ${fp.title} doesn’t say ${minTxt}+.`, fix:`Add “for owners doing ${minTxt}+ a year”.`, node:fp.id, sev:'warn' }] : []);
+  group('Same buyer', `Every gate states the ${minTxt}+ requirement`, gates.filter(g => !hasMin(g.message) && !hasMin(g.sub)).map(g => ({ msg:`“${g.title}” doesn’t state ${minTxt}+.`, fix:'Say it in the copy.', node:g.id, sev:'warn' })));
+  group('Same buyer', `The audience line names ${minTxt}+`, hasMin(o.audience) ? [] : [{ msg:`The audience line doesn’t mention ${minTxt}.`, fix:'Edit the offer audience.', sev:'warn' }]);
+
+  // Promise = delivery
+  group('Promise = delivery', `Delivery takes exactly ${o.days} days`, F.nodes.filter(n => n.kind === 'deliver' && +n.days !== +o.days).map(d => ({ msg:`Delivery takes ${d.days} days but the offer promises ${o.days}.`, fix:'Make them match.', node:d.id })));
+  group('Promise = delivery', 'The claim names the timeline', o.claim.includes(String(o.days)) ? [] : [{ msg:`The claim doesn’t mention ${o.days} days.`, fix:'Put the timeline in the claim.', sev:'warn' }]);
+  group('Promise = delivery', 'The path ends in the promised outcome', F.nodes.some(n => n.kind === 'outcome') ? [] : [{ msg:'The path never ends in the promised outcome.', fix:'Add an outcome step.' }]);
+
+  // Structure
+  group('Structure', 'Every link points to a real stage', F.nodes.filter(n => n.next && !byId(n.next)).map(n => ({ msg:`“${n.title}” points to a stage that no longer exists.`, fix:'Pick a new next step.', node:n.id })));
+  group('Structure', 'No dead ends', F.nodes.filter(n => !n.next && !['outcome','side'].includes(n.kind)).map(n => ({ msg:`“${n.title}” is a dead end.`, fix:'Pick a next step.', node:n.id, sev:'warn' })));
+  group('Structure', 'Every stage has an objective, target and owner', F.nodes.filter(n => !n.objective || !n.kpi || !n.owner).map(n => ({ msg:`“${n.title}” is missing an objective, target or owner.`, fix:'Fill in all three.', node:n.id, sev:'warn' })));
+
+  // Math
+  const c = calc();
+  group('The math', 'Channels send enough visitors for the goal', c.supply < c.visitors ? [{ msg:`Channels send ${c.supply} visitors a month; the goal needs ${c.visitors}.`, fix:'Raise channel output, improve rates, or lower the goal.' }] : []);
+
+  const fails = items.filter(i => !i.pass), bad = fails.filter(i => i.sev === 'bad').length, warn = fails.length - bad;
+  return { items, fails, bad, warn, score: Math.max(0, 100 - bad * 12 - warn * 4) };
+}
+const scoreColor = s => s >= 85 ? '#30D158' : s >= 60 ? '#FF9F0A' : '#FF3B30';
+
+/* ============ weeks ============ */
+function weekStart(d = new Date()) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x; }
+function weekId(d = new Date()) { const s = weekStart(d); return s.getFullYear() + '-' + String(s.getMonth() + 1).padStart(2, '0') + '-' + String(s.getDate()).padStart(2, '0'); }
+const fmtD = d => d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+function weekLabel(id) { const [y, m, d] = id.split('-').map(Number); const s = new Date(y, m - 1, d), e = new Date(y, m - 1, d + 6); return `${fmtD(s)} – ${fmtD(e)}, ${e.getFullYear()}`; }
+const perWeek = x => Math.max(1, Math.ceil(x / WEEKS_PER_MONTH));
+function weekly(vol) { const m = String(vol || '').match(/(\d+(?:\.\d+)?)\s*\/\s*(day|week|wk|month|mo)/i); if (!m) return null; const n = +m[1], u = m[2].toLowerCase(); return u === 'day' ? n * 7 : u.startsWith('w') ? n : Math.ceil(n / WEEKS_PER_MONTH); }
+const hash = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return (h >>> 0).toString(36); };
+
+function template() {
+  const c = calc(), R = check(), o = F.offer, t = [];
+  const own = id => byId(id)?.owner || 'You';
+  R.fails.forEach(f => t.push({ key:'cg:' + hash(f.label), title:'Fix: ' + f.label, area:'Congruency', owner:'You', target:null, sev:f.sev, node:f.node }));
+  const prim = F.nodes.find(n => n.kind === 'channel' && n.enabled && n.primary);
+  if (prim) { const n = weekly(prim.volume); t.push({ key:'film', title:`Filming day: record ${n || ''} ${prim.title} videos, 8–10 clippable chapters each`.replace('  ', ' '), area:'Content', owner:prim.owner || 'You', target:null }); }
+  F.nodes.filter(n => n.kind === 'channel' && n.enabled).forEach(n => {
+    const w = weekly(n.volume);
+    if (w) t.push({ key:'ch:' + n.id, title:`Publish ${w} × ${n.title}`, area:'Content', owner:n.owner || 'You', target:w, unit:'posted' });
+    else t.push({ key:'ch:' + n.id, title:`${n.title}: ${n.objective || 'run daily'}${n.qualifies ? ', ask revenue first' : ''}`, area:'Capture', owner:n.owner || 'You', target:null });
+  });
+  t.push({ key:'visitors', title:'Drive visitors to the VSL page', area:'Traffic', owner:'You', target:perWeek(c.visitors), unit:'visitors' });
+  t.push({ key:'booked', title:`Book qualified calls (${money(o.minRevenue)}+ only)`, area:'Capture', owner:own('app'), target:perWeek(c.booked), unit:'booked' });
+  t.push({ key:'showup', title:'Text + selfie video to every booked owner within hours', area:'Show-up', owner:own('showup'), target:null });
+  t.push({ key:'shows', title:'Calls that showed up', area:'Show-up', owner:own('showup'), target:perWeek(c.shows), unit:'shows' });
+  t.push({ key:'closes', title:`Close clients at ${money(o.price)}`, area:'Sales', owner:own('call'), target:perWeek(c.closes), unit:'clients' });
+  if (F.nodes.some(n => n.kind === 'deliver')) t.push({ key:'deliver', title:`Move every active client to their next ${o.days}-day milestone`, area:'Delivery', owner:own('deliver'), target:null });
+  F.nodes.filter(n => n.kind === 'side').forEach(n => t.push({ key:'side:' + n.id, title:`${n.title}: ${n.kpi || n.objective}`, area:'Side engine', owner:n.owner || 'You', target:null }));
+  t.push({ key:'review', title:'Friday review: enter actual numbers and get congruency to 100', area:'Review', owner:'You', target:null });
+  return t;
+}
+function syncWeek(wk) {
+  const tpl = template(), keys = new Set(tpl.map(x => x.key));
+  tpl.forEach(x => {
+    const ex = wk.tasks.find(t => t.key === x.key);
+    if (ex) { Object.assign(ex, { title:x.title, area:x.area, owner:x.owner, target:x.target, unit:x.unit, sev:x.sev, node:x.node }); if (ex.key.startsWith('cg:') && ex.done && ex.resolved) { ex.done = false; ex.resolved = false; } }
+    else wk.tasks.push({ id:'t' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), auto:true, done:false, actual:null, ...x });
+  });
+  wk.tasks.forEach(t => { if (t.auto && t.key.startsWith('cg:') && !keys.has(t.key) && !t.done) { t.done = true; t.resolved = true; t.doneAt = Date.now(); t.doneBy = 'Funnel fix'; } });
+  wk.tasks = wk.tasks.filter(t => !t.auto || keys.has(t.key) || t.done);
+  const R = check(); wk.score = R.score; if (wk.scoreStart == null) wk.scoreStart = R.score;
+}
+function ensureWeek() {
+  const id = weekId();
+  if (!W[id]) {
+    const prev = Object.keys(W).sort().reverse().find(k => k < id);
+    W[id] = { id, created: Date.now(), tasks: [] };
+    if (prev) W[prev].tasks.filter(t => !t.done && !t.auto).forEach(t => W[id].tasks.push({ ...t, id:'t' + Math.random().toString(36).slice(2, 9), carried:true, actual:null }));
+    syncWeek(W[id]);
+    log(prev ? `Started the week of ${weekLabel(id)}. Carried over unfinished tasks.` : `Started the first week: ${weekLabel(id)}.`);
+  } else syncWeek(W[id]);
+  return W[id];
+}
+
+/* ============ render: overview ============ */
+function renderOverview(R, c) {
+  const o = F.offer, wk = W[weekId()];
+  $('ovAudience').textContent = o.audience;
+  $('ovName').textContent = o.name;
+  let cl = esc(o.claim); terms().forEach(t => { const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i'); cl = cl.replace(re, '<em>$1</em>'); });
+  $('ovClaim').innerHTML = cl;
+  $('ovPills').innerHTML = `<span class="pill">Only <b>${money(o.minRevenue)}+</b> owners get a call</span><span class="pill"><b>${o.days}</b>-day contract</span><span class="pill"><b>${money(o.price)}</b>+</span>`;
+  const done = wk ? wk.tasks.filter(t => t.done).length : 0, tot = wk ? wk.tasks.length : 0, pct = tot ? Math.round(done / tot * 100) : 0;
+  const yt = F.nodes.find(n => n.kind === 'channel' && n.primary), reels = F.nodes.find(n => n.id === 'reels');
+  $('ovTiles').innerHTML = `
+    <div class="tile s3 dark"><div class="lbl">Monthly goal</div><div class="big">${money(c.revenue)}</div><p class="muted">${c.closes} clients × ${money(o.price)}</p></div>
+    <div class="tile s3" style="grid-template-columns:auto 1fr;align-items:center;gap:22px"><div class="ring" style="--p:${R.score};--c:${scoreColor(R.score)}"><div>${R.score}</div></div><div style="display:grid;gap:6px"><div class="lbl">Congruency</div><div class="mid">${R.fails.length ? R.fails.length + ' to fix' : 'Fully congruent'}</div><button class="btn ghost" data-goto="congruency" style="justify-self:start;padding:0">See checks ›</button></div></div>
+    <div class="tile s2"><div class="lbl">This week</div><div class="big">${pct}%</div><div class="bar blue"><i style="width:${pct}%"></i></div><p class="muted small">${done} of ${tot} tasks done</p></div>
+    <div class="tile s2 half"><div class="lbl">VSL visitors needed</div><div class="big">${c.visitors}</div><p class="muted small">a month · ${c.supply} coming in</p></div>
+    <div class="tile s2 half"><div class="lbl">Content</div><div class="big">${esc(yt ? yt.volume : '—')}</div><p class="muted small">long-form · ${esc(reels ? reels.volume : '')} Reels</p></div>`;
+  const stages = F.nodes.filter(n => n.kind === 'channel' ? n.enabled : n.kind !== 'side');
+  $('ovObjs').innerHTML = stages.map((n, i) => `<div class="obj"><div class="n">${String(i + 1).padStart(2, '0')}</div><div><h4>${esc(n.title)}</h4><p class="muted small">${esc(n.objective)}</p></div><div class="k">${esc(n.kpi)}</div><div class="o">${esc(n.owner)}</div></div>`).join('');
+  $('mathTitle').textContent = `What it takes to sign ${c.closes} clients a month.`;
+  const max = Math.max(c.visitors, 1), w = v => Math.max(18, Math.sqrt(v / max) * 100);
+  $('ovSteps').innerHTML = [['VSL page visitors', c.visitors, 'a month'], ['Booked qualified calls', c.booked, F.math.bookRate + '% book'], ['Shows', c.shows, F.math.showRate + '% show'], ['Clients', c.closes, F.math.closeRate + '% close']]
+    .map(([l, v, s]) => `<div class="step"><div class="fill" style="width:${w(v)}%"><span>${l}</span></div><div class="v">${v}<small>${s}</small></div></div>`).join('')
+    + `<div class="step"><div class="fill win" style="width:34%"><span>New revenue</span></div><div class="v">${money(c.revenue)}<small>a month</small></div></div>`;
+}
+const SL = [['goalClients','Clients a month',1,30,1,''],['bookRate','Visitors who book',0.5,15,0.5,'%'],['showRate','Show rate',20,100,1,'%'],['closeRate','Close rate',5,80,1,'%']];
+function renderSliders() {
+  $('sliders').innerHTML = SL.map(([k, l, mn, mx, st, u]) => `<div class="tile s3 sl"><div class="top"><label for="s_${k}">${l}</label><b id="v_${k}">${F.math[k]}${u}</b></div><input type="range" id="s_${k}" data-m="${k}" min="${mn}" max="${mx}" step="${st}" value="${F.math[k]}"></div>`).join('');
+}
+
+/* ============ render: week ============ */
+function renderWeek() {
+  const id = weekId(), wk = W[id]; if (!wk) return;
+  $('wkRange').textContent = 'Week of ' + weekLabel(id);
+  const done = wk.tasks.filter(t => t.done).length, tot = wk.tasks.length, pct = tot ? Math.round(done / tot * 100) : 0;
+  const closes = wk.tasks.find(t => t.key === 'closes'), revT = (closes?.target || 0) * F.offer.price, revA = (+closes?.actual || 0) * F.offer.price;
+  const rp = revT ? Math.min(100, Math.round(revA / revT * 100)) : 0;
+  $('wkTiles').innerHTML = `
+    <div class="tile s3 dark"><div class="lbl">Revenue this week</div><div class="big">${money(revA)}</div><div class="bar green" style="background:#3A3A3C"><i style="width:${rp}%"></i></div><p class="muted small">Target ${money(revT)} · enter closes below</p></div>
+    <div class="tile s3"><div class="lbl">Tasks</div><div class="big">${done}<span style="color:var(--ink3)">/${tot}</span></div><div class="bar blue"><i style="width:${pct}%"></i></div><p class="muted small">${pct}% done · congruency ${wk.score ?? '—'}</p></div>`;
+  const order = AREAS.filter(a => wk.tasks.some(t => t.area === a));
+  $('wkAreas').innerHTML = order.map(a => {
+    const ts = wk.tasks.filter(t => t.area === a), d = ts.filter(t => t.done).length;
+    return `<div class="area"><h3>${a}<small>${d} of ${ts.length}</small></h3><div class="tasks">${ts.map(taskHTML).join('')}</div></div>`;
+  }).join('');
+  $('newArea').innerHTML = AREAS.map(a => `<option ${a === 'Other' ? 'selected' : ''}>${a}</option>`).join('');
+  // history
+  const past = Object.keys(W).filter(k => k < id).sort().reverse();
+  $('wkHist').innerHTML = past.length ? past.map(k => {
+    const w = W[k], d = w.tasks.filter(t => t.done).length, cl = w.tasks.find(t => t.key === 'closes');
+    return `<details><summary><b>${weekLabel(k)}</b><span>${d}/${w.tasks.length} done</span><span>${money((+cl?.actual || 0) * F.offer.price)} closed</span><span>Congruency ${w.score ?? '—'}</span></summary><ul>${w.tasks.map(t => `<li class="${t.done ? 'd' : ''}">${t.done ? '✓' : '○'} ${esc(t.title)}${t.target ? ` — ${t.actual ?? 0}/${t.target}` : ''}</li>`).join('')}</ul></details>`;
+  }).join('') : '<p class="muted">Past weeks show up here once a new week starts on Monday.</p>';
+  $('wkLog').innerHTML = L.length ? L.slice(0, 120).map(e => `<div><time>${new Date(e.t).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}</time><span><b>${esc(e.who)}</b> · ${esc(e.msg)}</span></div>`).join('') : '<div><span class="muted">Nothing yet.</span></div>';
+}
+function taskHTML(t) {
+  const meta = [`<span>${esc(t.owner)}</span>`];
+  if (t.carried) meta.push('<span class="carry">Carried over</span>');
+  if (t.area === 'Congruency') meta.push(`<span class="fix">${t.sev === 'warn' ? 'Tighten' : 'Critical'}</span>`);
+  if (t.done && t.doneAt) meta.push(`<span>Done ${new Date(t.doneAt).toLocaleDateString('en-US', { weekday:'short' })}${t.doneBy ? ' · ' + esc(t.doneBy) : ''}</span>`);
+  const act = t.target ? `<div class="act"><input type="number" inputmode="numeric" min="0" data-actual="${t.id}" value="${t.actual ?? ''}" placeholder="0" aria-label="Actual for ${esc(t.title)}"><span>/ ${t.target} ${esc(t.unit || '')}</span></div>` : (t.auto ? '<span></span>' : `<button class="x" data-del-task="${t.id}" aria-label="Delete task">×</button>`);
+  return `<div class="task ${t.done ? 'done' : ''}"><input class="ck" type="checkbox" data-task="${t.id}" ${t.done ? 'checked' : ''} aria-label="Done: ${esc(t.title)}"><div><div class="tt">${esc(t.title)}</div><div class="meta">${meta.join('')}</div></div>${act}</div>`;
+}
+
+/* ============ render: congruency ============ */
+function renderCongruency(R) {
+  $('cgRing').style.setProperty('--p', R.score); $('cgRing').style.setProperty('--c', scoreColor(R.score));
+  $('cgNum').textContent = R.score;
+  $('cgHead').textContent = !R.fails.length ? 'Fully congruent.' : R.bad ? `${R.bad} critical. ${R.warn} to tighten.` : `${R.warn} to tighten.`;
+  $('cgSub').textContent = !R.fails.length ? 'Same promise, same buyer, money gate before every sales step. Every fail also becomes a task this week.' : 'Every fail below is also a task in This Week. Fix it in the funnel and the task closes itself.';
+  const cats = [...new Set(R.items.map(i => i.cat))];
+  $('cgCats').innerHTML = cats.map(c => {
+    const its = R.items.filter(i => i.cat === c), b = its.filter(i => !i.pass && i.sev === 'bad').length, w = its.filter(i => !i.pass && i.sev === 'warn').length;
+    const st = b ? `<span class="st bad">${b} critical</span>` : w ? `<span class="st warn">${w} to tighten</span>` : '<span class="st ok">All clear</span>';
+    return `<div class="cat"><div class="ch"><h3>${c}</h3>${st}</div>${its.map(i => `<div class="chk"><span class="ic ${i.pass ? 'ok' : i.sev}">${i.pass ? '✓' : '!'}</span><div>${esc(i.label)}${i.pass ? '' : `<small>${esc(i.fix)}</small>`}</div>${!i.pass ? `<button class="btn ghost sm" data-open="${i.node || '__offer'}">Fix</button>` : '<span></span>'}</div>`).join('')}</div>`;
+  }).join('');
+  const ks = Object.keys(W).sort().slice(-12);
+  $('cgTrend').innerHTML = ks.map(k => { const s = W[k].score ?? 0; return `<div><span>${s}</span><i style="height:${Math.max(4, s)}%;background:${scoreColor(s)}"></i><span>${k.slice(5).replace('-', '/')}</span></div>`; }).join('');
+}
+
+/* ============ render: funnel ============ */
+function nodeHTML(n, R, c) {
+  const iss = R.fails.filter(i => i.node === n.id), sev = iss.some(i => i.sev === 'bad') ? 'bad' : iss.length ? 'warn' : '';
+  const chips = [];
+  if (n.kind === 'gate') chips.push(`<span class="chip money">${money(n.threshold)}+ only</span>`);
+  if (n.kind === 'channel' && n.qualifies) chips.push('<span class="chip money">Asks revenue</span>');
+  if (n.kind === 'channel') chips.push(`<span class="chip">${esc(n.volume)}</span>`, `<span class="chip num">${+n.visits || 0}/mo</span>`);
+  if (n.metric && METRIC[n.metric]) chips.push(`<span class="chip num">${METRIC[n.metric](c)}</span>`);
+  if (n.kpi) chips.push(`<span class="chip">${esc(n.kpi)}</span>`);
+  const cls = ['node', 'k-' + n.kind, n.primary ? 'primary' : '', n.kind === 'channel' && !n.enabled ? 'off' : '', sel.type === 'node' && sel.id === n.id ? 'sel' : ''].join(' ');
+  return `<button type="button" class="${cls}" data-node="${n.id}">${sev ? `<span class="dot ${sev}"></span>` : ''}<span class="t">${n.primary ? 'Primary driver' : KIND[n.kind]}${n.owner ? ' · ' + esc(n.owner) : ''}</span><h4>${esc(n.title)}</h4>${n.sub ? `<p>${esc(n.sub)}</p>` : ''}${n.kind === 'gate' ? `<span class="gno">No → ${esc(byId(n.noNext)?.title || 'nowhere')}</span>` : ''}<span class="chips">${chips.join('')}</span></button>`;
+}
+function renderFunnel(R, c) {
+  $('fnChannels').innerHTML = F.nodes.filter(n => n.kind === 'channel').map(n => nodeHTML(n, R, c)).join('');
+  $('supplyTag').textContent = `${c.supply} visitors / mo in · goal needs ${c.visitors}`;
+  const sp = F.nodes.filter(n => SPINE.includes(n.kind));
+  $('fnSpine').innerHTML = sp.map((n, i) => nodeHTML(n, R, c) + (sp[i + 1] ? `<div class="join">${n.kind === 'gate' ? '<span>YES</span>' : ''}</div>` : '')).join('');
+  $('fnSide').innerHTML = F.nodes.filter(n => ['nurture','side'].includes(n.kind)).map(n => nodeHTML(n, R, c)).join('');
+}
+const NODE_FIELDS = [
+  ['title','Name','text'], ['sub','Detail','text'],
+  ['volume','Volume (e.g. 4 / week, 5 / day)','text',['channel']], ['visits','VSL visits sent per month','number',['channel']],
+  ['enabled','Channel is on','check',['channel']], ['primary','Primary driver','check',['channel']], ['qualifies','Asks revenue first','check',['channel']],
+  ['threshold','Revenue threshold ($/yr)','number',['gate']], ['readiness','Asks if they’re ready to invest','check',['gate']],
+  ['days','Length in days','number',['deliver']], ['facing','Customer sees this','check'],
+  ['message','What it says to the prospect','textarea'],
+  ['next','Next step','select'], ['noNext','If they fail, they go to','select',['gate']],
+  ['objective','Objective','text'], ['kpi','Target','text'], ['owner','Owner','text'],
+  ['metric','Show live number','metric', SPINE]
+];
+function field(f, v, key) {
+  const [k, label, type] = f, id = 'f_' + key + '_' + k;
+  if (type === 'check') return `<div class="f chk"><input class="sw" type="checkbox" id="${id}" data-k="${k}" ${v ? 'checked' : ''}><label for="${id}" style="color:var(--ink);font-size:15px;font-weight:500">${label}</label></div>`;
+  if (type === 'textarea') return `<div class="f"><label for="${id}">${label}</label><textarea id="${id}" data-k="${k}">${esc(v)}</textarea></div>`;
+  if (type === 'select') return `<div class="f"><label for="${id}">${label}</label><select id="${id}" data-k="${k}"><option value="">None</option>${F.nodes.filter(n => n.id !== key).map(n => `<option value="${n.id}" ${v === n.id ? 'selected' : ''}>${esc(n.title)}</option>`).join('')}</select></div>`;
+  if (type === 'metric') return `<div class="f"><label for="${id}">${label}</label><select id="${id}" data-k="${k}"><option value="">None</option>${Object.keys(METRIC).map(m => `<option value="${m}" ${v === m ? 'selected' : ''}>${m}</option>`).join('')}</select></div>`;
+  return `<div class="f"><label for="${id}">${label}</label><input type="${type}" id="${id}" data-k="${k}" value="${esc(v)}"></div>`;
+}
+function alertsFor(R) {
+  const list = sel.type === 'offer' ? R.fails.filter(i => !i.node) : R.fails.filter(i => i.node === sel.id);
+  return list.map(i => `<div class="alert ${i.sev}">${esc(i.label)} <b>${esc(i.fix)}</b></div>`).join('');
+}
+function renderEditor(R) {
+  const ed = $('editor');
+  if (sel.type === 'offer') {
+    const o = F.offer;
+    ed.innerHTML = `<div class="lbl">The offer · everything is checked against this</div><h3>Offer</h3><div class="alerts">${alertsFor(R)}</div>
+      ${field(['name','Name','text'], o.name, 'offer')}${field(['claim','Claim','textarea'], o.claim, 'offer')}
+      <div class="f"><label for="f_offer_terms">Key terms</label><input type="text" id="f_offer_terms" data-k="terms" value="${esc(o.terms)}"><span class="hint">Comma separated. Every customer-facing message should echo these.</span></div>
+      ${field(['audience','Audience line','text'], o.audience, 'offer')}
+      <div class="two">${field(['minRevenue','Revenue minimum ($/yr)','number'], o.minRevenue, 'offer')}${field(['price','Price ($)','number'], o.price, 'offer')}</div>
+      ${field(['days','Contract days','number'], o.days, 'offer')}`;
+    return;
+  }
+  const n = byId(sel.id); if (!n) { sel = { type:'offer' }; return renderEditor(R); }
+  const fs = NODE_FIELDS.filter(f => !f[3] || f[3].includes(n.kind));
+  ed.innerHTML = `<div class="lbl">${KIND[n.kind]}</div><h3>${esc(n.title)}</h3><div class="alerts">${alertsFor(R)}</div>${fs.map(f => field(f, n[f[0]], n.id)).join('')}
+    <div class="row" style="gap:8px">${SPINE.includes(n.kind) || n.kind === 'channel' ? '<button class="btn light sm" data-move="-1">Move up</button><button class="btn light sm" data-move="1">Move down</button>' : ''}<button class="btn light sm danger" data-delnode>Delete</button><button class="btn ghost sm" data-seloffer>Offer</button></div>`;
+}
+
+/* ============ app ============ */
+function refresh(opts = {}) {
+  const R = check(), c = calc();
+  const wk = W[weekId()]; if (wk) syncWeek(wk);
+  renderOverview(R, c); renderCongruency(R); renderFunnel(R, c);
+  if (!opts.keepWeek) renderWeek();
+  const a = $('editor').querySelector('.alerts'); if (a) a.innerHTML = alertsFor(R);
+  return R;
+}
+let funnelLogT;
+function funnelChanged(what) { saveF(); saveW(); clearTimeout(funnelLogT); funnelLogT = setTimeout(() => log('Edited the funnel: ' + what), 1500); }
+
+function showTab(t) {
+  if (!document.getElementById('v-' + t)) t = 'overview';
+  document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'v-' + t);
+  document.querySelectorAll('.tab').forEach(b => { b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', b.dataset.tab === t); });
+  if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
+  window.scrollTo(0, 0);
+}
+
+document.addEventListener('click', e => {
+  const tab = e.target.closest('[data-tab]'); if (tab) { showTab(tab.dataset.tab); return; }
+  const go = e.target.closest('[data-goto]'); if (go) { showTab(go.dataset.goto); return; }
+  const op = e.target.closest('[data-open]');
+  if (op) { sel = op.dataset.open === '__offer' ? { type:'offer' } : { type:'node', id: op.dataset.open }; showTab('funnel'); renderEditor(refresh()); return; }
+  const nd = e.target.closest('[data-node]');
+  if (nd) { sel = { type:'node', id: nd.dataset.node }; renderEditor(refresh({ keepWeek:true })); if (innerWidth <= 1000) $('editor').scrollIntoView({ behavior:'smooth' }); return; }
+  const add = e.target.closest('[data-add]');
+  if (add) {
+    const kind = add.dataset.add, id = kind + '_' + Date.now().toString(36);
+    const n = { id, kind, title:'New ' + KIND[kind].toLowerCase(), sub:'', message:'', next:'', objective:'', kpi:'', owner:'', facing:['channel','page','gate','close'].includes(kind) };
+    if (kind === 'channel') Object.assign(n, { volume:'', visits:0, enabled:true, qualifies:false, next:'vsl' });
+    if (kind === 'gate') Object.assign(n, { threshold:F.offer.minRevenue, readiness:true, noNext:'nurture' });
+    if (kind === 'channel') { const last = F.nodes.map(x => x.kind).lastIndexOf('channel'); F.nodes.splice(last + 1, 0, n); }
+    else if (SPINE.includes(kind)) { const fs = F.nodes.findIndex(x => SALES.includes(x.kind)); const at = kind === 'gate' && fs >= 0 ? fs : F.nodes.findIndex(x => x.kind === 'deliver'); F.nodes.splice(at < 0 ? F.nodes.length : at, 0, n); }
+    else F.nodes.push(n);
+    sel = { type:'node', id }; renderEditor(refresh()); funnelChanged('added ' + KIND[kind].toLowerCase()); toast('Added');
+    return;
+  }
+  if (e.target.closest('[data-seloffer]')) { sel = { type:'offer' }; renderEditor(refresh({ keepWeek:true })); return; }
+  if (e.target.closest('[data-delnode]')) { const n = byId(sel.id); F.nodes = F.nodes.filter(x => x !== n); sel = { type:'offer' }; renderEditor(refresh()); funnelChanged('deleted ' + n.title); toast('Deleted'); return; }
+  const mv = e.target.closest('[data-move]');
+  if (mv) {
+    const n = byId(sel.id), group = n.kind === 'channel' ? ['channel'] : SPINE;
+    const idx = F.nodes.map((x, i) => group.includes(x.kind) ? i : -1).filter(i => i >= 0);
+    const a = F.nodes.indexOf(n), b = idx[idx.indexOf(a) + +mv.dataset.move];
+    if (b === undefined) return;
+    [F.nodes[a], F.nodes[b]] = [F.nodes[b], F.nodes[a]]; renderEditor(refresh()); funnelChanged('reordered ' + n.title); return;
+  }
+  const del = e.target.closest('[data-del-task]');
+  if (del) { const wk = W[weekId()], t = wk.tasks.find(x => x.id === del.dataset.delTask); wk.tasks = wk.tasks.filter(x => x !== t); saveW(); log('Deleted task: ' + t.title); renderWeek(); refresh({ keepWeek:true }); }
+});
+
+$('editor').addEventListener('input', e => {
+  const k = e.target.dataset.k; if (!k) return;
+  const tgt = sel.type === 'offer' ? F.offer : byId(sel.id);
+  tgt[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'number' ? (e.target.value === '' ? 0 : +e.target.value) : e.target.value;
+  if (k === 'title') $('editor').querySelector('h3').textContent = tgt[k];
+  refresh(); funnelChanged(sel.type === 'offer' ? 'offer' : tgt.title);
+});
+$('sliders').addEventListener('input', e => {
+  const k = e.target.dataset.m; if (!k) return;
+  F.math[k] = +e.target.value; $('v_' + k).textContent = F.math[k] + SL.find(s => s[0] === k)[5];
+  refresh(); funnelChanged('targets');
+});
+$('wkAreas').addEventListener('change', e => {
+  const wk = W[weekId()];
+  if (e.target.dataset.task) {
+    const t = wk.tasks.find(x => x.id === e.target.dataset.task);
+    t.done = e.target.checked; t.doneAt = t.done ? Date.now() : null; t.doneBy = t.done ? store.who : null; t.resolved = false;
+    log((t.done ? 'Checked off: ' : 'Reopened: ') + t.title);
+  }
+  if (e.target.dataset.actual) {
+    const t = wk.tasks.find(x => x.id === e.target.dataset.actual);
+    t.actual = e.target.value === '' ? null : +e.target.value;
+    if (t.target && t.actual >= t.target && !t.done) { t.done = true; t.doneAt = Date.now(); t.doneBy = store.who; }
+    log(`${t.title}: ${t.actual ?? 0} of ${t.target}`);
+  }
+  saveW(); renderWeek(); refresh({ keepWeek:true });
+});
+function addTask() {
+  const v = $('newTask').value.trim(); if (!v) return;
+  W[weekId()].tasks.push({ id:'t' + Date.now().toString(36), key:'m:' + Date.now(), auto:false, title:v, area:$('newArea').value, owner:store.who === 'You' ? 'You' : store.who.split('@')[0], target:null, done:false });
+  $('newTask').value = ''; saveW(); log('Added task: ' + v); renderWeek(); refresh({ keepWeek:true });
+}
+$('addTaskBtn').onclick = addTask;
+$('newTask').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+$('regenBtn').onclick = () => { syncWeek(W[weekId()]); saveW(); renderWeek(); toast('Targets refreshed from the funnel'); };
+$('offerBtn').onclick = () => { sel = { type:'offer' }; renderEditor(refresh({ keepWeek:true })); };
+$('resetBtn').onclick = () => {
+  const b = $('resetBtn');
+  if (b.dataset.armed) { F = clone(DEFAULT_FUNNEL); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); funnelChanged('reset to default'); toast('Funnel reset'); delete b.dataset.armed; b.textContent = 'Reset funnel'; return; }
+  b.dataset.armed = 1; b.textContent = 'Tap again to reset'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Reset funnel'; }, 3000);
+};
+$('exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ funnel:F, weeks:W, log:L }, null, 2)], { type:'application/json' })); a.download = 'loi-machine.json'; a.click(); URL.revokeObjectURL(a.href); };
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = async e => {
+  try { const d = JSON.parse(await e.target.files[0].text()); const f = d.funnel || d; if (!f.nodes || !f.offer) throw 0; F = f; if (d.weeks) W = d.weeks; if (d.log) L = d.log; saveF(); saveW(); saveL(); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); toast('Imported'); }
+  catch (err) { toast('That file isn’t an LOI Machine export'); }
+  e.target.value = '';
+};
+window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
+window.addEventListener('focus', async () => {
+  if (store.mode !== 'cloud' || document.activeElement?.matches('input,textarea,select')) return;
+  const [w, l] = await Promise.all([store.get('weeks'), store.get('log')]);
+  if (w) W = w; if (l) L = l; renderWeek(); refresh({ keepWeek:true });
+});
+
+/* application questions (static, for the playbook) */
+function q(n, t, o, why, gate, out = []) { return `<div class="q ${gate ? 'gate' : ''}"><div class="n">${String(n).padStart(2, '0')}</div><div class="qt">${t}</div>${o ? `<div class="op">${o.map(x => `<span class="${out.includes(x) ? 'out' : ''}">${x}</span>`).join('')}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}</div>`; }
+function renderApp() {
+  const m = money(F.offer.minRevenue), p = money(F.offer.price);
+  $('appBefore').innerHTML = '<div class="lbl">Before booking</div>' + [
+    q(1, 'What is your business’s annual revenue?', ['Under ' + m, m + '–$3M', '$3M–$10M', '$10M+'], `Hard gate. Under ${m} goes to the unqualified page.`, true, ['Under ' + m]),
+    q(2, 'What is your annual profit (EBITDA or owner earnings)?', ['Under $250k', '$250k–$1M', '$1M+']),
+    q(3, 'How many employees do you have?', ['1–10', '11–50', '51–200', '200+'], 'Also flags large companies for micro1.'),
+    q(4, 'What do you want to buy?', ['A competitor', 'A supplier or customer', 'An adjacent business', 'Not sure yet']),
+    q(5, `The ${F.offer.days}-day program starts at ${p}. If it’s a fit, are you ready to start within 30 days?`, ['Yes', 'Need to see the plan first', 'No'], '“No” goes to the unqualified page.', true, ['No']),
+    q(6, 'Name, email, phone, Instagram handle'),
+    q(7, 'Where did you find us?', ['YouTube (which video?)', 'Instagram', 'Referral', 'Other'], 'Shows which videos produce buyers.')].join('');
+  $('appAfter').innerHTML = '<div class="lbl">After booking</div>' + [
+    q(8, 'What does your business do, and what is your website?'), q(9, 'What size of deal are you looking at?', ['$1M–$3M', '$3M–$10M', '$10M+', 'Not sure']),
+    q(10, 'What is the main goal of the acquisition?'), q(11, 'Have you bought a business before?', ['Yes', 'No']),
+    q(12, 'Who else is involved in the decision?', ['Just me', 'Partner / co-owner', 'Spouse', 'Board / investors'], 'Get every decision-maker on the call.')].join('');
+}
+
+(async function boot() {
+  await store.init();
+  F = (await store.get('funnel')) || clone(DEFAULT_FUNNEL);
+  W = (await store.get('weeks')) || {};
+  L = (await store.get('log')) || [];
+  ensureWeek(); saveF(); saveW();
+  renderSliders(); renderApp();
+  renderEditor(refresh());
+  showTab(location.hash.slice(1) || 'overview');
+})();
+</script>
+</body>
+</html>
