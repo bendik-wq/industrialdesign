@@ -11,6 +11,29 @@ const MAX_TEXT = 4000;
 
 export default {
   async fetch(request, env) {
+    return secure(await handle(request, env));
+  },
+};
+
+// Browser hardening on every response: no framing, no MIME sniffing, a strict content policy (own scripts only,
+// Google Fonts, audio from blob: for voice playback), and microphone access limited to this site.
+const SECURITY_HEADERS = {
+  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "microphone=(self), camera=(), geolocation=()",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+};
+function secure(res) {
+  const out = new Response(res.body, res);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) out.headers.set(k, v);
+  if (out.headers.get("Content-Type")?.includes("application/json")) out.headers.set("Cache-Control", "no-store");
+  return out;
+}
+
+const worker = {
+  async handle(request, env) {
     const url = new URL(request.url);
     try {
       if (["/api/auth/state", "/api/setup", "/api/login", "/api/logout"].includes(url.pathname)) return await authRoute(request, env, url);
@@ -25,6 +48,7 @@ export default {
     }
   },
 };
+const handle = (request, env) => worker.handle(request, env);
 
 function fail(status, message) { throw Object.assign(new Error(message), { status }); }
 const body = (request) => request.json().catch(() => ({}));
