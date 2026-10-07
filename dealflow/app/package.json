@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:schema": "wrangler d1 execute dealflow --remote --file schema.sql",
-    "db:seed": "wrangler d1 execute dealflow --remote --file ../data/seed.sql"
+    "db:schema": "wrangler d1 execute dealflow --remote --file schema.sql"
   },
   "devDependencies": {
     "wrangler": "4.147.0"
