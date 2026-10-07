@@ -10,22 +10,28 @@ const TTS_MODEL = "@cf/deepgram/aura-1";
 const err = (status, message) => Object.assign(new Error(message), { status });
 
 // messages: [{role: "user"|"assistant", content: string}], oldest first, ending with the user's turn.
-export async function chat(env, system, messages, maxTokens = 1200) {
+// system: a string, or {text, cached} where `cached` is a large stable block (Josh's transcripts) that Claude
+// caches between requests; Workers AI only gets `text` (plus whatever the caller folded into it).
+export async function chat(env, system, messages, maxTokens = 1200, effort = "low") {
+  const sys = typeof system === "string" ? { text: system } : system;
   if (env.ANTHROPIC_API_KEY) {
+    const blocks = [{ type: "text", text: sys.text }];
+    if (sys.cached) blocks.push({ type: "text", text: sys.cached });
+    blocks[blocks.length - 1].cache_control = { type: "ephemeral" }; // persona + transcripts are byte-stable
     const res = await new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.create({
       model: "claude-opus-5-5",
-      max_tokens: Math.max(4000, maxTokens * 2), // headroom for adaptive thinking
-      output_config: { effort: "low" }, // conversational; latency matters more than depth
+      max_tokens: Math.max(4000, maxTokens * 4), // headroom for adaptive thinking
+      output_config: { effort },
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      system,
+      system: blocks,
       messages,
     });
     if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
     return { text: res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim(), model: res.model };
   }
   if (!env.AI) throw err(503, "No AI configured: add ANTHROPIC_API_KEY or the Workers AI binding");
-  const out = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: system }, ...messages], max_tokens: maxTokens });
+  const out = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: sys.fallback || sys.text }, ...messages], max_tokens: maxTokens });
   return { text: String(out.response || "").trim(), model: WORKERS_AI_MODEL };
 }
 

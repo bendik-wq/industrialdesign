@@ -13,7 +13,9 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "warplan", "database_id": "a4a90461-4f49-453a-9f9b-3e956efb913f" }
   ],
-  "ai": { "binding": "AI" }
+  "ai": { "binding": "AI" },
+  // Josh's video transcripts ship inside the Worker as a text module (knowledge/josh-transcripts.txt).
+  "rules": [{ "type": "Text", "globs": ["**/*.txt"], "fallthrough": true }]
   // Secrets: DASHBOARD_PASSWORD (required: first-run setup key and session signing), SESSION_SECRET (optional: separate session signing key), ANTHROPIC_API_KEY (Claude; otherwise Workers AI),
   // ELEVENLABS_API_KEY (voices; otherwise Workers AI Aura), JOSH_VOICE_ID (ElevenLabs voice for Josh).
 }
