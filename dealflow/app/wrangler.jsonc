@@ -13,7 +13,13 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "dealflow", "database_id": "66670c65-c5ea-4f51-8c3e-5b1d3e9d227a" }
   ],
-  "ai": { "binding": "AI" }
-  // Secrets: DASHBOARD_PASSWORD (required: first-run setup key and session signing), API_TOKEN (admin scripts),
-  // SESSION_SECRET (optional: separate session signing key), ANTHROPIC_API_KEY (Claude; otherwise Workers AI).
+  "ai": { "binding": "AI" },
+  "workflows": [
+    { "binding": "SEARCH", "name": "dealflow-search", "class_name": "SearchWorkflow" },
+    { "binding": "AGENT", "name": "dealflow-agent", "class_name": "AgentWorkflow" }
+  ],
+  "triggers": { "crons": ["7 * * * *"] }
+  // Secrets: DASHBOARD_PASSWORD (required: first-run setup key and session signing), API_TOKEN (platform-admin scripts),
+  // SESSION_SECRET (optional: separate session signing key), ANTHROPIC_API_KEY (Claude; else Workers AI),
+  //          COMPANIES_HOUSE_API_KEY (UK), GOOGLE_PLACES_API_KEY (US)
 }

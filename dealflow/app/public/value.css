@@ -1,0 +1,57 @@
+:root {
+  --bg: #f6f4ef; --surface: #ffffff; --ink: #14171a; --muted: #5d6266; --line: #e3dfd6;
+  --accent: #0f5c4d; --accent-2: #c9a24a; --soft: #e8f0ec;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #101311; --surface: #171b19; --ink: #ecefec; --muted: #9aa39e; --line: #2a302c; --accent: #4fbf9f; --accent-2: #e0bd6a; --soft: #16302a; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--sans); }
+.wrap { width: min(720px, 100% - 32px); margin: 0 auto; padding: 28px 0 64px; }
+.top { display: flex; align-items: center; gap: 10px; font-size: 15px; letter-spacing: .02em; }
+.logo { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); }
+.eyebrow { margin: 0 0 10px; font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); }
+.hero { padding: 72px 0 0; }
+h1 { font: 600 clamp(36px, 7vw, 58px)/1.04 var(--serif); letter-spacing: -0.02em; margin: 0; }
+.lede { font-size: 18px; color: var(--muted); max-width: 560px; margin: 16px 0 28px; }
+.lookup { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; box-shadow: 0 20px 50px -30px rgb(0 0 0 / .25); }
+.seg { display: inline-flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 999px; margin-bottom: 12px; }
+.seg input { position: absolute; opacity: 0; }
+.seg span { display: block; padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: 14px; }
+.seg input:checked + span { background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / .12); font-weight: 600; }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+input, select, textarea { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+#number { flex: 1 1 240px; font-size: 18px; letter-spacing: .04em; }
+button[type="submit"] { font: 600 16px var(--sans); background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 13px 20px; cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+.error { color: #c0392b; font-size: 14px; margin: 8px 0 0; min-height: 1em; }
+.trust { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 20px 0 0; color: var(--muted); font-size: 14px; }
+.trust li::before { content: "✓ "; color: var(--accent); font-weight: 700; }
+
+.result { padding: 48px 0 0; }
+.result h2 { font: 600 15px var(--sans); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0; }
+.big { font: 600 clamp(38px, 8vw, 64px)/1.05 var(--serif); letter-spacing: -0.02em; margin: 8px 0 14px; font-variant-numeric: tabular-nums; }
+.band { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.band .fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+.basis { color: var(--muted); margin: 12px 0 18px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 0 0 14px; }
+.facts div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.facts dt { font-size: 12.5px; color: var(--muted); }
+.facts dd { margin: 2px 0 0; font-weight: 600; }
+.fine { font-size: 13px; color: var(--muted); }
+.cta { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+.cta h3 { font: 600 22px/1.25 var(--serif); margin: 0 0 6px; }
+.cta p { color: var(--muted); margin: 0 0 16px; }
+.lead { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lead textarea, .lead select, .lead button, .lead .error { grid-column: 1 / -1; }
+.lead textarea { min-height: 80px; resize: vertical; }
+.hp { position: absolute; left: -9999px; }
+.thanks h3 { color: var(--accent); }
+.again { margin-top: 22px; background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; }
+@media (max-width: 560px) { .lead { grid-template-columns: 1fr; } .hero { padding-top: 40px; } }

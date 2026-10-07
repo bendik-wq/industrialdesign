@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dealflow</title>
-<meta name="description" content="An AI acquisition team for owners of $1M+ businesses.">
+<meta name="description" content="Acquisition targets from official company registries, scored for succession and size.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%230f5c4d%22/%3E%3Cpath d=%22M9 21l5-5 4 3 6-8%22 stroke=%22white%22 stroke-width=%223%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,23 +13,62 @@
 </head>
 <body>
 <div class="shell">
-  <aside class="rail" id="rail">
-    <a class="brand" href="#/home"><span class="logo"></span><b>Dealflow</b></a>
+  <aside class="side" id="side">
+    <div class="brand"><span class="logo"></span><b>Dealflow</b></div>
+    <a class="acct" href="#/team"><b id="acctName">&nbsp;</b><small id="acctPlan"></small></a>
+    <a class="primary new" href="#/new">+ New search</a>
+    <button class="ghost wide" id="addBtn" type="button">+ Add company by number</button>
     <nav class="nav">
       <a href="#/home" data-nav="home"><i>⌂</i>Home</a>
-      <a href="#/josh" data-nav="josh"><i class="j">J</i>Ask Josh</a>
-      <a href="#/simulator" data-nav="simulator"><i>☎</i>Seller Simulator</a>
-      <a href="#/ladder" data-nav="ladder"><i>↗</i>Value Ladder</a>
-      <a href="#/agents" data-nav="agents"><i>✦</i>Your agents</a>
+      <a href="#/agents" data-nav="agents"><i>✦</i>Agents</a>
+      <a href="#/all" data-nav="all"><i>☰</i>All targets</a>
+      <a href="#/pipeline" data-nav="pipeline"><i>▤</i>Pipeline</a>
+      <a href="#/territories" data-nav="territories"><i>◈</i>Territories</a>
+      <a href="#/team" data-nav="team"><i>☺</i>Team & API</a>
+      <a href="#/admin" data-nav="admin" id="adminNav" hidden><i>⚙</i>Admin</a>
     </nav>
-    <div class="rail-foot">
-      <span class="who" id="who"></span>
+    <h4>Searches</h4>
+    <div class="searches" id="searches"></div>
+    <div class="side-foot">
+      <button class="link" id="settingsBtn" type="button">Outreach settings</button>
+      <a class="link" href="/value" target="_blank">Seller valuation page ↗</a>
+      <a class="link" href="/api" target="_blank">API reference</a>
       <button class="link" id="logout" type="button">Sign out</button>
     </div>
   </aside>
   <button class="menu-btn" id="menuBtn" type="button" aria-label="Menu">☰</button>
   <main class="main" id="view"></main>
 </div>
+
+<aside class="drawer" id="drawer" aria-hidden="true"><div class="drawer-inner" id="drawerBody"></div></aside>
+<div class="scrim" id="scrim"></div>
+
+<dialog id="settings">
+  <form method="dialog" id="settingsForm">
+    <h2>Outreach settings</h2>
+    <p class="muted">Fills in the letter, email and call drafts. Stored only in this browser.</p>
+    <label>Your name<input name="myName" placeholder="Jane Buyer"></label>
+    <label>Your company<input name="myCompany" placeholder="Northstar Holdings"></label>
+    <label>Phone<input name="myPhone" placeholder="+1 512 555 0100"></label>
+    <label>Email<input name="myEmail" placeholder="jane@northstar.com"></label>
+    <label>Mailing address (required in cold email)<input name="myAddress" placeholder="100 Congress Ave, Austin, TX 78701"></label>
+    <label>Who you are, in one line<input name="myAngle" placeholder="We own and run a 40-person HVAC company"></label>
+    <label>Default letter voice<select name="voice"><option value="warm">Warm & respectful</option><option value="jl">JL: direct operator</option></select></label>
+    <div class="row-end"><button class="primary" value="save">Save</button></div>
+  </form>
+</dialog>
+
+<dialog id="addDlg">
+  <form id="addForm">
+    <h2>Add a company by number</h2>
+    <p class="muted">Pulls the company live from the official registry, scores it and values it.</p>
+    <label>Country<select name="country"><option value="no">🇳🇴 Norway (organisation number)</option><option value="fr">🇫🇷 France (SIREN)</option></select></label>
+    <label>Number<input name="number" required placeholder="e.g. 981497023" inputmode="numeric" autocomplete="off"></label>
+    <p class="error" id="addErr"></p>
+    <div class="row-end"><button class="ghost" type="button" id="addCancel">Cancel</button><button class="primary" type="submit">Add and open</button></div>
+  </form>
+</dialog>
+
 <script src="/app.js" type="module"></script>
 </body>
 </html>

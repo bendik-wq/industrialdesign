@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "warplan",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "warplan", "database_id": "a4a90461-4f49-453a-9f9b-3e956efb913f" }
+  ],
+  "ai": { "binding": "AI" }
+  // Secrets: DASHBOARD_PASSWORD (required: first-run setup key and session signing), SESSION_SECRET (optional: separate session signing key), ANTHROPIC_API_KEY (Claude; otherwise Workers AI).
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warplan</title>
+<meta name="description" content="Warplan: an AI acquisition command for owners of $1M+ businesses.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 fill=%22%23ff5b1f%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%227%22 stroke=%22%23111%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Cpath d=%22M16 4v8M16 20v8M4 16h8M20 16h8%22 stroke=%22%23111%22 stroke-width=%222.5%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/home"><span class="logo"></span><b>WARPLAN</b></a>
+  <nav class="nav" id="rail">
+    <a href="#/home" data-nav="home">Command</a>
+    <a href="#/josh" data-nav="josh">Ask Josh</a>
+    <a href="#/simulator" data-nav="simulator">Simulator</a>
+    <a href="#/ladder" data-nav="ladder">Value Ladder</a>
+    <a href="#/agents" data-nav="agents">Units</a>
+  </nav>
+  <div class="top-right"><span class="who" id="who"></span><button class="link" id="logout" type="button">Sign out</button></div>
+  <button class="menu-btn" id="menuBtn" type="button" aria-label="Menu">☰</button>
+</header>
+<main class="main" id="view"></main>
+<script src="/app.js" type="module"></script>
+</body>
+</html>
