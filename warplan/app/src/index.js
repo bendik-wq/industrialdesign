@@ -76,7 +76,7 @@ async function route(request, env, url, ctx) {
   if (p === "/api/voice/speak" && m === "POST") {
     const b = await body(request);
     if (!String(b.text || "").trim()) fail(400, "Nothing to say");
-    return new Response(await speak(env, b.text, b.speaker), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=3600" } });
+    return speakCached(request, env, String(b.text).slice(0, 1900), String(b.speaker || ""));
   }
   let r;
   if ((r = p.match(/^\/api\/threads\/(\d+)$/))) {
@@ -163,6 +163,18 @@ async function debrief(env, ctx, id) {
   ]);
   await env.DB.prepare("UPDATE threads SET meta = ?2 WHERE id = ?1").bind(t.id, JSON.stringify({ ...t.meta, debrief: josh.id })).run();
   return { thread: josh.id, text: out.text };
+}
+
+// Replaying a message shouldn't spend voice credits twice: cache audio per speaker + text at the edge.
+async function speakCached(request, env, text, speaker) {
+  const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${speaker}\n${env.JOSH_VOICE_ID || ""}\n${text}`)))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const key = new Request(`${new URL(request.url).origin}/__tts/${digest}`);
+  const cache = caches.default;
+  const hit = await cache.match(key);
+  if (hit) return hit;
+  const res = new Response(await speak(env, text, speaker), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=86400" } });
+  await cache.put(key, new Response(res.clone().body, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=604800" } }));
+  return res;
 }
 
 function json(data, status = 200, headers = {}) {

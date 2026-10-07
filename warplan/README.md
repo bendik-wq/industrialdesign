@@ -10,7 +10,7 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
 ## Live today
 
 - **Ask Josh** (`app/src/agents.js`, persona `josh`): the AI version of Josh's acquisition advice, grounded in
-  the 3C playbook. Type or talk (Whisper speech-to-text), replies read aloud (Deepgram Aura). Conversations are
+  the 3C playbook. Type or talk (Whisper speech-to-text), replies read aloud with ElevenLabs (`JOSH_VOICE_ID`; Deepgram Aura as fallback). Conversations are
   saved per user. It always says it is the AI version, never invents stories or deals attributed to Josh, and
   sends legal, tax and lending specifics to the user's advisors.
 - **Seller Simulator**: role-play a first call with a realistic owner (HVAC contractor, dentist, accountant),
@@ -51,6 +51,8 @@ npx wrangler d1 execute warplan --remote --file schema.sql
 npx wrangler deploy
 npx wrangler secret put DASHBOARD_PASSWORD   # first-run setup key at /login
 npx wrangler secret put ANTHROPIC_API_KEY    # optional: Claude; otherwise Workers AI (Llama 3.3 70B)
+npx wrangler secret put ELEVENLABS_API_KEY   # optional: ElevenLabs voices; otherwise Workers AI Aura
+npx wrangler secret put JOSH_VOICE_ID        # optional: ElevenLabs voice ID for Josh (his consented clone)
 ```
 
 First run: open `/login`. While no users exist it asks for the setup key (`DASHBOARD_PASSWORD`) and creates the

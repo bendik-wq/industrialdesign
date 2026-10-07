@@ -1,5 +1,5 @@
 // AI layer. Claude when ANTHROPIC_API_KEY is set; otherwise Cloudflare Workers AI (no key needed).
-// Speech: Whisper for speech-to-text, Deepgram Aura for text-to-speech, both on Workers AI.
+// Speech: Whisper (Workers AI) for speech-to-text; ElevenLabs for text-to-speech, with Deepgram Aura as fallback.
 import Anthropic from "@anthropic-ai/sdk";
 import { Buffer } from "node:buffer";
 
@@ -41,8 +41,33 @@ export async function transcribe(env, audio, hint = "") {
 
 export const SPEAKERS = ["angus", "asteria", "arcas", "orion", "orpheus", "athena", "luna", "zeus", "perseus", "helios", "hera", "stella"];
 
+// ElevenLabs voices per speaker. Josh uses JOSH_VOICE_ID (set it to Josh's cloned voice); the simulator owners
+// use ElevenLabs stock voices that fit each character.
+const ELEVEN_MODEL = "eleven_multilingual_v2";
+const ELEVEN_VOICES = {
+  arcas: (env) => env.JOSH_VOICE_ID || "JBFqnCBsd6RMkjVDRZzb", // Josh
+  angus: () => "pqHfZKP75CvOlQylNhV4", // Frank Dalton: older American man
+  athena: () => "XrExE9yKIg1WjnnlVkGX", // Dr. Susan Park: warm, measured woman
+  zeus: () => "onwK4e9ZLuTAKqWW03F9", // Robert Hughes: older British man
+};
+
+async function elevenLabs(env, text, voiceId) {
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+    method: "POST",
+    headers: { "xi-api-key": env.ELEVENLABS_API_KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
+    body: JSON.stringify({ text, model_id: ELEVEN_MODEL }),
+  });
+  if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return res.arrayBuffer();
+}
+
+// Returns mp3 bytes. ElevenLabs when configured, Workers AI Aura otherwise (and as the fallback if ElevenLabs fails).
 export async function speak(env, text, speaker = "orion") {
-  if (!env.AI) throw err(503, "Voice needs the Workers AI binding");
   const clean = String(text).replace(/[#*_`>]/g, "").replace(/\n{2,}/g, ".\n").slice(0, 1900);
+  const pick = ELEVEN_VOICES[speaker];
+  if (env.ELEVENLABS_API_KEY && pick) {
+    try { return await elevenLabs(env, clean, pick(env)); } catch (e) { console.warn(e.message); }
+  }
+  if (!env.AI) throw err(503, "Voice needs the Workers AI binding");
   return env.AI.run(TTS_MODEL, { text: clean, speaker: SPEAKERS.includes(speaker) ? speaker : "orion", encoding: "mp3" });
 }
