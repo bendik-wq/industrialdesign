@@ -150,7 +150,7 @@ async function renderJosh(id, seq) {
       <section class="chat">
         <header class="chat-head">
           <div class="avatar josh">J</div>
-          <div><h2>Josh <span class="tag">AI</span></h2><p class="muted small">Trained on the 3C acquisition playbook. The AI version, not Josh himself; get legal, tax and lending specifics signed off by your advisors.</p></div>
+          <div><h2>Josh <span class="tag">AI</span></h2><p class="muted small">Trained on Josh Li's own videos. No fluff, just the next move. The AI version, not Josh himself; get legal, tax and lending specifics signed off by your advisors.</p></div>
           <label class="switch"><input type="checkbox" id="speakToggle" ${autoSpeak ? "checked" : ""}><span></span>Speak replies</label>
         </header>
         <div class="msgs" id="msgs">

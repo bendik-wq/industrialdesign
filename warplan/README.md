@@ -9,10 +9,12 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
 
 ## Live today
 
-- **Ask Josh** (`app/src/agents.js`, persona `josh`): the AI version of Josh's acquisition advice, grounded in
-  the 3C playbook. Type or talk (Whisper speech-to-text), replies read aloud with ElevenLabs (`JOSH_VOICE_ID`; Deepgram Aura as fallback). Conversations are
-  saved per user. It always says it is the AI version, never invents stories or deals attributed to Josh, and
-  sends legal, tax and lending specifics to the user's advisors.
+- **Ask Josh** (`app/src/agents.js`, persona `josh`): the AI version of Josh Li. No-nonsense and hard on action:
+  a straight answer, the excuse called out, then one specific move with a number and a 24-48 hour deadline, every
+  time. Each question is matched against Josh's own video transcripts (`knowledge/josh-transcripts.txt`, loaded
+  into a D1 full-text index by `app/scripts/build-kb.mjs`), and the best passages ground his answer in his own
+  frameworks and stories. Type or talk (Whisper); replies read aloud in his ElevenLabs voice (`JOSH_VOICE_ID`).
+  He says he's the AI version when asked and never invents stories beyond the transcripts.
 - **Seller Simulator**: role-play a first call with a realistic owner (HVAC contractor, dentist, accountant),
   each with hidden motives the buyer has to earn. Voice in and out, three difficulty levels. "End call" sends
   the transcript to Josh, who scores rapport, discovery, money talk and next step, quotes the best and worst
@@ -48,6 +50,7 @@ POST   /api/voice/speak                {text, speaker} → audio/mpeg
 ```sh
 cd app && npm install
 npx wrangler d1 execute warplan --remote --file schema.sql
+node scripts/build-kb.mjs && npx wrangler d1 execute warplan --remote --file kb.sql   # Josh's answers database
 npx wrangler deploy
 npx wrangler secret put DASHBOARD_PASSWORD   # first-run setup key at /login
 npx wrangler secret put ANTHROPIC_API_KEY    # optional: Claude; otherwise Workers AI (Llama 3.3 70B)
