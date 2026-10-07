@@ -19,7 +19,8 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
   each with hidden motives the buyer has to earn. Voice in and out, three difficulty levels. "End call" sends
   the transcript to Josh, who scores rapport, discovery, money talk and next step, quotes the best and worst
   moments, and opens a Josh conversation to keep going.
-- **Value Ladder** (browser only): what the owner's own company is worth today and after buying N competitors,
+- **Value Ladder** (browser only): what the owner's own company is worth today and after buying N competitors, under
+  vendor finance or a 60/40 asset-backed structure (60% commercial debt on the assets, 40% seller rollover equity),
   with price, seller-note share, synergies, debt service, debt cover (DSCR, 1.5x bar) and equity after 3 years.
   Size-based multiples show the multiple-arbitrage effect. "Ask Josh about these numbers" hands the plan to Josh.
 

@@ -97,7 +97,7 @@ function renderHome() {
     <section class="hero">
       <p class="eyebrow">Acquisition command</p>
       <h1>Take your market.<br><em>One competitor at a time.</em></h1>
-      <p class="lede">Agents that find, value, approach and finance off-market acquisitions, and Josh in your ear for every decision. Built for owners of $1M+ businesses using vendor finance.</p>
+      <p class="lede">Agents that find, value, approach and finance off-market acquisitions, and Josh in your ear for every decision. Built for owners of $1M+ businesses buying competitors without putting in their own cash.</p>
       <div class="ask">
         <button class="mic big" id="homeMic" type="button" aria-label="Talk to Josh">${MIC}</button>
         <input id="homeAsk" placeholder="Ask Josh anything, e.g. “How do I bring up seller financing on the first call?”" autocomplete="off">
@@ -130,7 +130,7 @@ function renderHome() {
 const STARTERS = [
   "I run a $4M HVAC company. How would I buy my biggest competitor with no money down?",
   "A 68-year-old owner says he has other buyers. What do I say?",
-  "How do I structure a seller note so the deal pays for itself?",
+  "Vendor finance or 60/40 debt and rollover: which fits my deal?",
   "What should be in my first offer letter?",
 ];
 
@@ -199,7 +199,7 @@ async function renderJosh(id, seq) {
   $("#input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(e.target.value); } });
   $("#input").addEventListener("input", (e) => { e.target.style.height = "auto"; e.target.style.height = `${Math.min(160, e.target.scrollHeight)}px`; });
   $$(".starter").forEach((b) => b.addEventListener("click", () => send(b.textContent)));
-  micButton($("#mic"), send, "A question for an acquisition advisor about buying a business with vendor finance.");
+  micButton($("#mic"), send, "A question for an acquisition advisor about buying a business: vendor finance, bank debt, rollover equity, earn-outs.");
   const pending = sessionStorage.getItem("df.pending");
   if (pending) { sessionStorage.removeItem("df.pending"); send(pending); }
 }
@@ -306,8 +306,11 @@ async function renderCall(id, seq) {
 }
 
 // ================================================================== Value Ladder
-// What the owner's own company is worth today, and after buying N competitors on vendor terms.
-const LADDER_DEFAULTS = { cur: "$", myEbitda: 800000, deals: 4, targetEbitda: 500000, buyMultiple: 3, notePct: 80, synergy: 10 };
+// What the owner's own company is worth today, and after buying N competitors with no cash of their own.
+// Two structures: vendor finance (seller notes + bank debt) for fragmented, owner-run markets, or 60/40 for
+// asset-heavy businesses (60% commercial debt secured on 100% of the assets, 40% seller rollover equity).
+const LADDER_DEFAULTS = { cur: "$", structure: "vendor", myEbitda: 800000, deals: 4, targetEbitda: 500000, buyMultiple: 3, notePct: 80, synergy: 10 };
+const STRUCTS = { vendor: "Vendor finance", asset: "60/40 asset-backed" };
 const CURS = ["$", "€", "£", "NOK "];
 // Size premium: buyers pay higher multiples for bigger, de-risked groups. Indicative, conservative bands.
 function multipleFor(ebitda, cur) {
@@ -316,7 +319,7 @@ function multipleFor(ebitda, cur) {
 }
 const annuity = (P, r, n) => (P <= 0 ? 0 : r === 0 ? P / n : (P * r) / (1 - (1 + r) ** -n));
 const balance = (P, r, n, k) => (P <= 0 ? 0 : P * (1 + r) ** k - annuity(P, r, n) * (((1 + r) ** k - 1) / r));
-const BANK = { rate: 0.08, years: 5 }, NOTE = { rate: 0.04, years: 7 };
+const BANK = { rate: 0.08, years: 5 }, NOTE = { rate: 0.04, years: 7 }, ASSET_BANK = { rate: 0.075, years: 7 };
 
 function ladderModel(x) {
   const cur = x.cur;
@@ -324,15 +327,21 @@ function ladderModel(x) {
   const steps = [];
   for (let n = 0; n <= x.deals; n++) {
     const price = n * x.targetEbitda * x.buyMultiple;
-    const note = price * x.notePct / 100, bank = price - note;
+    const asset = x.structure === "asset";
+    const B = asset ? ASSET_BANK : BANK;
+    const rollover = asset ? price * 0.4 : 0; // sellers keep equity in the group instead of being paid
+    const note = asset ? 0 : price * x.notePct / 100;
+    const bank = price - note - rollover;
     const acquired = n * x.targetEbitda * (1 + x.synergy / 100);
     const ebitda = x.myEbitda + acquired;
     const multiple = multipleFor(ebitda, cur);
     const value = ebitda * multiple;
-    const service = annuity(bank, BANK.rate, BANK.years) + annuity(note, NOTE.rate, NOTE.years);
+    const service = annuity(bank, B.rate, B.years) + annuity(note, NOTE.rate, NOTE.years);
     const dscr = service ? (acquired * 0.8) / service : null; // acquired cash flow covers the new debt
-    const debt3 = Math.max(0, balance(bank, BANK.rate, BANK.years, 3)) + Math.max(0, balance(note, NOTE.rate, NOTE.years, 3));
-    steps.push({ n, price, note, bank, ebitda, multiple, value, service, dscr, equity: value - price, equity3: value - debt3 });
+    const debt3 = Math.max(0, balance(bank, B.rate, B.years, 3)) + Math.max(0, balance(note, NOTE.rate, NOTE.years, 3));
+    // Rolled-over sellers own a slice of the group, priced at the deal: their stake = rollover / group equity at close.
+    const sellerStake = rollover ? Math.min(0.9, rollover / Math.max(1, value - bank - note)) : 0;
+    steps.push({ n, price, note, bank, rollover, sellerStake, ebitda, multiple, value, service, dscr, equity3: (value - debt3) * (1 - sellerStake) });
   }
   return { cur, todayValue, steps, final: steps[steps.length - 1] };
 }
@@ -346,17 +355,20 @@ function renderLadder() {
   const x = { ...LADDER_DEFAULTS, ...store.get("ladder", {}) };
   $("#view").innerHTML = `
     <header class="page-head"><p class="eyebrow">Value Ladder</p><h1>What your company becomes.</h1>
-      <p class="lede">Small companies sell for 3–4× profit. Groups sell for 6–8×. Buy competitors on vendor terms, combine them, and the difference is equity you created, paid for by the businesses' own cash flow.</p></header>
+      <p class="lede">Small companies sell for 3–4× profit. Groups sell for 6–8×. Buy competitors with the right structure, combine them, and the difference is equity you created, paid for by the businesses' own cash flow.</p></header>
     <div class="ladder">
       <form class="panel inputs" id="lf">
+        <label>Structure<div class="seg" id="struct">${Object.entries(STRUCTS).map(([k, l]) => `<button type="button" data-s="${k}" class="${k === x.structure ? "on" : ""}">${l}</button>`).join("")}</div></label>
         <label>Currency<div class="seg" id="cur">${CURS.map((c) => `<button type="button" data-c="${c}" class="${c === x.cur ? "on" : ""}">${c.trim()}</button>`).join("")}</div></label>
         <label>Your yearly profit (EBITDA)<input name="myEbitda" type="number" min="0" step="50000" value="${x.myEbitda}"></label>
         <label>Competitors you buy <output>${x.deals}</output><input name="deals" type="range" min="1" max="12" value="${x.deals}"></label>
         <label>Profit per competitor (EBITDA)<input name="targetEbitda" type="number" min="0" step="50000" value="${x.targetEbitda}"></label>
         <label>Price you pay <output>${x.buyMultiple}× profit</output><input name="buyMultiple" type="range" min="2" max="6" step="0.25" value="${x.buyMultiple}"></label>
-        <label>Paid by the seller over time <output>${x.notePct}%</output><input name="notePct" type="range" min="0" max="100" step="5" value="${x.notePct}"></label>
+        ${x.structure === "asset"
+          ? `<p class="struct-note">60% commercial debt, secured on 100% of the business's assets (${ASSET_BANK.years} years at ${ASSET_BANK.rate * 100}%). 40% rolled over: sellers keep equity in your group. For asset-heavy businesses: equipment, fleet, property, stock.</p>`
+          : `<label>Paid by the seller over time <output>${x.notePct}%</output><input name="notePct" type="range" min="0" max="100" step="5" value="${x.notePct}"></label>`}
         <label>Savings from combining <output>${x.synergy}%</output><input name="synergy" type="range" min="0" max="30" step="5" value="${x.synergy}"></label>
-        <p class="muted small">Seller notes: ${NOTE.years} years at ${NOTE.rate * 100}%. The rest is bank debt: ${BANK.years} years at ${BANK.rate * 100}%. Group multiples by size: 3.5× under 1M profit, 4.5×, 5.5×, 7×, 8× above 10M. Indicative, not a valuation.</p>
+        <p class="muted small">${x.structure === "asset" ? "Vendor finance suits small, owner-run companies in fragmented markets." : `Seller notes: ${NOTE.years} years at ${NOTE.rate * 100}%. The rest is bank debt: ${BANK.years} years at ${BANK.rate * 100}%. Best in fragmented markets of small owner-run companies; for asset-heavy targets switch to 60/40.`} Group multiples by size: 3.5× under 1M profit, 4.5×, 5.5×, 7×, 8× above 10M. Indicative, not a valuation.</p>
       </form>
       <div class="results" id="lr"></div>
     </div>`;
@@ -374,7 +386,7 @@ function renderLadder() {
       </div>
       <div class="dscr-line ${ok ? "good" : warn ? "warn" : "bad"}">
         <b>${ok ? "✓ Bankable" : warn ? "! Tight" : "✕ Not bankable"}</b>
-        <span>The companies you buy cover their own debt payments ${f.dscr == null ? "—" : f.dscr.toFixed(2) + "×"} (lenders want 1.5×). Yearly debt service ${money(f.service, c)}; total price ${money(f.price, c)}, of which ${money(f.note, c)} is paid to sellers over time.</span>
+        <span>The companies you buy cover their own debt payments ${f.dscr == null ? "—" : f.dscr.toFixed(2) + "×"} (lenders want 1.5×). Yearly debt service ${money(f.service, c)}; total price ${money(f.price, c)}: ${x.structure === "asset" ? `${money(f.bank, c)} asset-backed bank debt, ${money(f.rollover, c)} rolled over (sellers own ~${Math.round(f.sellerStake * 100)}% of the group)` : `${money(f.note, c)} paid to sellers over time, ${money(f.bank, c)} bank debt`}.</span>
       </div>
       <div class="panel ladder-chart">
         <h3>Group value after each acquisition</h3>
@@ -387,7 +399,7 @@ function renderLadder() {
       <div class="ask-josh"><p>Want Josh to pressure-test this plan?</p><button class="ghost" id="askLadder" type="button">Ask Josh about these numbers →</button></div>`;
     $("#askLadder").addEventListener("click", async () => {
       const t = await api("/api/threads", { method: "POST", body: JSON.stringify({ agent: "josh" }) });
-      sessionStorage.setItem("df.pending", `Pressure-test my roll-up plan. My company makes ${money(x.myEbitda, c)} EBITDA. I want to buy ${x.deals} competitors making about ${money(x.targetEbitda, c)} EBITDA each at ${x.buyMultiple}x, with ${x.notePct}% paid by seller notes and the rest bank debt. The model says the acquired companies cover debt service ${f.dscr ? f.dscr.toFixed(2) : "n/a"}x and the group could be worth ${money(f.value, c)}. What am I missing and what would you change?`);
+      sessionStorage.setItem("df.pending", `Pressure-test my roll-up plan. My company makes ${money(x.myEbitda, c)} EBITDA. I want to buy ${x.deals} competitors making about ${money(x.targetEbitda, c)} EBITDA each at ${x.buyMultiple}x, ${x.structure === "asset" ? "using a 60/40 structure: 60% commercial debt secured on the assets, 40% seller rollover equity" : `with ${x.notePct}% paid by seller notes and the rest bank debt`}. The model says the acquired companies cover debt service ${f.dscr ? f.dscr.toFixed(2) : "n/a"}x and the group could be worth ${money(f.value, c)}. What am I missing and what would you change?`);
       location.hash = `#/josh/${t.id}`;
     });
   };
@@ -399,6 +411,7 @@ function renderLadder() {
     if (out) out.textContent = el.name === "buyMultiple" ? `${el.value}× profit` : el.name === "deals" ? el.value : `${el.value}%`;
     draw();
   });
+  $$("#struct button").forEach((b) => b.addEventListener("click", () => { x.structure = b.dataset.s; store.set("ladder", x); renderLadder(); }));
   $$("#cur button").forEach((b) => b.addEventListener("click", () => { x.cur = b.dataset.c; $$("#cur button").forEach((y) => y.classList.toggle("on", y === b)); draw(); }));
   draw();
 }

@@ -3,17 +3,22 @@
 
 const PLAYBOOK = `THE 3C ACQUISITION MODEL (your playbook)
 C1 Capabilities: credibility substitutes for cash. Build a board (chair with stature, finance lead, M&A lawyer, sector operator) paid in 2-10% founders' equity vesting on a signed SPA. Line up accountants (QoE) and M&A counsel on deferred fees paid at close. Produce a credibility packet: board roster, thesis memo, NBIO template, diligence checklist.
-C2 Capital: fund deals without the buyer's cash while protecting debt service. Preferred: 100% vendor finance (seller note, 5-7 years, 3-5% interest, 6-12 month payment holiday, unsecured, no personal guarantee). Blended: ~60% bank debt + ~40% seller rollover/note. Add a post-close working-capital line (~10% of revenue). Add-ons: ABL on receivables/inventory, earn-outs, rent deferral when the seller owns the property. Interview 50+ lenders before you need money; ask for DSCR thresholds, sector appetite, PG policy. Never go below 1.5x DSCR in the base case. Model base, bear and bull.
+C2 Capital: fund deals without the buyer's cash while protecting debt service. There is no default structure: match the structure to the business, then say why.
+- Vendor finance (seller note, 5-7 years, 3-5% interest, 6-12 month payment holiday, unsecured, no personal guarantee; up to 100% of the price): works best in lower-end, fragmented markets (small owner-operated companies with few buyers and no succession) and on larger deals only when the seller is very motivated.
+- 60/40 for asset-heavy businesses (equipment, vehicles, property, inventory, receivables): ~60% commercial debt secured against 100% of the business's assets, ~40% seller rollover equity so the seller keeps skin in the game. The assets carry the bank debt; the rollover closes the gap without buyer cash.
+- Larger or competitive deals with an unmotivated seller: senior debt plus rollover equity and/or an earn-out; a big seller note won't fly there.
+- Add-ons: a post-close working-capital line (~10% of revenue), ABL on receivables/inventory, mezzanine on larger deals, earn-outs to bridge a price gap, rent deferral when the seller owns the property.
+Before recommending a structure, establish: asset intensity, deal size, how fragmented the market is, and how motivated the seller is. Never answer "vendor finance" by reflex. Interview 50+ lenders before you need money; ask for DSCR thresholds, sector appetite, PG policy. Never go below 1.5x DSCR in the base case. Model base, bear and bull.
 C3 Closing: control the process. Off-market, direct to owners (phone, email, LinkedIn, letters; ~1,000 calls to fill a pipeline; "Have you ever thought about selling?"). Qualify with an NDA plus 3 years of financials and tax returns: if they send them, they're serious. Send an NBIO/LOI that front-loads price, structure, conditions and 60-90 days' exclusivity; settle 80% of the deal there. Diligence ≤90 days, focused on Quality of Earnings (revenue durability, customer concentration, add-backs, working capital). Contract in ~4 weeks; keep lawyers on a tight scope. Keep the seller 6-36 months for transition. Interview staff before close. Run parallel pipelines, set walk-away criteria, don't over-negotiate small points; most "other buyers" are bluffs.
 WHY SELLERS SAY YES: most owners of $1-10M businesses have no successor, can't get a bank-financed buyer, and fear brokers, auctions and buyers who strip their company. They sell to whoever makes them feel their name, staff and customers are safe, and who makes payment over time feel secure.
-MULTIPLE ARBITRAGE: small companies sell for ~3-4x EBITDA; a group with $5M+ EBITDA is valued at 6-8x or more. Buying competitors on vendor terms and combining them creates equity on day one, funded by the businesses' own cash flow.`;
+MULTIPLE ARBITRAGE: small companies sell for ~3-4x EBITDA; a group with $5M+ EBITDA is valued at 6-8x or more. Buying competitors with the right structure (vendor finance, 60/40 debt and rollover, earn-outs) and combining them creates equity on day one, funded by the businesses' own cash flow and assets.`;
 
 export const AGENTS = [
   {
     id: "josh", name: "Josh", tag: "AI advisor", status: "live", voice: "arcas", icon: "J",
     blurb: "The AI version of Josh Li, trained on his own videos. No fluff: straight answers, then exactly what to do in the next 24 hours. Out loud or typed.",
     jobs: ["Answers any acquisition question in plain words", "Pressure-tests a deal before you send an offer", "Tells you exactly what to say on the next call", "Debriefs your simulator calls"],
-    system: `You are "Josh (AI)", the AI version of Josh Li inside Warplan. Josh bought his first company, a healthcare clinic, with no money down in his early 20s and built a group from there. You coach owners of $1M+ businesses who want to grow by buying competitors with vendor finance.
+    system: `You are "Josh (AI)", the AI version of Josh Li inside Warplan. Josh bought his first company, a healthcare clinic, with no money down in his early 20s and built a group from there. You coach owners of $1M+ businesses who want to grow by buying competitors with little or none of their own cash.
 
 MODE: NO-NONSENSE. MEGA HARD PUSH TO ACTION. ALWAYS.
 - First line: the straight answer. No warm-up, no "great question", no hedging, no "it depends" without saying what it depends on and picking one.
@@ -35,7 +40,7 @@ ${PLAYBOOK}`,
   },
   {
     id: "ladder", name: "Value Ladder", tag: "Your company, after the roll-up", status: "live", icon: "↗",
-    blurb: "See what your own company is worth today and what it becomes after buying 1, 3 or 10 competitors on vendor terms.",
+    blurb: "See what your own company is worth today and what it becomes after buying 1, 3 or 10 competitors without putting in your own cash.",
     jobs: ["Values your business today", "Models each acquisition: price, seller note, debt service, DSCR", "Shows the equity created by multiple arbitrage", "Flags when a structure stops being bankable"],
   },
   {
@@ -50,8 +55,8 @@ ${PLAYBOOK}`,
   },
   {
     id: "capital", name: "Capital Desk", tag: "Financing", status: "soon", icon: "€",
-    blurb: "Builds the bankable model, compares vendor-note structures and prepares the lender pack.",
-    jobs: ["Seller-note vs. blended vs. earn-out at 1.5x DSCR", "Lender interview tracker and term-sheet compare", "Base / bear / bull cases", "Working-capital line sizing"],
+    blurb: "Picks the right structure for each deal (vendor finance, 60/40 debt and rollover, earn-out), builds the bankable model and prepares the lender pack.",
+    jobs: ["Vendor note vs. 60/40 asset-backed debt + rollover vs. earn-out, tested at 1.5x DSCR", "Lender interview tracker and term-sheet compare", "Base / bear / bull cases", "Working-capital line sizing"],
   },
   {
     id: "diligence", name: "Diligence", tag: "Quality of earnings", status: "soon", icon: "⌕",

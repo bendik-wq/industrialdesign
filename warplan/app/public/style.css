@@ -318,3 +318,6 @@ button { font: inherit; cursor: pointer; }
   .callee { justify-self: start; }
   .chat-head { flex-wrap: wrap; }
 }
+
+.struct-note { margin: 0; padding: 10px 12px; border-left: 3px solid var(--signal); background: var(--bg); font-size: 13px; color: var(--ink-2); text-transform: none; letter-spacing: 0; }
+#struct button { padding: 9px 10px; }
