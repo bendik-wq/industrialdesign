@@ -249,6 +249,93 @@ input[type=range] { width:100%; accent-color:var(--ink); }
 .trend span { font-size:11px; color:var(--ink2); font-variant-numeric:tabular-nums; white-space:nowrap; }
 .principle { font-size:clamp(22px,2.6vw,28px); font-weight:600; letter-spacing:-.026em; line-height:1.25; max-width:30em; }
 
+
+/* studio: map + side panel */
+.studio { display:grid; grid-template-columns:minmax(0,1fr) 400px; height:calc(100vh - 53px - env(safe-area-inset-top,0px)); height:calc(100dvh - 53px - env(safe-area-inset-top,0px)); background:var(--bg2); }
+@media (max-width:1000px) { .studio { grid-template-columns:1fr; height:auto; } .canvas-wrap { height:72vh; } .side { height:80vh; border-left:0; border-top:1px solid var(--bg3); } }
+.canvas-wrap { position:relative; display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+.cv-bar { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; padding:12px 18px; background:rgba(245,245,247,.9); backdrop-filter:blur(12px); border-bottom:1px solid var(--bg3); z-index:3; }
+.cv-title { display:flex; align-items:center; gap:12px; font-size:17px; letter-spacing:-.02em; }
+.cv-score { font-size:13px; font-weight:600; border-radius:99px; padding:4px 10px; background:var(--bg); }
+.cv-tools { display:flex; flex-wrap:wrap; gap:6px; }
+.tool { border:0; background:var(--bg); border-radius:99px; padding:7px 13px; font-size:13px; font-weight:500; cursor:pointer; box-shadow:0 0 0 1px rgba(0,0,0,.06); }
+.tool:hover { background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.14); }
+.tool.icon { width:32px; padding:7px 0; font-size:16px; line-height:1; }
+.tool.danger { color:var(--red); }
+select.tool { appearance:none; -webkit-appearance:none; padding-right:14px; color:var(--blue-ink); font-weight:600; }
+.cv { position:relative; overflow:hidden; cursor:grab; touch-action:none; background-color:var(--bg2); background-image:radial-gradient(circle, rgba(0,0,0,.11) 1px, transparent 1.2px); background-size:24px 24px; outline:none; }
+.cv.panning { cursor:grabbing; }
+.world { position:absolute; left:0; top:0; transform-origin:0 0; will-change:transform; }
+.edges { position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
+.edges .hit { fill:none; stroke:transparent; stroke-width:16; pointer-events:stroke; cursor:pointer; }
+.edges .ln { fill:none; stroke-width:2.2; }
+.edges .ln.feed { stroke:#0071E3; } .edges .ln.next { stroke:#1D1D1F; } .edges .ln.no { stroke:#D70015; stroke-dasharray:7 6; }
+.edges .ln.sel { stroke-width:4; }
+.edges .ln.temp { stroke:#0071E3; stroke-dasharray:5 5; }
+.edges .lb { font:600 11px var(--font); letter-spacing:.04em; }
+.edges .lbbg { fill:var(--bg2); }
+.gnode { position:absolute; width:250px; background:var(--bg); border-radius:18px; padding:16px 18px 14px; box-shadow:0 1px 2px rgba(0,0,0,.06), 0 8px 24px -12px rgba(0,0,0,.18); cursor:grab; user-select:none; -webkit-user-select:none; display:grid; gap:5px; transition:box-shadow .2s; }
+.gnode:hover { box-shadow:0 1px 2px rgba(0,0,0,.08), 0 16px 36px -14px rgba(0,0,0,.28); }
+.gnode.drag { cursor:grabbing; box-shadow:0 24px 50px -16px rgba(0,0,0,.35); z-index:5; }
+.gnode.sel { box-shadow:0 0 0 2.5px var(--blue), 0 16px 36px -14px rgba(0,113,227,.45); }
+.gnode .t { font-size:11px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:.05em; }
+.gnode h4 { font-size:17px; letter-spacing:-.02em; line-height:1.2; }
+.gnode p { font-size:13px; color:var(--ink2); line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.gnode .chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:3px; }
+.gnode .chip { background:var(--bg2); font-size:11px; padding:2px 8px; }
+.gnode .chip.num { background:var(--ink); color:#fff; }
+.gnode .chip.money { background:var(--green-bg); color:var(--green); }
+.gnode.k-channel { box-shadow:inset 0 3px 0 #0071E3, 0 1px 2px rgba(0,0,0,.06), 0 8px 24px -12px rgba(0,0,0,.18); }
+.gnode.k-channel.sel { box-shadow:inset 0 3px 0 #0071E3, 0 0 0 2.5px var(--blue); }
+.gnode.primary { background:linear-gradient(180deg,#EAF3FF,#fff 60%); }
+.gnode.k-gate { box-shadow:inset 0 0 0 2px var(--ink), 0 8px 24px -12px rgba(0,0,0,.2); }
+.gnode.k-gate.sel { box-shadow:inset 0 0 0 2px var(--ink), 0 0 0 3px var(--blue); }
+.gnode.k-close { background:#FBFBFD; }
+.gnode.k-outcome { background:var(--ink); color:#fff; } .gnode.k-outcome p, .gnode.k-outcome .t { color:#A1A1A6; } .gnode.k-outcome .chip { background:#2C2C2E; color:#F5F5F7; }
+.gnode.k-side { background:#F3EEFC; } .gnode.k-nurture { background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
+.gnode.off { opacity:.5; }
+.gnode .dot { position:absolute; top:14px; right:14px; width:10px; height:10px; border-radius:50%; }
+.port { position:absolute; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 0 0 2px #1D1D1F; cursor:crosshair; display:grid; place-items:center; touch-action:none; }
+.port::after { content:""; width:6px; height:6px; border-radius:50%; background:#1D1D1F; }
+.port.out { right:-9px; top:calc(50% - 9px); }
+.port.no { bottom:-9px; left:calc(50% - 9px); box-shadow:0 0 0 2px #D70015; } .port.no::after { background:#D70015; }
+.k-channel .port.out { box-shadow:0 0 0 2px #0071E3; } .k-channel .port.out::after { background:#0071E3; }
+.port:hover { transform:scale(1.2); }
+.gnode.target { box-shadow:0 0 0 3px #30D158, 0 16px 36px -14px rgba(48,209,88,.5); }
+.cv-hint { position:absolute; left:16px; bottom:14px; font-size:12px; color:var(--ink2); background:rgba(255,255,255,.85); backdrop-filter:blur(8px); padding:6px 12px; border-radius:99px; pointer-events:none; }
+.cv-legend { position:absolute; right:16px; bottom:14px; display:flex; gap:12px; font-size:12px; color:var(--ink2); background:rgba(255,255,255,.85); backdrop-filter:blur(8px); padding:6px 12px; border-radius:99px; pointer-events:none; }
+.cv-legend span { display:flex; align-items:center; gap:6px; }
+.cv-legend i { width:18px; height:0; border-top:2.5px solid; display:inline-block; }
+.lg-feed { border-color:#0071E3 !important; } .lg-next { border-color:#1D1D1F !important; } .lg-no { border-color:#D70015 !important; border-top-style:dashed !important; }
+@media (max-width:760px) { .cv-hint { display:none; } }
+
+.side { background:var(--bg); border-left:1px solid var(--bg3); display:grid; grid-template-rows:auto 1fr; min-height:0; }
+.seg { display:flex; gap:4px; margin:14px 16px 0; background:var(--bg2); border-radius:12px; padding:3px; }
+.seg button { flex:1; border:0; background:none; border-radius:10px; padding:8px; font-size:14px; font-weight:600; color:var(--ink2); cursor:pointer; }
+.seg button.on { background:var(--bg); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+.pane { min-height:0; display:grid; }
+.pane[hidden] { display:none; }
+#paneChat { grid-template-rows:1fr auto auto; }
+#paneEdit { overflow:auto; }
+#paneEdit .editor { position:static; max-height:none; background:none; border-radius:0; padding:18px 20px 40px; }
+.msgs { overflow:auto; padding:18px 16px 8px; display:flex; flex-direction:column; gap:10px; }
+.msg { max-width:88%; padding:10px 14px; border-radius:20px; font-size:15px; line-height:1.4; white-space:pre-wrap; word-wrap:break-word; }
+.msg.user { align-self:flex-end; background:var(--blue); color:#fff; border-bottom-right-radius:6px; }
+.msg.assistant { align-self:flex-start; background:var(--bg2); border-bottom-left-radius:6px; }
+.msg .applied { display:flex; align-items:center; gap:8px; margin-top:8px; font-size:12.5px; color:var(--ink2); white-space:normal; }
+.msg .applied button { border:0; background:none; color:var(--blue-ink); font-weight:600; cursor:pointer; padding:0; font-size:12.5px; }
+.msg.typing { color:var(--ink3); }
+.msg .note { display:block; margin-top:6px; font-size:12px; color:var(--ink3); }
+.sugs { display:flex; gap:6px; overflow-x:auto; padding:6px 16px; scrollbar-width:none; }
+.sugs::-webkit-scrollbar { display:none; }
+.sugs button { flex:none; border:0; background:var(--bg2); border-radius:99px; padding:7px 12px; font-size:13px; cursor:pointer; white-space:nowrap; }
+.sugs button:hover { background:var(--bg3); }
+.composer { display:flex; gap:8px; align-items:flex-end; padding:10px 14px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--bg3); }
+.composer textarea { flex:1; resize:none; border:0; background:var(--bg2); border-radius:20px; padding:10px 14px; font-size:15px; max-height:140px; line-height:1.35; }
+.composer textarea:focus { outline:none; box-shadow:0 0 0 3px rgba(0,113,227,.2); }
+.send { width:36px; height:36px; border-radius:50%; border:0; background:var(--blue); color:#fff; font-size:18px; font-weight:700; cursor:pointer; flex:none; }
+.send:disabled { background:var(--bg3); cursor:default; }
+
 /* playbook */
 .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
 .card { background:var(--bg2); border-radius:var(--r); padding:28px; display:grid; gap:14px; align-content:start; min-width:0; }
@@ -272,6 +359,7 @@ input[type=range] { width:100%; accent-color:var(--ink); }
 .q .op span.out { background:var(--red-bg); color:var(--red); }
 .q .why { grid-column:2; font-size:13.5px; color:var(--ink2); }
 
+body.studio-on .foot { display:none; }
 .foot { padding-block:40px 64px; color:var(--ink3); font-size:12.5px; border-top:1px solid var(--bg3); }
 .toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,10px); background:rgba(29,29,31,.92); color:#fff; padding:10px 18px; border-radius:99px; font-size:14px; font-weight:500; opacity:0; transition:all .25s; pointer-events:none; z-index:60; backdrop-filter:blur(10px); }
 .toast.on { opacity:1; transform:translate(-50%,0); }
@@ -388,45 +476,39 @@ input[type=range] { width:100%; accent-color:var(--ink); }
 
 <!-- ================= FUNNEL ================= -->
 <main class="view" id="v-funnel" hidden>
-  <section class="wrap hero" style="padding-bottom:40px">
-    <div class="kicker">Funnel</div>
-    <h1 class="h-xl">Edit anything.</h1>
-    <p class="lead" style="text-align:center">Click a stage to change it. Congruency, objectives and this week’s tasks update as you type.</p>
-    <div class="row" style="justify-content:center">
-      <button class="btn light sm" id="offerBtn" type="button">Edit offer</button>
-      <button class="btn light sm" id="exportBtn" type="button">Export</button>
-      <button class="btn light sm" id="importBtn" type="button">Import</button>
-      <input type="file" id="importFile" accept="application/json" hidden>
-      <button class="btn light sm danger" id="resetBtn" type="button">Reset funnel</button>
-    </div>
-  </section>
-  <section class="sec" style="padding-top:24px">
-    <div class="wrap builder">
-      <div>
-        <div class="lane">
-          <div class="lane-h"><h3>Channels</h3><span class="muted small" id="supplyTag"></span></div>
-          <div class="chs" id="fnChannels"></div>
-          <div class="adds"><button class="btn light sm" data-add="channel">+ Channel</button></div>
-        </div>
-        <div class="lane">
-          <div class="lane-h"><h3>Path to a signed LOI</h3></div>
-          <div class="spinegrid">
-            <div><div id="fnSpine"></div>
-              <div class="adds">
-                <button class="btn light sm" data-add="page">+ Page</button>
-                <button class="btn light sm" data-add="gate">+ Money gate</button>
-                <button class="btn light sm" data-add="system">+ System</button>
-                <button class="btn light sm" data-add="close">+ Sales step</button>
-              </div>
-            </div>
-            <div><div class="lbl" style="margin-bottom:10px">Off the path</div><div class="lane" id="fnSide"></div>
-              <div class="adds"><button class="btn light sm" data-add="side">+ Side engine</button></div></div>
-          </div>
+  <div class="studio">
+    <section class="canvas-wrap" aria-label="Funnel map">
+      <div class="cv-bar">
+        <div class="cv-title"><b>Funnel map</b><span class="cv-score" id="cvScore"></span></div>
+        <div class="cv-tools">
+          <select id="addSel" class="tool" aria-label="Add a stage"><option value="">+ Add</option><option value="channel">Channel</option><option value="page">Page</option><option value="gate">Money gate</option><option value="system">System</option><option value="close">Sales step</option><option value="nurture">Unqualified route</option><option value="side">Side engine</option></select>
+          <button class="tool" id="offerBtn" type="button">Offer</button>
+          <button class="tool" id="arrangeBtn" type="button">Auto-arrange</button>
+          <button class="tool" id="fitBtn" type="button">Fit</button>
+          <button class="tool icon" id="zoomOut" type="button" aria-label="Zoom out">−</button>
+          <button class="tool icon" id="zoomIn" type="button" aria-label="Zoom in">+</button>
+          <button class="tool" id="exportBtn" type="button">Export</button>
+          <button class="tool" id="importBtn" type="button">Import</button>
+          <input type="file" id="importFile" accept="application/json" hidden>
+          <button class="tool danger" id="resetBtn" type="button">Reset</button>
         </div>
       </div>
-      <aside class="editor" id="editor" aria-live="polite"></aside>
-    </div>
-  </section>
+      <div class="cv" id="cv" tabindex="0" aria-label="Interactive funnel map. Drag stages to move them, drag a dot to connect.">
+        <div class="world" id="world"><svg class="edges" id="edges" width="6000" height="4000"></svg><div id="gnodes"></div></div>
+        <div class="cv-hint">Drag a stage to move it · drag a dot onto another stage to connect · scroll to pan · pinch or ⌘ + scroll to zoom</div>
+        <div class="cv-legend"><span><i class="lg-feed"></i>Traffic</span><span><i class="lg-next"></i>Next step</span><span><i class="lg-no"></i>Fails the gate</span></div>
+      </div>
+    </section>
+    <aside class="side">
+      <div class="seg" role="tablist"><button type="button" data-pane="chat" class="on">Chat</button><button type="button" data-pane="edit">Edit</button></div>
+      <div class="pane" id="paneChat">
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="sugs" id="sugs"></div>
+        <form class="composer" id="chatForm"><textarea id="chatIn" rows="1" placeholder="Talk to the funnel…" aria-label="Message"></textarea><button class="send" type="submit" aria-label="Send">↑</button></form>
+      </div>
+      <div class="pane" id="paneEdit" hidden><div class="editor" id="editor" aria-live="polite"></div></div>
+    </aside>
+  </div>
 </main>
 
 <!-- ================= PLAYBOOK ================= -->
@@ -598,21 +680,30 @@ const METRIC = { visitors: c => c.visitors + ' visitors / mo', booked: c => c.bo
 function check() {
   const items = [], o = F.offer, minRev = +o.minRevenue || 0, minTxt = money(minRev);
   const spine = F.nodes.filter(n => SPINE.includes(n.kind));
-  const firstSale = spine.findIndex(n => SALES.includes(n.kind));
-  const gates = spine.filter(n => n.kind === 'gate');
+  const gates = F.nodes.filter(n => n.kind === 'gate');
   const ch = F.nodes.filter(n => n.kind === 'channel' && n.enabled);
   const hasMin = t => { t = (t || '').toLowerCase(); return t.includes(minTxt.toLowerCase()) || t.includes(String(minRev)) || t.includes(minRev.toLocaleString('en-US')); };
   const fp = F.nodes.find(n => n.kind === 'page' && n.facing);
   const T = terms();
   const group = (cat, label, fails) => fails.length ? fails.forEach(f => items.push({ cat, label: f.msg, fix: f.fix, node: f.node ?? null, sev: f.sev || 'bad' })) : items.push({ cat, label, pass: true });
 
-  // Money first
-  group('Money first', 'A money gate sits before every sales step', firstSale >= 0 && !spine.slice(0, firstSale).some(n => n.kind === 'gate') ? [{ msg:'No money gate before the first sales step. Anyone could get on a call.', fix:`Add a money gate above “${spine[firstSale].title}”.`, node: spine[firstSale].id }] : []);
+  // Money first: walk every path from live channels; a qualifying gate only lets "fail" traffic continue past it.
+  const ungated = (() => {
+    const seen = new Set(), hit = new Set(), q = ch.map(n => n.id);
+    while (q.length) {
+      const id = q.shift(); if (seen.has(id)) continue; seen.add(id);
+      const n = byId(id); if (!n) continue;
+      if (SALES.includes(n.kind)) { hit.add(id); continue; }
+      if (n.kind === 'gate' && (+n.threshold || 0) >= minRev) { if (n.noNext) q.push(n.noNext); continue; }
+      if (n.next) q.push(n.next); if (n.kind === 'gate' && n.noNext) q.push(n.noNext);
+    }
+    return [...hit];
+  })();
+  group('Money first', 'Every path to a sales step passes a money gate', ungated.map(id => ({ msg:`People can reach “${byId(id).title}” without passing a ${minTxt}+ money gate.`, fix:'Route that path through the application (money gate).', node:id })));
   group('Money first', `Every gate demands ${minTxt}+ revenue`, gates.filter(g => (+g.threshold || 0) < minRev).map(g => ({ msg:`“${g.title}” lets in businesses under ${minTxt}.`, fix:`Set its threshold to at least ${minTxt}.`, node:g.id })));
   group('Money first', 'Every gate asks if they’re ready to invest', gates.filter(g => !g.readiness).map(g => ({ msg:`“${g.title}” doesn’t ask if they’re ready to invest ${money(o.price)}.`, fix:'Turn on the readiness question.', node:g.id, sev:'warn' })));
   group('Money first', 'People who fail a gate never reach a sales step', gates.filter(g => { const no = byId(g.noNext); return !no || SALES.includes(no.kind); }).map(g => ({ msg:`“${g.title}” has no safe route for people who fail it.`, fix:'Send them to the unqualified page or content.', node:g.id })));
   group('Money first', `Owners at ${minTxt} can easily afford ${money(o.price)}`, o.price > minRev * 0.04 ? [{ msg:`${money(o.price)} is over 4% of the ${minTxt} minimum. Owners at the line may not have the money.`, fix:`Raise the minimum to ${money(o.price / 0.04)} or lower the price.` }] : []);
-  group('Money first', 'No channel skips the money gate', ch.filter(c => SALES.includes(byId(c.next)?.kind)).map(c => ({ msg:`“${c.title}” sends people straight to a sales step.`, fix:'Point it at the VSL page or the application.', node:c.id })));
   group('Money first', 'DMs ask about revenue first', ch.filter(c => /\bdms?\b|message|chat/i.test(c.title) && !c.qualifies).map(c => ({ msg:`“${c.title}” doesn’t ask about revenue first.`, fix:'Turn on “asks revenue first”.', node:c.id, sev:'warn' })));
 
   // Same promise
@@ -778,25 +869,314 @@ function renderCongruency(R) {
   $('cgTrend').innerHTML = ks.map(k => { const s = W[k].score ?? 0; return `<div><span>${s}</span><i style="height:${Math.max(4, s)}%;background:${scoreColor(s)}"></i><span>${k.slice(5).replace('-', '/')}</span></div>`; }).join('');
 }
 
-/* ============ render: funnel ============ */
-function nodeHTML(n, R, c) {
+/* ============ map: nodes, links, pan/zoom ============ */
+const NW = 250, COLW = 330, ROWH = 215, PER_ROW = 6;
+const view = { x: 40, y: 40, k: 0.8, fitted: false };
+const EDGE_COLOR = { feed:'#0071E3', next:'#1D1D1F', no:'#D70015' };
+function edgesOf() {
+  const out = [];
+  F.nodes.forEach(n => {
+    if (n.next && byId(n.next)) out.push({ from:n.id, to:n.next, field:'next', cls: n.kind === 'channel' ? 'feed' : 'next', label: n.kind === 'gate' ? 'YES' : '' });
+    if (n.kind === 'gate' && n.noNext && byId(n.noNext)) out.push({ from:n.id, to:n.noNext, field:'noNext', cls:'no', label:'NO' });
+  });
+  return out;
+}
+function autoLayout(all) {
+  if (!all && F.nodes.every(n => n.x != null)) return;
+  const ids = F.nodes.map(n => n.id), E = edgesOf(), inc = {};
+  E.forEach(e => inc[e.to] = (inc[e.to] || 0) + 1);
+  const back = new Set(), state = {};
+  const dfs = id => { state[id] = 1; E.filter(e => e.from === id).forEach(e => { if (state[e.to] === 1) back.add(e); else if (!state[e.to]) dfs(e.to); }); state[id] = 2; };
+  ids.filter(id => !inc[id]).forEach(id => { if (!state[id]) dfs(id); });
+  ids.forEach(id => { if (!state[id]) dfs(id); });
+  const fwd = E.filter(e => !back.has(e)), rank = {};
+  ids.forEach(id => rank[id] = 0);
+  for (let i = 0; i < ids.length; i++) fwd.forEach(e => { if (rank[e.to] < rank[e.from] + 1) rank[e.to] = rank[e.from] + 1; });
+  const cols = {};
+  F.nodes.forEach(n => (cols[rank[n.id]] = cols[rank[n.id]] || []).push(n));
+  const rowN = {};
+  Object.keys(cols).forEach(r => { const row = Math.floor(r / PER_ROW); rowN[row] = Math.max(rowN[row] || 0, cols[r].length); });
+  const rowY = row => { let y = 0; for (let i = 0; i < row; i++) y += (rowN[i] || 1) * ROWH + 110; return y; };
+  Object.keys(cols).forEach(r => {
+    r = +r; const row = Math.floor(r / PER_ROW), c = r % PER_ROW, col = row % 2 ? PER_ROW - 1 - c : c;
+    cols[r].forEach((n, i) => { if (all || n.x == null) { n.x = col * COLW; n.y = rowY(row) + i * ROWH; } });
+  });
+}
+function gnodeHTML(n, R, c) {
   const iss = R.fails.filter(i => i.node === n.id), sev = iss.some(i => i.sev === 'bad') ? 'bad' : iss.length ? 'warn' : '';
   const chips = [];
   if (n.kind === 'gate') chips.push(`<span class="chip money">${money(n.threshold)}+ only</span>`);
   if (n.kind === 'channel' && n.qualifies) chips.push('<span class="chip money">Asks revenue</span>');
-  if (n.kind === 'channel') chips.push(`<span class="chip">${esc(n.volume)}</span>`, `<span class="chip num">${+n.visits || 0}/mo</span>`);
+  if (n.kind === 'channel') chips.push(`<span class="chip">${esc(n.volume)}</span>`, `<span class="chip num">${+n.visits || 0} visits/mo</span>`);
   if (n.metric && METRIC[n.metric]) chips.push(`<span class="chip num">${METRIC[n.metric](c)}</span>`);
   if (n.kpi) chips.push(`<span class="chip">${esc(n.kpi)}</span>`);
-  const cls = ['node', 'k-' + n.kind, n.primary ? 'primary' : '', n.kind === 'channel' && !n.enabled ? 'off' : '', sel.type === 'node' && sel.id === n.id ? 'sel' : ''].join(' ');
-  return `<button type="button" class="${cls}" data-node="${n.id}">${sev ? `<span class="dot ${sev}"></span>` : ''}<span class="t">${n.primary ? 'Primary driver' : KIND[n.kind]}${n.owner ? ' · ' + esc(n.owner) : ''}</span><h4>${esc(n.title)}</h4>${n.sub ? `<p>${esc(n.sub)}</p>` : ''}${n.kind === 'gate' ? `<span class="gno">No → ${esc(byId(n.noNext)?.title || 'nowhere')}</span>` : ''}<span class="chips">${chips.join('')}</span></button>`;
+  const cls = ['gnode', 'k-' + n.kind, n.primary ? 'primary' : '', n.kind === 'channel' && !n.enabled ? 'off' : '', sel.type === 'node' && sel.id === n.id ? 'sel' : ''].join(' ');
+  const ports = `<span class="port out" data-port="next" title="Drag onto a stage to set the next step"></span>` + (n.kind === 'gate' ? `<span class="port no" data-port="noNext" title="Drag onto a stage to set where people who fail go"></span>` : '');
+  return `<div class="${cls}" data-gnode="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px">${sev ? `<span class="dot ${sev}"></span>` : ''}<span class="t">${n.primary ? 'Primary driver' : KIND[n.kind]}${n.owner ? ' · ' + esc(n.owner) : ''}</span><h4>${esc(n.title)}</h4>${n.sub ? `<p>${esc(n.sub)}</p>` : ''}<span class="chips">${chips.join('')}</span>${ports}</div>`;
 }
-function renderFunnel(R, c) {
-  $('fnChannels').innerHTML = F.nodes.filter(n => n.kind === 'channel').map(n => nodeHTML(n, R, c)).join('');
-  $('supplyTag').textContent = `${c.supply} visitors / mo in · goal needs ${c.visitors}`;
-  const sp = F.nodes.filter(n => SPINE.includes(n.kind));
-  $('fnSpine').innerHTML = sp.map((n, i) => nodeHTML(n, R, c) + (sp[i + 1] ? `<div class="join">${n.kind === 'gate' ? '<span>YES</span>' : ''}</div>` : '')).join('');
-  $('fnSide').innerHTML = F.nodes.filter(n => ['nurture','side'].includes(n.kind)).map(n => nodeHTML(n, R, c)).join('');
+function renderGraph(R, c) {
+  autoLayout(false);
+  $('gnodes').innerHTML = F.nodes.map(n => gnodeHTML(n, R, c)).join('');
+  drawEdges();
+  const s = $('cvScore'); s.textContent = `Congruency ${R.score}`; s.style.color = R.score >= 85 ? 'var(--green)' : R.score >= 60 ? 'var(--amber)' : 'var(--red)';
+  applyView();
 }
+function rectOf(id) {
+  const n = byId(id), el = document.querySelector(`.gnode[data-gnode="${CSS.escape(id)}"]`);
+  return { x:n.x, y:n.y, w: el && el.offsetWidth ? el.offsetWidth : NW, h: el && el.offsetHeight ? el.offsetHeight : 130 };
+}
+function curve(a, b, vertical) {
+  const ac = { x:a.x + a.w / 2, y:a.y + a.h / 2 }, bc = { x:b.x + b.w / 2, y:b.y + b.h / 2 }, dx = bc.x - ac.x, dy = bc.y - ac.y;
+  let p1, p2, n1, n2;
+  const gapR = b.x - (a.x + a.w), gapL = a.x - (b.x + b.w);
+  if (!vertical && (gapR > 24 || gapL > 24) && Math.max(gapR, gapL) * 2.2 > Math.abs(dy) * 0.6 || (!vertical && Math.abs(dx) >= Math.abs(dy) * 1.4)) {
+    if (dx > 0) { p1 = { x:a.x + a.w, y:ac.y }; p2 = { x:b.x, y:bc.y }; n1 = { x:1, y:0 }; n2 = { x:-1, y:0 }; }
+    else { p1 = { x:a.x, y:ac.y }; p2 = { x:b.x + b.w, y:bc.y }; n1 = { x:-1, y:0 }; n2 = { x:1, y:0 }; }
+  } else if (dy > 0 || vertical) {
+    p1 = { x:ac.x, y:a.y + a.h }; n1 = { x:0, y:1 };
+    if (dy > 0) { p2 = { x:bc.x, y:b.y }; n2 = { x:0, y:-1 }; } else { p2 = { x:dx > 0 ? b.x : b.x + b.w, y:bc.y }; n2 = { x:dx > 0 ? -1 : 1, y:0 }; }
+  } else { p1 = { x:ac.x, y:a.y }; p2 = { x:bc.x, y:b.y + b.h }; n1 = { x:0, y:-1 }; n2 = { x:0, y:1 }; }
+  const k = Math.max(60, Math.hypot(p2.x - p1.x, p2.y - p1.y) * 0.42);
+  const c1 = { x:p1.x + n1.x * k, y:p1.y + n1.y * k }, c2 = { x:p2.x + n2.x * k, y:p2.y + n2.y * k };
+  return { p1, c1, c2, p2, d:`M${p1.x},${p1.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${p2.x},${p2.y}` };
+}
+function drawEdges(temp) {
+  let h = '<defs>' + Object.entries(EDGE_COLOR).map(([k, col]) => `<marker id="ah-${k}" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${col}"/></marker>`).join('') + '</defs>';
+  edgesOf().forEach(e => {
+    const p = curve(rectOf(e.from), rectOf(e.to), e.field === 'noNext'), key = e.from + '|' + e.field;
+    const on = sel.type === 'edge' && sel.key === key ? ' sel' : '';
+    h += `<path class="hit" data-edge="${esc(key)}" d="${p.d}"/><path class="ln ${e.cls}${on}" d="${p.d}" marker-end="url(#ah-${e.cls})"/>`;
+    if (e.label) {
+      const mx = (p.p1.x + 3 * p.c1.x + 3 * p.c2.x + p.p2.x) / 8, my = (p.p1.y + 3 * p.c1.y + 3 * p.c2.y + p.p2.y) / 8;
+      h += `<rect class="lbbg" x="${mx - 16}" y="${my - 10}" width="32" height="20" rx="10"/><text class="lb" x="${mx}" y="${my + 4}" text-anchor="middle" fill="${EDGE_COLOR[e.cls]}">${e.label}</text>`;
+    }
+  });
+  if (temp) h += `<path class="ln temp" d="${temp}"/>`;
+  $('edges').innerHTML = h;
+}
+function applyView() { $('world').style.transform = `translate(${view.x}px,${view.y}px) scale(${view.k})`; }
+const clampK = k => Math.min(1.8, Math.max(0.2, k));
+function zoomTo(px, py, k) { k = clampK(k); view.x = px - (px - view.x) * (k / view.k); view.y = py - (py - view.y) * (k / view.k); view.k = k; applyView(); }
+function fitView() {
+  const cv = $('cv'); if (!cv.offsetWidth || !F.nodes.length) return;
+  const rs = F.nodes.map(n => rectOf(n.id));
+  const minx = Math.min(...rs.map(r => r.x)), miny = Math.min(...rs.map(r => r.y)), maxx = Math.max(...rs.map(r => r.x + r.w)), maxy = Math.max(...rs.map(r => r.y + r.h));
+  const W = cv.offsetWidth, H = cv.offsetHeight, k = clampK(Math.min((W - 80) / (maxx - minx), (H - 110) / (maxy - miny), 1.05));
+  view.k = k; view.x = (W - (maxx - minx) * k) / 2 - minx * k; view.y = (H - (maxy - miny) * k) / 2 - miny * k - 8; applyView();
+}
+function centerOn(id) { const cv = $('cv'), r = rectOf(id); if (!cv.offsetWidth) return; view.k = Math.max(view.k, 0.75); view.x = cv.offsetWidth / 2 - (r.x + r.w / 2) * view.k; view.y = cv.offsetHeight / 2 - (r.y + r.h / 2) * view.k; applyView(); }
+function toWorld(cx, cy) { const r = $('cv').getBoundingClientRect(); return { x:(cx - r.left - view.x) / view.k, y:(cy - r.top - view.y) / view.k }; }
+function showPane(p) { document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.pane === p)); $('paneChat').hidden = p !== 'chat'; $('paneEdit').hidden = p !== 'edit'; }
+function selectNode(id) {
+  sel = { type:'node', id }; showPane('edit'); renderEditor(check());
+  document.querySelectorAll('.gnode').forEach(el => el.classList.toggle('sel', el.dataset.gnode === id)); drawEdges();
+}
+function addNode(kind, o = {}) {
+  const id = o.id || kind + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const n = { id, kind, title:o.title || 'New ' + KIND[kind].toLowerCase(), sub:'', message:'', next:'', objective:'', kpi:'', owner:'', facing:['channel','page','gate','close','nurture'].includes(kind) };
+  if (kind === 'channel') Object.assign(n, { volume:'', visits:0, enabled:true, primary:false, qualifies:false, next: byId('vsl') ? 'vsl' : '' });
+  if (kind === 'gate') Object.assign(n, { threshold:F.offer.minRevenue, readiness:true, noNext: F.nodes.find(x => x.kind === 'nurture')?.id || '' });
+  if (kind === 'deliver') n.days = F.offer.days;
+  const cv = $('cv');
+  if (cv.offsetWidth) { const r = cv.getBoundingClientRect(), w = toWorld(r.left + r.width / 2, r.top + r.height / 2); n.x = Math.round(w.x - NW / 2 + (Math.random() * 80 - 40)); n.y = Math.round(w.y - 70 + (Math.random() * 80 - 40)); }
+  F.nodes.push(n); return n;
+}
+function removeNode(id) { F.nodes = F.nodes.filter(n => n.id !== id); F.nodes.forEach(n => { if (n.next === id) n.next = ''; if (n.noNext === id) n.noNext = ''; }); }
+function afterEdit(what) { renderSliders(); renderApp(); renderEditor(refresh()); funnelChanged(what); }
+
+(function initMap() {
+  const cv = $('cv'), pts = new Map(); let drag = null, pinch = null;
+  cv.addEventListener('pointerdown', e => {
+    if (e.button > 0) return;
+    pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d:Math.hypot(a.x - b.x, a.y - b.y) || 1, k:view.k }; drag = null; return; }
+    const port = e.target.closest('.port'), node = e.target.closest('.gnode'), edge = e.target.closest('[data-edge]');
+    if (port && node) drag = { mode:'link', from:node.dataset.gnode, field:port.dataset.port };
+    else if (node) { const n = byId(node.dataset.gnode); drag = { mode:'move', id:n.id, el:node, sx:e.clientX, sy:e.clientY, ox:n.x, oy:n.y, moved:false }; }
+    else if (edge) drag = { mode:'edge', key:edge.getAttribute('data-edge') };
+    else { drag = { mode:'pan', sx:e.clientX, sy:e.clientY, ox:view.x, oy:view.y, moved:false }; cv.classList.add('panning'); }
+    cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointermove', e => {
+    if (pts.has(e.pointerId)) pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if (pinch && pts.size === 2) { const [a, b] = [...pts.values()], r = cv.getBoundingClientRect(); zoomTo((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, pinch.k * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d); return; }
+    if (!drag) return;
+    if (drag.mode === 'move') {
+      const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+      if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+      drag.moved = true; drag.el.classList.add('drag');
+      const n = byId(drag.id); n.x = Math.round(drag.ox + dx / view.k); n.y = Math.round(drag.oy + dy / view.k);
+      drag.el.style.left = n.x + 'px'; drag.el.style.top = n.y + 'px'; drawEdges();
+    } else if (drag.mode === 'pan') {
+      const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+      if (Math.hypot(dx, dy) > 3) drag.moved = true;
+      view.x = drag.ox + dx; view.y = drag.oy + dy; applyView();
+    } else if (drag.mode === 'link') {
+      const a = rectOf(drag.from), w = toWorld(e.clientX, e.clientY);
+      const p1 = drag.field === 'noNext' ? { x:a.x + a.w / 2, y:a.y + a.h } : { x:a.x + a.w, y:a.y + a.h / 2 };
+      const c1 = drag.field === 'noNext' ? { x:p1.x, y:p1.y + 80 } : { x:p1.x + 80, y:p1.y };
+      drawEdges(`M${p1.x},${p1.y} C${c1.x},${c1.y} ${w.x},${w.y} ${w.x},${w.y}`);
+      const over = document.elementFromPoint(e.clientX, e.clientY)?.closest('.gnode');
+      document.querySelectorAll('.gnode.target').forEach(el => { if (el !== over) el.classList.remove('target'); });
+      if (over && over.dataset.gnode !== drag.from) over.classList.add('target');
+    }
+  });
+  const end = e => {
+    pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+    if (!drag) return; const d = drag; drag = null; cv.classList.remove('panning');
+    if (d.mode === 'move') { d.el.classList.remove('drag'); if (d.moved) saveF(); else selectNode(d.id); }
+    else if (d.mode === 'edge') { sel = { type:'edge', key:d.key }; showPane('edit'); renderEditor(check()); drawEdges(); }
+    else if (d.mode === 'link') {
+      const over = document.elementFromPoint(e.clientX, e.clientY)?.closest('.gnode');
+      document.querySelectorAll('.gnode.target').forEach(el => el.classList.remove('target'));
+      if (over && over.dataset.gnode !== d.from) {
+        const a = byId(d.from), b = byId(over.dataset.gnode); a[d.field] = b.id;
+        afterEdit(`connected ${a.title} to ${b.title}`); toast(`${a.title} → ${b.title}`);
+      } else drawEdges();
+    }
+  };
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+  cv.addEventListener('wheel', e => {
+    e.preventDefault(); const r = cv.getBoundingClientRect();
+    if (e.ctrlKey || e.metaKey) zoomTo(e.clientX - r.left, e.clientY - r.top, view.k * Math.exp(-e.deltaY * 0.01));
+    else { view.x -= e.deltaX; view.y -= e.deltaY; applyView(); }
+  }, { passive:false });
+  $('fitBtn').onclick = fitView;
+  $('zoomIn').onclick = () => zoomTo(cv.offsetWidth / 2, cv.offsetHeight / 2, view.k * 1.2);
+  $('zoomOut').onclick = () => zoomTo(cv.offsetWidth / 2, cv.offsetHeight / 2, view.k / 1.2);
+  $('arrangeBtn').onclick = () => { autoLayout(true); renderGraph(check(), calc()); fitView(); saveF(); toast('Arranged'); };
+  $('addSel').onchange = e => { const k = e.target.value; e.target.value = ''; if (!k) return; const n = addNode(k); afterEdit('added ' + KIND[k].toLowerCase()); selectNode(n.id); toast('Added ' + KIND[k].toLowerCase()); };
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => showPane(b.dataset.pane));
+  document.addEventListener('keydown', e => {
+    if ($('v-funnel').hidden || e.target.closest('input,textarea,select')) return;
+    if ((e.key === 'Delete' || e.key === 'Backspace') && sel.type === 'edge') { const [from, field] = sel.key.split('|'); byId(from)[field] = ''; sel = { type:'offer' }; afterEdit('removed a connection'); toast('Connection removed'); e.preventDefault(); }
+    else if (e.key === 'Escape') { sel = { type:'offer' }; renderEditor(check()); document.querySelectorAll('.gnode.sel').forEach(el => el.classList.remove('sel')); drawEdges(); }
+    else if (e.key === 'f') fitView();
+    else if (e.key === '=' || e.key === '+') $('zoomIn').click();
+    else if (e.key === '-') $('zoomOut').click();
+  });
+  window.addEventListener('resize', () => { if (!$('v-funnel').hidden) drawEdges(); });
+})();
+
+/* ============ chat ============ */
+let chat = [], quickNoteShown = false;
+const SUGS = ['What’s not congruent?', 'Raise the price to $25k', 'Add channel TikTok to YouTube', 'Set the money gate to $2M', 'Goal: 6 clients a month', 'Help'];
+const OFFER_KEYS = ['name','claim','terms','audience','minRevenue','price','days'], MATH_KEYS = ['goalClients','bookRate','showRate','closeRate'];
+const NODE_KEYS = ['title','sub','message','next','noNext','objective','kpi','owner','volume','visits','enabled','primary','qualifies','threshold','readiness','days','facing','metric'];
+const NUM_KEYS = ['minRevenue','price','days','visits','threshold','goalClients','bookRate','showRate','closeRate'], BOOL_KEYS = ['enabled','primary','qualifies','readiness','facing'];
+function coerce(field, v, cur) {
+  if (NUM_KEYS.includes(field)) { const n = parseFloat(String(v).replace(/[$,\s]/g, '')); return isNaN(n) ? cur : n; }
+  if (BOOL_KEYS.includes(field)) return v === true || String(v).toLowerCase() === 'true';
+  return String(v ?? '');
+}
+function applyOps(ops) {
+  const done = [];
+  for (const o of ops || []) {
+    if (!o || typeof o !== 'object') continue;
+    if (o.type === 'set_offer' && OFFER_KEYS.includes(o.field)) { F.offer[o.field] = coerce(o.field, o.value, F.offer[o.field]); done.push(o); }
+    else if (o.type === 'set_math' && MATH_KEYS.includes(o.field)) { F.math[o.field] = coerce(o.field, o.value, F.math[o.field]); done.push(o); }
+    else if (o.type === 'set_field' && byId(o.id) && NODE_KEYS.includes(o.field)) { const n = byId(o.id); n[o.field] = coerce(o.field, o.value, n[o.field]); done.push(o); }
+    else if (o.type === 'connect' && byId(o.id) && ['next','noNext'].includes(o.field) && (!o.target || byId(o.target))) { byId(o.id)[o.field] = o.target || ''; done.push(o); }
+    else if (o.type === 'add_node' && KIND[o.kind]) {
+      const slug = String(o.id || '').replace(/[^\w-]/g, '').slice(0, 40);
+      const n = addNode(o.kind, { id: slug && !byId(slug) ? slug : undefined, title: o.title });
+      if (o.target && byId(o.target)) n.next = o.target;
+      o.id = n.id; done.push(o);
+    }
+    else if (o.type === 'delete_node' && byId(o.id)) { o.title = o.title || byId(o.id).title; removeNode(o.id); done.push(o); }
+  }
+  return done;
+}
+function describeOp(o) {
+  const t = id => byId(id)?.title || id;
+  switch (o.type) {
+    case 'set_offer': return `• Offer ${o.field}: ${o.value}`;
+    case 'set_math': return `• ${o.field}: ${o.value}`;
+    case 'set_field': return `• ${t(o.id)}: ${o.field} → ${o.value}`;
+    case 'connect': return `• ${t(o.id)} ${o.field === 'noNext' ? '(fails) ' : ''}→ ${o.target ? t(o.target) : 'nothing'}`;
+    case 'add_node': return `• Added ${KIND[o.kind].toLowerCase()} “${t(o.id)}”`;
+    case 'delete_node': return `• Deleted “${o.title}”`;
+  }
+  return '';
+}
+const parseMoney = (s, u) => { let n = parseFloat(String(s).replace(/,/g, '')); u = (u || '').toLowerCase(); if (u === 'k') n *= 1e3; if (u === 'm' || u === 'mm') n *= 1e6; return n; };
+function findNode(q) {
+  q = String(q || '').toLowerCase().replace(/["“”'‘’.!?]/g, '').replace(/^(the|a|an)\s+/, '').trim(); if (!q) return null;
+  const T = n => n.title.toLowerCase();
+  return F.nodes.find(n => T(n) === q) || F.nodes.find(n => n.id.toLowerCase() === q) || F.nodes.find(n => T(n).includes(q)) || F.nodes.find(n => q.includes(T(n))) || (() => {
+    const w = q.split(/\s+/).filter(x => x.length > 2); let best = null, bs = 0;
+    F.nodes.forEach(n => { const s = w.filter(x => T(n).includes(x)).length; if (s > bs) { bs = s; best = n; } }); return best;
+  })();
+}
+function localCommand(s) {
+  s = s.trim(); const ops = []; let m;
+  if (/^(help|\?|commands)$/i.test(s) || /what can you do/i.test(s)) return { reply:'Things I can do right now:\n• “price $25k”, “minimum revenue $2M”, “goal 6 clients”, “close rate 30%”, “contract 120 days”\n• “add channel TikTok to YouTube”, “add page Case studies”\n• “connect DMs to application”, “rename Content ads to Meta ads”\n• “turn off content ads”, “delete micro1 referrals”\n• “what’s not congruent?”', applied:[] };
+  if (/congruen|wrong|issue|problem|score|broken/i.test(s) && !/^(add|connect|link|rename|delete|remove|set|price|turn)/i.test(s)) {
+    const R = check();
+    return { reply: R.fails.length ? `Congruency is ${R.score}.\n` + R.fails.slice(0, 6).map(f => `• ${f.label} ${f.fix}`).join('\n') : `Congruency is ${R.score}. Same promise, same buyer, and every path to a sales step passes the money gate.`, applied:[] };
+  }
+  if ((m = s.match(/rename\s+(.+?)\s+to\s+(.+)/i))) { const n = findNode(m[1]); if (n) ops.push({ type:'set_field', id:n.id, field:'title', value:m[2].trim() }); }
+  else if ((m = s.match(/(?:connect|link|point|route|send)\s+(.+?)\s+(?:to|->|→|into|at)\s+(.+)/i))) { const a = findNode(m[1]), b = findNode(m[2]); if (a && b) ops.push({ type:'connect', id:a.id, field: a.kind === 'gate' && /fail|unqualified|\bno\b/i.test(s) ? 'noNext' : 'next', target:b.id }); }
+  else if ((m = s.match(/^add\s+(?:an?\s+)?(channel|page|money gate|gate|system|sales step|step|side engine|unqualified route)\b\s*(?:called|named)?\s*(.*)$/i))) {
+    const kind = { channel:'channel', page:'page', 'money gate':'gate', gate:'gate', system:'system', 'sales step':'close', step:'close', 'side engine':'side', 'unqualified route':'nurture' }[m[1].toLowerCase()];
+    let rest = m[2], target = ''; const mm = rest.match(/\s+(?:feeding|to|into|→|->)\s+(.+)$/i);
+    if (mm) { const b = findNode(mm[1]); if (b) target = b.id; rest = rest.slice(0, mm.index); }
+    ops.push({ type:'add_node', kind, title: rest.trim() || '', target, id:'' });
+  }
+  else if ((m = s.match(/^(?:delete|remove)\s+(.+)/i))) { const n = findNode(m[1]); if (n) ops.push({ type:'delete_node', id:n.id }); }
+  else if ((m = s.match(/^(?:turn\s+(on|off)|(enable|disable))\s+(.+)/i))) { const on = /on|enable/i.test(m[1] || m[2]); const n = findNode(m[3]); if (n && n.kind === 'channel') ops.push({ type:'set_field', id:n.id, field:'enabled', value:String(on) }); }
+  else {
+    if ((m = s.match(/price\D{0,12}\$?\s*([\d.,]+)\s*(k|m)?\b/i))) ops.push({ type:'set_offer', field:'price', value:String(parseMoney(m[1], m[2])) });
+    if ((m = s.match(/(?:min(?:imum)?(?:\s+revenue)?|threshold|money gate|gate)\D{0,14}\$?\s*([\d.,]+)\s*(k|mm|m)?\b/i))) { const v = parseMoney(m[1], m[2]); ops.push({ type:'set_offer', field:'minRevenue', value:String(v) }); F.nodes.filter(n => n.kind === 'gate').forEach(g => ops.push({ type:'set_field', id:g.id, field:'threshold', value:String(v) })); ops.push({ type:'set_offer', field:'audience', value:`Owners doing ${money(v)}+ a year` }); }
+    if ((m = s.match(/(\d+)\s*clients?/i))) ops.push({ type:'set_math', field:'goalClients', value:m[1] });
+    for (const [re, f] of [[/close\s*rate\D{0,6}([\d.]+)/i, 'closeRate'], [/show\s*rate\D{0,6}([\d.]+)/i, 'showRate'], [/book(?:ing)?\s*rate\D{0,6}([\d.]+)/i, 'bookRate']]) if ((m = s.match(re))) ops.push({ type:'set_math', field:f, value:m[1] });
+    if ((m = s.match(/(\d+)[-\s]*days?/i)) && /contract|deliver|program|days/i.test(s)) { ops.push({ type:'set_offer', field:'days', value:m[1] }); F.nodes.filter(n => n.kind === 'deliver').forEach(d => ops.push({ type:'set_field', id:d.id, field:'days', value:m[1] })); }
+  }
+  if (!ops.length) return { reply:'I couldn’t turn that into a change. Try “price $25k”, “add channel TikTok to YouTube” or “connect DMs to application”, or type “help”.', applied:[] };
+  const done = applyOps(ops), R = check();
+  return { reply: done.map(describeOp).join('\n') + `\nCongruency is now ${R.score}.` + (R.fails.length ? ` Top issue: ${R.fails[0].label}` : ''), applied:done };
+}
+function loadChat() {
+  try { chat = JSON.parse(localStorage.getItem('loi:chat')) || []; } catch (e) { chat = []; }
+  chat = chat.filter(m => !m.typing);
+  if (!chat.length) chat = [{ role:'assistant', text:'I can see the whole funnel. Ask me anything about it, or tell me what to change, like “add channel TikTok to YouTube” or “set the money gate to $2M”.' }];
+}
+function saveChat() { try { localStorage.setItem('loi:chat', JSON.stringify(chat.slice(-60).map(m => ({ ...m, undo: null })))); } catch (e) {} }
+function renderChat() {
+  $('msgs').innerHTML = chat.map((m, i) => `<div class="msg ${m.role}${m.typing ? ' typing' : ''}">${esc(m.text)}${m.applied ? `<span class="applied">${m.applied} change${m.applied > 1 ? 's' : ''} applied${m.undo ? ` · <button type="button" data-undo="${i}">Undo</button>` : m.undone ? ' · undone' : ''}</span>` : ''}${m.note ? `<span class="note">${esc(m.note)}</span>` : ''}</div>`).join('');
+  $('msgs').scrollTop = $('msgs').scrollHeight;
+}
+async function sendChat(text) {
+  text = text.trim(); if (!text) return;
+  chat.push({ role:'user', text }); const pending = { role:'assistant', text:'Thinking…', typing:true }; chat.push(pending); renderChat();
+  $('chatIn').value = ''; $('chatIn').style.height = '';
+  const before = JSON.stringify(F); let res = null, why = '';
+  if (store.mode === 'cloud') {
+    try {
+      const r = await fetch('api/chat', { method:'POST', credentials:'same-origin', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ messages: chat.filter(m => !m.typing).slice(-12).map(m => ({ role:m.role, text:m.text })), funnel:F, issues: check().fails.map(i => i.label), numbers: calc() }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) res = d; else why = d.error || '';
+    } catch (e) { why = 'Couldn’t reach the server.'; }
+  } else why = 'Sign in through Cloudflare Access to use the AI chat.';
+  let applied;
+  if (res) { applied = applyOps(res.ops); pending.text = res.reply || 'Done.'; }
+  else { const l = localCommand(text); applied = l.applied; pending.text = l.reply; if (!quickNoteShown) { pending.note = `Quick mode: I understand direct commands. ${why} The full AI chat runs once Access sign-in and the Claude API key are set.`.replace(/\s+/g, ' '); quickNoteShown = true; } }
+  delete pending.typing;
+  if (applied.length) { pending.applied = applied.length; pending.undo = before; afterEdit('chat: ' + text.slice(0, 60)); }
+  saveChat(); renderChat();
+}
+$('chatForm').addEventListener('submit', e => { e.preventDefault(); sendChat($('chatIn').value); });
+$('chatIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat($('chatIn').value); } });
+$('chatIn').addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; });
+$('sugs').innerHTML = SUGS.map(s => `<button type="button" data-sug="${esc(s)}">${esc(s)}</button>`).join('');
+$('sugs').addEventListener('click', e => { const b = e.target.closest('[data-sug]'); if (b) sendChat(b.dataset.sug); });
+$('msgs').addEventListener('click', e => {
+  const b = e.target.closest('[data-undo]'); if (!b) return;
+  const m = chat[+b.dataset.undo]; if (!m || !m.undo) return;
+  F = JSON.parse(m.undo); m.undo = null; m.undone = true; afterEdit('undid a chat change'); renderChat(); toast('Undone');
+});
+
 const NODE_FIELDS = [
   ['title','Name','text'], ['sub','Detail','text'],
   ['volume','Volume (e.g. 4 / week, 5 / day)','text',['channel']], ['visits','VSL visits sent per month','number',['channel']],
@@ -817,7 +1197,7 @@ function field(f, v, key) {
   return `<div class="f"><label for="${id}">${label}</label><input type="${type}" id="${id}" data-k="${k}" value="${esc(v)}"></div>`;
 }
 function alertsFor(R) {
-  const list = sel.type === 'offer' ? R.fails.filter(i => !i.node) : R.fails.filter(i => i.node === sel.id);
+  const list = sel.type === 'offer' ? R.fails.filter(i => !i.node) : sel.type === 'node' ? R.fails.filter(i => i.node === sel.id) : [];
   return list.map(i => `<div class="alert ${i.sev}">${esc(i.label)} <b>${esc(i.fix)}</b></div>`).join('');
 }
 function renderEditor(R) {
@@ -832,17 +1212,23 @@ function renderEditor(R) {
       ${field(['days','Contract days','number'], o.days, 'offer')}`;
     return;
   }
+  if (sel.type === 'edge') {
+    const [from, fk] = sel.key.split('|'), a = byId(from);
+    if (!a || !byId(a[fk])) { sel = { type:'offer' }; return renderEditor(R); }
+    ed.innerHTML = `<div class="lbl">Connection</div><h3>${esc(a.title)} → ${esc(byId(a[fk]).title)}</h3><p class="muted small">${fk === 'noNext' ? 'Where people who fail this gate go.' : 'The next step after this stage.'}</p>${field([fk, 'Goes to', 'select'], a[fk], a.id)}<div class="row" style="gap:8px"><button class="btn light sm danger" data-unlink>Remove connection</button><button class="btn ghost sm" data-selnode="${esc(a.id)}">Open ${esc(a.title)}</button></div>`;
+    return;
+  }
   const n = byId(sel.id); if (!n) { sel = { type:'offer' }; return renderEditor(R); }
   const fs = NODE_FIELDS.filter(f => !f[3] || f[3].includes(n.kind));
   ed.innerHTML = `<div class="lbl">${KIND[n.kind]}</div><h3>${esc(n.title)}</h3><div class="alerts">${alertsFor(R)}</div>${fs.map(f => field(f, n[f[0]], n.id)).join('')}
-    <div class="row" style="gap:8px">${SPINE.includes(n.kind) || n.kind === 'channel' ? '<button class="btn light sm" data-move="-1">Move up</button><button class="btn light sm" data-move="1">Move down</button>' : ''}<button class="btn light sm danger" data-delnode>Delete</button><button class="btn ghost sm" data-seloffer>Offer</button></div>`;
+    <div class="row" style="gap:8px"><button class="btn light sm danger" data-delnode>Delete</button><button class="btn ghost sm" data-seloffer>Offer</button></div>`;
 }
 
 /* ============ app ============ */
 function refresh(opts = {}) {
   const R = check(), c = calc();
   const wk = W[weekId()]; if (wk) syncWeek(wk);
-  renderOverview(R, c); renderCongruency(R); renderFunnel(R, c);
+  renderOverview(R, c); renderCongruency(R); renderGraph(R, c);
   if (!opts.keepWeek) renderWeek();
   const a = $('editor').querySelector('.alerts'); if (a) a.innerHTML = alertsFor(R);
   return R;
@@ -855,47 +1241,30 @@ function showTab(t) {
   document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'v-' + t);
   document.querySelectorAll('.tab').forEach(b => { b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', b.dataset.tab === t); });
   if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
+  document.body.classList.toggle('studio-on', t === 'funnel');
   window.scrollTo(0, 0);
+  if (t === 'funnel') requestAnimationFrame(() => { drawEdges(); if (!view.fitted) { fitView(); view.fitted = true; } });
 }
 
 document.addEventListener('click', e => {
   const tab = e.target.closest('[data-tab]'); if (tab) { showTab(tab.dataset.tab); return; }
   const go = e.target.closest('[data-goto]'); if (go) { showTab(go.dataset.goto); return; }
   const op = e.target.closest('[data-open]');
-  if (op) { sel = op.dataset.open === '__offer' ? { type:'offer' } : { type:'node', id: op.dataset.open }; showTab('funnel'); renderEditor(refresh()); return; }
-  const nd = e.target.closest('[data-node]');
-  if (nd) { sel = { type:'node', id: nd.dataset.node }; renderEditor(refresh({ keepWeek:true })); if (innerWidth <= 1000) $('editor').scrollIntoView({ behavior:'smooth' }); return; }
-  const add = e.target.closest('[data-add]');
-  if (add) {
-    const kind = add.dataset.add, id = kind + '_' + Date.now().toString(36);
-    const n = { id, kind, title:'New ' + KIND[kind].toLowerCase(), sub:'', message:'', next:'', objective:'', kpi:'', owner:'', facing:['channel','page','gate','close'].includes(kind) };
-    if (kind === 'channel') Object.assign(n, { volume:'', visits:0, enabled:true, qualifies:false, next:'vsl' });
-    if (kind === 'gate') Object.assign(n, { threshold:F.offer.minRevenue, readiness:true, noNext:'nurture' });
-    if (kind === 'channel') { const last = F.nodes.map(x => x.kind).lastIndexOf('channel'); F.nodes.splice(last + 1, 0, n); }
-    else if (SPINE.includes(kind)) { const fs = F.nodes.findIndex(x => SALES.includes(x.kind)); const at = kind === 'gate' && fs >= 0 ? fs : F.nodes.findIndex(x => x.kind === 'deliver'); F.nodes.splice(at < 0 ? F.nodes.length : at, 0, n); }
-    else F.nodes.push(n);
-    sel = { type:'node', id }; renderEditor(refresh()); funnelChanged('added ' + KIND[kind].toLowerCase()); toast('Added');
-    return;
-  }
+  if (op) { const id = op.dataset.open; showTab('funnel'); if (id === '__offer') { sel = { type:'offer' }; showPane('edit'); renderEditor(check()); } else requestAnimationFrame(() => { selectNode(id); centerOn(id); }); return; }
+  const sn = e.target.closest('[data-selnode]'); if (sn) { selectNode(sn.dataset.selnode); return; }
+  if (e.target.closest('[data-unlink]')) { const [from, fk] = sel.key.split('|'); byId(from)[fk] = ''; sel = { type:'offer' }; afterEdit('removed a connection'); toast('Connection removed'); return; }
   if (e.target.closest('[data-seloffer]')) { sel = { type:'offer' }; renderEditor(refresh({ keepWeek:true })); return; }
-  if (e.target.closest('[data-delnode]')) { const n = byId(sel.id); F.nodes = F.nodes.filter(x => x !== n); sel = { type:'offer' }; renderEditor(refresh()); funnelChanged('deleted ' + n.title); toast('Deleted'); return; }
-  const mv = e.target.closest('[data-move]');
-  if (mv) {
-    const n = byId(sel.id), group = n.kind === 'channel' ? ['channel'] : SPINE;
-    const idx = F.nodes.map((x, i) => group.includes(x.kind) ? i : -1).filter(i => i >= 0);
-    const a = F.nodes.indexOf(n), b = idx[idx.indexOf(a) + +mv.dataset.move];
-    if (b === undefined) return;
-    [F.nodes[a], F.nodes[b]] = [F.nodes[b], F.nodes[a]]; renderEditor(refresh()); funnelChanged('reordered ' + n.title); return;
-  }
+  if (e.target.closest('[data-delnode]')) { const n = byId(sel.id); removeNode(n.id); sel = { type:'offer' }; afterEdit('deleted ' + n.title); toast('Deleted'); return; }
   const del = e.target.closest('[data-del-task]');
   if (del) { const wk = W[weekId()], t = wk.tasks.find(x => x.id === del.dataset.delTask); wk.tasks = wk.tasks.filter(x => x !== t); saveW(); log('Deleted task: ' + t.title); renderWeek(); refresh({ keepWeek:true }); }
 });
 
 $('editor').addEventListener('input', e => {
   const k = e.target.dataset.k; if (!k) return;
-  const tgt = sel.type === 'offer' ? F.offer : byId(sel.id);
+  const tgt = sel.type === 'offer' ? F.offer : sel.type === 'edge' ? byId(sel.key.split('|')[0]) : byId(sel.id);
   tgt[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'number' ? (e.target.value === '' ? 0 : +e.target.value) : e.target.value;
-  if (k === 'title') $('editor').querySelector('h3').textContent = tgt[k];
+  if (k === 'title' && sel.type === 'node') $('editor').querySelector('h3').textContent = tgt[k];
+  if (sel.type === 'edge') { if (!tgt[k]) sel = { type:'offer' }; else sel.key = tgt.id + '|' + k; refresh(); renderEditor(check()); funnelChanged('reconnected ' + tgt.title); return; }
   refresh(); funnelChanged(sel.type === 'offer' ? 'offer' : tgt.title);
 });
 $('sliders').addEventListener('input', e => {
@@ -926,11 +1295,11 @@ function addTask() {
 $('addTaskBtn').onclick = addTask;
 $('newTask').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
 $('regenBtn').onclick = () => { syncWeek(W[weekId()]); saveW(); renderWeek(); toast('Targets refreshed from the funnel'); };
-$('offerBtn').onclick = () => { sel = { type:'offer' }; renderEditor(refresh({ keepWeek:true })); };
+$('offerBtn').onclick = () => { sel = { type:'offer' }; showPane('edit'); renderEditor(refresh({ keepWeek:true })); };
 $('resetBtn').onclick = () => {
   const b = $('resetBtn');
-  if (b.dataset.armed) { F = clone(DEFAULT_FUNNEL); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); funnelChanged('reset to default'); toast('Funnel reset'); delete b.dataset.armed; b.textContent = 'Reset funnel'; return; }
-  b.dataset.armed = 1; b.textContent = 'Tap again to reset'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Reset funnel'; }, 3000);
+  if (b.dataset.armed) { F = clone(DEFAULT_FUNNEL); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); funnelChanged('reset to default'); toast('Funnel reset'); delete b.dataset.armed; b.textContent = 'Reset'; view.fitted = false; requestAnimationFrame(() => { drawEdges(); fitView(); view.fitted = true; }); return; }
+  b.dataset.armed = 1; b.textContent = 'Tap again to reset'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Reset'; }, 3000);
 };
 $('exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ funnel:F, weeks:W, log:L }, null, 2)], { type:'application/json' })); a.download = 'loi-machine.json'; a.click(); URL.revokeObjectURL(a.href); };
 $('importBtn').onclick = () => $('importFile').click();
@@ -972,6 +1341,7 @@ function renderApp() {
   ensureWeek(); saveF(); saveW();
   renderSliders(); renderApp();
   renderEditor(refresh());
+  loadChat(); renderChat();
   showTab(location.hash.slice(1) || 'overview');
 })();
 </script>
