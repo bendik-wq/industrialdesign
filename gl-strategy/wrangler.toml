@@ -1,4 +1,4 @@
-name = "loi-machine"
+name = "gl-strategy"
 pages_build_output_dir = "./public"
 compatibility_date = "2026-10-01"
 
@@ -7,4 +7,5 @@ binding = "LOI_DATA"
 id = "ffe3d8f7c2dd464ca1a4bcc5aae6a6d9"
 
 [vars]
-ACCESS_TEAM = "loimachine"
+ACCESS_TEAM = "glstrategy"
+ACCESS_AUD = "1efadfe645a0c989bc5be5b1ec36770e463a64c5db015850d8777573200a2bea"

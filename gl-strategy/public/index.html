@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The LOI Machine</title>
-<meta name="description" content="The LOI Machine: funnel, weekly tasks and congruency for the 7-figure, no-money-down LOI offer.">
+<title>G&amp;L Overview &amp; Strategy</title>
+<meta name="description" content="G&amp;L Overview &amp; Strategy: funnel, weekly tasks and congruency for the 7-figure, no-money-down LOI offer.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#ffffff">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d1d1f'/%3E%3Ctext x='16' y='21.5' font-family='-apple-system,Helvetica,Arial' font-weight='700' font-size='13' text-anchor='middle' fill='%23fff'%3ELOI%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d1d1f'/%3E%3Ctext x='16' y='21.5' font-family='-apple-system,Helvetica,Arial' font-weight='700' font-size='12' text-anchor='middle' fill='%23fff'%3EG%26amp;L%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap">
@@ -44,7 +44,7 @@ a:hover { text-decoration:underline; }
 .sync { font-size:12px; color:var(--ink3); white-space:nowrap; display:flex; align-items:center; gap:6px; }
 .sync i { width:7px; height:7px; border-radius:50%; background:var(--ink3); display:inline-block; }
 .sync.cloud i { background:#30D158; }
-@media (max-width:760px) { .sync span { display:none; } .logo { font-size:15px; } .nav .in { gap:12px; padding-inline:16px; } }
+@media (max-width:760px) { .sync span, .logo span { display:none; } .logo { font-size:15px; } .nav .in { gap:12px; padding-inline:16px; } }
 
 /* page scaffolding */
 .view { display:block; }
@@ -370,7 +370,7 @@ body.studio-on .foot { display:none; }
 </head>
 <body>
 <nav class="nav"><div class="in">
-  <div class="logo">LOI Machine</div>
+  <div class="logo">G&amp;L <span style="color:var(--ink2);font-weight:500">Overview &amp; Strategy</span></div>
   <div class="tabs" role="tablist">
     <button class="tab" data-tab="overview" role="tab">Overview</button>
     <button class="tab" data-tab="week" role="tab">This Week</button>
@@ -595,13 +595,13 @@ body.studio-on .foot { display:none; }
   </section>
 </main>
 
-<footer class="wrap foot">LOI Machine · Private · Sources: jeremyhaynes.com, Jeremy Haynes on X, The Hype Magazine interview with Daniel Iles.</footer>
+<footer class="wrap foot">G&amp;L Overview &amp; Strategy · Private · Sources: jeremyhaynes.com, Jeremy Haynes on X, The Hype Magazine interview with Daniel Iles.</footer>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
 /* ============ data ============ */
 const DEFAULT_FUNNEL = {
-  offer: { name:'The LOI Machine', claim:'A 7-figure, no-money-down LOI in 90 days, to double or triple your business.', terms:'7-figure, no-money-down, LOI, 90 days', audience:'Owners doing $1M+ a year', minRevenue:1000000, price:20000, days:90 },
+  offer: { name:'G&L Overview & Strategy', claim:'A 7-figure, no-money-down LOI in 90 days, to double or triple your business.', terms:'7-figure, no-money-down, LOI, 90 days', audience:'Owners doing $1M+ a year', minRevenue:1000000, price:20000, days:90 },
   math: { goalClients:4, bookRate:4, showRate:65, closeRate:25 },
   nodes: [
     { id:'yt', kind:'channel', title:'YouTube long-form', sub:'Strategy-level deal breakdowns, built in clippable chapters', volume:'4 / week', visits:480, enabled:true, primary:true, qualifies:false, message:'How owners doing $1M+ buy a 7-figure business with no-money-down LOI structures', next:'vsl', objective:'Turn viewers into VSL visitors', kpi:'480 VSL visits / mo', owner:'You', facing:true },
@@ -1301,11 +1301,11 @@ $('resetBtn').onclick = () => {
   if (b.dataset.armed) { F = clone(DEFAULT_FUNNEL); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); funnelChanged('reset to default'); toast('Funnel reset'); delete b.dataset.armed; b.textContent = 'Reset'; view.fitted = false; requestAnimationFrame(() => { drawEdges(); fitView(); view.fitted = true; }); return; }
   b.dataset.armed = 1; b.textContent = 'Tap again to reset'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Reset'; }, 3000);
 };
-$('exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ funnel:F, weeks:W, log:L }, null, 2)], { type:'application/json' })); a.download = 'loi-machine.json'; a.click(); URL.revokeObjectURL(a.href); };
+$('exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ funnel:F, weeks:W, log:L }, null, 2)], { type:'application/json' })); a.download = 'gl-overview-strategy.json'; a.click(); URL.revokeObjectURL(a.href); };
 $('importBtn').onclick = () => $('importFile').click();
 $('importFile').onchange = async e => {
   try { const d = JSON.parse(await e.target.files[0].text()); const f = d.funnel || d; if (!f.nodes || !f.offer) throw 0; F = f; if (d.weeks) W = d.weeks; if (d.log) L = d.log; saveF(); saveW(); saveL(); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); toast('Imported'); }
-  catch (err) { toast('That file isn’t an LOI Machine export'); }
+  catch (err) { toast('That file isn’t a G&L export'); }
   e.target.value = '';
 };
 window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
@@ -1338,6 +1338,7 @@ function renderApp() {
   F = (await store.get('funnel')) || clone(DEFAULT_FUNNEL);
   W = (await store.get('weeks')) || {};
   L = (await store.get('log')) || [];
+  if (F.offer && /loi machine/i.test(F.offer.name || '')) F.offer.name = DEFAULT_FUNNEL.offer.name;
   ensureWeek(); saveF(); saveW();
   renderSliders(); renderApp();
   renderEditor(refresh());

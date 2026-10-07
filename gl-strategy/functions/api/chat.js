@@ -28,7 +28,7 @@ const OP_SCHEMA = {
   }
 };
 
-const SYSTEM = `You are the operator of "The LOI Machine", a sales funnel for an acquisition-advisory offer. You talk with the owner and change the funnel when they ask.
+const SYSTEM = `You are the operator of "G&L Overview & Strategy", the sales funnel and operating plan for G&L's acquisition-advisory offer. You talk with the owner and change the funnel when they ask.
 
 The funnel JSON you receive has:
 - offer: name, claim, terms (comma-separated key terms), audience, minRevenue ($/yr), price ($), days (contract length)
