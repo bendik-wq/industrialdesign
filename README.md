@@ -56,6 +56,10 @@ tools/                headless render rig (three.js + Chromium)
 
 Second product: **SWEEP-1** waterless solar row cleaning robot — see [docs/SWEEP-1.md](docs/SWEEP-1.md).
 
+Third product: **OVO-1** egg-shaped aluminium/steel local-LLM appliance (128 GB Strix Halo, chimney-cooled) — see [docs/OVO-1.md](docs/OVO-1.md).
+
+![](renders/ovo1/hero.png)
+
 Regenerate everything:
 ```
 pip install cadquery

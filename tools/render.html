@@ -14,6 +14,9 @@ const q = new URLSearchParams(location.search);
 const az = parseFloat(q.get('az') ?? '35'), el = parseFloat(q.get('el') ?? '20');
 const hide = (q.get('hide') ?? '').split(',').filter(Boolean);
 const section = q.get('section') === '1';
+const metal = new RegExp(q.get('metal') ?? 'tube|plate|fin');
+// clip=nx,ny,nz,d keeps points where n·p + d >= 0 (CAD Z-up coordinates)
+const clipQ = q.get('clip')?.split(',').map(Number);
 const Wd = 1600, Ht = 1000;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -31,13 +34,14 @@ const fill = new THREE.DirectionalLight(0xffffff, 0.6); fill.position.set(-2, 1,
 new GLTFLoader().load(q.get('src') ?? '../out/AERO-1_assembly.glb', (g) => {
   const root = g.scene;
   // CadQuery writes Z-up mm; glTF is Y-up — orient so +Z (our up) is screen-up
-  const clip = section ? [new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0)] : [];
+  const clip = section ? [new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0)]
+    : clipQ ? [new THREE.Plane(new THREE.Vector3(clipQ[0], clipQ[1], clipQ[2]), clipQ[3])] : [];
   root.traverse(o => {
     if (hide.some(h => o.name.includes(h))) o.visible = false;
     if (o.isMesh) {
       o.material = o.material.clone();
       o.material.side = THREE.DoubleSide;
-      o.material.metalness = /tube|plate|fin/.test(o.parent?.name + o.name) ? 0.6 : 0.05;
+      o.material.metalness = metal.test(o.parent?.name + o.name) ? 0.6 : 0.05;
       o.material.roughness = 0.45;
       o.material.clippingPlanes = clip;
     }

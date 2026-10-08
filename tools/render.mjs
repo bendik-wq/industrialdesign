@@ -29,6 +29,13 @@ const SETS = {
     ['robot_close', 'zoom=1.1&az=-120&el=40&focus=SWEEP-1_robot'],
     ['side_on_row', 'zoom=0.8&az=-90&el=4'],
   ] },
+  ovo1: { src: '../out/ovo1/OVO-1_assembly.glb', dir: 'renders/ovo1', views: [
+    ['hero', 'az=-30&el=12&metal=shell|band|crown|stand|deck|duct'],
+    ['rear_ports', 'az=200&el=8&metal=shell|band|crown|stand|deck|duct'],
+    ['section', 'az=90&el=5&clip=-1,0,0,0&metal=shell|band|crown|stand|deck|duct'],
+    ['core', 'zoom=0.85&az=-35&el=18&hide=shell_upper,shell_lower,band,light_ring,crown,stand,foot&metal=deck|duct|fins'],
+    ['exploded', 'src=../out/ovo1/OVO-1_exploded.glb&zoom=1.35&az=-30&el=10&metal=shell|band|crown|stand|deck|duct'],
+  ] },
 };
 const set = SETS[process.env.SET ?? 'aero1'];
 const views = set.views;
@@ -37,7 +44,8 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 page.on('console', m => console.log('page:', m.text()));
 for (const [name, qs] of views.filter(v => !process.argv[2] || v[0] === process.argv[2])) {
-  await page.goto(`http://localhost:8765/tools/render.html?src=${encodeURIComponent(set.src)}&${qs}`);
+  const src = new URLSearchParams(qs).get('src') ?? set.src;
+  await page.goto(`http://localhost:8765/tools/render.html?${qs}&src=${encodeURIComponent(src)}`);
   await page.waitForFunction(() => document.title === 'done', null, { timeout: 120000 });
   await page.locator('canvas').screenshot({ path: join(ROOT, set.dir, `${name}.png`) });
   console.log('rendered', name);

@@ -1,0 +1,20 @@
+item,part_no,name,qty,material,process,finish,source,cad_file,notes
+1,OVO1-101,Upper shell,1,Al 5052-H32 2.0 mm,Metal spinning + laser trim,Bead blast + clear anodize,Make,out/ovo1/step/shell_upper.step,"3 bayonet slots at seam; 3 crown posts (M4 threaded studs)"
+2,OVO1-102,Lower shell w/ port window,1,Al 5052-H32 2.0 mm,Metal spinning + 5-axis laser window,Bead blast + clear anodize,Make,out/ovo1/step/shell_lower.step,"3 deck bosses + 3 bayonet lugs (riveted); intake opening Ø158"
+3,OVO1-103,Crown (exhaust cap / touch button),1,Al 5052-H32 2.0 mm,Metal spinning,Bead blast + clear anodize,Make,out/ovo1/step/crown.step,"Floats 14 mm on 3 posts; stainless mesh in slot for EMI"
+4,OVO1-104,Equator band,1,SS 316 5 x 6 mm,Laser cut + roll + weld + groove,Mirror polish,Make,out/ovo1/step/band.step,"1.5 mm groove for light pipe"
+5,OVO1-105,Light ring,1,Opal PC,Injection molding,—,Make,out/ovo1/step/light_ring.step,"Edge-lit by 6 side-fire LEDs on a flex"
+6,OVO1-106,Port panel / pocket,1,SS 304 1.5 mm,Deep draw + laser cut,Brushed,Make,out/ovo1/step/shell_lower.step,"Modeled integral with lower shell; separate drawn part in production"
+7,OVO1-201,Egg-cup stand,1,SS 304 1.5 mm,Metal spinning + laser-cut slots,Brushed #4,Make,out/ovo1/step/stand.step,"30 intake slots; 3 ribs with silicone pads"
+8,OVO1-202,Foot ring,1,Silicone 50A,Compression molding,Black,Buy,out/ovo1/step/foot.step,
+9,OVO1-301,Deck + spine,1,SS 304 1.5 / 2.0 mm,Laser cut + bend + spot weld,Passivated,Make,out/ovo1/step/deck_spine.step,"Mini-ITX standoffs M3 x 6; PE earth stud"
+10,OVO1-302,Intake filter,1,SS 304 mesh in SS ring,Stamping,—,Make,out/ovo1/step/filter.step,"Magnet-held; washable"
+11,OVO1-303,Heatsink duct baffle,1,Al 1050 0.8 mm,Laser cut + bend,—,Make,out/ovo1/step/duct.step,
+12,OVO1-401,Mainboard Mini-ITX AMD Ryzen AI Max+ 395 128 GB,1,—,—,—,Buy (e.g. Framework Desktop Mainboard),out/ovo1/step/board.step,"Verify power input: ATX 24-pin vs 12 V DC"
+13,OVO1-402,Vapour-chamber heatsink 120 x 110 x 53,1,Cu VC base + Al 1050 fins 0.4 mm,Skived / stacked fin,—,Buy (custom thermal vendor),out/ovo1/step/heatsink_fins.step,"24 vertical fins; mounts to SoC hole pattern"
+14,OVO1-403,Fan 140 x 25 mm PWM,1,—,—,—,Buy (Noctua NF-A14 class),out/ovo1/step/fan_frame.step,"Rotor: out/ovo1/step/fan_rotor.step"
+15,OVO1-404,PSU 300 W 12 V open frame,1,—,—,—,Buy (Mean Well EPP-300-12 class),out/ovo1/step/psu.step,"Rated 300 W with forced air"
+16,OVO1-405,NVMe SSD M.2 2280 2 TB,1,—,—,—,Buy,—,
+17,OVO1-406,Panel-mount extension leads (USB4 x2 / USB-A / RJ45),1 set,—,—,—,Buy,—,
+18,OVO1-407,IEC C14 inlet w/ fuse,1,—,—,—,Buy,—,
+19,OVO1-501,Touch + light-ring controller PCB,1,FR4,SMT,—,Make (separate electronics track),—,"Not modeled in this revision"
