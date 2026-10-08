@@ -1007,7 +1007,7 @@ function renderSliders() {
 }
 
 /* ============ team ============ */
-const DEFAULT_TEAM = [{ id:'bendik', name:'Bendik', email:'bendik@asym.capital', color:'#0071E3' }, { id:'josh', name:'Josh', email:'', color:'#AF52DE' }];
+const DEFAULT_TEAM = [{ id:'bendik', name:'Bendik', email:'bendik@asym.capital', color:'#0071E3' }, { id:'josh', name:'Josh', email:'josh@joshli.au.com', color:'#AF52DE' }];
 const ROLES = ['You','Setter','Closer','Editor','Funnel','Media buyer'];
 const team = () => F.team || (F.team = clone(DEFAULT_TEAM));
 const person = id => team().find(p => p.id === id);
@@ -1875,7 +1875,7 @@ function renderApp() {
   W = (await store.get('weeks')) || {};
   L = (await store.get('log')) || [];
   K = Object.assign({ weeks:{}, targets:{} }, (await store.get('kpis')) || {});
-  team();
+  team().forEach(p => { if (p.id === 'josh' && !p.email) p.email = 'josh@joshli.au.com'; });
   if (F.offer && /loi machine/i.test(F.offer.name || '')) F.offer.name = DEFAULT_FUNNEL.offer.name;
   ensureWeek(); saveF(); saveW();
   renderSliders(); renderApp();
