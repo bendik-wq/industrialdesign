@@ -412,7 +412,7 @@ const API_DOCS = {
     ["PATCH", "/api/targets/:id", "Update any target fields; changing stage logs it and fires target.stage_changed"],
     ["DELETE", "/api/targets/:id", "Delete a target and its timeline and documents"],
     ["POST", "/api/targets/:id/events", "Add to the timeline {kind: note|call|email|meeting, body}"],
-    ["POST", "/api/documents/generate", "Have an agent write a document {kind: loi|memo|outreach|diligence|board|plan100, target_id, channel?: letter|email|call|linkedin|voicemail, language?, financials? (diligence)}"],
+    ["POST", "/api/documents/generate", "Have an agent write a document {kind: loi|memo|lender|outreach|diligence|board|plan100, target_id, channel?: letter|email|call|linkedin|voicemail, language?, financials? (diligence)}"],
     ["GET", "/api/documents?target=&kind=", "List documents"],
     ["GET", "/api/documents/:id", "A document"],
     ["PATCH", "/api/documents/:id", "Edit {title, content}"],

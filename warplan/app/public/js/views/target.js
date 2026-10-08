@@ -53,6 +53,7 @@ export async function renderTarget(id, seq) {
               <button class="ghost" data-gen="outreach" type="button">Write it</button></div></div>
             <div class="aa"><b>✎ Letter of intent</b><p class="muted small">From this target's Deal Builder structure${t.deal ? "" : " (the default one until you structure it)"}.</p><button class="ghost" data-gen="loi" type="button">Draft the LOI</button></div>
             <div class="aa"><b>✎ Investment memo</b><p class="muted small">The case for the board, with a bad-year stress test.</p><button class="ghost" data-gen="memo" type="button">Write the memo</button></div>
+            <div class="aa"><b>€ Lender pack</b><p class="muted small">The financing request, the stress test and who to call.</p><button class="ghost" data-gen="lender" type="button">Build the lender pack</button></div>
             <div class="aa"><b>⌕ Diligence</b><p class="muted small">Paste their P&amp;L: normalised EBITDA, red flags, questions.</p><button class="ghost" data-gen="diligence" type="button">Review financials</button></div>
             <div class="aa"><b>⧉ 100-day plan</b><p class="muted small">Day-1 words for staff and customers, then cash and control.</p><button class="ghost" data-gen="plan100" type="button">Plan the first 100 days</button></div>
           </div>

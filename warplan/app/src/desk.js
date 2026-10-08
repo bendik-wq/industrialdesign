@@ -81,6 +81,11 @@ Voice: like a friend who made it, telling them straight. Confident, direct, shor
 You are the buyer's AI board: a Chair (strategy, discipline), a CFO (structure, cash, the 1.5x DSCR rule), an M&A lawyer (risk, documents, exclusivity), and a sector operator (integration, people, customers).
 Write this month's board meeting minutes in markdown: ## Attendance (the four directors, AI); ## Pipeline review (each live target in order of priority: a two-line view per director where they disagree, then a decision: PURSUE / PAUSE / DROP with the condition); ## What the buyer is avoiding (be blunt: stalled targets, overdue next actions, too few targets at the top of the funnel); ## Votes (bullet list of decisions); ## Actions before the next meeting (owner, task, date). If the pipeline has under 20 targets, the Chair says so first: a buyer needs volume at the top. Keep it under 700 words.`,
   },
+  lender: {
+    agent: "capital", label: "Lender pack", needsTarget: true, maxTokens: 2600, effort: "medium",
+    prompt: (t, p) => `<facts>\n${targetFacts(t)}\n</facts>\n${dealBlock(t).text}\n${buyerBlock(p)}\n${notesBlock(t)}
+Write the financing plan and lender pack in markdown that the buyer sends to a commercial lender. ## The request (amount, term, rate range, purpose, in two sentences); ## The business (what it does, how long, people, customers); ## Why it services the debt (EBITDA, free cash flow, DSCR in the weakest year from the deal block, what happens to DSCR if EBITDA falls 20%); ## The structure around the loan (vendor note subordinated to the bank, payment holiday, rollover; why the seller staying in de-risks it); ## Security and covenants we can offer; ## The buyer (track record from the buyer block; [placeholder] for anything missing); ## Documents enclosed (checklist: 3 years accounts, tax returns, management accounts, debt schedule, customer list, LOI). Then a short section for the buyer only, headed ## Lenders to call, describing the three kinds of lender to approach for this deal size and sector and the order to call them in. If the structure has no bank debt, say plainly that no lender is needed and turn the pack into a note for the seller explaining the vendor finance terms.`,
+  },
   plan100: {
     agent: "integrate", label: "100-day plan", needsTarget: true, maxTokens: 2600, effort: "medium",
     prompt: (t, p) => `<facts>\n${targetFacts(t)}\n</facts>\n${dealBlock(t).text}\n${buyerBlock(p)}\n${notesBlock(t)}
@@ -179,6 +184,7 @@ Review these financials like a buy-side quality-of-earnings analyst. Compute rep
   const out = await chat(env, DESK_PERSONA, [{ role: "user", content: k.prompt(target, profile, opts) }], k.maxTokens, k.effort);
   const titles = {
     loi: `LOI: ${target?.name}`, memo: `Investment memo: ${target?.name}`, plan100: `100-day plan: ${target?.name}`,
+    lender: `Lender pack: ${target?.name}`,
     outreach: `${{ letter: "Letter", email: "Email", call: "Call script", linkedin: "LinkedIn", voicemail: "Voicemail" }[opts.channel]}: ${target?.name}`,
     board: `Board meeting ${new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`,
   };

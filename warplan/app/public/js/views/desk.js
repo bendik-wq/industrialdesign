@@ -1,7 +1,7 @@
 import { $, $$, esc, api, post, md, view, stale, toast, fail, confirmBox, copy, download, when, skeleton, emptyState } from "../core.js";
 import { askJoshAbout } from "./josh.js";
 
-const KIND = { loi: "Letter of intent", memo: "Investment memo", outreach: "Outreach", diligence: "Diligence", board: "Board pack", plan100: "100-day plan" };
+const KIND = { loi: "Letter of intent", memo: "Investment memo", outreach: "Outreach", diligence: "Diligence", board: "Board pack", plan100: "100-day plan", lender: "Lender pack" };
 
 export async function renderDesk(seq, params) {
   view().innerHTML = skeleton(5);

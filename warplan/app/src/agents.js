@@ -69,9 +69,9 @@ export const AGENTS = [
     jobs: ["Writes from the target's real facts and your notes", "Five channels: letter, email, call script, voicemail, LinkedIn", "Any language", "Never talks numbers before trust"],
   },
   {
-    id: "capital", name: "Capital Desk", tag: "Financing", status: "soon", icon: "€",
-    blurb: "Picks the right structure for each deal (vendor finance, 60/40 debt and rollover, earn-out), builds the bankable model and prepares the lender pack.",
-    jobs: ["Vendor note vs. 60/40 asset-backed debt + rollover vs. earn-out, tested at 1.5x DSCR", "Lender interview tracker and term-sheet compare", "Base / bear / bull cases", "Working-capital line sizing"],
+    id: "capital", name: "Capital Desk", tag: "Financing", status: "live", icon: "€", route: "pipeline",
+    blurb: "Writes the lender pack for a target from its Deal Builder structure: the request, why it services the debt, the stress test, security, and which lenders to call first.",
+    jobs: ["Lender pack from the target's own structure and numbers", "DSCR in the weakest year and in a bad year", "Vendor note subordinated to the bank, explained", "Which lenders to call, in what order"],
   },
   {
     id: "diligence", name: "Diligence", tag: "Quality of earnings", status: "live", icon: "⌕", route: "pipeline",
