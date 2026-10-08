@@ -137,6 +137,8 @@ export async function renderJosh(id, seq) {
       live.outerHTML = bubble({ role: "assistant", content: r.reply }, "arcas");
       wireBubbles($("#msgs"));
       if ($("#speakToggle")?.checked && r.reply) play(r.reply, "arcas", $$(".msg.assistant .say").pop());
+      // New conversations get their title from the first message: refresh the list.
+      api("/api/threads?agent=josh").then((list) => { if (!stale(seq)) $("#threadList").innerHTML = threadList(list, threadId); }).catch(() => {});
     } catch (e) {
       if (e.name === "AbortError") live.insertAdjacentHTML("beforeend", `<p class="muted small">Stopped. The full answer is saved in the conversation.</p>`);
       else { live.remove(); $("#msgs").insertAdjacentHTML("beforeend", `<p class="error">${esc(e.message)}</p>`); $("#input").value = text; }

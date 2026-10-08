@@ -118,13 +118,24 @@ const DILIGENCE_SCHEMA = {
   additionalProperties: false,
 };
 
+// Don't trust the model's arithmetic: fix each adjustment's sign from its kind (and the classic mistake of adding back
+// an owner who is paid below market), then recompute normalised EBITDA from the parts.
+export function reconcile(r) {
+  const adjustments = (Array.isArray(r.adjustments) ? r.adjustments : []).filter((a) => a && Number(a.amount)).map((a) => {
+    let kind = a.kind === "deduction" ? "deduction" : "add-back";
+    if (/salar|wage|pay|compensation/i.test(a.item) && /below|under/i.test(`${a.why} ${a.item}`)) kind = "deduction";
+    const amount = Math.abs(Number(a.amount)) * (kind === "deduction" ? -1 : 1);
+    return { ...a, kind, amount };
+  });
+  const reported = Number(r.reported_ebitda) || 0;
+  return { ...r, adjustments, reported_ebitda: reported, normalised_ebitda: reported + adjustments.reduce((t, a) => t + a.amount, 0) };
+}
+
 function diligenceMarkdown(t, r) {
   const c = t.currency || "$";
   const fm = (v) => money(Number(v) || 0, c);
   const adj = (r.adjustments || []).map((a) => `| ${a.item} | ${a.amount >= 0 ? "+" : ""}${fm(a.amount)} | ${a.confidence} | ${a.why} |`).join("\n");
-  return `# Diligence review: ${t.name}
-
-${r.summary || ""}
+  return `${r.reported_ebitda ? "" : "> Couldn't work out EBITDA from what was pasted. Add revenue and every cost line, by year.\n\n"}${r.summary || ""}
 
 ## Normalised EBITDA
 
@@ -157,10 +168,11 @@ export async function generate(env, ctx, kind, target, profile, opts = {}) {
     const fin = String(opts.financials || "").trim();
     if (fin.length < 40) throw err(400, "Paste the P&L or financials first (at least a few lines)");
     const prompt = `<facts>\n${targetFacts(target)}\n</facts>\n<financials>\n${fin.slice(0, 30000)}\n</financials>
-Review these financials like a buy-side quality-of-earnings analyst. Compute reported EBITDA, propose normalising adjustments (owner salary above or below market, one-off costs, personal expenses, related-party rent at market, non-recurring revenue), flag red flags (customer concentration, falling margins, working-capital swings, cash vs accrual issues, tax), and list questions and documents to request. Amounts in plain numbers (no currency symbols).`;
+Review these financials like a buy-side quality-of-earnings analyst. Compute reported EBITDA, propose normalising adjustments (an owner paid ABOVE market is an add-back, an owner paid BELOW market is a deduction because a buyer must hire a manager at market pay; one-off costs are add-backs; related-party rent is adjusted to market; non-recurring revenue is a deduction). Only list adjustments the figures support; skip anything with no information, flag red flags (customer concentration, falling margins, working-capital swings, cash vs accrual issues, tax), and list questions and documents to request. Amounts in plain numbers (no currency symbols).`;
     const out = await chatJson(env, DESK_PERSONA, prompt, DILIGENCE_SCHEMA, k.maxTokens, k.effort);
-    const content = diligenceMarkdown(target, out.data);
-    return { kind, title: `Diligence review: ${target.name}`, content, meta: { normalised_ebitda: out.data.normalised_ebitda, reported_ebitda: out.data.reported_ebitda }, out };
+    const r = reconcile(out.data);
+    const content = diligenceMarkdown(target, r);
+    return { kind, title: `Diligence review: ${target.name}`, content, meta: { normalised_ebitda: r.normalised_ebitda, reported_ebitda: r.reported_ebitda }, out };
   }
   if (kind === "board") opts.brief = await pipelineBrief(env, ctx, 40);
   if (kind === "outreach" && !k.channels[opts.channel]) opts.channel = "letter";

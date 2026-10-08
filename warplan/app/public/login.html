@@ -2,17 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in · Warplan</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 fill=%22%23ff5b1f%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%227%22 stroke=%22%23111%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Cpath d=%22M16 4v8M16 20v8M4 16h8M20 16h8%22 stroke=%22%23111%22 stroke-width=%222.5%22/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ff5b1f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
+<title>Sign in · Warplan</title>
+<meta name="description" content="Sign in to Warplan, the AI acquisition team.">
 </head>
 <body class="login-page">
 <main class="login-card">
-  <div class="brand"><span class="logo"></span><b>WARPLAN</b></div>
+  <div class="brand"><span class="logo" aria-hidden="true"></span><b>WARPLAN</b></div>
   <h1>Plan the takeover.</h1>
-  <p class="muted">Josh, the seller simulator, the value ladder and the agents that find, value and finance your next acquisition.</p>
+  <p class="muted">Josh, the seller simulator, the deal builder, your pipeline and the agents that write your letters, LOIs and board packs.</p>
   <form id="f">
     <div id="setupFields" hidden>
       <p class="ok">First run: create the platform admin login.</p>
@@ -25,10 +31,10 @@
     <input id="email" type="email" autocomplete="username" required autofocus>
     <label for="pw">Password</label>
     <input id="pw" type="password" autocomplete="current-password" required>
-    <p class="error" id="err" hidden></p>
+    <p class="error" id="err" role="alert" hidden></p>
     <button class="primary" type="submit" id="go">Sign in</button>
   </form>
-  <p class="muted switch-mode">No login yet? Warplan is invite-only.</p>
+  <p class="muted switch-mode">No login yet? Warplan is invite-only: ask your workspace owner for a link.</p>
 </main>
 <script src="/login.js"></script>
 </body>

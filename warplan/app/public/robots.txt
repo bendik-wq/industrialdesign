@@ -1,0 +1,3 @@
+# Warplan is a private, signed-in app. Nothing here is meant for search engines.
+User-agent: *
+Disallow: /

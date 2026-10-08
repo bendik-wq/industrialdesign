@@ -37,6 +37,9 @@ function claudeRequest(env, sys, messages, maxTokens, effort, extra = {}) {
 }
 const claudeUsage = (u = {}) => ({ input: (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0), output: u.output_tokens || 0, cached: u.cache_read_input_tokens || 0 });
 const llamaUsage = (u = {}) => ({ input: u.prompt_tokens || 0, output: u.completion_tokens || 0, cached: 0 });
+// Workers AI answers in its classic shape ({response}) or, for some modes, OpenAI's ({choices: [{message: {content}}]}).
+// In JSON mode `response` can arrive already parsed (an object), so callers check the type.
+const llamaText = (out) => out?.choices?.[0]?.message?.content ?? out?.response ?? "";
 function friendly(e) {
   if (e.status === 401 || e.status === 403) return err(502, "The Anthropic key was rejected. Check it under Settings → Integrations.");
   if (e.status === 429) return err(429, "Claude is rate-limiting this key right now. Try again in a minute.");
@@ -56,7 +59,7 @@ export async function chat(env, system, messages, maxTokens = 1200, effort = "lo
   }
   if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
   const out = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: llamaSystem(sys) }, ...messages], max_tokens: maxTokens });
-  return { text: String(out.response || "").trim(), model: WORKERS_AI_MODEL, usage: llamaUsage(out.usage) };
+  return { text: String(llamaText(out) || "").trim(), model: WORKERS_AI_MODEL, usage: llamaUsage(out.usage) };
 }
 
 // Same as chat(), but calls onText(delta) as the reply is written. Resolves with the full reply.
@@ -87,7 +90,8 @@ export async function chatStream(env, system, messages, maxTokens, effort, onTex
       if (data === "[DONE]") continue;
       try {
         const j = JSON.parse(data);
-        if (j.response) { text += j.response; onText(j.response); }
+        const piece = j.response ?? j.choices?.[0]?.delta?.content;
+        if (piece) { text += piece; onText(piece); }
         if (j.usage) usage = j.usage;
       } catch { /* partial line */ }
     }
@@ -107,15 +111,20 @@ export async function chatJson(env, system, prompt, schema, maxTokens = 2000, ef
     return { data: JSON.parse(raw), model: res.model, usage: claudeUsage(res.usage) };
   }
   if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
-  const out = await env.AI.run(WORKERS_AI_MODEL, {
-    messages: [{ role: "system", content: llamaSystem(sys) }, { role: "user", content: prompt }],
-    response_format: { type: "json_schema", json_schema: schema },
-    max_tokens: maxTokens,
-  });
-  const r = out.response;
-  let data = r;
-  if (typeof r === "string") { try { data = JSON.parse(r); } catch { throw err(502, "The AI returned something unreadable. Try again."); } }
-  return { data: data || {}, model: WORKERS_AI_MODEL, usage: llamaUsage(out.usage) };
+  // Llama's strict JSON mode tends to return empty defaults on long prompts, so ask for JSON in plain text and parse it.
+  const instruction = `${prompt}\n\nReply with ONLY one JSON object, no prose and no code fences, matching this JSON schema:\n${JSON.stringify(schema)}`;
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const out = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: llamaSystem(sys) }, { role: "user", content: instruction }], max_tokens: maxTokens });
+    const got = llamaText(out);
+    const raw = typeof got === "string" ? got : "";
+    const a = raw.indexOf("{"), b = raw.lastIndexOf("}");
+    try {
+      const data = got && typeof got === "object" ? got : JSON.parse(raw.slice(a, b + 1));
+      if (data && typeof data === "object" && Object.keys(data).length) return { data, model: WORKERS_AI_MODEL, usage: llamaUsage(out.usage) };
+    } catch (e) { lastErr = e; }
+  }
+  throw err(502, `The AI returned something unreadable${lastErr ? "" : " (empty)"}. Try again, or connect Claude under Settings → Integrations.`);
 }
 
 export async function transcribe(env, audio, hint = "") {

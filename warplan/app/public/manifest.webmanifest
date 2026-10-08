@@ -1,0 +1,10 @@
+{
+  "name": "Warplan",
+  "short_name": "Warplan",
+  "description": "An AI acquisition team for owners buying competitors with no money down.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0c0b",
+  "theme_color": "#ff5b1f",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:schema": "wrangler d1 execute warplan --remote --file schema.sql"
+    "db:schema": "wrangler d1 execute warplan --remote --file schema.sql",
+    "test": "node --test test/*.test.js"
   },
   "devDependencies": {
     "wrangler": "4.147.0"

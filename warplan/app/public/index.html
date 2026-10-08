@@ -2,30 +2,45 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warplan</title>
-<meta name="description" content="Warplan: an AI acquisition command for owners of $1M+ businesses.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 fill=%22%23ff5b1f%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%227%22 stroke=%22%23111%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Cpath d=%22M16 4v8M16 20v8M4 16h8M20 16h8%22 stroke=%22%23111%22 stroke-width=%222.5%22/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ff5b1f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
+<title>Warplan</title>
+<meta name="description" content="Warplan: an AI acquisition team for owners of $1M+ businesses buying competitors with no money down.">
 </head>
-<body>
+<body class="app">
+<a class="skip" href="#view">Skip to content</a>
 <header class="top">
-  <a class="brand" href="#/home"><span class="logo"></span><b>WARPLAN</b></a>
-  <nav class="nav" id="rail">
-    <a href="#/home" data-nav="home">Command</a>
-    <a href="#/josh" data-nav="josh">Ask Josh</a>
-    <a href="#/builder" data-nav="builder">Deal Builder</a>
-    <a href="#/simulator" data-nav="simulator">Simulator</a>
-    <a href="#/ladder" data-nav="ladder">Value Ladder</a>
-    <a href="#/agents" data-nav="agents">Units</a>
-  </nav>
-  <div class="top-right"><span class="who" id="who"></span><button class="link" id="logout" type="button">Sign out</button></div>
-  <button class="menu-btn" id="menuBtn" type="button" aria-label="Menu">☰</button>
+  <button class="menu-btn" id="menuBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="side">☰</button>
+  <a class="brand" href="#/home"><span class="logo" aria-hidden="true"></span><b>WARPLAN</b></a>
+  <button class="search-btn" id="searchBtn" type="button" aria-label="Search and commands"><span>Search or jump to…</span><kbd>⌘K</kbd></button>
 </header>
-<main class="main" id="view"></main>
-<script src="/app.js" type="module"></script>
+<aside class="side" id="side" aria-label="Main">
+  <nav class="nav" id="rail">
+    <a href="#/home" data-nav="home"><i aria-hidden="true">◆</i>Command</a>
+    <a href="#/pipeline" data-nav="pipeline"><i aria-hidden="true">▤</i>Pipeline</a>
+    <a href="#/josh" data-nav="josh"><i aria-hidden="true">J</i>Ask Josh</a>
+    <a href="#/simulator" data-nav="simulator"><i aria-hidden="true">☎</i>Simulator</a>
+    <a href="#/builder" data-nav="builder"><i aria-hidden="true">⚖</i>Deal Builder</a>
+    <a href="#/ladder" data-nav="ladder"><i aria-hidden="true">↗</i>Value Ladder</a>
+    <a href="#/desk" data-nav="desk"><i aria-hidden="true">✎</i>Desk</a>
+    <a href="#/agents" data-nav="agents"><i aria-hidden="true">⧉</i>Units</a>
+  </nav>
+  <div class="side-foot">
+    <a href="#/settings" data-nav="settings" class="nav-settings"><i aria-hidden="true">⚙</i>Settings</a>
+    <div class="who"><b id="who-name"></b><small id="who-ws"></small></div>
+    <button class="link" id="logout" type="button">Sign out</button>
+  </div>
+</aside>
+<div class="scrim" id="scrim"></div>
+<main class="main" id="view" tabindex="-1"><div class="boot" aria-busy="true">Loading Warplan…</div></main>
+<noscript><p class="main">Warplan needs JavaScript turned on.</p></noscript>
+<script src="/js/app.js" type="module"></script>
 </body>
 </html>

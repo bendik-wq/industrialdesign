@@ -88,7 +88,7 @@ export async function saveKey(env, ctx, provider, b) {
     if (!done) throw err(400, "Paste the key first");
     return { ok: true };
   }
-  if (!p.pattern.test(key)) throw err(400, `That doesn't look like a ${p.label} key. ${p.hint}`);
+  if (!p.pattern.test(key)) throw err(400, `That doesn't look like an ${p.label} key. ${p.hint}`);
   if (b.verify !== false) await verifyKey(provider, key);
   const sealed = await seal(env, key, aadFor(ctx.accountId, provider));
   await env.DB.prepare(`INSERT INTO account_keys (account_id, provider, ciphertext, iv, hint, meta, created_by, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)

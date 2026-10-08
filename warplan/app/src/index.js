@@ -14,8 +14,7 @@ import { STAGES } from "../public/js/deal.js";
 
 const INVITE_DAYS = 7;
 // Reachable without signing in. Everything else (the app shell, its scripts) needs a session.
-const PUBLIC_PATHS = new Set(["/login", "/login.html", "/login.js", "/join", "/join.html", "/style.css", "/favicon.svg", "/robots.txt", "/404.html", "/manifest.webmanifest", "/og.png", "/apple-touch-icon.png"]);
-const PAGES = { "/login": "/login.html", "/join": "/join.html" };
+const PUBLIC_PATHS = new Set(["/login", "/login.html", "/login.js", "/join", "/join.html", "/join.js", "/style.css", "/favicon.svg", "/robots.txt", "/404", "/404.html", "/manifest.webmanifest", "/og.png", "/apple-touch-icon.png"]);
 const STATE_KEYS = new Set(["deal", "ladder", "profile", "prefs"]);
 
 export default {
@@ -48,7 +47,7 @@ async function handle(request, env, exec) {
   try {
     if (p.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method)) checkOrigin(request, url);
     if (p === "/api/auth/state" || p === "/api/setup" || p === "/api/login" || p === "/api/logout" || p.startsWith("/api/invites/")) return await authRoute(request, env, url);
-    if (PUBLIC_PATHS.has(p)) return asset(request, env, PAGES[p] || p);
+    if (PUBLIC_PATHS.has(p)) return asset(request, env, p);
     const ctx = await getContext(request, env);
     if (p === "/api" || p.startsWith("/api/")) {
       if (!ctx) return json({ error: "Not signed in. Use your session cookie or an API token: Authorization: Bearer wp_..." }, 401);
@@ -82,7 +81,7 @@ async function asset(request, env, path) {
   return res;
 }
 async function notFound(request, env) {
-  const page = await env.ASSETS.fetch(new Request(new URL("/404.html", request.url)));
+  const page = await env.ASSETS.fetch(new Request(new URL("/404", request.url)));
   return new Response(page.body, { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
