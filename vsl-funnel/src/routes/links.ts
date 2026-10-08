@@ -87,7 +87,7 @@ links.get('/go/wa', async (c) => {
   const ref = c.req.query('l');
   const lead = (v.leadId ? await getLead(c.env, v.leadId) : null) ?? (ref ? await getLeadByRef(c.env, ref) : null);
   const url = whatsappLink(rt.settings, lead, intentFromSource(src, lead));
-  if (!url) return c.redirect(c.req.header('referer') ?? '/', 302);
+  if (!url) return c.redirect('/', 302);
 
   if (lead) {
     if (!v.leadId && !v.isBot) await linkVisitor(c.env, v.visitorId, lead.id);

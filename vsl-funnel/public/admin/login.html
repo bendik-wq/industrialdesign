@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Dashboard login</title>
+  <link rel="stylesheet" href="/assets/admin.css">
+</head>
+<body>
+  <div class="login">
+    <form method="post" action="/admin/login">
+      <h1>Funnel dashboard</h1>
+      <p class="muted" style="margin:0">Enter the admin password to continue.</p>
+      <p class="err" id="err" hidden></p>
+      <input type="password" name="password" placeholder="Password" autocomplete="current-password" required autofocus aria-label="Password">
+      <button class="btn-sm" type="submit">Log in</button>
+    </form>
+  </div>
+  <script>
+    var e = new URLSearchParams(location.search).get('error');
+    if (e) { var el = document.getElementById('err'); el.textContent = e; el.hidden = false; }
+  </script>
+</body>
+</html>

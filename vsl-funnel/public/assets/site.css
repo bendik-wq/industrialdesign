@@ -35,7 +35,7 @@ mark { background: linear-gradient(transparent 12%, var(--mark) 12%, var(--mark)
 .brand span { border: 2px solid var(--ink); padding: 4px 10px; border-radius: 6px; }
 
 /* Headlines */
-.hero { padding: 26px 0 8px; text-align: center; }
+.hero { padding-top: 26px; padding-bottom: 8px; text-align: center; }
 .eyebrow { display: inline-block; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ok); margin-bottom: 10px; }
 .h1 { font-size: clamp(28px, 5.2vw, 50px); line-height: 1.08; letter-spacing: -.025em; font-weight: 850; margin: 0 auto 14px; max-width: 920px; text-wrap: balance; }
 .h2 { font-size: clamp(24px, 3.6vw, 34px); line-height: 1.15; letter-spacing: -.02em; font-weight: 800; margin: 0 0 14px; text-wrap: balance; }
@@ -65,7 +65,7 @@ mark { background: linear-gradient(transparent 12%, var(--mark) 12%, var(--mark)
 .vsl.paused .vsl-state { opacity: 1; }
 
 /* CTA */
-.cta-zone { text-align: center; padding: 26px 0 8px; }
+.cta-zone { text-align: center; padding-top: 26px; padding-bottom: 8px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: var(--cta); color: var(--cta-ink); font: 800 clamp(18px, 2.4vw, 22px)/1.2 var(--font); padding: 20px 34px; border-radius: 12px; border: 0; cursor: pointer; text-decoration: none; box-shadow: 0 2px 0 rgba(0, 0, 0, .2), 0 14px 30px -12px rgba(255, 170, 0, .8); transition: transform .12s ease, background .12s ease; max-width: 100%; }
 .btn:hover { background: var(--cta-hover); transform: translateY(-1px); }
 .btn:active { transform: translateY(1px); }
@@ -88,7 +88,7 @@ mark { background: linear-gradient(transparent 12%, var(--mark) 12%, var(--mark)
 .sticky-cta { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(255, 255, 255, .96); border-top: 1px solid var(--line); transform: translateY(110%); transition: transform .3s ease; z-index: 20; display: none; }
 .sticky-cta .btn { width: 100%; padding: 16px; font-size: 18px; }
 .revealed .sticky-cta.on { transform: none; }
-@media (max-width: 720px) { .sticky-cta { display: block; } }
+@media (max-width: 720px) { .sticky-cta { display: block; } .topbar { font-size: 11.5px; letter-spacing: .04em; padding: 8px 12px; } .sub { font-size: 16.5px; } }
 
 /* Sections */
 section.block { padding: 48px 0; }

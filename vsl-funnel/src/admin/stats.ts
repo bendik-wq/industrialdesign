@@ -84,6 +84,8 @@ async function all<T = Record<string, unknown>>(env: Env, sql: string, params: B
 }
 
 const rate = (n: number, d: number) => (d ? n / d : 0);
+/** Like rate(), but null (shown as –) when there's nothing to divide by yet. */
+const rateOrNull = (n: number, d: number) => (d ? n / d : null);
 
 /** Distinct visitors who fired each event in range (one query, pivoted). */
 async function visitorsByEvent(env: Env, f: Filters, names: string[]) {
@@ -150,7 +152,6 @@ export async function overview(env: Env, f: Filters) {
   const funnel = [
     { key: 'landing', label: 'Landed on VSL page', n: landing },
     { key: 'play', label: 'Played the VSL', n: ev.vsl_play ?? 0 },
-    { key: 'vsl_50', label: 'Watched 50%', n: ev.vsl_50 ?? 0 },
     { key: 'pitch', label: 'Reached the pitch (CTA shown)', n: ev.vsl_cta_reveal ?? 0 },
     { key: 'apply_view', label: 'Opened the application', n: ev['page_view:/apply'] ?? 0 },
     { key: 'lead', label: 'Gave contact details', n: ev.lead_captured ?? 0 },
@@ -190,7 +191,7 @@ export async function overview(env: Env, f: Filters) {
       booking_rate: rate(booked.booked ?? 0, (apps.tier_a ?? 0) + (apps.tier_b ?? 0)),
       showed: outcomes.showed ?? 0,
       no_show: outcomes.no_show ?? 0,
-      show_rate: rate(outcomes.showed ?? 0, (outcomes.showed ?? 0) + (outcomes.no_show ?? 0)),
+      show_rate: rateOrNull(outcomes.showed ?? 0, (outcomes.showed ?? 0) + (outcomes.no_show ?? 0)),
       won: outcomes.won ?? 0,
       revenue: outcomes.revenue ?? 0,
       revenue_per_visitor: rate(outcomes.revenue ?? 0, traffic.visitors ?? 0),

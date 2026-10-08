@@ -189,6 +189,14 @@
     if (video.paused) { video.play(); } else { video.pause(); }
   }
 
+  // Never trap a visitor behind a video that won't load: unlock the page and offer a retry.
+  video.addEventListener('error', function () {
+    reveal(false);
+    if (root.querySelector('.vsl-placeholder')) return;
+    var box = el('div', 'vsl-placeholder', '<div><strong>The video didn’t load</strong>Check your connection, then <button type="button" class="ghost" style="margin-top:10px">Try again</button></div>');
+    box.querySelector('button').onclick = function () { location.reload(); };
+    root.appendChild(box);
+  });
   video.addEventListener('timeupdate', onTime);
   video.addEventListener('pause', function () { root.classList.add('paused'); beat(false); });
   video.addEventListener('play', function () { root.classList.remove('paused'); });

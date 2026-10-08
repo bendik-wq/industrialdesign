@@ -33,7 +33,7 @@
   // Non-secret config. Secrets (API keys, passwords) go in `wrangler secret put`
   // or can be connected from the dashboard's Integrations tab.
   "vars": {
-    "SITE_NAME": "The Owners Academy",
+    "SITE_NAME": "",
     "PUBLIC_URL": "",
     "EMAIL_FROM": "",
     "EMAIL_REPLY_TO": "",
@@ -45,8 +45,8 @@
     "VSL_BREAKOUT_SRC": "",
     "VSL_BREAKOUT_POSTER": "",
     "VSL_PRECALL_SRC": "",
-    "POSTHOG_HOST": "https://us.i.posthog.com",
-    "CONSENT_REQUIRED_EU": "true",
-    "IP_ANONYMIZE": "false"
+    "POSTHOG_HOST": "",
+    "CONSENT_REQUIRED_EU": "",
+    "IP_ANONYMIZE": ""
   }
 }

@@ -11,7 +11,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run test"
+    "check": "npm run typecheck && npm run test",
+    "simulate": "node scripts/simulate-traffic.mjs"
   },
   "dependencies": {
     "hono": "^4.10.0"

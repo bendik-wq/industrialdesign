@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Funnel dashboard</title>
+  <link rel="stylesheet" href="/assets/admin.css">
+  <script defer src="/assets/admin.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="side">
+      <div class="logo"><i></i>Funnel HQ</div>
+      <nav data-nav aria-label="Dashboard sections">
+        <button data-tab="overview" aria-current="page">Overview</button>
+        <button data-tab="vsl">VSL</button>
+        <button data-tab="traffic">Traffic &amp; ads</button>
+        <button data-tab="application">Application</button>
+        <button data-tab="experiments">A/B tests</button>
+        <button data-tab="leads">Leads</button>
+        <button data-tab="emails">Emails</button>
+        <button data-tab="live">Live <span class="live-dot" aria-hidden="true"></span></button>
+        <button data-tab="integrations">Integrations</button>
+      </nav>
+      <div class="foot">
+        <a class="btn-sm ghost" href="/" target="_blank" rel="noopener">Open funnel ↗</a>
+        <button type="button" data-theme-toggle>Theme: auto</button>
+        <form method="post" action="/admin/logout"><button type="submit" style="width:100%">Log out</button></form>
+      </div>
+    </aside>
+    <main class="content">
+      <div class="page-head">
+        <div><h1 data-title>Overview</h1><p data-subtitle></p></div>
+      </div>
+      <div class="filters" data-filters>
+        <div class="seg" role="group" aria-label="Date range" data-range>
+          <button data-days="1">Today</button>
+          <button data-days="7">7 days</button>
+          <button data-days="30" aria-pressed="true">30 days</button>
+          <button data-days="90">90 days</button>
+          <button data-days="3650">All time</button>
+        </div>
+        <select data-filter="channel" aria-label="Channel"><option value="">All channels</option></select>
+        <select data-filter="campaign" aria-label="Campaign"><option value="">All campaigns</option></select>
+        <select data-filter="variant" aria-label="Headline variant"><option value="">All variants</option></select>
+        <select data-filter="device" aria-label="Device"><option value="">All devices</option><option value="mobile">Mobile</option><option value="desktop">Desktop</option><option value="tablet">Tablet</option></select>
+        <button class="clear" type="button" data-clear>Reset</button>
+      </div>
+      <div class="view" data-view></div>
+    </main>
+  </div>
+</body>
+</html>
