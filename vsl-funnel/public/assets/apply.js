@@ -82,7 +82,10 @@
     form.innerHTML = html;
     var focusEl = form.querySelector('input, textarea') || form.querySelector('h2');
     if (focusEl && index > 0) focusEl.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Keep the form in view (it sits mid-page on the landing page).
+    var card = form.closest('.form-card') || form;
+    var top = card.getBoundingClientRect().top;
+    if (index > 0 && (top < 0 || top > innerHeight * 0.6)) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     F.track('app_view_step', { step: index + 1, question: q.id });
     if (q.type === 'contact') mountTurnstile();
   }

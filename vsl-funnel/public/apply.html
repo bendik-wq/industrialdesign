@@ -4,31 +4,35 @@
   <meta charset="utf-8">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Apply</title>
-  <meta name="theme-color" content="#0b0b0c">
+  <meta name="theme-color" content="#0a0a09">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap">
   <link rel="stylesheet" href="/assets/site.css">
+  <title>Apply</title>
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/apply.js"></script>
 </head>
 <body>
-  <div class="topbar">Strategy call application · Takes about 2 minutes</div>
-  <div class="brand"><span data-slot="site_name">G&amp;L M&amp;A Advisory</span></div>
-  <main class="app" id="main">
-    <div class="app-progress" aria-hidden="true"><i data-progress></i></div>
-    <div class="app-meta"><span data-step-label>Step 1</span><span data-time-left></span></div>
-    <form data-app novalidate autocomplete="on">
-      <noscript><p class="form-error">Please enable JavaScript to complete the application.</p></noscript>
-    </form>
-    <div data-turnstile></div>
-    <p class="privacy-note">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-      Your answers are private and only used to prepare your call.
-    </p>
+  <header class="nav"><a class="logo" href="/"><span class="mark">G&amp;L</span><span data-slot="site_name">G&amp;L M&amp;A Advisory</span></a></header>
+  <main id="main" class="apply-section" style="padding-top:24px">
+    <div class="wrap">
+      <div class="section-head"><h1 class="display-2">See If You <em>Qualify</em></h1><p>Takes about 2 minutes. For owners of businesses doing $1M+ in revenue.</p></div>
+      <div class="form-card">
+        <div class="app-progress" aria-hidden="true"><i data-progress></i></div>
+        <div class="app-meta"><span data-step-label>Step 1</span><span data-time-left></span></div>
+        <form data-app novalidate autocomplete="on"><noscript><p class="form-error">Please enable JavaScript to complete the application.</p></noscript></form>
+        <div data-turnstile></div>
+        <p class="privacy-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Your answers are private and only used to prepare your call.</p>
+      </div>
+    </div>
   </main>
   <footer>
     <div class="wrap">
-      <nav><a href="/privacy">Privacy</a></nav>
+      <nav><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a></nav>
+      <p data-slot="consent"></p>
       <p data-slot="disclaimer"></p>
+      <p>© <span data-slot="year"></span> <span data-slot="site_name"></span></p>
     </div>
   </footer>
 </body>

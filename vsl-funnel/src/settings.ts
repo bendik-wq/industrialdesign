@@ -57,6 +57,8 @@ export const SETTINGS = [
   { key: 'SLACK_WEBHOOK_URL', label: 'Slack webhook (hot-lead alerts)', group: 'Alerts', secret: true },
   { key: 'LEAD_WEBHOOK_URL', label: 'CRM webhook (Zapier / Make / GHL)', group: 'Alerts', secret: true, help: 'Receives every lead lifecycle event as JSON.' },
 
+  { key: 'BLOCKLIST', label: 'Lead blocklist', group: 'Security', placeholder: 'tyrekicker@example.com, +61400000000, @competitor.com', help: 'Emails, phone numbers or @domains that always go to the free resources page instead of a call.' },
+  { key: 'CLARITY_ID', label: 'Microsoft Clarity project ID', group: 'Analytics', help: 'Free session recordings and heatmaps.' },
   { key: 'TURNSTILE_SITE_KEY', label: 'Turnstile site key', group: 'Security', help: 'Invisible bot check on the application.' },
   { key: 'TURNSTILE_SECRET_KEY', label: 'Turnstile secret key', group: 'Security', secret: true },
   { key: 'CONSENT_REQUIRED_EU', label: 'Cookie consent for EU visitors', group: 'Security', placeholder: 'true' },

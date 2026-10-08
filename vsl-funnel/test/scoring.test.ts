@@ -3,6 +3,7 @@ import { normaliseAnswer, scoreApplication, tierFromScore } from '../src/funnel/
 import { APPLICATION } from '../src/config';
 
 const strong = {
+  business: 'Commercial HVAC services across Sydney, 25 staff',
   role: 'owner',
   revenue: '3_10m',
   profit: '250k_1m',
@@ -42,10 +43,26 @@ describe('scoreApplication', () => {
     expect(scoreApplication({ ...strong, profit: 'loss' }, 'AU').tier).toBe('B');
   });
 
-  it('flags out-of-market countries without penalising the score', () => {
-    const r = scoreApplication(strong, 'BR');
-    expect(r.flags).toContain('out_of_market');
-    expect(r.tier).toBe('A');
+  it('caps out-of-market leads at B unless their phone is in market', () => {
+    expect(scoreApplication(strong, { country: 'BR', phone: '+5511999999999' }).tier).toBe('B');
+    // Travelling Australian owner: foreign IP, Australian mobile
+    expect(scoreApplication(strong, { country: 'BR', phone: '+61412345678' }).tier).toBe('A');
+  });
+
+  it('sends excluded industries and blocklisted contacts to C', () => {
+    expect(scoreApplication({ ...strong, business: 'Medical cannabis dispensary chain' }, 'AU').tier).toBe('C');
+    expect(scoreApplication({ ...strong, business: 'Cannabistro restaurants' }, 'AU').tier).toBe('A'); // whole words only
+    const blocklist = ['tyre@kicker.com', '@competitor.com', '+61400111222'];
+    expect(scoreApplication(strong, { country: 'AU', email: 'TYRE@kicker.com', blocklist }).tier).toBe('C');
+    expect(scoreApplication(strong, { country: 'AU', email: 'ceo@competitor.com', blocklist }).tier).toBe('C');
+    expect(scoreApplication(strong, { country: 'AU', phone: '+61 400 111 222', blocklist }).tier).toBe('C');
+    expect(scoreApplication(strong, { country: 'AU', email: 'owner@hvac.com.au', blocklist }).tier).toBe('A');
+  });
+
+  it('treats a personal email as a weak signal only for $1-3M businesses', () => {
+    expect(scoreApplication({ ...strong, revenue: '1_3m' }, { country: 'AU', email: 'sam@gmail.com' }).tier).toBe('B');
+    expect(scoreApplication(strong, { country: 'AU', email: 'sam@gmail.com' }).tier).toBe('A');
+    expect(scoreApplication({ ...strong, revenue: '1_3m', profit: 'gt1m' }, { country: 'AU', email: 'sam@hvac.com' }).tier).toBe('A');
   });
 
   it('ignores unknown answers', () => {

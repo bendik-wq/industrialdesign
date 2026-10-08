@@ -4,41 +4,44 @@
   <meta charset="utf-8">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Book your call</title>
-  <meta name="theme-color" content="#0b0b0c">
+  <meta name="theme-color" content="#0a0a09">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap">
   <link rel="stylesheet" href="/assets/site.css">
+  <title>Book your call</title>
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/book.js"></script>
 </head>
 <body>
-  <div class="topbar">Don’t close this page — your call isn’t booked until you pick a time</div>
-  <div class="brand"><span data-slot="site_name">G&amp;L M&amp;A Advisory</span></div>
+  <header class="nav"><a class="logo" href="/"><span class="mark">G&amp;L</span><span data-slot="site_name">G&amp;L M&amp;A Advisory</span></a></header>
   <main id="main">
     <header class="hero wrap">
-      <div class="steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></div>
-      <span class="eyebrow" data-slot="eyebrow">Step 2 of 3 — You qualify</span>
-      <h1 class="h1" data-slot="headline">Pick A Time That <mark>Works For You</mark></h1>
-      <p class="sub">Choose a time below for your free acquisition strategy call. You’ll get a confirmation by email straight away.</p>
+      <span class="eyebrow" data-slot="eyebrow">You qualify</span>
+      <h1 class="display" data-slot="headline">Just Pick A <em>Time</em></h1>
+      <p class="lede">Choose a time for your free acquisition strategy call. You’ll get a confirmation by email straight away.</p>
     </header>
     <div class="wrap">
       <div class="cal-wrap" data-calendar><div class="analyzing"><div class="spinner"></div>Loading the calendar…</div></div>
+      <p class="consent-note">Your reference: <strong data-slot="ref_code"></strong></p>
     </div>
     <section class="block">
       <div class="wrap">
-        <h2 class="h2 center">What happens next</h2>
+        <div class="section-head"><h2 class="display-2">What happens <em>next</em></h2></div>
         <ol class="next-steps">
-          <li><strong>Pick a time</strong><br>Choose a slot that suits you — calls run on Zoom.</li>
+          <li><strong>Pick a time</strong><br>Choose a slot that suits you. Calls run on Zoom.</li>
           <li><strong>Watch the pre-call video</strong><br>It makes the call twice as useful.</li>
-          <li><strong>Get your plan</strong><br>We map out what your first acquisition could look like.</li>
+          <li><strong>Get your acquisition plan</strong><br>We map out what your first deal could look like.</li>
         </ol>
-        <p class="center" style="color:var(--muted);font-size:14px;margin-top:22px">Your reference: <strong data-slot="ref_code"></strong></p>
       </div>
     </section>
   </main>
   <footer>
     <div class="wrap">
-      <nav><a href="/privacy">Privacy</a></nav>
+      <nav><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a></nav>
+      <p data-slot="consent"></p>
       <p data-slot="disclaimer"></p>
+      <p>© <span data-slot="year"></span> <span data-slot="site_name"></span></p>
     </div>
   </footer>
 </body>

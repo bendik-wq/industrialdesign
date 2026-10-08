@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
-  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, HEADLINE_EXPERIMENT, LANDING, RESOURCES, TIER_ROUTES, type VideoDef, VIDEOS,
+  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, type VideoDef, VIDEOS,
 } from '../config';
 import { whatsappLink } from '../integrations/whatsapp';
 import { formatCallTime } from '../integrations/email';
@@ -63,7 +63,10 @@ function trackingHead(c: Context<AppEnv>, pageEventId: string): Html {
     // Session replay + heatmaps only; events are sent server-side. Loaded through our own /ph proxy.
     parts.push(`<script>!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);posthog.init(${scriptJson(s.POSTHOG_KEY)},{api_host:'/ph',ui_host:${scriptJson((s.POSTHOG_HOST || 'https://us.i.posthog.com').replace('.i.posthog', '.posthog'))},autocapture:false,capture_pageview:false,capture_pageleave:false,disable_session_recording:false,bootstrap:{distinctID:${scriptJson(v.visitorId)}},person_profiles:'identified_only'});</script>`);
   }
-  if (s.TURNSTILE_SITE_KEY && new URL(c.req.url).pathname === '/apply') {
+  if (s.CLARITY_ID && v.marketingConsent && /^[a-z0-9]{4,20}$/i.test(s.CLARITY_ID)) {
+    parts.push(`<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script",${scriptJson(s.CLARITY_ID)});clarity("identify",${scriptJson(v.visitorId)});</script>`);
+  }
+  if (s.TURNSTILE_SITE_KEY && ['/', '/apply'].includes(new URL(c.req.url).pathname)) {
     parts.push('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>');
   }
   return parts.join('\n');
@@ -106,7 +109,7 @@ async function render(c: Context<AppEnv>, assetPath: string, view: View) {
     ...view.config,
   };
 
-  const slots: Record<string, Html | null | undefined> = { site_name: esc(config.siteName), year: String(new Date().getFullYear()), disclaimer: DISCLAIMER, ...view.slots };
+  const slots: Record<string, Html | null | undefined> = { site_name: esc(config.siteName), year: String(new Date().getFullYear()), disclaimer: DISCLAIMER, consent: LEGAL_CONSENT, ...view.slots };
   const head = trackingHead(c, pageEventId);
 
   const rewriter = new HTMLRewriter()
@@ -151,9 +154,30 @@ async function currentLead(c: Context<AppEnv>): Promise<Lead | null> {
 
 // ───────────────────────────── Pages ─────────────────────────────
 
+const ICONS = [
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>',
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1.1 3 2.5-1.3 2-3 2.5-3 1.1-3 2.5 1.3 2.5 3 2.5 3-1.1 3-2.5"/></svg>',
+];
+
+/** Everything the embedded application needs (used on the landing page and /apply). */
+function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
+  const s = c.get('settings');
+  return {
+    questions: APPLICATION,
+    turnstileSiteKey: s.TURNSTILE_SITE_KEY || null,
+    country: c.get('visitor').geo.country,
+    resume: lead && !lead.app_completed_at
+      ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone, whatsapp_opt_in: Boolean(lead.whatsapp_opt_in) } }
+      : null,
+  };
+}
+
 export async function landingPage(c: Context<AppEnv>) {
   const v = c.get('visitor');
+  const lead = await currentLead(c);
   const variant = HEADLINE_EXPERIMENT.variants.find((x) => x.id === v.variant) ?? HEADLINE_EXPERIMENT.variants[0];
+  const r = LANDING.rating;
   return render(c, '/index.html', {
     title: 'Watch the video',
     slots: {
@@ -162,19 +186,30 @@ export async function landingPage(c: Context<AppEnv>) {
       subheadline: variant.subheadline,
       cta_label: LANDING.ctaLabel,
       cta_subtext: LANDING.ctaSubtext,
-      gate_notice: LANDING.gateNotice,
-      discover_title: LANDING.discoverTitle,
+      apply_title: LANDING.applyTitle,
+      apply_subtitle: LANDING.applySubtitle,
+      problem_title: LANDING.problemTitle,
+      process_title: LANDING.processTitle,
+      close_kicker: LANDING.closeKicker,
+      close_headline: LANDING.closeHeadline,
       for_title: LANDING.forTitle,
       not_for_title: LANDING.notForTitle,
     },
     lists: {
-      discover: LANDING.discover,
       for: LANDING.forList,
       not_for: LANDING.notForList,
       testimonials: LANDING.testimonials.map((t) => `<blockquote>“${t.quote}”</blockquote><cite><strong>${t.name}</strong> · ${t.detail}</cite>`),
     },
-    show: { testimonials: LANDING.testimonials.length > 0 },
-    config: { video: videoConfig(c, VIDEOS.main), experiment: HEADLINE_EXPERIMENT.id },
+    blocks: {
+      stats: LANDING.stats.map((st) => `<div class="stat"><div class="label">${st.label}</div><div class="value">${st.value}</div><div class="detail">${st.detail}</div></div>`).join(''),
+      problems: LANDING.problems.map((p, i) => `<div class="card problem"><div class="icon">${ICONS[i % ICONS.length]}</div><h3>${p.title}</h3><p>${p.body}</p></div>`).join(''),
+      process: LANDING.process.map((p) => `<li><h3>${p.title}</h3><p>${p.body}</p></li>`).join(''),
+      rating: r ? `<div class="rating"><span class="stars" aria-hidden="true">★★★★★</span><strong>Rated ${r.score} on ${r.source}</strong><span class="cta-sub" style="margin:0">${r.count}</span></div>` : '',
+      cases: LANDING.caseStudies.map((cs) => `<li>${cs.videoUrl ? `<a class="thumb" href="${esc(cs.videoUrl)}" target="_blank" rel="noopener"${cs.thumbnail ? ` style="background-image:url('${esc(cs.thumbnail)}')"` : ''}><span class="vsl-play-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg></span></a>` : ''}<div class="body"><h3>${cs.name} · ${cs.business}</h3><ul>${cs.results.map((x) => `<li>${x}</li>`).join('')}</ul></div></li>`).join(''),
+      faqs: faqBlock(),
+    },
+    show: { testimonials: LANDING.testimonials.length > 0, stats: LANDING.stats.length > 0, rating: Boolean(r), cases: LANDING.caseStudies.length > 0 },
+    config: { video: videoConfig(c, VIDEOS.main), experiment: HEADLINE_EXPERIMENT.id, ...applicationConfig(c, lead) },
   });
 }
 
@@ -185,18 +220,7 @@ export async function applyPage(c: Context<AppEnv>) {
     const tier = effectiveTier(lead);
     if (tier) return c.redirect(lead.booked_at && !lead.booking_cancelled_at ? '/breakout' : TIER_ROUTES[tier], 302);
   }
-  const s = c.get('settings');
-  return render(c, '/apply.html', {
-    title: 'Apply',
-    config: {
-      questions: APPLICATION,
-      turnstileSiteKey: s.TURNSTILE_SITE_KEY || null,
-      country: c.get('visitor').geo.country,
-      resume: lead && !lead.app_completed_at
-        ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone, whatsapp_opt_in: Boolean(lead.whatsapp_opt_in) } }
-        : null,
-    },
-  });
+  return render(c, '/apply.html', { title: 'Apply', config: applicationConfig(c, lead) });
 }
 
 export async function bookPage(c: Context<AppEnv>) {
@@ -213,10 +237,8 @@ export async function bookPage(c: Context<AppEnv>) {
     slots: {
       first_name: esc(lead.first_name ?? ''),
       ref_code: lead.ref_code,
-      eyebrow: tier === 'A' ? 'Step 2 of 3 — You qualify' : 'Step 3 of 3 — Book your call',
-      headline: tier === 'A'
-        ? `Congratulations${lead.first_name ? `, ${esc(lead.first_name)}` : ''} — <mark>You Qualify</mark> For A Strategy Call`
-        : 'Pick A Time That <mark>Works For You</mark>',
+      eyebrow: tier === 'A' ? `Congratulations${lead.first_name ? `, ${esc(lead.first_name)}` : ''} — you qualify` : 'Book your call',
+      headline: 'Just Pick A <em>Time</em>',
     },
     config: {
       booking: {
@@ -266,12 +288,14 @@ export async function resourcesPage(c: Context<AppEnv>) {
   const lead = await currentLead(c);
   const wa = whatsappLink(c.get('settings'), lead, 'resources');
   return render(c, '/resources.html', {
-    title: 'Your starter kit',
-    slots: { eyebrow: RESOURCES.eyebrow, headline: RESOURCES.headline, subheadline: RESOURCES.subheadline, first_name: esc(lead?.first_name ?? '') },
+    title: 'Your free toolkit',
+    slots: { eyebrow: RESOURCES.eyebrow, headline: RESOURCES.headline, subheadline: RESOURCES.subheadline, ps: RESOURCES.ps, good_fit_title: RESOURCES.goodFitTitle, first_name: esc(lead?.first_name ?? '') },
+    lists: { good_fit: RESOURCES.goodFit },
     blocks: {
       items: RESOURCES.items.map((i, n) => `<li class="kit-item"><span class="kit-n">${n + 1}</span><div><h3>${i.title}</h3><p>${i.body}</p></div></li>`).join(''),
+      socials: FOUNDER_SOCIALS.map((x) => `<a class="social" href="${esc(x.url)}" target="_blank" rel="noopener"><strong>${esc(x.followers)}</strong><span>${x.platform} followers</span></a>`).join(''),
     },
-    show: { whatsapp: Boolean(wa), lead: Boolean(lead) },
+    show: { whatsapp: Boolean(wa), lead: Boolean(lead), socials: FOUNDER_SOCIALS.length > 0 },
     hrefs: { whatsapp: '/go/wa?src=resources-page' },
   });
 }

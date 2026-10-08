@@ -4,83 +4,114 @@
   <meta charset="utf-8">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a09">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap">
+  <link rel="stylesheet" href="/assets/site.css">
   <title>Watch the video</title>
   <meta name="description" content="How $1M+ business owners grow by acquiring competitors, funded by the deal instead of their own cash.">
-  <meta name="theme-color" content="#0b0b0c">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="/assets/site.css">
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/vsl.js"></script>
+  <script defer src="/assets/apply.js"></script>
 </head>
 <body>
-  <div class="topbar" data-slot="pre_headline">For business owners doing $1M+ in annual revenue</div>
-  <div class="brand"><span data-slot="site_name">G&amp;L M&amp;A Advisory</span></div>
-
+  <header class="nav"><a class="logo" href="/"><span class="mark">G&amp;L</span><span data-slot="site_name">G&amp;L M&amp;A Advisory</span></a></header>
   <main id="main">
-    <header class="hero wrap">
-      <h1 class="h1" data-slot="headline">How $1M+ Business Owners <mark>Double Their Size By Acquiring Competitors</mark></h1>
-      <p class="sub" data-slot="subheadline"></p>
-    </header>
-
-    <div class="wrap">
+    <section class="hero wrap">
+      <span class="chip" data-slot="pre_headline">For owners of $1M+ businesses</span>
+      <h1 class="display" data-slot="headline">Double Your Business<br><em>By Acquisition</em></h1>
+      <p class="lede" data-slot="subheadline"></p>
       <div class="vsl" data-vsl></div>
-
-      <p class="gate-note" data-gate-note>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        <span data-slot="gate_notice">The application unlocks during the video. Keep watching.</span>
-      </p>
-
-      <div class="cta-zone gated">
-        <a class="btn pulse" href="/apply" data-track="cta_click" data-track-id="landing_primary">
-          <span data-slot="cta_label">Apply For A Strategy Call</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
+      <div class="cta-zone">
+        <a class="btn pulse" href="#apply" data-track="cta_click" data-track-id="hero"><span data-slot="cta_label">See If You Qualify</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         <p class="cta-sub" data-slot="cta_subtext"></p>
       </div>
-    </div>
+    </section>
 
-    <div class="gated">
-      <section class="block">
-        <div class="wrap narrow">
-          <h2 class="h2 center" data-slot="discover_title">In this video you’ll discover</h2>
-          <ul class="ticks" data-list="discover"></ul>
-        </div>
-      </section>
+    <section class="block" data-if="stats" style="padding-block:40px">
+      <div class="wrap"><div class="grid4" data-html="stats"></div></div>
+    </section>
 
-      <section class="block alt" data-if="testimonials">
-        <div class="wrap">
-          <h2 class="h2 center">What members say</h2>
-          <ul class="testimonials" data-list="testimonials"></ul>
+    <section class="apply-section" id="apply">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 class="display-2" data-slot="apply_title">See If You <em>Qualify</em></h2>
+          <p data-slot="apply_subtitle"></p>
         </div>
-      </section>
+        <div class="form-card">
+          <div class="app-progress" aria-hidden="true"><i data-progress></i></div>
+          <div class="app-meta"><span data-step-label>Step 1</span><span data-time-left></span></div>
+          <form data-app novalidate autocomplete="on"><noscript><p class="form-error">Please enable JavaScript to complete the application.</p></noscript></form>
+          <div data-turnstile></div>
+          <p class="privacy-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Your answers are private and only used to prepare your call.</p>
+        </div>
+      </div>
+    </section>
 
-      <section class="block">
-        <div class="wrap grid2">
-          <div class="card">
-            <h3 class="h3" data-slot="for_title">This is for you if…</h3>
-            <ul class="ticks" data-list="for"></ul>
-          </div>
-          <div class="card">
-            <h3 class="h3" data-slot="not_for_title">This is not for you if…</h3>
-            <ul class="ticks cross" data-list="not_for"></ul>
-          </div>
-        </div>
-        <div class="cta-zone wrap">
-          <a class="btn" href="/apply" data-track="cta_click" data-track-id="landing_bottom"><span data-slot="cta_label">Apply For A Strategy Call</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-          <p class="cta-sub" data-slot="cta_subtext"></p>
-        </div>
-      </section>
-    </div>
+    <div class="divider"></div>
 
-    <div class="sticky-cta" data-sticky-cta>
-      <a class="btn" href="/apply" data-track="cta_click" data-track-id="landing_sticky"><span data-slot="cta_label">Apply For A Strategy Call</span></a>
-    </div>
+    <section class="block">
+      <div class="wrap">
+        <div class="section-head"><h2 class="display-2" data-slot="problem_title"></h2></div>
+        <div class="grid3" data-html="problems"></div>
+      </div>
+    </section>
+
+    <section class="block" data-if="rating" style="padding-block:20px">
+      <div class="wrap" data-html="rating"></div>
+    </section>
+
+    <section class="block alt">
+      <div class="wrap">
+        <div class="section-head"><h2 class="display-2" data-slot="process_title"></h2></div>
+        <ol class="steps-list" data-html="process"></ol>
+        <div class="cta-zone"><a class="btn" href="#apply" data-track="cta_click" data-track-id="process"><span data-slot="cta_label">See If You Qualify</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+      </div>
+    </section>
+
+    <section class="block" data-if="cases">
+      <div class="wrap">
+        <div class="section-head"><h2 class="display-2">Real deals. <em>Real growth.</em></h2></div>
+        <ul class="cases" data-html="cases"></ul>
+      </div>
+    </section>
+
+    <section class="block" data-if="testimonials">
+      <div class="wrap">
+        <div class="section-head"><h2 class="display-2">What owners <em>say</em></h2></div>
+        <ul class="testimonials" data-list="testimonials"></ul>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap grid2">
+        <div class="card"><h3 class="h3" data-slot="for_title">This is for you if…</h3><ul class="ticks" data-list="for"></ul></div>
+        <div class="card"><h3 class="h3" data-slot="not_for_title">This is not for you if…</h3><ul class="ticks cross" data-list="not_for"></ul></div>
+      </div>
+    </section>
+
+    <section class="block" id="faq">
+      <div class="wrap narrow">
+        <div class="section-head"><h2 class="display-2">You’ve got questions.<br><em>We’ve got answers.</em></h2></div>
+        <div class="faqs" data-html="faqs"></div>
+      </div>
+    </section>
+
+    <section class="close-section">
+      <div class="kicker" aria-hidden="true" data-slot="close_kicker">$1M+</div>
+      <div class="wrap">
+        <h2 class="display" data-slot="close_headline"></h2>
+        <a class="btn" href="#apply" data-track="cta_click" data-track-id="close"><span data-slot="cta_label">See If You Qualify</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </section>
+
+    <div class="sticky-cta" data-sticky-cta><a class="btn" href="#apply" data-track="cta_click" data-track-id="sticky"><span data-slot="cta_label">See If You Qualify</span></a></div>
   </main>
-
   <footer>
     <div class="wrap">
-      <nav><a href="/privacy">Privacy</a></nav>
+      <nav><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a></nav>
+      <p data-slot="consent"></p>
       <p data-slot="disclaimer"></p>
       <p>© <span data-slot="year"></span> <span data-slot="site_name"></span></p>
     </div>

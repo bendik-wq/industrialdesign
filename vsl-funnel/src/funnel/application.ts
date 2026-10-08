@@ -8,7 +8,7 @@ import { sendResourcesTemplate } from '../integrations/whatsapp';
 import { identityFromVisitor, track } from '../tracking/track';
 import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, parseAnswers, updateLead, validateEmail } from './leads';
 import { routeLead } from './routing';
-import { normaliseAnswer, scoreApplication } from './scoring';
+import { normaliseAnswer, parseBlocklist, scoreApplication } from './scoring';
 
 export class ApplicationError extends Error {
   constructor(message: string, readonly field?: string, readonly status: 400 | 403 | 404 | 409 = 400) {
@@ -150,7 +150,7 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
   const missing = APPLICATION.find((q) => q.type !== 'contact' && answers[q.id] === undefined);
   if (missing) throw new ApplicationError('Please answer every question', missing.id);
 
-  const result = scoreApplication(answers, lead.country ?? v.geo.country);
+  const result = scoreApplication(answers, { country: lead.country ?? v.geo.country, email: lead.email, phone: lead.phone, blocklist: parseBlocklist(rt.settings.BLOCKLIST) });
   const decision = await routeLead(rt, result.tier);
   const now = Date.now();
   const firstSubmit = !lead.app_completed_at;

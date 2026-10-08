@@ -42,6 +42,8 @@ export interface Env {
   BOOKING_WEBHOOK_SECRET?: string;
   SLACK_WEBHOOK_URL?: string;
   LEAD_WEBHOOK_URL?: string;
+  BLOCKLIST?: string;
+  CLARITY_ID?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
 }

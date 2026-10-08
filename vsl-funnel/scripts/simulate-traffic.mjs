@@ -90,6 +90,7 @@ async function visitor(i) {
 
   const good = chance(src.quality);
   const answers = [
+    ['business', pick(['Commercial plumbing contractor, 30 staff', 'B2B IT managed services', 'Physiotherapy clinics, 3 locations', 'Freight and logistics broker'])],
     ['role', good ? pick(['owner', 'owner', 'co_owner']) : pick(['exec', 'no_business', 'owner'])],
     ['revenue', good ? pick(['1_3m', '3_10m', 'gt10m']) : pick(['lt1m', 'lt1m', '1_3m'])],
     ['profit', good ? pick(['250k_1m', 'gt1m', 'lt250k']) : pick(['loss', 'lt250k'])],
