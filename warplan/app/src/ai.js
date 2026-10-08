@@ -1,5 +1,6 @@
-// AI layer. Claude when ANTHROPIC_API_KEY is set; otherwise Cloudflare Workers AI (no key needed).
-// Speech: Whisper (Workers AI) for speech-to-text; ElevenLabs for text-to-speech, with Deepgram Aura as fallback.
+// AI layer. Claude when ANTHROPIC_API_KEY is set (the workspace's own key or the platform's); otherwise Cloudflare
+// Workers AI (no key needed). Speech: Whisper (Workers AI) in; ElevenLabs out, with Deepgram Aura as fallback.
+// Every call returns {text, model, usage} so the caller can meter it (src/usage.js).
 import Anthropic from "@anthropic-ai/sdk";
 import { Buffer } from "node:buffer";
 
@@ -8,31 +9,113 @@ const STT_MODEL = "@cf/openai/whisper-large-v3-turbo";
 const TTS_MODEL = "@cf/deepgram/aura-1";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
+const claudeModel = (env) => env.CLAUDE_MODEL || "claude-opus-5-5";
+
+// system: a string, or {text, cached, extra}. `cached` is a large stable block (Josh's transcripts) that Claude caches
+// between requests; `extra` is per-request context (the user's pipeline, a target) placed after the cache breakpoint.
+// Workers AI gets `fallback` (or `text`) plus `extra`.
+function claudeSystem(sys) {
+  const blocks = [{ type: "text", text: sys.text }];
+  if (sys.cached) blocks.push({ type: "text", text: sys.cached });
+  blocks[blocks.length - 1].cache_control = { type: "ephemeral" };
+  if (sys.extra) blocks.push({ type: "text", text: sys.extra });
+  return blocks;
+}
+const llamaSystem = (sys) => [sys.fallback || sys.text, sys.extra].filter(Boolean).join("\n\n");
+const asSys = (system) => (typeof system === "string" ? { text: system } : system);
+
+function claudeRequest(env, sys, messages, maxTokens, effort, extra = {}) {
+  return {
+    model: claudeModel(env),
+    max_tokens: Math.max(4000, maxTokens * 4), // headroom for adaptive thinking
+    output_config: { effort, ...(extra.format ? { format: extra.format } : {}) },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: claudeSystem(sys),
+    messages,
+  };
+}
+const claudeUsage = (u = {}) => ({ input: (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0), output: u.output_tokens || 0, cached: u.cache_read_input_tokens || 0 });
+const llamaUsage = (u = {}) => ({ input: u.prompt_tokens || 0, output: u.completion_tokens || 0, cached: 0 });
+function friendly(e) {
+  if (e.status === 401 || e.status === 403) return err(502, "The Anthropic key was rejected. Check it under Settings → Integrations.");
+  if (e.status === 429) return err(429, "Claude is rate-limiting this key right now. Try again in a minute.");
+  if (e.status === 400 && /credit|billing/i.test(e.message)) return err(402, "The Anthropic account behind this key is out of credit.");
+  return e;
+}
 
 // messages: [{role: "user"|"assistant", content: string}], oldest first, ending with the user's turn.
-// system: a string, or {text, cached} where `cached` is a large stable block (Josh's transcripts) that Claude
-// caches between requests; Workers AI only gets `text` (plus whatever the caller folded into it).
 export async function chat(env, system, messages, maxTokens = 1200, effort = "low") {
-  const sys = typeof system === "string" ? { text: system } : system;
+  const sys = asSys(system);
   if (env.ANTHROPIC_API_KEY) {
-    const blocks = [{ type: "text", text: sys.text }];
-    if (sys.cached) blocks.push({ type: "text", text: sys.cached });
-    blocks[blocks.length - 1].cache_control = { type: "ephemeral" }; // persona + transcripts are byte-stable
-    const res = await new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.create({
-      model: "claude-opus-5-5",
-      max_tokens: Math.max(4000, maxTokens * 4), // headroom for adaptive thinking
-      output_config: { effort },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      system: blocks,
-      messages,
-    });
+    let res;
+    try { res = await new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.create(claudeRequest(env, sys, messages, maxTokens, effort)); }
+    catch (e) { throw friendly(e); }
     if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
-    return { text: res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim(), model: res.model };
+    return { text: res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim(), model: res.model, usage: claudeUsage(res.usage) };
   }
-  if (!env.AI) throw err(503, "No AI configured: add ANTHROPIC_API_KEY or the Workers AI binding");
-  const out = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: sys.fallback || sys.text }, ...messages], max_tokens: maxTokens });
-  return { text: String(out.response || "").trim(), model: WORKERS_AI_MODEL };
+  if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
+  const out = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: llamaSystem(sys) }, ...messages], max_tokens: maxTokens });
+  return { text: String(out.response || "").trim(), model: WORKERS_AI_MODEL, usage: llamaUsage(out.usage) };
+}
+
+// Same as chat(), but calls onText(delta) as the reply is written. Resolves with the full reply.
+export async function chatStream(env, system, messages, maxTokens, effort, onText) {
+  const sys = asSys(system);
+  if (env.ANTHROPIC_API_KEY) {
+    try {
+      const stream = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.stream(claudeRequest(env, sys, messages, maxTokens, effort));
+      stream.on("text", (t) => onText(t));
+      const res = await stream.finalMessage();
+      if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
+      return { text: res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim(), model: res.model, usage: claudeUsage(res.usage) };
+    } catch (e) { throw friendly(e); }
+  }
+  if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
+  const body = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: llamaSystem(sys) }, ...messages], max_tokens: maxTokens, stream: true });
+  const reader = body.getReader(), dec = new TextDecoder();
+  let buf = "", text = "", usage = {};
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (data === "[DONE]") continue;
+      try {
+        const j = JSON.parse(data);
+        if (j.response) { text += j.response; onText(j.response); }
+        if (j.usage) usage = j.usage;
+      } catch { /* partial line */ }
+    }
+  }
+  return { text: text.trim(), model: WORKERS_AI_MODEL, usage: llamaUsage(usage) };
+}
+
+// Structured output against a JSON schema. Callers still validate: models can omit optional fields.
+export async function chatJson(env, system, prompt, schema, maxTokens = 2000, effort = "low") {
+  const sys = asSys(system);
+  if (env.ANTHROPIC_API_KEY) {
+    let res;
+    try { res = await new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.create(claudeRequest(env, sys, [{ role: "user", content: prompt }], maxTokens, effort, { format: { type: "json_schema", schema } })); }
+    catch (e) { throw friendly(e); }
+    if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
+    const raw = res.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+    return { data: JSON.parse(raw), model: res.model, usage: claudeUsage(res.usage) };
+  }
+  if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
+  const out = await env.AI.run(WORKERS_AI_MODEL, {
+    messages: [{ role: "system", content: llamaSystem(sys) }, { role: "user", content: prompt }],
+    response_format: { type: "json_schema", json_schema: schema },
+    max_tokens: maxTokens,
+  });
+  const r = out.response;
+  let data = r;
+  if (typeof r === "string") { try { data = JSON.parse(r); } catch { throw err(502, "The AI returned something unreadable. Try again."); } }
+  return { data: data || {}, model: WORKERS_AI_MODEL, usage: llamaUsage(out.usage) };
 }
 
 export async function transcribe(env, audio, hint = "") {
@@ -47,14 +130,16 @@ export async function transcribe(env, audio, hint = "") {
 
 export const SPEAKERS = ["angus", "asteria", "arcas", "orion", "orpheus", "athena", "luna", "zeus", "perseus", "helios", "hera", "stella"];
 
-// ElevenLabs voices per speaker. Josh uses JOSH_VOICE_ID (set it to Josh's cloned voice); the simulator owners
-// use ElevenLabs stock voices that fit each character.
+// ElevenLabs voices per speaker. Josh uses JOSH_VOICE_ID (the workspace's chosen voice, or the platform's consented
+// Josh clone); the simulator owners use ElevenLabs stock voices that fit each character.
 const ELEVEN_MODEL = "eleven_multilingual_v2";
 const ELEVEN_VOICES = {
   arcas: (env) => env.JOSH_VOICE_ID || "JBFqnCBsd6RMkjVDRZzb", // Josh
-  angus: () => "pqHfZKP75CvOlQylNhV4", // Frank Dalton: older American man
-  athena: () => "XrExE9yKIg1WjnnlVkGX", // Dr. Susan Park: warm, measured woman
-  zeus: () => "onwK4e9ZLuTAKqWW03F9", // Robert Hughes: older British man
+  angus: () => "pqHfZKP75CvOlQylNhV4", // older American man
+  athena: () => "XrExE9yKIg1WjnnlVkGX", // warm, measured woman
+  zeus: () => "onwK4e9ZLuTAKqWW03F9", // older British man
+  orion: () => "TX3LPaxmHKxFdv7VOQHJ", // middle-aged man
+  luna: () => "EXAVITQu4vr4xnSDxMaL", // woman
 };
 
 async function elevenLabs(env, text, voiceId) {
