@@ -1,0 +1,52 @@
+{
+  // Owners Academy VSL funnel. Deploy with `npm run deploy` (see README.md).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "owners-vsl-funnel",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Static pages + assets. The Worker runs first for every HTML route so it can
+  // log the page view server-side, set first-party cookies, assign A/B variants
+  // and inject per-visitor config. /assets/* is served straight from the edge.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "drop-trailing-slash",
+    "not_found_handling": "none",
+    "run_worker_first": ["/*", "!/assets/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "owners-vsl-funnel",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Email queue, abandoned-application detection and call reminders.
+  "triggers": { "crons": ["*/5 * * * *"] },
+
+  // Non-secret config. Secrets (API keys, passwords) go in `wrangler secret put`
+  // or can be connected from the dashboard's Integrations tab.
+  "vars": {
+    "SITE_NAME": "The Owners Academy",
+    "PUBLIC_URL": "",
+    "EMAIL_FROM": "",
+    "EMAIL_REPLY_TO": "",
+    "JOSH_WHATSAPP": "",
+    "BOOKING_URL_A": "",
+    "BOOKING_URL_B": "",
+    "VSL_MAIN_SRC": "",
+    "VSL_MAIN_POSTER": "",
+    "VSL_BREAKOUT_SRC": "",
+    "VSL_BREAKOUT_POSTER": "",
+    "VSL_PRECALL_SRC": "",
+    "POSTHOG_HOST": "https://us.i.posthog.com",
+    "CONSENT_REQUIRED_EU": "true",
+    "IP_ANONYMIZE": "false"
+  }
+}
