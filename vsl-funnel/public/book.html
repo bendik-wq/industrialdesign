@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Book your call</title>
+  <meta name="theme-color" content="#0b0b0c">
+  <link rel="stylesheet" href="/assets/site.css">
+  <script defer src="/assets/f.js"></script>
+  <script defer src="/assets/book.js"></script>
+</head>
+<body>
+  <div class="topbar">Don’t close this page — your call isn’t booked until you pick a time</div>
+  <div class="brand"><span data-slot="site_name">The Owners Academy</span></div>
+  <main id="main">
+    <header class="hero wrap">
+      <div class="steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></div>
+      <span class="eyebrow" data-slot="eyebrow">Step 2 of 3 — You qualify</span>
+      <h1 class="h1" data-slot="headline">Pick A Time That <mark>Works For You</mark></h1>
+      <p class="sub">Choose a time below for your free acquisition strategy call. You’ll get a confirmation by email straight away.</p>
+    </header>
+    <div class="wrap">
+      <div class="cal-wrap" data-calendar><div class="analyzing"><div class="spinner"></div>Loading the calendar…</div></div>
+    </div>
+    <section class="block">
+      <div class="wrap">
+        <h2 class="h2 center">What happens next</h2>
+        <ol class="next-steps">
+          <li><strong>Pick a time</strong><br>Choose a slot that suits you — calls run on Zoom.</li>
+          <li><strong>Watch the pre-call video</strong><br>It makes the call twice as useful.</li>
+          <li><strong>Get your plan</strong><br>We map out what your first acquisition could look like.</li>
+        </ol>
+        <p class="center" style="color:var(--muted);font-size:14px;margin-top:22px">Your reference: <strong data-slot="ref_code"></strong></p>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div class="wrap">
+      <nav><a href="/privacy">Privacy</a></nav>
+      <p data-slot="disclaimer"></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -53,7 +53,7 @@ export async function markCancelled(rt: Runtime, lead: Lead, provider: string) {
   await track(rt, await identityFromLead(rt.env, lead.id), { name: 'booking_cancelled', source: 'webhook', props: { provider } });
   // Put them back into the "get booked" follow-up for their tier.
   const tier = lead.tier_override ?? lead.tier;
-  if (tier === 'A' || tier === 'B') await enqueueSequence(rt, { ...lead, booking_cancelled_at: Date.now() }, tier === 'A' ? 'tier_a' : 'tier_b');
+  if (tier === 'A' || tier === 'B') await enqueueSequence(rt, lead, tier === 'A' ? 'tier_a' : 'tier_b');
 }
 
 /** Calendly: `Calendly-Webhook-Signature: t=<ts>,v1=<hmac(t.body)>`. */
