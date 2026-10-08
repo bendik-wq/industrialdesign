@@ -30,11 +30,13 @@ const SETS = {
     ['side_on_row', 'zoom=0.8&az=-90&el=4'],
   ] },
   ovo1: { src: '../out/ovo1/OVO-1_assembly.glb', dir: 'renders/ovo1', views: [
-    ['hero', 'az=-30&el=12&metal=shell|band|crown|stand|deck|duct'],
-    ['rear_ports', 'az=200&el=8&metal=shell|band|crown|stand|deck|duct'],
-    ['section', 'az=90&el=5&clip=-1,0,0,0&metal=shell|band|crown|stand|deck|duct'],
-    ['core', 'zoom=0.85&az=-35&el=18&hide=shell_upper,shell_lower,band,light_ring,crown,stand,foot&metal=deck|duct|fins'],
-    ['exploded', 'src=../out/ovo1/OVO-1_exploded.glb&zoom=1.35&az=-30&el=10&metal=shell|band|crown|stand|deck|duct'],
+    ['hero', 'zoom=0.9&az=58&el=14&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
+    ['profile', 'zoom=0.85&az=0&el=0&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
+    ['tail', 'zoom=0.9&az=128&el=10&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
+    ['underside', 'zoom=0.9&az=-30&el=-38&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
+    ['section', 'zoom=0.85&az=0&el=8&clip=0,-1,0,0&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
+    ['core', 'zoom=0.8&az=-35&el=30&hide=shell_upper,shell_lower,nozzle,light_ring,exhaust_grille,belly_plate,plinth,foot&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
+    ['exploded', 'src=../out/ovo1/OVO-1_exploded.glb&zoom=1.0&az=-35&el=12&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
   ] },
 };
 const set = SETS[process.env.SET ?? 'aero1'];
