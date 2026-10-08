@@ -336,6 +336,150 @@ select.tool { appearance:none; -webkit-appearance:none; padding-right:14px; colo
 .send { width:36px; height:36px; border-radius:50%; border:0; background:var(--blue); color:#fff; font-size:18px; font-weight:700; cursor:pointer; flex:none; }
 .send:disabled { background:var(--bg3); cursor:default; }
 
+/* ===== tasks (project management) ===== */
+.pm { display:grid; grid-template-columns:240px minmax(0,1fr); max-width:1280px; margin:0 auto; min-height:calc(100vh - 53px); }
+@media (max-width:900px) { .pm { grid-template-columns:1fr; } }
+.pm-side { border-right:1px solid var(--bg3); padding:22px 12px; display:grid; gap:2px; align-content:start; position:sticky; top:53px; max-height:calc(100vh - 53px); overflow:auto; }
+@media (max-width:900px) { .pm-side { position:static; max-height:none; border-right:0; border-bottom:1px solid var(--bg3); display:flex; flex-wrap:nowrap; overflow-x:auto; padding:10px 12px; gap:6px; scrollbar-width:none; } .pm-side .sep, .pm-side .gl { display:none; } }
+.pm-side .gl { font-size:12px; font-weight:600; color:var(--ink3); padding:14px 10px 6px; }
+.pm-side .sep { height:1px; background:var(--bg3); margin:8px 6px; }
+.li { display:flex; align-items:center; gap:10px; border:0; background:none; width:100%; text-align:left; padding:8px 10px; border-radius:10px; font-size:14.5px; font-weight:500; cursor:pointer; color:var(--ink); white-space:nowrap; }
+.li:hover { background:var(--bg2); }
+.li.on { background:var(--bg3); }
+.li .ct { margin-left:auto; font-size:12.5px; color:var(--ink3); font-variant-numeric:tabular-nums; }
+.li .ic { width:22px; height:22px; border-radius:7px; display:grid; place-items:center; font-size:11px; font-weight:700; color:#fff; flex:none; }
+.av { border-radius:50%; display:inline-grid; place-items:center; color:#fff; font-weight:700; flex:none; letter-spacing:0; }
+.av.none { background:transparent; box-shadow:inset 0 0 0 1.5px var(--line); }
+.pm-main { padding:28px 32px 80px; min-width:0; }
+@media (max-width:760px) { .pm-main { padding:20px 16px 64px; } }
+.pm-head { display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:flex-end; margin-bottom:18px; }
+.pm-title h1 { font-size:clamp(30px,4vw,44px); letter-spacing:-.035em; line-height:1.05; }
+.pm-ctrls { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.vseg { display:flex; background:var(--bg2); border-radius:10px; padding:3px; }
+.vseg button { border:0; background:none; padding:6px 14px; border-radius:8px; font-size:13.5px; font-weight:600; color:var(--ink2); cursor:pointer; }
+.vseg button.on { background:var(--bg); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+.pm-search { border:0; background:var(--bg2); border-radius:10px; padding:8px 12px; font-size:14px; width:200px; }
+.pm-search:focus { outline:none; box-shadow:0 0 0 3px rgba(0,113,227,.2); }
+.pm-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
+@media (max-width:760px) { .pm-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.st { background:var(--bg2); border-radius:16px; padding:14px 16px; display:grid; gap:4px; min-width:0; }
+.st b { font-size:24px; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.st span { font-size:12.5px; color:var(--ink2); }
+.st.dark { background:var(--ink); color:#fff; } .st.dark span { color:#A1A1A6; }
+.qa { background:var(--bg); border-radius:14px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.1); padding:4px 6px 4px 14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:22px; transition:box-shadow .2s; }
+.qa:focus-within { box-shadow:inset 0 0 0 1px var(--blue), 0 0 0 4px rgba(0,113,227,.15); }
+.qa input { flex:1; min-width:220px; border:0; padding:11px 0; font-size:15.5px; background:none; }
+.qa input:focus { outline:none; }
+.qa-chips { display:flex; gap:6px; flex-wrap:wrap; padding-right:6px; }
+.qa-chips span { font-size:12px; font-weight:600; background:var(--bg2); border-radius:99px; padding:3px 10px; }
+.grp { margin-bottom:26px; }
+.grp h3 { font-size:15px; font-weight:700; letter-spacing:-.01em; display:flex; align-items:baseline; gap:8px; margin:0 0 6px 4px; }
+.grp h3 small { color:var(--ink3); font-weight:500; font-size:13px; }
+.trow { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; gap:12px; align-items:center; padding:11px 12px; border-radius:12px; cursor:pointer; }
+.trow + .trow { box-shadow:0 -1px 0 var(--bg3); }
+.trow:hover { background:var(--bg2); box-shadow:none; }
+.trow:hover + .trow { box-shadow:none; }
+.trow.open { background:#EAF3FF; }
+.trow .tt { font-size:15.5px; font-weight:500; letter-spacing:-.012em; line-height:1.35; }
+.trow.done .tt { color:var(--ink3); text-decoration:line-through; }
+.tmeta { display:flex; flex-wrap:wrap; gap:4px 10px; font-size:12.5px; color:var(--ink2); margin-top:2px; }
+.tmeta .due.over { color:var(--red); font-weight:600; } .tmeta .due.today { color:var(--amber); font-weight:600; }
+.tmeta .carry { color:var(--amber); font-weight:600; }
+.flag { font-weight:700; } .flag.p3 { color:var(--red); } .flag.p2 { color:#FF9F0A; } .flag.p1 { color:var(--blue); }
+.ck { appearance:none; -webkit-appearance:none; width:22px; height:22px; border-radius:50%; border:2px solid var(--line); cursor:pointer; display:grid; place-items:center; transition:all .15s; margin:0; flex:none; background:var(--bg); }
+.ck.p3 { border-color:var(--red); } .ck.p2 { border-color:#FF9F0A; }
+.ck:checked { background:var(--blue); border-color:var(--blue); }
+.ck:checked::after { content:""; width:6px; height:10px; border:solid #fff; border-width:0 2.3px 2.3px 0; transform:rotate(45deg) translate(-1px,-1px); }
+.num { display:flex; align-items:center; gap:5px; }
+.num input { width:58px; text-align:right; border:0; background:var(--bg2); border-radius:8px; padding:5px 8px; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+.num input:focus { outline:none; box-shadow:0 0 0 3px rgba(0,113,227,.25); }
+.num span { font-size:13px; color:var(--ink2); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.avbtn { border:0; background:none; padding:0; cursor:pointer; border-radius:50%; }
+.board { display:grid; grid-template-columns:repeat(3,minmax(240px,1fr)); gap:14px; overflow-x:auto; padding-bottom:8px; align-items:start; }
+.board.cal { grid-template-columns:repeat(8,minmax(170px,1fr)); }
+.col { background:var(--bg2); border-radius:18px; padding:12px; display:grid; gap:8px; align-content:start; min-height:220px; transition:background .15s, box-shadow .15s; }
+.col.over { background:#EAF3FF; box-shadow:inset 0 0 0 2px var(--blue); }
+.col h4 { font-size:14px; font-weight:700; display:flex; justify-content:space-between; padding:2px 4px 4px; }
+.col h4 span { color:var(--ink3); font-weight:500; }
+.col h4.today { color:var(--blue); }
+.card2 { background:var(--bg); border-radius:14px; padding:12px; display:grid; gap:6px; box-shadow:0 1px 2px rgba(0,0,0,.06), 0 4px 14px -8px rgba(0,0,0,.15); cursor:grab; }
+.card2:hover { box-shadow:0 1px 2px rgba(0,0,0,.08), 0 10px 24px -10px rgba(0,0,0,.25); }
+.card2.dragging { opacity:.45; }
+.card2 .tt { font-size:14px; font-weight:600; letter-spacing:-.01em; line-height:1.3; }
+.card2 .bot { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.card2.done .tt { color:var(--ink3); text-decoration:line-through; }
+.mbar { height:4px; background:var(--bg3); border-radius:99px; overflow:hidden; } .mbar i { display:block; height:100%; background:var(--blue); }
+.pm-keys { margin-top:30px; font-size:12.5px; color:var(--ink3); }
+kbd { font:600 11px var(--font); background:var(--bg2); border-radius:5px; padding:1px 6px; box-shadow:inset 0 -1px 0 var(--bg3); }
+.empty { padding:40px 20px; text-align:center; color:var(--ink3); background:var(--bg2); border-radius:18px; }
+
+.sheet { position:fixed; top:53px; right:0; bottom:0; width:min(440px,100vw); background:rgba(255,255,255,.96); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); box-shadow:-20px 0 60px -20px rgba(0,0,0,.25); z-index:40; overflow:auto; padding:20px 22px calc(40px + env(safe-area-inset-bottom,0px)); display:grid; gap:16px; align-content:start; animation:slidein .25s cubic-bezier(.2,.8,.2,1); }
+.sheet[hidden] { display:none; }
+@keyframes slidein { from { transform:translateX(30px); opacity:0; } to { transform:none; opacity:1; } }
+.sheet .top { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.sheet textarea.ttl { width:100%; border:0; background:none; font:700 24px/1.2 var(--font); letter-spacing:-.025em; resize:none; padding:0; }
+.sheet textarea.ttl:focus { outline:none; }
+.sheet .grid2 { display:grid; grid-template-columns:110px 1fr; gap:12px 14px; align-items:center; font-size:14px; }
+.sheet .grid2 > span { color:var(--ink2); font-weight:500; }
+.sheet input[type=date], .sheet select, .sheet .notes, .sheet .subadd { border:0; background:var(--bg2); border-radius:10px; padding:8px 10px; font-size:14px; width:100%; }
+.sheet .notes { min-height:110px; resize:vertical; line-height:1.45; }
+.pills { display:flex; gap:4px; flex-wrap:wrap; }
+.pills button { border:0; background:var(--bg2); border-radius:99px; padding:5px 11px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; color:var(--ink2); }
+.pills button.on { background:var(--ink); color:#fff; }
+.subs { display:grid; gap:6px; }
+.sub { display:flex; align-items:center; gap:10px; font-size:14.5px; }
+.sub .ck { width:18px; height:18px; border-width:1.5px; } .sub .ck:checked::after { width:4px; height:8px; }
+.sub.done span { color:var(--ink3); text-decoration:line-through; }
+.sub button { margin-left:auto; border:0; background:none; color:var(--ink3); cursor:pointer; font-size:16px; }
+.hl { display:grid; gap:6px; font-size:13px; color:var(--ink2); }
+.hl time { color:var(--ink3); margin-right:6px; font-variant-numeric:tabular-nums; }
+.teamgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+.tm { background:var(--bg2); border-radius:20px; padding:22px; display:grid; gap:12px; }
+.tm .who { display:flex; align-items:center; gap:12px; } .tm .who b { font-size:20px; letter-spacing:-.02em; }
+.tm .nums { display:flex; gap:20px; } .tm .nums div { display:grid; } .tm .nums b { font-size:22px; letter-spacing:-.03em; font-variant-numeric:tabular-nums; } .tm .nums span { font-size:12px; color:var(--ink2); }
+.tm input { border:0; background:var(--bg); border-radius:10px; padding:9px 12px; font-size:14px; width:100%; }
+
+/* ===== organic ===== */
+.wknav { display:flex; align-items:center; gap:14px; justify-content:center; font-size:17px; }
+.chain { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin-bottom:40px; }
+@media (max-width:860px) { .chain { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.ch { background:var(--bg); border-radius:20px; padding:20px; display:grid; gap:4px; position:relative; }
+.ch b { font-size:30px; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.ch .cv2 { font-size:12.5px; font-weight:600; color:var(--blue-ink); }
+.kgroup { margin-bottom:36px; }
+.kgroup h3 { font-size:22px; letter-spacing:-.025em; margin-bottom:12px; }
+.kgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
+.kc { background:var(--bg); border-radius:20px; padding:18px; display:grid; gap:8px; align-content:start; }
+.kc .kl { font-size:13px; font-weight:600; color:var(--ink2); display:flex; justify-content:space-between; gap:6px; }
+.kc .kv { display:flex; align-items:baseline; gap:6px; }
+.kc .kv input { width:100%; border:0; background:none; font:800 34px/1 var(--font); letter-spacing:-.045em; padding:0; font-variant-numeric:tabular-nums; color:var(--ink); }
+.kc .kv input:focus { outline:none; }
+.kc .kv input::placeholder { color:var(--bg3); }
+.kc .kv em { font-style:normal; color:var(--ink3); font-weight:600; }
+.kc .kf { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--ink2); gap:8px; }
+.kc .kf input { width:60px; border:0; background:var(--bg2); border-radius:6px; padding:3px 6px; font-size:12.5px; text-align:right; }
+.badge { font-size:11px; font-weight:700; border-radius:99px; padding:2px 8px; white-space:nowrap; }
+.badge.ok { background:var(--green-bg); color:var(--green); } .badge.low { background:var(--red-bg); color:var(--red); } .badge.odd { background:#F3EEFC; color:#7D3CCB; } .badge.na { background:var(--bg2); color:var(--ink3); }
+.spark { width:100%; height:34px; display:block; }
+
+/* ===== lab ===== */
+.histo { display:flex; align-items:flex-end; gap:4px; height:220px; padding-top:10px; }
+.histo div { flex:1; display:grid; gap:6px; justify-items:center; align-content:end; height:100%; min-width:0; }
+.histo i { width:100%; border-radius:8px 8px 3px 3px; background:var(--bg3); display:block; transition:height .5s cubic-bezier(.2,.8,.2,1); }
+.histo i.hit { background:#30D158; }
+.histo span { font-size:11.5px; color:var(--ink2); font-variant-numeric:tabular-nums; }
+.histo b { font-size:11px; color:var(--ink3); font-weight:600; }
+.ci { position:relative; height:10px; background:var(--bg2); border-radius:99px; min-width:160px; }
+.ci .rg { position:absolute; top:0; bottom:0; background:rgba(0,113,227,.25); border-radius:99px; }
+.ci .pt { position:absolute; top:-3px; width:4px; height:16px; background:var(--blue); border-radius:2px; transform:translateX(-2px); }
+.ci .tg { position:absolute; top:-5px; width:2px; height:20px; background:var(--ink); transform:translateX(-1px); }
+.levers { display:grid; gap:10px; }
+.lv { display:grid; grid-template-columns:minmax(0,220px) minmax(0,1fr) 120px; gap:16px; align-items:center; background:var(--bg2); border-radius:16px; padding:14px 18px; }
+.lv .bar { height:12px; } .lv .bar > i { background:var(--ink); }
+.lv.top { background:var(--ink); color:#fff; } .lv.top .bar { background:#3A3A3C; } .lv.top .bar > i { background:#30D158; } .lv.top .muted { color:#A1A1A6; }
+.lv b { font-variant-numeric:tabular-nums; text-align:right; font-size:18px; letter-spacing:-.02em; }
+@media (max-width:640px) { .lv { grid-template-columns:1fr; } .lv b { text-align:left; } }
+
 /* playbook */
 .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
 .card { background:var(--bg2); border-radius:var(--r); padding:28px; display:grid; gap:14px; align-content:start; min-width:0; }
@@ -373,7 +517,9 @@ body.studio-on .foot { display:none; }
   <div class="logo">G&amp;L <span style="color:var(--ink2);font-weight:500">Overview &amp; Strategy</span></div>
   <div class="tabs" role="tablist">
     <button class="tab" data-tab="overview" role="tab">Overview</button>
-    <button class="tab" data-tab="week" role="tab">This Week</button>
+    <button class="tab" data-tab="week" role="tab">Tasks</button>
+    <button class="tab" data-tab="organic" role="tab">Organic</button>
+    <button class="tab" data-tab="lab" role="tab">Lab</button>
     <button class="tab" data-tab="congruency" role="tab">Congruency</button>
     <button class="tab" data-tab="funnel" role="tab">Funnel</button>
     <button class="tab" data-tab="playbook" role="tab">Playbook</button>
@@ -419,29 +565,69 @@ body.studio-on .foot { display:none; }
 
 <!-- ================= THIS WEEK ================= -->
 <main class="view" id="v-week" hidden>
-  <section class="wrap hero" style="padding-bottom:40px">
-    <div class="kicker" id="wkRange"></div>
-    <h1 class="h-xl">This week.</h1>
-    <p class="lead" style="text-align:center">Every task comes from what the funnel needs to hit the money goal. A new week starts every Monday, and unfinished tasks carry over.</p>
+  <div class="pm">
+    <nav class="pm-side" id="pmSide" aria-label="Task lists"></nav>
+    <section class="pm-main">
+      <header class="pm-head">
+        <div class="pm-title"><h1 id="pmTitle">This week</h1><p class="muted" id="pmSub"></p></div>
+        <div class="pm-ctrls">
+          <div class="vseg" role="tablist" aria-label="View"><button type="button" data-view="list">List</button><button type="button" data-view="board">Board</button><button type="button" data-view="cal">Calendar</button></div>
+          <input class="pm-search" id="pmSearch" type="search" placeholder="Search" aria-label="Search tasks">
+        </div>
+      </header>
+      <div class="pm-stats" id="pmStats"></div>
+      <div class="qa">
+        <input id="qaIn" type="text" autocomplete="off" placeholder="New task… try “Film 4 videos fri @josh !high #content”" aria-label="New task">
+        <div class="qa-chips" id="qaChips"></div>
+      </div>
+      <div id="pmView"></div>
+      <p class="pm-keys">Shortcuts: <kbd>C</kbd> new task · <kbd>/</kbd> search · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> switch view · <kbd>Esc</kbd> close</p>
+    </section>
+  </div>
+  <aside class="sheet" id="sheet" hidden aria-label="Task details"></aside>
+</main>
+
+<!-- ================= ORGANIC ================= -->
+<main class="view" id="v-organic" hidden>
+  <section class="wrap hero" style="padding-bottom:36px">
+    <div class="kicker">Organic</div>
+    <h1 class="h-xl">Content in.<br>Owners out.</h1>
+    <p class="lead" style="text-align:center">Every week, log the numbers from YouTube Studio and Instagram Insights. Targets come from the funnel; unusual weeks get flagged automatically.</p>
+    <div class="wknav"><button class="btn light sm" id="kPrev" type="button" aria-label="Previous week">‹</button><b id="kWeekLbl"></b><button class="btn light sm" id="kNext" type="button" aria-label="Next week">›</button></div>
   </section>
-  <section class="sec alt" style="padding-top:56px">
+  <section class="sec alt" style="padding-top:48px">
     <div class="wrap">
-      <div class="tiles" id="wkTiles" style="margin-bottom:40px"></div>
-      <div class="areas" id="wkAreas"></div>
-      <div style="margin-top:28px" class="addtask">
-        <input type="text" id="newTask" placeholder="Add a task for this week" aria-label="New task">
-        <select id="newArea" aria-label="Area"></select>
-        <button class="btn" id="addTaskBtn" type="button">Add</button>
-        <button class="btn light" id="regenBtn" type="button">Refresh targets from funnel</button>
+      <div class="head"><div class="kicker blue">The chain</div><h2 class="h-m">From a view to a qualified owner</h2></div>
+      <div class="chain" id="kChain"></div>
+      <div id="kGroups"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= LAB ================= -->
+<main class="view" id="v-lab" hidden>
+  <section class="wrap hero" style="padding-bottom:36px">
+    <div class="kicker">Lab</div>
+    <h1 class="h-xl">The odds,<br>not the hopes.</h1>
+    <p class="lead" style="text-align:center">Bayesian estimates of your real conversion rates, a Monte Carlo forecast of the month, and the single lever worth pulling next. Gets sharper every week you log numbers.</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="labRun" type="button">Run 5,000 simulations</button></div>
+  </section>
+  <section class="sec alt" style="padding-top:48px">
+    <div class="wrap">
+      <div class="tiles" id="labTiles" style="margin-bottom:28px"></div>
+      <div class="cols">
+        <div class="card" style="grid-column:1/-1"><div class="lbl">Monte Carlo forecast · clients next month</div><h3 id="labHistTitle"></h3><div id="labHist"></div><p class="muted small" id="labHistNote"></p></div>
       </div>
     </div>
   </section>
   <section class="sec">
     <div class="wrap">
-      <div class="head"><div class="kicker blue">History</div><h2 class="h-l">Every week, remembered.</h2></div>
-      <div class="hist" id="wkHist"></div>
-      <div class="head" style="margin-top:56px"><h3 class="h-m">Activity</h3><p class="muted">Who did what, and when.</p></div>
-      <div class="log" id="wkLog"></div>
+      <div class="head"><div class="kicker blue">Bayesian rates</div><h2 class="h-m">What your numbers really say</h2><p class="muted">Each rate starts from its target as a prior worth about eight conversions, then updates with every week you log, so real data quickly outweighs the guess. The range is a 90% credible interval.</p></div>
+      <div class="tbl" id="labRates"></div>
+      <div class="head" style="margin-top:56px"><div class="kicker blue">Leverage</div><h2 class="h-m">The lever worth pulling next</h2><p class="muted">Clients gained per month if each input moved to its benchmark, with everything else held at today’s estimates.</p></div>
+      <div class="levers" id="labLevers"></div>
+      <div class="head" style="margin-top:56px"><div class="kicker blue">Signals</div><h2 class="h-m">Unusual weeks</h2><p class="muted">Statistical process control on your organic KPIs: anything more than two standard deviations from its own history.</p></div>
+      <div class="hist" id="labSignals"></div>
     </div>
   </section>
 </main>
@@ -664,7 +850,7 @@ const store = {
   }
 };
 const saveF = () => store.put('funnel', F), saveW = () => store.put('weeks', W), saveL = () => store.put('log', L);
-function log(msg) { L.unshift({ t: Date.now(), who: store.who, msg }); L = L.slice(0, 400); saveL(); }
+function log(msg) { L.unshift({ t: Date.now(), who: typeof whoName === 'function' && F ? whoName() : store.who, msg }); L = L.slice(0, 400); saveL(); }
 
 /* ============ math ============ */
 function calc() {
@@ -772,10 +958,10 @@ function syncWeek(wk) {
   const tpl = template(), keys = new Set(tpl.map(x => x.key));
   tpl.forEach(x => {
     const ex = wk.tasks.find(t => t.key === x.key);
-    if (ex) { Object.assign(ex, { title:x.title, area:x.area, owner:x.owner, target:x.target, unit:x.unit, sev:x.sev, node:x.node }); if (ex.key.startsWith('cg:') && ex.done && ex.resolved) { ex.done = false; ex.resolved = false; } }
-    else wk.tasks.push({ id:'t' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), auto:true, done:false, actual:null, ...x });
+    if (ex) { normTask(ex); Object.assign(ex, { area:x.area, owner:x.owner, target:x.target, unit:x.unit, sev:x.sev, node:x.node }); if (!ex.titleManual) ex.title = x.title; if (!ex.assigneeManual) ex.assignee = roleOwner(x.owner); if (!ex.priorityManual && x.area === 'Congruency') ex.priority = x.sev === 'bad' ? 3 : 2; if (ex.key.startsWith('cg:') && ex.done && ex.resolved) { ex.done = false; ex.status = 'todo'; ex.resolved = false; } }
+    else wk.tasks.push(normTask({ id:'t' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), auto:true, done:false, actual:null, ...x }));
   });
-  wk.tasks.forEach(t => { if (t.auto && t.key.startsWith('cg:') && !keys.has(t.key) && !t.done) { t.done = true; t.resolved = true; t.doneAt = Date.now(); t.doneBy = 'Funnel fix'; } });
+  wk.tasks.forEach(t => { if (t.auto && t.key.startsWith('cg:') && !keys.has(t.key) && !t.done) { t.done = true; t.status = 'done'; t.resolved = true; t.doneAt = Date.now(); t.doneBy = 'Funnel fix'; } });
   wk.tasks = wk.tasks.filter(t => !t.auto || keys.has(t.key) || t.done);
   const R = check(); wk.score = R.score; if (wk.scoreStart == null) wk.scoreStart = R.score;
 }
@@ -784,7 +970,7 @@ function ensureWeek() {
   if (!W[id]) {
     const prev = Object.keys(W).sort().reverse().find(k => k < id);
     W[id] = { id, created: Date.now(), tasks: [] };
-    if (prev) W[prev].tasks.filter(t => !t.done && !t.auto).forEach(t => W[id].tasks.push({ ...t, id:'t' + Math.random().toString(36).slice(2, 9), carried:true, actual:null }));
+    if (prev) W[prev].tasks.filter(t => !t.done && !t.auto).forEach(t => W[id].tasks.push({ ...t, id:'t' + Math.random().toString(36).slice(2, 9), carried:true, actual:null, history:[] }));
     syncWeek(W[id]);
     log(prev ? `Started the week of ${weekLabel(id)}. Carried over unfinished tasks.` : `Started the first week: ${weekLabel(id)}.`);
   } else syncWeek(W[id]);
@@ -820,38 +1006,409 @@ function renderSliders() {
   $('sliders').innerHTML = SL.map(([k, l, mn, mx, st, u]) => `<div class="tile s3 sl"><div class="top"><label for="s_${k}">${l}</label><b id="v_${k}">${F.math[k]}${u}</b></div><input type="range" id="s_${k}" data-m="${k}" min="${mn}" max="${mx}" step="${st}" value="${F.math[k]}"></div>`).join('');
 }
 
-/* ============ render: week ============ */
-function renderWeek() {
-  const id = weekId(), wk = W[id]; if (!wk) return;
-  $('wkRange').textContent = 'Week of ' + weekLabel(id);
-  const done = wk.tasks.filter(t => t.done).length, tot = wk.tasks.length, pct = tot ? Math.round(done / tot * 100) : 0;
-  const closes = wk.tasks.find(t => t.key === 'closes'), revT = (closes?.target || 0) * F.offer.price, revA = (+closes?.actual || 0) * F.offer.price;
-  const rp = revT ? Math.min(100, Math.round(revA / revT * 100)) : 0;
-  $('wkTiles').innerHTML = `
-    <div class="tile s3 dark"><div class="lbl">Revenue this week</div><div class="big">${money(revA)}</div><div class="bar green" style="background:#3A3A3C"><i style="width:${rp}%"></i></div><p class="muted small">Target ${money(revT)} · enter closes below</p></div>
-    <div class="tile s3"><div class="lbl">Tasks</div><div class="big">${done}<span style="color:var(--ink3)">/${tot}</span></div><div class="bar blue"><i style="width:${pct}%"></i></div><p class="muted small">${pct}% done · congruency ${wk.score ?? '—'}</p></div>`;
-  const order = AREAS.filter(a => wk.tasks.some(t => t.area === a));
-  $('wkAreas').innerHTML = order.map(a => {
-    const ts = wk.tasks.filter(t => t.area === a), d = ts.filter(t => t.done).length;
-    return `<div class="area"><h3>${a}<small>${d} of ${ts.length}</small></h3><div class="tasks">${ts.map(taskHTML).join('')}</div></div>`;
-  }).join('');
-  $('newArea').innerHTML = AREAS.map(a => `<option ${a === 'Other' ? 'selected' : ''}>${a}</option>`).join('');
-  // history
-  const past = Object.keys(W).filter(k => k < id).sort().reverse();
-  $('wkHist').innerHTML = past.length ? past.map(k => {
+/* ============ team ============ */
+const DEFAULT_TEAM = [{ id:'bendik', name:'Bendik', email:'bendik@asym.capital', color:'#0071E3' }, { id:'josh', name:'Josh', email:'', color:'#AF52DE' }];
+const ROLES = ['You','Setter','Closer','Editor','Funnel','Media buyer'];
+const team = () => F.team || (F.team = clone(DEFAULT_TEAM));
+const person = id => team().find(p => p.id === id);
+function me() { const e = String(store.who || '').toLowerCase(); return team().find(p => p.email && p.email.toLowerCase() === e) || team()[0]; }
+const whoName = () => store.mode === 'cloud' ? (me()?.name || store.who) : (me()?.name || 'You');
+function roleOwner(owner) {
+  const byName = team().find(p => p.name.toLowerCase() === String(owner || '').toLowerCase()); if (byName) return byName.id;
+  const r = F.roles || {}; if (r[owner] !== undefined) return r[owner];
+  return !owner || owner === 'You' ? team()[0].id : '';
+}
+const avatar = (id, sz = 22) => { const p = person(id); return p ? `<span class="av" style="background:${p.color};width:${sz}px;height:${sz}px;font-size:${Math.round(sz * .46)}px" title="${esc(p.name)}">${esc(p.name[0])}</span>` : `<span class="av none" style="width:${sz}px;height:${sz}px" title="Unassigned"></span>`; };
+
+/* ============ tasks: model ============ */
+const STATUSES = [['todo','To do'],['doing','In progress'],['done','Done']];
+const PRI = [[0,'None'],[1,'Low'],[2,'Medium'],[3,'High']];
+const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const todayIso = () => iso(new Date());
+function normTask(t) {
+  if (!t.status) t.status = t.done ? 'done' : 'todo';
+  t.done = t.status === 'done';
+  if (t.priority == null) t.priority = t.area === 'Congruency' ? (t.sev === 'bad' ? 3 : 2) : 0;
+  if (t.assignee === undefined) t.assignee = roleOwner(t.owner);
+  if (!t.history) t.history = [];
+  if (!t.subs) t.subs = [];
+  return t;
+}
+function tlog(t, msg) { t.history.unshift({ t:Date.now(), who:whoName(), msg }); t.history = t.history.slice(0, 50); }
+function setStatus(t, s) {
+  if (t.status === s) return;
+  t.status = s; t.done = s === 'done'; t.doneAt = t.done ? Date.now() : null; t.doneBy = t.done ? whoName() : null; t.resolved = false;
+  const lbl = STATUSES.find(x => x[0] === s)[1];
+  tlog(t, 'Moved to ' + lbl); log(`${t.done ? 'Checked off' : 'Moved to ' + lbl}: ${t.title}`);
+}
+function dueInfo(d) {
+  if (!d) return null;
+  const t = todayIso(), [y, m, dd] = d.split('-').map(Number), dt = new Date(y, m - 1, dd), now = new Date(); now.setHours(0, 0, 0, 0);
+  const diff = Math.round((dt - now) / 864e5);
+  const label = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday' : diff > 1 && diff < 7 ? dt.toLocaleDateString('en-US', { weekday:'short' }) : dt.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  return { label, cls: d < t ? 'over' : d === t ? 'today' : '' };
+}
+function parseQuick(s) {
+  const out = { title:s }; let t = ' ' + s + ' ';
+  t = t.replace(/\s@(\w+)/g, (m, n) => { const p = team().find(x => x.name.toLowerCase().startsWith(n.toLowerCase()) || x.id === n.toLowerCase()); if (p) { out.assignee = p.id; return ' '; } if (/^(none|nobody|unassigned)$/i.test(n)) { out.assignee = ''; return ' '; } return m; });
+  t = t.replace(/\s!(urgent|high|hi|med|medium|low|1|2|3)\b/gi, (m, p) => { p = p.toLowerCase(); out.priority = /urgent|high|hi|3/.test(p) ? 3 : /med|2/.test(p) ? 2 : 1; return ' '; });
+  t = t.replace(/\s#([\w-]+)/g, (m, a) => { const f = AREAS.find(x => x.toLowerCase().replace(/\W/g, '').startsWith(a.toLowerCase().replace(/\W/g, ''))); if (f) { out.area = f; return ' '; } return m; });
+  const days = ['sun','mon','tue','wed','thu','fri','sat'];
+  t = t.replace(/\s(today|tod|tomorrow|tmr|tmrw|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:rs|rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|in\s+(\d+)\s*d(?:ays?)?)(?=\s)/gi, (m, w, n) => {
+    const d = new Date(); w = w.toLowerCase();
+    if (n) d.setDate(d.getDate() + +n);
+    else if (/^tom|^tmr/.test(w)) d.setDate(d.getDate() + 1);
+    else if (!/^tod/.test(w)) { const idx = days.indexOf(w.slice(0, 3)); let add = (idx - d.getDay() + 7) % 7; d.setDate(d.getDate() + add); }
+    out.due = iso(d); return ' ';
+  });
+  out.title = t.replace(/\s+/g, ' ').trim();
+  return out;
+}
+
+/* ============ tasks: views ============ */
+const pm = (() => { try { return Object.assign({ view:'list', list:'week', q:'', open:null }, JSON.parse(localStorage.getItem('loi:pm')) || {}); } catch (e) { return { view:'list', list:'week', q:'', open:null }; } })();
+const savePm = () => { try { localStorage.setItem('loi:pm', JSON.stringify({ view:pm.view, list:pm.list })); } catch (e) {} };
+const curWeek = () => W[weekId()];
+const allTasks = () => (curWeek()?.tasks || []).map(normTask);
+function listTasks(list) {
+  const ts = allTasks(), t = todayIso();
+  if (list === 'today') return ts.filter(x => !x.done && ((x.due && x.due <= t) || x.status === 'doing'));
+  if (list === 'unassigned') return ts.filter(x => !x.assignee);
+  if (list.startsWith('p:')) return ts.filter(x => x.assignee === list.slice(2));
+  if (list.startsWith('a:')) return ts.filter(x => x.area === list.slice(2));
+  return ts;
+}
+const openCount = list => listTasks(list).filter(x => !x.done).length;
+function listName(list) {
+  if (list === 'today') return 'Today'; if (list === 'week') return 'This week'; if (list === 'unassigned') return 'Unassigned';
+  if (list.startsWith('p:')) return person(list.slice(2))?.name || 'Person'; if (list.startsWith('a:')) return list.slice(2);
+  return { history:'History', activity:'Activity', team:'Team' }[list] || 'Tasks';
+}
+function renderSide() {
+  const ts = allTasks(), areas = AREAS.filter(a => ts.some(t => t.area === a));
+  const d = new Date().getDate();
+  const li = (key, icon, label) => `<button type="button" class="li ${pm.list === key ? 'on' : ''}" data-list="${esc(key)}">${icon}<span>${esc(label)}</span>${['history','activity','team'].includes(key) ? '' : `<span class="ct">${openCount(key) || ''}</span>`}</button>`;
+  $('pmSide').innerHTML =
+    li('today', `<span class="ic" style="background:#FF9F0A">${d}</span>`, 'Today') +
+    li('week', `<span class="ic" style="background:#1D1D1F">W</span>`, 'This week') +
+    '<div class="gl">People</div>' + team().map(p => li('p:' + p.id, avatar(p.id), p.name)).join('') + li('unassigned', avatar(''), 'Unassigned') +
+    '<div class="gl">Areas</div>' + areas.map(a => li('a:' + a, `<span class="ic" style="background:${areaColor(a)}"></span>`, a)).join('') +
+    '<div class="sep"></div>' + li('history', `<span class="ic" style="background:#8E8E93">H</span>`, 'History') + li('activity', `<span class="ic" style="background:#8E8E93">A</span>`, 'Activity') + li('team', `<span class="ic" style="background:#8E8E93">T</span>`, 'Team');
+}
+const AREA_COL = { Congruency:'#FF3B30', Content:'#0071E3', Traffic:'#5AC8FA', Capture:'#34C759', 'Show-up':'#FF9F0A', Sales:'#1D1D1F', Delivery:'#AF52DE', 'Side engine':'#A2845E', Review:'#8E8E93', Other:'#C7C7CC' };
+const areaColor = a => AREA_COL[a] || '#C7C7CC';
+function matches(t) { const q = pm.q.trim().toLowerCase(); return !q || [t.title, t.area, t.notes, person(t.assignee)?.name].some(v => String(v || '').toLowerCase().includes(q)); }
+function metaHTML(t) {
+  const m = [];
+  if (pm.list !== 'a:' + t.area) m.push(`<span style="color:${areaColor(t.area)};font-weight:600">${esc(t.area)}</span>`);
+  const di = dueInfo(t.due); if (di && !t.done) m.push(`<span class="due ${di.cls}">${di.label}</span>`);
+  if (t.priority) m.push(`<span class="flag p${t.priority}">${'!'.repeat(t.priority)}</span>`);
+  if (t.subs?.length) m.push(`<span>${t.subs.filter(s => s.done).length}/${t.subs.length}</span>`);
+  if (t.notes) m.push('<span>Notes</span>');
+  if (t.carried) m.push('<span class="carry">Carried over</span>');
+  if (t.done && t.doneBy) m.push(`<span>Done by ${esc(t.doneBy)}</span>`);
+  return m.join('');
+}
+const numHTML = t => t.target ? `<div class="num"><input type="number" inputmode="numeric" min="0" data-actual="${t.id}" value="${t.actual ?? ''}" placeholder="0" aria-label="Actual for ${esc(t.title)}"><span>/ ${t.target} ${esc(t.unit || '')}</span></div>` : '<span></span>';
+function rowHTML(t) {
+  return `<div class="trow ${t.done ? 'done' : ''} ${pm.open === t.id ? 'open' : ''}" data-open-task="${t.id}"><input class="ck p${t.priority}" type="checkbox" data-done="${t.id}" ${t.done ? 'checked' : ''} aria-label="Done: ${esc(t.title)}"><div style="min-width:0"><div class="tt">${esc(t.title)}</div><div class="tmeta">${metaHTML(t)}</div></div>${numHTML(t)}<button type="button" class="avbtn" data-cycle="${t.id}" aria-label="Change assignee">${avatar(t.assignee, 24)}</button></div>`;
+}
+function cardHTML2(t) {
+  const prog = t.target ? `<div class="mbar"><i style="width:${Math.min(100, (+t.actual || 0) / t.target * 100)}%"></i></div>` : '';
+  return `<div class="card2 ${t.done ? 'done' : ''}" draggable="true" data-drag="${t.id}" data-open-task="${t.id}"><div class="tt">${esc(t.title)}</div><div class="tmeta">${metaHTML(t)}</div>${prog}<div class="bot"><span class="muted small">${t.target ? `${t.actual ?? 0}/${t.target} ${esc(t.unit || '')}` : ''}</span>${avatar(t.assignee, 22)}</div></div>`;
+}
+function sortTasks(ts) { return ts.sort((a, b) => (a.done - b.done) || (b.priority - a.priority) || String(a.due || '9').localeCompare(String(b.due || '9'))); }
+function renderTasks() {
+  if (!$('pmSide')) return;
+  renderSide();
+  document.querySelectorAll('.vseg button').forEach(b => b.classList.toggle('on', b.dataset.view === pm.view));
+  const special = ['history','activity','team'].includes(pm.list);
+  $('pmTitle').textContent = listName(pm.list);
+  const wk = curWeek(), ts = listTasks(special ? 'week' : pm.list), open = ts.filter(t => !t.done).length;
+  const over = ts.filter(t => !t.done && t.due && t.due < todayIso()).length;
+  $('pmSub').textContent = `Week of ${weekLabel(weekId())}` + (special ? '' : ` · ${open} open` + (over ? ` · ${over} overdue` : ''));
+  const all = allTasks(), done = all.filter(t => t.done).length, pct = all.length ? Math.round(done / all.length * 100) : 0;
+  const cl = all.find(t => t.key === 'closes'), revT = (cl?.target || 0) * F.offer.price, revA = (+cl?.actual || 0) * F.offer.price;
+  const mine = all.filter(t => t.assignee === me()?.id && !t.done).length;
+  $('pmStats').innerHTML = `<div class="st dark"><span>Revenue this week</span><b>${money(revA)}</b><div class="bar green" style="background:#3A3A3C;height:5px"><i style="width:${revT ? Math.min(100, revA / revT * 100) : 0}%"></i></div><span>Target ${money(revT)}</span></div>
+    <div class="st"><span>Week done</span><b>${pct}%</b><div class="bar blue" style="height:5px"><i style="width:${pct}%"></i></div><span>${done} of ${all.length} tasks</span></div>
+    <div class="st"><span>Yours open</span><b>${mine}</b><span>${esc(me()?.name || '')}</span></div>
+    <div class="st"><span>Congruency</span><b style="color:${scoreColor(wk?.score ?? 0)}">${wk?.score ?? '—'}</b><span>${(check().fails.length) || 'No'} fixes queued</span></div>`;
+  document.querySelector('.qa').style.display = special ? 'none' : '';
+  document.querySelector('.vseg').style.display = special ? 'none' : '';
+  const v = $('pmView');
+  if (pm.list === 'history') { v.innerHTML = historyHTML(); return; }
+  if (pm.list === 'activity') { v.innerHTML = `<div class="log">${L.length ? L.slice(0, 200).map(e => `<div><time>${new Date(e.t).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}</time><span><b>${esc(e.who)}</b> · ${esc(e.msg)}</span></div>`).join('') : '<div><span class="muted">Nothing yet.</span></div>'}</div>`; return; }
+  if (pm.list === 'team') { v.innerHTML = teamHTML(); return; }
+  const shown = sortTasks(ts.filter(matches));
+  if (!shown.length) { v.innerHTML = `<div class="empty">${pm.q ? 'No tasks match that search.' : pm.list === 'today' ? 'Nothing due today. Pick something from This week.' : 'Nothing here yet.'}</div>`; return; }
+  if (pm.view === 'board') {
+    v.innerHTML = `<div class="board">${STATUSES.map(([s, l]) => { const c = shown.filter(t => t.status === s); return `<div class="col" data-drop-status="${s}"><h4>${l}<span>${c.length}</span></h4>${c.map(cardHTML2).join('')}</div>`; }).join('')}</div>`;
+  } else if (pm.view === 'cal') {
+    const ws = weekStart(), cols = [...Array(7)].map((_, i) => { const d = new Date(ws); d.setDate(d.getDate() + i); return d; });
+    v.innerHTML = `<div class="board cal">${cols.map(d => { const k = iso(d), c = shown.filter(t => t.due === k); return `<div class="col" data-drop-due="${k}"><h4 class="${k === todayIso() ? 'today' : ''}">${d.toLocaleDateString('en-US', { weekday:'short', day:'numeric' })}<span>${c.length || ''}</span></h4>${c.map(cardHTML2).join('')}</div>`; }).join('')}<div class="col" data-drop-due=""><h4>No date<span>${shown.filter(t => !t.due || t.due < iso(ws) || t.due > iso(cols[6])).length}</span></h4>${shown.filter(t => !t.due || t.due < iso(ws) || t.due > iso(cols[6])).map(cardHTML2).join('')}</div></div>`;
+  } else {
+    const byArea = !pm.list.startsWith('a:');
+    const groups = byArea ? AREAS.filter(a => shown.some(t => t.area === a)).map(a => [a, shown.filter(t => t.area === a)]) : STATUSES.map(([s, l]) => [l, shown.filter(t => t.status === s)]).filter(g => g[1].length);
+    v.innerHTML = groups.map(([g, list]) => `<div class="grp"><h3>${byArea ? `<span style="width:9px;height:9px;border-radius:50%;background:${areaColor(g)};display:inline-block"></span>` : ''}${esc(g)}<small>${list.filter(t => !t.done).length} open</small></h3>${list.map(rowHTML).join('')}</div>`).join('');
+  }
+}
+function historyHTML() {
+  const id = weekId(), past = Object.keys(W).filter(k => k < id).sort().reverse();
+  return `<div class="hist">${past.length ? past.map(k => {
     const w = W[k], d = w.tasks.filter(t => t.done).length, cl = w.tasks.find(t => t.key === 'closes');
-    return `<details><summary><b>${weekLabel(k)}</b><span>${d}/${w.tasks.length} done</span><span>${money((+cl?.actual || 0) * F.offer.price)} closed</span><span>Congruency ${w.score ?? '—'}</span></summary><ul>${w.tasks.map(t => `<li class="${t.done ? 'd' : ''}">${t.done ? '✓' : '○'} ${esc(t.title)}${t.target ? ` — ${t.actual ?? 0}/${t.target}` : ''}</li>`).join('')}</ul></details>`;
-  }).join('') : '<p class="muted">Past weeks show up here once a new week starts on Monday.</p>';
-  $('wkLog').innerHTML = L.length ? L.slice(0, 120).map(e => `<div><time>${new Date(e.t).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}</time><span><b>${esc(e.who)}</b> · ${esc(e.msg)}</span></div>`).join('') : '<div><span class="muted">Nothing yet.</span></div>';
+    return `<details><summary><b>${weekLabel(k)}</b><span>${d}/${w.tasks.length} done</span><span>${money((+cl?.actual || 0) * F.offer.price)} closed</span><span>Congruency ${w.score ?? '—'}</span></summary><ul>${w.tasks.map(t => `<li class="${t.done ? 'd' : ''}">${t.done ? '✓' : '○'} ${esc(t.title)}${t.target ? ` — ${t.actual ?? 0}/${t.target}` : ''}${t.assignee && person(t.assignee) ? ' · ' + esc(person(t.assignee).name) : ''}</li>`).join('')}</ul></details>`;
+  }).join('') : '<p class="muted">Past weeks appear here once a new week starts on Monday. Unfinished tasks you added carry over automatically.</p>'}</div>`;
 }
-function taskHTML(t) {
-  const meta = [`<span>${esc(t.owner)}</span>`];
-  if (t.carried) meta.push('<span class="carry">Carried over</span>');
-  if (t.area === 'Congruency') meta.push(`<span class="fix">${t.sev === 'warn' ? 'Tighten' : 'Critical'}</span>`);
-  if (t.done && t.doneAt) meta.push(`<span>Done ${new Date(t.doneAt).toLocaleDateString('en-US', { weekday:'short' })}${t.doneBy ? ' · ' + esc(t.doneBy) : ''}</span>`);
-  const act = t.target ? `<div class="act"><input type="number" inputmode="numeric" min="0" data-actual="${t.id}" value="${t.actual ?? ''}" placeholder="0" aria-label="Actual for ${esc(t.title)}"><span>/ ${t.target} ${esc(t.unit || '')}</span></div>` : (t.auto ? '<span></span>' : `<button class="x" data-del-task="${t.id}" aria-label="Delete task">×</button>`);
-  return `<div class="task ${t.done ? 'done' : ''}"><input class="ck" type="checkbox" data-task="${t.id}" ${t.done ? 'checked' : ''} aria-label="Done: ${esc(t.title)}"><div><div class="tt">${esc(t.title)}</div><div class="meta">${meta.join('')}</div></div>${act}</div>`;
+function teamHTML() {
+  const ts = allTasks(), t0 = todayIso();
+  return `<div class="teamgrid">${team().map((p, i) => {
+    const mine = ts.filter(t => t.assignee === p.id);
+    return `<div class="tm"><div class="who">${avatar(p.id, 44)}<b>${esc(p.name)}</b></div><div class="nums"><div><b>${mine.filter(t => !t.done).length}</b><span>Open</span></div><div><b>${mine.filter(t => t.done).length}</b><span>Done this week</span></div><div><b style="color:${mine.some(t => !t.done && t.due && t.due < t0) ? 'var(--red)' : 'inherit'}">${mine.filter(t => !t.done && t.due && t.due < t0).length}</b><span>Overdue</span></div></div><label class="small muted" for="tm_${p.id}">Sign-in email</label><input id="tm_${p.id}" type="email" data-team-email="${i}" value="${esc(p.email)}" placeholder="name@company.com"></div>`;
+  }).join('')}</div>
+  <div class="head" style="margin-top:40px"><h3 class="h-m">Who covers each role</h3><p class="muted">Tasks the funnel creates for a role go straight to this person.</p></div>
+  <div class="tasks" style="padding:6px 0">${ROLES.map(r => `<div class="task" style="grid-template-columns:1fr auto"><div class="tt">${esc(r)}</div><select data-role="${esc(r)}" style="border:0;background:var(--bg2);border-radius:10px;padding:7px 10px">${['', ...team().map(p => p.id)].map(id => `<option value="${id}" ${roleOwner(r) === id ? 'selected' : ''}>${id ? esc(person(id).name) : 'Unassigned'}</option>`).join('')}</select></div>`).join('')}</div>`;
 }
+
+/* ============ tasks: detail sheet ============ */
+const findTask = id => allTasks().find(t => t.id === id);
+function openTask(id) { pm.open = id; renderSheet(); renderTasks(); }
+function closeSheet() { pm.open = null; $('sheet').hidden = true; renderTasks(); }
+function renderSheet() {
+  const t = findTask(pm.open), sh = $('sheet');
+  if (!t) { sh.hidden = true; return; }
+  sh.hidden = false;
+  sh.innerHTML = `<div class="top"><div class="pills">${STATUSES.map(([s, l]) => `<button type="button" class="${t.status === s ? 'on' : ''}" data-set-status="${s}">${l}</button>`).join('')}</div><button class="btn light sm" type="button" data-close-sheet aria-label="Close">Close</button></div>
+    <textarea class="ttl" rows="2" data-f="title" aria-label="Title">${esc(t.title)}</textarea>
+    <div class="grid2">
+      <span>Assignee</span><div class="pills">${team().map(p => `<button type="button" class="${t.assignee === p.id ? 'on' : ''}" data-set-assignee="${p.id}">${avatar(p.id, 18)}${esc(p.name)}</button>`).join('')}<button type="button" class="${!t.assignee ? 'on' : ''}" data-set-assignee="">None</button></div>
+      <span>Due</span><input type="date" data-f="due" value="${t.due || ''}">
+      <span>Priority</span><div class="pills">${PRI.map(([v, l]) => `<button type="button" class="${t.priority === v ? 'on' : ''}" data-set-pri="${v}">${l}</button>`).join('')}</div>
+      <span>Area</span><select data-f="area">${AREAS.map(a => `<option ${a === t.area ? 'selected' : ''}>${a}</option>`).join('')}</select>
+      ${t.target ? `<span>Progress</span><div class="num"><input type="number" min="0" data-actual="${t.id}" value="${t.actual ?? ''}" placeholder="0"><span>/ ${t.target} ${esc(t.unit || '')}</span></div>` : ''}
+    </div>
+    <div class="f"><label for="sh_notes">Notes</label><textarea class="notes" id="sh_notes" data-f="notes" placeholder="Context, links, what done looks like…">${esc(t.notes || '')}</textarea></div>
+    <div class="f"><label>Checklist</label><div class="subs">${t.subs.map((s, i) => `<div class="sub ${s.done ? 'done' : ''}"><input class="ck" type="checkbox" data-sub="${i}" ${s.done ? 'checked' : ''} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span><button type="button" data-delsub="${i}" aria-label="Remove">×</button></div>`).join('')}<input class="subadd" id="subAdd" placeholder="Add a step and press Enter"></div></div>
+    ${t.node && byId(t.node) ? `<button class="btn light sm" type="button" data-open="${esc(t.node)}" style="justify-self:start">Open “${esc(byId(t.node).title)}” in the funnel</button>` : ''}
+    ${t.auto ? '<p class="muted small">Created by the funnel. Its title and target follow the funnel; your status, assignee, notes and checklist stay.</p>' : ''}
+    <div class="f"><label>History</label><div class="hl">${t.history.length ? t.history.map(h => `<div><time>${new Date(h.t).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}</time>${esc(h.who)} · ${esc(h.msg)}</div>`).join('') : '<div>No changes yet.</div>'}</div></div>
+    ${!t.auto ? '<button class="btn light sm danger" type="button" data-delete-task style="justify-self:start">Delete task</button>' : ''}`;
+}
+function taskChanged(t, msg) { if (msg) tlog(t, msg); saveW(); renderTasks(); renderOverview(check(), calc()); }
+
+(function initTasks() {
+  const view = $('v-week');
+  view.addEventListener('click', e => {
+    const li = e.target.closest('[data-list]'); if (li) { pm.list = li.dataset.list; savePm(); closeSheet(); window.scrollTo(0, 0); return; }
+    const vb = e.target.closest('[data-view]'); if (vb) { pm.view = vb.dataset.view; savePm(); renderTasks(); return; }
+    const cy = e.target.closest('[data-cycle]');
+    if (cy) { const t = findTask(cy.dataset.cycle), ids = ['', ...team().map(p => p.id)], nx = ids[(ids.indexOf(t.assignee || '') + 1) % ids.length]; t.assignee = nx; t.assigneeManual = true; taskChanged(t, 'Assigned to ' + (person(nx)?.name || 'nobody')); if (pm.open === t.id) renderSheet(); return; }
+    if (e.target.closest('input,select,textarea,button:not([data-open-task])') && !e.target.closest('.sheet')) return;
+    const sh = e.target.closest('.sheet');
+    if (sh) {
+      const t = findTask(pm.open); if (!t) return;
+      if (e.target.closest('[data-close-sheet]')) return closeSheet();
+      const st = e.target.closest('[data-set-status]'); if (st) { setStatus(t, st.dataset.setStatus); taskChanged(t); renderSheet(); return; }
+      const as = e.target.closest('[data-set-assignee]'); if (as) { t.assignee = as.dataset.setAssignee; t.assigneeManual = true; taskChanged(t, 'Assigned to ' + (person(t.assignee)?.name || 'nobody')); renderSheet(); return; }
+      const pr = e.target.closest('[data-set-pri]'); if (pr) { t.priority = +pr.dataset.setPri; t.priorityManual = true; taskChanged(t, 'Priority: ' + PRI[t.priority][1]); renderSheet(); return; }
+      const ds = e.target.closest('[data-delsub]'); if (ds) { t.subs.splice(+ds.dataset.delsub, 1); taskChanged(t); renderSheet(); return; }
+      if (e.target.closest('[data-delete-task]')) { const wk = curWeek(); wk.tasks = wk.tasks.filter(x => x !== t); log('Deleted task: ' + t.title); saveW(); closeSheet(); return; }
+      return;
+    }
+    const row = e.target.closest('[data-open-task]'); if (row) openTask(row.dataset.openTask);
+  });
+  view.addEventListener('change', e => {
+    const d = e.target.dataset;
+    if (d.done) { const t = findTask(d.done); setStatus(t, e.target.checked ? 'done' : 'todo'); taskChanged(t); if (pm.open === t.id) renderSheet(); return; }
+    if (d.actual) { const t = findTask(d.actual); t.actual = e.target.value === '' ? null : +e.target.value; if (t.target && t.actual >= t.target && !t.done) setStatus(t, 'done'); tlog(t, `Logged ${t.actual ?? 0} of ${t.target}`); log(`${t.title}: ${t.actual ?? 0} of ${t.target}`); taskChanged(t); if (pm.open === t.id) renderSheet(); return; }
+    if (d.sub) { const t = findTask(pm.open); t.subs[+d.sub].done = e.target.checked; taskChanged(t); renderSheet(); return; }
+    if (d.f === 'due' || d.f === 'area') { const t = findTask(pm.open); t[d.f] = e.target.value; taskChanged(t, d.f === 'due' ? 'Due ' + (e.target.value || 'cleared') : 'Area: ' + e.target.value); return; }
+    if (d.f === 'title' || d.f === 'notes') { const t = findTask(pm.open); taskChanged(t, d.f === 'title' ? 'Renamed' : 'Edited notes'); return; }
+    if (d.teamEmail != null) { team()[+d.teamEmail].email = e.target.value.trim(); saveF(); log(`Set ${team()[+d.teamEmail].name}’s email`); toast('Saved'); return; }
+    if (d.role) { (F.roles = F.roles || {})[d.role] = e.target.value; allTasks().forEach(t => { if (t.auto && !t.assigneeManual && t.owner === d.role) t.assignee = e.target.value; }); saveF(); saveW(); renderTasks(); toast('Role updated'); }
+  });
+  view.addEventListener('input', e => {
+    const d = e.target.dataset;
+    if ((d.f === 'title' || d.f === 'notes') && pm.open) { const t = findTask(pm.open); t[d.f] = e.target.value; if (d.f === 'title' && t.auto) t.titleManual = true; store.put('weeks', W); }
+  });
+  view.addEventListener('keydown', e => {
+    if (e.target.id === 'subAdd' && e.key === 'Enter' && e.target.value.trim()) { const t = findTask(pm.open); t.subs.push({ t:e.target.value.trim(), done:false }); taskChanged(t, 'Added a step'); renderSheet(); $('subAdd').focus(); }
+  });
+  // drag & drop for board and calendar
+  view.addEventListener('dragstart', e => { const c = e.target.closest('[data-drag]'); if (!c) return; e.dataTransfer.setData('text/plain', c.dataset.drag); e.dataTransfer.effectAllowed = 'move'; c.classList.add('dragging'); });
+  view.addEventListener('dragend', e => { e.target.closest?.('[data-drag]')?.classList.remove('dragging'); document.querySelectorAll('.col.over').forEach(c => c.classList.remove('over')); });
+  view.addEventListener('dragover', e => { const c = e.target.closest('.col'); if (!c) return; e.preventDefault(); document.querySelectorAll('.col.over').forEach(x => x !== c && x.classList.remove('over')); c.classList.add('over'); });
+  view.addEventListener('drop', e => {
+    const c = e.target.closest('.col'); if (!c) return; e.preventDefault(); c.classList.remove('over');
+    const t = findTask(e.dataTransfer.getData('text/plain')); if (!t) return;
+    if (c.dataset.dropStatus) { setStatus(t, c.dataset.dropStatus); taskChanged(t); }
+    else if (c.dataset.dropDue !== undefined) { t.due = c.dataset.dropDue; taskChanged(t, 'Due ' + (t.due || 'cleared')); }
+    if (pm.open === t.id) renderSheet();
+  });
+  $('pmSearch').addEventListener('input', e => { pm.q = e.target.value; renderTasks(); });
+  $('qaIn').addEventListener('input', e => {
+    const p = parseQuick(e.target.value), ch = [];
+    if (p.assignee !== undefined) ch.push(person(p.assignee)?.name || 'Unassigned'); if (p.due) ch.push(dueInfo(p.due).label); if (p.priority) ch.push(PRI[p.priority][1] + ' priority'); if (p.area) ch.push(p.area);
+    $('qaChips').innerHTML = ch.map(c => `<span>${esc(c)}</span>`).join('');
+  });
+  $('qaIn').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return; const raw = e.target.value.trim(); if (!raw) return;
+    const p = parseQuick(raw); if (!p.title) return;
+    const list = pm.list, t = normTask({ id:'t' + Date.now().toString(36), key:'m:' + Date.now(), auto:false, title:p.title, area:p.area || (list.startsWith('a:') ? list.slice(2) : 'Other'), owner:'', assignee: p.assignee !== undefined ? p.assignee : list.startsWith('p:') ? list.slice(2) : list === 'unassigned' ? '' : me()?.id || '', assigneeManual:true, due: p.due || (list === 'today' ? todayIso() : ''), priority: p.priority || 0, target:null, done:false, status:'todo' });
+    tlog(t, 'Created'); curWeek().tasks.push(t); log('Added task: ' + t.title); saveW(); e.target.value = ''; $('qaChips').innerHTML = ''; renderTasks(); toast('Added');
+  });
+  document.addEventListener('keydown', e => {
+    if (view.hidden || e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || e.altKey) { if (e.key === 'Escape' && !view.hidden && pm.open) closeSheet(); return; }
+    if (e.key === 'c') { e.preventDefault(); $('qaIn').focus(); }
+    else if (e.key === '/') { e.preventDefault(); $('pmSearch').focus(); }
+    else if (['1','2','3'].includes(e.key)) { pm.view = ['list','board','cal'][+e.key - 1]; savePm(); renderTasks(); }
+    else if (e.key === 'Escape' && pm.open) closeSheet();
+  });
+})();
+
+/* ============ organic KPIs ============ */
+let K = { weeks:{}, targets:{} }, kWeek = weekId();
+const chan = id => F.nodes.find(n => n.id === id);
+const KPIS = [
+  { key:'yt_published', g:'YouTube', label:'Long-form published', target:() => weekly(F.nodes.find(n => n.kind === 'channel' && n.primary)?.volume) || 4 },
+  { key:'yt_views', g:'YouTube', label:'Views' },
+  { key:'yt_watch', g:'YouTube', label:'Watch hours' },
+  { key:'yt_avd', g:'YouTube', label:'Avg % viewed', unit:'%', target:() => 40 },
+  { key:'yt_ctr', g:'YouTube', label:'Impressions CTR', unit:'%', target:() => 5 },
+  { key:'yt_subs', g:'YouTube', label:'Subscribers gained' },
+  { key:'yt_clicks', g:'YouTube', label:'VSL clicks from YouTube', target:() => perWeek(+(F.nodes.find(n => n.kind === 'channel' && n.primary)?.visits) || 0) },
+  { key:'ig_reels', g:'Instagram', label:'Reels published', target:() => weekly(chan('reels')?.volume) || 35 },
+  { key:'ig_views', g:'Instagram', label:'Reel views' },
+  { key:'ig_follow', g:'Instagram', label:'Followers gained' },
+  { key:'ig_profile', g:'Instagram', label:'Profile visits' },
+  { key:'ig_dms', g:'Instagram', label:'DM conversations' },
+  { key:'ig_qual', g:'Instagram', label:`DMs qualified (${money(1e6)}+)` },
+  { key:'apps', g:'Pipeline', label:'Applications' },
+  { key:'apps_q', g:'Pipeline', label:'Qualified applications', target:() => perWeek(calc().booked) }
+];
+const kv = (key, wid = kWeek) => { const v = K.weeks[wid]?.[key]; return v === '' || v == null ? null : +v; };
+function kTarget(k) { const o = K.targets[k.key]; if (o !== '' && o != null) return +o; return k.target ? k.target() : null; }
+const shiftWeek = (id, n) => { const [y, m, d] = id.split('-').map(Number); return weekId(new Date(y, m - 1, d + 7 * n)); };
+function kHistory(key, upto = kWeek, n = 12) { const out = []; let id = upto; for (let i = 0; i < n; i++) { out.unshift({ id, v:kv(key, id) }); id = shiftWeek(id, -1); } return out; }
+const mean = a => a.reduce((s, x) => s + x, 0) / a.length;
+const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / Math.max(1, a.length - 1)); };
+function zScore(key, wid = kWeek) {
+  const cur = kv(key, wid); if (cur == null) return null;
+  const prev = kHistory(key, shiftWeek(wid, -1), 12).map(p => p.v).filter(v => v != null);
+  if (prev.length < 4) return null; const s = sd(prev); if (!s) return null;
+  return (cur - mean(prev)) / s;
+}
+function sparkSVG(key) {
+  const pts = kHistory(key).filter(p => p.v != null); if (pts.length < 2) return '<svg class="spark" viewBox="0 0 120 34"></svg>';
+  const vs = pts.map(p => p.v), mn = Math.min(...vs), mx = Math.max(...vs), r = mx - mn || 1;
+  const xy = pts.map((p, i) => [4 + i * 112 / (pts.length - 1), 30 - (p.v - mn) / r * 26]);
+  const d = xy.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ');
+  const last = xy[xy.length - 1];
+  return `<svg class="spark" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L${last[0]},34 L4,34 Z" fill="rgba(0,113,227,.08)"/><path d="${d}" fill="none" stroke="#0071E3" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/><circle cx="${last[0]}" cy="${last[1]}" r="2.6" fill="#0071E3"/></svg>`;
+}
+function renderOrganic() {
+  if (!$('kGroups')) return;
+  $('kWeekLbl').textContent = (kWeek === weekId() ? 'This week · ' : '') + weekLabel(kWeek);
+  $('kNext').disabled = kWeek >= weekId();
+  const fmt = v => v == null ? '—' : v >= 1e4 ? (v / 1e3).toFixed(v >= 1e5 ? 0 : 1) + 'k' : Math.round(v).toLocaleString('en-US');
+  const pct = (a, b) => a != null && b ? (a / b * 100).toFixed(a / b < .1 ? 1 : 0) + '%' : '—';
+  const views = (kv('yt_views') || 0) + (kv('ig_views') || 0), prof = kv('ig_profile'), dms = kv('ig_dms'), q = kv('ig_qual'), apps = kv('apps_q');
+  const chain = [['Views', views || null, ''], ['Profile visits', prof, pct(prof, views)], ['DM conversations', dms, pct(dms, prof)], ['Qualified in DMs', q, pct(q, dms)], ['Qualified applications', apps, (kv('apps') ? pct(apps, kv('apps')) + ' of apps' : '')]];
+  $('kChain').innerHTML = chain.map(([l, v, c], i) => `<div class="ch"><span class="lbl">${l}</span><b>${fmt(v)}</b><span class="cv2">${i === 4 ? (c || '&nbsp;') : i && c ? c + ' of previous' : '&nbsp;'}</span></div>`).join('');
+  const groups = [...new Set(KPIS.map(k => k.g))];
+  $('kGroups').innerHTML = groups.map(g => `<div class="kgroup"><h3>${g}</h3><div class="kgrid">${KPIS.filter(k => k.g === g).map(k => {
+    const v = kv(k.key), prev = kv(k.key, shiftWeek(kWeek, -1)), tg = kTarget(k), z = zScore(k.key);
+    const delta = v != null && prev ? Math.round((v - prev) / prev * 100) : null;
+    const badge = z != null && Math.abs(z) >= 2 ? `<span class="badge odd">Unusual ${z > 0 ? '↑' : '↓'}</span>` : v == null ? '<span class="badge na">Not logged</span>' : tg != null ? (v >= tg ? '<span class="badge ok">On target</span>' : '<span class="badge low">Below</span>') : '<span class="badge na">Logged</span>';
+    return `<div class="kc"><div class="kl"><span>${esc(k.label)}</span>${badge}</div><div class="kv"><input type="number" inputmode="decimal" step="any" data-kpi="${k.key}" value="${v ?? ''}" placeholder="0" aria-label="${esc(k.label)}">${k.unit ? `<em>${k.unit}</em>` : ''}</div>${sparkSVG(k.key)}<div class="kf"><span>${delta == null ? 'vs last week —' : `${delta >= 0 ? '+' : ''}${delta}% vs last week`}</span><label>Target <input type="number" step="any" data-ktarget="${k.key}" value="${K.targets[k.key] ?? ''}" placeholder="${tg ?? '—'}" aria-label="Target for ${esc(k.label)}"></label></div></div>`;
+  }).join('')}</div></div>`).join('');
+}
+(function initOrganic() {
+  $('kPrev').onclick = () => { kWeek = shiftWeek(kWeek, -1); renderOrganic(); };
+  $('kNext').onclick = () => { if (kWeek < weekId()) { kWeek = shiftWeek(kWeek, 1); renderOrganic(); } };
+  $('kGroups').addEventListener('change', e => {
+    const k = e.target.dataset.kpi, t = e.target.dataset.ktarget;
+    if (k) { (K.weeks[kWeek] = K.weeks[kWeek] || {})[k] = e.target.value === '' ? null : +e.target.value; log(`Logged ${KPIS.find(x => x.key === k).label}: ${e.target.value || 'cleared'} (${weekLabel(kWeek)})`); }
+    if (t) K.targets[t] = e.target.value === '' ? null : +e.target.value;
+    store.put('kpis', K); renderOrganic();
+  });
+})();
+
+/* ============ lab: Bayesian rates + Monte Carlo ============ */
+function randn() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function rgamma(k) {
+  if (k < 1) return rgamma(k + 1) * Math.pow(Math.random(), 1 / k);
+  const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) { let x, v; do { x = randn(); v = 1 + c * x; } while (v <= 0); v = v * v * v; const u = Math.random();
+    if (u < 1 - 0.0331 * x ** 4 || Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v; }
+}
+const rbeta = (a, b) => { const x = rgamma(a), y = rgamma(b); return x / (x + y); };
+function rbinom(n, p) { n = Math.max(0, Math.round(n)); if (!n) return 0; if (n < 60) { let k = 0; for (let i = 0; i < n; i++) if (Math.random() < p) k++; return k; } return Math.max(0, Math.min(n, Math.round(n * p + Math.sqrt(n * p * (1 - p)) * randn()))); }
+const quant = (s, q) => s[Math.min(s.length - 1, Math.max(0, Math.floor(q * (s.length - 1))))];
+function observed() {
+  const o = { visitors:0, booked:0, shows:0, closes:0, weeks:0 };
+  Object.values(W).forEach(w => { const g = k => { const t = w.tasks.find(x => x.key === k); return t && t.actual != null && t.actual !== '' ? +t.actual : null; };
+    const v = g('visitors'), b = g('booked'), s = g('shows'), c = g('closes');
+    if (v != null || b != null || s != null || c != null) o.weeks++;
+    if (v != null && b != null) { o.visitors += v; o.booked += b; }
+    if (b != null && s != null) { o.bk2 = (o.bk2 || 0) + b; o.shows += s; }
+    if (s != null && c != null) { o.sh2 = (o.sh2 || 0) + s; o.closes += c; } });
+  return o;
+}
+const PRIOR_N = 20;
+function rateModels() {
+  const m = F.math, o = observed();
+  const mk = (key, label, target, k, n, bench) => { const S = Math.max(PRIOR_N, 8 / Math.max(0.005, Math.min(target, 1 - target))); const a = target * S + k, b = (1 - target) * S + (n - k); return { key, label, target, k, n, a, b, mean:a / (a + b), bench }; };
+  return [
+    mk('book', 'Visitors who book', m.bookRate / 100, o.booked, o.visitors, 0.05),
+    mk('show', 'Show rate', m.showRate / 100, o.shows, o.bk2 || 0, 0.70),
+    mk('close', 'Close rate', m.closeRate / 100, o.closes, o.sh2 || 0, 0.30)
+  ];
+}
+let labCache = null;
+function runLab(N = 5000) {
+  const c = calc(), rates = rateModels(), V = Math.max(0, c.supply), goal = F.math.goalClients;
+  const draws = rates.map(() => []), clients = [];
+  for (let i = 0; i < N; i++) {
+    const p = rates.map((r, j) => { const x = rbeta(r.a, r.b); draws[j].push(x); return x; });
+    const vis = Math.max(0, Math.round(V + V * 0.15 * randn()));
+    clients.push(rbinom(rbinom(rbinom(vis, p[0]), p[1]), p[2]));
+  }
+  draws.forEach(d => d.sort((a, b) => a - b)); const cs = clients.slice().sort((a, b) => a - b);
+  labCache = { rates, draws, clients, cs, V, goal, N, at:Date.now() };
+  renderLab();
+}
+function renderLab() {
+  if (!labCache) return runLab();
+  const { rates, draws, clients, cs, V, goal, N } = labCache, price = F.offer.price;
+  const pHit = clients.filter(x => x >= goal).length / N, mu = mean(clients);
+  const o = observed();
+  $('labTiles').innerHTML = `<div class="tile s2 dark"><div class="lbl">Chance of hitting ${goal} clients</div><div class="big">${Math.round(pHit * 100)}%</div><p class="muted small">${N.toLocaleString('en-US')} simulated months</p></div>
+    <div class="tile s2"><div class="lbl">Likely revenue (median)</div><div class="big">${money(quant(cs, .5) * price)}</div><p class="muted small">80% range ${money(quant(cs, .1) * price)} – ${money(quant(cs, .9) * price)}</p></div>
+    <div class="tile s2"><div class="lbl">Data behind it</div><div class="big">${o.weeks}</div><p class="muted small">week${o.weeks === 1 ? '' : 's'} logged · ${V} visitors/mo in</p></div>`;
+  const max = Math.max(goal + 2, quant(cs, .98)), bins = [...Array(max + 1)].map((_, k) => k === max ? clients.filter(x => x >= k).length : clients.filter(x => x === k).length), top = Math.max(...bins, 1);
+  $('labHistTitle').textContent = `Expected ${mu.toFixed(1)} clients · ${Math.round(pHit * 100)}% chance of ${goal}+`;
+  $('labHist').innerHTML = `<div class="histo">${bins.map((b, k) => `<div><b>${b ? Math.round(b / N * 100) + '%' : ''}</b><i class="${k >= goal ? 'hit' : ''}" style="height:${Math.max(2, b / top * 180)}px"></i><span>${k}${k === max ? '+' : ''}</span></div>`).join('')}</div>`;
+  $('labHistNote').textContent = 'Each run draws conversion rates from their Bayesian posteriors and visitor volume with ±15% noise, then simulates every visitor, booking, show and close. Green bars hit the goal.';
+  const pct = x => (x * 100).toFixed(x < .1 ? 1 : 0) + '%';
+  $('labRates').innerHTML = `<table><tr><th>Rate</th><th>Target</th><th>Observed</th><th>Best estimate</th><th>90% range</th><th></th><th>Chance ≥ target</th></tr>${rates.map((r, j) => {
+    const lo = quant(draws[j], .05), hi = quant(draws[j], .95), pOk = draws[j].filter(x => x >= r.target).length / draws[j].length, scale = Math.max(hi, r.target) * 1.25 || 1;
+    return `<tr><td><b>${r.label}</b></td><td>${pct(r.target)}</td><td>${r.n ? `${r.k}/${r.n} (${pct(r.k / r.n)})` : 'No data yet'}</td><td><b>${pct(r.mean)}</b></td><td>${pct(lo)} – ${pct(hi)}</td><td style="min-width:180px"><div class="ci"><span class="rg" style="left:${lo / scale * 100}%;width:${(hi - lo) / scale * 100}%"></span><span class="tg" style="left:${r.target / scale * 100}%" title="Target"></span><span class="pt" style="left:${r.mean / scale * 100}%"></span></div></td><td>${Math.round(pOk * 100)}%</td></tr>`;
+  }).join('')}</table>`;
+  const base = V * rates.reduce((p, r) => p * r.mean, 1);
+  const lev = [
+    { l:'Traffic +25%', d:'More long-form, more clips', v: base * 0.25 },
+    ...rates.map(r => ({ l:`${r.label} → ${pct(r.bench)}`, d: r.mean >= r.bench ? 'Already at benchmark' : `From ${pct(r.mean)} today`, v: r.mean >= r.bench ? 0 : base * (r.bench / r.mean - 1) }))
+  ].sort((a, b) => b.v - a.v);
+  const lm = Math.max(...lev.map(x => x.v), 0.01);
+  $('labLevers').innerHTML = lev.map((x, i) => `<div class="lv ${i === 0 && x.v > 0 ? 'top' : ''}"><div><b style="text-align:left;display:block">${esc(x.l)}</b><span class="muted small">${esc(x.d)}</span></div><div class="bar"><i style="width:${x.v / lm * 100}%"></i></div><b>+${x.v.toFixed(1)}<span class="small" style="font-weight:500"> /mo · ${money(x.v * price)}</span></b></div>`).join('');
+  const sig = [];
+  Object.keys(K.weeks).sort().reverse().slice(0, 12).forEach(wid => KPIS.forEach(k => { const z = zScore(k.key, wid); if (z != null && Math.abs(z) >= 2) sig.push({ wid, k, z, v:kv(k.key, wid) }); }));
+  $('labSignals').innerHTML = sig.length ? sig.slice(0, 12).map(s => `<details><summary><b>${esc(s.k.label)} ${s.z > 0 ? 'jumped' : 'dropped'}</b><span>${weekLabel(s.wid)}</span><span>${s.v.toLocaleString('en-US')}</span><span>${s.z > 0 ? '+' : ''}${s.z.toFixed(1)}σ</span></summary><ul><li>${s.z > 0 ? 'Find what you did differently that week and repeat it.' : 'Check what changed: posting volume, topics, hooks or a platform shift.'}</li></ul></details>`).join('') : '<p class="muted">No unusual weeks yet. Signals appear once a KPI has four or more weeks of history.</p>';
+}
+$('labRun').onclick = () => { runLab(); toast('Ran 5,000 simulations'); };
+
+function renderWeek() { renderTasks(); if (pm.open) renderSheet(); }
 
 /* ============ render: congruency ============ */
 function renderCongruency(R) {
@@ -1243,6 +1800,10 @@ function showTab(t) {
   if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
   document.body.classList.toggle('studio-on', t === 'funnel');
   window.scrollTo(0, 0);
+  if (t !== 'week' && $('sheet')) $('sheet').hidden = true;
+  if (t === 'week') renderTasks();
+  if (t === 'organic') renderOrganic();
+  if (t === 'lab') renderLab();
   if (t === 'funnel') requestAnimationFrame(() => { drawEdges(); if (!view.fitted) { fitView(); view.fitted = true; } });
 }
 
@@ -1255,8 +1816,6 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-unlink]')) { const [from, fk] = sel.key.split('|'); byId(from)[fk] = ''; sel = { type:'offer' }; afterEdit('removed a connection'); toast('Connection removed'); return; }
   if (e.target.closest('[data-seloffer]')) { sel = { type:'offer' }; renderEditor(refresh({ keepWeek:true })); return; }
   if (e.target.closest('[data-delnode]')) { const n = byId(sel.id); removeNode(n.id); sel = { type:'offer' }; afterEdit('deleted ' + n.title); toast('Deleted'); return; }
-  const del = e.target.closest('[data-del-task]');
-  if (del) { const wk = W[weekId()], t = wk.tasks.find(x => x.id === del.dataset.delTask); wk.tasks = wk.tasks.filter(x => x !== t); saveW(); log('Deleted task: ' + t.title); renderWeek(); refresh({ keepWeek:true }); }
 });
 
 $('editor').addEventListener('input', e => {
@@ -1272,47 +1831,24 @@ $('sliders').addEventListener('input', e => {
   F.math[k] = +e.target.value; $('v_' + k).textContent = F.math[k] + SL.find(s => s[0] === k)[5];
   refresh(); funnelChanged('targets');
 });
-$('wkAreas').addEventListener('change', e => {
-  const wk = W[weekId()];
-  if (e.target.dataset.task) {
-    const t = wk.tasks.find(x => x.id === e.target.dataset.task);
-    t.done = e.target.checked; t.doneAt = t.done ? Date.now() : null; t.doneBy = t.done ? store.who : null; t.resolved = false;
-    log((t.done ? 'Checked off: ' : 'Reopened: ') + t.title);
-  }
-  if (e.target.dataset.actual) {
-    const t = wk.tasks.find(x => x.id === e.target.dataset.actual);
-    t.actual = e.target.value === '' ? null : +e.target.value;
-    if (t.target && t.actual >= t.target && !t.done) { t.done = true; t.doneAt = Date.now(); t.doneBy = store.who; }
-    log(`${t.title}: ${t.actual ?? 0} of ${t.target}`);
-  }
-  saveW(); renderWeek(); refresh({ keepWeek:true });
-});
-function addTask() {
-  const v = $('newTask').value.trim(); if (!v) return;
-  W[weekId()].tasks.push({ id:'t' + Date.now().toString(36), key:'m:' + Date.now(), auto:false, title:v, area:$('newArea').value, owner:store.who === 'You' ? 'You' : store.who.split('@')[0], target:null, done:false });
-  $('newTask').value = ''; saveW(); log('Added task: ' + v); renderWeek(); refresh({ keepWeek:true });
-}
-$('addTaskBtn').onclick = addTask;
-$('newTask').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
-$('regenBtn').onclick = () => { syncWeek(W[weekId()]); saveW(); renderWeek(); toast('Targets refreshed from the funnel'); };
 $('offerBtn').onclick = () => { sel = { type:'offer' }; showPane('edit'); renderEditor(refresh({ keepWeek:true })); };
 $('resetBtn').onclick = () => {
   const b = $('resetBtn');
   if (b.dataset.armed) { F = clone(DEFAULT_FUNNEL); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); funnelChanged('reset to default'); toast('Funnel reset'); delete b.dataset.armed; b.textContent = 'Reset'; view.fitted = false; requestAnimationFrame(() => { drawEdges(); fitView(); view.fitted = true; }); return; }
   b.dataset.armed = 1; b.textContent = 'Tap again to reset'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Reset'; }, 3000);
 };
-$('exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ funnel:F, weeks:W, log:L }, null, 2)], { type:'application/json' })); a.download = 'gl-overview-strategy.json'; a.click(); URL.revokeObjectURL(a.href); };
+$('exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ funnel:F, weeks:W, log:L, kpis:K }, null, 2)], { type:'application/json' })); a.download = 'gl-overview-strategy.json'; a.click(); URL.revokeObjectURL(a.href); };
 $('importBtn').onclick = () => $('importFile').click();
 $('importFile').onchange = async e => {
-  try { const d = JSON.parse(await e.target.files[0].text()); const f = d.funnel || d; if (!f.nodes || !f.offer) throw 0; F = f; if (d.weeks) W = d.weeks; if (d.log) L = d.log; saveF(); saveW(); saveL(); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); toast('Imported'); }
+  try { const d = JSON.parse(await e.target.files[0].text()); const f = d.funnel || d; if (!f.nodes || !f.offer) throw 0; F = f; if (d.weeks) W = d.weeks; if (d.log) L = d.log; if (d.kpis) K = d.kpis; saveF(); saveW(); saveL(); store.put('kpis', K); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); toast('Imported'); }
   catch (err) { toast('That file isn’t a G&L export'); }
   e.target.value = '';
 };
 window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
 window.addEventListener('focus', async () => {
   if (store.mode !== 'cloud' || document.activeElement?.matches('input,textarea,select')) return;
-  const [w, l] = await Promise.all([store.get('weeks'), store.get('log')]);
-  if (w) W = w; if (l) L = l; renderWeek(); refresh({ keepWeek:true });
+  const [w, l, k] = await Promise.all([store.get('weeks'), store.get('log'), store.get('kpis')]);
+  if (w) W = w; if (l) L = l; if (k) K = Object.assign({ weeks:{}, targets:{} }, k); if (!$('v-organic').hidden) renderOrganic(); renderWeek(); refresh({ keepWeek:true });
 });
 
 /* application questions (static, for the playbook) */
@@ -1338,6 +1874,8 @@ function renderApp() {
   F = (await store.get('funnel')) || clone(DEFAULT_FUNNEL);
   W = (await store.get('weeks')) || {};
   L = (await store.get('log')) || [];
+  K = Object.assign({ weeks:{}, targets:{} }, (await store.get('kpis')) || {});
+  team();
   if (F.offer && /loi machine/i.test(F.offer.name || '')) F.offer.name = DEFAULT_FUNNEL.offer.name;
   ensureWeek(); saveF(); saveW();
   renderSliders(); renderApp();

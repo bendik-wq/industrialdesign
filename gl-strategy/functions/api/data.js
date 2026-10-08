@@ -1,6 +1,6 @@
 import { accessUser, json } from '../../lib/auth.js';
 
-const KEYS = new Set(['funnel', 'weeks', 'log']);
+const KEYS = new Set(['funnel', 'weeks', 'log', 'kpis']);
 const MAX = 2_000_000;
 
 export async function onRequest({ request, env }) {
