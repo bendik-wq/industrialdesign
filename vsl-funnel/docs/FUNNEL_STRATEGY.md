@@ -1,5 +1,7 @@
 # Funnel strategy: why it's built this way
 
+**Audience: owners of businesses doing $1M+ in annual revenue** who want to grow (and lift their exit value) by acquiring competitors and complementary businesses. Brand: G&L M&A Advisory, fronted by Josh Li.
+
 This funnel follows the structure that most top-performing high-ticket VSL funnels share: the "VSL → application → calendar → indoctrination" model used across coaching, consulting and info-business offers. The common pattern, studied from the outside, comes down to **one job per page**: filter hard, and spend the most effort on the people most likely to buy.
 
 The numbers in this document are **rules of thumb to beat, not promises**. Replace them with your own baseline after roughly 1,000 visitors.
@@ -35,7 +37,7 @@ The funnel's biggest hidden cost is usually **no-shows and unqualified calls**, 
 ### Application (`/apply`)
 - **Contact details on step 1.** Everyone who starts becomes a lead, and that is what makes the abandoned-application sequence possible. This is typically the single biggest recovery lever in an application funnel.
 - **One question per screen, auto-advancing on tap.** Each answer is a small yes, which builds commitment and lifts completion compared with one long form.
-- **The questions do double duty:** they qualify the applicant, and they make them say out loud *why now* and *what's stopped them*. Your closer reads those answers before the call.
+- **The questions do double duty:** they qualify the owner (role, revenue, profit, goal, timeline), and they make them say out loud *why now* and *what's held them back*. Your closer reads those answers before the call.
 - **An "analysing your answers" moment** before routing makes the qualification feel real (and it is).
 
 ### Routing
@@ -101,28 +103,29 @@ Run one test at a time per page, and wait for the dashboard to show significance
 
 ## 6. VSL script outlines
 
-These are built on the Sultanic frameworks used across Owners Academy copy. Write in Josh's voice: a sharp operator who has done this, a little impatient with excuses.
+These are built on Alen Sultanic's direct-response frameworks. Write in Josh's voice: a sharp operator who has done this, a little impatient with excuses.
 
 ### VSL #1: landing (12–18 min, pitch at ~7 min)
-1. **Hook (0:00–0:30).** Pattern interrupt + promise: *"There are only two ways most people try to buy a business. Both are broken. In the next few minutes I'll show you the third way…"*
-2. **Who this is for / not for (0:30–1:30).** Call out the four avatars: Corporate Prisoner, Trapped Owner, One-Business Ceiling, HNW Deployer.
-3. **Credibility (1:30–2:30).** Josh's own deals, specific and verifiable. Use no claim you can't back up.
-4. **The two broken paths (2:30–4:00).** Saving a deposit (years, and you still compete with PE) vs. raising capital (you lose control, it takes 12–18 months).
-5. **The third way: the 3C model (4:00–6:00).** Capabilities (a board and team that make you credible), Capital (vendor finance + bankable structures), Closing (off-market sourcing, negotiation, getting it over the line).
-6. **Proof** (real case studies only).
-7. **The pitch (≈7:00, this is `ctaRevealAt`).** What working together looks like. Assumptive close: *"On the call we'll map out your first acquisition…"*
-8. **Objections** (money, experience, time, "my situation is different").
-9. **Cost inversion close.** The cost of another year of not owning anything.
-10. **CTA.** *"Click the button below this video and answer a few questions. If we can help, you'll book a call with my team."*
+1. **Hook (0:00–0:30).** *"There are two ways to grow a $1M+ business. Both are slow. In the next few minutes I'll show you the third way…"*
+2. **Who this is for / not for (0:30–1:30).** Owners doing $1M+ who have hit a growth ceiling (the Trapped Owner and One-Business Ceiling avatars). Not for start-ups or businesses under $1M.
+3. **Credibility (1:30–2:30).** Josh's own acquisitions, specific and verifiable. Use no claim you can't back up.
+4. **The two slow paths (2:30–4:00).** Organic growth (more hours, more hires, one customer at a time) vs. raising capital (giving up equity and control).
+5. **The third way: the 3C model (4:00–6:00).** Capabilities (your existing business already makes you a credible buyer), Capital (vendor finance + bankable structures, not your operating cash), Closing (off-market sourcing, negotiation, integration).
+6. **The multiple story.** Combined businesses are often valued at a higher multiple than the parts, so acquisition can grow exit value faster than organic growth.
+7. **Proof** (real case studies only).
+8. **The pitch (≈7:00, this is `ctaRevealAt`).** What working together looks like. Assumptive close: *"On the call we'll map out your first acquisition…"*
+9. **Objections** (cash, distraction from running the business, "my industry is different").
+10. **Cost inversion close.** Another year of organic growth while someone else buys the businesses in your market.
+11. **CTA.** *"Click the button below this video and answer a few questions. If your business is a fit, you'll book a call with my team."*
 
 ### VSL #2: breakout (6–10 min)
-- One real deal, line by line: purchase price, seller-financed portion, senior debt, the buyer's contribution, and debt service coverage from the business's cash flow.
+- One real add-on acquisition, line by line: purchase price, seller-financed portion, senior debt, the buyer's contribution, debt service coverage from the acquired business's cash flow, and the effect on the combined group's valuation.
 - "Timeline of failure": find deal → offer → seller says yes → the bank kills it because the structure wasn't bankable → how 3C prevents that.
 - Close: *"If this made sense, book a call and we'll do this exercise on your situation."*
 
 ### Pre-call video (3–5 min)
 - What happens on the call, who'll be on it, how long it takes.
-- What to prepare (budget range, timeline, industries you'd enjoy) and to bring a partner if one is involved in the decision.
+- What to prepare (last year's revenue and EBITDA, target businesses you'd like to own, exit timeline) and to bring a business partner if one is involved in the decision.
 - Set the frame: *"If it's a fit we'll show you how to work together. If not, we'll tell you."*
 
 ## 7. Launch checklist

@@ -33,6 +33,11 @@ export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
   precall: { id: 'vsl-precall', srcSetting: 'VSL_PRECALL_SRC', fallbackSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 0, gateContent: false, autoplayMuted: true },
 };
 
+// ───────────────────────────── Brand ─────────────────────────────
+
+/** Default brand. The dashboard's "Brand name" setting (SITE_NAME) overrides `name` without a redeploy. */
+export const BRAND = { name: 'G&L M&A Advisory', founder: 'Josh Li' };
+
 // ───────────────────────────── Landing copy + A/B test ─────────────────────────────
 
 export interface LandingVariant {
@@ -50,46 +55,47 @@ export const HEADLINE_EXPERIMENT = {
     {
       id: 'a',
       weight: 50,
-      preHeadline: 'For corporate professionals &amp; business owners who want to own cash-flowing businesses',
+      preHeadline: 'For business owners doing $1M+ in annual revenue',
       headline:
-        'How To Acquire An Established, <mark>Profitable Business</mark> Without Using Your Own Savings',
+        'How $1M+ Business Owners <mark>Double Their Size By Acquiring Competitors</mark> — Funded By The Deal, Not Their Own Cash',
       subheadline:
-        'Watch the short video below to see the 3C Acquisition Model — the exact Capabilities → Capital → Closing process our members use to find off-market businesses, get the seller to help finance the deal, and close without competing with private equity.',
+        'Watch the short video below to see how owners use the 3C Acquisition Model to find off-market businesses in their industry, get the seller to finance the purchase, and turn one business into a group worth a higher multiple at exit.',
     },
     {
       id: 'b',
       weight: 50,
-      preHeadline: 'Attention: anyone who has ever thought about buying a business',
+      preHeadline: 'Attention: owners of $1M+ businesses who have hit a growth ceiling',
       headline:
-        'There Are Two Ways To Buy A Business. <mark>Both Are Broken.</mark> Here’s The Third Way.',
+        'There Are Two Ways To Grow A $1M+ Business. <mark>Both Are Slow.</mark> Here’s The Third Way.',
       subheadline:
-        'Saving a deposit takes years. Raising money costs you control. In this video, Josh Li breaks down the third way — vendor finance, a credible board and off-market deal flow — and how members use it to buy cash-flowing businesses.',
+        'Organic growth means more hours and more hires. Raising capital means giving up equity. In this video, Josh Li breaks down the third way: buying the businesses next to yours with vendor finance, and why it can lift both your profit and your exit multiple.',
     },
   ] satisfies LandingVariant[],
 };
 
 export const LANDING = {
-  ctaLabel: 'Apply To Work With Us',
-  ctaSubtext: 'Takes about 2 minutes. If you’re a fit, you’ll book a free acquisition strategy call.',
+  ctaLabel: 'Apply For A Strategy Call',
+  ctaSubtext: 'Takes about 2 minutes. For owners of businesses doing $1M+ in revenue.',
   soundPrompt: 'Your video has started',
   soundAction: 'Click to listen',
   gateNotice: 'The application unlocks during the video. Keep watching.',
   discoverTitle: 'In this video you’ll discover',
   discover: [
-    '<strong>Why sellers don’t sell to the highest bidder</strong> — and how to become the buyer they trust with the business they spent 20 years building.',
-    '<strong>The vendor-finance structure</strong> that lets the business’s own cash flow pay for the acquisition, instead of your savings.',
-    '<strong>How to look bankable before you’ve bought anything</strong> — the board, advisors and credibility packet lenders and sellers want to see.',
+    '<strong>Why the fastest growth for a $1M+ business usually comes from acquisition</strong>, not more marketing — buying customers, staff and cash flow in one transaction.',
+    '<strong>The vendor-finance structure</strong> that lets the acquired business’s own cash flow pay for the purchase, so you aren’t draining your operating account.',
+    '<strong>How combining businesses can lift your exit multiple</strong> — why a larger group is often valued at a higher multiple than the parts sold separately.',
   ],
   forTitle: 'This is for you if…',
   forList: [
-    'You’re a corporate professional who wants ownership, not another promotion.',
-    'You already own a business and want to grow by acquiring, not by grinding.',
-    'You have capital to deploy and want cash flow, not more market exposure.',
+    'You own a business doing $1M+ in annual revenue and want to grow faster than organic growth allows.',
+    'Your business is profitable, and you want to buy competitors or complementary businesses.',
+    'You’re planning an exit in the next few years and want it to be worth more.',
   ],
   notForTitle: 'This is not for you if…',
   notForList: [
-    'You’re looking for a get-rich-quick scheme or passive income with zero work.',
-    'You aren’t willing to invest in yourself, your advisors and your process.',
+    'Your business is under $1M in revenue or not yet profitable.',
+    'You’re looking for passive income or a get-rich-quick scheme.',
+    'You don’t own the business or can’t make the decision to grow it.',
   ],
   /** Add only real, verifiable results. Hidden while empty. */
   testimonials: [] as { quote: string; name: string; detail: string }[],
@@ -103,78 +109,79 @@ export const BREAKOUT = {
     eyebrow: 'Step 2 of 3 — Application received',
     headline: 'Before We Talk, <mark>Watch Part 2</mark>',
     subheadline:
-      'In this breakout session Josh walks through a real deal structure line by line — where the money comes from, what the seller carries, and what the bank needs to see.',
+      'In this breakout session Josh walks through a real add-on acquisition line by line: what the seller carries, what the bank funds, how your existing business makes you the credible buyer, and what it does to your valuation.',
   },
   // Shown after a call is booked (A-tier, or B-tier who booked)
   booked: {
     eyebrow: 'You’re booked ✓',
     headline: 'Your Call Is Confirmed. <mark>Watch This Before We Speak.</mark>',
     subheadline:
-      'Members who watch this before their call get twice as much out of it. It covers how the call works, what to prepare and how to know if the 3C model fits you.',
+      'Owners who watch this before their call get twice as much out of it. It covers how the call works, what numbers to have ready and how to know if acquisition growth fits your business.',
   },
   prepareTitle: 'Before your call',
   prepare: [
     'Watch the video above in full — we’ll build on it, not repeat it.',
-    'Have a rough idea of your budget, timeline and the industries you’d enjoy owning.',
-    'Join from a quiet place on a laptop, with any partner involved in the decision.',
+    'Have last year’s revenue and profit (EBITDA) to hand, roughly is fine.',
+    'Think about the businesses in your industry you’d most like to own, and your exit timeline.',
+    'Join from a quiet place on a laptop, with any business partner involved in the decision.',
   ],
   whatsappTitle: 'Add Josh on WhatsApp',
   whatsappBody:
     'Send Josh a quick message so you get your call reminders and the deal-structure resources straight to your phone.',
   bookTitle: 'Ready to talk now?',
-  bookBody: 'If Part 2 made sense, grab a time with an acquisition advisor.',
+  bookBody: 'If Part 2 made sense, grab a time with one of our M&A advisors.',
 };
 
 export const FAQS: { q: string; a: string }[] = [
   {
-    q: 'Do I really not need my own money to buy a business?',
-    a: 'Most of the purchase price in the deals we teach is funded by vendor finance (the seller is paid over time from the business’s cash flow) and senior debt. Every deal is different and some require a contribution — the model is about structuring so your personal savings aren’t what the deal depends on. You will still need to invest in your own education, advisors and due diligence.',
+    q: 'Do I need to use my own cash to acquire a business?',
+    a: 'In most of the deals we structure, the majority of the purchase price is funded by vendor finance (the seller is paid over time from the acquired business’s cash flow) and senior debt. Every deal is different and some need a contribution; the aim is to structure deals so your operating cash isn’t what the deal depends on.',
   },
   {
-    q: 'Do I need experience running a business?',
-    a: 'No. Many members come from corporate roles. The “Capabilities” part of the model is about building a board and operating team around you so lenders and sellers see a credible buyer, not a first-timer on their own.',
+    q: 'Why only businesses doing $1M+?',
+    a: 'At that size you already have the team, systems and track record that make sellers and lenders take you seriously, and the profit to support an acquisition. Below $1M, the better move is usually to grow the core business first.',
   },
   {
-    q: 'What kinds of businesses do members buy?',
-    a: 'Established, profitable small-to-medium businesses with stable cash flow, typically with owners approaching retirement: services, trades, healthcare, distribution and B2B. We avoid start-ups and turnarounds.',
+    q: 'Won’t an acquisition distract me from running my business?',
+    a: 'It’s a real risk, which is why integration planning is part of the process from day one. The goal is to buy businesses your team can absorb, and to build the management layer so the group doesn’t depend on you.',
   },
   {
-    q: 'How long does it take to close a first acquisition?',
-    a: 'It depends on your time, market and deal size. A realistic plan is several months from starting your search to completion. Anyone promising a guaranteed timeline is guessing.',
+    q: 'What kinds of businesses should I acquire?',
+    a: 'Usually competitors, suppliers, or businesses that sell to your customers: established, profitable, often with an owner approaching retirement. We avoid start-ups and turnarounds.',
   },
   {
-    q: 'Is this a course, or do you work with me?',
-    a: 'It’s an implementation program: training, templates and tools plus live support on your actual deals — sourcing, structuring, lender introductions and negotiation.',
+    q: 'How does this affect what my business is worth?',
+    a: 'Larger, more diversified businesses are often valued at a higher multiple of earnings than small ones. Combining profit and lifting the multiple at the same time is why acquisition can grow your exit value faster than organic growth. Outcomes depend on the deals and the market.',
   },
   {
     q: 'What happens on the strategy call?',
-    a: 'We look at where you are today, the kind of business you want to own and your timeline, then map out what your first acquisition could look like. If we can help, we’ll explain how. If we can’t, we’ll tell you.',
+    a: 'We look at your business, your growth goals and your exit timeline, then map out what your first acquisition could look like. If we can help, we’ll explain how. If we can’t, we’ll tell you.',
   },
   {
     q: 'Does this work outside Australia?',
-    a: 'Vendor finance and small-business acquisition work in most markets, including the US, UK, Canada and New Zealand. Lending rules differ, which we cover on the call.',
+    a: 'Vendor finance and SME acquisitions work in most markets, including the US, UK, Canada and New Zealand. Lending rules differ, which we cover on the call.',
   },
   {
-    q: 'How much does the program cost?',
-    a: 'Investment depends on the level of support that fits your goals. We cover it on the call once we know it’s a fit — there’s no pressure to decide on the spot.',
+    q: 'What does it cost to work with you?',
+    a: 'It depends on the level of support your deals need. We cover it on the call once we know it’s a fit, and there’s no pressure to decide on the spot.',
   },
 ];
 
 export const RESOURCES = {
   eyebrow: 'Application received',
-  headline: 'Your Free <mark>Acquisition Starter Kit</mark> Is On Its Way',
+  headline: 'Your <mark>Acquisition-Ready Toolkit</mark> Is On Its Way',
   subheadline:
-    'Based on your answers, the best next step is to get the fundamentals in place first. We’ve sent the starter kit to your inbox — and you can get it on WhatsApp too.',
+    'Based on your answers, the best next step is getting the business acquisition-ready first. We’ve sent the toolkit to your inbox, and you can get it on WhatsApp too.',
   items: [
-    { title: 'The 3C Acquisition Checklist', body: 'The Capabilities, Capital and Closing milestones in the order they happen.' },
-    { title: 'Vendor-Finance Deal Structure Template', body: 'A worked example of how a seller-financed deal is put together.' },
-    { title: 'Off-Market Seller Outreach Scripts', body: 'The first messages that start conversations with owners who aren’t listed.' },
+    { title: 'The $1M+ Acquisition Readiness Checklist', body: 'What lenders and sellers look at in your business before they back you as a buyer.' },
+    { title: 'Vendor-Finance Deal Structure Template', body: 'A worked example of how a seller-financed add-on acquisition is put together.' },
+    { title: 'Off-Market Seller Outreach Scripts', body: 'The first messages that start conversations with owners in your industry who aren’t listed for sale.' },
   ],
   resourcesUrl: '/resources#kit',
 };
 
 export const DISCLAIMER =
-  'This site is not part of Facebook, Google or any of their affiliates. Results are not typical and depend on your effort, experience, market and the deals available to you. Nothing on this page is financial, legal or tax advice. Acquisitions involve risk, including the loss of money invested; get independent professional advice before entering any transaction.';
+  'This site is not part of Facebook, Google or any of their affiliates. Results are not typical and depend on your business, market and the deals available to you. Nothing on this page is financial, legal or tax advice. Acquisitions involve risk, including the loss of money invested; get independent professional advice before entering any transaction.';
 
 // ───────────────────────────── Application ─────────────────────────────
 
@@ -200,83 +207,92 @@ export const APPLICATION: Question[] = [
     help: 'We’ll use this to send your results. No spam — unsubscribe any time.',
   },
   {
-    id: 'situation',
+    id: 'role',
     type: 'single',
-    title: 'Which best describes you right now?',
+    title: 'What’s your role in the business?',
     options: [
-      { value: 'corporate_senior', label: 'Senior corporate professional / executive', points: 22 },
-      { value: 'employee', label: 'Employed, wanting to own something of my own', points: 12 },
-      { value: 'owner_one', label: 'I own one business', points: 24 },
-      { value: 'owner_multi', label: 'I own several businesses', points: 25 },
-      { value: 'investor', label: 'Investor with capital to deploy', points: 25 },
-      { value: 'student', label: 'Student / between jobs', points: 0, flags: ['low_fit'] },
+      { value: 'owner', label: 'Founder / majority owner', points: 20 },
+      { value: 'co_owner', label: 'Co-owner or partner', points: 16 },
+      { value: 'exec', label: 'CEO / GM, but not an owner', points: 6, flags: ['not_owner'] },
+      { value: 'no_business', label: 'I don’t own a business yet', points: 0, flags: ['no_business'] },
     ],
   },
   {
-    id: 'income',
+    id: 'revenue',
     type: 'single',
-    title: 'What’s your current annual income (or business profit)?',
-    help: 'This helps us understand which deal sizes are realistic for you.',
+    title: 'What’s the business’s annual revenue?',
+    help: 'Last financial year, roughly.',
     options: [
-      { value: 'lt75', label: 'Under $75k', points: 0, flags: ['low_income'] },
-      { value: '75_150', label: '$75k – $150k', points: 8 },
-      { value: '150_300', label: '$150k – $300k', points: 15 },
-      { value: 'gt300', label: '$300k+', points: 20 },
+      { value: 'lt1m', label: 'Under $1M', points: 0, flags: ['under_1m'] },
+      { value: '1_3m', label: '$1M – $3M', points: 15 },
+      { value: '3_10m', label: '$3M – $10M', points: 22 },
+      { value: 'gt10m', label: '$10M+', points: 25 },
     ],
   },
   {
-    id: 'capital',
+    id: 'profit',
     type: 'single',
-    title: 'How much could you invest in yourself to make your first acquisition happen?',
-    help: 'Education, advisors and due diligence — not the purchase price.',
+    title: 'Roughly what is its annual profit (EBITDA)?',
+    help: 'Lenders and sellers look at this first.',
     options: [
-      { value: 'lt5', label: 'Less than $5k', points: 0, flags: ['no_capital'] },
-      { value: '5_25', label: '$5k – $25k', points: 12 },
-      { value: '25_100', label: '$25k – $100k', points: 20 },
-      { value: 'gt100', label: '$100k+', points: 25 },
+      { value: 'loss', label: 'Break-even or loss-making', points: 0, flags: ['unprofitable'] },
+      { value: 'lt250k', label: 'Under $250k', points: 8 },
+      { value: '250k_1m', label: '$250k – $1M', points: 16 },
+      { value: 'gt1m', label: '$1M+', points: 20 },
+    ],
+  },
+  {
+    id: 'goal',
+    type: 'single',
+    title: 'What’s your main goal for the next 2–3 years?',
+    options: [
+      { value: 'acquire', label: 'Grow by acquiring competitors or add-ons', points: 10 },
+      { value: 'group', label: 'Build a group of businesses', points: 10 },
+      { value: 'exit', label: 'Grow, then sell at a higher valuation', points: 8 },
+      { value: 'unsure', label: 'Not sure yet', points: 2 },
     ],
   },
   {
     id: 'timeline',
     type: 'single',
-    title: 'When do you want to own your first (or next) business?',
+    title: 'When would you want to close your first (or next) acquisition?',
     options: [
-      { value: '0_3', label: 'In the next 3 months', points: 15 },
-      { value: '3_6', label: '3 – 6 months', points: 11 },
-      { value: '6_12', label: '6 – 12 months', points: 5 },
+      { value: '0_6', label: 'In the next 6 months', points: 15 },
+      { value: '6_12', label: '6 – 12 months', points: 10 },
+      { value: '12_plus', label: '12 months or more', points: 4 },
       { value: 'exploring', label: 'Just exploring', points: 0, flags: ['exploring'] },
     ],
   },
   {
     id: 'blockers',
     type: 'multi',
-    title: 'What’s stopped you so far?',
+    title: 'What’s held you back from acquiring so far?',
     help: 'Pick all that apply.',
     options: [
-      { value: 'capital', label: 'Not enough capital for a deposit', points: 0 },
-      { value: 'deal_flow', label: 'Finding good businesses for sale', points: 0 },
-      { value: 'credibility', label: 'Sellers / banks not taking me seriously', points: 0 },
-      { value: 'structure', label: 'Not knowing how to structure a deal', points: 0 },
-      { value: 'time', label: 'Time', points: 0 },
-      { value: 'confidence', label: 'Not sure I could run it', points: 0 },
+      { value: 'deal_flow', label: 'Finding the right businesses to buy', points: 0 },
+      { value: 'funding', label: 'Funding and structuring the deal', points: 0 },
+      { value: 'valuation', label: 'Valuation and negotiation', points: 0 },
+      { value: 'integration', label: 'Integrating it without breaking my business', points: 0 },
+      { value: 'time', label: 'I’m too busy running the business', points: 0 },
+      { value: 'never_considered', label: 'Hadn’t seriously considered it', points: 0 },
     ],
   },
   {
     id: 'readiness',
     type: 'single',
-    title: 'If we show you exactly how on the call, are you ready to invest in getting it done?',
+    title: 'If we show you a clear path on the call, are you ready to invest in getting it done?',
     options: [
       { value: 'yes', label: 'Yes — if it’s a fit, I’m ready to move', points: 15 },
-      { value: 'partner', label: 'Yes, but I’ll decide together with my partner', points: 9, flags: ['partner'] },
+      { value: 'partner', label: 'Yes, but I’ll decide with my business partner', points: 9, flags: ['partner'] },
       { value: 'not_now', label: 'Not right now', points: 0, flags: ['not_ready'] },
     ],
   },
   {
     id: 'why_now',
     type: 'text',
-    title: 'Why now? What would owning a cash-flowing business change for you?',
+    title: 'Why now? What would doubling the size of your business change for you?',
     help: 'The more specific you are, the more useful your call will be.',
-    placeholder: 'e.g. I’ve hit a ceiling in my role and want…',
+    placeholder: 'e.g. We’ve plateaued at $2M and I want to exit within 5 years…',
     minLength: 10,
     points: [
       { minChars: 160, points: 5 },
@@ -294,12 +310,14 @@ export const TIER_THRESHOLDS = { A: 70, B: 40 } as const;
 
 /**
  * Hard rules applied after the score. Each caps the best tier a lead can reach.
- * Evaluated in order; the most restrictive cap wins.
+ * Evaluated in order; the most restrictive cap wins. The funnel is only for
+ * owners of $1M+ businesses, so anyone outside that goes to resources (C).
  */
 export const TIER_RULES: { when: (flags: Set<string>) => boolean; maxTier: Tier; reason: string }[] = [
-  { when: (f) => f.has('low_fit'), maxTier: 'C', reason: 'Student / between jobs' },
-  { when: (f) => f.has('no_capital') && f.has('low_income'), maxTier: 'C', reason: 'No capital and low income' },
-  { when: (f) => f.has('no_capital'), maxTier: 'B', reason: 'Under $5k to invest' },
+  { when: (f) => f.has('no_business'), maxTier: 'C', reason: 'Doesn’t own a business' },
+  { when: (f) => f.has('under_1m'), maxTier: 'C', reason: 'Under $1M revenue' },
+  { when: (f) => f.has('not_owner'), maxTier: 'B', reason: 'Not an owner (can’t decide alone)' },
+  { when: (f) => f.has('unprofitable'), maxTier: 'B', reason: 'Not profitable yet' },
   { when: (f) => f.has('not_ready'), maxTier: 'B', reason: 'Not ready to invest' },
   { when: (f) => f.has('exploring'), maxTier: 'B', reason: 'Just exploring' },
 ];
@@ -318,7 +336,7 @@ export interface Closer {
 /** Lead routing: qualified leads are round-robined (weighted) across closers who take that tier. */
 export const CLOSERS: Closer[] = [
   { id: 'josh', name: 'Josh Li', tiers: ['A'], weight: 1, bookingSetting: 'BOOKING_URL_A' },
-  { id: 'advisor', name: 'Acquisition Advisor', tiers: ['B'], weight: 1, bookingSetting: 'BOOKING_URL_B' },
+  { id: 'advisor', name: 'M&A Advisor', tiers: ['B'], weight: 1, bookingSetting: 'BOOKING_URL_B' },
 ];
 
 /** Pipeline value assumptions used to estimate revenue per source in the dashboard. Edit to match your offer. */

@@ -1,6 +1,6 @@
-# Owners Academy VSL funnel
+# G&L M&A Advisory VSL funnel
 
-A complete high-ticket VSL funnel on **Cloudflare Workers + D1**: landing VSL → multi-step application → lead scoring and routing → booking or breakout VSL + FAQs → email and WhatsApp follow-up. It includes first-party server-side tracking for every step and an analytics/CRM dashboard.
+A complete high-ticket VSL funnel for **owners of $1M+ businesses** (growth by acquisition, fronted by Josh Li) on **Cloudflare Workers + D1**: landing VSL → multi-step application → lead scoring and routing → booking or breakout VSL + FAQs → email and WhatsApp follow-up. It includes first-party server-side tracking for every step and an analytics/CRM dashboard.
 
 Everything runs in one Worker with no servers to manage. There is no client framework, and the funnel pages load about 15 KB of JavaScript.
 
@@ -28,7 +28,7 @@ Everything runs in one Worker with no servers to manage. There is no client fram
 |---|---|
 | **Landing VSL** | Server-rendered headline A/B test (sticky per visitor, `?v=b` to preview). Muted autoplay with a "click to listen" overlay that restarts the video with sound. No seek bar, and the progress bar runs fast at the start. Resume-where-you-left-off. The CTA and the rest of the page unlock at the pitch timestamp, and returning visitors see them straight away. Sticky mobile CTA. |
 | **Application** | One question per screen, with keyboard shortcuts. Contact details come first, so abandoned applications become leads. Every answer is saved server-side. Invisible Turnstile is optional. Shows an "analysing" step and then routes the visitor. |
-| **Scoring & routing** | Points per answer plus hard caps: "not ready" can't reach A, students go to C, and so on. A → closer calendar, B → breakout VSL with a setter calendar, C → resources. Weighted round-robin across closers, with state kept in D1. |
+| **Scoring & routing** | Points per answer plus hard caps: businesses under $1M revenue and people without a business go to C; "not ready", unprofitable businesses and non-owner execs can't reach A. A → closer calendar, B → breakout VSL with a setter calendar, C → resources. Weighted round-robin across closers, with state kept in D1. |
 | **Breakout page** | VSL #2 + FAQs + WhatsApp. It changes to a "you're booked" pre-call version (call time, prep checklist, pre-call video) once a call is booked. |
 | **Booking** | Calendly is embedded as an iframe. The browser reports the booking instantly, then the **signed Calendly webhook** confirms it with the call time. Cal.com, GoHighLevel and Zapier use a generic signed webhook. |
 | **Email** | Resend API. Five sequences: abandoned application, A (get booked), B (nurture → book), C (resources), booked (confirmation + 24h / 1h reminders). The cron sends every 5 minutes. Each email gets tracked links (which also link a second device to the same lead), an open pixel, and one-click unsubscribe (RFC 8058). Without an API key, emails are **simulated** so you can test the flows. |

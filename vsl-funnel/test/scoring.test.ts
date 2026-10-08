@@ -3,37 +3,43 @@ import { normaliseAnswer, scoreApplication, tierFromScore } from '../src/funnel/
 import { APPLICATION } from '../src/config';
 
 const strong = {
-  situation: 'owner_one',
-  income: 'gt300',
-  capital: 'gt100',
-  timeline: '0_3',
+  role: 'owner',
+  revenue: '3_10m',
+  profit: '250k_1m',
+  goal: 'acquire',
+  timeline: '0_6',
   blockers: ['deal_flow'],
   readiness: 'yes',
   why_now: 'x'.repeat(200),
 };
 
 describe('scoreApplication', () => {
-  it('scores a strong applicant as A', () => {
+  it('scores a $3-10M owner ready to acquire as A', () => {
     const r = scoreApplication(strong, 'AU');
-    expect(r.score).toBe(100); // 104 raw points, clamped to 100
+    expect(r.score).toBe(100); // 103 raw points, clamped to 100
     expect(r.tier).toBe('A');
     expect(r.caps).toEqual([]);
   });
 
+  it('sends businesses under $1M revenue to C, whatever else they answer', () => {
+    const r = scoreApplication({ ...strong, revenue: 'lt1m' }, 'AU');
+    expect(r.tier).toBe('C');
+    expect(r.caps).toContain('Under $1M revenue');
+  });
+
+  it('sends non-owners without a business to C', () => {
+    expect(scoreApplication({ ...strong, role: 'no_business' }, 'AU').tier).toBe('C');
+  });
+
   it('caps a high scorer who is not ready to invest at B', () => {
     const r = scoreApplication({ ...strong, readiness: 'not_now' }, 'AU');
-    expect(r.scoreTier).toBe('A');
     expect(r.tier).toBe('B');
     expect(r.caps).toContain('Not ready to invest');
   });
 
-  it('routes students to C regardless of score', () => {
-    expect(scoreApplication({ ...strong, situation: 'student' }, 'AU').tier).toBe('C');
-  });
-
-  it('routes no capital + low income to C', () => {
-    const r = scoreApplication({ ...strong, capital: 'lt5', income: 'lt75' }, 'AU');
-    expect(r.tier).toBe('C');
+  it('caps non-owner executives and unprofitable businesses at B', () => {
+    expect(scoreApplication({ ...strong, role: 'exec', revenue: 'gt10m', profit: 'gt1m' }, 'AU').tier).toBe('B');
+    expect(scoreApplication({ ...strong, profit: 'loss' }, 'AU').tier).toBe('B');
   });
 
   it('flags out-of-market countries without penalising the score', () => {
@@ -43,7 +49,7 @@ describe('scoreApplication', () => {
   });
 
   it('ignores unknown answers', () => {
-    expect(scoreApplication({ situation: 'hacker', income: 'gt300' }, 'AU').score).toBe(20);
+    expect(scoreApplication({ role: 'hacker', revenue: 'gt10m' }, 'AU').score).toBe(25);
   });
 
   it('maps thresholds', () => {
@@ -57,8 +63,8 @@ describe('scoreApplication', () => {
 describe('normaliseAnswer', () => {
   const q = (id: string) => APPLICATION.find((x) => x.id === id)!;
   it('validates single choice', () => {
-    expect(normaliseAnswer(q('income'), 'gt300')).toBe('gt300');
-    expect(normaliseAnswer(q('income'), 'lots')).toBeNull();
+    expect(normaliseAnswer(q('revenue'), 'gt10m')).toBe('gt10m');
+    expect(normaliseAnswer(q('revenue'), 'lots')).toBeNull();
   });
   it('dedupes and filters multi choice', () => {
     expect(normaliseAnswer(q('blockers'), ['time', 'time', 'nope'])).toEqual(['time']);

@@ -17,7 +17,7 @@ export interface SettingDef {
 }
 
 export const SETTINGS = [
-  { key: 'SITE_NAME', label: 'Brand name', group: 'Site', placeholder: 'The Owners Academy' },
+  { key: 'SITE_NAME', label: 'Brand name', group: 'Site', placeholder: 'G&L M&A Advisory' },
   { key: 'PUBLIC_URL', label: 'Public URL', group: 'Site', placeholder: 'https://apply.example.com', help: 'Used for links in emails and WhatsApp. Defaults to the request origin.' },
 
   { key: 'VSL_MAIN_SRC', label: 'Main VSL video (MP4 or HLS .m3u8)', group: 'Video', placeholder: 'https://customer-xxx.cloudflarestream.com/<uid>/manifest/video.m3u8', help: 'Cloudflare Stream HLS URLs work best.' },

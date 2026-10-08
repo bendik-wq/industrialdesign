@@ -90,13 +90,14 @@ async function visitor(i) {
 
   const good = chance(src.quality);
   const answers = [
-    ['situation', good ? pick(['corporate_senior', 'owner_one', 'investor', 'owner_multi']) : pick(['employee', 'student', 'corporate_senior'])],
-    ['income', good ? pick(['150_300', 'gt300', '75_150']) : pick(['lt75', '75_150'])],
-    ['capital', good ? pick(['25_100', 'gt100', '5_25']) : pick(['lt5', '5_25'])],
-    ['timeline', good ? pick(['0_3', '3_6']) : pick(['6_12', 'exploring', '3_6'])],
-    ['blockers', [pick(['capital', 'deal_flow', 'credibility']), pick(['structure', 'time'])]],
+    ['role', good ? pick(['owner', 'owner', 'co_owner']) : pick(['exec', 'no_business', 'owner'])],
+    ['revenue', good ? pick(['1_3m', '3_10m', 'gt10m']) : pick(['lt1m', 'lt1m', '1_3m'])],
+    ['profit', good ? pick(['250k_1m', 'gt1m', 'lt250k']) : pick(['loss', 'lt250k'])],
+    ['goal', pick(['acquire', 'group', 'exit', 'unsure'])],
+    ['timeline', good ? pick(['0_6', '6_12']) : pick(['12_plus', 'exploring', '6_12'])],
+    ['blockers', [pick(['deal_flow', 'funding', 'valuation']), pick(['integration', 'time'])]],
     ['readiness', good ? pick(['yes', 'yes', 'partner']) : pick(['partner', 'not_now'])],
-    ['why_now', good ? 'I want to stop trading time for money and build a portfolio of cash-flowing businesses that give my family security and freedom over the next few years.' : 'Curious about how it works.'],
+    ['why_now', good ? 'We have plateaued around $3M and I want to buy two competitors in our region, build a management team and exit as a group within five years.' : 'Curious about how it works.'],
   ];
   const quitAt = chance(0.22) ? 1 + Math.floor(Math.random() * 5) : 99;
   for (let s = 0; s < answers.length; s++) {

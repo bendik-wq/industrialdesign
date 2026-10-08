@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
-  APPLICATION, BREAKOUT, DISCLAIMER, FAQS, HEADLINE_EXPERIMENT, LANDING, RESOURCES, TIER_ROUTES, type VideoDef, VIDEOS,
+  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, HEADLINE_EXPERIMENT, LANDING, RESOURCES, TIER_ROUTES, type VideoDef, VIDEOS,
 } from '../config';
 import { whatsappLink } from '../integrations/whatsapp';
 import { formatCallTime } from '../integrations/email';
@@ -102,7 +102,7 @@ async function render(c: Context<AppEnv>, assetPath: string, view: View) {
     consentRequired: v.consentRequired,
     consentGiven: v.marketingConsent,
     pixel: Boolean(s.META_PIXEL_ID && v.marketingConsent),
-    siteName: s.SITE_NAME || 'The Owners Academy',
+    siteName: s.SITE_NAME || BRAND.name,
     ...view.config,
   };
 

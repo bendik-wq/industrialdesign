@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
-import { APPLICATION, CLOSERS, VIDEOS } from '../config';
+import { APPLICATION, BRAND, CLOSERS, VIDEOS } from '../config';
 import { LEAD_STATUSES, type Lead, getLead, parseAnswers, updateLead } from '../funnel/leads';
 import { emailConfigured, sendViaResend } from '../integrations/email';
 import { SEQUENCES } from '../integrations/sequences';
@@ -182,7 +182,7 @@ admin.post('/integrations/test-email', async (c) => {
   const to = validateEmail(body.to);
   if (!to) return c.json({ ok: false, error: 'Enter a valid email address' }, 400);
   if (!emailConfigured(rt)) return c.json({ ok: false, error: 'Connect a Resend API key and From address first' }, 400);
-  const content = TEMPLATES.test({ lead: {} as Lead, name: 'there', siteName: rt.settings.SITE_NAME || 'The Owners Academy', link: (p) => p, bookingUrl: null, whatsappUrl: null, callTime: null });
+  const content = TEMPLATES.test({ lead: {} as Lead, name: 'there', siteName: rt.settings.SITE_NAME || BRAND.name, link: (p) => p, bookingUrl: null, whatsappUrl: null, callTime: null });
   const { html, text } = renderEmail(content, { openPixel: null, unsubscribeUrl: rt.origin, signature: rt.settings.EMAIL_SIGNATURE || 'Josh', address: rt.settings.BUSINESS_ADDRESS || '' });
   try {
     const id = await sendViaResend(rt, { to: to.email, subject: content.subject, html, text, unsubscribeUrl: rt.origin, tags: { template: 'test' } });
@@ -201,7 +201,7 @@ admin.get('/email-preview/:template', async (c) => {
   const content = tpl({
     lead,
     name: lead.first_name || 'there',
-    siteName: rt.settings.SITE_NAME || 'The Owners Academy',
+    siteName: rt.settings.SITE_NAME || BRAND.name,
     link: (p) => (/^https?:/.test(p) ? p : `${rt.origin}${p}`),
     bookingUrl: rt.settings.BOOKING_URL_A || null,
     whatsappUrl: whatsappLink(rt.settings, lead, 'question'),

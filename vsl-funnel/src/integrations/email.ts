@@ -1,4 +1,5 @@
 import type { Runtime } from '../app';
+import { BRAND } from '../config';
 import { hmacHex } from '../lib/crypto';
 import { newId } from '../lib/ids';
 import { getSecret } from '../lib/secret';
@@ -90,7 +91,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
   const content = tpl({
     lead,
     name: lead.first_name || 'there',
-    siteName: rt.settings.SITE_NAME || 'The Owners Academy',
+    siteName: rt.settings.SITE_NAME || BRAND.name,
     link,
     bookingUrl: bookingUrlFor(rt, lead.closer_id, effectiveTier(lead)),
     whatsappUrl: wa ? link(`/go/wa?src=email-${template}&l=${lead.ref_code}`) : null,
@@ -111,7 +112,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     openPixel: `${rt.origin}/o/${emailId}.gif`,
     unsubscribeUrl,
     signature: rt.settings.EMAIL_SIGNATURE || 'Josh',
-    address: rt.settings.BUSINESS_ADDRESS || rt.settings.SITE_NAME || 'The Owners Academy',
+    address: rt.settings.BUSINESS_ADDRESS || rt.settings.SITE_NAME || BRAND.name,
   });
   return { subject: final.subject, html, text, unsubscribeUrl };
 }
