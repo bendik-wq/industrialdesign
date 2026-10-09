@@ -139,3 +139,20 @@ describe('Meta match keys', () => {
     expect(conversionValue('lead_status_changed', { to: 'won', revenue: 15000 }, null)).toBe(15000);
   });
 });
+
+import { linkTarget, slug, youtubeId } from '../src/funnel/tracked-links';
+
+describe('tracked links', () => {
+  it('extracts the video id from every YouTube URL shape', () => {
+    for (const u of ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10s', 'https://youtu.be/dQw4w9WgXcQ?si=abc', 'youtube.com/shorts/dQw4w9WgXcQ', 'https://m.youtube.com/watch?v=dQw4w9WgXcQ', 'https://www.youtube.com/live/dQw4w9WgXcQ', 'dQw4w9WgXcQ']) {
+      expect(youtubeId(u)).toBe('dQw4w9WgXcQ');
+    }
+    expect(youtubeId('https://vimeo.com/123')).toBeNull();
+  });
+  it('redirects with UTMs that tie the visit to the link', () => {
+    const link = { code: 'ab12cd', dest_path: '/', utm_source: 'youtube', utm_medium: 'video', utm_campaign: 'yt-how-to-buy-x', placement: 'pinned_comment' } as Parameters<typeof linkTarget>[1];
+    const u = new URL(linkTarget('https://apply.example.com', link, new URLSearchParams('v=b&utm_source=spoof')));
+    expect(Object.fromEntries(u.searchParams)).toEqual({ utm_source: 'youtube', utm_medium: 'video', utm_campaign: 'yt-how-to-buy-x', utm_content: 'ab12cd', utm_term: 'pinned_comment', v: 'b' });
+    expect(slug('How I Bought 2 Businesses — 100% Seller Finance!')).toBe('how-i-bought-2-businesses-100-seller-finance');
+  });
+});

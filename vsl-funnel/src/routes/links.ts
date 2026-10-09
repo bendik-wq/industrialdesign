@@ -7,6 +7,8 @@ import { intentFromSource, whatsappLink } from '../integrations/whatsapp';
 import { resolveVisitor } from '../lib/identity';
 import { identityFromLead, identityFromVisitor, track } from '../tracking/track';
 import { SEQUENCES, type SequenceId } from '../integrations/sequences';
+import { getLink, linkTarget } from '../funnel/tracked-links';
+import { parseUA } from '../lib/ua';
 
 export const links = new Hono<AppEnv>();
 
@@ -95,4 +97,18 @@ links.get('/go/wa', async (c) => {
   }
   await track(rt, identityFromVisitor(v, null, lead?.id ?? null), { name: 'whatsapp_click', source: 'server', path: '/go/wa', props: { src } });
   return c.redirect(url, 302);
+});
+
+// Tracked short link (YouTube descriptions, pinned comments, bios…): count the click, then send
+// them to the funnel with UTMs so the landing page attributes the session to this exact link.
+links.get('/l/:code{[a-z0-9-]{3,40}}', async (c) => {
+  const link = await getLink(c.env, c.req.param('code'));
+  if (!link || link.archived) return c.redirect('/', 302);
+  const rt = runtimeFrom(c);
+  // Link-preview bots (YouTube, iMessage, Slack…) don't count as clicks.
+  if (!parseUA(c.req.header('user-agent')).isBot) {
+    rt.waitUntil(c.env.DB.prepare('UPDATE tracked_links SET clicks = clicks + 1, last_click_at = ? WHERE code = ?').bind(Date.now(), link.code).run());
+  }
+  c.header('cache-control', 'no-store');
+  return c.redirect(linkTarget(rt.origin, link, new URL(c.req.url).searchParams), 302);
 });

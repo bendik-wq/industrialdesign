@@ -14,6 +14,7 @@ import { describeSettings, saveSettings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
 import { META_API_VERSION, metaUserData } from '../tracking/forward';
 import { geoFromRequest } from '../lib/geo';
+import { PLACEMENTS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
 
 export const admin = new Hono<AppEnv>();
 admin.use('*', requireAdmin);
@@ -175,6 +176,54 @@ admin.get('/integrations', async (c) => {
       voice: `${rt.origin}/hooks/voice`,
     },
   });
+});
+
+// ── Tracked links / YouTube videos ──────────────────────────────────
+admin.get('/links', async (c) => {
+  const f = filters(c);
+  const model = c.req.query('model') === 'last' ? 'last' : 'first';
+  const rt = runtimeFrom(c);
+  const [{ results: rows }, funnels] = await Promise.all([
+    c.env.DB.prepare('SELECT * FROM tracked_links WHERE archived = 0 ORDER BY created_at DESC').all<TrackedLink>(),
+    linkFunnels(c.env, f.from, f.to, model),
+  ]);
+  return c.json({
+    model,
+    placements: PLACEMENTS,
+    links: rows.map((l) => ({ ...l, short_url: `${rt.origin}/l/${l.code}`, ...(funnels.get(l.code) ?? {}), clicks_total: l.clicks })),
+  });
+});
+
+admin.post('/links', async (c) => {
+  const body = await c.req.json<{ url?: string; label?: string; placement?: string; dest_path?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string }>().catch(() => ({} as Record<string, string>));
+  const placement = PLACEMENTS.includes(body.placement as (typeof PLACEMENTS)[number]) ? body.placement! : null;
+  const dest = typeof body.dest_path === 'string' && /^\/[\w\-/]*$/.test(body.dest_path) ? body.dest_path : '/';
+  const videoId = body.url ? youtubeId(body.url) : null;
+  let link: Omit<TrackedLink, 'clicks' | 'last_click_at' | 'archived'>;
+  if (videoId) {
+    const meta = await youtubeMeta(videoId);
+    const title = meta.title ?? videoId;
+    link = {
+      code: newLinkCode(), kind: 'youtube', video_id: videoId, video_title: title, thumbnail: meta.thumbnail, placement, dest_path: dest,
+      label: (body.label || title).slice(0, 120), utm_source: 'youtube', utm_medium: 'video', utm_campaign: `yt-${slug(title, 50)}-${videoId}`, created_at: Date.now(),
+    };
+  } else {
+    if (!body.label || !body.utm_source) return c.json({ ok: false, error: 'Paste a YouTube video URL, or give the link a name and a source.' }, 400);
+    link = {
+      code: newLinkCode(), kind: 'custom', video_id: null, video_title: null, thumbnail: null, placement, dest_path: dest, label: body.label.slice(0, 120),
+      utm_source: slug(body.utm_source, 40), utm_medium: slug(body.utm_medium || 'referral', 40), utm_campaign: slug(body.utm_campaign || body.label, 60), created_at: Date.now(),
+    };
+  }
+  await c.env.DB.prepare(
+    `INSERT INTO tracked_links (code, label, kind, video_id, video_title, thumbnail, placement, dest_path, utm_source, utm_medium, utm_campaign, created_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+  ).bind(link.code, link.label, link.kind, link.video_id, link.video_title, link.thumbnail, link.placement, link.dest_path, link.utm_source, link.utm_medium, link.utm_campaign, link.created_at).run();
+  return c.json({ ok: true, link: { ...link, short_url: `${runtimeFrom(c).origin}/l/${link.code}` } });
+});
+
+admin.delete('/links/:code', async (c) => {
+  await c.env.DB.prepare('UPDATE tracked_links SET archived = 1 WHERE code = ?').bind(c.req.param('code')).run();
+  return c.json({ ok: true });
 });
 
 // ── Server-side tracking health ─────────────────────────────────────
