@@ -480,6 +480,52 @@ kbd { font:600 11px var(--font); background:var(--bg2); border-radius:5px; paddi
 .lv b { font-variant-numeric:tabular-nums; text-align:right; font-size:18px; letter-spacing:-.02em; }
 @media (max-width:640px) { .lv { grid-template-columns:1fr; } .lv b { text-align:left; } }
 
+/* ===== youtube ===== */
+.offerbar { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:820px; }
+.offerbar span { background:var(--bg2); border-radius:99px; padding:8px 14px; font-size:14px; font-weight:600; }
+.offerbar span.g { background:var(--green-bg); color:var(--green); }
+.arcs { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(190px,1fr); gap:10px; overflow-x:auto; padding-bottom:8px; scroll-snap-type:x proximity; }
+.arc { background:var(--bg); border-radius:18px; padding:16px; display:grid; gap:6px; scroll-snap-align:start; border:0; text-align:left; cursor:pointer; }
+.arc:hover { box-shadow:0 8px 24px -14px rgba(0,0,0,.25); }
+.arc.cur { box-shadow:inset 0 0 0 2px var(--blue); }
+.arc .an { font-size:12px; font-weight:700; color:var(--ink3); }
+.arc b { font-size:16px; letter-spacing:-.02em; line-height:1.2; }
+.arc .tie { font-size:12px; color:var(--blue-ink); font-weight:600; }
+.arc .bar { height:5px; margin-top:4px; }
+.today { background:var(--bg); border-radius:26px; padding:32px; display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:32px; box-shadow:0 30px 60px -40px rgba(0,0,0,.35); }
+@media (max-width:860px) { .today { grid-template-columns:1fr; padding:22px; } }
+.today h3 { font-size:clamp(24px,3vw,34px); letter-spacing:-.03em; line-height:1.12; }
+.today .prob { font-size:17px; color:var(--ink2); margin-top:10px; }
+.today ol { margin:16px 0 0; padding-left:22px; display:grid; gap:6px; font-size:16px; }
+.today .side2 { display:grid; gap:12px; align-content:start; }
+.today .link { background:var(--bg2); border-radius:14px; padding:12px 14px; font-size:14px; }
+.today .link span { display:block; font-size:12px; color:var(--ink3); font-weight:600; margin-bottom:2px; }
+.stpills { display:flex; flex-wrap:wrap; gap:6px; }
+.stpills button { border:0; border-radius:99px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; background:var(--bg2); color:var(--ink2); }
+.stpills button.on { color:#fff; }
+.yt-ctrls { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:22px; }
+.ytin { border:0; background:var(--bg2); border-radius:10px; padding:8px 12px; font-size:14px; }
+.arcgrp { margin-bottom:30px; }
+.arcgrp > h3 { font-size:20px; letter-spacing:-.022em; margin:0 0 4px 4px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+.arcgrp > h3 small { font-size:13px; font-weight:600; color:var(--blue-ink); }
+.vid { display:grid; grid-template-columns:64px minmax(0,1fr) auto auto; gap:14px; align-items:center; padding:12px; border-radius:14px; cursor:pointer; }
+.vid + .vid { box-shadow:0 -1px 0 var(--bg3); }
+.vid:hover, .vid.open { background:var(--bg2); box-shadow:none; }
+.vid .dn { font-size:13px; font-weight:700; color:var(--ink3); font-variant-numeric:tabular-nums; line-height:1.2; }
+.vid .dn small { display:block; font-weight:500; }
+.vid.today2 .dn { color:var(--blue); }
+.vid .vt { font-size:15.5px; font-weight:600; letter-spacing:-.012em; line-height:1.3; }
+.vid .vp { font-size:13px; color:var(--ink2); margin-top:2px; }
+.vid.pub .vt { color:var(--ink3); }
+.spill { font-size:12px; font-weight:700; border-radius:99px; padding:4px 10px; border:0; cursor:pointer; white-space:nowrap; color:#fff; }
+.vedit { background:var(--bg2); border-radius:0 0 14px 14px; margin:-6px 0 8px; padding:16px 16px 18px 90px; display:grid; gap:12px; }
+@media (max-width:640px) { .vedit { padding-left:16px; } .vid { grid-template-columns:48px minmax(0,1fr) auto; } .vid .avwrap { display:none; } }
+.vedit .two input, .vedit textarea, .vedit input { width:100%; border:0; background:var(--bg); border-radius:10px; padding:9px 12px; font-size:14px; }
+.vedit textarea { min-height:70px; resize:vertical; line-height:1.4; }
+.vedit .seq { font-size:13px; color:var(--ink2); display:grid; gap:4px; }
+.idea { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:center; background:var(--bg2); border-radius:14px; padding:10px 14px; margin-bottom:8px; }
+.idea select { border:0; background:var(--bg); border-radius:8px; padding:6px 8px; font-size:13px; }
+
 /* playbook */
 .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
 .card { background:var(--bg2); border-radius:var(--r); padding:28px; display:grid; gap:14px; align-content:start; min-width:0; }
@@ -518,6 +564,7 @@ body.studio-on .foot { display:none; }
   <div class="tabs" role="tablist">
     <button class="tab" data-tab="overview" role="tab">Overview</button>
     <button class="tab" data-tab="week" role="tab">Tasks</button>
+    <button class="tab" data-tab="youtube" role="tab">YouTube</button>
     <button class="tab" data-tab="organic" role="tab">Organic</button>
     <button class="tab" data-tab="lab" role="tab">Lab</button>
     <button class="tab" data-tab="congruency" role="tab">Congruency</button>
@@ -585,6 +632,39 @@ body.studio-on .foot { display:none; }
     </section>
   </div>
   <aside class="sheet" id="sheet" hidden aria-label="Task details"></aside>
+</main>
+
+<main class="view" id="v-youtube" hidden>
+  <section class="wrap hero" style="padding-bottom:30px">
+    <div class="kicker">YouTube</div>
+    <h1 class="h-xl">90 days.<br>90 videos.<br>One story.</h1>
+    <p class="lead" style="text-align:center">Every video solves one real problem for a $1M+ service-business owner and sets up the next, from “why acquire” all the way to the exit. Every one ends at the offer.</p>
+    <div class="offerbar" id="ytOffer"></div>
+  </section>
+  <section class="sec alt" style="padding-top:44px">
+    <div class="wrap">
+      <div class="tiles" id="ytTiles" style="margin-bottom:28px"></div>
+      <div class="head" style="margin-bottom:16px"><div class="kicker blue">The arc</div><h2 class="h-m">Thirteen chapters of one journey</h2></div>
+      <div class="arcs" id="ytArcs"></div>
+      <div class="head" style="margin:44px 0 16px"><div class="kicker blue" id="ytTodayK">Today</div><h2 class="h-m">Today’s video</h2></div>
+      <div id="ytToday"></div>
+    </div>
+  </section>
+  <section class="sec">
+    <div class="wrap">
+      <div class="yt-ctrls">
+        <div><div class="kicker blue">The plan</div><h2 class="h-m">All 90, in order</h2></div>
+        <div class="row" style="gap:10px">
+          <label class="small muted" for="ytStart">Day 1</label><input type="date" id="ytStart" class="ytin">
+          <select id="ytFilter" class="ytin" aria-label="Filter by status"><option value="">All statuses</option></select>
+        </div>
+      </div>
+      <div id="ytPlan"></div>
+      <div class="head" style="margin-top:56px"><div class="kicker blue">Ideas</div><h2 class="h-m">Ideate together</h2><p class="muted">Drop a topic here. Insert it into the plan at the day where it fits the story, and everything after it moves back a day.</p></div>
+      <div class="addtask" style="margin-bottom:14px"><input type="text" id="ytIdeaIn" placeholder="New video idea, e.g. “How to buy a physio clinic with the seller’s help”" aria-label="New idea"><button class="btn" id="ytIdeaAdd" type="button">Add idea</button></div>
+      <div id="ytIdeas"></div>
+    </div>
+  </section>
 </main>
 
 <!-- ================= ORGANIC ================= -->
@@ -707,11 +787,11 @@ body.studio-on .foot { display:none; }
   </section>
   <section class="sec alt">
     <div class="wrap">
-      <div class="head"><div class="kicker blue">Content volume</div><h2 class="h-l">Four films. Thirty-five Reels.</h2></div>
+      <div class="head"><div class="kicker blue">Content volume</div><h2 class="h-l">One film a day. Five Reels a day.</h2></div>
       <div class="tiles">
-        <div class="tile s2 dark"><div class="lbl">YouTube long-form</div><div class="big">4/wk</div><p class="muted small">The primary driver. One filming day.</p></div>
+        <div class="tile s2 dark"><div class="lbl">YouTube long-form</div><div class="big">1/day</div><p class="muted small">The primary driver. 90-day series, Josh films.</p></div>
         <div class="tile s2"><div class="lbl">Instagram Reels</div><div class="big">5/day</div><p class="muted small">35 a week, clipped from the long-form.</p></div>
-        <div class="tile s2"><div class="lbl">Clips per video</div><div class="big">~9</div><p class="muted small">So build 8–10 chapters into each video.</p></div>
+        <div class="tile s2"><div class="lbl">Clips per video</div><div class="big">~5</div><p class="muted small">Five strong chapters per video covers the daily Reels.</p></div>
       </div>
     </div>
   </section>
@@ -775,7 +855,7 @@ body.studio-on .foot { display:none; }
       <div class="cols">
         <div class="card"><h3>Launch</h3><p class="muted">First 3–5 clients at $20k to earn case studies and a real LOI to show on calls.</p></div>
         <div class="card"><h3>After proof</h3><p class="muted">$25k upfront plus a success fee at close (flat $25–50k or 1–2% of deal value).</p></div>
-        <div class="card"><h3>Guarantee</h3><p class="muted">Conditional: no signed LOI by day 90 and they did the work, we keep working at no cost. Check broker and finder rules before any fee tied to closing.</p></div>
+        <div class="card"><h3>Guarantee</h3><p class="muted">7-day money-back guarantee: full refund if they ask within the first 7 days. Write the terms into the contract, and check broker and finder rules before any fee tied to closing.</p></div>
       </div>
     </div>
   </section>
@@ -787,21 +867,21 @@ body.studio-on .foot { display:none; }
 <script>
 /* ============ data ============ */
 const DEFAULT_FUNNEL = {
-  offer: { name:'G&L Overview & Strategy', claim:'A 7-figure, no-money-down LOI in 90 days, to double or triple your business.', terms:'7-figure, no-money-down, LOI, 90 days', audience:'Owners doing $1M+ a year', minRevenue:1000000, price:20000, days:90 },
+  offer: { name:'G&L Overview & Strategy', claim:"Double or triple your service business: a signed LOI in 90 days, overfinancing built in, at a profitable 1.5 DSCR.", terms:"double or triple, LOI, 90 days, overfinancing, 1.5 DSCR", audience:"Service-business owners doing $1M+ a year", guarantee:"7-day money-back guarantee", minRevenue:1000000, price:20000, days:90 },
   math: { goalClients:4, bookRate:4, showRate:65, closeRate:25 },
   nodes: [
-    { id:'yt', kind:'channel', title:'YouTube long-form', sub:'Strategy-level deal breakdowns, built in clippable chapters', volume:'4 / week', visits:480, enabled:true, primary:true, qualifies:false, message:'How owners doing $1M+ buy a 7-figure business with no-money-down LOI structures', next:'vsl', objective:'Turn viewers into VSL visitors', kpi:'480 VSL visits / mo', owner:'You', facing:true },
-    { id:'reels', kind:'channel', title:'Instagram Reels', sub:'Clipped from the long-form', volume:'5 / day', visits:80, enabled:true, primary:false, qualifies:false, message:'Clip: why the seller finances a third of a 7-figure deal', next:'yt', objective:'Send viewers to the full video', kpi:'35 Reels / week', owner:'Editor', facing:true },
-    { id:'dms', kind:'channel', title:'Instagram DMs', sub:'Setter answers every engager, asks revenue early', volume:'Daily', visits:60, enabled:true, primary:false, qualifies:true, message:'Quick one: what does your business do a year in revenue? We only work with owners doing $1M+ on no-money-down LOI deals.', next:'vsl', objective:'Qualify engagers on revenue', kpi:'100% answered in 24h', owner:'Setter', facing:true },
-    { id:'paid', kind:'channel', title:'Content ads', sub:'Retarget video viewers once organic proves the VSL', volume:'Optional', visits:0, enabled:false, primary:false, qualifies:false, message:'7-figure, no-money-down LOI in 90 days for owners doing $1M+', next:'vsl', objective:'Scale proven content', kpi:'2%+ CTR', owner:'Media buyer', facing:true },
-    { id:'vsl', kind:'page', title:'VSL page', sub:'Headline + VSL with chapters + application', message:'A 7-figure, no-money-down LOI in 90 days, to double or triple your business. For owners doing $1M+ a year.', next:'app', objective:'Turn visitors into applicants', kpi:'25–60% play rate', owner:'Funnel', facing:true, metric:'visitors' },
-    { id:'app', kind:'gate', title:'Application + calendar', sub:'7 questions. Revenue first, then readiness to invest.', threshold:1000000, readiness:true, message:'Apply if your business does $1M+ a year and you are ready to start a 90-day no-money-down LOI program.', next:'confirm', noNext:'nurture', objective:'Book only owners with money', kpi:'3–5% of visitors book', owner:'Funnel', facing:true, metric:'booked' },
-    { id:'confirm', kind:'page', title:'Confirmation page', sub:'Call 2–3 days out. Breakout videos + 5 follow-up questions.', message:'You are booked. Watch these before the call to see how a no-money-down LOI is structured.', next:'showup', objective:'Pre-sell before the call', kpi:'Breakout videos watched', owner:'Funnel', facing:true },
+    { id:'yt', kind:'channel', title:'YouTube long-form', sub:'Strategy-level deal breakdowns, built in clippable chapters', volume:'1 / day', visits:480, enabled:true, primary:true, qualifies:false, message:"How $1M+ service owners double or triple their business by acquisition: the LOI, overfinancing and a 1.5 DSCR, explained.", next:'vsl', objective:'Turn viewers into VSL visitors', kpi:'480 VSL visits / mo', owner:'Josh', facing:true },
+    { id:'reels', kind:'channel', title:'Instagram Reels', sub:'Clipped from the long-form', volume:'5 / day', visits:80, enabled:true, primary:false, qualifies:false, message:"Clip: how overfinancing gets you to an LOI with cash left over.", next:'yt', objective:'Send viewers to the full video', kpi:'35 Reels / week', owner:'Editor', facing:true },
+    { id:'dms', kind:'channel', title:'Instagram DMs', sub:'Setter answers every engager, asks revenue early', volume:'Daily', visits:60, enabled:true, primary:false, qualifies:true, message:"Quick one: what does your business do a year in revenue? We help $1M+ service owners get an LOI signed in 90 days with overfinancing built in.", next:'vsl', objective:'Qualify engagers on revenue', kpi:'100% answered in 24h', owner:'Setter', facing:true },
+    { id:'paid', kind:'channel', title:'Content ads', sub:'Retarget video viewers once organic proves the VSL', volume:'Optional', visits:0, enabled:false, primary:false, qualifies:false, message:"Double or triple your $1M+ service business: LOI in 90 days, overfinancing, 1.5 DSCR.", next:'vsl', objective:'Scale proven content', kpi:'2%+ CTR', owner:'Media buyer', facing:true },
+    { id:'vsl', kind:'page', title:'VSL page', sub:'Headline + VSL with chapters + application', message:"Double or triple your service business: a signed LOI in 90 days, overfinancing built in, at a profitable 1.5 DSCR. For owners doing $1M+ a year. 7-day money-back guarantee.", next:'app', objective:'Turn visitors into applicants', kpi:'25–60% play rate', owner:'Funnel', facing:true, metric:'visitors' },
+    { id:'app', kind:'gate', title:'Application + calendar', sub:'7 questions. Revenue first, then readiness to invest.', threshold:1000000, readiness:true, message:"Apply if your service business does $1M+ a year and you are ready to start a 90-day program to get an LOI signed with overfinancing.", next:'confirm', noNext:'nurture', objective:'Book only owners with money', kpi:'3–5% of visitors book', owner:'Funnel', facing:true, metric:'booked' },
+    { id:'confirm', kind:'page', title:'Confirmation page', sub:'Call 2–3 days out. Breakout videos + 5 follow-up questions.', message:"You are booked. Watch these before the call to see how an LOI with overfinancing and a 1.5 DSCR is structured.", next:'showup', objective:'Pre-sell before the call', kpi:'Breakout videos watched', owner:'Funnel', facing:true },
     { id:'showup', kind:'system', title:'Show-up system', sub:'Value emails up to 6/day, retargeting 15–20 touches, setter SMS + selfie video', message:'', next:'call', objective:'Get booked owners to the call', kpi:'60–70% show rate', owner:'Setter', facing:false, metric:'shows' },
-    { id:'call', kind:'close', title:'Sales call', sub:'Diagnose buy box, show the LOI path', message:'Here is what a 7-figure, no-money-down LOI would look like for your business in 90 days.', next:'contract', objective:'Close qualified owners', kpi:'25% close rate', owner:'Closer', facing:true, metric:'closes' },
+    { id:'call', kind:'close', title:'Sales call', sub:'Diagnose buy box, show the LOI path', message:"Here is how we would double or triple your business: an LOI in 90 days, overfinancing built in, at a 1.5 DSCR.", next:'contract', objective:'Close qualified owners', kpi:'25% close rate', owner:'Closer', facing:true, metric:'closes' },
     { id:'contract', kind:'close', title:'90-day contract', sub:'$20k+ upfront, conditional guarantee', message:'', next:'deliver', objective:'Collect payment, start day 1', kpi:'Paid in full', owner:'Closer', facing:false, metric:'revenue' },
     { id:'deliver', kind:'deliver', title:'90-day delivery', sub:'Days 1–30 buy box · 31–60 owner calls · 61–90 structure + sign', days:90, message:'', next:'loi', objective:'Deliver the promise', kpi:'On schedule each phase', owner:'You', facing:false },
-    { id:'loi', kind:'outcome', title:'No-money-down LOI signed', sub:'7-figure, vendor financed + overfinanced', message:'', next:'', objective:'Signed LOI for every client', kpi:'100% of clients', owner:'You', facing:false },
+    { id:'loi', kind:'outcome', title:'LOI signed, overfinanced', sub:'1.5 DSCR, cash left at close', message:'', next:'', objective:'Signed LOI for every client', kpi:'100% of clients', owner:'You', facing:false },
     { id:'nurture', kind:'nurture', title:'Unqualified page', sub:'YouTube playlist + email nurture. No call.', message:'Not a fit yet. These videos show how owners get to $1M+ and what to do when you get there.', next:'yt', objective:'Keep them watching until they qualify', kpi:'Re-applies at $1M+', owner:'Funnel', facing:true },
     { id:'micro1', kind:'side', title:'micro1 referrals', sub:'Large companies only, by revenue or headcount. Up to $50k per referral.', message:'', next:'', objective:'Separate cash engine', kpi:'1 large-company intro / month', owner:'You', facing:false }
   ]
@@ -938,7 +1018,10 @@ function template() {
   const own = id => byId(id)?.owner || 'You';
   R.fails.forEach(f => t.push({ key:'cg:' + hash(f.label), title:'Fix: ' + f.label, area:'Congruency', owner:'You', target:null, sev:f.sev, node:f.node }));
   const prim = F.nodes.find(n => n.kind === 'channel' && n.enabled && n.primary);
-  if (prim) { const n = weekly(prim.volume); t.push({ key:'film', title:`Filming day: record ${n || ''} ${prim.title} videos, 8–10 clippable chapters each`.replace('  ', ' '), area:'Content', owner:prim.owner || 'You', target:null }); }
+  if (typeof Y !== 'undefined' && Y) {
+    const ws = iso(weekStart()), we = (() => { const d = weekStart(); d.setDate(d.getDate() + 6); return iso(d); })();
+    Y.items.forEach(it => { const d = ytDate(it.day); if (d >= ws && d <= we) t.push({ key:'yt:' + it.day, title:`YouTube day ${it.day}: ${it.title}`, area:'Content', owner: person(it.assignee)?.name || 'Josh', target:null, due:d, ytDay:it.day }); });
+  }
   F.nodes.filter(n => n.kind === 'channel' && n.enabled).forEach(n => {
     const w = weekly(n.volume);
     if (w) t.push({ key:'ch:' + n.id, title:`Publish ${w} × ${n.title}`, area:'Content', owner:n.owner || 'You', target:w, unit:'posted' });
@@ -958,7 +1041,7 @@ function syncWeek(wk) {
   const tpl = template(), keys = new Set(tpl.map(x => x.key));
   tpl.forEach(x => {
     const ex = wk.tasks.find(t => t.key === x.key);
-    if (ex) { normTask(ex); Object.assign(ex, { area:x.area, owner:x.owner, target:x.target, unit:x.unit, sev:x.sev, node:x.node }); if (!ex.titleManual) ex.title = x.title; if (!ex.assigneeManual) ex.assignee = roleOwner(x.owner); if (!ex.priorityManual && x.area === 'Congruency') ex.priority = x.sev === 'bad' ? 3 : 2; if (ex.key.startsWith('cg:') && ex.done && ex.resolved) { ex.done = false; ex.status = 'todo'; ex.resolved = false; } }
+    if (ex) { normTask(ex); Object.assign(ex, { area:x.area, owner:x.owner, target:x.target, unit:x.unit, sev:x.sev, node:x.node }); if (!ex.titleManual) ex.title = x.title; if (x.due && !ex.dueManual) ex.due = x.due; if (x.ytDay && Y && Y.items[x.ytDay - 1]?.status === 'published' && !ex.done) { ex.status = 'done'; ex.done = true; } if (!ex.assigneeManual) ex.assignee = roleOwner(x.owner); if (!ex.priorityManual && x.area === 'Congruency') ex.priority = x.sev === 'bad' ? 3 : 2; if (ex.key.startsWith('cg:') && ex.done && ex.resolved) { ex.done = false; ex.status = 'todo'; ex.resolved = false; } }
     else wk.tasks.push(normTask({ id:'t' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), auto:true, done:false, actual:null, ...x }));
   });
   wk.tasks.forEach(t => { if (t.auto && t.key.startsWith('cg:') && !keys.has(t.key) && !t.done) { t.done = true; t.status = 'done'; t.resolved = true; t.doneAt = Date.now(); t.doneBy = 'Funnel fix'; } });
@@ -984,7 +1067,7 @@ function renderOverview(R, c) {
   $('ovName').textContent = o.name;
   let cl = esc(o.claim); terms().forEach(t => { const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i'); cl = cl.replace(re, '<em>$1</em>'); });
   $('ovClaim').innerHTML = cl;
-  $('ovPills').innerHTML = `<span class="pill">Only <b>${money(o.minRevenue)}+</b> owners get a call</span><span class="pill"><b>${o.days}</b>-day contract</span><span class="pill"><b>${money(o.price)}</b>+</span>`;
+  $('ovPills').innerHTML = `<span class="pill">Only <b>${money(o.minRevenue)}+</b> owners get a call</span><span class="pill"><b>${o.days}</b>-day contract</span><span class="pill"><b>${money(o.price)}</b>+</span>${o.guarantee ? `<span class="pill"><b>${esc(o.guarantee)}</b></span>` : ''}`;
   const done = wk ? wk.tasks.filter(t => t.done).length : 0, tot = wk ? wk.tasks.length : 0, pct = tot ? Math.round(done / tot * 100) : 0;
   const yt = F.nodes.find(n => n.kind === 'channel' && n.primary), reels = F.nodes.find(n => n.id === 'reels');
   $('ovTiles').innerHTML = `
@@ -1006,6 +1089,14 @@ function renderSliders() {
   $('sliders').innerHTML = SL.map(([k, l, mn, mx, st, u]) => `<div class="tile s3 sl"><div class="top"><label for="s_${k}">${l}</label><b id="v_${k}">${F.math[k]}${u}</b></div><input type="range" id="s_${k}" data-m="${k}" min="${mn}" max="${mx}" step="${st}" value="${F.math[k]}"></div>`).join('');
 }
 
+/* ============ offer migration ============ */
+function migrateOffer() {
+  if ((F.v || 1) >= 2) return;
+  const D = DEFAULT_FUNNEL;
+  Object.assign(F.offer, { claim:D.offer.claim, terms:D.offer.terms, audience:D.offer.audience, guarantee:D.offer.guarantee });
+  D.nodes.forEach(dn => { const n = byId(dn.id); if (n && dn.message) n.message = dn.message; if (n && dn.id === 'loi') { n.title = dn.title; n.sub = dn.sub; } if (n && dn.id === 'yt') { n.volume = dn.volume; n.owner = dn.owner; } });
+  F.v = 2; log('Updated the offer: ' + D.offer.claim);
+}
 /* ============ team ============ */
 const DEFAULT_TEAM = [{ id:'bendik', name:'Bendik', email:'bendik@asym.capital', color:'#0071E3' }, { id:'josh', name:'Josh', email:'josh@joshli.au.com', color:'#AF52DE' }];
 const ROLES = ['You','Setter','Closer','Editor','Funnel','Media buyer'];
@@ -1040,6 +1131,7 @@ function setStatus(t, s) {
   t.status = s; t.done = s === 'done'; t.doneAt = t.done ? Date.now() : null; t.doneBy = t.done ? whoName() : null; t.resolved = false;
   const lbl = STATUSES.find(x => x[0] === s)[1];
   tlog(t, 'Moved to ' + lbl); log(`${t.done ? 'Checked off' : 'Moved to ' + lbl}: ${t.title}`);
+  if (t.key && t.key.startsWith('yt:') && Y) { const it = Y.items[+t.key.slice(3) - 1]; if (it && t.done && it.status !== 'published') { it.status = 'published'; saveY(); } }
 }
 function dueInfo(d) {
   if (!d) return null;
@@ -1222,7 +1314,7 @@ function taskChanged(t, msg) { if (msg) tlog(t, msg); saveW(); renderTasks(); re
     if (d.done) { const t = findTask(d.done); setStatus(t, e.target.checked ? 'done' : 'todo'); taskChanged(t); if (pm.open === t.id) renderSheet(); return; }
     if (d.actual) { const t = findTask(d.actual); t.actual = e.target.value === '' ? null : +e.target.value; if (t.target && t.actual >= t.target && !t.done) setStatus(t, 'done'); tlog(t, `Logged ${t.actual ?? 0} of ${t.target}`); log(`${t.title}: ${t.actual ?? 0} of ${t.target}`); taskChanged(t); if (pm.open === t.id) renderSheet(); return; }
     if (d.sub) { const t = findTask(pm.open); t.subs[+d.sub].done = e.target.checked; taskChanged(t); renderSheet(); return; }
-    if (d.f === 'due' || d.f === 'area') { const t = findTask(pm.open); t[d.f] = e.target.value; taskChanged(t, d.f === 'due' ? 'Due ' + (e.target.value || 'cleared') : 'Area: ' + e.target.value); return; }
+    if (d.f === 'due' || d.f === 'area') { const t = findTask(pm.open); t[d.f] = e.target.value; if (d.f === 'due') t.dueManual = true; taskChanged(t, d.f === 'due' ? 'Due ' + (e.target.value || 'cleared') : 'Area: ' + e.target.value); return; }
     if (d.f === 'title' || d.f === 'notes') { const t = findTask(pm.open); taskChanged(t, d.f === 'title' ? 'Renamed' : 'Edited notes'); return; }
     if (d.teamEmail != null) { team()[+d.teamEmail].email = e.target.value.trim(); saveF(); log(`Set ${team()[+d.teamEmail].name}’s email`); toast('Saved'); return; }
     if (d.role) { (F.roles = F.roles || {})[d.role] = e.target.value; allTasks().forEach(t => { if (t.auto && !t.assigneeManual && t.owner === d.role) t.assignee = e.target.value; }); saveF(); saveW(); renderTasks(); toast('Role updated'); }
@@ -1242,7 +1334,7 @@ function taskChanged(t, msg) { if (msg) tlog(t, msg); saveW(); renderTasks(); re
     const c = e.target.closest('.col'); if (!c) return; e.preventDefault(); c.classList.remove('over');
     const t = findTask(e.dataTransfer.getData('text/plain')); if (!t) return;
     if (c.dataset.dropStatus) { setStatus(t, c.dataset.dropStatus); taskChanged(t); }
-    else if (c.dataset.dropDue !== undefined) { t.due = c.dataset.dropDue; taskChanged(t, 'Due ' + (t.due || 'cleared')); }
+    else if (c.dataset.dropDue !== undefined) { t.due = c.dataset.dropDue; t.dueManual = true; taskChanged(t, 'Due ' + (t.due || 'cleared')); }
     if (pm.open === t.id) renderSheet();
   });
   $('pmSearch').addEventListener('input', e => { pm.q = e.target.value; renderTasks(); });
@@ -1407,6 +1499,234 @@ function renderLab() {
   $('labSignals').innerHTML = sig.length ? sig.slice(0, 12).map(s => `<details><summary><b>${esc(s.k.label)} ${s.z > 0 ? 'jumped' : 'dropped'}</b><span>${weekLabel(s.wid)}</span><span>${s.v.toLocaleString('en-US')}</span><span>${s.z > 0 ? '+' : ''}${s.z.toFixed(1)}σ</span></summary><ul><li>${s.z > 0 ? 'Find what you did differently that week and repeat it.' : 'Check what changed: posting volume, topics, hooks or a platform shift.'}</li></ul></details>`).join('') : '<p class="muted">No unusual weeks yet. Signals appear once a KPI has four or more weeks of history.</p>';
 }
 $('labRun').onclick = () => { runLab(); toast('Ran 5,000 simulations'); };
+
+/* ============ YouTube: the 90-day series ============ */
+// Each arc follows the buyer's journey; every video sets up the next one.
+const YT_ARCS = [
+  { n:'Why acquire', tie:'Double or triple your business', v:[
+    ['How I’d Double a $1M Service Business in 12 Months Without Hiring Salespeople', 'Growth is stuck at 10–20% a year and the owner is the bottleneck.', ['Why organic growth caps out in service businesses', 'Buying revenue vs. building it', 'What doubling looks like on one deal']],
+    ['Why Smart Service Owners Buy Competitors Instead of Running More Ads', 'Ad costs keep rising and new clients are getting expensive.', ['Cost to win a client vs. cost to buy one', 'Buying a book of recurring clients', 'The math on one $2M clinic']],
+    ['5 Signs Your Business Is Ready for Its First Acquisition', 'They want to buy but don’t know if they’re ready.', ['Clean books and steady cash flow', 'A #2 who can run operations', 'Systems you can copy into a second business']],
+    ['Acquisition vs. Opening a Second Location: The Real Numbers', 'Weighing a new location against buying one.', ['Time to profit for each path', 'Risk: empty chairs vs. existing clients', 'Side-by-side numbers']],
+    ['The Silver Tsunami: Why Thousands of Service Businesses Will Change Hands', 'Doesn’t realise how many owners want out.', ['Retiring owners with no succession plan', 'Why sellers want a trusted buyer, not the highest bid', 'What this means for you']],
+    ['What Buying a Business Actually Costs You (Less Than You Think)', 'Assumes you need millions in cash to buy.', ['Bank debt, seller notes and your money', 'Why your existing business is the down payment', 'Preview: overfinancing']],
+    ['Your First Acquisition, Start to Finish: The 90-Day Roadmap', 'Has no plan from idea to signed LOI.', ['Days 1–30: buy box and deal flow', 'Days 31–60: owner calls and valuation', 'Days 61–90: structure and sign']]
+  ]},
+  { n:'What to buy', tie:'The right deal', v:[
+    ['How to Define Your Buy Box (and Stop Wasting Time on Bad Deals)', 'Looks at every deal and wastes months.', ['Industry, size, geography, owner situation', 'Deal-breakers to write down now', 'A one-page buy box template']],
+    ['Horizontal vs. Vertical Acquisitions for Service Businesses', 'Unsure whether to buy competitors or adjacent services.', ['Buying more of what you do', 'Buying what your clients also need', 'Which compounds faster']],
+    ['The Best Service Businesses to Buy Right Now', 'Doesn’t know which sectors hold value.', ['Healthcare and allied health', 'Home and trade services', 'B2B services with contracts']],
+    ['Why Recurring Revenue Is Worth Double in a Service Acquisition', 'Can’t tell good revenue from fragile revenue.', ['Contracts, memberships and repeat clients', 'How lenders view recurring revenue', 'Spotting fake recurring revenue']],
+    ['Red Flags: Service Businesses You Should Never Buy', 'Afraid of buying a lemon.', ['Owner is the product', 'One client is 40% of revenue', 'Declining margins disguised as growth']],
+    ['Buying in Your Own City vs. a New Market', 'Unsure how far to look.', ['Synergies of staying local', 'When a new market makes sense', 'Running a business you can’t drive to']],
+    ['How Big Should Your First Acquisition Be?', 'Afraid of buying too big or too small.', ['The 0.5x–1x your size rule', 'Why too small is a trap', 'Sizing to a 1.5 DSCR']]
+  ]},
+  { n:'Finding deals', tie:'The right deal', v:[
+    ['Where the Best Businesses for Sale Really Are (Not on Listing Sites)', 'Only looks at listed deals and competes with everyone.', ['Why good deals never get listed', 'What listed deals tell you', 'Going direct to owners']],
+    ['How to Find Off-Market Service Businesses in Your Industry', 'Doesn’t know how to find owners who might sell.', ['Associations, registers and directories', 'Building a target list', 'Ranking by fit']],
+    ['The Letter That Gets Retiring Owners to Call You Back', 'Outreach gets ignored.', ['Why owners don’t reply', 'What to say in the first line', 'Follow-up cadence that works']],
+    ['Working With Business Brokers Without Getting the Leftovers', 'Brokers send stale deals.', ['How brokers decide who sees deals first', 'Becoming a buyer brokers call', 'What to ask before you see a deal']],
+    ['How to Build a Pipeline of 50 Owners in 30 Days', 'Has two or three leads and nothing else.', ['Daily outreach system', 'Tracking every owner conversation', 'Converting 50 to 5 real deals']],
+    ['Your Suppliers, Referral Partners and Competitors Are Your Deal Flow', 'Overlooks the network they already have.', ['Who hears about sales first', 'Asking without looking desperate', 'Turning friendly competitors into sellers']],
+    ['The First Call With a Seller: What to Say and What Never to Say', 'Nervous about talking to sellers.', ['Lead with their legacy, not price', 'Questions that uncover motivation', 'Ending with a next step']]
+  ]},
+  { n:'Valuation', tie:'The right deal', v:[
+    ['How to Value a Service Business in 10 Minutes', 'Can’t tell if an asking price is fair.', ['The quick profit check', 'Rule-of-thumb multiples', 'When to dig deeper']],
+    ['SDE vs. EBITDA: Which Number Sellers and Banks Actually Use', 'Confused by valuation terms.', ['Seller’s discretionary earnings explained', 'EBITDA explained', 'Which one your lender will use']],
+    ['Add-Backs: Where Sellers Inflate Profit and How to Catch It', 'Takes the seller’s profit number at face value.', ['Legitimate add-backs', 'Aggressive add-backs', 'Questions that expose them']],
+    ['What Multiple Should You Pay for a Service Business?', 'Doesn’t know what fair looks like.', ['What moves a multiple up or down', 'Size and multiple', 'Overpaying vs. losing the deal']],
+    ['Why the Owner’s Salary Changes Everything in a Valuation', 'Forgets someone has to replace the owner.', ['Replacing the owner’s role', 'Market salary adjustments', 'How it changes the price']],
+    ['Customer Concentration: The Hidden Risk That Kills Valuations', 'Misses that a few clients carry the business.', ['How to measure concentration', 'When it’s a deal-breaker', 'Structuring around it']],
+    ['How to Make an Offer a Seller Respects Without Overpaying', 'Worried about lowballing or overpaying.', ['Anchor on what the business earns', 'Price vs. terms', 'Presenting the offer in person']]
+  ]},
+  { n:'Financing and DSCR', tie:'A profitable 1.5 DSCR', v:[
+    ['How Banks Decide Whether to Fund Your Acquisition', 'Thinks lenders say no to buyers like them.', ['What lenders look at first', 'Buyer, business and structure', 'Why your track record matters']],
+    ['DSCR Explained: Why 1.5x Is the Number That Gets Deals Funded', 'Doesn’t understand debt coverage.', ['What DSCR measures', 'Why 1.5x keeps you profitable and safe', 'Calculating it on a real deal']],
+    ['Bank and Government-Backed Acquisition Loans Explained', 'Doesn’t know which loans exist.', ['Senior bank debt', 'Government-backed programs', 'What each costs and requires']],
+    ['Seller Financing: Why Owners Agree to Be Paid Over Time', 'Thinks sellers want all cash.', ['What the seller gains', 'Typical seller note terms', 'Asking for it the right way']],
+    ['How Your Existing Business Makes You a Better Borrower', 'Doesn’t see their business as an asset in the deal.', ['Experience lenders trust', 'Cross-collateral and guarantees', 'Using strength without risking it']],
+    ['Building a Debt Stack That Leaves the Business Profitable', 'Afraid debt will choke cash flow.', ['Senior debt, seller note, earn-out', 'Repayment schedules that fit cash flow', 'Stress-testing a bad year']],
+    ['The Lender Pack: What to Bring to Get a Yes', 'Shows up to lenders unprepared.', ['Financials and projections', 'Your story as an operator', 'The structure that answers their questions']]
+  ]},
+  { n:'Overfinancing', tie:'Overfinancing built in', v:[
+    ['How Overfinancing Works: Closing a Deal With Cash Left Over', 'Thinks no-money-down means no cash after close.', ['Financing more than the price', 'Closing costs and working capital in the loan', 'Keeping DSCR at 1.5']],
+    ['No-Money-Down Acquisitions: What’s Real and What’s Hype', 'Skeptical of no-money-down claims.', ['Where the money really comes from', 'What it requires from you', 'Where people get it wrong']],
+    ['Earn-Outs: Paying the Seller From Future Performance', 'Gap between price and what the bank will lend.', ['How earn-outs work', 'When sellers accept them', 'Protecting yourself in the terms']],
+    ['Working Capital: The Line Item First-Time Buyers Forget', 'Runs out of cash in month two.', ['What working capital covers', 'How much you need', 'Financing it into the deal']],
+    ['Structuring a $2M Deal Step by Step With Real Numbers', 'Wants to see a full structure.', ['The price and the stack', 'DSCR at 1.5', 'Cash left over at close']],
+    ['How to Protect Your Existing Business When You Borrow to Buy', 'Afraid of putting their company at risk.', ['Separate entities', 'Limiting guarantees', 'Downside planning']],
+    ['Five Deal Structures Compared: Which One Fits Your Deal?', 'Overwhelmed by options.', ['Bank + seller note', 'Earn-out heavy', 'Overfinanced with working capital']]
+  ]},
+  { n:'The LOI', tie:'An LOI signed in 90 days', v:[
+    ['How to Write a Letter of Intent That Sellers Sign', 'Has never written an LOI.', ['What an LOI is and isn’t', 'The structure that sellers trust', 'Getting to signature fast']],
+    ['The 9 Terms That Matter Most in an LOI', 'Doesn’t know what to put in it.', ['Price, structure and timing', 'Exclusivity and conditions', 'Transition and employees']],
+    ['Negotiating With a Founder Who Built It Over 30 Years', 'Struggles with emotional sellers.', ['What the founder really wants', 'Protecting their legacy', 'Trading terms for price']],
+    ['Exclusivity, Deposits and Timelines: Protecting Yourself in the LOI', 'Fears losing the deal mid-process.', ['Exclusivity periods', 'Refundable vs. non-refundable', 'Realistic timelines']],
+    ['How to Handle a Seller Who Wants All Cash at Close', 'Seller rejects financing.', ['Why they ask for it', 'Showing the after-tax math', 'Bridging with certainty, not price']],
+    ['Keeping the Seller Involved After the Sale', 'Afraid clients and staff leave with the owner.', ['Transition agreements', 'Consulting periods', 'Introductions to key clients']],
+    ['What Happens After the Seller Signs the LOI', 'Doesn’t know the next steps.', ['The 60-day path to close', 'Who does what', 'Keeping momentum']]
+  ]},
+  { n:'Due diligence', tie:'Close it safely', v:[
+    ['Due Diligence for Your First Acquisition: The Complete Checklist', 'Doesn’t know what to check.', ['Financial, legal, people, clients', 'Order of operations', 'What to ask for on day one']],
+    ['Financial Due Diligence: Proving the Profit Is Real', 'Can’t verify the numbers.', ['Bank statements vs. reports', 'Tax returns', 'Revenue quality']],
+    ['Due Diligence for Healthcare and Regulated Service Businesses', 'Regulation scares them.', ['Licences and compliance', 'Billing and claims risk', 'Practitioner agreements']],
+    ['Client and Contract Due Diligence: Will the Clients Stay?', 'Fears clients will leave after the sale.', ['Contract terms and change-of-control', 'Client interviews', 'Churn history']],
+    ['People Due Diligence: Who Really Runs This Business?', 'Unsure who holds the business together.', ['Key-person risk', 'Org chart reality', 'Retention plans']],
+    ['Quality of Earnings Reports: When You Need One', 'Doesn’t know if a QoE is worth it.', ['What a QoE covers', 'Cost vs. deal size', 'Reading the report']],
+    ['Deal-Killers in Due Diligence and How to Renegotiate', 'Finds problems and panics.', ['What to walk away from', 'What to reprice', 'How to reopen terms calmly']]
+  ]},
+  { n:'Closing', tie:'Close it safely', v:[
+    ['How to Close Your First Acquisition Without Losing Your Mind', 'Closing feels chaotic.', ['The closing timeline', 'Keeping your business running', 'Managing everyone’s deadlines']],
+    ['Your Deal Team: Lawyer, Accountant, Lender and Advisor', 'Doesn’t know who to hire.', ['What each person does', 'Choosing deal specialists', 'What it costs']],
+    ['The Purchase Agreement in Plain English', 'Intimidated by the legal documents.', ['Reps and warranties', 'Indemnities', 'Holdbacks and escrow']],
+    ['Closing Day: What Actually Happens', 'Doesn’t know what to expect.', ['Signing and funding', 'Keys, accounts and logins', 'The first phone calls']],
+    ['Announcing the Acquisition to Staff and Clients', 'Fears a bad reaction.', ['What to say to staff', 'What to say to clients', 'Timing the announcement']],
+    ['The First 7 Days After You Own It', 'Doesn’t know what to do first.', ['Listen before you change', 'Cash and payroll checks', 'Quick wins']],
+    ['Lessons From First Acquisitions That Went Wrong', 'Wants to avoid rookie mistakes.', ['Changing too much too fast', 'Ignoring the team', 'Running out of cash']]
+  ]},
+  { n:'Integration and shared costs', tie:'Double or triple after close', v:[
+    ['The First 100 Days After an Acquisition', 'No integration plan.', ['Stabilise, then improve', 'What to measure weekly', 'The 100-day checklist']],
+    ['How to Set Up Shared Cost Structures Across Your Businesses', 'Paying for everything twice.', ['What to share and what not to', 'Allocating shared costs fairly', 'The margin impact']],
+    ['Combining Back Office: Admin, Billing, Payroll and Software', 'Two of every system.', ['Order to combine', 'Choosing the system that stays', 'Avoiding billing disruption']],
+    ['Shared Services That Lift Margins 5–10 Points', 'Margins don’t improve after buying.', ['Purchasing power', 'Central scheduling and intake', 'Shared marketing']],
+    ['Integrating Systems Without Breaking What Works', 'Fear of breaking a working business.', ['Map before you migrate', 'Pilot then roll out', 'Measuring disruption']],
+    ['Pricing After an Acquisition: When to Raise and When to Wait', 'Unsure about changing prices.', ['Benchmarking prices', 'Timing increases', 'Communicating to clients']],
+    ['The Year-One KPIs That Prove an Acquisition Is Working', 'Doesn’t know if the deal is succeeding.', ['Revenue retention', 'Margin and DSCR', 'Staff retention']]
+  ]},
+  { n:'Team and culture', tie:'Double or triple after close', v:[
+    ['How to Build a Team in a New Acquisition', 'Unsure who to keep, hire or move.', ['Assess the current team', 'Fill the leadership gap', 'Roles that span both businesses']],
+    ['Keeping Key Staff After the Owner Leaves', 'Fears an exodus.', ['Identify key people early', 'Retention bonuses that work', 'Giving them a reason to stay']],
+    ['Hiring a General Manager for the Acquired Business', 'Doesn’t want to run it day to day.', ['When you need a GM', 'Finding the right one', 'Paying for performance']],
+    ['How to Build Culture in a Business You Just Bought', 'New team doesn’t trust them.', ['Respect what exists', 'Define a few non-negotiables', 'Rituals that unite teams']],
+    ['Merging Two Teams Without a Civil War', 'Teams clash after integration.', ['Us vs. them dynamics', 'Shared goals and scoreboards', 'Leaders who bridge both']],
+    ['Incentives and Equity for Managers in Acquired Businesses', 'Managers act like employees, not owners.', ['Profit-share models', 'Phantom and real equity', 'Aligning to growth']],
+    ['Running Two Businesses Without Working Twice the Hours', 'Afraid of burnout.', ['Your role changes from operator to owner', 'Weekly operating rhythm', 'Dashboards over meetings']]
+  ]},
+  { n:'Growth after the deal', tie:'Double or triple after close', v:[
+    ['How to Grow Organic Revenue in a Newly Acquired Business', 'Bought it but growth is flat.', ['Fix the funnel first', 'Low-hanging growth', 'The 12-month growth plan']],
+    ['Marketing a Business You Just Bought: The First 90 Days', 'Marketing is neglected after the sale.', ['Audit what exists', 'Quick wins', 'Building a repeatable engine']],
+    ['Cross-Selling Between Your Businesses', 'Clients don’t know about your other services.', ['Mapping overlapping clients', 'Offers that make sense', 'Training staff to refer']],
+    ['Reviews, Referrals and Reputation in Service Acquisitions', 'Reputation dips after a change of owner.', ['Protecting reviews', 'Referral programs', 'Handling the transition publicly']],
+    ['Content and Local Search for Acquired Service Businesses', 'Acquired business is invisible online.', ['Local search basics', 'Content that brings clients', 'Shared content across brands']],
+    ['Raising Revenue per Client Without Losing Clients', 'Revenue per client is low.', ['Packaging services', 'Memberships and plans', 'Testing price changes']],
+    ['Double or Triple: The Real Growth Math After One Acquisition', 'Wants proof the strategy works.', ['Revenue doubled at close', 'Margins from shared costs', 'Growth on the combined base']]
+  ]},
+  { n:'Platform and exit', tie:'Exit at a higher multiple', v:[
+    ['Your Second Acquisition: Faster, Cheaper, Better', 'Thinks the first deal is the end.', ['What you learned', 'Using the first deal to fund the second', 'Speeding up the process']],
+    ['Building a Platform Company From Service Businesses', 'Doesn’t see the bigger play.', ['What a platform is', 'Systems that scale across businesses', 'Becoming the buyer in your sector']],
+    ['How to Position Your Company for an Exit From Day One', 'Only thinks about exit at the end.', ['What buyers pay for', 'Clean books and owner independence', 'Building value every quarter']],
+    ['What Private Equity Pays for Service Platforms and Why', 'Doesn’t know who the final buyer is.', ['How PE values platforms', 'Size thresholds that change multiples', 'Preparing for their diligence']],
+    ['Multiple Arbitrage: How Small Deals Become a Big Exit', 'Doesn’t understand how wealth is created.', ['Buying small at lower multiples', 'Selling big at higher multiples', 'A worked example']],
+    ['Your 90-Day Plan to a Signed LOI, and How We Help', 'Ready to act but wants a guide.', ['Recap of the whole series', 'Our 90-day program and guarantee', 'How to apply']]
+  ]}
+];
+const YT_CTA = 'Every video ends the same way: if your service business does $1M+ and you want to double or triple it through acquisition, watch the full presentation and apply.';
+function ytDefault() {
+  const items = []; let day = 1;
+  YT_ARCS.forEach((a, ai) => a.v.forEach(([title, problem, ch]) => items.push({ day: day++, arc: ai, title, problem, chapters: ch.slice(), status:'idea', assignee:'josh', url:'', views:null, notes:'' })));
+  const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));
+  return { start: iso(d), items, ideas: [] };
+}
+
+const YT_ST = [['idea','Idea','#8E8E93'],['scripted','Scripted','#FF9F0A'],['filmed','Filmed','#5856D6'],['edited','Edited','#0071E3'],['published','Published','#34C759']];
+const stInfo = s => YT_ST.find(x => x[0] === s) || YT_ST[0];
+let Y = null, ytOpen = null;
+const saveY = () => store.put('yt', Y);
+function ytDate(day) { const [y, m, d] = Y.start.split('-').map(Number); return iso(new Date(y, m - 1, d + day - 1)); }
+function ytTodayDay() { const [y, m, d] = Y.start.split('-').map(Number), s = new Date(y, m - 1, d), n = new Date(); n.setHours(0, 0, 0, 0); return Math.round((n - s) / 864e5) + 1; }
+const fmtShort = isoD => { const [y, m, d] = isoD.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month:'short', day:'numeric' }); };
+function renumber() { Y.items.forEach((it, i) => it.day = i + 1); }
+function ytSetStatus(it, s, quiet) {
+  if (it.status === s) return; it.status = s;
+  if (!quiet) log(`YouTube day ${it.day} → ${stInfo(s)[1]}: ${it.title}`);
+  const t = allTasks().find(x => x.key === 'yt:' + it.day);
+  if (t) { if (s === 'published' && !t.done) setStatus(t, 'done'); if (s !== 'published' && t.done && t.auto) setStatus(t, 'todo'); }
+  saveY(); saveW();
+}
+function renderYouTube() {
+  if (!Y || !$('ytPlan')) return;
+  const o = F.offer, today = ytTodayDay(), pub = Y.items.filter(i => i.status === 'published').length;
+  $('ytOffer').innerHTML = terms().map(t => `<span>${esc(t)}</span>`).join('') + (o.guarantee ? `<span class="g">${esc(o.guarantee)}</span>` : '') + `<span>${esc(o.audience)}</span>`;
+  const ahead = Y.items.filter(i => ['scripted','filmed','edited'].includes(i.status) && i.day >= today).length;
+  const behind = Y.items.filter(i => i.day < today && i.status !== 'published').length;
+  $('ytTiles').innerHTML = `<div class="tile s2 dark"><div class="lbl">Published</div><div class="big">${pub}<span style="color:#6E6E73">/${Y.items.length}</span></div><div class="bar green" style="background:#3A3A3C"><i style="width:${pub / Y.items.length * 100}%"></i></div></div>
+    <div class="tile s2"><div class="lbl">${today < 1 ? 'Starts in' : today > Y.items.length ? 'Series' : 'Day'}</div><div class="big">${today < 1 ? (1 - today) + 'd' : today > Y.items.length ? 'Done' : today}</div><p class="muted small">Day 1 is ${fmtShort(Y.start)}</p></div>
+    <div class="tile s2"><div class="lbl">${behind ? 'Behind schedule' : 'In the pipeline'}</div><div class="big" style="color:${behind ? 'var(--red)' : 'inherit'}">${behind || ahead}</div><p class="muted small">${behind ? 'past days not published' : 'scripted, filmed or edited ahead'}</p></div>`;
+  $('ytArcs').innerHTML = YT_ARCS.map((a, ai) => {
+    const its = Y.items.filter(i => i.arc === ai), p = its.filter(i => i.status === 'published').length, cur = its.some(i => i.day === today);
+    return `<button type="button" class="arc ${cur ? 'cur' : ''}" data-arc="${ai}"><span class="an">${String(ai + 1).padStart(2, '0')} · Days ${its[0]?.day ?? '—'}–${its[its.length - 1]?.day ?? '—'}</span><b>${esc(a.n)}</b><span class="tie">${esc(a.tie)}</span><div class="bar green"><i style="width:${its.length ? p / its.length * 100 : 0}%"></i></div></button>`;
+  }).join('');
+  const it = Y.items[Math.min(Y.items.length, Math.max(1, today)) - 1];
+  $('ytTodayK').textContent = today < 1 ? 'Coming up first' : today > Y.items.length ? 'Last in the series' : `Day ${today} · ${fmtShort(ytDate(today))}`;
+  if (it) {
+    const prev = Y.items[it.day - 2], next = Y.items[it.day];
+    $('ytToday').innerHTML = `<div class="today"><div><div class="lbl">${esc(YT_ARCS[it.arc]?.n || '')} · leads to “${esc(YT_ARCS[it.arc]?.tie || '')}”</div><h3 style="margin-top:8px">${esc(it.title)}</h3><p class="prob">The problem: ${esc(it.problem)}</p><ol>${it.chapters.map(c => `<li>${esc(c)}</li>`).join('')}</ol><p class="muted small" style="margin-top:14px">${esc(YT_CTA)}</p></div>
+      <div class="side2"><div class="stpills">${YT_ST.map(([s, l, c]) => `<button type="button" class="${it.status === s ? 'on' : ''}" style="${it.status === s ? 'background:' + c : ''}" data-yst="${s}" data-day="${it.day}">${l}</button>`).join('')}</div>
+      <div class="row" style="gap:10px">${avatar(it.assignee, 30)}<span><b>${esc(person(it.assignee)?.name || 'Unassigned')}</b> films and publishes</span></div>
+      ${prev ? `<div class="link"><span>Builds on · Day ${prev.day}</span>${esc(prev.title)}</div>` : ''}${next ? `<div class="link"><span>Sets up · Day ${next.day}</span>${esc(next.title)}</div>` : ''}
+      <button type="button" class="btn light sm" data-yopen="${it.day}" style="justify-self:start">Edit this video</button></div></div>`;
+  }
+  const flt = $('ytFilter').value;
+  if ($('ytFilter').options.length < 2) $('ytFilter').innerHTML = '<option value="">All statuses</option>' + YT_ST.map(([s, l]) => `<option value="${s}">${l}</option>`).join('');
+  $('ytStart').value = Y.start;
+  $('ytPlan').innerHTML = YT_ARCS.map((a, ai) => {
+    const its = Y.items.filter(i => i.arc === ai && (!flt || i.status === flt)); if (!its.length) return '';
+    return `<div class="arcgrp" id="arc${ai}"><h3>${String(ai + 1).padStart(2, '0')} ${esc(a.n)}<small>→ ${esc(a.tie)}</small></h3>${its.map(vidHTML).join('')}</div>`;
+  }).join('') || '<div class="empty">No videos with that status.</div>';
+  $('ytIdeas').innerHTML = Y.ideas.length ? Y.ideas.map((id, i) => `<div class="idea"><span>${esc(id.t)}<span class="muted small"> · ${esc(id.by || '')}</span></span><select data-idea-at="${i}" aria-label="Insert at day"><option value="">Insert at day…</option>${Y.items.map(x => `<option value="${x.day}">Day ${x.day}: ${esc(x.title.slice(0, 40))}</option>`).join('')}</select><button type="button" class="x" data-idea-del="${i}" aria-label="Remove idea" style="border:0;background:none;font-size:18px;color:var(--ink3);cursor:pointer">×</button></div>`).join('') : '<p class="muted">No ideas yet.</p>';
+}
+function vidHTML(it) {
+  const [s, l, c] = stInfo(it.status), today = ytTodayDay();
+  let h = `<div class="vid ${ytOpen === it.day ? 'open' : ''} ${it.day === today ? 'today2' : ''} ${it.status === 'published' ? 'pub' : ''}" data-yopen="${it.day}"><div class="dn">Day ${it.day}<small>${fmtShort(ytDate(it.day))}</small></div><div style="min-width:0"><div class="vt">${esc(it.title)}</div><div class="vp">${esc(it.problem)}</div></div><button type="button" class="spill" style="background:${c}" data-ycycle="${it.day}" aria-label="Status ${l}, change">${l}</button><span class="avwrap">${avatar(it.assignee, 24)}</span></div>`;
+  if (ytOpen === it.day) {
+    const prev = Y.items[it.day - 2], next = Y.items[it.day];
+    h += `<div class="vedit" data-yedit="${it.day}">
+      <div class="f"><label>Title</label><input data-yf="title" value="${esc(it.title)}"></div>
+      <div class="f"><label>The problem it solves</label><input data-yf="problem" value="${esc(it.problem)}"></div>
+      <div class="f"><label>Chapters (one per line; each one becomes a Reel)</label><textarea data-yf="chapters">${esc(it.chapters.join('\n'))}</textarea></div>
+      <div class="two"><div class="f"><label>Published link</label><input data-yf="url" value="${esc(it.url)}" placeholder="https://youtube.com/…"></div><div class="f"><label>Views</label><input data-yf="views" type="number" value="${it.views ?? ''}" placeholder="0"></div></div>
+      <div class="f"><label>Notes</label><textarea data-yf="notes" placeholder="Hook ideas, B-roll, guest, data to show…">${esc(it.notes)}</textarea></div>
+      <div class="pills">${team().map(p => `<button type="button" class="${it.assignee === p.id ? 'on' : ''}" data-yassign="${p.id}">${avatar(p.id, 18)}${esc(p.name)}</button>`).join('')}</div>
+      <div class="seq">${prev ? `<span>Builds on Day ${prev.day}: ${esc(prev.title)}</span>` : '<span>Opens the series.</span>'}${next ? `<span>Sets up Day ${next.day}: ${esc(next.title)}</span>` : '<span>Closes the series.</span>'}</div>
+      <div class="row" style="gap:8px"><button class="btn light sm" type="button" data-ymove="-1">Move earlier</button><button class="btn light sm" type="button" data-ymove="1">Move later</button><button class="btn ghost sm" type="button" data-yclose>Done</button></div></div>`;
+  }
+  return h;
+}
+(function initYT() {
+  const v = $('v-youtube');
+  v.addEventListener('click', e => {
+    const st = e.target.closest('[data-yst]'); if (st) { ytSetStatus(Y.items[+st.dataset.day - 1], st.dataset.yst); renderYouTube(); return; }
+    const cy = e.target.closest('[data-ycycle]'); if (cy) { const it = Y.items[+cy.dataset.ycycle - 1], i = YT_ST.findIndex(x => x[0] === it.status); ytSetStatus(it, YT_ST[(i + 1) % YT_ST.length][0]); renderYouTube(); return; }
+    const ar = e.target.closest('[data-arc]'); if (ar) { $('ytFilter').value = ''; renderYouTube(); document.getElementById('arc' + ar.dataset.arc)?.scrollIntoView({ behavior:'smooth', block:'start' }); return; }
+    const as = e.target.closest('[data-yassign]'); if (as) { const it = Y.items[ytOpen - 1]; it.assignee = as.dataset.yassign; saveY(); renderYouTube(); return; }
+    const mv = e.target.closest('[data-ymove]');
+    if (mv) { const i = ytOpen - 1, j = i + +mv.dataset.ymove; if (j < 0 || j >= Y.items.length) return; const a = Y.items[i], b = Y.items[j]; [Y.items[i], Y.items[j]] = [b, a]; if (a.arc !== b.arc) [a.arc, b.arc] = [b.arc, a.arc]; renumber(); ytOpen = j + 1; saveY(); log(`Moved “${a.title}” to day ${ytOpen}`); renderYouTube(); return; }
+    if (e.target.closest('[data-yclose]')) { ytOpen = null; renderYouTube(); return; }
+    const dl = e.target.closest('[data-idea-del]'); if (dl) { Y.ideas.splice(+dl.dataset.ideaDel, 1); saveY(); renderYouTube(); return; }
+    if (e.target.closest('.vedit, input, select, textarea')) return;
+    const op = e.target.closest('[data-yopen]');
+    if (op) { const d = +op.dataset.yopen; ytOpen = ytOpen === d ? null : d; renderYouTube(); if (ytOpen) requestAnimationFrame(() => document.querySelector(`.vid[data-yopen="${d}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' })); }
+  });
+  v.addEventListener('input', e => {
+    const k = e.target.dataset.yf; if (!k || !ytOpen) return; const it = Y.items[ytOpen - 1];
+    it[k] = k === 'chapters' ? e.target.value.split('\n').map(s => s.trim()).filter(Boolean) : k === 'views' ? (e.target.value === '' ? null : +e.target.value) : e.target.value;
+    store.put('yt', Y);
+  });
+  v.addEventListener('change', e => {
+    if (e.target.dataset.yf) { renderYouTube(); return; }
+    if (e.target.id === 'ytStart' && e.target.value) { Y.start = e.target.value; saveY(); log('YouTube series now starts ' + fmtShort(Y.start)); renderYouTube(); refresh(); return; }
+    if (e.target.id === 'ytFilter') { renderYouTube(); return; }
+    const at = e.target.dataset.ideaAt;
+    if (at != null && e.target.value) {
+      const idea = Y.ideas[+at], pos = +e.target.value - 1, arc = Y.items[pos]?.arc ?? 0;
+      Y.items.splice(pos, 0, { day:0, arc, title:idea.t, problem:'', chapters:[], status:'idea', assignee:'josh', url:'', views:null, notes:'' });
+      Y.ideas.splice(+at, 1); renumber(); saveY(); log(`Inserted idea at day ${pos + 1}: ${idea.t}`); ytOpen = pos + 1; renderYouTube(); refresh();
+    }
+  });
+  const addIdea = () => { const t = $('ytIdeaIn').value.trim(); if (!t) return; Y.ideas.unshift({ t, by: whoName(), at: Date.now() }); $('ytIdeaIn').value = ''; saveY(); log('New video idea: ' + t); renderYouTube(); };
+  $('ytIdeaAdd').onclick = addIdea;
+  $('ytIdeaIn').addEventListener('keydown', e => { if (e.key === 'Enter') addIdea(); });
+})();
 
 function renderWeek() { renderTasks(); if (pm.open) renderSheet(); }
 
@@ -1766,7 +2086,8 @@ function renderEditor(R) {
       <div class="f"><label for="f_offer_terms">Key terms</label><input type="text" id="f_offer_terms" data-k="terms" value="${esc(o.terms)}"><span class="hint">Comma separated. Every customer-facing message should echo these.</span></div>
       ${field(['audience','Audience line','text'], o.audience, 'offer')}
       <div class="two">${field(['minRevenue','Revenue minimum ($/yr)','number'], o.minRevenue, 'offer')}${field(['price','Price ($)','number'], o.price, 'offer')}</div>
-      ${field(['days','Contract days','number'], o.days, 'offer')}`;
+      ${field(['days','Contract days','number'], o.days, 'offer')}
+      ${field(['guarantee','Guarantee','text'], o.guarantee || '', 'offer')}`;
     return;
   }
   if (sel.type === 'edge') {
@@ -1803,6 +2124,7 @@ function showTab(t) {
   if (t !== 'week' && $('sheet')) $('sheet').hidden = true;
   if (t === 'week') renderTasks();
   if (t === 'organic') renderOrganic();
+  if (t === 'youtube') renderYouTube();
   if (t === 'lab') renderLab();
   if (t === 'funnel') requestAnimationFrame(() => { drawEdges(); if (!view.fitted) { fitView(); view.fitted = true; } });
 }
@@ -1837,17 +2159,18 @@ $('resetBtn').onclick = () => {
   if (b.dataset.armed) { F = clone(DEFAULT_FUNNEL); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); funnelChanged('reset to default'); toast('Funnel reset'); delete b.dataset.armed; b.textContent = 'Reset'; view.fitted = false; requestAnimationFrame(() => { drawEdges(); fitView(); view.fitted = true; }); return; }
   b.dataset.armed = 1; b.textContent = 'Tap again to reset'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Reset'; }, 3000);
 };
-$('exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ funnel:F, weeks:W, log:L, kpis:K }, null, 2)], { type:'application/json' })); a.download = 'gl-overview-strategy.json'; a.click(); URL.revokeObjectURL(a.href); };
+$('exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ funnel:F, weeks:W, log:L, kpis:K, yt:Y }, null, 2)], { type:'application/json' })); a.download = 'gl-overview-strategy.json'; a.click(); URL.revokeObjectURL(a.href); };
 $('importBtn').onclick = () => $('importFile').click();
 $('importFile').onchange = async e => {
-  try { const d = JSON.parse(await e.target.files[0].text()); const f = d.funnel || d; if (!f.nodes || !f.offer) throw 0; F = f; if (d.weeks) W = d.weeks; if (d.log) L = d.log; if (d.kpis) K = d.kpis; saveF(); saveW(); saveL(); store.put('kpis', K); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); toast('Imported'); }
+  try { const d = JSON.parse(await e.target.files[0].text()); const f = d.funnel || d; if (!f.nodes || !f.offer) throw 0; F = f; if (d.weeks) W = d.weeks; if (d.log) L = d.log; if (d.kpis) K = d.kpis; if (d.yt) { Y = d.yt; saveY(); } saveF(); saveW(); saveL(); store.put('kpis', K); sel = { type:'offer' }; renderSliders(); renderEditor(refresh()); toast('Imported'); }
   catch (err) { toast('That file isn’t a G&L export'); }
   e.target.value = '';
 };
 window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
 window.addEventListener('focus', async () => {
   if (store.mode !== 'cloud' || document.activeElement?.matches('input,textarea,select')) return;
-  const [w, l, k] = await Promise.all([store.get('weeks'), store.get('log'), store.get('kpis')]);
+  const [w, l, k, y] = await Promise.all([store.get('weeks'), store.get('log'), store.get('kpis'), store.get('yt')]);
+  if (y) Y = y; if (!$('v-youtube').hidden) renderYouTube();
   if (w) W = w; if (l) L = l; if (k) K = Object.assign({ weeks:{}, targets:{} }, k); if (!$('v-organic').hidden) renderOrganic(); renderWeek(); refresh({ keepWeek:true });
 });
 
@@ -1875,9 +2198,11 @@ function renderApp() {
   W = (await store.get('weeks')) || {};
   L = (await store.get('log')) || [];
   K = Object.assign({ weeks:{}, targets:{} }, (await store.get('kpis')) || {});
+  Y = (await store.get('yt')) || ytDefault();
   team().forEach(p => { if (p.id === 'josh' && !p.email) p.email = 'josh@joshli.au.com'; });
   if (F.offer && /loi machine/i.test(F.offer.name || '')) F.offer.name = DEFAULT_FUNNEL.offer.name;
-  ensureWeek(); saveF(); saveW();
+  migrateOffer();
+  ensureWeek(); saveF(); saveW(); saveY();
   renderSliders(); renderApp();
   renderEditor(refresh());
   loadChat(); renderChat();
