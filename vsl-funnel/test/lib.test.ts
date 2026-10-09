@@ -80,3 +80,22 @@ describe('zTest', () => {
     expect(zTest(0, 0, 1, 1).p).toBe(1);
   });
 });
+
+import { whatsappLink } from '../src/integrations/whatsapp';
+import type { Settings } from '../src/settings';
+
+describe('whatsappLink', () => {
+  const s = { JOSH_WHATSAPP: '+61 4 3537 5590' } as Settings;
+  const lead = (tier: 'A' | 'B' | 'C' | null, tier_override: 'A' | 'B' | 'C' | null = null) => ({ first_name: 'Sam', ref_code: 'AB12CD', tier, tier_override });
+  it('is offered to A and B tier leads only', () => {
+    expect(whatsappLink(s, lead('A'), 'question')).toMatch(/^https:\/\/wa\.me\/61435375590\?text=/);
+    expect(whatsappLink(s, lead('B'), 'booked')).toContain('ref%20AB12CD');
+    expect(whatsappLink(s, lead('C'), 'resources')).toBeNull();
+    expect(whatsappLink(s, lead(null), 'question')).toBeNull();
+    expect(whatsappLink(s, null, 'question')).toBeNull();
+  });
+  it('follows a manual tier override', () => {
+    expect(whatsappLink(s, lead('C', 'B'), 'question')).not.toBeNull();
+    expect(whatsappLink(s, lead('A', 'C'), 'question')).toBeNull();
+  });
+});

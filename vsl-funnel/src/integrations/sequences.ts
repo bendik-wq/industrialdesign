@@ -59,10 +59,9 @@ export const SEQUENCES = {
   },
   tier_c: {
     id: 'tier_c',
-    description: 'Not ready yet (C) — resources and WhatsApp community',
+    description: 'Not ready yet (C) — resources by email (no WhatsApp)',
     steps: [
       { template: 'c_resources', offsetMs: 1 * MIN },
-      { template: 'c_whatsapp', offsetMs: 2 * DAY },
       { template: 'c_third_way', offsetMs: 5 * DAY },
     ],
   },

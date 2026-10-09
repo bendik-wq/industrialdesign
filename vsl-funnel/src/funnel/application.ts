@@ -176,7 +176,7 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
   await cancelSequence(rt, lead.id, 'abandoned');
   if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
   if (firstSubmit && result.tier === 'A') rt.waitUntil(notifySlack(rt, fresh, '🔥 Hot lead (A-tier)', result.caps.length ? [`Caps: ${result.caps.join(', ')}`] : []));
-  if (firstSubmit && result.tier !== 'A' && fresh.whatsapp_opt_in) rt.waitUntil(sendResourcesTemplate(rt, fresh));
+  if (firstSubmit && result.tier === 'B' && fresh.whatsapp_opt_in) rt.waitUntil(sendResourcesTemplate(rt, fresh));
 
   return { tier: result.tier, route: decision.route, score: result.score, events: { submitted, qualified } };
 }

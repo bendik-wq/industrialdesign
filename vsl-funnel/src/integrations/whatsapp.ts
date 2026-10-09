@@ -2,7 +2,7 @@ import type { Runtime } from '../app';
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { REF_CODE_RE, newId } from '../lib/ids';
 import type { Lead } from '../funnel/leads';
-import { getLeadByRef, updateLead } from '../funnel/leads';
+import { effectiveTier, getLeadByRef, updateLead } from '../funnel/leads';
 import type { Settings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
 import { META_API_VERSION } from '../tracking/forward';
@@ -27,9 +27,15 @@ export function intentFromSource(src: string, lead: Pick<Lead, 'booked_at'> | nu
   return 'question';
 }
 
-export function whatsappLink(settings: Settings, lead: Pick<Lead, 'first_name' | 'ref_code'> | null, intent: WhatsAppIntent): string | null {
+/** Josh's WhatsApp is only offered to qualified (A or B tier) leads — never to anonymous visitors or C-tier. */
+export const whatsappEligible = (lead: Pick<Lead, 'tier' | 'tier_override'> | null) => {
+  const tier = lead ? effectiveTier(lead) : null;
+  return tier === 'A' || tier === 'B';
+};
+
+export function whatsappLink(settings: Settings, lead: Pick<Lead, 'first_name' | 'ref_code' | 'tier' | 'tier_override'> | null, intent: WhatsAppIntent): string | null {
   const number = settings.JOSH_WHATSAPP.replace(/\D/g, '');
-  if (!number) return null;
+  if (!number || !whatsappEligible(lead)) return null;
   const intro = lead?.first_name ? `Hi Josh, it's ${lead.first_name}.` : 'Hi Josh!';
   const ask = ASK[intent];
   const ref = lead?.ref_code ? ` (ref ${lead.ref_code})` : '';
@@ -45,7 +51,7 @@ export const cloudApiConfigured = (s: Settings) => Boolean(s.WHATSAPP_TOKEN && s
  */
 export async function sendResourcesTemplate(rt: Runtime, lead: Lead) {
   const s = rt.settings;
-  if (!cloudApiConfigured(s) || !s.WHATSAPP_RESOURCES_TEMPLATE || !lead.phone || !lead.whatsapp_opt_in) return false;
+  if (!cloudApiConfigured(s) || !s.WHATSAPP_RESOURCES_TEMPLATE || !lead.phone || !lead.whatsapp_opt_in || !whatsappEligible(lead)) return false;
   const to = lead.phone.replace(/\D/g, '');
   const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${s.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
     method: 'POST',

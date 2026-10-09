@@ -168,16 +168,6 @@ export const TEMPLATES: Record<string, Template> = {
       '• The $1M+ Acquisition Readiness Checklist<br>• A seller-finance deal structure template<br>• Off-market seller outreach scripts',
     ],
     cta: { label: 'Get the toolkit →', href: c.link('/resources#kit') },
-    ps: waLine(c, 'Want the resources on WhatsApp? Message me here'),
-  }),
-  c_whatsapp: (c) => ({
-    subject: 'Want these on WhatsApp?',
-    preheader: 'Deals and structures, straight to your phone.',
-    body: [
-      `${c.name},`,
-      'I share deal breakdowns, structures we’re seeing and new resources on WhatsApp first. If you want them, send me a message and I’ll add you.',
-    ],
-    cta: c.whatsappUrl ? { label: 'Message Josh on WhatsApp →', href: c.whatsappUrl } : { label: 'Get the resources →', href: c.link('/resources') },
   }),
   c_third_way: (c) => ({
     subject: 'The third way to grow',
