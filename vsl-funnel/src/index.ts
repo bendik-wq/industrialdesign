@@ -4,6 +4,7 @@ import { isAdmin, login, logout, requireAdmin } from './admin/auth';
 import type { Env } from './env';
 import { applyPage, bookPage, breakoutPage, landingPage, resourcesPage, staticPage } from './funnel/pages';
 import { processEmailQueue } from './integrations/email';
+import { retryForwards } from './tracking/forward';
 import { resolveVisitor } from './lib/identity';
 import { admin } from './routes/admin';
 import { api } from './routes/api';
@@ -112,8 +113,9 @@ export default {
       waitUntil: (p) => ctx.waitUntil(p.catch((e) => console.error('background task failed', e))),
     };
     if (!settings.PUBLIC_URL) console.warn('PUBLIC_URL is not set — email links will point at example.com');
-    const result = await processEmailQueue(rt);
+    const [result, retried] = await Promise.all([processEmailQueue(rt), retryForwards(rt)]);
     if (result.due) console.log('email queue', result);
+    if (retried.due) console.log('tracking retries', retried);
   },
 } satisfies ExportedHandler<Env>;
 

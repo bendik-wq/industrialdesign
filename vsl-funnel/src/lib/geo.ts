@@ -1,6 +1,8 @@
 export interface Geo {
   country: string | null;
   region: string | null;
+  /** ISO 3166-2 subdivision code, e.g. NSW, CA. */
+  regionCode: string | null;
   city: string | null;
   postalCode: string | null;
   timezone: string | null;
@@ -22,6 +24,7 @@ export function geoFromRequest(req: Request): Geo {
   return {
     country: (cf?.country as string) ?? req.headers.get('cf-ipcountry'),
     region: cf?.region ?? null,
+    regionCode: (cf?.regionCode as string | undefined) ?? null,
     city: cf?.city ?? null,
     postalCode: cf?.postalCode ?? null,
     timezone: cf?.timezone ?? null,

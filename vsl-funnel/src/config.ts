@@ -90,7 +90,7 @@ export const LANDING = {
   ],
   soundPrompt: 'Click for sound',
   soundAction: 'Click for sound',
-  ctaLabel: 'See If You Qualify',
+  ctaLabel: 'See if you qualify',
   applyEyebrow: 'Apply',
   applyTitle: 'See if your business qualifies',
   applySubtitle: 'Two minutes, ten questions. If you’re a fit, you’ll pick a time for a free acquisition strategy call with Josh’s team.',

@@ -4,6 +4,7 @@ import type { VisitorCtx } from '../lib/identity';
 import { newId } from '../lib/ids';
 import type { EventSource, ServerEvent } from './catalog';
 import { forwardEvent } from './forward';
+import type { MatchGeo } from './match';
 
 /** Who an event belongs to, plus what ad platforms need to match it. */
 export interface TrackIdentity {
@@ -19,6 +20,8 @@ export interface TrackIdentity {
   fbc?: string | null;
   marketingConsent?: boolean;
   pageUrl?: string | null;
+  /** IP geolocation of the visitor's session, used for Meta match keys. */
+  geo?: MatchGeo | null;
 }
 
 export interface TrackInput {
@@ -43,6 +46,7 @@ export const identityFromVisitor = (v: VisitorCtx, pageUrl?: string | null, lead
   fbc: v.fbc,
   marketingConsent: v.marketingConsent,
   pageUrl: pageUrl ?? null,
+  geo: { country: v.geo.country, region: v.geo.region, regionCode: v.geo.regionCode, city: v.geo.city, postalCode: v.geo.postalCode },
 });
 
 /**
@@ -52,14 +56,18 @@ export const identityFromVisitor = (v: VisitorCtx, pageUrl?: string | null, lead
  */
 export async function identityFromLead(env: Env, leadId: string): Promise<TrackIdentity> {
   const row = await env.DB.prepare(
-    `SELECT l.visitor_id, l.variant, l.fbp, l.fbc, s.id AS session_id, s.ip, s.user_agent, s.is_eu
+    `SELECT l.visitor_id, l.variant, l.fbp, l.fbc, s.id AS session_id, s.ip, s.user_agent, s.is_eu,
+            s.country, s.region, s.region_code, s.city, s.postal_code
        FROM leads l
        LEFT JOIN sessions s ON s.visitor_id = l.visitor_id
       WHERE l.id = ?
       ORDER BY s.last_seen_at DESC LIMIT 1`,
   )
     .bind(leadId)
-    .first<{ visitor_id: string | null; variant: string | null; fbp: string | null; fbc: string | null; session_id: string | null; ip: string | null; user_agent: string | null; is_eu: number | null }>();
+    .first<{
+      visitor_id: string | null; variant: string | null; fbp: string | null; fbc: string | null; session_id: string | null; ip: string | null;
+      user_agent: string | null; is_eu: number | null; country: string | null; region: string | null; region_code: string | null; city: string | null; postal_code: string | null;
+    }>();
   return {
     visitorId: row?.visitor_id ?? null,
     sessionId: row?.session_id ?? null,
@@ -72,6 +80,7 @@ export async function identityFromLead(env: Env, leadId: string): Promise<TrackI
     // Lead-level events after an application imply the visitor accepted our terms;
     // EU visitors still only forward if they granted consent on the site.
     marketingConsent: !row?.is_eu,
+    geo: row ? { country: row.country, region: row.region, regionCode: row.region_code, city: row.city, postalCode: row.postal_code } : null,
   };
 }
 
@@ -89,6 +98,6 @@ export async function track(rt: Runtime, who: TrackIdentity, input: TrackInput):
   if (who.sessionId) stmts.push(rt.env.DB.prepare('UPDATE sessions SET event_count = event_count + 1, last_seen_at = ? WHERE id = ?').bind(ts, who.sessionId));
   await rt.env.DB.batch(stmts);
 
-  if (!who.isBot) rt.waitUntil(forwardEvent(rt, who, { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null }));
+  if (!who.isBot) rt.waitUntil(forwardEvent(rt, who, { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null, source: input.source }));
   return id;
 }

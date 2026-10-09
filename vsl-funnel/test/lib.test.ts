@@ -99,3 +99,43 @@ describe('whatsappLink', () => {
     expect(whatsappLink(s, lead('A', 'C'), 'question')).toBeNull();
   });
 });
+
+import { hashedMatchKeys, normalise } from '../src/tracking/match';
+import { conversionValue, metaEventName, metaUserData } from '../src/tracking/forward';
+import { sha256 } from '../src/lib/crypto';
+
+describe('Meta match keys', () => {
+  it('normalises exactly as Meta specifies before hashing', () => {
+    expect(normalise.em('  Josh@Example.COM ')).toBe('josh@example.com');
+    expect(normalise.ph('+61 435 375 590')).toBe('61435375590');
+    expect(normalise.fn('Mary-Jane')).toBe('maryjane');
+    expect(normalise.ct('New South Wales')).toBe('newsouthwales');
+    expect(normalise.st('California', 'CA', 'US')).toBe('ca');
+    expect(normalise.st('New South Wales', 'NSW', 'AU')).toBe('newsouthwales');
+    expect(normalise.zp('94107-1234', 'US')).toBe('94107');
+    expect(normalise.zp('SW1A 1AA', 'GB')).toBe('sw1a1aa');
+    expect(normalise.country('AU')).toBe('au');
+  });
+
+  it('sends the same external_id as the browser Pixel, plus the lead id', async () => {
+    const who = { visitorId: 'v_abc', sessionId: 's1', leadId: 'l_1', ip: '203.0.113.9', userAgent: 'UA', fbp: 'fb.1.1.2', fbc: 'fb.1.1.xyz', geo: { country: 'AU', region: 'New South Wales', regionCode: 'NSW', city: 'Sydney', postalCode: '2000' } };
+    const lead = { id: 'l_1', email: 'A@b.com', phone: '+61435375590', first_name: 'Josh', last_name: 'Li', country: 'AU', city: 'Sydney' };
+    const ud = await metaUserData(who, lead);
+    expect(ud.external_id).toEqual([await sha256('v_abc'), await sha256('l_1')]);
+    expect(ud.em).toEqual([await sha256('a@b.com')]);
+    expect(ud.ph).toEqual([await sha256('61435375590')]);
+    expect(ud.zp).toEqual([await sha256('2000')]);
+    expect(ud).toMatchObject({ client_ip_address: '203.0.113.9', client_user_agent: 'UA', fbp: 'fb.1.1.2', fbc: 'fb.1.1.xyz' });
+    const pixel = await hashedMatchKeys({ email: 'A@b.com' }, null, ['v_abc']);
+    expect(pixel.external_id).toEqual([await sha256('v_abc')]);
+    expect(pixel.em).toBe(await sha256('a@b.com'));
+  });
+
+  it('sends pipeline outcomes back to Meta with real value', () => {
+    expect(metaEventName('lead_status_changed', { to: 'won' })).toBe('Purchase');
+    expect(metaEventName('lead_status_changed', { to: 'showed' })).toBe('CallShowed');
+    expect(metaEventName('lead_status_changed', { to: 'lost' })).toBeUndefined();
+    expect(metaEventName('lead_captured', {})).toBe('Lead');
+    expect(conversionValue('lead_status_changed', { to: 'won', revenue: 15000 }, null)).toBe(15000);
+  });
+});

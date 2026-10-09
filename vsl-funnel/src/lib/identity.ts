@@ -145,8 +145,8 @@ export async function resolveVisitor(c: Context<AppEnv>, kind: 'page' | 'beacon'
            utm_source, utm_medium, utm_campaign, utm_content, utm_term, utm_id, click_id, click_type, ad_id, adset_id, placement,
            country, region, city, postal_code, timezone, latitude, longitude, continent, is_eu, asn, as_org, colo, http_protocol,
            tls_version, ip, ip_hash, user_agent, device, browser, browser_version, os, os_version, accept_language, is_bot, bot_reason,
-           variant, pageviews)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           variant, pageviews, region_code)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
          ON CONFLICT(id) DO NOTHING`,
       ).bind(
         sessionId, visitorId, now, now, url.pathname, url.search.slice(0, 1000) || null, touch?.referrer ?? null,
@@ -156,7 +156,7 @@ export async function resolveVisitor(c: Context<AppEnv>, kind: 'page' | 'beacon'
         geo.region, geo.city, geo.postalCode, geo.timezone, geo.latitude, geo.longitude, geo.continent, geo.isEU ? 1 : 0,
         geo.asn, geo.asOrg, geo.colo, geo.httpProtocol, geo.tlsVersion, storedIp, ipHash, userAgent.slice(0, 500),
         ua.device, ua.browser, ua.browserVersion, ua.os, ua.osVersion,
-        req.headers.get('accept-language')?.slice(0, 100) ?? null, isBot ? 1 : 0, botReason, variant, isPage,
+        req.headers.get('accept-language')?.slice(0, 100) ?? null, isBot ? 1 : 0, botReason, variant, isPage, geo.regionCode,
       )
     : env.DB.prepare('UPDATE sessions SET last_seen_at = ?, pageviews = pageviews + ? WHERE id = ?').bind(now, isPage, sessionId);
 

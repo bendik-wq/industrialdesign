@@ -12,6 +12,8 @@ import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } 
 import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
+import { META_API_VERSION, metaUserData } from '../tracking/forward';
+import { geoFromRequest } from '../lib/geo';
 
 export const admin = new Hono<AppEnv>();
 admin.use('*', requireAdmin);
@@ -173,6 +175,51 @@ admin.get('/integrations', async (c) => {
       voice: `${rt.origin}/hooks/voice`,
     },
   });
+});
+
+// ── Server-side tracking health ─────────────────────────────────────
+admin.get('/tracking', async (c) => {
+  const f = filters(c);
+  const db = c.env.DB;
+  const s = c.get('settings');
+  const [byDest, byEvent, meta, failures] = await Promise.all([
+    db.prepare(`SELECT dest, status, COUNT(*) AS n FROM forward_log WHERE ts BETWEEN ? AND ? GROUP BY 1, 2`).bind(f.from, f.to).all(),
+    db.prepare(`SELECT dest, event_name, COUNT(*) AS n, SUM(status = 'sent') AS sent, SUM(status = 'failed') AS failed, SUM(status = 'retrying') AS retrying, MAX(ts) AS last_at
+                  FROM forward_log WHERE ts BETWEEN ? AND ? AND dest IN ('meta', 'ga4') GROUP BY 1, 2 ORDER BY 3 DESC`).bind(f.from, f.to).all(),
+    db.prepare(`SELECT match_keys FROM forward_log WHERE dest = 'meta' AND status = 'sent' AND ts BETWEEN ? AND ? ORDER BY ts DESC LIMIT 2000`).bind(f.from, f.to).all<{ match_keys: string | null }>(),
+    db.prepare(`SELECT event_id, dest, event_name, ts, status, attempts, http_status, error, next_try_at FROM forward_log WHERE status != 'sent' ORDER BY updated_at DESC LIMIT 30`).all(),
+  ]);
+  const KEYS = ['em', 'ph', 'fn', 'ln', 'external_id', 'client_ip_address', 'client_user_agent', 'fbp', 'fbc', 'ct', 'st', 'zp', 'country'];
+  const total = meta.results.length;
+  const coverage = KEYS.map((k) => ({ key: k, pct: total ? meta.results.filter((r) => (r.match_keys ?? '').split(',').includes(k)).length / total : 0 }));
+  return c.json({
+    configured: { meta: Boolean(s.META_PIXEL_ID && s.META_ACCESS_TOKEN), pixel: Boolean(s.META_PIXEL_ID), testMode: Boolean(s.META_TEST_EVENT_CODE), ga4: Boolean(s.GA4_MEASUREMENT_ID && s.GA4_API_SECRET), posthog: Boolean(s.POSTHOG_KEY) },
+    byDest: byDest.results,
+    byEvent: byEvent.results,
+    metaSample: total,
+    coverage,
+    failures: failures.results,
+  });
+});
+
+// Sends one test event to Meta (shows up under Events Manager → Test events).
+admin.post('/tracking/test-meta', async (c) => {
+  const s = c.get('settings');
+  if (!s.META_PIXEL_ID || !s.META_ACCESS_TOKEN) return c.json({ ok: false, error: 'Add the Meta Pixel ID and Conversions API token first' }, 400);
+  const body = await c.req.json<{ code?: string }>().catch(() => ({} as { code?: string }));
+  const code = (body.code || s.META_TEST_EVENT_CODE || '').trim();
+  if (!code) return c.json({ ok: false, error: 'Paste the test event code from Events Manager → Test events' }, 400);
+  const rt = runtimeFrom(c);
+  const g = geoFromRequest(c.req.raw);
+  const geo = { country: g.country, region: g.region, regionCode: g.regionCode, city: g.city, postalCode: g.postalCode };
+  const user_data = await metaUserData({ visitorId: 'test-' + crypto.randomUUID(), sessionId: null, leadId: null, ip: c.req.header('cf-connecting-ip') ?? null, userAgent: c.req.header('user-agent') ?? null, geo }, null);
+  const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${s.META_PIXEL_ID}/events?access_token=${encodeURIComponent(s.META_ACCESS_TOKEN)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ test_event_code: code, data: [{ event_name: 'PageView', event_time: Math.floor(Date.now() / 1000), event_id: 'test-' + Date.now(), action_source: 'website', event_source_url: rt.origin, user_data }] }),
+  });
+  const j = (await res.json().catch(() => ({}))) as { events_received?: number; fbtrace_id?: string; error?: { message?: string } };
+  return c.json(res.ok ? { ok: true, events_received: j.events_received, fbtrace_id: j.fbtrace_id } : { ok: false, error: j.error?.message ?? `HTTP ${res.status}` }, res.ok ? 200 : 400);
 });
 
 admin.post('/voice/provision', async (c) => {

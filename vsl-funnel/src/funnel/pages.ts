@@ -8,6 +8,7 @@ import { webCallsEnabled } from '../integrations/voice';
 import { formatCallTime } from '../integrations/email';
 import { flag } from '../settings';
 import { identityFromVisitor, track } from '../tracking/track';
+import { hashedMatchKeys } from '../tracking/match';
 import { type Lead, effectiveTier, getLead, parseAnswers } from './leads';
 import { bookingUrlFor } from './routing';
 
@@ -54,13 +55,21 @@ function faqBlock(): Html {
   return FAQS.map((f, i) => `<details class="faq" data-faq="${i}"><summary>${f.q}</summary><div class="faq-a"><p>${f.a}</p></div></details>`).join('');
 }
 
-function trackingHead(c: Context<AppEnv>, pageEventId: string): Html {
+async function trackingHead(c: Context<AppEnv>, pageEventId: string): Promise<Html> {
   const s = c.get('settings');
   const v = c.get('visitor');
   const parts: string[] = [];
   if (s.META_PIXEL_ID && v.marketingConsent) {
-    // Pixel shares event ids with the Conversions API so Meta deduplicates.
-    parts.push(`<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${scriptJson(s.META_PIXEL_ID)},{external_id:${scriptJson(v.visitorId)}});fbq('track','PageView',{},{eventID:${scriptJson(pageEventId)}});</script>`);
+    // Pixel shares event ids with the Conversions API so Meta deduplicates, and gets the same
+    // pre-hashed advanced-matching keys (incl. external_id) so both sides describe the same person.
+    const lead = v.leadId ? await getLead(c.env, v.leadId) : null;
+    const keys = await hashedMatchKeys(
+      lead ? { email: lead.email, phone: lead.phone, firstName: lead.first_name, lastName: lead.last_name, country: lead.country, city: lead.city } : null,
+      v.geo,
+      [v.visitorId],
+    );
+    const matching = { ...keys, external_id: Array.isArray(keys.external_id) ? keys.external_id[0] : keys.external_id };
+    parts.push(`<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${scriptJson(s.META_PIXEL_ID)},${scriptJson(matching)});fbq('track','PageView',{},{eventID:${scriptJson(pageEventId)}});</script>`);
   }
   if (s.POSTHOG_KEY && flag(s.POSTHOG_SESSION_REPLAY) && v.marketingConsent) {
     // Session replay + heatmaps only; events are sent server-side. Loaded through our own /ph proxy.
@@ -113,7 +122,7 @@ async function render(c: Context<AppEnv>, assetPath: string, view: View) {
   };
 
   const slots: Record<string, Html | null | undefined> = { site_name: esc(config.siteName), year: String(new Date().getFullYear()), disclaimer: DISCLAIMER, consent: LEGAL_CONSENT, ...view.slots };
-  const head = trackingHead(c, pageEventId);
+  const head = await trackingHead(c, pageEventId);
   const asked = url.searchParams.get('palette') ?? '';
   const palette = PALETTES.includes(asked) ? asked : PALETTES.includes(s.SITE_PALETTE) ? s.SITE_PALETTE : PALETTES[0];
 

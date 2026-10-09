@@ -185,6 +185,7 @@
     experiments: { title: 'A/B tests', sub: 'Headline experiment, judged on applications per visitor.', render: renderExperiments },
     leads: { title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads },
     emails: { title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmails },
+    tracking: { title: 'Server-side tracking', sub: 'Every conversion sent to Meta (Conversions API) and GA4 from the server: delivery, retries and match quality.', render: renderTracking },
     voice: { title: 'Voice agent', sub: 'Inbound AI calls: phone and in-browser. Transcripts, recordings and what callers asked for.', render: renderVoice },
     live: { title: 'Live', sub: 'Real-time activity across the funnel (refreshes every 5 seconds).', render: renderLive, noFilters: true },
     integrations: { title: 'Integrations', sub: 'Connect email, WhatsApp, calendars, analytics and ad platforms.', render: renderIntegrations, noFilters: true },
@@ -471,6 +472,34 @@
       (tags.length ? ' ' + tags.map(function (t) { return '<span class="pill">' + esc(t) + '</span>'; }).join(' ') : '') + '</summary>' +
       (v.summary ? '<p>' + esc(v.summary) + '</p>' : '') + (v.recording_url ? '<audio controls preload="none" src="' + esc(v.recording_url) + '" style="width:100%"></audio>' : '') +
       (v.transcript ? '<pre class="transcript" style="white-space:pre-wrap;max-height:320px;overflow:auto">' + esc(v.transcript) + '</pre>' : '') + '</details>';
+  }
+
+  function renderTracking() {
+    return api('tracking').then(function (d) {
+      var c = d.configured;
+      var sum = {};
+      d.byDest.forEach(function (r) { (sum[r.dest] = sum[r.dest] || { sent: 0, failed: 0, retrying: 0 })[r.status] = r.n; });
+      function destTile(key, label, on) {
+        var x = sum[key] || { sent: 0, failed: 0, retrying: 0 };
+        var total = x.sent + x.failed + x.retrying;
+        return tile(label, on ? n(x.sent) + ' delivered' : 'Not connected', on ? (total ? pct(x.sent / total) + ' success · ' + n(x.retrying) + ' retrying · ' + n(x.failed) + ' failed' : 'No events in this range yet') : 'Connect it under Integrations');
+      }
+      var LABELS = { em: 'Email', ph: 'Phone', fn: 'First name', ln: 'Last name', external_id: 'External ID', client_ip_address: 'IP address', client_user_agent: 'User agent', fbp: 'Browser ID (fbp)', fbc: 'Click ID (fbc)', ct: 'City', st: 'State', zp: 'Postcode', country: 'Country' };
+      view.innerHTML =
+        '<div class="grid g-3">' + destTile('meta', 'Meta Conversions API', c.meta) + destTile('ga4', 'GA4 Measurement Protocol', c.ga4) +
+        tile('Meta Pixel', c.pixel ? 'On' : 'Off', c.pixel ? 'Browser events share event IDs with the server, so Meta deduplicates' + (c.testMode ? ' · TEST MODE ON' : '') : 'Add the Pixel ID under Integrations') + '</div>' +
+        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Meta match keys</h2><p class="sub">Share of the last ' + n(d.metaSample) + ' Meta events that carried each customer-information key. More keys means a higher Event Match Quality.</p>' +
+        (d.metaSample ? barList(d.coverage.map(function (k) { return { name: LABELS[k.key] || k.key, value: Math.round(k.pct * 100) }; }), { max: 100, fmt: function (v) { return v + '%'; } }) : '<p class="muted">No Meta events sent yet.</p>') + '</div>' +
+        '<div class="card"><h2>Send a test event</h2><p class="sub">In Meta Events Manager open your Pixel, then Test events, and copy the test code. The event shows up there within seconds.</p><div class="row"><input class="input" data-code placeholder="TEST12345" style="flex:1"><button class="btn-sm" data-test-meta type="button">Send test</button></div><p class="muted" data-test-out style="margin-top:10px"></p></div></div>' +
+        '<div class="card" style="margin-top:14px"><h2>By event</h2>' + table([{ label: 'Destination', key: 'dest' }, { label: 'Event', key: 'event_name' }, { label: 'Sent', key: 'sent', num: true, fmt: n }, { label: 'Retrying', key: 'retrying', num: true, fmt: n }, { label: 'Failed', key: 'failed', num: true, fmt: n }, { label: 'Last', html: function (r) { return esc(when(r.last_at)); } }], d.byEvent) + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Problems</h2><p class="sub">Failed sends are retried automatically with back-off (1 min, 4 min, 16 min, 1 h, then every few hours). Meta only accepts events up to 7 days old.</p>' +
+        (d.failures.length ? table([{ label: 'When', html: function (r) { return esc(when(r.ts)); } }, { label: 'Destination', key: 'dest' }, { label: 'Event', key: 'event_name' }, { label: 'Status', key: 'status' }, { label: 'Tries', key: 'attempts', num: true }, { label: 'Error', html: function (r) { return esc(((r.http_status ? r.http_status + ' ' : '') + (r.error || '')).slice(0, 160)); } }], d.failures) : '<p class="muted">Nothing failing.</p>') + '</div>';
+      view.querySelector('[data-test-meta]').onclick = function () {
+        var out = view.querySelector('[data-test-out]');
+        out.textContent = 'Sending…';
+        send('POST', 'tracking/test-meta', { code: view.querySelector('[data-code]').value }).then(function (r) { out.textContent = r.ok ? 'Meta received ' + r.events_received + ' event (trace ' + r.fbtrace_id + '). Check Test events.' : (r.error || 'Failed'); });
+      };
+    });
   }
 
   function renderVoice() {
