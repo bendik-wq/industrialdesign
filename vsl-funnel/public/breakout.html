@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/assets/site.css">
   <title>Part 2</title>
   <script defer src="/assets/f.js"></script>
+  <script defer src="/assets/voice.js"></script>
   <script defer src="/assets/vsl.js"></script>
 </head>
 <body>
@@ -55,6 +56,23 @@
       </div>
     </section>
 
+    <section class="block voice-block" data-if="voice">
+      <div class="wrap">
+        <div class="voice-card">
+          <div>
+            <span class="eyebrow">Questions first?</span>
+            <h2 class="section-title">Talk to Josh’s <em>AI assistant</em> now</h2>
+            <p class="section-sub">Ask about the program, the financing or the call. It knows your application, and it can email you the booking link.</p>
+            <p class="voice-disclosure" data-slot="voice_disclosure"></p>
+          </div>
+          <div class="voice-actions">
+            <button class="btn" type="button" data-voice-start data-if="voice_web">Start the call</button>
+            <p class="voice-status" data-voice-status aria-live="polite"></p>
+            <a class="voice-phone" data-if="voice_phone" data-href="voice_tel">or call <strong data-slot="voice_phone"></strong></a>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="block" id="faq">
       <div class="wrap narrow">
         <div class="section-head"><h2 class="section-title">You’ve got questions.<br><em>We’ve got answers.</em></h2></div>

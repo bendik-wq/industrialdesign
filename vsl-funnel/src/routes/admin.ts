@@ -8,6 +8,7 @@ import { emailConfigured, sendViaResend } from '../integrations/email';
 import { SEQUENCES } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
+import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
 import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
@@ -77,12 +78,13 @@ admin.get('/leads/:id', async (c) => {
   if (!lead) return c.json({ error: 'not found' }, 404);
   const db = c.env.DB;
   const vid = lead.visitor_id ?? '';
-  const [sessions, events, views, emails, whatsapp] = await Promise.all([
+  const [sessions, events, views, emails, whatsapp, voice] = await Promise.all([
     db.prepare(`SELECT * FROM sessions WHERE visitor_id IN (SELECT id FROM visitors WHERE lead_id = ? UNION SELECT ?) ORDER BY started_at DESC LIMIT 100`).bind(lead.id, vid).all(),
     db.prepare(`SELECT id, ts, name, path, source, props, session_id FROM events WHERE lead_id = ? OR visitor_id IN (SELECT id FROM visitors WHERE lead_id = ?) ORDER BY ts DESC LIMIT 1000`).bind(lead.id, lead.id).all(),
     db.prepare(`SELECT id, video_id, started_at, duration, max_position, watched_seconds, buckets, unmuted, completed, cta_revealed, cta_clicked FROM vsl_views WHERE lead_id = ? OR visitor_id = ? ORDER BY started_at DESC`).bind(lead.id, vid).all(),
     db.prepare(`SELECT id, sequence, template, subject, status, send_at, sent_at, opened_at, open_count, clicked_at, click_count, error FROM emails WHERE lead_id = ? ORDER BY send_at`).bind(lead.id).all(),
     db.prepare(`SELECT * FROM whatsapp_messages WHERE lead_id = ? ORDER BY ts DESC LIMIT 100`).bind(lead.id).all(),
+    db.prepare(`SELECT * FROM voice_calls WHERE lead_id = ? ORDER BY created_at DESC LIMIT 50`).bind(lead.id).all(),
   ]);
   const answers = parseAnswers(lead);
   const labelled = APPLICATION.filter((q) => q.type !== 'contact').map((q) => {
@@ -100,6 +102,7 @@ admin.get('/leads/:id', async (c) => {
     vsl: views.results,
     emails: emails.results,
     whatsapp: whatsapp.results,
+    voice: voice.results,
   });
 });
 
@@ -160,14 +163,45 @@ admin.get('/integrations', async (c) => {
       ga4: { label: 'GA4', connected: Boolean(s.GA4_MEASUREMENT_ID && s.GA4_API_SECRET), detail: s.GA4_MEASUREMENT_ID || 'Not connected' },
       slack: { label: 'Slack', connected: Boolean(s.SLACK_WEBHOOK_URL), detail: s.SLACK_WEBHOOK_URL ? 'Hot-lead + booking alerts on' : 'Not connected' },
       crm: { label: 'CRM webhook', connected: Boolean(s.LEAD_WEBHOOK_URL), detail: s.LEAD_WEBHOOK_URL ? 'Lead lifecycle events forwarded' : 'Not connected' },
+      voice: { label: 'Voice agent', connected: voiceConfigured(s), detail: voiceConfigured(s) ? [s.VAPI_ASSISTANT_ID ? 'Assistant ready' : 'Assistant answers inline (not saved in Vapi yet)', s.VOICE_PHONE_NUMBER && `Inbound line ${s.VOICE_PHONE_NUMBER}`, webCallsEnabled(s) ? 'Browser calls on' : 'Browser calls off'].filter(Boolean).join(' · ') : 'Inbound only. Add your Vapi keys and a webhook secret to switch it on.' },
       video: { label: 'Video', connected: Boolean(s.VSL_MAIN_SRC), detail: s.VSL_MAIN_SRC ? 'Main VSL connected' : 'No VSL video yet — the page shows a placeholder.' },
     },
     webhooks: {
       calendly: `${rt.origin}/hooks/calendly`,
       booking: `${rt.origin}/hooks/booking?secret=<BOOKING_WEBHOOK_SECRET>`,
       whatsapp: `${rt.origin}/hooks/whatsapp`,
+      voice: `${rt.origin}/hooks/voice`,
     },
   });
+});
+
+admin.post('/voice/provision', async (c) => {
+  const rt = runtimeFrom(c);
+  try {
+    const { id, created } = await provisionAssistant(rt);
+    await saveSettings(c.env, { VAPI_ASSISTANT_ID: id });
+    return c.json({ ok: true, id, created });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 400);
+  }
+});
+
+// The assistant definition, for pasting into Vapi by hand if you prefer.
+admin.get('/voice/assistant.json', (c) => c.json(buildAssistant(runtimeFrom(c))));
+
+admin.get('/voice', async (c) => {
+  const f = filters(c);
+  const db = c.env.DB;
+  const [totals, calls] = await Promise.all([
+    db.prepare(`SELECT COUNT(*) AS calls, SUM(kind = 'web') AS web, SUM(kind = 'phone') AS phone, ROUND(AVG(duration_s)) AS avg_s, ROUND(SUM(cost), 2) AS cost,
+                       SUM(json_extract(structured, '$.wants_strategy_call') = 1) AS wants_call, SUM(json_extract(structured, '$.wants_human_callback') = 1) AS callbacks,
+                       SUM(json_extract(structured, '$.do_not_contact') = 1) AS opt_outs
+                  FROM voice_calls WHERE created_at BETWEEN ? AND ?`).bind(f.from, f.to).first(),
+    db.prepare(`SELECT v.id, v.lead_id, v.kind, v.from_number, v.status, v.created_at, v.duration_s, v.ended_reason, v.cost, v.summary, v.recording_url, v.structured, v.success,
+                       l.first_name, l.last_name, COALESCE(l.tier_override, l.tier) AS tier
+                  FROM voice_calls v LEFT JOIN leads l ON l.id = v.lead_id WHERE v.created_at BETWEEN ? AND ? ORDER BY v.created_at DESC LIMIT 200`).bind(f.from, f.to).all(),
+  ]);
+  return c.json({ totals, calls: calls.results });
 });
 
 admin.put('/integrations', async (c) => {

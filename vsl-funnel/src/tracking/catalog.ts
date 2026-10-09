@@ -46,7 +46,12 @@ export type ServerEvent =
   | 'vsl_95'
   | 'vsl_complete'
   | 'vsl_cta_reveal'
-  | 'vsl_cta_click';
+  | 'vsl_cta_click'
+  | 'voice_web_start'
+  | 'voice_call_started'
+  | 'voice_call_completed'
+  | 'voice_link_sent'
+  | 'voice_opt_out';
 
 export type EventSource = 'server' | 'client' | 'webhook' | 'email' | 'cron' | 'admin';
 

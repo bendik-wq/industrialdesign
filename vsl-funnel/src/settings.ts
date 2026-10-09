@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Analytics' | 'Ads' | 'Alerts' | 'Security';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -43,6 +43,15 @@ export const SETTINGS = [
   { key: 'WHATSAPP_RESOURCES_TEMPLATE', label: 'Resources template name', group: 'WhatsApp', placeholder: 'free_resources' },
   { key: 'WHATSAPP_VERIFY_TOKEN', label: 'Webhook verify token', group: 'WhatsApp', secret: true },
   { key: 'WHATSAPP_APP_SECRET', label: 'Meta app secret (webhook signatures)', group: 'WhatsApp', secret: true },
+
+  { key: 'VAPI_API_KEY', label: 'Vapi private API key', group: 'Voice', secret: true, help: 'vapi.ai → API Keys. Used to create/update the assistant from this dashboard.' },
+  { key: 'VAPI_PUBLIC_KEY', label: 'Vapi public key', group: 'Voice', help: 'Lets applicants talk to the assistant in their browser. Restrict it to your domain in Vapi.' },
+  { key: 'VAPI_ASSISTANT_ID', label: 'Vapi assistant ID', group: 'Voice', help: 'Filled in automatically when you press “Create / update assistant”.' },
+  { key: 'VOICE_WEBHOOK_SECRET', label: 'Voice webhook secret', group: 'Voice', secret: true, help: 'Any long random string. Vapi sends it as x-vapi-secret on every webhook.' },
+  { key: 'VOICE_PHONE_NUMBER', label: 'Inbound phone number', group: 'Voice', placeholder: '+61 2 0000 0000', help: 'Your Vapi number. Shown as “call us” on /book and /breakout. Point its Server URL at /hooks/voice.' },
+  { key: 'VOICE_MODEL', label: 'Assistant LLM (provider:model)', group: 'Voice', placeholder: 'openai:gpt-4o' },
+  { key: 'VOICE_VOICE', label: 'Assistant voice (provider:voiceId)', group: 'Voice', placeholder: 'vapi:Elliot' },
+  { key: 'VOICE_WEB_ENABLED', label: 'Show “talk now” browser calls', group: 'Voice', placeholder: 'true' },
 
   { key: 'POSTHOG_KEY', label: 'PostHog project API key', group: 'Analytics', secret: true, placeholder: 'phc_…', help: 'Every event is mirrored to PostHog server-side.' },
   { key: 'POSTHOG_HOST', label: 'PostHog host', group: 'Analytics', placeholder: 'https://us.i.posthog.com' },

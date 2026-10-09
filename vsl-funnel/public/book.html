@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/assets/site.css">
   <title>Book your call</title>
   <script defer src="/assets/f.js"></script>
+  <script defer src="/assets/voice.js"></script>
   <script defer src="/assets/book.js"></script>
 </head>
 <body>
@@ -28,12 +29,29 @@
       <div class="cal-wrap" data-calendar><div class="analyzing"><div class="spinner"></div>Loading the calendar…</div></div>
       <p class="consent-note">Your reference: <strong data-slot="ref_code"></strong></p>
     </div>
+    <section class="block voice-block" data-if="voice">
+      <div class="wrap">
+        <div class="voice-card">
+          <div>
+            <span class="eyebrow">Questions first?</span>
+            <h2 class="section-title">Talk to Josh’s <em>AI assistant</em> now</h2>
+            <p class="section-sub">Ask about the program, the financing or the call. It knows your application, and it can email you the booking link.</p>
+            <p class="voice-disclosure" data-slot="voice_disclosure"></p>
+          </div>
+          <div class="voice-actions">
+            <button class="btn" type="button" data-voice-start data-if="voice_web">Start the call</button>
+            <p class="voice-status" data-voice-status aria-live="polite"></p>
+            <a class="voice-phone" data-if="voice_phone" data-href="voice_tel">or call <strong data-slot="voice_phone"></strong></a>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="block">
       <div class="wrap">
         <div class="section-head"><h2 class="section-title">What happens <em>next</em></h2></div>
         <ol class="next-steps">
           <li><strong>Pick a time</strong><br>Choose a slot that suits you. Calls run on Zoom.</li>
-          <li><strong>Watch the pre-call video</strong><br>It makes the call twice as useful.</li>
+          <li><strong>Watch the pre-call video</strong><br>It makes the call far more useful.</li>
           <li><strong>Get your acquisition plan</strong><br>We map out what your first deal could look like.</li>
         </ol>
       </div>

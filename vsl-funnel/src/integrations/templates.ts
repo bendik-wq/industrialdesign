@@ -38,7 +38,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `Hey ${c.name},`,
       'Looks like you started your application but didn’t get to the end. No stress, it saved where you left off.',
-      'It takes about 90 seconds to finish, and it’s how you get a strategy call with my team, where we map out what your first acquisition could do for your business.',
+      'It takes about 90 seconds to finish, and it’s how you get a strategy call with my team, where we map out your first off-market acquisition: the target, the structure and the financing.',
     ],
     cta: { label: 'Finish my application →', href: c.link('/apply') },
     ps: 'If something on the form didn’t make sense, just reply to this email and tell me.',
@@ -49,8 +49,8 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name}, quick one.`,
       'When owners stop halfway through the application, it’s usually one of three things:',
-      '• They think an acquisition means draining their cash.<br>• They think it’ll pull them away from running the business.<br>• They think their industry is different.',
-      'All three are exactly why the 3C model exists. Most of the deals we structure are funded by the seller and the bank, integration is planned before you sign, and the model works across most service, trade and B2B industries.',
+      '• They think buying a business means putting in their own cash.<br>• They think they don’t have the time to run a deal.<br>• They think their industry is different.',
+      'Here’s the straight answer. The deals are structured with seller finance and senior debt, and over-financed, so the stack covers more than the purchase price and none of your own cash goes in. You run the deal yourself, with me and my team beside you at every step. And the model depends on cash flow, not industry.',
       'Your answers are still saved.',
     ],
     cta: { label: 'Pick up where I left off →', href: c.link('/apply') },
@@ -73,7 +73,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Pick a time that suits you.',
     body: [
       `${c.name}, your application stood out.`,
-      'Your business is exactly the size where acquisition becomes the fastest way to grow. The next step is a strategy call where we look at your numbers and map out what your first acquisition could look like: the kind of target, the deal structure and what it could do to your valuation.',
+      'Your business is the right size to buy another one. The next step is a strategy call where we look at your numbers and map out your first off-market acquisition: the kind of target, the deal structure and how the financing stacks up.',
       'Calls are limited each week because they’re run by people who actually do deals, so grab a time now.',
     ],
     cta: { label: 'Book my strategy call →', href: c.link('/book') },
@@ -85,7 +85,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `Hey ${c.name},`,
       'You were approved for a strategy call but haven’t picked a time yet.',
-      'The question isn’t whether a business your size can grow by acquisition. Owners do it every month. The real question is how fast you get there, and that’s what this call is for.',
+      'The question isn’t whether it can be done. I’ve bought two businesses with 100% seller finance. The real question is how fast you get to a signed LOI, and that’s what this call is for.',
     ],
     cta: { label: 'Choose my time →', href: c.link('/book') },
   }),
@@ -117,8 +117,9 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'A real add-on acquisition, line by line.',
     body: [
       `Hey ${c.name}, thanks for applying.`,
-      'Before we go any further, watch part 2. It’s the breakout session where I walk through a real add-on acquisition line by line: what the seller carries, what the bank funds, and why it doesn’t need to come out of your operating cash.',
-      'It’s the most important thing to understand before you look at a single target.',
+      'I’ve bought two businesses with 100% seller finance through JC Health Group. Part 2 shows you how that kind of deal is built.',
+      'I walk through a real add-on acquisition line by line: what the seller carries, what the bank funds, and how the stack is over-financed so none of it comes out of your own cash.',
+      'Understand this before you contact a single seller.',
     ],
     cta: { label: 'Watch part 2 →', href: c.link('/breakout') },
     ps: waLine(c, 'Add me on WhatsApp'),
@@ -130,7 +131,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name},`,
       'There are two ways to grow a business past where it is now. The slow path is organic: more marketing, more hires, more of your hours, one customer at a time.',
       'The fast path is buying the businesses next to yours: their customers, staff and cash flow arrive on day one.',
-      'That’s what the 3C model is for. Capabilities (your business already makes you a credible buyer), Capital (structures sellers and lenders say yes to) and Closing (sourcing, negotiating and integrating the deal).',
+      'That’s what the 3C model is for. Capabilities (your business already makes you a credible buyer), Capital (seller finance and senior debt, over-financed, so none of your cash goes in) and Closing (you run the outreach and negotiation, with us in the room).',
     ],
     cta: { label: 'See how it works →', href: c.link('/breakout') },
   }),
@@ -139,8 +140,8 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Most owners think their industry is different.',
     body: [
       `Hey ${c.name},`,
-      'I suspect the reason you haven’t booked a call yet is one of these: you think it’ll take too much cash, you think it’ll distract you from the business, or you think your industry is different.',
-      'That’s okay. Almost every owner we work with thought the same. It works anyway because the model doesn’t depend on your industry. It depends on structure, credibility and deal flow, which are all things we build with you.',
+      'I suspect the reason you haven’t booked a call yet is one of these: you think it’ll take too much cash, you think it’ll eat your time, or you think your industry is different.',
+      'Here’s the straight version. The deals are over-financed, so your cash stays where it is. It takes a few focused hours a week: you make the calls and meet the sellers, and we do the heavy thinking with you. And the model depends on cash flow and structure, not industry.',
       'I answered the most common questions here:',
     ],
     cta: { label: 'Read the FAQs →', href: c.link('/breakout#faq') },
@@ -152,7 +153,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name},`,
       'If part 2 made sense and you want to see what this could look like for your business, grab a time with one of our M&A advisors.',
-      'We’ll look at your numbers, the kind of targets that would fit, and what a realistic first deal looks like. If we can help, we’ll tell you how. If we can’t, we’ll tell you that too.',
+      'We’ll look at your numbers, the kind of off-market targets that would fit, and what a realistic first deal looks like. If we can help, we’ll tell you how. If we can’t, we’ll tell you that too.',
     ],
     cta: { label: 'Book a call →', href: bookOrBreakout(c) },
   }),
@@ -164,7 +165,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `Hey ${c.name}, thanks for applying.`,
       'Based on your answers, the best next step is getting the business acquisition-ready first. So here’s the toolkit:',
-      '• The $1M+ Acquisition Readiness Checklist<br>• A vendor-finance deal structure template<br>• Off-market seller outreach scripts',
+      '• The $1M+ Acquisition Readiness Checklist<br>• A seller-finance deal structure template<br>• Off-market seller outreach scripts',
     ],
     cta: { label: 'Get the toolkit →', href: c.link('/resources#kit') },
     ps: waLine(c, 'Want the resources on WhatsApp? Message me here'),
@@ -184,7 +185,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `Hey ${c.name},`,
       'Most owners try to grow in one of two ways: grind out organic growth, or raise money and give away equity.',
-      'There’s a third way: buy the businesses next to yours, with the seller financing part of the deal from the business’s own cash flow.',
+      'There’s a third way: buy the businesses next to yours, with the seller and the bank financing the deal, so none of your own cash goes in.',
       'When your business is ready for it, the door’s open.',
     ],
     cta: { label: 'Watch the breakdown →', href: c.link('/breakout') },
@@ -196,7 +197,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: c.callTime ? `See you ${c.callTime}.` : 'Your call is confirmed.',
     body: [
       `${c.name}, you’re confirmed${c.callTime ? ` for <strong>${c.callTime}</strong>` : ''}.`,
-      'To get the most out of the call, watch this short video first. It covers how the call works, what numbers to have ready and how to know if acquisition growth fits your business. Owners who watch it get twice as much out of the call.',
+      'To get the most out of the call, watch this short video first. It covers how the call works, what numbers to have ready and how to know if acquisition growth fits your business. Owners who watch it get far more out of the call.',
     ],
     cta: { label: 'Watch before my call →', href: c.link('/breakout') },
     ps: waLine(c, 'Add me on WhatsApp so you get your reminder'),
@@ -218,6 +219,20 @@ export const TEMPLATES: Record<string, Template> = {
       'Join from a quiet spot on a laptop, and if a business partner is part of the decision, bring them along. The link is in your calendar invite.',
     ],
     ps: waLine(c, 'Running late? Message me on WhatsApp'),
+  }),
+
+  // ── Voice assistant: link sent during a call ───────────────────────
+  voice_link: (c) => ({
+    subject: c.bookingUrl && c.lead.app_completed_at ? 'The link to book your strategy call' : 'The link to your application',
+    preheader: 'As promised on the phone.',
+    body: [
+      `Hey ${c.name},`,
+      c.bookingUrl && c.lead.app_completed_at
+        ? 'As promised on the call, here’s the link to pick a time for your strategy call with my team. We’ll map out your first off-market acquisition: the target, the structure and the financing.'
+        : 'As promised on the call, here’s the link to the application. It takes two minutes, and if you’re a fit you’ll pick a time for a strategy call with my team straight after.',
+    ],
+    cta: c.bookingUrl && c.lead.app_completed_at ? { label: 'Pick a time →', href: c.link('/book') } : { label: 'Start my application →', href: c.link('/apply') },
+    ps: waLine(c),
   }),
 
   // Sent from the dashboard's Integrations tab to verify the email connection.

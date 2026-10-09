@@ -15,25 +15,29 @@ why the old way fails → the system → how it works → proof → offer → CT
 ## VSL #1 — main (≈ 12 minutes)
 
 ### 0:00 – 0:40 · Hook
-> If your business does a million dollars or more a year, the fastest way to double it probably isn't more marketing, more staff or more hours.
+> If your business does a million dollars or more a year, you can have a signed LOI on an off-market acquisition within 90 days.
 >
-> It's buying the business next to yours.
+> No money down. Over-financed — the deal brings in more money than the purchase price, so none of your own cash goes in.
 >
-> In the next few minutes I'll show you exactly how owners like you are acquiring competitors and add-ons — funded mostly by the deal itself, not by their own cash — and how that can lift what your business is worth when you sell.
+> And you won't hand it off to someone else. You'll do it with us. In the next few minutes I'll show you how.
 
-▣ *Grow your business by acquisition*
+▣ *Signed LOI in 90 days · No money down*
 
 ### 0:40 – 1:30 · Who this is for
 > This is for you if you own a business doing $1M+, it's profitable, and growth has started to feel like pushing a boulder uphill.
 >
-> It's not for start-ups, and it's not for anyone looking for passive income. If that's you, close this video — no hard feelings.
+> It's not for start-ups, and it's not for anyone looking for passive income. You'll be making the calls and sitting across from sellers. If you want someone to do it all for you, close this video — no hard feelings.
 
 ▣ *For owners of $1M+ businesses*
 
 ### 1:30 – 2:30 · Credibility
-> I'm Josh Li. [One or two sentences on your own acquisitions — what you bought, in which industry, how it was funded. Real, specific, verifiable.]
+> I'm Josh Li. I'm the founder of JC Health Group, and I've bought two businesses with 100% seller finance.
 >
-> Everything I'm about to show you is what we do on our own deals and for the owners we work with.
+> [Josh fills in: what the two businesses were, roughly when, and how each deal was structured. Real, specific, verifiable — nothing you can't show on paper.]
+>
+> Everything I'm about to show you is how I did those deals. Now I do them alongside owners like you.
+
+▣ *Two acquisitions · 100% seller finance*
 
 ### 2:30 – 4:00 · Why growth has stalled (the two slow paths)
 > There are two ways most owners try to grow from here.
@@ -47,49 +51,61 @@ why the old way fails → the system → how it works → proof → offer → CT
 ### 4:00 – 5:30 · The third way
 > There's a third way most owners never seriously look at: buy the businesses around you.
 >
-> Right now thousands of owners in your industry are approaching retirement with no succession plan. Most of those businesses will never be listed for sale. They'll be sold quietly, to whoever the owner trusts.
+> Right now a lot of owners in your industry are approaching retirement with no succession plan. Most of those businesses will never be listed for sale. They'll be sold quietly, to whoever the owner trusts.
 >
-> When you buy one, you get its customers, its staff and its cash flow on day one. Not one sale at a time — all at once.
+> That's off-market. No broker, no bidding war. Just you and an owner who wants out on good terms.
+>
+> When you buy one, you get its customers, its staff and its cash flow on day one.
 
 ▣ *Off-market **deal flow*** — on screen at **4:30**
 
 ### 5:30 – 7:00 · How the deal gets funded (the mechanism)
-> Here's the part that surprises people. In most of the deals we structure, the majority of the purchase price is funded by two things: vendor finance — where the seller is paid over time out of the business's own cash flow — and senior debt.
+> Here's how you buy a business without your own money. Two pieces.
 >
-> That means the acquisition largely pays for itself, and your operating cash isn't what the deal depends on.
+> One: seller finance. The seller agrees to be paid part of the price over time, out of the business's own cash flow. I've done two deals where the seller financed 100% of it.
 >
-> And because larger businesses usually sell for a higher multiple of earnings than small ones, combining businesses can grow what your company is worth faster than organic growth ever could.
+> Two: senior debt. A bank lends against the business's earnings for the rest.
+>
+> Over-financed means we structure those two pieces to cover more than the purchase price. The extra pays for closing costs and working capital. You put in none of your own cash.
+>
+> It only works if the business's cash flow covers the repayments with room to spare. That's what we check before you sign anything.
 
-▣ ***Vendor-financed** deals* — on screen at **5:45**
+▣ ***Seller finance + bank = over-financed*** — on screen at **5:45**
 
 ### 7:00 – 9:00 · The offer (CTA unlocks on the page here)
-> So here's what we do.
+> So here's how we work together. It's a 90-day program, and it's done with you — not for you.
 >
-> We run your entire acquisition system under one roof. We audit your business to find where an acquisition adds the most value. We source off-market targets in your industry. We structure and fund the deal. And once it closes, we run a 100-day integration plan with you, so the new business adds profit without pulling you back into the weeds.
+> Weeks 1 and 2: we audit your business and build your target profile — the industry, size and kind of owner you're looking for.
 >
-> You get your own M&A advisor on every deal — from first conversation to integration.
+> Weeks 3 to 8: you run off-market outreach to those owners, using our scripts. We coach you every week and help you work out which conversations are worth pursuing.
+>
+> Weeks 9 to 13: you negotiate, and we're in the room with you for the key seller conversations. We review every term sheet, introduce you to lenders and line up the financing. Then you sign the LOI.
+>
+> You make the calls. You meet the sellers. You sign. We give you the system and sit beside you for every step.
 
-▣ *Audit → Source → Structure → Close*
-▣ *Your **100-day** integration plan* — on screen at **8:20**
+▣ *Audit → Outreach → Negotiate → Sign the LOI*
+▣ *You run it. **We're in the room.*** — on screen at **8:20**
 
 ### 9:00 – 10:00 · Proof
-> [Two or three short, real client stories: business type, what they acquired, the structure, the result. If you don't have them yet, cut this section — don't invent it.]
+> [Josh's two seller-financed acquisitions in more detail: business type, purchase price, how the seller finance was structured, what happened after. Add client stories only once they're real and you have permission. Don't invent any of it.]
 
 ### 10:00 – 11:00 · Objections
-> "I don't have time." — That's exactly why we run the process. Your job is decisions, not paperwork.
+> "I don't have time." — Fair. This isn't hands-off. It takes a few focused hours a week: outreach, seller calls, a weekly session with us. We do the heavy thinking with you — the structure, the numbers, the terms — so your hours go into the conversations only you can have.
 >
 > "My industry is different." — The model depends on cash flow and structure, not industry. We'll tell you on the call if yours doesn't fit.
 >
-> "I'll need a lot of cash." — Most of the purchase price comes from the seller and the bank. We'll show you the numbers for your situation.
+> "I'll need a lot of cash." — No. The deal is funded by the seller and the bank, and over-financed, so none of your own cash goes in. We'll show you the numbers for your situation.
 
 ### 11:00 – 12:00 · Close and CTA
 > Every year you wait is another year of growing one customer at a time — while someone else buys the businesses in your market.
 >
-> Click the button below this video. Answer a few quick questions about your business. If it's a fit, you'll pick a time for a free strategy call with my team, and we'll map out what your first acquisition could look like.
+> Click the button below this video. Answer a few quick questions about your business. If it's a fit, you'll pick a time for a free strategy call with my team, and we'll map out your first off-market acquisition.
 >
 > If it's not a fit, we'll tell you — and point you to the free resources instead.
 
 ▣ *See if you qualify ↓*
+
+**Compliance note.** "Signed LOI in 90 days", "no money down" and "over-financed" are claims. Say them as promises only if the program reliably delivers them for owners who do the work. If it doesn't yet, frame them as the target ("the goal is a signed LOI within 90 days") and never as a guarantee. A signed LOI is not a closed deal — don't let the script blur the two.
 
 ---
 
@@ -99,11 +115,11 @@ Shown to B-tier applicants on `/breakout`. CTA (book a call) reveals at **3:00**
 
 1. **0:00 — Open.** "You applied, so let's go one level deeper: one real add-on acquisition, line by line."
 2. **0:30 — The deal.** Purchase price, earnings, the multiple paid. ▣ *[Real deal numbers]*
-3. **1:30 — The funding stack.** How much the seller carried (vendor finance), how much the bank lent, what the buyer put in. ▣ *Seller · Bank · Buyer*
+3. **1:30 — The funding stack.** How much the seller carried (seller finance), how much the bank lent, and how the total exceeded the purchase price — the buyer put in nothing. ▣ *Seller · Bank · $0 from you*
 4. **2:30 — Debt coverage.** Show the acquired business's cash flow covering repayments with room to spare.
 5. **3:00 — The value story.** Combined earnings × a higher multiple = what the group could be worth at exit. **(Book button appears.)**
-6. **4:00 — The failure timeline.** Find a deal → offer accepted → bank says no because the structure was never fundable → months wasted. "That's the part we prevent."
-7. **5:00 — CTA.** "If this made sense, book a call and we'll run this exercise on your business."
+6. **4:00 — The failure timeline.** Find a deal → offer accepted → bank says no because the structure was never fundable → months wasted. "That's why we review every term sheet with you before you sign."
+7. **5:00 — CTA.** "If this made sense, book a call and we'll run this exercise on your business, together."
 
 ---
 
@@ -115,4 +131,4 @@ Shown on `/breakout` after someone books.
 2. Who'll be on it, how long it takes, that it's a working session.
 3. What to have ready: last year's revenue and profit (rough is fine), the businesses in your market you'd most like to own, your exit timeline.
 4. Bring any business partner who's part of the decision.
-5. "If it's a fit, we'll show you how we'd work together. If it isn't, we'll tell you."
+5. "If it's a fit, we'll show you how the 90 days work — what you do, and what we do with you. If it isn't, we'll tell you."

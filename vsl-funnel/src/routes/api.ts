@@ -4,6 +4,9 @@ import { type AppEnv, runtimeFrom } from '../app';
 import { ApplicationError, saveAnswer, saveContact, submitApplication } from '../funnel/application';
 import { getLead } from '../funnel/leads';
 import { markBooked } from '../integrations/booking';
+import { webCallConfig } from '../integrations/voice';
+import { VOICE_AGENT } from '../config';
+import { identityFromVisitor, track } from '../tracking/track';
 import { COOKIE, resolveVisitor } from '../lib/identity';
 import { type CollectPayload, collect } from '../tracking/collect';
 import { parseHeartbeat, recordHeartbeat } from '../tracking/vsl';
@@ -109,4 +112,20 @@ api.post('/booking/client', async (c) => {
   const ref = typeof body.event_uri === 'string' ? body.event_uri.slice(0, 300) : null;
   await markBooked(runtimeFrom(c), lead, { callAt: null, provider: `${String(body.provider ?? 'calendly').slice(0, 20)}-client`, ref, verified: false });
   return c.json({ ok: true, next: '/breakout' });
+});
+
+// "Talk now" browser call: only for applicants, rate-limited, never for people who opted out.
+api.post('/voice/start', async (c) => {
+  const v = c.get('visitor');
+  const lead = v.leadId ? await getLead(c.env, v.leadId) : null;
+  if (!lead) return c.json({ error: 'Apply first, then you can talk to the assistant.' }, 403);
+  if (lead.do_not_call_at) return c.json({ error: 'You asked us not to call you, so voice calls are switched off for you. Message us on WhatsApp or email instead.' }, 403);
+  const rt = runtimeFrom(c);
+  const recent = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM events WHERE lead_id = ? AND name = 'voice_web_start' AND ts > ?").bind(lead.id, Date.now() - 86_400_000).first<{ n: number }>();
+  if ((recent?.n ?? 0) >= VOICE_AGENT.webCallsPerDay) return c.json({ error: 'You’ve reached today’s limit for assistant calls. Book a time with the team instead.' }, 429);
+  const cfg = await webCallConfig(rt, lead);
+  if (!cfg) return c.json({ error: 'Voice calls are not available right now.' }, 503);
+  // The click on "Start the call" next to the AI + recording disclosure is the consent; keep a record of what they saw.
+  await track(rt, identityFromVisitor(v, null, lead.id), { name: 'voice_web_start', source: 'server', props: { disclosure: VOICE_AGENT.disclosureVersion, text: VOICE_AGENT.webDisclosure } });
+  return c.json({ ok: true, ...cfg });
 });

@@ -1,9 +1,10 @@
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
-  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, type VideoDef, VIDEOS,
+  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, type VideoDef, VIDEOS, VOICE_AGENT,
 } from '../config';
 import { whatsappLink } from '../integrations/whatsapp';
+import { webCallsEnabled } from '../integrations/voice';
 import { formatCallTime } from '../integrations/email';
 import { flag } from '../settings';
 import { identityFromVisitor, track } from '../tracking/track';
@@ -179,7 +180,7 @@ export async function landingPage(c: Context<AppEnv>) {
   const variant = HEADLINE_EXPERIMENT.variants.find((x) => x.id === v.variant) ?? HEADLINE_EXPERIMENT.variants[0];
   const by = LANDING.byline;
   return render(c, '/index.html', {
-    title: 'Buy your competitor',
+    title: 'Signed LOI in 90 days',
     slots: {
       ...applySection.slots,
       pre_headline: variant.preHeadline,
@@ -192,6 +193,7 @@ export async function landingPage(c: Context<AppEnv>) {
     },
     lists: {
       ...applySection.lists,
+      proof_points: LANDING.proof,
       testimonials: LANDING.testimonials.map((t) => `<blockquote>“${t.quote}”</blockquote><cite><strong>${t.name}</strong> · ${t.detail}</cite>`),
     },
     blocks: { faqs: faqBlock() },
@@ -210,6 +212,19 @@ export async function applyPage(c: Context<AppEnv>) {
   return render(c, '/apply.html', { title: 'See if you qualify', ...applySection, config: applicationConfig(c, lead) });
 }
 
+/** The "talk to the AI assistant" block on /book and /breakout (inbound only). */
+function voiceView(c: Context<AppEnv>, lead: Lead | null) {
+  const s = c.get('settings');
+  const web = Boolean(lead && !lead.do_not_call_at && webCallsEnabled(s));
+  const phone = s.VOICE_PHONE_NUMBER.trim();
+  const on = Boolean(lead && !lead.do_not_call_at && (web || phone));
+  return {
+    slots: { voice_disclosure: esc(VOICE_AGENT.webDisclosure), voice_phone: esc(phone) },
+    show: { voice: on, voice_web: web, voice_phone: Boolean(phone) },
+    hrefs: { voice_tel: phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : null },
+  };
+}
+
 export async function bookPage(c: Context<AppEnv>) {
   const lead = await currentLead(c);
   if (!lead?.app_completed_at) return c.redirect('/apply', 302);
@@ -219,9 +234,13 @@ export async function bookPage(c: Context<AppEnv>) {
   if (!bookingUrl || tier === 'C') return c.redirect(tier === 'C' ? '/resources' : '/breakout', 302);
   if (lead.booked_at && !lead.booking_cancelled_at && !c.req.query('reschedule')) return c.redirect('/breakout', 302);
 
+  const voice = voiceView(c, lead);
   return render(c, '/book.html', {
     title: 'Book your call',
+    show: voice.show,
+    hrefs: voice.hrefs,
     slots: {
+      ...voice.slots,
       first_name: esc(lead.first_name ?? ''),
       ref_code: lead.ref_code,
       eyebrow: tier === 'A' ? `Congratulations${lead.first_name ? `, ${esc(lead.first_name)}` : ''} — you qualify` : 'Book your call',
@@ -249,9 +268,11 @@ export async function breakoutPage(c: Context<AppEnv>) {
   let callTime: string | null = null;
   if (booked && lead?.call_at) callTime = formatCallTime(lead.call_at, c.get('visitor').geo.timezone);
 
+  const voice = voiceView(c, lead);
   return render(c, '/breakout.html', {
     title: booked ? 'You’re booked' : 'Part 2',
     slots: {
+      ...voice.slots,
       eyebrow: copy.eyebrow,
       headline: copy.headline,
       subheadline: copy.subheadline,
@@ -265,8 +286,8 @@ export async function breakoutPage(c: Context<AppEnv>) {
     },
     lists: { prepare: BREAKOUT.prepare },
     blocks: { faqs: faqBlock() },
-    show: { booked, call_time: Boolean(callTime), whatsapp: Boolean(wa), book: !booked && Boolean(bookingUrl), apply: !lead },
-    hrefs: { whatsapp: `/go/wa?src=${booked ? 'breakout-booked' : 'breakout'}`, book: '/book' },
+    show: { ...voice.show, booked, call_time: Boolean(callTime), whatsapp: Boolean(wa), book: !booked && Boolean(bookingUrl), apply: !lead },
+    hrefs: { ...voice.hrefs, whatsapp: `/go/wa?src=${booked ? 'breakout-booked' : 'breakout'}`, book: '/book' },
     config: { video: videoConfig(c, booked ? VIDEOS.precall : VIDEOS.breakout), booked },
   });
 }

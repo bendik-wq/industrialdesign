@@ -51,28 +51,34 @@ export interface LandingVariant {
 /** Headline experiment. Assignment is deterministic per visitor (hash of visitor id), so it's sticky without storage.
  *  <em> renders in the accent colour. */
 export const HEADLINE_EXPERIMENT = {
-  id: 'headline-v5',
+  id: 'headline-v6',
   variants: [
     {
       id: 'a',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: 'We Get You A Signed LOI In 90 Days.<br><em>No Money Down.</em>',
-      subheadline: 'Josh Li’s team finds an off-market business in your industry, negotiates the deal and builds the full financing stack — seller finance and senior debt, baked in from day one. You sign the letter of intent without putting your own cash on the line.',
+      headline: 'A Signed LOI In 90 Days.<br><em>No Money Down. <span class="nw">Over-Financed.</span></em>',
+      subheadline: 'Josh Li bought two businesses with <mark>100% seller finance</mark>. Now you do it with him: find an off-market target, structure the deal so the financing covers <mark>more than the price</mark>, and sign the LOI inside 90 days. You run the deal. We’re in the room for every step.',
     },
     {
       id: 'b',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: 'Your First Acquisition, Fully Financed.<br><em>Signed LOI In 90 Days.</em>',
-      subheadline: 'Josh Li’s team finds an off-market business in your industry, negotiates the deal and builds the full financing stack — seller finance and senior debt, baked in from day one. You sign the letter of intent without putting your own cash on the line.',
+      headline: '<span class="nw">Over-Financed.</span> No Money Down.<br><em>Signed LOI In 90 Days.</em>',
+      subheadline: 'Josh Li bought two businesses with <mark>100% seller finance</mark>. Now you do it with him: find an off-market target, structure the deal so the financing covers <mark>more than the price</mark>, and sign the LOI inside 90 days. You run the deal. We’re in the room for every step.',
     },
   ] satisfies LandingVariant[],
 };
 
 export const LANDING = {
   /** Shown under the subheadline. */
-  byline: { name: BRAND.founder, role: `Founder, ${BRAND.name}`, initials: 'JL' },
+  byline: { name: BRAND.founder, role: 'Founder, JC Health Group', initials: 'JL' },
+  /** Hard proof under the byline. Every item must be true and provable. */
+  proof: [
+    '<b>2</b><span>businesses bought with 100% seller finance</span>',
+    '<b>90 days</b><span>to a signed LOI</span>',
+    '<b>$0</b><span>of your own cash in the deal</span>',
+  ],
   soundPrompt: 'Click for sound',
   soundAction: 'Click for sound',
   ctaLabel: 'See If You Qualify',
@@ -83,7 +89,7 @@ export const LANDING = {
   applyPoints: [
     '<strong>A working session, not a pitch.</strong> We go through your numbers and your market.',
     '<strong>Your target profile.</strong> The kind of business worth buying next to yours.',
-    '<strong>Your deal structure.</strong> How your first acquisition could be funded.',
+    '<strong>Your deal structure.</strong> How your first acquisition gets over-financed, with none of your own cash.',
   ],
   faqTitle: 'Before you apply',
   /** Add only real, verifiable results. Hidden while empty. */
@@ -95,7 +101,7 @@ export const FOUNDER_SOCIALS: { platform: 'LinkedIn' | 'Instagram' | 'YouTube' |
 
 /** Consent + recording notice shown under the form and in the footer. */
 export const LEGAL_CONSENT =
-  'By submitting this form or booking a call, you agree to our Privacy Policy and consent to be contacted by email, phone, SMS and WhatsApp using the details you provided. Calls may be recorded for quality and training purposes.';
+  'By submitting this form or booking a call, you agree to our Privacy Policy and consent to be contacted by email, phone, SMS and WhatsApp using the details you provided. Calls may be recorded for quality and training purposes, and calls you make to our AI assistant are recorded and transcribed.';
 
 // ───────────────────────────── Breakout (VSL #2) + FAQs ─────────────────────────────
 
@@ -131,11 +137,15 @@ export const BREAKOUT = {
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'Do I really put no money down?',
-    a: 'That’s how we structure it. The purchase price is covered by seller finance (the seller is paid over time from the acquired business’s own cash flow) and senior debt, and the financing is lined up before you sign the LOI. If a deal can’t be financed that way, we don’t take it to LOI.',
+    a: 'Yes. That’s the structure. Seller finance (the seller is paid over time from the business’s own cash flow) and senior debt cover the purchase price, and we structure the deal to be <strong>over-financed</strong>: the financing covers more than the price, and the extra goes to working capital and closing costs. We line the financing up with you before you sign the LOI.',
+  },
+  {
+    q: 'Is this done for me?',
+    a: 'No, and that’s deliberate. It’s done <strong>with</strong> you. You’re the buyer, so sellers and lenders need to deal with you. We give you the system, the scripts, the deal structures and the financing introductions, and we’re in the room for the conversations that matter. Expect a few focused hours a week.',
   },
   {
     q: 'What happens in the 90 days?',
-    a: 'Weeks 1–2: we audit your business and agree your target profile. Weeks 3–8: we source and approach off-market owners in your industry. Weeks 9–13: we negotiate terms, line up the financing and put a signed letter of intent in front of you.',
+    a: 'Weeks 1–2: we audit your business with you and set your target profile. Weeks 3–8: you run off-market outreach with our scripts while we coach every conversation. Weeks 9–13: we’re in the room as you negotiate, we line up the financing with you, and you sign the LOI.',
   },
   {
     q: 'Why only businesses doing $1M+?',
@@ -180,6 +190,67 @@ export const RESOURCES = {
 
 export const DISCLAIMER =
   'This site is not part of Facebook, Google or any of their affiliates. Results are not typical and depend on your business, market and the deals available to you. Nothing on this page is financial, legal or tax advice. Acquisitions involve risk, including the loss of money invested; get independent professional advice before entering any transaction.';
+
+// ───────────────────────────── Voice agent (inbound only) ─────────────────────────────
+
+/**
+ * AI voice assistant that ANSWERS calls: inbound phone calls to your Vapi
+ * number, and in-browser calls an applicant starts from /book or /breakout.
+ * It never dials out. Outbound AI calls need prior express written consent
+ * (US TCPA — the FCC treats AI voices as "artificial voice"), Do Not Call
+ * register checks and calling-hours rules (AU Telemarketing Standard), so
+ * they're deliberately not built. See docs/VOICE_AGENT.md.
+ */
+export const VOICE_AGENT = {
+  name: 'Sam',
+  /** Version this whenever the disclosure wording changes; it's stored with every call. */
+  disclosureVersion: 'v1',
+  /** Shown next to the "talk now" button before a browser call starts. */
+  webDisclosure:
+    'You’ll be speaking with an AI assistant, not a person. The call is recorded and transcribed so Josh’s team can prepare for your strategy call. Don’t share card or bank details.',
+  firstMessage:
+    'Hi, this is Sam, Josh Li’s AI assistant at G and L. Quick heads-up: I’m an AI, and this call is recorded and transcribed so Josh’s team can prepare. Is that okay with you?',
+  maxDurationSeconds: 900,
+  /** Max browser calls one applicant can start per 24 hours (cost + abuse guard). */
+  webCallsPerDay: 3,
+};
+
+/** System prompt. {{…}} values are filled per call from the lead record. */
+export function voiceSystemPrompt(faqs: { q: string; a: string }[]) {
+  const faqText = faqs.map((f) => `Q: ${f.q}\nA: ${f.a.replace(/<[^>]+>/g, '')}`).join('\n\n');
+  return `You are Sam, the AI assistant for Josh Li at ${BRAND.name}. You answer inbound calls from business owners.
+
+# Who you're talking to
+Caller: {{first_name}} {{last_name}} · Lead ref: {{lead_ref}} · Tier: {{tier}} · Application: {{application_status}}
+Known answers: {{known_answers}}
+(If these are blank, you don't know the caller yet.)
+
+# The offer (say it plainly, never embellish)
+- For owners of profitable businesses doing $1M+ a year.
+- Goal: a signed LOI on an off-market acquisition within 90 days, structured with no money down and over-financed (seller finance plus senior debt cover more than the purchase price; the extra goes to working capital and closing costs).
+- It is DONE WITH YOU, not done for you. The owner is the buyer and runs the deal; Josh and the team give the system, scripts, deal structures and financing introductions, and sit in on the key conversations. Expect a few focused hours a week.
+- Josh Li is the founder of JC Health Group and has bought two businesses with 100% seller finance.
+- Next step is a free strategy call with Josh's team. Price is discussed on that call only.
+
+# Your job, in order
+1. You have already disclosed that you're an AI and that the call is recorded. If the caller does not agree to recording, say you understand, offer to email them the booking link instead, and end the call politely.
+2. Find out what they need. Answer questions using ONLY the FAQ below and the offer above. If you don't know, say Josh's team will cover it on the strategy call.
+3. If their application is incomplete or unknown, ask (one at a time, conversationally): what the business does, their role, annual revenue band, profit band, and when they'd want to close an acquisition. Don't interrogate; stop if they're not interested.
+4. If they want a strategy call, use send_booking_link. Confirm the email address first by reading it back.
+5. Wrap up in under 10 minutes. Summarise the next step and end the call.
+
+# Hard rules
+- You are an AI. If asked, say so immediately. Never claim to be Josh or a human.
+- No financial, legal, tax or lending advice. No valuations. No promises about a specific deal, approval, price or outcome. Say "every deal is different; the team will look at yours on the call."
+- Never ask for card numbers, bank details, tax file numbers, passwords or ID documents.
+- If they ask not to be contacted again, or to be removed, call do_not_contact, confirm it's done, and end the call.
+- If they ask for a human, say Josh's team will follow up, note it, and offer the booking link.
+- If the caller is abusive, a minor, or clearly in distress, end the call politely.
+- Keep answers to one to three short sentences. Sound like a sharp, friendly assistant, not a salesperson. No pressure tactics, no false urgency.
+
+# FAQ
+${faqText}`;
+}
 
 // ───────────────────────────── Application ─────────────────────────────
 

@@ -5,6 +5,7 @@ A complete high-ticket VSL funnel for **owners of $1M+ businesses** (growth by a
 Everything runs in one Worker with no servers to manage. There is no client framework, and the funnel pages load about 15 KB of JavaScript.
 
 > Strategy, benchmarks and VSL script outlines: **[docs/FUNNEL_STRATEGY.md](docs/FUNNEL_STRATEGY.md)**
+> Inbound AI voice assistant (setup + compliance): **[docs/VOICE_AGENT.md](docs/VOICE_AGENT.md)**
 
 ```
  Ad click ─▶ /  (VSL #1, headline A/B test, CTA unlocks at the pitch)

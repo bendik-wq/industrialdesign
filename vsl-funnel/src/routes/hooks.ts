@@ -2,9 +2,10 @@ import { Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { handleCalendly, handleGenericBooking, verifyCalendly } from '../integrations/booking';
 import { handleInbound, verifyMetaSignature } from '../integrations/whatsapp';
+import { type VapiMessage, handleVapi, verifyVapi } from '../integrations/voice';
 import { hmacHex, safeEqual } from '../lib/crypto';
 
-/** Inbound webhooks from Calendly, Cal.com / CRMs and the WhatsApp Cloud API. All verified. */
+/** Inbound webhooks from Calendly, Cal.com / CRMs, the WhatsApp Cloud API and Vapi (voice). All verified. */
 export const hooks = new Hono<AppEnv>();
 
 hooks.post('/calendly', async (c) => {
@@ -48,4 +49,18 @@ hooks.post('/whatsapp', async (c) => {
   if (!(await verifyMetaSignature(rt.settings.WHATSAPP_APP_SECRET, raw, c.req.header('x-hub-signature-256') ?? null))) return c.text('bad signature', 401);
   await handleInbound(rt, JSON.parse(raw));
   return c.text('ok');
+});
+
+// Vapi server messages: assistant-request (inbound phone), tool-calls, status-update, end-of-call-report.
+hooks.post('/voice', async (c) => {
+  const rt = runtimeFrom(c);
+  if (!rt.settings.VOICE_WEBHOOK_SECRET) return c.json({ error: 'VOICE_WEBHOOK_SECRET not configured' }, 501);
+  if (!verifyVapi(rt.settings, c.req.header('x-vapi-secret'))) return c.json({ error: 'unauthorised' }, 401);
+  let body: { message?: VapiMessage };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'invalid json' }, 400);
+  }
+  return c.json((await handleVapi(rt, body.message ?? {})) ?? {});
 });

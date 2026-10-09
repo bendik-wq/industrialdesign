@@ -33,6 +33,7 @@ export interface Lead {
   whatsapp_connected_at: number | null;
   whatsapp_wa_id: string | null;
   unsubscribed_at: number | null;
+  do_not_call_at: number | null;
   revenue: number;
   notes: string | null;
   channel: string | null;

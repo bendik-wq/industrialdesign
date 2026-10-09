@@ -46,4 +46,12 @@ export interface Env {
   CLARITY_ID?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
+  VAPI_API_KEY?: string;
+  VAPI_PUBLIC_KEY?: string;
+  VAPI_ASSISTANT_ID?: string;
+  VOICE_WEBHOOK_SECRET?: string;
+  VOICE_PHONE_NUMBER?: string;
+  VOICE_MODEL?: string;
+  VOICE_VOICE?: string;
+  VOICE_WEB_ENABLED?: string;
 }
