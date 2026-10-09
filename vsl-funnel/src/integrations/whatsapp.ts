@@ -27,13 +27,16 @@ export function intentFromSource(src: string, lead: Pick<Lead, 'booked_at'> | nu
   return 'question';
 }
 
-/** Josh's WhatsApp is only offered to qualified (A or B tier) leads — never to anonymous visitors or C-tier. */
-export const whatsappEligible = (lead: Pick<Lead, 'tier' | 'tier_override'> | null) => {
+/**
+ * Josh's WhatsApp is only offered to qualified (A or B tier) leads who have a
+ * call booked — never to anonymous visitors, C-tier, or anyone who hasn't booked.
+ */
+export const whatsappEligible = (lead: Pick<Lead, 'tier' | 'tier_override' | 'booked_at' | 'booking_cancelled_at'> | null) => {
   const tier = lead ? effectiveTier(lead) : null;
-  return tier === 'A' || tier === 'B';
+  return (tier === 'A' || tier === 'B') && Boolean(lead?.booked_at) && !lead?.booking_cancelled_at;
 };
 
-export function whatsappLink(settings: Settings, lead: Pick<Lead, 'first_name' | 'ref_code' | 'tier' | 'tier_override'> | null, intent: WhatsAppIntent): string | null {
+export function whatsappLink(settings: Settings, lead: Pick<Lead, 'first_name' | 'ref_code' | 'tier' | 'tier_override' | 'booked_at' | 'booking_cancelled_at'> | null, intent: WhatsAppIntent): string | null {
   const number = settings.JOSH_WHATSAPP.replace(/\D/g, '');
   if (!number || !whatsappEligible(lead)) return null;
   const intro = lead?.first_name ? `Hi Josh, it's ${lead.first_name}.` : 'Hi Josh!';

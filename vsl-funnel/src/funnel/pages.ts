@@ -177,7 +177,7 @@ function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
     turnstileSiteKey: s.TURNSTILE_SITE_KEY || null,
     country: c.get('visitor').geo.country,
     resume: lead && !lead.app_completed_at
-      ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone, whatsapp_opt_in: Boolean(lead.whatsapp_opt_in) } }
+      ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone } }
       : null,
   };
 }

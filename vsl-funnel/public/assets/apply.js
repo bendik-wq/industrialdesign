@@ -62,8 +62,7 @@
       html += '<div class="row2"><div class="field"><label for="first_name">First name</label><input id="first_name" name="first_name" autocomplete="given-name" required value="' + esc(contact.first_name) + '"></div>' +
         '<div class="field"><label for="last_name">Last name</label><input id="last_name" name="last_name" autocomplete="family-name" value="' + esc(contact.last_name) + '"></div></div>' +
         '<div class="field"><label for="email">Email</label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required value="' + esc(contact.email) + '"></div>' +
-        '<div class="field"><label for="phone">Mobile (WhatsApp)</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="' + esc(PLACEHOLDER_PHONE[cfg.country] || '+61 412 345 678') + '" value="' + esc(contact.phone) + '"></div>' +
-        '<label class="check"><input type="checkbox" name="whatsapp_opt_in"' + (contact.whatsapp_opt_in ? ' checked' : '') + '> Send me the free acquisition resources and call reminders on WhatsApp</label>' +
+        '<div class="field"><label for="phone">Mobile</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="' + esc(PLACEHOLDER_PHONE[cfg.country] || '+61 412 345 678') + '" value="' + esc(contact.phone) + '"></div>' +
         navHtml('Continue', false);
     } else if (q.type === 'single' || q.type === 'multi') {
       var multi = q.type === 'multi';
@@ -112,7 +111,6 @@
       last_name: form.last_name.value,
       email: form.email.value,
       phone: form.phone.value,
-      whatsapp_opt_in: form.whatsapp_opt_in.checked,
       turnstile: turnstileToken,
       event_id: F.uid()
     };

@@ -4,7 +4,6 @@ import { newId, newRefCode } from '../lib/ids';
 import type { VisitorCtx } from '../lib/identity';
 import { cancelSequence, enqueueSequence } from '../integrations/email';
 import { notifySlack } from '../integrations/notify';
-import { sendResourcesTemplate } from '../integrations/whatsapp';
 import { identityFromVisitor, track } from '../tracking/track';
 import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, parseAnswers, updateLead, validateEmail } from './leads';
 import { routeLead } from './routing';
@@ -71,7 +70,6 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   if (!phone) throw new ApplicationError('Please enter a valid mobile number, including area code', 'phone');
   if (!(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed — please refresh and try again', undefined, 403);
 
-  const whatsappOptIn = body.whatsapp_opt_in === true || body.whatsapp_opt_in === 'on' ? 1 : 0;
   const now = Date.now();
   const existing = (await getLeadByEmail(rt.env, emailCheck.email)) ?? (v.leadId ? await getLead(rt.env, v.leadId) : null);
   let lead: Lead;
@@ -83,7 +81,6 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
       last_name: lastName ?? existing.last_name,
       email: emailCheck.email,
       phone,
-      whatsapp_opt_in: whatsappOptIn,
       app_started_at: existing.app_started_at ?? now,
       step_reached: Math.max(existing.step_reached, 1),
       unsubscribed_at: null,
@@ -100,7 +97,7 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
        VALUES (?,?,?,?,?,?,?,?,?,?,?,1,?, 'partial', ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
       .bind(
-        id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, lastName, emailCheck.email, phone, whatsappOptIn, now,
+        id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, lastName, emailCheck.email, phone, 0, now,
         last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_medium ?? null, last?.utm_campaign ?? null,
         last?.utm_content ?? null, last?.utm_term ?? null, last?.click_id ?? null, last?.click_type ?? null,
         first?.ft_channel ?? null, first?.ft_source ?? null, first?.ft_campaign ?? null, first?.ft_content ?? null,
@@ -143,7 +140,7 @@ export interface SubmitResult {
 
 /**
  * Final submit: score → tier → route/closer, then kick off the right follow-up
- * (sequence, Slack alert for hot leads, WhatsApp resources for opted-in nurture leads).
+ * (sequence, Slack alert for hot leads).
  */
 export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, clientEventId?: string): Promise<SubmitResult> {
   const answers = parseAnswers(lead);
@@ -176,7 +173,6 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
   await cancelSequence(rt, lead.id, 'abandoned');
   if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
   if (firstSubmit && result.tier === 'A') rt.waitUntil(notifySlack(rt, fresh, '🔥 Hot lead (A-tier)', result.caps.length ? [`Caps: ${result.caps.join(', ')}`] : []));
-  if (firstSubmit && result.tier === 'B' && fresh.whatsapp_opt_in) rt.waitUntil(sendResourcesTemplate(rt, fresh));
 
   return { tier: result.tier, route: decision.route, score: result.score, events: { submitted, qualified } };
 }

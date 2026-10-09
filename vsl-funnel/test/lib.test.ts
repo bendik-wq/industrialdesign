@@ -86,17 +86,21 @@ import type { Settings } from '../src/settings';
 
 describe('whatsappLink', () => {
   const s = { JOSH_WHATSAPP: '+61 4 3537 5590' } as Settings;
-  const lead = (tier: 'A' | 'B' | 'C' | null, tier_override: 'A' | 'B' | 'C' | null = null) => ({ first_name: 'Sam', ref_code: 'AB12CD', tier, tier_override });
-  it('is offered to A and B tier leads only', () => {
-    expect(whatsappLink(s, lead('A'), 'question')).toMatch(/^https:\/\/wa\.me\/61435375590\?text=/);
+  type T = 'A' | 'B' | 'C' | null;
+  const lead = (tier: T, booked = true, tier_override: T = null, cancelled = false) =>
+    ({ first_name: 'Sam', ref_code: 'AB12CD', tier, tier_override, booked_at: booked ? 1 : null, booking_cancelled_at: cancelled ? 2 : null });
+  it('is offered only to A and B tier leads who have booked a call', () => {
+    expect(whatsappLink(s, lead('A'), 'booked')).toMatch(/^https:\/\/wa\.me\/61435375590\?text=/);
     expect(whatsappLink(s, lead('B'), 'booked')).toContain('ref%20AB12CD');
+    expect(whatsappLink(s, lead('A', false), 'question')).toBeNull();
+    expect(whatsappLink(s, lead('B', false), 'question')).toBeNull();
+    expect(whatsappLink(s, lead('A', true, null, true), 'booked')).toBeNull();
     expect(whatsappLink(s, lead('C'), 'resources')).toBeNull();
-    expect(whatsappLink(s, lead(null), 'question')).toBeNull();
     expect(whatsappLink(s, null, 'question')).toBeNull();
   });
   it('follows a manual tier override', () => {
-    expect(whatsappLink(s, lead('C', 'B'), 'question')).not.toBeNull();
-    expect(whatsappLink(s, lead('A', 'C'), 'question')).toBeNull();
+    expect(whatsappLink(s, lead('C', true, 'B'), 'booked')).not.toBeNull();
+    expect(whatsappLink(s, lead('A', true, 'C'), 'booked')).toBeNull();
   });
 });
 
