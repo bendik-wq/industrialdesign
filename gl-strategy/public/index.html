@@ -333,6 +333,12 @@ select.tool { appearance:none; -webkit-appearance:none; padding-right:14px; colo
 .composer { display:flex; gap:8px; align-items:flex-end; padding:10px 14px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--bg3); }
 .composer textarea { flex:1; resize:none; border:0; background:var(--bg2); border-radius:20px; padding:10px 14px; font-size:15px; max-height:140px; line-height:1.35; }
 .composer textarea:focus { outline:none; box-shadow:0 0 0 3px rgba(0,113,227,.2); }
+.mic { width:36px; height:36px; border-radius:50%; border:0; background:var(--bg2); color:var(--ink); cursor:pointer; flex:none; display:grid; place-items:center; transition:background .2s, color .2s; }
+.mic:hover { background:var(--bg3); }
+.mic.on { background:#FF3B30; color:#fff; animation:micpulse 1.2s ease-in-out infinite; }
+.mic[hidden] { display:none; }
+@keyframes micpulse { 0%,100% { box-shadow:0 0 0 0 rgba(255,59,48,.45); } 50% { box-shadow:0 0 0 8px rgba(255,59,48,0); } }
+@media (prefers-reduced-motion:reduce) { .mic.on { animation:none; } }
 .send { width:36px; height:36px; border-radius:50%; border:0; background:var(--blue); color:#fff; font-size:18px; font-weight:700; cursor:pointer; flex:none; }
 .send:disabled { background:var(--bg3); cursor:default; }
 
@@ -770,7 +776,7 @@ body.studio-on .foot { display:none; }
       <div class="pane" id="paneChat">
         <div class="msgs" id="msgs" aria-live="polite"></div>
         <div class="sugs" id="sugs"></div>
-        <form class="composer" id="chatForm"><textarea id="chatIn" rows="1" placeholder="Talk to the funnel…" aria-label="Message"></textarea><button class="send" type="submit" aria-label="Send">↑</button></form>
+        <form class="composer" id="chatForm"><button class="mic" id="micBtn" type="button" aria-label="Talk to the funnel" title="Tap and talk. Tap again to stop."><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 1 0-7 0v6A3.5 3.5 0 0 0 12 15Zm6-3.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V20H8.5a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2H13v-2.59a6 6 0 0 0 5-5.91Z"/></svg></button><textarea id="chatIn" rows="1" placeholder="Talk to the funnel…" aria-label="Message"></textarea><button class="send" type="submit" aria-label="Send">↑</button></form>
       </div>
       <div class="pane" id="paneEdit" hidden><div class="editor" id="editor" aria-live="polite"></div></div>
     </aside>
@@ -2005,7 +2011,7 @@ function localCommand(s) {
   else if ((m = s.match(/^(?:turn\s+(on|off)|(enable|disable))\s+(.+)/i))) { const on = /on|enable/i.test(m[1] || m[2]); const n = findNode(m[3]); if (n && n.kind === 'channel') ops.push({ type:'set_field', id:n.id, field:'enabled', value:String(on) }); }
   else {
     if ((m = s.match(/price\D{0,12}\$?\s*([\d.,]+)\s*(k|m)?\b/i))) ops.push({ type:'set_offer', field:'price', value:String(parseMoney(m[1], m[2])) });
-    if ((m = s.match(/(?:min(?:imum)?(?:\s+revenue)?|threshold|money gate|gate)\D{0,14}\$?\s*([\d.,]+)\s*(k|mm|m)?\b/i))) { const v = parseMoney(m[1], m[2]); ops.push({ type:'set_offer', field:'minRevenue', value:String(v) }); F.nodes.filter(n => n.kind === 'gate').forEach(g => ops.push({ type:'set_field', id:g.id, field:'threshold', value:String(v) })); ops.push({ type:'set_offer', field:'audience', value:`Owners doing ${money(v)}+ a year` }); }
+    if ((m = s.match(/(?:min(?:imum)?(?:\s+revenue)?|threshold|money gate|gate)\D{0,14}\$?\s*([\d.,]+)\s*(k|mm|m)?\b/i))) { const v = parseMoney(m[1], m[2]); ops.push({ type:'set_offer', field:'minRevenue', value:String(v) }); F.nodes.filter(n => n.kind === 'gate').forEach(g => ops.push({ type:'set_field', id:g.id, field:'threshold', value:String(v) })); ops.push({ type:'set_offer', field:'audience', value: /\$[\d.,]+\s*[kKmM]?\+?/.test(F.offer.audience) ? F.offer.audience.replace(/\$[\d.,]+\s*[kKmM]?\+?/, money(v) + '+') : `Owners doing ${money(v)}+ a year` }); }
     if ((m = s.match(/(\d+)\s*clients?/i))) ops.push({ type:'set_math', field:'goalClients', value:m[1] });
     for (const [re, f] of [[/close\s*rate\D{0,6}([\d.]+)/i, 'closeRate'], [/show\s*rate\D{0,6}([\d.]+)/i, 'showRate'], [/book(?:ing)?\s*rate\D{0,6}([\d.]+)/i, 'bookRate']]) if ((m = s.match(re))) ops.push({ type:'set_math', field:f, value:m[1] });
     if ((m = s.match(/(\d+)[-\s]*days?/i)) && /contract|deliver|program|days/i.test(s)) { ops.push({ type:'set_offer', field:'days', value:m[1] }); F.nodes.filter(n => n.kind === 'deliver').forEach(d => ops.push({ type:'set_field', id:d.id, field:'days', value:m[1] })); }
@@ -2042,7 +2048,31 @@ async function sendChat(text) {
   delete pending.typing;
   if (applied.length) { pending.applied = applied.length; pending.undo = before; afterEdit('chat: ' + text.slice(0, 60)); }
   saveChat(); renderChat();
+  if (viaVoice) { viaVoice = false; speakReply(pending.text); }
 }
+/* voice: talk to the funnel, hear the answer */
+let rec = null, viaVoice = false;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+function speakReply(text) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(String(text).replace(/[•→]/g, ' ').replace(/\s+/g, ' ').slice(0, 600));
+  u.lang = navigator.language || 'en-US'; u.rate = 1.05; speechSynthesis.speak(u);
+}
+(function initMic() {
+  const b = $('micBtn');
+  if (!SR) { b.hidden = true; return; }
+  b.onclick = () => {
+    if (rec) { rec.stop(); return; }
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    let said = '';
+    rec = new SR(); rec.lang = navigator.language || 'en-US'; rec.interimResults = true; rec.continuous = false;
+    rec.onresult = e => { said = [...e.results].map(r => r[0].transcript).join(''); $('chatIn').value = said; };
+    rec.onerror = e => toast(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'Allow microphone access to talk to the funnel' : e.error === 'no-speech' ? 'Didn’t hear anything' : 'Voice didn’t work. Try again.');
+    rec.onend = () => { b.classList.remove('on'); rec = null; if (said.trim()) { viaVoice = true; sendChat(said); } };
+    try { rec.start(); b.classList.add('on'); $('chatIn').placeholder = 'Listening…'; setTimeout(() => $('chatIn').placeholder = 'Talk to the funnel…', 4000); } catch (err) { rec = null; toast('Voice didn’t start. Try again.'); }
+  };
+})();
 $('chatForm').addEventListener('submit', e => { e.preventDefault(); sendChat($('chatIn').value); });
 $('chatIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat($('chatIn').value); } });
 $('chatIn').addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; });
