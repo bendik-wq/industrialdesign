@@ -190,7 +190,6 @@ export async function landingPage(c: Context<AppEnv>) {
       apply_subtitle: LANDING.applySubtitle,
       problem_title: LANDING.problemTitle,
       process_title: LANDING.processTitle,
-      close_kicker: LANDING.closeKicker,
       close_headline: LANDING.closeHeadline,
     },
     lists: {
@@ -200,7 +199,6 @@ export async function landingPage(c: Context<AppEnv>) {
       stats: LANDING.stats.map((st) => `<div class="stat"><div class="label">${st.label}</div><div class="value">${st.value}</div><div class="detail">${st.detail}</div></div>`).join(''),
       problems: LANDING.problems.map((p, i) => `<div class="card problem"><div class="icon">${ICONS[i % ICONS.length]}</div><h3>${p.title}</h3><p>${p.body}</p></div>`).join(''),
       process: LANDING.process.map((p) => `<li><h3>${p.title}</h3><p>${p.body}</p></li>`).join(''),
-      tags: LANDING.systemTags.map((t) => `<li class="tag">${t}</li>`).join(''),
       rating: r ? `<div class="rating"><span class="stars" aria-hidden="true">★★★★★</span><strong>Rated ${r.score} on ${r.source}</strong><span class="cta-sub" style="margin:0">${r.count}</span></div>` : '',
       cases: LANDING.caseStudies.map((cs) => `<li>${cs.videoUrl ? `<a class="thumb" href="${esc(cs.videoUrl)}" target="_blank" rel="noopener"${cs.thumbnail ? ` style="background-image:url('${esc(cs.thumbnail)}')"` : ''}><span class="vsl-play-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg></span></a>` : ''}<div class="body"><h3>${cs.name} · ${cs.business}</h3><ul>${cs.results.map((x) => `<li>${x}</li>`).join('')}</ul></div></li>`).join(''),
       faqs: faqBlock(),

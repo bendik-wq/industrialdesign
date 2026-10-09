@@ -31,15 +31,11 @@
           <filter id="sb2" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
         </defs>
         <g fill="none" stroke-linecap="round">
-          <path d="M-80 470 C 260 330, 560 610, 900 430 S 1380 250, 1560 330" stroke="url(#sw)" stroke-width="70" filter="url(#sb2)"/>
           <path d="M-80 520 C 300 400, 620 640, 960 470 S 1400 300, 1560 380" stroke="url(#sw)" stroke-width="2" opacity=".9"/>
           <path d="M-80 545 C 320 430, 640 660, 980 495 S 1410 330, 1560 410" stroke="url(#sw)" stroke-width="1.2" opacity=".7"/>
-          <path d="M-80 600 C 340 470, 700 700, 1040 540 S 1420 390, 1560 450" stroke="url(#sa)" stroke-width="40" filter="url(#sb2)"/>
-          <path d="M-80 610 C 340 480, 700 710, 1040 550 S 1420 400, 1560 460" stroke="url(#sa)" stroke-width="2.2"/>
-          <path d="M1520 -40 C 1240 120, 1120 260, 1160 520" stroke="url(#sw)" stroke-width="90" filter="url(#sb2)" opacity=".7"/>
+          <path d="M-80 610 C 340 480, 700 710, 1040 550 S 1420 400, 1560 460" stroke="url(#sa)" stroke-width="1.2" opacity=".7"/>
           <path d="M1500 -40 C 1230 140, 1100 280, 1130 560" stroke="url(#sw)" stroke-width="1.4"/>
-          <path d="M-60 120 C 200 60, 340 180, 520 60" stroke="url(#sw)" stroke-width="60" filter="url(#sb2)" opacity=".5"/>
-        </g>
+          </g>
       </svg>
       <div class="wrap">
         <h1 class="display" data-slot="headline">Double Your Business<br><em>By Acquisition</em></h1>
@@ -77,19 +73,13 @@
       <div class="wrap" data-html="rating"></div>
     </section>
 
-    <div class="rule"></div>
-    <section class="block glow" id="how">
+    <section class="block" id="how">
       <div class="wrap">
         <div class="section-head"><h2 class="section-title" data-slot="process_title"></h2></div>
-        <div class="system">
-          <div class="orb"></div><div class="orb-ring"></div>
-          <div class="emblem"><b>G&amp;L</b></div>
-          <ul class="tags" data-html="tags"></ul>
-        </div>
+        <ol class="steps-list" data-html="process"></ol>
         <div class="cta-zone"><a class="btn" href="#apply" data-track="cta_click" data-track-id="system"><span data-slot="cta_label">See If You Qualify</span></a></div>
       </div>
     </section>
-    <div class="rule"></div>
 
     <section class="block" data-if="cases">
       <div class="wrap">
@@ -110,7 +100,6 @@
     </section>
 
     <section class="close-section">
-      <div class="kicker" aria-hidden="true" data-slot="close_kicker">$1M+</div>
       <div class="wrap">
         <h2 class="display" data-slot="close_headline"></h2>
         <a class="btn" href="#apply" data-track="cta_click" data-track-id="close"><span data-slot="cta_label">See If You Qualify</span></a>

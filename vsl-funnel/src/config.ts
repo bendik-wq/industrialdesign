@@ -94,8 +94,6 @@ export const LANDING = {
     { title: 'Bigger is worth more', body: 'Larger businesses sell for a higher multiple of earnings.' },
   ],
   processTitle: 'Your entire acquisition system<br>under one roof',
-  /** Capabilities floated around the emblem. */
-  systemTags: ['Off-market sourcing', 'Vendor finance', 'Lender introductions', 'Due diligence', 'Negotiation', '100-day integration'],
   /** A real sequence, so it's numbered on the page. */
   process: [
     { title: 'Audit', body: 'Find where an acquisition adds the most value.' },
@@ -109,7 +107,6 @@ export const LANDING = {
   caseStudies: [] as { name: string; business: string; results: string[]; videoUrl?: string; thumbnail?: string }[],
   /** Add only real, verifiable results. Hidden while empty. */
   testimonials: [] as { quote: string; name: string; detail: string }[],
-  closeKicker: '$1M+',
   closeHeadline: 'Your next acquisition,<br><em>structured</em>',
 };
 
