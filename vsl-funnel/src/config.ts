@@ -51,31 +51,33 @@ export interface LandingVariant {
 /** Headline experiment. Assignment is deterministic per visitor (hash of visitor id), so it's sticky without storage.
  *  <em> renders as the italic gold accent in the serif headline. */
 export const HEADLINE_EXPERIMENT = {
-  id: 'headline-v2',
+  id: 'headline-v3',
   variants: [
     {
       id: 'a',
       weight: 50,
-      preHeadline: 'For owners of $1M+ businesses',
-      headline: 'Double Your Business<br><em>By Acquisition</em>',
-      subheadline: 'Acquisition systems for owners of $1M+ businesses',
+      preHeadline: '',
+      headline: 'Grow Your Business<br>By <em>Acquisition</em>',
+      subheadline: 'Done-with-you acquisitions for owners of $1M+ businesses',
     },
     {
       id: 'b',
       weight: 50,
-      preHeadline: 'For owners of $1M+ businesses',
-      headline: 'Your Next $1M In Revenue<br><em>Is Already For Sale</em>',
-      subheadline: 'Acquisition systems for owners of $1M+ businesses',
+      preHeadline: '',
+      headline: 'Double Your Business<br>Without <em>Starting Over</em>',
+      subheadline: 'Done-with-you acquisitions for owners of $1M+ businesses',
     },
   ] satisfies LandingVariant[],
 };
 
 export const LANDING = {
-  ctaLabel: 'See If You Qualify',
+  ctaLabel: 'Get Started Now',
   ctaSubtext: '',
   soundPrompt: 'Click for sound',
   soundAction: 'Click for sound',
   applyTitle: 'See if you qualify',
+  /** Headline on the /apply (get-started) page, above the VSL and form. */
+  applyHeadline: 'Double Your Business <em>By Acquisition</em><span class="dot">.</span>',
   applySubtitle: '',
   /**
    * Headline numbers under the hero. These are facts about the offer, not results.
@@ -87,27 +89,25 @@ export const LANDING = {
     { label: 'Support', value: '1:1', detail: 'Your own M&A advisor on every deal' },
     { label: 'Integration', value: '100', detail: 'Day plan after every acquisition closes' },
   ] as { label: string; value: string; detail: string }[],
-  problemTitle: 'Organic growth is slow.<br>Acquisition isn’t.',
+  problemTitle: 'Buying growth now beats building it<br>Most owners have no system to do it',
   problems: [
-    { title: 'You’ve hit a ceiling', body: 'Every new dollar of revenue costs more of your time.' },
-    { title: 'Your competitors are for sale', body: 'Owners are retiring. Most of those businesses never get listed.' },
-    { title: 'Bigger is worth more', body: 'Larger businesses sell for a higher multiple of earnings.' },
+    { title: 'Your next customers already exist', body: 'They belong to the competitors, suppliers and add-ons around you. An acquisition brings their customers, staff and cash flow over on day one, not one sale at a time.' },
+    { title: 'The best deals never get listed', body: 'Thousands of owners are nearing retirement with no succession plan. The best businesses change hands quietly, off-market, with the buyer the owner trusts.' },
+    { title: 'Most owners have tried, few have a system', body: 'Brokers, bidding wars and banks that say no. We run the same sourcing, structuring and closing process on every deal, so you aren’t learning on your own money.' },
   ],
-  processTitle: 'Your entire acquisition system<br>under one roof',
-  /** A real sequence, so it's numbered on the page. */
-  process: [
-    { title: 'Audit', body: 'Find where an acquisition adds the most value.' },
-    { title: 'Source', body: 'Approach off-market owners in your industry.' },
-    { title: 'Structure', body: 'Vendor finance, so the deal pays for itself.' },
-    { title: 'Close', body: 'Negotiate, diligence and integrate in 100 days.' },
-  ],
+  /** Floating labels around the VSL frame. <b> renders bold. */
+  videoCallouts: ['<b>Vendor-financed</b> deals', 'Off-market <b>deal flow</b>', 'Your <b>100-day</b> integration plan'],
+  processTitle: 'Your Entire Acquisition System<br>Under One Roof',
+  /** Capabilities floated around the emblem. */
+  systemTags: ['Off-market sourcing', 'Deal structuring', 'Vendor finance', 'Lender introductions', 'Due diligence', '100-day integration'],
   /** e.g. { score: '4.9', source: 'Google', count: '120+ reviews' }. Hidden while null. */
   rating: null as { score: string; source: string; count: string } | null,
   /** Real client results only. Hidden while empty. */
   caseStudies: [] as { name: string; business: string; results: string[]; videoUrl?: string; thumbnail?: string }[],
   /** Add only real, verifiable results. Hidden while empty. */
   testimonials: [] as { quote: string; name: string; detail: string }[],
-  closeHeadline: 'Your next acquisition,<br><em>structured</em>',
+  closeKicker: '$1,000,000',
+  closeHeadline: 'Your Next Acquisition,<br><em>Structured</em><span class="dot">.</span>',
 };
 
 /** Founder social proof on the resources page, e.g. { platform: 'LinkedIn', followers: '25,000+', url: '…' }. Hidden while empty. */

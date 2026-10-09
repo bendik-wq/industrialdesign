@@ -160,6 +160,8 @@ const ICONS = [
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1.1 3 2.5-1.3 2-3 2.5-3 1.1-3 2.5 1.3 2.5 3 2.5 3-1.1 3-2.5"/></svg>',
 ];
 
+const statsBlock = () => LANDING.stats.map((st) => `<div class="stat"><div class="label">${st.label}</div><div class="value">${st.value}</div><div class="detail">${st.detail}</div></div>`).join('');
+
 /** Everything the embedded application needs (used on the landing page and /apply). */
 function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
   const s = c.get('settings');
@@ -190,15 +192,17 @@ export async function landingPage(c: Context<AppEnv>) {
       apply_subtitle: LANDING.applySubtitle,
       problem_title: LANDING.problemTitle,
       process_title: LANDING.processTitle,
+      close_kicker: LANDING.closeKicker,
       close_headline: LANDING.closeHeadline,
     },
     lists: {
       testimonials: LANDING.testimonials.map((t) => `<blockquote>“${t.quote}”</blockquote><cite><strong>${t.name}</strong> · ${t.detail}</cite>`),
     },
     blocks: {
-      stats: LANDING.stats.map((st) => `<div class="stat"><div class="label">${st.label}</div><div class="value">${st.value}</div><div class="detail">${st.detail}</div></div>`).join(''),
+      stats: statsBlock(),
       problems: LANDING.problems.map((p, i) => `<div class="card problem"><div class="icon">${ICONS[i % ICONS.length]}</div><h3>${p.title}</h3><p>${p.body}</p></div>`).join(''),
-      process: LANDING.process.map((p) => `<li><h3>${p.title}</h3><p>${p.body}</p></li>`).join(''),
+      tags: LANDING.systemTags.map((t) => `<li class="tag">${t}</li>`).join(''),
+      callouts: LANDING.videoCallouts.map((t, i) => `<div class="callout-tag t${i + 1}">${t}</div>`).join(''),
       rating: r ? `<div class="rating"><span class="stars" aria-hidden="true">★★★★★</span><strong>Rated ${r.score} on ${r.source}</strong><span class="cta-sub" style="margin:0">${r.count}</span></div>` : '',
       cases: LANDING.caseStudies.map((cs) => `<li>${cs.videoUrl ? `<a class="thumb" href="${esc(cs.videoUrl)}" target="_blank" rel="noopener"${cs.thumbnail ? ` style="background-image:url('${esc(cs.thumbnail)}')"` : ''}><span class="vsl-play-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg></span></a>` : ''}<div class="body"><h3>${cs.name} · ${cs.business}</h3><ul>${cs.results.map((x) => `<li>${x}</li>`).join('')}</ul></div></li>`).join(''),
       faqs: faqBlock(),
@@ -215,7 +219,13 @@ export async function applyPage(c: Context<AppEnv>) {
     const tier = effectiveTier(lead);
     if (tier) return c.redirect(lead.booked_at && !lead.booking_cancelled_at ? '/breakout' : TIER_ROUTES[tier], 302);
   }
-  return render(c, '/apply.html', { title: 'Apply', config: applicationConfig(c, lead) });
+  return render(c, '/apply.html', {
+    title: 'See if you qualify',
+    slots: { apply_headline: LANDING.applyHeadline, cta_label: 'See If You Qualify' },
+    blocks: { stats: statsBlock() },
+    show: { stats: LANDING.stats.length > 0 },
+    config: { video: videoConfig(c, VIDEOS.main), ...applicationConfig(c, lead) },
+  });
 }
 
 export async function bookPage(c: Context<AppEnv>) {

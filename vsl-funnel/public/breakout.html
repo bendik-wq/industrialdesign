@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#151515">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poly:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poly:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="/assets/site.css">
   <title>Part 2</title>
   <script defer src="/assets/f.js"></script>
@@ -15,9 +15,9 @@
 </head>
 <body>
   <header class="nav"><div class="wrap nav-in">
-    <nav class="nav-links" aria-label="Main"><a href="/#how">How it works</a><a href="/#faq">FAQ</a></nav>
-    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b><span>M&amp;A ADVISORY</span></a>
-    <a class="btn btn-sm nav-cta" href="/#apply" data-track="cta_click" data-track-id="nav"><span class="long">See if you qualify</span><span class="short">Apply</span></a>
+    <nav class="nav-links" aria-label="Main"><a href="/">Home</a><a href="/#how">How It Works</a><a href="/#faq">FAQ</a></nav>
+    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b> <span>ADVISORY</span></a>
+    <div class="nav-right"><a class="btn btn-sm nav-cta" href="/apply" data-track="cta_click" data-track-id="nav"><span class="long">Get Started</span><span class="short">Apply</span></a></div>
   </div></header>
   <main id="main">
     <header class="hero"><div class="wrap">
@@ -34,7 +34,7 @@
 
     <section class="block gated" data-if="book">
       <div class="wrap narrow center">
-        <h2 class="display-2" data-slot="book_title">Ready to talk now?</h2>
+        <h2 class="section-title" data-slot="book_title">Ready to talk now?</h2>
         <p class="lede" data-slot="book_body"></p>
         <a class="btn pulse" data-href="book" href="/book" data-track="cta_click" data-track-id="breakout_book">Book my strategy call <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
@@ -46,7 +46,7 @@
 
     <section class="block alt" data-if="whatsapp">
       <div class="wrap narrow center">
-        <h2 class="display-2" data-slot="whatsapp_title">Add Josh on WhatsApp</h2>
+        <h2 class="section-title" data-slot="whatsapp_title">Add Josh on WhatsApp</h2>
         <p class="lede" data-slot="whatsapp_body"></p>
         <a class="btn wa" data-href="whatsapp" href="/go/wa" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.5-.2Z"/></svg>
@@ -58,25 +58,28 @@
 
     <section class="block" id="faq">
       <div class="wrap narrow">
-        <div class="section-head"><h2 class="display-2">You’ve got questions.<br><em>We’ve got answers.</em></h2></div>
+        <div class="section-head"><h2 class="section-title">You’ve got questions.<br><em>We’ve got answers.</em></h2></div>
         <div class="faqs" data-html="faqs"></div>
       </div>
     </section>
 
     <section class="block alt" data-if="apply">
       <div class="wrap narrow center">
-        <h2 class="display-2">See if you <em>qualify</em></h2>
+        <h2 class="section-title">See if you <em>qualify</em></h2>
         <p class="lede">Answer a few questions to book a free acquisition strategy call.</p>
-        <a class="btn" href="/#apply" data-track="cta_click" data-track-id="breakout_apply">See If You Qualify <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn" href="/apply" data-track="cta_click" data-track-id="breakout_apply">See If You Qualify <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
     </section>
   </main>
   <footer>
     <div class="wrap">
-      <nav><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a></nav>
-      <p data-slot="consent"></p>
-      <p data-slot="disclaimer"></p>
-      <p>© <span data-slot="year"></span> <span data-slot="site_name"></span></p>
+      <div class="foot-grid">
+        <div class="foot-col"><h4>Company</h4><a href="/#how">How It Works</a><a href="/#faq">FAQ</a><a href="/apply">Get Started</a></div>
+        <div class="foot-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/privacy#terms">Terms &amp; Conditions</a></div>
+        <div class="foot-col"><h4>Resources</h4><a href="/resources">Free Toolkit</a><a href="/breakout">Deal Breakdown</a></div>
+        <div class="foot-legal"><p data-slot="disclaimer"></p><p data-slot="consent"></p></div>
+      </div>
+      <div class="foot-bottom">Copyright © <span data-slot="year"></span> <b data-slot="site_name">G&amp;L M&amp;A Advisory</b>. All rights reserved.</div>
     </div>
   </footer>
 </body>

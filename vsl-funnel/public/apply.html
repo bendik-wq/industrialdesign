@@ -4,39 +4,55 @@
   <meta charset="utf-8">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#151515">
+  <meta name="theme-color" content="#171717">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poly:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poly:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="/assets/site.css">
-  <title>Apply</title>
+  <title>See if you qualify</title>
   <script defer src="/assets/f.js"></script>
+  <script defer src="/assets/vsl.js"></script>
   <script defer src="/assets/apply.js"></script>
 </head>
 <body>
   <header class="nav"><div class="wrap nav-in">
-    <nav class="nav-links" aria-label="Main"><a href="/#how">How it works</a><a href="/#faq">FAQ</a></nav>
-    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b><span>M&amp;A ADVISORY</span></a>
-    <a class="btn btn-sm nav-cta" href="/#apply" data-track="cta_click" data-track-id="nav"><span class="long">See if you qualify</span><span class="short">Apply</span></a>
+    <nav class="nav-links" aria-label="Main"><a href="/">Home</a><a href="/#how">How It Works</a><a href="/#faq">FAQ</a></nav>
+    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b> <span>ADVISORY</span></a>
+    <div class="nav-right"><a class="btn btn-sm nav-cta" href="/apply" data-track="cta_click" data-track-id="nav"><span class="long">Get Started</span><span class="short">Apply</span></a></div>
   </div></header>
-  <main id="main" class="apply-section" style="padding-top:24px">
-    <div class="wrap">
-      <div class="section-head"><h1 class="display-2">See If You <em>Qualify</em></h1><p>Takes about 2 minutes. For owners of businesses doing $1M+ in revenue.</p></div>
-      <div class="form-card">
-        <div class="app-progress" aria-hidden="true"><i data-progress></i></div>
-        <div class="app-meta"><span data-step-label>Step 1</span><span data-time-left></span></div>
-        <form data-app novalidate autocomplete="on"><noscript><p class="form-error">Please enable JavaScript to complete the application.</p></noscript></form>
-        <div data-turnstile></div>
-        <p class="privacy-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Your answers are private and only used to prepare your call.</p>
+  <main id="main">
+    <section class="hero compact">
+      <div class="wrap">
+        <h1 class="display" data-slot="apply_headline">Double Your Business <em>By Acquisition</em><span class="dot">.</span></h1>
+        <div class="vsl-stage"><div class="vsl" data-vsl></div></div>
+        <div class="cta-zone"><a class="btn" href="#apply" data-track="cta_click" data-track-id="apply_hero">See If You Qualify</a></div>
       </div>
-    </div>
+    </section>
+
+    <section class="apply-section" id="apply">
+      <div class="wrap">
+        <div class="form-card">
+          <div class="app-progress" aria-hidden="true"><i data-progress></i></div>
+          <div class="app-meta"><span data-step-label>Step 1</span><span data-time-left></span></div>
+          <form data-app novalidate autocomplete="on"><noscript><p class="form-error">Please enable JavaScript to complete the application.</p></noscript></form>
+          <div data-turnstile></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" data-if="stats" style="padding-top:10px">
+      <div class="wrap"><div class="stats" data-html="stats"></div></div>
+    </section>
   </main>
   <footer>
     <div class="wrap">
-      <nav><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a></nav>
-      <p data-slot="consent"></p>
-      <p data-slot="disclaimer"></p>
-      <p>© <span data-slot="year"></span> <span data-slot="site_name"></span></p>
+      <div class="foot-grid">
+        <div class="foot-col"><h4>Company</h4><a href="/#how">How It Works</a><a href="/#faq">FAQ</a><a href="/apply">Get Started</a></div>
+        <div class="foot-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/privacy#terms">Terms &amp; Conditions</a></div>
+        <div class="foot-col"><h4>Resources</h4><a href="/resources">Free Toolkit</a><a href="/breakout">Deal Breakdown</a></div>
+        <div class="foot-legal"><p data-slot="disclaimer"></p><p data-slot="consent"></p></div>
+      </div>
+      <div class="foot-bottom">Copyright © <span data-slot="year"></span> <b data-slot="site_name">G&amp;L M&amp;A Advisory</b>. All rights reserved.</div>
     </div>
   </footer>
 </body>
