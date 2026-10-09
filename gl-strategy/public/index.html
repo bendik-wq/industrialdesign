@@ -638,13 +638,13 @@ body.studio-on .foot { display:none; }
   <section class="wrap hero" style="padding-bottom:30px">
     <div class="kicker">YouTube</div>
     <h1 class="h-xl">90 days.<br>90 videos.<br>One story.</h1>
-    <p class="lead" style="text-align:center">Every video solves one real problem for a $1M+ service-business owner and sets up the next, from “why acquire” all the way to the exit. Every one ends at the offer.</p>
+    <p class="lead" style="text-align:center">One video every day. Every one is about the same promise: <b>double or triple your business</b>. Each solves one real problem for a $1M+ service-business owner, sets up the next, and ends at the offer.</p>
     <div class="offerbar" id="ytOffer"></div>
   </section>
   <section class="sec alt" style="padding-top:44px">
     <div class="wrap">
       <div class="tiles" id="ytTiles" style="margin-bottom:28px"></div>
-      <div class="head" style="margin-bottom:16px"><div class="kicker blue">The arc</div><h2 class="h-m">Thirteen chapters of one journey</h2></div>
+      <div class="head" style="margin-bottom:16px"><div class="kicker blue">The arc</div><h2 class="h-m">Thirteen steps to double or triple your business</h2></div>
       <div class="arcs" id="ytArcs"></div>
       <div class="head" style="margin:44px 0 16px"><div class="kicker blue" id="ytTodayK">Today</div><h2 class="h-m">Today’s video</h2></div>
       <div id="ytToday"></div>
@@ -1503,7 +1503,7 @@ $('labRun').onclick = () => { runLab(); toast('Ran 5,000 simulations'); };
 /* ============ YouTube: the 90-day series ============ */
 // Each arc follows the buyer's journey; every video sets up the next one.
 const YT_ARCS = [
-  { n:'Why acquire', tie:'Double or triple your business', v:[
+  { n:'Why acquire', tie:'Doubling starts with buying, not building', v:[
     ['How I’d Double a $1M Service Business in 12 Months Without Hiring Salespeople', 'Growth is stuck at 10–20% a year and the owner is the bottleneck.', ['Why organic growth caps out in service businesses', 'Buying revenue vs. building it', 'What doubling looks like on one deal']],
     ['Why Smart Service Owners Buy Competitors Instead of Running More Ads', 'Ad costs keep rising and new clients are getting expensive.', ['Cost to win a client vs. cost to buy one', 'Buying a book of recurring clients', 'The math on one $2M clinic']],
     ['5 Signs Your Business Is Ready for Its First Acquisition', 'They want to buy but don’t know if they’re ready.', ['Clean books and steady cash flow', 'A #2 who can run operations', 'Systems you can copy into a second business']],
@@ -1512,7 +1512,7 @@ const YT_ARCS = [
     ['What Buying a Business Actually Costs You (Less Than You Think)', 'Assumes you need millions in cash to buy.', ['Bank debt, seller notes and your money', 'Why your existing business is the down payment', 'Preview: overfinancing']],
     ['Your First Acquisition, Start to Finish: The 90-Day Roadmap', 'Has no plan from idea to signed LOI.', ['Days 1–30: buy box and deal flow', 'Days 31–60: owner calls and valuation', 'Days 61–90: structure and sign']]
   ]},
-  { n:'What to buy', tie:'The right deal', v:[
+  { n:'What to buy', tie:'Buy the business that doubles yours', v:[
     ['How to Define Your Buy Box (and Stop Wasting Time on Bad Deals)', 'Looks at every deal and wastes months.', ['Industry, size, geography, owner situation', 'Deal-breakers to write down now', 'A one-page buy box template']],
     ['Horizontal vs. Vertical Acquisitions for Service Businesses', 'Unsure whether to buy competitors or adjacent services.', ['Buying more of what you do', 'Buying what your clients also need', 'Which compounds faster']],
     ['The Best Service Businesses to Buy Right Now', 'Doesn’t know which sectors hold value.', ['Healthcare and allied health', 'Home and trade services', 'B2B services with contracts']],
@@ -1521,7 +1521,7 @@ const YT_ARCS = [
     ['Buying in Your Own City vs. a New Market', 'Unsure how far to look.', ['Synergies of staying local', 'When a new market makes sense', 'Running a business you can’t drive to']],
     ['How Big Should Your First Acquisition Be?', 'Afraid of buying too big or too small.', ['The 0.5x–1x your size rule', 'Why too small is a trap', 'Sizing to a 1.5 DSCR']]
   ]},
-  { n:'Finding deals', tie:'The right deal', v:[
+  { n:'Finding deals', tie:'Find the deal that doubles you', v:[
     ['Where the Best Businesses for Sale Really Are (Not on Listing Sites)', 'Only looks at listed deals and competes with everyone.', ['Why good deals never get listed', 'What listed deals tell you', 'Going direct to owners']],
     ['How to Find Off-Market Service Businesses in Your Industry', 'Doesn’t know how to find owners who might sell.', ['Associations, registers and directories', 'Building a target list', 'Ranking by fit']],
     ['The Letter That Gets Retiring Owners to Call You Back', 'Outreach gets ignored.', ['Why owners don’t reply', 'What to say in the first line', 'Follow-up cadence that works']],
@@ -1530,7 +1530,7 @@ const YT_ARCS = [
     ['Your Suppliers, Referral Partners and Competitors Are Your Deal Flow', 'Overlooks the network they already have.', ['Who hears about sales first', 'Asking without looking desperate', 'Turning friendly competitors into sellers']],
     ['The First Call With a Seller: What to Say and What Never to Say', 'Nervous about talking to sellers.', ['Lead with their legacy, not price', 'Questions that uncover motivation', 'Ending with a next step']]
   ]},
-  { n:'Valuation', tie:'The right deal', v:[
+  { n:'Valuation', tie:'Pay a price that still lets you double', v:[
     ['How to Value a Service Business in 10 Minutes', 'Can’t tell if an asking price is fair.', ['The quick profit check', 'Rule-of-thumb multiples', 'When to dig deeper']],
     ['SDE vs. EBITDA: Which Number Sellers and Banks Actually Use', 'Confused by valuation terms.', ['Seller’s discretionary earnings explained', 'EBITDA explained', 'Which one your lender will use']],
     ['Add-Backs: Where Sellers Inflate Profit and How to Catch It', 'Takes the seller’s profit number at face value.', ['Legitimate add-backs', 'Aggressive add-backs', 'Questions that expose them']],
@@ -1539,7 +1539,7 @@ const YT_ARCS = [
     ['Customer Concentration: The Hidden Risk That Kills Valuations', 'Misses that a few clients carry the business.', ['How to measure concentration', 'When it’s a deal-breaker', 'Structuring around it']],
     ['How to Make an Offer a Seller Respects Without Overpaying', 'Worried about lowballing or overpaying.', ['Anchor on what the business earns', 'Price vs. terms', 'Presenting the offer in person']]
   ]},
-  { n:'Financing and DSCR', tie:'A profitable 1.5 DSCR', v:[
+  { n:'Financing and DSCR', tie:'Fund the double at a profitable 1.5 DSCR', v:[
     ['How Banks Decide Whether to Fund Your Acquisition', 'Thinks lenders say no to buyers like them.', ['What lenders look at first', 'Buyer, business and structure', 'Why your track record matters']],
     ['DSCR Explained: Why 1.5x Is the Number That Gets Deals Funded', 'Doesn’t understand debt coverage.', ['What DSCR measures', 'Why 1.5x keeps you profitable and safe', 'Calculating it on a real deal']],
     ['Bank and Government-Backed Acquisition Loans Explained', 'Doesn’t know which loans exist.', ['Senior bank debt', 'Government-backed programs', 'What each costs and requires']],
@@ -1548,7 +1548,7 @@ const YT_ARCS = [
     ['Building a Debt Stack That Leaves the Business Profitable', 'Afraid debt will choke cash flow.', ['Senior debt, seller note, earn-out', 'Repayment schedules that fit cash flow', 'Stress-testing a bad year']],
     ['The Lender Pack: What to Bring to Get a Yes', 'Shows up to lenders unprepared.', ['Financials and projections', 'Your story as an operator', 'The structure that answers their questions']]
   ]},
-  { n:'Overfinancing', tie:'Overfinancing built in', v:[
+  { n:'Overfinancing', tie:'Double without draining your cash', v:[
     ['How Overfinancing Works: Closing a Deal With Cash Left Over', 'Thinks no-money-down means no cash after close.', ['Financing more than the price', 'Closing costs and working capital in the loan', 'Keeping DSCR at 1.5']],
     ['No-Money-Down Acquisitions: What’s Real and What’s Hype', 'Skeptical of no-money-down claims.', ['Where the money really comes from', 'What it requires from you', 'Where people get it wrong']],
     ['Earn-Outs: Paying the Seller From Future Performance', 'Gap between price and what the bank will lend.', ['How earn-outs work', 'When sellers accept them', 'Protecting yourself in the terms']],
@@ -1557,7 +1557,7 @@ const YT_ARCS = [
     ['How to Protect Your Existing Business When You Borrow to Buy', 'Afraid of putting their company at risk.', ['Separate entities', 'Limiting guarantees', 'Downside planning']],
     ['Five Deal Structures Compared: Which One Fits Your Deal?', 'Overwhelmed by options.', ['Bank + seller note', 'Earn-out heavy', 'Overfinanced with working capital']]
   ]},
-  { n:'The LOI', tie:'An LOI signed in 90 days', v:[
+  { n:'The LOI', tie:'Lock in the double: LOI in 90 days', v:[
     ['How to Write a Letter of Intent That Sellers Sign', 'Has never written an LOI.', ['What an LOI is and isn’t', 'The structure that sellers trust', 'Getting to signature fast']],
     ['The 9 Terms That Matter Most in an LOI', 'Doesn’t know what to put in it.', ['Price, structure and timing', 'Exclusivity and conditions', 'Transition and employees']],
     ['Negotiating With a Founder Who Built It Over 30 Years', 'Struggles with emotional sellers.', ['What the founder really wants', 'Protecting their legacy', 'Trading terms for price']],
@@ -1566,7 +1566,7 @@ const YT_ARCS = [
     ['Keeping the Seller Involved After the Sale', 'Afraid clients and staff leave with the owner.', ['Transition agreements', 'Consulting periods', 'Introductions to key clients']],
     ['What Happens After the Seller Signs the LOI', 'Doesn’t know the next steps.', ['The 60-day path to close', 'Who does what', 'Keeping momentum']]
   ]},
-  { n:'Due diligence', tie:'Close it safely', v:[
+  { n:'Due diligence', tie:'Make sure the double is real', v:[
     ['Due Diligence for Your First Acquisition: The Complete Checklist', 'Doesn’t know what to check.', ['Financial, legal, people, clients', 'Order of operations', 'What to ask for on day one']],
     ['Financial Due Diligence: Proving the Profit Is Real', 'Can’t verify the numbers.', ['Bank statements vs. reports', 'Tax returns', 'Revenue quality']],
     ['Due Diligence for Healthcare and Regulated Service Businesses', 'Regulation scares them.', ['Licences and compliance', 'Billing and claims risk', 'Practitioner agreements']],
@@ -1575,7 +1575,7 @@ const YT_ARCS = [
     ['Quality of Earnings Reports: When You Need One', 'Doesn’t know if a QoE is worth it.', ['What a QoE covers', 'Cost vs. deal size', 'Reading the report']],
     ['Deal-Killers in Due Diligence and How to Renegotiate', 'Finds problems and panics.', ['What to walk away from', 'What to reprice', 'How to reopen terms calmly']]
   ]},
-  { n:'Closing', tie:'Close it safely', v:[
+  { n:'Closing', tie:'Close the deal that doubles you', v:[
     ['How to Close Your First Acquisition Without Losing Your Mind', 'Closing feels chaotic.', ['The closing timeline', 'Keeping your business running', 'Managing everyone’s deadlines']],
     ['Your Deal Team: Lawyer, Accountant, Lender and Advisor', 'Doesn’t know who to hire.', ['What each person does', 'Choosing deal specialists', 'What it costs']],
     ['The Purchase Agreement in Plain English', 'Intimidated by the legal documents.', ['Reps and warranties', 'Indemnities', 'Holdbacks and escrow']],
@@ -1584,7 +1584,7 @@ const YT_ARCS = [
     ['The First 7 Days After You Own It', 'Doesn’t know what to do first.', ['Listen before you change', 'Cash and payroll checks', 'Quick wins']],
     ['Lessons From First Acquisitions That Went Wrong', 'Wants to avoid rookie mistakes.', ['Changing too much too fast', 'Ignoring the team', 'Running out of cash']]
   ]},
-  { n:'Integration and shared costs', tie:'Double or triple after close', v:[
+  { n:'Integration and shared costs', tie:'Turn 2x revenue into 2x profit', v:[
     ['The First 100 Days After an Acquisition', 'No integration plan.', ['Stabilise, then improve', 'What to measure weekly', 'The 100-day checklist']],
     ['How to Set Up Shared Cost Structures Across Your Businesses', 'Paying for everything twice.', ['What to share and what not to', 'Allocating shared costs fairly', 'The margin impact']],
     ['Combining Back Office: Admin, Billing, Payroll and Software', 'Two of every system.', ['Order to combine', 'Choosing the system that stays', 'Avoiding billing disruption']],
@@ -1593,7 +1593,7 @@ const YT_ARCS = [
     ['Pricing After an Acquisition: When to Raise and When to Wait', 'Unsure about changing prices.', ['Benchmarking prices', 'Timing increases', 'Communicating to clients']],
     ['The Year-One KPIs That Prove an Acquisition Is Working', 'Doesn’t know if the deal is succeeding.', ['Revenue retention', 'Margin and DSCR', 'Staff retention']]
   ]},
-  { n:'Team and culture', tie:'Double or triple after close', v:[
+  { n:'Team and culture', tie:'A team that runs a doubled business', v:[
     ['How to Build a Team in a New Acquisition', 'Unsure who to keep, hire or move.', ['Assess the current team', 'Fill the leadership gap', 'Roles that span both businesses']],
     ['Keeping Key Staff After the Owner Leaves', 'Fears an exodus.', ['Identify key people early', 'Retention bonuses that work', 'Giving them a reason to stay']],
     ['Hiring a General Manager for the Acquired Business', 'Doesn’t want to run it day to day.', ['When you need a GM', 'Finding the right one', 'Paying for performance']],
@@ -1602,7 +1602,7 @@ const YT_ARCS = [
     ['Incentives and Equity for Managers in Acquired Businesses', 'Managers act like employees, not owners.', ['Profit-share models', 'Phantom and real equity', 'Aligning to growth']],
     ['Running Two Businesses Without Working Twice the Hours', 'Afraid of burnout.', ['Your role changes from operator to owner', 'Weekly operating rhythm', 'Dashboards over meetings']]
   ]},
-  { n:'Growth after the deal', tie:'Double or triple after close', v:[
+  { n:'Growth after the deal', tie:'From double to triple', v:[
     ['How to Grow Organic Revenue in a Newly Acquired Business', 'Bought it but growth is flat.', ['Fix the funnel first', 'Low-hanging growth', 'The 12-month growth plan']],
     ['Marketing a Business You Just Bought: The First 90 Days', 'Marketing is neglected after the sale.', ['Audit what exists', 'Quick wins', 'Building a repeatable engine']],
     ['Cross-Selling Between Your Businesses', 'Clients don’t know about your other services.', ['Mapping overlapping clients', 'Offers that make sense', 'Training staff to refer']],
@@ -1611,7 +1611,7 @@ const YT_ARCS = [
     ['Raising Revenue per Client Without Losing Clients', 'Revenue per client is low.', ['Packaging services', 'Memberships and plans', 'Testing price changes']],
     ['Double or Triple: The Real Growth Math After One Acquisition', 'Wants proof the strategy works.', ['Revenue doubled at close', 'Margins from shared costs', 'Growth on the combined base']]
   ]},
-  { n:'Platform and exit', tie:'Exit at a higher multiple', v:[
+  { n:'Platform and exit', tie:'Cash out the triple', v:[
     ['Your Second Acquisition: Faster, Cheaper, Better', 'Thinks the first deal is the end.', ['What you learned', 'Using the first deal to fund the second', 'Speeding up the process']],
     ['Building a Platform Company From Service Businesses', 'Doesn’t see the bigger play.', ['What a platform is', 'Systems that scale across businesses', 'Becoming the buyer in your sector']],
     ['How to Position Your Company for an Exit From Day One', 'Only thinks about exit at the end.', ['What buyers pay for', 'Clean books and owner independence', 'Building value every quarter']],
@@ -1620,7 +1620,7 @@ const YT_ARCS = [
     ['Your 90-Day Plan to a Signed LOI, and How We Help', 'Ready to act but wants a guide.', ['Recap of the whole series', 'Our 90-day program and guarantee', 'How to apply']]
   ]}
 ];
-const YT_CTA = 'Every video ends the same way: if your service business does $1M+ and you want to double or triple it through acquisition, watch the full presentation and apply.';
+const YT_CTA = 'Close every video the same way: “If your service business does $1M+ and you want to double or triple it, we’ll get an LOI signed in 90 days with overfinancing built in at a 1.5 DSCR, backed by a 7-day money-back guarantee. Watch the full presentation and apply.”';
 function ytDefault() {
   const items = []; let day = 1;
   YT_ARCS.forEach((a, ai) => a.v.forEach(([title, problem, ch]) => items.push({ day: day++, arc: ai, title, problem, chapters: ch.slice(), status:'idea', assignee:'josh', url:'', views:null, notes:'' })));
@@ -1660,7 +1660,7 @@ function renderYouTube() {
   $('ytTodayK').textContent = today < 1 ? 'Coming up first' : today > Y.items.length ? 'Last in the series' : `Day ${today} · ${fmtShort(ytDate(today))}`;
   if (it) {
     const prev = Y.items[it.day - 2], next = Y.items[it.day];
-    $('ytToday').innerHTML = `<div class="today"><div><div class="lbl">${esc(YT_ARCS[it.arc]?.n || '')} · leads to “${esc(YT_ARCS[it.arc]?.tie || '')}”</div><h3 style="margin-top:8px">${esc(it.title)}</h3><p class="prob">The problem: ${esc(it.problem)}</p><ol>${it.chapters.map(c => `<li>${esc(c)}</li>`).join('')}</ol><p class="muted small" style="margin-top:14px">${esc(YT_CTA)}</p></div>
+    $('ytToday').innerHTML = `<div class="today"><div><div class="lbl">${esc(YT_ARCS[it.arc]?.n || '')} · Double or triple: ${esc(YT_ARCS[it.arc]?.tie || '')}</div><h3 style="margin-top:8px">${esc(it.title)}</h3><p class="prob">The problem: ${esc(it.problem)}</p><ol>${it.chapters.map(c => `<li>${esc(c)}</li>`).join('')}</ol><p class="muted small" style="margin-top:14px">${esc(YT_CTA)}</p></div>
       <div class="side2"><div class="stpills">${YT_ST.map(([s, l, c]) => `<button type="button" class="${it.status === s ? 'on' : ''}" style="${it.status === s ? 'background:' + c : ''}" data-yst="${s}" data-day="${it.day}">${l}</button>`).join('')}</div>
       <div class="row" style="gap:10px">${avatar(it.assignee, 30)}<span><b>${esc(person(it.assignee)?.name || 'Unassigned')}</b> films and publishes</span></div>
       ${prev ? `<div class="link"><span>Builds on · Day ${prev.day}</span>${esc(prev.title)}</div>` : ''}${next ? `<div class="link"><span>Sets up · Day ${next.day}</span>${esc(next.title)}</div>` : ''}
@@ -1671,13 +1671,13 @@ function renderYouTube() {
   $('ytStart').value = Y.start;
   $('ytPlan').innerHTML = YT_ARCS.map((a, ai) => {
     const its = Y.items.filter(i => i.arc === ai && (!flt || i.status === flt)); if (!its.length) return '';
-    return `<div class="arcgrp" id="arc${ai}"><h3>${String(ai + 1).padStart(2, '0')} ${esc(a.n)}<small>→ ${esc(a.tie)}</small></h3>${its.map(vidHTML).join('')}</div>`;
+    return `<div class="arcgrp" id="arc${ai}"><h3>${String(ai + 1).padStart(2, '0')} ${esc(a.n)}<small>Double or triple → ${esc(a.tie)}</small></h3>${its.map(vidHTML).join('')}</div>`;
   }).join('') || '<div class="empty">No videos with that status.</div>';
   $('ytIdeas').innerHTML = Y.ideas.length ? Y.ideas.map((id, i) => `<div class="idea"><span>${esc(id.t)}<span class="muted small"> · ${esc(id.by || '')}</span></span><select data-idea-at="${i}" aria-label="Insert at day"><option value="">Insert at day…</option>${Y.items.map(x => `<option value="${x.day}">Day ${x.day}: ${esc(x.title.slice(0, 40))}</option>`).join('')}</select><button type="button" class="x" data-idea-del="${i}" aria-label="Remove idea" style="border:0;background:none;font-size:18px;color:var(--ink3);cursor:pointer">×</button></div>`).join('') : '<p class="muted">No ideas yet.</p>';
 }
 function vidHTML(it) {
   const [s, l, c] = stInfo(it.status), today = ytTodayDay();
-  let h = `<div class="vid ${ytOpen === it.day ? 'open' : ''} ${it.day === today ? 'today2' : ''} ${it.status === 'published' ? 'pub' : ''}" data-yopen="${it.day}"><div class="dn">Day ${it.day}<small>${fmtShort(ytDate(it.day))}</small></div><div style="min-width:0"><div class="vt">${esc(it.title)}</div><div class="vp">${esc(it.problem)}</div></div><button type="button" class="spill" style="background:${c}" data-ycycle="${it.day}" aria-label="Status ${l}, change">${l}</button><span class="avwrap">${avatar(it.assignee, 24)}</span></div>`;
+  let h = `<div class="vid ${ytOpen === it.day ? 'open' : ''} ${it.day === today ? 'today2' : ''} ${it.status === 'published' ? 'pub' : ''}" data-yopen="${it.day}"><div class="dn">Day ${it.day}<small>${fmtShort(ytDate(it.day))}</small></div><div style="min-width:0"><div class="vt">${esc(it.title)}</div><div class="vp">${esc(it.problem)}</div><div class="vp" style="color:var(--blue-ink);font-weight:600">Double or triple: ${esc(YT_ARCS[it.arc]?.tie || '')}</div></div><button type="button" class="spill" style="background:${c}" data-ycycle="${it.day}" aria-label="Status ${l}, change">${l}</button><span class="avwrap">${avatar(it.assignee, 24)}</span></div>`;
   if (ytOpen === it.day) {
     const prev = Y.items[it.day - 2], next = Y.items[it.day];
     h += `<div class="vedit" data-yedit="${it.day}">
