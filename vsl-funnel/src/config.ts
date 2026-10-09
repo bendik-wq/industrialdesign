@@ -51,21 +51,21 @@ export interface LandingVariant {
 /** Headline experiment. Assignment is deterministic per visitor (hash of visitor id), so it's sticky without storage.
  *  <em> renders in the accent colour. */
 export const HEADLINE_EXPERIMENT = {
-  id: 'headline-v4',
+  id: 'headline-v5',
   variants: [
     {
       id: 'a',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: 'Buy Your Competitor.<br><em>With Their Money.</em>',
-      subheadline: 'The 3C Acquisition System finds an off-market business in your industry, gets the seller to finance most of the deal, and plugs it into yours. Double your size without touching your operating cash.',
+      headline: 'We Get You A Signed LOI In 90 Days.<br><em>No Money Down.</em>',
+      subheadline: 'Josh Li’s team finds an off-market business in your industry, negotiates the deal and builds the full financing stack — seller finance and senior debt, baked in from day one. You sign the letter of intent without putting your own cash on the line.',
     },
     {
       id: 'b',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: 'The Fastest Way To Double A $1M Business<br><em>Is To Buy Another One.</em>',
-      subheadline: 'The 3C Acquisition System finds an off-market business in your industry, gets the seller to finance most of the deal, and plugs it into yours. Double your size without touching your operating cash.',
+      headline: 'Your First Acquisition, Fully Financed.<br><em>Signed LOI In 90 Days.</em>',
+      subheadline: 'Josh Li’s team finds an off-market business in your industry, negotiates the deal and builds the full financing stack — seller finance and senior debt, baked in from day one. You sign the letter of intent without putting your own cash on the line.',
     },
   ] satisfies LandingVariant[],
 };
@@ -130,8 +130,12 @@ export const BREAKOUT = {
 
 export const FAQS: { q: string; a: string }[] = [
   {
-    q: 'Do I need to use my own cash to acquire a business?',
-    a: 'In most of the deals we structure, the majority of the purchase price is funded by vendor finance (the seller is paid over time from the acquired business’s cash flow) and senior debt. Every deal is different and some need a contribution; the aim is to structure deals so your operating cash isn’t what the deal depends on.',
+    q: 'Do I really put no money down?',
+    a: 'That’s how we structure it. The purchase price is covered by seller finance (the seller is paid over time from the acquired business’s own cash flow) and senior debt, and the financing is lined up before you sign the LOI. If a deal can’t be financed that way, we don’t take it to LOI.',
+  },
+  {
+    q: 'What happens in the 90 days?',
+    a: 'Weeks 1–2: we audit your business and agree your target profile. Weeks 3–8: we source and approach off-market owners in your industry. Weeks 9–13: we negotiate terms, line up the financing and put a signed letter of intent in front of you.',
   },
   {
     q: 'Why only businesses doing $1M+?',
