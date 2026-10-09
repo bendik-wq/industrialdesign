@@ -247,7 +247,7 @@ export async function bookPage(c: Context<AppEnv>) {
       first_name: esc(lead.first_name ?? ''),
       ref_code: lead.ref_code,
       eyebrow: tier === 'A' ? `Congratulations${lead.first_name ? `, ${esc(lead.first_name)}` : ''} — you qualify` : 'Book your call',
-      headline: 'Just Pick A <em>Time</em>',
+      headline: 'Pick a time for your call',
     },
     config: {
       booking: {

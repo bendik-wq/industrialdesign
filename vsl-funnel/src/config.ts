@@ -36,7 +36,7 @@ export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
 // ───────────────────────────── Brand ─────────────────────────────
 
 /** Colour palettes defined in site.css. The first is the default; pick another in the dashboard (SITE_PALETTE) or preview with ?palette=… */
-export const PALETTES = ['navy', 'emerald', 'bone', 'classic'];
+export const PALETTES = ['paper', 'ink'];
 
 /** Default brand. The dashboard's "Brand name" setting (SITE_NAME) overrides `name` without a redeploy. */
 export const BRAND = { name: 'G&L M&A Advisory', founder: 'Josh Li' };
@@ -60,15 +60,15 @@ export const HEADLINE_EXPERIMENT = {
       id: 'a',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: 'Get A Signed LOI For A <em>No-Money-Down Acquisition</em> That Doubles Or Triples Your Business. <span class="nw">Over-Financing</span> Baked In.',
-      subheadline: 'Work directly with Josh Li to find the right target, structure the deal so the financing covers the full price, or more, at a profitable <mark>~1.5x DSCR</mark>, and get the LOI signed <mark>inside 90 days</mark>. Backed by a <mark>7-day money-back guarantee</mark>.',
+      headline: 'Get a signed LOI for a <em><span class="nw">no-money-down</span> acquisition</em> that doubles or triples your business, with over-financing built in.',
+      subheadline: 'Work directly with Josh Li to identify the right target, structure financing that covers the full purchase price at a DSCR of around 1.5x, and reach a signed LOI within 90 days. Backed by a 7-day money-back guarantee.',
     },
     {
       id: 'b',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: 'Double Or Triple Your Business With A <em>No-Money-Down Acquisition.</em> Signed LOI In 90 Days, <span class="nw">Over-Financing</span> Baked In.',
-      subheadline: 'Work directly with Josh Li to find the right target, structure the deal so the financing covers the full price, or more, at a profitable <mark>~1.5x DSCR</mark>, and get the LOI signed <mark>inside 90 days</mark>. Backed by a <mark>7-day money-back guarantee</mark>.',
+      headline: 'Double or triple your business with a <em><span class="nw">no-money-down</span> acquisition</em>. Signed LOI in 90 days, with over-financing built in.',
+      subheadline: 'Work directly with Josh Li to identify the right target, structure financing that covers the full purchase price at a DSCR of around 1.5x, and reach a signed LOI within 90 days. Backed by a 7-day money-back guarantee.',
     },
   ] satisfies LandingVariant[],
 };
@@ -80,7 +80,7 @@ export const LANDING = {
   proof: [
     '<b>2</b><span>businesses Josh bought with 100% seller finance</span>',
     '<b>90 days</b><span>to a signed LOI</span>',
-    '<b>~1.5x</b><span>DSCR, so the deal pays for itself</span>',
+    '<b>1.5x</b><span>target DSCR, so the deal services its own debt</span>',
     '<b>7 days</b><span>money-back guarantee</span>',
   ],
   soundPrompt: 'Click for sound',
@@ -93,10 +93,10 @@ export const LANDING = {
   applyPoints: [
     '<strong>A working session, not a pitch.</strong> We go through your numbers and your market.',
     '<strong>Your target profile.</strong> The business that doubles or triples yours.',
-    '<strong>Your deal structure.</strong> Over-financed at ~1.5x DSCR, with none of your own cash.',
+    '<strong>Your deal structure.</strong> Over-financed at 1.5x DSCR, with none of your own cash.',
   ],
   /** Shown under the application points. Keep it identical to the terms in your client agreement. */
-  guarantee: '<strong>7-day money-back guarantee.</strong> Join, and if you decide in the first 7 days it’s not for you, tell us and you get a full refund.',
+  guarantee: '<strong>7-day money-back guarantee.</strong> If you decide in the first 7 days that it’s not for you, we refund you in full.',
   faqTitle: 'Before you apply',
   /** Add only real, verifiable results. Hidden while empty. */
   testimonials: [] as { quote: string; name: string; detail: string }[],
@@ -115,14 +115,14 @@ export const BREAKOUT = {
   // Shown to B-tier applicants (not booked yet)
   applied: {
     eyebrow: 'Step 2 of 3 — Application received',
-    headline: 'Before We Talk, <em>Watch Part 2</em>',
+    headline: 'Before we talk, watch part 2',
     subheadline:
       'In this breakout session Josh walks through a real add-on acquisition line by line: what the seller carries, what the bank funds, how your existing business makes you the credible buyer, and what it does to your valuation.',
   },
   // Shown after a call is booked (A-tier, or B-tier who booked)
   booked: {
-    eyebrow: 'You’re booked ✓',
-    headline: 'Your Call Is Confirmed. <em>Watch This Before We Speak.</em>',
+    eyebrow: 'You’re booked',
+    headline: 'Your call is confirmed. Watch this before we speak.',
     subheadline:
       'Owners who watch this before their call get twice as much out of it. It covers how the call works, what numbers to have ready and how to know if acquisition growth fits your business.',
   },
@@ -146,7 +146,7 @@ export const FAQS: { q: string; a: string }[] = [
     a: 'Yes. That’s the structure. Seller finance (the seller is paid over time from the business’s own cash flow) and senior debt cover the purchase price, and the deal is <strong>over-financed</strong>: the financing covers more than the price, and the extra goes to working capital and closing costs. We line the financing up with you before you sign the LOI.',
   },
   {
-    q: 'What does a ~1.5x DSCR mean?',
+    q: 'What does a 1.5x DSCR mean?',
     a: 'DSCR is the debt service coverage ratio: the business’s cash profit divided by its loan repayments. At about 1.5x, the business you buy earns roughly $1.50 for every $1 it owes each year. The deal pays for itself with a buffer, lenders are comfortable, and it doesn’t lean on your existing business.',
   },
   {
@@ -189,7 +189,7 @@ export const FAQS: { q: string; a: string }[] = [
 
 export const RESOURCES = {
   eyebrow: 'Application received',
-  headline: 'It Looks Like We’re Not <em>A Fit Yet</em>',
+  headline: 'It looks like we’re not a fit yet',
   subheadline: 'Our advisory work is built for owners of profitable $1M+ businesses. But you can still get the whole acquisition toolkit, completely free.',
   ps: 'P.S. Seriously, it’s free.',
   goodFitTitle: 'This is a great next step if:',
