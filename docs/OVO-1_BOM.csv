@@ -1,19 +1,22 @@
 item,part_no,name,qty,material,process,finish,source,cad_file,notes
-1,OVO1-101,Upper shell half,1,Al 5052-H32 2.5 mm,Deep draw (or hydroform) + 5-axis CNC trim; CNC from 6061 billet for prototypes,Bead blast + clear anodize,Make,out/ovo1/step/shell_upper.step,"Widest at the open edge so it releases from the punch; 0.3 mm hairline seam"
-2,OVO1-102,Lower shell half,1,Al 5052-H32 2.5 mm,Deep draw + 5-axis CNC trim,Bead blast + clear anodize,Make,out/ovo1/step/shell_lower.step,"Open flat belly; 4 internal M3 bosses for the belly plate"
-3,OVO1-103,Tail nozzle lip,1,SS 316,Stamp + 5-axis machine + polish,Mirror polish,Make,out/ovo1/step/nozzle.step,"The only bright exterior detail"
-4,OVO1-104,Exhaust grille,1,SS 304 1.5 mm,Laser cut (39 louvres),Black PVD,Make,out/ovo1/step/exhaust_grille.step,"Recessed 20 mm; production: angle louvres 15° or add black baffle sleeve"
-5,OVO1-105,Light ring,1,Opal PC,Injection molding,—,Make,out/ovo1/step/light_ring.step,"Edge-lit by side-fire LEDs; glows with generation rate"
-6,OVO1-106,Belly plate w/ intake grille,1,SS 304 1.5 mm,Laser cut + flatten,Black PVD,Make,out/ovo1/step/belly_plate.step,"37 intake slots 2.6 mm; ≈38 cm² open"
-7,OVO1-107,Plinth,1,SS 304 solid,CNC,Black PVD or bead blast,Make,out/ovo1/step/plinth.step,"1.8 kg; rear face carries C7 inlet, 2x USB4, RJ45, power button"
-8,OVO1-108,Foot pad,1,Silicone 50A,Die cut,Black,Buy,out/ovo1/step/foot.step,
-9,OVO1-201,Internal tray + fan bracket,1,SS 304 1.5 mm,Laser cut + bend + spot weld,Passivated,Make,out/ovo1/step/tray.step,"Outline follows the shell inner contour; Mini-ITX standoffs"
-10,OVO1-202,Heatsink shroud,1,Al 1050 0.8 mm,Laser cut + bend,—,Make,out/ovo1/step/duct.step,"Fan outlet to end of fins"
-11,OVO1-401,Mainboard Mini-ITX AMD Ryzen AI Max+ 395 128 GB,1,—,—,—,Buy (e.g. Framework Desktop Mainboard),out/ovo1/step/board.step,"Verify power input: ATX 24-pin vs 12 V DC"
-12,OVO1-402,Vapour-chamber heatsink 110 x 120 x 50,1,Cu VC base + Al 1050 fins 0.4 mm,Skived / stacked fin,—,Buy (custom thermal vendor),out/ovo1/step/heatsink_fins.step,"26 fins running nose to tail"
-13,OVO1-403,Fan 120 x 25 mm PWM,1,—,—,—,Buy (Noctua NF-A12x25 class),out/ovo1/step/fan_frame.step,"Rotor: out/ovo1/step/fan_rotor.step"
-14,OVO1-404,PSU 300 W 12 V open frame,1,—,—,—,Buy (Mean Well EPP-300-12 class),out/ovo1/step/psu.step,"Stands on edge behind the board; must be Class II if C7 inlet is kept"
-15,OVO1-405,NVMe SSD M.2 2280 2 TB,1,—,—,—,Buy,—,
-16,OVO1-406,Panel-mount extension leads (USB4 x2 / RJ45),1 set,—,—,—,Buy,—,"Board I/O edge to plinth"
-17,OVO1-407,IEC C7 inlet (or C5 if earthed design),1,—,—,—,Buy,—,
-18,OVO1-501,LED + accelerometer (tap-to-wake) PCB,1,FR4,SMT,—,Make (separate electronics track),—,"Not modeled in this revision"
+1,OVO1-101,Upper outer skin,1,Al 5052-H32 2.0 mm,Deep draw + 5-axis CNC trim,Bead blast + anodize (ε≈0.8),Make,out/ovo1/step/shell_upper.step,"Closed nose to tail; 0.3 mm hairline seam; light-slit cut at tail"
+2,OVO1-102,Lower outer skin,1,Al 5052-H32 2.0 mm,Deep draw + 5-axis CNC trim,Bead blast + anodize,Make,out/ovo1/step/shell_lower.step,"Open flat belly; 4 M3 bosses for the belly plate"
+3,OVO1-103,Jacket liner (upper + lower),2,Al 5052 1.0 mm,Deep draw + dimple weld + edge laser weld + hydro-inflate,—,Make,out/ovo1/step/jacket_liner.step,"Pillow plate: 3 mm water gap; helium leak test"
+4,OVO1-104,Coolant,0.6 L,30% propylene glycol + Al corrosion inhibitor,—,—,Buy,out/ovo1/step/jacket_water.step,"0.48 L in the jacket; rest in rad, pump, cold plate"
+5,OVO1-105,Light slit,1,Opal PC,Injection molding,—,Make,out/ovo1/step/light_slit.step,"60 mm, in the tail seam"
+6,OVO1-106,Belly plate,1,SS 304 1.5 mm,Laser cut,Black PVD,Make,out/ovo1/step/belly_plate.step,"Intake ≈57 cm² (nose + tail), exhaust ≈90 cm² (beside keel); leak sensor mounted"
+7,OVO1-107,Keel,1,SS 304 solid,CNC,Black PVD,Make,out/ovo1/step/keel.step,"1.05 kg; back face: C7 inlet, 2x USB4, RJ45, power button"
+8,OVO1-108,Keel foot pad,1,Silicone 50A,Die cut,Black,Buy,out/ovo1/step/foot.step,
+9,OVO1-201,Tray,1,SS 304 1.5 mm,Laser cut,Passivated,Make,out/ovo1/step/tray.step,"Contour = jacket liner offset; Mini-ITX standoffs"
+10,OVO1-202,Fan deck,1,SS 304 1.0 mm,Laser cut,Passivated,Make,out/ovo1/step/fan_deck.step,"Seals radiator to liner"
+11,OVO1-203,Tunnel baffles (front + rear),2,SS 304 1.0 mm,Laser cut,Passivated,Make,out/ovo1/step/baffles.step,
+12,OVO1-301,Belly radiator 160 x 90 x 25,1,Al flat tube + louvred fin,Controlled-atmosphere braze,—,Buy (custom),out/ovo1/step/radiator.step,"All-aluminium wetted path"
+13,OVO1-302,Fan 80 x 15 mm PWM slim,2,—,—,—,Buy,out/ovo1/step/fans.step,"Off in silent mode; push down through the core"
+14,OVO1-303,Pump + 150 ml reservoir,1,—,—,—,Buy (DC brushless 12 V),out/ovo1/step/pump.step,"Ø50 x 90 across the nose; fill port under the belly"
+15,OVO1-304,SoC cold plate,1,Al 6063 skived fin,CNC + skive + braze lid,—,Buy (custom),out/ovo1/step/cold_plate.step,"O-ring quick-disconnects"
+16,OVO1-401,Mainboard Mini-ITX AMD Ryzen AI Max+ 395 128 GB,1,—,—,Conformal coat,Buy (e.g. Framework Desktop Mainboard),out/ovo1/step/board.step,"Verify power input: ATX 24-pin vs 12 V DC"
+17,OVO1-402,PSU 300 W 12 V open frame,1,—,—,—,Buy (Mean Well EPP-300-12 class),out/ovo1/step/psu.step,"Tail bay, in the intake stream; Class II if C7 inlet kept"
+18,OVO1-403,NVMe SSD M.2 2280 2 TB,1,—,—,—,Buy,—,
+19,OVO1-404,Panel-mount extension leads (USB4 x2 / RJ45),1 set,—,—,—,Buy,—,"Board I/O edge to keel"
+20,OVO1-405,IEC C7 inlet (or C5 if earthed design),1,—,—,—,Buy,—,
+21,OVO1-501,LED / accelerometer / leak-sensor / fan-pump controller PCB,1,FR4,SMT,—,Make (separate electronics track),—,"Not modeled in this revision"

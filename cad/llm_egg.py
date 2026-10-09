@@ -1,16 +1,17 @@
 """
-OVO-1 — local-LLM appliance shaped as an egg lying on its side: a flattened oval body that floats
-on a hidden plinth. Aluminium body, stainless steel underside, plinth and tail nozzle.
+OVO-1 — local-LLM appliance: a sealed, water-cooled aluminium egg lying on its side.
 
-Nothing on the top or the flanks: no vents, no buttons, no logo cut-outs. All of the function is on the
-two ends you don't look at:
-    - air IN  through a fine grille in the belly, under the nose (in shadow)
-    - air OUT through the tail: a polished stainless nozzle lip with a dark recessed grille and a light ring
-    - ports on the back face of the plinth, under the tail overhang
-Air runs nose to tail in one straight line, like a jet engine: grille -> 120 mm fan -> heatsink -> PSU -> tail.
+The body is one closed, unbroken oval (flattened to K = 0.6) with a single hairline seam. There are no
+openings on the top, the flanks, the nose or the tail. It rests on a narrow stainless keel, so it seems to
+hover.
 
-Compute: one Mini-ITX AMD Ryzen AI Max+ 395 ("Strix Halo") board with 128 GB unified LPDDR5X,
-mounted flat on a stainless tray, heatsink fins running nose to tail.
+Cooling is a water loop:
+    pump -> SoC cold plate -> upper shell jacket -> lower shell jacket -> belly radiator -> pump
+    - SILENT mode: the shell IS the radiator. Both halves are double-walled "pillow plates" with a 3 mm water
+      gap, so ~0.3 m² of anodized aluminium sheds heat by convection + radiation. Fans off, ~55 W.
+    - BOOST mode: room air comes in under the nose and under the tail, runs along a tunnel over a flat belly
+      radiator, and two slim 80 mm fans push it down through the core and out of the belly either side of the
+      keel. Fresh air in front/back, warm air out left/right, every opening faces the desk. Full 120 W.
 
 Coordinate system (mm), body-local:
     X = along the egg, 0 = nose tip, EGG_L = tail tip.   Y = width.   Z = up, 0 = egg axis.
@@ -28,33 +29,41 @@ from OCP.gp import gp_GTrsf
 OUT = Path(__file__).resolve().parent.parent / "out" / "ovo1"
 
 # ------------------------------------------------------------ envelope
-EGG_L = 440.0  # nose to tail
+EGG_L = 470.0  # nose to tail
 EGG_B = 270.0  # max width
 EGG_W = 30.0  # Hügelschäffer shift: widest point 30 mm ahead of mid-length (blunt nose, long tail)
-K = 0.68  # height / width of every cross-section: flattened oval, max height ≈ 184 mm
-SHELL_T = 2.5  # wall measured at the flanks; at the crown it is SHELL_T*K ≈ 1.7 mm
-Z_CUT = -64.0  # flat belly plane: the shell is open below here, closed by the stainless belly plate
-PLINTH_H = 18.0  # the egg floats this high above the table
-Z_AXIS = PLINTH_H - Z_CUT  # egg axis height above the table
-X_TAIL = 380.0  # tail opening (exhaust nozzle)
-LIP = 6.0  # stainless nozzle lip length
+K = 0.60  # height / width of every cross-section: max height ≈ 162 mm
+SHELL_T = 2.0  # outer skin (flanks; crown = SHELL_T*K)
+GAP = 3.0  # water gap of the pillow-plate jacket
+LINER_T = 1.0  # inner skin of the jacket
+WALL = SHELL_T + GAP + LINER_T  # everything inside must clear this
+Z_CUT = -62.0  # flat belly plane: the shell is open below here, closed by the stainless belly plate
+KEEL_H = 18.0  # the egg floats this high above the table
+Z_AXIS = KEEL_H - Z_CUT
+JACKET_X = (12.0, 460.0)  # jacket extent along the body
+SEAM_GAP = 2.5  # jacket stops this far either side of the equator seam
 
-# ------------------------------------------------------------ internals
-FAN = 120.0  # 120x25 PWM fan, axis along X (Noctua NF-A12x25 class)
-FAN_T = 25.0
-X_FAN = 108.0
-Z_FAN = 0.0  # fan centre height
-PSU = (30.0, 101.6, 50.8)  # 300 W open-frame 12 V (Mean Well EPP-300-12 class), standing on edge: X, Y, Z
-X_PSU, Z_PSU = 316.0, -30.0  # behind the board, in the exhaust stream
+# ------------------------------------------------------------ internals (bottom to top)
+Z_FAN = -50.0  # underside of the two 80x15 slim fans
+FAN, FAN_T = 80.0, 15.0
+Z_DECK = Z_FAN + FAN_T  # fan deck: seals the radiator so air must go through it
+RAD = (160.0, 90.0, 25.0)  # belly radiator core X, Y, Z (≈ the face area of a 120 mm radiator)
+X_RAD = 150.0
+Z_TRAY = 4.0  # tray = ceiling of the air tunnel, floor of the electronics bay
 ITX = 170.0
 PCB_T = 1.6
-X_BOARD = 138.0  # front edge of the board
-Z_PCB = -41.6  # underside of the PCB
-Z_TRAY = -52.0  # stainless tray underside
-HS = (110.0, 120.0)  # heatsink footprint (X, Y), centred on the SoC
-HS_FIN_H = 45.0
-GRILLE_X = (46.0, 105.0)  # intake slots in the belly plate, ahead of the fan
-CLEAR = 3.0  # minimum part-to-shell clearance enforced by check_clearance()
+X_BOARD = 150.0
+Z_PCB = Z_TRAY + 1.5 + 6.0
+PSU = (30.0, 101.6, 50.8)  # 300 W open-frame 12 V, on edge in the exhaust plenum: X, Y, Z
+X_PSU, Z_PSU = 330.0, -28.0
+PUMP_D, PUMP_L = 50.0, 90.0  # pump + reservoir cylinder, lying across the nose
+X_PUMP, Z_PUMP = 92.0, 0.0
+KEEL = (150.0, 56.0)  # keel length, width
+X_KEEL = 160.0
+EXHAUST_X = (154.0, 306.0)  # belly slots under the fans, either side of the keel: hot air leaves sideways
+INTAKE_NOSE = (100.0, 141.0)  # belly slots under the nose
+INTAKE_TAIL = (324.0, 368.0)  # belly slots under the tail
+CLEAR = 3.0
 
 
 # ============================================================ egg geometry
@@ -90,17 +99,17 @@ def egg_solid(offset=0.0):
         .moveTo(*pts[0])
         .spline(pts[1:], tangents=[(1, 0), (-1, 0)], includeCurrent=True)
         .close()
-        .revolve(360, (0, 0, 0), (0, 1, 0))  # about local Y = global Z
+        .revolve(360, (0, 0, 0), (0, 1, 0))
         .rotate((0, 0, 0), (0, 1, 0), 90)  # egg axis Z -> X
     )
     return cq.Workplane("XY").add(_scale_z(rev.val().wrapped, K))
 
 
-_INNER_PTS = sorted(_profile(SHELL_T, 400), key=lambda p: p[1])
+_INNER_PTS = sorted(_profile(WALL, 400), key=lambda p: p[1])
 
 
 def inner_ab(x):
-    """Inner semi-axes (half-width, half-height) of the shell at station x."""
+    """Inner semi-axes (half-width, half-height) of the jacket liner at station x."""
     a = min(_INNER_PTS, key=lambda p: abs(p[1] - x))[0]
     return a, a * K
 
@@ -117,117 +126,149 @@ def slab_z(z0, z1):
     return box_between(-10, EGG_L + 10, -300, 300, z0, z1)
 
 
-def cyl_x(d, x0, x1, y, z):
-    return cq.Workplane("YZ").workplane(offset=x0).center(y, z).circle(d / 2).extrude(x1 - x0)
+def cyl_y(d, y0, y1, x, z):
+    return cq.Workplane("XZ").workplane(offset=-y0).center(x, z).circle(d / 2).extrude(-(y1 - y0))
 
 
 OUTER = egg_solid()
-INNER = egg_solid(SHELL_T)
-SHELL = OUTER.cut(INNER)
+SKIN_IN = egg_solid(SHELL_T)
+WATER_IN = egg_solid(SHELL_T + GAP)
+LINER_IN = egg_solid(WALL)
 
 
-# ============================================================ exterior
+def _halves(solid):
+    upper = solid.intersect(slab_z(0, 300))
+    lower = solid.intersect(slab_z(Z_CUT, 0))
+    return upper, lower
+
+
+def _jacket_zone():
+    """Where the jacket runs: most of the body, stopping short of the seam, the belly and the ends."""
+    z = slab_z(SEAM_GAP, 300).union(slab_z(Z_CUT + 4, -SEAM_GAP))
+    return z.intersect(slab_x(*JACKET_X))
+
+
+# ============================================================ exterior (closed body)
+def _slit_zone():
+    return slab_z(-0.6, 0.6).intersect(slab_x(EGG_L - 75, EGG_L - 15))
+
+
 def shell_upper():
-    """Upper half, deep-drawn 5052 aluminium (opening = widest section, so it comes off the punch)."""
-    return SHELL.intersect(slab_z(0, 300)).cut(slab_x(X_TAIL - LIP, EGG_L + 10))
+    """Outer skin, upper half: deep-drawn 5052 aluminium. Closed nose to tail."""
+    return _halves(OUTER.cut(SKIN_IN))[0].cut(_slit_zone())
 
 
 def shell_lower():
-    """Lower half: same, open at the flat belly. Meets the upper half on a 0.3 mm hairline at the equator."""
-    s = SHELL.intersect(slab_z(Z_CUT, 0)).cut(slab_x(X_TAIL - LIP, EGG_L + 10))
-    # four internal bosses the belly plate screws into
-    for x in (115.0, 330.0):
-        a, b = inner_ab(x)
+    """Outer skin, lower half, open only at the flat belly."""
+    s = _halves(OUTER.cut(SKIN_IN))[1].cut(_slit_zone())
+    for x in (125.0, 355.0):  # belly plate screw bosses
+        a = egg_r(x) - SHELL_T
+        b = a * K
         y = a * math.sqrt(max(1 - (Z_CUT / b) ** 2, 0)) - 6
         for sy in (-1, 1):
-            s = s.union(cq.Workplane("XY").workplane(offset=Z_CUT).center(x, sy * y).circle(5).extrude(10))
+            s = s.union(cq.Workplane("XY").workplane(offset=Z_CUT).center(x, sy * y).circle(4.5).extrude(8), clean=False)
     return s
 
 
-def nozzle():
-    """Polished 316 stainless tail lip: the only bright detail on the product."""
-    return OUTER.intersect(slab_x(X_TAIL - LIP, X_TAIL)).cut(egg_solid(SHELL_T + 1.5))
+def light_slit():
+    """60 mm opal light pipe in the seam at the tail: the only light. Glows with generation speed."""
+    return OUTER.intersect(_slit_zone()).cut(egg_solid(1.5))
 
 
-def _ellipse_x(x0, x1, a, b):
-    """Flat elliptical plate across the body between stations x0 and x1 (every section is an ellipse)."""
-    return cq.Workplane("YZ").workplane(offset=x0).ellipse(a, b).extrude(x1 - x0)
+def jacket_water():
+    """The 3 mm water layer between outer skin and liner (shown so the section reads)."""
+    return SKIN_IN.cut(WATER_IN).intersect(_jacket_zone())
 
 
-def exhaust_grille():
-    """Dark PVD stainless grille recessed 18 mm inside the nozzle: horizontal louvres, reads as a shadow."""
-    x0 = X_TAIL - 20
-    a, b = inner_ab(x0 + 1.5)
-    g = _ellipse_x(x0, x0 + 1.5, a - 0.5, b - 0.5)
-    slots = None
-    for i in range(-19, 20):
-        sl = box_between(x0 - 1, x0 + 3, -a + 6, a - 6, i * 3.0 - 1.0, i * 3.0 + 1.0)
-        slots = sl if slots is None else slots.union(sl)
-    g = g.cut(slots.intersect(_ellipse_x(x0 - 2, x0 + 4, a - 4.5, b - 4.5)))
-    return g
-
-
-def light_ring():
-    """Opal light pipe just inside the nozzle lip: glows with generation speed."""
-    x0 = X_TAIL - LIP - 3
-    a, b = inner_ab(x0 + 2)
-    return _ellipse_x(x0, x0 + 2, a - 0.5, b - 0.5).cut(_ellipse_x(x0 - 1, x0 + 3, a - 3, b - 3))
+def jacket_liner():
+    """1 mm aluminium inner skin, dimple-welded to the outer skin every 25 mm (pillow plate)."""
+    return WATER_IN.cut(LINER_IN).intersect(_jacket_zone())
 
 
 def belly_plate():
-    """1.5 mm 304 stainless, dark PVD. Closes the flat underside; carries the intake grille."""
-    p = INNER.intersect(slab_z(Z_CUT, Z_CUT + 1.5)).translate((0, 0, -0.0))
-    # fine intake slots under the nose, ahead of the fan
-    for i in range(-18, 19):
-        p = p.cut(box_between(GRILLE_X[0], GRILLE_X[1], i * 4.0 - 1.3, i * 4.0 + 1.3, Z_CUT - 1, Z_CUT + 3))
-    return p
+    """1.5 mm 304 stainless, dark PVD. Intake slots under nose and tail, exhaust slots either side of the keel."""
+    p = SKIN_IN.intersect(slab_z(Z_CUT, Z_CUT + 1.5))
+    cuts = []
+    for i in range(-20, 21):
+        y = i * 4.0
+        for x0, x1 in (INTAKE_NOSE, INTAKE_TAIL):
+            cuts.append(box_between(x0, x1, y - 1.3, y + 1.3, Z_CUT - 1, Z_CUT + 3))
+        if abs(y) > KEEL[1] / 2 + 4:
+            cuts.append(box_between(EXHAUST_X[0], EXHAUST_X[1], y - 1.3, y + 1.3, Z_CUT - 1, Z_CUT + 3))
+    c = cuts[0]
+    for k in cuts[1:]:
+        c = c.union(k)
+    return p.cut(c)
 
 
-def plinth():
-    """Solid 304 stainless puck, set far in from the edge so the body seems to float. Ports on its back."""
-    xc, ax, ay = 225.0, 80.0, 52.0
-    p = (
-        cq.Workplane("XY")
-        .workplane(offset=Z_CUT - PLINTH_H)
-        .center(xc, 0)
-        .ellipse(ax, ay)
-        .extrude(PLINTH_H)
-        .edges("<Z")
-        .fillet(3)
-    )
-    x_back = xc + ax - 10
-    p = p.cut(box_between(x_back, xc + ax + 1, -60, 60, Z_CUT - PLINTH_H - 1, Z_CUT + 1))
-    z0 = Z_CUT - PLINTH_H
-    ports = [
-        (-34, -22, 4, 13),  # IEC C7 (figure-8) inlet
-        (-14, -5, 6, 9.5),  # USB4 (USB-C)
-        (-2, 7, 6, 9.5),  # USB4 (USB-C)
-        (14, 30, 3, 16),  # 5GbE RJ45
-    ]
+def keel():
+    """Solid 304 stainless keel, set in from every edge so the body hovers. Ports on its back end."""
+    kl, kw = KEEL
+    x0, x1 = X_KEEL, X_KEEL + kl
+    z0 = Z_CUT - KEEL_H
+    k = box_between(x0, x1, -kw / 2, kw / 2, z0, Z_CUT).edges("|Z").fillet(kw / 2 - 0.5).edges("<Z").fillet(3)
+    k = k.cut(box_between(x1 - 8, x1 + 1, -kw / 2 - 1, kw / 2 + 1, z0 - 1, Z_CUT + 1))  # flat back face
+    ports = [(-27, -15, 4, 13), (-13, -4, 6, 9.5), (-2, 7, 6, 9.5), (10, 26, 2, 16)]  # C7, USB4, USB4, RJ45
     for y0, y1, h0, h1 in ports:
-        p = p.cut(box_between(x_back - 12, x_back + 1, y0, y1, z0 + h0, z0 + h1))
-    return p
+        k = k.cut(box_between(x1 - 20, x1 - 7, y0, y1, z0 + h0, z0 + h1))
+    return k
 
 
 def foot():
-    """Silicone pad under the plinth."""
-    return cq.Workplane("XY").workplane(offset=Z_CUT - PLINTH_H - 0.01).center(225, 0).ellipse(74, 46).extrude(1.0)
+    kl, kw = KEEL
+    return box_between(X_KEEL + 6, X_KEEL + kl - 14, -kw / 2 + 4, kw / 2 - 4, Z_CUT - KEEL_H - 1, Z_CUT - KEEL_H).edges("|Z").fillet(kw / 2 - 5)
 
 
-# ============================================================ core
+# ============================================================ cooling + core
+def contour_plate(z0, z1, x0, x1, inset):
+    """Flat plate cut to the liner's own contour, `inset` mm inside it."""
+    return egg_solid(WALL + inset).intersect(slab_z(z0, z1)).intersect(slab_x(x0, x1))
+
+
+def fans():
+    f = None
+    for k in range(2):
+        x0 = X_RAD + k * FAN
+        fr = box_between(x0, x0 + FAN, -FAN / 2, FAN / 2, Z_FAN, Z_FAN + FAN_T).edges("|Z").fillet(5)
+        fr = fr.cut(cq.Workplane("XY").workplane(offset=Z_FAN - 1).center(x0 + FAN / 2, 0).circle(FAN / 2 - 2).extrude(FAN_T + 2))
+        hub = cq.Workplane("XY").workplane(offset=Z_FAN + 1).center(x0 + FAN / 2, 0).circle(14).extrude(FAN_T - 2)
+        for j in range(7):
+            bl = box_between(x0 + FAN / 2 + 12, x0 + FAN / 2 + 37, -5, 5, Z_FAN + 6, Z_FAN + 8)
+            bl = bl.rotate((x0 + FAN / 2 + 25, 0, Z_FAN + 7), (x0 + FAN / 2 + 26, 0, Z_FAN + 7), 30)
+            hub = hub.union(bl.rotate((x0 + FAN / 2, 0, 0), (x0 + FAN / 2, 0, 1), j * 360 / 7))
+        u = fr.union(hub)
+        f = u if f is None else f.union(u)
+    return f
+
+
+def fan_deck():
+    """Seals the air tunnel at the radiator so no air bypasses the core."""
+    rx, ry, _ = RAD
+    d = contour_plate(Z_DECK, Z_DECK + 1.5, X_RAD - 4, X_RAD + rx + 8, CLEAR + 1)
+    return d.cut(box_between(X_RAD, X_RAD + rx, -ry / 2, ry / 2, Z_DECK - 1, Z_DECK + 3))
+
+
+def baffles():
+    """Front and rear walls of the exhaust plenum under the fan deck: exhaust can't mix with the intake bays."""
+    rx = RAD[0]
+    f = contour_plate(Z_CUT + 1.5, Z_DECK, X_RAD - 6, X_RAD - 4.5, CLEAR + 1)
+    return f.union(contour_plate(Z_CUT + 1.5, Z_DECK, X_RAD + rx + 8, X_RAD + rx + 9.5, CLEAR + 1))
+
+
+def radiator():
+    """Aluminium flat-tube radiator (all-aluminium wetted loop: no galvanic corrosion)."""
+    rx, ry, rz = RAD
+    r = box_between(X_RAD, X_RAD + rx, -ry / 2, ry / 2, Z_DECK, Z_DECK + rz)
+    for x in (X_RAD - 10, X_RAD + rx):  # end tanks
+        r = r.union(box_between(x, x + 10, -ry / 2 - 2, ry / 2 + 2, Z_DECK, Z_DECK + rz))
+    return r
+
+
 def tray():
-    """1.5 mm 304 stainless tray: board standoffs, PSU and fan brackets. Screws to the shell bosses."""
-    # outline = the shell's own inner contour, offset in, so the tray follows the egg
-    t = egg_solid(SHELL_T + CLEAR + 3).intersect(slab_z(Z_TRAY, Z_TRAY + 1.5)).intersect(slab_x(X_FAN + FAN_T, X_BOARD + ITX + 6))
-    # fan bracket: upright plate with the fan bore
-    br = box_between(X_FAN + FAN_T, X_FAN + FAN_T + 1.5, -64, 64, Z_FAN - 62, Z_FAN + 62)
-    br = br.cut(cyl_x(FAN - 4, X_FAN + FAN_T - 1, X_FAN + FAN_T + 3, 0, Z_FAN))
-    t = t.union(br)
-    # Mini-ITX standoffs (157.48 x 154.94 pattern)
+    """1.5 mm 304 stainless: ceiling of the air tunnel, floor of the board bay. Mini-ITX standoffs."""
+    t = contour_plate(Z_TRAY, Z_TRAY + 1.5, X_RAD - 6, X_BOARD + ITX + 6, CLEAR + 1)
     for hx, hy in ((10.16, 6.35), (165.10, 6.35), (10.16, 163.83), (165.10, 163.83)):
-        t = t.union(
-            cq.Workplane("XY").workplane(offset=Z_TRAY + 1.5).center(X_BOARD + hx, -ITX / 2 + hy).circle(3).extrude(Z_PCB - Z_TRAY - 1.5)
-        )
+        t = t.union(cq.Workplane("XY").workplane(offset=Z_TRAY + 1.5).center(X_BOARD + hx, -ITX / 2 + hy).circle(3).extrude(Z_PCB - Z_TRAY - 1.5))
     return t
 
 
@@ -235,10 +276,8 @@ def board():
     y0 = -ITX / 2
     pcb = box_between(X_BOARD, X_BOARD + ITX, y0, y0 + ITX, Z_PCB, Z_PCB + PCB_T)
     z = Z_PCB + PCB_T
-    xc = X_BOARD + ITX / 2
     parts = [
-        box_between(xc - 25, xc + 25, -25, 25, z, z + 2.5),  # SoC
-        box_between(X_BOARD + ITX - 18, X_BOARD + ITX + 4, y0 + 4, y0 + 160, z, z + 14),  # rear I/O edge, toward the tail
+        box_between(X_BOARD + ITX - 18, X_BOARD + ITX + 2, y0 + 4, y0 + 160, z, z + 14),  # I/O edge
         box_between(X_BOARD + 10, X_BOARD + 90, y0 + 4, y0 + 26, z, z + 3),  # M.2 2280
         box_between(X_BOARD + 4, X_BOARD + 14, 40, 80, z, z + 10),  # power header
     ]
@@ -247,46 +286,19 @@ def board():
     return pcb
 
 
-def heatsink():
-    """Vapour-chamber base + 0.4 mm Al fins running nose-to-tail."""
+def cold_plate():
+    """Skived-fin aluminium cold plate on the SoC, with inlet/outlet barbs."""
     xc = X_BOARD + ITX / 2
-    hx, hy = HS
-    z0 = Z_PCB + PCB_T + 2.5
-    hs = box_between(xc - hx / 2, xc + hx / 2, -hy / 2, hy / 2, z0, z0 + 5)
-    n = 26
-    for i in range(n):
-        y = -hy / 2 + hy / n * (i + 0.5)
-        hs = hs.union(box_between(xc - hx / 2, xc + hx / 2, y - 0.6, y + 0.6, z0 + 5, z0 + 5 + HS_FIN_H))
-    return hs
+    z = Z_PCB + PCB_T + 2.5
+    c = box_between(xc - 38, xc + 38, -38, 38, z, z + 12).edges("|Z").fillet(6)
+    for y in (-20, 20):
+        c = c.union(cq.Workplane("XY").workplane(offset=z + 12).center(xc + 26, y).circle(5).extrude(10))
+    return c
 
 
-def duct():
-    """0.8 mm Al shroud: fan outlet -> heatsink fins -> tail. No air bypasses the fins."""
-    xc = X_BOARD + ITX / 2
-    hx, hy = HS
-    z_top = Z_PCB + PCB_T + 2.5 + 5 + HS_FIN_H + 1
-    x0, x1 = X_FAN + FAN_T + 1.5, xc + hx / 2
-    d = box_between(x0, x1, -hy / 2 - 2, -hy / 2 - 1.2, Z_PCB + PCB_T, z_top)
-    d = d.union(box_between(x0, x1, hy / 2 + 1.2, hy / 2 + 2, Z_PCB + PCB_T, z_top))
-    d = d.union(box_between(x0, x1, -hy / 2 - 2, hy / 2 + 2, z_top, z_top + 0.8))
-    return d
-
-
-def fan():
-    x0 = X_FAN
-    frame = box_between(x0, x0 + FAN_T, -FAN / 2, FAN / 2, Z_FAN - FAN / 2, Z_FAN + FAN / 2).edges("|X").fillet(7)
-    frame = frame.cut(cyl_x(FAN - 4, x0 - 1, x0 + FAN_T + 1, 0, Z_FAN))
-    for k in range(4):
-        frame = frame.union(
-            box_between(x0 + FAN_T - 3, x0 + FAN_T, -1.5, 1.5, 20, 58).translate((0, 0, Z_FAN)).rotate((0, 0, Z_FAN), (1, 0, Z_FAN), 45 + 90 * k)
-        )
-    rotor = cyl_x(40, x0 + 2, x0 + FAN_T - 2, 0, Z_FAN)
-    for k in range(7):
-        blade = box_between(x0 + FAN_T / 2 - 1, x0 + FAN_T / 2 + 1, -8, 8, 16, 56).translate((0, 0, Z_FAN))
-        xm = x0 + FAN_T / 2
-        blade = blade.rotate((xm, 0, Z_FAN), (xm, 0, Z_FAN + 1), 30)  # blade pitch
-        rotor = rotor.union(blade.rotate((0, 0, Z_FAN), (1, 0, Z_FAN), k * 360 / 7))
-    return frame, rotor
+def pump():
+    """DC pump + 150 ml reservoir in one cylinder across the nose; fill port under the belly."""
+    return cyl_y(PUMP_D, -PUMP_L / 2, PUMP_L / 2, X_PUMP, Z_PUMP)
 
 
 def psu():
@@ -296,73 +308,72 @@ def psu():
 
 # ============================================================ checks
 def check_clearance(parts):
-    """Every vertex of every internal part must sit inside the shell's inner surface with CLEAR margin."""
+    """Every vertex of every internal part must sit inside the jacket liner with CLEAR margin."""
     worst = (1e9, "")
     for name, shape in parts.items():
         for v in shape.vertices().vals():
             a, b = inner_ab(v.X)
             a, b = a - CLEAR, b - CLEAR
             f = (v.Y / a) ** 2 + (v.Z / b) ** 2 if a > 0 and b > 0 else 9
-            gap = (1 - math.sqrt(f)) * min(a, b) if f < 9 else -99  # approximate radial gap beyond CLEAR
-            worst = min(worst, (gap + CLEAR, name))
+            worst = min(worst, ((1 - math.sqrt(min(f, 1))) * min(a, b) + CLEAR, name))
             if f > 1:
                 raise SystemExit(f"CLEARANCE FAIL {name}: vertex ({v.X:.0f},{v.Y:.0f},{v.Z:.0f})")
     print(f"clearance OK — tightest: {worst[1]} ≈{worst[0]:.1f} mm")
 
 
-def intake_area():
-    """Open area of the belly grille that actually sits under the shell opening (cm²)."""
-    g = belly_plate()
-    full = INNER.intersect(slab_z(Z_CUT, Z_CUT + 1.5)).intersect(slab_x(*GRILLE_X))
-    return (full.val().Volume() - g.intersect(slab_x(*GRILLE_X)).val().Volume()) / 1.5 / 100
+def slot_area(x0, x1, plate):
+    full = SKIN_IN.intersect(slab_z(Z_CUT, Z_CUT + 1.5)).intersect(slab_x(x0, x1)).val().Volume()
+    return (full - plate.intersect(slab_x(x0, x1)).val().Volume()) / 1.5 / 100
 
 
-def exhaust_area():
-    x0 = X_TAIL - 20
-    a, b = inner_ab(x0 + 1.5)
-    full = math.pi * (a - 0.5) * (b - 0.5) * 1.5
-    return (full - exhaust_grille().val().Volume()) / 1.5 / 100
+def skin_area():
+    """Outer skin area backed by the water jacket (m²) — the passive radiator."""
+    faces = OUTER.intersect(_jacket_zone()).faces().vals()
+    outer = [f for f in faces if f.geomType() not in ("PLANE",)]
+    return sum(f.Area() for f in outer) / 1e6
 
 
 # ============================================================ build
 AL = cq.Color(0.80, 0.81, 0.83)
-SS_POL = cq.Color(0.92, 0.92, 0.94)
 SS_DARK = cq.Color(0.18, 0.18, 0.20)
 
 
 def build():
-    fan_frame, fan_rotor = fan()
     core = {
+        "pump": (pump(), cq.Color(0.20, 0.21, 0.23)),
+        "fans": (fans(), cq.Color(0.16, 0.16, 0.17)),
+        "radiator": (radiator(), cq.Color(0.68, 0.70, 0.73)),
+        "fan_deck": (fan_deck(), cq.Color(0.55, 0.56, 0.58)),
+        "baffles": (baffles(), cq.Color(0.55, 0.56, 0.58)),
         "tray": (tray(), cq.Color(0.62, 0.63, 0.65)),
         "board": (board(), cq.Color(0.10, 0.20, 0.14)),
-        "heatsink_fins": (heatsink(), cq.Color(0.85, 0.62, 0.42)),
-        "duct": (duct(), cq.Color(0.70, 0.71, 0.73)),
-        "fan_frame": (fan_frame, cq.Color(0.16, 0.16, 0.17)),
-        "fan_rotor": (fan_rotor, cq.Color(0.22, 0.22, 0.24)),
+        "cold_plate": (cold_plate(), cq.Color(0.72, 0.74, 0.77)),
         "psu": (psu(), cq.Color(0.25, 0.26, 0.28)),
     }
-    check_clearance({k: v[0] for k, v in core.items()})
+    check_clearance({k: v[0] for k, v in core.items() if k not in ("fan_deck", "baffles", "tray")})
     ext = {
         "shell_upper": (shell_upper(), AL),
         "shell_lower": (shell_lower(), AL),
-        "nozzle": (nozzle(), SS_POL),
-        "light_ring": (light_ring(), cq.Color(0.96, 0.97, 1.0)),
-        "exhaust_grille": (exhaust_grille(), SS_DARK),
+        "jacket_water": (jacket_water(), cq.Color(0.15, 0.45, 0.85)),
+        "jacket_liner": (jacket_liner(), cq.Color(0.70, 0.71, 0.73)),
+        "light_slit": (light_slit(), cq.Color(0.96, 0.97, 1.0)),
         "belly_plate": (belly_plate(), SS_DARK),
-        "plinth": (plinth(), cq.Color(0.30, 0.30, 0.32)),
+        "keel": (keel(), cq.Color(0.30, 0.30, 0.32)),
         "foot": (foot(), cq.Color(0.08, 0.08, 0.08)),
     }
     return {**ext, **core}
 
 
-EXPLODE = {"shell_upper": (0, 180), "belly_plate": (0, -90), "plinth": (0, -150), "foot": (0, -150)}
+EXPLODE = {"shell_upper": 160, "jacket_water": 0, "jacket_liner": 0, "belly_plate": -90, "keel": -150, "foot": -150}
 
 
 def assembly(parts, exploded=False):
     assy = cq.Assembly(name="OVO-1_exploded" if exploded else "OVO-1")
     for name, (shape, color) in parts.items():
-        dx, dz = EXPLODE.get(name, (0, 0)) if exploded else (0, 0)
-        assy.add(shape, name=name, color=color, loc=cq.Location(cq.Vector(dx, 0, Z_AXIS + dz)))
+        if exploded and name in ("jacket_water", "jacket_liner"):
+            continue  # they ride with the shells; hidden in the exploded view for clarity
+        dz = EXPLODE.get(name, 0) if exploded else 0
+        assy.add(shape, name=name, color=color, loc=cq.Location(cq.Vector(0, 0, Z_AXIS + dz)))
     return assy
 
 
@@ -373,7 +384,7 @@ if __name__ == "__main__":
         shutil.rmtree(OUT / d, ignore_errors=True)
         (OUT / d).mkdir(parents=True)
     parts = build()
-    dens = {"shell_upper": 2.68, "shell_lower": 2.68, "nozzle": 8.0, "exhaust_grille": 8.0, "belly_plate": 8.0, "plinth": 8.0, "tray": 8.0}
+    dens = {"shell_upper": 2.68, "shell_lower": 2.68, "jacket_liner": 2.68, "jacket_water": 1.04, "belly_plate": 8.0, "keel": 8.0, "tray": 8.0}
     mass = 0.0
     for name, (shape, _) in parts.items():
         cq.exporters.export(shape, str(OUT / "step" / f"{name}.step"))
@@ -383,8 +394,11 @@ if __name__ == "__main__":
         m = vol * dens.get(name, 0) / 1000
         mass += m
         print(f"{name:14s} {bb.xlen:6.1f} x {bb.ylen:6.1f} x {bb.zlen:6.1f} mm  vol={vol:7.1f} cm3" + (f"  {m:5.2f} kg" if m else ""))
-    print(f"intake open area ≈ {intake_area():.0f} cm²   exhaust open area ≈ {exhaust_area():.0f} cm²")
-    print(f"metal enclosure mass ≈ {mass:.2f} kg; overall {EGG_L:.0f} L x {EGG_B:.0f} W x {Z_AXIS + EGG_B / 2 * K:.0f} H mm")
+    bp = parts["belly_plate"][0]
+    intake = slot_area(*INTAKE_NOSE, bp) + slot_area(*INTAKE_TAIL, bp)
+    print(f"intake open ≈ {intake:.0f} cm² (nose + tail)   exhaust open ≈ {slot_area(*EXHAUST_X, bp):.0f} cm²")
+    print(f"water-backed skin ≈ {skin_area():.3f} m²   jacket water ≈ {parts['jacket_water'][0].val().Volume() / 1e6:.2f} L")
+    print(f"enclosure + water mass ≈ {mass:.2f} kg; overall {EGG_L:.0f} L x {EGG_B:.0f} W x {Z_AXIS + EGG_B / 2 * K:.0f} H mm")
     assembly(parts).export(str(OUT / "OVO-1_assembly.step"))
     assembly(parts).export(str(OUT / "OVO-1_assembly.glb"))
     assembly(parts, exploded=True).export(str(OUT / "OVO-1_exploded.glb"))

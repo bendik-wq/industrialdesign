@@ -30,13 +30,13 @@ const SETS = {
     ['side_on_row', 'zoom=0.8&az=-90&el=4'],
   ] },
   ovo1: { src: '../out/ovo1/OVO-1_assembly.glb', dir: 'renders/ovo1', views: [
-    ['hero', 'zoom=0.9&az=58&el=14&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
-    ['profile', 'zoom=0.85&az=0&el=0&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
-    ['tail', 'zoom=0.9&az=128&el=10&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
-    ['underside', 'zoom=0.9&az=-30&el=-38&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
-    ['section', 'zoom=0.85&az=0&el=8&clip=0,-1,0,0&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
-    ['core', 'zoom=0.8&az=-35&el=30&hide=shell_upper,shell_lower,nozzle,light_ring,exhaust_grille,belly_plate,plinth,foot&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
-    ['exploded', 'src=../out/ovo1/OVO-1_exploded.glb&zoom=1.0&az=-35&el=12&metal=shell|nozzle|belly|plinth|tray|duct|grille'],
+    ['hero', 'zoom=0.9&az=55&el=14&metal=shell|belly|keel|tray|deck|baffle|liner|radiator|cold'],
+    ['profile', 'zoom=0.85&az=0&el=0&metal=shell|belly|keel|tray|deck|baffle|liner|radiator|cold'],
+    ['tail', 'zoom=0.9&az=128&el=10&metal=shell|belly|keel|tray|deck|baffle|liner|radiator|cold'],
+    ['underside', 'zoom=0.9&az=-30&el=-38&metal=shell|belly|keel|tray|deck|baffle|liner|radiator|cold'],
+    ['section', 'zoom=0.85&az=0&el=8&clip=0,-1,0,0&metal=shell|belly|keel|tray|deck|baffle|liner|radiator|cold'],
+    ['core', 'zoom=0.8&az=-35&el=30&hide=shell_upper,shell_lower,jacket_water,jacket_liner,light_slit,belly_plate,keel,foot&metal=shell|belly|keel|tray|deck|baffle|liner|radiator|cold'],
+    ['exploded', 'src=../out/ovo1/OVO-1_exploded.glb&zoom=1.0&az=-35&el=12&metal=shell|belly|keel|tray|deck|baffle|liner|radiator|cold'],
   ] },
 };
 const set = SETS[process.env.SET ?? 'aero1'];
