@@ -1,5 +1,5 @@
 import type { Runtime } from '../app';
-import { ECONOMICS } from '../config';
+import { ECONOMICS, HEADLINE_EXPERIMENT } from '../config';
 import { hashPII } from '../lib/crypto';
 import { GA4_EVENTS, META_EVENTS } from './catalog';
 import type { TrackIdentity } from './track';
@@ -86,7 +86,7 @@ async function toPostHog(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, le
     session_id: who.sessionId,
     variant: who.variant,
     $lib: 'owners-funnel-server',
-    [`$feature/headline-v1`]: who.variant,
+    [`$feature/${HEADLINE_EXPERIMENT.id}`]: who.variant,
   };
   if (lead) {
     properties.$set = {

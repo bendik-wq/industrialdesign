@@ -35,6 +35,9 @@ export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
 
 // ───────────────────────────── Brand ─────────────────────────────
 
+/** Colour palettes defined in site.css. The first is the default; pick another in the dashboard (SITE_PALETTE) or preview with ?palette=… */
+export const PALETTES = ['navy', 'emerald', 'bone', 'classic'];
+
 /** Default brand. The dashboard's "Brand name" setting (SITE_NAME) overrides `name` without a redeploy. */
 export const BRAND = { name: 'G&L M&A Advisory', founder: 'Josh Li' };
 
@@ -51,21 +54,21 @@ export interface LandingVariant {
 /** Headline experiment. Assignment is deterministic per visitor (hash of visitor id), so it's sticky without storage.
  *  <em> renders in the accent colour. */
 export const HEADLINE_EXPERIMENT = {
-  id: 'headline-v6',
+  id: 'headline-v7',
   variants: [
     {
       id: 'a',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: 'A Signed LOI In 90 Days.<br><em>No Money Down. <span class="nw">Over-Financed.</span></em>',
-      subheadline: 'Josh Li bought two businesses with <mark>100% seller finance</mark>. Now you do it with him: find an off-market target, structure the deal so the financing covers <mark>more than the price</mark>, and sign the LOI inside 90 days. You run the deal. We’re in the room for every step.',
+      headline: 'Get A Signed LOI For A <em>No-Money-Down Acquisition</em> That Doubles Or Triples Your Business. <span class="nw">Over-Financing</span> Baked In.',
+      subheadline: 'Work directly with Josh Li to find the right target, structure the deal so the financing covers the full price, or more, at a profitable <mark>~1.5x DSCR</mark>, and get the LOI signed <mark>inside 90 days</mark>. Backed by a <mark>7-day money-back guarantee</mark>.',
     },
     {
       id: 'b',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: '<span class="nw">Over-Financed.</span> No Money Down.<br><em>Signed LOI In 90 Days.</em>',
-      subheadline: 'Josh Li bought two businesses with <mark>100% seller finance</mark>. Now you do it with him: find an off-market target, structure the deal so the financing covers <mark>more than the price</mark>, and sign the LOI inside 90 days. You run the deal. We’re in the room for every step.',
+      headline: 'Double Or Triple Your Business With A <em>No-Money-Down Acquisition.</em> Signed LOI In 90 Days, <span class="nw">Over-Financing</span> Baked In.',
+      subheadline: 'Work directly with Josh Li to find the right target, structure the deal so the financing covers the full price, or more, at a profitable <mark>~1.5x DSCR</mark>, and get the LOI signed <mark>inside 90 days</mark>. Backed by a <mark>7-day money-back guarantee</mark>.',
     },
   ] satisfies LandingVariant[],
 };
@@ -75,9 +78,10 @@ export const LANDING = {
   byline: { name: BRAND.founder, role: 'Founder, JC Health Group', initials: 'JL' },
   /** Hard proof under the byline. Every item must be true and provable. */
   proof: [
-    '<b>2</b><span>businesses bought with 100% seller finance</span>',
+    '<b>2</b><span>businesses Josh bought with 100% seller finance</span>',
     '<b>90 days</b><span>to a signed LOI</span>',
-    '<b>$0</b><span>of your own cash in the deal</span>',
+    '<b>~1.5x</b><span>DSCR, so the deal pays for itself</span>',
+    '<b>7 days</b><span>money-back guarantee</span>',
   ],
   soundPrompt: 'Click for sound',
   soundAction: 'Click for sound',
@@ -88,9 +92,11 @@ export const LANDING = {
   /** What the call gives them. Keep these true to how your calls actually run. */
   applyPoints: [
     '<strong>A working session, not a pitch.</strong> We go through your numbers and your market.',
-    '<strong>Your target profile.</strong> The kind of business worth buying next to yours.',
-    '<strong>Your deal structure.</strong> How your first acquisition gets over-financed, with none of your own cash.',
+    '<strong>Your target profile.</strong> The business that doubles or triples yours.',
+    '<strong>Your deal structure.</strong> Over-financed at ~1.5x DSCR, with none of your own cash.',
   ],
+  /** Shown under the application points. Keep it identical to the terms in your client agreement. */
+  guarantee: '<strong>7-day money-back guarantee.</strong> Join, and if you decide in the first 7 days it’s not for you, tell us and you get a full refund.',
   faqTitle: 'Before you apply',
   /** Add only real, verifiable results. Hidden while empty. */
   testimonials: [] as { quote: string; name: string; detail: string }[],
@@ -137,7 +143,19 @@ export const BREAKOUT = {
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'Do I really put no money down?',
-    a: 'Yes. That’s the structure. Seller finance (the seller is paid over time from the business’s own cash flow) and senior debt cover the purchase price, and we structure the deal to be <strong>over-financed</strong>: the financing covers more than the price, and the extra goes to working capital and closing costs. We line the financing up with you before you sign the LOI.',
+    a: 'Yes. That’s the structure. Seller finance (the seller is paid over time from the business’s own cash flow) and senior debt cover the purchase price, and the deal is <strong>over-financed</strong>: the financing covers more than the price, and the extra goes to working capital and closing costs. We line the financing up with you before you sign the LOI.',
+  },
+  {
+    q: 'What does a ~1.5x DSCR mean?',
+    a: 'DSCR is the debt service coverage ratio: the business’s cash profit divided by its loan repayments. At about 1.5x, the business you buy earns roughly $1.50 for every $1 it owes each year. The deal pays for itself with a buffer, lenders are comfortable, and it doesn’t lean on your existing business.',
+  },
+  {
+    q: 'How does one acquisition double or triple my business?',
+    a: 'You buy a business that’s as big as yours, or bigger. Its customers, team and profit join yours on day one, so revenue and profit step up in one move instead of one sale at a time. How much depends on the target you choose; that’s what we work out together in weeks 1–2.',
+  },
+  {
+    q: 'What’s the 7-day money-back guarantee?',
+    a: 'Join, and if you decide in the first 7 days it isn’t for you, tell us and you get a full refund. No hoops.',
   },
   {
     q: 'Is this done for me?',
@@ -145,7 +163,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What happens in the 90 days?',
-    a: 'Weeks 1–2: we audit your business with you and set your target profile. Weeks 3–8: you run off-market outreach with our scripts while we coach every conversation. Weeks 9–13: we’re in the room as you negotiate, we line up the financing with you, and you sign the LOI.',
+    a: 'Weeks 1–2: we audit your business with you and set your target profile. Weeks 3–8: you run outreach to owners, on and off market, with our scripts while we coach every conversation. Weeks 9–13: we’re in the room as you negotiate, we line up the financing with you, and you sign the LOI.',
   },
   {
     q: 'Why only businesses doing $1M+?',
@@ -227,7 +245,10 @@ Known answers: {{known_answers}}
 
 # The offer (say it plainly, never embellish)
 - For owners of profitable businesses doing $1M+ a year.
-- Goal: a signed LOI on an off-market acquisition within 90 days, structured with no money down and over-financed (seller finance plus senior debt cover more than the purchase price; the extra goes to working capital and closing costs).
+- Goal: a signed LOI within 90 days on an acquisition that doubles or triples their business, structured with no money down and over-financed (seller finance plus senior debt cover more than the purchase price; the extra goes to working capital and closing costs).
+- Deals are structured to be profitable at a debt service coverage ratio (DSCR) of about 1.5: the acquired business earns roughly $1.50 for every $1 of loan repayments.
+- Targets can be on or off market.
+- 7-day money-back guarantee: if they join and decide in the first 7 days it isn't for them, they get a full refund. Don't add conditions or extend it.
 - It is DONE WITH YOU, not done for you. The owner is the buyer and runs the deal; Josh and the team give the system, scripts, deal structures and financing introductions, and sit in on the key conversations. Expect a few focused hours a week.
 - Josh Li is the founder of JC Health Group and has bought two businesses with 100% seller finance.
 - Next step is a free strategy call with Josh's team. Price is discussed on that call only.

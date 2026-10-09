@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
-  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, type VideoDef, VIDEOS, VOICE_AGENT,
+  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, PALETTES, type VideoDef, VIDEOS, VOICE_AGENT,
 } from '../config';
 import { whatsappLink } from '../integrations/whatsapp';
 import { webCallsEnabled } from '../integrations/voice';
@@ -112,8 +112,11 @@ async function render(c: Context<AppEnv>, assetPath: string, view: View) {
 
   const slots: Record<string, Html | null | undefined> = { site_name: esc(config.siteName), year: String(new Date().getFullYear()), disclaimer: DISCLAIMER, consent: LEGAL_CONSENT, ...view.slots };
   const head = trackingHead(c, pageEventId);
+  const asked = url.searchParams.get('palette') ?? '';
+  const palette = PALETTES.includes(asked) ? asked : PALETTES.includes(s.SITE_PALETTE) ? s.SITE_PALETTE : PALETTES[0];
 
   const rewriter = new HTMLRewriter()
+    .on('html', { element: (el) => void el.setAttribute('data-palette', palette) })
     .on('title', { element: (el) => { if (view.title) el.setInnerContent(`${view.title} — ${config.siteName}`); } })
     .on('head', { element: (el) => void el.append(`<script id="funnel-config">window.FUNNEL=${scriptJson(config)}</script>\n${head}`, { html: true }) })
     .on('[data-slot]', { element: (el) => { const k = el.getAttribute('data-slot')!; const val = slots[k]; if (val != null) el.setInnerContent(val, { html: true }); } })
@@ -170,7 +173,7 @@ function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
 
 /** Copy for the application block, shared by the landing page and /apply. */
 const applySection = {
-  slots: { apply_eyebrow: LANDING.applyEyebrow, apply_title: LANDING.applyTitle, apply_subtitle: LANDING.applySubtitle, faq_title: LANDING.faqTitle },
+  slots: { apply_eyebrow: LANDING.applyEyebrow, apply_title: LANDING.applyTitle, apply_subtitle: LANDING.applySubtitle, guarantee: LANDING.guarantee, faq_title: LANDING.faqTitle },
   lists: { apply_points: LANDING.applyPoints },
 };
 
@@ -180,7 +183,7 @@ export async function landingPage(c: Context<AppEnv>) {
   const variant = HEADLINE_EXPERIMENT.variants.find((x) => x.id === v.variant) ?? HEADLINE_EXPERIMENT.variants[0];
   const by = LANDING.byline;
   return render(c, '/index.html', {
-    title: 'Signed LOI in 90 days',
+    title: 'No-money-down acquisitions',
     slots: {
       ...applySection.slots,
       pre_headline: variant.preHeadline,

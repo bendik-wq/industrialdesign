@@ -5,6 +5,7 @@ export interface Env {
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.
   SITE_NAME?: string;
+  SITE_PALETTE?: string;
   PUBLIC_URL?: string;
   EMAIL_FROM?: string;
   EMAIL_REPLY_TO?: string;

@@ -15,13 +15,13 @@ why the old way fails → the system → how it works → proof → offer → CT
 ## VSL #1 — main (≈ 12 minutes)
 
 ### 0:00 – 0:40 · Hook
-> If your business does a million dollars or more a year, you can have a signed LOI on an off-market acquisition within 90 days.
+> If your business does a million dollars or more a year, you can have a signed LOI within 90 days on an acquisition that doubles or triples the size of your business.
 >
-> No money down. Over-financed — the deal brings in more money than the purchase price, so none of your own cash goes in.
+> No money down. Over-financing baked in — the deal brings in more money than the purchase price, so none of your own cash goes in.
 >
 > And you won't hand it off to someone else. You'll do it with us. In the next few minutes I'll show you how.
 
-▣ *Signed LOI in 90 days · No money down*
+▣ *Signed LOI in 90 days · No money down · 2–3× your business*
 
 ### 0:40 – 1:30 · Who this is for
 > This is for you if you own a business doing $1M+, it's profitable, and growth has started to feel like pushing a boulder uphill.
@@ -68,9 +68,10 @@ why the old way fails → the system → how it works → proof → offer → CT
 >
 > Over-financed means we structure those two pieces to cover more than the purchase price. The extra pays for closing costs and working capital. You put in none of your own cash.
 >
-> It only works if the business's cash flow covers the repayments with room to spare. That's what we check before you sign anything.
+> It only works if the business's cash flow covers the repayments with room to spare. We aim for a debt service coverage ratio of about 1.5 — the business earns roughly a dollar fifty for every dollar of repayments. The deal pays for itself, with a buffer, and it never leans on your existing business. That's what we check before you sign anything.
 
 ▣ ***Seller finance + bank = over-financed*** — on screen at **5:45**
+▣ *Profitable at **~1.5× DSCR***
 
 ### 7:00 – 9:00 · The offer (CTA unlocks on the page here)
 > So here's how we work together. It's a 90-day program, and it's done with you — not for you.
@@ -82,8 +83,11 @@ why the old way fails → the system → how it works → proof → offer → CT
 > Weeks 9 to 13: you negotiate, and we're in the room with you for the key seller conversations. We review every term sheet, introduce you to lenders and line up the financing. Then you sign the LOI.
 >
 > You make the calls. You meet the sellers. You sign. We give you the system and sit beside you for every step.
+>
+> And you're covered by a 7-day money-back guarantee. Join, and if in the first seven days you decide it's not for you, tell us and you get a full refund.
 
 ▣ *Audit → Outreach → Negotiate → Sign the LOI*
+▣ ***7-day** money-back guarantee*
 ▣ *You run it. **We're in the room.*** — on screen at **8:20**
 
 ### 9:00 – 10:00 · Proof
@@ -105,7 +109,7 @@ why the old way fails → the system → how it works → proof → offer → CT
 
 ▣ *See if you qualify ↓*
 
-**Compliance note.** "Signed LOI in 90 days", "no money down" and "over-financed" are claims. Say them as promises only if the program reliably delivers them for owners who do the work. If it doesn't yet, frame them as the target ("the goal is a signed LOI within 90 days") and never as a guarantee. A signed LOI is not a closed deal — don't let the script blur the two.
+**Compliance note.** "Signed LOI in 90 days", "no money down", "over-financed", "double or triple your business" and "~1.5× DSCR" are claims. Put the 7-day money-back guarantee's exact terms (who qualifies, how to claim, when the refund is paid) in writing in your agreement and honour them every time. Say the first three as promises only if the program reliably delivers them for owners who do the work. If it doesn't yet, frame them as the target ("the goal is a signed LOI within 90 days") and never as a guarantee. A signed LOI is not a closed deal — don't let the script blur the two.
 
 ---
 
