@@ -4,23 +4,27 @@
   <meta charset="utf-8">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0a09">
+  <meta name="theme-color" content="#151515">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poly:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/assets/site.css">
   <title>Your free toolkit</title>
   <script defer src="/assets/f.js"></script>
 </head>
 <body>
-  <header class="nav"><a class="logo" href="/"><span class="mark">G&amp;L</span><span data-slot="site_name">G&amp;L M&amp;A Advisory</span></a></header>
+  <header class="nav"><div class="wrap nav-in">
+    <nav class="nav-links" aria-label="Main"><a href="/#how">How it works</a><a href="/#faq">FAQ</a></nav>
+    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b><span>M&amp;A ADVISORY</span></a>
+    <a class="btn btn-sm nav-cta" href="/#apply" data-track="cta_click" data-track-id="nav"><span class="long">See if you qualify</span><span class="short">Apply</span></a>
+  </div></header>
   <main id="main">
-    <header class="hero wrap">
+    <header class="hero"><div class="wrap">
       <h1 class="display" data-slot="headline">It Looks Like We’re Not <em>A Fit Yet</em></h1>
       <p class="lede" data-slot="subheadline"></p>
       <p class="ps" data-slot="ps">P.S. Seriously, it’s free.</p>
       <a class="btn" href="#kit" data-track="cta_click" data-track-id="resources_kit">Get the free toolkit <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </header>
+    </div></header>
     <div class="divider" style="margin-top:40px"></div>
     <section class="block" id="kit">
       <div class="wrap narrow">

@@ -75,20 +75,27 @@ export const LANDING = {
   ctaSubtext: '',
   soundPrompt: 'Click for sound',
   soundAction: 'Click for sound',
-  applyTitle: 'See If You <em>Qualify</em>',
+  applyTitle: 'See if you qualify',
   applySubtitle: '',
   /**
-   * Headline numbers under the hero. Use real, verifiable figures only, e.g.
-   * { label: 'Deals', value: '40+', detail: 'Acquisitions structured for clients' }. Hidden while empty.
+   * Headline numbers under the hero. These are facts about the offer, not results.
+   * Swap in real, verifiable results when you have them (e.g. deals closed, deal value).
    */
-  stats: [] as { label: string; value: string; detail: string }[],
-  problemTitle: 'Organic growth is slow.<br><em>Acquisition isn’t.</em>',
+  stats: [
+    { label: 'Who', value: '$1M+', detail: 'Minimum revenue of the businesses we work with' },
+    { label: 'Model', value: '3C', detail: 'Capabilities, Capital and Closing' },
+    { label: 'Support', value: '1:1', detail: 'Your own M&A advisor on every deal' },
+    { label: 'Integration', value: '100', detail: 'Day plan after every acquisition closes' },
+  ] as { label: string; value: string; detail: string }[],
+  problemTitle: 'Organic growth is slow.<br>Acquisition isn’t.',
   problems: [
     { title: 'You’ve hit a ceiling', body: 'Every new dollar of revenue costs more of your time.' },
     { title: 'Your competitors are for sale', body: 'Owners are retiring. Most of those businesses never get listed.' },
     { title: 'Bigger is worth more', body: 'Larger businesses sell for a higher multiple of earnings.' },
   ],
-  processTitle: 'Your entire acquisition system<br><em>under one roof</em>',
+  processTitle: 'Your entire acquisition system<br>under one roof',
+  /** Capabilities floated around the emblem. */
+  systemTags: ['Off-market sourcing', 'Vendor finance', 'Lender introductions', 'Due diligence', 'Negotiation', '100-day integration'],
   /** A real sequence, so it's numbered on the page. */
   process: [
     { title: 'Audit', body: 'Find where an acquisition adds the most value.' },
@@ -103,7 +110,7 @@ export const LANDING = {
   /** Add only real, verifiable results. Hidden while empty. */
   testimonials: [] as { quote: string; name: string; detail: string }[],
   closeKicker: '$1M+',
-  closeHeadline: 'Your next acquisition,<br><em>structured.</em>',
+  closeHeadline: 'Your next acquisition,<br><em>structured</em>',
 };
 
 /** Founder social proof on the resources page, e.g. { platform: 'LinkedIn', followers: '25,000+', url: '…' }. Hidden while empty. */

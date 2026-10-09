@@ -4,23 +4,27 @@
   <meta charset="utf-8">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0a09">
+  <meta name="theme-color" content="#151515">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poly:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/assets/site.css">
   <title>Book your call</title>
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/book.js"></script>
 </head>
 <body>
-  <header class="nav"><a class="logo" href="/"><span class="mark">G&amp;L</span><span data-slot="site_name">G&amp;L M&amp;A Advisory</span></a></header>
+  <header class="nav"><div class="wrap nav-in">
+    <nav class="nav-links" aria-label="Main"><a href="/#how">How it works</a><a href="/#faq">FAQ</a></nav>
+    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b><span>M&amp;A ADVISORY</span></a>
+    <a class="btn btn-sm nav-cta" href="/#apply" data-track="cta_click" data-track-id="nav"><span class="long">See if you qualify</span><span class="short">Apply</span></a>
+  </div></header>
   <main id="main">
-    <header class="hero wrap">
+    <header class="hero"><div class="wrap">
       <span class="eyebrow" data-slot="eyebrow">You qualify</span>
       <h1 class="display" data-slot="headline">Just Pick A <em>Time</em></h1>
       <p class="lede">Choose a time for your free acquisition strategy call. You’ll get a confirmation by email straight away.</p>
-    </header>
+    </div></header>
     <div class="wrap">
       <div class="cal-wrap" data-calendar><div class="analyzing"><div class="spinner"></div>Loading the calendar…</div></div>
       <p class="consent-note">Your reference: <strong data-slot="ref_code"></strong></p>

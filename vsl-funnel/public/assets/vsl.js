@@ -37,7 +37,9 @@
 
   // No video connected yet: show a placeholder and unlock everything.
   if (!cfg.src) {
-    root.innerHTML = '<div class="vsl-placeholder"><div><strong>Your VSL goes here</strong>Connect a video in the dashboard → Integrations → Video.</div></div>';
+    // Poster frame until a video is connected (dashboard → Integrations → Video).
+    root.innerHTML = '<div class="vsl-placeholder"><div class="vsl-poster"><span class="vsl-play-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg></span><strong>' +
+      (cfg.posterTitle || 'The acquisition playbook') + '</strong><span class="vsl-soon">Video coming soon</span></div></div>';
     reveal(false);
     return;
   }
