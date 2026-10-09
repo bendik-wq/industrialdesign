@@ -58,43 +58,43 @@ export const HEADLINE_EXPERIMENT = {
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
       headline: 'Double Your Business<br><em>By Acquisition</em>',
-      subheadline: 'Buy the competitors and add-ons next to yours, funded by the deal instead of your own cash.',
+      subheadline: 'Acquisition systems for owners of $1M+ businesses',
     },
     {
       id: 'b',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
       headline: 'Your Next $1M In Revenue<br><em>Is Already For Sale</em>',
-      subheadline: 'Watch how owners buy the businesses next to theirs with vendor finance, and grow the value of what they’ll eventually sell.',
+      subheadline: 'Acquisition systems for owners of $1M+ businesses',
     },
   ] satisfies LandingVariant[],
 };
 
 export const LANDING = {
   ctaLabel: 'See If You Qualify',
-  ctaSubtext: 'Takes about 2 minutes. For owners of businesses doing $1M+ in revenue.',
+  ctaSubtext: '',
   soundPrompt: 'Click for sound',
   soundAction: 'Click for sound',
   applyTitle: 'See If You <em>Qualify</em>',
-  applySubtitle: 'Answer a few questions. If your business is a fit, you’ll pick a time for a free acquisition strategy call.',
+  applySubtitle: '',
   /**
    * Headline numbers under the hero. Use real, verifiable figures only, e.g.
    * { label: 'Deals', value: '40+', detail: 'Acquisitions structured for clients' }. Hidden while empty.
    */
   stats: [] as { label: string; value: string; detail: string }[],
-  problemTitle: 'Organic growth is slow. <em>Acquisition is not.</em>',
+  problemTitle: 'Organic growth is slow.<br><em>Acquisition isn’t.</em>',
   problems: [
-    { title: 'You’ve hit a ceiling', body: 'More marketing and more hires add revenue one customer at a time, and every new dollar costs more of your time.' },
-    { title: 'Your competitors are for sale', body: 'Thousands of owners are approaching retirement with no succession plan. Most of those businesses never get listed.' },
-    { title: 'Bigger is worth more', body: 'Larger, more diversified businesses are often valued at a higher multiple of earnings than small ones. Acquisition lifts profit and multiple together.' },
+    { title: 'You’ve hit a ceiling', body: 'Every new dollar of revenue costs more of your time.' },
+    { title: 'Your competitors are for sale', body: 'Owners are retiring. Most of those businesses never get listed.' },
+    { title: 'Bigger is worth more', body: 'Larger businesses sell for a higher multiple of earnings.' },
   ],
-  processTitle: 'How we grow your business <em>by acquisition</em>',
+  processTitle: 'Your entire acquisition system<br><em>under one roof</em>',
   /** A real sequence, so it's numbered on the page. */
   process: [
-    { title: 'Acquisition audit', body: 'We look at your numbers, your market and your goals to find where an acquisition adds the most value.' },
-    { title: 'Source off-market targets', body: 'We find and approach owners in your industry who aren’t listed for sale, so you’re not bidding against private equity.' },
-    { title: 'Structure and fund the deal', body: 'Vendor finance and senior debt structured so the acquired business’s cash flow pays for itself, not your operating account.' },
-    { title: 'Close and integrate', body: 'Negotiation, due diligence and a 100-day integration plan so the deal adds profit without pulling you back into the weeds.' },
+    { title: 'Audit', body: 'Find where an acquisition adds the most value.' },
+    { title: 'Source', body: 'Approach off-market owners in your industry.' },
+    { title: 'Structure', body: 'Vendor finance, so the deal pays for itself.' },
+    { title: 'Close', body: 'Negotiate, diligence and integrate in 100 days.' },
   ],
   /** e.g. { score: '4.9', source: 'Google', count: '120+ reviews' }. Hidden while null. */
   rating: null as { score: string; source: string; count: string } | null,
@@ -103,19 +103,7 @@ export const LANDING = {
   /** Add only real, verifiable results. Hidden while empty. */
   testimonials: [] as { quote: string; name: string; detail: string }[],
   closeKicker: '$1M+',
-  closeHeadline: 'Your next acquisition, <em>structured.</em>',
-  forTitle: 'This is for you if…',
-  forList: [
-    'You own a business doing $1M+ in annual revenue and want to grow faster than organic growth allows.',
-    'Your business is profitable, and you want to buy competitors or complementary businesses.',
-    'You’re planning an exit in the next few years and want it to be worth more.',
-  ],
-  notForTitle: 'This is not for you if…',
-  notForList: [
-    'Your business is under $1M in revenue or not yet profitable.',
-    'You’re looking for passive income or a get-rich-quick scheme.',
-    'You don’t own the business or can’t make the decision to grow it.',
-  ],
+  closeHeadline: 'Your next acquisition,<br><em>structured.</em>',
 };
 
 /** Founder social proof on the resources page, e.g. { platform: 'LinkedIn', followers: '25,000+', url: '…' }. Hidden while empty. */
@@ -170,20 +158,12 @@ export const FAQS: { q: string; a: string }[] = [
     a: 'It’s a real risk, which is why integration planning is part of the process from day one. The goal is to buy businesses your team can absorb, and to build the management layer so the group doesn’t depend on you.',
   },
   {
-    q: 'What kinds of businesses should I acquire?',
-    a: 'Usually competitors, suppliers, or businesses that sell to your customers: established, profitable, often with an owner approaching retirement. We avoid start-ups and turnarounds.',
-  },
-  {
     q: 'How does this affect what my business is worth?',
     a: 'Larger, more diversified businesses are often valued at a higher multiple of earnings than small ones. Combining profit and lifting the multiple at the same time is why acquisition can grow your exit value faster than organic growth. Outcomes depend on the deals and the market.',
   },
   {
     q: 'What happens on the strategy call?',
     a: 'We look at your business, your growth goals and your exit timeline, then map out what your first acquisition could look like. If we can help, we’ll explain how. If we can’t, we’ll tell you.',
-  },
-  {
-    q: 'Does this work outside Australia?',
-    a: 'Vendor finance and SME acquisitions work in most markets, including the US, UK, Canada and New Zealand. Lending rules differ, which we cover on the call.',
   },
   {
     q: 'What does it cost to work with you?',
@@ -234,13 +214,13 @@ export const APPLICATION: Question[] = [
     id: 'contact',
     type: 'contact',
     title: 'Let’s start with the basics',
-    help: 'We’ll use this to send your results. No spam — unsubscribe any time.',
+    
   },
   {
     id: 'business',
     type: 'text',
     title: 'What does your business do?',
-    help: 'One or two lines is plenty, e.g. “Commercial HVAC services across Sydney, 25 staff.”',
+    help: 'e.g. Commercial HVAC services, 25 staff',
     placeholder: 'What you sell, who to, and where',
     minLength: 3,
     points: [],

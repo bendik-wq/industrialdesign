@@ -192,12 +192,8 @@ export async function landingPage(c: Context<AppEnv>) {
       process_title: LANDING.processTitle,
       close_kicker: LANDING.closeKicker,
       close_headline: LANDING.closeHeadline,
-      for_title: LANDING.forTitle,
-      not_for_title: LANDING.notForTitle,
     },
     lists: {
-      for: LANDING.forList,
-      not_for: LANDING.notForList,
       testimonials: LANDING.testimonials.map((t) => `<blockquote>“${t.quote}”</blockquote><cite><strong>${t.name}</strong> · ${t.detail}</cite>`),
     },
     blocks: {
