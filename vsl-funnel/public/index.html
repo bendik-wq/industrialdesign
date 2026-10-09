@@ -4,111 +4,74 @@
   <meta charset="utf-8">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#171717">
+  <meta name="theme-color" content="#0f0f0f">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poly:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/assets/site.css">
-  <title>Grow your business by acquisition</title>
-  <meta name="description" content="Done-with-you acquisitions for owners of $1M+ businesses.">
+  <title>Buy your competitor</title>
+  <meta name="description" content="The 3C Acquisition System for owners of $1M+ businesses.">
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/vsl.js"></script>
+  <script defer src="/assets/apply.js"></script>
 </head>
 <body>
   <header class="nav"><div class="wrap nav-in">
-    <nav class="nav-links" aria-label="Main"><a href="/">Home</a><a href="/#how">How It Works</a><a href="/#faq">FAQ</a></nav>
-    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b> <span>ADVISORY</span></a>
-    <div class="nav-right"><a class="btn btn-sm nav-cta" href="/apply" data-track="cta_click" data-track-id="nav"><span class="long">Get Started</span><span class="short">Apply</span></a></div>
+    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b> <span>M&amp;A Advisory</span></a>
+    <a class="btn btn-sm nav-cta" href="/#apply" data-track="cta_click" data-track-id="nav"><span class="long">See if you qualify</span><span class="short">Apply</span></a>
   </div></header>
   <main id="main">
     <section class="hero">
-      <svg class="folds" viewBox="0 0 1440 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-          <linearGradient id="fw" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".09"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
-          <filter id="fb" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="28"/></filter>
-        </defs>
-        <g fill="none" stroke="url(#fw)" stroke-linecap="round">
-          <path d="M-120 380 C 220 260, 520 520, 860 360 S 1360 160, 1600 260" stroke-width="120" filter="url(#fb)"/>
-          <path d="M-120 430 C 240 320, 560 560, 900 410 S 1380 220, 1600 320" stroke-width="1.5"/>
-          <path d="M1600 -60 C 1300 120, 1180 300, 1240 600" stroke-width="140" filter="url(#fb)"/>
-          <path d="M1560 -60 C 1270 140, 1150 320, 1200 600" stroke-width="1.2"/>
-          <path d="M-100 40 C 160 0, 300 160, 520 40" stroke-width="110" filter="url(#fb)"/>
-        </g>
-      </svg>
       <div class="wrap">
-        <h1 class="display" data-slot="headline">Grow Your Business<br>By <em>Acquisition</em></h1>
-        <p class="tagline" data-slot="subheadline">Done-with-you acquisitions for owners of $1M+ businesses</p>
-        <a class="btn" href="/apply" data-track="cta_click" data-track-id="hero"><span data-slot="cta_label">Get Started Now</span></a>
+        <span class="eyebrow" data-slot="pre_headline">For owners of $1M+ businesses</span>
+        <h1 class="display" data-slot="headline">Buy Your Competitor.<br><em>With Their Money.</em></h1>
+        <p class="tagline" data-slot="subheadline"></p>
+        <div class="byline">
+          <span class="avatar" data-slot="byline_initials">JL</span>
+          <span><strong data-slot="byline_name">Josh Li</strong><span data-slot="byline_role">Founder, G&amp;L M&amp;A Advisory</span></span>
+        </div>
+        <div class="vsl-stage"><div class="vsl" data-vsl></div></div>
       </div>
     </section>
 
-    <section class="block" data-if="stats" style="padding-top:44px">
-      <div class="wrap"><div class="stats" data-html="stats"></div></div>
-    </section>
-
-    <section class="block" style="padding-top:30px">
-      <div class="wrap">
-        <h2 class="section-title" data-slot="problem_title"></h2>
-        <div class="cards3" data-html="problems"></div>
-      </div>
-    </section>
-
-    <section class="block" data-if="rating" style="padding-block:10px">
-      <div class="wrap" data-html="rating"></div>
-    </section>
-
-    <section class="block" style="padding-top:20px">
-      <div class="wrap">
-        <div class="vsl-stage"><div data-html="callouts"></div><div class="vsl" data-vsl></div></div>
-        <div class="cta-zone"><a class="btn" href="/apply" data-track="cta_click" data-track-id="video"><span>Get Started</span></a></div>
-      </div>
-    </section>
-
-    <section class="roof" id="how">
-      <div class="orange-rule"></div>
-      <div class="wrap">
-        <h2 class="section-title" data-slot="process_title"></h2>
-        <div class="system">
-          <div class="orb"></div><div class="orb-ring"></div>
-          <div class="emblem"><b>G&amp;L</b></div>
-          <ul class="tags" data-html="tags"></ul>
+    <section class="apply-section" id="apply">
+      <div class="wrap apply-grid">
+        <div class="apply-copy">
+          <span class="eyebrow" data-slot="apply_eyebrow">Step 2</span>
+          <h2 class="section-title" data-slot="apply_title">See if your business qualifies</h2>
+          <p class="section-sub" data-slot="apply_subtitle"></p>
+          <ul class="ticks" data-list="apply_points"></ul>
+        </div>
+        <div class="form-card">
+          <div class="app-progress" aria-hidden="true"><i data-progress></i></div>
+          <div class="app-meta"><span data-step-label>Step 1</span><span data-time-left></span></div>
+          <form data-app novalidate autocomplete="on"><noscript><p class="form-error">Please enable JavaScript to complete the application.</p></noscript></form>
+          <div data-turnstile></div>
         </div>
       </div>
-      <div class="orange-rule bottom"></div>
     </section>
 
     <section class="block" data-if="testimonials">
       <div class="wrap"><ul class="testimonials" data-list="testimonials"></ul></div>
     </section>
 
-    <section class="block" data-if="cases">
-      <div class="wrap"><ul class="cases" data-html="cases"></ul></div>
-    </section>
-
     <section class="block" id="faq">
       <div class="wrap faq-wrap">
-        <h2 class="section-title lg">You’ve got questions<br>We’ve got answers</h2>
-        <div class="faqs" data-html="faqs"></div>
+        <span class="eyebrow">Questions</span>
+        <h2 class="section-title" data-slot="faq_title">Before you apply</h2>
+        <div class="faqs" data-html="faqs" style="margin-top:28px"></div>
       </div>
     </section>
 
-    <section class="close-section">
-      <div class="kicker" aria-hidden="true" data-slot="close_kicker">$1,000,000</div>
-      <div class="wrap">
-        <h2 class="display" data-slot="close_headline"></h2>
-        <a class="btn" href="/apply" data-track="cta_click" data-track-id="close"><span>Get Started</span></a>
-      </div>
-    </section>
+    <div class="sticky-cta" data-sticky-cta><a class="btn" href="#apply" data-track="cta_click" data-track-id="sticky">See If You Qualify</a></div>
   </main>
   <footer>
     <div class="wrap">
       <div class="foot-grid">
-        <div class="foot-col"><h4>Company</h4><a href="/#how">How It Works</a><a href="/#faq">FAQ</a><a href="/apply">Get Started</a></div>
-        <div class="foot-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/privacy#terms">Terms &amp; Conditions</a></div>
-        <div class="foot-col"><h4>Resources</h4><a href="/resources">Free Toolkit</a><a href="/breakout">Deal Breakdown</a></div>
+        <div class="foot-links"><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a><a href="/#faq">FAQ</a></div>
         <div class="foot-legal"><p data-slot="disclaimer"></p><p data-slot="consent"></p></div>
       </div>
-      <div class="foot-bottom">Copyright © <span data-slot="year"></span> <b data-slot="site_name">G&amp;L M&amp;A Advisory</b>. All rights reserved.</div>
+      <p class="foot-bottom">© <span data-slot="year"></span> <span data-slot="site_name">G&amp;L M&amp;A Advisory</span></p>
     </div>
   </footer>
 </body>

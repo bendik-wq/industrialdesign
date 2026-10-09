@@ -49,71 +49,51 @@ export interface LandingVariant {
 }
 
 /** Headline experiment. Assignment is deterministic per visitor (hash of visitor id), so it's sticky without storage.
- *  <em> renders as the italic gold accent in the serif headline. */
+ *  <em> renders in the accent colour. */
 export const HEADLINE_EXPERIMENT = {
-  id: 'headline-v3',
+  id: 'headline-v4',
   variants: [
     {
       id: 'a',
       weight: 50,
-      preHeadline: '',
-      headline: 'Grow Your Business<br>By <em>Acquisition</em>',
-      subheadline: 'Done-with-you acquisitions for owners of $1M+ businesses',
+      preHeadline: 'For owners of $1M+ businesses',
+      headline: 'Buy Your Competitor.<br><em>With Their Money.</em>',
+      subheadline: 'The 3C Acquisition System finds an off-market business in your industry, gets the seller to finance most of the deal, and plugs it into yours. Double your size without touching your operating cash.',
     },
     {
       id: 'b',
       weight: 50,
-      preHeadline: '',
-      headline: 'Double Your Business<br>Without <em>Starting Over</em>',
-      subheadline: 'Done-with-you acquisitions for owners of $1M+ businesses',
+      preHeadline: 'For owners of $1M+ businesses',
+      headline: 'The Fastest Way To Double A $1M Business<br><em>Is To Buy Another One.</em>',
+      subheadline: 'The 3C Acquisition System finds an off-market business in your industry, gets the seller to finance most of the deal, and plugs it into yours. Double your size without touching your operating cash.',
     },
   ] satisfies LandingVariant[],
 };
 
 export const LANDING = {
-  ctaLabel: 'Get Started Now',
-  ctaSubtext: '',
+  /** Shown under the subheadline. */
+  byline: { name: BRAND.founder, role: `Founder, ${BRAND.name}`, initials: 'JL' },
   soundPrompt: 'Click for sound',
   soundAction: 'Click for sound',
-  applyTitle: 'See if you qualify',
-  /** Headline on the /apply (get-started) page, above the VSL and form. */
-  applyHeadline: 'Double Your Business <em>By Acquisition</em><span class="dot">.</span>',
-  applySubtitle: '',
-  /**
-   * Headline numbers under the hero. These are facts about the offer, not results.
-   * Swap in real, verifiable results when you have them (e.g. deals closed, deal value).
-   */
-  stats: [
-    { label: 'Who', value: '$1M+', detail: 'Minimum revenue of the businesses we work with' },
-    { label: 'Model', value: '3C', detail: 'Capabilities, Capital and Closing' },
-    { label: 'Support', value: '1:1', detail: 'Your own M&A advisor on every deal' },
-    { label: 'Integration', value: '100', detail: 'Day plan after every acquisition closes' },
-  ] as { label: string; value: string; detail: string }[],
-  problemTitle: 'Buying growth now beats building it<br>Most owners have no system to do it',
-  problems: [
-    { title: 'Your next customers already exist', body: 'They belong to the competitors, suppliers and add-ons around you. An acquisition brings their customers, staff and cash flow over on day one, not one sale at a time.' },
-    { title: 'The best deals never get listed', body: 'Thousands of owners are nearing retirement with no succession plan. The best businesses change hands quietly, off-market, with the buyer the owner trusts.' },
-    { title: 'Most owners have tried, few have a system', body: 'Brokers, bidding wars and banks that say no. We run the same sourcing, structuring and closing process on every deal, so you aren’t learning on your own money.' },
+  ctaLabel: 'See If You Qualify',
+  applyEyebrow: 'Apply',
+  applyTitle: 'See if your business qualifies',
+  applySubtitle: 'Two minutes, ten questions. If you’re a fit, you’ll pick a time for a free acquisition strategy call with Josh’s team.',
+  /** What the call gives them. Keep these true to how your calls actually run. */
+  applyPoints: [
+    '<strong>A working session, not a pitch.</strong> We go through your numbers and your market.',
+    '<strong>Your target profile.</strong> The kind of business worth buying next to yours.',
+    '<strong>Your deal structure.</strong> How your first acquisition could be funded.',
   ],
-  /** Floating labels around the VSL frame. <b> renders bold. */
-  videoCallouts: ['<b>Vendor-financed</b> deals', 'Off-market <b>deal flow</b>', 'Your <b>100-day</b> integration plan'],
-  processTitle: 'Your Entire Acquisition System<br>Under One Roof',
-  /** Capabilities floated around the emblem. */
-  systemTags: ['Off-market sourcing', 'Deal structuring', 'Vendor finance', 'Lender introductions', 'Due diligence', '100-day integration'],
-  /** e.g. { score: '4.9', source: 'Google', count: '120+ reviews' }. Hidden while null. */
-  rating: null as { score: string; source: string; count: string } | null,
-  /** Real client results only. Hidden while empty. */
-  caseStudies: [] as { name: string; business: string; results: string[]; videoUrl?: string; thumbnail?: string }[],
+  faqTitle: 'Before you apply',
   /** Add only real, verifiable results. Hidden while empty. */
   testimonials: [] as { quote: string; name: string; detail: string }[],
-  closeKicker: '$1,000,000',
-  closeHeadline: 'Your Next Acquisition,<br><em>Structured</em><span class="dot">.</span>',
 };
 
 /** Founder social proof on the resources page, e.g. { platform: 'LinkedIn', followers: '25,000+', url: '…' }. Hidden while empty. */
 export const FOUNDER_SOCIALS: { platform: 'LinkedIn' | 'Instagram' | 'YouTube' | 'TikTok' | 'X'; followers: string; url: string }[] = [];
 
-/** Consent + recording notice shown under every form and calendar. */
+/** Consent + recording notice shown under the form and in the footer. */
 export const LEGAL_CONSENT =
   'By submitting this form or booking a call, you agree to our Privacy Policy and consent to be contacted by email, phone, SMS and WhatsApp using the details you provided. Calls may be recorded for quality and training purposes.';
 

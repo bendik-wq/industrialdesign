@@ -4,33 +4,29 @@
   <meta charset="utf-8">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#171717">
+  <meta name="theme-color" content="#0f0f0f">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poly:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/assets/site.css">
   <title>See if you qualify</title>
   <script defer src="/assets/f.js"></script>
-  <script defer src="/assets/vsl.js"></script>
   <script defer src="/assets/apply.js"></script>
 </head>
 <body>
   <header class="nav"><div class="wrap nav-in">
-    <nav class="nav-links" aria-label="Main"><a href="/">Home</a><a href="/#how">How It Works</a><a href="/#faq">FAQ</a></nav>
-    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b> <span>ADVISORY</span></a>
-    <div class="nav-right"><a class="btn btn-sm nav-cta" href="/apply" data-track="cta_click" data-track-id="nav"><span class="long">Get Started</span><span class="short">Apply</span></a></div>
+    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory home"><b>G&amp;L</b> <span>M&amp;A Advisory</span></a>
+    <a class="btn btn-sm nav-cta" href="/#apply" data-track="cta_click" data-track-id="nav"><span class="long">See if you qualify</span><span class="short">Apply</span></a>
   </div></header>
-  <main id="main">
-    <section class="hero compact">
-      <div class="wrap">
-        <h1 class="display" data-slot="apply_headline">Double Your Business <em>By Acquisition</em><span class="dot">.</span></h1>
-        <div class="vsl-stage"><div class="vsl" data-vsl></div></div>
-        <div class="cta-zone"><a class="btn" href="#apply" data-track="cta_click" data-track-id="apply_hero">See If You Qualify</a></div>
-      </div>
-    </section>
-
+  <main id="main" class="hero compact">
     <section class="apply-section" id="apply">
-      <div class="wrap">
+      <div class="wrap apply-grid">
+        <div class="apply-copy">
+          <span class="eyebrow" data-slot="apply_eyebrow">Step 2</span>
+          <h2 class="section-title" data-slot="apply_title">See if your business qualifies</h2>
+          <p class="section-sub" data-slot="apply_subtitle"></p>
+          <ul class="ticks" data-list="apply_points"></ul>
+        </div>
         <div class="form-card">
           <div class="app-progress" aria-hidden="true"><i data-progress></i></div>
           <div class="app-meta"><span data-step-label>Step 1</span><span data-time-left></span></div>
@@ -39,20 +35,14 @@
         </div>
       </div>
     </section>
-
-    <section class="block" data-if="stats" style="padding-top:10px">
-      <div class="wrap"><div class="stats" data-html="stats"></div></div>
-    </section>
   </main>
   <footer>
     <div class="wrap">
       <div class="foot-grid">
-        <div class="foot-col"><h4>Company</h4><a href="/#how">How It Works</a><a href="/#faq">FAQ</a><a href="/apply">Get Started</a></div>
-        <div class="foot-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/privacy#terms">Terms &amp; Conditions</a></div>
-        <div class="foot-col"><h4>Resources</h4><a href="/resources">Free Toolkit</a><a href="/breakout">Deal Breakdown</a></div>
+        <div class="foot-links"><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a><a href="/#faq">FAQ</a></div>
         <div class="foot-legal"><p data-slot="disclaimer"></p><p data-slot="consent"></p></div>
       </div>
-      <div class="foot-bottom">Copyright © <span data-slot="year"></span> <b data-slot="site_name">G&amp;L M&amp;A Advisory</b>. All rights reserved.</div>
+      <p class="foot-bottom">© <span data-slot="year"></span> <span data-slot="site_name">G&amp;L M&amp;A Advisory</span></p>
     </div>
   </footer>
 </body>

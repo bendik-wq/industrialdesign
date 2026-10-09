@@ -154,14 +154,6 @@ async function currentLead(c: Context<AppEnv>): Promise<Lead | null> {
 
 // ───────────────────────────── Pages ─────────────────────────────
 
-const ICONS = [
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>',
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1.1 3 2.5-1.3 2-3 2.5-3 1.1-3 2.5 1.3 2.5 3 2.5 3-1.1 3-2.5"/></svg>',
-];
-
-const statsBlock = () => LANDING.stats.map((st) => `<div class="stat"><div class="label">${st.label}</div><div class="value">${st.value}</div><div class="detail">${st.detail}</div></div>`).join('');
-
 /** Everything the embedded application needs (used on the landing page and /apply). */
 function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
   const s = c.get('settings');
@@ -175,39 +167,35 @@ function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
   };
 }
 
+/** Copy for the application block, shared by the landing page and /apply. */
+const applySection = {
+  slots: { apply_eyebrow: LANDING.applyEyebrow, apply_title: LANDING.applyTitle, apply_subtitle: LANDING.applySubtitle, faq_title: LANDING.faqTitle },
+  lists: { apply_points: LANDING.applyPoints },
+};
+
 export async function landingPage(c: Context<AppEnv>) {
   const v = c.get('visitor');
   const lead = await currentLead(c);
   const variant = HEADLINE_EXPERIMENT.variants.find((x) => x.id === v.variant) ?? HEADLINE_EXPERIMENT.variants[0];
-  const r = LANDING.rating;
+  const by = LANDING.byline;
   return render(c, '/index.html', {
-    title: 'Watch the video',
+    title: 'Buy your competitor',
     slots: {
+      ...applySection.slots,
       pre_headline: variant.preHeadline,
       headline: variant.headline,
       subheadline: variant.subheadline,
+      byline_name: esc(by.name),
+      byline_role: esc(by.role),
+      byline_initials: esc(by.initials),
       cta_label: LANDING.ctaLabel,
-      cta_subtext: LANDING.ctaSubtext,
-      apply_title: LANDING.applyTitle,
-      apply_subtitle: LANDING.applySubtitle,
-      problem_title: LANDING.problemTitle,
-      process_title: LANDING.processTitle,
-      close_kicker: LANDING.closeKicker,
-      close_headline: LANDING.closeHeadline,
     },
     lists: {
+      ...applySection.lists,
       testimonials: LANDING.testimonials.map((t) => `<blockquote>“${t.quote}”</blockquote><cite><strong>${t.name}</strong> · ${t.detail}</cite>`),
     },
-    blocks: {
-      stats: statsBlock(),
-      problems: LANDING.problems.map((p, i) => `<div class="card problem"><div class="icon">${ICONS[i % ICONS.length]}</div><h3>${p.title}</h3><p>${p.body}</p></div>`).join(''),
-      tags: LANDING.systemTags.map((t) => `<li class="tag">${t}</li>`).join(''),
-      callouts: LANDING.videoCallouts.map((t, i) => `<div class="callout-tag t${i + 1}">${t}</div>`).join(''),
-      rating: r ? `<div class="rating"><span class="stars" aria-hidden="true">★★★★★</span><strong>Rated ${r.score} on ${r.source}</strong><span class="cta-sub" style="margin:0">${r.count}</span></div>` : '',
-      cases: LANDING.caseStudies.map((cs) => `<li>${cs.videoUrl ? `<a class="thumb" href="${esc(cs.videoUrl)}" target="_blank" rel="noopener"${cs.thumbnail ? ` style="background-image:url('${esc(cs.thumbnail)}')"` : ''}><span class="vsl-play-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg></span></a>` : ''}<div class="body"><h3>${cs.name} · ${cs.business}</h3><ul>${cs.results.map((x) => `<li>${x}</li>`).join('')}</ul></div></li>`).join(''),
-      faqs: faqBlock(),
-    },
-    show: { testimonials: LANDING.testimonials.length > 0, stats: LANDING.stats.length > 0, rating: Boolean(r), cases: LANDING.caseStudies.length > 0 },
+    blocks: { faqs: faqBlock() },
+    show: { testimonials: LANDING.testimonials.length > 0 },
     config: { video: videoConfig(c, VIDEOS.main), experiment: HEADLINE_EXPERIMENT.id, ...applicationConfig(c, lead) },
   });
 }
@@ -219,13 +207,7 @@ export async function applyPage(c: Context<AppEnv>) {
     const tier = effectiveTier(lead);
     if (tier) return c.redirect(lead.booked_at && !lead.booking_cancelled_at ? '/breakout' : TIER_ROUTES[tier], 302);
   }
-  return render(c, '/apply.html', {
-    title: 'See if you qualify',
-    slots: { apply_headline: LANDING.applyHeadline, cta_label: 'See If You Qualify' },
-    blocks: { stats: statsBlock() },
-    show: { stats: LANDING.stats.length > 0 },
-    config: { video: videoConfig(c, VIDEOS.main), ...applicationConfig(c, lead) },
-  });
+  return render(c, '/apply.html', { title: 'See if you qualify', ...applySection, config: applicationConfig(c, lead) });
 }
 
 export async function bookPage(c: Context<AppEnv>) {
