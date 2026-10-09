@@ -60,15 +60,15 @@ export const HEADLINE_EXPERIMENT = {
       id: 'a',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
-      headline: 'Get a signed LOI for a <em><span class="nw">no-money-down</span> acquisition</em> that doubles or triples your business, with over-financing built in.',
-      subheadline: 'Work directly with Josh Li to identify the right target, structure financing that covers the full purchase price at a DSCR of around 1.5x, and reach a signed LOI within 90 days. Backed by a 7-day money-back guarantee.',
+      headline: 'Get a signed LOI in 90 days for a <em><span class="nw">no-money-down</span> acquisition</em> that doubles or triples your business, with over-financing built in.',
+      subheadline: 'Work directly with Josh Li to identify the right target and structure financing that covers the full purchase price at a DSCR of around 1.5x. Backed by a 7-day money-back guarantee.',
     },
     {
       id: 'b',
       weight: 50,
       preHeadline: 'For owners of $1M+ businesses',
       headline: 'Double or triple your business with a <em><span class="nw">no-money-down</span> acquisition</em>. Signed LOI in 90 days, with over-financing built in.',
-      subheadline: 'Work directly with Josh Li to identify the right target, structure financing that covers the full purchase price at a DSCR of around 1.5x, and reach a signed LOI within 90 days. Backed by a 7-day money-back guarantee.',
+      subheadline: 'Work directly with Josh Li to identify the right target and structure financing that covers the full purchase price at a DSCR of around 1.5x. Backed by a 7-day money-back guarantee.',
     },
   ] satisfies LandingVariant[],
 };
