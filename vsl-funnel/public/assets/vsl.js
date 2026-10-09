@@ -79,6 +79,11 @@
   function el(tag, cls, html) { var e = document.createElement(tag); e.className = cls; if (html) e.innerHTML = html; return e; }
 
   function loadSource() {
+    // Browsers without H.264 (some Linux/Firefox builds) get the WebM copy.
+    if (cfg.srcWebm && /\.mp4(\?|$)/.test(cfg.src) && !video.canPlayType('video/mp4; codecs="avc1.42E01E"') && video.canPlayType('video/webm; codecs="vp9, opus"')) {
+      video.src = cfg.srcWebm;
+      return Promise.resolve();
+    }
     var isHls = /\.m3u8(\?|$)/.test(cfg.src);
     if (!isHls || video.canPlayType('application/vnd.apple.mpegurl')) { video.src = cfg.src; return Promise.resolve(); }
     return new Promise(function (resolve) {

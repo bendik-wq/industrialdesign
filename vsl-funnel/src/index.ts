@@ -22,6 +22,24 @@ app.use('*', async (c, next) => {
 });
 
 app.get('/health', (c) => c.json({ ok: true }));
+// Video files with HTTP Range support (static assets answer every request with the
+// whole file, and Safari/iOS won't play an MP4 without 206 partial responses).
+app.on(['GET', 'HEAD'], '/media/:file{[\\w.-]+\\.(mp4|webm|jpg)}', async (c) => {
+  const asset = await c.env.ASSETS.fetch(new Request(new URL(`/assets/media/${c.req.param('file')}`, c.req.url)));
+  if (!asset.ok) return c.notFound();
+  const type = asset.headers.get('content-type') ?? 'application/octet-stream';
+  const headers = { 'content-type': type, 'accept-ranges': 'bytes', 'cache-control': 'public, max-age=86400' };
+  const buf = await asset.arrayBuffer();
+  const size = buf.byteLength;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(c.req.header('range') ?? '');
+  const head = c.req.method === 'HEAD';
+  if (!m || (!m[1] && !m[2])) return new Response(head ? null : buf, { status: 200, headers: { ...headers, 'content-length': String(size) } });
+  let start = m[1] ? Number(m[1]) : size - Number(m[2]);
+  const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+  start = Math.max(0, start);
+  if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}` } });
+  return new Response(head ? null : buf.slice(start, end + 1), { status: 206, headers: { ...headers, 'content-range': `bytes ${start}-${end}/${size}`, 'content-length': String(end - start + 1) } });
+});
 app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /\n'));
 
 // ── Funnel pages (server-side page view + per-visitor rendering) ──

@@ -25,10 +25,15 @@ export interface VideoDef {
   gateContent: boolean;
   /** Muted autoplay with a "click for sound" overlay that restarts from 0. */
   autoplayMuted: boolean;
+  /** Used until a video is connected in the dashboard (files in public/assets/media, served with Range support at /media/…). */
+  defaultSrc?: string;
+  /** WebM copy for browsers without H.264. */
+  defaultSrcWebm?: string;
+  defaultPoster?: string;
 }
 
 export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
-  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 420, gateContent: false, autoplayMuted: true },
+  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 240, gateContent: false, autoplayMuted: true, defaultSrc: '/media/vsl-main.mp4', defaultSrcWebm: '/media/vsl-main.webm', defaultPoster: '/media/vsl-main-poster.jpg' },
   breakout: { id: 'vsl-breakout', srcSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 180, gateContent: false, autoplayMuted: true },
   precall: { id: 'vsl-precall', srcSetting: 'VSL_PRECALL_SRC', fallbackSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 0, gateContent: false, autoplayMuted: true },
 };

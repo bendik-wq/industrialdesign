@@ -35,11 +35,13 @@ const scriptJson = (v: unknown) => JSON.stringify(v).replace(/[<\u2028\u2029]/g,
 
 function videoConfig(c: Context<AppEnv>, def: VideoDef) {
   const s = c.get('settings');
-  const src = s[def.srcSetting] || (def.fallbackSetting ? s[def.fallbackSetting] : '') || '';
+  const connected = s[def.srcSetting] || (def.fallbackSetting ? s[def.fallbackSetting] : '');
+  const src = connected || def.defaultSrc || '';
   return {
     id: def.id,
     src,
-    poster: def.posterSetting ? s[def.posterSetting] || '' : '',
+    srcWebm: connected ? '' : def.defaultSrcWebm ?? '',
+    poster: (def.posterSetting && s[def.posterSetting]) || def.defaultPoster || '',
     ctaRevealAt: def.ctaRevealAt,
     gateContent: def.gateContent && Boolean(src),
     autoplayMuted: def.autoplayMuted,
