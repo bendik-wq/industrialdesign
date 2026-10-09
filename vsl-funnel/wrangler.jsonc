@@ -22,7 +22,7 @@
     {
       "binding": "DB",
       "database_name": "owners-vsl-funnel",
-      "database_id": "d13a9aa0-5871-43d7-b758-331239a6a0a1",
+      "database_id": "aa995716-e0e5-48be-ad33-523a43c121a3",
       "migrations_dir": "migrations"
     }
   ],
