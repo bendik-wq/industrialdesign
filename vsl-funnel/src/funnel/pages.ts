@@ -198,7 +198,6 @@ export async function landingPage(c: Context<AppEnv>) {
     slots: {
       ...applySection.slots,
       pre_headline: variant.preHeadline,
-      hero_line: variant.heroLine,
       headline: variant.headline,
       subheadline: variant.subheadline,
       byline_name: esc(by.name),

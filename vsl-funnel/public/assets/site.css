@@ -135,24 +135,40 @@ strong { font-weight: 600; color: var(--ink); }
 .hero-center .lede, .hero-center .ps { margin-inline: auto; max-width: 680px; }
 .hero-center > .wrap > .vsl { max-width: 960px; margin-inline: auto; }
 
-/* Highlighter on key words in hero headlines. */
-.display mark { color: inherit; font-weight: inherit; background: linear-gradient(180deg, transparent 56%, var(--hl) 56%, var(--hl) 92%, transparent 92%); padding: 0 .05em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
-/* "For owners of $1M+ businesses" badge. */
-.eyebrow-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border: 1px solid var(--hair-strong); border-radius: 999px; background: var(--bg-alt); font: 500 16px/1.2 var(--font); color: var(--ink-2); }
-.eyebrow-pill strong { font: 700 19px/1 var(--font); color: var(--ink); background: linear-gradient(180deg, transparent 52%, var(--hl) 52%, var(--hl) 94%, transparent 94%); padding: 0 .12em; }
-.hero-line { font: 500 clamp(15px, 1.45vw, 18px)/1.5 var(--font); color: var(--ink-2); margin: -6px auto 22px; max-width: 860px; }
-.hero-line strong { display: table; margin: 6px auto 0; font-size: 1.18em; color: var(--ink); font-weight: 700; background: linear-gradient(180deg, transparent 58%, var(--hl) 58%, var(--hl) 94%, transparent 94%); padding: 0 .08em; white-space: nowrap; }
 /* Big guarantee badge under the CTA. */
 .guarantee-badge { display: inline-flex; align-items: center; gap: 12px; margin-top: 18px; padding: 12px 20px 12px 16px; border: 1px solid var(--hair-strong); border-radius: 12px; background: var(--bg-alt); text-align: left; }
 .guarantee-badge svg { width: 34px; height: 34px; flex: none; color: #1a9a4c; }
 .guarantee-badge strong { display: block; font: 700 clamp(17px, 1.6vw, 20px)/1.2 var(--font); color: var(--ink); }
 .guarantee-badge small { display: block; font: var(--t-small); color: var(--muted); margin-top: 2px; }
 
-/* Landing: headline, then the video in the first screen. */
-.hero-vsl { padding-top: 36px; }
+/* Landing: headline, then the video floating on a soft animated glow. */
+.hero-vsl { position: relative; isolation: isolate; overflow: hidden; padding-bottom: 80px; }
+.hero-bg { position: absolute; inset: 0; z-index: -2; pointer-events: none;
+  background-image: radial-gradient(circle, rgba(15, 44, 92, .13) 1px, transparent 1.3px); background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 58%, #000 25%, transparent 75%); mask-image: radial-gradient(ellipse 65% 55% at 50% 58%, #000 25%, transparent 75%);
+  animation: grid-drift 60s linear infinite; }
+@keyframes grid-drift { to { background-position: 240px 120px; } }
+.hero-vsl .vsl-stage { position: relative; }
+.vsl-aura { position: absolute; inset: -12% -8% -16%; z-index: 0; pointer-events: none; filter: blur(70px); opacity: .9; }
+.vsl-aura i { position: absolute; display: block; border-radius: 50%; will-change: transform; }
+.vsl-aura i:nth-child(1) { width: 58%; height: 75%; left: -2%; top: 8%; background: rgba(59, 111, 216, .55); animation: aura-a 16s ease-in-out infinite alternate; }
+.vsl-aura i:nth-child(2) { width: 52%; height: 70%; right: -4%; top: -2%; background: rgba(132, 172, 255, .55); animation: aura-b 20s ease-in-out infinite alternate; }
+.vsl-aura i:nth-child(3) { width: 46%; height: 55%; left: 28%; bottom: -6%; background: rgba(245, 199, 107, .38); animation: aura-c 18s ease-in-out infinite alternate; }
+@keyframes aura-a { to { transform: translate(12%, -8%) scale(1.12); } }
+@keyframes aura-b { to { transform: translate(-14%, 10%) scale(.92); } }
+@keyframes aura-c { to { transform: translate(8%, -12%) scale(1.15); } }
+.vsl-float { position: relative; z-index: 1; animation: vsl-float 7s ease-in-out infinite; will-change: transform; }
+@keyframes vsl-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+/* Contact shadow that tightens as the video rises. */
+.hero-vsl .vsl-stage::after { content: ""; position: absolute; z-index: 0; left: 12%; right: 12%; bottom: -34px; height: 34px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(13, 21, 38, .28), transparent 70%); filter: blur(6px); animation: vsl-shadow 7s ease-in-out infinite; }
+@keyframes vsl-shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.86); opacity: .6; } }
+.hero-vsl .vsl { border-radius: 14px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 2px 6px rgba(13, 21, 38, .12), 0 30px 70px -20px rgba(13, 21, 38, .45); }
+[data-palette="ink"] .hero-bg { background-image: radial-gradient(circle, rgba(200, 215, 255, .12) 1px, transparent 1.3px); }
+
+.hero-vsl { padding-top: 48px; }
 .hero-vsl .eyebrow { margin-bottom: 14px; }
-.hero-vsl .display { font-size: clamp(25px, 3.1vw, 44px); line-height: 1.14; max-width: 1040px; margin-bottom: 22px; text-wrap: pretty; }
-.hero-center.hero-vsl .vsl-stage { max-width: min(900px, calc((100vh - 430px) * 1.7778)); max-width: min(900px, calc((100svh - 430px) * 1.7778)); min-width: min(100%, 560px); }
+.hero-vsl .display { position: relative; z-index: 2; font-size: clamp(27px, 3.4vw, 48px); line-height: 1.12; max-width: 1000px; margin-bottom: 36px; text-wrap: balance; }
+.hero-center.hero-vsl .vsl-stage { max-width: min(900px, calc((100vh - 370px) * 1.7778)); max-width: min(900px, calc((100svh - 370px) * 1.7778)); min-width: min(100%, 560px); }
 @media (max-width: 640px) { .hero-vsl { padding-top: 26px; } .hero-vsl .eyebrow { margin-bottom: 10px; } .hero-vsl .display { margin-bottom: 20px; } }
 .hero-center .eyebrow { margin-bottom: 18px; }
 .hero-center .display { margin-inline: auto; max-width: 960px; }
@@ -347,3 +363,5 @@ body.simple main { padding: 72px 20px; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .btn::after { display: none; } *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.hero-vsl + .apply-section { margin-top: 24px; }
+.hero-vsl .cta-zone { position: relative; z-index: 2; }

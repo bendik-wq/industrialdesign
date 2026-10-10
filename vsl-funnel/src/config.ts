@@ -54,8 +54,6 @@ export interface LandingVariant {
   preHeadline: string;
   headline: string;
   subheadline: string;
-  /** One short line between the headline and the video. */
-  heroLine: string;
 }
 
 /** Headline experiment. Assignment is deterministic per visitor (hash of visitor id), so it's sticky without storage.
@@ -67,17 +65,15 @@ export const HEADLINE_EXPERIMENT = {
       id: 'a',
       weight: 50,
       preHeadline: 'For owners of <strong>$1M+</strong> businesses',
-      headline: 'Get a <mark>signed LOI in 90 days</mark> for a <mark><span class="nw">no-money-down</span> acquisition</mark> that <mark>doubles or triples</mark> your business, with over-financing built in.',
+      headline: 'Get a signed LOI in 90 days for a <em><span class="nw">no-money-down</span> acquisition</em> that doubles or triples your business, with over-financing built in.',
       subheadline: 'Work directly with Josh Li to identify the right target and structure financing that covers the full purchase price at a DSCR of around 1.5x. Backed by a 7-day money-back guarantee.',
-      heroLine: 'Work 1-on-1 with Josh Li · financing covers the full price at ~1.5x DSCR <strong>7-day money-back guarantee</strong>',
     },
     {
       id: 'b',
       weight: 50,
       preHeadline: 'For owners of <strong>$1M+</strong> businesses',
-      headline: '<mark>Double or triple</mark> your business with a <mark><span class="nw">no-money-down</span> acquisition</mark>. <mark>Signed LOI in 90 days</mark>, with over-financing built in.',
+      headline: 'Double or triple your business with a <em><span class="nw">no-money-down</span> acquisition</em>. Signed LOI in 90 days, with over-financing built in.',
       subheadline: 'Work directly with Josh Li to identify the right target and structure financing that covers the full purchase price at a DSCR of around 1.5x. Backed by a 7-day money-back guarantee.',
-      heroLine: 'Work 1-on-1 with Josh Li · financing covers the full price at ~1.5x DSCR <strong>7-day money-back guarantee</strong>',
     },
   ] satisfies LandingVariant[],
 };
