@@ -896,3 +896,15 @@ fieldset.form-grid { border: 0; padding: 0; margin: 10px 0; }
 .p-details div { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
 .p-details dt { color: var(--muted); font: 600 11px var(--mono); text-transform: uppercase; padding-top: 2px; }
 .p-details dd { margin: 0; word-break: break-word; }
+
+/* ------------------------------------------------------------------ v7: research dossier */
+.intel-top { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 10px; }
+.readiness { min-width: 92px; padding: 10px 12px; border-radius: 10px; text-align: center; border: 1px solid var(--line); display: grid; }
+.readiness b { font: 700 32px var(--head); line-height: 1; }
+.readiness span { font: 600 10px var(--mono); text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.readiness.hot { background: var(--signal-soft); border-color: var(--signal); } .readiness.hot b { color: var(--signal-ink); }
+.readiness.warm b { color: var(--warn); } .readiness.cold b { color: var(--muted); }
+.intel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.intel-list { margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 3px; }
+.tcard .ready.hot { color: var(--signal-ink); font-weight: 700; } .tcard .ready.warm { color: var(--warn); }
+@media (max-width: 600px) { .intel-top { flex-direction: column; } }

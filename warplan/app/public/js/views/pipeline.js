@@ -58,7 +58,7 @@ function card(t) {
   return `<a class="tcard p${t.priority}" href="#/targets/${t.id}" draggable="true" data-id="${t.id}">
     <b>${esc(t.name)}</b>
     <small>${esc([t.industry, t.location].filter(Boolean).join(" · ") || "No details yet")}</small>
-    <span class="tc-nums">${t.ebitda ? `<i>EBITDA ${money(t.ebitda, t.currency)}</i>` : ""}${t.owner_age ? `<i>Owner ${t.owner_age}</i>` : ""}${t.docs ? `<i>${t.docs} doc${t.docs > 1 ? "s" : ""}</i>` : ""}</span>
+    <span class="tc-nums">${t.readiness != null ? `<i class="ready ${t.readiness >= 70 ? "hot" : t.readiness >= 45 ? "warm" : "cold"}" title="Seller readiness from research">◉ ${t.readiness}</i>` : ""}${t.ebitda ? `<i>EBITDA ${money(t.ebitda, t.currency)}</i>` : ""}${t.owner_age ? `<i>Owner ${t.owner_age}</i>` : ""}${t.docs ? `<i>${t.docs} doc${t.docs > 1 ? "s" : ""}</i>` : ""}</span>
     ${t.next_action ? `<span class="tc-next ${late ? "late" : soon ? "soon" : ""}">${late ? "Overdue · " : ""}${esc(t.next_action)}${t.next_date ? ` · ${dateLabel(t.next_date)}` : ""}</span>` : `<span class="tc-next none">No next action</span>`}
   </a>`;
 }
@@ -75,11 +75,11 @@ function board(targets) {
 
 function table(targets) {
   return `<div class="table-wrap panel flush"><table class="ttable" id="ttable"><thead><tr>
-    <th data-sort="name">Company</th><th data-sort="stage">Stage</th><th data-sort="ebitda" class="num">EBITDA</th><th data-sort="revenue" class="num">Revenue</th><th data-sort="owner_age" class="num">Owner age</th><th data-sort="next_date">Next action</th><th data-sort="updated_at">Updated</th></tr></thead>
-    <tbody>${targets.map((t) => `<tr data-href="#/targets/${t.id}" data-name="${esc(t.name.toLowerCase())}" data-stage="${STAGES.findIndex((s) => s.id === t.stage)}" data-ebitda="${t.ebitda ?? -1}" data-revenue="${t.revenue ?? -1}" data-owner_age="${t.owner_age ?? -1}" data-next_date="${t.next_date || "9999"}" data-updated_at="${t.updated_at}">
+    <th data-sort="name">Company</th><th data-sort="stage">Stage</th><th data-sort="ebitda" class="num">EBITDA</th><th data-sort="revenue" class="num">Revenue</th><th data-sort="owner_age" class="num">Owner age</th><th data-sort="readiness" class="num">Readiness</th><th data-sort="next_date">Next action</th><th data-sort="updated_at">Updated</th></tr></thead>
+    <tbody>${targets.map((t) => `<tr data-href="#/targets/${t.id}" data-name="${esc(t.name.toLowerCase())}" data-stage="${STAGES.findIndex((s) => s.id === t.stage)}" data-ebitda="${t.ebitda ?? -1}" data-revenue="${t.revenue ?? -1}" data-owner_age="${t.owner_age ?? -1}" data-readiness="${t.readiness ?? -1}" data-next_date="${t.next_date || "9999"}" data-updated_at="${t.updated_at}">
       <td><a href="#/targets/${t.id}"><b>${esc(t.name)}</b></a><small class="muted block">${esc([t.industry, t.location].filter(Boolean).join(" · "))}</small></td>
       <td><span class="stage-pill s-${t.stage}">${stageById(t.stage).label}</span></td>
-      <td class="num">${money(t.ebitda, t.currency)}</td><td class="num">${money(t.revenue, t.currency)}</td><td class="num">${t.owner_age ?? "–"}</td>
+      <td class="num">${money(t.ebitda, t.currency)}</td><td class="num">${money(t.revenue, t.currency)}</td><td class="num">${t.owner_age ?? "–"}</td><td class="num">${t.readiness ?? "–"}</td>
       <td>${t.next_action ? `${esc(t.next_action)}${t.next_date ? `<small class="muted block ${t.next_date < todayYmd() ? "tone-bad" : ""}">${dateLabel(t.next_date)}</small>` : ""}` : '<span class="muted">–</span>'}</td>
       <td class="muted">${when(t.updated_at)}</td></tr>`).join("")}</tbody></table></div>`;
 }

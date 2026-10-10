@@ -137,7 +137,13 @@ export async function run(env, ctx, { provider, endpoint, input = {} }, { purpos
   const cost = +(r.cost?.value ?? 0) || 0;
   await env.DB.prepare("INSERT INTO monid_runs (account_id, user_id, target_id, provider, endpoint, run_id, status, cost, purpose, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)")
     .bind(ctx.accountId, ctx.user?.id || null, targetId, provider, endpoint, runId || null, r.status || "UNKNOWN", cost, String(purpose).slice(0, 200), now()).run();
-  if (r.status === "FAILED" || r.status === "BLOCKED" || r.status === "TIMED_OUT") throw err(502, `Monid ${provider} ${endpoint}: ${r.error?.message || r.status.toLowerCase().replace("_", " ")}`);
+  if (r.status === "FAILED" || r.status === "BLOCKED" || r.status === "TIMED_OUT") throw err(r.status === "BLOCKED" && /balance/i.test(r.reason || "") ? 402 : 502, `Monid ${provider} ${endpoint}: ${r.error?.message || r.reason || r.status.toLowerCase().replace("_", " ")}`);
+  // Monid can report COMPLETED while the provider itself refused the request (bad field, no match): surface that.
+  const ph = r.providerResponse?.httpStatus;
+  if (r.status === "COMPLETED" && ph >= 400 && (r.output == null || (Array.isArray(r.output) && !r.output.length))) {
+    const why = r.providerResponse?.error?.tasks?.[0]?.status_message || r.providerResponse?.error?.message || r.providerResponse?.error?.error || `provider answered ${ph}`;
+    throw err(ph === 404 ? 404 : 502, `${provider} ${endpoint}: ${String(why).slice(0, 200)}`);
+  }
   return { run_id: runId, status: r.status, cost_usd: cost, output: r.output ?? null };
 }
 

@@ -37,7 +37,11 @@ export async function renderData(seq) {
     <div class="chips" id="recipes">${RECIPES.map(([l, q]) => `<button type="button" class="chip-btn" data-q="${esc(q)}">${esc(l)}</button>`).join("")}</div>
     <div id="found"></div>
     <div id="runner"></div>
+    <section class="panel"><div class="panel-head"><h2 class="h3">Background jobs</h2><button class="ghost small" id="jobsCheck" type="button">Check now</button></div><div id="jobs"><p class="muted small">Meeting notetakers and AI calls show here while they run.</p></div></section>
     <section class="panel"><h2 class="h3">Spend log</h2>${runsTable(m.runs)}</section>`;
+  const drawJobs = async () => { try { const j = await api("/api/jobs"); if (j.jobs.length) $("#jobs").innerHTML = `<ul class="link-list">${j.jobs.map((x) => `<li><span>${x.kind === "meeting" ? "● Meeting notetaker" : "🤖 AI call"}${x.target_name ? ` · <a href="#/targets/${x.target_id}">${esc(x.target_name)}</a>` : ""}<small class="muted block">${esc(x.result?.summary || x.result?.note || x.result?.error || x.meta?.url || x.meta?.to || "")}</small></span><small class="${x.status === "failed" ? "tone-bad" : x.status === "done" ? "tone-ok" : ""}">${esc(x.status)} · ${when(x.created_at)}</small></li>`).join("")}</ul>`; } catch { /* quiet */ } };
+  drawJobs();
+  $("#jobsCheck").addEventListener("click", async () => { try { const r = await post("/api/jobs/check"); toast(`${r.finished} finished`); drawJobs(); } catch (e) { fail(e); } });
 
   $("#editBudget")?.addEventListener("click", async () => {
     const r = await dialog({ title: "Data budget", html: `<label class="field">Monthly cap (USD)<input name="monthly_usd" type="number" min="0" step="1" value="${b.monthly_usd}"></label><label class="field">Agents may spend up to this per run without asking (USD)<input name="approve_over_usd" type="number" min="0" step="0.05" value="${b.approve_over_usd}"></label><p class="muted small">Runs stop at the cap. Agent runs above the per-run limit, or with a price that can't be known up front, wait for approval in the Inbox.</p>` });

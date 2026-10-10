@@ -10,7 +10,7 @@ const JUNK_EMAIL = /\.(png|jpe?g|gif|webp|svg|css|js)$|@(example|domain|email|se
 function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; } }
 function normUrl(u) { if (!u) return ""; return /^https?:\/\//i.test(u) ? u : `https://${u}`; }
 
-async function fetchPage(url) {
+export async function fetchPage(url) {
   try {
     const res = await safeFetch(url, { headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml" }, signal: AbortSignal.timeout(8000) });
     if (!res.ok || !(res.headers.get("Content-Type") || "").includes("html")) return null;

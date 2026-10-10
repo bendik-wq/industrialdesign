@@ -30,6 +30,8 @@ export async function renderTarget(id, seq) {
         <button class="ghost" id="emailOwner" type="button">✉ Email the owner</button>
         <a class="ghost" href="#/dialer?target=${t.id}">✆ Call</a>
         <button class="ghost" id="pushCampaign" type="button">⇢ Add to campaign</button>
+        <button class="ghost" id="aiCallBtn" type="button" title="An AI assistant calls to find the owner and the best time">🤖 AI call</button>
+        <button class="ghost" id="meetBtn" type="button" title="A notetaker joins your Zoom/Meet/Teams call and writes the notes">● Record a meeting</button>
         <a class="ghost" href="#/simulator?target=${t.id}">☎ Practise the call</a>
         <a class="ghost" href="#/builder?target=${t.id}">⚖ Structure the deal</a>
         <button class="ghost" id="edit" type="button">Edit details</button>
@@ -38,6 +40,7 @@ export async function renderTarget(id, seq) {
     </header>
     <div class="target-grid">
       <div class="tg-main">
+        ${intelPanel(t)}
         <section class="panel next-card ${late ? "late" : ""}">
           <h2 class="h3">Next action</h2>
           <form id="nextForm" class="next-form">
@@ -118,6 +121,23 @@ export async function renderTarget(id, seq) {
 
   const mail = (to = "") => composeEmail({ target: t, contacts: t.contacts, to }).then((sent) => { if (sent) renderTarget(id, seq); });
   $("#emailOwner").addEventListener("click", () => mail());
+  $("#researchBtn")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Researching… (20–40s)";
+    try { const r = await post(`/api/targets/${t.id}/research`); toast(r.receipt); renderTarget(id, seq); } catch (err) { fail(err); b.disabled = false; b.textContent = "Research this company"; }
+  });
+  $("#aiCallBtn").addEventListener("click", async () => {
+    const phone = (t.contacts || []).find((c) => c.kind === "phone")?.value || t.phone || "";
+    const r = await dialog({ title: `AI call: ${t.name}`, submit: "Queue the call", html: `<p class="muted small">Your AI assistant line calls, says it's an AI, and asks for the owner's name and the best time to reach them (or what you write below). US and Canadian numbers. About $0.26 a minute. It waits for approval in the Inbox, and the transcript lands on the timeline.</p>
+      <label class="field">Number<input name="to" value="${esc(phone)}" placeholder="+1 208 555 0100" required></label><label class="field">What to find out (optional)<textarea name="instructions" rows="3" placeholder="e.g. Confirm Jim Ellis is still the owner and ask when he's usually in the office"></textarea></label>` });
+    if (!r) return;
+    try { const q = await post("/api/inbox", { tool: "ai_call", input: { to: r.to, target_id: t.id, instructions: r.instructions }, target_id: t.id }); toast(q.queued ? "Queued in the Inbox for approval" : "Already queued"); } catch (e) { fail(e); }
+  });
+  $("#meetBtn").addEventListener("click", async () => {
+    const r = await dialog({ title: `Record a meeting with ${t.name}`, submit: "Send the notetaker", html: `<p class="muted small">A notetaker bot joins your Zoom, Google Meet, Teams or Webex call and records it. When it ends, the notes (facts, motivations, numbers, next steps) and the transcript land on this target. About $0.50 per meeting hour. Tell the owner the call is recorded.</p>
+      <label class="field">Meeting link<input name="meeting_url" type="url" required placeholder="https://zoom.us/j/…"></label><label class="field">Join at (leave empty to join now)<input name="join_at" type="datetime-local"></label>` });
+    if (!r) return;
+    try { const out = await post("/api/meetings/record", { meeting_url: r.meeting_url, target_id: t.id, join_at: r.join_at ? new Date(r.join_at).toISOString() : undefined }); toast(out.receipt); } catch (e) { fail(e); }
+  });
   $("#pushCampaign").addEventListener("click", async () => { if (await pushDialog([t])) renderTarget(id, seq); });
   $("#deepEnrich").addEventListener("click", async () => { if (await deepEnrichDialog(t)) renderTarget(id, seq); });
   $$("[data-mail]").forEach((b) => b.addEventListener("click", () => mail(b.dataset.mail)));
@@ -176,14 +196,30 @@ export async function renderTarget(id, seq) {
   $$("[data-gen]").forEach((b) => b.addEventListener("click", () => generateFor(t, b)));
 }
 
+// Research dossier: seller readiness, signals and hooks (or the button to run it).
+function intelPanel(t) {
+  const i = t.intel;
+  if (!i) return `<section class="panel intel empty-intel"><div class="panel-head"><h2 class="h3">Research</h2><button class="primary" id="researchBtn" type="button">Research this company</button></div>
+    <p class="muted small">Reads their Google profile and latest reviews (and the owner's replies), their website's about and team pages, and the news, then scores how ready the owner may be to sell. About $0.01–0.02.</p></section>`;
+  const tone = i.score >= 70 ? "hot" : i.score >= 45 ? "warm" : "cold";
+  const list = (title, xs) => (xs?.length ? `<div><h3 class="h4">${title}</h3><ul class="intel-list">${xs.slice(0, 5).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "");
+  return `<section class="panel intel">
+    <div class="panel-head"><h2 class="h3">Research</h2><button class="ghost small" id="researchBtn" type="button">Refresh</button></div>
+    <div class="intel-top"><div class="readiness ${tone}"><b>${i.score}</b><span>seller readiness</span></div>
+      <div><p>${esc(i.readiness_reason || "")}</p><p class="muted small">${esc([i.ownership, i.years_in_business ? `${i.years_in_business} years` : "", i.employees_estimate ? `~${i.employees_estimate} staff` : "", i.revenue_estimate && i.revenue_estimate !== "unknown" ? i.revenue_estimate : "", i.google ? `${i.google.rating ?? "?"}★ (${i.google.reviews ?? 0})` : ""].filter(Boolean).join(" · "))} · researched ${when(i.updated_at)}</p></div></div>
+    <div class="intel-grid">${list("Conversation hooks", i.conversation_hooks)}${list("Succession signals", i.succession_signals)}${list("Owner signals", i.owner_signals)}${list("Red flags", i.red_flags)}</div>
+  </section>`;
+}
+
 export async function generateFor(t, btn) {
   const kind = btn.dataset.gen;
   const payload = { kind, target_id: t.id };
   if (kind === "outreach") { payload.channel = $("#channel").value; payload.language = $("#lang").value; }
   if (kind === "diligence") {
-    const r = await dialog({ title: `Diligence review: ${t.name}`, wide: true, submit: "Review", html: `<p class="muted small">Paste the P&amp;L, management accounts or tax-return figures: several years if you have them. Text, copied from a spreadsheet, or a CSV all work. It stays in your workspace.</p><label class="field">Financials<textarea name="financials" rows="12" required placeholder="2023  Revenue 6,410,000  Cost of sales 3,980,000  Wages 1,120,000  Owner salary 60,000  Rent (owner's building) 24,000 ..."></textarea></label>` });
+    const r = await dialog({ title: `Diligence review: ${t.name}`, wide: true, submit: "Review", html: `<p class="muted small">Paste the P&amp;L, management accounts or tax-return figures: several years if you have them. Text, copied from a spreadsheet, or a CSV all work. It stays in your workspace.</p><label class="field">Link to a PDF, Excel or Word file (CIM, P&amp;L, tax return)<input name="file_url" type="url" placeholder="https://… (a Dropbox/Drive public link works)"></label><p class="muted small">…or paste the figures:</p><label class="field">Financials<textarea name="financials" rows="10" placeholder="2023  Revenue 6,410,000  Cost of sales 3,980,000  Wages 1,120,000  Owner salary 60,000  Rent (owner's building) 24,000 ..."></textarea></label>` });
     if (!r) return;
-    payload.financials = r.financials;
+    if (!r.file_url && String(r.financials || "").trim().length < 40) { toast("Paste the figures or link the file", "error"); return; }
+    payload.financials = r.financials; if (r.file_url) payload.file_url = r.file_url;
   }
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = "Writing…";

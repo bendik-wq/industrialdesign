@@ -3,6 +3,7 @@
 // SMTP host. Safeguards on every send: the suppression list, a per-user daily cap, an opt-out line, the sender's
 // postal address (CAN-SPAM), and a record on the target's timeline.
 import { seal, open } from "./keys.js";
+import { run as monidRun } from "./monid.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -126,6 +127,47 @@ async function smtpSend(box, password, to, raw) {
 // ------------------------------------------------------------------ mailbox settings
 const cleanEmail = (e) => { const s = String(e || "").trim().toLowerCase(); return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s) ? s : ""; };
 
+// A Warplan-managed inbox (AgentMail through Monid, about $1 a month): send without an app password, and replies
+// are read back automatically into reply triage.
+export async function createAgentInbox(env, ctx, b) {
+  if (!ctx.user.id) throw err(400, "Mailboxes belong to a signed-in user");
+  const username = String(b.username || "").toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 40) || undefined;
+  const name = String(b.from_name || ctx.user.name || "").trim().slice(0, 80);
+  const r = await monidRun(env, ctx, { provider: "agentmail", endpoint: "/create-inboxes", input: { body: { ...(username && { username }), ...(name && { displayName: name }) } } }, { purpose: "Create email inbox" });
+  const inbox = r.output?.email || r.output?.inboxId || r.output?.inbox_id;
+  if (!inbox) throw err(502, "The inbox couldn't be created. Try another name.");
+  await env.DB.prepare(`INSERT INTO mailboxes (user_id, account_id, email, from_name, host, port, username, ciphertext, iv, signature, postal_address, daily_limit, verified_at, updated_at)
+    VALUES (?1, ?2, ?3, ?4, 'agentmail', 0, ?3, '', '', ?5, ?6, 100, ?7, ?7)
+    ON CONFLICT (user_id) DO UPDATE SET email = ?3, from_name = ?4, host = 'agentmail', port = 0, username = ?3, ciphertext = '', iv = '', verified_at = ?7, updated_at = ?7`)
+    .bind(ctx.user.id, ctx.accountId, inbox, name, String(b.signature || "").slice(0, 1000), String(b.postal_address || "").slice(0, 300), now()).run();
+  return { ok: true, email: inbox, receipt: `Your inbox ${inbox} is ready` };
+}
+
+// Read new replies in AgentMail inboxes and hand them to reply triage (same path as sequencer replies).
+export async function syncAgentInboxes(env, accountId = null, triage) {
+  const { results } = await env.DB.prepare("SELECT m.user_id, m.account_id, m.email, m.updated_at, a.name AS account_name, u.name, u.email AS user_email, u.role FROM mailboxes m JOIN accounts a ON a.id = m.account_id AND a.active = 1 JOIN users u ON u.id = m.user_id WHERE m.host = 'agentmail' AND (?1 IS NULL OR m.account_id = ?1) LIMIT 200").bind(accountId).all();
+  let replies = 0;
+  for (const box of results) {
+    const ctx = { accountId: box.account_id, user: { id: box.user_id, name: box.name, email: box.user_email, role: box.role } };
+    const since = (await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = ?2").bind(box.account_id, `agentmail:${box.user_id}`).first())?.data;
+    const after = since ? JSON.parse(since).after : box.updated_at;
+    try {
+      const r = await monidRun(env, ctx, { provider: "agentmail", endpoint: "/list-messages", input: { body: { inboxId: box.email, after, ascending: true, limit: 50 } } }, { purpose: "Check inbox" });
+      const msgs = r.output?.messages || r.output?.data || [];
+      let last = after;
+      for (const m of msgs) {
+        const from = String(m.from || m.from_ || "").match(/[^\s<>"]+@[^\s<>"]+/)?.[0]?.toLowerCase();
+        last = m.timestamp || m.created_at || last;
+        if (!from || from === box.email.toLowerCase()) continue;
+        await triage(env, { account_id: box.account_id, account_name: box.account_name }, { lead_email: from, subject: m.subject || "", reply_text: m.text || m.extracted_text || m.preview || "" }, "agentmail");
+        replies++;
+      }
+      await env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (account_id, key) DO UPDATE SET data = ?3, updated_at = ?4").bind(box.account_id, `agentmail:${box.user_id}`, JSON.stringify({ after: last }), now()).run();
+    } catch (e) { console.warn("agentmail sync", box.email, e.message); }
+  }
+  return { inboxes: results.length, replies };
+}
+
 export async function getMailbox(env, ctx) {
   const m = await env.DB.prepare("SELECT email, from_name, host, port, username, signature, postal_address, daily_limit, verified_at, updated_at FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id || 0).first();
   if (!m) return { connected: false, presets: PRESETS };
@@ -192,7 +234,10 @@ export async function sendEmail(env, ctx, b, hooks) {
   const messageId = `<${crypto.randomUUID()}@${box.email.split("@")[1]}>`;
   const raw = buildMessage({ from: box.email, fromName: box.from_name, to, subject, text: body, messageId, unsubscribe: box.email });
   let status = "sent", error = null;
-  try { await smtpSend(box, await open(env, box, aad(ctx.user.id)), to, raw); }
+  try {
+    if (box.host === "agentmail") await monidRun(env, ctx, { provider: "agentmail", endpoint: "/send-messages", input: { body: { inboxId: box.username, to: [to], subject, text: body, headers: { "List-Unsubscribe": `<mailto:${box.email}?subject=unsubscribe>` } } } }, { purpose: `Email to ${to}`, targetId: target?.id || null });
+    else await smtpSend(box, await open(env, box, aad(ctx.user.id)), to, raw);
+  }
   catch (e) { status = "failed"; error = e.status ? e.message : "Sending failed"; if (!e.status) console.error("smtp", e); }
   const stamp = now();
   const writes = [env.DB.prepare("INSERT INTO sent_emails (account_id, user_id, target_id, to_email, subject, body, status, error, message_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)")

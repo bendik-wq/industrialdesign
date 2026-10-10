@@ -16,6 +16,9 @@ import { SEQUENCERS, listCampaigns, pushToCampaign } from "./sequencers.js";
 import { queue as callQueue, logCall, DISPOSITIONS } from "./dialer.js";
 import { sendSms } from "./phone.js";
 import { checkLimits } from "./usage.js";
+import { researchTarget, RESEARCH_PRICE } from "./research.js";
+import { webSearch, readPage, readDocument } from "./webtools.js";
+import { recordMeeting, aiCall } from "./jobs.js";
 import { STAGES, normalizeDeal, dealModel, maxMultiple, money, structureSummary, targetDeal, DEAL_DEFAULTS } from "../public/js/deal.js";
 
 const STAGE_IDS = STAGES.map((s) => s.id);
@@ -261,6 +264,44 @@ export const TOOLS = [
     description: `Log a phone call with a target and move it on. disposition: ${Object.entries(DISPOSITIONS).map(([k, d]) => `${k} (${d.label})`).join(", ")}. Sets the next action and date (override with next_date), advances the stage for connected/interested/meeting.`,
     input_schema: { type: "object", properties: { target_id: { type: "integer" }, disposition: { type: "string", enum: Object.keys(DISPOSITIONS) }, notes: { type: "string" }, next_date: { type: "string", description: "YYYY-MM-DD" }, phone: { type: "string" }, duration: { type: "integer", description: "Seconds" } }, required: ["target_id", "disposition"] },
     run: async (env, ctx, i, hooks) => logCall(env, ctx, i, hooks),
+  },
+  {
+    name: "research_target", write: true, ai: true,
+    description: `Research dossier on one target: reads its Google Business Profile, latest Google reviews (and the owner's replies), its website's about/team/history pages and news, then scores seller readiness 0-100 with owner and succession signals, size estimate, red flags and conversation hooks. Saves a dossier document. Cost: ${RESEARCH_PRICE}. Use before a first call or letter, or to rank a list.`,
+    input_schema: { type: "object", properties: { target_id: { type: "integer" } }, required: ["target_id"] },
+    run: async (env, ctx, i, hooks, ai) => researchTarget(env, ctx, +i.target_id, ai),
+  },
+  {
+    name: "web_search", write: false,
+    description: "Search the web (Google-style operators work: site:, quotes, -term) and read the top results' text in one go. Use for anything not in Warplan: an owner's background, local news, a company's history, industry multiples, lenders. ~$0.003 a search.",
+    input_schema: { type: "object", properties: { query: { type: "string" }, site: { type: "string", description: "Limit to one domain (optional)" }, freshness: { type: "string", enum: ["last_24_hours", "last_week", "last_month", "last_year"] } }, required: ["query"] },
+    run: async (env, ctx, i) => webSearch(env, ctx, i),
+  },
+  {
+    name: "read_webpage", write: false,
+    description: "Read any web page as clean text (JavaScript sites and bot walls handled). ~$0.003.",
+    input_schema: { type: "object", properties: { url: { type: "string" } }, required: ["url"] },
+    run: async (env, ctx, i) => readPage(env, ctx, i),
+  },
+  {
+    name: "read_document", write: false,
+    description: "Read a document from a public https link (PDF, Word, Excel, PowerPoint, scans with ocr=true) into text: a CIM, P&L, tax return, lease or customer list. Then analyse it or pass it to draft_document. ~$0.003.",
+    input_schema: { type: "object", properties: { url: { type: "string" }, ocr: { type: "boolean" } }, required: ["url"] },
+    run: async (env, ctx, i) => readDocument(env, ctx, i),
+  },
+  {
+    name: "record_meeting", write: true, approval: true,
+    title: (i) => `Send a notetaker to ${String(i.meeting_url || "").slice(0, 60)}`,
+    description: "Send a recording notetaker bot into a Zoom, Google Meet, Teams or Webex meeting with an owner (now, or at join_at). When it ends, meeting notes (facts, motivations, numbers, next steps) and the transcript land on the target. ~$0.50 per meeting hour. Waits for approval. Tell the owner the meeting is recorded.",
+    input_schema: { type: "object", properties: { meeting_url: { type: "string" }, target_id: { type: "integer" }, join_at: { type: "string", description: "ISO time, optional" }, max_minutes: { type: "integer" } }, required: ["meeting_url"] },
+    run: async (env, ctx, i) => recordMeeting(env, ctx, i),
+  },
+  {
+    name: "ai_call", write: true, approval: true,
+    title: (i) => `AI assistant calls ${i.to}${i.instructions ? `: ${String(i.instructions).slice(0, 60)}` : ""}`,
+    description: "Have the AI assistant line (a US number with an AI voice that announces it's an AI) call a business, e.g. to find the owner's name and the best time to reach them, or confirm a callback. US/Canada numbers only. ~$0.26/minute. Waits for approval. The transcript and notes land on the target's timeline.",
+    input_schema: { type: "object", properties: { to: { type: "string", description: "+1 number" }, target_id: { type: "integer" }, instructions: { type: "string", description: "What to find out on this call" } }, required: ["to"] },
+    run: async (env, ctx, i) => aiCall(env, ctx, i),
   },
   {
     name: "send_sms", write: true, approval: true,

@@ -24,6 +24,10 @@ import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rota
 import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup } from "./dialer.js";
 import { refreshNumbers } from "./phone.js";
 import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, sendSms, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
+import { researchTarget, getIntel } from "./research.js";
+import { webSearch, readPage, readDocument } from "./webtools.js";
+import { recordMeeting, aiCall, setupAssistantLine, listJobs, processJobs } from "./jobs.js";
+import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
 const INVITE_DAYS = 7;
@@ -39,7 +43,9 @@ export default {
   },
   // Cron Trigger (wrangler.jsonc): the morning autopilot run for every workspace.
   async scheduled(event, env, exec) {
-    exec.waitUntil(autopilotAll(env, exec));
+    // Every 10 minutes: finish background jobs (meeting notes, AI calls). Daily: the autopilot.
+    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), syncAgentInboxes(env, null, replyTriage(env, exec))]));
+    else exec.waitUntil(autopilotAll(env, exec));
   },
 };
 
@@ -118,6 +124,10 @@ async function replyHook(request, env, url, exec) {
   exec.waitUntil((async () => { try { await handleReply(env, account, payload, await aiEnv(env, ctx), hooks, provider); } catch (e) { console.error("reply hook", e); } })());
   return json({ ok: true });
 }
+
+// Reply triage for inbox sync: AI read of the reply, timeline, stage, drafted answer in the Inbox.
+const replyTriage = (env, exec) => async (env2, account, payload, provider) =>
+  handleReply(env, account, payload, await aiEnv(env, { accountId: account.account_id }), hookEmitter(env, account.account_id, (pr) => exec.waitUntil(pr)), provider);
 
 // Cookie-authenticated writes must come from this site (defence in depth on top of SameSite=Lax).
 function checkOrigin(request, url) {
@@ -217,7 +227,7 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
-const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|monid\/budget|autopilot$|me\/password)/;
+const HUMAN_ONLY = /^\/api\/(ai-line|team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|monid\/budget|autopilot$|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
@@ -294,7 +304,7 @@ async function route(request, env, url, ctx, exec) {
         env.DB.prepare("SELECT id, disposition, notes, duration, phone, created_at FROM calls WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC LIMIT 20").bind(ctx.accountId, t.id).all().then((x) => x.results),
         env.DB.prepare("SELECT provider, campaign_name, email, status, created_at FROM campaign_leads WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC").bind(ctx.accountId, t.id).all().then((x) => x.results),
       ]);
-      return json({ ...t, contacts, emails, calls, campaigns });
+      return json({ ...t, contacts, emails, calls, campaigns, intel: await getIntel(env, ctx, t.id) });
     }
     if (m === "PATCH") return json(await updateTarget(env, ctx, +r[1], await body(request), hooks));
     if (m === "DELETE") return json(await deleteTarget(env, ctx, +r[1], hooks));
@@ -308,6 +318,7 @@ async function route(request, env, url, ctx, exec) {
     if (m === "POST") return json(await addContact(env, ctx, +r[1], await body(request)), 201);
   }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/find$/)) && m === "POST") return json(await enrichTarget(env, ctx, +r[1], await dataKeys(env, ctx)));
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/research$/)) && m === "POST") { const ai = await aiEnv(env, ctx); await checkLimits(env, ai, ctx); return json(await researchTarget(env, ctx, +r[1], ai)); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/enrich$/)) && m === "POST") { const b = await body(request); return json(await deepEnrich(env, ctx, +r[1], { mobile: !!b.mobile, linkedin: b.linkedin !== false })); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/(\d+)$/)) && m === "DELETE") return json(await deleteContact(env, ctx, +r[1], +r[2]));
 
@@ -351,6 +362,16 @@ async function route(request, env, url, ctx, exec) {
     return json({ ...out, output: b.full ? out.output : compact(out.output) });
   }
 
+  // The open web, meetings, AI calls
+  if (p === "/api/web/search" && m === "POST") return json(await webSearch(env, ctx, await body(request)));
+  if (p === "/api/web/read" && m === "POST") return json(await readPage(env, ctx, await body(request)));
+  if (p === "/api/web/document" && m === "POST") return json(await readDocument(env, ctx, await body(request)));
+  if (p === "/api/meetings/record" && m === "POST") return json(await recordMeeting(env, ctx, await body(request)), 201);
+  if (p === "/api/ai-calls" && m === "POST") return json(await aiCall(env, ctx, await body(request)), 201);
+  if (p === "/api/ai-line" && m === "POST") { needOwner(ctx); return json(await setupAssistantLine(env, ctx, await body(request)), 201); }
+  if (p === "/api/jobs" && m === "GET") return json({ jobs: await listJobs(env, ctx) });
+  if (p === "/api/jobs/check" && m === "POST") return json(await processJobs(env, ctx.accountId));
+
   // Cold-email sequencers (Instantly, Smartlead, EmailBison) and the replies coming back
   if (p === "/api/sequencers" && m === "GET") return json({ sequencers: await connectedSequencers(env, ctx), replies: await replyHookInfo(env, ctx) });
   if ((r = p.match(/^\/api\/sequencers\/(\w+)\/campaigns$/)) && m === "GET") return json(await listCampaigns(env, ctx, r[1]));
@@ -383,6 +404,8 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/mailbox" && m === "GET") return json(await getMailbox(env, ctx));
   if (p === "/api/mailbox" && m === "PUT") return json(await saveMailbox(env, ctx, await body(request)));
   if (p === "/api/mailbox" && m === "DELETE") return json(await deleteMailbox(env, ctx));
+  if (p === "/api/mailbox/agentmail" && m === "POST") return json(await createAgentInbox(env, ctx, await body(request)), 201);
+  if (p === "/api/mailbox/sync" && m === "POST") return json(await syncAgentInboxes(env, ctx.accountId, replyTriage(env, exec)));
   if (p === "/api/mailbox/test" && m === "POST") {
     const box = await getMailbox(env, ctx);
     if (!box.connected) fail(400, "Connect your mailbox first");

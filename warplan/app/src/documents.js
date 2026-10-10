@@ -1,4 +1,5 @@
 // Documents the agents write, shared by the REST API, Josh's tools, the MCP server and the autopilot.
+import { readDocument } from "./webtools.js";
 import { generate } from "./desk.js";
 import { getTarget } from "./pipeline.js";
 import { checkLimits, record } from "./usage.js";
@@ -16,7 +17,9 @@ export async function createDocument(env, ctx, ai, b, hooks, { skipLimits = fals
   if (b.target_id) target = await getTarget(env, ctx, +b.target_id);
   if (!skipLimits) await checkLimits(env, ai, ctx);
   const profile = await getProfile(env, ctx);
-  const doc = await generate(ai, ctx, String(b.kind || ""), target, profile, { channel: b.channel, language: String(b.language || "").slice(0, 40), financials: b.financials });
+  let financials = b.financials;
+  if (b.kind === "diligence" && b.file_url && String(financials || "").trim().length < 40) financials = (await readDocument(env, ctx, { url: b.file_url, ocr: !!b.ocr })).text;
+  const doc = await generate(ai, ctx, String(b.kind || ""), target, profile, { channel: b.channel, language: String(b.language || "").slice(0, 40), financials });
   await record(env, ai, ctx, `doc:${doc.kind}`, doc.out);
   const stamp = now();
   const row = await env.DB.prepare("INSERT INTO documents (account_id, target_id, kind, title, content, meta, created_by, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8) RETURNING id, kind, title, target_id, created_at")

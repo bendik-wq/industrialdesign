@@ -348,3 +348,31 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS login_attempts_key ON login_attempts (key, created_at);
+
+-- v7: research dossier per target (AI read of Google profile, reviews, website, news) with a seller-readiness score.
+CREATE TABLE IF NOT EXISTS target_intel (
+  target_id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  score INTEGER,                 -- 0-100 seller readiness
+  data TEXT NOT NULL,            -- JSON: signals, size estimate, hooks, sources
+  cost REAL NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS target_intel_acct ON target_intel (account_id, score DESC);
+
+-- v7: long-running Monid jobs finished in the background (meeting recordings, AI calls).
+CREATE TABLE IF NOT EXISTS jobs (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  user_id INTEGER,
+  target_id INTEGER,
+  kind TEXT NOT NULL,            -- meeting | ai_call
+  run_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'running',  -- running | done | failed
+  meta TEXT NOT NULL DEFAULT '{}',
+  result TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS jobs_open ON jobs (status, id);
+CREATE INDEX IF NOT EXISTS jobs_acct ON jobs (account_id, id DESC);

@@ -45,7 +45,8 @@ export async function listTargets(env, ctx, q) {
   const { results } = await env.DB.prepare(
     `SELECT t.${PUBLIC_COLS.join(", t.")},
        (SELECT body FROM target_events e WHERE e.target_id = t.id AND e.kind != 'stage' ORDER BY e.id DESC LIMIT 1) AS last_note,
-       (SELECT COUNT(*) FROM documents d WHERE d.target_id = t.id) AS docs
+       (SELECT COUNT(*) FROM documents d WHERE d.target_id = t.id) AS docs,
+       (SELECT score FROM target_intel i WHERE i.target_id = t.id) AS readiness
      FROM targets t WHERE t.account_id = ?1 AND (?2 IS NULL OR t.stage = ?2)
        AND (?3 = '' OR t.name LIKE ?4 OR t.industry LIKE ?4 OR t.location LIKE ?4 OR t.owner_name LIKE ?4 OR t.tags LIKE ?4)
      ORDER BY t.priority, t.updated_at DESC LIMIT 1000`

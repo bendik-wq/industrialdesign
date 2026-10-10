@@ -322,6 +322,12 @@ async function emailTab(seq) {
         <p class="muted small">Personal mailboxes get flagged as spam above a few dozen cold emails a day. Start at 20–40 and write each one like it's the only one.</p>
         <div class="row"><button class="primary" type="submit">${box.connected ? "Save" : "Connect & verify"}</button>${box.connected ? `<button class="ghost" type="button" id="mbTest">Send me a test</button><button class="ghost" type="button" id="mbOff">Disconnect</button>` : ""}</div>
       </form>
+      <section class="panel form-panel">
+        <div class="panel-head"><h2 class="h3">Or: a ready-made inbox</h2><span class="status ${box.host === "agentmail" ? "on" : ""}">${box.host === "agentmail" ? "In use" : "AgentMail"}</span></div>
+        <p class="muted small">No app password needed: Warplan creates a real inbox for you (e.g. <code>bendik.deals@agentmail.to</code>) on your Monid wallet, about $1 a month. Emails send from it, and replies are read automatically every 10 minutes: sorted by the AI, put on the right target, with a drafted answer in your Inbox.</p>
+        <form class="row" id="amForm"><input name="username" placeholder="name (optional)" maxlength="40" style="flex:1"><button class="ghost" type="submit">Create my inbox</button></form>
+        ${box.host === "agentmail" ? `<button class="link" type="button" id="amSync">Check for replies now</button>` : ""}
+      </section>
       <section class="panel">
         <h2 class="h3">Do not contact</h2>
         <p class="muted small">Anyone here is never emailed again from this workspace. Add people who reply "no thanks" or ask to be removed.</p>
@@ -329,6 +335,12 @@ async function emailTab(seq) {
         ${sup.length ? `<ul class="link-list">${sup.map((x) => `<li><span>${esc(x.email)}</span><small>${when(x.created_at)} <button class="mini-btn" data-unsup="${esc(x.email)}" type="button">Remove</button></small></li>`).join("")}</ul>` : `<p class="muted small">Nobody yet.</p>`}
       </section>
     </div>`;
+  $("#amForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!(await confirmBox("Create an inbox?", "This creates a real email inbox on your Monid wallet (about $1 a month) and makes it the address your emails send from.", "Create it"))) return;
+    try { const r = await post("/api/mailbox/agentmail", { username: e.target.username.value, from_name: session.me.user.name }); toast(r.receipt); emailTab(seq); } catch (err) { fail(err); }
+  });
+  $("#amSync")?.addEventListener("click", async () => { try { const r = await post("/api/mailbox/sync"); toast(`${r.replies} new repl${r.replies === 1 ? "y" : "ies"}`); } catch (e) { fail(e); } });
   const form = $("#mbForm");
   const syncPreset = () => {
     const k = form.preset.value;

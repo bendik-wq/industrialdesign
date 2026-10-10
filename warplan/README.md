@@ -95,6 +95,26 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
   - The Voice SDK is served from the app itself (`public/vendor`) so the page can keep allowing only its own scripts.
 - **Agent tool** `send_sms`: always waits for your approval in the Inbox.
 
+**v7: the best of Monid's catalog, wired into every step**
+I mapped Monid's catalog with 98 searches (708 endpoints from 77 providers) and picked the strongest for each workflow:
+- **Sourcing:** three new Scout sources.
+  - *Companies by revenue (Apollo):* $1M+ estimated revenue, founded year, headcount, phone, website.
+  - *Company database (Hunter Discover):* free; filter by headcount and city, state or country.
+  - *Yelp:* sorted by review count.
+- **Research dossier** (`research_target`, the Research button):
+  - Reads the Google Business Profile, the latest Google reviews and the owner's replies (DataForSEO), the website's about and team pages (free fetch, rendered fallback), news (context.dev) and a web search for the owner.
+  - The AI scores seller readiness from 0 to 100, with owner and succession signals, a size estimate, red flags and conversation hooks. It is told to keep the score moderate when evidence is thin.
+  - Costs $0.01–0.02. The score shows on pipeline cards and in the table.
+- **Open web for agents:**
+  - `web_search` searches and reads the top results.
+  - `read_webpage` reads any page.
+  - `read_document` reads a CIM, P&L or lease from a link (PDF, Word, Excel, images with OCR). Diligence also accepts a document link.
+- **Meetings:** `record_meeting` (Recall.ai) sends a notetaker bot into Zoom, Meet, Teams or Webex. When the meeting ends, the AI's notes (facts, motivations, numbers, next steps) and the transcript are added to the target.
+- **AI assistant line:** `ai_call` (Saperly) is a US number with an AI voice. It always announces it's an AI, then asks for the owner's name and the best time to reach them. Each call waits for approval, and transcripts and notes go on the timeline.
+- **Ready-made inbox (AgentMail, about $1 a month):** send without an SMTP app password. Replies are read every 10 minutes and go through reply triage.
+- **Background jobs:** a cron every 10 minutes finishes meetings, AI calls and inbox syncs. The Data page shows the jobs and has a *Check now* button.
+- **Monid client:** treats a provider error inside a run Monid reports as COMPLETED as a failure, and returns wallet holds that are too large as a clear "top up" message.
+
 ## API
 
 `GET /api` returns the full reference. Authenticate with `Authorization: Bearer wp_...` (Settings → API).

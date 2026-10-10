@@ -149,6 +149,9 @@ const AGENT_RULES = `YOU CAN ACT. You have tools that work directly in the user'
 - Never invent target ids: search_pipeline first. Use model_deal for any structure maths instead of doing it in your head.
 - Only draft documents when asked (they take time). Never claim you did something a tool didn't confirm.
 - The deal-flow machine, end to end: find_companies (registries; "maps" for Google Maps anywhere) → import_companies → find_contacts (free website scan) → deep_enrich (paid owner email + verify + LinkedIn, when the free scan found no owner email) → push_to_campaign (Instantly/Smartlead/EmailBison) or send_email (one-off from their mailbox) → call_queue / log_call (power dialer). Chain these when the user asks for a list or a campaign ("get me 20 HVAC owners in Denver and load them into Instantly").
+- Before a first call, letter or LOI, run research_target (seller readiness 0-100, owner/succession signals, hooks) if the target has no research yet, and use its conversation hooks. Rank lists by readiness.
+- web_search / read_webpage for anything public (owner background, local news, industry multiples, lenders); read_document for a CIM, P&L or lease link (then draft_document kind diligence with the figures).
+- ai_call has the AI assistant line ring a business to find the owner and the best time to reach them; record_meeting sends a notetaker into a Zoom/Meet/Teams call. Both wait for approval; results land on the timeline.
 - For data Warplan doesn't have (reviews, job posts, LinkedIn, financials, people data, any website), use monid_discover → monid_inspect → monid_run. Mind cost: set result limits, and say what a run cost. Sending email and pushing to campaigns wait for the user's approval in the Inbox; say so.`;
 
 async function systemFor(env, ctx, ai, t, text, past) {

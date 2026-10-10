@@ -6,6 +6,7 @@
 // Every result comes back in one shape; importing turns it into a pipeline target.
 import { INDUSTRIES, industryById } from "./data/industries.js";
 import { run as monidRun } from "./monid.js";
+import { STATE_NAMES } from "./research.js";
 
 const UA = "Warplan/2 (acquisition research; https://warplan.bendik-50e.workers.dev)";
 const err = (status, message) => Object.assign(new Error(message), { status });
@@ -123,6 +124,89 @@ const maps = {
   },
 };
 
+// ------------------------------------------------------------------ shared: parse "City, ST" / "City, Country"
+const US_STATES = new Set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
+const COUNTRY_CODES = { usa: "US", us: "US", "united states": "US", uk: "GB", "united kingdom": "GB", england: "GB", scotland: "GB", wales: "GB", australia: "AU", canada: "CA", ireland: "IE", "new zealand": "NZ", germany: "DE", netherlands: "NL" };
+function parsePlace(region) {
+  const parts = String(region || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const last = (parts[parts.length - 1] || "").toUpperCase();
+  if (US_STATES.has(last)) return { country: "US", state: last, city: parts.length > 1 ? parts[0] : null };
+  const cc = COUNTRY_CODES[(parts[parts.length - 1] || "").toLowerCase()];
+  if (cc) return { country: cc, city: parts.length > 1 ? parts[0] : null };
+  return { country: null, city: parts[0] || null };
+}
+// The trade word databases tag companies with: "HVAC / heating & cooling" → "hvac", "Dental practices" → "dental".
+const keywordFor = (ind) => ind.label.split(/[\/&,(]/)[0].toLowerCase().split(/\s+/).filter((w) => w && !/^(contractors?|company|companies|practices?|services?|firms?|agency|agencies|offices?|shops?|clinics?|commercial)$/.test(w)).join(" ") || ind.places;
+const fullState = (region) => region.replace(/,\s*([A-Z]{2})\b/, (m, st) => (STATE_NAMES[st] ? `, ${STATE_NAMES[st]}` : m));
+const HEADCOUNT = (min) => ["1-10", "11-50", "51-200", "201-500", "501-1000"].filter((r) => +r.split("-")[1] >= Math.max(1, min));
+
+// ------------------------------------------------------------------ Yelp via Monid (anywhere Yelp covers)
+const yelp = {
+  id: "yelp", label: "Anywhere · Yelp (Monid)", flag: "★", currency: "$", needs: "monid",
+  regionLabel: "City or area", regions: "text",
+  gives: ["Local businesses Yelp lists, by most reviewed", "Phone, address, rating and review count", "Strong for trades, clinics, auto, restaurants"],
+  async search(env, q, keys, ctx) {
+    const ind = industryById(q.industry);
+    if (!keys.monid) throw err(400, "Connect a Monid key under Settings → Integrations");
+    if (!q.region) throw err(400, "Type a city or area, e.g. “Austin, TX”");
+    const r = await monidRun(env, ctx, { provider: "litescrape", endpoint: "/yelp/search", input: { queryParams: { find_desc: ind.places, find_loc: q.region, sortby: "review_count", ...(q.page > 1 && { start: (q.page - 1) * 10 }) } } }, { purpose: `Scout (Yelp): ${ind.places} in ${q.region}`, key: keys.monid });
+    const list = r.output?.organic_results || [];
+    return {
+      results: list.filter((x) => x.title).map((x) => ({
+        source: "yelp", source_id: x.place_id || x.alias, name: x.title, location: [x.city, x.state].filter(Boolean).join(", ") || q.region, address: [x.address, x.city, x.state, x.postal_code].filter(Boolean).join(", "),
+        website: "", email: "", phone: x.phone || "", employees: null, revenue: null, ebitda: null, rating: x.rating ?? null, reviews: x.reviews ?? 0, category: (x.categories || []).map((c) => c.title).join(", "), people: [], registry_url: x.link || "",
+      })),
+      more: list.length >= 10, total: null, cost_usd: r.cost_usd,
+    };
+  },
+};
+
+// ------------------------------------------------------------------ Company database via Monid (Hunter Discover, free)
+const companydb = {
+  id: "companydb", label: "Company database · by headcount (free)", flag: "▦", currency: "$", needs: "monid",
+  regionLabel: "City, state or country", regions: "text",
+  gives: ["B2B database of companies with a website", "Filter by headcount (use Min. staff)", "Free to search; then Deep enrich finds the owner"],
+  async search(env, q, keys, ctx) {
+    const ind = industryById(q.industry);
+    if (!keys.monid) throw err(400, "Connect a Monid key under Settings → Integrations");
+    const place = parsePlace(q.region);
+    if (!place.country && !place.city) throw err(400, "Type a place, e.g. “Boise, ID”, “Texas, US” or “Manchester, UK”");
+    const loc = place.country ? { country: place.country, ...(place.state && { state: place.state }), ...(place.city && { city: place.city }) } : null;
+    const body = { keywords: { include: keywordFor(ind).split(" "), match: "all" }, limit: 25, offset: (q.page - 1) * 25, ...(loc && { headquarters_location: { include: [loc] } }), ...(q.minStaff > 0 && { headcount: HEADCOUNT(q.minStaff) }) };
+    const r = await monidRun(env, ctx, { provider: "hunterio", endpoint: "/discover", input: { body } }, { purpose: `Scout (company database): ${ind.label} in ${q.region}`, key: keys.monid });
+    const list = r.output?.data || [];
+    return {
+      results: list.map((x) => ({ source: "companydb", source_id: x.domain, name: x.organization || x.domain, location: q.region, address: "", website: x.domain ? `https://${x.domain}` : "", email: "", phone: "", employees: null, revenue: null, ebitda: null, emails_on_file: x.emails_count?.total ?? 0, people: [], registry_url: x.domain ? `https://${x.domain}` : "" })),
+      more: (r.output?.meta?.results || 0) > q.page * 25, total: r.output?.meta?.results ?? null, cost_usd: r.cost_usd,
+    };
+  },
+};
+
+// ------------------------------------------------------------------ Apollo companies via Monid (revenue + founded year)
+const apollo = {
+  id: "apollo", label: "Companies by revenue · Apollo (Monid)", flag: "$", currency: "$", needs: "monid",
+  regionLabel: "City, state or country", regions: "text",
+  gives: ["Companies with $1M+ estimated revenue", "Founded year (owner tenure), headcount, phone, website", "≈$0.03 per page of 25"],
+  async search(env, q, keys, ctx) {
+    const ind = industryById(q.industry);
+    if (!keys.monid) throw err(400, "Connect a Monid key under Settings → Integrations");
+    if (!q.region) throw err(400, "Type a place, e.g. “Boise, Idaho” or “Texas”");
+    const ranges = HEADCOUNT(q.minStaff || 5).map((r) => r.replace("-", ","));
+    const r = await monidRun(env, ctx, { provider: "apollo", endpoint: "/mixed_companies/search", input: { queryParams: {
+      "organization_locations[]": [fullState(q.region)], "q_organization_keyword_tags[]": [keywordFor(ind)], "organization_num_employees_ranges[]": ranges, "revenue_range[min]": 1000000, per_page: 25, page: q.page,
+    } } }, { purpose: `Scout (Apollo): ${ind.label} in ${q.region}`, key: keys.monid });
+    const list = r.output?.organizations || r.output?.accounts || [];
+    const pg = r.output?.pagination || {};
+    return {
+      results: list.map((x) => ({
+        source: "apollo", source_id: x.id, name: x.name, location: q.region, address: "", website: x.website_url || (x.primary_domain ? `https://${x.primary_domain}` : ""), email: "", phone: x.sanitized_phone || x.phone || "",
+        employees: x.estimated_num_employees ?? null, revenue: x.organization_revenue || null, ebitda: null, founded: x.founded_year || null, people: [], registry_url: x.linkedin_url || "",
+      })),
+      more: (pg.page || q.page) < (pg.total_pages || 0), total: pg.total_entries ?? null, cost_usd: r.cost_usd,
+    };
+  },
+};
+
 // ------------------------------------------------------------------ OpenStreetMap (anywhere, free)
 const osm = {
   id: "osm", label: "Anywhere · OpenStreetMap", flag: "🗺", currency: "$", needs: null,
@@ -153,7 +237,7 @@ const osm = {
   },
 };
 
-export const SOURCES = { maps, uk, places, osm };
+export const SOURCES = { maps, apollo, companydb, yelp, uk, places, osm };
 
 export function scoutInfo(keys) {
   return {
@@ -185,7 +269,7 @@ export function toTarget(r, currency) {
   return {
     name: r.name, industry: r.industry || "", location: r.location || "", website: r.website || "", owner_name: r.owner_name || "", owner_age: r.owner_age ?? null,
     phone: r.phone || "", email: r.email || "", employees: r.employees ?? null, revenue: r.revenue ?? null, ebitda: r.ebitda ?? null, currency: currency || "$",
-    stage: "sourced", source: `Scout · ${({ uk_ch: "Companies House", places: "Google Maps", maps: "Google Maps (Monid)", osm: "OpenStreetMap" })[r.source] || r.source}`,
+    stage: "sourced", source: `Scout · ${({ uk_ch: "Companies House", places: "Google Maps", maps: "Google Maps (Monid)", yelp: "Yelp", companydb: "Company database", apollo: "Apollo", osm: "OpenStreetMap" })[r.source] || r.source}`,
     motivation: [people && `People on file: ${people}.`, r.founded && `Founded ${r.founded}.`, r.address && `Address: ${r.address}.`, r.registry_url && `Record: ${r.registry_url}`].filter(Boolean).join(" "),
   };
 }
