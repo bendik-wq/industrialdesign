@@ -21,6 +21,7 @@
   --btn-edge: rgba(255, 255, 255, .28);
   --btn-glow: rgba(15, 44, 92, .55);
   --video: #0d1526;
+  --hl: rgba(253, 208, 80, .62);
   --err: #b42318;
   --serif: "Newsreader", "Iowan Old Style", Georgia, "Times New Roman", serif;
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
@@ -57,6 +58,7 @@
   --btn-edge: rgba(255, 255, 255, .9);
   --btn-glow: rgba(160, 185, 230, .35);
   --video: #060a13;
+  --hl: rgba(234, 179, 8, .38);
 }
 
 * { box-sizing: border-box; }
@@ -133,11 +135,24 @@ strong { font-weight: 600; color: var(--ink); }
 .hero-center .lede, .hero-center .ps { margin-inline: auto; max-width: 680px; }
 .hero-center > .wrap > .vsl { max-width: 960px; margin-inline: auto; }
 
+/* Highlighter on key words in hero headlines. */
+.display mark { color: inherit; font-weight: inherit; background: linear-gradient(180deg, transparent 56%, var(--hl) 56%, var(--hl) 92%, transparent 92%); padding: 0 .05em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* "For owners of $1M+ businesses" badge. */
+.eyebrow-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border: 1px solid var(--hair-strong); border-radius: 999px; background: var(--bg-alt); font: 500 16px/1.2 var(--font); color: var(--ink-2); }
+.eyebrow-pill strong { font: 700 19px/1 var(--font); color: var(--ink); background: linear-gradient(180deg, transparent 52%, var(--hl) 52%, var(--hl) 94%, transparent 94%); padding: 0 .12em; }
+.hero-line { font: 500 clamp(15px, 1.45vw, 18px)/1.5 var(--font); color: var(--ink-2); margin: -6px auto 22px; max-width: 860px; }
+.hero-line strong { display: table; margin: 6px auto 0; font-size: 1.18em; color: var(--ink); font-weight: 700; background: linear-gradient(180deg, transparent 58%, var(--hl) 58%, var(--hl) 94%, transparent 94%); padding: 0 .08em; white-space: nowrap; }
+/* Big guarantee badge under the CTA. */
+.guarantee-badge { display: inline-flex; align-items: center; gap: 12px; margin-top: 18px; padding: 12px 20px 12px 16px; border: 1px solid var(--hair-strong); border-radius: 12px; background: var(--bg-alt); text-align: left; }
+.guarantee-badge svg { width: 34px; height: 34px; flex: none; color: #1a9a4c; }
+.guarantee-badge strong { display: block; font: 700 clamp(17px, 1.6vw, 20px)/1.2 var(--font); color: var(--ink); }
+.guarantee-badge small { display: block; font: var(--t-small); color: var(--muted); margin-top: 2px; }
+
 /* Landing: headline, then the video in the first screen. */
-.hero-vsl { padding-top: 44px; }
+.hero-vsl { padding-top: 36px; }
 .hero-vsl .eyebrow { margin-bottom: 14px; }
-.hero-vsl .display { font-size: clamp(25px, 3.25vw, 46px); line-height: 1.12; max-width: 1000px; margin-bottom: 28px; }
-.hero-center.hero-vsl .vsl-stage { max-width: min(900px, calc((100vh - 350px) * 1.7778)); max-width: min(900px, calc((100svh - 350px) * 1.7778)); min-width: min(100%, 560px); }
+.hero-vsl .display { font-size: clamp(25px, 3.1vw, 44px); line-height: 1.14; max-width: 1040px; margin-bottom: 22px; text-wrap: pretty; }
+.hero-center.hero-vsl .vsl-stage { max-width: min(900px, calc((100vh - 430px) * 1.7778)); max-width: min(900px, calc((100svh - 430px) * 1.7778)); min-width: min(100%, 560px); }
 @media (max-width: 640px) { .hero-vsl { padding-top: 26px; } .hero-vsl .eyebrow { margin-bottom: 10px; } .hero-vsl .display { margin-bottom: 20px; } }
 .hero-center .eyebrow { margin-bottom: 18px; }
 .hero-center .display { margin-inline: auto; max-width: 960px; }
