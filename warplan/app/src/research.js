@@ -19,10 +19,21 @@ const STATES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA:
 export const STATE_NAMES = STATES;
 export const RESEARCH_PRICE = "about $0.01–0.02 a company";
 
-// "Boise, ID" → "Boise,Idaho,United States" (DataForSEO's location format). Elsewhere: the city goes in the keyword.
-function locationName(loc) {
-  const m = String(loc || "").match(/^\s*([^,]+),\s*([A-Z]{2})\b/);
-  return m && STATES[m[2]] ? `${m[1].trim()},${STATES[m[2]]},United States` : null;
+// DataForSEO wants its own location names: "Boise,Idaho,United States" for the US; elsewhere the country is
+// enough when the suburb or city goes in the keyword ("Tooth Heaven Kensington" + "Australia").
+const COUNTRY_NAMES = { australia: "Australia", au: "Australia", "united kingdom": "United Kingdom", uk: "United Kingdom", england: "United Kingdom", scotland: "United Kingdom", wales: "United Kingdom", canada: "Canada", "new zealand": "New Zealand", nz: "New Zealand", ireland: "Ireland", germany: "Germany", netherlands: "Netherlands", usa: "United States", "united states": "United States" };
+const AU_STATES = /\b(VIC|NSW|QLD|WA|SA|TAS|ACT|NT)\b/;
+const CA_PROV = /\b(ON|QC|BC|AB|MB|SK|NS|NB|NL|PE)\b/;
+export function googlePlace(loc) {
+  const raw = String(loc || "").trim();
+  const us = raw.match(/^\s*([^,]+),\s*([A-Z]{2})\b/);
+  if (us && STATES[us[2]]) return { location_name: `${us[1].trim()},${STATES[us[2]]},United States`, city: "" };
+  const parts = raw.split(",").map((x) => x.trim()).filter(Boolean);
+  const last = (parts[parts.length - 1] || "").toLowerCase();
+  const country = COUNTRY_NAMES[last] || (AU_STATES.test(raw) ? "Australia" : CA_PROV.test(raw) && parts.length > 1 ? "Canada" : null);
+  // The suburb/city: the first part, without postcodes or state codes.
+  const city = (parts[0] || "").replace(AU_STATES, "").replace(/\b\d{3,5}\b/g, "").replace(/\s+/g, " ").trim();
+  return { location_name: country, city };
 }
 const text = (html) => String(html || "").replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/\s+/g, " ").trim();
 const domainOf = (site) => { try { return new URL(/^https?:/i.test(site) ? site : `https://${site}`).hostname.replace(/^www\./, ""); } catch { return ""; } };
@@ -73,12 +84,12 @@ export async function researchTarget(env, ctx, targetId, ai) {
       return r.status === "COMPLETED" ? r.output : null;
     } catch (e) {
       if (e.status === 402) throw e;
-      steps.push({ step: label, status: "failed", error: e.message }); return null;
+      steps.push({ step: label, status: e.status === 404 ? "none found" : "failed", error: e.message }); return null;
     }
   };
-  const loc = locationName(t.location);
-  const where = loc ? { location_name: loc } : {};
-  const keyword = loc ? t.name : `${t.name} ${t.location || ""}`.trim();
+  const place = googlePlace(t.location);
+  const where = place.location_name ? { location_name: place.location_name } : {};
+  const keyword = place.city ? `${t.name} ${place.city}` : place.location_name ? t.name : `${t.name} ${t.location || ""}`.trim();
   const domain = domainOf(t.website);
   const city = (t.location || "").split(",")[0].trim();
   const [info, reviews, site, news, web] = await Promise.all([
