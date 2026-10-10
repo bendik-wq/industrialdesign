@@ -4,8 +4,8 @@ import { requireAdmin } from '../admin/auth';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
 import { APPLICATION, BRAND, CLOSERS, VIDEOS } from '../config';
 import { LEAD_STATUSES, type Lead, getLead, parseAnswers, updateLead } from '../funnel/leads';
-import { emailConfigured, sendViaResend } from '../integrations/email';
-import { SEQUENCES } from '../integrations/sequences';
+import { cancelSequence, emailConfigured, enqueueSequence, sendViaResend } from '../integrations/email';
+import { SEQUENCES, type SequenceId } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
 import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
@@ -122,6 +122,17 @@ admin.patch('/leads/:id', async (c) => {
   await updateLead(c.env, lead.id, fields);
   if (fields.status && fields.status !== lead.status) {
     const rt = runtimeFrom(c);
+    // Status-driven follow-up: missed calls get a rebooking sequence, calls that happened get a follow-up.
+    const fresh = (await getLead(c.env, lead.id))!;
+    if (fields.status === 'no_show') {
+      await cancelSequence(rt, lead.id, 'booked');
+      await enqueueSequence(rt, fresh, 'no_show');
+    } else if (fields.status === 'showed') {
+      await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'no_show')]);
+      await enqueueSequence(rt, fresh, 'post_call');
+    } else if (fields.status === 'won' || fields.status === 'lost' || fields.status === 'disqualified') {
+      await Promise.all(['booked', 'no_show', 'post_call', 'tier_a', 'tier_b'].map((sq) => cancelSequence(rt, lead.id, sq as SequenceId)));
+    }
     await track(rt, await identityFromLead(c.env, lead.id), { name: 'lead_status_changed', source: 'admin', props: { from: lead.status, to: fields.status, revenue: fields.revenue ?? lead.revenue } });
   }
   return c.json({ ok: true, lead: await getLead(c.env, lead.id) });

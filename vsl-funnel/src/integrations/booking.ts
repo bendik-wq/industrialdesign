@@ -38,7 +38,7 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
       source: info.verified ? 'webhook' : 'client',
       props: { provider: info.provider, call_at: info.callAt, booking_ref: info.ref },
     });
-    await Promise.all([cancelSequence(rt, lead.id, 'tier_a'), cancelSequence(rt, lead.id, 'tier_b'), cancelSequence(rt, lead.id, 'abandoned')]);
+    await Promise.all(['tier_a', 'tier_b', 'tier_c', 'abandoned', 'no_show'].map((sq) => cancelSequence(rt, lead.id, sq as 'tier_a')));
     rt.waitUntil(notifySlack(rt, fresh, '📅 Call booked', fresh.call_at ? [`Call: ${formatCallTime(fresh.call_at, 'Australia/Sydney')}`] : []));
   }
   // (Re)schedule the confirmation + reminders whenever we learn a new call time.

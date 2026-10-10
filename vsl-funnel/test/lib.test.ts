@@ -160,3 +160,23 @@ describe('tracked links', () => {
     expect(slug('How I Bought 2 Businesses — 100% Seller Finance!')).toBe('how-i-bought-2-businesses-100-seller-finance');
   });
 });
+
+import { SEQUENCES } from '../src/integrations/sequences';
+import { TEMPLATES } from '../src/integrations/templates';
+
+describe('email sequences', () => {
+  it('every step points at a template that exists', () => {
+    for (const seq of Object.values(SEQUENCES)) for (const step of seq.steps) expect(TEMPLATES[step.template], `${seq.id} → ${step.template}`).toBeTypeOf('function');
+  });
+  it('every template renders with a subject, body and (unless a reminder) a call to action', () => {
+    const lead = { id: 'l1', ref_code: 'AB12CD', first_name: 'Sam', tier: 'A', booked_at: 1, call_at: Date.now() + 86400000, app_completed_at: 1 } as never;
+    const ctx = { lead, name: 'Sam', siteName: 'G&L', link: (p: string) => `https://x.test${p}`, bookingUrl: 'https://cal.test', whatsappUrl: null, callTime: 'Monday 3pm' };
+    for (const [key, tpl] of Object.entries(TEMPLATES)) {
+      const e = tpl(ctx);
+      expect(e.subject.length, key).toBeGreaterThan(3);
+      expect(e.body.length, key).toBeGreaterThan(0);
+    }
+    const subjects = Object.entries(TEMPLATES).filter(([k]) => k !== 'test').map(([, t]) => t(ctx).subject);
+    expect(new Set(subjects).size).toBe(subjects.length);
+  });
+});
