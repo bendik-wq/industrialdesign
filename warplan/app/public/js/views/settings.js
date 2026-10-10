@@ -100,7 +100,8 @@ async function integrations(seq) {
         <label class="field">${x.id === "twilio" ? "Auth token" : x.id === "bluebubbles" ? "Server password" : "API key"}<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${x.connected ? "Paste a new key to replace it" : "Paste the key"}" ${dis}></label>
         ${(x.metaFields || []).map((m) => `<label class="field">${esc(META_LABEL[m]?.[0] || m)}<input name="meta:${m}" value="${esc(Array.isArray(x.meta[m]) ? x.meta[m].join(", ") : x.meta[m] || "")}" placeholder="${esc(META_LABEL[m]?.[1] || "")}" ${dis}></label>`).join("")}
         <p class="muted small">${esc(x.hint)}</p>
-        <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? (x.metaFields?.length ? "Save" : "Replace") : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}${x.id === "monid" && x.connected ? `<a class="ghost" href="#/data">Open the data console</a>` : ""}${x.id === "bluebubbles" && x.connected && d.canEdit ? `<button class="ghost" type="button" data-bbhook>Reconnect incoming messages</button>` : ""}</div>
+        <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? (x.metaFields?.length ? "Save" : "Replace") : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}${x.id === "monid" && x.connected ? `<a class="ghost" href="#/data">Open the data console</a>` : ""}${x.id === "bluebubbles" && x.connected && d.canEdit ? `<button class="ghost" type="button" data-bbhook>Reconnect incoming messages</button><button class="ghost" type="button" data-bbcheck>Check Private API</button>` : ""}</div>
+        ${x.id === "bluebubbles" && x.connected ? `<p class="small" id="bbPrivate">Checking the Private API…</p>` : ""}
       </form>`;
   const k = Object.fromEntries(d.keys.map((x) => [x.id, x]));
   const dis = d.canEdit ? "" : "disabled";
@@ -162,6 +163,9 @@ async function integrations(seq) {
       try { await api(`/api/integrations/${provider}`, { method: "DELETE" }); session.team = await api("/api/agents"); integrations(seq); } catch (e) { fail(e); }
     });
   });
+  const bbShow = (st) => { const el = $("#bbPrivate"); if (el) el.innerHTML = st.private_api ? `<span class="tone-ok">Private API on</span>: typing indicators, read receipts and tapbacks work, and sends skip the Messages window.` : `<span class="muted">Private API off</span>: texts send through AppleScript. For typing, read receipts and tapbacks, turn on the Private API in BlueBubbles Server (Settings → Private API; it needs SIP partly disabled on the Mac, see bluebubbles.app/install), then press Check Private API.`; };
+  if ($("#bbPrivate")) api("/api/imessage").then(bbShow).catch(() => {});
+  $("[data-bbcheck]")?.addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { const st = await post("/api/imessage/refresh"); bbShow(st); toast(st.private_api ? "Private API is on" : "Private API isn't reachable yet", st.private_api ? "" : "error"); } catch (err) { fail(err); } e.currentTarget.disabled = false; });
   $("[data-bbhook]")?.addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { await bbHookResult(await post("/api/imessage/hook")); } catch (err) { fail(err); } integrations(seq); });
   $("#replyHook")?.addEventListener("click", async () => {
     if (replies.configured && !(await confirmBox("Make a new reply URL?", "The current URL stops working; paste the new one into your sequencer.", "Make a new one"))) return;

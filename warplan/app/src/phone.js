@@ -7,7 +7,7 @@
 // Setup is one click: from the Twilio key the workspace already connected we create an API key (for tokens) and
 // a TwiML App (for the webhook). Webhook URLs carry a secret per workspace and every request is checked against
 // Twilio's signature.
-import { twilio, twilioReq, xml, e164 } from "./dialer.js";
+import { twilio, twilioReq, xml, e164, dialGuard, recordAttempt, balancedCallerId, loadsToday } from "./dialer.js";
 import { seal, open } from "./keys.js";
 import { sha256, randomToken } from "./auth.js";
 import { pickCallerId, callerNumbers, smsNumbers, countryName } from "./numbers.js";
@@ -137,7 +137,7 @@ export async function phoneToken(env, ctx) {
 export async function callerFor(env, ctx, to) {
   const tw = await twilio(env, ctx);
   const cfg = await getCfg(env, ctx.accountId);
-  return { call: pickCallerId(callerNumbers(tw, cfg), to, tw.from), sms: pickCallerId(smsNumbers(tw, cfg), to, tw.from) };
+  return { call: balancedCallerId(callerNumbers(tw, cfg), to, tw.from, await loadsToday(env, ctx.accountId)), sms: pickCallerId(smsNumbers(tw, cfg), to, tw.from) };
 }
 
 // A Twilio access token: HS256 JWT signed with the API key secret, granting voice in and out as `identity`.
@@ -266,7 +266,14 @@ export async function twilioHook(request, env, url, hooksFor) {
     if (!user) return twiml("<Say>Not allowed.</Say><Hangup/>");
     const to = String(params.get("To") || "").replace(/[\s()-]/g, "");
     if (!/^\+\d{7,15}$/.test(to)) return twiml("<Say>That number isn't in international format.</Say><Hangup/>");
-    const callerId = pickCallerId(callerNumbers(tw, await getCfg(env, row.account_id)), to, tw.from);
+    // Same rules as every other dial: the owner's calling hours, 3 tries a day, the do-not-call list.
+    const t = await findByPhone(env, row.account_id, to);
+    const full = t ? await env.DB.prepare("SELECT location, currency FROM targets WHERE id = ?1").bind(t.id).first() : null;
+    let g;
+    try { g = await dialGuard(env, row.account_id, { to, location: full?.location, currency: full?.currency, retry: params.get("retry") === "1" }); }
+    catch (e) { return twiml(`<Say>${xml(e.status ? e.message.replace(/\+/g, " plus ") : "This call isn't allowed.")}</Say><Hangup/>`); }
+    const callerId = balancedCallerId(callerNumbers(tw, await getCfg(env, row.account_id)), to, tw.from, await loadsToday(env, row.account_id));
+    await recordAttempt(env, { accountId: row.account_id, userId: user.id, targetId: t?.id, to, callerId, via: "browser", info: g.info });
     return twiml(`<Dial callerId="${xml(callerId)}" answerOnBridge="true" timeLimit="3600"><Number>${xml(to)}</Number></Dial>`);
   }
   if (kind === "incoming") {

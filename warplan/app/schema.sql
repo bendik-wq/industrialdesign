@@ -377,3 +377,71 @@ CREATE TABLE IF NOT EXISTS jobs (
 CREATE INDEX IF NOT EXISTS jobs_open ON jobs (status, id);
 CREATE INDEX IF NOT EXISTS jobs_acct ON jobs (account_id, id DESC);
 CREATE INDEX IF NOT EXISTS settings_imessage_hook ON settings (json_extract(data, '$.hash')) WHERE key = 'imessage';
+
+-- v9: iMessage Private API ("typing…" from the other side, set by the BlueBubbles typing-indicator webhook).
+CREATE TABLE IF NOT EXISTS imessage_live (
+  account_id INTEGER NOT NULL,
+  chat TEXT NOT NULL,
+  typing INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, chat)
+);
+
+-- v10: power dialer engine. Every dial (browser, bridge or your own phone) is an attempt: it drives the
+-- 3-per-number-per-day cap, caller-ID rotation, "best time to call" and number-health stats.
+CREATE TABLE IF NOT EXISTS dial_attempts (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  user_id INTEGER,
+  target_id INTEGER,
+  e164 TEXT NOT NULL,
+  caller_id TEXT,
+  via TEXT NOT NULL DEFAULT 'phone',  -- browser | twilio | phone
+  session_id INTEGER,
+  local_hour INTEGER,
+  local_dow INTEGER,
+  answered INTEGER,                   -- 1 spoke to someone, 0 not, NULL unknown yet
+  disposition TEXT,
+  duration INTEGER,
+  call_id INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS dial_attempts_num ON dial_attempts (account_id, e164, created_at);
+CREATE INDEX IF NOT EXISTS dial_attempts_acct ON dial_attempts (account_id, created_at);
+CREATE INDEX IF NOT EXISTS dial_attempts_caller ON dial_attempts (account_id, caller_id, created_at);
+CREATE TABLE IF NOT EXISTS callbacks (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  user_id INTEGER,
+  due_at TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  done_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS callbacks_due ON callbacks (account_id, done_at, due_at);
+CREATE TABLE IF NOT EXISTS dialer_locks (
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  until TEXT NOT NULL,
+  PRIMARY KEY (account_id, target_id)
+);
+CREATE TABLE IF NOT EXISTS dial_sessions (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  user_id INTEGER,
+  started_at TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  ended_at TEXT
+);
+CREATE INDEX IF NOT EXISTS dial_sessions_acct ON dial_sessions (account_id, last_seen);
+CREATE TABLE IF NOT EXISTS phone_info (
+  account_id INTEGER NOT NULL,
+  e164 TEXT NOT NULL,
+  valid INTEGER,
+  line_type TEXT,                     -- mobile | landline | fixedVoip | nonFixedVoip | tollFree | ...
+  carrier TEXT,
+  checked_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, e164)
+);

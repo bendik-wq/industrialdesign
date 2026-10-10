@@ -54,6 +54,7 @@ export async function initPhone() {
     const number = decodeURIComponent(a.getAttribute("href").slice(4)), opts = { targetId: a.dataset.target ? +a.dataset.target : null, fromDialer: !!a.closest("#dmain") };
     if (phoneMode() === "browser") { e.preventDefault(); e.stopPropagation(); dial(number, opts); return; }
     away = { number, ...opts, t0: Date.now() }; // let your phone take it; log when you're back
+    if (!opts.fromDialer) post("/api/dialer/predial", { phone: number, target_id: opts.targetId || undefined }).catch((err) => { if (err.data?.code) toast(err.message, "error"); });
   }, true);
   document.addEventListener("visibilitychange", cameBack);
   window.addEventListener("focus", cameBack);
@@ -85,29 +86,42 @@ async function ensureDevice() {
 }
 
 // ------------------------------------------------------------------ calls
-export async function dial(raw, { targetId = null, fromDialer = false } = {}) {
+// The dialer drives calls through these.
+export const onCall = () => !!call || !!pending;
+export function hangUp() { if (call) call.disconnect(); else if (device) device.disconnectAll(); }
+export function toggleMute() { if (!call) return null; call.mute(!call.isMuted()); return call.isMuted(); }
+export function sendDigit(d) { call?.sendDigits(d); }
+export { deviceCall };
+
+export async function dial(raw, { targetId = null, fromDialer = false, retry = false } = {}) {
   if (phoneMode() !== "browser") return deviceCall(raw, { targetId, fromDialer });
   if (call) { toast("You're already on a call", "error"); return; }
-  openPhone("keypad");
+  if (!fromDialer) openPhone("keypad");
   try {
     const l = await api(`/api/phone/lookup?number=${encodeURIComponent(raw)}`);
-    if (!l.e164) { toast("Add the country code, e.g. +1 or +47", "error"); $("#pnum") && ($("#pnum").value = raw); return; }
+    if (!l.e164) { toast("Add the country code, e.g. +1 or +44", "error"); $("#pnum") && ($("#pnum").value = raw); window.dispatchEvent(new CustomEvent("phone:failed", { detail: { error: "Add the country code" } })); return; }
+    // Same check the server makes: the owner's calling hours, 3 tries a day, the do-not-call list.
+    await post("/api/dialer/predial", { phone: l.e164, target_id: targetId || l.target?.id, check_only: true, retry });
     info = { number: l.e164, country: l.country, via: l.caller_id, target: l.target || (targetId ? { id: targetId } : null), fromDialer, inbound: false };
-    renderCall("Connecting…");
+    if (fromDialer) $("#phone").hidden = true; else renderCall("Connecting…");
     await ensureDevice();
-    call = await device.connect({ params: { To: l.e164 } });
+    call = await device.connect({ params: { To: l.e164, ...(retry && { retry: "1" }) } });
     wire(call);
-  } catch (e) { fail(e); info = null; call = null; render(); }
+  } catch (e) { fail(e); info = null; call = null; render(); window.dispatchEvent(new CustomEvent("phone:failed", { detail: { error: e.message, code: e.data?.code } })); }
 }
 function wire(c) {
-  c.on("ringing", () => renderCall("Ringing…"));
-  c.on("accept", () => { started = Date.now(); renderCall(); clearInterval(timer); timer = setInterval(tick, 1000); window.dispatchEvent(new CustomEvent("phone:connected", { detail: { number: info?.number } })); });
+  let answered = false;
+  // From the dialer the call shows in the dialer itself; the pop-up stays out of the way.
+  const show = (st) => { if (!info?.fromDialer) renderCall(st); };
+  c.on("ringing", () => { show("Ringing…"); window.dispatchEvent(new CustomEvent("phone:ringing", { detail: { number: info?.number } })); });
+  c.on("accept", () => { answered = true; started = Date.now(); show(); clearInterval(timer); timer = setInterval(tick, 1000); window.dispatchEvent(new CustomEvent("phone:connected", { detail: { number: info?.number } })); });
   const end = (why) => {
     clearInterval(timer);
     const duration = started ? Math.round((Date.now() - started) / 1000) : 0;
-    window.dispatchEvent(new CustomEvent("phone:ended", { detail: { number: info?.number, duration, sid: c.parameters?.CallSid, why } }));
+    window.dispatchEvent(new CustomEvent("phone:ended", { detail: { number: info?.number, duration, sid: c.parameters?.CallSid, why, answered } }));
     call = null; started = 0;
-    if (info?.target?.id && !info.fromDialer) renderAfter(duration);
+    if (info?.fromDialer) { info = null; $("#phone").hidden = true; document.body.classList.remove("phone-open"); return; }
+    if (info?.target?.id) renderAfter(duration);
     else { info = null; render(); if (why) toast(why); }
   };
   c.on("disconnect", () => end());
@@ -127,7 +141,7 @@ function onIncoming(c) {
   $("#pDecline").addEventListener("click", () => { c.reject(); pending = null; info = null; render(); });
   c.on("cancel", () => { if (pending === c) { pending = null; info = null; toast("Missed call"); render(); } });
 }
-function tick() { const s = Math.round((Date.now() - started) / 1000); const el = $("#ptime"); if (el) el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function tick() { if (info?.fromDialer) return; const s = Math.round((Date.now() - started) / 1000); const el = $("#ptime"); if (el) el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
 
 function renderCall(state) {
   const p = $("#phone"); p.hidden = false; p.classList.remove("mini");
@@ -216,7 +230,7 @@ function renderDevice(p) {
       <details ${mac ? "open" : ""}><summary>On a Mac with an iPhone</summary><ol class="small"><li>iPhone: Settings → Phone → <b>Calls on Other Devices</b> → turn on, and allow your Mac.</li><li>Mac: FaceTime → Settings → <b>Calls from iPhone</b> on (same Apple ID, Wi-Fi and Bluetooth on).</li><li>For texts: iPhone Settings → Messages → <b>Text Message Forwarding</b> → your Mac.</li></ol><p class="muted small">Then a click on a number shows “Call … using iPhone” and you talk through the Mac.</p></details>
       <details ${!mac && !iphone ? "open" : ""}><summary>On Windows</summary><p class="small">Install <b>Phone Link</b> (Microsoft), pair your iPhone or Android, and choose Phone Link as the app for phone links. Clicks on numbers then call through your phone.</p></details>
       <details><summary>On the phone itself</summary><p class="small">Open Warplan in Safari or Chrome on your phone. Numbers open the dialer and Messages; come back to Warplan to log the call.</p></details>
-      <details><summary>iMessage inside Warplan ${imsg?.connected ? "· connected" : ""}</summary><p class="small">${imsg?.connected ? `Relaying through your Mac at <span class="mono">${esc(imsg.server)}</span>. Your iMessage threads show under the iMessage tab, texts you send here go out from your own number, and replies land on the target's timeline.${imsg.incoming ? "" : " Incoming messages aren't set up yet: see Settings → Integrations."}` : `See and send your iMessages here, from your own number, through a Mac that stays on (BlueBubbles, free). <a href="#/settings/integrations">Set it up</a>.`}</p></details>
+      <details><summary>iMessage inside Warplan ${imsg?.connected ? "· connected" : ""}</summary><p class="small">${imsg?.connected ? `Relaying through your Mac at <span class="mono">${esc(imsg.server)}</span>. Your iMessage threads show under the iMessage tab, texts you send here go out from your own number, and replies land on the target's timeline.${imsg.private_api ? " Private API on: typing, read receipts and tapbacks (double-click a bubble)." : ""}${imsg.incoming ? "" : " Incoming messages aren't set up yet: see Settings → Integrations."}` : `See and send your iMessages here, from your own number, through a Mac that stays on (BlueBubbles, free). <a href="#/settings/integrations">Set it up</a>.`}</p></details>
       ${status?.ready ? `<button class="ghost small" id="pUseBrowser" type="button">Call from the browser instead (Twilio)</button>` : status?.twilio ? `<button class="ghost small" id="pSetupBrowser" type="button">Set up calling in the browser (Twilio)</button>` : `<p class="muted small">Prefer calling inside the browser, with local numbers per country? <a href="#/settings/integrations">Connect Twilio</a>.</p>`}
     </div>`;
     $("#pUseBrowser")?.addEventListener("click", () => { setMode("browser"); tab = "keypad"; render(); toast("Calls now run in the browser"); });
@@ -264,26 +278,93 @@ async function imessages() {
     $$("[data-th]").forEach((b) => b.addEventListener("click", async () => {
       const t = d.threads[+b.dataset.th];
       thread = { ...t, messages: [], via: "imessage" }; renderThread();
-      try { const m = await api(`/api/imessage/messages?chat=${encodeURIComponent(t.chat)}`); if (thread?.chat === t.chat) { thread.messages = m.messages; renderThread(); } } catch (e) { fail(e); }
+      try { const m = await api(`/api/imessage/messages?chat=${encodeURIComponent(t.chat)}`); if (thread?.chat === t.chat) { thread.messages = m.messages; thread.typing = m.typing; renderThread(); } } catch (e) { fail(e); }
     }));
   } catch (e) { body.innerHTML = `<p class="tone-bad small">${esc(e.message)}</p>`; }
 }
 
+const TAPBACK = { love: "❤️", like: "👍", dislike: "👎", laugh: "😂", emphasize: "‼️", question: "❓" };
+let livePoll = null, lastTyping = 0;
+const privateApi = () => !!imsg?.private_api;
+function bubblesHtml(t) {
+  if (!t.messages.length) return `<p class="muted small">New conversation with ${esc(t.number)}</p>`;
+  // Receipt under your latest message only, like Messages does.
+  const lastOut = [...t.messages].reverse().find((m) => !m.inbound);
+  return t.messages.map((m) => `<div class="bubble-wrap ${m.inbound ? "in" : "out"}"><p class="bubble ${m.inbound ? "in" : "out"}" ${t.via === "imessage" && m.guid && privateApi() ? `data-msg="${esc(m.guid)}" title="Double-click to react"` : ""}>${esc(m.body)}<small>${when(m.at)}${m.error ? ` · ${esc(m.error)}` : ""}</small>${m.reactions?.length ? `<span class="tapbacks">${m.reactions.map((r) => `<i class="${r.mine ? "mine" : ""}">${TAPBACK[r.name] || ""}</i>`).join("")}</span>` : ""}</p>
+    ${m === lastOut && (m.read_at || m.delivered_at) ? `<span class="receipt">${m.read_at ? `Read ${new Date(m.read_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "Delivered"}</span>` : ""}</div>`).join("") + (t.typing ? `<div class="bubble-wrap in"><p class="bubble in typing" aria-label="typing"><span></span><span></span><span></span></p></div>` : "");
+}
+function drawBubbles(stick) {
+  const box = $("#pmsgs"); if (!box || !thread) return;
+  const atBottom = stick || box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  box.innerHTML = bubblesHtml(thread);
+  if (atBottom) box.scrollTop = 1e9;
+  $$("[data-msg]", box).forEach((b) => b.addEventListener("dblclick", () => pickTapback(b)));
+}
+// Tapback picker over a bubble (Private API).
+function pickTapback(el) {
+  $(".tb-pick")?.remove();
+  const guid = el.dataset.msg, msg = thread.messages.find((m) => m.guid === guid);
+  const pick = document.createElement("div"); pick.className = "tb-pick";
+  pick.innerHTML = Object.entries(TAPBACK).map(([k, e]) => `<button type="button" data-tb="${k}" class="${msg?.reactions?.some((r) => r.mine && r.name === k) ? "on" : ""}">${e}</button>`).join("");
+  el.parentElement.prepend(pick);
+  pick.addEventListener("click", async (e) => {
+    const k = e.target.closest("[data-tb]")?.dataset.tb; if (!k) return;
+    const remove = msg?.reactions?.some((r) => r.mine && r.name === k);
+    pick.remove();
+    try {
+      await post("/api/imessage/react", { chat: thread.chat, message_guid: guid, reaction: k, remove });
+      if (msg) { msg.reactions = (msg.reactions || []).filter((r) => !r.mine); if (!remove) msg.reactions.push({ name: k, mine: true }); drawBubbles(); }
+    } catch (err) { fail(err); }
+  });
+  setTimeout(() => document.addEventListener("click", function off(ev) { if (!pick.contains(ev.target)) { pick.remove(); document.removeEventListener("click", off); } }), 0);
+}
+// While an iMessage thread is open: new messages, receipts and "typing…" every few seconds.
+function startLive() {
+  clearInterval(livePoll);
+  if (thread?.via !== "imessage" || !thread.chat) return;
+  const chat = thread.chat;
+  livePoll = setInterval(async () => {
+    if (thread?.chat !== chat || $("#phone").hidden || !$("#pmsgs")) { clearInterval(livePoll); return; }
+    try {
+      const m = await api(`/api/imessage/messages?chat=${encodeURIComponent(chat)}`);
+      if (thread?.chat !== chat) return;
+      const changed = JSON.stringify([m.messages, m.typing]) !== JSON.stringify([thread.messages, thread.typing]);
+      const fresh = m.messages.length > thread.messages.length && m.messages.at(-1)?.inbound;
+      thread.messages = m.messages; thread.typing = m.typing;
+      if (changed) drawBubbles();
+      if (fresh && privateApi() && document.visibilityState === "visible") post("/api/imessage/read", { chat }).catch(() => {});
+    } catch { /* keep polling */ }
+  }, 4000);
+}
 function renderThread() {
   const t = thread;
-  $("#pbody").innerHTML = `<div class="ph-thread-head"><button class="link" id="pBack" type="button">← All</button><b>${esc(t.target?.name || t.number)}</b><a href="tel:${esc(t.number)}" class="ph-btn small" ${t.target ? `data-target="${t.target.id}"` : ""}>☎</a></div>
-    <div class="ph-msgs ${t.via === "imessage" ? "imsg" : ""}" id="pmsgs">${t.messages.map((m) => `<p class="bubble ${m.inbound ? "in" : "out"}">${esc(m.body)}<small>${when(m.at)}${m.error ? ` · ${esc(m.error)}` : ""}</small></p>`).join("") || `<p class="muted small">New conversation with ${esc(t.number)}</p>`}</div>
+  $("#pbody").innerHTML = `<div class="ph-thread-head"><button class="link" id="pBack" type="button">← All</button><b>${esc(t.target?.name || t.name || t.number)}</b>${t.via === "imessage" && privateApi() ? `<span class="chip small" title="Private API on: typing, read receipts and tapbacks">live</span>` : ""}<a href="tel:${esc(t.number)}" class="ph-btn small" ${t.target ? `data-target="${t.target.id}"` : ""}>☎</a></div>
+    <div class="ph-msgs ${t.via === "imessage" ? "imsg" : ""}" id="pmsgs"></div>
     <form id="pform" class="ph-compose"><textarea id="pmsg" rows="2" maxlength="1600" placeholder="${t.via === "imessage" ? "iMessage" : "Text message"}"></textarea><button class="primary" type="submit">Send</button></form>`;
-  $("#pmsgs").scrollTop = 1e9;
-  $("#pBack").addEventListener("click", () => { thread = null; render(); });
+  drawBubbles(true);
+  $("#pBack").addEventListener("click", () => { clearInterval(livePoll); thread = null; render(); });
   $("#pform").addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = $("#pmsg").value.trim(); if (!text) return;
     const btn = $("button[type=submit]", e.target); btn.disabled = true;
-    try { const r = await post(t.via === "imessage" ? "/api/imessage/send" : "/api/phone/sms", { to: t.number, body: text, target_id: t.target?.id }); t.messages.push({ inbound: false, body: text, at: new Date().toISOString() }); t.number = r.to; renderThread(); }
-    catch (err) { fail(err); btn.disabled = false; }
+    try {
+      const r = await post(t.via === "imessage" ? "/api/imessage/send" : "/api/phone/sms", { to: t.number, body: text, target_id: t.target?.id, ...(t.chat && { chat: t.chat }) });
+      t.messages.push({ inbound: false, body: text, at: new Date().toISOString(), reactions: [] }); t.number = r.to;
+      if (t.via === "imessage" && !t.chat) t.chat = `iMessage;-;${r.to}`;
+      $("#pmsg").value = ""; btn.disabled = false; drawBubbles(true);
+      if (t.via === "imessage" && !livePoll) startLive();
+    } catch (err) { fail(err); btn.disabled = false; }
   });
   $("#pmsg").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#pform").requestSubmit(); } });
+  // Let them see you typing (re-sent every 4s while you type; BlueBubbles clears it on send or after a pause).
+  $("#pmsg").addEventListener("input", () => {
+    if (t.via !== "imessage" || !t.chat || !privateApi() || Date.now() - lastTyping < 4000) return;
+    lastTyping = Date.now(); post("/api/imessage/typing", { chat: t.chat }).catch(() => {});
+  });
+  if (t.via === "imessage" && t.chat) {
+    startLive();
+    if (privateApi() && t.messages.some((m) => m.inbound)) post("/api/imessage/read", { chat: t.chat }).catch(() => {});
+  }
 }
 
 async function recent() {

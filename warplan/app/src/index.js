@@ -21,11 +21,11 @@ import { needsApproval } from "./monid.js";
 import { balance as monidBalance, budget as monidBudget, setBudget as setMonidBudget, recentRuns, discover as monidDiscover, describe as monidDescribe, run as monidRun, compact } from "./monid.js";
 import { deepEnrich } from "./waterfall.js";
 import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
-import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup } from "./dialer.js";
+import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup, preDial, claim, brief, checkLines, startSession, endSession, sessionStats, teamStats, insights, dialerSettings, saveDialerSettings } from "./dialer.js";
 import { refreshNumbers } from "./phone.js";
 import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { researchTarget, getIntel } from "./research.js";
-import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook } from "./imessage.js";
+import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook, refreshIMessage, markRead, startTyping, react, imessageLive } from "./imessage.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
 import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
@@ -104,7 +104,7 @@ async function handle(request, env, exec) {
     return asset(request, env, p);
   } catch (err) {
     if (!err.status) console.error(err);
-    return json({ error: err.status ? err.message : "Something went wrong on our side. Try again." }, err.status || 500);
+    return json({ error: err.status ? err.message : "Something went wrong on our side. Try again.", ...(err.status && err.code && { code: err.code }), ...(err.status && err.window && { window: err.window }) }, err.status || 500);
   }
 }
 
@@ -249,7 +249,7 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
-const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|imessage\/(connect|hook)|imessage$|monid\/budget|autopilot$|me\/password)/;
+const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
@@ -405,6 +405,11 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/imessage/hook" && m === "POST") { needOwner(ctx); return json(await connectIMessage(env, ctx, url.origin)); }
   if (p === "/api/imessage/threads" && m === "GET") return json(await imessageThreads(env, ctx));
   if (p === "/api/imessage/messages" && m === "GET") return json(await imessageMessages(env, ctx, String(q.get("chat") || "")));
+  if (p === "/api/imessage/refresh" && m === "POST") { needOwner(ctx); return json(await refreshIMessage(env, ctx)); }
+  if (p === "/api/imessage/live" && m === "GET") return json(await imessageLive(env, ctx, String(q.get("chat") || "")));
+  if (p === "/api/imessage/read" && m === "POST") return json(await markRead(env, ctx, (await body(request)).chat));
+  if (p === "/api/imessage/typing" && m === "POST") return json(await startTyping(env, ctx, (await body(request)).chat));
+  if (p === "/api/imessage/react" && m === "POST") return json(await react(env, ctx, await body(request)));
   if (p === "/api/imessage/send" && m === "POST") return json(await sendText(env, ctx, { ...(await body(request)), via: "imessage" }, hooks), 201);
   if (p === "/api/phone/messages" && m === "GET") return json(await smsThreads(env, ctx));
   if (p === "/api/phone/calls" && m === "GET") return json(await recentCalls(env, ctx));
@@ -414,6 +419,19 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/calls" && m === "GET") return json(await callHistory(env, ctx, q));
   if (p === "/api/calls" && m === "POST") return json(await logCall(env, ctx, await body(request), hooks), 201);
   if (p === "/api/dialer/bridge" && m === "POST") return json(await startBridge(env, ctx, await body(request)));
+  if (p === "/api/dialer/predial" && m === "POST") return json(await preDial(env, ctx, await body(request)));
+  if ((r = p.match(/^\/api\/dialer\/claim\/(\d+)$/)) && m === "POST") return json(await claim(env, ctx, +r[1]));
+  if ((r = p.match(/^\/api\/dialer\/brief\/(\d+)$/)) && m === "GET") return json(await brief(env, ctx, +r[1]));
+  if ((r = p.match(/^\/api\/dialer\/lines\/(\d+)$/)) && m === "POST") return json(await checkLines(env, ctx, +r[1]));
+  if (p === "/api/dialer/sessions" && m === "POST") return json(await startSession(env, ctx), 201);
+  if ((r = p.match(/^\/api\/dialer\/sessions\/(\d+)$/))) {
+    if (m === "GET") return json(await sessionStats(env, ctx, +r[1]));
+    if (m === "DELETE") return json(await endSession(env, ctx, +r[1]));
+  }
+  if (p === "/api/dialer/team" && m === "GET") return json(await teamStats(env, ctx));
+  if (p === "/api/dialer/insights" && m === "GET") return json(await insights(env, ctx));
+  if (p === "/api/dialer/settings" && m === "GET") return json(await dialerSettings(env, ctx.accountId));
+  if (p === "/api/dialer/settings" && m === "PUT") { needOwner(ctx); return json(await saveDialerSettings(env, ctx, await body(request))); }
   if ((r = p.match(/^\/api\/dialer\/bridge\/(\w+)$/))) {
     if (m === "GET") return json(await bridgeStatus(env, ctx, r[1]));
     if (m === "DELETE") return json(await hangup(env, ctx, r[1]));
@@ -698,8 +716,12 @@ const API_DOCS = {
     ["POST", "/api/imessage/send", "Send an iMessage from your own number {to, body, target_id?}"],
     ["GET", "/api/phone/messages", "Text conversations (from Twilio), matched to targets"],
     ["GET", "/api/phone/calls", "Recent calls on your Twilio number"],
-    ["POST", "/api/calls", "Log a call {target_id, disposition, notes, duration, next_date}"],
+    ["POST", "/api/calls", "Log a call {target_id, disposition, notes, duration, next_date, callback_at?, follow_text?, follow_email?: {subject, body}} (follow-ups wait for approval in the Inbox)"],
     ["POST", "/api/dialer/bridge", "Click-to-call via your Twilio {target_id, phone}: rings you, then connects them"],
+    ["POST", "/api/dialer/predial", "Check (and count) a dial before calling from your own phone {target_id, phone, check_only?}: owner's calling hours, 3 tries per number per day, do-not-call list"],
+    ["GET", "/api/dialer/brief/:id", "Pre-call brief: research hooks, recent history, open callback, number types"],
+    ["GET", "/api/dialer/insights", "Best hours to call (owner's local time), caller-ID health, outcomes"],
+    ["GET", "/api/dialer/team", "Leaderboard and who's dialing now"],
     ["GET", "/api/usage?days=30", "AI usage and estimated cost"],
     ["GET", "/api/integrations", "Connected AI providers and webhooks"],
   ],

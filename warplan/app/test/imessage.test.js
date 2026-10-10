@@ -113,3 +113,22 @@ test("BlueBubbles hook: unknown token 404s, and the message is re-fetched from t
   const ev = env.DB.writes.find((w) => /target_events/.test(w.sql));
   assert.match(ev.args[2], /Real text/); assert.doesNotMatch(ev.args[2], /FORGED/);
 });
+
+import { foldMessages, tapback } from "../src/imessage.js";
+test("tapbacks fold onto their message; removals and replacements apply", () => {
+  const raw = [
+    { guid: "A", text: "Coffee Tuesday?", isFromMe: true, dateCreated: 1, dateDelivered: 2, dateRead: 3 },
+    { guid: "B", text: "", isFromMe: false, dateCreated: 4, associatedMessageGuid: "p:0/A", associatedMessageType: 2001 },
+    { guid: "C", text: "", isFromMe: false, dateCreated: 5, associatedMessageGuid: "p:0/A", associatedMessageType: "love" },
+    { guid: "D", text: "Sure", isFromMe: false, dateCreated: 6 },
+    { guid: "E", text: "", isFromMe: true, dateCreated: 7, associatedMessageGuid: "bp:D", associatedMessageType: "laugh" },
+    { guid: "F", text: "", isFromMe: true, dateCreated: 8, associatedMessageGuid: "bp:D", associatedMessageType: 3003 },
+  ];
+  const out = foldMessages(raw);
+  assert.equal(out.length, 2);
+  assert.deepEqual(out[0].reactions, [{ name: "love", mine: false }]); // their like replaced by love
+  assert.ok(out[0].read_at && out[0].delivered_at);
+  assert.deepEqual(out[1].reactions, []); // my laugh, then removed
+  assert.equal(out[1].read_at, null);
+  assert.equal(tapback({ text: "hi" }), null);
+});
