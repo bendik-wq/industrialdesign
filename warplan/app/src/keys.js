@@ -129,10 +129,9 @@ function cleanMeta(provider, meta = {}) {
 // Check a key against the provider before storing it, so a typo fails here and not mid-conversation.
 export async function verifyKey(provider, key, meta = {}) {
   if (provider === "anthropic") {
-    if (/^sk-ant-usr-/.test(key) && !meta.workspaceId) throw err(400, "This is a user key (sk-ant-usr-…). Also paste your workspace ID (wrkspc_…, from console.anthropic.com → Settings → Workspaces), or create a workspace API key (sk-ant-api03-…) instead.");
     const r = await fetch("https://api.anthropic.com/v1/models?limit=1", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01", ...(meta.workspaceId && { "anthropic-workspace-id": meta.workspaceId }) } });
     if (r.status === 401 || r.status === 403) throw err(400, "Anthropic rejected that key");
-    if (r.status === 400) throw err(400, `Anthropic: ${(await r.json().catch(() => ({})))?.error?.message || "the key or workspace ID isn't valid"}`);
+    if (r.status === 400) { const m = (await r.json().catch(() => ({})))?.error?.message || ""; throw err(400, /workspace/i.test(m) ? "This user key (sk-ant-usr-…) isn't tied to a workspace: also paste the workspace ID (wrkspc_…, console.anthropic.com → Settings → Workspaces), or use a workspace key (sk-ant-api03-…)." : `Anthropic: ${m || "the key isn't valid"}`); }
     if (!r.ok) throw err(502, `Anthropic answered ${r.status}; try again in a minute`);
     return true;
   }
