@@ -6,6 +6,8 @@ const enc = new TextEncoder(), dec = new TextDecoder();
 const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const err = (status, message) => Object.assign(new Error(message), { status });
+import { publicUrl } from "./net.js";
+import { verifyBlueBubbles } from "./imessage.js";
 
 export const PROVIDERS = {
   anthropic: {
@@ -68,6 +70,12 @@ export const PROVIDERS = {
     hint: "console.twilio.com → Account SID and Auth Token, your main number, and your own phone. Local presence: add a number per country (bought in Twilio, or your own verified there) and each owner sees a number from their own country. Numbers on the Twilio account are found automatically when you set up the phone.",
     meta: ["sid", "from", "agentPhone", "numbers"],
   },
+  bluebubbles: {
+    label: "iMessage relay (BlueBubbles)",
+    pattern: /^\S{6,200}$/,
+    hint: "Text from your own number with blue bubbles. On a Mac signed in to your Apple ID: install BlueBubbles Server (bluebubbles.app), set a server password, and turn on the Cloudflare or ngrok proxy so it gets an https address. Paste that address and the password here; Warplan registers itself for incoming messages. The Mac has to stay on.",
+    meta: ["serverUrl"],
+  },
 };
 export const MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
 
@@ -98,7 +106,7 @@ export async function listKeys(env, accountId) {
     id, label: p.label, hint: p.hint, metaFields: ["anthropic", "elevenlabs"].includes(id) ? [] : p.meta,
     connected: !!have[id], last4: have[id]?.hint || "", meta: have[id] ? JSON.parse(have[id].meta) : {}, updatedAt: have[id]?.updated_at || null,
     platformFallback: id === "anthropic" ? (env.ANTHROPIC_API_KEY ? "Claude (platform key)" : "Workers AI (Llama 3.3 70B)") : id === "elevenlabs" ? (env.ELEVENLABS_API_KEY ? "ElevenLabs (platform key)" : "Workers AI voices") : id === "monid" && env.MONID_API_KEY ? "Monid (platform key)" : "not available",
-    group: ["anthropic", "elevenlabs"].includes(id) ? "ai" : ["instantly", "smartlead", "emailbison", "twilio"].includes(id) ? "outreach" : "data",
+    group: ["anthropic", "elevenlabs"].includes(id) ? "ai" : ["instantly", "smartlead", "emailbison", "twilio", "bluebubbles"].includes(id) ? "outreach" : "data",
   }));
 }
 
@@ -112,6 +120,12 @@ function cleanMeta(provider, meta = {}) {
     // An https host name only: no IP literals, ports or paths, so the key can't be pointed at something internal.
     if (!u || u.protocol !== "https:" || u.port || /^[\d.]+$|^\[|localhost/i.test(u.hostname)) throw err(400, "Paste your EmailBison address, e.g. https://dedi.emailbison.com");
     out.baseUrl = u.origin;
+  }
+  if (provider === "bluebubbles") {
+    // Public https only (a tunnel address): no IPs, internal names or odd ports, so the password can't be aimed inward.
+    const u = publicUrl(String(meta.serverUrl || "").trim(), { httpsOnly: true });
+    if (!u) throw err(400, "Paste your BlueBubbles server's public https address, e.g. https://abc-123.trycloudflare.com or https://xyz.ngrok.app");
+    out.serverUrl = u.origin;
   }
   if (provider === "twilio") {
     const phone = (v) => String(v || "").replace(/[\s()-]/g, "");
@@ -168,6 +182,7 @@ export async function verifyKey(provider, key, meta = {}) {
   if (provider === "instantly") return check("https://api.instantly.ai/api/v2/campaigns?limit=1", { headers: { Authorization: `Bearer ${key}` } }, "Instantly");
   if (provider === "smartlead") return check(`https://server.smartlead.ai/api/v1/campaigns?api_key=${encodeURIComponent(key)}`, {}, "Smartlead");
   if (provider === "emailbison") return check(`${meta.baseUrl}/api/campaigns`, { headers: { Authorization: `Bearer ${key}`, Accept: "application/json" } }, "EmailBison");
+  if (provider === "bluebubbles") return verifyBlueBubbles(key, meta);
   if (provider === "twilio") return check(`https://api.twilio.com/2010-04-01/Accounts/${meta.sid}.json`, { headers: { Authorization: `Basic ${btoa(`${meta.sid}:${key}`)}` } }, "Twilio");
   throw err(400, "Unknown provider");
 }

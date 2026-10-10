@@ -23,8 +23,9 @@ import { deepEnrich } from "./waterfall.js";
 import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
 import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup } from "./dialer.js";
 import { refreshNumbers } from "./phone.js";
-import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, sendSms, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
+import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { researchTarget, getIntel } from "./research.js";
+import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook } from "./imessage.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
 import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
@@ -89,6 +90,7 @@ async function handle(request, env, exec) {
     if (/^\/(js|vendor)\/[\w./-]+\.js$/.test(p) && !p.includes("..")) return asset(request, env, p);
     if (p.startsWith("/hooks/replies/")) return await replyHook(request, env, url, exec);
     if (p.startsWith("/hooks/twilio/")) return await twilioHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)));
+    if (p.startsWith("/hooks/bluebubbles/")) return await blueBubblesHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)));
     if (p === "/mcp" || p.startsWith("/mcp/")) return await mcpRoute(request, env, url, exec);
     const ctx = await getContext(request, env);
     if (p === "/api" || p.startsWith("/api/")) {
@@ -247,7 +249,7 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
-const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|monid\/budget|autopilot$|me\/password)/;
+const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|imessage\/(connect|hook)|imessage$|monid\/budget|autopilot$|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
@@ -396,7 +398,14 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/phone/numbers" && m === "POST") { needOwner(ctx); return json(await refreshNumbers(env, ctx)); }
   if (p === "/api/phone/token" && m === "GET") return json(await phoneToken(env, ctx));
   if (p === "/api/phone/lookup" && m === "GET") return json(await phoneLookup(env, ctx, String(q.get("number") || "")));
-  if (p === "/api/phone/sms" && m === "POST") return json(await sendSms(env, ctx, await body(request), hooks), 201);
+  if (p === "/api/phone/sms" && m === "POST") return json(await sendText(env, ctx, await body(request), hooks), 201);
+  // iMessage relay (BlueBubbles on the user's Mac)
+  if (p === "/api/imessage" && m === "GET") return json(await imessageStatus(env, ctx));
+  if (p === "/api/imessage" && m === "DELETE") { needOwner(ctx); return json(await disconnectIMessage(env, ctx)); }
+  if (p === "/api/imessage/hook" && m === "POST") { needOwner(ctx); return json(await connectIMessage(env, ctx, url.origin)); }
+  if (p === "/api/imessage/threads" && m === "GET") return json(await imessageThreads(env, ctx));
+  if (p === "/api/imessage/messages" && m === "GET") return json(await imessageMessages(env, ctx, String(q.get("chat") || "")));
+  if (p === "/api/imessage/send" && m === "POST") return json(await sendText(env, ctx, { ...(await body(request)), via: "imessage" }, hooks), 201);
   if (p === "/api/phone/messages" && m === "GET") return json(await smsThreads(env, ctx));
   if (p === "/api/phone/calls" && m === "GET") return json(await recentCalls(env, ctx));
 
@@ -480,8 +489,13 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/integrations" && m === "GET") return json({ keys: await listKeys(env, ctx.accountId), models: MODELS, ...(await listHooks(env, ctx)), canEdit: ctx.isOwner });
   if ((r = p.match(/^\/api\/integrations\/(\w+)$/))) {
     needOwner(ctx);
-    if (m === "PUT") return json(await saveKey(env, ctx, r[1], await body(request)));
-    if (m === "DELETE") return json(await deleteKey(env, ctx, r[1]));
+    if (m === "PUT") {
+      const b = await body(request), out = await saveKey(env, ctx, r[1], b);
+      // A new relay (or password) gets its incoming-message URL registered on the BlueBubbles server right away.
+      if (r[1] === "bluebubbles" && b.key) out.imessage = await connectIMessage(env, ctx, url.origin).catch((e) => ({ error: e.message }));
+      return json(out);
+    }
+    if (m === "DELETE") { if (r[1] === "bluebubbles") await disconnectIMessage(env, ctx); return json(await deleteKey(env, ctx, r[1])); }
   }
   if (p === "/api/webhooks" && m === "POST") { needOwner(ctx); return json(await createHook(env, ctx, await body(request)), 201); }
   if ((r = p.match(/^\/api\/webhooks\/(\d+)\/test$/)) && m === "POST") { needOwner(ctx); return json(await testHook(env, ctx, +r[1])); }
@@ -678,7 +692,10 @@ const API_DOCS = {
     ["POST", "/api/sequencers/push", "Add targets to a campaign {provider, campaign_id, campaign_name, target_ids, personalize?}"],
     ["POST", "/hooks/replies/<secret>", "Reply webhook for your sequencer (create the URL in Settings → Outreach). AI triages each reply"],
     ["GET", "/api/dialer/queue?stage=&q=&fresh=1", "Power dialer call list"],
-    ["POST", "/api/phone/sms", "Text from your Twilio number {to, body, target_id?}"],
+    ["POST", "/api/phone/sms", "Text from your Twilio number, or as an iMessage {to, body, target_id?, via?: twilio|imessage}"],
+    ["GET", "/api/imessage/threads", "iMessage conversations from your own number (BlueBubbles relay), matched to targets"],
+    ["GET", "/api/imessage/messages?chat=<guid>", "Messages in one iMessage conversation"],
+    ["POST", "/api/imessage/send", "Send an iMessage from your own number {to, body, target_id?}"],
     ["GET", "/api/phone/messages", "Text conversations (from Twilio), matched to targets"],
     ["GET", "/api/phone/calls", "Recent calls on your Twilio number"],
     ["POST", "/api/calls", "Log a call {target_id, disposition, notes, duration, next_date}"],

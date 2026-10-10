@@ -4,7 +4,7 @@ import { $, $$, esc, api, post, toast, fail, when } from "./core.js";
 
 const SDK = "/vendor/twilio-voice-2.18.5.min.js";
 const OUTCOMES = [["no_answer", "No answer"], ["voicemail", "Voicemail"], ["gatekeeper", "Gatekeeper"], ["callback", "Call back"], ["connected", "Spoke"], ["interested", "Interested"], ["meeting", "Meeting"], ["not_interested", "Not interested"], ["wrong_number", "Wrong number"]];
-let status = null, device = null, call = null, pending = null, tab = "keypad", thread = null, timer = null, started = 0, info = null, pollT = null;
+let imsg = null, status = null, device = null, call = null, pending = null, tab = "keypad", thread = null, timer = null, started = 0, info = null, pollT = null;
 
 // Two ways to call. "My phone" (default): calls and texts go out from your own iPhone or Android number: on the
 // phone itself through its dialer and Messages, on a Mac through Continuity ("Calls from iPhone"), on Windows
@@ -58,8 +58,9 @@ export async function initPhone() {
   document.addEventListener("visibilitychange", cameBack);
   window.addEventListener("focus", cameBack);
   try { status = await api("/api/phone"); } catch { status = null; }
+  try { imsg = await api("/api/imessage"); } catch { imsg = null; }
   if (status?.ready && status.incoming) ensureDevice().catch(() => {});
-  if (status?.ready && status.incoming) { pollUnread(); pollT = setInterval(pollUnread, 60000); }
+  if ((status?.ready && status.incoming) || imsg?.connected) { pollUnread(); pollT = setInterval(pollUnread, 60000); }
 }
 
 export function openPhone(t) { if (t) tab = t; $("#phone").hidden = false; document.body.classList.add("phone-open"); render(); }
@@ -183,11 +184,12 @@ function wireHead() { $("#pClose")?.addEventListener("click", closePhone); }
 
 // "My phone" mode: keypad + recent logged calls + how-to; calls and texts leave from your own number.
 function renderDevice(p) {
-  const tabs = [["keypad", "Keypad"], ["recent", "Recent"], ["settings", "Setup"]];
+  const tabs = [["keypad", "Keypad"], ...(imsg?.connected ? [["messages", "iMessage"]] : []), ["recent", "Recent"], ["settings", "Setup"]];
   if (!tabs.some(([k]) => k === tab)) tab = "keypad";
   p.innerHTML = `${head()}<nav class="ph-tabs">${tabs.map(([k, l]) => `<button type="button" data-tab="${k}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</nav><div class="ph-body" id="pbody"></div>`;
   wireHead();
-  $$("[data-tab]").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.tab; render(); }));
+  $$("[data-tab]").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.tab; thread = null; render(); }));
+  if (tab === "messages") return imessages();
   if (tab === "keypad") {
     $("#pbody").innerHTML = `<input id="pnum" class="ph-num" inputmode="tel" placeholder="+1 555 123 4567" autocomplete="off">
       <div class="ph-keys">${"123456789+0⌫".split("").map((k) => `<button type="button" data-k="${k}">${k}</button>`).join("")}</div>
@@ -197,7 +199,8 @@ function renderDevice(p) {
     $$("[data-k]").forEach((b) => b.addEventListener("click", () => { n.value = b.dataset.k === "⌫" ? n.value.slice(0, -1) : n.value + b.dataset.k; n.focus(); }));
     n.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#pCall").click(); });
     $("#pCall").addEventListener("click", () => n.value.trim() && deviceCall(n.value.trim()));
-    $("#pText").addEventListener("click", () => n.value.trim() && deviceText(n.value.trim()));
+    // With the iMessage relay connected, texts send from Warplan (from your number); otherwise Messages opens.
+    $("#pText").addEventListener("click", () => { if (!n.value.trim()) return; if (!imsg?.connected) return deviceText(n.value.trim()); tab = "messages"; thread = { number: n.value.trim(), messages: [], target: null, via: "imessage" }; render(); });
     n.focus();
   } else if (tab === "recent") {
     $("#pbody").innerHTML = `<p class="muted small">Loading…</p>`;
@@ -213,6 +216,7 @@ function renderDevice(p) {
       <details ${mac ? "open" : ""}><summary>On a Mac with an iPhone</summary><ol class="small"><li>iPhone: Settings → Phone → <b>Calls on Other Devices</b> → turn on, and allow your Mac.</li><li>Mac: FaceTime → Settings → <b>Calls from iPhone</b> on (same Apple ID, Wi-Fi and Bluetooth on).</li><li>For texts: iPhone Settings → Messages → <b>Text Message Forwarding</b> → your Mac.</li></ol><p class="muted small">Then a click on a number shows “Call … using iPhone” and you talk through the Mac.</p></details>
       <details ${!mac && !iphone ? "open" : ""}><summary>On Windows</summary><p class="small">Install <b>Phone Link</b> (Microsoft), pair your iPhone or Android, and choose Phone Link as the app for phone links. Clicks on numbers then call through your phone.</p></details>
       <details><summary>On the phone itself</summary><p class="small">Open Warplan in Safari or Chrome on your phone. Numbers open the dialer and Messages; come back to Warplan to log the call.</p></details>
+      <details><summary>iMessage inside Warplan ${imsg?.connected ? "· connected" : ""}</summary><p class="small">${imsg?.connected ? `Relaying through your Mac at <span class="mono">${esc(imsg.server)}</span>. Your iMessage threads show under the iMessage tab, texts you send here go out from your own number, and replies land on the target's timeline.${imsg.incoming ? "" : " Incoming messages aren't set up yet: see Settings → Integrations."}` : `See and send your iMessages here, from your own number, through a Mac that stays on (BlueBubbles, free). <a href="#/settings/integrations">Set it up</a>.`}</p></details>
       ${status?.ready ? `<button class="ghost small" id="pUseBrowser" type="button">Call from the browser instead (Twilio)</button>` : status?.twilio ? `<button class="ghost small" id="pSetupBrowser" type="button">Set up calling in the browser (Twilio)</button>` : `<p class="muted small">Prefer calling inside the browser, with local numbers per country? <a href="#/settings/integrations">Connect Twilio</a>.</p>`}
     </div>`;
     $("#pUseBrowser")?.addEventListener("click", () => { setMode("browser"); tab = "keypad"; render(); toast("Calls now run in the browser"); });
@@ -245,18 +249,38 @@ async function messages() {
     $$("[data-th]").forEach((b) => b.addEventListener("click", () => { thread = d.threads[+b.dataset.th]; render(); }));
   } catch (e) { body.innerHTML = `<p class="tone-bad small">${esc(e.message)}</p>`; }
 }
+// iMessage threads through the BlueBubbles relay on the user's Mac.
+async function imessages() {
+  const body = $("#pbody");
+  if (thread) return renderThread();
+  body.innerHTML = `<p class="muted small">Loading your iMessages…</p>`;
+  try {
+    const d = await api("/api/imessage/threads");
+    try { localStorage.setItem("imsgSeen", new Date().toISOString()); } catch { /* ignore */ }
+    $(".phone-dot").hidden = true;
+    if (tab !== "messages" || thread) return;
+    body.innerHTML = `<button class="ghost small" id="pNew" type="button">+ New iMessage</button>${d.threads.length ? `<ul class="ph-list">${d.threads.map((t, i) => `<li><button type="button" data-th="${i}"><b>${esc(t.target?.name || t.name || t.number)}</b><small>${t.last ? `${t.last.inbound ? "" : "You: "}${esc(t.last.body.slice(0, 60))}` : ""}</small><small class="muted">${t.last ? when(t.last.at) : ""}</small></button></li>`).join("")}</ul>` : `<p class="muted small">No conversations yet.</p>`}`;
+    $("#pNew").addEventListener("click", () => { tab = "keypad"; render(); });
+    $$("[data-th]").forEach((b) => b.addEventListener("click", async () => {
+      const t = d.threads[+b.dataset.th];
+      thread = { ...t, messages: [], via: "imessage" }; renderThread();
+      try { const m = await api(`/api/imessage/messages?chat=${encodeURIComponent(t.chat)}`); if (thread?.chat === t.chat) { thread.messages = m.messages; renderThread(); } } catch (e) { fail(e); }
+    }));
+  } catch (e) { body.innerHTML = `<p class="tone-bad small">${esc(e.message)}</p>`; }
+}
+
 function renderThread() {
   const t = thread;
   $("#pbody").innerHTML = `<div class="ph-thread-head"><button class="link" id="pBack" type="button">← All</button><b>${esc(t.target?.name || t.number)}</b><a href="tel:${esc(t.number)}" class="ph-btn small" ${t.target ? `data-target="${t.target.id}"` : ""}>☎</a></div>
-    <div class="ph-msgs" id="pmsgs">${t.messages.map((m) => `<p class="bubble ${m.inbound ? "in" : "out"}">${esc(m.body)}<small>${when(m.at)}${m.error ? ` · ${esc(m.error)}` : ""}</small></p>`).join("") || `<p class="muted small">New conversation with ${esc(t.number)}</p>`}</div>
-    <form id="pform" class="ph-compose"><textarea id="pmsg" rows="2" maxlength="1600" placeholder="Text message"></textarea><button class="primary" type="submit">Send</button></form>`;
+    <div class="ph-msgs ${t.via === "imessage" ? "imsg" : ""}" id="pmsgs">${t.messages.map((m) => `<p class="bubble ${m.inbound ? "in" : "out"}">${esc(m.body)}<small>${when(m.at)}${m.error ? ` · ${esc(m.error)}` : ""}</small></p>`).join("") || `<p class="muted small">New conversation with ${esc(t.number)}</p>`}</div>
+    <form id="pform" class="ph-compose"><textarea id="pmsg" rows="2" maxlength="1600" placeholder="${t.via === "imessage" ? "iMessage" : "Text message"}"></textarea><button class="primary" type="submit">Send</button></form>`;
   $("#pmsgs").scrollTop = 1e9;
   $("#pBack").addEventListener("click", () => { thread = null; render(); });
   $("#pform").addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = $("#pmsg").value.trim(); if (!text) return;
     const btn = $("button[type=submit]", e.target); btn.disabled = true;
-    try { const r = await post("/api/phone/sms", { to: t.number, body: text, target_id: t.target?.id }); t.messages.push({ inbound: false, body: text, at: new Date().toISOString() }); t.number = r.to; renderThread(); }
+    try { const r = await post(t.via === "imessage" ? "/api/imessage/send" : "/api/phone/sms", { to: t.number, body: text, target_id: t.target?.id }); t.messages.push({ inbound: false, body: text, at: new Date().toISOString() }); t.number = r.to; renderThread(); }
     catch (err) { fail(err); btn.disabled = false; }
   });
   $("#pmsg").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#pform").requestSubmit(); } });
@@ -290,10 +314,9 @@ function settings() {
 }
 
 async function pollUnread() {
-  try {
-    const d = await api("/api/phone/messages");
-    const seen = localStorage.getItem("phoneSeen") || "";
-    const unread = d.threads.some((t) => t.last.inbound && t.last.at > seen);
-    $(".phone-dot").hidden = !unread;
-  } catch { /* quiet */ }
+  const seen = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
+  let unread = false;
+  try { if (status?.ready && status.incoming) unread ||= (await api("/api/phone/messages")).threads.some((t) => t.last.inbound && t.last.at > seen("phoneSeen")); } catch { /* quiet */ }
+  try { if (imsg?.connected) unread ||= (await api("/api/imessage/threads")).threads.some((t) => t.last?.inbound && t.last.at > seen("imsgSeen")); } catch { /* quiet */ }
+  $(".phone-dot").hidden = !unread;
 }

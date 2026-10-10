@@ -18,7 +18,7 @@ const enc = new TextEncoder();
 const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 const b64urlStr = (s) => b64url(enc.encode(s));
 const SMS_PER_DAY = 300;
-const STOP_WORDS = /^\s*(stop|stopall|unsubscribe|cancel|end|quit|stopp|avmeld)\s*$/i;
+export const STOP_WORDS = /^\s*(stop|stopall|unsubscribe|cancel|end|quit|stopp|avmeld)\s*$/i;
 const aad = (accountId) => `acct:${accountId}:twilio_phone`;
 
 async function getCfg(env, accountId) {
@@ -166,8 +166,9 @@ export async function lookup(env, ctx, number) {
 }
 
 // ------------------------------------------------------------------ texts
-export async function sendSms(env, ctx, b, hooks) {
-  const tw = await twilio(env, ctx);
+// Checks every text passes, whatever it goes out on (Twilio or iMessage): a message, a valid number, the daily cap,
+// and nobody who replied STOP.
+export async function guardText(env, ctx, b) {
   const text = String(b.body || "").trim().slice(0, 1600);
   if (!text) throw err(400, "Write the message first");
   const match = b.target_id ? await env.DB.prepare("SELECT id, name, currency FROM targets WHERE id = ?1 AND account_id = ?2").bind(+b.target_id, ctx.accountId).first() : await findByPhone(env, ctx.accountId, b.to);
@@ -176,15 +177,24 @@ export async function sendSms(env, ctx, b, hooks) {
   const sentToday = (await env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND feature = 'sms' AND created_at >= ?2").bind(ctx.accountId, now().slice(0, 10)).first()).n;
   if (sentToday >= SMS_PER_DAY) throw err(429, `This workspace has sent ${SMS_PER_DAY} texts today, the daily limit`);
   if (await env.DB.prepare("SELECT 1 FROM suppressions WHERE account_id = ?1 AND email = ?2").bind(ctx.accountId, `tel:${to}`).first()) throw err(400, `${to} replied STOP: texting them again isn't allowed`);
-  const from = pickCallerId(smsNumbers(tw, await getCfg(env, ctx.accountId)), to, tw.from);
-  const m = await twilioReq(tw, "/Messages.json", { From: from, To: to, Body: text });
-  await env.DB.prepare("INSERT INTO usage (account_id, user_id, feature, model, input_tokens, output_tokens, cached_tokens, own_key, created_at) VALUES (?1, ?2, 'sms', 'twilio', 0, 0, 0, 1, ?3)").bind(ctx.accountId, ctx.user.id || null, now()).run();
+  return { text, to, match };
+}
+export async function recordText(env, ctx, { to, text, match, via }, hooks) {
+  await env.DB.prepare("INSERT INTO usage (account_id, user_id, feature, model, input_tokens, output_tokens, cached_tokens, own_key, created_at) VALUES (?1, ?2, 'sms', ?3, 0, 0, 0, 1, ?4)").bind(ctx.accountId, ctx.user.id || null, via, now()).run();
   if (match) {
     await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, ?3, ?4, 'sms', ?5, ?6)")
-      .bind(ctx.accountId, match.id, ctx.user.id || null, ctx.user.name || ctx.user.email || "Agent", `Text to ${to}: ${text}`, now()).run();
+      .bind(ctx.accountId, match.id, ctx.user.id || null, ctx.user.name || ctx.user.email || "Agent", `${via === "imessage" ? "iMessage" : "Text"} to ${to}: ${text}`, now()).run();
   }
-  hooks?.emit("sms.sent", { to, target_id: match?.id || null });
-  return { sid: m.sid, status: m.status, to, from, target_id: match?.id || null, receipt: `Texted ${match?.name || to}` };
+  hooks?.emit("sms.sent", { to, target_id: match?.id || null, via });
+}
+
+export async function sendSms(env, ctx, b, hooks) {
+  const tw = await twilio(env, ctx);
+  const { text, to, match } = await guardText(env, ctx, b);
+  const from = pickCallerId(smsNumbers(tw, await getCfg(env, ctx.accountId)), to, tw.from);
+  const m = await twilioReq(tw, "/Messages.json", { From: from, To: to, Body: text });
+  await recordText(env, ctx, { to, text, match, via: "twilio" }, hooks);
+  return { sid: m.sid, status: m.status, to, from, via: "twilio", target_id: match?.id || null, receipt: `Texted ${match?.name || to}` };
 }
 
 // Conversations, newest first, read straight from Twilio (so texts sent from elsewhere show up too).

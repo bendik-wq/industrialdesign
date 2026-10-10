@@ -1198,3 +1198,6 @@ code, kbd, pre, pre.json, .secret code, .mono, .phone-row span, .ph-num { font-f
 .ph-setup details { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface-2); }
 .ph-setup summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .ph-setup ol { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+
+/* iMessage threads: blue bubbles, like on the phone */
+.ph-msgs.imsg .bubble.out { background: #0a84ff; color: #fff; }

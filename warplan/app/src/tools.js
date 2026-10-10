@@ -14,7 +14,7 @@ import { discover, describe, run as monidRun, result as monidResult, needsApprov
 import { deepEnrich, DEEP_ENRICH_PRICE } from "./waterfall.js";
 import { SEQUENCERS, listCampaigns, pushToCampaign } from "./sequencers.js";
 import { queue as callQueue, logCall, DISPOSITIONS } from "./dialer.js";
-import { sendSms } from "./phone.js";
+import { sendText } from "./imessage.js";
 import { checkLimits } from "./usage.js";
 import { researchTarget, RESEARCH_PRICE } from "./research.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
@@ -299,9 +299,9 @@ export const TOOLS = [
   {
     name: "send_sms", write: true, approval: true,
     title: (i) => `Text ${i.to}: “${String(i.body || "").slice(0, 60)}”`,
-    description: "Send a text message from the workspace's Twilio number. ALWAYS waits for the user's approval in the Inbox. Keep it short and personal; never cold-text people who replied STOP.",
-    input_schema: { type: "object", properties: { to: { type: "string", description: "+country format" }, body: { type: "string" }, target_id: { type: "integer" } }, required: ["to", "body"] },
-    run: async (env, ctx, i, hooks) => sendSms(env, ctx, i, hooks),
+    description: "Send a text message from the workspace's Twilio number, or as an iMessage from the user's own number when the iMessage relay is connected (via: \"imessage\"). ALWAYS waits for the user's approval in the Inbox. Keep it short and personal; never cold-text people who replied STOP.",
+    input_schema: { type: "object", properties: { to: { type: "string", description: "+country format" }, body: { type: "string" }, target_id: { type: "integer" }, via: { type: "string", enum: ["twilio", "imessage"], description: "Optional; defaults to Twilio when connected, else iMessage" } }, required: ["to", "body"] },
+    run: async (env, ctx, i, hooks) => sendText(env, ctx, i, hooks),
   },
   {
     name: "pipeline_overview", write: false,

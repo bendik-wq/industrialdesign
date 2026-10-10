@@ -376,3 +376,4 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 CREATE INDEX IF NOT EXISTS jobs_open ON jobs (status, id);
 CREATE INDEX IF NOT EXISTS jobs_acct ON jobs (account_id, id DESC);
+CREATE INDEX IF NOT EXISTS settings_imessage_hook ON settings (json_extract(data, '$.hash')) WHERE key = 'imessage';

@@ -93,14 +93,14 @@ async function integrations(seq) {
   const [d, seqs] = await Promise.all([api("/api/integrations"), api("/api/sequencers")]);
   if (stale(seq)) return;
   const replies = seqs.replies;
-  const META_LABEL = { baseUrl: ["EmailBison address", "https://dedi.emailbison.com"], sid: ["Account SID", "AC…"], from: ["Twilio number (calls come from it)", "+15551234567"], agentPhone: ["Your phone (Warplan rings it first)", "+15551234567"], numbers: ["Local presence numbers (comma-separated, one per country)", "+447700900123, +61291234567, +4930123456"] };
+  const META_LABEL = { baseUrl: ["EmailBison address", "https://dedi.emailbison.com"], sid: ["Account SID", "AC…"], from: ["Twilio number (calls come from it)", "+15551234567"], agentPhone: ["Your phone (Warplan rings it first)", "+15551234567"], serverUrl: ["BlueBubbles server address", "https://abc-123.trycloudflare.com"], numbers: ["Local presence numbers (comma-separated, one per country)", "+447700900123, +61291234567, +4930123456"] };
   const card = (x) => `
       <form class="panel form-panel provider" data-provider="${x.id}">
         <div class="panel-head"><h2 class="h3">${esc(x.label)}</h2><span class="status ${x.connected ? "on" : ""}">${x.connected ? `Connected ··${esc(x.last4)}` : x.id === "monid" && x.platformFallback !== "not available" ? esc(x.platformFallback) : "Not connected"}</span></div>
-        <label class="field">${x.id === "twilio" ? "Auth token" : "API key"}<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${x.connected ? "Paste a new key to replace it" : "Paste the key"}" ${dis}></label>
+        <label class="field">${x.id === "twilio" ? "Auth token" : x.id === "bluebubbles" ? "Server password" : "API key"}<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${x.connected ? "Paste a new key to replace it" : "Paste the key"}" ${dis}></label>
         ${(x.metaFields || []).map((m) => `<label class="field">${esc(META_LABEL[m]?.[0] || m)}<input name="meta:${m}" value="${esc(Array.isArray(x.meta[m]) ? x.meta[m].join(", ") : x.meta[m] || "")}" placeholder="${esc(META_LABEL[m]?.[1] || "")}" ${dis}></label>`).join("")}
         <p class="muted small">${esc(x.hint)}</p>
-        <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? (x.metaFields?.length ? "Save" : "Replace") : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}${x.id === "monid" && x.connected ? `<a class="ghost" href="#/data">Open the data console</a>` : ""}</div>
+        <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? (x.metaFields?.length ? "Save" : "Replace") : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}${x.id === "monid" && x.connected ? `<a class="ghost" href="#/data">Open the data console</a>` : ""}${x.id === "bluebubbles" && x.connected && d.canEdit ? `<button class="ghost" type="button" data-bbhook>Reconnect incoming messages</button>` : ""}</div>
       </form>`;
   const k = Object.fromEntries(d.keys.map((x) => [x.id, x]));
   const dis = d.canEdit ? "" : "disabled";
@@ -129,7 +129,7 @@ async function integrations(seq) {
     <h2 class="sub-sm">Data: scraping and enrichment</h2>
     <div class="settings-grid">${["monid", "google_places", "companies_house", "hunter"].map((id) => card(k[id])).join("")}</div>
     <h2 class="sub-sm">Outreach: cold email and calling</h2>
-    <div class="settings-grid">${["instantly", "smartlead", "emailbison", "twilio"].map((id) => card(k[id])).join("")}</div>
+    <div class="settings-grid">${["instantly", "smartlead", "emailbison", "twilio", "bluebubbles"].map((id) => card(k[id])).join("")}</div>
     <section class="panel">
       <div class="panel-head"><h2 class="h3">Reply webhook</h2>${d.canEdit ? `<button class="ghost" id="replyHook" type="button">${replies.configured ? "Make a new URL" : "Create the URL"}</button>` : ""}</div>
       <p class="muted small">Paste this URL into Instantly (Settings → Webhooks → “Reply received”), Smartlead (campaign → Webhooks → “Email reply”) or EmailBison (Webhooks → “Lead replied”). Every reply lands on the target's timeline; the AI sorts it (interested, meeting, later, out of office, not interested, unsubscribe), moves the target on, suppresses opt-outs and drafts an answer for your approval in the Inbox.</p>
@@ -150,7 +150,11 @@ async function integrations(seq) {
       btn.disabled = true; btn.textContent = v.key ? "Checking the key…" : "Saving…";
       const meta = { model: v.model, voiceId: v.voiceId, workspaceId: v.workspaceId };
       for (const [mk, mv] of Object.entries(v)) if (mk.startsWith("meta:")) meta[mk.slice(5)] = mv;
-      try { await post(`/api/integrations/${provider}`, { key: v.key, meta }, "PUT"); toast(v.key ? "Connected" : "Saved"); session.team = await api("/api/agents"); integrations(seq); }
+      try {
+        const r = await post(`/api/integrations/${provider}`, { key: v.key, meta }, "PUT"); toast(v.key ? "Connected" : "Saved");
+        if (r.imessage) await bbHookResult(r.imessage);
+        session.team = await api("/api/agents"); integrations(seq);
+      }
       catch (err) { fail(err); btn.disabled = false; btn.textContent = "Try again"; }
     });
     $("[data-disconnect]", f)?.addEventListener("click", async () => {
@@ -158,6 +162,7 @@ async function integrations(seq) {
       try { await api(`/api/integrations/${provider}`, { method: "DELETE" }); session.team = await api("/api/agents"); integrations(seq); } catch (e) { fail(e); }
     });
   });
+  $("[data-bbhook]")?.addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { await bbHookResult(await post("/api/imessage/hook")); } catch (err) { fail(err); } integrations(seq); });
   $("#replyHook")?.addEventListener("click", async () => {
     if (replies.configured && !(await confirmBox("Make a new reply URL?", "The current URL stops working; paste the new one into your sequencer.", "Make a new one"))) return;
     try {
@@ -363,4 +368,12 @@ async function emailTab(seq) {
   $("#mbOff")?.addEventListener("click", async () => { if (!(await confirmBox("Disconnect your mailbox?", "Warplan won't be able to send email for you until you connect it again.", "Disconnect"))) return; try { await api("/api/mailbox", { method: "DELETE" }); emailTab(seq); } catch (e) { fail(e); } });
   $("#supForm").addEventListener("submit", async (e) => { e.preventDefault(); try { await post("/api/suppressions", Object.fromEntries(new FormData(e.target))); emailTab(seq); } catch (err) { fail(err); } });
   $$("[data-unsup]").forEach((b) => b.addEventListener("click", async () => { try { await api(`/api/suppressions?email=${encodeURIComponent(b.dataset.unsup)}`, { method: "DELETE" }); emailTab(seq); } catch (e) { fail(e); } }));
+}
+
+// After connecting the iMessage relay: either Warplan registered itself on the BlueBubbles server, or the owner has
+// to paste the incoming URL there by hand (older servers). The URL is shown once.
+async function bbHookResult(r) {
+  if (r.error) return toast(`Connected, but incoming messages aren't set up: ${r.error}`, "error");
+  if (r.webhook_registered) return toast("iMessage relay connected. Replies now land on your targets' timelines.");
+  if (r.url) await dialog({ title: "One more step for incoming iMessages", submit: "", html: `<p>In BlueBubbles Server → <b>API & Webhooks</b> → Add webhook, paste this URL and tick <b>New messages</b>. Shown once.</p><div class="secret"><code>${esc(r.url)}</code><button class="ghost" type="button" data-cp>Copy</button></div>`, onOpen: (dl) => $("[data-cp]", dl).addEventListener("click", () => copy(r.url, "URL copied")) });
 }
