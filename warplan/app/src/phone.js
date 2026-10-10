@@ -1,0 +1,245 @@
+// Browser phone: call and text from Warplan itself, on the workspace's Twilio account.
+//   Calls   Twilio Voice JS SDK in the browser (WebRTC). The browser asks for a short-lived access token; Twilio
+//           asks our TwiML App webhook what to do and we answer <Dial callerId=your number><Number>them</Number>.
+//   Inbound Optional: point the Twilio number at Warplan and incoming calls ring every teammate's browser
+//           (with the target's name when the number is known); incoming texts land on the target's timeline.
+//   Texts   Twilio Messages API, threads read back from Twilio, STOP/UNSUBSCRIBE replies suppress the number.
+// Setup is one click: from the Twilio key the workspace already connected we create an API key (for tokens) and
+// a TwiML App (for the webhook). Webhook URLs carry a secret per workspace and every request is checked against
+// Twilio's signature.
+import { twilio, twilioReq, xml, e164 } from "./dialer.js";
+import { seal, open } from "./keys.js";
+import { sha256, randomToken } from "./auth.js";
+
+const err = (status, message) => Object.assign(new Error(message), { status });
+const now = () => new Date().toISOString();
+const enc = new TextEncoder();
+const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+const b64urlStr = (s) => b64url(enc.encode(s));
+const STOP_WORDS = /^\s*(stop|stopall|unsubscribe|cancel|end|quit|stopp|avmeld)\s*$/i;
+const aad = (accountId) => `acct:${accountId}:twilio_phone`;
+
+async function getCfg(env, accountId) {
+  const r = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'phone'").bind(accountId).first();
+  return r ? JSON.parse(r.data) : null;
+}
+async function putCfg(env, accountId, cfg) {
+  await env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, 'phone', ?2, ?3) ON CONFLICT (account_id, key) DO UPDATE SET data = ?2, updated_at = ?3").bind(accountId, JSON.stringify(cfg), now()).run();
+}
+async function twilioDelete(tw, path) {
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${tw.sid}${path}`, { method: "DELETE", headers: { Authorization: tw.auth } });
+  if (!res.ok && res.status !== 404) console.warn("twilio delete", path, res.status);
+}
+const hookBase = (origin, token) => `${origin}/hooks/twilio/${token}`;
+
+// ------------------------------------------------------------------ status, setup
+export async function phoneStatus(env, ctx) {
+  const cfg = await getCfg(env, ctx.accountId);
+  let tw = null;
+  try { tw = await twilio(env, ctx); } catch { /* not connected */ }
+  return { twilio: !!tw, ready: !!(tw && cfg?.app_sid), from: tw?.from || null, incoming: !!cfg?.incoming, can_receive: !!cfg?.number_sid, canEdit: ctx.isOwner };
+}
+
+export async function setupPhone(env, ctx, origin) {
+  const tw = await twilio(env, ctx);
+  const old = await getCfg(env, ctx.accountId);
+  const token = randomToken("tw_");
+  const base = hookBase(origin, token);
+  // Fresh credentials each time: retire the previous key and app so nothing stale keeps working.
+  if (old?.key_sid) await twilioDelete(tw, `/Keys/${old.key_sid}.json`);
+  if (old?.app_sid) await twilioDelete(tw, `/Applications/${old.app_sid}.json`);
+  const key = await twilioReq(tw, "/Keys.json", { FriendlyName: "Warplan browser phone" });
+  const app = await twilioReq(tw, "/Applications.json", { FriendlyName: "Warplan browser phone", VoiceUrl: `${base}/voice`, VoiceMethod: "POST" });
+  const nums = await twilioReq(tw, `/IncomingPhoneNumbers.json?PhoneNumber=${encodeURIComponent(tw.from)}`);
+  const num = nums.incoming_phone_numbers?.[0];
+  const sealedKey = await seal(env, key.secret, aad(ctx.accountId));
+  const sealedTok = await seal(env, token, aad(ctx.accountId));
+  const cfg = {
+    hook_hash: await sha256(token), hook_ct: sealedTok.ciphertext, hook_iv: sealedTok.iv, origin,
+    key_sid: key.sid, key_ct: sealedKey.ciphertext, key_iv: sealedKey.iv, app_sid: app.sid,
+    number_sid: num?.sid || null, incoming: false, prev_voice_url: old?.prev_voice_url ?? null, prev_sms_url: old?.prev_sms_url ?? null, created_at: now(),
+  };
+  await putCfg(env, ctx.accountId, cfg);
+  if (old?.incoming && cfg.number_sid) await setIncoming(env, ctx, true, origin);
+  return phoneStatus(env, ctx);
+}
+
+// Point the Twilio number at Warplan (calls ring the browser, texts land on the timeline), or put it back.
+export async function setIncoming(env, ctx, on, origin) {
+  const tw = await twilio(env, ctx);
+  const cfg = await getCfg(env, ctx.accountId);
+  if (!cfg?.app_sid) throw err(400, "Set up the browser phone first");
+  if (!cfg.number_sid) throw err(400, `${tw.from} isn't a number bought on this Twilio account (a verified caller ID can make calls but can't receive them). Buy a number in Twilio to receive calls and texts.`);
+  if (on) {
+    const cur = await twilioReq(tw, `/IncomingPhoneNumbers/${cfg.number_sid}.json`);
+    const base = hookBase(cfg.origin || origin, await open(env, { ciphertext: cfg.hook_ct, iv: cfg.hook_iv }, aad(ctx.accountId)));
+    if (!String(cur.voice_url || "").includes("/hooks/twilio/")) { cfg.prev_voice_url = cur.voice_url || ""; cfg.prev_sms_url = cur.sms_url || ""; }
+    await twilioReq(tw, `/IncomingPhoneNumbers/${cfg.number_sid}.json`, { VoiceUrl: `${base}/incoming`, VoiceMethod: "POST", SmsUrl: `${base}/sms`, SmsMethod: "POST" });
+  } else {
+    await twilioReq(tw, `/IncomingPhoneNumbers/${cfg.number_sid}.json`, { VoiceUrl: cfg.prev_voice_url || "", SmsUrl: cfg.prev_sms_url || "" });
+  }
+  cfg.incoming = !!on;
+  await putCfg(env, ctx.accountId, cfg);
+  return phoneStatus(env, ctx);
+}
+
+export async function removePhone(env, ctx) {
+  const cfg = await getCfg(env, ctx.accountId);
+  if (!cfg) return { ok: true };
+  const tw = await twilio(env, ctx);
+  if (cfg.incoming) await setIncoming(env, ctx, false).catch(() => {});
+  if (cfg.key_sid) await twilioDelete(tw, `/Keys/${cfg.key_sid}.json`);
+  if (cfg.app_sid) await twilioDelete(tw, `/Applications/${cfg.app_sid}.json`);
+  await env.DB.prepare("DELETE FROM settings WHERE account_id = ?1 AND key = 'phone'").bind(ctx.accountId).run();
+  return { ok: true };
+}
+
+// ------------------------------------------------------------------ access token (Twilio JWT, HS256)
+export async function phoneToken(env, ctx) {
+  if (!ctx.user.id) throw err(400, "The browser phone belongs to a signed-in user");
+  const tw = await twilio(env, ctx);
+  const cfg = await getCfg(env, ctx.accountId);
+  if (!cfg?.app_sid) throw err(400, "Set up the browser phone first (Phone → Set up)");
+  const secret = await open(env, { ciphertext: cfg.key_ct, iv: cfg.key_iv }, aad(ctx.accountId));
+  const identity = `u${ctx.user.id}`;
+  const token = await twilioJwt({ keySid: cfg.key_sid, secret, accountSid: tw.sid, appSid: cfg.app_sid, identity });
+  return { token, identity, from: tw.from, expires_in: 3600, incoming: !!cfg.incoming };
+}
+
+// A Twilio access token: HS256 JWT signed with the API key secret, granting voice in and out as `identity`.
+export async function twilioJwt({ keySid, secret, accountSid, appSid, identity, iat = Math.floor(Date.now() / 1000), ttl = 3600 }) {
+  const header = { typ: "JWT", alg: "HS256", cty: "twilio-fpa;v=1" };
+  const payload = { jti: `${keySid}-${iat}`, iss: keySid, sub: accountSid, iat, exp: iat + ttl, grants: { identity, voice: { incoming: { allow: true }, outgoing: { application_sid: appSid } } } };
+  const unsigned = `${b64urlStr(JSON.stringify(header))}.${b64urlStr(JSON.stringify(payload))}`;
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return `${unsigned}.${b64url(await crypto.subtle.sign("HMAC", key, enc.encode(unsigned)))}`;
+}
+
+// ------------------------------------------------------------------ who is this number?
+const tail = (s) => String(s || "").replace(/\D/g, "").slice(-8);
+const DIGITS_SQL = (col) => `replace(replace(replace(replace(replace(replace(${col}, ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), '.', '')`;
+export async function findByPhone(env, accountId, number) {
+  const t8 = tail(number);
+  if (t8.length < 7) return null;
+  return env.DB.prepare(`SELECT id, name, owner_name, currency FROM targets WHERE account_id = ?1 AND (${DIGITS_SQL("phone")} LIKE ?2
+    OR id IN (SELECT target_id FROM contacts WHERE account_id = ?1 AND kind = 'phone' AND ${DIGITS_SQL("value")} LIKE ?2)) ORDER BY updated_at DESC LIMIT 1`).bind(accountId, `%${t8}`).first();
+}
+export async function lookup(env, ctx, number) {
+  const t = await findByPhone(env, ctx.accountId, number);
+  return { number, e164: e164(number, t?.currency || "$"), target: t ? { id: t.id, name: t.name, owner: t.owner_name } : null };
+}
+
+// ------------------------------------------------------------------ texts
+export async function sendSms(env, ctx, b, hooks) {
+  const tw = await twilio(env, ctx);
+  const text = String(b.body || "").trim().slice(0, 1600);
+  if (!text) throw err(400, "Write the message first");
+  const match = b.target_id ? await env.DB.prepare("SELECT id, name, currency FROM targets WHERE id = ?1 AND account_id = ?2").bind(+b.target_id, ctx.accountId).first() : await findByPhone(env, ctx.accountId, b.to);
+  const to = e164(b.to, match?.currency || "$");
+  if (!to) throw err(400, "Use the number in +country format, e.g. +4791234567");
+  if (await env.DB.prepare("SELECT 1 FROM suppressions WHERE account_id = ?1 AND email = ?2").bind(ctx.accountId, `tel:${to}`).first()) throw err(400, `${to} replied STOP: texting them again isn't allowed`);
+  const m = await twilioReq(tw, "/Messages.json", { From: tw.from, To: to, Body: text });
+  if (match) {
+    await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, ?3, ?4, 'sms', ?5, ?6)")
+      .bind(ctx.accountId, match.id, ctx.user.id || null, ctx.user.name || ctx.user.email || "Agent", `Text to ${to}: ${text}`, now()).run();
+  }
+  hooks?.emit("sms.sent", { to, target_id: match?.id || null });
+  return { sid: m.sid, status: m.status, to, target_id: match?.id || null, receipt: `Texted ${match?.name || to}` };
+}
+
+// Conversations, newest first, read straight from Twilio (so texts sent from elsewhere show up too).
+export async function threads(env, ctx) {
+  const tw = await twilio(env, ctx);
+  const d = await twilioReq(tw, "/Messages.json?PageSize=200");
+  const by = new Map();
+  for (const m of d.messages || []) {
+    const inbound = m.direction === "inbound";
+    const other = inbound ? m.from : m.to;
+    if (!other || other.startsWith("client:")) continue;
+    if (!by.has(other)) by.set(other, []);
+    by.get(other).push({ sid: m.sid, inbound, body: m.body, status: m.status, at: new Date(m.date_sent || m.date_created).toISOString(), error: m.error_message || null });
+  }
+  const list = [...by.entries()].slice(0, 40);
+  const out = [];
+  for (const [number, msgs] of list) {
+    const t = await findByPhone(env, ctx.accountId, number);
+    out.push({ number, target: t ? { id: t.id, name: t.name, owner: t.owner_name } : null, messages: msgs.reverse(), last: msgs[msgs.length - 1] });
+  }
+  return { from: tw.from, threads: out };
+}
+
+export async function recentCalls(env, ctx) {
+  const tw = await twilio(env, ctx);
+  const d = await twilioReq(tw, "/Calls.json?PageSize=60");
+  const rows = (d.calls || []).filter((c) => {
+    const other = c.direction === "inbound" ? c.from : c.to;
+    return other && !other.startsWith("client:") && other !== tw.agentPhone && !(c.direction === "inbound" && c.to?.startsWith("client:"));
+  }).slice(0, 30);
+  const out = [];
+  for (const c of rows) {
+    const number = c.direction === "inbound" ? c.from : c.to;
+    const t = await findByPhone(env, ctx.accountId, number);
+    out.push({ sid: c.sid, number, inbound: c.direction === "inbound", status: c.status, duration: c.duration != null ? +c.duration : null, at: new Date(c.start_time || c.date_created).toISOString(), target: t ? { id: t.id, name: t.name } : null });
+  }
+  return { calls: out };
+}
+
+// ------------------------------------------------------------------ Twilio webhooks (public, signed)
+export async function validSignature(authToken, url, params, signature) {
+  const data = url + [...params.keys()].sort().map((k) => k + params.get(k)).join("");
+  const key = await crypto.subtle.importKey("raw", enc.encode(authToken), { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+  const sig = btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(data)))));
+  if (sig.length !== String(signature || "").length) return false;
+  let diff = 0; for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ signature.charCodeAt(i);
+  return diff === 0;
+}
+const twiml = (inner) => new Response(`<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`, { headers: { "Content-Type": "text/xml" } });
+
+export async function twilioHook(request, env, url, hooksFor) {
+  const m = url.pathname.match(/^\/hooks\/twilio\/(tw_[\w-]{20,})\/(voice|incoming|after|sms)$/);
+  if (!m || request.method !== "POST") return new Response("Not found", { status: 404 });
+  const row = await env.DB.prepare("SELECT s.account_id FROM settings s WHERE s.key = 'phone' AND json_extract(s.data, '$.hook_hash') = ?1").bind(await sha256(m[1])).first();
+  if (!row) return new Response("Not found", { status: 404 });
+  const ctx = { accountId: row.account_id, user: { id: null, name: "Phone" }, isOwner: false };
+  const hooks = hooksFor(row.account_id);
+  const tw = await twilio(env, ctx).catch(() => null);
+  if (!tw) return twiml("<Say>This line isn't configured.</Say>");
+  const params = new URLSearchParams(await request.text());
+  if (params.get("AccountSid") !== tw.sid || !(await validSignature(tw.token, url.toString(), params, request.headers.get("X-Twilio-Signature")))) return new Response("Bad signature", { status: 403 });
+  const kind = m[2];
+
+  if (kind === "voice") {
+    // An outgoing call from a teammate's browser.
+    const uid = (params.get("From") || params.get("Caller") || "").match(/^client:u(\d+)$/)?.[1];
+    const user = uid ? await env.DB.prepare("SELECT id FROM users WHERE id = ?1 AND account_id = ?2").bind(+uid, row.account_id).first() : null;
+    if (!user) return twiml("<Say>Not allowed.</Say><Hangup/>");
+    const to = String(params.get("To") || "").replace(/[\s()-]/g, "");
+    if (!/^\+\d{7,15}$/.test(to)) return twiml("<Say>That number isn't in international format.</Say><Hangup/>");
+    return twiml(`<Dial callerId="${xml(tw.from)}" answerOnBridge="true" timeLimit="7200"><Number>${xml(to)}</Number></Dial>`);
+  }
+  if (kind === "incoming") {
+    // Someone called the Twilio number: ring every teammate's browser, with the target's name if we know them.
+    const from = params.get("From") || "";
+    const t = await findByPhone(env, row.account_id, from);
+    const { results } = await env.DB.prepare("SELECT id FROM users WHERE account_id = ?1 ORDER BY id LIMIT 10").bind(row.account_id).all();
+    const base = url.toString().replace(/\/incoming$/, "");
+    const clients = results.map((u) => `<Client><Identity>u${u.id}</Identity>${t ? `<Parameter name="target_id" value="${t.id}"/><Parameter name="target_name" value="${xml(t.name.slice(0, 80))}"/>` : ""}</Client>`).join("");
+    return twiml(`<Dial timeout="25" answerOnBridge="true" action="${xml(base)}/after">${clients}</Dial>`);
+  }
+  if (kind === "after") {
+    const st = params.get("DialCallStatus");
+    if (st === "completed" || st === "answered") return twiml("<Hangup/>");
+    const from = params.get("From") || "";
+    const t = await findByPhone(env, row.account_id, from);
+    if (t) await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, NULL, 'Phone', 'call', ?3, ?4)").bind(row.account_id, t.id, `Missed call from ${from}. Call them back.`, now()).run();
+    hooks?.emit("call.missed", { from, target_id: t?.id || null });
+    return twiml("<Say>Sorry, no one can take your call right now. We'll call you back shortly.</Say><Hangup/>");
+  }
+  // kind === "sms": an incoming text.
+  const from = params.get("From") || "", text = String(params.get("Body") || "").slice(0, 1600);
+  const t = await findByPhone(env, row.account_id, from);
+  if (STOP_WORDS.test(text)) await env.DB.prepare("INSERT OR IGNORE INTO suppressions (account_id, email, reason, created_at) VALUES (?1, ?2, 'Replied STOP to a text', ?3)").bind(row.account_id, `tel:${from}`, now()).run();
+  if (t) await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, NULL, 'Phone', 'sms', ?3, ?4)").bind(row.account_id, t.id, `Text from ${from}: ${text}`, now()).run();
+  hooks?.emit("sms.received", { from, body: text, target_id: t?.id || null });
+  return twiml("");
+}

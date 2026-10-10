@@ -14,6 +14,7 @@ import { discover, describe, run as monidRun, result as monidResult, needsApprov
 import { deepEnrich, DEEP_ENRICH_PRICE } from "./waterfall.js";
 import { SEQUENCERS, listCampaigns, pushToCampaign } from "./sequencers.js";
 import { queue as callQueue, logCall, DISPOSITIONS } from "./dialer.js";
+import { sendSms } from "./phone.js";
 import { STAGES, normalizeDeal, dealModel, maxMultiple, money, structureSummary, targetDeal, DEAL_DEFAULTS } from "../public/js/deal.js";
 
 const STAGE_IDS = STAGES.map((s) => s.id);
@@ -261,6 +262,13 @@ export const TOOLS = [
     run: async (env, ctx, i, hooks) => logCall(env, ctx, i, hooks),
   },
   {
+    name: "send_sms", write: true, approval: true,
+    title: (i) => `Text ${i.to}: “${String(i.body || "").slice(0, 60)}”`,
+    description: "Send a text message from the workspace's Twilio number. ALWAYS waits for the user's approval in the Inbox. Keep it short and personal; never cold-text people who replied STOP.",
+    input_schema: { type: "object", properties: { to: { type: "string", description: "+country format" }, body: { type: "string" }, target_id: { type: "integer" } }, required: ["to", "body"] },
+    run: async (env, ctx, i, hooks) => sendSms(env, ctx, i, hooks),
+  },
+  {
     name: "pipeline_overview", write: false,
     description: "The state of the whole pipeline: counts by stage, EBITDA in play, overdue and upcoming next actions, targets with no activity for 14+ days.",
     input_schema: { type: "object", properties: {} },
@@ -302,7 +310,7 @@ export async function runTool(env, ctx, ai, hooks, name, input, { approved = fal
   }
   if (why) {
     const title = name === "send_email" ? `Send “${String(input.subject || "").slice(0, 80)}” to ${input.to}` : tool.title ? tool.title(input) : `Run ${name}`;
-    const reason = name === "send_email" ? String(input.body || "").slice(0, 400) : typeof why === "string" ? why : "";
+    const reason = ["send_email", "send_sms"].includes(name) ? String(input.body || "").slice(0, 400) : typeof why === "string" ? why : "";
     const id = await propose(env, ctx.accountId, { tool: name, input, target_id: input.target_id, title, reason, source: "agent" });
     return { ok: true, result: { queued: true, inbox_id: id, link: "/#/inbox", receipt: `Queued for your approval in the Inbox: ${name === "send_email" ? `email to ${input.to}` : title}` } };
   }

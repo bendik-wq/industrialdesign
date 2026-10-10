@@ -64,7 +64,7 @@ export async function logCall(env, ctx, b, hooks) {
   const duration = b.duration != null ? Math.max(0, Math.min(36000, Math.round(+b.duration) || 0)) : null;
   const stamp = now();
   const call = await env.DB.prepare("INSERT INTO calls (account_id, user_id, target_id, phone, via, call_sid, disposition, notes, duration, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) RETURNING id")
-    .bind(ctx.accountId, ctx.user.id || null, t.id, phone, b.via === "twilio" ? "twilio" : "phone", b.call_sid ? String(b.call_sid).slice(0, 64) : null, b.disposition, notes, duration, stamp).first();
+    .bind(ctx.accountId, ctx.user.id || null, t.id, phone, ["twilio", "browser"].includes(b.via) ? b.via : "phone", b.call_sid ? String(b.call_sid).slice(0, 64) : null, b.disposition, notes, duration, stamp).first();
   const mins = duration ? ` · ${Math.floor(duration / 60)}m${String(duration % 60).padStart(2, "0")}s` : "";
   await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, ?3, ?4, 'call', ?5, ?6)")
     .bind(ctx.accountId, t.id, ctx.user.id || null, ctx.user.name || ctx.user.email, `${d.label}${mins} (${phone})${notes ? `: ${notes}` : ""}`, stamp).run();
@@ -108,14 +108,14 @@ export function e164(raw, currency) {
   if (cc === "44" && d.length === 11 && d.startsWith("0")) return `+44${d.slice(1)}`;
   return null;
 }
-const xml = (s) => String(s).replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[c]);
+export const xml = (s) => String(s).replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[c]);
 
-async function twilio(env, ctx) {
+export async function twilio(env, ctx) {
   const k = (await providerKeys(env, ctx, ["twilio"])).twilio;
   if (!k?.meta?.sid) throw err(400, "Connect Twilio under Settings → Integrations to dial from Warplan (or use your phone)");
-  return { ...k.meta, auth: `Basic ${btoa(`${k.meta.sid}:${k.key}`)}` };
+  return { ...k.meta, token: k.key, auth: `Basic ${btoa(`${k.meta.sid}:${k.key}`)}` };
 }
-async function twilioReq(tw, path, form) {
+export async function twilioReq(tw, path, form) {
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${tw.sid}${path}`, { method: form ? "POST" : "GET", headers: { Authorization: tw.auth, ...(form && { "Content-Type": "application/x-www-form-urlencoded" }) }, body: form ? new URLSearchParams(form) : undefined });
   const d = await res.json().catch(() => ({}));
   if (res.status === 401) throw err(400, "Twilio rejected the credentials");

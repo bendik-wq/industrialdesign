@@ -21,6 +21,7 @@ import { balance as monidBalance, budget as monidBudget, setBudget as setMonidBu
 import { deepEnrich } from "./waterfall.js";
 import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
 import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup } from "./dialer.js";
+import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, sendSms, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
 const INVITE_DAYS = 7;
@@ -41,7 +42,7 @@ export default {
 // Browser hardening on every response: no framing, no MIME sniffing, a strict content policy (own scripts only,
 // Google Fonts, audio from blob: for voice playback), and microphone access limited to this site.
 const SECURITY_HEADERS = {
-  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob: https://sdk.twilio.com https://media.twiliocdn.com; connect-src 'self' https://*.twilio.com wss://*.twilio.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
   "X-Frame-Options": "DENY",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -64,6 +65,7 @@ async function handle(request, env, exec) {
     if (p === "/api/auth/state" || p === "/api/setup" || p === "/api/login" || p === "/api/logout" || p.startsWith("/api/invites/")) return await authRoute(request, env, url);
     if (PUBLIC_PATHS.has(p)) return asset(request, env, p);
     if (p.startsWith("/hooks/replies/")) return await replyHook(request, env, url, exec);
+    if (p.startsWith("/hooks/twilio/")) return await twilioHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)));
     if (p === "/mcp" || p.startsWith("/mcp/")) return await mcpRoute(request, env, url, exec);
     const ctx = await getContext(request, env);
     if (p === "/api" || p.startsWith("/api/")) {
@@ -320,6 +322,17 @@ async function route(request, env, url, ctx, exec) {
   if ((r = p.match(/^\/api\/sequencers\/(\w+)\/campaigns$/)) && m === "GET") return json(await listCampaigns(env, ctx, r[1]));
   if (p === "/api/sequencers/push" && m === "POST") return json(await pushToCampaign(env, ctx, await body(request), hooks, await aiEnv(env, ctx)));
   if (p === "/api/replies/hook" && m === "POST") { needOwner(ctx); return json(await rotateReplyHook(env, ctx, url.origin), 201); }
+
+  // Browser phone (calls and texts on the workspace's Twilio)
+  if (p === "/api/phone" && m === "GET") return json(await phoneStatus(env, ctx));
+  if (p === "/api/phone" && m === "DELETE") { needOwner(ctx); return json(await removePhone(env, ctx)); }
+  if (p === "/api/phone/setup" && m === "POST") { needOwner(ctx); return json(await setupPhone(env, ctx, url.origin)); }
+  if (p === "/api/phone/incoming" && m === "PUT") { needOwner(ctx); return json(await setIncoming(env, ctx, !!(await body(request)).on, url.origin)); }
+  if (p === "/api/phone/token" && m === "GET") return json(await phoneToken(env, ctx));
+  if (p === "/api/phone/lookup" && m === "GET") return json(await phoneLookup(env, ctx, String(q.get("number") || "")));
+  if (p === "/api/phone/sms" && m === "POST") return json(await sendSms(env, ctx, await body(request), hooks), 201);
+  if (p === "/api/phone/messages" && m === "GET") return json(await smsThreads(env, ctx));
+  if (p === "/api/phone/calls" && m === "GET") return json(await recentCalls(env, ctx));
 
   // Power dialer
   if (p === "/api/dialer/queue" && m === "GET") return json(await callQueue(env, ctx, q));
@@ -588,6 +601,9 @@ const API_DOCS = {
     ["POST", "/api/sequencers/push", "Add targets to a campaign {provider, campaign_id, campaign_name, target_ids, personalize?}"],
     ["POST", "/hooks/replies/<secret>", "Reply webhook for your sequencer (create the URL in Settings → Outreach). AI triages each reply"],
     ["GET", "/api/dialer/queue?stage=&q=&fresh=1", "Power dialer call list"],
+    ["POST", "/api/phone/sms", "Text from your Twilio number {to, body, target_id?}"],
+    ["GET", "/api/phone/messages", "Text conversations (from Twilio), matched to targets"],
+    ["GET", "/api/phone/calls", "Recent calls on your Twilio number"],
     ["POST", "/api/calls", "Log a call {target_id, disposition, notes, duration, next_date}"],
     ["POST", "/api/dialer/bridge", "Click-to-call via your Twilio {target_id, phone}: rings you, then connects them"],
     ["GET", "/api/usage?days=30", "AI usage and estimated cost"],

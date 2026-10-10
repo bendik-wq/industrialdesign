@@ -82,6 +82,20 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
 - **Agent tools** (Josh, MCP, REST): `deep_enrich`, `monid_discover`, `monid_inspect`, `monid_run`, `monid_result`, `data_budget`, `list_campaigns`, `push_to_campaign`, `call_queue`, `log_call`, 25 tools in total.
 - **New webhook events**: `reply.received`, `campaign.pushed`, `call.logged`.
 
+**v6: browser phone**
+- **Phone button on every page**: a keypad, texting threads, recent calls and in-call controls (mute, keypad tones, hang up). Clicking any phone number in Warplan dials it from the browser. After a call to a known target, two taps log how it went.
+- **Runs on the workspace's Twilio**: Settings → Integrations → Twilio, then *Set up the browser phone* in the phone. That one click creates a Twilio API key (for short-lived access tokens) and a TwiML App, which points at `/hooks/twilio/<secret>/voice`.
+  - Calls show the Twilio number, or your own number if you've verified it in Twilio.
+  - Calls aren't recorded.
+- **Incoming (optional)**: points the Twilio number at Warplan.
+  - Incoming calls ring every teammate's browser, showing the target's name when the number is known. Missed calls go on the timeline.
+  - Incoming texts go on the timeline, and STOP replies block further texts to that number.
+  - Turning it off restores the number's previous settings.
+- **Security**: every Twilio webhook request is checked against Twilio's signature and the workspace's account ID.
+  - The API key secret is stored encrypted.
+  - The Voice SDK is served from the app itself (`public/vendor`) so the page can keep allowing only its own scripts.
+- **Agent tool** `send_sms`: always waits for your approval in the Inbox.
+
 ## API
 
 `GET /api` returns the full reference. Authenticate with `Authorization: Bearer wp_...` (Settings → API).

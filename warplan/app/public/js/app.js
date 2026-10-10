@@ -13,6 +13,7 @@ import { renderAgents } from "./views/agents.js";
 import { renderInbox, refreshInboxBadge } from "./views/inbox.js";
 import { renderScout } from "./views/scout.js";
 import { renderDialer } from "./views/dialer.js";
+import { initPhone, openPhone } from "./phone.js";
 import { renderData } from "./views/data.js";
 
 const TITLES = { home: "Command", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Units", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data" };
@@ -61,7 +62,7 @@ const COMMANDS = [
   ["Go to Command", "#/home"], ["Go to Pipeline", "#/pipeline"], ["Ask Josh", "#/josh"], ["Start a practice call", "#/simulator"],
   ["Open the Deal Builder", "#/builder"], ["Open the Value Ladder", "#/ladder"], ["Open the Desk", "#/desk"], ["See every unit", "#/agents"],
   ["Add a target", () => addTarget()], ["Settings: profile", "#/settings/profile"], ["Settings: team & invites", "#/settings/team"],
-  ["Settings: connect your AI keys", "#/settings/integrations"], ["Find companies to buy (Scout)", "#/scout"], ["Open the agent inbox", "#/inbox"], ["Power dialer: start calling", "#/dialer"], ["Data marketplace (Monid): search 2,500+ APIs", "#/data"], ["Connect Instantly / Smartlead / EmailBison", "#/settings/integrations"], ["Connect your mailbox", "#/settings/email"], ["Connect Claude, ChatGPT, Cursor, Zapier (MCP)", "#/settings/connect"], ["Settings: API tokens", "#/settings/api"], ["Settings: usage", "#/settings/usage"],
+  ["Settings: connect your AI keys", "#/settings/integrations"], ["Find companies to buy (Scout)", "#/scout"], ["Open the agent inbox", "#/inbox"], ["Power dialer: start calling", "#/dialer"], ["Open the phone (call or text)", () => openPhone()], ["Data marketplace (Monid): search 2,500+ APIs", "#/data"], ["Connect Instantly / Smartlead / EmailBison", "#/settings/integrations"], ["Connect your mailbox", "#/settings/email"], ["Connect Claude, ChatGPT, Cursor, Zapier (MCP)", "#/settings/connect"], ["Settings: API tokens", "#/settings/api"], ["Settings: usage", "#/settings/usage"],
 ];
 let palette = null;
 function openPalette() {
@@ -132,5 +133,6 @@ $("#logout").addEventListener("click", async () => { await fetch("/api/logout", 
   window.addEventListener("offline", () => toast("You're offline. Changes will fail until you reconnect.", "error"));
   router();
   refreshInboxBadge();
+  initPhone();
   setInterval(() => { if (!document.hidden) refreshInboxBadge(); }, 120000);
 })();

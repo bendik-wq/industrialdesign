@@ -6,6 +6,9 @@ import { deepEnrichDialog } from "./outreach.js";
 // hit 1-9 for the outcome, and the next owner is up. Every outcome moves the target on and lands on its timeline.
 let active = null; // { sid, timer, poll, started }
 let keyHandler = null;
+let onPhone = null;
+window.addEventListener("phone:connected", (e) => { if ($("#dmain")) onPhone?.connected(e.detail); });
+window.addEventListener("phone:ended", (e) => { if ($("#dmain")) onPhone?.ended(e.detail); });
 document.addEventListener("keydown", (e) => keyHandler?.(e));
 
 export async function renderDialer(seq, params) {
@@ -58,7 +61,7 @@ export async function renderDialer(seq, params) {
         <p class="dc-owner">${t.owner_name ? `<b>${esc(t.owner_name)}</b>${t.owner_age ? ` <span class="age ${t.owner_age >= 60 ? "old" : ""}">${t.owner_age}</span>` : ""}` : `<span class="muted">Owner unknown: ask for the owner by role</span>`}${t.calls ? ` · <span class="muted">${t.calls} earlier call${t.calls > 1 ? "s" : ""}</span>` : ""}</p>
         ${t.next_action ? `<p class="small">Next action: <b>${esc(t.next_action)}</b>${t.next_date ? ` · ${dateLabel(t.next_date)}` : ""}</p>` : ""}
         <div class="phones">${t.phones.map((p, i) => `<div class="phone-row"><span><b>${esc(p.value)}</b> <small class="muted">${esc(p.label)}</small></span>
-          <a class="${i ? "ghost" : "primary"}" href="tel:${esc(p.value.replace(/[^\d+]/g, ""))}" data-tel="${i}">☎ Call</a>${data.twilio ? `<button class="ghost" type="button" data-bridge="${i}">Call via Twilio</button>` : ""}</div>`).join("")}</div>
+          <a class="${i ? "ghost" : "primary"}" href="tel:${esc(p.value.replace(/[^\d+]/g, ""))}" data-tel="${i}" data-target="${t.id}">☎ Call</a>${data.twilio ? `<button class="ghost" type="button" data-bridge="${i}">Call via Twilio</button>` : ""}</div>`).join("")}</div>
         <div class="row small"><button class="link" type="button" id="enrichBtn">Find the owner's direct line (Deep enrich)</button></div>
         <p class="call-status" id="cstatus" hidden></p>
       </div>
@@ -84,6 +87,12 @@ export async function renderDialer(seq, params) {
     let phoneIdx = 0, startedAt = null;
     const startTimer = () => { startedAt = Date.now(); clearInterval(active?.timer); const tick = () => { const s = Math.round((Date.now() - startedAt) / 1000); const el = $("#timer"); if (el) el.textContent = `· ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }; tick(); active = { ...(active || {}), timer: setInterval(tick, 1000), started: startedAt }; };
     $$("[data-tel]").forEach((a) => a.addEventListener("click", () => { phoneIdx = +a.dataset.tel; startTimer(); }));
+    // The browser phone intercepts tel: clicks; follow it so the timer and the call length stay right.
+    $$("[data-tel]").forEach((a) => a.addEventListener("pointerdown", () => { phoneIdx = +a.dataset.tel; }));
+    onPhone = {
+      connected: () => { startTimer(); active.browser = true; },
+      ended: (d) => { if (active) { active.browser = true; active.duration = d.duration; active.callSid = d.sid; clearInterval(active.timer); } const el = $("#cstatus"); if (el) { el.hidden = false; el.textContent = `Call ended${d.duration ? ` · ${d.duration}s` : ""}. Log the outcome (1–9).`; } },
+    };
     $$("[data-bridge]").forEach((b) => b.addEventListener("click", () => bridge(+b.dataset.bridge)));
     const status = (txt) => { const el = $("#cstatus"); if (el) { el.hidden = !txt; el.innerHTML = txt; } };
     const bridge = async (i) => {
@@ -109,7 +118,7 @@ export async function renderDialer(seq, params) {
       const btns = $$("[data-d]"); btns.forEach((b) => { b.disabled = true; });
       const dur = active?.duration ?? (startedAt ? Math.round((Date.now() - startedAt) / 1000) : null);
       try {
-        const r = await post("/api/calls", { target_id: t.id, phone: t.phones[phoneIdx]?.value, disposition: k, notes: $("#notes").value, duration: dur, next_date: $("#ndate").value || undefined, via: active?.sid ? "twilio" : "phone", call_sid: active?.sid });
+        const r = await post("/api/calls", { target_id: t.id, phone: t.phones[phoneIdx]?.value, disposition: k, notes: $("#notes").value, duration: dur, next_date: $("#ndate").value || undefined, via: active?.sid ? "twilio" : active?.browser ? "browser" : "phone", call_sid: active?.sid || active?.callSid });
         toast(r.receipt);
         endCall();
         queue.splice(cur, 1);

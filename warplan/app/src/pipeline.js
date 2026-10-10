@@ -4,7 +4,7 @@ import { STAGES, normalizeDeal } from "../public/js/deal.js";
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
 const STAGE_IDS = new Set(STAGES.map((s) => s.id));
-const EVENT_KINDS = new Set(["note", "call", "email", "meeting", "stage", "doc"]);
+const EVENT_KINDS = new Set(["note", "call", "email", "meeting", "stage", "doc", "sms"]);
 
 // Editable fields and how to clean them. Anything else in a request body is ignored.
 const text = (max) => (v) => String(v ?? "").trim().slice(0, max);
@@ -179,7 +179,7 @@ export function targetFacts(t) {
 }
 
 // ------------------------------------------------------------------ webhooks
-export const HOOK_EVENTS = ["target.created", "target.updated", "target.stage_changed", "target.note_added", "target.deleted", "target.imported", "document.created", "call.debriefed", "briefing.daily", "action.proposed", "email.sent", "scout.imported", "reply.received", "campaign.pushed", "call.logged"];
+export const HOOK_EVENTS = ["target.created", "target.updated", "target.stage_changed", "target.note_added", "target.deleted", "target.imported", "document.created", "call.debriefed", "briefing.daily", "action.proposed", "email.sent", "scout.imported", "reply.received", "campaign.pushed", "call.logged", "call.missed", "sms.sent", "sms.received"];
 
 async function sign(secret, body) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
