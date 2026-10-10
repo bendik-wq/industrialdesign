@@ -5,12 +5,16 @@ import { transcribe } from "./ai.js";
 import { publicAgents } from "./agents.js";
 import { getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie, sha256, randomToken } from "./auth.js";
 import { json, fail, body, now, slow, cleanEmail, displayName, needOwner } from "./http.js";
-import { listThreads, getThread, createThread, updateThread, deleteThread, send, sendStream, debrief, simulatorInfo, speakCached, getProfile } from "./conversations.js";
+import { listThreads, getThread, createThread, updateThread, deleteThread, send, sendStream, debrief, simulatorInfo, speakCached } from "./conversations.js";
 import { listTargets, getTarget, createTarget, updateTarget, deleteTarget, addEvent, deleteEvent, importTargets, exportCsv, hookEmitter, listHooks, createHook, testHook, deleteHook, rowToTarget } from "./pipeline.js";
-import { generate, deskAgents } from "./desk.js";
+import { deskAgents } from "./desk.js";
+import { createDocument, getProfile } from "./documents.js";
 import { listKeys, saveKey, deleteKey, aiEnv, MODELS } from "./keys.js";
 import { checkLimits, record, summary } from "./usage.js";
 import { STAGES } from "../public/js/deal.js";
+import { handleMcp } from "./mcp.js";
+import { listInbox, decide, propose, autopilotRun, autopilotAll, getSetting, setSetting } from "./autopilot.js";
+import { TOOLS } from "./tools.js";
 
 const INVITE_DAYS = 7;
 // Reachable without signing in. Everything else (the app shell, its scripts) needs a session.
@@ -20,6 +24,10 @@ const STATE_KEYS = new Set(["deal", "ladder", "profile", "prefs"]);
 export default {
   async fetch(request, env, exec) {
     return secure(await handle(request, env, exec));
+  },
+  // Cron Trigger (wrangler.jsonc): the morning autopilot run for every workspace.
+  async scheduled(event, env, exec) {
+    exec.waitUntil(autopilotAll(env, exec));
   },
 };
 
@@ -48,6 +56,7 @@ async function handle(request, env, exec) {
     if (p.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method)) checkOrigin(request, url);
     if (p === "/api/auth/state" || p === "/api/setup" || p === "/api/login" || p === "/api/logout" || p.startsWith("/api/invites/")) return await authRoute(request, env, url);
     if (PUBLIC_PATHS.has(p)) return asset(request, env, p);
+    if (p === "/mcp" || p.startsWith("/mcp/")) return await mcpRoute(request, env, url, exec);
     const ctx = await getContext(request, env);
     if (p === "/api" || p.startsWith("/api/")) {
       if (!ctx) return json({ error: "Not signed in. Use your session cookie or an API token: Authorization: Bearer wp_..." }, 401);
@@ -62,6 +71,21 @@ async function handle(request, env, exec) {
     if (!err.status) console.error(err);
     return json({ error: err.status ? err.message : "Something went wrong on our side. Try again." }, err.status || 500);
   }
+}
+
+// MCP clients authenticate with an API token: in the Authorization header, or in the path (/mcp/wp_...) for clients
+// that can only take a URL. Browser-origin requests from other sites are refused.
+async function mcpRoute(request, env, url, exec) {
+  const pathToken = url.pathname.match(/^\/mcp\/(wp_[\w-]{20,})$/)?.[1];
+  if (url.pathname !== "/mcp" && !pathToken) return json({ error: "Not found" }, 404);
+  const origin = request.headers.get("Origin");
+  if (origin && origin !== url.origin) return json({ error: "Cross-site request blocked" }, 403);
+  const headers = new Headers(request.headers);
+  if (pathToken) headers.set("Authorization", `Bearer ${pathToken}`);
+  const authed = new Request(request, { headers });
+  const ctx = (headers.get("Authorization") || "").startsWith("Bearer ") ? await getContext(authed, env) : null;
+  if (!ctx) return json({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized: create an API token in Warplan (Settings → Connect) and send it as Authorization: Bearer wp_..." } }, 401, { "WWW-Authenticate": 'Bearer realm="warplan"' });
+  return handleMcp(authed, env, ctx, exec);
 }
 
 // Cookie-authenticated writes must come from this site (defence in depth on top of SameSite=Lax).
@@ -180,7 +204,7 @@ async function route(request, env, url, ctx, exec) {
   }
   if ((r = p.match(/^\/api\/threads\/(\d+)\/messages$/)) && m === "POST") {
     const b = await body(request);
-    return (request.headers.get("Accept") || "").includes("text/event-stream") || q.get("stream") === "1" ? sendStream(env, ctx, +r[1], b, exec) : send(env, ctx, +r[1], b);
+    return (request.headers.get("Accept") || "").includes("text/event-stream") || q.get("stream") === "1" ? sendStream(env, ctx, +r[1], b, exec, hooks) : send(env, ctx, +r[1], b, hooks);
   }
   if ((r = p.match(/^\/api\/threads\/(\d+)\/debrief$/)) && m === "POST") return json(await debrief(env, ctx, +r[1], hooks), 201);
 
@@ -265,6 +289,27 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/webhooks" && m === "POST") { needOwner(ctx); return json(await createHook(env, ctx, await body(request)), 201); }
   if ((r = p.match(/^\/api\/webhooks\/(\d+)\/test$/)) && m === "POST") { needOwner(ctx); return json(await testHook(env, ctx, +r[1])); }
   if ((r = p.match(/^\/api\/webhooks\/(\d+)$/)) && m === "DELETE") { needOwner(ctx); return json(await deleteHook(env, ctx, +r[1])); }
+  // Agents: run Josh headless (Zapier, Slack bots, n8n), the approval inbox, autopilot settings, the tool catalogue
+  if (p === "/api/agent" && m === "POST") {
+    const b = await body(request);
+    let threadId = +b.thread_id || null;
+    if (!threadId) threadId = (await createThread(env, ctx, { agent: "josh", target: b.target_id })).id;
+    return send(env, ctx, threadId, b, hooks);
+  }
+  if (p === "/api/agent/tools" && m === "GET") return json({ tools: TOOLS.map(({ name, description, input_schema, write }) => ({ name, description, input_schema, write })) });
+  if (p === "/api/inbox" && m === "GET") return json(await listInbox(env, ctx, ["pending", "done", "dismissed", "failed", "all"].includes(q.get("status")) ? q.get("status") : "pending"));
+  if (p === "/api/inbox" && m === "POST") {
+    // External agents (your own scripts, n8n, an MCP client) can queue an action for a person to approve.
+    const b = await body(request);
+    const id = await propose(env, ctx.accountId, { tool: b.tool, input: b.input, title: b.title || `Run ${b.tool}`, reason: b.reason, target_id: b.target_id, source: b.source || (ctx.viaToken ? "api" : "user") });
+    if (id) hooks.emit("action.proposed", { id, tool: b.tool, title: b.title });
+    return json({ id, queued: !!id }, id ? 201 : 200);
+  }
+  if ((r = p.match(/^\/api\/inbox\/(\d+)\/(approve|dismiss)$/)) && m === "POST") return json(await decide(env, ctx, +r[1], r[2] === "approve", hooks));
+  if (p === "/api/autopilot" && m === "GET") return json({ settings: await getSetting(env, ctx.accountId, "autopilot", { enabled: true }), schedule: "Every morning at 06:00 UTC" });
+  if (p === "/api/autopilot" && m === "PUT") { needOwner(ctx); const b = await body(request); await setSetting(env, ctx.accountId, "autopilot", { enabled: !!b.enabled }); return json({ ok: true, enabled: !!b.enabled }); }
+  if (p === "/api/autopilot/run" && m === "POST") { needOwner(ctx); return json(await autopilotRun(env, ctx.accountId, exec)); }
+
   if (p === "/api/usage" && m === "GET") return json(await summary(env, ctx, Math.min(90, Math.max(1, +q.get("days") || 30))));
 
   return json({ error: "Not found" }, 404);
@@ -346,20 +391,7 @@ async function updateDoc(env, ctx, id, b) {
   return { ok: true };
 }
 async function generateDoc(env, ctx, b, hooks) {
-  let target = null;
-  if (b.target_id) target = await getTarget(env, ctx, +b.target_id);
-  const ai = await aiEnv(env, ctx);
-  await checkLimits(env, ai, ctx);
-  const profile = await getProfile(env, ctx);
-  const doc = await generate(ai, ctx, String(b.kind || ""), target, profile, { channel: b.channel, language: String(b.language || "").slice(0, 40), financials: b.financials });
-  await record(env, ai, ctx, `doc:${doc.kind}`, doc.out);
-  const stamp = now();
-  const row = await env.DB.prepare("INSERT INTO documents (account_id, target_id, kind, title, content, meta, created_by, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8) RETURNING id, kind, title, target_id, created_at")
-    .bind(ctx.accountId, target?.id || null, doc.kind, doc.title, doc.content, JSON.stringify(doc.meta), ctx.user.id || null, stamp).first();
-  if (target) await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, ?3, ?4, 'doc', ?5, ?6)")
-    .bind(ctx.accountId, target.id, ctx.user.id || null, displayName(ctx), `Generated: ${doc.title}`, stamp).run();
-  hooks.emit("document.created", { document: row });
-  return { ...row, content: doc.content, meta: doc.meta, model: doc.out.model };
+  return createDocument(env, ctx, await aiEnv(env, ctx), b, hooks);
 }
 
 // ------------------------------------------------------------------ team & tokens
@@ -422,6 +454,13 @@ const API_DOCS = {
     ["POST", "/api/threads/:id/debrief", "Score a practice call; returns Josh's debrief"],
     ["POST", "/api/voice/transcribe", "Raw audio body → {text}"],
     ["POST", "/api/voice/speak", "{text, speaker} → audio/mpeg"],
+    ["POST", "/api/agent", "Run Josh as an agent, headless {text, thread_id?, target_id?} → {reply, actions, thread}. He uses the same tools as in the app"],
+    ["GET", "/api/agent/tools", "The agent tool catalogue (also served over MCP at /mcp)"],
+    ["GET", "/api/inbox?status=pending", "Actions agents proposed, waiting for approval"],
+    ["POST", "/api/inbox", "Queue an action for approval {tool, input, title, reason, target_id}"],
+    ["POST", "/api/inbox/:id/approve", "Approve (runs it as you) · /dismiss to drop it"],
+    ["POST", "/api/autopilot/run", "Run the morning autopilot now (owners)"],
+    ["POST", "/mcp", "MCP server (Streamable HTTP): tools/list, tools/call. Auth: Bearer token or /mcp/<token>"],
     ["GET", "/api/usage?days=30", "AI usage and estimated cost"],
     ["GET", "/api/integrations", "Connected AI providers and webhooks"],
   ],

@@ -171,3 +171,92 @@ export async function speak(env, text, speaker = "orion") {
   if (!env.AI) throw err(503, "Voice needs the Workers AI binding");
   return env.AI.run(TTS_MODEL, { text: clean, speaker: SPEAKERS.includes(speaker) ? speaker : "orion", encoding: "mp3" });
 }
+
+// ------------------------------------------------------------------ agent loop (tool use)
+// Runs the model with tools until it answers. `exec(name, input)` runs one tool and resolves {ok, result}.
+// Callbacks: onText(delta) for streamed words, onTool({name, input, ok, result}) after each tool call.
+// Claude: full multi-step loop, streamed, append-only history (keeps thinking blocks valid).
+// Workers AI (Llama): one round of tool calls, then a final answer without tools (Llama loops otherwise).
+export async function agentLoop(env, system, messages, tools, exec, { maxTokens = 1200, effort = "medium", onText = () => {}, onTool = () => {}, maxSteps = 8 } = {}) {
+  const sys = asSys(system);
+  const usage = { input: 0, output: 0, cached: 0 };
+  const add = (u) => { usage.input += u.input; usage.output += u.output; usage.cached += u.cached; };
+  const actions = [];
+  if (env.ANTHROPIC_API_KEY) {
+    const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    const convo = [...messages];
+    let text = "", model = claudeModel(env);
+    for (let step = 0; step < maxSteps; step++) {
+      let res;
+      try {
+        const stream = client.beta.messages.stream({ ...claudeRequest(env, sys, convo, maxTokens, effort), tools: tools.anthropic });
+        stream.on("text", (t) => { text += t; onText(t); });
+        res = await stream.finalMessage();
+      } catch (e) { throw friendly(e); }
+      model = res.model; add(claudeUsage(res.usage));
+      if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
+      if (res.stop_reason === "pause_turn") { convo.push({ role: "assistant", content: res.content }); continue; }
+      const calls = res.content.filter((b) => b.type === "tool_use");
+      if (!calls.length || res.stop_reason !== "tool_use") break;
+      convo.push({ role: "assistant", content: res.content });
+      const results = await Promise.all(calls.map(async (c) => {
+        const r = await exec(c.name, c.input);
+        const a = { name: c.name, input: c.input, ok: r.ok, result: r.result };
+        actions.push(a); onTool(a);
+        return { type: "tool_result", tool_use_id: c.id, content: JSON.stringify(r.result).slice(0, 20000), ...(r.ok ? {} : { is_error: true }) };
+      }));
+      convo.push({ role: "user", content: results }); // every result in one message keeps parallel calls working
+      if (text && !/\s$/.test(text)) { text += "\n\n"; onText("\n\n"); }
+    }
+    return { text: text.trim(), model, usage, actions };
+  }
+  if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
+  // Llama makes one call per round: allow a few rounds, stop when it repeats itself, then answer without tools.
+  const base = [{ role: "system", content: llamaSystem(sys) }, ...messages];
+  const convo = [...base], seen = new Set();
+  for (let round = 0; round < 4; round++) {
+    const res = await env.AI.run(WORKERS_AI_MODEL, { messages: convo, tools: tools.llama, max_tokens: maxTokens });
+    add(llamaUsage(res.usage));
+    const calls = (res.choices?.[0]?.message?.tool_calls || res.tool_calls || []).slice(0, 5);
+    if (!calls.length) {
+      if (round === 0) { const t = String(llamaText(res) || "").trim(); onText(t); return { text: t, model: WORKERS_AI_MODEL, usage, actions }; }
+      break;
+    }
+    const lines = [];
+    let fresh = 0;
+    for (const c of calls) {
+      const name = c.function?.name || c.name;
+      let input = c.function?.arguments ?? c.arguments ?? {};
+      if (typeof input === "string") { try { input = JSON.parse(input || "{}"); } catch { input = null; } }
+      const key = `${name}:${JSON.stringify(input)}`;
+      if (seen.has(key)) continue;
+      seen.add(key); fresh++;
+      const r = await exec(name, input);
+      const a = { name, input, ok: r.ok, result: r.result };
+      actions.push(a); onTool(a);
+      lines.push(`<tool_result name="${name}" ok="${r.ok}">${JSON.stringify(r.result).slice(0, 6000)}</tool_result>`);
+    }
+    if (!fresh) break;
+    convo.push({ role: "assistant", content: `I used: ${actions.slice(-fresh).map((a) => `${a.name}(${JSON.stringify(a.input)})`).join("; ")}` });
+    convo.push({ role: "user", content: `${lines.join("\n")}\nThose tools have run. If my request needs another, different tool (for example a second change I asked for), call it now. Otherwise reply with no tool call.` });
+  }
+  const done = actions.map((a) => `${a.ok ? "DONE" : "FAILED"}: ${a.name} ${JSON.stringify(a.input)}${a.ok ? "" : ` (${a.result.error})`}`).join("\n");
+  const followUp = [...base,
+    { role: "assistant", content: "(I used my tools.)" },
+    { role: "user", content: `What your tools actually did:\n${done || "nothing"}\nNow answer me directly. Only say you changed something if it is listed as DONE above; if part of my request wasn't done, say so plainly.` }];
+  const body = await env.AI.run(WORKERS_AI_MODEL, { messages: followUp, max_tokens: maxTokens, stream: true });
+  const reader = body.getReader(), dec = new TextDecoder();
+  let buf = "", text = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith("data:") || line.includes("[DONE]")) continue;
+      try { const j = JSON.parse(line.slice(5)); const piece = j.response ?? j.choices?.[0]?.delta?.content; if (piece) { text += piece; onText(piece); } if (j.usage) add(llamaUsage(j.usage)); } catch { /* partial */ }
+    }
+  }
+  return { text: text.trim(), model: WORKERS_AI_MODEL, usage, actions };
+}

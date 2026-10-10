@@ -23,6 +23,20 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
 - **AI Board**: monthly board minutes over the whole pipeline: pursue / pause / drop, what you're avoiding, actions.
 - **Integrator**: 100-day plan with day-1 words for staff and customers.
 
+**Agentic (v3)**
+- **Josh acts**: tool use over one shared toolbelt (`app/src/tools.js`): search/read the pipeline, add and update
+  targets, log calls, run the deal engine, have the specialist agents write documents. Receipts for every change show
+  live in the chat and stay in the history. Claude runs a full multi-step loop; the Workers AI fallback runs up to four
+  rounds and reports only what actually happened.
+- **MCP server** at `/mcp` (Streamable HTTP, JSON responses; protocol 2025-03-26 / 2025-06-18 / 2025-11-25): Claude
+  Code, Claude Desktop (via mcp-remote), Cursor, n8n and any MCP client get the same tools. Auth with an API token as
+  `Authorization: Bearer wp_...`, or `/mcp/wp_...` for URL-only clients. Setup snippets in Settings → Connect.
+- **Headless agent**: `POST /api/agent {text}` for Zapier, Make, Slack bots.
+- **Autopilot + approve-before-act inbox**: a Cron Trigger (06:00 UTC) proposes follow-ups for quiet targets, first
+  letters for new ones, flags overdue actions and queues the Monday AI Board review. Nothing runs until someone approves
+  it in the Inbox; external agents can queue proposals with `POST /api/inbox`. The `briefing.daily` webhook carries
+  the morning summary to Slack, email or a CRM.
+
 **Tools**
 - **Pipeline**: targets on a drag-and-drop board (or sortable table) from Sourced to Closed, next actions with due
   dates (overdue flagged on Command), a timeline of notes/calls (dictate by voice), CSV import and export.

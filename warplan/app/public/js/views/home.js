@@ -11,7 +11,7 @@ function greeting() {
 
 export async function renderHome(seq) {
   view().innerHTML = skeleton(6);
-  const h = await api("/api/home");
+  const [h, inbox] = await Promise.all([api("/api/home"), api("/api/inbox").catch(() => [])]);
   if (stale(seq)) return;
   const me = session.me, brain = session.team.brain;
   const first = (me.user.name || "").split(" ")[0];
@@ -39,6 +39,8 @@ export async function renderHome(seq) {
         <button class="primary" id="homeGo" type="button">Ask</button>
       </div>
     </section>
+
+    ${inbox.length ? `<a class="inbox-banner" href="#/inbox"><b>✦ ${inbox.length} move${inbox.length > 1 ? "s" : ""} waiting for your OK</b><span>${esc(inbox[0].title)}${inbox.length > 1 ? ` and ${inbox.length - 1} more` : ""}</span><i>Review →</i></a>` : ""}
 
     ${left ? `<section class="panel onboarding">
       <div class="panel-head"><h2 class="h3">Get set up</h2><span class="muted small">${steps.length - left} of ${steps.length} done</span></div>

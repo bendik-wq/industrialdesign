@@ -10,8 +10,9 @@ import { renderTarget } from "./views/target.js";
 import { renderDesk, renderDoc } from "./views/desk.js";
 import { renderSettings } from "./views/settings.js";
 import { renderAgents } from "./views/agents.js";
+import { renderInbox, refreshInboxBadge } from "./views/inbox.js";
 
-const TITLES = { home: "Command", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Units", settings: "Settings" };
+const TITLES = { home: "Command", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Units", settings: "Settings", inbox: "Inbox" };
 
 async function router() {
   const seq = ++session.seq;
@@ -33,6 +34,7 @@ async function router() {
     if (viewName === "ladder") return renderLadder();
     if (viewName === "desk") return id ? await renderDoc(Number(id), seq) : await renderDesk(seq, params);
     if (viewName === "agents") return renderAgents();
+    if (viewName === "inbox") return await renderInbox(seq, params);
     if (viewName === "settings") return await renderSettings(id, seq);
     if (viewName !== "home") { history.replaceState(null, "", "#/home"); }
     return await renderHome(seq);
@@ -53,7 +55,7 @@ const COMMANDS = [
   ["Go to Command", "#/home"], ["Go to Pipeline", "#/pipeline"], ["Ask Josh", "#/josh"], ["Start a practice call", "#/simulator"],
   ["Open the Deal Builder", "#/builder"], ["Open the Value Ladder", "#/ladder"], ["Open the Desk", "#/desk"], ["See every unit", "#/agents"],
   ["Add a target", () => addTarget()], ["Settings: profile", "#/settings/profile"], ["Settings: team & invites", "#/settings/team"],
-  ["Settings: connect your AI keys", "#/settings/integrations"], ["Settings: API tokens", "#/settings/api"], ["Settings: usage", "#/settings/usage"],
+  ["Settings: connect your AI keys", "#/settings/integrations"], ["Open the agent inbox", "#/inbox"], ["Connect Claude, ChatGPT, Cursor, Zapier (MCP)", "#/settings/connect"], ["Settings: API tokens", "#/settings/api"], ["Settings: usage", "#/settings/usage"],
 ];
 let palette = null;
 function openPalette() {
@@ -123,4 +125,6 @@ $("#logout").addEventListener("click", async () => { await fetch("/api/logout", 
   window.addEventListener("unhandledrejection", (e) => { if (e.reason?.message && e.reason.message !== "Signed out") fail(e.reason); });
   window.addEventListener("offline", () => toast("You're offline. Changes will fail until you reconnect.", "error"));
   router();
+  refreshInboxBadge();
+  setInterval(() => { if (!document.hidden) refreshInboxBadge(); }, 120000);
 })();

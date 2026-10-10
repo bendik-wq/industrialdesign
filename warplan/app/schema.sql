@@ -177,3 +177,33 @@ CREATE TABLE IF NOT EXISTS user_state (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (user_id, key)
 );
+
+-- ------------------------------------------------------------------ v3: agents act
+-- Approve-before-act inbox: actions agents propose (autopilot, external agents); a person approves or dismisses.
+CREATE TABLE IF NOT EXISTS agent_actions (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER,
+  tool TEXT NOT NULL,
+  input TEXT NOT NULL,
+  title TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT 'autopilot',
+  status TEXT NOT NULL DEFAULT 'pending',   -- pending | done | dismissed | failed
+  result TEXT,
+  dedupe TEXT,
+  created_at TEXT NOT NULL,
+  decided_by TEXT,
+  decided_at TEXT
+);
+CREATE INDEX IF NOT EXISTS agent_actions_acct ON agent_actions (account_id, status, id DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS agent_actions_dedupe ON agent_actions (account_id, dedupe) WHERE status = 'pending';
+
+-- Workspace settings (autopilot on/off, ...).
+CREATE TABLE IF NOT EXISTS settings (
+  account_id INTEGER NOT NULL,
+  key TEXT NOT NULL,
+  data TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, key)
+);

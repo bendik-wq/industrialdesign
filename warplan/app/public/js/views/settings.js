@@ -1,6 +1,6 @@
 import { $, $$, esc, api, post, view, session, stale, toast, fail, dialog, confirmBox, copy, synced, when, skeleton } from "../core.js";
 
-const TABS = [["profile", "Profile"], ["team", "Team"], ["integrations", "Integrations"], ["api", "API"], ["usage", "Usage"]];
+const TABS = [["profile", "Profile"], ["team", "Team"], ["connect", "Connect"], ["integrations", "Integrations"], ["api", "API"], ["usage", "Usage"]];
 
 export async function renderSettings(tab, seq) {
   tab = TABS.some(([k]) => k === tab) ? tab : "profile";
@@ -8,7 +8,7 @@ export async function renderSettings(tab, seq) {
     <header class="page-head"><p class="eyebrow">Settings</p><h1>${esc(session.me.account.name)}</h1></header>
     <nav class="tabs" aria-label="Settings">${TABS.map(([k, v]) => `<a href="#/settings/${k}" class="${k === tab ? "on" : ""}" ${k === tab ? 'aria-current="page"' : ""}>${v}</a>`).join("")}</nav>
     <div id="tab">${skeleton(4)}</div>`;
-  const fn = { profile, team, integrations, api: apiTab, usage }[tab];
+  const fn = { profile, team, connect, integrations, api: apiTab, usage }[tab];
   try { await fn(seq); } catch (e) { if (!stale(seq)) $("#tab").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
 
@@ -219,4 +219,53 @@ async function usage(seq) {
       ${u.rows.length ? `<div class="table-wrap"><table class="list-table"><thead><tr><th>Feature</th><th>Model</th><th class="num">Calls</th><th class="num">In</th><th class="num">Cached</th><th class="num">Out</th><th class="num">Est. cost</th></tr></thead><tbody>${u.rows.map((r) => `<tr><td>${esc(label(r.feature))}</td><td class="small muted">${esc(r.model)}${r.own ? " · own key" : ""}</td><td class="num">${r.calls}</td><td class="num">${fmt(r.input)}</td><td class="num">${fmt(r.cached)}</td><td class="num">${fmt(r.output)}</td><td class="num">${r.cost ? `$${r.cost.toFixed(2)}` : "–"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted small">Nothing yet.</p>`}
       <p class="muted small">Workers AI calls show no cost here; they're covered by the platform. Claude costs are billed by Anthropic to whoever owns the key.</p>
     </section>`;
+}
+
+// ------------------------------------------------------------------ connect: plug Warplan into everything
+async function connect(seq) {
+  const tools = (await api("/api/agent/tools")).tools;
+  if (stale(seq)) return;
+  const origin = location.origin, mcp = `${origin}/mcp`;
+  const snippets = (tok) => ({
+    claudeCode: `claude mcp add --transport http warplan ${mcp} --header "Authorization: Bearer ${tok}"`,
+    cursor: JSON.stringify({ mcpServers: { warplan: { url: mcp, headers: { Authorization: `Bearer ${tok}` } } } }, null, 2),
+    desktop: JSON.stringify({ mcpServers: { warplan: { command: "npx", args: ["-y", "mcp-remote", mcp, "--header", `Authorization: Bearer ${tok}`] } } }, null, 2),
+    url: `${mcp}/${tok}`,
+    agent: `curl -X POST ${origin}/api/agent \\\n  -H "Authorization: Bearer ${tok}" -H "Content-Type: application/json" \\\n  -d '{"text":"I just spoke to Frank at Dalton. Log it and set a follow-up for Friday."}'`,
+  });
+  const draw = (tok) => {
+    const s = snippets(tok || "wp_YOUR_TOKEN");
+    $("#tab").innerHTML = `
+    <p class="lede tight">Warplan speaks MCP, the open standard AI apps use to call tools. Connect it once and Claude, Cursor, n8n or your own agent can search your pipeline, add targets, move stages, log calls, run the deal engine and have the agents write letters and LOIs, as you, in your workspace.</p>
+    <section class="panel">
+      <div class="panel-head"><h2 class="h3">1 · Get a connection token</h2>${tok ? `<span class="status on">Token ready</span>` : `<button class="primary" id="mkTok" type="button">Create a connection token</button>`}</div>
+      <p class="muted small">${tok ? "Copy what you need below now: the token is shown only once. Revoke it any time under Settings → API." : "A token acts as you. Make one per app so you can revoke them separately."}</p>
+      ${tok ? `<div class="secret"><code>${esc(tok)}</code><button class="ghost" type="button" data-cp="${esc(tok)}">Copy</button></div>` : ""}
+    </section>
+    <div class="settings-grid">
+      ${box("Claude Code", "Run in your terminal:", s.claudeCode)}
+      ${box("Cursor / Windsurf / VS Code", "Add to mcp.json:", s.cursor)}
+      ${box("Claude Desktop", "Add to claude_desktop_config.json (uses mcp-remote):", s.desktop)}
+      ${box("claude.ai · n8n · anything that takes a URL", "Paste this URL as a custom connector / MCP Client Tool. The token is in the URL, so keep it private:", s.url)}
+    </div>
+    <section class="panel">
+      <h2 class="h3">Headless agent for Zapier, Make, Slack bots</h2>
+      <p class="muted small">POST any instruction to Josh and he does it with his tools, then answers. Pass <code>thread_id</code> to continue a conversation. Pair it with the signed webhooks (Integrations) to trigger flows on stage changes, new documents, approvals and the daily briefing.</p>
+      <pre class="code"><code>${esc(s.agent)}</code></pre>
+      <div class="row"><button class="ghost" type="button" data-cp="${esc(s.agent.replace(/\\\n\s*/g, ""))}">Copy</button><a class="ghost" href="#/settings/integrations">Set up webhooks →</a></div>
+    </section>
+    <section class="panel">
+      <h2 class="h3">What connected agents can do</h2>
+      <div class="table-wrap"><table class="list-table api-table"><tbody>${tools.map((t) => `<tr><td><code>${esc(t.name)}</code></td><td><span class="method ${t.write ? "m-post" : "m-get"}">${t.write ? "WRITE" : "READ"}</span></td><td class="small">${esc(t.description)}</td></tr>`).join("")}</tbody></table></div>
+      <p class="muted small">Want a person to sign off first? External agents can <code>POST /api/inbox</code> to queue an action; it waits in the Inbox until someone approves it.</p>
+    </section>`;
+    $("#mkTok")?.addEventListener("click", async () => {
+      try { const t = await post("/api/tokens", { label: "AI app connection" }); draw(t.token); toast("Token created. Copy it now."); } catch (e) { fail(e); }
+    });
+    $$("[data-cp]").forEach((b) => b.addEventListener("click", () => copy(b.dataset.cp)));
+  };
+  draw(null);
+}
+function box(title, hint, code) {
+  return `<section class="panel"><h2 class="h3">${esc(title)}</h2><p class="muted small">${esc(hint)}</p><pre class="code"><code>${esc(code)}</code></pre><button class="ghost" type="button" data-cp="${esc(code)}">Copy</button></section>`;
 }

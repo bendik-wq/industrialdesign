@@ -14,6 +14,8 @@
     { "binding": "DB", "database_name": "warplan", "database_id": "a4a90461-4f49-453a-9f9b-3e956efb913f" }
   ],
   "ai": { "binding": "AI" },
+  // Morning autopilot: proposes next moves for every workspace and sends the briefing.daily webhook.
+  "triggers": { "crons": ["0 6 * * *"] },
   // Josh's video transcripts ship inside the Worker as a text module (knowledge/josh-transcripts.txt).
   "rules": [{ "type": "Text", "globs": ["**/*.txt"], "fallthrough": true }]
   // Secrets: DASHBOARD_PASSWORD (required: first-run setup key and session signing), SESSION_SECRET (optional: separate session signing key), ANTHROPIC_API_KEY (Claude; otherwise Workers AI),

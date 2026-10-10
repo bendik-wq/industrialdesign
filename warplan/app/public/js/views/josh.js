@@ -45,14 +45,23 @@ export async function streamReply(threadId, text, bubble, signal) {
     throw new Error(d.error || `Request failed (${res.status})`);
   }
   let acc = "", final = null, error = null, raf = 0;
-  const paint = () => { raf = 0; bubble.innerHTML = md(acc) + '<span class="caret" aria-hidden="true"></span>'; bubble.closest(".msgs")?.scrollTo({ top: 1e9 }); };
+  const acts = [];
+  const paint = () => { raf = 0; bubble.innerHTML = actionsHtml(acts) + md(acc) + '<span class="caret" aria-hidden="true"></span>'; bubble.closest(".msgs")?.scrollTo({ top: 1e9 }); };
   await readSSE(res, (ev) => {
     if (ev.t) { acc += ev.t; if (!raf) raf = requestAnimationFrame(paint); }
+    if (ev.action) { acts.push(ev.action); if (!raf) raf = requestAnimationFrame(paint); }
     if (ev.done) final = ev;
     if (ev.error) error = ev.error;
   });
   if (error) throw new Error(error);
-  return final || { reply: acc };
+  return final ? { ...final, content: [final.receipts, final.reply].filter(Boolean).join("\n\n") } : { reply: acc, content: acc };
+}
+
+// Live receipts while the agent works: what it read (quietly) and what it changed (prominently).
+const TOOL_LABEL = { search_pipeline: "Searched the pipeline", get_target: "Read the target", pipeline_overview: "Checked the pipeline", list_documents: "Looked at documents", get_document: "Read a document", model_deal: "Ran the deal engine", draft_document: "Writing a document" };
+export function actionsHtml(acts) {
+  if (!acts.length) return "";
+  return `<div class="acts">${acts.map((a) => `<div class="act ${a.ok ? (a.write ? "did" : "read") : "fail"}">${a.ok ? (a.write ? "✓" : "·") : "✕"} ${esc(a.write || !a.ok ? a.receipt || a.name : TOOL_LABEL[a.name] || a.name)}${a.link ? ` <a href="${esc(a.link.replace(/^\//, ""))}">open</a>` : ""}</div>`).join("")}</div>`;
 }
 
 function bubble(m, speaker) {
@@ -134,7 +143,7 @@ export async function renderJosh(id, seq) {
     sendBtn.textContent = "Stop"; sendBtn.classList.add("stop");
     try {
       const r = await streamReply(threadId, text, live, controller.signal);
-      live.outerHTML = bubble({ role: "assistant", content: r.reply }, "arcas");
+      live.outerHTML = bubble({ role: "assistant", content: r.content || r.reply }, "arcas");
       wireBubbles($("#msgs"));
       if ($("#speakToggle")?.checked && r.reply) play(r.reply, "arcas", $$(".msg.assistant .say").pop());
       // New conversations get their title from the first message: refresh the list.
