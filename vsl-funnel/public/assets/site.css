@@ -144,16 +144,16 @@ strong { font-weight: 600; color: var(--ink); }
 /* Landing: headline, then the video floating on a soft animated glow. */
 .hero-vsl { position: relative; isolation: isolate; overflow: hidden; padding-bottom: 80px; }
 .hero-vsl .vsl-stage { position: relative; }
-.vsl-float { position: relative; z-index: 1; animation: vsl-float 7s ease-in-out infinite; will-change: transform; }
+.vsl-float { position: relative; z-index: 1; animation: vsl-float 7s ease-in-out infinite; }
 @keyframes vsl-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 /* Ambient flowing colour behind the video (hero-bg.js, WebGL). */
 .hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 1.2s ease; }
 .hero-canvas.ready { opacity: 1; }
 .hero-canvas-fallback { opacity: 1; background: radial-gradient(60% 50% at 30% 60%, #dbe6ff, transparent 70%), radial-gradient(50% 45% at 72% 55%, #e6dcff, transparent 70%), radial-gradient(40% 35% at 50% 85%, #ffe4d2, transparent 70%); }
 /* Contact shadow that tightens as the video rises. */
-.hero-vsl .vsl-stage::after { content: ""; position: absolute; z-index: 0; left: 12%; right: 12%; bottom: -34px; height: 34px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(13, 21, 38, .28), transparent 70%); filter: blur(6px); animation: vsl-shadow 7s ease-in-out infinite; }
+.hero-vsl .vsl-stage::after { content: ""; position: absolute; z-index: 0; left: 12%; right: 12%; bottom: -34px; height: 34px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(20, 35, 80, .16), transparent 70%); filter: blur(6px); animation: vsl-shadow 7s ease-in-out infinite; }
 @keyframes vsl-shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.86); opacity: .6; } }
-.hero-vsl .vsl { border-radius: 18px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .5), 0 1px 2px rgba(13, 21, 38, .08), 0 12px 24px -8px rgba(13, 21, 38, .18), 0 40px 90px -30px rgba(30, 50, 110, .45); }
+.hero-vsl .vsl { border-radius: 18px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .55), 0 1px 2px rgba(13, 21, 38, .08), 0 18px 40px -16px rgba(20, 35, 80, .32), 0 50px 110px -40px rgba(20, 35, 80, .28); }
 
 .hero-vsl { padding-top: 48px; }
 .hero-vsl .eyebrow { margin-bottom: 14px; }
@@ -380,3 +380,5 @@ body.simple main { padding: 72px 20px; }
 .apply-solo .field input, .apply-solo .field textarea { padding: 15px 16px; font-size: 16px; border-radius: 10px; border-width: 1.5px; }
 .apply-solo .app-nav .btn { padding: 18px 24px; font-size: 17px; border-radius: 12px; }
 @media (max-width: 640px) { .apply-solo .form-card { padding: 24px 18px 20px; border-radius: 16px; } .apply-solo .app-step h2 { font-size: 20px; } }
+/* Keep the video layer inside its rounded frame (prevents the compositor painting a pale block beneath it). */
+.hero-vsl .vsl video { clip-path: inset(0 round 18px); }
