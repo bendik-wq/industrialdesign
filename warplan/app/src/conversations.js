@@ -263,7 +263,7 @@ export async function debrief(env, ctx, id, hooks) {
 }
 
 export function simulatorInfo() {
-  return { sellers: SELLERS.map(({ system, ...s }) => s), stages: CALL_STAGES };
+  return { sellers: SELLERS.map(({ system, ...s }) => s), callStages: CALL_STAGES };
 }
 
 // Replaying a message shouldn't spend voice credits twice: cache audio per speaker + voice + text at the edge.

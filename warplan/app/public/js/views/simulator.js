@@ -6,7 +6,7 @@ export async function renderSimSetup(seq, params) {
   const targetId = params.get("target");
   const [past, target] = await Promise.all([api("/api/threads?agent=simulator"), targetId ? api(`/api/targets/${targetId}`).catch(() => null) : null]);
   if (stale(seq)) return;
-  const { sellers, stages } = session.team;
+  const { sellers, callStages: stages } = session.team;
   let pick = target ? "target" : sellers[0].id, diff = "normal", stage = "first";
   const scored = past.filter((p) => p.meta.score != null);
   const avg = scored.length ? Math.round(scored.reduce((t, p) => t + p.meta.score, 0) / scored.length) : null;
@@ -52,7 +52,7 @@ export async function renderCall(id, seq) {
   if (stale(seq)) return;
   if (!t) { location.hash = "#/simulator"; return; }
   const s = t.seller || session.team.sellers[0];
-  const stages = session.team.stages;
+  const stages = session.team.callStages;
   const ended = !!t.meta.debrief;
   const seller = (m) => `<div class="msg assistant seller-msg">${md(m.content)}<div class="msg-tools"><button class="say" type="button" data-speaker="${s.voice}" aria-label="Play">▶</button></div><textarea hidden>${esc(m.content)}</textarea></div>`;
   view().innerHTML = `
