@@ -26,7 +26,7 @@ import { refreshNumbers } from "./phone.js";
 import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, sendSms, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { researchTarget, getIntel } from "./research.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
-import { recordMeeting, aiCall, setupAssistantLine, listJobs, processJobs } from "./jobs.js";
+import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
@@ -43,7 +43,7 @@ export default {
   },
   // Cron Trigger (wrangler.jsonc): the morning autopilot run for every workspace.
   async scheduled(event, env, exec) {
-    // Every 10 minutes: finish background jobs (meeting notes, AI calls). Daily: the autopilot.
+    // Every 10 minutes: finish background jobs (meeting notes). Daily: the autopilot.
     if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), syncAgentInboxes(env, null, replyTriage(env, exec))]));
     else exec.waitUntil(autopilotAll(env, exec));
   },
@@ -227,7 +227,7 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
-const HUMAN_ONLY = /^\/api\/(ai-line|team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|monid\/budget|autopilot$|me\/password)/;
+const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|monid\/budget|autopilot$|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
@@ -362,13 +362,11 @@ async function route(request, env, url, ctx, exec) {
     return json({ ...out, output: b.full ? out.output : compact(out.output) });
   }
 
-  // The open web, meetings, AI calls
+  // The open web, meetings
   if (p === "/api/web/search" && m === "POST") return json(await webSearch(env, ctx, await body(request)));
   if (p === "/api/web/read" && m === "POST") return json(await readPage(env, ctx, await body(request)));
   if (p === "/api/web/document" && m === "POST") return json(await readDocument(env, ctx, await body(request)));
   if (p === "/api/meetings/record" && m === "POST") return json(await recordMeeting(env, ctx, await body(request)), 201);
-  if (p === "/api/ai-calls" && m === "POST") return json(await aiCall(env, ctx, await body(request)), 201);
-  if (p === "/api/ai-line" && m === "POST") { needOwner(ctx); return json(await setupAssistantLine(env, ctx, await body(request)), 201); }
   if (p === "/api/jobs" && m === "GET") return json({ jobs: await listJobs(env, ctx) });
   if (p === "/api/jobs/check" && m === "POST") return json(await processJobs(env, ctx.accountId));
 

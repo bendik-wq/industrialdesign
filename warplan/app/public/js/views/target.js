@@ -30,7 +30,6 @@ export async function renderTarget(id, seq) {
         <button class="ghost" id="emailOwner" type="button">✉ Email the owner</button>
         <a class="ghost" href="#/dialer?target=${t.id}">✆ Call</a>
         <button class="ghost" id="pushCampaign" type="button">⇢ Add to campaign</button>
-        <button class="ghost" id="aiCallBtn" type="button" title="An AI assistant calls to find the owner and the best time">🤖 AI call</button>
         <button class="ghost" id="meetBtn" type="button" title="A notetaker joins your Zoom/Meet/Teams call and writes the notes">● Record a meeting</button>
         <a class="ghost" href="#/simulator?target=${t.id}">☎ Practise the call</a>
         <a class="ghost" href="#/builder?target=${t.id}">⚖ Structure the deal</a>
@@ -124,13 +123,6 @@ export async function renderTarget(id, seq) {
   $("#researchBtn")?.addEventListener("click", async (e) => {
     const b = e.currentTarget; b.disabled = true; b.textContent = "Researching… (20–40s)";
     try { const r = await post(`/api/targets/${t.id}/research`); toast(r.receipt); renderTarget(id, seq); } catch (err) { fail(err); b.disabled = false; b.textContent = "Research this company"; }
-  });
-  $("#aiCallBtn").addEventListener("click", async () => {
-    const phone = (t.contacts || []).find((c) => c.kind === "phone")?.value || t.phone || "";
-    const r = await dialog({ title: `AI call: ${t.name}`, submit: "Queue the call", html: `<p class="muted small">Your AI assistant line calls, says it's an AI, and asks for the owner's name and the best time to reach them (or what you write below). US and Canadian numbers. About $0.26 a minute. It waits for approval in the Inbox, and the transcript lands on the timeline.</p>
-      <label class="field">Number<input name="to" value="${esc(phone)}" placeholder="+1 208 555 0100" required></label><label class="field">What to find out (optional)<textarea name="instructions" rows="3" placeholder="e.g. Confirm Jim Ellis is still the owner and ask when he's usually in the office"></textarea></label>` });
-    if (!r) return;
-    try { const q = await post("/api/inbox", { tool: "ai_call", input: { to: r.to, target_id: t.id, instructions: r.instructions }, target_id: t.id }); toast(q.queued ? "Queued in the Inbox for approval" : "Already queued"); } catch (e) { fail(e); }
   });
   $("#meetBtn").addEventListener("click", async () => {
     const r = await dialog({ title: `Record a meeting with ${t.name}`, submit: "Send the notetaker", html: `<p class="muted small">A notetaker bot joins your Zoom, Google Meet, Teams or Webex call and records it. When it ends, the notes (facts, motivations, numbers, next steps) and the transcript land on this target. About $0.50 per meeting hour. Tell the owner the call is recorded.</p>

@@ -18,7 +18,7 @@ import { sendSms } from "./phone.js";
 import { checkLimits } from "./usage.js";
 import { researchTarget, RESEARCH_PRICE } from "./research.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
-import { recordMeeting, aiCall } from "./jobs.js";
+import { recordMeeting } from "./jobs.js";
 import { STAGES, normalizeDeal, dealModel, maxMultiple, money, structureSummary, targetDeal, DEAL_DEFAULTS } from "../public/js/deal.js";
 
 const STAGE_IDS = STAGES.map((s) => s.id);
@@ -295,13 +295,6 @@ export const TOOLS = [
     description: "Send a recording notetaker bot into a Zoom, Google Meet, Teams or Webex meeting with an owner (now, or at join_at). When it ends, meeting notes (facts, motivations, numbers, next steps) and the transcript land on the target. ~$0.50 per meeting hour. Waits for approval. Tell the owner the meeting is recorded.",
     input_schema: { type: "object", properties: { meeting_url: { type: "string" }, target_id: { type: "integer" }, join_at: { type: "string", description: "ISO time, optional" }, max_minutes: { type: "integer" } }, required: ["meeting_url"] },
     run: async (env, ctx, i) => recordMeeting(env, ctx, i),
-  },
-  {
-    name: "ai_call", write: true, approval: true,
-    title: (i) => `AI assistant calls ${i.to}${i.instructions ? `: ${String(i.instructions).slice(0, 60)}` : ""}`,
-    description: "Have the AI assistant line (a US number with an AI voice that announces it's an AI) call a business, e.g. to find the owner's name and the best time to reach them, or confirm a callback. US/Canada numbers only. ~$0.26/minute. Waits for approval. The transcript and notes land on the target's timeline.",
-    input_schema: { type: "object", properties: { to: { type: "string", description: "+1 number" }, target_id: { type: "integer" }, instructions: { type: "string", description: "What to find out on this call" } }, required: ["to"] },
-    run: async (env, ctx, i) => aiCall(env, ctx, i),
   },
   {
     name: "send_sms", write: true, approval: true,

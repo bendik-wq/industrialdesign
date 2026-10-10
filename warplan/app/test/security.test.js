@@ -8,3 +8,9 @@ test("outbound URLs: public hosts only", () => {
   assert.equal(publicUrl("http://example.com", { httpsOnly: true }), null);
   for (const ok of ["https://hooks.zapier.com/abc", "http://www.capitalcityheating.com/", "https://example.co.uk:443/x"]) assert.ok(publicUrl(ok), ok);
 });
+
+import { forbidden } from "../src/monid.js";
+test("no AI or automated outbound calls through Monid", () => {
+  for (const [p, e] of [["saperly", "/place-calls"], ["saperly", "/provision-numbers"], ["blockrun.ai", "/api/v1/voice/call"], ["bland.ai", "/v1/calls"], ["anything", "/ringless-voicemail"], ["saperly", "/send-messages"]]) assert.ok(forbidden(p, e), `${p} ${e}`);
+  for (const [p, e] of [["agentmail", "/send-messages"], ["recall", "/meetings/record"], ["hunterio", "/email-finder"], ["dataforseo", "/google-business/reviews"]]) assert.equal(forbidden(p, e), null, `${p} ${e}`);
+});

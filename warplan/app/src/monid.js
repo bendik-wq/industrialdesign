@@ -49,7 +49,7 @@ export async function discover(env, ctx, query, limit = 8) {
   const key = await needKey(env, ctx);
   const d = await call(key, "POST", "/v1/discover", { query: String(query).slice(0, 300), limit: Math.max(1, Math.min(20, +limit || 8)) });
   const items = d.results || d.endpoints || d.items || d.data || [];
-  return items.map((x) => ({
+  return items.filter((x) => !forbidden(x.provider, x.endpoint)).map((x) => ({
     provider: x.provider, endpoint: x.endpoint, name: x.providerName || x.provider, description: String(x.summary || x.description || "").slice(0, 300),
     price: priceText(x.price), score: x.score ?? undefined,
   }));
@@ -118,7 +118,20 @@ export async function needsApproval(env, ctx, provider, endpoint, input) {
 
 // ------------------------------------------------------------------ runs
 // Run one endpoint and wait for it (up to maxWaitMs). Long runs come back RUNNING with a run_id to check later.
+// Never through Warplan: AI or automated outbound calls, ringless voicemail, or texts that bypass Warplan's own
+// opt-out handling. These carry heavy fines (TCPA and equivalents); calls are placed by a person, texts go through
+// the browser phone (STOP suppression, daily caps).
+const FORBIDDEN = [/^saperly$/i, /^bland/i, /^vapi/i, /^retell/i, /^synthflow/i, /^air\.ai$/i];
+const FORBIDDEN_ENDPOINT = /(place-?calls?|\/voice\/call|outbound-?call|make-?call|start-?call|\/calls?\/create|ringless|voicemail-?drop|\/send-?(sms|messages?)$)/i;
+export function forbidden(provider, endpoint) {
+  if (FORBIDDEN.some((re) => re.test(String(provider || ""))) || FORBIDDEN_ENDPOINT.test(String(endpoint || "")) && !/^agentmail$/i.test(provider))
+    return "Warplan doesn't place AI or automated phone calls or send texts outside the phone: they carry heavy fines. Calls are made by you from the dialer or the browser phone.";
+  return null;
+}
+
 export async function run(env, ctx, { provider, endpoint, input = {} }, { purpose = "", targetId = null, maxWaitMs = 25000, key } = {}) {
+  const no = forbidden(provider, endpoint);
+  if (no) throw err(403, no);
   key = key || (await needKey(env, ctx));
   if (!provider || !endpoint) throw err(400, "Say which provider and endpoint to run (find them with monid_discover)");
   if (targetId && !(await env.DB.prepare("SELECT 1 FROM targets WHERE id = ?1 AND account_id = ?2").bind(+targetId, ctx.accountId).first())) targetId = null;

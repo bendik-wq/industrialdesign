@@ -110,9 +110,9 @@ I mapped Monid's catalog with 98 searches (708 endpoints from 77 providers) and 
   - `read_webpage` reads any page.
   - `read_document` reads a CIM, P&L or lease from a link (PDF, Word, Excel, images with OCR). Diligence also accepts a document link.
 - **Meetings:** `record_meeting` (Recall.ai) sends a notetaker bot into Zoom, Meet, Teams or Webex. When the meeting ends, the AI's notes (facts, motivations, numbers, next steps) and the transcript are added to the target.
-- **AI assistant line:** `ai_call` (Saperly) is a US number with an AI voice. It always announces it's an AI, then asks for the owner's name and the best time to reach them. Each call waits for approval, and transcripts and notes go on the timeline.
+- **No AI outbound calling, by design:** automated or AI-voiced calls carry heavy fines (TCPA and equivalents), so every call in Warplan is placed by a person, through the dialer or the browser phone.
 - **Ready-made inbox (AgentMail, about $1 a month):** send without an SMTP app password. Replies are read every 10 minutes and go through reply triage.
-- **Background jobs:** a cron every 10 minutes finishes meetings, AI calls and inbox syncs. The Data page shows the jobs and has a *Check now* button.
+- **Background jobs:** a cron every 10 minutes finishes meeting notes and inbox syncs. The Data page shows the jobs and has a *Check now* button.
 - **Monid client:** treats a provider error inside a run Monid reports as COMPLETED as a failure, and returns wallet holds that are too large as a clear "top up" message.
 
 ## API

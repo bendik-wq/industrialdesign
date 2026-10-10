@@ -29,7 +29,6 @@ export async function renderDialer(seq, params) {
     <div class="toolbar">
       <label class="inline">Stage <select id="dStage"><option value="">All live stages</option>${STAGES.filter((s) => !["closed", "lost"].includes(s.id)).map((s) => `<option value="${s.id}" ${prefs.stage === s.id ? "selected" : ""}>${s.label}</option>`).join("")}</select></label>
       <label class="check"><input type="checkbox" id="dFresh" ${prefs.fresh ? "checked" : ""}> Skip owners already called today</label>
-      <button class="link small" id="aiLine" type="button" title="A US number with an AI voice that calls for you (announces it's an AI)">AI assistant line</button>
       ${data.twilio ? `<label class="check"><input type="checkbox" id="dAuto" ${prefs.autodial ? "checked" : ""}> Auto-dial the next one</label>` : `<a class="small" href="#/settings/integrations">Connect Twilio for click-to-call →</a>`}
       <span class="spacer"></span><span class="muted small">${queue.length} to call</span>
     </div>
@@ -39,11 +38,6 @@ export async function renderDialer(seq, params) {
   const savePrefs = () => local.set("dialer", prefs);
   $("#dStage").addEventListener("change", (e) => { prefs.stage = e.target.value; savePrefs(); renderDialer(++session.seq, params); });
   $("#dFresh").addEventListener("change", (e) => { prefs.fresh = e.target.checked; savePrefs(); renderDialer(++session.seq, params); });
-  $("#aiLine").addEventListener("click", async () => {
-    const r = await dialog({ title: "AI assistant line", submit: "Set it up", html: `<p>A US phone number with an AI voice that calls businesses for you: it says it's an AI, asks for the owner's name and the best time to reach them, and never talks price. Each call waits for your approval; transcripts land on the timeline. About $1 a month plus $0.26 a minute. Owners only.</p><label class="field">Preferred area code (optional)<input name="area_code" maxlength="3" placeholder="208"></label>` });
-    if (!r) return;
-    try { const out = await post("/api/ai-line", r); toast(`${out.receipt}${out.number ? `: ${out.number}` : ""}`); } catch (e) { fail(e); }
-  });
   $("#dAuto")?.addEventListener("change", (e) => { prefs.autodial = e.target.checked; savePrefs(); });
   if (!queue.length) return;
 
