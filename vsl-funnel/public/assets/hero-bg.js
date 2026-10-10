@@ -1,115 +1,99 @@
-/* Hero background: a slow 3D "deal network" (points + connections rotating in
- * depth) over a perspective grid floor that glides towards the viewer. Drawn
- * on a canvas behind the VSL in faint navy so it adds depth without pulling
- * focus. Pauses off-screen / in background tabs; static for reduced motion. */
+/* Hero background: an ambient, slowly flowing "silk" of soft colour behind the
+ * VSL (WebGL fragment shader, domain-warped noise with gentle sheen bands).
+ * Rendered at reduced resolution — it's all soft gradients, so it stays crisp
+ * and cheap. Pauses off-screen / in background tabs; one still frame for
+ * reduced motion; a CSS gradient if WebGL isn't available. */
 (function () {
   'use strict';
   var canvas = document.querySelector('[data-hero-canvas]');
-  if (!canvas || !canvas.getContext) return;
-  var ctx = canvas.getContext('2d');
+  if (!canvas) return;
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var dark = document.documentElement.getAttribute('data-palette') === 'ink';
-  var ink = dark ? '200,215,255' : '15,44,92';
+  var gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: false, powerPreference: 'low-power' });
+  if (!gl) { canvas.classList.add('hero-canvas-fallback'); return; }
 
-  var W = 0, H = 0, DPR = 1, running = true, visible = true, t0 = performance.now();
-  var N = 0, pts = [];
+  var VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  var FRAG = [
+    'precision mediump float;',
+    'uniform vec2 r;uniform float t;uniform vec3 c0,c1,c2,c3,c4;',
+    // 2D simplex noise (Ashima / Stefan Gustavson, MIT)
+    'vec3 m289(vec3 x){return x-floor(x*(1./289.))*289.;}vec2 m289(vec2 x){return x-floor(x*(1./289.))*289.;}',
+    'vec3 perm(vec3 x){return m289(((x*34.)+1.)*x);}',
+    'float sn(vec2 v){const vec4 C=vec4(.211324865405187,.366025403784439,-.577350269189626,.024390243902439);',
+    'vec2 i=floor(v+dot(v,C.yy));vec2 x0=v-i+dot(i,C.xx);vec2 i1=(x0.x>x0.y)?vec2(1.,0.):vec2(0.,1.);',
+    'vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;i=m289(i);vec3 p=perm(perm(i.y+vec3(0.,i1.y,1.))+i.x+vec3(0.,i1.x,1.));',
+    'vec3 m=max(.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.);m=m*m;m=m*m;',
+    'vec3 x=2.*fract(p*C.www)-1.;vec3 h=abs(x)-.5;vec3 ox=floor(x+.5);vec3 a0=x-ox;',
+    'm*=1.79284291400159-.85373472095314*(a0*a0+h*h);vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.*dot(m,g);}',
+    'void main(){',
+    '  vec2 uv=gl_FragCoord.xy/r;vec2 q=uv;q.x*=r.x/r.y;',
+    '  float s=t*.045;',
+    // domain warp: two layers of slow noise bend the space so colours flow like silk
+    '  vec2 w=vec2(sn(q*.85+vec2(s,-s*.7)),sn(q*.85+vec2(-s*.6,s)+5.2));',
+    '  vec2 w2=vec2(sn(q*1.3+w*1.1+vec2(1.7,9.2)+s*.5),sn(q*1.3+w*1.1+vec2(8.3,2.8)-s*.4));',
+    '  float n=sn(q*.7+w2*.9+s*.3);',
+    '  vec3 col=mix(c0,c1,smoothstep(-.6,.6,w.x));',
+    '  col=mix(col,c2,smoothstep(-.3,.8,w2.y)*.85);',
+    '  col=mix(col,c3,smoothstep(.1,.9,n)*.7);',
+    '  col=mix(col,c4,smoothstep(.35,1.,w2.x)*.55);',
+    // soft sheen bands, like light catching folds of fabric
+    '  float band=sin((q.x*1.6+q.y*.9+w2.x*1.4+n*.8)*3.2-t*.12);',
+    '  col+=vec3(1.)*pow(max(band,0.),3.)*.06;',
+    // gentle fade to the page colour at the top and bottom so it melts into the layout
+    '  float v=smoothstep(0.,.22,uv.y)*smoothstep(1.,.62,uv.y);',
+    '  col=mix(c0,col,v);',
+    // tiny dither to avoid gradient banding
+    '  col+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-.5)/255.;',
+    '  gl_FragColor=vec4(col,1.);',
+    '}',
+  ].join('\n');
 
-  function seed() {
-    // Fewer points on small screens; spread in a wide, shallow volume.
-    N = Math.round(Math.min(120, Math.max(44, (W * H) / 11000)));
-    pts = [];
-    for (var i = 0; i < N; i++) {
-      pts.push({ x: (Math.random() - 0.5) * 4.6, y: (Math.random() - 0.5) * 2.2, z: (Math.random() - 0.5) * 3.2, r: 0.6 + Math.random() * 1.2, p: Math.random() * Math.PI * 2 });
-    }
-  }
+  function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+  var prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { canvas.classList.add('hero-canvas-fallback'); return; }
+  gl.useProgram(prog);
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  var loc = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  var uR = gl.getUniformLocation(prog, 'r'), uT = gl.getUniformLocation(prog, 't');
 
+  function hex(h) { return [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255]; }
+  // page white → ice blue → periwinkle → lavender → warm peach (dark palette: deep navy tones)
+  var PAL = dark ? ['#0b1220', '#13234a', '#1c2f6b', '#2a2457', '#3a2a3c'] : ['#ffffff', '#dbe6ff', '#b9c9fb', '#e6dcff', '#ffe4d2'];
+  ['c0', 'c1', 'c2', 'c3', 'c4'].forEach(function (n, i) { gl.uniform3fv(gl.getUniformLocation(prog, n), hex(PAL[i])); });
+
+  var SCALE = 0.5, visible = true, t0 = performance.now(), last = 0;
   function size() {
     var rect = canvas.getBoundingClientRect();
-    DPR = Math.min(2, window.devicePixelRatio || 1);
-    W = Math.max(1, rect.width); H = Math.max(1, rect.height);
-    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    if (!pts.length) seed();
+    var dpr = Math.min(2, window.devicePixelRatio || 1) * SCALE;
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.uniform2f(uR, canvas.width, canvas.height);
   }
-
-  function grid(t) {
-    // Perspective floor: horizon just above the middle, lines converge to a vanishing point.
-    var horizon = H * 0.52, vx = W / 2, depth = H - horizon;
-    ctx.lineWidth = 1;
-    // Receding horizontal lines, scrolling towards the viewer.
-    var rows = 14, shift = (t * 0.00006) % 1;
-    for (var i = 0; i < rows; i++) {
-      var k = (i + shift) / rows;              // 0 (far) → 1 (near)
-      var y = horizon + depth * k * k;
-      var a = 0.02 + 0.10 * k * k;
-      ctx.strokeStyle = 'rgba(' + ink + ',' + a.toFixed(3) + ')';
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-    }
-    // Converging verticals.
-    var cols = 22;
-    for (var j = -cols; j <= cols; j++) {
-      var xNear = vx + (j / cols) * W * 1.6;
-      var g = ctx.createLinearGradient(0, horizon, 0, H);
-      g.addColorStop(0, 'rgba(' + ink + ',0)');
-      g.addColorStop(1, 'rgba(' + ink + ',0.09)');
-      ctx.strokeStyle = g;
-      ctx.beginPath(); ctx.moveTo(vx + (j / cols) * W * 0.08, horizon); ctx.lineTo(xNear, H); ctx.stroke();
-    }
+  function draw(now) {
+    gl.uniform1f(uT, (now - t0) / 1000 + 40);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
-
-  function network(t) {
-    var ang = t * 0.00004, cos = Math.cos(ang), sin = Math.sin(ang);
-    var tilt = 0.28, ct = Math.cos(tilt), st = Math.sin(tilt);
-    var f = Math.min(W, H * 1.6) * 0.62, cx = W / 2, cy = H * 0.46;
-    var proj = new Array(N);
-    for (var i = 0; i < N; i++) {
-      var p = pts[i];
-      var bob = Math.sin(t * 0.0006 + p.p) * 0.03;
-      // rotate around Y, then tilt around X
-      var x = p.x * cos - p.z * sin, z = p.x * sin + p.z * cos, y = p.y + bob;
-      var y2 = y * ct - z * st, z2 = y * st + z * ct + 3.2;
-      var s = f / z2;
-      proj[i] = { x: cx + x * s, y: cy + y2 * s, d: z2, s: s, r: p.r };
-    }
-    // Connections between near neighbours (in 3D), fading with distance and depth.
-    ctx.lineWidth = 1;
-    for (var a = 0; a < N; a++) {
-      for (var b = a + 1; b < N; b++) {
-        var dx = pts[a].x - pts[b].x, dy = pts[a].y - pts[b].y, dz = pts[a].z - pts[b].z;
-        var dist = dx * dx + dy * dy + dz * dz;
-        if (dist > 0.3) continue;
-        var depth = 1 - Math.min(1, (proj[a].d + proj[b].d - 4.4) / 4);
-        var alpha = (1 - dist / 0.3) * 0.22 * (0.35 + 0.65 * depth);
-        if (alpha < 0.01) continue;
-        ctx.strokeStyle = 'rgba(' + ink + ',' + alpha.toFixed(3) + ')';
-        ctx.beginPath(); ctx.moveTo(proj[a].x, proj[a].y); ctx.lineTo(proj[b].x, proj[b].y); ctx.stroke();
-      }
-    }
-    for (var k = 0; k < N; k++) {
-      var q = proj[k];
-      var dd = 1 - Math.min(1, (q.d - 2) / 2.6);
-      ctx.fillStyle = 'rgba(' + ink + ',' + (0.16 + 0.42 * dd).toFixed(3) + ')';
-      ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (0.6 + dd), 0, Math.PI * 2); ctx.fill();
-    }
-  }
-
   function frame(now) {
-    if (!running) return;
-    var t = now - t0;
-    ctx.clearRect(0, 0, W, H);
-    grid(t);
-    network(t);
-    if (!reduce && visible) requestAnimationFrame(frame);
+    if (!visible) return;
+    // ~40fps is plenty for motion this slow and halves GPU work.
+    if (now - last > 24) { draw(now); last = now; }
+    requestAnimationFrame(frame);
   }
-
-  function start() { if (reduce) { frame(performance.now()); return; } running = true; requestAnimationFrame(frame); }
-
   size();
-  start();
+  if (reduce) { draw(performance.now()); canvas.classList.add('ready'); }
+  else { requestAnimationFrame(function (n) { draw(n); canvas.classList.add('ready'); frame(n); }); }
+
   var rt;
-  addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { var w = W; size(); if (Math.abs(w - W) > 120) seed(); if (reduce) frame(performance.now()); }, 150); });
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (e) { var was = visible; visible = e[0].isIntersecting; if (visible && !was && !reduce) requestAnimationFrame(frame); }).observe(canvas);
-  }
-  document.addEventListener('visibilitychange', function () { var was = visible; visible = !document.hidden; if (visible && !was && !reduce) requestAnimationFrame(frame); });
+  addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { size(); draw(performance.now()); }, 150); });
+  function setVisible(v) { var was = visible; visible = v; if (v && !was && !reduce) requestAnimationFrame(frame); }
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { setVisible(e[0].isIntersecting && !document.hidden); }).observe(canvas);
+  document.addEventListener('visibilitychange', function () { setVisible(!document.hidden); });
 })();

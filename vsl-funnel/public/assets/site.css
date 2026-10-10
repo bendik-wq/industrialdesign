@@ -146,20 +146,18 @@ strong { font-weight: 600; color: var(--ink); }
 .hero-vsl .vsl-stage { position: relative; }
 .vsl-float { position: relative; z-index: 1; animation: vsl-float 7s ease-in-out infinite; will-change: transform; }
 @keyframes vsl-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-/* Moving 3D network + perspective floor behind the video (hero-bg.js), faded at the edges. */
-.hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none;
-  -webkit-mask-image: radial-gradient(ellipse 85% 80% at 50% 55%, #000 45%, transparent 92%); mask-image: radial-gradient(ellipse 85% 80% at 50% 55%, #000 45%, transparent 92%); }
-/* A soft light plate right behind the video lifts it off the network. */
-.hero-vsl .vsl-stage::before { content: ""; position: absolute; z-index: 0; inset: -4% -3%; border-radius: 40px; background: radial-gradient(ellipse at center, rgba(255, 255, 255, .9) 45%, rgba(255, 255, 255, 0) 66%); pointer-events: none; }
-[data-palette="ink"] .hero-vsl .vsl-stage::before { background: radial-gradient(ellipse at center, rgba(11, 18, 32, .9) 40%, rgba(11, 18, 32, 0) 72%); }
+/* Ambient flowing colour behind the video (hero-bg.js, WebGL). */
+.hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 1.2s ease; }
+.hero-canvas.ready { opacity: 1; }
+.hero-canvas-fallback { opacity: 1; background: radial-gradient(60% 50% at 30% 60%, #dbe6ff, transparent 70%), radial-gradient(50% 45% at 72% 55%, #e6dcff, transparent 70%), radial-gradient(40% 35% at 50% 85%, #ffe4d2, transparent 70%); }
 /* Contact shadow that tightens as the video rises. */
 .hero-vsl .vsl-stage::after { content: ""; position: absolute; z-index: 0; left: 12%; right: 12%; bottom: -34px; height: 34px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(13, 21, 38, .28), transparent 70%); filter: blur(6px); animation: vsl-shadow 7s ease-in-out infinite; }
 @keyframes vsl-shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.86); opacity: .6; } }
-.hero-vsl .vsl { border-radius: 14px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 2px 6px rgba(13, 21, 38, .12), 0 30px 70px -20px rgba(13, 21, 38, .45); }
+.hero-vsl .vsl { border-radius: 18px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .5), 0 1px 2px rgba(13, 21, 38, .08), 0 12px 24px -8px rgba(13, 21, 38, .18), 0 40px 90px -30px rgba(30, 50, 110, .45); }
 
 .hero-vsl { padding-top: 48px; }
 .hero-vsl .eyebrow { margin-bottom: 14px; }
-.hero-vsl .display { position: relative; z-index: 2; text-shadow: 0 0 22px var(--bg), 0 0 8px var(--bg), 0 0 2px var(--bg); font-size: clamp(27px, 3.4vw, 48px); line-height: 1.12; max-width: 1000px; margin-bottom: 36px; text-wrap: balance; }
+.hero-vsl .display { position: relative; z-index: 2; font-size: clamp(27px, 3.4vw, 48px); line-height: 1.12; max-width: 1000px; margin-bottom: 36px; text-wrap: balance; }
 .hero-center.hero-vsl .vsl-stage { max-width: min(900px, calc((100vh - 370px) * 1.7778)); max-width: min(900px, calc((100svh - 370px) * 1.7778)); min-width: min(100%, 560px); }
 @media (max-width: 640px) { .hero-vsl { padding-top: 26px; } .hero-vsl .eyebrow { margin-bottom: 10px; } .hero-vsl .display { margin-bottom: 20px; } }
 .hero-center .eyebrow { margin-bottom: 18px; }
