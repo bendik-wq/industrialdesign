@@ -8,6 +8,7 @@ import { aiEnv } from "./keys.js";
 import { hookEmitter } from "./pipeline.js";
 import { checkLimits } from "./usage.js";
 import { toCtx } from "./auth.js";
+import { propose } from "./approvals.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -21,13 +22,7 @@ export async function setSetting(env, accountId, key, data) {
   await env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (account_id, key) DO UPDATE SET data = ?3, updated_at = ?4").bind(accountId, key, JSON.stringify(data), now()).run();
 }
 
-// Queue an action for approval. Duplicate pending proposals (same dedupe key) are ignored.
-export async function propose(env, accountId, a) {
-  if (!toolByName(a.tool)) throw err(400, `Unknown tool ${a.tool}`);
-  const r = await env.DB.prepare(`INSERT INTO agent_actions (account_id, target_id, tool, input, title, reason, source, dedupe, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-    ON CONFLICT DO NOTHING RETURNING id`).bind(accountId, a.target_id || null, a.tool, JSON.stringify(a.input || {}), String(a.title).slice(0, 200), String(a.reason || "").slice(0, 500), String(a.source || "autopilot").slice(0, 40), a.dedupe || null, now()).first();
-  return r?.id || null;
-}
+export { propose };
 
 export async function listInbox(env, ctx, status = "pending") {
   const { results } = await env.DB.prepare(`SELECT a.id, a.target_id, a.tool, a.input, a.title, a.reason, a.source, a.status, a.result, a.created_at, a.decided_by, a.decided_at, t.name AS target_name
@@ -49,7 +44,7 @@ export async function decide(env, ctx, id, approve, hooks) {
   if (!claimed) throw err(409, "Someone is already handling this");
   const ai = await aiEnv(env, ctx);
   if (a.tool === "draft_document") { try { await checkLimits(env, ai, ctx); } catch (e) { await env.DB.prepare("UPDATE agent_actions SET status = 'pending', decided_by = NULL, decided_at = NULL WHERE id = ?1").bind(id).run(); throw e; } }
-  const r = await runTool(env, ctx, ai, hooks, a.tool, JSON.parse(a.input));
+  const r = await runTool(env, ctx, ai, hooks, a.tool, JSON.parse(a.input), { approved: true });
   await env.DB.prepare("UPDATE agent_actions SET status = ?3, result = ?4 WHERE id = ?1 AND account_id = ?2").bind(id, ctx.accountId, r.ok ? "done" : "failed", JSON.stringify(r.result).slice(0, 20000)).run();
   return { ok: r.ok, status: r.ok ? "done" : "failed", result: r.result };
 }

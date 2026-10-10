@@ -1,6 +1,6 @@
 import { $, $$, esc, api, post, view, session, stale, toast, fail, dialog, confirmBox, copy, synced, when, skeleton } from "../core.js";
 
-const TABS = [["profile", "Profile"], ["team", "Team"], ["connect", "Connect"], ["integrations", "Integrations"], ["api", "API"], ["usage", "Usage"]];
+const TABS = [["profile", "Profile"], ["team", "Team"], ["email", "Email"], ["connect", "Connect"], ["integrations", "Integrations"], ["api", "API"], ["usage", "Usage"]];
 
 export async function renderSettings(tab, seq) {
   tab = TABS.some(([k]) => k === tab) ? tab : "profile";
@@ -8,7 +8,7 @@ export async function renderSettings(tab, seq) {
     <header class="page-head"><p class="eyebrow">Settings</p><h1>${esc(session.me.account.name)}</h1></header>
     <nav class="tabs" aria-label="Settings">${TABS.map(([k, v]) => `<a href="#/settings/${k}" class="${k === tab ? "on" : ""}" ${k === tab ? 'aria-current="page"' : ""}>${v}</a>`).join("")}</nav>
     <div id="tab">${skeleton(4)}</div>`;
-  const fn = { profile, team, connect, integrations, api: apiTab, usage }[tab];
+  const fn = { profile, team, email: emailTab, connect, integrations, api: apiTab, usage }[tab];
   try { await fn(seq); } catch (e) { if (!stale(seq)) $("#tab").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
 
@@ -115,6 +115,14 @@ async function integrations(seq) {
         <div class="row">${d.canEdit ? `<button class="primary" type="submit">${k.elevenlabs.connected ? "Save" : "Verify & connect"}</button>${k.elevenlabs.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}</div>
       </form>
     </div>
+    <h2 class="sub-sm">Data sources for Scout and the contact finder</h2>
+    <div class="settings-grid">${["google_places", "companies_house", "hunter"].map((id) => { const x = k[id]; return `
+      <form class="panel form-panel provider" data-provider="${id}">
+        <div class="panel-head"><h2 class="h3">${esc(x.label)}</h2><span class="status ${x.connected ? "on" : ""}">${x.connected ? `Connected ··${esc(x.last4)}` : "Not connected"}</span></div>
+        <label class="field">API key<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${x.connected ? "Paste a new key to replace it" : "Paste the key"}" ${dis}></label>
+        <p class="muted small">${esc(x.hint)}</p>
+        <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? "Replace" : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}</div>
+      </form>`; }).join("")}</div>
     <section class="panel">
       <div class="panel-head"><h2 class="h3">Webhooks</h2>${d.canEdit ? `<button class="primary" id="addHook" type="button">+ Add webhook</button>` : ""}</div>
       <p class="muted small">Send pipeline events to your own systems (your CRM, Zapier, Make, Slack via a relay). Each delivery is signed so you can check it came from us.</p>
@@ -268,4 +276,56 @@ async function connect(seq) {
 }
 function box(title, hint, code) {
   return `<section class="panel"><h2 class="h3">${esc(title)}</h2><p class="muted small">${esc(hint)}</p><pre class="code"><code>${esc(code)}</code></pre><button class="ghost" type="button" data-cp="${esc(code)}">Copy</button></section>`;
+}
+
+// ------------------------------------------------------------------ email: send from your own mailbox
+async function emailTab(seq) {
+  const [box, sup] = await Promise.all([api("/api/mailbox"), api("/api/suppressions")]);
+  if (stale(seq)) return;
+  const P = box.presets;
+  const isGmail = /gmail\.com$/.test(box.host || "smtp.gmail.com");
+  $("#tab").innerHTML = `
+    <p class="lede tight">Emails to owners go out from your own address, so they look like they came from you (they did), land in your Sent folder, and replies come straight back to your inbox.</p>
+    <div class="settings-grid">
+      <form class="panel form-panel" id="mbForm">
+        <div class="panel-head"><h2 class="h3">Your mailbox</h2><span class="status ${box.connected ? "on" : ""}">${box.connected ? `Connected · ${esc(box.email)}` : "Not connected"}</span></div>
+        <label class="field">Provider<select name="preset">${Object.entries(P).map(([k, v]) => `<option value="${k}" ${(box.connected ? (k === "gmail" && isGmail) || (k === "outlook" && /office365|outlook/.test(box.host)) || (k === "custom" && !isGmail && !/office365|outlook/.test(box.host)) : k === "gmail") ? "selected" : ""}>${esc(v.label)}</option>`).join("")}</select></label>
+        <p class="muted small" id="presetHelp"></p>
+        <div class="two"><label class="field">Send from<input name="email" type="email" required value="${esc(box.email || session.me.user.email)}"></label><label class="field">Your name<input name="from_name" value="${esc(box.from_name || session.me.user.name || "")}" maxlength="80"></label></div>
+        <label class="field" id="pwLabel">App password<input name="password" type="password" autocomplete="new-password" spellcheck="false" placeholder="${box.connected ? "Leave empty to keep the current one" : "16 letters from Google"}"></label>
+        <div class="two custom-only" hidden><label class="field">SMTP host<input name="host" value="${esc(box.host || "")}" placeholder="smtp.example.com"></label><label class="field">Port<input name="port" type="number" value="${box.port || 465}"></label></div>
+        <label class="field">Signature<textarea name="signature" rows="3" placeholder="Bendik\nAsym Capital · +47 …">${esc(box.signature || "")}</textarea></label>
+        <label class="field">Postal address (required in the US for commercial email)<input name="postal_address" value="${esc(box.postal_address || "")}" maxlength="300"></label>
+        <label class="field">Daily send limit<input name="daily_limit" type="number" min="1" max="200" value="${box.daily_limit || 40}"></label>
+        <p class="muted small">Personal mailboxes get flagged as spam above a few dozen cold emails a day. Start at 20–40 and write each one like it's the only one.</p>
+        <div class="row"><button class="primary" type="submit">${box.connected ? "Save" : "Connect & verify"}</button>${box.connected ? `<button class="ghost" type="button" id="mbTest">Send me a test</button><button class="ghost" type="button" id="mbOff">Disconnect</button>` : ""}</div>
+      </form>
+      <section class="panel">
+        <h2 class="h3">Do not contact</h2>
+        <p class="muted small">Anyone here is never emailed again from this workspace. Add people who reply "no thanks" or ask to be removed.</p>
+        <form class="row" id="supForm"><input name="email" type="email" placeholder="owner@company.com" required style="flex:1"><button class="ghost" type="submit">Add</button></form>
+        ${sup.length ? `<ul class="link-list">${sup.map((x) => `<li><span>${esc(x.email)}</span><small>${when(x.created_at)} <button class="mini-btn" data-unsup="${esc(x.email)}" type="button">Remove</button></small></li>`).join("")}</ul>` : `<p class="muted small">Nobody yet.</p>`}
+      </section>
+    </div>`;
+  const form = $("#mbForm");
+  const syncPreset = () => {
+    const k = form.preset.value;
+    $("#presetHelp").textContent = P[k].help;
+    $(".custom-only").hidden = k !== "custom";
+    $("#pwLabel").firstChild.textContent = k === "gmail" ? "App password" : "Password";
+  };
+  syncPreset();
+  form.preset.addEventListener("change", syncPreset);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(form));
+    const b = $("button[type=submit]", form);
+    b.disabled = true; b.textContent = "Checking the login…";
+    try { await post("/api/mailbox", f, "PUT"); toast("Mailbox connected"); emailTab(seq); }
+    catch (err) { fail(err); b.disabled = false; b.textContent = box.connected ? "Save" : "Connect & verify"; }
+  });
+  $("#mbTest")?.addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { await post("/api/mailbox/test"); toast(`Test sent to ${box.email}. Check your inbox.`); } catch (err) { fail(err); } e.currentTarget.disabled = false; });
+  $("#mbOff")?.addEventListener("click", async () => { if (!(await confirmBox("Disconnect your mailbox?", "Warplan won't be able to send email for you until you connect it again.", "Disconnect"))) return; try { await api("/api/mailbox", { method: "DELETE" }); emailTab(seq); } catch (e) { fail(e); } });
+  $("#supForm").addEventListener("submit", async (e) => { e.preventDefault(); try { await post("/api/suppressions", Object.fromEntries(new FormData(e.target))); emailTab(seq); } catch (err) { fail(err); } });
+  $$("[data-unsup]").forEach((b) => b.addEventListener("click", async () => { try { await api(`/api/suppressions?email=${encodeURIComponent(b.dataset.unsup)}`, { method: "DELETE" }); emailTab(seq); } catch (e) { fail(e); } }));
 }

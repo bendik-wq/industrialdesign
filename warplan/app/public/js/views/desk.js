@@ -1,5 +1,6 @@
 import { $, $$, esc, api, post, md, view, stale, toast, fail, confirmBox, copy, download, when, skeleton, emptyState } from "../core.js";
 import { askJoshAbout } from "./josh.js";
+import { composeEmail, splitEmail } from "./email.js";
 
 const KIND = { loi: "Letter of intent", memo: "Investment memo", outreach: "Outreach", diligence: "Diligence", board: "Board pack", plan100: "100-day plan", lender: "Lender pack" };
 
@@ -36,6 +37,7 @@ export async function renderDoc(id, seq) {
       <header class="doc-head no-print">
         <a class="link" href="${d.target_id ? `#/targets/${d.target_id}` : "#/desk"}">← ${d.target_id ? esc(d.target_name || "Target") : "Desk"}</a>
         <div class="row">
+          ${d.kind === "outreach" && d.meta?.channel === "email" ? `<button class="primary" id="sendIt" type="button">✉ Send this email</button>` : ""}
           <button class="ghost" id="edit" type="button">Edit</button>
           <button class="ghost" id="copy" type="button">Copy</button>
           <button class="ghost" id="dl" type="button">Download</button>
@@ -62,6 +64,10 @@ export async function renderDoc(id, seq) {
     try { await post(`/api/documents/${d.id}`, f, "PATCH"); d.title = f.title; d.content = f.content; $("#title").textContent = f.title; $("#docBody").innerHTML = md(f.content); toggle(false); toast("Saved"); } catch (err) { fail(err); }
   });
   $("#copy").addEventListener("click", () => copy(d.content));
+  $("#sendIt")?.addEventListener("click", async () => {
+    const target = d.target_id ? await api(`/api/targets/${d.target_id}`).catch(() => null) : null;
+    composeEmail({ target, contacts: target?.contacts || [], ...splitEmail(d.content) });
+  });
   $("#dl").addEventListener("click", () => download(`${d.title.replace(/[^\w\- ]+/g, "").trim() || "document"}.md`, d.content, "text/markdown"));
   $("#print").addEventListener("click", () => window.print());
   $("#ask").addEventListener("click", () => askJoshAbout(`Review this ${KIND[d.kind] || "document"} and tell me straight what to change before I use it:\n\n${d.content.slice(0, 3500)}`, d.target_id || undefined));

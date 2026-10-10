@@ -176,7 +176,7 @@ export function targetFacts(t) {
 }
 
 // ------------------------------------------------------------------ webhooks
-export const HOOK_EVENTS = ["target.created", "target.updated", "target.stage_changed", "target.note_added", "target.deleted", "target.imported", "document.created", "call.debriefed", "briefing.daily", "action.proposed"];
+export const HOOK_EVENTS = ["target.created", "target.updated", "target.stage_changed", "target.note_added", "target.deleted", "target.imported", "document.created", "call.debriefed", "briefing.daily", "action.proposed", "email.sent", "scout.imported"];
 
 async function sign(secret, body) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);

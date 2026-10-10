@@ -240,10 +240,11 @@ export async function agentLoop(env, system, messages, tools, exec, { maxTokens 
     convo.push({ role: "assistant", content: `I used: ${actions.slice(-fresh).map((a) => `${a.name}(${JSON.stringify(a.input)})`).join("; ")}` });
     convo.push({ role: "user", content: `${lines.join("\n")}\nThose tools have run. If my request needs another, different tool (for example a second change I asked for), call it now. Otherwise reply with no tool call.` });
   }
-  const done = actions.map((a) => `${a.ok ? "DONE" : "FAILED"}: ${a.name} ${JSON.stringify(a.input)}${a.ok ? "" : ` (${a.result.error})`}`).join("\n");
+  const budget = Math.floor(12000 / Math.max(1, actions.length));
+  const done = actions.map((a) => `${a.result?.queued ? "QUEUED FOR APPROVAL (not done yet)" : a.ok ? "DONE" : "FAILED"}: ${a.name} ${JSON.stringify(a.input)}\nresult: ${JSON.stringify(a.result).slice(0, budget)}`).join("\n\n");
   const followUp = [...base,
     { role: "assistant", content: "(I used my tools.)" },
-    { role: "user", content: `What your tools actually did:\n${done || "nothing"}\nNow answer me directly. Only say you changed something if it is listed as DONE above; if part of my request wasn't done, say so plainly.` }];
+    { role: "user", content: `What your tools actually did:\n${done || "nothing"}\nNow answer me directly, using the results. Only say you changed something if it is listed as DONE; if it is QUEUED FOR APPROVAL, say it is waiting for my OK in the Inbox; if part of my request wasn't done, say so plainly.` }];
   const body = await env.AI.run(WORKERS_AI_MODEL, { messages: followUp, max_tokens: maxTokens, stream: true });
   const reader = body.getReader(), dec = new TextDecoder();
   let buf = "", text = "";

@@ -207,3 +207,63 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (account_id, key)
 );
+
+-- ------------------------------------------------------------------ v4: scout, contacts, email
+-- Contacts found for a target (website scan, Hunter, registry, typed in).
+CREATE TABLE IF NOT EXISTS contacts (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,              -- email | phone | pattern
+  value TEXT NOT NULL,
+  label TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT '',
+  confidence TEXT NOT NULL DEFAULT 'medium',  -- high | medium | guess
+  created_at TEXT NOT NULL,
+  UNIQUE (target_id, kind, value)
+);
+CREATE INDEX IF NOT EXISTS contacts_target ON contacts (target_id);
+
+-- Each user's own sending mailbox (SMTP, e.g. Gmail with an app password). Password encrypted like account keys.
+CREATE TABLE IF NOT EXISTS mailboxes (
+  user_id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  email TEXT NOT NULL,
+  from_name TEXT NOT NULL DEFAULT '',
+  host TEXT NOT NULL,
+  port INTEGER NOT NULL,
+  username TEXT NOT NULL,
+  ciphertext TEXT NOT NULL,
+  iv TEXT NOT NULL,
+  signature TEXT NOT NULL DEFAULT '',
+  postal_address TEXT NOT NULL DEFAULT '',
+  daily_limit INTEGER NOT NULL DEFAULT 40,
+  verified_at TEXT,
+  updated_at TEXT NOT NULL
+);
+
+-- Every email sent from Warplan.
+CREATE TABLE IF NOT EXISTS sent_emails (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  target_id INTEGER,
+  to_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL,            -- sent | failed
+  error TEXT,
+  message_id TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sent_emails_user ON sent_emails (user_id, created_at);
+CREATE INDEX IF NOT EXISTS sent_emails_target ON sent_emails (target_id, id DESC);
+
+-- People who asked not to be contacted. Checked before every send.
+CREATE TABLE IF NOT EXISTS suppressions (
+  account_id INTEGER NOT NULL,
+  email TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, email)
+);

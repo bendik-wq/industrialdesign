@@ -3,6 +3,7 @@ import { STAGES, stageById, dealModel, targetDeal, money } from "../deal.js";
 import { TARGET_FIELDS } from "./pipeline.js";
 import { askJoshAbout } from "./josh.js";
 import { loadDeal } from "./builder.js";
+import { composeEmail } from "./email.js";
 
 const KIND_LABEL = { note: "Note", call: "Call", email: "Email", meeting: "Meeting", stage: "Stage", doc: "Document" };
 const LANGS = ["", "English", "Spanish", "French", "German", "Norwegian", "Swedish", "Danish", "Dutch", "Italian", "Portuguese"];
@@ -25,6 +26,7 @@ export async function renderTarget(id, seq) {
       </div>
       <div class="row th-actions">
         <button class="primary" id="askJosh" type="button">Ask Josh about ${esc(t.name.length > 24 ? "this target" : t.name)}</button>
+        <button class="ghost" id="emailOwner" type="button">✉ Email the owner</button>
         <a class="ghost" href="#/simulator?target=${t.id}">☎ Practise the call</a>
         <a class="ghost" href="#/builder?target=${t.id}">⚖ Structure the deal</a>
         <button class="ghost" id="edit" type="button">Edit details</button>
@@ -73,6 +75,15 @@ export async function renderTarget(id, seq) {
 
       <aside class="tg-side">
         <section class="panel">
+          <div class="panel-head"><h2 class="h3">Contacts</h2><button class="mini-btn" id="findContacts" type="button">${t.contacts.length ? "Search again" : "Find contacts"}</button></div>
+          ${t.contacts.length ? `<ul class="contact-list">${t.contacts.map((c) => `<li class="cl-${c.confidence}">
+            <div><a href="${c.kind === "email" ? `mailto:${esc(c.value)}` : `tel:${esc(c.value.replace(/\s/g, ""))}`}">${esc(c.value)}</a><small>${esc(c.label)} · ${esc(c.source)}${c.confidence === "guess" ? " · <b>guess</b>" : ""}</small></div>
+            <span>${c.kind === "email" ? `<button class="mini-btn" data-mail="${esc(c.value)}" type="button" title="Email">✉</button>` : ""}<button class="mini-btn" data-cp="${esc(c.value)}" type="button" title="Copy">⧉</button><button class="mini-btn" data-del-c="${c.id}" type="button" title="Remove" aria-label="Remove">✕</button></span></li>`).join("")}</ul>`
+            : `<p class="muted small">${t.website ? "Reads their website for emails and phone numbers, and suggests the owner's likely address." : "Add their website (Edit details) so the contact finder can read it, or add contacts by hand."}</p>`}
+          <button class="link-btn small" id="addContact" type="button">+ Add an email or phone</button>
+          ${t.emails.length ? `<h3 class="h4">Emails sent</h3><ul class="link-list">${t.emails.map((e) => `<li><span>${esc(e.subject)}<small class="muted block">to ${esc(e.to_email)}</small></span><small class="${e.status === "failed" ? "tone-bad" : ""}">${e.status === "failed" ? "failed" : when(e.created_at)}</small></li>`).join("")}</ul>` : ""}
+        </section>
+        <section class="panel">
           <h2 class="h3">Facts</h2>
           <dl class="facts">
             ${fact("Owner", esc([t.owner_name, t.owner_age ? `${t.owner_age} years old` : ""].filter(Boolean).join(", ")))}
@@ -100,6 +111,20 @@ export async function renderTarget(id, seq) {
       </aside>
     </div>`;
 
+  const mail = (to = "") => composeEmail({ target: t, contacts: t.contacts, to }).then((sent) => { if (sent) renderTarget(id, seq); });
+  $("#emailOwner").addEventListener("click", () => mail());
+  $$("[data-mail]").forEach((b) => b.addEventListener("click", () => mail(b.dataset.mail)));
+  $$("[data-cp]").forEach((b) => b.addEventListener("click", () => navigator.clipboard.writeText(b.dataset.cp).then(() => toast("Copied"))));
+  $("#findContacts").addEventListener("click", async (e) => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Reading their website…";
+    try { const r = await post(`/api/targets/${t.id}/contacts/find`); toast(r.receipt); renderTarget(id, seq); } catch (err) { fail(err); b.disabled = false; b.textContent = "Find contacts"; }
+  });
+  $("#addContact").addEventListener("click", async () => {
+    const r = await dialog({ title: "Add a contact", submit: "Add", html: `<label class="field">Type<select name="kind"><option value="email">Email</option><option value="phone">Phone</option></select></label><label class="field">Email or phone<input name="value" required></label><label class="field">Who is it? (optional)<input name="label" placeholder="e.g. Frank (owner)"></label>` });
+    if (!r) return;
+    try { await post(`/api/targets/${t.id}/contacts`, r); renderTarget(id, seq); } catch (e) { fail(e); }
+  });
+  $$("[data-del-c]").forEach((b) => b.addEventListener("click", async () => { try { await api(`/api/targets/${t.id}/contacts/${b.dataset.delC}`, { method: "DELETE" }); renderTarget(id, seq); } catch (e) { fail(e); } }));
   const patch = async (data, msg) => { try { await post(`/api/targets/${t.id}`, data, "PATCH"); if (msg) toast(msg); renderTarget(id, seq); } catch (e) { fail(e); } };
   $("#stage").addEventListener("change", async (e) => {
     let extra = {};

@@ -11,8 +11,9 @@ import { renderDesk, renderDoc } from "./views/desk.js";
 import { renderSettings } from "./views/settings.js";
 import { renderAgents } from "./views/agents.js";
 import { renderInbox, refreshInboxBadge } from "./views/inbox.js";
+import { renderScout } from "./views/scout.js";
 
-const TITLES = { home: "Command", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Units", settings: "Settings", inbox: "Inbox" };
+const TITLES = { home: "Command", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Units", settings: "Settings", inbox: "Inbox", scout: "Scout" };
 
 async function router() {
   const seq = ++session.seq;
@@ -35,6 +36,7 @@ async function router() {
     if (viewName === "desk") return id ? await renderDoc(Number(id), seq) : await renderDesk(seq, params);
     if (viewName === "agents") return renderAgents();
     if (viewName === "inbox") return await renderInbox(seq, params);
+    if (viewName === "scout") return await renderScout(seq);
     if (viewName === "settings") return await renderSettings(id, seq);
     if (viewName !== "home") { history.replaceState(null, "", "#/home"); }
     return await renderHome(seq);
@@ -55,7 +57,7 @@ const COMMANDS = [
   ["Go to Command", "#/home"], ["Go to Pipeline", "#/pipeline"], ["Ask Josh", "#/josh"], ["Start a practice call", "#/simulator"],
   ["Open the Deal Builder", "#/builder"], ["Open the Value Ladder", "#/ladder"], ["Open the Desk", "#/desk"], ["See every unit", "#/agents"],
   ["Add a target", () => addTarget()], ["Settings: profile", "#/settings/profile"], ["Settings: team & invites", "#/settings/team"],
-  ["Settings: connect your AI keys", "#/settings/integrations"], ["Open the agent inbox", "#/inbox"], ["Connect Claude, ChatGPT, Cursor, Zapier (MCP)", "#/settings/connect"], ["Settings: API tokens", "#/settings/api"], ["Settings: usage", "#/settings/usage"],
+  ["Settings: connect your AI keys", "#/settings/integrations"], ["Find companies to buy (Scout)", "#/scout"], ["Open the agent inbox", "#/inbox"], ["Connect your mailbox", "#/settings/email"], ["Connect Claude, ChatGPT, Cursor, Zapier (MCP)", "#/settings/connect"], ["Settings: API tokens", "#/settings/api"], ["Settings: usage", "#/settings/usage"],
 ];
 let palette = null;
 function openPalette() {

@@ -776,3 +776,22 @@ dialog.palette { padding: 0; border: 1px solid var(--line-strong); border-radius
 .act.fail { border-color: var(--bad); color: var(--bad); }
 .act a { color: inherit; text-decoration: underline; }
 .msg blockquote { border-left-color: var(--good); color: var(--ink-2); font: 12.5px var(--mono); }
+
+/* =================================================================== v4: scout, contacts, email */
+.scout-form { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr 110px auto; gap: 12px; align-items: end; margin-bottom: 16px; }
+.scout-form .scout-gives { grid-column: 1 / -1; margin: 0; }
+.scout-bar { align-items: center; }
+.scout-table td { vertical-align: top; }
+.scout-table tr.dim td { opacity: .55; }
+.scout-table tbody tr { cursor: default; }
+.age { display: inline-block; padding: 1px 6px; border: 1px solid var(--line); border-radius: var(--r); font: 600 11px var(--mono); }
+.age.old { border-color: var(--signal); color: var(--signal-ink); }
+.contact-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.contact-list li { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.contact-list li > div { min-width: 0; display: grid; }
+.contact-list a { color: var(--ink); text-decoration: none; overflow-wrap: anywhere; font-size: 14px; }
+.contact-list small { color: var(--muted); font: 11px var(--mono); }
+.contact-list li span { display: flex; gap: 3px; flex: none; }
+.contact-list li.cl-guess a { color: var(--muted); font-style: italic; }
+.compose-tools { justify-content: space-between; }
+@media (max-width: 820px) { .scout-form { grid-template-columns: 1fr 1fr; } .scout-form .primary { grid-column: 1 / -1; } }

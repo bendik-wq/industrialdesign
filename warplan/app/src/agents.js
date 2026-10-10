@@ -59,9 +59,9 @@ export const AGENTS = [
     jobs: ["Kanban from sourced to closed, drag to move", "Next actions with due dates, overdue flagged", "Each target gets its own Deal Builder structure", "CSV import and export, webhooks to your CRM"],
   },
   {
-    id: "scout", name: "Scout", tag: "Off-market sourcing", status: "soon", icon: "◎",
-    blurb: "Finds owners 60+ with no successor in your exclusive territory from official registries, scored for likelihood to sell.",
-    jobs: ["Pulls every competitor from government registries", "Flags owner age, tenure, single-owner risk", "Values each one from filed accounts", "Keeps your territory exclusive"],
+    id: "scout", name: "Scout", tag: "Off-market sourcing", status: "live", icon: "◎", route: "scout",
+    blurb: "Searches official registries and maps for companies you could buy, with owners, their ages, emails, phones and revenue, then reads each website for more contacts.",
+    jobs: ["Norway, France and the UK from official registries; anywhere via Google Maps or OpenStreetMap", "Owner names and ages: 60+ highlighted for succession", "Emails and phones from the registry and the company's own website", "One click into the pipeline, emails from your own mailbox"],
   },
   {
     id: "outreach", name: "Outreach", tag: "First contact", status: "live", icon: "✉", route: "pipeline",

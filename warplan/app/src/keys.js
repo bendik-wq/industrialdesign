@@ -20,6 +20,24 @@ export const PROVIDERS = {
     hint: "From elevenlabs.io → Profile → API keys. Add a voice ID to give Josh a specific voice.",
     meta: ["voiceId"],
   },
+  google_places: {
+    label: "Google Places (Scout, worldwide)",
+    pattern: /^AIza[0-9A-Za-z_-]{30,}$/,
+    hint: "Google Cloud console → APIs & Services → enable “Places API (New)” → Credentials → Create API key. Google gives a free monthly credit.",
+    meta: [],
+  },
+  companies_house: {
+    label: "Companies House (Scout, UK)",
+    pattern: /^[0-9a-f-]{20,}$/i,
+    hint: "Free: developer.company-information.service.gov.uk → Create an application → REST API key.",
+    meta: [],
+  },
+  hunter: {
+    label: "Hunter.io (verified owner emails)",
+    pattern: /^[0-9a-f]{40}$/i,
+    hint: "hunter.io → API → copy your key. Free tier: 25 searches a month.",
+    meta: [],
+  },
 };
 export const MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
 
@@ -30,12 +48,12 @@ async function aesKey(env) {
   return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: enc.encode("warplan-account-keys"), info: enc.encode("v1") }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
 }
 
-async function seal(env, plain, aad) {
+export async function seal(env, plain, aad) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: enc.encode(aad) }, await aesKey(env), enc.encode(plain));
   return { ciphertext: b64(ct), iv: b64(iv) };
 }
-async function open(env, row, aad) {
+export async function open(env, row, aad) {
   const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(row.iv), additionalData: enc.encode(aad) }, await aesKey(env), unb64(row.ciphertext));
   return dec.decode(pt);
 }
@@ -48,7 +66,7 @@ export async function listKeys(env, accountId) {
   return Object.entries(PROVIDERS).map(([id, p]) => ({
     id, label: p.label, hint: p.hint,
     connected: !!have[id], last4: have[id]?.hint || "", meta: have[id] ? JSON.parse(have[id].meta) : {}, updatedAt: have[id]?.updated_at || null,
-    platformFallback: id === "anthropic" ? (env.ANTHROPIC_API_KEY ? "Claude (platform key)" : "Workers AI (Llama 3.3 70B)") : (env.ELEVENLABS_API_KEY ? "ElevenLabs (platform key)" : "Workers AI voices"),
+    platformFallback: id === "anthropic" ? (env.ANTHROPIC_API_KEY ? "Claude (platform key)" : "Workers AI (Llama 3.3 70B)") : id === "elevenlabs" ? (env.ELEVENLABS_API_KEY ? "ElevenLabs (platform key)" : "Workers AI voices") : "not available",
   }));
 }
 
@@ -73,7 +91,32 @@ export async function verifyKey(provider, key) {
     if (!r.ok) throw err(502, `ElevenLabs answered ${r.status}; try again in a minute`);
     return true;
   }
+  if (provider === "google_places") {
+    const r = await fetch("https://places.googleapis.com/v1/places:searchText", { method: "POST", headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "places.id" }, body: JSON.stringify({ textQuery: "plumber in Oslo", pageSize: 1 }) });
+    if (r.status === 400 || r.status === 401 || r.status === 403) throw err(400, `Google rejected that key (${(await r.json().catch(() => ({})))?.error?.status || r.status}). Check the Places API (New) is enabled for it.`);
+    if (!r.ok) throw err(502, `Google answered ${r.status}; try again in a minute`);
+    return true;
+  }
+  if (provider === "companies_house") {
+    const r = await fetch("https://api.company-information.service.gov.uk/company/00000006", { headers: { Authorization: `Basic ${btoa(`${key}:`)}` } });
+    if (r.status === 401 || r.status === 403) throw err(400, "Companies House rejected that key");
+    return true;
+  }
+  if (provider === "hunter") {
+    const r = await fetch(`https://api.hunter.io/v2/account?api_key=${encodeURIComponent(key)}`);
+    if (r.status === 401 || r.status === 403) throw err(400, "Hunter rejected that key");
+    if (!r.ok) throw err(502, `Hunter answered ${r.status}; try again in a minute`);
+    return true;
+  }
   throw err(400, "Unknown provider");
+}
+
+// Data-source keys for Scout and the contact finder (decrypted, server-side only).
+export async function dataKeys(env, ctx) {
+  const { results } = await env.DB.prepare("SELECT provider, ciphertext, iv FROM account_keys WHERE account_id = ?1 AND provider IN ('google_places', 'companies_house', 'hunter')").bind(ctx.accountId).all();
+  const out = { google_places: env.GOOGLE_PLACES_API_KEY || null, companies_house: env.COMPANIES_HOUSE_API_KEY || null, hunter: env.HUNTER_API_KEY || null };
+  for (const r of results) { try { out[r.provider] = await open(env, r, aadFor(ctx.accountId, r.provider)); } catch { /* unreadable key: skip */ } }
+  return out;
 }
 
 export async function saveKey(env, ctx, provider, b) {

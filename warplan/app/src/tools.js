@@ -3,6 +3,13 @@
 // Every tool runs as the calling user, inside their workspace, through the same code paths as the UI.
 import { listTargets, getTarget, createTarget, updateTarget, addEvent, targetFacts } from "./pipeline.js";
 import { createDocument } from "./documents.js";
+import { scoutSearch, toTarget, SOURCES } from "./scout.js";
+import { INDUSTRIES } from "./data/industries.js";
+import { enrichTarget, listContacts } from "./contacts.js";
+import { sendEmail } from "./mailer.js";
+import { dataKeys } from "./keys.js";
+import { propose } from "./approvals.js";
+import { importTargets } from "./pipeline.js";
 import { STAGES, normalizeDeal, dealModel, maxMultiple, money, structureSummary, targetDeal, DEAL_DEFAULTS } from "../public/js/deal.js";
 
 const STAGE_IDS = STAGES.map((s) => s.id);
@@ -141,6 +148,44 @@ export const TOOLS = [
     },
   },
   {
+    name: "find_companies", write: false,
+    description: "Scout: search official registries and maps for companies to buy. Sources: no (Norway: owner + birth date, email, phone, website, revenue, operating profit), fr (France: owners + birth years, size), uk (UK: directors + birth year; needs a Companies House key), places (anywhere via Google Maps: phone, website; needs a key), osm (anywhere via OpenStreetMap, free). Returns candidates; nothing is saved until import_companies.",
+    input_schema: { type: "object", properties: { source: { type: "string", enum: Object.keys(SOURCES) }, industry: { type: "string", enum: INDUSTRIES.map((i) => i.id) }, region: { type: "string", description: "Norway: county code (e.g. 03 Oslo, 32 Akershus, 46 Vestland); France: département number; uk/places/osm: a city or area like 'Austin, TX'" }, min_staff: { type: "integer" }, page: { type: "integer" } }, required: ["source", "industry"] },
+    run: async (env, ctx, i) => {
+      const r = await scoutSearch(env, ctx, i, await dataKeys(env, ctx));
+      return { total: r.total, more: r.more, currency: r.currency, results: r.results.map((x) => ({ ...x, people: (x.people || []).slice(0, 3) })) };
+    },
+  },
+  {
+    name: "import_companies", write: true,
+    description: "Add companies returned by find_companies to the pipeline (pass the result objects back unchanged, up to 50). Skips ones already in the pipeline.",
+    input_schema: { type: "object", properties: { companies: { type: "array", items: { type: "object" } }, currency: { type: "string" } }, required: ["companies"] },
+    run: async (env, ctx, i, hooks) => {
+      const rows = (Array.isArray(i.companies) ? i.companies : []).filter((c) => c?.name && !c.in_pipeline).slice(0, 50).map((c) => toTarget(c, i.currency));
+      if (!rows.length) throw err("Nothing new to import");
+      const r = await importTargets(env, ctx, { rows }, hooks);
+      return { imported: r.imported, skipped: r.skipped.length, receipt: `Added ${r.imported} compan${r.imported === 1 ? "y" : "ies"} to the pipeline` };
+    },
+  },
+  {
+    name: "find_contacts", write: true,
+    description: "Contact finder for one target: reads its website (homepage, contact and about pages) for emails and phone numbers, adds likely owner addresses from the owner's name (marked as guesses), and uses Hunter when connected. Saves what it finds on the target.",
+    input_schema: { type: "object", properties: { target_id: { type: "integer" } }, required: ["target_id"] },
+    run: async (env, ctx, i) => enrichTarget(env, ctx, +i.target_id, await dataKeys(env, ctx)),
+  },
+  {
+    name: "list_contacts", write: false,
+    description: "The emails and phone numbers on file for a target, best first, with where each came from and how sure it is (high, medium, guess).",
+    input_schema: { type: "object", properties: { target_id: { type: "integer" } }, required: ["target_id"] },
+    run: async (env, ctx, i) => ({ contacts: await listContacts(env, ctx, +i.target_id) }),
+  },
+  {
+    name: "send_email", write: true, approval: true,
+    description: "Email someone from the user's own connected mailbox. ALWAYS waits for the user's approval in the Inbox before it is sent, so write the final text. Keep first-contact emails short, personal, no numbers or price talk.",
+    input_schema: { type: "object", properties: { to: { type: "string" }, subject: { type: "string" }, body: { type: "string", description: "Plain text. A signature and an opt-out line are added automatically." }, target_id: { type: "integer" } }, required: ["to", "subject", "body"] },
+    run: async (env, ctx, i, hooks) => sendEmail(env, ctx, i, hooks),
+  },
+  {
     name: "pipeline_overview", write: false,
     description: "The state of the whole pipeline: counts by stage, EBITDA in play, overdue and upcoming next actions, targets with no activity for 14+ days.",
     input_schema: { type: "object", properties: {} },
@@ -168,11 +213,16 @@ export async function overview(env, ctx) {
 export const toolByName = (name) => TOOLS.find((t) => t.name === name);
 
 // Run one tool call. Never throws: failures come back as {error} so the model can recover.
-export async function runTool(env, ctx, ai, hooks, name, input) {
+export async function runTool(env, ctx, ai, hooks, name, input, { approved = false } = {}) {
   const tool = toolByName(name);
   if (!tool) return { ok: false, result: { error: `Unknown tool ${name}` } };
   if (input == null || typeof input !== "object" || Array.isArray(input)) return { ok: false, result: { error: "Tool input must be a JSON object" } };
   for (const req of tool.input_schema.required || []) if (input[req] == null || input[req] === "") return { ok: false, result: { error: `Missing ${req}` } };
+  if (tool.approval && !approved) {
+    // Outward, irreversible actions (email) go to the Inbox; a person sends them with one click.
+    const id = await propose(env, ctx.accountId, { tool: name, input, target_id: input.target_id, title: name === "send_email" ? `Send “${String(input.subject || "").slice(0, 80)}” to ${input.to}` : `Run ${name}`, reason: name === "send_email" ? String(input.body || "").slice(0, 400) : "", source: "agent" });
+    return { ok: true, result: { queued: true, inbox_id: id, link: "/#/inbox", receipt: `Queued for your approval in the Inbox${name === "send_email" ? `: email to ${input.to}` : ""}` } };
+  }
   try {
     return { ok: true, result: await tool.run(env, ctx, input, hooks, ai) };
   } catch (e) {

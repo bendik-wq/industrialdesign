@@ -37,6 +37,18 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
   it in the Inbox; external agents can queue proposals with `POST /api/inbox`. The `briefing.daily` webhook carries
   the morning summary to Slack, email or a CRM.
 
+**Scout + outreach (v4)**
+- **Scout** (`app/src/scout.js`): Norway (Brønnøysund: owner + birth date, company email and phone, revenue,
+  operating profit), France (Sirene: owners + birth years), UK (Companies House key), anywhere via Google Places (key)
+  or OpenStreetMap (free). Tick results and add them to the pipeline in one go.
+- **Contact finder** (`app/src/enrich.js`): reads each company's website (homepage + contact/about pages) for emails
+  and phones (mailto, tel, protected and obfuscated addresses), recognises the owner's own address, learns the company's
+  email pattern and domain for owner guesses (clearly marked), and uses Hunter when a key is connected.
+- **Email from your own mailbox** (`app/src/mailer.js`): SMTP over Cloudflare TCP sockets (Gmail/Workspace app
+  password on 465, Microsoft 365 on 587 with STARTTLS + AUTH LOGIN). Verified against Gmail and Outlook from Cloudflare's
+  network. Every send checks the do-not-contact list and a daily cap, adds signature, opt-out line and postal address,
+  and logs on the target's timeline. Agents can only queue emails; a person sends them from the Inbox.
+
 **Tools**
 - **Pipeline**: targets on a drag-and-drop board (or sortable table) from Sourced to Closed, next actions with due
   dates (overdue flagged on Command), a timeline of notes/calls (dictate by voice), CSV import and export.

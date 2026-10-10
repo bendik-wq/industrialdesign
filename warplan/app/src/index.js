@@ -9,12 +9,15 @@ import { listThreads, getThread, createThread, updateThread, deleteThread, send,
 import { listTargets, getTarget, createTarget, updateTarget, deleteTarget, addEvent, deleteEvent, importTargets, exportCsv, hookEmitter, listHooks, createHook, testHook, deleteHook, rowToTarget } from "./pipeline.js";
 import { deskAgents } from "./desk.js";
 import { createDocument, getProfile } from "./documents.js";
-import { listKeys, saveKey, deleteKey, aiEnv, MODELS } from "./keys.js";
+import { listKeys, saveKey, deleteKey, aiEnv, dataKeys, MODELS } from "./keys.js";
 import { checkLimits, record, summary } from "./usage.js";
 import { STAGES } from "../public/js/deal.js";
 import { handleMcp } from "./mcp.js";
 import { listInbox, decide, propose, autopilotRun, autopilotAll, getSetting, setSetting } from "./autopilot.js";
 import { TOOLS } from "./tools.js";
+import { scoutInfo, scoutSearch, toTarget } from "./scout.js";
+import { listContacts, enrichTarget, addContact, deleteContact } from "./contacts.js";
+import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
 const INVITE_DAYS = 7;
 // Reachable without signing in. Everything else (the app shell, its scripts) needs a session.
@@ -227,12 +230,56 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/targets/import" && m === "POST") return json(await importTargets(env, ctx, await body(request), hooks), 201);
   if (p === "/api/targets.csv" && m === "GET") return exportCsv(env, ctx);
   if ((r = p.match(/^\/api\/targets\/(\d+)$/))) {
-    if (m === "GET") return json(await getTarget(env, ctx, +r[1]));
+    if (m === "GET") { const t = await getTarget(env, ctx, +r[1]); const [contacts, emails] = await Promise.all([listContacts(env, ctx, t.id), listSent(env, ctx, t.id)]); return json({ ...t, contacts, emails }); }
     if (m === "PATCH") return json(await updateTarget(env, ctx, +r[1], await body(request), hooks));
     if (m === "DELETE") return json(await deleteTarget(env, ctx, +r[1], hooks));
   }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/events$/)) && m === "POST") return json(await addEvent(env, ctx, +r[1], await body(request), hooks), 201);
   if ((r = p.match(/^\/api\/targets\/(\d+)\/events\/(\d+)$/)) && m === "DELETE") return json(await deleteEvent(env, ctx, +r[1], +r[2]));
+
+  // Contacts
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts$/))) {
+    if (m === "GET") return json(await listContacts(env, ctx, +r[1]));
+    if (m === "POST") return json(await addContact(env, ctx, +r[1], await body(request)), 201);
+  }
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/find$/)) && m === "POST") return json(await enrichTarget(env, ctx, +r[1], await dataKeys(env, ctx)));
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/(\d+)$/)) && m === "DELETE") return json(await deleteContact(env, ctx, +r[1], +r[2]));
+
+  // Scout: find companies in registries and maps, import them
+  if (p === "/api/scout" && m === "GET") return json(scoutInfo(await dataKeys(env, ctx)));
+  if (p === "/api/scout/search" && m === "POST") return json(await scoutSearch(env, ctx, await body(request), await dataKeys(env, ctx)));
+  if (p === "/api/scout/import" && m === "POST") {
+    const b = await body(request);
+    const rows = (Array.isArray(b.companies) ? b.companies : []).filter((c) => c?.name).slice(0, 100).map((c) => toTarget(c, b.currency));
+    if (!rows.length) fail(400, "Pick at least one company");
+    const out = await importTargets(env, ctx, { rows }, hooks);
+    hooks.emit("scout.imported", { count: out.imported });
+    // Optionally run the contact finder on the new targets (in the background; it reads their websites).
+    if (b.find_contacts && out.imported) {
+      const names = rows.map((x) => x.name);
+      exec.waitUntil((async () => {
+        const keys = await dataKeys(env, ctx);
+        const { results } = await env.DB.prepare(`SELECT id FROM targets WHERE account_id = ?1 AND name IN (${names.map((_, i) => `?${i + 2}`).join(",")}) ORDER BY id DESC LIMIT ?${names.length + 2}`).bind(ctx.accountId, ...names, names.length).all();
+        for (const t of results.slice(0, 25)) { try { await enrichTarget(env, ctx, t.id, keys); } catch (e) { console.warn("enrich", t.id, e.message); } }
+      })());
+    }
+    return json(out, 201);
+  }
+
+  // Email from the user's own mailbox
+  if (p === "/api/mailbox" && m === "GET") return json(await getMailbox(env, ctx));
+  if (p === "/api/mailbox" && m === "PUT") return json(await saveMailbox(env, ctx, await body(request)));
+  if (p === "/api/mailbox" && m === "DELETE") return json(await deleteMailbox(env, ctx));
+  if (p === "/api/mailbox/test" && m === "POST") {
+    const box = await getMailbox(env, ctx);
+    if (!box.connected) fail(400, "Connect your mailbox first");
+    return json(await sendEmail(env, ctx, { to: box.email, subject: "Warplan test email", body: "This is a test from Warplan. If you can read it, sending from your mailbox works." }, hooks));
+  }
+  if (p === "/api/email/send" && m === "POST") return json(await sendEmail(env, ctx, await body(request), hooks));
+  if (p === "/api/email/sent" && m === "GET") return json(await listSent(env, ctx, q.get("target") ? +q.get("target") : null));
+  if (p === "/api/suppressions" && m === "GET") return json(await listSuppressions(env, ctx));
+  if (p === "/api/suppressions" && m === "POST") { const b = await body(request); return json(await suppress(env, ctx, b.email, b.reason), 201); }
+  if (p === "/api/suppressions" && m === "DELETE") return json(await unsuppress(env, ctx, q.get("email")));
 
   // Documents (the agents' work)
   if (p === "/api/documents" && m === "GET") return json(await listDocs(env, ctx, q));
@@ -461,6 +508,11 @@ const API_DOCS = {
     ["POST", "/api/inbox/:id/approve", "Approve (runs it as you) · /dismiss to drop it"],
     ["POST", "/api/autopilot/run", "Run the morning autopilot now (owners)"],
     ["POST", "/mcp", "MCP server (Streamable HTTP): tools/list, tools/call. Auth: Bearer token or /mcp/<token>"],
+    ["POST", "/api/scout/search", "Find companies {source: no|fr|uk|places|osm, industry, region, min_staff, page}"],
+    ["POST", "/api/scout/import", "Add found companies to the pipeline {companies, currency, find_contacts?}"],
+    ["POST", "/api/targets/:id/contacts/find", "Run the contact finder (website emails/phones, owner address guesses, Hunter)"],
+    ["POST", "/api/email/send", "Send from your connected mailbox {to, subject, body, target_id}"],
+    ["GET", "/api/email/sent?target=", "Emails sent"],
     ["GET", "/api/usage?days=30", "AI usage and estimated cost"],
     ["GET", "/api/integrations", "Connected AI providers and webhooks"],
   ],
