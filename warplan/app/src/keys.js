@@ -11,8 +11,8 @@ export const PROVIDERS = {
   anthropic: {
     label: "Anthropic (Claude)",
     pattern: /^sk-ant-[A-Za-z0-9_-]{20,}$/,
-    hint: "Starts with sk-ant-. Create one at console.anthropic.com → API keys.",
-    meta: ["model"],
+    hint: "A workspace key (sk-ant-api03-…) from console.anthropic.com → API keys. A user key (sk-ant-usr-…) also works with its workspace ID (wrkspc_…).",
+    meta: ["model", "workspaceId"],
   },
   elevenlabs: {
     label: "ElevenLabs (voices)",
@@ -105,6 +105,7 @@ export async function listKeys(env, accountId) {
 function cleanMeta(provider, meta = {}) {
   const out = {};
   if (provider === "anthropic" && MODELS.includes(meta.model)) out.model = meta.model;
+  if (provider === "anthropic" && /^wrkspc_[A-Za-z0-9]{10,}$/.test(String(meta.workspaceId || "").trim())) out.workspaceId = String(meta.workspaceId).trim();
   if (provider === "elevenlabs" && /^[A-Za-z0-9]{10,40}$/.test(String(meta.voiceId || ""))) out.voiceId = meta.voiceId;
   if (provider === "emailbison") {
     let u; try { u = new URL(String(meta.baseUrl || "").trim()); } catch { /* checked below */ }
@@ -128,8 +129,10 @@ function cleanMeta(provider, meta = {}) {
 // Check a key against the provider before storing it, so a typo fails here and not mid-conversation.
 export async function verifyKey(provider, key, meta = {}) {
   if (provider === "anthropic") {
-    const r = await fetch("https://api.anthropic.com/v1/models?limit=1", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01" } });
+    if (/^sk-ant-usr-/.test(key) && !meta.workspaceId) throw err(400, "This is a user key (sk-ant-usr-…). Also paste your workspace ID (wrkspc_…, from console.anthropic.com → Settings → Workspaces), or create a workspace API key (sk-ant-api03-…) instead.");
+    const r = await fetch("https://api.anthropic.com/v1/models?limit=1", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01", ...(meta.workspaceId && { "anthropic-workspace-id": meta.workspaceId }) } });
     if (r.status === 401 || r.status === 403) throw err(400, "Anthropic rejected that key");
+    if (r.status === 400) throw err(400, `Anthropic: ${(await r.json().catch(() => ({})))?.error?.message || "the key or workspace ID isn't valid"}`);
     if (!r.ok) throw err(502, `Anthropic answered ${r.status}; try again in a minute`);
     return true;
   }
@@ -223,7 +226,7 @@ export async function aiEnv(env, ctx) {
     let key;
     try { key = await open(env, r, aadFor(ctx.accountId, r.provider)); } catch { console.warn(`account ${ctx.accountId}: can't decrypt ${r.provider} key`); continue; }
     const meta = JSON.parse(r.meta || "{}");
-    if (r.provider === "anthropic") { out.ANTHROPIC_API_KEY = key; out.ownKey = true; if (meta.model) out.CLAUDE_MODEL = meta.model; }
+    if (r.provider === "anthropic") { out.ANTHROPIC_API_KEY = key; out.ownKey = true; out.ANTHROPIC_WORKSPACE_ID = meta.workspaceId || undefined; if (meta.model) out.CLAUDE_MODEL = meta.model; }
     // A cloned voice lives in one ElevenLabs account, so the platform's Josh voice won't work on their key.
     if (r.provider === "elevenlabs") { out.ELEVENLABS_API_KEY = key; out.JOSH_VOICE_ID = meta.voiceId || undefined; out.ownVoice = true; }
   }

@@ -112,6 +112,7 @@ async function integrations(seq) {
         <div class="panel-head"><h2 class="h3">Anthropic · Claude</h2><span class="status ${k.anthropic.connected ? "on" : ""}">${k.anthropic.connected ? `Connected ··${esc(k.anthropic.last4)}` : "Not connected"}</span></div>
         <p class="muted small">Claude powers Josh (with all of his video transcripts in context), the debriefs and every agent. Without a key: ${esc(k.anthropic.platformFallback)}.</p>
         <label class="field">API key<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${k.anthropic.connected ? "Paste a new key to replace the current one" : "sk-ant-…"}" ${dis}></label>
+        <label class="field">Workspace ID (only for sk-ant-usr- keys)<input name="workspaceId" value="${esc(k.anthropic.meta.workspaceId || "")}" placeholder="wrkspc_…" ${dis}></label>
         <label class="field">Model<select name="model" ${dis}>${d.models.map((m) => `<option ${m === (k.anthropic.meta.model || d.models[0]) ? "selected" : ""}>${m}</option>`).join("")}</select></label>
         <p class="muted small">${esc(k.anthropic.hint)}</p>
         <div class="row">${d.canEdit ? `<button class="primary" type="submit">${k.anthropic.connected ? "Save" : "Verify & connect"}</button>${k.anthropic.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}</div>
@@ -147,7 +148,7 @@ async function integrations(seq) {
       const v = Object.fromEntries(new FormData(f));
       const btn = $("button[type=submit]", f);
       btn.disabled = true; btn.textContent = v.key ? "Checking the key…" : "Saving…";
-      const meta = { model: v.model, voiceId: v.voiceId };
+      const meta = { model: v.model, voiceId: v.voiceId, workspaceId: v.workspaceId };
       for (const [mk, mv] of Object.entries(v)) if (mk.startsWith("meta:")) meta[mk.slice(5)] = mv;
       try { await post(`/api/integrations/${provider}`, { key: v.key, meta }, "PUT"); toast(v.key ? "Connected" : "Saved"); session.team = await api("/api/agents"); integrations(seq); }
       catch (err) { fail(err); btn.disabled = false; btn.textContent = "Try again"; }

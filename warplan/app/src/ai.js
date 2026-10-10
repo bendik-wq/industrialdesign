@@ -48,11 +48,14 @@ function friendly(e) {
 }
 
 // messages: [{role: "user"|"assistant", content: string}], oldest first, ending with the user's turn.
+// User-scoped keys (sk-ant-usr-…) aren't tied to a workspace and need its ID on every request.
+const claude = (env) => new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, ...(env.ANTHROPIC_WORKSPACE_ID && { defaultHeaders: { "anthropic-workspace-id": env.ANTHROPIC_WORKSPACE_ID } }) });
+
 export async function chat(env, system, messages, maxTokens = 1200, effort = "low") {
   const sys = asSys(system);
   if (env.ANTHROPIC_API_KEY) {
     let res;
-    try { res = await new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.create(claudeRequest(env, sys, messages, maxTokens, effort)); }
+    try { res = await claude(env).beta.messages.create(claudeRequest(env, sys, messages, maxTokens, effort)); }
     catch (e) { throw friendly(e); }
     if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
     return { text: res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim(), model: res.model, usage: claudeUsage(res.usage) };
@@ -67,7 +70,7 @@ export async function chatStream(env, system, messages, maxTokens, effort, onTex
   const sys = asSys(system);
   if (env.ANTHROPIC_API_KEY) {
     try {
-      const stream = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.stream(claudeRequest(env, sys, messages, maxTokens, effort));
+      const stream = claude(env).beta.messages.stream(claudeRequest(env, sys, messages, maxTokens, effort));
       stream.on("text", (t) => onText(t));
       const res = await stream.finalMessage();
       if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
@@ -104,7 +107,7 @@ export async function chatJson(env, system, prompt, schema, maxTokens = 2000, ef
   const sys = asSys(system);
   if (env.ANTHROPIC_API_KEY) {
     let res;
-    try { res = await new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.create(claudeRequest(env, sys, [{ role: "user", content: prompt }], maxTokens, effort, { format: { type: "json_schema", schema } })); }
+    try { res = await claude(env).beta.messages.create(claudeRequest(env, sys, [{ role: "user", content: prompt }], maxTokens, effort, { format: { type: "json_schema", schema } })); }
     catch (e) { throw friendly(e); }
     if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
     const raw = res.content.filter((b) => b.type === "text").map((b) => b.text).join("");
@@ -183,7 +186,7 @@ export async function agentLoop(env, system, messages, tools, exec, { maxTokens 
   const add = (u) => { usage.input += u.input; usage.output += u.output; usage.cached += u.cached; };
   const actions = [];
   if (env.ANTHROPIC_API_KEY) {
-    const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    const client = claude(env);
     const convo = [...messages];
     let text = "", model = claudeModel(env);
     for (let step = 0; step < maxSteps; step++) {
