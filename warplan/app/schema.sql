@@ -267,3 +267,68 @@ CREATE TABLE IF NOT EXISTS suppressions (
   created_at TEXT NOT NULL,
   PRIMARY KEY (account_id, email)
 );
+
+-- v5: Monid data marketplace runs, sequencer pushes and replies, power dialer calls.
+-- Every paid Monid run, so spend can be capped per workspace per month and shown in Usage.
+CREATE TABLE IF NOT EXISTS monid_runs (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  user_id INTEGER,
+  target_id INTEGER,
+  provider TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  run_id TEXT,
+  status TEXT NOT NULL,            -- COMPLETED | RUNNING | FAILED | ...
+  cost REAL NOT NULL DEFAULT 0,    -- USD, as Monid billed it
+  purpose TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS monid_runs_acct ON monid_runs (account_id, created_at);
+
+-- Leads pushed to a cold-email sequencer (Instantly, Smartlead, EmailBison).
+CREATE TABLE IF NOT EXISTS campaign_leads (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  provider TEXT NOT NULL,
+  campaign_id TEXT NOT NULL,
+  campaign_name TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL,
+  status TEXT NOT NULL,            -- pushed | failed | replied
+  error TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (account_id, provider, campaign_id, email)
+);
+CREATE INDEX IF NOT EXISTS campaign_leads_target ON campaign_leads (target_id);
+
+-- Replies that came back from sequencers (webhook), with the AI's read of them.
+CREATE TABLE IF NOT EXISTS replies (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER,
+  provider TEXT NOT NULL DEFAULT '',
+  from_email TEXT NOT NULL DEFAULT '',
+  subject TEXT NOT NULL DEFAULT '',
+  body TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT '',   -- interested | meeting | later | not_interested | ooo | unsubscribe | wrong_person | other
+  summary TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS replies_acct ON replies (account_id, id DESC);
+
+-- Power dialer: every call placed or logged.
+CREATE TABLE IF NOT EXISTS calls (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  user_id INTEGER,
+  target_id INTEGER NOT NULL,
+  phone TEXT NOT NULL,
+  via TEXT NOT NULL DEFAULT 'phone',   -- phone (tel: link) | twilio
+  call_sid TEXT,
+  disposition TEXT NOT NULL DEFAULT '', -- connected | interested | meeting | callback | voicemail | no_answer | not_interested | wrong_number | gatekeeper
+  notes TEXT NOT NULL DEFAULT '',
+  duration INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS calls_target ON calls (target_id, id DESC);
+CREATE INDEX IF NOT EXISTS calls_user ON calls (user_id, created_at);

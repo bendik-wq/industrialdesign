@@ -17,6 +17,10 @@ import { listInbox, decide, propose, autopilotRun, autopilotAll, getSetting, set
 import { TOOLS } from "./tools.js";
 import { scoutInfo, scoutSearch, toTarget } from "./scout.js";
 import { listContacts, enrichTarget, addContact, deleteContact } from "./contacts.js";
+import { balance as monidBalance, budget as monidBudget, setBudget as setMonidBudget, recentRuns, discover as monidDiscover, describe as monidDescribe, run as monidRun, compact } from "./monid.js";
+import { deepEnrich } from "./waterfall.js";
+import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
+import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup } from "./dialer.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
 const INVITE_DAYS = 7;
@@ -59,6 +63,7 @@ async function handle(request, env, exec) {
     if (p.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method)) checkOrigin(request, url);
     if (p === "/api/auth/state" || p === "/api/setup" || p === "/api/login" || p === "/api/logout" || p.startsWith("/api/invites/")) return await authRoute(request, env, url);
     if (PUBLIC_PATHS.has(p)) return asset(request, env, p);
+    if (p.startsWith("/hooks/replies/")) return await replyHook(request, env, url, exec);
     if (p === "/mcp" || p.startsWith("/mcp/")) return await mcpRoute(request, env, url, exec);
     const ctx = await getContext(request, env);
     if (p === "/api" || p.startsWith("/api/")) {
@@ -89,6 +94,23 @@ async function mcpRoute(request, env, url, exec) {
   const ctx = (headers.get("Authorization") || "").startsWith("Bearer ") ? await getContext(authed, env) : null;
   if (!ctx) return json({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized: create an API token in Warplan (Settings → Connect) and send it as Authorization: Bearer wp_..." } }, 401, { "WWW-Authenticate": 'Bearer realm="warplan"' });
   return handleMcp(authed, env, ctx, exec);
+}
+
+// Sequencer reply webhooks (Instantly, Smartlead, EmailBison, or anything that POSTs JSON): the secret token in the
+// path identifies the workspace. Triage runs after we answer, so the sequencer never times out waiting on the AI.
+async function replyHook(request, env, url, exec) {
+  if (request.method !== "POST") return json({ error: "POST the reply as JSON" }, 405);
+  const token = url.pathname.slice("/hooks/replies/".length);
+  const account = await accountForReplyHook(env, token);
+  if (!account) { await slow(); return json({ error: "Unknown webhook" }, 404); }
+  const raw = await request.text();
+  if (raw.length > 200000) return json({ error: "Too large" }, 413);
+  let payload; try { payload = JSON.parse(raw); } catch { return json({ error: "Send JSON" }, 400); }
+  const provider = SEQUENCERS.find((s) => url.searchParams.get("from") === s) || (request.headers.get("User-Agent") || "").toLowerCase().match(/instantly|smartlead|emailbison/)?.[0] || "";
+  const ctx = { accountId: account.account_id };
+  const hooks = hookEmitter(env, account.account_id, (pr) => exec.waitUntil(pr));
+  exec.waitUntil((async () => { try { await handleReply(env, account, payload, await aiEnv(env, ctx), hooks, provider); } catch (e) { console.error("reply hook", e); } })());
+  return json({ ok: true });
 }
 
 // Cookie-authenticated writes must come from this site (defence in depth on top of SameSite=Lax).
@@ -230,7 +252,15 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/targets/import" && m === "POST") return json(await importTargets(env, ctx, await body(request), hooks), 201);
   if (p === "/api/targets.csv" && m === "GET") return exportCsv(env, ctx);
   if ((r = p.match(/^\/api\/targets\/(\d+)$/))) {
-    if (m === "GET") { const t = await getTarget(env, ctx, +r[1]); const [contacts, emails] = await Promise.all([listContacts(env, ctx, t.id), listSent(env, ctx, t.id)]); return json({ ...t, contacts, emails }); }
+    if (m === "GET") {
+      const t = await getTarget(env, ctx, +r[1]);
+      const [contacts, emails, calls, campaigns] = await Promise.all([
+        listContacts(env, ctx, t.id), listSent(env, ctx, t.id),
+        env.DB.prepare("SELECT id, disposition, notes, duration, phone, created_at FROM calls WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC LIMIT 20").bind(ctx.accountId, t.id).all().then((x) => x.results),
+        env.DB.prepare("SELECT provider, campaign_name, email, status, created_at FROM campaign_leads WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC").bind(ctx.accountId, t.id).all().then((x) => x.results),
+      ]);
+      return json({ ...t, contacts, emails, calls, campaigns });
+    }
     if (m === "PATCH") return json(await updateTarget(env, ctx, +r[1], await body(request), hooks));
     if (m === "DELETE") return json(await deleteTarget(env, ctx, +r[1], hooks));
   }
@@ -243,6 +273,7 @@ async function route(request, env, url, ctx, exec) {
     if (m === "POST") return json(await addContact(env, ctx, +r[1], await body(request)), 201);
   }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/find$/)) && m === "POST") return json(await enrichTarget(env, ctx, +r[1], await dataKeys(env, ctx)));
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/enrich$/)) && m === "POST") { const b = await body(request); return json(await deepEnrich(env, ctx, +r[1], { mobile: !!b.mobile, linkedin: b.linkedin !== false })); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/(\d+)$/)) && m === "DELETE") return json(await deleteContact(env, ctx, +r[1], +r[2]));
 
   // Scout: find companies in registries and maps, import them
@@ -255,15 +286,49 @@ async function route(request, env, url, ctx, exec) {
     const out = await importTargets(env, ctx, { rows }, hooks);
     hooks.emit("scout.imported", { count: out.imported });
     // Optionally run the contact finder on the new targets (in the background; it reads their websites).
+    // The free website scan runs in the background. Deep enrich (paid, slower) is driven by the browser one target
+    // at a time through /api/targets/:id/enrich, so it never runs into the background time limit.
     if (b.find_contacts && out.imported) {
       const names = rows.map((x) => x.name);
       exec.waitUntil((async () => {
         const keys = await dataKeys(env, ctx);
         const { results } = await env.DB.prepare(`SELECT id FROM targets WHERE account_id = ?1 AND name IN (${names.map((_, i) => `?${i + 2}`).join(",")}) ORDER BY id DESC LIMIT ?${names.length + 2}`).bind(ctx.accountId, ...names, names.length).all();
-        for (const t of results.slice(0, 25)) { try { await enrichTarget(env, ctx, t.id, keys); } catch (e) { console.warn("enrich", t.id, e.message); } }
+        for (const t of results.slice(0, 25)) {
+          try { await enrichTarget(env, ctx, t.id, keys); } catch (e) { console.warn("enrich", t.id, e.message); }
+        }
       })());
     }
     return json(out, 201);
+  }
+
+  // Monid data marketplace: wallet, budget, spend log, and a console to search and run any endpoint
+  if (p === "/api/monid" && m === "GET") {
+    const [bal, bud, runs] = await Promise.all([monidBalance(env, ctx).catch((e) => ({ connected: true, error: e.message })), monidBudget(env, ctx), recentRuns(env, ctx)]);
+    return json({ ...bal, budget: bud, runs, canEdit: ctx.isOwner });
+  }
+  if (p === "/api/monid/budget" && m === "PUT") { needOwner(ctx); return json(await setMonidBudget(env, ctx, await body(request))); }
+  if (p === "/api/monid/discover" && m === "POST") { const b = await body(request); if (!String(b.query || "").trim()) fail(400, "Describe the data you need"); return json({ endpoints: await monidDiscover(env, ctx, b.query, b.limit || 10) }); }
+  if (p === "/api/monid/inspect" && m === "POST") { const b = await body(request); return json(await monidDescribe(env, ctx, String(b.provider || ""), String(b.endpoint || ""))); }
+  if (p === "/api/monid/run" && m === "POST") {
+    const b = await body(request);
+    const out = await monidRun(env, ctx, { provider: String(b.provider || ""), endpoint: String(b.endpoint || ""), input: b.input || {} }, { purpose: String(b.reason || "Data console"), targetId: b.target_id ? +b.target_id : null });
+    return json({ ...out, output: b.full ? out.output : compact(out.output) });
+  }
+
+  // Cold-email sequencers (Instantly, Smartlead, EmailBison) and the replies coming back
+  if (p === "/api/sequencers" && m === "GET") return json({ sequencers: await connectedSequencers(env, ctx), replies: await replyHookInfo(env, ctx) });
+  if ((r = p.match(/^\/api\/sequencers\/(\w+)\/campaigns$/)) && m === "GET") return json(await listCampaigns(env, ctx, r[1]));
+  if (p === "/api/sequencers/push" && m === "POST") return json(await pushToCampaign(env, ctx, await body(request), hooks, await aiEnv(env, ctx)));
+  if (p === "/api/replies/hook" && m === "POST") { needOwner(ctx); return json(await rotateReplyHook(env, ctx, url.origin), 201); }
+
+  // Power dialer
+  if (p === "/api/dialer/queue" && m === "GET") return json(await callQueue(env, ctx, q));
+  if (p === "/api/calls" && m === "GET") return json(await callHistory(env, ctx, q));
+  if (p === "/api/calls" && m === "POST") return json(await logCall(env, ctx, await body(request), hooks), 201);
+  if (p === "/api/dialer/bridge" && m === "POST") return json(await startBridge(env, ctx, await body(request)));
+  if ((r = p.match(/^\/api\/dialer\/bridge\/(\w+)$/))) {
+    if (m === "GET") return json(await bridgeStatus(env, ctx, r[1]));
+    if (m === "DELETE") return json(await hangup(env, ctx, r[1]));
   }
 
   // Email from the user's own mailbox
@@ -513,6 +578,18 @@ const API_DOCS = {
     ["POST", "/api/targets/:id/contacts/find", "Run the contact finder (website emails/phones, owner address guesses, Hunter)"],
     ["POST", "/api/email/send", "Send from your connected mailbox {to, subject, body, target_id}"],
     ["GET", "/api/email/sent?target=", "Emails sent"],
+    ["POST", "/api/targets/:id/enrich", "Deep enrich via Monid {mobile?, linkedin?}: owner email (verified), all domain emails, LinkedIn, optional mobile"],
+    ["GET", "/api/monid", "Monid wallet balance, this month's data budget and spend, recent runs"],
+    ["POST", "/api/monid/discover", "Search 2,500+ data APIs {query}"],
+    ["POST", "/api/monid/inspect", "An endpoint's input schema and price {provider, endpoint}"],
+    ["POST", "/api/monid/run", "Run an endpoint {provider, endpoint, input: {body, queryParams, pathParams}, reason}"],
+    ["GET", "/api/sequencers", "Connected sequencers and recent replies"],
+    ["GET", "/api/sequencers/:provider/campaigns", "Campaigns in instantly | smartlead | emailbison"],
+    ["POST", "/api/sequencers/push", "Add targets to a campaign {provider, campaign_id, campaign_name, target_ids, personalize?}"],
+    ["POST", "/hooks/replies/<secret>", "Reply webhook for your sequencer (create the URL in Settings → Outreach). AI triages each reply"],
+    ["GET", "/api/dialer/queue?stage=&q=&fresh=1", "Power dialer call list"],
+    ["POST", "/api/calls", "Log a call {target_id, disposition, notes, duration, next_date}"],
+    ["POST", "/api/dialer/bridge", "Click-to-call via your Twilio {target_id, phone}: rings you, then connects them"],
     ["GET", "/api/usage?days=30", "AI usage and estimated cost"],
     ["GET", "/api/integrations", "Connected AI providers and webhooks"],
   ],

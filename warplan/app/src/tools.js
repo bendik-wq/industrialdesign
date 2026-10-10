@@ -10,6 +10,10 @@ import { sendEmail } from "./mailer.js";
 import { dataKeys } from "./keys.js";
 import { propose } from "./approvals.js";
 import { importTargets } from "./pipeline.js";
+import { discover, describe, run as monidRun, result as monidResult, needsApproval, compact, budget } from "./monid.js";
+import { deepEnrich, DEEP_ENRICH_PRICE } from "./waterfall.js";
+import { SEQUENCERS, listCampaigns, pushToCampaign } from "./sequencers.js";
+import { queue as callQueue, logCall, DISPOSITIONS } from "./dialer.js";
 import { STAGES, normalizeDeal, dealModel, maxMultiple, money, structureSummary, targetDeal, DEAL_DEFAULTS } from "../public/js/deal.js";
 
 const STAGE_IDS = STAGES.map((s) => s.id);
@@ -149,7 +153,7 @@ export const TOOLS = [
   },
   {
     name: "find_companies", write: false,
-    description: "Scout: search official registries and maps for companies to buy. Sources: no (Norway: owner + birth date, email, phone, website, revenue, operating profit), fr (France: owners + birth years, size), uk (UK: directors + birth year; needs a Companies House key), places (anywhere via Google Maps: phone, website; needs a key), osm (anywhere via OpenStreetMap, free). Returns candidates; nothing is saved until import_companies.",
+    description: "Scout: search official registries and maps for companies to buy. Sources: no (Norway: owner + birth date, email, phone, website, revenue, operating profit), fr (France: owners + birth years, size), uk (UK: directors + birth year; needs a Companies House key), maps (anywhere via Google Maps through Monid: phone, website, rating; ~$0.0002 a page; best worldwide source), places (Google Maps with a Google key), osm (anywhere via OpenStreetMap, free). Returns candidates; nothing is saved until import_companies.",
     input_schema: { type: "object", properties: { source: { type: "string", enum: Object.keys(SOURCES) }, industry: { type: "string", enum: INDUSTRIES.map((i) => i.id) }, region: { type: "string", description: "Norway: county code (e.g. 03 Oslo, 32 Akershus, 46 Vestland); France: département number; uk/places/osm: a city or area like 'Austin, TX'" }, min_staff: { type: "integer" }, page: { type: "integer" } }, required: ["source", "industry"] },
     run: async (env, ctx, i) => {
       const r = await scoutSearch(env, ctx, i, await dataKeys(env, ctx));
@@ -186,6 +190,77 @@ export const TOOLS = [
     run: async (env, ctx, i, hooks) => sendEmail(env, ctx, i, hooks),
   },
   {
+    name: "deep_enrich", write: true, approval: (env, ctx, i) => (i.mobile ? "Mobile lookups cost about $0.57 each when a number is found" : null),
+    title: (i) => `Deep enrich target ${i.target_id}${i.mobile ? " incl. mobile number" : ""}`,
+    description: `Deep enrich one target through the Monid data marketplace: finds the website if missing (Google Maps), every published email on the domain with names and titles (Hunter), the owner's address from their name, verifies it won't bounce, and finds the owner's LinkedIn. mobile=true also looks up the owner's mobile (expensive; needs approval). Saves everything on the target. Cost: ${DEEP_ENRICH_PRICE}. Prefer find_contacts first (free); use this when that found no owner email.`,
+    input_schema: { type: "object", properties: { target_id: { type: "integer" }, mobile: { type: "boolean" }, linkedin: { type: "boolean", description: "Default true" } }, required: ["target_id"] },
+    run: async (env, ctx, i) => deepEnrich(env, ctx, +i.target_id, { mobile: !!i.mobile, linkedin: i.linkedin !== false }),
+  },
+  {
+    name: "monid_discover", write: false,
+    description: "Search the Monid marketplace of 2,500+ data, scraping and enrichment APIs (Google Maps, LinkedIn, Hunter, Apollo-style people data, company financials, reviews, job posts, social media, web scraping, phone validation...). Describe what you need in plain words. Returns provider + endpoint + price. Then monid_inspect for the input schema and monid_run to run it.",
+    input_schema: { type: "object", properties: { query: { type: "string" }, limit: { type: "integer" } }, required: ["query"] },
+    run: async (env, ctx, i) => ({ endpoints: await discover(env, ctx, i.query, i.limit || 8) }),
+  },
+  {
+    name: "monid_inspect", write: false,
+    description: "The input schema (body, queryParams, pathParams), price and notes for one Monid endpoint. Always inspect before the first monid_run of an endpoint.",
+    input_schema: { type: "object", properties: { provider: { type: "string" }, endpoint: { type: "string" } }, required: ["provider", "endpoint"] },
+    run: async (env, ctx, i) => describe(env, ctx, i.provider, i.endpoint),
+  },
+  {
+    name: "monid_run", write: true,
+    approval: (env, ctx, i) => needsApproval(env, ctx, i.provider, i.endpoint, i.input || {}),
+    title: (i) => `Run ${i.provider} ${i.endpoint}${i.reason ? `: ${String(i.reason).slice(0, 80)}` : ""}`,
+    description: "Run one Monid endpoint and get its data (costs money from the workspace's Monid wallet; runs within the monthly budget, and anything over the auto-approve limit or with an unknown total waits for approval in the Inbox). input = {body?, queryParams?, pathParams?} exactly as monid_inspect describes. Always set a result limit (max_results, maxItems, limit) when the endpoint charges per result. Long runs return status RUNNING and a run_id for monid_result.",
+    input_schema: { type: "object", properties: { provider: { type: "string" }, endpoint: { type: "string" }, input: { type: "object", properties: { body: { type: "object" }, queryParams: { type: "object" }, pathParams: { type: "object" } } }, reason: { type: "string", description: "Why, in a few words (shown in the Inbox and the spend log)" }, target_id: { type: "integer" } }, required: ["provider", "endpoint"] },
+    run: async (env, ctx, i) => {
+      const r = await monidRun(env, ctx, { provider: i.provider, endpoint: i.endpoint, input: i.input || {} }, { purpose: i.reason || "Agent", targetId: i.target_id ? +i.target_id : null });
+      return { ...r, output: compact(r.output), receipt: `Ran ${i.provider} ${i.endpoint} ($${r.cost_usd.toFixed(4)})` };
+    },
+  },
+  {
+    name: "monid_result", write: false,
+    description: "Check a Monid run that came back RUNNING, and get its output when it's done.",
+    input_schema: { type: "object", properties: { run_id: { type: "string" } }, required: ["run_id"] },
+    run: async (env, ctx, i) => { const r = await monidResult(env, ctx, i.run_id); return { ...r, output: compact(r.output) }; },
+  },
+  {
+    name: "data_budget", write: false,
+    description: "This month's Monid data spend, the monthly cap, what's left and the auto-approve limit per run.",
+    input_schema: { type: "object", properties: {} },
+    run: async (env, ctx) => budget(env, ctx),
+  },
+  {
+    name: "list_campaigns", write: false,
+    description: "List the campaigns in a connected cold-email sequencer (instantly, smartlead or emailbison) so you can pick one for push_to_campaign.",
+    input_schema: { type: "object", properties: { provider: { type: "string", enum: SEQUENCERS } }, required: ["provider"] },
+    run: async (env, ctx, i) => listCampaigns(env, ctx, i.provider),
+  },
+  {
+    name: "push_to_campaign", write: true, approval: true,
+    title: (i) => `Add ${Array.isArray(i.target_ids) ? i.target_ids.length : 1} target(s) to ${i.provider}${i.campaign_name ? ` “${i.campaign_name}”` : ""}`,
+    description: "Add targets as leads to a cold-email campaign in Instantly, Smartlead or EmailBison (the sequencer then emails them on its schedule). Uses each target's best real owner email (never a guess), skips opt-outs, and writes a personal opening line per lead ({{personalization}}). Waits for the user's approval in the Inbox. Sourced targets move to Contacted.",
+    input_schema: { type: "object", properties: { provider: { type: "string", enum: SEQUENCERS }, campaign_id: { type: "string" }, campaign_name: { type: "string" }, target_ids: { type: "array", items: { type: "integer" } }, personalize: { type: "boolean", description: "Default true" } }, required: ["provider", "campaign_id", "target_ids"] },
+    run: async (env, ctx, i, hooks, ai) => pushToCampaign(env, ctx, i, hooks, ai),
+  },
+  {
+    name: "call_queue", write: false,
+    description: "The power dialer's call list: live targets with a phone number, due callbacks first, then by priority and never-called. Includes every number on file per target.",
+    input_schema: { type: "object", properties: { stage: { type: "string", enum: STAGE_IDS }, query: { type: "string" } } },
+    run: async (env, ctx, i) => {
+      const q = new URLSearchParams(); if (i.stage) q.set("stage", i.stage); if (i.query) q.set("q", i.query);
+      const r = await callQueue(env, ctx, q);
+      return { count: r.queue.length, queue: r.queue.slice(0, 40).map(({ motivation, ...x }) => x) };
+    },
+  },
+  {
+    name: "log_call", write: true,
+    description: `Log a phone call with a target and move it on. disposition: ${Object.entries(DISPOSITIONS).map(([k, d]) => `${k} (${d.label})`).join(", ")}. Sets the next action and date (override with next_date), advances the stage for connected/interested/meeting.`,
+    input_schema: { type: "object", properties: { target_id: { type: "integer" }, disposition: { type: "string", enum: Object.keys(DISPOSITIONS) }, notes: { type: "string" }, next_date: { type: "string", description: "YYYY-MM-DD" }, phone: { type: "string" }, duration: { type: "integer", description: "Seconds" } }, required: ["target_id", "disposition"] },
+    run: async (env, ctx, i, hooks) => logCall(env, ctx, i, hooks),
+  },
+  {
     name: "pipeline_overview", write: false,
     description: "The state of the whole pipeline: counts by stage, EBITDA in play, overdue and upcoming next actions, targets with no activity for 14+ days.",
     input_schema: { type: "object", properties: {} },
@@ -218,10 +293,18 @@ export async function runTool(env, ctx, ai, hooks, name, input, { approved = fal
   if (!tool) return { ok: false, result: { error: `Unknown tool ${name}` } };
   if (input == null || typeof input !== "object" || Array.isArray(input)) return { ok: false, result: { error: "Tool input must be a JSON object" } };
   for (const req of tool.input_schema.required || []) if (input[req] == null || input[req] === "") return { ok: false, result: { error: `Missing ${req}` } };
-  if (tool.approval && !approved) {
-    // Outward, irreversible actions (email) go to the Inbox; a person sends them with one click.
-    const id = await propose(env, ctx.accountId, { tool: name, input, target_id: input.target_id, title: name === "send_email" ? `Send “${String(input.subject || "").slice(0, 80)}” to ${input.to}` : `Run ${name}`, reason: name === "send_email" ? String(input.body || "").slice(0, 400) : "", source: "agent" });
-    return { ok: true, result: { queued: true, inbox_id: id, link: "/#/inbox", receipt: `Queued for your approval in the Inbox${name === "send_email" ? `: email to ${input.to}` : ""}` } };
+  // Outward, irreversible or costly actions (email, sequencer pushes, pricey data runs) go to the Inbox; a person
+  // approves them with one click. `approval` is true, or a function returning a reason (or null to go ahead).
+  let why = null;
+  if (!approved && tool.approval) {
+    try { why = typeof tool.approval === "function" ? await tool.approval(env, ctx, input) : "needs your OK"; }
+    catch (e) { return { ok: false, result: { error: e.status ? e.message : "Couldn't check that action. Try again." } }; }
+  }
+  if (why) {
+    const title = name === "send_email" ? `Send “${String(input.subject || "").slice(0, 80)}” to ${input.to}` : tool.title ? tool.title(input) : `Run ${name}`;
+    const reason = name === "send_email" ? String(input.body || "").slice(0, 400) : typeof why === "string" ? why : "";
+    const id = await propose(env, ctx.accountId, { tool: name, input, target_id: input.target_id, title, reason, source: "agent" });
+    return { ok: true, result: { queued: true, inbox_id: id, link: "/#/inbox", receipt: `Queued for your approval in the Inbox: ${name === "send_email" ? `email to ${input.to}` : title}` } };
   }
   try {
     return { ok: true, result: await tool.run(env, ctx, input, hooks, ai) };

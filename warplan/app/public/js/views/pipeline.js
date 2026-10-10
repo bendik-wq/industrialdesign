@@ -1,5 +1,6 @@
 import { $, $$, esc, api, post, view, session, stale, toast, fail, dialog, local, todayYmd, addDays, dateLabel, when, skeleton, emptyState } from "../core.js";
 import { STAGES, CURS, money, stageById } from "../deal.js";
+import { pushDialog } from "./outreach.js";
 
 const PRIORITY = { 1: "High", 2: "Normal", 3: "Low" };
 
@@ -30,7 +31,8 @@ export async function renderPipeline(seq, params) {
       <input type="search" id="pq" placeholder="Search name, owner, industry, place, tag" value="${esc(q)}" aria-label="Search targets">
       <div class="seg" role="group" aria-label="View"><button type="button" data-v="board" class="${mode === "board" ? "on" : ""}" aria-pressed="${mode === "board"}">Board</button><button type="button" data-v="table" class="${mode === "table" ? "on" : ""}" aria-pressed="${mode === "table"}">Table</button></div>
       <span class="spacer"></span>
-      <button class="ghost" id="importBtn" type="button">Import CSV</button>
+      <button class="ghost" id="pushBtn" type="button" ${live.length ? "" : "disabled"}>⇢ Add to campaign</button>
+      <button class="ghost" id="importBtn" type="button" title="Your own sheet, or a ListKit / Apollo / Clay export">Import CSV</button>
       <a class="ghost" href="/api/targets.csv" download>Export CSV</a>
     </div>
     <div id="pipe">${!targets.length ? (q ? emptyState("Nothing matches", `No target matches “${q}”.`) : emptyState("No targets yet", "Add the companies you'd like to buy: competitors, suppliers, businesses next door. Start with ten.", `<div class="row center-row"><button class="primary" data-add type="button">+ Add your first target</button><button class="ghost" data-import type="button">Import a CSV</button><button class="ghost" data-samples type="button">Load three examples</button></div>`)) : mode === "table" ? table(targets) : board(targets)}</div>`;
@@ -40,6 +42,7 @@ export async function renderPipeline(seq, params) {
   $("[data-import]")?.addEventListener("click", importCsv);
   $("[data-samples]")?.addEventListener("click", loadSamples);
   $("#importBtn").addEventListener("click", importCsv);
+  $("#pushBtn").addEventListener("click", () => pushDialog(live));
   $$(".seg [data-v]").forEach((b) => b.addEventListener("click", () => { local.set("pipelineView", b.dataset.v); renderPipeline(seq, params); }));
   let t;
   $("#pq").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => { history.replaceState(null, "", `#/pipeline${e.target.value ? `?q=${encodeURIComponent(e.target.value)}` : ""}`); renderPipeline(++session.seq, new URLSearchParams(e.target.value ? { q: e.target.value } : {})).then(() => { const i = $("#pq"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 300); });
@@ -167,10 +170,12 @@ function parseCsv(text) {
   if (cell || row.length) { row.push(cell); rows.push(row); }
   return rows.filter((r) => r.some((x) => x.trim()));
 }
+// Aliases cover hand-made sheets plus ListKit, Apollo, Clay and Sales Navigator exports.
 const HEADER_MAP = {
-  name: ["name", "company", "company name", "business", "business name", "target"], industry: ["industry", "sector", "category"], location: ["location", "city", "town", "address", "region"],
-  website: ["website", "url", "site", "domain"], owner_name: ["owner", "owner name", "contact", "contact name", "ceo", "director"], owner_age: ["owner age", "age"],
-  phone: ["phone", "telephone", "tel"], email: ["email", "e-mail"], employees: ["employees", "staff", "headcount"], revenue: ["revenue", "turnover", "sales"],
+  name: ["name", "company", "company name", "business", "business name", "target", "organization", "organization name", "account name"], industry: ["industry", "sector", "category", "company industry"], location: ["location", "town", "address", "region", "company address"],
+  website: ["website", "url", "site", "domain", "company domain", "company website", "website url"], owner_name: ["owner", "owner name", "contact", "contact name", "ceo", "director", "full name", "person name"], owner_age: ["owner age", "age"],
+  phone: ["phone", "telephone", "tel", "phone number", "mobile phone", "mobile", "direct phone", "work phone", "company phone", "corporate phone"], email: ["email", "e-mail", "email address", "work email", "business email", "verified email"], employees: ["employees", "staff", "headcount", "employee count", "# employees", "number of employees", "company size"], revenue: ["revenue", "turnover", "sales", "annual revenue", "company revenue"],
+  first_name: ["first name", "firstname"], last_name: ["last name", "lastname", "surname"], city: ["city", "company city"], state: ["state", "province", "company state"], country: ["country", "company country"], title: ["title", "job title", "position"], linkedin: ["linkedin", "linkedin url", "person linkedin url", "linkedin profile"],
   ebitda: ["ebitda", "profit", "earnings", "operating profit"], asking: ["asking", "asking price", "price"], stage: ["stage", "status"], source: ["source"], tags: ["tags", "tag"],
   next_action: ["next action", "next step"], next_date: ["next date", "due", "due date"], motivation: ["notes", "motivation", "comment", "comments"],
 };
@@ -195,6 +200,14 @@ async function importCsv() {
     const items = rows.slice(1).map((r) => {
       const o = {};
       cols.forEach((k, i) => { if (k && r[i] != null && r[i].trim() !== "") o[k] = r[i].trim(); });
+      // Person-level exports (ListKit, Apollo): build the owner and the location from their parts.
+      if (!o.owner_name && (o.first_name || o.last_name)) o.owner_name = [o.first_name, o.last_name].filter(Boolean).join(" ");
+      if (!o.location && (o.city || o.state || o.country)) o.location = [o.city, o.state, o.country].filter(Boolean).join(", ");
+      const extra = [o.title && `${o.owner_name || "Contact"} is ${o.title}.`, o.linkedin && `LinkedIn: ${o.linkedin}`].filter(Boolean).join(" ");
+      if (extra) o.motivation = [o.motivation, extra].filter(Boolean).join(" ");
+      ["first_name", "last_name", "city", "state", "country", "title", "linkedin"].forEach((k) => delete o[k]);
+      if (o.website && !/^https?:/i.test(o.website)) o.website = `https://${o.website}`;
+      if (o.employees && /\d+\s*-\s*\d+/.test(String(o.employees))) o.employees = String(o.employees).split("-")[0];
       ["revenue", "ebitda", "asking", "employees", "owner_age"].forEach((k) => { if (k in o) o[k] = toNum(o[k]); });
       if (o.stage) { const s = STAGES.find((x) => x.label.toLowerCase() === o.stage.toLowerCase() || x.id === o.stage.toLowerCase()); o.stage = s ? s.id : "sourced"; }
       if (o.stage && !stageIds.has(o.stage)) o.stage = "sourced";

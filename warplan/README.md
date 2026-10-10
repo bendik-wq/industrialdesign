@@ -68,6 +68,20 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
 - Security: PBKDF2 passwords, signed sessions invalidated on password change, CSP, origin check on cookie writes,
   no secrets in the repo.
 
+**v5: the deal-flow machine (scrape → enrich → email → call)**
+- **Data (Monid)**: one key for 2,500+ data and scraping APIs. Scout gets a *Google Maps (Monid)* source that works anywhere (~$0.0002 per 20 businesses). The Data page searches the catalogue, shows each endpoint's price, builds the input form and runs it. Every run is logged with what it cost, stops at a monthly cap per workspace, and agent runs above the per-run auto-approve limit (or with a price that can't be known up front) wait in the Inbox.
+- **Deep enrich**: website via Google Maps if missing → Hunter domain search → Apollo people search (free) + match to find the owner → Hunter email finder → verification → LinkedIn → mobile (Clay, only on request). An Apollo match only counts if the person's employer is on the target's domain. If no owner turns up, a general manager or MD is labelled *decision maker*, never *owner*. Typical cost: $0.04–0.07 per company.
+- **Sequencers**: push targets into Instantly, Smartlead or EmailBison campaigns, from the target page, the pipeline (by stage) or an agent (with approval). Each push uses the owner's best real email (never a guess), skips opt-outs and writes a personal opening line (`{{personalization}}`).
+- **Reply webhook**: one secret URL per workspace (`/hooks/replies/rh_…`). Each reply lands on the target's timeline. The AI sorts it, moves the target on and suppresses the address on an unsubscribe. For interested or meeting replies it also queues a drafted answer in the Inbox.
+- **ListKit / Apollo / Clay CSVs**: the pipeline importer maps their person-level headers (first and last name, company domain, city/state/country, title, LinkedIn).
+- **Power dialer** (`#/dialer`): a queue of every live target with a phone number, due callbacks first.
+  - Calls go out via a `tel:` link, or through a Twilio bridge on the workspace's own account: Twilio rings you, then connects the owner, with no recording.
+  - Includes a first-call script and objection handlers, plus notes and a timer.
+  - Keys 1–9 set the outcome. Each outcome sets the next action and date, moves the stage forward and logs the call on the timeline.
+  - Auto-dial is available with Twilio.
+- **Agent tools** (Josh, MCP, REST): `deep_enrich`, `monid_discover`, `monid_inspect`, `monid_run`, `monid_result`, `data_budget`, `list_campaigns`, `push_to_campaign`, `call_queue`, `log_call`, 25 tools in total.
+- **New webhook events**: `reply.received`, `campaign.pushed`, `call.logged`.
+
 ## API
 
 `GET /api` returns the full reference. Authenticate with `Authorization: Bearer wp_...` (Settings → API).

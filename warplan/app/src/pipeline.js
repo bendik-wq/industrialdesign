@@ -101,6 +101,9 @@ export async function deleteTarget(env, ctx, id, hooks) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM target_events WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM documents WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM contacts WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM calls WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM campaign_leads WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM targets WHERE id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
   ]);
   hooks.emit("target.deleted", { id, name: t.name });
@@ -142,7 +145,7 @@ export async function importTargets(env, ctx, b, hooks) {
     res.forEach((x) => made.push(x.results[0]));
   }
   if (made.length) hooks.emit("target.imported", { count: made.length });
-  return { imported: made.length, skipped };
+  return { imported: made.length, skipped, ids: made.map((m) => m.id) };
 }
 
 const CSV_COLS = ["name", "industry", "location", "website", "owner_name", "owner_age", "phone", "email", "employees", "revenue", "ebitda", "asking", "currency", "stage", "priority", "source", "next_action", "next_date", "tags", "motivation", "created_at", "updated_at"];
@@ -176,7 +179,7 @@ export function targetFacts(t) {
 }
 
 // ------------------------------------------------------------------ webhooks
-export const HOOK_EVENTS = ["target.created", "target.updated", "target.stage_changed", "target.note_added", "target.deleted", "target.imported", "document.created", "call.debriefed", "briefing.daily", "action.proposed", "email.sent", "scout.imported"];
+export const HOOK_EVENTS = ["target.created", "target.updated", "target.stage_changed", "target.note_added", "target.deleted", "target.imported", "document.created", "call.debriefed", "briefing.daily", "action.proposed", "email.sent", "scout.imported", "reply.received", "campaign.pushed", "call.logged"];
 
 async function sign(secret, body) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);

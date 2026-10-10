@@ -2,6 +2,25 @@ import { $, $$, esc, api, post, view, stale, toast, fail, local, skeleton } from
 import { money } from "../deal.js";
 
 // Scout: search registries and maps, tick the companies worth buying, add them to the pipeline in one go.
+// Deep enrich imported targets one at a time (each takes 10-40s and costs a few cents), with live progress.
+async function deepRun(ids) {
+  let done = 0, emails = 0, spent = 0;
+  const bar = document.createElement("div");
+  bar.className = "progress-toast"; document.body.append(bar);
+  const show = () => { bar.textContent = `Deep enrich: ${done}/${ids.length} · ${emails} owner email${emails === 1 ? "" : "s"} · $${spent.toFixed(2)}`; };
+  show();
+  for (const id of ids) {
+    try {
+      await post(`/api/targets/${id}/contacts/find`).catch(() => {});
+      const r = await post(`/api/targets/${id}/enrich`, {});
+      if (r.owner_email) emails++; spent += r.cost_usd || 0;
+    } catch (e) { if (e.status === 402) { fail(e); break; } }
+    done++; show();
+  }
+  setTimeout(() => bar.remove(), 6000);
+  toast(`Deep enrich finished: ${emails} owner email${emails === 1 ? "" : "s"} for $${spent.toFixed(2)}`);
+}
+
 export async function renderScout(seq) {
   view().innerHTML = skeleton(4);
   const info = await api("/api/scout");
@@ -55,16 +74,17 @@ export async function renderScout(seq) {
         <span class="muted small">${state.total != null ? `${state.total} matches · ` : ""}showing ${rows.length} · ${withOwner} with an owner · ${withEmail} with email · ${withPhone} with phone</span>
         <span class="spacer"></span>
         <label class="check"><input type="checkbox" id="findC" checked> Find contacts on their websites</label>
+        ${info.monid ? `<label class="check" title="Owner email (verified) + LinkedIn via Monid, about $0.05–0.08 each"><input type="checkbox" id="deepC"> Deep enrich owners (~$0.06 each)</label>` : ""}
         <button class="primary" id="addSel" type="button" disabled>Add 0 to pipeline</button>
       </div>
       <div class="table-wrap panel flush"><table class="ttable scout-table">
-        <thead><tr><th><input type="checkbox" id="all" aria-label="Select all"></th><th>Company</th><th>Owner</th><th>Contact</th><th class="num">Revenue</th><th class="num">Op. profit</th><th class="num">Staff</th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="all" aria-label="Select all"></th><th>Company</th><th>Owner</th><th>Contact</th><th class="num">Revenue</th><th class="num">Op. profit</th><th class="num">${state.source === "maps" || state.source === "places" ? "Rating" : "Staff"}</th></tr></thead>
         <tbody>${rows.map((r, i) => `<tr class="${r.in_pipeline ? "dim" : ""}">
           <td><input type="checkbox" data-i="${i}" ${r.in_pipeline ? "disabled" : ""} aria-label="Select ${esc(r.name)}"></td>
           <td><b>${esc(r.name)}</b>${r.in_pipeline ? ' <span class="chip">in pipeline</span>' : ""}<small class="muted block">${esc(r.location || "")}${r.registry_url ? ` · <a href="${esc(r.registry_url)}" target="_blank" rel="noopener noreferrer">record</a>` : ""}${r.website ? ` · <a href="${esc(r.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ""}</small></td>
           <td>${r.owner_name ? `${esc(r.owner_name)}${r.owner_age ? ` <span class="age ${r.owner_age >= 60 ? "old" : ""}">${r.owner_age}</span>` : ""}` : '<span class="muted">–</span>'}</td>
           <td class="small">${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ""}${r.email && r.phone ? "<br>" : ""}${r.phone ? `<a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : ""}${!r.email && !r.phone ? '<span class="muted">find after import</span>' : ""}</td>
-          <td class="num">${r.revenue != null ? money(r.revenue, c) : "–"}</td><td class="num ${r.ebitda < 0 ? "tone-bad" : ""}">${r.ebitda != null ? money(r.ebitda, c) : "–"}</td><td class="num">${r.employees ?? r.employees_label ?? "–"}</td></tr>`).join("")}</tbody></table></div>
+          <td class="num">${r.revenue != null ? money(r.revenue, c) : "–"}</td><td class="num ${r.ebitda < 0 ? "tone-bad" : ""}">${r.ebitda != null ? money(r.ebitda, c) : "–"}</td><td class="num">${r.employees ?? r.employees_label ?? (r.rating ? `★${r.rating} <small class="muted">(${r.reviews})</small>` : "–")}</td></tr>`).join("")}</tbody></table></div>
       ${state.more ? `<div class="center-row row"><button class="ghost" id="more" type="button">Load more</button></div>` : ""}
       <p class="muted small">Owner age is from the registry's birth year. 60+ is highlighted: the classic succession window. Operating profit is as filed (EBIT), a floor for EBITDA.</p>`;
     const boxes = () => $$("[data-i]:checked");
@@ -76,10 +96,12 @@ export async function renderScout(seq) {
       const picked = boxes().map((b) => rows[+b.dataset.i]);
       e.currentTarget.disabled = true; e.currentTarget.textContent = "Adding…";
       try {
-        const r = await post("/api/scout/import", { companies: picked, currency: state.currency, find_contacts: $("#findC").checked });
+        const deep = !!$("#deepC")?.checked;
+        const r = await post("/api/scout/import", { companies: picked, currency: state.currency, find_contacts: $("#findC").checked && !deep });
         picked.forEach((p) => { p.in_pipeline = true; });
-        toast(`Added ${r.imported} to the pipeline${$("#findC").checked ? ". The contact finder is reading their websites now." : ""}`);
+        toast(`Added ${r.imported} to the pipeline${deep ? ". Deep-enriching the owners one by one; keep this tab open." : $("#findC").checked ? ". The contact finder is reading their websites now." : ""}`);
         drawResults();
+        if (deep) deepRun(r.ids || []);
       } catch (err) { fail(err); sync(); }
     });
   };

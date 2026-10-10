@@ -90,8 +90,18 @@ async function team(seq) {
 
 // ------------------------------------------------------------------ integrations
 async function integrations(seq) {
-  const d = await api("/api/integrations");
+  const [d, seqs] = await Promise.all([api("/api/integrations"), api("/api/sequencers")]);
   if (stale(seq)) return;
+  const replies = seqs.replies;
+  const META_LABEL = { baseUrl: ["EmailBison address", "https://dedi.emailbison.com"], sid: ["Account SID", "AC…"], from: ["Twilio number (calls come from it)", "+15551234567"], agentPhone: ["Your phone (Warplan rings it first)", "+4791234567"] };
+  const card = (x) => `
+      <form class="panel form-panel provider" data-provider="${x.id}">
+        <div class="panel-head"><h2 class="h3">${esc(x.label)}</h2><span class="status ${x.connected ? "on" : ""}">${x.connected ? `Connected ··${esc(x.last4)}` : x.id === "monid" && x.platformFallback !== "not available" ? esc(x.platformFallback) : "Not connected"}</span></div>
+        <label class="field">${x.id === "twilio" ? "Auth token" : "API key"}<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${x.connected ? "Paste a new key to replace it" : "Paste the key"}" ${dis}></label>
+        ${(x.metaFields || []).map((m) => `<label class="field">${esc(META_LABEL[m]?.[0] || m)}<input name="meta:${m}" value="${esc(x.meta[m] || "")}" placeholder="${esc(META_LABEL[m]?.[1] || "")}" ${dis}></label>`).join("")}
+        <p class="muted small">${esc(x.hint)}</p>
+        <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? (x.metaFields?.length ? "Save" : "Replace") : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}${x.id === "monid" && x.connected ? `<a class="ghost" href="#/data">Open the data console</a>` : ""}</div>
+      </form>`;
   const k = Object.fromEntries(d.keys.map((x) => [x.id, x]));
   const dis = d.canEdit ? "" : "disabled";
   $("#tab").innerHTML = `
@@ -115,14 +125,16 @@ async function integrations(seq) {
         <div class="row">${d.canEdit ? `<button class="primary" type="submit">${k.elevenlabs.connected ? "Save" : "Verify & connect"}</button>${k.elevenlabs.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}</div>
       </form>
     </div>
-    <h2 class="sub-sm">Data sources for Scout and the contact finder</h2>
-    <div class="settings-grid">${["google_places", "companies_house", "hunter"].map((id) => { const x = k[id]; return `
-      <form class="panel form-panel provider" data-provider="${id}">
-        <div class="panel-head"><h2 class="h3">${esc(x.label)}</h2><span class="status ${x.connected ? "on" : ""}">${x.connected ? `Connected ··${esc(x.last4)}` : "Not connected"}</span></div>
-        <label class="field">API key<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${x.connected ? "Paste a new key to replace it" : "Paste the key"}" ${dis}></label>
-        <p class="muted small">${esc(x.hint)}</p>
-        <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? "Replace" : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}</div>
-      </form>`; }).join("")}</div>
+    <h2 class="sub-sm">Data: scraping and enrichment</h2>
+    <div class="settings-grid">${["monid", "google_places", "companies_house", "hunter"].map((id) => card(k[id])).join("")}</div>
+    <h2 class="sub-sm">Outreach: cold email and calling</h2>
+    <div class="settings-grid">${["instantly", "smartlead", "emailbison", "twilio"].map((id) => card(k[id])).join("")}</div>
+    <section class="panel">
+      <div class="panel-head"><h2 class="h3">Reply webhook</h2>${d.canEdit ? `<button class="ghost" id="replyHook" type="button">${replies.configured ? "Make a new URL" : "Create the URL"}</button>` : ""}</div>
+      <p class="muted small">Paste this URL into Instantly (Settings → Webhooks → “Reply received”), Smartlead (campaign → Webhooks → “Email reply”) or EmailBison (Webhooks → “Lead replied”). Every reply lands on the target's timeline; the AI sorts it (interested, meeting, later, out of office, not interested, unsubscribe), moves the target on, suppresses opt-outs and drafts an answer for your approval in the Inbox.</p>
+      ${replies.configured ? `<p class="small">URL created ${when(replies.created_at)}. It's shown only once; make a new one if you lost it (the old one stops working).</p>` : ""}
+      ${replies.replies.length ? `<div class="table-wrap"><table class="mini-table"><thead><tr><th>When</th><th>From</th><th>Read as</th><th>Summary</th></tr></thead><tbody>${replies.replies.slice(0, 10).map((r) => `<tr><td class="nowrap">${when(r.created_at)}</td><td class="small">${r.target_id ? `<a href="#/targets/${r.target_id}">${esc(r.target_name || r.from_email)}</a>` : esc(r.from_email)}</td><td><span class="chip">${esc(r.category.replace("_", " "))}</span></td><td class="small">${esc(r.summary)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    </section>
     <section class="panel">
       <div class="panel-head"><h2 class="h3">Webhooks</h2>${d.canEdit ? `<button class="primary" id="addHook" type="button">+ Add webhook</button>` : ""}</div>
       <p class="muted small">Send pipeline events to your own systems (your CRM, Zapier, Make, Slack via a relay). Each delivery is signed so you can check it came from us.</p>
@@ -135,13 +147,23 @@ async function integrations(seq) {
       const v = Object.fromEntries(new FormData(f));
       const btn = $("button[type=submit]", f);
       btn.disabled = true; btn.textContent = v.key ? "Checking the key…" : "Saving…";
-      try { await post(`/api/integrations/${provider}`, { key: v.key, meta: { model: v.model, voiceId: v.voiceId } }, "PUT"); toast(v.key ? "Connected" : "Saved"); session.team = await api("/api/agents"); integrations(seq); }
+      const meta = { model: v.model, voiceId: v.voiceId };
+      for (const [mk, mv] of Object.entries(v)) if (mk.startsWith("meta:")) meta[mk.slice(5)] = mv;
+      try { await post(`/api/integrations/${provider}`, { key: v.key, meta }, "PUT"); toast(v.key ? "Connected" : "Saved"); session.team = await api("/api/agents"); integrations(seq); }
       catch (err) { fail(err); btn.disabled = false; btn.textContent = "Try again"; }
     });
     $("[data-disconnect]", f)?.addEventListener("click", async () => {
       if (!(await confirmBox("Disconnect this key?", "The workspace goes back to the platform's AI and daily limits.", "Disconnect"))) return;
       try { await api(`/api/integrations/${provider}`, { method: "DELETE" }); session.team = await api("/api/agents"); integrations(seq); } catch (e) { fail(e); }
     });
+  });
+  $("#replyHook")?.addEventListener("click", async () => {
+    if (replies.configured && !(await confirmBox("Make a new reply URL?", "The current URL stops working; paste the new one into your sequencer.", "Make a new one"))) return;
+    try {
+      const r = await post("/api/replies/hook");
+      await dialog({ title: "Your reply webhook", submit: "", html: `<p>Paste this into your sequencer's reply webhook. Shown once.</p><div class="secret"><code>${esc(r.url)}</code><button class="ghost" type="button" data-cp>Copy</button></div><p class="muted small">Add <code>?from=instantly</code>, <code>?from=smartlead</code> or <code>?from=emailbison</code> to label where replies came from.</p>`, onOpen: (dl) => $("[data-cp]", dl).addEventListener("click", () => copy(r.url, "URL copied")) });
+      integrations(seq);
+    } catch (e) { fail(e); }
   });
   $("#addHook")?.addEventListener("click", async () => {
     const r = await dialog({ title: "Add a webhook", submit: "Add", html: `<label class="field">Endpoint URL<input name="url" type="url" required placeholder="https://hooks.zapier.com/…"></label>

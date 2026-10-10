@@ -4,6 +4,7 @@ import { TARGET_FIELDS } from "./pipeline.js";
 import { askJoshAbout } from "./josh.js";
 import { loadDeal } from "./builder.js";
 import { composeEmail } from "./email.js";
+import { pushDialog, deepEnrichDialog } from "./outreach.js";
 
 const KIND_LABEL = { note: "Note", call: "Call", email: "Email", meeting: "Meeting", stage: "Stage", doc: "Document" };
 const LANGS = ["", "English", "Spanish", "French", "German", "Norwegian", "Swedish", "Danish", "Dutch", "Italian", "Portuguese"];
@@ -27,6 +28,8 @@ export async function renderTarget(id, seq) {
       <div class="row th-actions">
         <button class="primary" id="askJosh" type="button">Ask Josh about ${esc(t.name.length > 24 ? "this target" : t.name)}</button>
         <button class="ghost" id="emailOwner" type="button">✉ Email the owner</button>
+        <a class="ghost" href="#/dialer?target=${t.id}">✆ Call</a>
+        <button class="ghost" id="pushCampaign" type="button">⇢ Add to campaign</button>
         <a class="ghost" href="#/simulator?target=${t.id}">☎ Practise the call</a>
         <a class="ghost" href="#/builder?target=${t.id}">⚖ Structure the deal</a>
         <button class="ghost" id="edit" type="button">Edit details</button>
@@ -77,10 +80,12 @@ export async function renderTarget(id, seq) {
         <section class="panel">
           <div class="panel-head"><h2 class="h3">Contacts</h2><button class="mini-btn" id="findContacts" type="button">${t.contacts.length ? "Search again" : "Find contacts"}</button></div>
           ${t.contacts.length ? `<ul class="contact-list">${t.contacts.map((c) => `<li class="cl-${c.confidence}">
-            <div><a href="${c.kind === "email" ? `mailto:${esc(c.value)}` : `tel:${esc(c.value.replace(/\s/g, ""))}`}">${esc(c.value)}</a><small>${esc(c.label)} · ${esc(c.source)}${c.confidence === "guess" ? " · <b>guess</b>" : ""}</small></div>
+            <div><a href="${c.kind === "email" ? `mailto:${esc(c.value)}` : c.kind === "linkedin" ? esc(c.value) : `tel:${esc(c.value.replace(/\s/g, ""))}`}" ${c.kind === "linkedin" ? 'target="_blank" rel="noopener noreferrer"' : ""}>${c.kind === "linkedin" ? "LinkedIn profile" : esc(c.value)}</a><small>${esc(c.label)} · ${esc(c.source)}${c.confidence === "guess" ? " · <b>guess</b>" : ""}</small></div>
             <span>${c.kind === "email" ? `<button class="mini-btn" data-mail="${esc(c.value)}" type="button" title="Email">✉</button>` : ""}<button class="mini-btn" data-cp="${esc(c.value)}" type="button" title="Copy">⧉</button><button class="mini-btn" data-del-c="${c.id}" type="button" title="Remove" aria-label="Remove">✕</button></span></li>`).join("")}</ul>`
             : `<p class="muted small">${t.website ? "Reads their website for emails and phone numbers, and suggests the owner's likely address." : "Add their website (Edit details) so the contact finder can read it, or add contacts by hand."}</p>`}
-          <button class="link-btn small" id="addContact" type="button">+ Add an email or phone</button>
+          <div class="row small"><button class="link-btn small" id="addContact" type="button">+ Add an email or phone</button><button class="link-btn small" id="deepEnrich" type="button">Deep enrich (owner email, LinkedIn, mobile) →</button></div>
+          ${t.calls?.length ? `<h3 class="h4">Calls</h3><ul class="link-list">${t.calls.slice(0, 6).map((x) => `<li><span>${esc(x.disposition.replace("_", " "))}${x.notes ? `<small class="muted block">${esc(x.notes.slice(0, 90))}</small>` : ""}</span><small>${when(x.created_at)}</small></li>`).join("")}</ul>` : ""}
+          ${t.campaigns?.length ? `<h3 class="h4">Campaigns</h3><ul class="link-list">${t.campaigns.map((x) => `<li><span>${esc(x.campaign_name || x.provider)}<small class="muted block">${esc(x.provider)} · ${esc(x.email)}</small></span><small class="${x.status === "failed" ? "tone-bad" : x.status === "replied" ? "tone-ok" : ""}">${esc(x.status)}</small></li>`).join("")}</ul>` : ""}
           ${t.emails.length ? `<h3 class="h4">Emails sent</h3><ul class="link-list">${t.emails.map((e) => `<li><span>${esc(e.subject)}<small class="muted block">to ${esc(e.to_email)}</small></span><small class="${e.status === "failed" ? "tone-bad" : ""}">${e.status === "failed" ? "failed" : when(e.created_at)}</small></li>`).join("")}</ul>` : ""}
         </section>
         <section class="panel">
@@ -113,6 +118,8 @@ export async function renderTarget(id, seq) {
 
   const mail = (to = "") => composeEmail({ target: t, contacts: t.contacts, to }).then((sent) => { if (sent) renderTarget(id, seq); });
   $("#emailOwner").addEventListener("click", () => mail());
+  $("#pushCampaign").addEventListener("click", async () => { if (await pushDialog([t])) renderTarget(id, seq); });
+  $("#deepEnrich").addEventListener("click", async () => { if (await deepEnrichDialog(t)) renderTarget(id, seq); });
   $$("[data-mail]").forEach((b) => b.addEventListener("click", () => mail(b.dataset.mail)));
   $$("[data-cp]").forEach((b) => b.addEventListener("click", () => navigator.clipboard.writeText(b.dataset.cp).then(() => toast("Copied"))));
   $("#findContacts").addEventListener("click", async (e) => {

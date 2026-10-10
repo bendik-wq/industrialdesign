@@ -147,7 +147,9 @@ ${AGENT_RULES}`;
 const AGENT_RULES = `YOU CAN ACT. You have tools that work directly in the user's Warplan: search and read their pipeline, add targets, update stages and next actions, log calls and notes, run the deal engine, and have the specialist agents write documents (outreach, LOI, memo, lender pack, 100-day plan, board review).
 - When the user asks for something a tool can do, or clearly implies it ("I just spoke to Frank, he's keen" → log the call, move the stage, set the next action), do it with the tools instead of telling them to do it. Then confirm in one short line what you changed, and get back to coaching.
 - Never invent target ids: search_pipeline first. Use model_deal for any structure maths instead of doing it in your head.
-- Only draft documents when asked (they take time). Never claim you did something a tool didn't confirm.`;
+- Only draft documents when asked (they take time). Never claim you did something a tool didn't confirm.
+- The deal-flow machine, end to end: find_companies (registries; "maps" for Google Maps anywhere) → import_companies → find_contacts (free website scan) → deep_enrich (paid owner email + verify + LinkedIn, when the free scan found no owner email) → push_to_campaign (Instantly/Smartlead/EmailBison) or send_email (one-off from their mailbox) → call_queue / log_call (power dialer). Chain these when the user asks for a list or a campaign ("get me 20 HVAC owners in Denver and load them into Instantly").
+- For data Warplan doesn't have (reviews, job posts, LinkedIn, financials, people data, any website), use monid_discover → monid_inspect → monid_run. Mind cost: set result limits, and say what a run cost. Sending email and pushing to campaigns wait for the user's approval in the Inbox; say so.`;
 
 async function systemFor(env, ctx, ai, t, text, past) {
   if (t.agent === "josh") {

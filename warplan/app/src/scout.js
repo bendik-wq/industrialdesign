@@ -3,17 +3,21 @@
 //   France   Recherche d'entreprises (Sirene + RNE): owners + birth years, size, revenue when filed. No key.
 //   UK       Companies House: directors + birth month/year, size class. Free key (workspace integration).
 //   Anywhere Google Places: phone, website, rating. Key (workspace integration).
+//   Anywhere Google Maps via Monid (litescrape): phone, website, rating, category. Monid key; ~$0.0002 a page.
 //   Anywhere OpenStreetMap: phone, email, website where mapped. No key; patchier coverage.
 // Every result comes back in one shape; importing turns it into a pipeline target.
 import { INDUSTRIES, industryById } from "./data/industries.js";
 import NO_FYLKER from "./data/no_fylker.json";
 import FR_DEPARTEMENTS from "./data/fr_dep.json";
+import { run as monidRun } from "./monid.js";
 
 const UA = "Warplan/2 (acquisition research; https://warplan.bendik-50e.workers.dev)";
 const err = (status, message) => Object.assign(new Error(message), { status });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const titleCase = (s) => (s || "").toLowerCase().replace(/(^|[\s\-'’(/])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
 const yearNow = () => new Date().getUTCFullYear();
+// Drop tracking parameters (utm_*, gclid...) that Google listings append to websites.
+const cleanUrl = (u) => { try { const x = new URL(u); [...x.searchParams.keys()].filter((k) => /^(utm_|gclid|fbclid|y_source)/i.test(k)).forEach((k) => x.searchParams.delete(k)); return x.toString().replace(/\?$/, ""); } catch { return u || ""; } };
 
 async function getJson(url, init = {}, tries = 3) {
   for (let i = 0; ; i++) {
@@ -172,11 +176,34 @@ const places = {
       const comp = (t) => x.addressComponents?.find((c) => c.types?.includes(t))?.longText;
       return {
         source: "places", source_id: x.id, name: x.displayName?.text, location: [comp("locality"), comp("administrative_area_level_1")].filter(Boolean).join(", "), address: x.formattedAddress || "",
-        website: x.websiteUri || "", email: "", phone: x.internationalPhoneNumber || x.nationalPhoneNumber || "", employees: null, revenue: null, ebitda: null,
+        website: cleanUrl(x.websiteUri), email: "", phone: x.internationalPhoneNumber || x.nationalPhoneNumber || "", employees: null, revenue: null, ebitda: null,
         rating: x.rating ?? null, reviews: x.userRatingCount ?? 0, people: [], registry_url: `https://www.google.com/maps/place/?q=place_id:${x.id}`,
       };
     });
     return { results: rows, more: !!d?.nextPageToken, cursor: d?.nextPageToken || null, total: null };
+  },
+};
+
+// ------------------------------------------------------------------ Google Maps via Monid (anywhere, no Google key)
+const maps = {
+  id: "maps", label: "Anywhere · Google Maps (Monid)", flag: "📍", currency: "$", needs: "monid",
+  regionLabel: "City or area", regions: "text",
+  gives: ["Every business Google lists: phone, website, category", "Rating and review count (size signal)", "20 per page for a fraction of a cent", "Then Deep enrich finds the owner's email"],
+  async search(env, q, keys, ctx) {
+    const ind = industryById(q.industry);
+    if (!keys.monid) throw err(400, "Connect a Monid key under Settings → Integrations");
+    if (!q.region) throw err(400, "Type a city or area, e.g. “Austin, TX”");
+    const r = await monidRun(env, ctx, { provider: "litescrape", endpoint: "/google/maps", input: { queryParams: { q: ind.places, type: "search", location: q.region, z: 12, ...(q.page > 1 && { start: (q.page - 1) * 20 }) } } }, { purpose: `Scout: ${ind.places} in ${q.region}`, key: keys.monid, maxWaitMs: 28000 });
+    const list = r.output?.local_results || [];
+    const rows = list.filter((x) => x.title && !/permanently closed/i.test(x.open_state || "")).map((x) => {
+      const parts = String(x.address || "").split(",").map((s) => s.trim());
+      return {
+        source: "maps", source_id: x.place_id || x.data_id || x.title, name: x.title, location: parts.length > 2 ? parts.slice(-2).join(", ").replace(/\s+\d{4,6}$/, "") : x.address || q.region, address: x.address || "",
+        website: cleanUrl(x.website), email: "", phone: x.phone || "", employees: null, revenue: null, ebitda: null,
+        rating: x.rating ?? null, reviews: x.reviews ?? 0, category: x.type || "", people: [], registry_url: x.place_id ? `https://www.google.com/maps/place/?q=place_id:${x.place_id}` : "",
+      };
+    });
+    return { results: rows, more: list.length >= 20, total: null, cost_usd: r.cost_usd };
   },
 };
 
@@ -210,11 +237,11 @@ const osm = {
   },
 };
 
-export const SOURCES = { no: norway, fr: france, uk, places, osm };
+export const SOURCES = { no: norway, fr: france, uk, maps, places, osm };
 
 export function scoutInfo(keys) {
   return {
-    industries: INDUSTRIES.map(({ id, label }) => ({ id, label })),
+    industries: INDUSTRIES.map(({ id, label }) => ({ id, label })), monid: !!keys.monid,
     sources: Object.values(SOURCES).map((s) => ({ id: s.id, label: s.label, flag: s.flag, regionLabel: s.regionLabel, regions: s.regions, gives: s.gives, needs: s.needs, ready: !s.needs || !!keys[s.needs] })),
   };
 }
@@ -224,7 +251,7 @@ export async function scoutSearch(env, ctx, b, keys) {
   if (!src) throw err(400, "Pick a source");
   if (!industryById(b.industry)) throw err(400, "Pick an industry");
   const q = { industry: b.industry, region: String(b.region || "").trim().slice(0, 80), minStaff: Math.max(0, +b.min_staff || 0), page: Math.max(1, Math.min(50, +b.page || 1)), cursor: b.cursor ? String(b.cursor) : null };
-  const out = await src.search(env, q, keys);
+  const out = await src.search(env, q, keys, ctx);
   // Flag what's already in the pipeline so it isn't imported twice.
   const names = out.results.map((r) => r.name.toLowerCase());
   const known = new Set();
@@ -242,7 +269,7 @@ export function toTarget(r, currency) {
   return {
     name: r.name, industry: r.industry || "", location: r.location || "", website: r.website || "", owner_name: r.owner_name || "", owner_age: r.owner_age ?? null,
     phone: r.phone || "", email: r.email || "", employees: r.employees ?? null, revenue: r.revenue ?? null, ebitda: r.ebitda ?? null, currency: currency || "$",
-    stage: "sourced", source: `Scout · ${({ no_brreg: "Brønnøysund", fr_sirene: "Sirene", uk_ch: "Companies House", places: "Google Maps", osm: "OpenStreetMap" })[r.source] || r.source}`,
+    stage: "sourced", source: `Scout · ${({ no_brreg: "Brønnøysund", fr_sirene: "Sirene", uk_ch: "Companies House", places: "Google Maps", maps: "Google Maps (Monid)", osm: "OpenStreetMap" })[r.source] || r.source}`,
     motivation: [people && `People on file: ${people}.`, r.founded && `Founded ${r.founded}.`, r.address && `Address: ${r.address}.`, r.registry_url && `Record: ${r.registry_url}`].filter(Boolean).join(" "),
   };
 }
