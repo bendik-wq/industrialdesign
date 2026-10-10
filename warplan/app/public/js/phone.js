@@ -20,6 +20,92 @@ function deviceCall(number, { targetId = null, fromDialer = false } = {}) {
   away = { number, targetId, fromDialer, t0: Date.now() };
   const a = document.createElement("a"); a.href = `tel:${String(number).replace(/[^\d+]/g, "")}`; a.dataset.handled = "1"; document.body.append(a); a.click(); a.remove();
 }
+// ------------------------------------------------------------------ call from your own phone, from a computer
+// A computer can only hand a number to your phone if it's set up for it (Mac: "Calls from iPhone"; Windows: Phone
+// Link). So every click shows a call card with a QR code: point your phone's camera at it and it dials from your
+// own number, no setup. "Call on this computer" is there too, and once it has worked we remember that.
+const onPhoneItself = () => /iPhone|iPad|Android/i.test(navigator.userAgent);
+const TEL_KEY = "warplan.telWorks";
+export const telWorks = () => { try { return localStorage.getItem(TEL_KEY) === "1"; } catch { return false; } };
+// Watch a tel:/sms: hand-off: if the page loses focus the OS took it (remember that); if not, say so.
+export function watchHandoff(onFail) {
+  let left = false;
+  const off = () => { left = true; };
+  window.addEventListener("blur", off, { once: true });
+  document.addEventListener("visibilitychange", off, { once: true });
+  setTimeout(() => {
+    window.removeEventListener("blur", off); document.removeEventListener("visibilitychange", off);
+    try { if (left) localStorage.setItem(TEL_KEY, "1"); else localStorage.removeItem(TEL_KEY); } catch { /* ignore */ }
+    if (!left) onFail?.();
+  }, 2500);
+}
+let qrLoad = null;
+export async function qrSvg(text) {
+  if (!window.qrcode) await (qrLoad ||= new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/vendor/qrcode-1.4.4.js"; s.onload = res; s.onerror = () => { qrLoad = null; rej(new Error("Couldn't load the QR code")); }; document.head.append(s); }));
+  const q = window.qrcode(0, "M"); q.addData(text); q.make();
+  return q.createSvgTag({ cellSize: 4, margin: 3, scalable: true, alt: `QR code for ${text}` });
+}
+const telHref = (n) => `tel:${String(n).replace(/[^\d+]/g, "")}`;
+const fmtSecs = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+let sheetTimer = null;
+
+export async function callSheet(number, { targetId = null } = {}) {
+  if (onPhoneItself()) return deviceCall(number, { targetId });
+  openPhone(); tab = "sheet";
+  const p = $("#phone");
+  p.innerHTML = `${head()}<div class="ph-body"><p class="muted small">Getting the number ready…</p></div>`; wireHead();
+  let l = null; try { l = await api(`/api/phone/lookup?number=${encodeURIComponent(number)}`); } catch { /* unknown number */ }
+  const target = l?.target || (targetId ? { id: targetId } : null), to = l?.e164 || String(number).replace(/[^\d+]/g, "");
+  // The same rules as the dialer: calling hours in their time zone, 3 tries a day, the do-not-call list.
+  let chk;
+  try { chk = await post("/api/dialer/predial", { phone: to, target_id: target?.id }); } catch (e) { chk = { error: e.message, code: e.data?.code }; }
+  if (tab !== "sheet") return;
+  if (chk.error) {
+    p.innerHTML = `${head()}<div class="ph-body ph-sheet"><p class="muted small">${esc(target?.name || "Call")}</p><h3 class="mono">${esc(to)}</h3><p class="ph-blocked">${esc(chk.error)}</p><p class="muted small">Schedule it in the <a href="#/dialer">dialer</a> instead: callbacks come up first when the time is right.</p></div>`;
+    wireHead(); return;
+  }
+  const t0 = Date.now();
+  p.innerHTML = `${head()}<div class="ph-body ph-sheet">
+      <p class="muted small">${target?.name ? `Call ${esc(target.name)}` : "Call"}${chk.window?.local ? ` · ${esc(chk.window.local.replace(/^\w+ /, ""))} their time` : ""}</p>
+      <h3 class="mono">${esc(to)}</h3>
+      ${chk.warning ? `<p class="muted small">${esc(chk.warning)}</p>` : ""}
+      <div class="ph-qr" id="pqr" aria-label="QR code to call ${esc(to)}"></div>
+      <p class="small center"><b>Scan with your phone's camera</b> and tap the number: it rings from your own number.</p>
+      <div class="ph-row"><a class="${telWorks() ? "ph-green" : "ph-btn"}" href="${esc(telHref(to))}" data-handled="1" id="pHere">${telWorks() ? "☎ Call on this computer" : "Call on this computer"}</a><button class="ph-btn" type="button" id="pCopy">Copy</button></div>
+      ${status?.ready ? `<button class="ghost small" type="button" id="pBrowser">Call from the browser instead (Twilio)</button>` : ""}
+      <p class="muted small" id="pHint" hidden>Nothing opened? This computer isn't linked to your phone yet. Scan the code instead, or see <button class="link" type="button" id="pSetupLink">how to link it</button>.</p>
+      <div class="ph-after-inline"><p class="small"><b>How did it go?</b> <span class="muted" id="psecs"></span></p>
+        ${target?.id ? `<textarea id="pnotes" rows="2" placeholder="Notes (optional)"></textarea><div class="ph-outcomes">${OUTCOMES.map(([k, lab]) => `<button type="button" class="ghost" data-out="${k}">${lab}</button>`).join("")}</div>` : `<p class="muted small">Not a target in Warplan, so nothing to log.</p>`}</div>
+    </div>`;
+  wireHead();
+  qrSvg(telHref(to)).then((svg) => { const el = $("#pqr"); if (el) el.innerHTML = svg; }).catch((e) => { const el = $("#pqr"); if (el) el.textContent = e.message; });
+  clearInterval(sheetTimer); sheetTimer = setInterval(() => { const el = $("#psecs"); if (!el) return clearInterval(sheetTimer); el.textContent = fmtSecs(Math.round((Date.now() - t0) / 1000)); }, 1000);
+  $("#pHere").addEventListener("click", () => { away = null; watchHandoff(() => { const h = $("#pHint"); if (h) h.hidden = false; }); });
+  $("#pCopy").addEventListener("click", () => { navigator.clipboard?.writeText(to).then(() => toast("Number copied")).catch(() => {}); });
+  $("#pSetupLink")?.addEventListener("click", () => { tab = "settings"; render(); });
+  $("#pBrowser")?.addEventListener("click", () => { setMode("browser"); tab = "keypad"; dial(to, { targetId: target?.id }); });
+  $$("[data-out]", p).forEach((b) => b.addEventListener("click", async () => {
+    const duration = Math.round((Date.now() - t0) / 1000);
+    try { const r = await post("/api/calls", { target_id: target.id, phone: to, disposition: b.dataset.out, notes: $("#pnotes")?.value || "", duration, via: "phone" }); toast(r.receipt); } catch (e) { fail(e); return; }
+    clearInterval(sheetTimer); tab = "keypad"; closePhone();
+  }));
+}
+// Texts from a computer: a QR the phone's camera turns into a ready-to-send message (or iMessage via the relay).
+export async function textSheet(number, body = "") {
+  const n = String(number).replace(/[^\d+]/g, "");
+  if (onPhoneItself()) return deviceText(n, body);
+  if (imsg?.connected) { tab = "messages"; thread = { number: n, messages: [], target: null, via: "imessage" }; openPhone(); return; }
+  openPhone(); tab = "sheet";
+  const sep = /iPhone|iPad|Macintosh/.test(navigator.userAgent) ? "&" : "?";
+  const href = `sms:${n}${body ? `${sep}body=${encodeURIComponent(body)}` : ""}`;
+  $("#phone").innerHTML = `${head()}<div class="ph-body ph-sheet"><p class="muted small">Text</p><h3 class="mono">${esc(n)}</h3>
+    <div class="ph-qr" id="pqr"></div><p class="small center"><b>Scan with your phone's camera</b> to open Messages with this number${body ? " and the message" : ""}.</p>
+    <div class="ph-row"><a class="ph-btn" href="${esc(href)}" data-handled="1">Open Messages on this computer</a></div>
+    <p class="muted small">Want texts inside Warplan? Connect the iMessage relay or Twilio under <a href="#/settings/integrations">Settings → Integrations</a>.</p></div>`;
+  wireHead();
+  qrSvg(`SMSTO:${n}:${body}`).then((svg) => { const el = $("#pqr"); if (el) el.innerHTML = svg; }).catch(() => {});
+}
+
 function deviceText(number, body = "") {
   const n = String(number).replace(/[^\d+]/g, "");
   // iOS/macOS take sms:NUMBER&body=, Android sms:NUMBER?body=; both open Messages from your own number.
@@ -53,8 +139,9 @@ export async function initPhone() {
     if (!a || a.dataset.handled) return;
     const number = decodeURIComponent(a.getAttribute("href").slice(4)), opts = { targetId: a.dataset.target ? +a.dataset.target : null, fromDialer: !!a.closest("#dmain") };
     if (phoneMode() === "browser") { e.preventDefault(); e.stopPropagation(); dial(number, opts); return; }
-    away = { number, ...opts, t0: Date.now() }; // let your phone take it; log when you're back
-    if (!opts.fromDialer) post("/api/dialer/predial", { phone: number, target_id: opts.targetId || undefined }).catch((err) => { if (err.data?.code) toast(err.message, "error"); });
+    if (!onPhoneItself()) { e.preventDefault(); e.stopPropagation(); callSheet(number, opts); return; }
+    away = { number, ...opts, t0: Date.now() }; // on the phone itself: the dialer opens; log when you're back
+    post("/api/dialer/predial", { phone: number, target_id: opts.targetId || undefined }).catch((err) => { if (err.data?.code) toast(err.message, "error"); });
   }, true);
   document.addEventListener("visibilitychange", cameBack);
   window.addEventListener("focus", cameBack);
@@ -212,9 +299,9 @@ function renderDevice(p) {
     const n = $("#pnum");
     $$("[data-k]").forEach((b) => b.addEventListener("click", () => { n.value = b.dataset.k === "⌫" ? n.value.slice(0, -1) : n.value + b.dataset.k; n.focus(); }));
     n.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#pCall").click(); });
-    $("#pCall").addEventListener("click", () => n.value.trim() && deviceCall(n.value.trim()));
+    $("#pCall").addEventListener("click", () => n.value.trim() && callSheet(n.value.trim()));
     // With the iMessage relay connected, texts send from Warplan (from your number); otherwise Messages opens.
-    $("#pText").addEventListener("click", () => { if (!n.value.trim()) return; if (!imsg?.connected) return deviceText(n.value.trim()); tab = "messages"; thread = { number: n.value.trim(), messages: [], target: null, via: "imessage" }; render(); });
+    $("#pText").addEventListener("click", () => { if (!n.value.trim()) return; if (!imsg?.connected) return textSheet(n.value.trim()); tab = "messages"; thread = { number: n.value.trim(), messages: [], target: null, via: "imessage" }; render(); });
     n.focus();
   } else if (tab === "recent") {
     $("#pbody").innerHTML = `<p class="muted small">Loading…</p>`;
@@ -225,7 +312,8 @@ function renderDevice(p) {
   } else {
     const mac = /Macintosh/.test(navigator.userAgent), iphone = /iPhone|iPad/.test(navigator.userAgent);
     $("#pbody").innerHTML = `<div class="ph-setup">
-      <p><b>Calls and texts from your own number.</b> Click any number in Warplan and it rings out from your phone, not a company line.</p>
+      <p><b>Calls and texts from your own number.</b> Click any number in Warplan: a QR code comes up. Point your phone's camera at it, tap, and it rings from your own number. Nothing to install.</p>
+      <p class="small">${telWorks() ? "✓ This computer can also hand calls to your phone directly." : "Want one-click calling from this computer instead? Link it to your phone once:"}</p>
       ${iphone ? `<p class="small">You're on your iPhone: numbers open your dialer and Messages directly. Tip: Share → <b>Add to Home Screen</b> to use Warplan like an app.</p>` : ""}
       <details ${mac ? "open" : ""}><summary>On a Mac with an iPhone</summary><ol class="small"><li>iPhone: Settings → Phone → <b>Calls on Other Devices</b> → turn on, and allow your Mac.</li><li>Mac: FaceTime → Settings → <b>Calls from iPhone</b> on (same Apple ID, Wi-Fi and Bluetooth on).</li><li>For texts: iPhone Settings → Messages → <b>Text Message Forwarding</b> → your Mac.</li></ol><p class="muted small">Then a click on a number shows “Call … using iPhone” and you talk through the Mac.</p></details>
       <details ${!mac && !iphone ? "open" : ""}><summary>On Windows</summary><p class="small">Install <b>Phone Link</b> (Microsoft), pair your iPhone or Android, and choose Phone Link as the app for phone links. Clicks on numbers then call through your phone.</p></details>

@@ -1318,3 +1318,15 @@ code, kbd, pre, pre.json, .secret code, .mono, .phone-row span, .ph-num { font-f
 .dlog .dispos button { white-space: normal; line-height: 1.25; }
 .side-body { overflow-wrap: anywhere; }
 @media (max-width: 820px) { .ses-end { grid-auto-flow: column; align-items: center; gap: 10px; } }
+/* call card: QR to dial from your own phone */
+.ph-sheet { display: grid; gap: 8px; }
+.ph-sheet h3 { margin: 0; font-size: 22px; letter-spacing: .01em; }
+.ph-qr { width: 196px; height: 196px; margin: 4px auto; background: #fff; border-radius: 14px; padding: 6px; box-shadow: var(--shadow-1); display: grid; place-items: center; color: #111; font-size: 12px; }
+.ph-qr svg { width: 100%; height: 100%; display: block; }
+.ph-blocked { background: color-mix(in oklab, var(--bad) 10%, var(--surface)); color: var(--bad); padding: 10px 12px; border-radius: var(--r); font-size: 13px; }
+.ph-after-inline { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; display: grid; gap: 6px; }
+.dlive-qr { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: center; text-align: left; }
+.dlive-qr .ph-qr { width: 150px; height: 150px; margin: 0; }
+@media (max-width: 520px) { .dlive-qr { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+.dial-banner { margin: 0 0 12px; padding: 10px 14px; border-radius: var(--r); background: var(--signal-soft); color: var(--ink); font-size: 14px; }
+.dial-banner.ok { background: color-mix(in oklab, var(--good) 10%, var(--surface)); }

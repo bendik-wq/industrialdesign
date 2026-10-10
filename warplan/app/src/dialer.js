@@ -44,6 +44,8 @@ export const DISPOSITIONS = {
   dnc: { label: "Do not call", key: "0", next: "Opted out of calls", days: 0, answered: true },
 };
 export const CONVERSATION = new Set(["connected", "interested", "meeting", "not_interested", "callback"]);
+// The deal currency is a weak hint for where a number lives; the address is better ("03 5278 1121" in Geelong).
+export const curFor = (t) => { const l = String(t?.location || ""); return /australia/i.test(l) ? "A$" : /united kingdom|\buk\b|england|scotland|wales/i.test(l) ? "£" : /canada/i.test(l) ? "C$" : t?.currency || "$"; };
 const digits = (s) => String(s || "").replace(/\D/g, "").replace(/^00/, "");
 
 // ------------------------------------------------------------------ settings
@@ -107,7 +109,7 @@ export async function recordAttempt(env, { accountId, userId, targetId, to, call
 // server when Twilio asks.)
 export async function preDial(env, ctx, b) {
   const t = b.target_id ? await getTarget(env, ctx, +b.target_id) : null;
-  const to = e164(b.phone || t?.phone, t?.currency || "$");
+  const to = e164(b.phone || t?.phone, curFor(t));
   if (!to) {
     // No country code: we can't check their clock, but the dial still counts.
     const raw = digits(b.phone || t?.phone);
@@ -159,9 +161,9 @@ export async function queue(env, ctx, q) {
   let out = rows.results.filter((r) => !lockBy.has(r.id)).map((r) => {
     const phones = [];
     if (r.phone) phones.push({ value: r.phone, label: "Main" });
-    for (const p of (r.phones || "").split("¦").filter(Boolean)) { const [value, label] = p.split("|"); if (!phones.some((x) => digits(x.value) === digits(value))) phones.push({ value, label: label || "" }); }
+    for (const p of (r.phones || "").split("¦").filter(Boolean)) { const [value, label] = p.split("|"); const n = e164(value, curFor(r)); if (!phones.some((x) => digits(x.value) === digits(value) || (n && e164(x.value, curFor(r)) === n))) phones.push({ value, label: label || "" }); }
     for (const p of phones) {
-      p.e164 = e164(p.value, r.currency || "$");
+      p.e164 = e164(p.value, curFor(r));
       const tr = p.e164 && triesBy.get(p.e164);
       p.tries24h = tr?.n || 0; p.last_try = tr?.last || null;
       p.blocked = p.e164 ? blocked.has(p.e164) : false;
@@ -169,7 +171,7 @@ export async function queue(env, ctx, q) {
     }
     const usable = phones.filter((p) => !p.blocked && !p.capped);
     const info = zonesFor({ phone: usable[0]?.e164 || phones[0]?.e164, location: r.location, currency: r.currency });
-    const win = callWindow(info, at, { sundays: settings.sundays, findNext: false });
+    const win = callWindow(info, at, { sundays: settings.sundays });
     const cb = cbBy.get(r.id);
     const { phones: _p, phone: _ph, ...rest } = r;
     return { ...rest, phones, window: win, callback: cb || null, callback_due: !!(cb && cb.due_at <= ago(-10 * 60e3)), dialable: usable.length > 0 && win.callable };
@@ -216,7 +218,7 @@ export async function brief(env, ctx, id) {
 }
 async function targetNumbers(env, ctx, t) {
   const { results } = await env.DB.prepare("SELECT value FROM contacts WHERE account_id = ?1 AND target_id = ?2 AND kind = 'phone'").bind(ctx.accountId, t.id).all();
-  return [...new Set([t.phone, ...results.map((r) => r.value)].map((v) => e164(v, t.currency || "$")).filter(Boolean))];
+  return [...new Set([t.phone, ...results.map((r) => r.value)].map((v) => e164(v, curFor(t))).filter(Boolean))];
 }
 
 // Mobile or landline? Twilio Lookup (about $0.008 a number), cached 90 days. Owners' mobiles go first; dead
@@ -245,7 +247,7 @@ export async function logCall(env, ctx, b, hooks) {
   const d = DISPOSITIONS[b.disposition];
   if (!d) throw err(400, "Pick how the call went");
   const phone = String(b.phone || t.phone || "").slice(0, 40), notes = String(b.notes || "").trim().slice(0, 4000);
-  const to = e164(phone, t.currency || "$") || digits(phone) || null;
+  const to = e164(phone, curFor(t)) || digits(phone) || null;
   const duration = b.duration != null ? Math.max(0, Math.min(36000, Math.round(+b.duration) || 0)) : null;
   const via = ["twilio", "browser"].includes(b.via) ? b.via : "phone";
   const stamp = now();
@@ -422,7 +424,7 @@ export async function twilioReq(tw, path, form) {
 export async function startBridge(env, ctx, b) {
   const t = await getTarget(env, ctx, +b.target_id);
   const tw = await twilio(env, ctx);
-  const to = e164(b.phone || t.phone, t.currency);
+  const to = e164(b.phone || t.phone, curFor(t));
   if (!to) throw err(400, "Save the number in +country format (e.g. +4791234567) so Twilio can dial it");
   const g = await dialGuard(env, ctx.accountId, { to, location: t.location, currency: t.currency, retry: !!b.retry });
   const cfg = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'phone'").bind(ctx.accountId).first();

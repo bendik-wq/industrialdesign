@@ -128,27 +128,44 @@ function parts(zone, at) {
   const p = Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
   return { hour: +p.hour % 24, minute: +p.minute, dow: p.weekday };
 }
-export function rulesFor(info) {
+// Hours for a given weekday. Australia has national telemarketing hours (Telemarketing and Research Calls
+// Industry Standard): weekdays 9am–8pm, Saturday 9am–5pm, never Sunday, whatever the workspace setting.
+export function rulesFor(info, dow) {
+  if (info?.country === "AU") return dow === "Sun" ? null : dow === "Sat" ? { start: 9, end: 17 } : { start: 9, end: 20 };
   return { start: RULES.start, end: info && END_8PM.has(info.region) ? 20 : RULES.end };
 }
+const hoursText = (info) => (info?.country === "AU" ? "9am–8pm weekdays, 9am–5pm Saturdays (Australian rules)" : (({ start, end }) => `${start}am–${end - 12}pm`)(rulesFor(info)));
 function openAt(info, at, sundays) {
-  const r = rulesFor(info);
-  return info.zones.every((z) => { const p = parts(z, at); const mins = p.hour * 60 + p.minute; return mins >= r.start * 60 && mins < r.end * 60 && (sundays || p.dow !== "Sun"); });
+  return info.zones.every((z) => {
+    const p = parts(z, at);
+    if (p.dow === "Sun" && !sundays && info.country !== "AU") return false;
+    const r = rulesFor(info, p.dow);
+    if (!r) return false;
+    const mins = p.hour * 60 + p.minute;
+    return mins >= r.start * 60 && mins < r.end * 60;
+  });
 }
 
 // Is it OK to call right now? `local` is the owner's clock ("2:14 PM"), `opens_at` the next allowed moment.
+const nextCache = new Map();
 export function callWindow(info, at = new Date(), { sundays = false, findNext = true } = {}) {
   if (!info?.zones?.length) return { known: false, callable: true, local: null, reason: "Local time unknown: check before calling" };
   const callable = openAt(info, at, sundays);
   const local = new Intl.DateTimeFormat("en-US", { timeZone: info.zones[0], hour: "numeric", minute: "2-digit", weekday: "short" }).format(at);
-  const r = rulesFor(info);
-  const out = { known: true, callable, local, zone: info.zones[0], zones: info.zones, region: info.region, hours: `${r.start}am–${r.end - 12}pm`, source: info.source };
+  const out = { known: true, callable, local, zone: info.zones[0], zones: info.zones, region: info.region, country: info.country, hours: hoursText(info), source: info.source };
   if (callable || !findNext) return out;
-  // Next opening: step forward in 15-minute slots (at most 4 days).
-  const t = new Date(Math.ceil(at.getTime() / 9e5) * 9e5);
-  for (let i = 0; i < 4 * 96; i++, t.setTime(t.getTime() + 9e5)) if (openAt(info, t, sundays)) { out.opens_at = t.toISOString(); break; }
+  // Next opening: step forward in 15-minute slots (at most 4 days). Owners in the same place share the answer.
+  const key = `${info.country}|${info.region}|${info.zones.join(",")}|${sundays}|${Math.floor(at.getTime() / 9e5)}`;
+  if (!nextCache.has(key)) {
+    let found = null;
+    const t = new Date(Math.ceil(at.getTime() / 9e5) * 9e5);
+    for (let i = 0; i < 4 * 96; i++, t.setTime(t.getTime() + 9e5)) if (openAt(info, t, sundays)) { found = t.toISOString(); break; }
+    if (nextCache.size > 500) nextCache.clear();
+    nextCache.set(key, found);
+  }
+  if (nextCache.get(key)) out.opens_at = nextCache.get(key);
   const p = parts(info.zones[0], at);
-  out.reason = !sundays && p.dow === "Sun" ? "Sunday: no cold calls" : `It's ${local.replace(/^\w+ /, "")} there; calls ${out.hours} their time`;
+  out.reason = p.dow === "Sun" && (!sundays || info.country === "AU") ? "Sunday: no cold calls" : `It's ${local.replace(/^\w+ /, "")} there; calls ${out.hours} their time`;
   return out;
 }
 

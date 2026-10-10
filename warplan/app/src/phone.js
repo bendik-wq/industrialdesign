@@ -7,7 +7,7 @@
 // Setup is one click: from the Twilio key the workspace already connected we create an API key (for tokens) and
 // a TwiML App (for the webhook). Webhook URLs carry a secret per workspace and every request is checked against
 // Twilio's signature.
-import { twilio, twilioReq, xml, e164, dialGuard, recordAttempt, balancedCallerId, loadsToday } from "./dialer.js";
+import { twilio, twilioReq, xml, e164, dialGuard, recordAttempt, balancedCallerId, loadsToday, curFor } from "./dialer.js";
 import { seal, open } from "./keys.js";
 import { sha256, randomToken } from "./auth.js";
 import { pickCallerId, callerNumbers, smsNumbers, countryName } from "./numbers.js";
@@ -155,12 +155,12 @@ const DIGITS_SQL = (col) => `replace(replace(replace(replace(replace(replace(${c
 export async function findByPhone(env, accountId, number) {
   const t8 = tail(number);
   if (t8.length < 7) return null;
-  return env.DB.prepare(`SELECT id, name, owner_name, currency FROM targets WHERE account_id = ?1 AND (${DIGITS_SQL("phone")} LIKE ?2
+  return env.DB.prepare(`SELECT id, name, owner_name, currency, location FROM targets WHERE account_id = ?1 AND (${DIGITS_SQL("phone")} LIKE ?2
     OR id IN (SELECT target_id FROM contacts WHERE account_id = ?1 AND kind = 'phone' AND ${DIGITS_SQL("value")} LIKE ?2)) ORDER BY updated_at DESC LIMIT 1`).bind(accountId, `%${t8}`).first();
 }
 export async function lookup(env, ctx, number) {
   const t = await findByPhone(env, ctx.accountId, number);
-  const norm = e164(number, t?.currency || "$");
+  const norm = e164(number, t ? curFor(t) : "$");
   const via = norm ? await callerFor(env, ctx, norm).catch(() => null) : null;
   return { number, e164: norm, country: countryName(norm), caller_id: via?.call || null, target: t ? { id: t.id, name: t.name, owner: t.owner_name } : null };
 }
@@ -171,8 +171,8 @@ export async function lookup(env, ctx, number) {
 export async function guardText(env, ctx, b) {
   const text = String(b.body || "").trim().slice(0, 1600);
   if (!text) throw err(400, "Write the message first");
-  const match = b.target_id ? await env.DB.prepare("SELECT id, name, currency FROM targets WHERE id = ?1 AND account_id = ?2").bind(+b.target_id, ctx.accountId).first() : await findByPhone(env, ctx.accountId, b.to);
-  const to = e164(b.to, match?.currency || "$");
+  const match = b.target_id ? await env.DB.prepare("SELECT id, name, currency, location FROM targets WHERE id = ?1 AND account_id = ?2").bind(+b.target_id, ctx.accountId).first() : await findByPhone(env, ctx.accountId, b.to);
+  const to = e164(b.to, match ? curFor(match) : "$");
   if (!to) throw err(400, "Use the number in +country format, e.g. +4791234567");
   const sentToday = (await env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND feature = 'sms' AND created_at >= ?2").bind(ctx.accountId, now().slice(0, 10)).first()).n;
   if (sentToday >= SMS_PER_DAY) throw err(429, `This workspace has sent ${SMS_PER_DAY} texts today, the daily limit`);

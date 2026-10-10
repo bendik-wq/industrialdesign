@@ -53,3 +53,14 @@ test("dial guard: hours, cap, spacing, do-not-call", async () => {
   assert.ok(await dialGuard(env({ n: 1, last: new Date(Date.now() - 20 * 60e3).toISOString() }), 1, { ...base, retry: true }));
   assert.ok(await dialGuard(env({ n: 1, last: new Date(Date.now() - 60e3).toISOString() }), 1, base)); // double dial right after
 });
+
+test("Australia: weekdays 9–8, Saturday 9–5, never Sunday (even with Sundays allowed)", () => {
+  const vic = zonesFor({ location: "Geelong VIC 3220, Australia" });
+  assert.equal(callWindow(vic, new Date("2026-10-12T07:30:00Z")).callable, true);  // Mon 6:30pm
+  assert.equal(callWindow(vic, new Date("2026-10-12T09:30:00Z")).callable, false); // Mon 8:30pm
+  assert.equal(callWindow(vic, new Date("2026-10-16T21:30:00Z")).callable, false); // Sat 8:30am
+  assert.equal(callWindow(vic, new Date("2026-10-17T05:30:00Z")).callable, true);  // Sat 4:30pm
+  assert.equal(callWindow(vic, new Date("2026-10-17T06:30:00Z")).callable, false); // Sat 5:30pm
+  const sun = callWindow(vic, new Date("2026-10-10T23:46:00Z"), { sundays: true });
+  assert.equal(sun.callable, false); assert.equal(sun.opens_at, "2026-10-11T22:00:00.000Z"); // Mon 9:00am AEDT
+});

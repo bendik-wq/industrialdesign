@@ -1,12 +1,12 @@
 import { $, $$, esc, safeUrl, dialog, confirmBox, api, post, view, stale, toast, fail, local, skeleton, emptyState, session, dateLabel, todayYmd, when } from "../core.js";
 import { STAGES, stageById } from "../deal.js";
 import { deepEnrichDialog } from "./outreach.js";
-import { phoneMode, dial, hangUp, toggleMute, sendDigit, deviceCall } from "../phone.js";
+import { phoneMode, dial, hangUp, toggleMute, sendDigit, deviceCall, qrSvg, telWorks, watchHandoff } from "../phone.js";
 
 // Power dialer: one owner at a time, a human on every call. Start a session, press Space to call, 1–0 for the
 // outcome, and the next owner is up (auto-dialed after a short countdown when calling through Twilio). Calling
 // hours, attempt limits and the do-not-call list are enforced by the server on every path.
-const PREFS = { stage: "", list: "", callable: true, fresh: true, advance: 5, doubleDial: true, mode: "auto" };
+const PREFS = { stage: "", list: "", callable: false, fresh: true, advance: 5, doubleDial: true, mode: "auto" };
 const ANSWERED_KEYS = new Set(["gatekeeper", "callback", "connected", "interested", "meeting", "not_interested", "wrong_number", "dnc"]);
 const LINE = { mobile: "Mobile", landline: "Landline", fixedVoip: "VoIP", nonFixedVoip: "VoIP", tollFree: "Toll-free", personal: "Personal", pager: "Pager", voicemail: "Voicemail", sharedCost: "Shared" };
 let S = null; // page state
@@ -43,6 +43,7 @@ export async function renderDialer(seq, params) {
       <span class="muted small">${S.queue.length} to call${data.locked_by_others ? ` · ${data.locked_by_others} with teammates` : ""}</span>
       <button class="ghost small" id="dSettings" type="button" aria-label="Dialer settings">Settings</button>
     </div>
+    ${S.queue.length ? windowBanner() : ""}
     ${S.queue.length ? `<div class="dialer3"><aside class="dq panel flush" id="dq" aria-label="Call list"></aside><section class="dmain" id="dmain"></section><aside class="dside" id="dside"></aside></div>`
       : emptyState(prefs.callable ? "No one to call right now" : "No one to call", prefs.callable ? "Everyone left is outside their calling hours (8am–9pm their time), on a break between attempts, or already called today. Untick “OK to call now” to see them, or come back later." : "Targets with a phone number show up here. Find companies in Scout (Google Maps and the registries give phones), or run Find contacts / Deep enrich on your targets.", `<div class="row center-row">${prefs.callable ? `<button class="primary" id="dShowAll" type="button">Show everyone</button>` : `<a class="primary" href="#/scout">Open Scout</a>`}<a class="ghost" href="#/dialer?view=insights">Best times to call</a></div>`)}`;
 
@@ -58,6 +59,15 @@ export async function renderDialer(seq, params) {
   if (!S.queue.length) return;
   drawQueue(); showLead();
   keyHandler = hotkeys;
+}
+
+// When nobody can be called right now, say why and when that changes (in your own clock).
+function windowBanner() {
+  const now = S.queue.filter((t) => t.dialable || t.callback_due).length;
+  if (now) return `<p class="dial-banner ok"><b>${now}</b> of ${S.queue.length} can be called right now.</p>`;
+  const next = S.queue.map((t) => t.window?.opens_at).filter(Boolean).sort()[0];
+  const w = S.queue.find((t) => t.window?.opens_at === next)?.window || S.queue[0].window || {};
+  return `<p class="dial-banner"><b>Nobody can be called right now.</b> ${w.local ? `It's ${esc(w.local)} for your owners${w.region ? ` (${esc(w.region)})` : ""}: ${esc(w.reason || "outside calling hours")}.` : ""}${next ? ` Calls open <b>${new Date(next).toLocaleString([], { weekday: "long", hour: "numeric", minute: "2-digit" })}</b> your time.` : ""} Use the time to research owners or line up callbacks.</p>`;
 }
 
 const subnav = (on) => `<nav class="subnav" aria-label="Dialer"><a href="#/dialer" class="${on === "dial" ? "on" : ""}">Dial</a><a href="#/dialer?view=insights" class="${on === "insights" ? "on" : ""}">Insights</a><a href="#/dialer?view=team" class="${on === "team" ? "on" : ""}">Team</a></nav>`;
@@ -242,7 +252,7 @@ function drawLive() {
   if (!c) {
     const p = bestPhone(t);
     const why = !t.window?.callable ? (t.window?.opens_at ? `Calling opens ${new Date(t.window.opens_at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} your time` : "Outside their calling hours") : !p ? "No number left to try today" : "";
-    el.innerHTML = `<div class="live idle"><button class="call-big" type="button" id="callBig" ${p && t.window?.callable !== false ? "" : "disabled"}>☎ Call ${p ? esc(p.value) : ""}</button><p class="muted small">${why ? esc(why) : `<kbd>Space</kbd> to call · ${m === "browser" ? "from this browser, with your local number" : m === "bridge" ? "Twilio rings your phone first, then connects them" : "opens your phone; log the outcome when you're back"}`}</p></div>`;
+    el.innerHTML = `<div class="live idle"><button class="call-big" type="button" id="callBig" ${p && t.window?.callable !== false ? "" : "disabled"}>☎ Call ${p ? esc(p.value) : ""}</button><p class="muted small">${why ? esc(why) : `<kbd>Space</kbd> to call · ${m === "browser" ? "from this browser, with your local number" : m === "bridge" ? "Twilio rings your phone first, then connects them" : "shows a QR code: scan it with your phone to dial from your own number"}`}</p></div>`;
     $("#callBig").addEventListener("click", () => p && startCall(p.i));
     return;
   }
@@ -251,9 +261,10 @@ function drawLive() {
   if (c.phase === "checking") el.innerHTML = `<div class="live"><p class="state">Checking…</p></div>`;
   else if (c.phase === "ringing") el.innerHTML = `<div class="live ringing"><p class="state"><span class="pulse"></span>${c.mode === "bridge" && !c.bridged ? "Ringing your phone…" : "Ringing…"} <span class="mono">${clock}</span>${c.doubled ? ' <span class="chip">double dial</span>' : ""}</p><button class="hang" type="button" id="hang">Hang up <kbd>Space</kbd></button></div>`;
   else if (c.phase === "live") el.innerHTML = `<div class="live on"><p class="state"><span class="dot-live"></span>Connected <span class="mono big">${clock}</span></p><div class="row center-row">${c.mode === "browser" ? `<button class="ghost" type="button" id="mute">${c.muted ? "Unmute" : "Mute"} <kbd>M</kbd></button><button class="ghost" type="button" id="pad">Keypad</button>` : ""}<button class="hang" type="button" id="hang">Hang up <kbd>Space</kbd></button></div><div class="ph-keys small-keys" id="dtmf" hidden>${"123456789*0#".split("").map((k) => `<button type="button" data-dtmf="${k}">${k}</button>`).join("")}</div></div>`;
-  else if (c.phase === "away") el.innerHTML = `<div class="live"><p class="state">On your phone <span class="mono">${clock}</span></p><p class="muted small">Come back and press the outcome (1–0).</p></div>`;
+  else if (c.phase === "away") el.innerHTML = `<div class="live dlive-qr"><div class="ph-qr">${c.qr || ""}</div><div><p class="state">Call ${esc(c.number || "")} <span class="mono">${clock}</span></p><p class="small"><b>Scan with your phone's camera</b> and tap the number: it rings from your own number. When you hang up, press the outcome (1–0).</p><a class="ghost small" href="tel:${esc(String(c.number || "").replace(/[^\d+]/g, ""))}" data-handled="1" id="dHere">${telWorks() ? "Ring again on this computer" : "Call on this computer instead"}</a><p class="muted small" id="dHint" ${c.hint ? "" : "hidden"}>Nothing opened: this computer isn't linked to your phone. The QR code always works. To link it, open the phone (bottom right) → Setup.</p></div></div>`;
   else el.innerHTML = `<div class="live ended"><p class="state">${c.answered == null ? "Back from your phone" : c.answered ? "Call ended" : "No answer"}${c.duration ? ` · <span class="mono">${Math.floor(c.duration / 60)}:${String(c.duration % 60).padStart(2, "0")}</span>` : ""}</p><p class="muted small">${c.answered == null ? "How did it go? Press 1–0" : c.answered ? "Log the outcome (5–8)" : "Press 1 (no answer) or 2 (left a voicemail)"}${c.error ? ` · ${esc(c.error)}` : ""}</p>${!c.answered && c.mode !== "device" && !c.doubled && c.canRetry !== false ? `<button class="ghost small" type="button" id="redial">Call again now <kbd>D</kbd></button>` : ""}</div>`;
   $("#hang")?.addEventListener("click", endCall);
+  $("#dHere")?.addEventListener("click", () => watchHandoff(() => { if (S?.call) { S.call.hint = true; drawLive(); } }));
   $("#mute")?.addEventListener("click", () => { c.muted = toggleMute(); drawLive(); });
   $("#pad")?.addEventListener("click", () => { $("#dtmf").hidden = !$("#dtmf").hidden; });
   $$("[data-dtmf]").forEach((b) => b.addEventListener("click", () => sendDigit(b.dataset.dtmf)));
@@ -270,9 +281,12 @@ async function startCall(i, { retry = false, doubled = false } = {}) {
   drawLive();
   S.onPhone = (kind, d) => phoneEvent(kind, d);
   if (m === "device") {
-    // Open the dialer straight away (inside the click), then count the dial.
-    deviceCall(p.value, { targetId: t.id, fromDialer: true });
-    S.call.phase = "away"; drawLive();
+    // A QR code to dial from your own phone; if this computer is linked to the phone, it rings out directly too.
+    const num = p.e164 || p.value;
+    if (telWorks()) deviceCall(num, { targetId: t.id, fromDialer: true });
+    Object.assign(S.call, { phase: "away", number: num });
+    qrSvg(`tel:${String(num).replace(/[^\d+]/g, "")}`).then((svg) => { if (S?.call?.number === num) { S.call.qr = svg; drawLive(); } }).catch(() => {});
+    drawLive();
     post("/api/dialer/predial", { target_id: t.id, phone: p.value, retry, session_id: S.session?.id }).catch((e) => { if (e.data?.code) toast(e.message, "error"); });
     return;
   }
