@@ -75,7 +75,24 @@ export function toCtx(u) {
 }
 
 // Resolve who is calling. Returns null when not signed in.
+// Verified sessions are cached in this isolate for 15 seconds, so a burst of requests (a page load, a busy team)
+// costs one database lookup instead of one per request. Sign-outs, password changes and removals take effect
+// everywhere within 15 seconds (immediately on the isolate that handled them).
+const SESSION_TTL_MS = 15_000, sessionCache = new Map();
+export function forgetSessions() { sessionCache.clear(); }
 export async function getContext(request, env) {
+  const key = (request.headers.get("Authorization") || "") + "|" + ((request.headers.get("Cookie") || "").match(/(?:^|;\s*)df_s=([^;]+)/)?.[1] || "");
+  if (key === "|") return null;
+  const hit = sessionCache.get(key);
+  if (hit && hit.exp > Date.now()) return hit.ctx;
+  const ctx = await resolveContext(request, env);
+  if (ctx) {
+    if (sessionCache.size > 5000) sessionCache.clear();
+    sessionCache.set(key, { ctx, exp: Date.now() + SESSION_TTL_MS });
+  }
+  return ctx;
+}
+async function resolveContext(request, env) {
   const bearer = (request.headers.get("Authorization") || "").match(/^Bearer (.+)$/)?.[1]?.trim();
   if (bearer) {
     if (env.API_TOKEN && safeEqual(bearer, env.API_TOKEN)) {

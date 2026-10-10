@@ -16,7 +16,7 @@ import { renderDialer } from "./views/dialer.js";
 import { initPhone, openPhone } from "./phone.js";
 import { renderData } from "./views/data.js";
 
-const TITLES = { home: "Command", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Units", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data" };
+const TITLES = { home: "Home", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Agents", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data" };
 
 async function router() {
   const seq = ++session.seq;
@@ -59,8 +59,8 @@ $("#scrim").addEventListener("click", closeNav);
 
 // ------------------------------------------------------------------ command palette
 const COMMANDS = [
-  ["Go to Command", "#/home"], ["Go to Pipeline", "#/pipeline"], ["Ask Josh", "#/josh"], ["Start a practice call", "#/simulator"],
-  ["Open the Deal Builder", "#/builder"], ["Open the Value Ladder", "#/ladder"], ["Open the Desk", "#/desk"], ["See every unit", "#/agents"],
+  ["Go home", "#/home"], ["Go to Pipeline", "#/pipeline"], ["Ask Josh", "#/josh"], ["Start a practice call", "#/simulator"],
+  ["Open the Deal Builder", "#/builder"], ["Open the Value Ladder", "#/ladder"], ["Open the Desk", "#/desk"], ["See every agent", "#/agents"],
   ["Add a target", () => addTarget()], ["Settings: profile", "#/settings/profile"], ["Settings: team & invites", "#/settings/team"],
   ["Settings: connect your AI keys", "#/settings/integrations"], ["Find companies to buy (Scout)", "#/scout"], ["Open the agent inbox", "#/inbox"], ["Power dialer: start calling", "#/dialer"], ["Open the phone (call or text)", () => openPhone()], ["Data marketplace (Monid): search 2,500+ APIs", "#/data"], ["Connect Instantly / Smartlead / EmailBison", "#/settings/integrations"], ["Connect your mailbox", "#/settings/email"], ["Connect Claude, ChatGPT, Cursor, Zapier (MCP)", "#/settings/connect"], ["Settings: API tokens", "#/settings/api"], ["Settings: usage", "#/settings/usage"],
 ];

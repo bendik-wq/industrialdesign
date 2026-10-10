@@ -27,14 +27,20 @@ export async function renderTarget(id, seq) {
       </div>
       <div class="row th-actions">
         <button class="primary" id="askJosh" type="button">Ask Josh about ${esc(t.name.length > 24 ? "this target" : t.name)}</button>
-        <button class="ghost" id="emailOwner" type="button">✉ Email the owner</button>
-        <a class="ghost" href="#/dialer?target=${t.id}">✆ Call</a>
-        <button class="ghost" id="pushCampaign" type="button">⇢ Add to campaign</button>
-        <button class="ghost" id="meetBtn" type="button" title="A notetaker joins your Zoom/Meet/Teams call and writes the notes">● Record a meeting</button>
-        <a class="ghost" href="#/simulator?target=${t.id}">☎ Practise the call</a>
-        <a class="ghost" href="#/builder?target=${t.id}">⚖ Structure the deal</a>
-        <button class="ghost" id="edit" type="button">Edit details</button>
-        <button class="icon-btn" id="del" type="button" aria-label="Delete target" title="Delete target">🗑</button>
+        <button class="ghost" id="emailOwner" type="button">Email the owner</button>
+        <a class="ghost" href="#/dialer?target=${t.id}">Call</a>
+        <button class="ghost" id="pushCampaign" type="button">Add to campaign</button>
+        <div class="menu-wrap">
+          <button class="ghost" id="moreBtn" type="button" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">⌄</span></button>
+          <div class="menu" id="moreMenu" role="menu" hidden>
+            <button type="button" role="menuitem" id="meetBtn">Record a meeting…</button>
+            <a role="menuitem" href="#/simulator?target=${t.id}">Practise the call</a>
+            <a role="menuitem" href="#/builder?target=${t.id}">Structure the deal</a>
+            <button type="button" role="menuitem" id="edit">Edit details…</button>
+            <hr>
+            <button type="button" role="menuitem" id="del" class="danger">Delete target…</button>
+          </div>
+        </div>
       </div>
     </header>
     <div class="target-grid">
@@ -130,6 +136,13 @@ export async function renderTarget(id, seq) {
     if (!r) return;
     try { const out = await post("/api/meetings/record", { meeting_url: r.meeting_url, target_id: t.id, join_at: r.join_at ? new Date(r.join_at).toISOString() : undefined }); toast(out.receipt); } catch (e) { fail(e); }
   });
+  // "More" menu: opens on click, closes on outside click, Escape or choosing an item.
+  const menu = $("#moreMenu"), more = $("#moreBtn");
+  const closeMenu = () => { menu.hidden = true; more.setAttribute("aria-expanded", "false"); };
+  more.addEventListener("click", (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; more.setAttribute("aria-expanded", String(!menu.hidden)); if (!menu.hidden) menu.querySelector("[role=menuitem]")?.focus(); });
+  menu.addEventListener("click", () => closeMenu());
+  document.addEventListener("click", (e) => { if (!e.target.closest?.(".menu-wrap")) closeMenu(); });
+  menu.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeMenu(); more.focus(); } });
   $("#pushCampaign").addEventListener("click", async () => { if (await pushDialog([t])) renderTarget(id, seq); });
   $("#deepEnrich").addEventListener("click", async () => { if (await deepEnrichDialog(t)) renderTarget(id, seq); });
   $$("[data-mail]").forEach((b) => b.addEventListener("click", () => mail(b.dataset.mail)));

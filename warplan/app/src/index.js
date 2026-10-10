@@ -3,10 +3,10 @@
 //   Tools: Deal Builder, Value Ladder, Pipeline. Platform: teams, bring-your-own AI keys, API tokens, webhooks, usage.
 import { transcribe } from "./ai.js";
 import { publicAgents } from "./agents.js";
-import { getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie, sha256, randomToken } from "./auth.js";
+import { forgetSessions, getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie, sha256, randomToken } from "./auth.js";
 import { json, fail, body, now, slow, cleanEmail, displayName, needOwner } from "./http.js";
 import { listThreads, getThread, createThread, updateThread, deleteThread, send, sendStream, debrief, simulatorInfo, speakCached } from "./conversations.js";
-import { listTargets, getTarget, createTarget, updateTarget, deleteTarget, addEvent, deleteEvent, importTargets, exportCsv, hookEmitter, listHooks, createHook, testHook, deleteHook, rowToTarget } from "./pipeline.js";
+import { listTargets, getTarget, getTargetFull, createTarget, updateTarget, deleteTarget, addEvent, deleteEvent, importTargets, exportCsv, hookEmitter, listHooks, createHook, testHook, deleteHook, rowToTarget } from "./pipeline.js";
 import { deskAgents } from "./desk.js";
 import { createDocument, getProfile } from "./documents.js";
 import { listKeys, saveKey, deleteKey, aiEnv, dataKeys, MODELS } from "./keys.js";
@@ -42,9 +42,20 @@ export default {
     return secure(await handle(request, env, exec));
   },
   // Cron Trigger (wrangler.jsonc): the morning autopilot run for every workspace.
+  // Queue consumer: one message = one workspace's work.
+  async queue(batch, env, exec) {
+    for (const msg of batch.messages) {
+      const { type, accountId } = msg.body || {};
+      try {
+        if (type === "autopilot") await autopilotRun(env, accountId, exec);
+        else if (type === "inbox") await syncAgentInboxes(env, accountId, replyTriage(env, exec));
+        msg.ack();
+      } catch (e) { console.error(`queue ${type} ${accountId}`, e); msg.retry({ delaySeconds: 60 }); }
+    }
+  },
   async scheduled(event, env, exec) {
     // Every 10 minutes: finish background jobs (meeting notes). Daily: the autopilot.
-    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), syncAgentInboxes(env, null, replyTriage(env, exec))]));
+    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), queueInboxes(env, exec)]));
     else exec.waitUntil(autopilotAll(env, exec));
   },
 };
@@ -74,6 +85,8 @@ async function handle(request, env, exec) {
     if (p.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method)) checkOrigin(request, url);
     if (p === "/api/auth/state" || p === "/api/setup" || p === "/api/login" || p === "/api/logout" || p.startsWith("/api/invites/")) return await authRoute(request, env, url);
     if (PUBLIC_PATHS.has(p)) return asset(request, env, p);
+    // The app's own code holds no data (all of it is behind /api), so it's served without a session lookup.
+    if (/^\/(js|vendor)\/[\w./-]+\.js$/.test(p) && !p.includes("..")) return asset(request, env, p);
     if (p.startsWith("/hooks/replies/")) return await replyHook(request, env, url, exec);
     if (p.startsWith("/hooks/twilio/")) return await twilioHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)));
     if (p === "/mcp" || p.startsWith("/mcp/")) return await mcpRoute(request, env, url, exec);
@@ -123,6 +136,13 @@ async function replyHook(request, env, url, exec) {
   const hooks = hookEmitter(env, account.account_id, (pr) => exec.waitUntil(pr));
   exec.waitUntil((async () => { try { await handleReply(env, account, payload, await aiEnv(env, ctx), hooks, provider); } catch (e) { console.error("reply hook", e); } })());
   return json({ ok: true });
+}
+
+// Inbox sync fans out per workspace through the queue (inline when no queue is bound, e.g. local dev).
+async function queueInboxes(env, exec) {
+  if (!env.WORK) return syncAgentInboxes(env, null, replyTriage(env, exec));
+  const { results } = await env.DB.prepare("SELECT DISTINCT account_id FROM mailboxes WHERE host = 'agentmail'").all();
+  for (let i = 0; i < results.length; i += 100) await env.WORK.sendBatch(results.slice(i, i + 100).map((r) => ({ body: { type: "inbox", accountId: r.account_id } })));
 }
 
 // Reply triage for inbox sync: AI read of the reply, timeline, stage, drafted answer in the Inbox.
@@ -297,15 +317,7 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/targets/import" && m === "POST") return json(await importTargets(env, ctx, await body(request), hooks), 201);
   if (p === "/api/targets.csv" && m === "GET") return exportCsv(env, ctx);
   if ((r = p.match(/^\/api\/targets\/(\d+)$/))) {
-    if (m === "GET") {
-      const t = await getTarget(env, ctx, +r[1]);
-      const [contacts, emails, calls, campaigns] = await Promise.all([
-        listContacts(env, ctx, t.id), listSent(env, ctx, t.id),
-        env.DB.prepare("SELECT id, disposition, notes, duration, phone, created_at FROM calls WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC LIMIT 20").bind(ctx.accountId, t.id).all().then((x) => x.results),
-        env.DB.prepare("SELECT provider, campaign_name, email, status, created_at FROM campaign_leads WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC").bind(ctx.accountId, t.id).all().then((x) => x.results),
-      ]);
-      return json({ ...t, contacts, emails, calls, campaigns, intel: await getIntel(env, ctx, t.id) });
-    }
+    if (m === "GET") return json(await getTargetFull(env, ctx, +r[1]));
     if (m === "PATCH") return json(await updateTarget(env, ctx, +r[1], await body(request), hooks));
     if (m === "DELETE") return json(await deleteTarget(env, ctx, +r[1], hooks));
   }
@@ -447,17 +459,20 @@ async function route(request, env, url, ctx, exec) {
         env.DB.prepare("DELETE FROM mailboxes WHERE user_id = ?1").bind(gone.id),
         env.DB.prepare("DELETE FROM users WHERE id = ?1").bind(gone.id),
       ]);
+      forgetSessions();
       return json({ ok: true });
     }
     if (m === "PATCH") {
       const role = (await body(request)).role === "owner" ? "owner" : "member";
       await env.DB.prepare("UPDATE users SET role = ?3, session_epoch = session_epoch + 1 WHERE id = ?1 AND account_id = ?2").bind(+r[1], ctx.accountId, role).run();
+      forgetSessions();
       return json({ ok: true, role });
     }
   }
   if (p === "/api/tokens" && m === "POST") return json(await createToken(env, ctx, await body(request)), 201);
   if ((r = p.match(/^\/api\/tokens\/(\d+)$/)) && m === "DELETE") {
     await env.DB.prepare("DELETE FROM api_tokens WHERE id = ?1 AND account_id = ?2 AND (?4 = 1 OR user_id = ?3)").bind(+r[1], ctx.accountId, ctx.user.id, ctx.isOwner ? 1 : 0).run();
+    forgetSessions();
     return json({ ok: true });
   }
 
@@ -520,6 +535,7 @@ async function changePassword(env, ctx, b) {
   if (problem) fail(400, problem);
   // Bumping the epoch signs out every other session.
   const nu = await env.DB.prepare("UPDATE users SET password_hash = ?2, session_epoch = session_epoch + 1 WHERE id = ?1 RETURNING *").bind(u.id, await hashPassword(b.next)).first();
+  forgetSessions();
   return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, nu) });
 }
 

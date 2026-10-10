@@ -80,7 +80,12 @@ export async function autopilotRun(env, accountId, exec) {
 }
 
 export async function autopilotAll(env, exec) {
-  const { results } = await env.DB.prepare("SELECT DISTINCT account_id FROM targets").all();
+  const { results } = await env.DB.prepare("SELECT DISTINCT t.account_id FROM targets t JOIN accounts a ON a.id = t.account_id AND a.active = 1").all();
+  // With the queue bound, each workspace becomes its own message (processed in parallel, retried on failure).
+  if (env.WORK) {
+    for (let i = 0; i < results.length; i += 100) await env.WORK.sendBatch(results.slice(i, i + 100).map((r) => ({ body: { type: "autopilot", accountId: r.account_id } })));
+    return { queued: results.length };
+  }
   for (const r of results) {
     try { await autopilotRun(env, r.account_id, exec); } catch (e) { console.error(`autopilot account ${r.account_id}`, e); }
   }

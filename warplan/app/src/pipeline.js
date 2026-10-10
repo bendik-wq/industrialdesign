@@ -54,6 +54,25 @@ export async function listTargets(env, ctx, q) {
   return results.map(rowToTarget);
 }
 
+// Everything the target page shows, in one database round trip (9 reads, one batch).
+export async function getTargetFull(env, ctx, id) {
+  const r = await env.DB.batch([
+    env.DB.prepare(`SELECT ${PUBLIC_COLS.join(", ")} FROM targets WHERE id = ?1 AND account_id = ?2`).bind(id, ctx.accountId),
+    env.DB.prepare("SELECT id, kind, body, user_name, created_at FROM target_events WHERE target_id = ?1 AND account_id = ?2 ORDER BY id DESC LIMIT 200").bind(id, ctx.accountId),
+    env.DB.prepare("SELECT id, kind, title, created_at, updated_at FROM documents WHERE target_id = ?1 AND account_id = ?2 ORDER BY id DESC").bind(id, ctx.accountId),
+    env.DB.prepare("SELECT id, agent, title, meta, updated_at FROM threads WHERE account_id = ?1 AND user_id = ?3 AND json_extract(meta, '$.target') = ?2 ORDER BY updated_at DESC LIMIT 30").bind(ctx.accountId, id, ctx.user.id || 0),
+    env.DB.prepare("SELECT id, kind, value, label, source, confidence, created_at FROM contacts WHERE account_id = ?1 AND target_id = ?2 ORDER BY CASE WHEN label LIKE '%(owner)%' AND confidence != 'guess' THEN 0 WHEN kind = 'email' AND confidence != 'guess' THEN 1 WHEN kind = 'phone' THEN 2 ELSE 3 END, CASE confidence WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, id").bind(ctx.accountId, id),
+    env.DB.prepare("SELECT id, target_id, to_email, subject, status, error, created_at FROM sent_emails WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC LIMIT 100").bind(ctx.accountId, id),
+    env.DB.prepare("SELECT id, disposition, notes, duration, phone, created_at FROM calls WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC LIMIT 20").bind(ctx.accountId, id),
+    env.DB.prepare("SELECT provider, campaign_name, email, status, created_at FROM campaign_leads WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC").bind(ctx.accountId, id),
+    env.DB.prepare("SELECT score, data, updated_at FROM target_intel WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+  ]);
+  const t = r[0].results[0];
+  if (!t) throw err(404, "Target not found");
+  const intel = r[8].results[0];
+  return { ...rowToTarget(t), events: r[1].results, documents: r[2].results, threads: r[3].results.map((x) => ({ ...x, meta: JSON.parse(x.meta) })), contacts: r[4].results, emails: r[5].results, calls: r[6].results, campaigns: r[7].results, intel: intel ? { score: intel.score, updated_at: intel.updated_at, ...JSON.parse(intel.data) } : null };
+}
+
 export async function getTarget(env, ctx, id) {
   const t = await own(env, ctx, id);
   const [events, docs, threads] = await env.DB.batch([

@@ -115,6 +115,28 @@ I mapped Monid's catalog with 98 searches (708 endpoints from 77 providers) and 
 - **Background jobs:** a cron every 10 minutes finishes meeting notes and inbox syncs. The Data page shows the jobs and has a *Check now* button.
 - **Monid client:** treats a provider error inside a run Monid reports as COMPLETED as a failure, and returns wallet holds that are too large as a clear "top up" message.
 
+**v8: design, queue, scale**
+- **Design:** an Apple-style visual system.
+  - Inter type in sentence case, soft neutral surfaces and hairline borders, 10–20px corners, gentle shadows, a translucent top bar and frosted menus.
+  - The sidebar is grouped (Find, Deals, Agents, Tools) and uses line icons.
+  - The target page keeps four main actions; the rest sit in a "More" menu.
+  - Includes dark mode, reduced-motion support and keyboard-accessible menus.
+- **Queue fan-out (Cloudflare Queues `warplan-work`):** the daily autopilot and the AgentMail inbox sync send one message per workspace. A consumer processes them in parallel, retrying 3 times before moving a message to a dead-letter queue, so no single run hits the time limit however many workspaces there are.
+- **Load test (production, authenticated, no think time, 11 typical endpoints):**
+
+| Users | Before: requests/s | Before: median / p95 | After: requests/s | After: median / p95 | Errors |
+|---|---|---|---|---|---|
+| 10 | 65 | 117 / 395 ms | 100 | 67 / 327 ms | 0 |
+| 100 | 135 | 679 / 1804 ms | 303 | 308 / 790 ms | 0 |
+| 250 | 151 | 1540 / 3757 ms | 320 | 716 / 1735 ms | 0 |
+
+  The fixes behind the "after" numbers:
+  - App code (`/js`, `/vendor`) is served without a session lookup; it holds no data.
+  - Verified sessions are cached for 15 seconds per isolate, and the cache is cleared on member removal, role change, password change and token revocation.
+  - The target page reads everything in one batch.
+
+  The ceiling is now the single D1 database, which serialises reads. A thousand users at realistic pace (one request every 10–30 seconds while active) comes to about 30–100 requests/s, well inside it. The next step for more headroom is D1 read replication.
+
 ## API
 
 `GET /api` returns the full reference. Authenticate with `Authorization: Bearer wp_...` (Settings → API).
