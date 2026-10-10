@@ -53,7 +53,7 @@ export async function dial(raw, { targetId = null, fromDialer = false } = {}) {
   try {
     const l = await api(`/api/phone/lookup?number=${encodeURIComponent(raw)}`);
     if (!l.e164) { toast("Add the country code, e.g. +1 or +47", "error"); $("#pnum") && ($("#pnum").value = raw); return; }
-    info = { number: l.e164, target: l.target || (targetId ? { id: targetId } : null), fromDialer, inbound: false };
+    info = { number: l.e164, country: l.country, via: l.caller_id, target: l.target || (targetId ? { id: targetId } : null), fromDialer, inbound: false };
     renderCall("Connecting…");
     await ensureDevice();
     call = await device.connect({ params: { To: l.e164 } });
@@ -94,6 +94,7 @@ function renderCall(state) {
   const p = $("#phone"); p.hidden = false; p.classList.remove("mini");
   const name = info?.target?.name || "";
   p.innerHTML = `<div class="ph-call"><p class="muted small">${info?.inbound ? "Incoming" : "Calling"}</p><h3>${esc(name || info?.number || "")}</h3>${name ? `<p class="mono small">${esc(info.number)}</p>` : ""}
+    ${info?.via && !info.inbound ? `<p class="muted small">${info.country ? `${esc(info.country)} · ` : ""}they see <span class="mono">${esc(info.via)}</span></p>` : ""}
     <p class="ph-state" id="pstate">${state ? esc(state) : `<span id="ptime">0:00</span>`}</p>
     <div class="ph-keys small-keys" id="dtmf" hidden>${"123456789*0#".split("").map((k) => `<button type="button" data-dtmf="${k}">${k}</button>`).join("")}</div>
     <div class="ph-row"><button class="ph-btn" id="pMute" type="button">Mute</button><button class="ph-btn" id="pPad" type="button">Keypad</button></div>
@@ -196,12 +197,16 @@ async function recent() {
 }
 
 function settings() {
-  $("#pbody").innerHTML = `<p class="small">Calls show <b class="mono">${esc(status.from)}</b>. Change it under <a href="#/settings/integrations">Settings → Integrations → Twilio</a> (a Twilio number, or your own number verified in Twilio).</p>
+  $("#pbody").innerHTML = `<p class="small"><b>Local presence</b>: each owner sees your number from their own country (and their own area code in the US and Canada when you have one). Otherwise <b class="mono">${esc(status.from)}</b>.</p>
+    <ul class="ph-list">${status.numbers.map((n) => `<li class="ph-callrow"><span><b class="mono">${esc(n.number)}</b><small class="muted">${esc(n.country || "Other")} · ${n.owned ? `Twilio number${n.sms ? " · texts" : ""}` : "your number (calls only)"}</small></span></li>`).join("")}</ul>
+    ${status.canEdit ? `<button class="ghost small" id="pNums" type="button">Refresh numbers from Twilio</button>` : ""}
+    <p class="muted small">Add a number per country: buy one in Twilio, or verify your own there (Phone Numbers → Verified Caller IDs), then refresh. You can also list numbers under <a href="#/settings/integrations">Settings → Integrations → Twilio</a>.</p>
     ${status.canEdit ? `<label class="check"><input type="checkbox" id="pIn" ${status.incoming ? "checked" : ""} ${status.can_receive ? "" : "disabled"}> Ring Warplan when someone calls or texts this number</label>
     ${status.can_receive ? "" : `<p class="muted small">Receiving needs a number bought on your Twilio account; a verified caller ID can only call out.</p>`}
     <div class="row"><button class="ghost small" id="pRe" type="button">Re-run setup</button><button class="ghost small" id="pOff" type="button">Turn off the browser phone</button></div>` : `<p class="muted small">Owners can change these settings.</p>`}
     <p class="muted small">Allow the microphone when your browser asks. Use a headset for the best sound. Calls aren't recorded.</p>`;
   $("#pIn")?.addEventListener("change", async (e) => { try { status = await post("/api/phone/incoming", { on: e.target.checked }, "PUT"); if (status.incoming) { const d = await ensureDevice(); await d.register(); } toast(status.incoming ? "Incoming calls and texts now come to Warplan" : "Incoming calls go back to your old setup"); } catch (err) { fail(err); e.target.checked = !e.target.checked; } });
+  $("#pNums")?.addEventListener("click", async () => { try { status = await post("/api/phone/numbers"); toast(`${status.numbers.length} number${status.numbers.length === 1 ? "" : "s"}`); render(); } catch (e) { fail(e); } });
   $("#pRe")?.addEventListener("click", async () => { try { status = await post("/api/phone/setup"); device?.destroy(); device = null; toast("Done"); render(); } catch (e) { fail(e); } });
   $("#pOff")?.addEventListener("click", async () => { try { await api("/api/phone", { method: "DELETE" }); device?.destroy(); device = null; status = await api("/api/phone"); clearInterval(pollT); render(); } catch (e) { fail(e); } });
 }

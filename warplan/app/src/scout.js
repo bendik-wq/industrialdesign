@@ -1,14 +1,10 @@
 // Scout: find acquisition targets with owners and contact details, from official registries and maps.
-//   Norway   Brønnøysund: owners + birth dates, email, phone, website, revenue and operating profit. No key.
-//   France   Recherche d'entreprises (Sirene + RNE): owners + birth years, size, revenue when filed. No key.
 //   UK       Companies House: directors + birth month/year, size class. Free key (workspace integration).
 //   Anywhere Google Places: phone, website, rating. Key (workspace integration).
 //   Anywhere Google Maps via Monid (litescrape): phone, website, rating, category. Monid key; ~$0.0002 a page.
 //   Anywhere OpenStreetMap: phone, email, website where mapped. No key; patchier coverage.
 // Every result comes back in one shape; importing turns it into a pipeline target.
 import { INDUSTRIES, industryById } from "./data/industries.js";
-import NO_FYLKER from "./data/no_fylker.json";
-import FR_DEPARTEMENTS from "./data/fr_dep.json";
 import { run as monidRun } from "./monid.js";
 
 const UA = "Warplan/2 (acquisition research; https://warplan.bendik-50e.workers.dev)";
@@ -43,86 +39,6 @@ const OSM_TAGS = {
 const ownerFrom = (people) => {
   const p = people.find((x) => x.birthYear) || people[0];
   return p ? { owner_name: p.name, owner_age: p.birthYear ? yearNow() - p.birthYear : null } : {};
-};
-
-// ------------------------------------------------------------------ Norway
-const NO_FORMS = { AS: "AS", ENK: "Sole proprietorship", ANS: "Partnership", DA: "Partnership", ASA: "ASA" };
-const norway = {
-  id: "no", label: "Norway", flag: "🇳🇴", currency: "NOK ", needs: null,
-  regionLabel: "County", regions: NO_FYLKER.map((f) => ({ code: f.code, name: f.name })),
-  gives: ["Owner and birth date", "Company email and phone", "Website", "Revenue and operating profit", "Exact headcount"],
-  async search(env, q) {
-    const ind = industryById(q.industry);
-    if (!ind?.no?.length) throw err(400, "No Norwegian activity code for that industry yet");
-    const u = new URL("https://data.brreg.no/enhetsregisteret/api/enheter");
-    u.searchParams.set("naeringskode", ind.no.join(","));
-    if (q.region) u.searchParams.set("kommunenummer", NO_FYLKER.find((f) => f.code === q.region)?.kommuner.join(",") || "");
-    if (q.minStaff > 0) u.searchParams.set("fraAntallAnsatte", String(q.minStaff));
-    u.searchParams.set("konkurs", "false"); u.searchParams.set("underAvvikling", "false");
-    u.searchParams.set("size", "15"); u.searchParams.set("page", String(q.page - 1)); u.searchParams.set("sort", "antallAnsatte,DESC");
-    const d = await getJson(u.toString());
-    const units = (d?._embedded?.enheter || []).filter((e) => ind.no.includes(e.naeringskode1?.kode));
-    const rows = await Promise.all(units.map(async (e) => {
-      const [roles, accounts] = await Promise.all([
-        getJson(`https://data.brreg.no/enhetsregisteret/api/enheter/${e.organisasjonsnummer}/roller`).catch(() => null),
-        getJson(`https://data.brreg.no/regnskapsregisteret/regnskap/${e.organisasjonsnummer}`).catch(() => null),
-      ]);
-      const people = [];
-      for (const g of roles?.rollegrupper || []) for (const r of g.roller || []) {
-        if (!r.person || r.avregistrert || r.person.erDoed) continue;
-        const n = r.person.navn || {};
-        people.push({ name: [n.fornavn, n.etternavn].filter(Boolean).join(" "), role: r.type?.beskrivelse, birthYear: Number((r.person.fodselsdato || "").slice(0, 4)) || null });
-      }
-      const uniq = [...new Map(people.map((p) => [p.name, p])).values()].sort((x, y) => /daglig leder|innehaver/i.test(y.role) - /daglig leder|innehaver/i.test(x.role));
-      const acc = Array.isArray(accounts) ? accounts.sort((x, y) => (y.regnskapsperiode?.tilDato || "").localeCompare(x.regnskapsperiode?.tilDato || ""))[0] : null;
-      const res = acc?.resultatregnskapResultat?.driftsresultat;
-      const a = e.forretningsadresse || e.postadresse || {};
-      return {
-        source: "no_brreg", source_id: e.organisasjonsnummer, name: titleCase(e.navn), legal_form: NO_FORMS[e.organisasjonsform?.kode] || e.organisasjonsform?.beskrivelse,
-        location: titleCase(a.poststed || a.kommune), address: [...(a.adresse || []), [a.postnummer, a.poststed].filter(Boolean).join(" ")].filter(Boolean).join(", "),
-        website: e.hjemmeside ? (e.hjemmeside.startsWith("http") ? e.hjemmeside : `https://${e.hjemmeside}`) : "",
-        email: e.epostadresse || "", phone: e.telefon || e.mobil || "",
-        employees: e.harRegistrertAntallAnsatte ? e.antallAnsatte ?? null : null,
-        revenue: res?.driftsinntekter?.sumDriftsinntekter > 0 ? res.driftsinntekter.sumDriftsinntekter : null,
-        ebitda: res?.driftsresultat ?? null, // operating profit (EBIT) as filed: a floor for EBITDA
-        founded: Number((e.stiftelsesdato || "").slice(0, 4)) || null,
-        people: uniq.slice(0, 6), ...ownerFrom(uniq),
-        registry_url: `https://virksomhet.brreg.no/nb/oppslag/enheter/${e.organisasjonsnummer}`,
-      };
-    }));
-    return { results: rows, more: (d?.page?.totalPages || 0) > q.page, total: d?.page?.totalElements ?? null };
-  },
-};
-
-// ------------------------------------------------------------------ France
-const FR_BANDS = { "01": [1, "1–2"], "02": [3, "3–5"], "03": [6, "6–9"], "11": [10, "10–19"], "12": [20, "20–49"], "21": [50, "50–99"], "22": [100, "100–199"], "31": [200, "200–249"], "32": [250, "250–499"] };
-const france = {
-  id: "fr", label: "France", flag: "🇫🇷", currency: "€", needs: null,
-  regionLabel: "Département", regions: FR_DEPARTEMENTS.map((d) => ({ code: d.code, name: `${d.code} · ${d.nom}` })),
-  gives: ["Owners and birth years", "Headcount band", "Revenue when filed", "No email/phone: scan the website after import"],
-  async search(env, q) {
-    const ind = industryById(q.industry);
-    if (!ind?.fr?.length) throw err(400, "No French activity code for that industry yet");
-    const u = new URL("https://recherche-entreprises.api.gouv.fr/search");
-    u.searchParams.set("activite_principale", ind.fr.join(","));
-    if (q.region) u.searchParams.set("departement", q.region);
-    u.searchParams.set("etat_administratif", "A");
-    if (q.minStaff > 0) u.searchParams.set("tranche_effectif_salarie", Object.entries(FR_BANDS).filter(([, [m]]) => m >= q.minStaff).map(([k]) => k).join(","));
-    u.searchParams.set("per_page", "25"); u.searchParams.set("page", String(q.page));
-    const d = await getJson(u.toString());
-    const rows = (d?.results || []).filter((r) => r.categorie_entreprise !== "GE").map((r) => {
-      const s = r.siege || {}, band = FR_BANDS[r.tranche_effectif_salarie];
-      const fin = Object.entries(r.finances || {}).filter(([, v]) => v?.ca).sort(([a], [b]) => b.localeCompare(a))[0];
-      const people = (r.dirigeants || []).filter((x) => x.type_dirigeant === "personne physique").map((x) => ({ name: titleCase(`${(x.prenoms || "").split(" ")[0]} ${(x.nom || "").replace(/\s*\(.*?\)\s*/g, " ")}`.replace(/\s+/g, " ").trim()), role: x.qualite, birthYear: Number(x.annee_de_naissance) || null }));
-      return {
-        source: "fr_sirene", source_id: r.siren, name: titleCase(r.nom_complet).replace(/\s*\(.*?\)\s*$/, ""), legal_form: r.nature_juridique, location: titleCase(s.libelle_commune), address: s.adresse || "",
-        website: "", email: "", phone: "", employees: band ? band[0] : null, employees_label: band?.[1],
-        revenue: fin ? fin[1].ca : null, ebitda: null, founded: Number((r.date_creation || "").slice(0, 4)) || null,
-        people: people.slice(0, 6), ...ownerFrom(people), registry_url: `https://annuaire-entreprises.data.gouv.fr/entreprise/${r.siren}`,
-      };
-    });
-    return { results: rows, more: (d?.total_pages || 0) > q.page, total: d?.total_results ?? null };
-  },
 };
 
 // ------------------------------------------------------------------ United Kingdom
@@ -237,7 +153,7 @@ const osm = {
   },
 };
 
-export const SOURCES = { no: norway, fr: france, uk, maps, places, osm };
+export const SOURCES = { maps, uk, places, osm };
 
 export function scoutInfo(keys) {
   return {
@@ -269,7 +185,7 @@ export function toTarget(r, currency) {
   return {
     name: r.name, industry: r.industry || "", location: r.location || "", website: r.website || "", owner_name: r.owner_name || "", owner_age: r.owner_age ?? null,
     phone: r.phone || "", email: r.email || "", employees: r.employees ?? null, revenue: r.revenue ?? null, ebitda: r.ebitda ?? null, currency: currency || "$",
-    stage: "sourced", source: `Scout · ${({ no_brreg: "Brønnøysund", fr_sirene: "Sirene", uk_ch: "Companies House", places: "Google Maps", maps: "Google Maps (Monid)", osm: "OpenStreetMap" })[r.source] || r.source}`,
+    stage: "sourced", source: `Scout · ${({ uk_ch: "Companies House", places: "Google Maps", maps: "Google Maps (Monid)", osm: "OpenStreetMap" })[r.source] || r.source}`,
     motivation: [people && `People on file: ${people}.`, r.founded && `Founded ${r.founded}.`, r.address && `Address: ${r.address}.`, r.registry_url && `Record: ${r.registry_url}`].filter(Boolean).join(" "),
   };
 }

@@ -61,7 +61,7 @@ export const AGENTS = [
   {
     id: "scout", name: "Scout", tag: "Off-market sourcing", status: "live", icon: "◎", route: "scout",
     blurb: "Searches official registries and maps for companies you could buy, with owners, their ages, emails, phones and revenue, then reads each website for more contacts.",
-    jobs: ["Norway, France and the UK from official registries; anywhere via Google Maps or OpenStreetMap", "Owner names and ages: 60+ highlighted for succession", "Emails and phones from the registry and the company's own website", "One click into the pipeline, emails from your own mailbox"],
+    jobs: ["Anywhere via Google Maps; UK owners and ages from Companies House; OpenStreetMap as a free fallback", "Owner names and ages: 60+ highlighted for succession", "Emails and phones from the registry and the company's own website", "One click into the pipeline, emails from your own mailbox"],
   },
   {
     id: "outreach", name: "Outreach", tag: "First contact", status: "live", icon: "✉", route: "pipeline",

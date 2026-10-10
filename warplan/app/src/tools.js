@@ -27,7 +27,7 @@ const TARGET_PROPS = {
   industry: { type: "string" }, location: { type: "string", description: "Town/region, country" }, website: { type: "string" },
   owner_name: { type: "string" }, owner_age: { type: "integer" }, phone: { type: "string" }, email: { type: "string" },
   employees: { type: "integer" }, revenue: { type: "number", description: "Annual revenue in plain units" }, ebitda: { type: "number", description: "Annual EBITDA in plain units" },
-  asking: { type: "number" }, currency: { type: "string", enum: ["$", "€", "£", "NOK "] },
+  asking: { type: "number" }, currency: { type: "string", enum: ["$", "€", "£", "A$", "C$"] },
   stage: { type: "string", enum: STAGE_IDS }, priority: { type: "integer", enum: [1, 2, 3], description: "1 high, 2 normal, 3 low" },
   source: { type: "string" }, motivation: { type: "string", description: "What the owner wants, fears, timing" },
   next_action: { type: "string" }, next_date: { type: "string", description: "YYYY-MM-DD" }, tags: { type: "string" },
@@ -154,8 +154,8 @@ export const TOOLS = [
   },
   {
     name: "find_companies", write: false,
-    description: "Scout: search official registries and maps for companies to buy. Sources: no (Norway: owner + birth date, email, phone, website, revenue, operating profit), fr (France: owners + birth years, size), uk (UK: directors + birth year; needs a Companies House key), maps (anywhere via Google Maps through Monid: phone, website, rating; ~$0.0002 a page; best worldwide source), places (Google Maps with a Google key), osm (anywhere via OpenStreetMap, free). Returns candidates; nothing is saved until import_companies.",
-    input_schema: { type: "object", properties: { source: { type: "string", enum: Object.keys(SOURCES) }, industry: { type: "string", enum: INDUSTRIES.map((i) => i.id) }, region: { type: "string", description: "Norway: county code (e.g. 03 Oslo, 32 Akershus, 46 Vestland); France: département number; uk/places/osm: a city or area like 'Austin, TX'" }, min_staff: { type: "integer" }, page: { type: "integer" } }, required: ["source", "industry"] },
+    description: "Scout: find companies to buy. Sources: maps (Google Maps anywhere via Monid: phone, website, rating; ~$0.0002 a page; the default), uk (UK Companies House: directors + birth year, needs a free key), places (Google Maps with your own Google key), osm (OpenStreetMap, free, patchier). Returns candidates; nothing is saved until import_companies",
+    input_schema: { type: "object", properties: { source: { type: "string", enum: Object.keys(SOURCES) }, industry: { type: "string", enum: INDUSTRIES.map((i) => i.id) }, region: { type: "string", description: "A city or area, e.g. 'Austin, TX' or 'Manchester, UK'" }, min_staff: { type: "integer" }, page: { type: "integer" } }, required: ["source", "industry"] },
     run: async (env, ctx, i) => {
       const r = await scoutSearch(env, ctx, i, await dataKeys(env, ctx));
       return { total: r.total, more: r.more, currency: r.currency, results: r.results.map((x) => ({ ...x, people: (x.people || []).slice(0, 3) })) };

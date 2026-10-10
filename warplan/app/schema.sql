@@ -332,3 +332,12 @@ CREATE TABLE IF NOT EXISTS calls (
 );
 CREATE INDEX IF NOT EXISTS calls_target ON calls (target_id, id DESC);
 CREATE INDEX IF NOT EXISTS calls_user ON calls (user_id, created_at);
+
+-- v6: indexes for scale (account-wide feeds, reply matching, webhook token lookups).
+CREATE INDEX IF NOT EXISTS target_events_acct ON target_events (account_id, id DESC);
+CREATE INDEX IF NOT EXISTS contacts_acct_value ON contacts (account_id, value);
+CREATE INDEX IF NOT EXISTS campaign_leads_acct_email ON campaign_leads (account_id, email);
+CREATE INDEX IF NOT EXISTS calls_acct ON calls (account_id, id DESC);
+CREATE INDEX IF NOT EXISTS sent_emails_acct ON sent_emails (account_id, id DESC);
+CREATE INDEX IF NOT EXISTS settings_reply_hook ON settings (json_extract(data, '$.hash')) WHERE key = 'reply_hook';
+CREATE INDEX IF NOT EXISTS settings_phone_hook ON settings (json_extract(data, '$.hook_hash')) WHERE key = 'phone';

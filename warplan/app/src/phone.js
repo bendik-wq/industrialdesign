@@ -10,6 +10,7 @@
 import { twilio, twilioReq, xml, e164 } from "./dialer.js";
 import { seal, open } from "./keys.js";
 import { sha256, randomToken } from "./auth.js";
+import { pickCallerId, callerNumbers, smsNumbers, countryName } from "./numbers.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -37,7 +38,8 @@ export async function phoneStatus(env, ctx) {
   const cfg = await getCfg(env, ctx.accountId);
   let tw = null;
   try { tw = await twilio(env, ctx); } catch { /* not connected */ }
-  return { twilio: !!tw, ready: !!(tw && cfg?.app_sid), from: tw?.from || null, incoming: !!cfg?.incoming, can_receive: !!cfg?.number_sid, canEdit: ctx.isOwner };
+  const numbers = tw ? callerNumbers(tw, cfg).map((n) => ({ number: n, country: countryName(n), owned: !!cfg?.numbers?.find((x) => x.number === n && x.owned), sms: !!cfg?.numbers?.find((x) => x.number === n && x.sms) })) : [];
+  return { twilio: !!tw, ready: !!(tw && cfg?.app_sid), from: tw?.from || null, numbers, incoming: !!cfg?.incoming, can_receive: !!cfg?.numbers?.some((n) => n.owned && n.voice), canEdit: ctx.isOwner };
 }
 
 export async function setupPhone(env, ctx, origin) {
@@ -50,17 +52,37 @@ export async function setupPhone(env, ctx, origin) {
   if (old?.app_sid) await twilioDelete(tw, `/Applications/${old.app_sid}.json`);
   const key = await twilioReq(tw, "/Keys.json", { FriendlyName: "Warplan browser phone" });
   const app = await twilioReq(tw, "/Applications.json", { FriendlyName: "Warplan browser phone", VoiceUrl: `${base}/voice`, VoiceMethod: "POST" });
-  const nums = await twilioReq(tw, `/IncomingPhoneNumbers.json?PhoneNumber=${encodeURIComponent(tw.from)}`);
-  const num = nums.incoming_phone_numbers?.[0];
+  const numbers = await discoverNumbers(tw);
   const sealedKey = await seal(env, key.secret, aad(ctx.accountId));
   const sealedTok = await seal(env, token, aad(ctx.accountId));
   const cfg = {
     hook_hash: await sha256(token), hook_ct: sealedTok.ciphertext, hook_iv: sealedTok.iv, origin,
     key_sid: key.sid, key_ct: sealedKey.ciphertext, key_iv: sealedKey.iv, app_sid: app.sid,
-    number_sid: num?.sid || null, incoming: false, prev_voice_url: old?.prev_voice_url ?? null, prev_sms_url: old?.prev_sms_url ?? null, created_at: now(),
+    numbers, incoming: false, prev: old?.prev || {}, created_at: now(),
   };
   await putCfg(env, ctx.accountId, cfg);
-  if (old?.incoming && cfg.number_sid) await setIncoming(env, ctx, true, origin);
+  if (old?.incoming && numbers.some((n) => n.owned && n.voice)) await setIncoming(env, ctx, true, origin);
+  return phoneStatus(env, ctx);
+}
+
+// Every number on the Twilio account: bought numbers (can call, text and receive) and verified caller IDs (your own
+// numbers, call-out only). Local presence picks from these by the owner's country.
+async function discoverNumbers(tw) {
+  const [owned, verified] = await Promise.all([
+    twilioReq(tw, "/IncomingPhoneNumbers.json?PageSize=100").catch(() => ({})),
+    twilioReq(tw, "/OutgoingCallerIds.json?PageSize=100").catch(() => ({})),
+  ]);
+  const out = (owned.incoming_phone_numbers || []).map((n) => ({ number: n.phone_number, sid: n.sid, owned: true, voice: n.capabilities?.voice !== false, sms: !!n.capabilities?.sms }));
+  for (const v of verified.outgoing_caller_ids || []) if (!out.some((n) => n.number === v.phone_number)) out.push({ number: v.phone_number, owned: false, voice: true, sms: false });
+  return out.slice(0, 100);
+}
+export async function refreshNumbers(env, ctx) {
+  const tw = await twilio(env, ctx);
+  const cfg = await getCfg(env, ctx.accountId);
+  if (!cfg?.app_sid) throw err(400, "Set up the browser phone first");
+  cfg.numbers = await discoverNumbers(tw);
+  await putCfg(env, ctx.accountId, cfg);
+  if (cfg.incoming) await setIncoming(env, ctx, true);
   return phoneStatus(env, ctx);
 }
 
@@ -69,14 +91,19 @@ export async function setIncoming(env, ctx, on, origin) {
   const tw = await twilio(env, ctx);
   const cfg = await getCfg(env, ctx.accountId);
   if (!cfg?.app_sid) throw err(400, "Set up the browser phone first");
-  if (!cfg.number_sid) throw err(400, `${tw.from} isn't a number bought on this Twilio account (a verified caller ID can make calls but can't receive them). Buy a number in Twilio to receive calls and texts.`);
-  if (on) {
-    const cur = await twilioReq(tw, `/IncomingPhoneNumbers/${cfg.number_sid}.json`);
-    const base = hookBase(cfg.origin || origin, await open(env, { ciphertext: cfg.hook_ct, iv: cfg.hook_iv }, aad(ctx.accountId)));
-    if (!String(cur.voice_url || "").includes("/hooks/twilio/")) { cfg.prev_voice_url = cur.voice_url || ""; cfg.prev_sms_url = cur.sms_url || ""; }
-    await twilioReq(tw, `/IncomingPhoneNumbers/${cfg.number_sid}.json`, { VoiceUrl: `${base}/incoming`, VoiceMethod: "POST", SmsUrl: `${base}/sms`, SmsMethod: "POST" });
-  } else {
-    await twilioReq(tw, `/IncomingPhoneNumbers/${cfg.number_sid}.json`, { VoiceUrl: cfg.prev_voice_url || "", SmsUrl: cfg.prev_sms_url || "" });
+  const owned = (cfg.numbers || []).filter((n) => n.owned && n.voice && n.sid);
+  if (!owned.length) throw err(400, "None of your numbers can receive calls: verified caller IDs only call out. Buy a number in Twilio, then refresh your numbers here.");
+  cfg.prev ||= {};
+  const base = hookBase(cfg.origin || origin, await open(env, { ciphertext: cfg.hook_ct, iv: cfg.hook_iv }, aad(ctx.accountId)));
+  for (const n of owned) {
+    if (on) {
+      const cur = await twilioReq(tw, `/IncomingPhoneNumbers/${n.sid}.json`);
+      // Remember what the number did before, so turning this off puts it back exactly.
+      if (!String(cur.voice_url || "").includes("/hooks/twilio/")) cfg.prev[n.sid] = { voice: cur.voice_url || "", sms: cur.sms_url || "" };
+      await twilioReq(tw, `/IncomingPhoneNumbers/${n.sid}.json`, { VoiceUrl: `${base}/incoming`, VoiceMethod: "POST", SmsUrl: `${base}/sms`, SmsMethod: "POST" });
+    } else {
+      await twilioReq(tw, `/IncomingPhoneNumbers/${n.sid}.json`, { VoiceUrl: cfg.prev[n.sid]?.voice || "", SmsUrl: cfg.prev[n.sid]?.sms || "" });
+    }
   }
   cfg.incoming = !!on;
   await putCfg(env, ctx.accountId, cfg);
@@ -105,6 +132,12 @@ export async function phoneToken(env, ctx) {
   const token = await twilioJwt({ keySid: cfg.key_sid, secret, accountSid: tw.sid, appSid: cfg.app_sid, identity });
   return { token, identity, from: tw.from, expires_in: 3600, incoming: !!cfg.incoming };
 }
+// Which of your numbers an owner will see when you call or text them.
+export async function callerFor(env, ctx, to) {
+  const tw = await twilio(env, ctx);
+  const cfg = await getCfg(env, ctx.accountId);
+  return { call: pickCallerId(callerNumbers(tw, cfg), to, tw.from), sms: pickCallerId(smsNumbers(tw, cfg), to, tw.from) };
+}
 
 // A Twilio access token: HS256 JWT signed with the API key secret, granting voice in and out as `identity`.
 export async function twilioJwt({ keySid, secret, accountSid, appSid, identity, iat = Math.floor(Date.now() / 1000), ttl = 3600 }) {
@@ -126,7 +159,9 @@ export async function findByPhone(env, accountId, number) {
 }
 export async function lookup(env, ctx, number) {
   const t = await findByPhone(env, ctx.accountId, number);
-  return { number, e164: e164(number, t?.currency || "$"), target: t ? { id: t.id, name: t.name, owner: t.owner_name } : null };
+  const norm = e164(number, t?.currency || "$");
+  const via = norm ? await callerFor(env, ctx, norm).catch(() => null) : null;
+  return { number, e164: norm, country: countryName(norm), caller_id: via?.call || null, target: t ? { id: t.id, name: t.name, owner: t.owner_name } : null };
 }
 
 // ------------------------------------------------------------------ texts
@@ -138,24 +173,26 @@ export async function sendSms(env, ctx, b, hooks) {
   const to = e164(b.to, match?.currency || "$");
   if (!to) throw err(400, "Use the number in +country format, e.g. +4791234567");
   if (await env.DB.prepare("SELECT 1 FROM suppressions WHERE account_id = ?1 AND email = ?2").bind(ctx.accountId, `tel:${to}`).first()) throw err(400, `${to} replied STOP: texting them again isn't allowed`);
-  const m = await twilioReq(tw, "/Messages.json", { From: tw.from, To: to, Body: text });
+  const from = pickCallerId(smsNumbers(tw, await getCfg(env, ctx.accountId)), to, tw.from);
+  const m = await twilioReq(tw, "/Messages.json", { From: from, To: to, Body: text });
   if (match) {
     await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, ?3, ?4, 'sms', ?5, ?6)")
       .bind(ctx.accountId, match.id, ctx.user.id || null, ctx.user.name || ctx.user.email || "Agent", `Text to ${to}: ${text}`, now()).run();
   }
   hooks?.emit("sms.sent", { to, target_id: match?.id || null });
-  return { sid: m.sid, status: m.status, to, target_id: match?.id || null, receipt: `Texted ${match?.name || to}` };
+  return { sid: m.sid, status: m.status, to, from, target_id: match?.id || null, receipt: `Texted ${match?.name || to}` };
 }
 
 // Conversations, newest first, read straight from Twilio (so texts sent from elsewhere show up too).
 export async function threads(env, ctx) {
   const tw = await twilio(env, ctx);
   const d = await twilioReq(tw, "/Messages.json?PageSize=200");
+  const ours = new Set(callerNumbers(tw, await getCfg(env, ctx.accountId)));
   const by = new Map();
   for (const m of d.messages || []) {
     const inbound = m.direction === "inbound";
     const other = inbound ? m.from : m.to;
-    if (!other || other.startsWith("client:")) continue;
+    if (!other || other.startsWith("client:") || ours.has(other)) continue;
     if (!by.has(other)) by.set(other, []);
     by.get(other).push({ sid: m.sid, inbound, body: m.body, status: m.status, at: new Date(m.date_sent || m.date_created).toISOString(), error: m.error_message || null });
   }
@@ -215,7 +252,8 @@ export async function twilioHook(request, env, url, hooksFor) {
     if (!user) return twiml("<Say>Not allowed.</Say><Hangup/>");
     const to = String(params.get("To") || "").replace(/[\s()-]/g, "");
     if (!/^\+\d{7,15}$/.test(to)) return twiml("<Say>That number isn't in international format.</Say><Hangup/>");
-    return twiml(`<Dial callerId="${xml(tw.from)}" answerOnBridge="true" timeLimit="7200"><Number>${xml(to)}</Number></Dial>`);
+    const callerId = pickCallerId(callerNumbers(tw, await getCfg(env, row.account_id)), to, tw.from);
+    return twiml(`<Dial callerId="${xml(callerId)}" answerOnBridge="true" timeLimit="7200"><Number>${xml(to)}</Number></Dial>`);
   }
   if (kind === "incoming") {
     // Someone called the Twilio number: ring every teammate's browser, with the target's name if we know them.

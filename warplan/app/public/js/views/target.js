@@ -7,7 +7,7 @@ import { composeEmail } from "./email.js";
 import { pushDialog, deepEnrichDialog } from "./outreach.js";
 
 const KIND_LABEL = { note: "Note", call: "Call", email: "Email", meeting: "Meeting", stage: "Stage", doc: "Document" };
-const LANGS = ["", "English", "Spanish", "French", "German", "Norwegian", "Swedish", "Danish", "Dutch", "Italian", "Portuguese"];
+const LANGS = ["", "English", "Spanish", "French", "German", "Dutch", "Italian", "Portuguese"];
 
 export async function renderTarget(id, seq) {
   view().innerHTML = skeleton(6);

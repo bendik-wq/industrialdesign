@@ -3,7 +3,7 @@
 // A deal is a capital stack: vendor finance, commercial debt, seller rollover, investor capital, own cash.
 // Any mix works as long as the buyer keeps majority control and DSCR >= 1.5 in every year.
 
-export const CURS = ["$", "€", "£", "NOK "];
+export const CURS = ["$", "€", "£", "A$", "C$"];
 export const ELEMENTS = [
   { k: "vf", label: "Vendor finance", short: "Seller note", debt: true },
   { k: "bank", label: "Commercial debt", short: "Bank", debt: true },
@@ -121,7 +121,7 @@ export function structureSummary(d, m) {
 export const LADDER_DEFAULTS = { myEbitda: 800000, deals: 4, targetEbitda: 500000, buyMultiple: 3, synergy: 10 };
 // Size premium: buyers pay higher multiples for bigger, de-risked groups. Indicative, conservative bands.
 export function multipleFor(ebitda, cur) {
-  const k = cur === "NOK " ? ebitda / 10 : ebitda; // NOK bands scaled roughly to USD
+  const k = ebitda;
   return k < 1e6 ? 3.5 : k < 2e6 ? 4.5 : k < 5e6 ? 5.5 : k < 10e6 ? 7 : 8;
 }
 export function ladderModel(x, d) {

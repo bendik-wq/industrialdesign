@@ -29,8 +29,19 @@ test("Twilio access token is a valid HS256 JWT with the voice grant", async () =
 test("phone numbers normalise to E.164", () => {
   assert.equal(e164("+47 912 34 567"), "+4791234567");
   assert.equal(e164("0047 91234567"), "+4791234567");
-  assert.equal(e164("91234567", "NOK "), "+4791234567");
+  assert.equal(e164("0412 345 678", "A$"), "+61412345678");
   assert.equal(e164("(208) 345-4115", "$"), "+12083454115");
   assert.equal(e164("020 7946 0958", "£"), "+442079460958");
   assert.equal(e164("12345", "$"), null);
+});
+
+import { pickCallerId, countryCode } from "../src/numbers.js";
+test("local presence picks the owner's country, then area code", () => {
+  const mine = ["+15125550100", "+12085550100", "+447700900123", "+61291234567", "+4930123456"];
+  assert.equal(pickCallerId(mine, "+447911123456", "+15125550100"), "+447700900123");
+  assert.equal(pickCallerId(mine, "+61412345678", "+15125550100"), "+61291234567");
+  assert.equal(pickCallerId(mine, "+12083454115", "+15125550100"), "+12085550100"); // same area code (208)
+  assert.equal(pickCallerId(mine, "+13035550199", "+15125550100"), "+15125550100"); // any US number
+  assert.equal(pickCallerId(mine, "+33612345678", "+15125550100"), "+15125550100"); // no French number: default
+  assert.equal(countryCode("+353861234567"), "353"); // Ireland, not +35
 });

@@ -65,8 +65,8 @@ export const PROVIDERS = {
   twilio: {
     label: "Twilio (power dialer)",
     pattern: /^[0-9a-f]{32}$/i,
-    hint: "console.twilio.com → Account SID and Auth Token, a Twilio number to call from, and your own phone: Warplan rings you, then connects the seller.",
-    meta: ["sid", "from", "agentPhone"],
+    hint: "console.twilio.com → Account SID and Auth Token, your main number, and your own phone. Local presence: add a number per country (bought in Twilio, or your own verified there) and each owner sees a number from their own country. Numbers on the Twilio account are found automatically when you set up the phone.",
+    meta: ["sid", "from", "agentPhone", "numbers"],
   },
 };
 export const MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
@@ -116,7 +116,10 @@ function cleanMeta(provider, meta = {}) {
     if (!/^AC[0-9a-f]{32}$/i.test(String(meta.sid || "").trim())) throw err(400, "Add your Twilio Account SID (starts with AC)");
     if (!/^\+\d{8,15}$/.test(phone(meta.from))) throw err(400, "Add the Twilio number to call from, in +country format (e.g. +4791234567)");
     if (!/^\+\d{8,15}$/.test(phone(meta.agentPhone))) throw err(400, "Add your own phone number in +country format: Warplan rings it first, then connects the call");
-    Object.assign(out, { sid: String(meta.sid).trim(), from: phone(meta.from), agentPhone: phone(meta.agentPhone) });
+    const extra = String(meta.numbers || "").split(/[,;\n]+/).map(phone).filter(Boolean);
+    const bad = extra.find((n) => !/^\+\d{8,15}$/.test(n));
+    if (bad) throw err(400, `“${bad}” isn't in +country format`);
+    Object.assign(out, { sid: String(meta.sid).trim(), from: phone(meta.from), agentPhone: phone(meta.agentPhone), numbers: [...new Set(extra)].slice(0, 50) });
   }
   return out;
 }

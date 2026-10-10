@@ -6,6 +6,7 @@
 import { getTarget, updateTarget } from "./pipeline.js";
 import { providerKeys } from "./keys.js";
 import { STAGES } from "../public/js/deal.js";
+import { pickCallerId, callerNumbers } from "./numbers.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -96,7 +97,7 @@ export async function callHistory(env, ctx, q) {
 }
 
 // ------------------------------------------------------------------ Twilio bridge
-const COUNTRY_BY_CURRENCY = { "NOK ": "47", "£": "44", "$": "1" };
+const COUNTRY_BY_CURRENCY = { "$": "1", "C$": "1", "£": "44", "A$": "61" };
 export function e164(raw, currency) {
   let s = String(raw || "").trim().replace(/[\s().-]/g, "");
   if (s.startsWith("00")) s = `+${s.slice(2)}`;
@@ -106,6 +107,7 @@ export function e164(raw, currency) {
   if (cc === "1" && d.length === 10) return `+1${d}`;
   if (cc === "1" && d.length === 11 && d.startsWith("1")) return `+${d}`;
   if (cc === "44" && d.length === 11 && d.startsWith("0")) return `+44${d.slice(1)}`;
+  if (cc === "61" && d.length === 10 && d.startsWith("0")) return `+61${d.slice(1)}`;
   return null;
 }
 export const xml = (s) => String(s).replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[c]);
@@ -128,9 +130,11 @@ export async function startBridge(env, ctx, b) {
   const tw = await twilio(env, ctx);
   const to = e164(b.phone || t.phone, t.currency);
   if (!to) throw err(400, "Save the number in +country format (e.g. +4791234567) so Twilio can dial it");
-  const twiml = `<Response><Say>Connecting you to ${xml(t.name).slice(0, 80)}.</Say><Dial callerId="${xml(tw.from)}" timeout="35" answerOnBridge="true"><Number>${xml(to)}</Number></Dial></Response>`;
+  const cfg = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'phone'").bind(ctx.accountId).first();
+  const callerId = pickCallerId(callerNumbers(tw, cfg ? JSON.parse(cfg.data) : null), to, tw.from);
+  const twiml = `<Response><Say>Connecting you to ${xml(t.name).slice(0, 80)}.</Say><Dial callerId="${xml(callerId)}" timeout="35" answerOnBridge="true"><Number>${xml(to)}</Number></Dial></Response>`;
   const call = await twilioReq(tw, "/Calls.json", { To: tw.agentPhone, From: tw.from, Twiml: twiml, Timeout: "25" });
-  return { call_sid: call.sid, status: call.status, dialing: to, ringing: tw.agentPhone.replace(/\d(?=\d{3})/g, "•") };
+  return { call_sid: call.sid, status: call.status, dialing: to, caller_id: callerId, ringing: tw.agentPhone.replace(/\d(?=\d{3})/g, "•") };
 }
 export async function bridgeStatus(env, ctx, sid) {
   if (!/^CA[0-9a-f]{32}$/i.test(sid)) throw err(400, "Bad call id");

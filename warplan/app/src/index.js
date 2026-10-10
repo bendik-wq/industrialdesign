@@ -21,6 +21,7 @@ import { balance as monidBalance, budget as monidBudget, setBudget as setMonidBu
 import { deepEnrich } from "./waterfall.js";
 import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
 import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup } from "./dialer.js";
+import { refreshNumbers } from "./phone.js";
 import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, sendSms, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
@@ -328,6 +329,7 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/phone" && m === "DELETE") { needOwner(ctx); return json(await removePhone(env, ctx)); }
   if (p === "/api/phone/setup" && m === "POST") { needOwner(ctx); return json(await setupPhone(env, ctx, url.origin)); }
   if (p === "/api/phone/incoming" && m === "PUT") { needOwner(ctx); return json(await setIncoming(env, ctx, !!(await body(request)).on, url.origin)); }
+  if (p === "/api/phone/numbers" && m === "POST") { needOwner(ctx); return json(await refreshNumbers(env, ctx)); }
   if (p === "/api/phone/token" && m === "GET") return json(await phoneToken(env, ctx));
   if (p === "/api/phone/lookup" && m === "GET") return json(await phoneLookup(env, ctx, String(q.get("number") || "")));
   if (p === "/api/phone/sms" && m === "POST") return json(await sendSms(env, ctx, await body(request), hooks), 201);

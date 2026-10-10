@@ -93,12 +93,12 @@ async function integrations(seq) {
   const [d, seqs] = await Promise.all([api("/api/integrations"), api("/api/sequencers")]);
   if (stale(seq)) return;
   const replies = seqs.replies;
-  const META_LABEL = { baseUrl: ["EmailBison address", "https://dedi.emailbison.com"], sid: ["Account SID", "AC…"], from: ["Twilio number (calls come from it)", "+15551234567"], agentPhone: ["Your phone (Warplan rings it first)", "+4791234567"] };
+  const META_LABEL = { baseUrl: ["EmailBison address", "https://dedi.emailbison.com"], sid: ["Account SID", "AC…"], from: ["Twilio number (calls come from it)", "+15551234567"], agentPhone: ["Your phone (Warplan rings it first)", "+15551234567"], numbers: ["Local presence numbers (comma-separated, one per country)", "+447700900123, +61291234567, +4930123456"] };
   const card = (x) => `
       <form class="panel form-panel provider" data-provider="${x.id}">
         <div class="panel-head"><h2 class="h3">${esc(x.label)}</h2><span class="status ${x.connected ? "on" : ""}">${x.connected ? `Connected ··${esc(x.last4)}` : x.id === "monid" && x.platformFallback !== "not available" ? esc(x.platformFallback) : "Not connected"}</span></div>
         <label class="field">${x.id === "twilio" ? "Auth token" : "API key"}<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${x.connected ? "Paste a new key to replace it" : "Paste the key"}" ${dis}></label>
-        ${(x.metaFields || []).map((m) => `<label class="field">${esc(META_LABEL[m]?.[0] || m)}<input name="meta:${m}" value="${esc(x.meta[m] || "")}" placeholder="${esc(META_LABEL[m]?.[1] || "")}" ${dis}></label>`).join("")}
+        ${(x.metaFields || []).map((m) => `<label class="field">${esc(META_LABEL[m]?.[0] || m)}<input name="meta:${m}" value="${esc(Array.isArray(x.meta[m]) ? x.meta[m].join(", ") : x.meta[m] || "")}" placeholder="${esc(META_LABEL[m]?.[1] || "")}" ${dis}></label>`).join("")}
         <p class="muted small">${esc(x.hint)}</p>
         <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? (x.metaFields?.length ? "Save" : "Replace") : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}${x.id === "monid" && x.connected ? `<a class="ghost" href="#/data">Open the data console</a>` : ""}</div>
       </form>`;

@@ -1,5 +1,5 @@
 // The deal pipeline: acquisition targets, their timeline, and outgoing webhooks for the workspace's own systems.
-import { STAGES, normalizeDeal } from "../public/js/deal.js";
+import { STAGES, normalizeDeal, CURS as CURRENCIES } from "../public/js/deal.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -12,7 +12,7 @@ const num = (v) => (v === "" || v == null ? null : Number.isFinite(Number(v)) ? 
 const int = (v) => { const x = num(v); return x == null ? null : Math.round(x); };
 const FIELDS = {
   name: text(140), industry: text(80), location: text(120), website: text(200), owner_name: text(120), owner_age: int,
-  phone: text(40), email: text(160), employees: int, revenue: num, ebitda: num, asking: num, currency: (v) => (["$", "€", "£", "NOK "].includes(v) ? v : "$"),
+  phone: text(40), email: text(160), employees: int, revenue: num, ebitda: num, asking: num, currency: (v) => (CURRENCIES.includes(v) ? v : "$"),
   stage: (v) => (STAGE_IDS.has(v) ? v : "sourced"), priority: (v) => ([1, 2, 3].includes(Number(v)) ? Number(v) : 2),
   source: text(80), motivation: text(2000), next_action: text(300), next_date: (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? v : null),
   deal: (v) => (v && typeof v === "object" ? JSON.stringify(normalizeDeal(v)) : null), tags: text(200), lost_reason: text(300),

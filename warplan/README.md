@@ -38,9 +38,8 @@ A separate app from Dealflow (`../dealflow`), with its own Worker, D1 database (
   the morning summary to Slack, email or a CRM.
 
 **Scout + outreach (v4)**
-- **Scout** (`app/src/scout.js`): Norway (Brønnøysund: owner + birth date, company email and phone, revenue,
-  operating profit), France (Sirene: owners + birth years), UK (Companies House key), anywhere via Google Places (key)
-  or OpenStreetMap (free). Tick results and add them to the pipeline in one go.
+- **Scout** (`app/src/scout.js`): anywhere via Google Maps (Monid), UK (Companies House key: directors + birth year),
+  Google Places (own key) or OpenStreetMap (free). Tick results and add them to the pipeline in one go.
 - **Contact finder** (`app/src/enrich.js`): reads each company's website (homepage + contact/about pages) for emails
   and phones (mailto, tel, protected and obfuscated addresses), recognises the owner's own address, learns the company's
   email pattern and domain for owner guesses (clearly marked), and uses Hunter when a key is connected.
