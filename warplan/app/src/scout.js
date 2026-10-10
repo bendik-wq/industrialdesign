@@ -13,7 +13,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const titleCase = (s) => (s || "").toLowerCase().replace(/(^|[\s\-'’(/])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
 const yearNow = () => new Date().getUTCFullYear();
 // Drop tracking parameters (utm_*, gclid...) that Google listings append to websites.
-const cleanUrl = (u) => { try { const x = new URL(u); [...x.searchParams.keys()].filter((k) => /^(utm_|gclid|fbclid|y_source)/i.test(k)).forEach((k) => x.searchParams.delete(k)); return x.toString().replace(/\?$/, ""); } catch { return u || ""; } };
+const cleanUrl = (u) => { try { const x = new URL(u); if (!/^https?:$/.test(x.protocol)) return ""; [...x.searchParams.keys()].filter((k) => /^(utm_|gclid|fbclid|y_source)/i.test(k)).forEach((k) => x.searchParams.delete(k)); return x.toString().replace(/\?$/, ""); } catch { return u || ""; } };
 
 async function getJson(url, init = {}, tries = 3) {
   for (let i = 0; ; i++) {
@@ -144,7 +144,7 @@ const osm = {
       const t = x.tags;
       return {
         source: "osm", source_id: `${x.type}/${x.id}`, name: t.name, location: t["addr:city"] || q.region, address: [t["addr:housenumber"], t["addr:street"], t["addr:postcode"], t["addr:city"]].filter(Boolean).join(" "),
-        website: t.website || t["contact:website"] || "", email: t.email || t["contact:email"] || "", phone: t.phone || t["contact:phone"] || "",
+        website: cleanUrl(t.website || t["contact:website"] || ""), email: t.email || t["contact:email"] || "", phone: t.phone || t["contact:phone"] || "",
         employees: null, revenue: null, ebitda: null, people: [], registry_url: `https://www.openstreetmap.org/${x.type}/${x.id}`,
       };
     }).sort((a, b) => (b.phone || b.email ? 1 : 0) - (a.phone || a.email ? 1 : 0));

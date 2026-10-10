@@ -341,3 +341,10 @@ CREATE INDEX IF NOT EXISTS calls_acct ON calls (account_id, id DESC);
 CREATE INDEX IF NOT EXISTS sent_emails_acct ON sent_emails (account_id, id DESC);
 CREATE INDEX IF NOT EXISTS settings_reply_hook ON settings (json_extract(data, '$.hash')) WHERE key = 'reply_hook';
 CREATE INDEX IF NOT EXISTS settings_phone_hook ON settings (json_extract(data, '$.hook_hash')) WHERE key = 'phone';
+
+-- v6: failed sign-in attempts, for rate limiting (per email and per IP, 15-minute window).
+CREATE TABLE IF NOT EXISTS login_attempts (
+  key TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS login_attempts_key ON login_attempts (key, created_at);

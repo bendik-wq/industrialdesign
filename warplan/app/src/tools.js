@@ -15,6 +15,7 @@ import { deepEnrich, DEEP_ENRICH_PRICE } from "./waterfall.js";
 import { SEQUENCERS, listCampaigns, pushToCampaign } from "./sequencers.js";
 import { queue as callQueue, logCall, DISPOSITIONS } from "./dialer.js";
 import { sendSms } from "./phone.js";
+import { checkLimits } from "./usage.js";
 import { STAGES, normalizeDeal, dealModel, maxMultiple, money, structureSummary, targetDeal, DEAL_DEFAULTS } from "../public/js/deal.js";
 
 const STAGE_IDS = STAGES.map((s) => s.id);
@@ -124,7 +125,7 @@ export const TOOLS = [
     },
   },
   {
-    name: "draft_document", write: true,
+    name: "draft_document", write: true, ai: true,
     description: "Have a specialist agent write and save a document for a target (board needs no target). kinds: outreach (channel: letter|email|call|voicemail|linkedin, optional language), loi, memo (investment memo), lender (lender pack), plan100 (100-day plan), board (AI board review of the whole pipeline). Takes 10-40 seconds.",
     input_schema: { type: "object", properties: { kind: { type: "string", enum: ["outreach", "loi", "memo", "lender", "plan100", "board"] }, target_id: { type: "integer" }, channel: { type: "string", enum: ["letter", "email", "call", "voicemail", "linkedin"] }, language: { type: "string" } }, required: ["kind"] },
     run: async (env, ctx, i, hooks, ai) => {
@@ -295,6 +296,14 @@ export async function overview(env, ctx) {
 
 export const toolByName = (name) => TOOLS.find((t) => t.name === name);
 
+// The Inbox card's title and summary always come from the action itself, never from whoever queued it.
+export function describeAction(name, input = {}) {
+  const tool = toolByName(name);
+  const title = name === "send_email" ? `Send “${String(input.subject || "").slice(0, 80)}” to ${input.to}` : tool?.title ? tool.title(input) : `Run ${name}`;
+  const reason = ["send_email", "send_sms"].includes(name) ? String(input.body || "").slice(0, 400) : "";
+  return { title: String(title).slice(0, 200), reason };
+}
+
 // Run one tool call. Never throws: failures come back as {error} so the model can recover.
 export async function runTool(env, ctx, ai, hooks, name, input, { approved = false } = {}) {
   const tool = toolByName(name);
@@ -308,9 +317,13 @@ export async function runTool(env, ctx, ai, hooks, name, input, { approved = fal
     try { why = typeof tool.approval === "function" ? await tool.approval(env, ctx, input) : "needs your OK"; }
     catch (e) { return { ok: false, result: { error: e.status ? e.message : "Couldn't check that action. Try again." } }; }
   }
+  // AI-heavy tools count against the workspace's limits when an agent or MCP client calls them directly.
+  if (tool.ai && !approved) {
+    try { await checkLimits(env, ai, ctx); } catch (e) { return { ok: false, result: { error: e.message } }; }
+  }
   if (why) {
-    const title = name === "send_email" ? `Send “${String(input.subject || "").slice(0, 80)}” to ${input.to}` : tool.title ? tool.title(input) : `Run ${name}`;
-    const reason = ["send_email", "send_sms"].includes(name) ? String(input.body || "").slice(0, 400) : typeof why === "string" ? why : "";
+    const { title, reason: base } = describeAction(name, input);
+    const reason = ["send_email", "send_sms"].includes(name) ? base : typeof why === "string" ? why : base;
     const id = await propose(env, ctx.accountId, { tool: name, input, target_id: input.target_id, title, reason, source: "agent" });
     return { ok: true, result: { queued: true, inbox_id: id, link: "/#/inbox", receipt: `Queued for your approval in the Inbox: ${name === "send_email" ? `email to ${input.to}` : title}` } };
   }

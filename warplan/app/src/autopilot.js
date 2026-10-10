@@ -26,7 +26,7 @@ export { propose };
 
 export async function listInbox(env, ctx, status = "pending") {
   const { results } = await env.DB.prepare(`SELECT a.id, a.target_id, a.tool, a.input, a.title, a.reason, a.source, a.status, a.result, a.created_at, a.decided_by, a.decided_at, t.name AS target_name
-    FROM agent_actions a LEFT JOIN targets t ON t.id = a.target_id WHERE a.account_id = ?1 AND (?2 = 'all' OR a.status = ?2) ORDER BY a.id DESC LIMIT 100`).bind(ctx.accountId, status).all();
+    FROM agent_actions a LEFT JOIN targets t ON t.id = a.target_id AND t.account_id = a.account_id WHERE a.account_id = ?1 AND (?2 = 'all' OR a.status = ?2) ORDER BY a.id DESC LIMIT 100`).bind(ctx.accountId, status).all();
   return results.map((r) => ({ ...r, input: JSON.parse(r.input), result: r.result ? JSON.parse(r.result) : null, write: !!toolByName(r.tool)?.write }));
 }
 

@@ -891,3 +891,8 @@ fieldset.form-grid { border: 0; padding: 0; margin: 10px 0; }
   .phone-fab { right: 14px; bottom: 14px; }
   body.phone-open .phone-fab { display: none; }
 }
+.pre-line { white-space: pre-line; }
+.p-details { display: grid; gap: 6px; margin: 8px 0 0; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); font-size: 13.5px; }
+.p-details div { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
+.p-details dt { color: var(--muted); font: 600 11px var(--mono); text-transform: uppercase; padding-top: 2px; }
+.p-details dd { margin: 0; word-break: break-word; }

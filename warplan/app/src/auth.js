@@ -46,19 +46,21 @@ export function passwordProblem(pw) {
 }
 
 async function hmac(env, data) {
-  const secret = env.SESSION_SECRET || `session:${env.DASHBOARD_PASSWORD}`;
+  // Fail closed: sessions are never signed with a guessable fallback (like the setup password).
+  const secret = env.SESSION_SECRET;
+  if (!secret || secret.length < 32) throw Object.assign(new Error("Sign-in isn't configured on this server (SESSION_SECRET)"), { status: 503 });
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return b64url(await crypto.subtle.sign("HMAC", key, enc.encode(data)));
 }
 
 export async function sessionCookie(env, user) {
   const exp = Date.now() + SESSION_DAYS * 864e5;
-  const sig = await hmac(env, `${user.id}.${exp}.${user.session_epoch}`);
+  const sig = await hmac(env, `${user.id}.${exp}.${user.session_epoch}.${user.created_at}`);
   return `df_s=${user.id}.${exp}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`;
 }
 export const clearCookie = "df_s=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
 
-const USER_SQL = `SELECT u.id, u.account_id, u.email, u.name, u.role, u.is_admin, u.session_epoch, u.password_hash,
+const USER_SQL = `SELECT u.id, u.account_id, u.email, u.name, u.role, u.is_admin, u.session_epoch, u.created_at, u.password_hash,
   a.name AS account_name, a.plan, a.max_territories, a.active AS account_active
   FROM users u JOIN accounts a ON a.id = u.account_id`;
 
@@ -91,7 +93,7 @@ export async function getContext(request, env) {
   if (!uid || !(Number(exp) > Date.now())) return null;
   const u = await env.DB.prepare(`${USER_SQL} WHERE u.id = ?1`).bind(+uid).first();
   if (!u || !u.account_active) return null;
-  if (!safeEqual(sig || "", await hmac(env, `${u.id}.${exp}.${u.session_epoch}`))) return null;
+  if (!safeEqual(sig || "", await hmac(env, `${u.id}.${exp}.${u.session_epoch}.${u.created_at}`))) return null;
   return toCtx(u);
 }
 

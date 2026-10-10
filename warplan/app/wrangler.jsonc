@@ -18,6 +18,6 @@
   "triggers": { "crons": ["0 6 * * *"] },
   // Josh's video transcripts ship inside the Worker as a text module (knowledge/josh-transcripts.txt).
   "rules": [{ "type": "Text", "globs": ["**/*.txt"], "fallthrough": true }]
-  // Secrets: DASHBOARD_PASSWORD (required: first-run setup key and session signing), SESSION_SECRET (optional: separate session signing key), ANTHROPIC_API_KEY (Claude; otherwise Workers AI),
+  // Secrets: DASHBOARD_PASSWORD (required: first-run setup key), SESSION_SECRET (required, 32+ chars: session signing), KEYS_SECRET (required, 16+ chars: encrypts stored keys), ANTHROPIC_API_KEY (Claude; otherwise Workers AI),
   // ELEVENLABS_API_KEY (voices; otherwise Workers AI Aura), JOSH_VOICE_ID (ElevenLabs voice for Josh).
 }

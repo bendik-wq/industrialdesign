@@ -1,4 +1,4 @@
-import { $, $$, esc, api, post, view, stale, toast, fail, local, skeleton, emptyState, session, dateLabel, todayYmd } from "../core.js";
+import { $, $$, esc, safeUrl, api, post, view, stale, toast, fail, local, skeleton, emptyState, session, dateLabel, todayYmd } from "../core.js";
 import { STAGES, stageById } from "../deal.js";
 import { deepEnrichDialog } from "./outreach.js";
 
@@ -56,7 +56,7 @@ export async function renderDialer(seq, params) {
     const city = (t.location || "").split(",")[0] || "the area";
     $("#dmain").innerHTML = `
       <div class="panel dcard">
-        <div class="dc-head"><div><h2>${esc(t.name)}</h2><p class="muted">${esc([t.industry, t.location].filter(Boolean).join(" · "))}${t.website ? ` · <a href="${esc(t.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ""} · <a href="#/targets/${t.id}">open target</a></p></div>
+        <div class="dc-head"><div><h2>${esc(t.name)}</h2><p class="muted">${esc([t.industry, t.location].filter(Boolean).join(" · "))}${t.website ? ` · <a href="${safeUrl(t.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ""} · <a href="#/targets/${t.id}">open target</a></p></div>
           <span class="stage-pill s-${t.stage}">${stageById(t.stage).label}</span></div>
         <p class="dc-owner">${t.owner_name ? `<b>${esc(t.owner_name)}</b>${t.owner_age ? ` <span class="age ${t.owner_age >= 60 ? "old" : ""}">${t.owner_age}</span>` : ""}` : `<span class="muted">Owner unknown: ask for the owner by role</span>`}${t.calls ? ` · <span class="muted">${t.calls} earlier call${t.calls > 1 ? "s" : ""}</span>` : ""}</p>
         ${t.next_action ? `<p class="small">Next action: <b>${esc(t.next_action)}</b>${t.next_date ? ` · ${dateLabel(t.next_date)}` : ""}</p>` : ""}

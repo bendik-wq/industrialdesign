@@ -171,7 +171,7 @@ export async function pushToCampaign(env, ctx, b, hooks, ai) {
 // ------------------------------------------------------------------ replies
 export async function replyHookInfo(env, ctx) {
   const row = await env.DB.prepare("SELECT data, updated_at FROM settings WHERE account_id = ?1 AND key = 'reply_hook'").bind(ctx.accountId).first();
-  const { results } = await env.DB.prepare("SELECT r.id, r.target_id, r.provider, r.from_email, r.subject, r.category, r.summary, r.created_at, t.name AS target_name FROM replies r LEFT JOIN targets t ON t.id = r.target_id WHERE r.account_id = ?1 ORDER BY r.id DESC LIMIT 30").bind(ctx.accountId).all();
+  const { results } = await env.DB.prepare("SELECT r.id, r.target_id, r.provider, r.from_email, r.subject, r.category, r.summary, r.created_at, t.name AS target_name FROM replies r LEFT JOIN targets t ON t.id = r.target_id AND t.account_id = r.account_id WHERE r.account_id = ?1 ORDER BY r.id DESC LIMIT 30").bind(ctx.accountId).all();
   return { configured: !!row, created_at: row?.updated_at || null, replies: results };
 }
 // A new secret URL (shown once). Making a new one retires the old.
@@ -182,7 +182,7 @@ export async function rotateReplyHook(env, ctx, origin) {
 }
 export async function accountForReplyHook(env, token) {
   if (!/^rh_[\w-]{20,}$/.test(token)) return null;
-  return env.DB.prepare("SELECT s.account_id, a.name AS account_name FROM settings s JOIN accounts a ON a.id = s.account_id WHERE s.key = 'reply_hook' AND json_extract(s.data, '$.hash') = ?1").bind(await sha256(token)).first();
+  return env.DB.prepare("SELECT s.account_id, a.name AS account_name FROM settings s JOIN accounts a ON a.id = s.account_id WHERE s.key = 'reply_hook' AND json_extract(s.data, '$.hash') = ?1 AND a.active = 1").bind(await sha256(token)).first();
 }
 
 // Every sequencer shapes its webhook differently; pull out who replied, the subject and the text.

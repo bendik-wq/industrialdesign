@@ -1,4 +1,4 @@
-import { $, $$, esc, api, post, view, stale, toast, fail, local, skeleton } from "../core.js";
+import { $, $$, esc, safeUrl, api, post, view, stale, toast, fail, local, skeleton } from "../core.js";
 import { money } from "../deal.js";
 
 // Scout: search registries and maps, tick the companies worth buying, add them to the pipeline in one go.
@@ -81,10 +81,10 @@ export async function renderScout(seq) {
         <thead><tr><th><input type="checkbox" id="all" aria-label="Select all"></th><th>Company</th><th>Owner</th><th>Contact</th><th class="num">Revenue</th><th class="num">Op. profit</th><th class="num">${state.source === "maps" || state.source === "places" ? "Rating" : "Staff"}</th></tr></thead>
         <tbody>${rows.map((r, i) => `<tr class="${r.in_pipeline ? "dim" : ""}">
           <td><input type="checkbox" data-i="${i}" ${r.in_pipeline ? "disabled" : ""} aria-label="Select ${esc(r.name)}"></td>
-          <td><b>${esc(r.name)}</b>${r.in_pipeline ? ' <span class="chip">in pipeline</span>' : ""}<small class="muted block">${esc(r.location || "")}${r.registry_url ? ` · <a href="${esc(r.registry_url)}" target="_blank" rel="noopener noreferrer">record</a>` : ""}${r.website ? ` · <a href="${esc(r.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ""}</small></td>
+          <td><b>${esc(r.name)}</b>${r.in_pipeline ? ' <span class="chip">in pipeline</span>' : ""}<small class="muted block">${esc(r.location || "")}${r.registry_url ? ` · <a href="${safeUrl(r.registry_url)}" target="_blank" rel="noopener noreferrer">record</a>` : ""}${r.website ? ` · <a href="${safeUrl(r.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ""}</small></td>
           <td>${r.owner_name ? `${esc(r.owner_name)}${r.owner_age ? ` <span class="age ${r.owner_age >= 60 ? "old" : ""}">${r.owner_age}</span>` : ""}` : '<span class="muted">–</span>'}</td>
           <td class="small">${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ""}${r.email && r.phone ? "<br>" : ""}${r.phone ? `<a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : ""}${!r.email && !r.phone ? '<span class="muted">find after import</span>' : ""}</td>
-          <td class="num">${r.revenue != null ? money(r.revenue, c) : "–"}</td><td class="num ${r.ebitda < 0 ? "tone-bad" : ""}">${r.ebitda != null ? money(r.ebitda, c) : "–"}</td><td class="num">${r.employees ?? r.employees_label ?? (r.rating ? `★${r.rating} <small class="muted">(${r.reviews})</small>` : "–")}</td></tr>`).join("")}</tbody></table></div>
+          <td class="num">${r.revenue != null ? money(r.revenue, c) : "–"}</td><td class="num ${r.ebitda < 0 ? "tone-bad" : ""}">${r.ebitda != null ? money(r.ebitda, c) : "–"}</td><td class="num">${r.employees != null || r.employees_label ? esc(r.employees ?? r.employees_label) : (r.rating ? `★${esc(r.rating)} <small class="muted">(${esc(r.reviews)})</small>` : "–")}</td></tr>`).join("")}</tbody></table></div>
       ${state.more ? `<div class="center-row row"><button class="ghost" id="more" type="button">Load more</button></div>` : ""}
       <p class="muted small">Owner age is from the registry's birth year. 60+ is highlighted: the classic succession window. Operating profit is as filed (EBIT), a floor for EBITDA.</p>`;
     const boxes = () => $$("[data-i]:checked");

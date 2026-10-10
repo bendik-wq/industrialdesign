@@ -56,13 +56,23 @@ export async function renderInbox(seq, params) {
   }));
 }
 
+// Exactly what approving will do: every field of the action, so nothing hides behind a friendly title.
+const LABELS = { to: "To", subject: "Subject", body: "Message", provider: "Service", endpoint: "Endpoint", campaign_name: "Campaign", campaign_id: "Campaign id", target_ids: "Targets", input: "Input", kind: "Document", channel: "Channel", mobile: "Mobile lookup" };
+function details(a) {
+  const rows = Object.entries(a.input || {}).filter(([k, v]) => v !== "" && v != null && !["reason", "target_id"].includes(k));
+  if (!rows.length) return "";
+  const show = (v) => (typeof v === "object" ? JSON.stringify(v).slice(0, 600) : String(v).slice(0, 1500));
+  return `<dl class="p-details">${rows.map(([k, v]) => `<div><dt>${esc(LABELS[k] || k)}</dt><dd class="pre-line">${esc(show(v))}</dd></div>`).join("")}</dl>`;
+}
+
 function card(a) {
   const res = a.result;
   return `<article class="proposal st-${a.status}">
     <div class="p-main">
       <div class="p-meta"><span class="p-src">${esc(SOURCE[a.source] || a.source)}</span><span>${esc(TOOL[a.tool] || a.tool)}</span>${a.target_name ? `<a href="#/targets/${a.target_id}">${esc(a.target_name)}</a>` : ""}<span class="muted">${when(a.created_at)}</span></div>
       <h2 class="p-title">${esc(a.title)}</h2>
-      ${a.reason ? `<p class="muted">${esc(a.reason)}</p>` : ""}
+      ${a.reason ? `<p class="muted pre-line">${esc(a.reason)}</p>` : ""}
+      ${a.status === "pending" ? details(a) : ""}
       ${a.status !== "pending" ? `<p class="small ${a.status === "failed" ? "tone-bad" : "muted"}">${a.status === "done" ? `Approved by ${esc(a.decided_by)} ${when(a.decided_at)}${res?.document_id ? ` · <a href="#/desk/${res.document_id}">open the document</a>` : res?.receipt ? ` · ${esc(res.receipt)}` : ""}` : a.status === "dismissed" ? `Dismissed by ${esc(a.decided_by)}` : a.status === "failed" ? `Failed: ${esc(res?.error || "unknown error")}` : "Running…"}</p>` : ""}
     </div>
     ${a.status === "pending" ? `<div class="p-actions"><button class="primary" type="button" data-decide="${a.id}:approve">Approve</button><button class="ghost" type="button" data-decide="${a.id}:dismiss">Dismiss</button></div>` : ""}

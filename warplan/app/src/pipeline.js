@@ -1,5 +1,6 @@
 // The deal pipeline: acquisition targets, their timeline, and outgoing webhooks for the workspace's own systems.
 import { STAGES, normalizeDeal, CURS as CURRENCIES } from "../public/js/deal.js";
+import { publicUrl, safeFetch } from "./net.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -57,7 +58,7 @@ export async function getTarget(env, ctx, id) {
   const [events, docs, threads] = await env.DB.batch([
     env.DB.prepare("SELECT id, kind, body, user_name, created_at FROM target_events WHERE target_id = ?1 AND account_id = ?2 ORDER BY id DESC LIMIT 200").bind(id, ctx.accountId),
     env.DB.prepare("SELECT id, kind, title, created_at, updated_at FROM documents WHERE target_id = ?1 AND account_id = ?2 ORDER BY id DESC").bind(id, ctx.accountId),
-    env.DB.prepare("SELECT id, agent, title, meta, updated_at FROM threads WHERE account_id = ?1 AND json_extract(meta, '$.target') = ?2 ORDER BY updated_at DESC LIMIT 30").bind(ctx.accountId, id),
+    env.DB.prepare("SELECT id, agent, title, meta, updated_at FROM threads WHERE account_id = ?1 AND user_id = ?3 AND json_extract(meta, '$.target') = ?2 ORDER BY updated_at DESC LIMIT 30").bind(ctx.accountId, id, ctx.user.id || 0),
   ]);
   return { ...t, events: events.results, documents: docs.results, threads: threads.results.map((x) => ({ ...x, meta: JSON.parse(x.meta) })) };
 }
@@ -191,7 +192,7 @@ export async function deliver(env, hook, type, data) {
   const ts = Math.floor(Date.now() / 1000);
   let status = 0;
   try {
-    const r = await fetch(hook.url, {
+    const r = await safeFetch(hook.url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "User-Agent": "Warplan-Webhooks/1", "X-Warplan-Event": type, "X-Warplan-Timestamp": String(ts), "X-Warplan-Signature": `sha256=${await sign(hook.secret, `${ts}.${body}`)}` },
       body,
@@ -225,7 +226,7 @@ export async function createHook(env, ctx, b) {
   let url;
   try { url = new URL(String(b.url || "")); } catch { throw err(400, "Enter a full https:// URL"); }
   if (url.protocol !== "https:") throw err(400, "Webhooks must use https://");
-  if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(url.hostname) || url.hostname.endsWith(".internal")) throw err(400, "That address isn't reachable from the internet");
+  if (!publicUrl(url.toString(), { httpsOnly: true })) throw err(400, "Use a public https:// address (no IP addresses or internal names)");
   const n = (await env.DB.prepare("SELECT COUNT(*) AS n FROM webhooks WHERE account_id = ?1").bind(ctx.accountId).first()).n;
   if (n >= 10) throw err(400, "Ten webhooks is the limit; remove one first");
   const events = Array.isArray(b.events) && b.events.length ? b.events.filter((e) => HOOK_EVENTS.includes(e)).join(",") || "*" : "*";

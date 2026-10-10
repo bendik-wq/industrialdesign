@@ -30,6 +30,12 @@ export async function record(env, ai, ctx, feature, out) {
     .run().catch((e) => console.warn("usage record failed", e.message));
 }
 
+// Metered features with no token counts (voice): check the limits, then count one call.
+export async function meter(env, ai, ctx, feature, ownKey = ai.ownKey) {
+  await checkLimits(env, { ...ai, ownKey }, ctx);
+  await record(env, { ...ai, ownKey }, ctx, feature, { model: feature, usage: { input: 0, output: 0, cached: 0 } });
+}
+
 export async function summary(env, ctx, days = 30) {
   const since = new Date(Date.now() - days * 864e5).toISOString();
   const dayStart = new Date().toISOString().slice(0, 10);

@@ -3,6 +3,8 @@ export const $ = (s, el = document) => el.querySelector(s);
 export const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 export const view = () => $("#view");
+// Only http(s) links from data (websites, profiles, records); anything else (javascript:, data:) becomes "#".
+export const safeUrl = (u) => (/^https?:\/\/[^\s"'<>]+$/i.test(String(u || "").trim()) ? esc(String(u).trim()) : "#");
 
 export const session = { me: null, team: null, seq: 0 };
 export const stale = (seq) => seq !== session.seq;

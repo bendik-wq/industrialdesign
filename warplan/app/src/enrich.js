@@ -1,6 +1,7 @@
 // Contact finder: emails and phone numbers for a target, from its own website (homepage + contact/about pages),
 // likely owner addresses built from the owner's name and the company domain (marked as guesses), and, when the
 // workspace connects a Hunter.io key, Hunter's domain search and verified email finder.
+import { safeFetch } from "./net.js";
 const UA = "Mozilla/5.0 (compatible; WarplanBot/2; +https://warplan.bendik-50e.workers.dev)";
 const err = (status, message) => Object.assign(new Error(message), { status });
 const CONTACT_WORDS = /contact|kontakt|about|om-oss|om_oss|omoss|team|people|staff|ansatte|impressum|mentions|qui-sommes|equipe|who-we-are|ledelse/i;
@@ -11,7 +12,7 @@ function normUrl(u) { if (!u) return ""; return /^https?:\/\//i.test(u) ? u : `h
 
 async function fetchPage(url) {
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml" }, redirect: "follow", signal: AbortSignal.timeout(8000) });
+    const res = await safeFetch(url, { headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml" }, signal: AbortSignal.timeout(8000) });
     if (!res.ok || !(res.headers.get("Content-Type") || "").includes("html")) return null;
     const text = await res.text();
     return { url: res.url, html: text.slice(0, 1_500_000) };

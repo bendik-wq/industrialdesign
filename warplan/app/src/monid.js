@@ -84,6 +84,11 @@ export function estimate(price, input = {}) {
 export async function budget(env, ctx) {
   const row = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'monid'").bind(ctx.accountId).first();
   const cfg = { ...BUDGET_DEFAULTS, ...(row ? JSON.parse(row.data) : {}) };
+  // On the platform's shared key (no key of their own) a workspace gets a fixed allowance it can't raise.
+  if (env.MONID_API_KEY && !(await env.DB.prepare("SELECT 1 FROM account_keys WHERE account_id = ?1 AND provider = 'monid'").bind(ctx.accountId).first())) {
+    const cap = Math.max(0, +env.MONID_PLATFORM_CAP_USD || 5);
+    cfg.monthly_usd = Math.min(cfg.monthly_usd, cap); cfg.approve_over_usd = Math.min(cfg.approve_over_usd, 0.1); cfg.platform = true;
+  }
   const month = now().slice(0, 7);
   const s = await env.DB.prepare("SELECT COALESCE(SUM(cost), 0) AS spent, COUNT(*) AS runs FROM monid_runs WHERE account_id = ?1 AND created_at >= ?2").bind(ctx.accountId, `${month}-01`).first();
   return { ...cfg, month, spent_usd: +s.spent.toFixed(4), runs: s.runs, left_usd: +Math.max(0, cfg.monthly_usd - s.spent).toFixed(4) };
@@ -116,6 +121,7 @@ export async function needsApproval(env, ctx, provider, endpoint, input) {
 export async function run(env, ctx, { provider, endpoint, input = {} }, { purpose = "", targetId = null, maxWaitMs = 25000, key } = {}) {
   key = key || (await needKey(env, ctx));
   if (!provider || !endpoint) throw err(400, "Say which provider and endpoint to run (find them with monid_discover)");
+  if (targetId && !(await env.DB.prepare("SELECT 1 FROM targets WHERE id = ?1 AND account_id = ?2").bind(+targetId, ctx.accountId).first())) targetId = null;
   const b = await budget(env, ctx);
   if (b.left_usd <= 0) throw err(402, `This month's data budget ($${b.monthly_usd}) is used up. Raise it under Settings → Integrations → Monid.`);
   const clean = { ...(input.body && { body: input.body }), ...(input.queryParams && { queryParams: input.queryParams }), ...(input.pathParams && { pathParams: input.pathParams }) };
@@ -146,7 +152,7 @@ export async function result(env, ctx, runId) {
 }
 
 export async function recentRuns(env, ctx, limit = 30) {
-  const { results } = await env.DB.prepare("SELECT r.id, r.provider, r.endpoint, r.status, r.cost, r.purpose, r.created_at, r.target_id, t.name AS target_name FROM monid_runs r LEFT JOIN targets t ON t.id = r.target_id WHERE r.account_id = ?1 ORDER BY r.id DESC LIMIT ?2").bind(ctx.accountId, limit).all();
+  const { results } = await env.DB.prepare("SELECT r.id, r.provider, r.endpoint, r.status, r.cost, r.purpose, r.created_at, r.target_id, t.name AS target_name FROM monid_runs r LEFT JOIN targets t ON t.id = r.target_id AND t.account_id = r.account_id WHERE r.account_id = ?1 ORDER BY r.id DESC LIMIT ?2").bind(ctx.accountId, limit).all();
   return results;
 }
 

@@ -17,6 +17,7 @@ const now = () => new Date().toISOString();
 const enc = new TextEncoder();
 const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 const b64urlStr = (s) => b64url(enc.encode(s));
+const SMS_PER_DAY = 300;
 const STOP_WORDS = /^\s*(stop|stopall|unsubscribe|cancel|end|quit|stopp|avmeld)\s*$/i;
 const aad = (accountId) => `acct:${accountId}:twilio_phone`;
 
@@ -172,9 +173,12 @@ export async function sendSms(env, ctx, b, hooks) {
   const match = b.target_id ? await env.DB.prepare("SELECT id, name, currency FROM targets WHERE id = ?1 AND account_id = ?2").bind(+b.target_id, ctx.accountId).first() : await findByPhone(env, ctx.accountId, b.to);
   const to = e164(b.to, match?.currency || "$");
   if (!to) throw err(400, "Use the number in +country format, e.g. +4791234567");
+  const sentToday = (await env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND feature = 'sms' AND created_at >= ?2").bind(ctx.accountId, now().slice(0, 10)).first()).n;
+  if (sentToday >= SMS_PER_DAY) throw err(429, `This workspace has sent ${SMS_PER_DAY} texts today, the daily limit`);
   if (await env.DB.prepare("SELECT 1 FROM suppressions WHERE account_id = ?1 AND email = ?2").bind(ctx.accountId, `tel:${to}`).first()) throw err(400, `${to} replied STOP: texting them again isn't allowed`);
   const from = pickCallerId(smsNumbers(tw, await getCfg(env, ctx.accountId)), to, tw.from);
   const m = await twilioReq(tw, "/Messages.json", { From: from, To: to, Body: text });
+  await env.DB.prepare("INSERT INTO usage (account_id, user_id, feature, model, input_tokens, output_tokens, cached_tokens, own_key, created_at) VALUES (?1, ?2, 'sms', 'twilio', 0, 0, 0, 1, ?3)").bind(ctx.accountId, ctx.user.id || null, now()).run();
   if (match) {
     await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, ?3, ?4, 'sms', ?5, ?6)")
       .bind(ctx.accountId, match.id, ctx.user.id || null, ctx.user.name || ctx.user.email || "Agent", `Text to ${to}: ${text}`, now()).run();
@@ -235,7 +239,7 @@ const twiml = (inner) => new Response(`<?xml version="1.0" encoding="UTF-8"?><Re
 export async function twilioHook(request, env, url, hooksFor) {
   const m = url.pathname.match(/^\/hooks\/twilio\/(tw_[\w-]{20,})\/(voice|incoming|after|sms)$/);
   if (!m || request.method !== "POST") return new Response("Not found", { status: 404 });
-  const row = await env.DB.prepare("SELECT s.account_id FROM settings s WHERE s.key = 'phone' AND json_extract(s.data, '$.hook_hash') = ?1").bind(await sha256(m[1])).first();
+  const row = await env.DB.prepare("SELECT s.account_id FROM settings s JOIN accounts a ON a.id = s.account_id WHERE s.key = 'phone' AND json_extract(s.data, '$.hook_hash') = ?1 AND a.active = 1").bind(await sha256(m[1])).first();
   if (!row) return new Response("Not found", { status: 404 });
   const ctx = { accountId: row.account_id, user: { id: null, name: "Phone" }, isOwner: false };
   const hooks = hooksFor(row.account_id);
@@ -253,7 +257,7 @@ export async function twilioHook(request, env, url, hooksFor) {
     const to = String(params.get("To") || "").replace(/[\s()-]/g, "");
     if (!/^\+\d{7,15}$/.test(to)) return twiml("<Say>That number isn't in international format.</Say><Hangup/>");
     const callerId = pickCallerId(callerNumbers(tw, await getCfg(env, row.account_id)), to, tw.from);
-    return twiml(`<Dial callerId="${xml(callerId)}" answerOnBridge="true" timeLimit="7200"><Number>${xml(to)}</Number></Dial>`);
+    return twiml(`<Dial callerId="${xml(callerId)}" answerOnBridge="true" timeLimit="3600"><Number>${xml(to)}</Number></Dial>`);
   }
   if (kind === "incoming") {
     // Someone called the Twilio number: ring every teammate's browser, with the target's name if we know them.

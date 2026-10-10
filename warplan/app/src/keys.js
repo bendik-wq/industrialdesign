@@ -72,8 +72,9 @@ export const PROVIDERS = {
 export const MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
 
 async function aesKey(env) {
-  const secret = env.KEYS_SECRET || env.SESSION_SECRET || `keys:${env.DASHBOARD_PASSWORD || ""}`;
-  if (!env.KEYS_SECRET && !env.SESSION_SECRET && !env.DASHBOARD_PASSWORD) throw err(503, "Key storage isn't configured on this server");
+  // Fail closed: stored keys are only ever encrypted with a dedicated secret.
+  const secret = env.KEYS_SECRET;
+  if (!secret || secret.length < 16) throw err(503, "Key storage isn't configured on this server (KEYS_SECRET)");
   const base = await crypto.subtle.importKey("raw", enc.encode(secret), "HKDF", false, ["deriveKey"]);
   return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: enc.encode("warplan-account-keys"), info: enc.encode("v1") }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
 }

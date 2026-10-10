@@ -10,13 +10,14 @@ import { listTargets, getTarget, createTarget, updateTarget, deleteTarget, addEv
 import { deskAgents } from "./desk.js";
 import { createDocument, getProfile } from "./documents.js";
 import { listKeys, saveKey, deleteKey, aiEnv, dataKeys, MODELS } from "./keys.js";
-import { checkLimits, record, summary } from "./usage.js";
+import { checkLimits, record, summary, meter } from "./usage.js";
 import { STAGES } from "../public/js/deal.js";
 import { handleMcp } from "./mcp.js";
 import { listInbox, decide, propose, autopilotRun, autopilotAll, getSetting, setSetting } from "./autopilot.js";
-import { TOOLS } from "./tools.js";
+import { TOOLS, toolByName, describeAction } from "./tools.js";
 import { scoutInfo, scoutSearch, toTarget } from "./scout.js";
 import { listContacts, enrichTarget, addContact, deleteContact } from "./contacts.js";
+import { needsApproval } from "./monid.js";
 import { balance as monidBalance, budget as monidBudget, setBudget as setMonidBudget, recentRuns, discover as monidDiscover, describe as monidDescribe, run as monidRun, compact } from "./monid.js";
 import { deepEnrich } from "./waterfall.js";
 import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
@@ -26,6 +27,8 @@ import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup a
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
 const INVITE_DAYS = 7;
+// A real PBKDF2 hash of a random password: verified against when the email is unknown, to keep timing equal.
+const DUMMY_HASH = "pbkdf2$100000$c2FsdHNhbHRzYWx0c2FsdA==$3vVJ8yFqZbS4m0t0dKkQ4m2sQyQyN6QJ3Wl2eQ0m3gQ=";
 // Reachable without signing in. Everything else (the app shell, its scripts) needs a session.
 const PUBLIC_PATHS = new Set(["/login", "/login.html", "/login.js", "/join", "/join.html", "/join.js", "/style.css", "/favicon.svg", "/robots.txt", "/404", "/404.html", "/manifest.webmanifest", "/og.png", "/apple-touch-icon.png"]);
 const STATE_KEYS = new Set(["deal", "ladder", "profile", "prefs"]);
@@ -156,8 +159,23 @@ async function authRoute(request, env, url) {
   }
   if (p === "/api/login" && m === "POST") {
     const b = await body(request);
+    const ip = request.headers.get("CF-Connecting-IP") || "?", who = `e:${String(b.email || "").trim().toLowerCase().slice(0, 160)}`;
+    const since = new Date(Date.now() - 15 * 60_000).toISOString();
+    const [byEmail, byIp] = await env.DB.batch([
+      env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(who, since),
+      env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(`ip:${ip}`, since),
+    ]);
+    if (byEmail.results[0].n >= 10 || byIp.results[0].n >= 50) { await slow(); fail(429, "Too many sign-in attempts. Wait 15 minutes, or reset your password."); }
     const u = await findUserForLogin(env, b.email);
-    if (!u || !(await verifyPassword(String(b.password || ""), u.password_hash))) { await slow(); fail(401, "Wrong email or password"); }
+    // Unknown emails do the same password work, so response time doesn't reveal who has an account.
+    const ok = await verifyPassword(String(b.password || ""), u?.password_hash || DUMMY_HASH);
+    if (!u || !ok) {
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO login_attempts (key, created_at) VALUES (?1, ?3), (?2, ?3)").bind(who, `ip:${ip}`, now()),
+        env.DB.prepare("DELETE FROM login_attempts WHERE created_at < ?1").bind(new Date(Date.now() - 864e5).toISOString()),
+      ]);
+      await slow(); fail(401, "Wrong email or password");
+    }
     if (!u.account_active) fail(403, "This account is paused");
     await env.DB.prepare("UPDATE users SET last_login_at = ?2 WHERE id = ?1").bind(u.id, now()).run();
     return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, u) });
@@ -178,11 +196,19 @@ async function authRoute(request, env, url) {
       const problem = passwordProblem(b.password);
       if (problem) fail(400, problem);
       if (await env.DB.prepare("SELECT 1 FROM users WHERE email = ?1").bind(email).first()) fail(409, "That email already has a login. Sign in instead.");
-      const [u] = (await env.DB.batch([
-        env.DB.prepare("INSERT INTO users (account_id, email, name, role, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING *")
-          .bind(inv.account_id, email, String(b.name || "").trim().slice(0, 80), inv.role, await hashPassword(b.password), now()),
-        env.DB.prepare("UPDATE invites SET accepted_at = ?2 WHERE accepted_at IS NULL AND (id = ?1 OR lower(email) = ?3)").bind(inv.id, now(), email),
-      ])).map((x) => x.results[0]);
+      const hash = await hashPassword(b.password);
+      // Claim the invite first: two people racing on one link can't both get in.
+      const claimed = await env.DB.prepare("UPDATE invites SET accepted_at = ?2 WHERE id = ?1 AND accepted_at IS NULL RETURNING id").bind(inv.id, now()).first();
+      if (!claimed) fail(409, "This invite was just used. Ask for a new one.");
+      let u;
+      try {
+        u = await env.DB.prepare("INSERT INTO users (account_id, email, name, role, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING *")
+          .bind(inv.account_id, email, String(b.name || "").trim().slice(0, 80), inv.role, hash, now()).first();
+      } catch (e) {
+        await env.DB.prepare("UPDATE invites SET accepted_at = NULL WHERE id = ?1").bind(inv.id).run();
+        fail(409, "That email already has a login. Sign in instead.");
+      }
+      await env.DB.prepare("UPDATE invites SET accepted_at = ?3 WHERE account_id = ?1 AND lower(email) = ?2 AND accepted_at IS NULL").bind(inv.account_id, email, now()).run();
       return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, u) });
     }
   }
@@ -190,8 +216,12 @@ async function authRoute(request, env, url) {
 }
 
 // ------------------------------------------------------------------ routes
+// Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
+const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|monid\/budget|autopilot$|me\/password)/;
+
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
+  if (ctx.viaToken && m !== "GET" && HUMAN_ONLY.test(p)) fail(403, "API tokens can't change team, keys, webhooks or phone settings. Sign in to do that.");
   const hooks = hookEmitter(env, ctx.accountId, (pr) => exec.waitUntil(pr));
   if (p === "/api" || p === "/api/") return json(API_DOCS);
 
@@ -241,11 +271,13 @@ async function route(request, env, url, ctx, exec) {
     const buf = await request.arrayBuffer();
     if (!buf.byteLength) fail(400, "No audio received");
     if (buf.byteLength > 12e6) fail(413, "Recording too long; keep it under about 5 minutes");
+    await meter(env, await aiEnv(env, ctx), ctx, "voice-in", false);
     return json(await transcribe(env, buf, q.get("hint") || ""));
   }
   if (p === "/api/voice/speak" && m === "POST") {
     const b = await body(request);
     if (!String(b.text || "").trim()) fail(400, "Nothing to say");
+    { const ai = await aiEnv(env, ctx); await meter(env, ai, ctx, "voice-out", !!ai.ownVoice); }
     return speakCached(request, env, ctx, String(b.text).slice(0, 1900), String(b.speaker || ""));
   }
 
@@ -314,6 +346,7 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/monid/inspect" && m === "POST") { const b = await body(request); return json(await monidDescribe(env, ctx, String(b.provider || ""), String(b.endpoint || ""))); }
   if (p === "/api/monid/run" && m === "POST") {
     const b = await body(request);
+    if (!ctx.isOwner) { const why = await needsApproval(env, ctx, String(b.provider || ""), String(b.endpoint || ""), b.input || {}); if (why) fail(403, `${why}. Ask a workspace owner to run it.`); }
     const out = await monidRun(env, ctx, { provider: String(b.provider || ""), endpoint: String(b.endpoint || ""), input: b.input || {} }, { purpose: String(b.reason || "Data console"), targetId: b.target_id ? +b.target_id : null });
     return json({ ...out, output: b.full ? out.output : compact(out.output) });
   }
@@ -359,7 +392,7 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/email/sent" && m === "GET") return json(await listSent(env, ctx, q.get("target") ? +q.get("target") : null));
   if (p === "/api/suppressions" && m === "GET") return json(await listSuppressions(env, ctx));
   if (p === "/api/suppressions" && m === "POST") { const b = await body(request); return json(await suppress(env, ctx, b.email, b.reason), 201); }
-  if (p === "/api/suppressions" && m === "DELETE") return json(await unsuppress(env, ctx, q.get("email")));
+  if (p === "/api/suppressions" && m === "DELETE") { needOwner(ctx); if (ctx.viaToken) fail(403, "Sign in to remove an opt-out"); return json(await unsuppress(env, ctx, q.get("email"))); }
 
   // Documents (the agents' work)
   if (p === "/api/documents" && m === "GET") return json(await listDocs(env, ctx, q));
@@ -390,6 +423,7 @@ async function route(request, env, url, ctx, exec) {
         env.DB.prepare("DELETE FROM threads WHERE user_id = ?1").bind(gone.id),
         env.DB.prepare("DELETE FROM user_state WHERE user_id = ?1").bind(gone.id),
         env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1").bind(gone.id),
+        env.DB.prepare("DELETE FROM mailboxes WHERE user_id = ?1").bind(gone.id),
         env.DB.prepare("DELETE FROM users WHERE id = ?1").bind(gone.id),
       ]);
       return json({ ok: true });
@@ -428,8 +462,12 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/inbox" && m === "POST") {
     // External agents (your own scripts, n8n, an MCP client) can queue an action for a person to approve.
     const b = await body(request);
-    const id = await propose(env, ctx.accountId, { tool: b.tool, input: b.input, title: b.title || `Run ${b.tool}`, reason: b.reason, target_id: b.target_id, source: b.source || (ctx.viaToken ? "api" : "user") });
-    if (id) hooks.emit("action.proposed", { id, tool: b.tool, title: b.title });
+    if (!toolByName(b.tool)) fail(400, "Unknown tool. See GET /api/agent/tools");
+    if (!b.input || typeof b.input !== "object" || Array.isArray(b.input)) fail(400, "input must be a JSON object");
+    const d = describeAction(b.tool, b.input);
+    const note = String(b.reason || "").trim().slice(0, 300);
+    const id = await propose(env, ctx.accountId, { tool: b.tool, input: b.input, title: d.title, reason: [d.reason, note && `Note from ${ctx.viaToken ? "the API caller" : ctx.user.name || "a teammate"}: ${note}`].filter(Boolean).join("\n\n"), target_id: b.target_id, source: ctx.viaToken ? "api" : "user" });
+    if (id) hooks.emit("action.proposed", { id, tool: b.tool, title: d.title });
     return json({ id, queued: !!id }, id ? 201 : 200);
   }
   if ((r = p.match(/^\/api\/inbox\/(\d+)\/(approve|dismiss)$/)) && m === "POST") return json(await decide(env, ctx, +r[1], r[2] === "approve", hooks));
@@ -502,12 +540,12 @@ async function search(env, ctx, term) {
 // ------------------------------------------------------------------ documents
 async function listDocs(env, ctx, q) {
   const target = q.get("target"), kind = q.get("kind");
-  const { results } = await env.DB.prepare(`SELECT d.id, d.kind, d.title, d.target_id, d.created_at, d.updated_at, t.name AS target_name FROM documents d LEFT JOIN targets t ON t.id = d.target_id
+  const { results } = await env.DB.prepare(`SELECT d.id, d.kind, d.title, d.target_id, d.created_at, d.updated_at, t.name AS target_name FROM documents d LEFT JOIN targets t ON t.id = d.target_id AND t.account_id = d.account_id
     WHERE d.account_id = ?1 AND (?2 IS NULL OR d.target_id = ?2) AND (?3 IS NULL OR d.kind = ?3) ORDER BY d.id DESC LIMIT 200`).bind(ctx.accountId, target ? +target : null, kind || null).all();
   return results;
 }
 async function getDoc(env, ctx, id) {
-  const d = await env.DB.prepare("SELECT d.*, t.name AS target_name FROM documents d LEFT JOIN targets t ON t.id = d.target_id WHERE d.id = ?1 AND d.account_id = ?2").bind(id, ctx.accountId).first();
+  const d = await env.DB.prepare("SELECT d.*, t.name AS target_name FROM documents d LEFT JOIN targets t ON t.id = d.target_id AND t.account_id = d.account_id WHERE d.id = ?1 AND d.account_id = ?2").bind(id, ctx.accountId).first();
   if (!d) fail(404, "Document not found");
   return { ...d, meta: JSON.parse(d.meta) };
 }

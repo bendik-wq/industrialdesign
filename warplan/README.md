@@ -127,6 +127,7 @@ node scripts/build-kb.mjs && npx wrangler d1 execute warplan --remote --file kb.
 npx wrangler deploy
 npx wrangler secret put DASHBOARD_PASSWORD   # first-run setup key at /login
 npx wrangler secret put KEYS_SECRET          # encrypts workspaces' own AI keys; never change it once set
+npx wrangler secret put SESSION_SECRET      # required: 32+ random characters; signs sign-in cookies (changing it signs everyone out)
 npx wrangler secret put ANTHROPIC_API_KEY    # optional: Claude; otherwise Workers AI (Llama 3.3 70B)
 npx wrangler secret put ELEVENLABS_API_KEY   # optional: ElevenLabs voices; otherwise Workers AI Aura
 npx wrangler secret put JOSH_VOICE_ID        # optional: ElevenLabs voice ID for Josh (his consented clone)

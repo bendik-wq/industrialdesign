@@ -1,4 +1,4 @@
-import { $, $$, esc, api, post, md, view, stale, toast, fail, dialog, confirmBox, when, todayYmd, addDays, dateLabel, skeleton, micButton, MIC } from "../core.js";
+import { $, $$, esc, safeUrl, api, post, md, view, stale, toast, fail, dialog, confirmBox, when, todayYmd, addDays, dateLabel, skeleton, micButton, MIC } from "../core.js";
 import { STAGES, stageById, dealModel, targetDeal, money } from "../deal.js";
 import { TARGET_FIELDS } from "./pipeline.js";
 import { askJoshAbout } from "./josh.js";
@@ -22,7 +22,7 @@ export async function renderTarget(id, seq) {
       <a class="link" href="#/pipeline">← Pipeline</a>
       <div class="th-row">
         <div class="th-main"><h1>${esc(t.name)}</h1>
-          <p class="muted">${esc([t.industry, t.location].filter(Boolean).join(" · ") || "Add the industry and location so the agents can write about it")}${t.website ? ` · <a href="${esc(t.website)}" target="_blank" rel="noopener noreferrer">${esc(t.website.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</a>` : ""}</p></div>
+          <p class="muted">${esc([t.industry, t.location].filter(Boolean).join(" · ") || "Add the industry and location so the agents can write about it")}${t.website ? ` · <a href="${safeUrl(t.website)}" target="_blank" rel="noopener noreferrer">${esc(t.website.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</a>` : ""}</p></div>
         <label class="stage-select">Stage<select id="stage" aria-label="Stage">${STAGES.map((s) => `<option value="${s.id}" ${s.id === t.stage ? "selected" : ""}>${s.label}</option>`).join("")}</select></label>
       </div>
       <div class="row th-actions">
@@ -80,7 +80,7 @@ export async function renderTarget(id, seq) {
         <section class="panel">
           <div class="panel-head"><h2 class="h3">Contacts</h2><button class="mini-btn" id="findContacts" type="button">${t.contacts.length ? "Search again" : "Find contacts"}</button></div>
           ${t.contacts.length ? `<ul class="contact-list">${t.contacts.map((c) => `<li class="cl-${c.confidence}">
-            <div><a href="${c.kind === "email" ? `mailto:${esc(c.value)}` : c.kind === "linkedin" ? esc(c.value) : `tel:${esc(c.value.replace(/\s/g, ""))}" data-target="${t.id}`}" ${c.kind === "linkedin" ? 'target="_blank" rel="noopener noreferrer"' : ""}>${c.kind === "linkedin" ? "LinkedIn profile" : esc(c.value)}</a><small>${esc(c.label)} · ${esc(c.source)}${c.confidence === "guess" ? " · <b>guess</b>" : ""}</small></div>
+            <div><a href="${c.kind === "email" ? `mailto:${esc(c.value)}` : c.kind === "linkedin" ? safeUrl(c.value) : `tel:${esc(c.value.replace(/\s/g, ""))}" data-target="${t.id}`}" ${c.kind === "linkedin" ? 'target="_blank" rel="noopener noreferrer"' : ""}>${c.kind === "linkedin" ? "LinkedIn profile" : esc(c.value)}</a><small>${esc(c.label)} · ${esc(c.source)}${c.confidence === "guess" ? " · <b>guess</b>" : ""}</small></div>
             <span>${c.kind === "email" ? `<button class="mini-btn" data-mail="${esc(c.value)}" type="button" title="Email">✉</button>` : ""}<button class="mini-btn" data-cp="${esc(c.value)}" type="button" title="Copy">⧉</button><button class="mini-btn" data-del-c="${c.id}" type="button" title="Remove" aria-label="Remove">✕</button></span></li>`).join("")}</ul>`
             : `<p class="muted small">${t.website ? "Reads their website for emails and phone numbers, and suggests the owner's likely address." : "Add their website (Edit details) so the contact finder can read it, or add contacts by hand."}</p>`}
           <div class="row small"><button class="link-btn small" id="addContact" type="button">+ Add an email or phone</button><button class="link-btn small" id="deepEnrich" type="button">Deep enrich (owner email, LinkedIn, mobile) →</button></div>
