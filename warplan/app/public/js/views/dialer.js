@@ -91,7 +91,7 @@ export async function renderDialer(seq, params) {
     $$("[data-tel]").forEach((a) => a.addEventListener("pointerdown", () => { phoneIdx = +a.dataset.tel; }));
     onPhone = {
       connected: () => { startTimer(); active.browser = true; },
-      ended: (d) => { if (active) { active.browser = true; active.duration = d.duration; active.callSid = d.sid; clearInterval(active.timer); } const el = $("#cstatus"); if (el) { el.hidden = false; el.textContent = `Call ended${d.duration ? ` · ${d.duration}s` : ""}. Log the outcome (1–9).`; } },
+      ended: (d) => { if (active) { active.browser = d.via !== "phone"; active.duration = d.duration; active.callSid = d.sid; clearInterval(active.timer); } const el = $("#cstatus"); if (el) { el.hidden = false; el.textContent = `Call ended${d.duration ? ` · ${d.duration}s` : ""}. Log the outcome (1–9).`; } },
     };
     $$("[data-bridge]").forEach((b) => b.addEventListener("click", () => bridge(+b.dataset.bridge)));
     const status = (txt) => { const el = $("#cstatus"); if (el) { el.hidden = !txt; el.innerHTML = txt; } };

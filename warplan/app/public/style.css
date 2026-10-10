@@ -1194,3 +1194,7 @@ code, kbd, pre, pre.json, .secret code, .mono, .phone-row span, .ph-num { font-f
 .link-list li > small { flex: none; white-space: nowrap; }
 /* Page headers (and their menus) sit above the content that animates in after them. */
 .page-head { position: relative; z-index: 6; }
+.ph-setup { display: grid; gap: 10px; }
+.ph-setup details { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface-2); }
+.ph-setup summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.ph-setup ol { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
