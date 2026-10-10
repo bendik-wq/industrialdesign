@@ -103,7 +103,7 @@ why the old way fails → the system → how it works → proof → offer → CT
 ### 11:00 – 12:00 · Close and CTA
 > Every year you wait is another year of growing one customer at a time — while someone else buys the businesses in your market.
 >
-> Click the button below this video. Answer a few quick questions about your business. If it's a fit, you'll pick a time for a free strategy call with my team, and we'll map out your first off-market acquisition.
+> Click the button below this video. Answer a few quick questions about your business. If it's a fit, you'll pick a time for a strategy call with my team, and we'll map out your first off-market acquisition.
 >
 > If it's not a fit, we'll tell you — and point you to the free resources instead.
 

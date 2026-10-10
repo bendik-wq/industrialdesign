@@ -382,3 +382,14 @@ body.simple main { padding: 72px 20px; }
 @media (max-width: 640px) { .apply-solo .form-card { padding: 24px 18px 20px; border-radius: 16px; } .apply-solo .app-step h2 { font-size: 20px; } }
 /* Keep the video layer inside its rounded frame (prevents the compositor painting a pale block beneath it). */
 .hero-vsl .vsl video { clip-path: inset(0 round 18px); }
+
+/* ── Floating VSL: light halo, glass rim and a gentle 3D tilt that follows the cursor ── */
+.hero-vsl .vsl-stage { transform: perspective(1600px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .8s cubic-bezier(.2, .7, .2, 1); transform-style: preserve-3d; }
+.vsl-halo { position: absolute; z-index: 0; inset: 10% 8% -2%; border-radius: 48px; pointer-events: none;
+  background: radial-gradient(55% 60% at 50% 55%, rgba(84, 120, 230, .42), rgba(150, 130, 255, .22) 55%, transparent 78%);
+  filter: blur(46px); animation: vsl-halo 7s ease-in-out infinite; }
+@keyframes vsl-halo { 0%, 100% { transform: translateY(14px) scale(.96); opacity: .75; } 50% { transform: translateY(0) scale(1.04); opacity: 1; } }
+.vsl-float::after { content: ""; position: absolute; inset: 0; border-radius: 18px; pointer-events: none; z-index: 3;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 0 0 1px rgba(255, 255, 255, .07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .04), transparent 12%); }
+[data-palette="ink"] .vsl-halo { background: radial-gradient(55% 60% at 50% 55%, rgba(84, 120, 230, .35), rgba(150, 130, 255, .18) 55%, transparent 78%); }

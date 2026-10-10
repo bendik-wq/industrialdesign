@@ -93,7 +93,7 @@ export const LANDING = {
   ctaLabel: 'See if you qualify',
   applyEyebrow: 'Apply',
   applyTitle: 'See if your business qualifies',
-  applySubtitle: 'Two minutes, ten questions. If you’re a fit, you’ll pick a time for a free acquisition strategy call with Josh’s team.',
+  applySubtitle: 'Two minutes, ten questions. If you’re a fit, you’ll pick a time for an acquisition strategy call with Josh’s team.',
   /** What the call gives them. Keep these true to how your calls actually run. */
   applyPoints: [
     '<strong>A working session, not a pitch.</strong> We go through your numbers and your market.',
@@ -256,7 +256,7 @@ Known answers: {{known_answers}}
 - 7-day money-back guarantee: if they join and decide in the first 7 days it isn't for them, they get a full refund. Don't add conditions or extend it.
 - It is DONE WITH YOU, not done for you. The owner is the buyer and runs the deal; Josh and the team give the system, scripts, deal structures and financing introductions, and sit in on the key conversations. Expect a few focused hours a week.
 - Josh Li is the founder of JC Health Group and has bought two businesses with 100% seller finance.
-- Next step is a free strategy call with Josh's team. Price is discussed on that call only.
+- Next step is a strategy call with Josh's team (never call it free). Price is discussed on that call only.
 
 # Your job, in order
 1. You have already disclosed that you're an AI and that the call is recorded. If the caller does not agree to recording, say you understand, offer to email them the booking link instead, and end the call politely.

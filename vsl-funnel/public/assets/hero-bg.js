@@ -27,21 +27,21 @@
     'm*=1.79284291400159-.85373472095314*(a0*a0+h*h);vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.*dot(m,g);}',
     'void main(){',
     '  vec2 uv=gl_FragCoord.xy/r;vec2 q=uv;q.x*=r.x/r.y;',
-    '  float s=t*.045;',
+    '  float s=t*.022;',
     // domain warp: two layers of slow noise bend the space so colours flow like silk
     '  vec2 w=vec2(sn(q*.85+vec2(s,-s*.7)),sn(q*.85+vec2(-s*.6,s)+5.2));',
     '  vec2 w2=vec2(sn(q*1.3+w*1.1+vec2(1.7,9.2)+s*.5),sn(q*1.3+w*1.1+vec2(8.3,2.8)-s*.4));',
     '  float n=sn(q*.7+w2*.9+s*.3);',
     '  vec3 col=mix(c0,c1,smoothstep(-.6,.6,w.x));',
-    '  col=mix(col,c2,smoothstep(-.3,.8,w2.y)*.85);',
-    '  col=mix(col,c3,smoothstep(.1,.9,n)*.7);',
-    '  col=mix(col,c4,smoothstep(.35,1.,w2.x)*.55);',
+    '  col=mix(col,c2,smoothstep(-.3,.8,w2.y)*.6);',
+    '  col=mix(col,c3,smoothstep(.1,.9,n)*.5);',
+    '  col=mix(col,c4,smoothstep(.35,1.,w2.x)*.35);',
     // soft sheen bands, like light catching folds of fabric
     '  float band=sin((q.x*1.6+q.y*.9+w2.x*1.4+n*.8)*3.2-t*.12);',
-    '  col+=vec3(1.)*pow(max(band,0.),3.)*.06;',
+    '  col+=vec3(1.)*pow(max(band,0.),4.)*.025;',
     // gentle fade to the page colour at the top and bottom so it melts into the layout
-    '  float v=smoothstep(0.,.22,uv.y)*smoothstep(1.,.62,uv.y);',
-    '  col=mix(c0,col,v);',
+    '  vec2 cc=(uv-vec2(.5,.45))*vec2(r.x/r.y*.62,1.);float v=smoothstep(0.,.22,uv.y)*smoothstep(1.,.6,uv.y)*(1.-smoothstep(.28,.62,length(cc)));',
+    '  col=mix(c0,col,v*.72);',
     // tiny dither to avoid gradient banding
     '  col+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-.5)/255.;',
     '  gl_FragColor=vec4(col,1.);',
@@ -65,7 +65,7 @@
 
   function hex(h) { return [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255]; }
   // page white → ice blue → periwinkle → lavender → warm peach (dark palette: deep navy tones)
-  var PAL = dark ? ['#0b1220', '#13234a', '#1c2f6b', '#2a2457', '#3a2a3c'] : ['#ffffff', '#dbe6ff', '#b9c9fb', '#e6dcff', '#ffe4d2'];
+  var PAL = dark ? ['#0b1220', '#13234a', '#1c2f6b', '#2a2457', '#3a2a3c'] : ['#ffffff', '#e1e9ff', '#c7d3fb', '#ebe4ff', '#fdeadf'];
   ['c0', 'c1', 'c2', 'c3', 'c4'].forEach(function (n, i) { gl.uniform3fv(gl.getUniformLocation(prog, n), hex(PAL[i])); });
 
   var SCALE = 0.5, visible = true, t0 = performance.now(), last = 0;
@@ -96,4 +96,23 @@
   function setVisible(v) { var was = visible; visible = v; if (v && !was && !reduce) requestAnimationFrame(frame); }
   if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { setVisible(e[0].isIntersecting && !document.hidden); }).observe(canvas);
   document.addEventListener('visibilitychange', function () { setVisible(!document.hidden); });
+})();
+
+/* Gentle 3D tilt of the video towards the cursor (desktop pointers only). */
+(function () {
+  'use strict';
+  var stage = document.querySelector('.hero-vsl .vsl-stage');
+  if (!stage || !window.matchMedia || !matchMedia('(hover: hover) and (pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var hero = stage.closest('.hero-vsl'), raf = 0, mx = 0, my = 0;
+  hero.addEventListener('pointermove', function (e) {
+    var r = stage.getBoundingClientRect();
+    mx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+    my = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    if (!raf) raf = requestAnimationFrame(function () {
+      raf = 0;
+      stage.style.setProperty('--ry', (Math.max(-1, Math.min(1, mx)) * 2.2).toFixed(2) + 'deg');
+      stage.style.setProperty('--rx', (Math.max(-1, Math.min(1, my)) * -1.6).toFixed(2) + 'deg');
+    });
+  });
+  hero.addEventListener('pointerleave', function () { stage.style.setProperty('--rx', '0deg'); stage.style.setProperty('--ry', '0deg'); });
 })();
