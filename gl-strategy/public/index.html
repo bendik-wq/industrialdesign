@@ -7,6 +7,12 @@
 <meta name="description" content="G&amp;L Overview &amp; Strategy: funnel, weekly tasks and congruency for the 7-figure, no-money-down LOI offer.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="G&amp;L">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d1d1f'/%3E%3Ctext x='16' y='21.5' font-family='-apple-system,Helvetica,Arial' font-weight='700' font-size='12' text-anchor='middle' fill='%23fff'%3EG%26amp;L%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -532,6 +538,77 @@ kbd { font:600 11px var(--font); background:var(--bg2); border-radius:5px; paddi
 .idea { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:center; background:var(--bg2); border-radius:14px; padding:10px 14px; margin-bottom:8px; }
 .idea select { border:0; background:var(--bg); border-radius:8px; padding:6px 8px; font-size:13px; }
 
+/* ===== command bar, my day, review, bottom bar ===== */
+.kbtn { border:0; background:var(--bg2); border-radius:99px; padding:6px 10px 6px 12px; font-size:13px; color:var(--ink2); cursor:pointer; display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
+.kbtn:hover { background:var(--bg3); color:var(--ink); }
+.tab { position:relative; }
+.tb { position:absolute; top:-2px; right:-4px; min-width:17px; height:17px; padding:0 5px; border-radius:99px; background:#FF3B30; color:#fff; font:700 10.5px/17px var(--font); font-style:normal; text-align:center; box-shadow:0 0 0 2px var(--bg); }
+.tb[hidden] { display:none; }
+.sync.busy i { background:#FF9F0A; } .sync.off i { background:#FF3B30; }
+.pal { position:fixed; inset:0; z-index:80; background:rgba(0,0,0,.28); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:grid; justify-items:center; align-items:start; padding:12vh 16px 16px; }
+.pal[hidden] { display:none; }
+.pal-box { width:min(640px,100%); background:rgba(255,255,255,.97); border-radius:20px; box-shadow:0 40px 100px -20px rgba(0,0,0,.45); overflow:hidden; display:grid; grid-template-rows:auto 1fr auto; max-height:70vh; animation:palin .18s cubic-bezier(.2,.8,.2,1); }
+@keyframes palin { from { transform:scale(.97); opacity:0; } to { transform:none; opacity:1; } }
+.pal-box input { border:0; border-bottom:1px solid var(--bg3); padding:20px 22px; font-size:19px; letter-spacing:-.015em; background:none; }
+.pal-box input:focus { outline:none; }
+.pal-list { overflow:auto; padding:6px; }
+.pg { font-size:11.5px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:.06em; padding:10px 14px 4px; }
+.pi { width:100%; border:0; background:none; text-align:left; display:flex; align-items:baseline; gap:10px; padding:10px 14px; border-radius:12px; cursor:pointer; font-size:15px; }
+.pi .pl { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+.pi .ps { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--ink3); }
+.pi kbd { margin-left:auto; }
+.pi.on { background:var(--blue); color:#fff; } .pi.on .ps { color:rgba(255,255,255,.75); }
+.pempty { padding:28px; text-align:center; color:var(--ink3); }
+.pal-foot { display:flex; gap:16px; padding:10px 18px; font-size:12px; color:var(--ink3); border-top:1px solid var(--bg3); }
+.toast .tundo { border:0; background:none; color:#64D2FF; font-weight:700; cursor:pointer; margin-left:8px; font-size:14px; }
+
+.myday { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:16px; }
+@media (max-width:860px) { .myday { grid-template-columns:1fr; } }
+.md-main { background:var(--bg2); border-radius:26px; padding:28px; display:grid; gap:10px; align-content:start; }
+.md-list { display:grid; gap:2px; margin-top:6px; }
+.md-t { display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center; padding:10px 8px; border-radius:12px; }
+.md-t:hover { background:var(--bg); }
+.md-l { border:0; background:none; text-align:left; padding:0; cursor:pointer; display:grid; gap:2px; min-width:0; }
+.md-l span { font-size:16px; font-weight:500; letter-spacing:-.012em; }
+.md-l small { font-size:12.5px; color:var(--ink2); }
+.md-sep { font-size:12px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:.06em; padding:12px 8px 2px; }
+.md-side { display:grid; gap:12px; align-content:start; }
+.md-c { border:0; text-align:left; background:var(--bg2); border-radius:20px; padding:18px 20px; display:grid; gap:6px; cursor:pointer; transition:transform .15s; }
+.md-c:hover { transform:translateY(-1px); background:var(--bg3); }
+.md-c b { font-size:17px; letter-spacing:-.02em; line-height:1.25; }
+.md-c .md-s { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink2); }
+.md-c.hot { background:var(--ink); color:#fff; } .md-c.hot .lbl { color:#A1A1A6; }
+
+.rev-box { width:min(560px,100%); background:#fff; border-radius:24px; box-shadow:0 40px 100px -20px rgba(0,0,0,.45); padding:22px 24px; display:grid; gap:16px; max-height:84vh; overflow:auto; animation:palin .18s cubic-bezier(.2,.8,.2,1); }
+.rv-top { display:flex; align-items:center; gap:10px; } .rv-top b { font-size:17px; } .rv-top button { margin-left:auto; }
+.rv-dots { display:flex; gap:6px; flex-wrap:wrap; }
+.rv-dots span { font-size:12px; font-weight:600; padding:4px 10px; border-radius:99px; background:var(--bg2); color:var(--ink3); }
+.rv-dots span.on { background:var(--ink); color:#fff; } .rv-dots span.past { color:var(--green); background:var(--green-bg); }
+.rv-body { display:grid; gap:12px; } .rv-body h3 { font-size:26px; letter-spacing:-.03em; }
+.rv-f { display:grid; grid-template-columns:1fr 120px; gap:12px; align-items:center; background:var(--bg2); border-radius:14px; padding:10px 14px; }
+.rv-f span { font-size:15px; font-weight:500; display:grid; } .rv-f small { font-size:12px; color:var(--ink3); font-weight:500; }
+.rv-f input { border:0; background:var(--bg); border-radius:10px; padding:9px 10px; font:700 17px var(--font); text-align:right; width:100%; }
+.rv-t { display:grid; gap:6px; } .rv-t span { font-size:14px; font-weight:600; color:var(--ink2); }
+.rv-t textarea { border:0; background:var(--bg2); border-radius:14px; padding:12px 14px; font-size:15px; min-height:90px; resize:vertical; }
+.rv-n { display:grid; grid-template-columns:1fr 120px; gap:8px; }
+.rv-n input, .rv-n select { border:0; background:var(--bg2); border-radius:12px; padding:11px 12px; font-size:15px; }
+.rv-sum { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; } .rv-sum div { background:var(--bg2); border-radius:16px; padding:16px; display:grid; } .rv-sum b { font-size:26px; letter-spacing:-.03em; } .rv-sum span { font-size:12.5px; color:var(--ink2); }
+.rv-foot { display:flex; justify-content:space-between; }
+.rv-f input:focus, .rv-t textarea:focus, .rv-n input:focus { outline:none; box-shadow:0 0 0 3px rgba(0,113,227,.2); }
+
+.bbar { display:none; }
+@media (max-width:760px) {
+  .tabs, .kbtn { display:none; }
+  .bbar { display:grid; grid-template-columns:repeat(5,1fr); position:fixed; left:0; right:0; bottom:0; z-index:45; background:rgba(255,255,255,.86); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); border-top:1px solid rgba(0,0,0,.08); padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px)); }
+  .bbar button { position:relative; border:0; background:none; display:grid; justify-items:center; gap:2px; font-size:10.5px; font-weight:600; color:var(--ink3); padding:4px 0; cursor:pointer; }
+  .bbar svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .bbar button.on { color:var(--blue); }
+  .bbar .tb { top:0; right:calc(50% - 22px); }
+  body { padding-bottom:calc(64px + env(safe-area-inset-bottom,0px)); }
+  .toast { bottom:calc(84px + env(safe-area-inset-bottom,0px)); }
+  .sheet { bottom:calc(60px + env(safe-area-inset-bottom,0px)); }
+}
+
 /* playbook */
 .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
 .card { background:var(--bg2); border-radius:var(--r); padding:28px; display:grid; gap:14px; align-content:start; min-width:0; }
@@ -569,14 +646,15 @@ body.studio-on .foot { display:none; }
   <div class="logo">G&amp;L <span style="color:var(--ink2);font-weight:500">Overview &amp; Strategy</span></div>
   <div class="tabs" role="tablist">
     <button class="tab" data-tab="overview" role="tab">Overview</button>
-    <button class="tab" data-tab="week" role="tab">Tasks</button>
-    <button class="tab" data-tab="youtube" role="tab">YouTube</button>
+    <button class="tab" data-tab="week" role="tab">Tasks<i class="tb" data-badge="week" hidden></i></button>
+    <button class="tab" data-tab="youtube" role="tab">YouTube<i class="tb" data-badge="youtube" hidden></i></button>
     <button class="tab" data-tab="organic" role="tab">Organic</button>
     <button class="tab" data-tab="lab" role="tab">Lab</button>
-    <button class="tab" data-tab="congruency" role="tab">Congruency</button>
+    <button class="tab" data-tab="congruency" role="tab">Congruency<i class="tb" data-badge="congruency" hidden></i></button>
     <button class="tab" data-tab="funnel" role="tab">Funnel</button>
     <button class="tab" data-tab="playbook" role="tab">Playbook</button>
   </div>
+  <button class="kbtn" type="button" data-open-pal aria-label="Search and commands">Search <kbd>⌘K</kbd></button>
   <div class="sync" id="sync" title="Where your changes are saved"><i></i><span id="syncTxt">This device</span></div>
 </div></nav>
 
@@ -592,6 +670,8 @@ body.studio-on .foot { display:none; }
     </div>
     <div class="row" style="justify-content:center" id="ovPills"></div>
   </section>
+
+  <section class="sec" style="padding-top:0"><div class="wrap"><div class="myday" id="myday"></div></div></section>
 
   <section class="sec alt">
     <div class="wrap">
@@ -868,6 +948,15 @@ body.studio-on .foot { display:none; }
 </main>
 
 <footer class="wrap foot">G&amp;L Overview &amp; Strategy · Private · Sources: jeremyhaynes.com, Jeremy Haynes on X, The Hype Magazine interview with Daniel Iles.</footer>
+<div class="pal" id="pal" hidden><div class="pal-box" role="dialog" aria-modal="true" aria-label="Search and commands"><input id="palIn" type="text" autocomplete="off" spellcheck="false" placeholder="Search tasks, videos, stages, or type a command…" aria-label="Search"><div class="pal-list" id="palList"></div><div class="pal-foot"><span>↑ ↓ to move</span><span>Enter to open</span><span>Esc to close</span></div></div></div>
+<div class="pal" id="rev" hidden><div class="rev-box" id="revBox" role="dialog" aria-modal="true" aria-label="Weekly review"></div></div>
+<nav class="bbar" aria-label="Main">
+  <button type="button" data-tab="overview"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg><span>Today</span></button>
+  <button type="button" data-tab="week"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span>Tasks</span><i class="tb" data-badge="week" hidden></i></button>
+  <button type="button" data-tab="youtube"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="m10.5 9.5 4 2.5-4 2.5z"/></svg><span>YouTube</span><i class="tb" data-badge="youtube" hidden></i></button>
+  <button type="button" data-tab="funnel"><svg viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.2"/><circle cx="18" cy="7" r="2.2"/><circle cx="12" cy="17" r="2.2"/><path d="M8 8.5l3 6.5M16 8.5l-3 6.5"/></svg><span>Funnel</span></button>
+  <button type="button" data-open-pal><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span>Search</span></button>
+</nav>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -905,37 +994,69 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const money = n => { n = +n || 0; if (n >= 1e6) return '$' + (+(n/1e6).toFixed(1)) + 'M'; if (n >= 1e3) return '$' + (+(n/1e3).toFixed(1)) + 'k'; return '$' + Math.round(n); };
 const byId = id => F.nodes.find(n => n.id === id);
 const terms = () => F.offer.terms.split(',').map(t => t.trim()).filter(Boolean);
-const toast = t => { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1800); };
 
 /* ============ storage: Cloudflare KV behind Access, else this device ============ */
 const store = {
-  mode:'local', who:'You',
+  mode:'local', who:'You', revs:{}, timers:{}, state:'local',
   async init() {
     try {
       const r = await fetch('api/data?key=me', { cache:'no-store', credentials:'same-origin' });
       if (r.ok) { const d = await r.json(); this.mode = 'cloud'; this.who = d.email || 'You'; }
     } catch (e) {}
-    $('sync').classList.toggle('cloud', this.mode === 'cloud');
-    $('syncTxt').textContent = this.mode === 'cloud' ? 'Synced · ' + this.who : 'Saved on this device';
+    this.mark(this.mode === 'cloud' ? 'ok' : 'local');
+  },
+  mark(state) {
+    this.state = state; const s = $('sync'); if (!s) return;
+    s.classList.toggle('cloud', state === 'ok'); s.classList.toggle('busy', state === 'busy'); s.classList.toggle('off', state === 'off');
+    const name = typeof whoName === 'function' && typeof F !== 'undefined' && F ? whoName() : this.who;
+    $('syncTxt').textContent = state === 'ok' ? 'Synced · ' + name : state === 'busy' ? 'Saving…' : state === 'off' ? 'Offline · saved here' : 'Saved on this device';
   },
   async get(k) {
     if (this.mode === 'cloud') {
-      try { const r = await fetch('api/data?key=' + k, { cache:'no-store', credentials:'same-origin' }); if (r.ok) return await r.json(); } catch (e) {}
+      try {
+        const r = await fetch('api/data?key=' + k, { cache:'no-store', credentials:'same-origin' });
+        if (r.ok) { const d = await r.json(); this.revs[k] = d.rev || 0; if (d.data != null) { try { localStorage.setItem('loi:' + k, JSON.stringify(d.data)); } catch (e) {} } return d.data; }
+      } catch (e) { this.mark('off'); }
     }
     try { const v = localStorage.getItem('loi:' + k); return v ? JSON.parse(v) : null; } catch (e) { return null; }
   },
-  timers:{},
   put(k, v) {
     try { localStorage.setItem('loi:' + k, JSON.stringify(v)); } catch (e) {}
     if (this.mode !== 'cloud') return;
+    this.mark('busy');
     clearTimeout(this.timers[k]);
-    this.timers[k] = setTimeout(() => {
-      fetch('api/data?key=' + k, { method:'PUT', credentials:'same-origin', headers:{'content-type':'application/json'}, body:JSON.stringify(v) })
-        .then(r => { if (!r.ok) toast('Couldn’t sync. Saved on this device.'); }).catch(() => toast('Offline. Saved on this device.'));
-    }, 700);
+    this.timers[k] = setTimeout(() => this.push(k), 600);
+  },
+  async push(k, tries = 0) {
+    delete this.timers[k];
+    const S = SYNC[k];
+    try {
+      const r = await fetch('api/data?key=' + k, { method:'PUT', credentials:'same-origin', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ rev: this.revs[k] || 0, data: S.get() }) });
+      if (r.ok) { this.revs[k] = (await r.json()).rev; if (!Object.keys(this.timers).length) this.mark('ok'); return; }
+      if (r.status === 409 && tries < 4) {
+        const d = await r.json(); this.revs[k] = d.rev || 0;
+        if (d.data != null) { S.set(S.merge(S.get(), d.data)); rerenderAll(); }
+        return this.push(k, tries + 1);
+      }
+      this.mark('off'); toast('Couldn’t sync. Your changes are saved on this device.');
+    } catch (e) { this.mark('off'); }
+  },
+  async poll() {
+    if (this.mode !== 'cloud' || document.hidden) return;
+    try {
+      const r = await fetch('api/data?key=revs', { cache:'no-store', credentials:'same-origin' }); if (!r.ok) return;
+      const revs = await r.json(); let changed = false;
+      for (const k of Object.keys(SYNC)) {
+        if ((revs[k] || 0) === (this.revs[k] || 0) || this.timers[k]) continue;
+        const data = await this.get(k);
+        if (data != null) { SYNC[k].set(SYNC[k].merge(SYNC[k].get(), data)); changed = true; }
+      }
+      if (changed) rerenderAll();
+      if (this.state === 'off') this.mark('ok');
+    } catch (e) { this.mark('off'); }
   }
 };
-const saveF = () => store.put('funnel', F), saveW = () => store.put('weeks', W), saveL = () => store.put('log', L);
+const saveF = () => { F.updatedAt = Date.now(); store.put('funnel', F); }, saveW = () => store.put('weeks', W), saveL = () => store.put('log', L);
 function log(msg) { L.unshift({ t: Date.now(), who: typeof whoName === 'function' && F ? whoName() : store.who, msg }); L = L.slice(0, 400); saveL(); }
 
 /* ============ math ============ */
@@ -1060,6 +1181,7 @@ function ensureWeek() {
     const prev = Object.keys(W).sort().reverse().find(k => k < id);
     W[id] = { id, created: Date.now(), tasks: [] };
     if (prev) W[prev].tasks.filter(t => !t.done && !t.auto).forEach(t => W[id].tasks.push({ ...t, id:'t' + Math.random().toString(36).slice(2, 9), carried:true, actual:null, history:[] }));
+    (W[prev]?.review?.next || []).forEach((n, i) => W[id].tasks.push(normTask({ id:'t' + Date.now().toString(36) + i, key:'m:rv' + Date.now() + i, auto:false, title:n.t, area:'Review', owner:'', assignee:n.a || '', assigneeManual:true, priority:3, status:'todo', done:false, target:null, fromReview:true, updatedAt:Date.now() })));
     syncWeek(W[id]);
     log(prev ? `Started the week of ${weekLabel(id)}. Carried over unfinished tasks.` : `Started the first week: ${weekLabel(id)}.`);
   } else syncWeek(W[id]);
@@ -1103,6 +1225,63 @@ function migrateOffer() {
   D.nodes.forEach(dn => { const n = byId(dn.id); if (n && dn.message) n.message = dn.message; if (n && dn.id === 'loi') { n.title = dn.title; n.sub = dn.sub; } if (n && dn.id === 'yt') { n.volume = dn.volume; n.owner = dn.owner; } });
   F.v = 2; log('Updated the offer: ' + D.offer.claim);
 }
+/* ============ merging changes from two people ============ */
+function mergeWeeks(l, s) {
+  const out = {};
+  new Set([...Object.keys(l || {}), ...Object.keys(s || {})]).forEach(id => {
+    const a = l?.[id], b = s?.[id];
+    if (!a || !b) { out[id] = a || b; return; }
+    const del = new Set([...(a.deleted || []), ...(b.deleted || [])]), by = new Map();
+    [...b.tasks, ...a.tasks].forEach(t => { const k = t.key || t.id; if (del.has(k)) return; const ex = by.get(k); if (!ex || (t.updatedAt || 0) >= (ex.updatedAt || 0)) by.set(k, t); });
+    out[id] = { ...b, ...a, tasks:[...by.values()], deleted:[...del], review:(a.reviewAt || 0) >= (b.reviewAt || 0) ? a.review : b.review, reviewAt:Math.max(a.reviewAt || 0, b.reviewAt || 0) };
+  });
+  return out;
+}
+function mergeLog(l, s) {
+  const seen = new Set(), out = [];
+  [...(l || []), ...(s || [])].sort((a, b) => b.t - a.t).forEach(e => { const k = e.t + '|' + e.msg; if (!seen.has(k)) { seen.add(k); out.push(e); } });
+  return out.slice(0, 400);
+}
+function mergeK(l, s) {
+  l = l || {}; s = s || {};
+  const lt = l.ts || {}, st = s.ts || {}, out = { weeks:{}, targets:{ ...(s.targets || {}) }, ts:{ ...st } };
+  new Set([...Object.keys(l.weeks || {}), ...Object.keys(s.weeks || {})]).forEach(w => {
+    const a = l.weeks?.[w] || {}, b = s.weeks?.[w] || {}, o = {};
+    new Set([...Object.keys(a), ...Object.keys(b)]).forEach(k => { const id = w + '|' + k; o[k] = (lt[id] || 0) >= (st[id] || 0) && k in a ? a[k] : b[k]; out.ts[id] = Math.max(lt[id] || 0, st[id] || 0); });
+    out.weeks[w] = o;
+  });
+  Object.keys(l.targets || {}).forEach(k => { const id = 'T|' + k; if ((lt[id] || 0) >= (st[id] || 0)) out.targets[k] = l.targets[k]; out.ts[id] = Math.max(lt[id] || 0, st[id] || 0); });
+  return out;
+}
+const ytUid = it => it.uid || (it.uid = 'v' + hash(String(it.title)) + '-' + it.day);
+function mergeY(l, s) {
+  if (!l) return s; if (!s) return l;
+  const newer = (s.updatedAt || 0) > (l.updatedAt || 0), base = newer ? s : l, other = newer ? l : s;
+  const om = new Map(other.items.map(it => [ytUid(it), it]));
+  const items = base.items.map(it => { const o = om.get(ytUid(it)); return o && (o.updatedAt || 0) > (it.updatedAt || 0) ? { ...o, day:it.day, arc:it.arc } : it; });
+  const ideas = [...(base.ideas || [])]; (other.ideas || []).forEach(i => { if (!ideas.some(x => x.t === i.t)) ideas.push(i); });
+  return { ...base, items, ideas: ideas.filter(i => !items.some(it => it.title === i.t)) };
+}
+const SYNC = {
+  funnel: { get:() => F, set:d => { F = d; }, merge:(l, s) => (s?.updatedAt || 0) > (l?.updatedAt || 0) ? s : l },
+  weeks: { get:() => W, set:d => { W = d; }, merge: mergeWeeks },
+  log: { get:() => L, set:d => { L = d; }, merge: mergeLog },
+  kpis: { get:() => K, set:d => { K = Object.assign({ weeks:{}, targets:{}, ts:{} }, d); }, merge: mergeK },
+  yt: { get:() => Y, set:d => { Y = d; }, merge: mergeY }
+};
+let pendingRender = false;
+function rerenderAll() {
+  if (document.activeElement?.matches('input, textarea, select')) { pendingRender = true; return; }
+  pendingRender = false;
+  renderSliders(); renderApp(); renderEditor(refresh());
+  if (!$('v-youtube').hidden) renderYouTube();
+  if (!$('v-organic').hidden) renderOrganic();
+  if (pm.open) renderSheet();
+}
+document.addEventListener('focusout', () => setTimeout(() => { if (pendingRender && !document.activeElement?.matches('input, textarea, select')) rerenderAll(); }, 50));
+setInterval(() => store.poll(), 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) store.poll(); });
+
 /* ============ team ============ */
 const DEFAULT_TEAM = [{ id:'bendik', name:'Bendik', email:'bendik@asym.capital', color:'#0071E3' }, { id:'josh', name:'Josh', email:'josh@joshli.au.com', color:'#AF52DE' }];
 const ROLES = ['You','Setter','Closer','Editor','Funnel','Media buyer'];
@@ -1134,7 +1313,7 @@ function normTask(t) {
 function tlog(t, msg) { t.history.unshift({ t:Date.now(), who:whoName(), msg }); t.history = t.history.slice(0, 50); }
 function setStatus(t, s) {
   if (t.status === s) return;
-  t.status = s; t.done = s === 'done'; t.doneAt = t.done ? Date.now() : null; t.doneBy = t.done ? whoName() : null; t.resolved = false;
+  t.status = s; t.done = s === 'done'; t.updatedAt = Date.now(); t.doneAt = t.done ? Date.now() : null; t.doneBy = t.done ? whoName() : null; t.resolved = false;
   const lbl = STATUSES.find(x => x[0] === s)[1];
   tlog(t, 'Moved to ' + lbl); log(`${t.done ? 'Checked off' : 'Moved to ' + lbl}: ${t.title}`);
   if (t.key && t.key.startsWith('yt:') && Y) { const it = Y.items[+t.key.slice(3) - 1]; if (it && t.done && it.status !== 'published') { it.status = 'published'; saveY(); } }
@@ -1204,6 +1383,7 @@ function metaHTML(t) {
   if (t.subs?.length) m.push(`<span>${t.subs.filter(s => s.done).length}/${t.subs.length}</span>`);
   if (t.notes) m.push('<span>Notes</span>');
   if (t.carried) m.push('<span class="carry">Carried over</span>');
+  if (t.fromReview) m.push('<span class="carry">From last week’s review</span>');
   if (t.done && t.doneBy) m.push(`<span>Done by ${esc(t.doneBy)}</span>`);
   return m.join('');
 }
@@ -1255,7 +1435,7 @@ function historyHTML() {
   const id = weekId(), past = Object.keys(W).filter(k => k < id).sort().reverse();
   return `<div class="hist">${past.length ? past.map(k => {
     const w = W[k], d = w.tasks.filter(t => t.done).length, cl = w.tasks.find(t => t.key === 'closes');
-    return `<details><summary><b>${weekLabel(k)}</b><span>${d}/${w.tasks.length} done</span><span>${money((+cl?.actual || 0) * F.offer.price)} closed</span><span>Congruency ${w.score ?? '—'}</span></summary><ul>${w.tasks.map(t => `<li class="${t.done ? 'd' : ''}">${t.done ? '✓' : '○'} ${esc(t.title)}${t.target ? ` — ${t.actual ?? 0}/${t.target}` : ''}${t.assignee && person(t.assignee) ? ' · ' + esc(person(t.assignee).name) : ''}</li>`).join('')}</ul></details>`;
+    return `<details><summary><b>${weekLabel(k)}</b><span>${d}/${w.tasks.length} done</span><span>${money((+cl?.actual || 0) * F.offer.price)} closed</span><span>Congruency ${w.score ?? '—'}</span></summary>${w.review ? `<div style="padding:0 20px 12px;display:grid;gap:6px;font-size:14.5px">${w.review.wins ? `<div><b>Worked:</b> ${esc(w.review.wins)}</div>` : ''}${w.review.lessons ? `<div><b>Change:</b> ${esc(w.review.lessons)}</div>` : ''}${w.review.next?.length ? `<div><b>Next week:</b> ${w.review.next.map(n => esc(n.t)).join(' · ')}</div>` : ''}</div>` : ''}<ul>${w.tasks.map(t => `<li class="${t.done ? 'd' : ''}">${t.done ? '✓' : '○'} ${esc(t.title)}${t.target ? ` — ${t.actual ?? 0}/${t.target}` : ''}${t.assignee && person(t.assignee) ? ' · ' + esc(person(t.assignee).name) : ''}</li>`).join('')}</ul></details>`;
   }).join('') : '<p class="muted">Past weeks appear here once a new week starts on Monday. Unfinished tasks you added carry over automatically.</p>'}</div>`;
 }
 function teamHTML() {
@@ -1292,7 +1472,7 @@ function renderSheet() {
     <div class="f"><label>History</label><div class="hl">${t.history.length ? t.history.map(h => `<div><time>${new Date(h.t).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}</time>${esc(h.who)} · ${esc(h.msg)}</div>`).join('') : '<div>No changes yet.</div>'}</div></div>
     ${!t.auto ? '<button class="btn light sm danger" type="button" data-delete-task style="justify-self:start">Delete task</button>' : ''}`;
 }
-function taskChanged(t, msg) { if (msg) tlog(t, msg); saveW(); renderTasks(); renderOverview(check(), calc()); }
+function taskChanged(t, msg) { t.updatedAt = Date.now(); if (msg) tlog(t, msg); saveW(); renderTasks(); renderOverview(check(), calc()); renderMyDay(); renderBadges(); }
 
 (function initTasks() {
   const view = $('v-week');
@@ -1310,14 +1490,14 @@ function taskChanged(t, msg) { if (msg) tlog(t, msg); saveW(); renderTasks(); re
       const as = e.target.closest('[data-set-assignee]'); if (as) { t.assignee = as.dataset.setAssignee; t.assigneeManual = true; taskChanged(t, 'Assigned to ' + (person(t.assignee)?.name || 'nobody')); renderSheet(); return; }
       const pr = e.target.closest('[data-set-pri]'); if (pr) { t.priority = +pr.dataset.setPri; t.priorityManual = true; taskChanged(t, 'Priority: ' + PRI[t.priority][1]); renderSheet(); return; }
       const ds = e.target.closest('[data-delsub]'); if (ds) { t.subs.splice(+ds.dataset.delsub, 1); taskChanged(t); renderSheet(); return; }
-      if (e.target.closest('[data-delete-task]')) { const wk = curWeek(); wk.tasks = wk.tasks.filter(x => x !== t); log('Deleted task: ' + t.title); saveW(); closeSheet(); return; }
+      if (e.target.closest('[data-delete-task]')) { const wk = curWeek(), k = t.key || t.id; wk.tasks = wk.tasks.filter(x => x !== t); (wk.deleted = wk.deleted || []).push(k); log('Deleted task: ' + t.title); saveW(); closeSheet(); toast('Deleted “' + t.title + '”', () => { wk.deleted = wk.deleted.filter(x => x !== k); t.updatedAt = Date.now(); wk.tasks.push(t); saveW(); renderTasks(); renderMyDay(); }); return; }
       return;
     }
     const row = e.target.closest('[data-open-task]'); if (row) openTask(row.dataset.openTask);
   });
   view.addEventListener('change', e => {
     const d = e.target.dataset;
-    if (d.done) { const t = findTask(d.done); setStatus(t, e.target.checked ? 'done' : 'todo'); taskChanged(t); if (pm.open === t.id) renderSheet(); return; }
+    if (d.done) { const t = findTask(d.done), prev = t.status; setStatus(t, e.target.checked ? 'done' : 'todo'); taskChanged(t); if (pm.open === t.id) renderSheet(); if (t.done) toast('Done: ' + t.title, () => { setStatus(t, prev); taskChanged(t); }); return; }
     if (d.actual) { const t = findTask(d.actual); t.actual = e.target.value === '' ? null : +e.target.value; if (t.target && t.actual >= t.target && !t.done) setStatus(t, 'done'); tlog(t, `Logged ${t.actual ?? 0} of ${t.target}`); log(`${t.title}: ${t.actual ?? 0} of ${t.target}`); taskChanged(t); if (pm.open === t.id) renderSheet(); return; }
     if (d.sub) { const t = findTask(pm.open); t.subs[+d.sub].done = e.target.checked; taskChanged(t); renderSheet(); return; }
     if (d.f === 'due' || d.f === 'area') { const t = findTask(pm.open); t[d.f] = e.target.value; if (d.f === 'due') t.dueManual = true; taskChanged(t, d.f === 'due' ? 'Due ' + (e.target.value || 'cleared') : 'Area: ' + e.target.value); return; }
@@ -1327,7 +1507,7 @@ function taskChanged(t, msg) { if (msg) tlog(t, msg); saveW(); renderTasks(); re
   });
   view.addEventListener('input', e => {
     const d = e.target.dataset;
-    if ((d.f === 'title' || d.f === 'notes') && pm.open) { const t = findTask(pm.open); t[d.f] = e.target.value; if (d.f === 'title' && t.auto) t.titleManual = true; store.put('weeks', W); }
+    if ((d.f === 'title' || d.f === 'notes') && pm.open) { const t = findTask(pm.open); t[d.f] = e.target.value; t.updatedAt = Date.now(); if (d.f === 'title' && t.auto) t.titleManual = true; store.put('weeks', W); }
   });
   view.addEventListener('keydown', e => {
     if (e.target.id === 'subAdd' && e.key === 'Enter' && e.target.value.trim()) { const t = findTask(pm.open); t.subs.push({ t:e.target.value.trim(), done:false }); taskChanged(t, 'Added a step'); renderSheet(); $('subAdd').focus(); }
@@ -1353,7 +1533,7 @@ function taskChanged(t, msg) { if (msg) tlog(t, msg); saveW(); renderTasks(); re
     if (e.key !== 'Enter') return; const raw = e.target.value.trim(); if (!raw) return;
     const p = parseQuick(raw); if (!p.title) return;
     const list = pm.list, t = normTask({ id:'t' + Date.now().toString(36), key:'m:' + Date.now(), auto:false, title:p.title, area:p.area || (list.startsWith('a:') ? list.slice(2) : 'Other'), owner:'', assignee: p.assignee !== undefined ? p.assignee : list.startsWith('p:') ? list.slice(2) : list === 'unassigned' ? '' : me()?.id || '', assigneeManual:true, due: p.due || (list === 'today' ? todayIso() : ''), priority: p.priority || 0, target:null, done:false, status:'todo' });
-    tlog(t, 'Created'); curWeek().tasks.push(t); log('Added task: ' + t.title); saveW(); e.target.value = ''; $('qaChips').innerHTML = ''; renderTasks(); toast('Added');
+    tlog(t, 'Created'); t.updatedAt = Date.now(); curWeek().tasks.push(t); log('Added task: ' + t.title); saveW(); e.target.value = ''; $('qaChips').innerHTML = ''; renderTasks(); toast('Added');
   });
   document.addEventListener('keydown', e => {
     if (view.hidden || e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || e.altKey) { if (e.key === 'Escape' && !view.hidden && pm.open) closeSheet(); return; }
@@ -1426,8 +1606,8 @@ function renderOrganic() {
   $('kNext').onclick = () => { if (kWeek < weekId()) { kWeek = shiftWeek(kWeek, 1); renderOrganic(); } };
   $('kGroups').addEventListener('change', e => {
     const k = e.target.dataset.kpi, t = e.target.dataset.ktarget;
-    if (k) { (K.weeks[kWeek] = K.weeks[kWeek] || {})[k] = e.target.value === '' ? null : +e.target.value; log(`Logged ${KPIS.find(x => x.key === k).label}: ${e.target.value || 'cleared'} (${weekLabel(kWeek)})`); }
-    if (t) K.targets[t] = e.target.value === '' ? null : +e.target.value;
+    if (k) { (K.weeks[kWeek] = K.weeks[kWeek] || {})[k] = e.target.value === '' ? null : +e.target.value; (K.ts = K.ts || {})[kWeek + '|' + k] = Date.now(); log(`Logged ${KPIS.find(x => x.key === k).label}: ${e.target.value || 'cleared'} (${weekLabel(kWeek)})`); }
+    if (t) { K.targets[t] = e.target.value === '' ? null : +e.target.value; (K.ts = K.ts || {})['T|' + t] = Date.now(); }
     store.put('kpis', K); renderOrganic();
   });
 })();
@@ -1643,7 +1823,7 @@ function ytTodayDay() { const [y, m, d] = Y.start.split('-').map(Number), s = ne
 const fmtShort = isoD => { const [y, m, d] = isoD.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month:'short', day:'numeric' }); };
 function renumber() { Y.items.forEach((it, i) => it.day = i + 1); }
 function ytSetStatus(it, s, quiet) {
-  if (it.status === s) return; it.status = s;
+  if (it.status === s) return; it.status = s; it.updatedAt = Date.now();
   if (!quiet) log(`YouTube day ${it.day} → ${stInfo(s)[1]}: ${it.title}`);
   const t = allTasks().find(x => x.key === 'yt:' + it.day);
   if (t) { if (s === 'published' && !t.done) setStatus(t, 'done'); if (s !== 'published' && t.done && t.auto) setStatus(t, 'todo'); }
@@ -1704,9 +1884,9 @@ function vidHTML(it) {
     const st = e.target.closest('[data-yst]'); if (st) { ytSetStatus(Y.items[+st.dataset.day - 1], st.dataset.yst); renderYouTube(); return; }
     const cy = e.target.closest('[data-ycycle]'); if (cy) { const it = Y.items[+cy.dataset.ycycle - 1], i = YT_ST.findIndex(x => x[0] === it.status); ytSetStatus(it, YT_ST[(i + 1) % YT_ST.length][0]); renderYouTube(); return; }
     const ar = e.target.closest('[data-arc]'); if (ar) { $('ytFilter').value = ''; renderYouTube(); document.getElementById('arc' + ar.dataset.arc)?.scrollIntoView({ behavior:'smooth', block:'start' }); return; }
-    const as = e.target.closest('[data-yassign]'); if (as) { const it = Y.items[ytOpen - 1]; it.assignee = as.dataset.yassign; saveY(); renderYouTube(); return; }
+    const as = e.target.closest('[data-yassign]'); if (as) { const it = Y.items[ytOpen - 1]; it.assignee = as.dataset.yassign; it.updatedAt = Date.now(); saveY(); renderYouTube(); return; }
     const mv = e.target.closest('[data-ymove]');
-    if (mv) { const i = ytOpen - 1, j = i + +mv.dataset.ymove; if (j < 0 || j >= Y.items.length) return; const a = Y.items[i], b = Y.items[j]; [Y.items[i], Y.items[j]] = [b, a]; if (a.arc !== b.arc) [a.arc, b.arc] = [b.arc, a.arc]; renumber(); ytOpen = j + 1; saveY(); log(`Moved “${a.title}” to day ${ytOpen}`); renderYouTube(); return; }
+    if (mv) { const i = ytOpen - 1, j = i + +mv.dataset.ymove; if (j < 0 || j >= Y.items.length) return; const a = Y.items[i], b = Y.items[j]; [Y.items[i], Y.items[j]] = [b, a]; if (a.arc !== b.arc) [a.arc, b.arc] = [b.arc, a.arc]; renumber(); ytOpen = j + 1; Y.updatedAt = Date.now(); saveY(); log(`Moved “${a.title}” to day ${ytOpen}`); renderYouTube(); return; }
     if (e.target.closest('[data-yclose]')) { ytOpen = null; renderYouTube(); return; }
     const dl = e.target.closest('[data-idea-del]'); if (dl) { Y.ideas.splice(+dl.dataset.ideaDel, 1); saveY(); renderYouTube(); return; }
     if (e.target.closest('.vedit, input, select, textarea')) return;
@@ -1715,18 +1895,18 @@ function vidHTML(it) {
   });
   v.addEventListener('input', e => {
     const k = e.target.dataset.yf; if (!k || !ytOpen) return; const it = Y.items[ytOpen - 1];
-    it[k] = k === 'chapters' ? e.target.value.split('\n').map(s => s.trim()).filter(Boolean) : k === 'views' ? (e.target.value === '' ? null : +e.target.value) : e.target.value;
+    it.updatedAt = Date.now(); it[k] = k === 'chapters' ? e.target.value.split('\n').map(s => s.trim()).filter(Boolean) : k === 'views' ? (e.target.value === '' ? null : +e.target.value) : e.target.value;
     store.put('yt', Y);
   });
   v.addEventListener('change', e => {
     if (e.target.dataset.yf) { renderYouTube(); return; }
-    if (e.target.id === 'ytStart' && e.target.value) { Y.start = e.target.value; saveY(); log('YouTube series now starts ' + fmtShort(Y.start)); renderYouTube(); refresh(); return; }
+    if (e.target.id === 'ytStart' && e.target.value) { Y.start = e.target.value; Y.updatedAt = Date.now(); saveY(); log('YouTube series now starts ' + fmtShort(Y.start)); renderYouTube(); refresh(); return; }
     if (e.target.id === 'ytFilter') { renderYouTube(); return; }
     const at = e.target.dataset.ideaAt;
     if (at != null && e.target.value) {
       const idea = Y.ideas[+at], pos = +e.target.value - 1, arc = Y.items[pos]?.arc ?? 0;
       Y.items.splice(pos, 0, { day:0, arc, title:idea.t, problem:'', chapters:[], status:'idea', assignee:'josh', url:'', views:null, notes:'' });
-      Y.ideas.splice(+at, 1); renumber(); saveY(); log(`Inserted idea at day ${pos + 1}: ${idea.t}`); ytOpen = pos + 1; renderYouTube(); refresh();
+      Y.ideas.splice(+at, 1); renumber(); Y.updatedAt = Date.now(); saveY(); log(`Inserted idea at day ${pos + 1}: ${idea.t}`); ytOpen = pos + 1; renderYouTube(); refresh();
     }
   });
   const addIdea = () => { const t = $('ytIdeaIn').value.trim(); if (!t) return; Y.ideas.unshift({ t, by: whoName(), at: Date.now() }); $('ytIdeaIn').value = ''; saveY(); log('New video idea: ' + t); renderYouTube(); };
@@ -2136,7 +2316,7 @@ function renderEditor(R) {
 function refresh(opts = {}) {
   const R = check(), c = calc();
   const wk = W[weekId()]; if (wk) syncWeek(wk);
-  renderOverview(R, c); renderCongruency(R); renderGraph(R, c);
+  renderOverview(R, c); renderMyDay(); renderBadges(); renderCongruency(R); renderGraph(R, c);
   if (!opts.keepWeek) renderWeek();
   const a = $('editor').querySelector('.alerts'); if (a) a.innerHTML = alertsFor(R);
   return R;
@@ -2148,6 +2328,7 @@ function showTab(t) {
   if (!document.getElementById('v-' + t)) t = 'overview';
   document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'v-' + t);
   document.querySelectorAll('.tab').forEach(b => { b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', b.dataset.tab === t); });
+  document.querySelectorAll('.bbar [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
   document.body.classList.toggle('studio-on', t === 'funnel');
   window.scrollTo(0, 0);
@@ -2197,12 +2378,6 @@ $('importFile').onchange = async e => {
   e.target.value = '';
 };
 window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
-window.addEventListener('focus', async () => {
-  if (store.mode !== 'cloud' || document.activeElement?.matches('input,textarea,select')) return;
-  const [w, l, k, y] = await Promise.all([store.get('weeks'), store.get('log'), store.get('kpis'), store.get('yt')]);
-  if (y) Y = y; if (!$('v-youtube').hidden) renderYouTube();
-  if (w) W = w; if (l) L = l; if (k) K = Object.assign({ weeks:{}, targets:{} }, k); if (!$('v-organic').hidden) renderOrganic(); renderWeek(); refresh({ keepWeek:true });
-});
 
 /* application questions (static, for the playbook) */
 function q(n, t, o, why, gate, out = []) { return `<div class="q ${gate ? 'gate' : ''}"><div class="n">${String(n).padStart(2, '0')}</div><div class="qt">${t}</div>${o ? `<div class="op">${o.map(x => `<span class="${out.includes(x) ? 'out' : ''}">${x}</span>`).join('')}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}</div>`; }
@@ -2222,12 +2397,167 @@ function renderApp() {
     q(12, 'Who else is involved in the decision?', ['Just me', 'Partner / co-owner', 'Spouse', 'Board / investors'], 'Get every decision-maker on the call.')].join('');
 }
 
+/* ============ toast with undo ============ */
+function toast(t, undo) {
+  const el = $('toast'); clearTimeout(toast.t);
+  el.innerHTML = esc(t) + (undo ? ' <button type="button" class="tundo">Undo</button>' : '');
+  el.classList.add('on'); el.style.pointerEvents = undo ? 'auto' : 'none';
+  if (undo) el.querySelector('.tundo').onclick = () => { undo(); el.classList.remove('on'); };
+  toast.t = setTimeout(() => el.classList.remove('on'), undo ? 5000 : 1800);
+}
+
+/* ============ command bar (⌘K) ============ */
+const TABS = [['overview','Overview'],['week','Tasks'],['youtube','YouTube'],['organic','Organic'],['lab','Lab'],['congruency','Congruency'],['funnel','Funnel'],['playbook','Playbook']];
+let palSel = 0, palRes = [];
+function goNode(id) { showTab('funnel'); requestAnimationFrame(() => { selectNode(id); centerOn(id); }); }
+function palItems() {
+  const out = [];
+  TABS.forEach(([t, l]) => out.push({ g:'Go to', l, run:() => showTab(t) }));
+  const A = (l, run, k) => out.push({ g:'Actions', l, run, k });
+  A('New task', () => { showTab('week'); setTimeout(() => $('qaIn').focus(), 60); }, 'C');
+  A('Start the weekly review', () => openReview());
+  A('Log this week’s organic numbers', () => showTab('organic'));
+  A('Today’s YouTube video', () => { showTab('youtube'); setTimeout(() => $('ytToday').scrollIntoView({ block:'center' }), 60); });
+  A('Add a video idea', () => { showTab('youtube'); setTimeout(() => { $('ytIdeaIn').scrollIntoView({ block:'center' }); $('ytIdeaIn').focus(); }, 80); });
+  A('Talk to the funnel', () => { showTab('funnel'); showPane('chat'); setTimeout(() => $('chatIn').focus(), 60); });
+  A('Edit the offer', () => { showTab('funnel'); sel = { type:'offer' }; showPane('edit'); renderEditor(check()); });
+  A('Run 5,000 simulations', () => { showTab('lab'); runLab(); });
+  A('Export everything', () => $('exportBtn').click());
+  check().fails.forEach(f => out.push({ g:'Fix', l:f.label, sub:f.fix, run:() => f.node ? goNode(f.node) : showTab('congruency') }));
+  sortTasks(allTasks().slice()).forEach(t => out.push({ g:'Tasks', l:t.title, sub:(person(t.assignee)?.name || 'Unassigned') + (t.done ? ' · done' : t.due ? ' · ' + dueInfo(t.due).label : ''), done:t.done, run:() => { showTab('week'); openTask(t.id); } }));
+  (Y?.items || []).forEach(it => out.push({ g:'YouTube', l:`Day ${it.day}: ${it.title}`, sub:stInfo(it.status)[1] + ' · ' + fmtShort(ytDate(it.day)), run:() => { showTab('youtube'); ytOpen = it.day; renderYouTube(); setTimeout(() => document.querySelector(`.vid[data-yopen="${it.day}"]`)?.scrollIntoView({ block:'center' }), 60); } }));
+  F.nodes.forEach(n => out.push({ g:'Funnel', l:n.title, sub:KIND[n.kind], run:() => goNode(n.id) }));
+  return out;
+}
+function palSearch(q) {
+  const items = palItems(); q = q.trim().toLowerCase();
+  if (!q) return items.filter(i => i.g === 'Actions' || i.g === 'Go to' || (i.g === 'Tasks' && !i.done)).slice(0, 30);
+  const words = q.split(/\s+/);
+  return items.map(i => { const s = (i.l + ' ' + (i.sub || '') + ' ' + i.g).toLowerCase(); let sc = 0; for (const w of words) { const p = s.indexOf(w); if (p < 0) return null; sc += p + (i.l.toLowerCase().startsWith(w) ? -50 : 0); } return { ...i, sc: sc + (i.done ? 40 : 0) }; })
+    .filter(Boolean).sort((a, b) => a.sc - b.sc).slice(0, 40);
+}
+function renderPal() {
+  palRes = palSearch($('palIn').value); palSel = Math.min(palSel, Math.max(0, palRes.length - 1));
+  let g = '';
+  $('palList').innerHTML = palRes.length ? palRes.map((r, i) => { const h = r.g !== g ? `<div class="pg">${esc(r.g)}</div>` : ''; g = r.g; return h + `<button type="button" class="pi ${i === palSel ? 'on' : ''}" data-pi="${i}"><span class="pl">${esc(r.l)}</span>${r.sub ? `<span class="ps">${esc(r.sub)}</span>` : ''}${r.k ? `<kbd>${r.k}</kbd>` : ''}</button>`; }).join('') : '<div class="pempty">Nothing matches. Try a task, a video, a stage or an action.</div>';
+  $('palList').querySelector('.pi.on')?.scrollIntoView({ block:'nearest' });
+}
+function openPal() { $('pal').hidden = false; $('palIn').value = ''; palSel = 0; renderPal(); setTimeout(() => $('palIn').focus(), 10); }
+function closePal() { $('pal').hidden = true; }
+function runPal(i) { const r = palRes[i]; if (!r) return; closePal(); r.run(); }
+(function initPal() {
+  $('palIn').addEventListener('input', () => { palSel = 0; renderPal(); });
+  $('palIn').addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { palSel = Math.min(palRes.length - 1, palSel + 1); renderPal(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { palSel = Math.max(0, palSel - 1); renderPal(); e.preventDefault(); }
+    else if (e.key === 'Enter') { runPal(palSel); e.preventDefault(); }
+    else if (e.key === 'Escape') closePal();
+  });
+  $('palList').addEventListener('click', e => { const b = e.target.closest('[data-pi]'); if (b) runPal(+b.dataset.pi); });
+  $('pal').addEventListener('click', e => { if (e.target.id === 'pal') closePal(); });
+  document.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('pal').hidden ? openPal() : closePal(); } });
+  document.querySelectorAll('[data-open-pal]').forEach(b => b.onclick = openPal);
+})();
+
+/* ============ my day ============ */
+function renderMyDay() {
+  if (!$('myday') || !Y) return;
+  const p = me(), h = new Date().getHours(), t0 = todayIso();
+  const greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const mine = allTasks().filter(t => t.assignee === p?.id && !t.done);
+  let focus = sortTasks(mine.filter(t => (t.due && t.due <= t0) || t.status === 'doing'));
+  const extra = focus.length < 3 ? sortTasks(mine.filter(t => !focus.includes(t))).slice(0, 3 - focus.length) : [];
+  const day = ytTodayDay(), vid = day >= 1 && day <= Y.items.length ? Y.items[day - 1] : null;
+  const logged = KPIS.filter(k => kv(k.key, weekId()) != null).length, fails = check().fails.length;
+  const dow = new Date().getDay(), reviewDay = dow === 5 || dow === 6 || dow === 0, reviewed = !!curWeek()?.review;
+  const row = t => `<div class="md-t ${t.done ? 'done' : ''}"><input class="ck p${t.priority}" type="checkbox" data-mydone="${t.id}" aria-label="Done: ${esc(t.title)}"><button type="button" class="md-l" data-myopen="${t.id}"><span>${esc(t.title)}</span><small>${esc(t.area)}${t.due ? ' · ' + dueInfo(t.due).label : ''}${t.target ? ` · ${t.actual ?? 0}/${t.target}` : ''}</small></button></div>`;
+  $('myday').innerHTML = `<div class="md-main"><div class="lbl">${new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}</div><h2 class="h-m">${greet}, ${esc(p?.name || 'there')}.</h2>
+      <p class="muted">${focus.length ? `${focus.length} thing${focus.length > 1 ? 's' : ''} need${focus.length > 1 ? '' : 's'} you today.` : mine.length ? 'Nothing due today. Here’s what’s next.' : 'Your list is clear.'}</p>
+      <div class="md-list">${focus.map(row).join('')}${extra.length ? `<div class="md-sep">Up next</div>${extra.map(row).join('')}` : ''}${!mine.length ? '<div class="empty" style="padding:24px">Add something with ⌘K → New task.</div>' : ''}</div>
+      <div class="row" style="gap:8px;margin-top:6px"><button class="btn light sm" data-goto="week">All tasks</button><button class="btn light sm" data-open-pal>Search ⌘K</button></div></div>
+    <div class="md-side">
+      ${vid ? `<button type="button" class="md-c" data-yday="${vid.day}"><span class="lbl">Today’s video · Day ${vid.day}</span><b>${esc(vid.title)}</b><span class="md-s"><span class="spill" style="background:${stInfo(vid.status)[2]}">${stInfo(vid.status)[1]}</span> ${esc(person(vid.assignee)?.name || '')}</span></button>` : `<button type="button" class="md-c" data-goto="youtube"><span class="lbl">YouTube</span><b>${day < 1 ? `Series starts in ${1 - day} day${1 - day > 1 ? 's' : ''}` : 'Series complete'}</b></button>`}
+      <button type="button" class="md-c" data-goto="organic"><span class="lbl">Organic this week</span><b>${logged}/${KPIS.length} numbers logged</b><div class="bar blue"><i style="width:${logged / KPIS.length * 100}%"></i></div></button>
+      <button type="button" class="md-c" data-goto="congruency"><span class="lbl">Congruency</span><b style="color:${scoreColor(check().score)}">${fails ? fails + ' to fix' : 'All congruent'}</b></button>
+      <button type="button" class="md-c ${reviewDay && !reviewed ? 'hot' : ''}" data-review><span class="lbl">${reviewed ? 'Weekly review done' : reviewDay ? 'It’s review day' : 'Weekly review'}</span><b>${reviewed ? 'Next week is planned' : 'Five minutes: numbers, wins, next week'}</b></button>
+    </div>`;
+}
+(function initMyDay() {
+  const v = $('v-overview');
+  v.addEventListener('change', e => {
+    const id = e.target.dataset.mydone; if (!id) return;
+    const t = findTask(id), prev = t.status; setStatus(t, 'done'); taskChanged(t);
+    toast('Done: ' + t.title, () => { setStatus(t, prev); taskChanged(t); });
+  });
+  v.addEventListener('click', e => {
+    const o = e.target.closest('[data-myopen]'); if (o) { showTab('week'); openTask(o.dataset.myopen); return; }
+    const y = e.target.closest('[data-yday]'); if (y) { showTab('youtube'); ytOpen = +y.dataset.yday; renderYouTube(); setTimeout(() => document.querySelector(`.vid[data-yopen="${ytOpen}"]`)?.scrollIntoView({ block:'center' }), 60); return; }
+    if (e.target.closest('[data-review]')) openReview();
+    if (e.target.closest('[data-open-pal]')) openPal();
+  });
+})();
+
+/* ============ tab badges ============ */
+function renderBadges() {
+  if (!Y) return;
+  const t0 = todayIso(), my = me()?.id;
+  const n = {
+    week: allTasks().filter(t => !t.done && t.assignee === my && t.due && t.due <= t0).length,
+    youtube: Y.items.filter(i => i.day < ytTodayDay() && i.status !== 'published').length,
+    congruency: check().fails.length
+  };
+  document.querySelectorAll('[data-badge]').forEach(b => { const v = n[b.dataset.badge] || 0; b.textContent = v || ''; b.hidden = !v; });
+}
+
+/* ============ weekly review ============ */
+let rv = null;
+const RV_KPIS = ['yt_views', 'yt_clicks', 'ig_views', 'ig_dms', 'ig_qual', 'apps_q'];
+function openReview() { const wk = curWeek(); rv = { step:0, wins: wk.review?.wins || '', lessons: wk.review?.lessons || '', next: (wk.review?.next || []).concat([{}, {}, {}]).slice(0, 3) }; $('rev').hidden = false; renderReview(); }
+function closeReview() { $('rev').hidden = true; rv = null; }
+function renderReview() {
+  const steps = ['Funnel numbers', 'Organic', 'Wins and lessons', 'Next week', 'Done'], s = rv.step, wk = curWeek();
+  const dots = steps.map((l, i) => `<span class="${i === s ? 'on' : i < s ? 'past' : ''}">${l}</span>`).join('');
+  let body = '';
+  if (s === 0) body = `<p class="muted">What actually happened this week? These feed the Lab’s forecasts.</p>${['visitors','booked','shows','closes'].map(k => { const t = allTasks().find(x => x.key === k); return t ? `<label class="rv-f"><span>${esc(t.title)}<small>Target ${t.target}</small></span><input type="number" min="0" data-rv-task="${t.id}" value="${t.actual ?? ''}" placeholder="0"></label>` : ''; }).join('')}`;
+  if (s === 1) body = `<p class="muted">From YouTube Studio and Instagram Insights.</p>${RV_KPIS.map(k => { const d = KPIS.find(x => x.key === k); return `<label class="rv-f"><span>${esc(d.label)}</span><input type="number" step="any" min="0" data-rv-kpi="${k}" value="${kv(k, weekId()) ?? ''}" placeholder="0"></label>`; }).join('')}`;
+  if (s === 2) body = `<label class="rv-t"><span>What worked?</span><textarea data-rv="wins" placeholder="The video that pulled applications, a great call…">${esc(rv.wins)}</textarea></label><label class="rv-t"><span>What didn’t, and what changes?</span><textarea data-rv="lessons" placeholder="Show rate dipped because…">${esc(rv.lessons)}</textarea></label>`;
+  if (s === 3) body = `<p class="muted">The three things that matter most next week. They become high-priority tasks on Monday.</p>${rv.next.map((n, i) => `<div class="rv-n"><input type="text" data-rv-next="${i}" value="${esc(n.t || '')}" placeholder="Priority ${i + 1}"><select data-rv-who="${i}">${team().map(p => `<option value="${p.id}" ${(n.a || me()?.id) === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>`).join('')}`;
+  if (s === 4) { const all = allTasks(), done = all.filter(t => t.done).length, cl = all.find(t => t.key === 'closes'); body = `<div class="rv-sum"><div><b>${money((+cl?.actual || 0) * F.offer.price)}</b><span>closed this week</span></div><div><b>${all.length ? Math.round(done / all.length * 100) : 0}%</b><span>of tasks done</span></div><div><b style="color:${scoreColor(check().score)}">${check().score}</b><span>congruency</span></div></div><p class="muted">Saved to this week’s history. Next week’s priorities are queued for Monday.</p>`; }
+  $('revBox').innerHTML = `<div class="rv-top"><b>Weekly review</b><span class="muted small">${weekLabel(weekId())}</span><button type="button" class="btn light sm" data-rv-close>Close</button></div><div class="rv-dots">${dots}</div><div class="rv-body"><h3>${steps[s]}</h3>${body}</div>
+    <div class="rv-foot">${s > 0 && s < 4 ? '<button type="button" class="btn light" data-rv-back>Back</button>' : '<span></span>'}${s < 3 ? '<button type="button" class="btn" data-rv-next>Next</button>' : s === 3 ? '<button type="button" class="btn" data-rv-finish>Finish review</button>' : '<button type="button" class="btn" data-rv-close>Done</button>'}</div>`;
+  setTimeout(() => $('revBox').querySelector('input, textarea')?.focus(), 30);
+}
+function saveReviewStep() {
+  const box = $('revBox');
+  box.querySelectorAll('[data-rv-task]').forEach(i => { if (i.value === '') return; const t = findTask(i.dataset.rvTask); const v = +i.value; if (t.actual !== v) { t.actual = v; if (t.target && v >= t.target && !t.done) setStatus(t, 'done'); tlog(t, `Logged ${v} of ${t.target} in review`); t.updatedAt = Date.now(); } });
+  let kch = false;
+  box.querySelectorAll('[data-rv-kpi]').forEach(i => { if (i.value === '') return; const k = i.dataset.rvKpi, w = weekId(); (K.weeks[w] = K.weeks[w] || {})[k] = +i.value; (K.ts = K.ts || {})[w + '|' + k] = Date.now(); kch = true; });
+  if (kch) store.put('kpis', K);
+  box.querySelectorAll('[data-rv]').forEach(i => rv[i.dataset.rv] = i.value);
+  box.querySelectorAll('[data-rv-next]').forEach(i => { rv.next[+i.dataset.rvNext].t = i.value.trim(); });
+  box.querySelectorAll('[data-rv-who]').forEach(i => { rv.next[+i.dataset.rvWho].a = i.value; });
+  saveW();
+}
+(function initReview() {
+  $('rev').addEventListener('click', e => {
+    if (e.target.id === 'rev' || e.target.closest('[data-rv-close]')) { if (rv && rv.step < 4) saveReviewStep(); closeReview(); refresh(); return; }
+    if (e.target.closest('[data-rv-next]')) { saveReviewStep(); rv.step++; renderReview(); return; }
+    if (e.target.closest('[data-rv-back]')) { saveReviewStep(); rv.step--; renderReview(); return; }
+    if (e.target.closest('[data-rv-finish]')) {
+      saveReviewStep(); const wk = curWeek();
+      wk.review = { wins:rv.wins, lessons:rv.lessons, next:rv.next.filter(n => n.t), by:whoName(), at:Date.now() }; wk.reviewAt = Date.now();
+      saveW(); log('Completed the weekly review'); rv.step = 4; renderReview(); refresh();
+    }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('rev').hidden) { $('rev').querySelector('[data-rv-close]')?.click(); } });
+})();
+
 (async function boot() {
   await store.init();
   F = (await store.get('funnel')) || clone(DEFAULT_FUNNEL);
   W = (await store.get('weeks')) || {};
   L = (await store.get('log')) || [];
-  K = Object.assign({ weeks:{}, targets:{} }, (await store.get('kpis')) || {});
+  K = Object.assign({ weeks:{}, targets:{}, ts:{} }, (await store.get('kpis')) || {});
   Y = (await store.get('yt')) || ytDefault();
   team().forEach(p => { if (p.id === 'josh' && !p.email) p.email = 'josh@joshli.au.com'; });
   if (F.offer && /loi machine/i.test(F.offer.name || '')) F.offer.name = DEFAULT_FUNNEL.offer.name;
@@ -2236,6 +2566,7 @@ function renderApp() {
   renderSliders(); renderApp();
   renderEditor(refresh());
   loadChat(); renderChat();
+  if (store.mode === 'cloud') store.mark('ok');
   showTab(location.hash.slice(1) || 'overview');
 })();
 </script>
