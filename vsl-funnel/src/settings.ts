@@ -36,6 +36,7 @@ export const SETTINGS = [
   { key: 'EMAIL_FROM', label: 'From address', group: 'Email', placeholder: 'Josh Li <josh@mail.example.com>' },
   { key: 'EMAIL_REPLY_TO', label: 'Reply-to address', group: 'Email' },
   { key: 'EMAIL_SIGNATURE', label: 'Email signature name', group: 'Email', placeholder: 'Josh' },
+  { key: 'PRECALL_EMAILS_PER_DAY', label: 'Pre-call emails per day', group: 'Email', placeholder: '6', help: 'Booked leads get up to this many emails a day (one pain point each) until 3 hours before their call. 0 turns it off.' },
   { key: 'BUSINESS_ADDRESS', label: 'Business postal address', group: 'Email', help: 'Shown in the email footer (required by anti-spam law).' },
 
   { key: 'JOSH_WHATSAPP', label: "Josh's WhatsApp number", group: 'WhatsApp', placeholder: '61400000000', help: 'International format, digits only. Powers every "Message Josh" button.' },
@@ -56,6 +57,7 @@ export const SETTINGS = [
 
   { key: 'ELEVENLABS_API_KEY', label: 'ElevenLabs API key', group: 'Voice', secret: true, placeholder: 'sk_…', help: 'elevenlabs.io → Developers → API keys. Needs ElevenAgents (Conversational AI) write access. Powers the outbound confirmation calls.' },
   { key: 'ELEVENLABS_AGENT_ID', label: 'ElevenLabs agent ID', group: 'Voice', help: 'Filled in automatically when you press “Create / update agent in ElevenLabs” on the Voice tab.' },
+  { key: 'ELEVENLABS_INBOUND_AGENT_ID', label: 'ElevenLabs callback agent ID', group: 'Voice', help: 'Answers people who ring the number back. Filled in automatically by “Create / update agents”.' },
   { key: 'ELEVENLABS_PHONE_NUMBER_ID', label: 'ElevenLabs phone number ID', group: 'Voice', help: 'The Twilio/SIP number you imported in ElevenLabs → Phone numbers. Picked automatically if you only have one.' },
   { key: 'ELEVENLABS_VOICE_ID', label: 'ElevenLabs voice ID', group: 'Voice', help: 'Optional. Leave blank for the default voice.' },
   { key: 'ELEVENLABS_LLM', label: 'ElevenLabs agent LLM', group: 'Voice', help: 'Optional, e.g. claude-sonnet-4 or gpt-4o. Leave blank for the ElevenLabs default.' },

@@ -394,6 +394,274 @@ export const TEMPLATES: Record<string, Template> = {
     ps: waLine(c, 'Can’t find the link? Message me on WhatsApp'),
   }),
 
+  // ── Pre-call barrage: 6 a day between booking and the call, one pain point each ──
+  // Short, from Josh, plain text. Each ends with the pre-call video or a reply ask.
+  pc_ceiling: (c) => ({
+    subject: 'the ceiling nobody talks about',
+    preheader: 'Organic growth has a speed limit. Acquisitions don’t.',
+    body: [
+      `${c.name},`,
+      'Most owners at $1M+ hit the same wall. You’re growing, but slowly. Every new dollar costs another hire, another campaign, another month of your time.',
+      'That isn’t a you problem. Organic growth has a speed limit, and it’s set by how fast you can sell, hire and deliver.',
+      'An acquisition skips the queue. You buy revenue, customers and a trained team that already exist, on day one.',
+      'That’s what we’ll map out on your call.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+    ps: 'Hit reply and tell me your revenue last year. Rough is fine. It helps me prep.',
+  }),
+  pc_bank: (c) => ({
+    subject: 'banks don’t reject buyers',
+    preheader: 'They reject structures.',
+    body: [
+      `${c.name}, quick one.`,
+      'If you’ve ever asked a bank to fund an acquisition and got a polite no, here’s what actually happened.',
+      'The bank didn’t reject you. It rejected the structure: too much senior debt on too little cash flow, no seller skin in the game, nothing left for working capital.',
+      'Fix the structure and the same bank says yes. We build the structure first, then take it to the lender.',
+    ],
+    cta: { label: 'See how the structure works →', href: c.link('/breakout') },
+  }),
+  pc_own_cash: (c) => ({
+    subject: 'why your own cash is the expensive way',
+    preheader: 'Over-financed means the stack covers more than the price.',
+    body: [
+      `${c.name},`,
+      'Most owners assume buying a business means writing a big cheque. Usually it’s their savings, or cash pulled out of the business they already own.',
+      'That’s the most expensive money you have. It slows your current business down and leaves you exposed if the deal wobbles.',
+      'We do it differently. Seller finance plus senior debt covers more than the purchase price. The extra goes into working capital and closing costs. None of your cash goes in.',
+      'We call that over-financed, and we’ll show you how it applies to your situation on the call.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_no_time: (c) => ({
+    subject: '“I don’t have time to run another business”',
+    preheader: 'You’re not buying a job. You’re buying a team.',
+    body: [
+      `${c.name},`,
+      'This is the objection I hear most, and it makes sense. You’re already flat out.',
+      'Here’s the thing: you’re not buying a second job. You’re buying a business that already runs, with staff who already do the work. Part of the deal is making sure the right people stay.',
+      'The deal itself takes a few focused hours a week. My team handles the heavy lifting with you.',
+    ],
+    ps: 'On the call, tell us honestly how many hours a week you have. We’ll plan around that number.',
+  }),
+  pc_brokers: (c) => ({
+    subject: 'the listings are the leftovers',
+    preheader: 'By the time it’s on a broker site, you’re in an auction.',
+    body: [
+      `${c.name},`,
+      'When a business hits a broker listing, every buyer in the country sees it at once. The price goes up and the terms get worse. You end up competing with buyers who have deeper pockets.',
+      'The best deals never get listed. They come from talking to owners in your market who are thinking about stepping back and haven’t told anyone yet.',
+      'Off-market is where you get seller finance, fair prices and time to do it properly. We’ll talk about who those owners might be in your space.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_seller: (c) => ({
+    subject: 'why would a seller finance you?',
+    preheader: 'Because price is rarely what they care about most.',
+    body: [
+      `${c.name},`,
+      'Fair question. Why would an owner let you pay them over time instead of all up front?',
+      'Because most retiring owners care about three things more than squeezing the last dollar:',
+      '• Their staff and customers are looked after.<br>• The business keeps their name and reputation intact.<br>• They get paid reliably, often with a better tax outcome than a lump sum.',
+      'An owner-operator in the same industry is the buyer who gives them all three. That’s you.',
+    ],
+    ps: 'We’ll go through how to open that conversation with a seller on your call.',
+  }),
+  pc_dscr: (c) => ({
+    subject: 'what if the debt sinks me?',
+    preheader: '1.5x is the line.',
+    body: [
+      `${c.name},`,
+      'Being scared of debt is healthy. Too much of it is how good businesses die.',
+      'So every deal we structure has to pass one test: a debt service coverage ratio of about 1.5. The acquired business earns roughly $1.50 for every $1 of loan repayments.',
+      'If the numbers don’t clear that line, we don’t do the deal. Simple.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_consolidate: (c) => ({
+    subject: 'someone is buying your competitors',
+    preheader: 'Consolidate or be consolidated.',
+    body: [
+      `${c.name},`,
+      'Private equity and well-funded roll-ups are buying up small businesses in almost every industry. Yours is probably no exception.',
+      'Every competitor they buy gets bigger, gets better terms with suppliers and gets better at winning your customers.',
+      'You can watch that happen, or you can be the one doing the buying in your own market, where you know the customers, the staff and the numbers better than any fund does.',
+    ],
+    ps: 'Make a list of 3 businesses in your market you’d love to own and bring it to the call.',
+  }),
+  pc_multiple: (c) => ({
+    subject: 'bigger businesses sell for more per dollar',
+    preheader: 'The quiet maths behind roll-ups.',
+    body: [
+      `${c.name},`,
+      'Here’s something most owners never get told.',
+      'Small businesses usually sell for a lower multiple of profit than bigger ones. Buyers pay a premium for size, systems and less dependence on one owner.',
+      'So when you combine two businesses, you’re not only adding profit. You can also move the whole thing into a higher valuation bracket.',
+      'Nothing is guaranteed and every market is different. But this is why acquisitions build wealth faster than growing one business organically.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_in_not_on: (c) => ({
+    subject: 'you are the bottleneck (said with love)',
+    preheader: 'Buying a business can buy you management depth.',
+    body: [
+      `${c.name},`,
+      'If the business slows down every time you take a week off, you don’t own a business yet. You own a very demanding job.',
+      'One of the most underrated parts of an acquisition is what comes with it: managers, systems and people who already know how to run things without you.',
+      'Done right, the second business makes the first one less dependent on you, not more.',
+    ],
+    ps: 'Reply and tell me: if you took 4 weeks off tomorrow, what would break first?',
+  }),
+  pc_fell_over: (c) => ({
+    subject: 'if a deal has fallen over on you before',
+    preheader: 'It almost always comes back to one thing.',
+    body: [
+      `${c.name},`,
+      'Maybe you’ve looked at buying a business before and it went nowhere. The bank stalled, the seller went cold, or the numbers fell apart in due diligence.',
+      'When we look back at deals like that, it almost always comes down to structure. It wasn’t built to be fundable from day one.',
+      'We start with the structure, so the lender, the seller and you all say yes to the same deal.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_lemon: (c) => ({
+    subject: 'how not to buy a lemon',
+    preheader: 'Due diligence is boring. It’s also the whole game.',
+    body: [
+      `${c.name},`,
+      'The fear of buying a business that looks great on paper and falls apart after settlement is real.',
+      'That’s why due diligence matters more than negotiation. We check whether the revenue is real, whether the customers stay, whether the key staff stay, and what the debt looks like.',
+      'You get a checklist and a team that has seen the traps before, so you’re not finding them for the first time with your own money on the line.',
+    ],
+    ps: 'On the call, ask us what the three biggest red flags are. It’s a good test of anyone advising you.',
+  }),
+  pc_partner: (c) => ({
+    subject: 'bring your partner to the call',
+    preheader: 'Big decisions shouldn’t be made alone.',
+    body: [
+      `${c.name},`,
+      'If there’s a business partner, co-owner or spouse who’d be part of a decision like this, bring them to the call.',
+      'It’s far better for them to hear it first-hand and ask their own questions than to get a second-hand summary from you that evening.',
+      'Just forward them the calendar invite. It’s a video call, so they can join from anywhere.',
+    ],
+  }),
+  pc_next_year: (c) => ({
+    subject: '“maybe next year”',
+    preheader: 'The 90-day window exists for a reason.',
+    body: [
+      `${c.name},`,
+      '“Next year” is the most expensive phrase in business. It’s what most owners say about the acquisition they never make.',
+      'That’s why we work to a 90-day goal: a signed LOI within 90 days. A deadline forces decisions, conversations with sellers and real numbers.',
+      'Your call is the first step in that window.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_guarantee: (c) => ({
+    subject: 'the 7-day rule',
+    preheader: 'Here’s how the risk works if you go ahead.',
+    body: [
+      `${c.name},`,
+      'You’ll hear about this on the call, but I want you to know it now so it isn’t in the back of your mind.',
+      'If you decide to work with us and in the first 7 days it isn’t for you, you get a full refund. No conditions.',
+      'I’d rather you make the decision with nothing to lose than talk yourself out of it from fear.',
+    ],
+  }),
+  pc_done_with: (c) => ({
+    subject: 'why we don’t do it for you',
+    preheader: 'You keep control. You keep the upside.',
+    body: [
+      `${c.name},`,
+      'People sometimes ask why we don’t just find the deal and hand it over.',
+      'Because you are the buyer. You know your market. You’ll be the one the seller trusts, and you’ll be the one running the business afterwards. If someone else does it for you, you don’t learn how, and they take a bigger slice of the upside.',
+      'So it’s done with you. You run the deal, and we give you the system, the structures, the lender introductions and a seat beside you in the key seller conversations.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_josh: (c) => ({
+    subject: 'how I bought my first two',
+    preheader: '100% seller finance, both times.',
+    body: [
+      `${c.name},`,
+      'Quick bit of background before we talk.',
+      'I founded JC Health Group. When I wanted to grow faster than organic growth allowed, I bought businesses instead. Two of them, both with 100% seller finance.',
+      'I didn’t have a fund or a family office. What I had was a structure that worked for the seller, the bank and me. That’s what we teach.',
+    ],
+    ps: 'Ask me anything about those deals on the call. Nothing is off limits.',
+  }),
+  pc_cash_trap: (c) => ({
+    subject: 'growth is eating your cash',
+    preheader: 'Organic growth costs cash up front. Acquisitions can bring it with them.',
+    body: [
+      `${c.name},`,
+      'Growing organically is expensive. You hire before the revenue arrives, buy stock before it sells and spend on marketing before it pays back.',
+      'That’s why so many $1M+ businesses feel cash-poor even when they’re growing.',
+      'A well-structured acquisition works the other way round. You take on a business that already produces cash flow, and the over-financing puts working capital in from day one.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_hiring: (c) => ({
+    subject: 'still trying to hire?',
+    preheader: 'Acquisitions come with trained people.',
+    body: [
+      `${c.name},`,
+      'Hiring good people is slow, expensive and a coin flip.',
+      'When you acquire a business, you get a team who already know the work, the customers and each other. Often the hardest part of growth arrives already solved.',
+      'Keeping them is part of how we structure and plan the handover.',
+    ],
+  }),
+  pc_two_paths: (c) => ({
+    subject: 'two ways to do this',
+    preheader: 'The hard way and the proven way.',
+    body: [
+      `${c.name},`,
+      'There are two ways to make your first acquisition.',
+      'The hard way: you figure it out alone. You find out what lenders want by getting rejected, learn negotiation from sellers who’ve done it before, and discover the due-diligence traps the expensive way. It can take years, if it happens at all.',
+      'The proven way: someone who has already made those mistakes shows you the path, beside you, while you do it.',
+      'Your call is where you decide which one you’re taking.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_if_you_could: (c) => ({
+    subject: 'honest question',
+    preheader: 'If it were easy, you’d have done it already.',
+    body: [
+      `${c.name}, honest question.`,
+      'If you could buy a business with no money down on your own, wouldn’t you have done it already?',
+      'That isn’t a criticism. It’s just that the gap is rarely ambition. It’s knowing what lenders will fund, how to approach sellers off-market, and how to structure it so everyone says yes.',
+      'That gap is exactly what we close on the call.',
+    ],
+  }),
+  pc_cost: (c) => ({
+    subject: 'what waiting costs',
+    preheader: 'Every year of organic-only growth has a price.',
+    body: [
+      `${c.name},`,
+      'Let’s talk about the cost of not doing this.',
+      'It’s another year of growing one slow step at a time. It’s watching a competitor buy the business you should have bought. It’s staying the bottleneck in your own company.',
+      'The call costs you 30 minutes. The status quo costs a lot more, it just doesn’t send an invoice.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_agenda: (c) => ({
+    subject: 'exactly what happens on the call',
+    preheader: 'No mystery, no hard sell.',
+    body: [
+      `${c.name}, here’s how the call works${c.callTime ? ` (${c.callTime})` : ''}:`,
+      '1. We look at your business: revenue, profit, team and goals.<br>2. We talk about what an acquisition could look like in your market.<br>3. We sketch the structure: seller finance, senior debt and the DSCR test.<br>4. If it’s a fit, we explain how we work together. If it isn’t, we’ll tell you straight.',
+      'You’ll leave with a clear picture either way.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_questions: (c) => ({
+    subject: 'what’s your #1 question?',
+    preheader: 'Send it now and we’ll come prepared.',
+    body: [
+      `${c.name},`,
+      'Before we talk, what’s the one question you most want answered?',
+      'Is it the financing? Whether your industry works? Whether you have the time? What it costs?',
+      'Hit reply and tell me. We’ll make sure it’s answered on the call.',
+    ],
+    ps: waLine(c, 'Or send it on WhatsApp'),
+  }),
+
   // ── No-show: reschedule ────────────────────────────────────────────
   noshow_1: (c) => ({
     subject: `${c.name}, missed you just now`,

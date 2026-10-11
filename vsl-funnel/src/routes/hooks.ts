@@ -3,7 +3,8 @@ import { type AppEnv, runtimeFrom } from '../app';
 import { handleCalendly, handleGenericBooking, verifyCalendly } from '../integrations/booking';
 import { handleInbound, verifyMetaSignature } from '../integrations/whatsapp';
 import { type VapiMessage, handleVapi, verifyVapi } from '../integrations/voice';
-import { handleElevenWebhook, verifyElevenSignature } from '../integrations/elevenlabs';
+import { type Conversation, handleElevenWebhook, verifyElevenSignature } from '../integrations/elevenlabs';
+import { finishInbound, initiationData } from '../integrations/elevenlabs-inbound';
 import { hmacHex, safeEqual } from '../lib/crypto';
 
 /** Inbound webhooks from Calendly, Cal.com / CRMs, the WhatsApp Cloud API, Vapi and ElevenLabs (voice). All verified. */
@@ -79,6 +80,15 @@ hooks.post('/elevenlabs', async (c) => {
   } catch {
     return c.json({ error: 'invalid json' }, 400);
   }
-  await handleElevenWebhook(rt, body);
+  const inboundAgent = rt.settings.ELEVENLABS_INBOUND_AGENT_ID;
+  if (inboundAgent && body.type === 'post_call_transcription' && body.data?.agent_id === inboundAgent) await finishInbound(rt, { ...(body.data as unknown as Conversation), status: 'done' });
+  else await handleElevenWebhook(rt, body);
   return c.text('ok');
+});
+
+// ElevenLabs asks who's calling as an inbound call rings (caller ID → lead), to personalise the callback agent.
+hooks.post('/elevenlabs/init', async (c) => {
+  const body = await c.req.json<{ caller_id?: string; agent_id?: string }>().catch(() => ({}));
+  const data = await initiationData(runtimeFrom(c), c.req.header('x-funnel-secret'), body);
+  return data ? c.json(data) : c.json({ error: 'unauthorised' }, 401);
 });

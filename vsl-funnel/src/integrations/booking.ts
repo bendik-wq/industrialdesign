@@ -2,7 +2,7 @@ import type { Runtime } from '../app';
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { type Lead, getLead, getLeadByEmail, updateLead } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
-import { cancelSequence, enqueueSequence, formatCallTime } from './email';
+import { cancelSequence, enqueuePrecall, enqueueSequence, formatCallTime } from './email';
 import { AI_CALLER } from '../config';
 import { cancelCalls, queueCall } from './elevenlabs';
 import { notifySlack } from './notify';
@@ -46,7 +46,10 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
     rt.waitUntil(notifySlack(rt, fresh, '📅 Call booked', fresh.call_at ? [`Call: ${formatCallTime(fresh.call_at, rt.settings.SALES_TIMEZONE || 'Australia/Sydney')}`] : [], 'booked'));
   }
   // (Re)schedule the confirmation + reminders whenever we learn a new call time.
-  if (!sameBooking || callChanged) await enqueueSequence(rt, fresh, 'booked');
+  if (!sameBooking || callChanged) {
+    await enqueueSequence(rt, fresh, 'booked');
+    await enqueuePrecall(rt, fresh);
+  }
   return fresh;
 }
 
@@ -54,6 +57,7 @@ export async function markCancelled(rt: Runtime, lead: Lead, provider: string) {
   if (lead.booking_cancelled_at) return;
   await updateLead(rt.env, lead.id, { booking_cancelled_at: Date.now(), status: lead.status === 'booked' ? 'applied' : lead.status });
   await cancelSequence(rt, lead.id, 'booked');
+  await cancelSequence(rt, lead.id, 'precall');
   await cancelCalls(rt, lead.id, ['confirm']);
   await track(rt, await identityFromLead(rt.env, lead.id), { name: 'booking_cancelled', source: 'webhook', props: { provider } });
   rt.waitUntil(notifySlack(rt, lead, '🚫 Call cancelled', [], 'cancelled'));

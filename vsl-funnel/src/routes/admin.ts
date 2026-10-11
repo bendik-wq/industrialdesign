@@ -8,6 +8,7 @@ import { emailConfigured, sendViaResend } from '../integrations/email';
 import { SEQUENCES } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
+import { provisionInbound } from '../integrations/elevenlabs-inbound';
 import { type OutboundCall, dial, elevenConfigured, listPhoneNumbers, provisionAgent } from '../integrations/elevenlabs';
 import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
 import { validateEmail } from '../funnel/leads';
@@ -411,6 +412,8 @@ admin.get('/voice/elevenlabs', async (c) => {
   return c.json({
     apiKey: Boolean(s.ELEVENLABS_API_KEY),
     agentId: s.ELEVENLABS_AGENT_ID || null,
+    inboundAgentId: s.ELEVENLABS_INBOUND_AGENT_ID || null,
+    inboundAssigned: Boolean(s.ELEVENLABS_INBOUND_AGENT_ID && phoneNumbers.some((p) => p.phone_number_id === (s.ELEVENLABS_PHONE_NUMBER_ID || phoneNumbers[0]?.phone_number_id) && (p as { assigned_agent?: { agent_id?: string } | null }).assigned_agent?.agent_id === s.ELEVENLABS_INBOUND_AGENT_ID)),
     phoneNumberId: s.ELEVENLABS_PHONE_NUMBER_ID || (phoneNumbers.length === 1 ? phoneNumbers[0].phone_number_id : null),
     phoneNumbers,
     phoneError,
@@ -425,9 +428,12 @@ admin.get('/voice/elevenlabs', async (c) => {
 
 admin.post('/voice/elevenlabs/provision', async (c) => {
   try {
-    const { id, created } = await provisionAgent(runtimeFrom(c));
+    const rt = runtimeFrom(c);
+    const { id, created } = await provisionAgent(rt);
     await saveSettings(c.env, { ELEVENLABS_AGENT_ID: id });
-    return c.json({ ok: true, id, created });
+    const inbound = await provisionInbound(rt);
+    await saveSettings(c.env, { ELEVENLABS_INBOUND_AGENT_ID: inbound.id });
+    return c.json({ ok: true, id, created, inbound });
   } catch (err) {
     return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 600) }, 400);
   }

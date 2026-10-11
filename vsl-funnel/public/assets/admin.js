@@ -714,10 +714,11 @@
       '<span class="pill' + (e.ready ? ' ok' : '') + '">' + (e.ready ? 'live' : 'not set up') + '</span></div>' +
       '<ol class="setup">' +
       step(e.apiKey, '1. API key', e.apiKey ? 'Connected.' : 'Paste it under <a href="#integrations" data-go="integrations">Integrations → Voice → ElevenLabs API key</a> (elevenlabs.io → Developers → API keys).') +
-      step(!!e.agentId, '2. Agent', (e.agentId ? 'Agent <span class="mono">' + esc(e.agentId) + '</span>. ' : '') + '<button class="btn-sm' + (e.agentId ? ' ghost' : '') + '" data-el-provision' + (e.apiKey ? '' : ' disabled') + '>' + (e.agentId ? 'Update agent in ElevenLabs' : 'Create agent in ElevenLabs') + '</button>') +
+      step(!!e.agentId, '2. Agent', (e.agentId ? 'Agent <span class="mono">' + esc(e.agentId) + '</span>. ' : '') + '<button class="btn-sm' + (e.agentId ? ' ghost' : '') + '" data-el-provision' + (e.apiKey ? '' : ' disabled') + '>' + (e.agentId ? 'Update agents in ElevenLabs' : 'Create agents in ElevenLabs') + '</button>') +
       step(!!e.phoneNumberId, '3. Phone number', phones.length ? '<select class="input" data-el-phone><option value="">Pick the number to call from…</option>' + phones.map(function (p) { return '<option value="' + esc(p.phone_number_id) + '"' + (p.phone_number_id === e.phoneNumberId ? ' selected' : '') + '>' + esc(p.phone_number + (p.label ? ' · ' + p.label : '') + ' (' + p.provider + ')') + '</option>'; }).join('') + '</select>' :
         (e.phoneError ? esc(e.phoneError) : 'In ElevenLabs → Phone numbers, import a Twilio number (or SIP trunk). It shows up here.')) +
-      step(e.webhook.secret, '4. Post-call webhook (optional, faster results)', 'ElevenLabs → Agents → Settings → Post-call webhook → URL <span class="mono">' + esc(e.webhook.url) + '</span>, then paste its secret under Integrations → Voice. Without it results are fetched every 5 minutes.') +
+      step(e.inboundAssigned, '4. Callbacks (inbound)', e.inboundAgentId ? (e.inboundAssigned ? 'Callback agent <span class="mono">' + esc(e.inboundAgentId) + '</span> answers anyone who rings the number back, looks them up by caller ID, and logs the outcome.' : 'Callback agent created but not on the number yet. Pick the number, then press “Update agents”.') : 'Press “Create agents” to also answer people who ring the number back.') +
+      step(e.webhook.secret, '5. Post-call webhook (optional, faster results)', 'ElevenLabs → Agents → Settings → Post-call webhook → URL <span class="mono">' + esc(e.webhook.url) + '</span>, then paste its secret under Integrations → Voice. Without it results are fetched every 5 minutes.') +
       '</ol>' +
       '<div class="row" style="margin-top:12px"><input class="input" data-el-to placeholder="Your mobile, e.g. +61412345678" style="flex:1;min-width:200px"><select class="input" data-el-kind><option value="confirm">Confirmation script</option><option value="speed_to_lead">Speed-to-lead script</option></select><button class="btn-sm" data-el-test' + (e.ready ? '' : ' disabled') + '>Call me (test)</button></div>' +
       '<p class="muted" style="margin-top:8px">Confirmation calls: <b>' + (e.confirm ? 'on' : 'off') + '</b> · Speed-to-lead: <b>' + (e.speedToLead ? 'on' : 'off') + '</b> (toggle under Integrations → Voice) · ' + n(e.stats && e.stats.consented) + ' leads have consented to calls.</p></div>' +
@@ -742,7 +743,7 @@
         (d.calls.length ? table([
           { label: 'When', html: function (v) { return esc(when(v.created_at)); } },
           { label: 'Who', html: function (v) { return v.lead_id ? '<a href="#lead=' + esc(v.lead_id) + '" data-open="' + esc(v.lead_id) + '">' + esc([v.first_name, v.last_name].filter(Boolean).join(' ') || 'lead') + '</a>' + (v.tier ? ' <span class="tier ' + esc(v.tier) + '">' + esc(v.tier) + '</span>' : '') : '<span class="muted">' + esc(v.from_number || 'unknown') + '</span>'; } },
-          { label: 'Type', html: function (v) { return esc({ ai_confirm: 'Outbound · confirm', ai_speed_to_lead: 'Outbound · speed-to-lead', phone: 'Inbound phone', web: 'Browser' }[v.kind] || v.kind); } },
+          { label: 'Type', html: function (v) { return esc({ ai_confirm: 'Outbound · confirm', ai_speed_to_lead: 'Outbound · speed-to-lead', ai_callback: 'Callback (inbound)', phone: 'Inbound phone', web: 'Browser' }[v.kind] || v.kind); } },
           { label: 'Length', html: function (v) { return esc(v.duration_s ? secs(v.duration_s) : v.status); } },
           { label: 'Summary', html: function (v) { return esc((v.summary || '').slice(0, 180)); } },
           { label: 'Rec.', html: function (v) { return v.recording_url ? '<a href="' + esc(v.recording_url) + '" target="_blank" rel="noopener">▶</a>' : ''; } },
@@ -750,7 +751,7 @@
       view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
       view.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); go(a.getAttribute('data-go')); }; });
       var pv = view.querySelector('[data-el-provision]');
-      if (pv) pv.onclick = function () { pv.disabled = true; pv.textContent = 'Working…'; send('POST', 'voice/elevenlabs/provision', {}).then(function (r) { toast(r.ok ? (r.created ? 'Agent created in ElevenLabs' : 'Agent updated') : (r.error || 'Failed')); load(); }); };
+      if (pv) pv.onclick = function () { pv.disabled = true; pv.textContent = 'Working…'; send('POST', 'voice/elevenlabs/provision', {}).then(function (r) { toast(r.ok ? ((r.created ? 'Agents created' : 'Agents updated') + (r.inbound && r.inbound.notes && r.inbound.notes.length ? ' — ' + r.inbound.notes.join(' ') : '')) : (r.error || 'Failed')); load(); }); };
       var ph = view.querySelector('[data-el-phone]');
       if (ph) ph.onchange = function () { send('POST', 'voice/elevenlabs/phone', { id: ph.value }).then(function () { toast('Saved'); load(); }); };
       var tb = view.querySelector('[data-el-test]');

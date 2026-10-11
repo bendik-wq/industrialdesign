@@ -45,7 +45,7 @@ export interface OutboundCall {
 export const elevenConfigured = (s: Settings) => Boolean(s.ELEVENLABS_API_KEY && s.ELEVENLABS_AGENT_ID && s.ELEVENLABS_PHONE_NUMBER_ID);
 const enabled = (v: string) => v.trim().toLowerCase() !== 'false';
 
-async function el<T>(s: Settings, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function el<T>(s: Settings, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     method: init.method ?? 'GET',
     headers: { 'xi-api-key': s.ELEVENLABS_API_KEY, 'content-type': 'application/json' },
@@ -105,22 +105,20 @@ export function buildAgent(s: Settings) {
 const VAR_KEYS = ['first_name', 'opening', 'call_kind', 'call_time', 'closer_name', 'business', 'tier', 'email', 'lead_ref'] as const;
 const placeholderVars = () => Object.fromEntries(VAR_KEYS.map((k) => [k, k === 'opening' ? 'Have you got a minute?' : ''])) as Record<(typeof VAR_KEYS)[number], string>;
 
-/** Creates the agent in ElevenLabs, or updates the one already saved. Returns its id. */
-export async function provisionAgent(rt: Runtime): Promise<{ id: string; created: boolean }> {
-  const s = rt.settings;
-  if (!s.ELEVENLABS_API_KEY) throw new Error('Add your ElevenLabs API key under Integrations → Voice first.');
-  const body = buildAgent(s);
+/** Creates an agent in ElevenLabs, or updates the one already saved under `existingId`. */
+export async function upsertAgent(s: Settings, body: Record<string, unknown>, existingId: string): Promise<{ id: string; created: boolean }> {
   // Older/newer API versions differ on a few optional fields; fall back to the bare agent if they're rejected.
-  const lean = (b: ReturnType<typeof buildAgent>) => {
-    const c = structuredClone(b) as unknown as { conversation_config: { agent: { prompt: Record<string, unknown> } & Record<string, unknown> }; platform_settings: Record<string, unknown> };
+  const lean = (b: Record<string, unknown>) => {
+    const c = structuredClone(b) as { conversation_config: { agent: { prompt: Record<string, unknown> } & Record<string, unknown> }; platform_settings: Record<string, unknown> };
     delete c.conversation_config.agent.prompt.built_in_tools;
     delete c.conversation_config.agent.dynamic_variables;
     delete c.platform_settings.evaluation;
+    delete c.platform_settings.overrides;
     return c;
   };
   const send = async (b: unknown) =>
-    s.ELEVENLABS_AGENT_ID
-      ? (await el<{ agent_id?: string }>(s, `/v1/convai/agents/${encodeURIComponent(s.ELEVENLABS_AGENT_ID)}`, { method: 'PATCH', body: b }), { id: s.ELEVENLABS_AGENT_ID, created: false })
+    existingId
+      ? (await el<{ agent_id?: string }>(s, `/v1/convai/agents/${encodeURIComponent(existingId)}`, { method: 'PATCH', body: b }), { id: existingId, created: false })
       : { id: (await el<{ agent_id: string }>(s, '/v1/convai/agents/create', { method: 'POST', body: b })).agent_id, created: true };
   try {
     return await send(body);
@@ -128,6 +126,13 @@ export async function provisionAgent(rt: Runtime): Promise<{ id: string; created
     if (e instanceof ElevenError && e.status === 422) return send(lean(body));
     throw e;
   }
+}
+
+/** Creates/updates the outbound agent. Returns its id. */
+export async function provisionAgent(rt: Runtime): Promise<{ id: string; created: boolean }> {
+  const s = rt.settings;
+  if (!s.ELEVENLABS_API_KEY) throw new Error('Add your ElevenLabs API key under Integrations → Voice first.');
+  return upsertAgent(s, buildAgent(s) as unknown as Record<string, unknown>, s.ELEVENLABS_AGENT_ID);
 }
 
 export interface PhoneNumber { phone_number: string; label: string | null; phone_number_id: string; provider: string }
@@ -320,20 +325,21 @@ async function retryOrFail(rt: Runtime, call: OutboundCall, lead: Lead, status: 
 
 // ───────────── results ─────────────
 
-interface Conversation {
+export interface Conversation {
   conversation_id: string;
   agent_id?: string;
   status: 'initiated' | 'in-progress' | 'processing' | 'done' | 'failed' | string;
   transcript?: { role: string; message: string | null; time_in_call_secs?: number }[];
-  metadata?: { call_duration_secs?: number; termination_reason?: string; start_time_unix_secs?: number; cost?: number };
+  metadata?: { call_duration_secs?: number; termination_reason?: string; start_time_unix_secs?: number; cost?: number; phone_call?: { external_number?: string; direction?: string } | null };
+  conversation_initiation_client_data?: { dynamic_variables?: Record<string, unknown> } | null;
   analysis?: { call_successful?: string; transcript_summary?: string; data_collection_results?: Record<string, { value: unknown }> };
 }
 
 export type CallFacts = { [K in keyof typeof DATA_COLLECTION]?: (typeof DATA_COLLECTION)[K]['type'] extends 'boolean' ? boolean : string };
 
-export function factsFrom(conv: Pick<Conversation, 'analysis'>): CallFacts {
+export function factsFrom(conv: Pick<Conversation, 'analysis'>, schema: Record<string, { type: string }> = DATA_COLLECTION): CallFacts {
   const out: Record<string, unknown> = {};
-  for (const [k, def] of Object.entries(DATA_COLLECTION)) {
+  for (const [k, def] of Object.entries(schema)) {
     const v = conv.analysis?.data_collection_results?.[k]?.value;
     if (v == null || v === '') continue;
     out[k] = def.type === 'boolean' ? v === true || v === 'true' : String(v).slice(0, 500);
@@ -341,7 +347,7 @@ export function factsFrom(conv: Pick<Conversation, 'analysis'>): CallFacts {
   return out as CallFacts;
 }
 
-const transcriptText = (t: Conversation['transcript']) => (t ?? []).filter((x) => x.message).map((x) => `${x.role === 'agent' ? 'AI' : 'Lead'}: ${x.message}`).join('\n');
+export const transcriptText = (t: Conversation['transcript']) => (t ?? []).filter((x) => x.message).map((x) => `${x.role === 'agent' ? 'AI' : 'Lead'}: ${x.message}`).join('\n');
 
 /** Records a finished call and acts on it. Idempotent per conversation. */
 export async function finishCall(rt: Runtime, conv: Conversation, failureReason?: string) {

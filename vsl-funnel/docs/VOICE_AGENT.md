@@ -67,3 +67,9 @@ When calls are placed:
 Outcomes (confirmed, reschedule, wants the booking link, do-not-call, notes for the closer) go to the lead, the Voice tab and Slack/Discord. Reschedule and booking-link requests are emailed the link automatically.
 
 The script lives in `outboundSystemPrompt` in `src/config.ts`. After changing it, press **Update agent in ElevenLabs**.
+
+## Callbacks (inbound on the ElevenLabs number)
+"Create / update agents" sets up a second agent, **callbacks (inbound)**, and assigns it to the phone number, so anyone who rings back gets an answer.
+
+- **Caller look-up:** it points the workspace's conversation-initiation webhook at `/hooks/elevenlabs/init`. As the phone rings, we look the caller up by number and fill in their name, booking time and closer. This is authenticated by the `x-funnel-secret` header.
+- **After the call:** the result lands on the lead, in Voice and in Slack/Discord. That covers confirmations, rebooking or booking links (emailed), do-not-contact requests and "call me back" requests. It arrives via the post-call webhook, or the cron fetches it within 5 minutes.

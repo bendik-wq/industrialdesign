@@ -7,7 +7,7 @@ import { type Lead, getLead } from '../funnel/leads';
 import { bookingUrlFor } from '../funnel/routing';
 import { effectiveTier } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
-import { SEQUENCES, type SequenceId } from './sequences';
+import { PRECALL_SLOTS, PRECALL_TEMPLATES, SEQUENCES, type SequenceId } from './sequences';
 import { TEMPLATES, renderEmail } from './templates';
 import { whatsappLink } from './whatsapp';
 
@@ -34,6 +34,74 @@ export async function enqueueSequence(rt: Runtime, lead: Pick<Lead, 'id' | 'emai
     ];
   });
   if (stmts.length) await rt.env.DB.batch(stmts);
+}
+
+/** Epoch ms for a wall-clock time in a time zone. */
+export function zonedTime(y: number, m: number, d: number, hours: number, tz: string) {
+  const guess = Date.UTC(y, m - 1, d, Math.floor(hours), Math.round((hours % 1) * 60));
+  const offset = (t: number) => {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(t);
+    const g = (k: string) => Number(p.find((x) => x.type === k)!.value);
+    return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute')) - Math.floor(t / 60_000) * 60_000;
+  };
+  const first = guess - offset(guess);
+  return guess - offset(first); // second pass handles DST edges
+}
+
+/**
+ * Pre-call barrage: up to PRECALL_EMAILS_PER_DAY emails a day (default 6) at
+ * local-time slots, from ~90 minutes after booking until 3 hours before the
+ * call (or 4 days when the call time isn't known yet). Re-run whenever the
+ * call time changes; it reschedules the unsent ones.
+ */
+export function precallTimes(now: number, callAt: number | null, tz: string, perDay: number, max = PRECALL_TEMPLATES.length) {
+  if (perDay <= 0) return [];
+  const n = Math.min(PRECALL_SLOTS.length, Math.round(perDay));
+  const slots = n === 1 ? [PRECALL_SLOTS[2]] : Array.from({ length: n }, (_, i) => PRECALL_SLOTS[Math.round((i * (PRECALL_SLOTS.length - 1)) / (n - 1))]);
+  const start = now + 90 * 60_000;
+  const end = callAt ? callAt - 3 * 3_600_000 : now + 4 * 86_400_000;
+  // Keep clear of the call reminders so two emails don't land together.
+  const reminders = callAt ? [callAt - 48 * 3_600_000, callAt - 24 * 3_600_000] : [];
+  const out: number[] = [];
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(now);
+  } catch {
+    return precallTimes(now, callAt, 'UTC', perDay, max);
+  }
+  const g = (k: string) => Number(parts.find((x) => x.type === k)!.value);
+  for (let day = 0; day < 15 && out.length < max; day++) {
+    const base = new Date(Date.UTC(g('year'), g('month') - 1, g('day') + day));
+    for (const h of slots) {
+      const t = zonedTime(base.getUTCFullYear(), base.getUTCMonth() + 1, base.getUTCDate(), h, tz);
+      if (t < start || t > end) continue;
+      if (reminders.some((r) => Math.abs(r - t) < 45 * 60_000)) continue;
+      out.push(t);
+      if (out.length >= max) break;
+    }
+    if (zonedTime(base.getUTCFullYear(), base.getUTCMonth() + 1, base.getUTCDate(), 0, tz) > end) break;
+  }
+  return out;
+}
+
+export async function enqueuePrecall(rt: Runtime, lead: Lead) {
+  if (!lead.email || lead.unsubscribed_at) return 0;
+  const perDay = rt.settings.PRECALL_EMAILS_PER_DAY.trim() === '' ? 6 : Number(rt.settings.PRECALL_EMAILS_PER_DAY);
+  await cancelSequence(rt, lead.id, 'precall');
+  if (!Number.isFinite(perDay) || perDay <= 0) return 0;
+  const tz = lead.timezone || (await leadTimezone(rt, lead)) || rt.settings.SALES_TIMEZONE || 'UTC';
+  const now = Date.now();
+  const times = precallTimes(now, lead.call_at, tz, perDay);
+  if (!times.length) return 0;
+  await rt.env.DB.batch(times.map((sendAt, i) =>
+    rt.env.DB.prepare(
+      `INSERT INTO emails (id, lead_id, sequence, step, template, to_email, send_at, status, created_at)
+       VALUES (?, ?, 'precall', ?, ?, ?, ?, 'pending', ?)
+       ON CONFLICT(lead_id, sequence, step) DO UPDATE SET send_at = excluded.send_at, status = 'pending', to_email = excluded.to_email, attempts = 0
+         WHERE emails.status IN ('pending', 'cancelled', 'skipped')`,
+    ).bind(newId('m'), lead.id, i, PRECALL_TEMPLATES[i], lead.email, sendAt, now),
+  ));
+  return times.length;
 }
 
 export async function cancelSequence(rt: Runtime, leadId: string, sequenceId: SequenceId) {

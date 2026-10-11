@@ -231,7 +231,7 @@ async function leadForCall(rt: Runtime, m: VapiMessage): Promise<Lead | null> {
   return leadByPhone(rt, callerNumber(m));
 }
 
-async function leadByPhone(rt: Runtime, raw: string | null) {
+export async function leadByPhone(rt: Runtime, raw: string | null) {
   const phone = normalisePhone(raw, null);
   if (!phone) return null;
   return rt.env.DB.prepare('SELECT * FROM leads WHERE phone = ? ORDER BY app_completed_at IS NULL, updated_at DESC LIMIT 1').bind(phone).first<Lead>();

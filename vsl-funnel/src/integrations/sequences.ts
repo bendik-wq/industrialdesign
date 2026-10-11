@@ -21,6 +21,17 @@ export interface Sequence {
   stopIf?: (lead: Lead) => boolean;
 }
 
+/** Pre-call barrage, in send order. The first day hits the biggest pains and the call prep. */
+export const PRECALL_TEMPLATES = [
+  'pc_ceiling', 'pc_own_cash', 'pc_bank', 'pc_no_time', 'pc_partner', 'pc_seller',
+  'pc_josh', 'pc_brokers', 'pc_dscr', 'pc_consolidate', 'pc_guarantee', 'pc_agenda',
+  'pc_multiple', 'pc_in_not_on', 'pc_cash_trap', 'pc_fell_over', 'pc_done_with', 'pc_questions',
+  'pc_lemon', 'pc_hiring', 'pc_two_paths', 'pc_next_year', 'pc_if_you_could', 'pc_cost',
+];
+
+/** Local send times (hours) for the barrage; fewer per day picks evenly from these. */
+export const PRECALL_SLOTS = [7.5, 9.5, 12, 14.5, 17, 19.5];
+
 const booked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
 const completed = (l: Lead) => Boolean(l.app_completed_at);
 
@@ -92,6 +103,13 @@ export const SEQUENCES = {
       { template: 'call_1h', offsetMs: -1 * HOUR, anchor: 'call_at' },
       { template: 'call_10m', offsetMs: -10 * MIN, anchor: 'call_at' },
     ],
+  },
+  precall: {
+    id: 'precall',
+    description: 'Booked — pre-call barrage, up to 6 a day until the call (one pain point each)',
+    stopIf: (l) => !booked(l) || l.status !== 'booked' || Boolean(l.call_at && Date.now() > l.call_at - 2 * HOUR),
+    // Sent at local-time slots by enqueuePrecall(); offsetMs is unused for this sequence.
+    steps: PRECALL_TEMPLATES.map((template) => ({ template, offsetMs: 0 })),
   },
   no_show: {
     id: 'no_show',
