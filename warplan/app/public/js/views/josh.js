@@ -37,7 +37,7 @@ export async function streamReply(threadId, text, bubble, signal) {
   const res = await fetch(`/api/threads/${threadId}/messages`, {
     method: "POST", signal,
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, spoken: !!$("#speakToggle")?.checked }),
   });
   if (res.status === 401) { location.href = "/login"; throw new Error("Signed out"); }
   if (!res.ok || !(res.headers.get("Content-Type") || "").includes("event-stream")) {
@@ -99,6 +99,7 @@ export async function renderJosh(id, seq) {
             <p class="muted small">Trained on Josh Li's own videos and he can see your pipeline. The AI version, not Josh himself; get legal, tax and lending specifics signed off by your advisors.</p></div>
           <div class="chat-actions">
             <label class="switch"><input type="checkbox" id="speakToggle" ${autoSpeak ? "checked" : ""}><span></span>Speak</label>
+            <button class="ghost small" id="voiceBtn" type="button" title="Josh's voice settings">Voice</button>
             ${t ? `<button class="icon-btn" id="threadMenu" type="button" aria-label="Rename or delete" title="Rename or delete">⋯</button>` : ""}
           </div>
         </header>
@@ -115,6 +116,7 @@ export async function renderJosh(id, seq) {
       </section>
     </div>`;
   $("#speakToggle").addEventListener("change", (e) => local.set("speak", e.target.checked));
+  $("#voiceBtn").addEventListener("click", voiceDialog);
   $("#newThread").addEventListener("click", async () => { try { const n = await post("/api/threads", { agent: "josh" }); location.hash = `#/josh/${n.id}`; } catch (e) { fail(e); } });
   let searchT;
   $("#threadSearch").addEventListener("input", (e) => {
@@ -186,4 +188,33 @@ async function threadMenu(t) {
   });
   if (!r) return;
   try { await post(`/api/threads/${t.id}`, { title: r.title }, "PATCH"); toast("Renamed"); window.dispatchEvent(new HashChangeEvent("hashchange")); } catch (e) { fail(e); }
+}
+
+// Tune Josh's voice by ear: model, stability, similarity, style, speed. Preview plays a fixed line with the
+// settings on screen; owners save them for the workspace.
+const PREVIEW = "Hi, my name is Josh, founder of JC Health Group. We're acquiring companies in this area. Have you ever thought about selling? No worries, good luck with those buyers.";
+async function voiceDialog() {
+  let cfg;
+  try { cfg = await api("/api/voice/settings"); } catch (e) { return fail(e); }
+  const v = cfg.voice;
+  const slider = (k, label, min, max, step, hint) => `<label>${label} <output data-out="${k}">${v[k]}</output><input type="range" name="${k}" min="${min}" max="${max}" step="${step}" value="${v[k]}"><small class="muted">${hint}</small></label>`;
+  const owner = session.me?.isOwner;
+  const f = await dialog({
+    title: "Josh's voice", submit: owner ? "Save for the workspace" : "", html: `
+      <label>Model<select name="model">${Object.entries(cfg.models).map(([k, l]) => `<option value="${k}" ${k === v.model ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
+      ${slider("similarity", "Similarity to Josh", 0, 1, 0.05, "Higher sounds more like the clone; too high can copy noise from the training audio.")}
+      ${slider("stability", "Stability", 0, 1, 0.05, "Lower is more expressive and natural; higher is steadier but flatter.")}
+      ${slider("style", "Style", 0, 1, 0.05, "Exaggerates the speaker's style. Keep it low.")}
+      ${slider("speed", "Speed", 0.7, 1.2, 0.05, "1.0 is natural pace.")}
+      <p><button class="ghost" type="button" id="previewVoice">▶ Preview</button> <button class="link" type="button" id="resetVoice">Reset to defaults</button></p>
+      <p class="muted small">The biggest jump in likeness comes from the clone itself: a Professional Voice Clone trained on 30+ minutes of clean audio of Josh (with his consent) in ElevenLabs, with its voice ID under Settings → Integrations.</p>`,
+    onOpen: (d) => {
+      const read = () => Object.fromEntries(new FormData($("form", d)).entries());
+      $$("input[type=range]", d).forEach((r) => r.addEventListener("input", () => { $(`[data-out="${r.name}"]`, d).textContent = r.value; }));
+      $("#previewVoice", d).addEventListener("click", (e) => play(PREVIEW, "arcas", e.currentTarget, read()));
+      $("#resetVoice", d).addEventListener("click", () => { for (const [k, val] of Object.entries(cfg.defaults)) { const el = $(`[name="${k}"]`, d); if (el) { el.value = val; const o = $(`[data-out="${k}"]`, d); if (o) o.textContent = val; } } });
+    },
+  });
+  if (!f || !owner) return;
+  try { await post("/api/voice/settings", f, "PUT"); toast("Josh's voice saved"); } catch (e) { fail(e); }
 }

@@ -98,7 +98,7 @@ export const TOOLS = [
   },
   {
     name: "model_deal", write: false,
-    description: "Run the deal engine: price, capital stack, control, DSCR every year, bad-year (EBITDA −20%) DSCR, and the highest multiple the stack can pay at 1.5×. Pass target_id to use that target's saved structure, or give the numbers. Percentages are of the purchase price and should add to 100.",
+    description: "Run the deal engine: whether the stack is a JL skill library structure (100% vendor finance, or a Seller-Lender Blend: commercial debt + seller rollover or subordinated note; never seller finance + rollover without a bank), price, capital stack, control, DSCR every year, bad-year (EBITDA −20%) DSCR, and the highest multiple the stack can pay at 1.5×. Pass target_id to use that target's saved structure, or give the numbers. Percentages are of the purchase price and should add to 100.",
     input_schema: {
       type: "object",
       properties: {
@@ -125,7 +125,7 @@ export const TOOLS = [
       let receipt;
       if (i.save_to_target && t) { await updateTarget(env, ctx, t.id, { deal: d }, hooks); receipt = `Saved the structure to ${t.name}`; }
       return {
-        works: m.works, funded_pct: m.allocated, control: m.control, buyer_votes_pct: m.yourVotes, buyer_economic_pct: m.yourEconomic,
+        works: m.works, jl_structure: m.library.name, structure_issues: m.library.issues, funded_pct: m.allocated, control: m.control, buyer_votes_pct: m.yourVotes, buyer_economic_pct: m.yourEconomic,
         price: money(m.price, c), cash_to_seller_at_close: money(m.cashAtClose, c), buyer_cash_in: money(m.cashFromYou, c),
         weakest_year_dscr: m.minDscr ? +m.minDscr.toFixed(2) : null, bad_year_dscr: stress.minDscr ? +stress.minDscr.toFixed(2) : null,
         max_multiple_at_1_5x: maxMultiple(d), years: m.years.map((y) => ({ year: y.y, debt_service: money(y.service, c), dscr: y.dscr ? +y.dscr.toFixed(2) : null })),

@@ -1,6 +1,6 @@
 // Conversations with the agents: Josh (advisor), the Seller Simulator (practice calls) and Josh's debriefs.
 // Replies can stream (Server-Sent Events) so the first words show up in under a second.
-import { chat, chatStream, agentLoop, speak } from "./ai.js";
+import { chat, chatStream, agentLoop, speak, cleanVoice, VOICE_DEFAULTS, VOICE_MODELS } from "./ai.js";
 import { runTool, anthropicTools, llamaTools, toolByName } from "./tools.js";
 import { agentById, SELLERS, sellerById, simulatorSystem, DEBRIEF_SYSTEM, CALL_STAGES, targetSeller } from "./agents.js";
 import TRANSCRIPTS_RAW from "../../knowledge/josh-transcripts.txt";
@@ -158,6 +158,9 @@ const AGENT_RULES = `YOU CAN ACT. You have tools that work directly in the user'
 - record_meeting sends a notetaker into a Zoom/Meet/Teams call (waits for approval; notes land on the timeline). Warplan never places AI or automated phone calls: calls are made by the user (dialer or browser phone).
 - For data Warplan doesn't have (reviews, job posts, LinkedIn, financials, people data, any website), use monid_discover → monid_inspect → monid_run. Mind cost: set result limits, and say what a run cost. Sending email and pushing to campaigns wait for the user's approval in the Inbox; say so. For Australian and UK targets, ownership_check reads the official registry for free (years registered, whether it's a chain or corporate-owned, directors' ages): use it before calling or researching, and skip chains. build_excel_model makes a real Excel deal model with live formulas for bankers and sellers.`;
 
+// When Speak is on, the answer is heard, not read: write it the way Josh talks in his videos.
+const SPOKEN = `SPOKEN MODE: this answer will be read out loud in Josh's voice. Write it exactly as you would say it on a call, in the rhythm of Josh's own videos: short, direct sentences, contractions, the occasional one-word sentence for emphasis, straight to the point, no corporate filler. No markdown at all: no headings, bullets, numbered lists, tables, bold or links. Say numbers the way you'd speak them ("about three point three million", "one point five times", "seven years at four percent"). Keep it under about 120 words unless they asked for a script or a walkthrough; when they ask for a script, still quote the JL skill's script word for word, as speech. End on the next action they should take.`;
+
 async function systemFor(env, ctx, ai, t, text, past) {
   if (t.agent === "josh") {
     const base = agentById("josh").system, extra = await workspaceBlock(env, ctx, t);
@@ -183,6 +186,7 @@ async function prepare(env, ctx, id, b) {
   const history = [...past, { role: "user", content: text }];
   while (history.length && history[0].role !== "user") history.shift();
   const system = await systemFor(env, ctx, ai, t, text, past);
+  if (t.agent === "josh" && b.spoken) system.extra = `${system.extra || ""}\n\n${SPOKEN}`.trim();
   const maxTokens = t.agent === "simulator" ? 300 : 900, effort = t.agent === "josh" ? "medium" : "low";
   return { t, text, ai, history, system, maxTokens, effort };
 }
@@ -272,14 +276,26 @@ export function simulatorInfo() {
 }
 
 // Replaying a message shouldn't spend voice credits twice: cache audio per speaker + voice + text at the edge.
-export async function speakCached(request, env, ctx, text, speaker) {
+export async function speakCached(request, env, ctx, text, speaker, override = null) {
   const ai = await aiEnv(env, ctx);
-  const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${ctx.accountId}:${ai.ownVoice ? 1 : 0}\n${speaker}\n${ai.JOSH_VOICE_ID || ""}\n${text}`)))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const voice = override ? cleanVoice(override) : (await voiceSettings(env, ctx)).voice;
+  const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${ctx.accountId}:${ai.ownVoice ? 1 : 0}\n${speaker}\n${ai.JOSH_VOICE_ID || ""}\n${JSON.stringify(voice)}\n${text}`)))].map((x) => x.toString(16).padStart(2, "0")).join("");
   const key = new Request(`${new URL(request.url).origin}/__tts/${digest}`);
   const cache = caches.default;
   const hit = await cache.match(key);
   if (hit) return hit;
-  const res = new Response(await speak(ai, text, speaker), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=86400" } });
+  const res = new Response(await speak(ai, text, speaker, voice), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=86400" } });
   await cache.put(key, new Response(res.clone().body, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=604800" } }));
   return res;
+}
+
+// Josh's voice for the workspace: model, stability, similarity, style, speed (Ask Josh → Voice).
+export async function voiceSettings(env, ctx) {
+  const r = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'voice'").bind(ctx.accountId).first();
+  return { voice: cleanVoice(r ? JSON.parse(r.data) : {}), defaults: VOICE_DEFAULTS, models: VOICE_MODELS };
+}
+export async function saveVoiceSettings(env, ctx, b) {
+  const v = cleanVoice(b);
+  await env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, 'voice', ?2, ?3) ON CONFLICT (account_id, key) DO UPDATE SET data = ?2, updated_at = ?3").bind(ctx.accountId, JSON.stringify(v), now()).run();
+  return voiceSettings(env, ctx);
 }

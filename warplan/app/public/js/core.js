@@ -123,11 +123,11 @@ export async function confirmBox(title, text, submit = "Delete") {
 
 // ------------------------------------------------------------------ voice
 let audio = null;
-export async function play(text, speaker, btn) {
+export async function play(text, speaker, btn, voice = null) {
   stopAudio();
   btn?.classList.add("busy");
   try {
-    const res = await fetch("/api/voice/speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, speaker }) });
+    const res = await fetch("/api/voice/speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, speaker, ...(voice && { voice }) }) });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Voice failed");
     audio = new Audio(URL.createObjectURL(await res.blob()));
     btn?.classList.replace("busy", "on");

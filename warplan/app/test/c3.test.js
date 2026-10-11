@@ -79,3 +79,11 @@ test("summary and scorecard follow the skill's KPIs", () => {
   assert.equal(sc.capabilities[0].value, "1/4");
   assert.ok(LENDER_FIELDS.find((f) => f.k === "min_dscr"));
 });
+
+test("speech text: no markdown, lists become sentences, money and multiples in words", async () => {
+  const { forSpeech, cleanVoice } = await import("../src/ai.js");
+  const out = forSpeech("## The deal\n- Price: $3.3M at 3x EBITDA\n- DSCR ~1.6x\n> ✓ Logged a note\nSee [the model](/x), e.g. year 2 vs year 1.");
+  assert.equal(out, "The deal. Price: 3.3 million dollars at 3 times EBITDA. DSCR about 1.6 times. See the model, for example, year 2 versus year 1.");
+  assert.ok(forSpeech("One. ".repeat(2000), 400).length <= 400);
+  assert.deepEqual(cleanVoice({ model: "nope", stability: 5, speed: 0.1 }), { model: "eleven_multilingual_v2", stability: 1, similarity: 0.9, style: 0.1, speed: 0.7 });
+});

@@ -5,7 +5,7 @@ import { transcribe } from "./ai.js";
 import { publicAgents } from "./agents.js";
 import { forgetSessions, getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie, sha256, randomToken } from "./auth.js";
 import { json, fail, body, now, slow, cleanEmail, displayName, needOwner } from "./http.js";
-import { listThreads, getThread, createThread, updateThread, deleteThread, send, sendStream, debrief, simulatorInfo, speakCached } from "./conversations.js";
+import { listThreads, getThread, createThread, updateThread, deleteThread, send, sendStream, debrief, simulatorInfo, speakCached, voiceSettings, saveVoiceSettings } from "./conversations.js";
 import { listTargets, getTarget, getTargetFull, createTarget, updateTarget, deleteTarget, addEvent, deleteEvent, importTargets, exportCsv, hookEmitter, listHooks, createHook, testHook, deleteHook, rowToTarget } from "./pipeline.js";
 import { deskAgents } from "./desk.js";
 import { createDocument, getProfile } from "./documents.js";
@@ -295,7 +295,7 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
-const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|mailbox|replies\/hook|phone\/(setup|incoming|numbers|buy|available)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|lab$|me\/password)/;
+const HUMAN_ONLY = /^\/api\/(voice\/settings|team|tokens|integrations|webhooks|mailbox|replies\/hook|phone\/(setup|incoming|numbers|buy|available)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|lab$|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
@@ -356,8 +356,10 @@ async function route(request, env, url, ctx, exec) {
     const b = await body(request);
     if (!String(b.text || "").trim()) fail(400, "Nothing to say");
     { const ai = await aiEnv(env, ctx); await meter(env, ai, ctx, "voice-out", !!ai.ownVoice); }
-    return speakCached(request, env, ctx, String(b.text).slice(0, 1900), String(b.speaker || ""));
+    return speakCached(request, env, ctx, String(b.text).slice(0, 6000), String(b.speaker || ""), b.voice && typeof b.voice === "object" ? b.voice : null);
   }
+  if (p === "/api/voice/settings" && m === "GET") return json(await voiceSettings(env, ctx));
+  if (p === "/api/voice/settings" && m === "PUT") { needOwner(ctx); return json(await saveVoiceSettings(env, ctx, await body(request))); }
 
   // Pipeline
   if (p === "/api/targets" && m === "GET") return json(await listTargets(env, ctx, q));

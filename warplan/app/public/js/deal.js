@@ -80,12 +80,31 @@ export function dealModel(d, ebitda = d.ebitda, multiple = d.multiple) {
   const control = yourVotes > 50;
   const bankable = minDscr == null || minDscr >= 1.5;
   const complete = Math.abs(allocated - 100) < 0.01;
+  const library = libraryCheck(d);
   return {
-    price, amt, allocated, complete, years, minDscr, fcf, yourEconomic, yourVotes, control, bankable,
+    price, amt, allocated, complete, years, minDscr, fcf, yourEconomic, yourVotes, control, bankable, library,
     cashFromYou: amt.own, cashAtClose: amt.bank + amt.inv + amt.own,
     maxPrice: minDscr ? price * Math.min(minDscr / 1.5, 3) : null,
-    works: complete && control && bankable,
+    works: complete && control && bankable && library.ok,
   };
+}
+
+// The JL skill's Deal Structure Library: 1) Pure Vendor Finance (100% seller-financed), 2) Seller-Lender Blend
+// (commercial debt + seller rollover as equity or a subordinated note: "Bank validates deal; seller keeps skin in
+// game"), 3) Working Capital Financed Costs (fees on a post-close line, on top of either). Rollover belongs with
+// commercial debt; seller finance plus rollover with no bank leaves the seller nothing at close and no lender
+// validating the deal, so it's never recommended. Investor capital and own cash aren't library structures.
+export function libraryCheck(d) {
+  const p = (k) => Number(d[k]?.pct) || 0;
+  const vf = p("vf"), bank = p("bank"), roll = p("roll"), inv = p("inv"), own = p("own");
+  const issues = [];
+  if (roll > 0 && bank <= 0) issues.push("Seller rollover only goes with commercial debt (the skill's Seller-Lender Blend, e.g. 60% bank + 40% rollover). Seller finance plus rollover with no bank isn't a JL structure: make it 100% vendor finance, or bring in a lender for the bigger slice");
+  if (bank > 0 && bank < 50 && (vf > 0 || roll > 0)) issues.push("In a Seller-Lender Blend the bank carries the bigger slice (banks fund 50-80%); the seller's rollover or subordinated note is the smaller part");
+  if (inv > 0) issues.push("Investor capital isn't in the skill's structure library: use it only if vendor finance and bank debt can't close the gap");
+  if (own > 0) issues.push("Own cash isn't part of a no-money-down structure");
+  const name = vf >= 100 ? (d.vf?.io ? "Pure Vendor Finance (interest-only, Hallelujah-style)" : "Pure Vendor Finance")
+    : bank > 0 && bank + vf + roll >= 99.99 && !issues.length ? (roll && vf ? "Seller-Lender Blend (rollover and subordinated note)" : roll ? "Seller-Lender Blend (bank + seller rollover)" : vf ? "Seller-Lender Blend (bank + subordinated vendor note)" : "Commercial debt") : null;
+  return { ok: !issues.length, name, issues };
 }
 
 // Highest multiple this stack can pay while keeping DSCR >= 1.5 every year (binary search on the model).

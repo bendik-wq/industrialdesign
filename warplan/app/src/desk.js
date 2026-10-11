@@ -56,6 +56,7 @@ function dealBlock(t) {
 Purchase price: ${money(m.price, c)} (${d.multiple}x EBITDA of ${money(d.ebitda, c)})
 ${lines.join("\n")}
 Cash to the seller at closing: ${money(m.cashAtClose, c)}
+JL structure: ${m.library.name || `NOT in the JL skill's structure library (${m.library.issues.join("; ")})`}
 Buyer keeps ${m.yourVotes}% of the votes; weakest-year debt cover (DSCR) ${m.minDscr ? m.minDscr.toFixed(2) + "x" : "n/a (no debt)"}; ${m.works ? "passes both house rules" : "DOES NOT pass the house rules yet"}
 Summary: ${structureSummary(d, m)}
 </deal>`,
@@ -72,7 +73,7 @@ export const KINDS = {
       const { text, m } = dealBlock(t);
       return `<facts>\n${targetFacts(t)}\n</facts>\n${text}\n${buyerBlock(p)}\nDate: ${today()}
 Write a non-binding letter of intent (LOI) from the buyer to the owner, in markdown, ready to edit. Sections: opening paragraph (warm, respectful, why this business); 1. Purchase price and structure (use the deal exactly, with every element, amount and term); 2. What stays the same (name, team, customers; the owner's transition role and length as [placeholder] unless known); 3. Due diligence (scope and a [45]-day period); 4. Conditions (financing, satisfactory diligence, definitive agreements); 5. Exclusivity ([60] days) and confidentiality; 6. Non-binding nature (only exclusivity, confidentiality and governing law are binding); 7. Timeline to closing; then the signature blocks for both parties.
-${m.works ? "" : "Before the letter, add a short boxed note (a markdown blockquote) saying the structure currently fails a house rule and what to fix before sending."}
+${m.works ? "" : "Before the letter, add a short boxed note (a markdown blockquote) saying the structure currently fails a house rule (including being outside the JL skill's structure library) and what to fix before sending."}
 End with a one-line reminder that a lawyer should review it before sending.`;
     },
   },

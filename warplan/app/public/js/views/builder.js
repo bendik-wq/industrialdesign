@@ -17,7 +17,7 @@ export async function renderBuilder(seq, params) {
   const num = (path, label, attrs = "") => { const [a, b] = path.split("."); const v = b ? d[a][b] : d[a]; return `<label>${label}<input data-p="${path}" type="number" inputmode="decimal" value="${v}" ${attrs}></label>`; };
   view().innerHTML = `
     <header class="page-head"><p class="eyebrow">Deal Builder${target ? ` · <a href="#/targets/${target.id}">${esc(target.name)}</a>` : ""}</p><h1>${target ? `Structure ${esc(target.name)}.` : "Any structure. Two rules."}</h1>
-      <p class="lede">Stack the capital however you like: vendor finance, commercial debt, seller rollover, investor capital, your own cash if you want to. The deal works when you keep majority control and the business covers every repayment at least 1.5 times, every year.</p>
+      <p class="lede">Build from the JL skill's structure library: 100% vendor finance, or a Seller-Lender Blend (commercial debt with seller rollover or a subordinated vendor note). The deal works when it's a library structure, you keep majority control, and the business covers every repayment at least 1.5 times, every year.</p>
       ${target ? `<p class="saved-note" id="savedNote">Saved to ${esc(target.name)} automatically.</p>` : ""}</header>
     <div class="presets">${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="preset" data-preset="${k}"><b>${esc(p.name)}</b><small>${esc(p.note)}</small></button>`).join("")}</div>
     <div class="builder">
@@ -56,9 +56,10 @@ export async function renderBuilder(seq, params) {
     if (!m.complete) issues.push(m.allocated < 100 ? `${100 - m.allocated}% of the price isn't funded yet` : `You've funded ${m.allocated}% of the price; bring it back to 100%`);
     if (!m.control) issues.push(`You'd hold ${pct(m.yourVotes)} of the votes; you need over 50%. Make the rollover/investor shares non-voting or give less equity away`);
     if (!m.bankable) issues.push(`The weakest year covers debt only ${m.minDscr.toFixed(2)}×. Stretch the terms, add a holiday, lower the price, or move some of it into rollover`);
+    issues.push(...m.library.issues);
     const maxRow = Math.max(...m.years.map((y) => y.service), 1);
     $("#br").innerHTML = `
-      <div class="verdict ${m.works ? "ok" : "no"}"><b>${m.works ? "✓ This deal works" : "✕ Not yet"}</b>
+      <div class="verdict ${m.works ? "ok" : "no"}"><b>${m.works ? `✓ This deal works${m.library.name ? ` · ${m.library.name}` : ""}` : "✕ Not yet"}</b>
         <span>${m.works ? `You keep control and the business carries every repayment with room to spare. ${m.cashFromYou ? `You put in ${money(m.cashFromYou, c)}.` : "No money down."}` : issues.join(". ") + "."}</span></div>
       <div class="kpis four">
         <div class="kpi"><span>Price</span><b>${money(m.price, c)}</b><small>${d.multiple}× ${money(d.ebitda, c)}</small></div>

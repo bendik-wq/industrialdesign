@@ -154,25 +154,77 @@ const ELEVEN_VOICES = {
   luna: () => "EXAVITQu4vr4xnSDxMaL", // woman
 };
 
-async function elevenLabs(env, text, voiceId) {
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+// Josh's voice settings (a workspace can tune them in Ask Josh → Voice). Defaults suit a cloned voice: high
+// similarity so it sounds like him, stability under the middle so the delivery moves like speech, speaker boost on.
+export const VOICE_MODELS = {
+  eleven_multilingual_v2: "Most faithful to the cloned voice",
+  eleven_v3: "Most expressive and natural rhythm",
+  eleven_turbo_v2_5: "Fastest, a little flatter",
+};
+export const VOICE_DEFAULTS = { model: "eleven_multilingual_v2", stability: 0.42, similarity: 0.9, style: 0.1, speed: 1.0 };
+export function cleanVoice(v = {}) {
+  const n = (x, lo, hi, d) => (Number.isFinite(Number(x)) ? Math.min(hi, Math.max(lo, Number(x))) : d);
+  const D = VOICE_DEFAULTS;
+  return { model: Object.hasOwn(VOICE_MODELS, v.model) ? v.model : D.model, stability: n(v.stability, 0, 1, D.stability), similarity: n(v.similarity, 0, 1, D.similarity), style: n(v.style, 0, 1, D.style), speed: n(v.speed, 0.7, 1.2, D.speed) };
+}
+function voiceBody(text, v) {
+  if (v.model === "eleven_v3") {
+    // v3 takes three stability modes: creative, natural, robust.
+    const st = v.stability < 0.25 ? 0 : v.stability > 0.75 ? 1 : 0.5;
+    return { text, model_id: "eleven_v3", voice_settings: { stability: st, similarity_boost: v.similarity } };
+  }
+  return { text, model_id: v.model, apply_text_normalization: "auto", voice_settings: { stability: v.stability, similarity_boost: v.similarity, style: v.style, use_speaker_boost: true, speed: v.speed } };
+}
+
+async function elevenLabs(env, text, voiceId, v) {
+  const call = (body) => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": env.ELEVENLABS_API_KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
-    body: JSON.stringify({ text, model_id: ELEVEN_MODEL }),
+    body: JSON.stringify(body),
   });
+  let res = await call(voiceBody(text, v));
+  // A model the account can't use: fall back to the faithful default rather than to a robot voice.
+  if (!res.ok && v.model !== VOICE_DEFAULTS.model && [400, 401, 403, 422].includes(res.status)) res = await call(voiceBody(text, { ...v, model: VOICE_DEFAULTS.model }));
   if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return res.arrayBuffer();
 }
 
+// Text written to be read becomes text that sounds right said: no markdown, no tool receipts, list items as whole
+// sentences (so the voice pauses instead of running them together), and money, multiples and shorthand in words.
+export function forSpeech(text, max = 4000) {
+  let t = String(text)
+    .replace(/^>\s*[✓✕].*$/gm, "")                       // tool receipts
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")              // links keep their words
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/^\s{0,3}#{1,6}\s*(.+)$/gm, "$1.")              // headings become a sentence
+    .replace(/^\s*(?:[-*•]|\d+[.)])\s+(.+?)\s*$/gm, (_, x) => (/[.!?:]$/.test(x) ? x : `${x}.`))
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/\|/g, ", ")
+    .replace(/[*_`#]/g, "");
+  t = t
+    .replace(/(?:\b(A|C|NZ|US))?\$\s?(\d+(?:\.\d+)?)\s?([kKmMbB])\b/g, (_, c, n, u) => `${n} ${{ k: "thousand", m: "million", b: "billion" }[u.toLowerCase()]} dollars`)
+    .replace(/\b(\d+(?:\.\d+)?)\s?x\b/g, "$1 times")
+    .replace(/\be\.g\.,?/gi, "for example,").replace(/\bi\.e\.,?/gi, "that is,").replace(/\betc\./gi, "and so on.")
+    .replace(/\bvs\.?\b/gi, "versus").replace(/\s&\s/g, " and ").replace(/~\s?/g, "about ")
+    .replace(/\s*[—–]\s*/g, ", ").replace(/→/g, " then ").replace(/\(([^)]{1,80})\)/g, ", $1,")
+    .replace(/[ \t]+/g, " ").replace(/\s+,/g, ",").replace(/,\s*([.!?])/g, "$1").replace(/,{2,}/g, ",").replace(/\n{2,}/g, "\n").replace(/\n/g, " ").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max), end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "));
+  return end > max * 0.5 ? cut.slice(0, end + 1) : cut;
+}
+
 // Returns mp3 bytes. ElevenLabs when configured, Workers AI Aura otherwise (and as the fallback if ElevenLabs fails).
-export async function speak(env, text, speaker = "orion") {
-  const clean = String(text).replace(/[#*_`>]/g, "").replace(/\n{2,}/g, ".\n").slice(0, 1900);
+export async function speak(env, text, speaker = "orion", voice = null) {
+  const clean = forSpeech(text);
   const pick = ELEVEN_VOICES[speaker];
   if (env.ELEVENLABS_API_KEY && pick) {
-    try { return await elevenLabs(env, clean, pick(env)); } catch (e) { console.warn(e.message); }
+    // Josh gets the tuned settings; the simulator's stock voices keep ElevenLabs' own defaults.
+    const v = speaker === "arcas" ? cleanVoice(voice || {}) : { ...VOICE_DEFAULTS, stability: 0.5, similarity: 0.75, style: 0 };
+    try { return await elevenLabs(env, clean, pick(env), v); } catch (e) { console.warn(e.message); }
   }
   if (!env.AI) throw err(503, "Voice needs the Workers AI binding");
-  return env.AI.run(TTS_MODEL, { text: clean, speaker: SPEAKERS.includes(speaker) ? speaker : "orion", encoding: "mp3" });
+  return env.AI.run(TTS_MODEL, { text: clean.slice(0, 1900), speaker: SPEAKERS.includes(speaker) ? speaker : "orion", encoding: "mp3" });
 }
 
 // ------------------------------------------------------------------ agent loop (tool use)

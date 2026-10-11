@@ -113,3 +113,18 @@ test("the value ladder grows with each deal", () => {
   assert.equal(L.steps.length, LADDER_DEFAULTS.deals + 1);
   for (let i = 1; i < L.steps.length; i++) assert.ok(L.steps[i].value > L.steps[i - 1].value);
 });
+
+test("only JL library structures pass: seller finance + rollover without a bank never does", async () => {
+  const { libraryCheck } = await import("../public/js/deal.js");
+  const mk = (vf, bank, roll, inv = 0, own = 0) => normalizeDeal({ vf: { pct: vf }, bank: { pct: bank }, roll: { pct: roll }, inv: { pct: inv, stake: inv ? 10 : 0 }, own: { pct: own } });
+  const bad = dealModel(mk(70, 0, 30));
+  assert.equal(bad.library.ok, false);
+  assert.equal(bad.works, false);
+  assert.match(bad.library.issues[0], /only goes with commercial debt/);
+  assert.equal(libraryCheck(mk(100, 0, 0)).name, "Pure Vendor Finance");
+  assert.equal(libraryCheck(mk(0, 60, 40)).name, "Seller-Lender Blend (bank + seller rollover)");
+  assert.equal(libraryCheck(mk(40, 60, 0)).ok, true);
+  assert.equal(libraryCheck(mk(70, 30, 0)).ok, false);
+  assert.equal(libraryCheck(mk(80, 0, 0, 20)).ok, false);
+  for (const [k, p] of Object.entries(PRESETS)) assert.ok(libraryCheck(normalizeDeal(p.set)).ok, k);
+});
