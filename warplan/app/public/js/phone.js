@@ -269,7 +269,7 @@ function render() {
   if (tab === "settings-browser" && status?.ready) tab = "keypad";
   if (!status?.twilio) { tab = "keypad"; return renderDevice(p); }
   if (!status.ready) {
-    p.innerHTML = `${head()}<div class="ph-body"><p>Twilio is connected. One click sets up calling from the browser.</p>${status.canEdit ? `<button class="primary" id="pSetup" type="button">Set up the browser phone</button>` : `<p class="muted small">Ask a workspace owner to set it up.</p>`}</div>`;
+    p.innerHTML = `${head()}<div class="ph-body" id="pbody"><p>Twilio is connected. One click sets up calling from the browser.</p>${status.canEdit ? `<button class="primary" id="pSetup" type="button">Set up the browser phone</button>` : `<p class="muted small">Ask a workspace owner to set it up.</p>`}</div>`;
     wireHead();
     $("#pSetup")?.addEventListener("click", async (e) => { e.currentTarget.disabled = true; e.currentTarget.textContent = "Setting up…"; try { status = await post("/api/phone/setup"); setMode("browser"); tab = "keypad"; toast("Browser phone ready"); render(); } catch (err) { fail(err); render(); } });
     return;
@@ -278,7 +278,47 @@ function render() {
   p.innerHTML = `${head()}<nav class="ph-tabs">${tabs.map(([k, l]) => `<button type="button" data-tab="${k}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</nav><div class="ph-body" id="pbody"></div>`;
   wireHead();
   $$("[data-tab]").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.tab; thread = null; render(); }));
+  if (status.canEdit && !status.has_number && ["keypad", "settings"].includes(tab)) return numberPicker(true);
   ({ keypad, messages, recent, settings })[tab]();
+}
+
+// Re-read the phone setup (after connecting Twilio in Settings, say) and switch to browser calling when it's ready.
+export async function refreshPhone({ preferBrowser = false } = {}) {
+  try { status = await api("/api/phone"); } catch { status = null; }
+  if (preferBrowser && status?.ready) setMode("browser");
+  if (!$("#phone").hidden) render();
+  return status;
+}
+
+// Buy a local number on the workspace's Twilio account, from the phone itself.
+const COUNTRY_OPTS = [["US", "United States"], ["CA", "Canada"], ["AU", "Australia"], ["GB", "United Kingdom"]];
+function numberPicker(first = false) {
+  const body = $("#pbody");
+  const pref = (() => { try { return localStorage.getItem("warplan.buyCountry") || "US"; } catch { return "US"; } })();
+  body.innerHTML = `<div class="ph-buy">
+    ${status.trial ? `<p class="ph-blocked">Trial Twilio account: it can only call numbers you've verified in Twilio. Upgrade it (console.twilio.com → Upgrade, add a card) to call owners.</p>` : ""}
+    <p class="small"><b>${first ? "One step left: get a number to call from." : "Get another number."}</b> Owners see it when you call. One per country you call is best (local numbers get answered more).</p>
+    <div class="ph-row"><select id="bCountry">${COUNTRY_OPTS.map(([k, l]) => `<option value="${k}" ${k === pref ? "selected" : ""}>${l}</option>`).join("")}</select><input id="bArea" inputmode="numeric" placeholder="Area code (optional)" maxlength="4"><button class="primary" type="button" id="bSearch">Search</button></div>
+    <div id="bList"></div>
+    <p class="muted small">Twilio bills the number to your account: about $1–6 a month depending on the country, plus a few cents a minute. ${first ? "" : `<button class="link" type="button" id="bBack">Back</button>`}</p>
+  </div>`;
+  const search = async () => {
+    const cc = $("#bCountry").value; try { localStorage.setItem("warplan.buyCountry", cc); } catch { /* ignore */ }
+    $("#bList").innerHTML = `<p class="muted small">Searching…</p>`;
+    try {
+      const d = await api(`/api/phone/available?country=${cc}&area=${encodeURIComponent($("#bArea").value)}`);
+      $("#bList").innerHTML = `${d.note ? `<p class="muted small">${esc(d.note)}</p>` : ""}${d.numbers.length ? `<ul class="ph-list">${d.numbers.map((n) => `<li class="ph-callrow"><span><b class="mono">${esc(n.number)}</b><small class="muted">${esc(n.place || "")}${n.sms ? " · texts" : ""}</small></span><button class="ph-btn small" type="button" data-buy="${esc(n.number)}">Buy</button></li>`).join("")}</ul>` : `<p class="muted small">None found. Try another area code, or leave it empty.</p>`}`;
+      $$("[data-buy]", body).forEach((b) => b.addEventListener("click", async () => {
+        if (!confirm(`Buy ${b.dataset.buy} on your Twilio account?`)) return;
+        b.disabled = true; b.textContent = "Buying…";
+        try { const r = await post("/api/phone/buy", { number: b.dataset.buy }); status = r; setMode("browser"); toast(r.receipt); tab = "keypad"; render(); }
+        catch (e) { fail(e); b.disabled = false; b.textContent = "Buy"; }
+      }));
+    } catch (e) { $("#bList").innerHTML = `<p class="tone-bad small">${esc(e.message)}</p>`; }
+  };
+  $("#bSearch").addEventListener("click", search);
+  $("#bArea").addEventListener("keydown", (e) => { if (e.key === "Enter") search(); });
+  $("#bBack")?.addEventListener("click", () => { tab = "settings"; render(); });
 }
 const head = () => `<header class="ph-head"><b>Phone</b><span class="muted small ${phoneMode() === "device" ? "" : "mono"}">${phoneMode() === "device" ? "Your phone" : esc(status?.from || "")}</span><button class="icon-btn" id="pClose" type="button" aria-label="Close">✕</button></header>`;
 function wireHead() { $("#pClose")?.addEventListener("click", closePhone); }
@@ -468,7 +508,8 @@ async function recent() {
 function settings() {
   $("#pbody").innerHTML = `<p class="small"><b>Local presence</b>: each owner sees your number from their own country (and their own area code in the US and Canada when you have one). Otherwise <b class="mono">${esc(status.from)}</b>.</p>
     <ul class="ph-list">${status.numbers.map((n) => `<li class="ph-callrow"><span><b class="mono">${esc(n.number)}</b><small class="muted">${esc(n.country || "Other")} · ${n.owned ? `Twilio number${n.sms ? " · texts" : ""}` : "your number (calls only)"}</small></span></li>`).join("")}</ul>
-    ${status.canEdit ? `<button class="ghost small" id="pNums" type="button">Refresh numbers from Twilio</button>` : ""}
+    ${status.trial ? `<p class="ph-blocked small">Trial Twilio account: calls only reach numbers you've verified in Twilio. Upgrade it to call owners.</p>` : ""}
+    ${status.canEdit ? `<div class="row"><button class="ghost small" id="pNums" type="button">Refresh numbers from Twilio</button><button class="ghost small" id="pBuy" type="button">+ Get a number</button></div>` : ""}
     <p class="muted small">Add a number per country: buy one in Twilio, or verify your own there (Phone Numbers → Verified Caller IDs), then refresh. You can also list numbers under <a href="#/settings/integrations">Settings → Integrations → Twilio</a>.</p>
     ${status.canEdit ? `<label class="check"><input type="checkbox" id="pIn" ${status.incoming ? "checked" : ""} ${status.can_receive ? "" : "disabled"}> Ring Warplan when someone calls or texts this number</label>
     ${status.can_receive ? "" : `<p class="muted small">Receiving needs a number bought on your Twilio account; a verified caller ID can only call out.</p>`}
@@ -477,6 +518,7 @@ function settings() {
     <button class="ghost small" id="pUseDevice" type="button">Call from my own phone instead</button>`;
   $("#pUseDevice")?.addEventListener("click", () => { setMode("device"); tab = "keypad"; render(); toast("Calls now go out from your own phone"); });
   $("#pIn")?.addEventListener("change", async (e) => { try { status = await post("/api/phone/incoming", { on: e.target.checked }, "PUT"); if (status.incoming) { const d = await ensureDevice(); await d.register(); } toast(status.incoming ? "Incoming calls and texts now come to Warplan" : "Incoming calls go back to your old setup"); } catch (err) { fail(err); e.target.checked = !e.target.checked; } });
+  $("#pBuy")?.addEventListener("click", () => numberPicker(false));
   $("#pNums")?.addEventListener("click", async () => { try { status = await post("/api/phone/numbers"); toast(`${status.numbers.length} number${status.numbers.length === 1 ? "" : "s"}`); render(); } catch (e) { fail(e); } });
   $("#pRe")?.addEventListener("click", async () => { try { status = await post("/api/phone/setup"); device?.destroy(); device = null; toast("Done"); render(); } catch (e) { fail(e); } });
   $("#pOff")?.addEventListener("click", async () => { try { await api("/api/phone", { method: "DELETE" }); device?.destroy(); device = null; status = await api("/api/phone"); clearInterval(pollT); render(); } catch (e) { fail(e); } });

@@ -1330,3 +1330,6 @@ code, kbd, pre, pre.json, .secret code, .mono, .phone-row span, .ph-num { font-f
 @media (max-width: 520px) { .dlive-qr { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
 .dial-banner { margin: 0 0 12px; padding: 10px 14px; border-radius: var(--r); background: var(--signal-soft); color: var(--ink); font-size: 14px; }
 .dial-banner.ok { background: color-mix(in oklab, var(--good) 10%, var(--surface)); }
+.ph-buy { display: grid; gap: 8px; }
+.ph-buy .ph-row { gap: 6px; }
+.ph-buy select, .ph-buy input { flex: 1; min-width: 0; }

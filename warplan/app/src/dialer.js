@@ -430,7 +430,9 @@ export async function startBridge(env, ctx, b) {
   const cfg = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'phone'").bind(ctx.accountId).first();
   const callerId = balancedCallerId(callerNumbers(tw, cfg ? JSON.parse(cfg.data) : null), to, tw.from, await loadsToday(env, ctx.accountId));
   const twiml = `<Response><Say>Connecting you to ${xml(t.name).slice(0, 80)}.</Say><Dial callerId="${xml(callerId)}" timeout="35" answerOnBridge="true"><Number>${xml(to)}</Number></Dial></Response>`;
-  const call = await twilioReq(tw, "/Calls.json", { To: tw.agentPhone, From: tw.from, Twiml: twiml, Timeout: "25" });
+  if (!tw.agentPhone) throw err(400, "“Twilio rings my phone” needs your own number: add it to the Twilio card in Settings → Integrations (or call from the browser instead)");
+  if (!callerId) throw err(400, "Your Twilio account has no number to call from yet: get one in the phone (bottom right) → ⚙");
+  const call = await twilioReq(tw, "/Calls.json", { To: tw.agentPhone, From: callerId, Twiml: twiml, Timeout: "25" });
   await recordAttempt(env, { accountId: ctx.accountId, userId: ctx.user.id, targetId: t.id, to, callerId, via: "twilio", info: g.info, sessionId: +b.session_id || null });
   return { call_sid: call.sid, status: call.status, dialing: to, caller_id: callerId, ringing: tw.agentPhone.replace(/\d(?=\d{3})/g, "•") };
 }

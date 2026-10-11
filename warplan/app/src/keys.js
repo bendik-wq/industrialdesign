@@ -67,7 +67,7 @@ export const PROVIDERS = {
   twilio: {
     label: "Twilio (power dialer)",
     pattern: /^[0-9a-f]{32}$/i,
-    hint: "console.twilio.com → Account SID and Auth Token, your main number, and your own phone. Local presence: add a number per country (bought in Twilio, or your own verified there) and each owner sees a number from their own country. Numbers on the Twilio account are found automatically when you set up the phone.",
+    hint: "console.twilio.com → copy the Account SID and Auth Token from the dashboard. That's all: Warplan finds the numbers on the account (or you buy one from the phone), sets up browser calling, and owners see a number from their own country when you have one. Your own phone number is only needed for “Twilio rings my phone”.",
     meta: ["sid", "from", "agentPhone", "numbers"],
   },
   bluebubbles: {
@@ -130,12 +130,12 @@ function cleanMeta(provider, meta = {}) {
   if (provider === "twilio") {
     const phone = (v) => String(v || "").replace(/[\s()-]/g, "");
     if (!/^AC[0-9a-f]{32}$/i.test(String(meta.sid || "").trim())) throw err(400, "Add your Twilio Account SID (starts with AC)");
-    if (!/^\+\d{8,15}$/.test(phone(meta.from))) throw err(400, "Add the Twilio number to call from, in +country format (e.g. +4791234567)");
-    if (!/^\+\d{8,15}$/.test(phone(meta.agentPhone))) throw err(400, "Add your own phone number in +country format: Warplan rings it first, then connects the call");
+    if (meta.from && !/^\+\d{8,15}$/.test(phone(meta.from))) throw err(400, "Write the Twilio number in +country format (e.g. +61391234567), or leave it empty to use the first number on the account");
+    if (meta.agentPhone && !/^\+\d{8,15}$/.test(phone(meta.agentPhone))) throw err(400, "Write your own phone in +country format (e.g. +61412345678), or leave it empty");
     const extra = String(meta.numbers || "").split(/[,;\n]+/).map(phone).filter(Boolean);
     const bad = extra.find((n) => !/^\+\d{8,15}$/.test(n));
     if (bad) throw err(400, `“${bad}” isn't in +country format`);
-    Object.assign(out, { sid: String(meta.sid).trim(), from: phone(meta.from), agentPhone: phone(meta.agentPhone), numbers: [...new Set(extra)].slice(0, 50) });
+    Object.assign(out, { sid: String(meta.sid).trim(), from: phone(meta.from) || "", agentPhone: phone(meta.agentPhone) || "", numbers: [...new Set(extra)].slice(0, 50), ...(meta.trial === true && { trial: true }) });
   }
   return out;
 }
@@ -183,7 +183,22 @@ export async function verifyKey(provider, key, meta = {}) {
   if (provider === "smartlead") return check(`https://server.smartlead.ai/api/v1/campaigns?api_key=${encodeURIComponent(key)}`, {}, "Smartlead");
   if (provider === "emailbison") return check(`${meta.baseUrl}/api/campaigns`, { headers: { Authorization: `Bearer ${key}`, Accept: "application/json" } }, "EmailBison");
   if (provider === "bluebubbles") return verifyBlueBubbles(key, meta);
-  if (provider === "twilio") return check(`https://api.twilio.com/2010-04-01/Accounts/${meta.sid}.json`, { headers: { Authorization: `Basic ${btoa(`${meta.sid}:${key}`)}` } }, "Twilio");
+  if (provider === "twilio") {
+    const auth = { Authorization: `Basic ${btoa(`${meta.sid}:${key}`)}` };
+    const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${meta.sid}.json`, { headers: auth });
+    if (r.status === 401 || r.status === 403 || r.status === 404) throw err(400, "Twilio rejected the Account SID and Auth Token: copy both again from the console.twilio.com dashboard");
+    if (!r.ok) throw err(502, `Twilio answered ${r.status}; try again in a minute`);
+    const acct = await r.json();
+    if (acct.status && acct.status !== "active") throw err(400, `This Twilio account is ${acct.status}`);
+    meta.trial = acct.type === "Trial";
+    // No number given: use the first one on the account (bought numbers first, then verified caller IDs).
+    if (!meta.from) {
+      const list = async (path, key2) => (await (await fetch(`https://api.twilio.com/2010-04-01/Accounts/${meta.sid}${path}`, { headers: auth })).json().catch(() => ({})))[key2] || [];
+      const owned = (await list("/IncomingPhoneNumbers.json?PageSize=50", "incoming_phone_numbers")).filter((n) => n.capabilities?.voice !== false);
+      meta.from = owned[0]?.phone_number || (await list("/OutgoingCallerIds.json?PageSize=20", "outgoing_caller_ids"))[0]?.phone_number || "";
+    }
+    return true;
+  }
   throw err(400, "Unknown provider");
 }
 

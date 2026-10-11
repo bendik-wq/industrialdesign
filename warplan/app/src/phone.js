@@ -40,7 +40,7 @@ export async function phoneStatus(env, ctx) {
   let tw = null;
   try { tw = await twilio(env, ctx); } catch { /* not connected */ }
   const numbers = tw ? callerNumbers(tw, cfg).map((n) => ({ number: n, country: countryName(n), owned: !!cfg?.numbers?.find((x) => x.number === n && x.owned), sms: !!cfg?.numbers?.find((x) => x.number === n && x.sms) })) : [];
-  return { twilio: !!tw, ready: !!(tw && cfg?.app_sid), from: tw?.from || null, numbers, incoming: !!cfg?.incoming, can_receive: !!cfg?.numbers?.some((n) => n.owned && n.voice), canEdit: ctx.isOwner };
+  return { twilio: !!tw, ready: !!(tw && cfg?.app_sid), trial: !!tw?.trial, has_number: numbers.length > 0, from: tw?.from || numbers[0]?.number || null, numbers, incoming: !!cfg?.incoming, can_receive: !!cfg?.numbers?.some((n) => n.owned && n.voice), canEdit: ctx.isOwner };
 }
 
 export async function setupPhone(env, ctx, origin) {
@@ -273,6 +273,7 @@ export async function twilioHook(request, env, url, hooksFor) {
     try { g = await dialGuard(env, row.account_id, { to, location: full?.location, currency: full?.currency, retry: params.get("retry") === "1" }); }
     catch (e) { return twiml(`<Say>${xml(e.status ? e.message.replace(/\+/g, " plus ") : "This call isn't allowed.")}</Say><Hangup/>`); }
     const callerId = balancedCallerId(callerNumbers(tw, await getCfg(env, row.account_id)), to, tw.from, await loadsToday(env, row.account_id));
+    if (!callerId) return twiml("<Say>There's no phone number on this Twilio account to call from yet. Get one in Warplan, in the phone settings.</Say><Hangup/>");
     await recordAttempt(env, { accountId: row.account_id, userId: user.id, targetId: t?.id, to, callerId, via: "browser", info: g.info });
     return twiml(`<Dial callerId="${xml(callerId)}" answerOnBridge="true" timeLimit="3600"><Number>${xml(to)}</Number></Dial>`);
   }
@@ -301,4 +302,46 @@ export async function twilioHook(request, env, url, hooksFor) {
   if (t) await env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, NULL, 'Phone', 'sms', ?3, ?4)").bind(row.account_id, t.id, `Text from ${from}: ${text}`, now()).run();
   hooks?.emit("sms.received", { from, body: text, target_id: t?.id || null });
   return twiml("");
+}
+
+// ------------------------------------------------------------------ getting a number
+// Local numbers for sale on the workspace's Twilio account. US and Canadian numbers can be bought straight away;
+// UK and Australian ones need a regulatory bundle (proof of address) on the Twilio account first.
+const BUY_COUNTRIES = { US: "United States", CA: "Canada", GB: "United Kingdom", AU: "Australia" };
+export async function availableNumbers(env, ctx, q) {
+  const tw = await twilio(env, ctx);
+  const cc = String(q.get("country") || "US").toUpperCase();
+  if (!BUY_COUNTRIES[cc]) throw err(400, "Pick the United States, Canada, the UK or Australia");
+  const params = new URLSearchParams({ VoiceEnabled: "true", PageSize: "8" });
+  const area = String(q.get("area") || "").replace(/\D/g, "").slice(0, 4);
+  if (area) params.set(cc === "US" || cc === "CA" ? "AreaCode" : "Contains", cc === "US" || cc === "CA" ? area.slice(0, 3) : area);
+  let d;
+  try { d = await twilioReq(tw, `/AvailablePhoneNumbers/${cc}/Local.json?${params}`); }
+  catch (e) { if (cc === "AU" || cc === "GB") d = await twilioReq(tw, `/AvailablePhoneNumbers/${cc}/Mobile.json?${params}`).catch(() => { throw e; }); else throw e; }
+  return {
+    country: cc,
+    numbers: (d.available_phone_numbers || []).map((n) => ({ number: n.phone_number, place: [n.locality, n.region].filter(Boolean).join(", "), sms: !!(n.capabilities?.SMS ?? n.capabilities?.sms), needs_address: n.address_requirements && n.address_requirements !== "none" })),
+    note: cc === "AU" || cc === "GB" ? `${BUY_COUNTRIES[cc]} numbers need a regulatory bundle on your Twilio account (Phone Numbers → Regulatory Compliance → Bundles: your business details and proof of address). Approval usually takes 1–3 business days.` : null,
+  };
+}
+export async function buyNumber(env, ctx, b, origin) {
+  const tw = await twilio(env, ctx);
+  const number = String(b.number || "").replace(/[\s()-]/g, "");
+  if (!/^\+\d{8,15}$/.test(number)) throw err(400, "Pick a number from the list");
+  let bought;
+  try { bought = await twilioReq(tw, "/IncomingPhoneNumbers.json", { PhoneNumber: number, FriendlyName: "Warplan" }); }
+  catch (e) {
+    if (/address|bundle|regulat/i.test(e.message)) throw err(400, `${e.message}. Create a regulatory bundle in Twilio (Phone Numbers → Regulatory Compliance), then buy the number again.`);
+    if (/trial/i.test(e.message)) throw err(400, `${e.message}. Upgrade the Twilio account (add a card) to buy numbers and call people.`);
+    throw e;
+  }
+  // The first number becomes the default caller ID.
+  if (!tw.from) {
+    const row = await env.DB.prepare("SELECT meta FROM account_keys WHERE account_id = ?1 AND provider = 'twilio'").bind(ctx.accountId).first();
+    const meta = { ...JSON.parse(row?.meta || "{}"), from: bought.phone_number };
+    await env.DB.prepare("UPDATE account_keys SET meta = ?2, updated_at = ?3 WHERE account_id = ?1 AND provider = 'twilio'").bind(ctx.accountId, JSON.stringify(meta), now()).run();
+  }
+  const cfg = await getCfg(env, ctx.accountId);
+  const status = cfg?.app_sid ? await refreshNumbers(env, ctx) : await setupPhone(env, ctx, origin);
+  return { ...status, bought: bought.phone_number, receipt: `Bought ${bought.phone_number}. It's ready to call from.` };
 }

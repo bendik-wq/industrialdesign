@@ -45,3 +45,22 @@ test("local presence picks the owner's country, then area code", () => {
   assert.equal(pickCallerId(mine, "+33612345678", "+15125550100"), "+15125550100"); // no French number: default
   assert.equal(countryCode("+353861234567"), "353"); // Ireland, not +35
 });
+
+import { verifyKey } from "../src/keys.js";
+test("Twilio connect needs only SID + token: finds the number, flags trial accounts", async () => {
+  const real = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    if (/Accounts\/AC[0-9a-f]+\.json$/.test(url)) return new Response(JSON.stringify({ status: "active", type: "Trial" }), { status: 200 });
+    if (/IncomingPhoneNumbers/.test(url)) return new Response(JSON.stringify({ incoming_phone_numbers: [{ phone_number: "+61390001234", capabilities: { voice: true } }] }), { status: 200 });
+    return new Response("{}", { status: 404 });
+  };
+  try {
+    const meta = { sid: "AC" + "a".repeat(32), from: "", agentPhone: "" };
+    assert.equal(await verifyKey("twilio", "b".repeat(32), meta), true);
+    assert.equal(meta.from, "+61390001234"); assert.equal(meta.trial, true);
+    globalThis.fetch = async () => new Response("{}", { status: 401 });
+    await assert.rejects(verifyKey("twilio", "b".repeat(32), { sid: "AC" + "a".repeat(32) }), /rejected/);
+  } finally { globalThis.fetch = real; }
+});

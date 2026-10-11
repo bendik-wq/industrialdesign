@@ -22,7 +22,7 @@ import { balance as monidBalance, budget as monidBudget, setBudget as setMonidBu
 import { deepEnrich } from "./waterfall.js";
 import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
 import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup, preDial, claim, brief, checkLines, startSession, endSession, sessionStats, teamStats, insights, dialerSettings, saveDialerSettings } from "./dialer.js";
-import { refreshNumbers } from "./phone.js";
+import { refreshNumbers, availableNumbers, buyNumber } from "./phone.js";
 import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { researchTarget, getIntel } from "./research.js";
 import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook, refreshIMessage, markRead, startTyping, react, imessageLive } from "./imessage.js";
@@ -249,7 +249,7 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
-const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|me\/password)/;
+const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers|buy|available)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
@@ -396,6 +396,8 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/phone/setup" && m === "POST") { needOwner(ctx); return json(await setupPhone(env, ctx, url.origin)); }
   if (p === "/api/phone/incoming" && m === "PUT") { needOwner(ctx); return json(await setIncoming(env, ctx, !!(await body(request)).on, url.origin)); }
   if (p === "/api/phone/numbers" && m === "POST") { needOwner(ctx); return json(await refreshNumbers(env, ctx)); }
+  if (p === "/api/phone/available" && m === "GET") { needOwner(ctx); return json(await availableNumbers(env, ctx, q)); }
+  if (p === "/api/phone/buy" && m === "POST") { needOwner(ctx); return json(await buyNumber(env, ctx, await body(request), url.origin), 201); }
   if (p === "/api/phone/token" && m === "GET") return json(await phoneToken(env, ctx));
   if (p === "/api/phone/lookup" && m === "GET") return json(await phoneLookup(env, ctx, String(q.get("number") || "")));
   if (p === "/api/phone/sms" && m === "POST") return json(await sendText(env, ctx, await body(request), hooks), 201);
@@ -511,6 +513,8 @@ async function route(request, env, url, ctx, exec) {
       const b = await body(request), out = await saveKey(env, ctx, r[1], b);
       // A new relay (or password) gets its incoming-message URL registered on the BlueBubbles server right away.
       if (r[1] === "bluebubbles" && b.key) out.imessage = await connectIMessage(env, ctx, url.origin).catch((e) => ({ error: e.message }));
+      // New Twilio credentials: set up browser calling straight away (API key + TwiML app, numbers found).
+      if (r[1] === "twilio" && b.key) out.phone = await setupPhone(env, ctx, url.origin).catch((e) => ({ error: e.message }));
       return json(out);
     }
     if (m === "DELETE") { if (r[1] === "bluebubbles") await disconnectIMessage(env, ctx); return json(await deleteKey(env, ctx, r[1])); }

@@ -93,13 +93,13 @@ async function integrations(seq) {
   const [d, seqs] = await Promise.all([api("/api/integrations"), api("/api/sequencers")]);
   if (stale(seq)) return;
   const replies = seqs.replies;
-  const META_LABEL = { baseUrl: ["EmailBison address", "https://dedi.emailbison.com"], sid: ["Account SID", "AC…"], from: ["Twilio number (calls come from it)", "+15551234567"], agentPhone: ["Your phone (Warplan rings it first)", "+15551234567"], serverUrl: ["BlueBubbles server address", "https://abc-123.trycloudflare.com"], numbers: ["Local presence numbers (comma-separated, one per country)", "+447700900123, +61291234567, +4930123456"] };
+  const META_LABEL = { baseUrl: ["EmailBison address", "https://dedi.emailbison.com"], sid: ["Account SID", "AC…"], from: ["Default number (optional: found on the account)", "leave empty"], agentPhone: ["Your own phone (optional: only for “Twilio rings my phone”)", "+61412345678"], serverUrl: ["BlueBubbles server address", "https://abc-123.trycloudflare.com"], numbers: ["Local presence numbers (comma-separated, one per country)", "+447700900123, +61291234567, +4930123456"] };
   const card = (x) => `
       <form class="panel form-panel provider" data-provider="${x.id}">
         <div class="panel-head"><h2 class="h3">${esc(x.label)}</h2><span class="status ${x.connected ? "on" : ""}">${x.connected ? `Connected ··${esc(x.last4)}` : x.id === "monid" && x.platformFallback !== "not available" ? esc(x.platformFallback) : "Not connected"}</span></div>
         <label class="field">${x.id === "twilio" ? "Auth token" : x.id === "bluebubbles" ? "Server password" : "API key"}<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${x.connected ? "Paste a new key to replace it" : "Paste the key"}" ${dis}></label>
         ${(x.metaFields || []).map((m) => `<label class="field">${esc(META_LABEL[m]?.[0] || m)}<input name="meta:${m}" value="${esc(Array.isArray(x.meta[m]) ? x.meta[m].join(", ") : x.meta[m] || "")}" placeholder="${esc(META_LABEL[m]?.[1] || "")}" ${dis}></label>`).join("")}
-        <p class="muted small">${esc(x.hint)}</p>
+        <p class="muted small">${esc(x.hint)}</p>${x.id === "twilio" && x.meta?.trial ? `<p class="notice small">Trial account: it can only call numbers verified in Twilio. Upgrade it (add a card) to call owners.</p>` : ""}
         <div class="row">${d.canEdit ? `<button class="primary" type="submit">${x.connected ? (x.metaFields?.length ? "Save" : "Replace") : "Verify & connect"}</button>${x.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}${x.id === "monid" && x.connected ? `<a class="ghost" href="#/data">Open the data console</a>` : ""}${x.id === "bluebubbles" && x.connected && d.canEdit ? `<button class="ghost" type="button" data-bbhook>Reconnect incoming messages</button><button class="ghost" type="button" data-bbcheck>Check Private API</button>` : ""}</div>
         ${x.id === "bluebubbles" && x.connected ? `<p class="small" id="bbPrivate">Checking the Private API…</p>` : ""}
       </form>`;
@@ -154,6 +154,10 @@ async function integrations(seq) {
       try {
         const r = await post(`/api/integrations/${provider}`, { key: v.key, meta }, "PUT"); toast(v.key ? "Connected" : "Saved");
         if (r.imessage) await bbHookResult(r.imessage);
+        if (r.phone) {
+          if (r.phone.error) toast(`Connected, but the browser phone isn't set up yet: ${r.phone.error}`, "error");
+          else { const { refreshPhone, openPhone } = await import("../phone.js"); await refreshPhone({ preferBrowser: true }); toast(r.phone.has_number ? "Browser calling is ready: click any number, or press Space in the dialer" : "Connected. Last step: get a number to call from"); openPhone("keypad"); }
+        }
         session.team = await api("/api/agents"); integrations(seq);
       }
       catch (err) { fail(err); btn.disabled = false; btn.textContent = "Try again"; }
