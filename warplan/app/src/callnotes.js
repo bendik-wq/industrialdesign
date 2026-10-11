@@ -55,7 +55,21 @@ export async function recordingReady(env, accountId, params, query, defer, findB
   const row = await env.DB.prepare(`INSERT INTO call_recordings (account_id, user_id, target_id, call_sid, recording_sid, recording_url, phone, duration, status, created_at, updated_at)
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'transcribing', ?9, ?9) ON CONFLICT (account_id, call_sid) DO UPDATE SET recording_sid = ?5, recording_url = ?6, duration = ?8, updated_at = ?9 RETURNING id`)
     .bind(accountId, uid, t?.id || null, callSid, sid, url, to, +params.get("RecordingDuration") || 0, now()).first();
-  defer(processRecording(env, accountId, row.id).catch((e) => console.error("call notes", e)));
+  // Download, transcription and the notes can outlast a webhook's time budget, so they run from the queue.
+  if (env.WORK) await env.WORK.send({ type: "recording", accountId, id: row.id });
+  else defer(processRecording(env, accountId, row.id).catch((e) => console.error("call notes", e)));
+}
+
+// Recordings stuck mid-transcription (a crashed run) are retried by the 10-minute cron, then given up on after an hour.
+export async function retryStuckRecordings(env) {
+  const old = new Date(Date.now() - 15 * 60000).toISOString(), dead = new Date(Date.now() - 3600000).toISOString();
+  await env.DB.prepare("UPDATE call_recordings SET status = 'failed', error = 'Transcription timed out', updated_at = ?2 WHERE status = 'transcribing' AND created_at < ?1").bind(dead, new Date().toISOString()).run();
+  const { results } = await env.DB.prepare("SELECT id, account_id FROM call_recordings WHERE status = 'transcribing' AND updated_at < ?1 LIMIT 20").bind(old).all();
+  for (const r of results) {
+    await env.DB.prepare("UPDATE call_recordings SET updated_at = ?2 WHERE id = ?1").bind(r.id, new Date().toISOString()).run();
+    await env.WORK.send({ type: "recording", accountId: r.account_id, id: r.id });
+  }
+  return results.length;
 }
 
 export async function processRecording(env, accountId, id) {

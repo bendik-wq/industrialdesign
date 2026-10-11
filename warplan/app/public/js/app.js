@@ -15,8 +15,11 @@ import { renderScout } from "./views/scout.js";
 import { renderDialer } from "./views/dialer.js";
 import { initPhone, openPhone } from "./phone.js";
 import { renderData } from "./views/data.js";
+import { renderToday } from "./views/today.js";
+import { renderCapital } from "./views/capital.js";
+import { renderRoom } from "./views/room.js";
 
-const TITLES = { home: "Home", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Agents", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data" };
+const TITLES = { home: "Home", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Agents", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data", today: "Today", capital: "Board, bench & lenders", room: "Deal room" };
 
 async function router() {
   const seq = ++session.seq;
@@ -25,7 +28,7 @@ async function router() {
   const [path, query = ""] = location.hash.replace(/^#/, "").split("?");
   const [, viewName = "home", id] = path.split("/");
   const params = new URLSearchParams(query);
-  const nav = viewName === "targets" ? "pipeline" : viewName;
+  const nav = viewName === "targets" || viewName === "room" ? "pipeline" : viewName;
   $$(".nav a").forEach((a) => { const on = a.dataset.nav === nav; a.classList.toggle("active", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); });
   document.title = `${TITLES[viewName] || "Warplan"} · Warplan`;
   window.scrollTo(0, 0);
@@ -42,6 +45,9 @@ async function router() {
     if (viewName === "scout") return await renderScout(seq);
     if (viewName === "dialer") return await renderDialer(seq, params);
     if (viewName === "data") return await renderData(seq);
+    if (viewName === "today") return await renderToday(seq);
+    if (viewName === "capital") return await renderCapital(seq, params);
+    if (viewName === "room" && id) return await renderRoom(Number(id), seq, params);
     if (viewName === "settings") return await renderSettings(id, seq);
     if (viewName !== "home") { history.replaceState(null, "", "#/home"); }
     return await renderHome(seq);
@@ -59,6 +65,7 @@ $("#scrim").addEventListener("click", closeNav);
 
 // ------------------------------------------------------------------ command palette
 const COMMANDS = [
+  ["Today: what to do now", "#/today"], ["Board, bench & lenders (C1/C2)", "#/capital"], ["Lender matrix", "#/capital?tab=lender"], ["Write the credibility packet", "#/capital?tab=scripts"],
   ["Go home", "#/home"], ["Go to Pipeline", "#/pipeline"], ["Ask Josh", "#/josh"], ["Start a practice call", "#/simulator"],
   ["Open the Deal Builder", "#/builder"], ["Open the Value Ladder", "#/ladder"], ["Open the Desk", "#/desk"], ["See every agent", "#/agents"],
   ["Add a target", () => addTarget()], ["Settings: profile", "#/settings/profile"], ["Settings: team & invites", "#/settings/team"],

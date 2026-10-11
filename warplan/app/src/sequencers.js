@@ -105,6 +105,7 @@ export async function connectedSequencers(env, ctx) {
 }
 
 export async function listCampaigns(env, ctx, provider) {
+  if (!Object.hasOwn(ADAPTERS, provider)) throw err(404, "Unknown sequencer");
   return { provider, campaigns: await ADAPTERS[provider].campaigns(await keysFor(env, ctx, provider)) };
 }
 
@@ -141,7 +142,7 @@ export async function pushToCampaign(env, ctx, b, hooks, ai) {
   if (!campaignId) throw err(400, "Pick a campaign");
   const ids = [...new Set((Array.isArray(b.target_ids) ? b.target_ids : [b.target_id]).map(Number).filter(Boolean))].slice(0, MAX_PUSH);
   if (!ids.length) throw err(400, "Pick at least one target");
-  const { results: targets } = await env.DB.prepare(`SELECT * FROM targets WHERE account_id = ?1 AND id IN (${ids.map((_, i) => `?${i + 2}`).join(",")})`).bind(ctx.accountId, ...ids).all();
+  const { results: targets } = await env.DB.prepare("SELECT * FROM targets WHERE account_id = ?1 AND id IN (SELECT value FROM json_each(?2))").bind(ctx.accountId, JSON.stringify(ids)).all();
   const { results: blocked } = await env.DB.prepare("SELECT email FROM suppressions WHERE account_id = ?1").bind(ctx.accountId).all();
   const suppressed = new Set(blocked.map((x) => x.email));
   const leads = [], skipped = [];

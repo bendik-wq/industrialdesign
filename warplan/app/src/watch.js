@@ -13,7 +13,7 @@ const PAGES_PER_TARGET = 3;
 
 // What counts as a signal. strength 3 = act now, 2 = strong, 1 = worth a look; negative = probably not a target.
 export const RULES = [
-  { kind: "for_sale", strength: 3, title: "Business for sale / looking for a successor", re: /\b(business (is )?(for sale|on the market)|for sale by owner|seeking (a )?(buyer|successor|new owner)|expressions? of interest|succession plan(ning)?|looking for (someone|the right person) to take over)\b/i },
+  { kind: "for_sale", strength: 3, title: "Business for sale / looking for a successor", re: /\b(business (is )?(for sale|on the market)|(practice|clinic|business) for sale|for sale by owner|seeking (a )?(buyer|successor|new owner)|expressions? of interest (to|in) (acquir|purchas|buy|tak)\w*|succession plan(ning)?|looking for (someone|the right person) to take over)\b/i },
   { kind: "retirement", strength: 3, title: "Owner talks about retiring", re: /\b(retir(e|es|ing|ement)|stepping (back|down) from|hang(ing)? up (the|my|his|her) (tools|boots|stethoscope)|winding down|semi-retire\w*)\b/i },
   { kind: "farewell", strength: 2, title: "Farewell / end-of-an-era message", re: /\b(farewell|end of an era|thank you for (\d{2}|many|so many) (wonderful |amazing |great )?years|after (\d{2}|many) (wonderful |amazing |great )?years)\b/i },
   { kind: "hiring_manager", strength: 2, title: "Hiring a manager or associate (owner may be stepping back)", re: /\b(hiring|seeking|looking for|vacanc(y|ies)|position available|join (our|the) team)\b[^.\n]{0,100}\b(practice manager|general manager|operations manager|clinic manager|associate (dentist|physio\w*|vet\w*)|principal (dentist|physio\w*)|managing director)\b/i },

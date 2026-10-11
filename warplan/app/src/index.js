@@ -19,6 +19,7 @@ import { scoutInfo, scoutSearch, toTarget } from "./scout.js";
 import { listContacts, enrichTarget, addContact, deleteContact } from "./contacts.js";
 import { needsApproval } from "./monid.js";
 import { balance as monidBalance, budget as monidBudget, setBudget as setMonidBudget, recentRuns, discover as monidDiscover, describe as monidDescribe, run as monidRun, compact } from "./monid.js";
+import { reconcileRuns } from "./monid.js";
 import { deepEnrich } from "./waterfall.js";
 import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
 import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup, preDial, claim, brief, checkLines, startSession, endSession, sessionStats, teamStats, insights, dialerSettings, saveDialerSettings } from "./dialer.js";
@@ -26,10 +27,13 @@ import { refreshNumbers, availableNumbers, buyNumber } from "./phone.js";
 import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { researchTarget, getIntel } from "./research.js";
 import { ownershipCheck, getRegistry, ownershipBulk } from "./registry.js";
-import { callNotes, recordingAudio } from "./callnotes.js";
+import { callNotes, recordingAudio, processRecording, retryStuckRecordings } from "./callnotes.js";
 import { runWatch, listSignals, markSeen } from "./watch.js";
 import { buildModel, listFiles, getFile, deleteFile, labStatus, deleteLab } from "./lab.js";
 import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook, refreshIMessage, markRead, startTyping, react, imessageLive } from "./imessage.js";
+import { listRelationships, createRelationship, updateRelationship, deleteRelationship, lenderFit, setFinancing, deleteFinancing } from "./capabilities.js";
+import { getRoom, updateRoom, addItem, updateItem, deleteItem, teamUpload, deleteRoomFile, createLink, revokeLink, chaseSeller, sellerView, sellerNda, sellerUpload, sellerFile } from "./dealroom.js";
+import { today } from "./today.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
 import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
@@ -54,6 +58,8 @@ export default {
       try {
         if (type === "autopilot") await autopilotRun(env, accountId, exec);
         else if (type === "inbox") await syncAgentInboxes(env, accountId, replyTriage(env, exec));
+        else if (type === "recording") await processRecording(env, accountId, msg.body.id);
+        else if (type === "enrich") { const c = { accountId, user: { id: msg.body.userId, name: "Contact finder" }, isOwner: false }; await enrichTarget(env, c, msg.body.targetId, await dataKeys(env, c)); }
         else if (type === "watch") await runWatch(env, { accountId, user: { id: null, name: "Signal watch" } }, hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)), { limit: 120 });
         msg.ack();
       } catch (e) { console.error(`queue ${type} ${accountId}`, e); msg.retry({ delaySeconds: 60 }); }
@@ -61,7 +67,7 @@ export default {
   },
   async scheduled(event, env, exec) {
     // Every 10 minutes: finish background jobs (meeting notes). Daily: the autopilot.
-    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), queueInboxes(env, exec)]));
+    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), queueInboxes(env, exec), reconcileRuns(env).catch((e) => console.error("reconcile", e)), retryStuckRecordings(env).catch((e) => console.error("recordings", e))]));
     else exec.waitUntil(Promise.all([autopilotAll(env, exec), queueWatch(env, exec)]));
   },
 };
@@ -95,6 +101,7 @@ async function handle(request, env, exec) {
     if (/^\/(js|vendor)\/[\w./-]+\.js$/.test(p) && !p.includes("..")) return asset(request, env, p);
     if (p.startsWith("/hooks/replies/")) return await replyHook(request, env, url, exec);
     if (p.startsWith("/hooks/twilio/")) return await twilioHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)), (pr) => exec.waitUntil(pr));
+    if (p.startsWith("/r/") || p.startsWith("/hooks/room/")) return await sellerRoute(request, env, url, exec);
     if (p.startsWith("/hooks/bluebubbles/")) return await blueBubblesHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)));
     if (p === "/mcp" || p.startsWith("/mcp/")) return await mcpRoute(request, env, url, exec);
     const ctx = await getContext(request, env);
@@ -147,6 +154,26 @@ async function replyHook(request, env, url, exec) {
 
 // Inbox sync fans out per workspace through the queue (inline when no queue is bound, e.g. local dev).
 // The daily seller-signal watch: one queue message per workspace with targets that have a website.
+// The seller's private deal-room link: no account, the token in the URL is the only key.
+async function sellerRoute(request, env, url, exec) {
+  const p = url.pathname, m = request.method;
+  const hooks = (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr));
+  let r;
+  if ((r = p.match(/^\/r\/([\w-]{10,80})$/)) && m === "GET") {
+    const res = await env.ASSETS.fetch(new Request(new URL("/room", url), request));
+    return new Response(res.body, { status: res.status, headers: { "Content-Type": "text/html; charset=utf-8", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex" } });
+  }
+  if (m !== "GET" && request.headers.get("Origin") && request.headers.get("Origin") !== url.origin) fail(403, "Cross-site request blocked");
+  if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})$/)) && m === "GET") return json(await sellerView(env, r[1]));
+  if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/nda$/)) && m === "POST") return json(await sellerNda(env, r[1], await body(request), request.headers.get("CF-Connecting-IP"), hooks));
+  if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/upload$/)) && m === "POST") {
+    if (+(request.headers.get("Content-Length") || 0) > 21 * 1024 * 1024) fail(413, "Files up to 20 MB");
+    return json(await sellerUpload(env, r[1], await request.formData(), hooks), 201);
+  }
+  if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/files\/(\d+)$/)) && m === "GET") return await sellerFile(env, r[1], +r[2]);
+  return json({ error: "Not found" }, 404);
+}
+
 async function queueWatch(env, exec) {
   const { results } = await env.DB.prepare("SELECT DISTINCT t.account_id FROM targets t JOIN accounts a ON a.id = t.account_id AND a.active = 1 LEFT JOIN settings s ON s.account_id = t.account_id AND s.key = 'watch' WHERE t.website != '' AND (s.data IS NULL OR json_extract(s.data, '$.on') != 0)").all();
   if (!env.WORK) { for (const r of results) await runWatch(env, { accountId: r.account_id, user: { id: null, name: "Signal watch" } }, hookEmitter(env, r.account_id, (pr) => exec.waitUntil(pr)), { limit: 60 }).catch((e) => console.error("watch", e)); return; }
@@ -224,7 +251,14 @@ async function authRoute(request, env, url) {
     await env.DB.prepare("UPDATE users SET last_login_at = ?2 WHERE id = ?1").bind(u.id, now()).run();
     return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, u) });
   }
-  if (p === "/api/logout" && m === "POST") return json({ ok: true }, 200, { "Set-Cookie": clearCookie });
+  if (p === "/api/logout" && m === "POST") {
+    // ?everywhere=1 also ends every other session of this user (a copied cookie stops working too).
+    if (url.searchParams.get("everywhere") === "1") {
+      const ctx = await getContext(request, env);
+      if (ctx?.user?.id && !ctx.viaToken) { await env.DB.prepare("UPDATE users SET session_epoch = session_epoch + 1 WHERE id = ?1").bind(ctx.user.id).run(); forgetSessions(); }
+    }
+    return json({ ok: true }, 200, { "Set-Cookie": clearCookie });
+  }
   const r = p.match(/^\/api\/invites\/([\w-]{20,})$/);
   if (r) {
     const inv = await env.DB.prepare(
@@ -261,7 +295,7 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
-const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers|buy|available)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|lab$|me\/password)/;
+const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|mailbox|replies\/hook|phone\/(setup|incoming|numbers|buy|available)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|lab$|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
@@ -364,8 +398,41 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/lab" && m === "GET") return json(await labStatus(env, ctx));
   if (p === "/api/lab" && m === "DELETE") { needOwner(ctx); return json(await deleteLab(env, ctx)); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/research$/)) && m === "POST") { const ai = await aiEnv(env, ctx); await checkLimits(env, ai, ctx); return json(await researchTarget(env, ctx, +r[1], ai)); }
-  if ((r = p.match(/^\/api\/targets\/(\d+)\/enrich$/)) && m === "POST") { const b = await body(request); return json(await deepEnrich(env, ctx, +r[1], { mobile: !!b.mobile, linkedin: b.linkedin !== false })); }
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/enrich$/)) && m === "POST") { const b = await body(request); if (b.mobile && !ctx.isOwner) fail(403, "Mobile lookups cost money: ask a workspace owner, or have Josh queue it for approval"); return json(await deepEnrich(env, ctx, +r[1], { mobile: !!b.mobile, linkedin: b.linkedin !== false })); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/(\d+)$/)) && m === "DELETE") return json(await deleteContact(env, ctx, +r[1], +r[2]));
+
+  // Today: the ordered daily plan and the 3C scorecard
+  if (p === "/api/today" && m === "GET") return json(await today(env, ctx, q.get("tz") || "UTC"));
+  // C1/C2: board, bench, lenders; lender fit and financing per deal
+  if (p === "/api/relationships" && m === "GET") return json(await listRelationships(env, ctx, q.get("kind")));
+  if (p === "/api/relationships" && m === "POST") return json(await createRelationship(env, ctx, await body(request)), 201);
+  if ((r = p.match(/^\/api\/relationships\/(\d+)$/))) {
+    if (m === "PATCH") return json(await updateRelationship(env, ctx, +r[1], await body(request)));
+    if (m === "DELETE") return json(await deleteRelationship(env, ctx, +r[1]));
+  }
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/lenders$/)) && m === "GET") return json(await lenderFit(env, ctx, +r[1]));
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/financing$/)) && m === "POST") return json(await setFinancing(env, ctx, +r[1], await body(request)));
+  if ((r = p.match(/^\/api\/financing\/(\d+)$/)) && m === "DELETE") return json(await deleteFinancing(env, ctx, +r[1]));
+  // C3: the deal room
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/room$/))) {
+    if (m === "GET") return json(await getRoom(env, ctx, +r[1]));
+    if (m === "PATCH") return json(await updateRoom(env, ctx, +r[1], await body(request)));
+  }
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/room\/items$/)) && m === "POST") return json(await addItem(env, ctx, +r[1], await body(request)), 201);
+  if ((r = p.match(/^\/api\/room\/items\/(\d+)$/))) {
+    if (m === "PATCH") return json(await updateItem(env, ctx, +r[1], await body(request)));
+    if (m === "DELETE") return json(await deleteItem(env, ctx, +r[1]));
+  }
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/room\/files$/)) && m === "POST") {
+    if (+(request.headers.get("Content-Length") || 0) > 21 * 1024 * 1024) fail(413, "Files up to 20 MB");
+    return json(await teamUpload(env, ctx, +r[1], await request.formData()), 201);
+  }
+  if ((r = p.match(/^\/api\/room\/files\/(\d+)$/)) && m === "DELETE") return json(await deleteRoomFile(env, ctx, +r[1]));
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/room\/link$/))) {
+    if (m === "POST") { if (ctx.viaToken) fail(403, "Seller links are made by a signed-in user"); return json(await createLink(env, ctx, +r[1], url.origin)); }
+    if (m === "DELETE") return json(await revokeLink(env, ctx, +r[1]));
+  }
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/room\/chase$/)) && m === "POST") return json(await chaseSeller(env, ctx, +r[1], await body(request)));
 
   // Scout: find companies in registries and maps, import them
   if (p === "/api/scout" && m === "GET") return json(scoutInfo(await dataKeys(env, ctx)));
@@ -379,15 +446,9 @@ async function route(request, env, url, ctx, exec) {
     // Optionally run the contact finder on the new targets (in the background; it reads their websites).
     // The free website scan runs in the background. Deep enrich (paid, slower) is driven by the browser one target
     // at a time through /api/targets/:id/enrich, so it never runs into the background time limit.
-    if (b.find_contacts && out.imported) {
-      const names = rows.map((x) => x.name);
-      exec.waitUntil((async () => {
-        const keys = await dataKeys(env, ctx);
-        const { results } = await env.DB.prepare(`SELECT id FROM targets WHERE account_id = ?1 AND name IN (${names.map((_, i) => `?${i + 2}`).join(",")}) ORDER BY id DESC LIMIT ?${names.length + 2}`).bind(ctx.accountId, ...names, names.length).all();
-        for (const t of results.slice(0, 25)) {
-          try { await enrichTarget(env, ctx, t.id, keys); } catch (e) { console.warn("enrich", t.id, e.message); }
-        }
-      })());
+    if (b.find_contacts && out.ids?.length) {
+      // One queue message per new target, so each website scan gets its own time budget.
+      await env.WORK.sendBatch(out.ids.slice(0, 100).map((id) => ({ body: { type: "enrich", accountId: ctx.accountId, targetId: id, userId: ctx.user.id || null } })));
     }
     return json(out, 201);
   }
@@ -765,6 +826,14 @@ const API_DOCS = {
     ["GET", "/api/calls/notes?call_sid=CA…", "AI notes for a recorded call (when recording is on): summary, suggested outcome, next step, callback time, owner facts"],
     ["GET", "/api/dialer/insights", "Best hours to call (owner's local time), caller-ID health, outcomes"],
     ["GET", "/api/dialer/team", "Leaderboard and who's dialing now"],
+    ["GET", "/api/today?tz=", "Today: the ordered daily plan (callbacks, JL sequence touches, signals, deal deadlines, gate documents to chase, board and lender follow-ups) and the 3C scorecard"],
+    ["GET", "/api/relationships?kind=board|bench|lender", "C1/C2 hub: board, professional bench and the lender matrix, with the skill's metrics"],
+    ["POST", "/api/relationships", "Add one {kind, role, name, firm, email, phone, linkedin, status, equity_pct, terms: {min_dscr, max_ltv, pg_policy, amort_years, timing_days, ticket_min, ticket_max, sectors, ...}, notes, next_date}"],
+    ["GET", "/api/targets/:id/lenders", "Lenders from your matrix ranked by fit for this deal (ticket, DSCR, sector, PG, unsecured) and where financing stands"],
+    ["POST", "/api/targets/:id/financing", "Track a deal with a lender {relationship_id, stage: sent|term_sheet|credit|approved|declined, amount?, terms?}"],
+    ["GET", "/api/targets/:id/room", "Deal room: qualification gate, NBIO/LOI, diligence log, conditions precedent, close, first 100 days, clocks and warnings"],
+    ["PATCH", "/api/targets/:id/room", "Milestones {offer_at, offer_price, offer_kind, loi_signed_at, exclusivity_days, dd_start, contract_start, settled_at, final_price, budget_fees, spent_fees}"],
+    ["POST", "/api/targets/:id/room/items", "Add a checklist line {list: gate|dd|cp|close|plan, title, section?, severity?, due_date?}; a red flag from the matrix brings its severity and action"],
     ["GET", "/api/usage?days=30", "AI usage and estimated cost"],
     ["GET", "/api/integrations", "Connected AI providers and webhooks"],
   ],

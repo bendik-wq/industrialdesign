@@ -227,7 +227,11 @@ export async function saveKey(env, ctx, provider, b) {
   const key = String(b.key || "").trim();
   const meta = cleanMeta(provider, b.meta);
   if (!key) {
-    // Settings only (e.g. a new voice ID) for an already-connected key.
+    // Settings only (e.g. a new voice ID) for an already-connected key. A changed server URL needs the key again, so a
+    // stored secret is never sent to a new host.
+    const cur = await env.DB.prepare("SELECT meta FROM account_keys WHERE account_id = ?1 AND provider = ?2").bind(ctx.accountId, provider).first();
+    const before = JSON.parse(cur?.meta || "{}");
+    if (Object.keys(meta).some((k) => /url$/i.test(k) && meta[k] !== before[k])) throw err(400, "Paste the key again to change the server address");
     const done = await env.DB.prepare("UPDATE account_keys SET meta = ?3, updated_at = ?4 WHERE account_id = ?1 AND provider = ?2 RETURNING provider")
       .bind(ctx.accountId, provider, JSON.stringify(meta), new Date().toISOString()).first();
     if (!done) throw err(400, "Paste the key first");

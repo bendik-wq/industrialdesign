@@ -29,6 +29,7 @@ export async function renderTarget(id, seq) {
         <button class="primary" id="askJosh" type="button">Ask Josh about ${esc(t.name.length > 24 ? "this target" : t.name)}</button>
         <button class="ghost" id="emailOwner" type="button">Email the owner</button>
         <a class="ghost" href="#/dialer?target=${t.id}">Call</a>
+        <a class="ghost" href="#/room/${t.id}">Deal room</a>
         <button class="ghost" id="pushCampaign" type="button">Add to campaign</button>
         <div class="menu-wrap">
           <button class="ghost" id="moreBtn" type="button" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">⌄</span></button>

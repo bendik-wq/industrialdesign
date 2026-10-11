@@ -6,6 +6,8 @@ import { JL_SKILL, jlSections, SOURCE_RULE } from "./jlskill.js";
 import { chat, chatJson } from "./ai.js";
 import { dealModel, targetDeal, structureSummary, money, ELEMENTS } from "../public/js/deal.js";
 import { targetFacts, pipelineBrief } from "./pipeline.js";
+import { rosterBlock, lendersBlock } from "./capabilities.js";
+import { CREDIBILITY_OUTPUTS, NBIO, ROOM_TEMPLATES } from "../public/js/jl.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 
@@ -23,6 +25,7 @@ const JL_QUERY = {
   lender: "Bank Relationship Playbook lender introduction DSCR ICR collateral personal guarantee working capital",
   outreach: "Initial Outreach Cold Call script Seller Relationship Follow-up Multi-Channel Sequencing relationship-building cadence",
   board: "Board recruitment founder equity KPIs capabilities credibility",
+  credibility: "Capabilities credibility outputs board advisory roster external professional bench thesis NBIO diligence checklist industry selection roll-up",
   diligence: "Due Diligence Quality of Earnings EBITDA adjustments working capital red flag decision matrix",
 };
 const deskSystem = (env, kind) => ({ text: DESK_PERSONA, cached: JL_SKILL, fallback: `${DESK_PERSONA}\n\n${jlSections(JL_QUERY[kind] || kind, 4, 7000)}` });
@@ -96,8 +99,13 @@ Write this month's board meeting minutes in markdown: ## Attendance (the four di
   },
   lender: {
     agent: "capital", label: "Lender pack", needsTarget: true, maxTokens: 2600, effort: "medium",
-    prompt: (t, p) => `<facts>\n${targetFacts(t)}\n</facts>\n${dealBlock(t).text}\n${buyerBlock(p)}\n${notesBlock(t)}
-Write the financing plan and lender pack in markdown that the buyer sends to a commercial lender. ## The request (amount, term, rate range, purpose, in two sentences); ## The business (what it does, how long, people, customers); ## Why it services the debt (EBITDA, free cash flow, DSCR in the weakest year from the deal block, what happens to DSCR if EBITDA falls 20%); ## The structure around the loan (vendor note subordinated to the bank, payment holiday, rollover; why the seller staying in de-risks it); ## Security and covenants we can offer; ## The buyer (track record from the buyer block; [placeholder] for anything missing); ## Documents enclosed (checklist: 3 years accounts, tax returns, management accounts, debt schedule, customer list, LOI). Then a short section for the buyer only, headed ## Lenders to call, describing the three kinds of lender to approach for this deal size and sector and the order to call them in. If the structure has no bank debt, say plainly that no lender is needed and turn the pack into a note for the seller explaining the vendor finance terms.`,
+    prompt: (t, p, opts = {}) => `<facts>\n${targetFacts(t)}\n</facts>\n${dealBlock(t).text}\n${buyerBlock(p)}\n${notesBlock(t)}
+Write the financing plan and lender pack in markdown that the buyer sends to a commercial lender. ## The request (amount, term, rate range, purpose, in two sentences); ## The business (what it does, how long, people, customers); ## Why it services the debt (EBITDA, free cash flow, DSCR in the weakest year from the deal block, what happens to DSCR if EBITDA falls 20%); ## The structure around the loan (vendor note subordinated to the bank, payment holiday, rollover; why the seller staying in de-risks it); ## Security and covenants we can offer; ## The buyer (track record from the buyer block; [placeholder] for anything missing); ## Documents enclosed (checklist: 3 years accounts, tax returns, management accounts, debt schedule, customer list, LOI). Then a short section for the buyer only, headed ## Lenders to call: ${opts.lenders ? `rank the lenders from the buyer's own lender matrix below, best fit first, with one line each on why and what to ask them (from the skill's interview questions). Name only these lenders.\n<lenders>\n${opts.lenders}\n</lenders>` : "the buyer has no lender matrix yet; say so, and that the skill says to interview 20-50 lenders before sourcing a deal, then list the skill's Phase 2 call questions to use."} If the structure has no bank debt, say plainly that no lender is needed and turn the pack into a note for the seller explaining the vendor finance terms.`,
+  },
+  credibility: {
+    agent: "board", label: "Credibility packet", needsTarget: false, maxTokens: 3200, effort: "medium",
+    prompt: (_t, p, opts) => `${buyerBlock(p)}\n<roster>\n${opts.roster || "(no board or bench members recorded yet)"}\n</roster>\nDate: ${today()}
+Write the buyer's credibility packet in markdown, following the JL skill's Credibility Outputs (${CREDIBILITY_OUTPUTS.join("; ")}). Sections: ## Thesis memo (what we buy, where, why this sector, the roll-up and exit, in under 250 words; [placeholder] where the buyer block doesn't say); ## Board and advisors (the roster exactly as given: name, role, firm, track record; never add people, titles, years or deal values that aren't in <roster>; for each empty seat among Chair, Finance Lead, Legal Lead and Sector Operator write "[Seat open: recruiting]"); ## Professional bench (accountants, lawyers, industry SMEs from the roster, same rule); ## Positioning line (one sentence in the style "Over [X] years cumulative experience, [$Y] in transactions", built only from numbers in the roster, otherwise with placeholders). Stop after the positioning line: the NBIO template and diligence checklist are added from the skill after your text. End with a one-line note that the buyer should check every name and number before sharing.`,
   },
   plan100: {
     agent: "integrate", label: "100-day plan", needsTarget: true, maxTokens: 2600, effort: "medium",
@@ -193,14 +201,19 @@ Review these financials like a buy-side quality-of-earnings analyst. Compute rep
     return { kind, title: `Diligence review: ${target.name}`, content, meta: { normalised_ebitda: r.normalised_ebitda, reported_ebitda: r.reported_ebitda }, out };
   }
   if (kind === "board") opts.brief = await pipelineBrief(env, ctx, 40);
+  if (kind === "credibility") opts.roster = await rosterBlock(env, ctx.accountId);
+  if (kind === "lender") opts.lenders = await lendersBlock(env, ctx, target).catch(() => "");
   if (kind === "outreach" && !k.channels[opts.channel]) opts.channel = "letter";
   const out = await chat(env, deskSystem(env, kind), [{ role: "user", content: k.prompt(target, profile, opts) }], k.maxTokens, k.effort);
   const titles = {
     loi: `LOI: ${target?.name}`, memo: `Investment memo: ${target?.name}`, plan100: `100-day plan: ${target?.name}`,
     lender: `Lender pack: ${target?.name}`,
     outreach: `${{ letter: "Letter", email: "Email", call: "Call script", linkedin: "LinkedIn", voicemail: "Voicemail" }[opts.channel]}: ${target?.name}`,
+    credibility: "Credibility packet",
     board: `Board meeting ${new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`,
   };
+  // The packet's templates are the skill's own lines, not the model's.
+  if (kind === "credibility") out.text = `${out.text.trim()}\n\n## NBIO template\n${NBIO.includes.map((x) => `### ${x}\n[ ]`).join("\n")}\n\n## Diligence checklist\n${[...new Set(ROOM_TEMPLATES.dd.map((x) => x.section))].map((sec) => `### ${sec}\n${ROOM_TEMPLATES.dd.filter((x) => x.section === sec).map((x) => `- [ ] ${x.title}`).join("\n")}`).join("\n\n")}\n\n_Templates from the JL skill: the 3C Acquisition Model. Check every name and number before sharing._`;
   return { kind, title: titles[kind], content: out.text, meta: { channel: opts.channel || null, language: opts.language || null }, out };
 }
 

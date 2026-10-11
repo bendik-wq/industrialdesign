@@ -518,3 +518,99 @@ CREATE TABLE IF NOT EXISTS signals (
 );
 CREATE INDEX IF NOT EXISTS signals_acct ON signals (account_id, id DESC);
 CREATE INDEX IF NOT EXISTS signals_target ON signals (account_id, target_id, kind, created_at);
+
+-- v14: C1/C2 hub. The board, the professional bench and the lender matrix (JL skill: Capabilities and Capital).
+CREATE TABLE IF NOT EXISTS relationships (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,                 -- board | bench | lender
+  role TEXT NOT NULL DEFAULT '',      -- board: chair | finance | legal | sector; bench: accountant | lawyer | sme; lender: bank type
+  name TEXT NOT NULL,
+  firm TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL DEFAULT '',
+  phone TEXT NOT NULL DEFAULT '',
+  linkedin TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'prospect',
+  equity_pct REAL,                    -- board: founders' equity offered
+  terms TEXT NOT NULL DEFAULT '{}',   -- JSON: lender matrix fields; bench fee terms; board vesting, bio
+  notes TEXT NOT NULL DEFAULT '',
+  last_contact TEXT,
+  next_date TEXT,
+  created_by INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS relationships_acct ON relationships (account_id, kind, status);
+-- A deal sent to a lender, and where it stands.
+CREATE TABLE IF NOT EXISTS financing (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  relationship_id INTEGER NOT NULL,
+  stage TEXT NOT NULL DEFAULT 'sent',  -- sent | term_sheet | credit | approved | declined
+  amount REAL,
+  terms TEXT NOT NULL DEFAULT '{}',    -- JSON: rate, years, dscr, pg, security, notes from the term sheet
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (account_id, target_id, relationship_id)
+);
+CREATE INDEX IF NOT EXISTS financing_target ON financing (account_id, target_id);
+
+-- v15: the deal room. One per target: milestones of the five-step deal flow, the seller's upload link, and one
+-- checklist table for the qualification gate, the diligence log, conditions precedent, settlement and 100 days.
+CREATE TABLE IF NOT EXISTS deal_rooms (
+  target_id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  token_hash TEXT,                     -- sha256 of the seller's link token
+  token_hint TEXT,
+  link_on INTEGER NOT NULL DEFAULT 0,
+  seller_name TEXT,
+  nda_at TEXT, nda_name TEXT, nda_ip TEXT,
+  first_contact TEXT,
+  offer_at TEXT, offer_price REAL, offer_kind TEXT, offer_terms TEXT,
+  loi_signed_at TEXT, exclusivity_days INTEGER,
+  dd_start TEXT, contract_start TEXT, settled_at TEXT, final_price REAL,
+  budget_fees REAL, spent_fees REAL,
+  seller_seen_at TEXT, seller_views INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS deal_rooms_token ON deal_rooms (token_hash);
+CREATE TABLE IF NOT EXISTS deal_items (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  list TEXT NOT NULL,                  -- gate | dd | cp | close | plan
+  section TEXT NOT NULL DEFAULT '',
+  title TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open', -- open | requested | received | done | issue | na
+  severity TEXT,                       -- high | medium | low (diligence issues, from the red flag matrix)
+  action TEXT,
+  seller INTEGER NOT NULL DEFAULT 0,   -- the seller sees it on their link
+  upload INTEGER NOT NULL DEFAULT 0,   -- and can upload to it
+  owner TEXT NOT NULL DEFAULT '',
+  due_date TEXT,
+  notes TEXT NOT NULL DEFAULT '',
+  sort INTEGER NOT NULL DEFAULT 0,
+  done_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS deal_items_target ON deal_items (account_id, target_id, list, sort);
+-- Files larger than one D1 row are stored in chunks; files.data then holds nothing and files.chunks the count.
+CREATE TABLE IF NOT EXISTS file_chunks (
+  file_id INTEGER NOT NULL,
+  n INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  PRIMARY KEY (file_id, n)
+);
+-- Which checklist item a deal-room file answers, who sent it, and how many chunks it's stored in (0 = in files.data).
+CREATE TABLE IF NOT EXISTS room_files (
+  file_id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  item_id INTEGER,
+  source TEXT NOT NULL DEFAULT 'team',  -- team | seller
+  chunks INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS room_files_target ON room_files (account_id, target_id);

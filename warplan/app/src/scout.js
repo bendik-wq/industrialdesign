@@ -89,7 +89,7 @@ const places = {
       headers: { "Content-Type": "application/json", "X-Goog-Api-Key": keys.google_places, "X-Goog-FieldMask": "nextPageToken,places.id,places.displayName,places.formattedAddress,places.addressComponents,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.businessStatus" },
       body: JSON.stringify(body),
     });
-    const rows = (d?.places || []).filter((x) => x.businessStatus !== "CLOSED_PERMANENTLY").map((x) => {
+    const rows = (d?.places || []).filter((x) => x.displayName?.text && x.businessStatus !== "CLOSED_PERMANENTLY").map((x) => {
       const comp = (t) => x.addressComponents?.find((c) => c.types?.includes(t))?.longText;
       return {
         source: "places", source_id: x.id, name: x.displayName?.text, location: [comp("locality"), comp("administrative_area_level_1")].filter(Boolean).join(", "), address: x.formattedAddress || "",
@@ -247,7 +247,7 @@ export function scoutInfo(keys) {
 }
 
 export async function scoutSearch(env, ctx, b, keys) {
-  const src = SOURCES[b.source];
+  const src = Object.hasOwn(SOURCES, b.source) ? SOURCES[b.source] : null;
   if (!src) throw err(400, "Pick a source");
   if (!industryById(b.industry)) throw err(400, "Pick an industry");
   const q = { industry: b.industry, region: String(b.region || "").trim().slice(0, 80), minStaff: Math.max(0, +b.min_staff || 0), page: Math.max(1, Math.min(50, +b.page || 1)), cursor: b.cursor ? String(b.cursor) : null };

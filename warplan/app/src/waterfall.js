@@ -154,7 +154,7 @@ export async function deepEnrich(env, ctx, targetId, { mobile = false, linkedin 
   const stmts = found.map((c) => env.DB.prepare(`INSERT INTO contacts (account_id, target_id, kind, value, label, source, confidence, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
     ON CONFLICT (target_id, kind, value) DO UPDATE SET label = ?5, source = ?6, confidence = ?7`).bind(ctx.accountId, t.id, c.kind, c.value, c.label.slice(0, 200), c.source, c.confidence, stamp));
   const bestPhone = found.find((c) => c.kind === "phone" && c.owner)?.value || found.find((c) => c.kind === "phone")?.value || null;
-  stmts.push(env.DB.prepare(`UPDATE targets SET email = CASE WHEN ?3 IS NOT NULL THEN ?3 ELSE email END, phone = CASE WHEN phone = '' AND ?4 IS NOT NULL THEN ?4 ELSE phone END,
+  stmts.push(env.DB.prepare(`UPDATE targets SET email = CASE WHEN email = '' AND ?3 IS NOT NULL THEN ?3 ELSE email END, phone = CASE WHEN phone = '' AND ?4 IS NOT NULL THEN ?4 ELSE phone END,
     website = CASE WHEN website = '' THEN ?5 ELSE website END, owner_name = CASE WHEN owner_name = '' THEN ?6 ELSE owner_name END, updated_at = ?7 WHERE id = ?1 AND account_id = ?2`)
     .bind(t.id, ctx.accountId, ownerEmail, bestPhone, website || "", ownerName || "", stamp));
   const emails = found.filter((c) => c.kind === "email").length;

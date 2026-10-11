@@ -30,3 +30,9 @@ test("which pages to watch: home plus about/team pages on the same site", () => 
   assert.deepEqual(p, ["https://belmontphysio.com.au/", "https://belmontphysio.com.au/about-us", "https://www.belmontphysio.com.au/our-team"]);
   assert.ok(lines("Home\nAbout\nThis is a sentence long enough to count as content.").length === 1);
 });
+
+test("job ads aren't sale signals: 'expressions of interest across a range of roles'", () => {
+  const s = detect("", "We welcome expressions of interest across a range of roles — from physiotherapists and allied health professionals to front-of-house and support staff.");
+  assert.equal(s.find((x) => x.kind === "for_sale"), undefined);
+  assert.equal(detect("", "The owners invite expressions of interest to acquire the practice as they plan their retirement next year.").some((x) => x.kind === "for_sale"), true);
+});

@@ -185,3 +185,23 @@ export function compact(v, depth = 0) {
   }
   return v;
 }
+
+// Runs that were still going when run() stopped waiting are logged at $0. The 10-minute cron settles them here, so
+// the monthly budget counts what they really cost. Runs older than two days that never settle are marked lost.
+export async function reconcileRuns(env, limit = 40) {
+  const pending = [...DONE].map((s) => `'${s}'`).join(", ");
+  const { results } = await env.DB.prepare(`SELECT id, account_id, run_id, created_at FROM monid_runs WHERE run_id IS NOT NULL AND status NOT IN (${pending}, 'LOST') ORDER BY id LIMIT ?1`).bind(limit).all();
+  const keys = new Map();
+  for (const r of results) {
+    try {
+      if (!keys.has(r.account_id)) keys.set(r.account_id, await monidKey(env, { accountId: r.account_id, user: {} }));
+      const key = keys.get(r.account_id);
+      const old = Date.now() - Date.parse(r.created_at) > 2 * 864e5;
+      if (!key) { if (old) await env.DB.prepare("UPDATE monid_runs SET status = 'LOST' WHERE id = ?1").bind(r.id).run(); continue; }
+      const d = await call(key, "GET", `/v1/runs/${encodeURIComponent(r.run_id)}`);
+      if (DONE.has(d.status)) await env.DB.prepare("UPDATE monid_runs SET status = ?2, cost = ?3 WHERE id = ?1").bind(r.id, d.status, +(d.cost?.value ?? 0) || 0).run();
+      else if (old) await env.DB.prepare("UPDATE monid_runs SET status = 'LOST' WHERE id = ?1").bind(r.id).run();
+    } catch (e) { console.warn("monid reconcile", r.id, e.message); }
+  }
+  return results.length;
+}

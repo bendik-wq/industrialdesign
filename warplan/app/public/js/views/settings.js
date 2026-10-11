@@ -41,6 +41,7 @@ async function profile(seq) {
         <label class="field">New password<input name="next" type="password" required minlength="10" autocomplete="new-password"></label>
         <p class="muted small">At least 10 characters. Changing it signs you out everywhere else.</p>
         <button class="primary" type="submit">Change password</button>
+        <p class="muted small">Lost a laptop or shared a login? <button class="link" type="button" id="outAll">Sign out on every device</button></p>
       </form>
     </div>`;
   $("#who").addEventListener("submit", async (e) => {
@@ -49,6 +50,7 @@ async function profile(seq) {
     try { await post("/api/me", f, "PATCH"); session.me.user.name = f.name; if (f.workspace) session.me.account.name = f.workspace; $("#who-name").textContent = f.name; toast("Saved"); } catch (err) { fail(err); }
   });
   $("#buyer").addEventListener("submit", (e) => { e.preventDefault(); synced.set("profile", Object.fromEntries(new FormData(e.target))); toast("Saved. The agents will use it from now on."); });
+  $("#outAll").addEventListener("click", async () => { await fetch("/api/logout?everywhere=1", { method: "POST" }); location.href = "/login"; });
   $("#pw").addEventListener("submit", async (e) => {
     e.preventDefault();
     try { await post("/api/me/password", Object.fromEntries(new FormData(e.target))); e.target.reset(); toast("Password changed"); } catch (err) { fail(err); }

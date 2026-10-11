@@ -30,11 +30,16 @@ export async function listInbox(env, ctx, status = "pending") {
   return results.map((r) => ({ ...r, input: JSON.parse(r.input), result: r.result ? JSON.parse(r.result) : null, write: !!toolByName(r.tool)?.write }));
 }
 
+const COSTLY = new Set(["monid_run", "deep_enrich"]);
+
 export async function decide(env, ctx, id, approve, hooks) {
   const a = await env.DB.prepare("SELECT * FROM agent_actions WHERE id = ?1 AND account_id = ?2").bind(id, ctx.accountId).first();
   if (!a) throw err(404, "That proposal doesn't exist");
   if (a.status !== "pending") throw err(409, `Already ${a.status}`);
   const who = ctx.user.name || ctx.user.email;
+  // Approval is the human gate: an API token can't pass it, and only owners approve actions that spend money.
+  if (approve && ctx.viaToken) throw err(403, "Approve agent actions in the app, signed in");
+  if (approve && !ctx.isOwner && COSTLY.has(a.tool)) throw err(403, "Ask a workspace owner to approve this: it costs money");
   if (!approve) {
     await env.DB.prepare("UPDATE agent_actions SET status = 'dismissed', decided_by = ?3, decided_at = ?4 WHERE id = ?1 AND account_id = ?2").bind(id, ctx.accountId, who, now()).run();
     return { ok: true, status: "dismissed" };
@@ -42,9 +47,13 @@ export async function decide(env, ctx, id, approve, hooks) {
   // Claim it first so a double-click can't run it twice.
   const claimed = await env.DB.prepare("UPDATE agent_actions SET status = 'running', decided_by = ?3, decided_at = ?4 WHERE id = ?1 AND account_id = ?2 AND status = 'pending' RETURNING id").bind(id, ctx.accountId, who, now()).first();
   if (!claimed) throw err(409, "Someone is already handling this");
-  const ai = await aiEnv(env, ctx);
-  if (a.tool === "draft_document") { try { await checkLimits(env, ai, ctx); } catch (e) { await env.DB.prepare("UPDATE agent_actions SET status = 'pending', decided_by = NULL, decided_at = NULL WHERE id = ?1").bind(id).run(); throw e; } }
-  const r = await runTool(env, ctx, ai, hooks, a.tool, JSON.parse(a.input), { approved: true });
+  const release = () => env.DB.prepare("UPDATE agent_actions SET status = 'pending', decided_by = NULL, decided_at = NULL WHERE id = ?1").bind(id).run();
+  let r;
+  try {
+    const ai = await aiEnv(env, ctx);
+    if (a.tool === "draft_document") await checkLimits(env, ai, ctx);
+    r = await runTool(env, ctx, ai, hooks, a.tool, JSON.parse(a.input), { approved: true });
+  } catch (e) { await release(); throw e; }
   await env.DB.prepare("UPDATE agent_actions SET status = ?3, result = ?4 WHERE id = ?1 AND account_id = ?2").bind(id, ctx.accountId, r.ok ? "done" : "failed", JSON.stringify(r.result).slice(0, 20000)).run();
   return { ok: r.ok, status: r.ok ? "done" : "failed", result: r.result };
 }
@@ -62,11 +71,11 @@ export async function autopilotRun(env, accountId, exec) {
     const q = async (a) => { if (proposals.length >= MAX_PROPOSALS_PER_RUN) return; const id = await propose(env, accountId, a); if (id) proposals.push({ id, ...a }); };
     // Quiet targets in active conversation: draft a follow-up.
     const { results: quiet } = await env.DB.prepare(`SELECT id, name, stage, owner_name, CAST(julianday('now') - julianday(updated_at) AS INTEGER) AS days FROM targets
-      WHERE account_id = ?1 AND stage IN ('contacted','first_call','meeting','docs','loi','diligence') AND updated_at < datetime('now', '-14 days') ORDER BY updated_at LIMIT 10`).bind(accountId).all();
+      WHERE account_id = ?1 AND stage IN ('contacted','first_call','meeting','docs','loi','diligence') AND updated_at < ?2 ORDER BY updated_at LIMIT 10`).bind(accountId, new Date(Date.now() - 14 * 864e5).toISOString()).all();
     for (const t of quiet) await q({ target_id: t.id, tool: "draft_document", input: { kind: "outreach", target_id: t.id, channel: "email" }, title: `Draft a follow-up email to ${t.owner_name || t.name}`, reason: `${t.name} has had no activity for ${t.days} days. Deals die in silence.`, dedupe: `followup:${t.id}` });
     // New targets with nothing written yet: draft the first letter.
-    const { results: fresh } = await env.DB.prepare(`SELECT t.id, t.name, t.owner_name FROM targets t WHERE t.account_id = ?1 AND t.stage = 'sourced' AND t.created_at < datetime('now', '-1 day')
-      AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.target_id = t.id) ORDER BY t.priority, t.created_at LIMIT 5`).bind(accountId).all();
+    const { results: fresh } = await env.DB.prepare(`SELECT t.id, t.name, t.owner_name FROM targets t WHERE t.account_id = ?1 AND t.stage = 'sourced' AND t.created_at < ?2
+      AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.target_id = t.id) ORDER BY t.priority, t.created_at LIMIT 5`).bind(accountId, new Date(Date.now() - 864e5).toISOString()).all();
     for (const t of fresh) await q({ target_id: t.id, tool: "draft_document", input: { kind: "outreach", target_id: t.id, channel: "letter" }, title: `Write the first letter to ${t.owner_name || t.name}`, reason: `${t.name} is in your pipeline with no outreach yet.`, dedupe: `firstletter:${t.id}` });
     // Overdue next actions with no date discipline: push the date and flag it.
     for (const d of ov.overdue.slice(0, 5)) await q({ target_id: d.id, tool: "log_activity", input: { target_id: d.id, kind: "note", body: `Autopilot: “${d.next_action}” was due ${d.next_date} and hasn't been done.` }, title: `Flag the overdue action on ${d.name}`, reason: `“${d.next_action}” was due ${d.next_date}.`, dedupe: `overdue:${d.id}:${d.next_date}` });

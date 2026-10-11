@@ -18,6 +18,9 @@ import { sendText } from "./imessage.js";
 import { ownershipCheck } from "./registry.js";
 import { listSignals } from "./watch.js";
 import { buildModel } from "./lab.js";
+import { today as todayPlan } from "./today.js";
+import { listRelationships, lenderFit, createRelationship, updateRelationship } from "./capabilities.js";
+import { getRoom, addItem } from "./dealroom.js";
 import { checkLimits } from "./usage.js";
 import { researchTarget, RESEARCH_PRICE } from "./research.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
@@ -291,6 +294,51 @@ export const TOOLS = [
     description: "Seller signals from the daily website watch: targets whose site started talking about retiring, a farewell or 'after 30 years', a succession plan or sale, hiring a practice manager, reduced hours, the owner's name disappearing; and the opposite (new owners / now part of a group). Use to decide who to call first. Optional target_id.",
     input_schema: { type: "object", properties: { target_id: { type: "integer" } } },
     run: async (env, ctx, i) => listSignals(env, ctx, { targetId: i.target_id ? +i.target_id : null }),
+  },
+  {
+    name: "today_plan", write: false,
+    description: "The user's plan for today in the JL skill's daily cadence: callbacks due, JL sequence touches (calls, emails, LinkedIn), fresh seller signals, deal-room deadlines (exclusivity, 90-day DD window, 4-week papering), gate documents to chase, board and lender relationships going stale, approvals waiting; plus progress to 1,000 calls and the 3C scorecard (board seats, lenders interviewed, LOI-to-SPA, DD variance, days to close).",
+    input_schema: { type: "object", properties: {} },
+    run: async (env, ctx) => { const t = await todayPlan(env, ctx); return { ...t, tasks: t.tasks.slice(0, 30) }; },
+  },
+  {
+    name: "board_bench_lenders", write: false,
+    description: "C1/C2 of the 3C model: the user's board (chair, finance, legal, sector seats; founders' equity), professional bench (accountants, lawyers, SMEs; rolled fees) and lender matrix (min DSCR, max LTV, PG policy, amortisation, timing, ticket size, sector appetite), with statuses and who's going stale. kind: board | bench | lender (optional).",
+    input_schema: { type: "object", properties: { kind: { type: "string", enum: ["board", "bench", "lender"] } } },
+    run: async (env, ctx, i) => listRelationships(env, ctx, i.kind || null),
+  },
+  {
+    name: "add_relationship", write: true,
+    title: (i) => `Add ${i.name} (${i.kind})`,
+    description: "Add a board candidate, bench advisor or lender to the C1/C2 hub. For lenders, terms can carry the matrix fields: min_dscr, icr, max_ltv, pg_policy, amort_years, balloon, timing_days, ticket_min, ticket_max, sectors, decisioning, collateral, covenants, unsecured. Board roles: chair, finance, legal, sector. Bench roles: accountant, lawyer, sme.",
+    input_schema: { type: "object", properties: { kind: { type: "string", enum: ["board", "bench", "lender"] }, name: { type: "string" }, firm: { type: "string" }, role: { type: "string" }, email: { type: "string" }, phone: { type: "string" }, equity_pct: { type: "number" }, notes: { type: "string" }, terms: { type: "object" } }, required: ["kind", "name"] },
+    run: async (env, ctx, i) => createRelationship(env, ctx, i),
+  },
+  {
+    name: "update_relationship", write: true,
+    title: (i) => `Update relationship ${i.id}`,
+    description: "Update a board, bench or lender record: status (board: prospect, pitched, call, agreed, signed, passed; bench: prospect, contacted, terms, engaged, passed; lender: prospect, emailed, interviewed, relationship, passed), last_contact / next_date (YYYY-MM-DD), notes, or matrix terms (merged into what's there).",
+    input_schema: { type: "object", properties: { id: { type: "integer" }, status: { type: "string" }, last_contact: { type: "string" }, next_date: { type: "string" }, notes: { type: "string" }, equity_pct: { type: "number" }, terms: { type: "object" } }, required: ["id"] },
+    run: async (env, ctx, { id, ...b }) => updateRelationship(env, ctx, id, b),
+  },
+  {
+    name: "lender_fit", write: false,
+    description: "Rank the lenders in the user's matrix for one target's deal: the commercial-debt amount the structure needs (or the whole price as a hypothetical for pure vendor finance), checked against each lender's ticket size, min DSCR, sector appetite, PG policy and unsecured appetite; plus which lenders already have the deal and at what stage (sent, term sheet, credit, approved, declined).",
+    input_schema: { type: "object", properties: { target_id: { type: "integer" } }, required: ["target_id"] },
+    run: async (env, ctx, i) => lenderFit(env, ctx, +i.target_id),
+  },
+  {
+    name: "deal_room", write: false,
+    description: "A target's deal room (C3): the qualification gate (NDA, ≥3 years financials and tax returns, healthcare billing by practitioner) and what the seller has uploaded, NBIO/LOI and exclusivity, the diligence log with red flags graded by the skill's matrix, conditions precedent, close and settlement, the first 100 days, clocks and warnings, and the seller's motivation signal from how fast financials came after the NDA.",
+    input_schema: { type: "object", properties: { target_id: { type: "integer" } }, required: ["target_id"] },
+    run: async (env, ctx, i) => { const r = await getRoom(env, ctx, +i.target_id); return { ...r, lists: Object.fromEntries(Object.entries(r.lists).map(([k, v]) => [k, v.map(({ id, section, title, status, severity, action, due_date, notes }) => ({ id, section, title, status, severity, action, due_date, notes }))])), redFlagMatrix: undefined }; },
+  },
+  {
+    name: "log_diligence_item", write: true,
+    title: (i) => `Log "${i.title}" in the ${i.list || "dd"} list`,
+    description: "Add a line to a target's deal room. list: gate | dd | cp | close | plan. To log a red flag, use the exact wording from the skill's Red Flag Decision Matrix (\"Financials ≠ Tax Returns\", \"Customer concentration >50%\", \"Seller won't transition\", \"Clean quality issues <10% EBITDA\", \"Working capital gap <$50K\", \"Some staff turnover concerns\") and its severity and action come with it; otherwise give status issue and a severity.",
+    input_schema: { type: "object", properties: { target_id: { type: "integer" }, list: { type: "string", enum: ["gate", "dd", "cp", "close", "plan"] }, title: { type: "string" }, section: { type: "string" }, status: { type: "string", enum: ["open", "requested", "issue"] }, severity: { type: "string", enum: ["high", "medium", "low"] }, notes: { type: "string" }, due_date: { type: "string" } }, required: ["target_id", "title"] },
+    run: async (env, ctx, { target_id, ...b }) => addItem(env, ctx, +target_id, { list: "dd", ...b }),
   },
   {
     name: "web_search", write: false,

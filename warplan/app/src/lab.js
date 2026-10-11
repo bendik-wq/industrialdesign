@@ -4,6 +4,7 @@
 // about a cent a month) and wakes on the next job; Python packages stay installed across sleeps.
 //   Security: outbound network limited to the container registry and PyPI (for installing packages), no secrets in
 //   the guest, and jobs only ever receive the deal numbers they need.
+import { fileBytes, deleteRoomFile } from "./dealroom.js";
 import MODEL_PY from "../lab/model.py";
 import { run } from "./monid.js";
 import { getTarget } from "./pipeline.js";
@@ -47,7 +48,16 @@ async function ensureLab(env, ctx, retry = true) {
   let cfg = await getCfg(env, ctx.accountId);
   try {
     if (!cfg?.machine_id) {
-      const m = await sm(env, ctx, "/machines", { body: SPEC }, "Deal Lab: create the machine");
+      // Claim the right to create it first, so two first builds at once can't both make a machine (one would be
+      // orphaned and keep billing for its disk). A claim older than 2 minutes is a crashed attempt: take it over.
+      const stamp = now(), stale = new Date(Date.now() - 120000).toISOString();
+      const claim = await env.DB.prepare(`INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, 'lab', ?2, ?3)
+        ON CONFLICT (account_id, key) DO UPDATE SET data = ?2, updated_at = ?3 WHERE json_extract(settings.data, '$.machine_id') IS NULL AND (json_extract(settings.data, '$.creating') IS NULL OR settings.updated_at < ?4) RETURNING account_id`)
+        .bind(ctx.accountId, JSON.stringify({ creating: true }), stamp, stale).first();
+      if (!claim) throw err(409, "The Deal Lab is starting up. Try again in a minute.");
+      let m;
+      try { m = await sm(env, ctx, "/machines", { body: SPEC }, "Deal Lab: create the machine"); }
+      catch (e) { await env.DB.prepare("DELETE FROM settings WHERE account_id = ?1 AND key = 'lab' AND json_extract(data, '$.creating') = 1").bind(ctx.accountId).run(); throw e; }
       if (!m?.id) throw err(502, "Couldn't create the Deal Lab machine");
       cfg = { machine_id: m.id, created_at: now(), script: null };
       await putCfg(env, ctx.accountId, cfg);
@@ -119,12 +129,10 @@ export async function listFiles(env, ctx, targetId) {
   return { files: results.map((f) => ({ ...f, url: `/api/files/${f.id}` })) };
 }
 export async function getFile(env, ctx, id) {
-  const f = await env.DB.prepare("SELECT name, mime, data FROM files WHERE id = ?1 AND account_id = ?2").bind(+id, ctx.accountId).first();
+  const f = await fileBytes(env, ctx.accountId, id);
   if (!f) throw err(404, "No such file");
-  const body = f.data instanceof ArrayBuffer ? f.data : new Uint8Array(f.data);
-  return new Response(body, { headers: { "Content-Type": f.mime, "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+  return new Response(f.body, { headers: { "Content-Type": f.mime, "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
 }
 export async function deleteFile(env, ctx, id) {
-  await env.DB.prepare("DELETE FROM files WHERE id = ?1 AND account_id = ?2").bind(+id, ctx.accountId).run();
-  return { ok: true };
+  return deleteRoomFile(env, ctx, id);
 }

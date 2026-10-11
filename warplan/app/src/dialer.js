@@ -458,7 +458,7 @@ export async function startBridge(env, ctx, b) {
       if (token) rec = await recordingTwiml(env, ctx.accountId, `${pc.origin}/hooks/twilio/${token}`, to, ctx.user.id);
     }
   }
-  const twiml = `<Response><Say>Connecting you to ${xml(t.name).slice(0, 80)}.</Say><Dial callerId="${xml(callerId)}" timeout="35" answerOnBridge="true"${rec ? rec.dialAttrs : ""}><Number${rec ? ` url="${xml(rec.numberUrl)}"` : ""}>${xml(to)}</Number></Dial></Response>`;
+  const twiml = `<Response><Say>Connecting you to ${xml(String(t.name).slice(0, 80))}.</Say><Dial callerId="${xml(callerId)}" timeout="35" answerOnBridge="true"${rec ? rec.dialAttrs : ""}><Number${rec ? ` url="${xml(rec.numberUrl)}"` : ""}>${xml(to)}</Number></Dial></Response>`;
   if (!tw.agentPhone) throw err(400, "“Twilio rings my phone” needs your own number: add it to the Twilio card in Settings → Integrations (or call from the browser instead)");
   if (!callerId) throw err(400, "Your Twilio account has no number to call from yet: get one in the phone (bottom right) → ⚙");
   const call = await twilioReq(tw, "/Calls.json", { To: tw.agentPhone, From: callerId, Twiml: twiml, Timeout: "25" });

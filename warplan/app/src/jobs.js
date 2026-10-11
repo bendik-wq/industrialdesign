@@ -90,17 +90,23 @@ async function finish(env, job, ctx) {
 
 // Check open jobs: all workspaces (cron) or one (check now). Never throws.
 export async function processJobs(env, accountId = null) {
-  const { results } = await env.DB.prepare(`SELECT j.*, u.email, u.name, u.role FROM jobs j LEFT JOIN users u ON u.id = j.user_id WHERE j.status = 'running' AND (?1 IS NULL OR j.account_id = ?1) AND j.created_at < ?2 ORDER BY j.id LIMIT 25`)
+  // Least recently checked first, and every check touches updated_at, so a few stuck jobs can't starve the rest.
+  const { results } = await env.DB.prepare(`SELECT j.*, u.email, u.name, u.role FROM jobs j LEFT JOIN users u ON u.id = j.user_id WHERE j.status = 'running' AND (?1 IS NULL OR j.account_id = ?1) AND j.created_at < ?2 ORDER BY j.updated_at, j.id LIMIT 25`)
     .bind(accountId, new Date(Date.now() - 30_000).toISOString()).all();
   let done = 0;
+  const failJob = (job, why) => env.DB.prepare("UPDATE jobs SET status = 'failed', result = ?2, updated_at = ?3 WHERE id = ?1").bind(job.id, JSON.stringify({ error: why }), now()).run();
   for (const job of results) {
     const ctx = { accountId: job.account_id, user: { id: job.user_id, name: job.name, email: job.email, role: job.role }, isOwner: job.role === "owner" };
+    // Meetings can be booked up to a week ahead, so a job gets 8 days before it's given up on.
+    const expired = Date.parse(job.created_at) < Date.now() - 864e5 * 8;
     try {
-      if (!(await monidKey(env, ctx))) continue;
+      if (!(await monidKey(env, ctx))) { await failJob(job, "The Monid key was removed"); continue; }
       const out = await finish(env, job, ctx);
-      if (out) { await env.DB.prepare("UPDATE jobs SET status = ?2, result = ?3, updated_at = ?4 WHERE id = ?1").bind(job.id, out.status, JSON.stringify(out.result), now()).run(); done++; }
-      // Give up on jobs nobody can finish after a day.
-      else if (Date.parse(job.created_at) < Date.now() - 864e5 * 8) await env.DB.prepare("UPDATE jobs SET status = 'failed', result = '{\"error\":\"timed out\"}', updated_at = ?2 WHERE id = ?1").bind(job.id, now()).run();
+      if (out) { await env.DB.prepare("UPDATE jobs SET status = ?2, result = ?3, updated_at = ?4 WHERE id = ?1").bind(job.id, out.status, JSON.stringify(out.result), now()).run(); done++; continue; }
+    } catch (e) { console.warn("job", job.id, e.message); }
+    try {
+      if (expired) await failJob(job, "timed out");
+      else await env.DB.prepare("UPDATE jobs SET updated_at = ?2 WHERE id = ?1").bind(job.id, now()).run();
     } catch (e) { console.warn("job", job.id, e.message); }
   }
   return { checked: results.length, finished: done };

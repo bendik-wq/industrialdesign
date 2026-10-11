@@ -127,7 +127,12 @@ export async function deleteTarget(env, ctx, id, hooks) {
     env.DB.prepare("DELETE FROM contacts WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM calls WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM campaign_leads WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM file_chunks WHERE file_id IN (SELECT id FROM files WHERE target_id = ?1 AND account_id = ?2)").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM files WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM room_files WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM deal_items WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM deal_rooms WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM financing WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM target_registry WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM watch_pages WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM signals WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
@@ -207,7 +212,7 @@ export function targetFacts(t) {
 }
 
 // ------------------------------------------------------------------ webhooks
-export const HOOK_EVENTS = ["target.created", "target.updated", "target.stage_changed", "target.note_added", "target.deleted", "target.imported", "document.created", "call.debriefed", "briefing.daily", "action.proposed", "email.sent", "scout.imported", "reply.received", "campaign.pushed", "call.logged", "call.missed", "sms.sent", "sms.received", "signal.detected"];
+export const HOOK_EVENTS = ["target.created", "target.updated", "target.stage_changed", "target.note_added", "target.deleted", "target.imported", "document.created", "call.debriefed", "briefing.daily", "action.proposed", "email.sent", "scout.imported", "reply.received", "campaign.pushed", "call.logged", "call.missed", "sms.sent", "sms.received", "signal.detected", "room.nda_accepted", "room.file_uploaded"];
 
 async function sign(secret, body) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);

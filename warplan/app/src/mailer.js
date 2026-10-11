@@ -154,15 +154,18 @@ export async function syncAgentInboxes(env, accountId = null, triage) {
     try {
       const r = await monidRun(env, ctx, { provider: "agentmail", endpoint: "/list-messages", input: { body: { inboxId: box.email, after, ascending: true, limit: 50 } } }, { purpose: "Check inbox" });
       const msgs = r.output?.messages || r.output?.data || [];
-      let last = after;
+      // The read position moves after every message, and one message that fails is skipped, so nothing is handled
+      // twice and one bad email can't block the inbox.
+      const save = (at) => env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (account_id, key) DO UPDATE SET data = ?3, updated_at = ?4").bind(box.account_id, `agentmail:${box.user_id}`, JSON.stringify({ after: at }), now()).run();
       for (const m of msgs) {
         const from = String(m.from || m.from_ || "").match(/[^\s<>"]+@[^\s<>"]+/)?.[0]?.toLowerCase();
-        last = m.timestamp || m.created_at || last;
-        if (!from || from === box.email.toLowerCase()) continue;
-        await triage(env, { account_id: box.account_id, account_name: box.account_name }, { lead_email: from, subject: m.subject || "", reply_text: m.text || m.extracted_text || m.preview || "" }, "agentmail");
-        replies++;
+        const at = m.timestamp || m.created_at || null;
+        if (from && from !== box.email.toLowerCase()) {
+          try { await triage(env, { account_id: box.account_id, account_name: box.account_name }, { lead_email: from, subject: m.subject || "", reply_text: m.text || m.extracted_text || m.preview || "" }, "agentmail"); replies++; }
+          catch (e) { console.warn("agentmail triage", box.email, e.message); }
+        }
+        if (at) await save(at);
       }
-      await env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (account_id, key) DO UPDATE SET data = ?3, updated_at = ?4").bind(box.account_id, `agentmail:${box.user_id}`, JSON.stringify({ after: last }), now()).run();
     } catch (e) { console.warn("agentmail sync", box.email, e.message); }
   }
   return { inboxes: results.length, replies };
@@ -187,7 +190,10 @@ export async function saveMailbox(env, ctx, b) {
   if (![465, 587, 2525].includes(port)) throw err(400, "Use port 465 (TLS) or 587 (STARTTLS)");
   const username = String(b.username || existing?.username || email).trim();
   const password = String(b.password || "").replace(/\s+/g, ""); // Google shows app passwords in groups of four
-  let sealed = existing ? { ciphertext: existing.ciphertext, iv: existing.iv } : null;
+  // The stored password only ever goes back to the server it was saved for: a new host, port or login needs it typed again.
+  const sameServer = existing && existing.ciphertext && existing.host === host && Number(existing.port) === port && existing.username === username;
+  if (!password && !sameServer) throw err(400, existing?.ciphertext ? "Type the app password again to change the server or login" : "Enter the app password");
+  let sealed = sameServer ? { ciphertext: existing.ciphertext, iv: existing.iv } : null;
   if (password) sealed = await seal(env, password, aad(ctx.user.id));
   if (!sealed) throw err(400, "Enter the app password");
   const box = { email, host, port, username };
