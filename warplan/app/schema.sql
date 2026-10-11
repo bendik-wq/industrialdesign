@@ -445,3 +445,26 @@ CREATE TABLE IF NOT EXISTS phone_info (
   checked_at TEXT NOT NULL,
   PRIMARY KEY (account_id, e164)
 );
+
+-- v11: files Warplan makes for a deal (Excel models from the Deal Lab), served behind the session.
+CREATE TABLE IF NOT EXISTS files (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER,
+  name TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'file',
+  created_by INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS files_target ON files (account_id, target_id, id DESC);
+-- Registry lookups (ABN Lookup, Companies House): who legally owns the business and since when.
+CREATE TABLE IF NOT EXISTS target_registry (
+  target_id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  source TEXT NOT NULL,
+  data TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

@@ -34,6 +34,8 @@ export async function renderTarget(id, seq) {
           <button class="ghost" id="moreBtn" type="button" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">⌄</span></button>
           <div class="menu" id="moreMenu" role="menu" hidden>
             <button type="button" role="menuitem" id="meetBtn">Record a meeting…</button>
+            <button type="button" role="menuitem" id="modelMenu">Build the Excel model…</button>
+            <button type="button" role="menuitem" id="ownMenu">Check ownership (official registry)</button>
             <a role="menuitem" href="#/simulator?target=${t.id}">Practise the call</a>
             <a role="menuitem" href="#/builder?target=${t.id}">Structure the deal</a>
             <button type="button" role="menuitem" id="edit">Edit details…</button>
@@ -46,6 +48,7 @@ export async function renderTarget(id, seq) {
     <div class="target-grid">
       <div class="tg-main">
         ${intelPanel(t)}
+        ${ownershipPanel(t)}
         <section class="panel next-card ${late ? "late" : ""}">
           <h2 class="h3">Next action</h2>
           <form id="nextForm" class="next-form">
@@ -112,10 +115,11 @@ export async function renderTarget(id, seq) {
           <div class="deal-snap ${m.works ? "ok" : "no"}"><b>${m.works ? "✓ Works" : "✕ Not yet"}</b><span>${t.deal ? "Saved structure" : "Default structure, not saved"}</span></div>
           <dl class="facts"><div><dt>Price</dt><dd>${money(m.price, d.cur)} <small class="muted">${d.multiple}×</small></dd></div><div><dt>Weakest DSCR</dt><dd>${m.minDscr ? m.minDscr.toFixed(2) + "×" : "no debt"}</dd></div><div><dt>Your votes</dt><dd>${m.yourVotes}%</dd></div><div><dt>Your cash</dt><dd>${money(m.cashFromYou, d.cur)}</dd></div></dl>
           <a class="ghost wide" href="#/builder?target=${t.id}">Open in Deal Builder</a>
+          <button class="ghost wide" id="modelBtn" type="button">Build the Excel model</button>
         </section>
         <section class="panel">
           <h2 class="h3">Documents</h2>
-          ${t.documents.length ? `<ul class="link-list">${t.documents.map((x) => `<li><a href="#/desk/${x.id}">${esc(x.title)}</a><small>${when(x.updated_at)}</small></li>`).join("")}</ul>` : `<p class="muted small">Letters, LOIs and memos the agents write land here.</p>`}
+          ${t.documents.length || t.files?.length ? `<ul class="link-list">${(t.files || []).map((f) => `<li><a href="/api/files/${f.id}" download>⤓ ${esc(f.name)}</a><small>${when(f.created_at)} · ${Math.max(1, Math.round(f.size / 1024))} KB</small></li>`).join("")}${t.documents.map((x) => `<li><a href="#/desk/${x.id}">${esc(x.title)}</a><small>${when(x.updated_at)}</small></li>`).join("")}</ul>` : `<p class="muted small">Letters, LOIs, memos and Excel models land here.</p>`}
         </section>
         <section class="panel">
           <h2 class="h3">Conversations</h2>
@@ -145,6 +149,27 @@ export async function renderTarget(id, seq) {
   menu.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeMenu(); more.focus(); } });
   $("#pushCampaign").addEventListener("click", async () => { if (await pushDialog([t])) renderTarget(id, seq); });
   $("#deepEnrich").addEventListener("click", async () => { if (await deepEnrichDialog(t)) renderTarget(id, seq); });
+  const checkOwnership = async (btn) => {
+    if (btn) { btn.disabled = true; btn.textContent = "Reading the registry…"; }
+    try { const r = await post(`/api/targets/${t.id}/ownership`); toast(r.receipt); renderTarget(id, seq); } catch (e) { fail(e); if (btn) { btn.disabled = false; btn.textContent = "Try again"; } }
+  };
+  $("#ownBtn")?.addEventListener("click", (e) => checkOwnership(e.currentTarget));
+  $("#ownMenu").addEventListener("click", () => checkOwnership($("#ownBtn")));
+  // Excel model, built in the Deal Lab machine: live formulas a banker or the seller can open and edit.
+  const buildModel = async () => {
+    const r = await dialog({ title: `Excel model: ${t.name}`, submit: "Build it", html: `<p class="small">A real spreadsheet with live formulas: inputs, price, sources and uses, month-by-month seller-note and bank schedules, DSCR by year, ownership and a price sensitivity table. Built from ${t.deal ? "the saved deal structure" : "the default structure (structure the deal first to change it)"}.</p>
+      <p class="small"><b>Add-backs</b> (optional): adjustments to reported EBITDA.</p>
+      ${[1, 2, 3].map((i) => `<div class="two"><label class="field">What<input name="l${i}" placeholder="${["Owner salary above market", "One-off legal costs", "Owner's car and phone"][i - 1]}"></label><label class="field">Amount<input name="a${i}" type="number" step="any" placeholder="0"></label></div>`).join("")}
+      <label class="field">Notes on the model (optional)<textarea name="notes" rows="2" placeholder="Assumptions, what the seller said…"></textarea></label>
+      <p class="muted small">Runs in your Deal Lab (a small Python machine): about 0.1¢ a model. The first one takes ~30 seconds while the machine sets up.</p>` });
+    if (!r) return;
+    const addbacks = [1, 2, 3].map((i) => ({ label: r[`l${i}`], amount: +r[`a${i}`] || 0 })).filter((a) => a.label && a.amount);
+    const btn = $("#modelBtn"); btn.disabled = true; btn.textContent = "Building in the Deal Lab…";
+    try { const out = await post(`/api/targets/${t.id}/model`, { addbacks, notes: r.notes }); toast(out.receipt); const a = document.createElement("a"); a.href = out.url; a.download = out.name; document.body.append(a); a.click(); a.remove(); renderTarget(id, seq); }
+    catch (e) { fail(e); btn.disabled = false; btn.textContent = "Build the Excel model"; }
+  };
+  $("#modelBtn").addEventListener("click", buildModel);
+  $("#modelMenu").addEventListener("click", buildModel);
   $$("[data-mail]").forEach((b) => b.addEventListener("click", () => mail(b.dataset.mail)));
   $$("[data-cp]").forEach((b) => b.addEventListener("click", () => navigator.clipboard.writeText(b.dataset.cp).then(() => toast("Copied"))));
   $("#findContacts").addEventListener("click", async (e) => {
@@ -199,6 +224,31 @@ export async function renderTarget(id, seq) {
     try { await api(`/api/targets/${t.id}/events/${b.dataset.delEv}`, { method: "DELETE" }); renderTarget(id, seq); } catch (e) { fail(e); }
   }));
   $$("[data-gen]").forEach((b) => b.addEventListener("click", () => generateFor(t, b)));
+}
+
+// Ownership X-ray from the official registry: who legally owns it, since when, chain or independent.
+const isAU = (t) => /australia/i.test(t.location || "") || t.currency === "A$" || /\b(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)\b.*\b\d{4}\b/.test(t.location || "");
+const isUK = (t) => /united kingdom|\buk\b|england|scotland|wales/i.test(t.location || "") || t.currency === "£";
+function ownershipPanel(t) {
+  const r = t.registry;
+  if (!r && !isAU(t) && !isUK(t)) return "";
+  const src = isUK(t) ? "Companies House" : "ABN Lookup";
+  if (!r || !r.found) return `<section class="panel own-panel"><div class="panel-head"><h2 class="h3">Ownership</h2><button class="ghost small" id="ownBtn" type="button">${r ? "Try again" : `Check ${src}`}</button></div>
+    <p class="muted small">${r ? `No confident match for “${esc(r.searched || t.name)}”. ${r.candidates?.length ? `Closest: ${r.candidates.slice(0, 3).map((c) => esc(c.name)).join(", ")}.` : ""} Check the name matches the registered one.` : `Free: reads the official ${src} record. Who legally owns it, how long it's been registered, every name it trades under (chains and corporate roll-ups show up here), ${isUK(t) ? "and the directors' ages." : "and the owner's name for sole traders."}`}</p></section>`;
+  const years = r.since ? Math.floor((Date.now() - new Date(r.since)) / (365.25 * 864e5)) : null;
+  return `<section class="panel own-panel ${r.chain ? "chain" : ""}">
+    <div class="panel-head"><h2 class="h3">Ownership</h2><span class="muted small">${esc(r.source)} · ${when(r.checked_at)}</span><button class="ghost small" id="ownBtn" type="button">Refresh</button></div>
+    ${r.chain ? `<p class="own-flag">⚠ Likely a chain or corporate owner: ${r.names_count ? `${r.names_count} business names on one entity` : "owned by a company"}. Usually not a founder you can buy from.</p>` : r.owner_operator ? `<p class="own-flag ok">✓ Owner-operated${r.owner_guess ? `: ${esc(r.owner_guess)}` : ""}</p>` : ""}
+    <dl class="facts own-facts">
+      <div><dt>Legal entity</dt><dd><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.entity_name)}</a></dd></div>
+      <div><dt>Type</dt><dd>${esc(r.entity_type || "–")}</dd></div>
+      <div><dt>Registered</dt><dd>${r.since ? `${esc(r.since.slice(0, 4))}${years != null ? ` <small class="muted">${years} yrs</small>` : ""}` : "–"}</dd></div>
+      ${r.names_count ? `<div><dt>Trading names</dt><dd>${r.names_count}</dd></div>` : ""}
+    </dl>
+    ${r.directors?.length ? `<p class="small"><b>Directors:</b> ${r.directors.slice(0, 5).map((x) => `${esc(x.name)}${x.age ? ` (~${x.age})` : ""}`).join(", ")}</p>` : ""}
+    ${r.owners?.length ? `<p class="small"><b>Owners:</b> ${r.owners.map((o) => `${esc(o.name)}${o.share ? ` ${esc(o.share)}` : ""}`).join(", ")}</p>` : ""}
+    ${r.business_names?.length > 1 ? `<details class="small"><summary>${r.names_count > r.business_names.length ? `Show the first ${r.business_names.length} of ${r.names_count} names` : `Show all ${r.business_names.length} names`}</summary><p>${r.business_names.map((b) => esc(b.name)).join(" · ")}</p></details>` : ""}
+  </section>`;
 }
 
 // Research dossier: seller readiness, signals and hooks (or the button to run it).

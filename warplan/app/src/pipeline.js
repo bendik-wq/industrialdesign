@@ -66,11 +66,13 @@ export async function getTargetFull(env, ctx, id) {
     env.DB.prepare("SELECT id, disposition, notes, duration, phone, created_at FROM calls WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC LIMIT 20").bind(ctx.accountId, id),
     env.DB.prepare("SELECT provider, campaign_name, email, status, created_at FROM campaign_leads WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC").bind(ctx.accountId, id),
     env.DB.prepare("SELECT score, data, updated_at FROM target_intel WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("SELECT data FROM target_registry WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("SELECT id, name, size, kind, created_at FROM files WHERE account_id = ?1 AND target_id = ?2 ORDER BY id DESC LIMIT 20").bind(ctx.accountId, id),
   ]);
   const t = r[0].results[0];
   if (!t) throw err(404, "Target not found");
   const intel = r[8].results[0];
-  return { ...rowToTarget(t), events: r[1].results, documents: r[2].results, threads: r[3].results.map((x) => ({ ...x, meta: JSON.parse(x.meta) })), contacts: r[4].results, emails: r[5].results, calls: r[6].results, campaigns: r[7].results, intel: intel ? { score: intel.score, updated_at: intel.updated_at, ...JSON.parse(intel.data) } : null };
+  return { ...rowToTarget(t), events: r[1].results, documents: r[2].results, threads: r[3].results.map((x) => ({ ...x, meta: JSON.parse(x.meta) })), contacts: r[4].results, emails: r[5].results, calls: r[6].results, campaigns: r[7].results, intel: intel ? { score: intel.score, updated_at: intel.updated_at, ...JSON.parse(intel.data) } : null, registry: r[9].results[0] ? JSON.parse(r[9].results[0].data) : null, files: r[10].results };
 }
 
 export async function getTarget(env, ctx, id) {
@@ -125,6 +127,9 @@ export async function deleteTarget(env, ctx, id, hooks) {
     env.DB.prepare("DELETE FROM contacts WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM calls WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM campaign_leads WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM files WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM target_registry WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("DELETE FROM target_intel WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM targets WHERE id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
   ]);
   hooks.emit("target.deleted", { id, name: t.name });

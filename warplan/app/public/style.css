@@ -1333,3 +1333,14 @@ code, kbd, pre, pre.json, .secret code, .mono, .phone-row span, .ph-num { font-f
 .ph-buy { display: grid; gap: 8px; }
 .ph-buy .ph-row { gap: 6px; }
 .ph-buy select, .ph-buy input { flex: 1; min-width: 0; }
+/* ownership X-ray */
+.own-panel .panel-head { gap: 10px; }
+.own-panel .panel-head .muted { margin-left: auto; }
+.own-flag { margin: 0 0 10px; padding: 8px 12px; border-radius: var(--r); background: color-mix(in oklab, var(--warn) 12%, var(--surface)); color: var(--ink); font-size: 13px; font-weight: 500; }
+.own-flag.ok { background: color-mix(in oklab, var(--good) 10%, var(--surface)); }
+.own-facts { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.own-facts dd a { word-break: break-word; }
+.own-panel dl.own-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px 18px; margin: 4px 0 8px; }
+.own-panel dl.own-facts > div { display: block; border: 0; padding: 0; }
+.own-panel dl.own-facts dt { font-size: 12px; color: var(--muted); margin: 0; }
+.own-panel dl.own-facts dd { margin: 2px 0 0; font-weight: 500; text-align: left; }

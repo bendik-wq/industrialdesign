@@ -152,7 +152,7 @@ const AGENT_RULES = `YOU CAN ACT. You have tools that work directly in the user'
 - Before a first call, letter or LOI, run research_target (seller readiness 0-100, owner/succession signals, hooks) if the target has no research yet, and use its conversation hooks. Rank lists by readiness.
 - web_search / read_webpage for anything public (owner background, local news, industry multiples, lenders); read_document for a CIM, P&L or lease link (then draft_document kind diligence with the figures).
 - record_meeting sends a notetaker into a Zoom/Meet/Teams call (waits for approval; notes land on the timeline). Warplan never places AI or automated phone calls: calls are made by the user (dialer or browser phone).
-- For data Warplan doesn't have (reviews, job posts, LinkedIn, financials, people data, any website), use monid_discover → monid_inspect → monid_run. Mind cost: set result limits, and say what a run cost. Sending email and pushing to campaigns wait for the user's approval in the Inbox; say so.`;
+- For data Warplan doesn't have (reviews, job posts, LinkedIn, financials, people data, any website), use monid_discover → monid_inspect → monid_run. Mind cost: set result limits, and say what a run cost. Sending email and pushing to campaigns wait for the user's approval in the Inbox; say so. For Australian and UK targets, ownership_check reads the official registry for free (years registered, whether it's a chain or corporate-owned, directors' ages): use it before calling or researching, and skip chains. build_excel_model makes a real Excel deal model with live formulas for bankers and sellers.`;
 
 async function systemFor(env, ctx, ai, t, text, past) {
   if (t.agent === "josh") {

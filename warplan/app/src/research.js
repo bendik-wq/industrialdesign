@@ -5,8 +5,10 @@
 //                                          context.dev's renderer when the site blocks us                ~$0.003
 //   News (context.dev)                     coverage by domain                                           ~$0.001
 //   Web search (context.dev)               "<company> <city> owner": LinkedIn, BBB, Yelp owner replies    ~$0.005
+//   Official registry (AU/UK)              legal entity, years registered, business names (chains), directors   free
 // The AI turns it into: readiness 0-100, size estimate, ownership, owner and succession signals, red flags,
 // strengths and conversation hooks. Saved as a dossier document, a timeline note and the target's intel row.
+import { ownershipCheck, countryOf } from "./registry.js";
 import { getTarget } from "./pipeline.js";
 import { run } from "./monid.js";
 import { fetchPage } from "./enrich.js";
@@ -92,12 +94,14 @@ export async function researchTarget(env, ctx, targetId, ai) {
   const keyword = place.city ? `${t.name} ${place.city}` : place.location_name ? t.name : `${t.name} ${t.location || ""}`.trim();
   const domain = domainOf(t.website);
   const city = (t.location || "").split(",")[0].trim();
-  const [info, reviews, site, news, web] = await Promise.all([
+  const registry = countryOf(t) ? ownershipCheck(env, ctx, t.id, { quiet: true }).then((r) => { steps.push({ step: `Ownership (${r.source || "registry"})`, status: r.found ? "COMPLETED" : "none found", cost_usd: 0 }); return r.found ? r : null; }).catch((e) => { steps.push({ step: "Ownership", status: "failed", error: e.message }); return null; }) : Promise.resolve(null);
+  const [info, reviews, site, news, web, reg] = await Promise.all([
     step("Google profile", { provider: "dataforseo", endpoint: "/google-business/info", input: { body: { keyword, language_code: "en", ...where } } }),
     step("Google reviews", { provider: "dataforseo", endpoint: "/google-business/reviews", input: { body: { keyword, language_code: "en", depth: 20, sort_by: "newest", ...where } } }),
     websiteText(env, ctx, t, step),
     domain ? step("News", { provider: "context.dev", endpoint: "/news/search", input: { body: { searchBy: { type: "entity", entity: { type: "domain", domain } }, limit: 5 } } }) : null,
     webSearch(env, ctx, { query: `"${t.name}"${city ? ` ${city}` : ""} owner founder` }).then((r) => { spent += r.cost_usd; steps.push({ step: "Web search", status: "COMPLETED", cost_usd: r.cost_usd }); return r.results; }).catch((e) => { steps.push({ step: "Web search", status: "failed", error: e.message }); return []; }),
+    registry,
   ]);
   const g = info?.[0]?.items?.[0] || null;
   const rv = reviews?.[0] || null;
@@ -111,6 +115,7 @@ export async function researchTarget(env, ctx, targetId, ai) {
     items.length && `LATEST GOOGLE REVIEWS (${rv.reviews_count ?? items.length} total):\n${items.map((x) => `- ${x.rating?.value}★ ${x.time_ago || ""}: ${String(x.review_text || "").slice(0, 300)}${x.owner_answer ? `\n  OWNER REPLY: ${String(x.owner_answer).slice(0, 250)}` : ""}`).join("\n")}`,
     site.text && `WEBSITE (${site.pages.join(", ")}):\n${site.text}`,
     web.length && `WEB SEARCH ("${t.name} owner"):\n${web.slice(0, 6).map((x) => `- ${x.title} (${x.url}): ${String(x.snippet || "").slice(0, 250)} ${String(x.text || "").replace(/\s+/g, " ").slice(0, 500)}`).join("\n")}`,
+    reg && `OFFICIAL REGISTRY (${reg.source}, matched "${reg.matched_on}"): legal entity ${reg.entity_name}; type ${reg.entity_type}; registered since ${reg.since || "?"}; ${reg.names_count != null ? `trades under ${reg.names_count} business name(s)${reg.business_names?.length ? `: ${reg.business_names.slice(0, 12).map((b) => b.name).join(", ")}` : ""}` : ""}${reg.directors?.length ? `; active directors: ${reg.directors.map((d) => `${d.name}${d.age ? ` (~${d.age})` : ""}${d.appointed ? ` since ${d.appointed}` : ""}`).join(", ")}` : ""}${reg.owners?.length ? `; owners: ${reg.owners.map((o) => `${o.name}${o.share ? ` ${o.share}` : ""}${o.corporate ? " (a company)" : ""}`).join(", ")}` : ""}. Treat a group trading under many names, or a corporate owner, as NOT founder-owned.`,
     articles.length && `NEWS:\n${articles.map((a) => `- ${a.published_at || a.date || ""} ${a.headline || a.title}: ${String(a.description || "").slice(0, 200)}`).join("\n")}`,
   ].filter(Boolean).join("\n\n");
 

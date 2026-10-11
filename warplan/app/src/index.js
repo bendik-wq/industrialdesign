@@ -25,6 +25,8 @@ import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, ha
 import { refreshNumbers, availableNumbers, buyNumber } from "./phone.js";
 import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { researchTarget, getIntel } from "./research.js";
+import { ownershipCheck, getRegistry, ownershipBulk } from "./registry.js";
+import { buildModel, listFiles, getFile, deleteFile, labStatus, deleteLab } from "./lab.js";
 import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook, refreshIMessage, markRead, startTyping, react, imessageLive } from "./imessage.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
 import { recordMeeting, listJobs, processJobs } from "./jobs.js";
@@ -249,7 +251,7 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
-const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers|buy|available)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|me\/password)/;
+const HUMAN_ONLY = /^\/api\/(team|tokens|integrations|webhooks|replies\/hook|phone\/(setup|incoming|numbers|buy|available)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|lab$|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
@@ -332,6 +334,20 @@ async function route(request, env, url, ctx, exec) {
     if (m === "POST") return json(await addContact(env, ctx, +r[1], await body(request)), 201);
   }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/find$/)) && m === "POST") return json(await enrichTarget(env, ctx, +r[1], await dataKeys(env, ctx)));
+  // Ownership X-ray (ABN Lookup / Companies House) and the Deal Lab (Excel models built in a microVM)
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/ownership$/))) {
+    if (m === "GET") return json({ registry: await getRegistry(env, ctx, +r[1]) });
+    if (m === "POST") return json(await ownershipCheck(env, ctx, +r[1]));
+  }
+  if (p === "/api/ownership/bulk" && m === "POST") return json(await ownershipBulk(env, ctx, +(await body(request)).limit || 8));
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/model$/)) && m === "POST") return json(await buildModel(env, ctx, +r[1], await body(request)), 201);
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/files$/)) && m === "GET") return json(await listFiles(env, ctx, +r[1]));
+  if ((r = p.match(/^\/api\/files\/(\d+)$/))) {
+    if (m === "GET") return getFile(env, ctx, +r[1]);
+    if (m === "DELETE") return json(await deleteFile(env, ctx, +r[1]));
+  }
+  if (p === "/api/lab" && m === "GET") return json(await labStatus(env, ctx));
+  if (p === "/api/lab" && m === "DELETE") { needOwner(ctx); return json(await deleteLab(env, ctx)); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/research$/)) && m === "POST") { const ai = await aiEnv(env, ctx); await checkLimits(env, ai, ctx); return json(await researchTarget(env, ctx, +r[1], ai)); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/enrich$/)) && m === "POST") { const b = await body(request); return json(await deepEnrich(env, ctx, +r[1], { mobile: !!b.mobile, linkedin: b.linkedin !== false })); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/contacts\/(\d+)$/)) && m === "DELETE") return json(await deleteContact(env, ctx, +r[1], +r[2]));
@@ -714,6 +730,9 @@ const API_DOCS = {
     ["POST", "/api/sequencers/push", "Add targets to a campaign {provider, campaign_id, campaign_name, target_ids, personalize?}"],
     ["POST", "/hooks/replies/<secret>", "Reply webhook for your sequencer (create the URL in Settings → Outreach). AI triages each reply"],
     ["GET", "/api/dialer/queue?stage=&q=&fresh=1", "Power dialer call list"],
+    ["POST", "/api/targets/:id/ownership", "Ownership X-ray from the official registry (Australia: ABN Lookup; UK: Companies House): legal entity, since when, business names (chains), directors' ages, owners. Free"],
+    ["POST", "/api/targets/:id/model", "Build a formula-driven Excel deal model in the Deal Lab {addbacks?: [{label, amount, note}], notes?}; returns a file URL"],
+    ["GET", "/api/files/:id", "Download a file Warplan built (Excel models)"],
     ["POST", "/api/phone/sms", "Text from your Twilio number, or as an iMessage {to, body, target_id?, via?: twilio|imessage}"],
     ["GET", "/api/imessage/threads", "iMessage conversations from your own number (BlueBubbles relay), matched to targets"],
     ["GET", "/api/imessage/messages?chat=<guid>", "Messages in one iMessage conversation"],

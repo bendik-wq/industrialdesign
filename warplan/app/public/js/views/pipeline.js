@@ -33,6 +33,7 @@ export async function renderPipeline(seq, params) {
       <span class="spacer"></span>
       <button class="ghost" id="pushBtn" type="button" ${live.length ? "" : "disabled"}>⇢ Add to campaign</button>
       <button class="ghost" id="importBtn" type="button" title="Your own sheet, or a ListKit / Apollo / Clay export">Import CSV</button>
+      <button class="ghost" id="ownBulk" type="button" title="Official registry check for Australian and UK targets: years registered, chains and corporate owners. Free">Check ownership</button>
       <a class="ghost" href="/api/targets.csv" download>Export CSV</a>
     </div>
     <div id="pipe">${!targets.length ? (q ? emptyState("Nothing matches", `No target matches “${q}”.`) : emptyState("No targets yet", "Add the companies you'd like to buy: competitors, suppliers, businesses next door. Start with ten.", `<div class="row center-row"><button class="primary" data-add type="button">+ Add your first target</button><button class="ghost" data-import type="button">Import a CSV</button><button class="ghost" data-samples type="button">Load three examples</button></div>`)) : mode === "table" ? table(targets) : board(targets)}</div>`;
@@ -41,6 +42,11 @@ export async function renderPipeline(seq, params) {
   $("[data-add]")?.addEventListener("click", () => addTarget());
   $("[data-import]")?.addEventListener("click", importCsv);
   $("[data-samples]")?.addEventListener("click", loadSamples);
+  $("#ownBulk")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Checking the registries…";
+    try { const r = await post("/api/ownership/bulk", { limit: 8 }); toast(r.receipt); renderPipeline(++session.seq, params); }
+    catch (err) { fail(err); b.disabled = false; b.textContent = "Check ownership"; }
+  });
   $("#importBtn").addEventListener("click", importCsv);
   $("#pushBtn").addEventListener("click", () => pushDialog(live));
   $$(".seg [data-v]").forEach((b) => b.addEventListener("click", () => { local.set("pipelineView", b.dataset.v); renderPipeline(seq, params); }));

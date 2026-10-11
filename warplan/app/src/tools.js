@@ -15,6 +15,8 @@ import { deepEnrich, DEEP_ENRICH_PRICE } from "./waterfall.js";
 import { SEQUENCERS, listCampaigns, pushToCampaign } from "./sequencers.js";
 import { queue as callQueue, logCall, DISPOSITIONS } from "./dialer.js";
 import { sendText } from "./imessage.js";
+import { ownershipCheck } from "./registry.js";
+import { buildModel } from "./lab.js";
 import { checkLimits } from "./usage.js";
 import { researchTarget, RESEARCH_PRICE } from "./research.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
@@ -270,6 +272,18 @@ export const TOOLS = [
     description: `Research dossier on one target: reads its Google Business Profile, latest Google reviews (and the owner's replies), its website's about/team/history pages and news, then scores seller readiness 0-100 with owner and succession signals, size estimate, red flags and conversation hooks. Saves a dossier document. Cost: ${RESEARCH_PRICE}. Use before a first call or letter, or to rank a list.`,
     input_schema: { type: "object", properties: { target_id: { type: "integer" } }, required: ["target_id"] },
     run: async (env, ctx, i, hooks, ai) => researchTarget(env, ctx, +i.target_id, ai),
+  },
+  {
+    name: "ownership_check", write: true,
+    description: "Look a target up in the official business registry (Australia: ABN Lookup; UK: Companies House). Returns the legal entity and type, how long it's been registered, every business name it trades under (many names = a chain or corporate roll-up, usually NOT a founder-owned target), and in the UK the active directors with their ages and the owners. Free. Use before calling or researching an Australian or UK target.",
+    input_schema: { type: "object", properties: { target_id: { type: "integer" } }, required: ["target_id"] },
+    run: async (env, ctx, i) => ownershipCheck(env, ctx, +i.target_id),
+  },
+  {
+    name: "build_excel_model", write: true,
+    description: "Build a formula-driven Excel deal model for a target in the Deal Lab (a small Python machine): inputs sheet, purchase price, sources and uses, month-by-month seller-note and bank schedules, yearly DSCR, ownership, price sensitivity. Uses the target's saved deal structure. Optional add-backs adjust EBITDA. Returns a download link. Costs a fraction of a cent.",
+    input_schema: { type: "object", properties: { target_id: { type: "integer" }, addbacks: { type: "array", items: { type: "object", properties: { label: { type: "string" }, amount: { type: "number" }, note: { type: "string" } }, required: ["label", "amount"] } }, notes: { type: "string" } }, required: ["target_id"] },
+    run: async (env, ctx, i) => buildModel(env, ctx, +i.target_id, i),
   },
   {
     name: "web_search", write: false,

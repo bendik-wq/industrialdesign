@@ -22,8 +22,8 @@
     "producers": [{ "binding": "WORK", "queue": "warplan-work" }],
     "consumers": [{ "queue": "warplan-work", "max_batch_size": 5, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "warplan-work-dlq", "max_concurrency": 20 }]
   },
-  // Josh's video transcripts ship inside the Worker as a text module (knowledge/josh-transcripts.txt).
-  "rules": [{ "type": "Text", "globs": ["**/*.txt"], "fallthrough": true }]
+  // Josh's video transcripts (knowledge/josh-transcripts.txt) and the Deal Lab's Python scripts (lab/*.py) ship as text modules.
+  "rules": [{ "type": "Text", "globs": ["**/*.txt", "**/*.py"], "fallthrough": true }]
   // Secrets: DASHBOARD_PASSWORD (required: first-run setup key), SESSION_SECRET (required, 32+ chars: session signing), KEYS_SECRET (required, 16+ chars: encrypts stored keys), ANTHROPIC_API_KEY (Claude; otherwise Workers AI),
   // ELEVENLABS_API_KEY (voices; otherwise Workers AI Aura), JOSH_VOICE_ID (ElevenLabs voice for Josh).
 }
