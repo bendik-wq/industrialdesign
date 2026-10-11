@@ -26,6 +26,7 @@ import { refreshNumbers, availableNumbers, buyNumber } from "./phone.js";
 import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup as phoneLookup, threads as smsThreads, recentCalls, twilioHook } from "./phone.js";
 import { researchTarget, getIntel } from "./research.js";
 import { ownershipCheck, getRegistry, ownershipBulk } from "./registry.js";
+import { callNotes, recordingAudio } from "./callnotes.js";
 import { buildModel, listFiles, getFile, deleteFile, labStatus, deleteLab } from "./lab.js";
 import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook, refreshIMessage, markRead, startTyping, react, imessageLive } from "./imessage.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
@@ -91,7 +92,7 @@ async function handle(request, env, exec) {
     // The app's own code holds no data (all of it is behind /api), so it's served without a session lookup.
     if (/^\/(js|vendor)\/[\w./-]+\.js$/.test(p) && !p.includes("..")) return asset(request, env, p);
     if (p.startsWith("/hooks/replies/")) return await replyHook(request, env, url, exec);
-    if (p.startsWith("/hooks/twilio/")) return await twilioHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)));
+    if (p.startsWith("/hooks/twilio/")) return await twilioHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)), (pr) => exec.waitUntil(pr));
     if (p.startsWith("/hooks/bluebubbles/")) return await blueBubblesHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)));
     if (p === "/mcp" || p.startsWith("/mcp/")) return await mcpRoute(request, env, url, exec);
     const ctx = await getContext(request, env);
@@ -437,6 +438,8 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/calls" && m === "GET") return json(await callHistory(env, ctx, q));
   if (p === "/api/calls" && m === "POST") return json(await logCall(env, ctx, await body(request), hooks), 201);
   if (p === "/api/dialer/bridge" && m === "POST") return json(await startBridge(env, ctx, await body(request)));
+  if (p === "/api/calls/notes" && m === "GET") return json(await callNotes(env, ctx, String(q.get("call_sid") || "")));
+  if ((r = p.match(/^\/api\/calls\/recordings\/(\d+)\/audio$/)) && m === "GET") return recordingAudio(env, ctx, +r[1]);
   if (p === "/api/dialer/predial" && m === "POST") return json(await preDial(env, ctx, await body(request)));
   if ((r = p.match(/^\/api\/dialer\/claim\/(\d+)$/)) && m === "POST") return json(await claim(env, ctx, +r[1]));
   if ((r = p.match(/^\/api\/dialer\/brief\/(\d+)$/)) && m === "GET") return json(await brief(env, ctx, +r[1]));
@@ -743,6 +746,7 @@ const API_DOCS = {
     ["POST", "/api/dialer/bridge", "Click-to-call via your Twilio {target_id, phone}: rings you, then connects them"],
     ["POST", "/api/dialer/predial", "Check (and count) a dial before calling from your own phone {target_id, phone, check_only?}: owner's calling hours, 3 tries per number per day, do-not-call list"],
     ["GET", "/api/dialer/brief/:id", "Pre-call brief: research hooks, recent history, open callback, number types"],
+    ["GET", "/api/calls/notes?call_sid=CA…", "AI notes for a recorded call (when recording is on): summary, suggested outcome, next step, callback time, owner facts"],
     ["GET", "/api/dialer/insights", "Best hours to call (owner's local time), caller-ID health, outcomes"],
     ["GET", "/api/dialer/team", "Leaderboard and who's dialing now"],
     ["GET", "/api/usage?days=30", "AI usage and estimated cost"],

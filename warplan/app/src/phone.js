@@ -10,6 +10,7 @@
 import { twilio, twilioReq, xml, e164, dialGuard, recordAttempt, balancedCallerId, loadsToday, curFor } from "./dialer.js";
 import { seal, open } from "./keys.js";
 import { sha256, randomToken } from "./auth.js";
+import { recordingTwiml, recordingReady, DEFAULT_NOTICE } from "./callnotes.js";
 import { pickCallerId, callerNumbers, smsNumbers, countryName } from "./numbers.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
@@ -246,8 +247,8 @@ export async function validSignature(authToken, url, params, signature) {
 }
 const twiml = (inner) => new Response(`<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`, { headers: { "Content-Type": "text/xml" } });
 
-export async function twilioHook(request, env, url, hooksFor) {
-  const m = url.pathname.match(/^\/hooks\/twilio\/(tw_[\w-]{20,})\/(voice|incoming|after|sms)$/);
+export async function twilioHook(request, env, url, hooksFor, defer = (p) => p) {
+  const m = url.pathname.match(/^\/hooks\/twilio\/(tw_[\w-]{20,})\/(voice|incoming|after|sms|notice|recording)$/);
   if (!m || request.method !== "POST") return new Response("Not found", { status: 404 });
   const row = await env.DB.prepare("SELECT s.account_id FROM settings s JOIN accounts a ON a.id = s.account_id WHERE s.key = 'phone' AND json_extract(s.data, '$.hook_hash') = ?1 AND a.active = 1").bind(await sha256(m[1])).first();
   if (!row) return new Response("Not found", { status: 404 });
@@ -275,7 +276,18 @@ export async function twilioHook(request, env, url, hooksFor) {
     const callerId = balancedCallerId(callerNumbers(tw, await getCfg(env, row.account_id)), to, tw.from, await loadsToday(env, row.account_id));
     if (!callerId) return twiml("<Say>There's no phone number on this Twilio account to call from yet. Get one in Warplan, in the phone settings.</Say><Hangup/>");
     await recordAttempt(env, { accountId: row.account_id, userId: user.id, targetId: t?.id, to, callerId, via: "browser", info: g.info });
-    return twiml(`<Dial callerId="${xml(callerId)}" answerOnBridge="true" timeLimit="3600"><Number>${xml(to)}</Number></Dial>`);
+    // Recording on (opt-in): the owner hears the notice first, then the call is recorded for the AI notes.
+    const rec = await recordingTwiml(env, row.account_id, url.toString().replace(/\/voice$/, ""), to, user.id);
+    return twiml(`<Dial callerId="${xml(callerId)}" answerOnBridge="true" timeLimit="3600"${rec ? rec.dialAttrs : ""}><Number${rec ? ` url="${xml(rec.numberUrl)}"` : ""}>${xml(to)}</Number></Dial>`);
+  }
+  if (kind === "notice") {
+    // Played to the person who answers, before the call connects.
+    const s2 = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'dialer'").bind(row.account_id).first();
+    return twiml(`<Say>${xml((s2 ? JSON.parse(s2.data).record_notice : "") || DEFAULT_NOTICE)}</Say>`);
+  }
+  if (kind === "recording") {
+    await recordingReady(env, row.account_id, params, url.searchParams, defer, findByPhone);
+    return new Response("", { status: 204 });
   }
   if (kind === "incoming") {
     // Someone called the Twilio number: ring every teammate's browser, with the target's name if we know them.

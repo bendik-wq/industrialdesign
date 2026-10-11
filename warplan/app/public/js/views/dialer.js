@@ -34,6 +34,7 @@ export async function renderDialer(seq, params) {
   view().innerHTML = `
     <header class="page-head with-actions dial-head"><div><p class="eyebrow">Power dialer</p><h1>Pick up the phone.</h1></div><div id="dsession" class="dsession"></div></header>
     ${subnav("dial")}
+    ${connectCard()}
     <div class="toolbar dial-tools">
       <div class="seg" role="group" aria-label="List">${[["", "Due & new"], ["new", "Never called"], ["callbacks", "Callbacks"], ["hot", "Ready to sell"]].map(([k, l]) => `<button type="button" data-list="${k}" class="${prefs.list === k ? "on" : ""}">${l}</button>`).join("")}</div>
       <label class="inline">Stage <select id="dStage"><option value="">All live</option>${STAGES.filter((s) => !["closed", "lost"].includes(s.id)).map((s) => `<option value="${s.id}" ${prefs.stage === s.id ? "selected" : ""}>${s.label}</option>`).join("")}</select></label>
@@ -55,6 +56,7 @@ export async function renderDialer(seq, params) {
   $("#dFresh").addEventListener("change", (e) => { prefs.fresh = e.target.checked; save(); reload(); });
   $("#dShowAll")?.addEventListener("click", () => { prefs.callable = false; save(); reload(); });
   $("#dSettings").addEventListener("click", () => settingsDialog(reload));
+  wireConnect(reload);
   drawSession();
   if (!S.queue.length) return;
   drawQueue(); showLead();
@@ -68,6 +70,43 @@ function windowBanner() {
   const next = S.queue.map((t) => t.window?.opens_at).filter(Boolean).sort()[0];
   const w = S.queue.find((t) => t.window?.opens_at === next)?.window || S.queue[0].window || {};
   return `<p class="dial-banner"><b>Nobody can be called right now.</b> ${w.local ? `It's ${esc(w.local)} for your owners${w.region ? ` (${esc(w.region)})` : ""}: ${esc(w.reason || "outside calling hours")}.` : ""}${next ? ` Calls open <b>${new Date(next).toLocaleString([], { weekday: "long", hour: "numeric", minute: "2-digit" })}</b> your time.` : ""} Use the time to research owners or line up callbacks.</p>`;
+}
+
+// Not on Twilio yet: connect it right here (owners), so calls run inside the browser with your Twilio number.
+function connectCard() {
+  if (S.data.twilio) return "";
+  if (!S.me?.isOwner) return `<p class="dial-banner">Calling from the browser needs Twilio: ask a workspace owner to connect it. Until then, calls go out from your own phone.</p>`;
+  return `<form class="panel connect-card" id="twForm" autocomplete="off">
+    <div class="cc-head"><div><h2 class="h3">Call from the browser</h2><p class="muted small">Paste these from <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer">console.twilio.com</a> (dashboard → Account info). Calls then ring out of this page with your Twilio number, and the dialer can auto-dial.</p></div>
+      <button class="link small" type="button" id="twLater">Not now</button></div>
+    <div class="cc-fields">
+      <label class="field">Account SID<input name="sid" required placeholder="AC…" spellcheck="false"></label>
+      <label class="field">Auth Token<input name="key" type="password" required placeholder="32 characters" spellcheck="false"></label>
+      <label class="field">Your Twilio number<input name="from" inputmode="tel" placeholder="+61 3 9000 1234 (or leave empty to use the first one)"></label>
+      <button class="primary" type="submit">Connect</button>
+    </div>
+    <p class="muted small">No number yet? Leave it empty: you can buy one right after connecting. Upgraded (paid) Twilio accounts only: trial accounts can't call owners. Keys are encrypted and never shown again.</p>
+  </form>`;
+}
+function wireConnect(reload) {
+  const f = $("#twForm"); if (!f) return;
+  try { if (sessionStorage.getItem("twLater")) { f.remove(); return; } } catch { /* ignore */ }
+  $("#twLater").addEventListener("click", () => { try { sessionStorage.setItem("twLater", "1"); } catch { /* ignore */ } f.remove(); });
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const v = Object.fromEntries(new FormData(f)), btn = $("button[type=submit]", f);
+    btn.disabled = true; btn.textContent = "Checking with Twilio…";
+    try {
+      const r = await post("/api/integrations/twilio", { key: v.key.trim(), meta: { sid: v.sid.trim(), from: v.from.trim() } }, "PUT");
+      if (r.phone?.error) throw new Error(`Connected, but the browser phone isn't set up yet: ${r.phone.error}`);
+      const { refreshPhone, openPhone } = await import("../phone.js");
+      await refreshPhone({ preferBrowser: true });
+      S.prefs.mode = "browser"; local.set("dialer2", S.prefs);
+      toast(r.phone?.has_number ? "Twilio connected: press Space to call" : "Connected. Last step: get a number to call from");
+      if (!r.phone?.has_number) openPhone("keypad");
+      reload();
+    } catch (err) { fail(err); btn.disabled = false; btn.textContent = "Connect"; }
+  });
 }
 
 const subnav = (on) => `<nav class="subnav" aria-label="Dialer"><a href="#/dialer" class="${on === "dial" ? "on" : ""}">Dial</a><a href="#/dialer?view=insights" class="${on === "insights" ? "on" : ""}">Insights</a><a href="#/dialer?view=team" class="${on === "team" ? "on" : ""}">Team</a></nav>`;
@@ -171,6 +210,7 @@ function drawMain() {
       <div class="row small dc-tools">${S.data.twilio ? `<button class="link" type="button" id="lineBtn">Check number types (~$0.01 each)</button>` : ""}<button class="link" type="button" id="enrichBtn">Find the owner's direct line</button>
         <label class="inline small">Dial with <select id="dMode">${modes().map(([k, l]) => `<option value="${k}" ${k === m ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
       <div class="dc-live" id="dlive" aria-live="polite"></div>
+      <div class="dc-ai" id="dai" hidden aria-live="polite"></div>
     </div>
     <div class="panel dlog">
       <div class="dlog-head"><h3 class="h3">Outcome</h3><span class="muted small">1–0 · Alt+key while typing</span></div>
@@ -336,9 +376,39 @@ function callEnded({ duration, answered, sid }) {
     return;
   }
   drawLive();
+  // Recorded calls (opt-in): the AI notes arrive a few seconds after Twilio finishes the recording.
+  if (S.data.settings.record && c.callSid && c.answered !== false && (c.duration || 0) >= 5) aiNotes(c.callSid);
   // Leave the keyboard on the outcome keys (focus goes back to the page if it was in a button).
   if (document.activeElement?.tagName === "BUTTON") document.activeElement.blur();
 }
+// Poll for the AI notes of a recorded call and show them under it: summary, the outcome it heard (one key to log),
+// next step, callback time, owner facts. "Use these notes" drops them into the notes box.
+async function aiNotes(callSid) {
+  const box = $("#dai"); if (!box) return;
+  const t = S.queue[S.cur];
+  box.hidden = false;
+  box.innerHTML = `<p class="muted small"><span class="pulse small-pulse"></span> Listening back to the call and writing the notes…</p>`;
+  const started = Date.now();
+  while (Date.now() - started < 150000) {
+    await new Promise((res) => setTimeout(res, 4000));
+    if (!$("#dai") || S.queue[S.cur] !== t) return;
+    let r; try { r = await api(`/api/calls/notes?call_sid=${encodeURIComponent(callSid)}`); } catch { continue; }
+    if (r.status === "failed") { box.innerHTML = `<p class="muted small">Couldn't write AI notes for this call: ${esc(r.error || "unknown error")}</p>`; return; }
+    if (r.status !== "done" || !r.notes) continue;
+    const n = r.notes, D = S.data.dispositions, d = D[n.outcome];
+    box.innerHTML = `<div class="ai-head"><b>AI notes</b><span class="muted small">${n.sentiment ? esc(n.sentiment) : ""}${r.audio ? ` · <a href="${esc(r.audio)}" target="_blank" rel="noopener">play recording</a>` : ""}</span></div>
+      <p class="small">${esc(n.summary || "")}</p>
+      ${n.next_step ? `<p class="small"><b>Next:</b> ${esc(n.next_step)}${n.callback_when ? ` <span class="chip">⏰ ${esc(n.callback_when)}</span>` : ""}</p>` : ""}
+      ${n.owner_facts?.length ? `<ul class="small ai-facts">${n.owner_facts.slice(0, 6).map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
+      <div class="row">${d ? `<button class="primary small" type="button" id="aiLog">Log “${esc(d.label)}” <kbd>${d.key}</kbd></button>` : ""}<button class="ghost small" type="button" id="aiUse">Use these notes</button></div>`;
+    $(`[data-d="${n.outcome}"]`)?.classList.add("suggested");
+    $("#aiUse").addEventListener("click", () => { const ta = $("#notes"); ta.value = [ta.value.trim(), n.summary, n.notes, n.next_step ? `Next: ${n.next_step}` : "", n.callback_when ? `Callback: ${n.callback_when}` : ""].filter(Boolean).join("\n"); toast("Notes added"); });
+    $("#aiLog")?.addEventListener("click", () => { const ta = $("#notes"); if (!ta.value.trim()) ta.value = [n.summary, n.notes].filter(Boolean).join("\n"); logOutcome(n.outcome); });
+    return;
+  }
+  box.innerHTML = `<p class="muted small">The AI notes are taking a while: they'll land on the timeline when ready.</p>`;
+}
+
 function endCall() {
   const c = S.call; if (!c) return;
   if (c.mode === "browser") hangUp();
@@ -441,11 +511,16 @@ async function settingsDialog(reload) {
     <hr>
     <p class="small"><b>Workspace rules</b> (the same for everyone)</p>
     <label class="check"><input type="checkbox" name="sundays" ${S.data.settings.sundays ? "checked" : ""} ${owner ? "" : "disabled"}> Allow calls on Sundays</label>
+    <label class="check"><input type="checkbox" name="record" ${S.data.settings.record ? "checked" : ""} ${owner ? "" : "disabled"}> Record Twilio calls and write AI notes</label>
+    <label class="field">What the owner hears first <input name="record_notice" maxlength="200" value="${esc(S.data.settings.record_notice || "Hi, just so you know, this call is recorded.")}" ${owner ? "" : "disabled"}></label>
+    <p class="muted small">Every recorded call starts with this notice, so it's legal everywhere you call (including places where everyone on the call must know). The AI transcribes the call and writes the summary, outcome, next step and owner facts. Recordings are kept on your Twilio account.</p>
     <label class="field">Default follow-up text <textarea name="followup_text" rows="3" ${owner ? "" : "disabled"}>${esc(S.data.settings.followup_text)}</textarea></label>
     <p class="muted small">Always on: 8am–9pm in the owner's time zone (8pm in FL, OK, MD, WA, MS, AL), at most 3 attempts per number per 24 hours, ${S.data.rules.retry_gap_min} minutes between attempts (except a double dial), and the do-not-call list. No parallel or predictive dialing and no recorded voicemail drops: every call has you on it.</p>` });
   if (!r) return;
   p.advance = +r.advance; p.doubleDial = !!r.doubleDial; local.set("dialer2", p);
-  if (owner && (!!r.sundays !== S.data.settings.sundays || r.followup_text !== S.data.settings.followup_text)) { try { await post("/api/dialer/settings", { sundays: !!r.sundays, followup_text: r.followup_text }, "PUT"); } catch (e) { fail(e); } }
+  if (owner && (!!r.sundays !== S.data.settings.sundays || r.followup_text !== S.data.settings.followup_text || !!r.record !== !!S.data.settings.record || r.record_notice !== S.data.settings.record_notice)) {
+    try { await post("/api/dialer/settings", { sundays: !!r.sundays, followup_text: r.followup_text, record: !!r.record, record_notice: r.record_notice }, "PUT"); } catch (e) { fail(e); return; }
+  }
   toast("Saved"); reload();
 }
 

@@ -1344,3 +1344,16 @@ code, kbd, pre, pre.json, .secret code, .mono, .phone-row span, .ph-num { font-f
 .own-panel dl.own-facts > div { display: block; border: 0; padding: 0; }
 .own-panel dl.own-facts dt { font-size: 12px; color: var(--muted); margin: 0; }
 .own-panel dl.own-facts dd { margin: 2px 0 0; font-weight: 500; text-align: left; }
+.connect-card { margin-bottom: 14px; display: grid; gap: 10px; border: 1px solid color-mix(in oklab, var(--signal) 35%, var(--line)) !important; }
+.connect-card .cc-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.connect-card .cc-head p { margin: 4px 0 0; }
+.cc-fields { display: grid; grid-template-columns: 1fr 1fr 1.2fr auto; gap: 10px; align-items: end; }
+.cc-fields .field { margin: 0; }
+@media (max-width: 900px) { .cc-fields { grid-template-columns: 1fr; } }
+/* AI call notes under the call */
+.dc-ai { margin-top: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: color-mix(in oklab, var(--blue, #0a6cff) 7%, var(--surface)); border: 1px solid color-mix(in oklab, var(--blue, #0a6cff) 20%, var(--line)); display: grid; gap: 6px; }
+.dc-ai p { margin: 0; }
+.dc-ai .ai-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ai-facts { margin: 0; padding-left: 18px; }
+.small-pulse { display: inline-block; width: 8px; height: 8px; margin-right: 6px; vertical-align: middle; }
+.dispos button.suggested { box-shadow: 0 0 0 2px var(--blue, #0a6cff); }

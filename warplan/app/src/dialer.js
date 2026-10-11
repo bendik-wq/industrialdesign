@@ -49,14 +49,20 @@ export const curFor = (t) => { const l = String(t?.location || ""); return /aust
 const digits = (s) => String(s || "").replace(/\D/g, "").replace(/^00/, "");
 
 // ------------------------------------------------------------------ settings
-const DEFAULT_SETTINGS = { sundays: false, followup_text: "Hi {first}, it's {me}. I just tried you by phone. I'm a local business owner and had a quick question about {company}. When's a good time to talk?" };
+const DEFAULT_SETTINGS = { sundays: false, record: false, record_notice: "Hi, just so you know, this call is recorded.", followup_text: "Hi {first}, it's {me}. I just tried you by phone. I'm a local business owner and had a quick question about {company}. When's a good time to talk?" };
 export async function dialerSettings(env, accountId) {
   const r = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'dialer'").bind(accountId).first();
   return { ...DEFAULT_SETTINGS, ...(r ? JSON.parse(r.data) : {}) };
 }
 export async function saveDialerSettings(env, ctx, b) {
   const cur = await dialerSettings(env, ctx.accountId);
-  const next = { sundays: b.sundays != null ? !!b.sundays : cur.sundays, followup_text: b.followup_text != null ? String(b.followup_text).slice(0, 600) : cur.followup_text };
+  const next = {
+    sundays: b.sundays != null ? !!b.sundays : cur.sundays, followup_text: b.followup_text != null ? String(b.followup_text).slice(0, 600) : cur.followup_text,
+    record: b.record != null ? !!b.record : !!cur.record,
+    record_notice: b.record_notice != null ? (String(b.record_notice).trim().slice(0, 200) || cur.record_notice) : cur.record_notice,
+  };
+  // A recorded call always tells the other side: an empty notice isn't allowed.
+  if (next.record && !/record/i.test(next.record_notice || "")) throw err(400, "The notice has to say the call is recorded");
   await env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, 'dialer', ?2, ?3) ON CONFLICT (account_id, key) DO UPDATE SET data = ?2, updated_at = ?3").bind(ctx.accountId, JSON.stringify(next), now()).run();
   return next;
 }
@@ -429,7 +435,18 @@ export async function startBridge(env, ctx, b) {
   const g = await dialGuard(env, ctx.accountId, { to, location: t.location, currency: t.currency, retry: !!b.retry });
   const cfg = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'phone'").bind(ctx.accountId).first();
   const callerId = balancedCallerId(callerNumbers(tw, cfg ? JSON.parse(cfg.data) : null), to, tw.from, await loadsToday(env, ctx.accountId));
-  const twiml = `<Response><Say>Connecting you to ${xml(t.name).slice(0, 80)}.</Say><Dial callerId="${xml(callerId)}" timeout="35" answerOnBridge="true"><Number>${xml(to)}</Number></Dial></Response>`;
+  // Recording (opt-in) needs the workspace's signed webhook base, set up with the browser phone.
+  let rec = null;
+  if (cfg) {
+    const pc = JSON.parse(cfg.data);
+    if (pc.hook_ct && pc.origin) {
+      const { open } = await import("./keys.js");
+      const { recordingTwiml } = await import("./callnotes.js");
+      const token = await open(env, { ciphertext: pc.hook_ct, iv: pc.hook_iv }, `acct:${ctx.accountId}:twilio_phone`).catch(() => null);
+      if (token) rec = await recordingTwiml(env, ctx.accountId, `${pc.origin}/hooks/twilio/${token}`, to, ctx.user.id);
+    }
+  }
+  const twiml = `<Response><Say>Connecting you to ${xml(t.name).slice(0, 80)}.</Say><Dial callerId="${xml(callerId)}" timeout="35" answerOnBridge="true"${rec ? rec.dialAttrs : ""}><Number${rec ? ` url="${xml(rec.numberUrl)}"` : ""}>${xml(to)}</Number></Dial></Response>`;
   if (!tw.agentPhone) throw err(400, "“Twilio rings my phone” needs your own number: add it to the Twilio card in Settings → Integrations (or call from the browser instead)");
   if (!callerId) throw err(400, "Your Twilio account has no number to call from yet: get one in the phone (bottom right) → ⚙");
   const call = await twilioReq(tw, "/Calls.json", { To: tw.agentPhone, From: callerId, Twiml: twiml, Timeout: "25" });

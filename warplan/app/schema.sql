@@ -468,3 +468,24 @@ CREATE TABLE IF NOT EXISTS target_registry (
   data TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- v12: recorded calls (opt-in, announced) and the AI notes written from them.
+CREATE TABLE IF NOT EXISTS call_recordings (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  user_id INTEGER,
+  target_id INTEGER,
+  call_sid TEXT NOT NULL,
+  recording_sid TEXT,
+  recording_url TEXT,
+  phone TEXT,
+  duration INTEGER,
+  status TEXT NOT NULL DEFAULT 'pending',  -- transcribing | done | failed
+  transcript TEXT,
+  summary TEXT,                            -- JSON: summary, outcome, next_step, callback_when, notes, owner_facts, objections, sentiment
+  error TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (account_id, call_sid)
+);
+CREATE INDEX IF NOT EXISTS call_recordings_target ON call_recordings (account_id, target_id, id DESC);

@@ -191,12 +191,13 @@ export async function verifyKey(provider, key, meta = {}) {
     const acct = await r.json();
     if (acct.status && acct.status !== "active") throw err(400, `This Twilio account is ${acct.status}`);
     meta.trial = acct.type === "Trial";
-    // No number given: use the first one on the account (bought numbers first, then verified caller IDs).
-    if (!meta.from) {
-      const list = async (path, key2) => (await (await fetch(`https://api.twilio.com/2010-04-01/Accounts/${meta.sid}${path}`, { headers: auth })).json().catch(() => ({})))[key2] || [];
-      const owned = (await list("/IncomingPhoneNumbers.json?PageSize=50", "incoming_phone_numbers")).filter((n) => n.capabilities?.voice !== false);
-      meta.from = owned[0]?.phone_number || (await list("/OutgoingCallerIds.json?PageSize=20", "outgoing_caller_ids"))[0]?.phone_number || "";
-    }
+    // The number must be one Twilio lets this account call from (bought, or verified as a caller ID); with none
+    // given, use the first one on the account.
+    const list = async (path, key2) => (await (await fetch(`https://api.twilio.com/2010-04-01/Accounts/${meta.sid}${path}`, { headers: auth })).json().catch(() => ({})))[key2] || [];
+    const owned = (await list("/IncomingPhoneNumbers.json?PageSize=100", "incoming_phone_numbers")).filter((n) => n.capabilities?.voice !== false).map((n) => n.phone_number);
+    const verified = owned.length && !meta.from ? [] : (await list("/OutgoingCallerIds.json?PageSize=50", "outgoing_caller_ids")).map((n) => n.phone_number);
+    if (meta.from && !owned.includes(meta.from) && !verified.includes(meta.from)) throw err(400, `${meta.from} isn't on this Twilio account. Use one of your Twilio numbers${owned.length ? ` (${owned.slice(0, 3).join(", ")})` : ""}, or leave it empty and buy one after connecting.`);
+    if (!meta.from) meta.from = owned[0] || verified[0] || "";
     return true;
   }
   throw err(400, "Unknown provider");

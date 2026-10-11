@@ -64,3 +64,18 @@ test("Twilio connect needs only SID + token: finds the number, flags trial accou
     await assert.rejects(verifyKey("twilio", "b".repeat(32), { sid: "AC" + "a".repeat(32) }), /rejected/);
   } finally { globalThis.fetch = real; }
 });
+
+test("Twilio connect refuses a number that isn't on the account", async () => {
+  const real = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (/Accounts\/AC[0-9a-f]+\.json$/.test(url)) return new Response(JSON.stringify({ status: "active", type: "Full" }), { status: 200 });
+    if (/IncomingPhoneNumbers/.test(url)) return new Response(JSON.stringify({ incoming_phone_numbers: [{ phone_number: "+61390001234", capabilities: { voice: true } }] }), { status: 200 });
+    if (/OutgoingCallerIds/.test(url)) return new Response(JSON.stringify({ outgoing_caller_ids: [] }), { status: 200 });
+    return new Response("{}", { status: 404 });
+  };
+  try {
+    await assert.rejects(verifyKey("twilio", "b".repeat(32), { sid: "AC" + "a".repeat(32), from: "+15550001111" }), /isn't on this Twilio account.*\+61390001234/);
+    const ok = { sid: "AC" + "a".repeat(32), from: "+61390001234" };
+    assert.equal(await verifyKey("twilio", "b".repeat(32), ok), true);
+  } finally { globalThis.fetch = real; }
+});
