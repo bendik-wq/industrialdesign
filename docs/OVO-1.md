@@ -10,7 +10,7 @@ A quiet desk object that runs large language models fully offline. It is a long,
 
 - 470 mm long, 270 mm wide, 161 mm tall
 - about 5.5 kg with the water and electronics in
-- this revision is **hardware only**; the software stack comes next (see the end of this page)
+- this page is the hardware; the software stack is in [OVO-1_software.md](OVO-1_software.md)
 
 ## Design intent
 
@@ -68,8 +68,8 @@ it gets three modes:
 
 | Mode | Fans | Heat it can hold | When |
 |---|---|---|---|
-| **Silent** | Off | ~45 W continuous | Idle, light chat, serving small models |
-| **Silent burst** | Off | 155 W for ~6–7 min | The water and metal store ~4.7 kJ/K, so a 10 K rise absorbs ~47 kJ |
+| **Silent** | Off | ~45 W continuous (SoC capped down to 15 W; ~50% speed on back-to-back jobs) | Idle, chat (full speed), anything where silence beats speed |
+| **Silent burst** | Off | Full-power generation for ~13 min from cold at 25 °C (~7 min at 32 °C) | The water and metal store ~4.7 kJ/K; figures from the `ovod` thermal simulation |
 | **Whisper / Boost** | 2 × 80 mm slim fans at ~800 / ~2,000 rpm | ~110 W / full 155 W | Long generations, big prompts |
 
 **Boost airflow.**
@@ -177,13 +177,10 @@ The board is still ~70% of the cost. The water-cooled enclosure is ~$450.
 6. **Render artifact.** The tail-tip spot in the renders comes from the mesh converging at the pole. The CAD surface is
    smooth there (checked against the egg formula to within 0.7 mm).
 
-## Next: software (not in this revision)
+## Software
 
-- Linux with ROCm
-- llama.cpp / vLLM serving an OpenAI-compatible API on the LAN
-- mDNS discovery (`ovo.local`)
-- a daemon that drives the tail light slit from the generation rate, and picks silent, whisper or boost cooling from
-  water temperature and load
+The software stack, and the `ovod` daemon that runs this cooling system, are in
+[OVO-1_software.md](OVO-1_software.md).
 
 ## Files
 

@@ -56,7 +56,7 @@ tools/                headless render rig (three.js + Chromium)
 
 Second product: **SWEEP-1** waterless solar row cleaning robot — see [docs/SWEEP-1.md](docs/SWEEP-1.md).
 
-Third product: **OVO-1** sealed, water-cooled local-LLM appliance: a long, low aluminium egg lying on its side with a water-jacketed skin and a hidden belly radiator (128 GB Strix Halo) — see [docs/OVO-1.md](docs/OVO-1.md).
+Third product: **OVO-1** sealed, water-cooled local-LLM appliance: a long, low aluminium egg lying on its side with a water-jacketed skin and a hidden belly radiator (128 GB Strix Halo) — see [docs/OVO-1.md](docs/OVO-1.md). Software stack and the tested device daemon: [docs/OVO-1_software.md](docs/OVO-1_software.md), `software/`.
 
 ![](renders/ovo1/hero.png)
 
