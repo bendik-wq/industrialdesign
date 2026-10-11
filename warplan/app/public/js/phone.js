@@ -69,6 +69,7 @@ export async function callSheet(number, { targetId = null } = {}) {
       <p class="muted small">${target?.name ? `Call ${esc(target.name)}` : "Call"}${chk.window?.local ? ` · ${esc(chk.window.local.replace(/^\w+ /, ""))} their time` : ""}</p>
       <h3 class="mono">${esc(to)}</h3>
       ${chk.warning ? `<p class="muted small">${esc(chk.warning)}</p>` : ""}
+      ${chk.window?.warning ? `<p class="ph-blocked small">⚠ ${esc(chk.window.warning)}</p>` : ""}
       <div class="ph-qr" id="pqr" aria-label="QR code to call ${esc(to)}"></div>
       <p class="small center"><b>Scan with your phone's camera</b> and tap the number: it rings from your own number.</p>
       <div class="ph-row"><a class="${telWorks() ? "ph-green" : "ph-btn"}" href="${esc(telHref(to))}" data-handled="1" id="pHere">${telWorks() ? "☎ Call on this computer" : "Call on this computer"}</a><button class="ph-btn" type="button" id="pCopy">Copy</button></div>

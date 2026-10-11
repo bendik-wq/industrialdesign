@@ -64,3 +64,15 @@ test("Australia: weekdays 9–8, Saturday 9–5, never Sunday (even with Sundays
   const sun = callWindow(vic, new Date("2026-10-10T23:46:00Z"), { sundays: true });
   assert.equal(sun.callable, false); assert.equal(sun.opens_at, "2026-10-11T22:00:00.000Z"); // Mon 9:00am AEDT
 });
+
+test("calling hours off: an outside-hours dial goes through with a warning; the attempt cap still applies", async () => {
+  const db = (n) => ({ prepare: (sql) => ({ bind: () => ({ first: async () => (/key = 'dialer'/.test(sql) ? { data: JSON.stringify({ enforce_hours: false }) } : null) }) }), batch: async () => [{ results: [] }, { results: [{ n, last: null }] }] });
+  // A Sydney number on a Sunday morning (10:46 AEDT) would be blocked with the hours on: freeze the clock there.
+  const RealDate = Date, frozen = new RealDate("2026-10-10T23:46:00Z").getTime();
+  globalThis.Date = class extends RealDate { constructor(...a) { super(...(a.length ? a : [frozen])); } static now() { return frozen; } };
+  try {
+    const g = await dialGuard({ DB: db(0) }, 1, { to: "+61291234567", location: "Sydney NSW 2000, Australia" });
+    assert.match(g.window.warning, /Outside usual calling hours/);
+    await assert.rejects(dialGuard({ DB: db(MAX_ATTEMPTS_24H) }, 1, { to: "+61291234567", location: "Sydney NSW 2000, Australia" }), /3 times in 24 hours/);
+  } finally { globalThis.Date = RealDate; }
+});

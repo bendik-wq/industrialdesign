@@ -27,6 +27,7 @@ import { phoneStatus, setupPhone, setIncoming, removePhone, phoneToken, lookup a
 import { researchTarget, getIntel } from "./research.js";
 import { ownershipCheck, getRegistry, ownershipBulk } from "./registry.js";
 import { callNotes, recordingAudio } from "./callnotes.js";
+import { runWatch, listSignals, markSeen } from "./watch.js";
 import { buildModel, listFiles, getFile, deleteFile, labStatus, deleteLab } from "./lab.js";
 import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook, refreshIMessage, markRead, startTyping, react, imessageLive } from "./imessage.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
@@ -53,6 +54,7 @@ export default {
       try {
         if (type === "autopilot") await autopilotRun(env, accountId, exec);
         else if (type === "inbox") await syncAgentInboxes(env, accountId, replyTriage(env, exec));
+        else if (type === "watch") await runWatch(env, { accountId, user: { id: null, name: "Signal watch" } }, hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)), { limit: 120 });
         msg.ack();
       } catch (e) { console.error(`queue ${type} ${accountId}`, e); msg.retry({ delaySeconds: 60 }); }
     }
@@ -60,7 +62,7 @@ export default {
   async scheduled(event, env, exec) {
     // Every 10 minutes: finish background jobs (meeting notes). Daily: the autopilot.
     if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), queueInboxes(env, exec)]));
-    else exec.waitUntil(autopilotAll(env, exec));
+    else exec.waitUntil(Promise.all([autopilotAll(env, exec), queueWatch(env, exec)]));
   },
 };
 
@@ -144,6 +146,13 @@ async function replyHook(request, env, url, exec) {
 }
 
 // Inbox sync fans out per workspace through the queue (inline when no queue is bound, e.g. local dev).
+// The daily seller-signal watch: one queue message per workspace with targets that have a website.
+async function queueWatch(env, exec) {
+  const { results } = await env.DB.prepare("SELECT DISTINCT t.account_id FROM targets t JOIN accounts a ON a.id = t.account_id AND a.active = 1 LEFT JOIN settings s ON s.account_id = t.account_id AND s.key = 'watch' WHERE t.website != '' AND (s.data IS NULL OR json_extract(s.data, '$.on') != 0)").all();
+  if (!env.WORK) { for (const r of results) await runWatch(env, { accountId: r.account_id, user: { id: null, name: "Signal watch" } }, hookEmitter(env, r.account_id, (pr) => exec.waitUntil(pr)), { limit: 60 }).catch((e) => console.error("watch", e)); return; }
+  for (let i = 0; i < results.length; i += 100) await env.WORK.sendBatch(results.slice(i, i + 100).map((r) => ({ body: { type: "watch", accountId: r.account_id } })));
+}
+
 async function queueInboxes(env, exec) {
   if (!env.WORK) return syncAgentInboxes(env, null, replyTriage(env, exec));
   const { results } = await env.DB.prepare("SELECT DISTINCT account_id FROM mailboxes WHERE host = 'agentmail'").all();
@@ -340,6 +349,11 @@ async function route(request, env, url, ctx, exec) {
     if (m === "GET") return json({ registry: await getRegistry(env, ctx, +r[1]) });
     if (m === "POST") return json(await ownershipCheck(env, ctx, +r[1]));
   }
+  // Seller-signal watch
+  if (p === "/api/signals" && m === "GET") return json(await listSignals(env, ctx, { targetId: q.get("target") ? +q.get("target") : null }));
+  if (p === "/api/signals/seen" && m === "POST") return json(await markSeen(env, ctx));
+  if (p === "/api/watch/run" && m === "POST") return json(await runWatch(env, ctx, hooks, { limit: Math.min(25, +(await body(request)).limit || 20) }));
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/watch$/)) && m === "POST") return json(await runWatch(env, ctx, hooks, { targetId: +r[1] }));
   if (p === "/api/ownership/bulk" && m === "POST") return json(await ownershipBulk(env, ctx, +(await body(request)).limit || 8));
   if ((r = p.match(/^\/api\/targets\/(\d+)\/model$/)) && m === "POST") return json(await buildModel(env, ctx, +r[1], await body(request)), 201);
   if ((r = p.match(/^\/api\/targets\/(\d+)\/files$/)) && m === "GET") return json(await listFiles(env, ctx, +r[1]));
@@ -733,6 +747,8 @@ const API_DOCS = {
     ["POST", "/api/sequencers/push", "Add targets to a campaign {provider, campaign_id, campaign_name, target_ids, personalize?}"],
     ["POST", "/hooks/replies/<secret>", "Reply webhook for your sequencer (create the URL in Settings → Outreach). AI triages each reply"],
     ["GET", "/api/dialer/queue?stage=&q=&fresh=1", "Power dialer call list"],
+    ["GET", "/api/signals?target=", "Seller signals the daily website watch found (retirement, for sale, farewell, hiring a manager, owner gone, new owners)"],
+    ["POST", "/api/watch/run", "Run the seller-signal watch now {limit?}"],
     ["POST", "/api/targets/:id/ownership", "Ownership X-ray from the official registry (Australia: ABN Lookup; UK: Companies House): legal entity, since when, business names (chains), directors' ages, owners. Free"],
     ["POST", "/api/targets/:id/model", "Build a formula-driven Excel deal model in the Deal Lab {addbacks?: [{label, amount, note}], notes?}; returns a file URL"],
     ["GET", "/api/files/:id", "Download a file Warplan built (Excel models)"],

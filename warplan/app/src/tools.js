@@ -16,6 +16,7 @@ import { SEQUENCERS, listCampaigns, pushToCampaign } from "./sequencers.js";
 import { queue as callQueue, logCall, DISPOSITIONS } from "./dialer.js";
 import { sendText } from "./imessage.js";
 import { ownershipCheck } from "./registry.js";
+import { listSignals } from "./watch.js";
 import { buildModel } from "./lab.js";
 import { checkLimits } from "./usage.js";
 import { researchTarget, RESEARCH_PRICE } from "./research.js";
@@ -284,6 +285,12 @@ export const TOOLS = [
     description: "Build a formula-driven Excel deal model for a target in the Deal Lab (a small Python machine): inputs sheet, purchase price, sources and uses, month-by-month seller-note and bank schedules, yearly DSCR, ownership, price sensitivity. Uses the target's saved deal structure. Optional add-backs adjust EBITDA. Returns a download link. Costs a fraction of a cent.",
     input_schema: { type: "object", properties: { target_id: { type: "integer" }, addbacks: { type: "array", items: { type: "object", properties: { label: { type: "string" }, amount: { type: "number" }, note: { type: "string" } }, required: ["label", "amount"] } }, notes: { type: "string" } }, required: ["target_id"] },
     run: async (env, ctx, i) => buildModel(env, ctx, +i.target_id, i),
+  },
+  {
+    name: "seller_signals", write: false,
+    description: "Seller signals from the daily website watch: targets whose site started talking about retiring, a farewell or 'after 30 years', a succession plan or sale, hiring a practice manager, reduced hours, the owner's name disappearing; and the opposite (new owners / now part of a group). Use to decide who to call first. Optional target_id.",
+    input_schema: { type: "object", properties: { target_id: { type: "integer" } } },
+    run: async (env, ctx, i) => listSignals(env, ctx, { targetId: i.target_id ? +i.target_id : null }),
   },
   {
     name: "web_search", write: false,

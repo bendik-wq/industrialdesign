@@ -1,4 +1,4 @@
-import { $, esc, api, view, session, stale, synced, micButton, MIC, when, dateLabel, skeleton } from "../core.js";
+import { $, esc, api, post, toast, fail, view, session, stale, synced, micButton, MIC, when, dateLabel, skeleton } from "../core.js";
 import { dealModel, ladderModel, LADDER_DEFAULTS, money } from "../deal.js";
 import { loadDeal } from "./builder.js";
 import { askJoshAbout } from "./josh.js";
@@ -11,7 +11,7 @@ function greeting() {
 
 export async function renderHome(seq) {
   view().innerHTML = skeleton(6);
-  const [h, inbox] = await Promise.all([api("/api/home"), api("/api/inbox").catch(() => [])]);
+  const [h, inbox, sig] = await Promise.all([api("/api/home"), api("/api/inbox").catch(() => []), api("/api/signals").catch(() => ({ signals: [] }))]);
   if (stale(seq)) return;
   const me = session.me, brain = session.team.brain;
   const first = (me.user.name || "").split(" ")[0];
@@ -41,6 +41,8 @@ export async function renderHome(seq) {
     </section>
 
     ${inbox.length ? `<a class="inbox-banner" href="#/inbox"><b>✦ ${inbox.length} move${inbox.length > 1 ? "s" : ""} waiting for your OK</b><span>${esc(inbox[0].title)}${inbox.length > 1 ? ` and ${inbox.length - 1} more` : ""}</span><i>Review →</i></a>` : ""}
+
+    ${signalsPanel(sig)}
 
     ${left ? `<section class="panel onboarding">
       <div class="panel-head"><h2 class="h3">Get set up</h2><span class="muted small">${steps.length - left} of ${steps.length} done</span></div>
@@ -89,5 +91,22 @@ export async function renderHome(seq) {
   $("#homeGo").addEventListener("click", () => ask($("#homeAsk").value));
   $("#homeAsk").addEventListener("keydown", (e) => { if (e.key === "Enter") ask(e.target.value); });
   micButton($("#homeMic"), ask);
+  $("#watchNow")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Reading their websites…";
+    try { const r = await post("/api/watch/run", { limit: 20 }); toast(r.receipt); renderHome(++session.seq); } catch (err) { fail(err); b.disabled = false; b.textContent = "Check now"; }
+  });
+  if (sig.unseen) post("/api/signals/seen").catch(() => {});
   document.querySelectorAll("[data-act=add]").forEach((b) => b.addEventListener("click", () => addTarget()));
+}
+
+// Seller signals from the daily website watch: who to call first.
+const SIG_ICON = { for_sale: "🏷", retirement: "🌅", farewell: "👋", hiring_manager: "🧑‍💼", owner_gone: "⚑", reduced_hours: "🕘", closing: "⚠", new_owner: "✕" };
+function signalsPanel(sig) {
+  const list = sig.signals || [];
+  return `<section class="panel signals-panel">
+    <div class="panel-head"><h2 class="h3">Seller signals ${sig.unseen ? `<span class="badge">${sig.unseen} new</span>` : ""}</h2><button class="ghost small" id="watchNow" type="button">Check now</button></div>
+    ${list.length ? `<ul class="sig-list">${list.slice(0, 8).map((x) => `<li class="sig s${x.strength < 0 ? "neg" : x.strength}${x.seen_at ? "" : " new"}"><span class="sig-ico" aria-hidden="true">${SIG_ICON[x.kind] || "•"}</span>
+      <div><a href="#/targets/${x.target_id}"><b>${esc(x.target_name)}</b></a> · ${esc(x.title)}${x.first_look ? ' <span class="muted small">(on their site now)</span>' : ""}${x.snippet ? `<p class="small muted">“${esc(x.snippet.slice(0, 180))}”</p>` : ""}</div>
+      <small class="muted">${when(x.created_at)}</small></li>`).join("")}</ul>` : `<p class="muted small">Every morning Warplan re-reads your targets' websites (home, about and team pages) and flags owners getting ready to go: retirement talk, “after 30 years”, a farewell, a succession plan, hiring a practice manager, the owner's name disappearing. And the opposite: “now part of X group”. Free. Press Check now to run it today.</p>`}
+  </section>`;
 }

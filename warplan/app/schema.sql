@@ -489,3 +489,32 @@ CREATE TABLE IF NOT EXISTS call_recordings (
   UNIQUE (account_id, call_sid)
 );
 CREATE INDEX IF NOT EXISTS call_recordings_target ON call_recordings (account_id, target_id, id DESC);
+
+-- v13: seller-signal watch. The last copy of each watched page, and the signals found when it changed.
+CREATE TABLE IF NOT EXISTS watch_pages (
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  url TEXT NOT NULL,
+  text TEXT,
+  text_hash TEXT,
+  checked_at TEXT,
+  changed_at TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, target_id, url)
+);
+CREATE TABLE IF NOT EXISTS signals (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,          -- for_sale | retirement | farewell | hiring_manager | reduced_hours | closing | owner_gone | new_owner
+  strength INTEGER NOT NULL,   -- 3 act now … 1 worth a look; -1 probably already sold
+  title TEXT NOT NULL,
+  snippet TEXT NOT NULL DEFAULT '',
+  url TEXT,
+  first_look INTEGER NOT NULL DEFAULT 0,  -- found on the first read (already on the site), not a change
+  seen_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS signals_acct ON signals (account_id, id DESC);
+CREATE INDEX IF NOT EXISTS signals_target ON signals (account_id, target_id, kind, created_at);

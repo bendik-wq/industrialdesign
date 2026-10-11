@@ -179,6 +179,8 @@ async function showLead() {
   const next = S.queue[S.cur + 1]; if (next && !S.brief.has(next.id)) api(`/api/dialer/brief/${next.id}`).then((b) => S.brief.set(next.id, b)).catch(() => {});
 }
 
+// OK to dial now: inside their hours, or the workspace has turned the hours off (then it's only a warning).
+const okNow = (w) => !!w && (w.callable || w.enforced === false);
 const firstName = (t) => String(t.owner_name || "").replace(/\(.*?\)/g, "").trim().split(/\s+/)[0] || "";
 function usable(t) { return t.phones.map((p, i) => ({ ...p, i })).filter((p) => !p.blocked && !p.capped); }
 function bestPhone(t) {
@@ -198,11 +200,11 @@ function drawMain() {
       <div class="dc-head"><div><h2>${esc(t.name)}</h2><p class="muted small">${esc([t.industry, t.location].filter(Boolean).join(" · "))}${t.website ? ` · <a href="${safeUrl(t.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ""} · <a href="#/targets/${t.id}">open target</a></p></div>
         <span class="stage-pill s-${t.stage}">${stageById(t.stage).label}</span></div>
       <p class="dc-owner">${t.owner_name ? `<b>${esc(t.owner_name)}</b>${t.owner_age ? ` <span class="age ${t.owner_age >= 60 ? "old" : ""}">${t.owner_age}</span>` : ""}` : `<span class="muted">Owner unknown: ask for the owner by role</span>`}${t.calls ? ` · <span class="muted">${t.calls} earlier call${t.calls > 1 ? "s" : ""}</span>` : ""}${t.next_action ? ` · <span class="muted">next: ${esc(t.next_action)}${t.next_date ? `, ${dateLabel(t.next_date)}` : ""}</span>` : ""}</p>
-      <p class="dc-clock ${w.known === false ? "unknown" : w.callable ? "ok" : "no"}"><span class="dot"></span>${w.known === false ? "Their local time is unknown: add the city or state to the target" : `${esc(w.local)} their time${w.region ? ` · ${esc(w.region)}` : ""} · ${w.callable ? `OK to call (${esc(w.hours)})` : `outside calling hours (${esc(w.hours)})`}`}</p>
+      <p class="dc-clock ${w.known === false ? "unknown" : w.callable ? "ok" : "no"}"><span class="dot"></span>${w.known === false ? "Their local time is unknown: add the city or state to the target" : `${esc(w.local)} their time${w.region ? ` · ${esc(w.region)}` : ""} · ${w.callable ? `OK to call (${esc(w.hours)})` : w.enforced === false ? `late there: outside usual hours (${esc(w.hours)}), calls allowed` : `outside calling hours (${esc(w.hours)})`}`}</p>
       ${t.callback ? `<p class="dc-callback">⏰ Callback ${t.callback_due ? "due" : "set"} ${new Date(t.callback.due_at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}${t.callback.note ? `: ${esc(t.callback.note)}` : ""}</p>` : ""}
       <div class="phones">${t.phones.map((p, i) => {
         const li = lines[p.e164];
-        const off = p.blocked || p.capped || !w.callable || li?.valid === 0 || (m !== "device" && !p.e164);
+        const off = p.blocked || p.capped || !okNow(w) || li?.valid === 0 || (m !== "device" && !p.e164);
         return `<div class="phone-row ${off ? "off" : ""}"><span><b>${esc(p.value)}</b> <small class="muted">${esc(p.label)}</small>${li ? ` <span class="chip ${li.valid === 0 ? "bad" : li.line_type === "mobile" ? "good" : ""}">${li.valid === 0 ? "Not in service" : esc(LINE[li.line_type] || li.line_type || "Unknown")}</span>` : ""}
           <small class="muted">${m !== "device" && !p.e164 ? " · add the country code to call through Twilio" : p.blocked ? " · do not call" : p.capped ? ` · ${p.tries24h}/3 today, try tomorrow` : p.tries24h ? ` · ${p.tries24h}/3 today` : ""}</small></span>
           <button class="${i === bestPhone(t)?.i ? "primary" : "ghost"}" type="button" data-call="${i}" ${off ? "disabled" : ""}>☎ Call</button></div>`;
@@ -291,8 +293,8 @@ function drawLive() {
   if (S.countdown) { el.innerHTML = `<div class="live countdown"><p><b>${esc(S.countdown.label)}</b> in <span class="big">${S.countdown.left}</span></p><button class="ghost" type="button" id="cdStop">Pause <kbd>Esc</kbd></button></div>`; $("#cdStop").addEventListener("click", cancelCountdown); return; }
   if (!c) {
     const p = bestPhone(t);
-    const why = !t.window?.callable ? (t.window?.opens_at ? `Calling opens ${new Date(t.window.opens_at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} your time` : "Outside their calling hours") : !p ? "No number left to try today" : "";
-    el.innerHTML = `<div class="live idle"><button class="call-big" type="button" id="callBig" ${p && t.window?.callable !== false ? "" : "disabled"}>☎ Call ${p ? esc(p.value) : ""}</button><p class="muted small">${why ? esc(why) : `<kbd>Space</kbd> to call · ${m === "browser" ? "from this browser, with your local number" : m === "bridge" ? "Twilio rings your phone first, then connects them" : "shows a QR code: scan it with your phone to dial from your own number"}`}</p></div>`;
+    const why = !okNow(t.window) ? (t.window?.opens_at ? `Calling opens ${new Date(t.window.opens_at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} your time` : "Outside their calling hours") : !p ? "No number left to try today" : "";
+    el.innerHTML = `<div class="live idle"><button class="call-big" type="button" id="callBig" ${p && (okNow(t.window) || t.window?.known === false) ? "" : "disabled"}>☎ Call ${p ? esc(p.value) : ""}</button><p class="muted small">${why ? esc(why) : `<kbd>Space</kbd> to call · ${m === "browser" ? "from this browser, with your local number" : m === "bridge" ? "Twilio rings your phone first, then connects them" : "shows a QR code: scan it with your phone to dial from your own number"}`}</p></div>`;
     $("#callBig").addEventListener("click", () => p && startCall(p.i));
     return;
   }
@@ -464,7 +466,7 @@ function next(logged) {
     if (!S || !$("#dmain")) return;
     // Auto-advance: with Twilio the next call starts by itself after a short countdown (Esc pauses).
     const t = S.queue[S.cur];
-    if (!logged || !t || mode() === "device" || !S.prefs.advance || !t.window?.callable) return;
+    if (!logged || !t || mode() === "device" || !S.prefs.advance || !okNow(t.window)) return;
     const p = bestPhone(t); if (!p) return;
     countdown(S.prefs.advance, `Calling ${t.name}`, () => startCall(p.i));
   });
@@ -484,7 +486,7 @@ function hotkeys(e) {
   if (e.code === "Space") {
     e.preventDefault();
     if (S.countdown) { const f = S.countdown.fn; cancelCountdown(); f(); return; }
-    if (!c) { const p = bestPhone(t); if (p && t.window?.callable) startCall(p.i); return; }
+    if (!c) { const p = bestPhone(t); if (p && okNow(t.window)) startCall(p.i); return; }
     if (["ringing", "live"].includes(c.phase)) endCall();
     return;
   }
@@ -510,16 +512,17 @@ async function settingsDialog(reload) {
     <label class="check"><input type="checkbox" name="doubleDial" ${p.doubleDial ? "checked" : ""}> Double dial: if nobody answers, call the same number once more straight away</label>
     <hr>
     <p class="small"><b>Workspace rules</b> (the same for everyone)</p>
+    <label class="check"><input type="checkbox" name="enforce_hours" ${S.data.settings.enforce_hours !== false ? "checked" : ""} ${owner ? "" : "disabled"}> Block calls outside the owner's calling hours</label>
     <label class="check"><input type="checkbox" name="sundays" ${S.data.settings.sundays ? "checked" : ""} ${owner ? "" : "disabled"}> Allow calls on Sundays</label>
     <label class="check"><input type="checkbox" name="record" ${S.data.settings.record ? "checked" : ""} ${owner ? "" : "disabled"}> Record Twilio calls and write AI notes</label>
     <label class="field">What the owner hears first <input name="record_notice" maxlength="200" value="${esc(S.data.settings.record_notice || "Hi, just so you know, this call is recorded.")}" ${owner ? "" : "disabled"}></label>
     <p class="muted small">Every recorded call starts with this notice, so it's legal everywhere you call (including places where everyone on the call must know). The AI transcribes the call and writes the summary, outcome, next step and owner facts. Recordings are kept on your Twilio account.</p>
     <label class="field">Default follow-up text <textarea name="followup_text" rows="3" ${owner ? "" : "disabled"}>${esc(S.data.settings.followup_text)}</textarea></label>
-    <p class="muted small">Always on: 8am–9pm in the owner's time zone (8pm in FL, OK, MD, WA, MS, AL), at most 3 attempts per number per 24 hours, ${S.data.rules.retry_gap_min} minutes between attempts (except a double dial), and the do-not-call list. No parallel or predictive dialing and no recorded voicemail drops: every call has you on it.</p>` });
+    <p class="muted small">Calling hours: 8am–9pm in the owner's time zone (8pm in FL, OK, MD, WA, MS, AL; Australia weekdays 9–8, Saturdays 9–5). With blocking off you still see their local time and a warning. Always on: at most 3 attempts per number per 24 hours, ${S.data.rules.retry_gap_min} minutes between attempts (except a double dial), and the do-not-call list. No parallel or predictive dialing and no recorded voicemail drops: every call has you on it.</p>` });
   if (!r) return;
   p.advance = +r.advance; p.doubleDial = !!r.doubleDial; local.set("dialer2", p);
-  if (owner && (!!r.sundays !== S.data.settings.sundays || r.followup_text !== S.data.settings.followup_text || !!r.record !== !!S.data.settings.record || r.record_notice !== S.data.settings.record_notice)) {
-    try { await post("/api/dialer/settings", { sundays: !!r.sundays, followup_text: r.followup_text, record: !!r.record, record_notice: r.record_notice }, "PUT"); } catch (e) { fail(e); return; }
+  if (owner && (!!r.sundays !== S.data.settings.sundays || r.followup_text !== S.data.settings.followup_text || !!r.record !== !!S.data.settings.record || r.record_notice !== S.data.settings.record_notice || !!r.enforce_hours !== (S.data.settings.enforce_hours !== false))) {
+    try { await post("/api/dialer/settings", { sundays: !!r.sundays, enforce_hours: !!r.enforce_hours, followup_text: r.followup_text, record: !!r.record, record_notice: r.record_notice }, "PUT"); } catch (e) { fail(e); return; }
   }
   toast("Saved"); reload();
 }

@@ -49,7 +49,7 @@ export const curFor = (t) => { const l = String(t?.location || ""); return /aust
 const digits = (s) => String(s || "").replace(/\D/g, "").replace(/^00/, "");
 
 // ------------------------------------------------------------------ settings
-const DEFAULT_SETTINGS = { sundays: false, record: false, record_notice: "Hi, just so you know, this call is recorded.", followup_text: "Hi {first}, it's {me}. I just tried you by phone. I'm a local business owner and had a quick question about {company}. When's a good time to talk?" };
+const DEFAULT_SETTINGS = { sundays: false, enforce_hours: true, record: false, record_notice: "Hi, just so you know, this call is recorded.", followup_text: "Hi {first}, it's {me}. I just tried you by phone. I'm a local business owner and had a quick question about {company}. When's a good time to talk?" };
 export async function dialerSettings(env, accountId) {
   const r = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'dialer'").bind(accountId).first();
   return { ...DEFAULT_SETTINGS, ...(r ? JSON.parse(r.data) : {}) };
@@ -58,6 +58,7 @@ export async function saveDialerSettings(env, ctx, b) {
   const cur = await dialerSettings(env, ctx.accountId);
   const next = {
     sundays: b.sundays != null ? !!b.sundays : cur.sundays, followup_text: b.followup_text != null ? String(b.followup_text).slice(0, 600) : cur.followup_text,
+    enforce_hours: b.enforce_hours != null ? !!b.enforce_hours : cur.enforce_hours !== false,
     record: b.record != null ? !!b.record : !!cur.record,
     record_notice: b.record_notice != null ? (String(b.record_notice).trim().slice(0, 200) || cur.record_notice) : cur.record_notice,
   };
@@ -70,10 +71,12 @@ export async function saveDialerSettings(env, ctx, b) {
 // ------------------------------------------------------------------ the guard (every dial goes through it)
 // Throws 409 with a plain reason when a call isn't allowed. `info` is the owner's time-zone info.
 export async function dialGuard(env, accountId, { to, location, currency, retry = false, sundays }) {
-  const settings = sundays == null ? await dialerSettings(env, accountId) : { sundays };
+  const settings = sundays == null ? await dialerSettings(env, accountId) : { sundays, enforce_hours: true };
   const info = zonesFor({ phone: to, location, currency });
   const win = callWindow(info, new Date(), { sundays: settings.sundays });
-  if (!win.callable) throw err(409, `Not now: ${win.reason}${win.opens_at ? `. Next window ${new Date(win.opens_at).toUTCString().slice(0, 22)} UTC` : ""}`, { code: "hours", window: win });
+  // The workspace can turn the hours off: then outside-hours calls go through with a warning instead of a block.
+  if (!win.callable && settings.enforce_hours === false) win.warning = `Outside usual calling hours: ${win.reason}`;
+  else if (!win.callable) throw err(409, `Not now: ${win.reason}${win.opens_at ? `. Next window ${new Date(win.opens_at).toUTCString().slice(0, 22)} UTC` : ""}`, { code: "hours", window: win });
   const [dnc, recent] = await env.DB.batch([
     env.DB.prepare("SELECT reason FROM suppressions WHERE account_id = ?1 AND email = ?2").bind(accountId, `tel:${to}`),
     env.DB.prepare("SELECT COUNT(*) AS n, MAX(created_at) AS last FROM dial_attempts WHERE account_id = ?1 AND e164 = ?2 AND created_at >= ?3").bind(accountId, to, ago(864e5)),
@@ -178,9 +181,10 @@ export async function queue(env, ctx, q) {
     const usable = phones.filter((p) => !p.blocked && !p.capped);
     const info = zonesFor({ phone: usable[0]?.e164 || phones[0]?.e164, location: r.location, currency: r.currency });
     const win = callWindow(info, at, { sundays: settings.sundays });
+    win.enforced = settings.enforce_hours !== false;
     const cb = cbBy.get(r.id);
     const { phones: _p, phone: _ph, ...rest } = r;
-    return { ...rest, phones, window: win, callback: cb || null, callback_due: !!(cb && cb.due_at <= ago(-10 * 60e3)), dialable: usable.length > 0 && win.callable };
+    return { ...rest, phones, window: win, callback: cb || null, callback_due: !!(cb && cb.due_at <= ago(-10 * 60e3)), dialable: usable.length > 0 && (win.callable || !win.enforced) };
   });
   if (list === "callbacks") out = out.filter((t) => t.callback);
   if (callableOnly) out = out.filter((t) => t.dialable || t.callback_due);

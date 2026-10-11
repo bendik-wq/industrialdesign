@@ -49,6 +49,7 @@ export async function renderTarget(id, seq) {
       <div class="tg-main">
         ${intelPanel(t)}
         ${ownershipPanel(t)}
+        ${t.website ? `<section class="panel watch-panel" id="watchPanel"><div class="panel-head"><h2 class="h3">Website watch</h2><button class="ghost small" id="watchBtn" type="button">Check now</button></div><div id="watchBody"><p class="muted small">Loading…</p></div></section>` : ""}
         <section class="panel next-card ${late ? "late" : ""}">
           <h2 class="h3">Next action</h2>
           <form id="nextForm" class="next-form">
@@ -149,6 +150,20 @@ export async function renderTarget(id, seq) {
   menu.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeMenu(); more.focus(); } });
   $("#pushCampaign").addEventListener("click", async () => { if (await pushDialog([t])) renderTarget(id, seq); });
   $("#deepEnrich").addEventListener("click", async () => { if (await deepEnrichDialog(t)) renderTarget(id, seq); });
+  // Website watch: pages watched, last check, signals found (free, daily).
+  if ($("#watchPanel")) {
+    const drawWatch = (d) => {
+      const pages = d.pages || [];
+      $("#watchBody").innerHTML = `${d.signals.length ? `<ul class="sig-list">${d.signals.map((x) => `<li class="sig s${x.strength < 0 ? "neg" : x.strength}"><div><b>${esc(x.title)}</b>${x.first_look ? ' <span class="muted small">(on their site now)</span>' : ""}${x.snippet ? `<p class="small muted">“${esc(x.snippet.slice(0, 220))}”</p>` : ""}<small class="muted">${when(x.created_at)} · <a href="${safeUrl(x.url)}" target="_blank" rel="noopener noreferrer">page</a></small></div></li>`).join("")}</ul>` : `<p class="muted small">${pages.length ? "No signals yet." : "Not checked yet."} Every morning Warplan re-reads this company's website and flags retirement talk, farewells, a sale or succession plan, a new practice manager, the owner's name disappearing, or new owners.</p>`}
+        ${pages.length ? `<p class="muted small">Watching ${pages.length} page${pages.length === 1 ? "" : "s"}${pages[0]?.checked_at ? ` · last read ${when(pages.map((p) => p.checked_at).filter(Boolean).sort().pop())}` : ""}${pages.some((p) => p.changed_at) ? ` · last change ${when(pages.map((p) => p.changed_at).filter(Boolean).sort().pop())}` : ""}</p>` : ""}`;
+    };
+    api(`/api/signals?target=${t.id}`).then(drawWatch).catch(() => { $("#watchBody").innerHTML = `<p class="muted small">Couldn't load the watch.</p>`; });
+    $("#watchBtn").addEventListener("click", async (e) => {
+      const b = e.currentTarget; b.disabled = true; b.textContent = "Reading the website…";
+      try { const r = await post(`/api/targets/${t.id}/watch`); toast(r.receipt); drawWatch(await api(`/api/signals?target=${t.id}`)); } catch (err) { fail(err); }
+      b.disabled = false; b.textContent = "Check now";
+    });
+  }
   const checkOwnership = async (btn) => {
     if (btn) { btn.disabled = true; btn.textContent = "Reading the registry…"; }
     try { const r = await post(`/api/targets/${t.id}/ownership`); toast(r.receipt); renderTarget(id, seq); } catch (e) { fail(e); if (btn) { btn.disabled = false; btn.textContent = "Try again"; } }
