@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
-  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, PALETTES, type VideoDef, VIDEOS, VOICE_AGENT,
+  APPLICATION, BRAND, CALL_CONSENT, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, PALETTES, type VideoDef, VIDEOS, VOICE_AGENT,
 } from '../config';
 import { whatsappLink } from '../integrations/whatsapp';
 import { webCallsEnabled } from '../integrations/voice';
@@ -175,9 +175,10 @@ function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
   return {
     questions: APPLICATION,
     turnstileSiteKey: s.TURNSTILE_SITE_KEY || null,
+    callConsent: CALL_CONSENT.text,
     country: c.get('visitor').geo.country,
     resume: lead && !lead.app_completed_at
-      ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone } }
+      ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone, call_consent: Boolean(lead.call_consent_at) } }
       : null,
   };
 }

@@ -189,7 +189,7 @@
     leads: { title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads },
     emails: { title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmails },
     tracking: { title: 'Server-side tracking', sub: 'Every conversion sent to Meta (Conversions API) and GA4 from the server: delivery, retries and match quality.', render: renderTracking },
-    voice: { title: 'Voice agent', sub: 'Inbound AI calls: phone and in-browser. Transcripts, recordings and what callers asked for.', render: renderVoice },
+    voice: { title: 'Voice agent', sub: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice },
     live: { title: 'Live', sub: 'Real-time activity across the funnel (refreshes every 5 seconds).', render: renderLive, noFilters: true },
     integrations: { title: 'Integrations', sub: 'Connect email, WhatsApp, calendars, analytics and ad platforms.', render: renderIntegrations, noFilters: true },
   };
@@ -452,7 +452,7 @@
         kv('Last touch', [l.channel, l.utm_source, l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [l.ft_channel, l.ft_source, l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
         kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline', l.variant) + kv('Location', [l.city, l.country].filter(Boolean).join(', ')) + kv('Device', l.device) +
         kv('WhatsApp', l.whatsapp_connected_at ? 'connected ' + when(l.whatsapp_connected_at) : l.whatsapp_clicked_at ? 'clicked ' + when(l.whatsapp_clicked_at) : (l.whatsapp_opt_in ? 'opted in' : '–')) +
-        kv('Email', l.unsubscribed_at ? 'unsubscribed' : 'subscribed') + kv('Phone calls', l.do_not_call_at ? 'do not call (since ' + when(l.do_not_call_at) + ')' : 'ok') + kv('Visits', d.sessions.length) + '</dl></div></div>' +
+        kv('Email', l.unsubscribed_at ? 'unsubscribed' : 'subscribed') + kv('Phone calls', l.do_not_call_at ? 'do not call (since ' + when(l.do_not_call_at) + ')' : l.call_consent_at ? 'consented to AI calls ' + when(l.call_consent_at) : 'no call consent') + kv('Visits', d.sessions.length) + '</dl></div></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Application</h2><dl class="kv" style="margin-top:10px">' + d.answers.map(function (a) { return kv(a.question, a.answer); }).join('') + '</dl>' +
         (sc.breakdown ? '<p class="sub" style="margin-top:12px">Scoring: ' + esc(sc.breakdown.map(function (b) { return b.question + ' +' + b.points; }).join(', ')) + (sc.caps && sc.caps.length ? ' · capped: ' + esc(sc.caps.join(', ')) : '') + '</p>' : '') + '</div>' +
         '<div class="card"><h2>Video</h2>' + (d.vsl.length ? d.vsl.map(function (v) {
@@ -701,22 +701,63 @@
     });
   }
 
+  var CALL_STATUS = { queued: 'Queued', dialing: 'Calling…', done: 'Done', no_answer: 'No answer', failed: 'Failed', skipped: 'Skipped', cancelled: 'Cancelled' };
+  function callOutcome(o) {
+    var f = {}; try { f = JSON.parse(o.outcome || '{}'); } catch (x) { /* ignore */ }
+    return [f.appointment_confirmed && 'confirmed', f.wants_reschedule && 'reschedule', f.wants_booking_link && 'wants link', f.do_not_call && 'do not call', f.bad_time && 'bad time'].filter(Boolean).join(' · ');
+  }
+
+  function elevenCard(e) {
+    var step = function (ok, label, body) { return '<li class="setup-step' + (ok ? ' ok' : '') + '"><span class="dot">' + (ok ? '✓' : '') + '</span><div><b>' + label + '</b>' + (body ? '<div class="muted">' + body + '</div>' : '') + '</div></li>'; };
+    var phones = e.phoneNumbers || [];
+    return '<div class="card"><div class="card-head"><div><h2>AI calls · ElevenLabs</h2><p class="sub">Calls applicants who ticked the call-consent box: confirms the appointment ~2 min after they book, and calls qualified leads who applied but didn’t book (~5 min). Only inside their local calling hours (Mon–Fri 9–8, Sat 9–5), max 2 attempts, discloses AI + recording, and stops for good if they say so.</p></div>' +
+      '<span class="pill' + (e.ready ? ' ok' : '') + '">' + (e.ready ? 'live' : 'not set up') + '</span></div>' +
+      '<ol class="setup">' +
+      step(e.apiKey, '1. API key', e.apiKey ? 'Connected.' : 'Paste it under <a href="#integrations" data-go="integrations">Integrations → Voice → ElevenLabs API key</a> (elevenlabs.io → Developers → API keys).') +
+      step(!!e.agentId, '2. Agent', (e.agentId ? 'Agent <span class="mono">' + esc(e.agentId) + '</span>. ' : '') + '<button class="btn-sm' + (e.agentId ? ' ghost' : '') + '" data-el-provision' + (e.apiKey ? '' : ' disabled') + '>' + (e.agentId ? 'Update agent in ElevenLabs' : 'Create agent in ElevenLabs') + '</button>') +
+      step(!!e.phoneNumberId, '3. Phone number', phones.length ? '<select class="input" data-el-phone><option value="">Pick the number to call from…</option>' + phones.map(function (p) { return '<option value="' + esc(p.phone_number_id) + '"' + (p.phone_number_id === e.phoneNumberId ? ' selected' : '') + '>' + esc(p.phone_number + (p.label ? ' · ' + p.label : '') + ' (' + p.provider + ')') + '</option>'; }).join('') + '</select>' :
+        (e.phoneError ? esc(e.phoneError) : 'In ElevenLabs → Phone numbers, import a Twilio number (or SIP trunk). It shows up here.')) +
+      step(e.webhook.secret, '4. Post-call webhook (optional, faster results)', 'ElevenLabs → Agents → Settings → Post-call webhook → URL <span class="mono">' + esc(e.webhook.url) + '</span>, then paste its secret under Integrations → Voice. Without it results are fetched every 5 minutes.') +
+      '</ol>' +
+      '<div class="row" style="margin-top:12px"><input class="input" data-el-to placeholder="Your mobile, e.g. +61412345678" style="flex:1;min-width:200px"><select class="input" data-el-kind><option value="confirm">Confirmation script</option><option value="speed_to_lead">Speed-to-lead script</option></select><button class="btn-sm" data-el-test' + (e.ready ? '' : ' disabled') + '>Call me (test)</button></div>' +
+      '<p class="muted" style="margin-top:8px">Confirmation calls: <b>' + (e.confirm ? 'on' : 'off') + '</b> · Speed-to-lead: <b>' + (e.speedToLead ? 'on' : 'off') + '</b> (toggle under Integrations → Voice) · ' + n(e.stats && e.stats.consented) + ' leads have consented to calls.</p></div>' +
+      '<div class="card" style="margin-top:14px"><h2>Call queue</h2>' + table([
+        { label: 'When', html: function (o) { return esc(when(o.status === 'queued' ? o.run_at : o.updated_at)); } },
+        { label: 'Lead', html: function (o) { return '<a href="#lead=' + esc(o.lead_id) + '" data-open="' + esc(o.lead_id) + '">' + esc([o.first_name, o.last_name].filter(Boolean).join(' ') || o.phone || 'lead') + '</a>' + (o.tier ? ' <span class="tier ' + esc(o.tier) + '">' + esc(o.tier) + '</span>' : ''); } },
+        { label: 'Call', html: function (o) { return esc(o.kind === 'speed_to_lead' ? 'Speed-to-lead' : o.kind === 'confirm' ? 'Confirm booking' : o.kind) + ' <span class="muted">#' + esc(o.attempts || 1) + '</span>'; } },
+        { label: 'Status', html: function (o) { return '<span class="pill">' + esc(CALL_STATUS[o.status] || o.status) + '</span>' + (o.error ? ' <span class="muted">' + esc(o.error) + '</span>' : ''); } },
+        { label: 'Outcome', html: function (o) { return esc(callOutcome(o)); } },
+      ], e.queue) + '</div>';
+  }
+
   function renderVoice() {
-    return api('voice').then(function (d) {
+    return Promise.all([api('voice'), api('voice/elevenlabs', null, { noRange: true }).catch(function () { return null; })]).then(function (res) {
+      var d = res[0], e = res[1];
       var t = d.totals || {};
       view.innerHTML =
-        '<div class="grid g-3">' + tile('AI calls', n(t.calls || 0), n(t.phone || 0) + ' phone · ' + n(t.web || 0) + ' browser') + tile('Wanted a strategy call', n(t.wants_call || 0), n(t.callbacks || 0) + ' asked for a person to call back') +
-        tile('Avg length', t.avg_s ? secs(t.avg_s) : '–', (t.cost ? '$' + t.cost + ' Vapi cost · ' : '') + n(t.opt_outs || 0) + ' opted out') + '</div>' +
-        '<div class="card" style="margin-top:14px"><h2>Calls</h2><p class="sub">Inbound only. The assistant tells every caller it’s an AI and that the call is recorded.</p>' +
+        (e ? elevenCard(e) : '') +
+        '<div class="grid g-3" style="margin-top:14px">' + tile('AI calls', n(t.calls || 0), n(t.phone || 0) + ' inbound phone · ' + n(t.web || 0) + ' browser · ' + n((t.calls || 0) - (t.phone || 0) - (t.web || 0)) + ' outbound') + tile('Wanted a strategy call', n(t.wants_call || 0), n(t.callbacks || 0) + ' asked for a person to call back') +
+        tile('Avg length', t.avg_s ? secs(t.avg_s) : '–', (t.cost ? '$' + t.cost + ' cost · ' : '') + n(t.opt_outs || 0) + ' opted out') + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Calls</h2><p class="sub">Inbound (Vapi) and outbound (ElevenLabs). Every call opens with an AI + recording disclosure.</p>' +
         (d.calls.length ? table([
           { label: 'When', html: function (v) { return esc(when(v.created_at)); } },
           { label: 'Who', html: function (v) { return v.lead_id ? '<a href="#lead=' + esc(v.lead_id) + '" data-open="' + esc(v.lead_id) + '">' + esc([v.first_name, v.last_name].filter(Boolean).join(' ') || 'lead') + '</a>' + (v.tier ? ' <span class="tier ' + esc(v.tier) + '">' + esc(v.tier) + '</span>' : '') : '<span class="muted">' + esc(v.from_number || 'unknown') + '</span>'; } },
-          { label: 'Type', key: 'kind' },
+          { label: 'Type', html: function (v) { return esc({ ai_confirm: 'Outbound · confirm', ai_speed_to_lead: 'Outbound · speed-to-lead', phone: 'Inbound phone', web: 'Browser' }[v.kind] || v.kind); } },
           { label: 'Length', html: function (v) { return esc(v.duration_s ? secs(v.duration_s) : v.status); } },
           { label: 'Summary', html: function (v) { return esc((v.summary || '').slice(0, 180)); } },
           { label: 'Rec.', html: function (v) { return v.recording_url ? '<a href="' + esc(v.recording_url) + '" target="_blank" rel="noopener">▶</a>' : ''; } },
-        ], d.calls) : '<p class="muted">No AI calls yet. Connect Vapi under Integrations → Voice.</p>') + '</div>';
+        ], d.calls) : '<p class="muted">No AI calls yet.</p>') + '</div>';
       view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
+      view.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); go(a.getAttribute('data-go')); }; });
+      var pv = view.querySelector('[data-el-provision]');
+      if (pv) pv.onclick = function () { pv.disabled = true; pv.textContent = 'Working…'; send('POST', 'voice/elevenlabs/provision', {}).then(function (r) { toast(r.ok ? (r.created ? 'Agent created in ElevenLabs' : 'Agent updated') : (r.error || 'Failed')); load(); }); };
+      var ph = view.querySelector('[data-el-phone]');
+      if (ph) ph.onchange = function () { send('POST', 'voice/elevenlabs/phone', { id: ph.value }).then(function () { toast('Saved'); load(); }); };
+      var tb = view.querySelector('[data-el-test]');
+      if (tb) tb.onclick = function () {
+        tb.disabled = true;
+        send('POST', 'voice/elevenlabs/test-call', { to: view.querySelector('[data-el-to]').value, kind: view.querySelector('[data-el-kind]').value }).then(function (r) { tb.disabled = false; toast(r.ok ? 'Calling you now…' : (r.error || 'Failed')); });
+      };
     });
   }
 

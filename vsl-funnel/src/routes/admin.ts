@@ -8,6 +8,7 @@ import { emailConfigured, sendViaResend } from '../integrations/email';
 import { SEQUENCES } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
+import { type OutboundCall, dial, elevenConfigured, listPhoneNumbers, provisionAgent } from '../integrations/elevenlabs';
 import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
 import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
@@ -253,6 +254,7 @@ admin.get('/integrations', async (c) => {
       slack: { label: 'Team pings', connected: notifyConfigured(rt), detail: notifyConfigured(rt) ? [(s.SLACK_WEBHOOK_URL || s.SLACK_WINS_WEBHOOK_URL) && 'Slack', (s.DISCORD_WEBHOOK_URL || s.DISCORD_WINS_WEBHOOK_URL) && 'Discord'].filter(Boolean).join(' + ') + ' · leads, bookings, call reminders, wins, daily digest' : 'Add a Slack or Discord webhook to ping the sales team.' },
       crm: { label: 'CRM webhook', connected: Boolean(s.LEAD_WEBHOOK_URL), detail: s.LEAD_WEBHOOK_URL ? 'Lead lifecycle events forwarded' : 'Not connected' },
       voice: { label: 'Voice agent', connected: voiceConfigured(s), detail: voiceConfigured(s) ? [s.VAPI_ASSISTANT_ID ? 'Assistant ready' : 'Assistant answers inline (not saved in Vapi yet)', s.VOICE_PHONE_NUMBER && `Inbound line ${s.VOICE_PHONE_NUMBER}`, webCallsEnabled(s) ? 'Browser calls on' : 'Browser calls off'].filter(Boolean).join(' · ') : 'Inbound only. Add your Vapi keys and a webhook secret to switch it on.' },
+      aiCalls: { label: 'AI calls (ElevenLabs)', connected: elevenConfigured(s), detail: elevenConfigured(s) ? `Confirmation calls ${s.AI_CALL_CONFIRM.trim().toLowerCase() === 'false' ? 'off' : 'on'} · speed-to-lead ${s.AI_CALL_SPEED_TO_LEAD.trim().toLowerCase() === 'false' ? 'off' : 'on'} · consenting leads only` : 'Add an ElevenLabs API key, then finish setup on the Voice tab.' },
       video: { label: 'Video', connected: Boolean(s.VSL_MAIN_SRC), detail: s.VSL_MAIN_SRC ? 'Main VSL connected' : 'No VSL video yet — the page shows a placeholder.' },
     },
     webhooks: {
@@ -384,6 +386,85 @@ admin.get('/voice', async (c) => {
                   FROM voice_calls v LEFT JOIN leads l ON l.id = v.lead_id WHERE v.created_at BETWEEN ? AND ? ORDER BY v.created_at DESC LIMIT 200`).bind(f.from, f.to).all(),
   ]);
   return c.json({ totals, calls: calls.results });
+});
+
+// ── ElevenLabs outbound calls ──
+admin.get('/voice/elevenlabs', async (c) => {
+  const rt = runtimeFrom(c);
+  const s = rt.settings;
+  let phoneNumbers: { phone_number: string; label: string | null; phone_number_id: string; provider: string }[] = [];
+  let phoneError: string | null = null;
+  if (s.ELEVENLABS_API_KEY) {
+    try {
+      phoneNumbers = await listPhoneNumbers(s);
+      // One number and none chosen yet → use it.
+      if (!s.ELEVENLABS_PHONE_NUMBER_ID && phoneNumbers.length === 1) await saveSettings(c.env, { ELEVENLABS_PHONE_NUMBER_ID: phoneNumbers[0].phone_number_id });
+    } catch (e) {
+      phoneError = String(e instanceof Error ? e.message : e).slice(0, 300);
+    }
+  }
+  const db = c.env.DB;
+  const [queue, stats] = await Promise.all([
+    db.prepare(`SELECT o.*, l.first_name, l.last_name, l.phone, COALESCE(l.tier_override, l.tier) AS tier FROM outbound_calls o LEFT JOIN leads l ON l.id = o.lead_id ORDER BY o.created_at DESC LIMIT 60`).all<OutboundCall>(),
+    db.prepare(`SELECT COUNT(*) AS consented, (SELECT COUNT(*) FROM leads WHERE phone IS NOT NULL) AS with_phone FROM leads WHERE call_consent_at IS NOT NULL AND do_not_call_at IS NULL`).first(),
+  ]);
+  return c.json({
+    apiKey: Boolean(s.ELEVENLABS_API_KEY),
+    agentId: s.ELEVENLABS_AGENT_ID || null,
+    phoneNumberId: s.ELEVENLABS_PHONE_NUMBER_ID || (phoneNumbers.length === 1 ? phoneNumbers[0].phone_number_id : null),
+    phoneNumbers,
+    phoneError,
+    ready: elevenConfigured(s) || Boolean(s.ELEVENLABS_API_KEY && s.ELEVENLABS_AGENT_ID && phoneNumbers.length === 1),
+    confirm: s.AI_CALL_CONFIRM.trim().toLowerCase() !== 'false',
+    speedToLead: s.AI_CALL_SPEED_TO_LEAD.trim().toLowerCase() !== 'false',
+    webhook: { url: `${rt.origin}/hooks/elevenlabs`, secret: Boolean(s.ELEVENLABS_WEBHOOK_SECRET) },
+    stats,
+    queue: queue.results,
+  });
+});
+
+admin.post('/voice/elevenlabs/provision', async (c) => {
+  try {
+    const { id, created } = await provisionAgent(runtimeFrom(c));
+    await saveSettings(c.env, { ELEVENLABS_AGENT_ID: id });
+    return c.json({ ok: true, id, created });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 600) }, 400);
+  }
+});
+
+admin.post('/voice/elevenlabs/phone', async (c) => {
+  const { id } = await c.req.json<{ id?: string }>().catch(() => ({ id: '' }));
+  await saveSettings(c.env, { ELEVENLABS_PHONE_NUMBER_ID: String(id ?? '').slice(0, 100) });
+  return c.json({ ok: true });
+});
+
+// Rings YOUR phone with the confirmation script, using a lead's details (or sample ones) — for testing.
+admin.post('/voice/elevenlabs/test-call', async (c) => {
+  const rt = runtimeFrom(c);
+  if (!elevenConfigured(rt.settings)) return c.json({ ok: false, error: 'Connect the API key, create the agent and pick a phone number first.' }, 400);
+  const { to, leadId, kind } = await c.req.json<{ to?: string; leadId?: string; kind?: 'confirm' | 'speed_to_lead' }>().catch(() => ({} as { to?: string; leadId?: string; kind?: 'confirm' | 'speed_to_lead' }));
+  const number = String(to ?? '').replace(/[^\d+]/g, '');
+  if (!/^\+\d{8,15}$/.test(number)) return c.json({ ok: false, error: 'Enter your number in international format, e.g. +61412345678' }, 400);
+  const lead = (leadId ? await getLead(c.env, leadId) : null) ?? ({
+    id: 'test', ref_code: 'TEST01', first_name: 'there', email: 'you@example.com', phone: number, status: 'booked', tier: 'A', tier_override: null,
+    call_at: Date.now() + 2 * 86_400_000, closer_id: rt.reps.find((r) => r.active && r.role !== 'setter')?.id ?? null, answers: JSON.stringify({ business: 'Commercial HVAC, 25 staff' }),
+    country: null, timezone: null,
+  } as unknown as Lead);
+  try {
+    const r = await dial(rt, lead, kind === 'speed_to_lead' ? 'speed_to_lead' : 'confirm', undefined, number);
+    return c.json({ ok: true, conversationId: r.conversationId });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 600) }, 400);
+  }
+});
+
+admin.get('/voice/elevenlabs/audio/:id', async (c) => {
+  const s = c.get('settings');
+  if (!s.ELEVENLABS_API_KEY) return c.text('not configured', 404);
+  const res = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${encodeURIComponent(c.req.param('id'))}/audio`, { headers: { 'xi-api-key': s.ELEVENLABS_API_KEY } });
+  if (!res.ok) return c.text('recording not available', res.status === 404 ? 404 : 502);
+  return new Response(res.body, { headers: { 'content-type': res.headers.get('content-type') || 'audio/mpeg', 'cache-control': 'private, max-age=3600' } });
 });
 
 admin.put('/integrations', async (c) => {

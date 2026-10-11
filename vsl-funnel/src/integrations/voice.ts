@@ -21,7 +21,7 @@ import { notifySlack } from './notify';
  * Every call ends with an end-of-call-report: transcript, recording, summary
  * and structured answers land in voice_calls, on the lead, in PostHog and Slack.
  *
- * Nothing in here places outbound calls. That's deliberate — see docs/VOICE_AGENT.md.
+ * Outbound calls (consent-gated) live in ./elevenlabs.ts.
  */
 
 const VAPI = 'https://api.vapi.ai';
@@ -294,7 +294,7 @@ async function createVoiceLead(rt: Runtime, m: VapiMessage, details: { first_nam
   return lead;
 }
 
-async function optOut(rt: Runtime, lead: Lead, via: string) {
+export async function optOut(rt: Runtime, lead: Lead, via: string) {
   const now = Date.now();
   await updateLead(rt.env, lead.id, { do_not_call_at: lead.do_not_call_at ?? now, unsubscribed_at: lead.unsubscribed_at ?? now });
   await rt.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE lead_id = ? AND status = 'pending'").bind(lead.id).run();
@@ -302,7 +302,7 @@ async function optOut(rt: Runtime, lead: Lead, via: string) {
 }
 
 /** Sends the voice_link email now (or records it as simulated without an email provider). */
-async function sendLinkEmail(rt: Runtime, lead: Lead) {
+export async function sendLinkEmail(rt: Runtime, lead: Lead) {
   if (!lead.email) return false;
   const emailId = newId('m');
   const email = await buildEmail(rt, lead, emailId, 'voice_link', 'voice');

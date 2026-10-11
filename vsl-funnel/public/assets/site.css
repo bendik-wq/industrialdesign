@@ -393,3 +393,5 @@ body.simple main { padding: 72px 20px; }
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 0 0 1px rgba(255, 255, 255, .07);
   background: linear-gradient(180deg, rgba(255, 255, 255, .04), transparent 12%); }
 [data-palette="ink"] .vsl-halo { background: radial-gradient(55% 60% at 50% 55%, rgba(84, 120, 230, .35), rgba(150, 130, 255, .18) 55%, transparent 78%); }
+.check.call-consent { font-size: 12.5px; line-height: 1.45; color: var(--muted, #6b7280); margin: 2px 0 14px; }
+.check.call-consent input { width: 15px; height: 15px; }

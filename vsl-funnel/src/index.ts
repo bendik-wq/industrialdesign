@@ -14,6 +14,7 @@ import { loadSettings } from './settings';
 import { loadReps } from './sales/reps';
 import { pingUpcomingCalls } from './sales/outcomes';
 import { maybeSendDigest } from './sales/digest';
+import { processCallQueue } from './integrations/elevenlabs';
 
 const app = new Hono<AppEnv>();
 
@@ -108,7 +109,7 @@ app.onError((err, c) => {
 export default {
   fetch: app.fetch,
 
-  /** Every 5 minutes: send due emails, retry tracking, ping reps before calls, post the daily sales digest. */
+  /** Every 5 minutes: send due emails, retry tracking, ping reps before calls, post the daily sales digest, place AI calls. */
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
     const [settings, reps] = await Promise.all([loadSettings(env), loadReps(env)]);
     const rt: Runtime = {
@@ -120,12 +121,14 @@ export default {
     };
     if (!settings.PUBLIC_URL) console.warn('PUBLIC_URL is not set — email links will point at example.com');
     const quiet = <T,>(p: Promise<T>, label: string) => p.catch((e) => { console.error(`${label} failed`, e); return null; });
-    const [result, retried, pinged, digest] = await Promise.all([
+    const [result, retried, pinged, digest, calls] = await Promise.all([
       processEmailQueue(rt),
       retryForwards(rt),
       quiet(pingUpcomingCalls(rt), 'call pings'),
       quiet(maybeSendDigest(rt), 'daily digest'),
+      quiet(processCallQueue(rt), 'AI calls'),
     ]);
+    if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (pinged) console.log('call pings', pinged);
     if (digest) console.log('daily digest sent');
     if (result.due) console.log('email queue', result);

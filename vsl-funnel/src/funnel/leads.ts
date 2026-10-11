@@ -40,6 +40,9 @@ export interface Lead {
   showed_at: number | null;
   lost_reason: string | null;
   setter_id: string | null;
+  call_consent_at: number | null;
+  call_consent_text: string | null;
+  timezone: string | null;
   notes: string | null;
   channel: string | null;
   utm_source: string | null;

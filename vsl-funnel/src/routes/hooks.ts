@@ -3,9 +3,10 @@ import { type AppEnv, runtimeFrom } from '../app';
 import { handleCalendly, handleGenericBooking, verifyCalendly } from '../integrations/booking';
 import { handleInbound, verifyMetaSignature } from '../integrations/whatsapp';
 import { type VapiMessage, handleVapi, verifyVapi } from '../integrations/voice';
+import { handleElevenWebhook, verifyElevenSignature } from '../integrations/elevenlabs';
 import { hmacHex, safeEqual } from '../lib/crypto';
 
-/** Inbound webhooks from Calendly, Cal.com / CRMs, the WhatsApp Cloud API and Vapi (voice). All verified. */
+/** Inbound webhooks from Calendly, Cal.com / CRMs, the WhatsApp Cloud API, Vapi and ElevenLabs (voice). All verified. */
 export const hooks = new Hono<AppEnv>();
 
 hooks.post('/calendly', async (c) => {
@@ -63,4 +64,21 @@ hooks.post('/voice', async (c) => {
     return c.json({ error: 'invalid json' }, 400);
   }
   return c.json((await handleVapi(rt, body.message ?? {})) ?? {});
+});
+
+// ElevenLabs post-call webhook (post_call_transcription, call_initiation_failure). HMAC-signed.
+hooks.post('/elevenlabs', async (c) => {
+  const rt = runtimeFrom(c);
+  const secret = rt.settings.ELEVENLABS_WEBHOOK_SECRET;
+  if (!secret) return c.json({ error: 'ELEVENLABS_WEBHOOK_SECRET not configured' }, 501);
+  const raw = await c.req.text();
+  if (!(await verifyElevenSignature(secret, raw, c.req.header('elevenlabs-signature') ?? null))) return c.json({ error: 'unauthorised' }, 401);
+  let body: { type?: string; data?: Record<string, unknown> };
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return c.json({ error: 'invalid json' }, 400);
+  }
+  await handleElevenWebhook(rt, body);
+  return c.text('ok');
 });

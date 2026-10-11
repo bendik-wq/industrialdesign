@@ -32,15 +32,38 @@ Everything is visible in the dashboard: the **Voice** tab, and **AI calls** in t
 - **Recording consent.** The opening line asks "Is that okay with you?". If the caller declines, the assistant offers to email them instead and ends the call. Browser calls also show the written disclosure, and the click is logged as `voice_web_start` with the exact text and its version (`VOICE_AGENT.disclosureVersion`).
 - **Opt-out.** Saying "don't contact me" sets `do_not_call_at` and `unsubscribed_at`, cancels queued emails and switches off browser calls for that lead.
 - **No advice.** It gives no financial, legal, tax or lending advice, makes no promises about specific outcomes, and never asks for card, bank or ID details.
-- **No outbound.** There is no code path that dials anyone.
+- **Outbound only with consent.** The ElevenLabs caller (below) only dials applicants who ticked the call-consent box. The consent wording version and timestamp are stored on the lead (`call_consent_at`, `call_consent_text`).
 - **Abuse limits.** Browser calls are applicants-only, capped at 3 a day, with a 15-minute maximum per call.
 
 **On you**
 - Have your privacy policy reviewed. It includes an "AI calls" section to start from.
 - Check recording-consent rules wherever your callers are. Some Australian states and US states require all-party consent; the opening line is designed to get it.
-- **Outbound AI calls would be a different project.**
-  - In the US, the FCC treats AI voices as "artificial voice" under the TCPA, so you need prior express *written* consent.
-  - In Australia, you need Do Not Call Register washing and the Telemarketing Industry Standard calling hours.
-  - Also needed: per-number consent records, time-zone-aware calling windows and an instant opt-out.
-  - Don't add outbound without legal sign-off.
+- **Outbound AI calls (ElevenLabs).** What's built in:
+  - Written consent from an optional, unticked checkbox under the phone field.
+  - Local calling hours: Mon–Fri 9am–8pm and Sat 9am–5pm, never on Sunday. This uses the lead's time zone from their connection.
+  - At most 2 attempts.
+  - The call opens by saying it's an AI and that it's recorded.
+  - Saying "don't call me" ends all calls and emails.
+
+  What's still on you:
+  - Washing numbers against the Australian Do Not Call Register, if you call AU numbers that aren't on an active enquiry.
+  - Public holidays (they aren't excluded).
+  - A legal check of the consent wording in `CALL_CONSENT` in `src/config.ts`.
 - Retention: decide how long to keep recordings, and set it in Vapi.
+
+
+## Outbound confirmation calls (ElevenLabs)
+1. Get an API key: elevenlabs.io → Developers → API keys, with ElevenAgents write access. Paste it in Funnel HQ under **Integrations → Voice → ElevenLabs API key**.
+2. Import a phone number: in ElevenLabs → Phone numbers, add a Twilio number (or a SIP trunk).
+3. In Funnel HQ → **Voice**, press **Create agent in ElevenLabs** and pick the phone number.
+4. Optional: add a post-call webhook. In ElevenLabs → Agents settings, set the post-call webhook URL to `https://<your-domain>/hooks/elevenlabs`, then paste its secret into **ElevenLabs post-call webhook secret**. Without it, results are fetched by the 5-minute cron instead.
+5. Press **Call me (test)** on the Voice tab to hear both scripts.
+6. Run `npm run db:migrate:remote` to apply `0006_ai_calls.sql`.
+
+When calls are placed:
+- **confirm:** about 2 minutes after a booking. The call is skipped if the strategy call is less than 2 hours away.
+- **speed_to_lead:** about 5 minutes after an A/B application with no booking.
+
+Outcomes (confirmed, reschedule, wants the booking link, do-not-call, notes for the closer) go to the lead, the Voice tab and Slack/Discord. Reschedule and booking-link requests are emailed the link automatically.
+
+The script lives in `outboundSystemPrompt` in `src/config.ts`. After changing it, press **Update agent in ElevenLabs**.

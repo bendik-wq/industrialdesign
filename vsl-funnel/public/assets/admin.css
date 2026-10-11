@@ -222,3 +222,11 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .rep-form fieldset.tiers legend { font-size: 12px; color: var(--muted); padding: 0 4px; }
 .rep-form fieldset.tiers label { display: inline-flex; gap: 5px; align-items: center; color: var(--ink); font-size: 13px; }
 .card.inactive { opacity: .6; }
+
+/* Setup checklist */
+.setup { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+.setup-step { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.setup-step .dot { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border); display: grid; place-items: center; font-size: 12px; font-weight: 800; margin-top: 1px; }
+.setup-step.ok .dot { background: var(--good-text); border-color: var(--good-text); color: var(--surface); }
+.setup-step .muted { margin-top: 3px; }
+.setup-step .btn-sm, .setup-step select { margin-top: 6px; }
