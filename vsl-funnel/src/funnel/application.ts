@@ -172,7 +172,10 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
 
   await cancelSequence(rt, lead.id, 'abandoned');
   if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
-  if (firstSubmit && result.tier === 'A') rt.waitUntil(notifySlack(rt, fresh, '🔥 Hot lead (A-tier)', result.caps.length ? [`Caps: ${result.caps.join(', ')}`] : []));
+  if (firstSubmit && result.tier !== 'C') {
+    const rep = decision.closer ? ` → ${decision.closer.name}` : '';
+    rt.waitUntil(notifySlack(rt, fresh, result.tier === 'A' ? `🔥 Hot lead (A-tier)${rep}` : `✅ Qualified lead (B-tier)${rep}`, result.caps.length ? [`Caps: ${result.caps.join(', ')}`] : [], result.tier === 'A' ? 'hot_lead' : 'qualified_lead'));
+  }
 
   return { tier: result.tier, route: decision.route, score: result.score, events: { submitted, qualified } };
 }

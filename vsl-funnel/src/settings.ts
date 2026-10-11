@@ -64,7 +64,12 @@ export const SETTINGS = [
   { key: 'META_ACCESS_TOKEN', label: 'Meta Conversions API token', group: 'Ads', secret: true },
   { key: 'META_TEST_EVENT_CODE', label: 'Meta test event code', group: 'Ads', help: 'Only while testing in Events Manager. Clear it before going live.' },
 
-  { key: 'SLACK_WEBHOOK_URL', label: 'Slack webhook (hot-lead alerts)', group: 'Alerts', secret: true },
+  { key: 'SLACK_WEBHOOK_URL', label: 'Slack webhook — team alerts', group: 'Alerts', secret: true, help: 'Hot leads, bookings, call-starting pings, no-shows, daily digest. Slack → Apps → Incoming Webhooks.' },
+  { key: 'SLACK_WINS_WEBHOOK_URL', label: 'Slack webhook — closed deals', group: 'Alerts', secret: true, help: 'Optional separate #wins channel. Falls back to the alerts channel.' },
+  { key: 'DISCORD_WEBHOOK_URL', label: 'Discord webhook — team alerts', group: 'Alerts', secret: true, help: 'Channel settings → Integrations → Webhooks → New webhook → Copy URL.' },
+  { key: 'DISCORD_WINS_WEBHOOK_URL', label: 'Discord webhook — closed deals', group: 'Alerts', secret: true, help: 'Optional separate #wins channel. Falls back to the alerts channel.' },
+  { key: 'SALES_TIMEZONE', label: 'Sales team time zone', group: 'Alerts', placeholder: 'Australia/Sydney', help: 'Used for the daily digest and call times in alerts.' },
+  { key: 'DIGEST_HOUR', label: 'Daily digest hour (0–23)', group: 'Alerts', placeholder: '8', help: 'When the daily sales summary is posted. Leave blank for 8am.' },
   { key: 'LEAD_WEBHOOK_URL', label: 'CRM webhook (Zapier / Make / GHL)', group: 'Alerts', secret: true, help: 'Receives every lead lifecycle event as JSON.' },
 
   { key: 'BLOCKLIST', label: 'Lead blocklist', group: 'Security', placeholder: 'tyrekicker@example.com, +61400000000, @competitor.com', help: 'Emails, phone numbers or @domains that always go to the free resources page instead of a call.' },

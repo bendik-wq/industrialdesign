@@ -1,4 +1,5 @@
-import { APPLICATION, CLOSERS, HEADLINE_EXPERIMENT, VIDEOS } from '../config';
+import { APPLICATION, HEADLINE_EXPERIMENT, VIDEOS } from '../config';
+import { loadReps } from '../sales/reps';
 import type { Env } from '../env';
 import { BUCKETS } from '../tracking/vsl';
 
@@ -385,7 +386,7 @@ export async function applicationStats(env: Env, f: Filters) {
     distributions,
     score_histogram: histogram.map((n, i) => ({ range: `${i * 10}–${i * 10 + 9}`, n })),
     caps: Object.entries(caps).map(([reason, n]) => ({ reason, n })).sort((a, b) => b.n - a.n),
-    closers: CLOSERS.map((c) => ({ id: c.id, name: c.name, leads: closers[c.id] ?? 0 })),
+    closers: (await loadReps(env)).filter((r) => r.active && r.role !== 'setter').map((c) => ({ id: c.id, name: c.name, leads: closers[c.id] ?? 0 })),
   };
 }
 

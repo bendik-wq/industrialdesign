@@ -42,6 +42,11 @@ export interface Env {
   CALENDLY_SIGNING_KEY?: string;
   BOOKING_WEBHOOK_SECRET?: string;
   SLACK_WEBHOOK_URL?: string;
+  SLACK_WINS_WEBHOOK_URL?: string;
+  DISCORD_WEBHOOK_URL?: string;
+  DISCORD_WINS_WEBHOOK_URL?: string;
+  SALES_TIMEZONE?: string;
+  DIGEST_HOUR?: string;
   LEAD_WEBHOOK_URL?: string;
   BLOCKLIST?: string;
   CLARITY_ID?: string;

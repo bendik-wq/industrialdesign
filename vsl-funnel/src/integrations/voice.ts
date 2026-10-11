@@ -422,7 +422,7 @@ async function endOfCall(rt: Runtime, m: VapiMessage) {
 
   const fresh = (await getLead(rt.env, lead.id))!;
   const flags = [props.wants_human_callback && '📞 wants a person to call back', props.wants_strategy_call && 'wants a strategy call', structured.do_not_contact === true && '⛔ asked not to be contacted'].filter(Boolean);
-  rt.waitUntil(notifySlack(rt, fresh, `🎙️ AI call (${props.kind}, ${Math.round(Number(m.durationSeconds ?? 0))}s)`, [flags.join(' · '), summary ? `> ${summary.slice(0, 600)}` : ''].filter(Boolean) as string[]));
+  rt.waitUntil(notifySlack(rt, fresh, `🎙️ AI call (${props.kind}, ${Math.round(Number(m.durationSeconds ?? 0))}s)`, [flags.join(' · '), summary ? `> ${summary.slice(0, 600)}` : ''].filter(Boolean) as string[], 'voice'));
 }
 
 /** Entry point for every Vapi server message. Returns the JSON Vapi expects (or {}). */

@@ -2,16 +2,20 @@ import { Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
-import { APPLICATION, BRAND, CLOSERS, VIDEOS } from '../config';
-import { LEAD_STATUSES, type Lead, getLead, parseAnswers, updateLead } from '../funnel/leads';
-import { cancelSequence, emailConfigured, enqueueSequence, sendViaResend } from '../integrations/email';
-import { SEQUENCES, type SequenceId } from '../integrations/sequences';
+import { APPLICATION, BRAND, VIDEOS } from '../config';
+import { LEAD_STATUSES, type Lead, getLead, parseAnswers } from '../funnel/leads';
+import { emailConfigured, sendViaResend } from '../integrations/email';
+import { SEQUENCES } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
 import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
 import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
-import { identityFromLead, track } from '../tracking/track';
+import { salesStats } from '../admin/sales';
+import { notify, notifyConfigured, type NotifyChannel } from '../integrations/notify';
+import { buildDigest } from '../sales/digest';
+import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
+import { LOST_REASONS, type LeadUpdate, applyLeadUpdate } from '../sales/outcomes';
 import { META_API_VERSION, metaUserData } from '../tracking/forward';
 import { geoFromRequest } from '../lib/geo';
 import { PLACEMENTS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
@@ -26,7 +30,8 @@ admin.get('/meta', (c) =>
     dimensions: dimensionList(),
     videos: Object.values(VIDEOS).map((v) => ({ id: v.id, ctaRevealAt: v.ctaRevealAt })),
     statuses: LEAD_STATUSES,
-    closers: CLOSERS.map(({ id, name, tiers }) => ({ id, name, tiers })),
+    closers: c.get('reps').filter((r) => r.active).map(({ id, name, role, tiers }) => ({ id, name, role, tiers: tiers.split(',') })),
+    lostReasons: LOST_REASONS,
     sequences: Object.values(SEQUENCES).map((s) => ({ id: s.id, description: s.description, steps: s.steps.map((x) => x.template) })),
   }),
 );
@@ -112,30 +117,100 @@ admin.get('/leads/:id', async (c) => {
 admin.patch('/leads/:id', async (c) => {
   const lead = await getLead(c.env, c.req.param('id'));
   if (!lead) return c.json({ error: 'not found' }, 404);
-  const body = await c.req.json<Partial<Pick<Lead, 'status' | 'revenue' | 'notes' | 'tier_override' | 'closer_id'>>>();
-  const fields: Partial<Record<keyof Lead, string | number | null>> = {};
-  if (body.status && (LEAD_STATUSES as readonly string[]).includes(body.status)) fields.status = body.status;
-  if (body.revenue !== undefined && Number.isFinite(Number(body.revenue))) fields.revenue = Math.max(0, Number(body.revenue));
-  if (body.notes !== undefined) fields.notes = String(body.notes ?? '').slice(0, 5000);
-  if (body.tier_override !== undefined) fields.tier_override = ['A', 'B', 'C'].includes(String(body.tier_override)) ? body.tier_override : null;
-  if (body.closer_id !== undefined) fields.closer_id = CLOSERS.some((x) => x.id === body.closer_id) ? body.closer_id : null;
-  await updateLead(c.env, lead.id, fields);
-  if (fields.status && fields.status !== lead.status) {
-    const rt = runtimeFrom(c);
-    // Status-driven follow-up: missed calls get a rebooking sequence, calls that happened get a follow-up.
-    const fresh = (await getLead(c.env, lead.id))!;
-    if (fields.status === 'no_show') {
-      await cancelSequence(rt, lead.id, 'booked');
-      await enqueueSequence(rt, fresh, 'no_show');
-    } else if (fields.status === 'showed') {
-      await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'no_show')]);
-      await enqueueSequence(rt, fresh, 'post_call');
-    } else if (fields.status === 'won' || fields.status === 'lost' || fields.status === 'disqualified') {
-      await Promise.all(['booked', 'no_show', 'post_call', 'tier_a', 'tier_b'].map((sq) => cancelSequence(rt, lead.id, sq as SequenceId)));
-    }
-    await track(rt, await identityFromLead(c.env, lead.id), { name: 'lead_status_changed', source: 'admin', props: { from: lead.status, to: fields.status, revenue: fields.revenue ?? lead.revenue } });
+  const body = await c.req.json<LeadUpdate>().catch(() => ({} as LeadUpdate));
+  const fresh = await applyLeadUpdate(runtimeFrom(c), lead, body);
+  return c.json({ ok: true, lead: fresh });
+});
+
+// ── Sales team ────────────────────────────────────────────────────────────
+admin.get('/sales', async (c) => {
+  const f = filters(c);
+  const tz = c.get('settings').SALES_TIMEZONE || 'Australia/Sydney';
+  return c.json({ ...(await salesStats(c.env, f.from, f.to, tz)), tz, notify: notifyConfigured(runtimeFrom(c)) });
+});
+
+type RepInput = Partial<Omit<Rep, 'active'>> & { active?: boolean | number };
+const optStr = (v: unknown, max = 300) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+const num = (v: unknown, min: number, max: number) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : undefined;
+};
+
+/** Validates rep fields; returns column → value for those present. */
+function repFields(b: RepInput): { fields: Record<string, string | number | null>; error?: string } {
+  const f: Record<string, string | number | null> = {};
+  if ('name' in b) { const n = optStr(b.name, 80); if (!n) return { fields: f, error: 'name is required' }; f.name = n; }
+  if ('email' in b) { const e = optStr(b.email, 200); if (e && !validateEmail(e)) return { fields: f, error: 'invalid email' }; f.email = e; }
+  if ('role' in b) { if (!REP_ROLES.includes(b.role as Rep['role'])) return { fields: f, error: 'invalid role' }; f.role = b.role!; }
+  if ('tiers' in b) {
+    const raw = Array.isArray(b.tiers) ? b.tiers : String(b.tiers ?? '').split(',');
+    f.tiers = [...new Set(raw.map((t) => String(t).trim().toUpperCase()).filter((t) => ['A', 'B', 'C'].includes(t)))].join(',');
   }
-  return c.json({ ok: true, lead: await getLead(c.env, lead.id) });
+  if ('weight' in b) f.weight = num(b.weight, 0, 100) ?? 1;
+  if ('calendar_url' in b) {
+    const u = optStr(b.calendar_url, 500);
+    if (u && !/^https:\/\//i.test(u)) return { fields: f, error: 'calendar URL must start with https://' };
+    f.calendar_url = u;
+  }
+  if ('commission_pct' in b) f.commission_pct = num(b.commission_pct, 0, 100) ?? 0;
+  if ('monthly_target' in b) f.monthly_target = num(b.monthly_target, 0, 1e9) ?? 0;
+  if ('slack_user_id' in b) { const v = optStr(b.slack_user_id, 40); if (v && !/^[UW][A-Z0-9]+$/.test(v)) return { fields: f, error: 'Slack member ID looks like U0123ABCD' }; f.slack_user_id = v; }
+  if ('discord_user_id' in b) { const v = optStr(b.discord_user_id, 30); if (v && !/^\d{15,22}$/.test(v)) return { fields: f, error: 'Discord user ID is a long number' }; f.discord_user_id = v; }
+  if ('active' in b) f.active = b.active ? 1 : 0;
+  return { fields: f };
+}
+
+admin.get('/reps', async (c) => {
+  const { results } = await c.env.DB.prepare('SELECT * FROM reps ORDER BY active DESC, created_at, name').all<Rep>();
+  const settings = c.get('settings');
+  return c.json({ reps: results.map((r) => ({ ...r, legacy_calendar: r.booking_setting ? settings[r.booking_setting as keyof typeof settings] || null : null })), roles: REP_ROLES });
+});
+
+admin.post('/reps', async (c) => {
+  const body = await c.req.json<RepInput>().catch(() => ({} as RepInput));
+  const { fields, error } = repFields({ role: 'closer', tiers: 'A,B', ...body });
+  if (error) return c.json({ error }, 400);
+  if (!fields.name) return c.json({ error: 'name is required' }, 400);
+  let id = slugId(String(fields.name));
+  const taken = await c.env.DB.prepare('SELECT id FROM reps WHERE id = ? OR id LIKE ?').bind(id, `${id}-%`).all<{ id: string }>();
+  if (taken.results.length) id = `${id}-${taken.results.length + 1}`;
+  const cols = ['id', 'created_at', ...Object.keys(fields)];
+  await c.env.DB.prepare(`INSERT INTO reps (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`)
+    .bind(id, Date.now(), ...Object.values(fields)).run();
+  clearRepCache();
+  return c.json({ ok: true, id });
+});
+
+admin.patch('/reps/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<RepInput>().catch(() => ({} as RepInput));
+  const { fields, error } = repFields(body);
+  if (error) return c.json({ error }, 400);
+  const keys = Object.keys(fields);
+  if (!keys.length) return c.json({ error: 'nothing to update' }, 400);
+  const res = await c.env.DB.prepare(`UPDATE reps SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`).bind(...Object.values(fields), id).run();
+  if (!res.meta.changes) return c.json({ error: 'not found' }, 404);
+  clearRepCache();
+  return c.json({ ok: true });
+});
+
+admin.post('/notify/test', async (c) => {
+  const rt = runtimeFrom(c);
+  const body = await c.req.json<{ channel?: NotifyChannel; rep?: string; digest?: boolean }>().catch(() => ({} as { channel?: NotifyChannel; rep?: string; digest?: boolean }));
+  if (!notifyConfigured(rt)) return c.json({ error: 'Add a Slack or Discord webhook URL under Integrations → Alerts first.' }, 400);
+  const channel: NotifyChannel = body.channel === 'wins' ? 'wins' : 'alerts';
+  if (body.digest) {
+    const d = await buildDigest(rt);
+    return c.json({ ok: true, ...(await notify(rt, { kind: 'digest', ...d }, channel)) });
+  }
+  const rep = rt.reps.find((r) => r.id === body.rep) ?? null;
+  const sent = await notify(rt, {
+    kind: 'test',
+    title: channel === 'wins' ? '🎉 Test — wins channel' : '🔔 Test — team alerts',
+    lines: [rep ? `This should @mention ${rep.name}.` : 'Funnel HQ is connected.', 'Deal closes, hot leads, bookings, no-shows and call reminders post here.'],
+    rep,
+  }, channel);
+  return c.json({ ok: sent.slack || sent.discord, ...sent });
 });
 
 const csvCell = (v: unknown) => {
@@ -151,7 +226,7 @@ admin.get('/export/leads.csv', async (c) => {
   const questionIds = APPLICATION.filter((q) => q.type !== 'contact').map((q) => q.id);
   const cols = ['id', 'ref_code', 'created_at', 'first_name', 'last_name', 'email', 'phone', 'status', 'tier', 'tier_override', 'score', 'closer_id',
     'channel', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ft_channel', 'ft_source', 'country', 'city', 'device', 'variant',
-    'app_completed_at', 'booked_at', 'call_at', 'whatsapp_clicked_at', 'whatsapp_connected_at', 'revenue', 'notes'] as const;
+    'app_completed_at', 'booked_at', 'call_at', 'whatsapp_clicked_at', 'whatsapp_connected_at', 'revenue', 'cash_collected', 'closed_at', 'lost_reason', 'setter_id', 'notes'] as const;
   const iso = (v: unknown) => (typeof v === 'number' && v > 1e12 ? new Date(v).toISOString() : v);
   const lines = [[...cols, ...questionIds].join(',')];
   for (const l of results) {
@@ -175,7 +250,7 @@ admin.get('/integrations', async (c) => {
       posthog: { label: 'PostHog', connected: Boolean(s.POSTHOG_KEY), detail: s.POSTHOG_KEY ? `Server-side events → ${s.POSTHOG_HOST || 'https://us.i.posthog.com'}` : 'Not connected' },
       meta: { label: 'Meta', connected: Boolean(s.META_PIXEL_ID && s.META_ACCESS_TOKEN), detail: s.META_PIXEL_ID ? `Pixel ${s.META_PIXEL_ID}${s.META_ACCESS_TOKEN ? ' + Conversions API' : ' (browser only — add a CAPI token)'}${s.META_TEST_EVENT_CODE ? ' · TEST MODE' : ''}` : 'Not connected' },
       ga4: { label: 'GA4', connected: Boolean(s.GA4_MEASUREMENT_ID && s.GA4_API_SECRET), detail: s.GA4_MEASUREMENT_ID || 'Not connected' },
-      slack: { label: 'Slack', connected: Boolean(s.SLACK_WEBHOOK_URL), detail: s.SLACK_WEBHOOK_URL ? 'Hot-lead + booking alerts on' : 'Not connected' },
+      slack: { label: 'Team pings', connected: notifyConfigured(rt), detail: notifyConfigured(rt) ? [(s.SLACK_WEBHOOK_URL || s.SLACK_WINS_WEBHOOK_URL) && 'Slack', (s.DISCORD_WEBHOOK_URL || s.DISCORD_WINS_WEBHOOK_URL) && 'Discord'].filter(Boolean).join(' + ') + ' · leads, bookings, call reminders, wins, daily digest' : 'Add a Slack or Discord webhook to ping the sales team.' },
       crm: { label: 'CRM webhook', connected: Boolean(s.LEAD_WEBHOOK_URL), detail: s.LEAD_WEBHOOK_URL ? 'Lead lifecycle events forwarded' : 'Not connected' },
       voice: { label: 'Voice agent', connected: voiceConfigured(s), detail: voiceConfigured(s) ? [s.VAPI_ASSISTANT_ID ? 'Assistant ready' : 'Assistant answers inline (not saved in Vapi yet)', s.VOICE_PHONE_NUMBER && `Inbound line ${s.VOICE_PHONE_NUMBER}`, webCallsEnabled(s) ? 'Browser calls on' : 'Browser calls off'].filter(Boolean).join(' · ') : 'Inbound only. Add your Vapi keys and a webhook secret to switch it on.' },
       video: { label: 'Video', connected: Boolean(s.VSL_MAIN_SRC), detail: s.VSL_MAIN_SRC ? 'Main VSL connected' : 'No VSL video yet — the page shows a placeholder.' },

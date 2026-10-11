@@ -35,6 +35,11 @@ export interface Lead {
   unsubscribed_at: number | null;
   do_not_call_at: number | null;
   revenue: number;
+  cash_collected: number;
+  closed_at: number | null;
+  showed_at: number | null;
+  lost_reason: string | null;
+  setter_id: string | null;
   notes: string | null;
   channel: string | null;
   utm_source: string | null;

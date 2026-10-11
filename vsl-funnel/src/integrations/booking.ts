@@ -39,7 +39,7 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
       props: { provider: info.provider, call_at: info.callAt, booking_ref: info.ref },
     });
     await Promise.all(['tier_a', 'tier_b', 'tier_c', 'abandoned', 'no_show'].map((sq) => cancelSequence(rt, lead.id, sq as 'tier_a')));
-    rt.waitUntil(notifySlack(rt, fresh, '📅 Call booked', fresh.call_at ? [`Call: ${formatCallTime(fresh.call_at, 'Australia/Sydney')}`] : []));
+    rt.waitUntil(notifySlack(rt, fresh, '📅 Call booked', fresh.call_at ? [`Call: ${formatCallTime(fresh.call_at, rt.settings.SALES_TIMEZONE || 'Australia/Sydney')}`] : [], 'booked'));
   }
   // (Re)schedule the confirmation + reminders whenever we learn a new call time.
   if (!sameBooking || callChanged) await enqueueSequence(rt, fresh, 'booked');
@@ -51,6 +51,7 @@ export async function markCancelled(rt: Runtime, lead: Lead, provider: string) {
   await updateLead(rt.env, lead.id, { booking_cancelled_at: Date.now(), status: lead.status === 'booked' ? 'applied' : lead.status });
   await cancelSequence(rt, lead.id, 'booked');
   await track(rt, await identityFromLead(rt.env, lead.id), { name: 'booking_cancelled', source: 'webhook', props: { provider } });
+  rt.waitUntil(notifySlack(rt, lead, '🚫 Call cancelled', [], 'cancelled'));
   // Put them back into the "get booked" follow-up for their tier.
   const tier = lead.tier_override ?? lead.tier;
   if (tier === 'A' || tier === 'B') await enqueueSequence(rt, lead, tier === 'A' ? 'tier_a' : 'tier_b');

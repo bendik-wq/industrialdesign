@@ -184,6 +184,8 @@
     traffic: { title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     experiments: { title: 'A/B tests', sub: 'Headline experiment, judged on applications per visitor.', render: renderExperiments },
+    sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
+    team: { title: 'Team', sub: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
     leads: { title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads },
     emails: { title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmails },
     tracking: { title: 'Server-side tracking', sub: 'Every conversion sent to Meta (Conversions API) and GA4 from the server: delivery, retries and match quality.', render: renderTracking },
@@ -438,11 +440,15 @@
         '<div class="card"><h2>Pipeline</h2><div class="grid" style="gap:10px;margin-top:10px">' +
         '<label>Status <select class="input" data-f="status">' + ((state.meta && state.meta.statuses) || []).map(function (s) { return '<option' + (s === l.status ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></label>' +
         '<label>Tier override <select class="input" data-f="tier_override"><option value="">— (computed: ' + esc(l.tier || 'none') + ')</option><option' + (l.tier_override === 'A' ? ' selected' : '') + '>A</option><option' + (l.tier_override === 'B' ? ' selected' : '') + '>B</option><option' + (l.tier_override === 'C' ? ' selected' : '') + '>C</option></select></label>' +
-        '<label>Revenue (AUD) <input class="input" type="number" min="0" step="100" data-f="revenue" value="' + esc(l.revenue || 0) + '"></label>' +
+        '<label>Closer ' + repSelect('closer_id', l.closer_id, function (r) { return r.role !== 'setter'; }) + '</label>' +
+        '<label>Setter ' + repSelect('setter_id', l.setter_id, function () { return true; }) + '</label>' +
+        '<label>Deal value (AUD) <input class="input" type="number" min="0" step="100" data-f="revenue" value="' + esc(l.revenue || 0) + '"></label>' +
+        '<label>Cash collected (AUD) <input class="input" type="number" min="0" step="100" data-f="cash_collected" value="' + esc(l.cash_collected || 0) + '"></label>' +
+        '<label>Lost reason <select class="input" data-f="lost_reason"><option value="">—</option>' + ((state.meta && state.meta.lostReasons) || []).map(function (r) { return '<option' + (r === l.lost_reason ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('') + '</select></label>' +
         '<label>Notes<textarea class="notes" data-f="notes">' + esc(l.notes || '') + '</textarea></label>' +
         '<button class="btn-sm" data-save type="button">Save</button></div></div>' +
         '<div class="card"><h2>Profile</h2><dl class="kv" style="margin-top:10px">' +
-        kv('Closer', l.closer_id) + kv('Route', l.route) + kv('Call', l.call_at ? when(l.call_at) : l.booked_at ? 'booked (time pending)' : '–') +
+        kv('Closer', repName(l.closer_id)) + kv('Route', l.route) + kv('Call', l.call_at ? when(l.call_at) : l.booked_at ? 'booked (time pending)' : '–') +
         kv('Last touch', [l.channel, l.utm_source, l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [l.ft_channel, l.ft_source, l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
         kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline', l.variant) + kv('Location', [l.city, l.country].filter(Boolean).join(', ')) + kv('Device', l.device) +
         kv('WhatsApp', l.whatsapp_connected_at ? 'connected ' + when(l.whatsapp_connected_at) : l.whatsapp_clicked_at ? 'clicked ' + when(l.whatsapp_clicked_at) : (l.whatsapp_opt_in ? 'opted in' : '–')) +
@@ -461,10 +467,147 @@
       dr.querySelector('[data-save]').onclick = function () {
         var body = {};
         dr.querySelectorAll('[data-f]').forEach(function (f) { body[f.getAttribute('data-f')] = f.value; });
-        send('PATCH', 'leads/' + encodeURIComponent(id), body).then(function (r) { toast(r.ok ? 'Saved' : 'Could not save'); if (state.tab === 'leads') load(); });
+        send('PATCH', 'leads/' + encodeURIComponent(id), body).then(function (r) { toast(r.ok ? 'Saved' : (r.error || 'Could not save')); if (state.tab === 'leads' || state.tab === 'sales') load(); });
       };
     });
   }
+
+  // ───────────── sales team ─────────────
+  function reps() { return (state.meta && state.meta.closers) || []; }
+  function repName(id) { if (!id) return 'Unassigned'; var r = reps().filter(function (x) { return x.id === id; })[0]; return r ? r.name : id; }
+  function repSelect(field, current, keep) {
+    var list = reps().filter(keep);
+    if (current && !list.some(function (r) { return r.id === current; })) list.push({ id: current, name: current + ' (inactive)' });
+    return '<select class="input" data-f="' + field + '"><option value="">— Unassigned</option>' + list.map(function (r) { return '<option value="' + esc(r.id) + '"' + (r.id === current ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select>';
+  }
+  function personName(r) { return [r.first_name, r.last_name].filter(Boolean).join(' ') || r.email || r.id; }
+  function refreshMeta() { return fetch('/admin/api/meta', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (m) { state.meta = m; }); }
+  var STATUS_LABEL = { showed: 'Held', won: 'Won', lost: 'Lost', no_show: 'No-show' };
+
+  function renderSales() {
+    return api('sales').then(function (d) {
+      var t = d.totals;
+      var lead = function (r) { return '<a href="#lead=' + esc(r.id) + '" data-open="' + esc(r.id) + '">' + esc(personName(r)) + '</a>'; };
+      var bar = function (v) { return v == null ? '<span class="muted">no target</span>' : '<div class="target"><i style="width:' + Math.min(100, v * 100).toFixed(1) + '%"></i></div><small>' + pct(v) + '</small>'; };
+      view.innerHTML =
+        (d.notify ? '' : '<div class="card notice"><b>Team pings are off.</b> Add a Slack or Discord webhook under <a href="#integrations" data-go="integrations">Integrations → Alerts</a> to get hot leads, bookings, call reminders and closed deals in your channel.</div>') +
+        '<div class="grid g-4">' +
+        tile('Calls booked', n(t.booked), n(t.upcoming) + ' upcoming') +
+        tile('Show rate', pct(t.show_rate), n(t.held) + ' held · ' + n(t.no_shows) + ' no-shows') +
+        tile('Close rate', pct(t.close_rate), n(t.won) + ' won · ' + n(t.lost) + ' lost') +
+        tile('Revenue', money(t.revenue), money(t.cash) + ' cash · avg ' + money(t.avg_deal)) + '</div>' +
+        (d.needsOutcome.length ? '<div class="card" style="margin-top:14px"><h2>Needs an outcome · ' + n(d.needsOutcome.length) + '</h2><p class="sub">These calls have passed. Log what happened — it triggers the right follow-up emails, the Meta conversion and the team ping.</p>' +
+          table([
+            { label: 'Lead', html: lead },
+            { label: 'Tier', html: function (r) { return r.tier ? '<span class="tier ' + esc(r.tier) + '">' + esc(r.tier) + '</span>' : '–'; } },
+            { label: 'Call', html: function (r) { return esc(r.call_at ? when(r.call_at) : 'booked ' + when(r.booked_at)); } },
+            { label: 'Closer', html: function (r) { return esc(repName(r.closer_id)); } },
+            { label: '', html: function (r) { return '<div class="row outcome" data-lead="' + esc(r.id) + '"><button class="btn-sm ghost" data-out="showed">Held</button><button class="btn-sm ghost" data-out="no_show">No-show</button><button class="btn-sm ghost" data-out="won">Won…</button><button class="btn-sm ghost" data-out="lost">Lost…</button></div>'; } },
+          ], d.needsOutcome) + '</div>' : '') +
+        '<div class="card" style="margin-top:14px"><h2>Leaderboard</h2><p class="sub">Calls scheduled and deals closed in this range. Commission is on cash collected. Target bar is month to date (' + esc(d.tz) + ').</p>' +
+        table([
+          { label: 'Rep', html: function (r) { return '<b>' + esc(r.name) + '</b>' + (r.id ? '' : ' <span class="muted">(no closer set)</span>'); } },
+          { label: 'Booked', key: 'booked', num: true, fmt: n },
+          { label: 'Held', key: 'held', num: true, fmt: n },
+          { label: 'Show', key: 'show_rate', num: true, fmt: function (v) { return pct(v); } },
+          { label: 'Won', key: 'won', num: true, fmt: n },
+          { label: 'Close', key: 'close_rate', num: true, fmt: function (v) { return pct(v); } },
+          { label: 'Revenue', key: 'revenue', num: true, fmt: money },
+          { label: 'Cash', key: 'cash', num: true, fmt: money },
+          { label: 'Commission', key: 'commission', num: true, fmt: money },
+          { label: 'MTD vs target', html: function (r) { return '<div class="target-cell">' + bar(r.target_progress) + '</div>'; } },
+        ], d.leaderboard) + '</div>' +
+        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Upcoming calls</h2><p class="sub">Next 14 days. Reps get pinged 15 minutes before each one.</p>' +
+        table([
+          { label: 'When', html: function (r) { return esc(when(r.call_at)); } },
+          { label: 'Lead', html: function (r) { return lead(r) + (r.tier ? ' <span class="tier ' + esc(r.tier) + '">' + esc(r.tier) + '</span>' : ''); } },
+          { label: 'Closer', html: function (r) { return esc(repName(r.closer_id)); } },
+          { label: 'VSL', num: true, html: function (r) { return esc(r.vsl_pct ? pct(Math.min(1, r.vsl_pct)) : '–'); } },
+          { label: 'Source', html: function (r) { return '<span class="muted">' + esc([r.channel || 'Direct', r.utm_content].filter(Boolean).join(' / ')) + '</span>'; } },
+        ], d.upcoming) + '</div>' +
+        '<div class="card"><h2>Why deals are lost</h2><p class="sub">Lost reasons logged in this range.</p>' + (d.lostReasons.length ? barList(d.lostReasons.map(function (r) { return { name: r.reason, value: r.n }; })) : '<div class="empty">No losses logged.</div>') + '</div></div>' +
+        '<div class="card" style="margin-top:14px"><h2>Recent outcomes</h2>' +
+        table([
+          { label: 'When', html: function (r) { return esc(when(r.closed_at || r.showed_at || r.updated_at)); } },
+          { label: 'Lead', html: lead },
+          { label: 'Outcome', html: function (r) { return '<span class="pill out-' + esc(r.status) + '">' + esc(STATUS_LABEL[r.status] || r.status) + '</span>' + (r.lost_reason ? ' <span class="muted">' + esc(r.lost_reason) + '</span>' : ''); } },
+          { label: 'Value', num: true, html: function (r) { return r.status === 'won' ? esc(money(r.revenue)) + '<div class="muted">' + esc(money(r.cash_collected)) + ' cash</div>' : ''; } },
+          { label: 'Closer', html: function (r) { return esc(repName(r.closer_id)); } },
+          { label: 'Source', html: function (r) { return '<span class="muted">' + esc([r.channel || 'Direct', r.utm_campaign, r.utm_content].filter(Boolean).join(' / ')) + '</span>'; } },
+        ], d.recent) + '</div>';
+
+      view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
+      view.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); go(a.getAttribute('data-go')); }; });
+      view.querySelectorAll('.outcome [data-out]').forEach(function (b) {
+        b.onclick = function () {
+          var id = b.closest('[data-lead]').getAttribute('data-lead'), status = b.getAttribute('data-out'), body = { status: status };
+          if (status === 'won') {
+            var v = prompt('Deal value (AUD)?'); if (v == null) return;
+            var cash = prompt('Cash collected so far (AUD)?', v); if (cash == null) return;
+            body.revenue = Number(String(v).replace(/[^\d.]/g, '')) || 0; body.cash_collected = Number(String(cash).replace(/[^\d.]/g, '')) || 0;
+          } else if (status === 'lost') {
+            var list = (state.meta.lostReasons || []);
+            var pick = prompt('Why was it lost?\n' + list.map(function (r, i) { return (i + 1) + '. ' + r; }).join('\n') + '\n\nType a number:'); if (pick == null) return;
+            body.lost_reason = list[(+pick || 0) - 1] || 'Other';
+          }
+          b.disabled = true;
+          send('PATCH', 'leads/' + encodeURIComponent(id), body).then(function (r) { toast(r.ok ? 'Logged — team notified' : (r.error || 'Could not save')); load(); });
+        };
+      });
+    });
+  }
+
+  function renderTeam() {
+    return Promise.all([fetch('/admin/api/reps', { credentials: 'same-origin' }).then(function (r) { return r.json(); }), fetch('/admin/api/integrations', { credentials: 'same-origin' }).then(function (r) { return r.json(); })]).then(function (res) {
+      var d = res[0], integ = res[1];
+      var hooks = {};
+      var vals = {};
+      (integ.settings || []).forEach(function (s) { hooks[s.key] = s.source !== 'unset'; vals[s.key] = s.value; });
+      var on = function (k) { return hooks[k] ? '<span class="pill ok">connected</span>' : '<span class="pill">not set</span>'; };
+      function field(label, name, value, attrs) { return '<label>' + esc(label) + ' <input class="input" name="' + name + '" value="' + esc(value == null ? '' : value) + '" ' + (attrs || '') + '></label>'; }
+      function form(r) {
+        r = r || { role: 'closer', tiers: 'A,B', weight: 1, commission_pct: 0, monthly_target: 0, active: 1 };
+        var tiers = String(r.tiers || '').split(',');
+        return '<form class="rep-form grid" data-rep="' + esc(r.id || '') + '" style="gap:10px;margin-top:10px">' +
+          '<div class="grid g-3" style="gap:10px">' + field('Name', 'name', r.name, 'required') + field('Email', 'email', r.email, 'type="email"') +
+          '<label>Role <select class="input" name="role">' + d.roles.map(function (x) { return '<option' + (x === r.role ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></label></div>' +
+          '<div class="grid g-3" style="gap:10px"><fieldset class="tiers"><legend>Takes tiers</legend>' + ['A', 'B', 'C'].map(function (t) { return '<label><input type="checkbox" name="tier" value="' + t + '"' + (tiers.indexOf(t) !== -1 ? ' checked' : '') + '> ' + t + '</label>'; }).join('') + '</fieldset>' +
+          field('Round-robin weight', 'weight', r.weight, 'type="number" min="0" step="0.5"') +
+          field('Calendar link', 'calendar_url', r.calendar_url, 'type="url" placeholder="' + esc(r.legacy_calendar || 'https://calendly.com/…') + '"') + '</div>' +
+          '<div class="grid g-4" style="gap:10px">' + field('Commission % of cash', 'commission_pct', r.commission_pct, 'type="number" min="0" max="100" step="0.5"') + field('Monthly revenue target', 'monthly_target', r.monthly_target, 'type="number" min="0" step="1000"') +
+          field('Slack member ID', 'slack_user_id', r.slack_user_id, 'placeholder="U0123ABCD"') + field('Discord user ID', 'discord_user_id', r.discord_user_id, 'placeholder="1234567890…"') + '</div>' +
+          '<div class="row"><label class="muted"><input type="checkbox" name="active"' + (r.active ? ' checked' : '') + '> Active (gets new leads)</label><span style="flex:1"></span>' +
+          (r.id && (r.slack_user_id || r.discord_user_id) ? '<button class="btn-sm ghost" type="button" data-ping="' + esc(r.id) + '">Test @mention</button>' : '') +
+          '<button class="btn-sm" type="submit">' + (r.id ? 'Save' : 'Add to team') + '</button></div></form>';
+      }
+      view.innerHTML =
+        '<div class="card"><h2>Team pings</h2><p class="sub">Paste incoming-webhook URLs under <a href="#integrations" data-go="integrations">Integrations → Alerts</a>. Closed deals go to the wins channel (or alerts if you only set one).</p>' +
+        '<div class="grid g-2" style="margin-top:10px"><dl class="kv">' + '<dt>Slack · alerts</dt><dd>' + on('SLACK_WEBHOOK_URL') + '</dd><dt>Slack · wins</dt><dd>' + on('SLACK_WINS_WEBHOOK_URL') + '</dd><dt>Discord · alerts</dt><dd>' + on('DISCORD_WEBHOOK_URL') + '</dd><dt>Discord · wins</dt><dd>' + on('DISCORD_WINS_WEBHOOK_URL') + '</dd></dl>' +
+        '<div><p class="sub">What gets posted: 🔥 hot A-tier leads · ✅ qualified B-tier leads · 📅 calls booked · 🚫 cancellations · ⏰ 15-minute call reminders (with @mention) · ✅ held · ❌ no-shows · 🎉 closed deals · lost deals · ☀️ daily digest at ' + esc(vals.DIGEST_HOUR || 8) + ':00.</p>' +
+        '<div class="row" style="margin-top:10px"><button class="btn-sm ghost" data-test-notify="alerts">Test alerts</button><button class="btn-sm ghost" data-test-notify="wins">Test wins</button><button class="btn-sm ghost" data-test-digest>Send digest now</button></div></div></div></div>' +
+        d.reps.map(function (r) { return '<div class="card' + (r.active ? '' : ' inactive') + '" style="margin-top:14px"><div class="card-head"><div><h2>' + esc(r.name) + '</h2><p class="sub">' + esc(r.role) + ' · tiers ' + esc(r.tiers || '–') + (r.calendar_url || r.legacy_calendar ? '' : ' · <b>no calendar — won’t get leads</b>') + '</p></div></div>' + form(r) + '</div>'; }).join('') +
+        '<div class="card" style="margin-top:14px"><h2>Add a rep</h2><p class="sub">New closers join the round-robin for the tiers you tick, and leads book on their calendar. Find a Slack member ID in their profile → ⋯ → Copy member ID; a Discord user ID via Developer Mode → right-click → Copy User ID.</p>' + form(null) + '</div>';
+
+      view.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); go(a.getAttribute('data-go')); }; });
+      view.querySelectorAll('.rep-form').forEach(function (f) {
+        f.onsubmit = function (ev) {
+          ev.preventDefault();
+          var id = f.getAttribute('data-rep');
+          var body = { tiers: [].map.call(f.querySelectorAll('[name=tier]:checked'), function (c) { return c.value; }), active: f.querySelector('[name=active]').checked };
+          ['name', 'email', 'role', 'weight', 'calendar_url', 'commission_pct', 'monthly_target', 'slack_user_id', 'discord_user_id'].forEach(function (k) { body[k] = f.querySelector('[name=' + k + ']').value; });
+          send(id ? 'PATCH' : 'POST', id ? 'reps/' + encodeURIComponent(id) : 'reps', body).then(function (r) {
+            if (r.error) { toast(r.error); return; }
+            toast(id ? 'Saved' : 'Added to the team');
+            refreshMeta().then(load);
+          });
+        };
+      });
+      view.querySelectorAll('[data-ping]').forEach(function (b) { b.onclick = function () { send('POST', 'notify/test', { rep: b.getAttribute('data-ping') }).then(function (r) { toast(r.error || (r.ok ? 'Sent' : 'Webhook rejected it')); }); }; });
+      view.querySelectorAll('[data-test-notify]').forEach(function (b) { b.onclick = function () { send('POST', 'notify/test', { channel: b.getAttribute('data-test-notify') }).then(function (r) { toast(r.error || (r.ok ? 'Sent — check the channel' : 'Webhook rejected it')); }); }; });
+      view.querySelector('[data-test-digest]').onclick = function () { send('POST', 'notify/test', { digest: true }).then(function (r) { toast(r.error || 'Digest posted'); }); };
+    });
+  }
+
   function voiceCall(v) {
     var sd = {};
     try { sd = JSON.parse(v.structured || '{}'); } catch (x) { /* ignore */ }

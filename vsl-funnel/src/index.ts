@@ -11,11 +11,16 @@ import { api } from './routes/api';
 import { hooks } from './routes/hooks';
 import { links } from './routes/links';
 import { loadSettings } from './settings';
+import { loadReps } from './sales/reps';
+import { pingUpcomingCalls } from './sales/outcomes';
+import { maybeSendDigest } from './sales/digest';
 
 const app = new Hono<AppEnv>();
 
 app.use('*', async (c, next) => {
-  c.set('settings', await loadSettings(c.env));
+  const [settings, reps] = await Promise.all([loadSettings(c.env), loadReps(c.env)]);
+  c.set('settings', settings);
+  c.set('reps', reps);
   await next();
   c.header('x-robots-tag', 'noindex, nofollow');
   c.header('referrer-policy', 'strict-origin-when-cross-origin');
@@ -103,17 +108,26 @@ app.onError((err, c) => {
 export default {
   fetch: app.fetch,
 
-  /** Every 5 minutes: send due emails (sequences, abandoned-application recovery, call reminders). */
+  /** Every 5 minutes: send due emails, retry tracking, ping reps before calls, post the daily sales digest. */
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
-    const settings = await loadSettings(env);
+    const [settings, reps] = await Promise.all([loadSettings(env), loadReps(env)]);
     const rt: Runtime = {
       env,
       settings,
+      reps,
       origin: publicOrigin(settings, 'https://example.com'),
       waitUntil: (p) => ctx.waitUntil(p.catch((e) => console.error('background task failed', e))),
     };
     if (!settings.PUBLIC_URL) console.warn('PUBLIC_URL is not set — email links will point at example.com');
-    const [result, retried] = await Promise.all([processEmailQueue(rt), retryForwards(rt)]);
+    const quiet = <T,>(p: Promise<T>, label: string) => p.catch((e) => { console.error(`${label} failed`, e); return null; });
+    const [result, retried, pinged, digest] = await Promise.all([
+      processEmailQueue(rt),
+      retryForwards(rt),
+      quiet(pingUpcomingCalls(rt), 'call pings'),
+      quiet(maybeSendDigest(rt), 'daily digest'),
+    ]);
+    if (pinged) console.log('call pings', pinged);
+    if (digest) console.log('daily digest sent');
     if (result.due) console.log('email queue', result);
     if (retried.due) console.log('tracking retries', retried);
   },
