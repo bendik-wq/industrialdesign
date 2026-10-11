@@ -7,6 +7,7 @@
 import { transcribe, chatJson } from "./ai.js";
 import { aiEnv } from "./keys.js";
 import { twilio, DISPOSITIONS } from "./dialer.js";
+import { MOTIVATION } from "../public/js/jl.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -16,7 +17,7 @@ const MAX_AUDIO = 20 * 1024 * 1024;
 // Built on first use: dialer.js and this module import each other.
 const schema = () => ({
   type: "object", additionalProperties: false,
-  required: ["summary", "outcome", "next_step", "callback_when", "notes", "owner_facts", "objections", "sentiment"],
+  required: ["summary", "outcome", "next_step", "callback_when", "notes", "owner_facts", "objections", "sentiment", "motivation_tier", "motivation_signals"],
   properties: {
     summary: { type: "string", description: "2-3 sentences: who you spoke to and what happened" },
     outcome: { type: "string", enum: Object.keys(DISPOSITIONS), description: "The outcome that best matches the call" },
@@ -26,9 +27,15 @@ const schema = () => ({
     owner_facts: { type: "array", items: { type: "string" }, description: "Facts about the owner, family, staff, timing, health, plans" },
     objections: { type: "array", items: { type: "string" } },
     sentiment: { type: "string", enum: ["warm", "neutral", "cold"] },
+    motivation_tier: { type: ["integer", "null"], enum: [1, 2, 3, null], description: "JL skill seller motivation tier: 1 immediate (30-90 days), 2 near-term (3-12 months), 3 future (nurture 12+ months); null if you didn't speak to the owner" },
+    motivation_signals: { type: "array", items: { type: "string" }, description: "Which of the JL skill's high or low motivation indicators you heard, as said" },
   },
 });
-const SYSTEM = `You write call notes for a buyer of small private businesses who cold-calls owners about selling one day. From the transcript of one phone call (the buyer and whoever answered: owner, receptionist or voicemail), write accurate, specific notes. Never invent anything not said. If nobody answered or it was voicemail, say so and pick that outcome. "gatekeeper" = spoke to staff, not the owner. Use the owner's own words for timing and plans.`;
+const SYSTEM = () => `You write call notes for a buyer of small private businesses who cold-calls owners about selling one day, following Josh Li's 3C Acquisition Model (the JL skill). From the transcript of one phone call (the buyer and whoever answered: owner, receptionist or voicemail), write accurate, specific notes. Never invent anything not said. If nobody answered or it was voicemail, say so and pick that outcome. "gatekeeper" = spoke to staff, not the owner. Use the owner's own words for timing and plans.
+Rate seller motivation only with the JL skill's definitions:
+${MOTIVATION.tiers.map((x) => `Tier ${x.tier}, ${x.name} (${x.when}): ${x.examples.join("; ")}`).join("\n")}
+High motivation indicators: ${MOTIVATION.high.join("; ")}. Low motivation indicators: ${MOTIVATION.low.join("; ")}.
+Next step must follow the JL skill: interested → send the NDA and set up a time to discuss the business; not interested → check back in 6-12 months; the qualification gate before any offer is the NDA, at least 3 years of financial statements and tax returns (healthcare: billing by practitioner).`;
 
 // The TwiML pieces a recorded <Dial> needs, or null when recording is off.
 export async function recordingTwiml(env, accountId, base, to, userId) {
@@ -66,7 +73,7 @@ export async function processRecording(env, accountId, id) {
     const { text } = await transcribe(env, audio, "Phone call: a buyer calls a business owner about one day selling the business. Receptionist, voicemail, callback, owner, practice, clinic.");
     if (!text) return fail("Nothing intelligible in the recording");
     const ai = await aiEnv(env, ctx);
-    const { data } = await chatJson(ai, SYSTEM, `Call length ${rec.duration}s.\n\nTRANSCRIPT:\n${text.slice(0, 24000)}`, schema(), 1200, "low");
+    const { data } = await chatJson(ai, SYSTEM(), `Call length ${rec.duration}s.\n\nTRANSCRIPT:\n${text.slice(0, 24000)}`, schema(), 1200, "low");
     await env.DB.prepare("UPDATE call_recordings SET status = 'done', transcript = ?3, summary = ?4, updated_at = ?5 WHERE id = ?1 AND account_id = ?2").bind(id, accountId, text.slice(0, 60000), JSON.stringify(data), now()).run();
     if (rec.target_id) {
       const body = `AI call notes (${Math.round(rec.duration / 60) || "<1"} min): ${data.summary}${data.next_step ? ` Next: ${data.next_step}.` : ""}${data.owner_facts?.length ? `\n${data.owner_facts.map((f) => `- ${f}`).join("\n")}` : ""}`;

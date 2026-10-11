@@ -17,6 +17,7 @@ import { STAGES } from "../public/js/deal.js";
 import { pickCallerId, callerNumbers, countryCode } from "./numbers.js";
 import { zonesFor, callWindow, localHour } from "../public/js/calltime.js";
 import { propose } from "./approvals.js";
+import { nextInSequence } from "../public/js/jl.js";
 
 const err = (status, message, extra) => Object.assign(new Error(message), { status, ...extra });
 const now = () => new Date().toISOString();
@@ -26,20 +27,20 @@ const idx = (id) => STAGES.findIndex((s) => s.id === id);
 
 export const MAX_ATTEMPTS_24H = 3;          // per number, rolling 24 hours (the strictest state rules)
 export const RETRY_GAP_MIN = 90;            // don't redial a number within 90 minutes unless it's a callback or a double dial
-const REST_AFTER = 6, REST_DAYS = 30;       // 6 unanswered attempts in 21 days: give them a month off
 const NUMBER_DAILY_CAP = 100;               // dials per caller ID per day before we prefer another number
 const LOCK_MIN = 10;
 
-// What each outcome does to the target. stage = move forward to at least this stage.
+// What each outcome does to the target. stage = move forward to at least this stage. Next actions and timings
+// follow the JL skill (3C model): NDA after interest, check back in 6-12 months, the multi-channel sequence below.
 export const DISPOSITIONS = {
   no_answer: { label: "No answer", key: "1", next: "Call again", days: 1 },
   voicemail: { label: "Left voicemail", key: "2", next: "Call again (left a voicemail)", days: 2 },
-  gatekeeper: { label: "Gatekeeper", key: "3", next: "Call back and ask for the owner", days: 1, answered: true },
+  gatekeeper: { label: "Gatekeeper", key: "3", next: "Call back and ask to speak to the partner, or go direct (LinkedIn, their direct line)", days: 1, answered: true },
   callback: { label: "Call back later", key: "4", next: "Callback", days: 1, answered: true },
-  connected: { label: "Spoke, no next step", key: "5", next: "Follow up", days: 7, stage: "contacted", answered: true },
-  interested: { label: "Interested", key: "6", next: "Book the first proper call", days: 1, stage: "first_call", priority: 1, answered: true },
-  meeting: { label: "Meeting booked", key: "7", next: "Meeting", days: 3, stage: "meeting", priority: 1, answered: true },
-  not_interested: { label: "Not interested", key: "8", next: "Check back in 6 months", days: 180, priority: 3, stage: "contacted", answered: true },
+  connected: { label: "Spoke, no next step", key: "5", next: "Check in: \"Just wanted to stay in touch\" (every 6-8 weeks)", days: 45, stage: "contacted", answered: true },
+  interested: { label: "Interested", key: "6", next: "Send the NDA and set up a time to discuss the business", days: 1, stage: "first_call", priority: 1, answered: true },
+  meeting: { label: "Meeting booked", key: "7", next: "Meeting, then the qualification gate: NDA, ≥3 years financials + tax returns", days: 3, stage: "meeting", priority: 1, answered: true },
+  not_interested: { label: "Not interested", key: "8", next: "Check back in 6-12 months", days: 180, priority: 3, stage: "contacted", answered: true },
   wrong_number: { label: "Wrong number", key: "9", next: "Find a working number", days: 0, answered: true },
   dnc: { label: "Do not call", key: "0", next: "Opted out of calls", days: 0, answered: true },
 };
@@ -49,7 +50,7 @@ export const curFor = (t) => { const l = String(t?.location || ""); return /aust
 const digits = (s) => String(s || "").replace(/\D/g, "").replace(/^00/, "");
 
 // ------------------------------------------------------------------ settings
-const DEFAULT_SETTINGS = { sundays: false, enforce_hours: true, record: false, record_notice: "Hi, just so you know, this call is recorded.", followup_text: "Hi {first}, it's {me}. I just tried you by phone. I'm a local business owner and had a quick question about {company}. When's a good time to talk?" };
+const DEFAULT_SETTINGS = { sundays: false, enforce_hours: true, record: false, record_notice: "Hi, just so you know, this call is recorded.", followup_text: "Hi {first}, this is {me} with {mycompany}. I'm building a company in {industry} and wanted to introduce myself. Have you ever thought about selling {company}?" };
 export async function dialerSettings(env, accountId) {
   const r = await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = 'dialer'").bind(accountId).first();
   return { ...DEFAULT_SETTINGS, ...(r ? JSON.parse(r.data) : {}) };
@@ -101,6 +102,8 @@ export function balancedCallerId(numbers, to, fallback, loads = {}) {
   const cc = countryCode(to);
   const tier = (n) => (cc === "1" && n.slice(0, 5) === String(to).slice(0, 5) ? 0 : cc && countryCode(n) === cc ? 1 : 2);
   const t = tier(best);
+  // No number from their country: show the default number, never a random foreign one.
+  if (t === 2) return fallback || best;
   const peers = list.filter((n) => tier(n) === t);
   const fresh = peers.filter((n) => (loads[n] || 0) < NUMBER_DAILY_CAP);
   return (fresh.length ? fresh : peers).sort((a, b) => (loads[a] || 0) - (loads[b] || 0))[0] || best;
@@ -295,10 +298,15 @@ export async function logCall(env, ctx, b, hooks) {
     }
   }
   fields.next_date = d.days || b.next_date || callbackAt ? date : ymd(0);
-  // Owners who never pick up get a rest instead of a daily dial.
-  if (["no_answer", "voicemail"].includes(b.disposition)) {
-    const s = await env.DB.prepare("SELECT SUM(CASE WHEN answered = 1 THEN 1 ELSE 0 END) AS spoke, SUM(CASE WHEN answered = 0 THEN 1 ELSE 0 END) AS missed FROM dial_attempts WHERE account_id = ?1 AND target_id = ?2 AND created_at >= ?3").bind(ctx.accountId, t.id, ago(21 * 864e5)).first();
-    if (!s.spoke && s.missed >= REST_AFTER) { fields.next_action = `Rest: ${s.missed} tries without an answer. Try a letter or email first`; fields.next_date = ymd(REST_DAYS); }
+  // No answer: the JL skill's multi-channel sequence (call day 1, email day 3, LinkedIn day 7, call day 10, email
+  // day 14, LinkedIn day 21, call day 30, last-touch email day 45, re-engage month 3, restart month 6).
+  if (["no_answer", "voicemail"].includes(b.disposition) && !b.next_date && !callbackAt) {
+    const { results } = await env.DB.prepare("SELECT disposition FROM calls WHERE account_id = ?1 AND target_id = ?2 AND created_at >= ?3 ORDER BY id DESC LIMIT 20").bind(ctx.accountId, t.id, ago(200 * 864e5)).all();
+    let n = 0;
+    for (const c of results) { if (["no_answer", "voicemail"].includes(c.disposition)) n++; else break; } // since they last picked up (includes this call)
+    const step = nextInSequence(((Math.max(1, n) - 1) % 4) + 1);
+    fields.next_action = `JL sequence: ${[...step.between.map((x) => `day ${x.day} ${x.text.toLowerCase()}`), step.next ? `day ${step.next.day} ${step.next.text.toLowerCase()}` : ""].filter(Boolean).join("; ")}`.slice(0, 240);
+    fields.next_date = ymd(step.between[0] ? step.between[0].day - step.lastDay : step.daysToNext || 1);
   }
   if (d.stage && idx(t.stage) < idx(d.stage)) fields.stage = d.stage;
   if (d.priority) fields.priority = d.priority;

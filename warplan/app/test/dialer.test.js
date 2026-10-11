@@ -76,3 +76,22 @@ test("calling hours off: an outside-hours dial goes through with a warning; the 
     await assert.rejects(dialGuard({ DB: db(MAX_ATTEMPTS_24H) }, 1, { to: "+61291234567", location: "Sydney NSW 2000, Australia" }), /3 times in 24 hours/);
   } finally { globalThis.Date = RealDate; }
 });
+
+import { nextInSequence, SEQUENCE, personalize, SCRIPTS } from "../public/js/jl.js";
+test("JL cadence: after each unanswered call, the touches until the next call", () => {
+  const a = nextInSequence(1);
+  assert.deepEqual(a.between.map((s) => s.day), [3, 7]); assert.equal(a.next.day, 10);
+  const b = nextInSequence(2);
+  assert.deepEqual(b.between.map((s) => s.day), [14, 21]); assert.equal(b.next.day, 30);
+  const c = nextInSequence(3);
+  assert.deepEqual(c.between.map((s) => s.day), [45, 90]); assert.equal(c.next.day, 180);
+  assert.equal(SEQUENCE.length, 10);
+});
+test("JL scripts: placeholders filled, unknowns stay visible", () => {
+  assert.equal(personalize(SCRIPTS.opener.text, { first: "Carey", me: "Bendik", company: "Asym Capital", industry: "physiotherapy", business: "Geelong Physical Therapy" }),
+    "Hi Carey, this is Bendik with Asym Capital. I'm building a company in physiotherapy and wanted to introduce myself. Have you ever thought about selling Geelong Physical Therapy?");
+  assert.match(personalize(SCRIPTS.opener.text, {}), /\[Company\].*\[industry\]/);
+});
+test("caller ID: no number from their country → the default number, never a random foreign one", () => {
+  assert.equal(balancedCallerId(["+12294046271", "+4794053677"], "+61393760543", "+12294046271", { "+12294046271": 9 }), "+12294046271");
+});

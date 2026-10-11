@@ -2,6 +2,7 @@ import { $, $$, esc, safeUrl, dialog, confirmBox, api, post, view, stale, toast,
 import { STAGES, stageById } from "../deal.js";
 import { deepEnrichDialog } from "./outreach.js";
 import { phoneMode, dial, hangUp, toggleMute, sendDigit, deviceCall, qrSvg, telWorks, watchHandoff } from "../phone.js";
+import { SCRIPTS, QUALIFICATION, MOTIVATION, JL_SOURCE, personalize } from "../jl.js";
 
 // Power dialer: one owner at a time, a human on every call. Start a session, press Space to call, 1–0 for the
 // outcome, and the next owner is up (auto-dialed after a short countdown when calling through Twilio). Calling
@@ -23,7 +24,7 @@ export async function renderDialer(seq, params) {
   if (sub === "team") return renderTeam(seq);
   const prefs = { ...PREFS, ...local.get("dialer2", {}) };
   const qs = new URLSearchParams({ ...(prefs.stage && { stage: prefs.stage }), ...(prefs.list && { list: prefs.list }), ...(prefs.list === "hot" && { score: "60" }), ...(prefs.fresh && { fresh: "1" }), ...(prefs.callable && { callable: "1" }), ...(params.get("q") && { q: params.get("q") }) });
-  const [data, me] = await Promise.all([api(`/api/dialer/queue?${qs}`), session.me ? Promise.resolve(session.me) : api("/api/me")]);
+  const [data, me, phone] = await Promise.all([api(`/api/dialer/queue?${qs}`), session.me ? Promise.resolve(session.me) : api("/api/me"), api("/api/phone").catch(() => null)]);
   if (stale(seq)) return;
   let ses = null;
   try { const id = sessionStorage.getItem("dialSession"); if (id) ses = await api(`/api/dialer/sessions/${id}`); if (ses?.ended_at) ses = null; } catch { ses = null; }
@@ -35,6 +36,7 @@ export async function renderDialer(seq, params) {
     <header class="page-head with-actions dial-head"><div><p class="eyebrow">Power dialer</p><h1>Pick up the phone.</h1></div><div id="dsession" class="dsession"></div></header>
     ${subnav("dial")}
     ${connectCard()}
+    ${phone?.trial ? `<p class="dial-banner warn"><b>Your Twilio account is a trial.</b> Trial accounts can only call numbers you've verified in Twilio, and play a trial message first, so calls to owners fail with “please upgrade”. Credit doesn't lift this: upgrade the account (console.twilio.com → Upgrade, add a card; your credit carries over), then allow Australia under Voice → Settings → Geo permissions.</p>` : ""}
     <div class="toolbar dial-tools">
       <div class="seg" role="group" aria-label="List">${[["", "Due & new"], ["new", "Never called"], ["callbacks", "Callbacks"], ["hot", "Ready to sell"]].map(([k, l]) => `<button type="button" data-list="${k}" class="${prefs.list === k ? "on" : ""}">${l}</button>`).join("")}</div>
       <label class="inline">Stage <select id="dStage"><option value="">All live</option>${STAGES.filter((s) => !["closed", "lost"].includes(s.id)).map((s) => `<option value="${s.id}" ${prefs.stage === s.id ? "selected" : ""}>${s.label}</option>`).join("")}</select></label>
@@ -248,7 +250,7 @@ function drawMain() {
     el.textContent = `= ${new Intl.DateTimeFormat([], { timeZone: w.zone, weekday: "short", hour: "numeric", minute: "2-digit" }).format(new Date(v))} their time`;
   });
 }
-const fill = (tpl, t) => String(tpl || "").replaceAll("{first}", firstName(t) || "there").replaceAll("{me}", (S.me.user?.name || "").split(" ")[0] || "me").replaceAll("{company}", t.name);
+const fill = (tpl, t) => String(tpl || "").replaceAll("{first}", firstName(t) || "there").replaceAll("{me}", (S.me.user?.name || "").split(" ")[0] || "me").replaceAll("{mycompany}", S.me.profile?.company || "[your company]").replaceAll("{industry}", (t.industry || "your industry").toLowerCase()).replaceAll("{company}", t.name);
 
 // ------------------------------------------------------------------ brief, script, history
 function drawSide(tab = S.sideTab || "brief") {
@@ -272,15 +274,22 @@ function sideBody(t, b, tab) {
       ${b.calls.length ? `<h4>Last call</h4><p class="small"><b>${esc(S.data.dispositions[b.calls[0].disposition]?.label || b.calls[0].disposition)}</b> · ${when(b.calls[0].created_at)}${b.calls[0].user_name ? ` · ${esc(b.calls[0].user_name)}` : ""}${b.calls[0].notes ? `<br>${esc(b.calls[0].notes)}` : ""}</p>` : ""}`;
   }
   if (tab === "script") {
-    const hook = i?.hooks?.[0];
-    return `<p class="small"><b>Open</b> “Hi ${esc(first)}, it's ${esc(me)}. I'll be quick. I own a business locally and I've been getting to know ${esc((t.industry || "business").toLowerCase())} owners in ${esc(city)}. ${hook ? esc(hook.replace(/\.$/, "")) + ". " : `${esc(t.name)} keeps coming up for how well it's run. `}I'm not selling anything. Have you ever thought about what happens to the business when you step back one day?”</p>
-      <p class="small"><b>Goal</b> a second conversation (coffee or a proper call next week). No revenue, profit or price talk on call one.</p>
-      <details><summary>“How did you get my number?”</summary><p class="small">“It's on your website / the company register. I'd rather call than send a cold letter.”</p></details>
-      <details><summary>“What's it worth?” / “What would you pay?”</summary><p class="small">“Honestly, I'd never guess on a first call, and I wouldn't trust anyone who did. What I can tell you is how I work: I keep the team, the name and the customers. Could we grab a coffee so I can understand the business properly?”</p></details>
-      <details><summary>“Not interested”</summary><p class="small">“Completely fair, most owners I speak to aren't, today. Can I send you a short letter so you have my details for whenever the time is right?”</p></details>
-      <details><summary>“Send me an email”</summary><p class="small">“Happy to. So it's actually useful to you: is it more about timing, or what happens to the team?” Then log Callback or Spoke and tick the email follow-up.</p></details>
-      <details><summary>Gatekeeper</summary><p class="small">“It's ${esc(me)} for ${esc(first === "there" ? "the owner" : first)}. It's a personal matter about the business; when's the best time to catch them?” Write their name in the notes.</p></details>
-      <details><summary>Voicemail (read it yourself)</summary><p class="small">“Hi ${esc(first)}, it's ${esc(me)}. I'm a local business owner with a quick question about ${esc(t.name)}, nothing to sell. I'll try you again ${new Date(Date.now() + 2 * 864e5).toLocaleDateString([], { weekday: "long" })}, or call me back on this number. Thanks.” Under 20 seconds.</p><p class="muted small">Warplan never drops recorded voicemails: prerecorded messages to mobiles need prior consent in the US.</p></details>
+    // Word for word from the JL skill (Josh Li's 3C model), with the names filled in. Nothing invented here.
+    const v = { first: firstName(t) || "", me: (S.me.user?.name || "").split(" ")[0] || "", company: S.me.profile?.company || "", industry: (t.industry || "").toLowerCase(), area: city, business: t.name };
+    const P = (x) => esc(personalize(x, v));
+    const line = (sc) => `<p class="small jl-line">“${P(sc.text)}”</p>${sc.note ? `<p class="muted small">${esc(sc.note)}</p>` : ""}`;
+    const list = (xs) => `<ul class="small">${xs.map((x) => `<li>${P(x)}</li>`).join("")}</ul>`;
+    return `<p class="muted small jl-src">From the ${esc(JL_SOURCE)}${!v.company ? ` · <a href="#/settings/profile">add your company name</a> to fill it in` : ""}</p>
+      <h4>${esc(SCRIPTS.opener.title)}</h4>${line(SCRIPTS.opener)}
+      <h4>${esc(SCRIPTS.interested.title)}</h4>${line(SCRIPTS.interested)}
+      <h4>${esc(SCRIPTS.notInterested.title)}</h4>${line(SCRIPTS.notInterested)}
+      <details><summary>${esc(SCRIPTS.otherBuyers.title)}</summary>${line(SCRIPTS.otherBuyers)}</details>
+      <details><summary>${esc(SCRIPTS.gatekeeper.title)}</summary>${line(SCRIPTS.gatekeeper)}</details>
+      <details><summary>${esc(QUALIFICATION.title)} (before any offer)</summary>${list(QUALIFICATION.items)}<p class="muted small">${esc(QUALIFICATION.note)}</p></details>
+      <details><summary>Reading the seller: motivation tiers</summary>${MOTIVATION.tiers.map((x) => `<p class="small"><b>Tier ${x.tier}: ${esc(x.name)}</b> <span class="muted">(${esc(x.when)})</span><br>${x.examples.map(esc).join(" · ")}</p>`).join("")}
+        <p class="small"><b>High motivation:</b> ${MOTIVATION.high.map(esc).join(" · ")}</p><p class="small"><b>Low motivation:</b> ${MOTIVATION.low.map(esc).join(" · ")}</p></details>
+      <details><summary>${esc(SCRIPTS.followUp.title)}</summary>${line(SCRIPTS.followUp)}${list(SCRIPTS.evolution.lines)}</details>
+      <details><summary>${esc(SCRIPTS.paymentHoliday.title)}</summary>${list(SCRIPTS.paymentHoliday.lines)}</details>
       <p class="small"><a href="#/simulator?target=${t.id}">Practise this owner in the Simulator →</a></p>`;
   }
   return `${b.events.length ? `<ul class="side-events">${b.events.map((e) => `<li><small class="muted">${when(e.created_at)} · ${esc(e.user_name || "")}</small><p class="small">${esc(e.body)}</p></li>`).join("")}</ul>` : `<p class="muted small">Nothing on the timeline yet.</p>`}`;
@@ -401,6 +410,7 @@ async function aiNotes(callSid) {
     box.innerHTML = `<div class="ai-head"><b>AI notes</b><span class="muted small">${n.sentiment ? esc(n.sentiment) : ""}${r.audio ? ` · <a href="${esc(r.audio)}" target="_blank" rel="noopener">play recording</a>` : ""}</span></div>
       <p class="small">${esc(n.summary || "")}</p>
       ${n.next_step ? `<p class="small"><b>Next:</b> ${esc(n.next_step)}${n.callback_when ? ` <span class="chip">⏰ ${esc(n.callback_when)}</span>` : ""}</p>` : ""}
+      ${n.motivation_tier ? `<p class="small"><b>Motivation (JL):</b> Tier ${n.motivation_tier}, ${["", "immediate seller (30-90 days)", "near-term seller (3-12 months)", "future seller (nurture 12+ months)"][n.motivation_tier]}${n.motivation_signals?.length ? ` · ${esc(n.motivation_signals.slice(0, 3).join("; "))}` : ""}</p>` : ""}
       ${n.owner_facts?.length ? `<ul class="small ai-facts">${n.owner_facts.slice(0, 6).map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
       <div class="row">${d ? `<button class="primary small" type="button" id="aiLog">Log “${esc(d.label)}” <kbd>${d.key}</kbd></button>` : ""}<button class="ghost small" type="button" id="aiUse">Use these notes</button></div>`;
     $(`[data-d="${n.outcome}"]`)?.classList.add("suggested");

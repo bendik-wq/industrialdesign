@@ -1370,3 +1370,6 @@ code, kbd, pre, pre.json, .secret code, .mono, .phone-row span, .ph-num { font-f
 .sig.sneg { border-left-color: var(--muted); opacity: .8; }
 .sig.new b { color: var(--ink); }
 .sig-ico { font-size: 16px; line-height: 1.3; text-align: center; }
+.jl-line { background: var(--surface-2); border-radius: var(--r); padding: 8px 10px; margin: 4px 0 6px; }
+.jl-src { margin-bottom: 4px; }
+.dial-banner.warn { background: color-mix(in oklab, var(--warn) 14%, var(--surface)); }
