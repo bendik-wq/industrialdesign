@@ -49,5 +49,9 @@ test/                 vitest unit tests per module
 ## Settings precedence
 `env var (wrangler secret/var)` > `D1 settings row (Integrations tab)` > default. Env-set keys show as locked in the UI. Never return secret values to the browser; show only "connected" plus the last 4 characters.
 
-## Security headers (all responses)
-Required: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Robots-Tag: noindex, nofollow` (funnel pages aren't for search), `X-Frame-Options: SAMEORIGIN` (or `frame-ancestors`), and HSTS on the custom domain. Also add a **Content-Security-Policy** that allowlists only the script, frame and connect sources you use: Calendly, the video host, the `/ph` PostHog proxy, and Meta Pixel if enabled. The original build launched without a CSP, so don't repeat that.
+## Security headers
+On every response: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Robots-Tag: noindex, nofollow`, and HSTS (on https).
+- Funnel pages: `X-Frame-Options: SAMEORIGIN`.
+- `/admin*` and `/u/*`: `X-Frame-Options: DENY` plus a strict CSP (`default-src 'self'; script-src 'self'; … frame-ancestors 'none'`).
+- Admin API: `cache-control: no-store`.
+See security-checklist.md.

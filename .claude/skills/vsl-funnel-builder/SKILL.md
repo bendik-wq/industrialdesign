@@ -40,7 +40,7 @@ Collect these before writing any code. Fall back to sensible defaults, and ask o
 | 11 | Industry landers (20 × 5) + Meta smart route + bandit | `references/landers.md` | `/m?ind=` or the ad name routes to the right industry; the bandit shifts traffic after a 60-visitor floor |
 | 12 | Funnel HQ dashboard: all tabs + the editable funnel map | `references/sales-and-hq.md` | Every number traces back to events; the map supports drag, connect, add/edit/delete, saved for everyone |
 | 13 | Domain, DNS and deliverability: custom domain, SPF/DKIM/DMARC, webhook URLs switched | `references/deploy-and-domain.md` | Mail passes SPF and DKIM; webhooks point at the custom domain |
-| 14 | Security and privacy pass | `references/security-checklist.md` | Every item checked; fixes tested |
+| 14 | Security and privacy pass, then an adversarial review: specialist reviewers (auth, webhooks/API, privacy, XSS), then skeptic agents that try to disprove each finding | `references/security-checklist.md` | Every checklist item is in the code and has a regression test |
 
 The build order matters. For example, tracking (2) has to exist before personalisation (8), and the email engine (6) before the dossier (7).
 
@@ -48,12 +48,12 @@ The build order matters. For example, tracking (2) has to exist before personali
 
 1. **Server-side truth.** Write page views server-side before the HTML is sent. Write conversions from the server. Client scripts only add what only the browser knows.
 2. **Never record what people type.** Field tracking records focus, time, corrections, paste and empty fields, but never values. Selected or copied text is capped and treated as a background signal, never quoted back to the lead.
-3. **Consent before calls.** AI calls go only to leads who ticked an **unticked-by-default** consent box. Store the consent text and timestamp, and disclose the AI and the recording up front. Only call during local calling hours in the lead's time zone. Check do-not-call before every dial, including retries. Never call imported or historical contacts.
+3. **Consent before calls.** AI calls go only to leads who ticked an **unticked-by-default** consent box. Consent is per number, with its text and timestamp stored. Disclose the AI, the recording, "say stop" and a callback number up front. Call only during local calling hours across every time zone of the **phone number's** country, never on Sundays or public holidays, and only to verified bookings. Cap calls per number and per day. Check do-not-call before every dial, including retries. Never call imported or historical contacts.
 4. **Every email** has one-click unsubscribe (RFC 8058) and a physical address. Unsubscribe stops every sequence.
 5. **Historical imports are read-only.** Imported Calendly bookings and calls more than 14 days old must never trigger emails, pings, calls or ad-platform conversions (the `isHistorical` guard and `localOnly` tracking).
 6. **Sequences are append-only.** The step index is the dedupe key `(lead_id, sequence, step)`. Append new steps; never reorder or insert in the middle.
 7. **Copy honesty.** No fabricated testimonials, results, clients or case studies. Label illustrative numbers as illustrative. No false urgency. Respect the user's banned words.
-8. **Escape everything** that a lead or webhook can influence, before it reaches `innerHTML`, email HTML or Slack markdown.
+8. **Treat every stranger-typed value as hostile.** Escape it and strip links from it before it reaches email HTML, `innerHTML`, Slack/Discord or a voice prompt. An email address is not proof of identity, and a browser booking report is not proof of a booking. Read `references/security-checklist.md` before building phases 4–9.
 9. **Webhooks fail closed.** If the signing secret isn't set, reject the request. Compare signatures in constant time, and use a replay window where the provider sends a timestamp.
 10. **Test before deploy.** Run `npm run check` (typecheck plus vitest), drive the real endpoints locally (`wrangler dev`, plus Playwright for UI), then deploy.
 

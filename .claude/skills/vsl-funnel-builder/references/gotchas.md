@@ -16,3 +16,14 @@
 - **Users enter the wrong Cloudflare nameservers**: give the exact pair.
 - Auto-mode safety classifiers may block DNS, domain and certificate changes. Ask the user to do those steps, or have them approve.
 - When a voice prompt changes, the live ElevenLabs agent doesn't update until you re-run provision.
+
+## From the security review
+- **Lead text became HTML in emails.** The new follow-up templates quoted why-now and booking answers raw, which let anyone send phishing links from your domain to any inbox (email addresses aren't verified). Escape and defang at the source.
+- **Email-match takeover**: re-entering a known email overwrote the phone number, cleared the unsubscribe and linked the attacker's browser to the lead.
+- **Fake bookings**: `/api/booking/client` (a browser report) triggered the confirmation AI call, emails and the Meta Schedule event. Combined with an unverified phone number, that made Sam a free robocaller to any number.
+- **Calling hours came from the browser's IP time zone**, so a VPN made us ring someone at night.
+- **Rules-mode personalisation quoted the FAQ question from the beacon verbatim**, which a script can set to anything.
+- **Cloudflare `isEUCountry` excludes the UK.**
+- **`getSelection()` returns text typed in a textarea**, so "selected text" tracking captured form input.
+- **The privacy policy said "we never make AI calls"** after AI calls were added. Keep the policy in step with the code.
+- Agents running security work can be stopped by model safeguards partway through. Frame tasks as defensive review of the owner's own code, and keep the evidence you already have.
