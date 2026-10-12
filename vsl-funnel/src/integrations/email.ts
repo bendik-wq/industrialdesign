@@ -11,6 +11,7 @@ import { PRECALL_SLOTS, PRECALL_TEMPLATES, SEQUENCES, type SequenceId } from './
 import { TEMPLATES, renderEmail } from './templates';
 import { whatsappLink } from './whatsapp';
 import { buildProfile } from '../personalize/profile';
+import { RULES } from '../personalize/triggers';
 import { type Personalized, personalizeEmail } from '../personalize/personalize';
 
 const MAX_ATTEMPTS = 3;
@@ -275,7 +276,9 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); return; }
 
     try {
-      const email = await buildEmail(rt, lead, row.id, row.template, `seq-${row.sequence}`, { personalize: { purpose: `${seq.description} (email ${row.step + 1})` } });
+      const trigger = row.sequence === 'behaviour' ? RULES.find((r) => r.template === row.template) : undefined;
+      const purpose = trigger ? `Triggered by what they just did: ${trigger.label}. Speak to exactly that.` : `${seq.description} (email ${row.step + 1})`;
+      const email = await buildEmail(rt, lead, row.id, row.template, `seq-${row.sequence}`, { personalize: { purpose } });
       let providerId: string | null = null;
       let status = 'simulated';
       if (emailConfigured(rt)) {

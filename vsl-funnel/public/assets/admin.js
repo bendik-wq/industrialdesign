@@ -183,9 +183,9 @@
     links: { title: 'Links & YouTube videos', sub: 'One tracked link per video and placement, followed all the way from click to booked call to closed deal.', render: renderLinks },
     traffic: { title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
-    experiments: { title: 'A/B tests', sub: 'Headline experiment, judged on applications per visitor.', render: renderExperiments },
     sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
-    landers: { title: 'Industry landers', sub: '100 landers: 20 industries × 5 headlines. Traffic shifts automatically to the headline that converts best for each industry. Every visit is traced to applications, bookings and cash.', render: renderLanders },
+    pages: { title: 'Landing pages & tests', sub: 'Every page people land on, and every headline being tested: the main page’s A/B test plus 100 industry landers (20 industries × 5 headlines). Each visit is traced to applications, bookings and cash.', render: renderLanders },
+    behaviour: { title: 'On-page behaviour', sub: 'What people click, where the form slows them down, where they leave, what they re-read and highlight. Nothing anyone types is ever recorded.', render: renderBehaviour },
     insights: { title: 'Insights', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
     team: { title: 'Team', sub: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
     leads: { title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads },
@@ -197,6 +197,7 @@
   };
 
   function go(tab) {
+    if (tab === 'experiments' || tab === 'landers') tab = 'pages';
     if (!TABS[tab]) tab = 'overview';
     state.tab = tab;
     clearInterval(liveTimer);
@@ -321,25 +322,6 @@
     });
   }
 
-  function renderExperiments() {
-    return api('experiments').then(function (d) {
-      view.innerHTML = '<div class="card"><h2>' + esc(d.id) + '</h2><p class="sub">Primary metric: ' + esc(d.primary) + '. Significance from a two-proportion z-test vs. variant A (p &lt; 0.05). Preview a variant with <span class="mono">/?v=b</span>.</p>' +
-        table([
-          { label: 'Variant', html: function (r) { return '<strong>' + esc(r.id.toUpperCase()) + '</strong> <span class="muted">' + esc(r.weight) + '%</span><div class="muted" style="max-width:340px;white-space:normal">' + esc(r.headline) + '</div>'; } },
-          { label: 'Visitors', key: 'visitors', num: true, fmt: n },
-          { label: 'Play', key: 'play_rate', num: true, fmt: function (v) { return pct(v); } },
-          { label: '50% watched', key: 'half_rate', num: true, fmt: function (v) { return pct(v); } },
-          { label: 'Pitch', key: 'pitch_rate', num: true, fmt: function (v) { return pct(v); } },
-          { label: 'Lead', key: 'lead_rate', num: true, fmt: function (v) { return pct(v, 1); } },
-          { label: 'Application', key: 'app_rate', num: true, fmt: function (v) { return pct(v, 1); } },
-          { label: 'Qualified', key: 'qualified_rate', num: true, fmt: function (v) { return pct(v, 1); } },
-          { label: 'Booked', key: 'booked_rate', num: true, fmt: function (v) { return pct(v, 1); } },
-          { label: 'Lift vs A', num: true, html: function (r) { return r.lift == null ? '<span class="muted">control</span>' : esc((r.lift > 0 ? '+' : '') + pct(r.lift, 1)); } },
-          { label: 'Result', html: function (r) { return r.p_value == null ? '' : r.significant ? '<span class="pill ok">✓ significant (p=' + r.p_value.toFixed(3) + ')</span>' : '<span class="pill">not yet (p=' + r.p_value.toFixed(2) + ')</span>'; } },
-        ], d.variants) + '</div>';
-    });
-  }
-
   // ── Leads ──
   function renderLeads() {
     var q = state.leadsQuery, r = range();
@@ -395,7 +377,7 @@
     whatsapp_connected: 'Messaged on WhatsApp', voice_web_start: 'Started AI call (browser)', voice_call_started: 'AI call connected', voice_call_completed: 'AI call ended', voice_link_sent: 'AI sent booking link', voice_opt_out: 'Asked not to be contacted', whatsapp_sent: 'Sent WhatsApp template', email_sent: 'Email sent', email_open: 'Opened email', email_click: 'Clicked email link', unsubscribe: 'Unsubscribed',
     scroll_depth: 'Scrolled', engaged_time: 'Engaged', faq_open: 'Opened FAQ', app_view_step: 'Viewed question', lead_status_changed: 'Status changed', exit_intent: 'Exit intent', rage_click: 'Rage click', form_error: 'Form error',
   };
-  var QUIET = { app_view_step: 1, scroll_depth: 1, engaged_time: 1 };
+  var QUIET = { app_view_step: 1, scroll_depth: 1, engaged_time: 1, click: 1, field_interaction: 1, first_interaction: 1, section_dwell: 1, cta_hover: 1, vsl_volume: 1, page_exit: 1, tab_return: 1 };
 
   function openLead(id) {
     history.replaceState(null, '', '#lead=' + id);
@@ -617,13 +599,36 @@
 
 
   function renderLanders() {
-    return api('landers').then(function (d) {
+    return Promise.all([api('landers'), api('experiments')]).then(function (res) {
+      var d = res[0], x = res[1];
       var origin = location.origin;
       var params = 'utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}&campaign_id={{campaign.id}}&adset_id={{adset.id}}&ad_id={{ad.id}}&placement={{placement}}&site_source_name={{site_source_name}}';
       var rate = function (v) { return pct(v, 1); };
       var sel = state.landerIndustry || '';
       var rows = d.rows.filter(function (r) { return !sel || r.industry === sel; });
+      // All pages side by side: the main page's headline variants and each industry's landers.
+      var pageRows = x.variants.map(function (v) { return { page: 'Main page · headline ' + v.id.toUpperCase(), visitors: v.visitors, lead_rate: v.lead_rate, qualified_rate: v.qualified_rate, booked_rate: v.booked_rate, note: v.lift == null ? 'control' : (v.significant ? 'significant ' : '') + (v.lift > 0 ? '+' : '') + pct(v.lift, 1) + ' vs A' }; })
+        .concat(d.byIndustry.filter(function (r) { return r.visitors; }).map(function (r) { return { page: r.label + ' landers', visitors: r.visitors, lead_rate: r.lead_rate, qualified_rate: r.qualified_rate, booked_rate: r.visitors ? r.booked / r.visitors : 0, note: r.best ? 'leading: ' + r.best : 'still exploring' }; }));
       view.innerHTML =
+        '<div class="card"><h2>All pages compared</h2><p class="sub">Same funnel behind every page: VSL → application → booking. Compare rates, not raw counts.</p>' + table([
+          { label: 'Page', key: 'page' }, { label: 'Visitors', key: 'visitors', num: true, fmt: n },
+          { label: 'Applied', key: 'lead_rate', num: true, fmt: function (v) { return pct(v, 1); } },
+          { label: 'Qualified', key: 'qualified_rate', num: true, fmt: function (v) { return pct(v, 1); } },
+          { label: 'Booked', key: 'booked_rate', num: true, fmt: function (v) { return pct(v, 1); } },
+          { label: '', html: function (r) { return '<span class="muted">' + esc(r.note) + '</span>'; } },
+        ], pageRows) + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Main page headline test</h2><p class="sub">Visitors to the main page (/) are split between these headlines. Judged on applications per visitor; significance from a two-proportion z-test vs. A (p &lt; 0.05). Preview with <span class="mono">/?v=b</span>.</p>' +
+        table([
+          { label: 'Variant', html: function (r) { return '<strong>' + esc(r.id.toUpperCase()) + '</strong> <span class="muted">' + esc(r.weight) + '%</span><div class="muted lander-h">' + esc(r.headline) + '</div>'; } },
+          { label: 'Visitors', key: 'visitors', num: true, fmt: n },
+          { label: 'Play', key: 'play_rate', num: true, fmt: function (v) { return pct(v); } },
+          { label: 'Pitch', key: 'pitch_rate', num: true, fmt: function (v) { return pct(v); } },
+          { label: 'Applied', key: 'lead_rate', num: true, fmt: function (v) { return pct(v, 1); } },
+          { label: 'Qualified', key: 'qualified_rate', num: true, fmt: function (v) { return pct(v, 1); } },
+          { label: 'Booked', key: 'booked_rate', num: true, fmt: function (v) { return pct(v, 1); } },
+          { label: 'Result', html: function (r) { return r.p_value == null ? '<span class="muted">control</span>' : r.significant ? '<span class="pill ok">✓ significant (p=' + r.p_value.toFixed(3) + ')</span>' : '<span class="pill">not yet (p=' + r.p_value.toFixed(2) + ')</span>'; } },
+        ], x.variants) + '</div>' +
+        '<h3 class="section-h">Industry landers</h3>' +
         '<div class="card"><h2>Meta ad links</h2><p class="sub">Pick the industry the ad set targets. Paste the website URL into the ad and the parameters into Meta’s “URL parameters” box. Or use the auto link everywhere: it reads the industry from your campaign, ad set or ad name (name them like “Dental – Lookalike”).</p>' +
         '<div class="row" style="margin:10px 0"><select class="input" data-ml-ind><option value="">Auto-detect from ad names</option>' + d.industries.map(function (i) { return '<option value="' + esc(i.id) + '">' + esc(i.label) + '</option>'; }).join('') + '</select></div>' +
         '<dl class="kv"><dt>Website URL</dt><dd><span class="mono" data-ml-url></span> <button class="btn-sm ghost" data-copy="url">Copy</button></dd><dt>URL parameters</dt><dd><span class="mono" style="word-break:break-all">' + esc(params) + '</span> <button class="btn-sm ghost" data-copy="params">Copy</button></dd></dl>' +
@@ -658,6 +663,61 @@
       indSel.onchange = draw; draw();
       view.querySelectorAll('[data-copy]').forEach(function (b) { b.onclick = function () { var t = b.getAttribute('data-copy') === 'url' ? view.querySelector('[data-ml-url]').textContent : params; navigator.clipboard.writeText(t).then(function () { toast('Copied'); }); }; });
       view.querySelector('[data-ld-ind]').onchange = function (e) { state.landerIndustry = e.target.value; load(); };
+    });
+  }
+
+
+  function renderBehaviour() {
+    var path = state.bhPath || '';
+    return api('behaviour', { path: path }).then(function (d) {
+      var card = function (title, sub, body) { return '<div class="card"><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + body + '</div>'; };
+      var none = '<div class="empty">No data in this range yet.</div>';
+      var tb = d.tabs || {};
+      var firstTouch = (d.firsts || []).reduce(function (a, r) { return a + r.n; }, 0);
+      // Click density down the page (where on the page people click), per page.
+      var zoneBars = {};
+      (d.zones || []).forEach(function (z) { (zoneBars[z.path] = zoneBars[z.path] || []).push(z); });
+      var zonesHtml = Object.keys(zoneBars).slice(0, 4).map(function (pth) {
+        var list = zoneBars[pth], max = Math.max.apply(null, list.map(function (z) { return z.n; }));
+        return '<div class="zone-col"><div class="mono">' + esc(pth) + '</div>' + [0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(function (b) {
+          var z = list.filter(function (x) { return x.band === b; })[0], v = z ? z.n : 0;
+          return '<div class="zone" title="' + b + '–' + (b + 10) + '% down the page: ' + v + ' clicks" style="opacity:' + (0.08 + 0.92 * (v / (max || 1))).toFixed(2) + '"><span>' + b + '%</span><b>' + (v || '') + '</b></div>';
+        }).join('') + '</div>';
+      }).join('');
+      view.innerHTML =
+        '<div class="row" style="margin-bottom:12px"><select class="input" data-bh-path><option value="">All pages</option>' + (d.pages || []).map(function (p) { return '<option value="' + esc(p.path) + '"' + (p.path === path ? ' selected' : '') + '>' + esc(p.path) + ' (' + n(p.visitors) + ')</option>'; }).join('') + '</select></div>' +
+        '<div class="grid g-4">' +
+        tile('Tab switches', n(tb.returns || 0), n(tb.sessions || 0) + ' visits left and came back · avg ' + (tb.avg_away ? secs(tb.avg_away) : '–') + ' away') +
+        tile('Dead clicks', n((d.dead || []).reduce(function (a, r) { return a + r.n; }, 0)), 'Clicks on things that do nothing') +
+        tile('CTA hesitations', n((d.hovers || []).reduce(function (a, r) { return a + r.people; }, 0)), 'Hovered a button, didn’t click') +
+        tile('First interaction', (d.firsts || []).length ? secs((d.firsts.reduce(function (a, r) { return a + r.avg_ms * r.n; }, 0) / (firstTouch || 1)) / 1000) : '–', 'Average time before they scroll, tap or type') + '</div>' +
+        '<div class="grid g-2" style="margin-top:14px">' +
+        card('What people click', 'Ranked by people, not clicks.', (d.clicks || []).length ? table([
+          { label: 'Element', html: function (r) { return esc(r.text || r.el) + '<div class="muted mono">' + esc(r.path + ' · ' + (r.section || '–')) + '</div>'; } },
+          { label: 'People', key: 'people', num: true, fmt: n }, { label: 'Clicks', key: 'n', num: true, fmt: n },
+        ], d.clicks.slice(0, 15)) : none) +
+        card('Where on the page they click', 'Each block is a tenth of the page, top to bottom; darker means more clicks.', zonesHtml ? '<div class="zones">' + zonesHtml + '</div>' : none) + '</div>' +
+        card('Form friction', 'Per field: how long people spend, how often they correct themselves, paste, or leave it empty. Values are never recorded.', (d.fields || []).length ? table([
+          { label: 'Field', key: 'field' }, { label: 'People', key: 'people', num: true, fmt: n },
+          { label: 'Avg time', num: true, html: function (r) { return esc(r.avg_s + 's'); } },
+          { label: 'Corrections', key: 'corrections', num: true },
+          { label: 'Pasted', num: true, html: function (r) { return esc(pct(r.paste_rate)); } },
+          { label: 'Left empty', num: true, html: function (r) { return '<span' + (r.empty_rate > 0.3 ? ' class="bad"' : '') + '>' + esc(pct(r.empty_rate)) + '</span>'; } },
+        ], d.fields) : none) +
+        '<div class="grid g-2" style="margin-top:14px">' +
+        card('Where they leave', 'The section on screen when they closed the page.', (d.exits || []).length ? table([
+          { label: 'Page · section', html: function (r) { return esc(r.path) + ' · <b>' + esc(r.section) + '</b>'; } }, { label: 'Exits', key: 'n', num: true, fmt: n },
+          { label: 'Scrolled', num: true, html: function (r) { return esc(r.scroll + '%'); } }, { label: 'Time', num: true, html: function (r) { return esc(secs(r.seconds)); } },
+          { label: 'Never interacted', num: true, html: function (r) { return esc(pct(1 - r.interacted)); } },
+        ], d.exits.slice(0, 12)) : none) +
+        card('Dead & rage clicks', 'Things people expect to be clickable. Make them links, or make them look less like links.', (d.dead || []).length ? table([
+          { label: 'Element', html: function (r) { return esc(r.el) + '<div class="muted mono">' + esc(r.path + ' · ' + (r.section || '–')) + '</div>'; } }, { label: 'People', key: 'people', num: true, fmt: n }, { label: 'Clicks', key: 'n', num: true, fmt: n },
+        ], d.dead) : none) + '</div>' +
+        '<div class="grid g-3" style="margin-top:14px">' +
+        card('Sections re-read', 'Scrolled away, then came back.', (d.revisits || []).length ? barList(d.revisits.map(function (r) { return { name: r.section + (state.bhPath ? '' : ' · ' + r.path), value: r.people }; })) : none) +
+        card('Button hesitation', 'Hovered without clicking (avg time hovering).', (d.hovers || []).length ? table([{ label: 'Button', html: function (r) { return esc(r.id) + '<div class="muted mono">' + esc(r.path) + '</div>'; } }, { label: 'People', key: 'people', num: true, fmt: n }, { label: 'Avg', num: true, html: function (r) { return esc(r.avg_s + 's'); } }], d.hovers) : none) +
+        card('What they highlight & copy', 'Text people selected or copied: what they’re weighing up.', ((d.selects || []).length || (d.copies || []).length) ? '<ul class="quotes">' + (d.copies || []).map(function (r) { return '<li><b>copied</b> “' + esc(r.text) + '” <span class="muted">×' + r.people + '</span></li>'; }).join('') + (d.selects || []).map(function (r) { return '<li>“' + esc(r.text) + '” <span class="muted">×' + r.people + '</span></li>'; }).join('') + '</ul>' : none) + '</div>';
+      view.querySelector('[data-bh-path]').onchange = function (e) { state.bhPath = e.target.value; load(); };
     });
   }
 
@@ -978,8 +1038,17 @@
   function kv(k, v) { return '<dt>' + esc(k) + '</dt><dd>' + esc(v == null || v === '' ? '–' : v) + '</dd>'; }
 
   function renderEmails() {
-    return api('emails').then(function (d) {
+    return Promise.all([api('emails'), api('triggers')]).then(function (res) {
+      var d = res[0], tr = res[1];
       view.innerHTML =
+        '<div class="card" style="margin-bottom:14px"><h2>Behaviour-triggered emails</h2><p class="sub">One email when someone does something specific on the page, written for them from what they did. Each fires once per person; at most 8 emails a day to anyone in total; re-checked right before sending.</p>' + table([
+          { label: 'Trigger', html: function (r) { return esc(r.label) + '<div class="muted mono">' + esc(r.template) + ' · sends ' + (r.delay ? r.delay + ' min after' : 'right away') + '</div>'; } },
+          { label: 'Fired', key: 'queued', num: true, fmt: n }, { label: 'Sent', key: 'sent', num: true, fmt: n },
+          { label: 'Skipped', num: true, html: function (r) { return '<span class="muted" title="Condition no longer true when it was time to send (e.g. they booked)">' + n(r.skipped) + '</span>'; } },
+          { label: 'Opened', num: true, html: function (r) { return esc(r.sent ? pct(r.opened / r.sent) : '–'); } },
+          { label: 'Clicked', num: true, html: function (r) { return esc(r.sent ? pct(r.clicked / r.sent) : '–'); } },
+          { label: 'Booked after', key: 'booked_after', num: true, fmt: n },
+        ], tr.rules) + '</div>' +
         '<div class="card"><h2>By email</h2><p class="sub">“Simulated” means no Resend key was connected — the email was rendered and logged but not sent.</p>' +
         table([{ label: 'Sequence', key: 'sequence' }, { label: '#', key: 'step', num: true, fmt: function (v) { return v + 1; } }, { label: 'Template', html: function (r) { return '<a href="/admin/api/email-preview/' + esc(r.template) + '" target="_blank" rel="noopener">' + esc(r.template) + ' ↗</a>'; } },
           { label: 'Sent', key: 'sent', num: true, fmt: n }, { label: 'Simulated', key: 'simulated', num: true, fmt: n }, { label: 'Skipped', key: 'skipped', num: true, fmt: n }, { label: 'Failed', key: 'failed', num: true, fmt: n },

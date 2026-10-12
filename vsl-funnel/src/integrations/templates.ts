@@ -669,6 +669,106 @@ export const TEMPLATES: Record<string, Template> = {
     ps: waLine(c, 'Or send it on WhatsApp'),
   }),
 
+  // ── Behaviour-triggered (one-off, rewritten per person by the personaliser) ──
+  t_vsl_no_apply: (c) => ({
+    subject: 'you watched most of it',
+    preheader: 'The next step takes two minutes.',
+    body: [
+      `${c.name},`,
+      'You got through most of the video, which tells me the idea landed: buying growth instead of building it, with no money down.',
+      'The next step is the short application. It’s how we check the numbers fit before we put time on a call with you. Your answers so far are saved.',
+    ],
+    cta: { label: 'Finish my application →', href: c.link('/apply') },
+  }),
+  t_stalled: (c) => ({
+    subject: 'that question trips a lot of owners up',
+    preheader: 'There’s no wrong answer.',
+    body: [
+      `${c.name},`,
+      'You stopped partway through the application. That’s normal: a couple of the questions make people pause.',
+      'There are no wrong answers. Rough numbers are fine, and nothing you put in commits you to anything. It just tells us whether a call is worth your time.',
+    ],
+    cta: { label: 'Pick up where I left off →', href: c.link('/apply') },
+  }),
+  t_finish_booking: (c) => ({
+    subject: 'your time slot is still open',
+    preheader: 'You picked a day, then something came up.',
+    body: [
+      `${c.name},`,
+      'Looks like you picked a day for your strategy call but didn’t get to confirm the time. Easy to get pulled away.',
+      'The calendar is still open. It takes about 20 seconds to lock it in.',
+    ],
+    cta: { label: 'Confirm my time →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
+  }),
+  t_came_back: (c) => ({
+    subject: 'good to see you back',
+    preheader: 'Still weighing it up?',
+    body: [
+      `${c.name},`,
+      'You were back on the page, so I’m guessing you’re still weighing this up. Fair enough: it’s a big move.',
+      'The call is the easiest way to get a straight answer on whether an acquisition makes sense for your business. 30 minutes, no pressure.',
+    ],
+    cta: { label: 'Book my strategy call →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
+  }),
+  t_still_thinking: (c) => ({
+    subject: 'what owners usually ask before they book',
+    preheader: 'Three questions, three straight answers.',
+    body: [
+      `${c.name},`,
+      'You’ve been back a few times, so let me answer the three questions owners usually have at this point.',
+      '<b>Do I really put no money down?</b> Yes. Seller finance plus senior debt covers more than the price.<br><b>Do I have the time?</b> A few focused hours a week. My team does the heavy lifting with you.<br><b>What if it isn’t for me?</b> 7-day money-back guarantee, no conditions.',
+    ],
+    cta: { label: 'Book my strategy call →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
+  }),
+  t_guarantee: (c) => ({
+    subject: 'how the 7-day guarantee works',
+    preheader: 'No small print.',
+    body: [
+      `${c.name},`,
+      'Quick one on the guarantee, since it’s the part people want to be sure about.',
+      'If you start with us and decide in the first 7 days it isn’t for you, you get a full refund. No conditions, no small print. I’d rather you decide with nothing to lose.',
+    ],
+    cta: { label: 'Book my strategy call →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
+  }),
+  t_funding: (c) => ({
+    subject: 'how the money actually works',
+    preheader: 'Seller finance + senior debt, in plain English.',
+    body: [
+      `${c.name},`,
+      'You were looking into the funding side, so here it is in plain English.',
+      'The seller agrees to be paid part of the price over time, out of the business’s own cash flow. A bank funds the rest as senior debt. Together they cover more than the price, so none of your cash goes in and there’s working capital left over. Every deal has to clear a debt service coverage ratio of about 1.5.',
+    ],
+    cta: { label: 'See it applied to my business →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
+  }),
+  t_book_nudge: (c) => ({
+    subject: 'one click from booked',
+    preheader: 'You were right there.',
+    body: [
+      `${c.name},`,
+      'You opened the booking page but didn’t pick a time. If none of the times suit you, just reply and tell me when works.',
+    ],
+    cta: { label: 'See the open times →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
+  }),
+  t_breakout_done: (c) => ({
+    subject: 'you watched part two',
+    preheader: 'Here’s the next step.',
+    body: [
+      `${c.name},`,
+      'You watched the breakout session, so you’ve seen how the deals are structured.',
+      'The next step is a strategy call where we apply it to your business: the target, the structure and the financing.',
+    ],
+    cta: { label: 'Book my strategy call →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
+  }),
+  t_watch_prep: (c) => ({
+    subject: 'before we talk',
+    preheader: 'Ten minutes that make the call twice as useful.',
+    body: [
+      `${c.name},`,
+      `Looking forward to the call${c.callTime ? ` on ${c.callTime}` : ''}. One thing that makes it far more useful: the short pre-call video. It covers what we’ll go through and what to have ready.`,
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+
   // ── No-show: reschedule ────────────────────────────────────────────
   noshow_1: (c) => ({
     subject: `${c.name}, missed you just now`,

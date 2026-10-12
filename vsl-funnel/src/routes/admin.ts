@@ -19,6 +19,8 @@ import { describeSettings, saveSettings } from '../settings';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
+import { behaviour } from '../admin/behaviour';
+import { RULES } from '../personalize/triggers';
 import { notify, notifyConfigured, type NotifyChannel } from '../integrations/notify';
 import { buildDigest } from '../sales/digest';
 import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
@@ -64,6 +66,19 @@ admin.get('/sales/calls', async (c) => {
 });
 
 admin.get('/landers', async (c) => { const f = filters(c); return c.json(await landerReport(c.env, f.from, f.to)); });
+admin.get('/behaviour', async (c) => { const f = filters(c); return c.json(await behaviour(c.env, f.from, f.to, c.req.query('path') || null)); });
+admin.get('/triggers', async (c) => {
+  const f = filters(c);
+  const { results } = await c.env.DB.prepare(
+    `SELECT e.template, COUNT(*) AS queued, SUM(e.status IN ('sent', 'simulated')) AS sent, SUM(e.status = 'skipped') AS skipped, SUM(e.status = 'pending') AS pending,
+            SUM(e.opened_at IS NOT NULL) AS opened, SUM(e.clicked_at IS NOT NULL) AS clicked,
+            SUM(l.booked_at IS NOT NULL AND l.booked_at > COALESCE(e.sent_at, e.send_at)) AS booked_after
+       FROM emails e JOIN leads l ON l.id = e.lead_id WHERE e.sequence = 'behaviour' AND e.created_at BETWEEN ? AND ? GROUP BY 1`,
+  ).bind(f.from, f.to).all<{ template: string }>();
+  const by = new Map(results.map((r) => [r.template, r]));
+  return c.json({ rules: RULES.map((r) => ({ queued: 0, sent: 0, skipped: 0, pending: 0, opened: 0, clicked: 0, booked_after: 0, ...(by.get(r.template) ?? {}), template: r.template, label: r.label, delay: r.delay })) });
+});
+
 admin.get('/insights', async (c) => c.json(await insights(c.env, c.get('settings').SALES_TIMEZONE || 'Australia/Sydney')));
 admin.get('/vsl', async (c) => c.json(await vslStats(c.env, filters(c), c.req.query('video') || VIDEOS.main.id)));
 admin.get('/attribution', async (c) => c.json(await attribution(c.env, filters(c), c.req.query('dim') || 'channel')));

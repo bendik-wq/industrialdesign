@@ -417,10 +417,13 @@ export async function experiments(env: Env, f: Filters) {
     `SELECT e.variant, CASE WHEN e.name = 'page_view' THEN 'landing' ELSE e.name END AS name, COUNT(DISTINCT e.visitor_id) AS n
        FROM events e WHERE ${scope.sql} AND e.variant IS NOT NULL
         AND ((e.name = 'page_view' AND e.path = '/') OR e.name IN ('vsl_play','vsl_50','vsl_cta_reveal','lead_captured','app_submitted','booking_scheduled'))
-      GROUP BY 1, 2`, scope.params);
+        -- Only people who saw the main page's headline: industry-lander visitors are measured in their own test.
+        AND e.visitor_id IN (SELECT visitor_id FROM events WHERE name = 'page_view' AND path = '/' AND ts BETWEEN ? AND ?)
+        AND e.visitor_id NOT IN (SELECT visitor_id FROM sessions WHERE lander IS NOT NULL)
+      GROUP BY 1, 2`, [...scope.params, f.from, f.to]);
   const lead = leadScope(f, 'l.app_completed_at');
   const quality = await all<{ variant: string; qualified: number }>(env,
-    `SELECT l.variant, SUM(CASE WHEN COALESCE(l.tier_override, l.tier) IN ('A','B') THEN 1 ELSE 0 END) AS qualified FROM leads l ${lead.join} WHERE ${lead.sql} GROUP BY 1`, lead.params);
+    `SELECT l.variant, SUM(CASE WHEN COALESCE(l.tier_override, l.tier) IN ('A','B') THEN 1 ELSE 0 END) AS qualified FROM leads l ${lead.join} WHERE ${lead.sql} AND l.ft_lander IS NULL AND l.visitor_id IN (SELECT visitor_id FROM events WHERE name = 'page_view' AND path = '/' AND is_bot = 0) GROUP BY 1`, lead.params);
 
   const m: Record<string, Record<string, number>> = {};
   for (const r of rows) (m[r.variant] ??= {})[r.name] = r.n;

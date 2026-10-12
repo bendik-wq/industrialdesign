@@ -246,3 +246,7 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .section-h { margin: 22px 0 10px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .quotes { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13px; }
 .lander-h { font-size: 12px; max-width: 520px; white-space: normal; }
+.zones { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.zone-col { flex: 1; min-width: 130px; display: grid; gap: 3px; }
+.zone { display: flex; justify-content: space-between; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
+.bad { color: #c2410c; font-weight: 650; }

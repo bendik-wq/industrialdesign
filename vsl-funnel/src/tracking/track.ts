@@ -87,6 +87,9 @@ export async function identityFromLead(env: Env, leadId: string): Promise<TrackI
 }
 
 /** Write one event to the first-party stream and fan it out to connected tools. Returns the event id. */
+/** High-volume on-page signals: kept in Funnel HQ, not forwarded (PostHog's own replay already captures clicks). */
+const MICRO_EVENTS = new Set(['click', 'field_interaction', 'first_interaction', 'cta_hover', 'section_dwell', 'vsl_volume', 'vsl_pause', 'vsl_skip', 'tab_return']);
+
 export async function track(rt: Runtime, who: TrackIdentity, input: TrackInput): Promise<string> {
   const id = input.eventId && /^[\w-]{8,64}$/.test(input.eventId) ? input.eventId : newId('e');
   const ts = Date.now();
@@ -100,6 +103,6 @@ export async function track(rt: Runtime, who: TrackIdentity, input: TrackInput):
   if (who.sessionId) stmts.push(rt.env.DB.prepare('UPDATE sessions SET event_count = event_count + 1, last_seen_at = ? WHERE id = ?').bind(ts, who.sessionId));
   await rt.env.DB.batch(stmts);
 
-  if (!who.isBot && !input.localOnly) rt.waitUntil(forwardEvent(rt, who, { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null, source: input.source }));
+  if (!who.isBot && !input.localOnly && !MICRO_EVENTS.has(input.name)) rt.waitUntil(forwardEvent(rt, who, { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null, source: input.source }));
   return id;
 }

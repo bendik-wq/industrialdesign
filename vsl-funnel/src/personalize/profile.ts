@@ -183,6 +183,20 @@ export async function buildProfile(env: Env, lead: Lead, now = Date.now()): Prom
   const copied = ev.filter((e) => e.name === 'text_copy').map((e) => String(props(e).text ?? '')).filter(Boolean);
   if (copied.length) add('copied', `Copied this text from the page: “${copied[copied.length - 1].slice(0, 120)}”.`, 7, topicsOf(copied.join(' ')));
   if (ev.some((e) => e.name === 'exit_intent') && !lead.app_completed_at) add('exit', 'Nearly left the page before applying.', 2);
+  // Deeper page behaviour (background signals: shape the email, never quoted back).
+  const tabReturns = ev.filter((e) => e.name === 'tab_return').length;
+  if (tabReturns >= 3) add('tabs', `Switched to another tab and came back ${tabReturns} times while on the page (likely comparing options or checking something).`, 4, ['timing']);
+  const hovers = ev.filter((e) => e.name === 'cta_hover').map((e) => props(e));
+  if (hovers.length && !lead.app_completed_at) add('cta_hesitate', `Hovered over the "${String(hovers[0].id ?? 'apply')}" button for a while without clicking it.`, 6, ['risk']);
+  const selected = ev.filter((e) => e.name === 'text_select').map((e) => String(props(e).text ?? '')).filter(Boolean);
+  if (selected.length) add('selected', `Highlighted this text on the page: “${selected[selected.length - 1].slice(0, 140)}”.`, 7, topicsOf(selected.join(' ')));
+  const reread = [...new Set(ev.filter((e) => e.name === 'section_revisit').map((e) => String(props(e).section ?? '')).filter(Boolean))];
+  if (reread.length) add('reread', `Scrolled back up to re-read: ${reread.slice(0, 3).join(', ')}.`, 6, reread.includes('guarantee') ? ['guarantee', 'risk'] : reread.includes('faq') ? ['funding'] : [], reread.includes('guarantee') ? 'You went back to the 7-day guarantee more than once.' : undefined);
+  const lastExit = [...ev].reverse().find((e) => e.name === 'page_exit');
+  if (lastExit && !lead.booked_at) { const x = props(lastExit); if (x.section) add('exit_section', `The last time they left the page they were looking at the ${String(x.section)} section (${x.scroll}% down).`, 4); }
+  const fields = ev.filter((e) => e.name === 'field_interaction').map((e) => props(e));
+  const struggled = fields.filter((f) => Number(f.corrections) >= 4 || Number(f.ms) > 45_000).map((f) => String(f.field));
+  if (struggled.length) add('field_struggle', `Spent a long time or made many corrections on the "${struggled[0]}" field of the application.`, 4);
   const pages = [...new Set(ev.filter((e) => e.name === 'page_view').map((e) => e.path).filter(Boolean))] as string[];
   data.pages = pages;
   if (pages.includes('/resources')) add('resources', 'Looked at the free resources page.', 2);
@@ -211,6 +225,10 @@ export async function buildProfile(env: Env, lead: Lead, now = Date.now()): Prom
     if (q) add('a_slowest', `Took the longest on the question “${q.title}” (about ${Math.round(slow.s)} seconds).`, 5, topicsOf(q.title));
   }
   if (backs.length >= 2) add('a_backs', 'Went back and changed answers on the application.', 2);
+  if (lead.app_started_at && !lead.app_completed_at) {
+    const nextQ = APPLICATION[Math.min(APPLICATION.length - 1, Math.max(1, lead.step_reached))];
+    if (nextQ) add('stalled_on', `Stopped on the application question “${nextQ.title}”.`, 9, topicsOf(nextQ.title), `You got as far as the question “${nextQ.title}” and stopped there.`);
+  }
   if (lead.app_started_at && !lead.app_completed_at) add('a_unfinished', `Started the application ${ago(lead.app_started_at, now)} but hasn't finished it.`, 9, [], `You started your application ${ago(lead.app_started_at, now)} but didn’t get to the end.`);
 
   // ── Booking ──

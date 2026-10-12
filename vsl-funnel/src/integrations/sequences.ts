@@ -21,6 +21,22 @@ export interface Sequence {
   stopIf?: (lead: Lead) => boolean;
 }
 
+const isBooked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
+
+/** Behaviour-triggered emails, in step order (the step index is part of the dedupe key, so only append). */
+export const BEHAVIOUR_TEMPLATES: { template: string; skipIf: (l: Lead) => boolean }[] = [
+  { template: 't_vsl_no_apply', skipIf: (l) => Boolean(l.app_completed_at) },
+  { template: 't_stalled', skipIf: (l) => Boolean(l.app_completed_at) },
+  { template: 't_finish_booking', skipIf: isBooked },
+  { template: 't_came_back', skipIf: isBooked },
+  { template: 't_still_thinking', skipIf: isBooked },
+  { template: 't_guarantee', skipIf: isBooked },
+  { template: 't_funding', skipIf: isBooked },
+  { template: 't_book_nudge', skipIf: isBooked },
+  { template: 't_breakout_done', skipIf: isBooked },
+  { template: 't_watch_prep', skipIf: (l) => !isBooked(l) || l.status !== 'booked' },
+];
+
 /** Pre-call barrage, in send order. The first day hits the biggest pains and the call prep. */
 export const PRECALL_TEMPLATES = [
   'pc_ceiling', 'pc_own_cash', 'pc_bank', 'pc_no_time', 'pc_partner', 'pc_seller',
@@ -103,6 +119,13 @@ export const SEQUENCES = {
       { template: 'call_1h', offsetMs: -1 * HOUR, anchor: 'call_at' },
       { template: 'call_10m', offsetMs: -10 * MIN, anchor: 'call_at' },
     ],
+  },
+  behaviour: {
+    id: 'behaviour',
+    description: 'One-off emails triggered by what the person did on the page (see personalize/triggers.ts)',
+    stopIf: (l) => ['won', 'lost', 'disqualified'].includes(l.status) || l.booking_source === 'calendly-direct',
+    // Sent when a trigger fires; offsetMs unused. Each step is re-checked right before sending.
+    steps: BEHAVIOUR_TEMPLATES.map((t) => ({ template: t.template, offsetMs: 0, skipIf: t.skipIf })),
   },
   precall: {
     id: 'precall',

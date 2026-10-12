@@ -146,6 +146,117 @@
     addEventListener('pagehide', reportDwell);
   }
 
+
+  // ── Deep behaviour tracking (never records what people type) ─────────────
+  var t0 = Date.now(), firstDone = false, deepSent = 0, LIMIT = 150;
+  function cap(name, props) { if (deepSent++ < LIMIT) track(name, props); }
+  function sectionOf(el) { var s = el && el.closest && el.closest('[data-section], section[id]'); return s ? (s.getAttribute('data-section') || s.id) : null; }
+  function describe(el) {
+    if (!el || !el.tagName) return '';
+    var d = el.tagName.toLowerCase();
+    if (el.id) d += '#' + el.id;
+    var c = typeof el.className === 'string' ? el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
+    if (c) d += '.' + c;
+    var tid = el.getAttribute && (el.getAttribute('data-track-id') || el.getAttribute('data-q') || el.getAttribute('data-v'));
+    if (tid) d += '[' + tid + ']';
+    return d.slice(0, 80);
+  }
+  function first(type) { if (!firstDone) { firstDone = true; cap('first_interaction', { type: type, ms: Date.now() - t0 }); } }
+  ['scroll', 'keydown', 'pointerdown'].forEach(function (ev) { addEventListener(ev, function () { first(ev); }, { passive: true, once: true }); });
+
+  // Every click: what, where on the page, which section, and whether it did anything.
+  var INTERACTIVE = 'a,button,input,select,textarea,label,summary,video,[role=button],[data-v],.opt,[onclick]';
+  document.addEventListener('click', function (e) {
+    var t = e.target, hit = t.closest && t.closest(INTERACTIVE);
+    var doc = document.documentElement;
+    var isField = hit && /^(INPUT|TEXTAREA|SELECT)$/.test(hit.tagName);
+    var text = !isField && hit ? (hit.innerText || hit.value || '').trim().replace(/\s+/g, ' ').slice(0, 60) : '';
+    cap('click', {
+      el: describe(hit || t), text: text, section: sectionOf(t),
+      x: Math.round((e.pageX / Math.max(1, doc.scrollWidth)) * 100), y: Math.round((e.pageY / Math.max(1, doc.scrollHeight)) * 100),
+      dead: hit ? 0 : 1,
+    });
+  }, true);
+
+  // Hovering a call-to-action for a while without clicking it = hesitation.
+  document.addEventListener('pointerover', function (e) {
+    var cta = e.target.closest && e.target.closest('[data-track="cta_click"], .btn');
+    if (!cta || cta._hov) return;
+    cta._hov = Date.now();
+    var leave = function () {
+      cta.removeEventListener('pointerleave', leave);
+      var ms = Date.now() - cta._hov; cta._hov = 0;
+      if (ms >= 800 && !cta._clicked) cap('cta_hover', { id: cta.getAttribute('data-track-id') || describe(cta), ms: ms });
+    };
+    cta.addEventListener('pointerleave', leave);
+    cta.addEventListener('click', function () { cta._clicked = 1; }, { once: true });
+  });
+
+  // Form fields: time spent, corrections, pastes, left empty. Values are never read.
+  var fieldState = {};
+  document.addEventListener('focusin', function (e) {
+    var f = e.target;
+    if (!/^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName) || f.type === 'hidden' || f.type === 'password') return;
+    var key = f.name || f.id || describe(f);
+    fieldState[key] = { at: Date.now(), start: (f.value || '').length, corrections: 0, pasted: 0 };
+  });
+  document.addEventListener('keydown', function (e) {
+    var f = e.target, st = fieldState[f.name || f.id || describe(f)];
+    if (st && (e.key === 'Backspace' || e.key === 'Delete')) st.corrections++;
+  });
+  document.addEventListener('paste', function (e) {
+    var f = e.target, st = fieldState[f.name || f.id || describe(f)];
+    if (st) st.pasted = 1;
+  });
+  document.addEventListener('focusout', function (e) {
+    var f = e.target, key = f.name || f.id || describe(f), st = fieldState[key];
+    if (!st) return;
+    delete fieldState[key];
+    var ms = Date.now() - st.at;
+    if (ms < 300) return;
+    var len = f.type === 'checkbox' ? (f.checked ? 1 : 0) : (f.value || '').length;
+    cap('field_interaction', { field: key.slice(0, 40), ms: ms, chars: len, changed: len !== st.start ? 1 : 0, corrections: st.corrections, pasted: st.pasted, empty: len ? 0 : 1 });
+  });
+
+  // Leaving the tab and coming back (comparing, checking something, distracted).
+  var hiddenAt = 0;
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') hiddenAt = Date.now();
+    else if (hiddenAt) { var away = Math.round((Date.now() - hiddenAt) / 1000); hiddenAt = 0; if (away >= 5) cap('tab_return', { away_s: away }); }
+  });
+
+  // Highlighting text (people often select what they're thinking about).
+  var lastSel = '';
+  document.addEventListener('mouseup', function () {
+    var t = String(window.getSelection ? window.getSelection() : '').trim();
+    if (t.length >= 15 && t !== lastSel && !/@|\d{6,}/.test(t)) { lastSel = t; cap('text_select', { text: t.slice(0, 160), section: sectionOf(window.getSelection().anchorNode && window.getSelection().anchorNode.parentElement) }); }
+  });
+
+  // Coming back to a section after scrolling away from it.
+  if ('IntersectionObserver' in window) {
+    var seenSec = {}, leftSec = {}, revisited = {}, lastSec = null;
+    var io2 = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        var id = en.target.getAttribute('data-section') || en.target.id;
+        if (!id) return;
+        if (en.isIntersecting) {
+          lastSec = id;
+          if (leftSec[id] && !revisited[id]) { revisited[id] = 1; cap('section_revisit', { section: id }); }
+          seenSec[id] = 1;
+        } else if (seenSec[id]) leftSec[id] = 1;
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('[data-section], section[id]').forEach(function (el) { io2.observe(el); });
+    // Where they were when they left.
+    var exited = false;
+    addEventListener('pagehide', function () {
+      if (exited) return; exited = true;
+      var doc = document.documentElement, max = doc.scrollHeight - innerHeight;
+      track('page_exit', { section: lastSec, scroll: max > 0 ? Math.round((scrollY / max) * 100) : 100, s: Math.round((Date.now() - t0) / 1000), interacted: firstDone ? 1 : 0 });
+      flush(true);
+    });
+  }
+
   // Copied text (a strong intent signal, e.g. copying the guarantee or a FAQ answer).
   document.addEventListener('copy', function () {
     var t = String(window.getSelection ? window.getSelection() : '').trim();

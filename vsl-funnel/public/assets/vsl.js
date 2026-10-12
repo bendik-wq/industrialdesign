@@ -214,6 +214,9 @@
     else if (to > from + 3) signal('vsl_skip', { from: Math.round(from), to: Math.round(to) });
   });
   video.addEventListener('timeupdate', function () { if (!video.seeking) seekFrom = video.currentTime; });
+  var lastVol = -1;
+  video.addEventListener('volumechange', function () { var v = Math.round(video.volume * 10) / 10; if (!video.muted && v !== lastVol && lastVol >= 0) signal('vsl_volume', { level: v, at: Math.round(video.currentTime) }); lastVol = v; });
+  document.addEventListener('fullscreenchange', function () { if (document.fullscreenElement) signal('vsl_fullscreen', { at: Math.round(video.currentTime) }); });
   video.addEventListener('ratechange', function () { if (video.playbackRate !== 1) signal('vsl_speed', { rate: video.playbackRate }); });
   video.addEventListener('pause', function () { if (!state.ended && video.currentTime > 2 && !video.seeking) signal('vsl_pause', { at: Math.round(video.currentTime) }); });
   video.addEventListener('pause', function () { root.classList.add('paused'); beat(false); });

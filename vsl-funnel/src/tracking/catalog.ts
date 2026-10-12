@@ -23,6 +23,16 @@ export const CLIENT_EVENTS = new Set([
   'vsl_skip', // { video, from, to }
   'vsl_pause', // { video, at }
   'vsl_speed', // { video, rate }
+  'vsl_volume', // { video, level, at }
+  'vsl_fullscreen', // { video, at }
+  'click', // { el, text, section, x, y (% of page), dead }
+  'cta_hover', // { id, ms } hovered without clicking
+  'field_interaction', // { field, ms, chars, changed, corrections, pasted, empty } (never values)
+  'tab_return', // { away_s }
+  'text_select', // { text, section }
+  'section_revisit', // { section }
+  'page_exit', // { section, scroll, s, interacted }
+  'first_interaction', // { type, ms }
   'exit_intent',
 ]);
 
