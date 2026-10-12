@@ -185,6 +185,7 @@
     application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     experiments: { title: 'A/B tests', sub: 'Headline experiment, judged on applications per visitor.', render: renderExperiments },
     sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
+    landers: { title: 'Industry landers', sub: '100 landers: 20 industries × 5 headlines. Traffic shifts automatically to the headline that converts best for each industry. Every visit is traced to applications, bookings and cash.', render: renderLanders },
     insights: { title: 'Insights', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
     team: { title: 'Team', sub: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
     leads: { title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads },
@@ -613,6 +614,52 @@
     });
   }
 
+
+
+  function renderLanders() {
+    return api('landers').then(function (d) {
+      var origin = location.origin;
+      var params = 'utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}&campaign_id={{campaign.id}}&adset_id={{adset.id}}&ad_id={{ad.id}}&placement={{placement}}&site_source_name={{site_source_name}}';
+      var rate = function (v) { return pct(v, 1); };
+      var sel = state.landerIndustry || '';
+      var rows = d.rows.filter(function (r) { return !sel || r.industry === sel; });
+      view.innerHTML =
+        '<div class="card"><h2>Meta ad links</h2><p class="sub">Pick the industry the ad set targets. Paste the website URL into the ad and the parameters into Meta’s “URL parameters” box. Or use the auto link everywhere: it reads the industry from your campaign, ad set or ad name (name them like “Dental – Lookalike”).</p>' +
+        '<div class="row" style="margin:10px 0"><select class="input" data-ml-ind><option value="">Auto-detect from ad names</option>' + d.industries.map(function (i) { return '<option value="' + esc(i.id) + '">' + esc(i.label) + '</option>'; }).join('') + '</select></div>' +
+        '<dl class="kv"><dt>Website URL</dt><dd><span class="mono" data-ml-url></span> <button class="btn-sm ghost" data-copy="url">Copy</button></dd><dt>URL parameters</dt><dd><span class="mono" style="word-break:break-all">' + esc(params) + '</span> <button class="btn-sm ghost" data-copy="params">Copy</button></dd></dl>' +
+        '<p class="muted" style="margin-top:8px" data-ml-kw></p></div>' +
+        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>By industry</h2>' + table([
+          { label: 'Industry', key: 'label' }, { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Applied', num: true, html: function (r) { return n(r.leads) + ' <span class="muted">' + rate(r.lead_rate) + '</span>'; } },
+          { label: 'Qualified', num: true, html: function (r) { return n(r.qualified) + ' <span class="muted">' + rate(r.qualified_rate) + '</span>'; } }, { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Won', key: 'won', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
+          { label: 'Leading headline', html: function (r) { return esc(r.best || '–'); } },
+        ], d.byIndustry.filter(function (r) { return r.visitors || r.leads; })) + '</div>' +
+        '<div class="card"><h2>By headline angle</h2><p class="sub">Across all industries.</p>' + table([
+          { label: 'Angle', key: 'label' }, { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Applied', num: true, html: function (r) { return n(r.leads) + ' <span class="muted">' + rate(r.lead_rate) + '</span>'; } },
+          { label: 'Qualified', num: true, html: function (r) { return n(r.qualified) + ' <span class="muted">' + rate(r.qualified_rate) + '</span>'; } }, { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
+          { label: 'Works best in', html: function (r) { return esc(r.best || '–'); } },
+        ], d.byAngle) + '</div></div>' +
+        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>All landers</h2><p class="sub">“Traffic now” is the share of new visitors each headline would get today. Every headline gets its first 60 visitors before the split starts to move.</p></div>' +
+        '<select class="input" data-ld-ind><option value="">All industries</option>' + d.industries.map(function (i) { return '<option value="' + esc(i.id) + '"' + (sel === i.id ? ' selected' : '') + '>' + esc(i.label) + '</option>'; }).join('') + '</select></div>' +
+        table([
+          { label: 'Lander', html: function (r) { return '<b>' + esc(r.industry_label) + '</b> · ' + esc(r.angle_label) + '<div class="muted lander-h">' + esc(r.headline) + '</div>'; } },
+          { label: 'Traffic now', num: true, html: function (r) { return '<div class="target-cell"><div class="target"><i style="width:' + (r.share * 100).toFixed(1) + '%"></i></div><small>' + pct(r.share) + '</small></div>'; } },
+          { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Played', key: 'plays', num: true, fmt: n },
+          { label: 'Applied', num: true, html: function (r) { return n(r.leads) + ' <span class="muted">' + rate(r.lead_rate) + '</span>'; } },
+          { label: 'Qualified', num: true, html: function (r) { return n(r.qualified) + (r.tier_a ? ' <span class="muted">(' + r.tier_a + ' A)</span>' : ''); } },
+          { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Won', key: 'won', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
+          { label: '', html: function (r) { return '<a class="btn-sm ghost" target="_blank" rel="noopener" href="/for/' + esc(r.industry) + '/' + esc(r.angle) + '?preview=1">Preview</a>'; } },
+        ], rows) + '</div>';
+      var indSel = view.querySelector('[data-ml-ind]');
+      var draw = function () {
+        var id = indSel.value, ind = d.industries.filter(function (i) { return i.id === id; })[0];
+        view.querySelector('[data-ml-url]').textContent = id ? origin + '/for/' + id : origin + '/m';
+        view.querySelector('[data-ml-kw]').textContent = id ? 'Visitors get one of 5 ' + ind.label + ' headlines; the best one gets more traffic over time.' : 'Detects: ' + d.industries.map(function (i) { return i.label + ' (' + i.keywords.slice(0, 3).join(', ') + ')'; }).join(' · ') + '. No match → the main page.';
+      };
+      indSel.onchange = draw; draw();
+      view.querySelectorAll('[data-copy]').forEach(function (b) { b.onclick = function () { var t = b.getAttribute('data-copy') === 'url' ? view.querySelector('[data-ml-url]').textContent : params; navigator.clipboard.writeText(t).then(function () { toast('Copied'); }); }; });
+      view.querySelector('[data-ld-ind]').onchange = function (e) { state.landerIndustry = e.target.value; load(); };
+    });
+  }
 
   function renderInsights() {
     return api('insights', null, { noRange: true }).then(function (d) {

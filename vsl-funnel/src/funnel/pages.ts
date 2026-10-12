@@ -4,6 +4,9 @@ import {
   APPLICATION, BRAND, CALL_CONSENT, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, PALETTES, type VideoDef, VIDEOS, VOICE_AGENT,
 } from '../config';
 import { whatsappLink } from '../integrations/whatsapp';
+import { getCookie, setCookie } from 'hono/cookie';
+import { INDUSTRIES, type Lander, getLander, inferIndustry, landerId } from '../landers/catalog';
+import { chooseAngle, landerStats } from '../landers/bandit';
 import { webCallsEnabled } from '../integrations/voice';
 import { formatCallTime } from '../integrations/email';
 import { flag } from '../settings';
@@ -189,18 +192,19 @@ const applySection = {
   lists: { apply_points: LANDING.applyPoints },
 };
 
-export async function landingPage(c: Context<AppEnv>) {
+export async function landingPage(c: Context<AppEnv>, lander: Lander | null = null) {
   const v = c.get('visitor');
   const lead = await currentLead(c);
   const variant = HEADLINE_EXPERIMENT.variants.find((x) => x.id === v.variant) ?? HEADLINE_EXPERIMENT.variants[0];
   const by = LANDING.byline;
+  const copy = lander ?? variant;
   return render(c, '/index.html', {
-    title: 'No-money-down acquisitions',
+    title: lander ? `${lander.industry.owners.charAt(0).toUpperCase()}${lander.industry.owners.slice(1)}: no-money-down acquisitions` : 'No-money-down acquisitions',
     slots: {
       ...applySection.slots,
-      pre_headline: variant.preHeadline,
-      headline: variant.headline,
-      subheadline: variant.subheadline,
+      pre_headline: copy.preHeadline,
+      headline: copy.headline,
+      subheadline: copy.subheadline,
       byline_name: esc(by.name),
       byline_role: esc(by.role),
       byline_initials: esc(by.initials),
@@ -213,8 +217,37 @@ export async function landingPage(c: Context<AppEnv>) {
     },
     blocks: { faqs: faqBlock() },
     show: { testimonials: LANDING.testimonials.length > 0 },
-    config: { video: videoConfig(c, VIDEOS.main), experiment: HEADLINE_EXPERIMENT.id, ...applicationConfig(c, lead) },
+    config: { video: videoConfig(c, VIDEOS.main), experiment: lander ? 'landers' : HEADLINE_EXPERIMENT.id, lander: lander?.id ?? null, ...applicationConfig(c, lead) },
   });
+}
+
+/**
+ * Industry landers.
+ *   /for/:industry          → the headline angle the bandit picks (sticky per visitor)
+ *   /for/:industry/:angle   → one specific lander (previews, forced splits)
+ *   /m                      → smart route for Meta ads: industry from ?ind= or the campaign / ad set / ad name
+ */
+export async function landerPage(c: Context<AppEnv>) {
+  const v = c.get('visitor');
+  const q = c.req.query();
+  const industry = c.req.param('industry')
+    ? INDUSTRIES.find((i) => i.id === c.req.param('industry')) ?? null
+    : inferIndustry(q.ind, q.industry, q.utm_term, q.utm_campaign, q.utm_content, q.adset_name, q.campaign_name, q.ad_name);
+  if (!industry) return landingPage(c);
+  let lander: Lander | null = null;
+  const forced = c.req.param('angle');
+  if (forced) lander = getLander(landerId(industry.id, forced));
+  if (!lander) {
+    // Sticky: a returning visitor keeps the headline they first saw for this industry.
+    const prior = getCookie(c, '_ld');
+    const keep = getLander(prior);
+    if (keep && keep.industry.id === industry.id) lander = keep;
+  }
+  if (!lander) lander = getLander(landerId(industry.id, chooseAngle(industry, await landerStats(c.env)).angle))!;
+  if (q.preview === '1') return landingPage(c, lander); // dashboard previews don't count as traffic
+  setCookie(c, '_ld', lander.id, { path: '/', maxAge: 30 * 86_400, sameSite: 'Lax', secure: true, httpOnly: true });
+  if (!v.isBot) await c.env.DB.prepare('UPDATE sessions SET lander = COALESCE(lander, ?) WHERE id = ?').bind(lander.id, v.sessionId).run();
+  return landingPage(c, lander);
 }
 
 export async function applyPage(c: Context<AppEnv>) {

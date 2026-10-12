@@ -111,7 +111,14 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
 
   // Call consent (optional checkbox) — record the wording version they agreed to; unticking withdraws it.
   const consent = body.call_consent === true || body.call_consent === 'true' || body.call_consent === 'on';
+  // Which industry lander(s) this visitor saw: first (for the test) and latest.
+  const seen = await rt.env.DB.prepare(
+    `SELECT (SELECT lander FROM sessions WHERE visitor_id = ?1 AND lander IS NOT NULL ORDER BY started_at LIMIT 1) AS ft,
+            (SELECT lander FROM sessions WHERE visitor_id = ?1 AND lander IS NOT NULL ORDER BY started_at DESC LIMIT 1) AS lt`,
+  ).bind(v.visitorId).first<{ ft: string | null; lt: string | null }>();
   await updateLead(rt.env, lead.id, {
+    lander: seen?.lt ?? lead.lander,
+    ft_lander: lead.ft_lander ?? seen?.ft ?? null,
     call_consent_at: consent ? lead.call_consent_at ?? now : null,
     call_consent_text: consent ? lead.call_consent_text ?? CALL_CONSENT.version : null,
     timezone: v.geo.timezone ?? lead.timezone,

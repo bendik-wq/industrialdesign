@@ -28,7 +28,7 @@ export interface Personalized {
 }
 
 /** Signals that help the model understand the person but would feel like surveillance if said back to them. */
-const BACKGROUND = new Set(['copied', 'devices', 'engaged', 'speed', 'e_silent', 'exit', 'skip', 'pause', 'a_slowest', 'a_backs', 'resources']);
+const BACKGROUND = new Set(['lander', 'copied', 'devices', 'engaged', 'speed', 'e_silent', 'exit', 'skip', 'pause', 'a_slowest', 'a_backs', 'resources']);
 
 export const DEFAULT_EMAIL_MODEL = 'claude-opus-5-5';
 

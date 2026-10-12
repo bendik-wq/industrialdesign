@@ -1,6 +1,7 @@
 import { APPLICATION, VIDEOS } from '../config';
 import type { Env } from '../env';
 import { type Lead, effectiveTier, parseAnswers } from '../funnel/leads';
+import { getLander } from '../landers/catalog';
 
 /**
  * Everything a lead has done, boiled down to short facts a follow-up email can
@@ -106,6 +107,11 @@ export async function buildProfile(env: Env, lead: Lead, now = Date.now()): Prom
   const data: Record<string, unknown> = {};
 
   // ── Where they came from ──
+  const ld = getLander(lead.ft_lander ?? lead.lander);
+  if (ld) {
+    add('lander', `Came in through our page for ${ld.industry.owners} (headline: “${ld.headline.replace(/<[^>]+>/g, '')}”). Speak to them as one of the ${ld.industry.owners}.`, 7, [], undefined);
+    data.industry_page = ld.industry.label;
+  }
   if (link?.video_title) add('src_video', `Found us through the YouTube video “${link.video_title}”${link.placement ? ` (${link.placement.replace(/_/g, ' ')})` : ''}.`, 5, ['credibility'], `You found us through my video “${link.video_title}”.`);
   else if (lead.ft_channel && lead.ft_channel !== 'Direct') add('src', `First came from ${lead.ft_channel}${lead.ft_campaign ? ` (campaign “${lead.ft_campaign}”)` : ''}.`, 2);
   data.source = { first: [lead.ft_channel, lead.ft_campaign, lead.ft_content].filter(Boolean).join(' / '), last: [lead.channel, lead.utm_campaign, lead.utm_content].filter(Boolean).join(' / '), video: link?.video_title ?? null };

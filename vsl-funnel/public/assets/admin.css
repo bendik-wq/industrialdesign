@@ -245,3 +245,4 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .calllog tr.saved td { background: color-mix(in srgb, var(--good-text) 7%, transparent); }
 .section-h { margin: 22px 0 10px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .quotes { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13px; }
+.lander-h { font-size: 12px; max-width: 520px; white-space: normal; }

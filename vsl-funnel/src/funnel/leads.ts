@@ -69,6 +69,8 @@ export interface Lead {
   refund_amount: number;
   loi_signed_at: number | null;
   target_business: string | null;
+  lander: string | null;
+  ft_lander: string | null;
   notes: string | null;
   channel: string | null;
   utm_source: string | null;

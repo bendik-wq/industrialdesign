@@ -18,6 +18,7 @@ import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
+import { landerReport } from '../admin/landers';
 import { notify, notifyConfigured, type NotifyChannel } from '../integrations/notify';
 import { buildDigest } from '../sales/digest';
 import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
@@ -62,6 +63,7 @@ admin.get('/sales/calls', async (c) => {
   return c.json({ calls: results });
 });
 
+admin.get('/landers', async (c) => { const f = filters(c); return c.json(await landerReport(c.env, f.from, f.to)); });
 admin.get('/insights', async (c) => c.json(await insights(c.env, c.get('settings').SALES_TIMEZONE || 'Australia/Sydney')));
 admin.get('/vsl', async (c) => c.json(await vslStats(c.env, filters(c), c.req.query('video') || VIDEOS.main.id)));
 admin.get('/attribution', async (c) => c.json(await attribution(c.env, filters(c), c.req.query('dim') || 'channel')));
