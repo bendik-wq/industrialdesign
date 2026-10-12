@@ -179,6 +179,7 @@
   // ───────────── tabs ─────────────
   var TABS = {
     overview: { title: 'Overview', sub: 'Every step from ad click to closed deal.', render: renderOverview },
+    map: { title: 'Funnel map', sub: 'How everything fits together: every page, decision and automation from ad click to closed deal, with live numbers. Drag to rearrange, click any box to see how it works.', render: renderMap },
     vsl: { title: 'VSL analytics', sub: 'Who watches, where they drop, and when they reach the pitch.', render: renderVsl },
     links: { title: 'Links & YouTube videos', sub: 'One tracked link per video and placement, followed all the way from click to booked call to closed deal.', render: renderLinks },
     traffic: { title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
@@ -213,6 +214,22 @@
     document.body.classList.add('loading');
     Promise.resolve(TABS[state.tab].render()).catch(function (e) { console.error(e); view.innerHTML = '<div class="empty">Couldn’t load this view. ' + esc(e.message) + '</div>'; })
       .then(function () { document.body.classList.remove('loading'); });
+  }
+
+  function renderMap() {
+    var sum = function (arr, k) { return (arr || []).reduce(function (t, x) { return t + (x[k] || 0); }, 0); };
+    var soft = function (p) { return p.catch(function () { return {}; }); };
+    return Promise.all([
+      api('overview'), soft(api('landers')), soft(api('triggers')), soft(api('experiments')),
+      soft(fetch('/admin/api/map-layout', { credentials: 'same-origin' }).then(function (r) { return r.json(); })),
+    ]).then(function (r) {
+      FunnelMap.render(view, {
+        esc: esc, n: n, pct: pct, money: money, go: go,
+        layout: r[4].layout || null,
+        stats: { kpis: r[0].kpis, funnel: r[0].funnel, landerVisitors: sum(r[1].byIndustry, 'visitors'), mainVisitors: sum(r[3].variants, 'visitors'), triggerSent: sum(r[2].rules, 'sent') },
+        save: function (pos) { send('PUT', 'map-layout', { layout: pos }); },
+      });
+    });
   }
 
   function renderOverview() {

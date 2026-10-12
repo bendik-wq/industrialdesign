@@ -79,6 +79,20 @@ admin.get('/triggers', async (c) => {
   return c.json({ rules: RULES.map((r) => ({ queued: 0, sent: 0, skipped: 0, pending: 0, opened: 0, clicked: 0, booked_after: 0, ...(by.get(r.template) ?? {}), template: r.template, label: r.label, delay: r.delay })) });
 });
 
+// Funnel map layout (box positions), shared by everyone who logs in.
+admin.get('/map-layout', async (c) => {
+  const row = await c.env.DB.prepare("SELECT value FROM kv_state WHERE key = 'map:layout'").first<{ value: string }>();
+  return c.json({ layout: row ? JSON.parse(row.value) : null });
+});
+admin.put('/map-layout', async (c) => {
+  const body = await c.req.json<{ layout?: Record<string, { x: number; y: number }> | null }>().catch(() => ({ layout: null }));
+  if (!body.layout) { await c.env.DB.prepare("DELETE FROM kv_state WHERE key = 'map:layout'").run(); return c.json({ ok: true }); }
+  const clean: Record<string, { x: number; y: number }> = {};
+  for (const [k, v] of Object.entries(body.layout).slice(0, 200)) if (/^[\w-]{1,40}$/.test(k) && Number.isFinite(v?.x) && Number.isFinite(v?.y)) clean[k] = { x: Math.round(Math.max(0, Math.min(5000, v.x))), y: Math.round(Math.max(0, Math.min(5000, v.y))) };
+  await c.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('map:layout', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify(clean)).run();
+  return c.json({ ok: true });
+});
+
 admin.get('/insights', async (c) => c.json(await insights(c.env, c.get('settings').SALES_TIMEZONE || 'Australia/Sydney')));
 admin.get('/vsl', async (c) => c.json(await vslStats(c.env, filters(c), c.req.query('video') || VIDEOS.main.id)));
 admin.get('/attribution', async (c) => c.json(await attribution(c.env, filters(c), c.req.query('dim') || 'channel')));
