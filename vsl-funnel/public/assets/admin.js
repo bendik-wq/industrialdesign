@@ -458,11 +458,13 @@
         '<div class="card"><h2>Video</h2>' + (d.vsl.length ? d.vsl.map(function (v) {
           return '<div style="margin:10px 0"><div class="row"><strong>' + esc(v.video_id) + '</strong><span class="muted">' + esc(when(v.started_at)) + ' · ' + esc(v.duration ? pct(Math.min(1, v.max_position / v.duration)) : '–') + ' reached · ' + esc(secs(v.watched_seconds)) + ' watched' + (v.cta_clicked ? ' · clicked CTA' : '') + '</span></div><div class="mini-ret" aria-hidden="true">' + String(v.buckets).split('').map(function (b) { return '<i' + (b === '1' ? ' class="on"' : '') + '></i>'; }).join('') + '</div></div>';
         }).join('') : '<p class="muted">No video views recorded.</p>') +
-        '<h2 style="margin-top:14px">Emails</h2>' + (d.emails.length ? table([{ label: 'Email', html: function (m) { return esc(m.template) + '<div class="muted">' + esc(m.sequence) + '</div>'; } }, { label: 'Status', key: 'status' }, { label: 'When', html: function (m) { return esc(when(m.sent_at || m.send_at)); } }, { label: 'Opened', html: function (m) { return m.opened_at ? '✓' : ''; } }, { label: 'Clicked', html: function (m) { return m.clicked_at ? '✓' : ''; } }], d.emails) : '<p class="muted">None.</p>') + '</div></div>' +
+        '<h2 style="margin-top:14px">Emails</h2>' + (d.emails.length ? table([{ label: 'Email', html: function (m) { return esc(m.template) + '<div class="muted">' + esc(m.sequence) + '</div>'; } }, { label: 'Status', key: 'status' }, { label: 'When', html: function (m) { return esc(when(m.sent_at || m.send_at)); } }, { label: 'Opened', html: function (m) { return m.opened_at ? '✓' : ''; } }, { label: 'Clicked', html: function (m) { return m.clicked_at ? '✓' : ''; } }, { label: 'Personal', html: function (m) { return m.personalized && m.personalized !== 'off' ? '<span class="pill" title="' + esc(m.facts_used || '') + '">' + esc(m.personalized) + '</span>' : ''; } }], d.emails) : '<p class="muted">None.</p>') + '</div></div>' +
+        '<div class="card" style="margin-top:14px" data-behaviour><div class="card-head"><div><h2>What they did → their emails</h2><p class="sub">Every email to this lead is rewritten around these, one or two at a time, never repeating.</p></div></div><p class="muted">Loading…</p></div>' +
         (d.voice && d.voice.length ? '<div class="card" style="margin-top:14px"><h2>AI calls</h2>' + d.voice.map(voiceCall).join('') + '</div>' : '') +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action, server-side.</p></div><label class="muted"><input type="checkbox" data-all> show all events</label></div><ul class="timeline" data-tl>' + timeline() + '</ul></div>';
 
       dr.querySelector('.close').onclick = close;
+      loadBehaviour(dr, id);
       dr.querySelector('[data-all]').onchange = function (e) { showAll = e.target.checked; dr.querySelector('[data-tl]').innerHTML = timeline(); };
       dr.querySelector('[data-save]').onclick = function () {
         var body = {};
@@ -605,6 +607,31 @@
       view.querySelectorAll('[data-ping]').forEach(function (b) { b.onclick = function () { send('POST', 'notify/test', { rep: b.getAttribute('data-ping') }).then(function (r) { toast(r.error || (r.ok ? 'Sent' : 'Webhook rejected it')); }); }; });
       view.querySelectorAll('[data-test-notify]').forEach(function (b) { b.onclick = function () { send('POST', 'notify/test', { channel: b.getAttribute('data-test-notify') }).then(function (r) { toast(r.error || (r.ok ? 'Sent — check the channel' : 'Webhook rejected it')); }); }; });
       view.querySelector('[data-test-digest]').onclick = function () { send('POST', 'notify/test', { digest: true }).then(function (r) { toast(r.error || 'Digest posted'); }); };
+    });
+  }
+
+
+  function loadBehaviour(dr, id) {
+    var box = dr.querySelector('[data-behaviour]');
+    if (!box) return;
+    fetch('/admin/api/leads/' + encodeURIComponent(id) + '/profile', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (p) {
+      var templates = [];
+      ((state.meta && state.meta.sequences) || []).forEach(function (sq) { sq.steps.forEach(function (t) { if (templates.indexOf(t) === -1) templates.push(t); }); });
+      var modeNote = { ai: 'Claude rewrites each email', rules: 'a personal opening line (add an Anthropic key for full rewrites)', off: 'off' }[p.mode] || p.mode;
+      box.querySelector('p.muted').outerHTML =
+        '<p class="muted" style="margin-top:2px">Personalisation: <b>' + esc(modeNote) + '</b>' + (p.next ? ' · next email: <span class="mono">' + esc(p.next.template) + '</span> ' + esc(when(p.next.send_at)) : '') + '</p>' +
+        (p.facts.length ? '<ul class="facts">' + p.facts.map(function (f) { return '<li' + (f.used ? ' class="used"' : '') + '><span class="w">' + esc(f.weight) + '</span>' + esc(f.text) + (f.used ? ' <span class="pill">used</span>' : '') + '</li>'; }).join('') + '</ul>' : '<p class="muted">Nothing tracked for this lead yet.</p>') +
+        '<div class="row" style="margin-top:12px"><select class="input" data-pv-t>' + templates.map(function (t) { return '<option' + (p.next && p.next.template === t ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select><button class="btn-sm" data-pv>Preview personalised email</button></div><div data-pv-out></div>';
+      box.querySelector('[data-pv]').onclick = function () {
+        var b = this, out = box.querySelector('[data-pv-out]');
+        b.disabled = true; out.innerHTML = '<p class="muted">Writing it…</p>';
+        fetch('/admin/api/leads/' + encodeURIComponent(id) + '/preview-email?template=' + encodeURIComponent(box.querySelector('[data-pv-t]').value), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (e) {
+          b.disabled = false;
+          if (e.error && !e.html) { out.innerHTML = '<p class="muted">' + esc(e.error) + '</p>'; return; }
+          out.innerHTML = '<p class="sub" style="margin-top:12px"><b>' + esc(e.subject) + '</b> · ' + esc(e.mode) + (e.factsUsed.length ? ' · uses ' + esc(e.factsUsed.join(', ')) : '') + (e.error ? ' · <span class="muted">' + esc(e.error) + '</span>' : '') + '</p><iframe class="email-preview" sandbox title="Email preview"></iframe>';
+          out.querySelector('iframe').srcdoc = e.html;
+        });
+      };
     });
   }
 

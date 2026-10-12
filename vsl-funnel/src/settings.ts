@@ -37,6 +37,9 @@ export const SETTINGS = [
   { key: 'EMAIL_REPLY_TO', label: 'Reply-to address', group: 'Email' },
   { key: 'EMAIL_SIGNATURE', label: 'Email signature name', group: 'Email', placeholder: 'Josh' },
   { key: 'PRECALL_EMAILS_PER_DAY', label: 'Pre-call emails per day', group: 'Email', placeholder: '6', help: 'Booked leads get up to this many emails a day (one pain point each) until 3 hours before their call. 0 turns it off.' },
+  { key: 'EMAIL_PERSONALIZE', label: 'Personalise every email', group: 'Email', placeholder: 'ai', help: 'ai = Claude rewrites each email around what that person did on the site (needs the Anthropic key). rules = a personal opening line, no AI. off = templates as written.' },
+  { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API key', group: 'Email', secret: true, placeholder: 'sk-ant-…', help: 'console.anthropic.com → API keys. Used only to personalise emails.' },
+  { key: 'EMAIL_AI_MODEL', label: 'Email personalisation model', group: 'Email', placeholder: 'claude-opus-5-5', help: 'Leave blank for Claude Opus 5.5.' },
   { key: 'BUSINESS_ADDRESS', label: 'Business postal address', group: 'Email', help: 'Shown in the email footer (required by anti-spam law).' },
 
   { key: 'JOSH_WHATSAPP', label: "Josh's WhatsApp number", group: 'WhatsApp', placeholder: '61400000000', help: 'International format, digits only. Powers every "Message Josh" button.' },

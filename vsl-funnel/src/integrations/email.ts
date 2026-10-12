@@ -10,6 +10,8 @@ import { identityFromLead, track } from '../tracking/track';
 import { PRECALL_SLOTS, PRECALL_TEMPLATES, SEQUENCES, type SequenceId } from './sequences';
 import { TEMPLATES, renderEmail } from './templates';
 import { whatsappLink } from './whatsapp';
+import { buildProfile } from '../personalize/profile';
+import { type Personalized, personalizeEmail } from '../personalize/personalize';
 
 const MAX_ATTEMPTS = 3;
 
@@ -136,7 +138,20 @@ export function formatCallTime(ms: number, timeZone: string | null) {
 }
 
 /** Builds a fully rendered, tracked email for a lead. */
-export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, template: string, utmCampaign: string) {
+export interface BuildOptions {
+  /** Personalise to the lead's behaviour (sequence sends). */
+  personalize?: { purpose: string };
+}
+
+/** Fact keys earlier emails to this lead already used. */
+export async function usedFacts(rt: Runtime, leadId: string) {
+  const { results } = await rt.env.DB.prepare("SELECT facts_used FROM emails WHERE lead_id = ? AND facts_used IS NOT NULL AND status IN ('sent', 'simulated', 'sending')").bind(leadId).all<{ facts_used: string }>();
+  const used = new Set<string>();
+  for (const r of results) { try { for (const k of JSON.parse(r.facts_used) as string[]) used.add(k); } catch { /* ignore */ } }
+  return used;
+}
+
+export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, template: string, utmCampaign: string, opts: BuildOptions = {}) {
   const tpl = TEMPLATES[template];
   if (!tpl) throw new Error(`unknown template ${template}`);
   const tz = lead.call_at ? await leadTimezone(rt, lead) : null;
@@ -156,7 +171,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     return placeholder;
   };
   const wa = whatsappLink(rt.settings, lead, 'question');
-  const content = tpl({
+  let content = tpl({
     lead,
     name: lead.first_name || 'there',
     siteName: rt.settings.SITE_NAME || BRAND.name,
@@ -165,6 +180,16 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     whatsappUrl: wa ? link(`/go/wa?src=email-${template}&l=${lead.ref_code}`) : null,
     callTime: lead.call_at ? formatCallTime(lead.call_at, tz) : null,
   });
+
+  let personal: Personalized | null = null;
+  if (opts.personalize) {
+    const profile = await buildProfile(rt.env, lead);
+    personal = await personalizeEmail(rt.settings, content, template, profile, await usedFacts(rt, lead.id), {
+      purpose: opts.personalize.purpose,
+      callTime: lead.call_at ? formatCallTime(lead.call_at, tz) : null,
+    });
+    content = personal.content;
+  }
 
   // Swap placeholders for signed, tracked redirect links.
   let serialized = JSON.stringify(content);
@@ -182,7 +207,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     signature: rt.settings.EMAIL_SIGNATURE || 'Josh',
     address: rt.settings.BUSINESS_ADDRESS || rt.settings.SITE_NAME || BRAND.name,
   });
-  return { subject: final.subject, html, text, unsubscribeUrl };
+  return { subject: final.subject, html, text, unsubscribeUrl, personal };
 }
 
 /** Resend (https://resend.com/docs/api-reference/emails/send-email). Returns the provider message id. */
@@ -233,35 +258,35 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     .all<QueueRow>();
 
   let sent = 0;
-  for (const row of results) {
+  const one = async (row: QueueRow) => {
     const claim = await rt.env.DB.prepare("UPDATE emails SET status = 'sending', attempts = attempts + 1 WHERE id = ? AND status = 'pending'").bind(row.id).run();
-    if (!claim.meta.changes) continue;
+    if (!claim.meta.changes) return;
 
     const lead = await getLead(rt.env, row.lead_id);
     const seq = SEQUENCES[row.sequence];
     const step = seq?.steps[row.step];
     const skip = (reason: string) => rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = ? WHERE id = ?").bind(reason, row.id).run();
 
-    if (!lead || !seq || !step) { await skip('missing lead or step'); continue; }
-    if (lead.unsubscribed_at) { await skip('unsubscribed'); continue; }
-    if ('stopIf' in seq && seq.stopIf?.(lead)) { await skip('sequence goal reached'); continue; }
-    if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); continue; }
+    if (!lead || !seq || !step) { await skip('missing lead or step'); return; }
+    if (lead.unsubscribed_at) { await skip('unsubscribed'); return; }
+    if ('stopIf' in seq && seq.stopIf?.(lead)) { await skip('sequence goal reached'); return; }
+    if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); return; }
 
     try {
-      const email = await buildEmail(rt, lead, row.id, row.template, `seq-${row.sequence}`);
+      const email = await buildEmail(rt, lead, row.id, row.template, `seq-${row.sequence}`, { personalize: { purpose: `${seq.description} (email ${row.step + 1})` } });
       let providerId: string | null = null;
       let status = 'simulated';
       if (emailConfigured(rt)) {
         providerId = await sendViaResend(rt, { to: row.to_email, ...email, tags: { sequence: row.sequence, template: row.template } });
         status = 'sent';
       }
-      await rt.env.DB.prepare('UPDATE emails SET status = ?, sent_at = ?, provider_id = ?, subject = ?, error = NULL WHERE id = ?')
-        .bind(status, Date.now(), providerId, email.subject, row.id)
+      await rt.env.DB.prepare('UPDATE emails SET status = ?, sent_at = ?, provider_id = ?, subject = ?, error = NULL, personalized = ?, facts_used = ?, personalize_error = ? WHERE id = ?')
+        .bind(status, Date.now(), providerId, email.subject, email.personal?.mode ?? null, email.personal ? JSON.stringify(email.personal.factsUsed) : null, email.personal?.error ?? null, row.id)
         .run();
       await track(rt, await identityFromLead(rt.env, lead.id), {
         name: 'email_sent',
         source: 'cron',
-        props: { email_id: row.id, sequence: row.sequence, template: row.template, simulated: status === 'simulated' },
+        props: { email_id: row.id, sequence: row.sequence, template: row.template, simulated: status === 'simulated', personalized: email.personal?.mode ?? 'off' },
       });
       sent++;
     } catch (err) {
@@ -272,6 +297,16 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
         .run();
       console.error(`email ${row.id} failed`, message);
     }
+  };
+  // Personalisation calls the model, so send a few at a time. Same lead never twice in one batch (facts must not repeat).
+  const queue = [...results];
+  while (queue.length) {
+    const batch: QueueRow[] = [];
+    for (let i = 0; i < queue.length && batch.length < 6; ) {
+      if (batch.some((b) => b.lead_id === queue[i].lead_id)) i++;
+      else batch.push(...queue.splice(i, 1));
+    }
+    await Promise.all(batch.map(one));
   }
   return { due: results.length, sent };
 }

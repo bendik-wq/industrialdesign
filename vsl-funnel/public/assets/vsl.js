@@ -205,6 +205,17 @@
     root.appendChild(box);
   });
   video.addEventListener('timeupdate', onTime);
+  // Behaviour signals for personalised follow-up: what they rewatched, skipped and paused on.
+  var seekFrom = 0, signals = 0;
+  function signal(name, props) { if (signals++ < 40) F.track(name, Object.assign({ video: cfg.id }, props)); }
+  video.addEventListener('seeking', function () {
+    var to = video.currentTime, from = seekFrom;
+    if (to < from - 3) signal('vsl_rewatch', { from: Math.round(from), to: Math.round(to) });
+    else if (to > from + 3) signal('vsl_skip', { from: Math.round(from), to: Math.round(to) });
+  });
+  video.addEventListener('timeupdate', function () { if (!video.seeking) seekFrom = video.currentTime; });
+  video.addEventListener('ratechange', function () { if (video.playbackRate !== 1) signal('vsl_speed', { rate: video.playbackRate }); });
+  video.addEventListener('pause', function () { if (!state.ended && video.currentTime > 2 && !video.seeking) signal('vsl_pause', { at: Math.round(video.currentTime) }); });
   video.addEventListener('pause', function () { root.classList.add('paused'); beat(false); });
   video.addEventListener('play', function () { root.classList.remove('paused'); });
   video.addEventListener('ended', function () { state.ended = true; reveal(true); beat(false); store(KEY + '_state', { view: F.uid(), pos: 0, buckets: '' }); });

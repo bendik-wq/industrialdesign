@@ -17,6 +17,12 @@ export const CLIENT_EVENTS = new Set([
   'consent_update', // { granted }
   'rage_click', // { selector }
   'copy_text',
+  'text_copy', // { text }
+  'section_dwell', // { <section id>: seconds visible, ... }
+  'vsl_rewatch', // { video, from, to }
+  'vsl_skip', // { video, from, to }
+  'vsl_pause', // { video, at }
+  'vsl_speed', // { video, rate }
   'exit_intent',
 ]);
 

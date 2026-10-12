@@ -4,7 +4,9 @@ import { requireAdmin } from '../admin/auth';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
 import { APPLICATION, BRAND, VIDEOS } from '../config';
 import { LEAD_STATUSES, type Lead, getLead, parseAnswers } from '../funnel/leads';
-import { emailConfigured, sendViaResend } from '../integrations/email';
+import { buildEmail, emailConfigured, sendViaResend, usedFacts } from '../integrations/email';
+import { buildProfile } from '../personalize/profile';
+import { personalizeMode } from '../personalize/personalize';
 import { SEQUENCES } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
@@ -92,7 +94,7 @@ admin.get('/leads/:id', async (c) => {
     db.prepare(`SELECT * FROM sessions WHERE visitor_id IN (SELECT id FROM visitors WHERE lead_id = ? UNION SELECT ?) ORDER BY started_at DESC LIMIT 100`).bind(lead.id, vid).all(),
     db.prepare(`SELECT id, ts, name, path, source, props, session_id FROM events WHERE lead_id = ? OR visitor_id IN (SELECT id FROM visitors WHERE lead_id = ?) ORDER BY ts DESC LIMIT 1000`).bind(lead.id, lead.id).all(),
     db.prepare(`SELECT id, video_id, started_at, duration, max_position, watched_seconds, buckets, unmuted, completed, cta_revealed, cta_clicked FROM vsl_views WHERE lead_id = ? OR visitor_id = ? ORDER BY started_at DESC`).bind(lead.id, vid).all(),
-    db.prepare(`SELECT id, sequence, template, subject, status, send_at, sent_at, opened_at, open_count, clicked_at, click_count, error FROM emails WHERE lead_id = ? ORDER BY send_at`).bind(lead.id).all(),
+    db.prepare(`SELECT id, sequence, template, subject, status, send_at, sent_at, opened_at, open_count, clicked_at, click_count, error, personalized, facts_used FROM emails WHERE lead_id = ? ORDER BY send_at`).bind(lead.id).all(),
     db.prepare(`SELECT * FROM whatsapp_messages WHERE lead_id = ? ORDER BY ts DESC LIMIT 100`).bind(lead.id).all(),
     db.prepare(`SELECT * FROM voice_calls WHERE lead_id = ? ORDER BY created_at DESC LIMIT 50`).bind(lead.id).all(),
   ]);
@@ -114,6 +116,26 @@ admin.get('/leads/:id', async (c) => {
     whatsapp: whatsapp.results,
     voice: voice.results,
   });
+});
+
+// What this lead did, as the facts the email personaliser works from.
+admin.get('/leads/:id/profile', async (c) => {
+  const lead = await getLead(c.env, c.req.param('id'));
+  if (!lead) return c.json({ error: 'not found' }, 404);
+  const [profile, used] = await Promise.all([buildProfile(c.env, lead), usedFacts(runtimeFrom(c), lead.id)]);
+  const next = await c.env.DB.prepare("SELECT template, sequence, send_at FROM emails WHERE lead_id = ? AND status = 'pending' ORDER BY send_at LIMIT 1").bind(lead.id).first<{ template: string; sequence: string; send_at: number }>();
+  return c.json({ facts: profile.facts.map((f) => ({ ...f, used: used.has(f.key) })), data: profile.data, mode: personalizeMode(c.get('settings')), next });
+});
+
+// Renders the personalised version of an email for this lead without sending it (calls the model in "ai" mode).
+admin.get('/leads/:id/preview-email', async (c) => {
+  const lead = await getLead(c.env, c.req.param('id'));
+  if (!lead) return c.json({ error: 'not found' }, 404);
+  const template = c.req.query('template') || '';
+  if (!TEMPLATES[template]) return c.json({ error: 'unknown template' }, 400);
+  const seq = Object.values(SEQUENCES).find((s) => s.steps.some((x) => x.template === template));
+  const email = await buildEmail(runtimeFrom(c), lead, `preview-${Date.now()}`, template, 'preview', { personalize: { purpose: seq?.description ?? template } });
+  return c.json({ subject: email.subject, html: email.html, mode: email.personal?.mode ?? 'off', factsUsed: email.personal?.factsUsed ?? [], error: email.personal?.error ?? null });
 });
 
 admin.patch('/leads/:id', async (c) => {

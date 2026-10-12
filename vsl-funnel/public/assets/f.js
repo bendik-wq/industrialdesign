@@ -125,6 +125,33 @@
     }
   });
 
+  // Which sections they actually read: visible time per section (≥40% on screen, tab in front).
+  var dwell = {}, visible = {}, lastTick = Date.now();
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { var id = en.target.getAttribute('data-section') || en.target.id || ''; if (id) visible[id] = en.intersectionRatio >= 0.4; });
+    }, { threshold: [0, 0.4, 0.8] });
+    document.querySelectorAll('[data-section], section[id]').forEach(function (el) { io.observe(el); });
+    setInterval(function () {
+      var now = Date.now(), dt = now - lastTick; lastTick = now;
+      if (document.visibilityState !== 'visible' || dt > 5000) return;
+      Object.keys(visible).forEach(function (id) { if (visible[id]) dwell[id] = (dwell[id] || 0) + dt; });
+    }, 1000);
+    var reportDwell = function () {
+      var out = {}, any = false;
+      Object.keys(dwell).forEach(function (id) { if (dwell[id] >= 2000) { out[id] = Math.round(dwell[id] / 1000); any = true; } });
+      if (any) { track('section_dwell', out); dwell = {}; }
+    };
+    addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') reportDwell(); });
+    addEventListener('pagehide', reportDwell);
+  }
+
+  // Copied text (a strong intent signal, e.g. copying the guarantee or a FAQ answer).
+  document.addEventListener('copy', function () {
+    var t = String(window.getSelection ? window.getSelection() : '').trim();
+    if (t && !/@|\d{6,}/.test(t)) track('text_copy', { text: t.slice(0, 160) });
+  });
+
   // FAQ opens.
   document.addEventListener('toggle', function (e) {
     var d = e.target;

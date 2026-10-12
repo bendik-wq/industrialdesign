@@ -230,3 +230,10 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .setup-step.ok .dot { background: var(--good-text); border-color: var(--good-text); color: var(--surface); }
 .setup-step .muted { margin-top: 3px; }
 .setup-step .btn-sm, .setup-step select { margin-top: 6px; }
+
+/* Behaviour facts */
+.facts { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.facts li { display: flex; gap: 8px; align-items: baseline; }
+.facts li.used { color: var(--muted); }
+.facts .w { flex: none; width: 22px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 11px; }
+.email-preview { width: 100%; height: 520px; border: 1px solid var(--border); border-radius: 10px; background: #fff; margin-top: 6px; }

@@ -30,10 +30,25 @@ export interface VideoDef {
   /** WebM copy for browsers without H.264. */
   defaultSrcWebm?: string;
   defaultPoster?: string;
+  /** What's said when (seconds). Lets follow-up emails reference the part they missed, rewatched or paused on. */
+  chapters?: { at: number; title: string }[];
 }
 
 export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
-  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 240, gateContent: false, autoplayMuted: true, defaultSrc: '/media/vsl-main.mp4', defaultSrcWebm: '/media/vsl-main.webm', defaultPoster: '/media/vsl-main-poster.jpg' },
+  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 240, gateContent: false, autoplayMuted: true, defaultSrc: '/media/vsl-main.mp4', defaultSrcWebm: '/media/vsl-main.webm', defaultPoster: '/media/vsl-main-poster.jpg',
+    // From docs/VSL_SCRIPT.md (VSL #1). Re-time these when the final cut is in.
+    chapters: [
+      { at: 0, title: 'the hook' },
+      { at: 40, title: 'who this is for' },
+      { at: 90, title: 'Josh’s background and his two seller-financed acquisitions' },
+      { at: 150, title: 'why growth stalls (the two slow paths)' },
+      { at: 240, title: 'the third way: buying growth instead of building it' },
+      { at: 330, title: 'how the deal gets funded: seller finance, senior debt and over-financing' },
+      { at: 420, title: 'the offer: a signed LOI in 90 days' },
+      { at: 540, title: 'proof' },
+      { at: 600, title: 'the common objections' },
+      { at: 660, title: 'the close and next step' },
+    ] },
   breakout: { id: 'vsl-breakout', srcSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 180, gateContent: false, autoplayMuted: true },
   precall: { id: 'vsl-precall', srcSetting: 'VSL_PRECALL_SRC', fallbackSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 0, gateContent: false, autoplayMuted: true },
 };
