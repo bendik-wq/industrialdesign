@@ -29,6 +29,7 @@ export const SETTINGS = [
 
   { key: 'BOOKING_URL_A', label: 'A-tier calendar (closer)', group: 'Booking', placeholder: 'https://calendly.com/you/strategy-call' },
   { key: 'BOOKING_URL_B', label: 'B-tier calendar (setter)', group: 'Booking', placeholder: 'https://calendly.com/team/discovery-call' },
+  { key: 'CALENDLY_API_TOKEN', label: 'Calendly personal access token', group: 'Booking', secret: true, help: 'calendly.com → Integrations → API & webhooks. Gives exact call times, meeting links and answers, and sets up the webhook for you.' },
   { key: 'CALENDLY_SIGNING_KEY', label: 'Calendly webhook signing key', group: 'Booking', secret: true, help: 'Confirms bookings server-side via /hooks/calendly.' },
   { key: 'BOOKING_WEBHOOK_SECRET', label: 'Generic booking webhook secret', group: 'Booking', secret: true, help: 'For Cal.com / GHL / Zapier: POST to /hooks/booking?secret=…' },
 

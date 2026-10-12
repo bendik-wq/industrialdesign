@@ -3,7 +3,7 @@ import { setCookie } from 'hono/cookie';
 import { type AppEnv, runtimeFrom } from '../app';
 import { ApplicationError, saveAnswer, saveContact, submitApplication } from '../funnel/application';
 import { getLead } from '../funnel/leads';
-import { markBooked } from '../integrations/booking';
+import { confirmClientBooking, markBooked } from '../integrations/booking';
 import { webCallConfig } from '../integrations/voice';
 import { VOICE_AGENT } from '../config';
 import { identityFromVisitor, track } from '../tracking/track';
@@ -110,7 +110,9 @@ api.post('/booking/client', async (c) => {
   if (!lead) return c.json({ ok: false }, 404);
   const body = (await readJson<{ provider?: string; event_uri?: string }>(c.req.raw)) ?? {};
   const ref = typeof body.event_uri === 'string' ? body.event_uri.slice(0, 300) : null;
-  await markBooked(runtimeFrom(c), lead, { callAt: null, provider: `${String(body.provider ?? 'calendly').slice(0, 20)}-client`, ref, verified: false });
+  const rt = runtimeFrom(c);
+  if (String(body.provider ?? 'calendly') === 'calendly') await confirmClientBooking(rt, lead, ref);
+  else await markBooked(rt, lead, { callAt: null, provider: `${String(body.provider).slice(0, 20)}-client`, ref, verified: false });
   return c.json({ ok: true, next: '/breakout' });
 });
 

@@ -6,6 +6,8 @@ import { cancelSequence, enqueuePrecall, enqueueSequence, formatCallTime } from 
 import { AI_CALLER } from '../config';
 import { cancelCalls, queueCall } from './elevenlabs';
 import { notifySlack } from './notify';
+import { bookingFields, calendlyConnected, eventWithInvitees, syncCalendly } from './calendly';
+import { applyLeadUpdate } from '../sales/outcomes';
 
 export interface BookingInfo {
   callAt: number | null;
@@ -13,6 +15,10 @@ export interface BookingInfo {
   ref: string | null;
   /** True when confirmed by the provider's webhook rather than reported by the browser. */
   verified: boolean;
+  /** Same booking moved to a new time (Calendly reschedules create a new event). */
+  rescheduled?: boolean;
+  /** Extra lead fields from the provider (meeting link, host, answers…). */
+  fields?: Partial<Record<keyof Lead, string | number | null>>;
 }
 
 /**
@@ -21,7 +27,7 @@ export interface BookingInfo {
  * arrives with the actual call time and upgrades the record.
  */
 export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
-  const sameBooking = lead.booked_at && !lead.booking_cancelled_at && (!info.ref || !lead.booking_ref || lead.booking_ref === info.ref);
+  const sameBooking = lead.booked_at && !lead.booking_cancelled_at && (info.rescheduled || !info.ref || !lead.booking_ref || lead.booking_ref === info.ref);
   const callChanged = info.callAt && info.callAt !== lead.call_at;
 
   await updateLead(rt.env, lead.id, {
@@ -31,6 +37,8 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
     booking_provider: info.verified || !lead.booking_provider ? info.provider : lead.booking_provider,
     booking_ref: info.ref ?? lead.booking_ref,
     booking_cancelled_at: null,
+    booking_source: lead.booking_source ?? 'funnel',
+    ...(info.fields ?? {}),
   });
   const fresh = (await getLead(rt.env, lead.id))!;
 
@@ -82,6 +90,7 @@ interface CalendlyPayload {
     uri?: string;
     rescheduled?: boolean;
     scheduled_event?: { start_time?: string; uri?: string };
+    old_invitee?: string | null;
     tracking?: { salesforce_uuid?: string | null; utm_term?: string | null };
   };
 }
@@ -97,15 +106,43 @@ async function findLead(rt: Runtime, leadId: string | null | undefined, email: s
 
 export async function handleCalendly(rt: Runtime, body: CalendlyPayload) {
   const p = body.payload ?? {};
-  const lead = await findLead(rt, p.tracking?.salesforce_uuid, p.email);
+  let lead = await findLead(rt, p.tracking?.salesforce_uuid, p.email);
+  const eventUri = p.scheduled_event?.uri ?? null;
+  // With the API connected, pull the meeting link, host, answers and self-serve links too.
+  const details = calendlyConnected(rt.settings) && eventUri && body.event === 'invitee.created'
+    ? await eventWithInvitees(rt.settings, eventUri).catch(() => null)
+    : null;
+  const inv = details?.invitees.find((i) => i.uri === p.uri) ?? details?.invitees[0];
+  if (!lead && body.event === 'invitee.created' && details && inv && calendlyConnected(rt.settings)) {
+    // Booked straight from the Calendly link: keep it for the sales numbers via the sync (no emails).
+    await syncCalendly(rt, { force: true, daysBack: 1 }).catch(() => null);
+    return { matched: false, imported: true };
+  }
   if (!lead) return { matched: false };
   if (body.event === 'invitee.created') {
     const start = p.scheduled_event?.start_time ? Date.parse(p.scheduled_event.start_time) : null;
-    await markBooked(rt, lead, { callAt: start, provider: 'calendly', ref: p.scheduled_event?.uri ?? p.uri ?? null, verified: true });
+    const extra = details && inv ? bookingFields(rt, details.event, inv) : null;
+    await markBooked(rt, lead, { callAt: extra?.callAt ?? start, provider: 'calendly', ref: eventUri ?? p.uri ?? null, verified: true, rescheduled: Boolean(p.old_invitee), fields: extra?.fields });
   } else if (body.event === 'invitee.canceled' && !p.rescheduled) {
     await markCancelled(rt, lead, 'calendly');
+  } else if (body.event === 'invitee_no_show.created') {
+    lead = (await getLead(rt.env, lead.id))!;
+    if (lead.status === 'booked') await applyLeadUpdate(rt, lead, { status: 'no_show' });
   }
   return { matched: true, leadId: lead.id };
+}
+
+/** The browser saw a Calendly booking: confirm it through the API right away (exact time, host, links). */
+export async function confirmClientBooking(rt: Runtime, lead: Lead, eventUri: string | null) {
+  if (calendlyConnected(rt.settings) && eventUri && /^https:\/\/api\.calendly\.com\/scheduled_events\/[\w-]+$/.test(eventUri)) {
+    const details = await eventWithInvitees(rt.settings, eventUri).catch(() => null);
+    const inv = details?.invitees.find((i) => i.tracking?.salesforce_uuid === lead.id || (lead.email && i.email.toLowerCase() === lead.email));
+    if (details && inv && details.event.status === 'active') {
+      const { callAt, fields } = bookingFields(rt, details.event, inv);
+      return markBooked(rt, lead, { callAt, provider: 'calendly', ref: eventUri, verified: true, fields });
+    }
+  }
+  return markBooked(rt, lead, { callAt: null, provider: 'calendly-client', ref: eventUri, verified: false });
 }
 
 /**

@@ -15,6 +15,10 @@ export interface TemplateCtx {
   bookingUrl: string | null;
   whatsappUrl: string | null;
   callTime: string | null;
+  /** Calendly meeting link, when the API is connected. */
+  joinUrl?: string | null;
+  /** Calendly self-serve reschedule link. */
+  rescheduleUrl?: string | null;
 }
 
 export interface EmailContent {
@@ -364,24 +368,26 @@ export const TEMPLATES: Record<string, Template> = {
       'Have last year’s revenue and profit to hand (rough numbers are fine), and think about which businesses in your market you’d most like to own.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
-    ps: waLine(c, 'Need to move it? Message me on WhatsApp'),
+    ps: c.rescheduleUrl ? `Need to move it? <a href="${c.link(c.rescheduleUrl)}">Pick a new time here</a>.` : waLine(c, 'Need to move it? Message me on WhatsApp'),
   }),
   call_3h: (c) => ({
     subject: c.callTime ? `today at ${c.callTime}` : 'we’re talking today',
     preheader: 'A few hours to go.',
     body: [
       `${c.name}, we’re on in a few hours${c.callTime ? ` (${c.callTime})` : ''}.`,
-      'The link is in your calendar invite. If you have ten minutes before then, the pre-call video is the best way to use them.',
+      c.joinUrl ? 'The meeting link is below and in your calendar invite. If you have ten minutes before then, the pre-call video is the best way to use them.' : 'The link is in your calendar invite. If you have ten minutes before then, the pre-call video is the best way to use them.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+    ps: c.joinUrl ? `Meeting link: <a href="${c.link(c.joinUrl)}">join the call</a>.` : undefined,
   }),
   call_1h: (c) => ({
     subject: 'starting in 1 hour',
     preheader: 'Join from a quiet spot on a laptop.',
     body: [
       `${c.name}, we’re on in about an hour.`,
-      'Join from a quiet spot on a laptop, and if a business partner is part of the decision, bring them along. The link is in your calendar invite.',
+      `Join from a quiet spot on a laptop, and if a business partner is part of the decision, bring them along. ${c.joinUrl ? 'Here’s the link:' : 'The link is in your calendar invite.'}`,
     ],
+    cta: c.joinUrl ? { label: 'Join the call →', href: c.link(c.joinUrl) } : undefined,
     ps: waLine(c, 'Running late? Message me on WhatsApp'),
   }),
   call_10m: (c) => ({
@@ -389,8 +395,9 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'The link is in your calendar invite.',
     body: [
       `${c.name}, we’re starting in 10 minutes.`,
-      'The link is in your calendar invite. See you there.',
+      c.joinUrl ? 'Here’s the link. See you there.' : 'The link is in your calendar invite. See you there.',
     ],
+    cta: c.joinUrl ? { label: 'Join the call now →', href: c.link(c.joinUrl) } : undefined,
     ps: waLine(c, 'Can’t find the link? Message me on WhatsApp'),
   }),
 

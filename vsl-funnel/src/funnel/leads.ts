@@ -43,6 +43,12 @@ export interface Lead {
   call_consent_at: number | null;
   call_consent_text: string | null;
   timezone: string | null;
+  booking_join_url: string | null;
+  booking_reschedule_url: string | null;
+  booking_cancel_url: string | null;
+  booking_host_email: string | null;
+  booking_answers: string | null;
+  booking_source: string | null;
   notes: string | null;
   channel: string | null;
   utm_source: string | null;

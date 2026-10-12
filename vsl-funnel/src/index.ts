@@ -16,6 +16,7 @@ import { pingUpcomingCalls } from './sales/outcomes';
 import { maybeSendDigest } from './sales/digest';
 import { processCallQueue } from './integrations/elevenlabs';
 import { syncInbound } from './integrations/elevenlabs-inbound';
+import { syncCalendly } from './integrations/calendly';
 
 const app = new Hono<AppEnv>();
 
@@ -122,16 +123,18 @@ export default {
     };
     if (!settings.PUBLIC_URL) console.warn('PUBLIC_URL is not set — email links will point at example.com');
     const quiet = <T,>(p: Promise<T>, label: string) => p.catch((e) => { console.error(`${label} failed`, e); return null; });
-    const [result, retried, pinged, digest, calls, callbacks] = await Promise.all([
+    const [result, retried, pinged, digest, calls, callbacks, calSync] = await Promise.all([
       processEmailQueue(rt),
       retryForwards(rt),
       quiet(pingUpcomingCalls(rt), 'call pings'),
       quiet(maybeSendDigest(rt), 'daily digest'),
       quiet(processCallQueue(rt), 'AI calls'),
       quiet(syncInbound(rt), 'AI callbacks'),
+      quiet(syncCalendly(rt), 'Calendly sync'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);
+    if (calSync) console.log('Calendly sync', calSync);
     if (pinged) console.log('call pings', pinged);
     if (digest) console.log('daily digest sent');
     if (result.due) console.log('email queue', result);

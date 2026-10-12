@@ -179,6 +179,8 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     bookingUrl: bookingUrlFor(rt, lead.closer_id, effectiveTier(lead)),
     whatsappUrl: wa ? link(`/go/wa?src=email-${template}&l=${lead.ref_code}`) : null,
     callTime: lead.call_at ? formatCallTime(lead.call_at, tz) : null,
+    joinUrl: lead.booking_join_url && /^https:\/\//.test(lead.booking_join_url) ? lead.booking_join_url : null,
+    rescheduleUrl: lead.booking_reschedule_url && /^https:\/\/calendly\.com\//.test(lead.booking_reschedule_url) ? lead.booking_reschedule_url : null,
   });
 
   let personal: Personalized | null = null;

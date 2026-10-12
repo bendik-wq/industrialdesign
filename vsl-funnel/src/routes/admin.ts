@@ -11,6 +11,7 @@ import { SEQUENCES } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
+import { calendlyConnected, connectCalendly, syncCalendly } from '../integrations/calendly';
 import { type OutboundCall, dial, elevenConfigured, listPhoneNumbers, provisionAgent } from '../integrations/elevenlabs';
 import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
 import { validateEmail } from '../funnel/leads';
@@ -270,7 +271,7 @@ admin.get('/integrations', async (c) => {
     status: {
       email: { label: 'Email', connected: emailConfigured(rt), detail: emailConfigured(rt) ? `Sending as ${s.EMAIL_FROM}` : 'Emails are simulated (logged, not sent) until a Resend key and From address are connected.' },
       whatsapp: { label: 'WhatsApp', connected: Boolean(s.JOSH_WHATSAPP), detail: s.JOSH_WHATSAPP ? `Click-to-chat → +${s.JOSH_WHATSAPP.replace(/\D/g, '')}${cloudApiConfigured(s) ? ' · Cloud API connected' : ''}` : 'Add Josh’s number to turn on the WhatsApp buttons.' },
-      booking: { label: 'Booking', connected: Boolean(s.BOOKING_URL_A || s.BOOKING_URL_B), detail: [s.BOOKING_URL_A && 'A-tier calendar', s.BOOKING_URL_B && 'B-tier calendar', s.CALENDLY_SIGNING_KEY && 'Calendly webhook verified'].filter(Boolean).join(' · ') || 'No calendar connected — A-tier leads are sent to the breakout page.' },
+      booking: { label: 'Booking', connected: Boolean(s.BOOKING_URL_A || s.BOOKING_URL_B), detail: [s.BOOKING_URL_A && 'A-tier calendar', s.BOOKING_URL_B && 'B-tier calendar', s.CALENDLY_API_TOKEN && 'Calendly API (exact times, links, hourly sync)', s.CALENDLY_SIGNING_KEY && 'webhook signed'].filter(Boolean).join(' · ') || 'No calendar connected — A-tier leads are sent to the breakout page.' },
       posthog: { label: 'PostHog', connected: Boolean(s.POSTHOG_KEY), detail: s.POSTHOG_KEY ? `Server-side events → ${s.POSTHOG_HOST || 'https://us.i.posthog.com'}` : 'Not connected' },
       meta: { label: 'Meta', connected: Boolean(s.META_PIXEL_ID && s.META_ACCESS_TOKEN), detail: s.META_PIXEL_ID ? `Pixel ${s.META_PIXEL_ID}${s.META_ACCESS_TOKEN ? ' + Conversions API' : ' (browser only — add a CAPI token)'}${s.META_TEST_EVENT_CODE ? ' · TEST MODE' : ''}` : 'Not connected' },
       ga4: { label: 'GA4', connected: Boolean(s.GA4_MEASUREMENT_ID && s.GA4_API_SECRET), detail: s.GA4_MEASUREMENT_ID || 'Not connected' },
@@ -493,6 +494,27 @@ admin.get('/voice/elevenlabs/audio/:id', async (c) => {
   const res = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${encodeURIComponent(c.req.param('id'))}/audio`, { headers: { 'xi-api-key': s.ELEVENLABS_API_KEY } });
   if (!res.ok) return c.text('recording not available', res.status === 404 ? 404 : 502);
   return new Response(res.body, { headers: { 'content-type': res.headers.get('content-type') || 'audio/mpeg', 'cache-control': 'private, max-age=3600' } });
+});
+
+// ── Calendly API ──
+admin.post('/calendly/connect', async (c) => {
+  const rt = runtimeFrom(c);
+  if (!calendlyConnected(rt.settings)) return c.json({ ok: false, error: 'Add the Calendly personal access token under Integrations → Booking first.' }, 400);
+  try {
+    const out = await connectCalendly(rt);
+    const sync = await syncCalendly(rt, { force: true, daysBack: 60 });
+    return c.json({ ok: true, ...out, sync });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 500) }, 400);
+  }
+});
+
+admin.post('/calendly/sync', async (c) => {
+  try {
+    return c.json({ ok: true, sync: await syncCalendly(runtimeFrom(c), { force: true, daysBack: 60 }) });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 500) }, 400);
+  }
 });
 
 admin.put('/integrations', async (c) => {
