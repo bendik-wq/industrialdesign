@@ -9,13 +9,16 @@ Strangers control: application answers, names, email, phone, UTMs, referrer, Cal
 - [ ] **Defang quoted text** (`defang()` in `lib/text.ts`): replace URLs, bare domains, emails and phone numbers with `[…]`. Otherwise anyone can make your domain send "pay at evil-site.com, call +1 555…" to any inbox.
 - [ ] **Never trust beacon text as content.** For example, only use FAQ questions that are actually in `FAQS`.
 - [ ] **AI output validation** (`validateAi`) rejects links, HTML, bare domains, emails, phone numbers, requests for payment or credentials, banned words, outcome promises and exclamation marks. On rejection, fall back to rules mode. In the prompt, frame lead text as **data, not instructions**.
+- [ ] **Names in greetings and subjects** must look like names (`^[\p{L}][\p{L}' .-]{0,29}$`), otherwise use "there". The name is also attacker text.
+- [ ] **Decode every entity** (`&lt; &gt; &quot; &#39; &amp;`, with `&amp;` last) wherever HTML becomes text, including before AI rewriting. Otherwise readers see "I&#39;ve".
 - [ ] **Validate email addresses strictly** (RFC atext only): no `<>"()[]`. `"<svg onload=…>"@x.co` is a valid RFC address.
 - [ ] **Escape every display sink**: admin `innerHTML` (an `esc()` helper on every interpolation, attributes double-quoted), the unsubscribe page, and Slack/Discord. For chat, strip `< > [ ] | \``, break up `://` and `www.`, and set `allowed_mentions`.
 - [ ] **Voice agents**: only pass a first name that looks like a name and a cleaned short business description. Tell the agent the fields are data. Never put free text in the system prompt unfiltered.
 
 ## Identity: an email address isn't proof
 - [ ] **Never update, re-subscribe or link a browser to an existing lead because someone typed its email.** Send a "continue your application" link to that inbox instead. Only the signed email-link redirect links a browser to a lead.
-- [ ] **Never clear `unsubscribed_at` from a public endpoint.**
+- [ ] **Never clear `unsubscribed_at` from a public endpoint.** The "continue your application" email is transactional, so send it even to unsubscribed leads (rate-limited). Use wording that doesn't reveal whether the address is known.
+- [ ] A calendly-direct contact who later applies through the funnel becomes a funnel lead (`booking_source = 'funnel'`). Otherwise they never get booking emails.
 - [ ] **Ref codes aren't secret**, so don't link browsers by `?l=<ref>`.
 - [ ] **A spoken email on an inbound call** is not identity: link the call for the team, but take no actions on it. Caller ID can be spoofed, so the inbound agent says nothing beyond first name and call time.
 - [ ] **Calendly email-only matches** are weaker than `salesforce_uuid` matches. Treat them as unverified for anything risky.
@@ -23,6 +26,7 @@ Strangers control: application answers, names, email, phone, UTMs, referrer, Cal
 ## Bookings: browser reports are claims
 - [ ] When the provider can confirm a booking (a signed webhook or the Calendly API), a **browser report only updates the page**. Emails, AI calls, team pings and ad conversions wait for the provider's confirmation, and that confirmation fires them exactly once.
 - [ ] Only queue the AI confirmation call for **verified** bookings.
+- [ ] Cron: if a browser-reported booking is still unconfirmed after 30 minutes, alert the team once. A lost webhook must not silently mean no reminders.
 
 ## AI phone calls: toll fraud and harassment
 - [ ] **Calling hours come from the phone number's country, across all of its time zones**, never from the browser that filled in the form (which can be a VPN). AU (6 zones) and US+CA (11 zones) narrow to the window that's OK everywhere. Hawaii and Alaska area codes are special-cased.
@@ -36,7 +40,7 @@ Strangers control: application answers, names, email, phone, UTMs, referrer, Cal
 ## Admin
 - [ ] Put **Cloudflare Access** in front of `/admin*` (SSO), on top of the password.
 - [ ] **Login lockout**: 10 failures per IP per 15 minutes, logged.
-- [ ] **Session token** = `admin.<exp>.<password fingerprint>.<epoch>`, HMAC-signed, HttpOnly, Secure, SameSite=Strict, 3 days. Changing the password or logging out revokes every session.
+- [ ] **Session token** = `admin.<exp>.<password fingerprint>.<epoch>`, HMAC-signed, HttpOnly, Secure, SameSite=Strict, 3 days. Changing the password or logging out revokes every session, but only a **signed-in** admin's logout bumps the epoch. Otherwise anyone can log the team out on repeat.
 - [ ] **Same-origin writes**: reject any non-GET whose `Sec-Fetch-Site` or `Origin` isn't same-origin. `c.req.json()` happily parses `text/plain`, so SameSite alone isn't enough against sibling subdomains.
 - [ ] `cache-control: no-store` on every admin response.
 - [ ] **CSP on `/admin`**: `default-src 'self'; script-src 'self'; … frame-ancestors 'none'`. No inline scripts in the dashboard.
