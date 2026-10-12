@@ -1,6 +1,6 @@
 import type { Runtime } from '../app';
 import { newId, newRefCode } from '../lib/ids';
-import { type Lead, getLead, getLeadByEmail, updateLead, validateEmail } from '../funnel/leads';
+import { type Lead, getLead, getLeadByEmail, updateLead, validateEmail, cleanName } from '../funnel/leads';
 import { saveSettings } from '../settings';
 import type { Settings } from '../settings';
 import { qualifyCalendly } from '../sales/qualify';
@@ -271,7 +271,7 @@ async function importDirect(rt: Runtime, i: CalInvitee, ev: CalEvent, status: 'a
        channel, utm_source, utm_medium, utm_campaign, utm_content, utm_term, booked_at, call_at, booking_provider, booking_ref, booking_cancelled_at, booking_source, timezone, landing_path)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 'Calendly (direct)', ?, ?, ?, ?, ?, ?, ?, 'calendly', ?, ?, 'calendly-direct', ?, '/calendly')`,
   )
-    .bind(id, newRefCode(), created, now, first || null, i.last_name ?? (rest.join(' ') || null), email, i.text_reminder_number ?? null, leadStatus,
+    .bind(id, newRefCode(), created, now, cleanName(first) ?? null, cleanName(i.last_name ?? rest.join(' ')) ?? null, email, i.text_reminder_number ?? null, leadStatus,
       t.utm_source ?? null, t.utm_medium ?? null, t.utm_campaign ?? null, t.utm_content ?? null, t.utm_term ?? null, created, callAt, ev.uri,
       status === 'canceled' ? Date.parse(ev.start_time) || now : null, i.timezone ?? null)
     .run();

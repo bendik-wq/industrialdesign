@@ -227,9 +227,20 @@
 
   // Highlighting text (people often select what they're thinking about).
   var lastSel = '';
+  // Never inside form fields: selecting or copying there would capture what the person typed.
+  function inField() {
+    var a = document.activeElement;
+    if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return true;
+    var n = window.getSelection && window.getSelection().anchorNode;
+    var el = n && (n.nodeType === 1 ? n : n.parentElement);
+    return Boolean(el && el.closest && el.closest('form, input, textarea, [contenteditable], [data-no-track]'));
+  }
+  // Phone numbers with spaces/dashes, emails and long digit runs are dropped too.
+  function piiLike(t) { return /@|\d{6,}|\+?\d[\d\s().-]{6,}\d/.test(t); }
   document.addEventListener('mouseup', function () {
+    if (inField()) return;
     var t = String(window.getSelection ? window.getSelection() : '').trim();
-    if (t.length >= 15 && t !== lastSel && !/@|\d{6,}/.test(t)) { lastSel = t; cap('text_select', { text: t.slice(0, 160), section: sectionOf(window.getSelection().anchorNode && window.getSelection().anchorNode.parentElement) }); }
+    if (t.length >= 15 && t !== lastSel && !piiLike(t)) { lastSel = t; cap('text_select', { text: t.slice(0, 120), section: sectionOf(window.getSelection().anchorNode && window.getSelection().anchorNode.parentElement) }); }
   });
 
   // Coming back to a section after scrolling away from it.
@@ -259,8 +270,9 @@
 
   // Copied text (a strong intent signal, e.g. copying the guarantee or a FAQ answer).
   document.addEventListener('copy', function () {
+    if (inField()) return;
     var t = String(window.getSelection ? window.getSelection() : '').trim();
-    if (t && !/@|\d{6,}/.test(t)) track('text_copy', { text: t.slice(0, 160) });
+    if (t && !piiLike(t)) track('text_copy', { text: t.slice(0, 120) });
   });
 
   // FAQ opens.
@@ -278,22 +290,35 @@
     if (!exitSent && !e.relatedTarget && e.clientY <= 0) { exitSent = true; track('exit_intent', {}); }
   });
 
-  // EU consent banner.
-  if (cfg.consentRequired && !cfg.consentGiven && document.cookie.indexOf('_fc=') === -1) {
-    var box = document.createElement('div');
-    box.className = 'consent';
-    box.setAttribute('role', 'dialog');
-    box.setAttribute('aria-label', 'Cookie consent');
-    box.innerHTML = '<p>We use cookies to measure our ads and improve this site. Is that OK?</p><div class="row"><button type="button" data-c="0">No thanks</button><button type="button" class="yes" data-c="1">Accept</button></div>';
-    box.addEventListener('click', function (e) {
-      var b = e.target.closest('button');
-      if (!b) return;
-      var granted = b.getAttribute('data-c') === '1';
-      send('/api/consent', { granted: granted }).then(function () { if (granted) location.reload(); });
-      track('consent_update', { granted: granted });
-      box.remove();
-    });
-    document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(box); });
-    if (document.readyState !== 'loading') document.body.appendChild(box);
+  // Consent banner (EU, UK, EEA, CH), plus a "Cookie settings" link so a choice can be changed later.
+  if (cfg.consentRequired) {
+    var showBanner = function () {
+      if (document.querySelector('.consent')) return;
+      var box = document.createElement('div');
+      box.className = 'consent';
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-label', 'Cookie consent');
+      box.innerHTML = '<p>We use cookies to measure our ads and improve this site. Is that OK? <a href="/privacy">Privacy policy</a></p><div class="row"><button type="button" data-c="0">No thanks</button><button type="button" class="yes" data-c="1">Accept</button></div>';
+      box.addEventListener('click', function (e) {
+        var b = e.target.closest('button');
+        if (!b) return;
+        var granted = b.getAttribute('data-c') === '1';
+        var changed = granted !== Boolean(cfg.consentGiven);
+        track('consent_update', { granted: granted });
+        send('/api/consent', { granted: granted }).then(function () { if (changed) location.reload(); });
+        box.remove();
+      });
+      document.body.appendChild(box);
+    };
+    var settingsLink = function () {
+      var a = document.createElement('button');
+      a.type = 'button';
+      a.className = 'consent-settings';
+      a.textContent = 'Cookie settings';
+      a.addEventListener('click', showBanner);
+      document.body.appendChild(a);
+    };
+    var start = function () { if (!cfg.consentGiven && document.cookie.indexOf('_fc=') === -1) showBanner(); settingsLink(); };
+    if (document.readyState !== 'loading') start(); else document.addEventListener('DOMContentLoaded', start);
   }
 })();

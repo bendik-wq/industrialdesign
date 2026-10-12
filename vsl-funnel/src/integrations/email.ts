@@ -1,6 +1,6 @@
 import type { Runtime } from '../app';
 import { BRAND } from '../config';
-import { hmacHex } from '../lib/crypto';
+import { hmacHex, safeEqual } from '../lib/crypto';
 import { newId } from '../lib/ids';
 import { getSecret } from '../lib/secret';
 import { type Lead, getLead } from '../funnel/leads';
@@ -119,7 +119,7 @@ async function linkSig(rt: Runtime, emailId: string, target: string) {
 }
 
 export async function verifyLinkSig(rt: Runtime, emailId: string, target: string, sig: string) {
-  return (await linkSig(rt, emailId, target)) === sig;
+  return safeEqual(await linkSig(rt, emailId, target), sig);
 }
 
 export async function unsubscribeSig(rt: Runtime, leadId: string) {

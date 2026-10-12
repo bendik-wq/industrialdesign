@@ -69,6 +69,8 @@ export const SETTINGS = [
   { key: 'AI_CALL_CONFIRM', label: 'AI call to confirm new bookings', group: 'Voice', placeholder: 'true', help: 'Calls consenting leads ~2 minutes after they book. Set to false to turn off.' },
   { key: 'AI_CALL_SPEED_TO_LEAD', label: 'AI call qualified leads who haven’t booked', group: 'Voice', placeholder: 'true', help: 'Calls consenting A/B leads ~5 minutes after applying if they haven’t booked, and emails the booking link. Set to false to turn off.' },
   { key: 'AI_CALL_REBOOK', label: 'AI call no-shows to rebook', group: 'Voice', placeholder: 'true', help: 'Calls consenting leads ~20 minutes after a no-show is logged and emails a link to pick a new time. Set to false to turn off.' },
+  { key: 'AI_CALL_DAILY_CAP', label: 'Max AI calls per day (all leads)', group: 'Voice', placeholder: '40', help: 'A ceiling on outbound AI calls queued in any 24 hours, so a flood of fake sign-ups can’t run up a phone bill. Each number is also limited to 3 calls a week.' },
+  { key: 'AI_CALL_CALLBACK_NUMBER', label: 'Callback number said on AI calls', group: 'Voice', placeholder: '+1 229 404 6271', help: 'Read out on every AI call and voicemail so people can call back (required for AI-voice calls to US numbers).' },
 
   { key: 'POSTHOG_KEY', label: 'PostHog project API key', group: 'Analytics', secret: true, placeholder: 'phc_…', help: 'Every event is mirrored to PostHog server-side.' },
   { key: 'POSTHOG_HOST', label: 'PostHog host', group: 'Analytics', placeholder: 'https://us.i.posthog.com' },
@@ -155,7 +157,7 @@ export async function saveSettings(env: Env, values: Record<string, string>) {
 
 function mask(v: string) {
   if (!v) return '';
-  return v.length <= 8 ? '••••' : `${v.slice(0, 4)}••••${v.slice(-4)}`;
+  return v.length < 16 ? '•••• (set)' : `••••${v.slice(-4)}`;
 }
 
 export const flag = (v: string | undefined, dflt = false) => (v ? /^(1|true|yes|on)$/i.test(v.trim()) : dflt);

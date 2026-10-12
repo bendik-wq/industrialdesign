@@ -1,4 +1,5 @@
-import { APPLICATION, VIDEOS } from '../config';
+import { APPLICATION, FAQS, VIDEOS } from '../config';
+import { hasContactBait } from '../lib/text';
 import type { Env } from '../env';
 import { type Lead, effectiveTier, parseAnswers } from '../funnel/leads';
 import { getLander } from '../landers/catalog';
@@ -52,6 +53,9 @@ function chapterAt(videoId: string, sec: number) {
 }
 
 /** Topics each email template speaks to, so the personaliser can match facts to emails. */
+const norm = (s: string) => s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 120);
+const KNOWN_FAQ = new Map(FAQS.map((f) => [norm(f.q), f.q.replace(/<[^>]+>/g, '').trim()]));
+
 export const TEMPLATE_TOPICS: Record<string, string[]> = {
   pc_ceiling: ['growth', 'plateau'], pc_own_cash: ['funding', 'cash'], pc_bank: ['funding', 'bank'], pc_no_time: ['time'], pc_partner: ['partner', 'call'],
   pc_seller: ['seller', 'funding'], pc_josh: ['credibility'], pc_brokers: ['deal_flow'], pc_dscr: ['debt', 'risk'], pc_consolidate: ['competition'],
@@ -174,7 +178,8 @@ export async function buildProfile(env: Env, lead: Lead, now = Date.now()): Prom
   if (ev.some((e) => e.name === 'vsl_speed')) add('speed', 'Sped the video up.', 2, ['time']);
 
   // ── What they read ──
-  const faqs = [...new Set(ev.filter((e) => e.name === 'faq_open').map((e) => String(props(e).q ?? '')).filter(Boolean))];
+  // The beacon's text comes from the browser, so it's untrusted: only questions that are really in our FAQ count.
+  const faqs = [...new Set(ev.filter((e) => e.name === 'faq_open').map((e) => KNOWN_FAQ.get(norm(String(props(e).q ?? '')))).filter(Boolean) as string[])];
   if (faqs.length) add('faq', `Opened these questions in the FAQ: ${faqs.slice(0, 4).map((q) => `“${q}”`).join(', ')}.`, 9, topicsOf(faqs.join(' ')), `You were wondering: “${faqs[faqs.length - 1]}”`);
   data.faq_opened = faqs;
   const dwell: Record<string, number> = {};
@@ -213,7 +218,7 @@ export async function buildProfile(env: Env, lead: Lead, now = Date.now()): Prom
   if (labels.goal) add('a_goal', `Main goal for the next 2–3 years: ${labels.goal}.`, 8, topicsOf(labels.goal), `You said your main goal is to ${lc(labels.goal)}.`);
   if (labels.timeline) add('a_timeline', `Wants to close their first acquisition: ${labels.timeline}.`, 6, ['timing'], `You want your first acquisition closed ${lc(labels.timeline)}.`);
   if (labels.blockers) add('a_blockers', `Said what's held them back: ${labels.blockers}.`, 9, topicsOf(labels.blockers), `You said what’s held you back is ${lc(labels.blockers)}.`);
-  if (labels.why_now) add('a_why_now', `In their own words, why now: “${labels.why_now.slice(0, 220)}”.`, 10, topicsOf(labels.why_now), labels.why_now.length <= 160 ? `You told me why now: “${labels.why_now.trim().replace(/[.!]+$/, '')}.”` : undefined);
+  if (labels.why_now) add('a_why_now', `In their own words, why now: “${labels.why_now.slice(0, 220)}”.`, 10, topicsOf(labels.why_now), labels.why_now.length <= 160 && !hasContactBait(labels.why_now) ? `You told me why now: “${labels.why_now.trim().replace(/[.!]+$/, '')}.”` : undefined);
   if (labels.readiness) add('a_readiness', `Readiness: ${labels.readiness}.`, 3);
   // Hesitation: steps they went back on, slowest question.
   const backs = ev.filter((e) => e.name === 'app_back').map((e) => Number(props(e).step ?? 0));

@@ -9,6 +9,7 @@ import { identityFromLead, identityFromVisitor, track } from '../tracking/track'
 import { SEQUENCES, type SequenceId } from '../integrations/sequences';
 import { getLink, linkTarget } from '../funnel/tracked-links';
 import { parseUA } from '../lib/ua';
+import { safeEqual } from '../lib/crypto';
 
 export const links = new Hono<AppEnv>();
 
@@ -50,13 +51,14 @@ links.get('/o/:file', async (c) => {
   return c.body(GIF, 200, { 'content-type': 'image/gif', 'cache-control': 'no-store, max-age=0' });
 });
 
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const unsubPage = (title: string, body: string) =>
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><link rel="stylesheet" href="/assets/site.css"></head><body class="simple"><main class="wrap narrow center"><h1 class="h2">${title}</h1>${body}</main></body></html>`;
 
 async function unsubscribeTarget(c: Context<AppEnv>): Promise<Lead | null> {
   const leadId = c.req.param('lead') ?? '';
   const sig = c.req.param('sig') ?? '';
-  if (sig !== (await unsubscribeSig(runtimeFrom(c), leadId))) return null;
+  if (!safeEqual(sig, await unsubscribeSig(runtimeFrom(c), leadId))) return null;
   return getLead(c.env, leadId);
 }
 
@@ -65,7 +67,7 @@ links.get('/u/:lead/:sig', async (c) => {
   const lead = await unsubscribeTarget(c);
   if (!lead) return c.html(unsubPage('Link expired', '<p>This unsubscribe link is invalid.</p>'), 404);
   if (lead.unsubscribed_at) return c.html(unsubPage('You’re unsubscribed', '<p>You won’t receive any more emails from us.</p>'));
-  return c.html(unsubPage('Unsubscribe?', `<p>Stop all emails to <strong>${lead.email}</strong>?</p><form method="post"><button class="btn" type="submit">Yes, unsubscribe me</button></form>`));
+  return c.html(unsubPage('Unsubscribe?', `<p>Stop all emails to <strong>${escHtml(lead.email ?? '')}</strong>?</p><form method="post"><button class="btn" type="submit">Yes, unsubscribe me</button></form>`));
 });
 
 links.post('/u/:lead/:sig', async (c) => {
@@ -92,7 +94,7 @@ links.get('/go/wa', async (c) => {
   if (!url) return c.redirect('/', 302);
 
   if (lead) {
-    if (!v.leadId && !v.isBot) await linkVisitor(c.env, v.visitorId, lead.id);
+    // No linkVisitor here: ?l= is a ref code, which isn't secret. Browsers are linked only by signed email links.
     if (!lead.whatsapp_clicked_at) await updateLead(c.env, lead.id, { whatsapp_clicked_at: Date.now() });
   }
   await track(rt, identityFromVisitor(v, null, lead?.id ?? null), { name: 'whatsapp_click', source: 'server', path: '/go/wa', props: { src } });

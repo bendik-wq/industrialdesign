@@ -27,7 +27,27 @@ export interface BookingInfo {
  * arrives with the actual call time and upgrades the record.
  */
 export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
-  const sameBooking = lead.booked_at && !lead.booking_cancelled_at && (info.rescheduled || !info.ref || !lead.booking_ref || lead.booking_ref === info.ref);
+  // People imported straight from Calendly never went through the funnel: keep their record current, nothing else.
+  if (lead.booking_source === 'calendly-direct') {
+    await updateLead(rt.env, lead.id, { booked_at: lead.booked_at ?? Date.now(), call_at: info.callAt ?? lead.call_at, booking_ref: info.ref ?? lead.booking_ref, booking_cancelled_at: null, ...(info.fields ?? {}) });
+    return (await getLead(rt.env, lead.id))!;
+  }
+  // A browser report is only a claim. When the provider can confirm it (signed webhook / API), show the
+  // booked page now but hold every side effect — emails, AI call, pings, ad conversions — until it does.
+  if (!info.verified && verificationAvailable(rt, info.provider)) {
+    if (!lead.booked_at || lead.booking_cancelled_at) {
+      await updateLead(rt.env, lead.id, {
+        status: ['won', 'lost', 'showed'].includes(lead.status) ? lead.status : 'booked',
+        booked_at: Date.now(), booking_provider: info.provider, booking_ref: info.ref ?? lead.booking_ref, booking_cancelled_at: null,
+        booking_source: lead.booking_source ?? 'funnel',
+      });
+      await track(rt, await identityFromLead(rt.env, lead.id), { name: 'booking_reported_client', source: 'client', props: { provider: info.provider }, localOnly: true });
+    }
+    return (await getLead(rt.env, lead.id))!;
+  }
+  // The provider's confirmation of a booking the browser already reported counts as the new booking.
+  const confirmsClaim = info.verified && Boolean(lead.booking_provider?.endsWith('-client'));
+  const sameBooking = lead.booked_at && !lead.booking_cancelled_at && !confirmsClaim && (info.rescheduled || !info.ref || !lead.booking_ref || lead.booking_ref === info.ref);
   const callChanged = info.callAt && info.callAt !== lead.call_at;
 
   await updateLead(rt.env, lead.id, {
@@ -50,7 +70,8 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
     });
     await Promise.all(['tier_a', 'tier_b', 'tier_c', 'abandoned', 'no_show', 'cancelled', 'nurture', 'lost'].map((sq) => cancelSequence(rt, lead.id, sq as 'tier_a')));
     await cancelCalls(rt, lead.id, ['speed_to_lead', 'rebook']);
-    await queueCall(rt, fresh, 'confirm', AI_CALLER.confirmDelayMinutes);
+    // Only call a number for a booking the provider confirmed: a browser claim alone can't make us ring anyone.
+    if (info.verified) await queueCall(rt, fresh, 'confirm', AI_CALLER.confirmDelayMinutes);
     rt.waitUntil(notifySlack(rt, fresh, '📅 Call booked', fresh.call_at ? [`Call: ${formatCallTime(fresh.call_at, rt.settings.SALES_TIMEZONE || 'Australia/Sydney')}`] : [], 'booked'));
   }
   // (Re)schedule the confirmation + reminders whenever we learn a new call time.
@@ -61,8 +82,18 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
   return fresh;
 }
 
+/** Can this provider's bookings be confirmed server-side (so a browser report can wait for it)? */
+function verificationAvailable(rt: Runtime, provider: string) {
+  if (provider.startsWith('calendly')) return calendlyConnected(rt.settings) || Boolean(rt.settings.CALENDLY_SIGNING_KEY);
+  return Boolean(rt.settings.BOOKING_WEBHOOK_SECRET);
+}
+
 export async function markCancelled(rt: Runtime, lead: Lead, provider: string) {
   if (lead.booking_cancelled_at) return;
+  if (lead.booking_source === 'calendly-direct') {
+    await updateLead(rt.env, lead.id, { booking_cancelled_at: Date.now() });
+    return;
+  }
   await updateLead(rt.env, lead.id, { booking_cancelled_at: Date.now(), status: lead.status === 'booked' ? 'applied' : lead.status });
   await cancelSequence(rt, lead.id, 'booked');
   await cancelSequence(rt, lead.id, 'precall');

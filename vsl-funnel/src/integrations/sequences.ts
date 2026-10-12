@@ -69,6 +69,8 @@ export function precallPlan(lead: Lead): string[] {
 export const PRECALL_SLOTS = [7.5, 9.5, 12, 14.5, 17, 19.5];
 
 const booked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
+/** Imported straight from Calendly: never in the funnel, never on its emails. */
+const direct = (l: Lead) => l.booking_source === 'calendly-direct';
 const completed = (l: Lead) => Boolean(l.app_completed_at);
 
 export const SEQUENCES = {
@@ -130,7 +132,7 @@ export const SEQUENCES = {
   booked: {
     id: 'booked',
     description: 'Call booked — confirmation and show-up reminders',
-    stopIf: (l) => !booked(l) || ['showed', 'won', 'lost', 'no_show'].includes(l.status),
+    stopIf: (l) => direct(l) || !booked(l) || ['showed', 'won', 'lost', 'no_show'].includes(l.status),
     steps: [
       { template: 'booked_confirm', offsetMs: 0 },
       { template: 'call_48h', offsetMs: -48 * HOUR, anchor: 'call_at' },
@@ -150,7 +152,7 @@ export const SEQUENCES = {
   precall: {
     id: 'precall',
     description: 'Booked — pre-call barrage, up to 6 a day until the call: emails written from their application and booking answers, woven through one-pain-point emails',
-    stopIf: (l) => !booked(l) || l.status !== 'booked' || Boolean(l.call_at && Date.now() > l.call_at - 2 * HOUR),
+    stopIf: (l) => direct(l) || !booked(l) || l.status !== 'booked' || Boolean(l.call_at && Date.now() > l.call_at - 2 * HOUR),
     // Sent at local-time slots by enqueuePrecall() in the order precallPlan() gives (the row holds the template); offsetMs is unused.
     steps: [...FOLLOWUP_GROUPS.prep, ...PRECALL_TEMPLATES].map((template) => ({ template, offsetMs: 0 })),
   },
@@ -189,7 +191,7 @@ export const SEQUENCES = {
   cancelled: {
     id: 'cancelled',
     description: 'Cancelled their call — get them rebooked',
-    stopIf: (l) => booked(l) || ['won', 'lost', 'disqualified'].includes(l.status),
+    stopIf: (l) => direct(l) || booked(l) || ['won', 'lost', 'disqualified'].includes(l.status),
     steps: [
       { template: 'cx_1', offsetMs: 30 * MIN },
       { template: 'cx_2', offsetMs: 1 * DAY },

@@ -54,7 +54,7 @@ describe('AI outbound calls', () => {
 
   it('builds an agent that discloses AI + recording and ends calls', () => {
     const a = buildAgent(S({ ELEVENLABS_VOICE_ID: 'v1', ELEVENLABS_LLM: 'gpt-4o' }));
-    expect(a.conversation_config.agent.first_message).toMatch(/I’m an AI and this call is recorded/);
+    expect(a.conversation_config.agent.first_message).toMatch(/I’m an AI, this call is recorded, and you can say stop/);
     expect(a.conversation_config.agent.prompt.prompt).toMatch(/Never call the strategy call free/);
     expect(a.conversation_config.agent.prompt.llm).toBe('gpt-4o');
     expect(a.conversation_config.tts).toEqual({ voice_id: 'v1' });

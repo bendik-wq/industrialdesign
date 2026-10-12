@@ -853,6 +853,20 @@ export const TEMPLATES: Record<string, Template> = {
     ps: waLine(c),
   }),
 
+  // Someone applied again with this email from a browser not linked to the lead: the link proves it's them.
+  resume_link: (c) => ({
+    subject: c.lead.app_completed_at ? 'your link back in' : 'pick up your application',
+    preheader: 'Use this link to carry on where you left off.',
+    body: [
+      `Hey ${c.name},`,
+      c.lead.app_completed_at
+        ? 'Someone (hopefully you) just started an application with this email address. You’ve already applied, so use the button below to get straight back to the next step.'
+        : 'Someone (hopefully you) just started an application with this email address. Your earlier answers are saved: use the button below to carry on where you left off.',
+      'If this wasn’t you, ignore this email. Nothing on your application has changed.',
+    ],
+    cta: c.lead.app_completed_at ? { label: 'Continue →', href: c.link(c.bookingUrl ? '/book' : '/breakout') } : { label: 'Continue my application →', href: c.link('/apply') },
+  }),
+
   // Sent from the dashboard's Integrations tab to verify the email connection.
   test: (c) => ({
     subject: `Test email from ${c.siteName}`,
@@ -886,7 +900,7 @@ ${opts.openPixel ? `<img src="${opts.openPixel}" width="1" height="1" alt="" sty
     content.cta ? `${htmlToText(content.cta.label)}: ${content.cta.href}` : '',
     `Talk soon,\n${opts.signature}`,
     content.ps ? `P.S. ${htmlToText(content.ps)}` : '',
-    `Unsubscribe: ${opts.unsubscribeUrl}`,
+    `${opts.address}\nUnsubscribe: ${opts.unsubscribeUrl}`,
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -898,6 +912,10 @@ function htmlToText(html: string) {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '$2 ($1)')
     .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
     .replace(/&amp;/g, '&')
     .replace(/&nbsp;/g, ' ');
 }

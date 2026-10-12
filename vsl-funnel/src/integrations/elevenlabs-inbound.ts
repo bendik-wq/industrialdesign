@@ -2,7 +2,7 @@ import type { Runtime } from '../app';
 import { AI_CALLBACK, BRAND, CALL_CONSENT, FAQS, inboundCallbackPrompt } from '../config';
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { getSecret } from '../lib/secret';
-import { type Lead, effectiveTier, parseAnswers, updateLead } from '../funnel/leads';
+import { type Lead, effectiveTier, updateLead } from '../funnel/leads';
 import type { Settings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
 import { formatCallTime } from './email';
@@ -96,19 +96,19 @@ function varsFor(rt: Runtime, lead: Lead | null): Vars {
   const rep = rt.reps.find((r) => r.id === lead.closer_id);
   const booked = Boolean(lead.booked_at && !lead.booking_cancelled_at && lead.status === 'booked');
   const callTime = booked && lead.call_at ? formatCallTime(lead.call_at, leadTimezone(lead, rt.settings.SALES_TIMEZONE)).replace(/ [A-Z]{2,5}$/, '') : '';
-  const answers = parseAnswers(lead);
   const name = lead.first_name ?? '';
   return {
     greeting_name: name ? ` ${name}` : '',
     opening: booked ? 'Are you calling about your strategy call?' : 'How can I help today?',
     known: 'yes',
     first_name: name,
-    business: typeof answers.business === 'string' ? answers.business.slice(0, 200) : '',
+    // Caller ID can be spoofed: give the agent only what it needs to help, nothing worth phishing for.
+    business: '',
     tier: effectiveTier(lead) ?? '',
     status: booked ? 'booked a strategy call' : lead.app_completed_at ? 'applied, not booked yet' : 'started an application',
     call_time: booked ? callTime || 'booked (time in their confirmation email)' : 'not booked',
     closer_name: rep?.name ?? 'Josh’s team',
-    email: lead.email ?? '',
+    email: '',
   };
 }
 
@@ -128,8 +128,12 @@ export async function finishInbound(rt: Runtime, conv: Conversation) {
   const from = callerNumber(conv);
   let lead = await leadByPhone(rt, from).catch(() => null);
   const facts = factsFrom(conv, INBOUND_DATA) as Record<string, string | boolean | undefined>;
-  if (!lead && typeof facts.caller_email === 'string' && facts.caller_email.includes('@'))
+  // A spoken email proves nothing (anyone can say anyone's address): link the call for the team, but act on nothing.
+  let matchedByVoice = false;
+  if (!lead && typeof facts.caller_email === 'string' && facts.caller_email.includes('@')) {
     lead = await rt.env.DB.prepare('SELECT * FROM leads WHERE email = ? LIMIT 1').bind(facts.caller_email.trim().toLowerCase()).first<Lead>();
+    matchedByVoice = Boolean(lead);
+  }
   const transcript = transcriptText(conv.transcript);
   const res = await rt.env.DB.prepare(
     `INSERT INTO voice_calls (id, lead_id, kind, from_number, status, started_at, ended_at, duration_s, ended_reason, cost, summary, transcript, recording_url, structured, success, disclosure, created_at, updated_at)
@@ -148,7 +152,11 @@ export async function finishInbound(rt: Runtime, conv: Conversation) {
   if (!res.meta.changes) return false; // already handled
 
   const said: string[] = [];
-  if (lead) {
+  if (lead && matchedByVoice) {
+    said.push('⚠️ Caller gave the email of this lead but rang from a different number — check before acting on anything they asked.');
+    if (facts.do_not_call) said.push('They asked not to be contacted: confirm with the lead, then opt them out in Funnel HQ.');
+    if (facts.wants_reschedule || facts.wants_booking_link) said.push('They asked for a booking link: send it from Funnel HQ if it checks out.');
+  } else if (lead) {
     await track(rt, await identityFromLead(rt.env, lead.id), { name: 'ai_callback_completed', source: 'webhook', props: { duration_s: conv.metadata?.call_duration_secs ?? 0, ...facts } });
     if (facts.do_not_call) {
       await optOut(rt, lead, 'ai_callback');

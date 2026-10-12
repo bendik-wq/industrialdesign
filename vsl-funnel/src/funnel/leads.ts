@@ -133,7 +133,8 @@ const DISPOSABLE = /@(mailinator|guerrillamail|10minutemail|tempmail|temp-mail|y
 export function validateEmail(raw: unknown): { email: string; disposable: boolean } | null {
   if (typeof raw !== 'string') return null;
   const email = raw.trim().toLowerCase();
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) return null;
+  // Plain addresses only (RFC 5322 atext): no quotes, brackets or <> that could carry markup into pages, emails or Slack.
+  if (email.length > 254 || !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i.test(email)) return null;
   return { email, disposable: DISPOSABLE.test(email) };
 }
 

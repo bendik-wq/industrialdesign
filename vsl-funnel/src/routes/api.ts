@@ -1,5 +1,5 @@
 import { type Context, Hono } from 'hono';
-import { setCookie } from 'hono/cookie';
+import { deleteCookie, setCookie } from 'hono/cookie';
 import { type AppEnv, runtimeFrom } from '../app';
 import { ApplicationError, saveAnswer, saveContact, submitApplication } from '../funnel/application';
 import { getLead } from '../funnel/leads';
@@ -55,6 +55,8 @@ api.post('/consent', async (c) => {
   const body = await readJson<{ granted?: boolean }>(c.req.raw);
   const granted = body?.granted === true;
   setCookie(c, COOKIE.consent, granted ? '1' : '0', { path: '/', maxAge: 180 * 86400, sameSite: 'Lax', secure: new URL(c.req.url).protocol === 'https:' });
+  // Withdrawing consent removes the advertising cookies straight away.
+  if (!granted) { deleteCookie(c, COOKIE.fbp, { path: '/' }); deleteCookie(c, COOKIE.fbc, { path: '/' }); }
   return c.json({ ok: true, granted });
 });
 

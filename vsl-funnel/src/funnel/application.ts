@@ -4,6 +4,7 @@ import { newId, newRefCode } from '../lib/ids';
 import type { VisitorCtx } from '../lib/identity';
 import { cancelSequence, enqueueSequence } from '../integrations/email';
 import { queueCall } from '../integrations/elevenlabs';
+import { sendLinkEmail } from '../integrations/voice';
 import { notifySlack } from '../integrations/notify';
 import { identityFromVisitor, track } from '../tracking/track';
 import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, parseAnswers, updateLead, validateEmail } from './leads';
@@ -15,6 +16,14 @@ export class ApplicationError extends Error {
   constructor(message: string, readonly field?: string, readonly status: 400 | 403 | 404 | 409 = 400) {
     super(message);
   }
+}
+
+/** "Continue your application" email to the address on file; at most one per 10 minutes, never to the unsubscribed. */
+async function sendResumeLink(rt: Runtime, lead: Lead) {
+  if (lead.unsubscribed_at || !lead.email) return;
+  const recent = await rt.env.DB.prepare("SELECT 1 FROM emails WHERE lead_id = ? AND template = 'resume_link' AND created_at > ? LIMIT 1").bind(lead.id, Date.now() - 10 * 60_000).first();
+  if (recent) return;
+  await sendLinkEmail(rt, lead, 'resume_link');
 }
 
 const SEQUENCE_FOR_TIER = { A: 'tier_a', B: 'tier_b', C: 'tier_c' } as const;
@@ -76,6 +85,15 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   const existing = (await getLeadByEmail(rt.env, emailCheck.email)) ?? (v.leadId ? await getLead(rt.env, v.leadId) : null);
   let lead: Lead;
   let isNew = false;
+  const phoneChanged = Boolean(existing && existing.phone && existing.phone !== phone);
+
+  // An email that already has a lead, typed into a browser that isn't linked to it, proves nothing:
+  // anyone can type someone else's address. Don't touch, link or reveal that lead — email its owner a
+  // link to continue instead (clicking it links their browser through the signed email redirect).
+  if (existing && existing.email === emailCheck.email && v.leadId !== existing.id) {
+    await sendResumeLink(rt, existing);
+    throw new ApplicationError('You’ve applied with this email before. We’ve sent a link to that inbox — open it to pick up where you left off.', 'email', 409);
+  }
 
   if (existing && (!existing.email || existing.email === emailCheck.email)) {
     await updateLead(rt.env, existing.id, {
@@ -85,7 +103,7 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
       phone,
       app_started_at: existing.app_started_at ?? now,
       step_reached: Math.max(existing.step_reached, 1),
-      unsubscribed_at: null,
+      // Never re-subscribe someone from a public form: only they can, from their own inbox.
     });
     lead = (await getLead(rt.env, existing.id))!;
   } else {
@@ -119,8 +137,9 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   await updateLead(rt.env, lead.id, {
     lander: seen?.lt ?? lead.lander,
     ft_lander: lead.ft_lander ?? seen?.ft ?? null,
-    call_consent_at: consent ? lead.call_consent_at ?? now : null,
-    call_consent_text: consent ? lead.call_consent_text ?? CALL_CONSENT.version : null,
+    // Consent is to calls on a specific number: a new number needs fresh consent.
+    call_consent_at: consent ? (phoneChanged ? now : lead.call_consent_at ?? now) : null,
+    call_consent_text: consent ? (phoneChanged ? CALL_CONSENT.version : lead.call_consent_text ?? CALL_CONSENT.version) : null,
     timezone: v.geo.timezone ?? lead.timezone,
   });
   lead = (await getLead(rt.env, lead.id))!;

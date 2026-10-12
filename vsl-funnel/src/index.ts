@@ -1,6 +1,6 @@
 import { Hono, type MiddlewareHandler } from 'hono';
 import { type AppEnv, type Runtime, publicOrigin, runtimeFrom } from './app';
-import { isAdmin, login, logout, requireAdmin } from './admin/auth';
+import { isAdmin, login, logout, requireAdmin, sameOriginWrite } from './admin/auth';
 import type { Env } from './env';
 import { applyPage, bookPage, breakoutPage, landerPage, landingPage, resourcesPage, staticPage } from './funnel/pages';
 import { processEmailQueue } from './integrations/email';
@@ -18,6 +18,7 @@ import { processCallQueue } from './integrations/elevenlabs';
 import { syncInbound } from './integrations/elevenlabs-inbound';
 import { syncCalendly } from './integrations/calendly';
 import { processTriggers } from './personalize/triggers';
+import { purgeOld } from './lib/retention';
 
 const app = new Hono<AppEnv>();
 
@@ -29,6 +30,13 @@ app.use('*', async (c, next) => {
   c.header('x-robots-tag', 'noindex, nofollow');
   c.header('referrer-policy', 'strict-origin-when-cross-origin');
   c.header('x-content-type-options', 'nosniff');
+  if (new URL(c.req.url).protocol === 'https:') c.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
+  if (c.req.path.startsWith('/admin') || c.req.path.startsWith('/u/')) {
+    c.header('x-frame-options', 'DENY');
+    // The dashboard loads only its own scripts; nothing a lead typed can run here even if it slipped past escaping.
+    if (c.req.path === '/admin' || c.req.path.startsWith('/u/'))
+      c.header('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+  }
 });
 
 app.get('/health', (c) => c.json({ ok: true }));
@@ -78,11 +86,17 @@ app.all('/ph/*', async (c) => {
   const host = (c.get('settings').POSTHOG_HOST || 'https://us.i.posthog.com').replace(/\/+$/, '');
   const url = new URL(c.req.url);
   const path = url.pathname.replace(/^\/ph/, '');
+  // Only what the PostHog browser SDK needs, only to PostHog: not a general-purpose relay.
+  if (!['GET', 'POST'].includes(c.req.method) || !/^\/(static|e|i|s|decide|flags|batch|capture|engage|track)(\/|$)/.test(path)) return c.notFound();
+  if (!/^https:\/\/[\w-]+(\.i)?\.posthog\.com$/.test(host)) return c.notFound();
   const upstream = path.startsWith('/static/') ? host.replace('.i.posthog.com', '-assets.i.posthog.com') : host;
-  const headers = new Headers(c.req.raw.headers);
-  headers.delete('cookie');
+  const headers = new Headers();
+  for (const h of ['content-type', 'content-encoding', 'accept', 'accept-encoding', 'user-agent', 'origin']) { const v = c.req.header(h); if (v) headers.set(h, v); }
   headers.set('x-forwarded-for', c.req.header('cf-connecting-ip') ?? '');
-  return fetch(`${upstream}${path}${url.search}`, { method: c.req.method, headers, body: ['GET', 'HEAD'].includes(c.req.method) ? undefined : c.req.raw.body });
+  const res = await fetch(`${upstream}${path}${url.search}`, { method: c.req.method, headers, body: c.req.method === 'GET' ? undefined : c.req.raw.body });
+  const out = new Response(res.body, res);
+  out.headers.delete('set-cookie');
+  return out;
 });
 
 // ── Dashboard ──
@@ -91,13 +105,15 @@ app.get('/admin/login', async (c) => {
   return c.env.ASSETS.fetch(new Request(new URL('/admin/login.html', c.req.url)));
 });
 app.post('/admin/login', async (c) => {
+  if (!sameOriginWrite(c)) return c.text('Forbidden', 403);
   const body = await c.req.parseBody();
   const res = await login(c, body.password);
   if (res.ok) return c.redirect('/admin', 302);
   return c.redirect(`/admin/login?error=${encodeURIComponent(res.error ?? 'Login failed')}`, 302);
 });
-app.post('/admin/logout', (c) => {
-  logout(c);
+app.post('/admin/logout', async (c) => {
+  if (!sameOriginWrite(c)) return c.text('Forbidden', 403);
+  await logout(c);
   return c.redirect('/admin/login', 302);
 });
 app.route('/admin/api', admin);
@@ -127,7 +143,7 @@ export default {
     };
     if (!settings.PUBLIC_URL) console.warn('PUBLIC_URL is not set — email links will point at example.com');
     const quiet = <T,>(p: Promise<T>, label: string) => p.catch((e) => { console.error(`${label} failed`, e); return null; });
-    const [result, retried, pinged, digest, calls, callbacks, calSync, triggers] = await Promise.all([
+    const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = await Promise.all([
       processEmailQueue(rt),
       retryForwards(rt),
       quiet(pingUpcomingCalls(rt), 'call pings'),
@@ -136,6 +152,7 @@ export default {
       quiet(syncInbound(rt), 'AI callbacks'),
       quiet(syncCalendly(rt), 'Calendly sync'),
       quiet(processTriggers(rt), 'behaviour triggers'),
+      quiet(purgeOld(rt), 'retention purge'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);
@@ -143,6 +160,7 @@ export default {
     if (triggers?.queued) console.log('behaviour emails queued', triggers);
     if (pinged) console.log('call pings', pinged);
     if (digest) console.log('daily digest sent');
+    if (purged && (purged.events || purged.sessions)) console.log('retention purge', purged);
     if (result.due) console.log('email queue', result);
     if (retried.due) console.log('tracking retries', retried);
   },

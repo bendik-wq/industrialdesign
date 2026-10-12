@@ -1,3 +1,6 @@
+/** Countries outside the EU where cookie / ad-tracking consent is also required. */
+const CONSENT_COUNTRIES = new Set(['GB', 'NO', 'IS', 'LI', 'CH']);
+
 export interface Geo {
   country: string | null;
   region: string | null;
@@ -31,7 +34,8 @@ export function geoFromRequest(req: Request): Geo {
     latitude: num(cf?.latitude),
     longitude: num(cf?.longitude),
     continent: cf?.continent ?? null,
-    isEU: cf?.isEUCountry === '1',
+    // "Needs cookie consent": EU plus the UK, the rest of the EEA and Switzerland (UK PECR / GDPR / FADP).
+    isEU: cf?.isEUCountry === '1' || CONSENT_COUNTRIES.has(String(cf?.country ?? '')),
     asn: num(cf?.asn),
     asOrg: cf?.asOrganization ?? null,
     colo: cf?.colo ?? null,

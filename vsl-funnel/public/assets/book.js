@@ -15,7 +15,8 @@
   if (isCalendly) {
     url.searchParams.set('embed_domain', location.host);
     url.searchParams.set('embed_type', 'Inline');
-    url.searchParams.set('hide_gdpr_banner', '1');
+    // Calendly's own cookie banner stays on for visitors who must consent (EU, UK, EEA, CH).
+    if (!(window.FUNNEL || {}).consentRequired) url.searchParams.set('hide_gdpr_banner', '1');
     if (p.name) url.searchParams.set('name', p.name);
     if (p.email) url.searchParams.set('email', p.email);
     if (p.leadId) url.searchParams.set('salesforce_uuid', p.leadId);
@@ -41,7 +42,7 @@
   window.addEventListener('message', function (e) {
     var d = e.data;
     if (!d || typeof d !== 'object') return;
-    if (isCalendly && /calendly\.com$/.test(new URL(e.origin).hostname)) {
+    if (isCalendly && /(^|\.)calendly\.com$/.test(new URL(e.origin).hostname)) {
       if (d.event === 'calendly.page_height' && d.payload && d.payload.height) iframe.style.height = Math.max(700, parseInt(d.payload.height, 10)) + 'px';
       if (d.event === 'calendly.date_and_time_selected') F.track('booking_date_selected', {});
       if (d.event === 'calendly.event_scheduled' && !done) {
@@ -56,7 +57,7 @@
       }
     }
     // Cal.com embed messages
-    if (!isCalendly && (d.type === 'bookingSuccessful' || (d.fullType && /bookingSuccessful/.test(d.fullType))) && !done) {
+    if (!isCalendly && /(^|\.)cal\.com$/.test(new URL(e.origin).hostname) && (d.type === 'bookingSuccessful' || (d.fullType && /bookingSuccessful/.test(d.fullType))) && !done) {
       done = true;
       fetch('/api/booking/client', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'cal' }) })
         .finally(function () { location.href = '/breakout'; });

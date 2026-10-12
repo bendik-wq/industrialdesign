@@ -302,19 +302,19 @@ export async function optOut(rt: Runtime, lead: Lead, via: string) {
 }
 
 /** Sends the voice_link email now (or records it as simulated without an email provider). */
-export async function sendLinkEmail(rt: Runtime, lead: Lead) {
+export async function sendLinkEmail(rt: Runtime, lead: Lead, template: 'voice_link' | 'resume_link' = 'voice_link') {
   if (!lead.email) return false;
   const emailId = newId('m');
-  const email = await buildEmail(rt, lead, emailId, 'voice_link', 'voice');
-  const providerId = emailConfigured(rt) ? await sendViaResend(rt, { to: lead.email, ...email, tags: { sequence: 'voice', template: 'voice_link' } }) : null;
+  const email = await buildEmail(rt, lead, emailId, template, template === 'voice_link' ? 'voice' : 'resume');
+  const providerId = emailConfigured(rt) ? await sendViaResend(rt, { to: lead.email, ...email, tags: { sequence: 'voice', template } }) : null;
   const now = Date.now();
   await rt.env.DB.prepare(
     `INSERT INTO emails (id, lead_id, sequence, step, template, to_email, send_at, status, created_at, sent_at, provider_id, subject, attempts)
-     VALUES (?, ?, 'voice', ?, 'voice_link', ?, ?, ?, ?, ?, ?, ?, 1)`,
+     VALUES (?, ?, 'voice', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
   )
-    .bind(emailId, lead.id, now % 1_000_000_000, lead.email, now, providerId ? 'sent' : 'simulated', now, now, providerId, email.subject)
+    .bind(emailId, lead.id, now % 1_000_000_000, template, lead.email, now, providerId ? 'sent' : 'simulated', now, now, providerId, email.subject)
     .run();
-  await track(rt, await identityFromLead(rt.env, lead.id), { name: 'voice_link_sent', source: 'webhook', props: { email_id: emailId, simulated: !providerId } });
+  await track(rt, await identityFromLead(rt.env, lead.id), { name: template === 'voice_link' ? 'voice_link_sent' : 'resume_link_sent', source: 'server', props: { email_id: emailId, simulated: !providerId } });
   return true;
 }
 

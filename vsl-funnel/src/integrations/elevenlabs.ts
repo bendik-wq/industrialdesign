@@ -5,6 +5,7 @@ import { newId } from '../lib/ids';
 import { type Lead, effectiveTier, getLead, parseAnswers, updateLead } from '../funnel/leads';
 import type { Settings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
+import { hasContactBait } from '../lib/text';
 import { formatCallTime } from './email';
 import { notify, leadLines, leadName } from './notify';
 import { optOut, sendLinkEmail } from './voice';
@@ -102,7 +103,7 @@ export function buildAgent(s: Settings) {
   };
 }
 
-const VAR_KEYS = ['first_name', 'opening', 'call_kind', 'call_time', 'closer_name', 'business', 'tier', 'email', 'lead_ref'] as const;
+const VAR_KEYS = ['first_name', 'opening', 'call_kind', 'call_time', 'closer_name', 'business', 'tier', 'email', 'lead_ref', 'callback_number', 'voicemail_reason'] as const;
 const placeholderVars = () => Object.fromEntries(VAR_KEYS.map((k) => [k, k === 'opening' ? 'Have you got a minute?' : ''])) as Record<(typeof VAR_KEYS)[number], string>;
 
 /** Creates an agent in ElevenLabs, or updates the one already saved under `existingId`. */
@@ -146,30 +147,70 @@ const COUNTRY_TZ: Record<string, string> = {
 };
 export const leadTimezone = (lead: Pick<Lead, 'timezone' | 'country'>, fallback: string) => lead.timezone || COUNTRY_TZ[lead.country ?? ''] || fallback || 'UTC';
 
-/** Is `t` inside calling hours in `tz`? */
-export function inCallingHours(t: number, tz: string) {
-  let wd: string, hour: number, minute: number;
+/**
+ * Which time zones the person we're about to ring could be in — taken from their PHONE NUMBER, never from
+ * the browser that filled in the form (that's whoever typed it, maybe on a VPN). Calls happen only when
+ * it's within hours in every zone of that country. Null = a country we don't call.
+ */
+const ZONES: [prefix: string, zones: string[]][] = [
+  ['+1808', ['Pacific/Honolulu']],
+  ['+1907', ['America/Anchorage']],
+  ['+1', ['America/Los_Angeles', 'America/Phoenix', 'America/Denver', 'America/Chicago', 'America/New_York', 'America/Vancouver', 'America/Edmonton', 'America/Winnipeg', 'America/Toronto', 'America/Halifax', 'America/St_Johns']],
+  ['+61', ['Australia/Perth', 'Australia/Darwin', 'Australia/Adelaide', 'Australia/Brisbane', 'Australia/Sydney', 'Australia/Hobart']],
+  ['+64', ['Pacific/Auckland']],
+  ['+44', ['Europe/London']],
+  ['+353', ['Europe/Dublin']],
+  ['+65', ['Asia/Singapore']],
+  ['+971', ['Asia/Dubai']],
+];
+export function callingZones(phone: string | null | undefined): string[] | null {
+  if (!phone) return null;
+  return ZONES.find(([p]) => phone.startsWith(p))?.[1] ?? null;
+}
+
+/** Australian national public holidays (the Telemarketing Standard bars calls on them). */
+function auHoliday(y: number, m: number, d: number) {
+  const fixed = [[1, 1], [1, 26], [4, 25], [12, 25], [12, 26]];
+  if (fixed.some(([fm, fd]) => fm === m && fd === d)) return true;
+  // Easter Sunday (anonymous Gregorian algorithm) → Good Friday and Easter Monday.
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, dd = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - dd - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, mm = Math.floor((a + 11 * h + 22 * l) / 451);
+  const easter = Date.UTC(y, Math.floor((h + l - 7 * mm + 114) / 31) - 1, ((h + l - 7 * mm + 114) % 31) + 1);
+  const day = Date.UTC(y, m - 1, d);
+  return day === easter - 2 * 86_400_000 || day === easter + 86_400_000;
+}
+
+function inHoursOne(t: number, tz: string) {
+  let wd: string, hour: number, minute: number, y: number, mo: number, d: number;
   try {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(t);
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(t);
     const get = (k: string) => parts.find((p) => p.type === k)!.value;
-    wd = get('weekday'); hour = Number(get('hour')); minute = Number(get('minute'));
+    wd = get('weekday'); hour = Number(get('hour')); minute = Number(get('minute')); y = Number(get('year')); mo = Number(get('month')); d = Number(get('day'));
   } catch {
     return false;
   }
+  if (tz.startsWith('Australia/') && auHoliday(y, mo, d)) return false;
   const h = hour + minute / 60;
   const win = wd === 'Sun' ? null : wd === 'Sat' ? AI_CALLER.hours.saturday : AI_CALLER.hours.weekday;
   return Boolean(win && h >= win[0] && h < win[1]);
 }
 
-/** The first moment at or after `t` that's inside calling hours (15-minute steps, up to 4 days). */
-export function nextCallingTime(t: number, tz: string) {
-  for (let i = 0, x = t; i < 4 * 96; i++, x = Math.ceil((x + 1) / 900_000) * 900_000) if (inCallingHours(x, tz)) return x;
+/** Is `t` inside calling hours in every one of these zones? */
+export function inCallingHours(t: number, tz: string | string[]) {
+  const zones = Array.isArray(tz) ? tz : [tz];
+  return zones.length > 0 && zones.every((z) => inHoursOne(t, z));
+}
+
+/** The first moment at or after `t` that's inside calling hours (15-minute steps, up to 5 days). */
+export function nextCallingTime(t: number, tz: string | string[]) {
+  for (let i = 0, x = t; i < 5 * 96; i++, x = Math.ceil((x + 1) / 900_000) * 900_000) if (inCallingHours(x, tz)) return x;
   return null;
 }
 
 /** Why we can't call this lead right now (or null if we can). */
 export function blockReason(lead: Lead, kind: CallKind): string | null {
   if (!lead.phone) return 'no phone number';
+  if (kind !== 'test' && !callingZones(lead.phone)) return 'number outside the countries we call';
   if (lead.do_not_call_at) return 'asked not to be called';
   if (kind !== 'test' && !lead.call_consent_at) return 'no call consent';
   if (kind === 'confirm' && (lead.status !== 'booked' || !lead.booked_at || lead.booking_cancelled_at)) return 'no longer booked';
@@ -190,8 +231,14 @@ export async function queueCall(rt: Runtime, lead: Lead, kind: CallKind, delayMi
   if (blockReason(lead, kind)) return null;
   const done = await rt.env.DB.prepare(`SELECT id FROM outbound_calls WHERE lead_id = ? AND kind = ? AND status IN ('queued', 'dialing', 'done') LIMIT 1`).bind(lead.id, kind).first();
   if (done) return null;
-  const tz = leadTimezone(lead, s.SALES_TIMEZONE);
-  const runAt = nextCallingTime(Date.now() + delayMinutes * 60_000, tz);
+  // Abuse limits: one number can't be rung for several "leads", and there's a daily ceiling for the whole account.
+  const dayAgo = Date.now() - 86_400_000;
+  const sameNumber = await rt.env.DB.prepare(`SELECT COUNT(*) AS n FROM outbound_calls oc JOIN leads l ON l.id = oc.lead_id WHERE l.phone = ? AND oc.kind != 'test' AND oc.created_at > ?`).bind(lead.phone, Date.now() - 7 * 86_400_000).first<{ n: number }>();
+  if ((sameNumber?.n ?? 0) >= 3) return null;
+  const today = await rt.env.DB.prepare(`SELECT COUNT(*) AS n FROM outbound_calls WHERE kind != 'test' AND created_at > ?`).bind(dayAgo).first<{ n: number }>();
+  const cap = Number(s.AI_CALL_DAILY_CAP || 40);
+  if (Number.isFinite(cap) && (today?.n ?? 0) >= cap) return null;
+  const runAt = nextCallingTime(Date.now() + delayMinutes * 60_000, callingZones(lead.phone) ?? []);
   if (!runAt) return null;
   if (kind === 'confirm' && lead.call_at && runAt > lead.call_at - 2 * 3600_000) return null; // reminders by email cover it
   if ((kind === 'speed_to_lead' || kind === 'rebook') && runAt > Date.now() + 72 * 3600_000) return null; // stale by then (a weekend applicant still gets a Monday-morning call)
@@ -219,13 +266,18 @@ function variables(rt: Runtime, lead: Lead, kind: CallKind) {
       ? 'We missed you on your strategy call, so I’m calling to see if you’d like a new time. Have you got thirty seconds?'
       : `I’m calling about the strategy call you just booked${callTime ? ` for ${callTime}` : ''}. Have you got thirty seconds?`;
   const answers = parseAnswers(lead);
+  // Typed by whoever filled in the form: keep it to something that is plausibly a name / a short business description.
+  const firstName = /^[\p{L}][\p{L}' .-]{0,29}$/u.test((lead.first_name ?? '').trim()) ? lead.first_name!.trim() : 'there';
+  const business = typeof answers.business === 'string' ? answers.business.replace(/[^\p{L}\p{N} ,&'./()-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : '';
   return {
-    first_name: lead.first_name || 'there',
+    first_name: firstName,
     opening,
     call_kind: kind === 'test' ? 'confirm' : kind,
     call_time: callTime || 'the time you picked',
     closer_name: closer,
-    business: typeof answers.business === 'string' ? answers.business.slice(0, 200) : '',
+    business: hasContactBait(business) ? '' : business,
+    callback_number: rt.settings.AI_CALL_CALLBACK_NUMBER || 'the number in your email',
+    voicemail_reason: kind === 'speed_to_lead' ? 'your application' : kind === 'rebook' ? 'finding you a new time for your strategy call' : 'your strategy call',
     tier: effectiveTier(lead) ?? '',
     email: lead.email ?? '',
     lead_ref: lead.ref_code,
@@ -273,7 +325,7 @@ export async function processCallQueue(rt: Runtime) {
     if (!claim.meta.changes) continue;
     const lead = await getLead(rt.env, call.lead_id);
     const why = lead ? blockReason(lead, call.kind) : 'lead deleted';
-    const tz = lead ? leadTimezone(lead, s.SALES_TIMEZONE) : 'UTC';
+    const tz = callingZones(lead?.phone) ?? [];
     if (why || !lead) {
       await db.prepare(`UPDATE outbound_calls SET status = 'skipped', error = ?, updated_at = ? WHERE id = ?`).bind(why, now, call.id).run();
       continue;
@@ -315,7 +367,7 @@ export async function processCallQueue(rt: Runtime) {
 
 async function retryOrFail(rt: Runtime, call: OutboundCall, lead: Lead, status: 'no_answer' | 'failed', error: string | null) {
   const now = Date.now();
-  const next = call.attempts < AI_CALLER.maxAttempts ? nextCallingTime(now + AI_CALLER.retryAfterMinutes * 60_000, leadTimezone(lead, rt.settings.SALES_TIMEZONE)) : null;
+  const next = call.attempts < AI_CALLER.maxAttempts ? nextCallingTime(now + AI_CALLER.retryAfterMinutes * 60_000, callingZones(lead.phone) ?? []) : null;
   const stillWanted = next && !blockReason(lead, call.kind) && !(call.kind === 'confirm' && lead.call_at && next > lead.call_at - 2 * 3600_000);
   if (stillWanted) {
     // New row per attempt keeps each conversation id unique; the old one keeps its result.

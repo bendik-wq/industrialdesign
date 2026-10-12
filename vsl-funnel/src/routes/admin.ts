@@ -415,7 +415,7 @@ admin.get('/links', async (c) => {
 admin.post('/links', async (c) => {
   const body = await c.req.json<{ url?: string; label?: string; placement?: string; dest_path?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string }>().catch(() => ({} as Record<string, string>));
   const placement = PLACEMENTS.includes(body.placement as (typeof PLACEMENTS)[number]) ? body.placement! : null;
-  const dest = typeof body.dest_path === 'string' && /^\/[\w\-/]*$/.test(body.dest_path) ? body.dest_path : '/';
+  const dest = typeof body.dest_path === 'string' && /^\/(?!\/)[\w\-/]*$/.test(body.dest_path) ? body.dest_path : '/';
   const videoId = body.url ? youtubeId(body.url) : null;
   let link: Omit<TrackedLink, 'clicks' | 'last_click_at' | 'archived'>;
   if (videoId) {
@@ -675,5 +675,7 @@ admin.get('/email-preview/:template', async (c) => {
     whatsappUrl: whatsappLink(rt.settings, lead, 'question'),
     callTime: 'Thursday 12 March, 10:00 am AEDT',
   });
+  // Sandboxed: the preview can contain a lead's own words, and it renders on the dashboard's origin.
+  c.header('content-security-policy', 'sandbox; default-src \'none\'; img-src https: data:; style-src \'unsafe-inline\'');
   return c.html(renderEmail(content, { openPixel: null, unsubscribeUrl: '#', signature: rt.settings.EMAIL_SIGNATURE || 'Josh', address: rt.settings.BUSINESS_ADDRESS || rt.settings.SITE_NAME || '' }).html);
 });

@@ -88,7 +88,7 @@ export async function identityFromLead(env: Env, leadId: string): Promise<TrackI
 
 /** Write one event to the first-party stream and fan it out to connected tools. Returns the event id. */
 /** High-volume on-page signals: kept in Funnel HQ, not forwarded (PostHog's own replay already captures clicks). */
-const MICRO_EVENTS = new Set(['click', 'field_interaction', 'first_interaction', 'cta_hover', 'section_dwell', 'vsl_volume', 'vsl_pause', 'vsl_skip', 'tab_return']);
+const MICRO_EVENTS = new Set(['click', 'field_interaction', 'first_interaction', 'cta_hover', 'section_dwell', 'vsl_volume', 'vsl_pause', 'vsl_skip', 'tab_return', 'text_select', 'text_copy', 'section_revisit', 'page_exit']);
 
 export async function track(rt: Runtime, who: TrackIdentity, input: TrackInput): Promise<string> {
   const id = input.eventId && /^[\w-]{8,64}$/.test(input.eventId) ? input.eventId : newId('e');

@@ -32,7 +32,7 @@ const COLORS: Record<NotifyKind, number> = {
 const CHANNEL: Partial<Record<NotifyKind, NotifyChannel>> = { won: 'wins' };
 
 export const money = (n: number) => `${ECONOMICS.currency === 'AUD' ? 'A$' : '$'}${Math.round(n).toLocaleString('en-AU')}`;
-const leadName = (l: Lead) => [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email || l.id;
+const leadName = (l: Lead) => [l.first_name, l.last_name].filter(Boolean).join(' ') || l.ref_code || l.id;
 
 function webhooks(rt: Runtime, channel: NotifyChannel) {
   const s = rt.settings;
@@ -49,9 +49,17 @@ export function leadLines(lead: Lead) {
   const source = [lead.channel ?? 'Direct', lead.utm_campaign, lead.utm_content].filter(Boolean).join(' / ');
   return [
     `Tier ${tier ?? '–'} · score ${lead.score ?? '–'} · ${lead.country ?? '??'} · ${source}`,
-    [lead.email, lead.phone, `ref ${lead.ref_code}`].filter(Boolean).join(' · '),
+    // Contact details stay in Funnel HQ (one click away): chat tools keep messages forever, outside our control.
+    `ref ${lead.ref_code}`,
   ];
 }
+
+/**
+ * Names, UTMs, emails, call summaries… come from strangers. Strip the characters Slack and Discord use for
+ * links and mentions (<!channel>, <url|text>, [text](url), `code`), so a lead can't plant a ping or a fake
+ * "Open in Funnel HQ" link in front of the team. Our own *bold* survives.
+ */
+export const plain = (s: string) => s.replace(/[<>[\]|`]/g, '').replace(/:\/\//g, ': //').replace(/\bwww\./gi, 'www .');
 
 /** Sends one message to every configured destination for its channel. Never throws. */
 export async function notify(rt: Runtime, msg: NotifyMessage, channelOverride?: NotifyChannel) {
@@ -59,7 +67,8 @@ export async function notify(rt: Runtime, msg: NotifyMessage, channelOverride?: 
   const { slack, discord } = webhooks(rt, channel);
   if (!slack && !discord) return { slack: false, discord: false };
   const link = msg.lead ? `${rt.origin}/admin#lead=${msg.lead.id}` : `${rt.origin}/admin`;
-  const lines = (msg.lines ?? []).filter(Boolean);
+  msg = { ...msg, title: plain(msg.title), fields: msg.fields?.map((f) => ({ name: plain(f.name), value: plain(f.value) })) };
+  const lines = (msg.lines ?? []).filter(Boolean).map(plain);
   const jobs: Promise<boolean>[] = [];
 
   if (slack) {

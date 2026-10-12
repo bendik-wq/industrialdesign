@@ -1,4 +1,5 @@
 import { APPLICATION } from '../config';
+import { defang } from '../lib/text';
 import { type Lead, parseAnswers } from '../funnel/leads';
 import { type Industry, inferIndustry, INDUSTRIES } from '../landers/catalog';
 
@@ -45,6 +46,13 @@ const optionLabel = (id: string, value: string | null) => {
 
 const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
+/**
+ * Everything a lead or a Calendly invitee typed is untrusted, and the templates build HTML.
+ * Escape it here, once, so no template can forget: their words appear as text, never as markup or links.
+ */
+export const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const safe = (s: string | null) => (s == null ? null : escHtml(defang(s)));
+
 /** Revenue bands from Calendly qualification ("1-3m"…) mapped onto the application's values. */
 const BAND_TO_REVENUE: Record<string, string> = { '<1m': 'lt1m', '1-3m': '1_3m', '3-10m': '3_10m', '10m+': 'gt10m' };
 
@@ -67,13 +75,15 @@ export function buildDossier(lead: Lead): Dossier {
   try {
     booking = (JSON.parse(lead.booking_answers || '[]') as { q?: string; a?: string }[])
       .filter((x) => x && typeof x.q === 'string' && typeof x.a === 'string' && x.a.trim())
-      .map((x) => ({ q: x.q!.trim(), a: x.a!.trim().slice(0, 400) }));
+      .map((x) => ({ q: escHtml(defang(x.q!.trim().slice(0, 200))), a: escHtml(defang(x.a!.trim().slice(0, 400))) }));
   } catch { /* ignore */ }
   const industry = (lead.industry ? INDUSTRIES.find((i) => i.id === lead.industry) : null) ?? inferIndustry(business, ...booking.map((b) => b.a));
   const why = str(a.why_now);
+  // Trim on the raw text (so an entity is never cut in half), then escape.
+  const whyTrimmed = why ? (why.length > 280 ? `${why.slice(0, 277).replace(/\s+\S*$/, '')}…` : why) : null;
   const profitForDeal = profit && profit !== 'loss' ? profit : revenue ? PROFIT_FROM_REVENUE[revenue] : undefined;
   return {
-    business,
+    business: safe(business),
     industry: industry ?? null,
     revenue,
     revenueLabel: optionLabel('revenue', revenue),
@@ -84,8 +94,9 @@ export function buildDossier(lead: Lead): Dossier {
     blockers,
     readiness: str(a.readiness),
     role: str(a.role),
-    whyNow: why ? (why.length > 280 ? `${why.slice(0, 277).replace(/\s+\S*$/, '')}…` : why) : null,
+    whyNow: safe(whyTrimmed),
     booking,
+    // Matched against fixed lists (OBJECTIONS / LOST_ANGLES), never printed raw.
     objection: lead.objection,
     lostReason: lead.lost_reason,
     deal: profitForDeal ? DEALS[profitForDeal] ?? null : null,

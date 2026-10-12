@@ -98,21 +98,23 @@ export async function resolveVisitor(c: Context<AppEnv>, kind: 'page' | 'beacon'
   if (url.searchParams.get('v') && validForced) setCookie(c, COOKIE.variant, validForced, cookieOpts(c, VISITOR_TTL_S, false));
   const variant = validForced ?? (await assignVariant(visitorId!));
 
-  // Meta browser/click ids. Server-set first-party cookies outlive Safari's 7-day cap on JS cookies.
-  let fbp = getCookie(c, COOKIE.fbp) ?? null;
-  let fbc = getCookie(c, COOKIE.fbc) ?? null;
-  if (!fbp && !isBot) {
-    fbp = `fb.1.${now}.${Math.floor(Math.random() * 1e10)}`;
-    setCookie(c, COOKIE.fbp, fbp, cookieOpts(c, VISITOR_TTL_S, false));
-  }
-  if (touch?.clickType === 'fbclid' && touch.clickId && !fbc?.endsWith(touch.clickId)) {
-    fbc = `fb.1.${now}.${touch.clickId}`;
-    setCookie(c, COOKIE.fbc, fbc, cookieOpts(c, 90 * 24 * 60 * 60, false));
-  }
-
   const consentRequired = geo.isEU && flag(settings.CONSENT_REQUIRED_EU, true);
   const consentCookie = getCookie(c, COOKIE.consent);
   const marketingConsent = !consentRequired || consentCookie === '1';
+
+  // Meta browser/click ids. Server-set first-party cookies outlive Safari's 7-day cap on JS cookies.
+  // They're advertising cookies, so where consent is required they're only set once it's given.
+  let fbp = getCookie(c, COOKIE.fbp) ?? null;
+  let fbc = getCookie(c, COOKIE.fbc) ?? null;
+  if (!marketingConsent) { fbp = null; fbc = null; }
+  if (!fbp && !isBot && marketingConsent) {
+    fbp = `fb.1.${now}.${Math.floor(Math.random() * 1e10)}`;
+    setCookie(c, COOKIE.fbp, fbp, cookieOpts(c, VISITOR_TTL_S, false));
+  }
+  if (marketingConsent && touch?.clickType === 'fbclid' && touch.clickId && !fbc?.endsWith(touch.clickId)) {
+    fbc = `fb.1.${now}.${touch.clickId}`;
+    setCookie(c, COOKIE.fbc, fbc, cookieOpts(c, 90 * 24 * 60 * 60, false));
+  }
 
   setCookie(c, COOKIE.visitor, visitorId!, cookieOpts(c, VISITOR_TTL_S));
   setCookie(c, COOKIE.session, sessionId!, cookieOpts(c, SESSION_TTL_S));

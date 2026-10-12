@@ -197,9 +197,14 @@ const actionSource = (ev: ForwardedEvent) => (ev.source === 'admin' || ev.source
 
 // ───────────────────────────── Destinations ─────────────────────────────
 
+/** Event props that can hold things people typed or said (call notes, questions, selected text, names). */
+const FREE_TEXT_PROPS = new Set(['text', 'questions', 'notes_for_closer', 'caller_name', 'caller_email', 'callback_time', 'summary', 'q', 'answer', 'why_now', 'business', 'email', 'phone', 'name']);
+
 async function toPostHog(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead: LeadSnapshot | null) {
+  // Analytics needs behaviour, not identity or what people said: free text stays in Funnel HQ.
+  const props = Object.fromEntries(Object.entries(ev.props).filter(([k]) => !FREE_TEXT_PROPS.has(k)));
   const properties: Record<string, unknown> = {
-    ...ev.props,
+    ...props,
     $current_url: pageUrl(rt, who, ev),
     $pathname: ev.path,
     $ip: who.ip ?? undefined,
@@ -214,10 +219,8 @@ async function toPostHog(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, le
   const value = conversionValue(ev.name, ev.props, lead);
   if (value !== undefined) Object.assign(properties, { value, currency: ECONOMICS.currency });
   if (lead) {
+    // No email, name or phone: PostHog joins people by lead_id; contact details live only in Funnel HQ.
     properties.$set = {
-      email: lead.email,
-      name: [lead.first_name, lead.last_name].filter(Boolean).join(' ') || undefined,
-      phone: lead.phone,
       lead_id: lead.id,
       ref_code: lead.ref_code,
       tier: lead.tier,
