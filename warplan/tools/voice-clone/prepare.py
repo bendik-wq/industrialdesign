@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Turn recordings of Josh into a clean training set for an ElevenLabs Professional Voice Clone.
 
-Usage:  python3 prepare.py <input folder> <output folder> [--minutes 120]
+Usage:  python3 prepare.py <input folder> <output folder> [--minutes 120] [--no-trim]
+
+--no-trim keeps the start and end of each file (voice notes have no intro or outro music).
 
 Input: original video or audio files of Josh talking on his own (mp4, mov, m4a, mp3, wav, webm, ...). Use solo
 talking videos: no interviews, podcasts with guests, cold-call recordings or vlogs, so no other voice gets in.
@@ -62,6 +64,7 @@ def main():
         print(__doc__); sys.exit(1)
     src, out = sys.argv[1], sys.argv[2]
     budget = float(sys.argv[sys.argv.index("--minutes") + 1]) * 60 if "--minutes" in sys.argv else 120 * 60
+    trim = "--no-trim" not in sys.argv
     os.makedirs(out, exist_ok=True)
     files = sorted(f for f in os.listdir(src) if os.path.splitext(f)[1].lower() in EXTS)
     if not files:
@@ -77,7 +80,7 @@ def main():
             if r.returncode:
                 report.append((f, 0, f"couldn't read: {r.stderr.strip()[:120]}")); continue
             total = duration(base)
-            lo, hi = (HEAD, total - TAIL) if total > 60 else (0, total)
+            lo, hi = (HEAD, total - TAIL) if trim and total > 60 else (0, total)
             spans = [(max(a, lo), min(b, hi)) for a, b in speech_spans(base, total) if b > lo and a < hi]
             spans = [(a, b) for a, b in spans if b - a > 0.6]
             # Group spans into 3-6 minute clips.
