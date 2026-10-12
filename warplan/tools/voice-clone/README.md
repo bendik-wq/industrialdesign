@@ -17,3 +17,13 @@ Builds a Professional Voice Clone of Josh (with his consent) for Ask Josh, from 
    `python3 clone.py captcha <voice_id>` then `python3 clone.py verify <voice_id> <his recording>`.
 5. **Train:** `python3 clone.py train <voice_id>` (a few hours; `python3 clone.py status <voice_id>`).
 6. **Use it:** `npx wrangler secret put JOSH_VOICE_ID` with the voice_id, then tune it in Ask Josh → Voice.
+
+## What's live (Oct 2026)
+
+- Source: Josh's Telegram channel (t.me/leveraged_buyouts): 90 voice notes and 7 round video messages, 3.2 hours.
+  `prepare.py --no-trim` turned them into 89 clips, 181.6 minutes of his speech.
+- The ElevenLabs account is on the Starter plan, which can't make Professional clones. So production uses an
+  Instant clone, "Josh Li v2" (voice ID 850Dq37GferBaQ6PElbf), made from the 4 clips with the quietest background
+  (about 7 minutes). The old 2-sample clone (3gSXF1xiMNBdeMWeMyRZ) is still in ElevenLabs for rollback.
+- For the Professional clone from all 3 hours: upgrade to Creator or higher, run `clone.py create` on the clips,
+  Josh verifies, `clone.py train`, then set JOSH_VOICE_ID to the new voice ID.
