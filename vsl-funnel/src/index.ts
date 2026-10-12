@@ -19,6 +19,7 @@ import { syncInbound } from './integrations/elevenlabs-inbound';
 import { syncCalendly } from './integrations/calendly';
 import { processTriggers } from './personalize/triggers';
 import { purgeOld } from './lib/retention';
+import { alertUnconfirmedBookings } from './integrations/booking';
 
 const app = new Hono<AppEnv>();
 
@@ -153,6 +154,7 @@ export default {
       quiet(syncCalendly(rt), 'Calendly sync'),
       quiet(processTriggers(rt), 'behaviour triggers'),
       quiet(purgeOld(rt), 'retention purge'),
+      quiet(alertUnconfirmedBookings(rt), 'unconfirmed bookings'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

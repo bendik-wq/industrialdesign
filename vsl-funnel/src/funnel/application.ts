@@ -20,7 +20,8 @@ export class ApplicationError extends Error {
 
 /** "Continue your application" email to the address on file; at most one per 10 minutes, never to the unsubscribed. */
 async function sendResumeLink(rt: Runtime, lead: Lead) {
-  if (lead.unsubscribed_at || !lead.email) return;
+  // Transactional (they just asked to continue) and rate-limited, so it goes even to the unsubscribed.
+  if (!lead.email) return;
   const recent = await rt.env.DB.prepare("SELECT 1 FROM emails WHERE lead_id = ? AND template = 'resume_link' AND created_at > ? LIMIT 1").bind(lead.id, Date.now() - 10 * 60_000).first();
   if (recent) return;
   await sendLinkEmail(rt, lead, 'resume_link');
@@ -92,7 +93,7 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   // link to continue instead (clicking it links their browser through the signed email redirect).
   if (existing && existing.email === emailCheck.email && v.leadId !== existing.id) {
     await sendResumeLink(rt, existing);
-    throw new ApplicationError('You’ve applied with this email before. We’ve sent a link to that inbox — open it to pick up where you left off.', 'email', 409);
+    throw new ApplicationError('To keep your details safe, we’ve emailed a link to that address. Open it to continue your application.', 'email', 409);
   }
 
   if (existing && (!existing.email || existing.email === emailCheck.email)) {
@@ -191,6 +192,8 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
   const keepStatus = ['booked', 'showed', 'won', 'lost'].includes(lead.status);
 
   await updateLead(rt.env, lead.id, {
+    // Someone first imported from a direct Calendly booking has now come through the funnel themselves.
+    ...(lead.booking_source === 'calendly-direct' ? { booking_source: 'funnel' } : {}),
     score: result.score,
     tier: result.tier,
     score_breakdown: JSON.stringify({ breakdown: result.breakdown, flags: result.flags, caps: result.caps, scoreTier: result.scoreTier }),

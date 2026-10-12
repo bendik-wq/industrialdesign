@@ -233,11 +233,12 @@ export async function queueCall(rt: Runtime, lead: Lead, kind: CallKind, delayMi
   if (done) return null;
   // Abuse limits: one number can't be rung for several "leads", and there's a daily ceiling for the whole account.
   const dayAgo = Date.now() - 86_400_000;
-  const sameNumber = await rt.env.DB.prepare(`SELECT COUNT(*) AS n FROM outbound_calls oc JOIN leads l ON l.id = oc.lead_id WHERE l.phone = ? AND oc.kind != 'test' AND oc.created_at > ?`).bind(lead.phone, Date.now() - 7 * 86_400_000).first<{ n: number }>();
-  if ((sameNumber?.n ?? 0) >= 3) return null;
+  const sameNumber = await rt.env.DB.prepare(`SELECT COUNT(DISTINCT oc.lead_id || ':' || oc.kind) AS n FROM outbound_calls oc JOIN leads l ON l.id = oc.lead_id WHERE l.phone = ? AND oc.kind != 'test' AND oc.created_at > ?`).bind(lead.phone, Date.now() - 7 * 86_400_000).first<{ n: number }>();
+  if ((sameNumber?.n ?? 0) >= 3) return null; // 3 different calls (lead × kind) a week; retries don't count
   const today = await rt.env.DB.prepare(`SELECT COUNT(*) AS n FROM outbound_calls WHERE kind != 'test' AND created_at > ?`).bind(dayAgo).first<{ n: number }>();
-  const cap = Number(s.AI_CALL_DAILY_CAP || 40);
-  if (Number.isFinite(cap) && (today?.n ?? 0) >= cap) return null;
+  const capRaw = Number(s.AI_CALL_DAILY_CAP || 40);
+  const cap = Number.isFinite(capRaw) && capRaw >= 0 ? capRaw : 40; // a typo never removes the cap
+  if ((today?.n ?? 0) >= cap) return null;
   const runAt = nextCallingTime(Date.now() + delayMinutes * 60_000, callingZones(lead.phone) ?? []);
   if (!runAt) return null;
   if (kind === 'confirm' && lead.call_at && runAt > lead.call_at - 2 * 3600_000) return null; // reminders by email cover it
@@ -276,7 +277,7 @@ function variables(rt: Runtime, lead: Lead, kind: CallKind) {
     call_time: callTime || 'the time you picked',
     closer_name: closer,
     business: hasContactBait(business) ? '' : business,
-    callback_number: rt.settings.AI_CALL_CALLBACK_NUMBER || 'the number in your email',
+    callback_number: rt.settings.AI_CALL_CALLBACK_NUMBER || 'the number that called you',
     voicemail_reason: kind === 'speed_to_lead' ? 'your application' : kind === 'rebook' ? 'finding you a new time for your strategy call' : 'your strategy call',
     tier: effectiveTier(lead) ?? '',
     email: lead.email ?? '',

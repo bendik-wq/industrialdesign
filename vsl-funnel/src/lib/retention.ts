@@ -15,7 +15,8 @@ export async function purgeOld(rt: Runtime) {
   await db.prepare("INSERT INTO kv_state (key, value) VALUES ('purge:last', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(String(Date.now())).run();
   const cutoff = Date.now() - USAGE_RETENTION_DAYS * DAY;
   const events = await db.prepare(
-    "DELETE FROM events WHERE ts < ? AND name NOT IN ('lead_captured', 'app_submitted', 'lead_qualified', 'booking_scheduled', 'booking_cancelled', 'lead_status_changed', 'unsubscribe') ",
+    // In chunks, so the first run on a big table can't time out (the rest goes on the next days).
+    "DELETE FROM events WHERE id IN (SELECT id FROM events WHERE ts < ? AND name NOT IN ('lead_captured', 'app_submitted', 'lead_qualified', 'booking_scheduled', 'booking_cancelled', 'lead_status_changed', 'unsubscribe') LIMIT 20000)",
   ).bind(cutoff).run();
   const sessions = await db.prepare(
     'UPDATE sessions SET ip = NULL, user_agent = NULL, latitude = NULL, longitude = NULL, postal_code = NULL, city = NULL WHERE started_at < ? AND (ip IS NOT NULL OR user_agent IS NOT NULL OR latitude IS NOT NULL)',

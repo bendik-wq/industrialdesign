@@ -172,7 +172,7 @@ export async function finishInbound(rt: Runtime, conv: Conversation) {
       await updateLead(rt.env, lead.id, { notes: notes.slice(-4000) });
     }
   } else {
-    said.push(`Unknown caller ${from ?? ''}${facts.caller_name ? ` — ${facts.caller_name}` : ''}${facts.caller_email ? ` <${facts.caller_email}>` : ''}`);
+    said.push(`Unknown caller${facts.caller_name ? ` — ${facts.caller_name}` : ''}. Number and details are in Funnel HQ → Voice.`);
   }
   if (facts.wants_human_callback) said.push(`☎️ Wants a person to call back${facts.callback_time ? ` (${facts.callback_time})` : ''}.`);
   if (facts.questions) said.push(`Questions: ${facts.questions}`);
@@ -180,7 +180,7 @@ export async function finishInbound(rt: Runtime, conv: Conversation) {
   const rep = lead ? rt.reps.find((r) => r.id === lead!.closer_id) ?? null : null;
   rt.waitUntil(notify(rt, {
     kind: 'voice',
-    title: `📞 Callback answered by AI — ${lead ? leadName(lead) : from ?? 'unknown caller'}`,
+    title: `📞 Callback answered by AI — ${lead ? leadName(lead) : 'unknown caller'}`,
     lines: [...said, conv.analysis?.transcript_summary ?? '', ...(lead ? leadLines(lead) : [])],
     lead,
     rep,

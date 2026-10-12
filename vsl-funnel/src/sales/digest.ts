@@ -43,7 +43,7 @@ export async function buildDigest(rt: Runtime, now = Date.now()) {
     ...today.slice(0, 15).map((c) => {
       const x = c as { call_at: number; first_name: string | null; last_name: string | null; email: string | null; closer_id: string | null; tier: string | null };
       const when = new Intl.DateTimeFormat('en-AU', { timeZone: tz, hour: 'numeric', minute: '2-digit', weekday: 'short' }).format(new Date(x.call_at));
-      return `• ${when} — ${[x.first_name, x.last_name].filter(Boolean).join(' ') || x.email} (tier ${x.tier ?? '–'}) → ${name(x.closer_id)}`;
+      return `• ${when} — ${[x.first_name, x.last_name].filter(Boolean).join(' ') || 'lead'} (tier ${x.tier ?? '–'}) → ${name(x.closer_id)}`;
     }),
   ];
   if (day.totals.needs_outcome) lines.push('', `⚠️ ${day.totals.needs_outcome} past call${day.totals.needs_outcome === 1 ? ' needs' : 's need'} an outcome logged in Funnel HQ`);

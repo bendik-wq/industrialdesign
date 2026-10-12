@@ -82,6 +82,23 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
   return fresh;
 }
 
+/**
+ * Cron: a booking the browser reported but the provider never confirmed (webhook lost, wrong account…) would
+ * otherwise sit there with no reminders. After 30 minutes, tell the team once so a person can check it.
+ */
+export async function alertUnconfirmedBookings(rt: Runtime) {
+  const now = Date.now();
+  const { results } = await rt.env.DB.prepare(
+    `SELECT * FROM leads WHERE status = 'booked' AND booking_cancelled_at IS NULL AND booking_provider LIKE '%-client'
+       AND booked_at BETWEEN ? AND ? AND id NOT IN (SELECT substr(key, 13) FROM kv_state WHERE key LIKE 'unconfirmed:%') LIMIT 20`,
+  ).bind(now - 3 * 86_400_000, now - 30 * 60_000).all<Lead>();
+  for (const lead of results) {
+    await rt.env.DB.prepare("INSERT OR IGNORE INTO kv_state (key, value) VALUES (?, ?)").bind(`unconfirmed:${lead.id}`, String(now)).run();
+    rt.waitUntil(notifySlack(rt, lead, '⚠️ Booking not confirmed by the calendar', ['The page reported a booking 30+ minutes ago but Calendly hasn’t confirmed it, so no reminders are going out. Check the calendar and the Calendly webhook.'], 'booked'));
+  }
+  return results.length;
+}
+
 /** Can this provider's bookings be confirmed server-side (so a browser report can wait for it)? */
 function verificationAvailable(rt: Runtime, provider: string) {
   if (provider.startsWith('calendly')) return calendlyConnected(rt.settings) || Boolean(rt.settings.CALENDLY_SIGNING_KEY);

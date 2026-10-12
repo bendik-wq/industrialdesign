@@ -50,8 +50,10 @@ export async function login(c: Context<AppEnv>, password: unknown) {
 
 /** Logging out ends every admin session (the token can't be revoked any other way). */
 export async function logout(c: Context<AppEnv>) {
+  const wasAdmin = await isAdmin(c);
   deleteCookie(c, ADMIN_COOKIE, { path: '/' });
-  await c.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('admin:epoch', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(String(Date.now())).run();
+  // Only a signed-in admin can end everyone's sessions (otherwise anyone could log the team out on repeat).
+  if (wasAdmin) await c.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('admin:epoch', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(String(Date.now())).run();
 }
 
 export async function isAdmin(c: Context<AppEnv>) {

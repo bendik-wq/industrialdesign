@@ -177,7 +177,8 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
   const wa = whatsappLink(rt.settings, lead, 'question');
   let content = tpl({
     lead,
-    name: lead.first_name || 'there',
+    // Only something that looks like a name goes in greetings and subjects (no links, numbers or markup).
+    name: lead.first_name && /^[\p{L}][\p{L}' .-]{0,29}$/u.test(lead.first_name.trim()) ? lead.first_name.trim() : 'there',
     siteName: rt.settings.SITE_NAME || BRAND.name,
     link,
     bookingUrl: bookingUrlFor(rt, lead.closer_id, effectiveTier(lead)),
