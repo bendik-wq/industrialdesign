@@ -294,3 +294,21 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .fm-panel .close { position: absolute; top: 10px; right: 10px; border: 0; background: none; font-size: 16px; cursor: pointer; color: var(--ink-2); }
 .fm-link { border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); border-radius: 999px; padding: 2px 9px; margin: 2px 2px 0 0; font-size: 12px; cursor: pointer; }
 .fm-link:hover { border-color: var(--ink-2); }
+.fm-custom { border-style: dashed; border-color: var(--ink-2); }
+.fm-noted { color: var(--ink-2); font-size: 11px; }
+.fm-port { position: absolute; right: -1px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--ink-2); cursor: crosshair; opacity: 0; transition: opacity .12s; }
+.fm-node:hover .fm-port, .fm-node.fm-sel .fm-port { opacity: 1; }
+@media (hover: none) { .fm-port { opacity: 1; } }
+.fm-node.fm-target { box-shadow: 0 0 0 3px var(--focus); }
+.fm-e-custom { stroke: var(--ink-2); stroke-dasharray: 10 4; fill: none; stroke-width: 2; }
+.fm-note { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 10px 0; line-height: 1.5; }
+.fm-chip { display: inline-flex; align-items: center; }
+.fm-x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0 4px; }
+.fm-x:hover { color: var(--critical); }
+.fm-connect { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.fm-f { display: block; font-size: 12px; color: var(--ink-2); margin: 10px 0 0; }
+.fm-f .input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font: inherit; font-size: 14px; color: var(--ink); }
+.fm-f textarea.input { resize: vertical; }
+.fm-panel .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.btn-sm.danger { color: var(--critical); }

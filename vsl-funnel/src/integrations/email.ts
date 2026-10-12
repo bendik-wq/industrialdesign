@@ -7,8 +7,10 @@ import { type Lead, getLead } from '../funnel/leads';
 import { bookingUrlFor } from '../funnel/routing';
 import { effectiveTier } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
-import { PRECALL_SLOTS, PRECALL_TEMPLATES, SEQUENCES, type SequenceId } from './sequences';
+import { PRECALL_SLOTS, PRECALL_TEMPLATES, SEQUENCES, type SequenceId, precallPlan } from './sequences';
 import { TEMPLATES, renderEmail } from './templates';
+import { FOLLOWUP_TEMPLATES } from '../followup/templates';
+import { ANSWER_FACTS } from '../followup/dossier';
 import { whatsappLink } from './whatsapp';
 import { buildProfile } from '../personalize/profile';
 import { RULES } from '../personalize/triggers';
@@ -94,7 +96,8 @@ export async function enqueuePrecall(rt: Runtime, lead: Lead) {
   if (!Number.isFinite(perDay) || perDay <= 0) return 0;
   const tz = lead.timezone || (await leadTimezone(rt, lead)) || rt.settings.SALES_TIMEZONE || 'UTC';
   const now = Date.now();
-  const times = precallTimes(now, lead.call_at, tz, perDay);
+  const plan = precallPlan(lead);
+  const times = precallTimes(now, lead.call_at, tz, perDay, plan.length);
   if (!times.length) return 0;
   await rt.env.DB.batch(times.map((sendAt, i) =>
     rt.env.DB.prepare(
@@ -102,7 +105,7 @@ export async function enqueuePrecall(rt: Runtime, lead: Lead) {
        VALUES (?, ?, 'precall', ?, ?, ?, ?, 'pending', ?)
        ON CONFLICT(lead_id, sequence, step) DO UPDATE SET send_at = excluded.send_at, status = 'pending', to_email = excluded.to_email, attempts = 0
          WHERE emails.status IN ('pending', 'cancelled', 'skipped')`,
-    ).bind(newId('m'), lead.id, i, PRECALL_TEMPLATES[i], lead.email, sendAt, now),
+    ).bind(newId('m'), lead.id, i, plan[i], lead.email, sendAt, now),
   ));
   return times.length;
 }
@@ -187,7 +190,10 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
   let personal: Personalized | null = null;
   if (opts.personalize) {
     const profile = await buildProfile(rt.env, lead);
-    personal = await personalizeEmail(rt.settings, content, template, profile, await usedFacts(rt, lead.id), {
+    const used = await usedFacts(rt, lead.id);
+    // Follow-up written from the application already says their answers back; personalise with what they did instead.
+    if (template in FOLLOWUP_TEMPLATES) for (const k of ANSWER_FACTS) used.add(k);
+    personal = await personalizeEmail(rt.settings, content, template, profile, used, {
       purpose: opts.personalize.purpose,
       callTime: lead.call_at ? formatCallTime(lead.call_at, tz) : null,
     });

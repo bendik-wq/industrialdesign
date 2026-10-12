@@ -68,6 +68,7 @@ export const SETTINGS = [
   { key: 'ELEVENLABS_WEBHOOK_SECRET', label: 'ElevenLabs post-call webhook secret', group: 'Voice', secret: true, help: 'Optional (results are also fetched automatically). ElevenLabs → Agents settings → Post-call webhook → URL /hooks/elevenlabs.' },
   { key: 'AI_CALL_CONFIRM', label: 'AI call to confirm new bookings', group: 'Voice', placeholder: 'true', help: 'Calls consenting leads ~2 minutes after they book. Set to false to turn off.' },
   { key: 'AI_CALL_SPEED_TO_LEAD', label: 'AI call qualified leads who haven’t booked', group: 'Voice', placeholder: 'true', help: 'Calls consenting A/B leads ~5 minutes after applying if they haven’t booked, and emails the booking link. Set to false to turn off.' },
+  { key: 'AI_CALL_REBOOK', label: 'AI call no-shows to rebook', group: 'Voice', placeholder: 'true', help: 'Calls consenting leads ~20 minutes after a no-show is logged and emails a link to pick a new time. Set to false to turn off.' },
 
   { key: 'POSTHOG_KEY', label: 'PostHog project API key', group: 'Analytics', secret: true, placeholder: 'phc_…', help: 'Every event is mirrored to PostHog server-side.' },
   { key: 'POSTHOG_HOST', label: 'PostHog host', group: 'Analytics', placeholder: 'https://us.i.posthog.com' },

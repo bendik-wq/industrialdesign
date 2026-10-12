@@ -1,4 +1,5 @@
 import type { Lead } from '../funnel/leads';
+import { FOLLOWUP_TEMPLATES } from '../followup/templates';
 
 /**
  * Email copy. Plain, personal, letter-style emails from Josh — they read like
@@ -859,6 +860,9 @@ export const TEMPLATES: Record<string, Template> = {
     body: ['If you’re reading this, Resend is connected and the funnel can send email.'],
   }),
 };
+
+// Follow-up written from each lead's application and booking answers (src/followup).
+Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES);
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 

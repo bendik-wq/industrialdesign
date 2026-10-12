@@ -58,6 +58,9 @@ export const TEMPLATE_TOPICS: Record<string, string[]> = {
   pc_guarantee: ['risk', 'guarantee'], pc_agenda: ['call'], pc_multiple: ['valuation', 'exit'], pc_in_not_on: ['time', 'team'], pc_cash_trap: ['cash', 'growth'],
   pc_fell_over: ['experience', 'risk'], pc_done_with: ['control'], pc_questions: ['call', 'questions'], pc_lemon: ['risk', 'due_diligence'], pc_hiring: ['team'],
   pc_two_paths: ['experience'], pc_next_year: ['timing'], pc_if_you_could: ['experience'], pc_cost: ['timing'],
+  pp_brief: ['call'], pp_numbers: ['funding', 'debt'], pp_goal: ['growth', 'exit'], pp_industry: ['competition', 'deal_flow'], pp_timeline: ['timing'],
+  pp_partner: ['partner', 'call'], pp_homework: ['call', 'questions'], ns_numbers: ['funding'], fu_objection: ['risk'], fu_numbers: ['timing'],
+  fu_industry: ['competition'], cx_1: ['call'], nu_seller: ['seller', 'funding'], nu_dscr: ['debt', 'risk'], nu_numbers: ['funding'],
 };
 
 /** Words in answers / FAQ / copied text → topics. */

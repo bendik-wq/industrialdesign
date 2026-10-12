@@ -49,18 +49,32 @@
       how: 'Deal value, payments ledger (cash collected, instalments, refunds), contract date and the 90-day LOI countdown. 🎉 ping to the wins channel; Purchase sent to Meta.' },
     { id: 'lost', kind: 'people', x: 2340, y: 200, title: 'Lost', sub: 'With the reason', tab: 'sales',
       how: 'Lost reason and main objection are logged and show up in Insights.' },
-    { id: 'noshow', kind: 'people', x: 2340, y: 340, title: 'No-show', sub: 'Rebooking flow', tab: 'sales', stat: 'noshow',
-      how: 'Rebooking emails go out automatically; team is pinged. Calendly no-show marks sync in too.' },
+    { id: 'noshow', kind: 'people', x: 2340, y: 340, title: 'No-show', sub: '7 rebook emails + AI call', tab: 'sales', stat: 'noshow',
+      how: 'Seven rebooking emails over 14 days, written from their application (their goal, their blocker, the numbers we were going to run), plus an AI call to offer a new time. Team is pinged. Calendly no-show marks sync in too.' },
+    { id: 'rebookcall', kind: 'auto', x: 2620, y: 340, title: 'AI rebook call', sub: 'No-shows · consent only', tab: 'voice',
+      how: '~20 minutes after a no-show is logged (calling hours, consent only): Sam says no stress, asks if they’d like a new time and emails the link. Turn off with AI_CALL_REBOOK = false.' },
+    { id: 'cancel', kind: 'people', x: 1760, y: 10, title: 'Cancelled', sub: 'Calendly cancellation', tab: 'sales',
+      how: 'When someone cancels, the reminders and pre-call emails stop and the rebooking run starts.' },
+    { id: 'cxseq', kind: 'auto', x: 2060, y: 10, title: 'Rebook emails', sub: '4 emails, 6 days', tab: 'emails',
+      how: 'Picks up where they were (“how to build a group in HVAC”), handles their stated blocker, quotes their why-now back, then asks once more. Stops the moment they rebook.' },
+    { id: 'onboard', kind: 'auto', x: 2620, y: 60, title: 'Onboarding emails', sub: '6 emails, 30 days', tab: 'emails',
+      how: 'Welcome and the 90-day plan, homework (P&L, debts, target names), building the target list in their industry, week-one check-in, getting lender-ready, the LOI push. Stops on refund.' },
+    { id: 'lostseq', kind: 'auto', x: 2620, y: 200, title: 'Re-engagement', sub: '6 emails over 6 months', tab: 'emails',
+      how: 'Long-tail follow-up angled on why they said no (price, timing, funding fit…), with industry notes and their own numbers. Stops if they book again.' },
 
     // Automations around the booking
     { id: 'aicall', kind: 'auto', x: 1760, y: 380, title: 'AI confirmation call', sub: 'ElevenLabs · consent only', tab: 'voice',
       how: '~2 minutes after booking (if they ticked the call-consent box): Sam confirms the time, preps them, emails a new link if they need to move it. Calling hours only, max 2 attempts.' },
-    { id: 'precall', kind: 'auto', x: 1760, y: 520, title: 'Pre-call emails', sub: 'Up to 6 a day', tab: 'emails', stat: 'emails',
-      how: '24 emails, one pain point each, at local-time slots until 3 hours before the call, plus reminders at 48h / 24h / 3h / 1h / 10m with the meeting link.' },
+    { id: 'precall', kind: 'auto', x: 1760, y: 520, title: 'Pre-call emails', sub: 'Written from their application', tab: 'emails', stat: 'emails',
+      how: 'Up to 6 a day until 3 hours before the call. First: emails written from their own answers (“I read your application”, their #1 blocker, what a deal looks like at their size, their industry, their Calendly answers, their why-now, bring your partner, 3 things to have ready). Then 24 one-pain-point emails woven in. Plus reminders at 48h / 24h / 3h / 1h / 10m with the meeting link.' },
     { id: 'reppings', kind: 'auto', x: 2060, y: 380, title: 'Team pings', sub: 'Slack / Discord', tab: 'team',
       how: 'Hot leads, bookings, cancellations, “call in 15 min”, no-shows, wins and a daily digest, with @mentions of the rep.' },
-    { id: 'postcall', kind: 'auto', x: 2340, y: 480, title: 'Post-call follow-up', sub: 'Held, no decision yet', tab: 'emails',
-      how: 'Showed but undecided → follow-up emails until they decide.' },
+    { id: 'postcall', kind: 'auto', x: 2340, y: 480, title: 'Post-call follow-up', sub: '9 emails, 21 days', tab: 'emails',
+      how: 'Showed but undecided → answers the objection logged on the call (price, timing, partner, funding doubts…), a one-page recap of their plan, the cost of waiting, who else is buying in their industry, their own why-now, then closes the loop.' },
+    { id: 'nurture', kind: 'auto', x: 1760, y: 800, title: '6-month nurture', sub: '9 emails, never booked', tab: 'emails',
+      how: 'Applied but never booked → from day 25 to month 6: their industry, their blocker, their numbers, why sellers carry notes, the 1.5 rule, their own words back, a one-word check-in. Stops the moment they book.' },
+    { id: 'dossier', kind: 'data', x: 1460, y: 800, title: 'Application reader', sub: 'Answers + booking answers', tab: 'leads',
+      how: 'Turns each lead’s application and Calendly answers into talking points: industry, size, profit, goal, timeline, blockers, why-now (their words), partner, objection and lost reason, plus an illustrative first-deal size. Every follow-up email is written from it at send time.' },
 
     // Recovery
     { id: 'abandon', kind: 'auto', x: 900, y: 480, title: 'Abandoned application', sub: '5 recovery emails', tab: 'emails',
@@ -95,7 +109,10 @@
     ['booked', 'call', 'r:show'], ['call', 'won', 'r:close'], ['call', 'lost'], ['booked', 'noshow'],
     ['caldirect', 'booked', 'skips the funnel', 'dash'],
     ['booked', 'aicall', '', 'auto'], ['booked', 'precall', '', 'auto'], ['booked', 'reppings', '', 'auto'], ['call', 'postcall', '', 'auto'],
-    ['noshow', 'booked', 'rebook', 'auto'],
+    ['noshow', 'booked', 'rebook', 'auto'], ['noshow', 'rebookcall', '', 'auto'],
+    ['booked', 'cancel', 'cancelled'], ['cancel', 'cxseq', '', 'auto'], ['won', 'onboard', '', 'auto'], ['lost', 'lostseq', '', 'auto'],
+    ['tierseq', 'nurture', 'still not booked', 'auto'], ['tierC', 'nurture', '', 'auto'],
+    ['apply', 'dossier', 'answers', 'data'], ['dossier', 'precall', '', 'data'], ['dossier', 'postcall', '', 'data'], ['dossier', 'nurture', '', 'data'],
     ['apply', 'abandon', 'didn’t finish', 'auto'], ['abandon', 'apply', '', 'auto'],
     ['score', 'speed', '', 'auto'], ['speed', 'booked', '', 'auto'],
     ['tierA', 'tierseq', '', 'auto'], ['tierB', 'tierseq', '', 'auto'], ['tierseq', 'booked', '', 'auto'],
@@ -106,20 +123,51 @@
   var W = 220, H = 92;
   var KIND = { traffic: 'Traffic', page: 'Page / step', decision: 'Decision', auto: 'Runs automatically', people: 'People / outcome', data: 'Data & AI' };
 
+  /**
+   * ctx: { esc, n, pct, money, go, stats, layout, save(pos|null),
+   *        custom: { nodes, edges, edits }, saveCustom(custom), tabs: [{id, title}] }
+   * Built-in boxes describe how the system actually works: their text can be
+   * edited and annotated, but they can't be deleted. Your own boxes and arrows
+   * can be added, edited and removed freely.
+   */
   function render(root, ctx) {
     var esc = ctx.esc, n = ctx.n, pct = ctx.pct, money = ctx.money;
     var stats = ctx.stats;
     var saved = ctx.layout || {};
+    var custom = ctx.custom && typeof ctx.custom === 'object' ? ctx.custom : {};
+    custom.nodes = Array.isArray(custom.nodes) ? custom.nodes : [];
+    custom.edges = Array.isArray(custom.edges) ? custom.edges : [];
+    custom.edits = custom.edits && typeof custom.edits === 'object' ? custom.edits : {};
+    var tabs = ctx.tabs || [];
     var pos = {};
-    NODES.forEach(function (d) { pos[d.id] = saved[d.id] ? { x: saved[d.id].x, y: saved[d.id].y } : { x: d.x, y: d.y }; });
     var zoom = 0.85, selected = null;
+
+    function nodes() {
+      return NODES.map(function (d) {
+        var e = custom.edits[d.id] || {};
+        return { id: d.id, kind: d.kind, x: d.x, y: d.y, title: e.title || d.title, sub: e.sub != null ? e.sub : d.sub, tab: d.tab, stat: d.stat, how: d.how, note: e.note || '', builtin: true, edited: Boolean(e.title || e.sub != null || e.note) };
+      }).concat(custom.nodes.map(function (d) { return { id: d.id, kind: KIND[d.kind] ? d.kind : 'page', x: 0, y: 0, title: d.title || 'New step', sub: d.sub || '', tab: d.tab || null, note: d.note || '', builtin: false }; }));
+    }
+    function edges() {
+      return EDGES.map(function (e) { return { from: e[0], to: e[1], label: e[2] || '', style: e[3] || '', custom: false }; })
+        .concat(custom.edges.map(function (e, i) { return { from: e[0], to: e[1], label: e[2] || '', style: 'custom', custom: true, idx: i }; }));
+    }
+    function byId(id) { return nodes().filter(function (x) { return x.id === id; })[0]; }
+    function ensurePos() {
+      nodes().forEach(function (d) {
+        if (pos[d.id]) return;
+        var s = saved[d.id];
+        pos[d.id] = s ? { x: s.x, y: s.y } : { x: d.x, y: d.y };
+      });
+    }
 
     root.innerHTML =
       '<div class="fm-bar"><div class="fm-legend">' + Object.keys(KIND).map(function (k) { return '<span class="fm-key fm-' + k + '"><i></i>' + esc(KIND[k]) + '</span>'; }).join('') +
-      '<span class="fm-key"><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" class="fm-e-auto"/></svg>automation</span></div>' +
-      '<div class="row"><button class="btn-sm ghost" data-z="-">−</button><button class="btn-sm ghost" data-z="+">+</button><button class="btn-sm ghost" data-fit>Fit</button><button class="btn-sm ghost" data-reset>Reset layout</button></div></div>' +
+      '<span class="fm-key"><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" class="fm-e-auto"/></svg>automation</span>' +
+      '<span class="fm-key"><svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" class="fm-e-custom"/></svg>your arrows</span></div>' +
+      '<div class="row"><button class="btn-sm" data-add>+ Add step</button><button class="btn-sm ghost" data-z="-">−</button><button class="btn-sm ghost" data-z="+">+</button><button class="btn-sm ghost" data-fit>Fit</button><button class="btn-sm ghost" data-reset>Reset layout</button></div></div>' +
       '<div class="fm-wrap"><div class="fm-scroll"><div class="fm-canvas"><svg class="fm-edges"></svg></div></div><aside class="fm-panel" hidden></aside></div>' +
-      '<p class="muted" style="margin-top:8px">Drag boxes to rearrange (saved for everyone) · drag the background to pan · click a box for how it works. Numbers are for the selected date range.</p>';
+      '<p class="muted" style="margin-top:8px">Drag boxes to rearrange · drag the ● on a box’s edge onto another box to connect them · click a box for how it works, to edit it or add notes · <b>+ Add step</b> for your own. Everything is saved for everyone. Numbers are for the selected date range.</p>';
 
     var scroll = root.querySelector('.fm-scroll'), canvas = root.querySelector('.fm-canvas'), svg = root.querySelector('.fm-edges'), panel = root.querySelector('.fm-panel');
 
@@ -145,7 +193,7 @@
       }
     }
     function edgeLabel(e) {
-      var lab = e[2] || '';
+      var lab = e.label || '';
       if (lab.indexOf('r:') !== 0) return lab;
       var f = {}; (stats.funnel || []).forEach(function (x) { f[x.key] = x.n; });
       var k = stats.kpis || {};
@@ -153,19 +201,31 @@
       return r == null || !isFinite(r) || r > 1 ? '' : pct(r);
     }
 
-    NODES.forEach(function (d) {
-      var el = document.createElement('div');
-      el.className = 'fm-node fm-' + d.kind;
-      el.setAttribute('data-id', d.id);
-      el.tabIndex = 0;
-      el.innerHTML = '<div class="fm-kind">' + esc(KIND[d.kind]) + '</div><div class="fm-title">' + esc(d.title) + '</div><div class="fm-sub">' + esc(d.sub) + '</div>' + (d.stat ? '<div class="fm-stat">' + esc(statFor(d)) + '</div>' : '');
-      canvas.appendChild(el);
-    });
+    // ── persistence ──
+    var saveT, customT;
+    function saveLayout() { clearTimeout(saveT); saveT = setTimeout(function () { ctx.save(pos); }, 400); }
+    function saveCustom() { clearTimeout(customT); customT = setTimeout(function () { if (ctx.saveCustom) ctx.saveCustom(custom); }, 300); }
 
+    // ── boxes ──
+    function build() {
+      ensurePos();
+      canvas.querySelectorAll('.fm-node').forEach(function (el) { el.remove(); });
+      nodes().forEach(function (d) {
+        var el = document.createElement('div');
+        el.className = 'fm-node fm-' + d.kind + (d.builtin ? '' : ' fm-custom') + (d.id === selected ? ' fm-sel' : '');
+        el.setAttribute('data-id', d.id);
+        el.tabIndex = 0;
+        el.innerHTML = '<div class="fm-kind">' + esc(KIND[d.kind]) + (d.builtin ? '' : ' · yours') + (d.note ? ' <span class="fm-noted" title="Has notes">✎</span>' : '') + '</div><div class="fm-title">' + esc(d.title) + '</div><div class="fm-sub">' + esc(d.sub) + '</div>' +
+          (d.stat ? '<div class="fm-stat">' + esc(statFor(d)) + '</div>' : '') + '<span class="fm-port" title="Drag onto another box to connect"></span>';
+        canvas.appendChild(el);
+      });
+      place();
+    }
     function place() {
       var maxX = 0, maxY = 0;
-      NODES.forEach(function (d) {
+      nodes().forEach(function (d) {
         var el = canvas.querySelector('[data-id="' + d.id + '"]'), p = pos[d.id];
+        if (!el || !p) return;
         el.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px)';
         maxX = Math.max(maxX, p.x + W); maxY = Math.max(maxY, p.y + H);
       });
@@ -175,53 +235,141 @@
       svg.setAttribute('width', cw); svg.setAttribute('height', ch);
       drawEdges();
     }
+
+    // ── arrows ──
     function anchor(id, toward) {
-      var p = pos[id], c = { x: p.x + W / 2, y: p.y + H / 2 }, t = pos[toward], tc = { x: t.x + W / 2, y: t.y + H / 2 };
+      // toward: another box's id, or a point (while dragging a new arrow).
+      var p = pos[id], c = { x: p.x + W / 2, y: p.y + H / 2 };
+      var tc = typeof toward === 'string' ? { x: pos[toward].x + W / 2, y: pos[toward].y + H / 2 } : toward;
       var dx = tc.x - c.x, dy = tc.y - c.y;
       if (Math.abs(dx) * H > Math.abs(dy) * W) return { x: dx > 0 ? p.x + W : p.x, y: c.y, side: dx > 0 ? 'r' : 'l' };
       return { x: c.x, y: dy > 0 ? p.y + H : p.y, side: dy > 0 ? 'b' : 't' };
     }
+    function curve(a, b, bSide) {
+      var k = 60, c1 = { x: a.x, y: a.y }, c2 = { x: b.x, y: b.y };
+      if (a.side === 'r') c1.x += k; else if (a.side === 'l') c1.x -= k; else if (a.side === 'b') c1.y += k; else c1.y -= k;
+      if (bSide === 'r') c2.x += k; else if (bSide === 'l') c2.x -= k; else if (bSide === 'b') c2.y += k; else if (bSide === 't') c2.y -= k;
+      return { d: 'M' + a.x + ',' + a.y + ' C' + c1.x + ',' + c1.y + ' ' + c2.x + ',' + c2.y + ' ' + b.x + ',' + b.y, c1: c1, c2: c2 };
+    }
+    var temp = null;
     function drawEdges() {
       var out = '<defs><marker id="fm-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fm-arrowhead"/></marker></defs>';
-      EDGES.forEach(function (e) {
-        var a = anchor(e[0], e[1]), b = anchor(e[1], e[0]);
-        var k = 60, c1 = { x: a.x, y: a.y }, c2 = { x: b.x, y: b.y };
-        if (a.side === 'r') c1.x += k; else if (a.side === 'l') c1.x -= k; else if (a.side === 'b') c1.y += k; else c1.y -= k;
-        if (b.side === 'r') c2.x += k; else if (b.side === 'l') c2.x -= k; else if (b.side === 'b') c2.y += k; else c2.y -= k;
-        var cls = 'fm-e' + (e[3] ? ' fm-e-' + e[3] : '') + (selected && (e[0] === selected || e[1] === selected) ? ' fm-e-hi' : '');
-        out += '<path class="' + cls + '" d="M' + a.x + ',' + a.y + ' C' + c1.x + ',' + c1.y + ' ' + c2.x + ',' + c2.y + ' ' + b.x + ',' + b.y + '" marker-end="url(#fm-arr)"/>';
+      edges().forEach(function (e) {
+        if (!pos[e.from] || !pos[e.to]) return;
+        var a = anchor(e.from, e.to), b = anchor(e.to, e.from), cv = curve(a, b, b.side);
+        var cls = 'fm-e' + (e.style ? ' fm-e-' + e.style : '') + (selected && (e.from === selected || e.to === selected) ? ' fm-e-hi' : '');
+        out += '<path class="' + cls + '" d="' + cv.d + '" marker-end="url(#fm-arr)"/>';
         var lab = edgeLabel(e);
         if (lab) {
-          var mx = (a.x + 3 * c1.x + 3 * c2.x + b.x) / 8, my = (a.y + 3 * c1.y + 3 * c2.y + b.y) / 8;
+          var mx = (a.x + 3 * cv.c1.x + 3 * cv.c2.x + b.x) / 8, my = (a.y + 3 * cv.c1.y + 3 * cv.c2.y + b.y) / 8;
           out += '<g class="fm-elab"><rect x="' + (mx - lab.length * 3.6 - 6) + '" y="' + (my - 10) + '" width="' + (lab.length * 7.2 + 12) + '" height="20" rx="10"/><text x="' + mx + '" y="' + (my + 4) + '" text-anchor="middle">' + esc(lab) + '</text></g>';
         }
       });
+      if (temp) {
+        var a = anchor(temp.from, temp.to), cv = curve(a, temp.to, null);
+        out += '<path class="fm-e fm-e-custom fm-e-hi" d="' + cv.d + '" marker-end="url(#fm-arr)"/>';
+      }
       svg.innerHTML = out;
     }
-    function open(id) {
+
+    // ── side panel ──
+    function connectOptions(id) {
+      return nodes().filter(function (x) { return x.id !== id; }).sort(function (a, b) { return a.title.localeCompare(b.title); })
+        .map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.title) + '</option>'; }).join('');
+    }
+    function open(id, editing) {
+      var d = byId(id);
+      if (!d) { close(); return; }
       selected = id;
-      var d = NODES.filter(function (x) { return x.id === id; })[0];
       canvas.querySelectorAll('.fm-node').forEach(function (el) { el.classList.toggle('fm-sel', el.getAttribute('data-id') === id); });
-      var ins = EDGES.filter(function (e) { return e[1] === id; }).map(function (e) { return e[0]; });
-      var outs = EDGES.filter(function (e) { return e[0] === id; }).map(function (e) { return e[1]; });
-      var name = function (x) { return '<button class="fm-link" data-jump="' + x + '">' + esc(NODES.filter(function (y) { return y.id === x; })[0].title) + '</button>'; };
       panel.hidden = false;
-      panel.innerHTML = '<button class="close" type="button" aria-label="Close">✕</button><div class="fm-kind">' + esc(KIND[d.kind]) + '</div><h2>' + esc(d.title) + '</h2><p class="sub">' + esc(d.sub) + '</p>' +
-        (d.stat ? '<p class="fm-stat big">' + esc(statFor(d)) + '</p>' : '') + '<p>' + esc(d.how) + '</p>' +
-        (ins.length ? '<p class="muted">Comes from: ' + ins.map(name).join(' ') + '</p>' : '') + (outs.length ? '<p class="muted">Leads to: ' + outs.map(name).join(' ') + '</p>' : '') +
-        (d.tab ? '<button class="btn-sm" data-tab-go="' + d.tab + '">Open in Funnel HQ →</button>' : '');
-      panel.querySelector('.close').onclick = function () { panel.hidden = true; selected = null; canvas.querySelectorAll('.fm-sel').forEach(function (el) { el.classList.remove('fm-sel'); }); drawEdges(); };
+      if (editing) {
+        panel.innerHTML = '<button class="close" type="button" aria-label="Close">✕</button><div class="fm-kind">' + (d.builtin ? 'Edit step' : 'Your step') + '</div>' +
+          '<label class="fm-f">Title<input class="input" data-e="title" maxlength="60" value="' + esc(d.title) + '"></label>' +
+          '<label class="fm-f">Subtitle<input class="input" data-e="sub" maxlength="90" value="' + esc(d.sub) + '"></label>' +
+          (d.builtin ? '' :
+            '<label class="fm-f">Type<select class="input" data-e="kind">' + Object.keys(KIND).map(function (k) { return '<option value="' + k + '"' + (k === d.kind ? ' selected' : '') + '>' + esc(KIND[k]) + '</option>'; }).join('') + '</select></label>' +
+            '<label class="fm-f">Opens tab<select class="input" data-e="tab"><option value="">—</option>' + tabs.map(function (t) { return '<option value="' + esc(t.id) + '"' + (t.id === d.tab ? ' selected' : '') + '>' + esc(t.title) + '</option>'; }).join('') + '</select></label>') +
+          '<label class="fm-f">' + (d.builtin ? 'Your notes' : 'How it works / notes') + '<textarea class="input" data-e="note" rows="6" maxlength="2000">' + esc(d.note) + '</textarea></label>' +
+          '<div class="row"><button class="btn-sm" data-save>Save</button><button class="btn-sm ghost" data-cancel>Cancel</button>' +
+          (d.builtin && d.edited ? '<button class="btn-sm ghost" data-revert>Reset to default</button>' : '') + '</div>';
+        var val = function (k) { var el = panel.querySelector('[data-e="' + k + '"]'); return el ? el.value.trim() : ''; };
+        panel.querySelector('[data-save]').onclick = function () {
+          if (d.builtin) {
+            var def = NODES.filter(function (x) { return x.id === id; })[0];
+            var e = {};
+            if (val('title') && val('title') !== def.title) e.title = val('title');
+            if (val('sub') !== def.sub) e.sub = val('sub');
+            if (val('note')) e.note = val('note');
+            if (Object.keys(e).length) custom.edits[id] = e; else delete custom.edits[id];
+          } else {
+            var c = custom.nodes.filter(function (x) { return x.id === id; })[0];
+            c.title = val('title') || 'New step'; c.sub = val('sub'); c.kind = val('kind'); c.tab = val('tab') || null; c.note = val('note');
+          }
+          saveCustom(); build(); open(id);
+        };
+        panel.querySelector('[data-cancel]').onclick = function () { open(id); };
+        var rv = panel.querySelector('[data-revert]'); if (rv) rv.onclick = function () { delete custom.edits[id]; saveCustom(); build(); open(id); };
+        panel.querySelector('.close').onclick = close;
+        var first = panel.querySelector('[data-e="title"]'); if (first) { first.focus(); first.select(); }
+        drawEdges();
+        return;
+      }
+      var all = edges();
+      var ins = all.filter(function (e) { return e.to === id; }), outs = all.filter(function (e) { return e.from === id; });
+      var chip = function (e, other) {
+        var o = byId(other);
+        if (!o) return '';
+        return '<span class="fm-chip"><button class="fm-link" data-jump="' + esc(other) + '">' + esc(o.title) + '</button>' + (e.custom ? '<button class="fm-x" data-unlink="' + e.idx + '" title="Remove this arrow">✕</button>' : '') + '</span>';
+      };
+      panel.innerHTML = '<button class="close" type="button" aria-label="Close">✕</button><div class="fm-kind">' + esc(KIND[d.kind]) + (d.builtin ? '' : ' · your step') + '</div><h2>' + esc(d.title) + '</h2><p class="sub">' + esc(d.sub) + '</p>' +
+        (d.stat ? '<p class="fm-stat big">' + esc(statFor(d)) + '</p>' : '') + (d.how ? '<p>' + esc(d.how) + '</p>' : '') +
+        (d.note ? '<div class="fm-note"><div class="fm-kind">' + (d.builtin ? 'Your notes' : 'Notes') + '</div>' + esc(d.note).replace(/\n/g, '<br>') + '</div>' : '') +
+        (ins.length ? '<p class="muted">Comes from: ' + ins.map(function (e) { return chip(e, e.from); }).join(' ') + '</p>' : '') +
+        (outs.length ? '<p class="muted">Leads to: ' + outs.map(function (e) { return chip(e, e.to); }).join(' ') + '</p>' : '') +
+        '<div class="fm-connect"><select class="input" data-to><option value="">Connect to…</option>' + connectOptions(id) + '</select><input class="input" data-label maxlength="30" placeholder="Arrow label (optional)"><button class="btn-sm ghost" data-link>Add arrow</button></div>' +
+        '<div class="row" style="margin-top:12px"><button class="btn-sm ghost" data-edit>' + (d.builtin ? 'Edit / add notes' : 'Edit') + '</button>' +
+        (d.builtin ? '' : '<button class="btn-sm ghost danger" data-del>Delete step</button>') +
+        (d.tab ? '<button class="btn-sm" data-tab-go="' + esc(d.tab) + '">Open in Funnel HQ →</button>' : '') + '</div>';
+      panel.querySelector('.close').onclick = close;
       panel.querySelectorAll('[data-jump]').forEach(function (b) { b.onclick = function () { open(b.getAttribute('data-jump')); centre(b.getAttribute('data-jump')); }; });
+      panel.querySelectorAll('[data-unlink]').forEach(function (b) { b.onclick = function () { custom.edges.splice(Number(b.getAttribute('data-unlink')), 1); saveCustom(); open(id); }; });
+      panel.querySelector('[data-link]').onclick = function () {
+        var to = panel.querySelector('[data-to]').value;
+        if (to) { link(id, to, panel.querySelector('[data-label]').value.trim()); open(id); }
+      };
+      panel.querySelector('[data-edit]').onclick = function () { open(id, true); };
+      var del = panel.querySelector('[data-del]');
+      if (del) del.onclick = function () {
+        if (!confirm('Delete “' + d.title + '” and its arrows?')) return;
+        custom.nodes = custom.nodes.filter(function (x) { return x.id !== id; });
+        custom.edges = custom.edges.filter(function (e) { return e[0] !== id && e[1] !== id; });
+        delete pos[id]; saveCustom(); saveLayout(); close(); build();
+      };
       var go = panel.querySelector('[data-tab-go]'); if (go) go.onclick = function () { ctx.go(go.getAttribute('data-tab-go')); };
       drawEdges();
     }
-    function centre(id) { var p = pos[id]; scroll.scrollTo({ left: (p.x + W / 2) * zoom - scroll.clientWidth / 2, top: (p.y + H / 2) * zoom - scroll.clientHeight / 2, behavior: 'smooth' }); }
+    function close() { panel.hidden = true; selected = null; canvas.querySelectorAll('.fm-sel').forEach(function (el) { el.classList.remove('fm-sel'); }); drawEdges(); }
+    function centre(id) { var p = pos[id]; if (p) scroll.scrollTo({ left: (p.x + W / 2) * zoom - scroll.clientWidth / 2, top: (p.y + H / 2) * zoom - scroll.clientHeight / 2, behavior: 'smooth' }); }
+    function link(from, to, label) {
+      if (from === to) return false;
+      if (edges().some(function (e) { return e.from === from && e.to === to; })) return false;
+      if (custom.edges.length >= 400) return false;
+      custom.edges.push([from, to, (label || '').slice(0, 30)]);
+      saveCustom(); drawEdges();
+      return true;
+    }
 
-    // Drag boxes; pan the background.
-    var drag = null, saveT;
+    // ── interactions: drag boxes, drag ports to connect, pan the background ──
+    var drag = null;
     canvas.addEventListener('pointerdown', function (e) {
-      var node = e.target.closest('.fm-node');
-      if (node) {
+      var port = e.target.closest('.fm-port'), node = e.target.closest('.fm-node');
+      if (port && node) {
+        var from = node.getAttribute('data-id'), a = anchor(from, { x: pos[from].x + W + 100, y: pos[from].y + H / 2 });
+        drag = { link: from, sx: e.clientX, sy: e.clientY, ax: a.x, ay: a.y };
+        canvas.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      } else if (node) {
         var id = node.getAttribute('data-id');
         drag = { id: id, sx: e.clientX, sy: e.clientY, ox: pos[id].x, oy: pos[id].y, moved: false };
         node.setPointerCapture(e.pointerId); node.classList.add('fm-drag');
@@ -233,6 +381,14 @@
     canvas.addEventListener('pointermove', function (e) {
       if (!drag) return;
       if (drag.pan) { scroll.scrollLeft = drag.sl - (e.clientX - drag.sx); scroll.scrollTop = drag.st - (e.clientY - drag.sy); return; }
+      if (drag.link) {
+        temp = { from: drag.link, to: { x: drag.ax + (e.clientX - drag.sx) / zoom, y: drag.ay + (e.clientY - drag.sy) / zoom } };
+        canvas.querySelectorAll('.fm-target').forEach(function (el) { el.classList.remove('fm-target'); });
+        var over = document.elementFromPoint(e.clientX, e.clientY), t = over && over.closest('.fm-node');
+        if (t && t.getAttribute('data-id') !== drag.link) t.classList.add('fm-target');
+        drawEdges();
+        return;
+      }
       var dx = (e.clientX - drag.sx) / zoom, dy = (e.clientY - drag.sy) / zoom;
       if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
       pos[drag.id] = { x: Math.max(0, Math.round((drag.ox + dx) / 10) * 10), y: Math.max(0, Math.round((drag.oy + dy) / 10) * 10) };
@@ -240,24 +396,44 @@
       el.style.transform = 'translate(' + pos[drag.id].x + 'px,' + pos[drag.id].y + 'px)';
       drawEdges();
     });
-    function end() {
+    function end(e) {
       if (!drag) return;
-      if (!drag.pan) {
+      if (drag.link) {
+        canvas.querySelectorAll('.fm-target').forEach(function (el) { el.classList.remove('fm-target'); });
+        var over = e && document.elementFromPoint(e.clientX, e.clientY), t = over && over.closest('.fm-node');
+        temp = null;
+        if (t && t.getAttribute('data-id') !== drag.link) { link(drag.link, t.getAttribute('data-id'), ''); open(drag.link); } else drawEdges();
+      } else if (!drag.pan) {
         var el = canvas.querySelector('[data-id="' + drag.id + '"]'); el.classList.remove('fm-drag');
-        if (drag.moved) { place(); clearTimeout(saveT); saveT = setTimeout(function () { ctx.save(pos); }, 400); }
+        if (drag.moved) { place(); saveLayout(); }
         else open(drag.id);
       }
       drag = null;
     }
     canvas.addEventListener('pointerup', end);
-    canvas.addEventListener('pointercancel', end);
+    canvas.addEventListener('pointercancel', function () { temp = null; end(null); });
     canvas.addEventListener('keydown', function (e) { if (e.key === 'Enter') { var nd = e.target.closest('.fm-node'); if (nd) open(nd.getAttribute('data-id')); } });
 
+    root.querySelector('[data-add]').onclick = function () {
+      if (custom.nodes.length >= 200) { alert('That’s the limit of 200 of your own steps.'); return; }
+      var id = 'u_' + Math.random().toString(36).slice(2, 10);
+      var x = Math.max(0, Math.round(((scroll.scrollLeft + scroll.clientWidth / 2) / zoom - W / 2) / 10) * 10);
+      var y = Math.max(0, Math.round(((scroll.scrollTop + scroll.clientHeight / 2) / zoom - H / 2) / 10) * 10);
+      // Don't drop it exactly on top of another box.
+      while (Object.keys(pos).some(function (k) { return Math.abs(pos[k].x - x) < W && Math.abs(pos[k].y - y) < H; }) && y < 4800) y += 20;
+      custom.nodes.push({ id: id, kind: 'page', title: 'New step', sub: '', note: '', tab: null });
+      pos[id] = { x: x, y: y };
+      saveCustom(); saveLayout(); build(); open(id, true);
+    };
     root.querySelectorAll('[data-z]').forEach(function (b) { b.onclick = function () { zoom = Math.max(0.4, Math.min(1.4, zoom + (b.getAttribute('data-z') === '+' ? 0.1 : -0.1))); place(); }; });
     root.querySelector('[data-fit]').onclick = function () { var cw = parseFloat(canvas.style.width) || 2600; zoom = Math.max(0.4, Math.min(1.2, (scroll.clientWidth - 20) / cw)); place(); };
-    root.querySelector('[data-reset]').onclick = function () { NODES.forEach(function (d) { pos[d.id] = { x: d.x, y: d.y }; }); place(); ctx.save(null); };
+    root.querySelector('[data-reset]').onclick = function () {
+      if (!confirm('Put the built-in boxes back where they started? Your own steps stay where they are.')) return;
+      NODES.forEach(function (d) { pos[d.id] = { x: d.x, y: d.y }; });
+      place(); saveLayout();
+    };
 
-    place();
+    build();
     if (scroll.clientWidth < 900) root.querySelector('[data-fit]').click();
   }
 

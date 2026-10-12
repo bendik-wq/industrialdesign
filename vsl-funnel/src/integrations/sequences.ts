@@ -1,4 +1,6 @@
 import type { Lead } from '../funnel/leads';
+import { buildDossier } from '../followup/dossier';
+import { FOLLOWUP_GROUPS, prepTemplates } from '../followup/templates';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -44,6 +46,24 @@ export const PRECALL_TEMPLATES = [
   'pc_multiple', 'pc_in_not_on', 'pc_cash_trap', 'pc_fell_over', 'pc_done_with', 'pc_questions',
   'pc_lemon', 'pc_hiring', 'pc_two_paths', 'pc_next_year', 'pc_if_you_could', 'pc_cost',
 ];
+
+/**
+ * The barrage for one lead: application-specific prep emails (their business,
+ * blockers, numbers, industry, booking answers) first and woven through the
+ * general pain-point emails, so even a call booked for tomorrow gets the
+ * personal ones.
+ */
+export function precallPlan(lead: Lead): string[] {
+  const prep = prepTemplates(buildDossier(lead));
+  const out: string[] = [];
+  const general = [...PRECALL_TEMPLATES];
+  out.push(...prep.splice(0, 2));
+  while (prep.length || general.length) {
+    if (general.length) out.push(general.shift()!);
+    if (prep.length) out.push(prep.shift()!);
+  }
+  return out;
+}
 
 /** Local send times (hours) for the barrage; fewer per day picks evenly from these. */
 export const PRECALL_SLOTS = [7.5, 9.5, 12, 14.5, 17, 19.5];
@@ -129,19 +149,24 @@ export const SEQUENCES = {
   },
   precall: {
     id: 'precall',
-    description: 'Booked — pre-call barrage, up to 6 a day until the call (one pain point each)',
+    description: 'Booked — pre-call barrage, up to 6 a day until the call: emails written from their application and booking answers, woven through one-pain-point emails',
     stopIf: (l) => !booked(l) || l.status !== 'booked' || Boolean(l.call_at && Date.now() > l.call_at - 2 * HOUR),
-    // Sent at local-time slots by enqueuePrecall(); offsetMs is unused for this sequence.
-    steps: PRECALL_TEMPLATES.map((template) => ({ template, offsetMs: 0 })),
+    // Sent at local-time slots by enqueuePrecall() in the order precallPlan() gives (the row holds the template); offsetMs is unused.
+    steps: [...FOLLOWUP_GROUPS.prep, ...PRECALL_TEMPLATES].map((template) => ({ template, offsetMs: 0 })),
   },
   no_show: {
     id: 'no_show',
-    description: 'Missed the call — get them rebooked',
+    description: 'Missed the call — get them rebooked (their goal, blocker and numbers from the application)',
     stopIf: (l) => l.status !== 'no_show',
     steps: [
       { template: 'noshow_1', offsetMs: 15 * MIN },
       { template: 'noshow_2', offsetMs: 1 * DAY },
       { template: 'noshow_3', offsetMs: 3 * DAY },
+      // Appended (step index is the dedupe key).
+      { template: 'ns_goal', offsetMs: 5 * DAY },
+      { template: 'ns_blocker', offsetMs: 7 * DAY },
+      { template: 'ns_numbers', offsetMs: 10 * DAY },
+      { template: 'ns_final', offsetMs: 14 * DAY },
     ],
   },
   post_call: {
@@ -152,6 +177,66 @@ export const SEQUENCES = {
       { template: 'post_1', offsetMs: 2 * HOUR },
       { template: 'post_2', offsetMs: 2 * DAY },
       { template: 'post_3', offsetMs: 5 * DAY },
+      // Appended (step index is the dedupe key). fu_objection answers the objection logged on the call.
+      { template: 'fu_objection', offsetMs: 1 * DAY },
+      { template: 'fu_recap', offsetMs: 3 * DAY },
+      { template: 'fu_numbers', offsetMs: 7 * DAY },
+      { template: 'fu_industry', offsetMs: 9 * DAY },
+      { template: 'fu_goal', offsetMs: 12 * DAY },
+      { template: 'fu_final', offsetMs: 21 * DAY },
+    ],
+  },
+  cancelled: {
+    id: 'cancelled',
+    description: 'Cancelled their call — get them rebooked',
+    stopIf: (l) => booked(l) || ['won', 'lost', 'disqualified'].includes(l.status),
+    steps: [
+      { template: 'cx_1', offsetMs: 30 * MIN },
+      { template: 'cx_2', offsetMs: 1 * DAY },
+      { template: 'cx_3', offsetMs: 3 * DAY },
+      { template: 'cx_4', offsetMs: 6 * DAY },
+    ],
+  },
+  lost: {
+    id: 'lost',
+    description: 'Lost — long-term re-engagement, angled on why they said no',
+    stopIf: (l) => l.status !== 'lost' || booked(l),
+    steps: [
+      { template: 'lo_1', offsetMs: 3 * DAY },
+      { template: 'lo_2', offsetMs: 21 * DAY },
+      { template: 'lo_3', offsetMs: 45 * DAY },
+      { template: 'lo_4', offsetMs: 75 * DAY },
+      { template: 'lo_5', offsetMs: 120 * DAY },
+      { template: 'lo_6', offsetMs: 180 * DAY },
+    ],
+  },
+  won: {
+    id: 'won',
+    description: 'Closed — onboarding for the first 30 days',
+    stopIf: (l) => l.status !== 'won' || Boolean(l.refunded_at),
+    steps: [
+      { template: 'won_1', offsetMs: 10 * MIN },
+      { template: 'won_2', offsetMs: 1 * DAY },
+      { template: 'won_3', offsetMs: 3 * DAY },
+      { template: 'won_4', offsetMs: 7 * DAY },
+      { template: 'won_5', offsetMs: 14 * DAY },
+      { template: 'won_6', offsetMs: 30 * DAY },
+    ],
+  },
+  nurture: {
+    id: 'nurture',
+    description: 'Applied, never booked — six months of long-tail follow-up from their application',
+    stopIf: (l) => booked(l) || !['applied', 'partial', 'nurture'].includes(l.status),
+    steps: [
+      { template: 'nu_industry', offsetMs: 25 * DAY },
+      { template: 'nu_blocker', offsetMs: 35 * DAY },
+      { template: 'nu_numbers', offsetMs: 50 * DAY },
+      { template: 'nu_seller', offsetMs: 65 * DAY },
+      { template: 'nu_goal', offsetMs: 80 * DAY },
+      { template: 'nu_why', offsetMs: 100 * DAY },
+      { template: 'nu_dscr', offsetMs: 120 * DAY },
+      { template: 'nu_checkin', offsetMs: 150 * DAY },
+      { template: 'nu_last', offsetMs: 180 * DAY },
     ],
   },
 } satisfies Record<string, Sequence>;

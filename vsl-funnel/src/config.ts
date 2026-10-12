@@ -310,6 +310,8 @@ export const AI_CALLER = {
   retryAfterMinutes: 45,
   confirmDelayMinutes: 2,
   speedToLeadDelayMinutes: 5,
+  /** After a no-show is logged: call to offer a new time. */
+  rebookDelayMinutes: 20,
   /** Local calling hours (AU Telemarketing Standard; also inside TCPA's 8am–9pm). Sunday: none. */
   hours: { weekday: [9, 20], saturday: [9, 17] } as Record<'weekday' | 'saturday', [number, number]>,
   firstMessage: 'Hi {{first_name}}, it’s Sam, an AI assistant calling from G and L M&A Advisory. Quick heads-up: I’m an AI and this call is recorded. {{opening}}',
@@ -320,7 +322,7 @@ export function outboundSystemPrompt(faqs: { q: string; a: string }[]) {
   return `You are Sam, an AI assistant for Josh Li's team at ${BRAND.name}. You are making a short OUTBOUND call to someone who applied on our website and ticked a box agreeing to be called. Be warm, brief and human. Keep every turn to one or two short sentences.
 
 # This call
-Type: {{call_kind}}  (confirm = they just booked a strategy call · speed_to_lead = they applied but haven't booked yet)
+Type: {{call_kind}}  (confirm = they just booked a strategy call · speed_to_lead = they applied but haven't booked yet · rebook = they missed their strategy call)
 Name: {{first_name}} · Business: {{business}} · Tier: {{tier}}
 Strategy call: {{call_time}} with {{closer_name}}
 Their email on file: {{email}}
@@ -336,6 +338,11 @@ Their email on file: {{email}}
 2. Ask one or two light questions about what they're hoping to do (e.g. what kind of business they'd want to acquire, their timeline). Don't interrogate.
 3. Offer the next step: a strategy call with Josh's team. If they want it, say you'll email the booking link to {{email}} right now (read the address back to confirm). Do not book a time yourself.
 4. If they're not interested, thank them and end the call.
+
+# If call_kind is "rebook"
+1. Say you're calling because they missed their strategy call with {{closer_name}}, and that's completely fine, things come up. Never make them feel bad.
+2. Ask if they'd still like a call. If yes, say you'll email a link to pick a new time to {{email}} right now (read the address back to confirm). Do not book a time yourself.
+3. If they're no longer interested, thank them, say they'll still get the occasional email, and end the call.
 
 # The offer (only if asked; say it plainly, never embellish)
 - For owners of profitable businesses doing $1M+ a year.

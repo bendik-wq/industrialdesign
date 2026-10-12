@@ -93,6 +93,38 @@ admin.put('/map-layout', async (c) => {
   return c.json({ ok: true });
 });
 
+/** Your own steps and arrows on the funnel map, plus edits and notes on the built-in boxes. */
+admin.get('/map-custom', async (c) => {
+  const row = await c.env.DB.prepare("SELECT value FROM kv_state WHERE key = 'map:custom'").first<{ value: string }>();
+  return c.json({ custom: row ? JSON.parse(row.value) : null });
+});
+admin.put('/map-custom', async (c) => {
+  const body = await c.req.json<{ custom?: unknown }>().catch(() => ({ custom: null }));
+  const raw = (body.custom && typeof body.custom === 'object' ? body.custom : {}) as { nodes?: unknown; edges?: unknown; edits?: unknown };
+  const txt = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+  const KINDS = ['traffic', 'page', 'decision', 'auto', 'people', 'data'];
+  const ID = /^[\w-]{1,40}$/;
+  const nodes = (Array.isArray(raw.nodes) ? raw.nodes : []).slice(0, 200).flatMap((n: Record<string, unknown>) =>
+    n && typeof n.id === 'string' && /^u_[a-z0-9]{4,20}$/.test(n.id)
+      ? [{ id: n.id, kind: KINDS.includes(String(n.kind)) ? String(n.kind) : 'page', title: txt(n.title, 60) || 'New step', sub: txt(n.sub, 90), note: txt(n.note, 2000), tab: txt(n.tab, 30) || null }]
+      : []);
+  const edges = (Array.isArray(raw.edges) ? raw.edges : []).slice(0, 400).flatMap((e: unknown) =>
+    Array.isArray(e) && typeof e[0] === 'string' && typeof e[1] === 'string' && ID.test(e[0]) && ID.test(e[1]) && e[0] !== e[1] ? [[e[0], e[1], txt(e[2], 30)]] : []);
+  const edits: Record<string, { title?: string; sub?: string; note?: string }> = {};
+  if (raw.edits && typeof raw.edits === 'object') {
+    for (const [k, v] of Object.entries(raw.edits as Record<string, Record<string, unknown>>).slice(0, 200)) {
+      if (!ID.test(k) || !v || typeof v !== 'object') continue;
+      const e: { title?: string; sub?: string; note?: string } = {};
+      if (txt(v.title, 60)) e.title = txt(v.title, 60);
+      if (typeof v.sub === 'string') e.sub = txt(v.sub, 90);
+      if (txt(v.note, 2000)) e.note = txt(v.note, 2000);
+      if (Object.keys(e).length) edits[k] = e;
+    }
+  }
+  await c.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('map:custom', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify({ nodes, edges, edits })).run();
+  return c.json({ ok: true, nodes: nodes.length, edges: edges.length });
+});
+
 admin.get('/insights', async (c) => c.json(await insights(c.env, c.get('settings').SALES_TIMEZONE || 'Australia/Sydney')));
 admin.get('/vsl', async (c) => c.json(await vslStats(c.env, filters(c), c.req.query('video') || VIDEOS.main.id)));
 admin.get('/attribution', async (c) => c.json(await attribution(c.env, filters(c), c.req.query('dim') || 'channel')));
@@ -352,7 +384,7 @@ admin.get('/integrations', async (c) => {
       slack: { label: 'Team pings', connected: notifyConfigured(rt), detail: notifyConfigured(rt) ? [(s.SLACK_WEBHOOK_URL || s.SLACK_WINS_WEBHOOK_URL) && 'Slack', (s.DISCORD_WEBHOOK_URL || s.DISCORD_WINS_WEBHOOK_URL) && 'Discord'].filter(Boolean).join(' + ') + ' · leads, bookings, call reminders, wins, daily digest' : 'Add a Slack or Discord webhook to ping the sales team.' },
       crm: { label: 'CRM webhook', connected: Boolean(s.LEAD_WEBHOOK_URL), detail: s.LEAD_WEBHOOK_URL ? 'Lead lifecycle events forwarded' : 'Not connected' },
       voice: { label: 'Voice agent', connected: voiceConfigured(s), detail: voiceConfigured(s) ? [s.VAPI_ASSISTANT_ID ? 'Assistant ready' : 'Assistant answers inline (not saved in Vapi yet)', s.VOICE_PHONE_NUMBER && `Inbound line ${s.VOICE_PHONE_NUMBER}`, webCallsEnabled(s) ? 'Browser calls on' : 'Browser calls off'].filter(Boolean).join(' · ') : 'Inbound only. Add your Vapi keys and a webhook secret to switch it on.' },
-      aiCalls: { label: 'AI calls (ElevenLabs)', connected: elevenConfigured(s), detail: elevenConfigured(s) ? `Confirmation calls ${s.AI_CALL_CONFIRM.trim().toLowerCase() === 'false' ? 'off' : 'on'} · speed-to-lead ${s.AI_CALL_SPEED_TO_LEAD.trim().toLowerCase() === 'false' ? 'off' : 'on'} · consenting leads only` : 'Add an ElevenLabs API key, then finish setup on the Voice tab.' },
+      aiCalls: { label: 'AI calls (ElevenLabs)', connected: elevenConfigured(s), detail: elevenConfigured(s) ? `Confirmation calls ${s.AI_CALL_CONFIRM.trim().toLowerCase() === 'false' ? 'off' : 'on'} · speed-to-lead ${s.AI_CALL_SPEED_TO_LEAD.trim().toLowerCase() === 'false' ? 'off' : 'on'} · no-show rebook ${s.AI_CALL_REBOOK.trim().toLowerCase() === 'false' ? 'off' : 'on'} · consenting leads only` : 'Add an ElevenLabs API key, then finish setup on the Voice tab.' },
       video: { label: 'Video', connected: Boolean(s.VSL_MAIN_SRC), detail: s.VSL_MAIN_SRC ? 'Main VSL connected' : 'No VSL video yet — the page shows a placeholder.' },
     },
     webhooks: {
@@ -517,6 +549,7 @@ admin.get('/voice/elevenlabs', async (c) => {
     ready: elevenConfigured(s) || Boolean(s.ELEVENLABS_API_KEY && s.ELEVENLABS_AGENT_ID && phoneNumbers.length === 1),
     confirm: s.AI_CALL_CONFIRM.trim().toLowerCase() !== 'false',
     speedToLead: s.AI_CALL_SPEED_TO_LEAD.trim().toLowerCase() !== 'false',
+    rebook: s.AI_CALL_REBOOK.trim().toLowerCase() !== 'false',
     webhook: { url: `${rt.origin}/hooks/elevenlabs`, secret: Boolean(s.ELEVENLABS_WEBHOOK_SECRET) },
     stats,
     queue: queue.results,

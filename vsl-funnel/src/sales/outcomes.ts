@@ -3,6 +3,8 @@ import { LEAD_STATUSES, type Lead, type LeadStatus, getLead, updateLead } from '
 import { cancelSequence, enqueueSequence, formatCallTime } from '../integrations/email';
 import { leadLines, leadName, money, notify } from '../integrations/notify';
 import type { SequenceId } from '../integrations/sequences';
+import { cancelCalls, queueCall } from '../integrations/elevenlabs';
+import { AI_CALLER } from '../config';
 import { identityFromLead, track } from '../tracking/track';
 
 /** What the dashboard (or a rep) can change on a lead. */
@@ -106,14 +108,18 @@ export async function applyLeadUpdate(rt: Runtime, lead: Lead, body: LeadUpdate)
   // Follow-up sequences (never for imported history).
   if (!history) {
     if (status === 'no_show') {
-      await cancelSequence(rt, lead.id, 'booked');
+      await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'precall')]);
       await enqueueSequence(rt, fresh, 'no_show');
+      await queueCall(rt, fresh, 'rebook', AI_CALLER.rebookDelayMinutes);
     } else if (status === 'showed') {
       await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'no_show')]);
       await enqueueSequence(rt, fresh, 'post_call');
     } else if (status === 'won' || status === 'lost' || status === 'disqualified') {
-      await Promise.all((['booked', 'no_show', 'post_call', 'tier_a', 'tier_b', 'precall'] as SequenceId[]).map((sq) => cancelSequence(rt, lead.id, sq)));
+      await Promise.all((['booked', 'no_show', 'post_call', 'tier_a', 'tier_b', 'tier_c', 'precall', 'cancelled', 'nurture', status === 'won' ? 'lost' : 'won'] as SequenceId[]).map((sq) => cancelSequence(rt, lead.id, sq)));
+      if (status === 'won') await enqueueSequence(rt, fresh, 'won');
+      if (status === 'lost') await enqueueSequence(rt, fresh, 'lost');
     }
+    if (status !== 'no_show') await cancelCalls(rt, lead.id, ['rebook']);
   }
 
   await track(rt, await identityFromLead(rt.env, lead.id), {

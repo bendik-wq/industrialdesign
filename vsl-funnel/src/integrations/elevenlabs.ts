@@ -25,7 +25,7 @@ import { optOut, sendLinkEmail } from './voice';
  */
 
 const API = 'https://api.elevenlabs.io';
-export type CallKind = 'confirm' | 'speed_to_lead' | 'test';
+export type CallKind = 'confirm' | 'speed_to_lead' | 'rebook' | 'test';
 
 export interface OutboundCall {
   id: string;
@@ -176,6 +176,7 @@ export function blockReason(lead: Lead, kind: CallKind): string | null {
   if (kind === 'confirm' && lead.call_at && lead.call_at < Date.now() + 30 * 60_000) return 'call is too soon';
   if (kind === 'speed_to_lead' && (lead.booked_at && !lead.booking_cancelled_at)) return 'already booked';
   if (kind === 'speed_to_lead' && !['A', 'B'].includes(effectiveTier(lead) ?? '')) return 'not qualified';
+  if (kind === 'rebook' && lead.status !== 'no_show') return 'no longer a no-show';
   return null;
 }
 
@@ -185,6 +186,7 @@ export async function queueCall(rt: Runtime, lead: Lead, kind: CallKind, delayMi
   if (!elevenConfigured(s)) return null;
   if (kind === 'confirm' && !enabled(s.AI_CALL_CONFIRM)) return null;
   if (kind === 'speed_to_lead' && !enabled(s.AI_CALL_SPEED_TO_LEAD)) return null;
+  if (kind === 'rebook' && !enabled(s.AI_CALL_REBOOK)) return null;
   if (blockReason(lead, kind)) return null;
   const done = await rt.env.DB.prepare(`SELECT id FROM outbound_calls WHERE lead_id = ? AND kind = ? AND status IN ('queued', 'dialing', 'done') LIMIT 1`).bind(lead.id, kind).first();
   if (done) return null;
@@ -192,7 +194,7 @@ export async function queueCall(rt: Runtime, lead: Lead, kind: CallKind, delayMi
   const runAt = nextCallingTime(Date.now() + delayMinutes * 60_000, tz);
   if (!runAt) return null;
   if (kind === 'confirm' && lead.call_at && runAt > lead.call_at - 2 * 3600_000) return null; // reminders by email cover it
-  if (kind === 'speed_to_lead' && runAt > Date.now() + 72 * 3600_000) return null; // stale by then (a weekend applicant still gets a Monday-morning call)
+  if ((kind === 'speed_to_lead' || kind === 'rebook') && runAt > Date.now() + 72 * 3600_000) return null; // stale by then (a weekend applicant still gets a Monday-morning call)
   const id = newId('oc');
   const now = Date.now();
   await rt.env.DB.prepare(`INSERT INTO outbound_calls (id, lead_id, kind, status, run_at, attempts, created_at, updated_at) VALUES (?, ?, ?, 'queued', ?, 0, ?, ?)`)
@@ -213,6 +215,8 @@ function variables(rt: Runtime, lead: Lead, kind: CallKind) {
   const opening =
     kind === 'speed_to_lead'
       ? 'I saw your application come through a few minutes ago. Have you got a minute?'
+      : kind === 'rebook'
+      ? 'We missed you on your strategy call, so I’m calling to see if you’d like a new time. Have you got thirty seconds?'
       : `I’m calling about the strategy call you just booked${callTime ? ` for ${callTime}` : ''}. Have you got thirty seconds?`;
   const answers = parseAnswers(lead);
   return {
@@ -406,7 +410,7 @@ export async function finishCall(rt: Runtime, conv: Conversation, failureReason?
   }
   rt.waitUntil(notify(rt, {
     kind: 'voice',
-    title: `🤖 AI ${call.kind === 'speed_to_lead' ? 'speed-to-lead' : 'confirmation'} call — ${leadName(lead)}`,
+    title: `🤖 AI ${call.kind === 'speed_to_lead' ? 'speed-to-lead' : call.kind === 'rebook' ? 'rebook (no-show)' : 'confirmation'} call — ${leadName(lead)}`,
     lines: [...said, conv.analysis?.transcript_summary ?? '', ...leadLines(lead)],
     lead,
     rep,

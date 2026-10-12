@@ -194,6 +194,7 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
 
   await cancelSequence(rt, lead.id, 'abandoned');
   if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
+  if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, 'nurture');
   if (firstSubmit && result.tier !== 'C' && !fresh.booked_at) await queueCall(rt, fresh, 'speed_to_lead', AI_CALLER.speedToLeadDelayMinutes);
   if (firstSubmit && result.tier !== 'C') {
     const rep = decision.closer ? ` → ${decision.closer.name}` : '';
