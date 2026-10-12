@@ -11,7 +11,7 @@ import { SEQUENCES } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
-import { calendlyConnected, connectCalendly, syncCalendly } from '../integrations/calendly';
+import { calendlyConnected, connectCalendly, importCalendlyHistory, syncCalendly } from '../integrations/calendly';
 import { type OutboundCall, dial, elevenConfigured, listPhoneNumbers, provisionAgent } from '../integrations/elevenlabs';
 import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
 import { validateEmail } from '../funnel/leads';
@@ -99,6 +99,7 @@ admin.get('/leads/:id', async (c) => {
     db.prepare(`SELECT * FROM whatsapp_messages WHERE lead_id = ? ORDER BY ts DESC LIMIT 100`).bind(lead.id).all(),
     db.prepare(`SELECT * FROM voice_calls WHERE lead_id = ? ORDER BY created_at DESC LIMIT 50`).bind(lead.id).all(),
   ]);
+  const calendly = await db.prepare(`SELECT start_at, booked_at, status, rescheduled, event_name, host_email, cancel_reason, answers FROM calendly_bookings WHERE lead_id = ? OR email = ? ORDER BY start_at DESC LIMIT 50`).bind(lead.id, lead.email ?? '').all().catch(() => ({ results: [] }));
   const answers = parseAnswers(lead);
   const labelled = APPLICATION.filter((q) => q.type !== 'contact').map((q) => {
     const a = answers[q.id];
@@ -116,6 +117,7 @@ admin.get('/leads/:id', async (c) => {
     emails: emails.results,
     whatsapp: whatsapp.results,
     voice: voice.results,
+    calendly: calendly.results,
   });
 });
 
@@ -504,6 +506,18 @@ admin.post('/calendly/connect', async (c) => {
     const out = await connectCalendly(rt);
     const sync = await syncCalendly(rt, { force: true, daysBack: 60 });
     return c.json({ ok: true, ...out, sync });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 500) }, 400);
+  }
+});
+
+// Full history import, one page per request; the dashboard keeps calling with the returned cursor.
+admin.post('/calendly/import', async (c) => {
+  const rt = runtimeFrom(c);
+  if (!calendlyConnected(rt.settings)) return c.json({ ok: false, error: 'Calendly isn’t connected.' }, 400);
+  const { cursor } = await c.req.json<{ cursor?: string | null }>().catch(() => ({ cursor: null }));
+  try {
+    return c.json({ ok: true, ...(await importCalendlyHistory(rt, cursor ?? null)) });
   } catch (err) {
     return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 500) }, 400);
   }

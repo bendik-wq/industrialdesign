@@ -463,6 +463,12 @@
         }).join('') : '<p class="muted">No video views recorded.</p>') +
         '<h2 style="margin-top:14px">Emails</h2>' + (d.emails.length ? table([{ label: 'Email', html: function (m) { return esc(m.template) + '<div class="muted">' + esc(m.sequence) + '</div>'; } }, { label: 'Status', key: 'status' }, { label: 'When', html: function (m) { return esc(when(m.sent_at || m.send_at)); } }, { label: 'Opened', html: function (m) { return m.opened_at ? '✓' : ''; } }, { label: 'Clicked', html: function (m) { return m.clicked_at ? '✓' : ''; } }, { label: 'Personal', html: function (m) { return m.personalized && m.personalized !== 'off' ? '<span class="pill" title="' + esc(m.facts_used || '') + '">' + esc(m.personalized) + '</span>' : ''; } }], d.emails) : '<p class="muted">None.</p>') + '</div></div>' +
         '<div class="card" style="margin-top:14px" data-behaviour><div class="card-head"><div><h2>What they did → their emails</h2><p class="sub">Every email to this lead is rewritten around these, one or two at a time, never repeating.</p></div></div><p class="muted">Loading…</p></div>' +
+        (d.calendly && d.calendly.length ? '<div class="card" style="margin-top:14px"><h2>Calendly bookings · ' + d.calendly.length + '</h2>' + table([
+          { label: 'Call', html: function (b) { return esc(when(b.start_at)); } },
+          { label: 'Booked', html: function (b) { return esc(b.booked_at ? when(b.booked_at) : '–'); } },
+          { label: 'Status', html: function (b) { return '<span class="pill">' + esc(b.rescheduled ? 'rescheduled' : b.status) + '</span>' + (b.cancel_reason ? ' <span class="muted">' + esc(b.cancel_reason) + '</span>' : ''); } },
+          { label: 'Host', key: 'host_email' },
+        ], d.calendly) + '</div>' : '') +
         (d.voice && d.voice.length ? '<div class="card" style="margin-top:14px"><h2>AI calls</h2>' + d.voice.map(voiceCall).join('') + '</div>' : '') +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action, server-side.</p></div><label class="muted"><input type="checkbox" data-all> show all events</label></div><ul class="timeline" data-tl>' + timeline() + '</ul></div>';
 
@@ -531,6 +537,16 @@
           { label: 'Source', html: function (r) { return '<span class="muted">' + esc([r.channel || 'Direct', r.utm_content].filter(Boolean).join(' / ')) + '</span>'; } },
         ], d.upcoming) + '</div>' +
         '<div class="card"><h2>Why deals are lost</h2><p class="sub">Lost reasons logged in this range.</p>' + (d.lostReasons.length ? barList(d.lostReasons.map(function (r) { return { name: r.reason, value: r.n }; })) : '<div class="empty">No losses logged.</div>') + '</div></div>' +
+        (d.calendlyMonthly && d.calendlyMonthly.length ? '<div class="card" style="margin-top:14px"><h2>Calendly history</h2><p class="sub">Every booking on Josh’s Calendly by month (reschedules counted once), including ones from before the funnel.' + (t.older_unlogged ? ' ' + n(t.older_unlogged) + ' calls older than 30 days have no outcome logged; open them from Leads to fill them in.' : '') + '</p>' +
+          table([
+            { label: 'Month', key: 'month' },
+            { label: 'Booked', key: 'booked', num: true, fmt: n },
+            { label: 'Kept', key: 'kept', num: true, fmt: n },
+            { label: 'Cancelled', key: 'canceled', num: true, fmt: n },
+            { label: 'No-shows', key: 'no_shows', num: true, fmt: n },
+            { label: 'Cancel rate', num: true, html: function (r) { return esc(pct(r.booked ? r.canceled / r.booked : 0)); } },
+            { label: 'People', key: 'people', num: true, fmt: n },
+          ], d.calendlyMonthly) + '</div>' : '') +
         '<div class="card" style="margin-top:14px"><h2>Recent outcomes</h2>' +
         table([
           { label: 'When', html: function (r) { return esc(when(r.closed_at || r.showed_at || r.updated_at)); } },
@@ -836,7 +852,7 @@
           return '<div class="int"><span class="badge">' + (s.connected ? '<span class="status-dot" style="background:var(--good)" aria-hidden="true"></span>' : '<span class="status-dot" style="background:var(--axis)" aria-hidden="true"></span>') + '</span><div><b>' + esc(s.label || k) + ' · ' + (s.connected ? 'connected' : 'not connected') + '</b><span>' + esc(s.detail) + '</span></div></div>';
         }).join('') + '</div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Calendly</h2><p class="sub">With the personal access token connected: exact call times the moment someone books, meeting links in the reminders, the host mapped to your closer, their booking answers, a signed webhook (bookings, cancellations, reschedules, no-shows) and an hourly sync. Calls booked straight from the Calendly link are imported for the sales numbers only; they get no emails.</p></div></div>' +
-        '<div class="row"><button class="btn-sm" data-cal-connect>Connect webhook &amp; import</button><button class="btn-sm ghost" data-cal-sync>Sync now</button><span class="muted" data-cal-out></span></div></div>' +
+        '<div class="row"><button class="btn-sm" data-cal-connect>Connect webhook &amp; import</button><button class="btn-sm ghost" data-cal-sync>Sync now</button><button class="btn-sm ghost" data-cal-history>Import full history</button><span class="muted" data-cal-out></span></div></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Test email</h2><p class="sub">Sends a test through Resend to confirm the key, domain and From address.</p><div class="row"><input class="input" type="email" placeholder="you@company.com" data-test-to style="flex:1"><button class="btn-sm" data-test>Send test</button></div></div>' +
         '<div class="card"><h2>Webhook URLs</h2><p class="sub">Paste these into each provider.</p><dl class="kv">' + kv('Calendly', d.webhooks.calendly) + kv('Cal.com / GHL / Zapier', d.webhooks.booking) + kv('WhatsApp Cloud API', d.webhooks.whatsapp) + kv('Vapi (voice) Server URL', d.webhooks.voice) + '</dl></div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Voice assistant</h2><p class="sub">Creates (or updates) the inbound assistant in your Vapi account from the copy, FAQs and rules in config. Save your Vapi keys and webhook secret first. Then in Vapi, set your phone number’s Server URL to the voice URL above and leave its assistant empty.</p></div><div class="row"><a class="btn-sm ghost" href="/admin/api/voice/assistant.json" target="_blank" rel="noopener">View JSON</a><button class="btn-sm" type="button" data-provision>Create / update assistant</button></div></div></div>' +
@@ -854,6 +870,18 @@
       var calOut = view.querySelector('[data-cal-out]');
       var calDone = function (r) { calOut.textContent = r.ok ? ((r.name ? 'Connected as ' + r.name + ' · ' : '') + (r.sync ? r.sync.events + ' events checked, ' + r.sync.updated + ' updated, ' + r.sync.imported + ' imported, ' + r.sync.cancelled + ' cancelled' : 'synced')) : (r.error || 'Failed'); };
       view.querySelector('[data-cal-connect]').onclick = function () { calOut.textContent = 'Connecting…'; send('POST', 'calendly/connect', {}).then(calDone); };
+      view.querySelector('[data-cal-history]').onclick = function () {
+        var b = this, tot = { events: 0, imported: 0, updated: 0, cancelled: 0 };
+        b.disabled = true;
+        (function step(cursor) {
+          send('POST', 'calendly/import', { cursor: cursor }).then(function (r) {
+            if (!r.ok) { calOut.textContent = r.error || 'Failed'; b.disabled = false; return; }
+            ['events', 'imported', 'updated', 'cancelled'].forEach(function (k) { tot[k] += r[k] || 0; });
+            calOut.textContent = (r.next ? 'Importing… ' : 'Done: ') + tot.events + ' bookings, ' + tot.imported + ' new people, ' + tot.updated + ' updated';
+            if (r.next) step(r.next); else b.disabled = false;
+          });
+        })(null);
+      };
       view.querySelector('[data-cal-sync]').onclick = function () { calOut.textContent = 'Syncing…'; send('POST', 'calendly/sync', {}).then(calDone); };
       view.querySelector('[data-test]').onclick = function () {
         send('POST', 'integrations/test-email', { to: view.querySelector('[data-test-to]').value }).then(function (r) { toast(r.ok ? 'Test email sent ✓' : (r.error || 'Failed')); });

@@ -26,7 +26,7 @@ export async function salesStats(env: Env, from: number, to: number, tz: string)
   const now = Date.now();
   const monthStart = startOfMonth(now, tz);
 
-  const [calls, deals, mtd, upcoming, needsOutcome, recent, lostReasons] = await Promise.all([
+  const [calls, deals, mtd, upcoming, needsOutcome, recent, lostReasons, olderUnlogged, monthly] = await Promise.all([
     // Calls scheduled in range, by closer.
     db.prepare(
       `SELECT closer_id AS rep, COUNT(*) AS booked,
@@ -60,9 +60,9 @@ export async function salesStats(env: Env, from: number, to: number, tz: string)
     db.prepare(
       `SELECT l.id, l.first_name, l.last_name, l.email, l.call_at, l.booked_at, l.closer_id, COALESCE(l.tier_override, l.tier) AS tier
          FROM leads l
-        WHERE l.status = 'booked' AND l.booking_cancelled_at IS NULL AND COALESCE(l.call_at, l.booked_at + 86400000) < ?
+        WHERE l.status = 'booked' AND l.booking_cancelled_at IS NULL AND COALESCE(l.call_at, l.booked_at + 86400000) BETWEEN ? AND ?
         ORDER BY COALESCE(l.call_at, l.booked_at) DESC LIMIT 100`,
-    ).bind(now - 60 * 60_000).all(),
+    ).bind(now - 30 * 86_400_000, now - 60 * 60_000).all(),
     // Recent outcomes.
     db.prepare(
       `SELECT l.id, l.first_name, l.last_name, l.status, l.revenue, l.cash_collected, l.closed_at, l.showed_at, l.updated_at, l.lost_reason, l.closer_id,
@@ -70,6 +70,14 @@ export async function salesStats(env: Env, from: number, to: number, tz: string)
          FROM leads l WHERE l.status IN ('showed', 'won', 'lost', 'no_show') ORDER BY l.updated_at DESC LIMIT 30`,
     ).all(),
     db.prepare(`SELECT COALESCE(lost_reason, 'Not given') AS reason, COUNT(*) AS n FROM leads WHERE status = 'lost' AND closed_at BETWEEN ? AND ? GROUP BY 1 ORDER BY 2 DESC`).bind(from, to).all(),
+    // Calls older than 30 days with no outcome logged (mostly imported Calendly history).
+    db.prepare(`SELECT COUNT(*) AS n FROM leads WHERE status = 'booked' AND booking_cancelled_at IS NULL AND call_at < ?`).bind(now - 30 * 86_400_000).first<{ n: number }>(),
+    // Every Calendly booking ever, by month.
+    db.prepare(
+      `SELECT strftime('%Y-%m', start_at / 1000, 'unixepoch') AS month, COUNT(*) AS booked, SUM(status = 'active') AS kept, SUM(status = 'canceled') AS canceled,
+              SUM(status = 'no_show') AS no_shows, COUNT(DISTINCT email) AS people
+         FROM calendly_bookings WHERE rescheduled = 0 GROUP BY 1 ORDER BY 1 DESC LIMIT 24`,
+    ).all().catch(() => ({ results: [] })),
   ]);
 
   const byRep = new Map<string, RepRow>();
@@ -122,7 +130,9 @@ export async function salesStats(env: Env, from: number, to: number, tz: string)
       avg_deal: rate(total.revenue, total.won),
       upcoming: upcoming.results.length,
       needs_outcome: needsOutcome.results.length,
+      older_unlogged: olderUnlogged?.n ?? 0,
     },
+    calendlyMonthly: monthly.results,
     leaderboard,
     upcoming: upcoming.results,
     needsOutcome: needsOutcome.results,
