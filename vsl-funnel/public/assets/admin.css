@@ -237,3 +237,11 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .facts li.used { color: var(--muted); }
 .facts .w { flex: none; width: 22px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 11px; }
 .email-preview { width: 100%; height: 520px; border: 1px solid var(--border); border-radius: 10px; background: #fff; margin-top: 6px; }
+
+/* Deal + insights */
+.deal-grid label, .calllog label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.calllog td { vertical-align: middle; }
+.calllog .input { padding: 4px 6px; font-size: 12px; }
+.calllog tr.saved td { background: color-mix(in srgb, var(--good-text) 7%, transparent); }
+.section-h { margin: 22px 0 10px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.quotes { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13px; }

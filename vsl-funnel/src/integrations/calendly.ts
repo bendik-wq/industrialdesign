@@ -3,6 +3,7 @@ import { newId, newRefCode } from '../lib/ids';
 import { type Lead, getLead, getLeadByEmail, updateLead, validateEmail } from '../funnel/leads';
 import { saveSettings } from '../settings';
 import type { Settings } from '../settings';
+import { qualifyCalendly } from '../sales/qualify';
 
 /**
  * Calendly API (personal access token). Gives us what the embed can't:
@@ -104,6 +105,32 @@ export function bookingFields(rt: Runtime, ev: CalEvent, inv: CalInvitee) {
   };
 }
 
+/** Tier + qualification markers from a Calendly booking form, for people who never filled in the funnel application. */
+export function qualFields(answers: { question: string; answer: string }[] | undefined): Partial<Record<keyof Lead, string | number | null>> {
+  if (!answers?.length) return {};
+  const q = qualifyCalendly(answers.map((x) => ({ q: x.question, a: x.answer })));
+  return {
+    tier: q.tier, score: q.score, revenue_band: q.revenue_band, industry: q.industry?.slice(0, 120) ?? null, budget_band: q.budget_band,
+    willing_to_invest: q.willing_to_invest, qual_source: 'calendly', qual_flags: JSON.stringify(q.flags),
+  };
+}
+
+/** Re-tiers every Calendly-only lead from their latest booking answers. */
+export async function requalifyCalendlyLeads(rt: Runtime) {
+  const { results } = await rt.env.DB.prepare(
+    `SELECT l.id, (SELECT answers FROM calendly_bookings b WHERE b.lead_id = l.id AND b.answers IS NOT NULL ORDER BY b.start_at DESC LIMIT 1) AS answers
+       FROM leads l WHERE l.booking_source = 'calendly-direct' OR (l.app_completed_at IS NULL AND l.booking_provider = 'calendly')`,
+  ).all<{ id: string; answers: string | null }>();
+  let n = 0;
+  for (const r of results) {
+    if (!r.answers) continue;
+    const parsed = JSON.parse(r.answers) as { q: string; a: string }[];
+    await updateLead(rt.env, r.id, qualFields(parsed.map((x) => ({ question: x.q, answer: x.a }))));
+    n++;
+  }
+  return n;
+}
+
 /** Finds the funnel lead for an invitee: our lead id rides in salesforce_uuid; else email. */
 export async function leadForInvitee(rt: Runtime, inv: CalInvitee) {
   const id = inv.tracking?.salesforce_uuid;
@@ -168,7 +195,7 @@ async function processEvent(rt: Runtime, ev: CalEvent, stats: { events: number; 
         await updateLead(rt.env, lead.id, { booked_at: i.created_at ? Date.parse(i.created_at) : lead.booked_at ?? now, call_at: callAt, booking_ref: ev.uri, booking_provider: 'calendly', booking_cancelled_at: null, status: keep ? lead.status : 'booked' });
         stats.updated++;
       }
-      await updateLead(rt.env, lead.id, fields);
+      await updateLead(rt.env, lead.id, direct || !lead.app_completed_at ? { ...fields, ...qualFields(i.questions_and_answers) } : fields);
     } else if (status === 'no_show') {
       if (['booked', 'partial', 'applied', 'nurture'].includes(lead.status)) await updateLead(rt.env, lead.id, { status: 'no_show', call_at: callAt, booking_ref: ev.uri, booking_cancelled_at: null, ...fields });
     } else if (lead.booking_ref === ev.uri && !lead.booking_cancelled_at && !i.rescheduled) {
@@ -248,6 +275,6 @@ async function importDirect(rt: Runtime, i: CalInvitee, ev: CalEvent, status: 'a
       t.utm_source ?? null, t.utm_medium ?? null, t.utm_campaign ?? null, t.utm_content ?? null, t.utm_term ?? null, created, callAt, ev.uri,
       status === 'canceled' ? Date.parse(ev.start_time) || now : null, i.timezone ?? null)
     .run();
-  await updateLead(rt.env, id, fields);
+  await updateLead(rt.env, id, { ...fields, ...qualFields(i.questions_and_answers) });
   return (await getLead(rt.env, id))!;
 }

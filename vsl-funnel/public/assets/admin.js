@@ -185,6 +185,7 @@
     application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     experiments: { title: 'A/B tests', sub: 'Headline experiment, judged on applications per visitor.', render: renderExperiments },
     sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
+    insights: { title: 'Insights', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
     team: { title: 'Team', sub: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
     leads: { title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads },
     emails: { title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmails },
@@ -456,6 +457,7 @@
         kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline', l.variant) + kv('Location', [l.city, l.country].filter(Boolean).join(', ')) + kv('Device', l.device) +
         kv('WhatsApp', l.whatsapp_connected_at ? 'connected ' + when(l.whatsapp_connected_at) : l.whatsapp_clicked_at ? 'clicked ' + when(l.whatsapp_clicked_at) : (l.whatsapp_opt_in ? 'opted in' : '–')) +
         kv('Email', l.unsubscribed_at ? 'unsubscribed' : 'subscribed') + kv('Phone calls', l.do_not_call_at ? 'do not call (since ' + when(l.do_not_call_at) + ')' : l.call_consent_at ? 'consented to AI calls ' + when(l.call_consent_at) : 'no call consent') + kv('Visits', d.sessions.length) + '</dl></div></div>' +
+        dealCard(l) +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Application</h2><dl class="kv" style="margin-top:10px">' + d.answers.map(function (a) { return kv(a.question, a.answer); }).join('') + '</dl>' +
         (sc.breakdown ? '<p class="sub" style="margin-top:12px">Scoring: ' + esc(sc.breakdown.map(function (b) { return b.question + ' +' + b.points; }).join(', ')) + (sc.caps && sc.caps.length ? ' · capped: ' + esc(sc.caps.join(', ')) : '') + '</p>' : '') + '</div>' +
         '<div class="card"><h2>Video</h2>' + (d.vsl.length ? d.vsl.map(function (v) {
@@ -474,6 +476,7 @@
 
       dr.querySelector('.close').onclick = close;
       loadBehaviour(dr, id);
+      loadPayments(dr, id);
       dr.querySelector('[data-all]').onchange = function (e) { showAll = e.target.checked; dr.querySelector('[data-tl]').innerHTML = timeline(); };
       dr.querySelector('[data-save]').onclick = function () {
         var body = {};
@@ -528,6 +531,8 @@
           { label: 'Commission', key: 'commission', num: true, fmt: money },
           { label: 'MTD vs target', html: function (r) { return '<div class="target-cell">' + bar(r.target_progress) + '</div>'; } },
         ], d.leaderboard) + '</div>' +
+        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Call log</h2><p class="sub">Every past call. Fill in what happened: logging old calls never emails anyone or sends conversions to ads, and the outcome is dated to the call.</p></div>' +
+        '<div class="row"><select class="input" data-cl-tier><option value="">All tiers</option><option>A</option><option>B</option><option>C</option></select><label class="muted"><input type="checkbox" data-cl-unlogged checked> only unlogged</label></div></div><div data-calllog><p class="muted">Loading…</p></div></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Upcoming calls</h2><p class="sub">Next 14 days. Reps get pinged 15 minutes before each one.</p>' +
         table([
           { label: 'When', html: function (r) { return esc(when(r.call_at)); } },
@@ -559,6 +564,36 @@
 
       view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
       view.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); go(a.getAttribute('data-go')); }; });
+      var drawLog = function () {
+        var box = view.querySelector('[data-calllog]');
+        api('sales/calls', { tier: view.querySelector('[data-cl-tier]').value, unlogged: view.querySelector('[data-cl-unlogged]').checked ? 1 : '' }, { noRange: true }).then(function (r) {
+          var m = state.meta || {};
+          var sel = function (f, list, cur, blank) { return '<select class="input" data-cf="' + f + '">' + opts(list, cur, blank) + '</select>'; };
+          box.innerHTML = r.calls.length ? '<div class="table-wrap"><table class="calllog"><thead><tr><th>Call</th><th>Lead</th><th>Tier</th><th>Revenue</th><th>Outcome</th><th>Temp</th><th>Objection</th><th class="num">Deal $</th><th class="num">Cash $</th><th></th></tr></thead><tbody>' +
+            r.calls.map(function (c) {
+              return '<tr data-id="' + esc(c.id) + '"><td>' + esc(when(c.call_at)) + '</td><td><a href="#lead=' + esc(c.id) + '" data-open="' + esc(c.id) + '">' + esc(personName(c)) + '</a><div class="muted">' + esc((c.industry || '').slice(0, 40)) + '</div></td>' +
+                '<td>' + (c.tier ? '<span class="tier ' + esc(c.tier) + '">' + esc(c.tier) + '</span>' : '–') + '</td><td class="muted">' + esc(c.revenue_band || '–') + '</td>' +
+                '<td>' + sel('status', ['booked', 'showed', 'no_show', 'won', 'lost', 'disqualified'], c.status) + '</td>' +
+                '<td>' + sel('temperature', m.temperatures, c.temperature, '—') + '</td><td>' + sel('objection', m.objections, c.objection, '—') + '</td>' +
+                '<td class="num"><input class="input" data-cf="revenue" type="number" step="500" value="' + esc(c.revenue || '') + '" style="width:100px"></td>' +
+                '<td class="num"><input class="input" data-cf="cash_collected" type="number" step="500" value="' + esc(c.cash_collected || '') + '" style="width:100px"></td>' +
+                '<td><button class="btn-sm" data-cl-save>Save</button></td></tr>';
+            }).join('') + '</tbody></table></div><p class="muted" style="margin-top:6px">' + r.calls.length + ' calls</p>' : '<div class="empty">Nothing to log here.</div>';
+          box.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
+          box.querySelectorAll('[data-cl-save]').forEach(function (b) {
+            b.onclick = function () {
+              var tr = b.closest('tr'), body = {};
+              tr.querySelectorAll('[data-cf]').forEach(function (x) { body[x.getAttribute('data-cf')] = x.value; });
+              if (body.status === 'lost' && !body.lost_reason) body.lost_reason = body.objection || 'Other';
+              b.disabled = true;
+              send('PATCH', 'leads/' + encodeURIComponent(tr.getAttribute('data-id')), body).then(function (res) { b.disabled = false; toast(res.ok ? 'Saved' : (res.error || 'Could not save')); if (res.ok) tr.classList.add('saved'); });
+            };
+          });
+        });
+      };
+      view.querySelector('[data-cl-tier]').onchange = drawLog;
+      view.querySelector('[data-cl-unlogged]').onchange = drawLog;
+      drawLog();
       view.querySelectorAll('.outcome [data-out]').forEach(function (b) {
         b.onclick = function () {
           var id = b.closest('[data-lead]').getAttribute('data-lead'), status = b.getAttribute('data-out'), body = { status: status };
@@ -575,6 +610,40 @@
           send('PATCH', 'leads/' + encodeURIComponent(id), body).then(function (r) { toast(r.ok ? 'Logged — team notified' : (r.error || 'Could not save')); load(); });
         };
       });
+    });
+  }
+
+
+  function renderInsights() {
+    return api('insights', null, { noRange: true }).then(function (d) {
+      var T = d.byTier, a = d.a;
+      var tierRow = function (k, label) { var t = T[k]; return Object.assign({ tier: label }, t); };
+      var bars = function (title, list, sub) { return '<div class="card"><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + (list && list.length ? barList(list.slice(0, 10).map(function (x) { return { name: x.k, value: x.n, note: pct(x.n / (a.people || 1)) }; })) : '<p class="muted">No data.</p>') + '</div>'; };
+      var orNull = function (v) { return v == null ? '–' : pct(v); };
+      view.innerHTML =
+        '<div class="grid g-4">' +
+        tile('A-tier who booked', n(a.people), pct(a.people / (d.total_booked || 1)) + ' of ' + n(d.total_booked) + ' bookers') +
+        tile('A-tier cancel rate', pct(a.cancel_rate), 'vs ' + pct(T.C.cancel_rate) + ' for C-tier') +
+        tile('Booked ahead (median)', a.median_days_booked_ahead == null ? '–' : a.median_days_booked_ahead.toFixed(1) + ' days', n(a.repeat_bookers) + ' booked more than once') +
+        tile('A-tier close rate', orNull(a.close_rate), n(a.outcomes_logged) + ' of ' + n(a.past_calls) + ' past calls logged') + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>By tier</h2><p class="sub">Tier comes from the funnel application, or from the Calendly booking form for people who booked directly (revenue, willingness to invest, budget, team size).</p>' +
+        table([
+          { label: 'Tier', key: 'tier' }, { label: 'People', key: 'people', num: true, fmt: n }, { label: 'Bookings', key: 'bookings', num: true, fmt: n },
+          { label: 'Cancel rate', num: true, html: function (r) { return esc(pct(r.cancel_rate)); } },
+          { label: 'Reschedule rate', num: true, html: function (r) { return esc(pct(r.reschedule_rate)); } },
+          { label: 'Willing to invest', num: true, html: function (r) { return esc(pct(r.willing_yes)); } },
+          { label: 'Logged', num: true, html: function (r) { return esc(n(r.outcomes_logged) + '/' + n(r.past_calls)); } },
+          { label: 'Show', num: true, html: function (r) { return esc(orNull(r.show_rate)); } },
+          { label: 'Close', num: true, html: function (r) { return esc(orNull(r.close_rate)); } },
+          { label: 'Revenue', key: 'revenue', num: true, fmt: money }, { label: 'Cash', key: 'cash', num: true, fmt: money },
+        ], [tierRow('A', 'A · $1M+, ready'), tierRow('B', 'B · promising'), tierRow('C', 'C · not yet'), tierRow('none', 'Untiered')].filter(function (r) { return r.people; })) + '</div>' +
+        '<h3 class="section-h">The A-tier</h3>' +
+        '<div class="grid g-3">' + bars('Revenue', a.revenue_bands) + bars('Sector', a.sectors, 'Grouped from what they typed') + bars('Budget for advisory', a.budgets) + '</div>' +
+        '<div class="grid g-3" style="margin-top:14px">' + bars('What they want help with', a.help) + bars('What applies to them', a.statements) + bars('Who they are', a.describes) + '</div>' +
+        '<div class="grid g-3" style="margin-top:14px">' + bars('Call day', a.call_weekday, 'In the sales team’s time zone') + bars('Call time', a.call_hour) + bars('Status now', a.statuses) + '</div>' +
+        '<div class="grid g-2" style="margin-top:14px">' + bars('Booked by month', a.booked_month) +
+        '<div class="card"><h2>In their own words</h2><p class="sub">What A-tier bookers wrote in the booking form.</p>' + (a.notes.length ? '<ul class="quotes">' + a.notes.map(function (q) { return '<li>“' + esc(q) + '”</li>'; }).join('') + '</ul>' : '<p class="muted">None.</p>') + '</div></div>' +
+        '<div class="card" style="margin-top:14px"><h2>Industries (as typed)</h2>' + (a.industries.length ? '<p>' + a.industries.map(function (x) { return '<span class="pill">' + esc(x.k) + (x.n > 1 ? ' ×' + x.n : '') + '</span>'; }).join(' ') + '</p>' : '<p class="muted">None.</p>') + '</div>';
     });
   }
 
@@ -652,6 +721,57 @@
         });
       };
     });
+  }
+
+
+  function ymd(ms) { if (!ms) return ''; var d = new Date(ms); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function opts(list, cur, blank) { return (blank ? '<option value="">' + esc(blank) + '</option>' : '') + (list || []).map(function (x) { return '<option' + (x === cur ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); }
+  function dealCard(l) {
+    var m = state.meta || {};
+    var flags = []; try { flags = JSON.parse(l.qual_flags || '[]'); } catch (e) { /* ignore */ }
+    var f = function (label, html) { return '<label>' + esc(label) + ' ' + html + '</label>'; };
+    var inp = function (name, val, type, extra) { return '<input class="input" data-f="' + name + '" type="' + (type || 'text') + '" value="' + esc(val == null ? '' : val) + '"' + (extra || '') + '>'; };
+    return '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Deal</h2><p class="sub">' +
+      esc([l.revenue_band && ('Revenue ' + l.revenue_band), l.industry, l.budget_band && ('Budget ' + l.budget_band), l.willing_to_invest && l.willing_to_invest !== 'unknown' && ('Willing to invest: ' + l.willing_to_invest), l.qual_source && ('qualified from ' + l.qual_source)].filter(Boolean).join(' · ') || 'No qualification data yet.') +
+      (flags.length ? '<br>' + flags.map(function (x) { return '<span class="pill">' + esc(x) + '</span>'; }).join(' ') : '') + '</p></div></div>' +
+      '<div class="grid g-4 deal-grid" style="gap:10px">' +
+      f('Temperature', '<select class="input" data-f="temperature">' + opts(m.temperatures, l.temperature, '—') + '</select>') +
+      f('Fit (1–5)', '<select class="input" data-f="fit_rating">' + opts(['1', '2', '3', '4', '5'], l.fit_rating == null ? '' : String(l.fit_rating), '—') + '</select>') +
+      f('Decision maker on call', '<select class="input" data-f="decision_maker"><option value="">—</option><option value="1"' + (l.decision_maker === 1 ? ' selected' : '') + '>Yes</option><option value="0"' + (l.decision_maker === 0 ? ' selected' : '') + '>No</option></select>') +
+      f('Main objection', '<select class="input" data-f="objection">' + opts(m.objections, l.objection, '—') + '</select>') +
+      f('Follow up on', inp('follow_up_at', ymd(l.follow_up_at), 'date')) +
+      f('Offer bought', inp('offer', l.offer, 'text', ' placeholder="e.g. 90-day LOI program"')) +
+      f('Payment plan', '<select class="input" data-f="payment_plan">' + opts(m.paymentPlans, l.payment_plan, '—') + '</select>') +
+      f('Instalments', inp('installments_total', l.installments_total, 'number', ' min="0"')) +
+      f('Contract signed', inp('contract_signed_at', ymd(l.contract_signed_at), 'date')) +
+      f('Next payment due', inp('next_payment_at', ymd(l.next_payment_at), 'date')) +
+      f('LOI signed', inp('loi_signed_at', ymd(l.loi_signed_at), 'date')) +
+      f('Target business', inp('target_business', l.target_business)) +
+      '</div><p class="muted" style="margin-top:8px">Saved with the Save button above. Cash collected comes from the payments below once you add any.' +
+      (l.contract_signed_at && !l.loi_signed_at ? ' <b>' + Math.max(0, 90 - Math.floor((Date.now() - l.contract_signed_at) / 86400000)) + ' days left</b> in the 90-day LOI window.' : '') + '</p>' +
+      '<h2 style="margin-top:14px">Payments</h2><div data-payments><p class="muted">Loading…</p></div>' +
+      '<div class="row" style="margin-top:8px"><input class="input" data-pay-amt type="number" step="100" placeholder="Amount (negative = refund)" style="width:190px"><input class="input" data-pay-date type="date" value="' + ymd(Date.now()) + '"><select class="input" data-pay-method><option>stripe</option><option>bank</option><option>card</option><option>other</option></select><input class="input" data-pay-note placeholder="Note" style="flex:1"><button class="btn-sm" data-pay-add type="button">Add payment</button></div></div>';
+  }
+  function loadPayments(dr, id) {
+    var box = dr.querySelector('[data-payments]');
+    if (!box) return;
+    var draw = function () {
+      fetch('/admin/api/leads/' + encodeURIComponent(id) + '/payments', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+        var total = d.payments.reduce(function (t, p) { return t + p.amount; }, 0);
+        box.innerHTML = d.payments.length ? table([
+          { label: 'Date', html: function (p) { return esc(ymd(p.paid_at)); } },
+          { label: 'Amount', num: true, html: function (p) { return '<span' + (p.amount < 0 ? ' class="muted"' : '') + '>' + esc(money(p.amount)) + '</span>'; } },
+          { label: 'Method', key: 'method' }, { label: 'Note', key: 'note' },
+          { label: '', html: function (p) { return '<button class="btn-sm ghost" data-pay-del="' + esc(p.id) + '">✕</button>'; } },
+        ], d.payments) + '<p class="sub" style="margin-top:6px">Collected: <b>' + esc(money(total)) + '</b></p>' : '<p class="muted">No payments recorded.</p>';
+        box.querySelectorAll('[data-pay-del]').forEach(function (b) { b.onclick = function () { fetch('/admin/api/leads/' + encodeURIComponent(id) + '/payments/' + encodeURIComponent(b.getAttribute('data-pay-del')), { method: 'DELETE', credentials: 'same-origin' }).then(draw); }; });
+      });
+    };
+    draw();
+    dr.querySelector('[data-pay-add]').onclick = function () {
+      send('POST', 'leads/' + encodeURIComponent(id) + '/payments', { amount: dr.querySelector('[data-pay-amt]').value, paid_at: dr.querySelector('[data-pay-date]').value, method: dr.querySelector('[data-pay-method]').value, note: dr.querySelector('[data-pay-note]').value })
+        .then(function (r) { if (r.error) { toast(r.error); return; } toast('Payment saved'); dr.querySelector('[data-pay-amt]').value = ''; dr.querySelector('[data-pay-note]').value = ''; draw(); var c = dr.querySelector('[data-f=cash_collected]'); if (c) c.value = r.cash_collected; });
+    };
   }
 
   function voiceCall(v) {

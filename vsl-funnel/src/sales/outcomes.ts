@@ -15,7 +15,39 @@ export interface LeadUpdate {
   tier_override?: string | null;
   closer_id?: string | null;
   setter_id?: string | null;
+  temperature?: string | null;
+  objection?: string | null;
+  follow_up_at?: number | string | null;
+  decision_maker?: boolean | number | string | null;
+  fit_rating?: number | string | null;
+  offer?: string | null;
+  payment_plan?: string | null;
+  installments_total?: number | string | null;
+  next_payment_at?: number | string | null;
+  contract_signed_at?: number | string | null;
+  refunded_at?: number | string | null;
+  refund_amount?: number | string | null;
+  loi_signed_at?: number | string | null;
+  target_business?: string | null;
+  industry?: string | null;
 }
+
+export const TEMPERATURES = ['hot', 'warm', 'cold'] as const;
+export const PAYMENT_PLANS = ['pif', 'split', 'monthly', 'custom'] as const;
+export const OBJECTIONS = ['Price', 'Timing', 'Needs to think', 'Partner / spouse', 'Funding doubts', 'Trust / proof', 'Time to commit', 'Not a fit', 'Other'] as const;
+
+/** Dates come from the dashboard as epoch ms or YYYY-MM-DD. */
+const date = (v: unknown) => {
+  if (v === undefined) return undefined;
+  if (v === null || v === '') return null;
+  const n = typeof v === 'number' ? v : /^\d+$/.test(String(v)) ? Number(v) : Date.parse(String(v));
+  return Number.isFinite(n) && n > 946_684_800_000 && n < 4_102_444_800_000 ? n : undefined;
+};
+const text = (v: unknown, max = 300) => (v === undefined ? undefined : String(v ?? '').trim().slice(0, max) || null);
+const oneOf = <T extends string>(v: unknown, list: readonly T[]) => (v === undefined ? undefined : list.includes(String(v) as T) ? String(v) : null);
+
+/** Imported Calendly history (or calls long past): record it, but don't email, ping or send conversions to ad platforms. */
+export const isHistorical = (lead: Lead) => lead.booking_source === 'calendly-direct' || Boolean(lead.call_at && lead.call_at < Date.now() - 14 * 86_400_000);
 
 export const LOST_REASONS = ['Price', 'Timing', 'No funding fit', 'Not a decision maker', 'Went with someone else', 'Not qualified', 'Ghosted', 'Other'] as const;
 
@@ -37,35 +69,60 @@ export async function applyLeadUpdate(rt: Runtime, lead: Lead, body: LeadUpdate)
   if (body.lost_reason !== undefined) fields.lost_reason = String(body.lost_reason ?? '').slice(0, 200) || null;
   if (body.notes !== undefined) fields.notes = String(body.notes ?? '').slice(0, 5000);
   if (body.tier_override !== undefined) fields.tier_override = ['A', 'B', 'C'].includes(String(body.tier_override)) ? body.tier_override : null;
+  const markers: [keyof Lead, string | number | null | undefined][] = [
+    ['temperature', oneOf(body.temperature, TEMPERATURES)],
+    ['objection', text(body.objection, 120)],
+    ['follow_up_at', date(body.follow_up_at)],
+    ['decision_maker', body.decision_maker === undefined ? undefined : body.decision_maker === null || body.decision_maker === '' ? null : [true, 1, '1', 'true', 'yes'].includes(body.decision_maker as never) ? 1 : 0],
+    ['fit_rating', body.fit_rating === undefined ? undefined : body.fit_rating === null || body.fit_rating === '' ? null : Math.max(1, Math.min(5, Math.round(Number(body.fit_rating)))) || null],
+    ['offer', text(body.offer, 120)],
+    ['payment_plan', oneOf(body.payment_plan, PAYMENT_PLANS)],
+    ['installments_total', body.installments_total === undefined ? undefined : num(body.installments_total) ?? null],
+    ['next_payment_at', date(body.next_payment_at)],
+    ['contract_signed_at', date(body.contract_signed_at)],
+    ['refunded_at', date(body.refunded_at)],
+    ['refund_amount', num(body.refund_amount)],
+    ['loi_signed_at', date(body.loi_signed_at)],
+    ['target_business', text(body.target_business, 200)],
+    ['industry', text(body.industry, 120)],
+  ];
+  for (const [k, v] of markers) if (v !== undefined) fields[k] = v;
   const repIds = new Set(rt.reps.map((r) => r.id));
   if (body.closer_id !== undefined) fields.closer_id = body.closer_id && repIds.has(body.closer_id) ? body.closer_id : null;
   if (body.setter_id !== undefined) fields.setter_id = body.setter_id && repIds.has(body.setter_id) ? body.setter_id : null;
 
   const changed = status && status !== lead.status;
   const now = Date.now();
-  if (changed && ['showed', 'won', 'lost'].includes(status) && !lead.showed_at) fields.showed_at = now;
-  if (changed && (status === 'won' || status === 'lost')) fields.closed_at = now;
+  // Logging old calls: date the outcome to the call, so revenue lands in the right month.
+  const when = isHistorical(lead) && lead.call_at ? lead.call_at : now;
+  if (changed && ['showed', 'won', 'lost'].includes(status) && !lead.showed_at) fields.showed_at = when;
+  if (changed && (status === 'won' || status === 'lost')) fields.closed_at = when;
   if (changed && status !== 'won' && status !== 'lost' && lead.closed_at) fields.closed_at = null;
   await updateLead(rt.env, lead.id, fields);
   const fresh = (await getLead(rt.env, lead.id))!;
   if (!changed) return fresh;
+  const history = isHistorical(lead);
 
-  // Follow-up sequences.
-  if (status === 'no_show') {
-    await cancelSequence(rt, lead.id, 'booked');
-    await enqueueSequence(rt, fresh, 'no_show');
-  } else if (status === 'showed') {
-    await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'no_show')]);
-    await enqueueSequence(rt, fresh, 'post_call');
-  } else if (status === 'won' || status === 'lost' || status === 'disqualified') {
-    await Promise.all((['booked', 'no_show', 'post_call', 'tier_a', 'tier_b'] as SequenceId[]).map((sq) => cancelSequence(rt, lead.id, sq)));
+  // Follow-up sequences (never for imported history).
+  if (!history) {
+    if (status === 'no_show') {
+      await cancelSequence(rt, lead.id, 'booked');
+      await enqueueSequence(rt, fresh, 'no_show');
+    } else if (status === 'showed') {
+      await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'no_show')]);
+      await enqueueSequence(rt, fresh, 'post_call');
+    } else if (status === 'won' || status === 'lost' || status === 'disqualified') {
+      await Promise.all((['booked', 'no_show', 'post_call', 'tier_a', 'tier_b', 'precall'] as SequenceId[]).map((sq) => cancelSequence(rt, lead.id, sq)));
+    }
   }
 
   await track(rt, await identityFromLead(rt.env, lead.id), {
     name: 'lead_status_changed',
     source: 'admin',
-    props: { from: lead.status, to: status, revenue: fresh.revenue, cash_collected: fresh.cash_collected, closer: fresh.closer_id, lost_reason: fresh.lost_reason },
+    props: { from: lead.status, to: status, revenue: fresh.revenue, cash_collected: fresh.cash_collected, closer: fresh.closer_id, lost_reason: fresh.lost_reason, historical: history },
+    localOnly: history,
   });
+  if (history) return fresh;
 
   // Team pings.
   const rep = rt.reps.find((r) => r.id === fresh.closer_id) ?? null;
@@ -121,4 +178,27 @@ export async function pingUpcomingCalls(rt: Runtime) {
     });
   }
   return results.length;
+}
+
+/** Payments ledger → cash collected (refunds are negative amounts). */
+export async function recordPayment(rt: Runtime, lead: Lead, p: { amount: unknown; paid_at?: unknown; method?: unknown; note?: unknown }) {
+  const amount = Number(p.amount);
+  if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 10_000_000) throw new Error('Enter an amount (negative for a refund).');
+  const paidAt = date(p.paid_at) ?? Date.now();
+  const { newId } = await import('../lib/ids');
+  await rt.env.DB.prepare('INSERT INTO payments (id, lead_id, amount, paid_at, method, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(newId('pay'), lead.id, amount, paidAt, text(p.method, 30) ?? null, text(p.note, 200) ?? null, Date.now()).run();
+  return syncCash(rt, lead.id);
+}
+
+export async function deletePayment(rt: Runtime, leadId: string, paymentId: string) {
+  await rt.env.DB.prepare('DELETE FROM payments WHERE id = ? AND lead_id = ?').bind(paymentId, leadId).run();
+  return syncCash(rt, leadId);
+}
+
+async function syncCash(rt: Runtime, leadId: string) {
+  const row = await rt.env.DB.prepare('SELECT COALESCE(SUM(amount), 0) AS cash, COALESCE(-SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0) AS refunds, MAX(CASE WHEN amount < 0 THEN paid_at END) AS refunded_at FROM payments WHERE lead_id = ?')
+    .bind(leadId).first<{ cash: number; refunds: number; refunded_at: number | null }>();
+  await updateLead(rt.env, leadId, { cash_collected: Math.max(0, row?.cash ?? 0), refund_amount: row?.refunds ?? 0, refunded_at: row?.refunded_at ?? null });
+  return (await getLead(rt.env, leadId))!;
 }

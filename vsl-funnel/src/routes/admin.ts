@@ -11,16 +11,17 @@ import { SEQUENCES } from '../integrations/sequences';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
-import { calendlyConnected, connectCalendly, importCalendlyHistory, syncCalendly } from '../integrations/calendly';
+import { calendlyConnected, connectCalendly, importCalendlyHistory, requalifyCalendlyLeads, syncCalendly } from '../integrations/calendly';
 import { type OutboundCall, dial, elevenConfigured, listPhoneNumbers, provisionAgent } from '../integrations/elevenlabs';
 import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
 import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
 import { salesStats } from '../admin/sales';
+import { insights } from '../admin/insights';
 import { notify, notifyConfigured, type NotifyChannel } from '../integrations/notify';
 import { buildDigest } from '../sales/digest';
 import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
-import { LOST_REASONS, type LeadUpdate, applyLeadUpdate } from '../sales/outcomes';
+import { LOST_REASONS, OBJECTIONS, PAYMENT_PLANS, TEMPERATURES, type LeadUpdate, applyLeadUpdate, deletePayment, recordPayment } from '../sales/outcomes';
 import { META_API_VERSION, metaUserData } from '../tracking/forward';
 import { geoFromRequest } from '../lib/geo';
 import { PLACEMENTS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
@@ -37,11 +38,31 @@ admin.get('/meta', (c) =>
     statuses: LEAD_STATUSES,
     closers: c.get('reps').filter((r) => r.active).map(({ id, name, role, tiers }) => ({ id, name, role, tiers: tiers.split(',') })),
     lostReasons: LOST_REASONS,
+    objections: OBJECTIONS,
+    temperatures: TEMPERATURES,
+    paymentPlans: PAYMENT_PLANS,
     sequences: Object.values(SEQUENCES).map((s) => ({ id: s.id, description: s.description, steps: s.steps.map((x) => x.template) })),
   }),
 );
 
 admin.get('/overview', async (c) => c.json(await overview(c.env, filters(c))));
+// Past calls for quick outcome logging (Sales → Call log).
+admin.get('/sales/calls', async (c) => {
+  const tier = c.req.query('tier') || '';
+  const unlogged = c.req.query('unlogged') === '1';
+  const where = ["l.booked_at IS NOT NULL", "l.booking_cancelled_at IS NULL", "l.call_at < ?"];
+  const params: (string | number)[] = [Date.now()];
+  if (['A', 'B', 'C'].includes(tier)) { where.push('COALESCE(l.tier_override, l.tier) = ?'); params.push(tier); }
+  if (unlogged) where.push("l.status = 'booked'");
+  const { results } = await c.env.DB.prepare(
+    `SELECT l.id, l.first_name, l.last_name, l.email, l.call_at, COALESCE(l.tier_override, l.tier) AS tier, l.score, l.status, l.revenue, l.cash_collected,
+            l.temperature, l.objection, l.revenue_band, l.industry, l.booking_source, l.closer_id
+       FROM leads l WHERE ${where.join(' AND ')} ORDER BY COALESCE(l.tier_override, l.tier) IS NULL, COALESCE(l.tier_override, l.tier), l.call_at DESC LIMIT 300`,
+  ).bind(...params).all();
+  return c.json({ calls: results });
+});
+
+admin.get('/insights', async (c) => c.json(await insights(c.env, c.get('settings').SALES_TIMEZONE || 'Australia/Sydney')));
 admin.get('/vsl', async (c) => c.json(await vslStats(c.env, filters(c), c.req.query('video') || VIDEOS.main.id)));
 admin.get('/attribution', async (c) => c.json(await attribution(c.env, filters(c), c.req.query('dim') || 'channel')));
 admin.get('/application', async (c) => c.json(await applicationStats(c.env, filters(c))));
@@ -119,6 +140,26 @@ admin.get('/leads/:id', async (c) => {
     voice: voice.results,
     calendly: calendly.results,
   });
+});
+
+// Payments ledger (cash collected, instalments, refunds).
+admin.get('/leads/:id/payments', async (c) => {
+  const { results } = await c.env.DB.prepare('SELECT * FROM payments WHERE lead_id = ? ORDER BY paid_at DESC').bind(c.req.param('id')).all();
+  return c.json({ payments: results });
+});
+admin.post('/leads/:id/payments', async (c) => {
+  const lead = await getLead(c.env, c.req.param('id'));
+  if (!lead) return c.json({ error: 'not found' }, 404);
+  try {
+    const fresh = await recordPayment(runtimeFrom(c), lead, await c.req.json());
+    return c.json({ ok: true, cash_collected: fresh.cash_collected });
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 400);
+  }
+});
+admin.delete('/leads/:id/payments/:pid', async (c) => {
+  const fresh = await deletePayment(runtimeFrom(c), c.req.param('id'), c.req.param('pid'));
+  return c.json({ ok: true, cash_collected: fresh.cash_collected });
 });
 
 // What this lead did, as the facts the email personaliser works from.
@@ -522,6 +563,8 @@ admin.post('/calendly/import', async (c) => {
     return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 500) }, 400);
   }
 });
+
+admin.post('/calendly/requalify', async (c) => c.json({ ok: true, requalified: await requalifyCalendlyLeads(runtimeFrom(c)) }));
 
 admin.post('/calendly/sync', async (c) => {
   try {

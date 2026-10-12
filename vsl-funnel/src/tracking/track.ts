@@ -31,6 +31,8 @@ export interface TrackInput {
   path?: string | null;
   /** Reuse a client-generated id so Pixel + CAPI events deduplicate. */
   eventId?: string;
+  /** Record it, but don't forward to Meta / GA4 / PostHog / CRM (e.g. logging historical outcomes). */
+  localOnly?: boolean;
 }
 
 export const identityFromVisitor = (v: VisitorCtx, pageUrl?: string | null, leadId?: string | null): TrackIdentity => ({
@@ -98,6 +100,6 @@ export async function track(rt: Runtime, who: TrackIdentity, input: TrackInput):
   if (who.sessionId) stmts.push(rt.env.DB.prepare('UPDATE sessions SET event_count = event_count + 1, last_seen_at = ? WHERE id = ?').bind(ts, who.sessionId));
   await rt.env.DB.batch(stmts);
 
-  if (!who.isBot) rt.waitUntil(forwardEvent(rt, who, { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null, source: input.source }));
+  if (!who.isBot && !input.localOnly) rt.waitUntil(forwardEvent(rt, who, { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null, source: input.source }));
   return id;
 }

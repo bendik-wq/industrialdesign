@@ -8,6 +8,7 @@ import { notifySlack } from '../integrations/notify';
 import { identityFromVisitor, track } from '../tracking/track';
 import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, parseAnswers, updateLead, validateEmail } from './leads';
 import { routeLead } from './routing';
+import { APP_REVENUE_BAND } from '../sales/qualify';
 import { normaliseAnswer, parseBlocklist, scoreApplication } from './scoring';
 
 export class ApplicationError extends Error {
@@ -172,6 +173,10 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
     app_completed_at: lead.app_completed_at ?? now,
     step_reached: APPLICATION.length,
     status: keepStatus ? lead.status : result.tier === 'C' ? 'nurture' : 'applied',
+    revenue_band: APP_REVENUE_BAND[String(answers.revenue)] ?? null,
+    industry: typeof answers.business === 'string' ? answers.business.slice(0, 120) : null,
+    qual_source: 'application',
+    qual_flags: JSON.stringify(result.flags),
   });
   const fresh = (await getLead(rt.env, lead.id))!;
 
