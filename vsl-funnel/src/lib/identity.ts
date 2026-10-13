@@ -8,6 +8,7 @@ import { hmacHex, unitHash } from './crypto';
 import { type Geo, geoFromRequest, isDatacenter } from './geo';
 import { newId } from './ids';
 import { getSecret } from './secret';
+import { isAdmin } from '../admin/auth';
 import { type ParsedUA, parseUA } from './ua';
 
 export const COOKIE = {
@@ -80,6 +81,8 @@ export async function resolveVisitor(c: Context<AppEnv>, kind: 'page' | 'beacon'
   let botReason = ua.botReason ?? null;
   if (!botReason && kind === 'page' && !req.headers.get('accept-language')) botReason = 'no-accept-language';
   if (!botReason && isDatacenter(geo) && /HeadlessChrome|Electron/.test(userAgent)) botReason = 'datacenter-headless';
+  // Funnel HQ → Pages previews: recorded as a bot so they never count in stats, tests or ad platforms.
+  if (url.searchParams.get('hq_preview') === '1' && (await isAdmin(c))) botReason = 'admin-preview';
   const isBot = Boolean(botReason);
 
   let visitorId = getCookie(c, COOKIE.visitor);

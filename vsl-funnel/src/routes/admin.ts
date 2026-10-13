@@ -15,6 +15,7 @@ import { cleanSequences, loadSmsSequences, renderSms, sendSmsNow, smsConfigured,
 import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_CHANNELS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS } from '../integrations/sms-defaults';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { dataReport, visitorJourney } from '../data/data';
+import { INDUSTRIES } from '../landers/catalog';
 import { cloudApiConfigured, sendWhatsAppTemplate, sendWhatsAppText, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
 import { calendlyConnected, connectCalendly, importCalendlyHistory, requalifyCalendlyLeads, syncCalendly } from '../integrations/calendly';
@@ -233,6 +234,23 @@ admin.post('/sms/test', async (c) => {
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(s.TWILIO_ACCOUNT_SID)}/Messages.json`, { method: 'POST', headers: { authorization: `Basic ${btoa(`${s.TWILIO_ACCOUNT_SID}:${s.TWILIO_AUTH_TOKEN}`)}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form });
   const data = (await res.json().catch(() => ({}))) as { message?: string };
   return c.json(res.ok ? { ok: true } : { ok: false, error: `Twilio: ${data.message ?? res.status}` }, res.ok ? 200 : 400);
+});
+// Funnel HQ → All pages: every page in funnel order, previewed live (previews never count; see identity.ts).
+admin.get('/pages', (c) => {
+  const ind = INDUSTRIES[0];
+  const pages = [
+    { group: 'Main funnel', title: 'Main page: VSL + application', desc: 'Where ads land. Headline A/B test, the VSL, and the application under it.', path: '/' },
+    { group: 'Main funnel', title: `Industry lander (e.g. ${ind.label})`, desc: '100 versions: 20 industries × 5 headlines, picked by ad or by the bandit.', path: `/for/${ind.id}` },
+    { group: 'Main funnel', title: 'Application (own page)', desc: 'The same questions as on the main page, on their own.', path: '/apply' },
+    { group: 'Main funnel', title: 'Book a call (qualified)', desc: 'A/B-tier applicants pick a time with their closer.', path: '/book?hq_as=qualified' },
+    { group: 'Main funnel', title: 'Part 2 video (applied, not booked)', desc: 'After the application: the second video plus “book your call”.', path: '/breakout?hq_as=qualified' },
+    { group: 'Main funnel', title: 'Booked: pre-call video', desc: 'After booking: the call time, what to prepare and the pre-call video.', path: '/breakout?hq_as=booked' },
+    { group: 'Main funnel', title: 'Resources (C-tier)', desc: 'Applicants who don’t qualify yet get the free resources instead of a call.', path: '/resources' },
+    { group: 'Webinar', title: 'Webinar sign-up', desc: 'The masterclass registration page (live.grosfjeld-li.com).', path: '/webinar' },
+    { group: 'Data partner', title: 'Data page', desc: 'The micro1 referral page (data.grosfjeld-li.com). Shows one of the 20 headlines.', path: '/data' },
+    { group: 'Other', title: 'Privacy policy', desc: 'Linked from every page and every email.', path: '/privacy' },
+  ];
+  return c.json({ pages: pages.map((p, i) => ({ ...p, n: i + 1, src: `${p.path}${p.path.includes('?') ? '&' : '?'}hq_preview=1` })) });
 });
 admin.get('/visitors/:id', async (c) => {
   const j = await visitorJourney(runtimeFrom(c), c.req.param('id').slice(0, 64));

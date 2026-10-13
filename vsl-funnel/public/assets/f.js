@@ -4,6 +4,16 @@
 (function () {
   'use strict';
   var cfg = window.FUNNEL || {};
+  // Funnel HQ → Pages preview: look, don't touch. Nothing is sent to the server and forms don't submit.
+  if (cfg.preview) {
+    var realFetch = window.fetch;
+    window.fetch = function (u, o) {
+      if (/^\/api\//.test(String(u)) && o && o.method && o.method !== 'GET') return Promise.resolve(new Response('{"ok":false,"error":"Preview: nothing is submitted."}', { status: 200, headers: { 'content-type': 'application/json' } }));
+      return realFetch.apply(this, arguments);
+    };
+    if (navigator.sendBeacon) navigator.sendBeacon = function () { return true; };
+    document.addEventListener('submit', function (e) { e.preventDefault(); e.stopImmediatePropagation(); }, true);
+  }
   var queue = [];
   var flushTimer = null;
   var path = (window.FUNNEL && window.FUNNEL.page) || location.pathname;

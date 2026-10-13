@@ -359,3 +359,17 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .hl-head .row { display: flex; gap: 8px; }
 .hl-bar { display: inline-block; width: 70px; height: 6px; border-radius: 6px; background: var(--surface-2); vertical-align: middle; overflow: hidden; }
 .hl-bar i { display: block; height: 100%; background: var(--good); }
+.screens-bar .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.screens-bar .sep { width: 12px; }
+.screens-group { margin: 22px 0 8px; font-size: 15px; }
+.screens-lane { display: flex; gap: 10px; align-items: flex-start; overflow-x: auto; padding: 4px 2px 14px; scroll-snap-type: x proximity; }
+.screens-arrow { align-self: center; font-size: 22px; color: var(--muted); flex: none; }
+.screen { margin: 0; flex: none; scroll-snap-align: start; }
+.screen figcaption { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; margin-bottom: 8px; min-height: 54px; }
+.screen figcaption .muted { grid-column: 2; font-size: 12px; line-height: 1.35; }
+.screen-n { grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--surface); font-size: 12px; font-weight: 650; display: grid; place-items: center; }
+.screen-frame { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+.screen-frame.phone { border-radius: 22px; border-width: 6px; border-color: #1b1b1b; }
+.screen-frame iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: #fff; }
+.screen-actions { display: flex; gap: 6px; align-items: center; margin-top: 8px; font-size: 12px; }
+.screen-actions .mono { margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

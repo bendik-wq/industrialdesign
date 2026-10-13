@@ -186,6 +186,7 @@
     application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
     sms: { title: 'SMS & WhatsApp', sub: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
+    screens: { title: 'All pages', sub: 'Every page in the funnel, in order, live. Previews never count as visits, never fire ad pixels and can’t submit anything.', render: renderScreens, noFilters: true },
     data: { title: 'Data page', sub: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData },
     webinar: { title: 'Webinar', sub: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar },
     pages: { title: 'Landing pages & tests', sub: 'Every page people land on, and every headline being tested: the main page’s A/B test plus 100 industry landers (20 industries × 5 headlines). Each visit is traced to applications, bookings and cash.', render: renderLanders },
@@ -271,6 +272,36 @@
     b.disabled = true;
     send('PUT', 'integrations', { DATA_HEADLINE_TEST: m }).then(function () { setTimeout(function () { go('data'); }, 300); });
   });
+  var screenPrefs = (function () { try { return JSON.parse(localStorage.getItem('hq_screens') || '{}'); } catch (e) { return {}; } })();
+  function renderScreens() {
+    return api('pages', {}, { noRange: true }).then(function (d) {
+      var dev = screenPrefs.dev === 'phone' ? 'phone' : 'desktop', size = ['s', 'm', 'l'].indexOf(screenPrefs.size) >= 0 ? screenPrefs.size : 'm';
+      var W = dev === 'phone' ? { s: 200, m: 260, l: 340 }[size] : { s: 300, m: 420, l: 600 }[size];
+      var DW = dev === 'phone' ? 390 : 1280, DH = dev === 'phone' ? 1500 : 1800, k = W / DW;
+      var btn = function (key, val, label, cur) { return '<button class="btn-sm' + (cur === val ? '' : ' ghost') + '" data-sp="' + key + ':' + val + '">' + label + '</button>'; };
+      var groups = [], byGroup = {};
+      d.pages.forEach(function (p) { if (!byGroup[p.group]) { byGroup[p.group] = []; groups.push(p.group); } byGroup[p.group].push(p); });
+      view.innerHTML = '<div class="card screens-bar"><div class="row">' + btn('dev', 'desktop', '🖥 Desktop', dev) + btn('dev', 'phone', '📱 Phone', dev) +
+        '<span class="sep"></span>' + btn('size', 's', 'Small', size) + btn('size', 'm', 'Medium', size) + btn('size', 'l', 'Large', size) +
+        '<span class="muted" style="margin-left:auto">Scroll sideways to follow the funnel →  Scroll inside a page to see all of it.</span></div></div>' +
+        groups.map(function (g) {
+          return '<h2 class="screens-group">' + esc(g) + '</h2><div class="screens-lane">' + byGroup[g].map(function (p, i) {
+            return (i ? '<div class="screens-arrow" aria-hidden="true">→</div>' : '') +
+              '<figure class="screen" style="width:' + W + 'px">' +
+              '<figcaption><span class="screen-n">' + p.n + '</span><strong>' + esc(p.title) + '</strong><span class="muted">' + esc(p.desc) + '</span></figcaption>' +
+              '<div class="screen-frame ' + dev + '" style="width:' + W + 'px;height:' + Math.round(DH * k) + 'px"><iframe loading="lazy" title="' + esc(p.title) + '" src="' + esc(p.src) + '" style="width:' + DW + 'px;height:' + DH + 'px;transform:scale(' + k + ')"></iframe></div>' +
+              '<div class="row screen-actions"><span class="mono muted">' + esc(p.path.replace(/[?&]hq_as=\w+/, '')) + '</span><a class="btn-sm ghost" href="' + esc(p.src) + '" target="_blank" rel="noopener">Open ↗</a><button class="btn-sm ghost" data-reload="' + p.n + '">Reload</button></div></figure>';
+          }).join('') + '</div>';
+        }).join('') +
+        '<p class="muted" style="margin-top:12px">Webinar “registered”, room and replay pages are personal (each needs a sign-up link), so they aren’t shown here. Open them from a test registration.</p>';
+      view.querySelectorAll('[data-sp]').forEach(function (b) {
+        b.onclick = function () { var kv = b.getAttribute('data-sp').split(':'); screenPrefs[kv[0]] = kv[1]; try { localStorage.setItem('hq_screens', JSON.stringify(screenPrefs)); } catch (e) { /* ignore */ } renderScreens(); };
+      });
+      view.querySelectorAll('[data-reload]').forEach(function (b) {
+        b.onclick = function () { var f = b.closest('.screen').querySelector('iframe'); f.src = f.src; };
+      });
+    });
+  }
   function renderData() {
     return api('data').then(function (d) {
       var f = d.funnel || {}, v = f.visitors || 0;

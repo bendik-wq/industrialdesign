@@ -65,6 +65,7 @@ function faqBlock(): Html {
 async function trackingHead(c: Context<AppEnv>, pageEventId: string): Promise<Html> {
   const s = c.get('settings');
   const v = c.get('visitor');
+  if (v.botReason === 'admin-preview') return ''; // no Pixel / Clarity / PostHog in Funnel HQ previews
   const parts: string[] = [];
   if (s.META_PIXEL_ID && v.marketingConsent) {
     // Pixel shares event ids with the Conversions API so Meta deduplicates, and gets the same
@@ -123,7 +124,8 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
     pageEventId,
     consentRequired: v.consentRequired,
     consentGiven: v.marketingConsent,
-    pixel: Boolean(s.META_PIXEL_ID && v.marketingConsent),
+    pixel: Boolean(s.META_PIXEL_ID && v.marketingConsent && v.botReason !== 'admin-preview'),
+    preview: v.botReason === 'admin-preview',
     siteName: s.SITE_NAME || BRAND.name,
     ...view.config,
   };
@@ -171,7 +173,25 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
 
 async function currentLead(c: Context<AppEnv>): Promise<Lead | null> {
   const v = c.get('visitor');
+  if (v.botReason === 'admin-preview') return previewLead(c);
   return v.leadId ? getLead(c.env, v.leadId) : null;
+}
+
+/**
+ * Funnel HQ → Pages: a made-up applicant so the pages that need one (/book, the booked breakout) can be
+ * previewed. Only for a logged-in admin with ?hq_preview=1; never saved anywhere.
+ */
+function previewLead(c: Context<AppEnv>): Lead | null {
+  const as = c.req.query('hq_as');
+  if (as !== 'qualified' && as !== 'booked') return null;
+  const rt = runtimeFrom(c);
+  const now = Date.now();
+  return {
+    id: 'l_preview', ref_code: 'PREVIEW', first_name: 'Dana', last_name: 'Example', email: 'dana@example.com', phone: null,
+    tier: 'A', tier_override: null, app_completed_at: now - 3_600_000, status: as === 'booked' ? 'booked' : 'qualified',
+    closer_id: rt.reps?.[0]?.id ?? null, booked_at: as === 'booked' ? now - 600_000 : null, booking_cancelled_at: null,
+    call_at: as === 'booked' ? now + 2 * 86_400_000 : null, do_not_call_at: null, whatsapp_opt_in: 0,
+  } as unknown as Lead;
 }
 
 // ───────────────────────────── Pages ─────────────────────────────
