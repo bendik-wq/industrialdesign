@@ -251,6 +251,13 @@
         tile('Clicked “Claim”', n(f.cta), pct(v ? (f.cta || 0) / v : null) + ' of visitors') +
         tile('Claimed a valuation', n(f.claims), pct(v ? (f.claims || 0) / v : null) + ' of visitors') +
         '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Headline test</h2><p class="sub">Each visitor sees one headline (the same one every visit). Wait for ~100 visitors per headline before picking a winner. Preview any with <span class="mono">?h=asset</span>, <span class="mono">?h=paid</span>, <span class="mono">?h=fund</span> or <span class="mono">?h=keep</span>.</p>' +
+        table([
+          { label: 'Headline', html: function (r) { return esc(r.text) + '<div class="muted mono">' + esc(r.id) + '</div>'; } },
+          { label: 'Visitors', key: 'visitors', num: true, fmt: n },
+          { label: 'Claims', key: 'claims', num: true, fmt: n },
+          { label: 'Claim rate', num: true, html: function (r) { return esc(r.rate == null ? '–' : pct(r.rate)); } },
+        ], d.headlines || []) + '</div>' +
         '<div class="card" style="margin-top:14px"><h2>Claims</h2><p class="sub">Page: <a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(String(d.url).replace(/^https?:\/\//, '')) + '</a> · partner: ' + esc(d.partner) + (d.referral ? ' · sends people to <span class="mono">' + esc(d.referral) + '</span>' : '') + '</p>' +
         table([
           { label: 'When', html: function (r) { return esc(when(r.created_at)); } },
@@ -258,6 +265,7 @@
           { label: 'Company', html: function (r) { return esc(r.company || '') + (r.website ? '<div class="muted">' + esc(r.website) + '</div>' : ''); } },
           { label: 'Contact', html: function (r) { return esc(r.email) + (r.phone ? '<div class="muted">' + esc(r.phone) + '</div>' : ''); } },
           { label: 'Revenue', html: function (r) { return esc(r.revenue || '–'); } },
+          { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
           { label: 'Source', html: function (r) { return esc([r.channel, r.utm_source, r.utm_campaign].filter(Boolean).join(' · ') || '–'); } },
           { label: 'Sent to partner', html: function (r) { return r.redirected ? '✓' : '<span class="muted">follow up</span>'; } },
         ], d.claims || []) + '</div>';

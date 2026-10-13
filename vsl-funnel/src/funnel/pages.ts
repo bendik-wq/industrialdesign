@@ -32,6 +32,8 @@ export interface View {
   config?: Record<string, unknown>;
   /** Path to log the page view under (e.g. '/data' when the page is served at '/' on its own host). */
   trackPath?: string;
+  /** Extra props on the server page_view (e.g. which headline was shown). */
+  trackProps?: Record<string, string | number | boolean | null>;
   title?: string;
 }
 
@@ -106,7 +108,7 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
         name: 'page_view',
         source: 'server',
         path: view.trackPath ?? url.pathname,
-        props: { title: view.title ?? null, query: url.search.slice(0, 300) || null, new_visitor: v.isNewVisitor, new_session: v.isNewSession },
+        props: { title: view.title ?? null, query: url.search.slice(0, 300) || null, new_visitor: v.isNewVisitor, new_session: v.isNewSession, ...view.trackProps },
       });
 
   const asset = await c.env.ASSETS.fetch(new Request(new URL(assetPath, url.origin)));

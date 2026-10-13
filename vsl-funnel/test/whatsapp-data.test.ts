@@ -45,3 +45,15 @@ describe('Data page', () => {
     expect(videoEmbed('')).toBe('');
   });
 });
+
+describe('Data page headline test', async () => {
+  const { DATA_HEADLINES, pickHeadline } = await import('../src/data/data');
+  it('is stable per visitor, spreads visitors across headlines, and can be forced for preview', () => {
+    expect(pickHeadline('v_abc').id).toBe(pickHeadline('v_abc').id);
+    const seen = new Set(Array.from({ length: 200 }, (_, i) => pickHeadline(`v_${i}`).id));
+    expect(seen.size).toBe(DATA_HEADLINES.length);
+    expect(pickHeadline('v_abc', 'keep').id).toBe('keep');
+    expect(pickHeadline('v_abc', '<script>').id).toBe(pickHeadline('v_abc').id);
+    for (const h of DATA_HEADLINES) expect(h.h1 + h.lede).not.toMatch(/free|guarantee/i);
+  });
+});

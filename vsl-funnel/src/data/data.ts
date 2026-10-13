@@ -48,14 +48,52 @@ export function videoEmbed(src: string) {
 export async function dataLanding(c: Context<AppEnv>) {
   const rt = runtimeFrom(c);
   const d = dataSettings(rt);
+  const h = pickHeadline(c.get('visitor').visitorId, c.req.query('h'));
+  const fill = (t: string) => t.replace(/\{partner\}/g, esc(d.partner)).replace(/\{fund\}/g, esc(d.fund));
   return render(c, '/data.html', {
     title: `Get paid for your operational data`,
-    slots: { partner: esc(d.partner), fund: esc(d.fund) },
+    slots: { partner: esc(d.partner), fund: esc(d.fund), headline: fill(h.h1), lede: fill(h.lede) },
+    trackProps: { headline: h.id },
     blocks: { video: videoEmbed(d.video) },
     show: { has_video: Boolean(d.video) },
-    config: { data: { claim: '/api/data/claim' } },
+    config: { data: { claim: '/api/data/claim', headline: h.id } },
     trackPath: '/data',
   });
+}
+
+/**
+ * Headline test: each visitor sees one (stable per browser), claims are credited to it, and the
+ * Data page tab shows which converts. Trusted copy only; {partner} and {fund} are filled escaped.
+ */
+export const DATA_HEADLINES: { id: string; h1: string; lede: string }[] = [
+  {
+    id: 'asset',
+    h1: 'Your business is sitting on a <em>$2&nbsp;million</em> asset you’ve never sold.',
+    lede: '<strong>It’s your operational data. {partner} just had {fund} committed to buying it.</strong> Not customer data, not equity: anonymised records of how your business runs. Deals typically land between $200,000 and $2 million.',
+  },
+  {
+    id: 'paid',
+    h1: 'Get paid up to <em>$2,000,000</em> for data your business already creates.',
+    lede: '<strong>{partner} just had {fund} committed to buying it.</strong> Not customer data. Anonymised <em>operational</em> data: how your business actually runs. Deals typically land between $200,000 and $2 million. No equity. Nothing changes day to day.',
+  },
+  {
+    id: 'fund',
+    h1: 'A company with {fund} to spend wants to buy your data. <em>Not your business. Just the data.</em>',
+    lede: '<strong>{partner} is paying established businesses $200,000 to $2 million</strong> for anonymised operational data: the workflows, job history and records you already keep. You keep 100% of the company and every customer.',
+  },
+  {
+    id: 'keep',
+    h1: 'Sell your data. <em>Keep your business.</em> Bank up to $2M.',
+    lede: '<strong>{partner} has {fund} committed to buying anonymised operational data</strong> from established businesses. Typical deals: $200,000 to $2 million. No customer data, no equity, no change to how you run things.',
+  },
+];
+
+export function pickHeadline(visitorId: string, forced?: string | null) {
+  const f = DATA_HEADLINES.find((h) => h.id === forced);
+  if (f) return f;
+  let x = 2166136261;
+  for (let i = 0; i < visitorId.length; i++) x = Math.imul(x ^ visitorId.charCodeAt(i), 16777619);
+  return DATA_HEADLINES[(x >>> 0) % DATA_HEADLINES.length];
 }
 
 const REVENUES = ['Under $1M', '$1M–$5M', '$5M–$20M', '$20M–$100M', '$100M+'];
@@ -74,6 +112,7 @@ export async function claimData(rt: Runtime, v: VisitorCtx, body: Record<string,
   if (site) { try { new URL(site); } catch { throw new ApplicationError('That website doesn’t look right — or leave it blank', 'website'); } }
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid phone number, including area code — or leave it blank', 'phone');
+  const headline = DATA_HEADLINES.some((h) => h.id === body.headline) ? String(body.headline) : null;
   const revenue = REVENUES.includes(String(body.revenue)) ? String(body.revenue) : null;
   if (!(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed — please refresh and try again', undefined, 403);
 
@@ -88,11 +127,11 @@ export async function claimData(rt: Runtime, v: VisitorCtx, body: Record<string,
   const { last } = await attributionFor(rt, v);
   const id = newId('dr');
   await rt.env.DB.prepare(
-    `INSERT INTO data_referrals (id, created_at, first_name, email, company, website, phone, revenue, visitor_id, session_id, channel, utm_source, utm_campaign, country, redirected)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-  ).bind(id, Date.now(), firstName, emailCheck.email, company, site || null, phone, revenue, v.visitorId, v.sessionId, last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_campaign ?? null, v.geo.country, d.referral ? 1 : 0).run();
+    `INSERT INTO data_referrals (id, created_at, first_name, email, company, website, phone, revenue, visitor_id, session_id, channel, utm_source, utm_campaign, country, redirected, headline)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+  ).bind(id, Date.now(), firstName, emailCheck.email, company, site || null, phone, revenue, v.visitorId, v.sessionId, last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_campaign ?? null, v.geo.country, d.referral ? 1 : 0, headline).run();
 
-  await track(rt, identityFromVisitor(v, null, null), { name: 'data_claim', source: 'server', path: '/data', props: { revenue, redirected: Boolean(d.referral) }, localOnly: true });
+  await track(rt, identityFromVisitor(v, null, null), { name: 'data_claim', source: 'server', path: '/data', props: { revenue, headline, redirected: Boolean(d.referral) }, localOnly: true });
   rt.waitUntil(notify(rt, {
     kind: 'hot_lead',
     title: `💾 Data valuation claim — ${firstName} (${company})`,
@@ -107,14 +146,23 @@ export async function dataReport(rt: Runtime, from: number, to: number) {
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors FROM events WHERE name = 'page_view' AND path = '/data' AND is_bot = 0 AND ts BETWEEN ? AND ?").bind(from, to).first<{ views: number; visitors: number }>(),
     db.prepare("SELECT name, COUNT(DISTINCT visitor_id) AS n FROM events WHERE path = '/data' AND name IN ('data_video_play', 'data_cta_click', 'data_form_start') AND ts BETWEEN ? AND ? GROUP BY name").bind(from, to).all<{ name: string; n: number }>(),
     db.prepare('SELECT COUNT(*) AS n FROM data_referrals WHERE created_at BETWEEN ? AND ?').bind(from, to).first<{ n: number }>(),
-    db.prepare('SELECT id, created_at, first_name, email, company, website, phone, revenue, channel, utm_source, utm_campaign, country, redirected FROM data_referrals WHERE created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT 200').bind(from, to).all(),
+    db.prepare('SELECT id, created_at, first_name, email, company, website, phone, revenue, headline, channel, utm_source, utm_campaign, country, redirected FROM data_referrals WHERE created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT 200').bind(from, to).all(),
   ]);
   const by = Object.fromEntries(ev.results.map((r) => [r.name, r.n]));
+  const [hv, hc] = await Promise.all([
+    db.prepare("SELECT json_extract(props, '$.headline') AS id, COUNT(DISTINCT visitor_id) AS visitors FROM events WHERE name = 'page_view' AND path = '/data' AND is_bot = 0 AND ts BETWEEN ? AND ? GROUP BY id").bind(from, to).all<{ id: string | null; visitors: number }>(),
+    db.prepare('SELECT headline AS id, COUNT(*) AS claims FROM data_referrals WHERE created_at BETWEEN ? AND ? GROUP BY headline').bind(from, to).all<{ id: string | null; claims: number }>(),
+  ]);
+  const headlines = DATA_HEADLINES.map((h) => {
+    const visitors = hv.results.find((r) => r.id === h.id)?.visitors ?? 0, claims = hc.results.find((r) => r.id === h.id)?.claims ?? 0;
+    return { id: h.id, text: h.h1.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\{fund\}/g, dataSettings(rt).fund), visitors, claims, rate: visitors ? claims / visitors : null };
+  });
   const d = dataSettings(rt);
   return {
     url: (rt.settings.DATA_URL || `${rt.origin}/data`).replace(/\/+$/, ''),
     partner: d.partner, referral: d.referral, video: d.video,
     funnel: { visitors: views?.visitors ?? 0, views: views?.views ?? 0, played: by.data_video_play ?? 0, cta: by.data_cta_click ?? 0, started: by.data_form_start ?? 0, claims: claims?.n ?? 0 },
     claims: list.results,
+    headlines,
   };
 }
