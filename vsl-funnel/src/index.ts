@@ -21,6 +21,7 @@ import { processTriggers } from './personalize/triggers';
 import { purgeOld } from './lib/retention';
 import { applyHandoff, icsFile, isWebinarHost, registeredPage, roomPage, webinarLanding } from './webinar/pages';
 import { ensureSessions } from './webinar/webinar';
+import { processSmsQueue } from './integrations/sms';
 import { alertUnconfirmedBookings } from './integrations/booking';
 
 const app = new Hono<AppEnv>();
@@ -175,6 +176,7 @@ export default {
       quiet(purgeOld(rt), 'retention purge'),
       quiet(alertUnconfirmedBookings(rt), 'unconfirmed bookings'),
       quiet(ensureSessions(rt), 'webinar sessions'),
+      quiet(processSmsQueue(rt), 'SMS'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

@@ -11,6 +11,7 @@ import { SEQUENCES } from '../integrations/sequences';
 import { newId } from '../lib/ids';
 import { webinarReport } from '../admin/webinar';
 import { cancelSession, ensureSessions } from '../webinar/webinar';
+import { smsConfigured } from '../integrations/sms';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
@@ -158,6 +159,32 @@ admin.get('/attribution', async (c) => c.json(await attribution(c.env, filters(c
 admin.get('/application', async (c) => c.json(await applicationStats(c.env, filters(c))));
 admin.get('/experiments', async (c) => c.json(await experiments(c.env, filters(c))));
 admin.get('/emails', async (c) => c.json(await emailStats(c.env, filters(c))));
+admin.get('/sms', async (c) => {
+  const f = filters(c);
+  const db = c.env.DB;
+  const [bySeq, recent, consent] = await Promise.all([
+    db.prepare(`SELECT sequence, template, SUM(status IN ('sent','simulated')) AS sent, SUM(status = 'pending') AS pending, SUM(status = 'skipped') AS skipped, SUM(status = 'failed') AS failed, SUM(clicked_at IS NOT NULL) AS clicked
+                  FROM sms_messages WHERE direction = 'out' AND created_at BETWEEN ? AND ? GROUP BY sequence, template ORDER BY sequence, template`).bind(f.from, f.to).all(),
+    db.prepare(`SELECT s.direction, s.template, s.body, s.status, s.error, s.sent_at, s.created_at, s.lead_id, l.first_name, l.last_name FROM sms_messages s LEFT JOIN leads l ON l.id = s.lead_id
+                 WHERE s.created_at BETWEEN ? AND ? ORDER BY s.created_at DESC LIMIT 60`).bind(f.from, f.to).all(),
+    db.prepare(`SELECT SUM(call_consent_at IS NOT NULL AND phone IS NOT NULL) AS consented, SUM(sms_opt_out_at IS NOT NULL) AS opted_out FROM leads`).first(),
+  ]);
+  const s = c.get('settings');
+  return c.json({ configured: Boolean(s.TWILIO_ACCOUNT_SID && s.TWILIO_AUTH_TOKEN && s.SMS_FROM), enabled: s.SMS_ENABLED.trim().toLowerCase() !== 'false', webhook: `${runtimeFrom(c).origin}/hooks/twilio/sms`, bySeq: bySeq.results, recent: recent.results, consent });
+});
+admin.post('/sms/test', async (c) => {
+  const rt = runtimeFrom(c);
+  const { to } = await c.req.json<{ to?: string }>().catch(() => ({ to: '' }));
+  const number = String(to ?? '').replace(/[^\d+]/g, '');
+  if (!/^\+\d{8,15}$/.test(number)) return c.json({ ok: false, error: 'Enter your number in international format, e.g. +61412345678' }, 400);
+  if (!smsConfigured(rt)) return c.json({ ok: false, error: 'Add the Twilio Account SID, Auth Token and “Send texts from” first.' }, 400);
+  const s = rt.settings;
+  const form = new URLSearchParams({ To: number, Body: `Test text from ${s.SITE_NAME || 'Funnel HQ'}: SMS follow-up is connected.` });
+  if (/^MG[0-9a-f]{32}$/i.test(s.SMS_FROM)) form.set('MessagingServiceSid', s.SMS_FROM); else form.set('From', s.SMS_FROM);
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(s.TWILIO_ACCOUNT_SID)}/Messages.json`, { method: 'POST', headers: { authorization: `Basic ${btoa(`${s.TWILIO_ACCOUNT_SID}:${s.TWILIO_AUTH_TOKEN}`)}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form });
+  const data = (await res.json().catch(() => ({}))) as { message?: string };
+  return c.json(res.ok ? { ok: true } : { ok: false, error: `Twilio: ${data.message ?? res.status}` }, res.ok ? 200 : 400);
+});
 admin.get('/live', async (c) => c.json(await live(c.env)));
 
 // ── Leads ───────────────────────────────────────────────────────────

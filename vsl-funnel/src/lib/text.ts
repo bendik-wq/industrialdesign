@@ -16,3 +16,9 @@ export function defang(s: string) {
 export function hasContactBait(s: string) {
   return new RegExp(URLISH.source, 'i').test(s) || new RegExp(EMAILISH.source).test(s) || new RegExp(DOMAINISH.source, 'i').test(s) || new RegExp(PHONEISH.source).test(s);
 }
+
+/** A first name safe to put in a greeting or subject: looks like a name and carries no link, domain or number. */
+export function safeFirstName(raw: string | null | undefined) {
+  const n = (raw ?? '').trim();
+  return n && /^[\p{L}][\p{L}' .-]{0,29}$/u.test(n) && !hasContactBait(n) && !/\.\S/.test(n.replace(/^(\p{L})\. /u, '')) ? n : null;
+}

@@ -5,6 +5,7 @@ import { leadLines, leadName, money, notify } from '../integrations/notify';
 import type { SequenceId } from '../integrations/sequences';
 import { cancelCalls, queueCall } from '../integrations/elevenlabs';
 import { AI_CALLER } from '../config';
+import { cancelSms, enqueueSms } from '../integrations/sms';
 import { identityFromLead, track } from '../tracking/track';
 
 /** What the dashboard (or a rep) can change on a lead. */
@@ -110,6 +111,8 @@ export async function applyLeadUpdate(rt: Runtime, lead: Lead, body: LeadUpdate)
     if (status === 'no_show') {
       await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'precall')]);
       await enqueueSequence(rt, fresh, 'no_show');
+      await cancelSms(rt, lead.id, ['sms_booked']);
+      await enqueueSms(rt, fresh, 'sms_no_show');
       await queueCall(rt, fresh, 'rebook', AI_CALLER.rebookDelayMinutes);
     } else if (status === 'showed') {
       await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'no_show')]);
@@ -120,6 +123,7 @@ export async function applyLeadUpdate(rt: Runtime, lead: Lead, body: LeadUpdate)
       if (status === 'lost') await enqueueSequence(rt, fresh, 'lost');
     }
     if (status !== 'no_show') await cancelCalls(rt, lead.id, ['rebook']);
+    if (status !== 'no_show' && status !== 'booked') await cancelSms(rt, lead.id, ['sms_booked', 'sms_no_show', 'sms_book']);
   }
 
   await track(rt, await identityFromLead(rt.env, lead.id), {

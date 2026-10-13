@@ -1,3 +1,4 @@
+import { handleInboundSms, verifyTwilio } from '../integrations/sms';
 import { Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { handleCalendly, handleGenericBooking, verifyCalendly } from '../integrations/booking';
@@ -16,6 +17,19 @@ hooks.post('/calendly', async (c) => {
   if (!rt.settings.CALENDLY_SIGNING_KEY) return c.json({ error: 'Calendly signing key not configured' }, 501);
   if (!(await verifyCalendly(rt.settings.CALENDLY_SIGNING_KEY, raw, c.req.header('calendly-webhook-signature') ?? null))) return c.json({ error: 'bad signature' }, 401);
   return c.json(await handleCalendly(rt, JSON.parse(raw)));
+});
+
+// Twilio: replies and STOP to our texts (signed with the auth token; fails closed without one).
+hooks.post('/twilio/sms', async (c) => {
+  const rt = runtimeFrom(c);
+  const token = rt.settings.TWILIO_AUTH_TOKEN;
+  if (!token) return c.text('not configured', 501);
+  const form = await c.req.parseBody();
+  const params = Object.fromEntries(Object.entries(form).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
+  const url = `${rt.origin}${new URL(c.req.url).pathname}`;
+  if (!(await verifyTwilio(token, url, params, c.req.header('x-twilio-signature') ?? null))) return c.text('bad signature', 401);
+  await handleInboundSms(rt, params);
+  return c.body('<?xml version="1.0" encoding="UTF-8"?><Response/>', 200, { 'content-type': 'text/xml' });
 });
 
 hooks.post('/booking', async (c) => {

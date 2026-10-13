@@ -296,8 +296,9 @@ async function createVoiceLead(rt: Runtime, m: VapiMessage, details: { first_nam
 
 export async function optOut(rt: Runtime, lead: Lead, via: string) {
   const now = Date.now();
-  await updateLead(rt.env, lead.id, { do_not_call_at: lead.do_not_call_at ?? now, unsubscribed_at: lead.unsubscribed_at ?? now });
+  await updateLead(rt.env, lead.id, { do_not_call_at: lead.do_not_call_at ?? now, unsubscribed_at: lead.unsubscribed_at ?? now, sms_opt_out_at: lead.sms_opt_out_at ?? now });
   await rt.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE lead_id = ? AND status = 'pending'").bind(lead.id).run();
+  await rt.env.DB.prepare("UPDATE sms_messages SET status = 'cancelled' WHERE lead_id = ? AND status = 'pending'").bind(lead.id).run();
   await track(rt, await identityFromLead(rt.env, lead.id), { name: 'voice_opt_out', source: 'webhook', props: { via } });
 }
 

@@ -5,6 +5,7 @@ import type { VisitorCtx } from '../lib/identity';
 import { cancelSequence, enqueueSequence } from '../integrations/email';
 import { queueCall } from '../integrations/elevenlabs';
 import { sendLinkEmail } from '../integrations/voice';
+import { cancelSms, enqueueSms } from '../integrations/sms';
 import { notifySlack } from '../integrations/notify';
 import { identityFromVisitor, track } from '../tracking/track';
 import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, parseAnswers, updateLead, validateEmail } from './leads';
@@ -150,6 +151,7 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   const eventId = isNew ? await track(rt, who, { name: 'lead_captured', source: 'server', path: '/apply', eventId: body.event_id as string | undefined }) : null;
   await track(rt, who, { name: 'app_step_saved', source: 'server', path: '/apply', props: { step: 1, question: 'contact' } });
   if (!lead.app_completed_at) await enqueueSequence(rt, lead, 'abandoned');
+  if (!lead.app_completed_at) await enqueueSms(rt, lead, 'sms_abandoned');
 
   return { lead, eventId, isNew };
 }
@@ -217,6 +219,8 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
   await cancelSequence(rt, lead.id, 'abandoned');
   if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
   if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, 'nurture');
+  await cancelSms(rt, lead.id, ['sms_abandoned']);
+  if (firstSubmit && !fresh.booked_at) await enqueueSms(rt, fresh, 'sms_book');
   if (firstSubmit && result.tier !== 'C' && !fresh.booked_at) await queueCall(rt, fresh, 'speed_to_lead', AI_CALLER.speedToLeadDelayMinutes);
   if (firstSubmit && result.tier !== 'C') {
     const rep = decision.closer ? ` → ${decision.closer.name}` : '';

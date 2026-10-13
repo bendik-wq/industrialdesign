@@ -1,3 +1,4 @@
+import { safeFirstName } from '../lib/text';
 import type { Runtime } from '../app';
 import { BRAND } from '../config';
 import { hmacHex, safeEqual } from '../lib/crypto';
@@ -183,7 +184,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
   let content = tpl({
     lead,
     // Only something that looks like a name goes in greetings and subjects (no links, numbers or markup).
-    name: lead.first_name && /^[\p{L}][\p{L}' .-]{0,29}$/u.test(lead.first_name.trim()) ? lead.first_name.trim() : 'there',
+    name: safeFirstName(lead.first_name) ?? 'there',
     siteName: rt.settings.SITE_NAME || BRAND.name,
     link,
     bookingUrl: bookingUrlFor(rt, lead.closer_id, effectiveTier(lead)),

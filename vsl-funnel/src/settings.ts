@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -69,6 +69,10 @@ export const SETTINGS = [
   { key: 'AI_CALL_CONFIRM', label: 'AI call to confirm new bookings', group: 'Voice', placeholder: 'true', help: 'Calls consenting leads ~2 minutes after they book. Set to false to turn off.' },
   { key: 'AI_CALL_SPEED_TO_LEAD', label: 'AI call qualified leads who haven’t booked', group: 'Voice', placeholder: 'true', help: 'Calls consenting A/B leads ~5 minutes after applying if they haven’t booked, and emails the booking link. Set to false to turn off.' },
   { key: 'AI_CALL_REBOOK', label: 'AI call no-shows to rebook', group: 'Voice', placeholder: 'true', help: 'Calls consenting leads ~20 minutes after a no-show is logged and emails a link to pick a new time. Set to false to turn off.' },
+  { key: 'TWILIO_ACCOUNT_SID', label: 'Twilio Account SID', group: 'SMS', placeholder: 'AC…', help: 'console.twilio.com → Account info. Text messages go out through Twilio.' },
+  { key: 'TWILIO_AUTH_TOKEN', label: 'Twilio Auth Token', group: 'SMS', secret: true, help: 'console.twilio.com → Account info. Also used to check that replies really come from Twilio.' },
+  { key: 'SMS_FROM', label: 'Send texts from', group: 'SMS', placeholder: '+12294046271 or MG… (Messaging Service SID)', help: 'A Twilio number, or a Messaging Service SID (best: lets Twilio pick an Australian sender for AU numbers). US numbers need A2P 10DLC registration in Twilio.' },
+  { key: 'SMS_ENABLED', label: 'Send SMS follow-up', group: 'SMS', placeholder: 'true', help: 'Texts only go to people who ticked “call or text me”, 8am–8pm their time, max 3 a day. Set to false to pause.' },
   { key: 'WEBINAR_URL', label: 'Webinar address', group: 'Webinar', placeholder: 'https://live.grosfjeld-li.com', help: 'The domain the webinar pages live on. Links in webinar emails use it.' },
   { key: 'WEBINAR_TITLE', label: 'Webinar title', group: 'Webinar', placeholder: 'The No-Money-Down Acquisition Masterclass', help: 'Shown on the registration page, the room and the emails.' },
   { key: 'WEBINAR_SCHEDULE', label: 'Weekly sessions', group: 'Webinar', placeholder: 'Tue 19:00, Thu 12:00', help: 'Recurring session times in the sales time zone (days: Mon–Sun, 24h clock). Sessions are created two weeks ahead. Add one-off or live sessions on the Webinar tab.' },

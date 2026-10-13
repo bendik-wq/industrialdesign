@@ -1131,10 +1131,37 @@
 
   function kv(k, v) { return '<dt>' + esc(k) + '</dt><dd>' + esc(v == null || v === '' ? '–' : v) + '</dd>'; }
 
+  var SMS_LABEL = { sms_confirm: 'Booking confirmed + join link', sms_24h: '24h before (reschedule link)', sms_1h: '1h before (join link)', sms_10m: '10 min before (join link)', sms_noshow_1: 'No-show: 10 min after', sms_noshow_2: 'No-show: next day', sms_abandon: 'Unfinished application (30 min)', sms_book_nudge: 'Qualified, not booked (2h)' };
+  function smsCard(d) {
+    if (!d) return '';
+    return '<div class="card" style="margin-bottom:14px"><h2>Text messages (SMS)</h2><p class="sub">' +
+      (d.configured ? (d.enabled ? 'Connected to Twilio.' : 'Connected but paused (SMS_ENABLED = false).') : 'Not connected yet: texts are simulated. Add Twilio under Integrations → SMS.') +
+      ' Only to people who ticked “call or text me” (' + n(d.consent && d.consent.consented) + ' so far), 8am–8pm their time, max 3 a day, STOP opts out (' + n(d.consent && d.consent.opted_out) + '). Replies webhook: <span class="mono">' + esc(d.webhook) + '</span></p>' +
+      table([
+        { label: 'Text', html: function (r) { return esc(SMS_LABEL[r.template] || r.template); } },
+        { label: 'Sent', key: 'sent', num: true, fmt: n }, { label: 'Clicked', key: 'clicked', num: true, fmt: n },
+        { label: 'Waiting', key: 'pending', num: true, fmt: n }, { label: 'Skipped', key: 'skipped', num: true, fmt: n }, { label: 'Failed', key: 'failed', num: true, fmt: n },
+      ], d.bySeq || []) +
+      '<details style="margin-top:10px"><summary>Recent texts and replies</summary>' + table([
+        { label: 'When', html: function (r) { return esc(ago(r.sent_at || r.created_at)); } },
+        { label: 'Lead', html: function (r) { return esc([r.first_name, r.last_name].filter(Boolean).join(' ') || '–'); } },
+        { label: '', html: function (r) { return r.direction === 'in' ? '⬅︎ reply' : esc(r.status); } },
+        { label: 'Message', html: function (r) { return esc(r.body || SMS_LABEL[r.template] || '') + (r.error ? '<div class="muted">' + esc(r.error) + '</div>' : ''); } },
+      ], d.recent || [], { rowAttr: function (r) { return r.lead_id ? 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"' : ''; } }) + '</details>' +
+      '<div class="row" style="margin-top:10px"><input class="input" data-smsto placeholder="+61412345678" style="max-width:200px"> <button class="btn-sm ghost" data-smstest>Send test text</button> <span class="muted" data-smsmsg></span></div></div>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-smstest]');
+    if (!b) return;
+    var to = document.querySelector('[data-smsto]').value, msg = document.querySelector('[data-smsmsg]');
+    msg.textContent = 'Sending…';
+    send('POST', 'sms/test', { to: to }).then(function (r) { msg.textContent = r && r.ok ? 'Sent ✓' : (r && r.error) || 'Failed'; });
+  });
+
   function renderEmails() {
-    return Promise.all([api('emails'), api('triggers')]).then(function (res) {
-      var d = res[0], tr = res[1];
-      view.innerHTML =
+    return Promise.all([api('emails'), api('triggers'), api('sms').catch(function () { return null; })]).then(function (res) {
+      var d = res[0], tr = res[1], sms = res[2];
+      view.innerHTML = smsCard(sms) +
         '<div class="card" style="margin-bottom:14px"><h2>Behaviour-triggered emails</h2><p class="sub">One email when someone does something specific on the page, written for them from what they did. Each fires once per person; at most 8 emails a day to anyone in total; re-checked right before sending.</p>' + table([
           { label: 'Trigger', html: function (r) { return esc(r.label) + '<div class="muted mono">' + esc(r.template) + ' · sends ' + (r.delay ? r.delay + ' min after' : 'right away') + '</div>'; } },
           { label: 'Fired', key: 'queued', num: true, fmt: n }, { label: 'Sent', key: 'sent', num: true, fmt: n },
@@ -1166,6 +1193,7 @@
             { label: 'Device', key: 'device' },
           ], d.events) + '</div>';
         view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
+        view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
       });
     }
     liveTimer = setInterval(function () { if (!document.hidden && !document.querySelector('.drawer')) draw(); }, 5000);

@@ -10,6 +10,7 @@ import { SEQUENCES, type SequenceId } from '../integrations/sequences';
 import { getLink, linkTarget } from '../funnel/tracked-links';
 import { parseUA } from '../lib/ua';
 import { safeEqual } from '../lib/crypto';
+import { smsLinkTarget } from '../integrations/sms';
 
 export const links = new Hono<AppEnv>();
 
@@ -80,6 +81,16 @@ links.post('/u/:lead/:sig', async (c) => {
     await track(rt, await identityFromLead(c.env, lead.id), { name: 'unsubscribe', source: 'email' });
   }
   return c.html(unsubPage('You’re unsubscribed', '<p>You won’t receive any more emails from us.</p>'));
+});
+
+// Short link inside a text message (target stored with the message, never taken from the URL).
+links.get('/s/:id', async (c) => {
+  const rt = runtimeFrom(c);
+  const row = await smsLinkTarget(rt, c.req.param('id'));
+  if (!row) return c.redirect('/', 302);
+  const v = await resolveVisitor(c, 'beacon');
+  if (!v.isBot && !v.leadId) await linkVisitor(c.env, v.visitorId, row.lead_id);
+  return c.redirect(row.link_target!, 302);
 });
 
 // "Message Josh on WhatsApp": log the click against the lead, then hand off to wa.me.
