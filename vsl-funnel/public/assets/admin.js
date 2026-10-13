@@ -294,7 +294,22 @@
           { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
           { label: 'Source', html: function (r) { return esc([r.channel, r.utm_source, r.utm_campaign].filter(Boolean).join(' · ') || '–'); } },
           { label: 'Sent to partner', html: function (r) { return r.redirected ? '✓' : '<span class="muted">follow up</span>'; } },
-        ], d.claims || []) + '</div>';
+        ], d.claims || [], { rowAttr: function (r) { return r.visitor_id ? 'class="click" data-visitor="' + esc(r.visitor_id) + '" tabindex="0" title="See everything they did"' : ''; } }) + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Recent visitors</h2><p class="sub">Everyone on the data page, newest first: what they scrolled, clicked, read and whether they claimed. Click a row for their full journey. Anonymous until they claim; then you see who they are.</p>' +
+        table([
+          { label: 'Last seen', html: function (r) { return esc(when(r.last_ts)) + (r.visits > 1 ? '<div class="muted">' + esc(n(r.visits)) + ' visits</div>' : ''); } },
+          { label: 'Who', html: function (r) { return r.claim ? '<strong>' + esc(r.claim.first_name) + '</strong> · ' + esc(r.claim.company || '') + '<div class="muted">' + esc(r.claim.email) + '</div>' : r.lead_id ? '<span class="pill">funnel lead</span>' : '<span class="muted">Anonymous</span>'; } },
+          { label: 'Source', html: function (r) { var s = r.session || {}; return esc([s.channel, s.utm_campaign].filter(Boolean).join(' / ') || 'Direct') + '<div class="muted">' + esc([s.device, [s.city, s.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')) + '</div>'; } },
+          { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
+          { label: 'Time', num: true, html: function (r) { return esc(r.engaged_ms ? secs(Math.round(r.engaged_ms / 1000)) : '–'); } },
+          { label: 'Scrolled', num: true, html: function (r) { return esc(r.scroll ? r.scroll + '%' : '–'); } },
+          { label: 'Clicks', num: true, html: function (r) { return esc(n(r.clicks || 0)); } },
+          { label: 'Did', html: function (r) { return [r.video ? 'video' : '', r.faqs ? n(r.faqs) + ' FAQ' : '', r.cta ? 'clicked Claim' : '', r.form ? 'opened form' : '', r.claim ? '<strong>claimed</strong>' : ''].filter(Boolean).join(' · ') || '<span class="muted">just looked</span>'; } },
+        ], d.visitors || [], { rowAttr: function (r) { return 'class="click" data-visitor="' + esc(r.visitor_id) + '" tabindex="0"'; } }) + '</div>';
+      view.querySelectorAll('[data-visitor]').forEach(function (row) {
+        row.onclick = function () { openVisitor(row.getAttribute('data-visitor')); };
+        row.onkeydown = function (e) { if (e.key === 'Enter') openVisitor(row.getAttribute('data-visitor')); };
+      });
     });
   }
   function renderWebinar() {
@@ -531,7 +546,80 @@
     whatsapp_connected: 'Messaged on WhatsApp', voice_web_start: 'Started AI call (browser)', voice_call_started: 'AI call connected', voice_call_completed: 'AI call ended', voice_link_sent: 'AI sent booking link', voice_opt_out: 'Asked not to be contacted', whatsapp_sent: 'Sent WhatsApp template', email_sent: 'Email sent', email_open: 'Opened email', email_click: 'Clicked email link', unsubscribe: 'Unsubscribed',
     scroll_depth: 'Scrolled', engaged_time: 'Engaged', faq_open: 'Opened FAQ', app_view_step: 'Viewed question', lead_status_changed: 'Status changed', exit_intent: 'Exit intent', rage_click: 'Rage click', form_error: 'Form error',
   };
+  EVENT_LABELS.data_claim = 'Claimed a data valuation'; EVENT_LABELS.data_cta_click = 'Clicked “Claim”'; EVENT_LABELS.data_form_start = 'Started the claim form';
+  EVENT_LABELS.data_video_play = 'Played the video'; EVENT_LABELS.click = 'Clicked'; EVENT_LABELS.section_dwell = 'Read sections'; EVENT_LABELS.cta_hover = 'Hovered a button';
+  EVENT_LABELS.page_exit = 'Left the page'; EVENT_LABELS.section_revisit = 'Scrolled back to a section'; EVENT_LABELS.tab_return = 'Came back to the tab'; EVENT_LABELS.copy_text = 'Copied text'; EVENT_LABELS.text_copy = 'Copied text'; EVENT_LABELS.first_interaction = 'First interaction';
   var QUIET = { app_view_step: 1, scroll_depth: 1, engaged_time: 1, click: 1, field_interaction: 1, first_interaction: 1, section_dwell: 1, cta_hover: 1, vsl_volume: 1, page_exit: 1, tab_return: 1 };
+
+  /** Every visit and action, oldest first in the data, newest at the top. Shared by the lead and visitor drawers. */
+  function journeyHtml(events, sessions, showAll) {
+    var byId = {}, seen = {}, out = [];
+    (sessions || []).forEach(function (s) { byId[s.id] = s; });
+    events.slice().reverse().forEach(function (e) {
+      if (e.session_id && !seen[e.session_id] && byId[e.session_id]) {
+        seen[e.session_id] = 1;
+        var s = byId[e.session_id];
+        out.push('<li class="session"><span class="when">' + esc(when(s.started_at)) + '</span><span class="what"><b>New visit</b> · ' + esc(s.channel || 'Direct') + (s.utm_campaign ? ' / ' + esc(s.utm_campaign) : '') + (s.utm_content ? ' / ' + esc(s.utm_content) : '') +
+          '<div class="props">' + esc([s.device, s.browser, s.os, [s.city, s.region, s.country].filter(Boolean).join(', '), s.referrer_host].filter(Boolean).join(' · ')) + '</div></span></li>');
+      }
+      if (!showAll && QUIET[e.name]) return;
+      var props = {};
+      try { props = JSON.parse(e.props || '{}'); } catch (x) { /* ignore */ }
+      var detail = Object.keys(props).filter(function (k) { return ['view', 'email_id', 'event_uri'].indexOf(k) === -1 && props[k] !== null && props[k] !== ''; }).map(function (k) { return k + ': ' + (typeof props[k] === 'object' ? JSON.stringify(props[k]) : props[k]); }).join(' · ');
+      out.push('<li><span class="when">' + esc(when(e.ts)) + '</span><span class="what"><b>' + esc(EVENT_LABELS[e.name] || e.name) + '</b>' + (e.path ? ' <span class="muted">' + esc(e.path) + '</span>' : '') + (detail ? '<div class="props">' + esc(detail) + '</div>' : '') + '</span></li>');
+    });
+    return out.reverse().join('');
+  }
+
+  /** One visitor (lead or not): who they are if they claimed, what they did, every action. */
+  function openVisitor(id) {
+    var bg = document.createElement('div'); bg.className = 'drawer-bg';
+    var dr = document.createElement('aside'); dr.className = 'drawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-label', 'Visitor journey');
+    dr.innerHTML = '<div class="empty">Loading…</div>';
+    document.body.appendChild(bg); document.body.appendChild(dr);
+    function close() { bg.remove(); dr.remove(); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    bg.onclick = close; document.addEventListener('keydown', onKey);
+    fetch('/admin/api/visitors/' + encodeURIComponent(id), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.error) { dr.innerHTML = '<button class="close" type="button">Close ✕</button><div class="empty">Visitor not found.</div>'; dr.querySelector('.close').onclick = close; return; }
+      var c = d.claims[0], v = d.visitor, ev = d.events, showAll = true;
+      var P = function (e) { try { return JSON.parse(e.props || '{}'); } catch (x) { return {}; } };
+      var count = function (name) { return ev.filter(function (e) { return e.name === name; }).length; };
+      var scroll = ev.filter(function (e) { return e.name === 'scroll_depth'; }).reduce(function (m, e) { return Math.max(m, Number(P(e).pct) || 0); }, 0);
+      var engaged = ev.filter(function (e) { return e.name === 'engaged_time'; }).reduce(function (t, e) { return t + (Number(P(e).ms) || 0); }, 0);
+      var dwell = {};
+      ev.filter(function (e) { return e.name === 'section_dwell'; }).forEach(function (e) { var p = P(e); Object.keys(p).forEach(function (k) { if (typeof p[k] === 'number') dwell[k] = (dwell[k] || 0) + p[k]; }); });
+      var dwellRows = Object.keys(dwell).sort(function (a, b) { return dwell[b] - dwell[a]; }).slice(0, 8);
+      var clicks = ev.filter(function (e) { return e.name === 'click' || e.name === 'cta_click' || e.name === 'data_cta_click'; }).map(function (e) { var p = P(e); return String(p.text || p.label || p.id || p.el || e.name).replace(/\s*Takes 60 seconds.*$/, '').slice(0, 60); }).filter(function (t, i, all) { return all.indexOf(t) === i; }).slice(0, 10);
+      var headline = (ev.filter(function (e) { return e.name === 'page_view' && P(e).headline; })[0] || null);
+      var s0 = d.sessions[d.sessions.length - 1] || {};
+      var title = c ? (c.first_name + (c.company ? ' · ' + c.company : '')) : d.lead ? d.lead.name : 'Anonymous visitor';
+      dr.innerHTML = '<button class="close" type="button" aria-label="Close">Close ✕</button>' +
+        '<div class="row"><h2 class="lead-name">' + esc(title) + '</h2>' + (c ? '<span class="pill">claimed ' + esc(when(c.created_at)) + '</span>' : '<span class="pill">not signed up</span>') + (c && c.business_status && c.business_status !== 'Trading' ? '<span class="pill">' + esc(c.business_status) + '</span>' : '') + '</div>' +
+        '<p class="muted" style="margin:4px 0 14px">' + esc(c ? [c.email, c.phone, c.website].filter(Boolean).join(' · ') : 'Visitor ' + v.id) + ' · first seen ' + esc(when(v.created_at)) + '</p>' +
+        (c ? '<div class="row" style="margin-bottom:14px"><a class="btn-sm ghost" href="mailto:' + esc(c.email) + '">Email</a>' + (c.phone ? '<a class="btn-sm ghost" href="tel:' + esc(c.phone) + '">Call</a>' : '') + '</div>' : '') +
+        (d.lead ? '<div class="card notice" style="margin-bottom:14px">Also in the M&amp;A funnel: <strong>' + esc(d.lead.name) + '</strong> (' + esc(d.lead.status) + ', matched by ' + esc(d.lead.how) + '). <button class="btn-sm" data-openlead="' + esc(d.lead.id) + '">Open lead</button></div>' : '') +
+        '<div class="grid g-4">' +
+        tile('Visits', n(d.sessions.length), [s0.channel, s0.utm_campaign].filter(Boolean).join(' / ') || 'Direct') +
+        tile('Time on page', secs(Math.round(engaged / 1000)), 'actively engaged') +
+        tile('Scrolled', scroll ? scroll + '%' : '–', 'deepest point') +
+        tile('Clicks', n(count('click') + count('data_cta_click')), n(count('data_cta_click')) + ' on “Claim” · ' + n(count('faq_open')) + ' FAQs opened') +
+        '</div>' +
+        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Profile</h2><dl class="kv" style="margin-top:10px">' +
+        kv('Headline seen', headline ? P(headline).headline : '–') + kv('Source', [s0.channel, s0.utm_source, s0.utm_campaign, s0.utm_content].filter(Boolean).join(' / ')) +
+        kv('Device', [s0.device, s0.browser, s0.os].filter(Boolean).join(' · ')) + kv('Location', [s0.city, s0.region, s0.country].filter(Boolean).join(', ')) +
+        kv('Video', count('data_video_play') || count('vsl_play') ? 'played' : 'not played') + kv('Claim form', c ? 'submitted' : count('data_form_start') ? 'started, didn’t submit' : 'not opened') +
+        (c ? kv('Revenue', c.revenue || '–') + kv('Business', c.business_status || '–') : '') + '</dl></div>' +
+        '<div class="card"><h2>What they read and clicked</h2>' +
+        (dwellRows.length ? '<dl class="kv" style="margin-top:10px">' + dwellRows.map(function (k) { return kv(k.replace(/^data_/, '').replace(/_/g, ' '), secs(Math.round(dwell[k]))); }).join('') + '</dl>' : '<p class="muted">No reading data yet.</p>') +
+        (clicks.length ? '<p class="sub" style="margin-top:10px">Clicked: ' + esc(clicks.join(' · ')) + '</p>' : '') + '</div></div>' +
+        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action: scrolls, clicks, reading time, video, form. Nothing they type is recorded.</p></div><label class="muted"><input type="checkbox" data-all checked> show all events</label></div><ul class="timeline" data-tl>' + journeyHtml(ev, d.sessions, showAll) + '</ul></div>';
+      dr.querySelector('.close').onclick = close;
+      dr.querySelector('[data-all]').onchange = function (e) { dr.querySelector('[data-tl]').innerHTML = journeyHtml(ev, d.sessions, e.target.checked); };
+      var ol = dr.querySelector('[data-openlead]');
+      if (ol) ol.onclick = function () { close(); openLead(ol.getAttribute('data-openlead')); };
+    });
+  }
 
   function openLead(id) {
     history.replaceState(null, '', '#lead=' + id);
@@ -551,23 +639,7 @@
       var sessionsById = {};
       d.sessions.forEach(function (s) { sessionsById[s.id] = s; });
 
-      function timeline() {
-        var seen = {}, out = [];
-        d.events.slice().reverse().forEach(function (e) {
-          if (e.session_id && !seen[e.session_id] && sessionsById[e.session_id]) {
-            seen[e.session_id] = 1;
-            var s = sessionsById[e.session_id];
-            out.push('<li class="session"><span class="when">' + esc(when(s.started_at)) + '</span><span class="what"><b>New visit</b> · ' + esc(s.channel || 'Direct') + (s.utm_campaign ? ' / ' + esc(s.utm_campaign) : '') + (s.utm_content ? ' / ' + esc(s.utm_content) : '') +
-              '<div class="props">' + esc([s.device, s.browser, s.os, [s.city, s.region, s.country].filter(Boolean).join(', '), s.referrer_host].filter(Boolean).join(' · ')) + '</div></span></li>');
-          }
-          if (!showAll && QUIET[e.name]) return;
-          var props = {};
-          try { props = JSON.parse(e.props || '{}'); } catch (x) { /* ignore */ }
-          var detail = Object.keys(props).filter(function (k) { return ['view', 'email_id', 'event_uri'].indexOf(k) === -1 && props[k] !== null && props[k] !== ''; }).map(function (k) { return k + ': ' + (typeof props[k] === 'object' ? JSON.stringify(props[k]) : props[k]); }).join(' · ');
-          out.push('<li><span class="when">' + esc(when(e.ts)) + '</span><span class="what"><b>' + esc(EVENT_LABELS[e.name] || e.name) + '</b>' + (e.path ? ' <span class="muted">' + esc(e.path) + '</span>' : '') + (detail ? '<div class="props">' + esc(detail) + '</div>' : '') + '</span></li>');
-        });
-        return out.reverse().join('');
-      }
+      function timeline() { return journeyHtml(d.events, d.sessions, showAll); }
 
       dr.innerHTML =
         '<button class="close" type="button" aria-label="Close">Close ✕</button>' +

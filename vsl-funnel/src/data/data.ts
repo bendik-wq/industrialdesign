@@ -228,13 +228,64 @@ export async function claimData(rt: Runtime, v: VisitorCtx, body: Record<string,
   return { id, next: d.referral || null };
 }
 
+/** Everyone who came to the data page (newest first), with what they did, and who they are if they claimed. */
+export async function dataVisitors(rt: Runtime, from: number, to: number, limit = 100) {
+  const db = rt.env.DB;
+  const { results: rows } = await db.prepare(
+    `SELECT visitor_id, MIN(ts) AS first_ts, MAX(ts) AS last_ts, COUNT(*) AS events,
+            MAX(CASE WHEN name = 'page_view' THEN json_extract(props, '$.headline') END) AS headline,
+            MAX(CASE WHEN name = 'scroll_depth' THEN CAST(json_extract(props, '$.pct') AS INTEGER) END) AS scroll,
+            SUM(name = 'click') AS clicks, SUM(name = 'data_cta_click') AS cta, SUM(name = 'data_form_start') AS form,
+            SUM(name = 'data_video_play') AS video, SUM(name = 'faq_open') AS faqs,
+            SUM(CASE WHEN name = 'engaged_time' THEN CAST(json_extract(props, '$.ms') AS INTEGER) ELSE 0 END) AS engaged_ms,
+            COUNT(DISTINCT session_id) AS visits
+       FROM events WHERE path = '/data' AND is_bot = 0 AND visitor_id IS NOT NULL AND ts BETWEEN ? AND ?
+      GROUP BY visitor_id ORDER BY last_ts DESC LIMIT ?`,
+  ).bind(from, to, limit).all<Record<string, number | string | null> & { visitor_id: string }>();
+  if (!rows.length) return [];
+  const ids = rows.map((r) => r.visitor_id);
+  const marks = ids.map(() => '?').join(',');
+  const [sess, claims, links] = await Promise.all([
+    db.prepare(`SELECT visitor_id, channel, utm_source, utm_campaign, device, country, city FROM sessions WHERE visitor_id IN (${marks}) ORDER BY started_at`).bind(...ids).all<Record<string, string | null> & { visitor_id: string }>(),
+    db.prepare(`SELECT visitor_id, id, first_name, email, company, business_status, created_at FROM data_referrals WHERE visitor_id IN (${marks}) ORDER BY created_at`).bind(...ids).all<Record<string, string | number | null> & { visitor_id: string }>(),
+    db.prepare(`SELECT id, lead_id FROM visitors WHERE id IN (${marks}) AND lead_id IS NOT NULL`).bind(...ids).all<{ id: string; lead_id: string }>(),
+  ]);
+  const sessionOf = new Map(sess.results.map((s) => [s.visitor_id, s]));
+  const claimOf = new Map(claims.results.map((c) => [c.visitor_id, c]));
+  const leadOf = new Map(links.results.map((l) => [l.id, l.lead_id]));
+  return rows.map((r) => ({ ...r, session: sessionOf.get(r.visitor_id) ?? null, claim: claimOf.get(r.visitor_id) ?? null, lead_id: leadOf.get(r.visitor_id) ?? null }));
+}
+
+/**
+ * One visitor's whole journey (every visit and action across the site), plus their claim and any funnel lead.
+ * A lead with the same email as their claim is shown as a match, never merged: anyone can type anyone's email.
+ */
+export async function visitorJourney(rt: Runtime, visitorId: string) {
+  const db = rt.env.DB;
+  const visitor = await db.prepare('SELECT * FROM visitors WHERE id = ?').bind(visitorId).first<Record<string, unknown> & { lead_id: string | null }>();
+  if (!visitor) return null;
+  const [sessions, events, vsl, claims] = await Promise.all([
+    db.prepare('SELECT * FROM sessions WHERE visitor_id = ? ORDER BY started_at DESC LIMIT 100').bind(visitorId).all(),
+    db.prepare('SELECT id, ts, name, path, source, props, session_id FROM events WHERE visitor_id = ? ORDER BY ts DESC LIMIT 1500').bind(visitorId).all(),
+    db.prepare('SELECT id, video_id, started_at, duration, max_position, watched_seconds, buckets, unmuted, completed, cta_clicked FROM vsl_views WHERE visitor_id = ? ORDER BY started_at DESC').bind(visitorId).all(),
+    db.prepare('SELECT * FROM data_referrals WHERE visitor_id = ? ORDER BY created_at DESC').bind(visitorId).all<Record<string, unknown> & { email: string }>(),
+  ]);
+  let lead: { id: string; name: string; email: string | null; status: string; how: 'same browser' | 'same email' } | null = null;
+  const pick = (l: { id: string; first_name: string | null; last_name: string | null; email: string | null; status: string } | null, how: 'same browser' | 'same email') =>
+    l ? { id: l.id, name: [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email || l.id, email: l.email, status: l.status, how } : null;
+  type L = { id: string; first_name: string | null; last_name: string | null; email: string | null; status: string };
+  if (visitor.lead_id) lead = pick(await db.prepare('SELECT id, first_name, last_name, email, status FROM leads WHERE id = ?').bind(visitor.lead_id).first<L>(), 'same browser');
+  if (!lead && claims.results[0]?.email) lead = pick(await db.prepare('SELECT id, first_name, last_name, email, status FROM leads WHERE email = ? COLLATE NOCASE').bind(claims.results[0].email).first<L>(), 'same email');
+  return { visitor, sessions: sessions.results, events: events.results, vsl: vsl.results, claims: claims.results, lead };
+}
+
 export async function dataReport(rt: Runtime, from: number, to: number) {
   const db = rt.env.DB;
   const [views, ev, claims, list] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors FROM events WHERE name = 'page_view' AND path = '/data' AND is_bot = 0 AND ts BETWEEN ? AND ?").bind(from, to).first<{ views: number; visitors: number }>(),
     db.prepare("SELECT name, COUNT(DISTINCT visitor_id) AS n FROM events WHERE path = '/data' AND name IN ('data_video_play', 'data_cta_click', 'data_form_start') AND ts BETWEEN ? AND ? GROUP BY name").bind(from, to).all<{ name: string; n: number }>(),
     db.prepare('SELECT COUNT(*) AS n FROM data_referrals WHERE created_at BETWEEN ? AND ?').bind(from, to).first<{ n: number }>(),
-    db.prepare('SELECT id, created_at, first_name, email, company, website, phone, revenue, headline, business_status, channel, utm_source, utm_campaign, country, redirected FROM data_referrals WHERE created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT 200').bind(from, to).all(),
+    db.prepare('SELECT id, visitor_id, created_at, first_name, email, company, website, phone, revenue, headline, business_status, channel, utm_source, utm_campaign, country, redirected FROM data_referrals WHERE created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT 200').bind(from, to).all(),
   ]);
   const by = Object.fromEntries(ev.results.map((r) => [r.name, r.n]));
   const hs = await headlineStats(rt, from, to, false);
@@ -253,6 +304,7 @@ export async function dataReport(rt: Runtime, from: number, to: number) {
     partner: d.partner, referral: d.referral, video: d.video,
     funnel: { visitors: views?.visitors ?? 0, views: views?.views ?? 0, played: by.data_video_play ?? 0, cta: by.data_cta_click ?? 0, started: by.data_form_start ?? 0, claims: claims?.n ?? 0 },
     claims: list.results,
+    visitors: await dataVisitors(rt, from, to),
     headlines,
     test: { mode: (rt.settings.DATA_HEADLINE_TEST || 'auto').trim(), metric: odds.metric, min: DATA_HEADLINE_MIN },
   };

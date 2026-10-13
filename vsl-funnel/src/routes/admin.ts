@@ -14,7 +14,7 @@ import { cancelSession, ensureSessions } from '../webinar/webinar';
 import { cleanSequences, loadSmsSequences, renderSms, sendSmsNow, smsConfigured, waTemplateParams, waTemplateText } from '../integrations/sms';
 import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_CHANNELS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS } from '../integrations/sms-defaults';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
-import { dataReport } from '../data/data';
+import { dataReport, visitorJourney } from '../data/data';
 import { cloudApiConfigured, sendWhatsAppTemplate, sendWhatsAppText, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
 import { calendlyConnected, connectCalendly, importCalendlyHistory, requalifyCalendlyLeads, syncCalendly } from '../integrations/calendly';
@@ -233,6 +233,10 @@ admin.post('/sms/test', async (c) => {
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(s.TWILIO_ACCOUNT_SID)}/Messages.json`, { method: 'POST', headers: { authorization: `Basic ${btoa(`${s.TWILIO_ACCOUNT_SID}:${s.TWILIO_AUTH_TOKEN}`)}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form });
   const data = (await res.json().catch(() => ({}))) as { message?: string };
   return c.json(res.ok ? { ok: true } : { ok: false, error: `Twilio: ${data.message ?? res.status}` }, res.ok ? 200 : 400);
+});
+admin.get('/visitors/:id', async (c) => {
+  const j = await visitorJourney(runtimeFrom(c), c.req.param('id').slice(0, 64));
+  return j ? c.json(j) : c.json({ error: 'not found' }, 404);
 });
 admin.get('/data', async (c) => { const f = filters(c); return c.json(await dataReport(runtimeFrom(c), f.from, f.to)); });
 admin.get('/live', async (c) => c.json(await live(c.env)));
