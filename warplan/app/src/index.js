@@ -37,6 +37,7 @@ import { today } from "./today.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
 import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
+import { gmailAuthUrl, gmailCallback, syncGmail } from "./gmail.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
 const INVITE_DAYS = 7;
@@ -57,7 +58,7 @@ export default {
       const { type, accountId } = msg.body || {};
       try {
         if (type === "autopilot") await autopilotRun(env, accountId, exec);
-        else if (type === "inbox") await syncAgentInboxes(env, accountId, replyTriage(env, exec));
+        else if (type === "inbox") { await syncAgentInboxes(env, accountId, replyTriage(env, exec)); await syncGmail(env, accountId, replyTriage(env, exec)); }
         else if (type === "recording") await processRecording(env, accountId, msg.body.id);
         else if (type === "enrich") { const c = { accountId, user: { id: msg.body.userId, name: "Contact finder" }, isOwner: false }; await enrichTarget(env, c, msg.body.targetId, await dataKeys(env, c)); }
         else if (type === "watch") await runWatch(env, { accountId, user: { id: null, name: "Signal watch" } }, hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)), { limit: 120 });
@@ -181,8 +182,8 @@ async function queueWatch(env, exec) {
 }
 
 async function queueInboxes(env, exec) {
-  if (!env.WORK) return syncAgentInboxes(env, null, replyTriage(env, exec));
-  const { results } = await env.DB.prepare("SELECT DISTINCT account_id FROM mailboxes WHERE host = 'agentmail'").all();
+  if (!env.WORK) return Promise.all([syncAgentInboxes(env, null, replyTriage(env, exec)), syncGmail(env, null, replyTriage(env, exec))]);
+  const { results } = await env.DB.prepare("SELECT DISTINCT account_id FROM mailboxes WHERE host IN ('agentmail', 'gmail')").all();
   for (let i = 0; i < results.length; i += 100) await env.WORK.sendBatch(results.slice(i, i + 100).map((r) => ({ body: { type: "inbox", accountId: r.account_id } })));
 }
 
@@ -539,8 +540,10 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/mailbox" && m === "GET") return json(await getMailbox(env, ctx));
   if (p === "/api/mailbox" && m === "PUT") return json(await saveMailbox(env, ctx, await body(request)));
   if (p === "/api/mailbox" && m === "DELETE") return json(await deleteMailbox(env, ctx));
+  if (p === "/api/google/connect" && m === "GET") return Response.redirect(await gmailAuthUrl(env, ctx, url.origin), 302);
+  if (p === "/api/google/callback" && m === "GET") return await gmailCallback(env, ctx, url);
   if (p === "/api/mailbox/agentmail" && m === "POST") return json(await createAgentInbox(env, ctx, await body(request)), 201);
-  if (p === "/api/mailbox/sync" && m === "POST") return json(await syncAgentInboxes(env, ctx.accountId, replyTriage(env, exec)));
+  if (p === "/api/mailbox/sync" && m === "POST") { const [a, g] = await Promise.all([syncAgentInboxes(env, ctx.accountId, replyTriage(env, exec)), syncGmail(env, ctx.accountId, replyTriage(env, exec))]); return json({ replies: (a?.replies || 0) + (g?.replies || 0) }); }
   if (p === "/api/mailbox/test" && m === "POST") {
     const box = await getMailbox(env, ctx);
     if (!box.connected) fail(400, "Connect your mailbox first");

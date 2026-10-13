@@ -137,6 +137,25 @@ I mapped Monid's catalog with 98 searches (708 endpoints from 77 providers) and 
 
   The ceiling is now the single D1 database, which serialises reads. A thousand users at realistic pace (one request every 10–30 seconds while active) comes to about 30–100 requests/s, well inside it. The next step for more headroom is D1 read replication.
 
+## Connect Gmail (sign in with Google)
+
+Warplan can send from your real Gmail or Google Workspace address and read owners' replies, the way Claude's Gmail
+connector does. One-time setup, about 10 minutes, in the Google account that owns the domain:
+
+1. console.cloud.google.com → create a project (e.g. "Warplan") → APIs & Services → Library → enable **Gmail API**.
+2. OAuth consent screen → User type **Internal** (Google Workspace: no Google review needed and sign-ins don't expire;
+   on a personal @gmail.com choose External, add yourself as a test user, and note Google signs testing apps out
+   every 7 days until the app is verified). App name "Warplan", your support email.
+3. Data access → add scopes `gmail.send` and `gmail.readonly`.
+4. Clients → Create client → **Web application** → Authorized redirect URI
+   `https://warplan.bendik-50e.workers.dev/api/google/callback` → copy the client ID and secret.
+5. `npx wrangler secret put GOOGLE_CLIENT_ID` and `npx wrangler secret put GOOGLE_CLIENT_SECRET`.
+6. In Warplan: Settings → Email → **Connect Gmail**.
+
+Emails then go out through the Gmail API from your address (they appear in your Sent folder). Every 10 minutes Warplan
+reads new inbox mail from people it has emailed, files each reply on the right target and drafts an answer in the
+Inbox. Mail from anyone else is never read. Agents still need your approval before anything is sent.
+
 ## API
 
 `GET /api` returns the full reference. Authenticate with `Authorization: Bearer wp_...` (Settings → API).

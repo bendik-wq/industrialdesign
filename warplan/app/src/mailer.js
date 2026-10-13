@@ -4,6 +4,7 @@
 // postal address (CAN-SPAM), and a record on the target's timeline.
 import { seal, open } from "./keys.js";
 import { run as monidRun } from "./monid.js";
+import { gmailSend, gmailConfigured } from "./gmail.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -173,14 +174,20 @@ export async function syncAgentInboxes(env, accountId = null, triage) {
 
 export async function getMailbox(env, ctx) {
   const m = await env.DB.prepare("SELECT email, from_name, host, port, username, signature, postal_address, daily_limit, verified_at, updated_at FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id || 0).first();
-  if (!m) return { connected: false, presets: PRESETS };
+  if (!m) return { connected: false, presets: PRESETS, gmailAvailable: gmailConfigured(env) };
   const sentToday = (await env.DB.prepare("SELECT COUNT(*) AS n FROM sent_emails WHERE user_id = ?1 AND status = 'sent' AND created_at >= ?2").bind(ctx.user.id, now().slice(0, 10)).first()).n;
-  return { connected: true, ...m, sentToday, presets: PRESETS };
+  return { connected: true, ...m, sentToday, presets: PRESETS, gmailAvailable: gmailConfigured(env) };
 }
 
 export async function saveMailbox(env, ctx, b) {
   if (!ctx.user.id) throw err(400, "Mailboxes belong to a signed-in user");
   const existing = await env.DB.prepare("SELECT * FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id).first();
+  // Gmail (signed in with Google) and AgentMail have no server settings: only the sender details change.
+  if (existing && ["gmail", "agentmail"].includes(existing.host) && !b.host && !b.preset) {
+    await env.DB.prepare("UPDATE mailboxes SET from_name = ?2, signature = ?3, postal_address = ?4, daily_limit = ?5, updated_at = ?6 WHERE user_id = ?1")
+      .bind(ctx.user.id, String(b.from_name ?? existing.from_name ?? "").slice(0, 80), String(b.signature ?? existing.signature ?? "").slice(0, 1000), String(b.postal_address ?? existing.postal_address ?? "").slice(0, 300), Math.min(200, Math.max(1, +b.daily_limit || existing.daily_limit || 40)), now()).run();
+    return getMailbox(env, ctx);
+  }
   const preset = PRESETS[b.preset] || null;
   const email = cleanEmail(b.email || existing?.email || ctx.user.email);
   if (!email) throw err(400, "Enter the email address to send from");
@@ -242,6 +249,7 @@ export async function sendEmail(env, ctx, b, hooks) {
   let status = "sent", error = null;
   try {
     if (box.host === "agentmail") await monidRun(env, ctx, { provider: "agentmail", endpoint: "/send-messages", input: { body: { inboxId: box.username, to: [to], subject, text: body, headers: { "List-Unsubscribe": `<mailto:${box.email}?subject=unsubscribe>` } } } }, { purpose: `Email to ${to}`, targetId: target?.id || null });
+    else if (box.host === "gmail") await gmailSend(env, box, raw);
     else await smtpSend(box, await open(env, box, aad(ctx.user.id)), to, raw);
   }
   catch (e) { status = "failed"; error = e.status ? e.message : "Sending failed"; if (!e.status) console.error("smtp", e); }

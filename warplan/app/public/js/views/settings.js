@@ -321,12 +321,20 @@ async function emailTab(seq) {
   const [box, sup] = await Promise.all([api("/api/mailbox"), api("/api/suppressions")]);
   if (stale(seq)) return;
   const P = box.presets;
-  const isGmail = /gmail\.com$/.test(box.host || "smtp.gmail.com");
+  const isGmail = /gmail\.com$/.test(box.host || "smtp.gmail.com"), oauth = box.host === "gmail";
+  const back = new URLSearchParams(location.hash.split("?")[1] || "").get("gmail");
+  if (back) { history.replaceState(null, "", "#/settings/email"); back.startsWith("connected:") ? toast(`Gmail connected: ${back.slice(10)}. Emails now send from it.`) : toast(back, "error"); }
   $("#tab").innerHTML = `
     <p class="lede tight">Emails to owners go out from your own address, so they look like they came from you (they did), land in your Sent folder, and replies come straight back to your inbox.</p>
     <div class="settings-grid">
+      <section class="panel form-panel gmail-card">
+        <div class="panel-head"><h2 class="h3">Gmail</h2><span class="status ${oauth ? "on" : ""}">${oauth ? `Connected · ${esc(box.email)}` : "Sign in with Google"}</span></div>
+        <p class="muted small">The easy way, like connecting Gmail in Claude: sign in with Google and Warplan sends from your real Gmail or Google Workspace address (it shows in your Sent folder) and reads replies from owners you've emailed, every 10 minutes, with a drafted answer waiting in your Inbox. Nothing sends without your approval. No app password.</p>
+        ${box.gmailAvailable ? `<div class="row"><a class="primary" href="/api/google/connect">${oauth ? "Reconnect Gmail" : "Connect Gmail"}</a>${oauth ? `<button class="ghost" type="button" id="gmSync">Check for replies now</button>` : ""}</div>`
+          : `<p class="small tone-warn">Google sign-in isn't switched on for this Warplan yet. ${session.me.isOwner ? "It needs a Google Cloud OAuth client (one-time, about 10 minutes); the steps are in the Warplan README under “Connect Gmail”." : "Ask the workspace owner to switch it on."}</p>`}
+      </section>
       <form class="panel form-panel" id="mbForm">
-        <div class="panel-head"><h2 class="h3">Your mailbox</h2><span class="status ${box.connected ? "on" : ""}">${box.connected ? `Connected · ${esc(box.email)}` : "Not connected"}</span></div>
+        <div class="panel-head"><h2 class="h3">${oauth ? "Sender details" : "Or: any mailbox (SMTP)"}</h2><span class="status ${box.connected && !oauth ? "on" : ""}">${box.connected && !oauth ? `Connected · ${esc(box.email)}` : oauth ? "Gmail" : "Not connected"}</span></div>
         <label class="field">Provider<select name="preset">${Object.entries(P).map(([k, v]) => `<option value="${k}" ${(box.connected ? (k === "gmail" && isGmail) || (k === "outlook" && /office365|outlook/.test(box.host)) || (k === "custom" && !isGmail && !/office365|outlook/.test(box.host)) : k === "gmail") ? "selected" : ""}>${esc(v.label)}</option>`).join("")}</select></label>
         <p class="muted small" id="presetHelp"></p>
         <div class="two"><label class="field">Send from<input name="email" type="email" required value="${esc(box.email || session.me.user.email)}"></label><label class="field">Your name<input name="from_name" value="${esc(box.from_name || session.me.user.name || "")}" maxlength="80"></label></div>
@@ -366,9 +374,16 @@ async function emailTab(seq) {
   };
   syncPreset();
   form.preset.addEventListener("change", syncPreset);
+  if (oauth) {
+    // Signed in with Google: no server or password here, only the name, signature, address and daily cap.
+    [form.preset.closest("label"), $("#presetHelp"), $("#pwLabel"), $(".custom-only")].forEach((el) => { if (el) el.hidden = true; });
+    form.email.readOnly = true;
+  }
+  $("#gmSync")?.addEventListener("click", async () => { try { const r = await post("/api/mailbox/sync"); toast(`${r.replies} new repl${r.replies === 1 ? "y" : "ies"}`); } catch (e) { fail(e); } });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(form));
+    if (oauth) for (const k of ["preset", "password", "host", "port", "email"]) delete f[k];
     const b = $("button[type=submit]", form);
     b.disabled = true; b.textContent = "Checking the login…";
     try { await post("/api/mailbox", f, "PUT"); toast("Mailbox connected"); emailTab(seq); }

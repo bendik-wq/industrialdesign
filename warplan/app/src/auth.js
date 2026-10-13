@@ -45,7 +45,7 @@ export function passwordProblem(pw) {
   return null;
 }
 
-async function hmac(env, data) {
+export async function hmac(env, data) {
   // Fail closed: sessions are never signed with a guessable fallback (like the setup password).
   const secret = env.SESSION_SECRET;
   if (!secret || secret.length < 32) throw Object.assign(new Error("Sign-in isn't configured on this server (SESSION_SECRET)"), { status: 503 });
