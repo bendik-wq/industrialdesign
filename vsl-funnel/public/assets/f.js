@@ -6,7 +6,7 @@
   var cfg = window.FUNNEL || {};
   var queue = [];
   var flushTimer = null;
-  var path = location.pathname;
+  var path = (window.FUNNEL && window.FUNNEL.page) || location.pathname;
 
   function uid() {
     var a = new Uint8Array(10);

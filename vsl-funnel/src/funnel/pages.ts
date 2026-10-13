@@ -30,6 +30,8 @@ export interface View {
   blocks?: Record<string, Html>;
   /** Exposed to the page's JS as window.FUNNEL. */
   config?: Record<string, unknown>;
+  /** Path to log the page view under (e.g. '/data' when the page is served at '/' on its own host). */
+  trackPath?: string;
   title?: string;
 }
 
@@ -103,7 +105,7 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
     : await track(rt, identityFromVisitor(v, url.toString()), {
         name: 'page_view',
         source: 'server',
-        path: url.pathname,
+        path: view.trackPath ?? url.pathname,
         props: { title: view.title ?? null, query: url.search.slice(0, 300) || null, new_visitor: v.isNewVisitor, new_session: v.isNewSession },
       });
 
@@ -112,7 +114,7 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
 
   const s = c.get('settings');
   const config = {
-    page: url.pathname,
+    page: view.trackPath ?? url.pathname,
     visitorId: v.visitorId,
     sessionId: v.sessionId,
     variant: v.variant,

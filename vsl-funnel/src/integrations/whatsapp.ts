@@ -2,7 +2,8 @@ import type { Runtime } from '../app';
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { REF_CODE_RE, newId } from '../lib/ids';
 import type { Lead } from '../funnel/leads';
-import { effectiveTier, getLeadByRef, updateLead } from '../funnel/leads';
+import { effectiveTier, getLead, getLeadByRef, updateLead } from '../funnel/leads';
+import { handleReplyWords } from './sms';
 import type { Settings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
 import { META_API_VERSION } from '../tracking/forward';
@@ -78,6 +79,38 @@ export async function sendResourcesTemplate(rt: Runtime, lead: Lead) {
   return res.ok;
 }
 
+const waTo = (lead: Pick<Lead, 'phone' | 'whatsapp_wa_id'>) => lead.whatsapp_wa_id || (lead.phone ?? '').replace(/\D/g, '');
+
+async function waPost(rt: Runtime, payload: Record<string, unknown>) {
+  const s = rt.settings;
+  const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${s.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${s.WHATSAPP_TOKEN}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ messaging_product: 'whatsapp', ...payload }),
+  });
+  const body = (await res.json().catch(() => ({}))) as { messages?: { id: string }[]; error?: { message: string; code?: number } };
+  if (!res.ok) throw new Error(`WhatsApp ${res.status}: ${body.error?.message ?? ''} (${body.error?.code ?? ''})`.slice(0, 300));
+  return body.messages?.[0]?.id ?? null;
+}
+
+/** Free-form message: only allowed within 24 hours of the person's last message to us. */
+export const sendWhatsAppText = (rt: Runtime, lead: Pick<Lead, 'phone' | 'whatsapp_wa_id'>, text: string) =>
+  waPost(rt, { to: waTo(lead), type: 'text', text: { body: text, preview_url: true } });
+
+/** Approved template, positional body parameters ({{1}}, {{2}}, …). */
+export const sendWhatsAppTemplate = (rt: Runtime, lead: Pick<Lead, 'phone' | 'whatsapp_wa_id'>, name: string, params: string[]) =>
+  waPost(rt, {
+    to: waTo(lead),
+    type: 'template',
+    template: { name, language: { code: rt.settings.WHATSAPP_TEMPLATE_LANG || 'en' }, components: params.length ? [{ type: 'body', parameters: params.map((text) => ({ type: 'text', text })) }] : [] },
+  });
+
+/** True when they've messaged us on WhatsApp in the last 24 hours (free-form replies allowed). */
+export async function inWhatsAppWindow(rt: Runtime, leadId: string) {
+  const row = await rt.env.DB.prepare("SELECT MAX(ts) AS t FROM whatsapp_messages WHERE lead_id = ? AND direction = 'in'").bind(leadId).first<{ t: number | null }>();
+  return Boolean(row?.t && row.t > Date.now() - 23.5 * 3_600_000);
+}
+
 /** Verifies Meta's X-Hub-Signature-256 header. */
 export async function verifyMetaSignature(appSecret: string, rawBody: string, header: string | null) {
   if (!header?.startsWith('sha256=')) return false;
@@ -107,6 +140,12 @@ export async function handleInbound(rt: Runtime, payload: WaWebhook) {
         await updateLead(rt.env, lead.id, { whatsapp_connected_at: lead.whatsapp_connected_at ?? Date.now(), whatsapp_wa_id: msg.from });
         const who = await identityFromLead(rt.env, lead.id);
         await track(rt, who, { name: firstConnect ? 'whatsapp_connected' : 'whatsapp_inbound', source: 'webhook', props: { wa_id: msg.from, matched_by: ref ? 'ref_code' : 'phone' } });
+        // STOP / START / "C" to confirm work the same as by text.
+        if (msg.type === 'text') {
+          const fresh = (await getLead(rt.env, lead.id))!;
+          const { reply } = await handleReplyWords(rt, fresh, body, 'whatsapp');
+          if (reply && cloudApiConfigured(rt.settings)) await sendWhatsAppText(rt, fresh, reply).catch(() => null);
+        }
       }
     }
   }

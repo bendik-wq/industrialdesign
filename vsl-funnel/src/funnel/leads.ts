@@ -59,6 +59,7 @@ export interface Lead {
   sms_opt_out_at: number | null;
   sms_confirmed_at: number | null;
   sms_consent_at: number | null;
+  wa_consent_at: number | null;
   industry: string | null;
   revenue_band: string | null;
   budget_band: string | null;

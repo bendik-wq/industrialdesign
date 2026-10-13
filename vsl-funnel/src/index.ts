@@ -19,6 +19,7 @@ import { syncInbound } from './integrations/elevenlabs-inbound';
 import { syncCalendly } from './integrations/calendly';
 import { processTriggers } from './personalize/triggers';
 import { purgeOld } from './lib/retention';
+import { dataLanding, isDataHost } from './data/data';
 import { applyHandoff, icsFile, isWebinarHost, registeredPage, roomPage, webinarLanding } from './webinar/pages';
 import { ensureSessions } from './webinar/webinar';
 import { processSmsQueue } from './integrations/sms';
@@ -79,7 +80,16 @@ app.use('*', async (c, next) => {
   }
   await next();
 });
-app.get('/', withVisitor, (c) => (isWebinarHost(c) ? webinarLanding(c) : landingPage(c)));
+// ── Data-buyer page (own host: data.yourdomain.com; or /data on the main domain) ──
+app.use('*', async (c, next) => {
+  if (isDataHost(c) && /^\/(apply|book|breakout|resources|for|m|admin|webinar|registered|room|replay|w)(\/|$)/.test(c.req.path)) {
+    const main = (c.get('settings').PUBLIC_URL || '').replace(/\/+$/, '');
+    if (main) return c.redirect(`${main}${c.req.path}${new URL(c.req.url).search}`, 302);
+  }
+  await next();
+});
+app.get('/', withVisitor, (c) => (isDataHost(c) ? dataLanding(c) : isWebinarHost(c) ? webinarLanding(c) : landingPage(c)));
+app.get('/data', withVisitor, dataLanding);
 app.get('/webinar', withVisitor, webinarLanding);
 for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/registered/:token`, withVisitor, registeredPage);

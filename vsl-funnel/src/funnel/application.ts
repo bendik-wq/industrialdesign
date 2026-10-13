@@ -142,6 +142,8 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
     // Consent is to calls on a specific number: a new number needs fresh consent.
     call_consent_at: consent ? (phoneChanged ? now : lead.call_consent_at ?? now) : null,
     call_consent_text: consent ? (phoneChanged ? CALL_CONSENT.version : lead.call_consent_text ?? CALL_CONSENT.version) : null,
+    // The wording names WhatsApp from v2 on; earlier consents stay calls + texts only.
+    wa_consent_at: consent ? (phoneChanged || !lead.wa_consent_at ? now : lead.wa_consent_at) : null,
     timezone: v.geo.timezone ?? lead.timezone,
   });
   lead = (await getLead(rt.env, lead.id))!;

@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -48,6 +48,7 @@ export const SETTINGS = [
   { key: 'WHATSAPP_PHONE_NUMBER_ID', label: 'WhatsApp phone number ID', group: 'WhatsApp' },
   { key: 'WHATSAPP_RESOURCES_TEMPLATE', label: 'Resources template name', group: 'WhatsApp', placeholder: 'free_resources' },
   { key: 'WHATSAPP_VERIFY_TOKEN', label: 'Webhook verify token', group: 'WhatsApp', secret: true },
+  { key: 'WHATSAPP_TEMPLATE_LANG', label: 'Template language code', group: 'WhatsApp', placeholder: 'en', help: 'The language your follow-up templates were approved in (en, en_US, en_GB…).' },
   { key: 'WHATSAPP_APP_SECRET', label: 'Meta app secret (webhook signatures)', group: 'WhatsApp', secret: true },
 
   { key: 'VAPI_API_KEY', label: 'Vapi private API key', group: 'Voice', secret: true, help: 'vapi.ai → API Keys. Used to create/update the assistant from this dashboard.' },
@@ -101,6 +102,12 @@ export const SETTINGS = [
   { key: 'SALES_TIMEZONE', label: 'Sales team time zone', group: 'Alerts', placeholder: 'Australia/Sydney', help: 'Used for the daily digest and call times in alerts.' },
   { key: 'DIGEST_HOUR', label: 'Daily digest hour (0–23)', group: 'Alerts', placeholder: '8', help: 'When the daily sales summary is posted. Leave blank for 8am.' },
   { key: 'LEAD_WEBHOOK_URL', label: 'CRM webhook (Zapier / Make / GHL)', group: 'Alerts', secret: true, help: 'Receives every lead lifecycle event as JSON.' },
+
+  { key: 'DATA_URL', label: 'Data page address', group: 'Data', placeholder: 'https://data.grosfjeld-li.com', help: 'Where the data-buyer page lives. Blank: /data on this domain.' },
+  { key: 'DATA_REFERRAL_URL', label: 'Partner referral link', group: 'Data', placeholder: 'https://…', help: 'Where people go after claiming their valuation. Blank: we keep their details and you follow up by hand.' },
+  { key: 'DATA_PARTNER', label: 'Partner name', group: 'Data', placeholder: 'micro1', help: 'Shown on the page. Only use a partner name you have permission to use.' },
+  { key: 'DATA_FUND_LINE', label: 'Committed budget', group: 'Data', placeholder: '$1 billion', help: 'As in “recently had $1 billion committed to buying data”. Must be accurate.' },
+  { key: 'DATA_VIDEO_SRC', label: 'Data page video', group: 'Data', placeholder: 'YouTube / Vimeo / Loom link, or an .mp4 / .m3u8 URL' },
 
   { key: 'BLOCKLIST', label: 'Lead blocklist', group: 'Security', placeholder: 'tyrekicker@example.com, +61400000000, @competitor.com', help: 'Emails, phone numbers or @domains that always go to the free resources page instead of a call.' },
   { key: 'CLARITY_ID', label: 'Microsoft Clarity project ID', group: 'Analytics', help: 'Free session recordings and heatmaps.' },

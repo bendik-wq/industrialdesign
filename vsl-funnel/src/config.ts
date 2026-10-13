@@ -301,8 +301,8 @@ ${faqText}`;
 
 /** The checkbox under the phone field. Bump the version whenever the wording changes; it's stored with the lead. */
 export const CALL_CONSENT = {
-  version: 'v1',
-  text: 'Call or text me at this number about my application and strategy call, including automated and AI-voice calls. Optional — not required to apply. You can opt out any time.',
+  version: 'v2',
+  text: 'Call, text or WhatsApp me at this number about my application and strategy call, including automated and AI-voice calls. Optional — not required to apply. You can opt out any time.',
 };
 
 /** Outbound AI caller (ElevenLabs). {{…}} values are filled per call. */

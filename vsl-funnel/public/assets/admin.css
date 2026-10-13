@@ -350,3 +350,8 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .sms-grid > * { min-width: 0; }
 .sms-setup code, .sms-setup li { overflow-wrap: anywhere; }
 .sms-setup .input { max-width: 100%; }
+.sms-wa { margin-top: 6px; font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sms-wa .input { padding: 4px 8px; font-size: 12px; }
+.sms-wa > div { flex-basis: 100%; }
+.wa-badge { background: #25d366; color: #05361a; border-radius: 999px; padding: 1px 8px; font-weight: 650; }
+.sms-setup .ok { color: var(--good); } .sms-setup .bad { color: var(--bad, #c0392b); }

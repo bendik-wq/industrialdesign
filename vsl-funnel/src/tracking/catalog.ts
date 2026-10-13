@@ -4,6 +4,7 @@
  */
 export const CLIENT_EVENTS = new Set([
   'webinar_register_click', 'webinar_unmute', 'webinar_offer_shown',
+  'data_video_play', 'data_cta_click', 'data_form_start', // data-buyer page
   'scroll_depth', // { pct: 25 | 50 | 75 | 100 }
   'engaged_time', // { ms } — sent when the page is hidden
   'cta_click', // { id, label }

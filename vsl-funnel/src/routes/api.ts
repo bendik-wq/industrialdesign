@@ -10,6 +10,7 @@ import { identityFromVisitor, track } from '../tracking/track';
 import { COOKIE, resolveVisitor } from '../lib/identity';
 import { type CollectPayload, collect } from '../tracking/collect';
 import { parseHeartbeat, recordHeartbeat } from '../tracking/vsl';
+import { claimData } from '../data/data';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
 
 export const api = new Hono<AppEnv>();
@@ -117,6 +118,17 @@ api.post('/booking/client', async (c) => {
   if (String(body.provider ?? 'calendly') === 'calendly') await confirmClientBooking(rt, lead, ref);
   else await markBooked(rt, lead, { callAt: null, provider: `${String(body.provider).slice(0, 20)}-client`, ref, verified: false });
   return c.json({ ok: true, next: '/breakout' });
+});
+
+// ── Data-buyer page ──
+api.post('/data/claim', async (c) => {
+  try {
+    const body = (await readJson<Record<string, unknown>>(c.req.raw)) ?? {};
+    const r = await claimData(runtimeFrom(c), c.get('visitor'), body);
+    return c.json({ ok: true, next: r.next });
+  } catch (err) {
+    return errorResponse(c, err);
+  }
 });
 
 // ── Webinar ──

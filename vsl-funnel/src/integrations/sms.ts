@@ -9,7 +9,8 @@ import { callingZones } from './elevenlabs';
 import { formatCallTime } from './email';
 import { notifySlack, plain } from './notify';
 import { leadByPhone } from './voice';
-import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS, type SmsSequenceDef, type SmsStepDef, type SmsTrigger } from './sms-defaults';
+import { cloudApiConfigured, inWhatsAppWindow, sendWhatsAppTemplate, sendWhatsAppText } from './whatsapp';
+import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_CHANNELS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS, type SmsSequenceDef, type SmsStepDef, type SmsTrigger } from './sms-defaults';
 
 /**
  * SMS follow-up through Twilio, driven by sequences you edit in Funnel HQ → SMS (stored in kv_state
@@ -78,10 +79,12 @@ export function cleanSequences(raw: unknown): SmsSequenceDef[] {
       const offsetMin = Math.max(-30 * 24 * 60, Math.min(365 * 24 * 60, Math.round(Number(st.offsetMin) || 0)));
       const link = SMS_LINKS.includes(st.link as never) ? (st.link as SmsStepDef['link']) : 'none';
       const skip = (Array.isArray(st.skip) ? st.skip : []).filter((k): k is SmsStepDef['skip'][number] => SMS_SKIPS.includes(k as never));
-      steps.push({ n, body, anchor, offsetMin, link, skip: [...new Set(skip)] });
+      const wa = typeof st.wa === 'string' && /^[a-z0-9_]{1,200}$/.test(st.wa.trim()) ? st.wa.trim() : undefined;
+      steps.push({ n, body, anchor, offsetMin, link, skip: [...new Set(skip)], ...(wa ? { wa } : {}) });
       maxN = Math.max(maxN, n);
     }
-    out.push({ id: r.id as SmsTrigger, enabled: r.enabled !== false, steps, next: Math.max(maxN + 1, Math.floor(Number(r.next)) || 0) });
+    const channel = SMS_CHANNELS.includes(r.channel as never) ? (r.channel as SmsSequenceDef['channel']) : 'sms';
+    out.push({ id: r.id as SmsTrigger, enabled: r.enabled !== false, channel, steps, next: Math.max(maxN + 1, Math.floor(Number(r.next)) || 0) });
   }
   return out;
 }
@@ -89,10 +92,15 @@ export function cleanSequences(raw: unknown): SmsSequenceDef[] {
 export const smsConfigured = (rt: Runtime) => Boolean(rt.settings.TWILIO_ACCOUNT_SID && rt.settings.TWILIO_AUTH_TOKEN && rt.settings.SMS_FROM);
 const smsOn = (rt: Runtime) => rt.settings.SMS_ENABLED.trim().toLowerCase() !== 'false';
 
-/** Why this lead can't be texted (null = OK). */
+/** Agreed to texts (SMS). */
+const smsOk = (l: Lead) => Boolean(l.call_consent_at || l.sms_consent_at);
+/** Agreed to WhatsApp (consent wording that names it), or started a WhatsApp chat with us themselves. */
+export const waOk = (l: Lead) => Boolean(l.wa_consent_at || l.whatsapp_connected_at);
+
+/** Why this lead can't be messaged at all (null = OK on at least one channel). */
 export function smsBlock(lead: Lead) {
   if (!lead.phone) return 'no phone';
-  if (!lead.call_consent_at && !lead.sms_consent_at) return 'no consent to text';
+  if (!smsOk(lead) && !waOk(lead)) return 'no consent to text';
   if (lead.sms_opt_out_at) return 'replied STOP';
   if (lead.booking_source === 'calendly-direct') return 'imported contact';
   if (!callingZones(lead.phone)) return 'number outside the countries we text';
@@ -122,6 +130,7 @@ function anchorTime(step: SmsStepDef, lead: Lead, now: number) {
 /** Starts a trigger's sequence for this lead (re-starting reschedules texts that haven't gone yet). */
 export async function startSms(rt: Runtime, lead: Lead, trigger: SmsTrigger) {
   if (!smsOn(rt) || smsBlock(lead)) return 0;
+  if (!smsOk(lead) && !(waOk(lead) && cloudApiConfigured(rt.settings))) return 0;
   const seq = (await loadSmsSequences(rt)).find((s) => s.id === trigger);
   if (!seq?.enabled) return 0;
   const now = Date.now();
@@ -185,8 +194,27 @@ export function renderSms(rt: Runtime, lead: Lead, step: SmsStepDef, smsId: stri
   body = body.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
   body = body.replace(/[ \t]+\n/g, '\n').replace(/\s+$/, '');
   if (firstText && !/\bSTOP\b/.test(body)) body = `${body}\nReply STOP to opt out.`;
-  return { body, target };
+  return { body, target, values };
 }
+
+/** Merge tags in the order they appear (the {link} is added at the end when the text forgot it). */
+function tagOrder(step: Pick<SmsStepDef, 'body' | 'link'>) {
+  const body = step.link !== 'none' && !step.body.includes('{link}') ? `${step.body} {link}` : step.body;
+  return { body, tags: [...body.matchAll(/\{(\w+)\}/g)].map((m) => m[1]) };
+}
+
+/**
+ * The text to submit to Meta as this step's WhatsApp template: merge tags become {{1}}, {{2}}… in order.
+ * Meta rejects a variable at the very start or end, so a greeting / sign-off is added where needed.
+ */
+export function waTemplateText(step: Pick<SmsStepDef, 'body' | 'link'>, siteName = 'G&L') {
+  let i = 0;
+  let text = tagOrder(step).body.replace(/\{(\w+)\}/g, () => `{{${++i}}}`).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').trim();
+  if (/^\{\{/.test(text)) text = `Hi ${text}`;
+  if (/\}\}[.!?]?$/.test(text)) text = `${text}\n\n- ${siteName}`;
+  return text;
+}
+export const waTemplateParams = (step: Pick<SmsStepDef, 'body' | 'link'>, values: Record<string, string>) => tagOrder(step).tags.map((k) => values[k] ?? '');
 
 /** GSM-7 vs Unicode segment count, for the editor and tests. */
 export function smsSegments(text: string) {
@@ -250,13 +278,28 @@ export async function processSmsQueue(rt: Runtime, limit = 40) {
     if ((today?.n ?? 0) >= 3) { await skip('daily cap (3)'); continue; }
     const before = await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') LIMIT 1").bind(lead.id).first();
     try {
-      const { body, target } = renderSms(rt, lead, step, row.id, !before);
+      const { body, target, values } = renderSms(rt, lead, step, row.id, !before);
       let providerId: string | null = null;
       let status = 'simulated';
-      if (smsConfigured(rt)) { providerId = await sendTwilio(rt, lead.phone!, body); status = 'sent'; }
-      await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, sent_at = ?, provider_id = ?, body = ?, link_target = ?, error = NULL WHERE id = ?')
-        .bind(status, Date.now(), providerId, body, target, row.id).run();
-      await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_sent', source: 'cron', props: { sequence: row.sequence, step: row.step, simulated: status === 'simulated' }, localOnly: true });
+      let channel: 'sms' | 'whatsapp' = 'sms';
+      let note: string | null = null;
+      // WhatsApp first when the sequence says so and we can reach them there; otherwise the same message by SMS.
+      if (seq.channel === 'whatsapp' && waOk(lead) && cloudApiConfigured(rt.settings)) {
+        try {
+          if (await inWhatsAppWindow(rt, lead.id)) { providerId = await sendWhatsAppText(rt, lead, body); channel = 'whatsapp'; status = 'sent'; }
+          else if (step.wa) { providerId = await sendWhatsAppTemplate(rt, lead, step.wa, waTemplateParams(step, values)); channel = 'whatsapp'; status = 'sent'; }
+          else note = 'WhatsApp: no approved template for this text, sent by SMS';
+        } catch (err) {
+          note = `WhatsApp failed, sent by SMS: ${String(err instanceof Error ? err.message : err)}`.slice(0, 300);
+        }
+      }
+      if (channel === 'sms') {
+        if (!smsOk(lead)) { await skip(note ?? 'no consent to SMS (WhatsApp only)'); continue; }
+        if (smsConfigured(rt)) { providerId = await sendTwilio(rt, lead.phone!, body); status = 'sent'; }
+      }
+      await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, sent_at = ?, provider_id = ?, body = ?, link_target = ?, channel = ?, error = ? WHERE id = ?')
+        .bind(status, Date.now(), providerId, body, target, channel, note, row.id).run();
+      await track(rt, await identityFromLead(rt.env, lead.id), { name: channel === 'whatsapp' ? 'whatsapp_sent' : 'sms_sent', source: 'cron', props: { sequence: row.sequence, step: row.step, simulated: status === 'simulated' }, localOnly: true });
       sent++;
     } catch (err) {
       const message = String(err instanceof Error ? err.message : err).slice(0, 300);
@@ -302,13 +345,20 @@ export async function handleInboundSms(rt: Runtime, params: Record<string, strin
   const now = Date.now();
   await rt.env.DB.prepare("INSERT INTO sms_messages (id, lead_id, direction, from_phone, body, status, created_at, sent_at, provider_id) VALUES (?, ?, 'in', ?, ?, 'received', ?, ?, ?)")
     .bind(newId('sm'), lead?.id ?? null, from, body, now, now, params.MessageSid ?? null).run();
+  return handleReplyWords(rt, lead, body, 'sms');
+}
+
+/** STOP / START / "C" to confirm, from a text or a WhatsApp message. Other replies ping the team. */
+export async function handleReplyWords(rt: Runtime, lead: Lead | null, body: string, channel: 'sms' | 'whatsapp'): Promise<{ kind: string; reply: string | null }> {
+  const now = Date.now();
   if (STOP_WORDS.test(body)) {
     if (lead) {
       await updateLead(rt.env, lead.id, { sms_opt_out_at: now });
       await stopSms(rt, lead.id);
       await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_opt_out', source: 'webhook', localOnly: true });
     }
-    return { kind: 'stop', reply: null }; // carriers / Twilio send the opt-out confirmation
+    // Carriers / Twilio confirm SMS opt-outs; on WhatsApp we say it ourselves.
+    return { kind: 'stop', reply: channel === 'whatsapp' ? "You're unsubscribed. We won't message you again." : null };
   }
   if (START_WORDS.test(body) && lead?.sms_opt_out_at) { await updateLead(rt.env, lead.id, { sms_opt_out_at: null }); return { kind: 'start', reply: null }; }
   if (lead && CONFIRM_WORDS.test(body) && booked(lead) && lead.status === 'booked') {
@@ -318,8 +368,8 @@ export async function handleInboundSms(rt: Runtime, params: Record<string, strin
     return { kind: 'confirmed', reply: `Thanks ${safeFirstName(lead.first_name) ?? ''}, you're confirmed${lead.call_at ? ` for ${fmtTime(lead.call_at, tz)}` : ''}. Speak then.`.replace('Thanks ,', 'Thanks,') };
   }
   if (lead) {
-    await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_reply', source: 'webhook', localOnly: true });
-    rt.waitUntil(notifySlack(rt, lead, '💬 Text reply', [`“${plain(body.slice(0, 300))}”`, 'Reply from Twilio or your phone; the thread is on the lead in Funnel HQ.'], 'voice'));
+    await track(rt, await identityFromLead(rt.env, lead.id), { name: channel === 'whatsapp' ? 'whatsapp_reply' : 'sms_reply', source: 'webhook', localOnly: true });
+    rt.waitUntil(notifySlack(rt, lead, channel === 'whatsapp' ? '💬 WhatsApp reply' : '💬 Text reply', [`“${plain(body.slice(0, 300))}”`, channel === 'whatsapp' ? 'Reply from the WhatsApp Business app within 24 hours.' : 'Reply from Twilio or your phone; the thread is on the lead in Funnel HQ.'], 'voice'));
   }
   return { kind: lead ? 'reply' : 'unknown', reply: null };
 }

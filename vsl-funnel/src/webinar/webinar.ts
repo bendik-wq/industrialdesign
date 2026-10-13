@@ -186,12 +186,12 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
     const { last, first } = await attributionFor(rt, v);
     const id = newId('l');
     await rt.env.DB.prepare(
-      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, email, phone, sms_consent_at, whatsapp_opt_in, step_reached, status,
+      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, email, phone, sms_consent_at, wa_consent_at, whatsapp_opt_in, step_reached, status,
          channel, utm_source, utm_medium, utm_campaign, utm_content, utm_term, click_id, click_type, ft_channel, ft_source, ft_campaign, ft_content,
          landing_path, variant, country, city, device, fbp, fbc, timezone)
-       VALUES (?,?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     ).bind(
-      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, emailCheck.email, phone, phone && wantsTexts ? now : null,
+      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, emailCheck.email, phone, phone && wantsTexts ? now : null, phone && wantsTexts ? now : null,
       last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_medium ?? null, last?.utm_campaign ?? null, last?.utm_content ?? null, last?.utm_term ?? null,
       last?.click_id ?? null, last?.click_type ?? null, first?.ft_channel ?? null, first?.ft_source ?? null, first?.ft_campaign ?? null, first?.ft_content ?? null,
       last?.landing_path ?? '/webinar', v.variant, v.geo.country, v.geo.city, v.ua.device, v.fbp, v.fbc, v.geo.timezone,

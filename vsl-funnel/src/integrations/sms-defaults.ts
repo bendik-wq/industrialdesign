@@ -23,6 +23,8 @@ export type SmsTrigger = keyof typeof SMS_TRIGGERS;
 export const SMS_ANCHORS = ['trigger', 'call', 'webinar'] as const;
 export const SMS_LINKS = ['none', 'join', 'reschedule', 'book', 'apply', 'breakout', 'webinar_room', 'webinar_replay'] as const;
 export const SMS_SKIPS = ['applied', 'booked', 'confirmed', 'attended', 'missed', 'clicked'] as const;
+/** sms = text only; whatsapp = WhatsApp when we can reach them there, otherwise the same message by SMS. */
+export const SMS_CHANNELS = ['sms', 'whatsapp'] as const;
 
 export interface SmsStepDef {
   n: number;
@@ -32,10 +34,13 @@ export interface SmsStepDef {
   link: (typeof SMS_LINKS)[number];
   /** Skip this text if any of these is true for the lead when it\'s due. */
   skip: (typeof SMS_SKIPS)[number][];
+  /** Approved WhatsApp template name for this text (needed outside the 24-hour reply window). */
+  wa?: string;
 }
 export interface SmsSequenceDef {
   id: SmsTrigger;
   enabled: boolean;
+  channel?: (typeof SMS_CHANNELS)[number];
   steps: SmsStepDef[];
   next: number; // next step number to hand out
 }

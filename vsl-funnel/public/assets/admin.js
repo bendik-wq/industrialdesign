@@ -185,7 +185,8 @@
     traffic: { title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
-    sms: { title: 'SMS', sub: 'Text-message sequences: drag texts to organise them, edit the wording and timing, choose the link and when to skip. Texts only go to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
+    sms: { title: 'SMS & WhatsApp', sub: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
+    data: { title: 'Data page', sub: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData },
     webinar: { title: 'Webinar', sub: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar },
     pages: { title: 'Landing pages & tests', sub: 'Every page people land on, and every headline being tested: the main page’s A/B test plus 100 industry landers (20 industries × 5 headlines). Each visit is traced to applications, bookings and cash.', render: renderLanders },
     behaviour: { title: 'On-page behaviour', sub: 'What people click, where the form slows them down, where they leave, what they re-read and highlight. Nothing anyone types is ever recorded.', render: renderBehaviour },
@@ -238,6 +239,30 @@
     });
   }
 
+  function renderData() {
+    return api('data').then(function (d) {
+      var f = d.funnel || {}, v = f.visitors || 0;
+      var when = function (t) { return new Date(t).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
+      view.innerHTML =
+        (d.referral ? '' : '<div class="card notice" style="margin-bottom:14px"><strong>No partner referral link yet.</strong> Claims are saved here and pinged to the team; add the link under Integrations → Data so people go straight to ' + esc(d.partner) + ' after claiming.</div>') +
+        '<div class="grid g-4">' +
+        tile('Visitors', n(v), n(f.views) + ' page views') +
+        tile('Watched the video', n(f.played), pct(v ? (f.played || 0) / v : null) + ' of visitors') +
+        tile('Clicked “Claim”', n(f.cta), pct(v ? (f.cta || 0) / v : null) + ' of visitors') +
+        tile('Claimed a valuation', n(f.claims), pct(v ? (f.claims || 0) / v : null) + ' of visitors') +
+        '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Claims</h2><p class="sub">Page: <a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(String(d.url).replace(/^https?:\/\//, '')) + '</a> · partner: ' + esc(d.partner) + (d.referral ? ' · sends people to <span class="mono">' + esc(d.referral) + '</span>' : '') + '</p>' +
+        table([
+          { label: 'When', html: function (r) { return esc(when(r.created_at)); } },
+          { label: 'Name', key: 'first_name' },
+          { label: 'Company', html: function (r) { return esc(r.company || '') + (r.website ? '<div class="muted">' + esc(r.website) + '</div>' : ''); } },
+          { label: 'Contact', html: function (r) { return esc(r.email) + (r.phone ? '<div class="muted">' + esc(r.phone) + '</div>' : ''); } },
+          { label: 'Revenue', html: function (r) { return esc(r.revenue || '–'); } },
+          { label: 'Source', html: function (r) { return esc([r.channel, r.utm_source, r.utm_campaign].filter(Boolean).join(' · ') || '–'); } },
+          { label: 'Sent to partner', html: function (r) { return r.redirected ? '✓' : '<span class="muted">follow up</span>'; } },
+        ], d.claims || []) + '</div>';
+    });
+  }
   function renderWebinar() {
     return api('webinar').then(function (d) {
       var k = d.kpis || {}, st = d.settings || {};
@@ -1177,6 +1202,19 @@
     var gsm = /^[\n\r @£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà^{}\\[~\]|€]*$/.test(t), len = t.length;
     return gsm ? (len <= 160 ? 1 : Math.ceil(len / 153)) : (len <= 70 ? 1 : Math.ceil(len / 67));
   }
+  // Same as waTemplateText() on the server: merge tags → {{1}}, {{2}}… in order; no variable at the very start/end.
+  function waTpl(st) {
+    var i = 0, body = st.link !== 'none' && st.body.indexOf('{link}') < 0 ? st.body + ' {link}' : st.body;
+    var t = body.replace(/\{(\w+)\}/g, function () { return '{{' + (++i) + '}}'; }).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').trim();
+    if (/^\{\{/.test(t)) t = 'Hi ' + t;
+    if (/\}\}[.!?]?$/.test(t)) t = t + '\n\n- G&L';
+    return t;
+  }
+  function waVars(st) {
+    var body = st.link !== 'none' && st.body.indexOf('{link}') < 0 ? st.body + ' {link}' : st.body, out = [];
+    body.replace(/\{(\w+)\}/g, function (m, k) { out.push('{{' + (out.length + 1) + '}} = ' + k); return m; });
+    return out.join(' · ');
+  }
   function splitOffset(min) {
     var a = Math.abs(min);
     if (a && a % 1440 === 0) return { v: a / 1440, unit: 'days' };
@@ -1200,11 +1238,20 @@
     var ok = function (b) { return b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'; };
     return '<div class="card"><h2>Setup</h2><ol class="sms-setup">' +
       '<li>' + ok(st.configured) + ' <strong>Connect Twilio</strong>: copy the Account SID and Auth Token from console.twilio.com into <a href="#integrations">Integrations → SMS</a>.</li>' +
-      '<li>' + ok(st.configured) + ' <strong>Pick the sender</strong> (“Send texts from”): an Australian number or a Messaging Service (<span class="mono">MG…</span>) with an alphanumeric sender like “GLAdvisory” for Australian leads; a US number registered for A2P 10DLC for US leads.</li>' +
+      '<li>' + ok(st.configured) + ' <strong>Pick the sender</strong> (“Send texts from”): an Australian mobile number from Twilio (it can receive replies, so STOP and “C” work), or a Messaging Service (<span class="mono">MG…</span>) with that number in it. A sender name like “GLAdvisory” can’t receive replies. US leads need a US number registered for A2P 10DLC.</li>' +
       '<li><strong>Point replies here</strong>: Twilio → your number → Messaging → “A message comes in” → <span class="mono">' + esc(st.webhook || '') + '</span> (HTTP POST). That’s how STOP, “C” to confirm and replies reach Funnel HQ.</li>' +
       '<li>' + ok(st.enabled) + ' <strong>Sending is ' + (st.enabled ? 'on' : 'paused') + '</strong> (SMS_ENABLED). ' + n_(st.consent && st.consent.consented) + ' people have agreed to texts · ' + n_(st.consent && st.consent.opted_out) + ' replied STOP · ' + n_(smsState.data.confirmed) + ' confirmed by text.</li>' +
       '<li><strong>Send yourself a test</strong>: <input class="input" data-smsto placeholder="+61412345678" style="max-width:190px;display:inline-block"> <button class="btn-sm ghost" data-smstest>Send test text</button> <span class="muted" data-smsmsg></span></li>' +
-      '</ol>' + (st.configured ? '' : '<p class="muted">Until Twilio is connected, texts are simulated: they’re written and logged here but not sent.</p>') + '</div>';
+      '</ol>' + (st.configured ? '' : '<p class="muted">Until Twilio is connected, texts are simulated: they’re written and logged here but not sent.</p>') +
+      waSetup(smsState.data.whatsapp || {}) + '</div>';
+  }
+  function waSetup(w) {
+    var ok = function (b) { return b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'; };
+    return '<h3 style="margin-top:14px">WhatsApp (optional)</h3><ol class="sms-setup">' +
+      '<li>' + ok(w.configured) + ' <strong>Connect the WhatsApp Cloud API</strong>: Meta Business → WhatsApp → API setup. Paste the permanent token and phone number ID into <a href="#integrations">Integrations → WhatsApp</a>.</li>' +
+      '<li>' + ok(w.signed) + ' <strong>Webhook</strong>: callback URL <span class="mono">' + esc(w.webhook || '') + '</span>, your verify token, subscribe to <span class="mono">messages</span>. Add the app secret so replies (STOP, “C”) are trusted.</li>' +
+      '<li><strong>Templates</strong>: switch a sequence to “WhatsApp first”, then for each text click “Copy template text” and create it in WhatsApp Manager (category Utility for reminders, Marketing for nudges) with the same name. Once approved it sends on WhatsApp; until then it goes by SMS.</li>' +
+      '<li>' + n_(w.reachable) + ' leads can get WhatsApp (they agreed or have messaged you) · ' + n_(w.sent) + ' WhatsApp messages sent. Template language: <span class="mono">' + esc(w.lang || 'en') + '</span>.</li></ol>';
   }
   function drawSms() {
     var S = smsState, d = S.data, seq = S.seqs.filter(function (x) { return x.id === S.sel; })[0];
@@ -1230,12 +1277,14 @@
         '<div class="sms-tags">' + SMS_TAGS.map(function (t) { return '<button class="chip" data-tag="' + t + '">{' + t + '}</button>'; }).join('') + '<span class="muted sms-count">' + prev.length + ' chars · ' + segs + ' SMS' + (segs > 2 ? ' (long)' : '') + '</span></div>' +
         '<div class="sms-preview"><span class="muted">Preview:</span> ' + esc(prev) + '</div>' +
         '<div class="sms-skip"><span class="muted">Skip this text if</span> ' + d.skips.map(function (k) { return '<label class="chip-check"><input type="checkbox" data-skip="' + k + '"' + (st.skip.indexOf(k) >= 0 ? ' checked' : '') + '> ' + esc(SMS_SKIP_LABEL[k] || k) + '</label>'; }).join('') + '</div>' +
+        (seq.channel === 'whatsapp' ? '<div class="sms-wa"><span class="wa-badge">WhatsApp</span> template name <input class="input mono" data-f="wa" value="' + esc(st.wa || '') + '" placeholder="gl_' + esc(seq.id) + '_' + st.n + '" style="width:200px"> <button class="btn-sm ghost" data-copytpl>Copy template text</button> <span class="muted">' + esc(waVars(st)) + '</span>' +
+          (st.wa ? '' : '<div class="muted">No template yet: goes by SMS unless they messaged you on WhatsApp in the last 24 hours.</div>') + '</div>' : '') +
         '<div class="sms-foot"><span class="muted">' + esc(smsStat(seq.id, st.n)) + '</span><button class="btn-sm ghost" data-testone>Send me this one</button></div></div>';
     }).join('');
     view.innerHTML = setupCard(S.status) +
       '<div class="sms-grid"><div class="sms-list card"><h2>Sequences</h2><p class="sub">One per moment in the funnel.</p>' + list + '</div>' +
       '<div class="card sms-editor"><div class="sms-head"><div><h2>' + esc(d.triggers[seq.id] || seq.id) + '</h2><p class="sub">Starts when this happens and stops by itself once it’s done its job (e.g. they book). Texts go out by their timing; drag to organise.</p></div>' +
-      '<div class="row"><label class="chip-check"><input type="checkbox" data-enabled' + (seq.enabled ? ' checked' : '') + '> On</label><button class="btn-sm ghost" data-reset>Reset to default</button><button class="btn-sm" data-save' + (S.dirty ? '' : ' disabled') + '>' + (S.dirty ? 'Save changes' : 'Saved') + '</button></div></div>' +
+      '<div class="row"><select class="input" data-channel title="How these messages are sent"><option value="sms"' + (seq.channel !== 'whatsapp' ? ' selected' : '') + '>Send by SMS</option><option value="whatsapp"' + (seq.channel === 'whatsapp' ? ' selected' : '') + '>WhatsApp first, SMS if not</option></select><label class="chip-check"><input type="checkbox" data-enabled' + (seq.enabled ? ' checked' : '') + '> On</label><button class="btn-sm ghost" data-reset>Reset to default</button><button class="btn-sm" data-save' + (S.dirty ? '' : ' disabled') + '>' + (S.dirty ? 'Save changes' : 'Saved') + '</button></div></div>' +
       '<div class="sms-palette"><span class="chip drag-new" draggable="true" data-new>＋ New text (drag into place)</span></div>' +
       '<div class="sms-steps" data-steps>' + (cards || '<div class="empty">No texts yet. Drag one in or click “Add text”.</div>') + '</div>' +
       '<button class="btn-sm ghost" data-add style="margin-top:10px">＋ Add text</button></div></div>';
@@ -1246,6 +1295,7 @@
     var S = smsState;
     view.querySelectorAll('[data-seq]').forEach(function (b) { b.onclick = function () { S.sel = b.getAttribute('data-seq'); drawSms(); }; });
     view.querySelector('[data-enabled]').onchange = function (e) { seq.enabled = e.target.checked; markDirty(); };
+    view.querySelector('[data-channel]').onchange = function (e) { seq.channel = e.target.value; S.dirty = true; drawSms(); };
     view.querySelector('[data-reset]').onclick = function () {
       if (!confirm('Replace this sequence with the default texts? Unsaved changes are lost.')) return;
       var def = JSON.parse(JSON.stringify(S.data.defaults.filter(function (x) { return x.id === seq.id; })[0]));
@@ -1273,6 +1323,8 @@
         st.link = card.querySelector('[data-f="link"]').value;
         st.body = card.querySelector('[data-f="body"]').value;
         st.skip = Array.prototype.slice.call(card.querySelectorAll('[data-skip]:checked')).map(function (x) { return x.getAttribute('data-skip'); });
+        var waIn = card.querySelector('[data-f="wa"]');
+        if (waIn) { st.wa = waIn.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'); var vv = card.querySelector('.sms-wa > .muted'); if (vv) vv.textContent = waVars(st); }
         var prev = smsPreview(st.body), segs = smsSegs(prev + (st.link !== 'none' && st.body.indexOf('{link}') < 0 ? ' ' + SAMPLE.link : ''));
         card.querySelector('.sms-preview').innerHTML = '<span class="muted">Preview:</span> ' + esc(prev);
         card.querySelector('.sms-count').textContent = prev.length + ' chars · ' + segs + ' SMS' + (segs > 2 ? ' (long)' : '');
@@ -1287,10 +1339,15 @@
       });
       card.querySelector('[data-del]').onclick = function () { if (confirm('Delete this text? Any not-yet-sent copies are skipped.')) { seq.steps.splice(i, 1); markDirty(); drawSms(); } };
       card.querySelector('[data-dup]').onclick = function () { var c = JSON.parse(JSON.stringify(st)); c.n = seq.next++; seq.steps.splice(i + 1, 0, c); markDirty(); drawSms(); };
+      var cp = card.querySelector('[data-copytpl]');
+      if (cp) cp.onclick = function () {
+        var t = waTpl(st);
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { cp.textContent = 'Copied ✓'; setTimeout(function () { cp.textContent = 'Copy template text'; }, 1500); }, function () { prompt('Copy this template text:', t); });
+      };
       card.querySelector('[data-testone]').onclick = function () {
         var to = (view.querySelector('[data-smsto]') || {}).value || prompt('Your mobile, in international format (+61…):');
         if (!to) return;
-        send('POST', 'sms/test-step', { to: to, step: st }).then(function (r) { alert(r && r.ok ? 'Sent to ' + to : (r && r.error) || 'Failed'); });
+        send('POST', 'sms/test-step', { to: to, step: st, channel: seq.channel || 'sms' }).then(function (r) { alert(r && r.ok ? 'Sent to ' + to : (r && r.error) || 'Failed'); });
       };
       // drag to reorder
       card.addEventListener('dragstart', function (e) { if (/TEXTAREA|INPUT|SELECT/.test(e.target.tagName)) { e.preventDefault(); return; } e.dataTransfer.setData('text/plain', 'move:' + i); card.classList.add('dragging'); });

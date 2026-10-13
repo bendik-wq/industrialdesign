@@ -11,10 +11,11 @@ import { SEQUENCES } from '../integrations/sequences';
 import { newId } from '../lib/ids';
 import { webinarReport } from '../admin/webinar';
 import { cancelSession, ensureSessions } from '../webinar/webinar';
-import { cleanSequences, loadSmsSequences, renderSms, sendSmsNow, smsConfigured } from '../integrations/sms';
-import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS } from '../integrations/sms-defaults';
+import { cleanSequences, loadSmsSequences, renderSms, sendSmsNow, smsConfigured, waTemplateParams, waTemplateText } from '../integrations/sms';
+import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_CHANNELS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS } from '../integrations/sms-defaults';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
-import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
+import { dataReport } from '../data/data';
+import { cloudApiConfigured, sendWhatsAppTemplate, sendWhatsAppText, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
 import { calendlyConnected, connectCalendly, importCalendlyHistory, requalifyCalendlyLeads, syncCalendly } from '../integrations/calendly';
 import { type OutboundCall, dial, elevenConfigured, listPhoneNumbers, provisionAgent } from '../integrations/elevenlabs';
@@ -182,7 +183,13 @@ admin.get('/sms/sequences', async (c) => {
                         FROM sms_messages WHERE direction = 'out' GROUP BY sequence, step`).all<{ sequence: string; step: number; sent: number; clicked: number; skipped: number; pending: number }>(),
   ]);
   const confirmed = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM leads WHERE sms_confirmed_at IS NOT NULL').first<{ n: number }>();
-  return c.json({ sequences, defaults: DEFAULT_SMS_SEQUENCES, triggers: SMS_TRIGGERS, links: SMS_LINKS, anchors: SMS_ANCHORS, skips: SMS_SKIPS, stats: stats.results, confirmed: confirmed?.n ?? 0 });
+  const wa = await c.env.DB.prepare("SELECT SUM(wa_consent_at IS NOT NULL OR whatsapp_connected_at IS NOT NULL) AS reachable, (SELECT COUNT(*) FROM sms_messages WHERE channel = 'whatsapp' AND status = 'sent') AS sent FROM leads WHERE phone IS NOT NULL").first<{ reachable: number; sent: number }>();
+  const s = rt.settings;
+  return c.json({
+    sequences, defaults: DEFAULT_SMS_SEQUENCES, triggers: SMS_TRIGGERS, links: SMS_LINKS, anchors: SMS_ANCHORS, skips: SMS_SKIPS, channels: SMS_CHANNELS, stats: stats.results, confirmed: confirmed?.n ?? 0,
+    whatsapp: { configured: cloudApiConfigured(s), webhook: `${rt.origin}/hooks/whatsapp`, signed: Boolean(s.WHATSAPP_APP_SECRET), reachable: wa?.reachable ?? 0, sent: wa?.sent ?? 0, lang: s.WHATSAPP_TEMPLATE_LANG || 'en' },
+    templates: Object.fromEntries(sequences.flatMap((q) => q.steps.map((st) => [`${q.id}:${st.n}`, waTemplateText(st, s.SITE_NAME || 'G&L')]))),
+  });
 });
 admin.put('/sms/sequences', async (c) => {
   const body = await c.req.json<{ sequences?: unknown }>().catch(() => ({ sequences: null }));
@@ -193,15 +200,25 @@ admin.put('/sms/sequences', async (c) => {
 });
 admin.post('/sms/test-step', async (c) => {
   const rt = runtimeFrom(c);
-  const b = await c.req.json<{ to?: string; step?: unknown }>().catch(() => ({} as { to?: string; step?: unknown }));
+  const b = await c.req.json<{ to?: string; step?: unknown; channel?: string }>().catch(() => ({} as { to?: string; step?: unknown; channel?: string }));
   const number = String(b.to ?? '').replace(/[^\d+]/g, '');
   if (!/^\+\d{8,15}$/.test(number)) return c.json({ ok: false, error: 'Enter your number in international format, e.g. +61412345678' }, 400);
-  if (!smsConfigured(rt)) return c.json({ ok: false, error: 'Connect Twilio first (Integrations → SMS).' }, 400);
+  const viaWa = b.channel === 'whatsapp' && cloudApiConfigured(rt.settings);
+  if (!viaWa && !smsConfigured(rt)) return c.json({ ok: false, error: 'Connect Twilio first (Integrations → SMS).' }, 400);
   const [seq] = cleanSequences([{ id: 'booked', steps: [{ ...(b.step as object), n: 1 }] }]);
   if (!seq?.steps[0]) return c.json({ ok: false, error: 'That text is empty.' }, 400);
   const sample = { id: 'test', first_name: 'Dana', phone: number, call_at: Date.now() + 86_400_000, webinar_at: Date.now() + 2 * 86_400_000, webinar_token: null, timezone: rt.settings.SALES_TIMEZONE || 'Australia/Sydney', closer_id: null, tier: 'A', tier_override: null, booking_join_url: null, booking_reschedule_url: null } as unknown as Lead;
-  const { body } = renderSms(rt, sample, seq.steps[0], 'test000000', false);
-  try { await sendSmsNow(rt, number, `[TEST] ${body}`); return c.json({ ok: true }); } catch (e) { return c.json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 400); }
+  const { body, values } = renderSms(rt, sample, seq.steps[0], 'test000000', false);
+  try {
+    if (viaWa) {
+      const who = { phone: number, whatsapp_wa_id: null };
+      // A template if this text has one; otherwise free text (only arrives if you've messaged the number in the last 24h).
+      if (seq.steps[0].wa) await sendWhatsAppTemplate(rt, who, seq.steps[0].wa, waTemplateParams(seq.steps[0], values));
+      else await sendWhatsAppText(rt, who, `[TEST] ${body}`);
+      return c.json({ ok: true, channel: 'whatsapp' });
+    }
+    await sendSmsNow(rt, number, `[TEST] ${body}`); return c.json({ ok: true });
+  } catch (e) { return c.json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 400); }
 });
 
 admin.post('/sms/test', async (c) => {
@@ -217,6 +234,7 @@ admin.post('/sms/test', async (c) => {
   const data = (await res.json().catch(() => ({}))) as { message?: string };
   return c.json(res.ok ? { ok: true } : { ok: false, error: `Twilio: ${data.message ?? res.status}` }, res.ok ? 200 : 400);
 });
+admin.get('/data', async (c) => { const f = filters(c); return c.json(await dataReport(runtimeFrom(c), f.from, f.to)); });
 admin.get('/live', async (c) => c.json(await live(c.env)));
 
 // ── Leads ───────────────────────────────────────────────────────────

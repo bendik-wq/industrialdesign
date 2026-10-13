@@ -1,0 +1,20 @@
+.data-h1 { max-width: 15ch; margin-inline: auto; }
+.data-h1 em { white-space: nowrap; }
+.data-lede { max-width: 720px; margin: 18px auto 0; }
+.data-video { max-width: 880px; margin: 34px auto 0; }
+.data-video .vsl iframe, .data-video .vsl video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.data-page .cta-zone { margin-top: 30px; }
+.data-urgency { margin: 14px auto 0; font-size: 14px; color: var(--ink-2); max-width: 520px; }
+.data-block { padding-block: 56px; }
+.data-steps { grid-template-columns: repeat(3, 1fr); }
+.data-two { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+.data-done { padding: 8px 0; }
+.data-page select { width: 100%; }
+@media (max-width: 760px) {
+  .data-steps, .data-two { grid-template-columns: 1fr; gap: 28px; }
+  .data-h1 { max-width: none; }
+}
+.data-page .block { padding-block: 56px; }
+.data-page .hero { padding-bottom: 64px; }
+.data-page .field select { width: 100%; font: 15px/1.4 var(--font); padding: 11px 12px; border-radius: var(--radius); border: 1px solid #d9dde4; background: #fff; color: #0d1526; }
+.data-page .field select:focus { outline: none; border-color: #0f2c5c; box-shadow: 0 0 0 3px rgba(15, 44, 92, .12); }
