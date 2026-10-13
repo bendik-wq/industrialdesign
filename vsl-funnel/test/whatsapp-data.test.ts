@@ -83,3 +83,12 @@ describe('Data page headline test', async () => {
     expect((await pickHeadline(rt('even', null), 'v1', '<script>')).preview).toBe(false);
   });
 });
+
+describe('Data page: closed businesses', async () => {
+  const { DEFUNCT_LINE, BUSINESS_STATUS } = await import('../src/data/data');
+  it('says closed businesses qualify, without promising more than "up to"', () => {
+    expect(DEFUNCT_LINE).toMatch(/Closed or sold/);
+    expect(DEFUNCT_LINE).toMatch(/up to \$2 million/);
+    expect(BUSINESS_STATUS).toEqual(expect.arrayContaining(['Trading', 'Closed', 'Sold', 'Dormant']));
+  });
+});

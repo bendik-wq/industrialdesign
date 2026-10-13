@@ -53,7 +53,7 @@ export async function dataLanding(c: Context<AppEnv>) {
   const fill = (t: string) => t.replace(/\{partner\}/g, esc(d.partner)).replace(/\{fund\}/g, esc(d.fund));
   return render(c, '/data.html', {
     title: `Get paid for your operational data`,
-    slots: { partner: esc(d.partner), fund: esc(d.fund), headline: fill(h.h1), lede: fill(h.lede) },
+    slots: { partner: esc(d.partner), fund: esc(d.fund), headline: fill(h.h1), lede: fill(h.lede), defunct: DEFUNCT_LINE },
     // Previews (?h=) don't count towards the test.
     trackProps: preview ? { headline_preview: h.id } : { headline: h.id },
     blocks: { video: videoEmbed(d.video) },
@@ -72,7 +72,7 @@ export async function dataLanding(c: Context<AppEnv>) {
  */
 const LEDE = {
   cash: '<strong>{partner} just had {fund} committed to buying it.</strong> Not customer data. Anonymised <em>operational</em> data: how your business actually runs. Deals typically land between $200,000 and $2 million. No equity. Nothing changes day to day.',
-  recap: '<strong>No new investors. No dilution. No loan.</strong> {partner} has {fund} committed to buying anonymised operational data from established businesses, and deals typically land between $200,000 and $2 million. You keep every share.',
+  recap: '<strong>No new investors. No dilution. No loan.</strong> {partner} has {fund} committed to buying anonymised operational data from established businesses (trading or closed), and deals typically land between $200,000 and $2 million. You keep every share.',
   debt: '<strong>Clear the expensive loans without selling a share or borrowing another cent.</strong> {partner} has {fund} committed to buying anonymised operational data, typically $200,000 to $2 million a deal. Not customer data. Nothing changes day to day.',
   revenue: '<strong>A product you’ve been making for years without selling it.</strong> {partner} has {fund} committed to buying anonymised operational data, typically $200,000 to $2 million a deal. No new staff, no new customers, no equity.',
   curious: '<strong>It’s your operational data, and {partner} has {fund} committed to buying it.</strong> Not customer data, not equity: anonymised records of how your business runs. Deals typically land between $200,000 and $2 million.',
@@ -110,6 +110,9 @@ export const DATA_HEADLINES: { id: string; angle: Angle; h1: string; lede: strin
   H('notstartups', 'curious', 'Not for start-ups. Established owners are getting paid up to <em>$2,000,000</em> for their operational data.'),
 ];
 export const DATA_HEADLINE_MIN = 30;
+/** Shown under every headline: closed businesses qualify too. */
+export const DEFUNCT_LINE = '<strong>Closed or sold a business?</strong> If you still have its records, they could be worth up to $2 million too.';
+export const BUSINESS_STATUS = ['Trading', 'Closed', 'Sold', 'Dormant'];
 
 export interface HeadlineStats { visitors: number; clicked: number; claims: number }
 let hcache: { at: number; stats: Map<string, HeadlineStats> } | null = null;
@@ -196,6 +199,7 @@ export async function claimData(rt: Runtime, v: VisitorCtx, body: Record<string,
   if (site) { try { new URL(site); } catch { throw new ApplicationError('That website doesn’t look right — or leave it blank', 'website'); } }
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid phone number, including area code — or leave it blank', 'phone');
+  const status = BUSINESS_STATUS.includes(String(body.business_status)) ? String(body.business_status) : null;
   const headline = DATA_HEADLINES.some((h) => h.id === body.headline) ? String(body.headline) : null;
   const revenue = REVENUES.includes(String(body.revenue)) ? String(body.revenue) : null;
   if (!(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed — please refresh and try again', undefined, 403);
@@ -211,15 +215,15 @@ export async function claimData(rt: Runtime, v: VisitorCtx, body: Record<string,
   const { last } = await attributionFor(rt, v);
   const id = newId('dr');
   await rt.env.DB.prepare(
-    `INSERT INTO data_referrals (id, created_at, first_name, email, company, website, phone, revenue, visitor_id, session_id, channel, utm_source, utm_campaign, country, redirected, headline)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-  ).bind(id, Date.now(), firstName, emailCheck.email, company, site || null, phone, revenue, v.visitorId, v.sessionId, last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_campaign ?? null, v.geo.country, d.referral ? 1 : 0, headline).run();
+    `INSERT INTO data_referrals (id, created_at, first_name, email, company, website, phone, revenue, visitor_id, session_id, channel, utm_source, utm_campaign, country, redirected, headline, business_status)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+  ).bind(id, Date.now(), firstName, emailCheck.email, company, site || null, phone, revenue, v.visitorId, v.sessionId, last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_campaign ?? null, v.geo.country, d.referral ? 1 : 0, headline, status).run();
 
-  await track(rt, identityFromVisitor(v, null, null), { name: 'data_claim', source: 'server', path: '/data', props: { revenue, headline, redirected: Boolean(d.referral) }, localOnly: true });
+  await track(rt, identityFromVisitor(v, null, null), { name: 'data_claim', source: 'server', path: '/data', props: { revenue, headline, status, redirected: Boolean(d.referral) }, localOnly: true });
   rt.waitUntil(notify(rt, {
     kind: 'hot_lead',
     title: `💾 Data valuation claim — ${firstName} (${company})`,
-    lines: [`${emailCheck.email}${phone ? ` · ${phone}` : ''}`, site ? `Website: ${site}` : '', revenue ? `Revenue: ${revenue}` : '', d.referral ? `Sent on to ${d.partner}.` : 'No referral link set yet — follow up by hand.'],
+    lines: [`${emailCheck.email}${phone ? ` · ${phone}` : ''}`, site ? `Website: ${site}` : '', revenue ? `Revenue: ${revenue}` : '', status ? `Business: ${status}` : '', d.referral ? `Sent on to ${d.partner}.` : 'No referral link set yet — follow up by hand.'],
   }).then(() => undefined, () => undefined));
   return { id, next: d.referral || null };
 }
@@ -230,7 +234,7 @@ export async function dataReport(rt: Runtime, from: number, to: number) {
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors FROM events WHERE name = 'page_view' AND path = '/data' AND is_bot = 0 AND ts BETWEEN ? AND ?").bind(from, to).first<{ views: number; visitors: number }>(),
     db.prepare("SELECT name, COUNT(DISTINCT visitor_id) AS n FROM events WHERE path = '/data' AND name IN ('data_video_play', 'data_cta_click', 'data_form_start') AND ts BETWEEN ? AND ? GROUP BY name").bind(from, to).all<{ name: string; n: number }>(),
     db.prepare('SELECT COUNT(*) AS n FROM data_referrals WHERE created_at BETWEEN ? AND ?').bind(from, to).first<{ n: number }>(),
-    db.prepare('SELECT id, created_at, first_name, email, company, website, phone, revenue, headline, channel, utm_source, utm_campaign, country, redirected FROM data_referrals WHERE created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT 200').bind(from, to).all(),
+    db.prepare('SELECT id, created_at, first_name, email, company, website, phone, revenue, headline, business_status, channel, utm_source, utm_campaign, country, redirected FROM data_referrals WHERE created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT 200').bind(from, to).all(),
   ]);
   const by = Object.fromEntries(ev.results.map((r) => [r.name, r.n]));
   const hs = await headlineStats(rt, from, to, false);

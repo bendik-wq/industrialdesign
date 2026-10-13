@@ -38,7 +38,7 @@
     var btn = form.querySelector('button[type=submit]');
     var body = {
       first_name: form.first_name.value.trim(), email: form.email.value.trim(), company: form.company.value.trim(),
-      website: form.website.value.trim(), phone: form.phone.value.trim(), revenue: form.revenue.value, headline: cfg.headline || '',
+      website: form.website.value.trim(), phone: form.phone.value.trim(), revenue: form.revenue.value, business_status: form.business_status ? form.business_status.value : '', headline: cfg.headline || '',
     };
     var ts = document.querySelector('[name="cf-turnstile-response"]');
     if (ts) body.turnstile = ts.value;

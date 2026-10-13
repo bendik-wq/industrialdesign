@@ -25,11 +25,12 @@
       <div class="wrap">
         <span class="data-badge"><b>New</b><span><span data-slot="partner">micro1</span> has <span data-slot="fund">$1 billion</span> committed to buying business data</span></span>
         <h1 class="display data-h1" data-slot="headline">Get paid up to <em>$2,000,000</em> for data your business <span class="nw">already creates.</span></h1>
+        <p class="data-defunct" data-slot="defunct"></p>
         <p class="lede data-lede" data-slot="lede"></p>
         <ul class="data-strip" aria-label="At a glance">
           <li><b>$200K–$2M</b><span>typical deal</span></li>
           <li><b>$0</b><span>cost to you</span></li>
-          <li><b>100%</b><span>of your business stays yours</span></li>
+          <li><b>Closed?</b><span>still qualifies</span></li>
           <li><b>0</b><span>customer records sold</span></li>
         </ul>
 
@@ -59,7 +60,7 @@
       <div class="wrap">
         <h2 class="section-title">How it works</h2>
         <ol class="steps-list data-steps">
-          <li><h3>Claim your valuation</h3>Tell us your business and how to reach you. One minute.</li>
+          <li><h3>Claim your valuation</h3>Tell us the business (trading or closed) and how to reach you. One minute.</li>
           <li><h3>Get an offer</h3><span data-slot="partner">micro1</span> looks at what operational data you have and what it’s worth to them.</li>
           <li><h3>Decide</h3>If the number works, you sell. If it doesn’t, you walk away. No cost either way.</li>
         </ol>
@@ -74,6 +75,7 @@
             <li><strong>How the work gets done.</strong> Workflows, processes, SOPs, job and work-order history.</li>
             <li><strong>How the business runs.</strong> Scheduling, dispatch, inventory, supply and maintenance records.</li>
             <li><strong>Years of it.</strong> The more history and the more specialised your industry, the more it’s worth.</li>
+            <li><strong>Even from a closed business.</strong> Shut it down or sold it? If you kept the records, the history is still there, and it can still be worth a lot.</li>
           </ul>
         </div>
         <div>
@@ -108,8 +110,10 @@
               <div class="field"><label for="d-company">Company</label><input id="d-company" name="company" autocomplete="organization" required></div>
               <div class="field"><label for="d-web">Website <span class="muted">(optional)</span></label><input id="d-web" name="website" inputmode="url" autocomplete="url"></div>
             </div>
+            <div class="field"><label for="d-status">The business is</label>
+              <select id="d-status" name="business_status"><option value="Trading">Still trading</option><option value="Closed">Closed down</option><option value="Sold">Sold (I kept the records)</option><option value="Dormant">Dormant / paused</option></select></div>
             <div class="row2">
-              <div class="field"><label for="d-rev">Annual revenue</label>
+              <div class="field"><label for="d-rev">Annual revenue <span class="muted">(at its peak, if closed)</span></label>
                 <select id="d-rev" name="revenue"><option value="">Choose…</option><option>Under $1M</option><option>$1M–$5M</option><option>$5M–$20M</option><option>$20M–$100M</option><option>$100M+</option></select></div>
               <div class="field"><label for="d-phone">Phone <span class="muted">(optional)</span></label><input id="d-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel"></div>
             </div>
@@ -134,6 +138,7 @@
           <details class="faq"><summary>What will mine be worth?</summary><div class="faq-a"><p>Deals typically land between $200,000 and $2 million. It depends on your industry, how much history you have and how detailed it is. The valuation tells you your number.</p></div></details>
           <details class="faq"><summary>What does it cost me?</summary><div class="faq-a"><p>Nothing. The valuation is free and there’s no obligation to sell.</p></div></details>
           <details class="faq"><summary>Who are you?</summary><div class="faq-a"><p>G&amp;L works with business owners on acquisitions and growth, and partners with <span data-slot="partner">micro1</span> to bring them owners with valuable data. We may receive a referral fee from <span data-slot="partner">micro1</span>. It doesn’t change what you’re paid.</p></div></details>
+          <details class="faq"><summary>My business has closed. Does it still count?</summary><div class="faq-a"><p>Yes. Buyers value years of real operating history, and that doesn’t disappear when a business closes. If you still have the records (job history, scheduling, inventory, systems exports) and you’re entitled to them, a closed or sold business can still be worth up to $2 million. If the company went through liquidation, the records may belong to the liquidator; we’ll help you check.</p></div></details>
           <details class="faq"><summary>Why now?</summary><div class="faq-a"><p>The budget is being deployed now. Once it’s allocated, the premium prices for each industry are gone.</p></div></details>
         </div>
       </div>

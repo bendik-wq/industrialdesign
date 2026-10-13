@@ -39,3 +39,5 @@
 .data-use-grid span { font: var(--t-body); font-size: 14.5px; color: var(--ink-2); }
 @media (max-width: 900px) { .data-use-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .data-use-grid { grid-template-columns: 1fr; } }
+.data-defunct { margin: 14px auto 0; max-width: 640px; font-size: 15.5px; color: var(--ink); background: #fff7e0; border: 1px solid #f1d58a; border-radius: 999px; padding: 8px 16px; }
+@media (max-width: 760px) { .data-defunct { border-radius: 12px; font-size: 14.5px; } }

@@ -13,7 +13,7 @@ This isn't for everyone.
 
 If you started your business last year, click away. This won't apply to you.
 
-But if you've been running a real business for a few years, with real jobs, real processes and real records, you could get paid up to two million dollars for data your business already creates. And odds are nobody has ever told you.
+But if you've run a real business for a few years, with real jobs, real processes and real records, you could get paid up to two million dollars for that data. Even if that business has since closed. And odds are nobody has ever told you.
 
 // MARKET HAS MOVED
 
@@ -46,6 +46,18 @@ And your first thought is probably "I'm not selling my customers' details." Good
 Your customers' names, numbers and card details stay with you. They buy operational data: the workflows, the job history, the scheduling, the maintenance logs. All of it anonymised.
 
 No equity. No control. Nothing changes on Monday morning.
+
+// THE CLOSED-BUSINESS TWIST (belief shift: "that chapter's over")
+
+And here's the part that surprises people.
+
+It doesn't have to be a business you're running today.
+
+If you closed a business, or sold it and kept the records, those years of job history, scheduling and operations didn't disappear when the doors shut. To a buyer like [FILL: partner name], that history is still valuable. You might have something worth up to two million dollars sitting in an old hard drive or a cloud account you haven't opened in years.
+
+So if that's you, pick "Closed down" or "Sold" on the form. It still counts.
+
+(If the company went through liquidation, the records may belong to the liquidator. We'll help you check.)
 
 // TIMELINE LANGUAGE
 
@@ -90,6 +102,8 @@ Click "Claim my data valuation" right under this video, and we'll take you strai
 **Recapitalise.** "Want to recapitalise your business without new investors, without dilution and without a loan? [Partner] is paying established businesses up to two million dollars for anonymised operational data they already create. Not customer data. No equity. Claim your data valuation. Link below."
 
 **Pay down debt.** "If you've got expensive debt on the books, here's a way to pay it down without selling a share or borrowing another cent. [Partner] has a billion dollars committed to buying anonymised operational data from established businesses, typically two hundred thousand to two million a deal. Claim your valuation below."
+
+**Closed business.** "Closed a business, or sold one and kept the records? Those years of operating history could still be worth up to two million dollars. [Partner] has a billion dollars committed to buying anonymised operational data, from trading and closed businesses. Find out what yours is worth. Link below."
 
 **New revenue.** "Your business has been making a product for years that you've never sold: its operational data. [Partner] is buying it, typically two hundred thousand to two million dollars a deal. No new staff, no new customers, no equity. Find out what yours is worth. Link below."
 

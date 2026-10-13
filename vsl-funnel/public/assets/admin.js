@@ -290,7 +290,7 @@
           { label: 'Name', key: 'first_name' },
           { label: 'Company', html: function (r) { return esc(r.company || '') + (r.website ? '<div class="muted">' + esc(r.website) + '</div>' : ''); } },
           { label: 'Contact', html: function (r) { return esc(r.email) + (r.phone ? '<div class="muted">' + esc(r.phone) + '</div>' : ''); } },
-          { label: 'Revenue', html: function (r) { return esc(r.revenue || '–'); } },
+          { label: 'Revenue', html: function (r) { return esc(r.revenue || '–') + (r.business_status && r.business_status !== 'Trading' ? '<div><span class="pill">' + esc(r.business_status) + '</span></div>' : ''); } },
           { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
           { label: 'Source', html: function (r) { return esc([r.channel, r.utm_source, r.utm_campaign].filter(Boolean).join(' · ') || '–'); } },
           { label: 'Sent to partner', html: function (r) { return r.redirected ? '✓' : '<span class="muted">follow up</span>'; } },
