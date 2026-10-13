@@ -185,6 +185,7 @@
     traffic: { title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
+    webinar: { title: 'Webinar', sub: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar },
     pages: { title: 'Landing pages & tests', sub: 'Every page people land on, and every headline being tested: the main page’s A/B test plus 100 industry landers (20 industries × 5 headlines). Each visit is traced to applications, bookings and cash.', render: renderLanders },
     behaviour: { title: 'On-page behaviour', sub: 'What people click, where the form slows them down, where they leave, what they re-read and highlight. Nothing anyone types is ever recorded.', render: renderBehaviour },
     insights: { title: 'Insights', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
@@ -233,6 +234,78 @@
         saveCustom: function (custom) { send('PUT', 'map-custom', { custom: custom }); },
         tabs: Object.keys(TABS).filter(function (k) { return k !== 'map'; }).map(function (k) { return { id: k, title: TABS[k].title }; }),
       });
+    });
+  }
+
+  function renderWebinar() {
+    return api('webinar').then(function (d) {
+      var k = d.kpis || {}, st = d.settings || {};
+      var regs = k.registrations || 0;
+      var when = function (t) { return new Date(t).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
+      var MODE = { evergreen: 'Recording in sync', stream: 'Live in our room', live: 'Live link (Zoom…)' };
+      var mins = function (s) { return s ? Math.round(s / 60) + ' min' : '–'; };
+      view.innerHTML =
+        (st.placeholderVideo ? '<div class="card notice" style="margin-bottom:14px"><strong>Using the VSL as a placeholder recording.</strong> Add your webinar recording under Integrations → Webinar (WEBINAR_VIDEO_SRC).</div>' : '') +
+        '<div class="grid g-4">' +
+        tile('Registrations', n(regs), n(k.people) + ' people') +
+        tile('Show rate', pct(regs ? (k.attended || 0) / regs : null), n(k.attended) + ' attended · ' + n(k.replays) + ' watched the replay') +
+        tile('Avg time watched', mins(k.avg_watch_s), 'of attendees') +
+        tile('Clicked the offer', n(k.cta), pct(k.attended ? (k.cta || 0) / k.attended : null) + ' of attendees') +
+        '</div><div class="grid g-4" style="margin-top:14px">' +
+        tile('Applied', n(k.applied), pct(regs ? (k.applied || 0) / regs : null) + ' of registrants') +
+        tile('Booked a call', n(k.booked), pct(regs ? (k.booked || 0) / regs : null) + ' of registrants') +
+        tile('Won', n(k.won), money(k.revenue)) +
+        tile('Weekly sessions', st.schedule || '–', (st.tz || '') + ' · ' + String(st.url || '').replace(/^https?:\/\//, '')) +
+        '</div>' +
+        '<div class="grid g-2" style="margin-top:14px">' +
+        '<div class="card"><h2>Upcoming sessions</h2><p class="sub">Weekly sessions are created automatically from the schedule in Integrations → Webinar. Add a one-off or live session below.</p>' +
+        table([
+          { label: 'Starts', html: function (r) { return esc(when(r.starts_at)) + (r.status === 'cancelled' ? ' <span class="pill">cancelled</span>' : ''); } },
+          { label: 'Type', html: function (r) { return esc(MODE[r.mode] || r.mode) + (r.auto ? ' <span class="muted">· weekly</span>' : ''); } },
+          { label: 'Registered', key: 'registrations', num: true, fmt: n },
+          { label: '', html: function (r) { return r.status === 'cancelled' ? '' : '<button class="btn-sm ghost" data-cancel="' + esc(r.id) + '">Cancel &amp; move people</button>'; } },
+        ], d.upcoming || []) +
+        '<form class="wform" data-wform style="margin-top:14px"><h3 class="h3">Add a session</h3>' +
+        '<label>Date &amp; time <input class="input" type="datetime-local" name="starts_at" required></label>' +
+        '<label>Type <select class="input" name="mode"><option value="evergreen">Recording played in sync</option><option value="stream">Live in our own room (Cloudflare Stream)</option><option value="live">Live on Zoom / YouTube (join link)</option></select></label>' +
+        '<label data-joinwrap hidden>Join link <input class="input" name="join_url" placeholder="https://zoom.us/j/…"></label>' +
+        '<label>Title (optional) <input class="input" name="title" maxlength="120" placeholder="' + esc(st.title) + '"></label>' +
+        '<button class="btn-sm" type="submit">Add session</button> <span class="muted" data-wmsg></span></form></div>' +
+        '<div class="card"><h2>Past sessions</h2><p class="sub">Show rate, how far people watched, and what they did next.</p>' +
+        table([
+          { label: 'Session', html: function (r) { return esc(when(r.starts_at)); } },
+          { label: 'Reg.', key: 'registrations', num: true, fmt: n },
+          { label: 'Came', html: function (r) { return n(r.attended) + ' <span class="muted">' + pct(r.registrations ? r.attended / r.registrations : null) + '</span>'; } },
+          { label: 'Avg reached', html: function (r) { return mins(r.avg_pos); } },
+          { label: 'Offer', key: 'cta', num: true, fmt: n },
+          { label: 'Applied', key: 'applied', num: true, fmt: n },
+          { label: 'Booked', key: 'booked', num: true, fmt: n },
+        ], d.past || []) + '</div></div>' +
+        '<div class="card" style="margin-top:14px"><h2>Registrants</h2><p class="sub">Click a row for the full journey.</p>' +
+        table([
+          { label: 'Name', html: function (r) { return esc([r.first_name, r.last_name].filter(Boolean).join(' ') || '–') + '<br><span class="muted">' + esc(r.email || '') + '</span>'; } },
+          { label: 'Session', html: function (r) { return esc(when(r.starts_at)); } },
+          { label: 'Source', html: function (r) { return esc([r.channel, r.utm_campaign].filter(Boolean).join(' / ') || 'Direct'); } },
+          { label: 'Came', html: function (r) { return r.joined_at ? '✓ ' + mins(r.watch_seconds) : r.replay_at ? 'replay' : '–'; } },
+          { label: 'Offer', html: function (r) { return r.cta_at ? '✓' : ''; } },
+          { label: 'Next', html: function (r) { return r.status === 'won' ? 'won' : r.booked_at ? 'booked' : r.app_completed_at ? 'applied' + (r.tier ? ' (' + esc(r.tier) + ')' : '') : ''; } },
+        ], d.registrants || [], { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>';
+      view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
+      view.querySelectorAll('[data-cancel]').forEach(function (b) {
+        b.onclick = function () {
+          if (!confirm('Cancel this session? Everyone registered is moved to the next session and emailed a new link.')) return;
+          fetch('/admin/api/webinar/sessions/' + encodeURIComponent(b.getAttribute('data-cancel')), { method: 'DELETE', credentials: 'same-origin' }).then(function () { load(); });
+        };
+      });
+      var f = view.querySelector('[data-wform]');
+      f.mode.onchange = function () { f.querySelector('[data-joinwrap]').hidden = f.mode.value !== 'live'; };
+      f.onsubmit = function (e) {
+        e.preventDefault();
+        var t = new Date(f.starts_at.value).getTime();
+        send('POST', 'webinar/sessions', { starts_at: t, mode: f.mode.value, join_url: f.join_url.value, title: f.title.value }).then(function (r) {
+          if (r && r.ok) load(); else f.querySelector('[data-wmsg]').textContent = (r && r.error) || 'Couldn’t add the session';
+        });
+      };
     });
   }
 

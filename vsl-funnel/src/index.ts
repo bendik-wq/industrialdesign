@@ -19,6 +19,8 @@ import { syncInbound } from './integrations/elevenlabs-inbound';
 import { syncCalendly } from './integrations/calendly';
 import { processTriggers } from './personalize/triggers';
 import { purgeOld } from './lib/retention';
+import { applyHandoff, icsFile, isWebinarHost, registeredPage, roomPage, webinarLanding } from './webinar/pages';
+import { ensureSessions } from './webinar/webinar';
 import { alertUnconfirmedBookings } from './integrations/booking';
 
 const app = new Hono<AppEnv>();
@@ -67,7 +69,24 @@ const withVisitor: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
   c.header('x-frame-options', 'SAMEORIGIN');
 };
-app.get('/', withVisitor, (c) => landingPage(c));
+// ── Webinar (own host: live.yourdomain.com; or /webinar on the main domain) ──
+app.use('*', async (c, next) => {
+  // On the webinar host, funnel and admin pages belong on the main domain.
+  if (isWebinarHost(c) && /^\/(apply|book|breakout|resources|for|m|admin|privacy)(\/|$)/.test(c.req.path)) {
+    const main = (c.get('settings').PUBLIC_URL || '').replace(/\/+$/, '');
+    if (main) return c.redirect(`${main}${c.req.path}${new URL(c.req.url).search}`, 302);
+  }
+  await next();
+});
+app.get('/', withVisitor, (c) => (isWebinarHost(c) ? webinarLanding(c) : landingPage(c)));
+app.get('/webinar', withVisitor, webinarLanding);
+for (const prefix of ['', '/webinar']) {
+  app.get(`${prefix}/registered/:token`, withVisitor, registeredPage);
+  app.get(`${prefix}/room/:token`, withVisitor, (c) => roomPage(c, false));
+  app.get(`${prefix}/replay/:token`, withVisitor, (c) => roomPage(c, true));
+  app.get(`${prefix}/ics/:token`, icsFile);
+}
+app.get('/w/:token', withVisitor, applyHandoff);
 app.get('/for/:industry', withVisitor, landerPage);
 app.get('/for/:industry/:angle', withVisitor, landerPage);
 app.get('/m', withVisitor, landerPage);
@@ -155,6 +174,7 @@ export default {
       quiet(processTriggers(rt), 'behaviour triggers'),
       quiet(purgeOld(rt), 'retention purge'),
       quiet(alertUnconfirmedBookings(rt), 'unconfirmed bookings'),
+      quiet(ensureSessions(rt), 'webinar sessions'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

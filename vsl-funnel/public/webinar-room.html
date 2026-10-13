@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#151515">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..600&family=Inter:opsz,wght@14..32,400..700&display=swap">
+  <link rel="stylesheet" href="/assets/site.css">
+  <title>Masterclass</title>
+  <script defer src="/assets/f.js"></script>
+  <script defer src="/assets/webinar.js"></script>
+</head>
+<body class="webinar">
+  <header class="nav"><div class="wrap nav-in">
+    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory"><b>G&amp;L</b> <span>M&amp;A Advisory</span></a>
+  </div></header>
+  <main id="main">
+    <section class="hero hero-center room"><div class="wrap">
+      <span class="eyebrow"><span data-slot="room_label">Masterclass</span> · <span data-slot="when"></span></span>
+      <h1 class="h2" data-slot="webinar_title">The masterclass</h1>
+      <div class="room-stage" data-room>
+        <div class="room-wait" data-wait>
+          <p class="lede">Welcome<span data-slot="first_name_comma"></span>. We start in</p>
+          <div class="countdown big" data-countdown aria-live="polite"></div>
+          <p class="muted">Keep this page open. It starts by itself.</p>
+        </div>
+        <div class="room-video" data-video hidden></div>
+        <div class="room-live" data-live hidden>
+          <p class="lede">The session is on now.</p>
+          <a class="btn btn-lg" href="#" data-join>Join the live session</a>
+        </div>
+        <div class="room-ended" data-ended hidden>
+          <p class="lede">That’s the end of the session. Thanks for watching.</p>
+        </div>
+      </div>
+      <div class="room-cta" data-cta hidden>
+        <p class="lede"><strong>Want us to map out your first acquisition?</strong> The application takes about two minutes.</p>
+        <a class="btn btn-mega" href="#" data-apply data-track="cta_click" data-track-id="webinar_offer"><span class="btn-mega-main">See if my business qualifies <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><span class="btn-mega-sub">7-day money-back guarantee</span></a>
+      </div>
+      <p class="muted" data-if="replay">This replay is available until <span data-replay-until></span>.</p>
+    </div></section>
+  </main>
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-links"><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a></div>
+        <div class="foot-legal"><p data-slot="disclaimer"></p></div>
+      </div>
+      <p class="foot-bottom">© <span data-slot="year"></span> <span data-slot="site_name">G&amp;L M&amp;A Advisory</span></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -69,6 +69,14 @@ export const SETTINGS = [
   { key: 'AI_CALL_CONFIRM', label: 'AI call to confirm new bookings', group: 'Voice', placeholder: 'true', help: 'Calls consenting leads ~2 minutes after they book. Set to false to turn off.' },
   { key: 'AI_CALL_SPEED_TO_LEAD', label: 'AI call qualified leads who haven’t booked', group: 'Voice', placeholder: 'true', help: 'Calls consenting A/B leads ~5 minutes after applying if they haven’t booked, and emails the booking link. Set to false to turn off.' },
   { key: 'AI_CALL_REBOOK', label: 'AI call no-shows to rebook', group: 'Voice', placeholder: 'true', help: 'Calls consenting leads ~20 minutes after a no-show is logged and emails a link to pick a new time. Set to false to turn off.' },
+  { key: 'WEBINAR_URL', label: 'Webinar address', group: 'Webinar', placeholder: 'https://live.grosfjeld-li.com', help: 'The domain the webinar pages live on. Links in webinar emails use it.' },
+  { key: 'WEBINAR_TITLE', label: 'Webinar title', group: 'Webinar', placeholder: 'The No-Money-Down Acquisition Masterclass', help: 'Shown on the registration page, the room and the emails.' },
+  { key: 'WEBINAR_SCHEDULE', label: 'Weekly sessions', group: 'Webinar', placeholder: 'Tue 19:00, Thu 12:00', help: 'Recurring session times in the sales time zone (days: Mon–Sun, 24h clock). Sessions are created two weeks ahead. Add one-off or live sessions on the Webinar tab.' },
+  { key: 'WEBINAR_VIDEO_SRC', label: 'Webinar recording (MP4 / HLS URL)', group: 'Webinar', placeholder: 'https://…/webinar.mp4', help: 'Played in sync in the webinar room for scheduled (recorded) sessions, and as the replay. Until it’s set, the main VSL is used as a placeholder.' },
+  { key: 'WEBINAR_STREAM_HLS', label: 'Live stream playback URL (Cloudflare Stream)', group: 'Webinar', placeholder: 'https://customer-xxxx.cloudflarestream.com/<live input id>/manifest/video.m3u8', help: 'For “Live in our room” sessions. Cloudflare dashboard → Stream → Live inputs → your input → HLS playback URL. Stream into it from OBS, StreamYard or Zoom (Live on custom streaming service) using the RTMPS URL + key shown there.' },
+  { key: 'WEBINAR_DURATION_MIN', label: 'Webinar length (minutes)', group: 'Webinar', placeholder: '60', help: 'When the session counts as finished and the replay opens.' },
+  { key: 'WEBINAR_PITCH_AT', label: 'Offer appears at (minutes in)', group: 'Webinar', placeholder: '45', help: 'When the “See if you qualify” button appears in the room.' },
+  { key: 'WEBINAR_REPLAY_HOURS', label: 'Replay available for (hours)', group: 'Webinar', placeholder: '48', help: 'After this the replay link shows the next session instead. The emails say the same number.' },
   { key: 'AI_CALL_DAILY_CAP', label: 'Max AI calls per day (all leads)', group: 'Voice', placeholder: '40', help: 'A ceiling on outbound AI calls queued in any 24 hours, so a flood of fake sign-ups can’t run up a phone bill. Each number is also limited to 3 calls a week.' },
   { key: 'AI_CALL_CALLBACK_NUMBER', label: 'Callback number said on AI calls', group: 'Voice', placeholder: '+1 229 404 6271', help: 'Read out on every AI call and voicemail so people can call back (required for AI-voice calls to US numbers).' },
 

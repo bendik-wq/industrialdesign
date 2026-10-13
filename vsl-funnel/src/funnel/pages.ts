@@ -17,7 +17,7 @@ import { bookingUrlFor } from './routing';
 
 type Html = string;
 
-interface View {
+export interface View {
   /** innerHTML for [data-slot="key"] (trusted copy from config). */
   slots?: Record<string, Html | null | undefined>;
   /** <li> items for [data-list="key"]. */
@@ -92,7 +92,7 @@ async function trackingHead(c: Context<AppEnv>, pageEventId: string): Promise<Ht
  * counts even with JS or trackers blocked), then streams the HTML through
  * HTMLRewriter to fill copy slots and inject the per-visitor config.
  */
-async function render(c: Context<AppEnv>, assetPath: string, view: View) {
+export async function render(c: Context<AppEnv>, assetPath: string, view: View) {
   const v = c.get('visitor');
   const rt = runtimeFrom(c);
   const url = new URL(c.req.url);

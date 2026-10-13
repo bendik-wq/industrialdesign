@@ -14,21 +14,25 @@ import { ANSWER_FACTS } from '../followup/dossier';
 import { whatsappLink } from './whatsapp';
 import { buildProfile } from '../personalize/profile';
 import { RULES } from '../personalize/triggers';
+import { getRegistration, getSession, googleCalendarUrl, replayUrl, roomUrl, webinarBase, webinarSettings } from '../webinar/webinar';
 import { type Personalized, personalizeEmail } from '../personalize/personalize';
 
 const MAX_ATTEMPTS = 3;
 
 /** Schedules every step of a sequence. Re-enqueueing (e.g. a rescheduled call) refreshes pending steps. */
-export async function enqueueSequence(rt: Runtime, lead: Pick<Lead, 'id' | 'email' | 'call_at' | 'unsubscribed_at'>, sequenceId: SequenceId) {
+export async function enqueueSequence(rt: Runtime, lead: Pick<Lead, 'id' | 'email' | 'call_at' | 'unsubscribed_at'> & { webinar_at?: number | null }, sequenceId: SequenceId, opts: { stepBase?: number } = {}) {
   if (!lead.email || lead.unsubscribed_at) return;
   const now = Date.now();
   const seq = SEQUENCES[sequenceId];
-  const stmts = seq.steps.flatMap((step, i) => {
-    const anchor = 'anchor' in step && step.anchor === 'call_at' ? lead.call_at : now;
+  const base = opts.stepBase ?? 0;
+  const stmts = seq.steps.flatMap((step, j) => {
+    const i = base + j;
+    const kind = 'anchor' in step ? step.anchor : 'start';
+    const anchor = kind === 'call_at' ? lead.call_at : kind === 'webinar_at' ? lead.webinar_at ?? null : now;
     if (anchor == null) return [];
     const sendAt = anchor + step.offsetMs;
     // Reminders whose moment has already passed (e.g. a call booked for 30 minutes from now) are pointless.
-    if ('anchor' in step && step.anchor === 'call_at' && sendAt < now) return [];
+    if (kind !== 'start' && sendAt < now - 5 * 60_000) return [];
     return [
       rt.env.DB.prepare(
         `INSERT INTO emails (id, lead_id, sequence, step, template, to_email, send_at, status, created_at)
@@ -175,6 +179,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     return placeholder;
   };
   const wa = whatsappLink(rt.settings, lead, 'question');
+  const webinar = template.startsWith('w_') ? await webinarContext(rt, lead, link) : null;
   let content = tpl({
     lead,
     // Only something that looks like a name goes in greetings and subjects (no links, numbers or markup).
@@ -186,6 +191,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     callTime: lead.call_at ? formatCallTime(lead.call_at, tz) : null,
     joinUrl: lead.booking_join_url && /^https:\/\//.test(lead.booking_join_url) ? lead.booking_join_url : null,
     rescheduleUrl: lead.booking_reschedule_url && /^https:\/\/calendly\.com\//.test(lead.booking_reschedule_url) ? lead.booking_reschedule_url : null,
+    webinar,
   });
 
   let personal: Personalized | null = null;
@@ -218,6 +224,26 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     address: rt.settings.BUSINESS_ADDRESS || rt.settings.SITE_NAME || BRAND.name,
   });
   return { subject: final.subject, html, text, unsubscribeUrl, personal };
+}
+
+/** The lead's webinar session, with their personal links, for webinar emails. */
+async function webinarContext(rt: Runtime, lead: Lead, link: (path: string) => string) {
+  if (!lead.webinar_token) return null;
+  const reg = await getRegistration(rt, lead.webinar_token);
+  const session = reg ? await getSession(rt, reg.session_id) : null;
+  if (!reg || !session) return null;
+  const w = webinarSettings(rt);
+  const tz = await leadTimezone(rt, lead);
+  return {
+    title: session.title || w.title,
+    when: formatCallTime(session.starts_at, tz),
+    room: link(roomUrl(rt, reg.token)),
+    replay: link(replayUrl(rt, reg.token)),
+    ics: link(`${webinarBase(rt)}/ics/${reg.token}`),
+    google: link(googleCalendarUrl(rt, session, reg)),
+    replayHours: w.replayHours,
+    durationMin: w.durationMin,
+  };
 }
 
 /** Resend (https://resend.com/docs/api-reference/emails/send-email). Returns the provider message id. */
@@ -274,7 +300,8 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
 
     const lead = await getLead(rt.env, row.lead_id);
     const seq = SEQUENCES[row.sequence];
-    const step = seq?.steps[row.step];
+    // Sequences that repeat per event (webinar: one block of steps per registration) map back with `cycle`.
+    const step = seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];
     const skip = (reason: string) => rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = ? WHERE id = ?").bind(reason, row.id).run();
 
     if (!lead || !seq || !step) { await skip('missing lead or step'); return; }

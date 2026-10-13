@@ -40,6 +40,7 @@ Collect these before writing any code. Fall back to sensible defaults, and ask o
 | 11 | Industry landers (20 × 5) + Meta smart route + bandit | `references/landers.md` | `/m?ind=` or the ad name routes to the right industry; the bandit shifts traffic after a 60-visitor floor |
 | 12 | Funnel HQ dashboard: all tabs + the editable funnel map | `references/sales-and-hq.md` | Every number traces back to events; the map supports drag, connect, add/edit/delete, saved for everyone |
 | 13 | Domain, DNS and deliverability: custom domain, SPF/DKIM/DMARC, webhook URLs switched | `references/deploy-and-domain.md` | Mail passes SPF and DKIM; webhooks point at the custom domain |
+| 13b | Webinar on its own subdomain (sessions, room, replay, emails, Webinar tab) | `references/webinar.md` | Sign-up → room (in sync / live stream / Zoom link) → offer → application, with attendance-based email follow-up |
 | 14 | Security and privacy pass, then an adversarial review: specialist reviewers (auth, webhooks/API, privacy, XSS), then skeptic agents that try to disprove each finding | `references/security-checklist.md` | Every checklist item is in the code and has a regression test |
 
 The build order matters. For example, tracking (2) has to exist before personalisation (8), and the email engine (6) before the dossier (7).

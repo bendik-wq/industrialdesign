@@ -8,6 +8,9 @@ import { buildEmail, emailConfigured, sendViaResend, usedFacts } from '../integr
 import { buildProfile } from '../personalize/profile';
 import { personalizeMode } from '../personalize/personalize';
 import { SEQUENCES } from '../integrations/sequences';
+import { newId } from '../lib/ids';
+import { webinarReport } from '../admin/webinar';
+import { cancelSession, ensureSessions } from '../webinar/webinar';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
@@ -124,6 +127,30 @@ admin.put('/map-custom', async (c) => {
   await c.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('map:custom', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify({ nodes, edges, edits })).run();
   return c.json({ ok: true, nodes: nodes.length, edges: edges.length });
 });
+
+// ── Webinar ──
+admin.get('/webinar', async (c) => {
+  const rt = runtimeFrom(c);
+  await ensureSessions(rt).catch(() => 0);
+  const f = filters(c);
+  return c.json(await webinarReport(rt, { from: f.from, to: f.to }));
+});
+admin.post('/webinar/sessions', async (c) => {
+  const b = await c.req.json<{ starts_at?: number; mode?: string; join_url?: string; title?: string; video_src?: string }>().catch(() => ({} as Record<string, never>));
+  const startsAt = Number(b.starts_at);
+  if (!Number.isFinite(startsAt) || startsAt < Date.now() - 3_600_000 || startsAt > Date.now() + 365 * 86_400_000) return c.json({ error: 'Pick a date and time in the future' }, 400);
+  const mode = ['evergreen', 'stream', 'live'].includes(String(b.mode)) ? String(b.mode) : 'evergreen';
+  const https = (v: unknown) => (typeof v === 'string' && /^https:\/\/[^\s"'<>]+$/.test(v.trim()) ? v.trim().slice(0, 500) : null);
+  const joinUrl = https(b.join_url);
+  if (mode === 'live' && !joinUrl) return c.json({ error: 'Live sessions need the https join link (Zoom, YouTube, StreamYard…)' }, 400);
+  const title = typeof b.title === 'string' ? b.title.replace(/[<>]/g, '').trim().slice(0, 120) || null : null;
+  const id = newId('ws');
+  const res = await c.env.DB.prepare("INSERT OR IGNORE INTO webinar_sessions (id, starts_at, title, mode, join_url, video_src, status, auto, created_at) VALUES (?, ?, ?, ?, ?, ?, 'scheduled', 0, ?)")
+    .bind(id, startsAt, title, mode, joinUrl, https(b.video_src), Date.now()).run();
+  if (!res.meta.changes) return c.json({ error: 'There’s already a session at that exact time' }, 409);
+  return c.json({ ok: true, id });
+});
+admin.delete('/webinar/sessions/:id', async (c) => c.json({ ok: true, ...(await cancelSession(runtimeFrom(c), c.req.param('id'))) }));
 
 admin.get('/insights', async (c) => c.json(await insights(c.env, c.get('settings').SALES_TIMEZONE || 'Australia/Sydney')));
 admin.get('/vsl', async (c) => c.json(await vslStats(c.env, filters(c), c.req.query('video') || VIDEOS.main.id)));

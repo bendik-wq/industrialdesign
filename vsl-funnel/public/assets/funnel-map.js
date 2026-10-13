@@ -95,6 +95,12 @@
       how: 'Each email is rewritten around one or two facts the earlier emails didn’t use. Links never go to the model; checked for no “free” call, no promises.' },
     { id: 'callback', kind: 'auto', x: 1760, y: 660, title: 'Callback agent', sub: '+1 229 404 6271', tab: 'voice',
       how: 'Anyone who rings the number back gets Sam, who already knows who they are from caller ID, and can confirm, rebook or log a callback request.' },
+    { id: 'wland', kind: 'page', x: 40, y: 980, title: 'Webinar sign-up', sub: 'live.grosfjeld-li.com', tab: 'webinar',
+      how: 'Registration page for the masterclass: pick a session (weekly schedule plus one-offs), first name and email. Registrants become leads with full ad attribution, and Meta gets CompleteRegistration.' },
+    { id: 'wroom', kind: 'page', x: 330, y: 980, title: 'Webinar room', sub: 'Recording in sync · live stream · Zoom', tab: 'webinar',
+      how: 'Each person’s own link. Countdown, then either the recording played in sync (everyone at the same moment), a live stream in our own room (Cloudflare Stream: go live from OBS, StreamYard or Zoom), or a button to a Zoom/YouTube link. Minutes watched are tracked; the “See if you qualify” offer appears at the pitch; replay for 48 hours.' },
+    { id: 'wmail', kind: 'auto', x: 620, y: 1100, title: 'Webinar emails', sub: 'Reminders, then came / missed', tab: 'emails',
+      how: 'Confirmation with calendar links, reminders 24h / 3h / 15m before, “we’ve started”, then a different follow-up for people who came (next step: apply) and who missed it (the replay), and a few emails pointing to the application. Stops once they apply or book.' },
     { id: 'hq', kind: 'data', x: 2060, y: 660, title: 'Funnel HQ', sub: 'You are here', tab: 'overview',
       how: 'Every number on this map, live. Sales, Insights, Landing pages & tests, On-page behaviour, Leads.' },
   ];
@@ -116,6 +122,7 @@
     ['apply', 'abandon', 'didn’t finish', 'auto'], ['abandon', 'apply', '', 'auto'],
     ['score', 'speed', '', 'auto'], ['speed', 'booked', '', 'auto'],
     ['tierA', 'tierseq', '', 'auto'], ['tierB', 'tierseq', '', 'auto'], ['tierseq', 'booked', '', 'auto'],
+    ['meta', 'wland', 'webinar ads', 'dash'], ['wland', 'wroom', 'their link'], ['wland', 'wmail', '', 'auto'], ['wmail', 'wroom', '', 'auto'], ['wroom', 'apply', 'offer'],
     ['tracking', 'profile', '', 'data'], ['profile', 'triggers', '', 'data'], ['triggers', 'personal', '', 'data'], ['profile', 'personal', '', 'data'],
     ['vsl', 'tracking', '', 'data'], ['aicall', 'callback', '', 'auto'],
   ];

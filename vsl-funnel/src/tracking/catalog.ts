@@ -3,6 +3,7 @@
  * client events are the only names the public /e beacon accepts.
  */
 export const CLIENT_EVENTS = new Set([
+  'webinar_register_click', 'webinar_unmute', 'webinar_offer_shown',
   'scroll_depth', // { pct: 25 | 50 | 75 | 100 }
   'engaged_time', // { ms } — sent when the page is hidden
   'cta_click', // { id, label }
@@ -78,6 +79,7 @@ export const META_EVENTS: Partial<Record<string, string>> = {
   vsl_50: 'VSL50',
   vsl_cta_reveal: 'VSLPitchReached',
   lead_captured: 'Lead',
+  webinar_registered: 'CompleteRegistration',
   app_submitted: 'SubmitApplication',
   lead_qualified: 'QualifiedLead',
   booking_scheduled: 'Schedule',
@@ -90,6 +92,7 @@ export const GA4_EVENTS: Partial<Record<string, string>> = {
   vsl_50: 'video_progress',
   vsl_complete: 'video_complete',
   lead_captured: 'generate_lead',
+  webinar_registered: 'sign_up',
   app_submitted: 'submit_application',
   lead_qualified: 'qualify_lead',
   booking_scheduled: 'book_appointment',

@@ -10,7 +10,7 @@ export interface SequenceStep {
   template: string;
   /** Delay from when the sequence starts, or offset from the call time when anchor = 'call_at'. */
   offsetMs: number;
-  anchor?: 'start' | 'call_at';
+  anchor?: 'start' | 'call_at' | 'webinar_at';
   /** Re-checked with fresh lead data right before sending. */
   skipIf?: (lead: Lead) => boolean;
 }
@@ -21,6 +21,8 @@ export interface Sequence {
   steps: SequenceStep[];
   /** Stops the whole sequence (remaining steps are skipped) once true. */
   stopIf?: (lead: Lead) => boolean;
+  /** Steps repeat in blocks of this size (one block per event, e.g. per webinar registration). */
+  cycle?: number;
 }
 
 const isBooked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
@@ -69,6 +71,10 @@ export function precallPlan(lead: Lead): string[] {
 export const PRECALL_SLOTS = [7.5, 9.5, 12, 14.5, 17, 19.5];
 
 const booked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
+/** In the room for the session they're booked into (not an earlier one). */
+const cameToWebinar = (l: Lead) => Boolean(l.webinar_attended_at && l.webinar_at && l.webinar_attended_at >= l.webinar_at - 30 * MIN);
+/** Already applied or booked: the webinar follow-up has done its job. */
+const pitched = (l: Lead) => Boolean(l.app_completed_at) || (Boolean(l.booked_at) && !l.booking_cancelled_at);
 /** Imported straight from Calendly: never in the funnel, never on its emails. */
 const direct = (l: Lead) => l.booking_source === 'calendly-direct';
 const completed = (l: Lead) => Boolean(l.app_completed_at);
@@ -155,6 +161,25 @@ export const SEQUENCES = {
     stopIf: (l) => direct(l) || !booked(l) || l.status !== 'booked' || Boolean(l.call_at && Date.now() > l.call_at - 2 * HOUR),
     // Sent at local-time slots by enqueuePrecall() in the order precallPlan() gives (the row holds the template); offsetMs is unused.
     steps: [...FOLLOWUP_GROUPS.prep, ...PRECALL_TEMPLATES].map((template) => ({ template, offsetMs: 0 })),
+  },
+  webinar: {
+    id: 'webinar',
+    description: 'Registered for the webinar — confirmation, reminders, then follow-up based on whether they came',
+    cycle: 12,
+    stopIf: (l) => ['won', 'lost', 'disqualified'].includes(l.status),
+    steps: [
+      { template: 'w_confirm', offsetMs: 0 },
+      { template: 'w_24h', offsetMs: -24 * HOUR, anchor: 'webinar_at' },
+      { template: 'w_3h', offsetMs: -3 * HOUR, anchor: 'webinar_at' },
+      { template: 'w_15m', offsetMs: -15 * MIN, anchor: 'webinar_at' },
+      { template: 'w_live', offsetMs: 3 * MIN, anchor: 'webinar_at', skipIf: (l) => cameToWebinar(l) },
+      { template: 'w_thanks', offsetMs: 80 * MIN, anchor: 'webinar_at', skipIf: (l) => !cameToWebinar(l) || pitched(l) },
+      { template: 'w_missed', offsetMs: 80 * MIN, anchor: 'webinar_at', skipIf: (l) => cameToWebinar(l) },
+      { template: 'w_replay_last', offsetMs: 40 * HOUR, anchor: 'webinar_at', skipIf: (l) => pitched(l) || (l.webinar_watch_pct ?? 0) >= 0.8 },
+      { template: 'w_offer', offsetMs: 3 * DAY, anchor: 'webinar_at', skipIf: pitched },
+      { template: 'w_story', offsetMs: 5 * DAY, anchor: 'webinar_at', skipIf: pitched },
+      { template: 'w_last', offsetMs: 8 * DAY, anchor: 'webinar_at', skipIf: pitched },
+    ],
   },
   no_show: {
     id: 'no_show',

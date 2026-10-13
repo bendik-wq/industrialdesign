@@ -1,5 +1,6 @@
 import type { Lead } from '../funnel/leads';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
+import { WEBINAR_TEMPLATES } from '../webinar/templates';
 
 /**
  * Email copy. Plain, personal, letter-style emails from Josh — they read like
@@ -20,6 +21,8 @@ export interface TemplateCtx {
   joinUrl?: string | null;
   /** Calendly self-serve reschedule link. */
   rescheduleUrl?: string | null;
+  /** The webinar session this lead is registered for (personal links). */
+  webinar?: { title: string; when: string; room: string; replay: string; ics: string | null; google: string | null; replayHours: number; durationMin: number } | null;
 }
 
 export interface EmailContent {
@@ -876,7 +879,7 @@ export const TEMPLATES: Record<string, Template> = {
 };
 
 // Follow-up written from each lead's application and booking answers (src/followup).
-Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES);
+Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES, WEBINAR_TEMPLATES);
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 

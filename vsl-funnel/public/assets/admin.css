@@ -312,3 +312,8 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .fm-f textarea.input { resize: vertical; }
 .fm-panel .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .btn-sm.danger { color: var(--critical); }
+
+.wform label { display: block; font-size: 12px; color: var(--ink-2); margin: 8px 0 0; }
+.wform .input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; }
+.notice { border-left: 4px solid var(--warning); }
+.wform [hidden] { display: none; }

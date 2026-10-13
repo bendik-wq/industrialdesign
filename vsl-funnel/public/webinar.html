@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#151515">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..600&family=Inter:opsz,wght@14..32,400..700&display=swap">
+  <link rel="stylesheet" href="/assets/site.css">
+  <title>Masterclass</title>
+  <script defer src="/assets/f.js"></script>
+  <script defer src="/assets/webinar.js"></script>
+</head>
+<body class="webinar">
+  <header class="nav"><div class="wrap nav-in">
+    <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory"><b>G&amp;L</b> <span>M&amp;A Advisory</span></a>
+  </div></header>
+  <main id="main">
+    <section class="hero hero-center" data-section="webinar_hero">
+      <div class="wrap narrow">
+        <span class="eyebrow">Online masterclass with Josh Li · about <span data-slot="duration">60</span> minutes</span>
+        <h1 class="display">How owners are buying their competitors with <em><span class="nw">no money down</span></em>, and getting to a signed LOI in 90 days</h1>
+        <p class="lede">For owners of profitable businesses doing $1M+ a year. One hour, no fluff: where the off-market deals are, how the financing gets stacked so the deal is over-financed, and the step-by-step path to a signed letter of intent.</p>
+      </div>
+    </section>
+
+    <section class="apply-section" id="register" data-section="webinar_register">
+      <div class="wrap apply-grid">
+        <div class="apply-copy">
+          <h2 class="section-title" data-slot="webinar_title">The No-Money-Down Acquisition Masterclass</h2>
+          <p class="section-sub">In the session you’ll see:</p>
+          <ul class="ticks">
+            <li><strong>Where the good deals are.</strong> Why the best acquisitions never get listed, and how owners find the business down the road whose owner wants out.</li>
+            <li><strong>How the deal gets funded.</strong> Senior debt plus a seller note, tested at about 1.5x debt service coverage, stacked so the financing covers more than the price.</li>
+            <li><strong>The 90-day path to a signed LOI.</strong> Week by week, from target list to offer, without stepping away from your own business.</li>
+            <li><strong>Whether it fits you.</strong> The numbers a business needs before an acquisition makes sense, so you can tell for yourself.</li>
+          </ul>
+          <div class="host card">
+            <strong>Your host: Josh Li</strong>
+            <p>Founder of JC Health Group. Josh has bought two businesses with 100% seller finance, and works with owners to do the same: done with you, not done for you.</p>
+          </div>
+        </div>
+        <div class="form-card">
+          <h3 class="h3" style="margin-top:0">Save your seat</h3>
+          <form data-webinar-register novalidate autocomplete="on">
+            <div data-if="has_sessions">
+              <p class="field-label">Pick a time (shown in your time zone)</p>
+              <div class="opts" data-html="sessions"></div>
+            </div>
+            <div data-if="!has_sessions" data-html="sessions"></div>
+            <div class="field"><label for="w-first">First name</label><input id="w-first" name="first_name" autocomplete="given-name" required></div>
+            <div class="field"><label for="w-email">Email</label><input id="w-email" name="email" type="email" autocomplete="email" required></div>
+            <button class="btn btn-lg" type="submit" data-track="cta_click" data-track-id="webinar_register">Save my seat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+            <p class="privacy-note">We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time. <a href="/privacy">Privacy policy</a>.</p>
+          </form>
+          <div data-turnstile></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-links"><a href="/privacy">Privacy</a><a href="/privacy#terms">Terms</a></div>
+        <div class="foot-legal"><p data-slot="disclaimer"></p></div>
+      </div>
+      <p class="foot-bottom">© <span data-slot="year"></span> <span data-slot="site_name">G&amp;L M&amp;A Advisory</span></p>
+    </div>
+  </footer>
+</body>
+</html>

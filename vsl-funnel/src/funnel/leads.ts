@@ -49,6 +49,13 @@ export interface Lead {
   booking_host_email: string | null;
   booking_answers: string | null;
   booking_source: string | null;
+  webinar_at: number | null;
+  webinar_registered_at: number | null;
+  webinar_attended_at: number | null;
+  webinar_watch_pct: number | null;
+  webinar_cta_at: number | null;
+  webinar_replay_at: number | null;
+  webinar_token: string | null;
   industry: string | null;
   revenue_band: string | null;
   budget_band: string | null;

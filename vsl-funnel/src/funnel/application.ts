@@ -13,7 +13,7 @@ import { APP_REVENUE_BAND } from '../sales/qualify';
 import { normaliseAnswer, parseBlocklist, scoreApplication } from './scoring';
 
 export class ApplicationError extends Error {
-  constructor(message: string, readonly field?: string, readonly status: 400 | 403 | 404 | 409 = 400) {
+  constructor(message: string, readonly field?: string, readonly status: 400 | 403 | 404 | 409 | 429 = 400) {
     super(message);
   }
 }
@@ -55,7 +55,7 @@ interface AttributionRow {
 }
 
 /** Last non-direct touch (GA-style), falling back to the current session. */
-async function attributionFor(rt: Runtime, v: VisitorCtx) {
+export async function attributionFor(rt: Runtime, v: VisitorCtx) {
   const db = rt.env.DB;
   const cols = 'channel, utm_source, utm_medium, utm_campaign, utm_content, utm_term, click_id, click_type, landing_path';
   const [lastNonDirect, current, visitor] = await Promise.all([

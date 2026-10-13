@@ -10,6 +10,7 @@ import { identityFromVisitor, track } from '../tracking/track';
 import { COOKIE, resolveVisitor } from '../lib/identity';
 import { type CollectPayload, collect } from '../tracking/collect';
 import { parseHeartbeat, recordHeartbeat } from '../tracking/vsl';
+import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
 
 export const api = new Hono<AppEnv>();
 
@@ -116,6 +117,53 @@ api.post('/booking/client', async (c) => {
   if (String(body.provider ?? 'calendly') === 'calendly') await confirmClientBooking(rt, lead, ref);
   else await markBooked(rt, lead, { callAt: null, provider: `${String(body.provider).slice(0, 20)}-client`, ref, verified: false });
   return c.json({ ok: true, next: '/breakout' });
+});
+
+// ── Webinar ──
+api.post('/webinar/register', async (c) => {
+  try {
+    const body = (await readJson<Record<string, unknown>>(c.req.raw)) ?? {};
+    const rt = runtimeFrom(c);
+    const { registration } = await register(rt, c.get('visitor'), body);
+    return c.json({ ok: true, next: `${webinarBase(rt)}/registered/${registration.token}` });
+  } catch (err) {
+    return errorResponse(c, err);
+  }
+});
+async function webinarReg(c: Context<AppEnv>) {
+  const rt = runtimeFrom(c);
+  const body = (await readJson<Record<string, unknown>>(c.req.raw)) ?? {};
+  const reg = typeof body.token === 'string' ? await getRegistration(rt, body.token) : null;
+  const session = reg ? await getSession(rt, reg.session_id) : null;
+  return { rt, body, reg, session };
+}
+api.post('/webinar/hb', async (c) => {
+  const { rt, body, reg, session } = await webinarReg(c);
+  if (!reg || !session) return c.json({ ok: false }, 404);
+  return c.json(await heartbeat(rt, reg, session, body));
+});
+api.post('/webinar/join', async (c) => {
+  const { rt, reg, session } = await webinarReg(c);
+  const open = session && session.mode === 'live' && Date.now() >= session.starts_at - 10 * 60_000 && ['waiting', 'running'].includes(phase(rt, session));
+  if (!reg || !session || !open) return c.json({ ok: false }, 404);
+  await markJoinedLive(rt, reg, session);
+  return c.json({ ok: true, url: session.join_url });
+});
+api.post('/webinar/cta', async (c) => {
+  const { rt, reg } = await webinarReg(c);
+  if (!reg) return c.json({ ok: false }, 404);
+  await markCta(rt, reg);
+  return c.json({ ok: true });
+});
+api.post('/webinar/move', async (c) => {
+  try {
+    const { rt, body, reg } = await webinarReg(c);
+    if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+    const { registration } = await moveRegistration(rt, reg, String(body.session_id ?? ''));
+    return c.json({ ok: true, next: `${webinarBase(rt)}/registered/${registration.token}` });
+  } catch (err) {
+    return errorResponse(c, err);
+  }
 });
 
 // "Talk now" browser call: only for applicants, rate-limited, never for people who opted out.
