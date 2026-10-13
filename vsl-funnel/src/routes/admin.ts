@@ -11,7 +11,8 @@ import { SEQUENCES } from '../integrations/sequences';
 import { newId } from '../lib/ids';
 import { webinarReport } from '../admin/webinar';
 import { cancelSession, ensureSessions } from '../webinar/webinar';
-import { smsConfigured } from '../integrations/sms';
+import { cleanSequences, loadSmsSequences, renderSms, sendSmsNow, smsConfigured } from '../integrations/sms';
+import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS } from '../integrations/sms-defaults';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { cloudApiConfigured, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
@@ -172,6 +173,37 @@ admin.get('/sms', async (c) => {
   const s = c.get('settings');
   return c.json({ configured: Boolean(s.TWILIO_ACCOUNT_SID && s.TWILIO_AUTH_TOKEN && s.SMS_FROM), enabled: s.SMS_ENABLED.trim().toLowerCase() !== 'false', webhook: `${runtimeFrom(c).origin}/hooks/twilio/sms`, bySeq: bySeq.results, recent: recent.results, consent });
 });
+// ── SMS sequence builder ──
+admin.get('/sms/sequences', async (c) => {
+  const rt = runtimeFrom(c);
+  const [sequences, stats] = await Promise.all([
+    loadSmsSequences(rt),
+    c.env.DB.prepare(`SELECT sequence, step, SUM(status IN ('sent','simulated')) AS sent, SUM(clicked_at IS NOT NULL) AS clicked, SUM(status = 'skipped') AS skipped, SUM(status = 'pending') AS pending
+                        FROM sms_messages WHERE direction = 'out' GROUP BY sequence, step`).all<{ sequence: string; step: number; sent: number; clicked: number; skipped: number; pending: number }>(),
+  ]);
+  const confirmed = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM leads WHERE sms_confirmed_at IS NOT NULL').first<{ n: number }>();
+  return c.json({ sequences, defaults: DEFAULT_SMS_SEQUENCES, triggers: SMS_TRIGGERS, links: SMS_LINKS, anchors: SMS_ANCHORS, skips: SMS_SKIPS, stats: stats.results, confirmed: confirmed?.n ?? 0 });
+});
+admin.put('/sms/sequences', async (c) => {
+  const body = await c.req.json<{ sequences?: unknown }>().catch(() => ({ sequences: null }));
+  let clean;
+  try { clean = cleanSequences(body.sequences); } catch (e) { return c.json({ error: String(e instanceof Error ? e.message : e) }, 400); }
+  await c.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('sms:sequences', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify(clean)).run();
+  return c.json({ ok: true, sequences: await loadSmsSequences(runtimeFrom(c)) });
+});
+admin.post('/sms/test-step', async (c) => {
+  const rt = runtimeFrom(c);
+  const b = await c.req.json<{ to?: string; step?: unknown }>().catch(() => ({} as { to?: string; step?: unknown }));
+  const number = String(b.to ?? '').replace(/[^\d+]/g, '');
+  if (!/^\+\d{8,15}$/.test(number)) return c.json({ ok: false, error: 'Enter your number in international format, e.g. +61412345678' }, 400);
+  if (!smsConfigured(rt)) return c.json({ ok: false, error: 'Connect Twilio first (Integrations → SMS).' }, 400);
+  const [seq] = cleanSequences([{ id: 'booked', steps: [{ ...(b.step as object), n: 1 }] }]);
+  if (!seq?.steps[0]) return c.json({ ok: false, error: 'That text is empty.' }, 400);
+  const sample = { id: 'test', first_name: 'Dana', phone: number, call_at: Date.now() + 86_400_000, webinar_at: Date.now() + 2 * 86_400_000, webinar_token: null, timezone: rt.settings.SALES_TIMEZONE || 'Australia/Sydney', closer_id: null, tier: 'A', tier_override: null, booking_join_url: null, booking_reschedule_url: null } as unknown as Lead;
+  const { body } = renderSms(rt, sample, seq.steps[0], 'test000000', false);
+  try { await sendSmsNow(rt, number, `[TEST] ${body}`); return c.json({ ok: true }); } catch (e) { return c.json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 400); }
+});
+
 admin.post('/sms/test', async (c) => {
   const rt = runtimeFrom(c);
   const { to } = await c.req.json<{ to?: string }>().catch(() => ({ to: '' }));

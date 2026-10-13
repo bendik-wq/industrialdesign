@@ -28,8 +28,9 @@ hooks.post('/twilio/sms', async (c) => {
   const params = Object.fromEntries(Object.entries(form).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
   const url = `${rt.origin}${new URL(c.req.url).pathname}`;
   if (!(await verifyTwilio(token, url, params, c.req.header('x-twilio-signature') ?? null))) return c.text('bad signature', 401);
-  await handleInboundSms(rt, params);
-  return c.body('<?xml version="1.0" encoding="UTF-8"?><Response/>', 200, { 'content-type': 'text/xml' });
+  const { reply } = await handleInboundSms(rt, params);
+  const xml = reply ? `<Response><Message>${reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Message></Response>` : '<Response/>';
+  return c.body(`<?xml version="1.0" encoding="UTF-8"?>${xml}`, 200, { 'content-type': 'text/xml' });
 });
 
 hooks.post('/booking', async (c) => {

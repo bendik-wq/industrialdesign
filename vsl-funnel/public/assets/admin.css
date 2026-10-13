@@ -317,3 +317,36 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .wform .input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; }
 .notice { border-left: 4px solid var(--warning); }
 .wform [hidden] { display: none; }
+
+/* SMS builder */
+.sms-setup { margin: 6px 0 0; padding-left: 20px; line-height: 1.7; }
+.sms-setup .ok { color: var(--good-text); font-weight: 700; } .sms-setup .bad { color: var(--critical); font-weight: 700; }
+.sms-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 14px; margin-top: 14px; align-items: start; }
+@media (max-width: 900px) { .sms-grid { grid-template-columns: 1fr; } }
+.sms-seq { display: grid; grid-template-columns: 12px 1fr; column-gap: 8px; width: 100%; text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 9px 10px; margin-top: 8px; cursor: pointer; font: inherit; color: var(--ink); }
+.sms-seq .muted { grid-column: 2; font-size: 12px; }
+.sms-seq.on { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.sms-seq .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--axis); margin-top: 5px; } .sms-seq .dot.live { background: var(--good); }
+.sms-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+.sms-head .row { display: flex; gap: 8px; align-items: center; }
+.sms-palette { margin: 8px 0; }
+.chip { border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); border-radius: 999px; padding: 2px 9px; font-size: 12px; cursor: pointer; font-family: var(--font); }
+.drag-new { cursor: grab; padding: 5px 12px; font-weight: 600; }
+.chip-check { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; margin-right: 10px; }
+.sms-steps { display: grid; gap: 10px; min-height: 60px; border-radius: 10px; }
+.sms-steps.over { outline: 2px dashed var(--focus); outline-offset: 4px; }
+.sms-step { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
+.sms-step.dragging { opacity: .45; }
+.sms-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sms-row .input { padding: 5px 8px; font: inherit; font-size: 13px; }
+.sms-row .grip { cursor: grab; color: var(--muted); letter-spacing: -2px; user-select: none; }
+.sms-n { font-weight: 650; margin-right: 4px; }
+.sms-body { width: 100%; box-sizing: border-box; margin-top: 8px; font: inherit; font-size: 14px; }
+.sms-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; }
+.sms-count { margin-left: auto; font-size: 12px; }
+.sms-preview { margin-top: 6px; font-size: 13px; background: var(--surface-2); border-radius: 10px; padding: 8px 10px; white-space: pre-wrap; }
+.sms-skip { margin-top: 6px; }
+.sms-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 12px; }
+.sms-grid > * { min-width: 0; }
+.sms-setup code, .sms-setup li { overflow-wrap: anywhere; }
+.sms-setup .input { max-width: 100%; }

@@ -3,7 +3,8 @@ import { VIDEOS } from '../config';
 import { newId } from '../lib/ids';
 import type { VisitorCtx } from '../lib/identity';
 import { zonedTime, cancelSequence, enqueueSequence } from '../integrations/email';
-import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, updateLead, validateEmail } from '../funnel/leads';
+import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, updateLead, validateEmail } from '../funnel/leads';
+import { startSms } from '../integrations/sms';
 import { ApplicationError, attributionFor, verifyTurnstile } from '../funnel/application';
 import { identityFromLead, identityFromVisitor, track } from '../tracking/track';
 import { newRefCode } from '../lib/ids';
@@ -170,6 +171,10 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   const rate = (() => { try { const r = JSON.parse(row?.value ?? '{}') as { n?: number; t?: number }; return r.t && Date.now() - r.t < 3_600_000 ? { n: r.n ?? 0, t: r.t } : { n: 0, t: Date.now() }; } catch { return { n: 0, t: Date.now() }; } })();
   if (rate.n >= 8) throw new ApplicationError('Too many sign-ups from this connection. Please try again in an hour.', undefined, 429);
 
+  // Optional mobile for text reminders (only with the unticked "text me" box ticked).
+  const wantsTexts = body.sms_consent === true || body.sms_consent === 'true' || body.sms_consent === 'on';
+  const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
+  if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number, including area code — or leave it blank', 'phone');
   const sessionId = typeof body.session_id === 'string' ? body.session_id : '';
   const session = sessionId ? await getSession(rt, sessionId) : (await openSessions(rt, 1))[0] ?? null;
   if (!session || session.status !== 'scheduled' || session.starts_at < Date.now() - 10 * 60_000) throw new ApplicationError('That session is no longer available — please pick another time', 'session_id', 409);
@@ -181,12 +186,12 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
     const { last, first } = await attributionFor(rt, v);
     const id = newId('l');
     await rt.env.DB.prepare(
-      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, email, whatsapp_opt_in, step_reached, status,
+      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, email, phone, sms_consent_at, whatsapp_opt_in, step_reached, status,
          channel, utm_source, utm_medium, utm_campaign, utm_content, utm_term, click_id, click_type, ft_channel, ft_source, ft_campaign, ft_content,
          landing_path, variant, country, city, device, fbp, fbc, timezone)
-       VALUES (?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     ).bind(
-      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, emailCheck.email,
+      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, emailCheck.email, phone, phone && wantsTexts ? now : null,
       last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_medium ?? null, last?.utm_campaign ?? null, last?.utm_content ?? null, last?.utm_term ?? null,
       last?.click_id ?? null, last?.click_type ?? null, first?.ft_channel ?? null, first?.ft_source ?? null, first?.ft_campaign ?? null, first?.ft_content ?? null,
       last?.landing_path ?? '/webinar', v.variant, v.geo.country, v.geo.city, v.ua.device, v.fbp, v.fbc, v.geo.timezone,
@@ -209,6 +214,7 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   await rt.env.DB.prepare('INSERT INTO webinar_registrations (id, token, session_id, lead_id, seq, new_lead, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .bind(reg.id, reg.token, reg.session_id, reg.lead_id, reg.seq, reg.new_lead, now).run();
   await scheduleEmails(rt, lead, session, reg);
+  await startSms(rt, (await getLead(rt.env, lead.id))!, 'webinar');
 
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'webinar_registered', source: 'server', path: '/webinar', props: { session_id: session.id, starts_at: session.starts_at, mode: session.mode }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });
@@ -234,7 +240,7 @@ export async function moveRegistration(rt: Runtime, reg: Registration, sessionId
   await rt.env.DB.prepare('INSERT OR IGNORE INTO webinar_registrations (id, token, session_id, lead_id, seq, new_lead, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .bind(next.id, next.token, next.session_id, next.lead_id, next.seq, reg.new_lead, next.created_at).run();
   const saved = await rt.env.DB.prepare('SELECT * FROM webinar_registrations WHERE lead_id = ? AND session_id = ?').bind(lead.id, session.id).first<Registration>();
-  if (saved && saved.id === next.id) await scheduleEmails(rt, lead, session, next);
+  if (saved && saved.id === next.id) { await scheduleEmails(rt, lead, session, next); await startSms(rt, (await getLead(rt.env, lead.id))!, 'webinar'); }
   await track(rt, await identityFromLead(rt.env, lead.id), { name: 'webinar_rebooked', source: 'server', props: { session_id: session.id } });
   return { registration: saved ?? next, session };
 }

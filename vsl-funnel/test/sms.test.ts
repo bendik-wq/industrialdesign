@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SMS_SEQUENCES, SMS_TEMPLATES, buildSms, inTextingHours, nextTextingTime, smsBlock, verifyTwilio } from '../src/integrations/sms';
+import { cleanSequences, inTextingHours, nextTextingTime, renderSms, smsBlock, smsSegments, verifyTwilio } from '../src/integrations/sms';
+import { DEFAULT_SMS_SEQUENCES } from '../src/integrations/sms-defaults';
 import { callingZones } from '../src/integrations/elevenlabs';
 import type { Lead } from '../src/funnel/leads';
 import type { Runtime } from '../src/app';
@@ -29,20 +30,37 @@ describe('SMS follow-up', () => {
   });
 
   it('short, clear texts with one tracked link and the opt-out line on the first one', () => {
-    const step = SMS_SEQUENCES.sms_booked.steps[0];
-    const { body, target } = buildSms(rt, lead(), 'sms_confirm', step, 'smabc123', true);
+    const booked = DEFAULT_SMS_SEQUENCES.find((x) => x.id === 'booked')!;
+    const { body, target } = renderSms(rt, lead(), booked.steps[0], 'smabc123', true);
     expect(body).toContain('Hi Dana');
     expect(body).toContain('https://apply.test/s/smabc123');
     expect(body).toMatch(/Reply STOP to opt out\.$/);
     expect(target).toBe('https://zoom.us/j/1');
-    expect(buildSms(rt, lead(), 'sms_24h', SMS_SEQUENCES.sms_booked.steps[1], 'x1x1x1', false).target).toBe('https://calendly.com/reschedulings/abc');
+    expect(renderSms(rt, lead(), booked.steps[2], 'x1x1x1', false).target).toBe('https://calendly.com/reschedulings/abc');
     // Names that aren't names never go into a text.
-    expect(buildSms(rt, lead({ first_name: 'Pay at evil.com' }), 'sms_1h', SMS_SEQUENCES.sms_booked.steps[2], 'x2x2x2', false).body).toMatch(/^there,/);
-    for (const [k, t] of Object.entries(SMS_TEMPLATES)) {
-      const text = t({ name: 'Alexandra', time: 'Thursday 16 October, 10:00 am AEDT', link: 'https://apply.grosfjeld-li.com/s/sm0123456789abcdef' });
-      expect(text.length, k).toBeLessThanOrEqual(306); // ≤ 2 SMS segments
-      expect(text.toLowerCase(), k).not.toMatch(/free (strategy )?call/);
+    expect(renderSms(rt, lead({ first_name: 'Pay at evil.com' }), booked.steps[4], 'x2x2x2', false).body).toMatch(/there\./);
+    // Every default text: no unknown tags, at most 3 segments, no "free call".
+    for (const seq of DEFAULT_SMS_SEQUENCES) for (const st of seq.steps) {
+      const { body } = renderSms(rt, lead({ webinar_at: Date.now() + 86_400_000, webinar_token: 'abcdefghijklmnop1234' }), st, 'sm0123456789abcdef', true);
+      expect(body, `${seq.id}:${st.n}`).not.toMatch(/\{\w+\}/);
+      expect(smsSegments(body), `${seq.id}:${st.n}`).toBeLessThanOrEqual(3);
+      expect(body.toLowerCase()).not.toMatch(/free (strategy )?call/);
+      expect(st.n).toBeLessThan(seq.next);
     }
+  });
+
+  it('accepts only valid sequences from the dashboard', () => {
+    const clean = cleanSequences([
+      { id: 'booked', enabled: true, steps: [{ n: 1, body: 'Hi {first_name}', anchor: 'call', offsetMin: -60, link: 'join', skip: ['confirmed', 'nonsense'] }, { n: 1, body: 'dupe' }, { n: 2, body: '' }] },
+      { id: 'hack', steps: [] },
+      { id: 'booked', steps: [] },
+    ]);
+    expect(clean).toHaveLength(1);
+    expect(clean[0].steps).toEqual([{ n: 1, body: 'Hi {first_name}', anchor: 'call', offsetMin: -60, link: 'join', skip: ['confirmed'] }]);
+    expect(clean[0].next).toBe(2);
+    expect(smsSegments('a'.repeat(160))).toBe(1);
+    expect(smsSegments('a'.repeat(161))).toBe(2);
+    expect(smsSegments('’'.repeat(71))).toBe(2);
   });
 
   it('checks Twilio’s signature on replies', async () => {

@@ -57,6 +57,8 @@ export interface Lead {
   webinar_replay_at: number | null;
   webinar_token: string | null;
   sms_opt_out_at: number | null;
+  sms_confirmed_at: number | null;
+  sms_consent_at: number | null;
   industry: string | null;
   revenue_band: string | null;
   budget_band: string | null;

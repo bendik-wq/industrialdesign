@@ -1,75 +1,90 @@
 import { safeFirstName } from '../lib/text';
 import type { Runtime } from '../app';
-import { type Lead, getLead, updateLead } from '../funnel/leads';
+import { type Lead, effectiveTier, getLead, updateLead } from '../funnel/leads';
 import { newId } from '../lib/ids';
 import { safeEqual } from '../lib/crypto';
 import { identityFromLead, track } from '../tracking/track';
 import { bookingUrlFor } from '../funnel/routing';
-import { effectiveTier } from '../funnel/leads';
 import { callingZones } from './elevenlabs';
 import { formatCallTime } from './email';
 import { notifySlack, plain } from './notify';
 import { leadByPhone } from './voice';
+import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS, type SmsSequenceDef, type SmsStepDef, type SmsTrigger } from './sms-defaults';
 
 /**
- * SMS follow-up through Twilio. Short, useful texts at the moments that move show rate and bookings:
- * booking confirmation + reminders with the meeting link, a no-show rebook, an unfinished application,
- * and a nudge to book. Rules:
- *  - only to people who ticked "Call or text me at this number" (call_consent_at), never after STOP;
- *  - only 8am–8pm in every time zone of the phone number's country, max 3 texts per person per day;
- *  - never to imported Calendly contacts; every link is a short /s/<id> redirect stored server-side.
- * Without Twilio keys texts are "simulated" so the flows can be tested end to end.
+ * SMS follow-up through Twilio, driven by sequences you edit in Funnel HQ → SMS (stored in kv_state
+ * `sms:sequences`, defaults in sms-defaults.ts). Rules that can't be edited away:
+ *  - only to people who ticked "Call or text me at this number", never after STOP, never imported contacts;
+ *  - only 8am–8pm in every time zone of the number's country, max 3 texts per person per day;
+ *  - the first text to anyone says who it's from and "Reply STOP to opt out";
+ *  - links are short /s/<id> redirects whose target is stored server-side.
+ * Without Twilio keys texts are "simulated".
  */
 
-const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
+const MIN = 60_000, DAY = 24 * 60 * MIN;
 const booked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
+const cameToWebinar = (l: Lead) => Boolean(l.webinar_attended_at && l.webinar_at && l.webinar_attended_at >= l.webinar_at - 30 * MIN);
 
-interface SmsCtx { name: string; time: string | null; link: string }
-interface SmsStep { template: string; offsetMs: number; anchor?: 'start' | 'call_at'; link?: 'join' | 'reschedule' | 'book' | 'apply' | 'breakout'; skipIf?: (l: Lead) => boolean }
-interface SmsSequence { id: string; steps: SmsStep[]; stopIf?: (l: Lead) => boolean }
-
-export const SMS_TEMPLATES: Record<string, (c: SmsCtx) => string> = {
-  sms_confirm: (c) => `Hi ${c.name}, it's Josh's team at G&L. You're booked in for your strategy call${c.time ? ` on ${c.time}` : ''}. Save this link to join: ${c.link}`,
-  sms_24h: (c) => `Hi ${c.name}, a quick reminder: your strategy call is tomorrow${c.time ? `, ${c.time}` : ''}. Need a different time? ${c.link}`,
-  sms_1h: (c) => `${c.name}, your strategy call starts in about an hour. Here's the link: ${c.link}`,
-  sms_10m: (c) => `Starting in 10 minutes, ${c.name}: ${c.link}`,
-  sms_noshow_1: (c) => `Hi ${c.name}, we missed you on the call just now. No stress, things come up. Grab a new time here: ${c.link}`,
-  sms_noshow_2: (c) => `${c.name}, still keen to map out your first acquisition? A new time takes 10 seconds: ${c.link}`,
-  sms_abandon: (c) => `Hi ${c.name}, it's Josh's team at G&L. Your application saved where you left off. It takes about 2 minutes to finish: ${c.link}`,
-  sms_book_nudge: (c) => `Hi ${c.name}, good news: your application qualifies for a strategy call with Josh's team. Pick a time that suits you: ${c.link}`,
+/** When a whole sequence has done its job (built in, per trigger). */
+const STOP: Record<SmsTrigger, (l: Lead) => boolean> = {
+  booked: (l) => !booked(l) || ['showed', 'won', 'lost', 'no_show'].includes(l.status),
+  no_show: (l) => l.status !== 'no_show',
+  abandoned: (l) => Boolean(l.app_completed_at),
+  qualified: (l) => booked(l) || !['A', 'B'].includes(effectiveTier(l) ?? ''),
+  cancelled: (l) => booked(l) || ['won', 'lost'].includes(l.status),
+  showed: (l) => l.status !== 'showed',
+  lost: (l) => l.status !== 'lost' || booked(l),
+  won: (l) => l.status !== 'won' || Boolean(l.refunded_at),
+  webinar: (l) => ['won', 'lost', 'disqualified'].includes(l.status),
 };
 
-export const SMS_SEQUENCES: Record<string, SmsSequence> = {
-  sms_booked: {
-    id: 'sms_booked',
-    stopIf: (l) => !booked(l) || ['showed', 'won', 'lost', 'no_show'].includes(l.status),
-    steps: [
-      { template: 'sms_confirm', offsetMs: 0, link: 'join' },
-      { template: 'sms_24h', offsetMs: -24 * HOUR, anchor: 'call_at', link: 'reschedule' },
-      { template: 'sms_1h', offsetMs: -1 * HOUR, anchor: 'call_at', link: 'join' },
-      { template: 'sms_10m', offsetMs: -10 * MIN, anchor: 'call_at', link: 'join' },
-    ],
-  },
-  sms_no_show: {
-    id: 'sms_no_show',
-    stopIf: (l) => l.status !== 'no_show',
-    steps: [
-      { template: 'sms_noshow_1', offsetMs: 10 * MIN, link: 'book' },
-      { template: 'sms_noshow_2', offsetMs: 1 * DAY, link: 'book' },
-    ],
-  },
-  sms_abandoned: {
-    id: 'sms_abandoned',
-    stopIf: (l) => Boolean(l.app_completed_at),
-    steps: [{ template: 'sms_abandon', offsetMs: 30 * MIN, link: 'apply' }],
-  },
-  sms_book: {
-    id: 'sms_book',
-    stopIf: (l) => booked(l) || !['A', 'B'].includes(effectiveTier(l) ?? ''),
-    steps: [{ template: 'sms_book_nudge', offsetMs: 2 * HOUR, link: 'book' }],
-  },
+const SKIP: Record<(typeof SMS_SKIPS)[number], (l: Lead, clicked: boolean) => boolean> = {
+  applied: (l) => Boolean(l.app_completed_at),
+  booked: (l) => booked(l),
+  confirmed: (l) => Boolean(l.sms_confirmed_at && l.booked_at && l.sms_confirmed_at >= l.booked_at),
+  attended: (l) => cameToWebinar(l),
+  missed: (l) => !cameToWebinar(l),
+  clicked: (_l, clicked) => clicked,
 };
-export type SmsSequenceId = keyof typeof SMS_SEQUENCES;
+
+// ───────────── sequences (editable) ─────────────
+
+export async function loadSmsSequences(rt: Runtime): Promise<SmsSequenceDef[]> {
+  const row = await rt.env.DB.prepare("SELECT value FROM kv_state WHERE key = 'sms:sequences'").first<{ value: string }>();
+  if (!row) return DEFAULT_SMS_SEQUENCES;
+  try {
+    const saved = cleanSequences(JSON.parse(row.value));
+    // A trigger added in a later version shows up with its defaults.
+    return [...saved, ...DEFAULT_SMS_SEQUENCES.filter((d) => !saved.some((s) => s.id === d.id))];
+  } catch {
+    return DEFAULT_SMS_SEQUENCES;
+  }
+}
+
+/** Validates sequences from the dashboard: known triggers/anchors/links/skips, sane timing and length. */
+export function cleanSequences(raw: unknown): SmsSequenceDef[] {
+  if (!Array.isArray(raw)) throw new Error('sequences must be a list');
+  const out: SmsSequenceDef[] = [];
+  for (const r of raw.slice(0, 20) as Record<string, unknown>[]) {
+    if (!r || !(String(r.id) in SMS_TRIGGERS) || out.some((x) => x.id === r.id)) continue;
+    const steps: SmsStepDef[] = [];
+    let maxN = 0;
+    for (const st of (Array.isArray(r.steps) ? r.steps : []).slice(0, 20) as Record<string, unknown>[]) {
+      const n = Math.floor(Number(st?.n));
+      if (!Number.isFinite(n) || n < 1 || n > 10_000 || steps.some((x) => x.n === n)) continue;
+      const body = typeof st.body === 'string' ? st.body.replace(/\r/g, '').trim().slice(0, 480) : '';
+      if (!body) continue;
+      const anchor = SMS_ANCHORS.includes(st.anchor as never) ? (st.anchor as SmsStepDef['anchor']) : 'trigger';
+      const offsetMin = Math.max(-30 * 24 * 60, Math.min(365 * 24 * 60, Math.round(Number(st.offsetMin) || 0)));
+      const link = SMS_LINKS.includes(st.link as never) ? (st.link as SmsStepDef['link']) : 'none';
+      const skip = (Array.isArray(st.skip) ? st.skip : []).filter((k): k is SmsStepDef['skip'][number] => SMS_SKIPS.includes(k as never));
+      steps.push({ n, body, anchor, offsetMin, link, skip: [...new Set(skip)] });
+      maxN = Math.max(maxN, n);
+    }
+    out.push({ id: r.id as SmsTrigger, enabled: r.enabled !== false, steps, next: Math.max(maxN + 1, Math.floor(Number(r.next)) || 0) });
+  }
+  return out;
+}
 
 export const smsConfigured = (rt: Runtime) => Boolean(rt.settings.TWILIO_ACCOUNT_SID && rt.settings.TWILIO_AUTH_TOKEN && rt.settings.SMS_FROM);
 const smsOn = (rt: Runtime) => rt.settings.SMS_ENABLED.trim().toLowerCase() !== 'false';
@@ -77,14 +92,14 @@ const smsOn = (rt: Runtime) => rt.settings.SMS_ENABLED.trim().toLowerCase() !== 
 /** Why this lead can't be texted (null = OK). */
 export function smsBlock(lead: Lead) {
   if (!lead.phone) return 'no phone';
-  if (!lead.call_consent_at) return 'no consent to text';
+  if (!lead.call_consent_at && !lead.sms_consent_at) return 'no consent to text';
   if (lead.sms_opt_out_at) return 'replied STOP';
   if (lead.booking_source === 'calendly-direct') return 'imported contact';
   if (!callingZones(lead.phone)) return 'number outside the countries we text';
   return null;
 }
 
-/** 8am–8pm in every zone of the number's country (TCPA: 8am–9pm; we stay inside it). */
+/** 8am–8pm in every zone of the number's country (TCPA allows 8am–9pm; we stay inside it). */
 export function inTextingHours(t: number, zones: string[]) {
   return zones.length > 0 && zones.every((tz) => {
     try {
@@ -98,49 +113,86 @@ export function nextTextingTime(t: number, zones: string[]) {
   return null;
 }
 
-export async function enqueueSms(rt: Runtime, lead: Lead, sequenceId: SmsSequenceId) {
+function anchorTime(step: SmsStepDef, lead: Lead, now: number) {
+  if (step.anchor === 'call') return lead.call_at ?? null;
+  if (step.anchor === 'webinar') return lead.webinar_at ?? null;
+  return now;
+}
+
+/** Starts a trigger's sequence for this lead (re-starting reschedules texts that haven't gone yet). */
+export async function startSms(rt: Runtime, lead: Lead, trigger: SmsTrigger) {
   if (!smsOn(rt) || smsBlock(lead)) return 0;
-  const seq = SMS_SEQUENCES[sequenceId];
+  const seq = (await loadSmsSequences(rt)).find((s) => s.id === trigger);
+  if (!seq?.enabled) return 0;
   const now = Date.now();
-  const stmts = seq.steps.flatMap((step, i) => {
-    const anchor = step.anchor === 'call_at' ? lead.call_at : now;
+  const stmts = seq.steps.flatMap((step) => {
+    const anchor = anchorTime(step, lead, now);
     if (anchor == null) return [];
-    const sendAt = anchor + step.offsetMs;
-    if (step.anchor === 'call_at' && sendAt < now) return [];
+    const sendAt = anchor + step.offsetMin * MIN;
+    if (step.anchor !== 'trigger' && sendAt < now - 5 * MIN) return [];
     return [rt.env.DB.prepare(
       `INSERT INTO sms_messages (id, lead_id, direction, sequence, step, template, to_phone, send_at, status, created_at)
        VALUES (?, ?, 'out', ?, ?, ?, ?, ?, 'pending', ?)
        ON CONFLICT(lead_id, sequence, step) WHERE direction = 'out' DO UPDATE SET send_at = excluded.send_at, status = 'pending', to_phone = excluded.to_phone, attempts = 0
          WHERE sms_messages.status IN ('pending', 'cancelled', 'skipped')`,
-    ).bind(newId('sm'), lead.id, sequenceId, i, step.template, lead.phone, sendAt, now)];
+    ).bind(newId('sm'), lead.id, trigger, step.n, `${trigger}:${step.n}`, lead.phone, sendAt, now)];
   });
   if (stmts.length) await rt.env.DB.batch(stmts);
   return stmts.length;
 }
 
-export async function cancelSms(rt: Runtime, leadId: string, sequences?: SmsSequenceId[]) {
-  const list = sequences ?? (Object.keys(SMS_SEQUENCES) as SmsSequenceId[]);
+export async function stopSms(rt: Runtime, leadId: string, triggers?: SmsTrigger[]) {
+  const list = triggers ?? (Object.keys(SMS_TRIGGERS) as SmsTrigger[]);
   await rt.env.DB.prepare(`UPDATE sms_messages SET status = 'cancelled' WHERE lead_id = ? AND status = 'pending' AND sequence IN (${list.map(() => '?').join(',')})`).bind(leadId, ...list).run();
 }
 
-function linkTarget(rt: Runtime, lead: Lead, kind: SmsStep['link']) {
+// ───────────── rendering ─────────────
+
+function linkTarget(rt: Runtime, lead: Lead, kind: SmsStepDef['link']) {
   const book = bookingUrlFor(rt, lead.closer_id, effectiveTier(lead)) ? `${rt.origin}/book` : `${rt.origin}/breakout`;
+  const web = (rt.settings.WEBINAR_URL || `${rt.origin}/webinar`).replace(/\/+$/, '');
   switch (kind) {
     case 'join': return lead.booking_join_url && /^https:\/\//.test(lead.booking_join_url) ? lead.booking_join_url : `${rt.origin}/breakout`;
     case 'reschedule': return lead.booking_reschedule_url && /^https:\/\/calendly\.com\//.test(lead.booking_reschedule_url) ? lead.booking_reschedule_url : book;
     case 'book': return book;
     case 'apply': return `${rt.origin}/apply`;
-    default: return `${rt.origin}/breakout`;
+    case 'breakout': return `${rt.origin}/breakout`;
+    case 'webinar_room': return lead.webinar_token ? `${web}/room/${lead.webinar_token}` : web;
+    case 'webinar_replay': return lead.webinar_token ? `${web}/replay/${lead.webinar_token}` : web;
+    default: return null;
   }
 }
 
-/** Builds the text: their first name (only if it looks like a name), call time in their zone, one short link. */
-export function buildSms(rt: Runtime, lead: Lead, template: string, step: SmsStep, smsId: string, firstText: boolean) {
+const fmtTime = (t: number, tz: string) => formatCallTime(t, tz).replace(/^(\w+) (\d+) (\w+) at /, '$1 $2 $3, ');
+
+/** Fills merge tags; {link} becomes the short tracked link (added at the end if the text forgot it). */
+export function renderSms(rt: Runtime, lead: Lead, step: SmsStepDef, smsId: string, firstText: boolean) {
   const tz = lead.timezone || callingZones(lead.phone)?.slice(-1)[0] || rt.settings.SALES_TIMEZONE || 'UTC';
-  const name = safeFirstName(lead.first_name) ?? 'there';
-  const time = lead.call_at ? formatCallTime(lead.call_at, tz).replace(/^(\w+) (\d+) (\w+) at /, '$1 $2 $3, ') : null;
-  const body = SMS_TEMPLATES[template]({ name, time, link: `${rt.origin}/s/${smsId}` });
-  return { body: firstText ? `${body}\nReply STOP to opt out.` : body, target: linkTarget(rt, lead, step.link) };
+  const rep = rt.reps?.find((r) => r.id === lead.closer_id);
+  const target = linkTarget(rt, lead, step.link);
+  const short = target ? `${rt.origin}/s/${smsId}` : '';
+  const values: Record<string, string> = {
+    first_name: safeFirstName(lead.first_name) ?? 'there',
+    call_time: lead.call_at ? fmtTime(lead.call_at, tz) : 'your booked time',
+    closer: rep?.name ?? "Josh's team",
+    webinar_time: lead.webinar_at ? fmtTime(lead.webinar_at, tz) : 'your session time',
+    site_name: rt.settings.SITE_NAME || 'G&L',
+    link: short,
+  };
+  let body = step.body.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? values[k] : m));
+  if (short && !step.body.includes('{link}')) body = `${body} ${short}`;
+  // Curly quotes and long dashes force Unicode (70-char segments, ~2x the cost): use the plain ones.
+  body = body.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+  body = body.replace(/[ \t]+\n/g, '\n').replace(/\s+$/, '');
+  if (firstText && !/\bSTOP\b/.test(body)) body = `${body}\nReply STOP to opt out.`;
+  return { body, target };
+}
+
+/** GSM-7 vs Unicode segment count, for the editor and tests. */
+export function smsSegments(text: string) {
+  const gsm = /^[\n\r @£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà^{}\\[~\]|€]*$/.test(text);
+  const len = text.length;
+  return gsm ? (len <= 160 ? 1 : Math.ceil(len / 153)) : (len <= 70 ? 1 : Math.ceil(len / 67));
 }
 
 async function sendTwilio(rt: Runtime, to: string, body: string) {
@@ -156,45 +208,55 @@ async function sendTwilio(rt: Runtime, to: string, body: string) {
   if (!res.ok) throw new Error(`Twilio ${res.status}: ${data.message ?? ''} (${data.code ?? ''})`.slice(0, 300));
   return data.sid ?? null;
 }
+export { sendTwilio as sendSmsNow };
 
-interface SmsRow { id: string; lead_id: string; sequence: SmsSequenceId; step: number; template: string; to_phone: string; attempts: number }
+interface SmsRow { id: string; lead_id: string; sequence: SmsTrigger; step: number; to_phone: string; attempts: number }
 
-/** Cron: send what's due (claimed atomically, re-checked against fresh lead data). */
+/** Cron: send what's due (claimed atomically, re-checked against fresh lead data and the current sequence). */
 export async function processSmsQueue(rt: Runtime, limit = 40) {
   if (!smsOn(rt)) return { due: 0, sent: 0 };
   const now = Date.now();
-  const { results } = await rt.env.DB.prepare("SELECT id, lead_id, sequence, step, template, to_phone, attempts FROM sms_messages WHERE direction = 'out' AND status = 'pending' AND send_at <= ? ORDER BY send_at LIMIT ?")
+  const { results } = await rt.env.DB.prepare("SELECT id, lead_id, sequence, step, to_phone, attempts FROM sms_messages WHERE direction = 'out' AND status = 'pending' AND send_at <= ? ORDER BY send_at LIMIT ?")
     .bind(now, limit).all<SmsRow>();
+  if (!results.length) return { due: 0, sent: 0 };
+  const sequences = await loadSmsSequences(rt);
   let sent = 0;
   for (const row of results) {
     const claim = await rt.env.DB.prepare("UPDATE sms_messages SET status = 'sending', attempts = attempts + 1 WHERE id = ? AND status = 'pending'").bind(row.id).run();
     if (!claim.meta.changes) continue;
     const skip = (why: string) => rt.env.DB.prepare("UPDATE sms_messages SET status = 'skipped', error = ? WHERE id = ?").bind(why, row.id).run();
     const lead = await getLead(rt.env, row.lead_id);
-    const seq = SMS_SEQUENCES[row.sequence];
-    const step = seq?.steps[row.step];
-    if (!lead || !seq || !step) { await skip('missing lead or step'); continue; }
-    const why = smsBlock(lead) ?? (seq.stopIf?.(lead) ? 'sequence goal reached' : null) ?? (step.skipIf?.(lead) ? 'step condition' : null) ?? (lead.phone !== row.to_phone ? 'number changed' : null);
+    const seq = sequences.find((s) => s.id === row.sequence);
+    const step = seq?.steps.find((s) => s.n === row.step);
+    if (!lead) { await skip('lead deleted'); continue; }
+    if (!seq || !seq.enabled) { await skip('sequence turned off'); continue; }
+    if (!step) { await skip('text removed from the sequence'); continue; }
+    const clicked = Boolean(await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND sequence = ? AND clicked_at IS NOT NULL LIMIT 1").bind(lead.id, row.sequence).first());
+    const why = smsBlock(lead)
+      ?? (STOP[row.sequence]?.(lead) ? 'sequence goal reached' : null)
+      ?? (step.skip.find((k) => SKIP[k](lead, clicked)) ? `skip: ${step.skip.find((k) => SKIP[k](lead, clicked))}` : null)
+      ?? (lead.phone !== row.to_phone ? 'number changed' : null);
     if (why) { await skip(why); continue; }
     const zones = callingZones(lead.phone)!;
     if (!inTextingHours(now, zones)) {
       const next = nextTextingTime(now, zones);
-      // Not worth sending a call reminder after the call has started.
-      const stale = !next || (step.anchor === 'call_at' && lead.call_at && next > lead.call_at);
-      await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, attempts = attempts - 1, send_at = ? WHERE id = ?').bind(stale ? 'skipped' : 'pending', next ?? now, row.id).run();
+      const anchor = step.anchor === 'call' ? lead.call_at : step.anchor === 'webinar' ? lead.webinar_at : null;
+      // A "before the call" text that can only go after the call has started is pointless.
+      const stale = !next || (anchor != null && step.offsetMin < 0 && next > anchor);
+      await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, attempts = attempts - 1, send_at = ?, error = ? WHERE id = ?').bind(stale ? 'skipped' : 'pending', next ?? now, stale ? 'outside texting hours' : null, row.id).run();
       continue;
     }
     const today = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ?").bind(lead.id, now - DAY).first<{ n: number }>();
-    if ((today?.n ?? 0) >= 3) { await skip('daily cap'); continue; }
+    if ((today?.n ?? 0) >= 3) { await skip('daily cap (3)'); continue; }
     const before = await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') LIMIT 1").bind(lead.id).first();
     try {
-      const { body, target } = buildSms(rt, lead, row.template, step, row.id, !before);
+      const { body, target } = renderSms(rt, lead, step, row.id, !before);
       let providerId: string | null = null;
       let status = 'simulated';
       if (smsConfigured(rt)) { providerId = await sendTwilio(rt, lead.phone!, body); status = 'sent'; }
       await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, sent_at = ?, provider_id = ?, body = ?, link_target = ?, error = NULL WHERE id = ?')
         .bind(status, Date.now(), providerId, body, target, row.id).run();
-      await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_sent', source: 'cron', props: { sequence: row.sequence, template: row.template, simulated: status === 'simulated' }, localOnly: true });
+      await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_sent', source: 'cron', props: { sequence: row.sequence, step: row.step, simulated: status === 'simulated' }, localOnly: true });
       sent++;
     } catch (err) {
       const message = String(err instanceof Error ? err.message : err).slice(0, 300);
@@ -217,7 +279,7 @@ export async function smsLinkTarget(rt: Runtime, id: string) {
   return row;
 }
 
-// ───────────── inbound (replies, STOP) ─────────────
+// ───────────── inbound (replies, STOP, "C" to confirm) ─────────────
 
 /** Twilio request signature: base64(HMAC-SHA1(authToken, url + sorted key+value pairs)). */
 export async function verifyTwilio(authToken: string, url: string, params: Record<string, string>, signature: string | null) {
@@ -228,28 +290,36 @@ export async function verifyTwilio(authToken: string, url: string, params: Recor
   return safeEqual(btoa(String.fromCharCode(...sig)), signature);
 }
 
-const STOP = /^\s*(stop|stopall|unsubscribe|cancel|end|quit|opt ?out)\s*[.!]?\s*$/i;
-const START = /^\s*(start|unstop|yes)\s*[.!]?\s*$/i;
+const STOP_WORDS = /^\s*(stop|stopall|unsubscribe|cancel|end|quit|opt ?out)\s*[.!]?\s*$/i;
+const START_WORDS = /^\s*(start|unstop)\s*[.!]?\s*$/i;
+const CONFIRM_WORDS = /^\s*(c|y|yes|yep|confirm|confirmed|👍)\s*[.!]?\s*$/i;
 
-export async function handleInboundSms(rt: Runtime, params: Record<string, string>) {
+/** Returns the auto-reply text (or null) for Twilio to send back. */
+export async function handleInboundSms(rt: Runtime, params: Record<string, string>): Promise<{ kind: string; reply: string | null }> {
   const from = params.From ?? '';
   const body = (params.Body ?? '').slice(0, 1000);
   const lead = await leadByPhone(rt, from).catch(() => null);
   const now = Date.now();
   await rt.env.DB.prepare("INSERT INTO sms_messages (id, lead_id, direction, from_phone, body, status, created_at, sent_at, provider_id) VALUES (?, ?, 'in', ?, ?, 'received', ?, ?, ?)")
     .bind(newId('sm'), lead?.id ?? null, from, body, now, now, params.MessageSid ?? null).run();
-  if (STOP.test(body)) {
+  if (STOP_WORDS.test(body)) {
     if (lead) {
       await updateLead(rt.env, lead.id, { sms_opt_out_at: now });
-      await cancelSms(rt, lead.id);
+      await stopSms(rt, lead.id);
       await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_opt_out', source: 'webhook', localOnly: true });
     }
-    return 'stop';
+    return { kind: 'stop', reply: null }; // carriers / Twilio send the opt-out confirmation
   }
-  if (START.test(body) && lead?.sms_opt_out_at) { await updateLead(rt.env, lead.id, { sms_opt_out_at: null }); return 'start'; }
+  if (START_WORDS.test(body) && lead?.sms_opt_out_at) { await updateLead(rt.env, lead.id, { sms_opt_out_at: null }); return { kind: 'start', reply: null }; }
+  if (lead && CONFIRM_WORDS.test(body) && booked(lead) && lead.status === 'booked') {
+    await updateLead(rt.env, lead.id, { sms_confirmed_at: now });
+    await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_confirmed', source: 'webhook', localOnly: true });
+    const tz = lead.timezone || callingZones(lead.phone)?.slice(-1)[0] || rt.settings.SALES_TIMEZONE || 'UTC';
+    return { kind: 'confirmed', reply: `Thanks ${safeFirstName(lead.first_name) ?? ''}, you're confirmed${lead.call_at ? ` for ${fmtTime(lead.call_at, tz)}` : ''}. Speak then.`.replace('Thanks ,', 'Thanks,') };
+  }
   if (lead) {
     await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_reply', source: 'webhook', localOnly: true });
-    rt.waitUntil(notifySlack(rt, lead, '💬 Text reply', [`“${plain(body.slice(0, 300))}”`, 'Reply from your phone or Twilio; the full thread is on the lead in Funnel HQ.'], 'voice'));
+    rt.waitUntil(notifySlack(rt, lead, '💬 Text reply', [`“${plain(body.slice(0, 300))}”`, 'Reply from Twilio or your phone; the thread is on the lead in Funnel HQ.'], 'voice'));
   }
-  return lead ? 'reply' : 'unknown';
+  return { kind: lead ? 'reply' : 'unknown', reply: null };
 }

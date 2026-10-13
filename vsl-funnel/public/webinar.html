@@ -52,6 +52,8 @@
             <div data-if="!has_sessions" data-html="sessions"></div>
             <div class="field"><label for="w-first">First name</label><input id="w-first" name="first_name" autocomplete="given-name" required></div>
             <div class="field"><label for="w-email">Email</label><input id="w-email" name="email" type="email" autocomplete="email" required></div>
+            <div class="field"><label for="w-phone">Mobile <span class="muted">(optional, for a text reminder)</span></label><input id="w-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel"></div>
+            <label class="check"><input type="checkbox" name="sms_consent"><span>Text me the link and a reminder before the session. Msg &amp; data rates may apply. Reply STOP to opt out.</span></label>
             <button class="btn btn-lg" type="submit" data-track="cta_click" data-track-id="webinar_register">Save my seat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
             <p class="privacy-note">We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time. <a href="/privacy">Privacy policy</a>.</p>
           </form>

@@ -357,6 +357,13 @@ test/              vitest per module + security.test.ts
 - A daily digest.
 - Slack/Discord pings carry only the name, ref and a dashboard link. Strip `< > [ ] | \``, break up `://`, and set `allowed_mentions`.
 
+### Phase 9b: SMS follow-up (Twilio) and the drag-and-drop SMS builder
+- Tables: `sms_messages` (unique `(lead_id, sequence, step)` for outbound), plus `leads.sms_opt_out_at`, `sms_confirmed_at` and `sms_consent_at`.
+- One editable sequence per trigger: booked, no_show, abandoned, qualified, cancelled, showed, lost, won, webinar. Each step has a stable `n`, body, anchor (trigger/call/webinar) + offset in minutes, a link type (join, reschedule, book, apply, prep video, webinar room/replay), and skip conditions (applied, booked, replied C, attended, missed, clicked). Defaults live in code; edits go to `kv_state` and are validated on save.
+- Send rules: consent required (unticked by default), never after STOP, never to imported contacts, only to countries served. 8am–8pm in every zone of the number's country, max 3 a day, and "Reply STOP to opt out." on the first text. Links become tracked `/s/:id` short links. Straight quotes only (GSM-7).
+- `/hooks/twilio/sms`: signed (fail closed). It handles STOP/START, "C" to confirm the call (with an auto-reply), and pings the team about any other reply.
+- Funnel HQ → SMS tab: a setup checklist with the webhook URL, a sequence list, and draggable text cards. Each card has timing, link, merge tags, live preview + segment count, skip boxes, duplicate/delete and "send me this one". There's also an on/off toggle, reset to default, and save.
+
 ### Phase 10: Industry landers and Meta smart route
 
 - **Catalog:**

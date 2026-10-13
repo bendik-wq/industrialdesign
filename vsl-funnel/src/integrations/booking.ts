@@ -8,7 +8,7 @@ import { cancelCalls, queueCall } from './elevenlabs';
 import { notifySlack } from './notify';
 import { bookingFields, calendlyConnected, eventWithInvitees, syncCalendly } from './calendly';
 import { applyLeadUpdate } from '../sales/outcomes';
-import { cancelSms, enqueueSms } from './sms';
+import { startSms, stopSms } from './sms';
 
 export interface BookingInfo {
   callAt: number | null;
@@ -78,8 +78,8 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
   // (Re)schedule the confirmation + reminders whenever we learn a new call time.
   if (!sameBooking || callChanged) {
     await enqueueSequence(rt, fresh, 'booked');
-    await cancelSms(rt, lead.id, ['sms_book', 'sms_abandoned', 'sms_no_show']);
-    await enqueueSms(rt, fresh, 'sms_booked');
+    await stopSms(rt, lead.id, ['qualified', 'abandoned', 'no_show', 'cancelled']);
+    await startSms(rt, fresh, 'booked');
     await enqueuePrecall(rt, fresh);
   }
   return fresh;
@@ -117,7 +117,9 @@ export async function markCancelled(rt: Runtime, lead: Lead, provider: string) {
   await updateLead(rt.env, lead.id, { booking_cancelled_at: Date.now(), status: lead.status === 'booked' ? 'applied' : lead.status });
   await cancelSequence(rt, lead.id, 'booked');
   await cancelSequence(rt, lead.id, 'precall');
-  await cancelSms(rt, lead.id, ['sms_booked']);
+  await stopSms(rt, lead.id, ['booked']);
+  const after = await getLead(rt.env, lead.id);
+  if (after) await startSms(rt, after, 'cancelled');
   await cancelCalls(rt, lead.id, ['confirm']);
   await track(rt, await identityFromLead(rt.env, lead.id), { name: 'booking_cancelled', source: 'webhook', props: { provider } });
   rt.waitUntil(notifySlack(rt, lead, '🚫 Call cancelled', [], 'cancelled'));

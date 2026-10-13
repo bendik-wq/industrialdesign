@@ -185,6 +185,7 @@
     traffic: { title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
+    sms: { title: 'SMS', sub: 'Text-message sequences: drag texts to organise them, edit the wording and timing, choose the link and when to skip. Texts only go to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
     webinar: { title: 'Webinar', sub: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar },
     pages: { title: 'Landing pages & tests', sub: 'Every page people land on, and every headline being tested: the main page’s A/B test plus 100 industry landers (20 industries × 5 headlines). Each visit is traced to applications, bookings and cash.', render: renderLanders },
     behaviour: { title: 'On-page behaviour', sub: 'What people click, where the form slows them down, where they leave, what they re-read and highlight. Nothing anyone types is ever recorded.', render: renderBehaviour },
@@ -1158,10 +1159,167 @@
     send('POST', 'sms/test', { to: to }).then(function (r) { msg.textContent = r && r.ok ? 'Sent ✓' : (r && r.error) || 'Failed'; });
   });
 
+  // ───────────── SMS builder ─────────────
+  var SMS_REL = {
+    trigger: [{ v: 'after', label: 'after it happens' }],
+    call: [{ v: 'before', label: 'before the call' }, { v: 'after', label: 'after the call starts' }],
+    webinar: [{ v: 'before', label: 'before the webinar' }, { v: 'after', label: 'after the webinar starts' }],
+  };
+  var SMS_LINK_LABEL = { none: 'No link', join: 'Meeting link (join)', reschedule: 'Reschedule link', book: 'Booking page', apply: 'Application', breakout: 'Prep video page', webinar_room: 'Their webinar room', webinar_replay: 'Webinar replay' };
+  var SMS_SKIP_LABEL = { applied: 'they’ve applied', booked: 'they’ve booked', confirmed: 'they replied C', attended: 'they came to the webinar', missed: 'they missed the webinar', clicked: 'they clicked an earlier text' };
+  var SMS_TAGS = ['first_name', 'call_time', 'closer', 'link', 'webinar_time', 'site_name'];
+  var SAMPLE = { first_name: 'Dana', call_time: 'Thursday 16 October, 10:00 am AEDT', closer: 'Josh Li', link: 'apply.grosfjeld-li.com/s/k3x9q2', webinar_time: 'Tuesday 20 October, 7:00 pm AEDT', site_name: 'G&L' };
+  function smsPreview(body) {
+    var t = String(body || '').replace(/\{(\w+)\}/g, function (m, k) { return SAMPLE[k] != null ? SAMPLE[k] : m; }).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-');
+    return t;
+  }
+  function smsSegs(t) {
+    var gsm = /^[\n\r @£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà^{}\\[~\]|€]*$/.test(t), len = t.length;
+    return gsm ? (len <= 160 ? 1 : Math.ceil(len / 153)) : (len <= 70 ? 1 : Math.ceil(len / 67));
+  }
+  function splitOffset(min) {
+    var a = Math.abs(min);
+    if (a && a % 1440 === 0) return { v: a / 1440, unit: 'days' };
+    if (a && a % 60 === 0) return { v: a / 60, unit: 'hours' };
+    return { v: a, unit: 'minutes' };
+  }
+  var smsState = null;
+  function renderSmsTab() {
+    return Promise.all([api('sms/sequences', {}, { noRange: true }), api('sms', {}, { noRange: true }).catch(function () { return null; })]).then(function (r) {
+      smsState = { data: r[0], status: r[1], seqs: JSON.parse(JSON.stringify(r[0].sequences)), sel: (smsState && smsState.sel) || 'booked', dirty: false };
+      drawSms();
+    });
+  }
+  function smsStat(seq, n) {
+    var x = (smsState.data.stats || []).filter(function (s) { return s.sequence === seq && Number(s.step) === n; })[0];
+    return x ? n_(x.sent) + ' sent · ' + n_(x.clicked) + ' clicked' + (x.pending ? ' · ' + n_(x.pending) + ' waiting' : '') + (x.skipped ? ' · ' + n_(x.skipped) + ' skipped' : '') : 'not sent yet';
+  }
+  function n_(v) { return n(v || 0); }
+  function setupCard(st) {
+    st = st || {};
+    var ok = function (b) { return b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'; };
+    return '<div class="card"><h2>Setup</h2><ol class="sms-setup">' +
+      '<li>' + ok(st.configured) + ' <strong>Connect Twilio</strong>: copy the Account SID and Auth Token from console.twilio.com into <a href="#integrations">Integrations → SMS</a>.</li>' +
+      '<li>' + ok(st.configured) + ' <strong>Pick the sender</strong> (“Send texts from”): an Australian number or a Messaging Service (<span class="mono">MG…</span>) with an alphanumeric sender like “GLAdvisory” for Australian leads; a US number registered for A2P 10DLC for US leads.</li>' +
+      '<li><strong>Point replies here</strong>: Twilio → your number → Messaging → “A message comes in” → <span class="mono">' + esc(st.webhook || '') + '</span> (HTTP POST). That’s how STOP, “C” to confirm and replies reach Funnel HQ.</li>' +
+      '<li>' + ok(st.enabled) + ' <strong>Sending is ' + (st.enabled ? 'on' : 'paused') + '</strong> (SMS_ENABLED). ' + n_(st.consent && st.consent.consented) + ' people have agreed to texts · ' + n_(st.consent && st.consent.opted_out) + ' replied STOP · ' + n_(smsState.data.confirmed) + ' confirmed by text.</li>' +
+      '<li><strong>Send yourself a test</strong>: <input class="input" data-smsto placeholder="+61412345678" style="max-width:190px;display:inline-block"> <button class="btn-sm ghost" data-smstest>Send test text</button> <span class="muted" data-smsmsg></span></li>' +
+      '</ol>' + (st.configured ? '' : '<p class="muted">Until Twilio is connected, texts are simulated: they’re written and logged here but not sent.</p>') + '</div>';
+  }
+  function drawSms() {
+    var S = smsState, d = S.data, seq = S.seqs.filter(function (x) { return x.id === S.sel; })[0];
+    var list = S.seqs.map(function (x) {
+      return '<button class="sms-seq' + (x.id === S.sel ? ' on' : '') + '" data-seq="' + esc(x.id) + '"><span class="dot ' + (x.enabled ? 'live' : '') + '"></span><strong>' + esc(d.triggers[x.id] || x.id) + '</strong><span class="muted">' + x.steps.length + ' text' + (x.steps.length === 1 ? '' : 's') + (x.enabled ? '' : ' · off') + '</span></button>';
+    }).join('');
+    var rel = SMS_REL;
+    var cards = seq.steps.map(function (st, i) {
+      var off = splitOffset(st.offsetMin), dir = st.offsetMin < 0 ? 'before' : 'after';
+      var rels = (rel.trigger).map(function (r) { return { a: 'trigger', v: r.v, label: r.label }; });
+      if (seq.id === 'booked' || seq.id === 'no_show' || seq.id === 'showed') rels = rels.concat(rel.call.map(function (r) { return { a: 'call', v: r.v, label: r.label }; }));
+      if (seq.id === 'webinar') rels = rels.concat(rel.webinar.map(function (r) { return { a: 'webinar', v: r.v, label: r.label }; }));
+      var relSel = '<select class="input" data-f="rel">' + rels.map(function (r) { var val = r.a + ':' + r.v; return '<option value="' + val + '"' + (st.anchor === r.a && (r.a === 'trigger' || r.v === dir) ? ' selected' : '') + '>' + esc(r.label) + '</option>'; }).join('') + '</select>';
+      var prev = smsPreview(st.body);
+      var segs = smsSegs(prev + (st.link !== 'none' && st.body.indexOf('{link}') < 0 ? ' ' + SAMPLE.link : ''));
+      return '<div class="sms-step" draggable="true" data-i="' + i + '">' +
+        '<div class="sms-row"><span class="grip" title="Drag to reorder">⋮⋮</span><span class="sms-n">Text ' + (i + 1) + '</span>' +
+        '<input class="input" type="number" min="0" data-f="v" value="' + off.v + '" style="width:76px">' +
+        '<select class="input" data-f="unit">' + ['minutes', 'hours', 'days'].map(function (u) { return '<option' + (u === off.unit ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select>' + relSel +
+        '<select class="input" data-f="link">' + d.links.map(function (l) { return '<option value="' + l + '"' + (l === st.link ? ' selected' : '') + '>' + esc(SMS_LINK_LABEL[l] || l) + '</option>'; }).join('') + '</select>' +
+        '<button class="btn-sm ghost" data-dup title="Duplicate">⧉</button><button class="btn-sm ghost danger" data-del title="Delete">✕</button></div>' +
+        '<textarea class="input sms-body" data-f="body" rows="3" maxlength="480">' + esc(st.body) + '</textarea>' +
+        '<div class="sms-tags">' + SMS_TAGS.map(function (t) { return '<button class="chip" data-tag="' + t + '">{' + t + '}</button>'; }).join('') + '<span class="muted sms-count">' + prev.length + ' chars · ' + segs + ' SMS' + (segs > 2 ? ' (long)' : '') + '</span></div>' +
+        '<div class="sms-preview"><span class="muted">Preview:</span> ' + esc(prev) + '</div>' +
+        '<div class="sms-skip"><span class="muted">Skip this text if</span> ' + d.skips.map(function (k) { return '<label class="chip-check"><input type="checkbox" data-skip="' + k + '"' + (st.skip.indexOf(k) >= 0 ? ' checked' : '') + '> ' + esc(SMS_SKIP_LABEL[k] || k) + '</label>'; }).join('') + '</div>' +
+        '<div class="sms-foot"><span class="muted">' + esc(smsStat(seq.id, st.n)) + '</span><button class="btn-sm ghost" data-testone>Send me this one</button></div></div>';
+    }).join('');
+    view.innerHTML = setupCard(S.status) +
+      '<div class="sms-grid"><div class="sms-list card"><h2>Sequences</h2><p class="sub">One per moment in the funnel.</p>' + list + '</div>' +
+      '<div class="card sms-editor"><div class="sms-head"><div><h2>' + esc(d.triggers[seq.id] || seq.id) + '</h2><p class="sub">Starts when this happens and stops by itself once it’s done its job (e.g. they book). Texts go out by their timing; drag to organise.</p></div>' +
+      '<div class="row"><label class="chip-check"><input type="checkbox" data-enabled' + (seq.enabled ? ' checked' : '') + '> On</label><button class="btn-sm ghost" data-reset>Reset to default</button><button class="btn-sm" data-save' + (S.dirty ? '' : ' disabled') + '>' + (S.dirty ? 'Save changes' : 'Saved') + '</button></div></div>' +
+      '<div class="sms-palette"><span class="chip drag-new" draggable="true" data-new>＋ New text (drag into place)</span></div>' +
+      '<div class="sms-steps" data-steps>' + (cards || '<div class="empty">No texts yet. Drag one in or click “Add text”.</div>') + '</div>' +
+      '<button class="btn-sm ghost" data-add style="margin-top:10px">＋ Add text</button></div></div>';
+    wireSms(seq);
+  }
+  function markDirty() { smsState.dirty = true; var b = view.querySelector('[data-save]'); if (b) { b.disabled = false; b.textContent = 'Save changes'; } }
+  function wireSms(seq) {
+    var S = smsState;
+    view.querySelectorAll('[data-seq]').forEach(function (b) { b.onclick = function () { S.sel = b.getAttribute('data-seq'); drawSms(); }; });
+    view.querySelector('[data-enabled]').onchange = function (e) { seq.enabled = e.target.checked; markDirty(); };
+    view.querySelector('[data-reset]').onclick = function () {
+      if (!confirm('Replace this sequence with the default texts? Unsaved changes are lost.')) return;
+      var def = JSON.parse(JSON.stringify(S.data.defaults.filter(function (x) { return x.id === seq.id; })[0]));
+      def.next = Math.max(def.next, seq.next);
+      def.steps.forEach(function (st) { st.n = def.next++; }); // fresh numbers: earlier sends never collide
+      S.seqs = S.seqs.map(function (x) { return x.id === seq.id ? def : x; });
+      S.dirty = true; drawSms();
+    };
+    view.querySelector('[data-save]').onclick = function () {
+      var b = this; b.disabled = true; b.textContent = 'Saving…';
+      send('PUT', 'sms/sequences', { sequences: S.seqs }).then(function (r) {
+        if (r && r.ok) { S.seqs = r.sequences; S.data.sequences = r.sequences; S.dirty = false; drawSms(); }
+        else { b.disabled = false; b.textContent = 'Save changes'; alert((r && r.error) || 'Couldn’t save'); }
+      });
+    };
+    var newStep = function () { return { n: seq.next++, body: 'Hi {first_name}, ', anchor: 'trigger', offsetMin: 60, link: 'none', skip: [] }; };
+    view.querySelector('[data-add]').onclick = function () { seq.steps.push(newStep()); markDirty(); drawSms(); };
+    view.querySelectorAll('.sms-step').forEach(function (card) {
+      var i = Number(card.getAttribute('data-i')), st = seq.steps[i];
+      var read = function () {
+        var v = Math.max(0, Number(card.querySelector('[data-f="v"]').value) || 0), unit = card.querySelector('[data-f="unit"]').value;
+        var rel = card.querySelector('[data-f="rel"]').value.split(':');
+        var mins = v * (unit === 'days' ? 1440 : unit === 'hours' ? 60 : 1);
+        st.anchor = rel[0]; st.offsetMin = rel[0] !== 'trigger' && rel[1] === 'before' ? -mins : mins;
+        st.link = card.querySelector('[data-f="link"]').value;
+        st.body = card.querySelector('[data-f="body"]').value;
+        st.skip = Array.prototype.slice.call(card.querySelectorAll('[data-skip]:checked')).map(function (x) { return x.getAttribute('data-skip'); });
+        var prev = smsPreview(st.body), segs = smsSegs(prev + (st.link !== 'none' && st.body.indexOf('{link}') < 0 ? ' ' + SAMPLE.link : ''));
+        card.querySelector('.sms-preview').innerHTML = '<span class="muted">Preview:</span> ' + esc(prev);
+        card.querySelector('.sms-count').textContent = prev.length + ' chars · ' + segs + ' SMS' + (segs > 2 ? ' (long)' : '');
+        markDirty();
+      };
+      card.querySelectorAll('input, select, textarea').forEach(function (el) { el.addEventListener('input', read); el.addEventListener('change', read); });
+      card.querySelectorAll('[data-tag]').forEach(function (b) {
+        b.onclick = function () {
+          var ta = card.querySelector('[data-f="body"]'), tag = '{' + b.getAttribute('data-tag') + '}', p = ta.selectionStart || ta.value.length;
+          ta.value = ta.value.slice(0, p) + tag + ta.value.slice(ta.selectionEnd || p); ta.focus(); ta.selectionStart = ta.selectionEnd = p + tag.length; read();
+        };
+      });
+      card.querySelector('[data-del]').onclick = function () { if (confirm('Delete this text? Any not-yet-sent copies are skipped.')) { seq.steps.splice(i, 1); markDirty(); drawSms(); } };
+      card.querySelector('[data-dup]').onclick = function () { var c = JSON.parse(JSON.stringify(st)); c.n = seq.next++; seq.steps.splice(i + 1, 0, c); markDirty(); drawSms(); };
+      card.querySelector('[data-testone]').onclick = function () {
+        var to = (view.querySelector('[data-smsto]') || {}).value || prompt('Your mobile, in international format (+61…):');
+        if (!to) return;
+        send('POST', 'sms/test-step', { to: to, step: st }).then(function (r) { alert(r && r.ok ? 'Sent to ' + to : (r && r.error) || 'Failed'); });
+      };
+      // drag to reorder
+      card.addEventListener('dragstart', function (e) { if (/TEXTAREA|INPUT|SELECT/.test(e.target.tagName)) { e.preventDefault(); return; } e.dataTransfer.setData('text/plain', 'move:' + i); card.classList.add('dragging'); });
+      card.addEventListener('dragend', function () { card.classList.remove('dragging'); });
+    });
+    var box = view.querySelector('[data-steps]');
+    var dropIndex = function (y) {
+      var cards = Array.prototype.slice.call(box.querySelectorAll('.sms-step'));
+      for (var k = 0; k < cards.length; k++) { var r = cards[k].getBoundingClientRect(); if (y < r.top + r.height / 2) return k; }
+      return cards.length;
+    };
+    box.addEventListener('dragover', function (e) { e.preventDefault(); box.classList.add('over'); });
+    box.addEventListener('dragleave', function () { box.classList.remove('over'); });
+    box.addEventListener('drop', function (e) {
+      e.preventDefault(); box.classList.remove('over');
+      var what = e.dataTransfer.getData('text/plain'), to = dropIndex(e.clientY);
+      if (what === 'new') seq.steps.splice(to, 0, newStep());
+      else if (what.indexOf('move:') === 0) { var from = Number(what.slice(5)), item = seq.steps.splice(from, 1)[0]; seq.steps.splice(from < to ? to - 1 : to, 0, item); }
+      else return;
+      markDirty(); drawSms();
+    });
+    var pal = view.querySelector('[data-new]');
+    pal.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/plain', 'new'); });
+  }
+
   function renderEmails() {
-    return Promise.all([api('emails'), api('triggers'), api('sms').catch(function () { return null; })]).then(function (res) {
-      var d = res[0], tr = res[1], sms = res[2];
-      view.innerHTML = smsCard(sms) +
+    return Promise.all([api('emails'), api('triggers')]).then(function (res) {
+      var d = res[0], tr = res[1];
+      view.innerHTML =
         '<div class="card" style="margin-bottom:14px"><h2>Behaviour-triggered emails</h2><p class="sub">One email when someone does something specific on the page, written for them from what they did. Each fires once per person; at most 8 emails a day to anyone in total; re-checked right before sending.</p>' + table([
           { label: 'Trigger', html: function (r) { return esc(r.label) + '<div class="muted mono">' + esc(r.template) + ' · sends ' + (r.delay ? r.delay + ' min after' : 'right away') + '</div>'; } },
           { label: 'Fired', key: 'queued', num: true, fmt: n }, { label: 'Sent', key: 'sent', num: true, fmt: n },
