@@ -67,24 +67,24 @@ export async function dataLanding(c: Context<AppEnv>) {
  */
 export const DATA_HEADLINES: { id: string; h1: string; lede: string }[] = [
   {
-    id: 'asset',
-    h1: 'Your business is sitting on a <em>$2&nbsp;million</em> asset you’ve never sold.',
-    lede: '<strong>It’s your operational data. {partner} just had {fund} committed to buying it.</strong> Not customer data, not equity: anonymised records of how your business runs. Deals typically land between $200,000 and $2 million.',
-  },
-  {
     id: 'paid',
-    h1: 'Get paid up to <em>$2,000,000</em> for data your business already creates.',
+    h1: 'Get paid up to <em>$2,000,000</em> for data your business <span class="nw">already creates.</span>',
     lede: '<strong>{partner} just had {fund} committed to buying it.</strong> Not customer data. Anonymised <em>operational</em> data: how your business actually runs. Deals typically land between $200,000 and $2 million. No equity. Nothing changes day to day.',
   },
   {
-    id: 'fund',
-    h1: 'A company with {fund} to spend wants to buy your data. <em>Not your business. Just the data.</em>',
-    lede: '<strong>{partner} is paying established businesses $200,000 to $2 million</strong> for anonymised operational data: the workflows, job history and records you already keep. You keep 100% of the company and every customer.',
+    id: 'recap',
+    h1: 'Recapitalise your business with up to <em>$2,000,000</em> for data it <span class="nw">already creates.</span>',
+    lede: '<strong>No new investors. No dilution. No loan.</strong> {partner} has {fund} committed to buying anonymised operational data from established businesses, and deals typically land between $200,000 and $2 million. You keep every share.',
   },
   {
-    id: 'keep',
-    h1: 'Sell your data. <em>Keep your business.</em> Bank up to $2M.',
-    lede: '<strong>{partner} has {fund} committed to buying anonymised operational data</strong> from established businesses. Typical deals: $200,000 to $2 million. No customer data, no equity, no change to how you run things.',
+    id: 'debt',
+    h1: 'Pay down your debt with up to <em>$2,000,000</em> for data your business <span class="nw">already creates.</span>',
+    lede: '<strong>Clear the expensive loans without selling a share or borrowing another cent.</strong> {partner} has {fund} committed to buying anonymised operational data, typically $200,000 to $2 million a deal. Not customer data. Nothing changes day to day.',
+  },
+  {
+    id: 'revenue',
+    h1: 'Unlock up to <em>$2,000,000</em> in new revenue from data your business <span class="nw">already creates.</span>',
+    lede: '<strong>A new product you’ve been making for years without selling it.</strong> {partner} has {fund} committed to buying anonymised operational data, typically $200,000 to $2 million a deal. No new staff, no new customers, no equity.',
   },
 ];
 

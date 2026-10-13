@@ -251,7 +251,7 @@
         tile('Clicked “Claim”', n(f.cta), pct(v ? (f.cta || 0) / v : null) + ' of visitors') +
         tile('Claimed a valuation', n(f.claims), pct(v ? (f.claims || 0) / v : null) + ' of visitors') +
         '</div>' +
-        '<div class="card" style="margin-top:14px"><h2>Headline test</h2><p class="sub">Each visitor sees one headline (the same one every visit). Wait for ~100 visitors per headline before picking a winner. Preview any with <span class="mono">?h=asset</span>, <span class="mono">?h=paid</span>, <span class="mono">?h=fund</span> or <span class="mono">?h=keep</span>.</p>' +
+        '<div class="card" style="margin-top:14px"><h2>Headline test</h2><p class="sub">Each visitor sees one headline (the same one every visit). Wait for ~100 visitors per headline before picking a winner. Preview any with <span class="mono">?h=paid</span>, <span class="mono">?h=recap</span>, <span class="mono">?h=debt</span> or <span class="mono">?h=revenue</span>.</p>' +
         table([
           { label: 'Headline', html: function (r) { return esc(r.text) + '<div class="muted mono">' + esc(r.id) + '</div>'; } },
           { label: 'Visitors', key: 'visitors', num: true, fmt: n },
