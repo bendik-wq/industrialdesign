@@ -355,3 +355,7 @@ textarea.notes { width: 100%; min-height: 80px; background: var(--surface); bord
 .sms-wa > div { flex-basis: 100%; }
 .wa-badge { background: #25d366; color: #05361a; border-radius: 999px; padding: 1px 8px; font-weight: 650; }
 .sms-setup .ok { color: var(--good); } .sms-setup .bad { color: var(--bad, #c0392b); }
+.hl-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+.hl-head .row { display: flex; gap: 8px; }
+.hl-bar { display: inline-block; width: 70px; height: 6px; border-radius: 6px; background: var(--surface-2); vertical-align: middle; overflow: hidden; }
+.hl-bar i { display: block; height: 100%; background: var(--good); }

@@ -47,13 +47,39 @@ describe('Data page', () => {
 });
 
 describe('Data page headline test', async () => {
-  const { DATA_HEADLINES, pickHeadline } = await import('../src/data/data');
-  it('is stable per visitor, spreads visitors across headlines, and can be forced for preview', () => {
-    expect(pickHeadline('v_abc').id).toBe(pickHeadline('v_abc').id);
-    const seen = new Set(Array.from({ length: 200 }, (_, i) => pickHeadline(`v_${i}`).id));
-    expect(seen.size).toBe(DATA_HEADLINES.length);
-    expect(pickHeadline('v_abc', 'debt').id).toBe('debt');
-    expect(pickHeadline('v_abc', '<script>').id).toBe(pickHeadline('v_abc').id);
-    for (const h of DATA_HEADLINES) expect(h.h1 + h.lede).not.toMatch(/free|guarantee/i);
+  const { DATA_HEADLINES, DATA_HEADLINE_MIN, chooseHeadline, headlineOdds, pickHeadline } = await import('../src/data/data');
+  const stats = (f: (id: string, i: number) => { visitors: number; clicked: number; claims: number }) => new Map(DATA_HEADLINES.map((h, i) => [h.id, f(h.id, i)]));
+  let seed = 3;
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+
+  it('has 20 distinct headlines, all honest ("up to", no "free", no guarantees)', () => {
+    expect(DATA_HEADLINES).toHaveLength(20);
+    expect(new Set(DATA_HEADLINES.map((h) => h.id)).size).toBe(20);
+    for (const h of DATA_HEADLINES) {
+      expect(h.h1 + h.lede).not.toMatch(/\bfree\b|guarantee/i);
+      if (/2,000,000|\$2M|2&nbsp;million/.test(h.h1)) expect(h.h1).toMatch(/up to|you didn/i);
+    }
+  });
+
+  it('gives every headline its first visitors, then shifts traffic to the winner', () => {
+    const cold = stats((id) => ({ visitors: id === 'paid' ? 100 : 0, clicked: 0, claims: 0 }));
+    for (let i = 0; i < 50; i++) expect(chooseHeadline(cold, rnd)).not.toBe('paid');
+    const warm = stats((id) => ({ visitors: 200, clicked: id === 'debt' ? 40 : 6, claims: 0 }));
+    const odds = headlineOdds(warm, 500);
+    expect(odds.share.debt).toBeGreaterThan(0.8);
+    expect(odds.best.debt).toBeGreaterThan(0.9);
+    // With 20+ claims it optimises for claims, not clicks.
+    const claims = stats((id) => ({ visitors: 200, clicked: id === 'debt' ? 40 : 6, claims: id === 'asset' ? 15 : 1 }));
+    expect(headlineOdds(claims, 500).best.asset).toBeGreaterThan(0.9);
+    expect(DATA_HEADLINE_MIN).toBeGreaterThan(0);
+  });
+
+  it('honours previews, pins and a returning visitor\'s headline', async () => {
+    const rt = (mode: string, prev: string | null) => ({ settings: { DATA_HEADLINE_TEST: mode }, env: { DB: { prepare: () => ({ bind: () => ({ first: async () => (prev ? { h: prev } : null) }) }) } } }) as never;
+    expect((await pickHeadline(rt('auto', null), 'v1', 'debt')).h.id).toBe('debt');
+    expect((await pickHeadline(rt('auto', null), 'v1', 'debt')).preview).toBe(true);
+    expect((await pickHeadline(rt('recap', 'paid'), 'v1')).h.id).toBe('recap');
+    expect((await pickHeadline(rt('auto', 'howcome'), 'v1')).h.id).toBe('howcome');
+    expect((await pickHeadline(rt('even', null), 'v1', '<script>')).preview).toBe(false);
   });
 });

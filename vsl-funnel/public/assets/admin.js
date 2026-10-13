@@ -239,6 +239,38 @@
     });
   }
 
+  var ANGLE_LABEL = { cash: 'Cash', recap: 'Recapitalise', debt: 'Pay down debt', revenue: 'New revenue', curious: 'Curiosity' };
+  function headlineCard(d) {
+    var t = d.test || {}, rows = (d.headlines || []).slice();
+    var pinned = rows.filter(function (r) { return r.id === t.mode; })[0];
+    rows.sort(function (a, b) { return (b.best - a.best) || (b.visitors - a.visitors); });
+    var leader = rows[0];
+    var status = pinned ? '<strong>Pinned:</strong> everyone sees “' + esc(pinned.text) + '”.'
+      : t.mode === 'even' ? '<strong>Even split:</strong> each headline gets 1/20 of new visitors.'
+      : '<strong>Auto:</strong> every headline gets its first ' + n(t.min) + ' visitors, then traffic shifts to the ones that convert (currently judged on ' + esc(t.metric || 'claims') + ').';
+    var bar = function (v) { return '<span class="hl-bar"><i style="width:' + Math.round(Math.min(1, v || 0) * 100) + '%"></i></span> ' + esc(pct(v || 0)); };
+    return '<div class="card" style="margin-top:14px"><div class="hl-head"><div><h2>Headline test · 20 headlines</h2><p class="sub">' + status +
+      (leader && leader.visitors && !pinned ? ' Leader right now: <strong>' + esc(leader.id) + '</strong> (' + esc(pct(leader.best)) + ' chance it’s the best).' : '') +
+      ' Each person keeps the headline they first saw. Preview any with <span class="mono">?h=id</span> (previews aren’t counted).</p></div>' +
+      '<div class="row">' + (t.mode !== 'auto' ? '<button class="btn-sm" data-hlmode="auto">Back to auto</button>' : '') + (t.mode !== 'even' ? '<button class="btn-sm ghost" data-hlmode="even">Even split</button>' : '') + '</div></div>' +
+      table([
+        { label: 'Headline', html: function (r) { return esc(r.text) + '<div class="muted"><span class="mono">' + esc(r.id) + '</span> · ' + esc(ANGLE_LABEL[r.angle] || r.angle) + ' · <a href="' + esc(d.url) + '/?h=' + esc(r.id) + '" target="_blank" rel="noopener">preview</a></div>'; } },
+        { label: 'Visitors', key: 'visitors', num: true, fmt: n },
+        { label: 'Clicked claim', num: true, html: function (r) { return esc(n(r.clicked)) + '<div class="muted">' + esc(r.clickRate == null ? '–' : pct(r.clickRate)) + '</div>'; } },
+        { label: 'Claims', num: true, html: function (r) { return esc(n(r.claims)) + '<div class="muted">' + esc(r.rate == null ? '–' : pct(r.rate)) + '</div>'; } },
+        { label: 'Chance best', html: function (r) { return bar(r.best); } },
+        { label: 'Traffic now', html: function (r) { return pinned ? (r.id === pinned.id ? '100%' : '0%') : t.mode === 'even' ? '5%' : bar(r.share); } },
+        { label: '', html: function (r) { return r.id === t.mode ? '<span class="pill">pinned</span>' : '<button class="btn-sm ghost" data-hlmode="' + esc(r.id) + '">Pin</button>'; } },
+      ], rows) + '</div>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-hlmode]');
+    if (!b) return;
+    var m = b.getAttribute('data-hlmode');
+    if (m !== 'auto' && m !== 'even' && !confirm('Show only this headline to everyone? (You can switch back to auto any time.)')) return;
+    b.disabled = true;
+    send('PUT', 'integrations', { DATA_HEADLINE_TEST: m }).then(function () { setTimeout(function () { go('data'); }, 300); });
+  });
   function renderData() {
     return api('data').then(function (d) {
       var f = d.funnel || {}, v = f.visitors || 0;
@@ -251,13 +283,7 @@
         tile('Clicked “Claim”', n(f.cta), pct(v ? (f.cta || 0) / v : null) + ' of visitors') +
         tile('Claimed a valuation', n(f.claims), pct(v ? (f.claims || 0) / v : null) + ' of visitors') +
         '</div>' +
-        '<div class="card" style="margin-top:14px"><h2>Headline test</h2><p class="sub">Each visitor sees one headline (the same one every visit). Wait for ~100 visitors per headline before picking a winner. Preview any with <span class="mono">?h=paid</span>, <span class="mono">?h=recap</span>, <span class="mono">?h=debt</span> or <span class="mono">?h=revenue</span>.</p>' +
-        table([
-          { label: 'Headline', html: function (r) { return esc(r.text) + '<div class="muted mono">' + esc(r.id) + '</div>'; } },
-          { label: 'Visitors', key: 'visitors', num: true, fmt: n },
-          { label: 'Claims', key: 'claims', num: true, fmt: n },
-          { label: 'Claim rate', num: true, html: function (r) { return esc(r.rate == null ? '–' : pct(r.rate)); } },
-        ], d.headlines || []) + '</div>' +
+        headlineCard(d) +
         '<div class="card" style="margin-top:14px"><h2>Claims</h2><p class="sub">Page: <a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(String(d.url).replace(/^https?:\/\//, '')) + '</a> · partner: ' + esc(d.partner) + (d.referral ? ' · sends people to <span class="mono">' + esc(d.referral) + '</span>' : '') + '</p>' +
         table([
           { label: 'When', html: function (r) { return esc(when(r.created_at)); } },

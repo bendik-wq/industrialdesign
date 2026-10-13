@@ -106,12 +106,29 @@ Click "Claim my data valuation" right under this video, and we'll take you strai
 - **Hosting:** upload to YouTube (unlisted), Vimeo or Loom. Paste the link into Funnel HQ → Integrations → Data → "Data page video".
 - **Ads:** run each ad cut to the matching headline. For example, the "pay down debt" ad goes to `https://data.grosfjeld-li.com/?h=debt`, so the ad and the page say the same thing.
 
-## Headlines being tested on the page
-| id | Headline |
-|---|---|
-| `paid` | Get paid up to **$2,000,000** for data your business already creates. |
-| `recap` | Recapitalise your business with up to **$2,000,000** for data it already creates. |
-| `debt` | Pay down your debt with up to **$2,000,000** for data your business already creates. |
-| `revenue` | Unlock up to **$2,000,000** in new revenue from data your business already creates. |
+## Headlines being tested on the page (20, auto-optimised)
 
-Results: Funnel HQ → Data page → Headline test.
+| # | id | Angle | Headline |
+|---|---|---|---|
+| 1 | `paid` | Cash | Get paid up to **$2,000,000** for data your business already creates. |
+| 2 | `recap` | Recapitalise | Recapitalise your business with up to **$2,000,000** for data it already creates. |
+| 3 | `debt` | Pay down debt | Pay down your debt with up to **$2,000,000** for data your business already creates. |
+| 4 | `revenue` | New revenue | Unlock up to **$2,000,000** in new revenue from data your business already creates. |
+| 5 | `noshare` | Recapitalise | Raise up to **$2,000,000** without giving up a single share. |
+| 6 | `noloan` | Recapitalise | Up to **$2,000,000** into your business. No loan. No investor. No repayments. |
+| 7 | `balance` | Recapitalise | Strengthen your balance sheet by up to **$2,000,000**, without debt or dilution. |
+| 8 | `overdraft` | Pay down debt | Wipe out the overdraft. Clear the equipment loans. **Up to $2,000,000** from data you already have. |
+| 9 | `borrow` | Pay down debt | What would you do with **$2,000,000** you didn’t have to borrow? |
+| 10 | `product` | New revenue | Your next product is already built: **the data your business creates.** Sell it for up to $2M. |
+| 11 | `years` | New revenue | Every year you’ve run your business just became worth more. **Up to $2,000,000 more.** |
+| 12 | `keep` | Cash | Sell your data. **Keep your business.** Bank up to $2M. |
+| 13 | `offtable` | Cash | Take up to **$2,000,000** off the table, without selling your business. |
+| 14 | `fund` | Cash | A company with $1 billion to spend wants to buy your data. **Not your business. Just the data.** |
+| 15 | `asset` | Curiosity | Your business is sitting on an asset worth up to **$2 million** that you’ve never sold. |
+| 16 | `balsheet` | Curiosity | The most valuable thing your business owns **isn’t on your balance sheet.** |
+| 17 | `howcome` | Curiosity | How come AI companies are paying owners up to **$2,000,000** for records they already keep? |
+| 18 | `secret` | Curiosity | The $1 billion data deal **most business owners haven’t heard about yet.** |
+| 19 | `aiboom` | Curiosity | The AI boom just put a price on your business’s data: **up to $2,000,000.** |
+| 20 | `notstartups` | Curiosity | Not for start-ups. Established owners are getting paid up to **$2,000,000** for their operational data. |
+
+How the test works: every headline gets its first 30 visitors. After that, traffic shifts toward the headlines that convert. It judges on "clicked claim / started the form" until there are 20 claims in total, then on claims. Each visitor keeps the headline they first saw. Preview any headline with `?h=<id>` (previews aren't counted). Results, plus Pin / Even split / Auto controls: Funnel HQ → Data page.
