@@ -18,6 +18,9 @@
     "run_worker_first": ["/*", "!/assets/*"]
   },
 
+  // Workers AI: Whisper speech-to-text for "talk instead of type" in in-app browsers.
+  "ai": { "binding": "AI" },
+
   "d1_databases": [
     {
       "binding": "DB",

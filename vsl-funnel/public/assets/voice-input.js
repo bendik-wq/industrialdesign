@@ -1,7 +1,7 @@
 /* Talk instead of type, on the application.
  * Live dictation with the browser's own speech recognition (Chrome, Edge, Safari); where that isn't
- * available (Facebook / Instagram in-app browsers, Firefox) it records a short clip and our server
- * transcribes it. Audio is never stored. Exposes window.VoiceInput for apply.js. */
+ * available (Facebook / Instagram in-app browsers, Firefox) it records a short clip that our server
+ * transcribes with Cloudflare Workers AI. Audio is never stored. Exposes window.VoiceInput for apply.js. */
 (function () {
   'use strict';
   var cfg = window.FUNNEL || {};

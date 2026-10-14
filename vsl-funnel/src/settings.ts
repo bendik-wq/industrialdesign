@@ -117,7 +117,7 @@ export const SETTINGS = [
   { key: 'INSTAGRAM_USER_ID', label: 'Instagram account ID', group: 'Content', help: 'The Instagram Business/Creator account ID (Graph API Explorer → me/accounts → instagram_business_account).' },
   { key: 'INSTAGRAM_ACCESS_TOKEN', label: 'Instagram access token', group: 'Content', secret: true, help: 'A long-lived token with instagram_basic and instagram_manage_insights (Meta app → Instagram Graph API).' },
 
-  { key: 'VOICE_INPUT', label: 'Talk instead of type (application)', group: 'Site', placeholder: 'on', help: 'A microphone button on the application. Uses the browser’s own speech recognition; in Facebook/Instagram in-app browsers it records a short clip that ElevenLabs turns into text (needs the ElevenLabs API key). Audio is never stored. Type off to hide it.' },
+  { key: 'VOICE_INPUT', label: 'Talk instead of type (application)', group: 'Site', placeholder: 'on', help: 'A microphone button on the application. Uses the browser’s own speech recognition; in Facebook/Instagram in-app browsers it records a short clip that Cloudflare’s own speech-to-text (Workers AI) turns into text. Audio is never stored. Type off to hide it.' },
 
   { key: 'BLOCKLIST', label: 'Lead blocklist', group: 'Security', placeholder: 'tyrekicker@example.com, +61400000000, @competitor.com', help: 'Emails, phone numbers or @domains that always go to the free resources page instead of a call.' },
   { key: 'CLARITY_ID', label: 'Microsoft Clarity project ID', group: 'Analytics', help: 'Free session recordings and heatmaps.' },

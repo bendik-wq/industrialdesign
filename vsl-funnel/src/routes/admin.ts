@@ -17,6 +17,7 @@ import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { MERGE_TAGS, cleanOverride, clearOverrideCache, defaultEditable, isEditable, loadOverrides } from '../integrations/email-overrides';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
 import { dataReport, visitorJourney } from '../data/data';
+import { transcribe } from '../lib/speech';
 import { contentReport, suggestNextVideos, syncContent } from '../content/content';
 import { REACTIVATION_SEGMENTS, launchReactivation, reactivationAudience, reactivationReport } from '../sales/reactivation';
 import { INDUSTRIES } from '../landers/catalog';
@@ -431,19 +432,12 @@ admin.get('/precall-flow/email', async (c) => {
   return c.json({ subject: email.subject, html: email.html });
 });
 
-// ── Talk-instead-of-type check: speak a sentence with ElevenLabs, then transcribe it back (admin only). ──
+// ── Talk-instead-of-type check: send a short clip, get the text back (admin only; nothing stored). ──
 admin.post('/voice-input/test', async (c) => {
-  const key = c.get('settings').ELEVENLABS_API_KEY;
-  if (!key) return c.json({ ok: false, error: 'No ElevenLabs API key set (Integrations → Voice).' }, 400);
-  const said = 'We run three physio clinics in Brisbane with about twenty five staff.';
-  const tts = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?output_format=mp3_44100_64', { method: 'POST', headers: { 'xi-api-key': key, 'content-type': 'application/json' }, body: JSON.stringify({ text: said, model_id: 'eleven_flash_v2_5' }) });
-  if (!tts.ok) return c.json({ ok: false, step: 'text-to-speech', status: tts.status, error: (await tts.text()).slice(0, 300) }, 400);
-  const form = new FormData();
-  form.set('model_id', 'scribe_v1');
-  form.set('file', new Blob([await tts.arrayBuffer()], { type: 'audio/mpeg' }), 'test.mp3');
-  const stt = await fetch('https://api.elevenlabs.io/v1/speech-to-text', { method: 'POST', headers: { 'xi-api-key': key }, body: form });
-  const j = (await stt.json().catch(() => ({}))) as { text?: string };
-  return c.json(stt.ok ? { ok: true, said, heard: j.text ?? '' } : { ok: false, step: 'speech-to-text', status: stt.status, error: JSON.stringify(j).slice(0, 300) }, stt.ok ? 200 : 400);
+  if (!c.env.AI) return c.json({ ok: false, error: 'Workers AI binding missing' }, 503);
+  const audio = await c.req.arrayBuffer();
+  if (audio.byteLength < 800 || audio.byteLength > 4_000_000) return c.json({ ok: false, error: 'Send a short audio clip (POST body).' }, 400);
+  try { return c.json({ ok: true, heard: await transcribe(c.env.AI, audio) }); } catch (e) { return c.json({ ok: false, error: String(e).slice(0, 300) }, 502); }
 });
 
 // ── Content (YouTube / Instagram) ──
