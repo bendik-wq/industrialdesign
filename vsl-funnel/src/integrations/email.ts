@@ -9,7 +9,8 @@ import { bookingUrlFor } from '../funnel/routing';
 import { effectiveTier } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
 import { SEQUENCES, type SequenceId, precallPlan } from './sequences';
-import { TEMPLATES, renderEmail } from './templates';
+import { TEMPLATES, type TemplateCtx, renderEmail } from './templates';
+import { type Override, fromOverride, isEditable, loadOverrides } from './email-overrides';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
 import { ANSWER_FACTS } from '../followup/dossier';
 import { whatsappLink } from './whatsapp';
@@ -21,9 +22,9 @@ import { type Personalized, personalizeEmail } from '../personalize/personalize'
 const MAX_ATTEMPTS = 3;
 
 /** Schedules every step of a sequence. Re-enqueueing (e.g. a rescheduled call) refreshes pending steps. */
-export async function enqueueSequence(rt: Runtime, lead: Pick<Lead, 'id' | 'email' | 'call_at' | 'unsubscribed_at'> & { webinar_at?: number | null }, sequenceId: SequenceId, opts: { stepBase?: number } = {}) {
+export async function enqueueSequence(rt: Runtime, lead: Pick<Lead, 'id' | 'email' | 'call_at' | 'unsubscribed_at'> & { webinar_at?: number | null }, sequenceId: SequenceId, opts: { stepBase?: number; startAt?: number } = {}) {
   if (!lead.email || lead.unsubscribed_at) return;
-  const now = Date.now();
+  const now = opts.startAt ?? Date.now();
   const seq = SEQUENCES[sequenceId];
   const base = opts.stepBase ?? 0;
   const stmts = seq.steps.flatMap((step, j) => {
@@ -188,6 +189,8 @@ export function formatCallTime(ms: number, timeZone: string | null) {
 export interface BuildOptions {
   /** Personalise to the lead's behaviour (sequence sends). */
   personalize?: { purpose: string };
+  /** Email editor preview: render these (unsaved) edits, or null for the built-in wording. */
+  override?: Pick<Override, 'subject' | 'preheader' | 'body' | 'cta_label' | 'cta_href' | 'ps'> | null;
 }
 
 /** Fact keys earlier emails to this lead already used. */
@@ -219,7 +222,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
   };
   const wa = whatsappLink(rt.settings, lead, 'question');
   const webinar = template.startsWith('w_') ? await webinarContext(rt, lead, link) : null;
-  let content = tpl({
+  const ctx: TemplateCtx = {
     lead,
     // Only something that looks like a name goes in greetings and subjects (no links, numbers or markup).
     name: safeFirstName(lead.first_name) ?? 'there',
@@ -231,7 +234,10 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     joinUrl: lead.booking_join_url && /^https:\/\//.test(lead.booking_join_url) ? lead.booking_join_url : null,
     rescheduleUrl: lead.booking_reschedule_url && /^https:\/\/calendly\.com\//.test(lead.booking_reschedule_url) ? lead.booking_reschedule_url : null,
     webinar,
-  });
+  };
+  // An edit made in Funnel HQ → Email editor replaces the built-in wording.
+  const override = opts.override !== undefined ? opts.override : isEditable(template) ? (await loadOverrides(rt)).get(template) : undefined;
+  let content = override ? fromOverride(override, ctx) : tpl(ctx);
 
   let personal: Personalized | null = null;
   if (opts.personalize) {
@@ -338,6 +344,12 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     if (!claim.meta.changes) return;
 
     const lead = await getLead(rt.env, row.lead_id);
+    // Reactivation's stop rule needs when they were reactivated (kept in its own table).
+    if (lead && row.sequence === 'reactivation') {
+      const r = await rt.env.DB.prepare('SELECT reactivated_at, segment FROM lead_reactivation WHERE lead_id = ?').bind(lead.id).first<{ reactivated_at: number; segment: string | null }>();
+      lead.reactivated_at = r?.reactivated_at ?? null;
+      lead.reactivation_segment = r?.segment ?? null;
+    }
     const seq = SEQUENCES[row.sequence];
     // Sequences that repeat per event (webinar: one block of steps per registration) map back with `cycle`.
     const step = seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];

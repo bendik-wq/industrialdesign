@@ -44,3 +44,12 @@ A shared date-range + channel + campaign + variant + device filter bar sits at t
   - text length caps: title 60, subtitle 90, note 2000, label 30;
   - kind restricted to the allowed set.
 - Everything rendered from it **must be escaped** in both HTML and attribute contexts.
+
+## Reactivation, email editor, content analytics (later additions)
+- **Reactivation** (`src/sales/reactivation.ts`, Funnel HQ → Reactivation): segments of people already in the database (past call with no outcome, no-shows, cancelled, applied not booked, partial, nurture, lost >60 days). The owner reviews and unticks people, then types SEND. Launch is spread out (N new people a day from 9am) into a 6-email `reactivation` sequence (`re_1`–`re_6`, days 0/3/6/10/14/21) that stops when they book or apply again, buy, or unsubscribe. State lives in `lead_reactivation` (D1 tables max out at 100 columns; `leads` is full).
+- **Email editor** (`src/integrations/email-overrides.ts`, Funnel HQ → Email editor): shows each built-in email with merge tags ({first_name}, {call_time}, {booking_link}…). Saved edits go in `email_overrides` and replace the built-in wording in `buildEmail`. Editor text is escaped, with only **bold**, line breaks and safe links (https, mailto, /path or link tags). Emails written from a lead's own answers aren't editable. There's a live preview with a recent applicant.
+- **Content** (`src/content/content.ts`, Funnel HQ → Content):
+  - YouTube: without a key it uses the public feed (latest 15 videos); with `YOUTUBE_API_KEY` it reads the whole channel through the Data API.
+  - Instagram: only through the official Graph API (`INSTAGRAM_USER_ID` + `INSTAGRAM_ACCESS_TOKEN`). Never scrape.
+  - The data refreshes every 6h. The tab shows tiles, most viewed, views by upload date with a median line, findings (outliers, winning title words, best publish day), and leads/booked/won/revenue per video via tracked links.
+  - "Next video ideas" come from Claude with structured output, or from built-in rules when there's no key.

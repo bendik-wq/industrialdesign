@@ -14,7 +14,11 @@ import { cancelSession, ensureSessions } from '../webinar/webinar';
 import { cleanSequences, loadSmsSequences, renderSms, sendSmsNow, smsConfigured, waTemplateParams, waTemplateText } from '../integrations/sms';
 import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_CHANNELS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS } from '../integrations/sms-defaults';
 import { renderEmail, TEMPLATES } from '../integrations/templates';
+import { MERGE_TAGS, cleanOverride, clearOverrideCache, defaultEditable, isEditable, loadOverrides } from '../integrations/email-overrides';
+import { FOLLOWUP_TEMPLATES } from '../followup/templates';
 import { dataReport, visitorJourney } from '../data/data';
+import { contentReport, suggestNextVideos, syncContent } from '../content/content';
+import { REACTIVATION_SEGMENTS, launchReactivation, reactivationAudience, reactivationReport } from '../sales/reactivation';
 import { INDUSTRIES } from '../landers/catalog';
 import { cloudApiConfigured, sendWhatsAppTemplate, sendWhatsAppText, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
@@ -425,6 +429,88 @@ admin.get('/precall-flow/email', async (c) => {
   const lead = { ...(await precallSampleLead(c)), call_at: Date.now() + 2 * 86_400_000, booked_at: Date.now(), status: 'booked' } as Lead;
   const email = await buildEmail(runtimeFrom(c), lead, `preview-${template}`, template, 'preview');
   return c.json({ subject: email.subject, html: email.html });
+});
+
+// ── Content (YouTube / Instagram) ──
+admin.get('/content', async (c) => c.json(await contentReport(runtimeFrom(c))));
+admin.post('/content/sync', async (c) => c.json({ ok: true, results: await syncContent(runtimeFrom(c)) }));
+admin.post('/content/suggest', async (c) => {
+  try { return c.json({ ok: true, suggestions: await suggestNextVideos(runtimeFrom(c)) }); } catch (e) { return c.json({ ok: false, error: String(e instanceof Error ? e.message : e).slice(0, 300) }, 400); }
+});
+
+// ── Email editor ──
+async function editorSample(c: Context<AppEnv>) {
+  const lead = await c.env.DB.prepare("SELECT * FROM leads WHERE email IS NOT NULL AND app_completed_at IS NOT NULL ORDER BY created_at DESC LIMIT 1").first<Lead>();
+  return { ...(lead ?? ({ id: 'l_sample', ref_code: 'SAMPLE', first_name: 'Dana', email: 'dana@example.com', status: 'booked', tier: 'A' } as unknown as Lead)), call_at: Date.now() + 2 * 86_400_000, booked_at: Date.now() } as Lead;
+}
+admin.get('/email-editor', async (c) => {
+  const rt = runtimeFrom(c);
+  const overrides = await loadOverrides(rt);
+  const stats = await c.env.DB.prepare("SELECT template, SUM(status IN ('sent','simulated')) AS sent, SUM(opened_at IS NOT NULL) AS opened, SUM(clicked_at IS NOT NULL) AS clicked FROM emails GROUP BY template").all<{ template: string; sent: number; opened: number; clicked: number }>();
+  const st = new Map(stats.results.map((r) => [r.template, r]));
+  const seen = new Set<string>();
+  const item = (t: string) => {
+    seen.add(t);
+    const o = overrides.get(t), d = defaultEditable(t);
+    return { template: t, subject: o?.subject ?? d?.subject ?? t, edited: Boolean(o), editable: isEditable(t), personal: t in FOLLOWUP_TEMPLATES, sent: st.get(t)?.sent ?? 0, opened: st.get(t)?.opened ?? 0, clicked: st.get(t)?.clicked ?? 0 };
+  };
+  const groups = Object.values(SEQUENCES).map((q) => ({ id: q.id, description: q.description, emails: [...new Set(q.steps.map((x) => x.template))].filter((t) => TEMPLATES[t]).map(item) }));
+  const rest = Object.keys(TEMPLATES).filter((t) => !seen.has(t));
+  if (rest.length) groups.push({ id: 'other', description: 'One-off emails (links sent on request, by the AI assistant…)', emails: rest.map(item) });
+  return c.json({ groups, tags: MERGE_TAGS, edited: overrides.size });
+});
+admin.get('/email-editor/:template', async (c) => {
+  const t = c.req.param('template');
+  if (!TEMPLATES[t]) return c.json({ error: 'unknown email' }, 404);
+  const o = (await loadOverrides(runtimeFrom(c))).get(t) ?? null;
+  return c.json({ template: t, editable: isEditable(t), personal: t in FOLLOWUP_TEMPLATES, default: defaultEditable(t), override: o, tags: MERGE_TAGS });
+});
+admin.put('/email-editor/:template', async (c) => {
+  const t = c.req.param('template');
+  if (!isEditable(t)) return c.json({ ok: false, error: 'This email is written from each lead’s own answers and can’t be edited here.' }, 400);
+  let o;
+  try { o = cleanOverride(await c.req.json<Record<string, unknown>>()); } catch (e) { return c.json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 400); }
+  await c.env.DB.prepare(`INSERT INTO email_overrides (template, subject, preheader, body, cta_label, cta_href, ps, updated_at) VALUES (?,?,?,?,?,?,?,?)
+    ON CONFLICT(template) DO UPDATE SET subject = excluded.subject, preheader = excluded.preheader, body = excluded.body, cta_label = excluded.cta_label, cta_href = excluded.cta_href, ps = excluded.ps, updated_at = excluded.updated_at`)
+    .bind(t, o.subject, o.preheader, o.body, o.cta_label, o.cta_href, o.ps, Date.now()).run();
+  clearOverrideCache();
+  return c.json({ ok: true });
+});
+admin.delete('/email-editor/:template', async (c) => {
+  await c.env.DB.prepare('DELETE FROM email_overrides WHERE template = ?').bind(c.req.param('template')).run();
+  clearOverrideCache();
+  return c.json({ ok: true });
+});
+admin.post('/email-editor/:template/preview', async (c) => {
+  const rt = runtimeFrom(c);
+  const t = c.req.param('template');
+  if (!TEMPLATES[t]) return c.json({ error: 'unknown email' }, 404);
+  const b = await c.req.json<{ fields?: Record<string, unknown> | null }>().catch(() => ({ fields: null }));
+  let override: ReturnType<typeof cleanOverride> | null | undefined;
+  if (b.fields && isEditable(t)) { try { override = cleanOverride(b.fields); } catch (e) { return c.json({ error: String(e instanceof Error ? e.message : e) }, 400); } }
+  const email = await buildEmail(rt, await editorSample(c), `preview-${t}`, t, 'preview', override !== undefined ? { override } : {});
+  return c.json({ subject: email.subject, html: email.html });
+});
+
+// ── Reactivation ──
+admin.get('/reactivation', async (c) => {
+  const rt = runtimeFrom(c);
+  const [aud, report] = await Promise.all([reactivationAudience(rt), reactivationReport(rt)]);
+  const emails = SEQUENCES.reactivation.steps.map((st) => ({ template: st.template, day: Math.round(st.offsetMs / 86_400_000), subject: '' }));
+  const sample = await c.env.DB.prepare('SELECT * FROM leads WHERE email IS NOT NULL ORDER BY created_at DESC LIMIT 1').first<Lead>();
+  for (const e of emails) { try { e.subject = (await buildEmail(rt, sample ?? ({ id: 'x', first_name: 'Dana', email: 'd@example.com' } as Lead), 'pv', e.template, 'preview')).subject; } catch { e.subject = e.template; } }
+  return c.json({ segments: REACTIVATION_SEGMENTS, counts: aud.counts, audience: aud.rows, report, emails, emailLive: emailConfigured(rt) });
+});
+admin.post('/reactivation/launch', async (c) => {
+  const b = await c.req.json<{ ids?: unknown; perDay?: unknown; confirm?: unknown }>().catch(() => ({} as { ids?: unknown; perDay?: unknown; confirm?: unknown }));
+  if (b.confirm !== 'SEND') return c.json({ ok: false, error: 'Type SEND to confirm.' }, 400);
+  const ids = Array.isArray(b.ids) ? b.ids.filter((x): x is string => typeof x === 'string').slice(0, 5000) : [];
+  if (!ids.length) return c.json({ ok: false, error: 'Nobody selected.' }, 400);
+  return c.json({ ok: true, ...(await launchReactivation(runtimeFrom(c), ids, Number(b.perDay) || 40)) });
+});
+admin.post('/reactivation/stop', async (c) => {
+  const r = await c.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence = 'reactivation' AND status = 'pending'").run();
+  return c.json({ ok: true, cancelled: r.meta.changes ?? 0 });
 });
 
 admin.get('/leads/:id/preview-email', async (c) => {

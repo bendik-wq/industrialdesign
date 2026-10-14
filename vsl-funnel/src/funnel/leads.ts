@@ -60,6 +60,9 @@ export interface Lead {
   sms_confirmed_at: number | null;
   sms_consent_at: number | null;
   wa_consent_at: number | null;
+  /** Not a column: joined in from lead_reactivation where needed. */
+  reactivated_at?: number | null;
+  reactivation_segment?: string | null;
   industry: string | null;
   revenue_band: string | null;
   budget_band: string | null;

@@ -178,6 +178,20 @@ export const SEQUENCES = {
     // Sent at local-time slots by enqueuePrecall() in the order precallPlan() gives (the row holds the template); offsetMs is unused.
     steps: [...FOLLOWUP_GROUPS.prep, ...PRECALL_TEMPLATES].map((template) => ({ template, offsetMs: 0 })),
   },
+  reactivation: {
+    id: 'reactivation',
+    description: 'Reactivation — people already in the database (past calls with no outcome, no-shows, unfinished applications…), launched by hand from Funnel HQ',
+    // Done once they book or apply again, buy, or are ruled out.
+    stopIf: (l) => ['won', 'disqualified'].includes(l.status) || Boolean(l.reactivated_at && (((l.booked_at ?? 0) > l.reactivated_at && !l.booking_cancelled_at) || (l.app_completed_at ?? 0) > l.reactivated_at)),
+    steps: [
+      { template: 're_1', offsetMs: 0 },
+      { template: 're_2', offsetMs: 3 * DAY },
+      { template: 're_3', offsetMs: 6 * DAY },
+      { template: 're_4', offsetMs: 10 * DAY },
+      { template: 're_5', offsetMs: 14 * DAY },
+      { template: 're_6', offsetMs: 21 * DAY },
+    ],
+  },
   webinar: {
     id: 'webinar',
     description: 'Registered for the webinar — confirmation, reminders, then follow-up based on whether they came',

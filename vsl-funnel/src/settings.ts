@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -111,6 +111,11 @@ export const SETTINGS = [
   { key: 'DATA_FUND_LINE', label: 'Committed budget', group: 'Data', placeholder: '$1 billion', help: 'As in “recently had $1 billion committed to buying data”. Must be accurate.' },
   { key: 'DATA_HEADLINE_TEST', label: 'Headline test', group: 'Data', placeholder: 'auto', help: 'auto = traffic shifts to the headlines that get claims; even = equal split; or a headline id (e.g. debt) to show it to everyone. Set from Funnel HQ → Data page.' },
   { key: 'DATA_VIDEO_SRC', label: 'Data page video', group: 'Data', placeholder: 'YouTube / Vimeo / Loom link, or an .mp4 / .m3u8 URL' },
+
+  { key: 'CONTENT_YOUTUBE_CHANNEL', label: 'YouTube channel', group: 'Content', placeholder: '@officialjoshli', help: 'The handle (@name) or channel ID to track in Funnel HQ → Content.' },
+  { key: 'YOUTUBE_API_KEY', label: 'YouTube Data API key', group: 'Content', secret: true, help: 'Free: console.cloud.google.com → APIs → enable “YouTube Data API v3” → Credentials → API key. Without it only the latest 15 videos are read (public feed).' },
+  { key: 'INSTAGRAM_USER_ID', label: 'Instagram account ID', group: 'Content', help: 'The Instagram Business/Creator account ID (Graph API Explorer → me/accounts → instagram_business_account).' },
+  { key: 'INSTAGRAM_ACCESS_TOKEN', label: 'Instagram access token', group: 'Content', secret: true, help: 'A long-lived token with instagram_basic and instagram_manage_insights (Meta app → Instagram Graph API).' },
 
   { key: 'BLOCKLIST', label: 'Lead blocklist', group: 'Security', placeholder: 'tyrekicker@example.com, +61400000000, @competitor.com', help: 'Emails, phone numbers or @domains that always go to the free resources page instead of a call.' },
   { key: 'CLARITY_ID', label: 'Microsoft Clarity project ID', group: 'Analytics', help: 'Free session recordings and heatmaps.' },

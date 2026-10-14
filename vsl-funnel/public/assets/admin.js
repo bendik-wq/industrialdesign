@@ -244,6 +244,9 @@
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
     data: { group: 'Traffic', title: 'Data partner page', sub: 'Who visited the data-buyer referral page, and who claimed a valuation.', more: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData, filters: ['range'] },
     emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
+    editor: { group: 'Follow-up', title: 'Email editor', sub: 'Read and edit every email the funnel sends.', more: 'Pick an email on the left, change the wording on the right and watch the preview update. Merge tags like {first_name} fill in for each person. Saving replaces the built-in wording for every future send; “Reset to default” brings the original back. Emails written from each lead’s own application answers are shown but can’t be edited here.', render: renderEditor, noFilters: true },
+    content: { group: 'Traffic', title: 'Content', sub: 'Josh’s YouTube and Instagram: what travels, what brings leads, and what to make next.', more: 'Videos refresh every 6 hours (or press Refresh). Views come from YouTube and Instagram; leads, calls and revenue per video come from the tracked links in Links & videos, so add a tracked link to each video’s description to see which ones actually sell.', render: renderContent, noFilters: true },
+    reactivation: { group: 'Follow-up', title: 'Reactivation', sub: 'Bring back people already in the database: past calls, no-shows, unfinished applications.', more: 'Pick the groups, untick anyone who shouldn’t get it (existing clients, friends), preview the 6 emails and launch. Sending is spread out over days to protect your email reputation. It stops for anyone who books or applies again, unsubscribes or becomes a client.', render: renderReactivation, noFilters: true },
     sms: { group: 'Follow-up', title: 'SMS & WhatsApp', sub: 'Text and WhatsApp sequences: wording, timing and links.', more: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
     voice: { group: 'Follow-up', title: 'AI calls', sub: 'Outbound confirmations and inbound calls: transcripts, recordings, outcomes.', more: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice, filters: ['range'] },
     team: { group: 'Setup', title: 'Reps & routing', sub: 'Who takes calls, which tiers they get, and where the team gets pinged.', more: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
@@ -1870,6 +1873,265 @@
   // ───────────── Pre-call flow (top of Emails) ─────────────
   var PC_STAGE_CLS = ['', 'st1', 'st2', 'st3', 'st4', 'st5'];
   var pcState = { hours: 30 };
+  // ───────────── Content (YouTube / Instagram) ─────────────
+  var ctState = { platform: 'youtube', sort: 'views' };
+  function renderContent() {
+    return api('content', {}, { noRange: true }).then(function (d) { ctState.d = d; drawContent(); });
+  }
+  function compact(v) { v = Number(v) || 0; return v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : v >= 1e4 ? Math.round(v / 1e3) + 'k' : v >= 1e3 ? (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'k' : String(Math.round(v)); }
+  function drawContent() {
+    var d = ctState.d, P = ctState.platform;
+    var items = d.items.filter(function (i) { return i.platform === P; });
+    var withViews = items.filter(function (i) { return i.views != null; });
+    var ins = d.insights[P];
+    var ch = d.channel, ig = d.instagram, conn = d.connected;
+    var sync = d.lastSync && d.lastSync.results ? d.lastSync.results.filter(function (r) { return r.platform === P; })[0] : null;
+    var notice = P === 'youtube'
+      ? (conn.youtubeKey ? '' : '<div class="card notice"><strong>Showing the latest 15 videos</strong> (YouTube’s public feed: views and likes only). Add a free YouTube Data API key in <a href="#integrations" data-go="integrations">Integrations → Content</a> for the whole channel, video length, comments and subscribers.</div>')
+      : (conn.instagram ? '' : '<div class="card notice"><strong>Instagram isn’t connected.</strong> Instagram only shares numbers through its official API: switch @officialjoshli to a Business or Creator account, link it to a Facebook page, then add the account ID and an access token in <a href="#integrations" data-go="integrations">Integrations → Content</a>.</div>');
+    var maxV = Math.max.apply(null, withViews.map(function (i) { return i.views; }).concat([1]));
+    var top = withViews.slice().sort(function (a, b) { return b.views - a.views; }).slice(0, 12);
+    var topBars = top.map(function (i, k) {
+      var w = Math.max(1.5, (i.views / maxV) * 100);
+      return '<li title="' + esc(i.title + ' · ' + n(i.views) + ' views' + (i.likes != null ? ' · ' + n(i.likes) + ' likes' : '')) + '"><a href="' + esc(i.url) + '" target="_blank" rel="noopener" class="ct-thumb">' + (i.thumbnail ? '<img src="' + esc(i.thumbnail) + '" alt="" loading="lazy">' : '') + '</a>' +
+        '<div class="ct-barrow"><div class="ct-title">' + (k === 0 ? '<span class="pill st-booked">most viewed</span> ' : '') + esc(i.title) + '</div><div class="ct-bar"><i style="width:' + w.toFixed(1) + '%"></i><b>' + esc(compact(i.views)) + '</b>' + (ins && ins.median ? '<span class="muted">' + (i.views / ins.median).toFixed(1) + '× median</span>' : '') + '</div></div></li>';
+    }).join('');
+    // Views by upload date (oldest → newest), median line, top 3 labelled.
+    var chrono = withViews.filter(function (i) { return i.published_at; }).sort(function (a, b) { return a.published_at - b.published_at; });
+    var svg = '';
+    if (chrono.length) {
+      var W = 900, H = 220, pad = 34, bw = Math.max(4, Math.min(28, (W - pad - 10) / chrono.length - 4)), gap = (W - pad - 10 - bw * chrono.length) / Math.max(1, chrono.length);
+      var y = function (v) { return H - 24 - (v / maxV) * (H - 44); };
+      var topIds = top.slice(0, 3).map(function (i) { return i.id; });
+      var bars = chrono.map(function (i, k) {
+        var x = pad + k * (bw + gap) + gap / 2, h = Math.max(2, H - 24 - y(i.views));
+        var label = topIds.indexOf(i.id) >= 0 ? '<text x="' + (x + bw / 2) + '" y="' + (y(i.views) - 6) + '" text-anchor="middle" class="ct-lbl">' + esc(compact(i.views)) + '</text>' : '';
+        return '<g class="ct-col"><rect x="' + x.toFixed(1) + '" y="' + (H - 24 - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="3"><title>' + esc(new Date(i.published_at).toLocaleDateString() + ' · ' + i.title + ' · ' + n(i.views) + ' views') + '</title></rect>' + label + '</g>';
+      }).join('');
+      var med = ins && ins.median ? '<line x1="' + pad + '" x2="' + (W - 6) + '" y1="' + y(ins.median) + '" y2="' + y(ins.median) + '" class="ct-med"/><text x="' + (W - 6) + '" y="' + (y(ins.median) - 5) + '" text-anchor="end" class="ct-axis">median ' + esc(compact(ins.median)) + '</text>' : '';
+      var first = new Date(chrono[0].published_at), last = new Date(chrono[chrono.length - 1].published_at);
+      svg = '<svg class="ct-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Views per video by upload date"><line x1="' + pad + '" x2="' + (W - 6) + '" y1="' + (H - 24) + '" y2="' + (H - 24) + '" class="ct-base"/>' + bars + med +
+        '<text x="' + pad + '" y="' + (H - 6) + '" class="ct-axis">' + esc(first.toLocaleDateString([], { month: 'short', year: 'numeric' })) + '</text><text x="' + (W - 6) + '" y="' + (H - 6) + '" text-anchor="end" class="ct-axis">' + esc(last.toLocaleDateString([], { month: 'short', year: 'numeric' })) + '</text>' +
+        '<text x="' + (pad - 6) + '" y="' + (y(maxV) + 4) + '" text-anchor="end" class="ct-axis">' + esc(compact(maxV)) + '</text><text x="' + (pad - 6) + '" y="' + (H - 24) + '" text-anchor="end" class="ct-axis">0</text></svg>';
+    }
+    var sg = d.suggestions;
+    var sorters = { views: function (a, b) { return (b.views || 0) - (a.views || 0); }, recent: function (a, b) { return (b.published_at || 0) - (a.published_at || 0); }, perDay: function (a, b) { return (b.perDay || 0) - (a.perDay || 0); }, leads: function (a, b) { return ((b.funnel && b.funnel.leads) || 0) - ((a.funnel && a.funnel.leads) || 0); } };
+    var list = items.slice().sort(sorters[ctState.sort]);
+    view.innerHTML =
+      '<div class="card ct-bar-top"><div class="row"><button class="btn-sm' + (P === 'youtube' ? '' : ' ghost') + '" data-ctp="youtube">YouTube' + (ch && ch.title ? ' · ' + esc(ch.title) : '') + '</button><button class="btn-sm' + (P === 'instagram' ? '' : ' ghost') + '" data-ctp="instagram">Instagram' + (ig && ig.username ? ' · @' + esc(ig.username) : '') + '</button>' +
+      '<span class="muted" style="margin-left:auto">' + (d.lastSync ? 'Updated ' + esc(when(d.lastSync.at)) : 'Not loaded yet') + (sync && sync.error ? ' · <span class="bad">' + esc(sync.error) + '</span>' : '') + '</span><button class="btn-sm" data-ctsync>Refresh</button></div></div>' +
+      notice +
+      (withViews.length ? '<div class="grid g-4">' +
+        (P === 'youtube' ? tile('Subscribers', ch && ch.subscribers != null ? compact(ch.subscribers) : '–', ch && ch.videos ? n(ch.videos) + ' videos on the channel' : 'needs the API key') : tile('Followers', ig && ig.followers != null ? compact(ig.followers) : '–', ig && ig.posts ? n(ig.posts) + ' posts' : '')) +
+        tile('Views (' + n(withViews.length) + ' ' + (P === 'youtube' ? 'videos' : 'posts') + ')', compact(ins ? ins.totalViews : 0), 'median ' + compact(ins ? ins.median : 0) + ' per ' + (P === 'youtube' ? 'video' : 'post')) +
+        tile('Most viewed', ins && ins.best ? compact(ins.best.views) + ' views' : '–', ins && ins.best ? (ins.best.x ? ins.best.x.toFixed(1) + '× the median · ' : '') + ins.best.title : '') +
+        tile('Like rate', ins ? (ins.likeRate * 100).toFixed(1) + '%' : '–', 'likes per view (median)') + '</div>' : '') +
+      (withViews.length ? '<div class="grid g-2 g-top"><div class="card"><h2>Most viewed</h2><p class="sub">Top ' + top.length + ' by views. Hover for details, click a thumbnail to open it.</p><ol class="ct-top">' + topBars + '</ol></div>' +
+        '<div class="card"><h2>Views by upload date</h2><p class="sub">Each bar is one ' + (P === 'youtube' ? 'video' : 'post') + ', oldest on the left. The line is the median; the top 3 are labelled.</p>' + svg +
+        (ins ? '<h3 class="h3" style="margin-top:12px">What the numbers say</h3><ul class="ct-ins">' +
+          (ins.best ? '<li><b>' + esc(ins.best.title) + '</b> is the standout: ' + esc(compact(ins.best.views)) + ' views' + (ins.best.x ? ', ' + ins.best.x.toFixed(1) + '× a typical video' : '') + '.</li>' : '') +
+          (ins.outliers.length > 1 ? '<li>' + n(ins.outliers.length) + ' ' + (P === 'youtube' ? 'videos' : 'posts') + ' did at least 2× the median.</li>' : '') +
+          (ins.winningWords.length ? '<li>Words in the winners that the weak ones don’t use: <b>' + esc(ins.winningWords.join(', ')) + '</b>.</li>' : '') +
+          (ins.bestDow ? '<li>Best publish day so far: <b>' + esc(ins.bestDow) + '</b>.</li>' : '') +
+          (ins.longVsShort ? '<li>Median views: under 10 min <b>' + esc(compact(ins.longVsShort.under10)) + '</b> · 10 min+ <b>' + esc(compact(ins.longVsShort.over10)) + '</b>.</li>' : '') + '</ul>' : '') + '</div></div>' : (items.length ? '' : '<div class="card">' + emptyState('No ' + (P === 'youtube' ? 'videos' : 'posts') + ' loaded yet.', P === 'youtube' ? 'Press Refresh to pull the channel.' : 'Connect Instagram first.') + '</div>')) +
+      '<div class="card ct-ideas"><div class="card-head"><div><h2>Next video ideas</h2><p class="sub">' + (conn.ai ? 'Written by Claude from the real numbers above (and which videos brought leads).' : 'From the numbers above. Add an Anthropic key in Integrations for full AI-written ideas with hooks.') + (sg ? ' Last generated ' + esc(when(sg.at)) + '.' : '') + '</p></div><button class="btn-sm" data-ctsuggest>' + (sg ? 'Generate new ideas' : 'Suggest my next videos') + '</button></div>' +
+        (sg ? (sg.patterns.length ? '<ul class="ct-ins">' + sg.patterns.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+          '<div class="ct-idea-grid">' + sg.ideas.map(function (x, k) { return '<article class="ct-idea"><span class="ct-n">' + (k + 1) + '</span><h3>' + esc(x.title) + '</h3><p><b>Hook:</b> ' + esc(x.hook) + '</p><p class="muted"><b>Format:</b> ' + esc(x.format) + '</p><p class="muted"><b>Why:</b> ' + esc(x.why) + '</p><p class="muted"><b>Ends with:</b> ' + esc(x.cta) + '</p></article>'; }).join('') + '</div>'
+          : '<p class="muted" data-ctmsg>Press the button to get ideas.</p>') + '<p class="muted" data-ctmsg2></p></div>' +
+      (items.length ? '<div class="card"><div class="card-head"><div><h2>All ' + (P === 'youtube' ? 'videos' : 'posts') + ' · ' + n(items.length) + '</h2><p class="sub">Leads, calls and revenue come from tracked links (<a href="#links" data-go="links">Links &amp; videos</a>). A video without one shows “add a link”.</p></div>' +
+        '<label class="muted">Sort <select class="input" data-ctsort>' + [['views', 'Most views'], ['perDay', 'Views per day'], ['recent', 'Newest'], ['leads', 'Most leads']].map(function (o) { return '<option value="' + o[0] + '"' + (ctState.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label></div>' +
+        table([
+          { label: '', html: function (i) { return i.thumbnail ? '<a href="' + esc(i.url) + '" target="_blank" rel="noopener"><img class="ct-mini" src="' + esc(i.thumbnail) + '" alt="" loading="lazy"></a>' : ''; } },
+          { label: 'Title', html: function (i) { return '<a href="' + esc(i.url) + '" target="_blank" rel="noopener">' + esc(i.title) + '</a><div class="muted">' + esc((i.published_at ? new Date(i.published_at).toLocaleDateString() : '') + ' · ' + i.kind + (i.duration_s ? ' · ' + Math.round(i.duration_s / 60) + ' min' : '')) + '</div>'; } },
+          { label: 'Views', num: true, html: function (i) { return esc(i.views == null ? '–' : n(i.views)); } },
+          { label: 'Per day', num: true, html: function (i) { return esc(i.perDay == null ? '–' : i.perDay < 10 ? i.perDay.toFixed(1) : n(Math.round(i.perDay))); } },
+          { label: 'Likes', num: true, html: function (i) { return esc(i.likes == null ? '–' : n(i.likes)); } },
+          { label: 'Comments', num: true, html: function (i) { return esc(i.comments == null ? '–' : n(i.comments)); } },
+          { label: 'Engagement', num: true, html: function (i) { return esc(i.engagement == null ? '–' : (i.engagement * 100).toFixed(1) + '%'); } },
+          { label: 'Leads → booked → won', html: function (i) { return i.platform !== 'youtube' ? '<span class="muted">–</span>' : i.funnel ? esc(n(i.funnel.leads) + ' → ' + n(i.funnel.booked) + ' → ' + n(i.funnel.won)) + (i.funnel.revenue ? '<div class="muted">' + esc(money(i.funnel.revenue)) + '</div>' : '') : '<a class="muted" href="#links" data-go="links">add a link</a>'; } },
+        ], list) + '</div>' : '');
+    view.querySelectorAll('[data-ctp]').forEach(function (b) { b.onclick = function () { ctState.platform = b.getAttribute('data-ctp'); drawContent(); }; });
+    var srt = view.querySelector('[data-ctsort]'); if (srt) srt.onchange = function () { ctState.sort = srt.value; drawContent(); };
+    view.querySelector('[data-ctsync]').onclick = function () { var b = this; b.disabled = true; b.textContent = 'Refreshing…'; send('POST', 'content/sync', {}).then(function () { renderContent(); }); };
+    view.querySelector('[data-ctsuggest]').onclick = function () {
+      var b = this, m = view.querySelector('[data-ctmsg2]'); b.disabled = true; b.textContent = 'Thinking…'; if (m) m.textContent = conn.ai ? 'Claude is reading the numbers (up to a minute)…' : '';
+      send('POST', 'content/suggest', {}).then(function (r) { if (r && r.ok) renderContent(); else { b.disabled = false; b.textContent = 'Try again'; if (m) m.textContent = (r && r.error) || 'Couldn’t generate ideas'; } });
+    };
+  }
+
+  // ───────────── Email editor ─────────────
+  var edState = { sel: null, q: '', open: {} };
+  var SEQ_LABEL = { abandoned: 'Unfinished application', tier_a: 'Qualified (A)', tier_b: 'Qualified (B)', tier_c: 'Not yet a fit (C)', booked: 'Booked: confirmation & reminders', precall: 'Pre-call flow', behaviour: 'Behaviour-triggered', no_show: 'No-show', post_call: 'After the call', cancelled: 'Cancelled', lost: 'Lost', won: 'Won: onboarding', nurture: 'Nurture', webinar: 'Webinar', reactivation: 'Reactivation', other: 'Other one-off emails' };
+  function renderEditor() {
+    return api('email-editor', {}, { noRange: true }).then(function (d) {
+      edState.d = d;
+      if (!edState.sel) edState.sel = (d.groups[0] && d.groups[0].emails[0] && d.groups[0].emails[0].template) || null;
+      view.innerHTML = '<div class="ed-grid"><aside class="card ed-list"><input class="input" data-edq placeholder="Search emails…" value="' + esc(edState.q) + '"><p class="muted ed-count">' + n(d.edited) + ' edited · ' + n(d.groups.reduce(function (t, g) { return t + g.emails.length; }, 0)) + ' emails</p><div data-edlist></div></aside><section class="card ed-main" data-edmain><p class="loading-note">Pick an email.</p></section></div>';
+      drawEditorList();
+      var q = view.querySelector('[data-edq]');
+      q.oninput = function () { edState.q = q.value; drawEditorList(); };
+      if (edState.sel) openEditorEmail(edState.sel);
+    });
+  }
+  function drawEditorList() {
+    var d = edState.d, q = edState.q.toLowerCase(), box = view.querySelector('[data-edlist]');
+    box.innerHTML = d.groups.map(function (g) {
+      var list = g.emails.filter(function (e) { return !q || (e.subject + ' ' + e.template).toLowerCase().indexOf(q) >= 0; });
+      if (!list.length) return '';
+      var open = q || edState.open[g.id] || list.some(function (e) { return e.template === edState.sel; });
+      return '<details class="ed-group"' + (open ? ' open' : '') + ' data-edg="' + esc(g.id) + '"><summary><strong>' + esc(SEQ_LABEL[g.id] || g.id) + '</strong><span class="muted"> · ' + list.length + '</span></summary><ol>' +
+        list.map(function (e) {
+          return '<li class="ed-item' + (e.template === edState.sel ? ' on' : '') + '" data-edt="' + esc(e.template) + '" tabindex="0" role="button"><span class="ed-subj">' + esc(e.subject) + '</span><span class="ed-meta"><span class="mono">' + esc(e.template) + '</span>' +
+            (e.edited ? '<span class="pill st-booked">edited</span>' : '') + (e.personal ? '<span class="pill">from their answers</span>' : '') + (e.sent ? '<span>' + n(e.sent) + ' sent' + (e.sent ? ' · ' + pct(e.opened / e.sent) + ' opened' : '') + '</span>' : '') + '</span></li>';
+        }).join('') + '</ol></details>';
+    }).join('') || emptyState('No emails match.');
+    box.querySelectorAll('[data-edg]').forEach(function (el) { el.ontoggle = function () { edState.open[el.getAttribute('data-edg')] = el.open; }; });
+    box.querySelectorAll('[data-edt]').forEach(function (el) {
+      var go_ = function () { if (edState.dirty && !confirm('Discard your unsaved changes?')) return; edState.sel = el.getAttribute('data-edt'); drawEditorList(); openEditorEmail(edState.sel); };
+      el.onclick = go_; el.onkeydown = function (e) { if (e.key === 'Enter') go_(); };
+    });
+  }
+  function openEditorEmail(t) {
+    var main = view.querySelector('[data-edmain]');
+    edState.dirty = false;
+    main.innerHTML = '<p class="loading-note">Loading…</p>';
+    fetch('/admin/api/email-editor/' + encodeURIComponent(t), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (e) {
+      if (e.error) { main.innerHTML = emptyState(e.error); return; }
+      var v = e.override || e.default || {};
+      var field = function (k, label, rows, hint) {
+        return '<label class="ed-field"><span>' + esc(label) + (hint ? ' <span class="muted">' + esc(hint) + '</span>' : '') + '</span>' + (rows ? '<textarea class="input" data-edf="' + k + '" rows="' + rows + '">' + esc(v[k] || '') + '</textarea>' : '<input class="input" data-edf="' + k + '" value="' + esc(v[k] || '') + '">') + '</label>';
+      };
+      var tags = Object.keys(e.tags).map(function (k) { return '<button class="chip" type="button" data-edtag="' + esc(k) + '" title="' + esc(e.tags[k]) + '">{' + esc(k) + '}</button>'; }).join('');
+      main.innerHTML =
+        '<div class="ed-head"><div><h2>' + esc(v.subject || t) + '</h2><p class="muted mono">' + esc(t) + (e.override ? ' · edited ' + esc(when(e.override.updated_at)) : ' · built-in wording') + '</p></div>' +
+        (e.editable ? '<div class="row"><button class="btn-sm ghost" data-edrevert disabled>Undo changes</button>' + (e.override ? '<button class="btn-sm ghost danger" data-edreset>Reset to default</button>' : '') + '<button class="btn-sm" data-edsave disabled>Saved</button></div>' : '') + '</div>' +
+        (e.editable ? '' : '<div class="card notice">This email is written from each person’s own application answers, so every copy is different. It can’t be edited here; the preview shows how it reads for a recent applicant.</div>') +
+        '<div class="ed-split">' +
+        (e.editable ? '<div class="ed-form">' + field('subject', 'Subject') + field('preheader', 'Preview line', 0, '(shown next to the subject in the inbox)') +
+          field('body', 'Email', 14, '— blank line = new paragraph · **bold** · [link text](/breakout)') +
+          '<div class="ed-two">' + field('cta_label', 'Button text', 0, '(leave empty for no button)') + field('cta_href', 'Button link', 0, '{booking_link}, /breakout, https://…') + '</div>' +
+          field('ps', 'P.S.', 3) +
+          '<div class="ed-tags"><span class="muted">Insert into the field you’re in:</span>' + tags + '</div><p class="muted ed-err" data-ederr></p></div>' : '') +
+        '<div class="ed-prev"><div class="row"><strong>Preview</strong><span class="muted">for a recent applicant</span></div><iframe class="email-preview" sandbox title="Email preview" data-edframe></iframe></div></div>';
+      var frame = main.querySelector('[data-edframe]');
+      var lastFocus = null, timer = null;
+      var collect = function () { var o = {}; main.querySelectorAll('[data-edf]').forEach(function (f) { o[f.getAttribute('data-edf')] = f.value; }); return o; };
+      var preview = function () {
+        var body = e.editable ? { fields: collect() } : {};
+        fetch('/admin/api/email-editor/' + encodeURIComponent(t) + '/preview', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          .then(function (r) { return r.json(); }).then(function (p) {
+            var err = main.querySelector('[data-ederr]');
+            if (p.error) { if (err) err.textContent = p.error; return; }
+            if (err) err.textContent = '';
+            frame.srcdoc = p.html;
+          });
+      };
+      preview();
+      if (!e.editable) return;
+      var save = main.querySelector('[data-edsave]'), revert = main.querySelector('[data-edrevert]');
+      var dirty = function () { edState.dirty = true; save.disabled = false; save.textContent = 'Save'; revert.disabled = false; clearTimeout(timer); timer = setTimeout(preview, 450); };
+      main.querySelectorAll('[data-edf]').forEach(function (f) { f.addEventListener('input', dirty); f.addEventListener('focus', function () { lastFocus = f; }); });
+      main.querySelectorAll('[data-edtag]').forEach(function (b) {
+        b.onmousedown = function (ev) { ev.preventDefault(); };
+        b.onclick = function () {
+          var f = lastFocus || main.querySelector('[data-edf="body"]'), tag = '{' + b.getAttribute('data-edtag') + '}';
+          var a = f.selectionStart != null ? f.selectionStart : f.value.length, z = f.selectionEnd != null ? f.selectionEnd : a;
+          f.value = f.value.slice(0, a) + tag + f.value.slice(z); f.focus(); f.selectionStart = f.selectionEnd = a + tag.length; dirty();
+        };
+      });
+      revert.onclick = function () { edState.dirty = false; openEditorEmail(t); };
+      save.onclick = function () {
+        save.disabled = true; save.textContent = 'Saving…';
+        send('PUT', 'email-editor/' + encodeURIComponent(t), collect()).then(function (r) {
+          if (r && r.ok) { edState.dirty = false; toast('Saved. Every future send uses the new wording.'); renderEditor(); }
+          else { save.disabled = false; save.textContent = 'Save'; main.querySelector('[data-ederr]').textContent = (r && r.error) || 'Couldn’t save'; }
+        });
+      };
+      var reset = main.querySelector('[data-edreset]');
+      if (reset) reset.onclick = function () { if (!confirm('Go back to the built-in wording for this email?')) return; send('DELETE', 'email-editor/' + encodeURIComponent(t)).then(function () { edState.dirty = false; toast('Back to the default'); renderEditor(); }); };
+    });
+  }
+
+  // ───────────── Reactivation ─────────────
+  var reState = null;
+  function renderReactivation() {
+    return api('reactivation', {}, { noRange: true }).then(function (d) {
+      var prev = reState;
+      reState = { d: d, segs: prev ? prev.segs : Object.keys(d.segments).filter(function (k) { return d.counts[k] > 0; }), off: prev ? prev.off : {}, q: '' };
+      drawReactivation();
+    });
+  }
+  function emailPreview(box, template) {
+    var out = box.querySelector('[data-pcout]');
+    out.hidden = false; out.innerHTML = '<p class="loading-note">Loading the email…</p>';
+    fetch('/admin/api/precall-flow/email?template=' + encodeURIComponent(template), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (e) {
+      if (e.error) { out.innerHTML = '<p class="muted">' + esc(e.error) + '</p>'; return; }
+      out.innerHTML = '<div class="row pc-prev-head"><strong>' + esc(e.subject) + '</strong><span class="muted mono">' + esc(template) + '</span><button class="btn-sm ghost" data-pcclose>Close</button></div><iframe class="email-preview" sandbox title="Email preview"></iframe>';
+      out.querySelector('iframe').srcdoc = e.html;
+      out.querySelector('[data-pcclose]').onclick = function () { out.hidden = true; };
+      out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+  function drawReactivation() {
+    var S = reState, d = S.d, segs = d.segments;
+    var rows = d.audience.filter(function (r) { return S.segs.indexOf(r.segment) >= 0; });
+    var q = S.q.toLowerCase();
+    var shown = q ? rows.filter(function (r) { return ((r.first_name || '') + ' ' + (r.last_name || '') + ' ' + r.email).toLowerCase().indexOf(q) >= 0; }) : rows;
+    var chosen = rows.filter(function (r) { return !S.off[r.id]; });
+    var t = d.report.totals;
+    view.innerHTML =
+      (d.emailLive ? '' : '<div class="card notice"><strong>Emails are simulated right now.</strong> Launching queues the campaign and logs every email, but nothing reaches anyone until you connect Resend in <a href="#integrations" data-go="integrations">Integrations → Email</a>.</div>') +
+      (t.reactivated ? '<div class="grid g-4">' + tile('Reactivated', n(t.reactivated), 'people in the campaign') + tile('Booked again', n(t.rebooked), pct(t.reactivated ? t.rebooked / t.reactivated : null) + ' of them') + tile('Applied again', n(t.reapplied), '') + tile('Unsubscribed', n(t.unsubscribed), pct(t.reactivated ? t.unsubscribed / t.reactivated : null)) + '</div>' : '') +
+      '<div class="card"><h2>1 · Who to bring back</h2><p class="sub">Each person is in one group only (the first that fits). Clients, unsubscribes and anyone reactivated in the last 90 days are never included.</p><div class="re-segs">' +
+      Object.keys(segs).map(function (k) {
+        var on = S.segs.indexOf(k) >= 0;
+        return '<label class="re-seg' + (on ? ' on' : '') + (d.counts[k] ? '' : ' empty') + '"><input type="checkbox" data-seg="' + esc(k) + '"' + (on ? ' checked' : '') + (d.counts[k] ? '' : ' disabled') + '><span class="re-n">' + n(d.counts[k] || 0) + '</span><strong>' + esc(segs[k].label) + '</strong><span class="muted">' + esc(segs[k].hint) + '</span></label>';
+      }).join('') + '</div></div>' +
+      '<div class="card"><div class="card-head"><div><h2>2 · Review the list · ' + n(chosen.length) + ' of ' + n(rows.length) + ' selected</h2><p class="sub">Untick anyone who shouldn’t get it, e.g. people who already became clients (logging their outcome in Calls &amp; deals also removes them).</p></div>' +
+      '<div class="row"><input class="input" data-req placeholder="Search name or email" value="' + esc(S.q) + '" style="max-width:220px"><button class="btn-sm ghost" data-reall="1">Tick all</button><button class="btn-sm ghost" data-reall="0">Untick all</button></div></div>' +
+      '<div class="re-list">' + (shown.length ? '<table class="t"><thead><tr><th></th><th>Person</th><th>Group</th><th>Status</th><th>Came in via</th><th>Last call</th></tr></thead><tbody>' + shown.slice(0, 400).map(function (r) {
+        return '<tr class="click" data-reopen="' + esc(r.id) + '"><td><input type="checkbox" data-reid="' + esc(r.id) + '"' + (S.off[r.id] ? '' : ' checked') + '></td><td><strong>' + esc([r.first_name, r.last_name].filter(Boolean).join(' ') || '–') + '</strong><div class="muted">' + esc(r.email) + '</div></td><td>' + esc(segs[r.segment].label) + '</td><td>' + statusPill(r.status) + '</td><td>' + esc(r.booking_source === 'calendly-direct' ? 'Calendly (imported)' : 'Funnel') + '</td><td>' + esc(r.call_at ? when(r.call_at) : '–') + '</td></tr>';
+      }).join('') + '</tbody></table>' + (shown.length > 400 ? '<p class="muted">Showing the first 400; search to find others.</p>' : '') : emptyState('Nobody in the chosen groups.')) + '</div></div>' +
+      '<div class="card re-mails"><h2>3 · The 6 emails</h2><p class="sub">Over 3 weeks. Click one to read it. Edit the wording in the Email editor.</p><ol class="re-track">' +
+      d.emails.map(function (e) { return '<li data-pcview="' + esc(e.template) + '" tabindex="0" role="button"><span class="re-day">Day ' + e.day + '</span><span class="pc-subj">' + esc(e.subject) + '</span></li>'; }).join('') + '</ol><div class="pc-preview" data-pcout hidden></div></div>' +
+      '<div class="card"><h2>4 · Launch</h2><p class="sub">Starts at 9am (sales time zone) and adds this many new people a day, a few minutes apart. Each person gets their 6 emails on their own schedule. It stops for anyone who books or applies again, unsubscribes or becomes a client.</p>' +
+      '<div class="row re-launch"><label>New people per day <input class="input" type="number" min="5" max="200" value="40" data-reper style="width:90px"></label><span class="muted" data-redays></span>' +
+      '<label>Type <b>SEND</b> to confirm <input class="input" data-reconfirm style="width:110px" autocomplete="off"></label><button class="btn" data-relaunch' + (chosen.length ? '' : ' disabled') + '>Launch for ' + n(chosen.length) + ' people</button><span data-remsg class="muted"></span></div>' +
+      (t.reactivated ? '<p style="margin-top:10px"><button class="btn-sm ghost danger" data-restop>Stop all pending reactivation emails</button></p>' : '') + '</div>' +
+      (d.report.people.length ? '<div class="card"><h2>Campaign results</h2>' + table([
+        { label: 'Email', key: 'template' }, { label: 'Sent', key: 'sent', num: true, fmt: n }, { label: 'Waiting', key: 'pending', num: true, fmt: n },
+        { label: 'Opened', key: 'opened', num: true, fmt: n }, { label: 'Clicked', key: 'clicked', num: true, fmt: n }, { label: 'Skipped', key: 'skipped', num: true, fmt: n },
+      ], d.report.steps) + '<h3 class="h3" style="margin-top:14px">People</h3>' + table([
+        { label: 'Person', html: function (r) { return '<strong>' + esc([r.first_name, r.last_name].filter(Boolean).join(' ') || r.email) + '</strong><div class="muted">' + esc(r.email) + '</div>'; } },
+        { label: 'Group', html: function (r) { return esc((segs[r.reactivation_segment] || {}).label || r.reactivation_segment || ''); } },
+        { label: 'Started', html: function (r) { return esc(when(r.reactivated_at)); } },
+        { label: 'Result', html: function (r) { return r.rebooked ? '<span class="pill st-booked">booked again</span>' : r.reapplied ? '<span class="pill">applied again</span>' : r.unsubscribed ? '<span class="muted">unsubscribed</span>' : statusPill(r.status); } },
+      ], d.report.people, { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.id) + '" tabindex="0"'; } }) + '</div>' : '');
+    var per = view.querySelector('[data-reper]'), daysEl = view.querySelector('[data-redays]');
+    var upd = function () { var p = Math.max(5, Number(per.value) || 40); daysEl.textContent = chosen.length ? '≈ ' + Math.ceil(chosen.length / p) + ' day' + (Math.ceil(chosen.length / p) === 1 ? '' : 's') + ' to start everyone' : ''; };
+    per.oninput = upd; upd();
+    view.querySelectorAll('[data-seg]').forEach(function (b) { b.onchange = function () { var k = b.getAttribute('data-seg'); S.segs = b.checked ? S.segs.concat([k]) : S.segs.filter(function (x) { return x !== k; }); drawReactivation(); }; });
+    view.querySelectorAll('[data-reid]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); S.off[b.getAttribute('data-reid')] = !b.checked; drawReactivation(); }; });
+    view.querySelectorAll('[data-reopen]').forEach(function (r) { r.onclick = function () { openLead(r.getAttribute('data-reopen')); }; });
+    view.querySelectorAll('[data-reall]').forEach(function (b) { b.onclick = function () { var on = b.getAttribute('data-reall') === '1'; shown.forEach(function (r) { S.off[r.id] = !on; }); drawReactivation(); }; });
+    var qi = view.querySelector('[data-req]');
+    qi.oninput = function () { S.q = qi.value; var pos = qi.selectionStart; drawReactivation(); var q2 = view.querySelector('[data-req]'); q2.focus(); q2.setSelectionRange(pos, pos); };
+    view.querySelectorAll('[data-pcview]').forEach(function (el) { var go_ = function () { emailPreview(view.querySelector('.re-mails'), el.getAttribute('data-pcview')); }; el.onclick = go_; el.onkeydown = function (e) { if (e.key === 'Enter') go_(); }; });
+    view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
+    var lb = view.querySelector('[data-relaunch]');
+    lb.onclick = function () {
+      var msg = view.querySelector('[data-remsg]');
+      if (view.querySelector('[data-reconfirm]').value.trim() !== 'SEND') { msg.textContent = 'Type SEND first.'; return; }
+      lb.disabled = true; msg.textContent = 'Launching…';
+      send('POST', 'reactivation/launch', { ids: chosen.map(function (r) { return r.id; }), perDay: Number(per.value) || 40, confirm: 'SEND' }).then(function (r) {
+        if (r && r.ok) { toast('Launched for ' + r.launched + ' people over ' + r.days + ' day' + (r.days === 1 ? '' : 's')); reState = null; renderReactivation(); }
+        else { lb.disabled = false; msg.textContent = (r && r.error) || 'Couldn’t launch'; }
+      });
+    };
+    var st = view.querySelector('[data-restop]');
+    if (st) st.onclick = function () { if (!confirm('Cancel every reactivation email that hasn’t gone yet?')) return; send('POST', 'reactivation/stop', {}).then(function (r) { toast('Stopped ' + ((r && r.cancelled) || 0) + ' pending emails'); renderReactivation(); }); };
+  }
+
   function renderEmailsWithFlow() {
     return renderEmails().then(function () {
       var box = document.createElement('div');

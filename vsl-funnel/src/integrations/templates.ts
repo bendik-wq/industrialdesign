@@ -738,6 +738,71 @@ export const TEMPLATES: Record<string, Template> = {
     ps: 'Need to move the time? Use the link in your booking confirmation.',
   }),
 
+  // ── Reactivation (people already in the database: past calls, no-shows, unfinished applications…) ──
+  re_1: (c) => ({
+    subject: `${c.name}, still buying a business this year?`,
+    preheader: 'Just reply yes or no.',
+    body: [
+      `Hi ${c.name},`,
+      'Are you still looking to buy a business this year?',
+      'Just reply yes or no. Either answer is fine, and it helps me know whether to keep you posted.',
+    ],
+  }),
+  re_2: (c) => ({
+    subject: 'what’s changed since we last spoke',
+    preheader: 'The structure has got better, and so has the deal flow.',
+    body: [
+      `${c.name}, it’s been a little while, so here’s what’s new on our side.`,
+      '• We now map the first deal with you over 90 days, from target list to a signed letter of intent.<br>• The financing is stacked so it covers more than the price (senior debt plus a seller note), tested at about 1.5x debt cover.<br>• It comes with a 7-day money-back guarantee if you decide it isn’t for you.',
+      'If buying a competitor or a business next door is still on your mind, it’s worth another 30 minutes.',
+    ],
+    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_3: (c) => ({
+    subject: 'the structure most owners miss',
+    preheader: 'How a $1.5M deal can need none of your own cash (illustrative).',
+    body: [
+      `${c.name}, here’s the one idea that changes how most owners see acquisitions. The numbers are illustrative.`,
+      'A competitor makes $500k a year. Price: $1.5M. A lender puts in $1.0M. The seller takes $600k over time. That’s $1.6M of funding for a $1.5M price, so the extra covers working capital.',
+      'The test is simple: the business has to make enough to cover every repayment about 1.5 times over. If it can’t, we don’t do the deal.',
+      'Want us to run that sketch on your business?',
+    ],
+    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    ps: 'Illustrative example only. Every deal is different and nothing here is financial advice.',
+  }),
+  re_4: (c) => ({
+    subject: 'if the timing was wrong last time',
+    preheader: 'Fair enough. Here’s what’s different now.',
+    body: [
+      `${c.name},`,
+      'When owners don’t go ahead, it’s usually one of three things: not enough time, not sure about the money, or not sure it would work in their industry.',
+      'Time: you’re buying a team, not a job. Money: the structure is built so it doesn’t come from you. Industry: we check the numbers before anything else, and tell you straight if it doesn’t fit.',
+      'And if you go ahead and change your mind in the first 7 days, you get your money back.',
+    ],
+    cta: { label: 'Talk it through →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_5: (c) => ({
+    subject: 'a free masterclass on how owners buy competitors',
+    preheader: 'One hour. No pitch until the end.',
+    body: [
+      `${c.name}, if a call feels like a big step, start here instead.`,
+      'Josh runs a one-hour online masterclass: where the off-market deals are, how the financing gets stacked, and the 90-day path to a signed LOI.',
+      'Pick a session that suits you.',
+    ],
+    cta: { label: 'Save my seat →', href: c.link('/webinar') },
+  }),
+  re_6: (c) => ({
+    subject: 'closing the loop on this',
+    preheader: 'No hard feelings either way.',
+    body: [
+      `Hi ${c.name},`,
+      'I haven’t heard back, so I’m guessing buying a business isn’t a priority right now. That’s completely fine.',
+      'I’ll stop emailing about it after this. If it ever comes back on the radar, reply to this email or grab a time below and we’ll pick it up.',
+    ],
+    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    ps: 'Just reply “not now” and I’ll close it today.',
+  }),
+
   // ── Behaviour-triggered (one-off, rewritten per person by the personaliser) ──
   t_vsl_no_apply: (c) => ({
     subject: 'you watched most of it',
