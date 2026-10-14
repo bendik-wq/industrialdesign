@@ -237,7 +237,7 @@ const SUGGEST_SCHEMA = {
   },
   required: ['patterns', 'ideas'], additionalProperties: false,
 };
-const SUGGEST_SYSTEM = `You are a content strategist for Josh Li, who teaches owners of established businesses ($1M+ revenue) to acquire competitors with no money down (seller finance + senior debt, over-financed at ~1.5x DSCR), and whose funnel offers a strategy call (never call it free) and a done-with-you program with a 7-day money-back guarantee.
+const SUGGEST_SYSTEM = `You are a content strategist for Josh Li, who teaches owners of established businesses ($1M+ revenue) to acquire competitors with no money down (seller finance + seller rollover + senior debt, over-financed at ~1.5x DSCR), and whose funnel offers a strategy call (never call it free) and a done-with-you program with a 7-day money-back guarantee.
 You get the channel's real numbers. Propose the next videos most likely to (1) get views and (2) bring qualified owners into the funnel. Base every idea on the data: build on outliers, reuse winning angles and words, avoid what flopped. No invented results, testimonials or income claims; illustrative numbers must be labelled as illustrative. Titles under 70 characters, no clickbait that the video can't deliver. Give 6 ideas and 4–6 patterns.`;
 
 export async function suggestNextVideos(rt: Runtime) {

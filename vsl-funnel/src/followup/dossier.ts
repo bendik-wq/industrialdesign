@@ -134,7 +134,7 @@ export const BLOCKERS: Record<string, { name: string; subject: string; body: str
     subject: 'how the money side works',
     body: [
       'You said funding and structure is what’s in the way. Fair. It’s the part nobody explains properly.',
-      'Here’s the shape of it. Senior debt from a lender covers most of the price, secured against the cash flow of the business you’re buying. The seller carries the rest as a note, paid out of the same cash flow over a few years. Stack it right and the financing covers more than the price, so none of your own cash goes in.',
+      'Here’s the shape of it. Senior debt from a lender covers most of the price, secured against the cash flow of the business you’re buying. The seller carries part as a note, paid out of the same cash flow over a few years, and rolls part into a stake they keep (seller rollover). Stack it right and the financing covers more than the price, so none of your own cash goes in.',
       'Lenders look for a debt service coverage ratio around 1.5: the target’s profit covers its repayments one and a half times. That number decides everything, and we’ll run it on your situation on the call.',
     ],
   },

@@ -55,8 +55,8 @@ const PREP: Record<string, T> = {
       `${c.name},`,
       `Here’s a rough sketch, based on what you told us${profitText(d) ? ` (profit ${profitText(d)})` : ''}. It’s illustrative, not advice, but it gives you a feel for the scale:`,
       d.deal
-        ? `• <strong>Target:</strong> a business making ${d.deal.targetProfit} a year in profit<br>• <strong>Price:</strong> typically ${d.deal.price}, depending on the multiple<br>• <strong>Funding:</strong> senior debt plus a seller note, over-financed so none of your own cash goes in<br>• <strong>Test:</strong> the target’s profit covers its repayments about 1.5 times<br>• <strong>Result:</strong> ${d.deal.combined}`
-        : '• <strong>Target:</strong> a business your cash flow can support, often one roughly your size or smaller<br>• <strong>Funding:</strong> senior debt plus a seller note, over-financed so none of your own cash goes in<br>• <strong>Test:</strong> the target’s profit covers its repayments about 1.5 times',
+        ? `• <strong>Target:</strong> a business making ${d.deal.targetProfit} a year in profit<br>• <strong>Price:</strong> typically ${d.deal.price}, depending on the multiple<br>• <strong>Funding:</strong> senior debt, a seller note and seller rollover, over-financed so none of your own cash goes in<br>• <strong>Test:</strong> the target’s profit covers its repayments about 1.5 times<br>• <strong>Result:</strong> ${d.deal.combined}`
+        : '• <strong>Target:</strong> a business your cash flow can support, often one roughly your size or smaller<br>• <strong>Funding:</strong> senior debt, a seller note and seller rollover, over-financed so none of your own cash goes in<br>• <strong>Test:</strong> the target’s profit covers its repayments about 1.5 times',
       'On the call we’ll replace these ranges with your real numbers.',
     ],
     ps: 'Have your last year’s profit and loss handy if you can. It makes this part much sharper.',
@@ -177,8 +177,8 @@ const NOSHOW: Record<string, T> = {
     body: [
       `${c.name},`,
       d.deal
-        ? `Here’s what we were going to look at for ${yourBiz(d)}: a target making ${d.deal.targetProfit} in profit, priced around ${d.deal.price}, funded by senior debt and a seller note with none of your own cash going in. The result: ${d.deal.combined}.`
-        : `Here’s what we were going to look at for ${yourBiz(d)}: the size of target your cash flow can support, how the senior debt and seller note stack up, and whether the deal clears the 1.5x coverage lenders look for.`,
+        ? `Here’s what we were going to look at for ${yourBiz(d)}: a target making ${d.deal.targetProfit} in profit, priced around ${d.deal.price}, funded by senior debt, a seller note and seller rollover with none of your own cash going in. The result: ${d.deal.combined}.`
+        : `Here’s what we were going to look at for ${yourBiz(d)}: the size of target your cash flow can support, how the senior debt, seller note and seller rollover stack up, and whether the deal clears the 1.5x coverage lenders look for.`,
       'Those are illustrative numbers. Your real ones are a 30-minute call away.',
     ],
     cta: { label: 'Rebook my call →', href: rebook(c) },
@@ -212,7 +212,7 @@ const POSTCALL: Record<string, T> = {
     body: [
       `Hey ${c.name},`,
       'Here’s the plan we talked about, in one place:',
-      `• <strong>Goal:</strong> ${d.goal && GOALS[d.goal] ? GOALS[d.goal].line : 'grow by acquisition'}<br>• <strong>Target:</strong> ${d.industry ? `a ${d.industry.one} like ${d.industry.target}` : 'a business in or next to your industry'}${d.deal ? `, making ${d.deal.targetProfit} in profit` : ''}<br>• <strong>Structure:</strong> senior debt plus a seller note, over-financed, around 1.5x coverage<br>• <strong>Timeline:</strong> a signed LOI in 90 days<br>• <strong>Safety net:</strong> 7-day money-back guarantee`,
+      `• <strong>Goal:</strong> ${d.goal && GOALS[d.goal] ? GOALS[d.goal].line : 'grow by acquisition'}<br>• <strong>Target:</strong> ${d.industry ? `a ${d.industry.one} like ${d.industry.target}` : 'a business in or next to your industry'}${d.deal ? `, making ${d.deal.targetProfit} in profit` : ''}<br>• <strong>Structure:</strong> senior debt, a seller note and seller rollover, over-financed, around 1.5x coverage<br>• <strong>Timeline:</strong> a signed LOI in 90 days<br>• <strong>Safety net:</strong> 7-day money-back guarantee`,
       'Reply with any questions and I’ll answer them personally.',
     ],
   }),
@@ -312,7 +312,7 @@ const LOST: Record<string, T> = {
     preheader: 'A quick market note.',
     body: [
       `${c.name},`,
-      `Quick note on what we see again and again: plenty of owners in ${peers(d)} are open to carrying part of the price as a note. Retiring owners want their staff looked after and a steady income, and a seller note gives them both.`,
+      `Quick note on what we see again and again: plenty of owners in ${peers(d)} are open to carrying part of the price as a note. Retiring owners want their staff looked after and a steady income, and a seller note gives them both. Many also like seller rollover: keeping a slice of the business so they share in what you build.`,
       'If you ever want to sanity-check a business you’re looking at, reply.',
     ],
   }),
@@ -432,8 +432,8 @@ const NURTURE: Record<string, T> = {
     body: [
       `${c.name},`,
       d.deal
-        ? `At your size, a first deal usually looks like this: a target making ${d.deal.targetProfit} in profit, priced around ${d.deal.price}, funded by senior debt and a seller note. Result: ${d.deal.combined}. Illustrative only, but that’s the scale.`
-        : 'A first deal usually means buying a business roughly your size or smaller, funded by senior debt and a seller note, with the target’s profit covering repayments about 1.5 times.',
+        ? `At your size, a first deal usually looks like this: a target making ${d.deal.targetProfit} in profit, priced around ${d.deal.price}, funded by senior debt, a seller note and seller rollover. Result: ${d.deal.combined}. Illustrative only, but that’s the scale.`
+        : 'A first deal usually means buying a business roughly your size or smaller, funded by senior debt, a seller note and seller rollover, with the target’s profit covering repayments about 1.5 times.',
     ],
     cta: { label: 'Run my real numbers →', href: book(c) },
   }),
@@ -448,7 +448,7 @@ const NURTURE: Record<string, T> = {
     preheader: 'It’s in their interest, not just yours.',
     body: [
       `${c.name},`,
-      'People assume seller finance is a favour. It isn’t. A seller who carries part of the price gets a higher total price, interest on top, a steady income in retirement, and often a better tax position than taking it all up front.',
+      'People assume seller finance is a favour. It isn’t. A seller who carries part of the price gets a higher total price, interest on top, a steady income in retirement, and often a better tax position than taking it all up front. With seller rollover they keep a slice of the business too, so they win when you grow it.',
       'That’s why it’s how most small businesses change hands.',
     ],
   }),

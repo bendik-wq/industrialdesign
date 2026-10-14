@@ -97,7 +97,7 @@ export const WEBINAR_TEMPLATES: Record<string, T> = {
     body: [
       `${c.name},`,
       'The part of the session people re-watch most is the seller note. Here’s the short version: a retiring owner who carries part of the price gets a higher total price, interest on top and a steady income. That’s why most small businesses change hands this way.',
-      'Combine it with senior debt, test it at about 1.5x debt service coverage, and the deal can be over-financed: the financing covers more than the price.',
+      'Combine it with seller rollover (they keep a slice of the business) and senior debt, test it at about 1.5x debt service coverage, and the deal can be over-financed: the financing covers more than the price.',
     ],
     cta: { label: 'Map out my first deal →', href: c.link('/apply') },
   }),
