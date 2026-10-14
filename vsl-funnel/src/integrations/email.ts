@@ -8,7 +8,7 @@ import { type Lead, getLead } from '../funnel/leads';
 import { bookingUrlFor } from '../funnel/routing';
 import { effectiveTier } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
-import { PRECALL_SLOTS, PRECALL_TEMPLATES, SEQUENCES, type SequenceId, precallPlan } from './sequences';
+import { SEQUENCES, type SequenceId, precallPlan } from './sequences';
 import { TEMPLATES, renderEmail } from './templates';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
 import { ANSWER_FACTS } from '../followup/dossier';
@@ -64,46 +64,84 @@ export function zonedTime(y: number, m: number, d: number, hours: number, tz: st
  * call (or 4 days when the call time isn't known yet). Re-run whenever the
  * call time changes; it reschedules the unsent ones.
  */
-export function precallTimes(now: number, callAt: number | null, tz: string, perDay: number, max = PRECALL_TEMPLATES.length) {
-  if (perDay <= 0) return [];
-  const n = Math.min(PRECALL_SLOTS.length, Math.round(perDay));
-  const slots = n === 1 ? [PRECALL_SLOTS[2]] : Array.from({ length: n }, (_, i) => PRECALL_SLOTS[Math.round((i * (PRECALL_SLOTS.length - 1)) / (n - 1))]);
-  const start = now + 90 * 60_000;
-  const end = callAt ? callAt - 3 * 3_600_000 : now + 4 * 86_400_000;
-  // Keep clear of the call reminders so two emails don't land together.
-  const reminders = callAt ? [callAt - 48 * 3_600_000, callAt - 24 * 3_600_000] : [];
-  const out: number[] = [];
+export const PRECALL_WAKING = [7, 21] as const; // local hours the pre-call emails may land in
+
+/**
+ * When the pre-call emails go out: spread evenly over the waking hours (7am–9pm, their time) between
+ * shortly after booking and 2¼ hours before the call, at least 45 minutes apart (30 when that's the only
+ * way to reach `min` on a short notice booking) and clear of the 48h / 24h / 3h reminders. About one per waking hour, at least `min` (when there's room) and at most `max`, and never
+ * more than `perDay` in one day. A call booked for tomorrow still gets ~10; a week out gets `max`, spread thin.
+ */
+export function precallTimes(now: number, callAt: number | null, tz: string, perDay: number, max = 20, min = 10): number[] {
+  if (perDay <= 0 || max <= 0) return [];
+  const start = now + 45 * 60_000;
+  const end = callAt ? callAt - 2.25 * 3_600_000 : now + 4 * 86_400_000;
+  if (end <= start) return [];
+  const reminders = callAt ? [callAt - 48 * 3_600_000, callAt - 24 * 3_600_000, callAt - 3 * 3_600_000] : [];
+  const BLACKOUT = 45 * 60_000;
   let parts: Intl.DateTimeFormatPart[];
   try {
     parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(now);
   } catch {
-    return precallTimes(now, callAt, 'UTC', perDay, max);
+    return precallTimes(now, callAt, 'UTC', perDay, max, min);
   }
   const g = (k: string) => Number(parts.find((x) => x.type === k)!.value);
-  for (let day = 0; day < 15 && out.length < max; day++) {
+  // Every allowed 5-minute mark, grouped by local day.
+  const days: number[][] = [];
+  for (let day = 0; day < 16; day++) {
     const base = new Date(Date.UTC(g('year'), g('month') - 1, g('day') + day));
-    for (const h of slots) {
-      const t = zonedTime(base.getUTCFullYear(), base.getUTCMonth() + 1, base.getUTCDate(), h, tz);
-      if (t < start || t > end) continue;
-      if (reminders.some((r) => Math.abs(r - t) < 45 * 60_000)) continue;
-      out.push(t);
-      if (out.length >= max) break;
-    }
-    if (zonedTime(base.getUTCFullYear(), base.getUTCMonth() + 1, base.getUTCDate(), 0, tz) > end) break;
+    const [y, m, d] = [base.getUTCFullYear(), base.getUTCMonth() + 1, base.getUTCDate()];
+    const from = zonedTime(y, m, d, PRECALL_WAKING[0], tz);
+    // On the day they book they're clearly awake: allow up to 90 minutes after booking, until 11pm at the latest.
+    const to = Math.max(zonedTime(y, m, d, PRECALL_WAKING[1], tz), day === 0 ? Math.min(now + 90 * 60_000, zonedTime(y, m, d, 23, tz)) : 0);
+    if (from > end) break;
+    const marks: number[] = [];
+    for (let t = from; t <= to; t += 5 * 60_000) if (t >= start && t <= end && !reminders.some((r) => Math.abs(r - t) < BLACKOUT)) marks.push(t);
+    if (marks.length) days.push(marks);
+  }
+  const grid = days.flat();
+  if (!grid.length) return [];
+  const span = grid.length * 5 * 60_000;
+  // 45 minutes apart normally; down to 30 only if that's what it takes to reach the minimum.
+  const GAP = Math.floor(span / 45 / 60_000) >= Math.min(min, max) ? 45 * 60_000 : 30 * 60_000;
+  const capacity = Math.floor(span / GAP);
+  const wakingHours = (grid.length * 5) / 60;
+  const cap = Math.min(max, capacity, days.length * Math.round(perDay));
+  const n = Math.max(1, Math.min(cap, Math.max(Math.min(min, cap), Math.round(wakingHours))));
+  // Even spread over the waking timeline, then enforce the gap and the per-day cap.
+  const out: number[] = [];
+  const perDayCount = new Map<number, number>();
+  const dayOf = (t: number) => days.findIndex((dd) => dd.includes(t));
+  for (let i = 0; i < n; i++) {
+    let idx = Math.floor(((i + 0.5) * grid.length) / n);
+    while (idx < grid.length && ((out.length && grid[idx] - out[out.length - 1] < GAP) || (perDayCount.get(dayOf(grid[idx])) ?? 0) >= perDay)) idx++;
+    if (idx >= grid.length) break;
+    out.push(grid[idx]);
+    const dd = dayOf(grid[idx]);
+    perDayCount.set(dd, (perDayCount.get(dd) ?? 0) + 1);
   }
   return out;
 }
 
+/** Settings: daily cap (0 = off), and the 10–20 target range. */
+export function precallLimits(rt: Runtime) {
+  const num = (v: string, d: number) => (v.trim() === '' || !Number.isFinite(Number(v)) ? d : Math.max(0, Math.floor(Number(v))));
+  const s = rt.settings;
+  const max = Math.min(40, num(s.PRECALL_EMAILS_MAX, 20));
+  return { perDay: num(s.PRECALL_EMAILS_PER_DAY, 12), min: Math.min(max, num(s.PRECALL_EMAILS_MIN, 10)), max };
+}
+
 export async function enqueuePrecall(rt: Runtime, lead: Lead) {
   if (!lead.email || lead.unsubscribed_at) return 0;
-  const perDay = rt.settings.PRECALL_EMAILS_PER_DAY.trim() === '' ? 6 : Number(rt.settings.PRECALL_EMAILS_PER_DAY);
+  const { perDay, min, max } = precallLimits(rt);
   await cancelSequence(rt, lead.id, 'precall');
-  if (!Number.isFinite(perDay) || perDay <= 0) return 0;
+  if (perDay <= 0 || max <= 0) return 0;
   const tz = lead.timezone || (await leadTimezone(rt, lead)) || rt.settings.SALES_TIMEZONE || 'UTC';
   const now = Date.now();
-  const plan = precallPlan(lead);
-  const times = precallTimes(now, lead.call_at, tz, perDay, plan.length);
+  const times = precallTimes(now, lead.call_at, tz, perDay, Math.min(max, precallPlan(lead).length), min);
   if (!times.length) return 0;
+  // As many emails as there are send times, most important first, in story order.
+  const plan = precallPlan(lead, times.length);
   await rt.env.DB.batch(times.map((sendAt, i) =>
     rt.env.DB.prepare(
       `INSERT INTO emails (id, lead_id, sequence, step, template, to_email, send_at, status, created_at)

@@ -37,8 +37,10 @@ describe('application-specific follow-up', () => {
     expect(prep).toEqual(expect.arrayContaining(['pp_brief', 'pp_blocker1', 'pp_blocker2', 'pp_booking', 'pp_numbers', 'pp_goal', 'pp_industry', 'pp_why_now', 'pp_partner', 'pp_timeline', 'pp_homework']));
     expect(prepTemplates(buildDossier(empty))).toEqual(['pp_homework']);
     const plan = precallPlan(full);
-    expect(plan.slice(0, 2)).toEqual(['pp_brief', 'pp_blocker1']);
-    expect(plan[2]).toBe(PRECALL_TEMPLATES[0]);
+    expect(plan.slice(0, 4)).toEqual(['pp_brief', 'pp_blocker1', 'pp_booking', 'pp_numbers']);
+    expect(plan).toContain(PRECALL_TEMPLATES[0]);
+    expect(plan).not.toContain('pc_partner'); // their own partner email replaces the general one
+    expect(precallPlan(full, 12).filter((t) => t.startsWith('pp_')).length).toBeGreaterThanOrEqual(5);
     expect(new Set(plan).size).toBe(plan.length);
     expect(plan.length).toBeLessThanOrEqual(SEQUENCES.precall.steps.length);
   });

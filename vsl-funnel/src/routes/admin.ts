@@ -1,13 +1,13 @@
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
 import { APPLICATION, BRAND, VIDEOS } from '../config';
 import { LEAD_STATUSES, type Lead, getLead, parseAnswers } from '../funnel/leads';
-import { buildEmail, emailConfigured, sendViaResend, usedFacts } from '../integrations/email';
+import { buildEmail, emailConfigured, precallLimits, precallTimes, sendViaResend, usedFacts, zonedTime } from '../integrations/email';
 import { buildProfile } from '../personalize/profile';
 import { personalizeMode } from '../personalize/personalize';
-import { SEQUENCES } from '../integrations/sequences';
+import { PRECALL_ARC, PRECALL_STAGES, SEQUENCES, precallPlan } from '../integrations/sequences';
 import { newId } from '../lib/ids';
 import { webinarReport } from '../admin/webinar';
 import { cancelSession, ensureSessions } from '../webinar/webinar';
@@ -370,6 +370,63 @@ admin.get('/leads/:id/profile', async (c) => {
 });
 
 // Renders the personalised version of an email for this lead without sending it (calls the model in "ai" mode).
+// ── Pre-call flow (Emails → Pre-call flow): what a booked lead gets, for several booking lead times ──
+async function precallSampleLead(c: Context<AppEnv>) {
+  const id = c.req.query('lead');
+  const lead = id
+    ? await getLead(c.env, id)
+    : await c.env.DB.prepare("SELECT * FROM leads WHERE app_completed_at IS NOT NULL AND email IS NOT NULL AND COALESCE(tier_override, tier) IN ('A', 'B') ORDER BY app_completed_at DESC LIMIT 1").first<Lead>();
+  return lead ?? ({ id: 'l_sample', ref_code: 'SAMPLE', first_name: 'Dana', email: 'dana@example.com', status: 'booked', tier: 'A', answers: null } as unknown as Lead);
+}
+admin.get('/precall-flow', async (c) => {
+  const rt = runtimeFrom(c);
+  const base = await precallSampleLead(c);
+  const { perDay, min, max } = precallLimits(rt);
+  const tz = base.timezone || rt.settings.SALES_TIMEZONE || 'Australia/Sydney';
+  // A realistic booking moment: today 10:00 in their zone (or now, if later).
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(Date.now());
+  const g = (k: string) => Number(parts.find((x) => x.type === k)!.value);
+  const now = Math.max(zonedTime(g('year'), g('month'), g('day'), 10, tz), Math.ceil(Date.now() / 900_000) * 900_000);
+  // Subjects can mention the call time, so they're worked out per scenario.
+  const subjects = new Map<string, string>();
+  const subjectOf = async (t: string, lead: Lead) => {
+    const k = `${t}|${lead.call_at}`;
+    if (!subjects.has(k)) { try { subjects.set(k, (await buildEmail(rt, lead, `pv-${t}`, t, 'preview')).subject); } catch { subjects.set(k, t); } }
+    return subjects.get(k)!;
+  };
+  const hoursList = [6, 20, 30, 54, 120];
+  const scenarios = [];
+  for (const hours of hoursList) {
+    const callAt = now + hours * 3_600_000;
+    const lead = { ...base, call_at: callAt, booked_at: now, booking_cancelled_at: null, status: 'booked', timezone: tz } as Lead;
+    const full = precallPlan(lead);
+    const times = perDay > 0 ? precallTimes(now, callAt, tz, perDay, Math.min(max, full.length), min) : [];
+    const plan = precallPlan(lead, times.length);
+    const emails = [];
+    for (let i = 0; i < times.length; i++) {
+      const t = plan[i];
+      emails.push({ at: times[i], template: t, subject: await subjectOf(t, lead), stage: PRECALL_ARC[t]?.stage ?? 4, priority: PRECALL_ARC[t]?.priority ?? 3, personal: t.startsWith('pp_') });
+    }
+    const reminders = [];
+    for (const st of SEQUENCES.booked.steps) {
+      const at = st.anchor === 'call_at' ? callAt + st.offsetMs : now + st.offsetMs;
+      if (at >= now) reminders.push({ at, template: st.template, subject: await subjectOf(st.template, lead) });
+    }
+    scenarios.push({ hours, bookedAt: now, callAt, emails, reminders, available: full.length });
+  }
+  return c.json({
+    lead: { id: base.id, name: [base.first_name, base.last_name].filter(Boolean).join(' ') || 'Sample lead', sample: base.id === 'l_sample' },
+    tz, limits: { perDay, min, max }, stages: PRECALL_STAGES, scenarios,
+  });
+});
+admin.get('/precall-flow/email', async (c) => {
+  const template = c.req.query('template') || '';
+  if (!TEMPLATES[template]) return c.json({ error: 'unknown template' }, 400);
+  const lead = { ...(await precallSampleLead(c)), call_at: Date.now() + 2 * 86_400_000, booked_at: Date.now(), status: 'booked' } as Lead;
+  const email = await buildEmail(runtimeFrom(c), lead, `preview-${template}`, template, 'preview');
+  return c.json({ subject: email.subject, html: email.html });
+});
+
 admin.get('/leads/:id/preview-email', async (c) => {
   const lead = await getLead(c.env, c.req.param('id'));
   if (!lead) return c.json({ error: 'not found' }, 404);

@@ -41,34 +41,50 @@ export const BEHAVIOUR_TEMPLATES: { template: string; skipIf: (l: Lead) => boole
   { template: 't_watch_prep', skipIf: (l) => !isBooked(l) || l.status !== 'booked' },
 ];
 
-/** Pre-call barrage, in send order. The first day hits the biggest pains and the call prep. */
+/** Pre-call emails (one idea each). Append only: new emails go at the end. */
 export const PRECALL_TEMPLATES = [
   'pc_ceiling', 'pc_own_cash', 'pc_bank', 'pc_no_time', 'pc_partner', 'pc_seller',
   'pc_josh', 'pc_brokers', 'pc_dscr', 'pc_consolidate', 'pc_guarantee', 'pc_agenda',
   'pc_multiple', 'pc_in_not_on', 'pc_cash_trap', 'pc_fell_over', 'pc_done_with', 'pc_questions',
   'pc_lemon', 'pc_hiring', 'pc_two_paths', 'pc_next_year', 'pc_if_you_could', 'pc_cost',
+  'pc_walkthrough', 'pc_90_days', 'pc_target', 'pc_myths', 'pc_not_for', 'pc_before_call',
 ];
 
 /**
- * The barrage for one lead: application-specific prep emails (their business,
- * blockers, numbers, industry, booking answers) first and woven through the
- * general pain-point emails, so even a call booked for tomorrow gets the
- * personal ones.
+ * The pre-call story, in stages: 1 your plan (from their application) → 2 how it works (mechanism and
+ * proof) → 3 the opportunity → 4 the doubts → 5 show up ready. Priority 1 = always sent, 2 = sent when
+ * there's room, 3 = only on longer runs. A call booked for tomorrow still gets the whole arc, just shorter.
  */
-export function precallPlan(lead: Lead): string[] {
+export const PRECALL_ARC: Record<string, { stage: 1 | 2 | 3 | 4 | 5; priority: 1 | 2 | 3 }> = {
+  pp_brief: { stage: 1, priority: 1 }, pp_blocker1: { stage: 1, priority: 1 }, pp_booking: { stage: 1, priority: 1 }, pp_numbers: { stage: 1, priority: 1 },
+  pc_josh: { stage: 2, priority: 1 }, pc_seller: { stage: 2, priority: 1 }, pc_walkthrough: { stage: 2, priority: 1 },
+  pc_own_cash: { stage: 2, priority: 2 }, pc_bank: { stage: 2, priority: 2 }, pc_dscr: { stage: 2, priority: 2 }, pc_done_with: { stage: 2, priority: 3 },
+  pp_goal: { stage: 3, priority: 2 }, pp_industry: { stage: 3, priority: 2 }, pp_why_now: { stage: 3, priority: 2 }, pp_timeline: { stage: 3, priority: 2 },
+  pc_target: { stage: 3, priority: 2 }, pc_90_days: { stage: 3, priority: 2 }, pc_ceiling: { stage: 3, priority: 2 },
+  pc_brokers: { stage: 3, priority: 3 }, pc_consolidate: { stage: 3, priority: 3 }, pc_multiple: { stage: 3, priority: 3 }, pc_cash_trap: { stage: 3, priority: 3 }, pc_hiring: { stage: 3, priority: 3 },
+  pc_guarantee: { stage: 4, priority: 1 }, pc_myths: { stage: 4, priority: 2 }, pc_no_time: { stage: 4, priority: 2 }, pp_blocker2: { stage: 4, priority: 2 },
+  pc_not_for: { stage: 4, priority: 3 }, pc_fell_over: { stage: 4, priority: 3 }, pc_lemon: { stage: 4, priority: 3 }, pc_in_not_on: { stage: 4, priority: 3 },
+  pc_two_paths: { stage: 4, priority: 3 }, pc_next_year: { stage: 4, priority: 3 }, pc_if_you_could: { stage: 4, priority: 3 }, pc_cost: { stage: 4, priority: 3 },
+  pc_agenda: { stage: 5, priority: 1 }, pc_questions: { stage: 5, priority: 1 }, pp_homework: { stage: 5, priority: 1 }, pp_partner: { stage: 5, priority: 2 },
+  pc_partner: { stage: 5, priority: 3 }, pc_before_call: { stage: 5, priority: 1 },
+};
+export const PRECALL_STAGES = ['', 'Your plan', 'How it works', 'The opportunity', 'The doubts', 'Show up ready'] as const;
+const arcOf = (t: string) => PRECALL_ARC[t] ?? { stage: 4, priority: 3 };
+
+/**
+ * The pre-call run for one lead, in send order: the application-specific emails (their business, blockers,
+ * numbers, industry, booking answers) plus the general ones, following the arc. With a limit, the most
+ * important are kept (priority, then arc order) and still sent in arc order; the checklist is always last.
+ */
+export function precallPlan(lead: Lead, limit = Infinity): string[] {
   const prep = prepTemplates(buildDossier(lead));
-  const out: string[] = [];
-  const general = [...PRECALL_TEMPLATES];
-  out.push(...prep.splice(0, 2));
-  while (prep.length || general.length) {
-    if (general.length) out.push(general.shift()!);
-    if (prep.length) out.push(prep.shift()!);
-  }
-  return out;
+  // The general "bring your partner" email is redundant when their own partner email is in.
+  const general = PRECALL_TEMPLATES.filter((t) => !(t === 'pc_partner' && prep.includes('pp_partner')));
+  const all = [...prep, ...general].map((t, i) => ({ t, i, ...arcOf(t) }));
+  const keep = [...all].sort((a, b) => a.priority - b.priority || a.stage - b.stage || a.i - b.i).slice(0, Math.max(0, limit));
+  return keep.sort((a, b) => a.stage - b.stage || (a.t === 'pc_before_call' ? 1 : b.t === 'pc_before_call' ? -1 : 0) || a.i - b.i).map((x) => x.t);
 }
 
-/** Local send times (hours) for the barrage; fewer per day picks evenly from these. */
-export const PRECALL_SLOTS = [7.5, 9.5, 12, 14.5, 17, 19.5];
 
 const booked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
 /** In the room for the session they're booked into (not an earlier one). */

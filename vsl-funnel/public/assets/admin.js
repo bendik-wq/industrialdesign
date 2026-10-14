@@ -243,7 +243,7 @@
     links: { group: 'Traffic', title: 'Links & videos', sub: 'One tracked link per video and placement, followed to closed deals.', more: 'One tracked link per video and placement, followed all the way from click to booked call to closed deal.', render: renderLinks, filters: ['range'] },
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
     data: { group: 'Traffic', title: 'Data partner page', sub: 'Who visited the data-buyer referral page, and who claimed a valuation.', more: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData, filters: ['range'] },
-    emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmails, filters: ['range'] },
+    emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
     sms: { group: 'Follow-up', title: 'SMS & WhatsApp', sub: 'Text and WhatsApp sequences: wording, timing and links.', more: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
     voice: { group: 'Follow-up', title: 'AI calls', sub: 'Outbound confirmations and inbound calls: transcripts, recordings, outcomes.', more: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice, filters: ['range'] },
     team: { group: 'Setup', title: 'Reps & routing', sub: 'Who takes calls, which tiers they get, and where the team gets pinged.', more: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
@@ -1865,6 +1865,72 @@
     });
     var pal = view.querySelector('[data-new]');
     pal.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/plain', 'new'); });
+  }
+
+  // ───────────── Pre-call flow (top of Emails) ─────────────
+  var PC_STAGE_CLS = ['', 'st1', 'st2', 'st3', 'st4', 'st5'];
+  var pcState = { hours: 30 };
+  function renderEmailsWithFlow() {
+    return renderEmails().then(function () {
+      var box = document.createElement('div');
+      box.className = 'card pcflow';
+      box.innerHTML = '<p class="loading-note">Loading the pre-call flow…</p>';
+      view.insertBefore(box, view.firstChild);
+      loadPrecallFlow(box);
+    });
+  }
+  function loadPrecallFlow(box) {
+    fetch('/admin/api/precall-flow', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.scenarios) { box.innerHTML = '<p class="muted">Couldn’t load the pre-call flow.</p>'; return; }
+      drawPrecallFlow(box, d);
+    });
+  }
+  function pcLabel(h) { return h < 48 ? 'Call in ' + h + ' hours' : 'Call in ' + Math.round(h / 24) + ' days'; }
+  function drawPrecallFlow(box, d) {
+    var sc = d.scenarios.filter(function (x) { return x.hours === pcState.hours; })[0] || d.scenarios[2] || d.scenarios[0];
+    var tz = d.tz;
+    var dayFmt = function (t) { try { return new Date(t).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short', timeZone: tz }); } catch (e) { return new Date(t).toLocaleDateString(); } };
+    var timeFmt = function (t) { try { return new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: tz }); } catch (e) { return new Date(t).toLocaleTimeString(); } };
+    var items = sc.emails.map(function (e) { return { at: e.at, kind: 'pc', e: e }; })
+      .concat(sc.reminders.map(function (r) { return { at: r.at, kind: 'rem', e: r }; }))
+      .concat([{ at: sc.callAt, kind: 'call', e: { subject: 'Strategy call' } }])
+      .sort(function (a, b) { return a.at - b.at; });
+    var days = [], byDay = {};
+    items.forEach(function (it) { var k = dayFmt(it.at); if (!byDay[k]) { byDay[k] = []; days.push(k); } byDay[k].push(it); });
+    var personal = sc.emails.filter(function (e) { return e.personal; }).length;
+    var card = function (it) {
+      if (it.kind === 'call') return '<li class="pc-item pc-call"><span class="pc-time">' + esc(timeFmt(it.at)) + '</span><strong>📞 The call</strong></li>';
+      var e = it.e;
+      return '<li class="pc-item ' + (it.kind === 'rem' ? 'pc-rem' : PC_STAGE_CLS[e.stage]) + '" data-pcview="' + esc(e.template) + '" tabindex="0" role="button" title="Preview this email">' +
+        '<span class="pc-time">' + esc(timeFmt(it.at)) + '</span>' +
+        '<span class="pc-subj">' + esc(e.subject) + '</span>' +
+        '<span class="pc-meta">' + (it.kind === 'rem' ? 'reminder' : esc(d.stages[e.stage] || '') + (e.personal ? ' · <b>from their application</b>' : '')) + '</span></li>';
+    };
+    box.innerHTML =
+      '<div class="pc-head"><div><h2>Pre-call flow</h2><p class="sub">What a booked lead gets between booking and the call: <b>' + n(sc.emails.length) + ' pre-call emails</b> (' + n(personal) + ' written from their own application) plus ' + n(sc.reminders.length) + ' reminders. ' +
+      'Spread over 7am–9pm their time, at least 30–45 minutes apart, ' + n(d.limits.min) + '–' + n(d.limits.max) + ' emails, at most ' + n(d.limits.perDay) + ' a day; stops 2¼ hours before the call or as soon as they cancel. Example: ' + esc(d.lead.name) + (d.lead.sample ? '' : ' (a real recent applicant)') + ', ' + esc(tz) + '.</p></div>' +
+      '<div class="row pc-scen">' + d.scenarios.map(function (x) { return '<button class="btn-sm' + (x.hours === sc.hours ? '' : ' ghost') + '" data-pch="' + x.hours + '">' + esc(pcLabel(x.hours)) + '<span class="muted"> · ' + n(x.emails.length) + '</span></button>'; }).join('') + '</div></div>' +
+      '<div class="pc-legend">' + [1, 2, 3, 4, 5].map(function (i) { return '<span class="' + PC_STAGE_CLS[i] + '"><i></i>' + esc(d.stages[i]) + '</span>'; }).join('') + '<span class="pc-rem"><i></i>Reminders</span></div>' +
+      '<div class="pc-days">' + days.map(function (k) { return '<section class="pc-day"><h3>' + esc(k) + '<span class="muted"> · ' + n(byDay[k].filter(function (x) { return x.kind === 'pc'; }).length) + ' emails</span></h3><ol>' + byDay[k].map(card).join('') + '</ol></section>'; }).join('') + '</div>' +
+      '<div class="pc-preview" data-pcout hidden></div>' +
+      '<p class="muted pc-foot">Change the numbers in <a href="#integrations" data-go="integrations">Integrations → Email</a> (Pre-call emails: at least / at most / most in one day). A call booked further out gets the fuller story; a short-notice call gets the most important emails, still in order.</p>';
+    box.querySelectorAll('[data-pch]').forEach(function (b) { b.onclick = function () { pcState.hours = Number(b.getAttribute('data-pch')); drawPrecallFlow(box, d); }; });
+    var open = function (el) {
+      var t = el.getAttribute('data-pcview'), out = box.querySelector('[data-pcout]');
+      box.querySelectorAll('.pc-item.on').forEach(function (x) { x.classList.remove('on'); }); el.classList.add('on');
+      out.hidden = false; out.innerHTML = '<p class="loading-note">Loading the email…</p>';
+      fetch('/admin/api/precall-flow/email?template=' + encodeURIComponent(t), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (e) {
+        if (e.error) { out.innerHTML = '<p class="muted">' + esc(e.error) + '</p>'; return; }
+        out.innerHTML = '<div class="row pc-prev-head"><strong>' + esc(e.subject) + '</strong><span class="muted mono">' + esc(t) + '</span><button class="btn-sm ghost" data-pcclose>Close</button></div><iframe class="email-preview" sandbox title="Email preview"></iframe>';
+        out.querySelector('iframe').srcdoc = e.html;
+        out.querySelector('[data-pcclose]').onclick = function () { out.hidden = true; el.classList.remove('on'); };
+        out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    };
+    box.querySelectorAll('[data-pcview]').forEach(function (el) {
+      el.onclick = function () { open(el); };
+      el.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(el); } };
+    });
   }
 
   function renderEmails() {

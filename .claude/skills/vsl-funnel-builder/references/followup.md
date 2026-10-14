@@ -46,3 +46,10 @@ Copy blocks keyed by answer:
 - **Every template must render with an empty application** (dashboard preview, imports). Use fallbacks, never `!`. Tests assert: no "undefined", "null" or "NaN" in output, subjects unique across all templates and under 80 characters, no "free call".
 - **Escape lead-written text** (why_now, business, booking answers, names) before putting it into email HTML.
 - When a template already quotes the application, tell the personaliser to skip the answer facts (`ANSWER_FACTS`) so it doesn't repeat them.
+
+## Pre-call flow (10–20 emails between booking and the call)
+- `precallTimes(now, callAt, tz, perDay, max, min)`: spread evenly over 7am–9pm local time between 45 minutes after booking and 2¼ hours before the call. They're 45 minutes apart (30 only when needed to reach `min`), never within 45 minutes of the 48h/24h/3h reminders, and capped per day. On the booking day it also allows sends up to 90 minutes after booking, until 11pm.
+- `precallPlan(lead, limit)`: the email order follows a 5-stage arc: Your plan (from the application) → How it works → The opportunity → The doubts → Show up ready. Each email has a priority (`PRECALL_ARC`). With a limit, it keeps the highest priorities but sends them in arc order, and the "before we talk" checklist always goes last.
+- Settings: `PRECALL_EMAILS_MIN` (10), `PRECALL_EMAILS_MAX` (20), `PRECALL_EMAILS_PER_DAY` (12; 0 = off).
+- Real data from the original build: 40% of calls were booked less than 24 hours ahead. Fixed daily slots left those people with 2–5 emails, which is why the flow is time-adaptive.
+- Funnel HQ → Emails → "Pre-call flow" shows the timeline for calls 6h / 20h / 30h / 2 days / 5 days out, with a preview of each email.

@@ -375,7 +375,7 @@ export const TEMPLATES: Record<string, Template> = {
     ps: c.rescheduleUrl ? `Need to move it? <a href="${c.link(c.rescheduleUrl)}">Pick a new time here</a>.` : waLine(c, 'Need to move it? Message me on WhatsApp'),
   }),
   call_3h: (c) => ({
-    subject: c.callTime ? `today at ${c.callTime}` : 'we’re talking today',
+    subject: c.callTime ? `we’re talking today (${c.callTime.replace(/^\w+ \d+ \w+ at /, '')})` : 'we’re talking today',
     preheader: 'A few hours to go.',
     body: [
       `${c.name}, we’re on in a few hours${c.callTime ? ` (${c.callTime})` : ''}.`,
@@ -671,6 +671,71 @@ export const TEMPLATES: Record<string, Template> = {
       'Hit reply and tell me. We’ll make sure it’s answered on the call.',
     ],
     ps: waLine(c, 'Or send it on WhatsApp'),
+  }),
+
+  pc_walkthrough: (c) => ({
+    subject: 'a deal, start to finish (illustrative numbers)',
+    preheader: 'How the stack covers more than the price.',
+    body: [
+      `${c.name}, here’s how a deal like the ones we’ll talk about fits together. The numbers are illustrative, not a promise, but the shape is real.`,
+      'The target: a competitor making $500k a year in profit. Agreed price: $1.5M.<br>Senior debt from a lender: $1.0M.<br>Seller note (the owner gets paid over time): $600k.<br>That’s $1.6M of funding for a $1.5M price: the extra $100k is working capital.',
+      'The test that matters: the business’s profit has to cover all the repayments about 1.5 times over. If it doesn’t, we restructure or walk away.',
+      'On the call we’ll run this same sketch on your business and your market.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+    ps: 'Illustrative example only. Every deal is different and nothing here is financial advice.',
+  }),
+  pc_90_days: (c) => ({
+    subject: 'what the first 90 days look like',
+    preheader: 'From target list to a signed LOI.',
+    body: [
+      `${c.name}, if we work together, here’s the shape of the first 90 days:`,
+      '<b>Weeks 1–2:</b> your acquisition criteria and a target list (the businesses down the road, not broker listings).<br><b>Weeks 3–6:</b> outreach and first conversations with owners.<br><b>Weeks 7–10:</b> the numbers on the best one or two, and the financing structure.<br><b>Weeks 11–13:</b> the offer and a signed letter of intent.',
+      'You keep running your business the whole time. We do it with you, not for you, so you know every step.',
+    ],
+    cta: { label: 'See how it works →', href: c.link('/breakout') },
+  }),
+  pc_target: (c) => ({
+    subject: 'the business you should buy is probably down the road',
+    preheader: 'What a good first target looks like.',
+    body: [
+      `${c.name},`,
+      'The best first acquisition is rarely exciting. It usually looks like this:',
+      '• Same industry, or one your customers already buy from.<br>• Close enough that you can share staff, suppliers or a warehouse.<br>• An owner in their 50s or 60s with no clear exit.<br>• Steady profit, not a turnaround.',
+      'You probably know two or three businesses like that already. Bring their names to the call if you do.',
+    ],
+    ps: 'Hit reply with the first one that comes to mind. Just the type of business is fine.',
+  }),
+  pc_myths: (c) => ({
+    subject: '5 things owners get wrong about buying a business',
+    preheader: 'Most of what you’ve heard is about the wrong kind of deal.',
+    body: [
+      `${c.name}, five myths we hear on almost every call:`,
+      '1. <b>“You need millions in cash.”</b> The right structure uses debt and seller finance.<br>2. <b>“Good businesses aren’t for sale.”</b> Most aren’t listed. They’re sold to someone who asked.<br>3. <b>“It will take over my life.”</b> You’re buying a team, not a job.<br>4. <b>“Banks won’t touch it.”</b> They fund structures that pass the coverage test.<br>5. <b>“It’s for private equity, not people like me.”</b> Owners like you are often the best buyer: you know the industry.',
+      'We’ll go through whichever ones are on your mind.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_not_for: (c) => ({
+    subject: 'who this isn’t for',
+    preheader: 'We’d rather tell you now.',
+    body: [
+      `${c.name}, in fairness to your time, this isn’t a fit if:`,
+      '• Your own business isn’t profitable yet. Fix that first.<br>• You want someone to do it all for you. We do it with you.<br>• You’re after a quick flip. These are long-term plays.<br>• You aren’t willing to talk to other owners. That’s where the deals come from.',
+      'If none of those are you, the call will be worth your time. If one is, tell me and we’ll be honest about whether to keep the time.',
+    ],
+    ps: waLine(c, 'Questions first? WhatsApp me'),
+  }),
+  pc_before_call: (c) => ({
+    subject: `before we talk${c.callTime ? `: ${c.callTime}` : ''}`,
+    preheader: 'Three things to have ready.',
+    body: [
+      `${c.name}, a quick checklist so we can use the time well${c.callTime ? ` on ${c.callTime}` : ''}:`,
+      '1. Last year’s revenue and profit, roughly.<br>2. Any debt the business carries, roughly.<br>3. One or two businesses you’d love to own (or the type).',
+      'Join from a laptop if you can, somewhere quiet. If there’s a business partner or spouse in the decision, bring them.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+    ps: 'Need to move the time? Use the link in your booking confirmation.',
   }),
 
   // ── Behaviour-triggered (one-off, rewritten per person by the personaliser) ──
