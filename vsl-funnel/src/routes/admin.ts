@@ -55,7 +55,16 @@ admin.get('/meta', (c) =>
   }),
 );
 
-admin.get('/overview', async (c) => c.json(await overview(c.env, filters(c))));
+admin.get('/overview', async (c) => {
+  const f = filters(c);
+  const out: any = await overview(c.env, f);
+  // Read-only extra for the Overview email card: how many of the "sent" emails were only simulated (no Resend key), so a 0% open rate can be explained.
+  try {
+    const r = await c.env.DB.prepare(`SELECT SUM(status = 'simulated') AS simulated, SUM(status = 'sent') AS real FROM emails WHERE sent_at BETWEEN ? AND ?`).bind(f.from, f.to).first<any>();
+    if (out && out.kpis) { out.kpis.emails_simulated = Number(r?.simulated) || 0; out.kpis.emails_real = Number(r?.real) || 0; }
+  } catch { /* leave the fields absent */ }
+  return c.json(out);
+});
 // Past calls for quick outcome logging (Sales → Call log).
 admin.get('/sales/calls', async (c) => {
   const tier = c.req.query('tier') || '';

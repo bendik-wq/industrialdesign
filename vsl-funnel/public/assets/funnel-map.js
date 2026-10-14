@@ -44,11 +44,11 @@
     { id: 'booked', kind: 'page', x: 1760, y: 170, title: 'Call booked', sub: 'Calendly + webhook', tab: 'sales', stat: 'booked',
       how: 'Signed Calendly webhook + hourly sync: bookings, reschedules, cancellations, no-shows. Host becomes the closer. All follow-up starts here.' },
     { id: 'call', kind: 'people', x: 2060, y: 170, title: 'Strategy call', sub: '30 min, by video', tab: 'sales', stat: 'showed',
-      how: 'Closer gets pinged 15 minutes before with the lead’s details and how much of the video they watched. Outcome is logged in Sales → Call log.' },
+      how: 'Closer gets pinged 15 minutes before with the lead’s details and how much of the video they watched. Outcome is logged in Calls & deals → Call log.' },
     { id: 'won', kind: 'people', x: 2340, y: 60, title: 'Won', sub: 'Deal + payments', tab: 'sales', stat: 'won',
       how: 'Deal value, payments ledger (cash collected, instalments, refunds), contract date and the 90-day LOI countdown. 🎉 ping to the wins channel; Purchase sent to Meta.' },
     { id: 'lost', kind: 'people', x: 2340, y: 200, title: 'Lost', sub: 'With the reason', tab: 'sales',
-      how: 'Lost reason and main objection are logged and show up in Insights.' },
+      how: 'Lost reason and main objection are logged and show up in Calls & deals → Why deals are lost.' },
     { id: 'noshow', kind: 'people', x: 2340, y: 340, title: 'No-show', sub: '7 rebook emails + AI call', tab: 'sales', stat: 'noshow',
       how: 'Seven rebooking emails over 14 days, written from their application (their goal, their blocker, the numbers we were going to run), plus an AI call to offer a new time. Team is pinged. Calendly no-show marks sync in too.' },
     { id: 'rebookcall', kind: 'auto', x: 2620, y: 340, title: 'AI rebook call', sub: 'No-shows · consent only', tab: 'voice',
@@ -102,7 +102,7 @@
     { id: 'wmail', kind: 'auto', x: 620, y: 1100, title: 'Webinar emails', sub: 'Reminders, then came / missed', tab: 'emails',
       how: 'Confirmation with calendar links, reminders 24h / 3h / 15m before, “we’ve started”, then a different follow-up for people who came (next step: apply) and who missed it (the replay), and a few emails pointing to the application. Stops once they apply or book.' },
     { id: 'hq', kind: 'data', x: 2060, y: 660, title: 'Funnel HQ', sub: 'You are here', tab: 'overview',
-      how: 'Every number on this map, live. Sales, Insights, Landing pages & tests, On-page behaviour, Leads.' },
+      how: 'Every number on this map, live. Calls & deals, Best leads, Landing pages & tests, On-page behaviour, Leads.' },
   ];
 
   var EDGES = [

@@ -14,38 +14,54 @@
   <div class="shell">
     <aside class="side">
       <div class="logo"><i></i>Funnel HQ</div>
-      <nav data-nav aria-label="Dashboard sections">
-        <button data-tab="overview" aria-current="page">Overview</button>
-        <button data-tab="map">Funnel map</button>
-        <button data-tab="vsl">VSL</button>
-        <button data-tab="links">Links &amp; videos</button>
-        <button data-tab="traffic">Traffic &amp; ads</button>
-        <button data-tab="webinar">Webinar</button>
-        <button data-tab="pages">Landing pages &amp; tests</button>
-        <button data-tab="behaviour">On-page behaviour</button>
-        <button data-tab="application">Application</button>
-        <button data-tab="sales">Sales team</button>
-        <button data-tab="insights">Insights</button>
-        <button data-tab="team">Team</button>
-        <button data-tab="leads">Leads</button>
-        <button data-tab="emails">Emails</button>
-        <button data-tab="sms">SMS &amp; WhatsApp</button>
-        <button data-tab="data">Data page</button>
-        <button data-tab="screens">All pages</button>
-        <button data-tab="voice">Voice</button>
-        <button data-tab="tracking">Tracking</button>
-        <button data-tab="live">Live <span class="live-dot" aria-hidden="true"></span></button>
-        <button data-tab="integrations">Integrations</button>
-      </nav>
-      <div class="foot">
-        <a class="btn-sm ghost" href="/" target="_blank" rel="noopener">Open funnel ↗</a>
-        <button type="button" data-theme-toggle>Theme: auto</button>
-        <form method="post" action="/admin/logout"><button type="submit" style="width:100%">Log out</button></form>
+      <button type="button" class="nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="side-menu"><span aria-hidden="true">☰</span> <span data-nav-current>Overview</span></button>
+      <div class="side-menu" id="side-menu">
+        <form class="nav-search" data-nav-search role="search"><input type="search" name="q" placeholder="Find a lead…  /" aria-label="Find a lead by name, email, phone or ref" autocomplete="off"></form>
+        <nav data-nav aria-label="Dashboard sections">
+          <div class="nav-group"><p class="nav-h">Today</p>
+            <button data-tab="overview" aria-current="page">Overview</button>
+            <button data-tab="live">Live <span class="live-dot" aria-hidden="true"></span></button>
+          </div>
+          <div class="nav-group"><p class="nav-h">Sell</p>
+            <button data-tab="leads">Leads</button>
+            <button data-tab="sales">Calls &amp; deals <span class="nav-badge" data-nav-badge="sales" hidden></span></button>
+            <button data-tab="insights">Best leads</button>
+          </div>
+          <div class="nav-group"><p class="nav-h">Funnel</p>
+            <button data-tab="map">Funnel map</button>
+            <button data-tab="screens">Page previews</button>
+            <button data-tab="pages">Landing pages &amp; tests</button>
+            <button data-tab="vsl">Video (VSL)</button>
+            <button data-tab="application">Application</button>
+            <button data-tab="behaviour">On-page behaviour</button>
+          </div>
+          <div class="nav-group"><p class="nav-h">Traffic</p>
+            <button data-tab="traffic">Traffic &amp; ads</button>
+            <button data-tab="links">Links &amp; videos</button>
+            <button data-tab="webinar">Webinar</button>
+            <button data-tab="data">Data partner page</button>
+          </div>
+          <div class="nav-group"><p class="nav-h">Follow-up</p>
+            <button data-tab="emails">Emails</button>
+            <button data-tab="sms">SMS &amp; WhatsApp</button>
+            <button data-tab="voice">AI calls</button>
+          </div>
+          <div class="nav-group"><p class="nav-h">Setup</p>
+            <button data-tab="team">Reps &amp; routing</button>
+            <button data-tab="integrations">Integrations</button>
+            <button data-tab="tracking">Ad tracking</button>
+          </div>
+        </nav>
+        <div class="foot">
+          <a class="btn-sm ghost" href="/" target="_blank" rel="noopener">Open funnel ↗</a>
+          <button type="button" data-theme-toggle>Theme: auto</button>
+          <form method="post" action="/admin/logout"><button type="submit" style="width:100%">Log out</button></form>
+        </div>
       </div>
     </aside>
     <main class="content">
       <div class="page-head">
-        <div><h1 data-title>Overview</h1><p data-subtitle></p></div>
+        <div><p class="eyebrow" data-eyebrow>Today</p><h1 data-title>Overview</h1><p data-subtitle></p><details class="page-more" data-more hidden><summary>How this works</summary><p data-more-text></p></details></div>
       </div>
       <div class="filters" data-filters>
         <div class="seg" role="group" aria-label="Date range" data-range>

@@ -9,6 +9,8 @@
   var filtersEl = document.querySelector('[data-filters]');
   var state = { tab: 'overview', days: 30, filters: {}, meta: null, leadsQuery: { q: '', tier: '', status: '', page: 0, sort: 'created' } };
   var liveTimer = null;
+  var routing = false; // true while route() drives go(), so Back never pushes a new entry
+  var lastHash = location.hash;
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   var nf = new Intl.NumberFormat();
@@ -148,15 +150,38 @@
   function barList(rows, o) {
     o = o || {};
     var max = Math.max.apply(null, rows.map(function (r) { return r.value; }).concat([o.max || 0, 1]));
+    // Room kept free for the longest value label, so every bar is drawn on the same scale.
+    var reserve = Math.max(84, Math.round(Math.max.apply(null, rows.map(function (r) { return String((o.fmt || n)(r.value)).length + (r.note ? String(r.note).length + 1 : 0); }).concat([0])) * 7.2) + 16);
     return '<div class="bars ' + (o.cls || '') + '">' + rows.map(function (r) {
-      var w = Math.max(r.value ? 0.4 : 0, (r.value / max) * 100);
-      return '<div class="bar-row"><div class="name" title="' + esc(r.name) + '">' + esc(r.name) + '</div><div class="bar-track"><div class="bar-fill" style="width:calc(' + w.toFixed(2) + '% - 70px)' + (r.color ? ';background:' + r.color : '') + '"></div><span class="bar-val">' + esc((o.fmt || n)(r.value)) + (r.note ? '<small>' + esc(r.note) + '</small>' : '') + '</span></div></div>' +
-        (r.rate != null ? '<div class="bar-row"><span></span><p class="step-rate">↓ ' + esc(r.rate) + '</p></div>' : '');
+      // Bar length is honest: the share of the largest value, of the space left after the value label.
+      var f = max ? Math.max(0, r.value || 0) / max : 0;
+      return '<div class="bar-row"><div class="name" title="' + esc(r.name) + '">' + esc(r.name) + '</div><div class="bar-track"><div class="bar-fill' + (r.value ? '' : ' zero') + '" style="width:calc((100% - ' + reserve + 'px) * ' + f.toFixed(4) + ')' + (r.color ? ';background:' + r.color : '') + '"></div><span class="bar-val">' + esc((o.fmt || n)(r.value)) + (r.note ? '<small>' + esc(r.note) + '</small>' : '') + '</span></div></div>' +
+        (r.rate != null ? '<div class="bar-row"><span></span><p class="step-rate' + (r.rateWarn ? ' warn' : '') + '"' + (r.rateTitle ? ' title="' + esc(r.rateTitle) + '"' : '') + '>↓ ' + esc(r.rate) + '</p></div>' : '');
     }).join('') + '</div>';
   }
 
-  function tile(label, value, hint) {
-    return '<div class="tile"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div>' + (hint ? '<div class="hint">' + esc(hint) + '</div>' : '') + '</div>';
+  /** Stat tile. Words (names, "Off", "Not connected", "–") and long values get a calmer size; numbers stay big. With goTab it becomes a link to that tab. */
+  function tile(label, value, hint, goTab, delta) {
+    var v = String(value);
+    var long = v !== '–' && (v.length > 12 || !/^[\s\d.,%$A-Z€£+\-–x×]*\d/.test(v)); // a lone dash keeps the number size, so tiles line up
+    var dir = delta && delta.text ? ({ up: 'up', down: 'down', flat: 'flat' })[delta.dir] || 'flat' : '';
+    // Nothing yet (0, 0%, –, A$0, "0 clicks", "0 min"): same size, quieter colour, so real numbers stand out.
+    // delta.zeroOk: a rate where 0 is good news (0% cancel rate, 0% bounce) keeps its normal colour.
+    var zero = v === '–' || (!(delta && delta.zeroOk) && (v === '0' || v === '0%' || v === '0.0%' || v === money(0) || v === '0 clicks' || v === '0 min' || v === '0s'));
+    var inner = '<div class="label">' + esc(label) + '</div><div class="' + (long ? 'value value-text' : 'value') + (zero ? ' value-zero' : '') + '">' + esc(value) + '</div>' +
+      (dir ? '<div class="delta ' + dir + '">' + esc(delta.text) + '</div>' : '') + (hint ? '<div class="hint">' + esc(hint) + '</div>' : '');
+    if (goTab) return '<a class="tile tile-link" href="#' + esc(goTab) + '" data-go="' + esc(goTab) + '"' + (TABS[goTab] ? ' title="' + esc('Open ' + TABS[goTab].title) + '"' : '') + ' aria-label="' + esc(label + ': ' + value + ', open details') + '">' + inner + '<span class="tile-go" aria-hidden="true">→</span></a>';
+    return '<div class="tile">' + inner + '</div>';
+  }
+
+  /** Lead status as a coloured pill (won green, booked blue, partial amber, lost outlined). Text unchanged. */
+  function statusPill(s, label) {
+    return '<span class="pill st-' + esc(String(s || '').replace(/[^a-z_]/gi, '')) + '">' + esc(label || s || '–') + '</span>';
+  }
+
+  /** The one calm empty state used everywhere. */
+  function emptyState(msg, hint) {
+    return '<div class="empty"><div>' + esc(msg) + '</div>' + (hint ? '<div class="empty-hint">' + esc(hint) + '</div>' : '') + '</div>';
   }
 
   function tierStack(a, b, c) {
@@ -167,51 +192,180 @@
       }).join('') + '</div><div class="legend"><span><i style="background:var(--tier-a)"></i>A · qualified ' + n(a) + ' (' + pct(a / t) + ')</span><span><i style="background:var(--tier-b)"></i>B · mid-fit ' + n(b) + ' (' + pct(b / t) + ')</span><span><i style="background:var(--tier-c)"></i>C · nurture ' + n(c) + ' (' + pct(c / t) + ')</span></div>';
   }
 
+  /** Tier badge. No tier: a dashed "step N" only for unfinished applications; anyone else (e.g. booked straight on Calendly) gets a muted "no tier". */
+  function tierCell(l) {
+    if (l.tier) return '<span class="tier ' + esc(l.tier) + '">' + esc(l.tier) + '</span>';
+    if (l.status === 'partial') {
+      var st = Number(l.step_reached) || 0;
+      return st > 0 ? '<span class="tier partial" title="' + esc('Left the application at step ' + st) + '">step ' + esc(st) + '</span>' : '<span class="tier partial" title="Opened the application but didn’t answer the first question">not started</span>';
+    }
+    return '<span class="muted no-tier" title="' + (l.status === 'booked' ? 'Booked without finishing the application' : 'No tier: the application wasn’t finished') + '">no tier</span>';
+  }
+
   function table(cols, rows, o) {
     o = o || {};
-    if (!rows.length) return '<div class="empty">No data in this range yet.</div>';
-    return '<div class="table-wrap"><table><thead><tr>' + cols.map(function (c) { return '<th class="' + (c.num ? 'num' : '') + '">' + esc(c.label) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    if (!rows.length) return emptyState(o.empty || 'No data in this range yet.', o.emptyHint);
+    // o.cards: on a phone each row becomes a small card, every cell labelled with its column (data-label); cards: 3 packs the values three across.
+    // o.feed: on a phone each row becomes two lines (what happened · when, then who / where / source / device), for streams.
+    return '<div class="table-wrap' + (o.cards ? ' tcards' + (o.cards === 3 ? ' tcards-3' : '') : '') + (o.feed ? ' tfeed' : '') + '"><table><thead><tr>' + cols.map(function (c) { return '<th class="' + (c.num ? 'num' : '') + (c.nw ? ' nw' : '') + '">' + esc(c.label) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       rows.map(function (r) {
-        return '<tr' + (o.rowAttr ? ' ' + o.rowAttr(r) : '') + '>' + cols.map(function (c) { return '<td class="' + (c.num ? 'num' : '') + '">' + (c.html ? c.html(r) : esc(c.fmt ? c.fmt(r[c.key], r) : r[c.key])) + '</td>'; }).join('') + '</tr>';
+        return '<tr' + (o.rowAttr ? ' ' + o.rowAttr(r) : '') + '>' + cols.map(function (c) {
+          var body, zero = false;
+          if (c.html) {
+            body = c.html(r);
+            zero = !!c.num && !c.zeroOk && ZERO_CELL.test(String(body));
+          } else {
+            var txt = c.fmt ? c.fmt(r[c.key], r) : r[c.key];
+            body = esc(txt);
+            // A number column with nothing in it (0, 0%, A$0, –) reads quieter, so the real numbers stand out.
+            zero = !!c.num && !c.zeroOk && ZERO_CELL.test(String(txt));
+          }
+          return '<td class="' + (c.num ? 'num' : '') + (c.nw ? ' nw' : '') + (zero ? ' zero' : '') + '" data-label="' + esc(c.label) + '">' + body + '</td>';
+        }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>';
   }
+  var ZERO_CELL = /^(A?\$0(\.00)?|0(\.0)?%?|0s|–|-)$/;
 
   // ───────────── tabs ─────────────
   var TABS = {
-    overview: { title: 'Overview', sub: 'Every step from ad click to closed deal.', render: renderOverview },
-    map: { title: 'Funnel map', sub: 'How everything fits together: every page, decision and automation from ad click to closed deal, with live numbers. Drag to rearrange, click any box to see how it works, and add your own steps.', render: renderMap },
-    vsl: { title: 'VSL analytics', sub: 'Who watches, where they drop, and when they reach the pitch.', render: renderVsl },
-    links: { title: 'Links & YouTube videos', sub: 'One tracked link per video and placement, followed all the way from click to booked call to closed deal.', render: renderLinks },
-    traffic: { title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
-    application: { title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
-    sales: { title: 'Sales team', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales },
-    sms: { title: 'SMS & WhatsApp', sub: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
-    screens: { title: 'All pages', sub: 'Every page in the funnel, in order, live. Previews never count as visits, never fire ad pixels and can’t submit anything.', render: renderScreens, noFilters: true },
-    data: { title: 'Data page', sub: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData },
-    webinar: { title: 'Webinar', sub: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar },
-    pages: { title: 'Landing pages & tests', sub: 'Every page people land on, and every headline being tested: the main page’s A/B test plus 100 industry landers (20 industries × 5 headlines). Each visit is traced to applications, bookings and cash.', render: renderLanders },
-    behaviour: { title: 'On-page behaviour', sub: 'What people click, where the form slows them down, where they leave, what they re-read and highlight. Nothing anyone types is ever recorded.', render: renderBehaviour },
-    insights: { title: 'Insights', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
-    team: { title: 'Team', sub: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
-    leads: { title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads },
-    emails: { title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmails },
-    tracking: { title: 'Server-side tracking', sub: 'Every conversion sent to Meta (Conversions API) and GA4 from the server: delivery, retries and match quality.', render: renderTracking },
-    voice: { title: 'Voice agent', sub: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice },
-    live: { title: 'Live', sub: 'Real-time activity across the funnel (refreshes every 5 seconds).', render: renderLive, noFilters: true },
-    integrations: { title: 'Integrations', sub: 'Connect email, WhatsApp, calendars, analytics and ad platforms.', render: renderIntegrations, noFilters: true },
+    overview: { group: 'Today', title: 'Overview', sub: 'Every step from ad click to closed deal.', render: renderOverview },
+    live: { group: 'Today', title: 'Live', sub: 'Real-time activity across the funnel (refreshes every 5 seconds).', render: renderLive, noFilters: true },
+    leads: { group: 'Sell', title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads, filters: ['range', 'channel'] },
+    sales: { group: 'Sell', title: 'Calls & deals', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here.', more: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales, filters: ['range'] },
+    insights: { group: 'Sell', title: 'Best leads', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
+    map: { group: 'Funnel', title: 'Funnel map', sub: 'Every page, decision and automation, with live numbers.', more: 'How everything fits together: every page, decision and automation from ad click to closed deal, with live numbers. Drag to rearrange, click any box to see how it works, and add your own steps.', render: renderMap },
+    screens: { group: 'Funnel', title: 'Page previews', sub: 'Every page in the funnel, in order, live.', more: 'Every page in the funnel, in order, live. Previews never count as visits, never fire ad pixels and can’t submit anything.', render: renderScreens, noFilters: true },
+    pages: { group: 'Funnel', title: 'Landing pages & tests', sub: 'Every landing page and headline test, traced to cash.', more: 'Every page people land on, and every headline being tested: the main page’s A/B test plus 100 industry landers (20 industries × 5 headlines). Each visit is traced to applications, bookings and cash.', render: renderLanders },
+    vsl: { group: 'Funnel', title: 'Video (VSL)', sub: 'Who watches, where they drop, and when they reach the pitch.', render: renderVsl },
+    application: { group: 'Funnel', title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
+    behaviour: { group: 'Funnel', title: 'On-page behaviour', sub: 'What people click, where the form slows them down and where they leave.', more: 'What people click, where the form slows them down, where they leave, what they re-read and highlight. Nothing anyone types is ever recorded.', render: renderBehaviour, filters: ['range'] },
+    traffic: { group: 'Traffic', title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
+    links: { group: 'Traffic', title: 'Links & videos', sub: 'One tracked link per video and placement, followed to closed deals.', more: 'One tracked link per video and placement, followed all the way from click to booked call to closed deal.', render: renderLinks, filters: ['range'] },
+    webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
+    data: { group: 'Traffic', title: 'Data partner page', sub: 'Who visited the data-buyer referral page, and who claimed a valuation.', more: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData, filters: ['range'] },
+    emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmails, filters: ['range'] },
+    sms: { group: 'Follow-up', title: 'SMS & WhatsApp', sub: 'Text and WhatsApp sequences: wording, timing and links.', more: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
+    voice: { group: 'Follow-up', title: 'AI calls', sub: 'Outbound confirmations and inbound calls: transcripts, recordings, outcomes.', more: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice, filters: ['range'] },
+    team: { group: 'Setup', title: 'Reps & routing', sub: 'Who takes calls, which tiers they get, and where the team gets pinged.', more: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
+    integrations: { group: 'Setup', title: 'Integrations', sub: 'Connect email, WhatsApp, calendars, analytics and ad platforms.', render: renderIntegrations, noFilters: true },
+    tracking: { group: 'Setup', title: 'Ad tracking', sub: 'Every conversion sent from the server to Meta and GA4, and whether it arrived.', more: 'Every conversion sent to Meta (Conversions API) and GA4 from the server: delivery, retries and match quality.', render: renderTracking, filters: ['range'] },
   };
 
-  function go(tab) {
+  var eyebrowEl = document.querySelector('[data-eyebrow]');
+  var moreEl = document.querySelector('[data-more]');
+  var moreTextEl = document.querySelector('[data-more-text]');
+  var navCurrentEl = document.querySelector('[data-nav-current]');
+  var navToggleEl = document.querySelector('[data-nav-toggle]');
+  var clearBtn = document.querySelector('[data-clear]');
+
+  /** Every history write goes through here, so route() can tell our own writes from Back/Forward. */
+  // Entries the dashboard writes are marked, so route() can tell Back / Forward (marked) from a hash typed into the address bar (unmarked).
+  function setHash(method, hash) { history[method]({ hq: 1 }, '', hash); lastHash = location.hash; }
+  function markEntry() { try { if (!(history.state && history.state.hq)) history.replaceState({ hq: 1 }, '', location.href); } catch (e) { /* ignore */ } }
+
+  /** Remove any open drawer (lead or visitor) without touching history. */
+  function closeDrawers() {
+    document.querySelectorAll('.drawer, .drawer-bg').forEach(function (el) { if (el.__teardown) el.__teardown(); el.remove(); });
+  }
+
+  function setNavOpen(open) {
+    document.body.classList.toggle('nav-open', open);
+    if (navToggleEl) navToggleEl.setAttribute('aria-expanded', String(open));
+  }
+
+  /** Keep the active nav item (and its group heading, when it is the first in its group) inside the nav's scroll box. */
+  function revealActiveNav() {
+    var nav = document.querySelector('[data-nav]');
+    var btn = nav && nav.querySelector('button[aria-current="page"]');
+    if (!btn || nav.scrollHeight <= nav.clientHeight) return;
+    var prev = btn.previousElementSibling;
+    var top = (prev && prev.classList.contains('nav-h') ? prev : btn).getBoundingClientRect().top;
+    var bottom = btn.getBoundingClientRect().bottom;
+    var box = nav.getBoundingClientRect();
+    if (top < box.top + 14) nav.scrollTop -= box.top + 14 - top;
+    else if (bottom > box.bottom - 26) nav.scrollTop += bottom - (box.bottom - 26);
+  }
+
+  /** Fade the nav's top / bottom edge only when there is more to scroll in that direction. */
+  function updateNavFade() {
+    var nav = document.querySelector('[data-nav]');
+    if (!nav) return;
+    nav.classList.toggle('fade-top', nav.scrollTop > 2);
+    nav.classList.toggle('fade-bottom', nav.scrollHeight - nav.clientHeight - nav.scrollTop > 2);
+  }
+
+  function go(tab, opts) {
+    closeDrawers();
+    // Stop page previews before their view is replaced, so third-party scripts inside them end cleanly.
+    view.querySelectorAll('.screen-frame iframe').forEach(function (f) { f.src = 'about:blank'; });
     if (tab === 'experiments' || tab === 'landers') tab = 'pages';
     if (!TABS[tab]) tab = 'overview';
+    var T = TABS[tab];
     state.tab = tab;
+    state.leadsQuery._focus = false; // a fresh visit never grabs the keyboard
     clearInterval(liveTimer);
     document.querySelectorAll('[data-nav] button').forEach(function (b) { b.setAttribute('aria-current', b.getAttribute('data-tab') === tab ? 'page' : 'false'); });
-    titleEl.textContent = TABS[tab].title;
-    subtitleEl.textContent = TABS[tab].sub;
-    filtersEl.style.display = TABS[tab].noFilters ? 'none' : '';
-    if (location.hash.indexOf('#lead=') !== 0) history.replaceState(null, '', '#' + tab);
+    titleEl.textContent = T.title;
+    subtitleEl.textContent = T.sub;
+    if (eyebrowEl) eyebrowEl.textContent = T.group || '';
+    if (moreEl) { moreTextEl.textContent = T.more || ''; moreEl.hidden = !T.more; moreEl.open = false; }
+    if (navCurrentEl) navCurrentEl.textContent = T.title;
+    setNavOpen(false);
+    filtersEl.style.display = T.noFilters ? 'none' : '';
+    var f = T.filters;
+    var rangeEl = filtersEl.querySelector('[data-range]');
+    if (rangeEl) rangeEl.style.display = !f || f.indexOf('range') > -1 ? '' : 'none';
+    filtersEl.querySelectorAll('select[data-filter]').forEach(function (sel) { sel.style.display = !f || f.indexOf(sel.getAttribute('data-filter')) > -1 ? '' : 'none'; });
+    updateFilterCue();
+    if (!routing) {
+      var h = '#' + tab;
+      // A lead hash left over from a drawer that go() just closed is replaced, never stacked.
+      if (location.hash.indexOf('#lead=') === 0) setHash('replaceState', h);
+      else if (location.hash !== h) setHash(opts && opts.replace ? 'replaceState' : 'pushState', h);
+      // A fresh navigation starts at the top of the page; Back / Forward keep the browser's position.
+      window.scrollTo(0, 0);
+    }
+    revealActiveNav();
+    updateNavFade();
     load();
+  }
+
+  /** Back / Forward / a hash typed into the address bar: show what the URL says. */
+  function route() {
+    if (location.hash === lastHash) return; // popstate and hashchange both fire for one change
+    lastHash = location.hash;
+    var typed = !(history.state && history.state.hq); // a new entry from the address bar, not Back / Forward
+    markEntry();
+    var h = location.hash.slice(1);
+    if (h.indexOf('lead=') === 0) {
+      var id = decodeURIComponent(h.slice(5));
+      var open = document.querySelector('.drawer[data-lead]');
+      if (open && open.getAttribute('data-lead') === id) return;
+      var hadDrawer = !!document.querySelector('.drawer');
+      closeDrawers();
+      if (state.tab !== 'leads' && !hadDrawer) { routing = true; go('leads'); routing = false; }
+      openLead(id, { fromRoute: true });
+      return;
+    }
+    closeDrawers();
+    if ((h || 'overview') !== state.tab) {
+      routing = true; go(h || 'overview'); routing = false;
+      if (typed) window.scrollTo(0, 0); // a typed hash is a fresh visit: start at the top
+    }
+  }
+
+  /** How many filters (visible on this tab) are narrowing the numbers; tints the bar and relabels Reset. */
+  function updateFilterCue() {
+    var count = 0;
+    filtersEl.querySelectorAll('select[data-filter]').forEach(function (sel) {
+      var v = state.filters[sel.getAttribute('data-filter')];
+      sel.classList.toggle('on', !!v);
+      if (v && sel.style.display !== 'none') count++;
+    });
+    // On Leads, the search box and the tier / status pickers in the list count too, so Reset clears them as well.
+    if (state.tab === 'leads') ['tier', 'status', 'q'].forEach(function (k) { if (state.leadsQuery[k]) count++; });
+    filtersEl.classList.toggle('is-filtered', count > 0);
+    if (clearBtn) clearBtn.textContent = count ? 'Clear filters (' + count + ')' : 'Reset';
   }
 
   function load() {
@@ -240,6 +394,11 @@
     });
   }
 
+  /** A per-visitor rate that can pass 100% when some people's visits weren't tracked: say so instead of printing 140%. */
+  function capRate(v, why) {
+    if (v == null || !isFinite(v)) return '–';
+    return v > 1 ? '<span title="' + esc(why || 'Includes claims from people whose visit wasn’t tracked') + '">100%+</span>' : esc(pct(v));
+  }
   var ANGLE_LABEL = { cash: 'Cash', recap: 'Recapitalise', debt: 'Pay down debt', revenue: 'New revenue', curious: 'Curiosity' };
   function headlineCard(d) {
     var t = d.test || {}, rows = (d.headlines || []).slice();
@@ -257,8 +416,8 @@
       table([
         { label: 'Headline', html: function (r) { return esc(r.text) + '<div class="muted"><span class="mono">' + esc(r.id) + '</span> · ' + esc(ANGLE_LABEL[r.angle] || r.angle) + ' · <a href="' + esc(d.url) + '/?h=' + esc(r.id) + '" target="_blank" rel="noopener">preview</a></div>'; } },
         { label: 'Visitors', key: 'visitors', num: true, fmt: n },
-        { label: 'Clicked claim', num: true, html: function (r) { return esc(n(r.clicked)) + '<div class="muted">' + esc(r.clickRate == null ? '–' : pct(r.clickRate)) + '</div>'; } },
-        { label: 'Claims', num: true, html: function (r) { return esc(n(r.claims)) + '<div class="muted">' + esc(r.rate == null ? '–' : pct(r.rate)) + '</div>'; } },
+        { label: 'Clicked claim', num: true, html: function (r) { return esc(n(r.clicked)) + '<div class="muted">' + capRate(r.clickRate) + '</div>'; } },
+        { label: 'Claims', num: true, html: function (r) { return esc(n(r.claims)) + '<div class="muted">' + capRate(r.rate) + '</div>'; } },
         { label: 'Chance best', html: function (r) { return bar(r.best); } },
         { label: 'Traffic now', html: function (r) { return pinned ? (r.id === pinned.id ? '100%' : '0%') : t.mode === 'even' ? '5%' : bar(r.share); } },
         { label: '', html: function (r) { return r.id === t.mode ? '<span class="pill">pinned</span>' : '<button class="btn-sm ghost" data-hlmode="' + esc(r.id) + '">Pin</button>'; } },
@@ -305,17 +464,20 @@
   function renderData() {
     return api('data').then(function (d) {
       var f = d.funnel || {}, v = f.visitors || 0;
+      // Claims can come from a direct link whose visit wasn't tracked, so a share can't honestly go over 100%.
+      var share = function (x) { x = x || 0; return v && x <= v ? pct(x / v) + ' of visitors' : 'more than tracked visitors (some came from a direct link)'; };
+      var claims = d.claims || [];
+      var fu = claims.filter(function (c) { return !c.redirected; }).length;
       var when = function (t) { return new Date(t).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
       view.innerHTML =
         (d.referral ? '' : '<div class="card notice" style="margin-bottom:14px"><strong>No partner referral link yet.</strong> Claims are saved here and pinged to the team; add the link under Integrations → Data so people go straight to ' + esc(d.partner) + ' after claiming.</div>') +
-        '<div class="grid g-4">' +
+        '<div class="grid g-4 tiles">' +
         tile('Visitors', n(v), n(f.views) + ' page views') +
-        tile('Watched the video', n(f.played), pct(v ? (f.played || 0) / v : null) + ' of visitors') +
-        tile('Clicked “Claim”', n(f.cta), pct(v ? (f.cta || 0) / v : null) + ' of visitors') +
-        tile('Claimed a valuation', n(f.claims), pct(v ? (f.claims || 0) / v : null) + ' of visitors') +
+        tile('Watched the video', n(f.played), share(f.played)) +
+        tile('Clicked “Claim”', n(f.cta), share(f.cta)) +
+        tile('Claimed a valuation', n(f.claims), share(f.claims)) +
         '</div>' +
-        headlineCard(d) +
-        '<div class="card" style="margin-top:14px"><h2>Claims</h2><p class="sub">Page: <a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(String(d.url).replace(/^https?:\/\//, '')) + '</a> · partner: ' + esc(d.partner) + (d.referral ? ' · sends people to <span class="mono">' + esc(d.referral) + '</span>' : '') + '</p>' +
+        '<div class="card" style="margin-top:14px"><h2>' + esc('Claims · ' + n(claims.length) + (fu ? ' · ' + n(fu) + ' need follow-up' : '')) + '</h2><p class="sub">Page: <a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(String(d.url).replace(/^https?:\/\//, '')) + '</a> · partner: ' + esc(d.partner) + (d.referral ? ' · sends people to <span class="mono">' + esc(d.referral) + '</span>' : '') + '</p>' +
         table([
           { label: 'When', html: function (r) { return esc(when(r.created_at)); } },
           { label: 'Name', key: 'first_name' },
@@ -324,8 +486,9 @@
           { label: 'Revenue', html: function (r) { return esc(r.revenue || '–') + (r.business_status && r.business_status !== 'Trading' ? '<div><span class="pill">' + esc(r.business_status) + '</span></div>' : ''); } },
           { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
           { label: 'Source', html: function (r) { return esc([r.channel, r.utm_source, r.utm_campaign].filter(Boolean).join(' · ') || '–'); } },
-          { label: 'Sent to partner', html: function (r) { return r.redirected ? '✓' : '<span class="muted">follow up</span>'; } },
-        ], d.claims || [], { rowAttr: function (r) { return r.visitor_id ? 'class="click" data-visitor="' + esc(r.visitor_id) + '" tabindex="0" title="See everything they did"' : ''; } }) + '</div>' +
+          { label: 'Sent to partner', html: function (r) { return r.redirected ? '✓' : '<span class="pill st-partial">Needs follow-up</span>'; } },
+        ], claims, { rowAttr: function (r) { return r.visitor_id ? 'class="click" data-visitor="' + esc(r.visitor_id) + '" tabindex="0" title="See everything they did"' : ''; } }) + '</div>' +
+        headlineCard(d) +
         '<div class="card" style="margin-top:14px"><h2>Recent visitors</h2><p class="sub">Everyone on the data page, newest first: what they scrolled, clicked, read and whether they claimed. Click a row for their full journey. Anonymous until they claim; then you see who they are.</p>' +
         table([
           { label: 'Last seen', html: function (r) { return esc(when(r.last_ts)) + (r.visits > 1 ? '<div class="muted">' + esc(n(r.visits)) + ' visits</div>' : ''); } },
@@ -352,12 +515,12 @@
       var mins = function (s) { return s ? Math.round(s / 60) + ' min' : '–'; };
       view.innerHTML =
         (st.placeholderVideo ? '<div class="card notice" style="margin-bottom:14px"><strong>Using the VSL as a placeholder recording.</strong> Add your webinar recording under Integrations → Webinar (WEBINAR_VIDEO_SRC).</div>' : '') +
-        '<div class="grid g-4">' +
-        tile('Registrations', n(regs), n(k.people) + ' people') +
+        '<div class="grid g-4 tiles">' +
+        tile('Registrations', n(regs), n(k.people) + (k.people === 1 ? ' person' : ' people')) +
         tile('Show rate', pct(regs ? (k.attended || 0) / regs : null), n(k.attended) + ' attended · ' + n(k.replays) + ' watched the replay') +
         tile('Avg time watched', mins(k.avg_watch_s), 'of attendees') +
         tile('Clicked the offer', n(k.cta), pct(k.attended ? (k.cta || 0) / k.attended : null) + ' of attendees') +
-        '</div><div class="grid g-4" style="margin-top:14px">' +
+        '</div><div class="grid g-4 tiles" style="margin-top:14px">' +
         tile('Applied', n(k.applied), pct(regs ? (k.applied || 0) / regs : null) + ' of registrants') +
         tile('Booked a call', n(k.booked), pct(regs ? (k.booked || 0) / regs : null) + ' of registrants') +
         tile('Won', n(k.won), money(k.revenue)) +
@@ -366,11 +529,11 @@
         '<div class="grid g-2" style="margin-top:14px">' +
         '<div class="card"><h2>Upcoming sessions</h2><p class="sub">Weekly sessions are created automatically from the schedule in Integrations → Webinar. Add a one-off or live session below.</p>' +
         table([
-          { label: 'Starts', html: function (r) { return esc(when(r.starts_at)) + (r.status === 'cancelled' ? ' <span class="pill">cancelled</span>' : ''); } },
+          { label: 'Starts', nw: true, html: function (r) { return esc(when(r.starts_at)) + (r.status === 'cancelled' ? ' <span class="pill">cancelled</span>' : ''); } },
           { label: 'Type', html: function (r) { return esc(MODE[r.mode] || r.mode) + (r.auto ? ' <span class="muted">· weekly</span>' : ''); } },
           { label: 'Registered', key: 'registrations', num: true, fmt: n },
           { label: '', html: function (r) { return r.status === 'cancelled' ? '' : '<button class="btn-sm ghost" data-cancel="' + esc(r.id) + '">Cancel &amp; move people</button>'; } },
-        ], d.upcoming || []) +
+        ], d.upcoming || [], { cards: true }) +
         '<form class="wform" data-wform style="margin-top:14px"><h3 class="h3">Add a session</h3>' +
         '<label>Date &amp; time <input class="input" type="datetime-local" name="starts_at" required></label>' +
         '<label>Type <select class="input" name="mode"><option value="evergreen">Recording played in sync</option><option value="stream">Live in our own room (Cloudflare Stream)</option><option value="live">Live on Zoom / YouTube (join link)</option></select></label>' +
@@ -394,7 +557,7 @@
           { label: 'Source', html: function (r) { return esc([r.channel, r.utm_campaign].filter(Boolean).join(' / ') || 'Direct'); } },
           { label: 'Came', html: function (r) { return r.joined_at ? '✓ ' + mins(r.watch_seconds) : r.replay_at ? 'replay' : '–'; } },
           { label: 'Offer', html: function (r) { return r.cta_at ? '✓' : ''; } },
-          { label: 'Next', html: function (r) { return r.status === 'won' ? 'won' : r.booked_at ? 'booked' : r.app_completed_at ? 'applied' + (r.tier ? ' (' + esc(r.tier) + ')' : '') : ''; } },
+          { label: 'Next', html: function (r) { return r.status === 'won' ? statusPill('won') : r.booked_at ? statusPill('booked') : r.app_completed_at ? statusPill('applied', 'applied' + (r.tier ? ' (' + r.tier + ')' : '')) : ''; } },
         ], d.registrants || [], { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>';
       view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
       view.querySelectorAll('[data-cancel]').forEach(function (b) {
@@ -415,29 +578,103 @@
     });
   }
 
+  /** "Needs attention" strip on Overview: the few things worth doing today, each a link. */
+  function attentionHtml(k, sl, extra) {
+    var chips = [], x = extra || {};
+    if (sl && sl.needsOutcome && sl.needsOutcome.length) {
+      var c = sl.needsOutcome.length;
+      chips.push('<a class="chip warn" href="#sales" data-go="sales"><b>' + esc(n(c)) + '</b> ' + (c === 1 ? 'past call needs an outcome' : 'past calls need an outcome') + '</a>');
+    }
+    if (sl && sl.upcoming && sl.upcoming.length) {
+      var u = sl.upcoming[0];
+      var rep = u.closer_id ? reps().filter(function (r) { return r.id === u.closer_id; })[0] : null;
+      chips.push('<a class="chip" href="#lead=' + esc(u.id) + '" data-open="' + esc(u.id) + '">' + esc('Next call: ' + when(u.call_at) + ' · ' + personName(u) + (rep ? ' with ' + rep.name : '')) + '</a>');
+    }
+    var aOpen = x.aOpen || 0, partial = x.partial || 0;
+    if (aOpen > 0) chips.push('<a class="chip warn" href="#leads" data-go="leads" data-tier="A" data-status="applied"><b>' + esc(n(aOpen)) + '</b> A-tier ' + (aOpen === 1 ? 'lead hasn’t' : 'leads haven’t') + ' booked yet</a>');
+    if (partial > 0) chips.push('<a class="chip" href="#leads" data-go="leads" data-status="partial"><b>' + esc(n(partial)) + '</b> unfinished ' + (partial === 1 ? 'application' : 'applications') + ' to chase</a>');
+    if (x.simEmails) chips.push('<a class="chip" href="#integrations" data-go="integrations">Emails aren’t really sending yet: connect them</a>');
+    if (!chips.length) return '<div class="attention calm" data-attention><span class="status-dot" style="background:var(--good)" aria-hidden="true"></span> All caught up: no calls to log and no hot leads waiting.</div>';
+    return '<div class="attention" data-attention><span class="attention-h">Needs attention</span>' + chips.join('') + '</div>';
+  }
+
+  /** "vs previous period" line for a count tile: ▲ 12% / ▼ 8% / flat. Null when there's nothing honest to compare. */
+  function periodLabel() { return state.days === 1 ? 'day' : state.days + ' days'; }
+  function dCount(cur, prev) {
+    if (prev == null) return null;
+    cur = Number(cur) || 0; prev = Number(prev) || 0;
+    if (prev === 0) return cur ? { text: 'none in prev ' + periodLabel(), dir: 'flat' } : null; // nothing to compare with: say so quietly
+    var ch = (cur - prev) / prev;
+    if (!isFinite(ch)) return null;
+    if (Math.abs(ch) < 0.02) return { text: 'no change vs prev ' + periodLabel(), dir: 'flat' };
+    return { text: (ch > 0 ? '▲ ' : '▼ ') + pct(Math.abs(ch)) + ' vs prev ' + periodLabel(), dir: ch > 0 ? 'up' : 'down' };
+  }
+  /** Same for a rate tile, in percentage points. */
+  function dRate(cur, prev) {
+    if (cur == null || prev == null || !isFinite(cur) || !isFinite(prev)) return null;
+    var raw = (cur - prev) * 100, pts = Math.abs(raw) < 1 ? Math.round(raw * 10) / 10 : Math.round(raw); // small rates keep one decimal
+    if (!pts) return { text: 'no change vs prev ' + periodLabel(), dir: 'flat' };
+    return { text: (pts > 0 ? '+' : '−') + Math.abs(pts) + ' pts vs prev ' + periodLabel(), dir: pts > 0 ? 'up' : 'down' };
+  }
+
   function renderOverview() {
-    return api('overview').then(function (d) {
+    var r = range();
+    var cheap = { page: 0, sort: 'created', channel: state.filters.channel || '', from: r.from, to: r.to }; // same query the Leads tab runs
+    var withPrev = state.days < 3650;
+    return Promise.all([
+      api('overview'), api('sales').catch(function () { return null; }),
+      fetchLeads(Object.assign({ tier: 'A', status: 'applied' }, cheap)).catch(function () { return null; }),
+      fetchLeads(Object.assign({ status: 'partial' }, cheap)).catch(function () { return null; }),
+      withPrev ? api('overview', { from: Math.max(1, r.from - (r.to - r.from)), to: r.from }).catch(function () { return null; }) : null,
+    ]).then(function (res) {
+      var d = res[0], sl = res[1];
       var k = d.kpis;
+      var pk = res[4] && res[4].kpis ? res[4].kpis : null;
+      var dc = function (f) { return pk ? dCount(k[f], pk[f]) : null; };
+      // A rate compared with a period that had no visitors at all isn't a change, it's an absence: show nothing.
+      var dr = function (f) { return pk && Number(pk.visitors) > 0 ? dRate(k[f], pk[f]) : null; };
+      if (sl && sl.needsOutcome) setNavBadge('sales', sl.needsOutcome.length);
+      var unlogged = sl && sl.needsOutcome ? sl.needsOutcome.length : 0;
+      // Every email in range was only simulated (no email provider connected): rates would read a meaningless 0%. Older APIs lack the fields → normal card.
+      var simOnly = k.emails_simulated > 0 && k.emails_real === 0;
+      var last = d.funnel.length - 1;
       var funnelRows = d.funnel.map(function (s, i) {
-        var prev = i ? d.funnel[i - 1].n : 0;
-        return { name: s.label, value: s.n, note: i ? pct(d.funnel[0].n ? s.n / d.funnel[0].n : 0) + ' of landing' : '', rate: i < d.funnel.length - 1 && s.n ? pct(d.funnel[i + 1].n / s.n) + ' continue' : null, _prev: prev };
+        var row = { name: s.label, value: s.n, note: i ? pct(d.funnel[0].n ? s.n / d.funnel[0].n : 0) + ' of landing' : '', rate: null };
+        if (i < last && s.n > 0) {
+          var nx = d.funnel[i + 1].n;
+          if (nx > s.n) { row.rate = pct(nx / s.n) + ' reach the next step · some people skip this step'; row.rateTitle = 'More people reached the next step than this one: steps are tracked separately, so not everyone passes through each one.'; }
+          else { row.rate = pct(nx / s.n) + ' continue'; row.rateWarn = nx / s.n < 0.5; }
+        }
+        return row;
       });
+      // Booked → next step: past calls with no outcome logged count as "not continuing" until someone logs them, so don't flag that as a real drop.
+      var bookRow = funnelRows.filter(function (row) { return /book/i.test(row.name); })[0];
+      if (unlogged > 0 && bookRow && bookRow.rate) {
+        bookRow.rateWarn = false;
+        bookRow.rate += ' · ' + n(unlogged) + (unlogged === 1 ? ' call' : ' calls') + ' not logged yet';
+        bookRow.rateTitle = 'Calls that have passed without an outcome count as not continuing until they are logged on Calls & deals.';
+      }
       view.innerHTML =
-        '<div class="grid g-4">' +
-        tile('Visitors', n(k.visitors), n(k.sessions) + ' sessions · ' + pct(k.bounce_rate) + ' bounce') +
-        tile('VSL play rate', pct(k.play_rate), pct(k.unmute_rate) + ' unmuted · avg ' + pct(k.avg_watch_pct) + ' watched') +
-        tile('Applications', n(k.applications), n(k.leads) + ' leads · ' + pct(k.app_completion_rate) + ' finish the form') +
-        tile('Calls booked', n(k.booked), pct(k.booking_rate) + ' of qualified · ' + pct(k.show_rate) + ' show rate') +
-        '</div><div class="grid g-4" style="margin-top:14px">' +
-        tile('Opt-in rate', pct(k.opt_in_rate, 1), 'Contact details / landing visitors') +
-        tile('Pitch reached', pct(k.pitch_rate), 'Of plays reach the CTA moment') +
-        tile('Revenue', money(k.revenue), n(k.won) + ' won · ' + money(k.revenue_per_visitor) + ' / visitor') +
-        tile('WhatsApp', n(k.whatsapp_clicks) + ' clicks', n(k.whatsapp_connected) + ' connected via ref code') +
+        attentionHtml(k, sl, { aOpen: (res[2] && res[2].total) || 0, partial: (res[3] && res[3].total) || 0, simEmails: simOnly }) +
+        '<div class="grid g-4 tiles">' +
+        tile('Visitors', n(k.visitors), n(k.sessions) + ' sessions · ' + pct(k.bounce_rate) + ' bounce', 'traffic', dc('visitors')) +
+        tile('VSL play rate', pct(k.play_rate), pct(k.unmute_rate) + ' unmuted · avg ' + pct(k.avg_watch_pct) + ' watched', 'vsl', dr('play_rate')) +
+        tile('Applications', n(k.applications), n(k.leads) + ' leads · ' + pct(k.app_completion_rate) + ' finish the form', 'application', dc('applications')) +
+        tile('Calls booked', n(k.booked), 'booked in range · ' + pct(k.booking_rate) + ' of qualified · ' + pct(k.show_rate) + ' show rate' + (unlogged ? ' · ' + n(unlogged) + ' not logged' : ''), 'sales', dc('booked')) +
+        '</div><div class="grid g-4 tiles" style="margin-top:14px">' +
+        tile('Opt-in rate', pct(k.opt_in_rate, 1), 'Contact details / landing visitors', 'application', dr('opt_in_rate')) +
+        tile('Pitch reached', pct(k.pitch_rate), 'Of plays reach the CTA moment', 'vsl', dr('pitch_rate')) +
+        tile('Revenue', money(k.revenue), n(k.won) + ' won · ' + money(k.revenue_per_visitor) + ' / visitor', 'sales', dc('revenue')) +
+        tile('WhatsApp', n(k.whatsapp_clicks) + ' clicks', n(k.whatsapp_connected) + ' connected via ref code', 'sms') +
         '</div>' +
-        '<div class="grid g-2" style="margin-top:14px">' +
-        '<div class="card"><h2>Funnel</h2><p class="sub">Unique people reaching each step in this range.</p>' + barList(funnelRows, { cls: 'funnel' }) + '</div>' +
-        '<div class="grid"><div class="card"><h2>Lead quality</h2><p class="sub">Applications by routing tier · average score ' + n(k.avg_score) + '</p>' + tierStack(k.tier_a, k.tier_b, k.tier_c) + '</div>' +
-        '<div class="card"><h2>Email</h2><p class="sub">' + n(k.emails_sent) + ' sent in range</p><div class="grid g-2">' + tile('Open rate', pct(k.email_open_rate), 'Apple MPP inflates opens') + tile('Click rate', pct(k.email_click_rate)) + '</div></div></div>' +
+        '<div class="grid g-2 g-top" style="margin-top:14px">' +
+        '<div class="card"><div class="card-head"><div><h2>Funnel</h2><p class="sub">Unique people reaching each step in this range.</p></div><a class="btn-sm ghost" href="#map" data-go="map">See it on the map →</a></div>' + barList(funnelRows, { cls: 'funnel' }) + '</div>' +
+        '<div class="grid" style="align-content:start"><div class="card"><div class="card-head"><div><h2>Lead quality</h2><p class="sub">Applications by routing tier · average score ' + n(k.avg_score) + '</p></div><a class="card-link" href="#insights" data-go="insights">Who they are →</a></div>' + tierStack(k.tier_a, k.tier_b, k.tier_c) + '</div>' +
+        // Nothing really sent yet: no empty rate boxes, just one quiet line and the way to connect it.
+        (simOnly ? '<div class="card"><div class="card-head"><div><h2>Email</h2><p class="sub">' + esc(n(k.emails_sent) + ' written · none actually sent yet (email not connected)') + '</p></div><a class="btn-sm ghost" href="#integrations" data-go="integrations">Connect email →</a></div>' +
+          '<p class="muted email-wait">Open and click rates appear here once emails send for real. <a class="card-link" href="#emails" data-go="emails">See the emails →</a></p></div></div>'
+          : '<div class="card"><h2>Email</h2><p class="sub">' + n(k.emails_sent) + ' sent in range</p><div class="grid g-2 tiles">' +
+          tile('Open rate', pct(k.email_open_rate), 'iPhones auto-open some emails, so this runs high', 'emails') + tile('Click rate', pct(k.email_click_rate), null, 'emails') + '</div></div></div>') +
         '</div>' +
         '<h3 class="section-title">Daily trend</h3><div class="grid g-2" data-daily></div>';
       var dailyEl = view.querySelector('[data-daily]');
@@ -460,7 +697,7 @@
       var dur = s.duration || 0;
       view.innerHTML =
         '<div class="row" style="margin-bottom:12px"><div class="seg" data-video>' + videos.map(function (v) { return '<button data-v="' + esc(v.id) + '" aria-pressed="' + (v.id === video) + '">' + esc(v.id.replace('vsl-', '')) + '</button>'; }).join('') + '</div></div>' +
-        '<div class="grid g-4">' + tile('Views (with sound)', n(s.views), n(s.viewers) + ' unique viewers') + tile('Avg watched', pct(s.avg_pct), secs(s.avg_seconds) + ' average watch time') +
+        '<div class="grid g-4 tiles">' + tile('Views (with sound)', n(s.views), n(s.viewers) + ' unique viewers') + tile('Avg watched', pct(s.avg_pct), secs(s.avg_seconds) + ' average watch time') +
         tile('Reached the pitch', pct(s.reveal_rate), d.ctaRevealAt ? 'CTA reveals at ' + secs(d.ctaRevealAt) : 'CTA shown immediately') + tile('Clicked the CTA', pct(s.cta_rate), pct(s.completion_rate) + ' watched to the end') + '</div>' +
         '<div class="card" style="margin-top:14px"><h2>Audience retention</h2><p class="sub">Share of views still watching at each point of the video' + (dur ? ' (' + secs(dur) + ' long)' : '') + '. The line marks the pitch.</p><div class="chart" data-ret></div></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Biggest drop-offs</h2><p class="sub">Where the most viewers leave — re-edit these moments first.</p>' +
@@ -481,25 +718,25 @@
     var dim = state.dim || 'channel';
     return api('attribution', { dim: dim }).then(function (d) {
       var rows = d.rows;
-      var maxQ = Math.max.apply(null, rows.map(function (r) { return r.qualified_rate; }).concat([0.0001]));
+      var maxQ = Math.min(1, Math.max.apply(null, rows.map(function (r) { return r.qualified_rate || 0; }).concat([0.0001])));
       view.innerHTML =
         '<div class="row" style="margin-bottom:12px"><label class="muted" for="dim">Break down by</label><select id="dim" class="input" data-dim>' + dims.map(function (x) { return '<option value="' + esc(x.key) + '"' + (x.key === dim ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('') + '</select><span class="spacer"></span><span class="muted">Leads are attributed to their last non-direct touch before applying.</span></div>' +
         '<div class="card">' + table([
           { label: d.label, html: function (r) { return '<strong>' + esc(r.key) + '</strong>'; } },
           { label: 'Visitors', key: 'visitors', num: true, fmt: n },
-          { label: 'Bounce', key: 'bounce_rate', num: true, fmt: function (v) { return pct(v); } },
+          { label: 'Bounce', key: 'bounce_rate', num: true, zeroOk: true, fmt: function (v) { return pct(v); } },
           { label: 'Engaged', key: 'avg_engaged_s', num: true, fmt: secs },
           { label: 'Leads', key: 'leads', num: true, fmt: n },
           { label: 'Apps', key: 'applications', num: true, fmt: n },
           { label: 'Qualified', key: 'qualified', num: true, fmt: n },
-          { label: 'Qualified / visitor', num: true, html: function (r) { return esc(pct(r.qualified_rate, 1)) + '<span class="inbar" style="width:' + Math.round((r.qualified_rate / maxQ) * 50) + 'px"></span>'; } },
+          { label: 'Qualified / visitor', num: true, html: function (r) { var q = r.qualified_rate || 0; return (q > 1 ? '<span title="Includes leads who booked directly without a tracked visit">100%+</span>' : esc(pct(q, 1))) + '<span class="inbar" style="width:' + Math.round((Math.min(1, q) / maxQ) * 50) + 'px"></span>'; } },
           { label: 'Avg score', key: 'avg_score', num: true, fmt: n },
           { label: 'Booked', key: 'booked', num: true, fmt: n },
           { label: 'Showed', key: 'showed', num: true, fmt: n },
           { label: 'Won', key: 'won', num: true, fmt: n },
           { label: 'Revenue', key: 'revenue', num: true, fmt: money },
           { label: 'Rev / visitor', key: 'revenue_per_visitor', num: true, fmt: money },
-        ], rows) + '</div>' +
+        ], rows, { cards: true }) + '</div>' +
         '<p class="muted" style="margin-top:10px">Tip: tag ads with <span class="mono">utm_source</span>, <span class="mono">utm_campaign</span>, <span class="mono">utm_content={{ad.name}}</span> and <span class="mono">ad_id={{ad.id}}</span> to see quality per ad.</p>';
       view.querySelector('[data-dim]').onchange = function (e) { state.dim = e.target.value; load(); };
     });
@@ -507,12 +744,13 @@
 
   function renderApplication() {
     return api('application').then(function (d) {
-      var first = d.page_views || d.started || 1;
-      var stepRows = [{ name: 'Viewed the application', value: d.page_views }].concat(d.steps.map(function (s) { return { name: s.step + '. ' + s.title, value: s.reached, note: pct(s.reached / first) }; }));
+      // Step 1 = 100%: people can start on the main page's form without ever opening /apply, so page views aren't the base.
+      var base = (d.steps[0] && d.steps[0].reached) || d.started || 1;
+      var stepRows = d.steps.map(function (s) { return { name: s.step + '. ' + s.title, value: s.reached, note: pct(s.reached / base) }; });
       view.innerHTML =
-        '<div class="grid g-4">' + tile('Viewed', n(d.page_views)) + tile('Started (contact given)', n(d.started), pct(d.started / (d.page_views || 1)) + ' of viewers') + tile('Completed', n(d.completed), pct(d.completed / (d.started || 1)) + ' of starters') +
+        '<div class="grid g-4 tiles">' + tile('Viewed', n(d.page_views)) + tile('Started (contact given)', n(d.started), d.started > d.page_views ? 'includes the main-page form' : pct(d.started / (d.page_views || 1)) + ' of viewers') + tile('Completed', n(d.completed), pct(d.completed / (d.started || 1)) + ' of starters') +
         tile('Closer split', d.closers.map(function (c) { return c.name.split(' ')[0] + ' ' + c.leads; }).join(' · ') || '–') + '</div>' +
-        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Step drop-off</h2><p class="sub">People who reached each question.</p>' + barList(stepRows) + '</div>' +
+        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Step drop-off</h2><p class="sub">' + esc('People who reached each question (step 1 = 100%). ' + n(d.page_views) + ' opened the separate /apply page; the rest started on the main page.') + '</p>' + barList(stepRows) + '</div>' +
         '<div class="grid"><div class="card"><h2>Score distribution</h2><p class="sub">Completed applications by score. A ≥ 70, B ≥ 40.</p><div class="chart" data-hist></div></div>' +
         '<div class="card"><h2>Tier caps applied</h2><p class="sub">Hard rules that lowered a lead’s tier.</p>' + table([{ label: 'Reason', key: 'reason' }, { label: 'Leads', key: 'n', num: true, fmt: n }], d.caps) + '</div></div></div>' +
         '<h3 class="section-title">Answers</h3><div class="grid g-2">' + d.distributions.map(function (q) {
@@ -523,36 +761,53 @@
   }
 
   // ── Leads ──
+  var leadsSearchT = null;
   function renderLeads() {
     var q = state.leadsQuery, r = range();
     var params = { q: q.q, tier: q.tier, status: q.status, page: q.page, sort: q.sort, channel: state.filters.channel || '', from: r.from, to: r.to };
     return fetchLeads(params).then(function (d) {
       var statuses = (state.meta && state.meta.statuses) || [];
+      var live = view.querySelector('[data-q]');
+      var typed = live && document.activeElement === live ? live.value : null;
+      if (typed != null) q._caret = live.selectionStart;
       var exportUrl = '/admin/api/export/leads.csv?' + new URLSearchParams(Object.fromEntries(Object.entries(params).filter(function (e) { return e[1] !== '' && e[0] !== 'page'; }))).toString();
       view.innerHTML =
-        '<div class="row" style="margin-bottom:12px"><input class="input" type="search" placeholder="Search name, email, phone or ref" data-q value="' + esc(q.q) + '" style="min-width:260px">' +
-        '<select class="input" data-tier><option value="">All tiers</option><option>A</option><option>B</option><option>C</option></select>' +
-        '<select class="input" data-status><option value="">All statuses</option>' + statuses.map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('') + '</select>' +
-        '<select class="input" data-sort><option value="created">Newest</option><option value="score">Highest score</option><option value="call">Call time</option><option value="updated">Recently updated</option></select>' +
+        '<div class="card"><div class="leads-tools"><input class="input" type="search" placeholder="Search name, email, phone or ref" aria-label="Search leads" data-q value="' + esc(q.q) + '">' +
+        '<select class="input" data-tier aria-label="Tier"><option value="">All tiers</option><option>A</option><option>B</option><option>C</option></select>' +
+        '<select class="input" data-status aria-label="Status"><option value="">All statuses</option>' + statuses.map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('') + '</select>' +
+        '<select class="input" data-sort aria-label="Sort"><option value="created">Newest</option><option value="score">Highest score</option><option value="call">Call time</option><option value="updated">Recently updated</option></select>' +
         '<span class="spacer"></span><span class="muted">' + n(d.total) + ' leads</span><a class="btn-sm ghost" href="' + esc(exportUrl) + '">Export CSV</a></div>' +
-        '<div class="card">' + table([
-          { label: 'Lead', html: function (l) { return '<strong>' + esc([l.first_name, l.last_name].filter(Boolean).join(' ') || '—') + '</strong><div class="muted">' + esc(l.email || '') + '</div>'; } },
-          { label: 'Tier', html: function (l) { return l.tier ? '<span class="tier ' + esc(l.tier) + '">' + esc(l.tier) + '</span>' : '<span class="muted">step ' + esc(l.step_reached) + '</span>'; } },
-          { label: 'Score', key: 'score', num: true, fmt: function (v) { return v == null ? '–' : v; } },
-          { label: 'Status', html: function (l) { return '<span class="pill">' + esc(l.status) + '</span>'; } },
-          { label: 'VSL', key: 'vsl_pct', num: true, fmt: function (v) { return v == null ? '–' : pct(Math.min(1, v)); } },
-          { label: 'Source', html: function (l) { return esc(l.channel || 'Direct') + '<div class="muted">' + esc(l.utm_campaign || '') + (l.utm_content ? ' · ' + esc(l.utm_content) : '') + '</div>'; } },
-          { label: 'Call', html: function (l) { return l.call_at ? esc(when(l.call_at)) : l.booked_at ? 'booked' : '<span class="muted">–</span>'; } },
-          { label: 'WA', html: function (l) { return l.whatsapp_connected_at ? '<span class="ok" title="Connected">●</span>' : l.whatsapp_clicked_at ? '<span title="Clicked">○</span>' : ''; } },
-          { label: 'Country', key: 'country' },
-          { label: 'Created', html: function (l) { return '<span title="' + esc(when(l.created_at)) + '">' + esc(ago(l.created_at)) + '</span>'; } },
-        ], d.rows, { rowAttr: function (l) { return 'class="click" data-lead="' + esc(l.id) + '" tabindex="0"'; } }) + '</div>' +
+        table([
+          { label: 'Lead', html: function (l) { var em = l.email || ''; return '<strong>' + esc([l.first_name, l.last_name].filter(Boolean).join(' ') || '—') + '</strong><div class="muted ell" title="' + esc(em) + '">' + esc(em) + '</div>'; } },
+          { label: 'Tier', nw: true, html: tierCell },
+          { label: 'Score', key: 'score', num: true, nw: true, fmt: function (v) { return v == null ? '–' : v; } },
+          { label: 'Status', nw: true, html: function (l) { return statusPill(l.status); } },
+          { label: 'Video', key: 'vsl_pct', num: true, nw: true, fmt: function (v) { return v == null ? '–' : pct(Math.min(1, v)); } },
+          { label: 'Source', html: function (l) { var sub = (l.utm_campaign || '') + (l.utm_content ? ' · ' + l.utm_content : ''); return esc(l.channel || 'Direct') + '<div class="muted ell" title="' + esc(sub) + '">' + (esc(sub) || '&nbsp;') + '</div>'; } },
+          { label: 'Call', nw: true, html: function (l) { return l.call_at ? esc(when(l.call_at)) : l.booked_at ? 'booked' : '<span class="muted">–</span>'; } },
+          { label: 'WhatsApp', nw: true, html: function (l) { return l.whatsapp_connected_at ? '<span class="pill st-won" title="Connected">connected</span>' : l.whatsapp_clicked_at ? '<span class="pill" title="Clicked">clicked</span>' : ''; } },
+          { label: 'Country', key: 'country', nw: true },
+          { label: 'Created', nw: true, html: function (l) { return '<span title="' + esc(when(l.created_at)) + '">' + esc(ago(l.created_at)) + '</span>'; } },
+        ], d.rows, { rowAttr: function (l) { return 'class="click" data-lead="' + esc(l.id) + '" tabindex="0"'; }, empty: 'No leads match.', emptyHint: q.q || q.tier || q.status ? 'Try clearing the search or filters.' : '' }) + '</div>' +
         '<div class="row" style="margin-top:12px"><button class="btn-sm ghost" data-prev ' + (q.page ? '' : 'disabled') + '>← Prev</button><span class="muted">Page ' + (q.page + 1) + ' of ' + Math.max(1, Math.ceil(d.total / d.pageSize)) + '</span><button class="btn-sm ghost" data-next ' + ((q.page + 1) * d.pageSize < d.total ? '' : 'disabled') + '>Next →</button></div>';
       view.querySelector('[data-tier]').value = q.tier;
       view.querySelector('[data-status]').value = q.status;
       view.querySelector('[data-sort]').value = q.sort;
-      var t;
-      view.querySelector('[data-q]').oninput = function (e) { clearTimeout(t); t = setTimeout(function () { q.q = e.target.value; q.page = 0; load(); }, 300); };
+      // Typing re-renders the list; put the cursor back where it was so the next keystroke lands in the box.
+      var qIn = view.querySelector('[data-q]');
+      if (typed != null && typed !== qIn.value) qIn.value = typed; // keys pressed while the list was loading
+      if (q._focus) { qIn.focus(); var c = q._caret == null ? qIn.value.length : Math.min(q._caret, qIn.value.length); try { qIn.setSelectionRange(c, c); } catch (x) { /* type=search may refuse */ } }
+      qIn.oninput = function (e) {
+        clearTimeout(leadsSearchT);
+        q._focus = true; q._caret = e.target.selectionStart;
+        leadsSearchT = setTimeout(function () {
+          var cur = view.querySelector('[data-q]');
+          if (!cur || state.tab !== 'leads') return;
+          q._focus = document.activeElement === cur; q._caret = cur.selectionStart;
+          q.q = cur.value; q.page = 0; load();
+        }, 300);
+      };
+      qIn.onblur = function () { setTimeout(function () { if (document.activeElement !== qIn && view.contains(qIn)) q._focus = false; }, 0); };
       view.querySelector('[data-tier]').onchange = function (e) { q.tier = e.target.value; q.page = 0; load(); };
       view.querySelector('[data-status]').onchange = function (e) { q.status = e.target.value; q.page = 0; load(); };
       view.querySelector('[data-sort]').onchange = function (e) { q.sort = e.target.value; load(); };
@@ -562,6 +817,7 @@
         row.onclick = function () { openLead(row.getAttribute('data-lead')); };
         row.onkeydown = function (e) { if (e.key === 'Enter') openLead(row.getAttribute('data-lead')); };
       });
+      updateFilterCue();
     });
   }
   function fetchLeads(params) {
@@ -604,15 +860,18 @@
 
   /** One visitor (lead or not): who they are if they claimed, what they did, every action. */
   function openVisitor(id) {
+    closeDrawers();
     var bg = document.createElement('div'); bg.className = 'drawer-bg';
-    var dr = document.createElement('aside'); dr.className = 'drawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-label', 'Visitor journey');
-    dr.innerHTML = '<div class="empty">Loading…</div>';
+    var dr = document.createElement('aside'); dr.className = 'drawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-label', 'Visitor journey'); dr.setAttribute('data-visitor-drawer', id);
+    dr.innerHTML = '<div class="loading-note">Loading…</div>';
     document.body.appendChild(bg); document.body.appendChild(dr);
-    function close() { bg.remove(); dr.remove(); document.removeEventListener('keydown', onKey); }
+    function teardown() { document.removeEventListener('keydown', onKey); }
+    function close() { bg.remove(); dr.remove(); teardown(); if (location.hash !== '#' + state.tab) setHash('replaceState', '#' + state.tab); }
     function onKey(e) { if (e.key === 'Escape') close(); }
+    dr.__teardown = teardown;
     bg.onclick = close; document.addEventListener('keydown', onKey);
     fetch('/admin/api/visitors/' + encodeURIComponent(id), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
-      if (d.error) { dr.innerHTML = '<button class="close" type="button">Close ✕</button><div class="empty">Visitor not found.</div>'; dr.querySelector('.close').onclick = close; return; }
+      if (d.error) { dr.innerHTML = '<div class="drawer-head"><div class="row" style="flex:1;min-width:0"><h2 class="lead-name">Visitor</h2></div><button class="close" type="button" aria-label="Close">Close ✕</button></div><div class="empty">Visitor not found.</div>'; dr.querySelector('.close').onclick = close; return; }
       var c = d.claims[0], v = d.visitor, ev = d.events, showAll = true;
       var P = function (e) { try { return JSON.parse(e.props || '{}'); } catch (x) { return {}; } };
       var count = function (name) { return ev.filter(function (e) { return e.name === name; }).length; };
@@ -625,12 +884,11 @@
       var headline = (ev.filter(function (e) { return e.name === 'page_view' && P(e).headline; })[0] || null);
       var s0 = d.sessions[d.sessions.length - 1] || {};
       var title = c ? (c.first_name + (c.company ? ' · ' + c.company : '')) : d.lead ? d.lead.name : 'Anonymous visitor';
-      dr.innerHTML = '<button class="close" type="button" aria-label="Close">Close ✕</button>' +
-        '<div class="row"><h2 class="lead-name">' + esc(title) + '</h2>' + (c ? '<span class="pill">claimed ' + esc(when(c.created_at)) + '</span>' : '<span class="pill">not signed up</span>') + (c && c.business_status && c.business_status !== 'Trading' ? '<span class="pill">' + esc(c.business_status) + '</span>' : '') + '</div>' +
+      dr.innerHTML = '<div class="drawer-head"><div class="row" style="flex:1;min-width:0"><h2 class="lead-name">' + esc(title) + '</h2>' + (c ? '<span class="pill">claimed ' + esc(when(c.created_at)) + '</span>' : '<span class="pill">not signed up</span>') + (c && c.business_status && c.business_status !== 'Trading' ? '<span class="pill">' + esc(c.business_status) + '</span>' : '') + '</div><button class="close" type="button" aria-label="Close">Close ✕</button></div>' +
         '<p class="muted" style="margin:4px 0 14px">' + esc(c ? [c.email, c.phone, c.website].filter(Boolean).join(' · ') : 'Visitor ' + v.id) + ' · first seen ' + esc(when(v.created_at)) + '</p>' +
         (c ? '<div class="row" style="margin-bottom:14px"><a class="btn-sm ghost" href="mailto:' + esc(c.email) + '">Email</a>' + (c.phone ? '<a class="btn-sm ghost" href="tel:' + esc(c.phone) + '">Call</a>' : '') + '</div>' : '') +
         (d.lead ? '<div class="card notice" style="margin-bottom:14px">Also in the M&amp;A funnel: <strong>' + esc(d.lead.name) + '</strong> (' + esc(d.lead.status) + ', matched by ' + esc(d.lead.how) + '). <button class="btn-sm" data-openlead="' + esc(d.lead.id) + '">Open lead</button></div>' : '') +
-        '<div class="grid g-4">' +
+        '<div class="grid g-4 tiles">' +
         tile('Visits', n(d.sessions.length), [s0.channel, s0.utm_campaign].filter(Boolean).join(' / ') || 'Direct') +
         tile('Time on page', secs(Math.round(engaged / 1000)), 'actively engaged') +
         tile('Scrolled', scroll ? scroll + '%' : '–', 'deepest point') +
@@ -652,18 +910,27 @@
     });
   }
 
-  function openLead(id) {
-    history.replaceState(null, '', '#lead=' + id);
+  function openLead(id, o) {
+    closeDrawers();
+    var pushed = false;
+    if (!(o && o.fromRoute) && location.hash !== '#lead=' + id) { setHash('pushState', '#lead=' + id); pushed = true; }
     var bg = document.createElement('div'); bg.className = 'drawer-bg';
-    var dr = document.createElement('aside'); dr.className = 'drawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-label', 'Lead details');
-    dr.innerHTML = '<div class="empty">Loading…</div>';
+    var dr = document.createElement('aside'); dr.className = 'drawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-label', 'Lead details'); dr.setAttribute('data-lead', id);
+    dr.innerHTML = '<div class="loading-note">Loading…</div>';
     document.body.appendChild(bg); document.body.appendChild(dr);
-    function close() { bg.remove(); dr.remove(); history.replaceState(null, '', '#' + state.tab); document.removeEventListener('keydown', onKey); }
+    function teardown() { document.removeEventListener('keydown', onKey); }
+    function close() {
+      bg.remove(); dr.remove(); teardown();
+      // Opened by a click: step back off the lead entry so Back doesn't reopen it. Opened from the URL: just tidy the URL.
+      if (pushed && location.hash === '#lead=' + id) history.back();
+      else if (location.hash !== '#' + state.tab) setHash('replaceState', '#' + state.tab);
+    }
     function onKey(e) { if (e.key === 'Escape') close(); }
+    dr.__teardown = teardown;
     bg.onclick = close; document.addEventListener('keydown', onKey);
 
     fetch('/admin/api/leads/' + encodeURIComponent(id), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
-      if (d.error) { dr.innerHTML = '<div class="empty">Lead not found.</div>'; return; }
+      if (d.error) { dr.innerHTML = '<div class="drawer-head"><div class="row" style="flex:1;min-width:0"><h2 class="lead-name">Lead</h2></div><button class="close" type="button" aria-label="Close">Close ✕</button></div><div class="empty">Lead not found.</div>'; dr.querySelector('.close').onclick = close; return; }
       var l = d.lead, sc = d.scoring || {};
       var tier = l.tier_override || l.tier;
       var showAll = false;
@@ -671,50 +938,67 @@
       d.sessions.forEach(function (s) { sessionsById[s.id] = s; });
 
       function timeline() { return journeyHtml(d.events, d.sessions, showAll); }
+      // Section chips under the name: only for sections this lead has.
+      var jumps = [['ld-pipeline', 'Pipeline'], ['ld-deal', 'Deal'], ['ld-app', 'Application'], ['ld-video', 'Video'], ['ld-emails', 'Emails']]
+        .concat(d.calendly && d.calendly.length ? [['ld-calendly', 'Bookings']] : [])
+        .concat(d.voice && d.voice.length ? [['ld-calls', 'AI calls']] : [])
+        .concat([['ld-journey', 'Journey']]);
 
       dr.innerHTML =
-        '<button class="close" type="button" aria-label="Close">Close ✕</button>' +
-        '<div class="row"><h2 class="lead-name">' + esc([l.first_name, l.last_name].filter(Boolean).join(' ') || l.email) + '</h2>' + (tier ? '<span class="tier ' + esc(tier) + '">' + esc(tier) + '</span>' : '') + '<span class="pill">score ' + esc(l.score == null ? '–' : l.score) + '</span><span class="pill">ref ' + esc(l.ref_code) + '</span></div>' +
+        '<div class="drawer-head"><div class="row" style="flex:1;min-width:0"><h2 class="lead-name">' + esc([l.first_name, l.last_name].filter(Boolean).join(' ') || l.email) + '</h2>' + (tier ? '<span class="tier ' + esc(tier) + '">' + esc(tier) + '</span>' : '') + (l.status ? statusPill(l.status) : '') + '<span class="pill" title="Lead score out of 100 (A ≥ 70, B ≥ 40)">score ' + esc(l.score == null ? '–' : l.score + '/100') + '</span><span class="pill">ref ' + esc(l.ref_code) + '</span></div><button class="close" type="button" aria-label="Close">Close ✕</button>' +
+        '<nav class="ld-jump" aria-label="Jump to section">' + jumps.map(function (j) { return '<button type="button" data-jump="' + j[0] + '">' + esc(j[1]) + '</button>'; }).join('') + '</nav></div>' +
         '<p class="muted" style="margin:4px 0 14px">' + esc(l.email || '') + (l.phone ? ' · ' + esc(l.phone) : '') + ' · created ' + esc(when(l.created_at)) + '</p>' +
         '<div class="row" style="margin-bottom:14px">' + (l.booking_join_url ? '<a class="btn-sm" target="_blank" rel="noopener" href="' + esc(l.booking_join_url) + '">Join call</a>' : '') + (l.email ? '<a class="btn-sm ghost" href="mailto:' + esc(l.email) + '">Email</a>' : '') + (l.phone ? '<a class="btn-sm ghost" href="tel:' + esc(l.phone) + '">Call</a><a class="btn-sm ghost" target="_blank" rel="noopener" href="https://wa.me/' + esc(String(l.phone).replace(/\D/g, '')) + '">WhatsApp them</a>' : '') + '</div>' +
         '<div class="grid g-2">' +
-        '<div class="card"><h2>Pipeline</h2><div class="grid" style="gap:10px;margin-top:10px">' +
+        '<div class="card" id="ld-pipeline"><h2>Pipeline</h2><div class="pipe-grid">' +
         '<label>Status <select class="input" data-f="status">' + ((state.meta && state.meta.statuses) || []).map(function (s) { return '<option' + (s === l.status ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></label>' +
-        '<label>Tier override <select class="input" data-f="tier_override"><option value="">— (computed: ' + esc(l.tier || 'none') + ')</option><option' + (l.tier_override === 'A' ? ' selected' : '') + '>A</option><option' + (l.tier_override === 'B' ? ' selected' : '') + '>B</option><option' + (l.tier_override === 'C' ? ' selected' : '') + '>C</option></select></label>' +
+        '<label>' + esc('Tier (auto: ' + (l.tier || 'none') + ')') + ' <select class="input" data-f="tier_override"><option value="">' + esc('Use auto tier (' + (l.tier || 'none') + ')') + '</option><option' + (l.tier_override === 'A' ? ' selected' : '') + '>A</option><option' + (l.tier_override === 'B' ? ' selected' : '') + '>B</option><option' + (l.tier_override === 'C' ? ' selected' : '') + '>C</option></select></label>' +
         '<label>Closer ' + repSelect('closer_id', l.closer_id, function (r) { return r.role !== 'setter'; }) + '</label>' +
         '<label>Setter ' + repSelect('setter_id', l.setter_id, function () { return true; }) + '</label>' +
         '<label>Deal value (AUD) <input class="input" type="number" min="0" step="100" data-f="revenue" value="' + esc(l.revenue || 0) + '"></label>' +
         '<label>Cash collected (AUD) <input class="input" type="number" min="0" step="100" data-f="cash_collected" value="' + esc(l.cash_collected || 0) + '"></label>' +
         '<label>Lost reason <select class="input" data-f="lost_reason"><option value="">—</option>' + ((state.meta && state.meta.lostReasons) || []).map(function (r) { return '<option' + (r === l.lost_reason ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('') + '</select></label>' +
-        '<label>Notes<textarea class="notes" data-f="notes">' + esc(l.notes || '') + '</textarea></label>' +
+        '<label class="full">Notes<textarea class="notes" data-f="notes">' + esc(l.notes || '') + '</textarea></label>' +
         '<button class="btn-sm" data-save type="button">Save</button></div></div>' +
         '<div class="card"><h2>Profile</h2><dl class="kv" style="margin-top:10px">' +
-        kv('Closer', repName(l.closer_id)) + kv('Route', l.route) + kv('Call', l.call_at ? when(l.call_at) : l.booked_at ? 'booked (time pending)' : '–') +
+        kv('Closer', repName(l.closer_id)) + kv('Call', l.call_at ? when(l.call_at) : l.booked_at ? 'booked (time pending)' : '–') +
         (l.booking_source === 'calendly-direct' ? kv('Booked via', 'Calendly link directly (not the funnel)') : '') +
         (l.booking_host_email ? kv('Calendly host', l.booking_host_email) : '') +
         (l.booking_answers ? (function () { try { return JSON.parse(l.booking_answers).map(function (x) { return kv(x.q, x.a); }).join(''); } catch (e) { return ''; } })() : '') +
-        kv('Last touch', [l.channel, l.utm_source, l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [l.ft_channel, l.ft_source, l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
-        kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline', l.variant) + kv('Location', [l.city, l.country].filter(Boolean).join(', ')) + kv('Device', l.device) +
+        kv('Location', [l.city, l.country].filter(Boolean).join(', ')) + kv('Device', l.device) +
         kv('WhatsApp', l.whatsapp_connected_at ? 'connected ' + when(l.whatsapp_connected_at) : l.whatsapp_clicked_at ? 'clicked ' + when(l.whatsapp_clicked_at) : (l.whatsapp_opt_in ? 'opted in' : '–')) +
-        kv('Email', l.unsubscribed_at ? 'unsubscribed' : 'subscribed') + kv('Phone calls', l.do_not_call_at ? 'do not call (since ' + when(l.do_not_call_at) + ')' : l.call_consent_at ? 'consented to AI calls ' + when(l.call_consent_at) : 'no call consent') + kv('Visits', d.sessions.length) + '</dl></div></div>' +
+        kv('Email', l.unsubscribed_at ? 'unsubscribed' : 'subscribed') + kv('Phone calls', l.do_not_call_at ? 'do not call (since ' + when(l.do_not_call_at) + ')' : l.call_consent_at ? 'consented to AI calls ' + when(l.call_consent_at) : 'no call consent') + kv('Visits', d.sessions.length) + '</dl>' +
+        // Ad-tracking fields, folded away: useful for checking attribution, not for the call.
+        '<details class="more-rows"><summary>Tracking details</summary><dl class="kv">' +
+        kv('Route', l.route) + kv('Last touch', [l.channel, l.utm_source, l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [l.ft_channel, l.ft_source, l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
+        kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline version', l.variant) + kv('Ref code', l.ref_code) + '</dl></details></div></div>' +
         dealCard(l) +
-        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Application</h2><dl class="kv" style="margin-top:10px">' + d.answers.map(function (a) { return kv(a.question, a.answer); }).join('') + '</dl>' +
+        '<div class="grid g-2" style="margin-top:14px"><div class="card" id="ld-app"><h2>Application</h2><dl class="kv" style="margin-top:10px">' + d.answers.map(function (a) { return kv(a.question, a.answer); }).join('') + '</dl>' +
         (sc.breakdown ? '<p class="sub" style="margin-top:12px">Scoring: ' + esc(sc.breakdown.map(function (b) { return b.question + ' +' + b.points; }).join(', ')) + (sc.caps && sc.caps.length ? ' · capped: ' + esc(sc.caps.join(', ')) : '') + '</p>' : '') + '</div>' +
-        '<div class="card"><h2>Video</h2>' + (d.vsl.length ? d.vsl.map(function (v) {
+        '<div class="card" id="ld-video"><h2>Video</h2>' + (d.vsl.length ? d.vsl.map(function (v) {
           return '<div style="margin:10px 0"><div class="row"><strong>' + esc(v.video_id) + '</strong><span class="muted">' + esc(when(v.started_at)) + ' · ' + esc(v.duration ? pct(Math.min(1, v.max_position / v.duration)) : '–') + ' reached · ' + esc(secs(v.watched_seconds)) + ' watched' + (v.cta_clicked ? ' · clicked CTA' : '') + '</span></div><div class="mini-ret" aria-hidden="true">' + String(v.buckets).split('').map(function (b) { return '<i' + (b === '1' ? ' class="on"' : '') + '></i>'; }).join('') + '</div></div>';
         }).join('') : '<p class="muted">No video views recorded.</p>') +
-        '<h2 style="margin-top:14px">Emails</h2>' + (d.emails.length ? table([{ label: 'Email', html: function (m) { return esc(m.template) + '<div class="muted">' + esc(m.sequence) + '</div>'; } }, { label: 'Status', key: 'status' }, { label: 'When', html: function (m) { return esc(when(m.sent_at || m.send_at)); } }, { label: 'Opened', html: function (m) { return m.opened_at ? '✓' : ''; } }, { label: 'Clicked', html: function (m) { return m.clicked_at ? '✓' : ''; } }, { label: 'Personal', html: function (m) { return m.personalized && m.personalized !== 'off' ? '<span class="pill" title="' + esc(m.facts_used || '') + '">' + esc(m.personalized) + '</span>' : ''; } }], d.emails) : '<p class="muted">None.</p>') + '</div></div>' +
+        '<h2 id="ld-emails" style="margin-top:14px">Emails</h2>' + (d.emails.length ? table([{ label: 'Email', html: function (m) { return esc(m.template) + '<div class="muted">' + esc(m.sequence) + '</div>'; } }, { label: 'Status', key: 'status' }, { label: 'When', nw: true, html: function (m) { return esc(when(m.sent_at || m.send_at)); } }, { label: 'Opened', html: function (m) { return m.opened_at ? '✓' : ''; } }, { label: 'Clicked', html: function (m) { return m.clicked_at ? '✓' : ''; } }, { label: 'Personal', html: function (m) { return m.personalized && m.personalized !== 'off' ? '<span class="pill" title="' + esc(m.facts_used || '') + '">' + esc(m.personalized) + '</span>' : ''; } }], d.emails) : '<p class="muted">None.</p>') + '</div></div>' +
         '<div class="card" style="margin-top:14px" data-behaviour><div class="card-head"><div><h2>What they did → their emails</h2><p class="sub">Every email to this lead is rewritten around these, one or two at a time, never repeating.</p></div></div><p class="muted">Loading…</p></div>' +
-        (d.calendly && d.calendly.length ? '<div class="card" style="margin-top:14px"><h2>Calendly bookings · ' + d.calendly.length + '</h2>' + table([
+        (d.calendly && d.calendly.length ? '<div class="card" id="ld-calendly" style="margin-top:14px"><h2>Calendly bookings · ' + d.calendly.length + '</h2>' + table([
           { label: 'Call', html: function (b) { return esc(when(b.start_at)); } },
           { label: 'Booked', html: function (b) { return esc(b.booked_at ? when(b.booked_at) : '–'); } },
           { label: 'Status', html: function (b) { return '<span class="pill">' + esc(b.rescheduled ? 'rescheduled' : b.status) + '</span>' + (b.cancel_reason ? ' <span class="muted">' + esc(b.cancel_reason) + '</span>' : ''); } },
           { label: 'Host', key: 'host_email' },
         ], d.calendly) + '</div>' : '') +
-        (d.voice && d.voice.length ? '<div class="card" style="margin-top:14px"><h2>AI calls</h2>' + d.voice.map(voiceCall).join('') + '</div>' : '') +
-        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action, server-side.</p></div><label class="muted"><input type="checkbox" data-all> show all events</label></div><ul class="timeline" data-tl>' + timeline() + '</ul></div>';
+        (d.voice && d.voice.length ? '<div class="card" id="ld-calls" style="margin-top:14px"><h2>AI calls</h2>' + d.voice.map(voiceCall).join('') + '</div>' : '') +
+        '<div class="card" id="ld-journey" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action, server-side.</p></div><label class="muted"><input type="checkbox" data-all> show all events</label></div><ul class="timeline" data-tl>' + timeline() + '</ul></div>';
 
       dr.querySelector('.close').onclick = close;
+      // The drawer is the scroller and its head is sticky: land each section just under the head.
+      dr.querySelectorAll('[data-jump]').forEach(function (b) {
+        b.onclick = function () {
+          var t = dr.querySelector('#' + b.getAttribute('data-jump')), h = dr.querySelector('.drawer-head');
+          if (!t) return;
+          var top = t.getBoundingClientRect().top - dr.getBoundingClientRect().top + dr.scrollTop;
+          dr.scrollTo({ top: Math.max(0, top - (h ? h.offsetHeight : 0) - 8), behavior: 'smooth' });
+        };
+      });
       loadBehaviour(dr, id);
       loadPayments(dr, id);
       dr.querySelector('[data-all]').onchange = function (e) { showAll = e.target.checked; dr.querySelector('[data-tl]').innerHTML = timeline(); };
@@ -741,23 +1025,33 @@
   function renderSales() {
     return api('sales').then(function (d) {
       var t = d.totals;
+      setNavBadge('sales', d.needsOutcome ? d.needsOutcome.length : 0);
       var lead = function (r) { return '<a href="#lead=' + esc(r.id) + '" data-open="' + esc(r.id) + '">' + esc(personName(r)) + '</a>'; };
       var bar = function (v) { return v == null ? '<span class="muted">no target</span>' : '<div class="target"><i style="width:' + Math.min(100, v * 100).toFixed(1) + '%"></i></div><small>' + pct(v) + '</small>'; };
       view.innerHTML =
         (d.notify ? '' : '<div class="card notice"><b>Team pings are off.</b> Add a Slack or Discord webhook under <a href="#integrations" data-go="integrations">Integrations → Alerts</a> to get hot leads, bookings, call reminders and closed deals in your channel.</div>') +
-        '<div class="grid g-4">' +
-        tile('Calls booked', n(t.booked), n(t.upcoming) + ' upcoming') +
-        tile('Show rate', pct(t.show_rate), n(t.held) + ' held · ' + n(t.no_shows) + ' no-shows') +
+        '<div class="grid g-4 tiles">' +
+        tile('Calls in range', n(t.booked), 'scheduled in range · ' + n(t.upcoming) + ' upcoming') +
+        // Show rate only counts calls with an outcome: say how many past calls aren't logged yet.
+        tile('Show rate', pct(t.show_rate), n(t.held) + ' held · ' + n(t.no_shows) + ' no-shows' + (d.needsOutcome && d.needsOutcome.length ? ' · ' + n(d.needsOutcome.length) + ' not logged yet' : '')) +
         tile('Close rate', pct(t.close_rate), n(t.won) + ' won · ' + n(t.lost) + ' lost') +
         tile('Revenue', money(t.revenue), money(t.cash) + ' cash · avg ' + money(t.avg_deal)) + '</div>' +
         (d.needsOutcome.length ? '<div class="card" style="margin-top:14px"><h2>Needs an outcome · ' + n(d.needsOutcome.length) + '</h2><p class="sub">These calls have passed. Log what happened — it triggers the right follow-up emails, the Meta conversion and the team ping.</p>' +
-          table([
+          '<div class="todo todo-out">' + table([
             { label: 'Lead', html: lead },
-            { label: 'Tier', html: function (r) { return r.tier ? '<span class="tier ' + esc(r.tier) + '">' + esc(r.tier) + '</span>' : '–'; } },
-            { label: 'Call', html: function (r) { return esc(r.call_at ? when(r.call_at) : 'booked ' + when(r.booked_at)); } },
-            { label: 'Closer', html: function (r) { return esc(repName(r.closer_id)); } },
+            { label: 'Tier', nw: true, html: function (r) { return tierCell({ tier: r.tier, status: 'booked' }); } },
+            { label: 'Call', nw: true, html: function (r) { return '<span class="muted">' + esc(r.call_at ? when(r.call_at) : 'booked ' + when(r.booked_at)) + '</span>'; } },
+            { label: 'Closer', nw: true, html: function (r) { return esc(repName(r.closer_id)); } },
             { label: '', html: function (r) { return '<div class="row outcome" data-lead="' + esc(r.id) + '"><button class="btn-sm ghost" data-out="showed">Held</button><button class="btn-sm ghost" data-out="no_show">No-show</button><button class="btn-sm ghost" data-out="won">Won…</button><button class="btn-sm ghost" data-out="lost">Lost…</button></div>'; } },
-          ], d.needsOutcome) + '</div>' : '') +
+          ], d.needsOutcome) + '</div></div>' : '') +
+        '<div class="card" style="margin-top:14px" data-sec="upcoming"><h2>Upcoming calls · ' + n(d.upcoming.length) + '</h2><p class="sub">Next 14 days. Reps get pinged 15 minutes before each one.</p>' +
+        '<div class="todo todo-up">' + table([
+          { label: 'When', nw: true, html: function (r) { return esc(when(r.call_at)); } },
+          { label: 'Lead', html: function (r) { return lead(r) + (r.tier ? ' <span class="tier ' + esc(r.tier) + '">' + esc(r.tier) + '</span>' : ''); } },
+          { label: 'Closer', nw: true, html: function (r) { return esc(repName(r.closer_id)); } },
+          { label: 'VSL', num: true, html: function (r) { return '<span class="todo-k">Watched </span>' + esc(r.vsl_pct ? pct(Math.min(1, r.vsl_pct)) : '–'); } },
+          { label: 'Source', html: function (r) { return '<span class="muted">' + esc([r.channel || 'Direct', r.utm_content].filter(Boolean).join(' / ')) + '</span>'; } },
+        ], d.upcoming, { empty: 'No calls booked in the next 14 days.' }) + '</div></div>' +
         '<div class="card" style="margin-top:14px"><h2>Leaderboard</h2><p class="sub">Calls scheduled and deals closed in this range. Commission is on cash collected. Target bar is month to date (' + esc(d.tz) + ').</p>' +
         table([
           { label: 'Rep', html: function (r) { return '<b>' + esc(r.name) + '</b>' + (r.id ? '' : ' <span class="muted">(no closer set)</span>'); } },
@@ -771,17 +1065,20 @@
           { label: 'Commission', key: 'commission', num: true, fmt: money },
           { label: 'MTD vs target', html: function (r) { return '<div class="target-cell">' + bar(r.target_progress) + '</div>'; } },
         ], d.leaderboard) + '</div>' +
-        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Call log</h2><p class="sub">Every past call. Fill in what happened: logging old calls never emails anyone or sends conversions to ads, and the outcome is dated to the call.</p></div>' +
+        '<div class="card" style="margin-top:14px"><div class="card-head wrap-head"><div><h2>Call log</h2><p class="sub">Every past call. Fill in what happened: logging old calls never emails anyone or sends conversions to ads, and the outcome is dated to the call.</p></div>' +
         '<div class="row"><select class="input" data-cl-tier><option value="">All tiers</option><option>A</option><option>B</option><option>C</option></select><label class="muted"><input type="checkbox" data-cl-unlogged checked> only unlogged</label></div></div><div data-calllog><p class="muted">Loading…</p></div></div>' +
-        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Upcoming calls</h2><p class="sub">Next 14 days. Reps get pinged 15 minutes before each one.</p>' +
+        '<div class="card" style="margin-top:14px"><h2>Recent outcomes</h2>' +
         table([
-          { label: 'When', html: function (r) { return esc(when(r.call_at)); } },
-          { label: 'Lead', html: function (r) { return lead(r) + (r.tier ? ' <span class="tier ' + esc(r.tier) + '">' + esc(r.tier) + '</span>' : ''); } },
-          { label: 'Closer', html: function (r) { return esc(repName(r.closer_id)); } },
-          { label: 'VSL', num: true, html: function (r) { return esc(r.vsl_pct ? pct(Math.min(1, r.vsl_pct)) : '–'); } },
-          { label: 'Source', html: function (r) { return '<span class="muted">' + esc([r.channel || 'Direct', r.utm_content].filter(Boolean).join(' / ')) + '</span>'; } },
-        ], d.upcoming) + '</div>' +
-        '<div class="card"><h2>Why deals are lost</h2><p class="sub">Lost reasons logged in this range.</p>' + (d.lostReasons.length ? barList(d.lostReasons.map(function (r) { return { name: r.reason, value: r.n }; })) : '<div class="empty">No losses logged.</div>') + '</div></div>' +
+          { label: 'When', nw: true, html: function (r) { return esc(when(r.closed_at || r.showed_at || r.updated_at)); } },
+          { label: 'Lead', html: lead },
+          { label: 'Outcome', html: function (r) { return '<span class="pill out-' + esc(r.status) + ' st-' + esc(String(r.status || '').replace(/[^a-z_]/gi, '')) + '">' + esc(STATUS_LABEL[r.status] || r.status) + '</span>' + (r.lost_reason ? ' <span class="muted">' + esc(r.lost_reason) + '</span>' : ''); } },
+          { label: 'Value', num: true, nw: true, html: function (r) { return r.status === 'won' ? esc(money(r.revenue)) + '<div class="muted">' + esc(money(r.cash_collected)) + ' cash</div>' : ''; } },
+          { label: 'Closer', nw: true, html: function (r) { return esc(repName(r.closer_id)); } },
+          { label: 'Source', html: function (r) { var src = [r.channel || 'Direct', r.utm_campaign, r.utm_content].filter(Boolean).join(' / '); return '<div class="muted ell" style="max-width:260px" title="' + esc(src) + '">' + esc(src) + '</div>'; } },
+        ], d.recent, { cards: true }) + '</div>' +
+        // Lost reasons: a full chart when there are some, one quiet line when there are none.
+        (d.lostReasons.length ? '<div class="card" style="margin-top:14px"><h2>Why deals are lost</h2><p class="sub">Lost reasons logged in this range.</p>' + barList(d.lostReasons.map(function (r) { return { name: r.reason, value: r.n }; })) + '</div>'
+          : '<div class="card compact-line" style="margin-top:14px"><b>Why deals are lost</b><span class="muted">No losses logged in this range. Reasons appear here when you mark a call Lost.</span></div>') +
         (d.calendlyMonthly && d.calendlyMonthly.length ? '<div class="card" style="margin-top:14px"><h2>Calendly history</h2><p class="sub">Every booking on Josh’s Calendly by month (reschedules counted once), including ones from before the funnel.' + (t.older_unlogged ? ' ' + n(t.older_unlogged) + ' calls older than 30 days have no outcome logged; open them from Leads to fill them in.' : '') + '</p>' +
           table([
             { label: 'Month', key: 'month' },
@@ -789,21 +1086,18 @@
             { label: 'Kept', key: 'kept', num: true, fmt: n },
             { label: 'Cancelled', key: 'canceled', num: true, fmt: n },
             { label: 'No-shows', key: 'no_shows', num: true, fmt: n },
-            { label: 'Cancel rate', num: true, html: function (r) { return esc(pct(r.booked ? r.canceled / r.booked : 0)); } },
+            { label: 'Cancel rate', num: true, zeroOk: true, html: function (r) { return esc(pct(r.booked ? r.canceled / r.booked : 0)); } },
             { label: 'People', key: 'people', num: true, fmt: n },
-          ], d.calendlyMonthly) + '</div>' : '') +
-        '<div class="card" style="margin-top:14px"><h2>Recent outcomes</h2>' +
-        table([
-          { label: 'When', html: function (r) { return esc(when(r.closed_at || r.showed_at || r.updated_at)); } },
-          { label: 'Lead', html: lead },
-          { label: 'Outcome', html: function (r) { return '<span class="pill out-' + esc(r.status) + '">' + esc(STATUS_LABEL[r.status] || r.status) + '</span>' + (r.lost_reason ? ' <span class="muted">' + esc(r.lost_reason) + '</span>' : ''); } },
-          { label: 'Value', num: true, html: function (r) { return r.status === 'won' ? esc(money(r.revenue)) + '<div class="muted">' + esc(money(r.cash_collected)) + ' cash</div>' : ''; } },
-          { label: 'Closer', html: function (r) { return esc(repName(r.closer_id)); } },
-          { label: 'Source', html: function (r) { return '<span class="muted">' + esc([r.channel || 'Direct', r.utm_campaign, r.utm_content].filter(Boolean).join(' / ')) + '</span>'; } },
-        ], d.recent) + '</div>';
+          ], d.calendlyMonthly) + '</div>' : '');
 
       view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
       view.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); go(a.getAttribute('data-go')); }; });
+      // The call log only lists calls with a known time; booked-without-a-time calls live in "Needs an outcome" above.
+      var noTime = (d.needsOutcome || []).filter(function (r) { return !r.call_at; }).length;
+      var noTimeMsg = function () {
+        if (!view.querySelector('[data-cl-unlogged]').checked || !noTime) return 'Nothing to log here.';
+        return 'No other past calls to log. The ' + n(noTime) + (noTime === 1 ? ' call without a scheduled time is' : ' calls without a scheduled time are') + ' in “Needs an outcome” above.';
+      };
       var drawLog = function () {
         var box = view.querySelector('[data-calllog]');
         api('sales/calls', { tier: view.querySelector('[data-cl-tier]').value, unlogged: view.querySelector('[data-cl-unlogged]').checked ? 1 : '' }, { noRange: true }).then(function (r) {
@@ -818,7 +1112,7 @@
                 '<td class="num"><input class="input" data-cf="revenue" type="number" step="500" value="' + esc(c.revenue || '') + '" style="width:100px"></td>' +
                 '<td class="num"><input class="input" data-cf="cash_collected" type="number" step="500" value="' + esc(c.cash_collected || '') + '" style="width:100px"></td>' +
                 '<td><button class="btn-sm" data-cl-save>Save</button></td></tr>';
-            }).join('') + '</tbody></table></div><p class="muted" style="margin-top:6px">' + r.calls.length + ' calls</p>' : '<div class="empty">Nothing to log here.</div>';
+            }).join('') + '</tbody></table></div><p class="muted" style="margin-top:6px">' + r.calls.length + ' calls</p>' : emptyState(noTimeMsg());
           box.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
           box.querySelectorAll('[data-cl-save]').forEach(function (b) {
             b.onclick = function () {
@@ -861,8 +1155,28 @@
       var origin = location.origin;
       var params = 'utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}&campaign_id={{campaign.id}}&adset_id={{adset.id}}&ad_id={{ad.id}}&placement={{placement}}&site_source_name={{site_source_name}}';
       var rate = function (v) { return pct(v, 1); };
+      // "3 · 4.2%" on one line; a zero count reads as a quiet dash instead of "0 0.0%".
+      var countRate = function (c, v) { return Number(c) ? esc(n(c)) + ' <span class="muted">' + esc(rate(v)) + '</span>' : '<span class="muted" title="None">–</span>'; };
       var sel = state.landerIndustry || '';
       var rows = d.rows.filter(function (r) { return !sel || r.industry === sel; });
+      // No industry picked: landers with traffic first, the ones still waiting for visitors folded away.
+      var active = rows, idle = [];
+      if (!sel) {
+        active = rows.filter(function (r) { return r.visitors > 0 || r.leads > 0; }).sort(function (a, b) { return (b.visitors - a.visitors) || (b.share - a.share); });
+        idle = rows.filter(function (r) { return !(r.visitors > 0 || r.leads > 0); });
+        if (!active.length) { active = rows.slice(0, 10); idle = rows.slice(10); }
+      }
+      var landerCols = [
+        { label: 'Lander', html: function (r) { return '<b>' + esc(r.industry_label) + '</b> · ' + esc(r.angle_label) + '<div class="muted lander-h" title="' + esc(r.headline) + '">' + esc(r.headline) + '</div>'; } },
+        { label: 'Traffic now', num: true, html: function (r) { return '<div class="target-cell"><div class="target"><i style="width:' + (r.share * 100).toFixed(1) + '%"></i></div><small>' + pct(r.share) + '</small></div>'; } },
+        { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Played', key: 'plays', num: true, fmt: n },
+        { label: 'Applied', num: true, html: function (r) { return n(r.leads) + ' <span class="muted">' + rate(r.lead_rate) + '</span>'; } },
+        { label: 'Qualified', num: true, html: function (r) { return n(r.qualified) + (r.tier_a ? ' <span class="muted">(' + r.tier_a + ' A)</span>' : ''); } },
+        { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Won', key: 'won', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
+        { label: '', html: function (r) { return '<a class="btn-sm ghost" target="_blank" rel="noopener" href="/for/' + esc(r.industry) + '/' + esc(r.angle) + '?preview=1">Preview</a>'; } },
+      ];
+      var activeCount = sel ? rows.filter(function (r) { return r.visitors > 0 || r.leads > 0; }).length : active.filter(function (r) { return r.visitors > 0 || r.leads > 0; }).length;
+      var idleCount = rows.length - activeCount;
       // All pages side by side: the main page's headline variants and each industry's landers.
       var pageRows = x.variants.map(function (v) { return { page: 'Main page · headline ' + v.id.toUpperCase(), visitors: v.visitors, lead_rate: v.lead_rate, qualified_rate: v.qualified_rate, booked_rate: v.booked_rate, note: v.lift == null ? 'control' : (v.significant ? 'significant ' : '') + (v.lift > 0 ? '+' : '') + pct(v.lift, 1) + ' vs A' }; })
         .concat(d.byIndustry.filter(function (r) { return r.visitors; }).map(function (r) { return { page: r.label + ' landers', visitors: r.visitors, lead_rate: r.lead_rate, qualified_rate: r.qualified_rate, booked_rate: r.visitors ? r.booked / r.visitors : 0, note: r.best ? 'leading: ' + r.best : 'still exploring' }; }));
@@ -873,10 +1187,10 @@
           { label: 'Qualified', key: 'qualified_rate', num: true, fmt: function (v) { return pct(v, 1); } },
           { label: 'Booked', key: 'booked_rate', num: true, fmt: function (v) { return pct(v, 1); } },
           { label: '', html: function (r) { return '<span class="muted">' + esc(r.note) + '</span>'; } },
-        ], pageRows) + '</div>' +
+        ], pageRows, { cards: true }) + '</div>' +
         '<div class="card" style="margin-top:14px"><h2>Main page headline test</h2><p class="sub">Visitors to the main page (/) are split between these headlines. Judged on applications per visitor; significance from a two-proportion z-test vs. A (p &lt; 0.05). Preview with <span class="mono">/?v=b</span>.</p>' +
         table([
-          { label: 'Variant', html: function (r) { return '<strong>' + esc(r.id.toUpperCase()) + '</strong> <span class="muted">' + esc(r.weight) + '%</span><div class="muted lander-h">' + esc(r.headline) + '</div>'; } },
+          { label: 'Variant', html: function (r) { return '<strong>' + esc(r.id.toUpperCase()) + '</strong> <span class="muted">' + esc(r.weight) + '%</span><div class="muted lander-h" title="' + esc(r.headline) + '">' + esc(r.headline) + '</div>'; } },
           { label: 'Visitors', key: 'visitors', num: true, fmt: n },
           { label: 'Play', key: 'play_rate', num: true, fmt: function (v) { return pct(v); } },
           { label: 'Pitch', key: 'pitch_rate', num: true, fmt: function (v) { return pct(v); } },
@@ -884,33 +1198,26 @@
           { label: 'Qualified', key: 'qualified_rate', num: true, fmt: function (v) { return pct(v, 1); } },
           { label: 'Booked', key: 'booked_rate', num: true, fmt: function (v) { return pct(v, 1); } },
           { label: 'Result', html: function (r) { return r.p_value == null ? '<span class="muted">control</span>' : r.significant ? '<span class="pill ok">✓ significant (p=' + r.p_value.toFixed(3) + ')</span>' : '<span class="pill">not yet (p=' + r.p_value.toFixed(2) + ')</span>'; } },
-        ], x.variants) + '</div>' +
+        ], x.variants, { cards: true }) + '</div>' +
         '<h3 class="section-h">Industry landers</h3>' +
         '<div class="card"><h2>Meta ad links</h2><p class="sub">Pick the industry the ad set targets. Paste the website URL into the ad and the parameters into Meta’s “URL parameters” box. Or use the auto link everywhere: it reads the industry from your campaign, ad set or ad name (name them like “Dental – Lookalike”).</p>' +
         '<div class="row" style="margin:10px 0"><select class="input" data-ml-ind><option value="">Auto-detect from ad names</option>' + d.industries.map(function (i) { return '<option value="' + esc(i.id) + '">' + esc(i.label) + '</option>'; }).join('') + '</select></div>' +
         '<dl class="kv"><dt>Website URL</dt><dd><span class="mono" data-ml-url></span> <button class="btn-sm ghost" data-copy="url">Copy</button></dd><dt>URL parameters</dt><dd><span class="mono" style="word-break:break-all">' + esc(params) + '</span> <button class="btn-sm ghost" data-copy="params">Copy</button></dd></dl>' +
         '<p class="muted" style="margin-top:8px" data-ml-kw></p></div>' +
-        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>By industry</h2>' + table([
-          { label: 'Industry', key: 'label' }, { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Applied', num: true, html: function (r) { return n(r.leads) + ' <span class="muted">' + rate(r.lead_rate) + '</span>'; } },
-          { label: 'Qualified', num: true, html: function (r) { return n(r.qualified) + ' <span class="muted">' + rate(r.qualified_rate) + '</span>'; } }, { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Won', key: 'won', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
+        '<div class="card" style="margin-top:14px"><h2>By industry</h2><p class="sub">Industries with visitors or applications in this range.</p>' + table([
+          { label: 'Industry', key: 'label' }, { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Applied', num: true, nw: true, html: function (r) { return countRate(r.leads, r.lead_rate); } },
+          { label: 'Qualified', num: true, nw: true, html: function (r) { return countRate(r.qualified, r.qualified_rate); } }, { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Won', key: 'won', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
           { label: 'Leading headline', html: function (r) { return esc(r.best || '–'); } },
-        ], d.byIndustry.filter(function (r) { return r.visitors || r.leads; })) + '</div>' +
-        '<div class="card"><h2>By headline angle</h2><p class="sub">Across all industries.</p>' + table([
-          { label: 'Angle', key: 'label' }, { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Applied', num: true, html: function (r) { return n(r.leads) + ' <span class="muted">' + rate(r.lead_rate) + '</span>'; } },
-          { label: 'Qualified', num: true, html: function (r) { return n(r.qualified) + ' <span class="muted">' + rate(r.qualified_rate) + '</span>'; } }, { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
+        ], d.byIndustry.filter(function (r) { return r.visitors || r.leads; }), { cards: true }) + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>By headline angle</h2><p class="sub">Across all industries.</p>' + table([
+          { label: 'Angle', key: 'label', nw: true }, { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Applied', num: true, nw: true, html: function (r) { return countRate(r.leads, r.lead_rate); } },
+          { label: 'Qualified', num: true, nw: true, html: function (r) { return countRate(r.qualified, r.qualified_rate); } }, { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
           { label: 'Works best in', html: function (r) { return esc(r.best || '–'); } },
-        ], d.byAngle) + '</div></div>' +
-        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>All landers</h2><p class="sub">“Traffic now” is the share of new visitors each headline would get today. Every headline gets its first 60 visitors before the split starts to move.</p></div>' +
+        ], d.byAngle, { cards: true }) + '</div>' +
+        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>All landers</h2><p class="sub">“Traffic now” is the share of new visitors each headline would get today. Every headline gets its first 60 visitors before the split starts to move.' + esc(' · ' + n(activeCount) + ' with traffic, ' + n(idleCount) + ' waiting') + '</p></div>' +
         '<select class="input" data-ld-ind><option value="">All industries</option>' + d.industries.map(function (i) { return '<option value="' + esc(i.id) + '"' + (sel === i.id ? ' selected' : '') + '>' + esc(i.label) + '</option>'; }).join('') + '</select></div>' +
-        table([
-          { label: 'Lander', html: function (r) { return '<b>' + esc(r.industry_label) + '</b> · ' + esc(r.angle_label) + '<div class="muted lander-h">' + esc(r.headline) + '</div>'; } },
-          { label: 'Traffic now', num: true, html: function (r) { return '<div class="target-cell"><div class="target"><i style="width:' + (r.share * 100).toFixed(1) + '%"></i></div><small>' + pct(r.share) + '</small></div>'; } },
-          { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Played', key: 'plays', num: true, fmt: n },
-          { label: 'Applied', num: true, html: function (r) { return n(r.leads) + ' <span class="muted">' + rate(r.lead_rate) + '</span>'; } },
-          { label: 'Qualified', num: true, html: function (r) { return n(r.qualified) + (r.tier_a ? ' <span class="muted">(' + r.tier_a + ' A)</span>' : ''); } },
-          { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Won', key: 'won', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
-          { label: '', html: function (r) { return '<a class="btn-sm ghost" target="_blank" rel="noopener" href="/for/' + esc(r.industry) + '/' + esc(r.angle) + '?preview=1">Preview</a>'; } },
-        ], rows) + '</div>';
+        table(landerCols, active, { cards: true }) +
+        (idle.length ? '<details class="more-rows"><summary>' + esc('Show the other ' + idle.length + ' landers with no visitors yet') + '</summary>' + table(landerCols, idle, { cards: true }) + '</details>' : '') + '</div>';
       var indSel = view.querySelector('[data-ml-ind]');
       var draw = function () {
         var id = indSel.value, ind = d.industries.filter(function (i) { return i.id === id; })[0];
@@ -928,7 +1235,7 @@
     var path = state.bhPath || '';
     return api('behaviour', { path: path }).then(function (d) {
       var card = function (title, sub, body) { return '<div class="card"><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + body + '</div>'; };
-      var none = '<div class="empty">No data in this range yet.</div>';
+      var none = emptyState('No data in this range yet.');
       var tb = d.tabs || {};
       var firstTouch = (d.firsts || []).reduce(function (a, r) { return a + r.n; }, 0);
       // Click density down the page (where on the page people click), per page.
@@ -936,14 +1243,14 @@
       (d.zones || []).forEach(function (z) { (zoneBars[z.path] = zoneBars[z.path] || []).push(z); });
       var zonesHtml = Object.keys(zoneBars).slice(0, 4).map(function (pth) {
         var list = zoneBars[pth], max = Math.max.apply(null, list.map(function (z) { return z.n; }));
-        return '<div class="zone-col"><div class="mono">' + esc(pth) + '</div>' + [0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(function (b) {
-          var z = list.filter(function (x) { return x.band === b; })[0], v = z ? z.n : 0;
-          return '<div class="zone" title="' + b + '–' + (b + 10) + '% down the page: ' + v + ' clicks" style="opacity:' + (0.08 + 0.92 * (v / (max || 1))).toFixed(2) + '"><span>' + b + '%</span><b>' + (v || '') + '</b></div>';
-        }).join('') + '</div>';
+        return '<div class="zone-col"><div class="mono">' + esc(pth) + '</div><div class="zone-strip">' + [0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(function (b) {
+          var z = list.filter(function (x) { return x.band === b; })[0], v = z ? Number(z.n) || 0 : 0, h = v / (max || 1);
+          return '<div class="zone' + (h > 0.55 ? ' hot' : '') + '" title="' + b + '–' + (b + 10) + '% down the page: ' + v + ' clicks" style="--h:' + h.toFixed(2) + '"><span>' + b + '%</span><b>' + (v || '') + '</b></div>';
+        }).join('') + '</div><div class="zone-legend muted">top of page ↓ bottom</div></div>';
       }).join('');
       view.innerHTML =
         '<div class="row" style="margin-bottom:12px"><select class="input" data-bh-path><option value="">All pages</option>' + (d.pages || []).map(function (p) { return '<option value="' + esc(p.path) + '"' + (p.path === path ? ' selected' : '') + '>' + esc(p.path) + ' (' + n(p.visitors) + ')</option>'; }).join('') + '</select></div>' +
-        '<div class="grid g-4">' +
+        '<div class="grid g-4 tiles">' +
         tile('Tab switches', n(tb.returns || 0), n(tb.sessions || 0) + ' visits left and came back · avg ' + (tb.avg_away ? secs(tb.avg_away) : '–') + ' away') +
         tile('Dead clicks', n((d.dead || []).reduce(function (a, r) { return a + r.n; }, 0)), 'Clicks on things that do nothing') +
         tile('CTA hesitations', n((d.hovers || []).reduce(function (a, r) { return a + r.people; }, 0)), 'Hovered a button, didn’t click') +
@@ -953,7 +1260,7 @@
           { label: 'Element', html: function (r) { return esc(r.text || r.el) + '<div class="muted mono">' + esc(r.path + ' · ' + (r.section || '–')) + '</div>'; } },
           { label: 'People', key: 'people', num: true, fmt: n }, { label: 'Clicks', key: 'n', num: true, fmt: n },
         ], d.clicks.slice(0, 15)) : none) +
-        card('Where on the page they click', 'Each block is a tenth of the page, top to bottom; darker means more clicks.', zonesHtml ? '<div class="zones">' + zonesHtml + '</div>' : none) + '</div>' +
+        card('Where on the page they click', 'Each band is a tenth of the page, top to bottom; deeper blue means more clicks.', zonesHtml ? '<div class="zones">' + zonesHtml + '</div>' : none) + '</div>' +
         card('Form friction', 'Per field: how long people spend, how often they correct themselves, paste, or leave it empty. Values are never recorded.', (d.fields || []).length ? table([
           { label: 'Field', key: 'field' }, { label: 'People', key: 'people', num: true, fmt: n },
           { label: 'Avg time', num: true, html: function (r) { return esc(r.avg_s + 's'); } },
@@ -982,32 +1289,40 @@
     return api('insights', null, { noRange: true }).then(function (d) {
       var T = d.byTier, a = d.a;
       var tierRow = function (k, label) { var t = T[k]; return Object.assign({ tier: label }, t); };
-      var bars = function (title, list, sub) { return '<div class="card"><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + (list && list.length ? barList(list.slice(0, 10).map(function (x) { return { name: x.k, value: x.n, note: pct(x.n / (a.people || 1)) }; })) : '<p class="muted">No data.</p>') + '</div>'; };
+      var bars = function (title, list, sub) { return '<div class="card"><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + (list && list.length ? barList(list.slice(0, 10).map(function (x) { return { name: x.k, value: x.n, note: pct(x.n / (a.people || 1)) }; })) : emptyState('No data.')) + '</div>'; };
       var orNull = function (v) { return v == null ? '–' : pct(v); };
+      // A-tier cards: only the ones with answers; the empty ones are named in one quiet line (each card comes back by itself once it has data).
+      var cards = [['Revenue', a.revenue_bands], ['Sector', a.sectors, 'Grouped from what they typed'], ['Budget for advisory', a.budgets], ['What they want help with', a.help], ['What applies to them', a.statements], ['Who they are', a.describes], ['Call day', a.call_weekday, 'In the sales team’s time zone'], ['Call time', a.call_hour], ['Status now', (a.statuses || []).map(function (x) { return Object.assign({}, x, { k: String(x.k == null ? '' : x.k).charAt(0).toUpperCase() + String(x.k == null ? '' : x.k).slice(1) }); })], ['Booked by month', a.booked_month]];
+      var empty = [], full = [];
+      cards.forEach(function (c) { if (c[1] && c[1].length) full.push(bars(c[0], c[1], c[2])); else empty.push(c[0]); });
+      if (a.notes && a.notes.length) full.push('<div class="card"><h2>In their own words</h2><p class="sub">What A-tier bookers wrote in the booking form.</p><ul class="quotes">' + a.notes.map(function (q) { return '<li>“' + esc(q) + '”</li>'; }).join('') + '</ul></div>');
+      else empty.push('In their own words');
+      var hasInd = a.industries && a.industries.length;
+      if (!hasInd) empty.push('Industries (as typed)');
+      // No lonely card with empty columns beside it: 4 cards sit 2 × 2; an odd one left over on a 3-wide row takes the whole row.
+      var cols = full.length % 3 === 0 ? 3 : full.length % 2 === 0 ? 2 : 3;
+      if (cols === 3 && full.length % 3 === 1) full[full.length - 1] = full[full.length - 1].replace('<div class="card">', '<div class="card" style="grid-column:1/-1">');
+      var aTier = (full.length ? '<div class="grid g-' + cols + '">' + full.join('') + '</div>' : '') +
+        (hasInd ? '<div class="card" style="margin-top:14px"><h2>Industries (as typed)</h2><p>' + a.industries.map(function (x) { return '<span class="pill">' + esc(x.k) + (x.n > 1 ? ' ×' + x.n : '') + '</span>'; }).join(' ') + '</p></div>' : '') +
+        (empty.length ? '<p class="muted empty-note" style="margin-top:12px">' + esc('No answers yet for: ' + empty.join(' · ') + '. These fill in once A-tier leads book through the Calendly form.') + '</p>' : '');
       view.innerHTML =
-        '<div class="grid g-4">' +
+        '<div class="grid g-4 tiles">' +
         tile('A-tier who booked', n(a.people), pct(a.people / (d.total_booked || 1)) + ' of ' + n(d.total_booked) + ' bookers') +
-        tile('A-tier cancel rate', pct(a.cancel_rate), 'vs ' + pct(T.C.cancel_rate) + ' for C-tier') +
-        tile('Booked ahead (median)', a.median_days_booked_ahead == null ? '–' : a.median_days_booked_ahead.toFixed(1) + ' days', n(a.repeat_bookers) + ' booked more than once') +
-        tile('A-tier close rate', orNull(a.close_rate), n(a.outcomes_logged) + ' of ' + n(a.past_calls) + ' past calls logged') + '</div>' +
+        tile('A-tier cancel rate', pct(a.cancel_rate), 'vs ' + pct(T.C.cancel_rate) + ' for C-tier', null, { zeroOk: true }) +
+        tile('Booked ahead (median)', a.median_days_booked_ahead == null ? '–' : a.median_days_booked_ahead.toFixed(1) + ' days', a.median_days_booked_ahead == null ? 'Needs Calendly booking times' + (a.repeat_bookers ? ' · ' + n(a.repeat_bookers) + ' booked more than once' : '') : n(a.repeat_bookers) + ' booked more than once') +
+        tile('A-tier close rate', orNull(a.close_rate), a.past_calls ? n(a.outcomes_logged) + ' of ' + n(a.past_calls) + ' past calls logged' : 'No A-tier calls with a scheduled time have passed yet') + '</div>' +
         '<div class="card" style="margin-top:14px"><h2>By tier</h2><p class="sub">Tier comes from the funnel application, or from the Calendly booking form for people who booked directly (revenue, willingness to invest, budget, team size).</p>' +
         table([
           { label: 'Tier', key: 'tier' }, { label: 'People', key: 'people', num: true, fmt: n }, { label: 'Bookings', key: 'bookings', num: true, fmt: n },
-          { label: 'Cancel rate', num: true, html: function (r) { return esc(pct(r.cancel_rate)); } },
+          { label: 'Cancel rate', num: true, zeroOk: true, html: function (r) { return esc(pct(r.cancel_rate)); } },
           { label: 'Reschedule rate', num: true, html: function (r) { return esc(pct(r.reschedule_rate)); } },
           { label: 'Willing to invest', num: true, html: function (r) { return esc(pct(r.willing_yes)); } },
           { label: 'Logged', num: true, html: function (r) { return esc(n(r.outcomes_logged) + '/' + n(r.past_calls)); } },
           { label: 'Show', num: true, html: function (r) { return esc(orNull(r.show_rate)); } },
           { label: 'Close', num: true, html: function (r) { return esc(orNull(r.close_rate)); } },
           { label: 'Revenue', key: 'revenue', num: true, fmt: money }, { label: 'Cash', key: 'cash', num: true, fmt: money },
-        ], [tierRow('A', 'A · $1M+, ready'), tierRow('B', 'B · promising'), tierRow('C', 'C · not yet'), tierRow('none', 'Untiered')].filter(function (r) { return r.people; })) + '</div>' +
-        '<h3 class="section-h">The A-tier</h3>' +
-        '<div class="grid g-3">' + bars('Revenue', a.revenue_bands) + bars('Sector', a.sectors, 'Grouped from what they typed') + bars('Budget for advisory', a.budgets) + '</div>' +
-        '<div class="grid g-3" style="margin-top:14px">' + bars('What they want help with', a.help) + bars('What applies to them', a.statements) + bars('Who they are', a.describes) + '</div>' +
-        '<div class="grid g-3" style="margin-top:14px">' + bars('Call day', a.call_weekday, 'In the sales team’s time zone') + bars('Call time', a.call_hour) + bars('Status now', a.statuses) + '</div>' +
-        '<div class="grid g-2" style="margin-top:14px">' + bars('Booked by month', a.booked_month) +
-        '<div class="card"><h2>In their own words</h2><p class="sub">What A-tier bookers wrote in the booking form.</p>' + (a.notes.length ? '<ul class="quotes">' + a.notes.map(function (q) { return '<li>“' + esc(q) + '”</li>'; }).join('') + '</ul>' : '<p class="muted">None.</p>') + '</div></div>' +
-        '<div class="card" style="margin-top:14px"><h2>Industries (as typed)</h2>' + (a.industries.length ? '<p>' + a.industries.map(function (x) { return '<span class="pill">' + esc(x.k) + (x.n > 1 ? ' ×' + x.n : '') + '</span>'; }).join(' ') + '</p>' : '<p class="muted">None.</p>') + '</div>';
+        ], [tierRow('A', 'A · $1M+, ready'), tierRow('B', 'B · promising'), tierRow('C', 'C · not yet'), tierRow('none', 'Untiered')].filter(function (r) { return r.people; }), { cards: true }) + '</div>' +
+        '<h3 class="section-h">The A-tier</h3>' + aTier;
     });
   }
 
@@ -1095,9 +1410,9 @@
     var flags = []; try { flags = JSON.parse(l.qual_flags || '[]'); } catch (e) { /* ignore */ }
     var f = function (label, html) { return '<label>' + esc(label) + ' ' + html + '</label>'; };
     var inp = function (name, val, type, extra) { return '<input class="input" data-f="' + name + '" type="' + (type || 'text') + '" value="' + esc(val == null ? '' : val) + '"' + (extra || '') + '>'; };
-    return '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Deal</h2><p class="sub">' +
+    return '<div class="card" id="ld-deal" style="margin-top:14px"><div class="card-head"><div><h2>Deal</h2><p class="sub">' +
       esc([l.revenue_band && ('Revenue ' + l.revenue_band), l.industry, l.budget_band && ('Budget ' + l.budget_band), l.willing_to_invest && l.willing_to_invest !== 'unknown' && ('Willing to invest: ' + l.willing_to_invest), l.qual_source && ('qualified from ' + l.qual_source)].filter(Boolean).join(' · ') || 'No qualification data yet.') +
-      (flags.length ? '<br>' + flags.map(function (x) { return '<span class="pill">' + esc(x) + '</span>'; }).join(' ') : '') + '</p></div></div>' +
+      (flags.length ? '<br>' + flags.map(function (x) { var t = String(x).replace(/_/g, ' '); return '<span class="pill" title="' + esc(x) + '">' + esc(t.charAt(0).toUpperCase() + t.slice(1)) + '</span>'; }).join(' ') : '') + '</p></div></div>' +
       '<div class="grid g-4 deal-grid" style="gap:10px">' +
       f('Temperature', '<select class="input" data-f="temperature">' + opts(m.temperatures, l.temperature, '—') + '</select>') +
       f('Fit (1–5)', '<select class="input" data-f="fit_rating">' + opts(['1', '2', '3', '4', '5'], l.fit_rating == null ? '' : String(l.fit_rating), '—') + '</select>') +
@@ -1176,11 +1491,11 @@
         '<p data-made style="margin:12px 0 0"></p></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>By video</h2><p class="sub">Leads credited by ' + (state.linkModel === 'first' ? '<b>first touch</b> (the link that first brought them in)' : '<b>last touch</b> (the link they came through when they applied)') + '.</p></div>' +
         '<div class="row"><button class="btn-sm ' + (state.linkModel === 'first' ? '' : 'ghost') + '" data-model="first" type="button">First touch</button><button class="btn-sm ' + (state.linkModel === 'last' ? '' : 'ghost') + '" data-model="last" type="button">Last touch</button></div></div>' +
-        (order.length ? table([{ label: 'Video', html: function (g) { return '<div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap">' + (g.thumb ? '<img src="' + esc(g.thumb) + '" alt="" width="80" height="45" style="border-radius:4px;object-fit:cover;flex:none">' : '') + '<span>' + (g.video_id ? '<a href="https://www.youtube.com/watch?v=' + esc(g.video_id) + '" target="_blank" rel="noopener">' + esc(g.title) + '</a>' : esc(g.title)) + '<div class="muted">' + g.links.length + ' link' + (g.links.length === 1 ? '' : 's') + '</div></span></div>'; } }].concat(cols), order.map(function (k) { return groups[k]; })) : '<p class="muted">No tracked links yet. Create one above and put it in your video description.</p>') + '</div>' +
+        (order.length ? table([{ label: 'Video', html: function (g) { return '<div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap">' + (g.thumb ? '<img src="' + esc(g.thumb) + '" alt="" width="80" height="45" style="border-radius:4px;object-fit:cover;flex:none">' : '') + '<span>' + (g.video_id ? '<a href="https://www.youtube.com/watch?v=' + esc(g.video_id) + '" target="_blank" rel="noopener">' + esc(g.title) + '</a>' : esc(g.title)) + '<div class="muted">' + g.links.length + ' link' + (g.links.length === 1 ? '' : 's') + '</div></span></div>'; } }].concat(cols), order.map(function (k) { return groups[k]; }), { cards: true }) : '<p class="muted">No tracked links yet. Create one above and put it in your video description.</p>') + '</div>' +
         (d.links.length ? '<div class="card" style="margin-top:14px"><h2>By link</h2>' + table([
           { label: 'Link', html: function (l) { return '<strong>' + esc(l.label) + '</strong><div class="muted">' + esc(PL[l.placement] || l.placement || l.utm_source) + '</div>'; } },
           { label: 'Short URL', html: function (l) { return '<button class="btn-sm ghost" type="button" data-copy="' + esc(l.short_url) + '">Copy</button> <span class="mono muted">/l/' + esc(l.code) + '</span>'; } },
-        ].concat(cols).concat([{ label: '', html: function (l) { return '<button class="btn-sm ghost" type="button" data-del="' + esc(l.code) + '" title="Archive">✕</button>'; } }]), d.links) + '</div>' : '') +
+        ].concat(cols).concat([{ label: '', html: function (l) { return '<button class="btn-sm ghost" type="button" data-del="' + esc(l.code) + '" title="Archive">✕</button>'; } }]), d.links, { cards: true }) + '</div>' : '') +
         '<p class="sub" style="margin-top:14px">Links to your site with UTM tags work too (they show under Traffic &amp; ads). Tracked links are better for YouTube: short, and every one is followed to revenue.</p>';
       view.querySelector('[data-create]').onclick = function () {
         var out = view.querySelector('[data-made]');
@@ -1215,14 +1530,14 @@
       }
       var LABELS = { em: 'Email', ph: 'Phone', fn: 'First name', ln: 'Last name', external_id: 'External ID', client_ip_address: 'IP address', client_user_agent: 'User agent', fbp: 'Browser ID (fbp)', fbc: 'Click ID (fbc)', ct: 'City', st: 'State', zp: 'Postcode', country: 'Country' };
       view.innerHTML =
-        '<div class="grid g-3">' + destTile('meta', 'Meta Conversions API', c.meta) + destTile('ga4', 'GA4 Measurement Protocol', c.ga4) +
+        '<div class="grid g-3 tiles">' + destTile('meta', 'Meta Conversions API', c.meta) + destTile('ga4', 'GA4 Measurement Protocol', c.ga4) +
         tile('Meta Pixel', c.pixel ? 'On' : 'Off', c.pixel ? 'Browser events share event IDs with the server, so Meta deduplicates' + (c.testMode ? ' · TEST MODE ON' : '') : 'Add the Pixel ID under Integrations') + '</div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Meta match keys</h2><p class="sub">Share of the last ' + n(d.metaSample) + ' Meta events that carried each customer-information key. More keys means a higher Event Match Quality.</p>' +
-        (d.metaSample ? barList(d.coverage.map(function (k) { return { name: LABELS[k.key] || k.key, value: Math.round(k.pct * 100) }; }), { max: 100, fmt: function (v) { return v + '%'; } }) : '<p class="muted">No Meta events sent yet.</p>') + '</div>' +
+        (d.metaSample ? barList(d.coverage.map(function (k) { return { name: LABELS[k.key] || k.key, value: Math.round(k.pct * 100) }; }), { max: 100, fmt: function (v) { return v + '%'; } }) : emptyState('No Meta events sent yet.')) + '</div>' +
         '<div class="card"><h2>Send a test event</h2><p class="sub">In Meta Events Manager open your Pixel, then Test events, and copy the test code. The event shows up there within seconds.</p><div class="row"><input class="input" data-code placeholder="TEST12345" style="flex:1"><button class="btn-sm" data-test-meta type="button">Send test</button></div><p class="muted" data-test-out style="margin-top:10px"></p></div></div>' +
-        '<div class="card" style="margin-top:14px"><h2>By event</h2>' + table([{ label: 'Destination', key: 'dest' }, { label: 'Event', key: 'event_name' }, { label: 'Sent', key: 'sent', num: true, fmt: n }, { label: 'Retrying', key: 'retrying', num: true, fmt: n }, { label: 'Failed', key: 'failed', num: true, fmt: n }, { label: 'Last', html: function (r) { return esc(when(r.last_at)); } }], d.byEvent) + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>By event</h2>' + table([{ label: 'Destination', key: 'dest' }, { label: 'Event', key: 'event_name' }, { label: 'Sent', key: 'sent', num: true, fmt: n }, { label: 'Retrying', key: 'retrying', num: true, fmt: n }, { label: 'Failed', key: 'failed', num: true, fmt: n }, { label: 'Last', html: function (r) { return esc(when(r.last_at)); } }], d.byEvent, { cards: true, emptyHint: 'Appears once Meta CAPI or GA4 is connected under Integrations.' }) + '</div>' +
         '<div class="card" style="margin-top:14px"><h2>Problems</h2><p class="sub">Failed sends are retried automatically with back-off (1 min, 4 min, 16 min, 1 h, then every few hours). Meta only accepts events up to 7 days old.</p>' +
-        (d.failures.length ? table([{ label: 'When', html: function (r) { return esc(when(r.ts)); } }, { label: 'Destination', key: 'dest' }, { label: 'Event', key: 'event_name' }, { label: 'Status', key: 'status' }, { label: 'Tries', key: 'attempts', num: true }, { label: 'Error', html: function (r) { return esc(((r.http_status ? r.http_status + ' ' : '') + (r.error || '')).slice(0, 160)); } }], d.failures) : '<p class="muted">Nothing failing.</p>') + '</div>';
+        (d.failures.length ? table([{ label: 'When', html: function (r) { return esc(when(r.ts)); } }, { label: 'Destination', key: 'dest' }, { label: 'Event', key: 'event_name' }, { label: 'Status', key: 'status' }, { label: 'Tries', key: 'attempts', num: true }, { label: 'Error', html: function (r) { return esc(((r.http_status ? r.http_status + ' ' : '') + (r.error || '')).slice(0, 160)); } }], d.failures, { cards: true }) : emptyState('Nothing failing.')) + '</div>';
       view.querySelector('[data-test-meta]').onclick = function () {
         var out = view.querySelector('[data-test-out]');
         out.textContent = 'Sending…';
@@ -1237,28 +1552,70 @@
     return [f.appointment_confirmed && 'confirmed', f.wants_reschedule && 'reschedule', f.wants_booking_link && 'wants link', f.do_not_call && 'do not call', f.bad_time && 'bad time'].filter(Boolean).join(' · ');
   }
 
+  /** What kind of provider error this is, read only from its status code ("ElevenLabs 401: …") or its JSON status, never from
+   *  digits elsewhere in the text (a phone number or request id with 401 / 429 in it). 'auth' | 'rate' | ''. */
+  function errKind(s) {
+    s = String(s || '');
+    var m = /^[A-Za-z][\w.\- ]*?\s([45]\d\d)(?::|\s*\{|\s*$)/.exec(s), code = m ? m[1] : '';
+    var j = errJson(s), st = j && j.detail && typeof j.detail === 'object' ? String(j.detail.status || j.detail.code || '') : '';
+    if (code === '401' || st === 'invalid_api_key' || st === 'unauthorized') return 'auth';
+    if (code === '429' || st === 'rate_limit_exceeded' || st === 'too_many_requests') return 'rate';
+    return '';
+  }
+  function errJson(s) { var i = s.indexOf('{'); if (i < 0) return null; try { return JSON.parse(s.slice(i)); } catch (e) { return null; } }
+  /** A provider error ("ElevenLabs 401: {json}") as one plain sentence. Plain text: callers esc() it.
+   *  status: the queue row's status, so "will retry" is only promised while it's still queued. */
+  function friendlyErr(s, status) {
+    s = String(s || '');
+    var head = s.split('{')[0].replace(/[:\s]+$/, ''), j = errJson(s), msg = '';
+    if (j) msg = (j.detail && (j.detail.message || (typeof j.detail === 'string' ? j.detail : ''))) || j.message || j.error || '';
+    if (typeof msg !== 'string') msg = '';
+    var who = (/^([A-Za-z][\w.\-]*)\s[45]\d\d\b/.exec(head) || [0, 'ElevenLabs'])[1], kind = errKind(s);
+    if (kind === 'auth') return who + ' rejected the API key' + (msg ? ' (' + msg + ')' : '') + '.';
+    if (kind === 'rate') return 'Rate-limited by ' + who + (status === 'queued' || status === 'dialing' ? ', will retry.' : '.');
+    return (head + (msg ? ' · ' + msg : '')).slice(0, 120) || s.slice(0, 80);
+  }
+  var CALL_PILL = { done: 'st-won', queued: 'st-booked', dialing: 'st-booked', failed: 'st-failed', cancelled: 'st-cancelled', skipped: 'st-cancelled', no_answer: 'st-cancelled' };
+
   function elevenCard(e) {
-    var step = function (ok, label, body) { return '<li class="setup-step' + (ok ? ' ok' : '') + '"><span class="dot">' + (ok ? '✓' : '') + '</span><div><b>' + label + '</b>' + (body ? '<div class="muted">' + body + '</div>' : '') + '</div></li>'; };
+    // Three states: done (green ✓), failing (amber !), not done yet (empty ring).
+    var step = function (ok, label, body, warn) { return '<li class="setup-step' + (ok ? ' ok' : warn ? ' warn' : '') + '"><span class="dot">' + (ok ? '✓' : warn ? '!' : '') + '</span><div><b>' + label + '</b>' + (body ? '<div class="muted">' + body + '</div>' : '') + '</div></li>'; };
     var phones = e.phoneNumbers || [];
+    var phoneOk = !!e.phoneNumberId && !e.phoneError;
+    var intLink = '<a href="#integrations" data-go="integrations">Open Integrations →</a>';
+    var keyLink = 'Check the key → <a href="#integrations" data-go="integrations">Open Integrations</a>';
+    // The phone-number lookup runs live with the saved key on every visit, so it says whether the key works right now
+    // (old failed calls in the queue may predate a fixed key). Step 1, step 3 and the pill all follow it.
+    var elAuth = function (x) { x = String(x || ''); return errKind(x) === 'auth' && (/^ElevenLabs\b/i.test(x) || !/^[A-Za-z][\w.\-]*\s[45]\d\d/.test(x)); }; // another provider's 401 isn't this key
+    var keyBad = !!e.apiKey && elAuth(e.phoneError);
+    var phoneErrHtml = e.phoneError ? esc(friendlyErr(e.phoneError)) + ' ' + (errKind(e.phoneError) === 'auth' ? keyLink : intLink) + '<details class="raw"><summary>details</summary><code>' + esc(e.phoneError) + '</code></details>' : '';
+    var needsFix = keyBad || !!e.phoneError;
+    var pill = e.ready && !needsFix ? '<span class="pill ok">live</span>' : needsFix ? '<span class="pill pill-warn">needs fixing</span>' : '<span class="pill">not set up</span>';
+    // Two or more failed calls for the same reason: say it once above the table.
+    var errGroups = {}, errAuth = {};
+    (e.queue || []).forEach(function (o) { if (o.error && o.status === 'failed') { var f = friendlyErr(o.error, o.status); errGroups[f] = (errGroups[f] || 0) + 1; if (errKind(o.error) === 'auth') errAuth[f] = true; } });
+    var sharedErr = Object.keys(errGroups).filter(function (f) { return errGroups[f] > 1; }).sort(function (x, y) { return errGroups[y] - errGroups[x]; })[0];
     return '<div class="card"><div class="card-head"><div><h2>AI calls · ElevenLabs</h2><p class="sub">Calls applicants who ticked the call-consent box: confirms the appointment ~2 min after they book, and calls qualified leads who applied but didn’t book (~5 min). Only inside their local calling hours (Mon–Fri 9–8, Sat 9–5), max 2 attempts, discloses AI + recording, and stops for good if they say so.</p></div>' +
-      '<span class="pill' + (e.ready ? ' ok' : '') + '">' + (e.ready ? 'live' : 'not set up') + '</span></div>' +
+      pill + '</div>' +
       '<ol class="setup">' +
-      step(e.apiKey, '1. API key', e.apiKey ? 'Connected.' : 'Paste it under <a href="#integrations" data-go="integrations">Integrations → Voice → ElevenLabs API key</a> (elevenlabs.io → Developers → API keys).') +
+      step(e.apiKey && !keyBad, '1. API key', keyBad ? 'Saved, but ElevenLabs rejects it. Paste a fresh key under <a href="#integrations" data-go="integrations">Integrations → Voice</a>.' : e.apiKey ? 'Connected.' : 'Paste it under <a href="#integrations" data-go="integrations">Integrations → Voice → ElevenLabs API key</a> (elevenlabs.io → Developers → API keys).', keyBad) +
       step(!!e.agentId, '2. Agent', (e.agentId ? 'Agent <span class="mono">' + esc(e.agentId) + '</span>. ' : '') + '<button class="btn-sm' + (e.agentId ? ' ghost' : '') + '" data-el-provision' + (e.apiKey ? '' : ' disabled') + '>' + (e.agentId ? 'Update agents in ElevenLabs' : 'Create agents in ElevenLabs') + '</button>') +
-      step(!!e.phoneNumberId, '3. Phone number', phones.length ? '<select class="input" data-el-phone><option value="">Pick the number to call from…</option>' + phones.map(function (p) { return '<option value="' + esc(p.phone_number_id) + '"' + (p.phone_number_id === e.phoneNumberId ? ' selected' : '') + '>' + esc(p.phone_number + (p.label ? ' · ' + p.label : '') + ' (' + p.provider + ')') + '</option>'; }).join('') + '</select>' :
-        (e.phoneError ? esc(e.phoneError) : 'In ElevenLabs → Phone numbers, import a Twilio number (or SIP trunk). It shows up here.')) +
+      step(phoneOk, '3. Phone number', (phones.length ? phoneErrHtml + '<select class="input" data-el-phone><option value="">Pick the number to call from…</option>' + phones.map(function (p) { return '<option value="' + esc(p.phone_number_id) + '"' + (p.phone_number_id === e.phoneNumberId ? ' selected' : '') + '>' + esc(p.phone_number + (p.label ? ' · ' + p.label : '') + ' (' + p.provider + ')') + '</option>'; }).join('') + '</select>' :
+        (e.phoneError ? phoneErrHtml : 'In ElevenLabs → Phone numbers, import a Twilio number (or SIP trunk). It shows up here.')), !!e.phoneError) +
       step(e.inboundAssigned, '4. Callbacks (inbound)', e.inboundAgentId ? (e.inboundAssigned ? 'Callback agent <span class="mono">' + esc(e.inboundAgentId) + '</span> answers anyone who rings the number back, looks them up by caller ID, and logs the outcome.' : 'Callback agent created but not on the number yet. Pick the number, then press “Update agents”.') : 'Press “Create agents” to also answer people who ring the number back.') +
       step(e.webhook.secret, '5. Post-call webhook (optional, faster results)', 'ElevenLabs → Agents → Settings → Post-call webhook → URL <span class="mono">' + esc(e.webhook.url) + '</span>, then paste its secret under Integrations → Voice. Without it results are fetched every 5 minutes.') +
       '</ol>' +
       '<div class="row" style="margin-top:12px"><input class="input" data-el-to placeholder="Your mobile, e.g. +61412345678" style="flex:1;min-width:200px"><select class="input" data-el-kind><option value="confirm">Confirmation script</option><option value="speed_to_lead">Speed-to-lead script</option></select><button class="btn-sm" data-el-test' + (e.ready ? '' : ' disabled') + '>Call me (test)</button></div>' +
       '<p class="muted" style="margin-top:8px">Confirmation calls: <b>' + (e.confirm ? 'on' : 'off') + '</b> · Speed-to-lead: <b>' + (e.speedToLead ? 'on' : 'off') + '</b> · No-show rebook: <b>' + (e.rebook ? 'on' : 'off') + '</b> (toggle under Integrations → Voice) · ' + n(e.stats && e.stats.consented) + ' leads have consented to calls.</p></div>' +
-      '<div class="card" style="margin-top:14px"><h2>Call queue</h2>' + table([
-        { label: 'When', html: function (o) { return esc(when(o.status === 'queued' ? o.run_at : o.updated_at)); } },
-        { label: 'Lead', html: function (o) { return '<a href="#lead=' + esc(o.lead_id) + '" data-open="' + esc(o.lead_id) + '">' + esc([o.first_name, o.last_name].filter(Boolean).join(' ') || o.phone || 'lead') + '</a>' + (o.tier ? ' <span class="tier ' + esc(o.tier) + '">' + esc(o.tier) + '</span>' : ''); } },
+      '<div class="card" style="margin-top:14px"><h2>Call queue</h2>' +
+      (sharedErr ? '<p class="muted queue-err">' + esc(n(errGroups[sharedErr]) + ' calls failed: ' + sharedErr) + ' ' + (errAuth[sharedErr] ? keyLink : intLink) + '</p>' : '') +
+      table([
+        { label: 'When', nw: true, html: function (o) { return esc(when(o.status === 'queued' ? o.run_at : o.updated_at)); } },
+        { label: 'Lead', nw: true, html: function (o) { return '<a href="#lead=' + esc(o.lead_id) + '" data-open="' + esc(o.lead_id) + '">' + esc([o.first_name, o.last_name].filter(Boolean).join(' ') || o.phone || 'lead') + '</a>' + (o.tier ? ' <span class="tier ' + esc(o.tier) + '">' + esc(o.tier) + '</span>' : ''); } },
         { label: 'Call', html: function (o) { return esc(o.kind === 'speed_to_lead' ? 'Speed-to-lead' : o.kind === 'confirm' ? 'Confirm booking' : o.kind) + ' <span class="muted">#' + esc(o.attempts || 1) + '</span>'; } },
-        { label: 'Status', html: function (o) { return '<span class="pill">' + esc(CALL_STATUS[o.status] || o.status) + '</span>' + (o.error ? ' <span class="muted">' + esc(o.error) + '</span>' : ''); } },
+        { label: 'Status', html: function (o) { return '<span class="pill' + (CALL_PILL[o.status] ? ' ' + CALL_PILL[o.status] : '') + '">' + esc(CALL_STATUS[o.status] || o.status) + '</span>' + (o.error ? ' <span class="muted err-short' + (sharedErr && friendlyErr(o.error, o.status) === sharedErr ? ' err-dup' : '') + '" title="' + esc(o.error) + '">' + esc(friendlyErr(o.error, o.status)) + '</span>' : ''); } },
         { label: 'Outcome', html: function (o) { return esc(callOutcome(o)); } },
-      ], e.queue) + '</div>';
+      ], e.queue, { cards: true }) + '</div>';
   }
 
   function renderVoice() {
@@ -1267,17 +1624,17 @@
       var t = d.totals || {};
       view.innerHTML =
         (e ? elevenCard(e) : '') +
-        '<div class="grid g-3" style="margin-top:14px">' + tile('AI calls', n(t.calls || 0), n(t.phone || 0) + ' inbound phone · ' + n(t.web || 0) + ' browser · ' + n((t.calls || 0) - (t.phone || 0) - (t.web || 0)) + ' outbound') + tile('Wanted a strategy call', n(t.wants_call || 0), n(t.callbacks || 0) + ' asked for a person to call back') +
+        '<div class="grid g-3 tiles" style="margin-top:14px">' + tile('AI calls', n(t.calls || 0), n(t.phone || 0) + ' inbound phone · ' + n(t.web || 0) + ' browser · ' + n((t.calls || 0) - (t.phone || 0) - (t.web || 0)) + ' outbound') + tile('Wanted a strategy call', n(t.wants_call || 0), n(t.callbacks || 0) + ' asked for a person to call back') +
         tile('Avg length', t.avg_s ? secs(t.avg_s) : '–', (t.cost ? '$' + t.cost + ' cost · ' : '') + n(t.opt_outs || 0) + ' opted out') + '</div>' +
         '<div class="card" style="margin-top:14px"><h2>Calls</h2><p class="sub">Inbound (Vapi) and outbound (ElevenLabs). Every call opens with an AI + recording disclosure.</p>' +
         (d.calls.length ? table([
-          { label: 'When', html: function (v) { return esc(when(v.created_at)); } },
+          { label: 'When', nw: true, html: function (v) { return esc(when(v.created_at)); } },
           { label: 'Who', html: function (v) { return v.lead_id ? '<a href="#lead=' + esc(v.lead_id) + '" data-open="' + esc(v.lead_id) + '">' + esc([v.first_name, v.last_name].filter(Boolean).join(' ') || 'lead') + '</a>' + (v.tier ? ' <span class="tier ' + esc(v.tier) + '">' + esc(v.tier) + '</span>' : '') : '<span class="muted">' + esc(v.from_number || 'unknown') + '</span>'; } },
           { label: 'Type', html: function (v) { return esc({ ai_confirm: 'Outbound · confirm', ai_speed_to_lead: 'Outbound · speed-to-lead', ai_callback: 'Callback (inbound)', phone: 'Inbound phone', web: 'Browser' }[v.kind] || v.kind); } },
           { label: 'Length', html: function (v) { return esc(v.duration_s ? secs(v.duration_s) : v.status); } },
           { label: 'Summary', html: function (v) { return esc((v.summary || '').slice(0, 180)); } },
           { label: 'Rec.', html: function (v) { return v.recording_url ? '<a href="' + esc(v.recording_url) + '" target="_blank" rel="noopener">▶</a>' : ''; } },
-        ], d.calls) : '<p class="muted">No AI calls yet.</p>') + '</div>';
+        ], d.calls, { cards: true }) : '<p class="muted">No AI calls yet.</p>') + '</div>';
       view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
       view.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); go(a.getAttribute('data-go')); }; });
       var pv = view.querySelector('[data-el-provision]');
@@ -1513,22 +1870,68 @@
   function renderEmails() {
     return Promise.all([api('emails'), api('triggers')]).then(function (res) {
       var d = res[0], tr = res[1];
+      var tpl = d.templates || [], order = [], bySeq = {};
+      tpl.forEach(function (r) {
+        var k = r.sequence;
+        if (!bySeq[k]) { bySeq[k] = { rows: [], sent: 0, simulated: 0, skipped: 0, failed: 0, opened: 0, clicked: 0 }; order.push(k); }
+        var g = bySeq[k];
+        g.rows.push(r);
+        ['sent', 'simulated', 'skipped', 'failed', 'opened', 'clicked'].forEach(function (f) { g[f] += Number(r[f]) || 0; });
+      });
+      var totSent = tpl.reduce(function (t, r) { return t + (Number(r.sent) || 0); }, 0);
+      var totSim = tpl.reduce(function (t, r) { return t + (Number(r.simulated) || 0); }, 0);
+      // "Sent" counts simulated emails too, so "nothing really sent" is sent − simulated = 0.
+      var allSimulated = totSim > 0 && totSent - totSim === 0;
+      var emailCols = [{ label: 'Sequence', key: 'sequence' }, { label: '#', key: 'step', num: true, fmt: function (v) { return v + 1; } }, { label: 'Template', html: function (r) { return '<a href="/admin/api/email-preview/' + esc(r.template) + '" target="_blank" rel="noopener">' + esc(r.template) + ' ↗</a>'; } },
+        { label: 'Sent (incl. simulated)', key: 'sent', num: true, fmt: n }, { label: 'Simulated', key: 'simulated', num: true, fmt: n }, { label: 'Skipped', key: 'skipped', num: true, fmt: n }, { label: 'Failed', key: 'failed', num: true, fmt: n },
+        { label: 'Open rate', num: true, html: function (r) { return esc(pct(r.opened / (r.sent || 1))); } }, { label: 'Click rate', num: true, html: function (r) { return esc(pct(r.clicked / (r.sent || 1))); } }];
+      var rules = (tr && tr.rules) || [], fails = d.failures || [];
+      var fired = function (r) { return (Number(r.queued) || 0) > 0 || (Number(r.sent) || 0) > 0; };
+      var firedRules = rules.filter(fired), quietRules = rules.filter(function (r) { return !fired(r); });
+      var trigCols = [
+        { label: 'Trigger', html: function (r) { var code = r.template + ' · sends ' + (r.delay ? r.delay + ' min after' : 'right away'); return '<div class="trig-name" title="' + esc(code) + '">' + esc(r.label) + '<div class="muted mono trig-code">' + esc(code) + '</div></div>'; } },
+        { label: 'Fired', key: 'queued', num: true, fmt: n }, { label: 'Sent', key: 'sent', num: true, fmt: n },
+        { label: 'Skipped', num: true, html: function (r) { return '<span class="muted" title="Condition no longer true when it was time to send (e.g. they booked)">' + n(r.skipped) + '</span>'; } },
+        { label: 'Opened', num: true, html: function (r) { return esc(r.sent ? pct(r.opened / r.sent) : '–'); } },
+        { label: 'Clicked', num: true, html: function (r) { return esc(r.sent ? pct(r.clicked / r.sent) : '–'); } },
+        { label: 'Booked after', key: 'booked_after', num: true, fmt: n },
+      ];
+      // No failures: one calm line in the Queue card instead of an empty half-width card.
+      var queueCard = '<div class="card"><div class="card-head wrap-head"><div><h2>Queue</h2><p class="sub">Scheduled and waiting for the 5-minute sender.</p></div>' +
+        (fails.length ? '' : '<span class="calm-line"><span class="status-dot" style="background:var(--good)" aria-hidden="true"></span> No failed sends · retries 3× with back-off</span>') + '</div>' +
+        table([{ label: 'Sequence', html: function (r) { return esc(seqLabel(r.sequence)); } }, { label: 'Pending', key: 'pending', num: true, fmt: n }, { label: 'Next send', html: function (r) { return esc(when(r.next_at)); } }], d.queue || []) + '</div>';
+      var stat = function (label, val, cls, tip) { return '<span class="seq-stat' + (cls ? ' ' + cls : '') + '"' + (tip ? ' title="' + esc(tip) + '"' : '') + '><small>' + esc(label) + '</small>' + esc(val) + '</span>'; };
+      var seqHtml = order.map(function (k) {
+        var g = bySeq[k], steps = g.rows.length, desc = seqDesc(k);
+        return '<details class="seq-group"' + (g.failed > 0 ? ' open' : '') + '><summary><span class="seq-name"' + (desc ? ' title="' + esc(desc) + '"' : '') + '><b>' + esc(seqLabel(k)) + '</b> <span class="muted">' + esc(steps + (steps === 1 ? ' email' : ' emails')) + '</span>' + (desc ? '<span class="seq-desc">' + esc(desc) + '</span>' : '') + '</span>' +
+          stat('Sent for real', n(Math.max(0, g.sent - g.simulated)), '', 'Sent through Resend: all sends minus simulated ones (' + n(g.sent) + ' − ' + n(g.simulated) + ')') +
+          stat('Simulated', n(g.simulated), '', 'Rendered and logged but not sent: no Resend key was connected') + stat('Skipped', n(g.skipped), '', 'Not sent because it no longer applied (e.g. they booked)') + stat('Failed', n(g.failed), g.failed > 0 ? 'seq-failed' : '', 'Failed after 3 retries') +
+          stat('Open rate', g.sent ? pct(g.opened / g.sent) : '–', '', 'Opened ÷ all sends, simulated included') + stat('Click rate', g.sent ? pct(g.clicked / g.sent) : '–', '', 'Clicked ÷ all sends, simulated included') + '</summary>' +
+          table(emailCols, g.rows) + '</details>';
+      }).join('');
       view.innerHTML =
-        '<div class="card" style="margin-bottom:14px"><h2>Behaviour-triggered emails</h2><p class="sub">One email when someone does something specific on the page, written for them from what they did. Each fires once per person; at most 8 emails a day to anyone in total; re-checked right before sending.</p>' + table([
-          { label: 'Trigger', html: function (r) { return esc(r.label) + '<div class="muted mono">' + esc(r.template) + ' · sends ' + (r.delay ? r.delay + ' min after' : 'right away') + '</div>'; } },
-          { label: 'Fired', key: 'queued', num: true, fmt: n }, { label: 'Sent', key: 'sent', num: true, fmt: n },
-          { label: 'Skipped', num: true, html: function (r) { return '<span class="muted" title="Condition no longer true when it was time to send (e.g. they booked)">' + n(r.skipped) + '</span>'; } },
-          { label: 'Opened', num: true, html: function (r) { return esc(r.sent ? pct(r.opened / r.sent) : '–'); } },
-          { label: 'Clicked', num: true, html: function (r) { return esc(r.sent ? pct(r.clicked / r.sent) : '–'); } },
-          { label: 'Booked after', key: 'booked_after', num: true, fmt: n },
-        ], tr.rules) + '</div>' +
-        '<div class="card"><h2>By email</h2><p class="sub">“Simulated” means no Resend key was connected — the email was rendered and logged but not sent.</p>' +
-        table([{ label: 'Sequence', key: 'sequence' }, { label: '#', key: 'step', num: true, fmt: function (v) { return v + 1; } }, { label: 'Template', html: function (r) { return '<a href="/admin/api/email-preview/' + esc(r.template) + '" target="_blank" rel="noopener">' + esc(r.template) + ' ↗</a>'; } },
-          { label: 'Sent', key: 'sent', num: true, fmt: n }, { label: 'Simulated', key: 'simulated', num: true, fmt: n }, { label: 'Skipped', key: 'skipped', num: true, fmt: n }, { label: 'Failed', key: 'failed', num: true, fmt: n },
-          { label: 'Open rate', num: true, html: function (r) { return esc(pct(r.opened / (r.sent || 1))); } }, { label: 'Click rate', num: true, html: function (r) { return esc(pct(r.clicked / (r.sent || 1))); } }], d.templates) + '</div>' +
-        '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Queue</h2><p class="sub">Scheduled and waiting for the 5-minute sender.</p>' + table([{ label: 'Sequence', key: 'sequence' }, { label: 'Pending', key: 'pending', num: true, fmt: n }, { label: 'Next send', html: function (r) { return esc(when(r.next_at)); } }], d.queue) + '</div>' +
-        '<div class="card"><h2>Recent failures</h2><p class="sub">Retries 3× with back-off before failing.</p>' + table([{ label: 'Template', key: 'template' }, { label: 'To', key: 'to_email' }, { label: 'Error', key: 'error' }], d.failures) + '</div></div>';
+        (allSimulated ? '<div class="card notice" style="margin-bottom:14px">Emails are simulated: no Resend key yet, so nothing is actually sent and open/click rates show once it’s connected. <a href="#integrations" data-go="integrations">Connect it in Integrations →</a></div>' : '') +
+        '<div class="card" style="margin-bottom:14px"><h2>Behaviour-triggered emails</h2><p class="sub">' + esc('One email when someone does something specific on the page, written for them from what they did. Each fires once per person; at most 8 emails a day to anyone in total; re-checked right before sending. · ' + n(firedRules.length) + ' of ' + n(rules.length) + ' fired in this range') + '</p>' +
+        (firedRules.length ? table(trigCols, firedRules, { cards: 3 }) : emptyState('None of the ' + n(rules.length) + ' triggers has fired in this range yet.')) +
+        (quietRules.length ? '<details class="more-rows"><summary>' + esc('Show the other ' + quietRules.length + (quietRules.length === 1 ? ' trigger that hasn’t' : ' triggers that haven’t') + ' fired yet') + '</summary>' + table(trigCols, quietRules, { cards: 3 }) + '</details>' : '') + '</div>' +
+        (fails.length ? '<div class="grid g-2" style="margin-bottom:14px">' + queueCard + '<div class="card"><h2>Recent failures · ' + esc(n(fails.length)) + '</h2><p class="sub">Retries 3× with back-off before failing.</p>' + table([{ label: 'Template', key: 'template' }, { label: 'To', key: 'to_email' }, { label: 'Error', key: 'error' }], fails) + '</div></div>'
+          : '<div style="margin-bottom:14px">' + queueCard + '</div>') +
+        '<div class="card"><h2>By email</h2><p class="sub">“Simulated” means no Resend key was connected — the email was rendered and logged but not sent. Click a sequence to see each email.</p>' +
+        (order.length ? '<div class="seq-list">' + seqHtml + '</div>' : emptyState('No data in this range yet.')) + '</div>';
     });
+  }
+  /** Readable sequence name: its name in config if it has one, else the key ("tier_a" → "Tier A"). */
+  function seqLabel(k) {
+    var list = state.meta && Array.isArray(state.meta.sequences) ? state.meta.sequences : [];
+    var x = list.filter(function (s) { return s && (s.id === k || s.key === k); })[0];
+    if (x && (x.name || x.label)) return String(x.name || x.label);
+    var t = String(k == null ? '' : k).replace(/_/g, ' ').replace(/\b([a-z])\b/g, function (c) { return c.toUpperCase(); });
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+  function seqDesc(k) {
+    var list = state.meta && Array.isArray(state.meta.sequences) ? state.meta.sequences : [];
+    var x = list.filter(function (s) { return s && (s.id === k || s.key === k); })[0];
+    return x && x.description ? String(x.description).replace(/\s*\(see [^)]*\)/g, '') : ''; // drop code pointers like "(see personalize/triggers.ts)"
   }
 
   function renderLive() {
@@ -1543,7 +1946,7 @@
             { label: 'Where', html: function (e) { return esc([e.city, e.country].filter(Boolean).join(', ')); } },
             { label: 'Source', html: function (e) { return esc(e.channel || '') + (e.utm_campaign ? ' <span class="muted">' + esc(e.utm_campaign) + '</span>' : ''); } },
             { label: 'Device', key: 'device' },
-          ], d.events) + '</div>';
+          ], d.events, { feed: true }) + '</div>';
         view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
         view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
       });
@@ -1552,27 +1955,53 @@
     return draw();
   }
 
+  var openSettings = null; // settings groups left open across a save (Integrations)
   function renderIntegrations() {
     return fetch('/admin/api/integrations', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
       var groups = {};
       d.settings.forEach(function (s) { (groups[s.group] = groups[s.group] || []).push(s); });
+      var groupNames = Object.keys(groups);
+      var slug = function (g) { return String(g).toLowerCase().replace(/[^a-z0-9]+/g, '-'); };
+      // Status tile → the settings group that configures it (case-insensitive; tried with the key, then the label).
+      var TILE_GROUP = { email: 'Email', whatsapp: 'WhatsApp', voice: 'Voice', 'voice agent': 'Voice', aicalls: 'Voice', 'ai calls (elevenlabs)': 'Voice', booking: 'Booking', calendly: 'Booking', analytics: 'Analytics', posthog: 'Analytics', ga4: 'Analytics', meta: 'Ads', alerts: 'Alerts', slack: 'Alerts', 'team pings': 'Alerts', crm: 'Alerts', 'crm webhook': 'Alerts', video: 'Video' };
+      var findGroup = function (name) {
+        if (!name) return null;
+        var want = String(TILE_GROUP[String(name).toLowerCase()] || name).toLowerCase();
+        return groupNames.filter(function (g) { return g.toLowerCase() === want; })[0] || null;
+      };
       view.innerHTML =
-        '<div class="card"><h2>Status</h2><div class="int-grid" style="margin-top:10px">' + Object.keys(d.status).map(function (k) {
+        '<div class="card"><h2>Status</h2><p class="sub">Click a service to jump to its settings.</p><div class="int-grid" style="margin-top:10px">' + Object.keys(d.status).map(function (k) {
           var s = d.status[k];
-          return '<div class="int"><span class="badge">' + (s.connected ? '<span class="status-dot" style="background:var(--good)" aria-hidden="true"></span>' : '<span class="status-dot" style="background:var(--axis)" aria-hidden="true"></span>') + '</span><div><b>' + esc(s.label || k) + ' · ' + (s.connected ? 'connected' : 'not connected') + '</b><span>' + esc(s.detail) + '</span></div></div>';
+          var g = findGroup(k) || findGroup(s.label);
+          return '<div class="int' + (g ? ' click" role="button" tabindex="0" data-set-jump="' + esc(slug(g)) + '" title="' + esc('Open ' + g + ' settings') : '') + '"><span class="badge">' + (s.connected ? '<span class="status-dot" style="background:var(--good)" aria-hidden="true"></span>' : '<span class="status-dot" style="background:var(--axis)" aria-hidden="true"></span>') + '</span><div><b>' + esc(s.label || k) + ' · ' + (s.connected ? 'connected' : 'not connected') + '</b><span>' + esc(s.detail) + '</span></div></div>';
         }).join('') + '</div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Calendly</h2><p class="sub">With the personal access token connected: exact call times the moment someone books, meeting links in the reminders, the host mapped to your closer, their booking answers, a signed webhook (bookings, cancellations, reschedules, no-shows) and an hourly sync. Calls booked straight from the Calendly link are imported for the sales numbers only; they get no emails.</p></div></div>' +
         '<div class="row"><button class="btn-sm" data-cal-connect>Connect webhook &amp; import</button><button class="btn-sm ghost" data-cal-sync>Sync now</button><button class="btn-sm ghost" data-cal-history>Import full history</button><span class="muted" data-cal-out></span></div></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Test email</h2><p class="sub">Sends a test through Resend to confirm the key, domain and From address.</p><div class="row"><input class="input" type="email" placeholder="you@company.com" data-test-to style="flex:1"><button class="btn-sm" data-test>Send test</button></div></div>' +
         '<div class="card"><h2>Webhook URLs</h2><p class="sub">Paste these into each provider.</p><dl class="kv">' + kv('Calendly', d.webhooks.calendly) + kv('Cal.com / GHL / Zapier', d.webhooks.booking) + kv('WhatsApp Cloud API', d.webhooks.whatsapp) + kv('Vapi (voice) Server URL', d.webhooks.voice) + '</dl></div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Voice assistant</h2><p class="sub">Creates (or updates) the inbound assistant in your Vapi account from the copy, FAQs and rules in config. Save your Vapi keys and webhook secret first. Then in Vapi, set your phone number’s Server URL to the voice URL above and leave its assistant empty.</p></div><div class="row"><a class="btn-sm ghost" href="/admin/api/voice/assistant.json" target="_blank" rel="noopener">View JSON</a><button class="btn-sm" type="button" data-provision>Create / update assistant</button></div></div></div>' +
-        '<form class="card" style="margin-top:14px" data-settings><div class="card-head"><div><h2>Keys & settings</h2><p class="sub">Values set as Worker secrets/vars are locked here (they always win). Secrets are never shown — leave a masked field blank to keep it, type “-” to clear it.</p></div><button class="btn-sm" type="submit">Save changes</button></div>' +
-        Object.keys(groups).map(function (g) {
-          return '<div class="settings-group"><h3>' + esc(g) + '</h3>' + groups[g].map(function (s) {
+        '<form class="card" style="margin-top:14px" data-settings><div class="card-head sticky-head"><div><h2>Keys & settings</h2><p class="sub">Values set as Worker secrets/vars are locked here (they always win). Secrets are never shown — leave a masked field blank to keep it, type “-” to clear it.</p></div><button class="btn-sm" type="submit">Save changes</button></div>' +
+        '<div class="set-jump">' + groupNames.map(function (g) { return '<a href="#integrations" data-set-jump="' + esc(slug(g)) + '">' + esc(g) + '</a>'; }).join('') + '</div>' +
+        groupNames.map(function (g, gi) {
+          var list = groups[g];
+          var x = list.filter(function (s) { return (s.source && s.source !== '' && s.source !== 'unset') || s.value; }).length, y = list.length;
+          return '<details class="settings-group" id="set-' + esc(slug(g)) + '"' + ((openSettings ? openSettings.indexOf(slug(g)) !== -1 : gi === 0) ? ' open' : '') + '><summary><h3>' + esc(g) + '</h3><span class="pill' + (x === y ? ' st-won' : '') + '">' + x + ' of ' + y + ' set</span></summary>' + list.map(function (s) {
             var locked = s.source === 'env';
             return '<div class="setting"><div><label for="s_' + esc(s.key) + '">' + esc(s.label) + '</label>' + (s.help ? '<div class="help">' + esc(s.help) + '</div>' : '') + '</div><div><input id="s_' + esc(s.key) + '" name="' + esc(s.key) + '" ' + (s.secret ? 'type="password" autocomplete="new-password" placeholder="' + esc(s.value ? s.value + ' (saved)' : (s.placeholder || '')) + '" value=""' : 'value="' + esc(s.value) + '" placeholder="' + esc(s.placeholder || '') + '"') + (locked ? ' disabled' : '') + '><div class="src">' + (locked ? 'Set via Worker environment' : s.source === 'dashboard' ? 'Saved in dashboard' : 'Not set') + ' · <span class="mono">' + esc(s.key) + '</span></div></div></div>';
-          }).join('') + '</div>';
-        }).join('') + '</form>';
+          }).join('') + '</details>';
+        }).join('') + '<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn-sm" type="submit">Save changes</button></div></form>';
+      openSettings = null;
+
+      var jumpTo = function (key) {
+        var el = document.getElementById('set-' + key);
+        if (!el) return;
+        el.open = true;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      view.querySelectorAll('[data-set-jump]').forEach(function (a) {
+        a.onclick = function (ev) { ev.preventDefault(); jumpTo(a.getAttribute('data-set-jump')); };
+        if (a.tagName !== 'A') a.onkeydown = function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); jumpTo(a.getAttribute('data-set-jump')); } };
+      });
 
       view.querySelector('[data-provision]').onclick = function () {
         send('POST', 'voice/provision', {}).then(function (r) { toast(r.ok ? 'Assistant ' + (r.created ? 'created' : 'updated') + ' ✓' : (r.error || 'Failed')); if (r.ok) load(); });
@@ -1606,6 +2035,8 @@
           if (s.secret) { if (v === '-') body[s.key] = ''; else if (v) body[s.key] = v; }
           else if (v !== s.value) body[s.key] = v;
         });
+        // Keep the groups that were open, so the page doesn't jump back to the top after saving.
+        openSettings = [].map.call(view.querySelectorAll('details.settings-group[open]'), function (x) { return x.id.slice(4); });
         send('PUT', 'integrations', body).then(function () { toast('Saved'); load(); });
       };
     });
@@ -1622,6 +2053,8 @@
         var first = sel.options[0].outerHTML;
         sel.innerHTML = first + (d.rows || []).filter(function (row) { return row.key !== '(none)'; }).map(function (row) { return '<option value="' + esc(row.key) + '">' + esc(row.key) + '</option>'; }).join('');
         sel.value = cur;
+        sel.title = sel.value ? sel.options[sel.selectedIndex].text : '';
+        updateFilterCue();
       }).catch(function () {});
     });
   }
@@ -1635,14 +2068,91 @@
     };
   });
   document.querySelectorAll('[data-filter]').forEach(function (sel) {
-    sel.onchange = function () { state.filters[sel.getAttribute('data-filter')] = sel.value; load(); };
+    sel.onchange = function () {
+      state.filters[sel.getAttribute('data-filter')] = sel.value;
+      sel.title = sel.value ? sel.options[sel.selectedIndex].text : '';
+      updateFilterCue();
+      load();
+    };
   });
   document.querySelector('[data-clear]').onclick = function () {
     state.filters = {};
-    document.querySelectorAll('[data-filter]').forEach(function (s) { s.value = ''; });
+    if (state.tab === 'leads') { state.leadsQuery.tier = ''; state.leadsQuery.status = ''; state.leadsQuery.q = ''; state.leadsQuery.page = 0; state.leadsQuery._focus = false; }
+    document.querySelectorAll('[data-filter]').forEach(function (s) { s.value = ''; s.title = ''; });
+    updateFilterCue();
     load();
   };
   document.querySelectorAll('[data-nav] button').forEach(function (b) { b.onclick = function () { go(b.getAttribute('data-tab')); }; });
+
+  // Phone: the ☰ button opens the grouped nav as a sheet; picking a tab (go) or Escape closes it.
+  if (navToggleEl) navToggleEl.onclick = function () { setNavOpen(!document.body.classList.contains('nav-open')); };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.body.classList.contains('nav-open')) { setNavOpen(false); navToggleEl.focus(); } });
+
+  // One handler for every in-app link: data-go="<tab>" switches tab, data-open="<lead id>" opens the lead drawer.
+  // Per-tab onclick bindings that already handled the click call preventDefault, so they never fire twice.
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest('[data-go],[data-open]');
+    if (!a) return;
+    if (!(view.contains(a) || a.closest('.drawer') || a.closest('[data-attention]') || a.closest('.side'))) return;
+    e.preventDefault();
+    if (a.hasAttribute('data-open')) { openLead(a.getAttribute('data-open')); return; }
+    if (a.hasAttribute('data-tier') || a.hasAttribute('data-status')) {
+      // A to-do chip opens Leads with exactly that filter (and nothing left over from earlier).
+      state.leadsQuery.tier = a.getAttribute('data-tier') || '';
+      state.leadsQuery.status = a.getAttribute('data-status') || '';
+      state.leadsQuery.q = '';
+      state.leadsQuery.page = 0;
+    }
+    go(a.getAttribute('data-go'));
+  });
+  addEventListener('hashchange', route);
+  addEventListener('popstate', route);
+
+  // Sidebar "Find a lead": from any tab, Enter opens Leads filtered to what was typed (and only that). "/" jumps to the box.
+  var navSearch = document.querySelector('[data-nav-search]');
+  if (navSearch) {
+    var navSearchIn = navSearch.querySelector('input');
+    navSearch.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = navSearchIn.value.trim();
+      state.leadsQuery.q = v; state.leadsQuery.tier = ''; state.leadsQuery.status = ''; state.leadsQuery.page = 0;
+      // Finding a lead means every lead: all time, all channels (the bar then reads "All time", so it's clear why).
+      if (v) {
+        var allBtn = filtersEl.querySelector('[data-range] button[data-days="3650"]');
+        if (state.days !== 3650 && allBtn) {
+          state.days = 3650;
+          filtersEl.querySelectorAll('[data-range] button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === allBtn)); });
+          populateFilters();
+        }
+        state.filters.channel = '';
+        var chSel = filtersEl.querySelector('select[data-filter="channel"]');
+        if (chSel) { chSel.value = ''; chSel.title = ''; }
+      }
+      navSearchIn.value = '';
+      navSearchIn.blur();
+      go('leads'); // go() keeps q, resets _focus and loads the list
+      state.leadsQuery._focus = true; // the list renders after the fetch, so the Leads search box gets the focus, showing the query
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey || document.querySelector('.drawer')) return;
+      var a = document.activeElement;
+      if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
+      e.preventDefault();
+      if (navToggleEl && getComputedStyle(navToggleEl).display !== 'none') setNavOpen(true); // phone: the box lives in the nav sheet
+      navSearchIn.focus();
+    });
+  }
+
+  /** Small count on a nav item (e.g. calls waiting for an outcome on Calls & deals). */
+  function setNavBadge(key, count) {
+    var el = document.querySelector('[data-nav-badge="' + key + '"]');
+    if (!el) return;
+    count = count || 0;
+    el.textContent = count > 99 ? '99+' : String(count);
+    el.hidden = !count;
+    el.title = count ? count + (count === 1 ? ' call needs' : ' calls need') + ' an outcome' : '';
+  }
 
   var themeBtn = document.querySelector('[data-theme-toggle]');
   var themes = ['auto', 'light', 'dark'];
@@ -1656,6 +2166,10 @@
   applyTheme(savedTheme);
   themeBtn.onclick = function () { applyTheme(themes[(themes.indexOf(themeBtn.textContent.replace('Theme: ', '')) + 1) % 3]); if (state.tab !== 'integrations') load(); };
 
+  var navEl = document.querySelector('[data-nav]');
+  if (navEl) navEl.addEventListener('scroll', updateNavFade, { passive: true });
+  addEventListener('resize', updateNavFade);
+
   var resizeT;
   addEventListener('resize', function () { clearTimeout(resizeT); resizeT = setTimeout(function () { if (['overview', 'vsl', 'application'].indexOf(state.tab) !== -1) load(); }, 250); });
 
@@ -1663,6 +2177,10 @@
     state.meta = meta;
     populateFilters();
     var h = location.hash.slice(1);
-    if (h.indexOf('lead=') === 0) { go('leads'); openLead(h.slice(5)); } else go(h || 'overview');
+    if (h.indexOf('lead=') === 0) { routing = true; go('leads'); routing = false; openLead(decodeURIComponent(h.slice(5)), { fromRoute: true }); }
+    else go(h || 'overview', { replace: true });
+    lastHash = location.hash;
+    markEntry();
+    if (state.tab !== 'overview' && state.tab !== 'sales') api('sales').then(function (d) { setNavBadge('sales', d && d.needsOutcome ? d.needsOutcome.length : 0); }).catch(function () {});
   });
 })();
