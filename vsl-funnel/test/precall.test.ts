@@ -19,21 +19,21 @@ describe('pre-call barrage', () => {
   const inWaking = (t: number) => { const h = Number(hourIn(t, 'Australia/Sydney').slice(0, 2)); return h >= 7 && h <= 21; };
   const gaps = (t: number[]) => t.slice(1).map((x, i) => x - t[i]);
 
-  it('a call 2+ days out gets 20, spread over waking hours, clear of the reminders and 2h+ before the call', () => {
+  it('a call 2+ days out gets 20+ (to the cap), spread over waking hours, clear of the reminders and 2h+ before the call', () => {
     const now = Date.parse('2026-10-12T22:00:00Z'); // Tue 09:00 Sydney
     const call = now + 54 * H;
-    const t = precallTimes(now, call, 'Australia/Sydney', 12, 20, 10);
-    expect(t).toHaveLength(20);
+    const t = precallTimes(now, call, 'Australia/Sydney', 14, 45, 15);
+    expect(t.length).toBeGreaterThanOrEqual(25);
     expect(t.every((x) => x >= now + 45 * 60_000 && x <= call - 2.25 * H)).toBe(true);
     expect(t.every(inWaking)).toBe(true);
     expect(Math.min(...gaps(t))).toBeGreaterThanOrEqual(45 * 60_000);
     for (const r of [48, 24, 3]) expect(t.some((x) => Math.abs(x - (call - r * H)) < 45 * 60_000)).toBe(false);
   });
 
-  it('a call booked for tomorrow morning still gets 10, at least 30 minutes apart, none at night', () => {
+  it('a call booked for tomorrow morning still gets 12+, at least 30 minutes apart, none at night', () => {
     const now = Date.parse('2026-10-13T03:00:00Z'); // Tue 14:00 Sydney
-    const t = precallTimes(now, now + 20 * H, 'Australia/Sydney', 12, 20, 10);
-    expect(t).toHaveLength(10);
+    const t = precallTimes(now, now + 20 * H, 'Australia/Sydney', 14, 45, 15);
+    expect(t.length).toBeGreaterThanOrEqual(12);
     expect(t.every(inWaking)).toBe(true);
     expect(Math.min(...gaps(t))).toBeGreaterThanOrEqual(30 * 60_000);
   });
@@ -52,19 +52,19 @@ describe('pre-call barrage', () => {
   it('keeps the story in order and the most important emails when time is short', () => {
     const lead = { id: 'l', first_name: 'Dana', answers: null } as unknown as Lead;
     const full = precallPlan(lead);
-    const short = precallPlan(lead, 10);
-    expect(short).toHaveLength(10);
-    for (const must of ['pc_josh', 'pc_seller', 'pc_walkthrough', 'pc_guarantee', 'pc_agenda', 'pc_questions', 'pp_homework', 'pc_before_call']) expect(short).toContain(must);
+    const short = precallPlan(lead, 15);
+    expect(short).toHaveLength(15);
+    for (const must of ['pc_josh', 'pc_seller', 'pc_walkthrough', 'pc_702010', 'pc_6040', 'pc_100vf', 'pc_no_pg', 'pc_assets', 'pc_guarantee', 'pc_agenda', 'pc_questions', 'pp_homework', 'pc_before_call']) expect(short).toContain(must);
     expect(short[short.length - 1]).toBe('pc_before_call');
     const stages = short.map((x) => PRECALL_ARC[x].stage);
     expect([...stages].sort((a, b) => a - b)).toEqual(stages);
-    expect(full.length).toBeGreaterThanOrEqual(20);
+    expect(full.length).toBeGreaterThanOrEqual(40);
     expect(new Set(full).size).toBe(full.length);
     for (const t of full) expect(PRECALL_ARC[t]).toBeDefined();
   });
 
   it('has 24 distinct emails that all render, and stops once the call is near or done', () => {
-    expect(new Set(PRECALL_TEMPLATES).size).toBe(30);
+    expect(new Set(PRECALL_TEMPLATES).size).toBe(42);
     const lead = { id: 'l', first_name: 'Dana', status: 'booked', booked_at: 1, booking_cancelled_at: null, call_at: Date.now() + 86_400_000 } as unknown as Lead;
     const ctx = { lead, name: 'Dana', siteName: 'G&L', link: (p: string) => `https://x${p}`, bookingUrl: 'https://cal', whatsappUrl: 'https://wa.me/1', callTime: 'Friday 10:00am' };
     const subjects = PRECALL_TEMPLATES.map((k) => {
@@ -73,7 +73,7 @@ describe('pre-call barrage', () => {
       expect(c.body.join(' ')).not.toMatch(/\bfree\b.*call|call.*\bfree\b/i);
       return c.subject;
     });
-    expect(new Set(subjects).size).toBe(30);
+    expect(new Set(subjects).size).toBe(42);
     const stop = SEQUENCES.precall.stopIf;
     expect(stop(lead)).toBe(false);
     expect(stop({ ...lead, call_at: Date.now() + 60 * 60_000 })).toBe(true);

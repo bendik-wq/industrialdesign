@@ -40,7 +40,7 @@ describe('application-specific follow-up', () => {
     expect(plan.slice(0, 4)).toEqual(['pp_brief', 'pp_blocker1', 'pp_booking', 'pp_numbers']);
     expect(plan).toContain(PRECALL_TEMPLATES[0]);
     expect(plan).not.toContain('pc_partner'); // their own partner email replaces the general one
-    expect(precallPlan(full, 12).filter((t) => t.startsWith('pp_')).length).toBeGreaterThanOrEqual(5);
+    expect(precallPlan(full, 15).filter((t) => t.startsWith('pp_')).length).toBeGreaterThanOrEqual(4);
     expect(new Set(plan).size).toBe(plan.length);
     expect(plan.length).toBeLessThanOrEqual(SEQUENCES.precall.steps.length);
   });

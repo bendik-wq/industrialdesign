@@ -38,6 +38,26 @@ type Template = (ctx: TemplateCtx) => EmailContent;
 const bookOrBreakout = (c: TemplateCtx) => c.link(c.bookingUrl ? '/book' : '/breakout');
 const waLine = (c: TemplateCtx, text = 'Or message me directly on WhatsApp') => (c.whatsappUrl ? `<a href="${c.whatsappUrl}">${text}</a> — I read every one.` : '');
 
+/** Deal structures we see close, with illustrative numbers on a $1.5M price (used by pre-call and reactivation emails). */
+const DEAL = {
+  s6040: [
+    'The 60/40: 60% commercial debt, 40% seller rollover.',
+    'On a $1.5M price (illustrative): a lender puts in $900k. The owner rolls the other $600k into a 40% stake they keep, so they stay invested and share in what you build. No personal guarantee: the lender takes security over 100% of the business’s assets, not your house.',
+    'It works best with an owner who doesn’t need all their cash on day one and believes the business will grow with you running it.',
+  ],
+  s702010: [
+    'The 70/20/10: 70% commercial debt, 20% seller finance, 10% seller rollover.',
+    'On a $1.5M price (illustrative): a lender funds $1.05M, the seller carries $300k as a note paid over a few years from the business’s own cash flow, and rolls $150k into a 10% stake they keep. The lender usually adds a working-capital line on top, so the deal is over-financed.',
+    'This is the one most retiring owners like: most of their money at settlement, a steady income after, and a slice of the upside.',
+  ],
+  vf100: [
+    '100% vendor finance: the seller funds the whole price.',
+    'I bought my clinics this way. No bank, no equity partner: the owner was paid over time out of the business’s own cash flow. Others we work with have closed 100% seller-finance deals too.',
+    'It sounds too good, but it happens when the seller cares more about the right successor, their staff and a steady income than a lump sum.',
+  ],
+};
+const dealFact = 'Illustrative numbers. Every deal is structured on its own numbers, and nothing here is financial advice.';
+
 export const TEMPLATES: Record<string, Template> = {
   // ── Abandoned application (CTA: finish the application) ────────────
   abandon_1: (c) => ({
@@ -678,7 +698,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'How the stack covers more than the price.',
     body: [
       `${c.name}, here’s how a deal like the ones we’ll talk about fits together. The numbers are illustrative, not a promise, but the shape is real.`,
-      'The target: a competitor making $500k a year in profit. Agreed price: $1.5M.<br>Senior debt from a lender: $1.2M.<br>Seller note (the owner gets paid over time): $250k.<br>Seller rollover (the owner keeps a 10% stake instead of $150k in cash): $150k.<br>That’s $1.6M of funding for a $1.5M price: the extra $100k of the loan is working capital.',
+      'The target: a competitor making $500k a year in profit. Agreed price: $1.5M. The structure is a 70/20/10:<br>Commercial (senior) debt from a lender: $1.05M (70%).<br>Seller finance, a note paid over time: $300k (20%).<br>Seller rollover, a 10% stake the owner keeps: $150k (10%).<br>The lender adds a $100k working-capital line, so $1.6M of funding covers a $1.5M price.',
       'The test that matters: the business’s profit has to cover all the repayments about 1.5 times over. If it doesn’t, we restructure or walk away.',
       'On the call we’ll run this same sketch on your business and your market.',
     ],
@@ -738,6 +758,119 @@ export const TEMPLATES: Record<string, Template> = {
     ps: 'Need to move the time? Use the link in your booking confirmation.',
   }),
 
+  pc_6040: (c) => ({
+    subject: 'the 60/40 structure (no personal guarantee)',
+    preheader: '60% commercial debt, 40% seller rollover.',
+    body: [`${c.name}, one of the structures we’ll look at on your call:`, ...DEAL.s6040, 'Bring the names of any owners you think might want to stay invested. That’s who this fits.'],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+    ps: dealFact,
+  }),
+  pc_702010: (c) => ({
+    subject: '70/20/10: the structure retiring owners like',
+    preheader: 'Debt, seller finance and seller rollover, in one deal.',
+    body: [`${c.name}, here’s the structure that comes up most:`, ...DEAL.s702010, 'On the call we’ll see which of these fits your market and the owners you’d approach.'],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+    ps: dealFact,
+  }),
+  pc_100vf: (c) => ({
+    subject: 'how I bought my clinics with 100% vendor finance',
+    preheader: 'No bank. No equity partner.',
+    body: [`${c.name},`, ...DEAL.vf100, 'It isn’t every deal, but when it fits it’s the cleanest one there is. We’ll talk about the signs to look for.'],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_which_structure: (c) => ({
+    subject: 'which structure fits which seller',
+    preheader: 'The seller’s goals pick the structure, not the other way round.',
+    body: [
+      `${c.name}, the structure isn’t picked from a menu. It comes from what the owner wants:`,
+      '• <b>Wants most of the cash at settlement:</b> 70/20/10 (70% commercial debt, 20% seller finance, 10% seller rollover).<br>• <b>Wants to stay invested and see it grow:</b> 60/40 (60% commercial debt, 40% seller rollover, no personal guarantee).<br>• <b>Cares most about the right successor and a steady income:</b> 100% vendor finance.',
+      'That’s why the first owner conversation is about their next chapter, not the price.',
+    ],
+    cta: { label: 'See how it works →', href: c.link('/breakout') },
+  }),
+  pc_no_pg: (c) => ({
+    subject: 'what about my house?',
+    preheader: 'The security can sit on the business, not on you.',
+    body: [
+      `${c.name}, the fear we hear most: “If it goes wrong, I lose my house.”`,
+      'In structures like the 60/40, the lender’s security is over 100% of the business’s assets, and there’s no personal guarantee. The deal stands on the cash flow of the business you buy.',
+      'That’s also why we only do deals that pass the coverage test: the business’s profit has to cover its repayments about 1.5 times.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+    ps: 'Every lender and deal is different. We’ll go through what’s realistic for yours on the call.',
+  }),
+  pc_rollover: (c) => ({
+    subject: 'why sellers say yes to rollover',
+    preheader: 'They keep a slice. You keep your cash.',
+    body: [
+      `${c.name},`,
+      'Seller rollover sounds like a hard ask. In practice, a lot of owners prefer it.',
+      'They keep a slice of the business they built, they get paid again when it grows or sells, and they don’t hand everything to someone they’ve only just met. For you, every dollar they roll is a dollar you don’t have to raise.',
+      'We’ll show you how to bring it up so it lands as an opportunity for them, not a discount for you.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_others: (c) => ({
+    subject: 'it’s not just me',
+    preheader: 'Others have closed 100% seller-finance deals too.',
+    body: [
+      `${c.name}, a fair question before any call: does this only work for me?`,
+      'No. I closed my clinics with 100% vendor finance, and others we work with have closed 100% seller-finance deals in their own industries. The common thread wasn’t money. It was knowing how to find the right owner and how to structure the offer.',
+      'That’s the part we do with you.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_assets: (c) => ({
+    subject: 'everything to watch before we talk',
+    preheader: 'Four things, about 40 minutes in total.',
+    body: [
+      `${c.name}, if you want to walk into the call ahead of the curve, here’s the full set:`,
+      `1. <a href="${c.link('/')}">The main video</a>: the whole model in one sitting.<br>2. <a href="${c.link('/breakout')}">Part 2</a>: how a deal is funded, start to finish.<br>3. <a href="${c.link('/webinar')}">The masterclass</a>: where the off-market deals are.<br>4. <a href="${c.link('/resources')}">The toolkit</a>: the readiness checklist and outreach scripts.`,
+      'You don’t need all four. Part 2 is the one that makes the call twice as useful.',
+    ],
+    cta: { label: 'Watch Part 2 →', href: c.link('/breakout') },
+  }),
+  pc_dscr_maths: (c) => ({
+    subject: 'the 30-second deal test',
+    preheader: 'Do this on any business before you fall in love with it.',
+    body: [
+      `${c.name}, here’s the test lenders run, so you can run it first (illustrative numbers):`,
+      'Profit of the business you’d buy: $500k a year.<br>Yearly repayments on the debt and seller note: $330k.<br>$500k ÷ $330k = 1.5. That passes.',
+      'If it comes out under about 1.3, the structure needs more rollover or a longer seller note. If it can’t get there, we walk away.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_seller_questions: (c) => ({
+    subject: '5 questions to ask an owner',
+    preheader: 'None of them is “what do you want for it?”',
+    body: [
+      `${c.name}, when you sit down with an owner, these do the heavy lifting:`,
+      '1. What do you want your next five years to look like?<br>2. Who would you trust to look after your team?<br>3. What would you do if you had the time back?<br>4. Would you want to stay involved, or step away fully?<br>5. What would make you feel you got a fair deal?',
+      'Their answers tell you which structure to offer. We’ll practise this with you.',
+    ],
+    ps: 'Reply with the one you’d find hardest to ask.',
+  }),
+  pc_first_week: (c) => ({
+    subject: 'what week one looks like if you go ahead',
+    preheader: 'No homework mountain. Three things.',
+    body: [
+      `${c.name}, if we work together, week one is simple:`,
+      '1. We agree your acquisition criteria: industry, size, location, the kind of owner.<br>2. We build your first target list together.<br>3. You get the outreach scripts and send the first messages.',
+      'By the end of the first fortnight most people have their first owner conversation booked.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+  pc_red_flags: (c) => ({
+    subject: '3 red flags in a business for sale',
+    preheader: 'Spot them early and save months.',
+    body: [
+      `${c.name}, three things that make us slow down:`,
+      '• The owner is the business: every key customer relationship runs through them.<br>• Profit that only appears in the latest year, or that the accounts can’t show.<br>• One customer is more than a third of the revenue.',
+      'None of these kill a deal outright. They change the structure, usually toward more seller finance or rollover so the seller shares the risk.',
+    ],
+    cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
+  }),
+
   // ── Reactivation (people already in the database: past calls, no-shows, unfinished applications…) ──
   re_1: (c) => ({
     subject: `${c.name}, still buying a business this year?`,
@@ -763,7 +896,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'How a $1.5M deal can need none of your own cash (illustrative).',
     body: [
       `${c.name}, here’s the one idea that changes how most owners see acquisitions. The numbers are illustrative.`,
-      'A competitor makes $500k a year. Price: $1.5M. A lender puts in $1.2M. The seller takes $250k over time (seller finance) and rolls $150k into a 10% stake they keep (seller rollover). That’s $1.6M of funding for a $1.5M price, so the extra covers working capital.',
+      'A competitor makes $500k a year. Price: $1.5M. Using a 70/20/10: a lender puts in $1.05M of commercial debt, the seller takes $300k over time (seller finance) and rolls $150k into a 10% stake they keep (seller rollover). A $100k working-capital line on top means $1.6M of funding for a $1.5M price.',
       'The test is simple: the business has to make enough to cover every repayment about 1.5 times over. If it can’t, we don’t do the deal.',
       'Want us to run that sketch on your business?',
     ],
@@ -801,6 +934,150 @@ export const TEMPLATES: Record<string, Template> = {
     ],
     cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
     ps: 'Just reply “not now” and I’ll close it today.',
+  }),
+
+  re_702010: (c) => ({
+    subject: 'the 70/20/10 deal structure',
+    preheader: 'How retiring owners sell without you putting cash in.',
+    body: [`${c.name}, here’s a structure that keeps closing:`, ...DEAL.s702010],
+    cta: { label: 'Talk it through on a call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    ps: dealFact,
+  }),
+  re_rollover: (c) => ({
+    subject: 'the seller keeps a slice',
+    preheader: 'Why seller rollover makes deals easier, not harder.',
+    body: [
+      `${c.name},`,
+      'One idea that changes how owners see selling: seller rollover. Instead of taking every dollar in cash, the owner keeps a slice of the business and gets paid again when it grows.',
+      'For them it’s upside and a reason to help you succeed. For you, every dollar they roll is one you don’t have to raise.',
+    ],
+    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_assets: (c) => ({
+    subject: 'the 3 videos that explain it all',
+    preheader: 'About 40 minutes. Worth it if you’re still thinking about a deal.',
+    body: [
+      `${c.name}, if you only have a few minutes this week, start here:`,
+      `1. <a href="${c.link('/')}">The main video</a>: the whole model.<br>2. <a href="${c.link('/breakout')}">Part 2</a>: how a deal is funded, start to finish.<br>3. <a href="${c.link('/webinar')}">The masterclass</a>: where the off-market deals are.`,
+      'Then, if it still makes sense, grab a time and we’ll run it on your numbers.',
+    ],
+    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_6040: (c) => ({
+    subject: '60/40: no personal guarantee',
+    preheader: '60% commercial debt, 40% seller rollover.',
+    body: [`${c.name}, another structure we see work:`, ...DEAL.s6040],
+    cta: { label: 'See if it fits your market →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    ps: dealFact,
+  }),
+  re_no_pg: (c) => ({
+    subject: 'your house stays out of it',
+    preheader: 'Security over the business, not over you.',
+    body: [
+      `${c.name}, if the thing that stopped you last time was the risk, this is for you.`,
+      'In structures like the 60/40 there’s no personal guarantee: the lender’s security is over 100% of the business’s assets. The deal has to stand on its own cash flow, about 1.5 times its repayments, or we don’t do it.',
+    ],
+    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    ps: 'Every lender and deal is different. We’ll tell you straight what’s realistic for yours.',
+  }),
+  re_100vf: (c) => ({
+    subject: '100% vendor finance (how I bought my clinics)',
+    preheader: 'No bank. No equity partner.',
+    body: [`${c.name},`, ...DEAL.vf100],
+    cta: { label: 'Talk it through on a call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_others: (c) => ({
+    subject: 'it isn’t just my deals',
+    preheader: 'Others have closed 100% seller-finance deals too.',
+    body: [
+      `${c.name}, the usual doubt: “that works for you, not for me.”`,
+      'I closed my clinics with 100% vendor finance, and others we work with have closed 100% seller-finance deals in their own industries. What they had in common wasn’t money. It was a clear target list, the right first conversation, and the right structure.',
+    ],
+    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_which: (c) => ({
+    subject: 'match the structure to the seller',
+    preheader: '70/20/10, 60/40 or 100% vendor finance.',
+    body: [
+      `${c.name}, quick cheat sheet:`,
+      '• <b>Owner wants most of the cash now:</b> 70/20/10 (commercial debt, seller finance, seller rollover).<br>• <b>Owner wants to stay invested:</b> 60/40 (commercial debt and seller rollover, no personal guarantee).<br>• <b>Owner wants the right successor and a steady income:</b> 100% vendor finance.',
+      'Want us to work out which one your likely targets would go for?',
+    ],
+    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_dscr_test: (c) => ({
+    subject: 'the one number that decides a deal',
+    preheader: 'Run it before you fall in love with a business.',
+    body: [
+      `${c.name}, lenders look at one number first: the business’s profit divided by its yearly repayments.`,
+      'Around 1.5 or better and the deal is fundable. Under that, you add rollover or stretch the seller note until it works, or you walk away.',
+      'On a call we can run it on a business you have in mind.',
+    ],
+    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_competitors: (c) => ({
+    subject: 'someone will buy your competitors',
+    preheader: 'Better you than a stranger with a bigger cheque.',
+    body: [
+      `${c.name}, in most industries the owners who started in the 80s and 90s are looking for a way out.`,
+      'Their businesses will be bought by someone. The owner down the road who knows the market and keeps the team is usually who they’d rather sell to, if that person asks.',
+    ],
+    cta: { label: 'Talk about your market →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_90days: (c) => ({
+    subject: '90 days to a signed LOI',
+    preheader: 'Week by week.',
+    body: [
+      `${c.name}, here’s the path:`,
+      '<b>Weeks 1–2:</b> criteria and target list.<br><b>Weeks 3–6:</b> outreach and owner conversations.<br><b>Weeks 7–10:</b> the numbers and the structure (70/20/10, 60/40 or vendor finance).<br><b>Weeks 11–13:</b> the offer and a signed letter of intent.',
+      'You keep running your business throughout. We do it with you.',
+    ],
+    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_time: (c) => ({
+    subject: '“I don’t have time for this”',
+    preheader: 'A few focused hours a week.',
+    body: [
+      `${c.name}, if time was the reason, fair enough. Here’s the reality: a few focused hours a week for 90 days.`,
+      'You make the decisions and take the key owner conversations. The modelling, structuring and lender introductions are done with you. And the business you buy comes with its own team.',
+    ],
+    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_myths: (c) => ({
+    subject: 'what most owners get wrong about buying',
+    preheader: 'Five myths in 60 seconds.',
+    body: [
+      `${c.name},`,
+      '1. “You need millions.” Commercial debt, seller finance and seller rollover do the heavy lifting.<br>2. “Good businesses aren’t for sale.” Most are never listed.<br>3. “It takes over your life.” You’re buying a team.<br>4. “You have to risk your house.” Not with security over the business’s assets.<br>5. “It’s for private equity.” Owners who know the industry are often the best buyer.',
+    ],
+    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_cost_wait: (c) => ({
+    subject: 'what another year of waiting costs',
+    preheader: 'The quiet price of “maybe next year”.',
+    body: [
+      `${c.name}, every year of growing only organically has a cost: the profit you’d have added, the competitor someone else bought, the year you don’t get back.`,
+      'There’s no rush to do a bad deal. But there’s a real cost to not looking.',
+    ],
+    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_one_call: (c) => ({
+    subject: 'one call, then decide',
+    preheader: '30 minutes on your numbers. No obligation.',
+    body: [
+      `${c.name}, here’s all I’m suggesting: one 30-minute call.`,
+      'We look at your business, sketch what a first acquisition could look like and which structure fits, and you decide. If it isn’t a fit, we’ll say so.',
+    ],
+    cta: { label: 'Book the call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+  }),
+  re_reply: (c) => ({
+    subject: `${c.name}, still there?`,
+    preheader: 'A one-word reply is plenty.',
+    body: [
+      `${c.name},`,
+      'I’ve sent a lot this week, so I’ll keep this short. Is buying a business still on your list?',
+      'Reply “yes”, “later” or “no”. I’ll take it from there.',
+    ],
   }),
 
   // ── Behaviour-triggered (one-off, rewritten per person by the personaliser) ──

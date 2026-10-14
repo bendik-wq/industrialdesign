@@ -73,7 +73,7 @@ export const PRECALL_WAKING = [7, 21] as const; // local hours the pre-call emai
  * way to reach `min` on a short notice booking) and clear of the 48h / 24h / 3h reminders. About one per waking hour, at least `min` (when there's room) and at most `max`, and never
  * more than `perDay` in one day. A call booked for tomorrow still gets ~10; a week out gets `max`, spread thin.
  */
-export function precallTimes(now: number, callAt: number | null, tz: string, perDay: number, max = 20, min = 10): number[] {
+export function precallTimes(now: number, callAt: number | null, tz: string, perDay: number, max = 45, min = 15): number[] {
   if (perDay <= 0 || max <= 0) return [];
   const start = now + 45 * 60_000;
   const end = callAt ? callAt - 2.25 * 3_600_000 : now + 4 * 86_400_000;
@@ -128,8 +128,8 @@ export function precallTimes(now: number, callAt: number | null, tz: string, per
 export function precallLimits(rt: Runtime) {
   const num = (v: string, d: number) => (v.trim() === '' || !Number.isFinite(Number(v)) ? d : Math.max(0, Math.floor(Number(v))));
   const s = rt.settings;
-  const max = Math.min(40, num(s.PRECALL_EMAILS_MAX, 20));
-  return { perDay: num(s.PRECALL_EMAILS_PER_DAY, 12), min: Math.min(max, num(s.PRECALL_EMAILS_MIN, 10)), max };
+  const max = Math.min(60, num(s.PRECALL_EMAILS_MAX, 45));
+  return { perDay: num(s.PRECALL_EMAILS_PER_DAY, 14), min: Math.min(max, num(s.PRECALL_EMAILS_MIN, 15)), max };
 }
 
 export async function enqueuePrecall(rt: Runtime, lead: Lead) {

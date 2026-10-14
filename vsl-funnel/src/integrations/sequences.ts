@@ -41,6 +41,16 @@ export const BEHAVIOUR_TEMPLATES: { template: string; skipIf: (l: Lead) => boole
   { template: 't_watch_prep', skipIf: (l) => !isBooked(l) || l.status !== 'booked' },
 ];
 
+/** Reactivation run: [template, day, slot]. 22 emails: 5 a day for 4 days, then day 5 and day 7. */
+export const REACTIVATION_SLOTS = [0, 2.5, 5, 8, 11];
+export const REACTIVATION_PLAN: [string, number, number][] = [
+  ['re_1', 0, 0], ['re_2', 0, 1], ['re_702010', 0, 2], ['re_rollover', 0, 3], ['re_assets', 0, 4],
+  ['re_6040', 1, 0], ['re_no_pg', 1, 1], ['re_100vf', 1, 2], ['re_others', 1, 3], ['re_which', 1, 4],
+  ['re_3', 2, 0], ['re_dscr_test', 2, 1], ['re_competitors', 2, 2], ['re_90days', 2, 3], ['re_5', 2, 4],
+  ['re_4', 3, 0], ['re_time', 3, 1], ['re_myths', 3, 2], ['re_cost_wait', 3, 3], ['re_one_call', 3, 4],
+  ['re_reply', 5, 2], ['re_6', 7, 2],
+];
+
 /** Pre-call emails (one idea each). Append only: new emails go at the end. */
 export const PRECALL_TEMPLATES = [
   'pc_ceiling', 'pc_own_cash', 'pc_bank', 'pc_no_time', 'pc_partner', 'pc_seller',
@@ -48,6 +58,8 @@ export const PRECALL_TEMPLATES = [
   'pc_multiple', 'pc_in_not_on', 'pc_cash_trap', 'pc_fell_over', 'pc_done_with', 'pc_questions',
   'pc_lemon', 'pc_hiring', 'pc_two_paths', 'pc_next_year', 'pc_if_you_could', 'pc_cost',
   'pc_walkthrough', 'pc_90_days', 'pc_target', 'pc_myths', 'pc_not_for', 'pc_before_call',
+  'pc_6040', 'pc_702010', 'pc_100vf', 'pc_which_structure', 'pc_no_pg', 'pc_rollover', 'pc_others', 'pc_assets',
+  'pc_dscr_maths', 'pc_seller_questions', 'pc_first_week', 'pc_red_flags',
 ];
 
 /**
@@ -67,6 +79,10 @@ export const PRECALL_ARC: Record<string, { stage: 1 | 2 | 3 | 4 | 5; priority: 1
   pc_two_paths: { stage: 4, priority: 3 }, pc_next_year: { stage: 4, priority: 3 }, pc_if_you_could: { stage: 4, priority: 3 }, pc_cost: { stage: 4, priority: 3 },
   pc_agenda: { stage: 5, priority: 1 }, pc_questions: { stage: 5, priority: 1 }, pp_homework: { stage: 5, priority: 1 }, pp_partner: { stage: 5, priority: 2 },
   pc_partner: { stage: 5, priority: 3 }, pc_before_call: { stage: 5, priority: 1 },
+  // Deal structures and sales assets.
+  pc_assets: { stage: 1, priority: 1 }, pc_702010: { stage: 2, priority: 1 }, pc_100vf: { stage: 2, priority: 1 }, pc_6040: { stage: 2, priority: 1 },
+  pc_which_structure: { stage: 2, priority: 2 }, pc_rollover: { stage: 2, priority: 2 }, pc_others: { stage: 2, priority: 2 }, pc_dscr_maths: { stage: 2, priority: 2 },
+  pc_no_pg: { stage: 4, priority: 1 }, pc_red_flags: { stage: 4, priority: 3 }, pc_first_week: { stage: 4, priority: 2 }, pc_seller_questions: { stage: 3, priority: 3 },
 };
 export const PRECALL_STAGES = ['', 'Your plan', 'How it works', 'The opportunity', 'The doubts', 'Show up ready'] as const;
 const arcOf = (t: string) => PRECALL_ARC[t] ?? { stage: 4, priority: 3 };
@@ -183,14 +199,8 @@ export const SEQUENCES = {
     description: 'Reactivation — people already in the database (past calls with no outcome, no-shows, unfinished applications…), launched by hand from Funnel HQ',
     // Done once they book or apply again, buy, or are ruled out.
     stopIf: (l) => ['won', 'disqualified'].includes(l.status) || Boolean(l.reactivated_at && (((l.booked_at ?? 0) > l.reactivated_at && !l.booking_cancelled_at) || (l.app_completed_at ?? 0) > l.reactivated_at)),
-    steps: [
-      { template: 're_1', offsetMs: 0 },
-      { template: 're_2', offsetMs: 3 * DAY },
-      { template: 're_3', offsetMs: 6 * DAY },
-      { template: 're_4', offsetMs: 10 * DAY },
-      { template: 're_5', offsetMs: 14 * DAY },
-      { template: 're_6', offsetMs: 21 * DAY },
-    ],
+    // 5 a day for 4 days (8:00, 10:30, 13:00, 16:00, 19:00 from an 8am start), then day 5 and a last one on day 7.
+    steps: REACTIVATION_PLAN.map(([template, day, slot]) => ({ template, offsetMs: day * DAY + REACTIVATION_SLOTS[slot] * HOUR })),
   },
   webinar: {
     id: 'webinar',

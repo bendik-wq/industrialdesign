@@ -496,7 +496,7 @@ admin.post('/email-editor/:template/preview', async (c) => {
 admin.get('/reactivation', async (c) => {
   const rt = runtimeFrom(c);
   const [aud, report] = await Promise.all([reactivationAudience(rt), reactivationReport(rt)]);
-  const emails = SEQUENCES.reactivation.steps.map((st) => ({ template: st.template, day: Math.round(st.offsetMs / 86_400_000), subject: '' }));
+  const emails = SEQUENCES.reactivation.steps.map((st) => ({ template: st.template, day: Math.floor(st.offsetMs / 86_400_000), subject: '' }));
   const sample = await c.env.DB.prepare('SELECT * FROM leads WHERE email IS NOT NULL ORDER BY created_at DESC LIMIT 1').first<Lead>();
   for (const e of emails) { try { e.subject = (await buildEmail(rt, sample ?? ({ id: 'x', first_name: 'Dana', email: 'd@example.com' } as Lead), 'pv', e.template, 'preview')).subject; } catch { e.subject = e.template; } }
   return c.json({ segments: REACTIVATION_SEGMENTS, counts: aud.counts, audience: aud.rows, report, emails, emailLive: emailConfigured(rt) });

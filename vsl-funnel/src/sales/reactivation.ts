@@ -47,7 +47,7 @@ export async function reactivationAudience(rt: Runtime, segments: Segment[] = Ob
 
 /**
  * Queues the 6-email reactivation for the chosen people, spread out: `perDay` new people a day, each
- * starting at 9am-ish their (sales) time, a few minutes apart, so the domain's reputation isn't hit.
+ * starting at 8am (sales time zone), a couple of minutes apart; each then gets 5 emails a day for 4 days, so the domain's reputation isn't hit.
  */
 export async function launchReactivation(rt: Runtime, ids: string[], perDay: number) {
   const now = Date.now();
@@ -58,15 +58,15 @@ export async function launchReactivation(rt: Runtime, ids: string[], perDay: num
   const pick = [...new Set(ids)].filter((id) => allowed.has(id));
   const p = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', hourCycle: 'h23' }).formatToParts(now);
   const g = (k: string) => Number(p.find((x) => x.type === k)!.value);
-  // Start today if it's before 3pm there, otherwise tomorrow.
-  const firstDay = g('hour') < 15 ? 0 : 1;
+  // Start today if it's still early there (the day's 5 emails run 8am–7pm), otherwise tomorrow.
+  const firstDay = g('hour') < 8 ? 0 : 1;
   let launched = 0;
   for (let i = 0; i < pick.length; i++) {
     const r = allowed.get(pick[i])!;
     const day = firstDay + Math.floor(i / per);
     const d = new Date(Date.UTC(g('year'), g('month') - 1, g('day') + day));
-    const nine = zonedTime(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 9, tz);
-    const startAt = Math.max(now + 5 * 60_000, nine + (i % per) * 4 * 60_000);
+    const eight = zonedTime(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 8, tz);
+    const startAt = Math.max(now + 5 * 60_000, eight + (i % per) * 2 * 60_000);
     await rt.env.DB.prepare('INSERT INTO lead_reactivation (lead_id, reactivated_at, segment) VALUES (?, ?, ?) ON CONFLICT(lead_id) DO UPDATE SET reactivated_at = excluded.reactivated_at, segment = excluded.segment').bind(r.id, startAt, r.segment).run();
     await rt.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE lead_id = ? AND sequence = 'reactivation' AND status = 'pending'").bind(r.id).run();
     await enqueueSequence(rt, { id: r.id, email: r.email, call_at: null, unsubscribed_at: null } as Pick<Lead, 'id' | 'email' | 'call_at' | 'unsubscribed_at'>, 'reactivation', { startAt });

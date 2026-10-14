@@ -43,9 +43,14 @@ describe('email editor', () => {
 });
 
 describe('reactivation', () => {
-  it('is 6 emails over 3 weeks that stop once they come back', () => {
+  it('is 22 emails, 5 a day for 4 days then two follow-ups, that stop once they come back', () => {
     const seq = SEQUENCES.reactivation;
-    expect(seq.steps.map((s) => s.template)).toEqual(['re_1', 're_2', 're_3', 're_4', 're_5', 're_6']);
+    expect(seq.steps).toHaveLength(22);
+    expect(new Set(seq.steps.map((s) => s.template)).size).toBe(22);
+    const perDay = new Map<number, number>();
+    for (const st of seq.steps) { const d = Math.floor(st.offsetMs / 86_400_000); perDay.set(d, (perDay.get(d) ?? 0) + 1); }
+    expect([0, 1, 2, 3].map((d) => perDay.get(d))).toEqual([5, 5, 5, 5]);
+    expect(seq.steps[seq.steps.length - 1].template).toBe('re_6');
     const lead = { status: 'booked', reactivated_at: 1000, booked_at: 500, booking_cancelled_at: null, app_completed_at: null } as unknown as Lead;
     expect(seq.stopIf!(lead)).toBe(false);
     expect(seq.stopIf!({ ...lead, booked_at: 2000 })).toBe(true);

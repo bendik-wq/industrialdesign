@@ -63,6 +63,7 @@ export const TEMPLATE_TOPICS: Record<string, string[]> = {
   pc_fell_over: ['experience', 'risk'], pc_done_with: ['control'], pc_questions: ['call', 'questions'], pc_lemon: ['risk', 'due_diligence'], pc_hiring: ['team'],
   pc_two_paths: ['experience'], pc_next_year: ['timing'], pc_if_you_could: ['experience'], pc_cost: ['timing'],
   pc_walkthrough: ['funding', 'debt'], pc_90_days: ['timing', 'process'], pc_target: ['deal_flow', 'competition'], pc_myths: ['funding', 'time', 'risk'], pc_not_for: ['fit'], pc_before_call: ['call'],
+  pc_6040: ['funding', 'risk'], pc_702010: ['funding', 'seller'], pc_100vf: ['seller', 'credibility'], pc_which_structure: ['funding', 'seller'], pc_no_pg: ['risk', 'debt'], pc_rollover: ['seller', 'funding'], pc_others: ['credibility'], pc_assets: ['call'], pc_dscr_maths: ['debt', 'risk'], pc_seller_questions: ['deal_flow', 'seller'], pc_first_week: ['process', 'time'], pc_red_flags: ['risk', 'due_diligence'],
   pp_brief: ['call'], pp_numbers: ['funding', 'debt'], pp_goal: ['growth', 'exit'], pp_industry: ['competition', 'deal_flow'], pp_timeline: ['timing'],
   pp_partner: ['partner', 'call'], pp_homework: ['call', 'questions'], ns_numbers: ['funding'], fu_objection: ['risk'], fu_numbers: ['timing'],
   fu_industry: ['competition'], cx_1: ['call'], nu_seller: ['seller', 'funding'], nu_dscr: ['debt', 'risk'], nu_numbers: ['funding'],
