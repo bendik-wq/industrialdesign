@@ -57,3 +57,19 @@ describe('reactivation', () => {
     }
   });
 });
+
+describe('funding wording', () => {
+  it('every email that mentions senior debt or a lender funding the price also names seller rollover', async () => {
+    const { buildDossier } = await import('../src/followup/dossier');
+    void buildDossier;
+    const lead = { id: 'l1', ref_code: 'AB12CD', first_name: 'Sam', tier: 'A', booked_at: 1, call_at: Date.now() + 86400000, app_completed_at: 1, answers: null } as never;
+    const c = { lead, name: 'Sam', siteName: 'G&L', link: (p: string) => `https://x.test${p}`, bookingUrl: 'https://cal.test', whatsappUrl: null, callTime: 'Monday 3pm' };
+    const missing: string[] = [];
+    for (const [k, t] of Object.entries(TEMPLATES)) {
+      const e = t(c as never);
+      const text = [e.subject, e.preheader, ...e.body, e.ps ?? ''].join(' ').toLowerCase();
+      if (/senior debt|seller finance|seller note/.test(text) && /senior debt|lender puts in/.test(text) && !text.includes('seller rollover')) missing.push(k);
+    }
+    expect(missing).toEqual([]);
+  });
+});

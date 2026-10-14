@@ -763,7 +763,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'How a $1.5M deal can need none of your own cash (illustrative).',
     body: [
       `${c.name}, here’s the one idea that changes how most owners see acquisitions. The numbers are illustrative.`,
-      'A competitor makes $500k a year. Price: $1.5M. A lender puts in $1.2M. The seller takes $250k over time and rolls $150k into a 10% stake they keep. That’s $1.6M of funding for a $1.5M price, so the extra covers working capital.',
+      'A competitor makes $500k a year. Price: $1.5M. A lender puts in $1.2M. The seller takes $250k over time (seller finance) and rolls $150k into a 10% stake they keep (seller rollover). That’s $1.6M of funding for a $1.5M price, so the extra covers working capital.',
       'The test is simple: the business has to make enough to cover every repayment about 1.5 times over. If it can’t, we don’t do the deal.',
       'Want us to run that sketch on your business?',
     ],
