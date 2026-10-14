@@ -106,6 +106,36 @@ api.post('/apply/submit', async (c) => {
   }
 });
 
+// Talk instead of type: turn a short voice clip from the application into text (ElevenLabs speech-to-text).
+// Only mid-application (a lead exists), rate-limited, and the audio is never stored.
+api.post('/apply/transcribe', async (c) => {
+  const rt = runtimeFrom(c);
+  const v = c.get('visitor');
+  if (rt.settings.VOICE_INPUT.trim().toLowerCase() === 'off') return c.json({ error: 'off' }, 404);
+  const key = rt.settings.ELEVENLABS_API_KEY;
+  if (!key) return c.json({ error: 'Voice isn’t available right now. Please type your answer.' }, 503);
+  if (!v.leadId) return c.json({ error: 'Your session expired — please start again' }, 409);
+  const type = (c.req.header('content-type') || '').split(';')[0].trim();
+  if (!/^audio\/(webm|mp4|ogg|mpeg|wav|x-m4a|aac)$/.test(type)) return c.json({ error: 'Unsupported audio' }, 415);
+  const audio = await c.req.arrayBuffer();
+  if (audio.byteLength < 800) return c.json({ text: '' });
+  if (audio.byteLength > 4_000_000) return c.json({ error: 'That was a long one — please keep it under 2 minutes.' }, 413);
+  const k = `stt:${v.leadId}`;
+  const row = await c.env.DB.prepare('SELECT value FROM kv_state WHERE key = ?').bind(k).first<{ value: string }>();
+  const r0 = (() => { try { const r = JSON.parse(row?.value ?? '{}') as { n?: number; t?: number }; return r.t && Date.now() - r.t < 3_600_000 ? { n: r.n ?? 0, t: r.t } : { n: 0, t: Date.now() }; } catch { return { n: 0, t: Date.now() }; } })();
+  if (r0.n >= 40) return c.json({ error: 'Please type the rest of your answers.' }, 429);
+  await c.env.DB.prepare('INSERT INTO kv_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(k, JSON.stringify({ n: r0.n + 1, t: r0.t })).run();
+  const form = new FormData();
+  form.set('model_id', 'scribe_v1');
+  form.set('file', new Blob([audio], { type }), `answer.${type.split('/')[1].replace('x-', '')}`);
+  const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', { method: 'POST', headers: { 'xi-api-key': key }, body: form });
+  const j = (await res.json().catch(() => ({}))) as { text?: string; detail?: unknown };
+  if (!res.ok) { console.error('speech-to-text', res.status, JSON.stringify(j.detail ?? j).slice(0, 300)); return c.json({ error: 'Didn’t catch that' }, 502); }
+  // Strip sound tags like "(laughs)" and keep it to a sensible length.
+  const text = String(j.text ?? '').replace(/\([^)]{1,30}\)|\[[^\]]{1,30}\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 2000);
+  return c.json({ text });
+});
+
 // Calendly's embed reports a booking via postMessage; the browser relays it here.
 // It's unverified, so the signed webhook (if connected) later confirms it with the call time.
 api.post('/booking/client', async (c) => {

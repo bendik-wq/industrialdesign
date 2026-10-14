@@ -52,6 +52,12 @@
       '<button type="submit" class="btn">' + esc(label) + ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>';
   }
 
+  var MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+  function micHtml(label) {
+    if (!window.VoiceInput || !window.VoiceInput.mode) return '';
+    return '<div class="voice-row"><button type="button" class="mic" data-mic>' + MIC + '<span data-mic-label>' + esc(label) + '</span></button><span class="mic-or">or type</span></div><p class="mic-status" data-mic-status aria-live="polite"></p>';
+  }
+
   function render() {
     setProgress();
     var q = questions[index];
@@ -68,14 +74,14 @@
     } else if (q.type === 'single' || q.type === 'multi') {
       var multi = q.type === 'multi';
       var current = answers[q.id];
-      html += '<div class="opts" role="' + (multi ? 'group' : 'radiogroup') + '">';
+      html += micHtml('Say your answer').replace('or type', 'or tap one') + '<div class="opts" role="' + (multi ? 'group' : 'radiogroup') + '">';
       q.options.forEach(function (o, i) {
         var on = multi ? (current || []).indexOf(o.value) !== -1 : current === o.value;
         html += '<button type="button" class="opt" data-v="' + esc(o.value) + '" ' + (multi ? 'aria-pressed' : 'role="radio" aria-checked') + '="' + on + '"><span class="key">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o.label) + '</span></button>';
       });
       html += '</div>' + (multi ? navHtml('Continue', true) : '<div class="app-nav"><button type="button" class="back" data-back>← Back</button><span></span></div>');
     } else if (q.type === 'text') {
-      html += '<div class="field"><textarea name="' + esc(q.id) + '" placeholder="' + esc(q.placeholder || '') + '" maxlength="2000">' + esc(answers[q.id] || '') + '</textarea></div>' +
+      html += micHtml('Talk instead of typing') + '<div class="field"><textarea name="' + esc(q.id) + '" placeholder="' + esc(q.placeholder || '') + '" maxlength="2000">' + esc(answers[q.id] || '') + '</textarea></div>' +
         navHtml(isLast ? 'Submit my application' : 'Continue', true);
     }
     html += '</div>';
@@ -88,6 +94,25 @@
     if (index > 0 && (top < 0 || top > innerHeight * 0.6)) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     F.track('app_view_step', { step: index + 1, question: q.id });
     if (q.type === 'contact') mountTurnstile();
+    wireVoice(q);
+  }
+
+  // Talk instead of type (voice-input.js): dictate into text answers, or say a choice and we pick it.
+  function wireVoice(q) {
+    var btn = form.querySelector('[data-mic]'), status = form.querySelector('[data-mic-status]');
+    if (!btn || !window.VoiceInput) return;
+    if (q.type === 'text') return window.VoiceInput.attachText(form.querySelector('textarea'), btn, status);
+    window.VoiceInput.attachChoice(btn, status, q.options, q.type === 'multi', function (found) {
+      if (q.type === 'multi') {
+        var list = (answers[q.id] || []).slice();
+        found.forEach(function (o) { if (list.indexOf(o.value) === -1) list.push(o.value); });
+        answers[q.id] = list;
+        form.querySelectorAll('.opt').forEach(function (b) { b.setAttribute('aria-pressed', String(list.indexOf(b.getAttribute('data-v')) !== -1)); });
+        return;
+      }
+      var el = form.querySelector('.opt[data-v="' + found[0].value.replace(/"/g, '') + '"]');
+      if (el) { el.classList.add('heard'); setTimeout(function () { el.click(); }, 700); }
+    });
   }
 
   function mountTurnstile() {

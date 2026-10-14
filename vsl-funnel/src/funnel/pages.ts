@@ -204,6 +204,8 @@ function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
     turnstileSiteKey: s.TURNSTILE_SITE_KEY || null,
     callConsent: CALL_CONSENT.text,
     country: c.get('visitor').geo.country,
+    // Talk instead of type: on unless turned off; the server fallback needs an ElevenLabs key.
+    voiceInput: s.VOICE_INPUT.trim().toLowerCase() !== 'off',
     resume: lead && !lead.app_completed_at
       ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone, call_consent: Boolean(lead.call_consent_at) } }
       : null,
