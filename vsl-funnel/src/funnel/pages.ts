@@ -6,6 +6,7 @@ import {
 import { whatsappLink } from '../integrations/whatsapp';
 import { getCookie, setCookie } from 'hono/cookie';
 import { INDUSTRIES, type Lander, getLander, inferIndustry, landerId } from '../landers/catalog';
+import { DATA_HEADLINES } from '../data/data';
 import { chooseAngle, landerStats } from '../landers/bandit';
 import { webCallsEnabled } from '../integrations/voice';
 import { formatCallTime } from '../integrations/email';
@@ -62,7 +63,7 @@ function faqBlock(): Html {
   return FAQS.map((f, i) => `<details class="faq" data-faq="${i}"><summary>${f.q}</summary><div class="faq-a"><p>${f.a}</p></div></details>`).join('');
 }
 
-async function trackingHead(c: Context<AppEnv>, pageEventId: string): Promise<Html> {
+async function trackingHead(c: Context<AppEnv>, pageEventId: string, hasForm: boolean): Promise<Html> {
   const s = c.get('settings');
   const v = c.get('visitor');
   if (v.botReason === 'admin-preview') return ''; // no Pixel / Clarity / PostHog in Funnel HQ previews
@@ -86,7 +87,7 @@ async function trackingHead(c: Context<AppEnv>, pageEventId: string): Promise<Ht
   if (s.CLARITY_ID && v.marketingConsent && /^[a-z0-9]{4,20}$/i.test(s.CLARITY_ID)) {
     parts.push(`<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script",${scriptJson(s.CLARITY_ID)});clarity("identify",${scriptJson(v.visitorId)});</script>`);
   }
-  if (s.TURNSTILE_SITE_KEY && ['/', '/apply'].includes(new URL(c.req.url).pathname)) {
+  if (s.TURNSTILE_SITE_KEY && hasForm) {
     parts.push('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>');
   }
   return parts.join('\n');
@@ -131,7 +132,7 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
   };
 
   const slots: Record<string, Html | null | undefined> = { site_name: esc(config.siteName), year: String(new Date().getFullYear()), disclaimer: DISCLAIMER, consent: LEGAL_CONSENT, ...view.slots };
-  const head = await trackingHead(c, pageEventId);
+  const head = await trackingHead(c, pageEventId, ['questions', 'data', 'webinar'].some((k) => view.config && k in view.config));
   const asked = url.searchParams.get('palette') ?? '';
   const palette = PALETTES.includes(asked) ? asked : PALETTES.includes(s.SITE_PALETTE) ? s.SITE_PALETTE : PALETTES[0];
 
@@ -218,7 +219,7 @@ const applySection = {
   lists: { apply_points: LANDING.applyPoints },
 };
 
-export async function landingPage(c: Context<AppEnv>, lander: Lander | null = null) {
+export async function landingPage(c: Context<AppEnv>, lander: Lander | null = null, trackPath?: string) {
   const v = c.get('visitor');
   const lead = await currentLead(c);
   const variant = HEADLINE_EXPERIMENT.variants.find((x) => x.id === v.variant) ?? HEADLINE_EXPERIMENT.variants[0];
@@ -244,6 +245,7 @@ export async function landingPage(c: Context<AppEnv>, lander: Lander | null = nu
     blocks: { faqs: faqBlock() },
     show: { testimonials: LANDING.testimonials.length > 0 },
     config: { video: videoConfig(c, VIDEOS.main), experiment: lander ? 'landers' : HEADLINE_EXPERIMENT.id, lander: lander?.id ?? null, ...applicationConfig(c, lead) },
+    trackPath,
   });
 }
 
@@ -262,6 +264,8 @@ export async function landerPage(c: Context<AppEnv>) {
   if (!industry) return landingPage(c);
   let lander: Lander | null = null;
   const forced = c.req.param('angle');
+  // Short URLs (/dental, /dental/competitor) are logged under the same /for/... path as the long ones.
+  const trackPath = `/for/${industry.id}${forced ? `/${forced}` : ''}`;
   if (forced) lander = getLander(landerId(industry.id, forced));
   if (!lander) {
     // Sticky: a returning visitor keeps the headline they first saw for this industry.
@@ -270,10 +274,31 @@ export async function landerPage(c: Context<AppEnv>) {
     if (keep && keep.industry.id === industry.id) lander = keep;
   }
   if (!lander) lander = getLander(landerId(industry.id, chooseAngle(industry, await landerStats(c.env)).angle))!;
-  if (q.preview === '1') return landingPage(c, lander); // dashboard previews don't count as traffic
+  if (q.preview === '1') return landingPage(c, lander, trackPath); // dashboard previews don't count as traffic
   setCookie(c, '_ld', lander.id, { path: '/', maxAge: 30 * 86_400, sameSite: 'Lax', secure: true, httpOnly: true });
   if (!v.isBot) await c.env.DB.prepare('UPDATE sessions SET lander = COALESCE(lander, ?) WHERE id = ?').bind(lander.id, v.sessionId).run();
-  return landingPage(c, lander);
+  return landingPage(c, lander, trackPath);
+}
+
+/**
+ * Every split-test page has its own short URL on the main domain:
+ *   /loi, /double            → main page headline A / B (counted as / in the headline test)
+ *   /dental                  → the dental landers (bandit picks the headline)
+ *   /dental/competitor       → one specific lander
+ */
+export function isShortUrl(host: 'main' | 'data' | 'webinar', slug: string, angle?: string) {
+  if (host === 'data') return !angle && DATA_HEADLINES.some((h) => h.id === slug);
+  if (host !== 'main') return false;
+  if (!angle && HEADLINE_EXPERIMENT.variants.some((x) => x.slug === slug)) return true;
+  return INDUSTRIES.some((i) => i.id === slug) && (!angle || Boolean(getLander(landerId(slug, angle))));
+}
+
+export async function shortPage(c: Context<AppEnv>) {
+  const slug = c.req.param('industry') ?? '';
+  const angle = c.req.param('angle');
+  if (!angle && HEADLINE_EXPERIMENT.variants.some((x) => x.slug === slug)) return landingPage(c, null, '/');
+  if (!isShortUrl('main', slug, angle)) return c.notFound();
+  return landerPage(c);
 }
 
 export async function applyPage(c: Context<AppEnv>) {

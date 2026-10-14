@@ -441,6 +441,7 @@ export async function experiments(env: Env, f: Filters) {
       return {
         id: v.id,
         weight: v.weight,
+        slug: v.slug,
         headline: v.headline.replace(/<[^>]+>/g, ''),
         visitors,
         play_rate: rate(x.vsl_play ?? 0, visitors),

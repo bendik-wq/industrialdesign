@@ -21,6 +21,17 @@
   function when(ms) { if (!ms) return '–'; var d = new Date(ms); return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); }
   function ago(ms) { var s = Math.round((Date.now() - ms) / 1000); if (s < 60) return s + 's ago'; if (s < 3600) return Math.round(s / 60) + 'm ago'; if (s < 86400) return Math.round(s / 3600) + 'h ago'; return Math.round(s / 86400) + 'd ago'; }
   function toast(msg) { var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600); }
+  // Any [data-copylink] button copies its value (each split-test page's own URL).
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-copylink]');
+    if (!b) return;
+    var t = b.getAttribute('data-copylink');
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Copied ' + (t.length > 60 ? 'all links' : t)); }, function () { prompt('Copy this', t); });
+  });
+  /** A page's own URL: the address without https://, plus a Copy button. */
+  function linkCell(url) {
+    return '<span class="mono own-url">' + esc(url.replace(/^https?:\/\//, '')) + '</span> <button class="btn-sm ghost" data-copylink="' + esc(url) + '">Copy</button>';
+  }
 
   function range() {
     var to = Date.now();
@@ -414,10 +425,10 @@
     var bar = function (v) { return '<span class="hl-bar"><i style="width:' + Math.round(Math.min(1, v || 0) * 100) + '%"></i></span> ' + esc(pct(v || 0)); };
     return '<div class="card" style="margin-top:14px"><div class="hl-head"><div><h2>Headline test · 20 headlines</h2><p class="sub">' + status +
       (leader && leader.visitors && !pinned ? ' Leader right now: <strong>' + esc(leader.id) + '</strong> (' + esc(pct(leader.best)) + ' chance it’s the best).' : '') +
-      ' Each person keeps the headline they first saw. Preview any with <span class="mono">?h=id</span> (previews aren’t counted).</p></div>' +
+      ' Each person keeps the headline they first saw. Every headline also has its own link (e.g. for an ad): people who arrive on it always see that headline and count towards it. “Preview” links aren’t counted.</p></div>' +
       '<div class="row">' + (t.mode !== 'auto' ? '<button class="btn-sm" data-hlmode="auto">Back to auto</button>' : '') + (t.mode !== 'even' ? '<button class="btn-sm ghost" data-hlmode="even">Even split</button>' : '') + '</div></div>' +
       table([
-        { label: 'Headline', html: function (r) { return esc(r.text) + '<div class="muted"><span class="mono">' + esc(r.id) + '</span> · ' + esc(ANGLE_LABEL[r.angle] || r.angle) + ' · <a href="' + esc(d.url) + '/?h=' + esc(r.id) + '" target="_blank" rel="noopener">preview</a></div>'; } },
+        { label: 'Headline', html: function (r) { return esc(r.text) + '<div class="muted">' + esc(ANGLE_LABEL[r.angle] || r.angle) + ' · <a href="' + esc(d.url) + '/?h=' + esc(r.id) + '" target="_blank" rel="noopener">preview</a></div><div class="muted">' + linkCell(d.url + '/' + r.id) + '</div>'; } },
         { label: 'Visitors', key: 'visitors', num: true, fmt: n },
         { label: 'Clicked claim', num: true, html: function (r) { return esc(n(r.clicked)) + '<div class="muted">' + capRate(r.clickRate) + '</div>'; } },
         { label: 'Claims', num: true, html: function (r) { return esc(n(r.claims)) + '<div class="muted">' + capRate(r.rate) + '</div>'; } },
@@ -1176,24 +1187,33 @@
         { label: 'Applied', num: true, html: function (r) { return n(r.leads) + ' <span class="muted">' + rate(r.lead_rate) + '</span>'; } },
         { label: 'Qualified', num: true, html: function (r) { return n(r.qualified) + (r.tier_a ? ' <span class="muted">(' + r.tier_a + ' A)</span>' : ''); } },
         { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Won', key: 'won', num: true, fmt: n }, { label: 'Cash', key: 'cash', num: true, fmt: money },
-        { label: '', html: function (r) { return '<a class="btn-sm ghost" target="_blank" rel="noopener" href="/for/' + esc(r.industry) + '/' + esc(r.angle) + '?preview=1">Preview</a>'; } },
+        { label: 'Own link', html: function (r) { return linkCell(origin + '/' + r.industry + '/' + r.angle) + ' <a class="btn-sm ghost" target="_blank" rel="noopener" href="/for/' + esc(r.industry) + '/' + esc(r.angle) + '?preview=1">Preview</a>'; } },
       ];
       var activeCount = sel ? rows.filter(function (r) { return r.visitors > 0 || r.leads > 0; }).length : active.filter(function (r) { return r.visitors > 0 || r.leads > 0; }).length;
       var idleCount = rows.length - activeCount;
       // All pages side by side: the main page's headline variants and each industry's landers.
       var pageRows = x.variants.map(function (v) { return { page: 'Main page · headline ' + v.id.toUpperCase(), visitors: v.visitors, lead_rate: v.lead_rate, qualified_rate: v.qualified_rate, booked_rate: v.booked_rate, note: v.lift == null ? 'control' : (v.significant ? 'significant ' : '') + (v.lift > 0 ? '+' : '') + pct(v.lift, 1) + ' vs A' }; })
         .concat(d.byIndustry.filter(function (r) { return r.visitors; }).map(function (r) { return { page: r.label + ' landers', visitors: r.visitors, lead_rate: r.lead_rate, qualified_rate: r.qualified_rate, booked_rate: r.visitors ? r.booked / r.visitors : 0, note: r.best ? 'leading: ' + r.best : 'still exploring' }; }));
+      // Every split-test page's own URL, in one list to copy into ads or a sheet.
+      var allLinks = [['Main page (splits A/B)', origin + '/']].concat(
+        x.variants.filter(function (v) { return v.slug; }).map(function (v) { return ['Main page · headline ' + v.id.toUpperCase(), origin + '/' + v.slug]; }),
+        d.industries.map(function (i) { return [i.label + ' (best headline wins)', origin + '/' + i.id]; }),
+        d.rows.map(function (r) { return [r.industry_label + ' · ' + r.angle_label, origin + '/' + r.industry + '/' + r.angle]; }));
+      var allText = allLinks.map(function (l) { return l[0] + '\t' + l[1]; }).join('\n');
       view.innerHTML =
-        '<div class="card"><h2>All pages compared</h2><p class="sub">Same funnel behind every page: VSL → application → booking. Compare rates, not raw counts.</p>' + table([
+        '<div class="card"><div class="card-head"><div><h2>Every page’s own link</h2><p class="sub">' + esc(n(allLinks.length)) + ' links. Each split-test page has its own address, so you can point an ad at exactly one version. People who arrive on a link always see that version, and it still counts in the tests below. “Industry” links let the test pick the best headline; “industry / headline” links fix one.</p></div>' +
+        '<button class="btn-sm" data-copylink="' + esc(allText) + '">Copy all ' + esc(n(allLinks.length)) + '</button></div>' +
+        '<details class="more-rows"><summary>Show all links</summary>' + table([{ label: 'Page', html: function (l) { return esc(l[0]); } }, { label: 'Link', html: function (l) { return linkCell(l[1]); } }], allLinks, { cards: true }) + '</details></div>' +
+        '<div class="card" style="margin-top:14px"><h2>All pages compared</h2><p class="sub">Same funnel behind every page: VSL → application → booking. Compare rates, not raw counts.</p>' + table([
           { label: 'Page', key: 'page' }, { label: 'Visitors', key: 'visitors', num: true, fmt: n },
           { label: 'Applied', key: 'lead_rate', num: true, fmt: function (v) { return pct(v, 1); } },
           { label: 'Qualified', key: 'qualified_rate', num: true, fmt: function (v) { return pct(v, 1); } },
           { label: 'Booked', key: 'booked_rate', num: true, fmt: function (v) { return pct(v, 1); } },
           { label: '', html: function (r) { return '<span class="muted">' + esc(r.note) + '</span>'; } },
         ], pageRows, { cards: true }) + '</div>' +
-        '<div class="card" style="margin-top:14px"><h2>Main page headline test</h2><p class="sub">Visitors to the main page (/) are split between these headlines. Judged on applications per visitor; significance from a two-proportion z-test vs. A (p &lt; 0.05). Preview with <span class="mono">/?v=b</span>.</p>' +
+        '<div class="card" style="margin-top:14px"><h2>Main page headline test</h2><p class="sub">Visitors to the main page (/) are split between these headlines. Judged on applications per visitor; significance from a two-proportion z-test vs. A (p &lt; 0.05). Each headline also has its own link: people who land there always see that headline and count towards it.</p>' +
         table([
-          { label: 'Variant', html: function (r) { return '<strong>' + esc(r.id.toUpperCase()) + '</strong> <span class="muted">' + esc(r.weight) + '%</span><div class="muted lander-h" title="' + esc(r.headline) + '">' + esc(r.headline) + '</div>'; } },
+          { label: 'Variant', html: function (r) { return '<strong>' + esc(r.id.toUpperCase()) + '</strong> <span class="muted">' + esc(r.weight) + '%</span><div class="muted lander-h" title="' + esc(r.headline) + '">' + esc(r.headline) + '</div>' + (r.slug ? '<div class="muted">' + linkCell(origin + '/' + r.slug) + '</div>' : ''); } },
           { label: 'Visitors', key: 'visitors', num: true, fmt: n },
           { label: 'Play', key: 'play_rate', num: true, fmt: function (v) { return pct(v); } },
           { label: 'Pitch', key: 'pitch_rate', num: true, fmt: function (v) { return pct(v); } },
@@ -1224,7 +1244,7 @@
       var indSel = view.querySelector('[data-ml-ind]');
       var draw = function () {
         var id = indSel.value, ind = d.industries.filter(function (i) { return i.id === id; })[0];
-        view.querySelector('[data-ml-url]').textContent = id ? origin + '/for/' + id : origin + '/m';
+        view.querySelector('[data-ml-url]').textContent = id ? origin + '/' + id : origin + '/m';
         view.querySelector('[data-ml-kw]').textContent = id ? 'Visitors get one of 5 ' + ind.label + ' headlines; the best one gets more traffic over time.' : 'Detects: ' + d.industries.map(function (i) { return i.label + ' (' + i.keywords.slice(0, 3).join(', ') + ')'; }).join(' · ') + '. No match → the main page.';
       };
       indSel.onchange = draw; draw();

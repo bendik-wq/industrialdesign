@@ -71,7 +71,7 @@ export const ANGLES: Angle[] = [
     label: 'Buy the competitor',
     pre: (i) => `For <strong>${i.owners}</strong> doing $1M+`,
     headline: (i) => `Buy ${i.target} with <em>no money down</em>, and have a signed LOI within 90 days.`,
-    sub: () => `Seller finance plus senior debt covers more than the purchase price, so none of your own cash goes in. ${SUB_TAIL}`,
+    sub: () => `Senior debt, seller finance and seller rollover cover more than the purchase price, so none of your own cash goes in. ${SUB_TAIL}`,
   },
   {
     id: 'retiring',
@@ -92,7 +92,7 @@ export const ANGLES: Angle[] = [
     label: 'Over-financed',
     pre: (i) => `For <strong>${i.owners}</strong> doing $1M+`,
     headline: (i) => `How ${i.owners} are buying ${i.many} <em>with no money down</em>, and walking away with working capital.`,
-    sub: () => `Over-financed deals: the seller finance and senior debt cover more than the price, and the extra funds working capital and closing costs. Signed LOI in 90 days. ${SUB_TAIL}`,
+    sub: () => `Over-financed deals: senior debt, seller finance and seller rollover cover more than the price, and the extra funds working capital and closing costs. Signed LOI in 90 days. ${SUB_TAIL}`,
   },
 ];
 

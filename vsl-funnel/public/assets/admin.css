@@ -821,3 +821,4 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .re-days h3 { font-size: 13px; margin: 0 0 6px; }
 .re-days .re-track { grid-template-columns: 1fr; margin: 0; gap: 6px; }
 .re-days .re-track li { border-top-width: 1px; border-left: 4px solid var(--ink); padding: 8px 10px; }
+.own-url { word-break: break-all; }

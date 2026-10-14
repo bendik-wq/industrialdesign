@@ -95,10 +95,13 @@ export async function resolveVisitor(c: Context<AppEnv>, kind: 'page' | 'beacon'
   const isNewSession = isNewVisitor || !sessionId || !/^s[0-9a-z]{12,24}$/.test(sessionId) || Boolean(touch && isCampaignTouch(touch));
   if (isNewSession) sessionId = newId('s');
 
-  // Variant: forced via ?v= preview link (sticky in a cookie), else hashed.
-  const forced = url.searchParams.get('v') ?? getCookie(c, COOKIE.variant);
+  // Variant: forced via its own URL or a ?v= link (sticky in a cookie), else hashed.
+  // Each variant also has its own URL (/loi, /double): that page always shows its headline.
+  const byPath = kind === 'page' ? HEADLINE_EXPERIMENT.variants.find((v) => url.pathname === `/${v.slug}`)?.id : undefined;
+  const asked = byPath ?? url.searchParams.get('v');
+  const forced = asked ?? getCookie(c, COOKIE.variant);
   const validForced = forced && HEADLINE_EXPERIMENT.variants.some((v) => v.id === forced) ? forced : null;
-  if (url.searchParams.get('v') && validForced) setCookie(c, COOKIE.variant, validForced, cookieOpts(c, VISITOR_TTL_S, false));
+  if (asked && validForced) setCookie(c, COOKIE.variant, validForced, cookieOpts(c, VISITOR_TTL_S, false));
   const variant = validForced ?? (await assignVariant(visitorId!));
 
   const consentRequired = geo.isEU && flag(settings.CONSENT_REQUIRED_EU, true);

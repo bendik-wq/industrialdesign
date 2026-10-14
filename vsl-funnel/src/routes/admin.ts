@@ -254,7 +254,7 @@ admin.get('/pages', (c) => {
   const ind = INDUSTRIES[0];
   const pages = [
     { group: 'Main funnel', title: 'Main page: VSL + application', desc: 'Where ads land. Headline A/B test, the VSL, and the application under it.', path: '/' },
-    { group: 'Main funnel', title: `Industry lander (e.g. ${ind.label})`, desc: '100 versions: 20 industries × 5 headlines, picked by ad or by the bandit.', path: `/for/${ind.id}` },
+    { group: 'Main funnel', title: `Industry lander (e.g. ${ind.label})`, desc: '100 versions: 20 industries × 5 headlines, picked by ad or by the bandit.', path: `/${ind.id}` },
     { group: 'Main funnel', title: 'Application (own page)', desc: 'The same questions as on the main page, on their own.', path: '/apply' },
     { group: 'Main funnel', title: 'Book a call (qualified)', desc: 'A/B-tier applicants pick a time with their closer.', path: '/book?hq_as=qualified' },
     { group: 'Main funnel', title: 'Part 2 video (applied, not booked)', desc: 'After the application: the second video plus “book your call”.', path: '/breakout?hq_as=qualified' },

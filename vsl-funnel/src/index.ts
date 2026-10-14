@@ -2,7 +2,7 @@ import { Hono, type MiddlewareHandler } from 'hono';
 import { type AppEnv, type Runtime, publicOrigin, runtimeFrom } from './app';
 import { isAdmin, login, logout, requireAdmin, sameOriginWrite } from './admin/auth';
 import type { Env } from './env';
-import { applyPage, bookPage, breakoutPage, landerPage, landingPage, resourcesPage, staticPage } from './funnel/pages';
+import { isShortUrl, shortPage, applyPage, bookPage, breakoutPage, landerPage, landingPage, resourcesPage, staticPage } from './funnel/pages';
 import { processEmailQueue } from './integrations/email';
 import { retryForwards } from './tracking/forward';
 import { resolveVisitor } from './lib/identity';
@@ -90,7 +90,8 @@ app.use('*', async (c, next) => {
   await next();
 });
 app.get('/', withVisitor, (c) => (isDataHost(c) ? dataLanding(c) : isWebinarHost(c) ? webinarLanding(c) : landingPage(c)));
-app.get('/data', withVisitor, dataLanding);
+app.get('/data', withVisitor, (c) => dataLanding(c));
+app.get('/data/:headline', withVisitor, (c) => dataLanding(c, c.req.param('headline')));
 app.get('/webinar', withVisitor, webinarLanding);
 for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/registered/:token`, withVisitor, registeredPage);
@@ -153,6 +154,16 @@ app.get('/admin', requireAdmin, async (c) => {
   const res = await c.env.ASSETS.fetch(new Request(new URL('/admin/index.html', c.req.url)));
   return new Response(res.body, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 });
+
+// ── Short URLs for every split-test page: /loi, /dental, /dental/competitor; data.yourdomain.com/recap ──
+// Last, so every real route above wins; anything that isn't a known page still 404s.
+const knownShort: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const where = isDataHost(c) ? 'data' : isWebinarHost(c) ? 'webinar' : 'main';
+  if (!isShortUrl(where, c.req.param('industry') ?? '', c.req.param('angle'))) return c.notFound(); // before any tracking
+  await next();
+};
+app.get('/:industry{[a-z][a-z0-9-]{1,30}}', knownShort, withVisitor, (c) => (isDataHost(c) ? dataLanding(c, c.req.param('industry')) : shortPage(c)));
+app.get('/:industry{[a-z][a-z0-9-]{1,30}}/:angle{[a-z]{2,20}}', knownShort, withVisitor, shortPage);
 
 app.notFound((c) => c.text('Not found', 404));
 app.onError((err, c) => {

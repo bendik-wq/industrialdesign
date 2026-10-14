@@ -46,10 +46,12 @@ export function videoEmbed(src: string) {
   return `<video src="${esc(src)}" controls playsinline preload="metadata" data-data-video></video>`;
 }
 
-export async function dataLanding(c: Context<AppEnv>) {
+export async function dataLanding(c: Context<AppEnv>, slug?: string) {
   const rt = runtimeFrom(c);
   const d = dataSettings(rt);
-  const { h, preview } = await pickHeadline(rt, c.get('visitor').visitorId, c.req.query('h'));
+  // Each headline has its own URL (data.yourdomain.com/recap, or /data/recap on the main domain).
+  if (slug && !DATA_HEADLINES.some((x) => x.id === slug)) return c.notFound();
+  const { h, preview } = await pickHeadline(rt, c.get('visitor').visitorId, c.req.query('h'), slug);
   const fill = (t: string) => t.replace(/\{partner\}/g, esc(d.partner)).replace(/\{fund\}/g, esc(d.fund));
   return render(c, '/data.html', {
     title: `Get paid for your operational data`,
@@ -171,10 +173,12 @@ export function headlineOdds(stats: Map<string, HeadlineStats>, runs = 2000) {
   return { share, best, metric: useClaims ? 'claims' : 'clicked claim / started the form' };
 }
 
-/** Which headline this visitor sees: a forced preview (?h=), a pinned one, the one they saw before, or the bandit's pick. */
-export async function pickHeadline(rt: Runtime, visitorId: string, forced?: string | null) {
+/** Which headline this visitor sees: a forced preview (?h=), its own URL, a pinned one, the one they saw before, or the bandit's pick. */
+export async function pickHeadline(rt: Runtime, visitorId: string, forced?: string | null, fromUrl?: string | null) {
   const byId = (id: string | null | undefined) => DATA_HEADLINES.find((h) => h.id === id);
   if (byId(forced)) return { h: byId(forced)!, preview: true };
+  // Its own URL (e.g. an ad pointing at /debt): real traffic, counted for that headline.
+  if (byId(fromUrl)) return { h: byId(fromUrl)!, preview: false };
   const mode = (rt.settings.DATA_HEADLINE_TEST || 'auto').trim();
   if (byId(mode)) return { h: byId(mode)!, preview: false };
   const prev = await rt.env.DB.prepare("SELECT json_extract(props, '$.headline') AS h FROM events WHERE name = 'page_view' AND path = '/data' AND visitor_id = ? ORDER BY ts LIMIT 1").bind(visitorId).first<{ h: string | null }>();

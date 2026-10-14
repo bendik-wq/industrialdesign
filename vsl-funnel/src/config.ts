@@ -65,6 +65,8 @@ export const BRAND = { name: 'G&L M&A Advisory', founder: 'Josh Li' };
 
 export interface LandingVariant {
   id: string;
+  /** Its own URL on the main domain: apply.yourdomain.com/<slug> always shows this headline. */
+  slug: string;
   weight: number;
   preHeadline: string;
   headline: string;
@@ -78,6 +80,7 @@ export const HEADLINE_EXPERIMENT = {
   variants: [
     {
       id: 'a',
+      slug: 'loi',
       weight: 50,
       preHeadline: 'For owners of <strong>$1M+</strong> businesses',
       headline: 'Get a signed LOI in 90 days for a <em><span class="nw">no-money-down</span> acquisition</em> that doubles or triples your business, with over-financing built in.',
@@ -85,6 +88,7 @@ export const HEADLINE_EXPERIMENT = {
     },
     {
       id: 'b',
+      slug: 'double',
       weight: 50,
       preHeadline: 'For owners of <strong>$1M+</strong> businesses',
       headline: 'Double or triple your business with a <em><span class="nw">no-money-down</span> acquisition</em>. Signed LOI in 90 days, with over-financing built in.',

@@ -118,7 +118,7 @@ Click "Claim my data valuation" right under this video, and we'll take you strai
 - **Burn in captions.** Most people will watch on mute first.
 - **Before recording:** confirm the partner name and committed figure in writing.
 - **Hosting:** upload to YouTube (unlisted), Vimeo or Loom. Paste the link into Funnel HQ → Integrations → Data → "Data page video".
-- **Ads:** run each ad cut to the matching headline. For example, the "pay down debt" ad goes to `https://data.grosfjeld-li.com/?h=debt`, so the ad and the page say the same thing.
+- **Ads:** run each ad cut to the matching headline. For example, the "pay down debt" ad goes to `https://data.grosfjeld-li.com/debt`, so the ad and the page say the same thing. Every headline has its own link like this (`/recap`, `/revenue`, …), and those visitors count towards that headline.
 
 ## Headlines being tested on the page (20, auto-optimised)
 
@@ -145,4 +145,4 @@ Click "Claim my data valuation" right under this video, and we'll take you strai
 | 19 | `aiboom` | Curiosity | The AI boom just put a price on your business’s data: **up to $2,000,000.** |
 | 20 | `notstartups` | Curiosity | Not for start-ups. Established owners are getting paid up to **$2,000,000** for their operational data. |
 
-How the test works: every headline gets its first 30 visitors. After that, traffic shifts toward the headlines that convert. It judges on "clicked claim / started the form" until there are 20 claims in total, then on claims. Each visitor keeps the headline they first saw. Preview any headline with `?h=<id>` (previews aren't counted). Results, plus Pin / Even split / Auto controls: Funnel HQ → Data page.
+How the test works: every headline gets its first 30 visitors. After that, traffic shifts toward the headlines that convert. It judges on "clicked claim / started the form" until there are 20 claims in total, then on claims. Each visitor keeps the headline they first saw. Each headline has its own link, `data.grosfjeld-li.com/<id>` (counted). Preview any headline with `?h=<id>` (previews aren't counted). Results, plus Pin / Even split / Auto controls: Funnel HQ → Data page.
