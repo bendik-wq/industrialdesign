@@ -137,9 +137,10 @@ app.all('/ph/*', async (c) => {
   const url = new URL(c.req.url);
   const path = url.pathname.replace(/^\/ph/, '');
   // Only what the PostHog browser SDK needs, only to PostHog: not a general-purpose relay.
-  if (!['GET', 'POST'].includes(c.req.method) || !/^\/(static|e|i|s|decide|flags|batch|capture|engage|track)(\/|$)/.test(path)) return c.notFound();
+  if (!['GET', 'POST'].includes(c.req.method) || !/^\/(static|array|e|i|s|decide|flags|batch|capture|engage|track)(\/|$)/.test(path)) return c.notFound();
   if (!/^https:\/\/[\w-]+(\.i)?\.posthog\.com$/.test(host)) return c.notFound();
-  const upstream = path.startsWith('/static/') ? host.replace('.i.posthog.com', '-assets.i.posthog.com') : host;
+  // The SDK's scripts and per-project config (/array/<key>/config.js) are served from the assets host.
+  const upstream = /^\/(static|array)\//.test(path) ? host.replace('.i.posthog.com', '-assets.i.posthog.com') : host;
   const headers = new Headers();
   for (const h of ['content-type', 'content-encoding', 'accept', 'accept-encoding', 'user-agent', 'origin']) { const v = c.req.header(h); if (v) headers.set(h, v); }
   headers.set('x-forwarded-for', c.req.header('cf-connecting-ip') ?? '');
