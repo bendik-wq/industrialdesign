@@ -158,11 +158,30 @@ body{margin:0;background:#E9E8E2;font-family:Arial,Helvetica,sans-serif;color:${
 .sheet table{margin:0}
 .sheet a{color:inherit}
 @media (max-width:700px){.sheet{padding:24px 16px;margin:8px}}
-@media print{body{background:#fff}.bar,.msg{display:none}.sheet{box-shadow:none;margin:0;padding:0;max-width:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.ov{position:fixed;inset:0;z-index:20;background:rgba(15,20,35,.55);display:none;align-items:center;justify-content:center;padding:16px}
+.ov.on{display:flex}
+.card{background:#fff;border-radius:16px;max-width:460px;width:100%;padding:28px 28px 22px;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.card h2{margin:0 0 6px;font-size:22px}
+.card .sub{margin:0 0 18px;color:${MUTED};font-size:14px;line-height:1.45}
+.step{display:flex;gap:12px;align-items:flex-start;margin:0 0 14px;font-size:15px;line-height:1.4}
+.step i{flex:none;width:26px;height:26px;border-radius:50%;background:${INK};color:#fff;font:700 13px/26px Arial;text-align:center;font-style:normal}
+.step.done i{background:#1E8E3E}
+.card .b{display:block;width:100%;text-align:center;padding:13px;font-size:15px;margin:6px 0 0;box-sizing:border-box}
+.card .alt{display:block;margin:14px auto 0;background:none;border:0;color:${MUTED};font:13px Arial;text-decoration:underline;cursor:pointer}
+kbd{background:#F1F1EC;border:1px solid #D8D8D0;border-radius:5px;padding:1px 6px;font:600 13px Arial}
+@media print{body{background:#fff}.bar,.msg,.ov{display:none}.sheet{box-shadow:none;margin:0;padding:0;max-width:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
 <div class="bar"><div class="bar-in"><strong>${e(o.barTitle)}</strong>
 ${btn(o.gdoc, 'gdrive', 'Open the Google Doc', 'Create the Google Doc', 'Connect Google')}<button class="b" type="button" data-gdoc>Copy into Google Docs</button>${btn(o.miro, 'miro', 'Open the Miro board', 'Build the Miro board', 'Connect Miro')}<button class="b ghost" type="button" data-print>Save as PDF</button></div></div>
-<p class="msg" data-msg>“Copy into Google Docs” copies this page and opens a new doc: press ⌘V / Ctrl+V there and the design comes with it.</p>
+<p class="msg" data-msg>To get this into Google Docs: press “Copy into Google Docs”, then follow the two steps.</p>
+<div class="ov" data-ov role="dialog" aria-modal="true" aria-labelledby="ovh"><div class="card">
+<h2 id="ovh" data-ovh>Copied ✓</h2><p class="sub" data-ovs>The whole document, with its design, is on your clipboard.</p>
+<p class="step done" data-s1><i>1</i><span>Copied this document.</span></p>
+<p class="step"><i>2</i><span>Open a blank Google Doc and paste: <kbd>⌘V</kbd> on Mac, <kbd>Ctrl V</kbd> on Windows.</span></p>
+<a class="b" href="https://docs.new" target="_blank" rel="noopener" data-ovgo>Open a blank Google Doc</a>
+<button class="b ghost" type="button" data-dl style="color:${INK};border-color:#D8D8D0">Or download it for Google Drive</button>
+<button class="alt" type="button" data-ovx>Close</button>
+</div></div>
 <main class="sheet" data-doc>${o.body}</main>
 <script src="/assets/brief.js" defer></script></body></html>`;
 }

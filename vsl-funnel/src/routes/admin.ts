@@ -1,12 +1,12 @@
 import type { Env } from '../env';
 import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown, type Sprint } from '../content/ideas';
 import { buildMiroBoard, docShell, sprintPage } from '../content/sprint-export';
-import { buildPackBoard, createGoogleDoc, ensurePack, googleAuthUrl, googleReady, loadSprintTopic, packDocHtml, savePackLinks } from '../content/video-pack';
+import { buildPackBoard, createGoogleDoc, ensurePack, getPack, googleAuthUrl, googleReady, loadSprintTopic, packDocHtml, savePackLinks } from '../content/video-pack';
 import { signToken } from '../lib/crypto';
 import { getSecret } from '../lib/secret';
 import { type Context, Hono } from 'hono';
 import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
-import { type AppEnv, runtimeFrom } from '../app';
+import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
 import { APPLICATION, BRAND, VIDEOS } from '../config';
@@ -792,6 +792,12 @@ async function videoContext(c: Context<AppEnv>) {
   const ctx = await loadSprintTopic(rt, sid, tid);
   return { rt, sid, tid, ctx };
 }
+// The next video's title as it will be published: its written pack's title when it has one.
+async function nextVideoTitle(rt: Runtime, sid: string, ctx: NonNullable<Awaited<ReturnType<typeof loadSprintTopic>>>) {
+  if (!ctx.next) return null;
+  const next = await getPack(rt, sid, ctx.next.id);
+  return next?.pack.titles[0] ?? ctx.next.titles[0] ?? null;
+}
 admin.get('/yt/sprints/:sid/videos/:tid', async (c) => {
   const { rt, sid, tid, ctx } = await videoContext(c);
   if (!ctx) return c.text('Not found', 404);
@@ -801,8 +807,8 @@ admin.get('/yt/sprints/:sid/videos/:tid', async (c) => {
   c.header('cache-control', 'no-store');
   c.header('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
   return c.html(docShell({
-    title: `Video ${ctx.index + 1} · ${ctx.topic.titles[0] ?? ctx.topic.topic}`, barTitle: `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic}`.slice(0, 90),
-    body: packDocHtml(row.pack, ctx.topic, { index: ctx.index, nextTitle: ctx.next?.titles[0] ?? null, brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }),
+    title: `Video ${ctx.index + 1} · ${row.pack.titles[0] ?? ctx.topic.topic}`, barTitle: `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic}`.slice(0, 90),
+    body: packDocHtml(row.pack, ctx.topic, { index: ctx.index, nextTitle: await nextVideoTitle(rt, sid, ctx), brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }),
     miro: { url: row.miro_url, ready: Boolean(rt.settings.MIRO_ACCESS_TOKEN), endpoint: `${base}/miro` },
     gdoc: { url: row.doc_url, ready: googleReady(rt), endpoint: `${base}/gdoc` },
   }));
@@ -832,7 +838,7 @@ admin.post('/yt/sprints/:sid/videos/:tid/gdoc', async (c) => {
     if (!row) return c.json({ ok: false, error: 'Not found' }, 404);
     if (row.doc_url) return c.json({ ok: true, url: row.doc_url });
     const name = `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic} · Script & presentation`;
-    const url = await createGoogleDoc(rt, name, packDocHtml(row.pack, ctx.topic, { index: ctx.index, nextTitle: ctx.next?.titles[0] ?? null, brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }));
+    const url = await createGoogleDoc(rt, name, packDocHtml(row.pack, ctx.topic, { index: ctx.index, nextTitle: await nextVideoTitle(rt, sid, ctx), brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }));
     await savePackLinks(rt, sid, tid, { doc_url: url });
     return c.json({ ok: true, url });
   } catch (e) {

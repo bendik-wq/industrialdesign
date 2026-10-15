@@ -1,15 +1,44 @@
 'use strict';
 (function () {
   var msg = document.querySelector('[data-msg]'), doc = document.querySelector('[data-doc]');
-  // Copy first (synchronously, while this tab has focus), then open the new doc.
-  document.querySelector('[data-gdoc]').onclick = function () {
+  // "Copy into Google Docs": copy the designed page as rich HTML, then walk the user through pasting it.
+  var ov = document.querySelector('[data-ov]'), q = function (k) { return ov.querySelector('[data-' + k + ']'); };
+  function legacyCopy() {
     var ok = false, r = document.createRange(), sel = getSelection();
     r.selectNodeContents(doc); sel.removeAllRanges(); sel.addRange(r);
     try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
     sel.removeAllRanges();
-    var w = window.open('https://docs.new', '_blank');
-    msg.textContent = ok ? 'Copied. In the new Google Doc press ⌘V (Mac) or Ctrl+V (Windows): the design comes with it.' : 'Your browser blocked copying: press ⌘A then ⌘C here, and paste into the new Google Doc.';
-    if (!w) msg.textContent += ' (The new tab was blocked: open docs.new yourself.)';
+    return ok;
+  }
+  function show(ok) {
+    q('ovh').textContent = ok ? 'Copied ✓' : 'One more click';
+    q('ovs').textContent = ok ? 'The whole document, with its design, is on your clipboard. A new Google Doc opens empty until you paste it in.'
+      : 'Your browser blocked copying. Download the file instead, or press ⌘A then ⌘C on this page and paste into a blank Google Doc.';
+    q('s1').className = ok ? 'step done' : 'step';
+    ov.classList.add('on');
+    q('ovgo').focus();
+  }
+  document.querySelector('[data-gdoc]').onclick = function () {
+    var html = '<meta charset="utf-8">' + doc.innerHTML, text = doc.innerText;
+    if (navigator.clipboard && window.ClipboardItem) {
+      navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' })
+      })]).then(function () { show(true); }, function () { show(legacyCopy()); });
+    } else show(legacyCopy());
+  };
+  q('ovgo').onclick = function () { msg.textContent = 'In the new Google Doc, press ⌘V (Mac) or Ctrl+V (Windows) to paste the document.'; };
+  q('ovx').onclick = function () { ov.classList.remove('on'); };
+  ov.onclick = function (ev) { if (ev.target === ov) ov.classList.remove('on'); };
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') ov.classList.remove('on'); });
+  q('dl').onclick = function () {
+    var name = (document.title || 'document').replace(/[^\w\s.-]+/g, '').trim().slice(0, 80) || 'document';
+    var file = '<!doctype html><html><head><meta charset="utf-8"><title>' + name + '</title></head><body>' + doc.innerHTML + '</body></html>';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([file], { type: 'text/html' }));
+    a.download = name + '.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    q('ovs').textContent = 'Downloaded. In Google Drive choose New → File upload, then right-click the file → Open with → Google Docs.';
   };
   document.querySelector('[data-print]').onclick = function () { window.print(); };
   // Build buttons (Miro board, Google Doc): POST, then open what came back in a tab opened on the click.
