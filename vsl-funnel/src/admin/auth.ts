@@ -70,7 +70,10 @@ export function sameOriginWrite(c: Context<AppEnv>) {
   const site = c.req.header('sec-fetch-site');
   if (site && site !== 'same-origin') return false;
   const origin = c.req.header('origin');
-  return !origin || origin === new URL(c.req.url).origin;
+  if (origin) return origin === new URL(c.req.url).origin;
+  // No Origin: accept only if the browser vouched for same-origin via Sec-Fetch-Site. A scripted client
+  // that sends neither is rejected (the SameSite=Strict cookie already blocks cross-site, this adds depth).
+  return site === 'same-origin';
 }
 
 export async function requireAdmin(c: Context<AppEnv>, next: Next) {

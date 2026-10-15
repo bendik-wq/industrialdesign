@@ -47,6 +47,10 @@ app.use('*', async (c, next) => {
     if (c.req.path === '/admin' || c.req.path.startsWith('/u/'))
       c.header('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
   }
+  // Funnel pages run inline Pixel/PostHog/Clarity, so a script-src CSP isn't practical, but these two
+  // directives cost nothing and block the worst primitives (<base> hijack, <object>/<embed> injection)
+  // if a slot ever regresses. Only set when the page didn't already send its own CSP.
+  if (!c.res.headers.has('content-security-policy')) c.header('content-security-policy', "object-src 'none'; base-uri 'none'; frame-ancestors 'self'");
 });
 
 app.get('/health', (c) => c.json({ ok: true }));

@@ -411,7 +411,7 @@ export async function bookPage(c: Context<AppEnv>) {
     slots: {
       ...voice.slots,
       first_name: esc(lead.first_name ?? ''),
-      ref_code: lead.ref_code,
+      ref_code: esc(lead.ref_code),
       eyebrow: tier === 'A' ? `Congratulations${lead.first_name ? `, ${esc(lead.first_name)}` : ''} — you qualify` : 'Book your call',
       headline: 'Pick a time for your call',
     },
@@ -451,7 +451,7 @@ export async function breakoutPage(c: Context<AppEnv>) {
       whatsapp_body: BREAKOUT.whatsappBody,
       book_title: BREAKOUT.bookTitle,
       book_body: BREAKOUT.bookBody,
-      ref_code: lead?.ref_code ?? '',
+      ref_code: esc(lead?.ref_code ?? ''),
     },
     lists: { prepare: BREAKOUT.prepare },
     blocks: { faqs: faqBlock() },
