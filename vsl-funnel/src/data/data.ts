@@ -20,10 +20,13 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 export function dataSettings(rt: Runtime) {
   const s = rt.settings;
   return {
-    partner: s.DATA_PARTNER.trim() || 'micro1',
+    // Unnamed by default: the page says “our partner”. A name set in Integrations → Data replaces it.
+    partner: s.DATA_PARTNER.trim() || 'Our partner',
+    partnerMid: s.DATA_PARTNER.trim() || 'our partner',
     fund: s.DATA_FUND_LINE.trim() || '$1 billion',
     referral: /^https:\/\//.test(s.DATA_REFERRAL_URL.trim()) ? s.DATA_REFERRAL_URL.trim() : '',
-    video: /^https:\/\//.test(s.DATA_VIDEO_SRC.trim()) || s.DATA_VIDEO_SRC.trim().startsWith('/') ? s.DATA_VIDEO_SRC.trim() : '',
+    // Our own data VSL (HLS) unless another video is set in Integrations → Data.
+    video: /^https:\/\//.test(s.DATA_VIDEO_SRC.trim()) || s.DATA_VIDEO_SRC.trim().startsWith('/') ? s.DATA_VIDEO_SRC.trim() : DATA_VSL_SRC,
   };
 }
 
@@ -40,6 +43,9 @@ export function isDataHost(c: Context<AppEnv>) {
   return host.startsWith('data.');
 }
 
+export const DATA_VSL_SRC = '/assets/media/hls/data/index.m3u8';
+const DATA_VSL_POSTER = '/assets/media/data-poster.jpg';
+
 /** YouTube / Vimeo / Loom links become an embed; anything else plays in a <video>. */
 export function videoEmbed(src: string) {
   if (!src) return '';
@@ -49,7 +55,8 @@ export function videoEmbed(src: string) {
   if (m) return `<iframe src="https://player.vimeo.com/video/${m[1]}?dnt=1" title="Video" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
   m = src.match(/loom\.com\/(?:share|embed)\/([0-9a-f]{20,40})/);
   if (m) return `<iframe src="https://www.loom.com/embed/${m[1]}?hide_owner=true&hide_share=true" title="Video" allow="fullscreen" allowfullscreen loading="lazy"></iframe>`;
-  return `<video src="${esc(src)}" controls playsinline preload="metadata" data-data-video></video>`;
+  const poster = src === DATA_VSL_SRC ? ` poster="${DATA_VSL_POSTER}"` : '';
+  return `<video src="${esc(src)}"${poster} controls playsinline preload="metadata" data-data-video></video>`;
 }
 
 export async function dataLanding(c: Context<AppEnv>, slug?: string) {
@@ -58,10 +65,10 @@ export async function dataLanding(c: Context<AppEnv>, slug?: string) {
   // Each headline has its own URL (data.yourdomain.com/recap, or /data/recap on the main domain).
   if (slug && !DATA_HEADLINES.some((x) => x.id === slug)) return c.notFound();
   const { h, preview } = await pickHeadline(rt, c.get('visitor').visitorId, c.req.query('h'), slug);
-  const fill = (t: string) => t.replace(/\{partner\}/g, esc(d.partner)).replace(/\{fund\}/g, esc(d.fund));
+  const fill = (t: string) => t.replace(/\{partner_mid\}/g, esc(d.partnerMid)).replace(/\{partner\}/g, esc(d.partner)).replace(/\{fund\}/g, esc(d.fund));
   return render(c, '/data.html', {
     title: `Get paid for your operational data`,
-    slots: { partner: esc(d.partner), fund: esc(d.fund), headline: fill(h.h1), lede: fill(h.lede), defunct: DEFUNCT_LINE },
+    slots: { partner: esc(d.partner), partner_mid: esc(d.partnerMid), fund: esc(d.fund), headline: fill(h.h1), lede: fill(h.lede), defunct: DEFUNCT_LINE },
     // Previews (?h=) don't count towards the test.
     trackProps: preview ? { headline_preview: h.id } : { headline: h.id },
     blocks: { video: videoEmbed(d.video) },
@@ -93,7 +100,7 @@ const LEDE = {
   recap: '<strong>No new investors. No dilution. No loan.</strong> {partner} has {fund} committed to buying anonymised operational data from established businesses (trading or closed), and deals typically land between $200,000 and $2 million. You keep every share.',
   debt: '<strong>Clear the expensive loans without selling a share or borrowing another cent.</strong> {partner} has {fund} committed to buying anonymised operational data, typically $200,000 to $2 million a deal. Not customer data. Nothing changes day to day.',
   revenue: '<strong>A product you’ve been making for years without selling it.</strong> {partner} has {fund} committed to buying anonymised operational data, typically $200,000 to $2 million a deal. No new staff, no new customers, no equity.',
-  curious: '<strong>It’s your operational data, and {partner} has {fund} committed to buying it.</strong> Not customer data, not equity: anonymised records of how your business runs. Deals typically land between $200,000 and $2 million.',
+  curious: '<strong>It’s your operational data, and {partner_mid} has {fund} committed to buying it.</strong> Not customer data, not equity: anonymised records of how your business runs. Deals typically land between $200,000 and $2 million.',
 };
 type Angle = keyof typeof LEDE;
 const H = (id: string, angle: Angle, h1: string) => ({ id, angle, h1, lede: LEDE[angle] });

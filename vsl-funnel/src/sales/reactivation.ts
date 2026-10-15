@@ -1,6 +1,8 @@
 import type { Runtime } from '../app';
 import type { Lead } from '../funnel/leads';
 import { enqueueSequence, zonedTime } from '../integrations/email';
+import { buildDossier, industryName } from '../followup/dossier';
+import { parseAnswers } from '../funnel/leads';
 
 /**
  * Reactivation: re-engage people already in the database. Launched by hand from Funnel HQ after the
@@ -22,7 +24,14 @@ export type Segment = keyof typeof REACTIVATION_SEGMENTS;
 /** Never in a reactivation: unsubscribed, no email, clients, ruled out, already reactivated in the last 90 days. */
 const BASE = "l.email IS NOT NULL AND l.unsubscribed_at IS NULL AND l.status NOT IN ('won', 'disqualified') AND (r.reactivated_at IS NULL OR r.reactivated_at < :now - 90 * 86400000)";
 
-export interface AudienceRow { id: string; first_name: string | null; last_name: string | null; email: string; status: string; tier: string | null; booking_source: string | null; call_at: number | null; created_at: number; segment: Segment }
+export interface AudienceRow {
+  id: string; first_name: string | null; last_name: string | null; email: string; status: string; tier: string | null; booking_source: string | null; call_at: number | null; created_at: number; segment: Segment;
+  /** From their application / booking answers (what the personalised emails are written from). */
+  industry: string | null; industry_id: string | null; revenue: string | null; revenue_key: string | null; business: string | null;
+  goal: string | null; timeline: string | null; why_now: boolean; blockers: number; objection: string | null;
+  /** How much we know: full (4+ answers), some, none. */
+  data: 'full' | 'some' | 'none'; facts: number;
+}
 
 export async function reactivationAudience(rt: Runtime, segments: Segment[] = Object.keys(REACTIVATION_SEGMENTS) as Segment[]) {
   const now = Date.now();
@@ -31,22 +40,41 @@ export async function reactivationAudience(rt: Runtime, segments: Segment[] = Ob
   const counts: Record<string, number> = {};
   for (const seg of Object.keys(REACTIVATION_SEGMENTS) as Segment[]) {
     const where = REACTIVATION_SEGMENTS[seg].where;
-    const sql = `SELECT l.id, l.first_name, l.last_name, l.email, l.status, COALESCE(l.tier_override, l.tier) AS tier, l.booking_source, l.call_at, l.created_at
+    const sql = `SELECT l.id, l.first_name, l.last_name, l.email, l.status, COALESCE(l.tier_override, l.tier) AS tier, l.booking_source, l.call_at, l.created_at,
+                        l.answers, l.revenue_band, l.industry, l.booking_answers, l.objection, l.lost_reason
                    FROM leads l LEFT JOIN lead_reactivation r ON r.lead_id = l.id WHERE ${BASE} AND (${where}) ORDER BY l.created_at DESC LIMIT 2000`.replace(/:now/g, String(now));
-    const { results } = await rt.env.DB.prepare(sql).all<Omit<AudienceRow, 'segment'>>();
+    const { results } = await rt.env.DB.prepare(sql).all<Record<string, unknown>>();
     counts[seg] = 0;
     for (const r of results) {
-      if (seen.has(r.id)) continue; // first matching segment wins
-      seen.add(r.id);
+      const id = String(r.id);
+      if (seen.has(id)) continue; // first matching segment wins
+      seen.add(id);
       counts[seg]++;
-      if (segments.includes(seg)) out.push({ ...r, segment: seg });
+      if (segments.includes(seg)) out.push(enrich(r, seg));
     }
   }
   return { rows: out, counts };
 }
 
+/** Adds what we know from their answers, without exposing raw HTML (the dossier escapes; here we keep plain text). */
+function enrich(r: Record<string, unknown>, segment: Segment): AudienceRow {
+  const lead = r as never;
+  const d = buildDossier(lead);
+  const a = parseAnswers(lead);
+  const biz = typeof a.business === 'string' && a.business.trim() ? a.business.trim().slice(0, 90) : null;
+  const facts = [d.business, d.revenue, d.profit, d.goal, d.timeline, d.blockers.length ? 1 : null, d.whyNow, d.booking.length ? 1 : null].filter(Boolean).length;
+  return {
+    id: String(r.id), first_name: (r.first_name as string) ?? null, last_name: (r.last_name as string) ?? null, email: String(r.email), status: String(r.status),
+    tier: (r.tier as string) ?? null, booking_source: (r.booking_source as string) ?? null, call_at: (r.call_at as number) ?? null, created_at: Number(r.created_at), segment,
+    industry: d.industry ? industryName(d.industry) : null, industry_id: d.industry?.id ?? null,
+    revenue: d.revenueLabel, revenue_key: d.revenue, business: biz,
+    goal: d.goal, timeline: d.timeline, why_now: Boolean(d.whyNow), blockers: d.blockers.length, objection: d.objection || d.lostReason || null,
+    data: facts >= 4 ? 'full' : facts ? 'some' : 'none', facts,
+  };
+}
+
 /**
- * Queues the 6-email reactivation for the chosen people, spread out: `perDay` new people a day, each
+ * Queues the reactivation for the chosen people, spread out: `perDay` new people a day, each
  * starting at 8am (sales time zone), a couple of minutes apart; each then gets 5 emails a day for 4 days, so the domain's reputation isn't hit.
  */
 export async function launchReactivation(rt: Runtime, ids: string[], perDay: number) {

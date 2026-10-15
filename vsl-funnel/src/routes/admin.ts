@@ -21,6 +21,8 @@ import { dataReport, visitorJourney } from '../data/data';
 import { transcribe } from '../lib/speech';
 import { contentReport, suggestNextVideos, syncContent } from '../content/content';
 import { REACTIVATION_SEGMENTS, launchReactivation, reactivationAudience, reactivationReport } from '../sales/reactivation';
+import { REACTIVATION_PLAN, RX_SKIP } from '../integrations/sequences';
+import { buildDossier } from '../followup/dossier';
 import { INDUSTRIES } from '../landers/catalog';
 import { cloudApiConfigured, sendWhatsAppTemplate, sendWhatsAppText, whatsappLink } from '../integrations/whatsapp';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
@@ -262,7 +264,7 @@ admin.get('/pages', (c) => {
     { group: 'Main funnel', title: 'Booked: pre-call video', desc: 'After booking: the call time, what to prepare and the pre-call video.', path: '/breakout?hq_as=booked' },
     { group: 'Main funnel', title: 'Resources (C-tier)', desc: 'Applicants who don’t qualify yet get the free resources instead of a call.', path: '/resources' },
     { group: 'Webinar', title: 'Webinar sign-up', desc: 'The masterclass registration page (live.grosfjeld-li.com).', path: '/webinar' },
-    { group: 'Data partner', title: 'Data page', desc: 'The micro1 referral page (data.grosfjeld-li.com). Shows one of the 20 headlines.', path: '/data' },
+    { group: 'Data partner', title: 'Data page', desc: 'The data-partner referral page (data.grosfjeld-li.com). Shows one of the 20 headlines.', path: '/data' },
     { group: 'Other', title: 'Privacy policy', desc: 'Linked from every page and every email.', path: '/privacy' },
   ];
   return c.json({ pages: pages.map((p, i) => ({ ...p, n: i + 1, src: `${p.path}${p.path.includes('?') ? '&' : '?'}hq_preview=1` })) });
@@ -276,7 +278,7 @@ admin.get('/visitors/:id', async (c) => {
   return j ? c.json(j) : c.json({ error: 'not found' }, 404);
 });
 admin.get('/data', async (c) => { const f = filters(c); return c.json(await dataReport(runtimeFrom(c), f.from, f.to)); });
-admin.get('/live', async (c) => c.json(await live(c.env)));
+admin.get('/live', async (c) => c.json(await live(c.env, { window: c.req.query('window'), before: Number(c.req.query('before')) || undefined, all: c.req.query('all') === '1' })));
 
 // ── Leads ───────────────────────────────────────────────────────────
 
@@ -514,6 +516,30 @@ admin.get('/reactivation', async (c) => {
   const sample = await c.env.DB.prepare('SELECT * FROM leads WHERE email IS NOT NULL ORDER BY created_at DESC LIMIT 1').first<Lead>();
   for (const e of emails) { try { e.subject = (await buildEmail(rt, sample ?? ({ id: 'x', first_name: 'Dana', email: 'd@example.com' } as Lead), 'pv', e.template, 'preview')).subject; } catch { e.subject = e.template; } }
   return c.json({ segments: REACTIVATION_SEGMENTS, counts: aud.counts, audience: aud.rows, report, emails, emailLive: emailConfigured(rt) });
+});
+// One person's reactivation, as they'd receive it: which emails they get (and which skip for lack of an
+// answer), each written from their own application. Nothing is sent or saved.
+admin.get('/reactivation/person', async (c) => {
+  const rt = runtimeFrom(c);
+  const lead = await getLead(c.env, (c.req.query('lead') ?? '').slice(0, 64));
+  if (!lead) return c.json({ error: 'not found' }, 404);
+  const seg = c.req.query('segment') ?? '';
+  lead.reactivation_segment = seg in REACTIVATION_SEGMENTS ? seg : null;
+  const d = buildDossier(lead);
+  const one = c.req.query('template');
+  if (one) {
+    if (!REACTIVATION_PLAN.some(([t]) => t === one)) return c.json({ error: 'not in the reactivation' }, 400);
+    const email = await buildEmail(rt, lead, `pv-${lead.id}`, one, 'preview');
+    return c.json({ subject: email.subject, html: email.html });
+  }
+  const emails = [];
+  for (const [template, day] of REACTIVATION_PLAN) {
+    const skipped = Boolean(RX_SKIP[template]?.(d));
+    let subject = template;
+    try { if (!skipped) subject = (await buildEmail(rt, lead, `pv-${lead.id}`, template, 'preview')).subject; } catch { /* keep the id */ }
+    emails.push({ template, day, subject, skipped, personal: template.startsWith('rx_') });
+  }
+  return c.json({ emails, sends: emails.filter((e) => !e.skipped).length });
 });
 admin.post('/reactivation/launch', async (c) => {
   const b = await c.req.json<{ ids?: unknown; perDay?: unknown; confirm?: unknown }>().catch(() => ({} as { ids?: unknown; perDay?: unknown; confirm?: unknown }));

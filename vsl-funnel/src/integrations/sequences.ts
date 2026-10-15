@@ -41,15 +41,29 @@ export const BEHAVIOUR_TEMPLATES: { template: string; skipIf: (l: Lead) => boole
   { template: 't_watch_prep', skipIf: (l) => !isBooked(l) || l.status !== 'booked' },
 ];
 
-/** Reactivation run: [template, day, slot]. 22 emails: 5 a day for 4 days, then day 5 and day 7. */
+/**
+ * Reactivation run: [template, day, slot]. 22 emails: 5 a day for 4 days, then day 6 and day 8.
+ * The rx_ emails are written from each person's own application / booking answers and why they're in the
+ * reactivation (no-show, cancelled, lost…); the re_ emails are the deal-structure value emails between them.
+ * An rx_ email whose answer they never gave skips itself (RX_SKIP), so nobody gets a half-empty email.
+ */
 export const REACTIVATION_SLOTS = [0, 2.5, 5, 8, 11];
 export const REACTIVATION_PLAN: [string, number, number][] = [
-  ['re_1', 0, 0], ['re_2', 0, 1], ['re_702010', 0, 2], ['re_rollover', 0, 3], ['re_assets', 0, 4],
-  ['re_6040', 1, 0], ['re_no_pg', 1, 1], ['re_100vf', 1, 2], ['re_others', 1, 3], ['re_which', 1, 4],
-  ['re_3', 2, 0], ['re_dscr_test', 2, 1], ['re_competitors', 2, 2], ['re_90days', 2, 3], ['re_5', 2, 4],
-  ['re_4', 3, 0], ['re_time', 3, 1], ['re_myths', 3, 2], ['re_cost_wait', 3, 3], ['re_one_call', 3, 4],
-  ['re_reply', 5, 2], ['re_6', 7, 2],
+  ['rx_open', 0, 0], ['rx_deal', 0, 1], ['re_702010', 0, 2], ['rx_why', 0, 3], ['re_assets', 0, 4],
+  ['rx_blocker', 1, 0], ['re_6040', 1, 1], ['rx_industry', 1, 2], ['re_100vf', 1, 3], ['re_which', 1, 4],
+  ['rx_goal', 2, 0], ['re_dscr_test', 2, 1], ['re_competitors', 2, 2], ['rx_timeline', 2, 3], ['re_5', 2, 4],
+  ['rx_objection', 3, 0], ['re_no_pg', 3, 1], ['re_others', 3, 2], ['re_cost_wait', 3, 3], ['re_one_call', 3, 4],
+  ['re_reply', 5, 2], ['rx_last', 7, 2],
 ];
+/** Skip a personalised reactivation email when we don't have the answer it's written around. */
+export const RX_SKIP: Record<string, (d: ReturnType<typeof buildDossier>) => boolean> = {
+  rx_why: (d) => !d.whyNow,
+  rx_blocker: (d) => !d.blockers.length,
+  rx_goal: (d) => !d.goal,
+  rx_industry: (d) => !d.industry,
+  rx_timeline: (d) => !d.timeline,
+  rx_objection: (d) => !(d.objection || d.lostReason),
+};
 
 /** Pre-call emails (one idea each). Append only: new emails go at the end. */
 export const PRECALL_TEMPLATES = [
@@ -200,7 +214,7 @@ export const SEQUENCES = {
     // Done once they book or apply again, buy, or are ruled out.
     stopIf: (l) => ['won', 'disqualified'].includes(l.status) || Boolean(l.reactivated_at && (((l.booked_at ?? 0) > l.reactivated_at && !l.booking_cancelled_at) || (l.app_completed_at ?? 0) > l.reactivated_at)),
     // 5 a day for 4 days (8:00, 10:30, 13:00, 16:00, 19:00 from an 8am start), then day 5 and a last one on day 7.
-    steps: REACTIVATION_PLAN.map(([template, day, slot]) => ({ template, offsetMs: day * DAY + REACTIVATION_SLOTS[slot] * HOUR })),
+    steps: REACTIVATION_PLAN.map(([template, day, slot]) => ({ template, offsetMs: day * DAY + REACTIVATION_SLOTS[slot] * HOUR, ...(RX_SKIP[template] ? { skipIf: (l: Lead) => RX_SKIP[template](buildDossier(l)) } : {}) })),
   },
   webinar: {
     id: 'webinar',

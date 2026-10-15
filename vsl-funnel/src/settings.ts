@@ -107,7 +107,7 @@ export const SETTINGS = [
 
   { key: 'DATA_URL', label: 'Data page address', group: 'Data', placeholder: 'https://data.grosfjeld-li.com', help: 'Where the data-buyer page lives. Blank: /data on this domain.' },
   { key: 'DATA_REFERRAL_URL', label: 'Partner referral link', group: 'Data', placeholder: 'https://…', help: 'Where people go after claiming their valuation. Blank: we keep their details and you follow up by hand.' },
-  { key: 'DATA_PARTNER', label: 'Partner name', group: 'Data', placeholder: 'micro1', help: 'Shown on the page. Only use a partner name you have permission to use.' },
+  { key: 'DATA_PARTNER', label: 'Partner name', group: 'Data', placeholder: 'Leave blank to say “our partner”', help: 'Leave blank and the page just says “our partner”. If you fill it in, it’s shown on the page. Only use a partner name you have permission to use.' },
   { key: 'DATA_FUND_LINE', label: 'Committed budget', group: 'Data', placeholder: '$1 billion', help: 'As in “recently had $1 billion committed to buying data”. Must be accurate.' },
   { key: 'DATA_HEADLINE_TEST', label: 'Headline test', group: 'Data', placeholder: 'auto', help: 'auto = traffic shifts to the headlines that get claims; even = equal split; or a headline id (e.g. debt) to show it to everyone. Set from Funnel HQ → Data page.' },
   { key: 'DATA_VIDEO_SRC', label: 'Data page video', group: 'Data', placeholder: 'YouTube / Vimeo / Loom link, or an .mp4 / .m3u8 URL' },

@@ -16,6 +16,19 @@
 
   // Video: a <video> reports play; an embed counts once the visitor interacts with it (focus moves into the iframe).
   var vid = document.querySelector('[data-data-video]');
+  // HLS streams (our own VSL): Safari plays them natively; elsewhere attach hls.js, as the main VSL does.
+  if (vid && /\.m3u8(\?|$)/.test(vid.getAttribute('src') || '') && !vid.canPlayType('application/vnd.apple.mpegurl')) {
+    var hlsSrc = vid.getAttribute('src');
+    vid.removeAttribute('src');
+    var sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js';
+    sc.onload = function () {
+      if (window.Hls && window.Hls.isSupported()) { var h = new window.Hls({ capLevelToPlayerSize: true }); h.loadSource(hlsSrc); h.attachMedia(vid); }
+      else vid.src = hlsSrc;
+    };
+    sc.onerror = function () { vid.src = hlsSrc; };
+    document.head.appendChild(sc);
+  }
   if (vid) vid.addEventListener('play', function once() { track('data_video_play', { kind: 'file' }); vid.removeEventListener('play', once); });
   var frame = document.querySelector('.data-video iframe');
   if (frame) {

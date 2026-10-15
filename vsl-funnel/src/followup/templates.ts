@@ -1,4 +1,5 @@
 import type { EmailContent, TemplateCtx } from '../integrations/templates';
+import { GUIDES } from '../seo/guides';
 import { BLOCKERS, GOALS, LOST_ANGLES, OBJECTIONS, TIMELINES, blockerOf, buildDossier, type Dossier, industryName, peers, profitText, yourBiz } from './dossier';
 
 /**
@@ -484,7 +485,142 @@ const NURTURE: Record<string, T> = {
   }),
 };
 
-const ALL: Record<string, T> = { ...PREP, ...NOSHOW, ...POSTCALL, ...CANCELLED, ...LOST, ...WON, ...NURTURE };
+// ───────────── Reactivation (people already in the database), written from what they told us ─────────────
+
+/** "back in March" / "a while back": when they first came in. */
+const backWhen = (ts: number | null | undefined) => {
+  if (!ts) return 'a while back';
+  const months = Math.floor((Date.now() - ts) / (30 * 86_400_000));
+  if (months < 1) return 'recently';
+  return `back in ${new Date(ts).toLocaleString('en-AU', { month: 'long', timeZone: 'UTC' })}${months >= 11 ? ` ${new Date(ts).getUTCFullYear()}` : ''}`;
+};
+const callDate = (c: TemplateCtx) => (c.lead.call_at ? new Date(c.lead.call_at).toLocaleString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : null);
+
+/** What they told us, as short bullet lines (empty when we know nothing). */
+const toldUs = (d: Dossier) => [
+  d.business ? `• <strong>The business:</strong> ${d.business}` : null,
+  sizeLine(d) ? `• <strong>Size:</strong> ${sizeLine(d)}${profitText(d) ? `, with profit ${profitText(d)}` : ''}` : null,
+  d.goal && GOALS[d.goal] ? `• <strong>What you wanted:</strong> to ${GOALS[d.goal].line}` : null,
+  d.timeline && TIMELINES[d.timeline] ? `• <strong>Timeline:</strong> ${({ '0_6': 'within 6 months', '6_12': '6 to 12 months', '12_plus': '12 months or more', exploring: 'just exploring' } as Record<string, string>)[d.timeline]}` : null,
+  blockerOf(d) ? `• <strong>What was in the way:</strong> ${blockerOf(d)!.name}` : null,
+  !d.business && d.booking.length ? `• <strong>From your booking:</strong> ${quote(d.booking[0].a)}` : null,
+].filter(Boolean) as string[];
+
+/** First line of the opener, by why they're in the reactivation. */
+const OPENERS: Record<string, (c: TemplateCtx) => { subject: string; line: string }> = {
+  no_show: (c) => ({ subject: `${c.name}, we missed each other`, line: `We had a strategy call booked${callDate(c) ? ` for ${callDate(c)}` : ''} and it didn’t happen. No stress, it happens, and I didn’t want to just let it drop.` }),
+  cancelled: (c) => ({ subject: `${c.name}, about the call you cancelled`, line: 'You cancelled your strategy call and we never found another time. I wanted to check in properly before I close your file.' }),
+  applied: (c) => ({ subject: `${c.name}, you applied but we never spoke`, line: `You went through the application ${backWhen(c.lead.app_completed_at ?? c.lead.created_at)}, but we never got a call in the diary.` }),
+  partial: (c) => ({ subject: `${c.name}, you started something ${backWhen(c.lead.created_at).replace(/^back /, '')}`, line: `You started an application ${backWhen(c.lead.created_at)} and didn’t get to the end. Plenty of people don’t, usually because life got busy.` }),
+  past_call: (c) => ({ subject: `${c.name}, since we spoke`, line: `We spoke${callDate(c) ? ` on ${callDate(c)}` : ''} about buying a business with no money down, and I never heard where you landed.` }),
+  nurture: (c) => ({ subject: `${c.name}, checking back in`, line: 'Last time we spoke the timing wasn’t quite right for an acquisition. It’s been long enough that I wanted to check in.' }),
+  lost: (c) => ({ subject: `${c.name}, a lot can change in a few months`, line: 'We spoke a while ago and decided it wasn’t the right time. A lot can change in a few months, so I wanted to check in.' }),
+};
+
+/** The industry's own guide (falls back to its landing page). */
+const guideFor = (industryId: string) => { const g = GUIDES.find((x) => x.industry === industryId); return g ? `/guides/${g.slug}` : `/${industryId}`; };
+
+const REACTIVATE: Record<string, T> = {
+  rx_open: (c, d) => {
+    const o = (OPENERS[c.lead.reactivation_segment ?? ''] ?? OPENERS.applied)(c);
+    const told = toldUs(d);
+    return {
+      subject: o.subject,
+      preheader: told.length ? 'Here’s what you told us. Still the plan?' : 'Still looking to buy a business?',
+      body: [
+        `Hi ${c.name},`,
+        o.line,
+        told.length ? `Here’s what you told us ${backWhen(c.lead.created_at)}:` : 'You were looking at growing by buying a business, with no money of your own going in.',
+        ...(told.length ? [told.join('<br>')] : []),
+        d.lostReason && LOST_ANGLES[d.lostReason] ? LOST_ANGLES[d.lostReason] : null,
+        'Is that still the plan? Just reply yes or no. Either answer is fine, and it tells me whether to keep you posted.',
+      ].filter(Boolean) as string[],
+    };
+  },
+  rx_deal: (c, d) => ({
+    subject: d.industry ? `what a first deal could look like for a ${d.industry.one}` : 'what a first deal could look like for you',
+    preheader: d.deal ? `Roughly ${d.deal.price}, funded without your cash.` : 'The numbers, roughly, for a business your size.',
+    body: [
+      `${c.name}, I ran the rough numbers for ${yourBiz(d)}${sizeLine(d) ? `, ${sizeLine(d)}` : ''}.`,
+      d.deal
+        ? `A sensible first target makes around ${d.deal.targetProfit} in profit, which usually means a price of ${d.deal.price}. Bought well, that gives you ${d.deal.combined}.`
+        : 'A sensible first target is usually a business a little smaller than yours, with steady profit and an owner ready to step back.',
+      'Here’s how a deal like that is commonly funded (illustrative): 70% commercial debt, 20% seller finance paid over a few years from the business’s own cash flow, and 10% seller rollover, where the owner keeps a stake. None of your own cash goes in, and the lender usually adds a working-capital line on top.',
+      'The test we run on every deal: the target’s profit has to cover its repayments about 1.5 times. If it doesn’t, we don’t do it.',
+    ],
+    cta: { label: 'See if you qualify →', href: c.link('/apply?again=1') },
+    ps: 'Illustrative numbers only. Every deal is structured on its own figures, and none of this is financial advice.',
+  }),
+  rx_why: (c, d) => ({
+    subject: 'what you wrote back then',
+    preheader: 'In your own words. Still true?',
+    body: [
+      `${c.name}, when we asked why now, you wrote:`,
+      quote(d.whyNow ?? ''),
+      'I keep coming back to answers like that, because they’re the real reason anyone does a deal. The spreadsheet comes second.',
+      'Is it still true? If it is, the next step is a short call to see whether there’s a deal that fits. If it isn’t, reply and tell me what changed.',
+    ],
+    cta: { label: 'Book a call →', href: book(c) },
+  }),
+  rx_blocker: (c, d) => {
+    const b = blockerOf(d) ?? BLOCKERS.funding;
+    return { subject: `still stuck on ${b.name}?`, preheader: `You said ${b.name} was what was in the way.`, body: [`${c.name},`, ...b.body.map((x) => x.replace(/^On the call /, 'On a call ')), 'If that was the only thing stopping you, it’s worth one conversation.'], cta: { label: 'Book a call →', href: book(c) } };
+  },
+  rx_goal: (c, d) => {
+    const g = GOALS[d.goal ?? ''] ?? GOALS.acquire;
+    return { subject: ({ acquire: 'about growing by acquisition', group: 'about building a group', exit: 'about growing, then selling', unsure: 'about your next move' } as Record<string, string>)[d.goal ?? ''] ?? 'about growing by acquisition', preheader: 'What you told us you wanted.', body: [`${c.name},`, ...g.body, 'Nothing about that has changed on our side. If it’s still what you want, let’s look at it properly.'], cta: { label: 'See if you qualify →', href: c.link('/apply?again=1') } };
+  },
+  rx_industry: (c, d) => {
+    const ind = d.industry;
+    return {
+      subject: ind ? `${ind.owners} buying ${ind.many}` : 'where the good businesses to buy are',
+      preheader: ind ? `How it works in ${industryName(ind)}.` : 'They’re rarely listed.',
+      body: [
+        `${c.name}, a quick one${ind ? ` for ${ind.owners}` : ''}.`,
+        ind
+          ? `The best ${ind.many} to buy are rarely listed. They’re owners getting ready to retire with no one to hand over to, and ${ind.target}.`
+          : 'The best businesses to buy are rarely listed. They’re owners getting ready to retire with no one to hand over to, and competitors who are quietly tired.',
+        `I wrote up how it works${ind ? ' in your industry' : ''}: what you’re actually buying, what to check, and how deals like this are usually funded with commercial debt, seller finance and seller rollover.`,
+      ],
+      cta: { label: ind ? `Read the ${industryName(ind)} guide →` : 'Read the guide →', href: c.link(ind ? guideFor(ind.id) : '/guides/how-to-buy-a-business-with-no-money-down') },
+      ps: 'Reply with the name of a business you’ve always wanted to own. I’m curious.',
+    };
+  },
+  rx_timeline: (c, d) => {
+    const said = ({ '0_6': 'within six months', '6_12': 'in six to twelve months', '12_plus': 'in twelve months or more', exploring: 'whenever the right one came up' } as Record<string, string>)[d.timeline ?? ''] ?? 'soon';
+    return {
+      subject: 'your timeline',
+      preheader: `You said ${said}.`,
+      body: [
+        `${c.name}, ${backWhen(c.lead.created_at)} you said you wanted to move ${said}.`,
+        'Here’s the thing about timing: the right business comes up when its owner decides they’re done, not when it suits you. The people who end up owning it are the ones who were already talking to that owner.',
+        'Starting now doesn’t mean buying now. It means having the list, the structure and the financing ready, so when the right one comes up, you can move in 90 days rather than a year.',
+      ],
+      cta: { label: 'Book a call →', href: book(c) },
+    };
+  },
+  rx_objection: (c, d) => {
+    const o = d.objection && OBJECTIONS[d.objection] ? OBJECTIONS[d.objection] : null;
+    const lost = d.lostReason && LOST_ANGLES[d.lostReason] ? LOST_ANGLES[d.lostReason] : null;
+    return {
+      subject: o ? o.subject.replace(/^on /, 'back to ') : 'the one thing that held you back',
+      preheader: 'Worth another look?',
+      body: [`${c.name},`, ...(o ? o.body : []), ...(lost ? [lost] : []), 'If that’s changed, reply and tell me. I’ll be straight with you about whether it makes sense now.'],
+    };
+  },
+  rx_last: (c, d) => ({
+    subject: 'closing your file',
+    preheader: 'Last email from me on this.',
+    body: [
+      `${c.name}, I’ve sent a few of these, so this is the last one.`,
+      d.goal && GOALS[d.goal] ? `When you came to us you wanted to ${GOALS[d.goal].line}. If that’s still the plan, one call will tell you whether there’s a deal that fits ${yourBiz(d)}.` : `If buying a business is still on your mind, one call will tell you whether there’s a deal that fits ${yourBiz(d)}.`,
+      'If not, no hard feelings at all. Reply “not now” and I’ll stop.',
+    ],
+    cta: { label: 'Book a call →', href: book(c) },
+  }),
+};
+
+const ALL: Record<string, T> = { ...PREP, ...NOSHOW, ...POSTCALL, ...CANCELLED, ...LOST, ...WON, ...NURTURE, ...REACTIVATE };
 
 export const FOLLOWUP_TEMPLATES: Record<string, (c: TemplateCtx) => EmailContent> = Object.fromEntries(
   Object.entries(ALL).map(([k, fn]) => [k, (c: TemplateCtx) => fn(c, buildDossier(c.lead))]),
@@ -498,4 +634,5 @@ export const FOLLOWUP_GROUPS = {
   lost: Object.keys(LOST),
   won: Object.keys(WON),
   nurture: Object.keys(NURTURE),
+  reactivate: Object.keys(REACTIVATE),
 };

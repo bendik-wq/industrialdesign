@@ -23,7 +23,7 @@ The AI companies have largely run through the public internet: the websites, the
 
 That data doesn't sit on the internet. It sits inside businesses like yours.
 
-Our partner, [FILL: partner name, e.g. micro1], recently had [FILL: confirmed figure, e.g. $1 billion] committed to buying it. Deals typically land between two hundred thousand and two million dollars.
+Our partner, [our partner], recently had [FILL: confirmed figure, e.g. $1 billion] committed to buying it. Deals typically land between two hundred thousand and two million dollars.
 
 // COPY PAYOFF SEQUENCE
 
@@ -53,7 +53,7 @@ And here's the part that surprises people.
 
 It doesn't have to be a business you're running today.
 
-If you closed a business, or sold it and kept the records, those years of job history, scheduling and operations didn't disappear when the doors shut. To a buyer like [FILL: partner name], that history is still valuable. You might have something worth up to two million dollars sitting in an old hard drive or a cloud account you haven't opened in years.
+If you closed a business, or sold it and kept the records, those years of job history, scheduling and operations didn't disappear when the doors shut. To a buyer like our partner, that history is still valuable. You might have something worth up to two million dollars sitting in an old hard drive or a cloud account you haven't opened in years.
 
 So if that's you, pick "Closed down" or "Sold" on the form. It still counts.
 
@@ -63,7 +63,7 @@ So if that's you, pick "Closed down" or "Sold" on the form. It still counts.
 
 First, you claim your valuation. It takes about a minute, right under this video.
 
-Then [FILL: partner name] looks at what you have and how much of it, and puts a number on it.
+Then our partner looks at what you have and how much of it, and puts a number on it.
 
 Once you see the number, you decide. If it works, you sell. If it doesn't, you walk away. It costs you nothing either way.
 
@@ -71,7 +71,7 @@ Once you see the number, you decide. If it works, you sell. If it doesn't, you w
 
 And the reason the numbers are this big right now is that the budget is being deployed now. The businesses that move first get the premium prices. Once it's allocated, it's allocated.
 
-And that's why we're doing this. In the interest of full transparency, we may receive a referral fee from [FILL: partner name]. It doesn't come out of what you're paid.
+And that's why we're doing this. In the interest of full transparency, we may receive a referral fee from our partner. It doesn't come out of what you're paid.
 
 // EMOTIONAL SPENDING CLOSE
 
@@ -93,7 +93,7 @@ Thirty days from now, one of two things will be true. Either your data is still 
 
 The only difference is the next sixty seconds.
 
-Click "Claim my data valuation" right under this video, and we'll take you straight to [FILL: partner name] to get your number.
+Click "Claim my data valuation" right under this video, and we'll take you straight to our partner to get your number.
 
 ---
 

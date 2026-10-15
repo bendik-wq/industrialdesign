@@ -50,7 +50,7 @@ describe('reactivation', () => {
     const perDay = new Map<number, number>();
     for (const st of seq.steps) { const d = Math.floor(st.offsetMs / 86_400_000); perDay.set(d, (perDay.get(d) ?? 0) + 1); }
     expect([0, 1, 2, 3].map((d) => perDay.get(d))).toEqual([5, 5, 5, 5]);
-    expect(seq.steps[seq.steps.length - 1].template).toBe('re_6');
+    expect(seq.steps[seq.steps.length - 1].template).toBe('rx_last');
     const lead = { status: 'booked', reactivated_at: 1000, booked_at: 500, booking_cancelled_at: null, app_completed_at: null } as unknown as Lead;
     expect(seq.stopIf!(lead)).toBe(false);
     expect(seq.stopIf!({ ...lead, booked_at: 2000 })).toBe(true);

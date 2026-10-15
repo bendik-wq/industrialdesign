@@ -240,7 +240,7 @@
   // ───────────── tabs ─────────────
   var TABS = {
     overview: { group: 'Today', title: 'Overview', sub: 'Every step from ad click to closed deal.', render: renderOverview },
-    live: { group: 'Today', title: 'Live', sub: 'Real-time activity across the funnel (refreshes every 5 seconds).', render: renderLive, noFilters: true },
+    live: { group: 'Today', title: 'Live', sub: 'Who’s on the site now, and everything people did — from the last hour back to all time.', render: renderLive, noFilters: true },
     leads: { group: 'Sell', title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads, filters: ['range', 'channel'] },
     sales: { group: 'Sell', title: 'Calls & deals', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here.', more: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales, filters: ['range'] },
     insights: { group: 'Sell', title: 'Best leads', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
@@ -2202,8 +2202,44 @@
   function renderReactivation() {
     return api('reactivation', {}, { noRange: true }).then(function (d) {
       var prev = reState;
-      reState = { d: d, segs: prev ? prev.segs : Object.keys(d.segments).filter(function (k) { return d.counts[k] > 0; }), off: prev ? prev.off : {}, q: '' };
+      reState = { d: d, segs: prev ? prev.segs : Object.keys(d.segments).filter(function (k) { return d.counts[k] > 0; }), off: prev ? prev.off : {}, q: '',
+        f: prev ? prev.f : { tiers: { A: true, B: true, C: true, none: true }, data: 'any', revenue: '', industry: '', source: 'any', age: 'any' } };
       drawReactivation();
+    });
+  }
+  /** One person's reactivation, as they'd get it: which emails send, which skip, each rendered with their answers. */
+  function previewPerson(id, seg) {
+    closeDrawers();
+    var row = (reState && reState.d.audience.filter(function (r) { return r.id === id; })[0]) || {};
+    var bg = document.createElement('div'); bg.className = 'drawer-bg';
+    var dr = document.createElement('aside'); dr.className = 'drawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-label', 'Reactivation preview');
+    dr.innerHTML = '<div class="loading-note">Writing their emails…</div>';
+    document.body.appendChild(bg); document.body.appendChild(dr);
+    function teardown() { document.removeEventListener('keydown', onKey); }
+    function close() { bg.remove(); dr.remove(); teardown(); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    dr.__teardown = teardown; bg.onclick = close; document.addEventListener('keydown', onKey);
+    var q = 'lead=' + encodeURIComponent(id) + '&segment=' + encodeURIComponent(seg || '');
+    fetch('/admin/api/reactivation/person?' + q, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.error) { dr.innerHTML = '<div class="empty">' + esc(d.error) + '</div>'; return; }
+      var name = [row.first_name, row.last_name].filter(Boolean).join(' ') || row.email || 'This person';
+      dr.innerHTML = '<div class="drawer-head"><div class="row" style="flex:1;min-width:0"><h2 class="lead-name">' + esc(name) + '</h2>' + (row.tier ? '<span class="tier ' + esc(row.tier) + '">' + esc(row.tier) + '</span>' : '') + '</div><button class="close" type="button" aria-label="Close">Close ✕</button></div>' +
+        '<p class="muted" style="margin:4px 0 12px">' + n(d.sends) + ' of ' + n(d.emails.length) + ' emails will send; the rest skip because they’re written around an answer this person never gave. Click one to read it exactly as they’ll get it.</p>' +
+        '<ol class="re-track re-person">' + d.emails.map(function (e) { return '<li' + (e.skipped ? ' class="skipped"' : ' data-rp="' + esc(e.template) + '" tabindex="0" role="button"') + '><span class="muted">Day ' + (e.day + 1) + '</span> <span class="pc-subj">' + esc(e.skipped ? e.template.replace(/^rx_/, '') + ' (skipped: no answer on file)' : e.subject) + '</span>' + (e.personal && !e.skipped ? ' <span class="pill st-won">personal</span>' : '') + '</li>'; }).join('') + '</ol>' +
+        '<div class="pc-preview" data-rpout hidden></div>';
+      dr.querySelector('.close').onclick = close;
+      dr.querySelectorAll('[data-rp]').forEach(function (li) {
+        var go_ = function () {
+          var out = dr.querySelector('[data-rpout]'); out.hidden = false; out.innerHTML = '<p class="loading-note">Loading…</p>';
+          fetch('/admin/api/reactivation/person?' + q + '&template=' + encodeURIComponent(li.getAttribute('data-rp')), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (e) {
+            if (e.error) { out.innerHTML = '<p class="muted">' + esc(e.error) + '</p>'; return; }
+            out.innerHTML = '<div class="row pc-prev-head"><strong>' + esc(e.subject) + '</strong></div><iframe class="email-preview" sandbox title="Email preview"></iframe>';
+            out.querySelector('iframe').srcdoc = e.html;
+            out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          });
+        };
+        li.onclick = go_; li.onkeydown = function (ev) { if (ev.key === 'Enter') go_(); };
+      });
     });
   }
   function emailPreview(box, template) {
@@ -2219,7 +2255,18 @@
   }
   function drawReactivation() {
     var S = reState, d = S.d, segs = d.segments;
-    var rows = d.audience.filter(function (r) { return S.segs.indexOf(r.segment) >= 0; });
+    var F = S.f, DAY = 86400000, nowMs = Date.now();
+    var inSegs = d.audience.filter(function (r) { return S.segs.indexOf(r.segment) >= 0; });
+    var tierOf = function (r) { return r.tier === 'A' || r.tier === 'B' || r.tier === 'C' ? r.tier : 'none'; };
+    var passAge = function (r) { var age = nowMs - r.created_at; return F.age === 'any' || (F.age === 'recent' && age < 90 * DAY) || (F.age === 'mid' && age >= 90 * DAY && age < 365 * DAY) || (F.age === 'old' && age >= 365 * DAY); };
+    var rows = inSegs.filter(function (r) {
+      return F.tiers[tierOf(r)] && (F.data === 'any' || r.data === F.data || (F.data === 'some+' && r.data !== 'none')) &&
+        (!F.revenue || r.revenue_key === F.revenue) && (!F.industry || r.industry_id === F.industry) &&
+        (F.source === 'any' || (F.source === 'calendly') === (r.booking_source === 'calendly-direct')) && passAge(r);
+    });
+    var tierCount = function (t) { return inSegs.filter(function (r) { return tierOf(r) === t; }).length; };
+    var opts = function (key, labelKey) { var m = {}; inSegs.forEach(function (r) { if (r[key]) m[r[key]] = r[labelKey]; }); return Object.keys(m).sort(function (a, b) { return String(m[a]).localeCompare(String(m[b])); }).map(function (k) { return [k, m[k]]; }); };
+    var dataPill = function (r) { return r.data === 'full' ? '<span class="pill st-won" title="' + r.facts + ' answers on file">full application</span>' : r.data === 'some' ? '<span class="pill" title="' + r.facts + ' answers on file">some answers</span>' : '<span class="pill muted">no answers</span>'; };
     var q = S.q.toLowerCase();
     var shown = q ? rows.filter(function (r) { return ((r.first_name || '') + ' ' + (r.last_name || '') + ' ' + r.email).toLowerCase().indexOf(q) >= 0; }) : rows;
     var chosen = rows.filter(function (r) { return !S.off[r.id]; });
@@ -2232,15 +2279,29 @@
         var on = S.segs.indexOf(k) >= 0;
         return '<label class="re-seg' + (on ? ' on' : '') + (d.counts[k] ? '' : ' empty') + '"><input type="checkbox" data-seg="' + esc(k) + '"' + (on ? ' checked' : '') + (d.counts[k] ? '' : ' disabled') + '><span class="re-n">' + n(d.counts[k] || 0) + '</span><strong>' + esc(segs[k].label) + '</strong><span class="muted">' + esc(segs[k].hint) + '</span></label>';
       }).join('') + '</div></div>' +
-      '<div class="card"><div class="card-head"><div><h2>2 · Review the list · ' + n(chosen.length) + ' of ' + n(rows.length) + ' selected</h2><p class="sub">Untick anyone who shouldn’t get it, e.g. people who already became clients (logging their outcome in Calls &amp; deals also removes them).</p></div>' +
+      '<div class="card"><h2>2 · Filter</h2><p class="sub">Narrow it down. Tiers come from their application score (or Calendly qualification for imported calls).</p>' +
+      '<div class="re-filters"><div><span class="re-flabel">Tier</span><div class="row" style="gap:6px;flex-wrap:wrap">' + [['A', 'A-tier'], ['B', 'B-tier'], ['C', 'C-tier'], ['none', 'Unscored']].map(function (t) { return '<label class="re-chip' + (F.tiers[t[0]] ? ' on' : '') + '"><input type="checkbox" data-retier="' + t[0] + '"' + (F.tiers[t[0]] ? ' checked' : '') + '> ' + esc(t[1]) + ' <span class="muted">' + n(tierCount(t[0])) + '</span></label>'; }).join('') + '</div></div>' +
+      '<div><span class="re-flabel">What we know</span><select class="input" data-ref="data"><option value="any">Anyone</option><option value="full"' + (F.data === 'full' ? ' selected' : '') + '>Full application (most personal emails)</option><option value="some+"' + (F.data === 'some+' ? ' selected' : '') + '>At least some answers</option><option value="none"' + (F.data === 'none' ? ' selected' : '') + '>No answers on file</option></select></div>' +
+      '<div><span class="re-flabel">Revenue</span><select class="input" data-ref="revenue"><option value="">Any</option>' + opts('revenue_key', 'revenue').map(function (o) { return '<option value="' + esc(o[0]) + '"' + (F.revenue === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>' +
+      '<div><span class="re-flabel">Industry</span><select class="input" data-ref="industry"><option value="">Any</option>' + opts('industry_id', 'industry').map(function (o) { return '<option value="' + esc(o[0]) + '"' + (F.industry === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>' +
+      '<div><span class="re-flabel">Came in via</span><select class="input" data-ref="source"><option value="any">Anywhere</option><option value="funnel"' + (F.source === 'funnel' ? ' selected' : '') + '>The funnel</option><option value="calendly"' + (F.source === 'calendly' ? ' selected' : '') + '>Calendly (imported)</option></select></div>' +
+      '<div><span class="re-flabel">Came in</span><select class="input" data-ref="age"><option value="any">Any time</option><option value="recent"' + (F.age === 'recent' ? ' selected' : '') + '>Last 3 months</option><option value="mid"' + (F.age === 'mid' ? ' selected' : '') + '>3–12 months ago</option><option value="old"' + (F.age === 'old' ? ' selected' : '') + '>Over a year ago</option></select></div>' +
+      '</div><p class="muted" style="margin-top:8px">' + n(rows.length) + ' of ' + n(inSegs.length) + ' people match.</p></div>' +
+      '<div class="card"><div class="card-head"><div><h2>3 · Review the list · ' + n(chosen.length) + ' of ' + n(rows.length) + ' selected</h2><p class="sub">Untick anyone who shouldn’t get it, e.g. people who already became clients (logging their outcome in Calls &amp; deals also removes them).</p></div>' +
       '<div class="row"><input class="input" data-req placeholder="Search name or email" value="' + esc(S.q) + '" style="max-width:220px"><button class="btn-sm ghost" data-reall="1">Tick all</button><button class="btn-sm ghost" data-reall="0">Untick all</button></div></div>' +
-      '<div class="re-list">' + (shown.length ? '<table class="t"><thead><tr><th></th><th>Person</th><th>Group</th><th>Status</th><th>Came in via</th><th>Last call</th></tr></thead><tbody>' + shown.slice(0, 400).map(function (r) {
-        return '<tr class="click" data-reopen="' + esc(r.id) + '"><td><input type="checkbox" data-reid="' + esc(r.id) + '"' + (S.off[r.id] ? '' : ' checked') + '></td><td><strong>' + esc([r.first_name, r.last_name].filter(Boolean).join(' ') || '–') + '</strong><div class="muted">' + esc(r.email) + '</div></td><td>' + esc(segs[r.segment].label) + '</td><td>' + statusPill(r.status) + '</td><td>' + esc(r.booking_source === 'calendly-direct' ? 'Calendly (imported)' : 'Funnel') + '</td><td>' + esc(r.call_at ? when(r.call_at) : '–') + '</td></tr>';
+      '<div class="re-list">' + (shown.length ? '<table class="t"><thead><tr><th></th><th>Person</th><th>Tier</th><th>What they told us</th><th>Group</th><th>Came in</th><th></th></tr></thead><tbody>' + shown.slice(0, 400).map(function (r) {
+        var told = [r.industry, r.revenue].filter(Boolean).join(' · ');
+        return '<tr class="click" data-reopen="' + esc(r.id) + '"><td><input type="checkbox" data-reid="' + esc(r.id) + '"' + (S.off[r.id] ? '' : ' checked') + '></td><td><strong>' + esc([r.first_name, r.last_name].filter(Boolean).join(' ') || '–') + '</strong><div class="muted">' + esc(r.email) + '</div></td>' +
+          '<td>' + (r.tier ? '<span class="tier ' + esc(r.tier) + '">' + esc(r.tier) + '</span>' : '<span class="muted">–</span>') + '</td>' +
+          '<td>' + (told ? esc(told) : '<span class="muted">–</span>') + (r.business ? '<div class="muted re-biz" title="' + esc(r.business) + '">' + esc(r.business) + '</div>' : '') + '<div style="margin-top:3px">' + dataPill(r) + (r.why_now ? ' <span class="pill" title="Wrote why now in their own words">why now</span>' : '') + (r.objection ? ' <span class="pill" title="Objection / reason logged">' + esc(r.objection) + '</span>' : '') + '</div></td>' +
+          '<td>' + esc(segs[r.segment].label) + '<div class="muted">' + statusPill(r.status) + '</div></td>' +
+          '<td>' + esc(when(r.created_at)) + '<div class="muted">' + esc(r.booking_source === 'calendly-direct' ? 'Calendly import' : 'Funnel') + '</div></td>' +
+          '<td><button class="btn-sm ghost" data-reprev="' + esc(r.id) + '" data-reseg="' + esc(r.segment) + '">Preview their emails</button></td></tr>';
       }).join('') + '</tbody></table>' + (shown.length > 400 ? '<p class="muted">Showing the first 400; search to find others.</p>' : '') : emptyState('Nobody in the chosen groups.')) + '</div></div>' +
-      '<div class="card re-mails"><h2>3 · The ' + d.emails.length + ' emails</h2><p class="sub">5 a day for 4 days (8am, 10:30, 1pm, 4pm, 7pm), then one on day 6 and a last one on day 8. Deal structures (70/20/10, 60/40, 100% vendor finance), the videos, objections and a straight ask to book. Click one to read it; change the wording in the Email editor.</p><div class="re-days">' +
-      (function () { var by = {}, days = []; d.emails.forEach(function (e) { if (!by[e.day]) { by[e.day] = []; days.push(e.day); } by[e.day].push(e); }); return days.map(function (dd) { return '<section><h3>Day ' + (dd + 1) + '<span class="muted"> · ' + by[dd].length + '</span></h3><ol class="re-track">' + by[dd].map(function (e) { return '<li data-pcview="' + esc(e.template) + '" tabindex="0" role="button"><span class="pc-subj">' + esc(e.subject) + '</span></li>'; }).join('') + '</ol></section>'; }).join(''); })() +
+      '<div class="card re-mails"><h2>4 · The ' + d.emails.length + ' emails</h2><p class="sub">5 a day for 4 days (8am, 10:30, 1pm, 4pm, 7pm), then one on day 6 and a last one on day 8. The ones marked <span class="pill st-won">personal</span> are written from each person’s own application: what they do, their size, their goal and timeline, what was in the way and why now in their own words, plus why they’re back (no-show, cancelled, lost…). If someone never gave that answer, that email skips itself. In between: the deal structures (70/20/10, 60/40, 100% vendor finance), the objections and a straight ask to book. Use “Preview their emails” on any person to read exactly what they’ll get.</p><div class="re-days">' +
+      (function () { var by = {}, days = []; d.emails.forEach(function (e) { if (!by[e.day]) { by[e.day] = []; days.push(e.day); } by[e.day].push(e); }); return days.map(function (dd) { return '<section><h3>Day ' + (dd + 1) + '<span class="muted"> · ' + by[dd].length + '</span></h3><ol class="re-track">' + by[dd].map(function (e) { return '<li data-pcview="' + esc(e.template) + '" tabindex="0" role="button"><span class="pc-subj">' + esc(e.subject) + '</span>' + (/^rx_/.test(e.template) ? ' <span class="pill st-won">personal</span>' : '') + '</li>'; }).join('') + '</ol></section>'; }).join(''); })() +
       '</div><div class="pc-preview" data-pcout hidden></div></div>' +
-      '<div class="card"><h2>4 · Launch</h2><p class="sub">Starts at 8am (sales time zone) and adds this many new people a day, a couple of minutes apart. Each person then gets 5 emails a day for 4 days, on their own schedule. Start with a small batch (20–30) and watch the unsubscribe rate before sending to everyone. It stops for anyone who books or applies again, unsubscribes or becomes a client.</p>' +
+      '<div class="card"><h2>5 · Launch</h2><p class="sub">Starts at 8am (sales time zone) and adds this many new people a day, a couple of minutes apart. Each person then gets 5 emails a day for 4 days, on their own schedule. Start with a small batch (20–30) and watch the unsubscribe rate before sending to everyone. It stops for anyone who books or applies again, unsubscribes or becomes a client.</p>' +
       '<div class="row re-launch"><label>New people per day <input class="input" type="number" min="5" max="200" value="40" data-reper style="width:90px"></label><span class="muted" data-redays></span>' +
       '<label>Type <b>SEND</b> to confirm <input class="input" data-reconfirm style="width:110px" autocomplete="off"></label><button class="btn" data-relaunch' + (chosen.length ? '' : ' disabled') + '>Launch for ' + n(chosen.length) + ' people</button><span data-remsg class="muted"></span></div>' +
       (t.reactivated ? '<p style="margin-top:10px"><button class="btn-sm ghost danger" data-restop>Stop all pending reactivation emails</button></p>' : '') + '</div>' +
@@ -2257,6 +2318,9 @@
     var upd = function () { var p = Math.max(5, Number(per.value) || 40); daysEl.textContent = chosen.length ? '≈ ' + Math.ceil(chosen.length / p) + ' day' + (Math.ceil(chosen.length / p) === 1 ? '' : 's') + ' to start everyone' : ''; };
     per.oninput = upd; upd();
     view.querySelectorAll('[data-seg]').forEach(function (b) { b.onchange = function () { var k = b.getAttribute('data-seg'); S.segs = b.checked ? S.segs.concat([k]) : S.segs.filter(function (x) { return x !== k; }); drawReactivation(); }; });
+    view.querySelectorAll('[data-retier]').forEach(function (b) { b.onchange = function () { F.tiers[b.getAttribute('data-retier')] = b.checked; drawReactivation(); }; });
+    view.querySelectorAll('[data-ref]').forEach(function (sel) { sel.onchange = function () { F[sel.getAttribute('data-ref')] = sel.value; drawReactivation(); }; });
+    view.querySelectorAll('[data-reprev]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); previewPerson(b.getAttribute('data-reprev'), b.getAttribute('data-reseg')); }; });
     view.querySelectorAll('[data-reid]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); S.off[b.getAttribute('data-reid')] = !b.checked; drawReactivation(); }; });
     view.querySelectorAll('[data-reopen]').forEach(function (r) { r.onclick = function () { openLead(r.getAttribute('data-reopen')); }; });
     view.querySelectorAll('[data-reall]').forEach(function (b) { b.onclick = function () { var on = b.getAttribute('data-reall') === '1'; shown.forEach(function (r) { S.off[r.id] = !on; }); drawReactivation(); }; });
@@ -2408,24 +2472,49 @@
     return x && x.description ? String(x.description).replace(/\s*\(see [^)]*\)/g, '') : ''; // drop code pointers like "(see personalize/triggers.ts)"
   }
 
+  var liveState = { window: '24h', all: false };
   function renderLive() {
-    function draw() {
-      return api('live', {}, { noRange: true }).then(function (d) {
-        view.innerHTML =
-          '<div class="grid g-3">' + tile('Active right now', n(d.active), 'Visitors in the last 5 minutes') + '<div class="card" style="grid-column:span 2"><h2>Pages being viewed</h2>' + (d.pages.length ? barList(d.pages.map(function (p) { return { name: p.path, value: p.n }; })) : '<p class="muted">Nobody on the site right now.</p>') + '</div></div>' +
-          '<div class="card" style="margin-top:14px"><h2>Activity stream</h2>' + table([
-            { label: 'When', html: function (e) { return '<span title="' + esc(when(e.ts)) + '">' + esc(ago(e.ts)) + '</span>'; } },
-            { label: 'Event', html: function (e) { return '<strong>' + esc(EVENT_LABELS[e.name] || e.name) + '</strong> <span class="muted">' + esc(e.path || '') + '</span>'; } },
-            { label: 'Who', html: function (e) { return e.lead_id ? '<a href="#lead=' + esc(e.lead_id) + '" data-open="' + esc(e.lead_id) + '">' + esc([e.first_name, e.last_name].filter(Boolean).join(' ') || 'lead') + '</a>' + (e.tier ? ' <span class="tier ' + esc(e.tier) + '">' + esc(e.tier) + '</span>' : '') : '<span class="muted">anonymous</span>'; } },
-            { label: 'Where', html: function (e) { return esc([e.city, e.country].filter(Boolean).join(', ')); } },
-            { label: 'Source', html: function (e) { return esc(e.channel || '') + (e.utm_campaign ? ' <span class="muted">' + esc(e.utm_campaign) + '</span>' : ''); } },
-            { label: 'Device', key: 'device' },
-          ], d.events, { feed: true }) + '</div>';
-        view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
-        view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
-      });
+    var WINDOWS = [['1h', 'Last hour'], ['24h', '24 hours'], ['7d', '7 days'], ['30d', '30 days'], ['90d', '90 days'], ['all', 'All time']];
+    var rows = [], nextBefore = null, paged = false;
+    var cols = [
+      { label: 'When', html: function (e) { return '<span title="' + esc(when(e.ts)) + '">' + esc(ago(e.ts)) + '</span>'; } },
+      { label: 'Event', html: function (e) { return '<strong>' + esc(EVENT_LABELS[e.name] || e.name) + '</strong> <span class="muted">' + esc(e.path || '') + '</span>'; } },
+      { label: 'Who', html: function (e) { return e.lead_id ? '<a href="#lead=' + esc(e.lead_id) + '" data-open="' + esc(e.lead_id) + '">' + esc([e.first_name, e.last_name].filter(Boolean).join(' ') || 'lead') + '</a>' + (e.tier ? ' <span class="tier ' + esc(e.tier) + '">' + esc(e.tier) + '</span>' : '') : (e.visitor_id ? '<a href="#" data-visitor="' + esc(e.visitor_id) + '" class="muted">anonymous</a>' : '<span class="muted">anonymous</span>'); } },
+      { label: 'Where', html: function (e) { return esc([e.city, e.country].filter(Boolean).join(', ')); } },
+      { label: 'Source', html: function (e) { return esc(e.channel || '') + (e.utm_campaign ? ' <span class="muted">' + esc(e.utm_campaign) + '</span>' : ''); } },
+      { label: 'Device', key: 'device' },
+    ];
+    function wire() {
+      view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
+      view.querySelectorAll('a[data-visitor]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openVisitor(a.getAttribute('data-visitor')); }; });
+      view.querySelectorAll('[data-lw]').forEach(function (b) { b.onclick = function () { liveState.window = b.getAttribute('data-lw'); draw(); }; });
+      var all = view.querySelector('[data-lall]'); if (all) all.onchange = function () { liveState.all = all.checked; draw(); };
+      var more = view.querySelector('[data-lmore]'); if (more) more.onclick = function () { more.disabled = true; more.textContent = 'Loading…'; fetchPage(nextBefore).then(function (d) { rows = rows.concat(d.events); nextBefore = d.nextBefore; paged = true; paint(d); }); };
     }
-    liveTimer = setInterval(function () { if (!document.hidden && !document.querySelector('.drawer')) draw(); }, 5000);
+    function fetchPage(before) {
+      return api('live', { window: liveState.window, all: liveState.all ? '1' : '', before: before || '' }, { noRange: true });
+    }
+    function paint(d) {
+      var t = d.totals || {};
+      var label = (WINDOWS.filter(function (w) { return w[0] === liveState.window; })[0] || [0, ''])[1];
+      view.innerHTML =
+        '<div class="grid g-3">' + tile('Active right now', n(d.active), 'Visitors in the last 5 minutes') + '<div class="card" style="grid-column:span 2"><h2>Being viewed right now</h2>' + (d.activePages.length ? barList(d.activePages.map(function (p) { return { name: p.path, value: p.n }; })) : '<p class="muted">Nobody on the site this minute.</p>') + '</div></div>' +
+        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Activity · ' + esc(label) + '</h2><p class="sub">Everything people did, newest first. Pick how far back to look; scroll down and press “Load older” to keep going.</p></div>' +
+        '<div class="row" style="gap:6px;flex-wrap:wrap">' + WINDOWS.map(function (w) { return '<button class="btn-sm' + (w[0] === liveState.window ? '' : ' ghost') + '" data-lw="' + w[0] + '">' + esc(w[1]) + '</button>'; }).join('') + '</div></div>' +
+        '<div class="grid g-4 tiles" style="margin:10px 0 14px">' + tile('Visitors', n(t.visitors || 0), label) + tile('Page views', n(t.views || 0), n(t.events || 0) + ' events in total') + tile('New leads', n(t.leads || 0), n(t.applied || 0) + ' finished the application') + tile('Calls booked', n(t.booked || 0), label) + '</div>' +
+        (d.pages && d.pages.length ? '<details class="more-rows" style="margin-bottom:12px"><summary>Most-viewed pages · ' + esc(label) + '</summary>' + barList(d.pages.map(function (p) { return { name: p.path, value: p.n }; })) + '</details>' : '') +
+        '<label class="muted" style="display:inline-flex;gap:6px;align-items:center;margin-bottom:8px"><input type="checkbox" data-lall' + (liveState.all ? ' checked' : '') + '> show every signal (scrolls, reading time, hovers…)</label>' +
+        (rows.length ? table(cols, rows, { feed: true }) : '<p class="muted">Nothing in this range.</p>') +
+        (nextBefore ? '<div class="row" style="justify-content:center;margin-top:12px"><button class="btn-sm ghost" data-lmore>Load older</button></div>' : (rows.length ? '<p class="muted" style="text-align:center;margin-top:10px">That’s everything in this range.</p>' : '')) +
+        '</div>';
+      wire();
+    }
+    function draw() {
+      rows = []; nextBefore = null; paged = false;
+      return fetchPage(null).then(function (d) { rows = d.events; nextBefore = d.nextBefore; paint(d); });
+    }
+    // Auto-refresh only while you're looking at the newest page (it would throw away older rows you loaded).
+    liveTimer = setInterval(function () { if (!document.hidden && !document.querySelector('.drawer') && !paged) draw(); }, 5000);
     return draw();
   }
 

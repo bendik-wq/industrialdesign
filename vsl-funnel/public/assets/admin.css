@@ -843,3 +843,13 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .barrow-bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .barrow-bar i { display: block; height: 100%; background: var(--tier-a, #1f6feb); opacity: .5; border-radius: inherit; }
 .barrow b { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Reactivation filters + per-person preview */
+.re-filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px 16px; margin-top: 10px; }
+.re-flabel { display: block; font-size: 12px; font-weight: 600; color: var(--muted, #6b7280); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+.re-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1px solid var(--line, #e5e7eb); border-radius: 999px; cursor: pointer; font-size: 13px; }
+.re-chip.on { border-color: var(--ink, #111); background: var(--surface-2, #f3f4f6); }
+.re-chip input { margin: 0; }
+.re-biz { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.re-person li { padding: 8px 10px; }
+.re-person li.skipped { opacity: .5; cursor: default; }

@@ -352,7 +352,10 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     }
     const seq = SEQUENCES[row.sequence];
     // Sequences that repeat per event (webinar: one block of steps per registration) map back with `cycle`.
-    const step = seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];
+    // Reactivation is matched by template so an edited plan never applies one email's rules to another.
+    const step = row.sequence === 'reactivation'
+      ? seq?.steps.find((st) => st.template === row.template)
+      : seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];
     const skip = (reason: string) => rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = ? WHERE id = ?").bind(reason, row.id).run();
 
     if (!lead || !seq || !step) { await skip('missing lead or step'); return; }

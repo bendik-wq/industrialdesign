@@ -480,15 +480,40 @@ export async function emailStats(env: Env, f: Filters) {
 
 // ───────────────────────────── Live ─────────────────────────────
 
-export async function live(env: Env) {
-  const since = Date.now() - 5 * 60_000;
-  const [active, events] = await Promise.all([
-    one(env, `SELECT COUNT(DISTINCT visitor_id) AS n FROM sessions WHERE last_seen_at > ? AND is_bot = 0`, [since]),
+/** Background signals that drown out the stream; hidden unless "all events" is on. */
+const LIVE_NOISE = ['scroll_depth', 'engaged_time', 'section_dwell', 'section_revisit', 'field_interaction', 'first_interaction', 'cta_hover', 'text_select', 'tab_return', 'page_exit', 'video_progress', 'vsl_volume', 'vsl_speed', 'consent_update'];
+export const LIVE_WINDOWS: Record<string, number | null> = { '1h': 3_600_000, '24h': 86_400_000, '7d': 7 * 86_400_000, '30d': 30 * 86_400_000, '90d': 90 * 86_400_000, all: null };
+
+/**
+ * Live view: who's on the site now, plus the activity stream for any window (the last hour up to all
+ * time), newest first, paged with a "before" cursor so you can scroll back through everything.
+ */
+export async function live(env: Env, opts: { window?: string; before?: number; all?: boolean; limit?: number } = {}) {
+  const now = Date.now();
+  const since5 = now - 5 * 60_000;
+  const span = opts.window && opts.window in LIVE_WINDOWS ? LIVE_WINDOWS[opts.window] : LIVE_WINDOWS['24h'];
+  const from = span == null ? 0 : now - span;
+  const before = opts.before && opts.before > 0 ? opts.before : now + 1;
+  const limit = Math.min(Math.max(opts.limit ?? 150, 20), 500);
+  const noise = opts.all ? '' : `AND e.name NOT IN (${LIVE_NOISE.map(() => '?').join(',')})`;
+  const noiseArgs = opts.all ? [] : LIVE_NOISE;
+  const [active, activePages, events, totals, pages] = await Promise.all([
+    one(env, `SELECT COUNT(DISTINCT visitor_id) AS n FROM sessions WHERE last_seen_at > ? AND is_bot = 0`, [since5]),
+    all(env, `SELECT e.path, COUNT(DISTINCT e.visitor_id) AS n FROM events e WHERE e.ts > ? AND e.name = 'page_view' AND e.is_bot = 0 GROUP BY 1 ORDER BY 2 DESC`, [since5]),
     all(env, `SELECT e.id, e.ts, e.name, e.path, e.source, e.props, e.lead_id, e.visitor_id, s.country, s.city, s.device, s.channel, s.utm_campaign,
                      l.first_name, l.last_name, l.tier
                 FROM events e LEFT JOIN sessions s ON s.id = e.session_id LEFT JOIN leads l ON l.id = e.lead_id
-               WHERE e.is_bot = 0 ORDER BY e.ts DESC LIMIT 60`, []),
+               WHERE e.is_bot = 0 AND e.ts >= ? AND e.ts < ? ${noise} ORDER BY e.ts DESC LIMIT ?`, [from, before, ...noiseArgs, limit]),
+    one(env, `SELECT COUNT(DISTINCT visitor_id) AS visitors, SUM(CASE WHEN name = 'page_view' THEN 1 ELSE 0 END) AS views,
+                     SUM(CASE WHEN name = 'lead_captured' THEN 1 ELSE 0 END) AS leads, SUM(CASE WHEN name = 'app_submitted' THEN 1 ELSE 0 END) AS applied,
+                     SUM(CASE WHEN name = 'booking_scheduled' THEN 1 ELSE 0 END) AS booked, COUNT(*) AS events
+                FROM events WHERE is_bot = 0 AND ts >= ?`, [from]),
+    all(env, `SELECT path, COUNT(DISTINCT visitor_id) AS n FROM events WHERE ts >= ? AND name = 'page_view' AND is_bot = 0 GROUP BY 1 ORDER BY 2 DESC LIMIT 12`, [from]),
   ]);
-  const pages = await all(env, `SELECT e.path, COUNT(DISTINCT e.visitor_id) AS n FROM events e WHERE e.ts > ? AND e.name = 'page_view' AND e.is_bot = 0 GROUP BY 1 ORDER BY 2 DESC`, [since]);
-  return { active: active.n ?? 0, pages, events };
+  const last = events[events.length - 1] as { ts?: number } | undefined;
+  return {
+    active: active.n ?? 0, activePages, events, pages, totals,
+    window: opts.window && opts.window in LIVE_WINDOWS ? opts.window : '24h',
+    nextBefore: events.length >= limit && last?.ts ? last.ts : null,
+  };
 }
