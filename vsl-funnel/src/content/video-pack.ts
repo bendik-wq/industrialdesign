@@ -226,7 +226,8 @@ const list = (items: string[], o: { size?: number; color?: string } = {}): Para[
 // Script text, word for word, set in short readable paragraphs (breaks only between sentences).
 export function scriptParas(s: string, target = 55) {
   const out: string[] = [];
-  for (const block of s.split(/\n+/).map((x) => x.trim()).filter(Boolean)) {
+  // Scripts written one sentence per line read as a wall of one-liners; flow them into even paragraphs.
+  for (const block of [s.replace(/\s*\n+\s*/g, ' ').trim()].filter(Boolean)) {
     const sentences = block.split(/(?<=[.!?…]["”’']?)\s+(?=["“‘'(]?[A-Z0-9$])/);
     let cur = '';
     for (const x of sentences) {
@@ -351,7 +352,7 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
     P(`SHORT 0${k + 1}`, { size: 7.5, color: D.faint, bold: true, before: 12, after: 5, keepNext: true, ruleAbove: true }),
     P(s.title, { size: 15, bold: true, lh: 1.3, after: 5, keepNext: true }),
     P(`“${unquote(s.hook)}”`, { size: 10.5, color: D.sub, italic: true, lh: 1.45, after: 8, keepNext: true }),
-    P(s.script, { size: 10, lh: 1.5, after: 10 }),
+    P(s.script.replace(/\s*\n+\s*/g, ' '), { size: 10, lh: 1.5, after: 10 }),
   ));
 
   // ── On set (flows)
