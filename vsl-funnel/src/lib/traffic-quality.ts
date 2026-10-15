@@ -22,29 +22,30 @@ async function markSessions(env: Env, ids: { id: string; visitor_id: string; rea
   }
 }
 
-/** Every 5 minutes: silent visits from hosting networks, link checkers and script user agents become bots. */
+/** Every 5 minutes: link checkers and script user agents, and silent visits from hosting networks, become bots. */
 export async function sweepBots(rt: Runtime) {
   const env = rt.env;
   const now = Date.now();
   // The first run goes back over everything already recorded; after that, the last two days.
-  const done = await env.DB.prepare("SELECT value FROM kv_state WHERE key = 'botsweep:v1'").first<{ value: string }>();
+  const done = await env.DB.prepare("SELECT value FROM kv_state WHERE key = 'botsweep:v2'").first<{ value: string }>();
   const from = done ? now - 2 * 86_400_000 : 0;
   const { results } = await env.DB.prepare(
-    `SELECT s.id, s.visitor_id, s.as_org, s.asn, s.user_agent FROM sessions s
-      WHERE s.is_bot = 0 AND s.started_at BETWEEN ? AND ? AND ${SILENT}
+    `SELECT s.id, s.visitor_id, s.as_org, s.asn, s.user_agent, (${SILENT}) AS silent FROM sessions s
+      WHERE s.is_bot = 0 AND s.started_at BETWEEN ? AND ?
+        AND ((${SILENT}) OR s.asn = 32934 OR s.as_org LIKE '%facebook%' OR s.as_org LIKE '%meta platforms%' OR s.user_agent NOT LIKE '%(%')
         AND NOT EXISTS (SELECT 1 FROM leads l WHERE l.visitor_id = s.visitor_id)
       ORDER BY s.started_at DESC LIMIT 2000`,
-  ).bind(from, now - 30 * 60_000).all<{ id: string; visitor_id: string; as_org: string | null; asn: number | null; user_agent: string | null }>();
+  ).bind(from, now - 30 * 60_000).all<{ id: string; visitor_id: string; as_org: string | null; asn: number | null; user_agent: string | null; silent: number }>();
   const hits = results.flatMap((s) => {
     const reason =
       s.asn === 32934 || /facebook|meta platforms/i.test(s.as_org ?? '') ? 'link-checker'
       : s.user_agent && !s.user_agent.includes('(') ? 'fake-ua'
-      : s.as_org && DATACENTER_ORG.test(s.as_org) ? 'datacenter'
+      : s.silent && s.as_org && DATACENTER_ORG.test(s.as_org) ? 'datacenter'
       : null;
     return reason ? [{ id: s.id, visitor_id: s.visitor_id, reason }] : [];
   });
   await markSessions(env, hits);
-  if (!done) await env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('botsweep:v1', ?) ON CONFLICT(key) DO NOTHING").bind(String(now)).run();
+  if (!done) await env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('botsweep:v2', ?) ON CONFLICT(key) DO NOTHING").bind(String(now)).run();
   return { checked: results.length, marked: hits.length };
 }
 
