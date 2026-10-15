@@ -30,7 +30,9 @@ describe('video pack: Google Doc', () => {
     expect(rtf.startsWith('{\\rtf1')).toBe(true);
     expect(rtf.split('\\pagebb').length - 1).toBeGreaterThanOrEqual(P.beats.length + 5);
     expect(rtf).toContain('\\trkeep');
-    expect(rtf).toContain('Brace \\{yourself\\} \\\\ \\u8220?quotes\\u8221?');
+    // cp1252 hex escapes: Google Docs garbles \\uN but reads \\'hh
+    expect(rtf).toContain("Brace \\{yourself\\} \\\\ \\'93quotes\\'94");
+    expect(rtf).not.toMatch(/\\u\d/);
     expect(rtf).toContain('HYPERLINK "https://miro.com/app/board/x/"');
     let depth = 0;
     for (const ch of rtf.replace(/\\[\\{}]/g, '')) { if (ch === '{') depth++; if (ch === '}') depth--; expect(depth).toBeGreaterThanOrEqual(0); }

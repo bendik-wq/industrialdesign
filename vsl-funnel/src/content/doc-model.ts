@@ -1,11 +1,18 @@
 // A tiny document model with two renderers: HTML (browser preview, copy and paste) and
 // RTF (Google Docs import). Google Docs drops page breaks and custom fonts from HTML,
 // but keeps them from RTF, along with rows that never split across pages.
+// What Google Docs keeps from RTF (verified by round-tripping test documents):
+//   fonts, sizes, colours, bold/italic, spacing, line height, left/right indents, page
+//   breaks, unsplittable rows, cell shading, and paragraph borders (as horizontal rules).
+// What it drops: table borders (always 1pt black, so tables are only used for black cards),
+// paragraph shading, tab stops, and \uN escapes (so text is encoded as cp1252).
 
 export type Run = { text: string; bold?: boolean; italic?: boolean; color?: string; link?: string };
 export type Para = {
   kind: 'p'; runs: Run[]; size: number; color: string; bold?: boolean; italic?: boolean;
   lh?: number; before?: number; after?: number; center?: boolean; keepNext?: boolean;
+  /** A hairline above or below the paragraph (Google Docs turns these into horizontal rules). */
+  ruleAbove?: boolean; ruleBelow?: boolean; indent?: number; indentRight?: number;
 };
 export type Cell = { paras: Para[]; bg?: string; pad?: [number, number, number, number]; rule?: { top?: boolean; bottom?: boolean } };
 export type Table = { kind: 'table'; widths: number[]; rows: { cells: Cell[]; keep?: boolean }[]; rule?: string };
@@ -20,7 +27,8 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 function paraHtml(p: Para) {
   const st = [`font-family:${STACK}`, `font-size:${p.size}pt`, `color:${p.color}`, p.bold ? 'font-weight:bold' : '', p.italic ? 'font-style:italic' : '',
-    `line-height:${p.lh ?? 1.4}`, `margin:${p.before ?? 0}pt 0 ${p.after ?? 0}pt 0`, p.center ? 'text-align:center' : ''].filter(Boolean).join(';');
+    `line-height:${p.lh ?? 1.4}`, `margin:${p.before ?? 0}pt ${p.indentRight ?? 0}pt ${p.after ?? 0}pt ${p.indent ?? 0}pt`, p.center ? 'text-align:center' : '',
+    p.ruleAbove ? `border-top:1px solid #D2D2D7;padding-top:7pt` : '', p.ruleBelow ? `border-bottom:1px solid #D2D2D7;padding-bottom:7pt` : ''].filter(Boolean).join(';');
   const runs = p.runs.map((r) => {
     const s = [r.bold ? 'font-weight:bold' : '', r.italic ? 'font-style:italic' : '', r.color ? `color:${r.color}` : ''].filter(Boolean).join(';');
     const t = esc(r.text) || '&nbsp;';
@@ -52,6 +60,15 @@ const PAGE_W = 12240, PAGE_H = 15840, MARGIN_X = 1440, MARGIN_Y = 1296;
 export const CONTENT_W = PAGE_W - 2 * MARGIN_X;
 const tw = (pt: number) => Math.round(pt * 20);
 
+// Unicode → Windows-1252 for the characters that differ from Latin-1.
+const CP1252: Record<number, number> = {
+  0x20ac: 0x80, 0x201a: 0x82, 0x0192: 0x83, 0x201e: 0x84, 0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x02c6: 0x88, 0x2030: 0x89, 0x0160: 0x8a,
+  0x2039: 0x8b, 0x0152: 0x8c, 0x017d: 0x8e, 0x2018: 0x91, 0x2019: 0x92, 0x201c: 0x93, 0x201d: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97,
+  0x02dc: 0x98, 0x2122: 0x99, 0x0161: 0x9a, 0x203a: 0x9b, 0x0153: 0x9c, 0x017e: 0x9e, 0x0178: 0x9f,
+};
+// Anything else outside Windows-1252 gets a plain stand-in rather than a garbled glyph.
+const FALLBACK: Record<string, string> = { '→': '->', '←': '<-', '≈': '~', '×': 'x', '≥': '>=', '≤': '<=', '☐': '', '✓': '', '✔': '', '−': '-', '\u00a0': ' ', '\u2009': ' ', '\u202f': ' ' };
+
 function rtfText(s: string) {
   let out = '';
   for (const ch of s) {
@@ -59,11 +76,9 @@ function rtfText(s: string) {
     if (ch === '\\' || ch === '{' || ch === '}') out += `\\${ch}`;
     else if (ch === '\n') out += '\\line ';
     else if (c < 128) out += ch;
-    else if (c < 0x10000) out += `\\u${c > 32767 ? c - 65536 : c}?`;
-    else {
-      const v = c - 0x10000, hi = 0xd800 + (v >> 10), lo = 0xdc00 + (v & 0x3ff);
-      out += `\\u${hi - 65536}?\\u${lo - 65536}?`;
-    }
+    else if (c < 256 && c >= 0xa0) out += `\\'${c.toString(16)}`;
+    else if (CP1252[c]) out += `\\'${CP1252[c].toString(16)}`;
+    else out += FALLBACK[ch] ?? '?';
   }
   return out;
 }
@@ -78,7 +93,10 @@ export function toRtf(blocks: Block[]) {
   };
   const para = (p: Para, end: '\\par' | '\\cell', inTable: boolean, breakBefore: boolean) => {
     const lh = Math.round((p.lh ?? 1.4) * 240);
-    const pPr = `\\pard\\plain${inTable ? '\\intbl' : ''}${breakBefore ? '\\pagebb' : ''}${p.keepNext ? '\\keepn' : ''}${p.center ? '\\qc' : '\\ql'}\\sb${tw(p.before ?? 0)}\\sa${tw(p.after ?? 0)}\\sl${lh}\\slmult1`;
+    const rule = (side: 't' | 'b') => `\\brdr${side}\\brdrs\\brdrw10\\brdrcf${cf('#D2D2D7')}\\brsp80`;
+    const pPr = `\\pard\\plain${inTable ? '\\intbl' : ''}${breakBefore ? '\\pagebb' : ''}${p.keepNext ? '\\keepn' : ''}${p.center ? '\\qc' : '\\ql'}` +
+      `${p.indent ? `\\li${tw(p.indent)}` : ''}${p.indentRight ? `\\ri${tw(p.indentRight)}` : ''}${p.ruleAbove ? rule('t') : ''}${p.ruleBelow ? rule('b') : ''}` +
+      `\\sb${tw(p.before ?? 0)}\\sa${tw(p.after ?? 0)}\\sl${lh}\\slmult1`;
     const base = `\\f0\\fs${Math.round(p.size * 2)}\\cf${cf(p.color)}${p.bold ? '\\b' : ''}${p.italic ? '\\i' : ''}`;
     const runs = p.runs.map((r) => {
       const fmt = `${r.bold ? '\\b' : ''}${r.italic ? '\\i' : ''}${r.color ? `\\cf${cf(r.color)}` : ''}`;

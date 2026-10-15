@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Runtime } from '../app';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
 import type { Sprint, Topic } from './ideas';
-import { type Block, type Cell, type Para, type Run, type Table, toHtml, toRtf } from './doc-model';
+import { type Block, type Para, type Run, type Table, toHtml, toRtf } from './doc-model';
 import { BELIEF, INK, MUTED, PAPER, ROW, STAGE, YELLOW, e, ordered, unquote } from './sprint-export';
 
 /**
@@ -197,21 +197,25 @@ export function rulesPack(t: Topic, next: Topic | null): VideoPack {
 // ───────────── Google Doc ─────────────
 // One typeface, a monochrome palette, hairlines instead of boxes, and one idea per page.
 // Built once as blocks, then rendered as RTF for Google Docs and HTML for the browser.
+// Tables are used only for black cards (Google Docs draws every table border black).
 
-const D = { text: '#1D1D1F', sub: '#6E6E73', faint: '#86868B', line: '#D2D2D7', surface: '#F5F5F7', slide: '#000000', slideSub: '#A1A1A6', accent: YELLOW };
+const D = { text: '#1D1D1F', sub: '#6E6E73', faint: '#86868B', slide: '#000000', slideSub: '#A1A1A6', accent: YELLOW };
 
 type PO = Partial<Omit<Para, 'kind' | 'runs'>>;
 const P = (text: string | Run[], o: PO = {}): Para => ({ kind: 'p', runs: typeof text === 'string' ? [{ text }] : text, size: 11, color: D.text, lh: 1.45, ...o });
 const gap = (pt: number): Para => ({ kind: 'p', runs: [{ text: '' }], size: 1, color: D.text, lh: 1, after: pt });
 const eyebrow = (s: string, after = 10): Para => P(s.toUpperCase(), { size: 8, color: D.faint, bold: true, after, keepNext: true });
 const BREAK: Block = { kind: 'break' };
-const grid = (widths: number[], rows: Cell[][], keep = false): Table => ({ kind: 'table', widths, rows: rows.map((cells) => ({ cells, keep })) });
-// Hairline key/value rows: grey label left, content right.
-const rows = (items: [string, Para[]][], lw = 22, pad: [number, number, number, number] = [9, 0, 9, 0], ks = 9.5): Table =>
-  grid([lw, 100 - lw], items.map(([k, v], i) => {
-    const rule = { top: true, bottom: i === items.length - 1 };
-    return [{ paras: [P(k, { size: ks, color: D.sub, lh: 1.4 })], pad, rule }, { paras: v, pad, rule }];
-  }), true);
+const card = (paras: Para[], pad: [number, number, number, number]): Table => ({ kind: 'table', widths: [100], rows: [{ keep: true, cells: [{ bg: D.slide, pad, paras }] }] });
+// A spec list: small grey label over its content, items divided by hairlines.
+const spec = (items: [string, string][], o: { size?: number; color?: string; labelSize?: number; gapAfter?: number } = {}): Para[] =>
+  items.flatMap(([k, v], i) => [
+    P(k.toUpperCase(), { size: o.labelSize ?? 7.5, color: D.faint, bold: true, before: 8, after: 3, keepNext: true, ruleAbove: true }),
+    P(v, { size: o.size ?? 10.5, color: o.color ?? D.text, lh: 1.45, after: i === items.length - 1 ? (o.gapAfter ?? 0) : 4 }),
+  ]);
+// A plain list: one item per line, divided by hairlines.
+const list = (items: string[], o: { size?: number; color?: string } = {}): Para[] =>
+  items.map((x, i) => P(x, { size: o.size ?? 10, color: o.color ?? D.text, lh: 1.45, before: 6, after: 2, ruleAbove: true, ruleBelow: i === items.length - 1 }));
 
 // Script text, word for word, set in short readable paragraphs (breaks only between sentences).
 export function scriptParas(s: string, target = 55) {
@@ -231,17 +235,13 @@ export function scriptParas(s: string, target = 55) {
   return out;
 }
 const body = (s: string, o: PO = {}) => scriptParas(s).map((x) => P(x, { size: 11, lh: 1.55, after: 8, ...o }));
+const note = (items: [string, string][]): Para[] => [gap(6), ...spec(items, { size: 9, color: D.sub, labelSize: 7 })];
 
-const slideCard = (num: string, title: string, bullets: string[]): Table => grid([100], [[{
-  bg: D.slide, pad: [26, 30, 28, 30],
-  paras: [
-    P(num, { size: 9, color: D.accent, bold: true, after: 10 }),
-    P(title, { size: 22, color: '#FFFFFF', bold: true, lh: 1.15, after: 12 }),
-    ...bullets.map((x) => P(x, { size: 12, color: D.slideSub, lh: 1.35, after: 2 })),
-  ],
-}]], true);
-
-const note = (items: [string, string][]): Block[] => [gap(4), rows(items.map(([k, v]) => [k, [P(v, { size: 9, color: D.sub, lh: 1.4 })]]), 14, [5, 0, 5, 0], 8.5)];
+const slideCard = (num: string, title: string, bullets: string[]) => card([
+  P(num, { size: 9, color: D.accent, bold: true, after: 10 }),
+  P(title, { size: 22, color: '#FFFFFF', bold: true, lh: 1.15, after: 12 }),
+  ...bullets.map((x) => P(x, { size: 12, color: D.slideSub, lh: 1.35, after: 2 })),
+], [26, 30, 28, 30]);
 
 /** The long-form script and presentation brief for one video, as document blocks. */
 export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number; nextTitle?: string | null; brand?: string; miroUrl?: string | null }): Block[] {
@@ -252,50 +252,33 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
 
   // ── Cover
   out.push(eyebrow(`${brand} · Video ${n}`, 0));
-  out.push(gap(150));
+  out.push(gap(160));
   out.push(P(title, { size: 38, bold: true, lh: 1.08, after: 22 }));
   out.push(P(pack.promise, { size: 14, color: D.sub, lh: 1.45 }));
-  out.push(gap(110));
-  const meta: [string, string][] = [['Stage', STAGE[topic.stage]?.label ?? topic.stage], ['Length', `${topic.length_min} minutes`], ['Belief', BELIEF[topic.belief] ?? topic.belief]];
-  out.push(grid([33, 34, 33], [meta.map(([k, v]) => ({ paras: [P(k.toUpperCase(), { size: 7.5, color: D.faint, bold: true, after: 3 }), P(v, { size: 10.5 })], pad: [10, 8, 0, 0], rule: { top: true } }))]));
-  out.push(gap(16));
-  out.push(P(o.miroUrl ? [{ text: 'Script, slides and packaging for Josh Li  ·  ' }, { text: 'Open the board in Miro', link: o.miroUrl, color: D.text }] : 'Script, slides and packaging for Josh Li', { size: 9, color: D.faint }));
+  out.push(gap(120));
+  out.push(P([
+    { text: STAGE[topic.stage]?.label ?? topic.stage }, { text: '   ·   ', color: D.faint },
+    { text: `${topic.length_min} minutes` }, { text: '   ·   ', color: D.faint },
+    { text: BELIEF[topic.belief] ?? topic.belief },
+  ], { size: 10, color: D.sub, before: 10, ruleAbove: true, after: 6 }));
+  out.push(P(o.miroUrl ? [{ text: 'Script, slides and packaging for Josh Li   ·   ' }, { text: 'Open the board in Miro', link: o.miroUrl, color: D.text }] : 'Script, slides and packaging for Josh Li', { size: 9, color: D.faint }));
 
   // ── The idea
   out.push(BREAK);
   out.push(eyebrow('The idea'));
   out.push(P(pack.big_idea, { size: 21, bold: true, lh: 1.3, after: 30 }));
-  out.push(rows([
-    ['For', [P(pack.viewer, { size: 10.5 })]],
-    ['Not for', [P(pack.not_for, { size: 10.5 })]],
-    ['Format', [P(topic.format, { size: 10.5 })]],
-    ['Next video', [P(o.nextTitle || pack.end_screen, { size: 10.5 })]],
-  ]));
+  out.push(...spec([['For', pack.viewer], ['Not for', pack.not_for], ['Format', topic.format], ['Next video', o.nextTitle || pack.end_screen]]));
 
   // ── Packaging
   out.push(BREAK);
   out.push(eyebrow('Packaging'));
-  out.push(P('Win the click.', { size: 26, bold: true, lh: 1.2, after: 26 }));
-  out.push(eyebrow('Titles to test'));
-  out.push(grid([7, 93], pack.titles.slice(0, 3).map((x, k) => [
-    { paras: [P('ABC'[k], { size: 10.5, color: D.faint, bold: true })], pad: [11, 0, 11, 0], rule: { top: true, bottom: k === 2 } },
-    { paras: [P(x, { size: 14, bold: true, lh: 1.3 })], pad: [11, 0, 11, 0], rule: { top: true, bottom: k === 2 } },
-  ]), true));
-  out.push(gap(28));
-  out.push(eyebrow('Thumbnails'));
-  const th = pack.thumbnails.slice(0, 2);
-  out.push(grid([49, 2, 49], [
-    [
-      { bg: D.slide, pad: [40, 14, 40, 14], paras: [P(unquote(th[0]?.text ?? ''), { size: 22, color: '#FFFFFF', bold: true, center: true, lh: 1.1 })] },
-      { paras: [] },
-      { bg: D.slide, pad: [40, 14, 40, 14], paras: [P(unquote(th[1]?.text ?? ''), { size: 22, color: '#FFFFFF', bold: true, center: true, lh: 1.1 })] },
-    ],
-    [
-      { pad: [8, 0, 0, 0], paras: th[0] ? [P([{ text: th[0].visual }, { text: `  ·  ${th[0].emotion}`, color: D.faint }], { size: 8.5, color: D.sub, lh: 1.4 })] : [] },
-      { paras: [] },
-      { pad: [8, 0, 0, 0], paras: th[1] ? [P([{ text: th[1].visual }, { text: `  ·  ${th[1].emotion}`, color: D.faint }], { size: 8.5, color: D.sub, lh: 1.4 })] : [] },
-    ],
-  ], true));
+  out.push(P('Win the click.', { size: 26, bold: true, lh: 1.2, after: 22 }));
+  out.push(...spec(pack.titles.slice(0, 3).map((x, k): [string, string] => [`Title ${'ABC'[k]}`, x]), { size: 14, gapAfter: 26 }));
+  out.push(eyebrow('Thumbnails', 8));
+  pack.thumbnails.slice(0, 2).forEach((t, k) => {
+    out.push(card([P(unquote(t.text), { size: 26, color: '#FFFFFF', bold: true, center: true, lh: 1.1 })], [34, 20, 34, 20]));
+    out.push(P([{ text: t.visual }, { text: `   ·   ${t.emotion}`, color: D.faint }], { size: 8.5, color: D.sub, lh: 1.4, before: 6, after: k ? 0 : 14 }));
+  });
 
   // ── The hook
   out.push(BREAK);
@@ -317,7 +300,7 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
     out.push(slideCard(String(i + 1).padStart(2, '0'), b.headline, b.slide.slice(0, 3)));
     out.push(gap(14));
     out.push(...body(b.script));
-    out.push(...note([['Director', b.visual], ['Into next', b.transition]]));
+    out.push(...note([['Director', b.visual], ['Into the next beat', b.transition]]));
   });
 
   // ── Proof and the mid-roll ask
@@ -338,15 +321,13 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
   // ── Publishing (flows)
   out.push(BREAK);
   out.push(eyebrow('Publishing'));
-  out.push(P('Everything for the upload.', { size: 26, bold: true, lh: 1.2, after: 26 }));
-  out.push(eyebrow('Description'));
-  out.push(grid([100], [[{ bg: D.surface, pad: [16, 18, 12, 18], paras: pack.description.split(/\n+/).filter((x) => x.trim()).map((x) => P(x, { size: 10, lh: 1.5, after: 5 })) }]]));
+  out.push(P('Everything for the upload.', { size: 26, bold: true, lh: 1.2, after: 24 }));
+  out.push(eyebrow('Description', 6));
+  const desc = pack.description.split(/\n+/).filter((x) => x.trim());
+  desc.forEach((x, k) => out.push(P(x, { size: 10, lh: 1.5, after: 4, indent: 14, before: k ? 0 : 8, ruleAbove: k === 0, ruleBelow: k === desc.length - 1 })));
   out.push(gap(26));
-  out.push(eyebrow('Chapters'));
-  out.push(grid([12, 88], pack.chapters.map((c, k) => [
-    { paras: [P(c.time, { size: 10, color: D.sub })], pad: [6, 0, 6, 0], rule: { top: true, bottom: k === pack.chapters.length - 1 } },
-    { paras: [P(c.label, { size: 10 })], pad: [6, 0, 6, 0], rule: { top: true, bottom: k === pack.chapters.length - 1 } },
-  ])));
+  out.push(eyebrow('Chapters', 6));
+  out.push(...list(pack.chapters.map((c) => `${c.time}    ${c.label}`)));
   out.push(gap(26));
   out.push(eyebrow('Pinned comment'));
   out.push(P(pack.pinned_comment, { size: 10.5, lh: 1.5, after: 26 }));
@@ -356,28 +337,22 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
   // ── Shorts
   out.push(BREAK);
   out.push(eyebrow('Shorts'));
-  out.push(P('Three Shorts to cut from it.', { size: 26, bold: true, lh: 1.2, after: 20 }));
-  pack.shorts.slice(0, 3).forEach((s, k) => out.push(grid([100], [[{
-    pad: [14, 0, 16, 0], rule: { top: true },
-    paras: [
-      P(`0${k + 1}`, { size: 8.5, color: D.faint, bold: true, after: 6 }),
-      P(s.title, { size: 15, bold: true, lh: 1.3, after: 6 }),
-      P(`“${unquote(s.hook)}”`, { size: 10.5, color: D.sub, italic: true, lh: 1.45, after: 10 }),
-      P(s.script, { size: 10, lh: 1.5 }),
-    ],
-  }]], true)));
+  out.push(P('Three Shorts to cut from it.', { size: 26, bold: true, lh: 1.2, after: 16 }));
+  pack.shorts.slice(0, 3).forEach((s, k) => out.push(
+    P(`SHORT 0${k + 1}`, { size: 7.5, color: D.faint, bold: true, before: 12, after: 5, keepNext: true, ruleAbove: true }),
+    P(s.title, { size: 15, bold: true, lh: 1.3, after: 5, keepNext: true }),
+    P(`“${unquote(s.hook)}”`, { size: 10.5, color: D.sub, italic: true, lh: 1.45, after: 8, keepNext: true }),
+    P(s.script, { size: 10, lh: 1.5, after: 10 }),
+  ));
 
   // ── On set (flows)
-  out.push(gap(30));
+  out.push(gap(26));
   out.push(eyebrow('On set'));
-  out.push(P('Before you press record.', { size: 20, bold: true, lh: 1.2, after: 18 }));
-  out.push(grid([6, 94], pack.filming.map((f, k) => [
-    { paras: [P('☐', { size: 11, color: D.faint })], pad: [8, 0, 8, 0], rule: { top: true, bottom: k === pack.filming.length - 1 } },
-    { paras: [P(f, { size: 10, lh: 1.5 })], pad: [8, 0, 8, 0], rule: { top: true, bottom: k === pack.filming.length - 1 } },
-  ])));
-  out.push(gap(28));
-  out.push(eyebrow('Labels & disclaimers'));
-  out.push(grid([100], pack.compliance.map((c, k) => [{ paras: [P(c, { size: 9.5, color: D.sub, lh: 1.5 })], pad: [7, 0, 7, 0], rule: { top: true, bottom: k === pack.compliance.length - 1 } }])));
+  out.push(P('Before you press record.', { size: 20, bold: true, lh: 1.2, after: 14, keepNext: true }));
+  out.push(...list(pack.filming));
+  out.push(gap(26));
+  out.push(eyebrow('Labels & disclaimers', 6));
+  out.push(...list(pack.compliance, { size: 9.5, color: D.sub }));
   return out;
 }
 
