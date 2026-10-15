@@ -1,6 +1,7 @@
 import type { Runtime } from '../app';
 import { AI_CALLER, APPLICATION, CALL_CONSENT, type Route, type Tier } from '../config';
 import { newId, newRefCode } from '../lib/ids';
+import { overLimit } from '../lib/ratelimit';
 import type { VisitorCtx } from '../lib/identity';
 import { cancelSequence, enqueueSequence } from '../integrations/email';
 import { queueCall } from '../integrations/elevenlabs';
@@ -82,6 +83,11 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   if (emailCheck.disposable) throw new ApplicationError('Please use your real email address — we’ll send your results there', 'email');
   if (!phone) throw new ApplicationError('Please enter a valid mobile number, including area code', 'phone');
   if (!(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed — please refresh and try again', undefined, 403);
+  // Each new contact can enqueue an email + SMS drip to the address/number given. Throttle per IP so a
+  // script can't enrol a victim's details into our sender (the other public forms throttle the same way).
+  if (!(v.leadId) && (await overLimit(rt.env, `contact:${v.ip ?? 'unknown'}`, 10))) {
+    throw new ApplicationError('Too many attempts from this connection. Please try again in an hour.', undefined, 429);
+  }
 
   const now = Date.now();
   const existing = (await getLeadByEmail(rt.env, emailCheck.email)) ?? (v.leadId ? await getLead(rt.env, v.leadId) : null);

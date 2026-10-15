@@ -33,6 +33,14 @@ async function readJson<T>(req: Request): Promise<T | null> {
 api.use('*', async (c, next) => {
   const origin = c.req.header('origin');
   if (origin && origin !== new URL(c.req.url).origin) return c.json({ error: 'forbidden' }, 403);
+  // State-changing calls must look like they came from our own page. A real browser always sends an
+  // Origin or a Sec-Fetch-Site on a POST; a scripted client that sends neither is rejected, so it can't
+  // POST around the Origin check. GET beacons (which some browsers send without either) stay open.
+  if (c.req.method !== 'GET' && c.req.method !== 'HEAD') {
+    const site = c.req.header('sec-fetch-site');
+    if (site && site !== 'same-origin') return c.json({ error: 'forbidden' }, 403);
+    if (!origin && !(site === 'same-origin')) return c.json({ error: 'forbidden' }, 403);
+  }
   c.set('visitor', await resolveVisitor(c, 'beacon'));
   await next();
 });
