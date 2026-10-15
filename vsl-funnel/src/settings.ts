@@ -130,6 +130,7 @@ export const SETTINGS = [
 
   { key: 'CONTENT_YOUTUBE_CHANNEL', label: 'YouTube channel', group: 'Content', placeholder: '@officialjoshli', help: 'The handle (@name) or channel ID to track in Funnel HQ → Content.' },
   { key: 'YOUTUBE_API_KEY', label: 'YouTube Data API key', group: 'Content', secret: true, help: 'Free: console.cloud.google.com → APIs → enable “YouTube Data API v3” → Credentials → API key. Without it only the latest 15 videos are read (public feed).' },
+  { key: 'MIRO_ACCESS_TOKEN', label: 'Miro access token', group: 'Content', secret: true, help: 'Lets Funnel HQ build a laid-out Miro board for each YouTube sprint. miro.com → avatar → Settings → Your apps → Create new app → tick boards:write → Install app and get OAuth token → paste it here.' },
   { key: 'YT_BRAND_STORY', label: 'YouTube ideas: who Josh is (backstory)', group: 'Content', help: 'A few lines: background, deals done, why he does this. Only true facts: the generator uses it to pick credibility topics.' },
   { key: 'YT_PROOF', label: 'YouTube ideas: proof you can show', group: 'Content', help: 'Real results and testimonials you have permission to use, one per line. Leave blank and the generator won’t suggest proof videos.' },
   { key: 'YT_COMPETITORS', label: 'YouTube ideas: channels in your niche', group: 'Content', placeholder: '@codiesanchezct, @walkerdeibel', help: 'Comma-separated handles. Used to find what’s winning (needs the YouTube key).' },

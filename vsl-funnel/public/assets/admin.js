@@ -1907,7 +1907,9 @@
       if (sp) {
         var s2 = sp.sprint;
         sprintHtml = '<div class="card"><div class="card-head"><div><h2>Sprint · ' + esc(new Date(sp.created_at).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })) + (sp.focus ? ' · focus: ' + esc(sp.focus) : '') + '</h2><p class="sub">' + esc(sp.source === 'ai' ? 'Written by Claude from the 12 inputs' : 'Rules engine') + ' · ' + s2.topics.length + ' topics</p></div>' +
-          '<div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn-sm" type="button" data-yexp="gdoc">Copy for Google Docs</button><button class="btn-sm ghost" type="button" data-yexp="miro">Copy for Miro</button><a class="btn-sm ghost" href="/admin/api/yt/sprints/' + esc(sp.id) + '/md">Download .md</a>' +
+          '<div class="row" style="gap:6px;flex-wrap:wrap"><a class="btn-sm" href="/admin/api/yt/sprints/' + esc(sp.id) + '/doc" target="_blank" rel="noopener">Open the brief</a>' +
+          (sp.sprint.miro_url ? '<a class="btn-sm ghost" href="' + esc(sp.sprint.miro_url) + '" target="_blank" rel="noopener">Open Miro board</a>' : st.miro ? '<button class="btn-sm ghost" type="button" data-ymiro>Build Miro board</button>' : '<button class="btn-sm ghost" type="button" data-yexp="miro" title="Add a Miro token under Integrations → Content to build a full board">Copy for Miro</button>') +
+          '<button class="btn-sm ghost" type="button" data-yexp="gdoc">Copy for Google Docs</button><a class="btn-sm ghost" href="/admin/api/yt/sprints/' + esc(sp.id) + '/md">Download .md</a>' +
           (list.length > 1 ? '<select class="input" data-ysel>' + list.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === sp.id ? ' selected' : '') + '>' + esc(new Date(x.created_at).toLocaleDateString([], { day: 'numeric', month: 'short' }) + (x.focus ? ' · ' + x.focus : '')) + '</option>'; }).join('') + '</select>' : '') + '</div></div>' +
           '<p>' + esc(s2.summary) + '</p>' +
           '<div class="yt-path"><b>Binge path</b> ' + s2.binge_path.map(function (id) { var t = s2.topics.filter(function (x) { return x.id === id; })[0]; return '<span class="chip">' + esc(id.toUpperCase()) + ' ' + esc(t ? t.topic : '') + '</span>'; }).join('<span class="muted">→</span>') + '</div>' +
@@ -1920,17 +1922,29 @@
       function generate(focus) {
         if (ytState.busy) return;
         ytState.busy = true;
+        var tab = window.open('', '_blank');
+        if (tab) tab.document.write('<!doctype html><title>Writing the plan…</title><body style="font:16px Arial;display:grid;place-items:center;height:90vh;color:#1F2A44;background:#F4F4EF"><p>Writing the sprint brief… this tab opens it when it is ready.</p></body>');
         var b = view.querySelector('[data-ygen]'); b.disabled = true; b.textContent = 'Writing the plan…';
         view.querySelector('[data-ymsg]').textContent = st.ai ? 'Reading the 12 inputs and writing the plan. About a minute; keep this tab open.' : 'Planning…';
         send('POST', 'yt/sprints', { focus: focus }).then(function (r) {
           ytState.busy = false;
-          if (!r.ok) { toast(r.error || 'Could not generate'); load(); return; }
+          if (!r.ok) { if (tab) tab.close(); toast(r.error || 'Could not generate'); load(); return; }
           ytState.sel = r.id; toast('New sprint ready'); load();
-        }, function () { ytState.busy = false; toast('Could not reach the server'); load(); });
+          if (tab) tab.location = '/admin/api/yt/sprints/' + encodeURIComponent(r.id) + '/doc';
+        }, function () { ytState.busy = false; if (tab) tab.close(); toast('Could not reach the server'); load(); });
       }
       view.querySelector('[data-ygen]').onclick = function () { generate(view.querySelector('[data-yfocus]').value.trim()); };
       var sel = view.querySelector('[data-ysel]'); if (sel) sel.onchange = function () { ytState.sel = sel.value; load(); };
       view.querySelectorAll('[data-yangle]').forEach(function (b) { b.onclick = function () { var a = sp.sprint.new_angles[Number(b.getAttribute('data-yangle'))]; view.querySelector('[data-yfocus]').value = a.topic; generate(a.topic); }; });
+      var mb = view.querySelector('[data-ymiro]');
+      if (mb) mb.onclick = function () {
+        var tab = window.open('', '_blank'); mb.disabled = true; mb.textContent = 'Building the board…';
+        send('POST', 'yt/sprints/' + encodeURIComponent(sp.id) + '/miro', {}).then(function (r) {
+          if (!r.ok) { if (tab) tab.close(); toast(r.error || 'Could not build the board'); load(); return; }
+          if (tab) tab.location = r.url; else window.open(r.url, '_blank');
+          toast('Miro board ready'); load();
+        }, function () { if (tab) tab.close(); toast('Could not reach the server'); load(); });
+      };
       view.querySelectorAll('[data-yexp]').forEach(function (b) {
         b.onclick = function () {
           var s2 = sp.sprint;

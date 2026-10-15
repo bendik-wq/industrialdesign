@@ -1,5 +1,6 @@
 import type { Env } from '../env';
-import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown } from '../content/ideas';
+import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown, type Sprint } from '../content/ideas';
+import { buildMiroBoard, sprintPage } from '../content/sprint-export';
 import { type Context, Hono } from 'hono';
 import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, runtimeFrom } from '../app';
@@ -728,7 +729,7 @@ admin.get('/yt/sprints', async (c) => {
   return c.json({
     sprints: await listSprints(rt),
     status: {
-      ai: Boolean(rt.settings.ANTHROPIC_API_KEY), youtube: Boolean(rt.settings.YOUTUBE_API_KEY), applicants: inputs.demand.applicants, videos: inputs.own.count,
+      ai: Boolean(rt.settings.ANTHROPIC_API_KEY), youtube: Boolean(rt.settings.YOUTUBE_API_KEY), miro: Boolean(rt.settings.MIRO_ACCESS_TOKEN), applicants: inputs.demand.applicants, videos: inputs.own.count,
       guides: inputs.library.guides.length, brand: Boolean(inputs.brand), proof: Boolean(inputs.proof), competitors: inputs.competitors.length, adjacent: inputs.adjacent.length, notes: Boolean(inputs.notes),
       funnel: inputs.funnel, says: inputs.demand.says.slice(0, 8), industries: inputs.demand.industries.slice(0, 6), revenue: inputs.demand.revenue, phrases: demandPhrases(inputs),
     },
@@ -748,6 +749,33 @@ admin.get('/yt/sprints/:id/md', async (c) => {
   if (!row) return c.text('Not found', 404);
   c.header('content-disposition', `attachment; filename="youtube-sprint-${new Date(row.created_at).toISOString().slice(0, 10)}.md"`);
   return c.text(sprintMarkdown(JSON.parse(row.data), row.created_at));
+});
+admin.get('/yt/sprints/:id/doc', async (c) => {
+  const rt = runtimeFrom(c);
+  const row = await c.env.DB.prepare('SELECT data, created_at FROM yt_sprints WHERE id = ?').bind(c.req.param('id')).first<{ data: string; created_at: number }>();
+  if (!row) return c.text('Not found', 404);
+  const sprint = JSON.parse(row.data) as Sprint & { miro_url?: string };
+  c.header('cache-control', 'no-store');
+  c.header('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+  return c.html(sprintPage(sprint, row.created_at, { id: c.req.param('id'), brand: rt.settings.SITE_NAME, miroUrl: sprint.miro_url ?? null, miroReady: Boolean(rt.settings.MIRO_ACCESS_TOKEN) }));
+});
+admin.post('/yt/sprints/:id/miro', async (c) => {
+  const rt = runtimeFrom(c);
+  const token = rt.settings.MIRO_ACCESS_TOKEN;
+  if (!token) return c.json({ ok: false, error: 'Add a Miro access token under Integrations → Content first.' }, 400);
+  const row = await c.env.DB.prepare('SELECT data, created_at FROM yt_sprints WHERE id = ?').bind(c.req.param('id')).first<{ data: string; created_at: number }>();
+  if (!row) return c.json({ ok: false, error: 'Not found' }, 404);
+  const sprint = JSON.parse(row.data) as Sprint & { miro_url?: string };
+  if (sprint.miro_url) return c.json({ ok: true, url: sprint.miro_url });
+  try {
+    const url = await buildMiroBoard(token, sprint, row.created_at, `YouTube sprint · ${new Date(row.created_at).toISOString().slice(0, 10)} · ${rt.settings.SITE_NAME || 'Funnel HQ'}`);
+    sprint.miro_url = url;
+    await c.env.DB.prepare('UPDATE yt_sprints SET data = ? WHERE id = ?').bind(JSON.stringify(sprint), c.req.param('id')).run();
+    return c.json({ ok: true, url });
+  } catch (e) {
+    console.error('miro board failed', e);
+    return c.json({ ok: false, error: e instanceof Error ? e.message : 'Could not build the Miro board' }, 502);
+  }
 });
 admin.delete('/yt/sprints/:id', async (c) => {
   await c.env.DB.prepare('DELETE FROM yt_sprints WHERE id = ?').bind(c.req.param('id')).run();
