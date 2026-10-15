@@ -866,3 +866,42 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .letter-preview .sig { font-family: "Brush Script MT", "Segoe Script", cursive; font-size: 1.6rem; color: #0f2c5c; margin: 4px 0; }
 .letter-preview .sig.pending { font-family: inherit; font-size: .9rem; color: #999; font-style: italic; }
 .letter-preview .lbl { font-size: .75rem; text-transform: uppercase; color: #777; margin: 0; }
+
+/* Agreements workspace */
+.k-test { background: #fef3c7; color: #92400e; }
+.k-modal-bg { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 40; }
+.k-modal { position: fixed; z-index: 41; top: 3vh; left: 50%; transform: translateX(-50%); width: min(760px, 96vw); max-height: 94vh; overflow: auto; background: var(--plane); border-radius: 14px; box-shadow: 0 30px 60px rgba(0, 0, 0, .3); }
+.k-modal.wide { width: min(1240px, 96vw); }
+.k-modal-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 20px; background: var(--plane); border-bottom: 1px solid var(--border); }
+.k-modal-head h2 { margin: 0; font-size: 1.05rem; }
+.k-modal-body { padding: 18px 20px 24px; }
+.k-editor { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 1.25fr); gap: 20px; align-items: start; }
+.k-preview { position: sticky; top: 70px; }
+.k-paper { background: #fff; color: #1a1a1a; border: 1px solid #e4e1d8; border-radius: 10px; padding: 34px 38px; line-height: 1.5; font-size: 13.5px; box-shadow: 0 6px 24px rgba(0, 0, 0, .06); max-height: 80vh; overflow: auto; }
+.k-paper h1 { font-size: 1.35rem; margin: 0 0 2px; color: #0f2c5c; }
+.k-paper .meta { color: #777; margin: 0 0 14px; }
+.k-paper .cl { margin: 0 0 8px; }
+.k-paper .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 18px; border-top: 1px solid #e4e1d8; padding-top: 12px; }
+.k-paper .lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: #777; margin: 0; }
+.k-paper .sig { font-family: "Brush Script MT", "Segoe Script", "Snell Roundhand", cursive; font-size: 1.7rem; color: #0f2c5c; margin: 4px 0 0; }
+.k-paper .sig.pending { font-family: inherit; font-size: .85rem; color: #999; font-style: italic; }
+.k-paper .sig-img { height: 54px; max-width: 100%; object-fit: contain; display: block; }
+.k-paper .who, .k-paper .sig-date { margin: 0; font-size: .82rem; color: #555; }
+.k-form .pipe-grid { margin-top: 6px; }
+.k-pick { margin-bottom: 10px; }
+.k-results { display: grid; gap: 4px; margin-top: 6px; }
+.k-results button { text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 10px; cursor: pointer; color: inherit; }
+.k-results button:hover { border-color: var(--ink); }
+.k-steps { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 6px; }
+.k-steps li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; opacity: .55; }
+.k-steps li.done { opacity: 1; border-color: #a6f4c5; background: rgba(16, 185, 129, .06); }
+.k-actions { gap: 8px; flex-wrap: wrap; }
+.k-signbox { margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.k-signbox h3 { margin: 0 0 8px; font-size: 1rem; }
+.k-signbox label { display: grid; gap: 4px; margin-bottom: 8px; }
+.k-sig .sig-tabs { display: flex; gap: 6px; margin: 6px 0; }
+.k-sig .sig-tabs button { border: 1px solid var(--border); background: var(--plane); color: inherit; padding: 4px 12px; border-radius: 999px; cursor: pointer; }
+.k-sig .sig-tabs button.on { background: #0f2c5c; color: #fff; border-color: #0f2c5c; }
+.k-sig-typed { font-family: "Brush Script MT", "Segoe Script", "Snell Roundhand", cursive; font-size: 2rem; color: #0f2c5c; background: #fff; border: 1px dashed #c9c4b5; border-radius: 8px; padding: 8px 14px; min-height: 3rem; }
+.k-sig canvas { width: 100%; height: 130px; background: #fff; border: 1px dashed #c9c4b5; border-radius: 8px; touch-action: none; display: block; margin-bottom: 6px; }
+@media (max-width: 900px) { .k-editor { grid-template-columns: 1fr; } .k-preview { position: static; } .k-paper { padding: 22px 18px; } }

@@ -1,16 +1,15 @@
 import type { Runtime } from '../app';
-import { BRAND, ECONOMICS } from '../config';
 import { buildDossier, escHtml } from '../followup/dossier';
 import { type Lead, getLead, updateLead } from '../funnel/leads';
-import { emailConfigured, sendViaResend, unsubscribeSig } from '../integrations/email';
+import { emailConfigured, sendViaResend } from '../integrations/email';
 import { notify } from '../integrations/notify';
-import { renderEmail } from '../integrations/templates';
 import { newId } from '../lib/ids';
 
 /**
- * Engagement letters: auto-quoted from what the lead told us, sent from Josh's address for e-signature,
- * signed on /sign/<token> with a full audit trail (who, when, from where, and a hash of the exact
- * document they saw). The letter text is a starting point: have a lawyer review it before first use.
+ * Advisory agreements: a one-page contract, auto-quoted from what the lead told us, signed by us first
+ * (countersignature from Funnel HQ), then emailed from Josh's address for the client's e-signature on
+ * /sign/<token>. Every signature is recorded with time, IP and a SHA-256 fingerprint of the exact terms.
+ * The wording is a plain-English starting point: have your attorney review it before first use.
  */
 
 export interface Contract {
@@ -22,91 +21,129 @@ export interface Contract {
   reminders: number; last_reminder_at: number | null;
   signer_name: string | null; signer_title: string | null; signature: string | null; signature_kind: string | null;
   signer_ip: string | null; signer_ua: string | null; signer_country: string | null;
+  is_test: number; our_signer: string | null; our_signature: string | null; our_signature_kind: string | null; our_signed_at: number | null; our_signer_ip: string | null;
 }
 
 const DAY = 86_400_000;
 /** Signing links stop working after this long; send a fresh one if it lapses. */
 export const CONTRACT_TTL_DAYS = 30;
+const PNG = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
+
+// ───────────── Who we are ─────────────
+
+export function company(rt: Runtime) {
+  const s = rt.settings;
+  return {
+    name: s.CONTRACT_COMPANY || 'G&L M&A Advisory LLC',
+    entity: s.CONTRACT_ENTITY || 'a Wyoming limited liability company',
+    // The postal address often starts with the brand name; the agreement already names the company.
+    address: (s.CONTRACT_ADDRESS || s.BUSINESS_ADDRESS || '').replace(/^\s*G&L[^,]*,\s*/i, ''),
+    signer: s.CONTRACT_SIGNER || 'Josh Li, Co-Founder',
+    law: s.CONTRACT_LAW || 'Wyoming',
+    venue: s.CONTRACT_VENUE || 'Sheridan County, Wyoming',
+    currency: (s.CONTRACT_CURRENCY || 'USD').toUpperCase(),
+    from: s.CONTRACT_FROM || s.EMAIL_FROM,
+  };
+}
 
 // ───────────── Auto-quote ─────────────
 
-/** Retainer by the size of the business. Most land at $20k–$50k; larger groups scale up. Edit freely per letter. */
+/** Fee by the size of the business. Most land at $20k–$50k; larger groups scale up. Edit freely per agreement. */
 const FEE_BY_REVENUE: Record<string, number> = {
   lt1m: 20_000, '1_3m': 20_000, '3_10m': 25_000, gt10m: 35_000, '10_25m': 35_000, '25_50m': 50_000, '50_100m': 75_000, gt100m: 100_000,
 };
 const FEE_BY_PROFIT: Record<string, number> = { p3_10m: 50_000, pgt10m: 75_000 };
 
-export function autoQuote(lead: Lead) {
-  const d = buildDossier(lead);
-  const byRev = d.revenue ? FEE_BY_REVENUE[d.revenue] : undefined;
-  const byProfit = d.profit ? FEE_BY_PROFIT[d.profit] : undefined;
+export const DEFAULT_SCOPE = [
+  'Acquisition strategy (what to buy, what size and how it fits your business)',
+  'Finding targets, including off-market owners',
+  'Reviewing and modelling shortlisted targets',
+  'Structuring the deal (commercial debt, seller finance and seller rollover) and introducing lenders',
+  'Support through the letter of intent and due diligence',
+].join('\n');
+
+export function autoQuote(rt: Runtime, lead: Lead | null) {
+  const d = lead ? buildDossier(lead) : null;
+  const byRev = d?.revenue ? FEE_BY_REVENUE[d.revenue] : undefined;
+  const byProfit = d?.profit ? FEE_BY_PROFIT[d.profit] : undefined;
   const fee = Math.max(byRev ?? 20_000, byProfit ?? 0);
-  const basis = [
-    d.revenueLabel ? `revenue ${d.revenueLabel}` : 'revenue unknown',
-    d.profitLabel ? `EBITDA ${d.profitLabel}` : null,
-  ].filter(Boolean).join(', ');
+  const basis = d ? [d.revenueLabel ? `revenue ${d.revenueLabel}` : 'revenue unknown', d.profitLabel ? `EBITDA ${d.profitLabel}` : null].filter(Boolean).join(', ') : 'no application on file';
   return {
     fee,
-    currency: ECONOMICS.currency,
+    currency: company(rt).currency,
     basis: `Suggested from ${basis}. Typical engagements are $20k–$50k; larger groups scale up.`,
-    payment_terms: 'Payable in full within 7 days of signing.',
+    payment_terms: 'Due in full on signing.',
     success_fee: '',
     scope: DEFAULT_SCOPE,
-    term_text: 'This engagement runs for 6 months from the date it is signed, and can be extended in writing.',
-    client_name: [lead.first_name, lead.last_name].filter(Boolean).join(' ') || null,
-    client_email: lead.email,
+    term_text: '6 months from the date both parties sign',
+    title: 'Advisory Agreement',
+    client_name: lead ? [lead.first_name, lead.last_name].filter(Boolean).join(' ') || null : null,
+    client_email: lead?.email ?? null,
     // Their application describes the business, not its legal name, so this starts blank.
     client_company: null,
   };
 }
 
-export const DEFAULT_SCOPE = [
-  'Acquisition strategy: the kind of business to buy, size, location and fit with your existing business.',
-  'Target identification and outreach support, including off-market owners.',
-  'Financial review and modelling of shortlisted targets, including debt service coverage.',
-  'Deal structuring: commercial debt, seller finance and seller rollover, and introductions to lenders.',
-  'Negotiation support through the letter of intent, and coordination of due diligence with your lawyers and accountants.',
-].join('\n');
+// ───────────── The agreement ─────────────
 
-// ───────────── The letter ─────────────
+const SYMBOL: Record<string, string> = { USD: '$', AUD: 'A$', NZD: 'NZ$', CAD: 'C$', SGD: 'S$', GBP: '£', EUR: '€' };
+export const money = (n: number, cur: string) => `${SYMBOL[cur] ?? `${cur} `}${Math.round(n).toLocaleString('en-US')}${cur === 'USD' ? ' USD' : ''}`;
+const list = (s: string | null | undefined) => (s ?? '').split('\n').map((x) => x.replace(/^[-•*]\s*/, '').replace(/[.;]\s*$/, '').trim()).filter(Boolean);
+const clause = (n: number, title: string, body: string) => `<p class="cl"><strong>${n}. ${escHtml(title)}.</strong> ${body}</p>`;
 
-const money = (n: number, cur: string) => `${cur === 'AUD' ? 'A$' : cur === 'USD' ? 'US$' : `${cur} `}${Math.round(n).toLocaleString('en-AU')}`;
-const paras = (s: string | null | undefined) => (s ?? '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${escHtml(p)}</p>`).join('');
-const bullets = (s: string | null | undefined) => {
-  const items = (s ?? '').split('\n').map((x) => x.replace(/^[-•*]\s*/, '').trim()).filter(Boolean);
-  return items.length ? `<ul>${items.map((x) => `<li>${escHtml(x)}</li>`).join('')}</ul>` : '';
-};
+export type Terms = Pick<Contract, 'title' | 'client_name' | 'client_email' | 'client_company' | 'fee' | 'currency' | 'payment_terms' | 'success_fee' | 'scope' | 'term_text'>;
 
-/** The engagement letter as HTML. Everything that came from a person is escaped. */
-export function letterHtml(rt: Runtime, k: Pick<Contract, 'title' | 'client_name' | 'client_email' | 'client_company' | 'fee' | 'currency' | 'payment_terms' | 'success_fee' | 'scope' | 'term_text'>, date = Date.now()) {
-  const s = rt.settings;
-  const company = s.CONTRACT_COMPANY || s.SITE_NAME || BRAND.name;
-  const signer = s.CONTRACT_SIGNER || 'Josh Li, Director';
-  const law = s.CONTRACT_LAW || 'New South Wales, Australia';
-  const client = k.client_company ? `${k.client_name ?? ''}${k.client_name ? ', on behalf of ' : ''}${k.client_company}` : (k.client_name ?? k.client_email ?? 'the Client');
-  const dated = new Date(date).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: s.SALES_TIMEZONE || 'Australia/Sydney' });
-  const n = (() => { let i = 0; return () => ++i; })();
-  return [
-    `<h1>${escHtml(k.title)}</h1>`,
-    `<p class="meta">Dated ${escHtml(dated)}</p>`,
-    `<p><strong>Between</strong> ${escHtml(company)}${s.CONTRACT_ABN ? ` (ABN ${escHtml(s.CONTRACT_ABN)})` : ''} (“we”, “us”)<br><strong>and</strong> ${escHtml(client)}${k.client_email ? ` (${escHtml(k.client_email)})` : ''} (“you”).</p>`,
-    `<h2>${n()}. What we’ll do</h2><p>We will act as your acquisition adviser and provide the following services:</p>${bullets(k.scope)}`,
-    `<p>We are not your lawyers, accountants or financial planners, and nothing we provide is legal, tax or financial product advice. You will obtain your own independent legal, tax and accounting advice before entering into any transaction.</p>`,
-    `<h2>${n()}. Fees</h2><p>Our advisory fee is <strong>${escHtml(money(k.fee, k.currency))}</strong>${k.currency === 'AUD' ? ' plus GST where applicable' : ''}.</p>`,
-    k.payment_terms ? `<p>${escHtml(k.payment_terms)}</p>` : '',
-    k.success_fee ? `<p><strong>Success fee:</strong> ${escHtml(k.success_fee)}</p>` : '',
-    `<p>Third-party costs (for example lender, legal, valuation or due-diligence fees) are not included and are paid by you directly, with your approval.</p>`,
-    `<h2>${n()}. Term</h2>${paras(k.term_text)}`,
-    `<p>Either of us can end this engagement by written notice. Fees for work already performed remain payable, and any fee already paid is not refundable unless we agree otherwise in writing.</p>`,
-    `<h2>${n()}. No guarantee</h2><p>Acquisitions depend on sellers, lenders and market conditions outside our control. We will work diligently, but we do not guarantee that you will complete an acquisition, obtain finance, or achieve any particular price, structure, return or timeline. Any figures we share are estimates for discussion.</p>`,
-    `<h2>${n()}. Your decisions</h2><p>You decide whether to proceed with any target, offer or finance, and you are responsible for the information you give us being accurate and complete.</p>`,
-    `<h2>${n()}. Confidentiality</h2><p>Each of us will keep the other’s confidential information confidential and use it only for this engagement, except where disclosure is required by law or made to professional advisers bound by confidentiality.</p>`,
-    `<h2>${n()}. Liability</h2><p>To the extent permitted by law, our total liability under this engagement is limited to the fees you have paid us, and neither of us is liable for indirect or consequential loss. Nothing in this letter excludes rights you have under the Australian Consumer Law that cannot be excluded.</p>`,
-    s.CONTRACT_EXTRA_TERMS ? `<h2>${n()}. Further terms</h2>${paras(s.CONTRACT_EXTRA_TERMS)}` : '',
-    `<h2>${n()}. General</h2><p>This letter is the whole agreement between us about this engagement. It is governed by the laws of ${escHtml(law)}. You agree that it can be signed electronically, and that an electronic signature has the same effect as a handwritten one.</p>`,
-    `<div class="parties"><div><p class="lbl">For ${escHtml(company)}</p><p class="sig typed">${escHtml(signer.split(',')[0])}</p><p>${escHtml(signer)}</p></div><div data-client-sig><p class="lbl">You</p><p class="sig pending">Awaiting signature</p><p>${escHtml(k.client_name ?? '')}</p></div></div>`,
-  ].join('');
+/**
+ * The terms as HTML (everything a person typed is escaped). Signature blocks are drawn separately
+ * (signatureBlocks), so the fingerprint covers exactly the words both sides agree to.
+ */
+export function termsHtml(rt: Runtime, k: Terms, date = Date.now()) {
+  const co = company(rt);
+  const client = [k.client_name, k.client_company ? `${k.client_name ? 'for ' : ''}${k.client_company}` : null].filter(Boolean).join(', ') || k.client_email || 'the Client';
+  const dated = new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Denver' });
+  const scope = list(k.scope);
+  const term = (k.term_text || '6 months from the date both parties sign').replace(/^(this agreement )?runs for\s*/i, '').replace(/\.$/, '');
+  let n = 0;
+  const out = [
+    `<h1>${escHtml(k.title || 'Advisory Agreement')}</h1>`,
+    `<p class="meta">${escHtml(dated)}</p>`,
+    `<p class="parties-line">Between <strong>${escHtml(co.name)}</strong>, ${escHtml(co.entity)}${co.address ? `, ${escHtml(co.address)}` : ''} (“<strong>G&amp;L</strong>”, “we”), and <strong>${escHtml(client)}</strong>${k.client_email ? ` (${escHtml(k.client_email)})` : ''} (“<strong>you</strong>”).</p>`,
+    clause(++n, 'What we do', `We advise you on buying a business: ${scope.length ? scope.map((x) => escHtml(/^[A-Z][a-z]/.test(x) ? x[0].toLowerCase() + x.slice(1) : x)).join('; ') : 'acquisition strategy, finding targets, deal structuring and negotiation support'}.`),
+    clause(++n, 'Fee', `Our fee is <strong>${escHtml(money(k.fee, k.currency))}</strong>, ${escHtml((k.payment_terms || 'Due in full on signing.').replace(/^./, (ch) => ch.toLowerCase()).replace(/\.?$/, '.'))}${k.success_fee ? ` <strong>Success fee:</strong> ${escHtml(k.success_fee.replace(/\.?$/, '.'))}` : ''} The fee pays for our time and expertise, is earned when paid and is <strong>non-refundable</strong>, whether or not you complete a deal. Third-party costs (lenders, attorneys, valuers, due diligence) are yours. If you have a billing concern, raise it with us first rather than disputing or charging back a payment.`),
+    clause(++n, 'What we are not', 'We are business advisers. We are not your attorney, accountant, lender, investment adviser or broker-dealer. We don’t hold your money, sell securities, or give legal, tax or investment advice. Get your own professional advice before you sign any deal.'),
+    clause(++n, 'No guarantee', 'Deals depend on sellers, lenders and markets we don’t control. We don’t promise that you will buy a business, obtain financing, or achieve any price, return or timeline. Any figures we share are estimates for discussion.'),
+    clause(++n, 'Your decisions', 'You decide whether to make an offer, borrow or close, and you’re responsible for those decisions and for giving us accurate information.'),
+    clause(++n, 'Confidentiality and our materials', 'Each of us keeps the other’s confidential information private, except where the law requires otherwise or when shared with professional advisers who keep it confidential. Our models, templates and methods remain ours and are for your own use only.'),
+  ];
+  if (k.success_fee) out.push(clause(++n, 'Introductions', 'If, within 12 months after this agreement ends, you buy a business we introduced to you, the success fee still applies.'));
+  out.push(
+    clause(++n, 'Liability', 'Our total liability under this agreement is limited to the fees you paid us in the 12 months before the claim. Neither of us is liable for indirect or consequential losses or lost profits. You will cover us against third-party claims arising from your transactions or your breach of this agreement, except to the extent caused by our gross negligence or willful misconduct.'),
+    clause(++n, 'Term and ending', `This agreement runs for ${escHtml(term)}. Either of us may end it with 7 days’ written notice (email is fine). Fees paid or already due stay payable, and sections 2 to ${n + 2} survive.`),
+    clause(++n, 'Disputes', `${escHtml(co.law)} law governs this agreement. We’ll first try in good faith for 30 days to resolve any dispute. After that, the state and federal courts in ${escHtml(co.venue)} have exclusive jurisdiction, the winning party recovers reasonable attorneys’ fees, and <strong>both parties waive a jury trial</strong>.`),
+    clause(++n, 'General', 'This is the whole agreement on this subject. Changes must be in writing (email is fine). We are independent contractors. Neither of us may assign this agreement without the other’s consent, except that we may assign it to an affiliate or successor. Electronic signatures are valid and binding under the federal E-SIGN Act and the Wyoming Uniform Electronic Transactions Act.'),
+  );
+  const extra = rt.settings.CONTRACT_EXTRA_TERMS?.trim();
+  if (extra) out.push(clause(++n, 'Additional terms', extra.split(/\n\s*\n/).map((p) => escHtml(p.trim())).join(' ')));
+  return out.join('');
 }
+
+/** Both signature blocks: ours (signed before sending) and theirs (once signed). */
+export function signatureBlocks(rt: Runtime, k: Partial<Contract>) {
+  const co = company(rt);
+  const mark = (sig: string | null | undefined, kind: string | null | undefined, name: string | null | undefined) =>
+    sig && kind === 'drawn' && PNG.test(sig)
+      ? `<img class="sig-img" alt="Signature" src="${sig}">`
+      : sig ? `<p class="sig">${escHtml(name ?? sig)}</p>` : '<p class="sig pending">Awaiting signature</p>';
+  const date = (t: number | null | undefined) => (t ? `<p class="sig-date">Signed ${escHtml(new Date(t).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Denver' }))}</p>` : '');
+  const ours = k.our_signer ?? co.signer;
+  return `<div class="parties">
+    <div><p class="lbl">${escHtml(co.name)}</p>${mark(k.our_signature, k.our_signature_kind, ours.split(',')[0])}<p class="who">${escHtml(ours)}</p>${date(k.our_signed_at)}</div>
+    <div><p class="lbl">You</p>${mark(k.signature, k.signature_kind, k.signer_name)}<p class="who">${escHtml([k.signer_name ?? k.client_name, k.signer_title ?? (k.signer_name ? null : k.client_company)].filter(Boolean).join(', '))}</p>${date(k.signed_at)}</div>
+  </div>`;
+}
+
+/** The whole document (terms + both signature blocks) for previews, the signing page and the signed copy. */
+export const documentHtml = (rt: Runtime, k: Contract | (Terms & Partial<Contract>)) => (k.body_html ?? termsHtml(rt, k)) + signatureBlocks(rt, k);
 
 export async function sha256(text: string) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -114,98 +151,147 @@ export async function sha256(text: string) {
 }
 
 const token = () => [...crypto.getRandomValues(new Uint8Array(20))].map((b) => b.toString(16).padStart(2, '0')).join('');
-
 export const signUrl = (rt: Runtime, t: string) => `${rt.origin}/sign/${t}`;
 
-// ───────────── Admin actions ─────────────
+// ───────────── Drafts ─────────────
 
-export type ContractInput = Partial<Pick<Contract, 'title' | 'client_name' | 'client_email' | 'client_company' | 'fee' | 'currency' | 'payment_terms' | 'success_fee' | 'scope' | 'term_text'>>;
-
+export type ContractInput = Partial<Terms>;
 const clip = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) || null : null);
+const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
 
-export function cleanInput(body: ContractInput, lead: Lead) {
-  const q = autoQuote(lead);
+export function cleanInput(rt: Runtime, body: ContractInput, lead: Lead | null) {
+  const q = autoQuote(rt, lead);
   const fee = Math.round(Number(body.fee));
-  const email = clip(body.client_email, 200) ?? lead.email;
+  const email = clip(body.client_email, 200) ?? q.client_email;
   return {
-    title: clip(body.title, 120) ?? 'Engagement letter: acquisition advisory',
+    title: clip(body.title, 120) ?? q.title,
     client_name: clip(body.client_name, 120) ?? q.client_name,
-    client_email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null,
+    client_email: email && EMAIL.test(email) ? email : null,
     client_company: clip(body.client_company, 160),
     fee: Number.isFinite(fee) && fee > 0 && fee <= 100_000_000 ? fee : q.fee,
-    currency: ['AUD', 'USD', 'NZD', 'GBP', 'EUR', 'CAD', 'SGD'].includes(String(body.currency)) ? String(body.currency) : q.currency,
-    payment_terms: clip(body.payment_terms, 1000) ?? q.payment_terms,
-    success_fee: clip(body.success_fee, 1000),
-    scope: clip(body.scope, 4000) ?? DEFAULT_SCOPE,
-    term_text: clip(body.term_text, 2000) ?? q.term_text,
+    currency: Object.keys(SYMBOL).includes(String(body.currency)) ? String(body.currency) : q.currency,
+    payment_terms: clip(body.payment_terms, 600) ?? q.payment_terms,
+    success_fee: clip(body.success_fee, 600),
+    scope: clip(body.scope, 2000) ?? DEFAULT_SCOPE,
+    term_text: clip(body.term_text, 300) ?? q.term_text,
   };
 }
 
-export async function createContract(rt: Runtime, lead: Lead, body: ContractInput) {
-  const k = cleanInput(body, lead);
+export const getContract = (rt: Runtime, id: string) => rt.env.DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first<Contract>();
+export const contractByToken = (rt: Runtime, t: string) => (/^[0-9a-f]{40}$/.test(t) ? rt.env.DB.prepare('SELECT * FROM contracts WHERE token = ?').bind(t).first<Contract>() : Promise.resolve(null));
+
+export async function createContract(rt: Runtime, lead: Lead | null, body: ContractInput, opts: { test?: boolean } = {}) {
+  const k = cleanInput(rt, body, lead);
   const id = newId('k');
   await rt.env.DB.prepare(
-    `INSERT INTO contracts (id, token, lead_id, status, title, client_name, client_email, client_company, fee, currency, payment_terms, success_fee, scope, term_text, quote_basis, created_at)
-     VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, token(), lead.id, k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, autoQuote(lead).basis, Date.now()).run();
+    `INSERT INTO contracts (id, token, lead_id, status, title, client_name, client_email, client_company, fee, currency, payment_terms, success_fee, scope, term_text, quote_basis, created_at, is_test)
+     VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, token(), lead?.id ?? '', k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, autoQuote(rt, lead).basis, Date.now(), opts.test ? 1 : 0).run();
   return getContract(rt, id);
 }
 
-export async function updateDraft(rt: Runtime, c: Contract, lead: Lead, body: ContractInput) {
+export async function updateDraft(rt: Runtime, c: Contract, body: ContractInput) {
   if (c.status !== 'draft') throw new Error('Only drafts can be edited. Void it and make a new one.');
-  const k = cleanInput({ ...c, ...body }, lead);
+  const lead = c.lead_id ? await getLead(rt.env, c.lead_id) : null;
+  const k = cleanInput(rt, { ...c, ...body }, lead);
   await rt.env.DB.prepare(
     'UPDATE contracts SET title = ?, client_name = ?, client_email = ?, client_company = ?, fee = ?, currency = ?, payment_terms = ?, success_fee = ?, scope = ?, term_text = ? WHERE id = ?',
   ).bind(k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, c.id).run();
   return getContract(rt, c.id);
 }
 
-export const getContract = (rt: Runtime, id: string) => rt.env.DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first<Contract>();
-export const contractByToken = (rt: Runtime, t: string) => (/^[0-9a-f]{40}$/.test(t) ? rt.env.DB.prepare('SELECT * FROM contracts WHERE token = ?').bind(t).first<Contract>() : Promise.resolve(null));
+// ───────────── Email (from Josh) ─────────────
 
-/** Plain email from Josh with the signing link. */
-async function sendContractEmail(rt: Runtime, c: Contract, lead: Lead, kind: 'send' | 'reminder' | 'signed') {
-  const first = (c.client_name ?? lead.first_name ?? '').split(' ')[0] || 'there';
-  const link = signUrl(rt, c.token);
-  const fee = money(c.fee, c.currency);
-  const content =
-    kind === 'signed'
-      ? { subject: `Signed: ${c.title}`, preheader: 'Your copy is attached as a link.', body: [`Hi ${escHtml(first)},`, 'Thanks for signing. Here’s your copy of the engagement letter, with the signatures and the signing record at the bottom. Keep this email for your records.', 'I’ll be in touch within one business day about next steps.'], cta: { label: 'View your signed copy →', href: `${link}/copy` } }
-      : kind === 'reminder'
-        ? { subject: `Re: ${c.title}`, preheader: 'Ready when you are.', body: [`Hi ${escHtml(first)},`, 'Just bringing this back to the top of your inbox. The engagement letter we discussed is ready to sign whenever you are. It takes about two minutes.', 'If anything in it needs changing, reply and tell me what, and I’ll send a revised version.'], cta: { label: 'Review and sign →', href: link } }
-        : { subject: c.title, preheader: `Engagement letter, ${fee}. Takes two minutes to sign.`, body: [`Hi ${escHtml(first)},`, 'As discussed, here’s the engagement letter so we can get started.', `It sets out what we’ll do, the fee (${escHtml(fee)}), the term, and the usual terms. You can read it and sign online in about two minutes, from your phone or computer.`, 'If you’d like anything changed, reply to this email and I’ll send a revised version. I’d also encourage you to have your own adviser look over it.'], cta: { label: 'Review and sign →', href: link } };
-  const unsubscribeUrl = `${rt.origin}/u/${lead.id}/${await unsubscribeSig(rt, lead.id)}`;
-  const { html, text } = renderEmail(content, { openPixel: null, unsubscribeUrl, signature: rt.settings.EMAIL_SIGNATURE || 'Josh', address: rt.settings.BUSINESS_ADDRESS || rt.settings.SITE_NAME || BRAND.name });
-  const to = c.client_email ?? lead.email;
-  if (!to) throw new Error('No email address for this person.');
-  return sendViaResend(rt, { to, subject: content.subject, html, text, unsubscribeUrl, tags: { kind: `contract_${kind}` } });
+/** A clean, branded transactional email that renders in Gmail, Outlook and Apple Mail (tables, inline styles). */
+export function contractEmail(o: { preheader: string; heading: string; paras: string[]; rows?: [string, string][]; button?: { label: string; href: string }; sender: string; company: string; address: string; test?: boolean }) {
+  const e = escHtml;
+  const [senderName, ...role] = o.sender.split(',');
+  const rows = (o.rows ?? []).filter(([, v]) => v).map(([k, v]) => `<tr><td style="padding:10px 0;color:#6b7280;font-size:14px;border-top:1px solid #f0eee8">${e(k)}</td><td style="padding:10px 0;color:#111827;font-size:14px;font-weight:600;text-align:right;border-top:1px solid #f0eee8">${e(v)}</td></tr>`).join('');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${e(o.heading)}</title></head>
+<body style="margin:0;padding:0;background:#f4f2ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${e(o.preheader)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f2ec"><tr><td align="center" style="padding:32px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
+${o.test ? '<tr><td style="padding:0 0 12px;text-align:center"><span style="background:#fef3c7;color:#92400e;border-radius:999px;padding:4px 12px;font-size:12px">Test send: not a real agreement</span></td></tr>' : ''}
+<tr><td style="padding:0 4px 14px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#0f2c5c;font-weight:700">${e(o.company)}</td></tr>
+<tr><td style="background:#ffffff;border:1px solid #e5e2d9;border-radius:14px;padding:34px 32px 30px">
+<h1 style="margin:0 0 18px;font-size:23px;line-height:1.3;color:#0f2c5c;font-weight:700">${e(o.heading)}</h1>
+${o.paras.map((p) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:#374151">${p}</p>`).join('')}
+${rows ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0 24px;border-bottom:1px solid #f0eee8">${rows}</table>` : ''}
+${o.button ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 16px"><tr><td style="background:#0f2c5c;border-radius:9px"><a href="${e(o.button.href)}" style="display:inline-block;padding:15px 30px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none">${e(o.button.label)} &rarr;</a></td></tr></table>
+<p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5">Button not working? Copy this link: <span style="color:#6b7280;word-break:break-all">${e(o.button.href)}</span></p>` : ''}
+<p style="margin:26px 0 0;font-size:15px;line-height:1.5;color:#111827;font-weight:600">${e(senderName.trim())}<br><span style="color:#6b7280;font-size:13px;font-weight:400">${e([role.join(',').trim(), o.company].filter(Boolean).join(', '))}</span></p>
+</td></tr>
+<tr><td style="padding:16px 8px;font-size:12px;color:#9ca3af;text-align:center;line-height:1.6">${e(o.company)}${o.address ? `<br>${e(o.address)}` : ''}</td></tr>
+</table></td></tr></table></body></html>`;
+  const strip = (s: string) => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#39;/g, '’').replace(/&quot;/g, '"');
+  const text = [o.heading, '', ...o.paras.map(strip), '', ...(o.rows ?? []).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`), '', o.button ? `${o.button.label}: ${o.button.href}` : '', '', o.sender, o.company].join('\n');
+  return { html, text };
 }
 
-export async function sendContract(rt: Runtime, c: Contract) {
-  if (c.status !== 'draft') throw new Error('This letter has already been sent.');
+async function sendContractEmail(rt: Runtime, c: Contract, kind: 'send' | 'reminder' | 'signed') {
+  const co = company(rt);
+  const first = (c.client_name ?? '').split(' ')[0] || 'there';
+  const link = signUrl(rt, c.token);
+  const fee = money(c.fee, c.currency);
+  const rows: [string, string][] = [['Agreement', c.title], ['Fee', fee], ['Term', (c.term_text ?? '').replace(/\.$/, '')]];
+  const base = { sender: c.our_signer ?? co.signer, company: co.name, address: co.address, test: Boolean(c.is_test) };
+  const pre = c.is_test ? '[TEST] ' : '';
+  const m =
+    kind === 'signed'
+      ? { subject: `${pre}Signed: ${c.title}`, ...contractEmail({ ...base, preheader: 'Your signed copy, for your records.', heading: 'You’re all signed', paras: [`Hi ${escHtml(first)},`, 'Thank you. The agreement is now signed by both of us. Your copy, with both signatures and the signing record, is at the link below. Keep this email for your records.', 'I’ll be in touch within one business day with next steps.'], rows, button: { label: 'View your signed copy', href: `${link}/copy` } }) }
+      : kind === 'reminder'
+        ? { subject: `${pre}Reminder: ${c.title}`, ...contractEmail({ ...base, preheader: 'Ready when you are. Takes two minutes.', heading: 'Your agreement is ready to sign', paras: [`Hi ${escHtml(first)},`, 'Just bringing this back to the top of your inbox. The agreement is one page and takes about two minutes to sign from your phone or computer.', 'If anything needs changing, reply to this email and I’ll send a revised version.'], rows, button: { label: 'Review and sign', href: link } }) }
+        : { subject: `${pre}${c.title}: ready to sign`, ...contractEmail({ ...base, preheader: `${fee}. One page, about two minutes to sign.`, heading: 'Your agreement is ready to sign', paras: [`Hi ${escHtml(first)},`, 'As discussed, here’s our agreement so we can get started. It’s one page, in plain English, and I’ve already signed it.', 'Have a read and sign online when you’re ready. If you’d like anything changed, just reply to this email.'], rows, button: { label: 'Review and sign', href: link } }) };
+  if (!c.client_email) throw new Error('No email address on this agreement.');
+  return sendViaResend(rt, { to: c.client_email, subject: m.subject, html: m.html, text: m.text, from: co.from, tags: { kind: `contract_${kind}` } });
+}
+
+/** We sign (countersign) and send in one step, so our signature is fixed before the client ever sees it. */
+export async function signAndSend(rt: Runtime, c: Contract, ours: { name?: unknown; signature?: unknown; kind?: unknown }, ip: string | null) {
+  if (c.status !== 'draft') throw new Error('This agreement has already been sent.');
   if (!emailConfigured(rt)) throw new Error('Email isn’t connected yet (Integrations → Email).');
-  const lead = await getLead(rt.env, c.lead_id);
-  if (!lead) throw new Error('Lead not found.');
-  const body = letterHtml(rt, c);
+  if (!c.client_email) throw new Error('Add the client’s email address first.');
+  const name = typeof ours.name === 'string' && ours.name.trim().length >= 2 ? ours.name.trim().replace(/\s+/g, ' ').slice(0, 120) : null;
+  if (!name) throw new Error('Type your name to sign.');
+  const kind = ours.kind === 'drawn' ? 'drawn' : 'typed';
+  const sig = kind === 'drawn' ? (typeof ours.signature === 'string' && PNG.test(ours.signature) && ours.signature.length < 300_000 ? ours.signature : null) : name;
+  if (!sig) throw new Error('Draw your signature, or switch to typing it.');
+  const co = company(rt);
+  const role = co.signer.split(',').slice(1).join(',').trim();
+  const signer = name.includes(',') || !role ? name : `${name}, ${role}`;
+  const body = termsHtml(rt, c);
   const hash = await sha256(body);
   const now = Date.now();
-  await rt.env.DB.prepare("UPDATE contracts SET status = 'sent', body_html = ?, doc_hash = ?, sent_at = ? WHERE id = ? AND status = 'draft'").bind(body, hash, now, c.id).run();
-  const sent = { ...c, status: 'sent' as const, body_html: body, doc_hash: hash, sent_at: now };
+  await rt.env.DB.prepare(
+    `UPDATE contracts SET status = 'sent', body_html = ?, doc_hash = ?, sent_at = ?, our_signer = ?, our_signature = ?, our_signature_kind = ?, our_signed_at = ?, our_signer_ip = ?
+      WHERE id = ? AND status = 'draft'`,
+  ).bind(body, hash, now, signer, sig, kind, now, ip, c.id).run();
+  const sent: Contract = { ...c, status: 'sent', body_html: body, doc_hash: hash, sent_at: now, our_signer: signer, our_signature: sig, our_signature_kind: kind, our_signed_at: now, our_signer_ip: ip };
   try {
-    await sendContractEmail(rt, sent, lead, 'send');
+    await sendContractEmail(rt, sent, 'send');
   } catch (e) {
-    await rt.env.DB.prepare("UPDATE contracts SET status = 'draft', body_html = NULL, doc_hash = NULL, sent_at = NULL WHERE id = ?").bind(c.id).run();
+    await rt.env.DB.prepare("UPDATE contracts SET status = 'draft', body_html = NULL, doc_hash = NULL, sent_at = NULL, our_signature = NULL, our_signature_kind = NULL, our_signed_at = NULL WHERE id = ?").bind(c.id).run();
     throw e;
   }
   return sent;
 }
 
+/** A full, signable copy sent to any address (yours), marked TEST everywhere and kept out of the numbers. */
+export async function sendTest(rt: Runtime, c: Contract, to: string, ours: { name?: unknown; signature?: unknown; kind?: unknown }, ip: string | null) {
+  if (!EMAIL.test(to)) throw new Error('Enter a valid email address for the test.');
+  const lead = c.lead_id ? await getLead(rt.env, c.lead_id) : null;
+  const copy = await createContract(rt, lead, { ...c, client_email: to }, { test: true });
+  if (!copy) throw new Error('Could not create the test.');
+  return signAndSend(rt, copy, ours, ip);
+}
+
 export async function voidContract(rt: Runtime, c: Contract) {
-  if (c.status === 'signed') throw new Error('A signed letter can’t be voided here.');
+  if (c.status === 'signed') throw new Error('A signed agreement can’t be voided here.');
   await rt.env.DB.prepare("UPDATE contracts SET status = 'void', voided_at = ? WHERE id = ?").bind(Date.now(), c.id).run();
 }
 
-// ───────────── Signing ─────────────
+// ───────────── Client signing ─────────────
 
 export const isExpired = (c: Contract) => Boolean(c.sent_at && Date.now() - c.sent_at > CONTRACT_TTL_DAYS * DAY);
 
@@ -216,19 +302,19 @@ export async function markViewed(rt: Runtime, c: Contract) {
 export interface SignInput { name?: unknown; title?: unknown; signature?: unknown; kind?: unknown; consent?: unknown; hash?: unknown }
 
 export async function signContract(rt: Runtime, c: Contract, input: SignInput, meta: { ip: string | null; ua: string | null; country: string | null }) {
-  if (c.status === 'signed') return { ok: false as const, error: 'This letter has already been signed.' };
-  if (c.status === 'void' || c.status === 'draft' || !c.body_html) return { ok: false as const, error: 'This letter is no longer available. Ask us for a new link.' };
+  if (c.status === 'signed') return { ok: false as const, error: 'This agreement has already been signed.' };
+  if (c.status === 'void' || c.status === 'draft' || !c.body_html) return { ok: false as const, error: 'This agreement is no longer available. Ask us for a new link.' };
   if (isExpired(c)) return { ok: false as const, error: 'This signing link has expired. Reply to the email and we’ll send a fresh one.' };
   const name = typeof input.name === 'string' ? input.name.trim().replace(/\s+/g, ' ').slice(0, 120) : '';
   if (name.length < 2) return { ok: false as const, error: 'Type your full name.' };
   if (input.consent !== true) return { ok: false as const, error: 'Tick the box to agree to sign electronically.' };
-  // They must be signing the exact document they were shown.
-  if (input.hash !== c.doc_hash) return { ok: false as const, error: 'This letter changed while you had it open. Reload the page and review it again.' };
+  // They must be signing the exact terms they were shown.
+  if (input.hash !== c.doc_hash) return { ok: false as const, error: 'This agreement changed while you had it open. Reload the page and review it again.' };
   const kind = input.kind === 'drawn' ? 'drawn' : 'typed';
   let signature = name;
   if (kind === 'drawn') {
     const sig = typeof input.signature === 'string' ? input.signature : '';
-    if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sig) || sig.length > 300_000) return { ok: false as const, error: 'Draw your signature, or switch to typing it.' };
+    if (!PNG.test(sig) || sig.length > 300_000) return { ok: false as const, error: 'Draw your signature, or switch to typing it.' };
     signature = sig;
   }
   const title = typeof input.title === 'string' ? input.title.trim().slice(0, 120) || null : null;
@@ -237,26 +323,24 @@ export async function signContract(rt: Runtime, c: Contract, input: SignInput, m
     `UPDATE contracts SET status = 'signed', signed_at = ?, signer_name = ?, signer_title = ?, signature = ?, signature_kind = ?, signer_ip = ?, signer_ua = ?, signer_country = ?
       WHERE id = ? AND status IN ('sent', 'viewed') AND doc_hash = ?`,
   ).bind(now, name, title, signature, kind, meta.ip, meta.ua?.slice(0, 300) ?? null, meta.country, c.id, c.doc_hash).run();
-  if (!res.meta.changes) return { ok: false as const, error: 'This letter has already been signed.' };
-  const signed = { ...c, status: 'signed' as const, signed_at: now, signer_name: name, signer_title: title, signature, signature_kind: kind };
-  rt.waitUntil(afterSigned(rt, signed));
+  if (!res.meta.changes) return { ok: false as const, error: 'This agreement has already been signed.' };
+  rt.waitUntil(afterSigned(rt, { ...c, status: 'signed', signed_at: now, signer_name: name, signer_title: title, signature, signature_kind: kind }));
   return { ok: true as const };
 }
 
 async function afterSigned(rt: Runtime, c: Contract) {
-  const lead = await getLead(rt.env, c.lead_id);
-  if (!lead) return;
-  await updateLead(rt.env, lead.id, { contract_signed_at: c.signed_at, revenue: lead.revenue || c.fee });
-  await sendContractEmail(rt, c, lead, 'signed').catch((e) => console.error('signed copy email failed', e));
+  await sendContractEmail(rt, c, 'signed').catch((e) => console.error('signed copy email failed', e));
+  const co = company(rt);
+  const label = `${c.is_test ? '[TEST] ' : ''}Signed: ${c.client_name ?? c.client_email} (${money(c.fee, c.currency)})`;
   const internal = rt.settings.CONTRACT_NOTIFY_EMAIL || rt.settings.EMAIL_REPLY_TO;
   if (internal && emailConfigured(rt)) {
-    const { html, text } = renderEmail(
-      { subject: `Signed: ${c.client_name ?? lead.email} (${money(c.fee, c.currency)})`, preheader: 'Engagement letter signed.', body: [`${escHtml(c.signer_name ?? '')} signed “${escHtml(c.title)}” for ${escHtml(money(c.fee, c.currency))}.`], cta: { label: 'Open the signed copy →', href: `${signUrl(rt, c.token)}/copy` } },
-      { openPixel: null, unsubscribeUrl: rt.origin, signature: 'Funnel HQ', address: rt.settings.SITE_NAME || BRAND.name },
-    );
-    await sendViaResend(rt, { to: internal, subject: `Signed: ${c.client_name ?? lead.email} (${money(c.fee, c.currency)})`, html, text, unsubscribeUrl: rt.origin, tags: { kind: 'contract_signed_internal' } }).catch(() => null);
+    const m = contractEmail({ preheader: 'Agreement signed.', heading: 'Agreement signed', paras: [`${escHtml(c.signer_name ?? '')} signed “${escHtml(c.title)}” for ${escHtml(money(c.fee, c.currency))}.`], button: { label: 'Open the signed copy', href: `${signUrl(rt, c.token)}/copy` }, sender: 'Funnel HQ', company: co.name, address: co.address, test: Boolean(c.is_test) });
+    await sendViaResend(rt, { to: internal, subject: label, html: m.html, text: m.text, from: co.from, tags: { kind: 'contract_signed_internal' } }).catch(() => null);
   }
-  await notify(rt, { kind: 'won', title: `Engagement letter signed: ${money(c.fee, c.currency)}`, lead, lines: [c.title] }).catch(() => null);
+  if (c.is_test) return;
+  const lead = c.lead_id ? await getLead(rt.env, c.lead_id) : null;
+  if (lead) await updateLead(rt.env, lead.id, { contract_signed_at: c.signed_at, revenue: lead.revenue || c.fee });
+  await notify(rt, { kind: 'won', title: `Agreement signed: ${money(c.fee, c.currency)}`, lead, lines: [c.client_name ?? c.client_email ?? '', c.title] }).catch(() => null);
 }
 
 /** Cron: a gentle reminder two and five days after sending, if it's still unsigned. */
@@ -264,15 +348,13 @@ export async function processContractReminders(rt: Runtime) {
   if (!emailConfigured(rt)) return null;
   const now = Date.now();
   const { results } = await rt.env.DB.prepare(
-    `SELECT * FROM contracts WHERE status IN ('sent', 'viewed') AND reminders < 2 AND sent_at > ?
+    `SELECT * FROM contracts WHERE status IN ('sent', 'viewed') AND is_test = 0 AND reminders < 2 AND sent_at > ?
        AND ((reminders = 0 AND sent_at < ?) OR (reminders = 1 AND sent_at < ?)) LIMIT 20`,
   ).bind(now - CONTRACT_TTL_DAYS * DAY, now - 2 * DAY, now - 5 * DAY).all<Contract>();
   let sent = 0;
   for (const c of results) {
-    const lead = await getLead(rt.env, c.lead_id);
-    if (!lead || lead.unsubscribed_at) continue;
     await rt.env.DB.prepare('UPDATE contracts SET reminders = reminders + 1, last_reminder_at = ? WHERE id = ?').bind(now, c.id).run();
-    await sendContractEmail(rt, c, lead, 'reminder').then(() => sent++, (e) => console.error('contract reminder failed', e));
+    await sendContractEmail(rt, c, 'reminder').then(() => sent++, (e) => console.error('contract reminder failed', e));
   }
   return { sent };
 }

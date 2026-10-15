@@ -5,7 +5,7 @@ import { escHtml } from '../followup/dossier';
 import { geoFromRequest } from '../lib/geo';
 import { overLimit } from '../lib/ratelimit';
 import { parseUA } from '../lib/ua';
-import { type Contract, contractByToken, isExpired, markViewed, signContract } from '../sales/contracts';
+import { type Contract, company, contractByToken, documentHtml, isExpired, markViewed, signContract } from '../sales/contracts';
 
 /** /sign/<token>: read and e-sign an engagement letter; /sign/<token>/copy: the signed copy with its signing record. */
 export const sign = new Hono<AppEnv>();
@@ -21,18 +21,11 @@ function headers(c: { header: (k: string, v: string) => void }) {
 
 const when = (ms: number | null, tz: string) => (ms ? new Date(ms).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short', timeZone: tz }) + ` (${tz})` : '–');
 
-/** The client's signature block, filled in once signed. */
-function signedBlock(k: Contract) {
-  const mark = k.signature_kind === 'drawn' && k.signature?.startsWith('data:image/png;base64,')
-    ? `<img class="sig-img" alt="Signature of ${escHtml(k.signer_name ?? '')}" src="${k.signature}">`
-    : `<p class="sig typed">${escHtml(k.signer_name ?? '')}</p>`;
-  return `<div><p class="lbl">You</p>${mark}<p>${escHtml([k.signer_name, k.signer_title].filter(Boolean).join(', '))}</p></div>`;
-}
-
 function auditTrail(k: Contract, tz: string) {
   return `<section class="audit"><h2>Signing record</h2><dl>
     <dt>Document</dt><dd>${escHtml(k.title)}</dd>
     <dt>Document fingerprint (SHA-256)</dt><dd class="mono">${escHtml(k.doc_hash ?? '')}</dd>
+    <dt>Signed for us by</dt><dd>${escHtml(k.our_signer ?? '')} on ${escHtml(when(k.our_signed_at, tz))}${k.our_signer_ip ? ` (IP ${escHtml(k.our_signer_ip)})` : ''}</dd>
     <dt>Sent to</dt><dd>${escHtml(k.client_email ?? '')} on ${escHtml(when(k.sent_at, tz))}</dd>
     <dt>First opened</dt><dd>${escHtml(when(k.viewed_at, tz))}</dd>
     <dt>Signed by</dt><dd>${escHtml(k.signer_name ?? '')}${k.signer_title ? `, ${escHtml(k.signer_title)}` : ''} (${k.signature_kind === 'drawn' ? 'drawn signature' : 'typed signature'})</dd>
@@ -53,7 +46,8 @@ sign.get('/:token{[0-9a-f]{40}}', async (c) => {
   if (!parseUA(c.req.header('user-agent')).isBot) await markViewed(rt, k);
   const first = (k.client_name ?? '').trim();
   return c.html(page(k.title, `
-    <article class="letter" data-letter>${k.body_html}</article>
+    ${k.is_test ? '<p class="test-banner">Test agreement: signing it changes nothing.</p>' : ''}
+    <article class="letter" data-letter>${documentHtml(rt, k)}</article>
     <form class="sign-form" data-sign-form data-hash="${escHtml(k.doc_hash ?? '')}" data-token="${escHtml(k.token)}" novalidate>
       <h2>Sign</h2>
       <label>Full name<input class="input" name="name" autocomplete="name" required value="${escHtml(first)}"></label>
@@ -61,9 +55,9 @@ sign.get('/:token{[0-9a-f]{40}}', async (c) => {
       <div class="sig-tabs" role="tablist"><button type="button" class="on" data-mode="typed" role="tab" aria-selected="true">Type</button><button type="button" data-mode="drawn" role="tab" aria-selected="false">Draw</button></div>
       <div class="sig-typed" data-typed><span data-typed-preview>${escHtml(first || 'Your name')}</span></div>
       <div class="sig-draw" data-drawn hidden><canvas width="600" height="180" aria-label="Draw your signature"></canvas><button type="button" class="btn-sm ghost" data-clear>Clear</button></div>
-      <label class="consent"><input type="checkbox" name="consent"> I agree to sign this engagement letter electronically, and that my electronic signature has the same effect as a handwritten one.</label>
+      <label class="consent"><input type="checkbox" name="consent"> I have read this agreement, agree to its terms, and agree to sign it electronically with the same effect as a handwritten signature.</label>
       <p class="err" data-err role="alert"></p>
-      <button class="btn" type="submit">Sign the engagement letter</button>
+      <button class="btn" type="submit">Sign the agreement</button>
       <p class="muted small">We record your name, the time, your IP address and a fingerprint of this exact document with your signature. You’ll get a signed copy by email.</p>
     </form>`));
 });
@@ -86,9 +80,9 @@ sign.get('/:token{[0-9a-f]{40}}/copy', async (c) => {
   const rt = runtimeFrom(c);
   const k = await contractByToken(rt, c.req.param('token'));
   if (!k || k.status !== 'signed' || !k.body_html) return c.redirect(k ? `/sign/${k.token}` : '/', 302);
-  const tz = rt.settings.SALES_TIMEZONE || 'Australia/Sydney';
-  const doc = k.body_html.replace(/<div data-client-sig>[\s\S]*?<\/div><\/div>$/, `${signedBlock(k)}</div>`);
+  const tz = 'America/Denver';
   return c.html(page(`Signed: ${k.title}`, `
-    <p class="signed-banner">Signed ${escHtml(when(k.signed_at, tz))}. <button type="button" class="btn-sm ghost" data-print>Save as PDF / print</button></p>
-    <article class="letter">${doc}</article>${auditTrail(k, tz)}`));
+    <p class="signed-banner">${k.is_test ? 'Test agreement. ' : ''}Signed by both parties, ${escHtml(when(k.signed_at, tz))}. <button type="button" class="btn-sm ghost" data-print>Save as PDF / print</button></p>
+    <article class="letter">${documentHtml(rt, k)}</article>${auditTrail(k, tz)}
+    <p class="muted small" style="text-align:center;margin-top:14px">${escHtml(company(rt).name)}</p>`));
 });

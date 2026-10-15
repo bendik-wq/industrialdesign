@@ -1,3 +1,4 @@
+import type { Env } from '../env';
 import { type Context, Hono } from 'hono';
 import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, runtimeFrom } from '../app';
@@ -42,7 +43,7 @@ import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
 import { LOST_REASONS, OBJECTIONS, PAYMENT_PLANS, TEMPERATURES, type LeadUpdate, applyLeadUpdate, deletePayment, recordPayment } from '../sales/outcomes';
 import { META_API_VERSION, metaUserData } from '../tracking/forward';
 import { geoFromRequest } from '../lib/geo';
-import { type Contract, type ContractInput, autoQuote, cleanInput, createContract, getContract, letterHtml, sendContract, signUrl, updateDraft, voidContract } from '../sales/contracts';
+import { type Contract, type ContractInput, autoQuote, cleanInput, company, createContract, documentHtml, getContract, sendTest, signAndSend, signUrl, updateDraft, voidContract } from '../sales/contracts';
 import { PLACEMENTS, PRESETS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
 
 export const admin = new Hono<AppEnv>();
@@ -719,59 +720,61 @@ admin.get('/integrations', async (c) => {
   });
 });
 
-// ── Contracts (engagement letters for e-signature) ──────────────────
+// ── Contracts (advisory agreements for e-signature) ─────────────────
 const contractView = (rt: ReturnType<typeof runtimeFrom>, k: Contract) => {
-  const { token, signature, body_html, ...rest } = k;
-  return { ...rest, sign_url: k.status === 'draft' || k.status === 'void' ? null : signUrl(rt, token), copy_url: k.status === 'signed' ? `${signUrl(rt, token)}/copy` : null, has_signature: Boolean(signature) };
+  const { token, signature, our_signature, body_html, ...rest } = k;
+  return { ...rest, sign_url: k.status === 'draft' || k.status === 'void' ? null : signUrl(rt, token), copy_url: k.status === 'signed' ? `${signUrl(rt, token)}/copy` : null };
 };
+const leadOrNull = async (env: Env, id: unknown) => (typeof id === 'string' && id ? getLead(env, id) : null);
+const ipOf = (c: { req: { header: (k: string) => string | undefined } }) => c.req.header('cf-connecting-ip') ?? null;
 
 admin.get('/contracts', async (c) => {
   const rt = runtimeFrom(c);
   const lead = c.req.query('lead');
   const { results } = await (lead
     ? c.env.DB.prepare('SELECT * FROM contracts WHERE lead_id = ? ORDER BY created_at DESC').bind(lead)
-    : c.env.DB.prepare(`SELECT k.*, l.first_name, l.last_name, l.email FROM contracts k LEFT JOIN leads l ON l.id = k.lead_id ORDER BY k.created_at DESC LIMIT 300`)
-  ).all<Contract & { first_name?: string; last_name?: string; email?: string }>();
-  return c.json({ contracts: results.map((k) => ({ ...contractView(rt, k), first_name: k.first_name, last_name: k.last_name, email: k.email })), emailReady: emailConfigured(rt) });
+    : c.env.DB.prepare('SELECT * FROM contracts ORDER BY created_at DESC LIMIT 300')
+  ).all<Contract>();
+  const co = company(rt);
+  return c.json({ contracts: results.map((k) => contractView(rt, k)), emailReady: emailConfigured(rt), company: { name: co.name, signer: co.signer, from: co.from, currency: co.currency, law: co.law } });
 });
 
-admin.get('/contracts/quote', async (c) => {
-  const lead = await getLead(c.env, c.req.query('lead') ?? '');
-  if (!lead) return c.json({ error: 'not found' }, 404);
-  return c.json(autoQuote(lead));
-});
+/** Suggested terms for a lead (or blank ones for someone not in the funnel). */
+admin.get('/contracts/quote', async (c) => c.json(autoQuote(runtimeFrom(c), await leadOrNull(c.env, c.req.query('lead')))));
 
-/** Preview the letter as it would be sent (draft fields or an unsaved form). */
+/** The full document as it would look: a draft or unsaved form, or a sent / signed agreement. */
 admin.post('/contracts/preview', async (c) => {
-  const body = await c.req.json<ContractInput & { lead?: string }>().catch(() => ({}) as ContractInput & { lead?: string });
-  const lead = await getLead(c.env, body.lead ?? '');
-  if (!lead) return c.json({ error: 'not found' }, 404);
-  return c.json({ html: letterHtml(runtimeFrom(c), cleanInput(body, lead)) });
+  const rt = runtimeFrom(c);
+  const body = await c.req.json<ContractInput & { lead?: string; id?: string }>().catch(() => ({}) as ContractInput & { lead?: string; id?: string });
+  if (body.id) {
+    const k = await getContract(rt, body.id);
+    return k ? c.json({ html: documentHtml(rt, k) }) : c.json({ error: 'not found' }, 404);
+  }
+  return c.json({ html: documentHtml(rt, cleanInput(rt, body, await leadOrNull(c.env, body.lead))) });
 });
 
 admin.post('/contracts', async (c) => {
+  const rt = runtimeFrom(c);
   const body = await c.req.json<ContractInput & { lead?: string }>().catch(() => ({}) as ContractInput & { lead?: string });
-  const lead = await getLead(c.env, body.lead ?? '');
-  if (!lead) return c.json({ ok: false, error: 'Lead not found.' }, 404);
-  const k = await createContract(runtimeFrom(c), lead, body);
-  return c.json({ ok: true, contract: k && contractView(runtimeFrom(c), k) });
+  const lead = await leadOrNull(c.env, body.lead);
+  if (body.lead && !lead) return c.json({ ok: false, error: 'Lead not found.' }, 404);
+  if (!lead && !(typeof body.client_email === 'string' && body.client_email.includes('@'))) return c.json({ ok: false, error: 'Pick a lead, or enter the client’s name and email.' }, 400);
+  const k = await createContract(rt, lead, body);
+  return c.json({ ok: true, contract: k && contractView(rt, k) });
 });
 
-admin.post('/contracts/:id/:action{update|send|void}', async (c) => {
+admin.post('/contracts/:id/:action{update|send|test|void}', async (c) => {
   const rt = runtimeFrom(c);
   const k = await getContract(rt, c.req.param('id'));
   if (!k) return c.json({ ok: false, error: 'Not found.' }, 404);
+  const body = await c.req.json<ContractInput & { name?: string; signature?: string; kind?: string; to?: string }>().catch(() => ({}) as ContractInput & { name?: string; signature?: string; kind?: string; to?: string });
   try {
-    const action = c.req.param('action');
-    if (action === 'update') {
-      const lead = await getLead(c.env, k.lead_id);
-      if (!lead) return c.json({ ok: false, error: 'Lead not found.' }, 404);
-      const next = await updateDraft(rt, k, lead, await c.req.json<ContractInput>().catch(() => ({})));
-      return c.json({ ok: true, contract: next && contractView(rt, next) });
+    switch (c.req.param('action')) {
+      case 'update': { const next = await updateDraft(rt, k, body); return c.json({ ok: true, contract: next && contractView(rt, next) }); }
+      case 'send': return c.json({ ok: true, contract: contractView(rt, await signAndSend(rt, k, body, ipOf(c))) });
+      case 'test': return c.json({ ok: true, contract: contractView(rt, await sendTest(rt, k, String(body.to ?? '').trim(), body, ipOf(c))) });
+      default: await voidContract(rt, k); return c.json({ ok: true });
     }
-    if (action === 'send') return c.json({ ok: true, contract: contractView(rt, await sendContract(rt, k)) });
-    await voidContract(rt, k);
-    return c.json({ ok: true });
   } catch (e) {
     return c.json({ ok: false, error: e instanceof Error ? e.message : 'Failed' }, 400);
   }

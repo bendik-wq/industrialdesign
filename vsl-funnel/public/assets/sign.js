@@ -50,10 +50,10 @@
     }).then(function (r) { return r.json(); }).then(function (res) {
       if (res.ok) { location.href = location.pathname + '/copy'; return; }
       err.textContent = res.error || 'Something went wrong. Try again.';
-      btn.disabled = false; btn.textContent = 'Sign the engagement letter';
+      btn.disabled = false; btn.textContent = 'Sign the agreement';
     }, function () {
       err.textContent = 'Couldn’t reach the server. Check your connection and try again.';
-      btn.disabled = false; btn.textContent = 'Sign the engagement letter';
+      btn.disabled = false; btn.textContent = 'Sign the agreement';
     });
   });
 })();

@@ -284,7 +284,7 @@
     editor: { group: 'Follow-up', title: 'Email editor', sub: 'Read and edit every email the funnel sends.', more: 'Pick an email on the left, change the wording on the right and watch the preview update. Merge tags like {first_name} fill in for each person. Saving replaces the built-in wording for every future send; “Reset to default” brings the original back. Emails written from each lead’s own application answers are shown but can’t be edited here.', render: renderEditor, noFilters: true },
     search: { group: 'Traffic', title: 'Search & AI', sub: 'Who finds you through Google, Bing, ChatGPT, Claude, Perplexity, Gemini and Grok, and which AI crawlers are reading your pages.', more: 'The landing pages, 20 industry pages and the guides are open to search engines and AI assistants; the application, booking and personal pages never are. Crawler visits show the AI companies reading your pages (search bots and live answers lead to citations; training bots feed future models). Visitors and leads from AI Search are people who clicked through from an AI answer. New pages usually take days to weeks to show up in search.', render: renderSearch, filters: ['range'] },
     content: { group: 'Traffic', title: 'Content', sub: 'Josh’s YouTube and Instagram: what travels, what brings leads, and what to make next.', more: 'Videos refresh every 6 hours (or press Refresh). Views come from YouTube and Instagram; leads, calls and revenue per video come from the tracked links in Links & videos, so add a tracked link to each video’s description to see which ones actually sell.', render: renderContent, noFilters: true },
-    contracts: { group: 'Sell', title: 'Contracts', sub: 'Engagement letters sent for e-signature: sent, opened, signed.', more: 'Every engagement letter: who it went to, the fee, whether they opened it and when they signed. Prepare a new one from a lead (open the lead → Contract).', render: renderContracts, noFilters: true },
+    contracts: { group: 'Contracts', title: 'Agreements', sub: 'One-page advisory agreements: draft, preview, sign, send from Josh, and track their signature.', more: 'Make a new agreement for any lead (fee auto-quoted from their application) or anyone else, preview the exact document, sign it for the company, and it’s emailed from Josh for their e-signature. Every signature is recorded with time, IP and a fingerprint of the exact terms. Send yourself a test first.', render: renderContracts, noFilters: true },
     reactivation: { group: 'Follow-up', title: 'Reactivation', sub: 'Bring back people already in the database: past calls, no-shows, unfinished applications.', more: 'Pick the groups, untick anyone who shouldn’t get it (existing clients, friends), preview the 6 emails and launch. Sending is spread out over days to protect your email reputation. It stops for anyone who books or applies again, unsubscribes or becomes a client.', render: renderReactivation, noFilters: true },
     sms: { group: 'Follow-up', title: 'SMS & WhatsApp', sub: 'Text and WhatsApp sequences: wording, timing and links.', more: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
     voice: { group: 'Follow-up', title: 'AI calls', sub: 'Outbound confirmations and inbound calls: transcripts, recordings, outcomes.', more: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice, filters: ['range'] },
@@ -1072,7 +1072,7 @@
         kv('Route', l.route) + kv('Last touch', [where(l.channel, l.utm_source, null, l.utm_medium), l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [where(l.ft_channel, l.ft_source), l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
         kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline version', l.variant) + kv('Ref code', l.ref_code) + '</dl></details></div></div>' +
         dealCard(l) +
-        '<div class="card" style="margin-top:14px" id="ld-contract" data-contracts><h2>Engagement letter</h2><p class="muted">Loading…</p></div>' +
+        '<div class="card" style="margin-top:14px" id="ld-contract" data-contracts><h2>Agreement</h2><p class="muted">Loading…</p></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card" id="ld-app"><h2>Application</h2><dl class="kv" style="margin-top:10px">' + d.answers.map(function (a) { return kv(a.question, a.answer); }).join('') + '</dl>' +
         (sc.breakdown ? '<p class="sub" style="margin-top:12px">Scoring: ' + esc(sc.breakdown.map(function (b) { return b.question + ' +' + b.points; }).join(', ')) + (sc.caps && sc.caps.length ? ' · capped: ' + esc(sc.caps.join(', ')) : '') + '</p>' : '') + '</div>' +
         '<div class="card" id="ld-video"><h2>Video</h2>' + (d.vsl.length ? d.vsl.map(function (v) {
@@ -1641,95 +1641,196 @@
     });
   }
 
-  // ───────────── Contracts (engagement letters) ─────────────
+  // ───────────── Contracts (advisory agreements) ─────────────
   var K_STATUS = { draft: 'Draft', sent: 'Sent', viewed: 'Opened', signed: 'Signed', void: 'Void' };
-  function kMoney(k) { return (k.currency === 'AUD' ? 'A$' : k.currency === 'USD' ? 'US$' : k.currency + ' ') + Number(k.fee || 0).toLocaleString('en-AU'); }
-  function kStatus(k) { return '<span class="pill k-' + esc(k.status) + '">' + esc(K_STATUS[k.status] || k.status) + '</span>'; }
-  function kWhen(k) { return k.signed_at ? 'signed ' + when(k.signed_at) : k.viewed_at ? 'opened ' + when(k.viewed_at) : k.sent_at ? 'sent ' + when(k.sent_at) : 'created ' + when(k.created_at); }
+  var K_CUR = ['USD', 'AUD', 'CAD', 'NZD', 'GBP', 'EUR', 'SGD'];
+  var kCo = null;
+  function kMoney(k) { var sym = { USD: '$', AUD: 'A$', CAD: 'C$', NZD: 'NZ$', SGD: 'S$', GBP: '£', EUR: '€' }[k.currency] || (k.currency + ' '); return sym + Number(k.fee || 0).toLocaleString('en-US'); }
+  function kStatus(k) { return (k.is_test ? '<span class="pill k-test">Test</span> ' : '') + '<span class="pill k-' + esc(k.status) + '">' + esc(K_STATUS[k.status] || k.status) + '</span>'; }
+  function kWhen(k) { return k.signed_at ? 'signed ' + when(k.signed_at) : k.viewed_at ? 'opened ' + when(k.viewed_at) : k.sent_at ? 'sent ' + when(k.sent_at) : 'drafted ' + when(k.created_at); }
+  function kWho(k) { return k.client_name || k.client_email || 'No client yet'; }
 
+  /** A modal above everything (works on top of the lead drawer). */
+  function kModal(title, wide) {
+    var bg = document.createElement('div'); bg.className = 'k-modal-bg';
+    var m = document.createElement('div'); m.className = 'k-modal' + (wide ? ' wide' : ''); m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', title);
+    m.innerHTML = '<div class="k-modal-head"><h2>' + esc(title) + '</h2><button class="close" type="button" aria-label="Close">Close ✕</button></div><div class="k-modal-body"></div>';
+    document.body.appendChild(bg); document.body.appendChild(m);
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    function close() { bg.remove(); m.remove(); document.removeEventListener('keydown', onKey); if (m.onclosed) m.onclosed(); }
+    bg.onclick = close; m.querySelector('.close').onclick = close; document.addEventListener('keydown', onKey);
+    m.close = close; m.body = m.querySelector('.k-modal-body');
+    return m;
+  }
+
+  /** Type-or-draw signature pad; returns { el, value() }. */
+  function sigPad(name) {
+    var wrap = document.createElement('div'); wrap.className = 'k-sig';
+    wrap.innerHTML = '<label>Your name<input class="input" data-sn value="' + esc(name) + '"></label>' +
+      '<div class="sig-tabs"><button type="button" class="on" data-sm="typed">Type</button><button type="button" data-sm="drawn">Draw</button></div>' +
+      '<div class="k-sig-typed" data-st>' + esc(name) + '</div><div data-sd hidden><canvas width="560" height="150"></canvas><button type="button" class="btn-sm ghost" data-sc>Clear</button></div>';
+    var mode = 'typed', drawn = false, cv = wrap.querySelector('canvas'), cx = cv.getContext('2d'), down = false;
+    cx.lineWidth = 2.5; cx.lineCap = 'round'; cx.strokeStyle = '#0f2c5c';
+    wrap.querySelector('[data-sn]').oninput = function (e) { wrap.querySelector('[data-st]').textContent = e.target.value || ' '; };
+    wrap.querySelectorAll('[data-sm]').forEach(function (b) { b.onclick = function () { mode = b.getAttribute('data-sm'); wrap.querySelectorAll('[data-sm]').forEach(function (x) { x.classList.toggle('on', x === b); }); wrap.querySelector('[data-st]').hidden = mode !== 'typed'; wrap.querySelector('[data-sd]').hidden = mode !== 'drawn'; }; });
+    function pos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; }
+    cv.addEventListener('pointerdown', function (e) { down = true; cv.setPointerCapture(e.pointerId); var p = pos(e); cx.beginPath(); cx.moveTo(p.x, p.y); e.preventDefault(); });
+    cv.addEventListener('pointermove', function (e) { if (!down) return; var p = pos(e); cx.lineTo(p.x, p.y); cx.stroke(); drawn = true; });
+    ['pointerup', 'pointercancel'].forEach(function (t) { cv.addEventListener(t, function () { down = false; }); });
+    wrap.querySelector('[data-sc]').onclick = function () { cx.clearRect(0, 0, cv.width, cv.height); drawn = false; };
+    return { el: wrap, value: function () { var nm = wrap.querySelector('[data-sn]').value.trim(); return { name: nm, kind: mode, signature: mode === 'drawn' && drawn ? cv.toDataURL('image/png') : null, ok: nm.length >= 2 && (mode === 'typed' || drawn) }; } };
+  }
+
+  function loadCompany() { return kCo ? Promise.resolve(kCo) : api('contracts').then(function (d) { kCo = d.company || {}; kCo.emailReady = d.emailReady; return kCo; }); }
+
+  /** New agreement / edit draft: form on the left, live preview of the actual document on the right. */
+  function openContractEditor(k, lead, done) {
+    loadCompany().then(function (co) {
+      var m = kModal(k ? 'Edit agreement' : 'New agreement', true);
+      var state2 = { lead: k ? k.lead_id : (lead ? lead.id : '') };
+      function input(name, label, val, type, extra) { return '<label>' + esc(label) + '<input class="input" data-kf="' + name + '" type="' + (type || 'text') + '" value="' + esc(val == null ? '' : val) + '"' + (extra || '') + '></label>'; }
+      function area(name, label, val, rows) { return '<label class="full">' + esc(label) + '<textarea class="notes" data-kf="' + name + '" rows="' + (rows || 2) + '">' + esc(val == null ? '' : val) + '</textarea></label>'; }
+      function draw(q) {
+        var v = k || q;
+        m.body.innerHTML = '<div class="k-editor"><div class="k-form">' +
+          (k || lead ? '' : '<div class="k-pick"><label>Client<input class="input" data-kpick placeholder="Search leads by name or email, or just type a new client below"></label><div class="k-results" data-kres></div></div>') +
+          (state2.lead ? '<p class="sub" data-kbasis>' + esc(q.basis || '') + '</p>' : '') +
+          '<div class="pipe-grid">' +
+          input('client_name', 'Client name', v.client_name) + input('client_email', 'Client email', v.client_email, 'email') +
+          input('client_company', 'Their company (optional)', v.client_company) + input('title', 'Title', v.title || 'Advisory Agreement') +
+          input('fee', 'Fee', v.fee, 'number', ' min="0" step="500"') +
+          '<label>Currency<select class="input" data-kf="currency">' + K_CUR.map(function (c) { return '<option' + (c === (v.currency || co.currency) ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>' +
+          area('payment_terms', 'When it’s paid', v.payment_terms) + area('success_fee', 'Success fee (optional; adds a 12-month introductions clause)', v.success_fee) +
+          area('scope', 'What we do (one per line)', v.scope, 5) + input('term_text', 'Term', v.term_text) +
+          '</div><div class="row" style="gap:8px;margin-top:12px"><button class="btn-sm" type="button" data-ksave>' + (k ? 'Save changes' : 'Save draft') + '</button><button class="btn-sm ghost" type="button" data-kcancel>Cancel</button></div>' +
+          '<p class="muted small" style="margin-top:10px">Company details, governing law and courts: Integrations → Contracts (' + esc(co.name) + ', ' + esc(co.law) + ' law). Have your attorney review the agreement once before you send the first one.</p>' +
+          '</div><div class="k-preview"><div class="k-paper" data-kprev>Loading preview…</div></div></div>';
+        var timer;
+        function vals() { var b = { lead: state2.lead }; m.body.querySelectorAll('[data-kf]').forEach(function (f) { b[f.getAttribute('data-kf')] = f.value; }); return b; }
+        function preview() { clearTimeout(timer); timer = setTimeout(function () { send('POST', 'contracts/preview', vals()).then(function (r) { m.body.querySelector('[data-kprev]').innerHTML = r.html || ''; }); }, 250); }
+        m.body.querySelectorAll('[data-kf]').forEach(function (f) { f.addEventListener('input', preview); });
+        preview();
+        m.body.querySelector('[data-kcancel]').onclick = m.close;
+        m.body.querySelector('[data-ksave]').onclick = function () {
+          var req = k ? send('POST', 'contracts/' + k.id + '/update', vals()) : send('POST', 'contracts', vals());
+          req.then(function (r) { if (!r.ok) { toast(r.error || 'Could not save'); return; } toast('Saved. Review it, then sign and send.'); m.close(); if (done) done(); openContract(r.contract.id, done); });
+        };
+        var pick = m.body.querySelector('[data-kpick]');
+        if (pick) {
+          var t2;
+          pick.oninput = function () {
+            clearTimeout(t2);
+            var q2 = pick.value.trim();
+            if (q2.length < 2) { m.body.querySelector('[data-kres]').innerHTML = ''; return; }
+            t2 = setTimeout(function () {
+              api('leads', { q: q2 }).then(function (d) {
+                var box = m.body.querySelector('[data-kres]');
+                box.innerHTML = (d.rows || []).slice(0, 6).map(function (l) { return '<button type="button" data-kl="' + esc(l.id) + '"><strong>' + esc([l.first_name, l.last_name].filter(Boolean).join(' ') || l.email) + '</strong> <span class="muted">' + esc(l.email || '') + (l.tier ? ' · ' + esc(l.tier) : '') + '</span></button>'; }).join('') || '<p class="muted small">No lead found. Type their name and email below instead.</p>';
+                box.querySelectorAll('[data-kl]').forEach(function (b) {
+                  b.onclick = function () { state2.lead = b.getAttribute('data-kl'); api('contracts/quote', { lead: state2.lead }).then(function (q3) { lead = { id: state2.lead }; draw(q3); }); };
+                });
+              });
+            }, 250);
+          };
+        }
+      }
+      if (k) draw(k); else api('contracts/quote', { lead: state2.lead || '' }).then(draw);
+    });
+  }
+
+  /** One agreement: the full document, its history, and what you can do next. */
+  function openContract(id, done) {
+    Promise.all([loadCompany(), api('contracts'), send('POST', 'contracts/preview', { id: id })]).then(function (r) {
+      var co = r[0], k = (r[1].contracts || []).filter(function (x) { return x.id === id; })[0], html = r[2].html;
+      if (!k) { toast('Agreement not found'); return; }
+      var m = kModal(k.title + ' · ' + kWho(k), true);
+      var steps = [['Drafted', k.created_at], ['Signed by ' + (k.our_signer || co.signer).split(',')[0], k.our_signed_at], ['Emailed to ' + (k.client_email || '–'), k.sent_at], ['Opened', k.viewed_at], ['Signed by ' + (k.signer_name || 'client'), k.signed_at]];
+      var actions = '';
+      if (k.status === 'draft') actions = '<button class="btn-sm" type="button" data-ka="sign">Sign &amp; send</button><button class="btn-sm ghost" type="button" data-ka="edit">Edit</button><button class="btn-sm ghost" type="button" data-ka="test">Send me a test</button><button class="btn-sm ghost" type="button" data-ka="void">Void</button>';
+      else if (k.status === 'sent' || k.status === 'viewed') actions = '<button class="btn-sm ghost" type="button" data-copy="' + esc(k.sign_url) + '">Copy signing link</button><a class="btn-sm ghost" target="_blank" rel="noopener" href="' + esc(k.sign_url) + '">Open signing page</a><button class="btn-sm ghost" type="button" data-ka="test">Send me a test</button><button class="btn-sm ghost" type="button" data-ka="void">Void</button>';
+      else if (k.status === 'signed') actions = '<a class="btn-sm" target="_blank" rel="noopener" href="' + esc(k.copy_url) + '">Signed copy (print / PDF)</a>';
+      m.body.innerHTML = '<div class="k-editor"><div class="k-form">' +
+        '<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">' + kStatus(k) + '<strong style="font-size:1.2rem">' + esc(kMoney(k)) + '</strong></div>' +
+        '<ol class="k-steps">' + steps.map(function (s2) { return '<li class="' + (s2[1] ? 'done' : '') + '"><span>' + esc(s2[0]) + '</span><span class="muted">' + (s2[1] ? esc(when(s2[1])) : '–') + '</span></li>'; }).join('') + '</ol>' +
+        (k.reminders ? '<p class="muted small">' + k.reminders + ' reminder' + (k.reminders > 1 ? 's' : '') + ' sent.</p>' : '') +
+        '<div class="row k-actions">' + actions + '</div><div data-kpanel></div>' +
+        (k.lead_id ? '<p style="margin-top:14px"><button class="btn-sm ghost" type="button" data-klead>Open their lead</button></p>' : '') +
+        (!co.emailReady ? '<p class="muted small">Email isn’t connected, so it can’t be sent yet (Integrations → Email).</p>' : '<p class="muted small">Sent from ' + esc(co.from || '') + '.</p>') +
+        '</div><div class="k-preview"><div class="k-paper">' + html + '</div></div></div>';
+      wireCopy(m.body);
+      var panel = m.body.querySelector('[data-kpanel]');
+      var lb = m.body.querySelector('[data-klead]'); if (lb) lb.onclick = function () { m.close(); openLead(k.lead_id); };
+      function refreshAfter(msg) { toast(msg); m.close(); if (done) done(); openContract(id, done); }
+      m.body.querySelectorAll('[data-ka]').forEach(function (b) {
+        b.onclick = function () {
+          var a = b.getAttribute('data-ka');
+          if (a === 'edit') { m.close(); openContractEditor(k, null, done); return; }
+          if (a === 'void') { if (confirm('Void this agreement? Its signing link stops working.')) send('POST', 'contracts/' + id + '/void', {}).then(function () { refreshAfter('Voided'); }); return; }
+          var pad = sigPad((co.signer || 'Josh Li').split(',')[0]);
+          panel.innerHTML = '<div class="k-signbox"><h3>' + (a === 'sign' ? 'Sign for ' + esc(co.name) + ', then send' : 'Send a signable test copy') + '</h3>' +
+            (a === 'test' ? '<label>Send the test to<input class="input" data-kto type="email" value="' + esc(((co.from || '').match(/<([^>]+)>/) || [])[1] || co.from || '') + '"></label>' : '<p class="muted small">Your signature goes on the agreement before ' + esc(k.client_name || 'the client') + ' sees it. It’s emailed from ' + esc(co.from || '') + '.</p>') +
+            '</div>';
+          panel.querySelector('.k-signbox').appendChild(pad.el);
+          var go = document.createElement('div'); go.className = 'row'; go.style.marginTop = '10px';
+          go.innerHTML = '<button class="btn-sm" type="button" data-kgo>' + (a === 'sign' ? 'Sign and send to ' + esc(k.client_email || '') : 'Sign and send test') + '</button><button class="btn-sm ghost" type="button" data-kno>Cancel</button>';
+          panel.querySelector('.k-signbox').appendChild(go);
+          go.querySelector('[data-kno]').onclick = function () { panel.innerHTML = ''; };
+          go.querySelector('[data-kgo]').onclick = function (e) {
+            var v = pad.value();
+            if (!v.ok) { toast('Type your name, or draw your signature.'); return; }
+            if (a === 'sign' && !confirm('Send “' + k.title + '” (' + kMoney(k) + ') to ' + k.client_email + '?')) return;
+            e.target.disabled = true; e.target.textContent = 'Sending…';
+            var body = { name: v.name, kind: v.kind, signature: v.signature };
+            if (a === 'test') body.to = panel.querySelector('[data-kto]').value.trim();
+            send('POST', 'contracts/' + id + '/' + (a === 'sign' ? 'send' : 'test'), body).then(function (res) {
+              if (!res.ok) { toast(res.error || 'Could not send'); e.target.disabled = false; e.target.textContent = 'Try again'; return; }
+              if (a === 'test') { toast('Test sent to ' + body.to + '. Open it and sign it to try the whole flow.'); panel.innerHTML = ''; if (done) done(); }
+              else refreshAfter('Signed and sent to ' + k.client_email);
+            });
+          };
+        };
+      });
+    });
+  }
+
+  /** The Contract card inside a lead. */
   function loadContracts(box, l) {
     if (!box) return;
-    Promise.all([api('contracts', { lead: l.id }), api('contracts/quote', { lead: l.id })]).then(function (r) {
-      var list = r[0].contracts || [], q = r[1] || {}, emailReady = r[0].emailReady;
-      function render(editing) {
-        box.innerHTML = '<div class="card-head"><div><h2>Engagement letter</h2><p class="sub">Auto-quoted from their application, sent from your email address for e-signature.</p></div>' +
-          (editing ? '' : '<button class="btn-sm" type="button" data-k-new>Prepare letter</button>') + '</div>' +
+    function refresh() {
+      api('contracts', { lead: l.id }).then(function (d) {
+        var list = (d.contracts || []).filter(function (k) { return !k.is_test; });
+        box.innerHTML = '<div class="card-head"><div><h2>Agreement</h2><p class="sub">One-page advisory agreement, auto-quoted from their application. You sign, it’s emailed from Josh, they sign.</p></div><button class="btn-sm" type="button" data-k-new>New agreement</button></div>' +
           (list.length ? table([
-            { label: 'Letter', html: function (k) { return '<strong>' + esc(k.title) + '</strong><div class="muted">' + esc(kWhen(k)) + (k.reminders ? ' · ' + k.reminders + ' reminder' + (k.reminders > 1 ? 's' : '') : '') + '</div>'; } },
+            { label: 'Agreement', html: function (k) { return '<strong>' + esc(k.title) + '</strong><div class="muted">' + esc(kWhen(k)) + '</div>'; } },
             { label: 'Fee', num: true, html: function (k) { return esc(kMoney(k)); } },
             { label: 'Status', html: kStatus },
-            { label: '', html: function (k) {
-              return (k.status === 'draft' ? '<button class="btn-sm ghost" type="button" data-k-edit="' + esc(k.id) + '">Edit</button> <button class="btn-sm" type="button" data-k-send="' + esc(k.id) + '">Send</button> ' : '') +
-                (k.sign_url && k.status !== 'signed' ? '<button class="btn-sm ghost" type="button" data-copy="' + esc(k.sign_url) + '">Copy link</button> ' : '') +
-                (k.copy_url ? '<a class="btn-sm ghost" target="_blank" rel="noopener" href="' + esc(k.copy_url) + '">Signed copy</a> ' : '') +
-                (k.status !== 'signed' && k.status !== 'void' ? '<button class="btn-sm ghost" type="button" data-k-void="' + esc(k.id) + '" title="Void">✕</button>' : '');
-            } },
-          ], list) : (editing ? '' : '<p class="muted">No letter yet. Suggested fee: <strong>' + esc(kMoney(q)) + '</strong>. ' + esc(q.basis || '') + '</p>')) +
-          (editing ? form(editing) : '');
-        wireCopy(box);
-        var nb = box.querySelector('[data-k-new]'); if (nb) nb.onclick = function () { render({ fee: q.fee, currency: q.currency, client_name: q.client_name, client_email: q.client_email, client_company: q.client_company, payment_terms: q.payment_terms, success_fee: q.success_fee, scope: q.scope, term_text: q.term_text, title: 'Engagement letter: acquisition advisory', basis: q.basis }); };
-        box.querySelectorAll('[data-k-edit]').forEach(function (b) { b.onclick = function () { var k = list.filter(function (x) { return x.id === b.getAttribute('data-k-edit'); })[0]; render(Object.assign({}, k, { basis: k.quote_basis })); }; });
-        box.querySelectorAll('[data-k-send]').forEach(function (b) {
-          b.onclick = function () {
-            if (!emailReady) { toast('Connect email first (Integrations → Email).'); return; }
-            var k = list.filter(function (x) { return x.id === b.getAttribute('data-k-send'); })[0];
-            if (!confirm('Send “' + k.title + '” (' + kMoney(k) + ') to ' + (k.client_email || l.email) + ' from your email address?')) return;
-            b.disabled = true;
-            send('POST', 'contracts/' + k.id + '/send', {}).then(function (res) { toast(res.ok ? 'Sent for signature' : (res.error || 'Could not send')); refresh(); });
-          };
-        });
-        box.querySelectorAll('[data-k-void]').forEach(function (b) { b.onclick = function () { if (confirm('Void this letter? Its signing link will stop working.')) send('POST', 'contracts/' + b.getAttribute('data-k-void') + '/void', {}).then(refresh); }; });
-        if (editing) wireForm(editing);
-      }
-      function field(k, name, label, type) {
-        var v = k[name] == null ? '' : k[name];
-        if (type === 'area') return '<label class="full">' + esc(label) + '<textarea class="notes" data-kf="' + name + '" rows="' + (name === 'scope' ? 6 : 2) + '">' + esc(v) + '</textarea></label>';
-        return '<label>' + esc(label) + '<input class="input" data-kf="' + name + '" type="' + (type || 'text') + '" value="' + esc(v) + '"></label>';
-      }
-      function form(k) {
-        return '<div class="k-form" style="margin-top:12px"><p class="sub">' + esc(k.basis || '') + '</p><div class="pipe-grid">' +
-          '<label>Fee<input class="input" data-kf="fee" type="number" min="0" step="500" value="' + esc(k.fee || '') + '"></label>' +
-          '<label>Currency<select class="input" data-kf="currency">' + ['AUD', 'USD', 'NZD', 'GBP', 'EUR', 'CAD', 'SGD'].map(function (c) { return '<option' + (c === k.currency ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>' +
-          field(k, 'client_name', 'Client name') + field(k, 'client_email', 'Send to (email)', 'email') + field(k, 'client_company', 'Company (optional)') + field(k, 'title', 'Title') +
-          field(k, 'payment_terms', 'Payment terms', 'area') + field(k, 'success_fee', 'Success fee (optional)', 'area') + field(k, 'scope', 'What you’ll do (one per line)', 'area') + field(k, 'term_text', 'Term', 'area') +
-          '</div><div class="row" style="margin-top:10px;gap:8px"><button class="btn-sm ghost" type="button" data-k-preview>Preview letter</button><button class="btn-sm" type="button" data-k-save>' + (k.id ? 'Save changes' : 'Save draft') + '</button><button class="btn-sm ghost" type="button" data-k-cancel>Cancel</button></div>' +
-          '<p class="muted small" style="margin-top:8px">Legal entity, ABN, governing law and extra terms: Integrations → Contracts. Have your lawyer review the letter before you send the first one.</p>' +
-          '<div class="letter-preview" data-k-out hidden></div></div>';
-      }
-      function values() { var b = { lead: l.id }; box.querySelectorAll('[data-kf]').forEach(function (f) { b[f.getAttribute('data-kf')] = f.value; }); return b; }
-      function wireForm(k) {
-        box.querySelector('[data-k-cancel]').onclick = function () { render(null); };
-        box.querySelector('[data-k-preview]').onclick = function () {
-          send('POST', 'contracts/preview', values()).then(function (res) { var out = box.querySelector('[data-k-out]'); out.hidden = false; out.innerHTML = res.html || esc(res.error || 'Could not preview'); });
-        };
-        box.querySelector('[data-k-save]').onclick = function () {
-          var req = k.id ? send('POST', 'contracts/' + k.id + '/update', values()) : send('POST', 'contracts', values());
-          req.then(function (res) { toast(res.ok ? 'Draft saved. Press Send when ready.' : (res.error || 'Could not save')); if (res.ok) refresh(); });
-        };
-      }
-      function refresh() { api('contracts', { lead: l.id }).then(function (d) { list = d.contracts || []; emailReady = d.emailReady; render(null); }); }
-      render(null);
-    });
+          ], list, { rowAttr: function (k) { return 'class="click" data-kopen="' + esc(k.id) + '" tabindex="0"'; } }) : '<p class="muted">No agreement yet.</p>');
+        box.querySelector('[data-k-new]').onclick = function () { openContractEditor(null, l, refresh); };
+        box.querySelectorAll('[data-kopen]').forEach(function (r2) { r2.onclick = function () { openContract(r2.getAttribute('data-kopen'), refresh); }; });
+      });
+    }
+    refresh();
   }
 
   function renderContracts() {
     return api('contracts').then(function (d) {
-      var list = d.contracts || [];
-      var sum = function (st) { return list.filter(function (k) { return st.indexOf(k.status) >= 0; }); };
-      var signed = sum(['signed']), out = sum(['sent', 'viewed']);
-      var total = function (a) { return a.reduce(function (s, k) { return s + Number(k.fee || 0); }, 0); };
-      view.innerHTML = '<div class="grid g-4">' +
-        tile('Signed', n(signed.length), '$' + n(total(signed)) + ' in fees') + tile('Waiting for signature', n(out.length), '$' + n(total(out)) + ' outstanding') +
-        tile('Opened, not signed', n(sum(['viewed']).length), 'reminders go out on day 2 and 5') + tile('Drafts', n(sum(['draft']).length), 'not sent yet') + '</div>' +
-        '<div class="card" style="margin-top:14px">' + (list.length ? table([
-          { label: 'Client', html: function (k) { return '<strong>' + esc([k.first_name, k.last_name].filter(Boolean).join(' ') || k.client_name || k.email || '') + '</strong><div class="muted">' + esc(k.client_email || k.email || '') + '</div>'; } },
-          { label: 'Letter', html: function (k) { return esc(k.title) + '<div class="muted">' + esc(kWhen(k)) + '</div>'; } },
+      kCo = d.company || {}; kCo.emailReady = d.emailReady;
+      var all = d.contracts || [];
+      var real = all.filter(function (k) { return !k.is_test; });
+      var by = function (st) { return real.filter(function (k) { return st.indexOf(k.status) >= 0; }); };
+      var total = function (a) { return a.reduce(function (s2, k) { return s2 + Number(k.fee || 0); }, 0); };
+      var signed = by(['signed']), out = by(['sent', 'viewed']);
+      view.innerHTML = '<div class="row" style="margin-bottom:14px;gap:10px"><button class="btn" type="button" data-k-new>New agreement</button><span class="muted">Sent from ' + esc(kCo.from || '–') + ' · signed for ' + esc(kCo.name || '') + ' by ' + esc(kCo.signer || '') + ' · ' + esc(kCo.law || '') + ' law</span></div>' +
+        '<div class="grid g-4">' + tile('Signed', n(signed.length), '$' + n(total(signed)) + ' in fees') + tile('Waiting for signature', n(out.length), '$' + n(total(out)) + ' outstanding') +
+        tile('Opened, not signed', n(by(['viewed']).length), 'reminders go out on day 2 and 5') + tile('Drafts', n(by(['draft']).length), 'not sent yet') + '</div>' +
+        '<div class="card" style="margin-top:14px">' + (all.length ? table([
+          { label: 'Client', html: function (k) { return '<strong>' + esc(kWho(k)) + '</strong><div class="muted">' + esc(k.client_email || '') + '</div>'; } },
+          { label: 'Agreement', html: function (k) { return esc(k.title) + '<div class="muted">' + esc(kWhen(k)) + '</div>'; } },
           { label: 'Fee', num: true, html: function (k) { return esc(kMoney(k)); } },
           { label: 'Status', html: kStatus },
-          { label: '', html: function (k) { return k.copy_url ? '<a class="btn-sm ghost" target="_blank" rel="noopener" href="' + esc(k.copy_url) + '" onclick="event.stopPropagation()">Signed copy</a>' : ''; } },
-        ], list, { cards: true, rowAttr: function (k) { return 'class="click" data-k-lead="' + esc(k.lead_id) + '" tabindex="0"'; } }) : '<p class="muted">No engagement letters yet. Open a lead and press <strong>Prepare letter</strong> in the Contract section.</p>') + '</div>' +
-        (d.emailReady ? '' : '<p class="muted" style="margin-top:10px">Email isn’t connected yet, so letters can be drafted but not sent (Integrations → Email).</p>');
-      view.querySelectorAll('[data-k-lead]').forEach(function (r) { r.onclick = function () { openLead(r.getAttribute('data-k-lead')); }; });
+        ], all, { cards: true, rowAttr: function (k) { return 'class="click" data-kopen="' + esc(k.id) + '" tabindex="0" title="Preview and manage"'; } }) : '<p class="muted">No agreements yet. Press <strong>New agreement</strong>, or open a lead and use its Agreement card.</p>') + '</div>';
+      view.querySelector('[data-k-new]').onclick = function () { openContractEditor(null, null, load); };
+      view.querySelectorAll('[data-kopen]').forEach(function (r2) { r2.onclick = function () { openContract(r2.getAttribute('data-kopen'), load); }; });
     });
   }
   function wireCopy(root) {

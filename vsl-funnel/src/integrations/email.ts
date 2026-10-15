@@ -292,18 +292,19 @@ async function webinarContext(rt: Runtime, lead: Lead, link: (path: string) => s
 }
 
 /** Resend (https://resend.com/docs/api-reference/emails/send-email). Returns the provider message id. */
-export async function sendViaResend(rt: Runtime, msg: { to: string; subject: string; html: string; text: string; unsubscribeUrl: string; tags?: Record<string, string> }) {
+export async function sendViaResend(rt: Runtime, msg: { to: string; subject: string; html: string; text: string; unsubscribeUrl?: string; tags?: Record<string, string>; from?: string; replyTo?: string }) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { authorization: `Bearer ${rt.settings.RESEND_API_KEY}`, 'content-type': 'application/json' },
     body: JSON.stringify({
-      from: rt.settings.EMAIL_FROM,
+      from: msg.from || rt.settings.EMAIL_FROM,
       to: [msg.to],
-      reply_to: rt.settings.EMAIL_REPLY_TO || undefined,
+      reply_to: msg.replyTo || rt.settings.EMAIL_REPLY_TO || undefined,
       subject: msg.subject,
       html: msg.html,
       text: msg.text,
-      headers: { 'List-Unsubscribe': `<${msg.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+      // Transactional mail (contracts) has no unsubscribe; marketing mail always does.
+      headers: msg.unsubscribeUrl ? { 'List-Unsubscribe': `<${msg.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } : undefined,
       tags: Object.entries(msg.tags ?? {}).map(([name, value]) => ({ name, value: value.replace(/[^\w-]/g, '_') })),
     }),
   });
