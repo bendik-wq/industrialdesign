@@ -2,6 +2,7 @@ import { APPLICATION, HEADLINE_EXPERIMENT, VIDEOS } from '../config';
 import { loadReps } from '../sales/reps';
 import type { Env } from '../env';
 import { BUCKETS } from '../tracking/vsl';
+import { platformOf } from '../lib/attribution';
 
 /** Dashboard filters. Every query excludes bots. */
 export interface Filters {
@@ -257,7 +258,10 @@ export async function vslStats(env: Env, f: Filters, videoId: string) {
 
 // ───────────────────────────── Attribution ─────────────────────────────
 
-const DIMENSIONS: Record<string, { session: string; lead: string; label: string }> = {
+const DIMENSIONS: Record<string, { session: string; lead: string; label: string; rollup?: true }> = {
+  // Instagram, Google, ChatGPT, YouTube…: grouped by source + medium here, named by platformOf() below.
+  platform: { session: "COALESCE(s.utm_source, s.referrer_host, '') || '|' || COALESCE(s.utm_medium, '')", lead: "COALESCE(l.utm_source, '') || '|' || COALESCE(l.utm_medium, '')", label: 'Platform', rollup: true },
+  first_platform: { session: "(SELECT COALESCE(ft_source, '') || '|' || COALESCE(ft_medium, '') FROM visitors WHERE id = s.visitor_id)", lead: "COALESCE(l.ft_source, '') || '|'", label: 'First-touch platform', rollup: true },
   channel: { session: 's.channel', lead: "COALESCE(l.channel, 'Direct')", label: 'Channel' },
   source: { session: 's.utm_source', lead: 'l.utm_source', label: 'Source' },
   campaign: { session: 's.utm_campaign', lead: 'l.utm_campaign', label: 'Campaign' },
@@ -278,7 +282,7 @@ const DIMENSIONS: Record<string, { session: string; lead: string; label: string 
 export const dimensionList = () => Object.entries(DIMENSIONS).map(([key, d]) => ({ key, label: d.label }));
 
 export async function attribution(env: Env, f: Filters, dim: string) {
-  const d = DIMENSIONS[dim] ?? DIMENSIONS.channel;
+  const d = DIMENSIONS[dim] ?? DIMENSIONS.platform;
   const seg = segment(f);
   const lead = leadScope(f);
 
@@ -299,6 +303,29 @@ export async function attribution(env: Env, f: Filters, dim: string) {
               COALESCE(SUM(l.revenue), 0) AS revenue, AVG(l.score) AS score
          FROM leads l ${lead.join} WHERE ${lead.sql} GROUP BY 1`, lead.params),
   ]);
+
+  if (d.rollup) {
+    const name = (k: string | null) => { const [src, med] = (k ?? '|').split('|'); return platformOf(src || null, null, med || null); };
+    const t2 = new Map<string, (typeof traffic)[number]>();
+    for (const t of traffic) {
+      const k = name(t.key);
+      const a = t2.get(k);
+      if (!a) { t2.set(k, { ...t, key: k }); continue; }
+      a.engaged = ((a.engaged ?? 0) * a.sessions + (t.engaged ?? 0) * t.sessions) / (a.sessions + t.sessions);
+      a.scroll = ((a.scroll ?? 0) * a.sessions + (t.scroll ?? 0) * t.sessions) / (a.sessions + t.sessions);
+      a.visitors += t.visitors; a.sessions += t.sessions; a.bounces += t.bounces;
+    }
+    const l2 = new Map<string, (typeof leads)[number]>();
+    for (const l of leads) {
+      const k = name(l.key);
+      const a = l2.get(k);
+      if (!a) { l2.set(k, { ...l, key: k }); continue; }
+      a.score = ((a.score ?? 0) * a.leads + (l.score ?? 0) * l.leads) / (a.leads + l.leads);
+      for (const f of ['leads', 'applications', 'a', 'b', 'booked', 'showed', 'won', 'revenue'] as const) a[f] += l[f];
+    }
+    traffic.splice(0, traffic.length, ...[...t2.values()].sort((x, y) => y.visitors - x.visitors));
+    leads.splice(0, leads.length, ...l2.values());
+  }
 
   const byKey = new Map(leads.map((r) => [r.key ?? '(none)', r]));
   const rows = traffic.map((t) => {
@@ -332,7 +359,7 @@ export async function attribution(env: Env, f: Filters, dim: string) {
       qualified: l.a + l.b, tier_a: l.a, booked: l.booked, showed: l.showed, won: l.won, revenue: l.revenue, avg_score: Math.round(l.score ?? 0),
       lead_rate: 0, qualified_rate: 0, revenue_per_visitor: 0 });
   }
-  return { dimension: dim in DIMENSIONS ? dim : 'channel', label: d.label, rows };
+  return { dimension: dim in DIMENSIONS ? dim : 'platform', label: d.label, rows };
 }
 
 // ───────────────────────────── Application analytics ─────────────────────────────
@@ -500,7 +527,7 @@ export async function live(env: Env, opts: { window?: string; before?: number; a
   const [active, activePages, events, totals, pages] = await Promise.all([
     one(env, `SELECT COUNT(DISTINCT visitor_id) AS n FROM sessions WHERE last_seen_at > ? AND is_bot = 0`, [since5]),
     all(env, `SELECT e.path, COUNT(DISTINCT e.visitor_id) AS n FROM events e WHERE e.ts > ? AND e.name = 'page_view' AND e.is_bot = 0 GROUP BY 1 ORDER BY 2 DESC`, [since5]),
-    all(env, `SELECT e.id, e.ts, e.name, e.path, e.source, e.props, e.lead_id, e.visitor_id, s.country, s.city, s.device, s.channel, s.utm_campaign,
+    all(env, `SELECT e.id, e.ts, e.name, e.path, e.source, e.props, e.lead_id, e.visitor_id, s.country, s.city, s.device, s.channel, s.utm_campaign, s.utm_source, s.utm_medium, s.referrer_host,
                      l.first_name, l.last_name, l.tier
                 FROM events e LEFT JOIN sessions s ON s.id = e.session_id LEFT JOIN leads l ON l.id = e.lead_id
                WHERE e.is_bot = 0 AND e.ts >= ? AND e.ts < ? ${noise} ORDER BY e.ts DESC LIMIT ?`, [from, before, ...noiseArgs, limit]),

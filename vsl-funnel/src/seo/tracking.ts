@@ -7,6 +7,7 @@ import type { Context } from 'hono';
 import type { AppEnv } from '../app';
 import type { Env } from '../env';
 import { GUIDES } from './guides';
+import { platformOf } from '../lib/attribution';
 import { type HostKind, hostKind, hostOrigin, indexingOn, sitemapEntries } from './seo';
 
 /** Crawler name → who runs it and what it's for. Order matters: first match wins. */
@@ -56,13 +57,23 @@ export function logCrawler(c: Context<AppEnv>) {
 
 const AI = "'AI Search'";
 
+/** Rolls source rows up to named platforms (Instagram, Google, ChatGPT…), biggest first. */
+function byPlatform<T extends { source: string | null; ref?: string | null; medium?: string | null; sessions: number }>(rows: T[]) {
+  const m = new Map<string, number>();
+  for (const r of rows) {
+    const k = platformOf(r.source, r.ref ?? null, r.medium ?? null);
+    m.set(k, (m.get(k) ?? 0) + r.sessions);
+  }
+  return [...m].map(([source, sessions]) => ({ source, sessions })).sort((a, b) => b.sessions - a.sessions);
+}
+
 export async function searchReport(c: Context<AppEnv>, from: number, to: number) {
   const env = c.env;
   const dayFrom = new Date(from).toISOString().slice(0, 10);
   const dayTo = new Date(to).toISOString().slice(0, 10);
   const q = <T>(sql: string, ...b: (string | number)[]) => env.DB.prepare(sql).bind(...b).all<T>().then((r) => r.results ?? []).catch(() => [] as T[]);
 
-  const [bots, botDays, botPages, visits, refs, landings, leads, guideViews, guideCtas, articleFunnel] = await Promise.all([
+  const [bots, botDays, botPages, visits, refs, landings, leads, guideViews, guideCtas, articleFunnel, guideSources] = await Promise.all([
     q<{ bot: string; hits: number; pages: number; last_at: number }>(
       'SELECT bot, SUM(hits) AS hits, COUNT(DISTINCT host || path) AS pages, MAX(last_at) AS last_at FROM crawler_hits WHERE day BETWEEN ? AND ? GROUP BY bot ORDER BY hits DESC', dayFrom, dayTo),
     q<{ day: string; ai: number; search: number }>(
@@ -77,9 +88,9 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
     q<{ channel: string; sessions: number; visitors: number }>(
       `SELECT channel, COUNT(*) AS sessions, COUNT(DISTINCT visitor_id) AS visitors FROM sessions
        WHERE started_at BETWEEN ? AND ? AND is_bot = 0 AND channel IN (${AI}, 'Organic Search') GROUP BY channel`, from, to),
-    q<{ channel: string; source: string; sessions: number }>(
-      `SELECT channel, COALESCE(referrer_host, utm_source, '(unknown)') AS source, COUNT(*) AS sessions FROM sessions
-       WHERE started_at BETWEEN ? AND ? AND is_bot = 0 AND channel IN (${AI}, 'Organic Search') GROUP BY 1, 2 ORDER BY sessions DESC LIMIT 25`, from, to),
+    q<{ channel: string; source: string; ref: string | null; medium: string | null; sessions: number }>(
+      `SELECT channel, utm_source AS source, referrer_host AS ref, utm_medium AS medium, COUNT(*) AS sessions FROM sessions
+       WHERE started_at BETWEEN ? AND ? AND is_bot = 0 AND channel IN (${AI}, 'Organic Search') GROUP BY 1, 2, 3, 4 ORDER BY sessions DESC LIMIT 100`, from, to),
     q<{ landing_path: string; ai: number; organic: number }>(
       `SELECT landing_path, SUM(CASE WHEN channel = ${AI} THEN 1 ELSE 0 END) AS ai, SUM(CASE WHEN channel = 'Organic Search' THEN 1 ELSE 0 END) AS organic FROM sessions
        WHERE started_at BETWEEN ? AND ? AND is_bot = 0 AND channel IN (${AI}, 'Organic Search') GROUP BY landing_path ORDER BY ai + organic DESC LIMIT 20`, from, to),
@@ -106,12 +117,17 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
        FROM sessions s LEFT JOIN leads l ON l.visitor_id = s.visitor_id
        WHERE s.started_at BETWEEN ? AND ? AND s.is_bot = 0 AND (s.landing_path LIKE '/guides/%' OR s.landing_path = '/about')
        GROUP BY s.landing_path`, from, to),
+    // Where the people who entered on each article came from (named platform, worked out below).
+    q<{ path: string; source: string | null; ref: string | null; medium: string | null; sessions: number }>(
+      `SELECT landing_path AS path, utm_source AS source, referrer_host AS ref, utm_medium AS medium, COUNT(*) AS sessions FROM sessions
+       WHERE started_at BETWEEN ? AND ? AND is_bot = 0 AND (landing_path LIKE '/guides%' OR landing_path = '/about') GROUP BY 1, 2, 3, 4`, from, to),
   ]);
 
   const meta = new Map(CRAWLERS.map((x) => [x.bot, x]));
   const views = new Map(guideViews.map((g) => [g.path, g]));
   const ctas = new Map(guideCtas.map((g) => [g.path, g.clicks]));
   const landed = new Map(articleFunnel.map((a) => [a.path, a]));
+  const sourcesOf = (path: string) => byPlatform(guideSources.filter((r) => r.path === path)).slice(0, 4);
   const s = c.get('settings');
   const main = hostOrigin(c, 'main');
   const dataOrigin = hostOrigin(c, 'data');
@@ -120,7 +136,9 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
     botDays,
     botPages,
     visits,
-    refs,
+    refs: [...new Map(refs.map((r) => [`${r.channel}|${platformOf(r.source, r.ref, r.medium)}`, { channel: r.channel, source: platformOf(r.source, r.ref, r.medium), sessions: 0 }])).values()]
+      .map((x) => ({ ...x, sessions: refs.filter((r) => r.channel === x.channel && platformOf(r.source, r.ref, r.medium) === x.source).reduce((a, r) => a + r.sessions, 0) }))
+      .sort((a, b) => b.sessions - a.sessions).slice(0, 25),
     landings,
     leads,
     guides: GUIDES.map((g) => {
@@ -133,6 +151,7 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
         // "landed" = entered the site on this article; the funnel is for those people.
         landed: a?.landed ?? 0, fromSearch: a?.organic ?? 0, fromAi: a?.ai ?? 0,
         leads: a?.leads ?? 0, applied: a?.applied ?? 0, booked: a?.booked ?? 0, won: a?.won ?? 0,
+        sources: sourcesOf(path),
       };
     }),
     setup: {
@@ -171,7 +190,7 @@ export async function articleReport(c: Context<AppEnv>, slug: string, from: numb
               COUNT(DISTINCT CASE WHEN l.booked_at IS NOT NULL AND l.booking_cancelled_at IS NULL THEN l.id END) AS booked,
               COUNT(DISTINCT CASE WHEN l.status = 'won' THEN l.id END) AS won ${base}`, path, from, to),
     q<{ channel: string; sessions: number }>(`SELECT s.channel AS channel, COUNT(*) AS sessions ${base} GROUP BY s.channel ORDER BY sessions DESC`, path, from, to),
-    q<{ source: string; sessions: number }>(`SELECT COALESCE(NULLIF(s.referrer_host, ''), s.utm_source, '(direct / none)') AS source, COUNT(*) AS sessions ${base} GROUP BY source ORDER BY sessions DESC LIMIT 20`, path, from, to),
+    q<{ source: string | null; ref: string | null; medium: string | null; sessions: number }>(`SELECT s.utm_source AS source, s.referrer_host AS ref, s.utm_medium AS medium, COUNT(*) AS sessions ${base} GROUP BY 1, 2, 3 ORDER BY sessions DESC LIMIT 200`, path, from, to),
     // Search term if the ad/link carried one (utm_term); Google/Bing hide the query, so most are blank.
     q<{ term: string; sessions: number }>(`SELECT s.utm_term AS term, COUNT(*) AS sessions ${base} AND s.utm_term IS NOT NULL AND s.utm_term != '' GROUP BY term ORDER BY sessions DESC LIMIT 20`, path, from, to),
     q<{ country: string; sessions: number }>(`SELECT COALESCE(s.country, '??') AS country, COUNT(*) AS sessions ${base} GROUP BY country ORDER BY sessions DESC LIMIT 12`, path, from, to),
@@ -185,7 +204,9 @@ export async function articleReport(c: Context<AppEnv>, slug: string, from: numb
     md: `${hostOrigin(c, host)}/guides/${slug}.md`,
     funnel: funnel[0] ?? { landed: 0, engaged: 0, leads: 0, applied: 0, booked: 0, won: 0 },
     views: views[0] ?? { views: 0, readers: 0 },
-    channels, referrers, terms, countries, devices, series,
+    channels, referrers: byPlatform(referrers).slice(0, 20),
+    sites: referrers.filter((r) => r.ref).map((r) => ({ source: r.ref!, sessions: r.sessions })).slice(0, 20),
+    terms, countries, devices, series,
   };
 }
 

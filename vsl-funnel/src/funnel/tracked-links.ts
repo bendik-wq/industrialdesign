@@ -25,6 +25,28 @@ export interface TrackedLink {
 
 export const PLACEMENTS = ['description', 'pinned_comment', 'end_screen', 'card', 'community_post', 'shorts', 'channel_about', 'other'] as const;
 
+/**
+ * Where a non-YouTube link lives. Each sets the source / medium / placement, so visits read as
+ * "Instagram · bio" or "Instagram DM · ManyChat" everywhere in Funnel HQ, not "Direct".
+ */
+export const PRESETS: Record<string, { label: string; group: string; source: string; medium: string; placement: string }> = {
+  ig_bio: { label: 'Instagram bio', group: 'Instagram', source: 'instagram', medium: 'social', placement: 'bio' },
+  ig_manychat: { label: 'ManyChat DM (Instagram)', group: 'Instagram', source: 'instagram', medium: 'manychat', placement: 'dm' },
+  ig_story: { label: 'Instagram story link', group: 'Instagram', source: 'instagram', medium: 'social', placement: 'story' },
+  ig_post: { label: 'Instagram post / reel caption', group: 'Instagram', source: 'instagram', medium: 'social', placement: 'post' },
+  ig_broadcast: { label: 'Instagram broadcast channel', group: 'Instagram', source: 'instagram', medium: 'social', placement: 'broadcast' },
+  fb_manychat: { label: 'ManyChat DM (Messenger)', group: 'Facebook', source: 'facebook', medium: 'manychat', placement: 'dm' },
+  fb_post: { label: 'Facebook post / group', group: 'Facebook', source: 'facebook', medium: 'social', placement: 'post' },
+  tiktok_bio: { label: 'TikTok bio', group: 'Other social', source: 'tiktok', medium: 'social', placement: 'bio' },
+  x_bio: { label: 'X bio / post', group: 'Other social', source: 'x', medium: 'social', placement: 'bio' },
+  linkedin: { label: 'LinkedIn profile / post', group: 'Other social', source: 'linkedin', medium: 'social', placement: 'post' },
+  threads: { label: 'Threads', group: 'Other social', source: 'threads', medium: 'social', placement: 'post' },
+  newsletter: { label: 'Email newsletter', group: 'Other', source: 'newsletter', medium: 'email', placement: 'newsletter' },
+  podcast: { label: 'Podcast show notes', group: 'Other', source: 'podcast', medium: 'audio', placement: 'show_notes' },
+  qr: { label: 'QR code (print, events, slides)', group: 'Other', source: 'qr', medium: 'offline', placement: 'qr' },
+  other: { label: 'Somewhere else', group: 'Other', source: 'other', medium: 'referral', placement: 'other' },
+};
+
 const YT_ID = /^[\w-]{11}$/;
 
 /** Video id from any YouTube URL shape (watch, youtu.be, shorts, live, embed) or a bare id. */

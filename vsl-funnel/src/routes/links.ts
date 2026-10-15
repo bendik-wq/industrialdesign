@@ -9,6 +9,7 @@ import { identityFromLead, identityFromVisitor, track } from '../tracking/track'
 import { SEQUENCES, type SequenceId } from '../integrations/sequences';
 import { getLink, linkTarget } from '../funnel/tracked-links';
 import { parseUA } from '../lib/ua';
+import { geoFromRequest, isDatacenter, isLinkChecker } from '../lib/geo';
 import { safeEqual } from '../lib/crypto';
 import { smsLinkTarget } from '../integrations/sms';
 
@@ -122,7 +123,8 @@ links.get('/l/:code{[a-z0-9-]{3,40}}', async (c) => {
   if (!link || link.archived) return c.redirect('/', 302);
   const rt = runtimeFrom(c);
   // Link-preview bots (YouTube, iMessage, Slack…) don't count as clicks.
-  if (!parseUA(c.req.header('user-agent')).isBot) {
+  const geo = geoFromRequest(c.req.raw);
+  if (!parseUA(c.req.header('user-agent')).isBot && !isLinkChecker(geo) && !isDatacenter(geo)) {
     rt.waitUntil(c.env.DB.prepare('UPDATE tracked_links SET clicks = clicks + 1, last_click_at = ? WHERE code = ?').bind(Date.now(), link.code).run());
   }
   c.header('cache-control', 'no-store');

@@ -7,7 +7,8 @@ import { aboutPage, guideMarkdownPage, guidePage, guidesHub, llmsFullRoute, llms
 import { isShortUrl, shortPage, applyPage, bookPage, breakoutPage, landerPage, landingPage, resourcesPage, staticPage } from './funnel/pages';
 import { processEmailQueue } from './integrations/email';
 import { retryForwards } from './tracking/forward';
-import { resolveVisitor } from './lib/identity';
+import { COOKIE, resolveVisitor } from './lib/identity';
+import { getCookie } from 'hono/cookie';
 import { admin } from './routes/admin';
 import { api } from './routes/api';
 import { hooks } from './routes/hooks';
@@ -21,6 +22,7 @@ import { syncInbound } from './integrations/elevenlabs-inbound';
 import { syncCalendly } from './integrations/calendly';
 import { processTriggers } from './personalize/triggers';
 import { purgeOld } from './lib/retention';
+import { markInternal, sweepBots } from './lib/traffic-quality';
 import { dataLanding, isDataHost } from './data/data';
 import { maybeSyncContent } from './content/content';
 import { applyHandoff, icsFile, isWebinarHost, registeredPage, roomPage, webinarLanding } from './webinar/pages';
@@ -159,7 +161,11 @@ app.post('/admin/login', async (c) => {
   if (!sameOriginWrite(c)) return c.text('Forbidden', 403);
   const body = await c.req.parseBody();
   const res = await login(c, body.password);
-  if (res.ok) return c.redirect('/admin', 302);
+  if (res.ok) {
+    // This browser's earlier visits were you, not prospects.
+    await markInternal(c.env, getCookie(c, COOKIE.visitor)).catch(() => null);
+    return c.redirect('/admin', 302);
+  }
   return c.redirect(`/admin/login?error=${encodeURIComponent(res.error ?? 'Login failed')}`, 302);
 });
 app.post('/admin/logout', async (c) => {
@@ -218,6 +224,7 @@ export default {
       quiet(ensureSessions(rt), 'webinar sessions'),
       quiet(maybeSyncContent(rt), 'content sync'),
       quiet(processSmsQueue(rt), 'SMS'),
+      quiet(sweepBots(rt), 'bot sweep'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

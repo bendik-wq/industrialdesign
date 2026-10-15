@@ -13,6 +13,32 @@
   var lastHash = location.hash;
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  // Where someone came from, in plain words: "Instagram · organic", "Google · search", "ChatGPT · AI answer".
+  // Mirrors platformOf() in src/lib/attribution.ts.
+  var PLATFORMS = [
+    ['manychat', 'Instagram DM'], ['chatgpt|chat\\.openai|openai', 'ChatGPT'], ['claude|anthropic', 'Claude'], ['perplexity', 'Perplexity'],
+    ['gemini|bard', 'Gemini'], ['copilot', 'Copilot'], ['grok|x\\.ai', 'Grok'], ['meta\\.ai', 'Meta AI'], ['deepseek', 'DeepSeek'],
+    ['you\\.com|phind|kagi|poe\\.com|mistral', 'Other AI'], ['instagram|ig', 'Instagram'], ['threads', 'Threads'], ['facebook|fb|messenger', 'Facebook'],
+    ['youtube|youtu\\.be', 'YouTube'], ['tiktok', 'TikTok'], ['linkedin|lnkd', 'LinkedIn'], ['x|x\\.com|t\\.co|twitter', 'X'], ['reddit', 'Reddit'],
+    ['pinterest', 'Pinterest'], ['snapchat', 'Snapchat'], ['whatsapp|wa\\.me', 'WhatsApp'], ['telegram', 'Telegram'],
+    ['email|newsletter|gmail|outlook|mail|resend|klaviyo|mailchimp', 'Email'], ['google', 'Google'], ['bing', 'Bing'], ['duckduckgo', 'DuckDuckGo'],
+    ['yahoo', 'Yahoo'], ['brave', 'Brave Search'], ['ecosia', 'Ecosia'],
+  ].map(function (p) { return [new RegExp('(^|[^a-z])(' + p[0] + ')([^a-z]|$)', 'i'), p[1]]; });
+  function platformOf(src, ref, med) {
+    src = String(src || '').toLowerCase(); ref = String(ref || '').toLowerCase(); med = String(med || '').toLowerCase();
+    for (var i = 0; i < PLATFORMS.length; i++) {
+      if (PLATFORMS[i][0].test(src) || PLATFORMS[i][0].test(ref)) return PLATFORMS[i][1] === 'Instagram' && /dm|manychat/.test(med) ? 'Instagram DM' : PLATFORMS[i][1];
+    }
+    if (/workers\.dev$/.test(src || ref)) return 'Old workers.dev link';
+    return src || ref || 'Direct';
+  }
+  var CHANNEL_WORD = { 'Organic Social': 'organic', 'Paid Social': 'paid ad', 'Organic Search': 'search', 'Paid Search': 'paid search', 'AI Search': 'AI answer', 'Organic Video': 'video', 'Paid Video': 'video ad', 'Referral': 'link on their site', 'Messaging': 'message', 'Affiliate': 'partner', 'Paid Other': 'paid' };
+  function where(channel, src, ref, med) {
+    var p = platformOf(src, ref, med);
+    if (p === 'Direct') return channel && channel !== 'Direct' ? channel : 'Direct';
+    return p + (CHANNEL_WORD[channel] ? ' · ' + CHANNEL_WORD[channel] : '');
+  }
+
   var nf = new Intl.NumberFormat();
   function n(v) { return nf.format(Math.round(v || 0)); }
   function pct(v, d) { return (v == null || !isFinite(v)) ? '–' : (v * 100).toFixed(d == null ? (v < 0.1 && v > 0 ? 1 : 0) : d) + '%'; }
@@ -251,7 +277,7 @@
     application: { group: 'Funnel', title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     behaviour: { group: 'Funnel', title: 'On-page behaviour', sub: 'What people click, where the form slows them down and where they leave.', more: 'What people click, where the form slows them down, where they leave, what they re-read and highlight. Nothing anyone types is ever recorded.', render: renderBehaviour, filters: ['range'] },
     traffic: { group: 'Traffic', title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
-    links: { group: 'Traffic', title: 'Links & videos', sub: 'One tracked link per video and placement, followed to closed deals.', more: 'One tracked link per video and placement, followed all the way from click to booked call to closed deal.', render: renderLinks, filters: ['range'] },
+    links: { group: 'Traffic', title: 'Links & videos', sub: 'Tracked links for your Instagram bio, ManyChat, YouTube and more, followed to closed deals.', more: 'One tracked link per place you post it (Instagram bio, each ManyChat flow, each video), followed from the tap to the booked call and the closed deal.', render: renderLinks, filters: ['range'] },
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
     data: { group: 'Traffic', title: 'Data partner page', sub: 'Who visited the data-buyer referral page, and who claimed a valuation.', more: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData, filters: ['range'] },
     emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
@@ -500,7 +526,7 @@
           { label: 'Contact', html: function (r) { return esc(r.email) + (r.phone ? '<div class="muted">' + esc(r.phone) + '</div>' : ''); } },
           { label: 'Revenue', html: function (r) { return esc(r.revenue || '–') + (r.business_status && r.business_status !== 'Trading' ? '<div><span class="pill">' + esc(r.business_status) + '</span></div>' : ''); } },
           { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
-          { label: 'Source', html: function (r) { return esc([r.channel, r.utm_source, r.utm_campaign].filter(Boolean).join(' · ') || '–'); } },
+          { label: 'Source', html: function (r) { return esc([where(r.channel, r.utm_source, r.referrer_host, r.utm_medium), r.utm_campaign].filter(Boolean).join(' · ')); } },
           { label: 'Sent to partner', html: function (r) { return r.redirected ? '✓' : '<span class="pill st-partial">Needs follow-up</span>'; } },
         ], claims, { rowAttr: function (r) { return r.visitor_id ? 'class="click" data-visitor="' + esc(r.visitor_id) + '" tabindex="0" title="See everything they did"' : ''; } }) + '</div>' +
         headlineCard(d) +
@@ -508,7 +534,7 @@
         table([
           { label: 'Last seen', html: function (r) { return esc(when(r.last_ts)) + (r.visits > 1 ? '<div class="muted">' + esc(n(r.visits)) + ' visits</div>' : ''); } },
           { label: 'Who', html: function (r) { return r.claim ? '<strong>' + esc(r.claim.first_name) + '</strong> · ' + esc(r.claim.company || '') + '<div class="muted">' + esc(r.claim.email) + '</div>' : r.lead_id ? '<span class="pill">funnel lead</span>' : '<span class="muted">Anonymous</span>'; } },
-          { label: 'Source', html: function (r) { var s = r.session || {}; return esc([s.channel, s.utm_campaign].filter(Boolean).join(' / ') || 'Direct') + '<div class="muted">' + esc([s.device, [s.city, s.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')) + '</div>'; } },
+          { label: 'Source', html: function (r) { var s = r.session || {}; return esc([where(s.channel, s.utm_source, s.referrer_host, s.utm_medium), s.utm_campaign].filter(Boolean).join(' / ')) + '<div class="muted">' + esc([s.device, [s.city, s.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')) + '</div>'; } },
           { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
           { label: 'Time', num: true, html: function (r) { return esc(r.engaged_ms ? secs(Math.round(r.engaged_ms / 1000)) : '–'); } },
           { label: 'Scrolled', num: true, html: function (r) { return esc(r.scroll ? r.scroll + '%' : '–'); } },
@@ -569,7 +595,7 @@
         table([
           { label: 'Name', html: function (r) { return esc([r.first_name, r.last_name].filter(Boolean).join(' ') || '–') + '<br><span class="muted">' + esc(r.email || '') + '</span>'; } },
           { label: 'Session', html: function (r) { return esc(when(r.starts_at)); } },
-          { label: 'Source', html: function (r) { return esc([r.channel, r.utm_campaign].filter(Boolean).join(' / ') || 'Direct'); } },
+          { label: 'Source', html: function (r) { return esc([where(r.channel, r.utm_source, r.referrer_host, r.utm_medium), r.utm_campaign].filter(Boolean).join(' / ')); } },
           { label: 'Came', html: function (r) { return r.joined_at ? '✓ ' + mins(r.watch_seconds) : r.replay_at ? 'replay' : '–'; } },
           { label: 'Offer', html: function (r) { return r.cta_at ? '✓' : ''; } },
           { label: 'Next', html: function (r) { return r.status === 'won' ? statusPill('won') : r.booked_at ? statusPill('booked') : r.app_completed_at ? statusPill('applied', 'applied' + (r.tier ? ' (' + r.tier + ')' : '')) : ''; } },
@@ -730,7 +756,7 @@
 
   function renderTraffic() {
     var dims = (state.meta && state.meta.dimensions) || [{ key: 'channel', label: 'Channel' }];
-    var dim = state.dim || 'channel';
+    var dim = state.dim || 'platform';
     return api('attribution', { dim: dim }).then(function (d) {
       var rows = d.rows;
       var maxQ = Math.min(1, Math.max.apply(null, rows.map(function (r) { return r.qualified_rate || 0; }).concat([0.0001])));
@@ -752,6 +778,13 @@
           { label: 'Revenue', key: 'revenue', num: true, fmt: money },
           { label: 'Rev / visitor', key: 'revenue_per_visitor', num: true, fmt: money },
         ], rows, { cards: true }) + '</div>' +
+        '<details class="card" style="margin-top:14px"><summary><strong>What do these mean?</strong></summary><ul class="muted" style="margin:10px 0 0;padding-left:18px;line-height:1.6">' +
+        '<li><b>Platform</b>: the actual site or app: Instagram, Facebook, Google, ChatGPT, YouTube…</li>' +
+        '<li><b>Organic social</b>: a social network, not from an ad (Instagram, Facebook, TikTok, LinkedIn, X). <b>Paid social</b> is the same from an ad.</li>' +
+        '<li><b>Organic search</b>: Google, Bing, DuckDuckGo results. <b>AI search</b>: ChatGPT, Claude, Perplexity, Gemini, Copilot, Grok.</li>' +
+        '<li><b>Referral</b>: a link on another website. <b>Messaging</b>: WhatsApp, Telegram, SMS.</li>' +
+        '<li><b>Direct</b>: the browser didn’t say where they came from: typed in, a bookmark, a copied link, or an app that hides it. Instagram and Facebook taps are recognised from their built-in browser, and tracked links (Links &amp; videos) are always named.</li>' +
+        '<li>Bots, link checkers (e.g. Meta checking a link you posted), scripts and your own visits while logged in here are left out of every number.</li></ul></details>' +
         '<p class="muted" style="margin-top:10px">Tip: tag ads with <span class="mono">utm_source</span>, <span class="mono">utm_campaign</span>, <span class="mono">utm_content={{ad.name}}</span> and <span class="mono">ad_id={{ad.id}}</span> to see quality per ad.</p>';
       view.querySelector('[data-dim]').onchange = function (e) { state.dim = e.target.value; load(); };
     });
@@ -798,7 +831,7 @@
           { label: 'Score', key: 'score', num: true, nw: true, fmt: function (v) { return v == null ? '–' : v; } },
           { label: 'Status', nw: true, html: function (l) { return statusPill(l.status); } },
           { label: 'Video', key: 'vsl_pct', num: true, nw: true, fmt: function (v) { return v == null ? '–' : pct(Math.min(1, v)); } },
-          { label: 'Source', html: function (l) { var sub = (l.utm_campaign || '') + (l.utm_content ? ' · ' + l.utm_content : ''); return esc(l.channel || 'Direct') + '<div class="muted ell" title="' + esc(sub) + '">' + (esc(sub) || '&nbsp;') + '</div>'; } },
+          { label: 'Source', html: function (l) { var sub = (l.utm_campaign || '') + (l.utm_content ? ' · ' + l.utm_content : ''); return esc(where(l.channel, l.utm_source, null, l.utm_medium)) + '<div class="muted ell" title="' + esc(sub) + '">' + (esc(sub) || '&nbsp;') + '</div>'; } },
           { label: 'Call', nw: true, html: function (l) { return l.call_at ? esc(when(l.call_at)) : l.booked_at ? 'booked' : '<span class="muted">–</span>'; } },
           { label: 'WhatsApp', nw: true, html: function (l) { return l.whatsapp_connected_at ? '<span class="pill st-won" title="Connected">connected</span>' : l.whatsapp_clicked_at ? '<span class="pill" title="Clicked">clicked</span>' : ''; } },
           { label: 'Country', key: 'country', nw: true },
@@ -910,7 +943,7 @@
         tile('Clicks', n(count('click') + count('data_cta_click')), n(count('data_cta_click')) + ' on “Claim” · ' + n(count('faq_open')) + ' FAQs opened') +
         '</div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Profile</h2><dl class="kv" style="margin-top:10px">' +
-        kv('Headline seen', headline ? P(headline).headline : '–') + kv('Source', [s0.channel, s0.utm_source, s0.utm_campaign, s0.utm_content].filter(Boolean).join(' / ')) +
+        kv('Headline seen', headline ? P(headline).headline : '–') + kv('Source', [where(s0.channel, s0.utm_source, s0.referrer_host, s0.utm_medium), s0.utm_campaign, s0.utm_content].filter(Boolean).join(' / ')) +
         kv('Device', [s0.device, s0.browser, s0.os].filter(Boolean).join(' · ')) + kv('Location', [s0.city, s0.region, s0.country].filter(Boolean).join(', ')) +
         kv('Video', count('data_video_play') || count('vsl_play') ? 'played' : 'not played') + kv('Claim form', c ? 'submitted' : count('data_form_start') ? 'started, didn’t submit' : 'not opened') +
         (c ? kv('Revenue', c.revenue || '–') + kv('Business', c.business_status || '–') : '') + '</dl></div>' +
@@ -960,8 +993,8 @@
         step('Entered on this article', f.landed) + step('Read more than one page', f.engaged) + step('Became a lead', f.leads) + step('Completed the application', f.applied) + step('Booked a call', f.booked) + step('Won', f.won) + '</div></div>' +
         '<div class="card" style="margin-top:14px"><h2>Where they came from</h2><div class="chart" data-art-series></div></div>' +
         '<div class="grid g-2" style="margin-top:14px">' +
-        listCard('Source', d.referrers, 'source', 'The site or search engine they arrived from.') +
-        listCard('Channel', d.channels, 'channel', 'Search, AI assistant, social, direct…') +
+        listCard('Platform', d.referrers, 'source', 'Google, ChatGPT, Instagram… “Direct” means the browser didn’t say: typed in, a bookmark, or an app that hides links.') +
+        listCard('Exact site', d.sites, 'source', 'The referring website, when the browser passed it on.') +
         '</div>' +
         '<div class="grid g-2" style="margin-top:14px">' +
         listCard('Search terms', d.terms, 'term', 'Only when the link carried one — Google and Bing hide most queries.') +
@@ -1035,7 +1068,7 @@
         kv('Email', l.unsubscribed_at ? 'unsubscribed' : 'subscribed') + kv('Phone calls', l.do_not_call_at ? 'do not call (since ' + when(l.do_not_call_at) + ')' : l.call_consent_at ? 'consented to AI calls ' + when(l.call_consent_at) : 'no call consent') + kv('Visits', d.sessions.length) + '</dl>' +
         // Ad-tracking fields, folded away: useful for checking attribution, not for the call.
         '<details class="more-rows"><summary>Tracking details</summary><dl class="kv">' +
-        kv('Route', l.route) + kv('Last touch', [l.channel, l.utm_source, l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [l.ft_channel, l.ft_source, l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
+        kv('Route', l.route) + kv('Last touch', [where(l.channel, l.utm_source, null, l.utm_medium), l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [where(l.ft_channel, l.ft_source), l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
         kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline version', l.variant) + kv('Ref code', l.ref_code) + '</dl></details></div></div>' +
         dealCard(l) +
         '<div class="grid g-2" style="margin-top:14px"><div class="card" id="ld-app"><h2>Application</h2><dl class="kv" style="margin-top:10px">' + d.answers.map(function (a) { return kv(a.question, a.answer); }).join('') + '</dl>' +
@@ -1115,7 +1148,7 @@
           { label: 'Lead', html: function (r) { return lead(r) + (r.tier ? ' <span class="tier ' + esc(r.tier) + '">' + esc(r.tier) + '</span>' : ''); } },
           { label: 'Closer', nw: true, html: function (r) { return esc(repName(r.closer_id)); } },
           { label: 'VSL', num: true, html: function (r) { return '<span class="todo-k">Watched </span>' + esc(r.vsl_pct ? pct(Math.min(1, r.vsl_pct)) : '–'); } },
-          { label: 'Source', html: function (r) { return '<span class="muted">' + esc([r.channel || 'Direct', r.utm_content].filter(Boolean).join(' / ')) + '</span>'; } },
+          { label: 'Source', html: function (r) { return '<span class="muted">' + esc([where(r.channel, r.utm_source, r.referrer_host, r.utm_medium), r.utm_content].filter(Boolean).join(' / ')) + '</span>'; } },
         ], d.upcoming, { empty: 'No calls booked in the next 14 days.' }) + '</div></div>' +
         '<div class="card" style="margin-top:14px"><h2>Leaderboard</h2><p class="sub">Calls scheduled and deals closed in this range. Commission is on cash collected. Target bar is month to date (' + esc(d.tz) + ').</p>' +
         table([
@@ -1139,7 +1172,7 @@
           { label: 'Outcome', html: function (r) { return '<span class="pill out-' + esc(r.status) + ' st-' + esc(String(r.status || '').replace(/[^a-z_]/gi, '')) + '">' + esc(STATUS_LABEL[r.status] || r.status) + '</span>' + (r.lost_reason ? ' <span class="muted">' + esc(r.lost_reason) + '</span>' : ''); } },
           { label: 'Value', num: true, nw: true, html: function (r) { return r.status === 'won' ? esc(money(r.revenue)) + '<div class="muted">' + esc(money(r.cash_collected)) + ' cash</div>' : ''; } },
           { label: 'Closer', nw: true, html: function (r) { return esc(repName(r.closer_id)); } },
-          { label: 'Source', html: function (r) { var src = [r.channel || 'Direct', r.utm_campaign, r.utm_content].filter(Boolean).join(' / '); return '<div class="muted ell" style="max-width:260px" title="' + esc(src) + '">' + esc(src) + '</div>'; } },
+          { label: 'Source', html: function (r) { var src = [where(r.channel, r.utm_source, r.referrer_host, r.utm_medium), r.utm_campaign, r.utm_content].filter(Boolean).join(' / '); return '<div class="muted ell" style="max-width:260px" title="' + esc(src) + '">' + esc(src) + '</div>'; } },
         ], d.recent, { cards: true }) + '</div>' +
         // Lost reasons: a full chart when there are some, one quiet line when there are none.
         (d.lostReasons.length ? '<div class="card" style="margin-top:14px"><h2>Why deals are lost</h2><p class="sub">Lost reasons logged in this range.</p>' + barList(d.lostReasons.map(function (r) { return { name: r.reason, value: r.n }; })) + '</div>'
@@ -1540,41 +1573,59 @@
   state.linkModel = state.linkModel || 'first';
   function renderLinks() {
     return api('links', { model: state.linkModel }).then(function (d) {
-      var PL = { description: 'Description', pinned_comment: 'Pinned comment', end_screen: 'End screen', card: 'Card', community_post: 'Community post', shorts: 'Shorts', channel_about: 'Channel about', other: 'Other' };
+      var PL = { description: 'Description', pinned_comment: 'Pinned comment', end_screen: 'End screen', card: 'Card', community_post: 'Community post', shorts: 'Shorts', channel_about: 'Channel about', other: 'Other',
+        bio: 'Bio', dm: 'DM (ManyChat)', story: 'Story', post: 'Post / caption', broadcast: 'Broadcast channel', newsletter: 'Newsletter', show_notes: 'Show notes', qr: 'QR code' };
+      var PRE = d.presets || {};
       function r(a, b) { return b ? pct(a / b) : '–'; }
-      // Roll links up to one row per video (custom links stay on their own).
+      // One row per YouTube video, and one per platform for everything else (Instagram, ManyChat, TikTok…).
       var groups = {}, order = [];
       d.links.forEach(function (l) {
-        var k = l.video_id || ('custom:' + l.code);
-        if (!groups[k]) { groups[k] = { title: l.video_title || l.label, thumb: l.thumbnail, video_id: l.video_id, links: [], clicks_total: 0, visitors: 0, vsl_viewers: 0, leads: 0, applications: 0, qualified: 0, booked: 0, showed: 0, won: 0, revenue: 0 }; order.push(k); }
+        var k = l.video_id || ('p:' + platformOf(l.utm_source, null, l.utm_medium));
+        if (!groups[k]) { groups[k] = { title: l.video_id ? (l.video_title || l.label) : platformOf(l.utm_source, null, l.utm_medium), thumb: l.thumbnail, video_id: l.video_id, links: [], clicks_total: 0, visitors: 0, vsl_viewers: 0, leads: 0, applications: 0, qualified: 0, booked: 0, showed: 0, won: 0, revenue: 0 }; order.push(k); }
         var g = groups[k]; g.links.push(l);
         ['clicks_total', 'visitors', 'vsl_viewers', 'leads', 'applications', 'qualified', 'booked', 'showed', 'won', 'revenue'].forEach(function (m) { g[m] += l[m] || 0; });
       });
       var cols = [
-        { label: 'Clicks', key: 'clicks_total', num: true, fmt: n }, { label: 'Visitors', key: 'visitors', num: true, fmt: n }, { label: 'Watched VSL', key: 'vsl_viewers', num: true, fmt: n },
+        { label: 'Link opens', key: 'clicks_total', num: true, fmt: n }, { label: 'People', key: 'visitors', num: true, fmt: n }, { label: 'Watched VSL', key: 'vsl_viewers', num: true, fmt: n },
         { label: 'Leads', key: 'leads', num: true, fmt: n }, { label: 'Applied', key: 'applications', num: true, fmt: n }, { label: 'Qualified', key: 'qualified', num: true, fmt: n },
         { label: 'Booked', key: 'booked', num: true, fmt: n }, { label: 'Showed', key: 'showed', num: true, fmt: n }, { label: 'Won', key: 'won', num: true, fmt: n },
         { label: 'Revenue', key: 'revenue', num: true, fmt: function (v) { return v ? '$' + n(v) : '–'; } },
         { label: 'Visit → booked', num: true, html: function (x) { return esc(r(x.booked, x.visitors)); } },
       ];
       view.innerHTML =
-        '<div class="card"><h2>New tracked link</h2><p class="sub">Paste a YouTube video link and pick where the link will go. Use a separate link for each placement, so you can see which one sends buyers.</p>' +
-        '<div class="row" style="gap:10px;flex-wrap:wrap"><input class="input" data-yt placeholder="https://www.youtube.com/watch?v=…" style="flex:2;min-width:260px">' +
-        '<select class="input" data-pl>' + d.placements.map(function (p) { return '<option value="' + p + '">' + esc(PL[p] || p) + '</option>'; }).join('') + '</select>' +
-        '<input class="input" data-label placeholder="Name (optional)" style="flex:1;min-width:160px"><button class="btn-sm" data-create type="button">Create link</button></div>' +
+        '<div class="card"><h2>New tracked link</h2><p class="sub">Make one link for each place you post it: your Instagram bio, each ManyChat flow, each YouTube video… Every open is counted and followed to booked calls and deals.</p>' +
+        '<div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-end">' +
+        '<label style="flex:1;min-width:220px"><span class="muted">Where will it go?</span><select class="input" data-preset><optgroup label="YouTube"><option value="yt">YouTube video</option></optgroup>' +
+        ['Instagram', 'Facebook', 'Other social', 'Other'].map(function (gname) { return '<optgroup label="' + esc(gname) + '">' + Object.keys(PRE).filter(function (k) { return PRE[k].group === gname; }).map(function (k) { return '<option value="' + esc(k) + '">' + esc(PRE[k].label) + '</option>'; }).join('') + '</optgroup>'; }).join('') + '</select></label>' +
+        '<label style="flex:2;min-width:260px" data-ytonly><span class="muted">YouTube video link</span><input class="input" data-yt placeholder="https://www.youtube.com/watch?v=…"></label>' +
+        '<label data-ytonly><span class="muted">Spot</span><select class="input" data-pl>' + d.placements.map(function (p) { return '<option value="' + p + '">' + esc(PL[p] || p) + '</option>'; }).join('') + '</select></label>' +
+        '<label style="flex:1;min-width:180px"><span class="muted">Name</span><input class="input" data-label placeholder="e.g. “Free guide” ManyChat flow"></label>' +
+        '<label style="flex:1;min-width:160px"><span class="muted">Sends them to</span><input class="input" data-dest placeholder="/ (the main page)"></label>' +
+        '<button class="btn-sm" data-create type="button">Create link</button></div>' +
+        '<p class="muted" data-mchint style="display:none;margin:10px 0 0">ManyChat: paste the short link into a button (or the message text) in your flow. Use a separate link per flow or keyword, and you’ll see which one books calls.</p>' +
         '<p data-made style="margin:12px 0 0"></p></div>' +
-        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>By video</h2><p class="sub">Leads credited by ' + (state.linkModel === 'first' ? '<b>first touch</b> (the link that first brought them in)' : '<b>last touch</b> (the link they came through when they applied)') + '.</p></div>' +
+        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>By video &amp; platform</h2><p class="sub">Leads credited by ' + (state.linkModel === 'first' ? '<b>first touch</b> (the link that first brought them in)' : '<b>last touch</b> (the link they came through when they applied)') + '.</p></div>' +
         '<div class="row"><button class="btn-sm ' + (state.linkModel === 'first' ? '' : 'ghost') + '" data-model="first" type="button">First touch</button><button class="btn-sm ' + (state.linkModel === 'last' ? '' : 'ghost') + '" data-model="last" type="button">Last touch</button></div></div>' +
-        (order.length ? table([{ label: 'Video', html: function (g) { return '<div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap">' + (g.thumb ? '<img src="' + esc(g.thumb) + '" alt="" width="80" height="45" style="border-radius:4px;object-fit:cover;flex:none">' : '') + '<span>' + (g.video_id ? '<a href="https://www.youtube.com/watch?v=' + esc(g.video_id) + '" target="_blank" rel="noopener">' + esc(g.title) + '</a>' : esc(g.title)) + '<div class="muted">' + g.links.length + ' link' + (g.links.length === 1 ? '' : 's') + '</div></span></div>'; } }].concat(cols), order.map(function (k) { return groups[k]; }), { cards: true }) : '<p class="muted">No tracked links yet. Create one above and put it in your video description.</p>') + '</div>' +
+        (order.length ? table([{ label: 'Video / platform', html: function (g) { return '<div class="row" style="gap:10px;align-items:center;flex-wrap:nowrap">' + (g.thumb ? '<img src="' + esc(g.thumb) + '" alt="" width="80" height="45" style="border-radius:4px;object-fit:cover;flex:none">' : '') + '<span>' + (g.video_id ? '<a href="https://www.youtube.com/watch?v=' + esc(g.video_id) + '" target="_blank" rel="noopener">' + esc(g.title) + '</a>' : esc(g.title)) + '<div class="muted">' + g.links.length + ' link' + (g.links.length === 1 ? '' : 's') + '</div></span></div>'; } }].concat(cols), order.map(function (k) { return groups[k]; }), { cards: true }) : '<p class="muted">No tracked links yet. Create one above for your Instagram bio, a ManyChat flow or a video.</p>') + '</div>' +
         (d.links.length ? '<div class="card" style="margin-top:14px"><h2>By link</h2>' + table([
-          { label: 'Link', html: function (l) { return '<strong>' + esc(l.label) + '</strong><div class="muted">' + esc(PL[l.placement] || l.placement || l.utm_source) + '</div>'; } },
+          { label: 'Link', html: function (l) { return '<strong>' + esc(l.label) + '</strong><div class="muted">' + esc(platformOf(l.utm_source, null, l.utm_medium) + ' · ' + (PL[l.placement] || l.placement || l.utm_medium)) + (l.dest_path && l.dest_path !== '/' ? ' → ' + esc(l.dest_path) : '') + '</div>'; } },
           { label: 'Short URL', html: function (l) { return '<button class="btn-sm ghost" type="button" data-copy="' + esc(l.short_url) + '">Copy</button> <span class="mono muted">/l/' + esc(l.code) + '</span>'; } },
         ].concat(cols).concat([{ label: '', html: function (l) { return '<button class="btn-sm ghost" type="button" data-del="' + esc(l.code) + '" title="Archive">✕</button>'; } }]), d.links, { cards: true }) + '</div>' : '') +
-        '<p class="sub" style="margin-top:14px">Links to your site with UTM tags work too (they show under Traffic &amp; ads). Tracked links are better for YouTube: short, and every one is followed to revenue.</p>';
+        '<p class="sub" style="margin-top:14px">“Link opens” counts real taps (link-preview bots and Meta’s link checks are left out). “People” counts the ones who actually loaded the page.</p>';
+      function syncPreset() {
+        var yt = view.querySelector('[data-preset]').value === 'yt';
+        view.querySelectorAll('[data-ytonly]').forEach(function (el) { el.style.display = yt ? '' : 'none'; });
+        view.querySelector('[data-mchint]').style.display = /manychat/.test(view.querySelector('[data-preset]').value) ? '' : 'none';
+      }
+      view.querySelector('[data-preset]').onchange = syncPreset;
+      syncPreset();
       view.querySelector('[data-create]').onclick = function () {
         var out = view.querySelector('[data-made]');
         out.textContent = 'Creating…';
-        send('POST', 'links', { url: view.querySelector('[data-yt]').value, placement: view.querySelector('[data-pl]').value, label: view.querySelector('[data-label]').value }).then(function (res) {
+        var preset = view.querySelector('[data-preset]').value;
+        var dest = view.querySelector('[data-dest]').value.trim().replace(/^https?:\/\/[^/]+/, '');
+        if (dest && dest.charAt(0) !== '/') dest = '/' + dest;
+        send('POST', 'links', { preset: preset === 'yt' ? undefined : preset, url: preset === 'yt' ? view.querySelector('[data-yt]').value : undefined, placement: view.querySelector('[data-pl]').value, label: view.querySelector('[data-label]').value, dest_path: dest || undefined }).then(function (res) {
           if (!res.ok) { out.textContent = res.error || 'Could not create the link'; return; }
           out.innerHTML = 'Created for <b>' + esc(res.link.video_title || res.link.label) + '</b>: <span class="mono">' + esc(res.link.short_url) + '</span> <button class="btn-sm" type="button" data-copy="' + esc(res.link.short_url) + '">Copy</button>';
           wireCopy(out);
@@ -1995,6 +2046,7 @@
           { label: 'Guide', html: function (r) { return '<strong>' + esc(r.h1) + '</strong><div class="muted">' + esc(r.section) + (r.host === 'data' ? ' · data site' : '') + ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">open ↗</a></div>'; } },
           { label: 'Reads', key: 'views', num: true, fmt: n }, { label: 'People', key: 'visitors', num: true, fmt: n },
           { label: 'Entered here', num: true, nw: true, html: function (r) { return n(r.landed) + (r.landed ? '<div class="muted">' + n(r.fromSearch) + ' search · ' + n(r.fromAi) + ' AI</div>' : ''); } },
+          { label: 'Came from', html: function (r) { return (r.sources || []).length ? r.sources.map(function (x) { return esc(x.source) + ' <span class="muted">' + n(x.sessions) + '</span>'; }).join('<br>') : '<span class="muted">–</span>'; } },
           { label: 'Clicked CTA', key: 'ctas', num: true, fmt: n },
           { label: 'Leads', num: true, nw: true, html: function (r) { return n(r.leads) + (r.booked ? ' <span class="muted">(' + n(r.booked) + ' booked)</span>' : ''); } },
         ], guides, { cards: true, rowAttr: function (r) { return 'class="click" data-article="' + esc(r.slug) + '" tabindex="0" title="See where this article’s visitors come from"'; } }) + '</div>' +
@@ -2481,7 +2533,7 @@
       { label: 'Event', html: function (e) { return '<strong>' + esc(EVENT_LABELS[e.name] || e.name) + '</strong> <span class="muted">' + esc(e.path || '') + '</span>'; } },
       { label: 'Who', html: function (e) { return e.lead_id ? '<a href="#lead=' + esc(e.lead_id) + '" data-open="' + esc(e.lead_id) + '">' + esc([e.first_name, e.last_name].filter(Boolean).join(' ') || 'lead') + '</a>' + (e.tier ? ' <span class="tier ' + esc(e.tier) + '">' + esc(e.tier) + '</span>' : '') : (e.visitor_id ? '<a href="#" data-visitor="' + esc(e.visitor_id) + '" class="muted">anonymous</a>' : '<span class="muted">anonymous</span>'); } },
       { label: 'Where', html: function (e) { return esc([e.city, e.country].filter(Boolean).join(', ')); } },
-      { label: 'Source', html: function (e) { return esc(e.channel || '') + (e.utm_campaign ? ' <span class="muted">' + esc(e.utm_campaign) + '</span>' : ''); } },
+      { label: 'Source', html: function (e) { return esc(where(e.channel, e.utm_source, e.referrer_host, e.utm_medium)) + (e.utm_campaign ? ' <span class="muted">' + esc(e.utm_campaign) + '</span>' : ''); } },
       { label: 'Device', key: 'device' },
     ];
     function wire() {

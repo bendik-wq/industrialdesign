@@ -5,10 +5,10 @@ import { HEADLINE_EXPERIMENT } from '../config';
 import { flag } from '../settings';
 import { type Touch, isCampaignTouch, touchFromUrl } from './attribution';
 import { hmacHex, unitHash } from './crypto';
-import { type Geo, geoFromRequest, isDatacenter } from './geo';
+import { type Geo, geoFromRequest, isDatacenter, isLinkChecker } from './geo';
 import { newId } from './ids';
 import { getSecret } from './secret';
-import { isAdmin } from '../admin/auth';
+import { ADMIN_COOKIE, isAdmin } from '../admin/auth';
 import { type ParsedUA, parseUA } from './ua';
 
 export const COOKIE = {
@@ -81,6 +81,12 @@ export async function resolveVisitor(c: Context<AppEnv>, kind: 'page' | 'beacon'
   let botReason = ua.botReason ?? null;
   if (!botReason && kind === 'page' && !req.headers.get('accept-language')) botReason = 'no-accept-language';
   if (!botReason && isDatacenter(geo) && /HeadlessChrome|Electron/.test(userAgent)) botReason = 'datacenter-headless';
+  // Every real browser says which OS it's on, in brackets ("Mozilla/5.0 (iPhone; …"). Scripts often don't.
+  if (!botReason && !userAgent.includes('(')) botReason = 'fake-ua';
+  // Meta checks every link posted on Facebook / Instagram / in ads from its own network, with a normal-looking browser.
+  if (!botReason && isLinkChecker(geo)) botReason = 'link-checker';
+  // You and your team, logged in to Funnel HQ in this browser: never counted as traffic.
+  if (!botReason && kind === 'page' && getCookie(c, ADMIN_COOKIE) && (await isAdmin(c))) botReason = 'internal';
   // Funnel HQ → Pages previews: recorded as a bot so they never count in stats, tests or ad platforms.
   if (url.searchParams.get('hq_preview') === '1' && (await isAdmin(c))) botReason = 'admin-preview';
   const isBot = Boolean(botReason);
@@ -89,7 +95,7 @@ export async function resolveVisitor(c: Context<AppEnv>, kind: 'page' | 'beacon'
   const isNewVisitor = !visitorId || !/^v[0-9a-z]{12,24}$/.test(visitorId);
   if (isNewVisitor) visitorId = newId('v');
 
-  const touch = kind === 'page' ? touchFromUrl(url, req.headers.get('referer'), url.hostname) : null;
+  const touch = kind === 'page' ? touchFromUrl(url, req.headers.get('referer'), url.hostname, userAgent) : null;
   let sessionId = getCookie(c, COOKIE.session);
   // A fresh ad click always starts a new session so last-touch attribution is exact.
   const isNewSession = isNewVisitor || !sessionId || !/^s[0-9a-z]{12,24}$/.test(sessionId) || Boolean(touch && isCampaignTouch(touch));

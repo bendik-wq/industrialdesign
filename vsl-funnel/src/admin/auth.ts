@@ -4,7 +4,7 @@ import type { AppEnv } from '../app';
 import { safeEqual, signToken, verifyToken } from '../lib/crypto';
 import { getSecret } from '../lib/secret';
 
-const ADMIN_COOKIE = '_fa';
+export const ADMIN_COOKIE = '_fa';
 const TTL_S = 3 * 24 * 3600;
 const MAX_FAILS = 10;
 const FAIL_WINDOW_MS = 15 * 60_000;

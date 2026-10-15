@@ -42,7 +42,7 @@ import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
 import { LOST_REASONS, OBJECTIONS, PAYMENT_PLANS, TEMPERATURES, type LeadUpdate, applyLeadUpdate, deletePayment, recordPayment } from '../sales/outcomes';
 import { META_API_VERSION, metaUserData } from '../tracking/forward';
 import { geoFromRequest } from '../lib/geo';
-import { PLACEMENTS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
+import { PLACEMENTS, PRESETS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
 
 export const admin = new Hono<AppEnv>();
 admin.use('*', requireAdmin);
@@ -726,13 +726,16 @@ admin.get('/links', async (c) => {
   return c.json({
     model,
     placements: PLACEMENTS,
+    presets: PRESETS,
     links: rows.map((l) => ({ ...l, short_url: `${rt.origin}/l/${l.code}`, ...(funnels.get(l.code) ?? {}), clicks_total: l.clicks })),
   });
 });
 
 admin.post('/links', async (c) => {
-  const body = await c.req.json<{ url?: string; label?: string; placement?: string; dest_path?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string }>().catch(() => ({} as Record<string, string>));
-  const placement = PLACEMENTS.includes(body.placement as (typeof PLACEMENTS)[number]) ? body.placement! : null;
+  const body = await c.req.json<{ url?: string; label?: string; placement?: string; preset?: string; dest_path?: string; utm_source?: string; utm_medium?: string; utm_campaign?: string }>().catch(() => ({} as Record<string, string>));
+  const preset = body.preset && Object.hasOwn(PRESETS, body.preset) ? PRESETS[body.preset] : null;
+  if (preset) Object.assign(body, { utm_source: preset.source, utm_medium: preset.medium, label: body.label || preset.label, utm_campaign: body.utm_campaign || body.label || preset.label, url: undefined });
+  const placement = preset ? preset.placement : PLACEMENTS.includes(body.placement as (typeof PLACEMENTS)[number]) ? body.placement! : null;
   const dest = typeof body.dest_path === 'string' && /^\/(?!\/)[\w\-/]*$/.test(body.dest_path) ? body.dest_path : '/';
   const videoId = body.url ? youtubeId(body.url) : null;
   let link: Omit<TrackedLink, 'clicks' | 'last_click_at' | 'archived'>;
@@ -744,7 +747,7 @@ admin.post('/links', async (c) => {
       label: (body.label || title).slice(0, 120), utm_source: 'youtube', utm_medium: 'video', utm_campaign: `yt-${slug(title, 50)}-${videoId}`, created_at: Date.now(),
     };
   } else {
-    if (!body.label || !body.utm_source) return c.json({ ok: false, error: 'Paste a YouTube video URL, or give the link a name and a source.' }, 400);
+    if (!body.label || !body.utm_source) return c.json({ ok: false, error: 'Paste a YouTube video URL, or pick where the link goes.' }, 400);
     link = {
       code: newLinkCode(), kind: 'custom', video_id: null, video_title: null, thumbnail: null, placement, dest_path: dest, label: body.label.slice(0, 120),
       utm_source: slug(body.utm_source, 40), utm_medium: slug(body.utm_medium || 'referral', 40), utm_campaign: slug(body.utm_campaign || body.label, 60), created_at: Date.now(),

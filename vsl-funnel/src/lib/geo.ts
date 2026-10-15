@@ -45,5 +45,8 @@ export function geoFromRequest(req: Request): Geo {
 }
 
 /** Hosting / datacenter ASNs — traffic from these is almost never a real prospect. */
-const DATACENTER_ORG = /amazon|aws|google cloud|googlecloud|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|vultr|oracle cloud|alibaba|tencent cloud|contabo|leaseweb|choopa|m247|datacamp|scaleway/i;
+export const DATACENTER_ORG = /amazon|aws|google cloud|googlecloud|google llc|microsoft azure|digitalocean|linode|akamai|ovh|hetzner|vultr|oracle|alibaba|tencent|contabo|leaseweb|choopa|m247|datacamp|code200|scaleway|anthropic|openai|abacus\.ai|onyphe|censys|shodan|egihosting|logicweb|web2objects|techoff|1337 services|virtualine|tc datacenter|techties|hostinger|ionos|hostwinds|colocrossing|psychz|quadranet|zenlayer|g-core|gcore|servers\.com|frantech|buyvm|bytedance/i;
 export const isDatacenter = (g: Geo) => Boolean(g.asOrg && DATACENTER_ORG.test(g.asOrg));
+
+/** Meta's own network (AS32934): link previews, ad review and safety checks, not people. */
+export const isLinkChecker = (g: Geo) => g.asn === 32934 || /facebook|meta platforms/i.test(g.asOrg ?? '');

@@ -48,10 +48,13 @@ export function hostOf(url: string | null | undefined) {
  * Builds the touch for a landing request: UTMs, click ids and a channel
  * classification modelled on GA4's default channel grouping.
  */
-export function touchFromUrl(url: URL, referrer: string | null, selfHost: string): Touch {
+export function touchFromUrl(url: URL, referrer: string | null, selfHost: string, userAgent = ''): Touch {
   const q = url.searchParams;
   const refHost = hostOf(referrer);
   const externalRef = refHost && refHost !== selfHost.replace(/^www\./, '') ? refHost : null;
+  // Instagram, Facebook, TikTok… open links in their own browser, which often sends no referrer.
+  // Without this, a tap on an Instagram bio link would read as "Direct".
+  const inApp = inAppSource(userAgent);
 
   let clickType: string | null = null;
   let clickId: string | null = null;
@@ -71,6 +74,7 @@ export function touchFromUrl(url: URL, referrer: string | null, selfHost: string
   if (!medium && clickType) medium = paidClick ? 'paid' : 'social';
   if (!source && externalRef) source = externalRef;
   if (!medium && externalRef) medium = 'referral';
+  if (!source && inApp) [source, medium] = [inApp, medium ?? 'social'];
 
   return {
     channel: classifyChannel(source, medium, externalRef, paidClick),
@@ -108,6 +112,72 @@ export function classifyChannel(source: string | null, medium: string | null, re
   if (m === 'referral' || refHost) return 'Referral';
   if (s) return 'Other Campaign';
   return 'Direct';
+}
+
+/** The app whose built-in browser opened the link, from its user agent. */
+export function inAppSource(ua: string | null | undefined): string | null {
+  const s = ua ?? '';
+  if (/Instagram/.test(s)) return 'instagram';
+  if (/FBAN|FBAV|FB_IAB|FBIOS/.test(s)) return 'facebook';
+  if (/Barcelona/.test(s)) return 'threads';
+  if (/musical_ly|BytedanceWebview|TikTok/i.test(s)) return 'tiktok';
+  if (/LinkedInApp/.test(s)) return 'linkedin';
+  if (/Snapchat/.test(s)) return 'snapchat';
+  if (/Twitter for|TwitterAndroid/.test(s)) return 'x';
+  if (/Pinterest/.test(s)) return 'pinterest';
+  return null;
+}
+
+/** Named platforms, checked against the source and the referring site. Order matters: first match wins. */
+const PLATFORMS: [RegExp, string][] = [
+  [token('manychat'), 'ManyChat'],
+  [token('chatgpt|chat\\.openai|openai'), 'ChatGPT'],
+  [token('claude|anthropic'), 'Claude'],
+  [token('perplexity'), 'Perplexity'],
+  [token('gemini|bard'), 'Gemini'],
+  [token('copilot'), 'Copilot'],
+  [token('grok|x\\.ai'), 'Grok'],
+  [token('meta\\.ai'), 'Meta AI'],
+  [token('deepseek'), 'DeepSeek'],
+  [token('you\\.com|phind|kagi|poe\\.com|mistral'), 'Other AI'],
+  [token('instagram|ig'), 'Instagram'],
+  [token('threads'), 'Threads'],
+  [token('facebook|fb|messenger'), 'Facebook'],
+  [token('youtube|youtu\\.be'), 'YouTube'],
+  [token('tiktok'), 'TikTok'],
+  [token('linkedin|lnkd'), 'LinkedIn'],
+  [token('x|x\\.com|t\\.co|twitter'), 'X'],
+  [token('reddit'), 'Reddit'],
+  [token('pinterest'), 'Pinterest'],
+  [token('snapchat'), 'Snapchat'],
+  [token('whatsapp|wa\\.me'), 'WhatsApp'],
+  [token('telegram'), 'Telegram'],
+  [token('email|newsletter|gmail|outlook|mail|resend|klaviyo|mailchimp'), 'Email'],
+  [token('google'), 'Google'],
+  [token('bing'), 'Bing'],
+  [token('duckduckgo'), 'DuckDuckGo'],
+  [token('yahoo'), 'Yahoo'],
+  [token('brave'), 'Brave Search'],
+  [token('ecosia'), 'Ecosia'],
+  [/workers\.dev$/, 'Old workers.dev link'],
+];
+
+/**
+ * Plain-English "where they came from": Instagram, Google, ChatGPT, YouTube… Falls back to the
+ * referring site, then to "Direct" (typed in, a bookmark, or an app that hides where the link was).
+ */
+export function platformOf(source: string | null | undefined, refHost?: string | null, medium?: string | null): string {
+  const s = (source ?? '').toLowerCase();
+  const r = (refHost ?? '').toLowerCase();
+  const m = (medium ?? '').toLowerCase();
+  for (const [re, name] of PLATFORMS) {
+    if (re.test(s) || re.test(r)) {
+      if (name === 'Instagram' && /dm|manychat/.test(m)) return 'Instagram DM';
+      if (name === 'ManyChat') return 'Instagram DM';
+      return name;
+    }
+  }
+  return s || r || 'Direct';
 }
 
 /** A touch "counts" as a new campaign arrival (forces a new session, updates last-touch). */
