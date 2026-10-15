@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Topic } from '../src/content/ideas';
-import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packMiroLayout, rulesPack, scriptParas, type VideoPack } from '../src/content/video-pack';
+import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packDocRtf, packMiroLayout, rulesPack, scriptParas, type VideoPack } from '../src/content/video-pack';
 import pack from './fixtures/pack-t1.json';
 import topic from './fixtures/topic-t1.json';
 
@@ -24,6 +24,17 @@ describe('video pack: Google Doc', () => {
       expect(parts.join(' ').replace(/\s+/g, ' ')).toBe(s.replace(/\s+/g, ' ').trim());
       for (const x of parts) expect(x.split(/\s+/).length).toBeLessThan(110);
     }
+  });
+  it('renders the same document as RTF for Google Docs: page breaks, unsplittable slides, escaped text', () => {
+    const rtf = packDocRtf({ ...P, big_idea: 'Brace {yourself} \\ “quotes”' }, T, { index: 0, miroUrl: 'https://miro.com/app/board/x/' });
+    expect(rtf.startsWith('{\\rtf1')).toBe(true);
+    expect(rtf.split('\\pagebb').length - 1).toBeGreaterThanOrEqual(P.beats.length + 5);
+    expect(rtf).toContain('\\trkeep');
+    expect(rtf).toContain('Brace \\{yourself\\} \\\\ \\u8220?quotes\\u8221?');
+    expect(rtf).toContain('HYPERLINK "https://miro.com/app/board/x/"');
+    let depth = 0;
+    for (const ch of rtf.replace(/\\[\\{}]/g, '')) { if (ch === '{') depth++; if (ch === '}') depth--; expect(depth).toBeGreaterThanOrEqual(0); }
+    expect(depth).toBe(0);
   });
   it('escapes anything typed into the pack', () => {
     const bad = { ...P, big_idea: '<img src=x onerror=alert(1)>' };
@@ -89,9 +100,10 @@ describe('Google Drive', () => {
       return new Response(JSON.stringify({ id: 'D1', webViewLink: 'https://docs.google.com/document/d/D1/edit' }));
     }) as unknown as typeof fetch;
     const rt = { settings: { GOOGLE_CLIENT_ID: 'c', GOOGLE_CLIENT_SECRET: 's', GOOGLE_REFRESH_TOKEN: 'r', GOOGLE_DRIVE_FOLDER_ID: 'FOLDER' } } as never;
-    expect(await createGoogleDoc(rt, 'Doc', '<p>Hi</p>', fake)).toBe('https://docs.google.com/document/d/D1/edit');
+    expect(await createGoogleDoc(rt, 'Doc', '{\\rtf1 Hi}', fake)).toBe('https://docs.google.com/document/d/D1/edit');
     expect(seen[1].body).toContain('"mimeType":"application/vnd.google-apps.document"');
     expect(seen[1].body).toContain('"parents":["FOLDER"]');
-    expect(seen[1].body).toContain('<p>Hi</p>');
+    expect(seen[1].body).toContain('Content-Type: application/rtf');
+    expect(seen[1].body).toContain('{\\rtf1 Hi}');
   });
 });

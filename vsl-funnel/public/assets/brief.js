@@ -31,7 +31,10 @@
   q('ovx').onclick = function () { ov.classList.remove('on'); };
   ov.onclick = function (ev) { if (ev.target === ov) ov.classList.remove('on'); };
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') ov.classList.remove('on'); });
-  q('dl').onclick = function () {
+  if (q('dlrtf')) q('dlrtf').addEventListener('click', function () {
+    q('ovs').textContent = 'Downloading. In Google Drive choose New → File upload, then right-click the file → Open with → Google Docs.';
+  });
+  if (q('dl')) q('dl').onclick = function () {
     var name = (document.title || 'document').replace(/[^\w\s.-]+/g, '').trim().slice(0, 80) || 'document';
     var file = '<!doctype html><html><head><meta charset="utf-8"><title>' + name + '</title></head><body>' + doc.innerHTML + '</body></html>';
     var a = document.createElement('a');

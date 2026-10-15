@@ -2,7 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Runtime } from '../app';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
 import type { Sprint, Topic } from './ideas';
-import { BELIEF, INK, MUTED, PAGE_BREAK, PAPER, ROW, STAGE, YELLOW, e, ordered, table, unquote } from './sprint-export';
+import { type Block, type Cell, type Para, type Run, type Table, toHtml, toRtf } from './doc-model';
+import { BELIEF, INK, MUTED, PAPER, ROW, STAGE, YELLOW, e, ordered, unquote } from './sprint-export';
 
 /**
  * Video packs: everything Josh needs to film and present ONE video from a sprint.
@@ -195,31 +196,22 @@ export function rulesPack(t: Topic, next: Topic | null): VideoPack {
 
 // ───────────── Google Doc ─────────────
 // One typeface, a monochrome palette, hairlines instead of boxes, and one idea per page.
-// Only what Google Docs keeps on import: font size/weight/colour, line-height, margins,
-// cell padding/background, per-side borders and page breaks (custom fonts and tracking are dropped).
+// Built once as blocks, then rendered as RTF for Google Docs and HTML for the browser.
 
 const D = { text: '#1D1D1F', sub: '#6E6E73', faint: '#86868B', line: '#D2D2D7', surface: '#F5F5F7', slide: '#000000', slideSub: '#A1A1A6', accent: YELLOW };
 
-type T = { size?: number; color?: string; bold?: boolean; italic?: boolean; lh?: number; mt?: number; mb?: number; center?: boolean };
-const t = (html: string, o: T = {}) => {
-  const st = [`font-size:${o.size ?? 11}pt`, `color:${o.color ?? D.text}`, o.bold ? 'font-weight:bold' : '', o.italic ? 'font-style:italic' : '',
-    `line-height:${o.lh ?? 1.5}`, `margin:${o.mt ?? 0}pt 0 ${o.mb ?? 0}pt 0`, o.center ? 'text-align:center' : ''].filter(Boolean).join(';');
-  return `<p style="${st}">${html}</p>`;
-};
-const gap = (pt: number) => `<p style="font-size:${Math.max(1, Math.round(pt / 1.2))}pt;line-height:1;margin:0">&nbsp;</p>`;
-const eyebrow = (s: string, mb = 10) => t(e(s.toUpperCase()), { size: 8.5, color: D.faint, bold: true, mb });
-const BREAK = PAGE_BREAK;
-// A table cell. `rule` draws a hairline on the given sides only; everything else is invisible.
-const cell = (html: string, o: { w?: number; bg?: string; pad?: string; rule?: ('top' | 'bottom')[] } = {}) => {
-  const b = (side: string) => `border-${side}:${o.rule?.includes(side as 'top') ? `1px solid ${D.line}` : `0px solid ${o.bg ?? '#FFFFFF'}`};`;
-  return `<td${o.w ? ` width="${o.w}%"` : ''} style="${o.w ? `width:${o.w}%;` : ''}${o.bg ? `background-color:${o.bg};` : ''}padding:${o.pad ?? '0'};${b('top')}${b('bottom')}border-left:0px solid #FFFFFF;border-right:0px solid #FFFFFF;vertical-align:top;">${html}</td>`;
-};
-const grid = (rows: string[], widths?: number[]) => table(rows.map((r) => `<tr>${r}</tr>`).join(''), widths);
+type PO = Partial<Omit<Para, 'kind' | 'runs'>>;
+const P = (text: string | Run[], o: PO = {}): Para => ({ kind: 'p', runs: typeof text === 'string' ? [{ text }] : text, size: 11, color: D.text, lh: 1.45, ...o });
+const gap = (pt: number): Para => ({ kind: 'p', runs: [{ text: '' }], size: 1, color: D.text, lh: 1, after: pt });
+const eyebrow = (s: string, after = 10): Para => P(s.toUpperCase(), { size: 8, color: D.faint, bold: true, after, keepNext: true });
+const BREAK: Block = { kind: 'break' };
+const grid = (widths: number[], rows: Cell[][], keep = false): Table => ({ kind: 'table', widths, rows: rows.map((cells) => ({ cells, keep })) });
 // Hairline key/value rows: grey label left, content right.
-const rows = (items: [string, string][], lw = 22, pad = '9pt 0', ks = 9.5) => grid(items.map(([k, v], i) => {
-  const rule: ('top' | 'bottom')[] = i === items.length - 1 ? ['top', 'bottom'] : ['top'];
-  return cell(t(e(k), { size: ks, color: D.sub, lh: 1.4 }), { w: lw, pad, rule }) + cell(v, { w: 100 - lw, pad, rule });
-}), [lw, 100 - lw]);
+const rows = (items: [string, Para[]][], lw = 22, pad: [number, number, number, number] = [9, 0, 9, 0], ks = 9.5): Table =>
+  grid([lw, 100 - lw], items.map(([k, v], i) => {
+    const rule = { top: true, bottom: i === items.length - 1 };
+    return [{ paras: [P(k, { size: ks, color: D.sub, lh: 1.4 })], pad, rule }, { paras: v, pad, rule }];
+  }), true);
 
 // Script text, word for word, set in short readable paragraphs (breaks only between sentences).
 export function scriptParas(s: string, target = 55) {
@@ -238,72 +230,85 @@ export function scriptParas(s: string, target = 55) {
   }
   return out;
 }
-const body = (s: string, o: T = {}) => scriptParas(s).map((x) => t(e(x), { size: 11.5, lh: 1.55, mb: 9, ...o })).join('');
+const body = (s: string, o: PO = {}) => scriptParas(s).map((x) => P(x, { size: 11, lh: 1.55, after: 8, ...o }));
 
-const slideCard = (num: string, title: string, bullets: string[]) =>
-  grid([cell(
-    t(num, { size: 9, color: D.accent, bold: true, mb: 10 }) +
-    t(e(title), { size: 22, color: '#FFFFFF', bold: true, lh: 1.15, mb: 12 }) +
-    bullets.map((x) => t(e(x), { size: 12, color: D.slideSub, lh: 1.35, mb: 2 })).join(''),
-    { bg: D.slide, pad: '24pt 28pt' })]);
+const slideCard = (num: string, title: string, bullets: string[]): Table => grid([100], [[{
+  bg: D.slide, pad: [26, 30, 28, 30],
+  paras: [
+    P(num, { size: 9, color: D.accent, bold: true, after: 10 }),
+    P(title, { size: 22, color: '#FFFFFF', bold: true, lh: 1.15, after: 12 }),
+    ...bullets.map((x) => P(x, { size: 12, color: D.slideSub, lh: 1.35, after: 2 })),
+  ],
+}]], true);
 
-const note = (items: [string, string][]) => gap(4) + rows(items.map(([k, v]) => [k, t(e(v), { size: 9, color: D.sub, lh: 1.4 })]), 14, '5pt 0', 8.5);
+const note = (items: [string, string][]): Block[] => [gap(4), rows(items.map(([k, v]) => [k, [P(v, { size: 9, color: D.sub, lh: 1.4 })]]), 14, [5, 0, 5, 0], 8.5)];
 
-/** The long-form script and presentation brief for one video, as Google-Docs-safe HTML. */
-export function packDocHtml(pack: VideoPack, topic: Topic, o: { index: number; nextTitle?: string | null; brand?: string; miroUrl?: string | null }) {
+/** The long-form script and presentation brief for one video, as document blocks. */
+export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number; nextTitle?: string | null; brand?: string; miroUrl?: string | null }): Block[] {
   const n = String(o.index + 1).padStart(2, '0');
   const brand = o.brand || 'G&L M&A Advisory';
   const title = pack.titles[0] ?? topic.titles[0];
-  const out: string[] = [];
+  const out: Block[] = [];
 
   // ── Cover
   out.push(eyebrow(`${brand} · Video ${n}`, 0));
-  out.push(gap(120));
-  out.push(t(e(title), { size: 40, bold: true, lh: 1.08, mb: 22 }));
-  out.push(t(e(pack.promise), { size: 15, color: D.sub, lh: 1.45, mb: 0 }));
-  out.push(gap(90));
+  out.push(gap(150));
+  out.push(P(title, { size: 38, bold: true, lh: 1.08, after: 22 }));
+  out.push(P(pack.promise, { size: 14, color: D.sub, lh: 1.45 }));
+  out.push(gap(110));
   const meta: [string, string][] = [['Stage', STAGE[topic.stage]?.label ?? topic.stage], ['Length', `${topic.length_min} minutes`], ['Belief', BELIEF[topic.belief] ?? topic.belief]];
-  out.push(grid([meta.map(([k, v]) => cell(t(e(k.toUpperCase()), { size: 8, color: D.faint, bold: true, mb: 3 }) + t(e(v), { size: 11 }), { w: 33, pad: '10pt 8pt 0 0', rule: ['top'] })).join('')], [33, 34, 33]));
-  out.push(gap(14));
-  out.push(t(`Script, slides and packaging for Josh Li${o.miroUrl ? ` · <a href="${e(o.miroUrl)}" style="color:${D.text};">Open the board in Miro</a>` : ''}`, { size: 9.5, color: D.faint }));
+  out.push(grid([33, 34, 33], [meta.map(([k, v]) => ({ paras: [P(k.toUpperCase(), { size: 7.5, color: D.faint, bold: true, after: 3 }), P(v, { size: 10.5 })], pad: [10, 8, 0, 0], rule: { top: true } }))]));
+  out.push(gap(16));
+  out.push(P(o.miroUrl ? [{ text: 'Script, slides and packaging for Josh Li  ·  ' }, { text: 'Open the board in Miro', link: o.miroUrl, color: D.text }] : 'Script, slides and packaging for Josh Li', { size: 9, color: D.faint }));
 
   // ── The idea
   out.push(BREAK);
   out.push(eyebrow('The idea'));
-  out.push(t(e(pack.big_idea), { size: 22, bold: true, lh: 1.3, mb: 30 }));
+  out.push(P(pack.big_idea, { size: 21, bold: true, lh: 1.3, after: 30 }));
   out.push(rows([
-    ['For', t(e(pack.viewer), { size: 11 })],
-    ['Not for', t(e(pack.not_for), { size: 11 })],
-    ['Format', t(e(topic.format), { size: 11 })],
-    ['Next video', t(e(o.nextTitle || pack.end_screen), { size: 11 })],
+    ['For', [P(pack.viewer, { size: 10.5 })]],
+    ['Not for', [P(pack.not_for, { size: 10.5 })]],
+    ['Format', [P(topic.format, { size: 10.5 })]],
+    ['Next video', [P(o.nextTitle || pack.end_screen, { size: 10.5 })]],
   ]));
 
   // ── Packaging
   out.push(BREAK);
   out.push(eyebrow('Packaging'));
-  out.push(t('Win the click.', { size: 26, bold: true, lh: 1.2, mb: 24 }));
+  out.push(P('Win the click.', { size: 26, bold: true, lh: 1.2, after: 26 }));
   out.push(eyebrow('Titles to test'));
-  out.push(grid(pack.titles.slice(0, 3).map((x, k) => cell(t('ABC'[k], { size: 11, color: D.faint, bold: true }), { w: 6, pad: '10pt 0', rule: ['top'] }) + cell(t(e(x), { size: 14, bold: true, lh: 1.3 }), { w: 94, pad: '10pt 0', rule: ['top'] })), [6, 94]));
-  out.push(gap(22));
+  out.push(grid([7, 93], pack.titles.slice(0, 3).map((x, k) => [
+    { paras: [P('ABC'[k], { size: 10.5, color: D.faint, bold: true })], pad: [11, 0, 11, 0], rule: { top: true, bottom: k === 2 } },
+    { paras: [P(x, { size: 14, bold: true, lh: 1.3 })], pad: [11, 0, 11, 0], rule: { top: true, bottom: k === 2 } },
+  ]), true));
+  out.push(gap(28));
   out.push(eyebrow('Thumbnails'));
   const th = pack.thumbnails.slice(0, 2);
-  out.push(grid([
-    th.map((x, k) => cell(gap(26) + t(e(unquote(x.text)), { size: 24, color: '#FFFFFF', bold: true, center: true, lh: 1.1 }) + gap(26), { w: 50, bg: D.slide, pad: k ? '0 0 0 8pt' : '0 8pt 0 0' })).join(''),
-    th.map((x, k) => cell(t(`${e(x.visual)} <span style="color:${D.faint}">· ${e(x.emotion)}</span>`, { size: 9, color: D.sub, lh: 1.4 }), { w: 50, pad: k ? '8pt 0 0 10pt' : '8pt 10pt 0 0' })).join(''),
-  ], [50, 50]));
+  out.push(grid([49, 2, 49], [
+    [
+      { bg: D.slide, pad: [40, 14, 40, 14], paras: [P(unquote(th[0]?.text ?? ''), { size: 22, color: '#FFFFFF', bold: true, center: true, lh: 1.1 })] },
+      { paras: [] },
+      { bg: D.slide, pad: [40, 14, 40, 14], paras: [P(unquote(th[1]?.text ?? ''), { size: 22, color: '#FFFFFF', bold: true, center: true, lh: 1.1 })] },
+    ],
+    [
+      { pad: [8, 0, 0, 0], paras: th[0] ? [P([{ text: th[0].visual }, { text: `  ·  ${th[0].emotion}`, color: D.faint }], { size: 8.5, color: D.sub, lh: 1.4 })] : [] },
+      { paras: [] },
+      { pad: [8, 0, 0, 0], paras: th[1] ? [P([{ text: th[1].visual }, { text: `  ·  ${th[1].emotion}`, color: D.faint }], { size: 8.5, color: D.sub, lh: 1.4 })] : [] },
+    ],
+  ], true));
 
   // ── The hook
   out.push(BREAK);
   out.push(eyebrow('The hook · first 45 seconds'));
-  out.push(t(`“${e(unquote(pack.hook.line))}”`, { size: 26, bold: true, lh: 1.2, mb: 26 }));
-  out.push(body(pack.hook.script));
-  out.push(note([['On screen', pack.hook.on_screen]]));
+  out.push(P(`“${unquote(pack.hook.line)}”`, { size: 24, bold: true, lh: 1.22, after: 24 }));
+  out.push(...body(pack.hook.script));
+  out.push(...note([['On screen', pack.hook.on_screen]]));
 
   // ── The intro
   out.push(BREAK);
   out.push(eyebrow('The intro'));
-  out.push(t('Earn the rest of the video.', { size: 26, bold: true, lh: 1.2, mb: 24 }));
-  out.push(body(pack.intro.script));
+  out.push(P('Earn the rest of the video.', { size: 26, bold: true, lh: 1.2, after: 24 }));
+  out.push(...body(pack.intro.script));
 
   // ── One beat per page: the slide, the words, the direction
   pack.beats.forEach((b, i) => {
@@ -311,62 +316,73 @@ export function packDocHtml(pack: VideoPack, topic: Topic, o: { index: number; n
     out.push(eyebrow(`Beat ${i + 1} of ${pack.beats.length}`));
     out.push(slideCard(String(i + 1).padStart(2, '0'), b.headline, b.slide.slice(0, 3)));
     out.push(gap(14));
-    out.push(body(b.script));
-    out.push(note([['Director', b.visual], ['Into next', b.transition]]));
+    out.push(...body(b.script));
+    out.push(...note([['Director', b.visual], ['Into next', b.transition]]));
   });
 
   // ── Proof and the mid-roll ask
   out.push(BREAK);
   out.push(eyebrow('Proof on screen'));
-  out.push(t(e(pack.proof.show), { size: 16, bold: true, lh: 1.4, mb: 10 }));
-  out.push(t(`Label it: “${e(pack.proof.label)}”`, { size: 10.5, color: D.sub, mb: 34 }));
+  out.push(P(pack.proof.show, { size: 16, bold: true, lh: 1.4, after: 10 }));
+  out.push(P(`Label it: “${pack.proof.label}”`, { size: 10, color: D.sub, after: 36 }));
   out.push(eyebrow('Mid-video ask'));
-  out.push(t(e(pack.mid_cta), { size: 14, lh: 1.5 }));
+  out.push(P(pack.mid_cta, { size: 14, lh: 1.5 }));
 
   // ── The close
   out.push(BREAK);
   out.push(eyebrow('The close · 60 to 90 seconds'));
-  out.push(t(e(pack.callback), { size: 20, bold: true, lh: 1.35, mb: 26 }));
-  out.push(body(pack.close.script));
-  out.push(note([['End screen', pack.end_screen]]));
+  out.push(P(pack.callback, { size: 19, bold: true, lh: 1.35, after: 24 }));
+  out.push(...body(pack.close.script));
+  out.push(...note([['End screen', pack.end_screen]]));
 
-  // ── Publishing
+  // ── Publishing (flows)
   out.push(BREAK);
   out.push(eyebrow('Publishing'));
-  out.push(t('Everything for the upload.', { size: 26, bold: true, lh: 1.2, mb: 26 }));
+  out.push(P('Everything for the upload.', { size: 26, bold: true, lh: 1.2, after: 26 }));
   out.push(eyebrow('Description'));
-  out.push(grid([cell(pack.description.split(/\n+/).filter((x) => x.trim()).map((x) => t(e(x), { size: 10.5, lh: 1.5, mb: 5 })).join(''), { bg: D.surface, pad: '16pt 18pt' })]));
-  out.push(gap(24));
+  out.push(grid([100], [[{ bg: D.surface, pad: [16, 18, 12, 18], paras: pack.description.split(/\n+/).filter((x) => x.trim()).map((x) => P(x, { size: 10, lh: 1.5, after: 5 })) }]]));
+  out.push(gap(26));
   out.push(eyebrow('Chapters'));
-  out.push(grid(pack.chapters.map((c) => cell(t(e(c.time), { size: 10.5, color: D.sub }), { w: 12, pad: '6pt 0', rule: ['top'] }) + cell(t(e(c.label), { size: 10.5 }), { w: 88, pad: '6pt 0', rule: ['top'] })), [12, 88]));
-  out.push(gap(24));
+  out.push(grid([12, 88], pack.chapters.map((c, k) => [
+    { paras: [P(c.time, { size: 10, color: D.sub })], pad: [6, 0, 6, 0], rule: { top: true, bottom: k === pack.chapters.length - 1 } },
+    { paras: [P(c.label, { size: 10 })], pad: [6, 0, 6, 0], rule: { top: true, bottom: k === pack.chapters.length - 1 } },
+  ])));
+  out.push(gap(26));
   out.push(eyebrow('Pinned comment'));
-  out.push(t(e(pack.pinned_comment), { size: 11, lh: 1.5, mb: 24 }));
+  out.push(P(pack.pinned_comment, { size: 10.5, lh: 1.5, after: 26 }));
   out.push(eyebrow('Tags'));
-  out.push(t(e(pack.tags.join(' · ')), { size: 9.5, color: D.sub, lh: 1.6 }));
+  out.push(P(pack.tags.join('  ·  '), { size: 9, color: D.sub, lh: 1.6 }));
 
   // ── Shorts
-  out.push(gap(34));
+  out.push(BREAK);
   out.push(eyebrow('Shorts'));
-  out.push(t('Three Shorts to cut from it.', { size: 20, bold: true, lh: 1.2, mb: 20 }));
-  pack.shorts.slice(0, 3).forEach((s, k) => {
-    out.push(grid([cell(
-      t(`0${k + 1}`, { size: 9, color: D.faint, bold: true, mb: 6 }) +
-      t(e(s.title), { size: 15, bold: true, lh: 1.3, mb: 6 }) +
-      t(`“${e(unquote(s.hook))}”`, { size: 11, color: D.sub, italic: true, lh: 1.45, mb: 10 }) +
-      t(e(s.script), { size: 10, lh: 1.5 }), { pad: '14pt 0 14pt 0', rule: ['top'] })]));
-  });
+  out.push(P('Three Shorts to cut from it.', { size: 26, bold: true, lh: 1.2, after: 20 }));
+  pack.shorts.slice(0, 3).forEach((s, k) => out.push(grid([100], [[{
+    pad: [14, 0, 16, 0], rule: { top: true },
+    paras: [
+      P(`0${k + 1}`, { size: 8.5, color: D.faint, bold: true, after: 6 }),
+      P(s.title, { size: 15, bold: true, lh: 1.3, after: 6 }),
+      P(`“${unquote(s.hook)}”`, { size: 10.5, color: D.sub, italic: true, lh: 1.45, after: 10 }),
+      P(s.script, { size: 10, lh: 1.5 }),
+    ],
+  }]], true)));
 
-  // ── On set
-  out.push(gap(34));
+  // ── On set (flows)
+  out.push(gap(30));
   out.push(eyebrow('On set'));
-  out.push(t('Before you press record.', { size: 20, bold: true, lh: 1.2, mb: 20 }));
-  out.push(grid(pack.filming.map((f) => cell(t('☐', { size: 12, color: D.faint }), { w: 6, pad: '8pt 0', rule: ['top'] }) + cell(t(e(f), { size: 10.5, lh: 1.5 }), { w: 94, pad: '8pt 0', rule: ['top'] })), [6, 94]));
-  out.push(gap(26));
+  out.push(P('Before you press record.', { size: 20, bold: true, lh: 1.2, after: 18 }));
+  out.push(grid([6, 94], pack.filming.map((f, k) => [
+    { paras: [P('☐', { size: 11, color: D.faint })], pad: [8, 0, 8, 0], rule: { top: true, bottom: k === pack.filming.length - 1 } },
+    { paras: [P(f, { size: 10, lh: 1.5 })], pad: [8, 0, 8, 0], rule: { top: true, bottom: k === pack.filming.length - 1 } },
+  ])));
+  out.push(gap(28));
   out.push(eyebrow('Labels & disclaimers'));
-  out.push(grid(pack.compliance.map((c) => cell(t(e(c), { size: 10, color: D.sub, lh: 1.5 }), { pad: '7pt 0', rule: ['top'] }))));
-  return out.join('\n');
+  out.push(grid([100], pack.compliance.map((c, k) => [{ paras: [P(c, { size: 9.5, color: D.sub, lh: 1.5 })], pad: [7, 0, 7, 0], rule: { top: true, bottom: k === pack.compliance.length - 1 } }])));
+  return out;
 }
+
+export const packDocHtml = (...a: Parameters<typeof packDocBlocks>) => toHtml(packDocBlocks(...a));
+export const packDocRtf = (...a: Parameters<typeof packDocBlocks>) => toRtf(packDocBlocks(...a));
 
 // ───────────── Miro: the presentation board ─────────────
 
@@ -502,12 +518,13 @@ async function googleAccess(rt: Runtime, fetcher: typeof fetch) {
 export const googleReady = (rt: Runtime) => Boolean(rt.settings.GOOGLE_CLIENT_ID && rt.settings.GOOGLE_CLIENT_SECRET && rt.settings.GOOGLE_REFRESH_TOKEN);
 
 /** Upload HTML as a new Google Doc (Drive converts it, keeping tables, colours and sizes). Returns the doc link. */
-export async function createGoogleDoc(rt: Runtime, name: string, bodyHtml: string, fetcher: typeof fetch = fetch) {
+/** Upload an RTF document and let Drive convert it to a Google Doc (RTF keeps page breaks and fonts; HTML loses them). */
+export async function createGoogleDoc(rt: Runtime, name: string, rtf: string, fetcher: typeof fetch = fetch) {
   const token = await googleAccess(rt, fetcher);
   const boundary = `fhq${crypto.randomUUID().replace(/-/g, '')}`;
   const meta: Record<string, unknown> = { name, mimeType: 'application/vnd.google-apps.document' };
   if (rt.settings.GOOGLE_DRIVE_FOLDER_ID) meta.parents = [rt.settings.GOOGLE_DRIVE_FOLDER_ID];
-  const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<html><head><meta charset="utf-8"></head><body>${bodyHtml}</body></html>\r\n--${boundary}--`;
+  const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/rtf\r\n\r\n${rtf}\r\n--${boundary}--`;
   const r = await fetcher('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink&supportsAllDrives=true', { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': `multipart/related; boundary=${boundary}` }, body });
   const j = (await r.json()) as { id?: string; webViewLink?: string; error?: { message?: string } };
   if (!r.ok || !j.id) throw new Error(`Google Drive: ${j.error?.message ?? r.status}`);

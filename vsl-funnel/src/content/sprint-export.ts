@@ -136,7 +136,7 @@ export function sprintDocHtml(s: Sprint, created: number, o: { brand?: string; p
 
 /** A designed document as a page in Funnel HQ, with buttons for Google Docs, PDF and Miro. */
 export interface ShellAction { url?: string | null; endpoint?: string | null; ready?: boolean }
-export function docShell(o: { title: string; barTitle: string; body: string; miro: ShellAction; gdoc: ShellAction }) {
+export function docShell(o: { title: string; barTitle: string; body: string; miro: ShellAction; gdoc: ShellAction; rtf?: string }) {
   const btn = (a: ShellAction, kind: 'miro' | 'gdrive', open: string, build: string, connect: string) =>
     a.url ? `<a class="b ghost" href="${e(a.url)}" target="_blank" rel="noopener">${open}</a>`
       : a.ready && a.endpoint ? `<button class="b ghost" type="button" data-${kind}="${e(a.endpoint)}" data-label="${e(build)}" data-open="${e(open)}">${build}</button>`
@@ -179,7 +179,7 @@ ${btn(o.gdoc, 'gdrive', 'Open the Google Doc', 'Create the Google Doc', 'Connect
 <p class="step done" data-s1><i>1</i><span>Copied this document.</span></p>
 <p class="step"><i>2</i><span>Open a blank Google Doc and paste: <kbd>⌘V</kbd> on Mac, <kbd>Ctrl V</kbd> on Windows.</span></p>
 <a class="b" href="https://docs.new" target="_blank" rel="noopener" data-ovgo>Open a blank Google Doc</a>
-<button class="b ghost" type="button" data-dl style="color:${INK};border-color:#D8D8D0">Or download it for Google Drive</button>
+${o.rtf ? `<a class="b ghost" href="${e(o.rtf)}" download data-dlrtf style="color:${INK};border-color:#D8D8D0">Or download it for Google Drive</a>` : `<button class="b ghost" type="button" data-dl style="color:${INK};border-color:#D8D8D0">Or download it for Google Drive</button>`}
 <button class="alt" type="button" data-ovx>Close</button>
 </div></div>
 <main class="sheet" data-doc>${o.body}</main>

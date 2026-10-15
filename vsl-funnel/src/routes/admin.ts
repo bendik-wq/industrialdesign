@@ -1,7 +1,7 @@
 import type { Env } from '../env';
 import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown, type Sprint } from '../content/ideas';
 import { buildMiroBoard, docShell, sprintPage } from '../content/sprint-export';
-import { buildPackBoard, createGoogleDoc, ensurePack, getPack, googleAuthUrl, googleReady, loadSprintTopic, packDocHtml, savePackLinks } from '../content/video-pack';
+import { buildPackBoard, createGoogleDoc, ensurePack, getPack, googleAuthUrl, googleReady, loadSprintTopic, packDocHtml, packDocRtf, savePackLinks } from '../content/video-pack';
 import { signToken } from '../lib/crypto';
 import { getSecret } from '../lib/secret';
 import { type Context, Hono } from 'hono';
@@ -811,7 +811,20 @@ admin.get('/yt/sprints/:sid/videos/:tid', async (c) => {
     body: packDocHtml(row.pack, ctx.topic, { index: ctx.index, nextTitle: await nextVideoTitle(rt, sid, ctx), brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }),
     miro: { url: row.miro_url, ready: Boolean(rt.settings.MIRO_ACCESS_TOKEN), endpoint: `${base}/miro` },
     gdoc: { url: row.doc_url, ready: googleReady(rt), endpoint: `${base}/gdoc` },
+    rtf: `${base}/doc.rtf`,
   }));
+});
+// The same document as RTF: opens in Google Docs with its page breaks and type intact.
+admin.get('/yt/sprints/:sid/videos/:tid/doc.rtf', async (c) => {
+  const { rt, sid, tid, ctx } = await videoContext(c);
+  if (!ctx) return c.text('Not found', 404);
+  const row = await ensurePack(rt, sid, tid);
+  if (!row) return c.text('Not found', 404);
+  const rtf = packDocRtf(row.pack, ctx.topic, { index: ctx.index, nextTitle: await nextVideoTitle(rt, sid, ctx), brand: rt.settings.SITE_NAME, miroUrl: row.miro_url });
+  const file = `Video ${String(ctx.index + 1).padStart(2, '0')} - ${(row.pack.titles[0] ?? ctx.topic.topic).replace(/[^\w .-]+/g, '').trim().slice(0, 70)}.rtf`;
+  c.header('cache-control', 'no-store');
+  c.header('content-disposition', `attachment; filename="${file}"`);
+  return c.body(rtf, 200, { 'content-type': 'application/rtf' });
 });
 admin.post('/yt/sprints/:sid/videos/:tid/miro', async (c) => {
   const { rt, sid, tid, ctx } = await videoContext(c);
@@ -838,7 +851,7 @@ admin.post('/yt/sprints/:sid/videos/:tid/gdoc', async (c) => {
     if (!row) return c.json({ ok: false, error: 'Not found' }, 404);
     if (row.doc_url) return c.json({ ok: true, url: row.doc_url });
     const name = `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic} · Script & presentation`;
-    const url = await createGoogleDoc(rt, name, packDocHtml(row.pack, ctx.topic, { index: ctx.index, nextTitle: await nextVideoTitle(rt, sid, ctx), brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }));
+    const url = await createGoogleDoc(rt, name, packDocRtf(row.pack, ctx.topic, { index: ctx.index, nextTitle: await nextVideoTitle(rt, sid, ctx), brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }));
     await savePackLinks(rt, sid, tid, { doc_url: url });
     return c.json({ ok: true, url });
   } catch (e) {
