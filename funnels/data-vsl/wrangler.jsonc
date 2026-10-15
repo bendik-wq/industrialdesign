@@ -1,0 +1,8 @@
+{
+  "name": "data-vsl",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*", "/admin/*", "/media/*"] },
+  "d1_databases": [{ "binding": "DB", "database_name": "data-vsl-leads", "database_id": "410e42e0-8717-4b73-b115-4eaadaeb498f" }],
+  "observability": { "enabled": true }
+}
