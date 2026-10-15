@@ -51,3 +51,64 @@
   .signed-banner, .sign-form { display: none; }
   .letter, .audit { border: 0; padding: 0; }
 }
+
+/* Signing flow (PandaDoc / DocuSign style) */
+.sb-bar { position: sticky; top: 0; z-index: 20; background: #0f2c5c; color: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+.sb-in { max-width: 760px; margin: 0 auto; padding: 12px 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.sb-doc { display: grid; min-width: 0; }
+.sb-doc strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+.sb-doc span { font-size: .8rem; opacity: .75; }
+.sb-act { display: flex; gap: 12px; align-items: center; flex: none; }
+.sb-prog { font-size: .82rem; opacity: .85; }
+.sb-go { background: #f5c518; color: #1a1a1a; border: 0; border-radius: 8px; padding: 10px 22px; font-weight: 700; font-size: .95rem; cursor: pointer; }
+.sb-go.ready { background: #22c55e; color: #fff; }
+.sb-go:disabled { opacity: .7; cursor: default; }
+.sb-intro { background: #fff; border: 1px solid #e4e1d8; border-radius: 10px; padding: 14px 18px; margin-bottom: 14px; }
+.sb-intro p { margin: 0; }
+.sb-legal { font-size: .82rem; color: #6b6b6b; text-align: center; margin: 14px 8px 0; }
+.sig-field { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 76px; margin: 8px 0 4px; border: 2px dashed #e0a800; background: #fff8db; border-radius: 8px; cursor: pointer; font: inherit; color: #6b5400; }
+.sig-field .flag { position: absolute; left: -10px; top: -14px; background: #f5c518; color: #1a1a1a; font-weight: 700; font-size: .75rem; padding: 4px 10px 4px 8px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+.sig-field .flag::after { content: ''; position: absolute; right: -8px; top: 0; border-left: 8px solid #f5c518; border-top: 12px solid transparent; border-bottom: 12px solid transparent; }
+.sig-field .ph { font-weight: 600; }
+.sig-field.pulse { animation: sbpulse 1.5s ease-out; }
+@keyframes sbpulse { 0% { box-shadow: 0 0 0 0 rgba(245,197,24,.7); } 100% { box-shadow: 0 0 0 18px rgba(245,197,24,0); } }
+.sig-field.filled { border: 1px solid transparent; background: transparent; min-height: 0; justify-content: flex-start; cursor: pointer; }
+.sig-field.filled .sig { font-family: "Brush Script MT", "Segoe Script", "Snell Roundhand", cursive; font-size: 2rem; color: #0f2c5c; }
+.sig-field.filled .sig-img { height: 70px; }
+.letter .pay { margin-top: 14px; border: 1px solid #e4e1d8; border-radius: 8px; padding: 12px 16px; background: #fafaf7; font-size: .9rem; }
+.letter .pay dl, .sb-pay dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 6px 0; }
+.letter .pay dt, .sb-pay dt { color: #6b6b6b; }
+.letter .pay dd, .sb-pay dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pay .warn { font-size: .8rem; color: #8a5a00; margin: 6px 0 0; }
+.pay .lbl { margin: 0; }
+.sb-lock { overflow: hidden; }
+.sb-modal { position: fixed; inset: 0; z-index: 50; background: rgba(15, 23, 42, .55); display: flex; align-items: flex-end; justify-content: center; }
+.sb-modal[hidden] { display: none; }
+.sb-sheet { background: #fff; width: min(560px, 100%); border-radius: 16px 16px 0 0; padding: 20px 22px 26px; display: grid; gap: 12px; max-height: 92vh; overflow: auto; }
+@media (min-width: 640px) { .sb-modal { align-items: center; } .sb-sheet { border-radius: 16px; } }
+.sb-sheet-head { display: flex; justify-content: space-between; align-items: center; }
+.sb-sheet-head h2 { margin: 0; font-size: 1.15rem; }
+.sb-x { border: 0; background: none; font-size: 1.1rem; cursor: pointer; padding: 6px; }
+.sb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sb-sheet label { display: grid; gap: 6px; font-weight: 600; }
+.sb-sheet .sb-consent { display: flex; gap: 10px; font-weight: 400; align-items: flex-start; font-size: .9rem; position: static; }
+.sb-sheet .sb-consent input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+.sb-sheet .err { color: #b42318; margin: 0; min-height: 1em; }
+.sb-adopt { width: 100%; }
+.sb-done { background: #fff; border: 1px solid #e4e1d8; border-radius: 12px; padding: 40px 28px; text-align: center; margin-top: 20px; }
+.sb-check { width: 64px; height: 64px; border-radius: 50%; background: #22c55e; color: #fff; font-size: 34px; line-height: 64px; margin: 0 auto 14px; }
+.sb-done h1 { margin: 0 0 8px; }
+.sb-pay { text-align: left; margin: 24px auto; max-width: 460px; }
+.sb-pay h2 { font-size: 1.05rem; text-align: center; }
+.sb-pay .pay { border: 1px solid #e4e1d8; border-radius: 8px; padding: 12px 16px; background: #fafaf7; margin-bottom: 12px; }
+.sb-pay .btn { width: 100%; text-align: center; }
+@media (max-width: 600px) { .sb-row { grid-template-columns: 1fr; } .sb-prog { display: none; } }
+@media print { .sb-bar, .sb-intro, .sb-legal { display: none; } }
+
+.sb-sheet [hidden], .sign-wrap [hidden] { display: none !important; }
+.sb-sheet .input { width: 100%; box-sizing: border-box; border: 1px solid #d6d2c6; border-radius: 8px; padding: 11px 12px; font: inherit; font-weight: 400; background: #fff; color: #1a1a1a; }
+.sb-sheet .input:focus { outline: 2px solid #0f2c5c; outline-offset: 1px; }
+.sb-adopt { background: #0f2c5c; color: #fff; border: 0; border-radius: 9px; padding: 14px; font-weight: 700; font-size: 1rem; cursor: pointer; }
+
+body.sign-page { padding-top: 0; }
+.sign-page .sign-wrap { padding-top: 18px; }

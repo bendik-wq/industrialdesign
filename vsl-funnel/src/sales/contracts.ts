@@ -46,6 +46,25 @@ export function company(rt: Runtime) {
   };
 }
 
+/** Where to send the money, if set (Integrations → Contracts). */
+export function paymentDetails(rt: Runtime) {
+  const s = rt.settings;
+  const rows: [string, string][] = [
+    ['Bank', s.CONTRACT_PAY_BANK], ['Account name', s.CONTRACT_PAY_ACCOUNT_NAME || company(rt).name], ['Routing number', s.CONTRACT_PAY_ROUTING],
+    ['Account number', s.CONTRACT_PAY_ACCOUNT], ['SWIFT / BIC', s.CONTRACT_PAY_SWIFT],
+  ].filter(([, v]) => v && v.trim()) as [string, string][];
+  const hasBank = Boolean(s.CONTRACT_PAY_ACCOUNT?.trim());
+  const link = /^https:\/\//.test(s.CONTRACT_PAY_LINK?.trim() ?? '') ? s.CONTRACT_PAY_LINK.trim() : null;
+  return hasBank || link ? { rows: hasBank ? rows : [], link } : null;
+}
+
+/** The "How to pay" box, with the standard wire-fraud warning. */
+export function paymentHtml(rt: Runtime, reference?: string) {
+  const p = paymentDetails(rt);
+  if (!p) return '';
+  return `<div class="pay"><p class="lbl">How to pay</p>${p.rows.length ? `<dl>${p.rows.map(([k, v]) => `<dt>${escHtml(k)}</dt><dd>${escHtml(v)}</dd>`).join('')}${reference ? `<dt>Reference</dt><dd>${escHtml(reference)}</dd>` : ''}</dl>` : ''}${p.link ? `<p>Or pay by card: <a href="${escHtml(p.link)}" rel="noopener" target="_blank">${escHtml(p.link.replace(/^https:\/\//, ''))}</a></p>` : ''}<p class="warn">We will never change these details by email. If you get a message saying our bank details have changed, call us before you pay.</p></div>`;
+}
+
 // ───────────── Auto-quote ─────────────
 
 /** Fee by the size of the business. Most land at $20k–$50k; larger groups scale up. Edit freely per agreement. */
@@ -124,11 +143,13 @@ export function termsHtml(rt: Runtime, k: Terms, date = Date.now()) {
   );
   const extra = rt.settings.CONTRACT_EXTRA_TERMS?.trim();
   if (extra) out.push(clause(++n, 'Additional terms', extra.split(/\n\s*\n/).map((p) => escHtml(p.trim())).join(' ')));
+  // Payment instructions are part of what both sides sign, so they can't be swapped later.
+  out.push(paymentHtml(rt, k.client_company || k.client_name || undefined));
   return out.join('');
 }
 
 /** Both signature blocks: ours (signed before sending) and theirs (once signed). */
-export function signatureBlocks(rt: Runtime, k: Partial<Contract>) {
+export function signatureBlocks(rt: Runtime, k: Partial<Contract>, opts: { field?: boolean } = {}) {
   const co = company(rt);
   const mark = (sig: string | null | undefined, kind: string | null | undefined, name: string | null | undefined) =>
     sig && kind === 'drawn' && PNG.test(sig)
@@ -138,12 +159,12 @@ export function signatureBlocks(rt: Runtime, k: Partial<Contract>) {
   const ours = k.our_signer ?? co.signer;
   return `<div class="parties">
     <div><p class="lbl">${escHtml(co.name)}</p>${mark(k.our_signature, k.our_signature_kind, ours.split(',')[0])}<p class="who">${escHtml(ours)}</p>${date(k.our_signed_at)}</div>
-    <div><p class="lbl">You</p>${mark(k.signature, k.signature_kind, k.signer_name)}<p class="who">${escHtml([k.signer_name ?? k.client_name, k.signer_title ?? (k.signer_name ? null : k.client_company)].filter(Boolean).join(', '))}</p>${date(k.signed_at)}</div>
+    <div><p class="lbl">You</p>${opts.field && !k.signature ? '<button type="button" class="sig-field" data-sig-field><span class="flag">Sign here</span><span class="ph">Click to sign</span></button>' : mark(k.signature, k.signature_kind, k.signer_name)}<p class="who" data-sig-who>${escHtml([k.signer_name ?? k.client_name, k.signer_title ?? (k.signer_name ? null : k.client_company)].filter(Boolean).join(', '))}</p>${opts.field && !k.signed_at ? '<p class="sig-date" data-sig-date></p>' : date(k.signed_at)}</div>
   </div>`;
 }
 
 /** The whole document (terms + both signature blocks) for previews, the signing page and the signed copy. */
-export const documentHtml = (rt: Runtime, k: Contract | (Terms & Partial<Contract>)) => (k.body_html ?? termsHtml(rt, k)) + signatureBlocks(rt, k);
+export const documentHtml = (rt: Runtime, k: Contract | (Terms & Partial<Contract>), opts: { field?: boolean } = {}) => (k.body_html ?? termsHtml(rt, k)) + signatureBlocks(rt, k, opts);
 
 export async function sha256(text: string) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -239,7 +260,7 @@ async function sendContractEmail(rt: Runtime, c: Contract, kind: 'send' | 'remin
   const pre = c.is_test ? '[TEST] ' : '';
   const m =
     kind === 'signed'
-      ? { subject: `${pre}Signed: ${c.title}`, ...contractEmail({ ...base, preheader: 'Your signed copy, for your records.', heading: 'You’re all signed', paras: [`Hi ${escHtml(first)},`, 'Thank you. The agreement is now signed by both of us. Your copy, with both signatures and the signing record, is at the link below. Keep this email for your records.', 'I’ll be in touch within one business day with next steps.'], rows, button: { label: 'View your signed copy', href: `${link}/copy` } }) }
+      ? { subject: `${pre}Signed: ${c.title}`, ...contractEmail({ ...base, preheader: 'Your signed copy, for your records.', heading: 'You’re all signed', paras: [`Hi ${escHtml(first)},`, 'Thank you. The agreement is now signed by both of us. Your copy, with both signatures and the signing record, is at the link below. Keep this email for your records.', ...(paymentDetails(rt) ? [`The fee of ${escHtml(fee)} is due now. The payment details are on your signed copy${paymentDetails(rt)?.link ? ', or you can pay by card from the same page' : ''}. Please use “${escHtml(c.client_company || c.client_name || 'your name')}” as the reference.`] : []), 'I’ll be in touch within one business day with next steps.'], rows, button: { label: 'View your signed copy', href: `${link}/copy` } }) }
       : kind === 'reminder'
         ? { subject: `${pre}Reminder: ${c.title}`, ...contractEmail({ ...base, preheader: 'Ready when you are. Takes two minutes.', heading: 'Your agreement is ready to sign', paras: [`Hi ${escHtml(first)},`, 'Just bringing this back to the top of your inbox. The agreement is one page and takes about two minutes to sign from your phone or computer.', 'If anything needs changing, reply to this email and I’ll send a revised version.'], rows, button: { label: 'Review and sign', href: link } }) }
         : { subject: `${pre}${c.title}: ready to sign`, ...contractEmail({ ...base, preheader: `${fee}. One page, about two minutes to sign.`, heading: 'Your agreement is ready to sign', paras: [`Hi ${escHtml(first)},`, 'As discussed, here’s our agreement so we can get started. It’s one page, in plain English, and I’ve already signed it.', 'Have a read and sign online when you’re ready. If you’d like anything changed, just reply to this email.'], rows, button: { label: 'Review and sign', href: link } }) };

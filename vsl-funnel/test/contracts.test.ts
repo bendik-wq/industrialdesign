@@ -80,3 +80,22 @@ describe('signing', () => {
     expect((await signContract(rt, { ...base, sent_at: Date.now() - 40 * 86_400_000 }, { name: 'Sam Lee', consent: true, hash: 'h1' }, meta)).ok).toBe(false);
   });
 });
+
+describe('payment details', () => {
+  const k = cleanInput(rt, {}, lead({}));
+  it('are left off until a bank account or pay link is set', () => {
+    expect(termsHtml(rt, k)).not.toContain('How to pay');
+  });
+  it('go into the signed terms with a wire-fraud warning', () => {
+    const rt2 = { settings: { CONTRACT_PAY_BANK: 'Mercury', CONTRACT_PAY_ROUTING: '091311229', CONTRACT_PAY_ACCOUNT: '9800<b>12', CONTRACT_PAY_LINK: 'javascript:alert(1)' } } as never;
+    const html = termsHtml(rt2, k);
+    expect(html).toContain('How to pay');
+    expect(html).toContain('091311229');
+    expect(html).toContain('9800&lt;b&gt;12');
+    expect(html).toContain('never change these details by email');
+    expect(html).not.toContain('javascript:');
+  });
+  it('shows a Sign here field on the signing page', () => {
+    expect(documentHtml(rt, k, { field: true })).toContain('data-sig-field');
+  });
+});

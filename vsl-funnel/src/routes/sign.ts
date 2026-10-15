@@ -5,13 +5,13 @@ import { escHtml } from '../followup/dossier';
 import { geoFromRequest } from '../lib/geo';
 import { overLimit } from '../lib/ratelimit';
 import { parseUA } from '../lib/ua';
-import { type Contract, company, contractByToken, documentHtml, isExpired, markViewed, signContract } from '../sales/contracts';
+import { type Contract, company, contractByToken, documentHtml, isExpired, markViewed, money, paymentDetails, paymentHtml, signContract } from '../sales/contracts';
 
 /** /sign/<token>: read and e-sign an engagement letter; /sign/<token>/copy: the signed copy with its signing record. */
 export const sign = new Hono<AppEnv>();
 
-const page = (title: string, body: string) =>
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${escHtml(title)}</title><link rel="stylesheet" href="/assets/site.css"><link rel="stylesheet" href="/assets/sign.css"></head><body class="simple sign-page"><main class="sign-wrap">${body}</main><script src="/assets/sign.js" defer></script></body></html>`;
+const page = (title: string, body: string, bar = '') =>
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${escHtml(title)}</title><link rel="stylesheet" href="/assets/site.css"><link rel="stylesheet" href="/assets/sign.css"></head><body class="simple sign-page">${bar}<main class="sign-wrap">${body}</main><script src="/assets/sign.js" defer></script></body></html>`;
 
 function headers(c: { header: (k: string, v: string) => void }) {
   c.header('cache-control', 'no-store');
@@ -45,21 +45,45 @@ sign.get('/:token{[0-9a-f]{40}}', async (c) => {
   // Link previews and mail scanners open links too; only a person counts as "opened".
   if (!parseUA(c.req.header('user-agent')).isBot) await markViewed(rt, k);
   const first = (k.client_name ?? '').trim();
+  const co = company(rt);
+  const sender = (k.our_signer ?? co.signer).split(',')[0];
+  const pay = paymentDetails(rt);
   return c.html(page(k.title, `
+
     ${k.is_test ? '<p class="test-banner">Test agreement: signing it changes nothing.</p>' : ''}
-    <article class="letter" data-letter>${documentHtml(rt, k)}</article>
-    <form class="sign-form" data-sign-form data-hash="${escHtml(k.doc_hash ?? '')}" data-token="${escHtml(k.token)}" novalidate>
-      <h2>Sign</h2>
-      <label>Full name<input class="input" name="name" autocomplete="name" required value="${escHtml(first)}"></label>
-      <label>Title / role <span class="muted">(optional)</span><input class="input" name="title" autocomplete="organization-title" placeholder="Director"></label>
-      <div class="sig-tabs" role="tablist"><button type="button" class="on" data-mode="typed" role="tab" aria-selected="true">Type</button><button type="button" data-mode="drawn" role="tab" aria-selected="false">Draw</button></div>
-      <div class="sig-typed" data-typed><span data-typed-preview>${escHtml(first || 'Your name')}</span></div>
-      <div class="sig-draw" data-drawn hidden><canvas width="600" height="180" aria-label="Draw your signature"></canvas><button type="button" class="btn-sm ghost" data-clear>Clear</button></div>
-      <label class="consent"><input type="checkbox" name="consent"> I have read this agreement, agree to its terms, and agree to sign it electronically with the same effect as a handwritten signature.</label>
-      <p class="err" data-err role="alert"></p>
-      <button class="btn" type="submit">Sign the agreement</button>
-      <p class="muted small">We record your name, the time, your IP address and a fingerprint of this exact document with your signature. You’ll get a signed copy by email.</p>
-    </form>`));
+    <section class="sb-intro"><p><strong>${escHtml(sender)}</strong> sent you this agreement to review and sign. It’s one page. Read it, tap <strong>Sign here</strong>, then <strong>Finish</strong>.</p></section>
+    <article class="letter" data-letter>${documentHtml(rt, k, { field: true })}</article>
+    <p class="sb-legal">By signing you agree to the terms above and to sign electronically. We record your name, the time, your IP address and a fingerprint of this exact document. You’ll get a signed copy by email.</p>
+
+    <div class="sb-modal" data-modal hidden role="dialog" aria-modal="true" aria-labelledby="sb-title">
+      <div class="sb-sheet">
+        <div class="sb-sheet-head"><h2 id="sb-title">Adopt your signature</h2><button type="button" class="sb-x" data-close aria-label="Close">✕</button></div>
+        <div class="sb-row">
+          <label>Full name<input class="input" name="name" autocomplete="name" value="${escHtml(first)}"></label>
+          <label>Title (optional)<input class="input" name="title" autocomplete="organization-title" placeholder="Director"></label>
+        </div>
+        <div class="sig-tabs" role="tablist"><button type="button" class="on" data-mode="typed" role="tab" aria-selected="true">Type</button><button type="button" data-mode="drawn" role="tab" aria-selected="false">Draw</button></div>
+        <div class="sig-typed" data-typed><span data-typed-preview>${escHtml(first || 'Your name')}</span></div>
+        <div class="sig-draw" data-drawn hidden><canvas width="600" height="180" aria-label="Draw your signature"></canvas><button type="button" class="btn-sm ghost" data-clear>Clear</button></div>
+        <label class="sb-consent"><input type="checkbox" name="consent"> I agree to the terms of this agreement and to sign it electronically, with the same effect as a handwritten signature.</label>
+        <p class="err" data-err role="alert"></p>
+        <button type="button" class="btn sb-adopt" data-adopt>Adopt and sign</button>
+      </div>
+    </div>
+
+    <template data-done-tpl>
+      <section class="sb-done">
+        <div class="sb-check" aria-hidden="true">✓</div>
+        <h1>You’re done</h1>
+        <p>The agreement is signed by both parties. A copy is on its way to <strong>${escHtml(k.client_email ?? 'your inbox')}</strong>.</p>
+        ${pay ? `<div class="sb-pay"><h2>Next: the fee of ${escHtml(money(k.fee, k.currency))}</h2>${paymentHtml(rt, k.client_company || k.client_name || undefined)}${pay.link ? `<a class="btn" href="${escHtml(pay.link)}" target="_blank" rel="noopener">Pay now by card</a>` : ''}</div>` : ''}
+        <p><a class="btn-sm ghost" data-copy-link href="/sign/${escHtml(k.token)}/copy">View or download your signed copy</a></p>
+      </section>
+    </template>
+    <div hidden data-sign data-hash="${escHtml(k.doc_hash ?? '')}"></div>`, `<header class="sb-bar"><div class="sb-in">
+      <div class="sb-doc"><strong>${escHtml(k.title)}</strong><span>${escHtml(co.name)} · ${escHtml(money(k.fee, k.currency))}</span></div>
+      <div class="sb-act"><span class="sb-prog" data-prog>1 field to sign</span><button type="button" class="sb-go" data-go>Start</button></div>
+    </div></header>`));
 });
 
 sign.post('/:token{[0-9a-f]{40}}', async (c) => {
