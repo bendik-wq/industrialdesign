@@ -38,6 +38,13 @@ export async function webinarLanding(c: Context<AppEnv>) {
     blocks: { sessions: sessions.length ? sessionOptions(sessions, v.geo.timezone) : '<p class="muted">No sessions are scheduled right now. Check back soon.</p>' },
     show: { has_sessions: sessions.length > 0 },
     config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt) } },
+    seo: {
+      title: `${w.title} | Masterclass with Josh Li`,
+      description: 'A live masterclass with Josh Li on buying a business with no money down: commercial debt, seller finance and seller rollover, and getting to a signed LOI.',
+      path: '/',
+      origin: (() => { try { return rt.settings.WEBINAR_URL ? new URL(rt.settings.WEBINAR_URL).origin : undefined; } catch { return undefined; } })(),
+      index: isWebinarHost(c),
+    },
   });
 }
 

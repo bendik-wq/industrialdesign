@@ -256,6 +256,7 @@
     data: { group: 'Traffic', title: 'Data partner page', sub: 'Who visited the data-buyer referral page, and who claimed a valuation.', more: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData, filters: ['range'] },
     emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
     editor: { group: 'Follow-up', title: 'Email editor', sub: 'Read and edit every email the funnel sends.', more: 'Pick an email on the left, change the wording on the right and watch the preview update. Merge tags like {first_name} fill in for each person. Saving replaces the built-in wording for every future send; “Reset to default” brings the original back. Emails written from each lead’s own application answers are shown but can’t be edited here.', render: renderEditor, noFilters: true },
+    search: { group: 'Traffic', title: 'Search & AI', sub: 'Who finds you through Google, Bing, ChatGPT, Claude, Perplexity, Gemini and Grok, and which AI crawlers are reading your pages.', more: 'The landing pages, 20 industry pages and the guides are open to search engines and AI assistants; the application, booking and personal pages never are. Crawler visits show the AI companies reading your pages (search bots and live answers lead to citations; training bots feed future models). Visitors and leads from AI Search are people who clicked through from an AI answer. New pages usually take days to weeks to show up in search.', render: renderSearch, filters: ['range'] },
     content: { group: 'Traffic', title: 'Content', sub: 'Josh’s YouTube and Instagram: what travels, what brings leads, and what to make next.', more: 'Videos refresh every 6 hours (or press Refresh). Views come from YouTube and Instagram; leads, calls and revenue per video come from the tracked links in Links & videos, so add a tracked link to each video’s description to see which ones actually sell.', render: renderContent, noFilters: true },
     reactivation: { group: 'Follow-up', title: 'Reactivation', sub: 'Bring back people already in the database: past calls, no-shows, unfinished applications.', more: 'Pick the groups, untick anyone who shouldn’t get it (existing clients, friends), preview the 6 emails and launch. Sending is spread out over days to protect your email reputation. It stops for anyone who books or applies again, unsubscribes or becomes a client.', render: renderReactivation, noFilters: true },
     sms: { group: 'Follow-up', title: 'SMS & WhatsApp', sub: 'Text and WhatsApp sequences: wording, timing and links.', more: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
@@ -1895,6 +1896,73 @@
   var pcState = { hours: 30 };
   // ───────────── Content (YouTube / Instagram) ─────────────
   var ctState = { platform: 'youtube', sort: 'views' };
+  function renderSearch() {
+    return api('search').then(function (d) {
+      var st = d.setup || {};
+      var hitsTotal = d.bots.reduce(function (a, b) { return a + b.hits; }, 0);
+      var aiHits = d.bots.filter(function (b) { return b.purpose && b.purpose !== 'Search engine'; }).reduce(function (a, b) { return a + b.hits; }, 0);
+      var vis = function (ch) { var r = d.visits.filter(function (v) { return v.channel === ch; })[0]; return r ? r.visitors : 0; };
+      var ld = function (ch, k) { var r = d.leads.filter(function (v) { return v.channel === ch; })[0]; return r ? r[k] : 0; };
+      var check = function (ok, label, hint) { return '<li class="' + (ok ? 'ok' : 'todo') + '"><span>' + (ok ? '✓' : '○') + '</span><div><strong>' + esc(label) + '</strong>' + (hint ? '<div class="muted">' + hint + '</div>' : '') + '</div></li>'; };
+      var link = function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener" class="mono">' + esc(String(u).replace(/^https?:\/\//, '')) + '</a>'; };
+      var last = st.indexnowLast;
+      var guides = (d.guides || []).slice().sort(function (a, b) { return (b.views - a.views) || a.h1.localeCompare(b.h1); });
+      view.innerHTML =
+        '<div class="grid g-4 tiles">' +
+        tile('AI crawler visits', n(aiHits), 'ChatGPT, Claude, Perplexity, Gemini, Grok…') +
+        tile('Search engine crawls', n(hitsTotal - aiHits), 'Google, Bing, Apple…') +
+        tile('Visitors from AI answers', n(vis('AI Search')), n(ld('AI Search', 'applied')) + ' applied · ' + n(ld('AI Search', 'booked')) + ' booked') +
+        tile('Visitors from Google & Bing', n(vis('Organic Search')), n(ld('Organic Search', 'applied')) + ' applied · ' + n(ld('Organic Search', 'booked')) + ' booked') +
+        '</div>' +
+        '<div class="grid" style="margin-top:14px"><div class="card"><h2>Crawler visits per day</h2><p class="sub">AI crawlers (search, live answers and training) reading your pages.</p><div class="chart" data-sc-ai></div></div>' +
+        '<div class="card"><h2>Setup</h2><p class="sub">What helps you show up, and what’s left to do.</p><ul class="checklist">' +
+        check(st.indexing, 'Pages open to search & AI', st.indexing ? st.pages + ' public pages in ' + link(st.sitemap) + ', ' + st.guides + ' guides, ' + link(st.llms) + ' for AI assistants.' : 'Switched off under Integrations → Search.') +
+        check(st.google, 'Google Search Console', st.google ? 'Verified tag is on every page. Submit ' + link(st.sitemap) + ' in Search Console → Sitemaps.' : 'Add the site at search.google.com/search-console (URL prefix → HTML tag) and paste the code in Integrations → Search. Then submit the sitemap.') +
+        check(st.bing, 'Bing Webmaster Tools', st.bing ? 'Verified. Bing powers ChatGPT search and Copilot.' : 'Add the site at bing.com/webmasters and paste the code in Integrations → Search (or import from Google Search Console). Bing feeds ChatGPT search and Copilot.') +
+        check(last && last.at, 'IndexNow (instant indexing on Bing & others)', last && last.at ? 'Last sent ' + esc(new Date(last.at).toLocaleString()) + ': ' + esc(last.results.map(function (r) { return r.host + ' ' + r.urls + ' pages (' + (r.status >= 200 && r.status < 300 ? 'ok' : 'status ' + r.status) + ')'; }).join(', ')) : 'Send every page to Bing, Yandex and others now. Do it again after adding pages.') +
+        check(st.sameAs, 'Josh’s profiles linked', st.sameAs ? 'AI assistants can connect the site to Josh.' : 'Using Instagram and YouTube by default. Add LinkedIn and X under Integrations → Search.') +
+        check(st.xHandle, 'X handle for link previews', st.xHandle ? 'Shown when pages are shared on X.' : 'Add it under Integrations → Search.') +
+        '</ul><div class="row" style="margin-top:12px"><button class="btn-sm" data-indexnow>Send all pages to IndexNow</button><a class="btn-sm ghost" href="#integrations">Search settings</a></div></div></div>' +
+        '<div class="grid" style="margin-top:14px"><div class="card"><h2>Which AI & search crawlers</h2><p class="sub">“AI search” and “live answer” bots are what get you cited in answers; “training” bots feed future models.</p>' +
+        (d.bots.length ? table([
+          { label: 'Crawler', html: function (r) { return '<strong>' + esc(r.bot) + '</strong><div class="muted">' + esc(r.vendor) + '</div>'; } },
+          { label: 'Kind', html: function (r) { return '<span class="pill">' + esc(r.purpose) + '</span>'; } },
+          { label: 'Visits', key: 'hits', num: true, fmt: n }, { label: 'Pages', key: 'pages', num: true, fmt: n },
+          { label: 'Last seen', html: function (r) { return esc(new Date(r.last_at).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })); } },
+        ], d.bots, { cards: true }) : '<p class="muted">No crawler visits yet. They usually start within days of the pages going live; sending the pages to IndexNow and Search Console speeds it up.</p>') + '</div>' +
+        '<div class="card"><h2>Where AI & search visitors come from</h2><p class="sub">People who clicked through from an answer or a search result.</p>' +
+        (d.refs.length ? table([
+          { label: 'Source', html: function (r) { return '<strong>' + esc(r.source) + '</strong><div class="muted">' + esc(r.channel) + '</div>'; } },
+          { label: 'Visits', key: 'sessions', num: true, fmt: n },
+        ], d.refs, { cards: true }) : '<p class="muted">None yet in this range.</p>') + '</div></div>' +
+        '<div class="card" style="margin-top:14px"><h2>Most-read pages by crawlers</h2><p class="sub">The pages AI assistants and search engines fetch most.</p>' +
+        (d.botPages.length ? table([
+          { label: 'Page', html: function (r) { return '<span class="mono">' + esc((r.host !== 'main' ? r.host + ' ' : '') + r.path) + '</span><div class="muted">' + esc(r.bots || '') + '</div>'; } },
+          { label: 'AI visits', key: 'ai_hits', num: true, fmt: n }, { label: 'All crawler visits', key: 'hits', num: true, fmt: n },
+        ], d.botPages, { cards: true }) : '<p class="muted">None yet.</p>') + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Guides · ' + n(guides.length) + '</h2><p class="sub">Written to be the answer AI assistants quote and Google ranks. Views and CTA clicks from real people in this range.</p>' +
+        table([
+          { label: 'Guide', html: function (r) { return '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.h1) + '</a><div class="muted">' + esc(r.section) + (r.host === 'data' ? ' · data site' : '') + '</div>'; } },
+          { label: 'Views', key: 'views', num: true, fmt: n }, { label: 'People', key: 'visitors', num: true, fmt: n }, { label: 'Clicked CTA', key: 'ctas', num: true, fmt: n },
+        ], guides, { cards: true }) + '</div>' +
+        (d.landings.length ? '<div class="card" style="margin-top:14px"><h2>Landing pages for AI & search visitors</h2>' + table([
+          { label: 'Page', html: function (r) { return '<span class="mono">' + esc(r.landing_path || '/') + '</span>'; } },
+          { label: 'From AI', key: 'ai', num: true, fmt: n }, { label: 'From search', key: 'organic', num: true, fmt: n },
+        ], d.landings, { cards: true }) + '</div>' : '');
+      var days = d.botDays || [];
+      var el = view.querySelector('[data-sc-ai]');
+      if (days.length) lineChart(el, days.map(function (x) { return { label: x.day, short: x.day.slice(5), value: x.ai }; }), { label: 'AI crawler visits per day', height: 200 });
+      else el.innerHTML = '<p class="muted">No crawler visits yet.</p>';
+      var b = view.querySelector('[data-indexnow]');
+      b.onclick = function () {
+        b.disabled = true; b.textContent = 'Sending…';
+        fetch('/admin/api/search/indexnow', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: '{}' })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { toast(j.ok ? 'Sent to IndexNow' : (j.error || 'IndexNow didn’t accept it; try again later')); load(); }, function () { toast('Couldn’t reach IndexNow'); b.disabled = false; b.textContent = 'Send all pages to IndexNow'; });
+      };
+    });
+  }
+
   function renderContent() {
     return api('content', {}, { noRange: true }).then(function (d) { ctState.d = d; drawContent(); });
   }

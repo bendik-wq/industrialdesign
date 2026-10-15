@@ -1,4 +1,5 @@
 import { type Context, Hono } from 'hono';
+import { searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
@@ -266,6 +267,9 @@ admin.get('/pages', (c) => {
   ];
   return c.json({ pages: pages.map((p, i) => ({ ...p, n: i + 1, src: `${p.path}${p.path.includes('?') ? '&' : '?'}hq_preview=1` })) });
 });
+// Funnel HQ → Search & AI: crawlers, AI-search and organic visitors, guides, setup; IndexNow submit.
+admin.get('/search', async (c) => { const f = filters(c); return c.json(await searchReport(c, f.from, f.to)); });
+admin.post('/search/indexnow', async (c) => c.json(await submitIndexNow(c)));
 admin.get('/visitors/:id', async (c) => {
   const j = await visitorJourney(runtimeFrom(c), c.req.param('id').slice(0, 64));
   return j ? c.json(j) : c.json({ error: 'not found' }, 404);

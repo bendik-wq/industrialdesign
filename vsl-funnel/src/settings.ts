@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -116,6 +116,12 @@ export const SETTINGS = [
   { key: 'YOUTUBE_API_KEY', label: 'YouTube Data API key', group: 'Content', secret: true, help: 'Free: console.cloud.google.com → APIs → enable “YouTube Data API v3” → Credentials → API key. Without it only the latest 15 videos are read (public feed).' },
   { key: 'INSTAGRAM_USER_ID', label: 'Instagram account ID', group: 'Content', help: 'The Instagram Business/Creator account ID (Graph API Explorer → me/accounts → instagram_business_account).' },
   { key: 'INSTAGRAM_ACCESS_TOKEN', label: 'Instagram access token', group: 'Content', secret: true, help: 'A long-lived token with instagram_basic and instagram_manage_insights (Meta app → Instagram Graph API).' },
+
+  { key: 'SEO_INDEXING', label: 'Show pages in Google & AI search', group: 'Search', placeholder: 'on', help: 'The landing pages, industry pages and guides are open to Google, Bing and AI assistants (ChatGPT, Claude, Perplexity, Gemini, Grok). The application, booking and personal pages never are. Type off to hide everything from search.' },
+  { key: 'GOOGLE_SITE_VERIFICATION', label: 'Google Search Console code', group: 'Search', placeholder: 'abc123…', help: 'search.google.com/search-console → Add property → URL prefix → HTML tag: paste only the content="…" value. Then submit /sitemap.xml there.' },
+  { key: 'BING_SITE_VERIFICATION', label: 'Bing Webmaster code', group: 'Search', placeholder: 'ABC123…', help: 'bing.com/webmasters → Add site → HTML meta tag: paste the content="…" value. Bing powers ChatGPT search and Copilot, so this matters for AI traffic.' },
+  { key: 'SEO_SAME_AS', label: 'Josh’s profiles (for AI to recognise him)', group: 'Search', placeholder: 'https://www.instagram.com/officialjoshli/, https://www.youtube.com/channel/UCaJNq5_e7ognPLRqS6n-gCA', help: 'Comma-separated links to Josh’s official profiles (LinkedIn, X, YouTube, Instagram). Search engines and AI use them to connect the site to him.' },
+  { key: 'X_HANDLE', label: 'X (Twitter) handle', group: 'Search', placeholder: '@officialjoshli', help: 'Shown on link previews when pages are shared on X.' },
 
   { key: 'VOICE_INPUT', label: 'Talk instead of type (application)', group: 'Site', placeholder: 'on', help: 'A microphone button on the application. Uses the browser’s own speech recognition; in Facebook/Instagram in-app browsers it records a short clip that Cloudflare’s own speech-to-text (Workers AI) turns into text. Audio is never stored. Type off to hide it.' },
 

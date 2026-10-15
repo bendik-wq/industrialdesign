@@ -27,6 +27,8 @@ const CLICK_SOURCE: Record<string, string> = {
 const token = (words: string) => new RegExp(`(^|[^a-z])(${words})([^a-z]|$)`, 'i');
 const SOCIAL = token('facebook|fb|instagram|ig|meta|twitter|x\\.com|t\\.co|linkedin|lnkd|tiktok|pinterest|reddit|snapchat|threads|quora');
 const VIDEO = token('youtube|youtu\\.be|vimeo');
+/** AI assistants and answer engines (ChatGPT also tags its links utm_source=chatgpt.com). */
+export const AI_SEARCH = token('chatgpt|chat\\.openai|openai|perplexity|claude|anthropic|gemini|bard|copilot|grok|x\\.ai|meta\\.ai|you\\.com|phind|deepseek|mistral|poe\\.com|kagi|duckassist');
 const SEARCH = token('google|bing|yahoo|duckduckgo|ecosia|baidu|yandex|brave|search');
 const MESSAGING = token('whatsapp|wa\\.me|telegram|messenger|sms');
 const EMAIL = token('mail|outlook|gmail|proton');
@@ -98,6 +100,7 @@ export function classifyChannel(source: string | null, medium: string | null, re
   if (m === 'email' || /email|newsletter|klaviyo|resend|mailchimp/.test(s) || EMAIL.test(r)) return 'Email';
   if (m === 'sms' || MESSAGING.test(s) || MESSAGING.test(r)) return 'Messaging';
   if (m === 'affiliate' || m === 'partner') return 'Affiliate';
+  if (!paid && (AI_SEARCH.test(s) || AI_SEARCH.test(r))) return 'AI Search';
   if (VIDEO.test(s) || VIDEO.test(r)) return paid ? 'Paid Video' : 'Organic Video';
   if (SOCIAL.test(s) || SOCIAL.test(r)) return paid ? 'Paid Social' : 'Organic Social';
   if (SEARCH.test(s) || SEARCH.test(r)) return paid ? 'Paid Search' : 'Organic Search';

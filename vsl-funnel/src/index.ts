@@ -2,6 +2,8 @@ import { Hono, type MiddlewareHandler } from 'hono';
 import { type AppEnv, type Runtime, publicOrigin, runtimeFrom } from './app';
 import { isAdmin, login, logout, requireAdmin, sameOriginWrite } from './admin/auth';
 import type { Env } from './env';
+import { indexNowKeyFile, logCrawler } from './seo/tracking';
+import { aboutPage, guideMarkdownPage, guidePage, guidesHub, llmsFullRoute, llmsRoute, robotsRoute, sitemapRoute } from './seo/pages';
 import { isShortUrl, shortPage, applyPage, bookPage, breakoutPage, landerPage, landingPage, resourcesPage, staticPage } from './funnel/pages';
 import { processEmailQueue } from './integrations/email';
 import { retryForwards } from './tracking/forward';
@@ -32,8 +34,10 @@ app.use('*', async (c, next) => {
   const [settings, reps] = await Promise.all([loadSettings(c.env), loadReps(c.env)]);
   c.set('settings', settings);
   c.set('reps', reps);
+  logCrawler(c); // which AI assistants / search engines read which pages (Funnel HQ → Search & AI)
   await next();
-  c.header('x-robots-tag', 'noindex, nofollow');
+  // Pages that may be indexed set their own x-robots-tag (see render / seo.ts); everything else is noindex.
+  if (!c.res.headers.has('x-robots-tag')) c.header('x-robots-tag', 'noindex, nofollow');
   c.header('referrer-policy', 'strict-origin-when-cross-origin');
   c.header('x-content-type-options', 'nosniff');
   if (new URL(c.req.url).protocol === 'https:') c.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
@@ -64,7 +68,12 @@ app.on(['GET', 'HEAD'], '/media/:file{[\\w.-]+\\.(mp4|webm|jpg)}', async (c) => 
   if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}` } });
   return new Response(head ? null : buf.slice(start, end + 1), { status: 206, headers: { ...headers, 'content-range': `bytes ${start}-${end}/${size}`, 'content-length': String(end - start + 1) } });
 });
-app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /\n'));
+// ── Search + AI search: robots.txt (AI crawlers named), sitemap, llms.txt (per host) ──
+app.get('/robots.txt', robotsRoute);
+app.get('/sitemap.xml', sitemapRoute);
+app.get('/llms.txt', llmsRoute);
+app.get('/llms-full.txt', llmsFullRoute);
+app.get('/:file{[a-f0-9]{32}\\.txt}', indexNowKeyFile);
 
 // ── Funnel pages (server-side page view + per-visitor rendering) ──
 const withVisitor: MiddlewareHandler<AppEnv> = async (c, next) => {
@@ -75,7 +84,7 @@ const withVisitor: MiddlewareHandler<AppEnv> = async (c, next) => {
 // ── Webinar (own host: live.yourdomain.com; or /webinar on the main domain) ──
 app.use('*', async (c, next) => {
   // On the webinar host, funnel and admin pages belong on the main domain.
-  if (isWebinarHost(c) && /^\/(apply|book|breakout|resources|for|m|admin|privacy)(\/|$)/.test(c.req.path)) {
+  if (isWebinarHost(c) && /^\/(apply|book|breakout|resources|for|m|admin|privacy|guides|about)(\/|$)/.test(c.req.path)) {
     const main = (c.get('settings').PUBLIC_URL || '').replace(/\/+$/, '');
     if (main) return c.redirect(`${main}${c.req.path}${new URL(c.req.url).search}`, 302);
   }
@@ -83,7 +92,7 @@ app.use('*', async (c, next) => {
 });
 // ── Data-buyer page (own host: data.yourdomain.com; or /data on the main domain) ──
 app.use('*', async (c, next) => {
-  if (isDataHost(c) && /^\/(apply|book|breakout|resources|for|m|admin|webinar|registered|room|replay|w)(\/|$)/.test(c.req.path)) {
+  if (isDataHost(c) && /^\/(apply|book|breakout|resources|for|m|admin|webinar|registered|room|replay|w|about)(\/|$)/.test(c.req.path)) {
     const main = (c.get('settings').PUBLIC_URL || '').replace(/\/+$/, '');
     if (main) return c.redirect(`${main}${c.req.path}${new URL(c.req.url).search}`, 302);
   }
@@ -100,6 +109,10 @@ for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/ics/:token`, icsFile);
 }
 app.get('/w/:token', withVisitor, applyHandoff);
+app.get('/guides', withVisitor, guidesHub);
+app.get('/guides/:file{[a-z0-9-]+\\.md}', guideMarkdownPage);
+app.get('/guides/:slug{[a-z0-9-]+}', withVisitor, guidePage);
+app.get('/about', withVisitor, (c) => (isDataHost(c) || isWebinarHost(c) ? c.notFound() : aboutPage(c)));
 app.get('/for/:industry', withVisitor, landerPage);
 app.get('/for/:industry/:angle', withVisitor, landerPage);
 app.get('/m', withVisitor, landerPage);

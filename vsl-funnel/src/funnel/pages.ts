@@ -7,6 +7,7 @@ import { whatsappLink } from '../integrations/whatsapp';
 import { getCookie, setCookie } from 'hono/cookie';
 import { INDUSTRIES, type Lander, getLander, inferIndustry, landerId } from '../landers/catalog';
 import { DATA_HEADLINES } from '../data/data';
+import { type SeoMeta, breadcrumbs, faqPage, guidesFor, indexingOn, seoHead } from '../seo/seo';
 import { chooseAngle, landerStats } from '../landers/bandit';
 import { webCallsEnabled } from '../integrations/voice';
 import { formatCallTime } from '../integrations/email';
@@ -36,6 +37,8 @@ export interface View {
   /** Extra props on the server page_view (e.g. which headline was shown). */
   trackProps?: Record<string, string | number | boolean | null>;
   title?: string;
+  /** Search / AI-search metadata. Without it the page is noindex. */
+  seo?: SeoMeta;
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -132,14 +135,18 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
   };
 
   const slots: Record<string, Html | null | undefined> = { site_name: esc(config.siteName), year: String(new Date().getFullYear()), disclaimer: DISCLAIMER, consent: LEGAL_CONSENT, ...view.slots };
+  // Search engines + AI crawlers: only pages that opt in (view.seo.index) can be indexed.
+  const indexable = Boolean(view.seo?.index && indexingOn(c) && v.botReason !== 'admin-preview' && !url.searchParams.has('hq_preview'));
+  const seoTags = view.seo ? seoHead(c, { ...view.seo, index: indexable }) : '<meta name="robots" content="noindex, nofollow">';
   const head = await trackingHead(c, pageEventId, ['questions', 'data', 'webinar'].some((k) => view.config && k in view.config));
   const asked = url.searchParams.get('palette') ?? '';
   const palette = PALETTES.includes(asked) ? asked : PALETTES.includes(s.SITE_PALETTE) ? s.SITE_PALETTE : PALETTES[0];
 
   const rewriter = new HTMLRewriter()
     .on('html', { element: (el) => void el.setAttribute('data-palette', palette) })
-    .on('title', { element: (el) => { if (view.title) el.setInnerContent(`${view.title} — ${config.siteName}`); } })
-    .on('head', { element: (el) => void el.append(`<script id="funnel-config">window.FUNNEL=${scriptJson(config)}</script>\n${head}`, { html: true }) })
+    .on('title', { element: (el) => { if (view.seo) el.setInnerContent(view.seo.title); else if (view.title) el.setInnerContent(`${view.title} — ${config.siteName}`); } })
+    .on('meta[name="description"]', { element: (el) => { if (view.seo) el.setAttribute('content', view.seo.description); } })
+    .on('head', { element: (el) => void el.append(`${seoTags}\n<script id="funnel-config">window.FUNNEL=${scriptJson(config)}</script>\n${head}`, { html: true }) })
     .on('[data-slot]', { element: (el) => { const k = el.getAttribute('data-slot')!; const val = slots[k]; if (val != null) el.setInnerContent(val, { html: true }); } })
     .on('[data-list]', {
       element: (el) => {
@@ -167,6 +174,7 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
   const headers = new Headers(asset.headers);
   headers.set('content-type', 'text/html; charset=utf-8');
   headers.set('cache-control', 'private, no-store');
+  headers.set('x-robots-tag', indexable ? 'index, follow, max-snippet:-1, max-image-preview:large' : 'noindex, nofollow');
   headers.delete('etag');
   for (const cookie of c.res.headers.getSetCookie()) headers.append('set-cookie', cookie);
   return rewriter.transform(new Response(asset.body, { status: 200, headers }));
@@ -225,7 +233,37 @@ export async function landingPage(c: Context<AppEnv>, lander: Lander | null = nu
   const variant = HEADLINE_EXPERIMENT.variants.find((x) => x.id === v.variant) ?? HEADLINE_EXPERIMENT.variants[0];
   const by = LANDING.byline;
   const copy = lander ?? variant;
+  const site = c.get('settings').SITE_NAME || BRAND.name;
+  // Internal links to the guides: the industry's own guide first, then how the structures work.
+  const all = guidesFor('main');
+  const picks = [
+    ...all.filter((g) => lander && g.industry === lander.industry.id),
+    ...all.filter((g) => g.section === 'Deal structures' || g.section === 'Financing'),
+  ].slice(0, lander ? 7 : 9);
+  const ind = lander?.industry;
+  const label = ind ? ind.label : '';
   return render(c, '/index.html', {
+    seo: {
+      title: ind ? `${label} Acquisitions With No Money Down | ${site}` : `Buy a Business With No Money Down | ${site}`,
+      description: ind
+        ? `For ${ind.owners} doing $1M+: buy ${ind.target} with no money down, funded by commercial debt, seller finance and seller rollover. Signed LOI in 90 days.`
+        : 'For owners of $1M+ businesses: buy a competitor with no money down, funded by commercial debt, seller finance and seller rollover. Signed LOI in 90 days.',
+      // /loi, /double and /dental/<angle> are versions of the same page: one canonical each.
+      path: ind ? `/${ind.id}` : '/',
+      index: true,
+      jsonLd: [
+        {
+          '@type': 'Service',
+          name: ind ? `No-money-down acquisitions for ${ind.owners}` : 'No-money-down business acquisition advisory',
+          serviceType: 'Mergers and acquisitions advisory',
+          provider: { '@id': `${new URL(c.req.url).origin}/#organization` },
+          description: 'Find the target, structure the deal with commercial debt, seller finance and seller rollover, and reach a signed LOI within 90 days. Over-financed at a DSCR of around 1.5x. 7-day money-back guarantee.',
+          audience: { '@type': 'BusinessAudience', name: ind ? ind.owners : 'Owners of businesses doing $1M+ in revenue' },
+        },
+        faqPage(FAQS),
+        ...(ind ? [breadcrumbs(c, [{ name: 'Home', path: '/' }, { name: label, path: `/${ind.id}` }])] : []),
+      ],
+    },
     title: lander ? `${lander.industry.owners.charAt(0).toUpperCase()}${lander.industry.owners.slice(1)}: no-money-down acquisitions` : 'No-money-down acquisitions',
     slots: {
       ...applySection.slots,
@@ -242,8 +280,11 @@ export async function landingPage(c: Context<AppEnv>, lander: Lander | null = nu
       proof_points: LANDING.proof,
       testimonials: LANDING.testimonials.map((t) => `<blockquote>“${t.quote}”</blockquote><cite><strong>${t.name}</strong> · ${t.detail}</cite>`),
     },
-    blocks: { faqs: faqBlock() },
-    show: { testimonials: LANDING.testimonials.length > 0 },
+    blocks: {
+      faqs: faqBlock(),
+      guide_links: picks.map((g) => `<li><a href="/guides/${g.slug}">${esc(g.h1)}</a><small>${esc(g.section)}</small></li>`).join(''),
+    },
+    show: { testimonials: LANDING.testimonials.length > 0, has_guides: picks.length > 0 },
     config: { video: videoConfig(c, VIDEOS.main), experiment: lander ? 'landers' : HEADLINE_EXPERIMENT.id, lander: lander?.id ?? null, ...applicationConfig(c, lead) },
     trackPath,
   });

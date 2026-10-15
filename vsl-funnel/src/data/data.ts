@@ -27,6 +27,12 @@ export function dataSettings(rt: Runtime) {
   };
 }
 
+/** The data site's own origin (the configured address, else this request's). */
+export function dataOrigin(c: Context<AppEnv>) {
+  try { if (c.get('settings').DATA_URL) return new URL(c.get('settings').DATA_URL).origin; } catch { /* fall through */ }
+  return new URL(c.req.url).origin;
+}
+
 export function isDataHost(c: Context<AppEnv>) {
   const host = new URL(c.req.url).host;
   const configured = c.get('settings').DATA_URL;
@@ -62,6 +68,16 @@ export async function dataLanding(c: Context<AppEnv>, slug?: string) {
     show: { has_video: Boolean(d.video) },
     config: { data: { claim: '/api/data/claim', headline: h.id } },
     trackPath: '/data',
+    // One canonical: the data host's home page (headline links and /data on the main domain are versions of it).
+    seo: {
+      title: 'Get Paid for Your Business’s Operational Data | Up to $2M',
+      description: 'AI companies are buying anonymised operational data from established businesses, including closed ones. Deals typically $200k–$2M. No equity, no loan.',
+      path: '/',
+      origin: dataOrigin(c),
+      image: '/assets/og/data.png',
+      index: isDataHost(c),
+      jsonLd: [{ '@type': 'WebPage', name: 'Get paid for your business’s operational data', description: 'Claim a valuation for your business’s anonymised operational data.' }],
+    },
   });
 }
 

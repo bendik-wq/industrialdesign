@@ -822,3 +822,10 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .re-days .re-track { grid-template-columns: 1fr; margin: 0; gap: 6px; }
 .re-days .re-track li { border-top-width: 1px; border-left: 4px solid var(--ink); padding: 8px 10px; }
 .own-url { word-break: break-all; }
+
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.checklist li { display: flex; gap: 10px; align-items: flex-start; }
+.checklist li > span { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.checklist li.ok > span { background: var(--ok-bg, #e7f6ec); color: var(--ok, #157f3b); }
+.checklist li.todo > span { background: var(--bg-alt, #f3f4f6); color: var(--muted, #6b7280); }
+.checklist .mono { word-break: break-all; }
