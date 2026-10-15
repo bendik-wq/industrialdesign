@@ -25,7 +25,7 @@ export interface VideoDef {
   gateContent: boolean;
   /** Muted autoplay with a "click for sound" overlay that restarts from 0. */
   autoplayMuted: boolean;
-  /** Used until a video is connected in the dashboard (files in public/assets/media, served with Range support at /media/…). */
+  /** Used until a video is connected in the dashboard: an HLS playlist or MP4 under public/assets/media. */
   defaultSrc?: string;
   /** WebM copy for browsers without H.264. */
   defaultSrcWebm?: string;
@@ -35,22 +35,48 @@ export interface VideoDef {
 }
 
 export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
-  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 240, gateContent: false, autoplayMuted: true, defaultSrc: '/media/vsl-main.mp4', defaultSrcWebm: '/media/vsl-main.webm', defaultPoster: '/media/vsl-main-poster.jpg',
-    // From docs/VSL_SCRIPT.md (VSL #1). Re-time these when the final cut is in.
+  // Final cuts (Oct 2026), streamed as HLS (1080p + 540p, 4-second segments) from public/assets/media/hls.
+  // Chapter times come from the transcripts; CTA reveals at the offer (main) and the spoken call to action (part 2).
+  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 270, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/main/index.m3u8', defaultPoster: '/assets/media/main-poster.jpg',
     chapters: [
-      { at: 0, title: 'the hook' },
-      { at: 40, title: 'who this is for' },
-      { at: 90, title: 'Josh’s background and his two seller-financed acquisitions' },
-      { at: 150, title: 'why growth stalls (the two slow paths)' },
-      { at: 240, title: 'the third way: buying growth instead of building it' },
-      { at: 330, title: 'how the deal gets funded: seller finance, senior debt and over-financing' },
-      { at: 420, title: 'the offer: a signed LOI in 90 days' },
-      { at: 540, title: 'proof' },
-      { at: 600, title: 'the common objections' },
-      { at: 660, title: 'the close and next step' },
+      { at: 0, title: 'the hook: doubling or tripling the business by buying a competitor' },
+      { at: 20, title: 'Josh’s background and his two 100% seller-financed acquisitions' },
+      { at: 42, title: 'why growth starts to feel heavy' },
+      { at: 66, title: 'the two slow paths: grinding or raising money' },
+      { at: 87, title: 'the third way: buying a business that’s already built' },
+      { at: 102, title: 'why retiring owners will sell to you' },
+      { at: 156, title: 'the three C’s: capabilities, capital and closing' },
+      { at: 187, title: 'how the deal gets funded: a worked example with over-financing' },
+      { at: 232, title: 'your questions: the bank, your cash and your time' },
+      { at: 270, title: 'the 90 days to a signed LOI' },
+      { at: 296, title: 'what an acquisition does to your company’s value' },
+      { at: 320, title: 'the cost of waiting' },
+      { at: 344, title: 'the next step and the 7-day guarantee' },
     ] },
-  breakout: { id: 'vsl-breakout', srcSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 180, gateContent: false, autoplayMuted: true },
-  precall: { id: 'vsl-precall', srcSetting: 'VSL_PRECALL_SRC', fallbackSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 0, gateContent: false, autoplayMuted: true },
+  breakout: { id: 'vsl-breakout', srcSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 340, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/breakout/index.m3u8', defaultPoster: '/assets/media/breakout-poster.jpg',
+    chapters: [
+      { at: 0, title: 'what part two covers' },
+      { at: 28, title: 'the target: a competitor making $500k profit' },
+      { at: 57, title: 'the 70/20/10: commercial debt, seller finance and seller rollover' },
+      { at: 93, title: 'over-financing: the working-capital line' },
+      { at: 116, title: 'what the deal costs to service each year' },
+      { at: 158, title: 'the 1.5x coverage test and the stress test' },
+      { at: 217, title: 'the three structures: 70/20/10, 60/40 and 100% vendor finance' },
+      { at: 260, title: 'why sellers and lenders back you' },
+      { at: 286, title: 'what it does to your profit and exit value' },
+      { at: 312, title: 'where deals go wrong' },
+      { at: 345, title: 'booking the call and the 7-day guarantee' },
+    ] },
+  precall: { id: 'vsl-precall', srcSetting: 'VSL_PRECALL_SRC', fallbackSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 0, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/precall/index.m3u8', defaultPoster: '/assets/media/precall-poster.jpg',
+    chapters: [
+      { at: 0, title: 'welcome' },
+      { at: 16, title: 'what the call is' },
+      { at: 42, title: 'the four things to have ready' },
+      { at: 81, title: 'why this works' },
+      { at: 110, title: 'common doubts' },
+      { at: 128, title: 'what it costs and the guarantee' },
+      { at: 153, title: 'please show up' },
+    ] },
 };
 
 // ───────────────────────────── Brand ─────────────────────────────

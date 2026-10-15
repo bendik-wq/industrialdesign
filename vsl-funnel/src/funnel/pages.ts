@@ -7,6 +7,7 @@ import { whatsappLink } from '../integrations/whatsapp';
 import { getCookie, setCookie } from 'hono/cookie';
 import { INDUSTRIES, type Lander, getLander, inferIndustry, landerId } from '../landers/catalog';
 import { DATA_HEADLINES } from '../data/data';
+import { MAIN_VSL } from '../seo/transcripts';
 import { type SeoMeta, breadcrumbs, faqPage, guidesFor, indexingOn, seoHead } from '../seo/seo';
 import { chooseAngle, landerStats } from '../landers/bandit';
 import { webCallsEnabled } from '../integrations/voice';
@@ -260,6 +261,16 @@ export async function landingPage(c: Context<AppEnv>, lander: Lander | null = nu
           description: 'Find the target, structure the deal with commercial debt, seller finance and seller rollover, and reach a signed LOI within 90 days. Over-financed at a DSCR of around 1.5x. 7-day money-back guarantee.',
           audience: { '@type': 'BusinessAudience', name: ind ? ind.owners : 'Owners of businesses doing $1M+ in revenue' },
         },
+        {
+          '@type': 'VideoObject',
+          name: MAIN_VSL.name,
+          description: MAIN_VSL.description,
+          thumbnailUrl: `${new URL(c.req.url).origin}${MAIN_VSL.thumbnail}`,
+          uploadDate: MAIN_VSL.uploadDate,
+          duration: MAIN_VSL.durationIso,
+          transcript: MAIN_VSL.paragraphs.join(' '),
+          author: { '@id': `${new URL(c.req.url).origin}/about#josh-li` },
+        },
         faqPage(FAQS),
         ...(ind ? [breadcrumbs(c, [{ name: 'Home', path: '/' }, { name: label, path: `/${ind.id}` }])] : []),
       ],
@@ -282,6 +293,7 @@ export async function landingPage(c: Context<AppEnv>, lander: Lander | null = nu
     },
     blocks: {
       faqs: faqBlock(),
+      transcript: MAIN_VSL.paragraphs.map((p) => `<p>${esc(p)}</p>`).join(''),
       guide_links: picks.map((g) => `<li><a href="/guides/${g.slug}">${esc(g.h1)}</a><small>${esc(g.section)}</small></li>`).join(''),
     },
     show: { testimonials: LANDING.testimonials.length > 0, has_guides: picks.length > 0 },
