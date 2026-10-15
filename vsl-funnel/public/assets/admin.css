@@ -829,3 +829,17 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .checklist li.ok > span { background: var(--ok-bg, #e7f6ec); color: var(--ok, #157f3b); }
 .checklist li.todo > span { background: var(--bg-alt, #f3f4f6); color: var(--muted, #6b7280); }
 .checklist .mono { word-break: break-all; }
+
+/* Per-article drawer: the funnel and the "where from" bar lists. */
+.funnelbars { display: grid; gap: 8px; }
+.fstep-bar { position: relative; display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.fstep-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--tier-a, #1f6feb); opacity: .18; border-radius: inherit; }
+.fstep-bar span { position: relative; flex: 1; font-size: 13px; color: var(--ink); }
+.fstep-bar b { position: relative; font-variant-numeric: tabular-nums; }
+.fstep small { display: block; margin: 2px 0 0 12px; }
+.barlist { display: grid; gap: 7px; }
+.barrow { display: grid; grid-template-columns: minmax(80px, 1fr) 90px auto; align-items: center; gap: 10px; font-size: 13px; }
+.barrow-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.barrow-bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.barrow-bar i { display: block; height: 100%; background: var(--tier-a, #1f6feb); opacity: .5; border-radius: inherit; }
+.barrow b { font-variant-numeric: tabular-nums; text-align: right; }

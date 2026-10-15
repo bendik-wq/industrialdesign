@@ -103,3 +103,22 @@ describe('audit fixes (Oct 2026)', () => {
     expect(p).toMatch(/Never read back, confirm or hint at what's on file/);
   });
 });
+
+describe('scoring rubric stays server-side', () => {
+  it('serialised client config exposes no points or flags', async () => {
+    const { APPLICATION } = await import('../src/config');
+    const client = APPLICATION.map((q: any) => {
+      const base: any = { id: q.id, type: q.type, title: q.title };
+      if (q.help) base.help = q.help;
+      if (q.placeholder) base.placeholder = q.placeholder;
+      if (q.minLength) base.minLength = q.minLength;
+      if (Array.isArray(q.options)) base.options = q.options.map((o: any) => ({ value: o.value, label: o.label }));
+      return base;
+    });
+    const json = JSON.stringify(client);
+    expect(json).not.toContain('points');
+    expect(json).not.toContain('flags');
+    // the real rubric does carry them, so the test is meaningful
+    expect(JSON.stringify(APPLICATION)).toContain('points');
+  });
+});

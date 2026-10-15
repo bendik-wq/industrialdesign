@@ -925,6 +925,56 @@
     });
   }
 
+  // One article in depth: where its visitors come from, what they searched, and how far they get.
+  function openArticle(slug) {
+    closeDrawers();
+    var bg = document.createElement('div'); bg.className = 'drawer-bg';
+    var dr = document.createElement('aside'); dr.className = 'drawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-label', 'Article traffic');
+    dr.innerHTML = '<div class="loading-note">Loading…</div>';
+    document.body.appendChild(bg); document.body.appendChild(dr);
+    function teardown() { document.removeEventListener('keydown', onKey); }
+    function close() { bg.remove(); dr.remove(); teardown(); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    dr.__teardown = teardown; bg.onclick = close; document.addEventListener('keydown', onKey);
+    var r = range();
+    var qs = 'slug=' + encodeURIComponent(slug) + '&from=' + r.from + '&to=' + r.to + '&tz=' + (-new Date().getTimezoneOffset());
+    fetch('/admin/api/search/article?' + qs, { credentials: 'same-origin' }).then(function (res) { return res.json(); }).then(function (d) {
+      if (!d || d.error) { dr.innerHTML = '<div class="drawer-head"><h2 class="lead-name">Article</h2><button class="close" type="button">Close ✕</button></div><div class="empty">No data for this article yet.</div>'; dr.querySelector('.close').onclick = close; return; }
+      var f = d.funnel, total = f.landed || 0;
+      var step = function (label, v, hint) { var pc = total ? Math.round((v / total) * 100) : 0; return '<div class="fstep"><div class="fstep-bar"><i style="width:' + pc + '%"></i><span>' + esc(label) + '</span><b>' + n(v) + '</b></div>' + (hint ? '<small class="muted">' + esc(hint) + '</small>' : '') + '</div>'; };
+      var listCard = function (title, rows, keyLabel, sub) {
+        if (!rows || !rows.length) return '<div class="card"><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + '<p class="muted">None yet.</p></div>';
+        var max = rows.reduce(function (m, x) { return Math.max(m, x.sessions); }, 0);
+        return '<div class="card"><h2>' + esc(title) + '</h2>' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') +
+          '<div class="barlist" style="margin-top:10px">' + rows.map(function (x) { return '<div class="barrow"><span class="barrow-l" title="' + esc(x[keyLabel]) + '">' + esc(x[keyLabel] || '(none)') + '</span><span class="barrow-bar"><i style="width:' + Math.round((x.sessions / max) * 100) + '%"></i></span><b>' + n(x.sessions) + '</b></div>'; }).join('') + '</div></div>';
+      };
+      dr.innerHTML = '<div class="drawer-head"><div class="row" style="flex:1;min-width:0"><h2 class="lead-name">' + esc(d.h1) + '</h2><span class="pill">' + esc(d.section) + '</span></div><button class="close" type="button" aria-label="Close">Close ✕</button></div>' +
+        '<p class="muted" style="margin:4px 0 14px"><a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(String(d.url).replace(/^https?:\/\//, '')) + '</a> · <a href="' + esc(d.md) + '" target="_blank" rel="noopener">view as AI sees it (.md)</a></p>' +
+        '<div class="grid g-4 tiles">' +
+        tile('Reads', n(d.views.views), n(d.views.readers) + ' people') +
+        tile('Entered here', n(f.landed), 'started their visit on this article') +
+        tile('Became leads', n(f.leads), total ? pct(f.leads / total) + ' of those who entered here' : '–') +
+        tile('Booked', n(f.booked), n(f.won) + ' won') +
+        '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Funnel from this article</h2><p class="sub">People whose first page on the site was this article, and how far they went.</p><div class="funnelbars" style="margin-top:12px">' +
+        step('Entered on this article', f.landed) + step('Read more than one page', f.engaged) + step('Became a lead', f.leads) + step('Completed the application', f.applied) + step('Booked a call', f.booked) + step('Won', f.won) + '</div></div>' +
+        '<div class="card" style="margin-top:14px"><h2>Where they came from</h2><div class="chart" data-art-series></div></div>' +
+        '<div class="grid g-2" style="margin-top:14px">' +
+        listCard('Source', d.referrers, 'source', 'The site or search engine they arrived from.') +
+        listCard('Channel', d.channels, 'channel', 'Search, AI assistant, social, direct…') +
+        '</div>' +
+        '<div class="grid g-2" style="margin-top:14px">' +
+        listCard('Search terms', d.terms, 'term', 'Only when the link carried one — Google and Bing hide most queries.') +
+        listCard('Country', d.countries, 'country') +
+        '</div>' +
+        listCard('Device', d.devices, 'device') ;
+      dr.querySelector('.close').onclick = close;
+      var sc = dr.querySelector('[data-art-series]');
+      if (d.series && d.series.length) lineChart(sc, d.series.map(function (x) { return { label: x.day, short: x.day.slice(5), value: x.landed }; }), { label: 'Entered on this article per day', height: 160 });
+      else sc.innerHTML = '<p class="muted">No visitors entered on this article in this range yet.</p>';
+    });
+  }
+
   function openLead(id, o) {
     closeDrawers();
     var pushed = false;
@@ -1940,15 +1990,22 @@
           { label: 'Page', html: function (r) { return '<span class="mono">' + esc((r.host !== 'main' ? r.host + ' ' : '') + r.path) + '</span><div class="muted">' + esc(r.bots || '') + '</div>'; } },
           { label: 'AI visits', key: 'ai_hits', num: true, fmt: n }, { label: 'All crawler visits', key: 'hits', num: true, fmt: n },
         ], d.botPages, { cards: true }) : '<p class="muted">None yet.</p>') + '</div>' +
-        '<div class="card" style="margin-top:14px"><h2>Guides · ' + n(guides.length) + '</h2><p class="sub">Written to be the answer AI assistants quote and Google ranks. Views and CTA clicks from real people in this range.</p>' +
+        '<div class="card" style="margin-top:14px"><h2>Guides · ' + n(guides.length) + '</h2><p class="sub">Each article: reads, and the funnel for people who <strong>entered the site on it</strong> (landed → became a lead → applied → booked). Click a row to see where its visitors come from and what they searched.</p>' +
         table([
-          { label: 'Guide', html: function (r) { return '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.h1) + '</a><div class="muted">' + esc(r.section) + (r.host === 'data' ? ' · data site' : '') + '</div>'; } },
-          { label: 'Views', key: 'views', num: true, fmt: n }, { label: 'People', key: 'visitors', num: true, fmt: n }, { label: 'Clicked CTA', key: 'ctas', num: true, fmt: n },
-        ], guides, { cards: true }) + '</div>' +
+          { label: 'Guide', html: function (r) { return '<strong>' + esc(r.h1) + '</strong><div class="muted">' + esc(r.section) + (r.host === 'data' ? ' · data site' : '') + ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">open ↗</a></div>'; } },
+          { label: 'Reads', key: 'views', num: true, fmt: n }, { label: 'People', key: 'visitors', num: true, fmt: n },
+          { label: 'Entered here', num: true, nw: true, html: function (r) { return n(r.landed) + (r.landed ? '<div class="muted">' + n(r.fromSearch) + ' search · ' + n(r.fromAi) + ' AI</div>' : ''); } },
+          { label: 'Clicked CTA', key: 'ctas', num: true, fmt: n },
+          { label: 'Leads', num: true, nw: true, html: function (r) { return n(r.leads) + (r.booked ? ' <span class="muted">(' + n(r.booked) + ' booked)</span>' : ''); } },
+        ], guides, { cards: true, rowAttr: function (r) { return 'class="click" data-article="' + esc(r.slug) + '" tabindex="0" title="See where this article’s visitors come from"'; } }) + '</div>' +
         (d.landings.length ? '<div class="card" style="margin-top:14px"><h2>Landing pages for AI & search visitors</h2>' + table([
           { label: 'Page', html: function (r) { return '<span class="mono">' + esc(r.landing_path || '/') + '</span>'; } },
           { label: 'From AI', key: 'ai', num: true, fmt: n }, { label: 'From search', key: 'organic', num: true, fmt: n },
         ], d.landings, { cards: true }) + '</div>' : '');
+      view.querySelectorAll('[data-article]').forEach(function (row) {
+        row.onclick = function () { openArticle(row.getAttribute('data-article')); };
+        row.onkeydown = function (e) { if (e.key === 'Enter') openArticle(row.getAttribute('data-article')); };
+      });
       var days = d.botDays || [];
       var el = view.querySelector('[data-sc-ai]');
       if (days.length) lineChart(el, days.map(function (x) { return { label: x.day, short: x.day.slice(5), value: x.ai }; }), { label: 'AI crawler visits per day', height: 200 });

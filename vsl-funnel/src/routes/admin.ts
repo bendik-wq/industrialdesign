@@ -1,5 +1,5 @@
 import { type Context, Hono } from 'hono';
-import { searchReport, submitIndexNow } from '../seo/tracking';
+import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
@@ -270,6 +270,7 @@ admin.get('/pages', (c) => {
 // Funnel HQ → Search & AI: crawlers, AI-search and organic visitors, guides, setup; IndexNow submit.
 admin.get('/search', async (c) => { const f = filters(c); return c.json(await searchReport(c, f.from, f.to)); });
 admin.post('/search/indexnow', async (c) => c.json(await submitIndexNow(c)));
+admin.get('/search/article', async (c) => { const f = filters(c); const r = await articleReport(c, (c.req.query('slug') ?? '').slice(0, 80), f.from, f.to); return r ? c.json(r) : c.json({ error: 'not found' }, 404); });
 admin.get('/visitors/:id', async (c) => {
   const j = await visitorJourney(runtimeFrom(c), c.req.param('id').slice(0, 64));
   return j ? c.json(j) : c.json({ error: 'not found' }, 404);

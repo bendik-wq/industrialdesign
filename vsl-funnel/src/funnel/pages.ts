@@ -208,10 +208,26 @@ function previewLead(c: Context<AppEnv>): Lead | null {
 // ───────────────────────────── Pages ─────────────────────────────
 
 /** Everything the embedded application needs (used on the landing page and /apply). */
+/**
+ * The questions as the browser needs them — WITHOUT the scoring rubric (points/flags).
+ * Scoring stays server-side (scoring.ts); shipping the weights would let an applicant pick answers to
+ * force a "qualified" tier and book a call they wouldn't otherwise get.
+ */
+function clientQuestions() {
+  return APPLICATION.map((q) => {
+    const base: Record<string, unknown> = { id: q.id, type: q.type, title: q.title };
+    if ('help' in q && q.help) base.help = q.help;
+    if ('placeholder' in q && q.placeholder) base.placeholder = q.placeholder;
+    if ('minLength' in q && q.minLength) base.minLength = q.minLength;
+    if ('options' in q && Array.isArray(q.options)) base.options = q.options.map((o) => ({ value: o.value, label: o.label }));
+    return base;
+  });
+}
+
 function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
   const s = c.get('settings');
   return {
-    questions: APPLICATION,
+    questions: clientQuestions(),
     turnstileSiteKey: s.TURNSTILE_SITE_KEY || null,
     callConsent: CALL_CONSENT.text,
     country: c.get('visitor').geo.country,

@@ -7,6 +7,10 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
 
+  // Serve only via the custom domains (apply./live./data.grosfjeld-li.com), not the public
+  // *.workers.dev URL, so /admin can't be reached around a domain-level firewall or Access rule.
+  "workers_dev": false,
+
   // Static pages + assets. The Worker runs first for every HTML route so it can
   // log the page view server-side, set first-party cookies, assign A/B variants
   // and inject per-visitor config. /assets/* is served straight from the edge.

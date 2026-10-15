@@ -62,7 +62,7 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
   const dayTo = new Date(to).toISOString().slice(0, 10);
   const q = <T>(sql: string, ...b: (string | number)[]) => env.DB.prepare(sql).bind(...b).all<T>().then((r) => r.results ?? []).catch(() => [] as T[]);
 
-  const [bots, botDays, botPages, visits, refs, landings, leads, guideViews, guideCtas] = await Promise.all([
+  const [bots, botDays, botPages, visits, refs, landings, leads, guideViews, guideCtas, articleFunnel] = await Promise.all([
     q<{ bot: string; hits: number; pages: number; last_at: number }>(
       'SELECT bot, SUM(hits) AS hits, COUNT(DISTINCT host || path) AS pages, MAX(last_at) AS last_at FROM crawler_hits WHERE day BETWEEN ? AND ? GROUP BY bot ORDER BY hits DESC', dayFrom, dayTo),
     q<{ day: string; ai: number; search: number }>(
@@ -93,11 +93,25 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
     q<{ path: string; clicks: number }>(
       `SELECT path, COUNT(*) AS clicks FROM events
        WHERE name = 'cta_click' AND is_bot = 0 AND ts BETWEEN ? AND ? AND (path LIKE '/guides%' OR path = '/about') GROUP BY path`, from, to),
+    // Per-article funnel: people who ENTERED the site on this page, and how far they got.
+    q<{ path: string; landed: number; ai: number; organic: number; leads: number; applied: number; booked: number; won: number }>(
+      `SELECT s.landing_path AS path,
+              COUNT(DISTINCT s.visitor_id) AS landed,
+              COUNT(DISTINCT CASE WHEN s.channel = ${AI} THEN s.visitor_id END) AS ai,
+              COUNT(DISTINCT CASE WHEN s.channel = 'Organic Search' THEN s.visitor_id END) AS organic,
+              COUNT(DISTINCT l.id) AS leads,
+              COUNT(DISTINCT CASE WHEN l.app_completed_at IS NOT NULL THEN l.id END) AS applied,
+              COUNT(DISTINCT CASE WHEN l.booked_at IS NOT NULL AND l.booking_cancelled_at IS NULL THEN l.id END) AS booked,
+              COUNT(DISTINCT CASE WHEN l.status = 'won' THEN l.id END) AS won
+       FROM sessions s LEFT JOIN leads l ON l.visitor_id = s.visitor_id
+       WHERE s.started_at BETWEEN ? AND ? AND s.is_bot = 0 AND (s.landing_path LIKE '/guides/%' OR s.landing_path = '/about')
+       GROUP BY s.landing_path`, from, to),
   ]);
 
   const meta = new Map(CRAWLERS.map((x) => [x.bot, x]));
   const views = new Map(guideViews.map((g) => [g.path, g]));
   const ctas = new Map(guideCtas.map((g) => [g.path, g.clicks]));
+  const landed = new Map(articleFunnel.map((a) => [a.path, a]));
   const s = c.get('settings');
   const main = hostOrigin(c, 'main');
   const dataOrigin = hostOrigin(c, 'data');
@@ -112,7 +126,14 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
     guides: GUIDES.map((g) => {
       const path = `/guides/${g.slug}`;
       const v = views.get(path);
-      return { slug: g.slug, h1: g.h1, section: g.section, host: g.host ?? 'main', url: `${(g.host ?? 'main') === 'data' ? dataOrigin : main}${path}`, views: v?.views ?? 0, visitors: v?.visitors ?? 0, ctas: ctas.get(path) ?? 0 };
+      const a = landed.get(path);
+      return {
+        slug: g.slug, h1: g.h1, section: g.section, host: g.host ?? 'main', url: `${(g.host ?? 'main') === 'data' ? dataOrigin : main}${path}`,
+        views: v?.views ?? 0, visitors: v?.visitors ?? 0, ctas: ctas.get(path) ?? 0,
+        // "landed" = entered the site on this article; the funnel is for those people.
+        landed: a?.landed ?? 0, fromSearch: a?.organic ?? 0, fromAi: a?.ai ?? 0,
+        leads: a?.leads ?? 0, applied: a?.applied ?? 0, booked: a?.booked ?? 0, won: a?.won ?? 0,
+      };
     }),
     setup: {
       indexing: indexingOn(c),
@@ -128,6 +149,43 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
       guides: GUIDES.length,
       indexnowLast: await env.DB.prepare("SELECT value FROM kv_state WHERE key = 'indexnow:last'").first<{ value: string }>().then((r) => (r ? JSON.parse(r.value) : null)).catch(() => null),
     },
+  };
+}
+
+/** One article in depth: where its visitors come from, what they searched, and how far they get. */
+export async function articleReport(c: Context<AppEnv>, slug: string, from: number, to: number) {
+  const g = GUIDES.find((x) => x.slug === slug);
+  if (!g) return null;
+  const host = (g.host ?? 'main') as HostKind;
+  const path = `/guides/${slug}`;
+  const env = c.env;
+  const q = <T>(sql: string, ...b: (string | number)[]) => env.DB.prepare(sql).bind(...b).all<T>().then((r) => r.results ?? []).catch(() => [] as T[]);
+  // Sessions that ENTERED on this article (landing_path), plus whether that visitor became a lead.
+  const base = `FROM sessions s LEFT JOIN leads l ON l.visitor_id = s.visitor_id WHERE s.landing_path = ? AND s.started_at BETWEEN ? AND ? AND s.is_bot = 0`;
+  const [funnel, channels, referrers, terms, countries, devices, views, series] = await Promise.all([
+    q<{ landed: number; engaged: number; leads: number; applied: number; booked: number; won: number }>(
+      `SELECT COUNT(DISTINCT s.visitor_id) AS landed,
+              COUNT(DISTINCT CASE WHEN s.pageviews > 1 THEN s.visitor_id END) AS engaged,
+              COUNT(DISTINCT l.id) AS leads,
+              COUNT(DISTINCT CASE WHEN l.app_completed_at IS NOT NULL THEN l.id END) AS applied,
+              COUNT(DISTINCT CASE WHEN l.booked_at IS NOT NULL AND l.booking_cancelled_at IS NULL THEN l.id END) AS booked,
+              COUNT(DISTINCT CASE WHEN l.status = 'won' THEN l.id END) AS won ${base}`, path, from, to),
+    q<{ channel: string; sessions: number }>(`SELECT s.channel AS channel, COUNT(*) AS sessions ${base} GROUP BY s.channel ORDER BY sessions DESC`, path, from, to),
+    q<{ source: string; sessions: number }>(`SELECT COALESCE(NULLIF(s.referrer_host, ''), s.utm_source, '(direct / none)') AS source, COUNT(*) AS sessions ${base} GROUP BY source ORDER BY sessions DESC LIMIT 20`, path, from, to),
+    // Search term if the ad/link carried one (utm_term); Google/Bing hide the query, so most are blank.
+    q<{ term: string; sessions: number }>(`SELECT s.utm_term AS term, COUNT(*) AS sessions ${base} AND s.utm_term IS NOT NULL AND s.utm_term != '' GROUP BY term ORDER BY sessions DESC LIMIT 20`, path, from, to),
+    q<{ country: string; sessions: number }>(`SELECT COALESCE(s.country, '??') AS country, COUNT(*) AS sessions ${base} GROUP BY country ORDER BY sessions DESC LIMIT 12`, path, from, to),
+    q<{ device: string; sessions: number }>(`SELECT COALESCE(s.device, 'unknown') AS device, COUNT(*) AS sessions ${base} GROUP BY device ORDER BY sessions DESC`, path, from, to),
+    q<{ views: number; readers: number }>(`SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS readers FROM events WHERE name = 'page_view' AND is_bot = 0 AND path = ? AND ts BETWEEN ? AND ?`, path, from, to),
+    q<{ day: string; landed: number }>(`SELECT date(s.started_at / 1000, 'unixepoch') AS day, COUNT(DISTINCT s.visitor_id) AS landed ${base} GROUP BY day ORDER BY day`, path, from, to),
+  ]);
+  return {
+    slug, h1: g.h1, section: g.section, host,
+    url: `${hostOrigin(c, host)}${path}`,
+    md: `${hostOrigin(c, host)}/guides/${slug}.md`,
+    funnel: funnel[0] ?? { landed: 0, engaged: 0, leads: 0, applied: 0, booked: 0, won: 0 },
+    views: views[0] ?? { views: 0, readers: 0 },
+    channels, referrers, terms, countries, devices, series,
   };
 }
 
