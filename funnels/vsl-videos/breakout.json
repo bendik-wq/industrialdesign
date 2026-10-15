@@ -1,12 +1,57 @@
 [
-{"eb":"Part 2","hl":"How the deal <em>actually gets funded.</em>","text":"Welcome to part two. In the first video, I told you that owners like you are buying competitors with none of their own money in the deal. In this one, I'm going to show you exactly how that works. We'll go through a deal line by line. What the seller carries, what the bank funds, how your business makes you the credible buyer, and what it all does to what your company is worth. Grab a pen. This is the part most people never get to see."},
-{"eb":"The target","hl":"A competitor making <em>$500k a year.</em>","text":"Let's start with the target. It's a competitor in your industry, making five hundred thousand dollars a year in profit. The owner is in their sixties, wants to retire, and has no one to hand it to. You've had a few conversations. They've signed an NDA, and they've sent you three years of financials and tax returns. That's the qualification gate. A seller who sends you their numbers is a seller who's serious. You agree a price of one and a half million dollars. That's three times profit, which is normal for a business this size."},
-{"eb":"The structure","hl":"70% bank. 20% seller note. <em>10% rollover.</em>","text":"Now, here's how that one and a half million gets paid. We call this the seventy, twenty, ten. Seventy percent, so one million and fifty thousand dollars, is commercial debt from a lender. Twenty percent, three hundred thousand, is seller finance. That's a note the seller is paid over time, out of the business's profit. And the last ten percent, one hundred and fifty thousand, is seller rollover. The owner keeps a ten percent stake. So they've still got skin in the game, and they want the business to do well after you take over."},
-{"eb":"Over-financed","hl":"$1.6M of funding for a <em>$1.5M price.</em>","text":"Then there's the piece that makes it over-financed. The lender adds a working capital line of one hundred thousand dollars. So you've got one point six million dollars of funding, for a one and a half million dollar price. That extra covers your legal and accounting costs at settlement, and leaves working capital in the business from day one. Your own cash in the deal is zero."},
-{"eb":"The maths","hl":"It has to cover its debt <em>1.5 times.</em>","text":"Of course, none of that matters unless the numbers hold up. So here's the test every deal has to pass. Take the business's profit, and divide it by the yearly repayments on the bank loan and the seller note. That's your debt service coverage ratio. We want it at one and a half times or better. In this deal, the business makes five hundred thousand a year. On typical terms, the repayments come to around two hundred and seventy thousand. That's coverage of about one point eight times. It services its own debt with room to spare. If a deal can't pass that test, we don't do it. That rule is what keeps your existing business safe."},
-{"eb":"Three sellers","hl":"Match the structure to <em>the seller.</em>","text":"The seventy, twenty, ten is one of three structures we use. The right one depends on what the seller wants. If they want most of their cash at settlement, it's the seventy, twenty, ten. If they want to stay invested and watch the business grow, we use a sixty, forty. That's sixty percent commercial debt and forty percent seller rollover. And in structures like that, there's no personal guarantee. The lender's security is over the business's assets. And if what they care about most is the right successor and a steady income, it can be one hundred percent vendor finance. That's how I bought both of my businesses. Once you know which seller you're talking to, you know which offer to make."},
-{"eb":"Why you","hl":"Why the seller and the bank <em>back you.</em>","text":"So why would a seller and a lender back you? Because of the business you already own. You've got a team that can run the new business, systems that can absorb it, and a track record the bank can look at. Add the right advisers around you, and you're the safest buyer that seller is ever going to meet. That's what the first C, Capabilities, is all about. Your credibility does the job that a big deposit does for everyone else."},
-{"eb":"Your valuation","hl":"What it does to <em>your company's value.</em>","text":"Now, let's look at what this does for you. Say your own business makes five hundred thousand a year as well. After the deal, the group makes a million. And larger, more diversified businesses are often valued at a higher multiple of earnings than small ones. So you've doubled your profit, and every dollar of it can be worth more when you eventually sell. Outcomes always depend on the deal and the market. But that's the lever. That's how owners grow their exit value in one move."},
-{"eb":"Where deals fail","hl":"Where deals <em>fall over.</em>","text":"I'll be honest with you about where these deals go wrong. Owners find a great business, agree a price, and only then go to the bank. And the bank kills it, because the structure was never bankable from the start. Or they get stuck in a broker auction against fifty other buyers. Or due diligence drags on for months, because nobody is driving it. That's exactly why we line up the financing before the letter of intent, work off market, and keep the whole process on a clock."},
-{"eb":"Next step","hl":"Let's map out <em>your first deal.</em>","text":"So here's what I want you to do. If part two made sense, book a time with my team, using the button below. On the call, we'll go through your numbers and your market, work out your target profile, and map the structure your first deal could use. It's a working session. If we can help, we'll show you how. If we can't, we'll tell you. And remember, if you join and decide in the first seven days that it isn't for you, you get a full refund. Book your call below. I'll see you there."}
+ {
+  "eb": "Part 2",
+  "hl": "How the deal <em>actually gets funded.</em>",
+  "text": "Welcome to part two. In the first video, I told you that owners like you are buying competitors with none of their own money in the deal. In this one, I'm going to show you exactly how that works. We'll go through a deal line by line. What the seller carries, what the bank funds, how your business makes you the credible buyer, and what it all does to what your company is worth. Grab a pen. This is the part most people never get to see."
+ },
+ {
+  "eb": "The target",
+  "hl": "A competitor making <em>$500k a year.</em>",
+  "text": "Let's start with the target. It's a competitor in your industry, making five hundred thousand dollars a year in profit. The owner is in their sixties, wants to retire, and has no one to hand it to. You've had a few conversations. They've signed an NDA, and they've sent you three years of financials and tax returns. That's the qualification gate. A seller who sends you their numbers is a seller who's serious. You agree a price of one and a half million dollars. That's three times profit, which is normal for a business this size."
+ },
+ {
+  "eb": "The structure",
+  "hl": "70% bank. 20% seller note. <em>10% rollover.</em>",
+  "text": "Now, here's how that one and a half million gets paid. We call this the seventy, twenty, ten. Seventy percent, so one million and fifty thousand dollars, is commercial debt from a lender. Twenty percent, three hundred thousand, is seller finance. That's a note the seller is paid over time, out of the business's profit. And the last ten percent, one hundred and fifty thousand, is seller rollover. The owner keeps a ten percent stake. So they've still got skin in the game, and they want the business to do well after you take over."
+ },
+ {
+  "eb": "Over-financed",
+  "hl": "$1.6M of funding for a <em>$1.5M price.</em>",
+  "text": "Then there's the piece that makes it over-financed. The lender adds a working capital line of one hundred thousand dollars. So you've got one point six million dollars of funding, for a one and a half million dollar price. That extra covers your legal and accounting costs at settlement, and leaves working capital in the business from day one. Your own cash in the deal is zero."
+ },
+ {
+  "eb": "The repayments",
+  "hl": "What the deal costs <em>each year.</em>",
+  "text": "Of course, none of that matters unless the numbers hold up. So let's work out exactly what this deal costs to service each year. Start with the bank loan. One million and fifty thousand dollars, at around eight percent, paid off over seven years. That comes to about one hundred and ninety-six thousand dollars a year. Next, the seller note. Three hundred thousand dollars, at five percent, over five years. That's about sixty-eight thousand a year. Then the working capital line. If you draw the full hundred thousand at around nine percent, the interest is about nine thousand a year. Add those together, and the deal costs around two hundred and seventy-three thousand dollars a year to service. The seller's ten percent rollover is equity, so there are no repayments on it."
+ },
+ {
+  "eb": "The coverage",
+  "hl": "Does it pass <em>the 1.5x test?</em>",
+  "text": "Now we run the test every deal has to pass. Take the business's profit, before interest, tax and depreciation, and divide it by those yearly repayments. That's your debt service coverage ratio. Five hundred thousand, divided by two hundred and seventy-three thousand, is about one point eight three times. Our minimum is one and a half. So this business could carry up to about three hundred and thirty-three thousand dollars a year in repayments, and it's only carrying two hundred and seventy-three. Now let's stress test it. Say profit drops twenty percent in a bad year, down to four hundred thousand. Divide that by the same repayments, and you're still at about one point four six times. The deal still pays its debt out of its own cash flow. And in a normal year, there's around two hundred and twenty-seven thousand dollars left over after repayments, before tax and the seller's ten percent share. If a deal can't pass this test, we don't do it. That rule is what keeps your existing business safe."
+ },
+ {
+  "eb": "Three sellers",
+  "hl": "Match the structure to <em>the seller.</em>",
+  "text": "The seventy, twenty, ten is one of three structures we use. The right one depends on what the seller wants. If they want most of their cash at settlement, it's the seventy, twenty, ten. If they want to stay invested and watch the business grow, we use a sixty, forty. That's sixty percent commercial debt and forty percent seller rollover. And in structures like that, there's no personal guarantee. The lender's security is over the business's assets. And if what they care about most is the right successor and a steady income, it can be one hundred percent vendor finance. That's how I bought both of my businesses. Once you know which seller you're talking to, you know which offer to make."
+ },
+ {
+  "eb": "Why you",
+  "hl": "Why the seller and the bank <em>back you.</em>",
+  "text": "So why would a seller and a lender back you? Because of the business you already own. You've got a team that can run the new business, systems that can absorb it, and a track record the bank can look at. Add the right advisers around you, and you're the safest buyer that seller is ever going to meet. That's what the first C, Capabilities, is all about. Your credibility does the job that a big deposit does for everyone else."
+ },
+ {
+  "eb": "Your valuation",
+  "hl": "What it does to <em>your company's value.</em>",
+  "text": "Now, let's look at what this does for you. Say your own business makes five hundred thousand a year as well. After the deal, the group makes a million. And larger, more diversified businesses are often valued at a higher multiple of earnings than small ones. So you've doubled your profit, and every dollar of it can be worth more when you eventually sell. Outcomes always depend on the deal and the market. But that's the lever. That's how owners grow their exit value in one move."
+ },
+ {
+  "eb": "Where deals fail",
+  "hl": "Where deals <em>fall over.</em>",
+  "text": "I'll be honest with you about where these deals go wrong. Owners find a great business, agree a price, and only then go to the bank. And the bank kills it, because the structure was never bankable from the start. Or they get stuck in a broker auction against fifty other buyers. Or due diligence drags on for months, because nobody is driving it. That's exactly why we line up the financing before the letter of intent, work off market, and keep the whole process on a clock."
+ },
+ {
+  "eb": "Next step",
+  "hl": "Let's map out <em>your first deal.</em>",
+  "text": "So here's what I want you to do. If part two made sense, book a time with my team, using the button below. On the call, we'll go through your numbers and your market, work out your target profile, and map the structure your first deal could use. It's a working session. If we can help, we'll show you how. If we can't, we'll tell you. And remember, if you join and decide in the first seven days that it isn't for you, you get a full refund. Book your call below. I'll see you there."
+ }
 ]
