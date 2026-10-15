@@ -55,7 +55,8 @@ export function autoQuote(lead: Lead) {
     term_text: 'This engagement runs for 6 months from the date it is signed, and can be extended in writing.',
     client_name: [lead.first_name, lead.last_name].filter(Boolean).join(' ') || null,
     client_email: lead.email,
-    client_company: (d.business ? d.business.replace(/&amp;/g, '&').replace(/&#39;/g, '’').slice(0, 120) : null),
+    // Their application describes the business, not its legal name, so this starts blank.
+    client_company: null,
   };
 }
 
