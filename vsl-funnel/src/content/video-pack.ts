@@ -208,10 +208,10 @@ const eyebrow = (s: string, after = 10): Para => P(s.toUpperCase(), { size: 8, c
 const BREAK: Block = { kind: 'break' };
 const card = (paras: Para[], pad: [number, number, number, number]): Table => ({ kind: 'table', widths: [100], rows: [{ keep: true, cells: [{ bg: D.slide, pad, paras }] }] });
 // A spec list: small grey label over its content, items divided by hairlines.
-const spec = (items: [string, string][], o: { size?: number; color?: string; labelSize?: number; gapAfter?: number } = {}): Para[] =>
+const spec = (items: [string, string][], o: { size?: number; color?: string; labelSize?: number; gapAfter?: number; bold?: boolean } = {}): Para[] =>
   items.flatMap(([k, v], i) => [
     P(k.toUpperCase(), { size: o.labelSize ?? 7.5, color: D.faint, bold: true, before: 8, after: 3, keepNext: true, ruleAbove: true }),
-    P(v, { size: o.size ?? 10.5, color: o.color ?? D.text, lh: 1.45, after: i === items.length - 1 ? (o.gapAfter ?? 0) : 4 }),
+    P(v, { size: o.size ?? 10.5, color: o.color ?? D.text, bold: o.bold, lh: 1.45, after: i === items.length - 1 ? (o.gapAfter ?? 0) : 4 }),
   ]);
 // A plain list: one item per line, divided by hairlines.
 const list = (items: string[], o: { size?: number; color?: string } = {}): Para[] =>
@@ -234,14 +234,15 @@ export function scriptParas(s: string, target = 55) {
   }
   return out;
 }
-const body = (s: string, o: PO = {}) => scriptParas(s).map((x) => P(x, { size: 11, lh: 1.55, after: 8, ...o }));
-const note = (items: [string, string][]): Para[] => [gap(6), ...spec(items, { size: 9, color: D.sub, labelSize: 7 })];
+const body = (s: string, o: PO = {}) => scriptParas(s).map((x) => P(x, { size: 10.5, lh: 1.5, after: 7, ...o }));
+// Director's notes: one hairline, then each note with its label inline.
+const note = (items: [string, string][]): Para[] => [gap(4), ...items.map(([k, v], i) => P([{ text: `${k.toUpperCase()}   `, bold: true, color: D.faint }, { text: v }], { size: 8.5, color: D.sub, lh: 1.4, before: i ? 0 : 7, after: 3, ruleAbove: i === 0 }))];
 
 const slideCard = (num: string, title: string, bullets: string[]) => card([
-  P(num, { size: 9, color: D.accent, bold: true, after: 10 }),
-  P(title, { size: 22, color: '#FFFFFF', bold: true, lh: 1.15, after: 12 }),
-  ...bullets.map((x) => P(x, { size: 12, color: D.slideSub, lh: 1.35, after: 2 })),
-], [26, 30, 28, 30]);
+  P(num, { size: 9, color: D.accent, bold: true, after: 8 }),
+  P(title, { size: 21, color: '#FFFFFF', bold: true, lh: 1.15, after: 10 }),
+  ...bullets.map((x) => P(x, { size: 11.5, color: D.slideSub, lh: 1.35, after: 1 })),
+], [22, 26, 24, 26]);
 
 /** The long-form script and presentation brief for one video, as document blocks. */
 export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number; nextTitle?: string | null; brand?: string; miroUrl?: string | null }): Block[] {
@@ -252,10 +253,10 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
 
   // ── Cover
   out.push(eyebrow(`${brand} · Video ${n}`, 0));
-  out.push(gap(160));
+  out.push(gap(110));
   out.push(P(title, { size: 38, bold: true, lh: 1.08, after: 22 }));
   out.push(P(pack.promise, { size: 14, color: D.sub, lh: 1.45 }));
-  out.push(gap(120));
+  out.push(gap(80));
   out.push(P([
     { text: STAGE[topic.stage]?.label ?? topic.stage }, { text: '   ·   ', color: D.faint },
     { text: `${topic.length_min} minutes` }, { text: '   ·   ', color: D.faint },
@@ -273,7 +274,7 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
   out.push(BREAK);
   out.push(eyebrow('Packaging'));
   out.push(P('Win the click.', { size: 26, bold: true, lh: 1.2, after: 22 }));
-  out.push(...spec(pack.titles.slice(0, 3).map((x, k): [string, string] => [`Title ${'ABC'[k]}`, x]), { size: 14, gapAfter: 26 }));
+  out.push(...spec(pack.titles.slice(0, 3).map((x, k): [string, string] => [`Title ${'ABC'[k]}`, x]), { size: 14, bold: true, gapAfter: 26 }));
   out.push(eyebrow('Thumbnails', 8));
   pack.thumbnails.slice(0, 2).forEach((t, k) => {
     out.push(card([P(unquote(t.text), { size: 26, color: '#FFFFFF', bold: true, center: true, lh: 1.1 })], [34, 20, 34, 20]));
@@ -298,7 +299,7 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
     out.push(BREAK);
     out.push(eyebrow(`Beat ${i + 1} of ${pack.beats.length}`));
     out.push(slideCard(String(i + 1).padStart(2, '0'), b.headline, b.slide.slice(0, 3)));
-    out.push(gap(14));
+    out.push(gap(12));
     out.push(...body(b.script));
     out.push(...note([['Director', b.visual], ['Into the next beat', b.transition]]));
   });
