@@ -202,7 +202,13 @@ export function rulesPack(t: Topic, next: Topic | null): VideoPack {
 const D = { text: '#1D1D1F', sub: '#6E6E73', faint: '#86868B', slide: '#000000', slideSub: '#A1A1A6', accent: YELLOW };
 
 type PO = Partial<Omit<Para, 'kind' | 'runs'>>;
-const P = (text: string | Run[], o: PO = {}): Para => ({ kind: 'p', runs: typeof text === 'string' ? [{ text }] : text, size: 11, color: D.text, lh: 1.45, ...o });
+// Typographic quotes and apostrophes, as a typesetter would set them.
+export const smart = (s: string) => s
+  .replace(/(\w)'(\w)/g, '$1’$2').replace(/(^|[\s(\[“—–-])'/g, '$1‘').replace(/'/g, '’')
+  .replace(/(^|[\s(\[‘—–-])"/g, '$1“').replace(/"/g, '”');
+const P = (text: string | Run[], o: PO = {}): Para => ({
+  kind: 'p', runs: (typeof text === 'string' ? [{ text }] : text).map((r) => ({ ...r, text: smart(r.text) })), size: 11, color: D.text, lh: 1.45, ...o,
+});
 const gap = (pt: number): Para => ({ kind: 'p', runs: [{ text: '' }], size: 1, color: D.text, lh: 1, after: pt });
 const eyebrow = (s: string, after = 10): Para => P(s.toUpperCase(), { size: 8, color: D.faint, bold: true, after, keepNext: true });
 const BREAK: Block = { kind: 'break' };
@@ -274,10 +280,10 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
   out.push(BREAK);
   out.push(eyebrow('Packaging'));
   out.push(P('Win the click.', { size: 26, bold: true, lh: 1.2, after: 22 }));
-  out.push(...spec(pack.titles.slice(0, 3).map((x, k): [string, string] => [`Title ${'ABC'[k]}`, x]), { size: 14, bold: true, gapAfter: 26 }));
+  out.push(...spec(pack.titles.slice(0, 3).map((x, k): [string, string] => [`Title ${'ABC'[k]}`, x]), { size: 13.5, bold: true, gapAfter: 24 }));
   out.push(eyebrow('Thumbnails', 8));
   pack.thumbnails.slice(0, 2).forEach((t, k) => {
-    out.push(card([P(unquote(t.text), { size: 26, color: '#FFFFFF', bold: true, center: true, lh: 1.1 })], [34, 20, 34, 20]));
+    out.push(card([P(unquote(t.text), { size: 24, color: '#FFFFFF', bold: true, center: true, lh: 1.1 })], [26, 20, 26, 20]));
     out.push(P([{ text: t.visual }, { text: `   ·   ${t.emotion}`, color: D.faint }], { size: 8.5, color: D.sub, lh: 1.4, before: 6, after: k ? 0 : 14 }));
   });
 
@@ -300,7 +306,9 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
     out.push(eyebrow(`Beat ${i + 1} of ${pack.beats.length}`));
     out.push(slideCard(String(i + 1).padStart(2, '0'), b.headline, b.slide.slice(0, 3)));
     out.push(gap(12));
-    out.push(...body(b.script));
+    // Longer beats step the type down half a point so slide, script and notes stay on one page.
+    const words = `${b.script} ${b.visual} ${b.transition}`.split(/\s+/).length;
+    out.push(...body(b.script, words > 290 ? { size: 9.5, lh: 1.4 } : words > 240 ? { size: 10, lh: 1.45 } : {}));
     out.push(...note([['Director', b.visual], ['Into the next beat', b.transition]]));
   });
 

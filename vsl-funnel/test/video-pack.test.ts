@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Topic } from '../src/content/ideas';
-import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packDocRtf, packMiroLayout, rulesPack, scriptParas, type VideoPack } from '../src/content/video-pack';
+import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packDocRtf, packMiroLayout, rulesPack, scriptParas, smart, type VideoPack } from '../src/content/video-pack';
 import pack from './fixtures/pack-t1.json';
 import topic from './fixtures/topic-t1.json';
 
@@ -10,7 +10,7 @@ describe('video pack: Google Doc', () => {
   const html = packDocHtml(P, T, { index: 0, nextTitle: 'Where the Money Comes From', miroUrl: 'https://miro.com/app/board/x/' });
   it('has the cover, the word-for-word script for every beat and the publishing kit', () => {
     expect(html).toContain('VIDEO 01');
-    for (const b of P.beats) expect(html).toContain(b.headline.replace(/&/g, '&amp;').replace(/'/g, "'"));
+    for (const b of P.beats) expect(html).toContain(smart(b.headline).replace(/&/g, '&amp;'));
     expect(html).toContain('THE HOOK');
     expect(html).toContain('Everything for the upload.');
     expect(html).toContain('Three Shorts to cut from it.');
