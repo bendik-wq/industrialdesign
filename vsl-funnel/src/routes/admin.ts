@@ -42,6 +42,7 @@ import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
 import { LOST_REASONS, OBJECTIONS, PAYMENT_PLANS, TEMPERATURES, type LeadUpdate, applyLeadUpdate, deletePayment, recordPayment } from '../sales/outcomes';
 import { META_API_VERSION, metaUserData } from '../tracking/forward';
 import { geoFromRequest } from '../lib/geo';
+import { type Contract, type ContractInput, autoQuote, cleanInput, createContract, getContract, letterHtml, sendContract, signUrl, updateDraft, voidContract } from '../sales/contracts';
 import { PLACEMENTS, PRESETS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
 
 export const admin = new Hono<AppEnv>();
@@ -549,7 +550,11 @@ admin.post('/reactivation/launch', async (c) => {
   return c.json({ ok: true, ...(await launchReactivation(runtimeFrom(c), ids, Number(b.perDay) || 40)) });
 });
 admin.post('/reactivation/stop', async (c) => {
-  const r = await c.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence = 'reactivation' AND status = 'pending'").run();
+  // One person (they replied "not interested"), or everyone.
+  const b = await c.req.json<{ lead?: unknown }>().catch(() => ({} as { lead?: unknown }));
+  const r = typeof b.lead === 'string'
+    ? await c.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence = 'reactivation' AND status = 'pending' AND lead_id = ?").bind(b.lead).run()
+    : await c.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence = 'reactivation' AND status = 'pending'").run();
   return c.json({ ok: true, cancelled: r.meta.changes ?? 0 });
 });
 
@@ -712,6 +717,64 @@ admin.get('/integrations', async (c) => {
       voice: `${rt.origin}/hooks/voice`,
     },
   });
+});
+
+// ── Contracts (engagement letters for e-signature) ──────────────────
+const contractView = (rt: ReturnType<typeof runtimeFrom>, k: Contract) => {
+  const { token, signature, body_html, ...rest } = k;
+  return { ...rest, sign_url: k.status === 'draft' || k.status === 'void' ? null : signUrl(rt, token), copy_url: k.status === 'signed' ? `${signUrl(rt, token)}/copy` : null, has_signature: Boolean(signature) };
+};
+
+admin.get('/contracts', async (c) => {
+  const rt = runtimeFrom(c);
+  const lead = c.req.query('lead');
+  const { results } = await (lead
+    ? c.env.DB.prepare('SELECT * FROM contracts WHERE lead_id = ? ORDER BY created_at DESC').bind(lead)
+    : c.env.DB.prepare(`SELECT k.*, l.first_name, l.last_name, l.email FROM contracts k LEFT JOIN leads l ON l.id = k.lead_id ORDER BY k.created_at DESC LIMIT 300`)
+  ).all<Contract & { first_name?: string; last_name?: string; email?: string }>();
+  return c.json({ contracts: results.map((k) => ({ ...contractView(rt, k), first_name: k.first_name, last_name: k.last_name, email: k.email })), emailReady: emailConfigured(rt) });
+});
+
+admin.get('/contracts/quote', async (c) => {
+  const lead = await getLead(c.env, c.req.query('lead') ?? '');
+  if (!lead) return c.json({ error: 'not found' }, 404);
+  return c.json(autoQuote(lead));
+});
+
+/** Preview the letter as it would be sent (draft fields or an unsaved form). */
+admin.post('/contracts/preview', async (c) => {
+  const body = await c.req.json<ContractInput & { lead?: string }>().catch(() => ({}) as ContractInput & { lead?: string });
+  const lead = await getLead(c.env, body.lead ?? '');
+  if (!lead) return c.json({ error: 'not found' }, 404);
+  return c.json({ html: letterHtml(runtimeFrom(c), cleanInput(body, lead)) });
+});
+
+admin.post('/contracts', async (c) => {
+  const body = await c.req.json<ContractInput & { lead?: string }>().catch(() => ({}) as ContractInput & { lead?: string });
+  const lead = await getLead(c.env, body.lead ?? '');
+  if (!lead) return c.json({ ok: false, error: 'Lead not found.' }, 404);
+  const k = await createContract(runtimeFrom(c), lead, body);
+  return c.json({ ok: true, contract: k && contractView(runtimeFrom(c), k) });
+});
+
+admin.post('/contracts/:id/:action{update|send|void}', async (c) => {
+  const rt = runtimeFrom(c);
+  const k = await getContract(rt, c.req.param('id'));
+  if (!k) return c.json({ ok: false, error: 'Not found.' }, 404);
+  try {
+    const action = c.req.param('action');
+    if (action === 'update') {
+      const lead = await getLead(c.env, k.lead_id);
+      if (!lead) return c.json({ ok: false, error: 'Lead not found.' }, 404);
+      const next = await updateDraft(rt, k, lead, await c.req.json<ContractInput>().catch(() => ({})));
+      return c.json({ ok: true, contract: next && contractView(rt, next) });
+    }
+    if (action === 'send') return c.json({ ok: true, contract: contractView(rt, await sendContract(rt, k)) });
+    await voidContract(rt, k);
+    return c.json({ ok: true });
+  } catch (e) {
+    return c.json({ ok: false, error: e instanceof Error ? e.message : 'Failed' }, 400);
+  }
 });
 
 // ── Tracked links / YouTube videos ──────────────────────────────────

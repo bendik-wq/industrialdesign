@@ -54,16 +54,19 @@ export const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&l
 const safe = (s: string | null) => (s == null ? null : escHtml(defang(s)));
 
 /** Revenue bands from Calendly qualification ("1-3m"…) mapped onto the application's values. */
-const BAND_TO_REVENUE: Record<string, string> = { '<1m': 'lt1m', '1-3m': '1_3m', '3-10m': '3_10m', '10m+': 'gt10m' };
+const BAND_TO_REVENUE: Record<string, string> = { '<1m': 'lt1m', '1-3m': '1_3m', '3-10m': '3_10m', '10m+': 'gt10m', '10m-25m': '10_25m', '20m+': '10_25m', '25m-50m': '25_50m', '50m-100m': '50_100m', '100m+': 'gt100m' };
 
 const DEALS: Record<string, DealShape> = {
   lt250k: { targetProfit: '$150k–$300k', price: '$450k–$1M', combined: 'a combined business making around double your profit today' },
   '250k_1m': { targetProfit: '$250k–$800k', price: '$750k–$3M', combined: 'a combined business making around double your profit today, more with the right target' },
   gt1m: { targetProfit: '$1M–$3M', price: '$3M–$12M', combined: 'a group making around double today’s profit, more with the right target' },
+  p1_3m: { targetProfit: '$1M–$3M', price: '$3M–$12M', combined: 'a group making around double today’s profit, more with the right target' },
+  p3_10m: { targetProfit: '$2M–$8M', price: '$8M–$40M', combined: 'a platform making well over double today’s profit once a few add-ons are folded in' },
+  pgt10m: { targetProfit: '$5M–$20M', price: '$25M–$100M+', combined: 'a platform deal that changes the size of the group in one move' },
 };
 
 /** Rough profit band from revenue when we only have revenue (Calendly-only leads). */
-const PROFIT_FROM_REVENUE: Record<string, string> = { '1_3m': 'lt250k', '3_10m': '250k_1m', gt10m: 'gt1m' };
+const PROFIT_FROM_REVENUE: Record<string, string> = { '1_3m': 'lt250k', '3_10m': '250k_1m', gt10m: 'gt1m', '10_25m': 'p1_3m', '25_50m': 'p3_10m', '50_100m': 'p3_10m', gt100m: 'pgt10m' };
 
 export function buildDossier(lead: Lead): Dossier {
   const a = parseAnswers(lead);

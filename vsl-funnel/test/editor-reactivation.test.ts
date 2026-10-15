@@ -43,14 +43,17 @@ describe('email editor', () => {
 });
 
 describe('reactivation', () => {
-  it('is 22 emails, 5 a day for 4 days then two follow-ups, that stop once they come back', () => {
+  it('runs 30 days at 3–5 emails a day, every one a different email, and stops once they come back', () => {
     const seq = SEQUENCES.reactivation;
-    expect(seq.steps).toHaveLength(22);
-    expect(new Set(seq.steps.map((s) => s.template)).size).toBe(22);
+    expect(seq.steps.length).toBeGreaterThanOrEqual(110);
+    expect(new Set(seq.steps.map((s) => s.template)).size).toBe(seq.steps.length);
     const perDay = new Map<number, number>();
     for (const st of seq.steps) { const d = Math.floor(st.offsetMs / 86_400_000); perDay.set(d, (perDay.get(d) ?? 0) + 1); }
-    expect([0, 1, 2, 3].map((d) => perDay.get(d))).toEqual([5, 5, 5, 5]);
-    expect(seq.steps[seq.steps.length - 1].template).toBe('rx_last');
+    expect([...perDay.keys()].sort((a, b) => a - b)).toEqual([...Array(31).keys()]);
+    for (const n of perDay.values()) { expect(n).toBeGreaterThanOrEqual(3); expect(n).toBeLessThanOrEqual(5); }
+    // Every send lands between 8am and 7pm of its day.
+    for (const st of seq.steps) expect((st.offsetMs % 86_400_000) / 3_600_000).toBeLessThanOrEqual(11);
+    expect(seq.steps[seq.steps.length - 1].template).toBe('rc_final');
     const lead = { status: 'booked', reactivated_at: 1000, booked_at: 500, booking_cancelled_at: null, app_completed_at: null } as unknown as Lead;
     expect(seq.stopIf!(lead)).toBe(false);
     expect(seq.stopIf!({ ...lead, booked_at: 2000 })).toBe(true);

@@ -41,7 +41,7 @@ describe('voice agent', () => {
   it('structured-data enums match the application options exactly', () => {
     for (const id of ['role', 'revenue', 'profit', 'timeline'] as const) {
       const q = APPLICATION.find((x) => x.id === id)!;
-      expect('options' in q && q.options.map((o) => o.value)).toEqual(STRUCTURED_SCHEMA.properties[id].enum);
+      expect('options' in q && q.options.filter((o) => !('hidden' in o && o.hidden)).map((o) => o.value)).toEqual(STRUCTURED_SCHEMA.properties[id].enum);
     }
   });
 

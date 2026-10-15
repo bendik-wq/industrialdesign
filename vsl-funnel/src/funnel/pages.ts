@@ -219,7 +219,7 @@ function clientQuestions() {
     if ('help' in q && q.help) base.help = q.help;
     if ('placeholder' in q && q.placeholder) base.placeholder = q.placeholder;
     if ('minLength' in q && q.minLength) base.minLength = q.minLength;
-    if ('options' in q && Array.isArray(q.options)) base.options = q.options.map((o) => ({ value: o.value, label: o.label }));
+    if ('options' in q && Array.isArray(q.options)) base.options = q.options.filter((o) => !('hidden' in o && o.hidden)).map((o) => ({ value: o.value, label: o.label }));
     return base;
   });
 }

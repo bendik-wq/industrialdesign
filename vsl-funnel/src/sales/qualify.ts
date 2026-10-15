@@ -35,12 +35,12 @@ export function revenueBand(raw: string | null): string | null {
 }
 
 // Calendly's form and the funnel application use slightly different bands; both are kept as asked.
-export const REVENUE_ORDER = ['<100k', '100k-1m', '<1m', '1m-3m', '1m-5m', '3m-10m', '5m-20m', '10m+', '20m+'];
+export const REVENUE_ORDER = ['<100k', '100k-1m', '<1m', '1m-3m', '1m-5m', '3m-10m', '5m-20m', '10m+', '10m-25m', '20m+', '25m-50m', '50m-100m', '100m+'];
 export const REVENUE_LABEL: Record<string, string> = {
-  '<100k': 'Under $100K', '100k-1m': '$100K–$1M', '<1m': 'Under $1M', '1m-3m': '$1M–$3M', '1m-5m': '$1M–$5M', '3m-10m': '$3M–$10M', '5m-20m': '$5M–$20M', '10m+': '$10M+', '20m+': '$20M+',
+  '<100k': 'Under $100K', '100k-1m': '$100K–$1M', '<1m': 'Under $1M', '1m-3m': '$1M–$3M', '1m-5m': '$1M–$5M', '3m-10m': '$3M–$10M', '5m-20m': '$5M–$20M', '10m+': '$10M+', '10m-25m': '$10M–$25M', '20m+': '$20M+', '25m-50m': '$25M–$50M', '50m-100m': '$50M–$100M', '100m+': '$100M+',
 };
 /** Funnel application revenue answer → band. */
-export const APP_REVENUE_BAND: Record<string, string> = { lt1m: '<1m', '1_3m': '1m-3m', '3_10m': '3m-10m', gt10m: '10m+' };
+export const APP_REVENUE_BAND: Record<string, string> = { lt1m: '<1m', '1_3m': '1m-3m', '3_10m': '3m-10m', gt10m: '10m+', '10_25m': '10m-25m', '25_50m': '25m-50m', '50_100m': '50m-100m', gt100m: '100m+' };
 export const isMillionPlus = (band: string | null) => Boolean(band && !['<100k', '100k-1m', '<1m'].includes(band));
 
 export function qualifyCalendly(answers: { q: string; a: string }[]): Qualification {

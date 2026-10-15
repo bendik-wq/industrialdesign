@@ -42,7 +42,7 @@ const split = (v: string, fallback: [string, string]): [string, string] => {
 
 const option = (id: string) => {
   const q = APPLICATION.find((x) => x.id === id);
-  return q && q.type === 'single' ? q.options.map((o) => o.value) : [];
+  return q && q.type === 'single' ? q.options.filter((o) => !o.hidden).map((o) => o.value) : [];
 };
 
 /** What the assistant extracts after every call. Enum values match the application, so answers drop straight in. */

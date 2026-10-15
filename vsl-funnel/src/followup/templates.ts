@@ -1,5 +1,8 @@
 import type { EmailContent, TemplateCtx } from '../integrations/templates';
 import { GUIDES } from '../seo/guides';
+import { REACTIVATE_A } from './reactivation-a';
+import { REACTIVATE_B } from './reactivation-b';
+import { REACTIVATE_C } from './reactivation-c';
 import { BLOCKERS, GOALS, LOST_ANGLES, OBJECTIONS, TIMELINES, blockerOf, buildDossier, type Dossier, industryName, peers, profitText, yourBiz } from './dossier';
 
 /**
@@ -620,7 +623,7 @@ const REACTIVATE: Record<string, T> = {
   }),
 };
 
-const ALL: Record<string, T> = { ...PREP, ...NOSHOW, ...POSTCALL, ...CANCELLED, ...LOST, ...WON, ...NURTURE, ...REACTIVATE };
+const ALL: Record<string, T> = { ...PREP, ...NOSHOW, ...POSTCALL, ...CANCELLED, ...LOST, ...WON, ...NURTURE, ...REACTIVATE, ...REACTIVATE_A, ...REACTIVATE_B, ...REACTIVATE_C };
 
 export const FOLLOWUP_TEMPLATES: Record<string, (c: TemplateCtx) => EmailContent> = Object.fromEntries(
   Object.entries(ALL).map(([k, fn]) => [k, (c: TemplateCtx) => fn(c, buildDossier(c.lead))]),
@@ -634,5 +637,5 @@ export const FOLLOWUP_GROUPS = {
   lost: Object.keys(LOST),
   won: Object.keys(WON),
   nurture: Object.keys(NURTURE),
-  reactivate: Object.keys(REACTIVATE),
+  reactivate: [...Object.keys(REACTIVATE), ...Object.keys(REACTIVATE_A), ...Object.keys(REACTIVATE_B), ...Object.keys(REACTIVATE_C)],
 };

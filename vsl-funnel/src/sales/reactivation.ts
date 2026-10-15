@@ -75,7 +75,7 @@ function enrich(r: Record<string, unknown>, segment: Segment): AudienceRow {
 
 /**
  * Queues the reactivation for the chosen people, spread out: `perDay` new people a day, each
- * starting at 8am (sales time zone), a couple of minutes apart; each then gets 5 emails a day for 4 days, so the domain's reputation isn't hit.
+ * starting at 8am (sales time zone), a couple of minutes apart; each then gets 3–5 emails a day for 30 days, and the new people per day are capped so the domain's reputation isn't hit.
  */
 export async function launchReactivation(rt: Runtime, ids: string[], perDay: number) {
   const now = Date.now();

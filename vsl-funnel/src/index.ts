@@ -23,6 +23,8 @@ import { syncCalendly } from './integrations/calendly';
 import { processTriggers } from './personalize/triggers';
 import { purgeOld } from './lib/retention';
 import { markInternal, sweepBots } from './lib/traffic-quality';
+import { sign } from './routes/sign';
+import { processContractReminders } from './sales/contracts';
 import { dataLanding, isDataHost } from './data/data';
 import { maybeSyncContent } from './content/content';
 import { applyHandoff, icsFile, isWebinarHost, registeredPage, roomPage, webinarLanding } from './webinar/pages';
@@ -129,6 +131,7 @@ app.get('/resources', withVisitor, resourcesPage);
 app.get('/privacy', withVisitor, staticPage('/privacy.html', 'Privacy policy'));
 
 // ── Public APIs, tracked links, webhooks ──
+app.route('/sign', sign);
 app.route('/api', api);
 app.route('/hooks', hooks);
 app.route('/', links);
@@ -225,6 +228,7 @@ export default {
       quiet(maybeSyncContent(rt), 'content sync'),
       quiet(processSmsQueue(rt), 'SMS'),
       quiet(sweepBots(rt), 'bot sweep'),
+      quiet(processContractReminders(rt), 'contract reminders'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

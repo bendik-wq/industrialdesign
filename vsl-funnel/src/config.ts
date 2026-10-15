@@ -451,6 +451,8 @@ export interface Option {
   points: number;
   /** Flags drive hard routing rules (see TIER_RULES). */
   flags?: string[];
+  /** Kept so older answers still read and score, but no longer offered on the form. */
+  hidden?: boolean;
 }
 
 export type Question =
@@ -495,7 +497,11 @@ export const APPLICATION: Question[] = [
       { value: 'lt1m', label: 'Under $1M', points: 0, flags: ['under_1m'] },
       { value: '1_3m', label: '$1M – $3M', points: 15, flags: ['small'] },
       { value: '3_10m', label: '$3M – $10M', points: 22 },
-      { value: 'gt10m', label: '$10M+', points: 25 },
+      { value: '10_25m', label: '$10M – $25M', points: 25 },
+      { value: '25_50m', label: '$25M – $50M', points: 25 },
+      { value: '50_100m', label: '$50M – $100M', points: 25 },
+      { value: 'gt100m', label: '$100M+', points: 25 },
+      { value: 'gt10m', label: '$10M+', points: 25, hidden: true },
     ],
   },
   {
@@ -507,7 +513,10 @@ export const APPLICATION: Question[] = [
       { value: 'loss', label: 'Break-even or loss-making', points: 0, flags: ['unprofitable'] },
       { value: 'lt250k', label: 'Under $250k', points: 8 },
       { value: '250k_1m', label: '$250k – $1M', points: 16 },
-      { value: 'gt1m', label: '$1M+', points: 20 },
+      { value: 'p1_3m', label: '$1M – $3M', points: 20 },
+      { value: 'p3_10m', label: '$3M – $10M', points: 20 },
+      { value: 'pgt10m', label: '$10M+', points: 20 },
+      { value: 'gt1m', label: '$1M+', points: 20, hidden: true },
     ],
   },
   {

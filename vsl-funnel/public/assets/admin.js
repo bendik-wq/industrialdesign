@@ -284,6 +284,7 @@
     editor: { group: 'Follow-up', title: 'Email editor', sub: 'Read and edit every email the funnel sends.', more: 'Pick an email on the left, change the wording on the right and watch the preview update. Merge tags like {first_name} fill in for each person. Saving replaces the built-in wording for every future send; “Reset to default” brings the original back. Emails written from each lead’s own application answers are shown but can’t be edited here.', render: renderEditor, noFilters: true },
     search: { group: 'Traffic', title: 'Search & AI', sub: 'Who finds you through Google, Bing, ChatGPT, Claude, Perplexity, Gemini and Grok, and which AI crawlers are reading your pages.', more: 'The landing pages, 20 industry pages and the guides are open to search engines and AI assistants; the application, booking and personal pages never are. Crawler visits show the AI companies reading your pages (search bots and live answers lead to citations; training bots feed future models). Visitors and leads from AI Search are people who clicked through from an AI answer. New pages usually take days to weeks to show up in search.', render: renderSearch, filters: ['range'] },
     content: { group: 'Traffic', title: 'Content', sub: 'Josh’s YouTube and Instagram: what travels, what brings leads, and what to make next.', more: 'Videos refresh every 6 hours (or press Refresh). Views come from YouTube and Instagram; leads, calls and revenue per video come from the tracked links in Links & videos, so add a tracked link to each video’s description to see which ones actually sell.', render: renderContent, noFilters: true },
+    contracts: { group: 'Sell', title: 'Contracts', sub: 'Engagement letters sent for e-signature: sent, opened, signed.', more: 'Every engagement letter: who it went to, the fee, whether they opened it and when they signed. Prepare a new one from a lead (open the lead → Contract).', render: renderContracts, noFilters: true },
     reactivation: { group: 'Follow-up', title: 'Reactivation', sub: 'Bring back people already in the database: past calls, no-shows, unfinished applications.', more: 'Pick the groups, untick anyone who shouldn’t get it (existing clients, friends), preview the 6 emails and launch. Sending is spread out over days to protect your email reputation. It stops for anyone who books or applies again, unsubscribes or becomes a client.', render: renderReactivation, noFilters: true },
     sms: { group: 'Follow-up', title: 'SMS & WhatsApp', sub: 'Text and WhatsApp sequences: wording, timing and links.', more: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
     voice: { group: 'Follow-up', title: 'AI calls', sub: 'Outbound confirmations and inbound calls: transcripts, recordings, outcomes.', more: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice, filters: ['range'] },
@@ -1037,7 +1038,7 @@
 
       function timeline() { return journeyHtml(d.events, d.sessions, showAll); }
       // Section chips under the name: only for sections this lead has.
-      var jumps = [['ld-pipeline', 'Pipeline'], ['ld-deal', 'Deal'], ['ld-app', 'Application'], ['ld-video', 'Video'], ['ld-emails', 'Emails']]
+      var jumps = [['ld-pipeline', 'Pipeline'], ['ld-deal', 'Deal'], ['ld-contract', 'Contract'], ['ld-app', 'Application'], ['ld-video', 'Video'], ['ld-emails', 'Emails']]
         .concat(d.calendly && d.calendly.length ? [['ld-calendly', 'Bookings']] : [])
         .concat(d.voice && d.voice.length ? [['ld-calls', 'AI calls']] : [])
         .concat([['ld-journey', 'Journey']]);
@@ -1071,6 +1072,7 @@
         kv('Route', l.route) + kv('Last touch', [where(l.channel, l.utm_source, null, l.utm_medium), l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [where(l.ft_channel, l.ft_source), l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
         kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline version', l.variant) + kv('Ref code', l.ref_code) + '</dl></details></div></div>' +
         dealCard(l) +
+        '<div class="card" style="margin-top:14px" id="ld-contract" data-contracts><h2>Engagement letter</h2><p class="muted">Loading…</p></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card" id="ld-app"><h2>Application</h2><dl class="kv" style="margin-top:10px">' + d.answers.map(function (a) { return kv(a.question, a.answer); }).join('') + '</dl>' +
         (sc.breakdown ? '<p class="sub" style="margin-top:12px">Scoring: ' + esc(sc.breakdown.map(function (b) { return b.question + ' +' + b.points; }).join(', ')) + (sc.caps && sc.caps.length ? ' · capped: ' + esc(sc.caps.join(', ')) : '') + '</p>' : '') + '</div>' +
         '<div class="card" id="ld-video"><h2>Video</h2>' + (d.vsl.length ? d.vsl.map(function (v) {
@@ -1099,6 +1101,7 @@
       });
       loadBehaviour(dr, id);
       loadPayments(dr, id);
+      loadContracts(dr.querySelector('[data-contracts]'), l);
       dr.querySelector('[data-all]').onchange = function (e) { showAll = e.target.checked; dr.querySelector('[data-tl]').innerHTML = timeline(); };
       dr.querySelector('[data-save]').onclick = function () {
         var body = {};
@@ -1574,7 +1577,7 @@
   function renderLinks() {
     return api('links', { model: state.linkModel }).then(function (d) {
       var PL = { description: 'Description', pinned_comment: 'Pinned comment', end_screen: 'End screen', card: 'Card', community_post: 'Community post', shorts: 'Shorts', channel_about: 'Channel about', other: 'Other',
-        bio: 'Bio', dm: 'DM (ManyChat)', story: 'Story', post: 'Post / caption', broadcast: 'Broadcast channel', newsletter: 'Newsletter', show_notes: 'Show notes', qr: 'QR code' };
+        bio: 'Bio', dm: 'DM (ManyChat)', story: 'Story', post: 'Post / caption', broadcast: 'Broadcast channel', ad: 'Ad', newsletter: 'Newsletter', show_notes: 'Show notes', qr: 'QR code' };
       var PRE = d.presets || {};
       function r(a, b) { return b ? pct(a / b) : '–'; }
       // One row per YouTube video, and one per platform for everything else (Instagram, ManyChat, TikTok…).
@@ -1595,8 +1598,8 @@
       view.innerHTML =
         '<div class="card"><h2>New tracked link</h2><p class="sub">Make one link for each place you post it: your Instagram bio, each ManyChat flow, each YouTube video… Every open is counted and followed to booked calls and deals.</p>' +
         '<div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-end">' +
-        '<label style="flex:1;min-width:220px"><span class="muted">Where will it go?</span><select class="input" data-preset><optgroup label="YouTube"><option value="yt">YouTube video</option></optgroup>' +
-        ['Instagram', 'Facebook', 'Other social', 'Other'].map(function (gname) { return '<optgroup label="' + esc(gname) + '">' + Object.keys(PRE).filter(function (k) { return PRE[k].group === gname; }).map(function (k) { return '<option value="' + esc(k) + '">' + esc(PRE[k].label) + '</option>'; }).join('') + '</optgroup>'; }).join('') + '</select></label>' +
+        '<label style="flex:1;min-width:220px"><span class="muted">Where will it go?</span><select class="input" data-preset><optgroup label="YouTube"><option value="yt">YouTube video</option>' + Object.keys(PRE).filter(function (k) { return PRE[k].group === 'YouTube'; }).map(function (k) { return '<option value="' + esc(k) + '">' + esc(PRE[k].label) + '</option>'; }).join('') + '</optgroup>' +
+        ['Instagram', 'X', 'Meta ads', 'Facebook', 'Other social', 'Other'].map(function (gname) { return '<optgroup label="' + esc(gname) + '">' + Object.keys(PRE).filter(function (k) { return PRE[k].group === gname; }).map(function (k) { return '<option value="' + esc(k) + '">' + esc(PRE[k].label) + '</option>'; }).join('') + '</optgroup>'; }).join('') + '</select></label>' +
         '<label style="flex:2;min-width:260px" data-ytonly><span class="muted">YouTube video link</span><input class="input" data-yt placeholder="https://www.youtube.com/watch?v=…"></label>' +
         '<label data-ytonly><span class="muted">Spot</span><select class="input" data-pl>' + d.placements.map(function (p) { return '<option value="' + p + '">' + esc(PL[p] || p) + '</option>'; }).join('') + '</select></label>' +
         '<label style="flex:1;min-width:180px"><span class="muted">Name</span><input class="input" data-label placeholder="e.g. “Free guide” ManyChat flow"></label>' +
@@ -1635,6 +1638,98 @@
       view.querySelectorAll('[data-model]').forEach(function (b) { b.onclick = function () { state.linkModel = b.getAttribute('data-model'); load(); }; });
       view.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function () { if (confirm('Archive this link? It will stop redirecting.')) send('DELETE', 'links/' + b.getAttribute('data-del')).then(load); }; });
       wireCopy(view);
+    });
+  }
+
+  // ───────────── Contracts (engagement letters) ─────────────
+  var K_STATUS = { draft: 'Draft', sent: 'Sent', viewed: 'Opened', signed: 'Signed', void: 'Void' };
+  function kMoney(k) { return (k.currency === 'AUD' ? 'A$' : k.currency === 'USD' ? 'US$' : k.currency + ' ') + Number(k.fee || 0).toLocaleString('en-AU'); }
+  function kStatus(k) { return '<span class="pill k-' + esc(k.status) + '">' + esc(K_STATUS[k.status] || k.status) + '</span>'; }
+  function kWhen(k) { return k.signed_at ? 'signed ' + when(k.signed_at) : k.viewed_at ? 'opened ' + when(k.viewed_at) : k.sent_at ? 'sent ' + when(k.sent_at) : 'created ' + when(k.created_at); }
+
+  function loadContracts(box, l) {
+    if (!box) return;
+    Promise.all([api('contracts', { lead: l.id }), api('contracts/quote', { lead: l.id })]).then(function (r) {
+      var list = r[0].contracts || [], q = r[1] || {}, emailReady = r[0].emailReady;
+      function render(editing) {
+        box.innerHTML = '<div class="card-head"><div><h2>Engagement letter</h2><p class="sub">Auto-quoted from their application, sent from your email address for e-signature.</p></div>' +
+          (editing ? '' : '<button class="btn-sm" type="button" data-k-new>Prepare letter</button>') + '</div>' +
+          (list.length ? table([
+            { label: 'Letter', html: function (k) { return '<strong>' + esc(k.title) + '</strong><div class="muted">' + esc(kWhen(k)) + (k.reminders ? ' · ' + k.reminders + ' reminder' + (k.reminders > 1 ? 's' : '') : '') + '</div>'; } },
+            { label: 'Fee', num: true, html: function (k) { return esc(kMoney(k)); } },
+            { label: 'Status', html: kStatus },
+            { label: '', html: function (k) {
+              return (k.status === 'draft' ? '<button class="btn-sm ghost" type="button" data-k-edit="' + esc(k.id) + '">Edit</button> <button class="btn-sm" type="button" data-k-send="' + esc(k.id) + '">Send</button> ' : '') +
+                (k.sign_url && k.status !== 'signed' ? '<button class="btn-sm ghost" type="button" data-copy="' + esc(k.sign_url) + '">Copy link</button> ' : '') +
+                (k.copy_url ? '<a class="btn-sm ghost" target="_blank" rel="noopener" href="' + esc(k.copy_url) + '">Signed copy</a> ' : '') +
+                (k.status !== 'signed' && k.status !== 'void' ? '<button class="btn-sm ghost" type="button" data-k-void="' + esc(k.id) + '" title="Void">✕</button>' : '');
+            } },
+          ], list) : (editing ? '' : '<p class="muted">No letter yet. Suggested fee: <strong>' + esc(kMoney(q)) + '</strong>. ' + esc(q.basis || '') + '</p>')) +
+          (editing ? form(editing) : '');
+        wireCopy(box);
+        var nb = box.querySelector('[data-k-new]'); if (nb) nb.onclick = function () { render({ fee: q.fee, currency: q.currency, client_name: q.client_name, client_email: q.client_email, client_company: q.client_company, payment_terms: q.payment_terms, success_fee: q.success_fee, scope: q.scope, term_text: q.term_text, title: 'Engagement letter: acquisition advisory', basis: q.basis }); };
+        box.querySelectorAll('[data-k-edit]').forEach(function (b) { b.onclick = function () { var k = list.filter(function (x) { return x.id === b.getAttribute('data-k-edit'); })[0]; render(Object.assign({}, k, { basis: k.quote_basis })); }; });
+        box.querySelectorAll('[data-k-send]').forEach(function (b) {
+          b.onclick = function () {
+            if (!emailReady) { toast('Connect email first (Integrations → Email).'); return; }
+            var k = list.filter(function (x) { return x.id === b.getAttribute('data-k-send'); })[0];
+            if (!confirm('Send “' + k.title + '” (' + kMoney(k) + ') to ' + (k.client_email || l.email) + ' from your email address?')) return;
+            b.disabled = true;
+            send('POST', 'contracts/' + k.id + '/send', {}).then(function (res) { toast(res.ok ? 'Sent for signature' : (res.error || 'Could not send')); refresh(); });
+          };
+        });
+        box.querySelectorAll('[data-k-void]').forEach(function (b) { b.onclick = function () { if (confirm('Void this letter? Its signing link will stop working.')) send('POST', 'contracts/' + b.getAttribute('data-k-void') + '/void', {}).then(refresh); }; });
+        if (editing) wireForm(editing);
+      }
+      function field(k, name, label, type) {
+        var v = k[name] == null ? '' : k[name];
+        if (type === 'area') return '<label class="full">' + esc(label) + '<textarea class="notes" data-kf="' + name + '" rows="' + (name === 'scope' ? 6 : 2) + '">' + esc(v) + '</textarea></label>';
+        return '<label>' + esc(label) + '<input class="input" data-kf="' + name + '" type="' + (type || 'text') + '" value="' + esc(v) + '"></label>';
+      }
+      function form(k) {
+        return '<div class="k-form" style="margin-top:12px"><p class="sub">' + esc(k.basis || '') + '</p><div class="pipe-grid">' +
+          '<label>Fee<input class="input" data-kf="fee" type="number" min="0" step="500" value="' + esc(k.fee || '') + '"></label>' +
+          '<label>Currency<select class="input" data-kf="currency">' + ['AUD', 'USD', 'NZD', 'GBP', 'EUR', 'CAD', 'SGD'].map(function (c) { return '<option' + (c === k.currency ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>' +
+          field(k, 'client_name', 'Client name') + field(k, 'client_email', 'Send to (email)', 'email') + field(k, 'client_company', 'Company (optional)') + field(k, 'title', 'Title') +
+          field(k, 'payment_terms', 'Payment terms', 'area') + field(k, 'success_fee', 'Success fee (optional)', 'area') + field(k, 'scope', 'What you’ll do (one per line)', 'area') + field(k, 'term_text', 'Term', 'area') +
+          '</div><div class="row" style="margin-top:10px;gap:8px"><button class="btn-sm ghost" type="button" data-k-preview>Preview letter</button><button class="btn-sm" type="button" data-k-save>' + (k.id ? 'Save changes' : 'Save draft') + '</button><button class="btn-sm ghost" type="button" data-k-cancel>Cancel</button></div>' +
+          '<p class="muted small" style="margin-top:8px">Legal entity, ABN, governing law and extra terms: Integrations → Contracts. Have your lawyer review the letter before you send the first one.</p>' +
+          '<div class="letter-preview" data-k-out hidden></div></div>';
+      }
+      function values() { var b = { lead: l.id }; box.querySelectorAll('[data-kf]').forEach(function (f) { b[f.getAttribute('data-kf')] = f.value; }); return b; }
+      function wireForm(k) {
+        box.querySelector('[data-k-cancel]').onclick = function () { render(null); };
+        box.querySelector('[data-k-preview]').onclick = function () {
+          send('POST', 'contracts/preview', values()).then(function (res) { var out = box.querySelector('[data-k-out]'); out.hidden = false; out.innerHTML = res.html || esc(res.error || 'Could not preview'); });
+        };
+        box.querySelector('[data-k-save]').onclick = function () {
+          var req = k.id ? send('POST', 'contracts/' + k.id + '/update', values()) : send('POST', 'contracts', values());
+          req.then(function (res) { toast(res.ok ? 'Draft saved. Press Send when ready.' : (res.error || 'Could not save')); if (res.ok) refresh(); });
+        };
+      }
+      function refresh() { api('contracts', { lead: l.id }).then(function (d) { list = d.contracts || []; emailReady = d.emailReady; render(null); }); }
+      render(null);
+    });
+  }
+
+  function renderContracts() {
+    return api('contracts').then(function (d) {
+      var list = d.contracts || [];
+      var sum = function (st) { return list.filter(function (k) { return st.indexOf(k.status) >= 0; }); };
+      var signed = sum(['signed']), out = sum(['sent', 'viewed']);
+      var total = function (a) { return a.reduce(function (s, k) { return s + Number(k.fee || 0); }, 0); };
+      view.innerHTML = '<div class="grid g-4">' +
+        tile('Signed', n(signed.length), '$' + n(total(signed)) + ' in fees') + tile('Waiting for signature', n(out.length), '$' + n(total(out)) + ' outstanding') +
+        tile('Opened, not signed', n(sum(['viewed']).length), 'reminders go out on day 2 and 5') + tile('Drafts', n(sum(['draft']).length), 'not sent yet') + '</div>' +
+        '<div class="card" style="margin-top:14px">' + (list.length ? table([
+          { label: 'Client', html: function (k) { return '<strong>' + esc([k.first_name, k.last_name].filter(Boolean).join(' ') || k.client_name || k.email || '') + '</strong><div class="muted">' + esc(k.client_email || k.email || '') + '</div>'; } },
+          { label: 'Letter', html: function (k) { return esc(k.title) + '<div class="muted">' + esc(kWhen(k)) + '</div>'; } },
+          { label: 'Fee', num: true, html: function (k) { return esc(kMoney(k)); } },
+          { label: 'Status', html: kStatus },
+          { label: '', html: function (k) { return k.copy_url ? '<a class="btn-sm ghost" target="_blank" rel="noopener" href="' + esc(k.copy_url) + '" onclick="event.stopPropagation()">Signed copy</a>' : ''; } },
+        ], list, { cards: true, rowAttr: function (k) { return 'class="click" data-k-lead="' + esc(k.lead_id) + '" tabindex="0"'; } }) : '<p class="muted">No engagement letters yet. Open a lead and press <strong>Prepare letter</strong> in the Contract section.</p>') + '</div>' +
+        (d.emailReady ? '' : '<p class="muted" style="margin-top:10px">Email isn’t connected yet, so letters can be drafted but not sent (Integrations → Email).</p>');
+      view.querySelectorAll('[data-k-lead]').forEach(function (r) { r.onclick = function () { openLead(r.getAttribute('data-k-lead')); }; });
     });
   }
   function wireCopy(root) {
@@ -2350,10 +2445,10 @@
           '<td>' + esc(when(r.created_at)) + '<div class="muted">' + esc(r.booking_source === 'calendly-direct' ? 'Calendly import' : 'Funnel') + '</div></td>' +
           '<td><button class="btn-sm ghost" data-reprev="' + esc(r.id) + '" data-reseg="' + esc(r.segment) + '">Preview their emails</button></td></tr>';
       }).join('') + '</tbody></table>' + (shown.length > 400 ? '<p class="muted">Showing the first 400; search to find others.</p>' : '') : emptyState('Nobody in the chosen groups.')) + '</div></div>' +
-      '<div class="card re-mails"><h2>4 · The ' + d.emails.length + ' emails</h2><p class="sub">5 a day for 4 days (8am, 10:30, 1pm, 4pm, 7pm), then one on day 6 and a last one on day 8. The ones marked <span class="pill st-won">personal</span> are written from each person’s own application: what they do, their size, their goal and timeline, what was in the way and why now in their own words, plus why they’re back (no-show, cancelled, lost…). If someone never gave that answer, that email skips itself. In between: the deal structures (70/20/10, 60/40, 100% vendor finance), the objections and a straight ask to book. Use “Preview their emails” on any person to read exactly what they’ll get.</p><div class="re-days">' +
+      '<div class="card re-mails"><h2>4 · The ' + d.emails.length + ' emails</h2><p class="sub">30 days, 3 to 5 every day between 8am and 7pm, each a different angle: days 1–4 are written from their own answers, days 5–14 explain how a deal actually works, days 15–24 are about the opportunity and their life as an owner, and days 25–31 handle the objections and close out. The ones marked <span class="pill st-won">personal</span> are written from each person’s own application: what they do, their size, their goal and timeline, what was in the way and why now in their own words, plus why they’re back (no-show, cancelled, lost…). If someone never gave that answer, that email skips itself. In between: the deal structures (70/20/10, 60/40, 100% vendor finance), the objections and a straight ask to book. Use “Preview their emails” on any person to read exactly what they’ll get.</p><div class="re-days">' +
       (function () { var by = {}, days = []; d.emails.forEach(function (e) { if (!by[e.day]) { by[e.day] = []; days.push(e.day); } by[e.day].push(e); }); return days.map(function (dd) { return '<section><h3>Day ' + (dd + 1) + '<span class="muted"> · ' + by[dd].length + '</span></h3><ol class="re-track">' + by[dd].map(function (e) { return '<li data-pcview="' + esc(e.template) + '" tabindex="0" role="button"><span class="pc-subj">' + esc(e.subject) + '</span>' + (/^rx_/.test(e.template) ? ' <span class="pill st-won">personal</span>' : '') + '</li>'; }).join('') + '</ol></section>'; }).join(''); })() +
       '</div><div class="pc-preview" data-pcout hidden></div></div>' +
-      '<div class="card"><h2>5 · Launch</h2><p class="sub">Starts at 8am (sales time zone) and adds this many new people a day, a couple of minutes apart. Each person then gets 5 emails a day for 4 days, on their own schedule. Start with a small batch (20–30) and watch the unsubscribe rate before sending to everyone. It stops for anyone who books or applies again, unsubscribes or becomes a client.</p>' +
+      '<div class="card"><h2>5 · Launch</h2><p class="sub">Starts at 8am (sales time zone) and adds this many new people a day, a couple of minutes apart. Each person then gets 3–5 emails a day for 30 days, on their own schedule. That’s a lot of email: start with a small batch (20–30), and watch the unsubscribe and complaint rates in the first week before sending to everyone. Replies come to your inbox and don’t stop the emails by themselves, so if someone replies “not interested”, press <b>Stop their emails</b> next to them under Campaign results. It stops for anyone who books or applies again, unsubscribes or becomes a client.</p>' +
       '<div class="row re-launch"><label>New people per day <input class="input" type="number" min="5" max="200" value="40" data-reper style="width:90px"></label><span class="muted" data-redays></span>' +
       '<label>Type <b>SEND</b> to confirm <input class="input" data-reconfirm style="width:110px" autocomplete="off"></label><button class="btn" data-relaunch' + (chosen.length ? '' : ' disabled') + '>Launch for ' + n(chosen.length) + ' people</button><span data-remsg class="muted"></span></div>' +
       (t.reactivated ? '<p style="margin-top:10px"><button class="btn-sm ghost danger" data-restop>Stop all pending reactivation emails</button></p>' : '') + '</div>' +
@@ -2365,6 +2460,7 @@
         { label: 'Group', html: function (r) { return esc((segs[r.reactivation_segment] || {}).label || r.reactivation_segment || ''); } },
         { label: 'Started', html: function (r) { return esc(when(r.reactivated_at)); } },
         { label: 'Result', html: function (r) { return r.rebooked ? '<span class="pill st-booked">booked again</span>' : r.reapplied ? '<span class="pill">applied again</span>' : r.unsubscribed ? '<span class="muted">unsubscribed</span>' : statusPill(r.status); } },
+        { label: '', html: function (r) { return r.rebooked || r.reapplied || r.unsubscribed ? '' : '<button class="btn-sm ghost" type="button" data-re-stop1="' + esc(r.id) + '" title="They replied, or asked to stop">Stop their emails</button>'; } },
       ], d.report.people, { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.id) + '" tabindex="0"'; } }) + '</div>' : '');
     var per = view.querySelector('[data-reper]'), daysEl = view.querySelector('[data-redays]');
     var upd = function () { var p = Math.max(5, Number(per.value) || 40); daysEl.textContent = chosen.length ? '≈ ' + Math.ceil(chosen.length / p) + ' day' + (Math.ceil(chosen.length / p) === 1 ? '' : 's') + ' to start everyone' : ''; };
@@ -2391,6 +2487,9 @@
       });
     };
     var st = view.querySelector('[data-restop]');
+    view.querySelectorAll('[data-re-stop1]').forEach(function (b) {
+      b.onclick = function (e) { e.stopPropagation(); send('POST', 'reactivation/stop', { lead: b.getAttribute('data-re-stop1') }).then(function (r) { toast(r.ok ? 'Stopped ' + r.cancelled + ' emails for them' : 'Could not stop'); b.remove(); }); };
+    });
     if (st) st.onclick = function () { if (!confirm('Cancel every reactivation email that hasn’t gone yet?')) return; send('POST', 'reactivation/stop', {}).then(function (r) { toast('Stopped ' + ((r && r.cancelled) || 0) + ' pending emails'); renderReactivation(); }); };
   }
 

@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -43,6 +43,12 @@ export const SETTINGS = [
   { key: 'EMAIL_PERSONALIZE', label: 'Personalise every email', group: 'Email', placeholder: 'ai', help: 'ai = Claude rewrites each email around what that person did on the site (needs the Anthropic key). rules = a personal opening line, no AI. off = templates as written.' },
   { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API key', group: 'Email', secret: true, placeholder: 'sk-ant-…', help: 'console.anthropic.com → API keys. Used only to personalise emails.' },
   { key: 'EMAIL_AI_MODEL', label: 'Email personalisation model', group: 'Email', placeholder: 'claude-opus-5-5', help: 'Leave blank for Claude Opus 5.5.' },
+  { key: 'CONTRACT_COMPANY', label: 'Legal entity name', group: 'Contracts', placeholder: 'G&L M&A Advisory Pty Ltd', help: 'The company that signs engagement letters. Defaults to the brand name.' },
+  { key: 'CONTRACT_ABN', label: 'ABN / company number', group: 'Contracts', placeholder: '12 345 678 901' },
+  { key: 'CONTRACT_SIGNER', label: 'Signs on your side', group: 'Contracts', placeholder: 'Josh Li, Director' },
+  { key: 'CONTRACT_LAW', label: 'Governing law', group: 'Contracts', placeholder: 'New South Wales, Australia' },
+  { key: 'CONTRACT_EXTRA_TERMS', label: 'Extra terms (added to every letter)', group: 'Contracts', help: 'Plain text. Each blank line starts a new paragraph. Have your lawyer review the whole letter before you send the first one.' },
+  { key: 'CONTRACT_NOTIFY_EMAIL', label: 'Send signed copies to', group: 'Contracts', placeholder: 'josh@grosfjeld-li.com', help: 'Defaults to the reply-to address.' },
   { key: 'BUSINESS_ADDRESS', label: 'Business postal address', group: 'Email', help: 'Shown in the email footer (required by anti-spam law).' },
 
   { key: 'JOSH_WHATSAPP', label: "Josh's WhatsApp number", group: 'WhatsApp', placeholder: '61400000000', help: 'International format, digits only. Powers every "Message Josh" button.' },

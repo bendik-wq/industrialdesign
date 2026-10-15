@@ -1,5 +1,8 @@
 import type { Lead } from '../funnel/leads';
 import { buildDossier } from '../followup/dossier';
+import { REACTIVATE_A_ORDER } from '../followup/reactivation-a';
+import { REACTIVATE_B_ORDER } from '../followup/reactivation-b';
+import { REACTIVATE_C_ORDER } from '../followup/reactivation-c';
 import { FOLLOWUP_GROUPS, prepTemplates } from '../followup/templates';
 
 const MIN = 60_000;
@@ -42,19 +45,27 @@ export const BEHAVIOUR_TEMPLATES: { template: string; skipIf: (l: Lead) => boole
 ];
 
 /**
- * Reactivation run: [template, day, slot]. 22 emails: 5 a day for 4 days, then day 6 and day 8.
- * The rx_ emails are written from each person's own application / booking answers and why they're in the
- * reactivation (no-show, cancelled, lost…); the re_ emails are the deal-structure value emails between them.
- * An rx_ email whose answer they never gave skips itself (RX_SKIP), so nobody gets a half-empty email.
+ * Reactivation run: 30 days, 3–5 emails every day, each a different angle. [template, day, hour after 8am].
+ *  Days 0–3   (5 a day): written from their own application / booking answers, between deal-structure emails.
+ *  Days 4–13  (3–4 a day): how it actually works, made concrete (reactivation-a), plus the general re_ emails.
+ *  Days 14–23 (3 a day): the opportunity and the owner's life (reactivation-b).
+ *  Days 24–30 (4–5 a day): objections, decisions and the close-out (reactivation-c).
+ * An email whose answer they never gave skips itself (RX_SKIP), so nobody gets a half-empty email.
  */
-export const REACTIVATION_SLOTS = [0, 2.5, 5, 8, 11];
-export const REACTIVATION_PLAN: [string, number, number][] = [
-  ['rx_open', 0, 0], ['rx_deal', 0, 1], ['re_702010', 0, 2], ['rx_why', 0, 3], ['re_assets', 0, 4],
-  ['rx_blocker', 1, 0], ['re_6040', 1, 1], ['rx_industry', 1, 2], ['re_100vf', 1, 3], ['re_which', 1, 4],
-  ['rx_goal', 2, 0], ['re_dscr_test', 2, 1], ['re_competitors', 2, 2], ['rx_timeline', 2, 3], ['re_5', 2, 4],
-  ['rx_objection', 3, 0], ['re_no_pg', 3, 1], ['re_others', 3, 2], ['re_cost_wait', 3, 3], ['re_one_call', 3, 4],
-  ['re_reply', 5, 2], ['rx_last', 7, 2],
+const SLOT_HOURS: Record<number, number[]> = { 1: [2], 2: [0, 8], 3: [0, 4.5, 9], 4: [0, 3, 6, 10], 5: [0, 2.5, 5, 8, 11] };
+const chunk = (xs: string[], sizes: number[]) => { let i = 0; return sizes.map((n) => xs.slice(i, (i += n))); };
+const FILLERS = ['re_2', 're_3', 're_rollover', 're_90days', 're_myths', 're_4', 're_time', 're_1', 're_reply'];
+const DAYS_A = chunk(REACTIVATE_A_ORDER, Array(10).fill(3)).map((d, i) => (FILLERS[i] ? [...d.slice(0, 2), FILLERS[i], ...d.slice(2)] : d));
+const DAYS_B = chunk(REACTIVATE_B_ORDER, Array(10).fill(3));
+const DAYS_C = chunk(REACTIVATE_C_ORDER, [4, 4, 4, 4, 5, 5, 4]);
+export const REACTIVATION_DAYS: string[][] = [
+  ['rx_open', 'rx_deal', 're_702010', 'rx_why', 're_assets'],
+  ['rx_blocker', 're_6040', 'rx_industry', 're_100vf', 're_which'],
+  ['rx_goal', 're_dscr_test', 're_competitors', 'rx_timeline', 're_5'],
+  ['rx_objection', 're_no_pg', 're_others', 're_cost_wait', 're_one_call'],
+  ...DAYS_A, ...DAYS_B, ...DAYS_C,
 ];
+export const REACTIVATION_PLAN: [string, number, number][] = REACTIVATION_DAYS.flatMap((ts, day) => ts.map((t, i): [string, number, number] => [t, day, SLOT_HOURS[ts.length][i]]));
 /** Skip a personalised reactivation email when we don't have the answer it's written around. */
 export const RX_SKIP: Record<string, (d: ReturnType<typeof buildDossier>) => boolean> = {
   rx_why: (d) => !d.whyNow,
@@ -213,8 +224,8 @@ export const SEQUENCES = {
     description: 'Reactivation — people already in the database (past calls with no outcome, no-shows, unfinished applications…), launched by hand from Funnel HQ',
     // Done once they book or apply again, buy, or are ruled out.
     stopIf: (l) => ['won', 'disqualified'].includes(l.status) || Boolean(l.reactivated_at && (((l.booked_at ?? 0) > l.reactivated_at && !l.booking_cancelled_at) || (l.app_completed_at ?? 0) > l.reactivated_at)),
-    // 5 a day for 4 days (8:00, 10:30, 13:00, 16:00, 19:00 from an 8am start), then day 5 and a last one on day 7.
-    steps: REACTIVATION_PLAN.map(([template, day, slot]) => ({ template, offsetMs: day * DAY + REACTIVATION_SLOTS[slot] * HOUR, ...(RX_SKIP[template] ? { skipIf: (l: Lead) => RX_SKIP[template](buildDossier(l)) } : {}) })),
+    // 30 days, 3–5 a day between 8am and 7pm (their start time is 8am in the sales time zone).
+    steps: REACTIVATION_PLAN.map(([template, day, hour]) => ({ template, offsetMs: day * DAY + hour * HOUR, ...(RX_SKIP[template] ? { skipIf: (l: Lead) => RX_SKIP[template](buildDossier(l)) } : {}) })),
   },
   webinar: {
     id: 'webinar',
