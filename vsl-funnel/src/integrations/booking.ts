@@ -108,8 +108,11 @@ function verificationAvailable(rt: Runtime, provider: string) {
   return Boolean(rt.settings.BOOKING_WEBHOOK_SECRET);
 }
 
-export async function markCancelled(rt: Runtime, lead: Lead, provider: string) {
+export async function markCancelled(rt: Runtime, lead: Lead, provider: string, ref?: string | null) {
   if (lead.booking_cancelled_at) return;
+  // Only the lead's own current booking can be cancelled: a cancellation for some other booking made with
+  // their email (anyone can type it on a public booking page) must not touch theirs.
+  if (ref && lead.booking_ref && ref !== lead.booking_ref) return;
   if (lead.booking_source === 'calendly-direct') {
     await updateLead(rt.env, lead.id, { booking_cancelled_at: Date.now() });
     return;
@@ -148,18 +151,33 @@ interface CalendlyPayload {
   };
 }
 
-/** Finds the lead: our lead id passed through Calendly's tracking param first, then the invitee's email. */
+/** Finds the lead: our lead id passed through the booking tool first, then the booker's email. */
 async function findLead(rt: Runtime, leadId: string | null | undefined, email: string | null | undefined) {
   if (leadId) {
     const byId = await getLead(rt.env, leadId);
-    if (byId) return byId;
+    if (byId) return { lead: byId, byEmail: false };
   }
-  return email ? getLeadByEmail(rt.env, email) : null;
+  const byEmail = email ? await getLeadByEmail(rt.env, email) : null;
+  return { lead: byEmail, byEmail: true };
+}
+
+/**
+ * A booking matched only by email (public booking pages don't verify it) may not replace the lead's active
+ * booking, unless it's a reschedule of that very booking. Returns true when it's such a conflict; the team
+ * is told and nothing on the lead changes.
+ */
+function emailOnlyConflict(rt: Runtime, lead: Lead, byEmail: boolean, ref: string | null, rescheduleOf: (bookingRef: string) => boolean) {
+  if (!byEmail || !lead.booked_at || lead.booking_cancelled_at || !lead.booking_ref || !ref || ref === lead.booking_ref) return false;
+  if (lead.booking_provider?.endsWith('-client')) return false; // the browser's claim being confirmed
+  if (rescheduleOf(lead.booking_ref)) return false;
+  rt.waitUntil(notifySlack(rt, lead, '⚠️ Second booking with this lead’s email', ['Someone booked another time using this lead’s email address. Their existing booking was left as it is; check in the booking tool before changing anything.'], 'booked'));
+  return true;
 }
 
 export async function handleCalendly(rt: Runtime, body: CalendlyPayload) {
   const p = body.payload ?? {};
-  let lead = await findLead(rt, p.tracking?.salesforce_uuid, p.email);
+  const found = await findLead(rt, p.tracking?.salesforce_uuid, p.email);
+  let lead = found.lead;
   const eventUri = p.scheduled_event?.uri ?? null;
   // With the API connected, pull the meeting link, host, answers and self-serve links too.
   const details = calendlyConnected(rt.settings) && eventUri && body.event === 'invitee.created'
@@ -173,11 +191,14 @@ export async function handleCalendly(rt: Runtime, body: CalendlyPayload) {
   }
   if (!lead) return { matched: false };
   if (body.event === 'invitee.created') {
+    // Invitee URIs live under their event (…/scheduled_events/<event>/invitees/<id>), so a genuine reschedule
+    // of the lead's booking names an old invitee of that event.
+    if (emailOnlyConflict(rt, lead, found.byEmail, eventUri ?? p.uri ?? null, (ref) => Boolean(p.old_invitee && p.old_invitee.startsWith(`${ref}/invitees/`)))) return { matched: true, leadId: lead.id, conflict: true };
     const start = p.scheduled_event?.start_time ? Date.parse(p.scheduled_event.start_time) : null;
     const extra = details && inv ? bookingFields(rt, details.event, inv) : null;
     await markBooked(rt, lead, { callAt: extra?.callAt ?? start, provider: 'calendly', ref: eventUri ?? p.uri ?? null, verified: true, rescheduled: Boolean(p.old_invitee), fields: extra?.fields });
   } else if (body.event === 'invitee.canceled' && !p.rescheduled) {
-    await markCancelled(rt, lead, 'calendly');
+    await markCancelled(rt, lead, 'calendly', eventUri ?? p.uri ?? null);
   } else if (body.event === 'invitee_no_show.created') {
     lead = (await getLead(rt.env, lead.id))!;
     if (lead.status === 'booked') await applyLeadUpdate(rt, lead, { status: 'no_show' });
@@ -208,6 +229,7 @@ export async function handleGenericBooking(rt: Runtime, body: Record<string, any
   let ref: string | undefined;
   let cancelled = false;
   let leadId: string | undefined;
+  let rescheduleUid: string | undefined;
   let provider = 'webhook';
 
   if (body.triggerEvent && body.payload) {
@@ -216,6 +238,7 @@ export async function handleGenericBooking(rt: Runtime, body: Record<string, any
     email = p.attendees?.[0]?.email ?? p.responses?.email?.value;
     start = p.startTime;
     ref = p.uid;
+    rescheduleUid = typeof p.rescheduleUid === 'string' ? p.rescheduleUid : typeof p.fromReschedule === 'string' ? p.fromReschedule : undefined;
     leadId = p.metadata?.lead_id;
     cancelled = body.triggerEvent === 'BOOKING_CANCELLED';
   } else {
@@ -227,9 +250,10 @@ export async function handleGenericBooking(rt: Runtime, body: Record<string, any
     provider = String(body.provider ?? 'webhook');
   }
 
-  const lead = await findLead(rt, leadId, email);
+  const { lead, byEmail } = await findLead(rt, leadId, email);
   if (!lead) return { matched: false };
-  if (cancelled) await markCancelled(rt, lead, provider);
+  if (cancelled) await markCancelled(rt, lead, provider, ref ?? null);
+  else if (emailOnlyConflict(rt, lead, byEmail, ref ?? null, (r) => rescheduleUid === r)) return { matched: true, leadId: lead.id, conflict: true };
   else await markBooked(rt, lead, { callAt: start ? Date.parse(start) || null : null, provider, ref: ref ?? null, verified: true });
   return { matched: true, leadId: lead.id };
 }

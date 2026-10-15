@@ -72,3 +72,34 @@ describe('security: AI calls', () => {
     expect(nextCallingTime(Date.parse('2026-12-24T09:00:00Z'), 'Australia/Sydney')).toBe(Date.parse('2026-12-27T22:00:00Z'));
   });
 });
+
+describe('audit fixes (Oct 2026)', () => {
+  it('voice: a caller matched only by caller ID gets nothing worth phishing for', async () => {
+    const { callVariables } = await import('../src/integrations/voice');
+    const lead = { id: 'l1', ref_code: 'ABC234', first_name: 'Dana', last_name: 'Secret', answers: JSON.stringify({ business: 'Three clinics, 22% margins', revenue: '1m-3m' }), app_completed_at: 1 } as never;
+    const vars = await callVariables({} as never, lead, false);
+    const all = JSON.stringify(vars);
+    expect(vars.first_name).toBe('Dana');
+    expect(all).not.toContain('Secret');
+    expect(all).not.toContain('22%');
+    expect(all).not.toContain('1m-3m');
+    expect(all).not.toContain('ABC234');
+    expect(all).not.toContain('lead_sig');
+  });
+
+  it('booking: a cancellation for a different booking never touches the lead', async () => {
+    const { markCancelled } = await import('../src/integrations/booking');
+    const touched: string[] = [];
+    const rt = { env: { DB: new Proxy({}, { get: () => { touched.push('db'); throw new Error('must not touch the database'); } }) } } as never;
+    const lead = { id: 'l1', booking_ref: 'https://api.calendly.com/scheduled_events/REAL', booking_cancelled_at: null, booking_source: 'funnel', status: 'booked' } as never;
+    await markCancelled(rt, lead, 'calendly', 'https://api.calendly.com/scheduled_events/ATTACKER');
+    expect(touched).toEqual([]);
+  });
+
+  it('voice agent prompt names seller rollover and forbids reading back what is on file', async () => {
+    const { voiceSystemPrompt } = await import('../src/config');
+    const p = voiceSystemPrompt([]);
+    expect(p).toContain('seller rollover');
+    expect(p).toMatch(/Never read back, confirm or hint at what's on file/);
+  });
+});

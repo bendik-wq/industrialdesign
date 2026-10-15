@@ -201,9 +201,14 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
     await linkVisitor(rt.env, v.visitorId, lead.id);
   }
 
-  // Same person, same session: hand back the same link (no duplicate emails).
+  // Same person, same session: hand back the same link (no duplicate emails), but only to the browser
+  // already linked to that lead. Anyone else typing that email must not get the link: it's a bearer token
+  // to the registration, and for a lead the sign-up created it would link their browser to the lead.
   const existing = await rt.env.DB.prepare('SELECT * FROM webinar_registrations WHERE lead_id = ? AND session_id = ?').bind(lead.id, session.id).first<Registration>();
-  if (existing) return { registration: existing, session, lead, created: false };
+  if (existing) {
+    if (v.leadId === lead.id) return { registration: existing, session, lead, created: false };
+    throw new ApplicationError('You’re already registered for this session. Your link is in the confirmation email we sent you (check spam too).', 'email', 409);
+  }
 
   await rt.env.DB.prepare('INSERT INTO kv_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(ipKey, JSON.stringify({ n: rate.n + 1, t: rate.t })).run();
   const prior = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM webinar_registrations WHERE lead_id = ?').bind(lead.id).first<{ n: number }>();

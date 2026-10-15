@@ -145,9 +145,24 @@ export async function provisionAssistant(rt: Runtime): Promise<{ id: string; cre
 
 const leadSig = async (rt: Runtime, leadId: string) => (await hmacHex(await getSecret(rt.env), `voice|${leadId}`)).slice(0, 24);
 
-/** Values substituted into {{…}} in the system prompt, plus a signed lead id so webhooks can trust it. */
-export async function callVariables(rt: Runtime, lead: Lead | null) {
+/**
+ * Values substituted into {{…}} in the system prompt, plus a signed lead id so webhooks can trust it.
+ * `verified` is false for phone calls matched only by caller ID (which can be spoofed): the agent then
+ * gets nothing worth phishing for (no surname, answers or ref) and no signed id.
+ */
+export async function callVariables(rt: Runtime, lead: Lead | null, verified = true) {
   if (!lead) return { first_name: '', last_name: '', lead_ref: 'unknown', tier: 'unknown', application_status: 'not started', known_answers: 'none' };
+  if (!verified) {
+    const answered = Object.keys(parseAnswers(lead)).filter((k) => APPLICATION.some((q) => q.id === k && q.type !== 'contact'));
+    return {
+      first_name: lead.first_name ?? '',
+      last_name: '',
+      lead_ref: 'on file',
+      tier: 'unknown',
+      application_status: lead.app_completed_at ? 'completed' : lead.app_started_at ? 'started, not finished' : 'not started',
+      known_answers: answered.length ? `already answered (don't ask again, don't read back): ${answered.join(', ')}` : 'none',
+    };
+  }
   const answers = parseAnswers(lead);
   const known = APPLICATION.filter((q) => q.type !== 'contact' && answers[q.id] !== undefined)
     .map((q) => {
@@ -173,7 +188,7 @@ const personalGreeting = (lead: Lead | null) => (lead?.first_name ? VOICE_AGENT.
 async function overridesFor(rt: Runtime, lead: Lead | null, kind: 'phone' | 'web') {
   return {
     firstMessage: personalGreeting(lead),
-    variableValues: await callVariables(rt, lead),
+    variableValues: await callVariables(rt, lead, kind === 'web'),
     metadata: { kind, lead_id: lead?.id ?? null, disclosure: VOICE_AGENT.disclosureVersion },
   };
 }
@@ -272,15 +287,19 @@ function parseArgs(raw: unknown): Record<string, unknown> {
   return {};
 }
 
-/** Creates a lead for a caller we've never seen (only when they gave us a way to reach them). */
-async function createVoiceLead(rt: Runtime, m: VapiMessage, details: { first_name?: unknown; last_name?: unknown; email?: unknown }) {
+/**
+ * Creates a lead for a caller we've never seen (only when they gave us a way to reach them).
+ * A spoken email that belongs to an existing lead proves nothing (anyone can say anyone's address):
+ * that lead comes back as `claimed`, never linked to the call and never acted on.
+ */
+async function createVoiceLead(rt: Runtime, m: VapiMessage, details: { first_name?: unknown; last_name?: unknown; email?: unknown }): Promise<{ lead: Lead | null; claimed: boolean }> {
   const email = validateEmail(details.email);
   if (email) {
     const existing = await getLeadByEmail(rt.env, email.email);
-    if (existing) return existing;
+    if (existing) return { lead: existing, claimed: true };
   }
   const phone = normalisePhone(callerNumber(m), null);
-  if (!email && !phone) return null;
+  if (!email && !phone) return { lead: null, claimed: false };
   const id = newId('l');
   const now = Date.now();
   await rt.env.DB.prepare(
@@ -291,7 +310,7 @@ async function createVoiceLead(rt: Runtime, m: VapiMessage, details: { first_nam
     .run();
   const lead = (await getLead(rt.env, id))!;
   await track(rt, await identityFromLead(rt.env, id), { name: 'lead_captured', source: 'webhook', props: { via: 'voice' } });
-  return lead;
+  return { lead, claimed: false };
 }
 
 export async function optOut(rt: Runtime, lead: Lead, via: string) {
@@ -323,9 +342,17 @@ async function runTool(rt: Runtime, m: VapiMessage, name: string, args: Record<s
   let lead = await leadForCall(rt, m);
   if (name === 'send_booking_link') {
     const email = validateEmail(args.email);
-    if (!lead) lead = await createVoiceLead(rt, m, { email: args.email, first_name: args.first_name });
-    if (!lead) return 'I could not save that email address. Ask the caller to spell it again, slowly.';
     if (email?.disposable) return 'That looks like a temporary email address. Ask for their main business email.';
+    if (!lead) {
+      const made = await createVoiceLead(rt, m, { email: args.email, first_name: args.first_name });
+      if (made.claimed && made.lead) {
+        // Someone else's record: the link goes to that person's own inbox, and this call stays unlinked.
+        if (!made.lead.unsubscribed_at) await sendLinkEmail(rt, made.lead);
+        return 'Sent to that address. Tell them to check their inbox (and spam) in a minute.';
+      }
+      lead = made.lead;
+    }
+    if (!lead) return 'I could not save that email address. Ask the caller to spell it again, slowly.';
     // Fill in a missing address, but never silently replace the one on file.
     if (email && !lead.email) await updateLead(rt.env, lead.id, { email: email.email });
     const differs = Boolean(email && lead.email && email.email !== lead.email);
@@ -378,7 +405,11 @@ const iso = (s: string | undefined) => (s && !Number.isNaN(Date.parse(s)) ? Date
 async function endOfCall(rt: Runtime, m: VapiMessage) {
   const structured = (m.analysis?.structuredData ?? {}) as Record<string, unknown>;
   let lead = await leadForCall(rt, m);
-  if (!lead && !structured.do_not_contact) lead = await createVoiceLead(rt, m, structured);
+  let claimed: Lead | null = null;
+  if (!lead && !structured.do_not_contact) {
+    const made = await createVoiceLead(rt, m, structured);
+    if (made.claimed) claimed = made.lead; else lead = made.lead;
+  }
   const summary = m.analysis?.summary ?? m.summary ?? null;
 
   await upsertCall(rt, m, {
@@ -396,7 +427,11 @@ async function endOfCall(rt: Runtime, m: VapiMessage) {
     success: m.analysis?.successEvaluation == null ? null : String(m.analysis.successEvaluation),
     disclosure: VOICE_AGENT.disclosureVersion,
   });
-  if (!lead) return;
+  if (!lead) {
+    // A caller who gave an existing lead's email: flag it for the team, change nothing on that lead.
+    if (claimed) rt.waitUntil(notifySlack(rt, claimed, '🎙️ AI call from an unrecognised number', ['⚠️ The caller gave this lead’s email but isn’t linked to it — check before acting on anything they asked.', summary ? `> ${summary.slice(0, 600)}` : ''].filter(Boolean) as string[], 'voice'));
+    return;
+  }
 
   if (structured.do_not_contact === true) {
     await optOut(rt, lead, 'voice_analysis');

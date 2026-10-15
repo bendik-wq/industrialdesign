@@ -53,7 +53,7 @@ hooks.post('/booking', async (c) => {
 // Meta webhook verification handshake.
 hooks.get('/whatsapp', (c) => {
   const s = c.get('settings');
-  if (c.req.query('hub.mode') === 'subscribe' && s.WHATSAPP_VERIFY_TOKEN && c.req.query('hub.verify_token') === s.WHATSAPP_VERIFY_TOKEN) {
+  if (c.req.query('hub.mode') === 'subscribe' && s.WHATSAPP_VERIFY_TOKEN && safeEqual(c.req.query('hub.verify_token') ?? '', s.WHATSAPP_VERIFY_TOKEN)) {
     return c.text(c.req.query('hub.challenge') ?? '');
   }
   return c.text('forbidden', 403);

@@ -136,6 +136,12 @@ export async function handleInbound(rt: Runtime, payload: WaWebhook) {
           .bind(newId('w'), Number(msg.timestamp) * 1000 || Date.now(), lead?.id ?? null, 'in', msg.from, body.slice(0, 4000), 'received', msg.id)
           .run();
         if (!lead) continue;
+        // A ref code connects a WhatsApp number once; it never moves an already-connected lead to a different
+        // number (ref codes travel in emails, so a sender quoting one isn't proof they're the lead).
+        if (ref && lead.whatsapp_wa_id && lead.whatsapp_wa_id !== msg.from) {
+          await rt.env.DB.prepare('UPDATE whatsapp_messages SET lead_id = NULL WHERE provider_id = ?').bind(msg.id).run();
+          continue;
+        }
         const firstConnect = !lead.whatsapp_connected_at;
         await updateLead(rt.env, lead.id, { whatsapp_connected_at: lead.whatsapp_connected_at ?? Date.now(), whatsapp_wa_id: msg.from });
         const who = await identityFromLead(rt.env, lead.id);

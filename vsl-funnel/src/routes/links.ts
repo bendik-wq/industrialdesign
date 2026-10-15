@@ -101,7 +101,10 @@ links.get('/go/wa', async (c) => {
   const src = (c.req.query('src') ?? 'unknown').slice(0, 60);
   const ref = c.req.query('l');
   const lead = (v.leadId ? await getLead(c.env, v.leadId) : null) ?? (ref ? await getLeadByRef(c.env, ref) : null);
-  const url = whatsappLink(rt.settings, lead, intentFromSource(src, lead));
+  // A lead found only by the ?l= ref code keeps the ref in the message (that's how their WhatsApp gets linked),
+  // but not their name, so guessing refs can't reveal who they belong to.
+  const named = lead && !v.leadId ? ({ ...lead, first_name: null } as typeof lead) : lead;
+  const url = whatsappLink(rt.settings, named, intentFromSource(src, named));
   if (!url) return c.redirect('/', 302);
 
   if (lead) {
