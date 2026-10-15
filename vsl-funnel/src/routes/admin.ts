@@ -1,4 +1,5 @@
 import type { Env } from '../env';
+import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown } from '../content/ideas';
 import { type Context, Hono } from 'hono';
 import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, runtimeFrom } from '../app';
@@ -718,6 +719,39 @@ admin.get('/integrations', async (c) => {
       voice: `${rt.origin}/hooks/voice`,
     },
   });
+});
+
+// ── YouTube idea generator ──────────────────────────────────────────
+admin.get('/yt/sprints', async (c) => {
+  const rt = runtimeFrom(c);
+  const inputs = await gatherInputs(rt);
+  return c.json({
+    sprints: await listSprints(rt),
+    status: {
+      ai: Boolean(rt.settings.ANTHROPIC_API_KEY), youtube: Boolean(rt.settings.YOUTUBE_API_KEY), applicants: inputs.demand.applicants, videos: inputs.own.count,
+      guides: inputs.library.guides.length, brand: Boolean(inputs.brand), proof: Boolean(inputs.proof), competitors: inputs.competitors.length, adjacent: inputs.adjacent.length, notes: Boolean(inputs.notes),
+      funnel: inputs.funnel, says: inputs.demand.says.slice(0, 8), industries: inputs.demand.industries.slice(0, 6), revenue: inputs.demand.revenue, phrases: demandPhrases(inputs),
+    },
+  });
+});
+admin.post('/yt/sprints', async (c) => {
+  const body = await c.req.json<{ focus?: string }>().catch(() => ({}) as { focus?: string });
+  try {
+    return c.json({ ok: true, ...(await generateSprint(runtimeFrom(c), { focus: typeof body.focus === 'string' ? body.focus : undefined })) });
+  } catch (e) {
+    console.error('yt sprint failed', e);
+    return c.json({ ok: false, error: e instanceof Error ? e.message : 'Could not generate the sprint' }, 500);
+  }
+});
+admin.get('/yt/sprints/:id/md', async (c) => {
+  const row = await c.env.DB.prepare('SELECT data, created_at FROM yt_sprints WHERE id = ?').bind(c.req.param('id')).first<{ data: string; created_at: number }>();
+  if (!row) return c.text('Not found', 404);
+  c.header('content-disposition', `attachment; filename="youtube-sprint-${new Date(row.created_at).toISOString().slice(0, 10)}.md"`);
+  return c.text(sprintMarkdown(JSON.parse(row.data), row.created_at));
+});
+admin.delete('/yt/sprints/:id', async (c) => {
+  await c.env.DB.prepare('DELETE FROM yt_sprints WHERE id = ?').bind(c.req.param('id')).run();
+  return c.json({ ok: true });
 });
 
 // ── Contracts (advisory agreements for e-signature) ─────────────────

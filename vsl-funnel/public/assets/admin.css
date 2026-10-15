@@ -912,3 +912,25 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 
 .k-paid { background: #ecfdf3; color: #05603a; }
 .k-unpaid { background: #fff6e5; color: #93370d; }
+
+/* YouTube ideas */
+.yt-gen .input { font-size: 15px; }
+.yt-inputs { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.yt-inputs li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 8px; border-radius: 8px; }
+.yt-inputs li.ok > span { color: #16a34a; font-weight: 700; } .yt-inputs li.todo > span { color: var(--muted, #888); }
+.yt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.yt-chips .chip, .yt-path .chip { border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; background: var(--surface); }
+.yt-path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 14px; }
+.yt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+.yt-topic { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--surface); }
+.yt-th { display: flex; gap: 10px; align-items: baseline; } .yt-th h3 { margin: 0; font-size: 1rem; }
+.yt-id { font-weight: 800; color: #0f2c5c; font-size: .8rem; }
+.yt-pills { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.yt-titles { margin: 6px 0; padding-left: 18px; font-weight: 600; }
+.yt-thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.yt-thumb { border: 1px dashed var(--border); border-radius: 8px; padding: 8px; display: grid; gap: 2px; font-size: 12.5px; }
+.yt-thumb strong { font-size: 13px; text-transform: uppercase; }
+.yt-hook { font-size: 13.5px; margin: 6px 0; }
+.yt-topic details { font-size: 13px; } .yt-topic details summary { cursor: pointer; color: var(--muted, #666); }
+.yt-angles { list-style: none; padding: 0; display: grid; gap: 8px; } .yt-angles li { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; }
+.yt-out { padding-left: 16px; font-size: 13px; }

@@ -285,6 +285,7 @@
     search: { group: 'Traffic', title: 'Search & AI', sub: 'Who finds you through Google, Bing, ChatGPT, Claude, Perplexity, Gemini and Grok, and which AI crawlers are reading your pages.', more: 'The landing pages, 20 industry pages and the guides are open to search engines and AI assistants; the application, booking and personal pages never are. Crawler visits show the AI companies reading your pages (search bots and live answers lead to citations; training bots feed future models). Visitors and leads from AI Search are people who clicked through from an AI answer. New pages usually take days to weeks to show up in search.', render: renderSearch, filters: ['range'] },
     content: { group: 'Traffic', title: 'Content', sub: 'Josh’s YouTube and Instagram: what travels, what brings leads, and what to make next.', more: 'Videos refresh every 6 hours (or press Refresh). Views come from YouTube and Instagram; leads, calls and revenue per video come from the tracked links in Links & videos, so add a tracked link to each video’s description to see which ones actually sell.', render: renderContent, noFilters: true },
     contracts: { group: 'Contracts', title: 'Agreements', sub: 'One-page advisory agreements: draft, preview, sign, send from Josh, and track their signature.', more: 'Make a new agreement for any lead (fee auto-quoted from their application) or anyone else, preview the exact document, sign it for the company, and it’s emailed from Josh for their e-signature. Every signature is recorded with time, IP and a fingerprint of the exact terms. Send yourself a test first.', render: renderContracts, noFilters: true },
+    ytideas: { group: 'Traffic', title: 'YouTube ideas', sub: 'The next two weeks of videos, planned from what your applicants actually say, what’s winning on YouTube and what already made you money.', more: 'Twelve inputs in, 5–10 topics out, every two weeks. Each topic comes with the demand behind it, the belief it installs, two titles, two thumbnails, the hook, a mini-VSL outline and the CTA, in binge order. Export to Google Docs or Miro, or press “Explore” on any new angle to plan a sprint around it.', render: renderYtIdeas, noFilters: true },
     reactivation: { group: 'Follow-up', title: 'Reactivation', sub: 'Bring back people already in the database: past calls, no-shows, unfinished applications.', more: 'Pick the groups, untick anyone who shouldn’t get it (existing clients, friends), preview the 6 emails and launch. Sending is spread out over days to protect your email reputation. It stops for anyone who books or applies again, unsubscribes or becomes a client.', render: renderReactivation, noFilters: true },
     sms: { group: 'Follow-up', title: 'SMS & WhatsApp', sub: 'Text and WhatsApp sequences: wording, timing and links.', more: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
     voice: { group: 'Follow-up', title: 'AI calls', sub: 'Outbound confirmations and inbound calls: transcripts, recordings, outcomes.', more: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice, filters: ['range'] },
@@ -1849,6 +1850,99 @@
         ], all, { cards: true, rowAttr: function (k) { return 'class="click" data-kopen="' + esc(k.id) + '" tabindex="0" title="Preview and manage"'; } }) : '<p class="muted">No agreements yet. Press <strong>New agreement</strong>, or open a lead and use its Agreement card.</p>') + '</div>';
       view.querySelector('[data-k-new]').onclick = function () { openContractEditor(null, null, load); };
       view.querySelectorAll('[data-kopen]').forEach(function (r2) { r2.onclick = function () { openContract(r2.getAttribute('data-kopen'), load); }; });
+    });
+  }
+
+  // ───────────── YouTube idea generator ─────────────
+  var YT_BELIEF = { trust: 'Trust', like: 'Like', possible: 'It’s possible', can_solve: 'Josh can solve it', better: 'Better than alternatives', now: 'Act now' };
+  var ytState = { sel: null, busy: false };
+  function ytTopicCard(t) {
+    return '<div class="yt-topic"><div class="yt-th"><span class="yt-id">' + esc(t.id.toUpperCase()) + '</span><h3>' + esc(t.topic) + '</h3></div>' +
+      '<div class="yt-pills"><span class="pill">' + esc(t.stage) + '</span><span class="pill">' + esc(YT_BELIEF[t.belief] || t.belief) + '</span><span class="pill">' + esc(String(t.awareness).replace('_', ' ')) + '</span><span class="pill ' + (t.demand === 'direct' ? 'st-won' : '') + '">' + esc(t.demand) + ' demand</span>' + (t.angle === 'controversial' ? '<span class="pill k-unpaid">controversial</span>' : '') + '<span class="pill">' + esc(t.length_min) + ' min</span></div>' +
+      '<ol class="yt-titles">' + (t.titles || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
+      '<div class="yt-thumbs">' + (t.thumbnails || []).map(function (x) { return '<div class="yt-thumb"><strong>' + esc(x.text) + '</strong><span>' + esc(x.visual) + '</span><em>' + esc(x.emotion) + '</em></div>'; }).join('') + '</div>' +
+      '<p class="yt-hook"><b>Hook:</b> ' + esc(t.hook) + '</p>' +
+      '<details><summary>Outline, evidence and CTA</summary>' +
+      '<p><b>Searched as:</b> “' + esc(t.demand_phrase) + '”<br><b>Evidence:</b> ' + esc(t.evidence) + '<br><b>Format:</b> ' + esc(t.format) + '</p>' +
+      '<p><b>Intro + call-outs:</b> ' + esc(t.outline.intro_callouts) + '</p><ol>' + (t.outline.logic_ladder || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
+      '<p><b>Callbacks:</b> ' + esc(t.outline.callbacks) + '<br><b>Proof on screen:</b> ' + esc(t.outline.proof) + '<br><b>CTA (' + esc(t.cta.type) + '):</b> ' + esc(t.cta.line) + '<br><b>End screen →</b> ' + esc(t.next_video) + '</p></details></div>';
+  }
+  function ytDocHtml(sp) {
+    var s = sp.sprint, d = new Date(sp.created_at).toISOString().slice(0, 10);
+    var h = '<h1>YouTube sprint · ' + d + '</h1><p>' + esc(s.summary) + '</p><p><b>Binge path:</b> ' + esc(s.binge_path.map(function (id) { var t = s.topics.filter(function (x) { return x.id === id; })[0]; return t ? t.topic : id; }).join(' → ')) + '</p>';
+    s.topics.forEach(function (t) {
+      h += '<h2>' + esc(t.id.toUpperCase() + ' · ' + t.topic) + '</h2><ul><li><b>Titles:</b> ① ' + esc(t.titles[0] || '') + ' ② ' + esc(t.titles[1] || '') + '</li>' +
+        '<li><b>Thumbnails:</b> ' + (t.thumbnails || []).map(function (x, n) { return (n ? '② ' : '① ') + '“' + esc(x.text) + '”: ' + esc(x.visual) + ' (' + esc(x.emotion) + ')'; }).join(' ') + '</li>' +
+        '<li><b>Demand:</b> ' + esc(t.demand + ' · “' + t.demand_phrase + '” · ' + t.evidence) + '</li><li><b>Belief:</b> ' + esc(YT_BELIEF[t.belief] || t.belief) + ' · <b>Stage:</b> ' + esc(t.stage) + ' · <b>Awareness:</b> ' + esc(t.awareness) + ' · <b>Angle:</b> ' + esc(t.angle) + '</li>' +
+        '<li><b>Format:</b> ' + esc(t.format) + ' (' + esc(t.length_min) + ' min)</li><li><b>Hook:</b> ' + esc(t.hook) + '</li><li><b>Intro + call-outs:</b> ' + esc(t.outline.intro_callouts) + '</li><li><b>Logic ladder:</b><ol>' + (t.outline.logic_ladder || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></li>' +
+        '<li><b>Callbacks:</b> ' + esc(t.outline.callbacks) + '</li><li><b>Proof on screen:</b> ' + esc(t.outline.proof) + '</li><li><b>CTA (' + esc(t.cta.type) + '):</b> ' + esc(t.cta.line) + '</li><li><b>End screen →</b> ' + esc(t.next_video) + '</li></ul>';
+    });
+    h += '<h2>New angles to explore</h2><ul>' + (s.new_angles || []).map(function (a) { return '<li><b>' + esc(a.topic) + '</b> (' + esc(a.cluster) + '): ' + esc(a.why) + '</li>'; }).join('') + '</ul>';
+    return h;
+  }
+  function ytCopy(html, text, what) {
+    try {
+      if (window.ClipboardItem && html) {
+        navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]).then(function () { toast('Copied. ' + what); }, function () { navigator.clipboard.writeText(text).then(function () { toast('Copied as text. ' + what); }); });
+      } else navigator.clipboard.writeText(text).then(function () { toast('Copied. ' + what); });
+    } catch (e) { prompt('Copy this', text); }
+  }
+  function renderYtIdeas() {
+    return api('yt/sprints').then(function (d) {
+      var st = d.status, list = d.sprints || [];
+      var sp = list.filter(function (x) { return x.id === ytState.sel; })[0] || list[0] || null;
+      function chk(ok, label, hint) { return '<li class="' + (ok ? 'ok' : 'todo') + '"><span>' + (ok ? '✓' : '○') + '</span><div><b>' + esc(label) + '</b><div class="muted small">' + esc(hint) + '</div></div></li>'; }
+      var inputs = '<div class="card"><div class="card-head"><div><h2>The 12 inputs</h2><p class="sub">What the generator reads every time. Green ones fill themselves.</p></div><a class="btn-sm ghost" href="#integrations">Edit the manual ones</a></div><ol class="yt-inputs">' +
+        chk(true, '1 · Offer & buyer', '$1M+ owners buying with debt, seller finance and seller rollover') + chk(st.brand, '2 · Brand & backstory', st.brand ? 'Set' : 'Add under Integrations → Content') + chk(true, '3 · The six beliefs', 'Trust, like, possible, can solve, better, now') +
+        chk(st.applicants > 0, '4 · Demand map', st.applicants + ' applicants’ own words, needs, industries, revenue') + chk(st.youtube, '5 · What’s winning in the niche', st.youtube ? 'Live outlier search on YouTube' : 'Add the YouTube Data API key to search outliers') + chk(st.adjacent > 0, '6 · Adjacent niches', st.adjacent + ' niches to borrow formats from') +
+        chk(st.videos > 0, '7 · Your winners & losers', st.videos ? st.videos + ' videos, ranked by money, then calls, then views' : 'Connect the channel in Content') + chk(st.videos > 0, '8 · Why the losers lost', 'Compared against the channel median') + chk(st.proof, '9 · Proof & testimonials', st.proof ? 'Set' : 'None set: proof videos are skipped') +
+        chk(st.notes, '10 · Standing rules', st.notes ? 'Set' : 'Optional') + chk(true, '11 · Funnel numbers', st.funnel.leads + ' leads, ' + st.funnel.booked + ' calls in 90 days; ' + st.funnel.youtubeLeads + ' from YouTube') + chk(true, '12 · Content library', st.videos + ' videos + ' + st.guides + ' guides to repurpose') + '</ol>' +
+        (st.ai ? '' : '<p class="muted small">No Anthropic key yet, so plans come from the built-in rules engine (good, but generic). Add the key under Integrations → Email to have Claude write each plan from the full data.</p>') + '</div>';
+      var demand = '<div class="card"><h2>What your applicants say</h2><p class="sub">The demand map, from booking and application answers.</p><div class="yt-chips">' + st.says.map(function (x) { return '<span class="chip">' + esc(x.k) + ' <b>' + n(x.n) + '</b></span>'; }).join('') + '</div>' +
+        '<p class="sub" style="margin-top:10px">Industries</p><div class="yt-chips">' + st.industries.map(function (x) { return '<span class="chip">' + esc(x.k) + ' <b>' + n(x.n) + '</b></span>'; }).join('') + '</div>' +
+        '<p class="sub" style="margin-top:10px">Revenue</p><div class="yt-chips">' + st.revenue.map(function (x) { return '<span class="chip">' + esc(x.k) + ' <b>' + n(x.n) + '</b></span>'; }).join('') + '</div>' +
+        '<p class="sub" style="margin-top:10px">Phrases checked on YouTube: ' + esc(st.phrases.join(' · ')) + '</p></div>';
+      var gen = '<div class="card yt-gen"><h2>Plan the next two weeks</h2><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input" data-yfocus placeholder="Optional focus, e.g. “healthcare owners”, “objection: debt”, “more bottom-of-funnel”" style="flex:1;min-width:260px"><button class="btn-sm" type="button" data-ygen>' + (ytState.busy ? 'Writing the plan…' : 'Generate 5–10 topics') + '</button></div><p class="muted small" data-ymsg>' + (st.ai ? 'Takes about a minute.' : 'Instant (rules engine).') + '</p></div>';
+      var sprintHtml = '';
+      if (sp) {
+        var s2 = sp.sprint;
+        sprintHtml = '<div class="card"><div class="card-head"><div><h2>Sprint · ' + esc(new Date(sp.created_at).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })) + (sp.focus ? ' · focus: ' + esc(sp.focus) : '') + '</h2><p class="sub">' + esc(sp.source === 'ai' ? 'Written by Claude from the 12 inputs' : 'Rules engine') + ' · ' + s2.topics.length + ' topics</p></div>' +
+          '<div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn-sm" type="button" data-yexp="gdoc">Copy for Google Docs</button><button class="btn-sm ghost" type="button" data-yexp="miro">Copy for Miro</button><a class="btn-sm ghost" href="/admin/api/yt/sprints/' + esc(sp.id) + '/md">Download .md</a>' +
+          (list.length > 1 ? '<select class="input" data-ysel>' + list.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === sp.id ? ' selected' : '') + '>' + esc(new Date(x.created_at).toLocaleDateString([], { day: 'numeric', month: 'short' }) + (x.focus ? ' · ' + x.focus : '')) + '</option>'; }).join('') + '</select>' : '') + '</div></div>' +
+          '<p>' + esc(s2.summary) + '</p>' +
+          '<div class="yt-path"><b>Binge path</b> ' + s2.binge_path.map(function (id) { var t = s2.topics.filter(function (x) { return x.id === id; })[0]; return '<span class="chip">' + esc(id.toUpperCase()) + ' ' + esc(t ? t.topic : '') + '</span>'; }).join('<span class="muted">→</span>') + '</div>' +
+          '<div class="yt-grid">' + s2.topics.map(ytTopicCard).join('') + '</div>' +
+          '<div class="grid g-2" style="margin-top:14px"><div><h3>New angles to explore</h3><ul class="yt-angles">' + (s2.new_angles || []).map(function (a, i2) { return '<li><div><b>' + esc(a.topic) + '</b> <span class="pill">' + esc(a.cluster) + '</span><div class="muted small">' + esc(a.why) + '</div></div><button class="btn-sm ghost" type="button" data-yangle="' + i2 + '">Explore →</button></li>'; }).join('') + '</ul></div>' +
+          '<div><h3>Checks</h3><p>Controversial: ' + esc(s2.checks.controversial_share) + '<br>Beliefs covered: ' + esc((s2.checks.beliefs_covered || []).map(function (b) { return YT_BELIEF[b] || b; }).join(', ')) + '</p>' + ((s2.checks.gaps || []).length ? '<ul>' + s2.checks.gaps.map(function (g) { return '<li class="muted">' + esc(g) + '</li>'; }).join('') + '</ul>' : '') +
+          ((s2.outliers || []).length ? '<h3>Winning on YouTube now</h3><ul class="yt-out">' + s2.outliers.slice(0, 10).map(function (o) { return '<li><b>' + esc(o.x) + '×</b> <a href="' + esc(o.url) + '" target="_blank" rel="noopener">' + esc(o.title) + '</a> <span class="muted">' + esc(o.channel) + ' · ' + n(o.views) + ' views</span></li>'; }).join('') + '</ul>' : '') + '</div></div></div>';
+      }
+      view.innerHTML = gen + sprintHtml + '<div class="grid g-2" style="margin-top:14px">' + inputs + demand + '</div>';
+      function generate(focus) {
+        if (ytState.busy) return;
+        ytState.busy = true;
+        var b = view.querySelector('[data-ygen]'); b.disabled = true; b.textContent = 'Writing the plan…';
+        view.querySelector('[data-ymsg]').textContent = st.ai ? 'Reading the 12 inputs and writing the plan. About a minute; keep this tab open.' : 'Planning…';
+        send('POST', 'yt/sprints', { focus: focus }).then(function (r) {
+          ytState.busy = false;
+          if (!r.ok) { toast(r.error || 'Could not generate'); load(); return; }
+          ytState.sel = r.id; toast('New sprint ready'); load();
+        }, function () { ytState.busy = false; toast('Could not reach the server'); load(); });
+      }
+      view.querySelector('[data-ygen]').onclick = function () { generate(view.querySelector('[data-yfocus]').value.trim()); };
+      var sel = view.querySelector('[data-ysel]'); if (sel) sel.onchange = function () { ytState.sel = sel.value; load(); };
+      view.querySelectorAll('[data-yangle]').forEach(function (b) { b.onclick = function () { var a = sp.sprint.new_angles[Number(b.getAttribute('data-yangle'))]; view.querySelector('[data-yfocus]').value = a.topic; generate(a.topic); }; });
+      view.querySelectorAll('[data-yexp]').forEach(function (b) {
+        b.onclick = function () {
+          var s2 = sp.sprint;
+          if (b.getAttribute('data-yexp') === 'gdoc') {
+            var html = ytDocHtml(sp);
+            ytCopy(html, html.replace(/<[^>]+>/g, '\n').replace(/\n{2,}/g, '\n'), 'Open a new Google Doc (docs.new) and paste.');
+          } else {
+            var lines = s2.topics.map(function (t) { return t.id.toUpperCase() + ' · ' + t.titles[0] + ' [' + t.stage + ' · ' + (YT_BELIEF[t.belief] || t.belief) + ']'; }).concat((s2.new_angles || []).map(function (a) { return 'IDEA · ' + a.topic; }));
+            ytCopy(null, lines.join('\n'), 'Paste on a Miro board: each line becomes a sticky note.');
+          }
+        };
+      });
     });
   }
   function wireCopy(root) {

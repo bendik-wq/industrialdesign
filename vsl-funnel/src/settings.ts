@@ -130,6 +130,11 @@ export const SETTINGS = [
 
   { key: 'CONTENT_YOUTUBE_CHANNEL', label: 'YouTube channel', group: 'Content', placeholder: '@officialjoshli', help: 'The handle (@name) or channel ID to track in Funnel HQ → Content.' },
   { key: 'YOUTUBE_API_KEY', label: 'YouTube Data API key', group: 'Content', secret: true, help: 'Free: console.cloud.google.com → APIs → enable “YouTube Data API v3” → Credentials → API key. Without it only the latest 15 videos are read (public feed).' },
+  { key: 'YT_BRAND_STORY', label: 'YouTube ideas: who Josh is (backstory)', group: 'Content', help: 'A few lines: background, deals done, why he does this. Only true facts: the generator uses it to pick credibility topics.' },
+  { key: 'YT_PROOF', label: 'YouTube ideas: proof you can show', group: 'Content', help: 'Real results and testimonials you have permission to use, one per line. Leave blank and the generator won’t suggest proof videos.' },
+  { key: 'YT_COMPETITORS', label: 'YouTube ideas: channels in your niche', group: 'Content', placeholder: '@codiesanchezct, @walkerdeibel', help: 'Comma-separated handles. Used to find what’s winning (needs the YouTube key).' },
+  { key: 'YT_ADJACENT', label: 'YouTube ideas: adjacent niches', group: 'Content', placeholder: 'buying a business (ETA), private equity, real estate creative finance, agency scaling', help: 'Comma-separated. Formats are borrowed from these.' },
+  { key: 'YT_NOTES', label: 'YouTube ideas: rules for every sprint', group: 'Content', help: 'Anything that overrides everything else, e.g. “no faceless videos”, “Josh can’t film in December”.' },
   { key: 'INSTAGRAM_USER_ID', label: 'Instagram account ID', group: 'Content', help: 'The Instagram Business/Creator account ID (Graph API Explorer → me/accounts → instagram_business_account).' },
   { key: 'INSTAGRAM_ACCESS_TOKEN', label: 'Instagram access token', group: 'Content', secret: true, help: 'A long-lived token with instagram_basic and instagram_manage_insights (Meta app → Instagram Graph API).' },
 
