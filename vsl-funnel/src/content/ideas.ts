@@ -394,8 +394,10 @@ const BANK: Bank[] = [
 function rulesSprint(i: Inputs, focus?: string): Sprint {
   const prev = new Set(i.previous.map((p) => p.toLowerCase()));
   const ranked = BANK.map((b) => ({ b, score: b.signal(i) + (focus && new RegExp(focus.split(/\W+/).filter((w) => w.length > 3).join('|') || '^$', 'i').test(b.t.topic + b.t.demand_phrase) ? 20 : 0) }))
-    .filter((x) => !prev.has(x.b.t.topic.toLowerCase()))
     .sort((a, b) => b.score - a.score);
+  // Prefer topics not planned before; once the bank runs low, repeat the strongest rather than plan nothing.
+  const fresh = ranked.filter((x) => !prev.has(x.b.t.topic.toLowerCase()));
+  if (fresh.length >= 5) ranked.splice(0, ranked.length, ...fresh, ...ranked.filter((x) => !fresh.includes(x)));
   // 80/20: at most two controversial in eight.
   const picked: Bank[] = [];
   for (const { b } of ranked) {

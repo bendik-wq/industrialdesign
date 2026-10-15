@@ -11,18 +11,18 @@ import type { Sprint, Topic } from './ideas';
  * - buildMiroBoard: lays the sprint out on a new Miro board through the REST API (needs MIRO_ACCESS_TOKEN).
  */
 
-const INK = '#1F2A44', MUTED = '#5B6478', YELLOW = '#FFD84D', PAPER = '#F4F4EF', ROW = '#FAFAF7';
+export const INK = '#1F2A44', MUTED = '#5B6478', YELLOW = '#FFD84D', PAPER = '#F4F4EF', ROW = '#FAFAF7';
 export const STAGE: Record<Topic['stage'], { faint: string; dark: string; label: string }> = {
   TOFU: { faint: '#EAF1FF', dark: '#2D5BD8', label: 'Top of funnel · get found' },
   MOFU: { faint: '#FFF3DC', dark: '#B4690E', label: 'Middle · build belief' },
   BOFU: { faint: '#E5F6EC', dark: '#13804B', label: 'Bottom · book the call' },
 };
-const BELIEF: Record<string, string> = { trust: 'Trust us', like: 'Like us', possible: 'It’s possible', can_solve: 'We can solve it', better: 'Better than the alternative', now: 'Act now' };
+export const BELIEF: Record<string, string> = { trust: 'Trust us', like: 'Like us', possible: 'It’s possible', can_solve: 'We can solve it', better: 'Better than the alternative', now: 'Act now' };
 
-const e = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const unquote = (s: string) => s.replace(/^[“”"]+|[“”"]+$/g, '');
+export const e = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+export const unquote = (s: string) => s.replace(/^[“”"]+|[“”"]+$/g, '');
 const stageOf = (t: Topic) => STAGE[t.stage] ?? STAGE.MOFU;
-const ordered = (s: Sprint) => {
+export const ordered = (s: Sprint) => {
   const byId = new Map(s.topics.map((t) => [t.id, t]));
   const path = s.binge_path.map((id) => byId.get(id)).filter((t): t is Topic => Boolean(t));
   return [...path, ...s.topics.filter((t) => !path.includes(t))];
@@ -32,21 +32,21 @@ const nextLabel = (s: Sprint, t: Topic) => {
   return i >= 0 ? `Video ${String(i + 1).padStart(2, '0')}` : t.next_video || 'the VSL';
 };
 
-function p(text: string, o: { size?: number; color?: string; bold?: boolean; italic?: boolean; mt?: number; mb?: number; center?: boolean } = {}) {
+export function p(text: string, o: { size?: number; color?: string; bold?: boolean; italic?: boolean; mt?: number; mb?: number; center?: boolean } = {}) {
   const st = [`font-size:${o.size ?? 11}pt`, o.color && o.color !== INK ? `color:${o.color}` : '', o.bold ? 'font-weight:bold' : '', o.italic ? 'font-style:italic' : '',
     o.mt !== undefined || o.mb !== undefined ? `margin:${o.mt ?? 0}pt 0 ${o.mb ?? 6}pt 0` : '', o.center ? 'text-align:center' : ''].filter(Boolean).join(';');
   return `<p style="${st}">${text}</p>`;
 }
-function td(content: string, o: { bg?: string; pad?: number; w?: number; border?: number; extra?: string } = {}) {
+export function td(content: string, o: { bg?: string; pad?: number; w?: number; border?: number; extra?: string } = {}) {
   const w = o.w ? ` width="${o.w}%"` : '';
   return `<td${w} style="${o.w ? `width:${o.w}%;` : ''}${o.bg ? `background-color:${o.bg};` : ''}padding:${o.pad ?? 14}px;border:${o.border ?? 1}px solid #FFFFFF;vertical-align:top;${o.extra ?? ''}">${content}</td>`;
 }
-function table(rows: string, widths?: number[]) {
+export function table(rows: string, widths?: number[]) {
   const cols = widths ? `<colgroup>${widths.map((w) => `<col width="${w}%">`).join('')}</colgroup>` : '';
   return `<table width="100%" style="width:100%;border-collapse:collapse;">${cols}${rows}</table>`;
 }
-const label = (t: string, color: string) => p(e(t.toUpperCase()), { size: 9, color, bold: true, mt: 10, mb: 4 });
-const PAGE_BREAK = '<p style="page-break-before:always;margin:0;"></p>';
+export const label = (t: string, color: string) => p(e(t.toUpperCase()), { size: 9, color, bold: true, mt: 10, mb: 4 });
+export const PAGE_BREAK = '<p style="page-break-before:always;margin:0;"></p>';
 
 /** The brief as Google-Docs-safe HTML (no <html>/<body>). */
 export function sprintDocHtml(s: Sprint, created: number, o: { brand?: string; preparedFor?: string; miroUrl?: string | null } = {}) {
@@ -134,14 +134,15 @@ export function sprintDocHtml(s: Sprint, created: number, o: { brand?: string; p
   return out.join('\n');
 }
 
-/** The brief as a page in Funnel HQ, with a toolbar for Google Docs, PDF and Miro. */
-export function sprintPage(s: Sprint, created: number, o: { id: string; brand?: string; miroUrl?: string | null; miroReady?: boolean }) {
-  const body = sprintDocHtml(s, created, o);
-  const miro = o.miroUrl
-    ? `<a class="b ghost" href="${e(o.miroUrl)}" target="_blank" rel="noopener">Open the Miro board</a>`
-    : o.miroReady ? `<button class="b ghost" type="button" data-miro>Build the Miro board</button>` : `<a class="b ghost" href="/admin#integrations" title="Add a Miro access token under Integrations → Content">Connect Miro</a>`;
+/** A designed document as a page in Funnel HQ, with buttons for Google Docs, PDF and Miro. */
+export interface ShellAction { url?: string | null; endpoint?: string | null; ready?: boolean }
+export function docShell(o: { title: string; barTitle: string; body: string; miro: ShellAction; gdoc: ShellAction }) {
+  const btn = (a: ShellAction, kind: 'miro' | 'gdrive', open: string, build: string, connect: string) =>
+    a.url ? `<a class="b ghost" href="${e(a.url)}" target="_blank" rel="noopener">${open}</a>`
+      : a.ready && a.endpoint ? `<button class="b ghost" type="button" data-${kind}="${e(a.endpoint)}" data-label="${e(build)}" data-open="${e(open)}">${build}</button>`
+        : `<a class="b ghost" href="/admin#integrations" title="Connect it under Integrations → Content">${connect}</a>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
-<title>YouTube sprint · ${e(new Date(created).toISOString().slice(0, 10))}</title>
+<title>${e(o.title)}</title>
 <style>
 :root{color-scheme:light}
 body{margin:0;background:#E9E8E2;font-family:Arial,Helvetica,sans-serif;color:${INK}}
@@ -150,19 +151,27 @@ body{margin:0;background:#E9E8E2;font-family:Arial,Helvetica,sans-serif;color:${
 .bar strong{flex:1;min-width:180px;font-size:15px}
 .b{border:0;border-radius:8px;padding:9px 14px;font:600 14px Arial,sans-serif;cursor:pointer;text-decoration:none;background:${YELLOW};color:${INK}}
 .b.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)}
+.b:disabled{opacity:.6;cursor:default}
 .msg{max-width:880px;margin:10px auto 0;padding:0 16px;font-size:13px;color:${MUTED}}
 .sheet{max-width:816px;margin:16px auto 48px;background:#fff;padding:56px 64px;box-shadow:0 6px 30px rgba(0,0,0,.08);border-radius:4px}
-.sheet p{margin:0 0 6pt 0;line-height:1.4}
+.sheet p{margin:0 0 6pt 0;line-height:1.45}
 .sheet table{margin:0}
 .sheet a{color:inherit}
 @media (max-width:700px){.sheet{padding:24px 16px;margin:8px}}
 @media print{body{background:#fff}.bar,.msg{display:none}.sheet{box-shadow:none;margin:0;padding:0;max-width:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-</style></head><body data-id="${e(o.id)}">
-<div class="bar"><div class="bar-in"><strong>YouTube sprint · ${e(s.topics.length)} videos</strong>
-<button class="b" type="button" data-gdoc>Open in Google Docs</button>${miro}<button class="b ghost" type="button" data-print>Save as PDF</button></div></div>
-<p class="msg" data-msg>“Open in Google Docs” copies this brief and opens a new doc: press ⌘V / Ctrl+V there and it keeps the design.</p>
-<main class="sheet" data-doc>${body}</main>
+</style></head><body>
+<div class="bar"><div class="bar-in"><strong>${e(o.barTitle)}</strong>
+${btn(o.gdoc, 'gdrive', 'Open the Google Doc', 'Create the Google Doc', 'Connect Google')}<button class="b" type="button" data-gdoc>Copy into Google Docs</button>${btn(o.miro, 'miro', 'Open the Miro board', 'Build the Miro board', 'Connect Miro')}<button class="b ghost" type="button" data-print>Save as PDF</button></div></div>
+<p class="msg" data-msg>“Copy into Google Docs” copies this page and opens a new doc: press ⌘V / Ctrl+V there and the design comes with it.</p>
+<main class="sheet" data-doc>${o.body}</main>
 <script src="/assets/brief.js" defer></script></body></html>`;
+}
+
+export function sprintPage(s: Sprint, created: number, o: { id: string; brand?: string; miroUrl?: string | null; miroReady?: boolean }) {
+  return docShell({
+    title: `YouTube sprint · ${new Date(created).toISOString().slice(0, 10)}`, barTitle: `YouTube sprint · ${s.topics.length} videos`, body: sprintDocHtml(s, created, o),
+    miro: { url: o.miroUrl, ready: o.miroReady, endpoint: `/admin/api/yt/sprints/${encodeURIComponent(o.id)}/miro` }, gdoc: { ready: false },
+  });
 }
 
 // ───────────── Miro ─────────────

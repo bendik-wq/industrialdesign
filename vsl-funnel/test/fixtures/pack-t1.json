@@ -1,0 +1,216 @@
+{
+ "video_id": "t1",
+ "big_idea": "If you already run a profitable $1M+ business, your first acquisition is paid for by the target's own profit, through commercial debt, seller finance and seller rollover, not by your savings, as long as the deal passes the 1.5x test.",
+ "promise": "Walk away able to sketch a first acquisition on one page: what you're buying, who sells, how commercial debt, seller finance and seller rollover fund it, and whether it passes the 1.5x repayment test.",
+ "viewer": "Owners of profitable businesses doing $1M+ a year in the US or Australia who have never bought a company and want their first one.",
+ "not_for": "Not for pre-revenue founders, businesses under about $1M, or anyone looking for a get-rich-quick flip; watch the video on whether you're big enough first.",
+ "titles": [
+  "How to Buy Your First Business With No Money Down ($1M+ Owners)",
+  "Never Bought a Business? The 4-Step Path for $1M+ Owners",
+  "Your First Acquisition Without Your Own Cash ($1M+ Owners)"
+ ],
+ "thumbnails": [
+  {
+   "text": "$0 OF YOURS",
+   "visual": "Josh at a whiteboard with four boxes drawn: Target, Debt, Seller Note, Rollover, arrows into one 'DEAL' box",
+   "emotion": "confident"
+  },
+  {
+   "text": "FIRST DEAL",
+   "visual": "Close-up of Josh, slight knowing smile, whiteboard behind him showing a big circled '1.5x'",
+   "emotion": "knowing"
+  }
+ ],
+ "hook": {
+  "line": "If your business does a million a year, you don't need a war chest.",
+  "script": "If your business does a million a year, you don't need a war chest to buy your next one.\nYou need a target that already makes money.\nAnd four things I'm about to draw on this board.\nA target. Commercial debt. A seller note. And seller rollover.\nMost owners think buying a company starts with saving up a pile of cash.\nIt doesn't.\nIt starts with finding a business whose own profit can pay for itself.\nAnd there's one test, one number, that tells you in about two minutes whether a deal works or kills you.\nMost first-timers never run it.\nI'll show you exactly what it is before this video's over.",
+  "on_screen": "Josh standing at the whiteboard. As he names each of the four items, he draws a box: TARGET, DEBT, SELLER NOTE, ROLLOVER. On 'one number', he writes a large '?' in the corner of the board and circles it (this becomes 1.5x later)."
+ },
+ "intro": {
+  "script": "So this is how to buy your first business, without draining your own bank account to do it.\nIf you own a profitable business doing a million dollars or more, in the US or Australia, and you've never bought a company before, you're in the right place. This is built for you.\nIf you're pre-revenue, or you're under a million, this isn't your video yet. Go watch the one on whether you're big enough first, then come back.\nWho am I to tell you this? I'm Josh Li. I'm co-founder of G&L M&A Advisory, where we help owners buy companies. And I run my own healthcare holding group. So I'm not reading this off a textbook. I live in these deals.\nHere's the roadmap.\nFirst, why buying beats building once you're past a million.\nThen what you're actually buying, and who's selling.\nThen how it's paid for, which is the part everyone gets wrong.\nThen the one test every deal has to pass.\nThen your first ninety days, and the two mistakes that sink first-timers.\nLet's go."
+ },
+ "beats": [
+  {
+   "headline": "Why Buying Beats Building Past $1M",
+   "script": "Let's start with the obvious step most owners skip.\nYou've already built one business. You know what that took. Years. Hiring the wrong people. Finding customers one at a time. Figuring out pricing the hard way.\nNow here's what happens when you want to double.\nMost owners do the same thing again. Hire more. Market more. Grind more. And growth comes in at maybe ten, twenty percent a year if things go well.\nWhile most owners do that... the ones building groups do something different.\nThey buy growth that already exists.\nThink about it. Somewhere near you, there's a business doing what yours does, or something right next to it. It already has customers. It already has staff. It already has profit landing in the bank every month.\nThe owner built it over twenty or thirty years. You can own it in months.\nThat's the shift. Building is slow and you pay for it with your time. Buying is fast and, done right, the business pays for itself with its own profit.\nAnd you've got an unfair advantage over almost every other buyer out there. You already run a real business. Lenders and sellers can see that. You've made payroll. You know what a P and L looks like when it's healthy and when it's lying.\nThat's why I keep saying a million is the line. Below it, buying is a stretch. Above it, you're exactly who sellers and lenders want to talk to.\nSo if buying is the faster path... what exactly are you buying?",
+   "slide": [
+    "Building: years, your time",
+    "Buying: months, their profit",
+    "$1M+ owners are the buyers lenders want"
+   ],
+   "visual": "Whiteboard: two lines on a simple graph. 'BUILD' climbs slowly; 'BUY' steps up sharply. Josh draws, then turns to camera.",
+   "transition": "So if buying is the faster path, what exactly are you paying for? It's not what most people think."
+  },
+  {
+   "headline": "What You're Really Buying",
+   "script": "Most first-timers think they're buying a building, some equipment, a logo.\nYou're not.\nYou're buying three things. Cash flow. Customers. And a team.\nCash flow first. That's the profit the business produces after paying everyone, before the owner takes their cut. In the industry you'll hear it called EBITDA or seller's discretionary earnings. Don't get lost in the letters. It's the money the business throws off every year. That number is what decides the price. And, as you'll see in a minute, it's also what pays for the deal.\nSecond, customers. Relationships that took someone decades to earn. Repeat buyers. Contracts. Referral sources. You don't have to win them. You inherit them.\nThird, the team. People who already know how to do the work. The best businesses to buy are the ones where the staff run the day-to-day, and the owner mostly signs off.\nHere's the contrast.\nThe owner who's thinking like a shopper asks, what's it got? Fancy fit-out, nice vans, a good website.\nThe owner who's thinking like a buyer asks one question. How much does it make, and will that keep happening after the seller walks out the door?\nThat's the whole game. Predictable profit you can step into.\nSo now you know what you're buying. The next question is who on earth would sell you a profitable business... and why?",
+   "slide": [
+    "Cash flow",
+    "Customers",
+    "A team that runs it"
+   ],
+   "visual": "Whiteboard: draw the TARGET box from the hook bigger, split into three: CASH FLOW, CUSTOMERS, TEAM. Underline CASH FLOW twice.",
+   "transition": "Which raises the question everyone asks: why would anyone sell a business that makes money?"
+  },
+  {
+   "headline": "Who Sells, and Why",
+   "script": "Here's the question I get more than any other. Josh, if the business is profitable, why would they sell it?\nBecause profit isn't the only thing an owner cares about.\nPicture the typical seller. They started the business decades ago. They're tired. Maybe their health is telling them to slow down. And the big one: there's nobody to hand it to. The kids don't want it. The managers can't afford to buy it.\nSo they've got two options. Close the doors and walk away with a few pieces of equipment. Or find a buyer who'll look after the staff and customers they spent their life building.\nThat's you.\nAnd here's the part first-timers miss. Most of these owners aren't looking for the highest price from a stranger. They want someone they trust to keep it alive. Someone who already runs a real business. Someone who can show them the plan.\nWhile most buyers show up waving a number... the ones who get the deal show up with a plan for the people.\nThis is also why so many sellers are open to helping fund the sale themselves. They want it to work. They'd rather be paid over time by someone credible than not be paid at all.\nWhich brings us to the part that decides whether you need a war chest or not.\nHow does it actually get paid for?",
+   "slide": [
+    "Owners who want out",
+    "No successor",
+    "They sell to who they trust"
+   ],
+   "visual": "Talking head, tight shot, then cut to whiteboard: write SELLER with three bullets: tired, no successor, wants legacy protected.",
+   "transition": "And because sellers want it to work, they'll often help pay for it. Here's how the money actually stacks up."
+  },
+  {
+   "headline": "Debt, Seller Finance, Seller Rollover",
+   "script": "Quick note before I draw this. I'm going to talk about structure. This isn't legal, tax or financial advice. Every deal and every country is different, so get your own advisers on it.\nNow. Back to the four boxes from the start.\nYou've got the target. Underneath it, three layers of funding.\nLayer one, commercial debt. A lender funds a big chunk of the price, and it's repaid out of the business's profit. In the US and Australia the lenders and programs differ, but the logic is the same. They lend against cash flow.\nLayer two, seller finance. The seller agrees to be paid part of the price over time, through a note. They become, in effect, a second lender. That tells the bank the seller believes in the business.\nLayer three, seller rollover. The seller keeps a slice of equity in the business after the sale. So they're still a part-owner. They stay invested in it going well, and that slice is a piece of the price you don't have to fund with cash on day one.\nStack those three, and the gap left for your own money can get very small. Sometimes close to nothing, depending on the lender and the deal.\nWhile most owners think buying means writing a giant cheque... the ones building groups let the debt, the seller note and the rollover carry the weight, and let the business's profit pay it back.\nBut there's a catch. None of this works unless the deal passes one test.",
+   "slide": [
+    "Commercial debt",
+    "Seller finance",
+    "Seller rollover"
+   ],
+   "visual": "Whiteboard: stack three boxes under TARGET: DEBT, SELLER NOTE, ROLLOVER. Shade the tiny remaining gap and label it 'YOUR CASH'. Lower-third disclaimer during first sentence.",
+   "transition": "Remember the question mark from the start? This is where we fill it in."
+  },
+  {
+   "headline": "The 1.5x Test Every Deal Passes",
+   "script": "Here's the number. Remember that question mark? It's one point five.\nThe test is simple. Take the business's yearly profit. Divide it by the yearly repayments on the debt and the seller note. You want that answer at about one point five or better.\nLet's use illustrative numbers. These are made up to show the maths, not a real client deal.\nSay the business makes five hundred thousand a year in profit. The price is two million, which is four times profit.\nCommercial debt funds one point two million. Seller finance, five hundred thousand. Seller rollover covers the last three hundred thousand. Little or none of it is your cash.\nNow the repayments. Illustratively, the debt costs around one eighty a year. The seller note around one fifteen. Call it roughly three hundred thousand a year in repayments.\nFive hundred of profit, divided by three hundred of repayments. About one point six seven.\nIt passes.\nWhy one point five? Because businesses have bad months. A key staff member leaves. A big customer goes quiet. That buffer is what lets you survive a rough patch and still pay everyone.\nWhile most first-timers fall in love with a business and then try to make the numbers work... the ones who last run this test first, and walk away fast when it fails.\nSo the deal passes. You sign. Now what happens on Monday morning?",
+   "slide": [
+    "Profit ÷ repayments",
+    "Aim for about 1.5x",
+    "Illustrative: $500k ÷ ~$300k ≈ 1.67x"
+   ],
+   "visual": "Whiteboard: replace the '?' with 1.5x. Write the illustrative deal in a box clearly titled 'ILLUSTRATIVE NUMBERS'. Persistent on-screen label 'Illustrative example, not a real deal' for the whole beat.",
+   "transition": "Passing the test gets you the keys. What you do in the next ninety days decides whether it stays a good deal."
+  },
+  {
+   "headline": "Your First 90 Days",
+   "script": "Here's where first-timers either lock in the deal, or quietly break it.\nThe first ninety days have one job. Keep the profit you paid for.\nThat's it. Not growth. Not your big new ideas. Protect what's there.\nMonth one: people. Sit down with every key staff member. Tell them what's changing, which should be almost nothing, and what isn't. Uncertainty is what makes good people leave.\nMonth one, also: customers. The seller introduces you to the biggest ones personally. This is where that rollover pays off again. A seller who still owns a slice wants that handover to go well.\nMonth two: the numbers. Get weekly visibility on cash, sales and the repayments. You already know how to read a business. Now you're reading two.\nMonth three: one or two easy wins. Things your current business already does better. Purchasing. Systems. Shared admin. Small, safe improvements.\nWhile most first-time buyers walk in on day one and start changing everything... the ones building groups walk in and change almost nothing until they understand what they bought.\nThat's not exciting. It's how you keep the cash flow that's paying for the deal.\nAnd that brings me to the two mistakes I see first-timers make again and again. Either one can wipe out everything we've just drawn.",
+   "slide": [
+    "Job one: keep the profit",
+    "People, customers, numbers",
+    "Change little, learn a lot"
+   ],
+   "visual": "Whiteboard: a simple 90-day timeline split into three columns: M1 PEOPLE + CUSTOMERS, M2 NUMBERS, M3 EASY WINS.",
+   "transition": "Two mistakes undo all of this. The second one is the one almost nobody sees coming."
+  },
+  {
+   "headline": "The Two First-Timer Mistakes",
+   "script": "Mistake number one. Buying the story instead of the profit.\nThe seller says next year's going to be huge. There's a big contract coming. The growth is just around the corner.\nLovely. You don't pay for next year. You pay for the profit that's already there, proven in the books. If the deal only passes the one point five test using the seller's forecast, it doesn't pass.\nMistake number two. Funding it the hard way.\nThis is the one nobody sees coming. A first-timer finds a good business, gets excited, and tries to fund it with a bank loan and their own savings. No seller note. No rollover.\nNow they've drained their cash. The seller has no reason to help after settlement because they've been paid in full and gone. And if anything wobbles in the first year, there's no buffer.\nCompare that to the structure we drew. Commercial debt, seller finance and seller rollover. The seller is still invested. Your own cash is mostly still in your pocket. The repayments are covered one and a half times.\nSame business. Two completely different levels of risk.\nWhile most first-timers think the risk is in the business they pick... a lot of the risk is actually in how they pay for it.\nSo let's bring this all the way back to where we started.",
+   "slide": [
+    "Mistake 1: buying the story",
+    "Mistake 2: funding it the hard way",
+    "Structure is the risk control"
+   ],
+   "visual": "Whiteboard: two big Xs. Under X1 'FORECAST'. Under X2 draw a tall 'YOUR SAVINGS' bar next to the slim 'YOUR CASH' gap from beat 4.",
+   "transition": "Which brings us right back to the promise from the first ten seconds."
+  }
+ ],
+ "proof": {
+  "show": "The illustrative deal drawn on the whiteboard: $500k profit, $2M price, $1.2M commercial debt, $500k seller note, $300k seller rollover, ~$300k yearly repayments, ~1.67x coverage, ticked against the 1.5x line.",
+  "label": "Illustrative example, not a real client deal"
+ },
+ "callback": "So, back to the promise. Your first deal doesn't need a war chest. It needs a profitable target, commercial debt, seller finance, seller rollover, and a deal that passes the 1.5x test.",
+ "mid_cta": "After beat 3: If you're already looking at a business and want a second set of eyes on whether it could work, apply through the first link in the description. If it's a fit, we'll book a strategy call.",
+ "close": {
+  "script": "So, back to where we started.\nYou don't need a war chest to buy your first business.\nYou need a target that already makes money. Commercial debt. Seller finance. Seller rollover. And a deal that clears one point five.\nAnd think about what that gets you.\nOn the surface, it's a second business. But really, it's a second stream of profit you didn't have to build from scratch.\nIt's a group, not a job. A team running two businesses, not you running one.\nAnd underneath that, it's the feeling of finally being on the other side of the table. Not grinding for the next ten percent. Owning things that pay you.\nThat's who the owners building groups become. Buyers. Not just operators.\nNow here's the cost of doing nothing.\nThe sellers you'd want are retiring right now. Every year you wait, the good ones go to someone else. Another year of growing ten percent the slow way. Another year of your profit sitting there when it could be the reason a lender says yes.\nYou've already done the hard part. You built a business that does a million plus.\nIf you want help doing the next part properly, apply through the first link in the description. Tell us about your business and what you want to buy. If it's a fit, we'll book a strategy call and look at your first deal together."
+ },
+ "end_screen": "You've seen the four boxes. Now watch the next video, where I show you exactly where the money comes from, deal by deal.",
+ "description": "You don't need a war chest to buy your first business. You need a target that already makes money.\nIf you own a $1M+ business and have never bought one, this is the whiteboard walkthrough of how first deals are funded.\n\nApply here (if it's a fit, we'll book a strategy call): {APPLY_LINK}\n\nInside:\n- Why buying beats building once you're past $1M\n- What you're really buying: cash flow, customers, a team\n- How commercial debt, seller finance and seller rollover fund the price\n- The 1.5x test every deal must pass (with an illustrative example)\n- Your first 90 days, and the two mistakes first-timers make\n\nNot legal, tax or financial advice. All numbers in this video are illustrative.",
+ "chapters": [
+  {
+   "time": "0:00",
+   "label": "You don't need a war chest"
+  },
+  {
+   "time": "0:45",
+   "label": "Who this is for, and the roadmap"
+  },
+  {
+   "time": "1:45",
+   "label": "Why buying beats building past $1M"
+  },
+  {
+   "time": "3:45",
+   "label": "What you're really buying"
+  },
+  {
+   "time": "5:45",
+   "label": "Who sells, and why"
+  },
+  {
+   "time": "7:45",
+   "label": "Debt, seller finance, seller rollover"
+  },
+  {
+   "time": "10:00",
+   "label": "The 1.5x test (illustrative deal)"
+  },
+  {
+   "time": "12:30",
+   "label": "Your first 90 days"
+  },
+  {
+   "time": "14:30",
+   "label": "The two first-timer mistakes"
+  },
+  {
+   "time": "16:30",
+   "label": "Your first deal, and next steps"
+  }
+ ],
+ "pinned_comment": "Owners: what does your business do, roughly what's its revenue, and what would you want your first acquisition to be? Drop it below and I'll tell you which box on the whiteboard to look at first.",
+ "tags": [
+  "how to buy a business",
+  "buy a business with no money down",
+  "buying your first business",
+  "seller financing",
+  "seller finance",
+  "seller rollover",
+  "business acquisition",
+  "acquisition financing",
+  "buy a business with debt",
+  "DSCR",
+  "small business acquisition",
+  "business owners $1M"
+ ],
+ "shorts": [
+  {
+   "title": "You Don't Need a War Chest to Buy a Business",
+   "hook": "If your business does a million a year, you don't need a war chest.",
+   "script": "If your business does a million a year, you don't need a war chest to buy your next one.\nYou need four things.\nA target that already makes money.\nCommercial debt, repaid out of that target's profit.\nSeller finance, where the seller gets paid part of the price over time.\nAnd seller rollover, where the seller keeps a slice of equity and stays invested in it going well.\nStack those, and the gap left for your own cash can get very small.\nMost owners think buying starts with saving up. It starts with finding profit that can pay for itself.\nFull whiteboard breakdown on the channel. Not financial advice."
+  },
+  {
+   "title": "The 1.5x Test Every Deal Must Pass",
+   "hook": "One number tells you if a deal works or kills you.",
+   "script": "One number tells you if a deal works or kills you.\nTake the business's yearly profit. Divide it by the yearly repayments on the debt and seller note. You want about one point five or better.\nIllustrative numbers. Five hundred thousand profit. Roughly three hundred thousand in repayments. That's about one point six seven. It passes.\nWhy one point five? Because businesses have bad months. That buffer is what lets you survive a rough patch and still pay everyone.\nMost first-timers fall in love with a business, then try to make the numbers work. Run the test first. Walk away fast when it fails."
+  },
+  {
+   "title": "Why Would Anyone Sell a Profitable Business?",
+   "hook": "If it's profitable, why would they sell it?",
+   "script": "If it's profitable, why would they sell it?\nBecause profit isn't the only thing an owner cares about.\nThey started it decades ago. They're tired. And there's nobody to hand it to. The kids don't want it. The managers can't afford it.\nSo they can close the doors, or find a buyer who'll look after the staff and customers they spent their life building.\nMost of them aren't chasing the highest number from a stranger. They want someone they trust.\nWhile most buyers show up waving a price, the ones who get the deal show up with a plan for the people."
+  }
+ ],
+ "filming": [
+  "Setting: same whiteboard set as the seller-finance masterclass for format continuity; Josh standing, camera at chest height, second angle tight for talking-head cuts.",
+  "Large whiteboard, wiped clean, with at least 3 colours of marker; pre-mark faint pencil guides for the four boxes so the drawing is clean on camera.",
+  "Whiteboard drawing 1 (hook): four boxes TARGET, DEBT, SELLER NOTE, ROLLOVER plus a circled '?' in the corner.",
+  "Whiteboard drawing 2 (beat 1): BUILD vs BUY growth lines.",
+  "Whiteboard drawing 3 (beats 2-4): TARGET split into CASH FLOW / CUSTOMERS / TEAM, then the three funding layers stacked under it with a small shaded 'YOUR CASH' gap.",
+  "Whiteboard drawing 4 (beat 5): the illustrative deal, boxed and titled 'ILLUSTRATIVE NUMBERS', with the '?' replaced by 1.5x.",
+  "Whiteboard drawing 5 (beats 6-7): 90-day timeline in three columns, then two big Xs for the mistakes.",
+  "Graphics to prepare: lower-third disclaimer, persistent 'Illustrative example' label, animated 1.5x formula (profit ÷ repayments), and on-screen slide lines for each beat.",
+  "Prepare mid-video CTA graphic pointing to the first description link, and an end-screen card for the next video (where the money comes from).",
+  "Record the three Shorts as separate vertical takes at the whiteboard after the main video while the drawings are still up."
+ ],
+ "compliance": [
+  "Lower-third once, at the start of beat 4: 'Not legal, tax or financial advice. Every deal and jurisdiction is different.'",
+  "Persistent label during beat 5 and any shot of the deal maths: 'Illustrative example, not a real client deal.'",
+  "Description footer: 'Not legal, tax or financial advice. All numbers in this video are illustrative.'",
+  "CTA wording on screen and spoken: 'Apply through the first link in the description; if it's a fit, we'll book a strategy call.' Never describe the call as free.",
+  "Funding always named as commercial debt, seller finance and seller rollover together; 'no money down' framed as 'little or none of your own cash, depending on the lender and deal', not a guarantee.",
+  "No testimonials, client names, real deal sizes or results shown; only stated bio facts: co-founder of G&L M&A Advisory, runs his own healthcare holding group."
+ ]
+}

@@ -934,3 +934,6 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .yt-topic details { font-size: 13px; } .yt-topic details summary { cursor: pointer; color: var(--muted, #666); }
 .yt-angles { list-style: none; padding: 0; display: grid; gap: 8px; } .yt-angles li { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; }
 .yt-out { padding-left: 16px; font-size: 13px; }
+.yt-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.yt-actions .btn-sm { text-decoration: none; }
+.yt-connect { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--surface-2, #f6f5f1); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .9rem; }

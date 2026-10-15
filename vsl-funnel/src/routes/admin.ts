@@ -1,6 +1,9 @@
 import type { Env } from '../env';
 import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown, type Sprint } from '../content/ideas';
-import { buildMiroBoard, sprintPage } from '../content/sprint-export';
+import { buildMiroBoard, docShell, sprintPage } from '../content/sprint-export';
+import { buildPackBoard, createGoogleDoc, ensurePack, googleAuthUrl, googleReady, loadSprintTopic, packDocHtml, savePackLinks } from '../content/video-pack';
+import { signToken } from '../lib/crypto';
+import { getSecret } from '../lib/secret';
 import { type Context, Hono } from 'hono';
 import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, runtimeFrom } from '../app';
@@ -726,10 +729,14 @@ admin.get('/integrations', async (c) => {
 admin.get('/yt/sprints', async (c) => {
   const rt = runtimeFrom(c);
   const inputs = await gatherInputs(rt);
+  const { results: packRows } = await rt.env.DB.prepare('SELECT sprint_id, topic_id, source, miro_url, doc_url FROM yt_packs').all<{ sprint_id: string; topic_id: string; source: string; miro_url: string | null; doc_url: string | null }>();
+  const packs: Record<string, Record<string, { source: string; miro_url: string | null; doc_url: string | null }>> = {};
+  for (const r of packRows) (packs[r.sprint_id] ??= {})[r.topic_id] = { source: r.source, miro_url: r.miro_url, doc_url: r.doc_url };
   return c.json({
+    packs,
     sprints: await listSprints(rt),
     status: {
-      ai: Boolean(rt.settings.ANTHROPIC_API_KEY), youtube: Boolean(rt.settings.YOUTUBE_API_KEY), miro: Boolean(rt.settings.MIRO_ACCESS_TOKEN), applicants: inputs.demand.applicants, videos: inputs.own.count,
+      ai: Boolean(rt.settings.ANTHROPIC_API_KEY), youtube: Boolean(rt.settings.YOUTUBE_API_KEY), miro: Boolean(rt.settings.MIRO_ACCESS_TOKEN), google: googleReady(rt), googleClient: Boolean(rt.settings.GOOGLE_CLIENT_ID && rt.settings.GOOGLE_CLIENT_SECRET), applicants: inputs.demand.applicants, videos: inputs.own.count,
       guides: inputs.library.guides.length, brand: Boolean(inputs.brand), proof: Boolean(inputs.proof), competitors: inputs.competitors.length, adjacent: inputs.adjacent.length, notes: Boolean(inputs.notes),
       funnel: inputs.funnel, says: inputs.demand.says.slice(0, 8), industries: inputs.demand.industries.slice(0, 6), revenue: inputs.demand.revenue, phrases: demandPhrases(inputs),
     },
@@ -776,6 +783,79 @@ admin.post('/yt/sprints/:id/miro', async (c) => {
     console.error('miro board failed', e);
     return c.json({ ok: false, error: e instanceof Error ? e.message : 'Could not build the Miro board' }, 502);
   }
+});
+// One video: its script/slides/packaging page, its Miro board and its Google Doc.
+const videoErr = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong');
+async function videoContext(c: Context<AppEnv>) {
+  const rt = runtimeFrom(c);
+  const sid = c.req.param('sid') ?? '', tid = c.req.param('tid') ?? '';
+  const ctx = await loadSprintTopic(rt, sid, tid);
+  return { rt, sid, tid, ctx };
+}
+admin.get('/yt/sprints/:sid/videos/:tid', async (c) => {
+  const { rt, sid, tid, ctx } = await videoContext(c);
+  if (!ctx) return c.text('Not found', 404);
+  const row = await ensurePack(rt, sid, tid);
+  if (!row) return c.text('Not found', 404);
+  const base = `/admin/api/yt/sprints/${encodeURIComponent(sid)}/videos/${encodeURIComponent(tid)}`;
+  c.header('cache-control', 'no-store');
+  c.header('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+  return c.html(docShell({
+    title: `Video ${ctx.index + 1} · ${ctx.topic.titles[0] ?? ctx.topic.topic}`, barTitle: `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic}`.slice(0, 90),
+    body: packDocHtml(row.pack, ctx.topic, { index: ctx.index, nextTitle: ctx.next?.titles[0] ?? null, brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }),
+    miro: { url: row.miro_url, ready: Boolean(rt.settings.MIRO_ACCESS_TOKEN), endpoint: `${base}/miro` },
+    gdoc: { url: row.doc_url, ready: googleReady(rt), endpoint: `${base}/gdoc` },
+  }));
+});
+admin.post('/yt/sprints/:sid/videos/:tid/miro', async (c) => {
+  const { rt, sid, tid, ctx } = await videoContext(c);
+  if (!rt.settings.MIRO_ACCESS_TOKEN) return c.json({ ok: false, error: 'Add a Miro access token under Integrations → Content first.' }, 400);
+  if (!ctx) return c.json({ ok: false, error: 'Not found' }, 404);
+  try {
+    const row = await ensurePack(rt, sid, tid);
+    if (!row) return c.json({ ok: false, error: 'Not found' }, 404);
+    if (row.miro_url) return c.json({ ok: true, url: row.miro_url });
+    const url = await buildPackBoard(rt.settings.MIRO_ACCESS_TOKEN, row.pack, ctx.topic, ctx.index, `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic}`);
+    await savePackLinks(rt, sid, tid, { miro_url: url });
+    return c.json({ ok: true, url });
+  } catch (e) {
+    console.error('video miro failed', e);
+    return c.json({ ok: false, error: videoErr(e) }, 502);
+  }
+});
+admin.post('/yt/sprints/:sid/videos/:tid/gdoc', async (c) => {
+  const { rt, sid, tid, ctx } = await videoContext(c);
+  if (!googleReady(rt)) return c.json({ ok: false, error: 'Connect Google Drive first (YouTube ideas → Connect Google Drive).' }, 400);
+  if (!ctx) return c.json({ ok: false, error: 'Not found' }, 404);
+  try {
+    const row = await ensurePack(rt, sid, tid);
+    if (!row) return c.json({ ok: false, error: 'Not found' }, 404);
+    if (row.doc_url) return c.json({ ok: true, url: row.doc_url });
+    const name = `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic} · Script & presentation`;
+    const url = await createGoogleDoc(rt, name, packDocHtml(row.pack, ctx.topic, { index: ctx.index, nextTitle: ctx.next?.titles[0] ?? null, brand: rt.settings.SITE_NAME, miroUrl: row.miro_url }));
+    await savePackLinks(rt, sid, tid, { doc_url: url });
+    return c.json({ ok: true, url });
+  } catch (e) {
+    console.error('video gdoc failed', e);
+    return c.json({ ok: false, error: videoErr(e) }, 502);
+  }
+});
+admin.post('/yt/sprints/:sid/videos/:tid/rewrite', async (c) => {
+  const { rt, sid, tid, ctx } = await videoContext(c);
+  if (!ctx) return c.json({ ok: false, error: 'Not found' }, 404);
+  try {
+    await ensurePack(rt, sid, tid, { fresh: true });
+    return c.json({ ok: true });
+  } catch (e) {
+    return c.json({ ok: false, error: videoErr(e) }, 502);
+  }
+});
+// Google Drive: start the OAuth consent (the callback is a public route; it trusts only the signed state).
+admin.get('/google/connect', async (c) => {
+  const rt = runtimeFrom(c);
+  if (!rt.settings.GOOGLE_CLIENT_ID || !rt.settings.GOOGLE_CLIENT_SECRET) return c.redirect('/admin#integrations', 302);
+  const state = await signToken(await getSecret(c.env), `google.${Date.now()}`);
+  return c.redirect(googleAuthUrl(rt.settings.GOOGLE_CLIENT_ID, rt.origin, state), 302);
 });
 admin.delete('/yt/sprints/:id', async (c) => {
   await c.env.DB.prepare('DELETE FROM yt_sprints WHERE id = ?').bind(c.req.param('id')).run();

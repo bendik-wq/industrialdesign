@@ -1,0 +1,49 @@
+{
+ "id": "t1",
+ "topic": "Buying your first business with no money down, for owners who've never done a deal",
+ "evidence": "“I have never bought a business before” (24) and “Buying companies” (39) are the top two applicant answers; first-deal questions recur in the notes.",
+ "demand_phrase": "how to buy your first business with no money",
+ "demand": "direct",
+ "awareness": "problem_aware",
+ "belief": "possible",
+ "stage": "TOFU",
+ "angle": "agreeable",
+ "format": "Whiteboard masterclass (the format of your best video), 16–20 min",
+ "length_min": 18,
+ "titles": [
+  "How to Buy Your First Business With No Money Down ($1M+ Owners)",
+  "Never Bought a Business? The 4-Step Path for Owners Doing $1M+"
+ ],
+ "thumbnails": [
+  {
+   "text": "$0 DOWN",
+   "visual": "Josh at a whiteboard with four boxes: target → debt → seller note → rollover",
+   "emotion": "calm confidence"
+  },
+  {
+   "text": "FIRST DEAL",
+   "visual": "Close-up, slight smile, a ‘SOLD’ sign over his shoulder",
+   "emotion": "knowing"
+  }
+ ],
+ "hook": "If your business already does a million a year, you don't need a war chest to buy your next one. You need a target that makes money, and four things I'm about to draw on this board.",
+ "outline": {
+  "intro_callouts": "This is for owners of profitable businesses doing $1M+ who have never bought one. If you're pre-revenue or under $1M, watch the one on whether you're big enough first.",
+  "logic_ladder": [
+   "Why buying beats building once you're past $1M",
+   "What you're really buying: cash flow, customers, a team",
+   "Who sells: owners who want out and have no successor",
+   "How it's paid for: commercial debt, seller finance and seller rollover",
+   "The test every deal must pass: profit covers repayments about 1.5×",
+   "What the first 90 days look like",
+   "The two mistakes first-timers make"
+  ],
+  "callbacks": "Back to the promise: your first deal, without your own cash, if it passes the 1.5× test.",
+  "proof": "An illustrative deal drawn on the whiteboard, labelled illustrative."
+ },
+ "cta": {
+  "type": "soft",
+  "line": "Next, watch exactly where the money comes from."
+ },
+ "next_video": "t2"
+}

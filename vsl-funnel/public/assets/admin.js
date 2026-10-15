@@ -1856,8 +1856,18 @@
   // ───────────── YouTube idea generator ─────────────
   var YT_BELIEF = { trust: 'Trust', like: 'Like', possible: 'It’s possible', can_solve: 'Josh can solve it', better: 'Better than alternatives', now: 'Act now' };
   var ytState = { sel: null, busy: false };
-  function ytTopicCard(t) {
-    return '<div class="yt-topic"><div class="yt-th"><span class="yt-id">' + esc(t.id.toUpperCase()) + '</span><h3>' + esc(t.topic) + '</h3></div>' +
+  function ytVideoActions(sp, t, st, pk) {
+    var base = '/admin/api/yt/sprints/' + encodeURIComponent(sp.id) + '/videos/' + encodeURIComponent(t.id);
+    var miro = pk && pk.miro_url ? '<a class="btn-sm ghost" href="' + esc(pk.miro_url) + '" target="_blank" rel="noopener">Open Miro board</a>'
+      : '<button class="btn-sm ghost" type="button" data-yvid="miro" data-base="' + esc(base) + '"' + (st.miro ? '' : ' data-need="Add a Miro access token under Integrations → Content to build boards."') + '>Generate Miro board</button>';
+    var doc = pk && pk.doc_url ? '<a class="btn-sm ghost" href="' + esc(pk.doc_url) + '" target="_blank" rel="noopener">Open Google Doc</a>'
+      : '<button class="btn-sm ghost" type="button" data-yvid="gdoc" data-base="' + esc(base) + '"' + (st.google ? '' : ' data-need="1"') + '>Generate Google Doc</button>';
+    return '<div class="yt-actions"><a class="btn-sm" href="' + esc(base) + '" target="_blank" rel="noopener">' + (pk ? 'Open script & slides' : 'Write script & slides') + '</a>' + doc + miro + '</div>' +
+      (pk ? '<p class="muted small">' + (pk.source === 'written' ? 'Script written for this video' : pk.source === 'ai' ? 'Script written by Claude' : 'Script outline (add the Anthropic key for full word-for-word scripts)') + '</p>' : '');
+  }
+  function ytTopicCard(t, i, sp, st, packs) {
+    var pk = packs ? packs[t.id] : null;
+    return '<div class="yt-topic"><div class="yt-th"><span class="yt-id">' + esc(t.id.toUpperCase()) + '</span><h3>' + esc(t.topic) + '</h3></div>' + (sp ? ytVideoActions(sp, t, st, pk) : '') +
       '<div class="yt-pills"><span class="pill">' + esc(t.stage) + '</span><span class="pill">' + esc(YT_BELIEF[t.belief] || t.belief) + '</span><span class="pill">' + esc(String(t.awareness).replace('_', ' ')) + '</span><span class="pill ' + (t.demand === 'direct' ? 'st-won' : '') + '">' + esc(t.demand) + ' demand</span>' + (t.angle === 'controversial' ? '<span class="pill k-unpaid">controversial</span>' : '') + '<span class="pill">' + esc(t.length_min) + ' min</span></div>' +
       '<ol class="yt-titles">' + (t.titles || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
       '<div class="yt-thumbs">' + (t.thumbnails || []).map(function (x) { return '<div class="yt-thumb"><strong>' + esc(x.text) + '</strong><span>' + esc(x.visual) + '</span><em>' + esc(x.emotion) + '</em></div>'; }).join('') + '</div>' +
@@ -1911,9 +1921,9 @@
           (sp.sprint.miro_url ? '<a class="btn-sm ghost" href="' + esc(sp.sprint.miro_url) + '" target="_blank" rel="noopener">Open Miro board</a>' : st.miro ? '<button class="btn-sm ghost" type="button" data-ymiro>Build Miro board</button>' : '<button class="btn-sm ghost" type="button" data-yexp="miro" title="Add a Miro token under Integrations → Content to build a full board">Copy for Miro</button>') +
           '<button class="btn-sm ghost" type="button" data-yexp="gdoc">Copy for Google Docs</button><a class="btn-sm ghost" href="/admin/api/yt/sprints/' + esc(sp.id) + '/md">Download .md</a>' +
           (list.length > 1 ? '<select class="input" data-ysel>' + list.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === sp.id ? ' selected' : '') + '>' + esc(new Date(x.created_at).toLocaleDateString([], { day: 'numeric', month: 'short' }) + (x.focus ? ' · ' + x.focus : '')) + '</option>'; }).join('') + '</select>' : '') + '</div></div>' +
-          '<p>' + esc(s2.summary) + '</p>' +
+          (st.googleClient && !st.google ? '<p class="yt-connect">Google Drive isn’t connected yet, so “Generate Google Doc” opens the designed doc to paste. <a class="btn-sm" href="/admin/api/google/connect">Connect Google Drive</a></p>' : '') + '<p>' + esc(s2.summary) + '</p>' +
           '<div class="yt-path"><b>Binge path</b> ' + s2.binge_path.map(function (id) { var t = s2.topics.filter(function (x) { return x.id === id; })[0]; return '<span class="chip">' + esc(id.toUpperCase()) + ' ' + esc(t ? t.topic : '') + '</span>'; }).join('<span class="muted">→</span>') + '</div>' +
-          '<div class="yt-grid">' + s2.topics.map(ytTopicCard).join('') + '</div>' +
+          '<div class="yt-grid">' + s2.topics.map(function (t, i) { return ytTopicCard(t, i, sp, st, (d.packs || {})[sp.id]); }).join('') + '</div>' +
           '<div class="grid g-2" style="margin-top:14px"><div><h3>New angles to explore</h3><ul class="yt-angles">' + (s2.new_angles || []).map(function (a, i2) { return '<li><div><b>' + esc(a.topic) + '</b> <span class="pill">' + esc(a.cluster) + '</span><div class="muted small">' + esc(a.why) + '</div></div><button class="btn-sm ghost" type="button" data-yangle="' + i2 + '">Explore →</button></li>'; }).join('') + '</ul></div>' +
           '<div><h3>Checks</h3><p>Controversial: ' + esc(s2.checks.controversial_share) + '<br>Beliefs covered: ' + esc((s2.checks.beliefs_covered || []).map(function (b) { return YT_BELIEF[b] || b; }).join(', ')) + '</p>' + ((s2.checks.gaps || []).length ? '<ul>' + s2.checks.gaps.map(function (g) { return '<li class="muted">' + esc(g) + '</li>'; }).join('') + '</ul>' : '') +
           ((s2.outliers || []).length ? '<h3>Winning on YouTube now</h3><ul class="yt-out">' + s2.outliers.slice(0, 10).map(function (o) { return '<li><b>' + esc(o.x) + '×</b> <a href="' + esc(o.url) + '" target="_blank" rel="noopener">' + esc(o.title) + '</a> <span class="muted">' + esc(o.channel) + ' · ' + n(o.views) + ' views</span></li>'; }).join('') + '</ul>' : '') + '</div></div></div>';
@@ -1936,6 +1946,21 @@
       view.querySelector('[data-ygen]').onclick = function () { generate(view.querySelector('[data-yfocus]').value.trim()); };
       var sel = view.querySelector('[data-ysel]'); if (sel) sel.onchange = function () { ytState.sel = sel.value; load(); };
       view.querySelectorAll('[data-yangle]').forEach(function (b) { b.onclick = function () { var a = sp.sprint.new_angles[Number(b.getAttribute('data-yangle'))]; view.querySelector('[data-yfocus]').value = a.topic; generate(a.topic); }; });
+      view.querySelectorAll('[data-yvid]').forEach(function (b) {
+        b.onclick = function () {
+          var kind = b.getAttribute('data-yvid'), base = b.getAttribute('data-base'), need = b.getAttribute('data-need');
+          // Not connected: Google opens the designed doc (it has “Copy into Google Docs”); Miro explains what's missing.
+          if (need) { if (kind === 'gdoc') window.open(base, '_blank'); else toast(need); return; }
+          var tab = window.open('', '_blank');
+          if (tab) tab.document.write('<!doctype html><title>Building…</title><body style="font:16px Arial;display:grid;place-items:center;height:90vh;color:#1F2A44;background:#F4F4EF"><p>' + (kind === 'miro' ? 'Laying out the Miro board…' : 'Writing the Google Doc…') + ' this tab opens it when it is ready.</p></body>');
+          b.disabled = true; b.textContent = kind === 'miro' ? 'Building board…' : 'Creating doc…';
+          send('POST', base.replace('/admin/api/', '') + '/' + kind, {}).then(function (r) {
+            if (!r.ok) { if (tab) tab.close(); toast(r.error || 'Could not build it'); load(); return; }
+            if (tab) tab.location = r.url; else window.open(r.url, '_blank');
+            toast(kind === 'miro' ? 'Miro board ready' : 'Google Doc ready'); load();
+          }, function () { if (tab) tab.close(); toast('Could not reach the server'); load(); });
+        };
+      });
       var mb = view.querySelector('[data-ymiro]');
       if (mb) mb.onclick = function () {
         var tab = window.open('', '_blank'); mb.disabled = true; mb.textContent = 'Building the board…';

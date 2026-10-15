@@ -1,0 +1,88 @@
+import { describe, expect, it } from 'vitest';
+import type { Topic } from '../src/content/ideas';
+import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packMiroLayout, rulesPack, type VideoPack } from '../src/content/video-pack';
+import pack from './fixtures/pack-t1.json';
+import topic from './fixtures/topic-t1.json';
+
+const P = pack as unknown as VideoPack, T = topic as unknown as Topic;
+
+describe('video pack: Google Doc', () => {
+  const html = packDocHtml(P, T, { index: 0, nextTitle: 'Where the Money Comes From', miroUrl: 'https://miro.com/app/board/x/' });
+  it('has the cover, the word-for-word script for every beat and the publishing kit', () => {
+    expect(html).toContain('VIDEO 01');
+    for (const b of P.beats) expect(html).toContain(b.headline.replace(/&/g, '&amp;').replace(/'/g, "'"));
+    expect(html).toContain('Word for word');
+    expect(html).toContain('Everything for the upload');
+    expect(html).toContain('THREE SHORTS TO CUT FROM IT');
+    expect(html).toContain('Presentation board in Miro');
+  });
+  it('escapes anything typed into the pack', () => {
+    const bad = { ...P, big_idea: '<img src=x onerror=alert(1)>' };
+    expect(packDocHtml(bad, T, { index: 0 })).not.toContain('<img');
+  });
+});
+
+describe('video pack: rules fallback', () => {
+  it('builds every field from the topic plan, honestly', () => {
+    const r = rulesPack(T, null);
+    expect(r.beats).toHaveLength(T.outline.logic_ladder.length);
+    expect(r.titles).toHaveLength(3);
+    expect(r.close.script).not.toMatch(/\bfree\b/i);
+    expect(r.description).toContain('{APPLY_LINK}');
+    expect(r.compliance.join(' ')).toMatch(/Illustrative/);
+  });
+});
+
+describe('video pack: Miro board', () => {
+  const { frames, items } = packMiroLayout(P, T, 0);
+  it('has a cover, packaging, hook, intro, one slide per beat and the close', () => {
+    expect(frames.map((f) => f.title)).toEqual(expect.arrayContaining(['01 · Cover', '01 · Packaging', '01 · The hook', '01 · The intro', '01 · The close']));
+    expect(frames.filter((f) => f.title.includes('Beat')).length).toBe(P.beats.length);
+  });
+  it('keeps every item inside its frame', () => {
+    for (const it of items) {
+      const f = frames[it.frame];
+      expect(it.position.x).toBeGreaterThanOrEqual(0);
+      expect(it.position.x).toBeLessThanOrEqual(f.w);
+      expect(it.position.y).toBeGreaterThanOrEqual(0);
+      expect(it.position.y).toBeLessThanOrEqual(f.h);
+    }
+  });
+  it('creates frames first, then items parented to them, under the subrequest budget', async () => {
+    const calls: string[] = [];
+    let n = 0;
+    const fake = (async (url: string, init: RequestInit) => {
+      calls.push(url);
+      const body = JSON.parse(String(init.body));
+      if (url.endsWith('/boards')) return new Response(JSON.stringify({ id: 'B', viewLink: 'https://miro.com/app/board/B/' }));
+      if (url.endsWith('/frames')) return new Response(JSON.stringify({ id: `F${++n}` }));
+      expect((body as { parent: { id: string } }[]).every((x) => /^F\d+$/.test(x.parent.id))).toBe(true);
+      return new Response(JSON.stringify({ data: [] }));
+    }) as unknown as typeof fetch;
+    expect(await buildPackBoard('t', P, T, 0, 'V', fake)).toBe('https://miro.com/app/board/B/');
+    expect(calls.findIndex((u) => u.endsWith('/items/bulk'))).toBeGreaterThan(calls.findLastIndex((u) => u.endsWith('/frames')));
+    expect(calls.length).toBeLessThan(50);
+  });
+});
+
+describe('Google Drive', () => {
+  it('asks only for drive.file and offline access', () => {
+    const u = new URL(googleAuthUrl('cid', 'https://apply.example.com', 'st'));
+    expect(u.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/drive.file');
+    expect(u.searchParams.get('access_type')).toBe('offline');
+    expect(u.searchParams.get('redirect_uri')).toBe('https://apply.example.com/oauth/google/callback');
+  });
+  it('uploads HTML as a Google Doc into the chosen folder', async () => {
+    const seen: { url: string; body: string; headers: HeadersInit | undefined }[] = [];
+    const fake = (async (url: string, init: RequestInit) => {
+      seen.push({ url, body: String(init.body), headers: init.headers });
+      if (url.includes('oauth2')) return new Response(JSON.stringify({ access_token: 'AT' }));
+      return new Response(JSON.stringify({ id: 'D1', webViewLink: 'https://docs.google.com/document/d/D1/edit' }));
+    }) as unknown as typeof fetch;
+    const rt = { settings: { GOOGLE_CLIENT_ID: 'c', GOOGLE_CLIENT_SECRET: 's', GOOGLE_REFRESH_TOKEN: 'r', GOOGLE_DRIVE_FOLDER_ID: 'FOLDER' } } as never;
+    expect(await createGoogleDoc(rt, 'Doc', '<p>Hi</p>', fake)).toBe('https://docs.google.com/document/d/D1/edit');
+    expect(seen[1].body).toContain('"mimeType":"application/vnd.google-apps.document"');
+    expect(seen[1].body).toContain('"parents":["FOLDER"]');
+    expect(seen[1].body).toContain('<p>Hi</p>');
+  });
+});

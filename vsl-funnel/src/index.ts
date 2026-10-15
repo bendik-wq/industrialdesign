@@ -13,7 +13,10 @@ import { admin } from './routes/admin';
 import { api } from './routes/api';
 import { hooks } from './routes/hooks';
 import { links } from './routes/links';
-import { loadSettings } from './settings';
+import { loadSettings, saveSettings } from './settings';
+import { googleExchange } from './content/video-pack';
+import { verifyToken } from './lib/crypto';
+import { getSecret } from './lib/secret';
 import { loadReps } from './sales/reps';
 import { pingUpcomingCalls } from './sales/outcomes';
 import { maybeSendDigest } from './sales/digest';
@@ -175,6 +178,23 @@ app.post('/admin/logout', async (c) => {
   if (!sameOriginWrite(c)) return c.text('Forbidden', 403);
   await logout(c);
   return c.redirect('/admin/login', 302);
+});
+// Google Drive OAuth callback. Google's redirect is cross-site, so the admin cookie (SameSite=Strict)
+// isn't sent: the signed, 15-minute state minted by /admin/api/google/connect is what authorises it.
+app.get('/oauth/google/callback', async (c) => {
+  const rt = runtimeFrom(c);
+  const state = await verifyToken(await getSecret(c.env), c.req.query('state') ?? '');
+  const ts = Number(state?.split('.')[1]);
+  if (!state?.startsWith('google.') || !(Date.now() - ts < 15 * 60_000)) return c.text('This link has expired. Go back to Funnel HQ and press “Connect Google Drive” again.', 400);
+  const code = c.req.query('code');
+  if (!code) return c.redirect('/admin#ytideas', 302);
+  try {
+    const refresh = await googleExchange(rt.settings.GOOGLE_CLIENT_ID, rt.settings.GOOGLE_CLIENT_SECRET, rt.origin, code);
+    await saveSettings(c.env, { GOOGLE_REFRESH_TOKEN: refresh });
+    return c.redirect('/admin#ytideas', 302);
+  } catch (e) {
+    return c.text(`Google didn't connect: ${e instanceof Error ? e.message : 'unknown error'}. Check the client ID, secret and redirect URI, then try again.`, 400);
+  }
 });
 app.route('/admin/api', admin);
 app.get('/admin', requireAdmin, async (c) => {
