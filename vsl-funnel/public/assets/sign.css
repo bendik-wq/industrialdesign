@@ -112,3 +112,13 @@
 
 body.sign-page { padding-top: 0; }
 .sign-page .sign-wrap { padding-top: 18px; }
+
+.sb-paybtn { display: block; width: 100%; box-sizing: border-box; text-align: center; background: #22c55e; color: #fff !important; border-radius: 10px; padding: 16px; font-weight: 700; font-size: 1.05rem; text-decoration: none; }
+.sb-redirect { text-align: center; font-size: .88rem; color: #6b6b6b; margin: 10px 0 0; }
+.linkish { background: none; border: 0; color: #0f2c5c; text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+.sb-bankalt { margin-top: 14px; }
+.sb-bankalt summary { cursor: pointer; color: #0f2c5c; text-align: center; }
+.pay-banner, .paid-banner { border-radius: 8px; padding: 12px 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; margin: 0 0 12px; }
+.pay-banner { background: #fff8db; border: 1px solid #f0d77a; }
+.paid-banner { background: #ecfdf3; border: 1px solid #a6f4c5; color: #05603a; }
+@media print { .pay-banner, .paid-banner { display: none; } }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { autoQuote, cleanInput, contractEmail, documentHtml, signContract, termsHtml, type Contract } from '../src/sales/contracts';
+import { autoQuote, cleanInput, contractEmail, documentHtml, payLinkFor, signContract, termsHtml, type Contract } from '../src/sales/contracts';
 
 const lead = (answers: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({ id: 'l1', email: 'sam@hvac.com', first_name: 'Sam', last_name: 'Lee', answers: JSON.stringify(answers), ...extra }) as never;
 const rt = { settings: { SITE_NAME: 'G&L M&A Advisory', BUSINESS_ADDRESS: 'Sheridan, WY 82801, USA' }, origin: 'https://apply.example.com', env: {} } as never;
@@ -97,5 +97,15 @@ describe('payment details', () => {
   });
   it('shows a Sign here field on the signing page', () => {
     expect(documentHtml(rt, k, { field: true })).toContain('data-sig-field');
+  });
+});
+
+describe('payment link', () => {
+  it('uses this agreement’s link, else the default, and only https', () => {
+    const rt3 = { settings: { CONTRACT_PAY_LINK: 'https://buy.stripe.com/default' } } as never;
+    expect(payLinkFor(rt3, { pay_link: 'https://buy.stripe.com/client' })).toBe('https://buy.stripe.com/client');
+    expect(payLinkFor(rt3, { pay_link: null })).toBe('https://buy.stripe.com/default');
+    expect(payLinkFor(rt, { pay_link: 'javascript:alert(1)' })).toBeNull();
+    expect(cleanInput(rt, { pay_link: 'http://insecure.example' }, lead({})).pay_link).toBeNull();
   });
 });

@@ -43,7 +43,7 @@ import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
 import { LOST_REASONS, OBJECTIONS, PAYMENT_PLANS, TEMPERATURES, type LeadUpdate, applyLeadUpdate, deletePayment, recordPayment } from '../sales/outcomes';
 import { META_API_VERSION, metaUserData } from '../tracking/forward';
 import { geoFromRequest } from '../lib/geo';
-import { type Contract, type ContractInput, autoQuote, cleanInput, company, createContract, documentHtml, getContract, sendTest, signAndSend, signUrl, updateDraft, voidContract } from '../sales/contracts';
+import { type Contract, type ContractInput, autoQuote, cleanInput, company, createContract, documentHtml, getContract, markPaid, paymentDetails, sendPaymentEmail, sendTest, signAndSend, signUrl, updateDraft, voidContract } from '../sales/contracts';
 import { PLACEMENTS, PRESETS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
 
 export const admin = new Hono<AppEnv>();
@@ -736,7 +736,7 @@ admin.get('/contracts', async (c) => {
     : c.env.DB.prepare('SELECT * FROM contracts ORDER BY created_at DESC LIMIT 300')
   ).all<Contract>();
   const co = company(rt);
-  return c.json({ contracts: results.map((k) => contractView(rt, k)), emailReady: emailConfigured(rt), company: { name: co.name, signer: co.signer, from: co.from, currency: co.currency, law: co.law } });
+  return c.json({ contracts: results.map((k) => contractView(rt, k)), emailReady: emailConfigured(rt), company: { name: co.name, signer: co.signer, from: co.from, currency: co.currency, law: co.law, payLink: paymentDetails(rt)?.link ?? null, bank: Boolean(paymentDetails(rt)?.rows.length) } });
 });
 
 /** Suggested terms for a lead (or blank ones for someone not in the funnel). */
@@ -763,16 +763,18 @@ admin.post('/contracts', async (c) => {
   return c.json({ ok: true, contract: k && contractView(rt, k) });
 });
 
-admin.post('/contracts/:id/:action{update|send|test|void}', async (c) => {
+admin.post('/contracts/:id/:action{update|send|test|void|payment|paid|unpaid}', async (c) => {
   const rt = runtimeFrom(c);
   const k = await getContract(rt, c.req.param('id'));
   if (!k) return c.json({ ok: false, error: 'Not found.' }, 404);
-  const body = await c.req.json<ContractInput & { name?: string; signature?: string; kind?: string; to?: string }>().catch(() => ({}) as ContractInput & { name?: string; signature?: string; kind?: string; to?: string });
+  const body = await c.req.json<ContractInput & { name?: string; signature?: string; kind?: string; to?: string; link?: string; note?: string }>().catch(() => ({}) as ContractInput & { name?: string; signature?: string; kind?: string; to?: string; link?: string; note?: string });
   try {
     switch (c.req.param('action')) {
       case 'update': { const next = await updateDraft(rt, k, body); return c.json({ ok: true, contract: next && contractView(rt, next) }); }
       case 'send': return c.json({ ok: true, contract: contractView(rt, await signAndSend(rt, k, body, ipOf(c))) });
       case 'test': return c.json({ ok: true, contract: contractView(rt, await sendTest(rt, k, String(body.to ?? '').trim(), body, ipOf(c))) });
+      case 'payment': await sendPaymentEmail(rt, k, body as { link?: unknown; note?: unknown }); return c.json({ ok: true });
+      case 'paid': case 'unpaid': await markPaid(rt, k, c.req.param('action') === 'paid'); return c.json({ ok: true });
       default: await voidContract(rt, k); return c.json({ ok: true });
     }
   } catch (e) {

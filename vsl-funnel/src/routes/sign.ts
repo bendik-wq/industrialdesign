@@ -5,7 +5,7 @@ import { escHtml } from '../followup/dossier';
 import { geoFromRequest } from '../lib/geo';
 import { overLimit } from '../lib/ratelimit';
 import { parseUA } from '../lib/ua';
-import { type Contract, company, contractByToken, documentHtml, isExpired, markViewed, money, paymentDetails, paymentHtml, signContract } from '../sales/contracts';
+import { type Contract, company, contractByToken, documentHtml, isExpired, markViewed, money, payLinkFor, paymentDetails, paymentHtml, signContract } from '../sales/contracts';
 
 /** /sign/<token>: read and e-sign an engagement letter; /sign/<token>/copy: the signed copy with its signing record. */
 export const sign = new Hono<AppEnv>();
@@ -47,7 +47,8 @@ sign.get('/:token{[0-9a-f]{40}}', async (c) => {
   const first = (k.client_name ?? '').trim();
   const co = company(rt);
   const sender = (k.our_signer ?? co.signer).split(',')[0];
-  const pay = paymentDetails(rt);
+  const bank = paymentDetails(rt)?.rows.length ? paymentDetails(rt) : null;
+  const payLink = payLinkFor(rt, k);
   return c.html(page(k.title, `
 
     ${k.is_test ? '<p class="test-banner">Test agreement: signing it changes nothing.</p>' : ''}
@@ -76,7 +77,11 @@ sign.get('/:token{[0-9a-f]{40}}', async (c) => {
         <div class="sb-check" aria-hidden="true">✓</div>
         <h1>You’re done</h1>
         <p>The agreement is signed by both parties. A copy is on its way to <strong>${escHtml(k.client_email ?? 'your inbox')}</strong>.</p>
-        ${pay ? `<div class="sb-pay"><h2>Next: the fee of ${escHtml(money(k.fee, k.currency))}</h2>${paymentHtml(rt, k.client_company || k.client_name || undefined)}${pay.link ? `<a class="btn" href="${escHtml(pay.link)}" target="_blank" rel="noopener">Pay now by card</a>` : ''}</div>` : ''}
+        ${payLink
+          ? `<div class="sb-pay"><h2>Next: pay the ${escHtml(money(k.fee, k.currency))} fee</h2><a class="btn sb-paybtn" data-pay-link href="${escHtml(payLink)}" rel="noopener">Continue to payment →</a><p class="sb-redirect" data-redirect>Taking you to secure payment in <span data-count>5</span>s… <button type="button" class="linkish" data-stay>Stay here</button></p>${bank ? `<details class="sb-bankalt"><summary>Prefer a bank transfer?</summary>${paymentHtml(rt, k.client_company || k.client_name || undefined)}</details>` : ''}</div>`
+          : bank
+            ? `<div class="sb-pay"><h2>Next: pay the ${escHtml(money(k.fee, k.currency))} fee</h2>${paymentHtml(rt, k.client_company || k.client_name || undefined)}</div>`
+            : `<div class="sb-pay"><h2>Next: payment</h2><p style="text-align:center">We’ll email you the payment details for the ${escHtml(money(k.fee, k.currency))} fee shortly.</p></div>`}
         <p><a class="btn-sm ghost" data-copy-link href="/sign/${escHtml(k.token)}/copy">View or download your signed copy</a></p>
       </section>
     </template>
@@ -107,6 +112,7 @@ sign.get('/:token{[0-9a-f]{40}}/copy', async (c) => {
   const tz = 'America/Denver';
   return c.html(page(`Signed: ${k.title}`, `
     <p class="signed-banner">${k.is_test ? 'Test agreement. ' : ''}Signed by both parties, ${escHtml(when(k.signed_at, tz))}. <button type="button" class="btn-sm ghost" data-print>Save as PDF / print</button></p>
+    ${!k.paid_at && payLinkFor(rt, k) ? `<p class="pay-banner">The ${escHtml(money(k.fee, k.currency))} fee is due. <a class="btn-sm" href="${escHtml(payLinkFor(rt, k)!)}" rel="noopener">Pay now</a></p>` : k.paid_at ? '<p class="paid-banner">Paid. Thank you.</p>' : ''}
     <article class="letter">${documentHtml(rt, k)}</article>${auditTrail(k, tz)}
     <p class="muted small" style="text-align:center;margin-top:14px">${escHtml(company(rt).name)}</p>`));
 });

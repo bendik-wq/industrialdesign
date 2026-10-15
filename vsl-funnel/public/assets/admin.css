@@ -909,3 +909,6 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .k-paper .pay dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 6px 0; }
 .k-paper .pay dt { color: #777; } .k-paper .pay dd { margin: 0; font-weight: 600; }
 .k-paper .pay .warn { font-size: .78rem; color: #8a5a00; margin: 4px 0 0; }
+
+.k-paid { background: #ecfdf3; color: #05603a; }
+.k-unpaid { background: #fff6e5; color: #93370d; }

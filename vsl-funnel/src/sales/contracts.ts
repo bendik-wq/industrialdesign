@@ -21,6 +21,7 @@ export interface Contract {
   reminders: number; last_reminder_at: number | null;
   signer_name: string | null; signer_title: string | null; signature: string | null; signature_kind: string | null;
   signer_ip: string | null; signer_ua: string | null; signer_country: string | null;
+  pay_link: string | null; pay_email_sent_at: number | null; paid_at: number | null;
   is_test: number; our_signer: string | null; our_signature: string | null; our_signature_kind: string | null; our_signed_at: number | null; our_signer_ip: string | null;
 }
 
@@ -57,6 +58,10 @@ export function paymentDetails(rt: Runtime) {
   const link = /^https:\/\//.test(s.CONTRACT_PAY_LINK?.trim() ?? '') ? s.CONTRACT_PAY_LINK.trim() : null;
   return hasBank || link ? { rows: hasBank ? rows : [], link } : null;
 }
+
+const httpsUrl = (v: unknown) => (typeof v === 'string' && /^https:\/\/[^\s<>"']+$/.test(v.trim()) ? v.trim().slice(0, 500) : null);
+/** This agreement's payment link (e.g. a Stripe link for this client), else the default one from settings. */
+export const payLinkFor = (rt: Runtime, c: { pay_link?: string | null }) => httpsUrl(c.pay_link) ?? paymentDetails(rt)?.link ?? null;
 
 /** The "How to pay" box, with the standard wire-fraud warning. */
 export function paymentHtml(rt: Runtime, reference?: string) {
@@ -176,7 +181,7 @@ export const signUrl = (rt: Runtime, t: string) => `${rt.origin}/sign/${t}`;
 
 // ───────────── Drafts ─────────────
 
-export type ContractInput = Partial<Terms>;
+export type ContractInput = Partial<Terms> & { pay_link?: string | null };
 const clip = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) || null : null);
 const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
 
@@ -195,6 +200,7 @@ export function cleanInput(rt: Runtime, body: ContractInput, lead: Lead | null) 
     success_fee: clip(body.success_fee, 600),
     scope: clip(body.scope, 2000) ?? DEFAULT_SCOPE,
     term_text: clip(body.term_text, 300) ?? q.term_text,
+    pay_link: httpsUrl(body.pay_link),
   };
 }
 
@@ -205,9 +211,9 @@ export async function createContract(rt: Runtime, lead: Lead | null, body: Contr
   const k = cleanInput(rt, body, lead);
   const id = newId('k');
   await rt.env.DB.prepare(
-    `INSERT INTO contracts (id, token, lead_id, status, title, client_name, client_email, client_company, fee, currency, payment_terms, success_fee, scope, term_text, quote_basis, created_at, is_test)
-     VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, token(), lead?.id ?? '', k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, autoQuote(rt, lead).basis, Date.now(), opts.test ? 1 : 0).run();
+    `INSERT INTO contracts (id, token, lead_id, status, title, client_name, client_email, client_company, fee, currency, payment_terms, success_fee, scope, term_text, quote_basis, created_at, is_test, pay_link)
+     VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, token(), lead?.id ?? '', k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, autoQuote(rt, lead).basis, Date.now(), opts.test ? 1 : 0, k.pay_link).run();
   return getContract(rt, id);
 }
 
@@ -216,8 +222,8 @@ export async function updateDraft(rt: Runtime, c: Contract, body: ContractInput)
   const lead = c.lead_id ? await getLead(rt.env, c.lead_id) : null;
   const k = cleanInput(rt, { ...c, ...body }, lead);
   await rt.env.DB.prepare(
-    'UPDATE contracts SET title = ?, client_name = ?, client_email = ?, client_company = ?, fee = ?, currency = ?, payment_terms = ?, success_fee = ?, scope = ?, term_text = ? WHERE id = ?',
-  ).bind(k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, c.id).run();
+    'UPDATE contracts SET title = ?, client_name = ?, client_email = ?, client_company = ?, fee = ?, currency = ?, payment_terms = ?, success_fee = ?, scope = ?, term_text = ?, pay_link = ? WHERE id = ?',
+  ).bind(k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, k.pay_link, c.id).run();
   return getContract(rt, c.id);
 }
 
@@ -260,7 +266,11 @@ async function sendContractEmail(rt: Runtime, c: Contract, kind: 'send' | 'remin
   const pre = c.is_test ? '[TEST] ' : '';
   const m =
     kind === 'signed'
-      ? { subject: `${pre}Signed: ${c.title}`, ...contractEmail({ ...base, preheader: 'Your signed copy, for your records.', heading: 'You’re all signed', paras: [`Hi ${escHtml(first)},`, 'Thank you. The agreement is now signed by both of us. Your copy, with both signatures and the signing record, is at the link below. Keep this email for your records.', ...(paymentDetails(rt) ? [`The fee of ${escHtml(fee)} is due now. The payment details are on your signed copy${paymentDetails(rt)?.link ? ', or you can pay by card from the same page' : ''}. Please use “${escHtml(c.client_company || c.client_name || 'your name')}” as the reference.`] : []), 'I’ll be in touch within one business day with next steps.'], rows, button: { label: 'View your signed copy', href: `${link}/copy` } }) }
+      ? (() => {
+          const pay = payLinkFor(rt, c);
+          const bank = paymentDetails(rt)?.rows.length;
+          return { subject: `${pre}Signed: ${c.title}`, ...contractEmail({ ...base, preheader: pay ? `Signed. Next: the ${fee} fee.` : 'Your signed copy, for your records.', heading: 'You’re all signed', paras: [`Hi ${escHtml(first)},`, `Thank you. The agreement is now signed by both of us. Your copy, with both signatures and the signing record, is here: <a href="${escHtml(link)}/copy">view your signed copy</a>. Keep this email for your records.`, ...(pay ? [`The fee of ${escHtml(fee)} is due now. You can pay securely with the button below.`] : bank ? [`The fee of ${escHtml(fee)} is due now. The bank details are on your signed copy. Please use “${escHtml(c.client_company || c.client_name || 'your name')}” as the reference.`] : [`I’ll send you the payment details for the ${escHtml(fee)} fee shortly.`]), 'I’ll be in touch within one business day with next steps.'], rows, button: pay ? { label: `Pay ${fee}`, href: pay } : { label: 'View your signed copy', href: `${link}/copy` } }) };
+        })()
       : kind === 'reminder'
         ? { subject: `${pre}Reminder: ${c.title}`, ...contractEmail({ ...base, preheader: 'Ready when you are. Takes two minutes.', heading: 'Your agreement is ready to sign', paras: [`Hi ${escHtml(first)},`, 'Just bringing this back to the top of your inbox. The agreement is one page and takes about two minutes to sign from your phone or computer.', 'If anything needs changing, reply to this email and I’ll send a revised version.'], rows, button: { label: 'Review and sign', href: link } }) }
         : { subject: `${pre}${c.title}: ready to sign`, ...contractEmail({ ...base, preheader: `${fee}. One page, about two minutes to sign.`, heading: 'Your agreement is ready to sign', paras: [`Hi ${escHtml(first)},`, 'As discussed, here’s our agreement so we can get started. It’s one page, in plain English, and I’ve already signed it.', 'Have a read and sign online when you’re ready. If you’d like anything changed, just reply to this email.'], rows, button: { label: 'Review and sign', href: link } }) };
@@ -305,6 +315,49 @@ export async function sendTest(rt: Runtime, c: Contract, to: string, ours: { nam
   const copy = await createContract(rt, lead, { ...c, client_email: to }, { test: true });
   if (!copy) throw new Error('Could not create the test.');
   return signAndSend(rt, copy, ours, ip);
+}
+
+/** From the dashboard: email the client how to pay, with their signed copy. */
+export async function sendPaymentEmail(rt: Runtime, c: Contract, opts: { link?: unknown; note?: unknown }) {
+  if (c.status !== 'signed') throw new Error('Send the payment email once the agreement is signed.');
+  if (!emailConfigured(rt)) throw new Error('Email isn’t connected yet (Integrations → Email).');
+  if (!c.client_email) throw new Error('No email address on this agreement.');
+  const given = typeof opts.link === 'string' && opts.link.trim() ? httpsUrl(opts.link) : undefined;
+  if (given === null) throw new Error('The payment link must start with https://');
+  const link = given ?? payLinkFor(rt, c);
+  const bank = paymentDetails(rt)?.rows ?? [];
+  if (!link && !bank.length) throw new Error('Add a payment link, or your bank details under Integrations → Contracts.');
+  const co = company(rt);
+  const fee = money(c.fee, c.currency);
+  const first = (c.client_name ?? '').split(' ')[0] || 'there';
+  const note = typeof opts.note === 'string' && opts.note.trim() ? escHtml(opts.note.trim().slice(0, 800)) : null;
+  const copy = `${signUrl(rt, c.token)}/copy`;
+  const m = contractEmail({
+    sender: c.our_signer ?? co.signer, company: co.name, address: co.address, test: Boolean(c.is_test),
+    preheader: `${fee} for ${c.title}.`, heading: `Payment: ${fee}`,
+    paras: [
+      `Hi ${escHtml(first)},`,
+      `Thanks again for signing. Here’s how to pay the ${escHtml(fee)} fee for our ${escHtml(c.title.toLowerCase())}.`,
+      ...(note ? [note] : []),
+      ...(bank.length ? [`<strong>Bank transfer</strong><br>${bank.map(([k, v]) => `${escHtml(k)}: <strong>${escHtml(v)}</strong>`).join('<br>')}<br>Reference: <strong>${escHtml(c.client_company || c.client_name || c.client_email)}</strong>`] : []),
+      `Your signed agreement: <a href="${escHtml(copy)}">view or download</a>.`,
+      ...(bank.length ? ['<span style="color:#8a5a00;font-size:13px">We will never change our bank details by email. If you get a message saying they have changed, call us before you pay.</span>'] : []),
+    ],
+    rows: [['Agreement', c.title], ['Amount due', fee]],
+    button: link ? { label: `Pay ${fee}`, href: link } : undefined,
+  });
+  await sendViaResend(rt, { to: c.client_email, subject: `${c.is_test ? '[TEST] ' : ''}Payment for your ${c.title}`, html: m.html, text: m.text, from: co.from, tags: { kind: 'contract_payment' } });
+  await rt.env.DB.prepare('UPDATE contracts SET pay_email_sent_at = ?, pay_link = COALESCE(?, pay_link) WHERE id = ?').bind(Date.now(), given ?? null, c.id).run();
+}
+
+/** Mark the fee as received (or undo it). Updates the lead's cash collected. */
+export async function markPaid(rt: Runtime, c: Contract, paid: boolean) {
+  if (c.status !== 'signed') throw new Error('Only a signed agreement can be marked paid.');
+  await rt.env.DB.prepare('UPDATE contracts SET paid_at = ? WHERE id = ?').bind(paid ? Date.now() : null, c.id).run();
+  if (paid && !c.is_test && c.lead_id) {
+    const lead = await getLead(rt.env, c.lead_id);
+    if (lead && (lead.cash_collected ?? 0) < c.fee) await updateLead(rt.env, lead.id, { cash_collected: c.fee });
+  }
 }
 
 export async function voidContract(rt: Runtime, c: Contract) {

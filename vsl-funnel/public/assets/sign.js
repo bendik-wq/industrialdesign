@@ -81,6 +81,14 @@
         main.innerHTML = '';
         main.appendChild(tpl.content.cloneNode(true));
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Like PandaDoc's "redirect after signing": straight on to payment, unless they choose to stay.
+        var payA = main.querySelector('[data-pay-link]');
+        if (payA) {
+          var n = 5, countEl = main.querySelector('[data-count]');
+          var t = setInterval(function () { n--; if (countEl) countEl.textContent = String(n); if (n <= 0) { clearInterval(t); location.href = payA.href; } }, 1000);
+          var stay = main.querySelector('[data-stay]');
+          if (stay) stay.onclick = function () { clearInterval(t); var r = main.querySelector('[data-redirect]'); if (r) r.textContent = 'No rush: the payment link is also in your email.'; };
+        }
       }, function () { sending = false; go.disabled = false; go.textContent = 'Finish'; alert('Couldn’t reach the server. Check your connection and try again.'); });
   }
 })();

@@ -1646,7 +1646,7 @@
   var K_CUR = ['USD', 'AUD', 'CAD', 'NZD', 'GBP', 'EUR', 'SGD'];
   var kCo = null;
   function kMoney(k) { var sym = { USD: '$', AUD: 'A$', CAD: 'C$', NZD: 'NZ$', SGD: 'S$', GBP: '£', EUR: '€' }[k.currency] || (k.currency + ' '); return sym + Number(k.fee || 0).toLocaleString('en-US'); }
-  function kStatus(k) { return (k.is_test ? '<span class="pill k-test">Test</span> ' : '') + '<span class="pill k-' + esc(k.status) + '">' + esc(K_STATUS[k.status] || k.status) + '</span>'; }
+  function kStatus(k) { return (k.is_test ? '<span class="pill k-test">Test</span> ' : '') + '<span class="pill k-' + esc(k.status) + '">' + esc(K_STATUS[k.status] || k.status) + '</span>' + (k.status === 'signed' ? (k.paid_at ? ' <span class="pill k-paid">Paid</span>' : ' <span class="pill k-unpaid">' + (k.pay_email_sent_at ? 'Payment requested' : 'Unpaid') + '</span>') : ''); }
   function kWhen(k) { return k.signed_at ? 'signed ' + when(k.signed_at) : k.viewed_at ? 'opened ' + when(k.viewed_at) : k.sent_at ? 'sent ' + when(k.sent_at) : 'drafted ' + when(k.created_at); }
   function kWho(k) { return k.client_name || k.client_email || 'No client yet'; }
 
@@ -1702,6 +1702,7 @@
           '<label>Currency<select class="input" data-kf="currency">' + K_CUR.map(function (c) { return '<option' + (c === (v.currency || co.currency) ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>' +
           area('payment_terms', 'When it’s paid', v.payment_terms) + area('success_fee', 'Success fee (optional; adds a 12-month introductions clause)', v.success_fee) +
           area('scope', 'What we do (one per line)', v.scope, 5) + input('term_text', 'Term', v.term_text) +
+          '<label class="full">Payment link for this client (optional)<input class="input" data-kf="pay_link" type="url" placeholder="' + esc(co.payLink || 'https://buy.stripe.com/…  (e.g. a Stripe link for this amount)') + '" value="' + esc(v.pay_link || '') + '"><span class="muted small">After signing they go straight here. ' + (co.payLink ? 'Leave blank to use your default link.' : 'Set a default under Integrations → Contracts.') + '</span></label>' +
           '</div><div class="row" style="gap:8px;margin-top:12px"><button class="btn-sm" type="button" data-ksave>' + (k ? 'Save changes' : 'Save draft') + '</button><button class="btn-sm ghost" type="button" data-kcancel>Cancel</button></div>' +
           '<p class="muted small" style="margin-top:10px">Company details, governing law and courts: Integrations → Contracts (' + esc(co.name) + ', ' + esc(co.law) + ' law). Have your attorney review the agreement once before you send the first one.</p>' +
           '</div><div class="k-preview"><div class="k-paper" data-kprev>Loading preview…</div></div></div>';
@@ -1744,11 +1745,11 @@
       var co = r[0], k = (r[1].contracts || []).filter(function (x) { return x.id === id; })[0], html = r[2].html;
       if (!k) { toast('Agreement not found'); return; }
       var m = kModal(k.title + ' · ' + kWho(k), true);
-      var steps = [['Drafted', k.created_at], ['Signed by ' + (k.our_signer || co.signer).split(',')[0], k.our_signed_at], ['Emailed to ' + (k.client_email || '–'), k.sent_at], ['Opened', k.viewed_at], ['Signed by ' + (k.signer_name || 'client'), k.signed_at]];
+      var steps = [['Drafted', k.created_at], ['Signed by ' + (k.our_signer || co.signer).split(',')[0], k.our_signed_at], ['Emailed to ' + (k.client_email || '–'), k.sent_at], ['Opened', k.viewed_at], ['Signed by ' + (k.signer_name || 'client'), k.signed_at], ['Payment email sent', k.pay_email_sent_at], ['Paid', k.paid_at]];
       var actions = '';
       if (k.status === 'draft') actions = '<button class="btn-sm" type="button" data-ka="sign">Sign &amp; send</button><button class="btn-sm ghost" type="button" data-ka="edit">Edit</button><button class="btn-sm ghost" type="button" data-ka="test">Send me a test</button><button class="btn-sm ghost" type="button" data-ka="void">Void</button>';
       else if (k.status === 'sent' || k.status === 'viewed') actions = '<button class="btn-sm ghost" type="button" data-copy="' + esc(k.sign_url) + '">Copy signing link</button><a class="btn-sm ghost" target="_blank" rel="noopener" href="' + esc(k.sign_url) + '">Open signing page</a><button class="btn-sm ghost" type="button" data-ka="test">Send me a test</button><button class="btn-sm ghost" type="button" data-ka="void">Void</button>';
-      else if (k.status === 'signed') actions = '<a class="btn-sm" target="_blank" rel="noopener" href="' + esc(k.copy_url) + '">Signed copy (print / PDF)</a>';
+      else if (k.status === 'signed') actions = '<button class="btn-sm" type="button" data-ka="payment">' + (k.pay_email_sent_at ? 'Resend payment email' : 'Send payment email') + '</button>' + (k.paid_at ? '<button class="btn-sm ghost" type="button" data-ka="unpaid">Mark unpaid</button>' : '<button class="btn-sm ghost" type="button" data-ka="paid">Mark as paid</button>') + '<a class="btn-sm ghost" target="_blank" rel="noopener" href="' + esc(k.copy_url) + '">Signed copy (print / PDF)</a>';
       m.body.innerHTML = '<div class="k-editor"><div class="k-form">' +
         '<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">' + kStatus(k) + '<strong style="font-size:1.2rem">' + esc(kMoney(k)) + '</strong></div>' +
         '<ol class="k-steps">' + steps.map(function (s2) { return '<li class="' + (s2[1] ? 'done' : '') + '"><span>' + esc(s2[0]) + '</span><span class="muted">' + (s2[1] ? esc(when(s2[1])) : '–') + '</span></li>'; }).join('') + '</ol>' +
@@ -1766,6 +1767,23 @@
           var a = b.getAttribute('data-ka');
           if (a === 'edit') { m.close(); openContractEditor(k, null, done); return; }
           if (a === 'void') { if (confirm('Void this agreement? Its signing link stops working.')) send('POST', 'contracts/' + id + '/void', {}).then(function () { refreshAfter('Voided'); }); return; }
+          if (a === 'paid' || a === 'unpaid') { send('POST', 'contracts/' + id + '/' + a, {}).then(function (r3) { if (r3.ok) refreshAfter(a === 'paid' ? 'Marked as paid' : 'Marked unpaid'); else toast(r3.error || 'Could not update'); }); return; }
+          if (a === 'payment') {
+            panel.innerHTML = '<div class="k-signbox"><h3>Email ' + esc(k.client_name || k.client_email) + ' how to pay ' + esc(kMoney(k)) + '</h3>' +
+              '<label>Payment link<input class="input" data-kpl type="url" value="' + esc(k.pay_link || co.payLink || '') + '" placeholder="https://buy.stripe.com/…"></label>' +
+              '<label>Note (optional)<textarea class="notes" data-kpn rows="2" placeholder="e.g. Invoice attached separately. Card or bank transfer both fine."></textarea></label>' +
+              '<p class="muted small">Includes a “Pay” button' + (co.bank ? ', your bank details,' : '') + ' and a link to their signed agreement. Sent from ' + esc(co.from || '') + '.</p>' +
+              '<div class="row" style="margin-top:8px"><button class="btn-sm" type="button" data-kps>Send payment email</button><button class="btn-sm ghost" type="button" data-kno>Cancel</button></div></div>';
+            panel.querySelector('[data-kno]').onclick = function () { panel.innerHTML = ''; };
+            panel.querySelector('[data-kps]').onclick = function (e) {
+              e.target.disabled = true; e.target.textContent = 'Sending…';
+              send('POST', 'contracts/' + id + '/payment', { link: panel.querySelector('[data-kpl]').value.trim(), note: panel.querySelector('[data-kpn]').value }).then(function (r3) {
+                if (!r3.ok) { toast(r3.error || 'Could not send'); e.target.disabled = false; e.target.textContent = 'Send payment email'; return; }
+                refreshAfter('Payment email sent to ' + k.client_email);
+              });
+            };
+            return;
+          }
           var pad = sigPad((co.signer || 'Josh Li').split(',')[0]);
           panel.innerHTML = '<div class="k-signbox"><h3>' + (a === 'sign' ? 'Sign for ' + esc(co.name) + ', then send' : 'Send a signable test copy') + '</h3>' +
             (a === 'test' ? '<label>Send the test to<input class="input" data-kto type="email" value="' + esc(((co.from || '').match(/<([^>]+)>/) || [])[1] || co.from || '') + '"></label>' : '<p class="muted small">Your signature goes on the agreement before ' + esc(k.client_name || 'the client') + ' sees it. It’s emailed from ' + esc(co.from || '') + '.</p>') +
@@ -1821,7 +1839,7 @@
       var total = function (a) { return a.reduce(function (s2, k) { return s2 + Number(k.fee || 0); }, 0); };
       var signed = by(['signed']), out = by(['sent', 'viewed']);
       view.innerHTML = '<div class="row" style="margin-bottom:14px;gap:10px"><button class="btn" type="button" data-k-new>New agreement</button><span class="muted">Sent from ' + esc(kCo.from || '–') + ' · signed for ' + esc(kCo.name || '') + ' by ' + esc(kCo.signer || '') + ' · ' + esc(kCo.law || '') + ' law</span></div>' +
-        '<div class="grid g-4">' + tile('Signed', n(signed.length), '$' + n(total(signed)) + ' in fees') + tile('Waiting for signature', n(out.length), '$' + n(total(out)) + ' outstanding') +
+        '<div class="grid g-4">' + tile('Signed', n(signed.length), '$' + n(total(signed)) + ' in fees · $' + n(total(signed.filter(function (k) { return k.paid_at; }))) + ' paid') + tile('Waiting for signature', n(out.length), '$' + n(total(out)) + ' outstanding') +
         tile('Opened, not signed', n(by(['viewed']).length), 'reminders go out on day 2 and 5') + tile('Drafts', n(by(['draft']).length), 'not sent yet') + '</div>' +
         '<div class="card" style="margin-top:14px">' + (all.length ? table([
           { label: 'Client', html: function (k) { return '<strong>' + esc(kWho(k)) + '</strong><div class="muted">' + esc(k.client_email || '') + '</div>'; } },
