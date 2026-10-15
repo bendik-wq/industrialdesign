@@ -1,0 +1,73 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "IS"; src: url("../fonts/is.ttf"); }
+@font-face { font-family: "IS"; font-style: italic; src: url("../fonts/is-italic.ttf"); }
+@font-face { font-family: "Inter"; src: url("../vslvid/inter.woff2") format("woff2"); font-weight: 100 900; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #0b1433; }
+#bg { position: absolute; left: -200px; top: -150px; width: 2600px; height: 1500px; will-change: transform; }
+.brand { position: absolute; left: 94px; top: 34px; font: 400 34px/1 "IS", serif; color: #f4f1ea; letter-spacing: .2px; }
+.top { position: absolute; right: 92px; top: 44px; display: flex; align-items: center; gap: 22px; font: 400 18px/1 "Inter", sans-serif; color: #b9bdd3; }
+.dashes { display: flex; gap: 8px; }
+.dashes i { display: block; width: 28px; height: 2px; background: rgba(255,255,255,.18); border-radius: 2px; }
+.dashes i.on { background: #e2b44b; }
+.dashes i.done { background: rgba(226,180,75,.45); }
+.card { position: absolute; left: 92px; top: 106px; width: 580px; height: 836px; border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.06); }
+.card img { position: absolute; left: 50%; top: 50%; width: 640px; height: 933px; object-fit: cover; will-change: transform; }
+.card .shade { position: absolute; inset: auto 0 0 0; height: 220px; background: linear-gradient(transparent, rgba(5,8,20,.85)); }
+.who { position: absolute; left: 30px; bottom: 30px; display: flex; align-items: center; gap: 18px; }
+.av { width: 56px; height: 56px; border-radius: 50%; background: #f4f1ea; color: #0b1433; display: grid; place-items: center; font: 600 18px "Inter"; letter-spacing: .5px; }
+.nm b { display: block; font: 500 24px/1.2 "Inter"; color: #fff; }
+.nm span { font: 400 19px/1.3 "Inter"; color: #aeb3c9; }
+.live { position: absolute; right: 26px; bottom: 44px; display: flex; gap: 4px; align-items: center; height: 26px; }
+.live i { display: block; width: 4px; border-radius: 2px; background: #e2b44b; opacity: .9; }
+.copy { position: absolute; left: 786px; right: 120px; top: 0; bottom: 0; }
+.eyebrow { position: absolute; top: 396px; font: 400 23px/1 "Inter"; color: #a8adc4; letter-spacing: .2px; }
+.hl { position: absolute; top: 444px; max-width: 1000px; font: 400 104px/1.02 "IS", serif; color: #f6f3ec; letter-spacing: -1px; }
+.hl em { font-style: italic; }
+.cap { position: absolute; left: 786px; right: 120px; top: 916px; font: 400 34px/1.35 "Inter"; color: #f1efe9; letter-spacing: .1px; white-space: nowrap; }
+.cap span { position: relative; }
+.cap span.cur::after { content: ""; position: absolute; left: -2px; right: -2px; bottom: -6px; height: 7px; background: #e2b44b; opacity: .85; border-radius: 1px; }
+.cap span.past { color: #f1efe9; }
+.cap span.fut { color: rgba(241,239,233,.38); }
+.cta { position: absolute; left: 786px; top: 700px; padding: 22px 38px; border-radius: 999px; background: #e2b44b; color: #0b1433; font: 600 28px "Inter"; }
+</style></head>
+<body>
+<img id="bg" src="../vslvid/bg.jpg">
+<div class="brand">G&amp;L M&amp;A Advisory</div>
+<div class="top"><span id="chap"></span><div class="dashes" id="dashes"></div></div>
+<div class="card"><img id="josh" src="../vslvid/josh_card.jpg"><div class="shade"></div>
+  <div class="who"><div class="av">JL</div><div class="nm"><b>Josh Li</b><span>Founder, JC Health Group</span></div></div>
+  <div class="live" id="live"></div></div>
+<div class="copy"><div class="eyebrow" id="eb"></div><div class="hl" id="hl"></div></div>
+<div class="cta" id="cta" style="opacity:0">Apply below &rarr;</div>
+<div class="cap" id="cap"></div>
+<script>
+let TL;
+const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+window.setup = (tl) => { TL = tl; document.getElementById("cta").innerHTML = tl.cta; document.getElementById("dashes").innerHTML = TL.secs.map(() => "<i></i>").join(""); document.getElementById("live").innerHTML = "<i></i>".repeat(5); };
+window.render = (t) => {
+  const s = TL.secs; let k = 0; for (let i = 0; i < s.length; i++) if (t >= s[i].t) k = i;
+  // background drift and a slow push-in on the card
+  document.getElementById("bg").style.transform = `translate(${Math.sin(t / 23) * 60 - t * 0.6}px, ${Math.cos(t / 31) * 40}px) scale(${1.04 + Math.sin(t / 40) * 0.02})`;
+  document.getElementById("josh").style.transform = `translate(-50%,-50%) scale(${1.0 + t / s[s.length - 1].t * 0.06})`;
+  // section copy: the new one rises and fades in over 0.7s
+  const p = ease((t - s[k].t) / 0.7);
+  const eb = document.getElementById("eb"), hl = document.getElementById("hl");
+  if (hl.dataset.k !== String(k)) { eb.textContent = s[k].eyebrow; hl.innerHTML = s[k].headline; hl.dataset.k = k; let fs = 104; hl.style.fontSize = fs + "px"; while (hl.scrollHeight > 400 && fs > 60) { fs -= 4; hl.style.fontSize = fs + "px"; } }
+  eb.style.opacity = p; eb.style.transform = `translateY(${(1 - p) * 14}px)`;
+  hl.style.opacity = p; hl.style.transform = `translateY(${(1 - p) * 28}px)`;
+  document.getElementById("chap").textContent = s[k].eyebrow.replace(/^\d+ · /, "");
+  [...document.getElementById("dashes").children].forEach((d, i) => { d.className = i === k ? "on" : i < k ? "done" : ""; });
+  // captions: the line being spoken, current word underlined in gold
+  const ch = TL.chunks; let c = -1; for (let i = 0; i < ch.length; i++) if (t >= ch[i][0].s - 0.05) c = i;
+  const cap = document.getElementById("cap");
+  if (c < 0 || t > ch[c][ch[c].length - 1].e + 1.2) cap.innerHTML = "";
+  else cap.innerHTML = ch[c].map((x) => `<span class="${t >= x.s && t < x.e + 0.08 ? "cur" : t >= x.e ? "past" : "fut"}">${x.w}</span>`).join(" ");
+  // voice activity bars on the card: up while a word is being spoken
+  let speaking = 0; for (const line of ch) for (const x of line) if (t >= x.s && t <= x.e) speaking = 1;
+  [...document.getElementById("live").children].forEach((b, i) => { const h = speaking ? 8 + Math.abs(Math.sin(t * (7 + i * 1.7) + i)) * 18 : 4; b.style.height = h + "px"; });
+  // closing call to action
+  const cta = document.getElementById("cta"); const q = ease((t - s[s.length - 1].t - 0.8) / 0.6); cta.style.opacity = k === s.length - 1 ? q : 0;
+};
+</script></body></html>
