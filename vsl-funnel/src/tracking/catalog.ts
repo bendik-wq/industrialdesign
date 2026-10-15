@@ -9,6 +9,7 @@ export const CLIENT_EVENTS = new Set([
   'scroll_depth', // { pct: 25 | 50 | 75 | 100 }
   'engaged_time', // { ms } — sent when the page is hidden
   'cta_click', // { id, label }
+  'cta_locked_click', // { at, unlock_at } tapped the locked button under the VSL
   'faq_open', // { q }
   'outbound_click', // { href }
   'app_view_step', // { step, question }

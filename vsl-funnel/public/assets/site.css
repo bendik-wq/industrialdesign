@@ -444,3 +444,16 @@ body.simple main { padding: 72px 20px; }
 .transcript summary { cursor: pointer; font: 600 15px/1.4 var(--font); color: var(--ink); }
 .transcript[open] summary { margin-bottom: 10px; }
 .transcript p { margin: 0 0 14px; color: var(--ink-2); line-height: 1.7; }
+
+/* Locked CTA under the main VSL: fills up as they watch, unlocks at 60%. */
+.btn-mega.locked { cursor: not-allowed; background: var(--bg-alt); color: var(--muted); border-color: var(--hair-strong); box-shadow: none; }
+.btn-mega.locked:hover .btn-mega-main svg { transform: none; }
+.btn-mega .lock-fill { position: absolute; inset: 0; z-index: -1; transform-origin: left; transform: scaleX(var(--unlock, 0)); background: var(--accent-tint); transition: transform .9s linear; border-radius: inherit; }
+.btn-mega.locked .lock-icon { position: absolute; left: 22px; top: 50%; width: 22px; height: 22px; transform: translateY(-50%); opacity: .7; }
+.btn-mega:not(.locked) .lock-fill, .btn-mega:not(.locked) .lock-icon { display: none; }
+.btn-mega.nudge { animation: cta-nudge .4s ease; }
+@keyframes cta-nudge { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.btn-mega.unlocked { animation: cta-unlock .7s ease; }
+@keyframes cta-unlock { 0% { transform: scale(.97); } 60% { transform: scale(1.02); } 100% { transform: scale(1); } }
+.lock-note { margin: 12px 0 0; text-align: center; font: var(--t-small); color: var(--ink-2); max-width: 560px; }
+@media (prefers-reduced-motion: reduce) { .btn-mega.nudge, .btn-mega.unlocked { animation: none; } .btn-mega .lock-fill { transition: none; } }

@@ -21,6 +21,8 @@ export interface VideoDef {
   fallbackSetting?: 'VSL_BREAKOUT_SRC';
   /** Seconds into the video when the CTA (and gated content) is revealed. 0 = immediately. */
   ctaRevealAt: number;
+  /** Lock the button under the video (with a progress fill) until the CTA reveal. */
+  lockCta?: boolean;
   /** Hide everything below the video until the CTA reveal. */
   gateContent: boolean;
   /** Muted autoplay with a "click for sound" overlay that restarts from 0. */
@@ -36,8 +38,9 @@ export interface VideoDef {
 
 export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
   // Final cuts (Oct 2026), streamed as HLS (1080p + 540p, 4-second segments) from public/assets/media/hls.
-  // Chapter times come from the transcripts; CTA reveals at the offer (main) and the spoken call to action (part 2).
-  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 270, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/main/index.m3u8', defaultPoster: '/assets/media/main-poster.jpg',
+  // Chapter times come from the transcripts; CTA reveals at 60% (main) and the spoken call to action (part 2).
+  // The button under the main VSL stays locked until 60% of the video (3:45 of 6:16), then unlocks.
+  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 225, lockCta: true, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/main/index.m3u8', defaultPoster: '/assets/media/main-poster.jpg',
     chapters: [
       { at: 0, title: 'the hook: doubling or tripling the business by buying a competitor' },
       { at: 20, title: 'Josh’s background and his two 100% seller-financed acquisitions' },

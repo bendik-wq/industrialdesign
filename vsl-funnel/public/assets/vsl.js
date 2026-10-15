@@ -18,7 +18,50 @@
 
   function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
 
+  // Locked CTA: the button under the video unlocks at the reveal point (60% of the main VSL).
+  var lockBtn = cfg.lockCta && cfg.ctaRevealAt > 0 ? document.querySelector('.cta-zone .btn-mega') : null;
+  var lockSub = lockBtn && lockBtn.querySelector('.btn-mega-sub');
+  var lockSubText = lockSub ? lockSub.textContent : '';
+  var lockNote = null;
+  function mmss(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60); }
+  function lockProgress(t) {
+    if (!lockBtn || !lockBtn.classList.contains('locked')) return;
+    lockBtn.style.setProperty('--unlock', Math.min(1, t / cfg.ctaRevealAt).toFixed(3));
+    if (lockSub) lockSub.textContent = t > 1 ? 'Unlocks in ' + mmss(cfg.ctaRevealAt - t) + ' · keep watching' : 'Unlocks as you watch the video';
+    if (lockNote) lockNote.textContent = lockMessage(t);
+  }
+  function lockMessage(t) {
+    return 'Watch to ' + mmss(cfg.ctaRevealAt) + ' to unlock your application: that’s where Josh walks through the deal. ' + (t > 1 ? mmss(cfg.ctaRevealAt - t) + ' to go.' : 'Press play above.');
+  }
+  function lock() {
+    if (!lockBtn) return;
+    lockBtn.classList.add('locked');
+    lockBtn.setAttribute('aria-disabled', 'true');
+    lockBtn.insertAdjacentHTML('afterbegin', '<span class="lock-fill" aria-hidden="true"></span><svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>');
+    lockProgress(0);
+    // Capture phase: stop the jump to the form and the cta_click, explain instead.
+    lockBtn.addEventListener('click', function (e) {
+      if (!lockBtn.classList.contains('locked')) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      var t = (typeof video !== 'undefined' && video && video.currentTime) || 0;
+      F.track('cta_locked_click', { at: Math.round(t), unlock_at: cfg.ctaRevealAt });
+      if (!lockNote) { lockNote = el('p', 'lock-note'); lockBtn.parentNode.insertBefore(lockNote, lockBtn.nextSibling); }
+      lockNote.textContent = lockMessage(t);
+      lockBtn.classList.remove('nudge'); void lockBtn.offsetWidth; lockBtn.classList.add('nudge');
+      root.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, true);
+  }
+  function unlock() {
+    if (!lockBtn || !lockBtn.classList.contains('locked')) return;
+    lockBtn.classList.remove('locked');
+    lockBtn.classList.add('unlocked');
+    lockBtn.removeAttribute('aria-disabled');
+    if (lockSub) lockSub.textContent = lockSubText;
+    if (lockNote) { lockNote.remove(); lockNote = null; }
+  }
+
   function reveal(fromVideo) {
+    unlock();
     if (body.classList.contains('revealed')) return;
     body.classList.add('revealed');
     store(KEY + '_rev', 1);
@@ -44,6 +87,7 @@
     return;
   }
   if (store(KEY + '_rev') || cfg.ctaRevealAt <= 0) reveal(false);
+  else lock();
 
   var saved = store(KEY + '_state') || {};
   var state = {
@@ -94,6 +138,8 @@
           var hls = new window.Hls({ capLevelToPlayerSize: true, startLevel: -1 });
           hls.loadSource(cfg.src);
           hls.attachMedia(video);
+          // A browser that can't play the stream must never be stuck behind the locked button.
+          hls.on(window.Hls.Events.ERROR, function (_e, d) { if (d && d.fatal) reveal(false); });
         } else {
           video.src = cfg.src;
         }
@@ -118,6 +164,7 @@
     }
     state.lastT = t;
     bar.firstChild.style.width = (displayProgress(t / d) * 100).toFixed(2) + '%';
+    if (!state.revealed) lockProgress(t);
     if (!state.revealed && t >= cfg.ctaRevealAt) { state.revealed = true; reveal(true); beat(false); }
     if (Math.floor(t) % 5 === 0) store(KEY + '_state', { view: state.view, pos: t, buckets: state.buckets.join('') });
   }

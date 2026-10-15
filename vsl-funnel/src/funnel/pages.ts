@@ -56,6 +56,7 @@ function videoConfig(c: Context<AppEnv>, def: VideoDef) {
     srcWebm: connected ? '' : def.defaultSrcWebm ?? '',
     poster: (def.posterSetting && s[def.posterSetting]) || def.defaultPoster || '',
     ctaRevealAt: def.ctaRevealAt,
+    lockCta: Boolean(def.lockCta),
     gateContent: def.gateContent && Boolean(src),
     autoplayMuted: def.autoplayMuted,
     soundPrompt: LANDING.soundPrompt,
