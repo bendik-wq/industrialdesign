@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Topic } from '../src/content/ideas';
-import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packMiroLayout, rulesPack, type VideoPack } from '../src/content/video-pack';
+import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packMiroLayout, rulesPack, scriptParas, type VideoPack } from '../src/content/video-pack';
 import pack from './fixtures/pack-t1.json';
 import topic from './fixtures/topic-t1.json';
 
@@ -11,10 +11,19 @@ describe('video pack: Google Doc', () => {
   it('has the cover, the word-for-word script for every beat and the publishing kit', () => {
     expect(html).toContain('VIDEO 01');
     for (const b of P.beats) expect(html).toContain(b.headline.replace(/&/g, '&amp;').replace(/'/g, "'"));
-    expect(html).toContain('Word for word');
-    expect(html).toContain('Everything for the upload');
-    expect(html).toContain('THREE SHORTS TO CUT FROM IT');
-    expect(html).toContain('Presentation board in Miro');
+    expect(html).toContain('THE HOOK');
+    expect(html).toContain('Everything for the upload.');
+    expect(html).toContain('Three Shorts to cut from it.');
+    expect(html).toContain('Open the board in Miro');
+    // one page per beat
+    expect(html.split('page-break-before').length - 1).toBeGreaterThanOrEqual(P.beats.length + 5);
+  });
+  it('sets the script in short paragraphs without changing a word', () => {
+    for (const s of [P.hook.script, P.intro.script, P.close.script, ...P.beats.map((b) => b.script)]) {
+      const parts = scriptParas(s);
+      expect(parts.join(' ').replace(/\s+/g, ' ')).toBe(s.replace(/\s+/g, ' ').trim());
+      for (const x of parts) expect(x.split(/\s+/).length).toBeLessThan(110);
+    }
   });
   it('escapes anything typed into the pack', () => {
     const bad = { ...P, big_idea: '<img src=x onerror=alert(1)>' };

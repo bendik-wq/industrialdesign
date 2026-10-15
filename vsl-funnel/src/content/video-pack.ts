@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Runtime } from '../app';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
 import type { Sprint, Topic } from './ideas';
-import { BELIEF, INK, MUTED, PAGE_BREAK, PAPER, ROW, STAGE, YELLOW, e, label, ordered, p, table, td, unquote } from './sprint-export';
+import { BELIEF, INK, MUTED, PAGE_BREAK, PAPER, ROW, STAGE, YELLOW, e, ordered, table, unquote } from './sprint-export';
 
 /**
  * Video packs: everything Josh needs to film and present ONE video from a sprint.
@@ -194,85 +194,177 @@ export function rulesPack(t: Topic, next: Topic | null): VideoPack {
 }
 
 // ───────────── Google Doc ─────────────
+// One typeface, a monochrome palette, hairlines instead of boxes, and one idea per page.
+// Only what Google Docs keeps on import: font size/weight/colour, line-height, margins,
+// cell padding/background, per-side borders and page breaks (custom fonts and tracking are dropped).
 
-const paras = (s: string, o: Parameters<typeof p>[1] = {}) => s.split(/\n{2,}|\n/).filter((x) => x.trim()).map((x) => p(e(x), { size: 12, mb: 8, ...o })).join('');
-const h1 = (t: string) => `<h1 style="font-size:24pt;color:${INK};margin:0 0 6pt 0;">${t}</h1>`;
-const h2 = (t: string, color: string) => `<h2 style="font-size:17pt;color:${color};margin:18pt 0 6pt 0;">${t}</h2>`;
-const kicker = (t: string, color: string) => p(e(t.toUpperCase()), { size: 9, color, bold: true, mt: 0, mb: 2 });
+const D = { text: '#1D1D1F', sub: '#6E6E73', faint: '#86868B', line: '#D2D2D7', surface: '#F5F5F7', slide: '#000000', slideSub: '#A1A1A6', accent: YELLOW };
+
+type T = { size?: number; color?: string; bold?: boolean; italic?: boolean; lh?: number; mt?: number; mb?: number; center?: boolean };
+const t = (html: string, o: T = {}) => {
+  const st = [`font-size:${o.size ?? 11}pt`, `color:${o.color ?? D.text}`, o.bold ? 'font-weight:bold' : '', o.italic ? 'font-style:italic' : '',
+    `line-height:${o.lh ?? 1.5}`, `margin:${o.mt ?? 0}pt 0 ${o.mb ?? 0}pt 0`, o.center ? 'text-align:center' : ''].filter(Boolean).join(';');
+  return `<p style="${st}">${html}</p>`;
+};
+const gap = (pt: number) => `<p style="font-size:${Math.max(1, Math.round(pt / 1.2))}pt;line-height:1;margin:0">&nbsp;</p>`;
+const eyebrow = (s: string, mb = 10) => t(e(s.toUpperCase()), { size: 8.5, color: D.faint, bold: true, mb });
+const BREAK = PAGE_BREAK;
+// A table cell. `rule` draws a hairline on the given sides only; everything else is invisible.
+const cell = (html: string, o: { w?: number; bg?: string; pad?: string; rule?: ('top' | 'bottom')[] } = {}) => {
+  const b = (side: string) => `border-${side}:${o.rule?.includes(side as 'top') ? `1px solid ${D.line}` : `0px solid ${o.bg ?? '#FFFFFF'}`};`;
+  return `<td${o.w ? ` width="${o.w}%"` : ''} style="${o.w ? `width:${o.w}%;` : ''}${o.bg ? `background-color:${o.bg};` : ''}padding:${o.pad ?? '0'};${b('top')}${b('bottom')}border-left:0px solid #FFFFFF;border-right:0px solid #FFFFFF;vertical-align:top;">${html}</td>`;
+};
+const grid = (rows: string[], widths?: number[]) => table(rows.map((r) => `<tr>${r}</tr>`).join(''), widths);
+// Hairline key/value rows: grey label left, content right.
+const rows = (items: [string, string][], lw = 22, pad = '9pt 0', ks = 9.5) => grid(items.map(([k, v], i) => {
+  const rule: ('top' | 'bottom')[] = i === items.length - 1 ? ['top', 'bottom'] : ['top'];
+  return cell(t(e(k), { size: ks, color: D.sub, lh: 1.4 }), { w: lw, pad, rule }) + cell(v, { w: 100 - lw, pad, rule });
+}), [lw, 100 - lw]);
+
+// Script text, word for word, set in short readable paragraphs (breaks only between sentences).
+export function scriptParas(s: string, target = 55) {
+  const out: string[] = [];
+  for (const block of s.split(/\n+/).map((x) => x.trim()).filter(Boolean)) {
+    const sentences = block.split(/(?<=[.!?…]["”’']?)\s+(?=["“‘'(]?[A-Z0-9$])/);
+    let cur = '';
+    for (const x of sentences) {
+      cur = cur ? `${cur} ${x}` : x;
+      if (cur.split(/\s+/).length >= target) { out.push(cur); cur = ''; }
+    }
+    if (cur) {
+      // Fold a short tail into the previous paragraph rather than leave a stub.
+      if (out.length && cur.split(/\s+/).length < 14) out[out.length - 1] += ` ${cur}`; else out.push(cur);
+    }
+  }
+  return out;
+}
+const body = (s: string, o: T = {}) => scriptParas(s).map((x) => t(e(x), { size: 11.5, lh: 1.55, mb: 9, ...o })).join('');
+
+const slideCard = (num: string, title: string, bullets: string[]) =>
+  grid([cell(
+    t(num, { size: 9, color: D.accent, bold: true, mb: 10 }) +
+    t(e(title), { size: 22, color: '#FFFFFF', bold: true, lh: 1.15, mb: 12 }) +
+    bullets.map((x) => t(e(x), { size: 12, color: D.slideSub, lh: 1.35, mb: 2 })).join(''),
+    { bg: D.slide, pad: '24pt 28pt' })]);
+
+const note = (items: [string, string][]) => gap(4) + rows(items.map(([k, v]) => [k, t(e(v), { size: 9, color: D.sub, lh: 1.4 })]), 14, '5pt 0', 8.5);
 
 /** The long-form script and presentation brief for one video, as Google-Docs-safe HTML. */
 export function packDocHtml(pack: VideoPack, topic: Topic, o: { index: number; nextTitle?: string | null; brand?: string; miroUrl?: string | null }) {
-  const st = STAGE[topic.stage] ?? STAGE.MOFU;
   const n = String(o.index + 1).padStart(2, '0');
+  const brand = o.brand || 'G&L M&A Advisory';
+  const title = pack.titles[0] ?? topic.titles[0];
   const out: string[] = [];
-  // Cover
-  out.push(table(`<tr>${td(
-    p(`${e((o.brand || 'G&L M&A Advisory').toUpperCase())}  ·  VIDEO ${n}  ·  ${e(topic.stage)}  ·  ${e(topic.length_min)} MIN`, { size: 9, color: YELLOW, bold: true, mb: 20 }) +
-    p(e(pack.titles[0] ?? topic.titles[0]), { size: 28, color: '#FFFFFF', bold: true, mb: 10 }) +
-    p(e(pack.promise), { size: 14, color: '#D6DBE6', mb: 20 }) +
-    p(`Script, slides and packaging for Josh Li${o.miroUrl ? `  ·  <a href="${e(o.miroUrl)}" style="color:${YELLOW};">Presentation board in Miro</a>` : ''}`, { size: 10, color: '#D6DBE6' }),
-    { bg: INK, pad: 40 })}</tr>`));
-  out.push(table(`<tr>${td('', { bg: st.dark, pad: 3 })}</tr>`));
-  out.push(p('', { mb: 8 }));
-  // At a glance
-  const glance: [string, string][] = [['The big idea', pack.big_idea], ['Who it’s for', pack.viewer], ['Who it’s not for', pack.not_for], ['Belief it installs', BELIEF[topic.belief] ?? topic.belief], ['Format', topic.format], ['Next video', o.nextTitle || pack.end_screen]];
-  out.push(table(glance.map(([k, v], i) => `<tr>${td(p(e(k), { size: 9, color: st.dark, bold: true }), { bg: i % 2 ? '#FFFFFF' : ROW, pad: 9, w: 24 })}${td(p(e(v), { size: 11 }), { bg: i % 2 ? '#FFFFFF' : ROW, pad: 9, w: 76 })}</tr>`).join(''), [24, 76]));
 
-  // Packaging
-  out.push(h2('1 · Packaging', INK));
-  out.push(label('Titles to test', st.dark));
-  out.push(table(pack.titles.slice(0, 3).map((ti, k) => `<tr>${td(p('ABC'[k], { size: 12, color: st.dark, bold: true, center: true }), { bg: PAPER, pad: 10, w: 7 })}${td(p(e(ti), { size: 13, bold: true }), { bg: PAPER, pad: 10, w: 93 })}</tr>`).join(''), [7, 93]));
-  out.push(label('Thumbnails', st.dark));
+  // ── Cover
+  out.push(eyebrow(`${brand} · Video ${n}`, 0));
+  out.push(gap(120));
+  out.push(t(e(title), { size: 40, bold: true, lh: 1.08, mb: 22 }));
+  out.push(t(e(pack.promise), { size: 15, color: D.sub, lh: 1.45, mb: 0 }));
+  out.push(gap(90));
+  const meta: [string, string][] = [['Stage', STAGE[topic.stage]?.label ?? topic.stage], ['Length', `${topic.length_min} minutes`], ['Belief', BELIEF[topic.belief] ?? topic.belief]];
+  out.push(grid([meta.map(([k, v]) => cell(t(e(k.toUpperCase()), { size: 8, color: D.faint, bold: true, mb: 3 }) + t(e(v), { size: 11 }), { w: 33, pad: '10pt 8pt 0 0', rule: ['top'] })).join('')], [33, 34, 33]));
+  out.push(gap(14));
+  out.push(t(`Script, slides and packaging for Josh Li${o.miroUrl ? ` · <a href="${e(o.miroUrl)}" style="color:${D.text};">Open the board in Miro</a>` : ''}`, { size: 9.5, color: D.faint }));
+
+  // ── The idea
+  out.push(BREAK);
+  out.push(eyebrow('The idea'));
+  out.push(t(e(pack.big_idea), { size: 22, bold: true, lh: 1.3, mb: 30 }));
+  out.push(rows([
+    ['For', t(e(pack.viewer), { size: 11 })],
+    ['Not for', t(e(pack.not_for), { size: 11 })],
+    ['Format', t(e(topic.format), { size: 11 })],
+    ['Next video', t(e(o.nextTitle || pack.end_screen), { size: 11 })],
+  ]));
+
+  // ── Packaging
+  out.push(BREAK);
+  out.push(eyebrow('Packaging'));
+  out.push(t('Win the click.', { size: 26, bold: true, lh: 1.2, mb: 24 }));
+  out.push(eyebrow('Titles to test'));
+  out.push(grid(pack.titles.slice(0, 3).map((x, k) => cell(t('ABC'[k], { size: 11, color: D.faint, bold: true }), { w: 6, pad: '10pt 0', rule: ['top'] }) + cell(t(e(x), { size: 14, bold: true, lh: 1.3 }), { w: 94, pad: '10pt 0', rule: ['top'] })), [6, 94]));
+  out.push(gap(22));
+  out.push(eyebrow('Thumbnails'));
   const th = pack.thumbnails.slice(0, 2);
-  out.push(table(`<tr>${th.map((x) => td(p(e(unquote(x.text)), { size: 22, color: YELLOW, bold: true, center: true, mt: 22, mb: 22 }), { bg: INK, pad: 10, w: 50, border: 6 })).join('')}</tr><tr>${th.map((x) => td(p(`${e(x.visual)} · <i>${e(x.emotion)}</i>`, { size: 9, color: MUTED }), { pad: 6, w: 50 })).join('')}</tr>`, [50, 50]));
+  out.push(grid([
+    th.map((x, k) => cell(gap(26) + t(e(unquote(x.text)), { size: 24, color: '#FFFFFF', bold: true, center: true, lh: 1.1 }) + gap(26), { w: 50, bg: D.slide, pad: k ? '0 0 0 8pt' : '0 8pt 0 0' })).join(''),
+    th.map((x, k) => cell(t(`${e(x.visual)} <span style="color:${D.faint}">· ${e(x.emotion)}</span>`, { size: 9, color: D.sub, lh: 1.4 }), { w: 50, pad: k ? '8pt 0 0 10pt' : '8pt 10pt 0 0' })).join(''),
+  ], [50, 50]));
 
-  // The script
-  out.push(PAGE_BREAK);
-  out.push(kicker('2 · The script', st.dark));
-  out.push(h1('Word for word'));
-  out.push(p('Read it aloud once before you film. Bold lines are the ones that must land exactly as written.', { size: 10, color: MUTED, mb: 12 }));
-  out.push(label('The hook · first 30–45 seconds', st.dark));
-  out.push(table(`<tr>${td(p(`“${e(unquote(pack.hook.line))}”`, { size: 18, bold: true, mt: 0, mb: 10 }) + paras(pack.hook.script, { size: 12 }) + p(`On screen: ${e(pack.hook.on_screen)}`, { size: 9, color: MUTED, italic: true, mt: 6, mb: 0 }), { bg: st.faint, pad: 18, extra: `border-left:5px solid ${st.dark};` })}</tr>`));
-  out.push(label('The intro', st.dark));
-  out.push(paras(pack.intro.script));
+  // ── The hook
+  out.push(BREAK);
+  out.push(eyebrow('The hook · first 45 seconds'));
+  out.push(t(`“${e(unquote(pack.hook.line))}”`, { size: 26, bold: true, lh: 1.2, mb: 26 }));
+  out.push(body(pack.hook.script));
+  out.push(note([['On screen', pack.hook.on_screen]]));
 
+  // ── The intro
+  out.push(BREAK);
+  out.push(eyebrow('The intro'));
+  out.push(t('Earn the rest of the video.', { size: 26, bold: true, lh: 1.2, mb: 24 }));
+  out.push(body(pack.intro.script));
+
+  // ── One beat per page: the slide, the words, the direction
   pack.beats.forEach((b, i) => {
-    out.push(label(`Beat ${i + 1} of ${pack.beats.length}`, st.dark));
-    out.push(p(e(b.headline), { size: 16, bold: true, mt: 0, mb: 8 }));
-    // The slide, drawn as a 16:9 card
-    out.push(table(`<tr>${td(p(`${String(i + 1).padStart(2, '0')}`, { size: 9, color: YELLOW, bold: true, mt: 0, mb: 8 }) + p(e(b.headline), { size: 20, color: '#FFFFFF', bold: true, mb: 12 }) + b.slide.slice(0, 3).map((x) => p(`—  ${e(x)}`, { size: 12, color: '#D6DBE6', mt: 0, mb: 4 })).join(''), { bg: INK, pad: 26 })}</tr>`));
-    out.push(p('', { mb: 4 }));
-    out.push(paras(b.script));
-    out.push(table(`<tr>${td(p(`<b>Director:</b> ${e(b.visual)}`, { size: 10, color: MUTED, mt: 0, mb: 3 }) + p(`<b>Into the next beat:</b> <i>${e(b.transition)}</i>`, { size: 10, color: MUTED, mt: 0, mb: 0 }), { bg: PAPER, pad: 10 })}</tr>`));
+    out.push(BREAK);
+    out.push(eyebrow(`Beat ${i + 1} of ${pack.beats.length}`));
+    out.push(slideCard(String(i + 1).padStart(2, '0'), b.headline, b.slide.slice(0, 3)));
+    out.push(gap(14));
+    out.push(body(b.script));
+    out.push(note([['Director', b.visual], ['Into next', b.transition]]));
   });
 
-  out.push(label('Proof on screen', st.dark));
-  out.push(p(`${e(pack.proof.show)}  <b>Label:</b> “${e(pack.proof.label)}”`, { size: 11 }));
-  out.push(label('Mid-video CTA', st.dark));
-  out.push(p(e(pack.mid_cta), { size: 11 }));
-  out.push(label('The close · 60–90 seconds', st.dark));
-  out.push(table(`<tr>${td(p(`<b>Callback:</b> ${e(pack.callback)}`, { size: 12, color: '#FFFFFF', mt: 0, mb: 10 }) + paras(pack.close.script, { size: 12, color: '#FFFFFF' }) + p(`<b>End screen:</b> ${e(pack.end_screen)}`, { size: 11, color: YELLOW, mt: 6, mb: 0 }), { bg: INK, pad: 22 })}</tr>`));
+  // ── Proof and the mid-roll ask
+  out.push(BREAK);
+  out.push(eyebrow('Proof on screen'));
+  out.push(t(e(pack.proof.show), { size: 16, bold: true, lh: 1.4, mb: 10 }));
+  out.push(t(`Label it: “${e(pack.proof.label)}”`, { size: 10.5, color: D.sub, mb: 34 }));
+  out.push(eyebrow('Mid-video ask'));
+  out.push(t(e(pack.mid_cta), { size: 14, lh: 1.5 }));
 
-  // YouTube packaging
-  out.push(PAGE_BREAK);
-  out.push(kicker('3 · Publishing', st.dark));
-  out.push(h1('Everything for the upload'));
-  out.push(label('Description', st.dark));
-  out.push(table(`<tr>${td(paras(pack.description, { size: 11, mb: 4 }), { bg: ROW, pad: 14 })}</tr>`));
-  out.push(label('Chapters', st.dark));
-  out.push(table(pack.chapters.map((c, i) => `<tr>${td(p(e(c.time), { size: 11, bold: true, color: st.dark }), { bg: i % 2 ? '#FFFFFF' : ROW, pad: 6, w: 14 })}${td(p(e(c.label), { size: 11 }), { bg: i % 2 ? '#FFFFFF' : ROW, pad: 6, w: 86 })}</tr>`).join(''), [14, 86]));
-  out.push(label('Pinned comment', st.dark));
-  out.push(p(e(pack.pinned_comment), { size: 11 }));
-  out.push(label('Tags', st.dark));
-  out.push(p(e(pack.tags.join(', ')), { size: 10, color: MUTED }));
+  // ── The close
+  out.push(BREAK);
+  out.push(eyebrow('The close · 60 to 90 seconds'));
+  out.push(t(e(pack.callback), { size: 20, bold: true, lh: 1.35, mb: 26 }));
+  out.push(body(pack.close.script));
+  out.push(note([['End screen', pack.end_screen]]));
 
-  out.push(label('Three Shorts to cut from it', st.dark));
-  out.push(table(`<tr>${pack.shorts.slice(0, 3).map((s) => td(p(e(s.title), { size: 12, bold: true, mb: 4 }) + p(`“${e(s.hook)}”`, { size: 10, italic: true, color: st.dark, mb: 6 }) + paras(s.script, { size: 10 }), { bg: st.faint, pad: 14, w: 33, border: 5 })).join('')}</tr>`, [33, 34, 33]));
+  // ── Publishing
+  out.push(BREAK);
+  out.push(eyebrow('Publishing'));
+  out.push(t('Everything for the upload.', { size: 26, bold: true, lh: 1.2, mb: 26 }));
+  out.push(eyebrow('Description'));
+  out.push(grid([cell(pack.description.split(/\n+/).filter((x) => x.trim()).map((x) => t(e(x), { size: 10.5, lh: 1.5, mb: 5 })).join(''), { bg: D.surface, pad: '16pt 18pt' })]));
+  out.push(gap(24));
+  out.push(eyebrow('Chapters'));
+  out.push(grid(pack.chapters.map((c) => cell(t(e(c.time), { size: 10.5, color: D.sub }), { w: 12, pad: '6pt 0', rule: ['top'] }) + cell(t(e(c.label), { size: 10.5 }), { w: 88, pad: '6pt 0', rule: ['top'] })), [12, 88]));
+  out.push(gap(24));
+  out.push(eyebrow('Pinned comment'));
+  out.push(t(e(pack.pinned_comment), { size: 11, lh: 1.5, mb: 24 }));
+  out.push(eyebrow('Tags'));
+  out.push(t(e(pack.tags.join(' · ')), { size: 9.5, color: D.sub, lh: 1.6 }));
 
-  out.push(label('Filming checklist', st.dark));
-  out.push(table(pack.filming.map((f) => `<tr>${td(p('☐', { size: 12, color: st.dark, center: true }), { pad: 5, w: 6 })}${td(p(e(f), { size: 11 }), { pad: 5, w: 94 })}</tr>`).join(''), [6, 94]));
-  out.push(label('On-screen labels & disclaimers', st.dark));
-  out.push(table(`<tr>${td(pack.compliance.map((c) => p(`•  ${e(c)}`, { size: 10, mt: 0, mb: 3 })).join(''), { bg: STAGE.MOFU.faint, pad: 12 })}</tr>`));
+  // ── Shorts
+  out.push(gap(34));
+  out.push(eyebrow('Shorts'));
+  out.push(t('Three Shorts to cut from it.', { size: 20, bold: true, lh: 1.2, mb: 20 }));
+  pack.shorts.slice(0, 3).forEach((s, k) => {
+    out.push(grid([cell(
+      t(`0${k + 1}`, { size: 9, color: D.faint, bold: true, mb: 6 }) +
+      t(e(s.title), { size: 15, bold: true, lh: 1.3, mb: 6 }) +
+      t(`“${e(unquote(s.hook))}”`, { size: 11, color: D.sub, italic: true, lh: 1.45, mb: 10 }) +
+      t(e(s.script), { size: 10, lh: 1.5 }), { pad: '14pt 0 14pt 0', rule: ['top'] })]));
+  });
+
+  // ── On set
+  out.push(gap(34));
+  out.push(eyebrow('On set'));
+  out.push(t('Before you press record.', { size: 20, bold: true, lh: 1.2, mb: 20 }));
+  out.push(grid(pack.filming.map((f) => cell(t('☐', { size: 12, color: D.faint }), { w: 6, pad: '8pt 0', rule: ['top'] }) + cell(t(e(f), { size: 10.5, lh: 1.5 }), { w: 94, pad: '8pt 0', rule: ['top'] })), [6, 94]));
+  out.push(gap(26));
+  out.push(eyebrow('Labels & disclaimers'));
+  out.push(grid(pack.compliance.map((c) => cell(t(e(c), { size: 10, color: D.sub, lh: 1.5 }), { pad: '7pt 0', rule: ['top'] }))));
   return out.join('\n');
 }
 
