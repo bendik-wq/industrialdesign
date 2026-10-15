@@ -23,12 +23,21 @@
   var lockSub = lockBtn && lockBtn.querySelector('.btn-mega-sub');
   var lockSubText = lockSub ? lockSub.textContent : '';
   var lockNote = null;
+  // Everything else that leads to the application: the nav button, the sticky bar, and the form itself.
+  var lockLinks = lockBtn ? [].slice.call(document.querySelectorAll('a[href="#apply"], a[href="/#apply"]')).filter(function (a) { return a !== lockBtn; }) : [];
+  // Someone who already started the application (resume) is never locked out of it.
+  var lockForm = lockBtn && !(window.FUNNEL || {}).resume ? document.querySelector('#apply .form-card') : null;
+  var lockPanel = null;
   function mmss(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60); }
   function lockProgress(t) {
     if (!lockBtn || !lockBtn.classList.contains('locked')) return;
     lockBtn.style.setProperty('--unlock', Math.min(1, t / cfg.ctaRevealAt).toFixed(3));
     if (lockSub) lockSub.textContent = t > 1 ? 'Unlocks in ' + mmss(cfg.ctaRevealAt - t) + ' · keep watching' : 'Unlocks as you watch the video';
     if (lockNote) lockNote.textContent = lockMessage(t);
+    if (lockPanel) {
+      lockPanel.querySelector('.app-lock-bar i').style.width = (Math.min(1, t / cfg.ctaRevealAt) * 100).toFixed(1) + '%';
+      lockPanel.querySelector('.app-lock-left').textContent = t > 1 ? mmss(cfg.ctaRevealAt - t) + ' to go' : 'Press play on the video to start';
+    }
   }
   function lockMessage(t) {
     return 'Watch to ' + mmss(cfg.ctaRevealAt) + ' to unlock your application: that’s where Josh walks through the deal. ' + (t > 1 ? mmss(cfg.ctaRevealAt - t) + ' to go.' : 'Press play above.');
@@ -38,18 +47,37 @@
     lockBtn.classList.add('locked');
     lockBtn.setAttribute('aria-disabled', 'true');
     lockBtn.insertAdjacentHTML('afterbegin', '<span class="lock-fill" aria-hidden="true"></span><svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>');
-    lockProgress(0);
     // Capture phase: stop the jump to the form and the cta_click, explain instead.
-    lockBtn.addEventListener('click', function (e) {
+    function onLockedClick(e) {
       if (!lockBtn.classList.contains('locked')) return;
       e.preventDefault(); e.stopImmediatePropagation();
       var t = (typeof video !== 'undefined' && video && video.currentTime) || 0;
-      F.track('cta_locked_click', { at: Math.round(t), unlock_at: cfg.ctaRevealAt });
+      F.track('cta_locked_click', { at: Math.round(t), unlock_at: cfg.ctaRevealAt, from: (e.currentTarget.getAttribute('data-track-id') || 'link') });
       if (!lockNote) { lockNote = el('p', 'lock-note'); lockBtn.parentNode.insertBefore(lockNote, lockBtn.nextSibling); }
       lockNote.textContent = lockMessage(t);
       lockBtn.classList.remove('nudge'); void lockBtn.offsetWidth; lockBtn.classList.add('nudge');
       root.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, true);
+    }
+    lockBtn.addEventListener('click', onLockedClick, true);
+    lockLinks.forEach(function (a) {
+      a.classList.add('locked-link');
+      a.setAttribute('aria-disabled', 'true');
+      a.setAttribute('title', 'Unlocks at ' + mmss(cfg.ctaRevealAt) + ' of the video');
+      a.addEventListener('click', onLockedClick, true);
+    });
+    if (lockForm) {
+      lockForm.classList.add('locked');
+      [].forEach.call(lockForm.children, function (c) { c.setAttribute('inert', ''); c.setAttribute('aria-hidden', 'true'); });
+      lockPanel = el('div', 'app-lock', '<div class="app-lock-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
+        '<strong>The application unlocks at ' + mmss(cfg.ctaRevealAt) + ' of the video</strong><p>That’s where Josh walks through how the deal is funded. Watch to there and the questions open up here.</p>' +
+        '<div class="app-lock-bar" aria-hidden="true"><i></i></div><span class="app-lock-left"></span><button type="button" class="btn btn-sm">Watch the video</button></div>');
+      lockPanel.querySelector('button').addEventListener('click', function () {
+        F.track('cta_locked_click', { at: Math.round((typeof video !== 'undefined' && video && video.currentTime) || 0), unlock_at: cfg.ctaRevealAt, from: 'form' });
+        root.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      lockForm.appendChild(lockPanel);
+    }
+    lockProgress(0);
   }
   function unlock() {
     if (!lockBtn || !lockBtn.classList.contains('locked')) return;
@@ -58,6 +86,12 @@
     lockBtn.removeAttribute('aria-disabled');
     if (lockSub) lockSub.textContent = lockSubText;
     if (lockNote) { lockNote.remove(); lockNote = null; }
+    lockLinks.forEach(function (a) { a.classList.remove('locked-link'); a.removeAttribute('aria-disabled'); a.removeAttribute('title'); });
+    if (lockForm && lockPanel) {
+      lockPanel.remove(); lockPanel = null;
+      lockForm.classList.remove('locked');
+      [].forEach.call(lockForm.children, function (c) { c.removeAttribute('inert'); c.removeAttribute('aria-hidden'); });
+    }
   }
 
   function reveal(fromVideo) {

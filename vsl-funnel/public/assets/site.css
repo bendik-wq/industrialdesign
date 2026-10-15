@@ -457,3 +457,17 @@ body.simple main { padding: 72px 20px; }
 @keyframes cta-unlock { 0% { transform: scale(.97); } 60% { transform: scale(1.02); } 100% { transform: scale(1); } }
 .lock-note { margin: 12px 0 0; text-align: center; font: var(--t-small); color: var(--ink-2); max-width: 560px; }
 @media (prefers-reduced-motion: reduce) { .btn-mega.nudge, .btn-mega.unlocked { animation: none; } .btn-mega .lock-fill { transition: none; } }
+
+/* The rest of the way to the application, locked with the button (nav, sticky bar, the form). */
+.btn.locked-link { opacity: .5; cursor: not-allowed; box-shadow: none; }
+.form-card { position: relative; }
+.form-card.locked { min-height: 340px; }
+.form-card.locked > :not(.app-lock) { filter: blur(3px); opacity: .35; pointer-events: none; user-select: none; }
+.app-lock { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 24px; }
+.app-lock-box { max-width: 460px; text-align: center; display: grid; justify-items: center; gap: 10px; background: rgba(255, 255, 255, .92); border: 1px solid #e3e6ec; border-radius: 12px; padding: 24px 22px; box-shadow: 0 12px 32px -16px rgba(13, 21, 38, .25); }
+.app-lock-box svg { width: 30px; height: 30px; color: #0d1526; opacity: .7; }
+.app-lock-box strong { font: 600 19px/1.35 var(--font); color: #0d1526; }
+.app-lock-box p { margin: 0; color: #454e63; font: var(--t-body); }
+.app-lock-bar { width: 100%; max-width: 320px; height: 6px; border-radius: 3px; background: #e3e6ec; overflow: hidden; margin-top: 6px; }
+.app-lock-bar i { display: block; height: 100%; width: 0; background: #0f2c5c; transition: width .9s linear; }
+.app-lock-left { font: var(--t-small); color: #6b7385; }
