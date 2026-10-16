@@ -28,7 +28,7 @@ export const REACTIVATE_A: Record<string, T> = {
     body: [
       `${c.name}, most owners picture a bank manager asking what they own. For an acquisition, the questions are different.`,
       'A lender funding a purchase reads, roughly in this order:',
-      '• <strong>The target’s cash flow.</strong> Usually three years of financials, and whether the profit is steady or lumpy.<br>• <strong>Debt cover.</strong> Whether that profit covers all the repayments about 1.5 times.<br>• <strong>The buyer.</strong> Whether the person taking over can actually run it.<br>• <strong>The rest of the stack.</strong> How much the seller is carrying as a note and rolling into a stake. A seller who stays in is a seller who believes in the business.',
+      '• <strong>The target’s cash flow.</strong> Lenders ask for three years of financials where they exist, and look at whether the profit is steady or lumpy.<br>• <strong>Debt cover.</strong> Whether that profit covers all the repayments about 1.5 times.<br>• <strong>The buyer.</strong> Whether the person taking over can actually run it.<br>• <strong>The rest of the stack.</strong> How much the seller is carrying as a note and rolling into a stake. A seller who stays in is a seller who believes in the business.',
       d.industry
         ? `That third point is where ${d.industry.owners} have an edge. You already run a ${d.industry.one}${sizeLine(d) ? `, ${sizeLine(d)}` : ''}. To a lender, an operator from the same industry is a much easier story than a first-timer with a spreadsheet.`
         : `That third point is where you have an edge. You already run ${sizeLine(d) ?? 'a profitable business'}. To a lender, an experienced operator is a much easier story than a first-timer with a spreadsheet.`,
@@ -55,7 +55,8 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'Seller rollover, from the seller’s side of the table.',
     body: [
       `${c.name}, the question I get most about seller rollover: why would an owner sell and still keep a stake?`,
-      'Put yourself in their shoes. They’ve spent 20 or 30 years building it. Selling 100% for cash is final. Rolling part of the value, often somewhere between 10% and 40%, into a stake they keep means:',
+      'Put yourself in their shoes. They’ve spent 20 or 30 years building it, and selling 100% for cash is final.',
+      'Rolling part of the value into a stake they keep (somewhere between 10% and 40% in the structures we see) means:',
       '• They take most of the value off the table now.<br>• They keep some upside if the business grows under new ownership.<br>• They get a real say in who carries on what they built.',
       'For an owner who doesn’t need every dollar on day one, that can beat a bigger cheque from a stranger. And for you, every dollar they roll is a dollar of the price you don’t have to fund. It sits in the stack alongside commercial debt and seller finance.',
       'It works best when they genuinely believe in you. Which is why it starts with a proper conversation, not a lowball email.',
@@ -69,7 +70,8 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'Why the funding can come to more than the price.',
     body: [
       `${c.name}, here’s the part of a deal that surprises most owners: the funding can come to more than the price.`,
-      'A business needs cash to run. Wages go out before invoices come in, and stock gets bought before it gets sold. When you buy one, you need that buffer too. That’s what a working-capital line is for.',
+      'A business needs cash to run. Wages go out before invoices come in, and stock gets bought before it gets sold.',
+      'When you buy one, you need that buffer too. That’s what a working-capital line is for.',
       'In many acquisitions the lender adds a working-capital facility on top of the purchase debt. So the stack looks like this: commercial debt for most of the price, seller finance for part of it, seller rollover for the stake the owner keeps, and a working-capital line beside it so the business isn’t short of cash in its first months under you.',
       'That’s what people mean by an over-financed deal. It isn’t free money. It’s a facility that has to be serviced, and it only makes sense if the numbers still clear about 1.5 times debt cover with it included.',
       d.industry
@@ -112,7 +114,7 @@ export const REACTIVATE_A: Record<string, T> = {
       '<strong>The funding (70/20/10):</strong><br>• Commercial debt: $840k over 7 years at 9%, roughly $167k a year in repayments.<br>• Seller finance: $240k over 4 years at 6%, roughly $69k a year.<br>• Seller rollover: $120k, kept by the seller as a 10% stake. No repayments.',
       '<strong>The test:</strong> $167k + $69k is roughly $236k a year of repayments. $400k ÷ $236k is about 1.7. That clears 1.5, so it’s worth taking further.',
       'If profit were $300k instead, cover drops to about 1.3. Then you’d look at stretching the seller note, increasing the rollover or lowering the price. Or you’d walk away.',
-      d.deal ? `For ${yourBiz(d)}, a sensible first target usually makes somewhere around ${d.deal.targetProfit} in profit. The same maths applies, scaled up or down.` : null,
+      d.deal ? `For ${yourBiz(d)}, a sensible first target makes somewhere around ${d.deal.targetProfit} in profit. The same maths applies, scaled up or down.` : null,
     ].filter(Boolean) as string[],
     cta: { label: 'Read the DSCR guide →', href: c.link('/guides/dscr-explained') },
     ps: illustrative,
@@ -122,8 +124,9 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'What happens when a bought business has a bad year.',
     body: [
       `${c.name}, a fair question most people don’t ask out loud: what happens if the business you buy has a bad year?`,
-      'This is what the buffer is for. At 1.5 times debt cover, profit can fall by about a third before it stops covering the repayments. That isn’t a promise of safety. It’s room to react.',
-      'The structure helps too. The seller note usually sits behind the bank, and some notes are written so payments can pause if the business misses agreed targets. The seller rollover has no repayments at all, and a seller who kept a stake has every reason to help fix a problem rather than walk away from it.',
+      'This is what the buffer is for. At 1.5 times debt cover, profit can fall by about a third before it stops covering the repayments.',
+      'That isn’t a promise of safety. It’s room to react.',
+      'The structure helps too. Lenders ask for the seller note to sit behind the bank, and some notes are written so payments can pause if the business misses agreed targets. The seller rollover has no repayments at all, and a seller who kept a stake has every reason to help fix a problem rather than walk away from it.',
       'The working-capital line is there for cash gaps, not for propping up a business that doesn’t make money.',
       has(d, 'funding') ? 'You told us funding and structure was what was in the way. This is the part of the structure that does the most to protect you.' : null,
       'None of it makes risk disappear. It means you go in with a margin, a plan and a seller on your side.',
@@ -148,12 +151,12 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'A multiple of profit, and what moves it.',
     body: [
       `${c.name}, here’s how most private businesses are priced: a multiple of profit.`,
-      'The profit is the owner’s real earnings from the business, cleaned up for one-offs. The multiple is what a buyer pays for each dollar of it. For smaller private businesses it often sits somewhere around 2 to 5 times, and it varies a lot by industry and by business.',
-      '<strong>What pushes the multiple up:</strong> steady, recurring revenue. A team that runs without the owner. Lots of customers rather than a few big ones. Clean books.',
-      '<strong>What pushes it down:</strong> the owner is the business. One customer is 40% of sales. Revenue swings year to year. Nobody can explain the numbers.',
+      'The profit is the owner’s real earnings from the business, cleaned up for one-offs. The multiple is what a buyer pays for each dollar of it. For smaller private businesses a range of around 2 to 5 times is common, and it varies a lot by industry and by business.',
+      '<strong>What pushes the multiple up:</strong> steady, recurring revenue and a team that runs without the owner. Lots of customers rather than a few big ones, and clean books.',
+      '<strong>What pushes it down:</strong> the owner is the business, or one customer is 40% of sales. Revenue swings year to year, and nobody can explain the numbers.',
       d.industry
-        ? `In ${industryName(d.industry)}, one of the biggest swing factors is often how much depends on the owner personally. And the things that lower the price are often things you, as one of the ${d.industry.owners} already in the market, are well placed to fix.`
-        : 'The useful bit: the things that lower the price are often things an operator in the same industry is well placed to fix.',
+        ? `In ${industryName(d.industry)}, one of the biggest swing factors is how much depends on the owner personally. And many of the things that lower the price are things you, as one of the ${d.industry.owners} already in the market, are well placed to fix.`
+        : 'The useful bit: many of the things that lower the price are things an operator in the same industry is well placed to fix.',
     ],
     cta: { label: 'Talk about a target’s price →', href: book(c) },
     ps: 'Ranges are illustrative. Every business is valued on its own figures, and none of this is financial advice.',
@@ -163,8 +166,10 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'Add-backs, and why they decide the price.',
     body: [
       `${c.name}, when you look at a business to buy, the profit on its tax return is rarely the number the deal is priced on.`,
-      'Owners run things through their businesses. Their own salary might be high or low. There’s the one-off legal bill, the car, the family member on the payroll. Adjusting for those is called normalising, and what you get is the profit a new owner would actually earn.',
-      'Two things to watch. First, add-backs have to be real and provable, not wishful. Second, if the owner works in the business, take off what it would cost to pay someone to do their job. A business showing $300k with the owner working 60 hours a week isn’t a $300k business to a buyer who won’t do those hours.',
+      'Owners run things through their businesses: a salary set higher or lower than the market, the one-off legal bill, the car, the family member on the payroll.',
+      'Adjusting for those is called normalising, and what you get is the profit a new owner would actually earn.',
+      'Two things to watch. First, add-backs have to be real and provable, not wishful.',
+      'Second, if the owner works in the business, take off what it would cost to pay someone to do their job. A business showing $300k with the owner working 60 hours a week isn’t a $300k business to a buyer who won’t do those hours.',
       profitText(d) ? `You know this from the inside. You told us profit in ${yourBiz(d)} is ${profitText(d)}, and you know exactly what goes into that number and what doesn’t.` : null,
       'Get this number right and the price, the debt cover and the structure all follow from it. Get it wrong and everything built on it is wrong.',
     ].filter(Boolean) as string[],
@@ -175,7 +180,8 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'The biggest risk in a smaller acquisition, and how it’s handled.',
     body: [
       `${c.name}, the biggest risk in buying a smaller business: the owner is the business.`,
-      'They hold the key relationships. They quote every job. Staff go to them with every question. When they leave, some of that can walk out with them.',
+      'They hold the key relationships and quote every job, and staff go to them with every question.',
+      'When they leave, some of that can walk out with them.',
       'You don’t have to avoid these businesses. You price and structure for it:',
       '• A handover period where the seller stays on for months, introducing you to customers and staff.<br>• Part of the price as seller finance or an earn-out, so the seller does better when the business holds up.<br>• Seller rollover, so they keep a stake and keep caring.<br>• A lower multiple, because you’re taking on the work of building the team.',
       d.industry
@@ -190,11 +196,13 @@ export const REACTIVATE_A: Record<string, T> = {
     subject: 'what sellers actually want',
     preheader: 'Rarely just the highest number.',
     body: [
-      `${c.name}, most first-time buyers think a seller wants one thing: the biggest cheque. Usually there’s more to it.`,
-      'Talk to an owner thinking about getting out and you tend to hear things like:',
+      `${c.name}, most first-time buyers think a seller wants one thing: the biggest cheque. Talk to one and you find there’s more to it.`,
+      'Owners thinking about getting out say things like:',
       '• “I want my staff looked after.”<br>• “I don’t want my name on a business that gets run into the ground.”<br>• “I need an income when I stop.”<br>• “I don’t want to just disappear on day one.”',
-      'Every one of those maps onto the structure. Staff and reputation: an operator who keeps the team. Income: seller finance, paid over a few years. Not disappearing: a handover period, and seller rollover so they keep a stake. Add the commercial debt and that’s the whole funding stack, built around what they actually care about.',
-      d.industry ? `Retiring ${d.industry.owners} often care a lot about who takes over. Coming from the same industry counts for more in that conversation than most people expect.` : null,
+      'Every one of those maps onto the structure. Staff and reputation: an operator who keeps the team.',
+      'Income: seller finance, paid over a few years. Not disappearing: a handover period, and seller rollover so they keep a stake.',
+      'Add the commercial debt and that’s the whole funding stack, built around what they actually care about.',
+      d.industry ? `Plenty of retiring ${d.industry.owners} care a lot about who takes over. Coming from the same industry counts for more in that conversation than most people expect.` : null,
       'That’s why the best offers aren’t always the highest. They’re the ones that answer the seller’s real questions.',
     ].filter(Boolean) as string[],
     ps: 'If you sold tomorrow, what would you care about most? Reply and tell me. It’s the best way to understand the person across the table.',
@@ -206,7 +214,7 @@ export const REACTIVATE_A: Record<string, T> = {
       `${c.name}, how do you approach the owner of a business that isn’t for sale?`,
       'Not with “are you selling?”. Most will say no, because most haven’t decided. The first conversation is about them: how long they’ve been at it, what’s next, whether they’ve thought about who carries it on.',
       'If there’s interest, the next steps are slow and respectful: a coffee, a look at high-level numbers under a confidentiality agreement, then a rough idea of price and structure. Only then a letter of intent.',
-      'Approaching owners directly, before a broker is involved, usually means less competition and a seller who has chosen to talk to you specifically.',
+      'Approaching owners directly, before a broker is involved, means fewer competing buyers and a seller who has chosen to talk to you specifically.',
       d.industry ? `In ${industryName(d.industry)}, you probably already know some of these owners. Think about ${d.industry.target}. Is there someone there you’ve met at an industry event or through a supplier?` : null,
       has(d, 'deal_flow') ? 'You told us finding the right business was what was in the way. This is how that starts.' : null,
     ].filter(Boolean) as string[],
@@ -218,7 +226,7 @@ export const REACTIVATE_A: Record<string, T> = {
     body: [
       `${c.name}, one thing that confuses first-time buyers: when do you actually get to see the numbers?`,
       'It comes in layers, and each one is earned:',
-      '<strong>1. The conversation.</strong> Who they are, roughly what the business does, whether they’d consider selling.<br><strong>2. A confidentiality agreement.</strong> You agree to keep what you see private. Then you usually get high-level financials, often a few years of profit and loss.<br><strong>3. The letter of intent.</strong> Once a price and structure are agreed in principle, you get access to the full detail.<br><strong>4. Due diligence.</strong> Contracts, leases, staff, tax, customers. Everything gets checked.',
+      '<strong>1. The conversation.</strong> Who they are, roughly what the business does, whether they’d consider selling.<br><strong>2. A confidentiality agreement.</strong> You agree to keep what you see private, and in return you get high-level financials, such as a few years of profit and loss.<br><strong>3. The letter of intent.</strong> Once a price and structure are agreed in principle, you get access to the full detail.<br><strong>4. Due diligence.</strong> Everything gets checked: contracts, leases, staff, tax, customers.',
       'Sellers guard their information for good reason: their staff and customers don’t know yet. Respecting that is part of earning their trust.',
       d.industry ? `If the business is a competitor in ${industryName(d.industry)}, this matters even more. You’re asking to see the books of someone who may have been competing with ${yourBiz(d)} for years.` : null,
     ].filter(Boolean) as string[],
@@ -231,8 +239,9 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'What a letter of intent is for, and what it isn’t.',
     body: [
       `${c.name}, the letter of intent is the moment a conversation becomes a deal. It’s simpler than it sounds.`,
-      'An LOI is usually a few pages. It sets out the price, the structure (how much is commercial debt, how much seller finance, how much seller rollover), the handover period, the timing and the conditions, such as finance approval and due diligence.',
-      'Most of it usually isn’t binding. The parts that often are: confidentiality, and a period of exclusivity, where the seller agrees not to shop the business to anyone else while you do your checks.',
+      'An LOI runs to a few pages. It sets out the price, the structure (how much is commercial debt, how much seller finance, how much seller rollover), the handover period, the timing and the conditions, such as finance approval and due diligence.',
+      'Most of it is written as non-binding.',
+      'The parts that are made binding are confidentiality and a period of exclusivity, where the seller agrees not to shop the business to anyone else while you do your checks.',
       'Why it matters: it gets the big terms agreed before anyone spends serious money on lawyers. If you can’t agree on an LOI, you were never going to agree on a contract.',
       d.timeline === '0_6' ? 'You told us you wanted to move within six months. A signed LOI is the milestone that tells you whether that’s on track.' : null,
     ].filter(Boolean) as string[],
@@ -244,7 +253,7 @@ export const REACTIVATE_A: Record<string, T> = {
     body: [
       `${c.name}, two terms that get mixed up: a seller note and an earn-out. Both mean part of the price is paid after settlement. They work differently.`,
       '<strong>A seller note</strong> is a fixed amount, paid over a set period with interest, like a loan from the seller. It’s owed whether the business has a great year or an average one, though it can be written to pause if things go badly.',
-      '<strong>An earn-out</strong> is paid only if the business hits agreed targets after the sale, usually revenue or profit over one to three years. Hit them and the seller gets more. Miss them and they get less.',
+      '<strong>An earn-out</strong> is paid only if the business hits agreed targets after the sale, measured on revenue or profit over an agreed period, such as one to three years. Hit them and the seller gets more. Miss them and they get less.',
       'Earn-outs are useful when you and the seller disagree on what the business is worth: they believe in next year, you want proof. The catch is that they can cause arguments about how the targets were measured, so they need to be written tightly.',
       'The usual stack is commercial debt, a seller note and seller rollover. An earn-out is a tool for a specific gap, not a default.',
       has(d, 'valuation') ? 'You told us valuation and negotiation was what was in the way. An earn-out is one of the cleaner ways to bridge a gap on price.' : null,
@@ -255,7 +264,7 @@ export const REACTIVATE_A: Record<string, T> = {
     subject: 'what due diligence actually checks',
     preheader: 'The things that sink deals, found before you sign.',
     body: [
-      `${c.name}, due diligence is the part where you check that what the seller told you is true. Here’s what it usually covers:`,
+      `${c.name}, due diligence is the part where you check that what the seller told you is true. Here’s what it covers:`,
       '• <strong>Financials:</strong> do the bank statements match the accounts? Are the add-backs real?<br>• <strong>Customers:</strong> how concentrated is revenue? Are any big contracts ending?<br>• <strong>Staff:</strong> who are the key people, what are they owed, are they likely to stay?<br>• <strong>Legal:</strong> leases, licences, disputes, contracts that need consent to transfer.<br>• <strong>Tax:</strong> anything owing that could follow the business.<br>• <strong>Operations:</strong> equipment, systems, suppliers.',
       'Your accountant and lawyer do the formal work. Your job is the part no professional can do: judging whether the business actually runs the way the seller says it does.',
       d.industry
@@ -272,17 +281,17 @@ export const REACTIVATE_A: Record<string, T> = {
     body: [
       `${c.name}, there are two basic ways to buy a business, and it’s worth knowing the difference before you talk to anyone.`,
       '<strong>Buying the shares</strong> means buying the company itself. Everything comes with it: contracts, staff, licences, history. Simpler to keep running, but you inherit any skeletons too, so due diligence and warranties matter more.',
-      '<strong>Buying the assets</strong> means buying what the business uses (equipment, customer lists, brand, goodwill) into your own entity. Often cleaner, because old liabilities usually stay with the seller, but contracts, leases and licences may need to be transferred or re-signed.',
+      '<strong>Buying the assets</strong> means buying what the business uses (equipment, customer lists, brand, goodwill) into your own entity. It can be cleaner, because old liabilities stay with the seller unless you agree to take them on, but contracts, leases and licences may need to be transferred or re-signed.',
       'Which is better depends on the business, the tax position of both sides and what the lender wants. Your accountant and lawyer should make that call with you. I just want you walking in knowing the question exists.',
-      d.goal === 'group' ? 'You told us you want to build a group. How each deal is held matters even more then, because the shape of deal one tends to set up deals two and three.' : null,
+      d.goal === 'group' ? 'You told us you want to build a group. How each deal is held matters even more then, because the shape of deal one sets up deals two and three.' : null,
     ].filter(Boolean) as string[],
     ps: 'This is general information, not legal, tax or financial advice.',
   }),
   ra_fall_over: (c, d) => ({
     subject: 'why deals fall over',
-    preheader: 'Usually not where you’d expect.',
+    preheader: 'Rarely where you’d expect.',
     body: [
-      `${c.name}, deals rarely fall over for dramatic reasons. Usually it’s one of these:`,
+      `${c.name}, deals rarely fall over for dramatic reasons. These are the ones to watch for:`,
       '• <strong>The numbers didn’t survive due diligence.</strong> The profit was lower than the seller thought, or the add-backs didn’t hold up.<br>• <strong>The seller wasn’t really ready.</strong> They liked the idea of selling more than the reality of handing over.<br>• <strong>The debt cover didn’t work.</strong> At the agreed price, the profit couldn’t cover the repayments about 1.5 times.<br>• <strong>A key customer or staff member was at risk</strong>, and nobody found out until late.<br>• <strong>The buyer ran out of steam.</strong> Deals take weeks of steady work, and momentum matters.',
       'Most of these can be seen early if you know where to look. That’s the point of doing the numbers and the seller conversations properly before anyone signs.',
       has(d, 'time') ? 'You told us time was what was in the way. The last point is the one to plan for: a few steady hours a week beats a burst of enthusiasm.' : null,
@@ -298,7 +307,8 @@ export const REACTIVATE_A: Record<string, T> = {
       'Here’s roughly what happens:',
       '• The lender releases the commercial debt to pay the seller.<br>• The seller finance and seller rollover are documented: the seller is now owed the note over time, and holds their stake.<br>• Ownership of the shares or assets passes to you.<br>• Bank accounts, signing authorities, insurances and key supplier accounts move across.<br>• The handover period starts.',
       'Then the real day one begins: the conversation with key staff, the call or visit to key customers, and your first week as the owner.',
-      `The preparation is what keeps it calm. By settlement, every one of those steps should have been agreed weeks earlier. You’ve run ${yourBiz(d)} long enough to know the paperwork is the easy part. The people are the work.`,
+      `The preparation is what keeps it calm. By settlement, every one of those steps should have been agreed weeks earlier.`,
+      `You’ve run ${yourBiz(d)} long enough to know the paperwork is the easy part. The people are the work.`,
     ],
     ps: 'Reply if you’d like me to walk you through any of those steps in more detail.',
   }),
@@ -309,8 +319,8 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'Why the seller doesn’t vanish on day one.',
     body: [
       `${c.name}, one of the most important lines in any deal is how long the seller stays after settlement.`,
-      'A handover (sometimes called a transition period) is usually a few months, sometimes longer. The seller introduces you to key customers, suppliers and staff, explains how things actually get done, and answers the questions you don’t know to ask yet.',
-      'It’s often easier to agree than people expect, because it suits the seller too. If they’re being paid a seller note out of the business, or they’ve kept a stake through seller rollover, they want it to do well under you.',
+      'A handover (sometimes called a transition period) runs for an agreed period, from a few months to longer. The seller introduces you to key customers, suppliers and staff, explains how things actually get done, and answers the questions you don’t know to ask yet.',
+      'It’s easier to agree than people expect, because it suits the seller too. If they’re being paid a seller note out of the business, or they’ve kept a stake through seller rollover, they want it to do well under you.',
       'What to agree up front: how many days a week, for how long, what they’re responsible for, and when they step back.',
       has(d, 'integration') ? 'You told us integration was the worry. A well-written handover is one of the best protections against it.' : null,
     ].filter(Boolean) as string[],
@@ -321,7 +331,8 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'Staff and customers, once the sale is done.',
     body: [
       `${c.name}, the deal settles on a Friday. What happens on Monday?`,
-      '<strong>Staff</strong> want to know three things: is my job safe, is my pay the same, and who do I go to now. Answer those clearly, in person, on day one. How their employment carries over depends on how the deal is structured, and your lawyer handles that part. The message is yours.',
+      '<strong>Staff</strong> want to know three things: is my job safe, is my pay the same, and who do I go to now. Answer those clearly, in person, on day one.',
+      'How their employment carries over depends on how the deal is structured, and your lawyer handles that part. The message is yours.',
       '<strong>Customers</strong> mostly want to know nothing is going to get worse. A call or a visit with the seller beside you does more than any letter. Keep the name, the phone number and the people they deal with the same for a while.',
       '<strong>You</strong> resist the urge to change everything. The first few months are for learning, not fixing.',
       d.industry ? `Whoever walks through the door of ${d.industry.target}, they’re loyal to the people they know there. That loyalty is a big part of what you’re buying.` : null,
@@ -332,9 +343,9 @@ export const REACTIVATE_A: Record<string, T> = {
     subject: 'what to merge, what to leave alone',
     preheader: 'Integration without breaking what works.',
     body: [
-      `${c.name}, once you own two businesses, the temptation is to merge everything straight away. That’s usually a mistake.`,
+      `${c.name}, once you own two businesses, the temptation is to merge everything straight away. Resist it.`,
       'A simple way to organise it:',
-      '<strong>Merge early:</strong> the things customers never see. Bookkeeping, payroll, insurance, purchasing. That’s often where the savings come from.<br><strong>Merge later:</strong> the systems staff use every day. Software, rosters, processes. Change them once people trust you.<br><strong>Maybe never:</strong> the brand and the front door, if customers are loyal to them.',
+      '<strong>Merge early:</strong> the things customers never see. Bookkeeping, payroll, insurance, purchasing. That’s where a lot of the savings come from.<br><strong>Merge later:</strong> the systems staff use every day. Software, rosters, processes. Change them once people trust you.<br><strong>Maybe never:</strong> the brand and the front door, if customers are loyal to them.',
       'Shared costs are a big part of why buying a business like yours can work so well. But the savings come from doing it in the right order, not all at once.',
       d.industry ? `If you bought ${d.industry.target}, the question to ask about every change is simple: will a customer notice? If yes, slow down.` : 'The question to ask about every change is simple: will a customer notice? If yes, slow down.',
     ],
@@ -349,7 +360,7 @@ export const REACTIVATE_A: Record<string, T> = {
       `${c.name}, there are two kinds of first acquisition, and they suit different owners.`,
       '<strong>A competitor</strong> does what you do, for the same kind of customer. The upside: you know exactly how it works, and the savings from shared overheads can be large. The watch-outs: customers may overlap, and staff may know you as the opposition.',
       '<strong>An adjacent business</strong> does something next to what you do: a service your customers already buy elsewhere, or the same service in a new area. The upside: new revenue, cross-selling, less overlap. The watch-out: you’re learning something new.',
-      d.industry ? `For ${d.industry.owners}, a competitor might be ${d.industry.target}. An adjacent move might be a related service your customers already pay someone else for.` : null,
+      d.industry ? `For ${d.industry.owners}, a competitor could be ${d.industry.target}. An adjacent move could be a related service your customers already pay someone else for.` : null,
       d.goal === 'acquire' ? 'You told us you wanted to grow by buying competitors or add-ons, so both are on the table for you.' : null,
       'Either way, the funding works the same: commercial debt, seller finance and seller rollover, tested at about 1.5 times debt cover.',
     ].filter(Boolean) as string[],
@@ -374,10 +385,11 @@ export const REACTIVATE_A: Record<string, T> = {
       d.revenue && BIG_REVENUE.includes(d.revenue) && d.revenueLabel
         ? `${c.name}, you told us ${yourBiz(d)} does ${d.revenueLabel} in revenue, so this one is written for you.`
         : `${c.name}, this one is about where it can go once a business gets bigger.`,
-      'Owners doing $10M to $50M and more in revenue often don’t just buy the business down the road. They make platform deals: buying a business big enough to become the base of a group, or several at once, with a management team, a finance function and systems that can absorb more.',
-      'The mechanics don’t change. Commercial debt, seller finance and seller rollover fund the price, and the 1.5 times debt cover test still decides whether a deal makes sense. What changes is the size of the cheques, the number of lenders who may want to compete for it, and how much the rollover can matter. A larger seller often wants to stay in for the next stage.',
+      'Some owners doing $10M to $50M and more in revenue go past the business down the road. They make platform deals: buying a business big enough to become the base of a group, or several at once, with a management team, a finance function and systems that can absorb more.',
+      'The mechanics don’t change. Commercial debt, seller finance and seller rollover fund the price, and the 1.5 times debt cover test still decides whether a deal makes sense.',
+      'What changes is the size of the cheques, the number of lenders who may want to compete for it, and how much the rollover can matter, because a larger seller may want to stay in for the next stage.',
       'The other difference is preparation. A bigger deal takes more diligence, tighter reporting and a team that has done it before.',
-      d.goal === 'group' ? 'You told us you want to build a group. A platform deal is often how that starts.' : null,
+      d.goal === 'group' ? 'You told us you want to build a group. A platform deal is one way that starts.' : null,
     ].filter(Boolean) as string[],
     cta: { label: 'Book a strategy call →', href: book(c) },
   }),
@@ -395,7 +407,7 @@ export const REACTIVATE_A: Record<string, T> = {
       d.goal === 'exit'
         ? 'You told us you want to grow and then sell. This is the mechanism behind that plan.'
         : d.goal === 'group'
-          ? 'You told us you want to build a group. This is the mechanism behind why groups are often valued higher than their parts.'
+          ? 'You told us you want to build a group. This is the mechanism behind why a group can be valued higher than its parts.'
           : null,
     ].filter(Boolean) as string[],
     cta: { label: 'Book a strategy call →', href: book(c) },
@@ -418,7 +430,7 @@ export const REACTIVATE_A: Record<string, T> = {
     preheader: 'Everything from the last ten days, in order.',
     body: [
       `${c.name}, I’ve sent a lot on how this works. Here it is on one page.`,
-      '<strong>1. Find:</strong> owners ready to step back, approached directly, usually before a broker.<br><strong>2. Price:</strong> a multiple of normalised profit, moved up or down by how much depends on the owner.<br><strong>3. Fund:</strong> commercial debt, seller finance and seller rollover, often with a working-capital line on top.<br><strong>4. Test:</strong> the target’s profit covers its repayments about 1.5 times, or you don’t do it.<br><strong>5. Agree:</strong> a letter of intent, then due diligence.<br><strong>6. Settle:</strong> lawyers swap documents, and the handover begins.<br><strong>7. Run:</strong> keep the staff and customers, merge the back office first.',
+      '<strong>1. Find:</strong> owners ready to step back, approached directly, before a broker is involved.<br><strong>2. Price:</strong> a multiple of normalised profit, moved up or down by how much depends on the owner.<br><strong>3. Fund:</strong> commercial debt, seller finance and seller rollover, plus a working-capital line when the cash flow supports it.<br><strong>4. Test:</strong> the target’s profit covers its repayments about 1.5 times, or you don’t do it.<br><strong>5. Agree:</strong> a letter of intent, then due diligence.<br><strong>6. Settle:</strong> lawyers swap documents, and the handover begins.<br><strong>7. Run:</strong> keep the staff and customers, merge the back office first.',
       `The next step is seeing it on ${yourBiz(d)}${sizeLine(d) ? `, ${sizeLine(d)}` : ''}: what a sensible first target looks like, which structure fits, and whether the numbers clear the test. That’s what a strategy call is for.`,
     ],
     cta: { label: 'Book a strategy call →', href: book(c) },

@@ -87,7 +87,8 @@ export const WEBINAR_TEMPLATES: Record<string, T> = {
     body: [
       `Hey ${c.name},`,
       'After every session, the most common question is: “Would this work for my business?”',
-      'The honest answer depends on your numbers: your profit, your industry, and what’s for sale near you. That’s exactly what the application and the strategy call are for. If it fits, we map out your first deal. If it doesn’t, we tell you straight.',
+      'The honest answer depends on your numbers: your profit, your industry, and what’s for sale near you. That’s exactly what the application and the strategy call are for.',
+      'If it fits, we map out your first deal. If it doesn’t, we tell you straight.',
     ],
     cta: { label: 'Find out if it fits →', href: c.link('/apply') },
   }),

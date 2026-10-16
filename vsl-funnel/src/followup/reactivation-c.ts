@@ -41,7 +41,7 @@ const OBJECTION_FOLLOWUP: Record<string, { subject: string; body: string[] }> = 
     subject: 'where the thinking landed',
     body: [
       'You wanted time to think it over when we spoke. It’s been a while, so I’m curious where the thinking landed.',
-      'If it landed on “not for me”, that’s a perfectly good answer. If it landed on “maybe, but I still have a question”, reply with the question. One straight answer is often all that’s missing.',
+      'If it landed on “not for me”, that’s a perfectly good answer. If it landed on “maybe, but I still have a question”, reply with the question. Sometimes one straight answer is all that’s missing.',
     ],
   },
   'Partner / spouse': {
@@ -76,7 +76,7 @@ const OBJECTION_FOLLOWUP: Record<string, { subject: string; body: string[] }> = 
     subject: 'has anything changed?',
     body: [
       'When we spoke we agreed it wasn’t the right fit, and I appreciated you being straight about it.',
-      'Businesses change, though. Profit grows, a partner wants out, a competitor goes quiet. If any of that has happened, it might be worth another look.',
+      'Businesses change, though. Profit grows, a partner wants out, a competitor goes quiet. If any of that has happened, it’s worth another look.',
     ],
   },
 };
@@ -87,7 +87,7 @@ export const REACTIVATE_C: Record<string, T> = {
     const saidTime = d.blockers.includes('time');
     return {
       subject: 'the busiest owners have the most to gain',
-      preheader: 'Busy is usually the reason to do it, not the reason not to.',
+      preheader: 'Being busy is a reason to do it, not a reason not to.',
       body: lines([
         `${c.name},`,
         saidTime ? 'You told us being too busy running the business was part of what held you back. I want to turn that one around.' : '“I’m too busy” is the most honest objection I hear, and I want to turn it around.',
@@ -116,9 +116,9 @@ export const REACTIVATE_C: Record<string, T> = {
     body: lines([
       `${c.name}, a lot of owners rule this out because they assume a bank won’t lend to them. Maybe they’ve been knocked back before.`,
       'Acquisition lending works differently from a personal loan. The lender looks first at the business being bought: its profit, and whether that profit covers the repayments about 1.5 times. Your own balance sheet matters less than people expect.',
-      'And the bank usually isn’t funding the whole price. Commercial debt covers part, the seller carries part as a note, and the seller rolls part into a stake they keep. Each layer the seller carries is a layer the bank doesn’t have to.',
+      'And the bank isn’t funding the whole price. Commercial debt covers part, the seller carries part as a note, and the seller rolls part into a stake they keep. Each layer the seller carries is a layer the bank doesn’t have to.',
       profitText(d) ? `With your business making ${profitText(d)} in profit, the question is what size of target a lender would back next to it. That’s a calculation, not a guess.` : null,
-      'Whether a particular lender will back a particular deal is never certain. But “banks won’t lend to me” is usually the wrong question.',
+      'Whether a particular lender will back a particular deal is never certain. But “banks won’t lend to me” is the wrong question to start with.',
     ]),
     cta: { label: 'How lenders test a deal →', href: c.link('/guides/dscr-explained') },
   }),
@@ -141,8 +141,8 @@ export const REACTIVATE_C: Record<string, T> = {
     body: lines([
       `${c.name},`,
       d.readiness === 'partner' ? 'You told us you’d make this decision with your partner. That’s the right way to do it.' : 'If there’s a partner or spouse who’d need to be comfortable with this, they should be part of the decision, not told about it afterwards.',
-      'In my experience they usually ask three things:',
-      '1. <strong>Is our house on the line?</strong> The lender’s security is usually over the business being bought. Any guarantees get spelled out before anything is signed.<br>2. <strong>Will I see less of you?</strong> A few focused hours a week while you buy, and you’re buying a team, not a second job.<br>3. <strong>What if it doesn’t work?</strong> The deal has to cover its repayments about 1.5 times, the seller stays invested through rollover, and if the numbers aren’t there, there’s no deal.',
+      'In my experience they ask three things:',
+      '1. <strong>Is our house on the line?</strong> Acquisition lenders take security over the business being bought, and any guarantees get spelled out before anything is signed.<br>2. <strong>Will I see less of you?</strong> A few focused hours a week while you buy, and you’re buying a team, not a second job.<br>3. <strong>What if it doesn’t work?</strong> The deal has to cover its repayments about 1.5 times, the seller stays invested through rollover, and if the numbers aren’t there, there’s no deal.',
       'Those are their questions to ask, not yours to relay. They’re welcome on the call.',
     ]),
     cta: { label: 'Book a time that suits you both →', href: book(c) },
@@ -184,7 +184,7 @@ export const REACTIVATE_C: Record<string, T> = {
     preheader: 'Four questions. Most owners are closer than they think.',
     body: lines([
       `${c.name},`,
-      d.readiness === 'not_now' ? 'When you applied, you said you weren’t ready to move right now. That was honest, and it might still be true.' : '“I’m not ready” is one of the most common things owners tell me.',
+      d.readiness === 'not_now' ? 'When you applied, you said you weren’t ready to move right now. That was honest, and it may still be true.' : '“I’m not ready” is one of the most common things owners tell me.',
       'Nobody ever feels ready to buy their first business. So rather than wait for the feeling, check the list:',
       '1. Is your business profitable, with books you could show a lender?<br>2. Could it run for a few hours a week without you?<br>3. Is there a kind of business, in your industry or next to it, you’d want to own?<br>4. Are you open to the seller staying involved through seller finance or seller rollover?',
       'If it’s mostly yes, you’re closer than you feel. If it’s mostly no, you now know what to work on, and that’s useful too.',
@@ -227,21 +227,21 @@ export const REACTIVATE_C: Record<string, T> = {
     subject: 'which of these is true for you?',
     preheader: 'Reply with a letter. That’s all.',
     body: [
-      `${c.name}, quick one. Which is closest?`,
-      '<strong>A.</strong> I want to buy a business, I’m just waiting for the right one.<br><strong>B.</strong> I want to, but I’m not sure about the money side.<br><strong>C.</strong> I want to, but I can’t see where I’d find the time.<br><strong>D.</strong> Not now. Maybe next year.<br><strong>E.</strong> It’s not for me.',
+      `${c.name}, quick one: which of these is closest?`,
+      '<strong>A.</strong> I want to buy a business, I’m just waiting for the right one.<br><strong>B.</strong> I want to, but I’m not sure about the money side.<br><strong>C.</strong> I want to, but I can’t see where I’d find the time.<br><strong>D.</strong> Not now, maybe next year.<br><strong>E.</strong> This isn’t for me at all.',
       'Reply with the letter. I read every reply, and it tells me what’s actually useful to send you.',
     ],
   }),
   rc_objection: (c, d) => {
     const f = d.objection && OBJECTIONS[d.objection] ? OBJECTION_FOLLOWUP[d.objection] ?? null : null;
     return {
-      subject: f ? f.subject : 'the thing that usually stops people',
+      subject: f ? f.subject : 'the thing that stops people',
       preheader: f ? 'Picking up where we left off.' : 'It’s rarely the thing they say first.',
       body: f
-        ? [`${c.name},`, ...f.body, 'If you want to pick it up again, reply or grab a time. If not, that’s fine too.']
+        ? [`${c.name},`, ...f.body, 'Want to pick it up again? Reply or grab a time, and if not, that’s fine too.']
         : [
             `${c.name},`,
-            'When owners don’t go ahead, the reason they give first is usually time or money. The real one is often quieter: “I don’t want to look foolish if it doesn’t work.”',
+            'When owners don’t go ahead, they tell me it’s time or money. For some, the real reason is quieter: “I don’t want to look foolish if it doesn’t work.”',
             'That’s a fair fear. The answer isn’t confidence. It’s process: test the numbers before you fall for a business, keep the seller invested through seller finance and rollover, and walk away when it doesn’t add up.',
             'If something specific is holding you back, reply and tell me what it is.',
           ],
@@ -299,7 +299,8 @@ export const REACTIVATE_C: Record<string, T> = {
       body: lines([
         `${c.name},`,
         known && said ? `When you applied, you said you’d want to close a deal ${said}.` : 'Pick a date you’d like to own your next business by.',
-        'Now count back. Settlement usually follows a signed letter of intent by a few months: diligence, the lender and the lawyers. The letter of intent comes after weeks of owner conversations. Those conversations start with a target list.',
+        'Now count back. Settlement follows a signed letter of intent by a few months: diligence, the lender and the lawyers.',
+        'The letter of intent comes after weeks of owner conversations. Those conversations start with a target list.',
         d.timeline === '0_6' ? 'For your window, that means the target list needed to exist already. It’s tight, but not impossible if you start now.' : d.timeline === '6_12' ? 'For your window, the target list and the first conversations belong in the next few weeks.' : 'Even with a longer horizon, the conversations are what take the time, so they start long before the deal does.',
         'The date you want is decided by when you start, not when you’d like to finish.',
       ]),
@@ -322,8 +323,9 @@ export const REACTIVATE_C: Record<string, T> = {
     preheader: 'Because cash on day one isn’t all they want.',
     body: [
       `${c.name}, the doubt behind a lot of the doubts: why would an owner accept being paid over time, or keep a stake, instead of cash?`,
-      'Because many of them want more than a cheque. They want their staff looked after, their customers kept, their name on the door to mean something, and an income after they step back. A seller note gives them that income. A rollover stake gives them a share of what you build.',
-      'Not every seller will say yes, and the ones who need all their cash on day one aren’t the right targets. But the ones who care how it ends often prefer a buyer who knows the industry over a bigger cheque from a stranger.',
+      'Because many of them want more than a cheque. They want their staff looked after, their customers kept, their name on the door to mean something, and an income after they step back.',
+      'A seller note gives them that income, and a rollover stake gives them a share of what you build.',
+      'Not every seller will say yes, and the ones who need all their cash on day one aren’t the right targets. But plenty of the ones who care how it ends would rather have a buyer who knows the industry than a bigger cheque from a stranger.',
     ],
     cta: { label: 'Read: questions to ask a seller →', href: c.link('/guides/questions-to-ask-a-business-seller') },
   }),
@@ -353,7 +355,7 @@ export const REACTIVATE_C: Record<string, T> = {
     subject: d.industry ? `does this work for ${d.industry.many}?` : 'does this work in my industry?',
     preheader: 'The test is the same everywhere. The targets aren’t.',
     body: lines([
-      `${c.name}, “that might work in other industries, but not in mine” comes up a lot.`,
+      `${c.name}, “that works in other industries, but not in mine” comes up a lot.`,
       'The funding test is the same in every industry: the target’s profit should cover its repayments about 1.5 times, with the price funded by commercial debt, seller finance and seller rollover. What changes is what you’re buying and what to check.',
       d.industry ? `In ${industryName(d.industry)}, that means ${d.industry.many} like ${d.industry.target}, and the specific risks in that kind of business. I wrote up how it works for ${d.industry.owners}.` : 'Some industries have more retiring owners, some have lumpier revenue, some depend more on one key person. I wrote up how it works start to finish, so you can judge for yourself.',
       'And if your industry genuinely doesn’t suit it, we’ll tell you that on a call.',
@@ -376,7 +378,7 @@ export const REACTIVATE_C: Record<string, T> = {
     preheader: 'Everything that matters, in case you skimmed.',
     body: lines([
       `${c.name}, if you skimmed the last few weeks of emails (fair), here’s what matters:`,
-      '1. You can buy a business with none of your own money going in, using commercial debt, seller finance and seller rollover.<br>2. The test is simple: the target’s profit should cover its repayments about 1.5 times. If it doesn’t, no deal.<br>3. The best businesses to buy usually aren’t listed. You reach the owners directly.<br>4. It takes a few focused hours a week, and the business you buy comes with its own team.<br>5. You can go from target list to signed letter of intent in about 90 days.',
+      '1. You can buy a business with none of your own money going in, using commercial debt, seller finance and seller rollover.<br>2. The test is simple: the target’s profit should cover its repayments about 1.5 times. If it doesn’t, no deal.<br>3. Many of the best businesses to buy are never listed. You reach the owners directly.<br>4. It takes a few focused hours a week, and the business you buy comes with its own team.<br>5. You can go from target list to signed letter of intent in about 90 days.',
       d.business || sizeLine(d) ? `And all of it applies to ${d.business ?? yourBiz(d)}${sizeLine(d) ? `, ${sizeLine(d)}` : ''}.` : null,
       'If you want to see the whole model in one place, the main video covers it.',
     ]),
@@ -398,7 +400,7 @@ export const REACTIVATE_C: Record<string, T> = {
     subject: 'ask me the awkward question',
     preheader: 'The one you wouldn’t ask on a call.',
     body: [
-      `${c.name}, there’s usually one question people don’t want to ask on a call. “What’s the catch?” “What if I’m not good enough at this?” “What happens if the seller lies to me?”`,
+      `${c.name}, there’s one kind of question people don’t want to ask on a call. “What’s the catch?” “What if I’m not good enough at this?” “What happens if the seller lies to me?”`,
       'Hit reply and ask it. I’ll answer it straight, in writing, with no call needed.',
     ],
   }),
@@ -420,7 +422,7 @@ export const REACTIVATE_C: Record<string, T> = {
     body: lines([
       `${c.name}, before these emails stop, one question.`,
       `What would need to be true for you to buy a business${d.industry ? ` alongside ${yourBiz(d)}` : ''}?`,
-      'Maybe it’s the right business coming up. Maybe it’s knowing the money would work. Maybe it’s a quieter year, or your partner being on board.',
+      'Maybe it’s the right business coming up. Knowing the money would work could be enough on its own. For some owners it’s simpler still: a quieter year, or a partner who’s on board.',
       'Whatever your answer is, reply with it. It’s the most useful thing you could tell me, and I’ll tell you honestly whether it’s something we can help with.',
     ]),
   }),

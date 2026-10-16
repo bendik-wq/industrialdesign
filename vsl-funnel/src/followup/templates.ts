@@ -60,7 +60,7 @@ const PREP: Record<string, T> = {
       `Here’s a rough sketch, based on what you told us${profitText(d) ? ` (profit ${profitText(d)})` : ''}. It’s illustrative, not advice, but it gives you a feel for the scale:`,
       d.deal
         ? `• <strong>Target:</strong> a business making ${d.deal.targetProfit} a year in profit<br>• <strong>Price:</strong> typically ${d.deal.price}, depending on the multiple<br>• <strong>Funding:</strong> senior debt, a seller note and seller rollover, over-financed so none of your own cash goes in<br>• <strong>Test:</strong> the target’s profit covers its repayments about 1.5 times<br>• <strong>Result:</strong> ${d.deal.combined}`
-        : '• <strong>Target:</strong> a business your cash flow can support, often one roughly your size or smaller<br>• <strong>Funding:</strong> senior debt, a seller note and seller rollover, over-financed so none of your own cash goes in<br>• <strong>Test:</strong> the target’s profit covers its repayments about 1.5 times',
+        : '• <strong>Target:</strong> a business your cash flow can support, such as one roughly your size or smaller<br>• <strong>Funding:</strong> senior debt, a seller note and seller rollover, over-financed so none of your own cash goes in<br>• <strong>Test:</strong> the target’s profit covers its repayments about 1.5 times',
       'On the call we’ll replace these ranges with your real numbers.',
     ],
     ps: 'Have your last year’s profit and loss handy if you can. It makes this part much sharper.',
@@ -74,8 +74,8 @@ const PREP: Record<string, T> = {
         `Hey ${c.name},`,
         `${i ? `${i.many[0].toUpperCase()}${i.many.slice(1)} are` : 'Established service businesses are'} some of the best acquisition targets there are: steady demand, repeat customers, and a generation of owners getting ready to retire with nobody to hand over to.`,
         i
-          ? `Think about ${i.target}. Most ${i.owners} we speak to can name one or two businesses like that without trying. Those are your targets, and the owners usually prefer selling to someone in the industry who’ll look after their staff and customers.`
-          : 'Think about the competitor you keep bumping into, or the business next door to yours whose owner is getting tired. Those are your targets, and those owners usually prefer selling to someone who’ll look after their staff and customers.',
+          ? `Think about ${i.target}. Most ${i.owners} we speak to can name one or two businesses like that without trying. Those are your targets, and many of those owners would rather sell to someone in the industry who’ll look after their staff and customers.`
+          : 'Think about the competitor you keep bumping into, or the business next door to yours whose owner is getting tired. Those are your targets, and many of those owners would rather sell to someone who’ll look after their staff and customers.',
         `Come to the call with a name or two in mind. ${callLine(c)}`,
       ],
     };
@@ -85,7 +85,7 @@ const PREP: Record<string, T> = {
     preheader: 'How the timeline actually plays out.',
     body: [
       `${c.name},`,
-      TIMELINES[d.timeline ?? ''] ?? 'Here’s how the timeline usually plays out, so you know what you’d be signing up for.',
+      TIMELINES[d.timeline ?? ''] ?? 'Here’s how the timeline plays out, so you know what you’d be signing up for.',
       'Roughly: weeks 1–3 build the target list and reach out; weeks 4–8 meet owners and model the deals; weeks 9–12 structure the offer, line up the lender and sign the LOI.',
       callLine(c),
     ],
@@ -236,7 +236,7 @@ const POSTCALL: Record<string, T> = {
     preheader: 'If not you, a competitor.',
     body: [
       `Hey ${c.name},`,
-      `Here’s the uncomfortable bit: owners in ${peers(d)} are retiring whether or not you’re ready. When ${d.industry ? d.industry.target : 'the business down the road'} sells, it sells to someone. Often a competitor, sometimes a private equity roll-up.`,
+      `Here’s the uncomfortable bit: owners in ${peers(d)} are retiring whether or not you’re ready. When ${d.industry ? d.industry.target : 'the business down the road'} sells, it sells to someone. Sometimes a competitor, sometimes a private equity roll-up.`,
       'Either way, the customer base you could have bought goes to them. Being the buyer is a choice you can make now.',
     ],
   }),
@@ -335,7 +335,7 @@ const LOST: Record<string, T> = {
     body: [
       `${c.name},`,
       'If you only remember one thing about funding an acquisition, make it this: lenders want the target’s profit to cover its repayments about 1.5 times.',
-      d.deal ? `At your size, that usually points to a target making ${d.deal.targetProfit} a year. Keep an eye out for one.` : 'Keep that number in mind next time you hear a business is for sale.',
+      d.deal ? `At your size, that points to a target making ${d.deal.targetProfit} a year. Keep an eye out for one.` : 'Keep that number in mind next time you hear a business is for sale.',
     ],
   }),
   lo_5: (c, d) => ({
@@ -392,7 +392,7 @@ const WON: Record<string, T> = {
   won_4: (c) => ({
     subject: 'week one check-in',
     preheader: 'How’s it going?',
-    body: [`Hey ${c.name},`, 'One week in. How’s it going? Reply with where you’re at, and anything that’s stuck. Getting stuck early is normal. Staying stuck is the only real problem.'],
+    body: [`Hey ${c.name},`, 'One week in. How’s it going? Reply with where you’re at, and anything that’s stuck.', 'Getting stuck early is normal. Staying stuck is the only real problem.'],
   }),
   won_5: (c) => ({
     subject: 'getting lender-ready',
@@ -436,8 +436,8 @@ const NURTURE: Record<string, T> = {
     body: [
       `${c.name},`,
       d.deal
-        ? `At your size, a first deal usually looks like this: a target making ${d.deal.targetProfit} in profit, priced around ${d.deal.price}, funded by senior debt, a seller note and seller rollover. Result: ${d.deal.combined}. Illustrative only, but that’s the scale.`
-        : 'A first deal usually means buying a business roughly your size or smaller, funded by senior debt, a seller note and seller rollover, with the target’s profit covering repayments about 1.5 times.',
+        ? `At your size, a first deal could look like this: a target making ${d.deal.targetProfit} in profit, priced around ${d.deal.price}, funded by senior debt, a seller note and seller rollover. Result: ${d.deal.combined}. Illustrative only, but that’s the scale.`
+        : 'A sensible first deal means buying a business roughly your size or smaller, funded by senior debt, a seller note and seller rollover, with the target’s profit covering repayments about 1.5 times.',
     ],
     cta: { label: 'Run my real numbers →', href: book(c) },
   }),
@@ -452,7 +452,8 @@ const NURTURE: Record<string, T> = {
     preheader: 'It’s in their interest, not just yours.',
     body: [
       `${c.name},`,
-      'People assume seller finance is a favour. It isn’t. A seller who carries part of the price gets a higher total price, interest on top, a steady income in retirement, and often a better tax position than taking it all up front. With seller rollover they keep a slice of the business too, so they win when you grow it.',
+      'People assume seller finance is a favour. It isn’t.',
+      'A seller who carries part of the price gets a higher total price, interest on top, a steady income in retirement, and in some cases a better tax position than taking it all up front. With seller rollover they keep a slice of the business too, so they win when you grow it.',
       'That’s why it’s how most small businesses change hands.',
     ],
   }),
@@ -471,7 +472,8 @@ const NURTURE: Record<string, T> = {
     preheader: '1.5.',
     body: [
       `${c.name},`,
-      'Every acquisition we structure starts with one number: the debt service coverage ratio. The target’s profit should cover its loan repayments about 1.5 times. Hit that and lenders lean in. Miss it and no amount of charm fixes it.',
+      'Every acquisition we structure starts with one number: the debt service coverage ratio. The target’s profit should cover its loan repayments about 1.5 times.',
+      'Hit that and lenders lean in. Miss it and no amount of charm fixes it.',
       'Next time you hear a business is for sale, ask for its profit and do the maths.',
     ],
   }),
@@ -514,7 +516,7 @@ const OPENERS: Record<string, (c: TemplateCtx) => { subject: string; line: strin
   no_show: (c) => ({ subject: `${c.name}, we missed each other`, line: `We had a strategy call booked${callDate(c) ? ` for ${callDate(c)}` : ''} and it didn’t happen. No stress, it happens, and I didn’t want to just let it drop.` }),
   cancelled: (c) => ({ subject: `${c.name}, about the call you cancelled`, line: 'You cancelled your strategy call and we never found another time. I wanted to check in properly before I close your file.' }),
   applied: (c) => ({ subject: `${c.name}, you applied but we never spoke`, line: `You went through the application ${backWhen(c.lead.app_completed_at ?? c.lead.created_at)}, but we never got a call in the diary.` }),
-  partial: (c) => ({ subject: `${c.name}, you started something ${backWhen(c.lead.created_at).replace(/^back /, '')}`, line: `You started an application ${backWhen(c.lead.created_at)} and didn’t get to the end. Plenty of people don’t, usually because life got busy.` }),
+  partial: (c) => ({ subject: `${c.name}, you started something ${backWhen(c.lead.created_at).replace(/^back /, '')}`, line: `You started an application ${backWhen(c.lead.created_at)} and didn’t get to the end. Plenty of people don’t. Life gets busy.` }),
   past_call: (c) => ({ subject: `${c.name}, since we spoke`, line: `We spoke${callDate(c) ? ` on ${callDate(c)}` : ''} about buying a business with no money down, and I never heard where you landed.` }),
   nurture: (c) => ({ subject: `${c.name}, checking back in`, line: 'Last time we spoke the timing wasn’t quite right for an acquisition. It’s been long enough that I wanted to check in.' }),
   lost: (c) => ({ subject: `${c.name}, a lot can change in a few months`, line: 'We spoke a while ago and decided it wasn’t the right time. A lot can change in a few months, so I wanted to check in.' }),
@@ -546,9 +548,9 @@ const REACTIVATE: Record<string, T> = {
     body: [
       `${c.name}, I ran the rough numbers for ${yourBiz(d)}${sizeLine(d) ? `, ${sizeLine(d)}` : ''}.`,
       d.deal
-        ? `A sensible first target makes around ${d.deal.targetProfit} in profit, which usually means a price of ${d.deal.price}. Bought well, that gives you ${d.deal.combined}.`
-        : 'A sensible first target is usually a business a little smaller than yours, with steady profit and an owner ready to step back.',
-      'Here’s how a deal like that is commonly funded (illustrative): 70% commercial debt, 20% seller finance paid over a few years from the business’s own cash flow, and 10% seller rollover, where the owner keeps a stake. None of your own cash goes in, and the lender usually adds a working-capital line on top.',
+        ? `A sensible first target makes around ${d.deal.targetProfit} in profit, which at a typical multiple means a price of ${d.deal.price}. Bought well, that gives you ${d.deal.combined}.`
+        : 'A sensible first target is a business a little smaller than yours, with steady profit and an owner ready to step back.',
+      'Here’s how a deal like that is commonly funded (illustrative): 70% commercial debt, 20% seller finance paid over a few years from the business’s own cash flow, and 10% seller rollover, where the owner keeps a stake. None of your own cash goes in, and when the cash flow supports it, the lender adds a working-capital line on top.',
       'The test we run on every deal: the target’s profit has to cover its repayments about 1.5 times. If it doesn’t, we don’t do it.',
     ],
     cta: { label: 'See if you qualify →', href: c.link('/apply?again=1') },
@@ -583,7 +585,7 @@ const REACTIVATE: Record<string, T> = {
         ind
           ? `The best ${ind.many} to buy are rarely listed. They’re owners getting ready to retire with no one to hand over to, and ${ind.target}.`
           : 'The best businesses to buy are rarely listed. They’re owners getting ready to retire with no one to hand over to, and competitors who are quietly tired.',
-        `I wrote up how it works${ind ? ' in your industry' : ''}: what you’re actually buying, what to check, and how deals like this are usually funded with commercial debt, seller finance and seller rollover.`,
+        `I wrote up how it works${ind ? ' in your industry' : ''}: what you’re actually buying, what to check, and how deals like this get funded with commercial debt, seller finance and seller rollover.`,
       ],
       cta: { label: ind ? `Read the ${industryName(ind)} guide →` : 'Read the guide →', href: c.link(ind ? guideFor(ind.id) : '/guides/how-to-buy-a-business-with-no-money-down') },
       ps: 'Reply with the name of a business you’ve always wanted to own. I’m curious.',
@@ -596,7 +598,7 @@ const REACTIVATE: Record<string, T> = {
       preheader: `You said ${said}.`,
       body: [
         `${c.name}, ${backWhen(c.lead.created_at)} you said you wanted to move ${said}.`,
-        'Here’s the thing about timing: the right business comes up when its owner decides they’re done, not when it suits you. The people who end up owning it are the ones who were already talking to that owner.',
+        'The right business comes up when its owner decides they’re done, not when it suits you. The people who end up owning it are the ones who were already talking to that owner.',
         'Starting now doesn’t mean buying now. It means having the list, the structure and the financing ready, so when the right one comes up, you can move in 90 days rather than a year.',
       ],
       cta: { label: 'Book a call →', href: book(c) },

@@ -43,7 +43,8 @@ export const REACTIVATE_B: Record<string, T> = {
     preheader: 'One customer at a time has a speed limit.',
     body: [
       `${c.name}, a thought about how ${yourBiz(d)} grows from here.`,
-      'Organic growth is the honest way to build. More marketing, more staff, more hours, a few more customers each month. It works. But it has a speed limit, and most owners hit it sooner than they expect: the next hire costs before it pays, the next market takes years to win, and you only have so many hours.',
+      'Organic growth is the honest way to build: more marketing, more staff, more hours, a few more customers each month.',
+      'It works. But it has a speed limit, and most owners hit it sooner than they expect: the next hire costs before it pays, the next market takes years to win, and you only have so many hours.',
       'Buying a business doesn’t replace organic growth. It sits on top of it. On the day a deal settles you add a customer base, a team and a profit line that took someone else twenty years to build.',
       'That’s the whole idea. Everything else, the seller conversations and the structure (commercial debt, seller finance and seller rollover), exists to make that step possible without your own cash going in.',
     ],
@@ -56,7 +57,7 @@ export const REACTIVATE_B: Record<string, T> = {
     body: [
       `${c.name}, picture this. One of your competitors buys two of the other ${peers(d)} in your area over the next few years.`,
       'Now they have more staff to cover jobs, better buying power with suppliers, a bigger marketing budget and a name more people recognise. They can quote a little sharper. They can pay your best people a little more.',
-      'None of that happens overnight, and none of it means you lose. But the owner who consolidates a local market first usually gets the pick of the businesses, and the rest compete with whoever they’ve become.',
+      'None of that happens overnight, and none of it means you lose. But the owner who consolidates a local market first gets the first pick of the businesses, and the rest compete with whoever they’ve become.',
       'So the useful question isn’t just “should I buy?”. It’s “who in my market is likely to, and would I rather be them?”.',
       'Reply and tell me who you think it would be. I’m curious how you see it.',
     ],
@@ -68,8 +69,8 @@ export const REACTIVATE_B: Record<string, T> = {
     body: [
       `${c.name}, forget the deal mechanics for a minute and think about what changes in your life if ${yourBiz(d)} has a second profit line next to it.`,
       d.deal
-        ? `For a business your size${profitText(d) ? `, with profit ${profitText(d)}` : ''}, a sensible first target might make something like ${d.deal.targetProfit} a year (illustrative). After its repayments, that’s money you didn’t have before.`
-        : 'A sensible first target is usually a business a little smaller than yours, with steady profit. After its repayments, what’s left is money you didn’t have before.',
+        ? `For a business your size${profitText(d) ? `, with profit ${profitText(d)}` : ''}, a sensible first target could make something like ${d.deal.targetProfit} a year (illustrative). After its repayments, that’s money you didn’t have before.`
+        : 'A sensible first target is a business a little smaller than yours, with steady profit. After its repayments, what’s left is money you didn’t have before.',
       'Owners tend to do one of three things with it: hire the general manager they’ve never been able to justify, step back from the day-to-day, or simply take more home after years of reinvesting everything.',
       `And the target is funded with ${funding}, so the second line is paid for by its own profit, tested at around 1.5 times its repayments.`,
       'Which of the three would you pick?',
@@ -87,7 +88,7 @@ export const REACTIVATE_B: Record<string, T> = {
         ? `You told us ${yourBiz(d)} makes ${profitText(d)} in profit. Say that doubled. Not through more hours from you, but because a second business came under the same roof.`
         : `Say the profit from ${yourBiz(d)} doubled. Not through more hours from you, but because a second business came under the same roof.`,
       'What would you actually do with it?',
-      'Most people’s first answer is about money. The second answer is usually the real one: more time with the kids, finally hiring someone to run operations, building something they could sell one day, or just not lying awake about cash flow.',
+      'Most people’s first answer is about money. The second answer is the one that matters: more time with the kids, finally hiring someone to run operations, building something they could sell one day, or just not lying awake about cash flow.',
       'I’d genuinely like to know your second answer. Hit reply.',
     ],
   }),
@@ -97,7 +98,7 @@ export const REACTIVATE_B: Record<string, T> = {
     preheader: 'Unfashionable businesses make some of the best acquisitions.',
     body: [
       `${c.name}, the businesses that make the best first acquisitions are rarely exciting.`,
-      `They’re ${d.industry ? `${d.industry.many} like yours, and the steady service businesses around them` : 'the steady service businesses: trades, clinics, cleaning, accounting, maintenance'}. Repeat customers. Work that needs doing in a good year and a bad one. Owners who never thought about selling because they were too busy doing the work.`,
+      `They’re ${d.industry ? `${d.industry.many} like yours, and the steady service businesses around them` : 'the steady service businesses: trades, clinics, cleaning, accounting, maintenance'}, with repeat customers and work that needs doing in a good year and a bad one. Their owners never thought about selling because they were too busy doing the work.`,
       'Boring is what lenders like, because steady cash flow is what repays a loan. It’s what sellers in those businesses like, because they want someone who understands the work, not a financial engineer. And it’s what you already know how to run.',
       'Nobody writes magazine stories about buying the plumbing business across town. That’s part of why the good ones are still there to buy.',
     ],
@@ -114,7 +115,7 @@ export const REACTIVATE_B: Record<string, T> = {
         ? `Somewhere in that circle is ${d.industry.target}. Maybe a couple of them. Buying close to home means the same customers, the same suppliers, the same roads, and one set of overheads instead of two.`
         : 'Somewhere in that circle is the business down the road. Maybe a couple of them. Buying close to home means the same customers, the same suppliers, the same roads, and one set of overheads instead of two.',
       'That’s how local markets get consolidated: one owner, one circle, one deal at a time.',
-      'Reply with how many you counted. You might be surprised.',
+      'Reply with how many you counted. I’m curious what you find.',
     ],
   }),
 
@@ -123,7 +124,7 @@ export const REACTIVATE_B: Record<string, T> = {
     preheader: 'The first one teaches you everything.',
     body: [
       `${c.name}, something owners don’t expect: the first acquisition is the hardest one they’ll ever do.`,
-      'Everything is new the first time. The seller conversations. Reading someone else’s books. Talking to a lender about cash flow you don’t own yet. Working out who on the new team you need to sit down with on day one.',
+      'Everything is new the first time: the seller conversations, reading someone else’s books, talking to a lender about cash flow you don’t own yet, and working out who on the new team you need to sit down with on day one.',
       'By the second deal, you’ve got a lender who knows you, a structure you’ve used before, an integration plan you’ve already tested and a business with a bigger profit base behind you. What took months the first time takes weeks.',
       'Which is why the first deal matters so much. It doesn’t have to be big. It has to be sound, so it sets the pattern for the rest.',
     ],
@@ -152,7 +153,7 @@ export const REACTIVATE_B: Record<string, T> = {
         time
           ? `You told us time was one of the things in the way. That makes sense: if every hour already goes to ${yourBiz(d)}, a second business sounds like the last thing you need.`
           : 'Most owners assume a second business means a second job. It sounds like the last thing anyone needs.',
-        'Here’s the part that sounds backwards. A business you buy comes with its own team, often including someone who has been running the day-to-day for years. Combine the two and you can usually afford the layer of management one business on its own never could.',
+        'Here’s the part that sounds backwards. A business you buy comes with its own team, and in some cases that includes someone who has been running the day-to-day for years. Combine the two and the profit can cover the layer of management one business on its own never could.',
         'That’s how owners end up with more business and fewer hours. Not straight away, and not without work, but it’s a common shape.',
         'If buying back your week matters more to you than the money, tell me. It changes what kind of business you’d look for.',
       ],
@@ -167,7 +168,7 @@ export const REACTIVATE_B: Record<string, T> = {
       `${c.name}, plenty of owners know exactly who they need: a general manager who can run ${yourBiz(d)} so they don’t have to.`,
       'The problem is the maths. A good GM is a serious salary, and at one business’s profit it can feel like paying yourself less to work a bit less.',
       'At twice the size, the same salary is spread across two profit lines. The role becomes affordable, and it becomes necessary, because no one person runs two businesses alone. Sometimes the business you buy already has that person in it.',
-      'If hiring a GM has been on your list for years, an acquisition might be the thing that finally pays for it.',
+      'If hiring a GM has been on your list for years, an acquisition can be the thing that finally pays for it.',
     ],
     cta: { label: 'See if you qualify →', href: c.link('/apply?again=1') },
   }),
@@ -178,7 +179,8 @@ export const REACTIVATE_B: Record<string, T> = {
     body: [
       `${c.name}, a lot of owners have spent years paying themselves last. Every spare dollar went back into the business: the van, the fit-out, the hire, the slow month.`,
       'That’s how good businesses get built. But at some point it’s fair to ask when it starts paying you back properly.',
-      `A well-structured acquisition is one route. Funded with ${funding}, the bought business repays its own debt out of its own profit, and what’s left after repayments, once the deal has bedded in, is profit you didn’t have before. Some owners use it to grow again. Some finally take a proper wage.`,
+      `A well-structured acquisition is one route. Funded with ${funding}, the bought business repays its own debt out of its own profit, and what’s left after repayments, once the deal has bedded in, is profit you didn’t have before.`,
+      'Some owners put it straight back into growth, while others finally take a proper wage.',
       'Neither is the wrong answer. But it’s worth deciding which one you’re building towards.',
     ],
     cta: { label: 'Book a call →', href: book(c) },
@@ -214,7 +216,8 @@ export const REACTIVATE_B: Record<string, T> = {
     body: [
       `${c.name}, here’s something owners rarely mention when they talk about buying a business: what it does for their team.`,
       `In a business the size of ${yourBiz(d)}, your best people eventually hit a ceiling. There’s only one of you at the top, and only so many senior roles. Good people leave not because they’re unhappy, but because there’s nowhere left to go.`,
-      'A second business changes that. Someone becomes a site manager. Someone runs the integration. Someone gets the promotion you’ve been wanting to give them for two years.',
+      'A second business changes that. One of your people becomes a site manager, another runs the integration.',
+      'And the person you’ve been wanting to promote for two years finally gets the role.',
       'Who in your business would you trust to run a second one? If a name came straight to mind, reply and tell me about them.',
     ],
   }),
@@ -228,8 +231,8 @@ export const REACTIVATE_B: Record<string, T> = {
       `One is the operator: the person who knows every customer, fixes every problem and is the reason ${yourBiz(d)} works. The other is the owner in the fuller sense: the person who decides where capital goes, which businesses to own and who runs them.`,
       d.role === 'exec'
         ? 'You told us you run the business without owning it, which means you already know the operator job inside out. Buying a business of your own is how that knowledge turns into ownership.'
-        : 'Most people who build a business spend years in the first job. Buying a business is often the first time they do the second one.',
-      'It’s a different way of seeing yourself, and it doesn’t happen in one step. But every owner who builds a group made that shift at some point, usually with their first deal.',
+        : 'Most people who build a business spend years in the first job. For many of them, buying a business is the first time they do the second one.',
+      'It’s a different way of seeing yourself, and it doesn’t happen in one step. But every owner who builds a group made that shift at some point, and your first deal is where it can start.',
     ],
     cta: { label: 'Watch how it works →', href: c.link('/breakout') },
   }),
@@ -238,9 +241,9 @@ export const REACTIVATE_B: Record<string, T> = {
     subject: 'what the owners who do this share',
     preheader: 'It isn’t money.',
     body: [
-      `${c.name}, I’m often asked what the owners who end up buying a business have in common. It isn’t money, and it isn’t a finance background.`,
+      `${c.name}, I get asked a lot what the owners who end up buying a business have in common. It isn’t money, and it isn’t a finance background.`,
       'It tends to be a few plainer things:<br>• They already run something profitable and know what good looks like.<br>• They’re a little restless: the business is fine, and fine isn’t the point.<br>• They’re willing to have an awkward conversation with another owner.<br>• They make decisions on numbers, and they’ll walk away when the numbers say so.',
-      'None of that is rare. The difference is usually whether they decide to start.',
+      'None of that is rare. What separates them is whether they decide to start.',
       'How many of the four sound like you?',
     ],
     cta: { label: 'See if you qualify →', href: c.link('/apply?again=1') },
@@ -250,7 +253,7 @@ export const REACTIVATE_B: Record<string, T> = {
     subject: 'why I do this',
     preheader: 'A short letter.',
     body: [
-      `${c.name}, I don’t often write about why I do this work, so indulge me for a minute.`,
+      `${c.name}, I rarely write about why I do this work, so indulge me for a minute.`,
       'Most business owners are taught one way to grow: work harder, sell more, hire slowly, repeat. It’s a good way. But it leaves out the path that changes what an owner’s life looks like fastest, which is buying another business, funded with commercial debt, seller finance and seller rollover rather than with your own savings.',
       'That path isn’t hidden because it’s risky or reckless. It’s hidden because nobody sits down with owners and explains it plainly: how a deal is structured, how to test it, when to walk away.',
       'That’s the part I like doing. Sitting with an owner who has built something real and showing them a door they didn’t know was there. Whether they walk through it is up to them.',
@@ -263,10 +266,11 @@ export const REACTIVATE_B: Record<string, T> = {
     preheader: 'What a retiring owner actually wants.',
     body: [
       `${c.name}, put yourself in the chair of the owner across the table for a moment.`,
-      `They’ve spent decades building their ${d.industry ? d.industry.one : 'business'}. They know every customer. Some of their staff have been with them for years. Now they want out, and their biggest fear usually isn’t the price. It’s who takes over, and whether that person wrecks what they built.`,
-      'An outsider with a bigger cheque doesn’t always ease that fear. Someone who already runs a business like theirs, who will keep the team and look after the customers, often does.',
-      `That’s why sellers are often willing to carry part of the price as seller finance and roll part into a stake they keep, alongside the commercial debt. They’re backing a successor, not just selling an asset.`,
-      'You might be exactly the buyer they’re hoping turns up.',
+      `They’ve spent decades building their ${d.industry ? d.industry.one : 'business'}. They know every customer, and some of their staff have been with them for years.`,
+      `Now they want out, and for many of them the biggest fear isn’t the price. It’s who takes over, and whether that person wrecks what they built.`,
+      'An outsider with a bigger cheque doesn’t always ease that fear. Someone who already runs a business like theirs, who will keep the team and look after the customers, has a far better chance.',
+      `That’s why many sellers are willing to carry part of the price as seller finance and roll part into a stake they keep, alongside the commercial debt. They’re backing a successor, not just selling an asset.`,
+      'You could be exactly the buyer they’re hoping turns up.',
     ],
     cta: { label: 'Read why sellers roll over →', href: c.link('/guides/seller-rollover-explained') },
   }),
@@ -279,7 +283,7 @@ export const REACTIVATE_B: Record<string, T> = {
       d.goal === 'exit'
         ? 'You told us you want to grow and then sell. So here’s what buyers tend to pay more for, in plain terms.'
         : 'Even if you never plan to sell, it’s worth knowing what buyers tend to pay more for. It’s the same list that makes a business easier to own.',
-      '• <strong>Size.</strong> Bigger businesses are often valued at a higher multiple of profit than smaller ones.<br>• <strong>Independence.</strong> A business that runs without its owner is worth more than one that stops when they do.<br>• <strong>Spread.</strong> More customers, more sites, less dependence on any one of them.<br>• <strong>Clean numbers.</strong> Books a stranger can trust.',
+      '• <strong>Size.</strong> Bigger businesses can command a higher multiple of profit than smaller ones.<br>• <strong>Independence.</strong> A business that runs without its owner is worth more than one that stops when they do.<br>• <strong>Spread.</strong> More customers, more sites, less dependence on any one of them.<br>• <strong>Clean numbers.</strong> Books a stranger can trust.',
       `Notice how many of those an acquisition helps with at once. It adds size, it adds spread, and it forces you to build the management layer that lets ${yourBiz(d)} run without you.`,
       'Multiples depend on the market and the business, so there are no promises here. But the direction is well understood.',
     ],
@@ -292,7 +296,8 @@ export const REACTIVATE_B: Record<string, T> = {
     body: [
       `${c.name}, a bigger question than usual.`,
       `When you eventually step away from ${d.business ? d.business : yourBiz(d)}, what do you want to leave behind?`,
-      'Some owners want something they can hand to their kids. Some want a business their team can buy. Some want to sell well and never think about it again. Some want a group with their name on it that outlasts them.',
+      'Some owners want something they can hand to their kids. Others would rather build a business their team can buy from them.',
+      'For a few, the goal is to sell well and never think about it again. And then there are the ones who want a group with their name on it that outlasts them.',
       'Each of those is a different plan, and the earlier you know which one you’re building, the better your decisions get, including whether and what to buy.',
       'If you’ve got an answer, reply with it. One line is plenty.',
     ],
@@ -315,11 +320,11 @@ export const REACTIVATE_B: Record<string, T> = {
     subject: 'this time next year',
     preheader: 'No rush. Just an honest look.',
     body: [
-      `${c.name}, I want to be careful with this one, because “the cost of waiting” is usually code for pressure. That’s not what this is.`,
+      `${c.name}, I want to be careful with this one, because “the cost of waiting” is a line people use to apply pressure. That’s not what this is.`,
       d.timeline && TIMELINES[d.timeline]
         ? `${backTimeline(d.timeline)} That’s fine. Here’s the honest trade-off.`
         : 'Here’s the honest trade-off.',
-      'If you wait a year and the right business isn’t there yet, you’ve lost nothing. Waiting for the right deal is smart. But if you wait a year without looking, the right business might come and go without you knowing, because good ones usually change hands quietly.',
+      'If you wait a year and the right business isn’t there yet, you’ve lost nothing. Waiting for the right deal is smart. But if you wait a year without looking, the right business can come and go without you knowing, because many good ones change hands quietly.',
       'So the useful move isn’t to rush. It’s to start looking, so that when you decide, you’re deciding with real options in front of you.',
     ],
     cta: { label: 'Book a call →', href: book(c) },
@@ -330,7 +335,7 @@ export const REACTIVATE_B: Record<string, T> = {
     preheader: 'It feels safer. Is it?',
     body: [
       `${c.name}, a lot of owners hold back from acquisitions because staying the same size feels safer. It’s worth checking that feeling.`,
-      `One business means one set of customers, one location, one key person (often you). If a big customer leaves, a competitor opens next door, or you get sick, all of ${yourBiz(d)} feels it at once.`,
+      `One business means one set of customers, one location, one key person (for many owners, that’s you). If a big customer leaves, a competitor opens next door, or you get sick, all of ${yourBiz(d)} feels it at once.`,
       'Two businesses aren’t automatically safer. A bad deal adds risk. But a sound one, tested so its profit covers its repayments around 1.5 times, can spread your risk rather than concentrate it.',
       `That’s also why the structure matters: ${funding}, so your own savings and your house aren’t what’s on the line.`,
       'Safe and small aren’t the same thing. Which one are you actually choosing?',
@@ -350,7 +355,7 @@ export const REACTIVATE_B: Record<string, T> = {
           ? `Something like ${ind.target}: close enough to share customers, staff or suppliers with you, run by an owner who’s ready to step back, with steady profit that doesn’t hang on one big client.`
           : 'Something close enough to share customers, staff or suppliers with you, run by an owner who’s ready to step back, with steady profit that doesn’t hang on one big client.',
         'I’d care less about how shiny it is and more about how much of it depends on the current owner, because that’s what you’ll need to replace.',
-        `I put together a guide${ind ? ` for ${ind.owners}` : ''} on what to check and how deals like this are usually funded.`,
+        `I put together a guide${ind ? ` for ${ind.owners}` : ''} on what to check and how deals like this get funded.`,
       ],
       cta: { label: ind ? `Read the ${industryName(ind)} guide →` : 'Read the guide →', href: c.link(guideFor(d)) },
     };
@@ -362,7 +367,7 @@ export const REACTIVATE_B: Record<string, T> = {
         subject: 'a platform, not a purchase',
         preheader: 'At your size, the first deal is the start of something bigger.',
         body: [
-          `${c.name}, at ${sizeLine(d) ?? 'your size'}, the interesting question usually isn’t “should I buy a business?”. It’s “what am I building?”.`,
+          `${c.name}, at ${sizeLine(d) ?? 'your size'}, the interesting question isn’t just “should I buy a business?”. It’s “what am I building?”.`,
           'A business your size can act as a platform: the central team, systems and lender relationships that smaller add-ons bolt onto. Each add-on is a modest deal on its own. Together, they can build a group that’s worth more than the sum of its parts.',
           `That changes how you approach the first deal. You’re not just buying profit; you’re testing the playbook: how you find targets, how you fund them with ${funding}, and how you integrate them without disrupting the core business.`,
           'If that’s the kind of conversation you want to have, it’s worth a proper call.',
@@ -374,7 +379,7 @@ export const REACTIVATE_B: Record<string, T> = {
       subject: d.revenue === '1_3m' ? 'your first tuck-in' : 'the right-sized first deal',
       preheader: 'Small, close to home and sound.',
       body: [
-        `${c.name}, ${sizeLine(d) ? `for ${sizeLine(d)}` : 'for most owners'}, the right first deal is usually a tuck-in: a smaller business that slots into what you already run.`,
+        `${c.name}, ${sizeLine(d) ? `for ${sizeLine(d)}` : 'for most owners'}, the right first deal is a tuck-in: a smaller business that slots into what you already run.`,
         'Same kind of work, same area, overlapping customers. You keep one office, one admin team and one set of systems, and much of the smaller business’s profit drops straight through.',
         'It’s also the gentlest way to learn. The stakes are smaller, the integration is simpler, and you come out of it knowing how to do the next one.',
         'Do you already have a business in mind that would tuck in? Reply with what kind it is. No names needed.',
@@ -410,7 +415,7 @@ export const REACTIVATE_B: Record<string, T> = {
       body: [
         `${c.name},`,
         ...(g ? middle[g] : [
-          'Owners who think about acquisitions usually fall into one of three camps: those who want to grow by buying competitors, those who want to build a group, and those who want to grow and then sell for more.',
+          'Owners who think about acquisitions fall into three broad camps: those who want to grow by buying competitors, those who want to build a group, and those who want to grow and then sell for more.',
           'Each one leads to a different first deal. Knowing which camp you’re in is the first decision, and it’s yours to make.',
         ]),
         'If it’s still what you want, let’s look at what it means for your numbers.',
@@ -434,7 +439,7 @@ export const REACTIVATE_B: Record<string, T> = {
     subject: 'who gets to be a buyer',
     preheader: 'It isn’t only funds and big companies.',
     body: [
-      `${c.name}, there’s a quiet assumption a lot of owners carry: buying businesses is something other people do. Private equity. Big groups. People with a finance background and a lot of cash.`,
+      `${c.name}, there’s a quiet assumption a lot of owners carry: buying businesses is something other people do: private equity, big groups, people with a finance background and a lot of cash.`,
       `It isn’t the whole picture. Plenty of ${d.industry ? d.industry.many : 'owner-run businesses'} that change hands are bought by someone who knows the work: a competitor, a neighbour in the same trade, a manager, an owner like you.`,
       `What makes someone a credible buyer to a seller and a lender isn’t a title. It’s a profitable business they already run${sizeLine(d) ? ` (you told us yours is ${sizeLine(d)})` : ''}, an understanding of the industry, and a deal that pays for itself.`,
       'You don’t need anyone’s permission to think of yourself as a buyer. You just need a sound first deal.',

@@ -47,7 +47,7 @@ const DEAL = {
   ],
   s702010: [
     'The 70/20/10: 70% commercial debt, 20% seller finance, 10% seller rollover.',
-    'On a $1.5M price (illustrative): a lender funds $1.05M, the seller carries $300k as a note paid over a few years from the business’s own cash flow, and rolls $150k into a 10% stake they keep. The lender usually adds a working-capital line on top, so the deal is over-financed.',
+    'On a $1.5M price (illustrative): a lender funds $1.05M, the seller carries $300k as a note paid over a few years from the business’s own cash flow, and rolls $150k into a 10% stake they keep. When the cash flow supports it, the lender adds a working-capital line on top, so the deal is over-financed.',
     'This is the one most retiring owners like: most of their money at settlement, a steady income after, and a slice of the upside.',
   ],
   vf100: [
@@ -76,9 +76,10 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Was it the funding question?',
     body: [
       `${c.name}, quick one.`,
-      'When owners stop halfway through the application, it’s usually one of three things:',
+      'When owners stop halfway through the application, these are the three things I hear:',
       '• They think buying a business means putting in their own cash.<br>• They think they don’t have the time to run a deal.<br>• They think their industry is different.',
-      'Here’s the straight answer. The deals are structured with seller finance, seller rollover (the owner keeps a slice of the business) and senior debt, and over-financed, so the stack covers more than the purchase price and none of your own cash goes in. You run the deal yourself, with my team beside you at every step. And the model depends on cash flow, not industry.',
+      'Here’s the straight answer. The deals are structured with seller finance, seller rollover (the owner keeps a slice of the business) and senior debt, and over-financed, so the stack covers more than the purchase price and none of your own cash goes in.',
+      'You run the deal yourself, with my team beside you at every step. And the model depends on cash flow, not industry.',
       'Your answers are still saved.',
     ],
     cta: { label: 'Pick up where I left off →', href: c.link('/apply') },
@@ -100,7 +101,8 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name},`,
       'One thing owners tend to worry about: handing their growth to a consultant they’ve never met.',
-      'That’s not how this works. It’s done with you, not for you. You run the deal and you make the decisions. My team coaches you, structures the deal, introduces you to lenders and sits in on the key seller conversations.',
+      'That’s not how this works. It’s done with you, not for you.',
+      'You run the deal and you make the decisions. My team coaches you, structures the deal, introduces you to lenders and sits in on the key seller conversations.',
       'It takes a few focused hours a week. Your application is still waiting where you left it.',
     ],
     cta: { label: 'Finish my application →', href: c.link('/apply') },
@@ -196,7 +198,9 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Another year of organic growth?',
     body: [
       `${c.name}, last one on this.`,
-      'Let’s talk about what it costs you not to do this. Another year of growing one customer and one hire at a time. Another year of good businesses in your market being bought by someone else. Another year closer to an exit valued as one small business instead of a group.',
+      'Let’s talk about what it costs you not to do this.',
+      'Another year of growing one customer and one hire at a time. Meanwhile, the good businesses in your market get bought by someone else.',
+      'And each of those years brings you closer to an exit valued as one small business instead of a group.',
       'It’s 30 minutes, and you’ll leave knowing exactly what your first deal could look like.',
     ],
     cta: { label: 'Book my strategy call →', href: bookOrBreakout(c) },
@@ -231,7 +235,8 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `Hey ${c.name},`,
       'I suspect the reason you haven’t booked a call yet is one of these: you think it’ll take too much cash, you think it’ll eat your time, or you think your industry is different.',
-      'Here’s the straight version. The deals are over-financed, so your cash stays where it is. It takes a few focused hours a week: you make the calls and meet the sellers, and we do the heavy thinking with you. And the model depends on cash flow and structure, not industry.',
+      'Here’s the straight version. The deals are over-financed, so your cash stays where it is.',
+      'It takes a few focused hours a week: you make the calls and meet the sellers, and we do the heavy thinking with you. And the model depends on cash flow and structure, not industry.',
       'I answered the most common questions here.',
     ],
     cta: { label: 'Read the FAQs →', href: c.link('/breakout#faq') },
@@ -305,7 +310,7 @@ export const TEMPLATES: Record<string, Template> = {
   }),
   c_third_way: (c) => ({
     subject: 'the third way to grow',
-    preheader: 'Not more hires. Not investors.',
+    preheader: 'No new hires, and no investors taking equity.',
     body: [
       `Hey ${c.name},`,
       'Most owners try to grow in one of two ways: grind out organic growth, or raise money and give away equity.',
@@ -322,7 +327,8 @@ export const TEMPLATES: Record<string, Template> = {
       'Seller finance sounds complicated. It isn’t.',
       'Instead of the seller getting the full price in cash at closing, they agree to be paid part of it over time, out of the business’s own cash flow. In effect, the seller becomes one of your lenders.',
       'Add seller rollover, where the owner keeps a slice of the business instead of taking that part in cash, and senior debt from a bank, and together they can cover more than the purchase price. That’s what over-financed means, and it’s why none of your own cash has to go in.',
-      'Why would a seller agree? Many want a smooth handover, a fair price and an income after they step back. A well-structured deal gives them all three. I bought both of my businesses this way.',
+      'Why would a seller agree? Many want a smooth handover, a fair price and an income after they step back.',
+      'A well-structured deal gives them all three. I bought both of my businesses this way.',
     ],
     cta: { label: 'See the deal template →', href: c.link('/resources') },
   }),
@@ -456,20 +462,21 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Over-financed means the stack covers more than the price.',
     body: [
       `${c.name},`,
-      'Most owners assume buying a business means writing a big cheque. Usually it’s their savings, or cash pulled out of the business they already own.',
+      'Most owners assume buying a business means writing a big cheque, out of their savings or cash pulled from the business they already own.',
       'That’s the most expensive money you have. It slows your current business down and leaves you exposed if the deal wobbles.',
-      'We do it differently. Seller finance, seller rollover and senior debt together cover more than the purchase price. The extra goes into working capital and closing costs. None of your cash goes in.',
+      'We do it differently. Seller finance, seller rollover and senior debt together cover more than the purchase price.',
+      'The extra goes into working capital and closing costs. None of your cash goes in.',
       'We call that over-financed, and we’ll show you how it applies to your situation on the call.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
   }),
   pc_no_time: (c) => ({
     subject: '“I don’t have time to run another business”',
-    preheader: 'You’re not buying a job. You’re buying a team.',
+    preheader: 'You’d be buying a team, not a job.',
     body: [
       `${c.name},`,
       'This is the objection I hear most, and it makes sense. You’re already flat out.',
-      'Here’s the thing: you’re not buying a second job. You’re buying a business that already runs, with staff who already do the work. Part of the deal is making sure the right people stay.',
+      'You wouldn’t be buying a second job. The business already runs, with staff who already do the work. Part of the deal is making sure the right people stay.',
       'The deal itself takes a few focused hours a week. My team handles the heavy lifting with you.',
     ],
     ps: 'On the call, tell us honestly how many hours a week you have. We’ll plan around that number.',
@@ -481,7 +488,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name},`,
       'When a business hits a broker listing, every buyer in the country sees it at once. The price goes up and the terms get worse. You end up competing with buyers who have deeper pockets.',
       'The best deals never get listed. They come from talking to owners in your market who are thinking about stepping back and haven’t told anyone yet.',
-      'Off-market is where you get seller finance, seller rollover, fair prices and time to do it properly. We’ll talk about who those owners might be in your space.',
+      'Off-market is where you get seller finance, seller rollover, fair prices and time to do it properly. On the call, we’ll work out who those owners are in your space.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
   }),
@@ -492,7 +499,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name},`,
       'Fair question. Why would an owner let you pay them over time instead of all up front?',
       'Because most retiring owners care about three things more than squeezing the last dollar:',
-      '• Their staff and customers are looked after.<br>• The business keeps their name and reputation intact.<br>• They get paid reliably, often with a better tax outcome than a lump sum.',
+      '• Their staff and customers are looked after.<br>• The business keeps their name and reputation intact.<br>• They get paid reliably, and in some cases get a better tax outcome than with a lump sum.',
       'An owner-operator in the same industry is the buyer who gives them all three. That’s you.',
     ],
     ps: 'We’ll go through how to open that conversation with a seller on your call.',
@@ -525,7 +532,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name},`,
       'Here’s something most owners never get told.',
-      'Small businesses usually sell for a lower multiple of profit than bigger ones. Buyers pay a premium for size, systems and less dependence on one owner.',
+      'Buyers pay a premium for size, systems and less dependence on one owner. That’s why a small business sells for a lower multiple of profit than a bigger one in the same market.',
       'So when you combine two businesses, you’re not only adding profit. You can also move the whole thing into a higher valuation bracket.',
       'Nothing is guaranteed and every market is different. But this is why acquisitions build wealth faster than growing one business organically.',
     ],
@@ -601,7 +608,8 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name},`,
       'People sometimes ask why we don’t just find the deal and hand it over.',
-      'Because you are the buyer. You know your market. You’ll be the one the seller trusts, and you’ll be the one running the business afterwards. If someone else does it for you, you don’t learn how, and they take a bigger slice of the upside.',
+      'Because you are the buyer. You know your market.',
+      'You’ll be the one the seller trusts, and you’ll be the one running the business afterwards. If someone else does it for you, you don’t learn how, and they take a bigger slice of the upside.',
       'So it’s done with you. You run the deal, and we give you the system, the structures, the lender introductions and a seat beside you in the key seller conversations.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
@@ -634,7 +642,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name},`,
       'Hiring good people is slow, expensive and a coin flip.',
-      'When you acquire a business, you get a team who already know the work, the customers and each other. Often the hardest part of growth arrives already solved.',
+      'When you acquire a business, you get a team who already know the work, the customers and each other. When they stay, the hardest part of growth arrives already solved.',
       'Keeping them is part of how we structure and plan the handover.',
     ],
   }),
@@ -666,7 +674,9 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name},`,
       'Let’s talk about the cost of not doing this.',
-      'It’s another year of growing one slow step at a time. It’s watching a competitor buy the business you should have bought. It’s staying the bottleneck in your own company.',
+      'It’s another year of growing one slow step at a time.',
+      'Meanwhile, a competitor buys the business you should have bought.',
+      'And you stay the bottleneck in your own company for one more year.',
       'The call costs you 30 minutes. The status quo costs a lot more, it just doesn’t send an invoice.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
@@ -687,7 +697,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name},`,
       'Before we talk, what’s the one question you most want answered?',
-      'Is it the financing? Whether your industry works? Whether you have the time? What it costs?',
+      'Is it the financing, the fit with your industry, the time it takes or what it costs?',
       'Hit reply and tell me. We’ll make sure it’s answered on the call.',
     ],
     ps: waLine(c, 'Or send it on WhatsApp'),
@@ -710,7 +720,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'From target list to a signed LOI.',
     body: [
       `${c.name}, if we work together, here’s the shape of the first 90 days:`,
-      '<b>Weeks 1–2:</b> your acquisition criteria and a target list (the businesses down the road, not broker listings).<br><b>Weeks 3–6:</b> outreach and first conversations with owners.<br><b>Weeks 7–10:</b> the numbers on the best one or two, and the financing structure.<br><b>Weeks 11–13:</b> the offer and a signed letter of intent.',
+      '<b>Weeks 1–2:</b> your acquisition criteria and a target list (the businesses down the road, not broker listings).<br><b>Then, weeks 3–6:</b> outreach and first conversations with owners.<br><b>In weeks 7–10:</b> the numbers on the best one or two, and the financing structure.<br><b>By week 13:</b> the offer and a signed letter of intent.',
       'You keep running your business the whole time. We do it with you, not for you, so you know every step.',
     ],
     cta: { label: 'See how it works →', href: c.link('/breakout') },
@@ -720,7 +730,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'What a good first target looks like.',
     body: [
       `${c.name},`,
-      'The best first acquisition is rarely exciting. It usually looks like this:',
+      'The best first acquisition is rarely exciting. Here’s what a good one looks like:',
       '• Same industry, or one your customers already buy from.<br>• Close enough that you can share staff, suppliers or a warehouse.<br>• An owner in their 50s or 60s with no clear exit.<br>• Steady profit, not a turnaround.',
       'You probably know two or three businesses like that already. Bring their names to the call if you do.',
     ],
@@ -731,7 +741,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Most of what you’ve heard is about the wrong kind of deal.',
     body: [
       `${c.name}, five myths we hear on almost every call:`,
-      '1. <b>“You need millions in cash.”</b> The right structure uses senior debt, seller finance and seller rollover.<br>2. <b>“Good businesses aren’t for sale.”</b> Most aren’t listed. They’re sold to someone who asked.<br>3. <b>“It will take over my life.”</b> You’re buying a team, not a job.<br>4. <b>“Banks won’t touch it.”</b> They fund structures that pass the coverage test.<br>5. <b>“It’s for private equity, not people like me.”</b> Owners like you are often the best buyer: you know the industry.',
+      '1. <b>“You need millions in cash.”</b> The right structure uses senior debt, seller finance and seller rollover.<br>2. <b>“Good businesses aren’t for sale.”</b> Most aren’t listed. They’re sold to someone who asked.<br>3. <b>“It will take over my life.”</b> You’re buying a team, not a job.<br>4. <b>“Banks won’t touch it.”</b> They fund structures that pass the coverage test.<br>5. <b>“It’s for private equity, not people like me.”</b> Owners like you can be the best buyer, because you already know the industry.',
       'We’ll go through whichever ones are on your mind.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
@@ -761,7 +771,7 @@ export const TEMPLATES: Record<string, Template> = {
   pc_6040: (c) => ({
     subject: 'the 60/40 structure (no personal guarantee)',
     preheader: '60% commercial debt, 40% seller rollover.',
-    body: [`${c.name}, one of the structures we’ll look at on your call:`, ...DEAL.s6040, 'Bring the names of any owners you think might want to stay invested. That’s who this fits.'],
+    body: [`${c.name}, one of the structures we’ll look at on your call:`, ...DEAL.s6040, 'Bring the names of any owners you think would want to stay invested. That’s who this fits.'],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
     ps: dealFact,
   }),
@@ -774,7 +784,7 @@ export const TEMPLATES: Record<string, Template> = {
   }),
   pc_100vf: (c) => ({
     subject: 'how I bought my clinics with 100% vendor finance',
-    preheader: 'No bank. No equity partner.',
+    preheader: 'No bank, and no equity partner taking a slice.',
     body: [`${c.name},`, ...DEAL.vf100, 'It isn’t every deal, but when it fits it’s the cleanest one there is. We’ll talk about the signs to look for.'],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
   }),
@@ -815,7 +825,8 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Others have closed 100% seller-finance deals too.',
     body: [
       `${c.name}, a fair question before any call: does this only work for me?`,
-      'No. I closed my clinics with 100% vendor finance, and others we work with have closed 100% seller-finance deals in their own industries. The common thread wasn’t money. It was knowing how to find the right owner and how to structure the offer.',
+      'No. I closed my clinics with 100% vendor finance, and others we work with have closed 100% seller-finance deals in their own industries.',
+      'The common thread wasn’t money. It was knowing how to find the right owner and how to structure the offer.',
       'That’s the part we do with you.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
@@ -866,7 +877,7 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name}, three things that make us slow down:`,
       '• The owner is the business: every key customer relationship runs through them.<br>• Profit that only appears in the latest year, or that the accounts can’t show.<br>• One customer is more than a third of the revenue.',
-      'None of these kill a deal outright. They change the structure, usually toward more seller finance or rollover so the seller shares the risk.',
+      'None of these kill a deal outright. They change the structure: more seller finance or rollover, so the seller shares the risk.',
     ],
     cta: { label: 'Watch the pre-call video →', href: c.link('/breakout') },
   }),
@@ -896,7 +907,8 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'How a $1.5M deal can need none of your own cash (illustrative).',
     body: [
       `${c.name}, here’s the one idea that changes how most owners see acquisitions. The numbers are illustrative.`,
-      'A competitor makes $500k a year. Price: $1.5M. Using a 70/20/10: a lender puts in $1.05M of commercial debt, the seller takes $300k over time (seller finance) and rolls $150k into a 10% stake they keep (seller rollover). A $100k working-capital line on top means $1.6M of funding for a $1.5M price.',
+      'A competitor makes $500k a year. Price: $1.5M.',
+      'Using a 70/20/10: a lender puts in $1.05M of commercial debt, the seller takes $300k over time (seller finance) and rolls $150k into a 10% stake they keep (seller rollover). A $100k working-capital line on top means $1.6M of funding for a $1.5M price.',
       'The test is simple: the business has to make enough to cover every repayment about 1.5 times over. If it can’t, we don’t do the deal.',
       'Want us to run that sketch on your business?',
     ],
@@ -908,7 +920,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Fair enough. Here’s what’s different now.',
     body: [
       `${c.name},`,
-      'When owners don’t go ahead, it’s usually one of three things: not enough time, not sure about the money, or not sure it would work in their industry.',
+      'When owners don’t go ahead, these are the three reasons I hear: not enough time, not sure about the money, or not sure it would work in their industry.',
       'Time: you’re buying a team, not a job. Money: the structure is built so it doesn’t come from you. Industry: we check the numbers before anything else, and tell you straight if it doesn’t fit.',
       'And if you go ahead and change your mind in the first 7 days, you get your money back.',
     ],
@@ -982,7 +994,7 @@ export const TEMPLATES: Record<string, Template> = {
   }),
   re_100vf: (c) => ({
     subject: '100% vendor finance (how I bought my clinics)',
-    preheader: 'No bank. No equity partner.',
+    preheader: 'No bank, and no equity partner taking a slice.',
     body: [`${c.name},`, ...DEAL.vf100],
     cta: { label: 'Talk it through on a call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
   }),
@@ -1020,7 +1032,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Better you than a stranger with a bigger cheque.',
     body: [
       `${c.name}, in most industries the owners who started in the 80s and 90s are looking for a way out.`,
-      'Their businesses will be bought by someone. The owner down the road who knows the market and keeps the team is usually who they’d rather sell to, if that person asks.',
+      'Their businesses will be bought by someone. Plenty of them would rather sell to the owner down the road who knows the market and keeps the team, if that person asks.',
     ],
     cta: { label: 'Talk about your market →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
   }),
@@ -1029,7 +1041,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Week by week.',
     body: [
       `${c.name}, here’s the path:`,
-      '<b>Weeks 1–2:</b> criteria and target list.<br><b>Weeks 3–6:</b> outreach and owner conversations.<br><b>Weeks 7–10:</b> the numbers and the structure (70/20/10, 60/40 or vendor finance).<br><b>Weeks 11–13:</b> the offer and a signed letter of intent.',
+      '<b>Weeks 1–2:</b> criteria and target list.<br><b>Then, weeks 3–6:</b> outreach and owner conversations.<br><b>In weeks 7–10:</b> the numbers and the structure (70/20/10, 60/40 or vendor finance).<br><b>By week 13:</b> the offer and a signed letter of intent.',
       'You keep running your business throughout. We do it with you.',
     ],
     cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
@@ -1048,7 +1060,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'Five myths in 60 seconds.',
     body: [
       `${c.name},`,
-      '1. “You need millions.” Commercial debt, seller finance and seller rollover do the heavy lifting.<br>2. “Good businesses aren’t for sale.” Most are never listed.<br>3. “It takes over your life.” You’re buying a team.<br>4. “You have to risk your house.” Not with security over the business’s assets.<br>5. “It’s for private equity.” Owners who know the industry are often the best buyer.',
+      '1. “You need millions.” Commercial debt, seller finance and seller rollover do the heavy lifting.<br>2. “Good businesses aren’t for sale.” Most are never listed.<br>3. “It takes over your life.” You’re buying a team.<br>4. “You have to risk your house.” Not with security over the business’s assets.<br>5. “It’s for private equity.” An owner who already knows the industry is a strong buyer.',
     ],
     cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
   }),
@@ -1057,7 +1069,7 @@ export const TEMPLATES: Record<string, Template> = {
     preheader: 'The quiet price of “maybe next year”.',
     body: [
       `${c.name}, every year of growing only organically has a cost: the profit you’d have added, the competitor someone else bought, the year you don’t get back.`,
-      'There’s no rush to do a bad deal. But there’s a real cost to not looking.',
+      'There’s no rush to do a bad deal, but not looking has a real cost.',
     ],
     cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
   }),
@@ -1122,11 +1134,11 @@ export const TEMPLATES: Record<string, Template> = {
     cta: { label: 'Book my strategy call →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
   }),
   t_still_thinking: (c) => ({
-    subject: 'what owners usually ask before they book',
+    subject: 'what owners ask before they book',
     preheader: 'Three questions, three straight answers.',
     body: [
       `${c.name},`,
-      'You’ve been back a few times, so let me answer the three questions owners usually have at this point.',
+      'You’ve been back a few times, so let me answer the three questions owners ask me most at this point.',
       '<b>Do I really put no money down?</b> Yes. Seller finance, seller rollover and senior debt cover more than the price.<br><b>Do I have the time?</b> A few focused hours a week. My team does the heavy lifting with you.<br><b>What if it isn’t for me?</b> 7-day money-back guarantee, no conditions.',
     ],
     cta: { label: 'Book my strategy call →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
@@ -1147,7 +1159,8 @@ export const TEMPLATES: Record<string, Template> = {
     body: [
       `${c.name},`,
       'You were looking into the funding side, so here it is in plain English.',
-      'The seller agrees to be paid part of the price over time, out of the business’s own cash flow, and rolls another part into a stake they keep (seller rollover). A bank funds the rest as senior debt. Together they cover more than the price, so none of your cash goes in and there’s working capital left over. Every deal has to clear a debt service coverage ratio of about 1.5.',
+      'The seller agrees to be paid part of the price over time, out of the business’s own cash flow, and rolls another part into a stake they keep (seller rollover). A bank funds the rest as senior debt.',
+      'Together they cover more than the price, so none of your cash goes in and there’s working capital left over. Every deal has to clear a debt service coverage ratio of about 1.5.',
     ],
     cta: { label: 'See it applied to my business →', href: c.bookingUrl ? c.link('/book') : c.link('/breakout') },
   }),

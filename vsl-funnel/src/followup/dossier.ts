@@ -137,7 +137,8 @@ export const BLOCKERS: Record<string, { name: string; subject: string; body: str
     subject: 'how the money side works',
     body: [
       'You said funding and structure is what’s in the way. Fair. It’s the part nobody explains properly.',
-      'Here’s the shape of it. Senior debt from a lender covers most of the price, secured against the cash flow of the business you’re buying. The seller carries part as a note, paid out of the same cash flow over a few years, and rolls part into a stake they keep (seller rollover). Stack it right and the financing covers more than the price, so none of your own cash goes in.',
+      'Here’s the shape of it. Senior debt from a lender covers most of the price, secured against the cash flow of the business you’re buying.',
+      'The seller carries part as a note, paid out of the same cash flow over a few years, and rolls part into a stake they keep (seller rollover). Stack it right and the financing covers more than the price, so none of your own cash goes in.',
       'Lenders look for a debt service coverage ratio around 1.5: the target’s profit covers its repayments one and a half times. That number decides everything, and we’ll run it on your situation on the call.',
     ],
   },
@@ -146,7 +147,7 @@ export const BLOCKERS: Record<string, { name: string; subject: string; body: str
     subject: 'what to pay (and how not to overpay)',
     body: [
       'You said valuation and negotiation is what’s in the way. It should be. It’s where most first-time buyers lose money.',
-      'Small private businesses usually trade on a multiple of profit, and the multiple moves with how dependent the business is on its owner, how lumpy its revenue is and how clean its books are. The price matters less than the terms: how much the seller carries, over how long, and what’s tied to performance.',
+      'Small private businesses are priced on a multiple of profit, and the multiple moves with how dependent the business is on its owner, how lumpy its revenue is and how clean its books are. The price matters less than the terms: how much the seller carries, over how long, and what’s tied to performance.',
       'On the call we’ll show you how we frame an offer so the seller gets a number they’re happy with and the deal still pays for itself.',
     ],
   },
@@ -165,7 +166,7 @@ export const BLOCKERS: Record<string, { name: string; subject: string; body: str
     body: [
       'You said you’re too busy running the business. Every owner who’s done this said the same thing.',
       'Here’s the honest time cost: a few focused hours a week for 90 days. You make the decisions and take the key seller conversations. My team does the modelling, the structuring and the lender introductions with you, so you’re not learning it all from scratch at 10pm.',
-      'And here’s the twist: the business you buy often comes with the second-in-charge you’ve been trying to hire.',
+      'And here’s the twist: when the business you buy has a strong manager, it comes with the second-in-charge you’ve been trying to hire.',
     ],
   },
   never_considered: {
@@ -184,7 +185,7 @@ export const GOALS: Record<string, { line: string; body: string[] }> = {
     line: 'grow by acquiring competitors or add-ons',
     body: [
       'You told us you want to grow by buying competitors or add-ons. That’s the cleanest version of this: same industry, same customers, overlapping costs.',
-      'A tuck-in acquisition usually means one set of overheads, one office and one admin team, so a lot of the target’s revenue drops straight to profit. That’s how one deal can double a business.',
+      'A tuck-in acquisition lets you run one set of overheads, one office and one admin team, so a lot of the target’s revenue drops straight to profit. That’s how one deal can double a business.',
     ],
   },
   group: {
@@ -197,8 +198,8 @@ export const GOALS: Record<string, { line: string; body: string[] }> = {
   exit: {
     line: 'grow, then sell at a higher valuation',
     body: [
-      'You told us you want to grow and then sell at a higher valuation. Buying is often the fastest route to that.',
-      'Buyers pay a bigger multiple for a bigger business. Double the profit through an acquisition and you don’t just double the sale price: the multiple usually goes up too. Fund the acquisition with the seller’s and the lender’s money and that uplift is almost all yours.',
+      'You told us you want to grow and then sell at a higher valuation. Buying can be the fastest route to that.',
+      'Buyers pay a bigger multiple for a bigger business. Double the profit through an acquisition and you don’t just double the sale price: the multiple can go up too. Fund the acquisition with the seller’s and the lender’s money and that uplift is almost all yours.',
     ],
   },
   unsure: {
@@ -237,7 +238,7 @@ export const OBJECTIONS: Record<string, { subject: string; body: string[] }> = {
   'Needs to think': {
     subject: 'a few things to think about',
     body: [
-      'You wanted some time to think it over, which is fair. To make the thinking useful, here are the three questions that usually settle it:',
+      'You wanted some time to think it over, which is fair. To make the thinking useful, here are three questions worth answering first:',
       '1. Does your business have the cash flow to support a deal at around 1.5x debt service coverage?<br>2. Is there a business in your industry or area you’d love to own?<br>3. What happens to your growth in the next three years if you don’t do this?',
       'If you’ve got answers to those, reply and tell me. I’ll tell you honestly whether it makes sense.',
     ],
@@ -253,7 +254,8 @@ export const OBJECTIONS: Record<string, { subject: string; body: string[] }> = {
     subject: 'will a lender really fund it?',
     body: [
       'You had doubts about the funding side. Healthy skepticism.',
-      'Lenders fund acquisitions on the cash flow of the business being bought, not on your house. If the target’s profit covers its repayments around 1.5 times, it’s fundable. If it doesn’t, we don’t do the deal. And the seller carrying part of the price as a note is normal, not exotic: it’s how most small businesses change hands.',
+      'Lenders fund acquisitions on the cash flow of the business being bought, not on your house. If the target’s profit covers its repayments around 1.5 times, it’s fundable. If it doesn’t, we don’t do the deal.',
+      'And the seller carrying part of the price as a note is normal, not exotic: it’s how most small businesses change hands.',
     ],
   },
   'Trust / proof': {
@@ -281,7 +283,7 @@ export const OBJECTIONS: Record<string, { subject: string; body: string[] }> = {
 
 /** Long-term re-engagement angle by why they were lost (lead.lost_reason). */
 export const LOST_ANGLES: Record<string, string> = {
-  Price: 'Last time we spoke the investment was the sticking point. If the numbers on your side have moved since, it might be worth another look.',
+  Price: 'Last time we spoke the investment was the sticking point. If the numbers on your side have moved since, it’s worth another look.',
   Timing: 'Last time we spoke the timing wasn’t right. Owners come up for sale when they decide they’re done, not on a schedule, so it’s worth keeping an eye out.',
   'No funding fit': 'Last time we spoke the funding didn’t stack up for a deal at that size. Profit grows, and so does what a lender will back, so check in when your numbers move.',
   'Not a decision maker': 'Last time we spoke the decision sat with someone else in the business. If they’d like to hear it first-hand, I’m happy to walk them through it.',
