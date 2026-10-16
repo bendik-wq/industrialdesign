@@ -14,7 +14,7 @@ for id in $IDS; do
   if [ -z "$in" ]; then echo "skip $id (no file like $id*.mp4)"; continue; fi
   ffmpeg -loglevel error -y -i "$in" -vf "scale=-2:720" -c:v libx264 -preset slow -crf 25 -profile:v high -pix_fmt yuv420p \
     -c:a aac -b:a 96k -ac 2 -movflags +faststart "$OUT/$id.mp4"
-  ffmpeg -loglevel error -y -ss 1.5 -i "$in" -frames:v 1 -vf "scale=-2:720" -q:v 4 "$OUT/$id.jpg"
+  ffmpeg -loglevel error -y -ss 6 -i "$in" -frames:v 1 -vf "scale=-2:720" -q:v 4 "$OUT/$id.jpg"
   size=$(du -k "$OUT/$id.mp4" | cut -f1)
   if [ "$size" -gt 24000 ]; then echo "$id is ${size}KB, over the 25MB asset limit"; exit 1; fi
   echo "ok $id (${size}KB)"; READY+=("'$id'")
