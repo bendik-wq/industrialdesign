@@ -403,7 +403,7 @@ export function packMiroLayout(pack: VideoPack, topic: Topic, index: number, nex
     items.push({ type: 'shape', frame: f, data: { shape: 'rectangle' }, style: { fillColor: MC.line, borderOpacity: '0' }, position: { x: (x1 + x2) / 2, y: y + 1 }, geometry: { width: x2 - x1, height: 2 } });
   const card = (f: number, x: number, y: number, w: number, h: number, html: string, size: number) =>
     items.push({ type: 'shape', frame: f, data: { shape: 'rectangle', content: html }, style: { fillColor: MC.black, borderOpacity: '0', color: MC.white, fontFamily: MFONT, fontSize: String(size), textAlign: 'center', textAlignVertical: 'middle' }, position: { x: x + w / 2, y: y + h / 2 }, geometry: { width: w, height: h } });
-  const eyebrow = (f: number, s: string) => text(f, SPAD, SPAD, 1600, s.toUpperCase(), 26, MC.faint, true);
+  const eyebrow = (f: number, s: string, w = 1600) => text(f, SPAD, SPAD, w, s.toUpperCase(), 26, MC.faint, true);
   const paras = (s: string) => scriptParas(s).join('\n\n');
   const unq = (s: string) => unquote(smart(s));
 
@@ -447,7 +447,7 @@ export function packMiroLayout(pack: VideoPack, topic: Topic, index: number, nex
   col(SPAD + 900, [['Format', topic.format], ['Next video', nextTitle || pack.end_screen]]);
 
   const pk = frame(`${n} · Packaging`, 2 * (SW + SGAP), 0, SH, MC.white);
-  eyebrow(pk, 'Titles to test');
+  eyebrow(pk, 'Titles to test', 860);
   pack.titles.slice(0, 3).forEach((ti, i) => { const y = 200 + i * 220; rule(pk, SPAD, y, SPAD + 860); text(pk, SPAD, y + 24, 200, `TITLE ${'ABC'[i]}`, 22, MC.faint, true); text(pk, SPAD, y + 64, 860, ti, 40, MC.ink, true); });
   text(pk, 1100, SPAD, 640, 'THUMBNAILS', 26, MC.faint, true);
   pack.thumbnails.slice(0, 2).forEach((th, i) => { const y = 200 + i * 430; card(pk, 1100, y, 640, 360, `<p><strong>${e(unq(th.text))}</strong></p>`, 56); text(pk, 1100, y + 370, 640, `${th.visual}  ·  ${th.emotion}`, 22, MC.sub); });
@@ -468,7 +468,7 @@ export function packMiroLayout(pack: VideoPack, topic: Topic, index: number, nex
   const DH = Math.ceil(Math.max(1400, 700 + textH(desc, 26, 1000) + textH(pack.pinned_comment, 28, 1000) + textH(pack.tags.join('  ·  '), 22, 1000), shortsH,
     460 + pack.filming.reduce((a, f) => a + 40 + textH(f, 26, 1680), 0) + pack.compliance.reduce((a, c) => a + 30 + textH(c, 22, 1680), 0)) / 100) * 100;
   const up = frame(`${n} · Upload`, 0, ROW_D, DH, MC.white);
-  eyebrow(up, 'Description');
+  eyebrow(up, 'Description', 1000);
   let y = text(up, SPAD, 190, 1000, desc, 26, MC.ink) + 60;
   text(up, SPAD, y, 1000, 'PINNED COMMENT', 26, MC.faint, true); y = text(up, SPAD, y + 60, 1000, pack.pinned_comment, 28, MC.ink) + 60;
   text(up, SPAD, y, 1000, 'TAGS', 26, MC.faint, true); text(up, SPAD, y + 60, 1000, pack.tags.join('  ·  '), 22, MC.sub);
