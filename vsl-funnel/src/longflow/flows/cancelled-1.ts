@@ -433,7 +433,7 @@ export const FLOW_CANCELLED_1: LongEmail[] = [
   },
   {
     id: 'lf_cx1_what_happens_after',
-    subject: 'what happens after the strategy call',
+    subject: 'after the strategy call: the two outcomes',
     preheader: 'Two possible next steps, both your choice.',
     body: [
       '{name},',
@@ -681,7 +681,7 @@ export const FLOW_CANCELLED_1: LongEmail[] = [
   },
   {
     id: 'lf_cx1_guide_loi',
-    subject: 'what a letter of intent actually commits you to',
+    subject: 'the loi myth that keeps owners off calls',
     preheader: 'The LOI is the 90 day milestone. Here’s what it is and isn’t.',
     body: [
       '{name},',
@@ -778,7 +778,7 @@ export const FLOW_CANCELLED_1: LongEmail[] = [
   {
     id: 'lf_cx1_same_reason_next_month',
     subject: 'will the reason still be there next month?',
-    preheader: 'Some reasons fade. Some get bigger. Worth knowing which.',
+    preheader: 'A busy week fades on its own, while doubts about money tend to grow.',
     body: [
       '{name},',
       'Look at whatever made you cancel and ask whether it will be gone by next month.',
@@ -801,7 +801,7 @@ export const FLOW_CANCELLED_1: LongEmail[] = [
   },
   {
     id: 'lf_cx1_three_kinds_target',
-    subject: 'competitor, add-on or adjacent business',
+    subject: 'three shapes your first acquisition can take',
     preheader: 'The three kinds of first deal we look at on calls.',
     body: [
       '{name},',
@@ -830,7 +830,7 @@ export const FLOW_CANCELLED_1: LongEmail[] = [
     preheader: 'Underneath the doubt is one question: are we safe?',
     body: [
       '{name},',
-      'When a partner pushes back, the question underneath is usually spoken quietly: are we safe if this goes wrong?',
+      'When a partner pushes back, the question underneath is a quiet one: are we safe if this goes wrong?',
       'That deserves a real answer with numbers, about coverage, about who carries which debt, and about what the seller keeps at stake through rollover.',
       'The call is a good place for both of you to hear that answer at the same time.',
     ],
@@ -990,7 +990,7 @@ export const FLOW_CANCELLED_1: LongEmail[] = [
   },
   {
     id: 'lf_cx1_what_changed_since',
-    subject: 'has anything changed since you booked?',
+    subject: 'new hire, slow month, competitor for sale?',
     preheader: 'A new hire, a slow month, a bigger month. It all matters.',
     body: [
       '{name},',
@@ -1104,6 +1104,63 @@ export const FLOW_CANCELLED_1: LongEmail[] = [
       'I’ll tell you the kind of first deal that suits it best and how sellers in that space tend to think, and you can decide from there whether a call is worth it.',
     ],
     cta: 'reply',
+  },
+  {
+    id: 'lf_cx1_reschedule_not_cancel',
+    subject: 'a reschedule button for the strategy call',
+    preheader: 'Next time a slot stops working, move it rather than drop it.',
+    body: [
+      '{name},',
+      'A small practical point for when you rebook.',
+      'If the new slot stops working, use the reschedule link in the confirmation email rather than cancelling outright, and the call simply moves to a better day.',
+    ],
+    cta: 'next',
+  },
+  {
+    id: 'lf_cx1_cost_ask_on_call',
+    subject: 'ask about the price on the call, directly',
+    preheader: 'You won’t have to dig for it. Ask and you’ll get a straight number.',
+    body: [
+      '{name},',
+      'If wondering about the price made you cancel, ask about it on the call in the first five minutes.',
+      'You’ll get a straight answer, and then we spend the remaining time on whether a deal makes sense for your business.',
+    ],
+    cta: 'next',
+  },
+  {
+    id: 'lf_cx1_reply_one_line_again',
+    subject: 'still curious why the call came off',
+    preheader: 'One line, any reason. It shapes what I send you next.',
+    body: [
+      '{name},',
+      'I asked earlier what made you cancel, and if the email got buried, here it is again.',
+      'One line is plenty, even “busy” or “not sure about the money”, and the emails you get from here will fit that answer.',
+    ],
+    cta: 'reply',
+  },
+  {
+    id: 'lf_cx1_guide_rollover',
+    subject: 'seller rollover in five minutes',
+    preheader: 'The part of the structure that keeps the seller invested.',
+    body: [
+      '{name},',
+      'Owners who cancel over the money side tend to relax once they understand seller rollover.',
+      'The seller keeps a slice of the business, which keeps them motivated through the handover and reduces what needs funding up front.',
+    ],
+    ps: 'Education only, not financial advice.',
+    cta: 'guide:seller-rollover-explained',
+  },
+  {
+    id: 'lf_cx1_hesitation_is_data',
+    subject: 'your hesitation tells us what to cover',
+    preheader: 'Whatever made you pause becomes the first item on the agenda.',
+    body: [
+      '{name},',
+      'Whatever made you cancel is useful information for the call itself.',
+      'Tell us at the start what gave you pause, and that becomes the first thing we cover, before targets or structures.',
+      'Doubts answered first make the rest of the half hour far more useful.',
+    ],
+    cta: 'next',
   },
   {
     id: 'lf_cx1_month_check_in',

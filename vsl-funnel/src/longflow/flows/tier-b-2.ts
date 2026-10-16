@@ -5,7 +5,7 @@ import type { LongEmail } from '../kit';
 export const FLOW_TIER_B_2: LongEmail[] = [
   {
     id: 'lf_tb2_application_on_file',
-    subject: 'your application is still on file',
+    subject: 'a mid fit application, still on our desk',
     preheader: 'Nothing has expired. Here’s what “less certain” meant on it.',
     body: [
       '{name},',
@@ -65,6 +65,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'An owner who can step away has time to run a second business, which is the whole point of buying one.',
       'Once you have the list, a strategy call is where we work out whether the gap gets fixed before the first deal or alongside it.',
     ],
+    ps: 'Write the list by hand, because typing it makes it tidier than the truth.',
     cta: 'next',
   },
   {
@@ -78,6 +79,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Start writing a short note each quarter on what moved profit and why, so the story is ready before anyone asks for it.',
       'On a strategy call we look at your line and tell you plainly what a lender will see.',
     ],
+    ps: 'A dip explained at the time reads far better than one explained a year later.',
     cta: 'next',
   },
   {
@@ -117,11 +119,12 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'That team is what makes a seller feel safe, and it can be assembled before you have a single target.',
       'A strategy call maps who belongs on yours and where to find them.',
     ],
+    ps: 'Nobody on that list needs to be famous, they need to be respected in your market.',
     cta: 'next',
   },
   {
     id: 'lf_tb2_my_clinics',
-    subject: 'how I bought my clinics',
+    subject: 'the 100% vendor finance deal behind my clinics',
     preheader: '100% vendor finance, and what that structure asks of a buyer.',
     body: [
       '{name},',
@@ -155,6 +158,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'It also means that when a target turns up, you’re comparing its numbers against yours with real figures in front of you.',
       'Bring your latest month to a strategy call and we’ll show you how a lender reads it.',
     ],
+    ps: 'If your bookkeeper can’t hit the tenth, that tells you something useful too.',
     cta: 'next',
   },
   {
@@ -181,6 +185,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Each one you tick is a job to hand over before a second business lands on your desk.',
       'On a strategy call we sort that list into what blocks a deal and what can wait.',
     ],
+    ps: 'Start with the item that would cost you the most money if it went wrong while you were away.',
     cta: 'next',
   },
   {
@@ -206,6 +211,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'When the busy months come back, the business runs a little more without you, and a deal looks a lot more realistic.',
       'If your quiet stretch is coming up, a strategy call before it starts gives you the list to work through.',
     ],
+    ps: 'Protect one afternoon a week in that stretch for this work and nothing else.',
     cta: 'next',
   },
   {
@@ -219,6 +225,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'By the time the right seller says yes, the gaps that worried you have been closed in parallel.',
       'A strategy call puts both tracks on one timeline.',
     ],
+    ps: 'The search and the clean up share one trait: both reward an early start.',
     cta: 'next',
   },
   {
@@ -232,6 +239,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'That list costs nothing to keep, and it turns a vague plan into a target the day you’re ready.',
       'The guide below covers what makes a competitor a good first acquisition.',
     ],
+    ps: 'Keep the list private, because a casual mention in your market travels fast.',
     cta: 'guide:buy-your-competitor',
   },
   {
@@ -257,6 +265,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'The other gets the soft spot named, works on it every month, and finds the gap between “not yet” and “now” closing faster than expected.',
       'The second path starts with a 30 minute conversation.',
     ],
+    ps: 'Which one you are this year is a choice, and it can still change.',
     cta: 'next',
   },
   {
@@ -283,6 +292,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Every hour you get back is an hour you can spend looking at a second company, and a lender sees a business that isn’t only you.',
       'A strategy call helps you pick which role comes first given the deal you want.',
     ],
+    ps: 'Bookkeeping, scheduling and quoting are common places to start.',
     cta: 'next',
   },
   {
@@ -296,6 +306,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'With that pack in a folder, your first serious conversation with a lender starts on the front foot.',
       'Bring it to a strategy call and we’ll point out what a lender will ask next.',
     ],
+    ps: 'Keep a copy in a shared folder your accountant can update each quarter.',
     cta: 'next',
   },
   {
@@ -335,6 +346,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Spreading revenue takes time, which is why the plan starts before you’re ready to buy.',
       'A strategy call gives you a straight read on whether your number is a problem.',
     ],
+    ps: 'Anything above a quarter of revenue from one name deserves a plan to reduce it.',
     cta: 'next',
   },
   {
@@ -347,6 +359,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'That gets the order backwards, because the call is where you find out which things need fixing and which ones don’t matter to a deal.',
       'Thirty minutes of that saves months spent polishing the wrong part of the business.',
     ],
+    ps: 'Bring whatever numbers you have, rough ones included.',
     cta: 'next',
   },
   {
@@ -363,7 +376,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
   },
   {
     id: 'lf_tb2_pg_worry',
-    subject: 'the personal guarantee question, answered straight',
+    subject: 'a straight answer on the house and the guarantee',
     preheader: 'Lenders can ask for one. Whether they do depends on the structure.',
     body: [
       '{name},',
@@ -396,6 +409,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       '• Books reconciled to tax returns for three years<br>• One person who runs the day to day without you<br>• Profit that holds steady or rises year on year<br>• Revenue spread so no single customer dominates<br>• A short list of businesses you’d buy',
       'You don’t need all five to book a strategy call, and the call tells you which of them matters most for the deal you want.',
     ],
+    ps: 'Print it and tick it once a quarter, and the progress becomes visible.',
     cta: 'next',
   },
   {
@@ -408,6 +422,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Sellers and lenders recognise the firms that do transaction work, and having one in your corner is part of the credibility that replaces personal capital.',
       'You don’t need to switch today, and you do need to know who you’d call. We cover that on a strategy call.',
     ],
+    ps: 'Ask your current accountant who they’d send you to for deal work, and note the name.',
     cta: 'next',
   },
   {
@@ -458,6 +473,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Those are the skills that keep an acquired business alive after settlement, and a seller would rather hand over to an operator than to an investor who has never run anything.',
       'The transaction side is the part you borrow from a board and advisers. A strategy call shows you how that team gets built.',
     ],
+    ps: 'The board fills the gaps in your deal experience, and your operating record fills the gaps in theirs.',
     cta: 'next',
   },
   {
@@ -485,7 +501,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
   },
   {
     id: 'lf_tb2_write_three_processes',
-    subject: 'write down three processes this month',
+    subject: 'three tasks only you know how to do',
     preheader: 'The cheapest way to make your business less dependent on you.',
     body: [
       '{name},',
@@ -507,6 +523,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Answering them every quarter shows you, in writing, whether you’re getting closer to a deal.',
       'If you want a second pair of eyes on your answers, that’s what a strategy call is for.',
     ],
+    ps: 'Keep the answers in one document so you can compare quarters side by side.',
     cta: 'next',
   },
   {
@@ -532,6 +549,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Those questions are your manager’s job description, written by the people who know the business best.',
       'Bring the notebook to a strategy call and we’ll show you what it says about readiness.',
     ],
+    ps: 'The questions that repeat most are the first ones to train someone to answer.',
     cta: 'next',
   },
   {
@@ -544,6 +562,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'When one of them goes to another buyer, it stays gone, and the next good one can take years to appear.',
       'That’s why the owners building groups start talking to sellers while they’re still getting ready themselves. A strategy call shows you how to start those conversations.',
     ],
+    ps: 'Starting a conversation commits you to nothing, and it puts you first in line.',
     cta: 'next',
   },
   {
@@ -594,6 +613,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Lenders and buyers adjust for that, and you should too: work out what a manager would cost and subtract it to see your real profit.',
       'That number is the honest starting point for any deal, and it’s the one we look at on a strategy call.',
     ],
+    ps: 'Use what you’d pay to replace yourself, rather than what you’d like to earn.',
     cta: 'next',
   },
   {
@@ -667,6 +687,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'You don’t need all four this month. Write down one person you know who could fill one of those seats, and think about what you’d ask them.',
       'Credibility starts with a single name on that list, and a strategy call helps you fill the rest.',
     ],
+    ps: 'A coffee and an honest question is all the first conversation needs.',
     cta: 'next',
   },
   {
@@ -693,6 +714,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'The deal depends on the target’s cash flow and a structure that covers its repayments, and your own business needs to look steady and well run.',
       'A solid year with a clear story is enough to start, and a strategy call tells you whether yours is.',
     ],
+    ps: 'The record year can come after the first deal, helped along by it.',
     cta: 'next',
   },
   {
@@ -717,6 +739,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'That answer is worth having, because it turns a vague worry into a short list with an order to it.',
       'If you’ve been avoiding the call in case the answer is no, the worst case is a plan.',
     ],
+    ps: 'And when the answer is yes, you leave with the next three steps.',
     cta: 'next',
   },
   {
@@ -791,6 +814,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'The return shows up elsewhere: the hours you get back to find, buy and oversee a second business, which is where the real growth in your income comes from.',
       'A strategy call puts numbers on both sides of that trade for your business.',
     ],
+    ps: 'Price your own hour at what a second business could pay you, and the salary looks different.',
     cta: 'next',
   },
   {
@@ -839,6 +863,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'That moment won’t line up neatly with the day you feel ready, so the buyers who get the good businesses are the ones already in the conversation.',
       'A strategy call shows you how to be in that conversation early without overcommitting.',
     ],
+    ps: 'Being early costs you a few coffees, and being late costs you the business.',
     cta: 'next',
   },
   {
@@ -851,6 +876,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'An owner whose margin holds steady while revenue grows shows a lender the kind of control they want in the person taking on a second company.',
       'Track it monthly from now on, and bring the last twelve months to a strategy call.',
     ],
+    ps: 'One page with twelve months of revenue and gross margin side by side is enough.',
     cta: 'next',
   },
   {
@@ -875,6 +901,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Not booking costs nothing today, and the bill arrives later as another year of wondering whether a deal was ever possible for your business.',
       'Thirty minutes settles the question either way.',
     ],
+    ps: 'The call is by video, so it fits between two meetings.',
     cta: 'next',
   },
   {
@@ -903,7 +930,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
   },
   {
     id: 'lf_tb2_loi_guide',
-    subject: 'what goes into a letter of intent',
+    subject: 'the letter of intent you’re working towards',
     preheader: 'The document that turns a talk with a seller into a deal.',
     body: [
       '{name},',
@@ -936,6 +963,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Use one of those days to write down what would need to be true for you to buy a business in the next twelve months.',
       'Then book the strategy call for the first week back, while the plan is still fresh.',
     ],
+    ps: 'Write the plan on one page and keep it where you’ll see it on your first day back.',
     cta: 'next',
   },
   {
@@ -961,6 +989,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Write it down today and ask whether it’s still true, partly true, or something you’ve been carrying out of habit.',
       'If it’s changed, the strategy call is waiting. If it hasn’t, the call is a good place to test it.',
     ],
+    ps: 'Reasons have a shelf life, and the honest ones admit when they’ve expired.',
     cta: 'next',
   },
   {
@@ -1009,6 +1038,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'The time passes either way, and the only thing that decides which version shows up is what you start this month.',
       'A strategy call is a small way to start.',
     ],
+    ps: 'Starting small this month beats starting big next year.',
     cta: 'next',
   },
   {
@@ -1057,6 +1087,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Plans with a date on them get worked on, and plans without one drift into the year after.',
       'A strategy call before the plan is final helps you set a quarter that’s realistic.',
     ],
+    ps: 'Pick the quarter first, then work backwards to what needs to be true by then.',
     cta: 'next',
   },
   {
@@ -1081,6 +1112,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
       'Before that, every buyer works from a plan, good advisers and a deal that passes the coverage test.',
       'That’s the bar to aim for, and a strategy call checks how close you are to it.',
     ],
+    ps: 'Confidence comes from doing it once, with people who have done it before.',
     cta: 'next',
   },
   {
@@ -1144,16 +1176,16 @@ export const FLOW_TIER_B_2: LongEmail[] = [
   },
   {
     id: 'lf_tb2_whole_price_vendor',
-    subject: 'when a seller carries the whole price',
+    subject: 'the seller who carries the full purchase price',
     preheader: '100% vendor finance, and the kind of buyer it suits.',
     body: [
       '{name},',
       'At the far end of the range sits 100% vendor finance, where the seller is paid over time from the business and the buyer puts nothing in up front.',
       'It suits a seller who cares more about who takes over than about a lump sum on day one, and a buyer who can show they’ll run it well.',
-      'The guide below explains how it works and what a seller needs to see.',
+      'On a strategy call we look at whether a seller in your market would consider it.',
     ],
     ps: 'Education only, and every deal is structured on its own figures.',
-    cta: 'guide:100-percent-vendor-finance',
+    cta: 'next',
   },
   {
     id: 'lf_tb2_month_and_year',
@@ -1194,7 +1226,7 @@ export const FLOW_TIER_B_2: LongEmail[] = [
   },
   {
     id: 'lf_tb2_no_money_down_plain',
-    subject: 'no money down, explained without the hype',
+    subject: 'what no money down means in our deals',
     preheader: 'The structure behind the phrase, in plain terms.',
     body: [
       '{name},',
