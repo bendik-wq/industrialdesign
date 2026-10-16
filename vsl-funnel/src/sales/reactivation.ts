@@ -106,7 +106,7 @@ export async function launchReactivation(rt: Runtime, ids: string[], perDay: num
 /** Results: how far each person got, and who came back (booked or applied after being reactivated). */
 export async function reactivationReport(rt: Runtime) {
   const db = rt.env.DB;
-  const [steps, people] = await Promise.all([
+  const [steps, people, queue] = await Promise.all([
     db.prepare(`SELECT template, SUM(status IN ('sent','simulated')) AS sent, SUM(status = 'pending') AS pending, SUM(status = 'skipped') AS skipped,
                        SUM(opened_at IS NOT NULL) AS opened, SUM(clicked_at IS NOT NULL) AS clicked
                   FROM emails WHERE sequence = 'reactivation' GROUP BY template ORDER BY template`).all(),
@@ -114,11 +114,15 @@ export async function reactivationReport(rt: Runtime) {
                        (l.booked_at > r.reactivated_at AND l.booking_cancelled_at IS NULL) AS rebooked, (l.app_completed_at > r.reactivated_at) AS reapplied,
                        l.unsubscribed_at > r.reactivated_at AS unsubscribed
                   FROM lead_reactivation r JOIN leads l ON l.id = r.lead_id ORDER BY r.reactivated_at DESC LIMIT 500`).all<Record<string, number | string | null>>(),
+    db.prepare(`SELECT COUNT(*) AS pending, MIN(send_at) AS next_at, MAX(send_at) AS last_at, SUM(status IN ('sent','simulated')) AS sent, MAX(sent_at) AS last_sent_at
+                  FROM emails WHERE sequence = 'reactivation' AND status IN ('pending','sent','simulated')`).first<{ pending: number; next_at: number | null; last_at: number | null; sent: number; last_sent_at: number | null }>(),
   ]);
+  const next = await db.prepare("SELECT MIN(send_at) AS at, COUNT(*) AS n FROM emails WHERE sequence = 'reactivation' AND status = 'pending'").first<{ at: number | null; n: number }>();
   const p = people.results;
   return {
     steps: steps.results,
     people: p,
+    queue: { pending: next?.n ?? 0, nextAt: next?.at ?? null, lastAt: queue?.last_at ?? null, sent: queue?.sent ?? 0, lastSentAt: queue?.last_sent_at ?? null },
     totals: { reactivated: p.length, rebooked: p.filter((x) => x.rebooked).length, reapplied: p.filter((x) => x.reapplied).length, unsubscribed: p.filter((x) => x.unsubscribed).length },
   };
 }
