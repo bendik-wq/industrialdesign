@@ -285,6 +285,20 @@
     if (t && !piiLike(t)) track('text_copy', { text: t.slice(0, 120) });
   });
 
+  // FAQ video answers are HLS: Safari plays them natively; elsewhere attach hls.js (as the main VSL does).
+  function loadFaqVideo(v, src) {
+    if (!/\.m3u8(\?|$)/.test(src) || v.canPlayType('application/vnd.apple.mpegurl')) { v.src = src; return; }
+    var attach = function () {
+      if (window.Hls && window.Hls.isSupported()) { var h = new window.Hls({ capLevelToPlayerSize: true }); h.loadSource(src); h.attachMedia(v); }
+      else v.src = src;
+    };
+    if (window.Hls) return attach();
+    var sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js';
+    sc.onload = attach; sc.onerror = function () { v.src = src; };
+    document.head.appendChild(sc);
+  }
+
   // FAQ video plays.
   document.addEventListener('play', function (e) {
     var v = e.target;
@@ -299,7 +313,7 @@
     if (!d.matches || !d.matches('details.faq')) return;
     // Video answers load only when opened, and pause when closed.
     var v = d.querySelector('video[data-src]');
-    if (v && d.open && !v.getAttribute('src')) v.setAttribute('src', v.getAttribute('data-src'));
+    if (v && d.open && !v.dataset.loaded) { v.dataset.loaded = '1'; loadFaqVideo(v, v.getAttribute('data-src')); }
     if (v && !d.open) v.pause();
     if (d.open) {
       var s = d.querySelector('.faq-q') || d.querySelector('summary');

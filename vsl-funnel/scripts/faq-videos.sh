@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: scripts/faq-videos.sh <folder with the downloaded faq-*.mp4 files>
-# Transcodes the FAQ answer videos used on the site (see src/content/faq-videos.ts) to 720p web MP4s
+# Transcodes the FAQ answer videos used on the site (see src/content/faq-videos.ts) to 720p HLS
 # with a poster frame in public/assets/media/faq/, then lists them in faq-videos-ready.ts so they show.
 set -euo pipefail
 SRC="${1:?folder with the downloaded faq-*.mp4 files}"
@@ -12,11 +12,13 @@ READY=()
 for id in $IDS; do
   in=$(ls "$SRC"/"$id"*.mp4 2>/dev/null | head -1 || true)
   if [ -z "$in" ]; then echo "skip $id (no file like $id*.mp4)"; continue; fi
+  # HLS: the site's static hosting doesn't answer byte-range requests, which iPhones need for a plain MP4.
+  rm -rf "$OUT/$id" && mkdir -p "$OUT/$id"
   ffmpeg -loglevel error -y -i "$in" -vf "scale=-2:720" -c:v libx264 -preset slow -crf 25 -profile:v high -pix_fmt yuv420p \
-    -c:a aac -b:a 96k -ac 2 -movflags +faststart "$OUT/$id.mp4"
+    -g 48 -keyint_min 48 -sc_threshold 0 -c:a aac -b:a 96k -ac 2 \
+    -f hls -hls_time 6 -hls_playlist_type vod -hls_segment_filename "$OUT/$id/%03d.ts" "$OUT/$id/index.m3u8"
   ffmpeg -loglevel error -y -ss 6 -i "$in" -frames:v 1 -vf "scale=-2:720" -q:v 4 "$OUT/$id.jpg"
-  size=$(du -k "$OUT/$id.mp4" | cut -f1)
-  if [ "$size" -gt 24000 ]; then echo "$id is ${size}KB, over the 25MB asset limit"; exit 1; fi
+  size=$(du -sk "$OUT/$id" | cut -f1)
   echo "ok $id (${size}KB)"; READY+=("'$id'")
 done
 LIST=$(IFS=,; echo "${READY[*]:-}" | sed 's/,/, /g')
