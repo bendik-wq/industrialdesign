@@ -285,12 +285,25 @@
     if (t && !piiLike(t)) track('text_copy', { text: t.slice(0, 120) });
   });
 
+  // FAQ video plays.
+  document.addEventListener('play', function (e) {
+    var v = e.target;
+    if (!v.matches || !v.matches('.faq-video video')) return;
+    var d = v.closest('details.faq');
+    if (d && !d.dataset.played) { d.dataset.played = '1'; track('faq_video_play', { video: d.getAttribute('data-faq') }); }
+  }, true);
+
   // FAQ opens.
   document.addEventListener('toggle', function (e) {
     var d = e.target;
-    if (d.matches && d.matches('details.faq') && d.open) {
-      var s = d.querySelector('summary');
-      track('faq_open', { q: s ? s.textContent.trim().slice(0, 120) : '' });
+    if (!d.matches || !d.matches('details.faq')) return;
+    // Video answers load only when opened, and pause when closed.
+    var v = d.querySelector('video[data-src]');
+    if (v && d.open && !v.getAttribute('src')) v.setAttribute('src', v.getAttribute('data-src'));
+    if (v && !d.open) v.pause();
+    if (d.open) {
+      var s = d.querySelector('.faq-q') || d.querySelector('summary');
+      track('faq_open', { q: s ? s.textContent.trim().slice(0, 120) : '', video: Boolean(v) });
     }
   }, true);
 

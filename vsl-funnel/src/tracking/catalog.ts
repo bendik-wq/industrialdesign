@@ -10,7 +10,8 @@ export const CLIENT_EVENTS = new Set([
   'engaged_time', // { ms } — sent when the page is hidden
   'cta_click', // { id, label }
   'cta_locked_click', // { at, unlock_at } tapped the locked button under the VSL
-  'faq_open', // { q }
+  'faq_open', // { q, video }
+  'faq_video_play', // { video }
   'outbound_click', // { href }
   'app_view_step', // { step, question }
   'app_back', // { step }

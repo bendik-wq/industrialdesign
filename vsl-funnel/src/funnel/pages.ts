@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { FAQ_VIDEO_DISCLAIMER, readyFaqVideos } from '../content/faq-videos';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
   APPLICATION, BRAND, CALL_CONSENT, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, PALETTES, type VideoDef, VIDEOS, VOICE_AGENT,
@@ -65,7 +66,10 @@ function videoConfig(c: Context<AppEnv>, def: VideoDef) {
 }
 
 function faqBlock(): Html {
-  return FAQS.map((f, i) => `<details class="faq" data-faq="${i}"><summary>${f.q}</summary><div class="faq-a"><p>${f.a}</p></div></details>`).join('');
+  const videos = readyFaqVideos();
+  const video = (v: (typeof videos)[number]) => `<details class="faq faq-has-video" data-faq="${v.id}"><summary><span class="faq-q">${v.q}</span><span class="faq-tag">Video · ${v.length}</span></summary><div class="faq-a"><div class="faq-video"><video controls playsinline preload="none" poster="/assets/media/faq/${v.id}.jpg" data-src="/assets/media/faq/${v.id}.mp4"></video></div><p>${v.a}</p></div></details>`;
+  const items = FAQS.map((f, i) => `<details class="faq" data-faq="${i}"><summary>${f.q}</summary><div class="faq-a"><p>${f.a}</p></div></details>` + videos.filter((v) => v.after === i).map(video).join(''));
+  return items.join('') + (videos.length ? `<p class="faq-note">${FAQ_VIDEO_DISCLAIMER}</p>` : '');
 }
 
 async function trackingHead(c: Context<AppEnv>, pageEventId: string, hasForm: boolean): Promise<Html> {

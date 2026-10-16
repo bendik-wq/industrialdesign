@@ -1,4 +1,5 @@
 import { APPLICATION, FAQS, VIDEOS } from '../config';
+import { FAQ_VIDEOS } from '../content/faq-videos';
 import { hasContactBait } from '../lib/text';
 import type { Env } from '../env';
 import { type Lead, effectiveTier, parseAnswers } from '../funnel/leads';
@@ -54,7 +55,7 @@ function chapterAt(videoId: string, sec: number) {
 
 /** Topics each email template speaks to, so the personaliser can match facts to emails. */
 const norm = (s: string) => s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 120);
-const KNOWN_FAQ = new Map(FAQS.map((f) => [norm(f.q), f.q.replace(/<[^>]+>/g, '').trim()]));
+const KNOWN_FAQ = new Map([...FAQS, ...FAQ_VIDEOS].map((f) => [norm(f.q), f.q.replace(/<[^>]+>/g, '').trim()]));
 
 export const TEMPLATE_TOPICS: Record<string, string[]> = {
   pc_ceiling: ['growth', 'plateau'], pc_own_cash: ['funding', 'cash'], pc_bank: ['funding', 'bank'], pc_no_time: ['time'], pc_partner: ['partner', 'call'],
