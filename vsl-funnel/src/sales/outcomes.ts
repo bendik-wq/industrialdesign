@@ -1,6 +1,6 @@
 import type { Runtime } from '../app';
 import { LEAD_STATUSES, type Lead, type LeadStatus, getLead, updateLead } from '../funnel/leads';
-import { cancelSequence, enqueueSequence, formatCallTime } from '../integrations/email';
+import { cancelSequence, enqueueSequence, formatCallTime, startLongFlow } from '../integrations/email';
 import { leadLines, leadName, money, notify } from '../integrations/notify';
 import type { SequenceId } from '../integrations/sequences';
 import { cancelCalls, queueCall } from '../integrations/elevenlabs';
@@ -111,16 +111,21 @@ export async function applyLeadUpdate(rt: Runtime, lead: Lead, body: LeadUpdate)
     if (status === 'no_show') {
       await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'precall')]);
       await enqueueSequence(rt, fresh, 'no_show');
+      await startLongFlow(rt, fresh, 'no_show');
       await stopSms(rt, lead.id, ['booked']);
       await startSms(rt, fresh, 'no_show');
       await queueCall(rt, fresh, 'rebook', AI_CALLER.rebookDelayMinutes);
     } else if (status === 'showed') {
       await Promise.all([cancelSequence(rt, lead.id, 'booked'), cancelSequence(rt, lead.id, 'no_show')]);
       await enqueueSequence(rt, fresh, 'post_call');
+      await startLongFlow(rt, fresh, 'post_call');
     } else if (status === 'won' || status === 'lost' || status === 'disqualified') {
       await Promise.all((['booked', 'no_show', 'post_call', 'tier_a', 'tier_b', 'tier_c', 'precall', 'cancelled', 'nurture', status === 'won' ? 'lost' : 'won'] as SequenceId[]).map((sq) => cancelSequence(rt, lead.id, sq)));
       if (status === 'won') await enqueueSequence(rt, fresh, 'won');
       if (status === 'lost') await enqueueSequence(rt, fresh, 'lost');
+      if (status === 'lost') await startLongFlow(rt, fresh, 'lost');
+    } else if (status === 'nurture') {
+      await startLongFlow(rt, fresh, 'nurture');
     }
     if (status !== 'no_show') await cancelCalls(rt, lead.id, ['rebook']);
     if (status !== 'no_show' && status !== 'booked') await stopSms(rt, lead.id, ['booked', 'no_show', 'qualified', 'cancelled', 'showed']);

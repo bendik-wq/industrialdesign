@@ -323,7 +323,7 @@ export const LIB_STRUCTURES: LongEmail[] = [
   },
   {
     id: 'lib_struct_guarantee_honest',
-    subject: 'the honest answer on personal guarantees',
+    subject: 'what a lender can ask you to sign personally',
     preheader: 'Lenders can ask for one. The structure decides how much leverage you have.',
     body: [
       '{name},',

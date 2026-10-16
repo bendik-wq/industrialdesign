@@ -657,7 +657,7 @@ export const FLOW_CANCELLED_1: LongEmail[] = [
   },
   {
     id: 'lf_cx1_board_credibility',
-    subject: 'sellers sell to who feels safe',
+    subject: 'a board makes a seller feel safe',
     preheader: 'Credibility matters more than cash. We cover how to build it.',
     body: [
       '{name},',

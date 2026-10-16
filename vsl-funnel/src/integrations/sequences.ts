@@ -5,6 +5,7 @@ import { REACTIVATE_B_ORDER } from '../followup/reactivation-b';
 import { REACTIVATE_C_ORDER } from '../followup/reactivation-c';
 import { FOLLOWUP_GROUPS, prepTemplates } from '../followup/templates';
 import { PREWEBINAR_IDS } from '../webinar/prewebinar';
+import { PAGE_RULES } from '../longflow/page-rules';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -43,6 +44,8 @@ export const BEHAVIOUR_TEMPLATES: { template: string; skipIf: (l: Lead) => boole
   { template: 't_book_nudge', skipIf: isBooked },
   { template: 't_breakout_done', skipIf: isBooked },
   { template: 't_watch_prep', skipIf: (l) => !isBooked(l) || l.status !== 'booked' },
+  // Page behaviour (guides, industry pages, the masterclass page, reading sprees, coming back).
+  ...PAGE_RULES.map((r) => ({ template: r.template, skipIf: isBooked })),
 ];
 
 /**
@@ -227,6 +230,19 @@ export const SEQUENCES = {
     stopIf: (l) => ['won', 'disqualified'].includes(l.status) || Boolean(l.reactivated_at && (((l.booked_at ?? 0) > l.reactivated_at && !l.booking_cancelled_at) || (l.app_completed_at ?? 0) > l.reactivated_at)),
     // 30 days, 3–5 a day between 8am and 7pm (their start time is 8am in the sales time zone).
     steps: REACTIVATION_PLAN.map(([template, day, hour]) => ({ template, offsetMs: day * DAY + hour * HOUR, ...(RX_SKIP[template] ? { skipIf: (l: Lead) => RX_SKIP[template](buildDossier(l)) } : {}) })),
+  },
+  reactivation_b: {
+    id: 'reactivation_b',
+    description: 'Reactivation for B-tier (mid-fit) past leads — six months, launched by hand from Funnel HQ',
+    stopIf: (l) => ['won', 'disqualified'].includes(l.status) || Boolean(l.reactivated_at && (((l.booked_at ?? 0) > l.reactivated_at && !l.booking_cancelled_at) || (l.app_completed_at ?? 0) > l.reactivated_at)),
+    // All six-month emails (see longflow/); no fixed steps.
+    steps: [] as SequenceStep[],
+  },
+  reactivation_c: {
+    id: 'reactivation_c',
+    description: 'Reactivation for C-tier (not ready yet) past leads — six months, launched by hand from Funnel HQ',
+    stopIf: (l) => ['won', 'disqualified'].includes(l.status) || Boolean(l.reactivated_at && (((l.booked_at ?? 0) > l.reactivated_at && !l.booking_cancelled_at) || (l.app_completed_at ?? 0) > l.reactivated_at)),
+    steps: [] as SequenceStep[],
   },
   webinar: {
     id: 'webinar',

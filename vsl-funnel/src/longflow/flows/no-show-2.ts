@@ -799,7 +799,7 @@ export const FLOW_NO_SHOW_2: LongEmail[] = [
   },
   {
     id: 'lf_ns2_vendor_finance_guide',
-    subject: '100% vendor finance, explained',
+    subject: 'a deal where the seller carries every dollar',
     preheader: 'How a seller can fund the whole price, and why some agree.',
     body: [
       '{name},',

@@ -468,7 +468,7 @@ export const FLOW_LOST_2: LongEmail[] = [
   },
   {
     id: 'lf_lo2_guide_loi_solo',
-    subject: 'what goes in a letter of intent',
+    subject: 'drafting a letter of intent on your own',
     preheader: 'If you’re running a deal on your own, start here.',
     body: [
       '{name},',

@@ -354,7 +354,7 @@ export const LIB_CLOSING: LongEmail[] = [
   },
   {
     id: 'lib_close_buy_through_company',
-    subject: 'buy through a company, not in your own name',
+    subject: 'why the holdco signs, not you',
     preheader: 'The first structural decision in any acquisition.',
     body: [
       '{name},',
@@ -400,7 +400,7 @@ export const LIB_CLOSING: LongEmail[] = [
   },
   {
     id: 'lib_close_settlement_day',
-    subject: 'what happens on settlement day',
+    subject: 'settlement day, hour by hour',
     preheader: 'Money moves, keys change hands, and the clock starts.',
     body: [
       '{name},',

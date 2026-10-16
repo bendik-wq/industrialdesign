@@ -10,6 +10,11 @@ import { effectiveTier } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
 import { SEQUENCES, type SequenceId, precallPlan } from './sequences';
 import { prewebinarPlan } from '../webinar/prewebinar';
+import { LIB_SLOT, LONG_STEP, interestsFrom, longPlan, longTimes, pickLibrary } from '../longflow/engine';
+import type { Ask } from '../longflow/kit';
+import { LIBRARY, LONG_FLOWS, type LongFlowId } from '../longflow';
+import { getLander } from '../landers/catalog';
+import { buildDossier } from '../followup/dossier';
 import { TEMPLATES, type TemplateCtx, renderEmail } from './templates';
 import { type Override, fromOverride, isEditable, loadOverrides } from './email-overrides';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
@@ -17,6 +22,7 @@ import { ANSWER_FACTS } from '../followup/dossier';
 import { whatsappLink } from './whatsapp';
 import { buildProfile } from '../personalize/profile';
 import { RULES } from '../personalize/triggers';
+import { PAGE_RULES } from '../longflow/page-rules';
 import { getRegistration, getSession, googleCalendarUrl, replayUrl, roomUrl, webinarBase, webinarSettings } from '../webinar/webinar';
 import { type Personalized, personalizeEmail } from '../personalize/personalize';
 
@@ -217,6 +223,65 @@ export async function enqueuePrewebinar(rt: Runtime, lead: Lead, regSeq: number)
   return plan.length;
 }
 
+/** The main ask for a flow's emails, or (behaviour emails) from where the person is. */
+export function askFor(sequence: string | null, lead: Lead): Ask {
+  const flow = sequence ? LONG_FLOWS[sequence as LongFlowId] : undefined;
+  if (flow) return flow.ask;
+  const tier = lead.tier_override ?? lead.tier;
+  if (!lead.app_completed_at) return 'apply';
+  return tier === 'C' ? 'webinar' : 'book';
+}
+
+/** The next library email for this person, from what they've read on the site and in emails. */
+async function pickLibraryFor(rt: Runtime, lead: Lead) {
+  const db = rt.env.DB;
+  const [sent, views, clicks] = await Promise.all([
+    db.prepare("SELECT template FROM emails WHERE lead_id = ? AND template LIKE 'lib_%' AND status IN ('sent', 'simulated', 'sending', 'pending')").bind(lead.id).all<{ template: string }>(),
+    db.prepare("SELECT DISTINCT path FROM events WHERE lead_id = ? AND name = 'page_view' AND is_bot = 0 AND (path LIKE '/guides/%' OR path LIKE '/for/%') LIMIT 300").bind(lead.id).all<{ path: string }>(),
+    db.prepare("SELECT DISTINCT json_extract(props, '$.url') AS url FROM events WHERE lead_id = ? AND name = 'email_click' LIMIT 300").bind(lead.id).all<{ url: string | null }>(),
+  ]);
+  const paths = [...views.results.map((v) => v.path), ...clicks.results.map((c) => { try { return new URL(String(c.url)).pathname; } catch { return ''; } })];
+  const lander = getLander(lead.ft_lander ?? lead.lander);
+  const interests = interestsFrom(paths, [lander?.industry.id, buildDossier(lead).industry?.id]);
+  return pickLibrary(LIBRARY, new Set(sent.results.map((r) => r.template)), interests);
+}
+
+/**
+ * Starts the six-month part of a flow: ~1,000 emails in all (LONG_FLOW_EMAILS, 0 = off) over
+ * LONG_FLOW_DAYS (182), front-loaded, 8am–8pm their time. Stops the six-month part of any other
+ * flow they were in, so one person is only ever in one. Does nothing if this flow is already running.
+ */
+export async function startLongFlow(rt: Runtime, lead: Lead, flow: LongFlowId, opts: { startAt?: number } = {}) {
+  if (!lead.email || lead.unsubscribed_at) return 0;
+  const num = (v: string | undefined, d: number) => (v == null || v.trim() === '' || !Number.isFinite(Number(v)) ? d : Math.max(0, Math.floor(Number(v))));
+  const total = Math.min(1500, num(rt.settings.LONG_FLOW_EMAILS, 1000));
+  const days = Math.min(365, Math.max(30, num(rt.settings.LONG_FLOW_DAYS, 182)));
+  if (!total) return 0;
+  const db = rt.env.DB;
+  const running = await db.prepare("SELECT 1 FROM emails WHERE lead_id = ? AND sequence = ? AND step >= ? AND status = 'pending' LIMIT 1").bind(lead.id, flow, LONG_STEP).first();
+  if (running) return 0;
+  await db.prepare(`UPDATE emails SET status = 'cancelled' WHERE lead_id = ? AND step >= ? AND status = 'pending' AND sequence IN (${Object.keys(LONG_FLOWS).map(() => '?').join(',')}) AND sequence != ?`)
+    .bind(lead.id, LONG_STEP, ...Object.keys(LONG_FLOWS), flow).run();
+  const def = LONG_FLOWS[flow];
+  const own = SEQUENCES[flow]?.steps.length ?? 0;
+  const begin = (opts.startAt ?? Date.now()) + def.delayDays * 86_400_000;
+  const tz = lead.timezone || (await leadTimezone(rt, lead)) || rt.settings.SALES_TIMEZONE || 'UTC';
+  const times = longTimes(begin, tz, Math.max(0, total - own - def.alreadyWritten), Math.max(1, days - def.delayDays), zonedTime);
+  const plan = longPlan(times, begin, def.emails.map((e) => e.id));
+  const now = Date.now();
+  // Many rows per statement (D1 allows 100 bound values): ids and templates are safe literals.
+  const safe = (x: string) => { if (!/^[a-zA-Z0-9_@]+$/.test(x)) throw new Error(`unsafe id ${x}`); return x; };
+  const stmts = [];
+  for (let i = 0; i < plan.length; i += 60) {
+    const rows = plan.slice(i, i + 60).map((t, j) => `('${safe(newId('m'))}', ?1, '${flow}', ${LONG_STEP + i + j}, '${safe(t)}', ?2, ${Math.round(times[i + j])}, 'pending', ${now})`);
+    stmts.push(db.prepare(`INSERT INTO emails (id, lead_id, sequence, step, template, to_email, send_at, status, created_at) VALUES ${rows.join(',')}
+      ON CONFLICT(lead_id, sequence, step) DO UPDATE SET template = excluded.template, send_at = excluded.send_at, status = 'pending', to_email = excluded.to_email, attempts = 0
+        WHERE emails.status IN ('pending', 'cancelled', 'skipped')`).bind(lead.id, lead.email));
+  }
+  if (stmts.length) await db.batch(stmts);
+  return plan.length;
+}
+
 export async function cancelSequence(rt: Runtime, leadId: string, sequenceId: SequenceId) {
   await rt.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE lead_id = ? AND sequence = ? AND status = 'pending'").bind(leadId, sequenceId).run();
 }
@@ -254,6 +319,8 @@ export interface BuildOptions {
   personalize?: { purpose: string };
   /** Email editor preview: render these (unsaved) edits, or null for the built-in wording. */
   override?: Pick<Override, 'subject' | 'preheader' | 'body' | 'cta_label' | 'cta_href' | 'ps'> | null;
+  /** Long-flow emails: the flow's main ask (otherwise worked out from where the lead is). */
+  ask?: Ask;
 }
 
 /** Fact keys earlier emails to this lead already used. */
@@ -297,6 +364,8 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     joinUrl: lead.booking_join_url && /^https:\/\//.test(lead.booking_join_url) ? lead.booking_join_url : null,
     rescheduleUrl: lead.booking_reschedule_url && /^https:\/\/calendly\.com\//.test(lead.booking_reschedule_url) ? lead.booking_reschedule_url : null,
     webinar,
+    ask: opts.ask ?? askFor(null, lead),
+    webinarUrl: `${webinarBase(rt)}`,
   };
   // An edit made in Funnel HQ → Email editor replaces the built-in wording.
   const override = opts.override !== undefined ? opts.override : isEditable(template) ? (await loadOverrides(rt)).get(template) : undefined;
@@ -409,7 +478,7 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
 
     const lead = await getLead(rt.env, row.lead_id);
     // Reactivation's stop rule needs when they were reactivated (kept in its own table).
-    if (lead && row.sequence === 'reactivation') {
+    if (lead && row.sequence.startsWith('reactivation')) {
       const r = await rt.env.DB.prepare('SELECT reactivated_at, segment FROM lead_reactivation WHERE lead_id = ?').bind(lead.id).first<{ reactivated_at: number; segment: string | null }>();
       lead.reactivated_at = r?.reactivated_at ?? null;
       lead.reactivation_segment = r?.segment ?? null;
@@ -417,7 +486,16 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     const seq = SEQUENCES[row.sequence];
     // Sequences that repeat per event (webinar: one block of steps per registration) map back with `cycle`.
     // Reactivation is matched by template so an edited plan never applies one email's rules to another.
-    const step = row.sequence === 'reactivation' || row.sequence === 'prewebinar'
+    // Six-month rows (step ≥ LONG_STEP): a library slot gets its email now, from what they've read so far.
+    if (lead && row.step >= LONG_STEP && row.template === LIB_SLOT) {
+      const picked = await pickLibraryFor(rt, lead);
+      if (!picked) { await rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = 'library exhausted' WHERE id = ?").bind(row.id).run(); return; }
+      await rt.env.DB.prepare('UPDATE emails SET template = ? WHERE id = ?').bind(picked, row.id).run();
+      row.template = picked;
+    }
+    const step = row.step >= LONG_STEP
+      ? { template: row.template, offsetMs: 0 }
+      : row.sequence === 'reactivation' || row.sequence === 'prewebinar'
       ? seq?.steps.find((st) => st.template === row.template)
       : seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];
     const skip = (reason: string) => rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = ? WHERE id = ?").bind(reason, row.id).run();
@@ -428,9 +506,10 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); return; }
 
     try {
-      const trigger = row.sequence === 'behaviour' ? RULES.find((r) => r.template === row.template) : undefined;
+      const trigger = row.sequence === 'behaviour' ? [...RULES, ...PAGE_RULES].find((r) => r.template === row.template) : undefined;
       const purpose = trigger ? `Triggered by what they just did: ${trigger.label}. Speak to exactly that.` : `${seq.description} (email ${row.step + 1})`;
-      const email = await buildEmail(rt, lead, row.id, row.template, `seq-${row.sequence}`, { personalize: { purpose } });
+      // Six-month emails are chosen from behaviour already; only the original steps are rewritten by the model.
+      const email = await buildEmail(rt, lead, row.id, row.template, `seq-${row.sequence}`, { personalize: row.step >= LONG_STEP ? undefined : { purpose }, ask: askFor(row.sequence, lead) });
       let providerId: string | null = null;
       let status = 'simulated';
       if (emailConfigured(rt)) {

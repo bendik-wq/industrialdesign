@@ -3,6 +3,7 @@ import { VIDEOS } from '../config';
 import type { Lead } from '../funnel/leads';
 import { newId } from '../lib/ids';
 import { BEHAVIOUR_TEMPLATES } from '../integrations/sequences';
+import { PAGE_RULES, type PageSignals } from '../longflow/page-rules';
 
 /**
  * Behaviour-triggered emails: when someone does something specific on the
@@ -66,7 +67,7 @@ export async function processTriggers(rt: Runtime, now = Date.now()) {
   if (!ids.length) return { checked: 0, queued: 0 };
   const inList = ids.map(() => '?').join(',');
 
-  const [leads, agg, texts, vsl, sess, fired, recent] = await Promise.all([
+  const [leads, agg, texts, vsl, sess, fired, recent, viewed] = await Promise.all([
     db.prepare(`SELECT * FROM leads WHERE id IN (${inList}) AND email IS NOT NULL AND unsubscribed_at IS NULL AND COALESCE(booking_source, '') != 'calendly-direct' AND status NOT IN ('won', 'lost', 'disqualified')`).bind(...ids).all<Lead>(),
     db.prepare(
       `SELECT lead_id, MAX(ts) AS last_ts,
@@ -81,7 +82,9 @@ export async function processTriggers(rt: Runtime, now = Date.now()) {
     db.prepare(`SELECT lead_id, video_id, MAX(MIN(1.0, max_position / NULLIF(duration, 0))) AS pct, COUNT(*) AS views FROM vsl_views WHERE lead_id IN (${inList}) AND is_bot = 0 GROUP BY 1, 2`).bind(...ids).all<{ lead_id: string; video_id: string; pct: number | null; views: number }>(),
     db.prepare(`SELECT v.lead_id, s.started_at FROM sessions s JOIN visitors v ON v.id = s.visitor_id WHERE v.lead_id IN (${inList}) AND s.is_bot = 0`).bind(...ids).all<{ lead_id: string; started_at: number }>(),
     db.prepare(`SELECT lead_id, template FROM emails WHERE sequence = 'behaviour' AND lead_id IN (${inList})`).bind(...ids).all<{ lead_id: string; template: string }>(),
-    db.prepare(`SELECT lead_id, COUNT(*) AS n FROM emails WHERE lead_id IN (${inList}) AND status IN ('sent', 'simulated', 'pending', 'sending') AND COALESCE(sent_at, send_at) > ? AND COALESCE(sent_at, send_at) < ? GROUP BY 1`).bind(...ids, now - 86_400_000, now + 3 * 3_600_000).all<{ lead_id: string; n: number }>(),
+    // The six-month flows (step ≥ 100) don't count against the cap: behaviour emails are the ones that matter most.
+    db.prepare(`SELECT lead_id, COUNT(*) AS n FROM emails WHERE lead_id IN (${inList}) AND step < 100 AND status IN ('sent', 'simulated', 'pending', 'sending') AND COALESCE(sent_at, send_at) > ? AND COALESCE(sent_at, send_at) < ? GROUP BY 1`).bind(...ids, now - 86_400_000, now + 3 * 3_600_000).all<{ lead_id: string; n: number }>(),
+    db.prepare(`SELECT DISTINCT lead_id, path FROM events WHERE lead_id IN (${inList}) AND name = 'page_view' AND is_bot = 0 AND ts > ? AND path IS NOT NULL LIMIT 3000`).bind(...ids, now - 3 * 3_600_000).all<{ lead_id: string; path: string }>(),
   ]);
 
   const aggBy = new Map(agg.results.map((a) => [a.lead_id, a]));
@@ -126,6 +129,26 @@ export async function processTriggers(rt: Runtime, now = Date.now()) {
          ON CONFLICT(lead_id, sequence, step) DO NOTHING`,
       ).bind(newId('m'), lead.id, step, rule.template, lead.email, now + rule.delay * 60_000, now).run();
       if (res.meta.changes) { queued++; budget--; done.add(rule.template); break; } // one trigger per person per run, so they don't stack
+    }
+    // Page behaviour: one per person per run, after the funnel triggers.
+    if (budget > 0 && !(Boolean(lead.booked_at) && !lead.booking_cancelled_at)) {
+      const pages = viewed.results.filter((v) => v.lead_id === lead.id).map((v) => v.path.split('#')[0]);
+      const sorted = [...starts].sort((x, y) => y - x);
+      const p: PageSignals = {
+        pages,
+        guidesRecent: new Set(pages.filter((x) => /^\/guides\/[a-z0-9-]+$/.test(x))).size,
+        quietDays: sorted.length >= 2 && now - sorted[0] < 3 * 3_600_000 ? (sorted[0] - sorted[1]) / 86_400_000 : 0,
+        registeredForWebinar: Boolean(lead.webinar_registered_at),
+      };
+      for (const rule of PAGE_RULES) {
+        if (done.has(rule.template) || !rule.when(p)) continue;
+        const step = BEHAVIOUR_TEMPLATES.findIndex((t) => t.template === rule.template);
+        const res = await db.prepare(
+          `INSERT INTO emails (id, lead_id, sequence, step, template, to_email, send_at, status, created_at) VALUES (?, ?, 'behaviour', ?, ?, ?, ?, 'pending', ?)
+           ON CONFLICT(lead_id, sequence, step) DO NOTHING`,
+        ).bind(newId('m'), lead.id, step, rule.template, lead.email, now + rule.delay * 60_000, now).run();
+        if (res.meta.changes) { queued++; done.add(rule.template); break; }
+      }
     }
   }
   return { checked: leads.results.length, queued };

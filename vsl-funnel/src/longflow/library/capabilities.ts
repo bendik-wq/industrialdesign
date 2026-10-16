@@ -268,7 +268,7 @@ export const LIB_CAPABILITIES: LongEmail[] = [
   },
   {
     id: 'lib_cap_packet_contents',
-    subject: 'what goes in a credibility packet',
+    subject: 'the six pages in a credibility packet',
     preheader: 'A short document that answers a seller’s questions before they ask.',
     body: [
       '{name},',

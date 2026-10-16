@@ -209,7 +209,7 @@ export const FLOW_NURTURE_1: LongEmail[] = [
   },
   {
     id: 'lf_nu1_clinics_vendor_finance',
-    subject: 'how I paid for my clinics',
+    subject: 'no bank in my clinic deals',
     preheader: 'One true story about where the money came from.',
     body: [
       '{name},',
@@ -939,7 +939,7 @@ export const FLOW_NURTURE_1: LongEmail[] = [
   },
   {
     id: 'lf_nu1_multiple_gap',
-    subject: 'the gap between 4x and 10x',
+    subject: 'what a group is worth that one business isn’t',
     preheader: 'Why a group is worth more than its parts.',
     body: [
       '{name},',
@@ -1022,7 +1022,7 @@ export const FLOW_NURTURE_1: LongEmail[] = [
   },
   {
     id: 'lf_nu1_book_partner',
-    subject: 'bring your partner to the call',
+    subject: 'when the timing’s right, bring your partner',
     preheader: 'When the decision is shared, the call should be too.',
     body: [
       '{name},',

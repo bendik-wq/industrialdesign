@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RULES, type Signals } from '../src/personalize/triggers';
 import { BEHAVIOUR_TEMPLATES } from '../src/integrations/sequences';
 import { TEMPLATES } from '../src/integrations/templates';
+import { PAGE_RULES } from '../src/longflow/page-rules';
 import type { Lead } from '../src/funnel/leads';
 
 const now = Date.parse('2026-10-12T12:00:00Z');
@@ -11,7 +12,9 @@ const fires = (s: Signals) => RULES.filter((r) => r.when(s, now)).map((r) => r.t
 
 describe('behaviour-triggered emails', () => {
   it('every rule has a template and a step, in the same order', () => {
-    expect(RULES.map((r) => r.template)).toEqual(BEHAVIOUR_TEMPLATES.map((t) => t.template));
+    // Funnel rules first, then the page-behaviour rules (append-only: the step index is the dedupe key).
+    expect([...RULES, ...PAGE_RULES].map((r) => r.template)).toEqual(BEHAVIOUR_TEMPLATES.map((t) => t.template));
+    for (const r of PAGE_RULES) expect(TEMPLATES[r.template], r.template).toBeTypeOf('function');
     for (const r of RULES) expect(TEMPLATES[r.template]).toBeTypeOf('function');
   });
   it('picked a day but didn’t book → finish-booking email', () => {
@@ -37,5 +40,16 @@ describe('behaviour-triggered emails', () => {
     const b = lead({ status: 'booked', booked_at: now - 13 * 3600_000, call_at: now + 30 * 3600_000 });
     expect(fires(sig({ lead: b, fundingInterest: true, pickedDate: true }))).toEqual(['t_watch_prep']);
     expect(fires(sig({ lead: b, precallViews: 1 }))).toEqual([]);
+  });
+  it('page behaviour: a guide, an industry page, the masterclass page, a reading spree, coming back', () => {
+    const p = (o: Partial<import('../src/longflow/page-rules').PageSignals> = {}) => ({ pages: [], guidesRecent: 0, quietDays: 0, registeredForWebinar: false, ...o });
+    const hit = (x: ReturnType<typeof p>) => PAGE_RULES.filter((r) => r.when(x)).map((r) => r.template);
+    expect(hit(p({ pages: ['/guides/seller-finance-explained'] }))).toEqual(['tb_g_seller_finance_explained']);
+    expect(hit(p({ pages: ['/for/dental/ceiling'] }))).toEqual(['tb_i_dental']);
+    expect(hit(p({ pages: ['/webinar'] }))).toEqual(['tb_webinar_look']);
+    expect(hit(p({ pages: ['/webinar'], registeredForWebinar: true }))).toEqual([]);
+    expect(hit(p({ guidesRecent: 3 }))).toContain('tb_reader');
+    expect(hit(p({ quietDays: 30 }))).toEqual(['tb_back_after_quiet']);
+    expect(hit(p({ pages: ['/guides'] }))).toEqual([]);
   });
 });

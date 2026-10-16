@@ -472,7 +472,7 @@ export const LIB_SELLERS: LongEmail[] = [
   },
   {
     id: 'lib_sell_vendor_finance_story',
-    subject: 'how I bought my clinics',
+    subject: 'the sellers who funded my clinic deals',
     preheader: 'One hundred percent vendor finance, built on trust.',
     body: [
       '{name},',

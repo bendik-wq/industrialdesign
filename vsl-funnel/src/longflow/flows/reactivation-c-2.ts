@@ -711,7 +711,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   },
   {
     id: 'lf_rxc2_partner_conversation',
-    subject: 'the conversation at home',
+    subject: 'talking about buying at the kitchen table',
     preheader: 'Buying a business is a family decision before it’s a financial one.',
     body: [
       '{name},',
@@ -963,7 +963,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   },
   {
     id: 'lf_rxc2_banks_reject_structures',
-    subject: 'banks don’t reject buyers',
+    subject: 'a bank says no to the structure, not to you',
     preheader: 'They reject structures. That’s good news for a small buyer.',
     body: [
       '{name},',
@@ -1182,7 +1182,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   },
   {
     id: 'lf_rxc2_still_here',
-    subject: 'still here when you’re ready',
+    subject: 'the door stays open, whatever your numbers',
     preheader: 'The masterclass, the guides and the team are all still here.',
     body: [
       '{name}, a short note.',

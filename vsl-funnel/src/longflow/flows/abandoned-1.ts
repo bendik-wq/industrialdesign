@@ -269,7 +269,7 @@ export const FLOW_ABANDONED_1: LongEmail[] = [
   },
   {
     id: 'lf_aband1_seller_paid_twice',
-    subject: 'the seller who gets paid twice',
+    subject: 'why a seller would stay in after selling',
     preheader: 'Seller rollover: why an owner sells to a buyer without a big cheque.',
     body: [
       '{name},',

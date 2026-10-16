@@ -308,7 +308,7 @@ export const LIB_BELIEFS: LongEmail[] = [
     body: [
       '{name},',
       'Owners have been told banks will not fund small business acquisitions. What banks will not fund is a vague request with no target and no structure.',
-      'Bring a target with three years of financials, a seller note and a rollover stake behind the senior debt, and coverage of about 1.5 times, and you are presenting the kind of file commercial lenders assess every week.',
+      'Bring a target with three years of financials, a seller note and seller rollover behind the senior debt, and coverage of about 1.5 times, and you are presenting the kind of file commercial lenders assess every week.',
       'No approval is ever certain. The file you bring is what decides the conversation.',
       'Start below to see what goes into that file.',
     ],

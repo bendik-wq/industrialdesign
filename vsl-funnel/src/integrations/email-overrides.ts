@@ -31,7 +31,8 @@ export const MERGE_TAGS = {
 
 /** Written from each lead's own answers, or changes with the lead's progress: shown, not editable. */
 const NOT_EDITABLE = new Set(['resume_link', 'voice_link', ...Object.keys(FOLLOWUP_TEMPLATES)]);
-export const isEditable = (t: string) => Boolean(TEMPLATES[t]) && !NOT_EDITABLE.has(t);
+// The six-month emails are data files (thousands of them), reviewed in code rather than the editor.
+export const isEditable = (t: string) => Boolean(TEMPLATES[t]) && !NOT_EDITABLE.has(t) && !/^(lib|lf|tb)_/.test(t);
 
 export interface Override { template: string; subject: string; preheader: string | null; body: string; cta_label: string | null; cta_href: string | null; ps: string | null; updated_at: number }
 

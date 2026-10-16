@@ -2,7 +2,7 @@ import type { Runtime } from '../app';
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { type Lead, getLead, getLeadByEmail, updateLead } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
-import { cancelSequence, enqueuePrecall, enqueueSequence, formatCallTime } from './email';
+import { cancelSequence, enqueuePrecall, enqueueSequence, formatCallTime, startLongFlow } from './email';
 import { AI_CALLER } from '../config';
 import { cancelCalls, queueCall } from './elevenlabs';
 import { notifySlack } from './notify';
@@ -129,6 +129,7 @@ export async function markCancelled(rt: Runtime, lead: Lead, provider: string, r
   rt.waitUntil(notifySlack(rt, lead, '🚫 Call cancelled', [], 'cancelled'));
   // Rebooking follow-up written from their application.
   await enqueueSequence(rt, lead, 'cancelled');
+  if (after) await startLongFlow(rt, after, 'cancelled');
 }
 
 /** Calendly: `Calendly-Webhook-Signature: t=<ts>,v1=<hmac(t.body)>`. */

@@ -2,6 +2,7 @@ import type { Lead } from '../funnel/leads';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
 import { WEBINAR_TEMPLATES } from '../webinar/templates';
 import { PREWEBINAR_TEMPLATES } from '../webinar/prewebinar';
+import { LONG_TEMPLATES } from '../longflow';
 
 /**
  * Email copy. Plain, personal, letter-style emails from Josh — they read like
@@ -24,6 +25,9 @@ export interface TemplateCtx {
   rescheduleUrl?: string | null;
   /** The webinar session this lead is registered for (personal links). */
   webinar?: { title: string; when: string; room: string; replay: string; ics: string | null; google: string | null; replayHours: number; durationMin: number } | null;
+  /** Long flows: the flow's main ask, and where the masterclass sign-up lives. */
+  ask?: import('../longflow/kit').Ask;
+  webinarUrl?: string;
 }
 
 export interface EmailContent {
@@ -1300,7 +1304,7 @@ export const TEMPLATES: Record<string, Template> = {
 };
 
 // Follow-up written from each lead's application and booking answers (src/followup).
-Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES, WEBINAR_TEMPLATES, PREWEBINAR_TEMPLATES);
+Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES, WEBINAR_TEMPLATES, PREWEBINAR_TEMPLATES, LONG_TEMPLATES);
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 

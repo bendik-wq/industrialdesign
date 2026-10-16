@@ -380,7 +380,7 @@ export const FLOW_REACTIVATION_B_2: LongEmail[] = [
   },
   {
     id: 'lf_rxb2_cost_of_waiting',
-    subject: 'what another year of waiting costs',
+    subject: 'one more year on the same ceiling',
     preheader: 'Not money you lose. Ground a competitor gains.',
     body: [
       '{name},',

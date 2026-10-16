@@ -559,8 +559,8 @@ admin.post('/reactivation/stop', async (c) => {
   // One person (they replied "not interested"), or everyone.
   const b = await c.req.json<{ lead?: unknown }>().catch(() => ({} as { lead?: unknown }));
   const r = typeof b.lead === 'string'
-    ? await c.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence = 'reactivation' AND status = 'pending' AND lead_id = ?").bind(b.lead).run()
-    : await c.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence = 'reactivation' AND status = 'pending'").run();
+    ? await c.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence LIKE 'reactivation%' AND status = 'pending' AND lead_id = ?").bind(b.lead).run()
+    : await c.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence LIKE 'reactivation%' AND status = 'pending'").run();
   return c.json({ ok: true, cancelled: r.meta.changes ?? 0 });
 });
 

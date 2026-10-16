@@ -16,7 +16,7 @@ export const LIB_TIMING: LongEmail[] = [
   },
   {
     id: 'lib_time_no_successor',
-    subject: 'when the kids don’t want the business',
+    subject: 'owners whose kids won’t take over',
     preheader: 'The succession plan a lot of founders assumed for years, and what replaces it.',
     body: [
       '{name}, a short one.',

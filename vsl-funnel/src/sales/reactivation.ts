@@ -1,6 +1,7 @@
 import type { Runtime } from '../app';
 import type { Lead } from '../funnel/leads';
-import { enqueueSequence, zonedTime } from '../integrations/email';
+import { enqueueSequence, startLongFlow, zonedTime } from '../integrations/email';
+import { getLead } from '../funnel/leads';
 import { buildDossier, industryName } from '../followup/dossier';
 import { parseAnswers } from '../funnel/leads';
 
@@ -20,6 +21,8 @@ export const REACTIVATION_SEGMENTS = {
   lost: { label: 'Lost more than 60 days ago', hint: 'Said no on the call; circumstances change.', where: "l.status = 'lost' AND l.updated_at < :now - 60 * 86400000" },
 } as const;
 export type Segment = keyof typeof REACTIVATION_SEGMENTS;
+/** Which reactivation campaign a lead gets, by tier. */
+export const REACTIVATION_FOR_TIER: Record<string, 'reactivation' | 'reactivation_b' | 'reactivation_c'> = { A: 'reactivation', B: 'reactivation_b', C: 'reactivation_c' };
 
 /** Never in a reactivation: unsubscribed, no email, clients, ruled out, already reactivated in the last 90 days. */
 const BASE = "l.email IS NOT NULL AND l.unsubscribed_at IS NULL AND l.status NOT IN ('won', 'disqualified') AND (r.reactivated_at IS NULL OR r.reactivated_at < :now - 90 * 86400000)";
@@ -96,8 +99,12 @@ export async function launchReactivation(rt: Runtime, ids: string[], perDay: num
     const eight = zonedTime(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 8, tz);
     const startAt = Math.max(now + 5 * 60_000, eight + (i % per) * 2 * 60_000);
     await rt.env.DB.prepare('INSERT INTO lead_reactivation (lead_id, reactivated_at, segment) VALUES (?, ?, ?) ON CONFLICT(lead_id) DO UPDATE SET reactivated_at = excluded.reactivated_at, segment = excluded.segment').bind(r.id, startAt, r.segment).run();
-    await rt.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE lead_id = ? AND sequence = 'reactivation' AND status = 'pending'").bind(r.id).run();
-    await enqueueSequence(rt, { id: r.id, email: r.email, call_at: null, unsubscribed_at: null } as Pick<Lead, 'id' | 'email' | 'call_at' | 'unsubscribed_at'>, 'reactivation', { startAt });
+    await rt.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE lead_id = ? AND sequence LIKE 'reactivation%' AND status = 'pending'").bind(r.id).run();
+    // A and unknown tiers get the 30-day run, then six months; B and C get their own six-month campaigns.
+    const flow = REACTIVATION_FOR_TIER[r.tier ?? ''] ?? 'reactivation';
+    if (flow === 'reactivation') await enqueueSequence(rt, { id: r.id, email: r.email, call_at: null, unsubscribed_at: null } as Pick<Lead, 'id' | 'email' | 'call_at' | 'unsubscribed_at'>, 'reactivation', { startAt });
+    const full = await getLead(rt.env, r.id);
+    if (full) await startLongFlow(rt, full, flow, { startAt });
     launched++;
   }
   return { launched, days: Math.ceil(pick.length / per), skipped: ids.length - pick.length };
@@ -109,15 +116,15 @@ export async function reactivationReport(rt: Runtime) {
   const [steps, people, queue] = await Promise.all([
     db.prepare(`SELECT template, SUM(status IN ('sent','simulated')) AS sent, SUM(status = 'pending') AS pending, SUM(status = 'skipped') AS skipped,
                        SUM(opened_at IS NOT NULL) AS opened, SUM(clicked_at IS NOT NULL) AS clicked
-                  FROM emails WHERE sequence = 'reactivation' GROUP BY template ORDER BY template`).all(),
+                  FROM emails WHERE sequence LIKE 'reactivation%' AND template NOT LIKE 'lib\_%' ESCAPE '\' AND template != '@lib' GROUP BY template ORDER BY template`).all(),
     db.prepare(`SELECT l.id, l.first_name, l.last_name, l.email, l.status, r.reactivated_at, r.segment AS reactivation_segment,
                        (l.booked_at > r.reactivated_at AND l.booking_cancelled_at IS NULL) AS rebooked, (l.app_completed_at > r.reactivated_at) AS reapplied,
                        l.unsubscribed_at > r.reactivated_at AS unsubscribed
                   FROM lead_reactivation r JOIN leads l ON l.id = r.lead_id ORDER BY r.reactivated_at DESC LIMIT 500`).all<Record<string, number | string | null>>(),
     db.prepare(`SELECT COUNT(*) AS pending, MIN(send_at) AS next_at, MAX(send_at) AS last_at, SUM(status IN ('sent','simulated')) AS sent, MAX(sent_at) AS last_sent_at
-                  FROM emails WHERE sequence = 'reactivation' AND status IN ('pending','sent','simulated')`).first<{ pending: number; next_at: number | null; last_at: number | null; sent: number; last_sent_at: number | null }>(),
+                  FROM emails WHERE sequence LIKE 'reactivation%' AND status IN ('pending','sent','simulated')`).first<{ pending: number; next_at: number | null; last_at: number | null; sent: number; last_sent_at: number | null }>(),
   ]);
-  const next = await db.prepare("SELECT MIN(send_at) AS at, COUNT(*) AS n FROM emails WHERE sequence = 'reactivation' AND status = 'pending'").first<{ at: number | null; n: number }>();
+  const next = await db.prepare("SELECT MIN(send_at) AS at, COUNT(*) AS n FROM emails WHERE sequence LIKE 'reactivation%' AND status = 'pending'").first<{ at: number | null; n: number }>();
   const p = people.results;
   return {
     steps: steps.results,

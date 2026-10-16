@@ -1212,7 +1212,7 @@ export const FLOW_TIER_B_1: LongEmail[] = [
   },
   {
     id: 'lf_tb1_who_its_not_for',
-    subject: 'who this isn’t for',
+    subject: 'the owners we tell “not yet”',
     preheader: 'If it’s you, the call will say so.',
     body: [
       '{name},',

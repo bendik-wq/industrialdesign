@@ -42,7 +42,7 @@ export const LIB_DSCR: LongEmail[] = [
   },
   {
     id: 'lib_dscr_banks_reject_structures',
-    subject: 'banks reject structures, not buyers',
+    subject: 'reshaping a structure the bank declined',
     preheader: 'A declined loan is a coverage problem you can redesign.',
     body: [
       '{name},',
@@ -437,7 +437,7 @@ export const LIB_DSCR: LongEmail[] = [
     body: [
       '{name},',
       'Bank debt has the shortest term and the strictest repayment schedule in the stack.',
-      'Shrink it from 70% of the price to 60% and move the difference into a seller note with a holiday, or into rollover, and the first two years get far lighter.',
+      'Shrink it from 70% of the price to 60% and move the difference into a seller note with a holiday, or into seller rollover, and the first two years get far lighter.',
       'The structure shifts from 70/20/10 towards 60/40, and coverage rises without touching the price.',
     ],
     ps: 'Illustrative numbers only; every deal is structured on its own figures, and none of this is financial advice.',

@@ -3,7 +3,7 @@ import { AI_CALLER, APPLICATION, CALL_CONSENT, type Route, type Tier } from '../
 import { newId, newRefCode } from '../lib/ids';
 import { overLimit } from '../lib/ratelimit';
 import type { VisitorCtx } from '../lib/identity';
-import { cancelSequence, enqueueSequence } from '../integrations/email';
+import { cancelSequence, enqueueSequence, startLongFlow } from '../integrations/email';
 import { queueCall } from '../integrations/elevenlabs';
 import { sendLinkEmail } from '../integrations/voice';
 import { startSms, stopSms } from '../integrations/sms';
@@ -159,6 +159,7 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   const eventId = isNew ? await track(rt, who, { name: 'lead_captured', source: 'server', path: '/apply', eventId: body.event_id as string | undefined }) : null;
   await track(rt, who, { name: 'app_step_saved', source: 'server', path: '/apply', props: { step: 1, question: 'contact' } });
   if (!lead.app_completed_at) await enqueueSequence(rt, lead, 'abandoned');
+  if (!lead.app_completed_at) await startLongFlow(rt, lead, 'abandoned');
   if (!lead.app_completed_at) await startSms(rt, lead, 'abandoned');
 
   return { lead, eventId, isNew };
@@ -226,6 +227,7 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
 
   await cancelSequence(rt, lead.id, 'abandoned');
   if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
+  if (firstSubmit && !fresh.booked_at) await startLongFlow(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
   if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, 'nurture');
   await stopSms(rt, lead.id, ['abandoned']);
   if (firstSubmit && !fresh.booked_at) await startSms(rt, fresh, 'qualified');
