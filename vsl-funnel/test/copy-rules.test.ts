@@ -56,3 +56,12 @@ describe('copy blacklist auditor', () => {
     expect(copyBrief('ideas')).not.toContain('THE SULTANIC STRUCTURES');
   });
 });
+
+import { toRtf } from '../src/content/doc-model';
+describe('RTF export', () => {
+  it('never prints a symbol Google Docs can’t read as "?"', () => {
+    const rtf = toRtf([{ kind: 'p', runs: [{ text: '“No money down” ≠ “house down” → about ≈ 1.5x' }], size: 12, color: '#000000' } as never]);
+    expect(rtf).toContain('is not');
+    expect(rtf).not.toMatch(/\\'94 \? /);
+  });
+});

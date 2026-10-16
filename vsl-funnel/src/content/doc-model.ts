@@ -67,7 +67,7 @@ const CP1252: Record<number, number> = {
   0x02dc: 0x98, 0x2122: 0x99, 0x0161: 0x9a, 0x203a: 0x9b, 0x0153: 0x9c, 0x017e: 0x9e, 0x0178: 0x9f,
 };
 // Anything else outside Windows-1252 gets a plain stand-in rather than a garbled glyph.
-const FALLBACK: Record<string, string> = { '→': '->', '←': '<-', '≈': '~', '×': 'x', '≥': '>=', '≤': '<=', '☐': '', '✓': '', '✔': '', '−': '-', '\u00a0': ' ', '\u2009': ' ', '\u202f': ' ' };
+const FALLBACK: Record<string, string> = { '→': '->', '←': '<-', '≈': '~', '≠': 'is not', '×': 'x', '≥': '>=', '≤': '<=', '☐': '', '✓': '', '✔': '', '−': '-', '\u00a0': ' ', '\u2009': ' ', '\u202f': ' ' };
 
 function rtfText(s: string) {
   let out = '';
