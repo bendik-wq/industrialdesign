@@ -127,7 +127,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_josh_vendor_finance',
-    subject: 'how I paid for my clinics',
+    subject: 'the vendor-financed clinics behind this advice',
     preheader: 'One fact from my own group, since you cancelled before hearing it.',
     body: [
       '{name},',
@@ -435,7 +435,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_loi_guide',
-    subject: 'what a letter of intent actually commits you to',
+    subject: 'an LOI explained, for the owner who cancelled',
     preheader: 'The LOI is where a deal gets real. Here’s what it says.',
     body: [
       '{name},',
@@ -541,6 +541,30 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
     cta: 'guide:70-20-10-deal-structure',
   },
   {
+    id: 'lf_cx2_spreadsheet_drawer',
+    subject: 'the acquisition spreadsheet in your drawer',
+    preheader: 'Plenty of owners have run the numbers alone. The call tests them.',
+    body: [
+      '{name},',
+      'Some owners who cancel have already built a spreadsheet on a target, run it a few times, and parked it.',
+      'A model on your own is a start. On the call we test it against how lenders assess coverage and how seller finance and seller rollover change the picture.',
+      'Bring the spreadsheet with you when you rebook.',
+    ],
+    cta: 'next',
+  },
+  {
+    id: 'lf_cx2_accountant_said_wait',
+    subject: 'if your accountant told you to wait',
+    preheader: 'Accountants judge what they’re shown. Show them a structure.',
+    body: [
+      '{name},',
+      'Some owners cancel after a chat with their accountant, who sensibly asks where the money comes from.',
+      'That question has a real answer once there’s a structure on paper: debt against the target’s cash flow, a vendor note and a rollover stake, tested at about 1.5x coverage.',
+      'Bring your accountant onto the rebooked call and let them ask us directly.',
+    ],
+    cta: 'next',
+  },
+  {
     id: 'lf_cx2_rate_worries',
     subject: 'if interest rates spooked you',
     preheader: 'The coverage test already accounts for repayments.',
@@ -554,7 +578,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_honest_fit',
-    subject: 'you might not be a fit, and that’s fine',
+    subject: 'not every owner is a fit, and that’s fine',
     preheader: 'The call answers fit honestly, either way.',
     body: [
       '{name},',
@@ -600,7 +624,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_due_diligence_guide',
-    subject: 'the red flags we walk away from',
+    subject: 'if buying a dud was why you cancelled',
     preheader: 'If buying a dud was the fear, this is the checklist.',
     body: [
       '{name},',
@@ -646,7 +670,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_holdco',
-    subject: 'buy through a company, not in your own name',
+    subject: 'the holding company question you never asked',
     preheader: 'The holding company setup that protects the group.',
     body: [
       '{name},',
@@ -728,7 +752,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_staff_ready',
-    subject: 'your best staff need somewhere to grow',
+    subject: 'a group gives your managers a next step',
     preheader: 'A group gives good people a bigger job to step into.',
     body: [
       '{name},',
@@ -764,7 +788,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_lenders_reject_structures',
-    subject: 'banks reject structures, not buyers',
+    subject: 'if a bank refusal put you off rebooking',
     preheader: 'If a past loan refusal put you off, read this.',
     body: [
       '{name},',
@@ -798,7 +822,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_identity_owner',
-    subject: 'from owner of a business to owner of companies',
+    subject: 'operator today, investor in your sector tomorrow',
     preheader: 'The shift that matters most isn’t financial.',
     body: [
       '{name},',
@@ -834,7 +858,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_check_in_four_months',
-    subject: 'checking in on the acquisition idea',
+    subject: 'is the acquisition idea still on your list',
     preheader: 'Is it still on the list, or has it dropped off?',
     body: [
       '{name}, a check-in.',
@@ -891,7 +915,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_compound_groups',
-    subject: 'the second acquisition is easier than the first',
+    subject: 'the first deal builds the machine for the rest',
     preheader: 'Each deal builds the credibility for the next.',
     body: [
       '{name},',
@@ -974,7 +998,7 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
   },
   {
     id: 'lf_cx2_another_owner_buys',
-    subject: 'the business you wanted, bought by someone else',
+    subject: 'hearing your target sold after you cancelled',
     preheader: 'It happens quietly, and you hear about it later.',
     body: [
       '{name},',
@@ -1020,6 +1044,42 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
     cta: 'reply',
   },
   {
+    id: 'lf_cx2_weekend_thinking',
+    subject: 'the sunday night acquisition thought',
+    preheader: 'If it keeps coming back, it deserves a proper answer.',
+    body: [
+      '{name},',
+      'Plenty of owners tell us the acquisition idea shows up on Sunday nights, right before another week of running everything themselves.',
+      'An idea that keeps coming back months after a cancelled call deserves a proper look.',
+      'The rebooked call gives it one.',
+    ],
+    cta: 'next',
+  },
+  {
+    id: 'lf_cx2_one_deal_not_ten',
+    subject: 'one good deal beats ten maybes',
+    preheader: 'You don’t need a pipeline to start. You need one target.',
+    body: [
+      '{name},',
+      'Owners who cancel tend to think they need a full pipeline of targets before they talk to anyone.',
+      'One business that fits, tested properly, is enough to start. We help you find it if you don’t have it yet.',
+      'That starts with the call you cancelled.',
+    ],
+    cta: 'next',
+  },
+  {
+    id: 'lf_cx2_margin_pressure',
+    subject: 'when margins tighten, scale helps',
+    preheader: 'A bigger group buys better and spreads its overheads.',
+    body: [
+      '{name},',
+      'If margins have been squeezed since you cancelled, a second business changes the maths.',
+      'Shared overheads, better supplier terms and one finance function across two businesses give a group room a single business doesn’t have.',
+      'We look at where those gains sit for you on the call.',
+    ],
+    cta: 'next',
+  },
+  {
     id: 'lf_cx2_owner_burnout',
     subject: 'if you cancelled because you were exhausted',
     preheader: 'Tired owners are the ones who need a group most.',
@@ -1038,10 +1098,9 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
     body: [
       '{name},',
       'Sellers who roll part of their equity into your group get paid once at settlement and again at the group exit.',
-      'That second payday is what makes sellers comfortable with your structure. The guide covers how it works and what to watch for.',
+      'That second payday is what makes sellers comfortable with your structure, and we show you how to offer it on the call.',
     ],
-    cta: 'guide:seller-rollover-explained',
-    label: 'Read about rollover →',
+    cta: 'next',
   },
   {
     id: 'lf_cx2_five_month_note',
@@ -1084,10 +1143,9 @@ export const FLOW_CANCELLED_2: LongEmail[] = [
     body: [
       '{name},',
       'Your own market holds the lowest-risk target you’ll ever find: a business you already understand.',
-      'The guide shows how owners approach competitors without starting a turf war.',
+      'How you approach that owner without starting a turf war is one of the first things we plan on the call.',
     ],
-    cta: 'guide:buy-your-competitor',
-    label: 'Read the competitor guide →',
+    cta: 'next',
   },
   {
     id: 'lf_cx2_six_month_mark',
