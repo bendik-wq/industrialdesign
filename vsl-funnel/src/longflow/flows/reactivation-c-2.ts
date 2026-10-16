@@ -79,7 +79,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   },
   {
     id: 'lf_rxc2_dscr_own_business',
-    subject: 'run the 1.5x test on your own business',
+    subject: 'your readiness gap, as one coverage number',
     preheader: 'Before you test a target, test yourself.',
     body: [
       '{name},',
@@ -249,7 +249,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   },
   {
     id: 'lf_rxc2_reply_one_target',
-    subject: 'which business would you buy first',
+    subject: 'name your first target in one line',
     preheader: 'One name or one description. Reply and tell me.',
     body: [
       '{name}, a question for your reply button.',
@@ -331,7 +331,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   },
   {
     id: 'lf_rxc2_guide_competitor_first',
-    subject: 'the competitor you already know best',
+    subject: 'the rival down the road as your first deal',
     preheader: 'Your first target is probably someone you compete with now.',
     body: [
       '{name},',
@@ -355,7 +355,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   },
   {
     id: 'lf_rxc2_guide_vendor_finance_story',
-    subject: 'how i bought my clinics',
+    subject: 'my clinics, vendor finance and a long wait',
     preheader: 'One hundred percent vendor finance, and the patience it took.',
     body: [
       '{name},',
@@ -450,7 +450,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   },
   {
     id: 'lf_rxc2_guide_rollover_seller_stays',
-    subject: 'the seller who keeps a slice',
+    subject: 'rollover for a smaller first-time buyer',
     preheader: 'Seller rollover, and why it helps a smaller buyer most.',
     body: [
       '{name},',
@@ -746,17 +746,6 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
     cta: 'next',
   },
   {
-    id: 'lf_rxc2_rollover_paid_twice',
-    subject: 'why a seller agrees to be paid twice',
-    preheader: 'Seen from the seller’s side, rollover is a bet on you.',
-    body: [
-      '{name},',
-      'A seller who rolls over part of their business takes some cash now and keeps a stake in the group you build. If you grow it and sell later at a group multiple, their slice is worth more than the cash they left behind.',
-      'That only works when the seller believes in the buyer, which is why the capabilities you build now matter so much. The masterclass shows how rollover sits in a full structure.',
-    ],
-    cta: 'next',
-  },
-  {
     id: 'lf_rxc2_cost_of_waiting_honest',
     subject: 'the competitor who buys first',
     preheader: 'Waiting has a cost, and it isn’t the one people expect.',
@@ -796,7 +785,7 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
   // ───────── Month 5 ─────────
   {
     id: 'lf_rxc2_reply_timeline_guess',
-    subject: 'when do you expect to be ready',
+    subject: 'put a rough date on your first deal',
     preheader: 'A rough date is fine. Reply with it.',
     body: [
       '{name}, a question about timing.',
@@ -1167,18 +1156,6 @@ export const FLOW_REACTIVATION_C_2: LongEmail[] = [
     ],
     cta: 'apply',
     label: 'Apply with my updated figures →',
-  },
-  {
-    id: 'lf_rxc2_multiple_gap',
-    subject: 'why groups sell for more than single businesses',
-    preheader: 'The multiple gap that makes the long game worth it.',
-    body: [
-      '{name},',
-      'Small businesses trade at roughly 3 to 5x EBITDA, while groups of them trade at roughly 8 to 12x. The same profit is valued differently once it sits inside a well-run group.',
-      'That gap is the reason the long game pays. The masterclass explains how buyers build toward it one acquisition at a time.',
-    ],
-    ps: 'Illustrative ranges only. Every deal is valued on its own figures, and none of this is financial advice.',
-    cta: 'next',
   },
   {
     id: 'lf_rxc2_patience_and_pace',

@@ -1199,7 +1199,7 @@ export const FLOW_REACTIVATION_B_2: LongEmail[] = [
   {
     id: 'lf_rxb2_final_open_door',
     subject: 'whenever the uncertain piece moves',
-    preheader: 'Whenever the uncertain piece moves, we’re here.',
+    preheader: 'Size, profit, timing, capital or experience. The calendar stays open for you.',
     body: [
       '{name},',
       'You’ll keep hearing from us now and then, with ideas for getting your business ready and the odd question.',

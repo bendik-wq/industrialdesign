@@ -244,7 +244,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_josh_clinics_vendor',
-    subject: 'my clinics, and why I write to past applicants',
+    subject: 'the vendor finance behind my own clinic group',
     preheader: 'One true story about vendor finance.',
     body: [
       '{name}, a bit of my own background.',
