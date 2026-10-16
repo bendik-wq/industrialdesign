@@ -151,7 +151,7 @@ export const FLOW_LOST_1: LongEmail[] = [
     cta: 'next',
   },
   {
-    id: 'lf_lo1_what_I_got_wrong',
+    id: 'lf_lo1_what_i_explained_badly',
     subject: 'was there anything I explained badly on the call?',
     preheader: 'Honest feedback on the call helps me more than you’d think.',
     body: [
@@ -382,7 +382,7 @@ export const FLOW_LOST_1: LongEmail[] = [
   },
   {
     id: 'lf_lo1_guarantee_honesty',
-    subject: 'the honest answer on personal guarantees',
+    subject: 'personal guarantees, if that part made you uneasy',
     preheader: 'Lenders can ask for one. Whether they do depends on the structure.',
     body: [
       '{name},',
@@ -441,8 +441,8 @@ export const FLOW_LOST_1: LongEmail[] = [
     cta: 'next',
   },
   {
-    id: 'lf_lo1_how_I_bought_clinics',
-    subject: 'how I bought my clinics with vendor finance',
+    id: 'lf_lo1_josh_clinics_vendor_note',
+    subject: 'my clinics were bought on a vendor note',
     preheader: 'My own group was built this way. That’s the only proof I’ll lean on.',
     body: [
       '{name},',
@@ -473,6 +473,18 @@ export const FLOW_LOST_1: LongEmail[] = [
       'When the right business appears, you’ll move in weeks instead of months.',
     ],
     cta: 'next',
+  },
+  {
+    id: 'lf_lo1_reply_list_progress',
+    subject: 'did the five-name competitor list get written?',
+    preheader: 'Even two names counts. Tell me how far you got.',
+    body: [
+      '{name},',
+      'A while back I suggested writing down five nearby businesses you’d consider buying.',
+      'Did the list get written, and did any name on it surprise you?',
+      'Reply with how many names you have, and I’ll send you the next step for working that list on your own.',
+    ],
+    cta: 'reply',
   },
   {
     id: 'lf_lo1_timing_never_perfect',
@@ -578,9 +590,10 @@ export const FLOW_LOST_1: LongEmail[] = [
       '{name},',
       'Owners in every market watch a competitor buy a business they had quietly hoped to own.',
       'The ones who see it coming kept a list, stayed in touch with nearby owners, and knew when someone started talking about retirement.',
-      'That kind of awareness costs nothing and keeps the option alive for you.',
+      'Is there a business near you that you’d hate to see a competitor buy?',
+      'Reply with the kind of business it is, no names needed, and I’ll tell you what to watch for.',
     ],
-    cta: 'guide:buy-your-competitor',
+    cta: 'reply',
   },
   {
     id: 'lf_lo1_masterclass_one_hour',
@@ -596,7 +609,7 @@ export const FLOW_LOST_1: LongEmail[] = [
   },
   {
     id: 'lf_lo1_loi_basics',
-    subject: 'what goes into a letter of intent',
+    subject: 'what a letter of intent pins down for both sides',
     preheader: 'The document that turns a conversation with a seller into a deal.',
     body: [
       '{name},',
@@ -729,7 +742,7 @@ export const FLOW_LOST_1: LongEmail[] = [
   },
   {
     id: 'lf_lo1_group_multiple',
-    subject: 'why a group sells for more than its parts',
+    subject: 'the 3x versus 8x gap behind building a group',
     preheader: 'The reason owners build groups at all, in one picture.',
     body: [
       '{name},',
@@ -777,6 +790,19 @@ export const FLOW_LOST_1: LongEmail[] = [
     cta: 'next',
   },
   {
+    id: 'lf_lo1_book_cash_position_changed',
+    subject: 'if your cash position or workload shifts',
+    preheader: 'A changed picture deserves a fresh look. Only if you want one.',
+    body: [
+      '{name},',
+      'The answer you gave on the call fitted the business as it stood that week.',
+      'If a big contract lands, a key hire frees up your time, or the cash position changes, the picture is different and worth a fresh look.',
+      'Should that happen, the calendar is open; if it doesn’t, nothing is expected of you.',
+    ],
+    cta: 'book',
+    label: 'If things change, pick a time →',
+  },
+  {
     id: 'lf_lo1_reply_lender_meeting',
     subject: 'have you spoken to a commercial lender yet?',
     preheader: 'One coffee with a lender teaches more than a month of reading.',
@@ -821,9 +847,10 @@ export const FLOW_LOST_1: LongEmail[] = [
       '{name},',
       'A target where one customer brings in a large share of revenue carries a risk the price rarely reflects.',
       'Lose that customer after you buy and the coverage test you passed on paper fails in real life.',
-      'Ask the same question of your own business, because a lender will.',
+      'A lender will ask the same question of your own business.',
+      'Reply with roughly what share your biggest customer brings in, and I’ll tell you how a lender would read it.',
     ],
-    cta: 'next',
+    cta: 'reply',
   },
   {
     id: 'lf_lo1_reply_what_industry',
@@ -844,9 +871,10 @@ export const FLOW_LOST_1: LongEmail[] = [
       '{name},',
       'A first acquisition doesn’t have to be a direct competitor.',
       'An adjacent business sells something your customers already pay for elsewhere, so each side gains a second product to offer.',
-      'Write down three services your customers buy from someone else, and you’ve found your adjacent list.',
+      'Name three services your customers buy from someone else, and you’ve found your adjacent list.',
+      'Reply with your three and I’ll tell you which one looks like the easiest first deal.',
     ],
-    cta: 'next',
+    cta: 'reply',
   },
   {
     id: 'lf_lo1_seller_transition',
@@ -886,7 +914,7 @@ export const FLOW_LOST_1: LongEmail[] = [
   },
   {
     id: 'lf_lo1_indicative_offer',
-    subject: 'front-load the economics in your offer',
+    subject: 'show the seller how they get paid, up front',
     preheader: 'The first offer sets the shape of the whole negotiation.',
     body: [
       '{name},',
@@ -909,8 +937,21 @@ export const FLOW_LOST_1: LongEmail[] = [
     cta: 'next',
   },
   {
+    id: 'lf_lo1_book_masterclass_questions',
+    subject: 'questions the masterclass raised about your business',
+    preheader: 'If watching it changed your thinking, the conversation can pick up again.',
+    body: [
+      '{name},',
+      'Watching the masterclass after a call shifts the thinking for some owners, and leaves others more certain of their no.',
+      'Both outcomes are fine with me.',
+      'If it raised questions about your own business that you’d like answered properly, a call is there for it.',
+    ],
+    cta: 'book',
+    label: 'If things change, pick a time →',
+  },
+  {
     id: 'lf_lo1_100_percent_vendor',
-    subject: 'when a seller carries the whole price',
+    subject: 'a seller note for the full price, and why sellers agree',
     preheader: '100% vendor finance is real. It needs a seller who trusts you.',
     body: [
       '{name},',
@@ -922,7 +963,7 @@ export const FLOW_LOST_1: LongEmail[] = [
   },
   {
     id: 'lf_lo1_your_business_value',
-    subject: 'what your own business is worth today',
+    subject: 'value your own business at 3 to 5 times profit first',
     preheader: 'Know your own number before you value anyone else’s.',
     body: [
       '{name},',
@@ -972,6 +1013,18 @@ export const FLOW_LOST_1: LongEmail[] = [
     cta: 'guide:70-20-10-deal-structure',
   },
   {
+    id: 'lf_lo1_reply_structure_fit',
+    subject: 'which deal structure suits sellers near you?',
+    preheader: 'Vendor note, 60/40 or 70/20/10. Your market decides.',
+    body: [
+      '{name},',
+      'Sellers in your market have their own habits: some want steady income, some want a clean exit, some want to stay on.',
+      'From the owners you know, which structure feels most likely to land: a vendor note for the full price, 60/40, or 70/20/10?',
+      'Reply with your pick and why, and I’ll tell you what a lender would want to see for it.',
+    ],
+    cta: 'reply',
+  },
+  {
     id: 'lf_lo1_over_financed',
     subject: 'what an over-financed acquisition means',
     preheader: 'When the funding covers more than the price, and why that matters.',
@@ -985,7 +1038,7 @@ export const FLOW_LOST_1: LongEmail[] = [
   },
   {
     id: 'lf_lo1_one_year_from_now',
-    subject: 'a year from now, two versions of you',
+    subject: 'two versions of you, twelve months after the call',
     preheader: 'Neither is wrong. One has simply learned more about their market.',
     body: [
       '{name},',
@@ -1041,6 +1094,19 @@ export const FLOW_LOST_1: LongEmail[] = [
       'One coffee a month adds up to a dozen relationships by next year.',
     ],
     cta: 'next',
+  },
+  {
+    id: 'lf_lo1_book_owner_approached_you',
+    subject: 'if a retiring owner approaches you first',
+    preheader: 'An unexpected offer to sell is worth a second opinion.',
+    body: [
+      '{name},',
+      'Sometimes the deal finds you: a nearby owner mentions they’re ready to step back and asks if you’d be interested.',
+      'That moment moves fast, and a second opinion on the numbers and the structure is worth having before you answer.',
+      'If it happens, book a call and we’ll look at that one business together, with no expectation beyond that.',
+    ],
+    cta: 'book',
+    label: 'Get a second opinion on a deal →',
   },
   {
     id: 'lf_lo1_book_specific_deal',
