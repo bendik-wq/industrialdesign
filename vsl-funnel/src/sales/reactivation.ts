@@ -116,7 +116,7 @@ export async function reactivationReport(rt: Runtime) {
   const [steps, people, queue] = await Promise.all([
     db.prepare(`SELECT template, SUM(status IN ('sent','simulated')) AS sent, SUM(status = 'pending') AS pending, SUM(status = 'skipped') AS skipped,
                        SUM(opened_at IS NOT NULL) AS opened, SUM(clicked_at IS NOT NULL) AS clicked
-                  FROM emails WHERE sequence LIKE 'reactivation%' AND template NOT LIKE 'lib\_%' ESCAPE '\' AND template != '@lib' GROUP BY template ORDER BY template`).all(),
+                  FROM emails WHERE sequence LIKE 'reactivation%' AND substr(template, 1, 4) != 'lib_' AND template != '@lib' GROUP BY template ORDER BY template`).all(),
     db.prepare(`SELECT l.id, l.first_name, l.last_name, l.email, l.status, r.reactivated_at, r.segment AS reactivation_segment,
                        (l.booked_at > r.reactivated_at AND l.booking_cancelled_at IS NULL) AS rebooked, (l.app_completed_at > r.reactivated_at) AS reapplied,
                        l.unsubscribed_at > r.reactivated_at AS unsubscribed
