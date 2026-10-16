@@ -834,7 +834,7 @@ admin.post('/yt/sprints/:sid/videos/:tid/miro', async (c) => {
     const row = await ensurePack(rt, sid, tid);
     if (!row) return c.json({ ok: false, error: 'Not found' }, 404);
     if (row.miro_url) return c.json({ ok: true, url: row.miro_url });
-    const url = await buildPackBoard(rt.settings.MIRO_ACCESS_TOKEN, row.pack, ctx.topic, ctx.index, `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic}`);
+    const url = await buildPackBoard(rt.settings.MIRO_ACCESS_TOKEN, row.pack, ctx.topic, ctx.index, `Video ${String(ctx.index + 1).padStart(2, '0')} · ${row.pack.titles[0] ?? ctx.topic.topic}`, fetch, await nextVideoTitle(rt, sid, ctx));
     await savePackLinks(rt, sid, tid, { miro_url: url });
     return c.json({ ok: true, url });
   } catch (e) {

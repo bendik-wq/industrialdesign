@@ -57,9 +57,17 @@ describe('video pack: rules fallback', () => {
 
 describe('video pack: Miro board', () => {
   const { frames, items } = packMiroLayout(P, T, 0);
-  it('has a cover, packaging, hook, intro, one slide per beat and the close', () => {
-    expect(frames.map((f) => f.title)).toEqual(expect.arrayContaining(['01 · Cover', '01 · Packaging', '01 · The hook', '01 · The intro', '01 · The close']));
-    expect(frames.filter((f) => f.title.includes('Beat')).length).toBe(P.beats.length);
+  it('has the brief, a black slide per beat with its notes underneath, and the publishing row', () => {
+    const titles = frames.map((f) => f.title);
+    expect(titles).toEqual(expect.arrayContaining(['01 · Cover', '01 · The idea', '01 · Packaging', '01 · Hook', '01 · Proof', '01 · Close', '01 · Upload', '01 · Shorts', '01 · On set']));
+    const beats = frames.filter((f) => /Beat \d+$/.test(f.title));
+    expect(beats.length).toBe(P.beats.length);
+    for (const b of beats) {
+      expect(b.fill).toBe('#000000');
+      const notes = frames.find((f) => f.title === `${b.title} · notes`)!;
+      expect(notes.x).toBe(b.x);
+      expect(notes.y).toBeGreaterThan(b.y + b.h);
+    }
   });
   it('keeps every item inside its frame', () => {
     for (const it of items) {

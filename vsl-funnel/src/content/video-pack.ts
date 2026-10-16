@@ -3,7 +3,7 @@ import type { Runtime } from '../app';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
 import type { Sprint, Topic } from './ideas';
 import { type Block, type Para, type Run, type Table, toHtml, toRtf } from './doc-model';
-import { BELIEF, INK, MUTED, PAPER, ROW, STAGE, YELLOW, e, ordered, unquote } from './sprint-export';
+import { BELIEF, STAGE, YELLOW, e, ordered, unquote } from './sprint-export';
 
 /**
  * Video packs: everything Josh needs to film and present ONE video from a sprint.
@@ -372,101 +372,134 @@ export const packDocHtml = (...a: Parameters<typeof packDocBlocks>) => toHtml(pa
 export const packDocRtf = (...a: Parameters<typeof packDocBlocks>) => toRtf(packDocBlocks(...a));
 
 // ───────────── Miro: the presentation board ─────────────
+// The same design as the Google Doc: a white brief row, a black Keynote-style deck with each slide's
+// presenter notes directly underneath, and a publishing row. One typeface, monochrome, hairlines.
 
 type Pos = { x: number; y: number };
-type Item = { type: 'shape' | 'text' | 'sticky_note'; data: Record<string, unknown>; style?: Record<string, unknown>; position: Pos & { origin?: 'center' }; geometry?: { width?: number; height?: number }; frame: number };
+type Item = { type: 'shape' | 'text'; data: Record<string, unknown>; style?: Record<string, unknown>; position: Pos & { origin?: 'center' }; geometry?: { width?: number; height?: number }; frame: number };
 interface Frame { title: string; x: number; y: number; w: number; h: number; fill: string }
 
-const SW = 1920, SH = 1080, GAP = 200;
+const SW = 1920, SH = 1080, SGAP = 240, SPAD = 120;
+const MC = { ink: '#1D1D1F', sub: '#6E6E73', faint: '#86868B', line: '#D2D2D7', black: '#000000', slideSub: '#A1A1A6', white: '#FFFFFF', accent: YELLOW };
+const MFONT = 'plex_sans';
+// Rough text height for layout: Plex Sans averages ~0.52em per character, line height ~1.4.
+const textH = (plain: string, size: number, width: number) =>
+  plain.split('\n').reduce((a, p) => a + Math.max(1, Math.ceil((p.length * 0.52 * size) / width)), 0) * size * 1.4;
 
-/** Pure layout: frames (slides) and the items inside each, positioned relative to the frame's top-left. */
-export function packMiroLayout(pack: VideoPack, topic: Topic, index: number) {
-  const st = STAGE[topic.stage] ?? STAGE.MOFU;
+/** Pure layout: frames and the items inside each, positioned by centre relative to the frame's top-left. */
+export function packMiroLayout(pack: VideoPack, topic: Topic, index: number, nextTitle?: string | null) {
   const n = String(index + 1).padStart(2, '0');
   const frames: Frame[] = [];
   const items: Item[] = [];
-  const frame = (title: string, col: number, row: number, fill = '#FFFFFF', h = SH) => frames.push({ title, x: col * (SW + GAP), y: row * (SH + GAP + 520), w: SW, h, fill }) - 1;
-  const text = (f: number, x: number, y: number, w: number, html: string, size: number, color = INK) =>
-    items.push({ type: 'text', frame: f, data: { content: html }, style: { fontSize: String(size), color, fontFamily: 'open_sans', textAlign: 'left' }, position: { x: x + w / 2, y }, geometry: { width: w } });
-  const box = (f: number, x: number, y: number, w: number, h: number, html: string, s: Record<string, unknown>) =>
-    items.push({ type: 'shape', frame: f, data: { shape: 'round_rectangle', content: html }, style: { borderOpacity: '0', fontFamily: 'open_sans', textAlign: 'left', textAlignVertical: 'top', ...s }, position: { x: x + w / 2, y: y + h / 2 }, geometry: { width: w, height: h } });
-  const eyebrow = (f: number, t: string, color = st.dark) => text(f, 120, 130, 1400, `<p><strong>${e(t)}</strong></p>`, 22, color);
-  const P = (s: string) => s.split(/\n+/).filter(Boolean).map((x) => `<p>${e(x)}</p>`).join('');
+  const frame = (title: string, x: number, y: number, h: number, fill: string) => frames.push({ title: smart(title).slice(0, 120), x, y, w: SW, h, fill }) - 1;
+  // Returns the bottom edge so blocks can stack.
+  const text = (f: number, x: number, y: number, w: number, plain: string, size: number, color: string, bold = false) => {
+    const h = textH(plain, size, w);
+    const body = plain.split('\n').map((l) => e(smart(l))).join('<br>');
+    items.push({ type: 'text', frame: f, data: { content: `<p>${bold ? `<strong>${body}</strong>` : body}</p>` }, style: { fontSize: String(size), color, fontFamily: MFONT, textAlign: 'left' }, position: { x: x + w / 2, y: y + h / 2 }, geometry: { width: w } });
+    return y + h;
+  };
+  const rule = (f: number, x1: number, y: number, x2: number) =>
+    items.push({ type: 'shape', frame: f, data: { shape: 'rectangle' }, style: { fillColor: MC.line, borderOpacity: '0' }, position: { x: (x1 + x2) / 2, y: y + 1 }, geometry: { width: x2 - x1, height: 2 } });
+  const card = (f: number, x: number, y: number, w: number, h: number, html: string, size: number) =>
+    items.push({ type: 'shape', frame: f, data: { shape: 'rectangle', content: html }, style: { fillColor: MC.black, borderOpacity: '0', color: MC.white, fontFamily: MFONT, fontSize: String(size), textAlign: 'center', textAlignVertical: 'middle' }, position: { x: x + w / 2, y: y + h / 2 }, geometry: { width: w, height: h } });
+  const eyebrow = (f: number, s: string) => text(f, SPAD, SPAD, 1600, s.toUpperCase(), 26, MC.faint, true);
+  const paras = (s: string) => scriptParas(s).join('\n\n');
+  const unq = (s: string) => unquote(smart(s));
 
-  // Row 0: cover · packaging · hook · intro
-  const cover = frame(`${n} · Cover`, 0, 0, INK);
-  text(cover, 120, 150, 1600, `<p><strong>VIDEO ${n}  ·  ${e(topic.stage)}  ·  ${e(topic.length_min)} MIN</strong></p>`, 24, YELLOW);
-  text(cover, 120, 330, 1650, `<p><strong>${e(pack.titles[0] ?? topic.titles[0])}</strong></p>`, 84, '#FFFFFF');
-  text(cover, 120, 640, 1500, `<p>${e(pack.promise)}</p>`, 34, '#C9D1E3');
-  box(cover, 120, 820, 1680, 150, `<p><strong>The big idea</strong></p><p>${e(pack.big_idea)}</p>`, { fillColor: '#2A3757', color: '#FFFFFF', fontSize: '24', textAlignVertical: 'middle' });
+  type Slide = { title: string; draw: (f: number) => void; label: string; notes: string; foot: [string, string][] };
+  const slides: Slide[] = [
+    { title: `${n} · Hook`, draw: (f) => { eyebrow(f, 'The hook'); text(f, SPAD, 300, 1680, `“${unq(pack.hook.line)}”`, 96, MC.white, true); },
+      label: 'Presenter notes · hook and intro', notes: `${paras(pack.hook.script)}\n\n${paras(pack.intro.script)}`, foot: [['On screen', pack.hook.on_screen]] },
+    ...pack.beats.map((b, i): Slide => ({
+      title: `${n} · Beat ${i + 1}`,
+      draw: (f) => {
+        text(f, SPAD, SPAD, 400, String(i + 1).padStart(2, '0'), 40, MC.accent, true);
+        const y = text(f, SPAD, 220, 1680, b.headline, 104, MC.white, true);
+        b.slide.slice(0, 3).forEach((s, j) => text(f, SPAD, y + 70 + j * 84, 1680, s, 52, MC.slideSub));
+      },
+      label: `Presenter notes · beat ${i + 1} of ${pack.beats.length}`, notes: paras(b.script), foot: [['Director', b.visual], ['Into the next beat', b.transition]],
+    })),
+    { title: `${n} · Proof`, draw: (f) => { eyebrow(f, 'Proof on screen'); const y = text(f, SPAD, 260, 1680, pack.proof.show, 60, MC.white, true); text(f, SPAD, y + 50, 1680, `Label: “${pack.proof.label}”`, 36, MC.slideSub); },
+      label: 'Presenter notes · proof and mid-video ask', notes: pack.mid_cta, foot: [] },
+    { title: `${n} · Close`, draw: (f) => { eyebrow(f, 'The close'); text(f, SPAD, 260, 1680, pack.callback, 72, MC.white, true); },
+      label: 'Presenter notes · the close', notes: paras(pack.close.script), foot: [['End screen', pack.end_screen]] },
+  ];
+  const NH = Math.ceil(Math.max(...slides.map((s) => 360 + textH(s.notes, 30, 1680) + s.foot.reduce((a, [, v]) => a + 60 + textH(v, 24, 1680), 0))) / 100) * 100;
+  const ROW_B = SH + 520, ROW_C = ROW_B + SH + 120, ROW_D = ROW_C + NH + 520;
 
-  const pk = frame(`${n} · Packaging`, 1, 0);
-  eyebrow(pk, 'PACKAGING · TITLES TO TEST');
-  pack.titles.slice(0, 3).forEach((ti, k) => box(pk, 120, 200 + k * 120, 820, 100, `<p><strong>${'ABC'[k]}</strong>   ${e(ti)}</p>`, { fillColor: PAPER, color: INK, fontSize: '26', textAlignVertical: 'middle' }));
-  text(pk, 1020, 130, 760, '<p><strong>THUMBNAILS</strong></p>', 22, st.dark);
-  pack.thumbnails.slice(0, 2).forEach((x, k) => {
-    box(pk, 1020, 200 + k * 420, 680, 340, `<p><strong>${e(unquote(x.text))}</strong></p>`, { fillColor: INK, color: YELLOW, fontSize: '64', textAlign: 'center', textAlignVertical: 'middle' });
-    text(pk, 1020, 200 + k * 420 + 370, 680, `<p>${e(x.visual)} · <em>${e(x.emotion)}</em></p>`, 18, MUTED);
+  // Row A: the brief
+  const cover = frame(`${n} · Cover`, 0, 0, SH, MC.white);
+  eyebrow(cover, `G&L M&A Advisory · Video ${n}`);
+  const ty = text(cover, SPAD, 260, 1600, pack.titles[0] ?? topic.titles[0], 92, MC.ink, true);
+  text(cover, SPAD, ty + 40, 1500, pack.promise, 34, MC.sub);
+  rule(cover, SPAD, 900, SW - SPAD);
+  text(cover, SPAD, 930, 1680, `${STAGE[topic.stage]?.label ?? topic.stage}   ·   ${topic.length_min} minutes   ·   ${BELIEF[topic.belief] ?? topic.belief}   ·   Script, slides and packaging for Josh Li`, 26, MC.sub);
+
+  const idea = frame(`${n} · The idea`, SW + SGAP, 0, SH, MC.white);
+  eyebrow(idea, 'The idea');
+  const top = Math.max(text(idea, SPAD, 200, 1680, pack.big_idea, 50, MC.ink, true) + 60, 640);
+  const col = (x: number, list: [string, string][]) => {
+    let y = top;
+    for (const [k, v] of list) { rule(idea, x, y, x + 780); text(idea, x, y + 20, 780, k.toUpperCase(), 22, MC.faint, true); y = text(idea, x, y + 60, 780, v, 28, MC.ink) + 30; }
+  };
+  col(SPAD, [['For', pack.viewer], ['Not for', pack.not_for]]);
+  col(SPAD + 900, [['Format', topic.format], ['Next video', nextTitle || pack.end_screen]]);
+
+  const pk = frame(`${n} · Packaging`, 2 * (SW + SGAP), 0, SH, MC.white);
+  eyebrow(pk, 'Titles to test');
+  pack.titles.slice(0, 3).forEach((ti, i) => { const y = 200 + i * 220; rule(pk, SPAD, y, SPAD + 860); text(pk, SPAD, y + 24, 200, `TITLE ${'ABC'[i]}`, 22, MC.faint, true); text(pk, SPAD, y + 64, 860, ti, 40, MC.ink, true); });
+  text(pk, 1100, SPAD, 640, 'THUMBNAILS', 26, MC.faint, true);
+  pack.thumbnails.slice(0, 2).forEach((th, i) => { const y = 200 + i * 430; card(pk, 1100, y, 640, 360, `<p><strong>${e(unq(th.text))}</strong></p>`, 56); text(pk, 1100, y + 370, 640, `${th.visual}  ·  ${th.emotion}`, 22, MC.sub); });
+
+  // Rows B and C: the deck, each slide with its notes underneath
+  slides.forEach((s, i) => {
+    const x = i * (SW + SGAP);
+    s.draw(frame(s.title, x, ROW_B, SH, MC.black));
+    const nf = frame(`${s.title} · notes`, x, ROW_C, NH, MC.white);
+    eyebrow(nf, s.label);
+    let y = text(nf, SPAD, 200, 1680, s.notes, 30, MC.ink) + 60;
+    for (const [k, v] of s.foot) { rule(nf, SPAD, y, SW - SPAD); text(nf, SPAD, y + 20, 1680, `${k.toUpperCase()}   ${v}`, 24, MC.sub); y += 60 + textH(v, 24, 1680); }
   });
-  box(pk, 120, 600, 820, 380, `<p><strong>Who it’s for</strong></p><p>${e(pack.viewer)}</p><p></p><p><strong>Not for</strong></p><p>${e(pack.not_for)}</p>`, { fillColor: st.faint, color: INK, fontSize: '24' });
 
-  const hk = frame(`${n} · The hook`, 2, 0, st.faint);
-  eyebrow(hk, 'THE HOOK · FIRST 30–45 SECONDS');
-  text(hk, 120, 330, 1680, `<p><strong>“${e(unquote(pack.hook.line))}”</strong></p>`, 72, INK);
-  text(hk, 120, 700, 1680, P(pack.hook.script), 26, INK);
-  text(hk, 120, 1010, 1680, `<p><em>On screen: ${e(pack.hook.on_screen)}</em></p>`, 18, MUTED);
+  // Row D: publishing
+  const desc = pack.description.split(/\n+/).filter((l) => l.trim()).join('\n');
+  const shortsH = Math.max(...pack.shorts.slice(0, 3).map((s) => 1163 + textH(s.script, 24, 480) + 120));
+  const DH = Math.ceil(Math.max(1400, 700 + textH(desc, 26, 1000) + textH(pack.pinned_comment, 28, 1000) + textH(pack.tags.join('  ·  '), 22, 1000), shortsH,
+    460 + pack.filming.reduce((a, f) => a + 40 + textH(f, 26, 1680), 0) + pack.compliance.reduce((a, c) => a + 30 + textH(c, 22, 1680), 0)) / 100) * 100;
+  const up = frame(`${n} · Upload`, 0, ROW_D, DH, MC.white);
+  eyebrow(up, 'Description');
+  let y = text(up, SPAD, 190, 1000, desc, 26, MC.ink) + 60;
+  text(up, SPAD, y, 1000, 'PINNED COMMENT', 26, MC.faint, true); y = text(up, SPAD, y + 60, 1000, pack.pinned_comment, 28, MC.ink) + 60;
+  text(up, SPAD, y, 1000, 'TAGS', 26, MC.faint, true); text(up, SPAD, y + 60, 1000, pack.tags.join('  ·  '), 22, MC.sub);
+  text(up, 1260, SPAD, 540, 'CHAPTERS', 26, MC.faint, true);
+  pack.chapters.forEach((c, i) => { const cy = 190 + i * 64; rule(up, 1260, cy, SW - SPAD); text(up, 1260, cy + 14, 120, c.time, 26, MC.sub); text(up, 1380, cy + 14, 420, c.label, 26, MC.ink); });
 
-  const it = frame(`${n} · The intro`, 3, 0);
-  eyebrow(it, 'THE INTRO');
-  text(it, 120, 520, 1680, P(pack.intro.script), 30, INK);
+  const sh = frame(`${n} · Shorts`, SW + SGAP, ROW_D, DH, MC.white);
+  eyebrow(sh, 'Three Shorts to cut from it');
+  pack.shorts.slice(0, 3).forEach((s, i) => { const x = SPAD + i * 580; card(sh, x, 200, 480, 853, `<p><strong>${e(smart(s.title))}</strong></p><p></p><p>${e(`“${unq(s.hook)}”`)}</p>`, 36); text(sh, x, 1103, 480, s.script, 24, MC.ink); });
 
-  // Row 1: one slide per beat, script underneath
-  pack.beats.forEach((b, i) => {
-    const f = frame(`${n} · Beat ${i + 1}: ${b.headline}`.slice(0, 120), i, 1, i % 2 ? '#FFFFFF' : PAPER);
-    text(f, 120, 140, 1200, `<p><strong>${String(i + 1).padStart(2, '0')}  /  ${String(pack.beats.length).padStart(2, '0')}</strong></p>`, 24, st.dark);
-    text(f, 120, 330, 1680, `<p><strong>${e(b.headline)}</strong></p>`, 96, INK);
-    b.slide.slice(0, 3).forEach((x, k) => box(f, 120 + k * 570, 560, 540, 380, `<p><strong>${k + 1}</strong></p><p>${e(x)}</p>`, { fillColor: k === 0 ? st.dark : '#FFFFFF', color: k === 0 ? '#FFFFFF' : INK, fontSize: '34', borderOpacity: k === 0 ? '0' : '1', borderColor: '#E3E1D8', borderWidth: '2' }));
-    text(f, 120, 1010, 1680, `<p><em>Director: ${e(b.visual)}</em></p>`, 18, MUTED);
-  });
-
-  // Row 2: proof · close · publishing · shorts
-  const pr = frame(`${n} · Proof & mid-video CTA`, 0, 2);
-  eyebrow(pr, 'PROOF ON SCREEN');
-  text(pr, 120, 330, 1680, `<p><strong>${e(pack.proof.show)}</strong></p>`, 48, INK);
-  box(pr, 120, 600, 700, 90, `<p><strong>Label: “${e(pack.proof.label)}”</strong></p>`, { fillColor: STAGE.MOFU.faint, color: STAGE.MOFU.dark, fontSize: '24', textAlignVertical: 'middle' });
-  box(pr, 120, 760, 1680, 220, `<p><strong>Mid-video CTA</strong></p><p>${e(pack.mid_cta)}</p>`, { fillColor: st.faint, color: INK, fontSize: '26' });
-
-  const cl = frame(`${n} · The close`, 1, 2, INK);
-  eyebrow(cl, 'THE CLOSE · 60–90 SECONDS', YELLOW);
-  text(cl, 120, 300, 1680, `<p><strong>${e(pack.callback)}</strong></p>`, 52, '#FFFFFF');
-  text(cl, 120, 680, 1680, P(pack.close.script), 24, '#C9D1E3');
-  text(cl, 120, 1010, 1680, `<p><strong>End screen → ${e(pack.end_screen)}</strong></p>`, 22, YELLOW);
-
-  const pub = frame(`${n} · Publishing`, 2, 2);
-  eyebrow(pub, 'PUBLISHING');
-  box(pub, 120, 200, 1000, 800, `<p><strong>Description</strong></p>${P(pack.description)}`, { fillColor: ROW, color: INK, fontSize: '18' });
-  box(pub, 1180, 200, 620, 520, `<p><strong>Chapters</strong></p>${pack.chapters.map((c) => `<p>${e(c.time)}  ${e(c.label)}</p>`).join('')}`, { fillColor: st.faint, color: INK, fontSize: '18' });
-  box(pub, 1180, 760, 620, 240, `<p><strong>Pinned comment</strong></p><p>${e(pack.pinned_comment)}</p>`, { fillColor: PAPER, color: INK, fontSize: '18' });
-
-  const sh = frame(`${n} · Shorts & filming`, 3, 2);
-  eyebrow(sh, 'THREE SHORTS · FILMING CHECKLIST');
-  pack.shorts.slice(0, 3).forEach((s, k) => items.push({ type: 'sticky_note', frame: sh, data: { content: `<p><strong>${e(s.title)}</strong></p><p><em>“${e(s.hook)}”</em></p><p>${e(s.script)}</p>`, shape: 'rectangle' }, style: { fillColor: 'light_yellow', textAlign: 'left', textAlignVertical: 'top' }, position: { x: 120 + k * 380 + 175, y: 420 }, geometry: { width: 350 } }));
-  box(sh, 1300, 200, 500, 800, `<p><strong>Filming checklist</strong></p>${pack.filming.map((f) => `<p>☐ ${e(f)}</p>`).join('')}<p></p><p><strong>Labels</strong></p>${pack.compliance.map((c) => `<p>• ${e(c)}</p>`).join('')}`, { fillColor: PAPER, color: INK, fontSize: '18' });
+  const os = frame(`${n} · On set`, 2 * (SW + SGAP), ROW_D, DH, MC.white);
+  eyebrow(os, 'Before you press record');
+  y = 200;
+  for (const f of pack.filming) { rule(os, SPAD, y, SW - SPAD); y = text(os, SPAD, y + 20, 1680, f, 26, MC.ink) + 20; }
+  y += 100; text(os, SPAD, y, 1600, 'LABELS & DISCLAIMERS', 26, MC.faint, true); y += 60;
+  for (const c of pack.compliance) { rule(os, SPAD, y, SW - SPAD); y = text(os, SPAD, y + 14, 1680, c, 22, MC.sub) + 14; }
 
   return { frames, items };
 }
 
 /** Lay one video out on a new Miro board. ~frames + items/20 + 1 requests. */
-export async function buildPackBoard(token: string, pack: VideoPack, topic: Topic, index: number, name: string, fetcher: typeof fetch = fetch) {
+export async function buildPackBoard(token: string, pack: VideoPack, topic: Topic, index: number, name: string, fetcher: typeof fetch = fetch, nextTitle?: string | null) {
   const api = async (path: string, body: unknown) => {
     const r = await fetcher(`https://api.miro.com/v2${path}`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body) });
     const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
     if (!r.ok) throw new Error(`Miro ${r.status}: ${String(j.message ?? j.code ?? 'request failed')}`);
     return j;
   };
-  const board = await api('/boards', { name: name.slice(0, 60), description: `Video ${index + 1}: script, slides and packaging, from Funnel HQ` });
+  const board = await api('/boards', { name: name.slice(0, 60), description: `Video ${index + 1}: presentation slides, presenter notes, packaging and publishing, from Funnel HQ` });
   const id = encodeURIComponent(String(board.id));
-  const { frames, items } = packMiroLayout(pack, topic, index);
+  const { frames, items } = packMiroLayout(pack, topic, index, nextTitle);
   const frameIds: string[] = [];
   for (const f of frames) {
     const r = await api(`/boards/${id}/frames`, { data: { title: f.title, format: 'custom', type: 'freeform', showContent: true }, style: { fillColor: f.fill }, position: { x: f.x + f.w / 2, y: f.y + f.h / 2 }, geometry: { width: f.w, height: f.h } });
