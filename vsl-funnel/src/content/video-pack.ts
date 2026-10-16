@@ -3,6 +3,7 @@ import type { Runtime } from '../app';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
 import type { Sprint, Topic } from './ideas';
 import { type Block, type Para, type Run, type Table, toHtml, toRtf } from './doc-model';
+import { auditFields, copyBrief } from './copy-rules';
 import { BELIEF, STAGE, YELLOW, e, ordered, unquote } from './sprint-export';
 
 /**
@@ -70,7 +71,7 @@ Structure (the format Josh follows):
 - Callback to the hook's promise. Proof on screen. A soft CTA mid-video, a hard CTA at the end (apply through the first link in the description; if it's a fit, the team books a strategy call). The end screen sends them to the next video in the binge path.
 - Install the belief the topic is assigned (possible, can_solve, trust, better, now, like).
 
-Voice: Alen Sultanic-style direct response, spoken. A sharp operator who has done it, telling a friend exactly what to do; confident, direct, slightly impatient with excuses, never preachy or hypey. Short lines. Specificity and contrast ("while most owners do X… the owners building groups do Y"). Use the two-paths or third-way frame where it fits. In the close, stack desire from surface to identity (the deal → the cash flow → the time back → becoming an owner of companies, not a job), then the cost of doing nothing.
+Voice and method: the house copy system below (Sultanic direct response, the 3C mechanism, Josh's voice, the blacklist). In the close, stack desire from surface to identity, then the cost of doing nothing.
 
 Hard rules:
 - Never invent testimonials, client names, results, deal sizes or biography. True facts you may use: Josh co-founded G&L M&A Advisory; he runs his own healthcare holding group; his best-performing video is a seller-finance masterclass. Any numbers in an example are illustrative and must be labelled "illustrative" on screen and in the script.
@@ -78,7 +79,9 @@ Hard rules:
 - Never call the strategy call "free".
 - Where structure or tax comes up, say once, briefly, that it is not legal, tax or financial advice.
 - Do not assume one country's lenders unless the topic is country-specific.
-Use {APPLY_LINK} in the description where the application link goes.`;
+Use {APPLY_LINK} in the description where the application link goes.
+
+${copyBrief('video')}`;
 
 // ───────────── storage ─────────────
 
@@ -135,22 +138,37 @@ export async function ensurePack(rt: Runtime, sprintId: string, topicId: string,
   return { id: packId(sprintId, topicId), sprint_id: sprintId, topic_id: topicId, created_at: now, source, pack, miro_url: null, doc_url: null };
 }
 
+// Packaging and production fields that are lists of labels, not copy.
+const NOT_COPY = /^(video_id|tags|chapters|filming|compliance)\b|\.visual$|\.emotion$/;
+export const packIssues = (pack: VideoPack) => auditFields(pack, { kind: 'video', skip: (p) => NOT_COPY.test(p) });
+
 async function aiPack(rt: Runtime, topic: Topic, next: Topic | null): Promise<VideoPack> {
   const client = new Anthropic({ apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
-  const stream = client.beta.messages.stream({
-    model: rt.settings.EMAIL_AI_MODEL || DEFAULT_EMAIL_MODEL,
-    max_tokens: 32000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    output_config: { effort: 'high', format: { type: 'json_schema', schema: PACK_SCHEMA } },
-    system: [{ type: 'text', text: PACK_SYSTEM + (rt.settings.YT_BRAND_STORY ? `\n\nMore true facts about Josh (use only these):\n${rt.settings.YT_BRAND_STORY}` : '') + (rt.settings.YT_PROOF ? `\n\nReal proof you may show:\n${rt.settings.YT_PROOF}` : '') + (rt.settings.YT_NOTES ? `\n\nStanding rules:\n${rt.settings.YT_NOTES}` : ''), cache_control: { type: 'ephemeral' } }],
-    messages: [{ role: 'user', content: `Write the pack for this video. The topic plan:\n${JSON.stringify(topic, null, 1)}\n\nThe next video in the binge path: ${next ? `${next.titles[0]} (${next.id})` : 'the VSL / application'}.` }],
-  } as unknown as Anthropic.Beta.MessageCreateParamsStreaming);
-  const res = await stream.finalMessage();
-  if (res.stop_reason === 'refusal') throw new Error('The model declined this request.');
-  if (res.stop_reason === 'max_tokens') throw new Error('The script came out too long. Try again.');
-  const text = res.content.find((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')?.text ?? '{}';
-  return JSON.parse(text) as VideoPack;
+  const system = PACK_SYSTEM + (rt.settings.YT_BRAND_STORY ? `\n\nMore true facts about Josh (use only these):\n${rt.settings.YT_BRAND_STORY}` : '') + (rt.settings.YT_PROOF ? `\n\nReal proof you may show:\n${rt.settings.YT_PROOF}` : '') + (rt.settings.YT_NOTES ? `\n\nStanding rules:\n${rt.settings.YT_NOTES}` : '');
+  const ask = async (messages: Anthropic.Beta.BetaMessageParam[]) => {
+    const stream = client.beta.messages.stream({
+      model: rt.settings.EMAIL_AI_MODEL || DEFAULT_EMAIL_MODEL,
+      max_tokens: 32000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      output_config: { effort: 'high', format: { type: 'json_schema', schema: PACK_SCHEMA } },
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+      messages,
+    } as unknown as Anthropic.Beta.MessageCreateParamsStreaming);
+    const res = await stream.finalMessage();
+    if (res.stop_reason === 'refusal') throw new Error('The model declined this request.');
+    if (res.stop_reason === 'max_tokens') throw new Error('The script came out too long. Try again.');
+    return res.content.find((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')?.text ?? '{}';
+  };
+  const first: Anthropic.Beta.BetaMessageParam = { role: 'user', content: `Write the pack for this video. The topic plan:\n${JSON.stringify(topic, null, 1)}\n\nThe next video in the binge path: ${next ? `${next.titles[0]} (${next.id})` : 'the VSL / application'}.` };
+  const text = await ask([first]);
+  const pack = JSON.parse(text) as VideoPack;
+  // The blacklist, enforced: one revision pass that names every line that tripped it.
+  const issues = packIssues(pack);
+  if (!issues.length) return pack;
+  const list = issues.slice(0, 40).map((i) => `- ${i.path}: ${i.rule}: "${i.excerpt}"`).join('\n');
+  const revised = JSON.parse(await ask([first, { role: 'assistant', content: text }, { role: 'user', content: `Your draft trips the copy blacklist in these places:\n${list}\n\nReturn the whole pack again with only those lines rewritten (escalate, don't echo; state, don't hedge; keep every fact true). Everything else stays word for word.` }])) as VideoPack;
+  return packIssues(revised).length <= issues.length ? revised : pack;
 }
 
 const placeholderTopic = (id: string): Topic => ({ id, topic: '', evidence: '', demand_phrase: '', demand: 'direct', awareness: 'problem_aware', belief: 'possible', stage: 'MOFU', angle: 'agreeable', format: '', length_min: 12, titles: [''], thumbnails: [], hook: '', outline: { intro_callouts: '', logic_ladder: [], callbacks: '', proof: '' }, cta: { type: 'soft', line: '' }, next_video: '' });
@@ -161,7 +179,7 @@ export function rulesPack(t: Topic, next: Topic | null): VideoPack {
   const nextName = next ? next.titles[0] : 'the application';
   const beats: Beat[] = ladder.map((step, i) => ({
     headline: step.split(/[:,(]/)[0].trim().slice(0, 48),
-    script: `${step}.\n\nHere's what most owners get wrong about this. They treat it as a detail. It isn't. It's the step that decides whether the deal works or dies on the bank's desk.\n\n[Josh: explain this in your own words, with one example from a deal you've looked at. Keep any numbers illustrative and say so.]\n\nSo the takeaway is simple: ${step.toLowerCase()}. Get this right and the next step gets easy.`,
+    script: `${step}.\n\nMost owners treat this as a detail.\nAnd it's the step that decides whether the deal works or dies on the bank's desk.\n\n[Josh: explain this in your own words, with one example from a deal you've looked at. Keep any numbers illustrative and say so.]\n\nSo the takeaway is simple: ${step.toLowerCase()}. Get this right and the next step gets easy.`,
     slide: [step, i === 0 ? 'Where most owners start' : 'The step most people skip', 'Illustrative, not advice'],
     visual: i % 2 ? 'Whiteboard: draw the step as one box with an arrow to the next.' : 'Talking head, tight frame; on-screen text of the slide headline.',
     transition: i < ladder.length - 1 ? `And once that's in place, there's one thing that decides the next part: ${ladder[i + 1].toLowerCase()}.` : 'Now let me tie this back to what I promised you at the start.',

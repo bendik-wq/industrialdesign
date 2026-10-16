@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Topic } from '../src/content/ideas';
-import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packDocRtf, packMiroLayout, rulesPack, scriptParas, smart, type VideoPack } from '../src/content/video-pack';
+import { buildPackBoard, createGoogleDoc, googleAuthUrl, packDocHtml, packDocRtf, packMiroLayout, packIssues, rulesPack, scriptParas, smart, type VideoPack } from '../src/content/video-pack';
 import pack from './fixtures/pack-t1.json';
 import topic from './fixtures/topic-t1.json';
 
@@ -52,6 +52,7 @@ describe('video pack: rules fallback', () => {
     expect(r.close.script).not.toMatch(/\bfree\b/i);
     expect(r.description).toContain('{APPLY_LINK}');
     expect(r.compliance.join(' ')).toMatch(/Illustrative/);
+    expect(packIssues(r)).toEqual([]);
   });
 });
 

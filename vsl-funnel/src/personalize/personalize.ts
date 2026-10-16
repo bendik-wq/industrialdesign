@@ -1,6 +1,7 @@
 import { hasContactBait } from '../lib/text';
 import Anthropic from '@anthropic-ai/sdk';
 import { BRAND } from '../config';
+import { auditEmail, copyBrief } from '../content/copy-rules';
 import type { Settings } from '../settings';
 import type { EmailContent } from '../integrations/templates';
 import { type Fact, type Profile, TEMPLATE_TOPICS } from './profile';
@@ -89,7 +90,9 @@ How to use the facts:
 
 Voice: Josh, first person, plain words, short sentences, warm and direct. No hype, no exclamation marks, no emojis. Never call the strategy call "free". No promises of specific outcomes, approvals or returns. Whenever the email describes how a deal is funded, name all three parts: seller finance (a seller note), seller rollover (the owner keeps a slice of the business) and senior debt; never drop seller rollover. The offer, if mentioned: a signed LOI within 90 days on an acquisition that can double or triple their business, no money down, over-financed (seller finance, seller rollover and senior debt cover more than the price), deals tested at about 1.5x DSCR, done with you not for you, 7-day money-back guarantee. The call is about 30 minutes, by video.
 
-Output: subject (lowercase-friendly, under 70 characters, no clickbait), preheader (under 90 characters), paragraphs (2 to 6 plain-text paragraphs; the first is a short greeting using their first name; no links, no HTML, no sign-off - the signature is added for you), ps (one sentence or empty string), facts_used (the keys of the facts you used).`;
+Output: subject (lowercase-friendly, under 70 characters, no clickbait), preheader (under 90 characters), paragraphs (2 to 6 plain-text paragraphs; the first is a short greeting using their first name; no links, no HTML, no sign-off - the signature is added for you), ps (one sentence or empty string), facts_used (the keys of the facts you used).
+
+${copyBrief('email')}`;
 
 const SCHEMA = {
   type: 'object',
@@ -121,6 +124,9 @@ export function validateAi(o: AiOut, factKeys: Set<string>): string | null {
   if (/guarantee[sd]? (you|results?|returns?|approval)|\d+% (return|roi)/i.test(all)) return 'outcome promise';
   if (/!/.test(all)) return 'exclamation';
   if (!o.facts_used.every((k) => factKeys.has(k))) return 'unknown fact key';
+  // The AI-copy blacklist, enforced: any hit sends the rules version instead.
+  const hit = auditEmail({ subject: o.subject, preheader: o.preheader, body: o.paragraphs, ps: o.ps })[0];
+  if (hit) return `banned pattern: ${hit.rule}`;
   return null;
 }
 

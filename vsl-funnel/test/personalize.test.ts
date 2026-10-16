@@ -49,6 +49,8 @@ describe('email personalisation', () => {
     expect(validateAi({ ...ok, paragraphs: ['Dana,', 'see https://x.com'] }, keys)).toBe('contains links or html');
     expect(validateAi({ ...ok, facts_used: ['made_up'] }, keys)).toBe('unknown fact key');
     expect(validateAi({ ...ok, paragraphs: ['Dana,', 'This is huge!'] }, keys)).toBe('exclamation');
+    expect(validateAi({ ...ok, paragraphs: ['Dana,', 'More leads. More calls. More revenue.'] }, keys)).toBe('banned pattern: parallel repetition stack');
+    expect(validateAi({ ...ok, paragraphs: ['Dana,', 'This might work for you.'] }, keys)).toBe('banned pattern: hedge: "might"');
   });
 
   it('ai mode sends facts (never links) to Claude and keeps the CTA and linked P.S.', async () => {
