@@ -241,9 +241,12 @@ export function scriptParas(s: string, target = 55) {
   }
   return out;
 }
+const wc = (s: string) => s.split(/\s+/).filter(Boolean).length;
+// Longer pages step the type down half a point at a time so everything stays on one page.
+const fit = (words: number): PO => (words > 270 ? { size: 9.5, lh: 1.4 } : words > 225 ? { size: 10, lh: 1.45 } : {});
 const body = (s: string, o: PO = {}) => scriptParas(s).map((x) => P(x, { size: 10.5, lh: 1.5, after: 7, ...o }));
 // Director's notes: one hairline, then each note with its label inline.
-const note = (items: [string, string][]): Para[] => [gap(4), ...items.map(([k, v], i) => P([{ text: `${k.toUpperCase()}   `, bold: true, color: D.faint }, { text: v }], { size: 8.5, color: D.sub, lh: 1.4, before: i ? 0 : 7, after: 3, ruleAbove: i === 0 }))];
+const note = (items: [string, string][]): Para[] => [gap(4), ...items.map(([k, v], i) => P([{ text: `${k.toUpperCase()}   `, bold: true, color: D.faint }, { text: v }], { size: 8.5, color: D.sub, lh: 1.4, before: i ? 3 : 7, after: 0, ruleAbove: i === 0 }))];
 
 const slideCard = (num: string, title: string, bullets: string[]) => card([
   P(num, { size: 9, color: D.accent, bold: true, after: 8 }),
@@ -307,9 +310,7 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
     out.push(eyebrow(`Beat ${i + 1} of ${pack.beats.length}`));
     out.push(slideCard(String(i + 1).padStart(2, '0'), b.headline, b.slide.slice(0, 3)));
     out.push(gap(12));
-    // Longer beats step the type down half a point so slide, script and notes stay on one page.
-    const words = `${b.script} ${b.visual} ${b.transition}`.split(/\s+/).length;
-    out.push(...body(b.script, words > 290 ? { size: 9.5, lh: 1.4 } : words > 240 ? { size: 10, lh: 1.45 } : {}));
+    out.push(...body(b.script, fit(wc(b.script) + wc(b.visual) + wc(b.transition))));
     out.push(...note([['Director', b.visual], ['Into the next beat', b.transition]]));
   });
 
@@ -325,7 +326,8 @@ export function packDocBlocks(pack: VideoPack, topic: Topic, o: { index: number;
   out.push(BREAK);
   out.push(eyebrow('The close · 60 to 90 seconds'));
   out.push(P(pack.callback, { size: 19, bold: true, lh: 1.35, after: 24 }));
-  out.push(...body(pack.close.script));
+  // The callback headline takes about 2.5x the room of body copy.
+  out.push(...body(pack.close.script, fit(wc(pack.close.script) + wc(pack.end_screen) + 2.5 * wc(pack.callback))));
   out.push(...note([['End screen', pack.end_screen]]));
 
   // ── Publishing (flows)
