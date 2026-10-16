@@ -4,6 +4,7 @@ import { REACTIVATE_A_ORDER } from '../followup/reactivation-a';
 import { REACTIVATE_B_ORDER } from '../followup/reactivation-b';
 import { REACTIVATE_C_ORDER } from '../followup/reactivation-c';
 import { FOLLOWUP_GROUPS, prepTemplates } from '../followup/templates';
+import { PREWEBINAR_IDS } from '../webinar/prewebinar';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -245,6 +246,14 @@ export const SEQUENCES = {
       { template: 'w_story', offsetMs: 5 * DAY, anchor: 'webinar_at', skipIf: pitched },
       { template: 'w_last', offsetMs: 8 * DAY, anchor: 'webinar_at', skipIf: pitched },
     ],
+  },
+  prewebinar: {
+    id: 'prewebinar',
+    description: 'Registered for the webinar — up to 15 emails a day for up to 14 days until the session, one idea each, building the case for showing up live (how the money works, finding the deal, the doubts, show up ready)',
+    // Done once they apply or book (those runs take over), are ruled out, or the session is under 3 hours away.
+    stopIf: (l) => pitched(l) || ['won', 'lost', 'disqualified'].includes(l.status) || !l.webinar_at || Date.now() > l.webinar_at - 3 * HOUR,
+    // Sent at local-time slots by enqueuePrewebinar() (the row holds the template, matched by name); offsetMs is unused.
+    steps: PREWEBINAR_IDS.map((template) => ({ template, offsetMs: 0 })),
   },
   no_show: {
     id: 'no_show',

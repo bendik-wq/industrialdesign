@@ -2,7 +2,7 @@ import type { Runtime } from '../app';
 import { VIDEOS } from '../config';
 import { newId } from '../lib/ids';
 import type { VisitorCtx } from '../lib/identity';
-import { zonedTime, cancelSequence, enqueueSequence } from '../integrations/email';
+import { zonedTime, cancelSequence, enqueuePrewebinar, enqueueSequence } from '../integrations/email';
 import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, updateLead, validateEmail } from '../funnel/leads';
 import { startSms } from '../integrations/sms';
 import { ApplicationError, attributionFor, verifyTurnstile } from '../funnel/application';
@@ -232,6 +232,7 @@ async function scheduleEmails(rt: Runtime, lead: Lead, session: Session, reg: Re
   await cancelSequence(rt, lead.id, 'webinar'); // an earlier session's reminders
   const fresh = (await getLead(rt.env, lead.id))!;
   await enqueueSequence(rt, fresh, 'webinar', { stepBase: reg.seq * WEBINAR_CYCLE });
+  await enqueuePrewebinar(rt, fresh, reg.seq);
 }
 
 /** Moves someone to another session (from the "pick another time" link). */

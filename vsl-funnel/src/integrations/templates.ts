@@ -1,6 +1,7 @@
 import type { Lead } from '../funnel/leads';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
 import { WEBINAR_TEMPLATES } from '../webinar/templates';
+import { PREWEBINAR_TEMPLATES } from '../webinar/prewebinar';
 
 /**
  * Email copy. Plain, personal, letter-style emails from Josh — they read like
@@ -1299,7 +1300,7 @@ export const TEMPLATES: Record<string, Template> = {
 };
 
 // Follow-up written from each lead's application and booking answers (src/followup).
-Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES, WEBINAR_TEMPLATES);
+Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES, WEBINAR_TEMPLATES, PREWEBINAR_TEMPLATES);
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 

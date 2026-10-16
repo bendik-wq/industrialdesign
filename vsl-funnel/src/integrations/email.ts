@@ -9,6 +9,7 @@ import { bookingUrlFor } from '../funnel/routing';
 import { effectiveTier } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
 import { SEQUENCES, type SequenceId, precallPlan } from './sequences';
+import { prewebinarPlan } from '../webinar/prewebinar';
 import { TEMPLATES, type TemplateCtx, renderEmail } from './templates';
 import { type Override, fromOverride, isEditable, loadOverrides } from './email-overrides';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
@@ -124,6 +125,40 @@ export function precallTimes(now: number, callAt: number | null, tz: string, per
   return out;
 }
 
+export const PREWEBINAR_WAKING = [7, 21] as const;
+
+/**
+ * Send times: `perDay` evenly spaced marks across 7am–9pm their time, from 45 minutes after registering
+ * to 3½ hours before the session, clear of the 24-hour reminder (and a confirmation that just went).
+ */
+export function prewebinarTimes(now: number, webinarAt: number, tz: string, perDay: number): number[] {
+  if (perDay <= 0) return [];
+  const start = now + 45 * 60_000;
+  const end = webinarAt - 3.5 * 3_600_000;
+  if (end <= start) return [];
+  const blackout = [webinarAt - 24 * 3_600_000];
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(now);
+  } catch {
+    return prewebinarTimes(now, webinarAt, 'UTC', perDay);
+  }
+  const g = (k: string) => Number(parts.find((x) => x.type === k)!.value);
+  const [h0, h1] = PREWEBINAR_WAKING;
+  const step = perDay > 1 ? (h1 - h0) / (perDay - 1) : 0;
+  const out: number[] = [];
+  for (let day = 0; day < 16; day++) {
+    const base = new Date(Date.UTC(g('year'), g('month') - 1, g('day') + day));
+    const [y, m, d] = [base.getUTCFullYear(), base.getUTCMonth() + 1, base.getUTCDate()];
+    if (zonedTime(y, m, d, h0, tz) > end) break;
+    for (let i = 0; i < perDay; i++) {
+      const t = zonedTime(y, m, d, h0 + i * step, tz);
+      if (t >= start && t <= end && !blackout.some((b) => Math.abs(b - t) < 45 * 60_000)) out.push(t);
+    }
+  }
+  return out;
+}
+
 /** Settings: daily cap (0 = off), and the 10–20 target range. */
 export function precallLimits(rt: Runtime) {
   const num = (v: string, d: number) => (v.trim() === '' || !Number.isFinite(Number(v)) ? d : Math.max(0, Math.floor(Number(v))));
@@ -152,6 +187,34 @@ export async function enqueuePrecall(rt: Runtime, lead: Lead) {
     ).bind(newId('m'), lead.id, i, plan[i], lead.email, sendAt, now),
   ));
   return times.length;
+}
+
+/** Pre-webinar run, per registration: up to PREWEBINAR_EMAILS_PER_DAY a day (default 15) until 3½ hours before the session. */
+export async function enqueuePrewebinar(rt: Runtime, lead: Lead, regSeq: number) {
+  await cancelSequence(rt, lead.id, 'prewebinar');
+  if (!lead.email || lead.unsubscribed_at || !lead.webinar_at) return 0;
+  const v = (rt.settings.PREWEBINAR_EMAILS_PER_DAY ?? '').trim();
+  const perDay = v === '' || !Number.isFinite(Number(v)) ? 15 : Math.max(0, Math.min(24, Math.floor(Number(v))));
+  if (!perDay) return 0;
+  const tz = lead.timezone || (await leadTimezone(rt, lead)) || rt.settings.SALES_TIMEZONE || 'UTC';
+  const now = Date.now();
+  const times = prewebinarTimes(now, lead.webinar_at, tz, perDay);
+  if (!times.length) return 0;
+  // Never the same email twice, even across registrations.
+  const { results } = await rt.env.DB.prepare("SELECT template FROM emails WHERE lead_id = ? AND sequence = 'prewebinar' AND status IN ('sent', 'simulated', 'sending')").bind(lead.id).all<{ template: string }>();
+  const plan = prewebinarPlan(times.length, new Set(results.map((r) => r.template)));
+  // Fewer emails than slots: spread them over the whole run instead of front-loading.
+  const picks = plan.map((_, i) => times[Math.floor((i * times.length) / plan.length)]);
+  const base = regSeq * 1000;
+  await rt.env.DB.batch(plan.map((template, i) =>
+    rt.env.DB.prepare(
+      `INSERT INTO emails (id, lead_id, sequence, step, template, to_email, send_at, status, created_at)
+       VALUES (?, ?, 'prewebinar', ?, ?, ?, ?, 'pending', ?)
+       ON CONFLICT(lead_id, sequence, step) DO UPDATE SET template = excluded.template, send_at = excluded.send_at, status = 'pending', to_email = excluded.to_email, attempts = 0
+         WHERE emails.status IN ('pending', 'cancelled', 'skipped')`,
+    ).bind(newId('m'), lead.id, base + i, template, lead.email, picks[i], now),
+  ));
+  return plan.length;
 }
 
 export async function cancelSequence(rt: Runtime, leadId: string, sequenceId: SequenceId) {
@@ -221,7 +284,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     return placeholder;
   };
   const wa = whatsappLink(rt.settings, lead, 'question');
-  const webinar = template.startsWith('w_') ? await webinarContext(rt, lead, link) : null;
+  const webinar = /^wp?_/.test(template) ? await webinarContext(rt, lead, link) : null;
   const ctx: TemplateCtx = {
     lead,
     // Only something that looks like a name goes in greetings and subjects (no links, numbers or markup).
@@ -354,7 +417,7 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     const seq = SEQUENCES[row.sequence];
     // Sequences that repeat per event (webinar: one block of steps per registration) map back with `cycle`.
     // Reactivation is matched by template so an edited plan never applies one email's rules to another.
-    const step = row.sequence === 'reactivation'
+    const step = row.sequence === 'reactivation' || row.sequence === 'prewebinar'
       ? seq?.steps.find((st) => st.template === row.template)
       : seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];
     const skip = (reason: string) => rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = ? WHERE id = ?").bind(reason, row.id).run();

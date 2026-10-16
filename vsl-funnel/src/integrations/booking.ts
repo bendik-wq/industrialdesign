@@ -81,6 +81,7 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
     await stopSms(rt, lead.id, ['qualified', 'abandoned', 'no_show', 'cancelled']);
     await startSms(rt, fresh, 'booked');
     await enqueuePrecall(rt, fresh);
+    await cancelSequence(rt, lead.id, 'prewebinar'); // the pre-call run takes over
   }
   return fresh;
 }
