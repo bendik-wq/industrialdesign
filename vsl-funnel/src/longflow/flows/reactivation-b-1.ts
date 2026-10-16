@@ -260,7 +260,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_josh_clinics',
-    subject: 'how I paid for my own clinics',
+    subject: 'vendor finance on my own clinic deals',
     preheader: 'Vendor finance, all of it, on deals in my own group.',
     body: [
       '{name},',
