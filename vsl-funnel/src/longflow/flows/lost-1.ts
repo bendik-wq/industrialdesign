@@ -841,7 +841,7 @@ export const FLOW_LOST_1: LongEmail[] = [
   },
   {
     id: 'lf_lo1_customer_concentration',
-    subject: 'when one customer is half the revenue',
+    subject: 'your biggest customer’s share, as a lender reads it',
     preheader: 'A red flag on targets, and a question to ask about your own business.',
     body: [
       '{name},',

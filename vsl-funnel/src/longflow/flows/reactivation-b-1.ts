@@ -109,7 +109,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_reply_question_mark',
-    subject: 'size, profit, timing, capital or experience',
+    subject: 'one word for what held you back',
     preheader: 'Pick the one that held you back. One word is plenty.',
     body: [
       '{name},',
@@ -209,7 +209,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_never_bought',
-    subject: 'never bought a business before',
+    subject: 'a first acquisition with no track record',
     preheader: 'Experience was the open question. Here’s what fills it.',
     body: [
       '{name},',
@@ -282,6 +282,19 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
       'Reply with your industry and a one line description of the business you’d look at first, no names needed.',
     ],
     cta: 'reply',
+  },
+  {
+    id: 'lf_rxb1_debt_at_home',
+    subject: 'the conversation at home about debt',
+    preheader: 'The person across the dinner table deserves the real structure, not a guess.',
+    body: [
+      '{name},',
+      'For a lot of owners, the open question on the file was really a conversation at home.',
+      'Debt sounds frightening until it’s explained properly: lent against the target’s profit, tested at about 1.5x coverage, with the seller carrying part of the price as a note and a stake.',
+      'Plenty of owners bring their partner onto the strategy call so both of you hear the same numbers at the same time.',
+    ],
+    ps: 'Education only, and none of this is financial advice.',
+    cta: 'next',
   },
   {
     id: 'lf_rxb1_mid_fit_plain',
@@ -516,6 +529,19 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
     cta: 'reply',
   },
   {
+    id: 'lf_rxb1_adjacent_customers',
+    subject: 'a business that sells to your customers',
+    preheader: 'The adjacent deal: a different service, the same people paying for it.',
+    body: [
+      '{name},',
+      'Your first deal doesn’t have to be a competitor.',
+      'A business that sells something different to the same customers lets you offer both, and the profit of each one gets stronger inside the other.',
+      'For a mid fit owner, an adjacent target can be smaller, cheaper and easier to fund than a head to head rival.',
+      'The strategy call is a good place to test which kind suits you.',
+    ],
+    cta: 'next',
+  },
+  {
     id: 'lf_rxb1_coverage_decides',
     subject: 'the 1.5 that decides your first deal',
     preheader: 'One ratio, checked on the target’s numbers, decides more than anything you own.',
@@ -748,7 +774,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_reply_books_match',
-    subject: 'do your books match your tax returns',
+    subject: 'your accounts against your tax returns',
     preheader: 'A yes or no reply. It matters more than revenue for a first deal.',
     body: [
       '{name},',
@@ -760,7 +786,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_one_big_customer',
-    subject: 'when one customer is half the revenue',
+    subject: 'the customer who carries your revenue',
     preheader: 'Concentration on your side or the target’s changes the deal.',
     body: [
       '{name},',
@@ -808,7 +834,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_not_for_you',
-    subject: 'who this isn’t for',
+    subject: 'owners who should skip the call',
     preheader: 'If any of these is you, skip the call. If none are, book it.',
     body: [
       '{name},',
@@ -867,7 +893,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_group_multiple',
-    subject: 'why a group sells for more than its parts',
+    subject: 'the multiple behind a small first deal',
     preheader: 'Small businesses trade at one multiple, groups of them at another.',
     body: [
       '{name},',
@@ -916,7 +942,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_no_broker_needed',
-    subject: 'most good deals never get listed',
+    subject: 'why broker listings mislead a first buyer',
     preheader: 'The broker sites show you the businesses everyone else is looking at.',
     body: [
       '{name},',
@@ -928,7 +954,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_nda_three_years',
-    subject: 'an nda and three years of numbers',
+    subject: 'qualifying a target before you’re invested',
     preheader: 'How a serious buyer qualifies a target before spending real time on it.',
     body: [
       '{name},',
@@ -1091,7 +1117,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
     body: [
       '{name},',
       'When you first came through, you had a reason for looking at acquisitions.',
-      'It might have changed, so tell me what it is today in three or four words: more profit, more time, a bigger group, an exit.',
+      'It may be different now, so tell me what it is today in three or four words: more profit, more time, a bigger group, an exit.',
       'Reply with yours, and I’ll make sure the rest of what I send speaks to it.',
     ],
     cta: 'reply',
@@ -1102,7 +1128,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
     preheader: 'The re-introduction is nearly done. The door stays open.',
     body: [
       '{name},',
-      'The re-introduction is nearly done, and from here I’ll write to you less often.',
+      'The re-introduction is nearly done, and from here my emails will come less frequently.',
       'Everything that was open on your file has been covered: how deals get funded, why a smaller first deal makes sense, and what “not yet” means.',
       'If any of it landed, the strategy call is where it turns into numbers for your business.',
     ],
@@ -1110,7 +1136,7 @@ export const FLOW_REACTIVATION_B_1: LongEmail[] = [
   },
   {
     id: 'lf_rxb1_door_open',
-    subject: 'the calendar stays open for you',
+    subject: 'no countdown on this one',
     preheader: 'No deadline, no countdown. Book when it fits.',
     body: [
       '{name}, a short one.',

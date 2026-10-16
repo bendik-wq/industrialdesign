@@ -244,7 +244,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_josh_clinics_vendor',
-    subject: 'how I bought my clinics',
+    subject: 'my clinics, and why I write to past applicants',
     preheader: 'One true story about vendor finance.',
     body: [
       '{name}, a bit of my own background.',
@@ -339,7 +339,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_competitor_down_road',
-    subject: 'the competitor down the road',
+    subject: 'the competitor to watch while you grow',
     preheader: 'The acquisition you already know the most about.',
     body: [
       '{name},',
@@ -363,7 +363,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_reply_industry_now',
-    subject: 'what industry are you in now',
+    subject: 'same industry as when you first came to us',
     preheader: 'Some of you have moved since we first spoke.',
     body: [
       '{name}, quick one.',
@@ -409,7 +409,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_personal_guarantee_honest',
-    subject: 'the honest answer on personal guarantees',
+    subject: 'personal guarantees, asked early and answered straight',
     preheader: 'Lenders can ask for one. It depends on the structure.',
     body: [
       '{name},',
@@ -433,7 +433,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_board_before_capital',
-    subject: 'credibility stands in for capital',
+    subject: 'start the board before revenue catches up',
     preheader: 'The part of the model you can start before the numbers grow.',
     body: [
       '{name},',
@@ -445,7 +445,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_accountant_upgrade',
-    subject: 'is your accountant a deal accountant',
+    subject: 'has your accountant ever worked an acquisition',
     preheader: 'The one who files your returns may not be the one who reads a target.',
     body: [
       '{name},',
@@ -490,7 +490,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_seller_retiring_owners',
-    subject: 'the owners who built their firms decades ago',
+    subject: 'the retiring owners you’ll be buying from',
     preheader: 'They’re the sellers you’ll be talking to.',
     body: [
       '{name},',
@@ -547,7 +547,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_group_multiple_gap',
-    subject: 'the gap between 4x and 10x',
+    subject: 'why your business is the first piece of a group',
     preheader: 'Why a group of businesses is worth more than the parts.',
     body: [
       '{name},',
@@ -641,7 +641,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_personal_costs_in_books',
-    subject: 'personal costs in the business hide your profit',
+    subject: 'separate personal spending from business profit',
     preheader: 'Fine for tax. Expensive when a lender reads it.',
     body: [
       '{name},',
@@ -734,7 +734,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_payment_holiday',
-    subject: 'the payment holiday on a seller note',
+    subject: 'a seller note that starts with months of no payments',
     preheader: 'A few months of breathing room after settlement.',
     body: [
       '{name},',
@@ -831,9 +831,9 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
     body: [
       '{name},',
       'A fit for G&L is an owner of a profitable business doing $1M or more a year in the US or Australia, who wants to grow by buying companies.',
-      'That’s the full list. When your business matches it, the answer changes, and the masterclass is the best preparation for that day.',
+      'That’s the full list. If your business matches it today, apply again with the current numbers, and if it’s a fit the team books a strategy call.',
     ],
-    cta: 'next',
+    cta: 'apply',
   },
   {
     id: 'lf_rxc1_trajectory_note',
@@ -842,10 +842,9 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
     body: [
       '{name},',
       'Write one page on how your business has changed since you first came to us: revenue, profit, team, and the decisions behind each.',
-      'Lenders and sellers both want the story behind the numbers. Having it written makes the next conversation much easier.',
+      'Lenders and sellers both want the story behind the numbers. Once it’s written, reply with the first line of it and I’ll tell you how it reads.',
     ],
-    ps: 'The masterclass shows where that story gets used in a deal.',
-    cta: 'next',
+    cta: 'reply',
   },
   {
     id: 'lf_rxc1_slow_season_prep',
@@ -969,9 +968,9 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
     body: [
       '{name}, a ten minute exercise.',
       'Write down ten businesses you’d consider buying one day. Competitors, suppliers, firms in the next region, anyone whose owner you’ve met at an industry event.',
-      'Keep the list somewhere you’ll see it each quarter. The masterclass shows how owners turn a list like that into conversations.',
+      'Keep the list somewhere you’ll see it each quarter. Then reply and tell me what kind of business sits at the top of it.',
     ],
-    cta: 'next',
+    cta: 'reply',
   },
   {
     id: 'lf_rxc1_coffee_with_owner',
@@ -1065,6 +1064,17 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
     cta: 'next',
   },
   {
+    id: 'lf_rxc1_apply_new_contract',
+    subject: 'a new contract that lifted your profit',
+    preheader: 'If one win changed the numbers, use them.',
+    body: [
+      '{name},',
+      'Some owners we said not yet to have since landed the contract or the hire that moved the business up a level.',
+      'If that’s you, and the business now does $1M or more with a steady profit, apply again on today’s figures. If it’s a fit, the team books a strategy call.',
+    ],
+    cta: 'apply',
+  },
+  {
     id: 'lf_rxc1_reply_still_keen',
     subject: 'still keen on buying a business',
     preheader: 'A yes or no is enough.',
@@ -1114,7 +1124,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
     preheader: 'The pace eases. The offer to come back doesn’t.',
     body: [
       '{name},',
-      'You’ll hear from me a little less often from here on. The emails will keep coming back to the same few things: your numbers, your readiness, and the model.',
+      'The emails ease off a little from here on. The emails will keep coming back to the same few things: your numbers, your readiness, and the model.',
       'If you haven’t watched the masterclass yet, this is a good moment to do it.',
     ],
     cta: 'next',
@@ -1132,7 +1142,7 @@ export const FLOW_REACTIVATION_C_1: LongEmail[] = [
   },
   {
     id: 'lf_rxc1_cost_of_drifting',
-    subject: 'a year from now, either way',
+    subject: 'the same year, two different owners at the end',
     preheader: 'The year passes regardless. What it holds is up to you.',
     body: [
       '{name},',
