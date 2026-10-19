@@ -35,6 +35,7 @@ export const SETTINGS = [
 
   { key: 'RESEND_API_KEY', label: 'Resend API key', group: 'Email', secret: true, placeholder: 're_…', help: 'Create at resend.com → API Keys. Verify your sending domain first.' },
   { key: 'EMAIL_FROM', label: 'From address', group: 'Email', placeholder: 'Josh Li <josh@mail.example.com>' },
+  { key: 'RESEND_WEBHOOK_SECRET', label: 'Resend webhook signing secret', group: 'Email', secret: true, placeholder: 'whsec_…', help: 'Filled in by “Connect bounce blocking” on this page. Hard bounces and spam complaints then stop all email to that address.' },
   { key: 'EMAIL_REPLY_TO', label: 'Reply-to address', group: 'Email' },
   { key: 'EMAIL_SIGNATURE', label: 'Email signature name', group: 'Email', placeholder: 'Josh' },
   { key: 'PRECALL_EMAILS_PER_DAY', label: 'Pre-call emails: most in one day', group: 'Email', placeholder: '14', help: 'Booked leads get a run of pre-call emails, spread over 7am–9pm their time until 3 hours before the call, at least 45 minutes apart. This caps any one day. 0 turns the run off.' },

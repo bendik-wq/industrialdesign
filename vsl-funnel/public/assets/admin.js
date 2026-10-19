@@ -2943,8 +2943,10 @@
         }).join('') + '</div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Calendly</h2><p class="sub">With the personal access token connected: exact call times the moment someone books, meeting links in the reminders, the host mapped to your closer, their booking answers, a signed webhook (bookings, cancellations, reschedules, no-shows) and an hourly sync. Calls booked straight from the Calendly link are imported for the sales numbers only; they get no emails.</p></div></div>' +
         '<div class="row"><button class="btn-sm" data-cal-connect>Connect webhook &amp; import</button><button class="btn-sm ghost" data-cal-sync>Sync now</button><button class="btn-sm ghost" data-cal-history>Import full history</button><span class="muted" data-cal-out></span></div></div>' +
+        '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Bounce blocking</h2><p class="sub">When an email hard-bounces or someone marks it as spam, Resend tells the funnel and that address is blocked: every queued email to it is cancelled and nothing is ever sent to it again, in any campaign.</p></div><div class="row"><button class="btn-sm" type="button" data-bb-connect>Connect bounce blocking</button></div></div>' +
+        '<div class="row"><input class="input" type="email" placeholder="block an address by hand" data-bb-email style="flex:1"><button class="btn-sm ghost" type="button" data-bb-add>Block</button></div><div data-bb-list class="muted" style="margin-top:10px">Loading…</div></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Test email</h2><p class="sub">Sends a test through Resend to confirm the key, domain and From address.</p><div class="row"><input class="input" type="email" placeholder="you@company.com" data-test-to style="flex:1"><button class="btn-sm" data-test>Send test</button></div></div>' +
-        '<div class="card"><h2>Webhook URLs</h2><p class="sub">Paste these into each provider.</p><dl class="kv">' + kv('Calendly', d.webhooks.calendly) + kv('Cal.com / GHL / Zapier', d.webhooks.booking) + kv('WhatsApp Cloud API', d.webhooks.whatsapp) + kv('Vapi (voice) Server URL', d.webhooks.voice) + '</dl></div></div>' +
+        '<div class="card"><h2>Webhook URLs</h2><p class="sub">Paste these into each provider.</p><dl class="kv">' + kv('Calendly', d.webhooks.calendly) + kv('Cal.com / GHL / Zapier', d.webhooks.booking) + kv('WhatsApp Cloud API', d.webhooks.whatsapp) + kv('Vapi (voice) Server URL', d.webhooks.voice) + kv('Resend (bounces)', d.webhooks.resend) + '</dl></div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Voice assistant</h2><p class="sub">Creates (or updates) the inbound assistant in your Vapi account from the copy, FAQs and rules in config. Save your Vapi keys and webhook secret first. Then in Vapi, set your phone number’s Server URL to the voice URL above and leave its assistant empty.</p></div><div class="row"><a class="btn-sm ghost" href="/admin/api/voice/assistant.json" target="_blank" rel="noopener">View JSON</a><button class="btn-sm" type="button" data-provision>Create / update assistant</button></div></div></div>' +
         '<form class="card" style="margin-top:14px" data-settings><div class="card-head sticky-head"><div><h2>Keys & settings</h2><p class="sub">Values set as Worker secrets/vars are locked here (they always win). Secrets are never shown — leave a masked field blank to keep it, type “-” to clear it.</p></div><button class="btn-sm" type="submit">Save changes</button></div>' +
         '<div class="set-jump">' + groupNames.map(function (g) { return '<a href="#integrations" data-set-jump="' + esc(slug(g)) + '">' + esc(g) + '</a>'; }).join('') + '</div>' +
@@ -2988,6 +2990,29 @@
         })(null);
       };
       view.querySelector('[data-cal-sync]').onclick = function () { calOut.textContent = 'Syncing…'; send('POST', 'calendly/sync', {}).then(calDone); };
+      var bbList = view.querySelector('[data-bb-list]');
+      var bbLoad = function () {
+        fetch('/admin/api/email/suppressions', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (b) {
+          view.querySelector('[data-bb-connect]').textContent = b.connected ? 'Reconnect' : 'Connect bounce blocking';
+          bbList.innerHTML = (b.connected ? '<b style="color:var(--good)">On.</b> ' : '<b>Off.</b> Click Connect to switch it on. ') + (b.list.length ? b.list.length + ' blocked address' + (b.list.length === 1 ? '' : 'es') + ':' + '<div class="table-wrap" style="margin-top:8px"><table class="t"><tbody>' + b.list.map(function (x) {
+            return '<tr><td class="mono">' + esc(x.email) + '</td><td>' + esc(x.reason) + '</td><td class="muted">' + esc(x.detail || '') + '</td><td>' + esc(new Date(x.created_at).toLocaleDateString()) + '</td><td><button class="btn-sm ghost" type="button" data-bb-del="' + esc(x.email) + '">Unblock</button></td></tr>';
+          }).join('') + '</tbody></table></div>' : 'No blocked addresses yet.');
+          bbList.querySelectorAll('[data-bb-del]').forEach(function (btn) {
+            btn.onclick = function () {
+              if (!confirm('Unblock ' + btn.getAttribute('data-bb-del') + '? Emails to a bounced address hurt your sender reputation.')) return;
+              send('DELETE', 'email/suppressions?email=' + encodeURIComponent(btn.getAttribute('data-bb-del'))).then(function (r) { toast(r.note || 'Unblocked'); bbLoad(); });
+            };
+          });
+        });
+      };
+      bbLoad();
+      view.querySelector('[data-bb-connect]').onclick = function () {
+        bbList.textContent = 'Connecting to Resend…';
+        send('POST', 'email/suppressions/connect', {}).then(function (r) { toast(r.ok ? 'Bounce blocking on ✓' : (r.error || 'Failed')); bbLoad(); });
+      };
+      view.querySelector('[data-bb-add]').onclick = function () {
+        send('POST', 'email/suppressions', { email: view.querySelector('[data-bb-email]').value }).then(function (r) { toast(r.ok ? 'Blocked · ' + r.cancelled + ' queued emails cancelled' : (r.error || 'Failed')); bbLoad(); });
+      };
       view.querySelector('[data-test]').onclick = function () {
         send('POST', 'integrations/test-email', { to: view.querySelector('[data-test-to]').value }).then(function (r) { toast(r.ok ? 'Test email sent ✓' : (r.error || 'Failed')); });
       };

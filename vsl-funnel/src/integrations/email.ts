@@ -2,6 +2,7 @@ import { safeFirstName } from '../lib/text';
 import type { Runtime } from '../app';
 import { BRAND } from '../config';
 import { hmacHex, safeEqual } from '../lib/crypto';
+import { isSuppressed } from './bounces';
 import { newId } from '../lib/ids';
 import { getSecret } from '../lib/secret';
 import { type Lead, getLead } from '../funnel/leads';
@@ -425,6 +426,8 @@ async function webinarContext(rt: Runtime, lead: Lead, link: (path: string) => s
 
 /** Resend (https://resend.com/docs/api-reference/emails/send-email). Returns the provider message id. */
 export async function sendViaResend(rt: Runtime, msg: { to: string; subject: string; html: string; text: string; unsubscribeUrl?: string; tags?: Record<string, string>; from?: string; replyTo?: string }) {
+  const blocked = await isSuppressed(rt, msg.to);
+  if (blocked) throw new Error(`address blocked (${blocked})`);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { authorization: `Bearer ${rt.settings.RESEND_API_KEY}`, 'content-type': 'application/json' },
@@ -502,6 +505,8 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
 
     if (!lead || !seq || !step) { await skip('missing lead or step'); return; }
     if (lead.unsubscribed_at) { await skip('unsubscribed'); return; }
+    const blocked = await isSuppressed(rt, row.to_email);
+    if (blocked) { await skip(blocked); return; }
     if ('stopIf' in seq && seq.stopIf?.(lead)) { await skip('sequence goal reached'); return; }
     if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); return; }
 

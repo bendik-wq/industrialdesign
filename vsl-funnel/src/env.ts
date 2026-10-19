@@ -29,6 +29,7 @@ export interface Env {
   ADMIN_PASSWORD?: string;
   SESSION_SECRET?: string;
   RESEND_API_KEY?: string;
+  RESEND_WEBHOOK_SECRET?: string;
   POSTHOG_KEY?: string;
   POSTHOG_SESSION_REPLAY?: string;
   META_PIXEL_ID?: string;

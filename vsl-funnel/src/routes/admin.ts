@@ -37,6 +37,7 @@ import { type OutboundCall, dial, elevenConfigured, listPhoneNumbers, provisionA
 import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } from '../integrations/voice';
 import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
+import { connectResendWebhook, suppressEmail } from '../integrations/bounces';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -704,7 +705,7 @@ admin.get('/integrations', async (c) => {
   return c.json({
     settings: await describeSettings(c.env),
     status: {
-      email: { label: 'Email', connected: emailConfigured(rt), detail: emailConfigured(rt) ? `Sending as ${s.EMAIL_FROM}` : 'Emails are simulated (logged, not sent) until a Resend key and From address are connected.' },
+      email: { label: 'Email', connected: emailConfigured(rt), detail: emailConfigured(rt) ? `Sending as ${s.EMAIL_FROM}${s.RESEND_WEBHOOK_SECRET ? ' · bounce blocking on' : ' · bounce blocking off'}` : 'Emails are simulated (logged, not sent) until a Resend key and From address are connected.' },
       whatsapp: { label: 'WhatsApp', connected: Boolean(s.JOSH_WHATSAPP), detail: s.JOSH_WHATSAPP ? `Click-to-chat → +${s.JOSH_WHATSAPP.replace(/\D/g, '')}${cloudApiConfigured(s) ? ' · Cloud API connected' : ''}` : 'Add Josh’s number to turn on the WhatsApp buttons.' },
       booking: { label: 'Booking', connected: Boolean(s.BOOKING_URL_A || s.BOOKING_URL_B), detail: [s.BOOKING_URL_A && 'A-tier calendar', s.BOOKING_URL_B && 'B-tier calendar', s.CALENDLY_API_TOKEN && 'Calendly API (exact times, links, hourly sync)', s.CALENDLY_SIGNING_KEY && 'webhook signed'].filter(Boolean).join(' · ') || 'No calendar connected — A-tier leads are sent to the breakout page.' },
       posthog: { label: 'PostHog', connected: Boolean(s.POSTHOG_KEY), detail: s.POSTHOG_KEY ? `Server-side events → ${s.POSTHOG_HOST || 'https://us.i.posthog.com'}` : 'Not connected' },
@@ -721,6 +722,7 @@ admin.get('/integrations', async (c) => {
       booking: `${rt.origin}/hooks/booking?secret=<BOOKING_WEBHOOK_SECRET>`,
       whatsapp: `${rt.origin}/hooks/whatsapp`,
       voice: `${rt.origin}/hooks/voice`,
+      resend: `${rt.origin}/hooks/resend`,
     },
   });
 });
@@ -1192,6 +1194,31 @@ admin.put('/integrations', async (c) => {
   const body = await c.req.json<Record<string, string>>();
   await saveSettings(c.env, Object.fromEntries(Object.entries(body).filter(([, v]) => typeof v === 'string')));
   return c.json({ ok: true });
+});
+
+// ── Bounce blocking ──
+admin.get('/email/suppressions', async (c) => {
+  const rt = runtimeFrom(c);
+  const { results } = await rt.env.DB.prepare('SELECT email, reason, detail, created_at FROM email_suppressions ORDER BY created_at DESC LIMIT 200').all();
+  return c.json({ connected: Boolean(rt.settings.RESEND_WEBHOOK_SECRET), webhook: `${rt.origin}/hooks/resend`, list: results });
+});
+admin.post('/email/suppressions/connect', async (c) => {
+  try {
+    return c.json({ ok: true, ...(await connectResendWebhook(runtimeFrom(c))) });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 400);
+  }
+});
+admin.post('/email/suppressions', async (c) => {
+  const body = await c.req.json<{ email?: string }>().catch(() => ({} as { email?: string }));
+  const email = validateEmail(body.email);
+  if (!email) return c.json({ ok: false, error: 'Enter a valid email address' }, 400);
+  return c.json({ ok: true, ...(await suppressEmail(runtimeFrom(c), email.email, 'manual', 'blocked in Funnel HQ')) });
+});
+admin.delete('/email/suppressions', async (c) => {
+  const email = String(c.req.query('email') ?? '').trim().toLowerCase();
+  await runtimeFrom(c).env.DB.prepare('DELETE FROM email_suppressions WHERE email = ?').bind(email).run();
+  return c.json({ ok: true, note: 'Removed from the block list. The lead stays unsubscribed; they would need to opt back in.' });
 });
 
 admin.post('/integrations/test-email', async (c) => {

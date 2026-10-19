@@ -7,8 +7,9 @@ import { type VapiMessage, handleVapi, verifyVapi } from '../integrations/voice'
 import { type Conversation, handleElevenWebhook, verifyElevenSignature } from '../integrations/elevenlabs';
 import { finishInbound, initiationData } from '../integrations/elevenlabs-inbound';
 import { hmacHex, safeEqual } from '../lib/crypto';
+import { handleResendEvent, verifyResend } from '../integrations/bounces';
 
-/** Inbound webhooks from Calendly, Cal.com / CRMs, the WhatsApp Cloud API, Vapi and ElevenLabs (voice). All verified. */
+/** Inbound webhooks from Resend (bounces), Calendly, Cal.com / CRMs, the WhatsApp Cloud API, Vapi and ElevenLabs (voice). All verified. */
 export const hooks = new Hono<AppEnv>();
 
 hooks.post('/calendly', async (c) => {
@@ -31,6 +32,23 @@ hooks.post('/twilio/sms', async (c) => {
   const { reply } = await handleInboundSms(rt, params);
   const xml = reply ? `<Response><Message>${reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Message></Response>` : '<Response/>';
   return c.body(`<?xml version="1.0" encoding="UTF-8"?>${xml}`, 200, { 'content-type': 'text/xml' });
+});
+
+// Resend: hard bounces and spam complaints block the address everywhere (Svix-signed; fails closed).
+hooks.post('/resend', async (c) => {
+  const rt = runtimeFrom(c);
+  const secret = rt.settings.RESEND_WEBHOOK_SECRET;
+  if (!secret) return c.json({ error: 'RESEND_WEBHOOK_SECRET not configured' }, 501);
+  const raw = await c.req.text();
+  const ok = await verifyResend(secret, raw, { id: c.req.header('svix-id'), timestamp: c.req.header('svix-timestamp'), signature: c.req.header('svix-signature') });
+  if (!ok) return c.json({ error: 'bad signature' }, 401);
+  let body: Parameters<typeof handleResendEvent>[1];
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return c.json({ error: 'invalid json' }, 400);
+  }
+  return c.json(await handleResendEvent(rt, body));
 });
 
 hooks.post('/booking', async (c) => {
