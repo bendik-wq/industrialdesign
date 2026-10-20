@@ -269,6 +269,7 @@
     live: { group: 'Today', title: 'Live', sub: 'Who’s on the site now, and everything people did — from the last hour back to all time.', render: renderLive, noFilters: true },
     leads: { group: 'Sell', title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads, filters: ['range', 'channel'] },
     sales: { group: 'Sell', title: 'Calls & deals', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here.', more: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales, filters: ['range'] },
+    finance: { group: 'Sell', title: 'Financial model', sub: 'What the VSL and webinar funnels make per dollar of ads, and what it takes to hit a profit target.', more: 'A monthly model for each funnel: ad spend and cost per visitor in, then every conversion step down to clients won, revenue, profit, cost per booked call and CAC. Break-even lines show the most you can pay per visitor, per call and per client. The projection grows spend month by month and shows the cash you need before it pays back. Live funnel numbers sit next to each assumption once there’s enough data.', render: renderFinance, noFilters: true },
     insights: { group: 'Sell', title: 'Best leads', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
     map: { group: 'Funnel', title: 'Funnel map', sub: 'Every page, decision and automation, with live numbers.', more: 'How everything fits together: every page, decision and automation from ad click to closed deal, with live numbers. Drag to rearrange, click any box to see how it works, and add your own steps.', render: renderMap },
     screens: { group: 'Funnel', title: 'Page previews', sub: 'Every page in the funnel, in order, live.', more: 'Every page in the funnel, in order, live. Previews never count as visits, never fire ad pixels and can’t submit anything.', render: renderScreens, noFilters: true },
@@ -549,6 +550,191 @@
       });
     });
   }
+  // ───────────── Financial model ─────────────
+  var FIN_FIELDS = {
+    shared: [
+      ['fee', 'Average client fee', 'money'], ['refund', 'Refunds (7-day guarantee)', 'pct'], ['upfront', 'Paid upfront (rest the month after)', 'pct'],
+      ['commission', 'Closer commission', 'pct'], ['fulfil', 'Delivery cost per client', 'money'], ['fixed', 'Fixed costs a month (team, tools)', 'money'],
+      ['target', 'Profit target a month', 'money'], ['months', 'Months to project', 'int'], ['growth', 'Ad spend growth a month', 'pct'],
+    ],
+    vsl: [
+      ['spend', 'Ad spend a month', 'money'], ['cpc', 'Cost per landing-page visitor', 'money2'], ['optin', 'Visitors who give contact details', 'pct'],
+      ['appDone', 'Of those, finish the application', 'pct'], ['qualified', 'Applications that qualify ($1M+)', 'pct'], ['book', 'Qualified who book a call', 'pct'],
+      ['show', 'Show rate', 'pct'], ['close', 'Close rate (of calls held)', 'pct'],
+    ],
+    webinar: [
+      ['spend', 'Ad spend a month', 'money'], ['cpc', 'Cost per landing-page visitor', 'money2'], ['reg', 'Visitors who register', 'pct'],
+      ['attend', 'Registrants who watch (live or replay)', 'pct'], ['applyAtt', 'Watchers who apply', 'pct'], ['applyNo', 'Non-watchers who apply (from the emails)', 'pct'],
+      ['qualified', 'Applications that qualify ($1M+)', 'pct'], ['book', 'Qualified who book a call', 'pct'], ['show', 'Show rate', 'pct'], ['close', 'Close rate (of calls held)', 'pct'],
+    ],
+  };
+  var FIN_MIN_N = 20; // fewer people than this and a live rate is shown but not trusted
+
+  function renderFinance() {
+    var M = window.FinModel;
+    if (!M) { view.innerHTML = '<div class="card">The model script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return api('finance', null, { noRange: true }).then(function (d) {
+      var A = d.actuals || {}, models = d.models || [];
+      var cur = models[0] ? { id: models[0].id, name: models[0].name, data: M.normalise(models[0].data) } : { id: null, name: 'Base case', data: M.normalise({}) };
+      var dirty = false;
+      var cfmt = function (dp) { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur.data.shared.currency, maximumFractionDigits: dp || 0, minimumFractionDigits: dp || 0 }); } catch (e) { return new Intl.NumberFormat(undefined, { maximumFractionDigits: dp || 0 }); } };
+      var cm = function (v, dp) { return v == null || !isFinite(v) ? '–' : cfmt(dp).format(v); };
+      var n1 = function (v) { return v == null || !isFinite(v) ? '–' : v >= 10 ? n(v) : (Math.round(v * 10) / 10).toString(); };
+      var shown = function (type, v) { return type === 'pct' ? +(v * 100).toFixed(2) : type === 'money2' ? +v.toFixed(2) : Math.round(v); };
+
+      var liveHint = function (sec, key, type) {
+        var a = A[sec] && A[sec][key];
+        if (!a) return '';
+        var val = type === 'pct' ? pct(a.value, 1) : cm(a.value);
+        var ok = a.n >= FIN_MIN_N;
+        return '<div class="fm-live' + (ok ? '' : ' weak') + '" title="' + esc(a.note) + '">Live: ' + esc(val) + ' · ' + esc(n(a.n)) + ' ' + (a.n === 1 ? 'person' : 'people') + (ok ? ' <button type="button" class="linkish" data-fm-use="' + esc(sec + '.' + key) + '">use</button>' : ' (too few to trust)') + '</div>';
+      };
+      var fieldsHtml = function (sec) {
+        return FIN_FIELDS[sec].map(function (f) {
+          var type = f[2], v = cur.data[sec][f[0]];
+          return '<label class="fm-field"><span>' + esc(f[1]) + '</span><span class="fm-in' + (type === 'pct' ? ' is-pct' : type.indexOf('money') === 0 ? ' is-money' : '') + '"><input class="input" type="number" inputmode="decimal" min="0" step="' + (type === 'money2' ? '0.1' : type === 'pct' ? '0.1' : '1') + '" data-fm="' + esc(sec + '.' + f[0]) + '" data-type="' + type + '" value="' + esc(String(shown(type, v))) + '"></span>' + liveHint(sec, f[0], type) + '</label>';
+        }).join('');
+      };
+      var funnelCard = function (sec, title, sub) {
+        return '<div class="card fm-funnel" data-fm-card="' + sec + '"><div class="card-head"><div><h2>' + esc(title) + '</h2><p class="sub">' + esc(sub) + '</p></div>' +
+          '<label class="fm-toggle"><input type="checkbox" data-fm-on="' + sec + '"' + (cur.data[sec].on ? ' checked' : '') + '> Include</label></div>' +
+          '<div class="fm-fields">' + fieldsHtml(sec) + '</div><div data-fm-out="' + sec + '"></div></div>';
+      };
+
+      view.innerHTML =
+        '<div class="card"><div class="card-head"><div><h2>Scenario</h2><p class="sub">Every number below is an assumption you can change; results update as you type. Where the funnel has real data, it shows next to the input (last 90 days). Ad spend and cost per visitor aren’t tracked here yet, so set those from your ad account. Save a scenario to share it with the team.</p></div></div>' +
+        '<div class="row fm-bar"><select class="input" data-fm-pick style="max-width:240px">' + (models.length ? models.map(function (m) { return '<option value="' + esc(m.id) + '">' + esc(m.name) + '</option>'; }).join('') : '<option value="">Base case (not saved)</option>') + '</select>' +
+        '<input class="input" data-fm-name value="' + esc(cur.name) + '" maxlength="80" style="max-width:200px" aria-label="Scenario name">' +
+        '<select class="input" data-fm-cur style="max-width:90px" aria-label="Currency">' + ['USD', 'AUD', 'GBP', 'EUR', 'CAD', 'NZD'].map(function (c) { return '<option' + (c === cur.data.shared.currency ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select>' +
+        '<button class="btn-sm" type="button" data-fm-save>Save</button><button class="btn-sm ghost" type="button" data-fm-saveas>Save as new</button>' +
+        '<button class="btn-sm ghost" type="button" data-fm-live>Use live numbers</button><button class="btn-sm ghost" type="button" data-fm-reset>Reset to defaults</button>' +
+        (models.length ? '<button class="btn-sm ghost" type="button" data-fm-del>Delete</button>' : '') + '<span class="muted" data-fm-msg></span></div></div>' +
+        '<div data-fm-total style="margin-top:14px"></div>' +
+        '<div class="grid g-2" style="margin-top:14px">' +
+        funnelCard('vsl', 'VSL funnel', 'Ad → VSL page → application → call → client.') +
+        funnelCard('webinar', 'Webinar funnel', 'Ad → registration → masterclass (live or replay) → application → call → client.') + '</div>' +
+        '<div class="card" style="margin-top:14px"><h2>Price and costs</h2><p class="sub">Shared by both funnels.</p><div class="fm-fields fm-fields-wide">' + fieldsHtml('shared') + '</div></div>' +
+        '<div data-fm-proj style="margin-top:14px"></div><div class="grid g-2" data-fm-sens style="margin-top:14px"></div>';
+
+      var msg = view.querySelector('[data-fm-msg]');
+      var markDirty = function () { dirty = true; msg.textContent = 'Unsaved changes'; };
+
+      var unitRows = function (p, sec) {
+        var u = p.unit, f = cur.data[sec];
+        var rows = [
+          [sec === 'webinar' ? 'Cost per registrant' : 'Cost per lead', cm(u.perLead, 2)], ['Cost per application', cm(u.perApp)], ['Cost per qualified application', cm(u.perQualified)],
+          ['Cost per booked call', cm(u.perBooked)], ['Cost per call held', cm(u.perHeld)], ['Cost to win a client (CAC)', cm(u.cac)],
+          ['Return on ad spend', u.roas == null ? '–' : u.roas.toFixed(1) + '×'], ['Profit per $1 of ads', u.profitPerDollar == null ? '–' : cm(u.profitPerDollar, 2)],
+        ];
+        var be = [['Most you can pay per visitor', cm(u.maxCpc, 2), f.cpc > u.maxCpc], ['Most you can pay per booked call', cm(u.maxPerBooked), u.perBooked > u.maxPerBooked], ['Most you can pay per client', cm(u.maxCac), u.cac > u.maxCac]];
+        return '<div class="fm-steps">' + p.steps.map(function (st, i) {
+          var prev = i ? p.steps[i - 1].n : null;
+          return '<div class="fm-step"><span>' + esc(st.label) + '</span><b>' + esc(n1(st.n)) + '</b>' + (prev ? '<i>' + esc(pct(st.n / prev, 1)) + '</i>' : '<i></i>') + '</div>';
+        }).join('') + '</div>' +
+          '<dl class="fm-kv">' + rows.map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join('') + '</dl>' +
+          '<h3 class="h3" style="margin-top:12px">Break-even</h3><dl class="fm-kv">' + be.map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd class="' + (r[2] ? 'fm-neg-t' : '') + '">' + esc(r[1]) + '</dd>'; }).join('') + '</dl>' +
+          '<div class="fm-result ' + (p.profit >= 0 ? 'pos' : 'neg') + '"><span>Profit a month from this funnel</span><b>' + esc(cm(p.profit)) + '</b><small>' + esc(n1(p.deals)) + ' clients · ' + esc(cm(p.net)) + ' after refunds · before fixed costs</small></div>';
+      };
+
+      var draw = function () {
+        var m = cur.data, c = M.combine(m), t = c.total, pr = M.projection(m);
+        view.querySelector('[data-fm-total]').innerHTML =
+          '<div class="grid g-4 tiles">' +
+          tile('Ad spend a month', cm(t.spend), [m.vsl.on && 'VSL ' + cm(m.vsl.spend), m.webinar.on && 'Webinar ' + cm(m.webinar.spend)].filter(Boolean).join(' · ')) +
+          tile('Clients a month', n1(t.deals), n1(t.held) + ' calls held · ' + n1(t.booked) + ' booked') +
+          tile('Revenue a month', cm(t.net), 'after refunds · CAC ' + cm(t.cac) + ' · ROAS ' + (t.roas == null ? '–' : t.roas.toFixed(1) + '×')) +
+          tile('Profit a month', cm(t.profitAfterFixed), 'after ads, commission, delivery and ' + cm(t.fixed) + ' fixed costs') +
+          '</div><div class="grid g-4 tiles" style="margin-top:14px">' +
+          tile('Spend to hit ' + cm(m.shared.target) + ' profit', t.spendForTarget == null ? 'Not reachable' : cm(t.spendForTarget), t.spendForTarget == null ? 'The funnels lose money per dollar at these rates' : 'a month, at today’s rates and VSL/webinar mix') +
+          tile('Break-even ad spend', t.breakEvenSpend == null ? 'Not reachable' : cm(t.breakEvenSpend), 'a month, to cover fixed costs') +
+          tile('Cash needed up front', cm(pr.cashNeeded), pr.cashNeeded ? 'deepest point of cumulative cash over ' + m.shared.months + ' months' : 'cash never goes below zero at these numbers') +
+          tile('Payback', pr.paybackMonth ? 'Month ' + pr.paybackMonth : 'Not within ' + m.shared.months + ' months', 'when cumulative cash turns positive for good') + '</div>';
+        c.parts.forEach(function (p) { view.querySelector('[data-fm-out="' + p.kind + '"]').innerHTML = unitRows(p, p.kind); });
+        ['vsl', 'webinar'].forEach(function (k) { if (!m[k].on) view.querySelector('[data-fm-out="' + k + '"]').innerHTML = '<p class="muted" style="margin-top:12px">Left out of the totals.</p>'; view.querySelector('[data-fm-card="' + k + '"]').classList.toggle('off', !m[k].on); });
+        var maxAbs = pr.rows.reduce(function (a, r) { return Math.max(a, Math.abs(r.cumCash)); }, 1);
+        view.querySelector('[data-fm-proj]').innerHTML = '<div class="card"><h2>' + esc(m.shared.months) + '-month projection</h2><p class="sub">Ad spend grows ' + esc(pct(m.shared.growth, 1)) + ' a month. ' + esc(pct(m.shared.upfront)) + ' of each fee lands the month the client signs and the rest the month after. Rates stay as set above.</p>' +
+          '<div class="table-wrap"><table class="t fm-proj"><thead><tr><th>Month</th><th class="num">Ad spend</th><th class="num">Clients</th><th class="num">Revenue</th><th class="num">Profit</th><th class="num">Cash in the bank (cumulative)</th></tr></thead><tbody>' +
+          pr.rows.map(function (r) {
+            var w = Math.round(Math.abs(r.cumCash) / maxAbs * 100);
+            return '<tr><td>' + r.month + '</td><td class="num">' + esc(cm(r.spend)) + '</td><td class="num">' + esc(n1(r.deals)) + '</td><td class="num">' + esc(cm(r.net)) + '</td><td class="num' + (r.profit < 0 ? ' fm-neg-t' : '') + '">' + esc(cm(r.profit)) + '</td><td class="num"><span class="fm-cum"><span class="fm-cum-bar ' + (r.cumCash < 0 ? 'neg' : 'pos') + '" style="width:' + w + '%"></span><span>' + esc(cm(r.cumCash)) + '</span></span></td></tr>';
+          }).join('') + '</tbody></table></div></div>';
+        view.querySelector('[data-fm-sens]').innerHTML = ['vsl', 'webinar'].filter(function (k) { return m[k].on; }).map(function (k) {
+          var s = M.sensitivity(k, m);
+          return '<div class="card"><h2>' + (k === 'vsl' ? 'VSL' : 'Webinar') + ': what if</h2><p class="sub">Monthly profit (before fixed costs) if the close rate or the cost per visitor moves. The middle cell is your current scenario.</p><div class="table-wrap"><table class="t fm-sens"><thead><tr><th>Close rate ↓ · cost per visitor →</th>' +
+            s.cols.map(function (x) { return '<th class="num">' + esc(cm(x, 2)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+            s.rows.map(function (r, ri) { return '<tr><th>' + esc(pct(r.close, 1)) + '</th>' + r.cells.map(function (v, ci) { return '<td class="num ' + (v >= 0 ? 'fm-pos' : 'fm-neg') + (ri === 2 && ci === 2 ? ' fm-here' : '') + '">' + esc(cm(v)) + '</td>'; }).join('') + '</tr>'; }).join('') +
+            '</tbody></table></div></div>';
+        }).join('');
+      };
+
+      var setField = function (path, raw) {
+        var parts = path.split('.'), el = view.querySelector('[data-fm="' + path + '"]'), type = el ? el.getAttribute('data-type') : 'money';
+        var v = Number(raw);
+        if (!isFinite(v)) return;
+        cur.data[parts[0]][parts[1]] = type === 'pct' ? v / 100 : v;
+        cur.data = M.normalise(cur.data);
+      };
+      view.querySelectorAll('[data-fm]').forEach(function (inp) {
+        inp.oninput = function () { if (inp.value === '') return; setField(inp.getAttribute('data-fm'), inp.value); markDirty(); draw(); };
+      });
+      view.querySelectorAll('[data-fm-on]').forEach(function (cb) { cb.onchange = function () { cur.data[cb.getAttribute('data-fm-on')].on = cb.checked; markDirty(); draw(); }; });
+      view.querySelector('[data-fm-cur]').onchange = function () { cur.data.shared.currency = this.value; markDirty(); draw(); };
+      var applyLive = function (path) {
+        var p = path.split('.'), a = A[p[0]] && A[p[0]][p[1]], el = view.querySelector('[data-fm="' + path + '"]');
+        if (!a || !el) return false;
+        var type = el.getAttribute('data-type');
+        cur.data[p[0]][p[1]] = a.value;
+        el.value = shown(type, a.value);
+        return true;
+      };
+      view.querySelectorAll('[data-fm-use]').forEach(function (b) { b.onclick = function (e) { e.preventDefault(); if (applyLive(b.getAttribute('data-fm-use'))) { cur.data = M.normalise(cur.data); markDirty(); draw(); } }; });
+      view.querySelector('[data-fm-live]').onclick = function () {
+        var used = 0;
+        ['shared', 'vsl', 'webinar'].forEach(function (sec) { Object.keys(A[sec] || {}).forEach(function (k) { var a = A[sec][k]; if (a && a.n >= FIN_MIN_N && applyLive(sec + '.' + k)) used++; }); });
+        cur.data = M.normalise(cur.data);
+        if (used) { markDirty(); draw(); }
+        toast(used ? 'Used ' + used + ' live number' + (used === 1 ? '' : 's') + '. The rest have too little data yet.' : 'Not enough live data yet: every rate is based on fewer than ' + FIN_MIN_N + ' people.');
+      };
+      view.querySelector('[data-fm-reset]').onclick = function () {
+        if (!confirm('Put every input back to the starting assumptions? Saved scenarios aren’t touched until you press Save.')) return;
+        cur.data = M.normalise({ shared: { currency: cur.data.shared.currency } });
+        view.querySelectorAll('[data-fm]').forEach(function (el) { var p = el.getAttribute('data-fm').split('.'); el.value = shown(el.getAttribute('data-type'), cur.data[p[0]][p[1]]); });
+        view.querySelectorAll('[data-fm-on]').forEach(function (cb) { cb.checked = true; });
+        markDirty(); draw();
+      };
+      var save = function (asNew) {
+        var name = view.querySelector('[data-fm-name]').value.trim() || 'Base case';
+        if (asNew && name === cur.name) name = name + ' (copy)';
+        send('POST', 'finance/models', { id: asNew ? undefined : cur.id, name: name, data: cur.data }).then(function (r) {
+          if (!r || !r.ok) { toast('Couldn’t save'); return; }
+          dirty = false; toast('Saved “' + r.name + '”');
+          load();
+        });
+      };
+      view.querySelector('[data-fm-save]').onclick = function () { save(false); };
+      view.querySelector('[data-fm-saveas]').onclick = function () { save(true); };
+      var del = view.querySelector('[data-fm-del]');
+      if (del) del.onclick = function () {
+        if (!cur.id || !confirm('Delete the scenario “' + cur.name + '”?')) return;
+        fetch('/admin/api/finance/models/' + encodeURIComponent(cur.id), { method: 'DELETE', credentials: 'same-origin' }).then(function () { load(); });
+      };
+      var pick = view.querySelector('[data-fm-pick]');
+      if (cur.id) pick.value = cur.id;
+      pick.onchange = function () {
+        if (dirty && !confirm('Switch scenario? Unsaved changes will be lost.')) { pick.value = cur.id || ''; return; }
+        var m = models.filter(function (x) { return x.id === pick.value; })[0];
+        if (!m) return;
+        cur = { id: m.id, name: m.name, data: M.normalise(m.data) };
+        view.querySelector('[data-fm-name]').value = cur.name;
+        view.querySelector('[data-fm-cur]').value = cur.data.shared.currency;
+        view.querySelectorAll('[data-fm]').forEach(function (el) { var p = el.getAttribute('data-fm').split('.'); el.value = shown(el.getAttribute('data-type'), cur.data[p[0]][p[1]]); });
+        view.querySelectorAll('[data-fm-on]').forEach(function (cb) { cb.checked = cur.data[cb.getAttribute('data-fm-on')].on; });
+        dirty = false; msg.textContent = ''; draw();
+      };
+      draw();
+    });
+  }
+
   function renderWebinar() {
     return api('webinar').then(function (d) {
       var k = d.kpis || {}, st = d.settings || {};
@@ -568,6 +754,8 @@
         tile('Booked a call', n(k.booked), pct(regs ? (k.booked || 0) / regs : null) + ' of registrants') +
         tile('Won', n(k.won), money(k.revenue)) +
         tile('Weekly sessions', st.schedule || '–', (st.tz || '') + ' · ' + String(st.url || '').replace(/^https?:\/\//, '')) +
+        '</div><div class="grid g-4 tiles" style="margin-top:14px">' +
+        tile('Financial model', 'Open', 'Cost per registrant, per call and per client, and what the webinar makes per dollar of ads', 'finance') +
         '</div>' +
         '<div class="grid g-2" style="margin-top:14px">' +
         '<div class="card"><h2>Upcoming sessions</h2><p class="sub">Weekly sessions are created automatically from the schedule in Integrations → Webinar. Add a one-off or live session below.</p>' +

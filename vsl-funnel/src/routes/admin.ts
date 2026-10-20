@@ -38,6 +38,7 @@ import { buildAssistant, provisionAssistant, voiceConfigured, webCallsEnabled } 
 import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
 import { connectResendWebhook, suppressEmail } from '../integrations/bounces';
+import { financeActuals, listModels, saveModel } from '../admin/finance';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -158,6 +159,21 @@ admin.put('/map-custom', async (c) => {
 });
 
 // ── Webinar ──
+// ── Financial model ──
+admin.get('/finance', async (c) => {
+  const rt = runtimeFrom(c);
+  const [actuals, models] = await Promise.all([financeActuals(rt), listModels(rt)]);
+  return c.json({ actuals, models });
+});
+admin.post('/finance/models', async (c) => {
+  const body = await c.req.json<{ id?: unknown; name?: unknown; data?: unknown }>().catch(() => ({}));
+  return c.json({ ok: true, ...(await saveModel(runtimeFrom(c), body)) });
+});
+admin.delete('/finance/models/:id', async (c) => {
+  await runtimeFrom(c).env.DB.prepare('DELETE FROM fin_models WHERE id = ?').bind(c.req.param('id')).run();
+  return c.json({ ok: true });
+});
+
 admin.get('/webinar', async (c) => {
   const rt = runtimeFrom(c);
   await ensureSessions(rt).catch(() => 0);
