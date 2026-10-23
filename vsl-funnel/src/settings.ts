@@ -115,6 +115,8 @@ export const SETTINGS = [
 
   { key: 'META_PIXEL_ID', label: 'Meta Pixel ID', group: 'Ads' },
   { key: 'META_ACCESS_TOKEN', label: 'Meta Conversions API token', group: 'Ads', secret: true },
+  { key: 'META_ADS_TOKEN', label: 'Meta ads token (ads_read)', group: 'Ads', secret: true, help: 'Lets Funnel HQ read ad spend per campaign. A system-user token with the ads_read permission. Leave blank to try the Conversions API token.' },
+  { key: 'META_AD_ACCOUNT_ID', label: 'Meta ad account ID', group: 'Ads', placeholder: '1234567890', help: 'Pick it with “Connect ad account” on Traffic & ads.' },
   { key: 'META_TEST_EVENT_CODE', label: 'Meta test event code', group: 'Ads', help: 'Only while testing in Events Manager. Clear it before going live.' },
 
   { key: 'SLACK_WEBHOOK_URL', label: 'Slack webhook — team alerts', group: 'Alerts', secret: true, help: 'Hot leads, bookings, call-starting pings, no-shows, daily digest. Slack → Apps → Incoming Webhooks.' },

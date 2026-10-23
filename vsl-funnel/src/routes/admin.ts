@@ -39,6 +39,9 @@ import { validateEmail } from '../funnel/leads';
 import { describeSettings, saveSettings } from '../settings';
 import { connectResendWebhook, suppressEmail } from '../integrations/bounces';
 import { financeActuals, listModels, saveModel } from '../admin/finance';
+import { addManualSpend, adsReport, deleteManualSpend, setCampaignFunnel } from '../admin/ads';
+import { chooseAdAccount, listAdAccounts, metaAdsConfigured, metaAdsToken, syncMetaSpend } from '../integrations/meta-ads';
+import { webinarInsights } from '../admin/webinar';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -159,6 +162,31 @@ admin.put('/map-custom', async (c) => {
 });
 
 // ── Webinar ──
+// ── Ad spend ──
+admin.get('/ads', async (c) => {
+  const rt = runtimeFrom(c);
+  const f = filters(c);
+  return c.json({ ...(await adsReport(rt, f.from, f.to)), meta: { configured: metaAdsConfigured(rt), token: Boolean(metaAdsToken(rt)), account: rt.settings.META_AD_ACCOUNT_ID || null } });
+});
+const fail = (c: Context<AppEnv>, err: unknown) => c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 400);
+admin.get('/ads/accounts', async (c) => { try { return c.json({ ok: true, accounts: await listAdAccounts(runtimeFrom(c)) }); } catch (e) { return fail(c, e); } });
+admin.post('/ads/account', async (c) => {
+  try {
+    const rt = runtimeFrom(c);
+    const b = await c.req.json<{ id?: string }>();
+    const id = await chooseAdAccount(rt, b.id ?? '');
+    rt.settings.META_AD_ACCOUNT_ID = id;
+    return c.json({ ok: true, id, synced: await syncMetaSpend(rt, 90) });
+  } catch (e) { return fail(c, e); }
+});
+admin.post('/ads/sync', async (c) => { try { return c.json({ ok: true, synced: await syncMetaSpend(runtimeFrom(c), 90) }); } catch (e) { return fail(c, e); } });
+admin.put('/ads/campaign', async (c) => {
+  try { const b = await c.req.json<{ platform?: string; campaign_id?: string; funnel?: string }>(); await setCampaignFunnel(runtimeFrom(c), String(b.platform), String(b.campaign_id), String(b.funnel)); return c.json({ ok: true }); } catch (e) { return fail(c, e); }
+});
+admin.post('/ads/manual', async (c) => { try { return c.json({ ok: true, ...(await addManualSpend(runtimeFrom(c), await c.req.json())) }); } catch (e) { return fail(c, e); } });
+admin.delete('/ads/manual', async (c) => { await deleteManualSpend(runtimeFrom(c), String(c.req.query('platform')), String(c.req.query('campaign_id'))); return c.json({ ok: true }); });
+admin.get('/webinar/insights', async (c) => { const f = filters(c); return c.json(await webinarInsights(runtimeFrom(c), { from: f.from, to: f.to })); });
+
 // ── Financial model ──
 admin.get('/finance', async (c) => {
   const rt = runtimeFrom(c);

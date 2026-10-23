@@ -30,6 +30,8 @@ export interface Env {
   SESSION_SECRET?: string;
   RESEND_API_KEY?: string;
   RESEND_WEBHOOK_SECRET?: string;
+  META_ADS_TOKEN?: string;
+  META_AD_ACCOUNT_ID?: string;
   POSTHOG_KEY?: string;
   POSTHOG_SESSION_REPLAY?: string;
   META_PIXEL_ID?: string;

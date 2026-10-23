@@ -264,6 +264,16 @@ export async function cancelSession(rt: Runtime, sessionId: string) {
 // ───────────── attendance ─────────────
 
 /** Heartbeat from the room / replay player (every ~15 s). Positions are seconds into the recording. */
+/** '0'/'1' per minute; returns the new string, or null when that minute was already marked. */
+export function markMinute(cur: string | null, minute: number, durationMin: number) {
+  const len = Math.max(1, Math.min(600, Math.round(durationMin)));
+  if (minute < 0 || minute >= len) return null;
+  const arr = (cur ?? '').padEnd(len, '0').slice(0, len).split('');
+  if (arr[minute] === '1') return null;
+  arr[minute] = '1';
+  return arr.join('');
+}
+
 export async function heartbeat(rt: Runtime, reg: Registration, session: Session, body: { pos?: unknown; replay?: unknown }) {
   const w = webinarSettings(rt);
   const now = Date.now();
@@ -281,6 +291,10 @@ export async function heartbeat(rt: Runtime, reg: Registration, session: Session
       .bind(now, since, pos, now, reg.id).run();
   }
   const fresh = (await rt.env.DB.prepare('SELECT * FROM webinar_registrations WHERE id = ?').bind(reg.id).first<Registration>())!;
+  // Which minute of the masterclass is on their screen now (drives the minute-by-minute watch curve).
+  const col = replay ? 'replay_minutes' : 'live_minutes';
+  const marked = markMinute((fresh as Registration & Record<string, string | null>)[col] ?? null, Math.floor(pos / 60), w.durationMin);
+  if (marked) await rt.env.DB.prepare(`UPDATE webinar_registrations SET ${col} = ? WHERE id = ?`).bind(marked, reg.id).run();
   const pct = Math.min(1, fresh.max_position / (w.durationMin * 60));
   const lead = await getLead(rt.env, reg.lead_id);
   if (lead) {

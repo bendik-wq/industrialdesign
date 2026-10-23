@@ -121,6 +121,8 @@
       var d = points.map(function (p, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(p.value).toFixed(1); }).join('');
       svg += '<path class="area" d="' + d + 'L' + x(points.length - 1) + ',' + y(0) + 'L' + x(0) + ',' + y(0) + 'Z"/>';
       svg += '<path class="line" d="' + d + '"/>';
+      // Optional second series (same x positions), drawn dashed and quieter.
+      if (o.compare && o.compare.length === points.length) svg += '<path class="line line-compare" d="' + o.compare.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1); }).join('') + '"/>';
       var last = points[points.length - 1];
       svg += '<circle class="dot" r="4" cx="' + x(points.length - 1) + '" cy="' + y(last.value) + '"/>';
       if (o.endLabel !== false) svg += '<text class="end-label" x="' + Math.min(W - 2, x(points.length - 1)) + '" y="' + (y(last.value) - 9) + '" text-anchor="end">' + esc(fmt(last.value)) + '</text>';
@@ -140,7 +142,7 @@
       tip.innerHTML = '<div class="t"></div><div class="r"><span class="key"></span><b></b><span class="muted"></span></div>';
       tip.querySelector('.t').textContent = p.label;
       tip.querySelector('b').textContent = fmt(p.value);
-      tip.querySelector('.muted').textContent = o.series || '';
+      tip.querySelector('.muted').textContent = (o.series || '') + (o.compare && o.compare[i] != null ? ' · ' + (o.compareLabel || 'compare') + ' ' + fmt(o.compare[i]) : '');
       var left = (x(i) / W) * rect.width;
       tip.style.left = Math.min(rect.width - 140, Math.max(0, left + 12)) + 'px';
       tip.style.top = '8px';
@@ -501,9 +503,9 @@
       var liveHint = function (sec, key, type) {
         var a = A[sec] && A[sec][key];
         if (!a) return '';
-        var val = type === 'pct' ? pct(a.value, 1) : cm(a.value);
-        var ok = a.n >= FIN_MIN_N;
-        return '<div class="fm-live' + (ok ? '' : ' weak') + '" title="' + esc(a.note) + '">Live: ' + esc(val) + ' · ' + esc(n(a.n)) + ' ' + (a.n === 1 ? 'person' : 'people') + (ok ? ' <button type="button" class="linkish" data-fm-use="' + esc(sec + '.' + key) + '">use</button>' : ' (too few to trust)') + '</div>';
+        var val = type === 'pct' ? pct(a.value, 1) : cm(a.value, type === 'money2' ? 2 : 0);
+        var ok = a.trust || a.n >= FIN_MIN_N, unit = a.unit || 'person';
+        return '<div class="fm-live' + (ok ? '' : ' weak') + '" title="' + esc(a.note) + '">Live: ' + esc(val) + ' · ' + esc(n(a.n)) + ' ' + (a.n === 1 ? unit : unit === 'person' ? 'people' : unit + 's') + (ok ? ' <button type="button" class="linkish" data-fm-use="' + esc(sec + '.' + key) + '">use</button>' : ' (too few to trust)') + '</div>';
       };
       var fieldsHtml = function (sec) {
         return FIN_FIELDS[sec].map(function (f) {
@@ -606,7 +608,7 @@
       view.querySelectorAll('[data-fm-use]').forEach(function (b) { b.onclick = function (e) { e.preventDefault(); if (applyLive(b.getAttribute('data-fm-use'))) { cur.data = M.normalise(cur.data); markDirty(); draw(); } }; });
       view.querySelector('[data-fm-live]').onclick = function () {
         var used = 0;
-        ['shared', 'vsl', 'webinar'].forEach(function (sec) { Object.keys(A[sec] || {}).forEach(function (k) { var a = A[sec][k]; if (a && a.n >= FIN_MIN_N && applyLive(sec + '.' + k)) used++; }); });
+        ['shared', 'vsl', 'webinar'].forEach(function (sec) { Object.keys(A[sec] || {}).forEach(function (k) { var a = A[sec][k]; if (a && (a.trust || a.n >= FIN_MIN_N) && applyLive(sec + '.' + k)) used++; }); });
         cur.data = M.normalise(cur.data);
         if (used) { markDirty(); draw(); }
         toast(used ? 'Used ' + used + ' live number' + (used === 1 ? '' : 's') + '. The rest have too little data yet.' : 'Not enough live data yet: every rate is based on fewer than ' + FIN_MIN_N + ' people.');
@@ -651,8 +653,62 @@
     });
   }
 
+  /** Webinar tab: the deeper half (watch curve, slots, sources, groups, pre-webinar emails). */
+  function webinarInsightsHtml(x) {
+    if (!x || !x.watch) return '';
+    var w = x.watch, e = x.emails || {};
+    var mins = function (m) { return m + ' min'; };
+    var flow = [
+      { label: 'Registered', key: 'regs', num: true, fmt: n },
+      { label: 'Showed', num: true, html: function (r) { return esc(pct(r.showRate)) + '<div class="muted">' + n(r.attended) + ' live · ' + n(r.replays) + ' replay</div>'; } },
+      { label: 'Clicked offer', key: 'cta', num: true, fmt: n },
+      { label: 'Applied', key: 'applied', num: true, fmt: n },
+      { label: 'Booked', num: true, html: function (r) { return esc(n(r.booked)) + '<div class="muted">' + esc(pct(r.bookRate)) + ' of reg.</div>'; } },
+      { label: 'Won', num: true, html: function (r) { return esc(n(r.won)) + (r.revenue ? '<div class="muted">' + esc(money(r.revenue)) + '</div>' : ''); } },
+    ];
+    var drops = (w.drops || []).map(function (d) {
+      return '<li><b>Minute ' + d.minute + '</b>: ' + esc(pct(d.lost, 1)) + ' of live viewers left' + (w.offerClicks[d.minute] ? ' · ' + n(w.offerClicks[d.minute]) + ' clicked the offer here' : '') + '</li>';
+    }).join('');
+    return '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
+      (w.liveViewers ? '<b>' + esc(pct(w.atPitch)) + '</b> of ' + n(w.liveViewers) + ' live viewers were still there when the offer came up.' : 'No one has watched live in this period yet.') + '</p>' +
+      '<div class="chart" data-wcurve style="margin-top:8px"></div>' + (drops ? '<h3 class="h3" style="margin-top:12px">Where people leave</h3><ul class="plain-list">' + drops + '</ul>' : '') + '</div>' +
+      '<div class="grid g-2" style="margin-top:14px">' +
+      '<div class="card"><h2>Which time slot works</h2><p class="sub">Sessions grouped by day and time (' + esc(x.tz) + '). Book the slots that fill <i>and</i> show up.</p>' +
+      table([{ label: 'Slot', html: function (r) { return '<strong>' + esc(r.key) + '</strong><div class="muted">' + n(r.sessions) + ' session' + (r.sessions === 1 ? '' : 's') + '</div>'; } }].concat(flow), x.slots || [], { cards: true }) + '</div>' +
+      '<div class="card"><h2>What each group did next</h2><p class="sub">Live viewers, replay-only viewers and no-shows. Tells you where follow-up effort pays.</p>' +
+      table([{ label: 'Group', html: function (r) { return '<strong>' + esc(r.key) + '</strong>'; } }, { label: 'People', key: 'regs', num: true, fmt: n }, { label: 'Clicked offer', key: 'cta', num: true, fmt: n },
+        { label: 'Applied', num: true, html: function (r) { return esc(n(r.applied)) + '<div class="muted">' + esc(pct(r.regs ? r.applied / r.regs : null)) + '</div>'; } },
+        { label: 'Booked', num: true, html: function (r) { return esc(n(r.booked)) + '<div class="muted">' + esc(pct(r.bookRate)) + '</div>'; } },
+        { label: 'Won', key: 'won', num: true, fmt: n }], x.groups || []) + '</div></div>' +
+      '<div class="card" style="margin-top:14px"><h2>Where registrants come from</h2><p class="sub">By platform and campaign. Spend shows when the campaign’s ad spend is in Traffic &amp; ads and its name matches the utm_campaign tag.</p>' +
+      table([{ label: 'Campaign / source', html: function (r) { return '<strong>' + esc(r.campaign ? r.key : r.key + ' (no campaign tag)') + '</strong>' + (r.campaign ? '<div class="muted">' + esc(r.platforms) + '</div>' : ''); } }].concat(flow).concat([
+        { label: 'Spend', num: true, html: function (r) { return r.spend ? esc(money(r.spend)) : '<span class="muted">–</span>'; } },
+        { label: 'Per registrant', num: true, html: function (r) { return r.perReg != null ? esc(money(r.perReg)) : '–'; } },
+        { label: 'Per booked call', num: true, html: function (r) { return r.perBooked != null ? esc(money(r.perBooked)) : '–'; } },
+      ]), x.sources || [], { cards: true }) + '</div>' +
+      '<div class="card" style="margin-top:14px"><h2>Pre-webinar emails</h2><p class="sub">The daily emails between registering and the session: are people reading them, and do the ones who click show up more?</p>' +
+      '<div class="grid g-4 tiles" style="margin-top:8px">' +
+      tile('Emails sent', n(e.sent), n(e.registrants) + ' registrants got them') +
+      tile('Opened', pct(e.openRate), 'clicked ' + pct(e.clickRate)) +
+      tile('Show rate if they clicked one', pct(e.showIfClicked), n(e.clickedPeople) + ' people · vs ' + pct(e.showIfNot) + ' who didn’t') +
+      tile('Unsubscribed', n(e.unsubscribed), 'registrants who opted out after registering', null, { zeroOk: true }) + '</div>' +
+      ((e.byDay || []).length ? '<div style="margin-top:12px">' + table([
+        { label: 'Days before the session', html: function (r) { return r.daysBefore === 0 ? 'Session day' : esc(r.daysBefore + ' day' + (r.daysBefore === 1 ? '' : 's') + ' before'); } },
+        { label: 'Sent', key: 'sent', num: true, fmt: n }, { label: 'Opened', num: true, html: function (r) { return esc(pct(r.openRate)); } }, { label: 'Clicked', num: true, html: function (r) { return esc(pct(r.clickRate)); } },
+      ], e.byDay) + '</div>' : '') + '</div>';
+  }
+
+  function drawWebinarCurve(el, x) {
+    if (!el || !x || !x.watch) return;
+    var w = x.watch;
+    var pts = w.live.map(function (v, i) { return { label: 'Minute ' + i, short: i + 'm', value: v }; });
+    var marker = Math.min(w.live.length - 1, Math.max(0, Math.round(x.pitchAtMin)));
+    lineChart(el, pts, { fmt: function (v) { return pct(v); }, max: 1, height: 220, series: 'live', marker: marker, markerLabel: 'Pitch', label: 'Webinar retention, minute by minute', compare: w.replayViewers ? w.replay : null, compareLabel: 'replay' });
+  }
+
   function renderWebinar() {
-    return api('webinar').then(function (d) {
+    return Promise.all([api('webinar'), api('webinar/insights').catch(function () { return null; })]).then(function (both) {
+      var d = both[0], ins = both[1];
       var k = d.kpis || {}, st = d.settings || {};
       var regs = k.registrations || 0;
       var when = function (t) { return new Date(t).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
@@ -697,6 +753,7 @@
           { label: 'Applied', key: 'applied', num: true, fmt: n },
           { label: 'Booked', key: 'booked', num: true, fmt: n },
         ], d.past || []) + '</div></div>' +
+        webinarInsightsHtml(ins) +
         '<div class="card" style="margin-top:14px"><h2>Registrants</h2><p class="sub">Click a row for the full journey.</p>' +
         table([
           { label: 'Name', html: function (r) { return esc([r.first_name, r.last_name].filter(Boolean).join(' ') || '–') + '<br><span class="muted">' + esc(r.email || '') + '</span>'; } },
@@ -707,6 +764,7 @@
           { label: 'Next', html: function (r) { return r.status === 'won' ? statusPill('won') : r.booked_at ? statusPill('booked') : r.app_completed_at ? statusPill('applied', 'applied' + (r.tier ? ' (' + r.tier + ')' : '')) : ''; } },
         ], d.registrants || [], { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>';
       view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
+      drawWebinarCurve(view.querySelector('[data-wcurve]'), ins);
       view.querySelectorAll('[data-cancel]').forEach(function (b) {
         b.onclick = function () {
           if (!confirm('Cancel this session? Everyone registered is moved to the next session and emailed a new link.')) return;
@@ -863,12 +921,14 @@
   function renderTraffic() {
     var dims = (state.meta && state.meta.dimensions) || [{ key: 'channel', label: 'Channel' }];
     var dim = state.dim || 'platform';
-    return api('attribution', { dim: dim }).then(function (d) {
+    return Promise.all([api('attribution', { dim: dim }), api('ads').catch(function () { return null; })]).then(function (both) {
+      var d = both[0], ads = both[1];
       var rows = d.rows;
       var maxQ = Math.min(1, Math.max.apply(null, rows.map(function (r) { return r.qualified_rate || 0; }).concat([0.0001])));
       view.innerHTML =
         '<div class="row" style="margin-bottom:12px"><label class="muted" for="dim">Break down by</label><select id="dim" class="input" data-dim>' + dims.map(function (x) { return '<option value="' + esc(x.key) + '"' + (x.key === dim ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('') + '</select><span class="spacer"></span><span class="muted">Leads are attributed to their last non-direct touch before applying.</span></div>' +
-        '<div class="card">' + table([
+        adSpendHtml(ads) +
+        '<div class="card" style="margin-top:14px"><h2>Every source</h2><p class="sub">All traffic, paid and free, followed to qualified leads and cash.</p>' + table([
           { label: d.label, html: function (r) { return '<strong>' + esc(r.key) + '</strong>'; } },
           { label: 'Visitors', key: 'visitors', num: true, fmt: n },
           { label: 'Bounce', key: 'bounce_rate', num: true, zeroOk: true, fmt: function (v) { return pct(v); } },
@@ -893,7 +953,87 @@
         '<li>Bots, link checkers (e.g. Meta checking a link you posted), scripts and your own visits while logged in here are left out of every number.</li></ul></details>' +
         '<p class="muted" style="margin-top:10px">Tip: tag ads with <span class="mono">utm_source</span>, <span class="mono">utm_campaign</span>, <span class="mono">utm_content={{ad.name}}</span> and <span class="mono">ad_id={{ad.id}}</span> to see quality per ad.</p>';
       view.querySelector('[data-dim]').onchange = function (e) { state.dim = e.target.value; load(); };
+      wireAdSpend(ads);
     });
+  }
+
+  /** Traffic & ads: spend per campaign (Meta sync or typed in) next to what it bought. */
+  function adSpendHtml(a) {
+    if (!a) return '';
+    var cur = a.currency || 'AUD';
+    var cm = function (v) { if (v == null || !isFinite(v)) return '–'; try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, maximumFractionDigits: v < 20 ? 2 : 0 }).format(v); } catch (e) { return money(v); } };
+    var F = { vsl: 'VSL', webinar: 'Webinar', other: 'Other' };
+    var m = a.meta || {};
+    var metaLine = m.configured
+      ? 'Meta ad account <span class="mono">' + esc(m.account) + '</span> syncs every hour' + (a.syncedAt ? ' · last ' + esc(ago(a.syncedAt)) : '') + '. <button type="button" class="linkish" data-ads-sync>Sync now</button> · <button type="button" class="linkish" data-ads-connect>Change account</button>'
+      : m.token ? 'Meta token saved. <button type="button" class="btn-sm" data-ads-connect>Connect ad account</button>'
+      : 'Connect Meta to pull spend automatically: add a token with the <b>ads_read</b> permission under Integrations → Ads (Meta ads token), then come back and press Connect. Or type spend in below.';
+    var tilesHtml = (a.byFunnel || []).filter(function (f) { return f.funnel !== 'other' || f.spend; }).map(function (f) {
+      return tile(F[f.funnel] + ' ad spend', cm(f.spend), f.spend ? 'cost per visitor ' + cm(f.cpc) + ' · per booked call ' + cm(f.costPerBooked) + ' · CAC ' + cm(f.cac) + (f.roas != null ? ' · ROAS ' + f.roas.toFixed(1) + '×' : '') : 'no spend in this period');
+    }).join('');
+    var campaigns = a.campaigns || [];
+    return '<div class="card"><div class="card-head"><div><h2>Ad spend and what it bought</h2><p class="sub">' + metaLine + '</p></div></div>' +
+      '<div data-ads-accounts></div>' +
+      '<div class="grid g-3 tiles" style="margin-top:10px">' + tilesHtml + '</div>' +
+      (campaigns.length ? '<div style="margin-top:14px">' + table([
+        { label: 'Campaign', html: function (r) { return '<strong>' + esc(r.name) + '</strong><div class="muted">' + esc(r.platform) + (r.manual ? ' · typed in <button type="button" class="linkish" data-ads-del="' + esc(r.platform + '|' + r.campaign_id) + '">remove</button>' : '') + '</div>'; } },
+        { label: 'Funnel', html: function (r) { return '<select class="input" data-ads-funnel="' + esc(r.platform + '|' + r.campaign_id) + '" aria-label="Funnel">' + ['vsl', 'webinar', 'other'].map(function (f) { return '<option value="' + f + '"' + (f === r.funnel ? ' selected' : '') + '>' + F[f] + '</option>'; }).join('') + '</select>'; } },
+        { label: 'Spend', num: true, html: function (r) { return esc(cm(r.spend)); } },
+        { label: 'Link clicks', key: 'link_clicks', num: true, fmt: n },
+        { label: 'Visitors', num: true, html: function (r) { return r.visitors ? esc(n(r.visitors)) + '<div class="muted">' + esc(cm(r.spend / r.visitors)) + ' each</div>' : '<span class="muted" title="No visits tagged with this campaign name. Add utm_campaign={{campaign.name}} to the ad URL.">untagged</span>'; } },
+        { label: 'Leads', num: true, html: function (r) { var k = r.funnel === 'webinar' ? r.registrants : r.leads; return esc(n(k)) + (k ? '<div class="muted">' + esc(cm(r.spend / k)) + ' each</div>' : ''); } },
+        { label: 'Booked', num: true, html: function (r) { return esc(n(r.booked)) + (r.booked ? '<div class="muted">' + esc(cm(r.spend / r.booked)) + ' each</div>' : ''); } },
+        { label: 'Won', num: true, html: function (r) { return esc(n(r.won)) + (r.revenue ? '<div class="muted">' + esc(money(r.revenue)) + '</div>' : ''); } },
+        { label: 'ROAS', num: true, html: function (r) { return r.spend && r.revenue ? esc((r.revenue / r.spend).toFixed(1) + '×') : '–'; } },
+      ], campaigns, { cards: true }) + '</div>' : '<p class="muted" style="margin-top:12px">No ad spend recorded for this period yet.</p>') +
+      '<details style="margin-top:14px"><summary><strong>Add spend by hand</strong> <span class="muted">(Google, YouTube, LinkedIn, or Meta before it’s connected)</span></summary>' +
+      '<form class="row" data-ads-form style="margin-top:10px;flex-wrap:wrap;gap:8px">' +
+      '<select class="input" name="platform" style="max-width:130px"><option value="google">Google</option><option value="youtube">YouTube</option><option value="meta">Meta</option><option value="linkedin">LinkedIn</option><option value="tiktok">TikTok</option><option value="other">Other</option></select>' +
+      '<input class="input" name="campaign" placeholder="Campaign name (= its utm_campaign)" style="flex:1 1 220px" required>' +
+      '<input class="input" name="month" type="month" value="' + new Date().toISOString().slice(0, 7) + '" style="max-width:160px" required>' +
+      '<input class="input" name="spend" type="number" min="0" step="1" placeholder="Spend" style="max-width:120px" required>' +
+      '<input class="input" name="clicks" type="number" min="0" step="1" placeholder="Clicks (optional)" style="max-width:150px">' +
+      '<select class="input" name="funnel" style="max-width:120px"><option value="vsl">VSL</option><option value="webinar">Webinar</option><option value="other">Other</option></select>' +
+      '<button class="btn-sm" type="submit">Add</button></form></details>' +
+      '<p class="muted" style="margin-top:10px">Spend is matched to visits and leads by campaign name, so tag every ad URL with <span class="mono">utm_campaign={{campaign.name}}</span>. The financial model uses the last 30 days of spend per funnel.</p></div>';
+  }
+
+  function wireAdSpend(a) {
+    if (!a) return;
+    var box = view.querySelector('[data-ads-accounts]');
+    view.querySelectorAll('[data-ads-connect]').forEach(function (b) {
+      b.onclick = function () {
+        box.innerHTML = '<p class="muted">Asking Meta for your ad accounts…</p>';
+        fetch('/admin/api/ads/accounts', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (r) {
+          if (!r.ok) { box.innerHTML = '<div class="card notice" style="margin-top:10px">' + esc(r.error) + '</div>'; return; }
+          if (!r.accounts.length) { box.innerHTML = '<p class="muted">This token can’t see any ad accounts. Give the system user access to the ad account in Business Settings.</p>'; return; }
+          box.innerHTML = '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">' + r.accounts.map(function (x) { return '<button type="button" class="btn-sm ghost" data-ads-pick="' + esc(x.id) + '">' + esc(x.name + ' · ' + x.currency + (x.active ? '' : ' (inactive)')) + '</button>'; }).join('') + '</div>';
+          box.querySelectorAll('[data-ads-pick]').forEach(function (p) {
+            p.onclick = function () {
+              box.innerHTML = '<p class="muted">Connecting and pulling the last 90 days of spend…</p>';
+              send('POST', 'ads/account', { id: p.getAttribute('data-ads-pick') }).then(function (res) { toast(res.ok ? 'Connected · ' + n(res.synced ? res.synced.rows : 0) + ' campaign-days pulled' : res.error); load(); });
+            };
+          });
+        });
+      };
+    });
+    var sync = view.querySelector('[data-ads-sync]');
+    if (sync) sync.onclick = function () { sync.textContent = 'Syncing…'; send('POST', 'ads/sync', {}).then(function (r) { toast(r.ok ? 'Synced' : r.error); load(); }); };
+    view.querySelectorAll('[data-ads-funnel]').forEach(function (sel) {
+      sel.onchange = function () { var k = sel.getAttribute('data-ads-funnel').split('|'); send('PUT', 'ads/campaign', { platform: k[0], campaign_id: k.slice(1).join('|'), funnel: sel.value }).then(function () { toast('Saved'); load(); }); };
+    });
+    view.querySelectorAll('[data-ads-del]').forEach(function (b) {
+      b.onclick = function () {
+        if (!confirm('Remove this typed-in spend?')) return;
+        var k = b.getAttribute('data-ads-del').split('|');
+        fetch('/admin/api/ads/manual?platform=' + encodeURIComponent(k[0]) + '&campaign_id=' + encodeURIComponent(k.slice(1).join('|')), { method: 'DELETE', credentials: 'same-origin' }).then(function () { load(); });
+      };
+    });
+    var f = view.querySelector('[data-ads-form]');
+    if (f) f.onsubmit = function (e) {
+      e.preventDefault();
+      send('POST', 'ads/manual', { platform: f.platform.value, campaign: f.campaign.value, month: f.month.value, spend: Number(f.spend.value), clicks: Number(f.clicks.value) || 0, funnel: f.funnel.value }).then(function (r) { toast(r.ok ? 'Added' : r.error); if (r.ok) load(); });
+    };
   }
 
   function renderApplication() {

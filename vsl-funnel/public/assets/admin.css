@@ -978,3 +978,5 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .fm-cum-bar.pos { background: var(--good); }
 .fm-cum-bar.neg { background: var(--critical); }
 .fm-funnel .h3 { font-size: 13px; margin: 14px 0 0; color: var(--ink-2); }
+.line-compare { stroke-dasharray: 4 4; opacity: .55; fill: none; }
+.plain-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; }

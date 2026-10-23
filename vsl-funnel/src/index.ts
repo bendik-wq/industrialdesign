@@ -1,4 +1,5 @@
 import { Hono, type MiddlewareHandler } from 'hono';
+import { maybeSyncMetaSpend } from './integrations/meta-ads';
 import { type AppEnv, type Runtime, publicOrigin, runtimeFrom } from './app';
 import { isAdmin, login, logout, requireAdmin, sameOriginWrite } from './admin/auth';
 import type { Env } from './env';
@@ -248,6 +249,7 @@ export default {
       quiet(processSmsQueue(rt), 'SMS'),
       quiet(sweepBots(rt), 'bot sweep'),
       quiet(processContractReminders(rt), 'contract reminders'),
+      quiet(maybeSyncMetaSpend(rt), 'Meta ad spend'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

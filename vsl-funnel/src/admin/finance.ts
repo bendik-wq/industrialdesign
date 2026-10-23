@@ -3,9 +3,10 @@ import { overview, parseFilters } from './stats';
 import { webinarReport } from './webinar';
 import { loadReps } from '../sales/reps';
 import { newId } from '../lib/ids';
+import { adsReport } from './ads';
 
 /** A live rate for one model input: value, how many people it's based on, and what it measures. */
-type Live = { value: number; n: number; note: string } | null;
+type Live = { value: number; n: number; note: string; trust?: boolean; unit?: string } | null;
 const rate = (num: number, den: number, note: string): Live => (den > 0 ? { value: Math.min(1, num / den), n: den, note } : null);
 
 /**
@@ -15,7 +16,7 @@ const rate = (num: number, den: number, note: string): Live => (den > 0 ? { valu
 export async function financeActuals(rt: Runtime) {
   const db = rt.env.DB;
   const to = Date.now(), from = to - 90 * 86400_000;
-  const [ov, web, webVisitors, outcomes, fees, reps] = await Promise.all([
+  const [ov, web, webVisitors, outcomes, fees, reps, ads] = await Promise.all([
     overview(rt.env, parseFilters({ from: String(from), to: String(to) })),
     webinarReport(rt, { from, to }),
     db.prepare("SELECT COUNT(DISTINCT visitor_id) AS n FROM events WHERE name = 'page_view' AND path = '/webinar' AND is_bot = 0 AND ts BETWEEN ? AND ?").bind(from, to).first<{ n: number }>(),
@@ -25,7 +26,11 @@ export async function financeActuals(rt: Runtime) {
                   FROM leads`).first<Record<string, number | null>>(),
     db.prepare('SELECT COUNT(*) AS n, AVG(fee) AS fee FROM contracts WHERE COALESCE(is_test, 0) = 0').first<{ n: number; fee: number | null }>().catch(() => null),
     loadReps(rt.env),
+    adsReport(rt, to - 30 * 86400_000, to).catch(() => null),
   ]);
+  const adsFor = (f: 'vsl' | 'webinar') => ads?.byFunnel.find((x) => x.funnel === f);
+  const spendLive = (f: 'vsl' | 'webinar'): Live => { const a = adsFor(f); return a && a.spend > 0 ? { value: a.spend, n: a.campaigns, trust: true, unit: 'campaign', note: `ad spend in the last 30 days across ${a.campaigns} campaign${a.campaigns === 1 ? '' : 's'}` } : null; };
+  const cpcLive = (f: 'vsl' | 'webinar'): Live => { const a = adsFor(f); const clicks = a ? a.visitors || a.link_clicks : 0; return a && a.cpc != null ? { value: a.cpc, n: clicks, unit: a.visitors ? 'visitor' : 'click', note: a.visitors ? 'ad spend ÷ visitors from those campaigns (last 30 days)' : 'ad spend ÷ link clicks reported by the ad platform (last 30 days)' } : null; };
   const k = ov.kpis, w = web.kpis as Record<string, number | null>;
   const qualified = (k.tier_a ?? 0) + (k.tier_b ?? 0);
   const landing = ov.funnel.find((x) => x.key === 'landing')?.n ?? 0;
@@ -46,6 +51,8 @@ export async function financeActuals(rt: Runtime) {
       commission: closers.length ? { value: closers.reduce((a, r) => a + r.commission_pct, 0) / closers.length / 100, n: closers.length, note: 'average closer commission in Reps & routing' } : null,
     },
     vsl: {
+      spend: spendLive('vsl'),
+      cpc: cpcLive('vsl'),
       optin: rate(leads, landing, 'VSL page visitors who gave contact details'),
       appDone: rate(applied, leads, 'of those who finished the application'),
       qualified: rate(qualified, k.applications ?? 0, 'applications scored A or B'),
@@ -54,6 +61,8 @@ export async function financeActuals(rt: Runtime) {
       close: rate(won, won + lost, 'held calls won, all time'),
     },
     webinar: {
+      spend: spendLive('webinar'),
+      cpc: cpcLive('webinar'),
       reg: rate(regs, webVisitors?.n ?? 0, 'webinar page visitors who registered'),
       attend: rate(att + (w.replays ?? 0), regs, 'registrants who watched live or the replay'),
       applyAtt: rate(w.applied ?? 0, att, 'applications per attendee (includes any who applied without attending)'),
