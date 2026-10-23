@@ -10,21 +10,20 @@ import type { Context } from 'hono';
 import type { AppEnv } from '../app';
 import { BRAND } from '../config';
 import { INDUSTRIES } from '../landers/catalog';
-import { isDataHost } from '../data/data';
 import { isWebinarHost } from '../webinar/pages';
 import { flag } from '../settings';
 import type { Guide } from './types';
 import { GUIDES } from './guides';
 import { stripMarkdown } from './markdown';
 
-export type HostKind = 'main' | 'data' | 'webinar';
+export type HostKind = 'main' | 'webinar';
 
-export const hostKind = (c: Context<AppEnv>): HostKind => (isDataHost(c) ? 'data' : isWebinarHost(c) ? 'webinar' : 'main');
+export const hostKind = (c: Context<AppEnv>): HostKind => (isWebinarHost(c) ? 'webinar' : 'main');
 
 /** The canonical origin for this host: the configured address, else the request's own. */
 export function hostOrigin(c: Context<AppEnv>, kind: HostKind = hostKind(c)) {
   const s = c.get('settings');
-  const configured = kind === 'data' ? s.DATA_URL : kind === 'webinar' ? s.WEBINAR_URL : s.PUBLIC_URL;
+  const configured = kind === 'webinar' ? s.WEBINAR_URL : s.PUBLIC_URL;
   try { if (configured) return new URL(configured).origin; } catch { /* fall through */ }
   return new URL(c.req.url).origin;
 }
@@ -233,20 +232,13 @@ export function llmsTxt(c: Context<AppEnv>, full = false) {
   const name = c.get('settings').SITE_NAME || BRAND.name;
   const guides = guidesFor(kind);
   const lines: string[] = [];
-  if (kind === 'data') {
-    lines.push(`# ${name}: get paid for your business’s operational data`, '',
-      '> G&L M&A Advisory refers established business owners to an AI data buyer with around $1 billion committed to buying anonymised operational data (workflows, job and service history, scheduling, maintenance logs; not customer personal data). Deals typically land between $200,000 and $2 million. No equity, no loan, no change of control. Closed or sold businesses can qualify if the owner still holds the records. G&L may receive a referral fee from the partner, which does not reduce what the owner is paid.', '',
-      `- [Claim a data valuation](${origin}/): the page with the video and the one-minute claim form.`,
-      `- [Business acquisitions (main site)](${main}/llms.txt): G&L’s no-money-down acquisition advisory.`, '');
-  } else {
-    lines.push(`# ${name}`, '', `> ${OFFER[0]} ${OFFER[1]}`, '', OFFER[2], '', OFFER[3], '',
-      '## Key pages', '',
-      `- [Main page: see if you qualify](${main}/): the video and the application for an acquisition strategy call.`,
-      `- [About Josh Li](${main}/about): background and the deals behind the method.`,
-      `- [All guides](${main}/guides): plain-English guides to buying a business with no money down.`, '',
-      '## Industry pages', '',
-      ...INDUSTRIES.map((i) => `- [${i.label}](${main}/${i.id}): no-money-down acquisitions for ${i.owners}.`), '');
-  }
+  lines.push(`# ${name}`, '', `> ${OFFER[0]} ${OFFER[1]}`, '', OFFER[2], '', OFFER[3], '',
+    '## Key pages', '',
+    `- [Main page: see if you qualify](${main}/): the video and the application for an acquisition strategy call.`,
+    `- [About Josh Li](${main}/about): background and the deals behind the method.`,
+    `- [All guides](${main}/guides): plain-English guides to buying a business with no money down.`, '',
+    '## Industry pages', '',
+    ...INDUSTRIES.map((i) => `- [${i.label}](${main}/${i.id}): no-money-down acquisitions for ${i.owners}.`), '');
   const bySection = new Map<string, Guide[]>();
   for (const g of guides) bySection.set(g.section, [...(bySection.get(g.section) ?? []), g]);
   for (const [section, list] of bySection) {

@@ -28,7 +28,6 @@ import { purgeOld } from './lib/retention';
 import { markInternal, sweepBots } from './lib/traffic-quality';
 import { sign } from './routes/sign';
 import { processContractReminders } from './sales/contracts';
-import { dataLanding, isDataHost } from './data/data';
 import { maybeSyncContent } from './content/content';
 import { applyHandoff, icsFile, isWebinarHost, registeredPage, roomPage, webinarLanding } from './webinar/pages';
 import { ensureSessions } from './webinar/webinar';
@@ -101,17 +100,17 @@ app.use('*', async (c, next) => {
   }
   await next();
 });
-// ── Data-buyer page (own host: data.yourdomain.com; or /data on the main domain) ──
+// The data-partner page is retired: its old address (data.<domain>) sends everyone to the main page.
 app.use('*', async (c, next) => {
-  if (isDataHost(c) && /^\/(apply|book|breakout|resources|for|m|admin|webinar|registered|room|replay|w|about)(\/|$)/.test(c.req.path)) {
+  if (new URL(c.req.url).host.startsWith('data.')) {
     const main = (c.get('settings').PUBLIC_URL || '').replace(/\/+$/, '');
-    if (main) return c.redirect(`${main}${c.req.path}${new URL(c.req.url).search}`, 302);
+    if (main) return c.redirect(`${main}/`, 301);
+    return c.notFound();
   }
   await next();
 });
-app.get('/', withVisitor, (c) => (isDataHost(c) ? dataLanding(c) : isWebinarHost(c) ? webinarLanding(c) : landingPage(c)));
-app.get('/data', withVisitor, (c) => dataLanding(c));
-app.get('/data/:headline', withVisitor, (c) => dataLanding(c, c.req.param('headline')));
+app.get('/', withVisitor, (c) => (isWebinarHost(c) ? webinarLanding(c) : landingPage(c)));
+app.get('/data', (c) => c.redirect('/', 301));
 app.get('/webinar', withVisitor, webinarLanding);
 for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/registered/:token`, withVisitor, registeredPage);
@@ -123,7 +122,7 @@ app.get('/w/:token', withVisitor, applyHandoff);
 app.get('/guides', withVisitor, guidesHub);
 app.get('/guides/:file{[a-z0-9-]+\\.md}', guideMarkdownPage);
 app.get('/guides/:slug{[a-z0-9-]+}', withVisitor, guidePage);
-app.get('/about', withVisitor, (c) => (isDataHost(c) || isWebinarHost(c) ? c.notFound() : aboutPage(c)));
+app.get('/about', withVisitor, (c) => (isWebinarHost(c) ? c.notFound() : aboutPage(c)));
 app.get('/for/:industry', withVisitor, landerPage);
 app.get('/for/:industry/:angle', withVisitor, landerPage);
 app.get('/m', withVisitor, landerPage);
@@ -202,14 +201,14 @@ app.get('/admin', requireAdmin, async (c) => {
   return new Response(res.body, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 });
 
-// ── Short URLs for every split-test page: /loi, /dental, /dental/competitor; data.yourdomain.com/recap ──
+// ── Short URLs for every split-test page: /loi, /dental, /dental/competitor ──
 // Last, so every real route above wins; anything that isn't a known page still 404s.
 const knownShort: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const where = isDataHost(c) ? 'data' : isWebinarHost(c) ? 'webinar' : 'main';
+  const where = isWebinarHost(c) ? 'webinar' : 'main';
   if (!isShortUrl(where, c.req.param('industry') ?? '', c.req.param('angle'))) return c.notFound(); // before any tracking
   await next();
 };
-app.get('/:industry{[a-z][a-z0-9-]{1,30}}', knownShort, withVisitor, (c) => (isDataHost(c) ? dataLanding(c, c.req.param('industry')) : shortPage(c)));
+app.get('/:industry{[a-z][a-z0-9-]{1,30}}', knownShort, withVisitor, shortPage);
 app.get('/:industry{[a-z][a-z0-9-]{1,30}}/:angle{[a-z]{2,20}}', knownShort, withVisitor, shortPage);
 
 app.notFound((c) => c.text('Not found', 404));

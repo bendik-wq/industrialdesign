@@ -10,7 +10,7 @@ describe('guides', () => {
   it('has unique slugs and every link points at a real page', () => {
     const slugs = new Set(GUIDES.map((g) => g.slug));
     expect(slugs.size).toBe(GUIDES.length);
-    expect(GUIDES.length).toBeGreaterThanOrEqual(37);
+    expect(GUIDES.length).toBeGreaterThanOrEqual(34);
     for (const g of GUIDES) {
       const host = g.host ?? 'main';
       const sameHost = new Set(GUIDES.filter((x) => (x.host ?? 'main') === host).map((x) => x.slug));

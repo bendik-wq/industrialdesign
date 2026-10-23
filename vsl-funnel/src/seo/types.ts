@@ -1,7 +1,7 @@
 /**
  * A guide page: written to be the best answer on the web to one question, so search engines
  * rank it and AI assistants (ChatGPT, Claude, Perplexity, Gemini, Grok, Copilot) quote it.
- * Served at /guides/<slug> (main domain) or data.<domain>/guides/<slug> (host: 'data').
+ * Served at /guides/<slug> on the main domain.
  */
 export interface Guide {
   slug: string;
@@ -26,7 +26,7 @@ export interface Guide {
   /** Industry id (see src/landers/catalog.ts) for industry guides; the CTA then links to /<industry>. */
   industry?: string;
   /** Which site it lives on. Default 'main'. */
-  host?: 'main' | 'data';
+  host?: 'main';
   /** Hub section. */
   section: 'Deal structures' | 'Financing' | 'Finding & closing deals' | 'Industries' | 'Selling your data';
   /** ISO date first published / last updated. */

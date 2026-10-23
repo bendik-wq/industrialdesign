@@ -22,11 +22,8 @@ function cardsHtml(list: Guide[]) {
   return `<div class="cards">${list.map((g) => `<a class="card-link" href="/guides/${esc(g.slug)}"><strong>${esc(g.h1)}</strong><span>${esc(g.description)}</span></a>`).join('')}</div>`;
 }
 
-/** The call to action at the end of a guide: the industry page, the main page, or the data page. */
+/** The call to action at the end of a guide: the industry page or the main page. */
 function ctaFor(g: Guide) {
-  if ((g.host ?? 'main') === 'data') {
-    return { href: '/', label: 'Claim my data valuation', title: 'Find out what your data is worth', text: 'It takes about a minute. Our partner looks at what you have and puts a number on it; you decide from there.' };
-  }
   const ind = g.industry ? INDUSTRIES.find((i) => i.id === g.industry) : null;
   return {
     href: ind ? `/${ind.id}` : '/',
@@ -36,9 +33,7 @@ function ctaFor(g: Guide) {
   };
 }
 
-const navFor = (c: Context<AppEnv>) => (hostKind(c) === 'data'
-  ? { cta: '/', label: 'Claim my valuation', short: 'Claim' }
-  : { cta: '/#apply', label: 'See if you qualify', short: 'Apply' });
+const navFor = (_c: Context<AppEnv>) => ({ cta: '/#apply', label: 'See if you qualify', short: 'Apply' });
 
 export async function guidePage(c: Context<AppEnv>) {
   const kind = hostKind(c);
@@ -95,11 +90,8 @@ export async function guidesHub(c: Context<AppEnv>) {
   const guides = guidesFor(kind);
   if (!guides.length) return c.notFound();
   const sections = [...new Set(guides.map((g) => g.section))];
-  const data = kind === 'data';
-  const h1 = data ? 'Guides: selling your business’s data' : 'Guides: buying a business with no money down';
-  const intro = data
-    ? 'What AI companies buy, what operational data is worth, and how owners of trading and closed businesses get paid for it.'
-    : `Plain-English guides from ${BRAND.founder} on structuring acquisitions with commercial debt, seller finance and seller rollover, finding off-market deals and getting to a signed LOI.`;
+  const h1 = 'Guides: buying a business with no money down';
+  const intro = `Plain-English guides from ${BRAND.founder} on structuring acquisitions with commercial debt, seller finance and seller rollover, finding off-market deals and getting to a signed LOI.`;
   const main = `<div class="wrap">${crumbsHtml([{ name: 'Home', path: '/' }, { name: 'Guides', path: '/guides' }])}
 <header class="hub-head"><h1>${esc(h1)}</h1><p>${esc(intro)}</p></header>
 ${sections.map((s) => `<section class="hub-section"><h2>${esc(s)}</h2>${cardsHtml(guides.filter((g) => g.section === s))}</section>`).join('')}</div>`;
@@ -112,7 +104,7 @@ ${sections.map((s) => `<section class="hub-section"><h2>${esc(s)}</h2>${cardsHtm
     show: { main_host: kind === 'main' },
     blocks: { main },
     seo: {
-      title: data ? `Selling Business Data to AI Companies: Guides | ${name}` : `How to Buy a Business With No Money Down: Guides | ${name}`,
+      title: `How to Buy a Business With No Money Down: Guides | ${name}`,
       description: intro.slice(0, 160),
       path: '/guides',
       index: true,

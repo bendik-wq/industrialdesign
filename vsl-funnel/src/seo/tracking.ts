@@ -130,7 +130,6 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
   const sourcesOf = (path: string) => byPlatform(guideSources.filter((r) => r.path === path)).slice(0, 4);
   const s = c.get('settings');
   const main = hostOrigin(c, 'main');
-  const dataOrigin = hostOrigin(c, 'data');
   return {
     bots: bots.map((b) => ({ ...b, vendor: meta.get(b.bot)?.vendor ?? '', purpose: meta.get(b.bot)?.purpose ?? '' })),
     botDays,
@@ -146,7 +145,7 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
       const v = views.get(path);
       const a = landed.get(path);
       return {
-        slug: g.slug, h1: g.h1, section: g.section, host: g.host ?? 'main', url: `${(g.host ?? 'main') === 'data' ? dataOrigin : main}${path}`,
+        slug: g.slug, h1: g.h1, section: g.section, host: g.host ?? 'main', url: `${main}${path}`,
         views: v?.views ?? 0, visitors: v?.visitors ?? 0, ctas: ctas.get(path) ?? 0,
         // "landed" = entered the site on this article; the funnel is for those people.
         landed: a?.landed ?? 0, fromSearch: a?.organic ?? 0, fromAi: a?.ai ?? 0,
@@ -161,7 +160,6 @@ export async function searchReport(c: Context<AppEnv>, from: number, to: number)
       sameAs: Boolean(s.SEO_SAME_AS),
       xHandle: Boolean(s.X_HANDLE),
       sitemap: `${main}/sitemap.xml`,
-      dataSitemap: `${dataOrigin}/sitemap.xml`,
       llms: `${main}/llms.txt`,
       robots: `${main}/robots.txt`,
       pages: sitemapEntries(c).length,
@@ -232,12 +230,11 @@ export async function indexNowKeyFile(c: Context<AppEnv>) {
 export async function submitIndexNow(c: Context<AppEnv>) {
   if (!indexingOn(c)) return { ok: false, error: 'Search indexing is switched off (Integrations → Search).' };
   const key = await indexNowKey(c.env);
-  const hosts: HostKind[] = ['main', 'data'];
+  const hosts: HostKind[] = ['main'];
   const results: { host: string; urls: number; status: number }[] = [];
   for (const kind of hosts) {
     const origin = hostOrigin(c, kind);
     const host = new URL(origin).host;
-    if (kind === 'data' && host === new URL(hostOrigin(c, 'main')).host) continue;
     const urls = sitemapEntries(c, kind).map((e) => `${origin}${e.path}`);
     const body = JSON.stringify({ host, key, keyLocation: `${origin}/${key}.txt`, urlList: urls });
     // Bing first (it shares submissions with every IndexNow engine); the shared endpoint as a fallback.

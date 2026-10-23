@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { isShortUrl } from '../src/funnel/pages';
 import { HEADLINE_EXPERIMENT } from '../src/config';
 import { INDUSTRIES } from '../src/landers/catalog';
-import { DATA_HEADLINES } from '../src/data/data';
 
 describe('short URLs for split-test pages', () => {
   it('gives every main headline, industry and lander its own URL', () => {
@@ -11,13 +10,11 @@ describe('short URLs for split-test pages', () => {
       expect(isShortUrl('main', i.id)).toBe(true);
       expect(isShortUrl('main', i.id, 'competitor')).toBe(true);
     }
-    for (const h of DATA_HEADLINES) expect(isShortUrl('data', h.id)).toBe(true);
   });
   it('rejects unknown paths and wrong hosts', () => {
     expect(isShortUrl('main', 'wp-login')).toBe(false);
     expect(isShortUrl('main', 'dental', 'nope')).toBe(false);
     expect(isShortUrl('main', 'recap')).toBe(false);
-    expect(isShortUrl('data', 'dental')).toBe(false);
     expect(isShortUrl('webinar', 'dental')).toBe(false);
   });
   it('never collides with a real route or with each other', () => {

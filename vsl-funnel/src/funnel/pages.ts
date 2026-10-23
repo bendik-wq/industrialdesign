@@ -7,7 +7,6 @@ import {
 import { whatsappLink } from '../integrations/whatsapp';
 import { getCookie, setCookie } from 'hono/cookie';
 import { INDUSTRIES, type Lander, getLander, inferIndustry, landerId } from '../landers/catalog';
-import { DATA_HEADLINES } from '../data/data';
 import { MAIN_VSL } from '../seo/transcripts';
 import { type SeoMeta, breadcrumbs, faqPage, guidesFor, indexingOn, seoHead } from '../seo/seo';
 import { chooseAngle, landerStats } from '../landers/bandit';
@@ -360,8 +359,7 @@ export async function landerPage(c: Context<AppEnv>) {
  *   /dental                  → the dental landers (bandit picks the headline)
  *   /dental/competitor       → one specific lander
  */
-export function isShortUrl(host: 'main' | 'data' | 'webinar', slug: string, angle?: string) {
-  if (host === 'data') return !angle && DATA_HEADLINES.some((h) => h.id === slug);
+export function isShortUrl(host: 'main' | 'webinar', slug: string, angle?: string) {
   if (host !== 'main') return false;
   if (!angle && HEADLINE_EXPERIMENT.variants.some((x) => x.slug === slug)) return true;
   return INDUSTRIES.some((i) => i.id === slug) && (!angle || Boolean(getLander(landerId(slug, angle))));

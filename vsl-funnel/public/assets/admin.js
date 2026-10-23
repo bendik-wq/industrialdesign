@@ -280,7 +280,6 @@
     traffic: { group: 'Traffic', title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     links: { group: 'Traffic', title: 'Links & videos', sub: 'Tracked links for your Instagram bio, ManyChat, YouTube and more, followed to closed deals.', more: 'One tracked link per place you post it (Instagram bio, each ManyChat flow, each video), followed from the tap to the booked call and the closed deal.', render: renderLinks, filters: ['range'] },
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
-    data: { group: 'Traffic', title: 'Data partner page', sub: 'Who visited the data-buyer referral page, and who claimed a valuation.', more: 'The data-buyer referral page: who visited, watched, clicked and claimed a valuation, and where they came from.', render: renderData, filters: ['range'] },
     emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
     editor: { group: 'Follow-up', title: 'Email editor', sub: 'Read and edit every email the funnel sends.', more: 'Pick an email on the left, change the wording on the right and watch the preview update. Merge tags like {first_name} fill in for each person. Saving replaces the built-in wording for every future send; “Reset to default” brings the original back. Emails written from each lead’s own application answers are shown but can’t be edited here.', render: renderEditor, noFilters: true },
     search: { group: 'Traffic', title: 'Search & AI', sub: 'Who finds you through Google, Bing, ChatGPT, Claude, Perplexity, Gemini and Grok, and which AI crawlers are reading your pages.', more: 'The landing pages, 20 industry pages and the guides are open to search engines and AI assistants; the application, booking and personal pages never are. Crawler visits show the AI companies reading your pages (search bots and live answers lead to citations; training bots feed future models). Visitors and leads from AI Search are people who clicked through from an AI answer. New pages usually take days to weeks to show up in search.', render: renderSearch, filters: ['range'] },
@@ -437,44 +436,6 @@
       });
     });
   }
-
-  /** A per-visitor rate that can pass 100% when some people's visits weren't tracked: say so instead of printing 140%. */
-  function capRate(v, why) {
-    if (v == null || !isFinite(v)) return '–';
-    return v > 1 ? '<span title="' + esc(why || 'Includes claims from people whose visit wasn’t tracked') + '">100%+</span>' : esc(pct(v));
-  }
-  var ANGLE_LABEL = { cash: 'Cash', recap: 'Recapitalise', debt: 'Pay down debt', revenue: 'New revenue', curious: 'Curiosity' };
-  function headlineCard(d) {
-    var t = d.test || {}, rows = (d.headlines || []).slice();
-    var pinned = rows.filter(function (r) { return r.id === t.mode; })[0];
-    rows.sort(function (a, b) { return (b.best - a.best) || (b.visitors - a.visitors); });
-    var leader = rows[0];
-    var status = pinned ? '<strong>Pinned:</strong> everyone sees “' + esc(pinned.text) + '”.'
-      : t.mode === 'even' ? '<strong>Even split:</strong> each headline gets 1/20 of new visitors.'
-      : '<strong>Auto:</strong> every headline gets its first ' + n(t.min) + ' visitors, then traffic shifts to the ones that convert (currently judged on ' + esc(t.metric || 'claims') + ').';
-    var bar = function (v) { return '<span class="hl-bar"><i style="width:' + Math.round(Math.min(1, v || 0) * 100) + '%"></i></span> ' + esc(pct(v || 0)); };
-    return '<div class="card" style="margin-top:14px"><div class="hl-head"><div><h2>Headline test · 20 headlines</h2><p class="sub">' + status +
-      (leader && leader.visitors && !pinned ? ' Leader right now: <strong>' + esc(leader.id) + '</strong> (' + esc(pct(leader.best)) + ' chance it’s the best).' : '') +
-      ' Each person keeps the headline they first saw. Every headline also has its own link (e.g. for an ad): people who arrive on it always see that headline and count towards it. “Preview” links aren’t counted.</p></div>' +
-      '<div class="row">' + (t.mode !== 'auto' ? '<button class="btn-sm" data-hlmode="auto">Back to auto</button>' : '') + (t.mode !== 'even' ? '<button class="btn-sm ghost" data-hlmode="even">Even split</button>' : '') + '</div></div>' +
-      table([
-        { label: 'Headline', html: function (r) { return esc(r.text) + '<div class="muted">' + esc(ANGLE_LABEL[r.angle] || r.angle) + ' · <a href="' + esc(d.url) + '/?h=' + esc(r.id) + '" target="_blank" rel="noopener">preview</a></div><div class="muted">' + linkCell(d.url + '/' + r.id) + '</div>'; } },
-        { label: 'Visitors', key: 'visitors', num: true, fmt: n },
-        { label: 'Clicked claim', num: true, html: function (r) { return esc(n(r.clicked)) + '<div class="muted">' + capRate(r.clickRate) + '</div>'; } },
-        { label: 'Claims', num: true, html: function (r) { return esc(n(r.claims)) + '<div class="muted">' + capRate(r.rate) + '</div>'; } },
-        { label: 'Chance best', html: function (r) { return bar(r.best); } },
-        { label: 'Traffic now', html: function (r) { return pinned ? (r.id === pinned.id ? '100%' : '0%') : t.mode === 'even' ? '5%' : bar(r.share); } },
-        { label: '', html: function (r) { return r.id === t.mode ? '<span class="pill">pinned</span>' : '<button class="btn-sm ghost" data-hlmode="' + esc(r.id) + '">Pin</button>'; } },
-      ], rows) + '</div>';
-  }
-  document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('[data-hlmode]');
-    if (!b) return;
-    var m = b.getAttribute('data-hlmode');
-    if (m !== 'auto' && m !== 'even' && !confirm('Show only this headline to everyone? (You can switch back to auto any time.)')) return;
-    b.disabled = true;
-    send('PUT', 'integrations', { DATA_HEADLINE_TEST: m }).then(function () { setTimeout(function () { go('data'); }, 300); });
-  });
   var screenPrefs = (function () { try { return JSON.parse(localStorage.getItem('hq_screens') || '{}'); } catch (e) { return {}; } })();
   function renderScreens() {
     return api('pages', {}, { noRange: true }).then(function (d) {
@@ -502,51 +463,6 @@
       });
       view.querySelectorAll('[data-reload]').forEach(function (b) {
         b.onclick = function () { var f = b.closest('.screen').querySelector('iframe'); f.src = f.src; };
-      });
-    });
-  }
-  function renderData() {
-    return api('data').then(function (d) {
-      var f = d.funnel || {}, v = f.visitors || 0;
-      // Claims can come from a direct link whose visit wasn't tracked, so a share can't honestly go over 100%.
-      var share = function (x) { x = x || 0; return v && x <= v ? pct(x / v) + ' of visitors' : 'more than tracked visitors (some came from a direct link)'; };
-      var claims = d.claims || [];
-      var fu = claims.filter(function (c) { return !c.redirected; }).length;
-      var when = function (t) { return new Date(t).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
-      view.innerHTML =
-        (d.referral ? '' : '<div class="card notice" style="margin-bottom:14px"><strong>No partner referral link yet.</strong> Claims are saved here and pinged to the team; add the link under Integrations → Data so people go straight to ' + esc(d.partner) + ' after claiming.</div>') +
-        '<div class="grid g-4 tiles">' +
-        tile('Visitors', n(v), n(f.views) + ' page views') +
-        tile('Watched the video', n(f.played), share(f.played)) +
-        tile('Clicked “Claim”', n(f.cta), share(f.cta)) +
-        tile('Claimed a valuation', n(f.claims), share(f.claims)) +
-        '</div>' +
-        '<div class="card" style="margin-top:14px"><h2>' + esc('Claims · ' + n(claims.length) + (fu ? ' · ' + n(fu) + ' need follow-up' : '')) + '</h2><p class="sub">Page: <a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(String(d.url).replace(/^https?:\/\//, '')) + '</a> · partner: ' + esc(d.partner) + (d.referral ? ' · sends people to <span class="mono">' + esc(d.referral) + '</span>' : '') + '</p>' +
-        table([
-          { label: 'When', html: function (r) { return esc(when(r.created_at)); } },
-          { label: 'Name', key: 'first_name' },
-          { label: 'Company', html: function (r) { return esc(r.company || '') + (r.website ? '<div class="muted">' + esc(r.website) + '</div>' : ''); } },
-          { label: 'Contact', html: function (r) { return esc(r.email) + (r.phone ? '<div class="muted">' + esc(r.phone) + '</div>' : ''); } },
-          { label: 'Revenue', html: function (r) { return esc(r.revenue || '–') + (r.business_status && r.business_status !== 'Trading' ? '<div><span class="pill">' + esc(r.business_status) + '</span></div>' : ''); } },
-          { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
-          { label: 'Source', html: function (r) { return esc([where(r.channel, r.utm_source, r.referrer_host, r.utm_medium), r.utm_campaign].filter(Boolean).join(' · ')); } },
-          { label: 'Sent to partner', html: function (r) { return r.redirected ? '✓' : '<span class="pill st-partial">Needs follow-up</span>'; } },
-        ], claims, { rowAttr: function (r) { return r.visitor_id ? 'class="click" data-visitor="' + esc(r.visitor_id) + '" tabindex="0" title="See everything they did"' : ''; } }) + '</div>' +
-        headlineCard(d) +
-        '<div class="card" style="margin-top:14px"><h2>Recent visitors</h2><p class="sub">Everyone on the data page, newest first: what they scrolled, clicked, read and whether they claimed. Click a row for their full journey. Anonymous until they claim; then you see who they are.</p>' +
-        table([
-          { label: 'Last seen', html: function (r) { return esc(when(r.last_ts)) + (r.visits > 1 ? '<div class="muted">' + esc(n(r.visits)) + ' visits</div>' : ''); } },
-          { label: 'Who', html: function (r) { return r.claim ? '<strong>' + esc(r.claim.first_name) + '</strong> · ' + esc(r.claim.company || '') + '<div class="muted">' + esc(r.claim.email) + '</div>' : r.lead_id ? '<span class="pill">funnel lead</span>' : '<span class="muted">Anonymous</span>'; } },
-          { label: 'Source', html: function (r) { var s = r.session || {}; return esc([where(s.channel, s.utm_source, s.referrer_host, s.utm_medium), s.utm_campaign].filter(Boolean).join(' / ')) + '<div class="muted">' + esc([s.device, [s.city, s.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')) + '</div>'; } },
-          { label: 'Headline', html: function (r) { return '<span class="mono">' + esc(r.headline || '–') + '</span>'; } },
-          { label: 'Time', num: true, html: function (r) { return esc(r.engaged_ms ? secs(Math.round(r.engaged_ms / 1000)) : '–'); } },
-          { label: 'Scrolled', num: true, html: function (r) { return esc(r.scroll ? r.scroll + '%' : '–'); } },
-          { label: 'Clicks', num: true, html: function (r) { return esc(n(r.clicks || 0)); } },
-          { label: 'Did', html: function (r) { return [r.video ? 'video' : '', r.faqs ? n(r.faqs) + ' FAQ' : '', r.cta ? 'clicked Claim' : '', r.form ? 'opened form' : '', r.claim ? '<strong>claimed</strong>' : ''].filter(Boolean).join(' · ') || '<span class="muted">just looked</span>'; } },
-        ], d.visitors || [], { rowAttr: function (r) { return 'class="click" data-visitor="' + esc(r.visitor_id) + '" tabindex="0"'; } }) + '</div>';
-      view.querySelectorAll('[data-visitor]').forEach(function (row) {
-        row.onclick = function () { openVisitor(row.getAttribute('data-visitor')); };
-        row.onkeydown = function (e) { if (e.key === 'Enter') openVisitor(row.getAttribute('data-visitor')); };
       });
     });
   }
@@ -2578,7 +2494,7 @@
         ], d.botPages, { cards: true }) : '<p class="muted">None yet.</p>') + '</div>' +
         '<div class="card" style="margin-top:14px"><h2>Guides · ' + n(guides.length) + '</h2><p class="sub">Each article: reads, and the funnel for people who <strong>entered the site on it</strong> (landed → became a lead → applied → booked). Click a row to see where its visitors come from and what they searched.</p>' +
         table([
-          { label: 'Guide', html: function (r) { return '<strong>' + esc(r.h1) + '</strong><div class="muted">' + esc(r.section) + (r.host === 'data' ? ' · data site' : '') + ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">open ↗</a></div>'; } },
+          { label: 'Guide', html: function (r) { return '<strong>' + esc(r.h1) + '</strong><div class="muted">' + esc(r.section) + ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">open ↗</a></div>'; } },
           { label: 'Reads', key: 'views', num: true, fmt: n }, { label: 'People', key: 'visitors', num: true, fmt: n },
           { label: 'Entered here', num: true, nw: true, html: function (r) { return n(r.landed) + (r.landed ? '<div class="muted">' + n(r.fromSearch) + ' search · ' + n(r.fromAi) + ' AI</div>' : ''); } },
           { label: 'Came from', html: function (r) { return (r.sources || []).length ? r.sources.map(function (x) { return esc(x.source) + ' <span class="muted">' + n(x.sessions) + '</span>'; }).join('<br>') : '<span class="muted">–</span>'; } },

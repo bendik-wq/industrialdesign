@@ -23,7 +23,7 @@ import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_CHANNELS, SMS_LINKS, SMS_SKIPS,
 import { renderEmail, TEMPLATES } from '../integrations/templates';
 import { MERGE_TAGS, cleanOverride, clearOverrideCache, defaultEditable, isEditable, loadOverrides } from '../integrations/email-overrides';
 import { FOLLOWUP_TEMPLATES } from '../followup/templates';
-import { dataReport, visitorJourney } from '../data/data';
+import { visitorJourney } from '../admin/journey';
 import { transcribe } from '../lib/speech';
 import { contentReport, suggestNextVideos, syncContent } from '../content/content';
 import { REACTIVATION_SEGMENTS, launchReactivation, reactivationAudience, reactivationReport } from '../sales/reactivation';
@@ -288,7 +288,6 @@ admin.get('/pages', (c) => {
     { group: 'Main funnel', title: 'Booked: pre-call video', desc: 'After booking: the call time, what to prepare and the pre-call video.', path: '/breakout?hq_as=booked' },
     { group: 'Main funnel', title: 'Resources (C-tier)', desc: 'Applicants who don’t qualify yet get the free resources instead of a call.', path: '/resources' },
     { group: 'Webinar', title: 'Webinar sign-up', desc: 'The masterclass registration page (live.grosfjeld-li.com).', path: '/webinar' },
-    { group: 'Data partner', title: 'Data page', desc: 'The data-partner referral page (data.grosfjeld-li.com). Shows one of the 20 headlines.', path: '/data' },
     { group: 'Other', title: 'Privacy policy', desc: 'Linked from every page and every email.', path: '/privacy' },
   ];
   return c.json({ pages: pages.map((p, i) => ({ ...p, n: i + 1, src: `${p.path}${p.path.includes('?') ? '&' : '?'}hq_preview=1` })) });
@@ -301,7 +300,6 @@ admin.get('/visitors/:id', async (c) => {
   const j = await visitorJourney(runtimeFrom(c), c.req.param('id').slice(0, 64));
   return j ? c.json(j) : c.json({ error: 'not found' }, 404);
 });
-admin.get('/data', async (c) => { const f = filters(c); return c.json(await dataReport(runtimeFrom(c), f.from, f.to)); });
 admin.get('/live', async (c) => c.json(await live(c.env, { window: c.req.query('window'), before: Number(c.req.query('before')) || undefined, all: c.req.query('all') === '1' })));
 
 // ── Leads ───────────────────────────────────────────────────────────

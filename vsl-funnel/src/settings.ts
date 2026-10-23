@@ -125,12 +125,6 @@ export const SETTINGS = [
   { key: 'DIGEST_HOUR', label: 'Daily digest hour (0–23)', group: 'Alerts', placeholder: '8', help: 'When the daily sales summary is posted. Leave blank for 8am.' },
   { key: 'LEAD_WEBHOOK_URL', label: 'CRM webhook (Zapier / Make / GHL)', group: 'Alerts', secret: true, help: 'Receives every lead lifecycle event as JSON.' },
 
-  { key: 'DATA_URL', label: 'Data page address', group: 'Data', placeholder: 'https://data.grosfjeld-li.com', help: 'Where the data-buyer page lives. Blank: /data on this domain.' },
-  { key: 'DATA_REFERRAL_URL', label: 'Partner referral link', group: 'Data', placeholder: 'https://…', help: 'Where people go after claiming their valuation. Blank: we keep their details and you follow up by hand.' },
-  { key: 'DATA_PARTNER', label: 'Partner name', group: 'Data', placeholder: 'Leave blank to say “our partner”', help: 'Leave blank and the page just says “our partner”. If you fill it in, it’s shown on the page. Only use a partner name you have permission to use.' },
-  { key: 'DATA_FUND_LINE', label: 'Committed budget', group: 'Data', placeholder: '$1 billion', help: 'As in “recently had $1 billion committed to buying data”. Must be accurate.' },
-  { key: 'DATA_HEADLINE_TEST', label: 'Headline test', group: 'Data', placeholder: 'auto', help: 'auto = traffic shifts to the headlines that get claims; even = equal split; or a headline id (e.g. debt) to show it to everyone. Set from Funnel HQ → Data page.' },
-  { key: 'DATA_VIDEO_SRC', label: 'Data page video', group: 'Data', placeholder: 'YouTube / Vimeo / Loom link, or an .mp4 / .m3u8 URL' },
 
   { key: 'CONTENT_YOUTUBE_CHANNEL', label: 'YouTube channel', group: 'Content', placeholder: '@officialjoshli', help: 'The handle (@name) or channel ID to track in Funnel HQ → Content.' },
   { key: 'YOUTUBE_API_KEY', label: 'YouTube Data API key', group: 'Content', secret: true, help: 'Free: console.cloud.google.com → APIs → enable “YouTube Data API v3” → Credentials → API key. Without it only the latest 15 videos are read (public feed).' },
