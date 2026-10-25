@@ -41,10 +41,14 @@
     var btn = reg.querySelector('button[type=submit]');
     var picked = reg.querySelector('input[name=session_id]:checked');
     var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', sms_consent: Boolean(reg.sms_consent && reg.sms_consent.checked), session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36) };
+    var rev = reg.querySelector('input[name=revenue]:checked');
+    body.revenue = rev ? rev.value : '';
+    body.headline = (window.FUNNEL && window.FUNNEL.webinar && window.FUNNEL.webinar.headline) || '';
     var ts = document.querySelector('[name="cf-turnstile-response"]');
     if (ts) body.turnstile = ts.value;
     if (!body.first_name) return error(reg, 'Please enter your first name');
     if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(body.email)) return error(reg, 'Please enter a valid email address');
+    if (!body.revenue) return error(reg, 'Please pick your business’s annual revenue');
     btn.disabled = true;
     post('/api/webinar/register', body).then(function (r) {
       btn.disabled = false;

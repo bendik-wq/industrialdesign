@@ -8,6 +8,12 @@ import { startSms } from '../integrations/sms';
 import { ApplicationError, attributionFor, verifyTurnstile } from '../funnel/application';
 import { identityFromLead, identityFromVisitor, track } from '../tracking/track';
 import { newRefCode } from '../lib/ids';
+import { APP_REVENUE_BAND, isMillionPlus } from '../sales/qualify';
+import { trackRevenueEvents } from '../tracking/revenue-events';
+import { WEBINAR_HEADLINES } from './headlines';
+
+/** Under $1M (and said so): still welcome to watch, but no daily emails, texts or calls. */
+export const underMillion = (band: string | null | undefined) => Boolean(band) && !isMillionPlus(band ?? null);
 
 /**
  * Webinar: weekly scheduled sessions (plus one-offs added in Funnel HQ), each either
@@ -163,6 +169,9 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   if (!firstName) throw new ApplicationError('Please enter your first name', 'first_name');
   if (!emailCheck) throw new ApplicationError('Please enter a valid email address', 'email');
   if (emailCheck.disposable) throw new ApplicationError('Please use your real email address — the link to the session goes there', 'email');
+  const band = APP_REVENUE_BAND[String(body.revenue ?? '')] ?? null;
+  if (!band) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
+  const headline = WEBINAR_HEADLINES.some((h) => h.id === body.headline) ? String(body.headline) : null;
   if (!(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed — please refresh and try again', undefined, 403);
 
   // Abuse limit: a handful of sign-ups per IP per hour (each one sends email).
@@ -216,13 +225,20 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
     id: newId('wr'), token: token(), session_id: session.id, lead_id: lead.id, seq: prior?.n ?? 0, new_lead: newLead ? 1 : 0, created_at: now,
     joined_at: null, last_seen_at: null, watch_seconds: 0, max_position: 0, cta_at: null, replay_at: null, replay_seconds: 0,
   };
-  await rt.env.DB.prepare('INSERT INTO webinar_registrations (id, token, session_id, lead_id, seq, new_lead, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .bind(reg.id, reg.token, reg.session_id, reg.lead_id, reg.seq, reg.new_lead, now).run();
+  await rt.env.DB.prepare('INSERT INTO webinar_registrations (id, token, session_id, lead_id, seq, new_lead, created_at, revenue_band, headline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(reg.id, reg.token, reg.session_id, reg.lead_id, reg.seq, reg.new_lead, now, band, headline).run();
+  // Their own answer here wins over nothing; an application answer already on file is kept.
+  const bandIsNew = !lead.revenue_band;
+  if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
+  lead = (await getLead(rt.env, lead.id))!;
   await scheduleEmails(rt, lead, session, reg);
-  await startSms(rt, (await getLead(rt.env, lead.id))!, 'webinar');
+  if (!underMillion(lead.revenue_band)) await startSms(rt, lead, 'webinar');
 
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
-  await track(rt, who, { name: 'webinar_registered', source: 'server', path: '/webinar', props: { session_id: session.id, starts_at: session.starts_at, mode: session.mode }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });
+  await track(rt, who, { name: 'webinar_registered', source: 'server', path: '/webinar', props: { session_id: session.id, starts_at: session.starts_at, mode: session.mode, band, headline }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });
+  // Revenue events once per person (an application may already have sent them); "$1M+ webinar" on their first registration.
+  if (bandIsNew) await trackRevenueEvents(rt, who, band, 'webinar', '/webinar');
+  else if (reg.seq === 0 && isMillionPlus(lead.revenue_band)) await track(rt, who, { name: 'qualified_1m_plus', source: 'server', path: '/webinar', props: { band: lead.revenue_band, funnel: 'webinar' } });
   return { registration: reg, session, lead: (await getLead(rt.env, lead.id))!, created: true };
 }
 
@@ -232,7 +248,7 @@ async function scheduleEmails(rt: Runtime, lead: Lead, session: Session, reg: Re
   await cancelSequence(rt, lead.id, 'webinar'); // an earlier session's reminders
   const fresh = (await getLead(rt.env, lead.id))!;
   await enqueueSequence(rt, fresh, 'webinar', { stepBase: reg.seq * WEBINAR_CYCLE });
-  await enqueuePrewebinar(rt, fresh, reg.seq);
+  if (!underMillion(fresh.revenue_band)) await enqueuePrewebinar(rt, fresh, reg.seq);
 }
 
 /** Moves someone to another session (from the "pick another time" link). */

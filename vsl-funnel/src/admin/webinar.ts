@@ -1,5 +1,7 @@
 import type { Runtime } from '../app';
 import { platformOf } from '../lib/attribution';
+import { isMillionPlus, REVENUE_LABEL } from '../sales/qualify';
+import { WEBINAR_HEADLINES, webinarHeadlineOdds, webinarHeadlineStats } from '../webinar/headlines';
 import { webinarBase, webinarSettings } from '../webinar/webinar';
 
 /** Funnel HQ → Webinar: sessions, registrants and how registrants move through the funnel. */
@@ -66,7 +68,7 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
   const len = Math.max(1, Math.round(w.durationMin));
   const [regs, emails, spend] = await Promise.all([
     db.prepare(
-      `SELECT r.lead_id, r.created_at, r.joined_at, r.replay_at, r.cta_at, r.max_position, r.live_minutes, r.replay_minutes, s.starts_at, s.mode,
+      `SELECT r.lead_id, r.revenue_band AS reg_band, l.revenue_band AS lead_band, r.created_at, r.joined_at, r.replay_at, r.cta_at, r.max_position, r.live_minutes, r.replay_minutes, s.starts_at, s.mode,
               l.channel, l.utm_source, l.utm_medium, l.utm_campaign, l.ft_campaign,
               (l.app_completed_at IS NOT NULL AND l.app_completed_at > r.created_at) AS applied,
               (l.booked_at IS NOT NULL AND l.booked_at > r.created_at AND l.booking_cancelled_at IS NULL) AS booked,
@@ -76,7 +78,7 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
          FROM webinar_registrations r JOIN webinar_sessions s ON s.id = r.session_id JOIN leads l ON l.id = r.lead_id
         WHERE r.created_at BETWEEN ? AND ? AND s.status != 'cancelled'`,
     ).bind(range.from, range.to).all<{
-      lead_id: string; created_at: number; joined_at: number | null; replay_at: number | null; cta_at: number | null; max_position: number; live_minutes: string | null; replay_minutes: string | null;
+      lead_id: string; reg_band: string | null; lead_band: string | null; created_at: number; joined_at: number | null; replay_at: number | null; cta_at: number | null; max_position: number; live_minutes: string | null; replay_minutes: string | null;
       starts_at: number; mode: string; channel: string | null; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; ft_campaign: string | null;
       applied: number; booked: number; won: number; revenue: number; unsubscribed: number;
     }>(),
@@ -114,15 +116,16 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
 
   // 2. Session slots, in the sales time zone.
   const fmt = new Intl.DateTimeFormat('en-AU', { timeZone: w.tz, weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
-  type Agg = { regs: number; attended: number; replays: number; cta: number; applied: number; booked: number; won: number; revenue: number; sessions: Set<number> };
-  const blank = (): Agg => ({ regs: 0, attended: 0, replays: 0, cta: 0, applied: 0, booked: 0, won: 0, revenue: 0, sessions: new Set() });
+  type Agg = { regs: number; qualified: number; attended: number; replays: number; cta: number; applied: number; booked: number; won: number; revenue: number; sessions: Set<number> };
+  const blank = (): Agg => ({ regs: 0, qualified: 0, attended: 0, replays: 0, cta: 0, applied: 0, booked: 0, won: 0, revenue: 0, sessions: new Set() });
   const add = (a: Agg, r: (typeof rows)[number]) => {
     a.regs++; a.sessions.add(r.starts_at);
+    if (isMillionPlus(r.reg_band ?? r.lead_band)) a.qualified++;
     if (r.joined_at) a.attended++; else if (r.replay_at) a.replays++;
     if (r.cta_at) a.cta++;
     a.applied += r.applied ? 1 : 0; a.booked += r.booked ? 1 : 0; a.won += r.won ? 1 : 0; a.revenue += r.revenue || 0;
   };
-  const out = (key: string, a: Agg, extra: Record<string, unknown> = {}) => ({ key, sessions: a.sessions.size, regs: a.regs, attended: a.attended, replays: a.replays, cta: a.cta, applied: a.applied, booked: a.booked, won: a.won, revenue: a.revenue,
+  const out = (key: string, a: Agg, extra: Record<string, unknown> = {}) => ({ key, sessions: a.sessions.size, regs: a.regs, qualified: a.qualified, qualifiedRate: a.regs ? a.qualified / a.regs : null, attended: a.attended, replays: a.replays, cta: a.cta, applied: a.applied, booked: a.booked, won: a.won, revenue: a.revenue,
     showRate: a.regs ? (a.attended + a.replays) / a.regs : null, liveRate: a.regs ? a.attended / a.regs : null, bookRate: a.regs ? a.booked / a.regs : null, ...extra });
   const slots = new Map<string, Agg>();
   for (const r of rows) { const k = fmt.format(r.starts_at).replace(',', ''); if (!slots.has(k)) slots.set(k, blank()); add(slots.get(k)!, r); }
@@ -162,13 +165,27 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
   const gotEmails = new Set(emails.results.map((e) => e.lead_id));
   const withEmails = rows.filter((r) => gotEmails.has(r.lead_id));
 
+  // Revenue mix of the room, and the headline test (judged on $1M+ sign-ups).
+  const bands = new Map<string, number>();
+  for (const r of rows) { const b = r.reg_band ?? r.lead_band ?? 'unknown'; bands.set(b, (bands.get(b) ?? 0) + 1); }
+  const hstats = await webinarHeadlineStats(rt);
+  const mode = (rt.settings.WEBINAR_HEADLINE_TEST || 'auto').trim().toLowerCase();
+  const odds = webinarHeadlineOdds(hstats, mode, 1000);
+  const totalSpend = webSpend.reduce((a, s) => a + (s.spend || 0), 0);
+  const qualifiedRegs = rows.filter((r) => isMillionPlus(r.reg_band ?? r.lead_band)).length;
   return {
     durationMin: len, pitchAtMin: w.pitchAtMin, tz: w.tz,
+    qualified: { regs: rows.length, qualified: qualifiedRegs, rate: rows.length ? qualifiedRegs / rows.length : null, spend: totalSpend || null, perQualified: totalSpend && qualifiedRegs ? totalSpend / qualifiedRegs : null },
+    bands: [...bands.entries()].map(([b, n]) => ({ band: b, label: REVENUE_LABEL[b] ?? 'Not asked (older sign-ups)', n, qualified: isMillionPlus(b === 'unknown' ? null : b) })).sort((a, b) => b.n - a.n),
+    headlines: {
+      mode,
+      rows: WEBINAR_HEADLINES.map((h) => { const s = hstats.get(h.id)!; return { id: h.id, angle: h.angle, h1: h.h1.replace(/<[^>]+>/g, ''), ...s, rate: s.views ? s.qualified / s.views : null, share: odds.get(h.id) ?? 0 }; }),
+    },
     watch: { liveViewers: live.length, replayViewers: replay.length, live: liveCurve, replay: curve(replay, 'replay'), offerClicks, atPitch, drops },
     slots: [...slots.entries()].map(([k, a]) => out(k, a)).sort((a, b) => b.regs - a.regs),
     sources: [...sources.entries()].map(([k, a]) => {
       const sp = a.campaign ? spendFor(a.campaign) : 0;
-      return out(k, a, { campaign: a.campaign, platforms: [...a.platforms].join(', '), spend: sp || null, perReg: sp && a.regs ? sp / a.regs : null, perAttendee: sp && a.attended + a.replays ? sp / (a.attended + a.replays) : null, perBooked: sp && a.booked ? sp / a.booked : null });
+      return out(k, a, { campaign: a.campaign, platforms: [...a.platforms].join(', '), spend: sp || null, perReg: sp && a.regs ? sp / a.regs : null, perAttendee: sp && a.attended + a.replays ? sp / (a.attended + a.replays) : null, perBooked: sp && a.booked ? sp / a.booked : null, perQualified: sp && a.qualified ? sp / a.qualified : null });
     }).sort((a, b) => b.regs - a.regs).slice(0, 40),
     groups,
     emails: {

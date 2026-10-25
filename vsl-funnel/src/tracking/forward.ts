@@ -4,6 +4,7 @@ import { sha256 } from '../lib/crypto';
 import type { EventSource } from './catalog';
 import { GA4_EVENTS, META_EVENTS } from './catalog';
 import { hashedMatchKeys } from './match';
+import { bandValue, revenueMetaName } from './revenue-events';
 import type { TrackIdentity } from './track';
 
 export const META_API_VERSION = 'v24.0';
@@ -55,11 +56,15 @@ export function metaEventName(name: string, props: Record<string, unknown>): str
     if (props.to === 'won') return 'Purchase';
     return undefined;
   }
-  return META_EVENTS[name];
+  return revenueMetaName(name, props) ?? META_EVENTS[name];
 }
 
 function ga4EventName(name: string, props: Record<string, unknown>): string | undefined {
   if (name === 'lead_status_changed') return props.to === 'won' ? 'purchase' : props.to === 'showed' ? 'call_showed' : undefined;
+  if (name === 'revenue_band') return `revenue_${String(props.band).replace(/[^a-z0-9]+/g, '_')}`;
+  if (name === 'qualified_1m_plus') return `${props.funnel === 'webinar' ? 'webinar' : 'application'}_qualified_1m_plus`;
+  if (name === 'qualified_any_1m_plus') return 'qualified_1m_plus';
+  if (name === 'qualified_10m_plus') return 'qualified_10m_plus';
   return GA4_EVENTS[name];
 }
 
@@ -67,6 +72,7 @@ function ga4EventName(name: string, props: Record<string, unknown>): string | un
 export function conversionValue(name: string, props: Record<string, unknown>, lead: Pick<LeadSnapshot, 'tier' | 'revenue'> | null): number | undefined {
   if (name === 'lead_qualified') return lead?.tier === 'A' ? ECONOMICS.programPrice * 0.1 : lead?.tier === 'B' ? ECONOMICS.programPrice * 0.03 : 0;
   if (name === 'booking_scheduled') return ECONOMICS.programPrice * 0.15;
+  if (name === 'revenue_band' || name === 'qualified_1m_plus' || name === 'qualified_any_1m_plus' || name === 'qualified_10m_plus') return bandValue(props.band) || undefined;
   if (name === 'lead_status_changed' && props.to === 'showed') return ECONOMICS.programPrice * 0.3;
   if (name === 'lead_status_changed' && props.to === 'won') {
     const revenue = Number(props.revenue ?? lead?.revenue ?? 0);

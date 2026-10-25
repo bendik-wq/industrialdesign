@@ -22,8 +22,9 @@
     <section class="hero hero-center" data-section="webinar_hero">
       <div class="wrap narrow">
         <span class="eyebrow">Online masterclass with Josh Li · about <span data-slot="duration">60</span> minutes</span>
-        <h1 class="display">How owners are buying their competitors with <em><span class="nw">no money down</span></em>, and getting to a signed LOI in 90 days</h1>
-        <p class="lede">For owners of profitable businesses doing $1M+ a year. One hour, no fluff: where the off-market deals are, how the financing gets stacked so the deal is over-financed, and the step-by-step path to a signed letter of intent.</p>
+        <h1 class="display" data-slot="hl_h1">How owners are buying their competitors with <em><span class="nw">no money down</span></em>, and working towards a signed LOI in 90 days</h1>
+        <p class="lede" data-slot="hl_lede"></p>
+        <p class="for-whom"><strong>For owners of businesses doing $1M+ a year.</strong> If that’s not you yet, this session isn’t for you.</p>
       </div>
     </section>
 
@@ -53,6 +54,16 @@
             <div data-if="!has_sessions" data-html="sessions"></div>
             <div class="field"><label for="w-first">First name</label><input id="w-first" name="first_name" autocomplete="given-name" required></div>
             <div class="field"><label for="w-email">Email</label><input id="w-email" name="email" type="email" autocomplete="email" required></div>
+            <div class="field"><p class="field-label" id="w-rev-l">Your business’s annual revenue</p>
+              <div class="opts opts-2" role="radiogroup" aria-labelledby="w-rev-l">
+                <label class="opt"><input type="radio" name="revenue" value="lt1m"><span>Under $1M</span></label>
+                <label class="opt"><input type="radio" name="revenue" value="1_3m"><span>$1M – $3M</span></label>
+                <label class="opt"><input type="radio" name="revenue" value="3_10m"><span>$3M – $10M</span></label>
+                <label class="opt"><input type="radio" name="revenue" value="10_25m"><span>$10M – $25M</span></label>
+                <label class="opt"><input type="radio" name="revenue" value="25_50m"><span>$25M – $50M</span></label>
+                <label class="opt"><input type="radio" name="revenue" value="50_100m"><span>$50M – $100M</span></label>
+                <label class="opt"><input type="radio" name="revenue" value="gt100m"><span>$100M+</span></label>
+              </div></div>
             <div class="field"><label for="w-phone">Mobile <span class="muted">(optional, for a text reminder)</span></label><input id="w-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel"></div>
             <label class="check"><input type="checkbox" name="sms_consent"><span>Text or WhatsApp me the link and a reminder before the session. Msg &amp; data rates may apply. Reply STOP to opt out.</span></label>
             <button class="btn btn-lg" type="submit" data-track="cta_click" data-track-id="webinar_register">Save my seat <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>

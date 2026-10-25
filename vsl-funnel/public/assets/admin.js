@@ -654,12 +654,31 @@
   }
 
   /** Webinar tab: the deeper half (watch curve, slots, sources, groups, pre-webinar emails). */
-  function webinarInsightsHtml(x) {
+  function webinarInsightsHtml(x, base) {
     if (!x || !x.watch) return '';
-    var w = x.watch, e = x.emails || {};
+    var w = x.watch, e = x.emails || {}, q = x.qualified || {}, hl = x.headlines || { rows: [] };
+    var HLMODE = hl.mode === 'even' ? 'Even split' : hl.mode === 'auto' ? 'Auto' : 'Pinned';
+    var roomHtml = '<div class="card" style="margin-top:14px"><h2>Who’s in the room</h2><p class="sub">Sign-ups now say their revenue. $1M+ sign-ups get the daily emails, texts and the offer. Under $1M can still watch but get none of that, and Meta hears about them as RevenueUnder1M so you can exclude them.</p>' +
+      '<div class="grid g-4 tiles" style="margin-top:8px">' +
+      tile('$1M+ sign-ups', n(q.qualified), pct(q.rate) + ' of ' + n(q.regs) + ' sign-ups') +
+      tile('Cost per $1M+ sign-up', q.perQualified != null ? money(q.perQualified) : '–', q.spend ? money(q.spend) + ' webinar ad spend' : 'add webinar ad spend in Traffic & ads') +
+      tile('Under $1M', n((x.bands || []).filter(function (b) { return b.band === '<1m'; }).reduce(function (a, b) { return a + b.n; }, 0)), 'watch only, no follow-up', null, { zeroOk: true }) +
+      tile('Not asked', n((x.bands || []).filter(function (b) { return b.band === 'unknown'; }).reduce(function (a, b) { return a + b.n; }, 0)), 'signed up before the question existed', null, { zeroOk: true }) + '</div>' +
+      ((x.bands || []).length ? '<div style="margin-top:12px">' + table([{ label: 'Revenue', html: function (r) { return esc(r.label) + (r.qualified ? '' : ' <span class="muted">· not qualified</span>'); } }, { label: 'Sign-ups', key: 'n', num: true, fmt: n }], x.bands) + '</div>' : '') + '</div>' +
+      '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Headline test</h2><p class="sub"><strong>' + esc(HLMODE) + ':</strong> every headline gets its first 40 visitors, then traffic shifts to the ones that bring the most <b>$1M+</b> sign-ups per visitor (not the most sign-ups). Preview any headline with the link; previews don’t count.</p></div>' +
+      '<div class="seg" role="group" aria-label="Headline mode"><button type="button" data-whl="auto" aria-pressed="' + (hl.mode === 'auto') + '">Auto</button><button type="button" data-whl="even" aria-pressed="' + (hl.mode === 'even') + '">Even</button></div></div>' +
+      table([
+        { label: 'Headline', html: function (r) { return '<strong>' + esc(r.angle) + '</strong><div class="muted">' + esc(r.h1) + '</div><a class="muted" href="' + esc(String(base || '').replace(/\/+$/, '') + '/?h=' + r.id) + '" target="_blank" rel="noopener">preview ↗</a>'; } },
+        { label: 'Visitors', key: 'views', num: true, fmt: n },
+        { label: 'Sign-ups', key: 'regs', num: true, fmt: n },
+        { label: '$1M+ sign-ups', num: true, html: function (r) { return esc(n(r.qualified)) + '<div class="muted">' + esc(pct(r.rate, 1)) + ' of visitors</div>'; } },
+        { label: 'Traffic now', num: true, html: function (r) { return esc(hl.mode === r.id ? '100%' : (hl.mode !== 'auto' && hl.mode !== 'even') ? '0%' : pct(r.share)); } },
+        { label: '', html: function (r) { return hl.mode === r.id ? '<span class="pill">pinned</span>' : '<button type="button" class="btn-sm ghost" data-whl="' + esc(r.id) + '">Show to all</button>'; } },
+      ], hl.rows) + '</div>';
     var mins = function (m) { return m + ' min'; };
     var flow = [
       { label: 'Registered', key: 'regs', num: true, fmt: n },
+      { label: '$1M+', num: true, html: function (r) { return esc(n(r.qualified)) + '<div class="muted">' + esc(pct(r.qualifiedRate)) + '</div>'; } },
       { label: 'Showed', num: true, html: function (r) { return esc(pct(r.showRate)) + '<div class="muted">' + n(r.attended) + ' live · ' + n(r.replays) + ' replay</div>'; } },
       { label: 'Clicked offer', key: 'cta', num: true, fmt: n },
       { label: 'Applied', key: 'applied', num: true, fmt: n },
@@ -669,7 +688,7 @@
     var drops = (w.drops || []).map(function (d) {
       return '<li><b>Minute ' + d.minute + '</b>: ' + esc(pct(d.lost, 1)) + ' of live viewers left' + (w.offerClicks[d.minute] ? ' · ' + n(w.offerClicks[d.minute]) + ' clicked the offer here' : '') + '</li>';
     }).join('');
-    return '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
+    return roomHtml + '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
       (w.liveViewers ? '<b>' + esc(pct(w.atPitch)) + '</b> of ' + n(w.liveViewers) + ' live viewers were still there when the offer came up.' : 'No one has watched live in this period yet.') + '</p>' +
       '<div class="chart" data-wcurve style="margin-top:8px"></div>' + (drops ? '<h3 class="h3" style="margin-top:12px">Where people leave</h3><ul class="plain-list">' + drops + '</ul>' : '') + '</div>' +
       '<div class="grid g-2" style="margin-top:14px">' +
@@ -684,6 +703,7 @@
       table([{ label: 'Campaign / source', html: function (r) { return '<strong>' + esc(r.campaign ? r.key : r.key + ' (no campaign tag)') + '</strong>' + (r.campaign ? '<div class="muted">' + esc(r.platforms) + '</div>' : ''); } }].concat(flow).concat([
         { label: 'Spend', num: true, html: function (r) { return r.spend ? esc(money(r.spend)) : '<span class="muted">–</span>'; } },
         { label: 'Per registrant', num: true, html: function (r) { return r.perReg != null ? esc(money(r.perReg)) : '–'; } },
+        { label: 'Per $1M+ sign-up', num: true, html: function (r) { return r.perQualified != null ? esc(money(r.perQualified)) : '–'; } },
         { label: 'Per booked call', num: true, html: function (r) { return r.perBooked != null ? esc(money(r.perBooked)) : '–'; } },
       ]), x.sources || [], { cards: true }) + '</div>' +
       '<div class="card" style="margin-top:14px"><h2>Pre-webinar emails</h2><p class="sub">The daily emails between registering and the session: are people reading them, and do the ones who click show up more?</p>' +
@@ -753,7 +773,7 @@
           { label: 'Applied', key: 'applied', num: true, fmt: n },
           { label: 'Booked', key: 'booked', num: true, fmt: n },
         ], d.past || []) + '</div></div>' +
-        webinarInsightsHtml(ins) +
+        webinarInsightsHtml(ins, st.url) +
         '<div class="card" style="margin-top:14px"><h2>Registrants</h2><p class="sub">Click a row for the full journey.</p>' +
         table([
           { label: 'Name', html: function (r) { return esc([r.first_name, r.last_name].filter(Boolean).join(' ') || '–') + '<br><span class="muted">' + esc(r.email || '') + '</span>'; } },
@@ -765,6 +785,14 @@
         ], d.registrants || [], { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>';
       view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
       drawWebinarCurve(view.querySelector('[data-wcurve]'), ins);
+      view.querySelectorAll('[data-whl]').forEach(function (b) {
+        b.onclick = function () {
+          var m = b.getAttribute('data-whl');
+          if (m !== 'auto' && m !== 'even' && !confirm('Show only this headline to every new visitor? You can switch back to Auto any time.')) return;
+          b.disabled = true;
+          send('PUT', 'integrations', { WEBINAR_HEADLINE_TEST: m }).then(function () { toast('Headline test: ' + m); setTimeout(load, 300); });
+        };
+      });
       view.querySelectorAll('[data-cancel]').forEach(function (b) {
         b.onclick = function () {
           if (!confirm('Cancel this session? Everyone registered is moved to the next session and emailed a new link.')) return;

@@ -13,6 +13,7 @@ import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePh
 import { routeLead } from './routing';
 import { APP_REVENUE_BAND } from '../sales/qualify';
 import { normaliseAnswer, parseBlocklist, scoreApplication } from './scoring';
+import { trackRevenueEvents } from '../tracking/revenue-events';
 
 export class ApplicationError extends Error {
   constructor(message: string, readonly field?: string, readonly status: 400 | 403 | 404 | 409 | 429 = 400) {
@@ -223,6 +224,7 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
   const who = identityFromVisitor(v, null, lead.id);
   const submitted = await track(rt, who, { name: 'app_submitted', source: 'server', path: '/apply', eventId: clientEventId, props: { score: result.score, tier: result.tier } });
   const qualified = await track(rt, who, { name: 'lead_qualified', source: 'server', path: '/apply', props: { tier: result.tier, score: result.score, flags: result.flags, caps: result.caps } });
+  if (firstSubmit) await trackRevenueEvents(rt, who, fresh.revenue_band, 'application', '/apply');
   await track(rt, who, { name: 'lead_routed', source: 'server', path: '/apply', props: { route: decision.route, closer: decision.closer?.id ?? null } });
 
   await cancelSequence(rt, lead.id, 'abandoned');

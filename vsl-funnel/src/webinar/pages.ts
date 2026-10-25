@@ -3,6 +3,8 @@ import { type AppEnv, runtimeFrom } from '../app';
 import { render } from '../funnel/pages';
 import { getLead, linkVisitor } from '../funnel/leads';
 import { formatCallTime } from '../integrations/email';
+import { pickWebinarHeadline } from './headlines';
+import { identityFromVisitor, track } from '../tracking/track';
 import {
   type Registration, type Session, getRegistration, getSession, googleCalendarUrl, ics, openSessions, phase, replayUrl, roomUrl, webinarBase, webinarSettings,
 } from './webinar';
@@ -32,12 +34,15 @@ export async function webinarLanding(c: Context<AppEnv>) {
   const v = c.get('visitor');
   const w = webinarSettings(rt);
   const sessions = await openSessions(rt, 4);
+  const { headline: hl, preview } = await pickWebinarHeadline(rt, v.visitorId, c.req.query('h'));
+  // Logged for the headline test (previews from Funnel HQ don't count).
+  if (!preview && v.visitorId) await track(rt, identityFromVisitor(v, null, v.leadId ?? null), { name: 'webinar_headline_view', source: 'server', path: '/webinar', props: { h: hl.id }, localOnly: true });
   return render(c, '/webinar.html', {
     title: w.title,
-    slots: { webinar_title: esc(w.title), duration: String(w.durationMin) },
+    slots: { webinar_title: esc(w.title), duration: String(w.durationMin), hl_h1: hl.h1, hl_lede: esc(hl.lede) },
     blocks: { sessions: sessions.length ? sessionOptions(sessions, v.geo.timezone) : '<p class="muted">No sessions are scheduled right now. Check back soon.</p>' },
     show: { has_sessions: sessions.length > 0 },
-    config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt) } },
+    config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt), headline: hl.id } },
     seo: {
       title: `${w.title} | Masterclass with Josh Li`,
       description: 'A live masterclass with Josh Li on buying a business with no money down: commercial debt, seller finance and seller rollover, and getting to a signed LOI.',
