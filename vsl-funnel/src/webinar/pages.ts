@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { render } from '../funnel/pages';
+import { sameOriginWrite } from '../admin/auth';
 import { getLead, linkVisitor } from '../funnel/leads';
 import { formatCallTime } from '../integrations/email';
 import { pickWebinarHeadline } from './headlines';
@@ -14,7 +15,7 @@ import { identityFromVisitor, track } from '../tracking/track';
 import {
   type Registration, type Session, getRegistration, getSession, googleCalendarUrl, ics, jitSettings, nextJitStart, openSessions, phase, replayEndsAt, replayUrl, roomUrl, webinarBase, webinarSettings,
 } from './webinar';
-import { activePass, confirmOnReturn, dealReviewPack, formatMoney, markPackViewed, passConfig, passCopy, passGate, registeredPassBlock, roomPassConfig } from './pass';
+import { activePass, confirmOnReturn, dealMaths, dealReviewPack, formatMoney, markPackViewed, passConfig, passCopy, passGate, registeredPassBlock, roomPassConfig } from './pass';
 import { bookingUrlFor } from '../funnel/routing';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -200,8 +201,38 @@ export async function worksheetPage(c: Context<AppEnv>) {
 }
 
 /** Deal pack (offer buyers): their answers and their own numbers, worked through. */
-export async function packPage(c: Context<AppEnv>) {
+/** The deal pack's form posts here; the numbers are logged like a calculator run, then back to the pack (a refresh can't resubmit). */
+export async function packSubmit(c: Context<AppEnv>) {
+  if (!sameOriginWrite(c)) return c.text('Forbidden', 403);
   const { rt, reg, session } = await load(c);
+  if (!reg || !session) return notFound(c);
+  if (!(await activePass(rt, reg.lead_id))) return c.redirect(c.req.path, 303);
+  const form = await c.req.parseBody().catch(() => ({} as Record<string, unknown>));
+  const profit = Number(form.profit), price = Number(form.price);
+  if (profit > 0 && price > 0 && profit < 1e10 && price < 1e11) {
+    const { logCalc } = await import('./room');
+    await logCalc(rt, reg, { profit, price });
+  }
+  return c.redirect(c.req.path, 303);
+}
+
+type PackData = Awaited<ReturnType<typeof dealReviewPack>>;
+
+/** Funnel HQ → Page previews: a made-up buyer with illustrative numbers. Nothing is read or saved. */
+function samplePack(): PackData {
+  return {
+    name: 'Dana', band: '$3M–$10M', target: 'A competitor', numbers: { profit: 500_000, price: 1_500_000 },
+    answers: [{ label: 'When you want it closed', value: '3 to 6 months' }, { label: 'Biggest blocker', value: 'Financing' }],
+    maths: dealMaths(500_000, 1_500_000),
+  };
+}
+
+export async function packPage(c: Context<AppEnv>) {
+  const rt = runtimeFrom(c);
+  if (c.req.param('token') === 'preview' && c.get('visitor').botReason === 'admin-preview') {
+    return packView(c, { pack: samplePack(), product: passConfig(rt.settings).offerName, preview: true, blueprint: '#', apply: '#', back: '#' });
+  }
+  const { reg, session } = await load(c);
   if (!reg || !session) return notFound(c);
   const back = `${webinarBase(rt)}/registered/${reg.token}`;
   const holder = await activePass(rt, reg.lead_id);
@@ -209,14 +240,13 @@ export async function packPage(c: Context<AppEnv>) {
     const cfg = passConfig(rt.settings);
     return render(c, '/webinar-worksheet.html', { title: 'Deal pack', blocks: { worksheet: `<h1 class="h2">Your deal pack comes with the ${esc(cfg.offerName)}</h1><p class="lede">${cfg.mode !== 'off' ? `<a href="${esc(back)}">See what it includes</a>.` : 'It isn’t available right now.'}</p>` } });
   }
-  // New numbers from the pack's own form are logged like a calculator run in the room.
-  const profit = Number(c.req.query('profit')), price = Number(c.req.query('price'));
-  if (profit > 0 && price > 0) {
-    const { logCalc } = await import('./room');
-    await logCalc(rt, reg, { profit, price });
-  }
   await markPackViewed(rt, reg.lead_id);
   const pack = await dealReviewPack(rt, reg);
+  return packView(c, { pack, product: holder.product || passConfig(rt.settings).offerName, preview: false, blueprint: blueprintUrl(rt, reg.token), apply: `${rt.origin}/w/${reg.token}`, back });
+}
+
+function packView(c: Context<AppEnv>, o: { pack: PackData; product: string; preview: boolean; blueprint: string; apply: string; back: string }) {
+  const { pack } = o;
   const m = (n: number) => formatMoney(Math.round(n), 'USD');
   const rows = (r: [string, string][]) => `<table class="ws-rows"><tbody>${r.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table>`;
   const x = pack.maths;
@@ -226,8 +256,9 @@ export async function packPage(c: Context<AppEnv>) {
     ...pack.answers.map((a) => [a.label, a.value] as [string, string]),
   ];
   const n = (i: number) => String(about.length ? i + 1 : i);
-  const form = `<form class="pack-form no-print" method="get"><label>Yearly profit of the target<input class="input" type="number" name="profit" min="1" step="1000" inputmode="numeric" value="${pack.numbers?.profit ?? ''}" required></label><label>Asking price<input class="input" type="number" name="price" min="1" step="1000" inputmode="numeric" value="${pack.numbers?.price ?? ''}" required></label><button class="btn btn-sm" type="submit">${pack.numbers ? 'Update my pack' : 'Build my pack'}</button></form>`;
-  const body = `<header class="ws-head"><span class="eyebrow"><span class="pass-badge">${esc(holder.product || passConfig(rt.settings).offerName)}</span></span><h1 class="h2">Deal pack${pack.name ? ` for ${esc(pack.name)}` : ''}</h1>
+  const off = o.preview ? ' disabled title="Preview: can’t submit"' : '';
+  const form = `<form class="pack-form no-print" method="post"><label>Yearly profit of the target<input class="input" type="number" name="profit" min="1" step="1000" inputmode="numeric" value="${pack.numbers?.profit ?? ''}" required></label><label>Asking price<input class="input" type="number" name="price" min="1" step="1000" inputmode="numeric" value="${pack.numbers?.price ?? ''}" required></label><button class="btn btn-sm" type="submit"${off}>${pack.numbers ? 'Update my pack' : 'Build my pack'}</button></form>`;
+  const body = `${o.preview ? '<p class="muted no-print">Preview with a made-up buyer and illustrative numbers. Real buyers see their own answers and numbers.</p>' : ''}<header class="ws-head"><span class="eyebrow"><span class="pass-badge">${esc(o.product)}</span></span><h1 class="h2">Deal pack${pack.name ? ` for ${esc(pack.name)}` : ''}</h1>
     <p class="lede">The structure from the masterclass, applied to the deal you have in mind. Change the numbers any time and the pack is rebuilt.</p></header>
     ${about.length ? `<section class="ws-sec"><h2 class="h3">1. Where you are starting from</h2>${rows(about)}</section>` : ''}
     <section class="ws-sec"><h2 class="h3">${n(1)}. The deal</h2>${form}
@@ -243,9 +274,10 @@ export async function packPage(c: Context<AppEnv>) {
       ['More rollover (60 / 20 / 20)', `${x.moreRollover.dscr.toFixed(2)}x coverage · ${m(x.moreRollover.service)} a year`],
     ])}<p>These are the levers a strategy call works through with you: the price, the length of the seller note, and how much the seller rolls over.</p></section>` : ''}
     <p class="muted ws-disc">Illustrative only. The rates and splits are assumptions for the example, not an offer of finance. Education, not legal, tax or financial advice.</p>
-    <p class="no-print pack-actions"><a class="btn" href="${esc(blueprintUrl(rt, reg.token))}">Open my full Acquisition Blueprint →</a> <a class="btn secondary" href="${esc(`${rt.origin}/w/${reg.token}`)}">Apply for a strategy call</a> <a class="btn secondary" href="${esc(back)}">Back to my confirmation</a></p>`;
+    <p class="no-print pack-actions"><a class="btn" href="${esc(o.blueprint)}">Open my full Acquisition Blueprint →</a> <a class="btn secondary" href="${esc(o.apply)}">Apply for a strategy call</a> <a class="btn secondary" href="${esc(o.back)}">Back to my confirmation</a></p>`;
   return render(c, '/webinar-worksheet.html', { title: 'Deal pack', blocks: { worksheet: body } });
 }
+
 
 export async function icsFile(c: Context<AppEnv>) {
   const { rt, reg, session } = await load(c);

@@ -335,6 +335,7 @@ admin.get('/pages', (c) => {
     { group: 'Main funnel', title: 'Booked: pre-call video', desc: 'After booking: the call time, what to prepare and the pre-call video.', path: '/breakout?hq_as=booked' },
     { group: 'Main funnel', title: 'Resources (C-tier)', desc: 'Applicants who don’t qualify yet get the free resources instead of a call.', path: '/resources' },
     { group: 'Webinar', title: 'Webinar sign-up', desc: 'The masterclass registration page (live.grosfjeld-li.com).', path: '/webinar' },
+    { group: 'Webinar', title: 'Deal pack (Assessment buyers)', desc: 'What a paid Assessment buyer gets straight away. Shown with a made-up buyer and illustrative numbers.', path: '/pack/preview' },
     { group: 'Other', title: 'Privacy policy', desc: 'Linked from every page and every email.', path: '/privacy' },
   ];
   return c.json({ pages: pages.map((p, i) => ({ ...p, n: i + 1, src: `${p.path}${p.path.includes('?') ? '&' : '?'}hq_preview=1` })) });
