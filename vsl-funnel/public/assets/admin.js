@@ -762,7 +762,7 @@
       tile('Refunds', n(k.refunds), k.openCheckouts ? n(k.openCheckouts) + ' checkout' + (k.openCheckouts === 1 ? '' : 's') + ' open now' : 'no open checkouts', null, { zeroOk: true }) +
       tile('This week', cap.capped ? n(cap.left) + ' of ' + n(cap.cap) + ' left' : 'No cap', cap.capped ? n(cap.used) + ' sold or in checkout since Monday' : 'set a weekly cap under Integrations → Webinar', null, { zeroOk: true }) +
       '</div>' +
-      (c.seat || k.seats ? '<p class="muted" style="margin-top:8px">Paid seats: ' + n(k.seats) + ' sold · ' + esc(k.seatRevenueLabel || '–') + ' · ' + n(k.seatRefunds) + ' refunded · ' + n(k.requiredRegistrants) + ' registrants needed one.</p>' : '') +
+      (c.seat || k.seats ? '<p class="muted" style="margin-top:8px">Paid seats: ' + n(k.seats) + ' sold · ' + esc(k.seatRevenueLabel || '–') + ' · ' + n(k.seatRefunds) + ' refunded · ' + n(k.requiredRegistrants) + (k.requiredRegistrants === 1 ? ' registrant' : ' registrants') + ' needed one.</p>' : '') +
       '<div class="grid g-2" style="margin-top:12px"><div><h3 class="h3">Buyers</h3>' +
       ((p.holders || []).length ? table([
         { label: 'Name', html: function (r) { return '<strong>' + esc(r.name) + '</strong>' + (r.status === 'refunded' ? ' <span class="pill">refunded</span>' : '') + '<div class="muted">' + esc(r.email || '') + '</div>'; } },
@@ -777,8 +777,8 @@
       ok(c.requested !== 'off', 'Mode: ' + esc(MODE[c.requested]), 'Set the paid offer to upsell or required') +
       ok(ch.sessionUrl, 'Assessment session booking link set', 'Optional: add the session booking link, otherwise email each buyer to book') +
       '</ul><p class="small" style="margin-top:8px">In Stripe → Developers → Webhooks → Add endpoint, paste:</p>' +
-      '<p><code>' + esc(ch.webhookUrl) + '</code> <button type="button" class="btn-sm ghost" data-copy="' + esc(ch.webhookUrl) + '">Copy</button></p>' +
-      '<p class="small">and select these events: ' + (ch.events || []).map(function (e) { return '<code>' + esc(e) + '</code>'; }).join(', ') + '.</p>' +
+      '<p><code style="word-break:break-all">' + esc(ch.webhookUrl) + '</code> <button type="button" class="btn-sm ghost" data-copy="' + esc(ch.webhookUrl) + '">Copy</button></p>' +
+      '<p class="small">and select these events: ' + (ch.events || []).map(function (e) { return '<code style="word-break:break-all">' + esc(e) + '</code>'; }).join(', ') + '.</p>' +
       '<p class="small muted">Includes: ' + esc((c.perks || []).join(' · ')) + (c.customPerks ? ' (your own list)' : '') + '</p></div></div></div>';
   }
 

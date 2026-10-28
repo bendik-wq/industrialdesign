@@ -410,7 +410,7 @@ export async function passPaidEffects(rt: Runtime, pass: PassRow) {
     return;
   }
   const cfg = passConfig(rt.settings);
-  await rt.env.DB.prepare('UPDATE leads SET webinar_pass_at = COALESCE(webinar_pass_at, ?), updated_at = ? WHERE id = ?').bind(pass.paid_at, Date.now(), pass.lead_id).run();
+  await rt.env.DB.prepare('UPDATE leads SET updated_at = ? WHERE id = ?').bind(Date.now(), pass.lead_id).run(); // surfaces the lead as recently active
   await applyPassReplay(rt, pass.lead_id, true);
   await track(rt, who, { name: 'webinar_offer_purchased', source: 'webhook', path: '/webinar', props: { pass_id: pass.id, product: pass.product, value, currency: pass.currency.toUpperCase() } });
   if (lead) rt.waitUntil(notifySlack(rt, lead, `💳 ${pass.product || cfg.offerName} purchased`, [
@@ -434,7 +434,6 @@ export async function markPassRefunded(rt: Runtime, o: { paymentIntent: string |
     .bind(now, o.amountRefunded, now, pass.id).run();
   if ((res.meta.changes ?? 0) === 0) return { ok: true as const, duplicate: true };
   if (pass.kind === 'offer' && !(await activePass(rt, pass.lead_id))) {
-    await db.prepare('UPDATE leads SET webinar_pass_at = NULL, updated_at = ? WHERE id = ?').bind(now, pass.lead_id).run();
     await applyPassReplay(rt, pass.lead_id, false);
   }
   await track(rt, await identityFromLead(rt.env, pass.lead_id), { name: 'webinar_purchase_refunded', source: 'webhook', props: { pass_id: pass.id, kind: pass.kind }, localOnly: true });
@@ -525,7 +524,6 @@ export function offerCardHtml(cfg: PassConfig, cap: ReturnType<typeof capacity>,
 export function seatCardHtml(cfg: PassConfig, note: string | null = null) {
   const t = passCopy(cfg);
   return `<div class="card pass-card seat" data-pass-offer>
-    <p class="pass-eyebrow">${esc(t.seatEyebrow)}</p>
     <h2 class="pass-h">${esc(t.seatHeading)}</h2>
     <p class="pass-lede">${esc(t.seatBody)}</p>
     ${note ? `<p class="pass-note" role="status">${esc(note)}</p>` : ''}
@@ -582,7 +580,7 @@ export async function roomPassConfig(rt: Runtime, reg: Registration, qualified: 
   return {
     active: false,
     offer: {
-      name: cfg.offerName, price: cfg.priceLabel, heading: t.roomHeading, body: t.roomBody, button: `${t.button} · ${cfg.priceLabel}`, bookCall: t.bookCall,
+      name: cfg.offerName, price: cfg.priceLabel, heading: t.roomHeading, body: t.roomBody, button: t.button, bookCall: t.bookCall,
       includes: t.includes, perks: cfg.perks, guarantee: cfg.guarantee, fine: `${t.secure} ${t.noResults}`,
       full: cap.full, soldOut: cap.full ? t.soldOut : null, capLabel: cap.label,
     },

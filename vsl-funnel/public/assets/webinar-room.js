@@ -139,7 +139,7 @@
       // Two one-click paths: the paid offer straight to Stripe, or the strategy call calendar inline (video keeps playing).
       cta.innerHTML = '<div class="card pass-room"><p class="pass-eyebrow">' + esc(po.name) + ' · ' + esc(po.price) + '</p><h2 class="pass-h">' + esc(po.heading) + '</h2><p class="pass-lede">' + esc(po.body) + '</p>' +
         '<div class="pass-room-btns">' +
-        (po.full ? '<p class="pass-note">' + esc(po.soldOut) + '</p>' : '<button type="button" class="btn btn-lg pass-btn" data-pass-buy="offer">' + esc(po.button) + ' ' + arrow + '</button>') +
+        (po.full ? '<p class="pass-note">' + esc(po.soldOut) + '</p>' : '<button type="button" class="btn btn-lg pass-btn" data-pass-buy="offer"><span>' + esc(po.button) + ' <span class="nw">· ' + esc(po.price) + '</span></span> ' + arrow + '</button>') +
         '<button type="button" class="btn btn-lg secondary" data-book-call>' + esc(po.bookCall) + '</button></div>' +
         (po.capLabel ? '<p class="pass-cap">' + esc(po.capLabel) + '</p>' : '') +
         '<details class="pass-more"><summary>' + esc(po.includes) + '</summary><ul class="pass-perks">' + (po.perks || []).map(function (p) { return '<li><strong>' + esc(p.title) + '</strong>' + (p.body ? '<span>' + esc(p.body) + '</span>' : '') + '</li>'; }).join('') + '</ul></details>' +

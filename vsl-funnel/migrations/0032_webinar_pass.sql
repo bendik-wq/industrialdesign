@@ -36,5 +36,5 @@ ALTER TABLE webinar_registrations ADD COLUMN replay_until INTEGER;
 -- Registered while a paid seat was required: the room opens only once it is paid.
 ALTER TABLE webinar_registrations ADD COLUMN pass_required INTEGER NOT NULL DEFAULT 0;
 
--- Lead-level marker for lists, filters and the CRM.
-ALTER TABLE leads ADD COLUMN webinar_pass_at INTEGER;
+-- No column on leads: D1 caps a table at 100 columns and leads is there already. A lead "has bought"
+-- when it has a paid row here (kind = 'offer'); that is the marker every report and page reads.

@@ -600,3 +600,6 @@ html.modal-open { overflow: hidden; }
   .book-modal-in { height: 100dvh; border-radius: 0; }
   .book-modal-head .muted { display: none; }
 }
+.pass-btn .nw { white-space: nowrap; }
+.pack-form input { font: var(--t-body); padding: 10px 12px; border: 1px solid var(--hair-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+@media (max-width: 640px) { .pass-room .pass-btn .nw { display: none; } }

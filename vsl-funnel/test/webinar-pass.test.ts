@@ -60,6 +60,14 @@ async function stripeHeader(secret: string, payload: string, t = Math.floor(Date
   return [`t=${t}`, ...extra, `v1=${await hmacHex(secret, `${t}.${payload}`)}`].join(',');
 }
 
+describe('migrations', () => {
+  it('no table goes past D1’s 100-column limit (leads is at it already)', () => {
+    const db = freshDb();
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[];
+    for (const t of tables) expect((db.prepare(`PRAGMA table_info(${t.name})`).all() as unknown[]).length, t.name).toBeLessThanOrEqual(100);
+  });
+});
+
 // ───────────── Stripe signatures ─────────────
 
 describe('Stripe webhook signature', () => {
