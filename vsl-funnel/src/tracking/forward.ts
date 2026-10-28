@@ -270,7 +270,10 @@ async function toMeta(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead:
   if (value !== undefined) Object.assign(custom_data, { value, currency: currencyOf(ev) });
   if (lead?.tier) Object.assign(custom_data, { lead_tier: lead.tier, lead_score: lead.score });
   if (who.variant) custom_data.variant = who.variant;
-  if (eventName === 'Purchase') Object.assign(custom_data, { order_id: lead?.id ?? ev.id, content_name: 'M&A advisory program' });
+  if (eventName === 'Purchase') {
+    const sprint = ev.name === 'webinar_offer_purchased';
+    Object.assign(custom_data, sprint ? { order_id: String(ev.props.pass_id ?? ev.id), content_name: String(ev.props.product ?? 'First Deal Sprint') } : { order_id: lead?.id ?? ev.id, content_name: 'M&A advisory program' });
+  }
 
   const event: Record<string, unknown> = {
     event_name: eventName,

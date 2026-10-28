@@ -431,6 +431,8 @@ async function webinarContext(rt: Runtime, lead: Lead, link: (path: string) => s
     notes: (await rt.env.DB.prepare('SELECT text FROM webinar_notes WHERE reg_id = ? ORDER BY at_sec').bind(reg.id).all<{ text: string }>().catch(() => ({ results: [] as { text: string }[] }))).results.map((r) => r.text),
     notesUrl: link(`${webinarBase(rt)}/notes/${reg.token}`),
     buyin: (await rt.env.DB.prepare("SELECT value FROM webinar_interactions WHERE reg_id = ? AND kind = 'buyin' ORDER BY created_at DESC LIMIT 1").bind(reg.id).first<{ value: string }>().catch(() => null))?.value ?? null,
+    // The First Deal Sprint closing emails: their offer page, deadline and bonus window.
+    sprint: await (await import('../webinar/sprint')).sprintEmailContext(rt, reg, session, tz, link).catch(() => null),
   };
 }
 

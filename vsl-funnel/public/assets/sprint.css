@@ -1,0 +1,72 @@
+/* The First Deal Sprint: the locked card, the unlock moment and the open offer (room), and the offer page.
+   Builds on site.css tokens (--accent, --ink, --hair, --muted…), so both palettes work. */
+.room-cta.sprint-off { display: none !important; }
+.sprint-box { max-width: 760px; margin: 22px auto 0; text-align: left; }
+.sprint-card { position: relative; border-top: 3px solid var(--accent); padding: 26px 28px 24px; }
+
+/* Locked */
+.sprint-locked { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; border-top-color: var(--hair-strong); background: var(--bg-alt); }
+.sprint-lock { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--accent); }
+.sprint-lock-i { width: 24px; height: 24px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sprint-shackle { transition: d .5s ease, transform .5s ease; }
+.sprint-h { font: 500 clamp(24px, 2.8vw, 32px)/1.15 var(--serif); letter-spacing: -.01em; color: var(--ink); margin: 0 0 8px; text-wrap: balance; }
+.sprint-tease { margin: 0; font: var(--t-body); color: var(--ink-2); }
+.sprint-in { margin: 8px 0 0; font: 600 13px/1.4 var(--font); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* The unlock moment */
+.sprint-unlocking .sprint-lock { animation: sprint-pop .9s ease both; }
+.sprint-unlocking .sprint-locked { animation: sprint-glow .9s ease both; }
+.sprint-revealed .sprint-open { animation: sprint-in .6s cubic-bezier(.2, .8, .2, 1) both; }
+.sprint-revealed .sprint-buyin { animation: sprint-in .5s ease both; }
+@keyframes sprint-pop { 0% { transform: scale(1); } 40% { transform: scale(1.18) rotate(-6deg); } 100% { transform: scale(1); } }
+@keyframes sprint-glow { 0% { box-shadow: 0 0 0 0 rgba(15, 44, 92, 0); } 50% { box-shadow: 0 0 0 8px rgba(15, 44, 92, .14); } 100% { box-shadow: 0 0 0 0 rgba(15, 44, 92, 0); } }
+@keyframes sprint-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* Open */
+.sprint-buyin { margin: 0 0 12px; padding: 14px 18px; border-left: 3px solid var(--accent); background: var(--accent-tint); font: italic 400 19px/1.45 var(--serif); color: var(--ink); }
+.sprint-buyin span { font: 600 12px/1 var(--font); font-style: normal; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-right: 6px; }
+.sprint-badge { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1 var(--font); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); background: var(--accent-tint); border: 1px solid var(--accent); padding: 4px 9px 4px 6px; border-radius: 999px; }
+.sprint-badge .sprint-lock-i { width: 14px; height: 14px; }
+.sprint-lede { font: var(--t-body); color: var(--ink-2); margin: 0 0 18px; max-width: 640px; }
+.sprint-days { list-style: none; margin: 0 0 20px; padding: 0; display: grid; gap: 12px; }
+.sprint-days li { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: start; font: var(--t-small); color: var(--ink-2); }
+.sprint-days strong { display: block; font: 600 15px/1.35 var(--font); color: var(--ink); margin-bottom: 2px; }
+.sprint-day { display: inline-block; text-align: center; font: 600 12px/1 var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); border: 1px solid var(--hair-strong); border-radius: 6px; padding: 6px 4px; background: var(--bg); }
+.sprint-day.plus { font-size: 15px; padding: 4px; }
+.sprint-guarantee { border: 1px solid var(--hair-strong); border-radius: var(--radius); padding: 16px 18px; margin: 0 0 18px; background: var(--bg-alt); }
+.sprint-guarantee p { margin: 0 0 6px; color: var(--ink); }
+.sprint-buy { border-top: 1px solid var(--hair); padding-top: 18px; display: grid; gap: 10px; }
+.sprint-price { margin: 0; font: 500 clamp(22px, 2.6vw, 30px)/1.2 var(--serif); color: var(--ink); font-variant-numeric: tabular-nums; }
+.sprint-plan { margin: 0; font: 600 15px/1.4 var(--font); color: var(--ink); }
+.sprint-fine { margin: 0; font: var(--t-small); color: var(--muted); }
+.sprint-bonus { border: 1px dashed var(--accent); border-radius: var(--radius); padding: 12px 16px; background: var(--accent-tint); }
+.sprint-bonus p { margin: 0; }
+.sprint-bonus-t { color: var(--ink); margin: 4px 0 6px !important; }
+.sprint-bonus-c { font: 600 14px/1.4 var(--font); color: var(--ink); }
+.sprint-bonus-c b, .sprint-deadline b { font-variant-numeric: tabular-nums; }
+.sprint-bonus-gone { font: var(--t-small); color: var(--muted); }
+.sprint-deadline { margin: 0; font: 600 14px/1.4 var(--font); color: var(--ink); }
+.sprint-more { margin: 0; }
+.sprint-more a { font-weight: 600; }
+.sprint-closed { border-top-color: var(--hair-strong); }
+.sprint-err { margin: 0; }
+
+/* Offer page */
+.sprint-page { padding: 40px 0 64px; }
+.sprint-page .sprint-head { margin-bottom: 26px; }
+.sprint-page .sprint-sec { margin: 34px 0; }
+.sprint-page .sprint-sec h2 { font: var(--t-h3, 600 22px/1.3 var(--font)); margin: 0 0 14px; color: var(--ink); }
+.sprint-faq details { border-top: 1px solid var(--hair); padding: 14px 0; }
+.sprint-faq details:last-child { border-bottom: 1px solid var(--hair); }
+.sprint-faq summary { cursor: pointer; font: 600 16px/1.4 var(--font); color: var(--ink); }
+.sprint-faq p { margin: 10px 0 0; color: var(--ink-2); }
+.sprint-page .sprint-buy { border: 1px solid var(--hair-strong); border-top: 3px solid var(--accent); border-radius: var(--radius); padding: 22px; background: var(--bg); }
+
+@media (max-width: 640px) {
+  .sprint-card { padding: 20px 16px 18px; }
+  .sprint-locked { grid-template-columns: minmax(0, 1fr); }
+  .sprint-days li { grid-template-columns: 64px minmax(0, 1fr); gap: 10px; }
+  .sprint-page .sprint-buy { padding: 16px; }
+  .sprint-buy .btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .sprint-unlocking *, .sprint-revealed * { animation: none !important; } }

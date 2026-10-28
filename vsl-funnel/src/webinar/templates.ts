@@ -1,4 +1,4 @@
-import type { EmailContent, TemplateCtx } from '../integrations/templates';
+import type { EmailContent, SprintEmailCtx, TemplateCtx } from '../integrations/templates';
 
 /**
  * Webinar emails. Every link to the room / replay is the person's own (their token), and the
@@ -11,6 +11,18 @@ const cal = (c: TemplateCtx) => {
   const x = w(c);
   return x.google || x.ics ? `Add it to your calendar: ${x.google ? `<a href="${x.google}">Google</a>` : ''}${x.google && x.ics ? ' · ' : ''}${x.ics ? `<a href="${x.ics}">Apple / Outlook</a>` : ''}` : '';
 };
+
+/** The First Deal Sprint closing emails (fallbacks keep a dashboard preview readable). */
+const sp = (c: TemplateCtx): SprintEmailCtx => {
+  const x = w(c) as ReturnType<typeof w> & { sprint?: SprintEmailCtx | null };
+  return x.sprint ?? {
+    name: 'First Deal Sprint', offer: x.room, closes: 'when your replay closes', bonusEnds: null, bonusTitle: null, bonusBody: null,
+    price: '$3,000', priceLine: '$3,000 today', plan: null, guarantee: 'Do the Sprint. If at the end of your Deal Plan session you don’t think it was worth far more than you paid, tell us that day and we refund the full fee.', apply: (x as { apply?: string }).apply ?? c.link('/apply'),
+  };
+};
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const bonusLine = (s: SprintEmailCtx) => (s.bonusTitle && s.bonusEnds ? `Fast-action bonus until ${s.bonusEnds}: ${s.bonusTitle}.${s.bonusBody ? ` ${cap(s.bonusBody.replace(/\.$/, ''))}.` : ''}` : '');
+const priceWithPlan = (s: SprintEmailCtx) => `${s.priceLine}${s.plan ? `, or ${s.plan}` : ''}.`;
 
 export const WEBINAR_TEMPLATES: Record<string, T> = {
   w_confirm: (c) => ({
@@ -178,6 +190,73 @@ export const WEBINAR_TEMPLATES: Record<string, T> = {
       ],
       cta: { label: 'Open my notes →', href: x.notesUrl ?? x.replay },
       ps: `Ready to map your first deal? <a href="${(x as { apply?: string }).apply ?? c.link('/apply')}">Apply for a strategy call</a>.`,
+    };
+  },
+  // ── The First Deal Sprint closing emails (unlocked it in the room, didn't buy; one objection each) ──
+  w_sprint_open: (c) => {
+    const s = sp(c);
+    const buyin = (w(c) as { buyin?: string | null }).buyin;
+    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return {
+      subject: `your numbers, and the ${s.name}`,
+      preheader: 'The plan for your first deal, written with you in seven days.',
+      body: [
+        `${c.name},`,
+        `The ${s.name} opened for you in the masterclass.`,
+        ...(buyin ? [`You wrote down what a first acquisition would change for you: “${esc(buyin)}”. The Sprint is the first seven days of getting there.`] : []),
+        'The objection I hear most at this point is “I’m not ready to buy yet.” The Sprint is how you get ready.',
+        'In seven days you know what your profit carries at 1.5x, which business to buy first, and how a deal for it splits across commercial debt, seller finance and seller rollover. Whether you then make an offer, and when, stays your call.',
+        `${priceWithPlan(s)} ${s.guarantee}`,
+        `It is open until ${s.closes}, when your replay closes.`,
+      ],
+      cta: { label: `See the ${s.name} →`, href: s.offer },
+      ps: bonusLine(s) || undefined,
+    };
+  },
+  w_sprint_bonus: (c) => {
+    const s = sp(c);
+    return {
+      subject: 'your fast-action bonus ends in a few hours',
+      preheader: s.bonusTitle ? `${s.bonusTitle}, until ${s.bonusEnds ?? 'later today'}.` : `It comes with the ${s.name}.`,
+      body: [
+        `${c.name},`,
+        `${bonusLine(s) || `The fast-action bonus on the ${s.name} ends in a few hours.`}`,
+        'If what holds you back is time, here is what the week asks of you: the kickoff call and your numbers on Day 1, short replies to my team during the week, and the 60-minute Deal Plan session on Day 7.',
+        'My team does the research and the writing.',
+        `${priceWithPlan(s)} Everything you pay for it comes off the advisory engagement if you continue.`,
+      ],
+      cta: { label: `Start my ${s.name} →`, href: s.offer },
+      ps: `The ${s.name} itself stays open until ${s.closes}.`,
+    };
+  },
+  w_sprint_closing: (c) => {
+    const s = sp(c);
+    return {
+      subject: `the ${s.name} closes in a few hours`,
+      preheader: `Open until ${s.closes}, then it closes with your replay.`,
+      body: [
+        `${c.name},`,
+        `The ${s.name} from your masterclass closes at ${s.closes}, when your replay comes down. After that, the next step is a strategy call.`,
+        `Owners ask me whether the ${s.price} is wasted if they don’t go on with us. You keep everything: the capacity numbers, the buy box, the shortlist, the memo and the outreach script.`,
+        'If you do continue, the full fee comes off the advisory engagement.',
+        `And the guarantee stands: ${s.guarantee.charAt(0).toLowerCase()}${s.guarantee.slice(1)}`,
+      ],
+      cta: { label: `Start my ${s.name} →`, href: s.offer },
+      ps: priceWithPlan(s),
+    };
+  },
+  w_sprint_closed: (c) => {
+    const s = sp(c);
+    return {
+      subject: `the ${s.name} has closed`,
+      preheader: 'You can still apply for a strategy call.',
+      body: [
+        `${c.name},`,
+        `The ${s.name} offer from your masterclass has closed. You can still apply for a strategy call.`,
+        'If what held you back was “what if there’s no business for me to buy”, that is the first thing the call looks at.',
+        'My team goes through your numbers and your market with you and tells you straight whether a first deal fits. When it does, we map it out across commercial debt, seller finance and seller rollover.',
+      ],
+      cta: { label: 'Apply for a strategy call →', href: s.apply },
     };
   },
   w_blueprint: (c) => ({

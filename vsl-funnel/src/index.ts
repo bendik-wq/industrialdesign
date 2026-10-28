@@ -34,6 +34,7 @@ import { blueprintPage } from './webinar/blueprint';
 import { applyHandoff, icsFile, isWebinarHost, packPage, packSubmit, registeredPage, roomPage, webinarLanding, worksheetPage } from './webinar/pages';
 import { ensureSessions } from './webinar/webinar';
 import { notesPage } from './webinar/experience';
+import { offerPage } from './webinar/sprint-page';
 import { chapters } from './webinar/room';
 import { processSmsQueue } from './integrations/sms';
 import { alertUnconfirmedBookings } from './integrations/booking';
@@ -126,6 +127,7 @@ for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/blueprint/:token`, withVisitor, blueprintPage);
   app.get(`${prefix}/pack/:token`, withVisitor, packPage);
   app.post(`${prefix}/pack/:token`, withVisitor, packSubmit);
+  app.get(`${prefix}/offer/:token`, withVisitor, offerPage); // the First Deal Sprint's sales page (after the unlock, until the replay closes)
 }
 app.get('/w/:token', withVisitor, applyHandoff);
 app.get('/guides', withVisitor, guidesHub);

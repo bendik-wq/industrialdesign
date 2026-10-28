@@ -83,7 +83,7 @@ export const META_EVENTS: Partial<Record<string, string>> = {
   vsl_cta_reveal: 'VSLPitchReached',
   lead_captured: 'Lead',
   webinar_registered: 'CompleteRegistration',
-  webinar_offer_purchased: 'FrontEndPurchase', // the masterclass offer (Acquisition Assessment); 'Purchase' stays for won deals
+  webinar_offer_purchased: 'Purchase', // the First Deal Sprint bought in the masterclass; value = what was paid (won deals also send Purchase)
   webinar_seat_purchased: 'WebinarSeatPurchase',
   app_submitted: 'SubmitApplication',
   lead_qualified: 'QualifiedLead',

@@ -252,7 +252,7 @@ export const SEQUENCES = {
   webinar: {
     id: 'webinar',
     description: 'Registered for the webinar — confirmation, reminders, then follow-up based on whether they came',
-    cycle: 20,
+    cycle: 30,
     stopIf: (l) => ['won', 'lost', 'disqualified'].includes(l.status),
     steps: [
       { template: 'w_confirm', offsetMs: 0 },
@@ -279,6 +279,15 @@ export const SEQUENCES = {
       { template: 'w_blueprint', offsetMs: 3 * HOUR, anchor: 'webinar_at', skipIf: (l) => pitched(l) || !(cameToWebinar(l) || l.webinar_replay_at) || (l.webinar_watch_pct ?? 0) < LEFT_EARLY },
       // saved at least one key point in this showing → their notes, about 30 minutes after it ends.
       { template: 'w_notes', offsetMs: 90 * MIN, anchor: 'webinar_at', skipIfAsync: async (rt, l) => !l.webinar_at || !(await (await import('../webinar/experience')).savedNotesSince(rt, l.id, l.webinar_at - 30 * MIN)) },
+      // The First Deal Sprint closing emails: only for viewers who unlocked it in the room and haven't bought.
+      // Queued at sign-up for a showing watched live (pitch ~38 min, replay 48 h); re-timed from the real
+      // unlock and offer deadline when it unlocks (webinar/sprint.ts scheduleClosingEmails).
+      ...(['w_sprint_open', 'w_sprint_bonus', 'w_sprint_closing', 'w_sprint_closed'] as const).map((template) => ({
+        template,
+        offsetMs: { w_sprint_open: 98 * MIN, w_sprint_bonus: 38 * MIN + 21 * HOUR, w_sprint_closing: 60 * MIN + 44 * HOUR, w_sprint_closed: 60 * MIN + 48 * HOUR + 30 * MIN }[template],
+        anchor: 'webinar_at' as const,
+        skipIfAsync: async (rt: Runtime, l: Lead) => (await import('../webinar/sprint')).skipClosingEmail(rt, l, template),
+      })),
     ],
   },
   prewebinar: {

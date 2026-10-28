@@ -11,8 +11,10 @@ import { type Registration, getRegistration, roomUrl, webinarBase, webinarSettin
 /**
  * Paid products in the masterclass, sold through Stripe Checkout:
  *
- *  - the OFFER: a configurable front-end product (default "Acquisition Assessment", $3,000) that leads
- *    into the advisory engagement. Offered on the thank-you page and, one click, at the pitch in the room.
+ *  - the OFFER: a configurable front-end product (default "First Deal Sprint", $3,000, 7 days) that leads
+ *    into the advisory engagement. It unlocks in the room at the pitch minute and is sold there and on the
+ *    offer page until that registration's replay closes (sprint.ts: gating, ticket credit, payment plan,
+ *    fast-action bonus, closing emails). It is no longer sold on the thank-you page.
  *  - the SEAT: in WEBINAR_PASS=required mode only, an optional small seat price (WEBINAR_SEAT_PRICE).
  *    Blank = seats stay free. A paid seat (or the offer) opens the room.
  *
@@ -26,7 +28,7 @@ export type PassKind = 'offer' | 'seat';
 
 const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf']);
 
-export interface Perk { title: string; body: string }
+export interface Perk { title: string; body: string; /** "Day 1", "Day 7": where it sits in the Sprint (optional). */ day?: string }
 
 export interface PassConfig {
   /** What the owner asked for in settings. */
@@ -36,7 +38,7 @@ export interface PassConfig {
   /** Why the requested mode isn't running, for Funnel HQ. */
   reason: string | null;
   offerName: string;
-  /** "assessment" for "Acquisition Assessment": used in "Start my assessment". */
+  /** Last word of the name, lower case ("sprint"). Buttons use the full name: "Start my First Deal Sprint". */
   offerNoun: string;
   price: number;
   currency: string; // upper-case ISO
@@ -70,28 +72,36 @@ export function formatMoney(amount: number, currency: string) {
 
 const num = (v: unknown) => { const n = Number(String(v ?? '').replace(/[^0-9.]/g, '')); return String(v ?? '').trim() && Number.isFinite(n) && n >= 1 ? n : null; };
 
-/** The built-in list. Only things that are delivered; no promised outcomes. */
+/** The built-in list: the 7-day Sprint, day by day. Only things a small advisory team delivers; no promised outcomes. */
 export function defaultPerks(o: { priceLabel: string; replayDays: number; replayHours: number; guarantee: string; sessionUrl: string | null }): Perk[] {
   return [
-    { title: 'A review of your business and acquisition capacity', body: 'How much debt your profit can carry at 1.5x coverage, and the size of target that supports.' },
-    { title: 'A target profile', body: 'The kind of business to buy first: its size, how it fits what you already run, and what its owner needs to hear from you.' },
-    { title: 'A deal-structure memo', body: 'In writing, how a deal for that target splits across commercial debt, seller finance and seller rollover.' },
-    { title: 'A 60-minute assessment session with Josh’s team', body: o.sessionUrl ? 'We go through the review, the profile and the memo with you. Book it straight after paying.' : 'We go through the review, the profile and the memo with you. Josh’s team emails you to book it.' },
-    { title: 'Your deal pack, ready straight away', body: 'Your own numbers worked through the 1.5x test, with the highest price that clears it and the levers that change it.' },
-    { title: `The masterclass replay for ${o.replayDays} days`, body: `Everyone else has ${o.replayHours} hours.` },
-    { title: `The full ${o.priceLabel} credited if you continue`, body: 'The whole fee comes off the advisory engagement if you go ahead with it.' },
-    { title: o.guarantee.replace(/\.$/, ''), body: 'Ask within 7 days if it wasn’t worth it and the full fee comes back.' },
+    { day: 'Day 1', title: 'Kickoff call and your numbers in', body: 'A kickoff call with Josh’s team. You send your profit, your debt and what you want to own, and your deal pack (your own numbers through the 1.5x test) opens as soon as you pay.' },
+    { day: 'Day 2', title: 'Your acquisition capacity', body: 'How much debt your profit carries at 1.5x coverage, and the size of target that supports.' },
+    { day: 'Day 3', title: 'Your buy box', body: 'The business to buy first: its size, how it fits what you already run, and the kind of owner who sells on terms.' },
+    { day: 'Day 4', title: 'A first shortlist', body: 'Owner-run businesses that match your buy box, researched by Josh’s team.' },
+    { day: 'Day 5', title: 'Your deal-structure memo', body: 'In writing, how a deal for that target splits across commercial debt, seller finance and seller rollover, tested at 1.5x.' },
+    { day: 'Day 6', title: 'Your owner outreach script', body: 'What to say to an owner in the first letter and on the first call, written for your buy box.' },
+    { day: 'Day 7', title: 'The 60-minute Deal Plan session with Josh’s team', body: o.sessionUrl ? 'We go through every piece with you and agree your next 90 days. Book it straight after paying.' : 'We go through every piece with you and agree your next 90 days. Josh’s team emails you to book it.' },
+    { title: `The full ${o.priceLabel} credited if you continue`, body: 'Everything you paid for the Sprint, your masterclass ticket included, comes off the advisory engagement if you go ahead with it.' },
+    { title: 'The Deal Plan guarantee', body: o.guarantee },
   ];
 }
 
-/** "Title: detail" per line. */
+/** "Title: detail" per line, optionally led by the day ("Day 3: Title: detail", "Days 2 to 3 | Title: detail"). */
 export function parsePerks(raw: string, vars: Record<string, string>): Perk[] {
   return raw.split(/\n+/).map((l) => l.trim()).filter(Boolean).slice(0, 12).map((l) => {
-    const filled = l.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
+    let filled = l.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
+    const d = /^(days?\s+\d{1,2}(?:\s*(?:to|-|–)\s*\d{1,2})?)\s*[:|]\s*(?=\S)/i.exec(filled);
+    const day = d ? d[1].replace(/^d/, 'D') : undefined;
+    if (d) filled = filled.slice(d[0].length);
     const i = filled.search(/:\s|\s[—–-]\s/);
-    return i > 0 ? { title: filled.slice(0, i).trim(), body: filled.slice(i).replace(/^[:—–-]?\s*[—–-]?\s*/, '').trim() } : { title: filled, body: '' };
+    const perk: Perk = i > 0 ? { title: filled.slice(0, i).trim(), body: filled.slice(i).replace(/^[:—–-]?\s*[—–-]?\s*/, '').trim() } : { title: filled, body: '' };
+    return day ? { day, ...perk } : perk;
   });
 }
+
+export const DEFAULT_OFFER_NAME = 'First Deal Sprint';
+export const DEFAULT_GUARANTEE = 'Do the Sprint. If at the end of your Deal Plan session you don’t think it was worth far more than you paid, tell us that day and we refund the full fee.';
 
 export function passConfig(s: Partial<Settings>, replayHours = Number(s.WEBINAR_REPLAY_HOURS) > 0 ? Number(s.WEBINAR_REPLAY_HOURS) : 48): PassConfig {
   const raw = String(s.WEBINAR_PASS ?? '').trim().toLowerCase();
@@ -106,9 +116,9 @@ export function passConfig(s: Partial<Settings>, replayHours = Number(s.WEBINAR_
   const sessionUrl = /^https:\/\/\S+$/i.test(String(s.WEBINAR_OFFER_SESSION_URL ?? '').trim()) ? String(s.WEBINAR_OFFER_SESSION_URL).trim() : null;
   const hasKey = Boolean(String(s.STRIPE_SECRET_KEY ?? '').trim());
   const mode: PassMode = requested !== 'off' && hasKey ? requested : 'off';
-  const offerName = String(s.WEBINAR_OFFER_NAME ?? '').trim().slice(0, 60) || 'Acquisition Assessment';
+  const offerName = String(s.WEBINAR_OFFER_NAME ?? '').trim().slice(0, 60) || DEFAULT_OFFER_NAME;
   const priceLabel = formatMoney(price, currency);
-  const guarantee = String(s.WEBINAR_PASS_REFUND ?? '').trim() || '7-day money-back guarantee';
+  const guarantee = String(s.WEBINAR_PASS_REFUND ?? '').trim() || DEFAULT_GUARANTEE;
   const custom = String(s.WEBINAR_OFFER_PERKS ?? '').trim();
   const perks = custom ? parsePerks(custom, { price: priceLabel, replay_days: String(replayDays) }) : defaultPerks({ priceLabel, replayDays, replayHours, guarantee, sessionUrl });
   return {
@@ -117,7 +127,7 @@ export function passConfig(s: Partial<Settings>, replayHours = Number(s.WEBINAR_
       ? `Set to ${requested}, but the Stripe secret key is missing, so nothing is on sale${requested === 'required' ? ' and seats stay free' : ''} until it is added.`
       : null,
     offerName,
-    offerNoun: (offerName.split(/\s+/).pop() || 'assessment').toLowerCase(),
+    offerNoun: (offerName.split(/\s+/).pop() || 'sprint').toLowerCase(),
     price, currency, amount: toMinor(price, currency), priceLabel,
     seat: requested === 'required' && seatPrice ? { price: seatPrice, amount: toMinor(seatPrice, currency), label: formatMoney(seatPrice, currency) } : null,
     replayDays, sessionUrl, guarantee,
@@ -135,14 +145,14 @@ export function passCopy(cfg: Pick<PassConfig, 'offerName' | 'offerNoun' | 'pric
   return {
     upsellEyebrow: 'For owners ready to look at a real deal',
     upsellHeading: `The ${cfg.offerName}`,
-    upsellBody: 'The masterclass shows how the structure works. The assessment applies it to your business: what you can carry, what to buy, and how to fund it.',
+    upsellBody: `The masterclass shows how the structure works. The ${cfg.offerName} applies it to your business: what you can carry, what to buy, and how to fund it.`,
     roomHeading: 'Two ways to take the next step',
     roomBody: `Start the ${cfg.offerName} now with one click, or book a strategy call with Josh’s team first. The calendar opens right here, so the masterclass keeps playing.`,
-    button: `Start my ${cfg.offerNoun}`,
+    button: `Start my ${cfg.offerName}`,
     bookCall: 'Book a strategy call instead',
     includes: `What the ${cfg.offerName} includes`,
     secure: 'Secure payment by Stripe. Your email is filled in for you.',
-    noResults: 'It is an assessment and a plan, not a promise of a deal, a loan or a return.',
+    noResults: `The ${cfg.offerName} is advice and a plan, not a promise of a deal, a loan or a return.`,
     activeEyebrow: 'Paid',
     activeHeading: `Your ${cfg.offerName} is under way`,
     activeBody: 'Your deal pack is ready now. Here is what happens next.',
@@ -150,8 +160,8 @@ export function passCopy(cfg: Pick<PassConfig, 'offerName' | 'offerNoun' | 'pric
     cancelled: 'No payment was taken. You can start it below whenever you are ready.',
     soldOut: `This week’s ${cfg.offerName} places have all been taken. New ones open on Monday.`,
     packLink: 'Open my deal pack',
-    sessionLink: 'Book my assessment session',
-    sessionEmail: 'Josh’s team emails you to book your 60-minute session.',
+    sessionLink: 'Book my Deal Plan session',
+    sessionEmail: 'Josh’s team emails you to book your 60-minute Deal Plan session.',
     roomBadge: cfg.offerName,
     holderNote: 'Questions you type here get a fuller answer and are flagged to Josh’s team.',
     seatEyebrow: 'One step left',
@@ -198,7 +208,7 @@ export function weekStart(now: number, tz: string) {
 }
 
 /** Cap maths. No cap → never full and no count shown. */
-export function capacity(cap: number | null, used: number, offerName = 'Acquisition Assessment') {
+export function capacity(cap: number | null, used: number, offerName = DEFAULT_OFFER_NAME) {
   if (cap == null) return { capped: false as const, cap: null, used, left: null, full: false, label: null };
   const left = Math.max(0, cap - used);
   return { capped: true as const, cap, used, left, full: left === 0, label: left === 0 ? null : `${left} of ${cap} ${offerName} places left this week` };
@@ -226,6 +236,9 @@ export interface PassRow {
   expires_at: number | null; paid_at: number | null; refunded_at: number | null; refunded_amount: number; credit_amount: number;
   credit_used_contract: string | null; review_clicked_at: number | null; review_booked_at: number | null; pack_viewed_at: number | null;
   created_at: number; updated_at: number;
+  // First Deal Sprint (migration 0035; see sprint.ts).
+  list_amount?: number | null; ticket_credit?: number; installments?: number; installments_paid?: number;
+  stripe_subscription_id?: string | null; plan_cancel_at?: number | null; fast_bonus?: number;
 }
 
 /** The lead's paid front-end offer, if any. */
@@ -268,7 +281,7 @@ export async function syncPassReplay(rt: Runtime, leadId: string) {
 
 // ───────────── Stripe API ─────────────
 
-async function stripeApi<T>(rt: Runtime, method: 'GET' | 'POST', path: string, form?: Record<string, string>, idempotencyKey?: string): Promise<T> {
+export async function stripeApi<T>(rt: Runtime, method: 'GET' | 'POST' | 'DELETE', path: string, form?: Record<string, string>, idempotencyKey?: string): Promise<T> {
   const key = rt.settings.STRIPE_SECRET_KEY;
   if (!key) throw new Error('Stripe is not connected');
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
@@ -302,7 +315,7 @@ export function checkoutForm(cfg: PassConfig, o: { kind: PassKind; passId: strin
     'line_items[0][price_data][product_data][name]': seat ? `Seat: ${o.title || 'The Acquisition Masterclass'}` : cfg.offerName,
     'line_items[0][price_data][product_data][description]': seat
       ? 'Your confirmed seat at the masterclass with Josh Li.'
-      : `${cfg.offerName} with G&L M&A Advisory. The full fee is credited against the advisory engagement if you continue. ${cfg.guarantee}.`,
+      : `${cfg.offerName} with G&L M&A Advisory. The full fee is credited against the advisory engagement if you continue. ${cfg.guarantee.replace(/\.$/, '')}.`,
     client_reference_id: o.reg.id,
     'metadata[kind]': o.kind,
     'metadata[pass_id]': o.passId,
@@ -326,6 +339,8 @@ export class PassError extends Error {
 
 /** One click: starts (or reuses) a Stripe Checkout for this registration, email prefilled. */
 export async function createCheckout(rt: Runtime, reg: Registration, o: { kind?: PassKind; from?: 'room' | 'ty' } = {}) {
+  // The front-end offer (First Deal Sprint) only sells through its gated checkout: after the pitch, before the deadline.
+  if (o.kind !== 'seat') return (await import('./sprint')).createSprintCheckout(rt, reg, { from: o.from === 'room' ? 'room' : 'offer' });
   const kind: PassKind = o.kind === 'seat' ? 'seat' : 'offer';
   const cfg = passConfig(rt.settings);
   if (cfg.mode === 'off' || (kind === 'seat' && !cfg.seat)) throw new PassError('This isn’t available right now.', 409);
@@ -387,7 +402,8 @@ export async function markPassPaid(rt: Runtime, p: PaidInput, effects: PaidEffec
   const res = await db.prepare(
     `UPDATE webinar_passes SET status = 'paid', paid_at = ?, updated_at = ?, stripe_payment_intent = COALESCE(?, stripe_payment_intent),
             amount = COALESCE(?, amount), currency = COALESCE(?, currency),
-            credit_amount = CASE WHEN kind = 'offer' THEN COALESCE(?, amount) ELSE 0 END
+            credit_amount = CASE WHEN kind = 'offer' THEN COALESCE(?, amount) + ticket_credit ELSE 0 END,
+            installments_paid = MAX(installments_paid, 1)
       WHERE stripe_session_id = ? AND status IN ('pending', 'expired')`,
   ).bind(now, now, p.paymentIntent, p.amount, p.currency ? p.currency.toLowerCase() : null, p.amount, p.sessionId).run();
   const pass = (await db.prepare('SELECT * FROM webinar_passes WHERE stripe_session_id = ?').bind(p.sessionId).first<PassRow>())!;
@@ -412,9 +428,13 @@ export async function passPaidEffects(rt: Runtime, pass: PassRow) {
   const cfg = passConfig(rt.settings);
   await rt.env.DB.prepare('UPDATE leads SET updated_at = ? WHERE id = ?').bind(Date.now(), pass.lead_id).run(); // surfaces the lead as recently active
   await applyPassReplay(rt, pass.lead_id, true);
-  await track(rt, who, { name: 'webinar_offer_purchased', source: 'webhook', path: '/webinar', props: { pass_id: pass.id, product: pass.product, value, currency: pass.currency.toUpperCase() } });
+  // Meta Purchase / GA4: value = what was actually paid now (after the ticket credit; the first payment on a plan).
+  await track(rt, who, { name: 'webinar_offer_purchased', source: 'webhook', path: '/webinar', props: { pass_id: pass.id, product: pass.product, value, currency: pass.currency.toUpperCase(), installments: pass.installments ?? 1, fast_bonus: Boolean(pass.fast_bonus) } });
+  const money = (minor: number) => formatMoney(fromMinor(minor, pass.currency), pass.currency.toUpperCase());
   if (lead) rt.waitUntil(notifySlack(rt, lead, `💳 ${pass.product || cfg.offerName} purchased`, [
-    `Paid: ${paid} · ${band}`,
+    `Paid: ${paid}${pass.ticket_credit ? ` (after the ${money(pass.ticket_credit)} ticket credit)` : ''} · ${band}`,
+    ...((pass.installments ?? 1) > 1 ? [`Payment plan: ${pass.installments} payments, ${money(pass.list_amount ?? 0)} in all`] : []),
+    ...(pass.fast_bonus ? ['Fast-action bonus: yes (bought inside 24 hours of the offer opening)'] : []),
     cfg.sessionUrl ? 'They can book their 60-minute session from the confirmation page.' : 'Email them to book their 60-minute session (no booking link is set).',
   ], 'hot_lead').catch((e) => console.error('offer slack failed', e)));
 }
@@ -423,13 +443,17 @@ export async function passPaidEffects(rt: Runtime, pass: PassRow) {
 export async function markPassRefunded(rt: Runtime, o: { paymentIntent: string | null; passId: string | null; amountRefunded: number; fully: boolean }) {
   const db = rt.env.DB;
   const row = o.paymentIntent ? await db.prepare('SELECT * FROM webinar_passes WHERE stripe_payment_intent = ?').bind(o.paymentIntent).first<PassRow>() : null;
-  const pass = row ?? (o.passId ? await db.prepare('SELECT * FROM webinar_passes WHERE id = ?').bind(o.passId).first<PassRow>() : null);
+  // A payment-plan installment: its invoice's payment is recorded in webinar_pass_payments.
+  const planRow = !row && o.paymentIntent ? await db.prepare('SELECT p.* FROM webinar_pass_payments x JOIN webinar_passes p ON p.id = x.pass_id WHERE x.payment_intent = ?').bind(o.paymentIntent).first<PassRow>() : null;
+  const pass = row ?? planRow ?? (o.passId ? await db.prepare('SELECT * FROM webinar_passes WHERE id = ?').bind(o.passId).first<PassRow>() : null);
   if (!pass) return { ok: false as const, reason: 'unknown payment' };
   const now = Date.now();
   if (!o.fully) {
     await db.prepare('UPDATE webinar_passes SET refunded_amount = ?, updated_at = ? WHERE id = ?').bind(o.amountRefunded, now, pass.id).run();
     return { ok: true as const, partial: true };
   }
+  // A refunded payment plan takes no more payments (if Stripe can't be reached, the webhook fails and is retried).
+  if (pass.stripe_subscription_id && pass.status === 'paid') await (await import('./sprint')).stopPlan(rt, pass.stripe_subscription_id);
   const res = await db.prepare("UPDATE webinar_passes SET status = 'refunded', refunded_at = ?, refunded_amount = ?, credit_amount = 0, updated_at = ? WHERE id = ? AND status = 'paid'")
     .bind(now, o.amountRefunded, now, pass.id).run();
   if ((res.meta.changes ?? 0) === 0) return { ok: true as const, duplicate: true };
@@ -446,7 +470,8 @@ function paidInput(s: StripeCheckoutSession): PaidInput {
   return { sessionId: s.id, paymentIntent: piId(s.payment_intent), amount: s.amount_total ?? null, currency: s.currency ?? null, regId: s.client_reference_id ?? s.metadata?.reg_id ?? null, passId: s.metadata?.pass_id ?? null, kind: s.metadata?.kind ?? null };
 }
 
-export const STRIPE_EVENTS = ['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.expired', 'charge.refunded'] as const;
+/** Every event the Stripe webhook endpoint must send (Funnel HQ lists them). invoice.paid drives payment plans. */
+export const STRIPE_EVENTS = ['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.expired', 'charge.refunded', 'invoice.paid'] as const;
 
 /** Verified Stripe webhook events. Anything that isn't ours (no masterclass metadata) is ignored. */
 export async function handleStripeEvent(rt: Runtime, ev: { id?: string; type?: string; data?: { object?: Record<string, unknown> } }, effects: PaidEffects = passPaidEffects) {
@@ -456,8 +481,13 @@ export async function handleStripeEvent(rt: Runtime, ev: { id?: string; type?: s
     if (!s.metadata?.pass_id && !s.metadata?.reg_id) return { ignored: 'not a masterclass checkout' };
     if (s.payment_status !== 'paid' && s.payment_status !== 'no_payment_required') return { ignored: `payment ${s.payment_status ?? 'unknown'}` };
     const r = await markPassPaid(rt, paidInput(s), effects);
+    // Payment plan: remember its subscription so invoice.paid can count the payments and stop after the last.
+    const sub = (obj as { subscription?: unknown }).subscription;
+    const subId = typeof sub === 'string' ? sub : sub && typeof sub === 'object' ? String((sub as { id?: unknown }).id ?? '') || null : null;
+    if (r.ok && subId) await (await import('./sprint')).attachSubscription(rt, r.pass.id, subId);
     return r.ok ? { paid: r.pass.id, duplicate: r.duplicate } : { ignored: r.reason };
   }
+  if (ev.type === 'invoice.paid') return (await import('./sprint')).handleInvoicePaid(rt, obj, effects);
   if (ev.type === 'checkout.session.expired') {
     const id = String(obj.id ?? '');
     await rt.env.DB.prepare("UPDATE webinar_passes SET status = 'expired', updated_at = ? WHERE stripe_session_id = ? AND status = 'pending'").bind(Date.now(), id).run();
@@ -565,8 +595,8 @@ export async function registeredPassBlock(rt: Runtime, reg: Registration, query:
   if (cfg.mode === 'off') return { html: '', gate: false, active: false, confirming: false };
   const gate = await passGate(rt, reg);
   if (gate) return { html: seatCardHtml(cfg, note), gate: true, active: false, confirming: note === passCopy(cfg).confirming };
-  const cap = await passCapacity(rt, cfg);
-  return { html: offerCardHtml(cfg, cap, note), gate: false, active: false, confirming: note === passCopy(cfg).confirming };
+  // The First Deal Sprint is not sold before the masterclass: it unlocks in the room at the pitch (sprint.ts).
+  return { html: note ? `<p class="pass-note" role="status">${esc(note)}</p>` : '', gate: false, active: false, confirming: note === passCopy(cfg).confirming };
 }
 
 /** Room config: the buyer's card, or the one-click offer for $1M+ viewers at the pitch. */
