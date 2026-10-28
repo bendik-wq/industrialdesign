@@ -281,7 +281,7 @@ export async function raiseHand(rt: Runtime, reg: Registration, session: Session
       rt.waitUntil(notifySlack(rt, lead, '🙋 Asked for a call from the masterclass', [
         `${[lead.first_name, lead.last_name].filter(Boolean).join(' ') || 'No name'} · ${REVENUE_LABEL[band ?? ''] ?? band}`,
         `${body.replay === true ? 'Replay' : 'Showing'}, minute ${at == null ? '?' : Math.floor(at / 60)}${host ? ' · team console open' : ''}`,
-        ...(lead.phone ? [`Phone: ${lead.phone}`] : ['No phone on file: reply by email']),
+        lead.phone ? 'Phone on file (open the lead in Funnel HQ)' : 'No phone on file: reply by email',
         ...pollLines,
       ], 'hot_lead'));
       await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'webinar_call_request', source: 'server', props: { session_id: session.id, replay: body.replay === true }, localOnly: true });
