@@ -31,7 +31,7 @@ import { sign } from './routes/sign';
 import { processContractReminders } from './sales/contracts';
 import { maybeSyncContent } from './content/content';
 import { blueprintPage } from './webinar/blueprint';
-import { applyHandoff, icsFile, isWebinarHost, packPage, packSubmit, registeredPage, roomPage, webinarLanding, worksheetPage } from './webinar/pages';
+import { applyHandoff, icsFile, isWebinarHost, packPage, packSubmit, registeredPage, roomPage, ticketPage, webinarLanding, worksheetPage } from './webinar/pages';
 import { ensureSessions } from './webinar/webinar';
 import { notesPage } from './webinar/experience';
 import { chapters } from './webinar/room';
@@ -118,6 +118,7 @@ app.get('/data', (c) => c.redirect('/', 301));
 app.get('/webinar', withVisitor, webinarLanding);
 for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/registered/:token`, withVisitor, registeredPage);
+  app.get(`${prefix}/ticket/:token`, withVisitor, ticketPage);
   app.get(`${prefix}/room/:token`, withVisitor, (c) => roomPage(c, false));
   app.get(`${prefix}/replay/:token`, withVisitor, (c) => roomPage(c, true));
   app.get(`${prefix}/ics/:token`, icsFile);

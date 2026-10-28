@@ -12,7 +12,51 @@ const cal = (c: TemplateCtx) => {
   return x.google || x.ics ? `Add it to your calendar: ${x.google ? `<a href="${x.google}">Google</a>` : ''}${x.google && x.ics ? ' · ' : ''}${x.ics ? `<a href="${x.ics}">Apple / Outlook</a>` : ''}` : '';
 };
 
+/** Paid-ticket mode: the straight-to-checkout link and the ticket price. */
+const tk = (c: TemplateCtx) => {
+  const x = w(c) as ReturnType<typeof w> & { ticket?: string; ticketPrice?: string | null };
+  return { href: x.ticket ?? x.room, price: x.ticketPrice || 'the ticket' };
+};
+const ticketGuarantee = (c: TemplateCtx) => `The ticket guarantee: watch it, and if you don’t think it was worth far more than ${tk(c).price}, reply within 7 days for a full refund.`;
+
 export const WEBINAR_TEMPLATES: Record<string, T> = {
+  // "Finish your ticket": registered while the ticket is paid, not paid yet (SEQUENCES.ticket). Stops once it is paid.
+  w_ticket_1: (c) => ({
+    subject: 'one step left on your masterclass ticket',
+    preheader: 'Your personal link goes out once the ticket is paid.',
+    body: [
+      `Hey ${c.name},`,
+      `You registered for <strong>${w(c).title}</strong> (${w(c).when}). Your ${tk(c).price} ticket isn’t paid yet, so your seat in the room isn’t confirmed.`,
+      'The room is kept for owners who are serious about buying a business. Pay the ticket and your personal link and reminders come straight through.',
+      'In the hour you’ll see how a competitor gets bought with the bank’s money and the seller’s instead of yours: commercial debt, seller finance and seller rollover, tested at about 1.5x debt service coverage.',
+      `Your ${tk(c).price} comes off the First Deal Sprint if you start it after the masterclass.`,
+    ],
+    cta: { label: 'Finish my ticket →', href: tk(c).href },
+    ps: ticketGuarantee(c),
+  }),
+  w_ticket_2: (c) => ({
+    subject: 'whose money buys your next business',
+    preheader: 'Your cash, or the bank’s and the seller’s.',
+    body: [
+      `${c.name},`,
+      'The default plan for buying a competitor is to save up the price and pay it from your own cash. That cash then sits in someone else’s business instead of working in yours.',
+      'The masterclass shows the structure the bank and the seller fund. Commercial debt is lent against the target’s cash flow, the seller carries part of the price as a note, and seller rollover keeps the seller in the deal with a stake.',
+      `Your ${tk(c).price} ticket is still open. The link takes you straight to secure checkout.`,
+    ],
+    cta: { label: 'Get my ticket →', href: tk(c).href },
+    ps: ticketGuarantee(c),
+  }),
+  w_ticket_3: (c) => ({
+    subject: 'last note about your ticket',
+    preheader: 'Then I’ll leave it with you.',
+    body: [
+      `Hey ${c.name},`,
+      `This is my last note about your masterclass ticket. If you want to see how a deal for a business in your industry gets funded, it is ${tk(c).price}, and it comes off the First Deal Sprint if you start it afterwards.`,
+      'If your session time has passed, the link takes you to the next showings and you pick one.',
+      ticketGuarantee(c),
+    ],
+    cta: { label: 'Get my ticket →', href: tk(c).href },
+  }),
   w_confirm: (c) => ({
     subject: `you’re in: ${w(c).title}`,
     preheader: `${w(c).when}. Your personal link is inside.`,

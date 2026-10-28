@@ -427,6 +427,9 @@ async function webinarContext(rt: Runtime, lead: Lead, link: (path: string) => s
     worksheet: link(`${webinarBase(rt)}/worksheet/${reg.token}`),
     blueprint: link(`${webinarBase(rt)}/blueprint/${reg.token}`),
     apply: link(`/w/${reg.token}`),
+    // Paid-ticket mode: straight to Stripe Checkout for the ticket, and its price.
+    ticket: link(`${webinarBase(rt)}/ticket/${reg.token}`),
+    ticketPrice: (await import('../webinar/pass')).passConfig(rt.settings).seat?.label ?? null,
     // The watch experience: key points they saved, their notes page, and their own words on what a first deal would change.
     notes: (await rt.env.DB.prepare('SELECT text FROM webinar_notes WHERE reg_id = ? ORDER BY at_sec').bind(reg.id).all<{ text: string }>().catch(() => ({ results: [] as { text: string }[] }))).results.map((r) => r.text),
     notesUrl: link(`${webinarBase(rt)}/notes/${reg.token}`),
@@ -518,6 +521,7 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     const blocked = await isSuppressed(rt, row.to_email);
     if (blocked) { await skip(blocked); return; }
     if ('stopIf' in seq && seq.stopIf?.(lead)) { await skip('sequence goal reached'); return; }
+    if ('stopIfAsync' in seq && typeof seq.stopIfAsync === 'function' && (await seq.stopIfAsync(rt, lead))) { await skip(row.sequence === 'ticket' ? 'ticket paid' : 'ticket not paid'); return; }
     if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); return; }
     if ('skipIfAsync' in step && typeof step.skipIfAsync === 'function' && (await step.skipIfAsync(rt, lead))) { await skip('step condition'); return; }
 

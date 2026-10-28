@@ -6,7 +6,7 @@ import { zonedTime } from '../integrations/email';
 import { getLead } from '../funnel/leads';
 import { REVENUE_LABEL } from '../sales/qualify';
 import { identityFromLead, track } from '../tracking/track';
-import { type Registration, getRegistration, roomUrl, webinarBase, webinarSettings } from './webinar';
+import { type Registration, getRegistration, roomUrl, startTicketedMessages, stopTicketedMessages, webinarBase, webinarSettings } from './webinar';
 
 /**
  * Paid products in the masterclass, sold through Stripe Checkout:
@@ -154,12 +154,57 @@ export function passCopy(cfg: Pick<PassConfig, 'offerName' | 'offerNoun' | 'pric
     sessionEmail: 'Josh’s team emails you to book your 60-minute session.',
     roomBadge: cfg.offerName,
     holderNote: 'Questions you type here get a fuller answer and are flagged to Josh’s team.',
+    // The paid ticket (required mode with a seat price). User-facing it is a "ticket"; in code and data it stays kind 'seat'.
     seatEyebrow: 'One step left',
-    seatHeading: 'Confirm your seat',
-    seatBody: 'This masterclass is for owners who are serious about buying a business, so seats are paid. Once it is paid, your seat is confirmed and the room opens at the start time.',
-    seatButton: 'Confirm my seat',
-    seatActive: 'Your seat is confirmed.',
+    seatHeading: 'Get your Masterclass ticket',
+    seatBody: 'The room is kept for owners who are serious about buying a business, so entry is a paid ticket. Pay once and your ticket is confirmed straight away. The room opens at your start time.',
+    seatButton: 'Get my ticket',
+    seatActive: 'Your Masterclass ticket is confirmed.',
   };
+}
+
+/**
+ * Copy for the paid ticket, wherever it is sold: the landing page, the payment step, the "finish your ticket"
+ * emails. Only real things are listed: the room, the replay window, the room's deal calculator, the attendee
+ * worksheet and the Acquisition Blueprint (built at the pitch). The credit is applied by the First Deal Sprint
+ * checkout from the lead's paid seat rows.
+ */
+export function ticketCopy(o: { label: string; replayHours: number; durationMin?: number }) {
+  return {
+    eyebrow: 'Masterclass ticket',
+    priceLine: `${o.label} ticket. Credited in full if you start the First Deal Sprint.`,
+    whyHeading: `Why the masterclass costs ${o.label}`,
+    why: [
+      'This hour is about buying a business with the bank’s money and the seller’s money, and keeping your own cash working in the business you already run.',
+      `The room is kept for owners who will act on it. A ${o.label} ticket filters out the curious, so the questions in the room come from owners with a real business and a real target.`,
+    ],
+    includesHeading: 'Your ticket includes',
+    includes: [
+      { title: `The masterclass with Josh Li${o.durationMin ? `, about ${o.durationMin} minutes` : ''}`, body: 'Where the off-market deals are, how commercial debt, seller finance and seller rollover fund the price, and the 90-day path to a signed LOI.' },
+      { title: `The replay for ${o.replayHours} hours`, body: 'Rewatch the part on structure with your own numbers in front of you.' },
+      { title: 'The deal calculator', body: 'Put in a target’s profit and price and see whether the funding stack clears the 1.5x coverage test lenders use.' },
+      { title: 'The Deal Structure Worksheet', body: 'A printable worksheet for structuring your first deal, unlocked in the room.' },
+      { title: 'Your Acquisition Blueprint', body: 'A one-page plan built from your answers in the room: your target, your stack and your next 90 days.' },
+    ],
+    credit: `Your ${o.label} comes off the First Deal Sprint if you start it after the masterclass.`,
+    guaranteeHeading: 'The ticket guarantee',
+    guarantee: `Watch it. If you don’t think it was worth far more than ${o.label}, reply within 7 days for a full refund.`,
+    formHeading: 'Get your ticket',
+    button: `Get my ${o.label} ticket`,
+    privacy: `Next is secure checkout by Stripe for the ${o.label} ticket. We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time.`,
+    confirmedEyebrow: 'Ticket confirmed',
+    confirmedHeading: 'Your Masterclass ticket is confirmed',
+    confirmedBody: 'Your personal link is on its way to your inbox. The room opens at the time above.',
+  };
+}
+
+const ticketHours = (s: Partial<Settings>) => (Number(s.WEBINAR_REPLAY_HOURS) > 0 ? Number(s.WEBINAR_REPLAY_HOURS) : 48);
+/** The ticket copy for the current settings, or null when there is no paid ticket (free mode). */
+export function ticketFor(s: Partial<Settings>) {
+  const cfg = passConfig(s);
+  if (cfg.mode !== 'required' || !cfg.seat) return null;
+  const dur = Number(s.WEBINAR_DURATION_MIN) > 0 ? Number(s.WEBINAR_DURATION_MIN) : 60;
+  return { cfg, label: cfg.seat.label, copy: ticketCopy({ label: cfg.seat.label, replayHours: ticketHours(s), durationMin: dur }) };
 }
 
 // ───────────── Stripe signature ─────────────
@@ -248,6 +293,20 @@ export async function passGate(rt: Runtime, reg: Pick<Registration, 'lead_id'> &
   return !(await anyPaid(rt, reg.lead_id));
 }
 
+/**
+ * The lead's current registration (lead.webinar_token) still waits for its paid ticket. The pre-webinar emails,
+ * the webinar reminders and the reminder texts hold while this is true (also after a full refund).
+ */
+export async function ticketUnpaid(rt: Runtime, lead: { webinar_token?: string | null }) {
+  if (!lead.webinar_token) return false;
+  const reg = await getRegistration(rt, lead.webinar_token);
+  return reg ? passGate(rt, reg) : false;
+}
+
+/** The lead's paid ticket (seat), if any. */
+export const paidTicket = (rt: Runtime, leadId: string) =>
+  rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE lead_id = ? AND kind = 'seat' AND status = 'paid' ORDER BY paid_at DESC LIMIT 1").bind(leadId).first<PassRow>();
+
 /** Should a new registration be marked as needing a paid seat? */
 export const seatRequired = (rt: Runtime) => { const cfg = passConfig(rt.settings); return cfg.mode === 'required' && Boolean(cfg.seat); };
 
@@ -299,9 +358,9 @@ export function checkoutForm(cfg: PassConfig, o: { kind: PassKind; passId: strin
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': cfg.currency.toLowerCase(),
     'line_items[0][price_data][unit_amount]': String(seat ? cfg.seat?.amount ?? 0 : cfg.amount),
-    'line_items[0][price_data][product_data][name]': seat ? `Seat: ${o.title || 'The Acquisition Masterclass'}` : cfg.offerName,
+    'line_items[0][price_data][product_data][name]': seat ? `Masterclass ticket: ${o.title || 'The Acquisition Masterclass'}` : cfg.offerName,
     'line_items[0][price_data][product_data][description]': seat
-      ? 'Your confirmed seat at the masterclass with Josh Li.'
+      ? `Your ticket to the masterclass with Josh Li. Credited in full if you start the First Deal Sprint. Ticket guarantee: if you don’t think it was worth far more than ${cfg.seat?.label ?? 'the ticket'}, reply within 7 days for a full refund.`
       : `${cfg.offerName} with G&L M&A Advisory. The full fee is credited against the advisory engagement if you continue. ${cfg.guarantee}.`,
     client_reference_id: o.reg.id,
     'metadata[kind]': o.kind,
@@ -344,7 +403,7 @@ export async function createCheckout(rt: Runtime, reg: Registration, o: { kind?:
   const expiresAt = now + 31 * 60_000; // Stripe's minimum is 30 minutes
   const amount = kind === 'seat' ? cfg.seat!.amount : cfg.amount;
   await rt.env.DB.prepare('INSERT INTO webinar_passes (id, reg_id, lead_id, kind, product, status, amount, currency, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(id, reg.id, reg.lead_id, kind, kind === 'seat' ? 'Masterclass seat' : cfg.offerName, 'pending', amount, cfg.currency.toLowerCase(), expiresAt, now, now).run();
+    .bind(id, reg.id, reg.lead_id, kind, kind === 'seat' ? 'Masterclass ticket' : cfg.offerName, 'pending', amount, cfg.currency.toLowerCase(), expiresAt, now, now).run();
   const back = o.from === 'room' ? roomUrl(rt, reg.token) : `${webinarBase(rt)}/registered/${reg.token}`;
   try {
     const s = await stripeApi<StripeCheckoutSession>(rt, 'POST', 'checkout/sessions',
@@ -405,8 +464,11 @@ export async function passPaidEffects(rt: Runtime, pass: PassRow) {
   const paid = formatMoney(value, pass.currency.toUpperCase());
   const band = lead?.revenue_band ? REVENUE_LABEL[lead.revenue_band] ?? lead.revenue_band : 'revenue not given';
   if (pass.kind === 'seat') {
-    await track(rt, who, { name: 'webinar_seat_purchased', source: 'webhook', path: '/webinar', props: { pass_id: pass.id, value, currency: pass.currency.toUpperCase() } });
-    if (lead) rt.waitUntil(notifySlack(rt, lead, '🎟️ Masterclass seat paid', [`Paid: ${paid} · ${band}`], 'qualified_lead').catch((e) => console.error('seat slack failed', e)));
+    // Forwarded as a Purchase (Meta CAPI / GA4) with the ticket price as the value.
+    await track(rt, who, { name: 'webinar_seat_purchased', source: 'webhook', path: '/webinar', props: { pass_id: pass.id, product: 'Masterclass ticket', value, currency: pass.currency.toUpperCase() } });
+    // The ticket is paid: the finish-your-ticket emails stop and the confirmation, reminders, pre-webinar emails and texts start now.
+    await startTicketedMessages(rt, pass.lead_id);
+    if (lead) rt.waitUntil(notifySlack(rt, lead, '🎟️ Masterclass ticket paid', [`Ticket: ${paid} · ${band}`], 'qualified_lead').catch((e) => console.error('ticket slack failed', e)));
     return;
   }
   const cfg = passConfig(rt.settings);
@@ -436,6 +498,8 @@ export async function markPassRefunded(rt: Runtime, o: { paymentIntent: string |
   if (pass.kind === 'offer' && !(await activePass(rt, pass.lead_id))) {
     await applyPassReplay(rt, pass.lead_id, false);
   }
+  // A refunded ticket closes the room again (passGate finds nothing paid) and stops what the ticket started.
+  if (pass.kind === 'seat' && !(await anyPaid(rt, pass.lead_id))) await stopTicketedMessages(rt, pass.lead_id);
   await track(rt, await identityFromLead(rt.env, pass.lead_id), { name: 'webinar_purchase_refunded', source: 'webhook', props: { pass_id: pass.id, kind: pass.kind }, localOnly: true });
   return { ok: true as const, duplicate: false };
 }
@@ -520,18 +584,33 @@ export function offerCardHtml(cfg: PassConfig, cap: ReturnType<typeof capacity>,
   </div>`;
 }
 
-/** The paid-seat step (required mode with a seat price). */
-export function seatCardHtml(cfg: PassConfig, note: string | null = null) {
+/** The paid-ticket step (required mode with a seat price): the fallback when registration couldn't go straight to Stripe. */
+export function seatCardHtml(cfg: PassConfig, note: string | null = null, replayHours = 48) {
   const t = passCopy(cfg);
+  const k = ticketCopy({ label: cfg.seat!.label, replayHours });
   return `<div class="card pass-card seat" data-pass-offer>
     <h2 class="pass-h">${esc(t.seatHeading)}</h2>
     <p class="pass-lede">${esc(t.seatBody)}</p>
     ${note ? `<p class="pass-note" role="status">${esc(note)}</p>` : ''}
+    <p class="pass-sub">${esc(k.includesHeading)}</p>
+    ${perkList(k.includes)}
     <div class="pass-buy">
       <p class="pass-price"><b>${esc(cfg.seat!.label)}</b> <span>${esc(cfg.currency)} · one payment</span></p>
       <button type="button" class="btn btn-lg pass-btn" data-pass-buy="seat">${esc(t.seatButton)} · ${esc(cfg.seat!.label)}</button>
-      <p class="pass-fine">${esc(t.secure)}</p>
+      <p class="pass-fine"><strong>${esc(k.guaranteeHeading)}.</strong> ${esc(k.guarantee)}</p>
+      <p class="pass-fine">${esc(k.credit)} ${esc(t.secure)}</p>
     </div>
+  </div>`;
+}
+
+/** Back from Stripe with the ticket paid. */
+export function ticketConfirmedHtml(cfg: PassConfig, replayHours = 48) {
+  const k = ticketCopy({ label: cfg.seat?.label ?? formatMoney(0, cfg.currency), replayHours });
+  return `<div class="card pass-card active compact" data-ticket-confirmed>
+    <p class="pass-eyebrow"><span class="pass-badge">${esc(k.eyebrow)}</span></p>
+    <h2 class="pass-h">${esc(k.confirmedHeading)}</h2>
+    <p class="pass-lede">${esc(k.confirmedBody)}</p>
+    <p class="pass-fine">${esc(k.credit)} ${esc(k.guarantee)}</p>
   </div>`;
 }
 
@@ -560,13 +639,16 @@ export async function registeredPassBlock(rt: Runtime, reg: Registration, query:
     if (r !== 'paid') note = passCopy(cfg).confirming;
   }
   if (query.pass === 'cancel') note = passCopy(cfg).cancelled;
+  const replayHours = webinarSettings(rt).replayHours;
+  // Ticket mode: a paid ticket gets its confirmation above whatever card follows.
+  const ticket = cfg.mode === 'required' && cfg.seat && (await paidTicket(rt, reg.lead_id)) ? ticketConfirmedHtml(cfg, replayHours) : '';
   const holder = await activePass(rt, reg.lead_id);
-  if (holder) return { html: holderCardHtml(rt, cfg, holder, reg.token), gate: false, active: true, confirming: false };
-  if (cfg.mode === 'off') return { html: '', gate: false, active: false, confirming: false };
+  if (holder) return { html: ticket + holderCardHtml(rt, cfg, holder, reg.token), gate: false, active: true, confirming: false, ticket: Boolean(ticket) };
+  if (cfg.mode === 'off') return { html: '', gate: false, active: false, confirming: false, ticket: false };
   const gate = await passGate(rt, reg);
-  if (gate) return { html: seatCardHtml(cfg, note), gate: true, active: false, confirming: note === passCopy(cfg).confirming };
+  if (gate) return { html: seatCardHtml(cfg, note, replayHours), gate: true, active: false, confirming: note === passCopy(cfg).confirming, ticket: false };
   const cap = await passCapacity(rt, cfg);
-  return { html: offerCardHtml(cfg, cap, note), gate: false, active: false, confirming: note === passCopy(cfg).confirming };
+  return { html: ticket + offerCardHtml(cfg, cap, note), gate: false, active: false, confirming: note === passCopy(cfg).confirming, ticket: Boolean(ticket) };
 }
 
 /** Room config: the buyer's card, or the one-click offer for $1M+ viewers at the pitch. */
@@ -670,7 +752,12 @@ export async function passReport(rt: Runtime, range: { from: number; to: number 
   ).bind(Date.now(), kind, range.from, range.to).first<Agg>();
   const [offer, seat, regs, holders, cap] = await Promise.all([
     agg('offer'), agg('seat'),
-    db.prepare('SELECT COUNT(*) AS n, SUM(pass_required) AS required FROM webinar_registrations WHERE created_at BETWEEN ? AND ?').bind(range.from, range.to).first<{ n: number; required: number | null }>(),
+    // Unpaid: registered while a ticket was required and nothing is paid (or it was refunded) for that person.
+    db.prepare(
+      `SELECT COUNT(*) AS n, SUM(pass_required) AS required,
+              SUM(pass_required = 1 AND NOT EXISTS (SELECT 1 FROM webinar_passes p WHERE p.lead_id = r.lead_id AND p.status = 'paid')) AS unpaid
+         FROM webinar_registrations r WHERE created_at BETWEEN ? AND ?`,
+    ).bind(range.from, range.to).first<{ n: number; required: number | null; unpaid: number | null }>(),
     db.prepare(
       `SELECT p.id, p.kind, p.product, p.status, p.amount, p.currency, p.paid_at, p.refunded_at, p.credit_amount, p.review_clicked_at, p.review_booked_at, p.pack_viewed_at,
               l.id AS lead_id, l.first_name, l.last_name, l.email, COALESCE(r.revenue_band, l.revenue_band) AS band
@@ -709,6 +796,12 @@ export async function passReport(rt: Runtime, range: { from: number; to: number 
       seatRevenueLabel: money(seat?.revenue),
       seatRefunds: seat?.refunds ?? 0,
       requiredRegistrants: regs?.required ?? 0,
+      // The paid ticket (kind 'seat'), named as the owner sees it.
+      ticketsSold: (seat?.sold ?? 0) - (seat?.refunds ?? 0),
+      ticketRevenueLabel: money(seat?.revenue),
+      ticketRefunds: seat?.refunds ?? 0,
+      ticketOpenCheckouts: seat?.open_checkouts ?? 0,
+      unpaidRegistrations: regs?.unpaid ?? 0,
     },
     capacity: cap,
     holders: holders.results.map((h) => ({

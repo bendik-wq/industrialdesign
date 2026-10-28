@@ -265,6 +265,8 @@ export async function processSmsQueue(rt: Runtime, limit = 40) {
       ?? (step.skip.find((k) => SKIP[k](lead, clicked)) ? `skip: ${step.skip.find((k) => SKIP[k](lead, clicked))}` : null)
       ?? (lead.phone !== row.to_phone ? 'number changed' : null);
     if (why) { await skip(why); continue; }
+    // Paid-ticket mode: no webinar texts until their ticket is paid (and none after a refund).
+    if (row.sequence === 'webinar' && (await (await import('../webinar/pass')).ticketUnpaid(rt, lead))) { await skip('ticket not paid'); continue; }
     const zones = callingZones(lead.phone)!;
     if (!inTextingHours(now, zones)) {
       const next = nextTextingTime(now, zones);

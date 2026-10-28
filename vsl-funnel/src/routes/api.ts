@@ -16,7 +16,7 @@ import { addPhone, answerPoll, chapters, askQuestion, logCalc, offerClick, selfS
 import { liveFeed, postChat, raiseHand } from '../webinar/live';
 import { blueprintAction } from '../webinar/blueprint';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
-import { PassError, createCheckout, markReviewClicked, passGate, seatRequired, syncPassReplay } from '../webinar/pass';
+import { PassError, createCheckout, markReviewClicked, passGate, syncPassReplay } from '../webinar/pass';
 
 export const api = new Hono<AppEnv>();
 
@@ -165,10 +165,15 @@ api.post('/webinar/register', async (c) => {
     const body = (await readJson<Record<string, unknown>>(c.req.raw)) ?? {};
     const rt = runtimeFrom(c);
     const { registration, created } = await register(rt, c.get('visitor'), body);
-    // Paid seat (required mode with a seat price): this registration opens the room only once paid.
-    if (created && seatRequired(rt)) await rt.env.DB.prepare('UPDATE webinar_registrations SET pass_required = 1 WHERE id = ?').bind(registration.id).run();
     if (created) await syncPassReplay(rt, registration.lead_id);
-    return c.json({ ok: true, next: `${webinarBase(rt)}/registered/${registration.token}` });
+    const thanks = `${webinarBase(rt)}/registered/${registration.token}`;
+    // Paid ticket (required mode with a seat price; register() marked it): straight on to Stripe Checkout.
+    // If Checkout can't start, the thank-you page shows the ticket card with its own button.
+    if (await passGate(rt, registration)) {
+      const r = await createCheckout(rt, registration, { kind: 'seat', from: 'ty' }).catch((e) => { console.error('ticket checkout', String(e).slice(0, 200)); return null; });
+      if (r && 'url' in r && r.url) return c.json({ ok: true, next: r.url, checkout: true });
+    }
+    return c.json({ ok: true, next: thanks });
   } catch (err) {
     return errorResponse(c, err);
   }

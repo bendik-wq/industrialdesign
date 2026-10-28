@@ -966,7 +966,12 @@
       tile('Refunds', n(k.refunds), k.openCheckouts ? n(k.openCheckouts) + ' checkout' + (k.openCheckouts === 1 ? '' : 's') + ' open now' : 'no open checkouts', null, { zeroOk: true }) +
       tile('This week', cap.capped ? n(cap.left) + ' of ' + n(cap.cap) + ' left' : 'No cap', cap.capped ? n(cap.used) + ' sold or in checkout since Monday' : 'set a weekly cap under Integrations → Webinar', null, { zeroOk: true }) +
       '</div>' +
-      (c.seat || k.seats ? '<p class="muted" style="margin-top:8px">Paid seats: ' + n(k.seats) + ' sold · ' + esc(k.seatRevenueLabel || '–') + ' · ' + n(k.seatRefunds) + ' refunded · ' + n(k.requiredRegistrants) + (k.requiredRegistrants === 1 ? ' registrant' : ' registrants') + ' needed one.</p>' : '') +
+      (c.seat || k.seats ? '<h3 class="h3" style="margin-top:14px">Masterclass tickets' + (c.seat ? ' · ' + esc(c.seat) : '') + '</h3><div class="grid g-4 tiles" data-ticket-hq>' +
+        tile('Tickets sold', n(k.ticketsSold), 'paid, after refunds', null, { zeroOk: true }) +
+        tile('Ticket revenue', k.ticketRevenueLabel || '–', 'after refunds', null, { zeroOk: true }) +
+        tile('Unpaid registrations', n(k.unpaidRegistrations), 'of ' + n(k.requiredRegistrants) + ' who needed a ticket' + (k.ticketOpenCheckouts ? ' · ' + n(k.ticketOpenCheckouts) + ' in checkout now' : ''), null, { zeroOk: true }) +
+        tile('Ticket refunds', n(k.ticketRefunds), 'refund in Stripe; the room closes again', null, { zeroOk: true }) +
+        '</div>' : '') +
       '<div class="grid g-2" style="margin-top:12px"><div><h3 class="h3">Buyers</h3>' +
       ((p.holders || []).length ? table([
         { label: 'Name', html: function (r) { return '<strong>' + esc(r.name) + '</strong>' + (r.status === 'refunded' ? ' <span class="pill">refunded</span>' : '') + '<div class="muted">' + esc(r.email || '') + '</div>'; } },
