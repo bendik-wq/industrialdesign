@@ -4,9 +4,13 @@ import { render } from '../funnel/pages';
 import { getLead, linkVisitor } from '../funnel/leads';
 import { formatCallTime } from '../integrations/email';
 import { pickWebinarHeadline } from './headlines';
+import { roomExtras, worksheetOpen } from './room';
+import { ROOM_COPY, THANK_YOU, WORKSHEET } from './content';
+import { FAQ_VIDEOS } from '../content/faq-videos';
+import { FAQ_READY } from '../content/faq-videos-ready';
 import { identityFromVisitor, track } from '../tracking/track';
 import {
-  type Registration, type Session, getRegistration, getSession, googleCalendarUrl, ics, openSessions, phase, replayUrl, roomUrl, webinarBase, webinarSettings,
+  type Registration, type Session, getRegistration, getSession, googleCalendarUrl, ics, jitSettings, nextJitStart, openSessions, phase, replayUrl, roomUrl, webinarBase, webinarSettings,
 } from './webinar';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -21,11 +25,15 @@ export function isWebinarHost(c: Context<AppEnv>) {
 
 const when = (t: number, tz: string | null) => formatCallTime(t, tz);
 
-/** Registration options, in the visitor's own time zone. */
-function sessionOptions(sessions: Session[], tz: string | null) {
-  return sessions.map((s, i) => {
+/** "Starts in 12 minutes" (kept fresh by the page's script). */
+const inMinutes = (t: number) => { const m = Math.max(1, Math.round((t - Date.now()) / 60_000)); return `Starts in ${m} minute${m === 1 ? '' : 's'}`; };
+
+/** Registration options, in the visitor's own time zone; a just-in-time showing first when there is one. */
+function sessionOptions(sessions: Session[], tz: string | null, jit: number | null = null) {
+  const first = jit ? `<label class="opt opt-jit"><input type="radio" name="session_id" value="jit:${jit}" checked><span><strong data-starts-in="${jit}">${inMinutes(jit)}</strong> · next showing, ${esc(formatCallTime(jit, tz).replace(/^[A-Za-z]+,?\s*/, ''))}</span></label>` : '';
+  return first + sessions.map((s, i) => {
     const soon = s.starts_at - Date.now() < 3_600_000;
-    return `<label class="opt"><input type="radio" name="session_id" value="${esc(s.id)}"${i === 0 ? ' checked' : ''}><span>${esc(when(s.starts_at, tz))}${s.mode !== 'evergreen' ? ' · live' : ''}${soon ? ' · starting soon' : ''}</span></label>`;
+    return `<label class="opt"><input type="radio" name="session_id" value="${esc(s.id)}"${i === 0 && !jit ? ' checked' : ''}><span>${esc(when(s.starts_at, tz))}${s.mode !== 'evergreen' ? ' · live' : ''}${soon ? ' · starting soon' : ''}</span></label>`;
   }).join('');
 }
 
@@ -34,18 +42,20 @@ export async function webinarLanding(c: Context<AppEnv>) {
   const v = c.get('visitor');
   const w = webinarSettings(rt);
   const sessions = await openSessions(rt, 4);
+  const jt = jitSettings(rt);
+  const jit = nextJitStart(Date.now(), jt.every, v.geo.timezone ?? rt.settings.SALES_TIMEZONE ?? null, jt);
   const { headline: hl, preview } = await pickWebinarHeadline(rt, v.visitorId, c.req.query('h'));
   // Logged for the headline test (previews from Funnel HQ don't count).
   if (!preview && v.visitorId) await track(rt, identityFromVisitor(v, null, v.leadId ?? null), { name: 'webinar_headline_view', source: 'server', path: '/webinar', props: { h: hl.id }, localOnly: true });
   return render(c, '/webinar.html', {
     title: w.title,
     slots: { webinar_title: esc(w.title), duration: String(w.durationMin), hl_h1: hl.h1, hl_lede: esc(hl.lede) },
-    blocks: { sessions: sessions.length ? sessionOptions(sessions, v.geo.timezone) : '<p class="muted">No sessions are scheduled right now. Check back soon.</p>' },
-    show: { has_sessions: sessions.length > 0 },
+    blocks: { sessions: sessions.length || jit ? sessionOptions(sessions, v.geo.timezone, jit) : '<p class="muted">No sessions are scheduled right now. Check back soon.</p>' },
+    show: { has_sessions: sessions.length > 0 || Boolean(jit) },
     config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt), headline: hl.id } },
     seo: {
       title: `${w.title} | Masterclass with Josh Li`,
-      description: 'A live masterclass with Josh Li on buying a business with no money down: commercial debt, seller finance and seller rollover, and getting to a signed LOI.',
+      description: 'A one-hour masterclass with Josh Li on buying a competitor without your own cash: commercial debt, seller finance and seller rollover, and the path to a signed LOI.',
       path: '/',
       origin: (() => { try { return rt.settings.WEBINAR_URL ? new URL(rt.settings.WEBINAR_URL).origin : undefined; } catch { return undefined; } })(),
       index: isWebinarHost(c),
@@ -68,18 +78,36 @@ export async function registeredPage(c: Context<AppEnv>) {
   const w = webinarSettings(rt);
   const lead = await getLead(c.env, reg.lead_id);
   const tz = c.get('visitor').geo.timezone ?? lead?.timezone ?? null;
+  // Starting within 20 minutes (a just-in-time showing): send them straight to the room instead of the calendar.
+  const soon = session.starts_at - Date.now() < 20 * 60_000;
+  const clip = FAQ_VIDEOS.find((f) => f.id === 'faq-5-seller-buyout' && FAQ_READY.includes(f.id)) ?? FAQ_VIDEOS.find((f) => FAQ_READY.includes(f.id));
+  const committed = await rt.env.DB.prepare("SELECT value FROM webinar_interactions WHERE reg_id = ? AND kind = 'commit'").bind(reg.id).first<{ value: string }>();
   return render(c, '/webinar-registered.html', {
     title: 'You’re registered',
-    slots: { webinar_title: esc(session.title || w.title), when: esc(when(session.starts_at, tz)), first_name_comma: lead?.first_name ? `, ${esc(lead.first_name)}` : '' },
+    slots: {
+      webinar_title: esc(session.title || w.title), when: esc(when(session.starts_at, tz)),
+      ty_heading: esc(soon ? `You’re in${lead?.first_name ? `, ${lead.first_name}` : ''}. It starts in a few minutes.` : THANK_YOU.heading),
+      ty_question: esc(THANK_YOU.question),
+      preframe_q: clip ? esc(clip.q) : '',
+    },
+    blocks: {
+      ty_paras: (soon ? THANK_YOU.paras.filter((p) => !/calendar/i.test(p)) : THANK_YOU.paras).map((p) => `<p>${esc(p)}</p>`).join(''),
+      ty_options: THANK_YOU.options.map((o) => `<button type="button" class="btn-opt${committed?.value === o.value ? ' picked' : ''}" data-ty="${esc(o.value)}">${esc(o.label)}</button>`).join(''),
+      preframe_video: clip ? `<video controls playsinline preload="none" poster="/assets/media/faq/${clip.id}.jpg" data-hls="/assets/media/faq/${clip.id}/index.m3u8"></video>` : '',
+    },
+    show: { soon, ask_phone: !lead?.phone, has_preframe: Boolean(clip) },
     hrefs: { room: roomUrl(rt, reg.token), ics: `${webinarBase(rt)}/ics/${reg.token}`, google: googleCalendarUrl(rt, session, reg) },
-    config: { webinar: { startsAt: session.starts_at } },
+    config: { webinar: { startsAt: session.starts_at, ty: reg.token } },
   });
 }
 
 async function nextSessionsBlock(c: Context<AppEnv>, exclude?: string) {
   const rt = runtimeFrom(c);
   const sessions = (await openSessions(rt, 4)).filter((s) => s.id !== exclude && s.starts_at > Date.now());
-  return sessions.length ? sessionOptions(sessions, c.get('visitor').geo.timezone) : '';
+  const jt = jitSettings(rt);
+  const tz = c.get('visitor').geo.timezone ?? rt.settings.SALES_TIMEZONE ?? null;
+  const jit = nextJitStart(Date.now(), jt.every, tz, jt);
+  return sessions.length || jit ? sessionOptions(sessions, c.get('visitor').geo.timezone, jit) : '';
 }
 
 export async function roomPage(c: Context<AppEnv>, replay = false) {
@@ -127,10 +155,26 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         // The live join link is only handed out from 10 minutes before the start.
         joinUrl: session.mode === 'live' && !replay && Date.now() > session.starts_at - 10 * 60_000 ? session.join_url : null,
         applyUrl: `${rt.origin}/w/${reg.token}`,
+        worksheetUrl: `${webinarBase(rt)}/worksheet/${reg.token}`,
+        ...(await roomExtras(rt, reg)),
+        copy: ROOM_COPY,
         replayUntil: session.starts_at + w.durationMin * 60_000 + w.replayHours * 3_600_000,
       },
     },
   });
+}
+
+/** The attendee-only Deal Structure Worksheet (printable). Opens once the masterclass reaches the worksheet minute. */
+export async function worksheetPage(c: Context<AppEnv>) {
+  const { rt, reg, session } = await load(c);
+  if (!reg || !session) return notFound(c);
+  const unlocked = worksheetOpen(rt, session, reg) || Boolean(await rt.env.DB.prepare("SELECT 1 FROM webinar_interactions WHERE reg_id = ? AND kind = 'bonus'").bind(reg.id).first());
+  const body = unlocked
+    ? `<header class="ws-head"><span class="eyebrow">Attendee worksheet</span><h1 class="h2">${esc(WORKSHEET.title)}</h1><p class="lede">${esc(WORKSHEET.intro)}</p></header>` +
+      WORKSHEET.sections.map((s, i) => `<section class="ws-sec"><h2 class="h3">${/^\d/.test(s.heading) ? '' : `${i + 1}. `}${esc(s.heading)}</h2>${s.paras.map((p) => `<p>${esc(p)}</p>`).join('')}${s.rows?.length ? `<table class="ws-rows"><tbody>${s.rows.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table>` : ''}</section>`).join('') +
+      `<p class="muted ws-disc">${esc(WORKSHEET.disclaimer)}</p><p class="no-print"><a class="btn" href="${esc(`${rt.origin}/w/${reg.token}`)}">Bring it to a strategy call: apply →</a></p>`
+    : `<h1 class="h2">Your worksheet unlocks near the end of the masterclass</h1><p class="lede">Stay with the session and it appears in the room. <a href="${esc(roomUrl(rt, reg.token))}">Back to the masterclass</a></p>`;
+  return render(c, '/webinar-worksheet.html', { title: WORKSHEET.title, blocks: { worksheet: body } });
 }
 
 export async function icsFile(c: Context<AppEnv>) {

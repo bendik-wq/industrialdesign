@@ -23,7 +23,7 @@ export const underMillion = (band: string | null | undefined) => Boolean(band) &
  * and their attendance (joined, minutes watched, offer clicked, replay) is tracked.
  */
 
-export const WEBINAR_CYCLE = 12; // email steps per registration block (see SEQUENCES.webinar)
+export const WEBINAR_CYCLE = 20; // email steps per registration block (see SEQUENCES.webinar)
 
 export interface Session {
   id: string;
@@ -58,7 +58,7 @@ export function webinarSettings(rt: Runtime) {
   const s = rt.settings;
   const num = (v: string, d: number) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
   return {
-    title: s.WEBINAR_TITLE || 'The No-Money-Down Acquisition Masterclass',
+    title: s.WEBINAR_TITLE || 'The Acquisition Masterclass',
     schedule: s.WEBINAR_SCHEDULE || 'Tue 19:00, Thu 12:00',
     tz: s.SALES_TIMEZONE || 'Australia/Sydney',
     durationMin: num(s.WEBINAR_DURATION_MIN, 60),
@@ -131,10 +131,47 @@ export async function ensureSessions(rt: Runtime, force = false) {
   return res.reduce((n, r) => n + (r.meta.changes ?? 0), 0);
 }
 
+// ───────────── just-in-time showings ─────────────
+
+/** How often a just-in-time showing starts (minutes; 0 = off) and the viewer's local hours it runs in. */
+export function jitSettings(rt: Runtime) {
+  const every = Number((rt.settings.WEBINAR_JIT_EVERY ?? '').trim() || 15);
+  const m = /^(\d{1,2})\s*-\s*(\d{1,2})$/.exec((rt.settings.WEBINAR_JIT_HOURS ?? '').trim() || '7-22');
+  return { every: Number.isFinite(every) && every >= 5 && every <= 120 ? Math.round(every) : every === 0 ? 0 : 15, from: m ? Number(m[1]) : 7, to: m ? Number(m[2]) : 22 };
+}
+
+/** Local hour (0–23) of a moment in a time zone. */
+function localHour(t: number, tz: string) {
+  try { return Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hourCycle: 'h23' }).format(t)); } catch { return new Date(t).getUTCHours(); }
+}
+
+/**
+ * The next just-in-time showing: the next slot on the `every`-minute grid at least 4 minutes away
+ * (so they can open the room), inside the viewer's waking hours. Null when off or outside hours.
+ */
+export function nextJitStart(now: number, every: number, tz: string | null, hours: { from: number; to: number }) {
+  if (!every) return null;
+  const step = every * 60_000;
+  const t = Math.ceil((now + 4 * 60_000) / step) * step;
+  const h = localHour(t, tz || 'UTC');
+  return h >= hours.from && h < hours.to ? t : null;
+}
+
+/** A just-in-time choice from the form ("jit:<ms>") becomes a real session (or reuses one at that minute). */
+export async function jitSession(rt: Runtime, raw: string) {
+  const t = Number(raw.slice(4));
+  const { every } = jitSettings(rt);
+  if (!every || !Number.isFinite(t) || t % (every * 60_000) !== 0) return null;
+  const now = Date.now();
+  if (t < now - 5 * 60_000 || t > now + (every + 10) * 60_000) return null;
+  await rt.env.DB.prepare("INSERT OR IGNORE INTO webinar_sessions (id, starts_at, mode, status, auto, created_at) VALUES (?, ?, 'evergreen', 'scheduled', 2, ?)").bind(newId('ws'), t, now).run();
+  return rt.env.DB.prepare('SELECT * FROM webinar_sessions WHERE starts_at = ?').bind(t).first<Session>();
+}
+
 /** Sessions people can still register for (including one that started in the last 10 minutes). */
 export async function openSessions(rt: Runtime, limit = 4) {
   const { results } = await rt.env.DB.prepare(
-    "SELECT * FROM webinar_sessions WHERE status = 'scheduled' AND starts_at > ? ORDER BY starts_at LIMIT ?",
+    "SELECT * FROM webinar_sessions WHERE status = 'scheduled' AND auto != 2 AND starts_at > ? ORDER BY starts_at LIMIT ?",
   ).bind(Date.now() - 10 * 60_000, limit).all<Session>();
   return results;
 }
@@ -185,7 +222,7 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number, including area code — or leave it blank', 'phone');
   const sessionId = typeof body.session_id === 'string' ? body.session_id : '';
-  const session = sessionId ? await getSession(rt, sessionId) : (await openSessions(rt, 1))[0] ?? null;
+  const session = sessionId.startsWith('jit:') ? await jitSession(rt, sessionId) : sessionId ? await getSession(rt, sessionId) : (await openSessions(rt, 1))[0] ?? null;
   if (!session || session.status !== 'scheduled' || session.starts_at < Date.now() - 10 * 60_000) throw new ApplicationError('That session is no longer available — please pick another time', 'session_id', 409);
 
   const now = Date.now();
@@ -238,6 +275,11 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   await track(rt, who, { name: 'webinar_registered', source: 'server', path: '/webinar', props: { session_id: session.id, starts_at: session.starts_at, mode: session.mode, band, headline }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });
   // Revenue events once per person (an application may already have sent them); "$1M+ webinar" on their first registration.
   if (bandIsNew) await trackRevenueEvents(rt, who, band, 'webinar', '/webinar');
+  // Big fish: tell the team straight away so someone can reach out before the session.
+  if (['10m-25m', '25m-50m', '50m-100m', '100m+'].includes(band)) {
+    const { notifySlack } = await import('../integrations/notify');
+    rt.waitUntil(notifySlack(rt, lead, '💎 $10M+ owner registered for the masterclass', [`Session: ${new Date(session.starts_at).toISOString().slice(0, 16).replace('T', ' ')} UTC`], 'hot_lead'));
+  }
   else if (reg.seq === 0 && isMillionPlus(lead.revenue_band)) await track(rt, who, { name: 'qualified_1m_plus', source: 'server', path: '/webinar', props: { band: lead.revenue_band, funnel: 'webinar' } });
   return { registration: reg, session, lead: (await getLead(rt.env, lead.id))!, created: true };
 }
@@ -253,8 +295,8 @@ async function scheduleEmails(rt: Runtime, lead: Lead, session: Session, reg: Re
 
 /** Moves someone to another session (from the "pick another time" link). */
 export async function moveRegistration(rt: Runtime, reg: Registration, sessionId: string) {
-  const session = await getSession(rt, sessionId);
-  if (!session || session.status !== 'scheduled' || session.starts_at < Date.now()) throw new ApplicationError('That session is no longer available', 'session_id', 409);
+  const session = sessionId.startsWith('jit:') ? await jitSession(rt, sessionId) : await getSession(rt, sessionId);
+  if (!session || session.status !== 'scheduled' || session.starts_at < Date.now() - 5 * 60_000) throw new ApplicationError('That session is no longer available', 'session_id', 409);
   const lead = await getLead(rt.env, reg.lead_id);
   if (!lead) throw new ApplicationError('Registration not found', undefined, 404);
   const prior = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM webinar_registrations WHERE lead_id = ?').bind(lead.id).first<{ n: number }>();

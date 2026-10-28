@@ -688,7 +688,26 @@
     var drops = (w.drops || []).map(function (d) {
       return '<li><b>Minute ' + d.minute + '</b>: ' + esc(pct(d.lost, 1)) + ' of live viewers left' + (w.offerClicks[d.minute] ? ' · ' + n(w.offerClicks[d.minute]) + ' clicked the offer here' : '') + '</li>';
     }).join('');
-    return roomHtml + '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
+    var g = x.engagement || {}, st = x.stage || [];
+    var engageHtml = '<div class="grid g-2" style="margin-top:14px">' +
+      '<div class="card"><h2>Masterclass funnel ($1M+)</h2><p class="sub">Each step for owners doing $1M+ (and older sign-ups who weren’t asked). Applying and booking also count people who did it after the session, without the room’s button.</p>' +
+      barList(st.map(function (s, i) { return { name: s.key, value: s.n, note: i && st[0].n ? pct(s.n / st[0].n) + ' of registered' : '' }; })) + '</div>' +
+      '<div class="card"><h2>In the room</h2><p class="sub">What people did beyond watching.</p><div class="grid g-2 tiles" style="margin-top:8px">' +
+      tile('Questions asked', n((g.questions || []).length), n((g.questions || []).filter(function (q) { return q.answer; }).length) + ' answered by the assistant') +
+      tile('Calculator runs', n((g.calc || {}).runs), (g.calc && g.calc.medianPrice) ? 'typical deal: ' + money(g.calc.medianPrice) + ' price, ' + money(g.calc.medianProfit) + ' profit' : 'no runs yet') +
+      tile('Worksheets unlocked', n(g.worksheets), 'attendee bonus') +
+      tile('Offer clicks', n(((g.offers || {}).call || 0) + ((g.offers || {}).selfServe || 0)), n((g.offers || {}).selfServe) + ' chose start-now · ' + n((g.offers || {}).agreements) + ' agreements sent') +
+      '</div>' + ((g.targets || []).some(function (t) { return t.n; }) ? '<h3 class="h3" style="margin-top:12px">“Which business would you most like to own?” (thank-you page)</h3>' + barList((g.targets || []).map(function (t) { return { name: t.label, value: t.n }; })) : '') + '</div></div>' +
+      ((g.polls || []).some(function (p) { return p.total; }) ? '<div class="card" style="margin-top:14px"><h2>Poll answers</h2><p class="sub">Asked inside the masterclass. Use them on the strategy call and in the follow-up.</p><div class="grid g-2" style="margin-top:8px">' +
+        (g.polls || []).map(function (p) { return '<div><h3 class="h3">' + esc(p.question) + ' <span class="muted">· minute ' + p.at + ' · ' + n(p.total) + ' answers</span></h3><p class="muted small">' + esc(p.purpose) + '</p>' + barList(p.options.map(function (o) { return { name: o.label, value: o.n }; })) + '</div>'; }).join('') + '</div></div>' : '') +
+      ((g.questions || []).length ? '<div class="card" style="margin-top:14px"><h2>Questions from the room</h2><p class="sub">Every question typed in the masterclass, with the assistant’s reply. Tick them off once someone has followed up. Questions without a reply need one by email.</p>' +
+        table([
+          { label: 'Who', html: function (r) { return '<strong>' + esc(r.name) + '</strong><div class="muted">' + esc(r.email || '') + (r.band ? ' · ' + esc(r.band) : '') + '</div>'; } },
+          { label: 'Question', html: function (r) { return esc(r.question) + (r.at != null ? '<div class="muted">at ' + Math.floor(r.at / 60) + ' min</div>' : ''); } },
+          { label: 'Assistant replied', html: function (r) { return r.answer ? '<span class="muted">' + esc(r.answer) + '</span>' : '<span class="pill">needs a reply</span>'; } },
+          { label: '', html: function (r) { return '<label class="check"><input type="checkbox" data-qdone="' + esc(r.id) + '"' + (r.handled ? ' checked' : '') + '> done</label>'; } },
+        ], g.questions, { cards: true }) + '</div>' : '');
+    return roomHtml + engageHtml + '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
       (w.liveViewers ? '<b>' + esc(pct(w.atPitch)) + '</b> of ' + n(w.liveViewers) + ' live viewers were still there when the offer came up.' : 'No one has watched live in this period yet.') + '</p>' +
       '<div class="chart" data-wcurve style="margin-top:8px"></div>' + (drops ? '<h3 class="h3" style="margin-top:12px">Where people leave</h3><ul class="plain-list">' + drops + '</ul>' : '') + '</div>' +
       '<div class="grid g-2" style="margin-top:14px">' +
@@ -785,6 +804,9 @@
         ], d.registrants || [], { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>';
       view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
       drawWebinarCurve(view.querySelector('[data-wcurve]'), ins);
+      view.querySelectorAll('[data-qdone]').forEach(function (cb) {
+        cb.onchange = function () { send('PUT', 'webinar/questions/' + encodeURIComponent(cb.getAttribute('data-qdone')), { handled: cb.checked }); };
+      });
       view.querySelectorAll('[data-whl]').forEach(function (b) {
         b.onclick = function () {
           var m = b.getAttribute('data-whl');

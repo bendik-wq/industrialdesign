@@ -134,6 +134,8 @@ export function precallPlan(lead: Lead, limit = Infinity): string[] {
 const booked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
 /** In the room for the session they're booked into (not an earlier one). */
 const cameToWebinar = (l: Lead) => Boolean(l.webinar_attended_at && l.webinar_at && l.webinar_attended_at >= l.webinar_at - 30 * MIN);
+/** Left the masterclass before the offer (pitch at 45 of 60 minutes by default). */
+const LEFT_EARLY = 0.72;
 /** Already applied or booked: the webinar follow-up has done its job. */
 const pitched = (l: Lead) => Boolean(l.app_completed_at) || (Boolean(l.booked_at) && !l.booking_cancelled_at);
 /** Imported straight from Calendly: never in the funnel, never on its emails. */
@@ -247,7 +249,7 @@ export const SEQUENCES = {
   webinar: {
     id: 'webinar',
     description: 'Registered for the webinar — confirmation, reminders, then follow-up based on whether they came',
-    cycle: 12,
+    cycle: 20,
     stopIf: (l) => ['won', 'lost', 'disqualified'].includes(l.status),
     steps: [
       { template: 'w_confirm', offsetMs: 0 },
@@ -255,12 +257,21 @@ export const SEQUENCES = {
       { template: 'w_3h', offsetMs: -3 * HOUR, anchor: 'webinar_at' },
       { template: 'w_15m', offsetMs: -15 * MIN, anchor: 'webinar_at' },
       { template: 'w_live', offsetMs: 3 * MIN, anchor: 'webinar_at', skipIf: (l) => cameToWebinar(l) },
-      { template: 'w_thanks', offsetMs: 80 * MIN, anchor: 'webinar_at', skipIf: (l) => !cameToWebinar(l) || pitched(l) },
+      { template: 'w_thanks', offsetMs: 80 * MIN, anchor: 'webinar_at', skipIf: (l) => !cameToWebinar(l) || pitched(l) || (l.webinar_watch_pct ?? 0) < LEFT_EARLY || Boolean(l.webinar_cta_at && l.webinar_cta_at >= (l.webinar_at ?? 0)) },
       { template: 'w_missed', offsetMs: 80 * MIN, anchor: 'webinar_at', skipIf: (l) => cameToWebinar(l) },
       { template: 'w_replay_last', offsetMs: 40 * HOUR, anchor: 'webinar_at', skipIf: (l) => pitched(l) || (l.webinar_watch_pct ?? 0) >= 0.8 },
       { template: 'w_offer', offsetMs: 3 * DAY, anchor: 'webinar_at', skipIf: pitched },
       { template: 'w_story', offsetMs: 5 * DAY, anchor: 'webinar_at', skipIf: pitched },
       { template: 'w_last', offsetMs: 8 * DAY, anchor: 'webinar_at', skipIf: pitched },
+      // Behaviour-based (appended so earlier step numbers don't move):
+      // missed it → the next showing (every 15 minutes) within 20 minutes of their start time;
+      { template: 'w_next_showing', offsetMs: 20 * MIN, anchor: 'webinar_at', skipIf: (l) => cameToWebinar(l) || Boolean(l.webinar_replay_at) || pitched(l) },
+      // left before the offer → what they missed, with the replay;
+      { template: 'w_left_early', offsetMs: 75 * MIN, anchor: 'webinar_at', skipIf: (l) => !cameToWebinar(l) || pitched(l) || (l.webinar_watch_pct ?? 0) >= LEFT_EARLY },
+      // clicked the offer but didn't finish the application → pick up where they left off;
+      { template: 'w_clicked', offsetMs: 100 * MIN, anchor: 'webinar_at', skipIf: (l) => !l.webinar_cta_at || l.webinar_cta_at < (l.webinar_at ?? 0) - 30 * MIN || pitched(l) },
+      // stayed to the end → their worksheet (next morning-ish).
+      { template: 'w_bonus', offsetMs: 20 * HOUR, anchor: 'webinar_at', skipIf: (l) => !cameToWebinar(l) || (l.webinar_watch_pct ?? 0) < 0.85 },
     ],
   },
   prewebinar: {

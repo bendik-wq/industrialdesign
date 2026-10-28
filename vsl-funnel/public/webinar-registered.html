@@ -20,11 +20,30 @@
   <main id="main">
     <section class="hero hero-center"><div class="wrap narrow center">
       <span class="eyebrow">You’re registered</span>
-      <h1 class="display">See you there<span data-slot="first_name_comma"></span></h1>
+      <h1 class="display" data-slot="ty_heading">See you there</h1>
       <p class="lede"><strong data-slot="webinar_title">The masterclass</strong><br><span data-slot="when"></span></p>
       <div class="countdown" data-countdown aria-live="polite"></div>
-      <p><a class="btn btn-lg" data-href="room" href="#">Open my link to the session</a></p>
-      <p class="cal-links">Add it to your calendar: <a data-href="google" href="#" target="_blank" rel="noopener">Google</a> · <a data-href="ics" href="#">Apple / Outlook</a></p>
+      <div data-if="soon"><p><a class="btn btn-lg" data-href="room" href="#">Go to the masterclass room now</a></p><p class="muted">It starts by itself. Keep the page open.</p></div>
+      <div data-if="!soon">
+        <p><a class="btn btn-lg" data-href="google" href="#" target="_blank" rel="noopener">Add it to Google Calendar</a></p>
+        <p class="cal-links"><a data-href="ics" href="#">Apple / Outlook calendar</a> · <a data-href="room" href="#">My link to the session</a></p>
+      </div>
+      <div class="ty-paras" data-html="ty_paras"></div>
+      <div class="card ty-commit" data-ty-commit>
+        <p class="room-moment-h" data-slot="ty_question">Which business would you most like to own?</p>
+        <div class="room-opts" data-html="ty_options"></div>
+        <p class="muted small" data-ty-thanks hidden>Got it. The session will speak to that.</p>
+      </div>
+      <div class="card ty-phone" data-if="ask_phone">
+        <p class="room-moment-h">Get a text when it starts</p>
+        <form data-ty-phone class="ty-phone-f"><input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="Mobile number" required><button class="btn btn-sm" type="submit">Text me</button></form>
+        <p class="muted small">One text before the session and one when it starts. Msg &amp; data rates may apply. Reply STOP to opt out.</p>
+      </div>
+      <div class="card ty-video" data-if="has_preframe">
+        <p class="room-moment-h">Watch this first · about a minute</p>
+        <p class="room-q" data-slot="preframe_q"></p>
+        <div data-html="preframe_video"></div>
+      </div>
       <div class="card next-steps" style="text-align:left;margin-top:28px">
         <strong>Three things before the session</strong>
         <ol>

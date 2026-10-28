@@ -185,6 +185,11 @@ admin.put('/ads/campaign', async (c) => {
 });
 admin.post('/ads/manual', async (c) => { try { return c.json({ ok: true, ...(await addManualSpend(runtimeFrom(c), await c.req.json())) }); } catch (e) { return fail(c, e); } });
 admin.delete('/ads/manual', async (c) => { await deleteManualSpend(runtimeFrom(c), String(c.req.query('platform')), String(c.req.query('campaign_id'))); return c.json({ ok: true }); });
+admin.put('/webinar/questions/:id', async (c) => {
+  const b = await c.req.json<{ handled?: boolean }>().catch(() => ({ handled: true }));
+  await c.env.DB.prepare("UPDATE webinar_interactions SET handled = ? WHERE id = ? AND kind = 'question'").bind(b.handled === false ? 0 : 1, c.req.param('id')).run();
+  return c.json({ ok: true });
+});
 admin.get('/webinar/insights', async (c) => { const f = filters(c); return c.json(await webinarInsights(runtimeFrom(c), { from: f.from, to: f.to })); });
 
 // ── Financial model ──

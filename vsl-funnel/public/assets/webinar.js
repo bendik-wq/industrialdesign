@@ -34,6 +34,18 @@
     box.textContent = msg;
   }
 
+  document.querySelectorAll('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });
+
+  // ── "Starts in N minutes" on the next just-in-time showing; a fresh one once it has gone ──
+  var jitEls = document.querySelectorAll('[data-starts-in]');
+  if (jitEls.length) setInterval(function () {
+    jitEls.forEach(function (el) {
+      var mins = Math.round((Number(el.getAttribute('data-starts-in')) - Date.now()) / 60000);
+      if (mins < -4) location.reload();
+      else el.textContent = mins <= 0 ? 'Starting now' : 'Starts in ' + mins + ' minute' + (mins === 1 ? '' : 's');
+    });
+  }, 20000);
+
   // ── Registration ──
   var reg = document.querySelector('[data-webinar-register]');
   if (reg) reg.addEventListener('submit', function (e) {
@@ -68,6 +80,38 @@
     });
   });
 
+  // ── Thank-you page: the one question, a mobile for texts, the "watch this first" clip ──
+  if (cfg.ty) {
+    document.querySelectorAll('[data-ty]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('[data-ty]').forEach(function (x) { x.classList.toggle('picked', x === b); });
+        post('/api/webinar/commit', { token: cfg.ty, target: b.getAttribute('data-ty') }).then(function () { var t = document.querySelector('[data-ty-thanks]'); if (t) t.hidden = false; });
+      });
+    });
+    var pf = document.querySelector('[data-ty-phone]');
+    if (pf) pf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = pf.querySelector('button');
+      btn.disabled = true;
+      post('/api/webinar/phone', { token: cfg.ty, phone: pf.phone.value.trim() }).then(function (r) {
+        btn.disabled = false;
+        if (r && r.ok) pf.outerHTML = '<p class="small"><strong>Done.</strong> We’ll text you before it starts.</p>';
+        else error(pf, (r && r.error) || 'Please check the number');
+      });
+    });
+    document.querySelectorAll('video[data-hls]').forEach(function (v) {
+      var src = v.getAttribute('data-hls'), loaded = false;
+      var load = function () {
+        if (loaded) return; loaded = true;
+        if (v.canPlayType('application/vnd.apple.mpegurl')) { v.src = src; v.play().catch(function () {}); return; }
+        var s = document.createElement('script'); s.src = HLS_SRC;
+        s.onload = function () { if (window.Hls && window.Hls.isSupported()) { var h = new window.Hls(); h.loadSource(src); h.attachMedia(v); v.play().catch(function () {}); } };
+        document.head.appendChild(s);
+      };
+      v.addEventListener('play', load); v.addEventListener('click', load);
+    });
+  }
+
   // ── Registered page ──
   if (!cfg.token && cfg.startsAt) countdown(document.querySelector('[data-countdown]'), cfg.startsAt);
 
@@ -80,6 +124,9 @@
   var until = document.querySelector('[data-replay-until]');
   if (until && cfg.replayUntil) until.textContent = new Date(cfg.replayUntil).toLocaleString([], { weekday: 'long', hour: 'numeric', minute: '2-digit' });
   function show(el, on) { if (el) el.hidden = !on; }
+  // Shared with webinar-room.js (polls, agenda, calculator): where the masterclass is now, and seeking in the replay.
+  window.WEBINAR_POS = function () { return cfg.mode === 'stream' && !cfg.replay ? elapsed() : (video ? video.currentTime : (started ? elapsed() : 0)); };
+  window.WEBINAR_SEEK = function (sec) { if (cfg.replay && video) { video.currentTime = sec; video.play().catch(function () {}); } };
   function elapsed() { return Math.max(0, (now() - cfg.startsAt) / 1000); }
 
   function maybeCta(pos) {

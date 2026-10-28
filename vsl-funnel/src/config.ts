@@ -196,7 +196,7 @@ export const BREAKOUT = {
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'Do I really put no money down?',
-    a: 'Yes. That’s the structure. Seller finance (the seller is paid over time from the business’s own cash flow) and senior debt cover the purchase price, and the deal is <strong>over-financed</strong>: the financing covers more than the price, and the extra goes to working capital and closing costs. We line the financing up with you before you sign the LOI.',
+    a: 'Yes. That’s the structure. Commercial debt, seller finance (the seller is paid over time from the business’s own cash flow) and seller rollover (the seller keeps a stake in the new company) cover the purchase price, and the deal is <strong>over-financed</strong>: the financing covers more than the price, and the extra goes to working capital and closing costs. We line the financing up with you before you sign the LOI.',
   },
   {
     q: 'What does a 1.5x DSCR mean?',

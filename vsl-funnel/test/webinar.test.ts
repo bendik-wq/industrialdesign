@@ -59,7 +59,7 @@ describe('webinar emails', () => {
   });
 
   it('sends attendees and no-shows different follow-up', () => {
-    const came = lead({ webinar_attended_at: at + 5 * 60_000 });
+    const came = lead({ webinar_attended_at: at + 5 * 60_000, webinar_watch_pct: 0.9 });
     const missed = lead();
     expect(step('w_live').skipIf!(came)).toBe(true);
     expect(step('w_live').skipIf!(missed)).toBe(false);
@@ -71,5 +71,22 @@ describe('webinar emails', () => {
     expect(step('w_missed').skipIf!(lead({ webinar_attended_at: at - 7 * 86_400_000 }))).toBe(false);
     // Once they apply, the pitch emails stop.
     expect(step('w_offer').skipIf!(lead({ app_completed_at: Date.now() }))).toBe(true);
+  });
+
+  it('follows up on what they did in the room', () => {
+    const leftEarly = lead({ webinar_attended_at: at + 5 * 60_000, webinar_watch_pct: 0.4 });
+    const stayed = lead({ webinar_attended_at: at + 5 * 60_000, webinar_watch_pct: 0.95 });
+    const clicked = lead({ webinar_attended_at: at + 5 * 60_000, webinar_watch_pct: 0.8, webinar_cta_at: at + 47 * 60_000 });
+    const missed = lead();
+    expect(step('w_left_early').skipIf!(leftEarly)).toBe(false);
+    expect(step('w_left_early').skipIf!(stayed)).toBe(true);
+    expect(step('w_thanks').skipIf!(leftEarly)).toBe(true);
+    expect(step('w_thanks').skipIf!(clicked)).toBe(true);
+    expect(step('w_clicked').skipIf!(clicked)).toBe(false);
+    expect(step('w_clicked').skipIf!(lead({ ...clicked, app_completed_at: Date.now() }))).toBe(true);
+    expect(step('w_bonus').skipIf!(stayed)).toBe(false);
+    expect(step('w_bonus').skipIf!(leftEarly)).toBe(true);
+    expect(step('w_next_showing').skipIf!(missed)).toBe(false);
+    expect(step('w_next_showing').skipIf!(stayed)).toBe(true);
   });
 });

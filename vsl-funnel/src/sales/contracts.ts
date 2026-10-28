@@ -73,7 +73,7 @@ export function paymentHtml(rt: Runtime, reference?: string) {
 // ───────────── Auto-quote ─────────────
 
 /** Fee by the size of the business. Most land at $20k–$50k; larger groups scale up. Edit freely per agreement. */
-const FEE_BY_REVENUE: Record<string, number> = {
+export const FEE_BY_REVENUE: Record<string, number> = {
   lt1m: 20_000, '1_3m': 20_000, '3_10m': 25_000, gt10m: 35_000, '10_25m': 35_000, '25_50m': 50_000, '50_100m': 75_000, gt100m: 100_000,
 };
 const FEE_BY_PROFIT: Record<string, number> = { p3_10m: 50_000, pgt10m: 75_000 };

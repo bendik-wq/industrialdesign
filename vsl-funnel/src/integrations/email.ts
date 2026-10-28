@@ -367,6 +367,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     webinar,
     ask: opts.ask ?? askFor(null, lead),
     webinarUrl: `${webinarBase(rt)}`,
+    ...(webinar ? { applyUrl: webinar.apply } : {}),
   };
   // An edit made in Funnel HQ → Email editor replaces the built-in wording.
   const override = opts.override !== undefined ? opts.override : isEditable(template) ? (await loadOverrides(rt)).get(template) : undefined;
@@ -421,6 +422,10 @@ async function webinarContext(rt: Runtime, lead: Lead, link: (path: string) => s
     google: link(googleCalendarUrl(rt, session, reg)),
     replayHours: w.replayHours,
     durationMin: w.durationMin,
+    // Next just-in-time showing (the registration page), and the attendee worksheet.
+    next: link(`${webinarBase(rt)}/`),
+    worksheet: link(`${webinarBase(rt)}/worksheet/${reg.token}`),
+    apply: link(`/w/${reg.token}`),
   };
 }
 
@@ -498,7 +503,7 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     }
     const step = row.step >= LONG_STEP
       ? { template: row.template, offsetMs: 0 }
-      : row.sequence === 'reactivation' || row.sequence === 'prewebinar'
+      : row.sequence === 'reactivation' || row.sequence === 'prewebinar' || row.sequence === 'webinar'
       ? seq?.steps.find((st) => st.template === row.template)
       : seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];
     const skip = (reason: string) => rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = ? WHERE id = ?").bind(reason, row.id).run();

@@ -11,6 +11,7 @@ import { COOKIE, resolveVisitor } from '../lib/identity';
 import { type CollectPayload, collect } from '../tracking/collect';
 import { parseHeartbeat, recordHeartbeat } from '../tracking/vsl';
 import { transcribe } from '../lib/speech';
+import { addPhone, answerPoll, askQuestion, logCalc, offerClick, selfServeAgreement, thankYouAnswer, unlockBonus } from '../webinar/room';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
 
 export const api = new Hono<AppEnv>();
@@ -190,6 +191,24 @@ api.post('/webinar/cta', async (c) => {
   await markCta(rt, reg);
   return c.json({ ok: true });
 });
+// ── Inside the masterclass room ──
+const roomAction = (fn: (rt: ReturnType<typeof runtimeFrom>, reg: NonNullable<Awaited<ReturnType<typeof getRegistration>>>, body: Record<string, unknown>, session: NonNullable<Awaited<ReturnType<typeof getSession>>>) => Promise<unknown>) => async (c: Context<AppEnv>) => {
+  try {
+    const { rt, body, reg, session } = await webinarReg(c);
+    if (!reg || !session) return c.json({ ok: false }, 404);
+    return c.json(await fn(rt, reg, body, session));
+  } catch (err) {
+    return errorResponse(c, err);
+  }
+};
+api.post('/webinar/poll', roomAction((rt, reg, body) => answerPoll(rt, reg, body)));
+api.post('/webinar/ask', roomAction((rt, reg, body) => askQuestion(rt, reg, body)));
+api.post('/webinar/calc', roomAction((rt, reg, body) => logCalc(rt, reg, body)));
+api.post('/webinar/bonus', roomAction(async (rt, reg, body, session) => ({ ...(await unlockBonus(rt, reg, session, body)), url: `${webinarBase(rt)}/worksheet/${reg.token}` })));
+api.post('/webinar/offer', roomAction((rt, reg, body) => offerClick(rt, reg, body)));
+api.post('/webinar/start', roomAction((rt, reg) => selfServeAgreement(rt, reg)));
+api.post('/webinar/commit', roomAction((rt, reg, body) => thankYouAnswer(rt, reg, body)));
+api.post('/webinar/phone', async (c) => roomAction((rt, reg, body) => addPhone(rt, reg, body, c.get('visitor').geo.country))(c));
 api.post('/webinar/move', async (c) => {
   try {
     const { rt, body, reg } = await webinarReg(c);

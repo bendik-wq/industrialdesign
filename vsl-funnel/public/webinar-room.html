@@ -12,6 +12,7 @@
   <title>Masterclass</title>
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/webinar.js"></script>
+  <script defer src="/assets/webinar-room.js"></script>
 </head>
 <body class="webinar">
   <header class="nav"><div class="wrap nav-in">
@@ -36,9 +37,11 @@
           <p class="lede">That’s the end of the session. Thanks for watching.</p>
         </div>
       </div>
-      <div class="room-cta" data-cta hidden>
-        <p class="lede"><strong>Want us to map out your first acquisition?</strong> The application takes about two minutes.</p>
-        <a class="btn btn-mega" href="#" data-apply data-track="cta_click" data-track-id="webinar_offer"><span class="btn-mega-main">See if my business qualifies <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><span class="btn-mega-sub">7-day money-back guarantee</span></a>
+      <div class="room-cta" data-cta hidden></div>
+      <nav class="room-agenda" data-agenda aria-label="Masterclass agenda"></nav>
+      <div class="room-side">
+        <div class="room-moments" data-moments aria-live="polite"></div>
+        <div class="room-ask card" data-ask></div>
       </div>
       <p class="muted" data-if="replay">This replay is available until <span data-replay-until></span>.</p>
     </div></section>

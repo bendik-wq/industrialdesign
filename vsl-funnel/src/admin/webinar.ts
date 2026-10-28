@@ -2,6 +2,7 @@ import type { Runtime } from '../app';
 import { platformOf } from '../lib/attribution';
 import { isMillionPlus, REVENUE_LABEL } from '../sales/qualify';
 import { WEBINAR_HEADLINES, webinarHeadlineOdds, webinarHeadlineStats } from '../webinar/headlines';
+import { DEFAULT_POLLS, THANK_YOU } from '../webinar/content';
 import { webinarBase, webinarSettings } from '../webinar/webinar';
 
 /** Funnel HQ → Webinar: sessions, registrants and how registrants move through the funnel. */
@@ -21,7 +22,7 @@ export async function webinarReport(rt: Runtime, range: { from: number; to: numb
     ).bind(range.from, range.to).first<Record<string, number | null>>(),
     db.prepare(
       `SELECT s.*, COUNT(r.id) AS registrations FROM webinar_sessions s LEFT JOIN webinar_registrations r ON r.session_id = s.id
-        WHERE s.starts_at > ? GROUP BY s.id ORDER BY s.starts_at LIMIT 12`,
+        WHERE s.starts_at > ? AND s.auto != 2 GROUP BY s.id ORDER BY s.starts_at LIMIT 12`,
     ).bind(Date.now() - w.durationMin * 60_000).all(),
     db.prepare(
       `SELECT s.*, COUNT(r.id) AS registrations, SUM(r.joined_at IS NOT NULL) AS attended, SUM(r.replay_at IS NOT NULL) AS replays,
@@ -68,7 +69,7 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
   const len = Math.max(1, Math.round(w.durationMin));
   const [regs, emails, spend] = await Promise.all([
     db.prepare(
-      `SELECT r.lead_id, r.revenue_band AS reg_band, l.revenue_band AS lead_band, r.created_at, r.joined_at, r.replay_at, r.cta_at, r.max_position, r.live_minutes, r.replay_minutes, s.starts_at, s.mode,
+      `SELECT r.lead_id, r.revenue_band AS reg_band, l.revenue_band AS lead_band, r.created_at, r.joined_at, r.replay_at, r.cta_at, r.max_position, r.live_minutes, r.replay_minutes, s.starts_at, s.mode, s.auto,
               l.channel, l.utm_source, l.utm_medium, l.utm_campaign, l.ft_campaign,
               (l.app_completed_at IS NOT NULL AND l.app_completed_at > r.created_at) AS applied,
               (l.booked_at IS NOT NULL AND l.booked_at > r.created_at AND l.booking_cancelled_at IS NULL) AS booked,
@@ -79,7 +80,7 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
         WHERE r.created_at BETWEEN ? AND ? AND s.status != 'cancelled'`,
     ).bind(range.from, range.to).all<{
       lead_id: string; reg_band: string | null; lead_band: string | null; created_at: number; joined_at: number | null; replay_at: number | null; cta_at: number | null; max_position: number; live_minutes: string | null; replay_minutes: string | null;
-      starts_at: number; mode: string; channel: string | null; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; ft_campaign: string | null;
+      starts_at: number; mode: string; auto: number; channel: string | null; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; ft_campaign: string | null;
       applied: number; booked: number; won: number; revenue: number; unsubscribed: number;
     }>(),
     db.prepare(
@@ -128,7 +129,7 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
   const out = (key: string, a: Agg, extra: Record<string, unknown> = {}) => ({ key, sessions: a.sessions.size, regs: a.regs, qualified: a.qualified, qualifiedRate: a.regs ? a.qualified / a.regs : null, attended: a.attended, replays: a.replays, cta: a.cta, applied: a.applied, booked: a.booked, won: a.won, revenue: a.revenue,
     showRate: a.regs ? (a.attended + a.replays) / a.regs : null, liveRate: a.regs ? a.attended / a.regs : null, bookRate: a.regs ? a.booked / a.regs : null, ...extra });
   const slots = new Map<string, Agg>();
-  for (const r of rows) { const k = fmt.format(r.starts_at).replace(',', ''); if (!slots.has(k)) slots.set(k, blank()); add(slots.get(k)!, r); }
+  for (const r of rows) { const k = r.auto === 2 ? 'Just-in-time showings' : fmt.format(r.starts_at).replace(',', ''); if (!slots.has(k)) slots.set(k, blank()); add(slots.get(k)!, r); }
 
   // 3. Sources: where registrants came from, with webinar ad spend where the campaign matches.
   const webSpend = spend.results.filter((s) => (s.funnel ?? (/webinar|masterclass|master class|workshop|training|live\b/i.test(s.name ?? '') ? 'webinar' : 'vsl')) === 'webinar');
@@ -173,8 +174,44 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
   const odds = webinarHeadlineOdds(hstats, mode, 1000);
   const totalSpend = webSpend.reduce((a, s) => a + (s.spend || 0), 0);
   const qualifiedRegs = rows.filter((r) => isMillionPlus(r.reg_band ?? r.lead_band)).length;
+  // In-room engagement: polls, questions, calculator, worksheet, offer choices, thank-you answers.
+  const inter = await db.prepare(
+    `SELECT i.id, i.kind, i.key, i.value, i.answer, i.at_sec, i.handled, i.created_at, i.lead_id, l.first_name, l.last_name, l.email, l.revenue_band
+       FROM webinar_interactions i LEFT JOIN leads l ON l.id = i.lead_id WHERE i.created_at BETWEEN ? AND ? ORDER BY i.created_at DESC LIMIT 2000`,
+  ).bind(range.from, range.to).all<{ id: string; kind: string; key: string | null; value: string | null; answer: string | null; at_sec: number | null; handled: number; created_at: number; lead_id: string; first_name: string | null; last_name: string | null; email: string | null; revenue_band: string | null }>()
+    .catch(() => ({ results: [] as never[] }));
+  const I = inter.results;
+  const count = (kind: string, key?: string) => I.filter((i) => i.kind === kind && (key == null || i.key === key)).length;
+  const pollStats = DEFAULT_POLLS.map((p) => {
+    const ans = I.filter((i) => i.kind === 'poll' && i.key === p.id);
+    return { id: p.id, question: p.question, purpose: p.purpose, at: p.at, total: ans.length, options: p.options.map((o) => ({ label: o.label, n: ans.filter((a) => a.value === o.value).length })) };
+  });
+  const commits = I.filter((i) => i.kind === 'commit');
+  const calcs = I.filter((i) => i.kind === 'calc').map((i) => { try { return JSON.parse(i.value ?? '{}') as { profit?: number; price?: number }; } catch { return {}; } }).filter((x) => x.profit && x.price);
+  const median = (xs: number[]) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+  // Stage funnel for $1M+ registrants (or everyone who wasn't asked).
+  const q1 = rows.filter((r) => { const b = r.reg_band ?? r.lead_band; return !b || isMillionPlus(b); });
+  const pitchFrac = w.pitchAtMin / len;
+  const stage = [
+    { key: 'Registered ($1M+)', n: q1.length },
+    { key: 'Watched (live or replay)', n: q1.filter((r) => r.joined_at || r.replay_at).length },
+    { key: 'Reached the offer', n: q1.filter((r) => r.max_position >= pitchFrac * len * 60 - 30).length },
+    { key: 'Clicked the offer', n: q1.filter((r) => r.cta_at).length },
+    { key: 'Applied', n: q1.filter((r) => r.applied).length },
+    { key: 'Booked a call', n: q1.filter((r) => r.booked).length },
+    { key: 'Won', n: q1.filter((r) => r.won).length },
+  ];
   return {
     durationMin: len, pitchAtMin: w.pitchAtMin, tz: w.tz,
+    stage,
+    engagement: {
+      polls: pollStats,
+      questions: I.filter((i) => i.kind === 'question').slice(0, 100).map((i) => ({ id: i.id, question: i.value, answer: i.answer, at: i.at_sec, handled: Boolean(i.handled), created_at: i.created_at, lead_id: i.lead_id, name: [i.first_name, i.last_name].filter(Boolean).join(' ') || i.email || 'Someone', email: i.email, band: i.revenue_band })),
+      calc: { runs: calcs.length, medianProfit: median(calcs.map((c) => c.profit!)), medianPrice: median(calcs.map((c) => c.price!)) },
+      worksheets: count('bonus'),
+      offers: { call: count('offer', 'call'), selfServe: count('offer', 'self_serve'), under: count('offer', 'under'), agreements: count('agreement') },
+      targets: THANK_YOU.options.map((o) => ({ label: o.label, n: commits.filter((c) => c.value === o.value).length })),
+    },
     qualified: { regs: rows.length, qualified: qualifiedRegs, rate: rows.length ? qualifiedRegs / rows.length : null, spend: totalSpend || null, perQualified: totalSpend && qualifiedRegs ? totalSpend / qualifiedRegs : null },
     bands: [...bands.entries()].map(([b, n]) => ({ band: b, label: REVENUE_LABEL[b] ?? 'Not asked (older sign-ups)', n, qualified: isMillionPlus(b === 'unknown' ? null : b) })).sort((a, b) => b.n - a.n),
     headlines: {
