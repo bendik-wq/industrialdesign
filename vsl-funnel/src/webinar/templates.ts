@@ -161,4 +161,16 @@ export const WEBINAR_TEMPLATES: Record<string, T> = {
     cta: { label: 'Get my worksheet →', href: (w(c) as { worksheet?: string }).worksheet ?? w(c).replay },
     ps: `When the worksheet is done, the application is here: <a href="${c.link('/apply')}">apply for a strategy call</a>.`,
   }),
+  w_blueprint: (c) => ({
+    subject: 'your acquisition blueprint',
+    preheader: 'One page, built from your answers in the masterclass.',
+    body: [
+      `${c.name},`,
+      'Your Acquisition Blueprint is ready. It is built from what you told us: the size of your business, the business you would most like to own and what stands in the way today.',
+      'It shows the first deal that fits, the stack on your numbers across commercial debt, seller finance and seller rollover, and the 1.5x test already run on it.',
+      'Then the gap between selling one business and selling a group, and your first 90 days. Every number in it is illustrative, and the strategy call is where my team checks it against your real numbers.',
+    ],
+    cta: { label: 'Open my blueprint →', href: (w(c) as { blueprint?: string }).blueprint ?? w(c).replay },
+    ps: `When you have read it, the application is here: <a href="${(w(c) as { apply?: string }).apply ?? c.link('/apply')}">apply for a strategy call</a>.`,
+  }),
 };

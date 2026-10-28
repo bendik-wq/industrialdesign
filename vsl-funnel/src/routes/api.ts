@@ -12,6 +12,7 @@ import { type CollectPayload, collect } from '../tracking/collect';
 import { parseHeartbeat, recordHeartbeat } from '../tracking/vsl';
 import { transcribe } from '../lib/speech';
 import { addPhone, answerPoll, askQuestion, logCalc, offerClick, selfServeAgreement, thankYouAnswer, unlockBonus } from '../webinar/room';
+import { blueprintAction } from '../webinar/blueprint';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
 
 export const api = new Hono<AppEnv>();
@@ -205,6 +206,7 @@ api.post('/webinar/poll', roomAction((rt, reg, body) => answerPoll(rt, reg, body
 api.post('/webinar/ask', roomAction((rt, reg, body) => askQuestion(rt, reg, body)));
 api.post('/webinar/calc', roomAction((rt, reg, body) => logCalc(rt, reg, body)));
 api.post('/webinar/bonus', roomAction(async (rt, reg, body, session) => ({ ...(await unlockBonus(rt, reg, session, body)), url: `${webinarBase(rt)}/worksheet/${reg.token}` })));
+api.post('/webinar/blueprint', roomAction((rt, reg, body, session) => blueprintAction(rt, reg, session, body)));
 api.post('/webinar/offer', roomAction((rt, reg, body) => offerClick(rt, reg, body)));
 api.post('/webinar/start', roomAction((rt, reg) => selfServeAgreement(rt, reg)));
 api.post('/webinar/commit', roomAction((rt, reg, body) => thankYouAnswer(rt, reg, body)));

@@ -33,7 +33,8 @@ export async function webinarReport(rt: Runtime, range: { from: number; to: numb
         WHERE s.starts_at <= ? AND s.starts_at > ? GROUP BY s.id ORDER BY s.starts_at DESC LIMIT 20`,
     ).bind(Date.now() - w.durationMin * 60_000, range.from).all(),
     db.prepare(
-      `SELECT r.created_at, r.joined_at, r.watch_seconds, r.max_position, r.cta_at, r.replay_at, s.starts_at, s.mode,
+      `SELECT r.created_at, r.joined_at, r.watch_seconds, r.max_position, r.cta_at, r.replay_at, s.starts_at, s.mode, r.token,
+              EXISTS (SELECT 1 FROM webinar_blueprints b WHERE b.reg_id = r.id) AS has_blueprint,
               l.id AS lead_id, l.first_name, l.last_name, l.email, l.channel, l.utm_campaign, l.app_completed_at, l.booked_at, l.status, COALESCE(l.tier_override, l.tier) AS tier
          FROM webinar_registrations r JOIN webinar_sessions s ON s.id = r.session_id JOIN leads l ON l.id = r.lead_id
         WHERE r.created_at BETWEEN ? AND ? ORDER BY r.created_at DESC LIMIT 100`,
@@ -181,6 +182,7 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
   ).bind(range.from, range.to).all<{ id: string; kind: string; key: string | null; value: string | null; answer: string | null; at_sec: number | null; handled: number; created_at: number; lead_id: string; first_name: string | null; last_name: string | null; email: string | null; revenue_band: string | null }>()
     .catch(() => ({ results: [] as never[] }));
   const I = inter.results;
+  const blueprintsBuilt = await db.prepare("SELECT COUNT(*) AS n, SUM(source = 'ai') AS ai FROM webinar_blueprints WHERE created_at BETWEEN ? AND ?").bind(range.from, range.to).first<{ n: number; ai: number | null }>().catch(() => null);
   const count = (kind: string, key?: string) => I.filter((i) => i.kind === kind && (key == null || i.key === key)).length;
   const pollStats = DEFAULT_POLLS.map((p) => {
     const ans = I.filter((i) => i.kind === 'poll' && i.key === p.id);
@@ -209,6 +211,7 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
       questions: I.filter((i) => i.kind === 'question').slice(0, 100).map((i) => ({ id: i.id, question: i.value, answer: i.answer, at: i.at_sec, handled: Boolean(i.handled), created_at: i.created_at, lead_id: i.lead_id, name: [i.first_name, i.last_name].filter(Boolean).join(' ') || i.email || 'Someone', email: i.email, band: i.revenue_band })),
       calc: { runs: calcs.length, medianProfit: median(calcs.map((c) => c.profit!)), medianPrice: median(calcs.map((c) => c.price!)) },
       worksheets: count('bonus'),
+      blueprints: { opened: count('blueprint'), built: blueprintsBuilt?.n ?? 0, polished: blueprintsBuilt?.ai ?? 0 },
       offers: { call: count('offer', 'call'), selfServe: count('offer', 'self_serve'), under: count('offer', 'under'), agreements: count('agreement') },
       targets: THANK_YOU.options.map((o) => ({ label: o.label, n: commits.filter((c) => c.value === o.value).length })),
     },

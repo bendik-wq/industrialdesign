@@ -5,6 +5,7 @@ import { getLead, linkVisitor } from '../funnel/leads';
 import { formatCallTime } from '../integrations/email';
 import { pickWebinarHeadline } from './headlines';
 import { roomExtras, worksheetOpen } from './room';
+import { BLUEPRINT_ROOM_COPY, blueprintUrl } from './blueprint';
 import { ROOM_COPY, THANK_YOU, WORKSHEET } from './content';
 import { FAQ_VIDEOS } from '../content/faq-videos';
 import { FAQ_READY } from '../content/faq-videos-ready';
@@ -156,6 +157,8 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         joinUrl: session.mode === 'live' && !replay && Date.now() > session.starts_at - 10 * 60_000 ? session.join_url : null,
         applyUrl: `${rt.origin}/w/${reg.token}`,
         worksheetUrl: `${webinarBase(rt)}/worksheet/${reg.token}`,
+        blueprintUrl: blueprintUrl(rt, reg.token),
+        blueprintCopy: BLUEPRINT_ROOM_COPY,
         ...(await roomExtras(rt, reg)),
         copy: ROOM_COPY,
         replayUntil: session.starts_at + w.durationMin * 60_000 + w.replayHours * 3_600_000,
