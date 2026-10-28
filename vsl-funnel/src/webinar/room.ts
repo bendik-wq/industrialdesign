@@ -59,10 +59,12 @@ export async function askQuestion(rt: Runtime, reg: Registration, body: { questi
   if (q.length < 3) return { ok: false as const, error: 'Type your question first' };
   const asked = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM webinar_interactions WHERE reg_id = ? AND kind = 'question'").bind(reg.id).first<{ n: number }>();
   if ((asked?.n ?? 0) >= 8) return { ok: true as const, answer: null, note: 'Thanks. You’ve asked a lot today, so the team will pick up the rest by email.' };
-  const answer = await answerQuestion(rt, q).catch((e) => { console.error('webinar assistant failed', e); return null; });
-  await log(rt, reg, 'question', { value: q, answer, at: pos(body.pos), replay: body.replay === true });
-  await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'webinar_question', source: 'server', props: { answered: Boolean(answer) }, localOnly: true });
-  return { ok: true as const, answer, note: answer ? null : 'Thanks. Josh’s team reads every question and will reply by email.' };
+  // Deal Room Pass holders: a fuller answer from the bigger model, and the question is flagged (key 'pass') in Funnel HQ.
+  const priority = Boolean(await (await import('./pass')).activePass(rt, reg.lead_id));
+  const answer = await answerQuestion(rt, q, { priority }).catch((e) => { console.error('webinar assistant failed', e); return null; });
+  await log(rt, reg, 'question', { key: priority ? 'pass' : null, value: q, answer, at: pos(body.pos), replay: body.replay === true });
+  await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'webinar_question', source: 'server', props: { answered: Boolean(answer), pass: priority }, localOnly: true });
+  return { ok: true as const, answer, priority, note: answer ? null : 'Thanks. Josh’s team reads every question and will reply by email.' };
 }
 
 /** The in-room deal calculator: inputs rounded, kept for the sales team (what size deal they're thinking about). */
@@ -76,7 +78,7 @@ export async function logCalc(rt: Runtime, reg: Registration, body: { profit?: u
 
 /** Worksheet: available once the masterclass reaches the bonus minute (or in the replay). */
 export function worksheetOpen(rt: Runtime, session: Session, reg: Registration, now = Date.now()) {
-  const p = phase(rt, session, now);
+  const p = phase(rt, session, now, reg.replay_until);
   if (p === 'replay' || p === 'expired') return Boolean(reg.joined_at || reg.replay_at);
   return p === 'running' && now >= session.starts_at + bonusAtMin(rt) * 60_000;
 }
@@ -93,11 +95,11 @@ export async function unlockBonus(rt: Runtime, reg: Registration, session: Sessi
 
 /** Which offer button they pressed at the pitch (call / self-serve / under-$1M path). $10M+ pressing anything pings the team. */
 export async function offerClick(rt: Runtime, reg: Registration, body: { choice?: unknown; pos?: unknown; replay?: unknown }) {
-  const choice = ['call', 'self_serve', 'under'].includes(String(body.choice)) ? String(body.choice) : 'call';
+  const choice = ['call', 'self_serve', 'under', 'assessment'].includes(String(body.choice)) ? String(body.choice) : 'call';
   const fresh = await log(rt, reg, 'offer', { key: choice, at: pos(body.pos), replay: body.replay === true });
   if (fresh && choice !== 'under') {
     const lead = await getLead(rt.env, reg.lead_id);
-    if (lead && TEN_PLUS.has(lead.revenue_band ?? '')) rt.waitUntil(notifySlack(rt, lead, '💰 $10M+ owner clicked the offer in the masterclass', [`Choice: ${choice === 'self_serve' ? 'start now (self-serve agreement)' : 'book a call'}`], 'hot_lead'));
+    if (lead && TEN_PLUS.has(lead.revenue_band ?? '')) rt.waitUntil(notifySlack(rt, lead, '💰 $10M+ owner clicked the offer in the masterclass', [`Choice: ${choice === 'self_serve' ? 'start now (self-serve agreement)' : choice === 'assessment' ? 'start the paid assessment (Stripe checkout)' : 'book a call'}`], 'hot_lead'));
   }
   return { ok: true as const };
 }

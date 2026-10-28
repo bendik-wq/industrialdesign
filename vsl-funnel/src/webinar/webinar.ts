@@ -52,6 +52,10 @@ export interface Registration {
   cta_at: number | null;
   replay_at: number | null;
   replay_seconds: number;
+  /** Per-registration replay end (Deal Room Pass holders); null = the global replay hours. */
+  replay_until?: number | null;
+  /** Registered while the Deal Room Pass was required. */
+  pass_required?: number | null;
 }
 
 export function webinarSettings(rt: Runtime) {
@@ -180,14 +184,21 @@ export const getSession = (rt: Runtime, id: string) => rt.env.DB.prepare('SELECT
 export const getRegistration = (rt: Runtime, token: string) =>
   /^[a-z0-9]{16,40}$/.test(token) ? rt.env.DB.prepare('SELECT * FROM webinar_registrations WHERE token = ?').bind(token).first<Registration>() : Promise.resolve(null);
 
-/** Where a session is right now. */
-export function phase(rt: Runtime, session: Session, now = Date.now()) {
+/** When the replay comes down: the global replay hours, or later for a registration with its own window (Deal Room Pass). */
+export function replayEndsAt(rt: Runtime, session: Session, replayUntil?: number | null) {
+  const w = webinarSettings(rt);
+  const normal = session.starts_at + w.durationMin * 60_000 + w.replayHours * 3_600_000;
+  return replayUntil && replayUntil > normal ? replayUntil : normal;
+}
+
+/** Where a session is right now (pass the registration's replay_until for its own replay window). */
+export function phase(rt: Runtime, session: Session, now = Date.now(), replayUntil?: number | null) {
   const w = webinarSettings(rt);
   const end = session.starts_at + w.durationMin * 60_000;
   if (session.status === 'cancelled') return 'cancelled' as const;
   if (now < session.starts_at) return 'waiting' as const;
   if (now < end) return 'running' as const;
-  if (now < end + w.replayHours * 3_600_000) return 'replay' as const;
+  if (now < replayEndsAt(rt, session, replayUntil)) return 'replay' as const;
   return 'expired' as const;
 }
 
@@ -305,6 +316,7 @@ export async function moveRegistration(rt: Runtime, reg: Registration, sessionId
     .bind(next.id, next.token, next.session_id, next.lead_id, next.seq, reg.new_lead, next.created_at).run();
   const saved = await rt.env.DB.prepare('SELECT * FROM webinar_registrations WHERE lead_id = ? AND session_id = ?').bind(lead.id, session.id).first<Registration>();
   if (saved && saved.id === next.id) { await scheduleEmails(rt, lead, session, next); await startSms(rt, (await getLead(rt.env, lead.id))!, 'webinar'); }
+  if (saved && saved.id === next.id) await (await import('./pass')).syncPassReplay(rt, lead.id);
   await track(rt, await identityFromLead(rt.env, lead.id), { name: 'webinar_rebooked', source: 'server', props: { session_id: session.id } });
   return { registration: saved ?? next, session };
 }
@@ -335,7 +347,7 @@ export function markMinute(cur: string | null, minute: number, durationMin: numb
 export async function heartbeat(rt: Runtime, reg: Registration, session: Session, body: { pos?: unknown; replay?: unknown }) {
   const w = webinarSettings(rt);
   const now = Date.now();
-  const p = phase(rt, session, now);
+  const p = phase(rt, session, now, reg.replay_until);
   const replay = body.replay === true;
   if (replay ? !['running', 'replay'].includes(p) : p !== 'running') return { ok: false, phase: p };
   const pos = Math.max(0, Math.min(w.durationMin * 60, Math.round(Number(body.pos) || 0)));

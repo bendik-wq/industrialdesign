@@ -22,6 +22,9 @@ export const ASSISTANT_SYSTEM = [
 ].join('\n');
 
 export const WEBINAR_AI_MODEL = 'claude-haiku-5-5';
+/** Deal Room Pass holders: the most capable model and a fuller answer. */
+export const WEBINAR_PRIORITY_MODEL = 'claude-opus-5-5';
+export const PRIORITY_SYSTEM = 'This viewer holds the Deal Room Pass. Give a fuller answer than usual: up to 220 words, specific to the numbers or situation in their question, still plain text with no lists, no emoji and no exclamation marks. All the rules above still apply.';
 
 /** Light safety net on the model's answer: drop it if it breaks a house rule. */
 export function answerProblems(text: string) {
@@ -33,18 +36,18 @@ export function answerProblems(text: string) {
   return issues;
 }
 
-export async function answerQuestion(rt: Runtime, question: string): Promise<string | null> {
+export async function answerQuestion(rt: Runtime, question: string, o: { priority?: boolean } = {}): Promise<string | null> {
   const key = rt.settings.ANTHROPIC_API_KEY;
   if (!key) return null;
-  const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 20_000 });
+  const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: o.priority ? 45_000 : 20_000 });
   const res = await client.messages.create({
-    model: rt.settings.WEBINAR_AI_MODEL || WEBINAR_AI_MODEL,
-    max_tokens: 400,
-    system: [{ type: 'text', text: ASSISTANT_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    model: o.priority ? WEBINAR_PRIORITY_MODEL : rt.settings.WEBINAR_AI_MODEL || WEBINAR_AI_MODEL,
+    max_tokens: o.priority ? 900 : 400,
+    system: [{ type: 'text', text: ASSISTANT_SYSTEM, cache_control: { type: 'ephemeral' } }, ...(o.priority ? [{ type: 'text' as const, text: PRIORITY_SYSTEM }] : [])],
     messages: [{ role: 'user', content: `Question from a viewer:\n"""${question.slice(0, 600)}"""` }],
   });
   if (res.stop_reason === 'refusal') return null;
   const text = res.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join(' ').trim();
   if (!text || answerProblems(text).length) return null;
-  return text.slice(0, 900);
+  return text.slice(0, o.priority ? 2000 : 900);
 }
