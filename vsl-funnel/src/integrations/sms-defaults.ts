@@ -122,11 +122,11 @@ export const DEFAULT_SMS_SEQUENCES: SmsSequenceDef[] = [
     id: 'webinar', enabled: true, next: 8,
     steps: [
       s(1, 'trigger', 0, 'webinar_room', 'You\'re in, {first_name}. The masterclass is on {webinar_time}. Your link: {link}'),
-      s(2, 'webinar', -24 * H, 'webinar_room', 'Tomorrow, {first_name}: the masterclass on how owners buy competitors with no money down. {webinar_time}. Link: {link}'),
+      s(2, 'webinar', -24 * H, 'webinar_room', 'Tomorrow, {first_name}: the masterclass on buying a competitor with the bank\'s money and the seller\'s, not yours. {webinar_time}. Link: {link}'),
       s(3, 'webinar', -60, 'webinar_room', 'Starting in an hour, {first_name}. Grab a coffee and join here: {link}'),
       s(4, 'webinar', -5, 'webinar_room', 'We\'re starting in 5 minutes, {first_name}: {link}'),
       s(5, 'webinar', 5, 'webinar_room', '{first_name}, we\'ve just started and your seat\'s still there: {link}', ['attended']),
-      s(6, 'webinar', 80, 'webinar_replay', 'Missed it, {first_name}? No problem. The replay is up for a short while: {link}', ['attended', 'applied']),
+      s(6, 'webinar', 80, 'webinar_replay', 'You missed it, {first_name}. The replay is up for 48 hours: {link}', ['attended', 'applied']),
       s(7, 'webinar', 80, 'apply', 'Thanks for coming, {first_name}. If it made sense for your business, the next step is a 2-minute application: {link}', ['missed', 'applied', 'booked']),
     ],
   },
