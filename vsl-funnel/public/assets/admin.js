@@ -703,7 +703,7 @@
         (g.polls || []).map(function (p) { return '<div><h3 class="h3">' + esc(p.question) + ' <span class="muted">· minute ' + p.at + ' · ' + n(p.total) + ' answers</span></h3><p class="muted small">' + esc(p.purpose) + '</p>' + barList(p.options.map(function (o) { return { name: o.label, value: o.n }; })) + '</div>'; }).join('') + '</div></div>' : '') +
       ((g.questions || []).length ? '<div class="card" style="margin-top:14px"><h2>Questions from the room</h2><p class="sub">Every question typed in the masterclass, with the assistant’s reply. Tick them off once someone has followed up. Questions without a reply need one by email.</p>' +
         table([
-          { label: 'Who', html: function (r) { return '<strong>' + esc(r.name) + '</strong><div class="muted">' + esc(r.email || '') + (r.band ? ' · ' + esc(r.band) : '') + '</div>'; } },
+          { label: 'Who', html: function (r) { return '<strong>' + esc(r.name) + '</strong>' + (r.pass ? ' <span class="pill">paid · priority</span>' : '') + '<div class="muted">' + esc(r.email || '') + (r.band ? ' · ' + esc(r.band) : '') + '</div>'; } },
           { label: 'Question', html: function (r) { return esc(r.question) + (r.at != null ? '<div class="muted">at ' + Math.floor(r.at / 60) + ' min</div>' : ''); } },
           { label: 'Assistant replied', html: function (r) { return r.answer ? '<span class="muted">' + esc(r.answer) + '</span>' : '<span class="pill">needs a reply</span>'; } },
           { label: '', html: function (r) { return '<label class="check"><input type="checkbox" data-qdone="' + esc(r.id) + '"' + (r.handled ? ' checked' : '') + '> done</label>'; } },
@@ -916,11 +916,46 @@
       }).catch(function () { timer = setTimeout(refresh, 8000); });
     }
     list();
+  /** Webinar tab: the paid offer (Acquisition Assessment by default) and the optional paid seat. */
+  function webinarPassHtml(p) {
+    if (!p || !p.config) return '';
+    var c = p.config, k = p.kpis || {}, ch = p.checklist || {}, cap = p.capacity || {};
+    var MODE = { off: 'Off', upsell: 'Upsell', required: 'Required' };
+    var ok = function (b, yes, no) { return '<li class="' + (b ? 'ok' : 'todo') + '"><span>' + (b ? '✓' : '·') + '</span><div class="small">' + (b ? yes : no) + '</div></li>'; };
+    var modeLine = c.mode === c.requested ? MODE[c.mode] : MODE[c.requested] + ' (running as Off)';
+    return '<div class="card" style="margin-top:14px" data-pass-hq><div class="card-head"><div><h2>' + esc(c.offerName) + '</h2><p class="sub">The paid offer in the masterclass: ' + esc(c.priceLabel) + ' ' + esc(c.currency) +
+      ', credited against the advisory engagement if they continue. ' + (c.weeklyCap ? 'Capped at ' + n(c.weeklyCap) + ' a week.' : 'No weekly cap.') + (c.seat ? ' Paid seat: ' + esc(c.seat) + '.' : '') + '</p></div>' +
+      '<span class="pill">' + esc(modeLine) + '</span></div>' +
+      (c.reason ? '<div class="card notice" style="margin:10px 0">' + esc(c.reason) + '</div>' : '') +
+      '<div class="grid g-4 tiles" style="margin-top:8px">' +
+      tile('Sold', n(k.sold), pct(k.conversion, 1) + ' of ' + n(k.registrants) + ' registrants', null, { zeroOk: true }) +
+      tile('Revenue', k.revenueLabel || '–', 'after refunds · ' + (k.creditLabel || '–') + ' credit owed against engagements', null, { zeroOk: true }) +
+      tile('Refunds', n(k.refunds), k.openCheckouts ? n(k.openCheckouts) + ' checkout' + (k.openCheckouts === 1 ? '' : 's') + ' open now' : 'no open checkouts', null, { zeroOk: true }) +
+      tile('This week', cap.capped ? n(cap.left) + ' of ' + n(cap.cap) + ' left' : 'No cap', cap.capped ? n(cap.used) + ' sold or in checkout since Monday' : 'set a weekly cap under Integrations → Webinar', null, { zeroOk: true }) +
+      '</div>' +
+      (c.seat || k.seats ? '<p class="muted" style="margin-top:8px">Paid seats: ' + n(k.seats) + ' sold · ' + esc(k.seatRevenueLabel || '–') + ' · ' + n(k.seatRefunds) + ' refunded · ' + n(k.requiredRegistrants) + (k.requiredRegistrants === 1 ? ' registrant' : ' registrants') + ' needed one.</p>' : '') +
+      '<div class="grid g-2" style="margin-top:12px"><div><h3 class="h3">Buyers</h3>' +
+      ((p.holders || []).length ? table([
+        { label: 'Name', html: function (r) { return '<strong>' + esc(r.name) + '</strong>' + (r.status === 'refunded' ? ' <span class="pill">refunded</span>' : '') + '<div class="muted">' + esc(r.email || '') + '</div>'; } },
+        { label: 'Revenue', html: function (r) { return esc(r.band || '–'); } },
+        { label: 'Paid', html: function (r) { return esc(r.paid) + (r.credit ? '<div class="muted">' + esc(r.credit) + ' credit</div>' : ''); } },
+        { label: 'Pack', html: function (r) { return r.pack_viewed_at ? '✓ opened' : '<span class="muted">not yet</span>'; } },
+        { label: 'Session booked?', html: function (r) { return r.status === 'refunded' ? '' : '<label class="check"><input type="checkbox" data-pbooked="' + esc(r.id) + '"' + (r.review_booked_at ? ' checked' : '') + '> booked</label>' + (r.review_clicked_at && !r.review_booked_at ? '<div class="muted">opened the link</div>' : ''); } },
+      ], p.holders, { cards: true, rowAttr: function (r) { return 'data-lead-row="' + esc(r.lead_id) + '"'; } }) : '<p class="muted">No one has bought yet.</p>') + '</div>' +
+      '<div><h3 class="h3">Setup</h3><ul class="checklist">' +
+      ok(ch.secretKey, 'Stripe secret key added' + (ch.testMode ? ' (test mode)' : ''), 'Add the Stripe secret key (Integrations → Webinar)') +
+      ok(ch.webhookSecret, 'Webhook signing secret added', 'Add the webhook signing secret. Without it payments still confirm when buyers come back from Stripe, but refunds and closed tabs are missed.') +
+      ok(c.requested !== 'off', 'Mode: ' + esc(MODE[c.requested]), 'Set the paid offer to upsell or required') +
+      ok(ch.sessionUrl, 'Assessment session booking link set', 'Optional: add the session booking link, otherwise email each buyer to book') +
+      '</ul><p class="small" style="margin-top:8px">In Stripe → Developers → Webhooks → Add endpoint, paste:</p>' +
+      '<p><code style="word-break:break-all">' + esc(ch.webhookUrl) + '</code> <button type="button" class="btn-sm ghost" data-copy="' + esc(ch.webhookUrl) + '">Copy</button></p>' +
+      '<p class="small">and select these events: ' + (ch.events || []).map(function (e) { return '<code style="word-break:break-all">' + esc(e) + '</code>'; }).join(', ') + '.</p>' +
+      '<p class="small muted">Includes: ' + esc((c.perks || []).join(' · ')) + (c.customPerks ? ' (your own list)' : '') + '</p></div></div></div>';
   }
 
   function renderWebinar() {
-    return Promise.all([api('webinar'), api('webinar/insights').catch(function () { return null; })]).then(function (both) {
-      var d = both[0], ins = both[1];
+    return Promise.all([api('webinar'), api('webinar/insights').catch(function () { return null; }), api('webinar/pass').catch(function () { return null; })]).then(function (both) {
+      var d = both[0], ins = both[1], pass = both[2];
       var k = d.kpis || {}, st = d.settings || {};
       var regs = k.registrations || 0;
       var when = function (t) { return new Date(t).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
@@ -940,7 +975,7 @@
         tile('Weekly sessions', st.schedule || '–', (st.tz || '') + ' · ' + String(st.url || '').replace(/^https?:\/\//, '')) +
         '</div><div class="grid g-4 tiles" style="margin-top:14px">' +
         tile('Financial model', 'Open', 'Cost per registrant, per call and per client, and what the webinar makes per dollar of ads', 'finance') +
-        '</div>' +
+        '</div>' + webinarPassHtml(pass) +
         '<div class="grid g-2" style="margin-top:14px">' +
         '<div class="card"><h2>Upcoming sessions</h2><p class="sub">Weekly sessions are created automatically from the schedule in Integrations → Webinar. Add a one-off or live session below.</p>' +
         table([
@@ -980,6 +1015,12 @@
       view.querySelectorAll('[data-stop]').forEach(function (a) { a.onclick = function (e) { e.stopPropagation(); }; });
       drawWebinarCurve(view.querySelector('[data-wcurve]'), ins);
       renderHostConsole(view.querySelector('[data-hostconsole]'));
+      view.querySelectorAll('[data-pbooked]').forEach(function (cb) {
+        cb.onchange = function () { send('PUT', 'webinar/pass/' + encodeURIComponent(cb.getAttribute('data-pbooked')), { review_booked: cb.checked }); };
+      });
+      view.querySelectorAll('[data-copy]').forEach(function (b) {
+        b.onclick = function () { try { navigator.clipboard.writeText(b.getAttribute('data-copy')); toast('Copied'); } catch (e) { /* ignore */ } };
+      });
       view.querySelectorAll('[data-qdone]').forEach(function (cb) {
         cb.onchange = function () { send('PUT', 'webinar/questions/' + encodeURIComponent(cb.getAttribute('data-qdone')), { handled: cb.checked }); };
       });

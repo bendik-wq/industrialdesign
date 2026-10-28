@@ -31,7 +31,7 @@ import { sign } from './routes/sign';
 import { processContractReminders } from './sales/contracts';
 import { maybeSyncContent } from './content/content';
 import { blueprintPage } from './webinar/blueprint';
-import { applyHandoff, icsFile, isWebinarHost, registeredPage, roomPage, webinarLanding, worksheetPage } from './webinar/pages';
+import { applyHandoff, icsFile, isWebinarHost, packPage, registeredPage, roomPage, webinarLanding, worksheetPage } from './webinar/pages';
 import { ensureSessions } from './webinar/webinar';
 import { processSmsQueue } from './integrations/sms';
 import { alertUnconfirmedBookings } from './integrations/booking';
@@ -121,6 +121,7 @@ for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/ics/:token`, icsFile);
   app.get(`${prefix}/worksheet/:token`, withVisitor, worksheetPage);
   app.get(`${prefix}/blueprint/:token`, withVisitor, blueprintPage);
+  app.get(`${prefix}/pack/:token`, withVisitor, packPage);
 }
 app.get('/w/:token', withVisitor, applyHandoff);
 app.get('/guides', withVisitor, guidesHub);

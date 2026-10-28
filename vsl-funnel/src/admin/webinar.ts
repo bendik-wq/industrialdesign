@@ -210,7 +210,8 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
     stage,
     engagement: {
       polls: pollStats,
-      questions: I.filter((i) => i.kind === 'question').slice(0, 100).map((i) => ({ id: i.id, question: i.value, answer: i.answer, at: i.at_sec, handled: Boolean(i.handled), created_at: i.created_at, lead_id: i.lead_id, name: [i.first_name, i.last_name].filter(Boolean).join(' ') || i.email || 'Someone', email: i.email, band: i.revenue_band })),
+      // Questions from paid-offer buyers (key 'pass') first: they were promised a fuller answer and the team's attention.
+      questions: I.filter((i) => i.kind === 'question').sort((a, b) => Number(b.key === 'pass') - Number(a.key === 'pass')).slice(0, 100).map((i) => ({ id: i.id, question: i.value, answer: i.answer, at: i.at_sec, handled: Boolean(i.handled), created_at: i.created_at, lead_id: i.lead_id, name: [i.first_name, i.last_name].filter(Boolean).join(' ') || i.email || 'Someone', email: i.email, band: i.revenue_band, pass: i.key === 'pass' })),
       calc: { runs: calcs.length, medianProfit: median(calcs.map((c) => c.profit!)), medianPrice: median(calcs.map((c) => c.price!)) },
       worksheets: count('bonus'),
       blueprints: { opened: count('blueprint'), built: blueprintsBuilt?.n ?? 0, polished: blueprintsBuilt?.ai ?? 0 },

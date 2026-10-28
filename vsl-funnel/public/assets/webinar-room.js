@@ -151,7 +151,23 @@
       return;
     }
     var q = copy.offerQualified || {};
-    cta.innerHTML = '<p class="lede"><strong>' + esc(q.heading || 'Want us to map out your first acquisition?') + '</strong> ' + esc(q.body || '') + '</p>' +
+    var po = cfg.pass && cfg.pass.offer;
+    if (po) {
+      // Two one-click paths: the paid offer straight to Stripe, or the strategy call calendar inline (video keeps playing).
+      cta.innerHTML = '<div class="card pass-room"><p class="pass-eyebrow">' + esc(po.name) + ' · ' + esc(po.price) + '</p><h2 class="pass-h">' + esc(po.heading) + '</h2><p class="pass-lede">' + esc(po.body) + '</p>' +
+        '<div class="pass-room-btns">' +
+        (po.full ? '<p class="pass-note">' + esc(po.soldOut) + '</p>' : '<button type="button" class="btn btn-lg pass-btn" data-pass-buy="offer"><span>' + esc(po.button) + ' <span class="nw">· ' + esc(po.price) + '</span></span> ' + arrow + '</button>') +
+        '<button type="button" class="btn btn-lg secondary" data-book-call>' + esc(po.bookCall) + '</button></div>' +
+        (po.capLabel ? '<p class="pass-cap">' + esc(po.capLabel) + '</p>' : '') +
+        '<details class="pass-more"><summary>' + esc(po.includes) + '</summary><ul class="pass-perks">' + (po.perks || []).map(function (p) { return '<li><strong>' + esc(p.title) + '</strong>' + (p.body ? '<span>' + esc(p.body) + '</span>' : '') + '</li>'; }).join('') + '</ul></details>' +
+        '<p class="pass-fine">' + esc(po.guarantee) + '. ' + esc(po.fine) + '</p></div>';
+      cta.addEventListener('click', function (e) {
+        if (e.target.closest('[data-pass-buy]')) { post('/api/webinar/cta', {}); post('/api/webinar/offer', { choice: 'assessment' }); }
+        if (e.target.closest('[data-book-call]')) { post('/api/webinar/cta', {}); post('/api/webinar/offer', { choice: 'call' }); openBooking(); }
+      });
+      return;
+    }
+    cta.innerHTML ='<p class="lede"><strong>' + esc(q.heading || 'Want us to map out your first acquisition?') + '</strong> ' + esc(q.body || '') + '</p>' +
       '<a class="btn btn-mega" href="' + esc(cfg.applyUrl) + '" target="_blank" rel="noopener" data-offer="call"><span class="btn-mega-main">' + esc(cfg.applied ? 'Book my strategy call' : (q.button || 'Apply for a strategy call')) + ' ' + arrow + '</span><span class="btn-mega-sub">' + esc(q.sub || '') + '</span></a>' +
       (cfg.selfServe ? '<p class="room-self"><button type="button" class="linkish" data-offer="self_serve">' + esc(q.secondary || 'Start now without a call') + '</button></p>' : '') +
       '<p class="muted small">Opens in a new tab, so the masterclass keeps playing.</p>';
@@ -173,10 +189,52 @@
     });
   }
 
+  // ── "Book a strategy call instead": the calendar in a window over the room, name and email filled in ──
+  var modal = document.querySelector('[data-book-modal]'), calLoaded = false;
+  function openBooking() {
+    var b = cfg.booking;
+    if (!b || !b.url || !modal) { window.open(cfg.applyUrl, '_blank', 'noopener'); return; }
+    if (!calLoaded) {
+      calLoaded = true;
+      var url = new URL(b.url), p = b.prefill || {};
+      if (p.name) url.searchParams.set('name', p.name);
+      if (p.email) url.searchParams.set('email', p.email);
+      if (b.provider === 'calendly') {
+        url.searchParams.set('embed_domain', location.host);
+        url.searchParams.set('embed_type', 'Inline');
+        if (!(window.FUNNEL || {}).consentRequired) url.searchParams.set('hide_gdpr_banner', '1');
+        if (p.leadId) url.searchParams.set('salesforce_uuid', p.leadId); // the signed Calendly webhook matches the booking to the lead
+        url.searchParams.set('utm_source', 'webinar');
+        url.searchParams.set('utm_content', p.ref || '');
+      } else if (p.leadId) url.searchParams.set('metadata[lead_id]', p.leadId);
+      var f = document.createElement('iframe');
+      f.src = url.toString(); f.title = 'Book a strategy call'; f.loading = 'eager';
+      modal.querySelector('[data-book-cal]').appendChild(f);
+      window.addEventListener('message', function (e) {
+        var d = e.data || {};
+        try { if (!/(^|\.)calendly\.com$/.test(new URL(e.origin).hostname)) return; } catch (err) { return; }
+        if (d.event === 'calendly.event_scheduled') F.track('cta_click', { id: 'webinar_call_booked_inline' });
+      });
+    }
+    modal.hidden = false;
+    document.documentElement.classList.add('modal-open');
+    F.track('cta_click', { id: 'webinar_book_call_inline' });
+  }
+  if (modal) {
+    var closeModal = function () { modal.hidden = true; document.documentElement.classList.remove('modal-open'); };
+    modal.querySelector('[data-book-close]').addEventListener('click', closeModal);
+    modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
+  }
+
+  // ── Paid offer holders: their card (deal pack, session booking) from the start ──
+  var passBox = document.querySelector('[data-pass]');
+  if (passBox && cfg.pass && cfg.pass.active && cfg.pass.holderHtml) passBox.innerHTML = cfg.pass.holderHtml;
+
   // ── Question box ──
   if (ask) {
     var a = copy.askBox || {};
-    ask.innerHTML = '<p class="room-moment-h">' + esc(a.heading || 'Ask a question') + '</p><form data-askf><textarea rows="2" maxlength="600" placeholder="' + esc(a.placeholder || 'Type your question') + '" required></textarea><button class="btn btn-sm" type="submit">Ask</button></form><p class="muted small">' + esc(a.note || '') + '</p><div class="room-qa" data-qa></div>';
+    ask.innerHTML = '<p class="room-moment-h">' + esc(a.heading || 'Ask a question') + '</p><form data-askf><textarea rows="2" maxlength="600" placeholder="' + esc(a.placeholder || 'Type your question') + '" required></textarea><button class="btn btn-sm" type="submit">Ask</button></form><p class="muted small">' + esc((cfg.pass && cfg.pass.note) || a.note || '') + '</p><div class="room-qa" data-qa></div>';
     ask.querySelector('[data-askf]').addEventListener('submit', function (e) {
       e.preventDefault();
       var ta = e.target.querySelector('textarea'), q = ta.value.trim(), btn = e.target.querySelector('button');
@@ -188,7 +246,7 @@
       post('/api/webinar/ask', { question: q }).then(function (r) {
         btn.disabled = false;
         var el = item.querySelector('.qa-a');
-        if (r && r.answer) { el.classList.remove('muted'); el.innerHTML = '<span class="qa-tag">AI assistant</span> ' + esc(r.answer); }
+        if (r && r.answer) { el.classList.remove('muted'); el.innerHTML = '<span class="qa-tag">AI assistant' + (r.priority ? ' · priority' : '') + '</span> ' + esc(r.answer); }
         else el.textContent = (r && (r.note || r.error)) || 'Thanks. Josh’s team reads every question and will reply by email.';
       });
     });

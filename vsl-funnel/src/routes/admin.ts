@@ -192,6 +192,12 @@ admin.put('/webinar/questions/:id', async (c) => {
   return c.json({ ok: true });
 });
 admin.route('/webinar/live', liveAdmin); // host console (the real live layer)
+admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
+admin.put('/webinar/pass/:id', async (c) => {
+  const b = await c.req.json<{ review_booked?: boolean }>().catch(() => ({ review_booked: true }));
+  await (await import('../webinar/pass')).setReviewBooked(runtimeFrom(c), c.req.param('id'), b.review_booked !== false);
+  return c.json({ ok: true });
+});
 admin.get('/webinar/insights', async (c) => { const f = filters(c); return c.json(await webinarInsights(runtimeFrom(c), { from: f.from, to: f.to })); });
 
 // ── Financial model ──

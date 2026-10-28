@@ -112,6 +112,35 @@
     });
   }
 
+  // ── Paid offer / paid seat: one click to Stripe Checkout (email filled in there), on the thank-you page and in the room ──
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-pass-buy]');
+    if (b) {
+      e.preventDefault();
+      if (b.disabled) return;
+      var label = b.textContent;
+      b.disabled = true; b.textContent = 'Opening secure checkout…';
+      F.track('cta_click', { id: 'webinar_checkout_' + (b.getAttribute('data-pass-buy') || 'offer') });
+      post('/api/webinar/checkout', { token: cfg.token || cfg.ty, kind: b.getAttribute('data-pass-buy') || 'offer', from: cfg.token ? 'room' : 'ty' }).then(function (r) {
+        if (r && r.url) { location.href = r.url; return; }
+        if (r && r.next) { location.href = r.next; return; }
+        b.disabled = false; b.textContent = label;
+        var p = b.parentNode.querySelector('.pass-err') || document.createElement('p');
+        p.className = 'pass-note pass-err'; p.setAttribute('role', 'alert'); p.textContent = (r && r.error) || 'Payment couldn’t be started just now. Please try again in a minute.';
+        b.parentNode.insertBefore(p, b.nextSibling);
+      });
+      return;
+    }
+    var rv = e.target.closest && e.target.closest('[data-pass-review]');
+    if (rv) post('/api/webinar/pass/review', { token: cfg.token || cfg.ty });
+  });
+  // Back from Stripe before the payment has confirmed: look again shortly (the server asks Stripe each time).
+  if (cfg.passConfirming) {
+    var tries = 0;
+    try { tries = Number(sessionStorage.getItem('pass_wait') || 0); sessionStorage.setItem('pass_wait', String(tries + 1)); } catch (err) { /* private mode */ }
+    if (tries < 6) setTimeout(function () { location.reload(); }, 4000);
+  }
+
   // ── Registered page ──
   if (!cfg.token && cfg.startsAt) countdown(document.querySelector('[data-countdown]'), cfg.startsAt);
 
