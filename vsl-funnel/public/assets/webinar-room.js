@@ -120,6 +120,23 @@
   }
   function maybeBonus(p) { if (!bonusShown && p >= (cfg.bonusAtSec || 3120)) { bonusShown = true; moments.prepend(bonusCard()); } }
 
+  // ── Your Acquisition Blueprint (everyone, at the pitch) ──
+  var bpShown = false;
+  function blueprintCard() {
+    var b = cfg.blueprintCopy || {};
+    var el = document.createElement('div');
+    el.className = 'card room-moment room-blueprint';
+    el.innerHTML = '<p class="room-moment-h">Prepared for you</p><p class="room-q">' + esc(b.heading || 'Your Acquisition Blueprint is ready') + '</p><p class="small">' + esc(b.body || '') + '</p>' +
+      '<a class="btn btn-sm" href="' + esc(cfg.blueprintUrl) + '" target="_blank" rel="noopener" data-bp>' + esc(b.button || 'Open my blueprint') + '</a>';
+    el.querySelector('[data-bp]').addEventListener('click', function () { post('/api/webinar/blueprint', { open: true }); F.track('cta_click', { id: 'webinar_blueprint_open' }); });
+    return el;
+  }
+  function maybeBlueprint(p) {
+    if (bpShown || !cfg.blueprintUrl || p < (cfg.pitchAtSec || 2700)) return;
+    bpShown = true; moments.prepend(blueprintCard());
+    post('/api/webinar/blueprint', {}); // builds it in the background so it opens straight away
+  }
+
   // ── The offer at the pitch ──
   var offerBuilt = false;
   function buildOffer() {
@@ -182,7 +199,7 @@
     var p = pos();
     updateAgenda(p);
     if (!moments) return;
-    maybePolls(p); maybeCalc(p); maybeBonus(p);
+    maybePolls(p); maybeCalc(p); maybeBonus(p); maybeBlueprint(p);
     if (cta && !cta.hidden) buildOffer();
   }
   setInterval(tick, 2000);

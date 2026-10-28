@@ -272,6 +272,8 @@ export const SEQUENCES = {
       { template: 'w_clicked', offsetMs: 100 * MIN, anchor: 'webinar_at', skipIf: (l) => !l.webinar_cta_at || l.webinar_cta_at < (l.webinar_at ?? 0) - 30 * MIN || pitched(l) },
       // stayed to the end → their worksheet (next morning-ish).
       { template: 'w_bonus', offsetMs: 20 * HOUR, anchor: 'webinar_at', skipIf: (l) => !cameToWebinar(l) || (l.webinar_watch_pct ?? 0) < 0.85 },
+      // watched past the pitch and hasn't applied → their Acquisition Blueprint (about 2 hours after the showing ends).
+      { template: 'w_blueprint', offsetMs: 3 * HOUR, anchor: 'webinar_at', skipIf: (l) => pitched(l) || !(cameToWebinar(l) || l.webinar_replay_at) || (l.webinar_watch_pct ?? 0) < LEFT_EARLY },
     ],
   },
   prewebinar: {

@@ -696,6 +696,7 @@
       tile('Questions asked', n((g.questions || []).length), n((g.questions || []).filter(function (q) { return q.answer; }).length) + ' answered by the assistant') +
       tile('Calculator runs', n((g.calc || {}).runs), (g.calc && g.calc.medianPrice) ? 'typical deal: ' + money(g.calc.medianPrice) + ' price, ' + money(g.calc.medianProfit) + ' profit' : 'no runs yet') +
       tile('Worksheets unlocked', n(g.worksheets), 'attendee bonus') +
+      tile('Blueprints opened', n((g.blueprints || {}).opened), n((g.blueprints || {}).built) + ' built at the pitch' + ((g.blueprints || {}).polished ? ' · ' + n(g.blueprints.polished) + ' polished by AI' : '')) +
       tile('Offer clicks', n(((g.offers || {}).call || 0) + ((g.offers || {}).selfServe || 0)), n((g.offers || {}).selfServe) + ' chose start-now · ' + n((g.offers || {}).agreements) + ' agreements sent') +
       '</div>' + ((g.targets || []).some(function (t) { return t.n; }) ? '<h3 class="h3" style="margin-top:12px">“Which business would you most like to own?” (thank-you page)</h3>' + barList((g.targets || []).map(function (t) { return { name: t.label, value: t.n }; })) : '') + '</div></div>' +
       ((g.polls || []).some(function (p) { return p.total; }) ? '<div class="card" style="margin-top:14px"><h2>Poll answers</h2><p class="sub">Asked inside the masterclass. Use them on the strategy call and in the follow-up.</p><div class="grid g-2" style="margin-top:8px">' +
@@ -972,9 +973,11 @@
           { label: 'Source', html: function (r) { return esc([where(r.channel, r.utm_source, r.referrer_host, r.utm_medium), r.utm_campaign].filter(Boolean).join(' / ')); } },
           { label: 'Came', html: function (r) { return r.joined_at ? '✓ ' + mins(r.watch_seconds) : r.replay_at ? 'replay' : '–'; } },
           { label: 'Offer', html: function (r) { return r.cta_at ? '✓' : ''; } },
+          { label: 'Blueprint', html: function (r) { return r.token && (r.has_blueprint || r.joined_at || r.replay_at) ? '<a href="' + esc(String(st.url || '') + '/blueprint/' + r.token) + '" target="_blank" rel="noopener" data-stop>' + (r.has_blueprint ? 'Open' : 'Build') + ' ↗</a>' : ''; } },
           { label: 'Next', html: function (r) { return r.status === 'won' ? statusPill('won') : r.booked_at ? statusPill('booked') : r.app_completed_at ? statusPill('applied', 'applied' + (r.tier ? ' (' + r.tier + ')' : '')) : ''; } },
         ], d.registrants || [], { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>';
       view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
+      view.querySelectorAll('[data-stop]').forEach(function (a) { a.onclick = function (e) { e.stopPropagation(); }; });
       drawWebinarCurve(view.querySelector('[data-wcurve]'), ins);
       renderHostConsole(view.querySelector('[data-hostconsole]'));
       view.querySelectorAll('[data-qdone]').forEach(function (cb) {

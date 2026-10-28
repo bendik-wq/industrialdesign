@@ -519,6 +519,8 @@ body.simple main { padding: 72px 20px; }
 .poll-res span, .poll-res b { position: relative; z-index: 1; }
 .poll-res.mine { outline: 1.5px solid #0f2c5c; }
 .room-moment.fade { opacity: 0; transition: opacity .6s; }
+.room-blueprint { border-color: #b08d57; box-shadow: inset 3px 0 0 #b08d57; }
+.room-blueprint .room-q { font: 500 20px/1.25 var(--serif); }
 .small { font-size: 14px; }
 .calc-in { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
 .calc-in label { display: grid; gap: 4px; font-size: 13px; color: #4a5468; }
