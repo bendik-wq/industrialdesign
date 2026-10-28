@@ -84,7 +84,7 @@ export const META_EVENTS: Partial<Record<string, string>> = {
   lead_captured: 'Lead',
   webinar_registered: 'CompleteRegistration',
   webinar_offer_purchased: 'FrontEndPurchase', // the masterclass offer (Acquisition Assessment); 'Purchase' stays for won deals
-  webinar_seat_purchased: 'WebinarSeatPurchase',
+  webinar_seat_purchased: 'Purchase', // the paid masterclass ticket (value = the ticket price); won deals are Purchase too, with their own order id
   app_submitted: 'SubmitApplication',
   lead_qualified: 'QualifiedLead',
   booking_scheduled: 'Schedule',
@@ -99,7 +99,7 @@ export const GA4_EVENTS: Partial<Record<string, string>> = {
   lead_captured: 'generate_lead',
   webinar_registered: 'sign_up',
   webinar_offer_purchased: 'front_end_purchase',
-  webinar_seat_purchased: 'webinar_seat_purchase',
+  webinar_seat_purchased: 'purchase', // the paid masterclass ticket
   app_submitted: 'submit_application',
   lead_qualified: 'qualify_lead',
   booking_scheduled: 'book_appointment',

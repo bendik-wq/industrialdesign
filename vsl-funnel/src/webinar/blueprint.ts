@@ -603,6 +603,7 @@ export async function blueprintPage(c: Context<AppEnv>) {
   const reg = await getRegistration(rt, c.req.param('token') ?? '');
   const session = reg ? await getSession(rt, reg.session_id) : null;
   if (!reg || !session) return render(c, '/webinar-expired.html', { title: 'Link not found', slots: { expired_title: 'We couldn’t find that link', expired_body: 'Register below and we’ll email you a fresh one.' }, show: { rebook: false } });
+  if (await (await import('./pass')).passGate(rt, reg)) return c.redirect(`${webinarBase(rt)}/registered/${reg.token}?pass=required`, 302); // part of the paid ticket
   if (!blueprintOpen(rt, session)) {
     return render(c, '/webinar-blueprint.html', { title: 'Your Acquisition Blueprint', blocks: { blueprint: `<div class="bp-wait"><span class="eyebrow">Acquisition Blueprint</span><h1 class="h2">Your blueprint is built at the pitch</h1><p class="lede">Stay with the masterclass. When Josh gets to the next step, your blueprint appears in the room, built from your answers. <a href="${esc(roomUrl(rt, reg.token))}">Back to the masterclass</a></p></div>` } });
   }

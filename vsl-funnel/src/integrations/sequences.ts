@@ -29,6 +29,8 @@ export interface Sequence {
   steps: SequenceStep[];
   /** Stops the whole sequence (remaining steps are skipped) once true. */
   stopIf?: (lead: Lead) => boolean;
+  /** Like stopIf, for a condition that needs the database (checked right before each send). */
+  stopIfAsync?: (rt: Runtime, lead: Lead) => Promise<boolean>;
   /** Steps repeat in blocks of this size (one block per event, e.g. per webinar registration). */
   cycle?: number;
 }
@@ -144,6 +146,8 @@ const pitched = (l: Lead) => Boolean(l.app_completed_at) || (Boolean(l.booked_at
 /** Imported straight from Calendly: never in the funnel, never on its emails. */
 const direct = (l: Lead) => l.booking_source === 'calendly-direct';
 const completed = (l: Lead) => Boolean(l.app_completed_at);
+/** Paid-ticket mode: their current registration still waits for its ticket (or the ticket was refunded). */
+const ticketUnpaid = async (rt: Runtime, l: Lead) => (await import('../webinar/pass')).ticketUnpaid(rt, l);
 
 export const SEQUENCES = {
   abandoned: {
@@ -254,6 +258,8 @@ export const SEQUENCES = {
     description: 'Registered for the webinar — confirmation, reminders, then follow-up based on whether they came',
     cycle: 20,
     stopIf: (l) => ['won', 'lost', 'disqualified'].includes(l.status),
+    // Nothing about the session goes out until the ticket is paid (scheduled on payment; this catches races and refunds).
+    stopIfAsync: ticketUnpaid,
     steps: [
       { template: 'w_confirm', offsetMs: 0 },
       { template: 'w_24h', offsetMs: -24 * HOUR, anchor: 'webinar_at' },
@@ -281,11 +287,25 @@ export const SEQUENCES = {
       { template: 'w_notes', offsetMs: 90 * MIN, anchor: 'webinar_at', skipIfAsync: async (rt, l) => !l.webinar_at || !(await (await import('../webinar/experience')).savedNotesSince(rt, l.id, l.webinar_at - 30 * MIN)) },
     ],
   },
+  ticket: {
+    id: 'ticket',
+    description: 'Registered while the masterclass ticket is paid, and has not paid yet: three short emails with a straight link to checkout. Stops once the ticket is paid.',
+    // One block of steps per registration (TICKET_CYCLE in webinar.ts); only the first three are used.
+    cycle: 10,
+    stopIf: (l) => ['won', 'lost', 'disqualified'].includes(l.status),
+    stopIfAsync: async (rt, l) => !(await ticketUnpaid(rt, l)),
+    steps: [
+      { template: 'w_ticket_1', offsetMs: 1 * HOUR },
+      { template: 'w_ticket_2', offsetMs: 1 * DAY },
+      { template: 'w_ticket_3', offsetMs: 3 * DAY },
+    ],
+  },
   prewebinar: {
     id: 'prewebinar',
     description: 'Registered for the webinar — up to 15 emails a day for up to 14 days until the session, one idea each, building the case for showing up live (how the money works, finding the deal, the doubts, show up ready)',
     // Done once they apply or book (those runs take over), are ruled out, or the session is under 3 hours away.
     stopIf: (l) => pitched(l) || ['won', 'lost', 'disqualified'].includes(l.status) || !l.webinar_at || Date.now() > l.webinar_at - 3 * HOUR,
+    stopIfAsync: ticketUnpaid,
     // Sent at local-time slots by enqueuePrewebinar() (the row holds the template, matched by name); offsetMs is unused.
     steps: PREWEBINAR_IDS.map((template) => ({ template, offsetMs: 0 })),
   },

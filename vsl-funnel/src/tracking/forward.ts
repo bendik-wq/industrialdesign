@@ -270,7 +270,9 @@ async function toMeta(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead:
   if (value !== undefined) Object.assign(custom_data, { value, currency: currencyOf(ev) });
   if (lead?.tier) Object.assign(custom_data, { lead_tier: lead.tier, lead_score: lead.score });
   if (who.variant) custom_data.variant = who.variant;
-  if (eventName === 'Purchase') Object.assign(custom_data, { order_id: lead?.id ?? ev.id, content_name: 'M&A advisory program' });
+  if (eventName === 'Purchase') Object.assign(custom_data, ev.name === 'webinar_seat_purchased'
+    ? { order_id: String(ev.props.pass_id ?? ev.id), content_name: 'Masterclass ticket' }
+    : { order_id: lead?.id ?? ev.id, content_name: 'M&A advisory program' });
 
   const event: Record<string, unknown> = {
     event_name: eventName,
@@ -296,7 +298,8 @@ async function toGA4(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead: 
     variant: who.variant,
     ...(value !== undefined ? { value, currency: currencyOf(ev) } : {}),
     ...(ev.name === 'vsl_50' ? { video_percent: 50 } : {}),
-    ...(eventName === 'purchase' ? { transaction_id: lead?.id ?? ev.id } : {}),
+    // A ticket is its own transaction (its pass id), so it never de-duplicates against the won deal (the lead id).
+    ...(eventName === 'purchase' ? { transaction_id: ev.name === 'webinar_seat_purchased' ? String(ev.props.pass_id ?? ev.id) : lead?.id ?? ev.id } : {}),
   };
   const body: Record<string, unknown> = {
     client_id: who.visitorId,

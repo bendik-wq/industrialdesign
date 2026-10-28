@@ -403,6 +403,15 @@ body.simple main { padding: 72px 20px; }
 /* ── Webinar ── */
 .webinar .host { margin-top: 22px; padding: 16px 18px; }
 .webinar .host p { margin: 6px 0 0; }
+/* Paid ticket (only rendered when the masterclass is sold as a ticket) */
+.webinar .ticket-price { margin: 14px auto 0; max-width: 560px; font-size: 15px; }
+.webinar .ticket-price .eyebrow { display: inline-block; margin-right: 6px; }
+.webinar .ticket-card { margin-top: 22px; padding: 18px 20px; }
+.webinar .ticket-card .h3 { margin-top: 0; }
+.webinar .ticket-card p { margin: 8px 0 0; }
+.webinar .ticket-card .ticks { margin: 10px 0 4px; gap: 10px; }
+.webinar .ticket-guarantee { padding-top: 10px; border-top: 1px solid var(--line, rgba(0,0,0,.1)); }
+.webinar .ticket-form-note { margin: -4px 0 12px; font-size: 14px; }
 .webinar .field-label { font: 500 13.5px/1.3 var(--font); margin: 0 0 8px; }
 .webinar .opts { display: grid; gap: 8px; margin-bottom: 14px; }
 .webinar .opt { display: flex; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid #d9dde4; border-radius: var(--radius); background: #fff; cursor: pointer; }

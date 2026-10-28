@@ -15,7 +15,7 @@ import { identityFromVisitor, track } from '../tracking/track';
 import {
   type Registration, type Session, getRegistration, getSession, googleCalendarUrl, ics, jitSettings, nextJitStart, openSessions, phase, replayEndsAt, replayUrl, roomUrl, webinarBase, webinarSettings,
 } from './webinar';
-import { activePass, confirmOnReturn, dealMaths, dealReviewPack, formatMoney, markPackViewed, passConfig, passCopy, passGate, registeredPassBlock, roomPassConfig } from './pass';
+import { PassError, activePass, confirmOnReturn, createCheckout, dealMaths, dealReviewPack, formatMoney, markPackViewed, passConfig, passCopy, passGate, registeredPassBlock, roomPassConfig, ticketFor } from './pass';
 import { bookingUrlFor } from '../funnel/routing';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -52,11 +52,20 @@ export async function webinarLanding(c: Context<AppEnv>) {
   const { headline: hl, preview } = await pickWebinarHeadline(rt, v.visitorId, c.req.query('h'));
   // Logged for the headline test (previews from Funnel HQ don't count).
   if (!preview && v.visitorId) await track(rt, identityFromVisitor(v, null, v.leadId ?? null), { name: 'webinar_headline_view', source: 'server', path: '/webinar', props: { h: hl.id }, localOnly: true });
+  // Paid ticket (required mode + seat price): the price, why it is paid, what it includes, the credit and the guarantee.
+  // Free mode leaves every one of these slots and blocks out, so the page is exactly as before.
+  const ticket = ticketFor(rt.settings);
   return render(c, '/webinar.html', {
     title: w.title,
-    slots: { webinar_title: esc(w.title), duration: String(w.durationMin), hl_h1: hl.h1, hl_lede: esc(hl.lede) },
-    blocks: { sessions: sessions.length || jit ? sessionOptions(sessions, v.geo.timezone, jit) : '<p class="muted">No sessions are scheduled right now. Check back soon.</p>' },
-    show: { has_sessions: sessions.length > 0 || Boolean(jit) },
+    slots: {
+      webinar_title: esc(w.title), duration: String(w.durationMin), hl_h1: hl.h1, hl_lede: esc(hl.lede),
+      ...(ticket ? { form_heading: esc(ticket.copy.formHeading), register_cta: esc(ticket.copy.button), register_note: `${esc(ticket.copy.privacy)} <a href="/privacy">Privacy policy</a>.` } : {}),
+    },
+    blocks: {
+      sessions: sessions.length || jit ? sessionOptions(sessions, v.geo.timezone, jit) : '<p class="muted">No sessions are scheduled right now. Check back soon.</p>',
+      ...(ticket ? { ticket_price: ticketPriceHtml(ticket.copy), ticket_block: ticketBlockHtml(ticket.copy), ticket_form_note: `<p class="ticket-form-note"><strong>${esc(ticket.copy.priceLine)}</strong></p>` } : {}),
+    },
+    show: { has_sessions: sessions.length > 0 || Boolean(jit), ticket: Boolean(ticket) },
     config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt), headline: hl.id } },
     seo: {
       title: `${w.title} | Masterclass with Josh Li`,
@@ -66,6 +75,43 @@ export async function webinarLanding(c: Context<AppEnv>) {
       index: isWebinarHost(c),
     },
   });
+}
+
+type TicketCopy = NonNullable<ReturnType<typeof ticketFor>>['copy'];
+
+/** Under the headline: the ticket price and the credit, in one line. */
+const ticketPriceHtml = (t: TicketCopy) => `<p class="ticket-price"><span class="eyebrow">${esc(t.eyebrow)}</span> <strong>${esc(t.priceLine)}</strong></p>`;
+
+/** Beside the form: why it is paid, what the ticket includes, the credit and the ticket guarantee. */
+function ticketBlockHtml(t: TicketCopy) {
+  return `<div class="card ticket-card">
+    <h3 class="h3">${esc(t.whyHeading)}</h3>
+    ${t.why.map((p) => `<p>${esc(p)}</p>`).join('')}
+    <p class="field-label">${esc(t.includesHeading)}</p>
+    <ul class="ticks">${t.includes.map((i) => `<li><strong>${esc(i.title)}.</strong> ${esc(i.body)}</li>`).join('')}</ul>
+    <p><strong>${esc(t.credit)}</strong></p>
+    <p class="ticket-guarantee"><strong>${esc(t.guaranteeHeading)}.</strong> ${esc(t.guarantee)}</p>
+  </div>`;
+}
+
+/**
+ * GET /ticket/:token: the "finish your ticket" emails link here. Straight into Stripe Checkout for the ticket;
+ * already paid (or no ticket needed) goes to the thank-you page; a session that has already started more than
+ * 10 minutes ago sends them to pick the next showing (a fresh registration, then the same checkout).
+ */
+export async function ticketPage(c: Context<AppEnv>) {
+  const { rt, reg, session } = await load(c);
+  if (!reg || !session || reg.token === 'preview') return notFound(c);
+  const thanks = `${webinarBase(rt)}/registered/${reg.token}`;
+  if (!(await passGate(rt, reg))) return c.redirect(thanks, 302);
+  if (session.status === 'cancelled' || session.starts_at < Date.now() - 10 * 60_000) return c.redirect(`${webinarBase(rt)}#register`, 302);
+  try {
+    const r = await createCheckout(rt, reg, { kind: 'seat', from: 'ty' });
+    return c.redirect('url' in r && r.url ? r.url : thanks, 302);
+  } catch (e) {
+    if (!(e instanceof PassError)) console.error('ticket checkout', String(e).slice(0, 200));
+    return c.redirect(`${thanks}?pass=required`, 302);
+  }
 }
 
 /**
@@ -109,12 +155,13 @@ export async function registeredPage(c: Context<AppEnv>) {
   const committed = await rt.env.DB.prepare("SELECT value FROM webinar_interactions WHERE reg_id = ? AND kind = 'commit'").bind(reg.id).first<{ value: string }>();
   // Deal Room Pass: the offer (upsell), the payment step (required), or the holder's perks.
   const pass = await registeredPassBlock(rt, reg, { pass: c.req.query('pass') ?? null });
+  const ticketed = 'ticket' in pass && pass.ticket;
   return render(c, '/webinar-registered.html', {
-    title: pass.gate ? 'Confirm your seat' : 'You’re registered',
+    title: pass.gate ? 'Get your ticket' : ticketed ? 'Ticket confirmed' : 'You’re registered',
     slots: {
       webinar_title: esc(session.title || w.title), when: esc(when(session.starts_at, tz)),
-      ty_eyebrow: esc(pass.gate ? passCopy(passConfig(rt.settings)).seatEyebrow : 'You’re registered'),
-      ty_heading: esc(pass.gate ? `Almost there${lead?.first_name ? `, ${lead.first_name}` : ''}. Your seat is confirmed once it is paid.` : soon ? `You’re in${lead?.first_name ? `, ${lead.first_name}` : ''}. It starts in a few minutes.` : THANK_YOU.heading),
+      ty_eyebrow: esc(pass.gate ? passCopy(passConfig(rt.settings)).seatEyebrow : ticketed ? 'Ticket confirmed' : 'You’re registered'),
+      ty_heading: esc(pass.gate ? `Almost there${lead?.first_name ? `, ${lead.first_name}` : ''}. Your seat in the room is confirmed once your ticket is paid.` : soon ? `You’re in${lead?.first_name ? `, ${lead.first_name}` : ''}. It starts in a few minutes.` : THANK_YOU.heading),
       ty_question: esc(THANK_YOU.question),
       preframe_q: clip ? esc(clip.q) : '',
     },
@@ -211,6 +258,7 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
 export async function worksheetPage(c: Context<AppEnv>) {
   const { rt, reg, session } = await load(c);
   if (!reg || !session) return notFound(c);
+  if (await passGate(rt, reg)) return c.redirect(`${webinarBase(rt)}/registered/${reg.token}?pass=required`, 302); // part of the paid ticket
   const unlocked = worksheetOpen(rt, session, reg) || Boolean(await rt.env.DB.prepare("SELECT 1 FROM webinar_interactions WHERE reg_id = ? AND kind = 'bonus'").bind(reg.id).first());
   const body = unlocked
     ? `<header class="ws-head"><span class="eyebrow">Attendee worksheet</span><h1 class="h2">${esc(WORKSHEET.title)}</h1><p class="lede">${esc(WORKSHEET.intro)}</p></header>` +

@@ -4,7 +4,7 @@ import { newId } from '../lib/ids';
 import type { VisitorCtx } from '../lib/identity';
 import { zonedTime, cancelSequence, enqueuePrewebinar, enqueueSequence } from '../integrations/email';
 import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, updateLead, validateEmail } from '../funnel/leads';
-import { startSms } from '../integrations/sms';
+import { startSms, stopSms } from '../integrations/sms';
 import { ApplicationError, attributionFor, verifyTurnstile } from '../funnel/application';
 import { identityFromLead, identityFromVisitor, track } from '../tracking/track';
 import { newRefCode } from '../lib/ids';
@@ -269,18 +269,20 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
 
   await rt.env.DB.prepare('INSERT INTO kv_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(ipKey, JSON.stringify({ n: rate.n + 1, t: rate.t })).run();
   const prior = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM webinar_registrations WHERE lead_id = ?').bind(lead.id).first<{ n: number }>();
+  // Paid ticket (required mode with a seat price): marked before anything is scheduled, so the emails and texts wait for payment.
+  const passRequired = (await import('./pass')).seatRequired(rt) ? 1 : 0;
   const reg: Registration = {
     id: newId('wr'), token: token(), session_id: session.id, lead_id: lead.id, seq: prior?.n ?? 0, new_lead: newLead ? 1 : 0, created_at: now,
-    joined_at: null, last_seen_at: null, watch_seconds: 0, max_position: 0, cta_at: null, replay_at: null, replay_seconds: 0,
+    joined_at: null, last_seen_at: null, watch_seconds: 0, max_position: 0, cta_at: null, replay_at: null, replay_seconds: 0, pass_required: passRequired,
   };
-  await rt.env.DB.prepare('INSERT INTO webinar_registrations (id, token, session_id, lead_id, seq, new_lead, created_at, revenue_band, headline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(reg.id, reg.token, reg.session_id, reg.lead_id, reg.seq, reg.new_lead, now, band, headline).run();
+  await rt.env.DB.prepare('INSERT INTO webinar_registrations (id, token, session_id, lead_id, seq, new_lead, created_at, revenue_band, headline, pass_required) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(reg.id, reg.token, reg.session_id, reg.lead_id, reg.seq, reg.new_lead, now, band, headline, passRequired).run();
   // Their own answer here wins over nothing; an application answer already on file is kept.
   const bandIsNew = !lead.revenue_band;
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
   lead = (await getLead(rt.env, lead.id))!;
-  await scheduleEmails(rt, lead, session, reg);
-  if (!underMillion(lead.revenue_band)) await startSms(rt, lead, 'webinar');
+  const ticketed = await scheduleEmails(rt, lead, session, reg);
+  if (ticketed && !underMillion(lead.revenue_band)) await startSms(rt, lead, 'webinar');
 
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'webinar_registered', source: 'server', path: '/webinar', props: { session_id: session.id, starts_at: session.starts_at, mode: session.mode, band, headline }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });
@@ -295,13 +297,52 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   return { registration: reg, session, lead: (await getLead(rt.env, lead.id))!, created: true };
 }
 
-/** Points the lead's webinar fields at this session and (re)schedules its block of emails. */
-async function scheduleEmails(rt: Runtime, lead: Lead, session: Session, reg: Registration) {
+export const TICKET_CYCLE = 10; // "finish your ticket" steps per registration block (see SEQUENCES.ticket)
+
+/**
+ * Points the lead's webinar fields at this session and (re)schedules its block of emails. While a required
+ * ticket is unpaid, only the short "finish your ticket" run goes out (no confirmation, reminders, pre-webinar
+ * emails or texts); those start when the ticket is paid. Returns true when the normal run was scheduled.
+ */
+export async function scheduleEmails(rt: Runtime, lead: Lead, session: Session, reg: Registration) {
   await updateLead(rt.env, lead.id, { webinar_at: session.starts_at, webinar_registered_at: Date.now(), webinar_token: reg.token });
   await cancelSequence(rt, lead.id, 'webinar'); // an earlier session's reminders
   const fresh = (await getLead(rt.env, lead.id))!;
+  const { passGate } = await import('./pass');
+  if (await passGate(rt, reg)) {
+    await cancelSequence(rt, lead.id, 'prewebinar');
+    await stopSms(rt, lead.id, ['webinar']);
+    await enqueueSequence(rt, fresh, 'ticket', { stepBase: reg.seq * TICKET_CYCLE });
+    return false;
+  }
+  await cancelSequence(rt, lead.id, 'ticket');
   await enqueueSequence(rt, fresh, 'webinar', { stepBase: reg.seq * WEBINAR_CYCLE });
   if (!underMillion(fresh.revenue_band)) await enqueuePrewebinar(rt, fresh, reg.seq);
+  return true;
+}
+
+/**
+ * The ticket is paid: stop the "finish your ticket" emails and start the confirmation, reminders, pre-webinar
+ * emails and texts for the lead's current registration, timed from now.
+ */
+export async function startTicketedMessages(rt: Runtime, leadId: string) {
+  const lead = await getLead(rt.env, leadId);
+  await cancelSequence(rt, leadId, 'ticket');
+  const reg = lead?.webinar_token ? await getRegistration(rt, lead.webinar_token) : null;
+  const session = reg ? await getSession(rt, reg.session_id) : null;
+  if (!lead || !reg || !session) return false;
+  await enqueueSequence(rt, lead, 'webinar', { stepBase: reg.seq * WEBINAR_CYCLE });
+  if (!underMillion(lead.revenue_band)) {
+    await enqueuePrewebinar(rt, lead, reg.seq);
+    await startSms(rt, lead, 'webinar');
+  }
+  return true;
+}
+
+/** A refunded ticket: nothing more about the session goes out. */
+export async function stopTicketedMessages(rt: Runtime, leadId: string) {
+  for (const s of ['ticket', 'webinar', 'prewebinar'] as const) await cancelSequence(rt, leadId, s);
+  await stopSms(rt, leadId, ['webinar']);
 }
 
 /** Moves someone to another session (from the "pick another time" link). */
@@ -311,11 +352,12 @@ export async function moveRegistration(rt: Runtime, reg: Registration, sessionId
   const lead = await getLead(rt.env, reg.lead_id);
   if (!lead) throw new ApplicationError('Registration not found', undefined, 404);
   const prior = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM webinar_registrations WHERE lead_id = ?').bind(lead.id).first<{ n: number }>();
-  const next: Registration = { ...reg, id: newId('wr'), token: token(), session_id: session.id, seq: prior?.n ?? 0, created_at: Date.now(), joined_at: null, last_seen_at: null, watch_seconds: 0, max_position: 0, cta_at: null, replay_at: null, replay_seconds: 0 };
-  await rt.env.DB.prepare('INSERT OR IGNORE INTO webinar_registrations (id, token, session_id, lead_id, seq, new_lead, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .bind(next.id, next.token, next.session_id, next.lead_id, next.seq, reg.new_lead, next.created_at).run();
+  // A move keeps the ticket requirement (a paid ticket is the person's, so it carries over).
+  const next: Registration = { ...reg, id: newId('wr'), token: token(), session_id: session.id, seq: prior?.n ?? 0, created_at: Date.now(), joined_at: null, last_seen_at: null, watch_seconds: 0, max_position: 0, cta_at: null, replay_at: null, replay_seconds: 0, pass_required: reg.pass_required ? 1 : 0 };
+  await rt.env.DB.prepare('INSERT OR IGNORE INTO webinar_registrations (id, token, session_id, lead_id, seq, new_lead, created_at, pass_required) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(next.id, next.token, next.session_id, next.lead_id, next.seq, reg.new_lead, next.created_at, next.pass_required).run();
   const saved = await rt.env.DB.prepare('SELECT * FROM webinar_registrations WHERE lead_id = ? AND session_id = ?').bind(lead.id, session.id).first<Registration>();
-  if (saved && saved.id === next.id) { await scheduleEmails(rt, lead, session, next); await startSms(rt, (await getLead(rt.env, lead.id))!, 'webinar'); }
+  if (saved && saved.id === next.id && (await scheduleEmails(rt, lead, session, next))) await startSms(rt, (await getLead(rt.env, lead.id))!, 'webinar');
   if (saved && saved.id === next.id) await (await import('./pass')).syncPassReplay(rt, lead.id);
   await track(rt, await identityFromLead(rt.env, lead.id), { name: 'webinar_rebooked', source: 'server', props: { session_id: session.id } });
   return { registration: saved ?? next, session };
