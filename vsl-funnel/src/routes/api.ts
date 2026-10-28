@@ -11,7 +11,8 @@ import { COOKIE, resolveVisitor } from '../lib/identity';
 import { type CollectPayload, collect } from '../tracking/collect';
 import { parseHeartbeat, recordHeartbeat } from '../tracking/vsl';
 import { transcribe } from '../lib/speech';
-import { addPhone, answerPoll, askQuestion, logCalc, offerClick, selfServeAgreement, thankYouAnswer, unlockBonus } from '../webinar/room';
+import { react, refreshScoreFor, saveBuyIn, saveNote } from '../webinar/experience';
+import { addPhone, answerPoll, chapters, askQuestion, logCalc, offerClick, selfServeAgreement, thankYouAnswer, unlockBonus } from '../webinar/room';
 import { liveFeed, postChat, raiseHand } from '../webinar/live';
 import { blueprintAction } from '../webinar/blueprint';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
@@ -207,10 +208,21 @@ const roomAction = (fn: (rt: ReturnType<typeof runtimeFrom>, reg: NonNullable<Aw
     return errorResponse(c, err);
   }
 };
+// Readiness score: recomputed after each answer that feeds it (poll, calculator, thank-you answer).
+for (const path of ['/webinar/poll', '/webinar/calc', '/webinar/commit']) {
+  api.use(path, async (c, next) => {
+    const raw = await c.req.raw.clone().text().catch(() => '');
+    await next();
+    try { await refreshScoreFor(runtimeFrom(c), (JSON.parse(raw) as { token?: unknown }).token); } catch (err) { console.error('readiness score', String(err).slice(0, 200)); }
+  });
+}
 api.post('/webinar/poll', roomAction((rt, reg, body) => answerPoll(rt, reg, body)));
 api.post('/webinar/ask', roomAction((rt, reg, body) => askQuestion(rt, reg, body)));
 api.post('/webinar/calc', roomAction((rt, reg, body) => logCalc(rt, reg, body)));
 api.post('/webinar/bonus', roomAction(async (rt, reg, body, session) => ({ ...(await unlockBonus(rt, reg, session, body)), url: `${webinarBase(rt)}/worksheet/${reg.token}` })));
+api.post('/webinar/note', roomAction((rt, reg, body) => saveNote(rt, reg, body)));
+api.post('/webinar/react', roomAction((rt, reg, body) => react(rt, reg, body, chapters(rt))));
+api.post('/webinar/buyin', roomAction((rt, reg, body) => saveBuyIn(rt, reg, body)));
 api.post('/webinar/blueprint', roomAction((rt, reg, body, session) => blueprintAction(rt, reg, session, body)));
 api.post('/webinar/offer', roomAction((rt, reg, body) => offerClick(rt, reg, body)));
 api.post('/webinar/start', roomAction((rt, reg) => selfServeAgreement(rt, reg)));

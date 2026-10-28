@@ -191,6 +191,12 @@ admin.put('/webinar/questions/:id', async (c) => {
   await c.env.DB.prepare("UPDATE webinar_interactions SET handled = ? WHERE id = ? AND kind = 'question'").bind(b.handled === false ? 0 : 1, c.req.param('id')).run();
   return c.json({ ok: true });
 });
+// Buy-in answers: hide one from the "what other owners said" wall (or show it again).
+admin.put('/webinar/buyin/:id', async (c) => {
+  const b = await c.req.json<{ hidden?: boolean }>().catch(() => ({ hidden: true }));
+  await c.env.DB.prepare("UPDATE webinar_interactions SET handled = ? WHERE id = ? AND kind = 'buyin'").bind(b.hidden === false ? 0 : 1, c.req.param('id')).run();
+  return c.json({ ok: true });
+});
 admin.route('/webinar/live', liveAdmin); // host console (the real live layer)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {

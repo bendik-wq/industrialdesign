@@ -24,7 +24,7 @@ export interface TemplateCtx {
   /** Calendly self-serve reschedule link. */
   rescheduleUrl?: string | null;
   /** The webinar session this lead is registered for (personal links). */
-  webinar?: { title: string; when: string; room: string; replay: string; ics: string | null; google: string | null; replayHours: number; durationMin: number; next?: string; worksheet?: string; apply?: string; blueprint?: string } | null;
+  webinar?: { title: string; when: string; room: string; replay: string; ics: string | null; google: string | null; replayHours: number; durationMin: number; next?: string; worksheet?: string; apply?: string; notes?: string[]; notesUrl?: string; buyin?: string | null; blueprint?: string } | null;
   /** The person's own link back into the application (webinar emails). */
   applyUrl?: string;
   /** Long flows: the flow's main ask, and where the masterclass sign-up lives. */

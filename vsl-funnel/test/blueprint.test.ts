@@ -148,7 +148,7 @@ describe('webinar sequence', () => {
   const seq = SEQUENCES.webinar;
   const step = (t: string) => seq.steps.find((s) => s.template === t)!;
   it('appends w_blueprint at the end and stays inside the cycle', () => {
-    expect(seq.steps[seq.steps.length - 1].template).toBe('w_blueprint');
+    expect(seq.steps.findIndex((s) => s.template === 'w_blueprint')).toBeGreaterThan(seq.steps.findIndex((s) => s.template === 'w_bonus')); // appended after the original steps
     expect(seq.steps.length).toBeLessThanOrEqual(seq.cycle!);
     expect(TEMPLATES.w_blueprint).toBeTypeOf('function');
   });

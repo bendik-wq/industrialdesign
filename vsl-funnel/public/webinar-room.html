@@ -13,6 +13,7 @@
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/webinar.js"></script>
   <script defer src="/assets/webinar-room.js"></script>
+  <script defer src="/assets/webinar-experience.js"></script>
   <script defer src="/assets/webinar-live.js"></script>
 </head>
 <body class="webinar">
@@ -24,6 +25,7 @@
       <span class="eyebrow"><span data-slot="room_label">Masterclass</span> · <span data-slot="when"></span><span data-if="pass_active"> · <span class="pass-badge" data-slot="pass_badge">Paid</span></span></span>
       <h1 class="h2" data-slot="webinar_title">The masterclass</h1>
       <div class="live-banner" data-live-banner role="status" aria-live="polite" hidden></div>
+      <div class="wx-grid" data-wx-grid><div class="wx-main" data-wx-main>
       <div class="room-stage" data-room>
         <div class="room-wait" data-wait>
           <p class="lede">Welcome<span data-slot="first_name_comma"></span>. We start in</p>
@@ -40,6 +42,8 @@
         </div>
       </div>
       <p class="live-presence" data-live-presence aria-live="polite" hidden></p>
+      <div class="wx-under" data-wx-under></div>
+      </div><aside class="wx-panel" data-wx-panel hidden aria-label="Your deal, building as you watch"></aside></div>
       <div class="room-cta" data-cta hidden></div>
       <section class="live-chat" data-live-chat aria-label="Showing chat" hidden></section>
       <div class="room-pass" data-pass></div>

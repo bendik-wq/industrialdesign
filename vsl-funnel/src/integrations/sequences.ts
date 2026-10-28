@@ -1,4 +1,5 @@
 import type { Lead } from '../funnel/leads';
+import type { Runtime } from '../app';
 import { buildDossier } from '../followup/dossier';
 import { REACTIVATE_A_ORDER } from '../followup/reactivation-a';
 import { REACTIVATE_B_ORDER } from '../followup/reactivation-b';
@@ -18,6 +19,8 @@ export interface SequenceStep {
   anchor?: 'start' | 'call_at' | 'webinar_at';
   /** Re-checked with fresh lead data right before sending. */
   skipIf?: (lead: Lead) => boolean;
+  /** Like skipIf, for a condition that needs the database (checked right before sending). */
+  skipIfAsync?: (rt: Runtime, lead: Lead) => Promise<boolean>;
 }
 
 export interface Sequence {
@@ -274,6 +277,8 @@ export const SEQUENCES = {
       { template: 'w_bonus', offsetMs: 20 * HOUR, anchor: 'webinar_at', skipIf: (l) => !cameToWebinar(l) || (l.webinar_watch_pct ?? 0) < 0.85 },
       // watched past the pitch and hasn't applied → their Acquisition Blueprint (about 2 hours after the showing ends).
       { template: 'w_blueprint', offsetMs: 3 * HOUR, anchor: 'webinar_at', skipIf: (l) => pitched(l) || !(cameToWebinar(l) || l.webinar_replay_at) || (l.webinar_watch_pct ?? 0) < LEFT_EARLY },
+      // saved at least one key point in this showing → their notes, about 30 minutes after it ends.
+      { template: 'w_notes', offsetMs: 90 * MIN, anchor: 'webinar_at', skipIfAsync: async (rt, l) => !l.webinar_at || !(await (await import('../webinar/experience')).savedNotesSince(rt, l.id, l.webinar_at - 30 * MIN)) },
     ],
   },
   prewebinar: {
