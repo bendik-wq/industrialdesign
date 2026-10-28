@@ -12,6 +12,7 @@ import { type CollectPayload, collect } from '../tracking/collect';
 import { parseHeartbeat, recordHeartbeat } from '../tracking/vsl';
 import { transcribe } from '../lib/speech';
 import { addPhone, answerPoll, askQuestion, logCalc, offerClick, selfServeAgreement, thankYouAnswer, unlockBonus } from '../webinar/room';
+import { liveFeed, postChat, raiseHand } from '../webinar/live';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
 
 export const api = new Hono<AppEnv>();
@@ -208,6 +209,10 @@ api.post('/webinar/bonus', roomAction(async (rt, reg, body, session) => ({ ...(a
 api.post('/webinar/offer', roomAction((rt, reg, body) => offerClick(rt, reg, body)));
 api.post('/webinar/start', roomAction((rt, reg) => selfServeAgreement(rt, reg)));
 api.post('/webinar/commit', roomAction((rt, reg, body) => thankYouAnswer(rt, reg, body)));
+// The real live layer: showing chat, presence, announcements, "get a call from Josh's team".
+api.post('/webinar/live/feed', roomAction((rt, reg, body, session) => liveFeed(rt, reg, session, body)));
+api.post('/webinar/live/chat', roomAction((rt, reg, body, session) => postChat(rt, reg, session, body)));
+api.post('/webinar/live/raise', roomAction((rt, reg, body, session) => raiseHand(rt, reg, session, body)));
 api.post('/webinar/phone', async (c) => roomAction((rt, reg, body) => addPhone(rt, reg, body, c.get('visitor').geo.country))(c));
 api.post('/webinar/move', async (c) => {
   try {

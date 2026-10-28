@@ -42,6 +42,7 @@ import { financeActuals, listModels, saveModel } from '../admin/finance';
 import { addManualSpend, adsReport, deleteManualSpend, setCampaignFunnel } from '../admin/ads';
 import { chooseAdAccount, listAdAccounts, metaAdsConfigured, metaAdsToken, syncMetaSpend } from '../integrations/meta-ads';
 import { webinarInsights } from '../admin/webinar';
+import { liveAdmin } from '../admin/live';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -190,6 +191,7 @@ admin.put('/webinar/questions/:id', async (c) => {
   await c.env.DB.prepare("UPDATE webinar_interactions SET handled = ? WHERE id = ? AND kind = 'question'").bind(b.handled === false ? 0 : 1, c.req.param('id')).run();
   return c.json({ ok: true });
 });
+admin.route('/webinar/live', liveAdmin); // host console (the real live layer)
 admin.get('/webinar/insights', async (c) => { const f = filters(c); return c.json(await webinarInsights(runtimeFrom(c), { from: f.from, to: f.to })); });
 
 // ── Financial model ──
