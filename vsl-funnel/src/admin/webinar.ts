@@ -4,6 +4,7 @@ import { isMillionPlus, REVENUE_LABEL } from '../sales/qualify';
 import { WEBINAR_HEADLINES, webinarHeadlineOdds, webinarHeadlineStats } from '../webinar/headlines';
 import { DEFAULT_POLLS, THANK_YOU } from '../webinar/content';
 import { webinarBase, webinarSettings } from '../webinar/webinar';
+import { liveSummary } from '../webinar/live';
 
 /** Funnel HQ → Webinar: sessions, registrants and how registrants move through the funnel. */
 export async function webinarReport(rt: Runtime, range: { from: number; to: number }) {
@@ -203,6 +204,7 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
   ];
   return {
     durationMin: len, pitchAtMin: w.pitchAtMin, tz: w.tz,
+    live: await liveSummary(rt, range),
     stage,
     engagement: {
       polls: pollStats,

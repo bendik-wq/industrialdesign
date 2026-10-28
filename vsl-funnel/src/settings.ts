@@ -111,6 +111,8 @@ export const SETTINGS = [
   { key: 'WEBINAR_DURATION_MIN', label: 'Webinar length (minutes)', group: 'Webinar', placeholder: '60', help: 'When the session counts as finished and the replay opens.' },
   { key: 'WEBINAR_PITCH_AT', label: 'Offer appears at (minutes in)', group: 'Webinar', placeholder: '45', help: 'When the “See if you qualify” button appears in the room.' },
   { key: 'WEBINAR_REPLAY_HOURS', label: 'Replay available for (hours)', group: 'Webinar', placeholder: '48', help: 'After this the replay link shows the next session instead. The emails say the same number.' },
+  { key: 'WEBINAR_CHAT', label: 'Showing chat in the room', group: 'Webinar', placeholder: 'on', help: 'on = viewers in the same showing can chat with each other (real people only; links, emails and phone numbers are removed). off = no chat. The team can reply, pin and delete from the host console on the Webinar tab.' },
+  { key: 'WEBINAR_HOST_NAMES', label: 'Team names for the room', group: 'Webinar', placeholder: 'G&L team, Josh', help: 'Names the team can post under in the showing chat and announcements, comma separated (up to 5). The first is the default. Only post as Josh when Josh is typing.' },
   { key: 'AI_CALL_DAILY_CAP', label: 'Max AI calls per day (all leads)', group: 'Voice', placeholder: '40', help: 'A ceiling on outbound AI calls queued in any 24 hours, so a flood of fake sign-ups can’t run up a phone bill. Each number is also limited to 3 calls a week.' },
   { key: 'AI_CALL_CALLBACK_NUMBER', label: 'Callback number said on AI calls', group: 'Voice', placeholder: '+1 229 404 6271', help: 'Read out on every AI call and voicemail so people can call back (required for AI-voice calls to US numbers).' },
 

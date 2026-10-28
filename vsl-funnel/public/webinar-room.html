@@ -13,6 +13,7 @@
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/webinar.js"></script>
   <script defer src="/assets/webinar-room.js"></script>
+  <script defer src="/assets/webinar-live.js"></script>
 </head>
 <body class="webinar">
   <header class="nav"><div class="wrap nav-in">
@@ -22,6 +23,7 @@
     <section class="hero hero-center room"><div class="wrap">
       <span class="eyebrow"><span data-slot="room_label">Masterclass</span> · <span data-slot="when"></span></span>
       <h1 class="h2" data-slot="webinar_title">The masterclass</h1>
+      <div class="live-banner" data-live-banner role="status" aria-live="polite" hidden></div>
       <div class="room-stage" data-room>
         <div class="room-wait" data-wait>
           <p class="lede">Welcome<span data-slot="first_name_comma"></span>. We start in</p>
@@ -37,11 +39,14 @@
           <p class="lede">That’s the end of the session. Thanks for watching.</p>
         </div>
       </div>
+      <p class="live-presence" data-live-presence aria-live="polite" hidden></p>
       <div class="room-cta" data-cta hidden></div>
+      <section class="live-chat" data-live-chat aria-label="Showing chat" hidden></section>
       <nav class="room-agenda" data-agenda aria-label="Masterclass agenda"></nav>
       <div class="room-side">
         <div class="room-moments" data-moments aria-live="polite"></div>
         <div class="room-ask card" data-ask></div>
+        <div class="live-raise card" data-live-raise hidden></div>
       </div>
       <p class="muted" data-if="replay">This replay is available until <span data-replay-until></span>.</p>
     </div></section>

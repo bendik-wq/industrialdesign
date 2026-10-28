@@ -5,6 +5,7 @@ import { getLead, linkVisitor } from '../funnel/leads';
 import { formatCallTime } from '../integrations/email';
 import { pickWebinarHeadline } from './headlines';
 import { roomExtras, worksheetOpen } from './room';
+import { liveRoomConfig } from './live';
 import { ROOM_COPY, THANK_YOU, WORKSHEET } from './content';
 import { FAQ_VIDEOS } from '../content/faq-videos';
 import { FAQ_READY } from '../content/faq-videos-ready';
@@ -159,6 +160,7 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         ...(await roomExtras(rt, reg)),
         copy: ROOM_COPY,
         replayUntil: session.starts_at + w.durationMin * 60_000 + w.replayHours * 3_600_000,
+        live: await liveRoomConfig(rt, reg, replay),
       },
     },
   });
