@@ -68,8 +68,28 @@ export async function webinarLanding(c: Context<AppEnv>) {
   });
 }
 
+/**
+ * Funnel HQ → Page previews: a made-up sign-up so the thank-you page, the room and the replay can be seen
+ * without registering. Admin only (hq_preview=1). ?hq_at=<minute> puts the showing at that minute
+ * (negative = before it starts; "replay" = the replay). Nothing is saved: every write in the room looks the
+ * token up first, and "preview" never matches a real registration.
+ */
+function previewLoad(c: Context<AppEnv>, rt: ReturnType<typeof runtimeFrom>) {
+  const w = webinarSettings(rt);
+  const now = Date.now();
+  const at = c.req.query('hq_at') ?? '3';
+  const startsAt = at === 'replay' ? now - (w.durationMin + 10) * 60_000 : now - (Number(at) || 0) * 60_000;
+  const session: Session = { id: 'ws_preview', starts_at: startsAt, title: null, mode: 'evergreen', join_url: null, video_src: null, status: 'scheduled', auto: 2 };
+  const reg: Registration = {
+    id: 'wr_preview', token: 'preview', session_id: session.id, lead_id: 'l_preview', seq: 0, new_lead: 0, created_at: now - 3_600_000,
+    joined_at: null, last_seen_at: null, watch_seconds: 0, max_position: 0, cta_at: null, replay_at: null, replay_seconds: 0, replay_until: null,
+  };
+  return { rt, reg, session };
+}
+
 async function load(c: Context<AppEnv>) {
   const rt = runtimeFrom(c);
+  if (c.req.param('token') === 'preview' && c.get('visitor')?.botReason === 'admin-preview') return previewLoad(c, rt);
   const reg = await getRegistration(rt, c.req.param('token') ?? '');
   const session = reg ? await getSession(rt, reg.session_id) : null;
   return { rt, reg, session };

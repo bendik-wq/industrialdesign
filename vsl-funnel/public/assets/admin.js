@@ -459,7 +459,7 @@
               '<div class="row screen-actions"><span class="mono muted">' + esc(p.path.replace(/[?&]hq_as=\w+/, '')) + '</span><a class="btn-sm ghost" href="' + esc(p.src) + '" target="_blank" rel="noopener">Open ↗</a><button class="btn-sm ghost" data-reload="' + p.n + '">Reload</button></div></figure>';
           }).join('') + '</div>';
         }).join('') +
-        '<p class="muted" style="margin-top:12px">Webinar “registered”, room and replay pages are personal (each needs a sign-up link), so they aren’t shown here. Open them from a test registration.</p>';
+        '<p class="muted" style="margin-top:12px">Webinar pages are shown with a made-up sign-up, at the minute named on each one. Nothing you click in them is saved.</p>';
       view.querySelectorAll('[data-sp]').forEach(function (b) {
         b.onclick = function () { var kv = b.getAttribute('data-sp').split(':'); screenPrefs[kv[0]] = kv[1]; try { localStorage.setItem('hq_screens', JSON.stringify(screenPrefs)); } catch (e) { /* ignore */ } renderScreens(); };
       });
