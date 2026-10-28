@@ -5,13 +5,15 @@ export interface Chapter { at: number; title: string } // at = minute the chapte
 
 export const DEFAULT_CHAPTERS: Chapter[] = [
   { at: 0, title: 'Why profitable owners stall' },
-  { at: 7, title: 'The growth ceiling' },
-  { at: 14, title: 'Where the deals are' },
-  { at: 21, title: 'The 1.5x test' },
-  { at: 28, title: 'Building the funding stack' },
-  { at: 37, title: 'From one business to a group' },
-  { at: 45, title: 'Your next step' },
-  { at: 52, title: 'Common questions answered' },
+  { at: 6, title: 'The growth ceiling' },
+  { at: 12, title: 'Where the deals are' },
+  { at: 19, title: 'The 1.5x test' },
+  { at: 26, title: 'Building the funding stack' },
+  { at: 33, title: 'From one business to a group' },
+  { at: 38, title: 'The First Deal Sprint' },
+  { at: 49, title: 'What it costs and what protects you' },
+  { at: 55, title: 'Questions that decide it' },
+  { at: 63, title: 'Your decision' },
 ];
 
 export interface Poll { id: string; at: number; question: string; options: { value: string; label: string }[]; purpose: string }
@@ -32,7 +34,7 @@ export const DEFAULT_POLLS: Poll[] = [
   },
   {
     id: 'timeline',
-    at: 12,
+    at: 10,
     question: 'When would you want your first deal closed?',
     options: [
       { value: '0_3', label: '0 to 3 months' },
@@ -44,7 +46,7 @@ export const DEFAULT_POLLS: Poll[] = [
   },
   {
     id: 'blocker',
-    at: 20,
+    at: 18,
     question: 'What is the biggest thing stopping you right now?',
     options: [
       { value: 'finding', label: 'Finding deals' },
@@ -57,7 +59,7 @@ export const DEFAULT_POLLS: Poll[] = [
   },
   {
     id: 'own_cash',
-    at: 40,
+    at: 30,
     question: 'How much of your own cash would you want in the deal?',
     options: [
       { value: 'none', label: 'None' },
@@ -68,14 +70,14 @@ export const DEFAULT_POLLS: Poll[] = [
   },
   {
     id: 'soft_close',
-    at: 46,
-    question: 'Want us to map out your first acquisition?',
+    at: 44,
+    question: 'Is the First Deal Sprint right for you?',
     options: [
-      { value: 'yes', label: 'Yes, book a call' },
-      { value: 'more', label: 'Tell me more first' },
+      { value: 'yes', label: 'Yes, I’m starting it' },
+      { value: 'more', label: 'I have a question first' },
       { value: 'not_yet', label: 'Not yet' },
     ],
-    purpose: 'Buying intent at the pitch: yes gets the application straight away, tell me more gets a follow up.',
+    purpose: 'Buying intent at the offer: yes should check out, a question goes to the team, not yet gets the closing emails.',
   },
 ];
 

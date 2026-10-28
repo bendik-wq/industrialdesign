@@ -356,7 +356,7 @@ export function buildBlueprint(i: BlueprintInputs, o: { origin: string; webinarB
   } else {
     next = { kind: 'apply', label: 'Apply for a strategy call', href: apply };
     nextP = [
-      i.polls.soft_close === 'yes' ? 'You said yes to mapping out your first acquisition.' : i.polls.soft_close === 'more' ? 'You wanted to know more first, and this page is the first part of that.' : '',
+      i.polls.soft_close === 'yes' ? 'You said the First Deal Sprint was right for you.' : i.polls.soft_close === 'more' ? 'You wanted to know more first, and this page is the first part of that.' : '',
       'Apply for a strategy call. My team checks this blueprint against your real numbers and maps the first acquisition with you: the target, the structure and the path to a signed LOI in about 90 days.',
       'The programme comes with a 7-day money-back guarantee.',
     ].filter(Boolean).join(' ');

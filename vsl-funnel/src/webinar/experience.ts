@@ -26,50 +26,51 @@ export const AVERAGE_MIN = 30;
 export interface Takeaway { id: string; at: number; text: string } // at = second of the masterclass
 
 export const TAKEAWAYS: Takeaway[] = [
-  { id: 'big-idea', at: 115, text: 'Buy a business that is already built, and let commercial debt, seller finance and seller rollover pay the price instead of your savings.' },
-  { id: 'third-way', at: 545, text: 'Hiring and marketing move the ceiling a few inches a year, while buying a business that is already built moves it in one step.' },
-  { id: 'revenue-gap', at: 640, text: 'Illustrative: adding $500,000 of profit at a 15% margin takes about $3.3M of new revenue, or one acquisition of a business that already makes it.' },
-  { id: 'off-market', at: 870, text: 'Listed businesses are auctions, and the best deals sit with owners who have no successor and have not listed yet.' },
-  { id: 'rollover-signal', at: 995, text: 'A seller who agrees to roll part of the price into equity is betting their own money that the numbers are real.' },
-  { id: 'red-flags', at: 1150, text: 'Walk away when the financials do not match the tax returns, one customer is most of the revenue, or the seller will not stay through the handover.' },
-  { id: 'dscr', at: 1315, text: 'Debt service coverage is yearly profit divided by yearly debt payments, and lenders want to see about 1.5x or better.' },
-  { id: 'structures', at: 1390, text: 'Banks do not reject buyers, they reject structures.' },
-  { id: 'pass-fail', at: 1505, text: 'Illustrative: $500,000 of profit against $300,000 of yearly payments is 1.67x and passes, while $350,000 of payments gives 1.43x and fails.' },
-  { id: 'levers', at: 1590, text: 'A deal that fails the test tells you which lever to pull: a longer seller note, a payment holiday, more rollover or a lower price.' },
-  { id: 'stack', at: 1765, text: 'In the illustrative 70/20/10 stack, commercial debt funds 70% of the price, seller finance 20% and seller rollover the last 10%.' },
-  { id: 'over-financed', at: 1935, text: 'A well structured deal is over-financed: a working capital line covers closing costs and day one cash when the cash flow supports it.' },
-  { id: 'order', at: 2125, text: 'Agree the shape of the deal with the seller first, then take it to a lender with the 1.5x test already run.' },
-  { id: 'multiples', at: 2250, text: 'Illustrative ranges: one small business trades at 3 to 5x profit, and a group of them at 8 to 12x.' },
-  { id: 'group-math', at: 2330, text: 'Illustrative: two businesses making $500,000 each are worth about $4M apart and $8M together as a group at 8x.' },
-  { id: 'management-layer', at: 2610, text: 'The management layer you build to hold two businesses together is the same layer that takes you out of the middle of the first one.' },
-  { id: 'ninety-days', at: 2830, text: 'The 90 days: weeks 1 to 2 set the target profile, weeks 3 to 8 run outreach to owners, and weeks 9 to 13 negotiate, line up financing and sign the LOI.' },
-  { id: 'deadline', at: 2960, text: 'The only real deadline is another buyer signing the owner first.' },
-  { id: 'cheap-end', at: 3470, text: 'A failed test costs you a conversation, and a failed acquisition costs you years.' },
+  { id: 'big-idea', at: 91, text: 'Buy a business that is already built, and let commercial debt, seller finance and seller rollover pay the price instead of your savings.' },
+  { id: 'third-way', at: 452, text: 'Hiring and marketing move the ceiling a few inches a year, while buying a business that is already built moves it in one step.' },
+  { id: 'revenue-gap', at: 550, text: 'Illustrative: adding $500,000 of profit at a 15% margin takes about $3.3M of new revenue, or one acquisition of a business that already makes it.' },
+  { id: 'off-market', at: 753, text: 'Listed businesses are auctions, and the best deals sit with owners who have no successor and have not listed yet.' },
+  { id: 'rollover-signal', at: 864, text: 'A seller who agrees to roll part of the price into equity is betting their own money that the numbers are real.' },
+  { id: 'red-flags', at: 1043, text: 'Walk away when the financials do not match the tax returns, one customer is most of the revenue, or the seller will not stay through the handover.' },
+  { id: 'dscr', at: 1204, text: 'Debt service coverage is yearly profit divided by yearly debt payments, and lenders want to see about 1.5x or better.' },
+  { id: 'structures', at: 1280, text: 'Banks do not reject buyers, they reject structures.' },
+  { id: 'pass-fail', at: 1385, text: 'Illustrative: $500,000 of profit against $300,000 of yearly payments is 1.67x and passes, while $350,000 of payments gives 1.43x and fails.' },
+  { id: 'levers', at: 1460, text: 'A deal that fails the test tells you which lever to pull: a longer seller note, a payment holiday, more rollover or a lower price.' },
+  { id: 'stack', at: 1611, text: 'In the illustrative 70/20/10 stack, commercial debt funds 70% of the price, seller finance 20% and seller rollover the last 10%.' },
+  { id: 'over-financed', at: 1700, text: 'A well structured deal is over-financed: a working capital line covers closing costs and day one cash when the cash flow supports it.' },
+  { id: 'order', at: 1848, text: 'Agree the shape of the deal with the seller first, then take it to a lender with the 1.5x test already run.' },
+  { id: 'multiples', at: 1990, text: 'Illustrative ranges: one small business trades at 3 to 5x profit, and a group of them at 8 to 12x.' },
+  { id: 'group-math', at: 2066, text: 'Illustrative: two businesses making $500,000 each are worth about $4M apart and $8M together as a group at 8x.' },
+  { id: 'sprint-days', at: 2602, text: 'The First Deal Sprint: in seven days, your acquisition capacity, your buy box, a first shortlist, a deal-structure memo, an outreach script and a Deal Plan session.' },
+  { id: 'guarantee', at: 2996, text: 'The Sprint guarantee: if at the end of your Deal Plan session it was not worth far more than you paid, tell the team that day and the full fee is refunded.' },
+  { id: 'management-layer', at: 3573, text: 'The management layer you build to hold two businesses together is the same layer that takes you out of the middle of the first one.' },
 ];
 
 /** One line per chapter (keyed by the minute it starts) for the late-join catch-up and the away recap. */
 export const CHAPTER_RECAP: Record<number, string> = {
   0: 'Growth gets slow and expensive past a point, and the answer is buying a business that is already built.',
-  7: 'Hiring moves the ceiling slowly, while an acquisition adds its profit on the day the deal settles.',
-  14: 'The best deals are off market, with owners who have no successor, and you approach them directly.',
-  21: 'Yearly profit divided by yearly debt payments has to clear about 1.5x before a lender takes a deal seriously.',
-  28: 'Commercial debt, seller finance and seller rollover, illustrated as 70/20/10, with a working capital line on top.',
-  37: 'Illustrative ranges of 3 to 5x profit for one business against 8 to 12x for a group.',
-  45: 'How the 90 days run with the team, what working together costs and who should not apply.',
-  52: 'Personal guarantees, time, financing where you are, and sellers who want all cash.',
+  6: 'Hiring moves the ceiling slowly, while an acquisition adds its profit on the day the deal settles.',
+  12: 'The best deals are off market, with owners who have no successor, and you approach them directly.',
+  19: 'Yearly profit divided by yearly debt payments has to clear about 1.5x before a lender takes a deal seriously.',
+  26: 'Commercial debt, seller finance and seller rollover, illustrated as 70/20/10, with a working capital line on top.',
+  33: 'Illustrative ranges of 3 to 5x profit for one business against 8 to 12x for a group.',
+  38: 'The First Deal Sprint opened: seven days with the team that end with your first deal mapped out.',
+  49: 'What the Sprint costs, the ticket credit, the guarantee, the review bonus and when the offer closes.',
+  55: 'The questions that decide it: timing, the shortlist, the fee, time needed, guarantees and control.',
+  63: 'The worksheet unlocked, and the choice between the same year again and a year into building a group.',
 };
 
 // ───────────── The deal builder ─────────────
 
-/** One step per chapter: unlocks at `at` (second). `soon` is the locked line ("Unlocks at 28:00: your funding stack"). */
+/** One step per chapter: unlocks at `at` (second). `soon` is the locked line ("Unlocks at 26:00: your funding stack"). */
 export const BUILDER_STEPS: { id: string; at: number; title: string; soon: string }[] = [
   { id: 'target', at: 0, title: 'The business you would buy', soon: 'the business you would buy' },
-  { id: 'size', at: 7 * 60, title: 'The profit it adds', soon: 'the profit it adds' },
-  { id: 'where', at: 14 * 60, title: 'Where it sits', soon: 'where to find it' },
-  { id: 'test', at: 21 * 60, title: 'The 1.5x test', soon: 'the 1.5x test on your numbers' },
-  { id: 'stack', at: 28 * 60, title: 'Your funding stack', soon: 'your funding stack' },
-  { id: 'group', at: 37 * 60, title: 'What it is worth inside a group', soon: 'your group value' },
-  { id: 'plan', at: 45 * 60, title: 'Your 90-day plan', soon: 'your 90-day plan' },
+  { id: 'size', at: 6 * 60, title: 'The profit it adds', soon: 'the profit it adds' },
+  { id: 'where', at: 12 * 60, title: 'Where it sits', soon: 'where to find it' },
+  { id: 'test', at: 19 * 60, title: 'The 1.5x test', soon: 'the 1.5x test on your numbers' },
+  { id: 'stack', at: 26 * 60, title: 'Your funding stack', soon: 'your funding stack' },
+  { id: 'group', at: 33 * 60, title: 'What it is worth inside a group', soon: 'your group value' },
+  { id: 'plan', at: 38 * 60, title: 'Your next seven days', soon: 'your next seven days' },
 ];
 
 /** Strings for the room. {placeholders} are filled in the browser with the viewer's own numbers. */
@@ -84,7 +85,7 @@ export const EXPERIENCE_COPY = {
   targetEmpty: 'Answer the question at 3:00 and this fills in with your answer.',
   sizeLine: 'A business that makes about {profit} a year, priced at {price}.',
   sizeYours: 'Your numbers from the calculator: {profit} a year in profit, priced at {price}.',
-  sizeSource: 'Sized from your revenue band until you run the calculator at 28:00.',
+  sizeSource: 'Sized from your revenue band until you run the calculator at 26:00.',
   sizeGrowth: 'Growing that profit from scratch at a 15% margin takes about {revenue} of new revenue.',
   whereLine: 'Off market, with an owner who has no successor. You approach them directly, one owner to another.',
   whereByType: {
@@ -98,22 +99,22 @@ export const EXPERIENCE_COPY = {
   testPass: 'That clears the 1.5x test with a buffer.',
   testFail: 'That falls short of 1.5x. A longer seller note, more rollover or a lower price changes it.',
   testSource: 'On the calculator assumptions: 9% over 10 years on the bank loan, 6% over 5 years on the seller note.',
-  testHint: 'Run a real business through the calculator at 28:00 and this updates with your numbers.',
+  testHint: 'Run a real business through the calculator at 26:00 and this updates with your numbers.',
   stackRows: { debt: 'Commercial debt', note: 'Seller finance', roll: 'Seller rollover' } as Record<string, string>,
   stackPayments: 'Yearly debt payments: {service}. The rollover carries no yearly payment.',
   groupAlone: 'On its own at 3 to 5x profit',
   groupInside: 'Inside a group at 8 to 12x profit',
   groupNote: 'Same profit, a different multiple. Illustrative ranges, and the real number depends on the industry and the market.',
   planRows: [
-    { weeks: 'Weeks 1 to 2', text: 'Audit your business and set the target profile: {target}.' },
-    { weeks: 'Weeks 3 to 8', text: 'Outreach to owners, on and off market, with coaching on every reply.' },
-    { weeks: 'Weeks 9 to 13', text: 'Negotiate, line up the financing and sign the LOI.' },
+    { weeks: 'Day 1', text: 'Kickoff with the team, and your numbers and today’s answers go into your file.' },
+    { weeks: 'Days 2 to 6', text: 'Your acquisition capacity, your buy box for {target}, a first shortlist, your deal-structure memo and your outreach script.' },
+    { weeks: 'Day 7', text: 'Your Deal Plan session: the whole deal on the table, and you decide what happens next.' },
   ],
   planTimeline: {
-    '0_3': 'You said 0 to 3 months, which matches the pace of this plan.',
-    '3_6': 'You said 3 to 6 months, so a signed LOI by day 90 leaves room to close inside your window.',
-    '6_12': 'You said 6 to 12 months, and starting the profile now puts a signed LOI well inside that.',
-    learning: 'You said you are learning first, and the first two weeks are where that turns into a target.',
+    '0_3': 'You said 0 to 3 months, so a mapped deal by next week keeps that window open.',
+    '3_6': 'You said 3 to 6 months, and a plan in seven days leaves the rest of that time for outreach and the LOI.',
+    '6_12': 'You said 6 to 12 months, and knowing your capacity now means the next months go to the right businesses.',
+    learning: 'You said you are learning first, and seven days is where learning turns into a target.',
   } as Record<string, string>,
   planTargetFallback: 'the business that fits next to yours',
   // One-line summaries for steps already passed (tap one to open it again).
@@ -198,7 +199,7 @@ export const SCORE_RULES: Factor[] = [
   {
     id: 'numbers', input: 'dscr', label: 'Deal numbers', max: 20, kind: 'dscr', gap: 'deal numbers that clear 1.5x',
     steps: [[1.5, 20], [1.25, 12], [0, 6]],
-    raise: 'Run one real business through the calculator at 28:00 and get it to 1.5x or better.',
+    raise: 'Run one real business through the calculator at 26:00 and get it to 1.5x or better.',
   },
   {
     id: 'capital', input: 'own_cash', label: 'Your stance on own cash', max: 10, kind: 'map', gap: 'your stance on own cash',
@@ -333,7 +334,7 @@ export async function react(rt: Runtime, reg: Registration, body: { kind?: unkno
 
 /** At least this many viewers must have chosen to share before any shared answer is shown. */
 export const WALL_MIN = 5;
-export const BUYIN_AT = 38 * 60 + 20;
+export const BUYIN_AT = 36 * 60 + 6;
 export const BUYIN_MAX = 280;
 
 /** Their sentence, without links, email addresses or phone numbers, on one line, at most 280 characters. */

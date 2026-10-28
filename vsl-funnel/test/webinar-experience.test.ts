@@ -74,10 +74,10 @@ describe('deal builder', () => {
     expect(illustrativeTarget('25m-50m').profit).toBeGreaterThan(illustrativeTarget('3m-10m').profit);
     expect(illustrativeTarget(null)).toEqual({ profit: 500_000, price: 1_500_000 });
   });
-  it('has one step per chapter up to the pitch, in order, ending at 45:00', () => {
+  it('has one step per chapter up to the offer unlock, in order, ending at 38:00', () => {
     const ats = BUILDER_STEPS.map((s) => s.at);
     expect(ats).toEqual([...ats].sort((a, b) => a - b));
-    expect(ats).toEqual(DEFAULT_CHAPTERS.filter((c) => c.at <= 45).map((c) => c.at * 60));
+    expect(ats).toEqual(DEFAULT_CHAPTERS.filter((c) => c.at <= 38).map((c) => c.at * 60));
   });
 });
 
@@ -103,8 +103,8 @@ describe('takeaways', () => {
   it('have a recap line for every default chapter', () => {
     for (const c of DEFAULT_CHAPTERS) expect(CHAPTER_RECAP[c.at], c.title).toBeTruthy();
     expect(chapterAt(DEFAULT_CHAPTERS, 0)).toBe(0);
-    expect(chapterAt(DEFAULT_CHAPTERS, 28 * 60 + 12)).toBe(28);
-    expect(chapterAt(DEFAULT_CHAPTERS, 59 * 60)).toBe(52);
+    expect(chapterAt(DEFAULT_CHAPTERS, 28 * 60 + 12)).toBe(26);
+    expect(chapterAt(DEFAULT_CHAPTERS, 59 * 60)).toBe(55);
   });
 });
 
@@ -145,9 +145,9 @@ describe('buy-in', () => {
     expect(wallLabel(null, null, REVENUE_LABEL)).toBe('');
     expect(wallLabel('  Ölaf ', 'nonsense', REVENUE_LABEL)).toBe('Ö.');
   });
-  it('asks before the pitch, in minutes 38 to 40', () => {
-    expect(BUYIN_AT).toBeGreaterThanOrEqual(38 * 60);
-    expect(BUYIN_AT).toBeLessThan(40 * 60);
+  it('asks in the three minutes before the offer unlocks at 38:00', () => {
+    expect(BUYIN_AT).toBeGreaterThanOrEqual(35 * 60);
+    expect(BUYIN_AT).toBeLessThan(38 * 60);
   });
 });
 

@@ -21,7 +21,7 @@ export function chapters(rt: Runtime): Chapter[] {
   return out.length ? out.sort((a, b) => a.at - b.at) : DEFAULT_CHAPTERS;
 }
 export const polls = (_rt: Runtime): Poll[] => DEFAULT_POLLS;
-export const bonusAtMin = (rt: Runtime) => { const n = Number(rt.settings.WEBINAR_BONUS_AT); const w = webinarSettings(rt); return Number.isFinite(n) && n > 0 ? Math.min(n, w.durationMin) : Math.max(1, w.durationMin - 8); };
+export const bonusAtMin = (rt: Runtime) => { const n = Number(rt.settings.WEBINAR_BONUS_AT); const w = webinarSettings(rt); return Number.isFinite(n) && n > 0 ? Math.min(n, w.durationMin) : Math.max(1, w.durationMin - 3); };
 export const selfServeOn = (rt: Runtime) => /^(on|true|yes|1)$/i.test((rt.settings.WEBINAR_SELF_SERVE ?? '').trim());
 
 async function log(rt: Runtime, reg: Registration, kind: string, o: { key?: string | null; value?: string | null; answer?: string | null; at?: number | null; replay?: boolean }) {
