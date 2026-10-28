@@ -149,7 +149,7 @@ describe('Sprint board', () => {
   });
 
   it('shows the fast-action bonus when the pass has it', async () => {
-    db.exec('ALTER TABLE webinar_passes ADD COLUMN fast_bonus INTEGER NOT NULL DEFAULT 0');
+    // fast_bonus comes from migration 0035 (the Sprint offer)
     db.exec("UPDATE webinar_passes SET fast_bonus = 1 WHERE id = 'wp1'");
     const s = (await dealSprintBoard(rt)).sprints[0];
     expect(s.fast_bonus).toBe(true);
@@ -237,6 +237,6 @@ describe('ladder report', () => {
     expect(r.revenue).toEqual({ tickets: 100, sprints: 3000, engagements: 47000, total: 50100 });
     expect(r.perRegistrant).toBe(50100);
     expect(r.perTicket).toBe(50100);
-    expect(r.sprintSplit).toBeNull(); // no payment-plan column yet
+    expect(r.sprintSplit).toEqual({ plan: 0, full: 1 }); // installments column from migration 0035
   });
 });

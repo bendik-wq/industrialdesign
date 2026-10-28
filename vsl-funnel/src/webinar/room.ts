@@ -96,11 +96,11 @@ export async function unlockBonus(rt: Runtime, reg: Registration, session: Sessi
 
 /** Which offer button they pressed at the pitch (call / self-serve / under-$1M path). $10M+ pressing anything pings the team. */
 export async function offerClick(rt: Runtime, reg: Registration, body: { choice?: unknown; pos?: unknown; replay?: unknown }) {
-  const choice = ['call', 'self_serve', 'under', 'assessment'].includes(String(body.choice)) ? String(body.choice) : 'call';
+  const choice = ['call', 'self_serve', 'under', 'assessment', 'sprint'].includes(String(body.choice)) ? String(body.choice) : 'call';
   const fresh = await log(rt, reg, 'offer', { key: choice, at: pos(body.pos), replay: body.replay === true });
   if (fresh && choice !== 'under') {
     const lead = await getLead(rt.env, reg.lead_id);
-    if (lead && TEN_PLUS.has(lead.revenue_band ?? '')) rt.waitUntil(notifySlack(rt, lead, '💰 $10M+ owner clicked the offer in the masterclass', [`Choice: ${choice === 'self_serve' ? 'start now (self-serve agreement)' : choice === 'assessment' ? 'start the paid assessment (Stripe checkout)' : 'book a call'}`], 'hot_lead'));
+    if (lead && TEN_PLUS.has(lead.revenue_band ?? '')) rt.waitUntil(notifySlack(rt, lead, '💰 $10M+ owner clicked the offer in the masterclass', [`Choice: ${choice === 'self_serve' ? 'start now (self-serve agreement)' : choice === 'assessment' || choice === 'sprint' ? 'start the First Deal Sprint (Stripe checkout)' : 'book a call'}`], 'hot_lead'));
   }
   return { ok: true as const };
 }

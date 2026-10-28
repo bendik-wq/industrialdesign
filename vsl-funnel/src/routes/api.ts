@@ -17,6 +17,7 @@ import { liveFeed, postChat, raiseHand } from '../webinar/live';
 import { blueprintAction } from '../webinar/blueprint';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
 import { PassError, createCheckout, markReviewClicked, passGate, syncPassReplay } from '../webinar/pass';
+import { createSprintCheckout, unlockSprint } from '../webinar/sprint';
 
 export const api = new Hono<AppEnv>();
 
@@ -244,6 +245,20 @@ api.post('/webinar/checkout', async (c) => {
     if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
     const r = await createCheckout(rt, reg, { kind: body.kind === 'seat' ? 'seat' : 'offer', from: body.from === 'room' ? 'room' : 'ty' });
     return c.json({ ok: true, ...r, ...('paid' in r ? { next: `${webinarBase(rt)}/registered/${reg.token}` } : {}) });
+  } catch (err) {
+    if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
+    return errorResponse(c, err);
+  }
+});
+// The First Deal Sprint: unlock at the pitch (the server checks the clock / position), and its checkout
+// (one payment or the plan), refused before the pitch and after the offer deadline.
+api.post('/webinar/sprint/unlock', roomAction((rt, reg, body, session) => unlockSprint(rt, reg, session, body)));
+api.post('/webinar/sprint/checkout', async (c) => {
+  try {
+    const { rt, body, reg } = await webinarReg(c);
+    if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+    const r = await createSprintCheckout(rt, reg, { plan: body.plan === true, from: body.from === 'offer' ? 'offer' : 'room' });
+    return c.json({ ok: true, ...r, ...('paid' in r ? { next: `${webinarBase(rt)}/offer/${reg.token}` } : {}) });
   } catch (err) {
     if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
     return errorResponse(c, err);

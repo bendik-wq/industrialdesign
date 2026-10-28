@@ -152,6 +152,8 @@
       cta.querySelector('[data-under]').addEventListener('click', function () { post('/api/webinar/offer', { choice: 'under' }); openWorksheet(); });
       return;
     }
+    // The First Deal Sprint has its own panel (locked, then unlocked at the pitch): webinar-sprint.js.
+    if (cfg.sprint) return;
     var q = copy.offerQualified || {};
     var po = cfg.pass && cfg.pass.offer;
     if (po) {
@@ -222,6 +224,7 @@
     document.documentElement.classList.add('modal-open');
     F.track('cta_click', { id: 'webinar_book_call_inline' });
   }
+  window.WEBINAR_BOOK = openBooking; // the Sprint panel's "Book a strategy call instead"
   if (modal) {
     var closeModal = function () { modal.hidden = true; document.documentElement.classList.remove('modal-open'); };
     modal.querySelector('[data-book-close]').addEventListener('click', closeModal);

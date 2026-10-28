@@ -17,6 +17,7 @@ import {
 } from './webinar';
 import { PassError, activePass, confirmOnReturn, createCheckout, dealMaths, dealReviewPack, formatMoney, markPackViewed, passConfig, passCopy, passGate, registeredPassBlock, roomPassConfig, ticketFor } from './pass';
 import { bookingUrlFor } from '../funnel/routing';
+import { sprintRoomConfig } from './sprint';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -124,7 +125,8 @@ function previewLoad(c: Context<AppEnv>, rt: ReturnType<typeof runtimeFrom>) {
   const w = webinarSettings(rt);
   const now = Date.now();
   const at = c.req.query('hq_at') ?? '3';
-  const startsAt = at === 'replay' ? now - (w.durationMin + 10) * 60_000 : now - (Number(at) || 0) * 60_000;
+  // "pitch": a few seconds before the pitch minute, so the First Deal Sprint can be seen unlocking.
+  const startsAt = at === 'replay' ? now - (w.durationMin + 10) * 60_000 : at === 'pitch' ? now - (w.pitchAtMin * 60 - 5) * 1000 : now - (Number(at) || 0) * 60_000;
   const session: Session = { id: 'ws_preview', starts_at: startsAt, title: null, mode: 'evergreen', join_url: null, video_src: null, status: 'scheduled', auto: 2 };
   const reg: Registration = {
     id: 'wr_preview', token: 'preview', session_id: session.id, lead_id: 'l_preview', seq: 0, new_lead: 0, created_at: now - 3_600_000,
@@ -211,9 +213,13 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
   }
   const lead = await getLead(c.env, reg.lead_id);
   const extras = await roomExtras(rt, reg);
-  const pass = await roomPassConfig(rt, reg, extras.qualified);
+  const holderPass = await roomPassConfig(rt, reg, extras.qualified);
+  // The First Deal Sprint: locked from the start, unlocks at the pitch (webinar-sprint.js). Buyers see their card instead.
+  const applyUrl = `${rt.origin}/w/${reg.token}`;
+  const sprint = holderPass?.active ? null : await sprintRoomConfig(rt, reg, session, extras.qualified, { preview: reg.token === 'preview', applyUrl });
+  const pass = sprint ? null : holderPass;
   // "Book a strategy call instead": the closer's calendar inline in the room, name and email filled in.
-  const bookingUrl = pass && !pass.active && lead ? bookingUrlFor(rt, lead.closer_id, lead.tier_override ?? lead.tier ?? null) : null;
+  const bookingUrl = ((pass && !pass.active) || sprint) && lead ? bookingUrlFor(rt, lead.closer_id, lead.tier_override ?? lead.tier ?? null) : null;
   const booking = bookingUrl && lead ? { url: bookingUrl, provider: /calendly\.com/.test(bookingUrl) ? 'calendly' : 'iframe', prefill: { name: [lead.first_name, lead.last_name].filter(Boolean).join(' '), email: lead.email, leadId: lead.id, ref: lead.ref_code } } : null;
   return render(c, '/webinar-room.html', {
     title: session.title || w.title,
@@ -239,7 +245,7 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         video: replay ? (session.mode === 'evergreen' ? session.video_src : null) || w.videoSrc : session.mode === 'evergreen' ? session.video_src || w.videoSrc : session.mode === 'stream' ? session.video_src || w.streamHls || null : null,
         // The live join link is only handed out from 10 minutes before the start.
         joinUrl: session.mode === 'live' && !replay && Date.now() > session.starts_at - 10 * 60_000 ? session.join_url : null,
-        applyUrl: `${rt.origin}/w/${reg.token}`,
+        applyUrl,
         worksheetUrl: `${webinarBase(rt)}/worksheet/${reg.token}`,
         blueprintUrl: blueprintUrl(rt, reg.token),
         blueprintCopy: BLUEPRINT_ROOM_COPY,
@@ -248,6 +254,7 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         replayUntil: replayEndsAt(rt, session, reg.replay_until),
         live: await liveRoomConfig(rt, reg, replay),
         pass,
+        sprint,
         booking,
       },
     },

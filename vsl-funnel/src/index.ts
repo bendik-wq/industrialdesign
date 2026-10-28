@@ -36,6 +36,7 @@ import { ensureSessions } from './webinar/webinar';
 import { dealSprintPage, dealSprintSubmit } from './webinar/deal-sprint';
 import { processDealSprintEmails } from './webinar/deal-sprint-emails';
 import { notesPage } from './webinar/experience';
+import { offerPage } from './webinar/sprint-page';
 import { chapters } from './webinar/room';
 import { processSmsQueue } from './integrations/sms';
 import { alertUnconfirmedBookings } from './integrations/booking';
@@ -131,6 +132,7 @@ for (const prefix of ['', '/webinar']) {
   app.post(`${prefix}/pack/:token`, withVisitor, packSubmit);
   app.get(`${prefix}/sprint/:token`, withVisitor, dealSprintPage);
   app.post(`${prefix}/sprint/:token`, withVisitor, dealSprintSubmit);
+  app.get(`${prefix}/offer/:token`, withVisitor, offerPage); // the First Deal Sprint's sales page (after the unlock, until the replay closes)
 }
 app.get('/w/:token', withVisitor, applyHandoff);
 app.get('/guides', withVisitor, guidesHub);

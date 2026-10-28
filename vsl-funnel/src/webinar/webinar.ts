@@ -23,7 +23,7 @@ export const underMillion = (band: string | null | undefined) => Boolean(band) &
  * and their attendance (joined, minutes watched, offer clicked, replay) is tracked.
  */
 
-export const WEBINAR_CYCLE = 20; // email steps per registration block (see SEQUENCES.webinar)
+export const WEBINAR_CYCLE = 30; // email steps per registration block (see SEQUENCES.webinar); was 20 before the Sprint closing emails, and 30n never meets an older 20n block
 
 export interface Session {
   id: string;

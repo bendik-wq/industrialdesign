@@ -170,7 +170,8 @@ describe('notes email', () => {
   const seq = SEQUENCES.webinar;
   const step = seq.steps.find((s) => s.template === 'w_notes')!;
   it('is the last webinar step, fits the cycle, and only goes to people who saved a note in this showing', async () => {
-    expect(seq.steps[seq.steps.length - 1].template).toBe('w_notes');
+    // Appended after the original steps (the Sprint closing emails come after it).
+    expect(seq.steps.findIndex((s) => s.template === 'w_notes')).toBe(16);
     expect(seq.steps.length).toBeLessThanOrEqual(seq.cycle!);
     expect(step.offsetMs).toBe(90 * 60_000);
     // A fake D1: notes saved at these times.

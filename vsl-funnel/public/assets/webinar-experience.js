@@ -384,6 +384,9 @@
         btn.disabled = false;
         if (!r || !r.ok) { err.textContent = (r && r.error) || 'Something went wrong. Try again.'; err.hidden = false; return; }
         buyin = { text: r.text, shared: r.shared };
+        // The Sprint panel (webinar-sprint.js) plays their words back right above the offer.
+        window.WEBINAR_BUYIN = r.text;
+        document.dispatchEvent(new CustomEvent('webinar:buyin', { detail: { text: r.text } }));
         F.track('cta_click', { id: 'webinar_buyin', label: r.shared ? 'shared' : 'private' });
         card.innerHTML = '<p class="wx-eyebrow">' + esc(C.buyinEyebrow) + '</p><p class="wx-playback">“' + esc(r.text) + '”</p><p class="wx-sub">' + esc(C.buyinThanks) + '</p>' + wallHtml();
         tick();

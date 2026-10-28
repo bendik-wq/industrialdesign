@@ -181,13 +181,16 @@ describe('modes and fallbacks', () => {
     expect(passConfig({ WEBINAR_PASS: 'nonsense', STRIPE_SECRET_KEY: 'sk' }).mode).toBe('off');
   });
 
-  it('defaults: Acquisition Assessment, $3,000 USD, 30-day replay, 7-day guarantee', () => {
+  it('defaults: First Deal Sprint, $3,000 USD, 30-day replay, the Deal Plan guarantee', () => {
     const c = passConfig({ WEBINAR_PASS: 'upsell', STRIPE_SECRET_KEY: 'sk' });
-    expect(c).toMatchObject({ mode: 'upsell', offerName: 'Acquisition Assessment', offerNoun: 'assessment', price: 3000, currency: 'USD', amount: 300000, priceLabel: '$3,000', replayDays: 30, seat: null, weeklyCap: null });
+    expect(c).toMatchObject({ mode: 'upsell', offerName: 'First Deal Sprint', offerNoun: 'sprint', price: 3000, currency: 'USD', amount: 300000, priceLabel: '$3,000', replayDays: 30, seat: null, weeklyCap: null });
+    expect(c.guarantee).toMatch(/^Do the Sprint\. If at the end of your Deal Plan session/);
+    expect(c.perks.map((p) => p.day ?? '')).toEqual(['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7', '', '']);
     expect(c.perks.map((p) => p.title)).toEqual([
-      'A review of your business and acquisition capacity', 'A target profile', 'A deal-structure memo', 'A 60-minute assessment session with Josh’s team',
-      'Your deal pack, ready straight away', 'The masterclass replay for 30 days', 'The full $3,000 credited if you continue', '7-day money-back guarantee',
+      'Kickoff call and your numbers in', 'Your acquisition capacity', 'Your buy box', 'A first shortlist', 'Your deal-structure memo', 'Your owner outreach script',
+      'The 60-minute Deal Plan session with Josh’s team', 'The full $3,000 credited if you continue', 'The Deal Plan guarantee',
     ]);
+    expect(passCopy(c).button).toBe('Start my First Deal Sprint');
     expect(passConfig({ WEBINAR_PASS_CURRENCY: 'jpy', WEBINAR_PASS_PRICE: '50000' }).amount).toBe(50000); // zero-decimal currency
   });
 
@@ -225,10 +228,10 @@ describe('modes and fallbacks', () => {
 describe('weekly capacity', () => {
   it('maths', () => {
     expect(capacity(null, 50)).toMatchObject({ capped: false, full: false, label: null, left: null });
-    expect(capacity(10, 7)).toMatchObject({ capped: true, left: 3, full: false, label: '3 of 10 Acquisition Assessment places left this week' });
+    expect(capacity(10, 7)).toMatchObject({ capped: true, left: 3, full: false, label: '3 of 10 First Deal Sprint places left this week' });
     expect(capacity(10, 10)).toMatchObject({ left: 0, full: true, label: null });
     expect(capacity(10, 12)).toMatchObject({ left: 0, full: true });
-    expect(capacity(1, 0).label).toBe('1 of 1 Acquisition Assessment places left this week');
+    expect(capacity(1, 0).label).toBe('1 of 1 First Deal Sprint places left this week');
   });
 
   it('the week starts on Monday at midnight in the sales time zone', () => {
@@ -286,7 +289,7 @@ describe('checkout and copy', () => {
     const f = checkoutForm(cfg, { kind: 'offer', passId: 'wp1', reg: { id: 'r1', token: 'tok', lead_id: 'l1' }, email: 'dana@example.com', back: 'https://live.test/room/tok', expiresAt: 1_800_000_000_000 });
     expect(f).toMatchObject({
       mode: 'payment', customer_email: 'dana@example.com', client_reference_id: 'r1',
-      'line_items[0][price_data][currency]': 'usd', 'line_items[0][price_data][unit_amount]': '300000', 'line_items[0][price_data][product_data][name]': 'Acquisition Assessment',
+      'line_items[0][price_data][currency]': 'usd', 'line_items[0][price_data][unit_amount]': '300000', 'line_items[0][price_data][product_data][name]': 'First Deal Sprint',
       'metadata[pass_id]': 'wp1', 'metadata[lead_id]': 'l1', 'metadata[reg_token]': 'tok', 'payment_intent_data[metadata][pass_id]': 'wp1',
       success_url: 'https://live.test/room/tok?pass=success&cs={CHECKOUT_SESSION_ID}', cancel_url: 'https://live.test/room/tok?pass=cancel', expires_at: '1800000000',
     });
