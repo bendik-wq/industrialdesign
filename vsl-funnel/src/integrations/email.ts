@@ -426,6 +426,10 @@ async function webinarContext(rt: Runtime, lead: Lead, link: (path: string) => s
     next: link(`${webinarBase(rt)}/`),
     worksheet: link(`${webinarBase(rt)}/worksheet/${reg.token}`),
     apply: link(`/w/${reg.token}`),
+    // The watch experience: key points they saved, their notes page, and their own words on what a first deal would change.
+    notes: (await rt.env.DB.prepare('SELECT text FROM webinar_notes WHERE reg_id = ? ORDER BY at_sec').bind(reg.id).all<{ text: string }>().catch(() => ({ results: [] as { text: string }[] }))).results.map((r) => r.text),
+    notesUrl: link(`${webinarBase(rt)}/notes/${reg.token}`),
+    buyin: (await rt.env.DB.prepare("SELECT value FROM webinar_interactions WHERE reg_id = ? AND kind = 'buyin' ORDER BY created_at DESC LIMIT 1").bind(reg.id).first<{ value: string }>().catch(() => null))?.value ?? null,
   };
 }
 
@@ -514,6 +518,7 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     if (blocked) { await skip(blocked); return; }
     if ('stopIf' in seq && seq.stopIf?.(lead)) { await skip('sequence goal reached'); return; }
     if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); return; }
+    if ('skipIfAsync' in step && typeof step.skipIfAsync === 'function' && (await step.skipIfAsync(rt, lead))) { await skip('step condition'); return; }
 
     try {
       const trigger = row.sequence === 'behaviour' ? [...RULES, ...PAGE_RULES].find((r) => r.template === row.template) : undefined;

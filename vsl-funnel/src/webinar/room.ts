@@ -5,6 +5,7 @@ import { notifySlack } from '../integrations/notify';
 import { isMillionPlus } from '../sales/qualify';
 import { identityFromLead, track } from '../tracking/track';
 import { answerQuestion } from './assistant';
+import { experienceConfig } from './experience';
 import { DEFAULT_CHAPTERS, DEFAULT_POLLS, type Chapter, type Poll } from './content';
 import { type Registration, type Session, phase, webinarSettings } from './webinar';
 
@@ -117,6 +118,8 @@ export async function roomExtras(rt: Runtime, reg: Registration) {
     selfServe: qualified && selfServeOn(rt),
     applied: Boolean(lead?.app_completed_at),
     booked: Boolean(lead?.booked_at && !lead?.booking_cancelled_at),
+    // The watch experience: deal builder, readiness score, key points, reactions, buy-in (experience.ts).
+    experience: await experienceConfig(rt, reg, chapters(rt)).catch((e) => { console.error('watch experience config', e); return null; }),
   };
 }
 

@@ -653,6 +653,37 @@
     });
   }
 
+  /** Webinar tab: the watch experience (moments that land, readiness scores, buy-in answers). */
+  function webinarExperienceHtml(x) {
+    var e = x && x.experience;
+    if (!e) return '';
+    var mins = e.minutes || [], max = Math.max.apply(null, mins.map(function (m) { return m.total; }).concat([1]));
+    var pitch = Math.round(x.pitchAtMin || 45);
+    var strip = '<div class="wx-heat" role="img" aria-label="Reactions and saved notes per minute">' + mins.map(function (m) {
+      var a = m.total ? 0.12 + 0.88 * (m.total / max) : 0;
+      return '<i title="Minute ' + m.minute + ': ' + n(m.new) + ' new to me, ' + n(m.do) + ' would do this, ' + n(m.explain) + ' explain more, ' + n(m.notes) + ' notes saved"' +
+        ' style="background:' + (m.total ? 'rgba(15,44,92,' + a.toFixed(2) + ')' : 'var(--hair, #e3e6ec)') + (m.minute === pitch ? ';box-shadow:inset 0 -3px 0 #b7791f' : '') + '"></i>';
+    }).join('') + '</div><div class="wx-heat-axis"><span>0m</span><span>15m</span><span>30m</span><span>45m (pitch)</span><span>' + mins.length + 'm</span></div>';
+    var peaks = mins.filter(function (m) { return m.total; }).sort(function (a, b) { return b.total - a.total; }).slice(0, 5);
+    var t = e.totals || {};
+    return '<div class="card" style="margin-top:14px"><h2>Moments that land</h2><p class="sub">Reactions (New to me, I would do this, Explain more) and saved key points, per minute of the masterclass. Darker means more. Viewers only see a count once a chapter reaches 10 people.</p>' +
+      '<div class="grid g-4 tiles" style="margin-top:8px">' + tile('Reactions', n(t.reactions), 'in this period', null, { zeroOk: true }) + tile('Notes saved', n(t.notes), 'key points saved', null, { zeroOk: true }) +
+      tile('Readiness scored', n(t.scored), 'answered something in the room', null, { zeroOk: true }) + tile('Average readiness', e.average != null ? n(e.average) + ' / 100' : '–', 'viewers see it from 30 people') + '</div>' +
+      '<div style="margin-top:14px">' + strip + '</div>' +
+      (peaks.length ? '<h3 class="h3" style="margin-top:12px">Peaks</h3><ul class="plain-list">' + peaks.map(function (m) { return '<li><b>Minute ' + m.minute + '</b>: ' + n(m.new) + ' new to me · ' + n(m.do) + ' would do this · ' + n(m.explain) + ' explain more · ' + n(m.notes) + ' notes</li>'; }).join('') + '</ul>' : '') +
+      ((e.topNotes || []).length ? '<h3 class="h3" style="margin-top:12px">Most saved key points</h3>' + barList(e.topNotes.map(function (k) { return { name: k.text, value: k.n }; })) : '') + '</div>' +
+      '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Readiness scores</h2><p class="sub">Acquisition readiness (0 to 100) from each viewer’s own answers: revenue band, target, timeline, the calculator’s 1.5x test, own cash and blocker.</p>' +
+      barList((e.buckets || []).map(function (b) { return { name: b.label, value: b.n }; })) + '</div>' +
+      '<div class="card"><h2>Biggest gap</h2><p class="sub">The gap each viewer was shown at the pitch. Lead with it on the strategy call.</p>' + ((e.gaps || []).length ? barList(e.gaps.map(function (g) { return { name: g.gap, value: g.n }; })) : '<p class="muted">No scores yet.</p>') + '</div></div>' +
+      ((e.buyins || []).length ? '<div class="card" style="margin-top:14px"><h2>In their own words</h2><p class="sub">“What would your first acquisition change for you?” asked at 38 minutes and played back at the pitch. Quote it in the follow-up and on the call. Shared answers appear anonymously in the room once 5 people have shared' + (e.wallLive ? ' (showing now)' : ' (not showing yet)') + '. Hide any you don’t want shown.</p>' +
+        table([
+          { label: 'Who', html: function (r) { return '<strong>' + esc(r.name) + '</strong><div class="muted">' + esc(r.email || '') + (r.band ? ' · ' + esc(r.band) : '') + '</div>'; } },
+          { label: 'Answer', html: function (r) { return '“' + esc(r.text) + '”'; } },
+          { label: 'Next', html: function (r) { return r.booked ? statusPill('booked') : r.applied ? statusPill('applied') : '<span class="muted">–</span>'; } },
+          { label: 'Wall', html: function (r) { return r.shared ? '<label class="check"><input type="checkbox" data-buyin-hide="' + esc(r.id) + '"' + (r.hidden ? ' checked' : '') + '> hide</label>' : '<span class="muted">private</span>'; } },
+        ], e.buyins, { cards: true, rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>' : '');
+  }
+
   /** Webinar tab: the deeper half (watch curve, slots, sources, groups, pre-webinar emails). */
   function webinarInsightsHtml(x, base) {
     if (!x || !x.watch) return '';
@@ -707,7 +738,7 @@
           { label: 'Assistant replied', html: function (r) { return r.answer ? '<span class="muted">' + esc(r.answer) + '</span>' : '<span class="pill">needs a reply</span>'; } },
           { label: '', html: function (r) { return '<label class="check"><input type="checkbox" data-qdone="' + esc(r.id) + '"' + (r.handled ? ' checked' : '') + '> done</label>'; } },
         ], g.questions, { cards: true }) + '</div>' : '');
-    return roomHtml + engageHtml + '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
+    return roomHtml + engageHtml + webinarExperienceHtml(x) + '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
       (w.liveViewers ? '<b>' + esc(pct(w.atPitch)) + '</b> of ' + n(w.liveViewers) + ' live viewers were still there when the offer came up.' : 'No one has watched live in this period yet.') + '</p>' +
       '<div class="chart" data-wcurve style="margin-top:8px"></div>' + (drops ? '<h3 class="h3" style="margin-top:12px">Where people leave</h3><ul class="plain-list">' + drops + '</ul>' : '') + '</div>' +
       '<div class="grid g-2" style="margin-top:14px">' +
@@ -800,10 +831,15 @@
           { label: 'Source', html: function (r) { return esc([where(r.channel, r.utm_source, r.referrer_host, r.utm_medium), r.utm_campaign].filter(Boolean).join(' / ')); } },
           { label: 'Came', html: function (r) { return r.joined_at ? '✓ ' + mins(r.watch_seconds) : r.replay_at ? 'replay' : '–'; } },
           { label: 'Offer', html: function (r) { return r.cta_at ? '✓' : ''; } },
+          { label: 'Readiness', num: true, html: function (r) { return r.readiness != null ? '<strong>' + esc(n(r.readiness)) + '</strong>' + (r.readiness_gap ? '<div class="muted">gap: ' + esc(r.readiness_gap) + '</div>' : '') : '<span class="muted">–</span>'; } },
           { label: 'Next', html: function (r) { return r.status === 'won' ? statusPill('won') : r.booked_at ? statusPill('booked') : r.app_completed_at ? statusPill('applied', 'applied' + (r.tier ? ' (' + r.tier + ')' : '')) : ''; } },
         ], d.registrants || [], { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>';
       view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
       drawWebinarCurve(view.querySelector('[data-wcurve]'), ins);
+      view.querySelectorAll('[data-buyin-hide]').forEach(function (cb) {
+        cb.onclick = function (e) { e.stopPropagation(); };
+        cb.onchange = function () { send('PUT', 'webinar/buyin/' + encodeURIComponent(cb.getAttribute('data-buyin-hide')), { hidden: cb.checked }); };
+      });
       view.querySelectorAll('[data-qdone]').forEach(function (cb) {
         cb.onchange = function () { send('PUT', 'webinar/questions/' + encodeURIComponent(cb.getAttribute('data-qdone')), { handled: cb.checked }); };
       });

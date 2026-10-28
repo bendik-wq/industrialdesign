@@ -4,6 +4,7 @@ import { isMillionPlus, REVENUE_LABEL } from '../sales/qualify';
 import { WEBINAR_HEADLINES, webinarHeadlineOdds, webinarHeadlineStats } from '../webinar/headlines';
 import { DEFAULT_POLLS, THANK_YOU } from '../webinar/content';
 import { webinarBase, webinarSettings } from '../webinar/webinar';
+import { experienceInsights } from '../webinar/experience';
 
 /** Funnel HQ → Webinar: sessions, registrants and how registrants move through the funnel. */
 export async function webinarReport(rt: Runtime, range: { from: number; to: number }) {
@@ -33,9 +34,9 @@ export async function webinarReport(rt: Runtime, range: { from: number; to: numb
         WHERE s.starts_at <= ? AND s.starts_at > ? GROUP BY s.id ORDER BY s.starts_at DESC LIMIT 20`,
     ).bind(Date.now() - w.durationMin * 60_000, range.from).all(),
     db.prepare(
-      `SELECT r.created_at, r.joined_at, r.watch_seconds, r.max_position, r.cta_at, r.replay_at, s.starts_at, s.mode,
+      `SELECT r.created_at, r.joined_at, r.watch_seconds, r.max_position, r.cta_at, r.replay_at, s.starts_at, s.mode, ws.score AS readiness, ws.gap AS readiness_gap,
               l.id AS lead_id, l.first_name, l.last_name, l.email, l.channel, l.utm_campaign, l.app_completed_at, l.booked_at, l.status, COALESCE(l.tier_override, l.tier) AS tier
-         FROM webinar_registrations r JOIN webinar_sessions s ON s.id = r.session_id JOIN leads l ON l.id = r.lead_id
+         FROM webinar_registrations r JOIN webinar_sessions s ON s.id = r.session_id JOIN leads l ON l.id = r.lead_id LEFT JOIN webinar_scores ws ON ws.reg_id = r.id
         WHERE r.created_at BETWEEN ? AND ? ORDER BY r.created_at DESC LIMIT 100`,
     ).bind(range.from, range.to).all(),
   ]);
@@ -203,6 +204,8 @@ export async function webinarInsights(rt: Runtime, range: { from: number; to: nu
   ];
   return {
     durationMin: len, pitchAtMin: w.pitchAtMin, tz: w.tz,
+    // The watch experience: moments that land, readiness scores, buy-in answers.
+    experience: await experienceInsights(rt, range, len).catch((e) => { console.error('experience insights', e); return null; }),
     stage,
     engagement: {
       polls: pollStats,

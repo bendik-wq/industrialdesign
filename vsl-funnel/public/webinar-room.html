@@ -13,6 +13,7 @@
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/webinar.js"></script>
   <script defer src="/assets/webinar-room.js"></script>
+  <script defer src="/assets/webinar-experience.js"></script>
 </head>
 <body class="webinar">
   <header class="nav"><div class="wrap nav-in">
@@ -22,6 +23,7 @@
     <section class="hero hero-center room"><div class="wrap">
       <span class="eyebrow"><span data-slot="room_label">Masterclass</span> · <span data-slot="when"></span></span>
       <h1 class="h2" data-slot="webinar_title">The masterclass</h1>
+      <div class="wx-grid" data-wx-grid><div class="wx-main" data-wx-main>
       <div class="room-stage" data-room>
         <div class="room-wait" data-wait>
           <p class="lede">Welcome<span data-slot="first_name_comma"></span>. We start in</p>
@@ -37,6 +39,8 @@
           <p class="lede">That’s the end of the session. Thanks for watching.</p>
         </div>
       </div>
+      <div class="wx-under" data-wx-under></div>
+      </div><aside class="wx-panel" data-wx-panel hidden aria-label="Your deal, building as you watch"></aside></div>
       <div class="room-cta" data-cta hidden></div>
       <nav class="room-agenda" data-agenda aria-label="Masterclass agenda"></nav>
       <div class="room-side">

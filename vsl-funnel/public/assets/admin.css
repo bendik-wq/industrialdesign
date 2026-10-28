@@ -980,3 +980,8 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .fm-funnel .h3 { font-size: 13px; margin: 14px 0 0; color: var(--ink-2); }
 .line-compare { stroke-dasharray: 4 4; opacity: .55; fill: none; }
 .plain-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; }
+
+/* Webinar: "Moments that land" heat strip (reactions + saved notes per minute) */
+.wx-heat { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; height: 34px; }
+.wx-heat i { display: block; border-radius: 2px; }
+.wx-heat-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--muted, #6b7385); }

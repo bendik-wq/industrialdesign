@@ -161,4 +161,23 @@ export const WEBINAR_TEMPLATES: Record<string, T> = {
     cta: { label: 'Get my worksheet →', href: (w(c) as { worksheet?: string }).worksheet ?? w(c).replay },
     ps: `When the worksheet is done, the application is here: <a href="${c.link('/apply')}">apply for a strategy call</a>.`,
   }),
+  // Sent after the showing, only to people who saved at least one key point (see SEQUENCES.webinar).
+  w_notes: (c) => {
+    const x = w(c) as ReturnType<typeof w> & { notes?: string[]; notesUrl?: string; buyin?: string | null };
+    const notes = x.notes ?? [];
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return {
+      subject: 'your notes from the masterclass',
+      preheader: 'The key points you saved, in one place.',
+      body: [
+        `${c.name},`,
+        notes.length ? `Here are the ${notes.length === 1 ? 'key point' : `${notes.length} key points`} you saved during the masterclass, in the order they came up.` : 'Here are the key points you saved during the masterclass.',
+        ...(notes.length ? [notes.map((n, i) => `${i + 1}. ${esc(n)}`).join('<br>')] : []),
+        ...(x.buyin ? [`You also wrote down what a first acquisition would change for you: “${esc(x.buyin)}”.`] : []),
+        'Every number in them is illustrative. The next step is a short application, and when your numbers fit, my team maps your first deal with you across commercial debt, seller finance and seller rollover.',
+      ],
+      cta: { label: 'Open my notes →', href: x.notesUrl ?? x.replay },
+      ps: `Ready to map your first deal? <a href="${(x as { apply?: string }).apply ?? c.link('/apply')}">Apply for a strategy call</a>.`,
+    };
+  },
 };

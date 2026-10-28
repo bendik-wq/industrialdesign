@@ -53,6 +53,8 @@
       if (!b) return;
       el.querySelectorAll('[data-v]').forEach(function (x) { x.disabled = true; x.classList.toggle('picked', x === b); });
       answered[p.id] = true;
+      // The watch experience (webinar-experience.js) listens: deal builder and readiness score.
+      document.dispatchEvent(new CustomEvent('webinar:poll', { detail: { poll: p.id, value: b.getAttribute('data-v') } }));
       post('/api/webinar/poll', { poll: p.id, value: b.getAttribute('data-v') }).then(function (r) {
         if (r && r.results) {
           el.querySelector('.room-opts').innerHTML = r.results.map(function (x) {
@@ -89,12 +91,12 @@
     var t = null;
     el.addEventListener('input', function () {
       var profit = Number(el.querySelector('[data-profit]').value), price = Number(el.querySelector('[data-price]').value), out = el.querySelector('[data-out]');
-      if (!(profit > 0 && price > 0)) { out.innerHTML = ''; return; }
-      var debt = price * 0.7, note = price * 0.2, roll = price * 0.1;
+      if (!(profit > 0 && price > 0)) { out.innerHTML = ''; return; }      var debt = price * 0.7, note = price * 0.2, roll = price * 0.1;
       var service = payment(debt, 0.09, 10) + payment(note, 0.06, 5), dscr = profit / service, ok = dscr >= 1.5;
       out.innerHTML = '<table><tbody><tr><th>Commercial debt (70%)</th><td>' + money(debt) + '</td></tr><tr><th>Seller finance (20%)</th><td>' + money(note) + '</td></tr><tr><th>Seller rollover (10%)</th><td>' + money(roll) + '</td></tr>' +
         '<tr><th>Yearly debt payments</th><td>' + money(service) + '</td></tr><tr><th>Price ÷ profit</th><td>' + (price / profit).toFixed(1) + '×</td></tr></tbody></table>' +
         '<p class="calc-verdict ' + (ok ? 'ok' : 'no') + '"><b>' + dscr.toFixed(2) + 'x</b> ' + (ok ? 'clears the 1.5x test at this price.' : 'falls short of 1.5x at this price. A lower price, a longer seller note or more rollover would change that, and that is what the strategy call works through.') + '</p>';
+      document.dispatchEvent(new CustomEvent('webinar:calc', { detail: { profit: profit, price: price, dscr: dscr } }));
       clearTimeout(t);
       t = setTimeout(function () { post('/api/webinar/calc', { profit: profit, price: price }); }, 2500);
     });
