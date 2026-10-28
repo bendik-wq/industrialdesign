@@ -8,6 +8,7 @@ import { type Conversation, handleElevenWebhook, verifyElevenSignature } from '.
 import { finishInbound, initiationData } from '../integrations/elevenlabs-inbound';
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { handleResendEvent, verifyResend } from '../integrations/bounces';
+import { handleStripeEvent, verifyStripeSignature } from '../webinar/pass';
 
 /** Inbound webhooks from Resend (bounces), Calendly, Cal.com / CRMs, the WhatsApp Cloud API, Vapi and ElevenLabs (voice). All verified. */
 export const hooks = new Hono<AppEnv>();
@@ -49,6 +50,22 @@ hooks.post('/resend', async (c) => {
     return c.json({ error: 'invalid json' }, 400);
   }
   return c.json(await handleResendEvent(rt, body));
+});
+
+// Stripe: masterclass offer and seat payments, refunds (Stripe-Signature, 5-minute tolerance; fails closed).
+hooks.post('/stripe', async (c) => {
+  const rt = runtimeFrom(c);
+  const secret = rt.settings.STRIPE_WEBHOOK_SECRET;
+  if (!secret) return c.json({ error: 'STRIPE_WEBHOOK_SECRET not configured' }, 501);
+  const raw = await c.req.text();
+  if (!(await verifyStripeSignature(secret, raw, c.req.header('stripe-signature')))) return c.json({ error: 'bad signature' }, 400);
+  let body: Parameters<typeof handleStripeEvent>[1];
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return c.json({ error: 'invalid json' }, 400);
+  }
+  return c.json({ received: true, ...(await handleStripeEvent(rt, body)) });
 });
 
 hooks.post('/booking', async (c) => {

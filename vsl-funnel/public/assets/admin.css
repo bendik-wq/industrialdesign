@@ -985,3 +985,43 @@ details.raw code { display: block; white-space: pre-wrap; overflow-wrap: anywher
 .wx-heat { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; height: 34px; }
 .wx-heat i { display: block; border-radius: 2px; }
 .wx-heat-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--muted, #6b7385); }
+/* Webinar → host console (the real live layer) */
+.hc .hc-empty { margin: 4px 0 0; }
+.hc .pill.hc-hot { background: color-mix(in srgb, var(--warning) 26%, transparent); color: var(--ink); }
+.hc-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-top: 10px; }
+.hc-form label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); flex: 1 1 140px; min-width: 0; }
+.hc-form label.hc-wide { flex-basis: 100%; }
+.hc-form label.check { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; font-size: 12.5px; }
+.hc-form .input { width: 100%; box-sizing: border-box; min-width: 0; }
+.hc-form > .btn-sm { flex: 0 0 auto; }
+.hc label.check { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; }
+.hc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 12px; }
+@media (max-width: 900px) { .hc-grid { grid-template-columns: minmax(0, 1fr); } }
+.hc-col { min-width: 0; }
+.hc-col .h3 { margin: 0 0 6px; }
+.hc-chat { list-style: none; margin: 0; padding: 0; max-height: 380px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--plane); }
+.hc-chat > li { padding: 8px 10px; border-top: 1px solid var(--border); font-size: 13px; position: relative; }
+.hc-chat > li:first-child { border-top: 0; }
+.hc-msg.team { background: var(--series-1-wash); }
+.hc-msg.deleted { opacity: .6; }
+.hc-who { font-weight: 650; }
+.hc-body { margin-top: 2px; overflow-wrap: anywhere; }
+.hc-acts { display: flex; gap: 6px; margin-top: 6px; }
+.hc-acts .btn-sm { padding: 3px 8px; font-size: 12px; }
+@media (hover: hover) { .hc-acts { position: absolute; top: 6px; right: 8px; margin: 0; opacity: 0; } .hc-chat > li:hover .hc-acts, .hc-acts:focus-within { opacity: 1; } }
+.hc-pinned:not(:empty) { margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: 13px; }
+.hc-say .hc-name { flex: 0 0 auto; width: auto; }
+.hc-say .input[name=text] { flex: 1 1 200px; }
+.hc-annlive { margin-top: 10px; font-size: 13px; overflow-wrap: anywhere; }
+.hc-raises { display: grid; gap: 8px; margin-bottom: 16px; }
+.hc-raise { padding: 10px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--warning) 70%, transparent); background: color-mix(in srgb, var(--warning) 12%, transparent); font-size: 13px; }
+.hc-raise.done { border-color: var(--border); background: transparent; }
+.hc-raise .btn-sm { margin-top: 6px; }
+.hc-q { padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.hc-q p { margin: 4px 0; overflow-wrap: anywhere; }
+.hc-reply { margin-top: 6px; }
+.hc-reply .input { flex: 1 1 200px; }
+.hc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--grid); margin-right: 6px; vertical-align: 1px; }
+.hc-dot.on { background: var(--good); }
+.hc .linkish { background: none; border: 0; padding: 0; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+.hc .linkish:hover { text-decoration: underline; }

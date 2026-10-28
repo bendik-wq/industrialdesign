@@ -19,9 +19,10 @@
   </div></header>
   <main id="main">
     <section class="hero hero-center"><div class="wrap narrow center">
-      <span class="eyebrow">You’re registered</span>
+      <span class="eyebrow" data-slot="ty_eyebrow">You’re registered</span>
       <h1 class="display" data-slot="ty_heading">See you there</h1>
       <p class="lede"><strong data-slot="webinar_title">The masterclass</strong><br><span data-slot="when"></span></p>
+      <div data-if="!pass_gate">
       <div class="countdown" data-countdown aria-live="polite"></div>
       <div data-if="soon"><p><a class="btn btn-lg" data-href="room" href="#">Go to the masterclass room now</a></p><p class="muted">It starts by itself. Keep the page open.</p></div>
       <div data-if="!soon">
@@ -29,6 +30,9 @@
         <p class="cal-links"><a data-href="ics" href="#">Apple / Outlook calendar</a> · <a data-href="room" href="#">My link to the session</a></p>
       </div>
       <div class="ty-paras" data-html="ty_paras"></div>
+      </div>
+      <div class="ty-pass" data-if="has_pass" data-html="pass_card"></div>
+      <div data-if="!pass_gate">
       <div class="card ty-commit" data-ty-commit>
         <p class="room-moment-h" data-slot="ty_question">Which business would you most like to own?</p>
         <div class="room-opts" data-html="ty_options"></div>
@@ -51,6 +55,7 @@
           <li>Block out the hour. It’s worth watching start to finish.</li>
           <li>Have a business in mind you’d love to own. By the end you’ll know how a deal for it could be structured.</li>
         </ol>
+      </div>
       </div>
     </div></section>
   </main>

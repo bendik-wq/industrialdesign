@@ -36,7 +36,7 @@
   var main = document.querySelector('[data-wx-main]'), ctaEl = document.querySelector('[data-cta]');
   if (main && ctaEl) main.appendChild(ctaEl);
   var rest = document.createElement('div'); rest.className = 'wx-rest';
-  ['[data-agenda]', '.room-side'].forEach(function (s) { var el = document.querySelector(s); if (el) rest.appendChild(el); });
+  ['[data-live-chat]', '[data-pass]', '[data-agenda]', '.room-side'].forEach(function (s) { var el = document.querySelector(s); if (el) rest.appendChild(el); });
   grid.appendChild(rest);
   grid.classList.add('wx-on');
   document.documentElement.classList.add('wx-room');
@@ -177,15 +177,10 @@
     if (nextUrl) return done();
     if (resolving) return;
     resolving = true;
-    var urls = (X.blueprintUrls || []).slice();
-    var tryNext = function () {
-      var u = urls.shift();
-      if (!u) { nextUrl = cfg.worksheetUrl; nextLabel = C.mappedButtonWorksheet; return done(); }
-      fetch(u, { credentials: 'same-origin', cache: 'no-store' }).then(function (r) {
-        if (r.ok && !r.redirected) { nextUrl = u; nextLabel = C.mappedButton; done(); } else tryNext();
-      }).catch(tryNext);
-    };
-    tryNext();
+    // The Acquisition Blueprint page (cfg.blueprintUrl), else the worksheet.
+    if (cfg.blueprintUrl) { nextUrl = cfg.blueprintUrl; nextLabel = C.mappedButton; }
+    else { nextUrl = cfg.worksheetUrl; nextLabel = C.mappedButtonWorksheet; }
+    done();
   }
   function renderMapped(p) {
     var box = panel.querySelector('[data-wx-mapped]');

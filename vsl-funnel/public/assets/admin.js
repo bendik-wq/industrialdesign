@@ -727,18 +727,33 @@
       tile('Questions asked', n((g.questions || []).length), n((g.questions || []).filter(function (q) { return q.answer; }).length) + ' answered by the assistant') +
       tile('Calculator runs', n((g.calc || {}).runs), (g.calc && g.calc.medianPrice) ? 'typical deal: ' + money(g.calc.medianPrice) + ' price, ' + money(g.calc.medianProfit) + ' profit' : 'no runs yet') +
       tile('Worksheets unlocked', n(g.worksheets), 'attendee bonus') +
+      tile('Blueprints opened', n((g.blueprints || {}).opened), n((g.blueprints || {}).built) + ' built at the pitch' + ((g.blueprints || {}).polished ? ' · ' + n(g.blueprints.polished) + ' polished by AI' : '')) +
       tile('Offer clicks', n(((g.offers || {}).call || 0) + ((g.offers || {}).selfServe || 0)), n((g.offers || {}).selfServe) + ' chose start-now · ' + n((g.offers || {}).agreements) + ' agreements sent') +
       '</div>' + ((g.targets || []).some(function (t) { return t.n; }) ? '<h3 class="h3" style="margin-top:12px">“Which business would you most like to own?” (thank-you page)</h3>' + barList((g.targets || []).map(function (t) { return { name: t.label, value: t.n }; })) : '') + '</div></div>' +
       ((g.polls || []).some(function (p) { return p.total; }) ? '<div class="card" style="margin-top:14px"><h2>Poll answers</h2><p class="sub">Asked inside the masterclass. Use them on the strategy call and in the follow-up.</p><div class="grid g-2" style="margin-top:8px">' +
         (g.polls || []).map(function (p) { return '<div><h3 class="h3">' + esc(p.question) + ' <span class="muted">· minute ' + p.at + ' · ' + n(p.total) + ' answers</span></h3><p class="muted small">' + esc(p.purpose) + '</p>' + barList(p.options.map(function (o) { return { name: o.label, value: o.n }; })) + '</div>'; }).join('') + '</div></div>' : '') +
       ((g.questions || []).length ? '<div class="card" style="margin-top:14px"><h2>Questions from the room</h2><p class="sub">Every question typed in the masterclass, with the assistant’s reply. Tick them off once someone has followed up. Questions without a reply need one by email.</p>' +
         table([
-          { label: 'Who', html: function (r) { return '<strong>' + esc(r.name) + '</strong><div class="muted">' + esc(r.email || '') + (r.band ? ' · ' + esc(r.band) : '') + '</div>'; } },
+          { label: 'Who', html: function (r) { return '<strong>' + esc(r.name) + '</strong>' + (r.pass ? ' <span class="pill">paid · priority</span>' : '') + '<div class="muted">' + esc(r.email || '') + (r.band ? ' · ' + esc(r.band) : '') + '</div>'; } },
           { label: 'Question', html: function (r) { return esc(r.question) + (r.at != null ? '<div class="muted">at ' + Math.floor(r.at / 60) + ' min</div>' : ''); } },
           { label: 'Assistant replied', html: function (r) { return r.answer ? '<span class="muted">' + esc(r.answer) + '</span>' : '<span class="pill">needs a reply</span>'; } },
           { label: '', html: function (r) { return '<label class="check"><input type="checkbox" data-qdone="' + esc(r.id) + '"' + (r.handled ? ' checked' : '') + '> done</label>'; } },
         ], g.questions, { cards: true }) + '</div>' : '');
-    return roomHtml + engageHtml + webinarExperienceHtml(x) + '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
+    var lv = x.live;
+    var liveHtml = lv ? '<div class="card" style="margin-top:14px"><h2>Live layer</h2><p class="sub">The real people in each showing: chat between viewers, the team’s replies, call requests, and the most people truly in a showing at once (from presence pings, never estimated).</p>' +
+      '<div class="grid g-4 tiles" style="margin-top:8px">' +
+      tile('Chat messages', n(lv.messages), n(lv.chatters) + ' viewers wrote in the chat') +
+      tile('Team replies', n(lv.teamMessages + lv.privateReplies), n(lv.teamMessages) + ' in the chat · ' + n(lv.privateReplies) + ' private answers') +
+      tile('Call requests', n(lv.raises), '“Get a call from Josh’s team” ($1M+)') +
+      tile('Announcements', n(lv.announcements), 'sent from the host console') + '</div>' +
+      ((lv.showings || []).length ? '<div style="margin-top:12px">' + table([
+        { label: 'Showing', html: function (r) { return esc(new Date(r.starts_at).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })); } },
+        { label: 'Peak viewers', key: 'peak_viewers', num: true, fmt: n },
+        { label: 'Messages', key: 'messages', num: true, fmt: n },
+        { label: 'Team', key: 'team_messages', num: true, fmt: n },
+        { label: 'Call requests', key: 'raises', num: true, fmt: n },
+      ], lv.showings) + '</div>' : '') + '</div>' : '';
+    return roomHtml + engageHtml + webinarExperienceHtml(x) + liveHtml + '<div class="card" style="margin-top:14px"><h2>Minute by minute</h2><p class="sub">Share of live viewers with each minute of the masterclass on screen' + (w.replayViewers ? ' (dotted line: replay watchers)' : '') + '. The marker is the pitch at ' + esc(mins(x.pitchAtMin)) + '. ' +
       (w.liveViewers ? '<b>' + esc(pct(w.atPitch)) + '</b> of ' + n(w.liveViewers) + ' live viewers were still there when the offer came up.' : 'No one has watched live in this period yet.') + '</p>' +
       '<div class="chart" data-wcurve style="margin-top:8px"></div>' + (drops ? '<h3 class="h3" style="margin-top:12px">Where people leave</h3><ul class="plain-list">' + drops + '</ul>' : '') + '</div>' +
       '<div class="grid g-2" style="margin-top:14px">' +
@@ -776,15 +791,210 @@
     lineChart(el, pts, { fmt: function (v) { return pct(v); }, max: 1, height: 220, series: 'live', marker: marker, markerLabel: 'Pitch', label: 'Webinar retention, minute by minute', compare: w.replayViewers ? w.replay : null, compareLabel: 'replay' });
   }
 
+  /**
+   * Webinar tab → host console: the real live layer on top of the recorded masterclass. The room runs on its own
+   * (viewer chat, AI answers, scheduled announcements); this is the optional extra for when someone from the team
+   * wants to join a showing. While a showing is open here, its viewers see "Josh's team is in the room".
+   */
+  function renderHostConsole(box) {
+    if (!box) return;
+    var hostId = (function () { try { var v = localStorage.getItem('hq_host'); if (!v) { v = Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4); localStorage.setItem('hq_host', v); } return v; } catch (e) { return 'tab' + Math.random().toString(36).slice(2, 12); } })();
+    var openId = null, timer = null, pingTimer = null, last = {}, names = ['G&L team'];
+    var nameKey = 'hq_host_name';
+    var myName = function () { try { var v = localStorage.getItem(nameKey); return names.indexOf(v) >= 0 ? v : names[0]; } catch (e) { return names[0]; } };
+    var clock = function (t) { return new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
+    var STAGE = function (s) { return s.stage === 'waiting' ? 'Starts in ' + Math.max(1, -s.minute) + ' min' : s.stage === 'running' ? 'Minute ' + s.minute : s.stage === 'after' ? 'Ended, room still open' : 'Closed'; };
+    var alive = function () { return document.body.contains(box); };
+    function stop() { clearTimeout(timer); clearInterval(pingTimer); if (openId) leave(openId); }
+    function leave(id) { try { navigator.sendBeacon('/admin/api/webinar/live/s/' + encodeURIComponent(id) + '/leave', new Blob([JSON.stringify({ host: hostId })], { type: 'application/json' })); } catch (e) { /* ignore */ } }
+    window.addEventListener('pagehide', function () { if (openId) leave(openId); });
+    function set(sel, html) { var el = box.querySelector(sel); if (el && last[sel] !== html) { last[sel] = html; el.innerHTML = html; } return el; }
+    function nameSelect(attr) { return '<select class="input hc-name" ' + attr + ' aria-label="Post as">' + names.map(function (nm) { return '<option' + (nm === myName() ? ' selected' : '') + '>' + esc(nm) + '</option>'; }).join('') + '</select>'; }
+
+    // ── List of showings + autopilot moments ──
+    function list() {
+      if (!alive()) return stop();
+      openId = null; clearInterval(pingTimer);
+      return fetch('/admin/api/webinar/live', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!alive() || openId) return;
+        names = d.hostNames || names;
+        var rows = d.showings || [];
+        last = {};
+        box.innerHTML = '<div class="card hc" style="margin-bottom:14px"><div class="card-head"><div><h2>Host console</h2><p class="sub">The masterclass runs on its own: viewers chat with each other, the AI assistant answers questions, and the announcements you schedule below appear by themselves. Open a showing to join it. Its viewers see “Josh’s team is in the room” only while you have it open here.' + (d.chat ? '' : ' <b>The showing chat is off</b> (WEBINAR_CHAT in Integrations → Webinar).') + '</p></div></div>' +
+          (rows.length ? table([
+            { label: 'Showing', nw: true, html: function (s) { return '<strong>' + esc(clock(s.starts_at)) + '</strong><div class="muted">' + esc(STAGE(s)) + (s.auto === 2 ? ' · just-in-time' : '') + '</div>'; } },
+            { label: 'Watching now', num: true, html: function (s) { return '<strong>' + n(s.viewers) + '</strong>' + (s.peak ? '<div class="muted">peak ' + n(s.peak) + '</div>' : ''); } },
+            { label: 'Registered', key: 'registrations', num: true, fmt: n },
+            { label: 'Chat', key: 'messages', num: true, fmt: n },
+            { label: 'Call requests', num: true, html: function (s) { return s.raises ? '<span class="pill hc-hot">' + n(s.raises) + ' waiting</span>' : '<span class="muted">0</span>'; } },
+            { label: '', html: function (s) { return (s.hosts ? '<span class="muted">team in the room · </span>' : '') + '<button type="button" class="btn-sm" data-hc-open="' + esc(s.id) + '">Open</button>'; } },
+          ], rows, { cards: true }) : '<p class="muted hc-empty">No showing is running right now or starting in the next 15 minutes.</p>') +
+          '<h3 class="h3" style="margin-top:16px">Scheduled announcements (every showing)</h3><p class="sub">A banner at a set minute of every showing, with an optional button, e.g. at minute 46: “Applications for strategy calls are open this week” with the apply link. Turn on “replay” to show it at that minute of the replay too.</p>' +
+          ((d.auto || []).length ? table([
+            { label: 'At', nw: true, html: function (a) { return 'minute ' + n(a.at_min) + '<div class="muted">for ' + n(a.minutes) + ' min' + (a.replay ? ' · also replay' : '') + '</div>'; } },
+            { label: 'Announcement', html: function (a) { return esc(a.body) + (a.link_url ? '<div class="muted">' + esc(a.link_label || 'Open') + ' → ' + esc(a.link_url) + '</div>' : ''); } },
+            { label: '', html: function (a) { return '<label class="check"><input type="checkbox" data-hc-auto-on="' + esc(a.id) + '"' + (a.active ? ' checked' : '') + '> on</label> <button type="button" class="btn-sm ghost" data-hc-auto-del="' + esc(a.id) + '">Delete</button>'; } },
+          ], d.auto) : '') +
+          '<form class="hc-form hc-auto" data-hc-auto><label>At minute <input class="input" name="at_min" type="number" min="0" max="120" required value="46"></label><label>For (min) <input class="input" name="minutes" type="number" min="1" max="120" value="10"></label>' +
+          '<label class="hc-wide">Text <input class="input" name="text" maxlength="280" required placeholder="Applications for strategy calls are open this week."></label>' +
+          '<label>Button link <input class="input" name="link_url" placeholder="https://…"></label><label>Button text <input class="input" name="link_label" maxlength="40" placeholder="Apply here"></label>' +
+          '<label class="check"><input type="checkbox" name="replay" checked> also in the replay</label><button class="btn-sm" type="submit">Schedule</button> <span class="muted" data-hc-msg></span></form></div>';
+        box.querySelectorAll('[data-hc-open]').forEach(function (b) { b.onclick = function () { show(b.getAttribute('data-hc-open')); }; });
+        box.querySelectorAll('[data-hc-auto-on]').forEach(function (cb) { cb.onchange = function () { send('PUT', 'webinar/live/auto/' + encodeURIComponent(cb.getAttribute('data-hc-auto-on')), { active: cb.checked }); }; });
+        box.querySelectorAll('[data-hc-auto-del]').forEach(function (b) { b.onclick = function () { if (confirm('Delete this scheduled announcement?')) fetch('/admin/api/webinar/live/auto/' + encodeURIComponent(b.getAttribute('data-hc-auto-del')), { method: 'DELETE', credentials: 'same-origin' }).then(list); }; });
+        var af = box.querySelector('[data-hc-auto]');
+        af.onsubmit = function (e) {
+          e.preventDefault();
+          send('POST', 'webinar/live/auto', { at_min: Number(af.at_min.value), minutes: Number(af.minutes.value), text: af.text.value, link_url: af.link_url.value.trim(), link_label: af.link_label.value, replay: af.replay.checked }).then(function (r) {
+            if (r && r.ok) { toast('Scheduled'); list(); } else af.querySelector('[data-hc-msg]').textContent = (r && r.error) || 'Couldn’t save';
+          });
+        };
+        clearTimeout(timer);
+        // Fresh counts every 10 s, but never while someone is typing in the schedule form.
+        var again = function () { if (openId) return; if (!alive()) return stop(); if (box.contains(document.activeElement) && document.activeElement !== document.body) timer = setTimeout(again, 10000); else list(); };
+        timer = setTimeout(again, 10000);
+      }).catch(function () { box.innerHTML = ''; });
+    }
+
+    // ── One showing ──
+    function show(id) {
+      openId = id; last = {}; clearTimeout(timer);
+      box.innerHTML = '<div class="card hc hc-open"><div class="card-head"><div data-hc-head><h2>Showing</h2></div><button type="button" class="btn-sm ghost" data-hc-back>← All showings</button></div>' +
+        '<div class="hc-grid">' +
+        '<div class="hc-col"><h3 class="h3">Showing chat</h3><div class="hc-pinned" data-hc-pin></div><ol class="hc-chat" data-hc-chat></ol>' +
+        '<form class="hc-form hc-say" data-hc-say>' + nameSelect('data-hc-name') + '<input class="input" name="text" maxlength="400" autocomplete="off" placeholder="Write to everyone in this showing" required><button class="btn-sm" type="submit">Send</button></form>' +
+        '<h3 class="h3" style="margin-top:16px">Announce to this showing</h3><p class="sub">A banner at the top of the room. For a real live moment, e.g. “Josh is live now for 20 minutes of Q&amp;A” with the Zoom link.</p>' +
+        '<form class="hc-form hc-ann" data-hc-ann><label class="hc-wide">Text <input class="input" name="text" maxlength="280" required placeholder="Josh is live now for 20 minutes of Q&amp;A."></label>' +
+        '<label>Button link <input class="input" name="link_url" placeholder="https://zoom.us/j/…"></label><label>Button text <input class="input" name="link_label" maxlength="40" placeholder="Join here"></label>' +
+        '<label>Show for (min) <input class="input" name="minutes" type="number" min="1" max="180" value="20"></label><button class="btn-sm" type="submit">Announce</button> <span class="muted" data-hc-amsg></span></form><div data-hc-anns></div></div>' +
+        '<div class="hc-col"><div data-hc-raises></div><h3 class="h3">Questions from this showing</h3><p class="sub">The AI assistant answers straight away. A reply here goes privately to that viewer, in their question box, as “Answered by Josh’s team”.</p><div data-hc-qs></div>' +
+        '<h3 class="h3" style="margin-top:16px">Viewers</h3><div data-hc-viewers></div></div></div></div>';
+      box.querySelector('[data-hc-back]').onclick = function () { leave(id); list(); };
+      box.querySelector('[data-hc-name]').onchange = function (e) { try { localStorage.setItem(nameKey, e.target.value); } catch (x) { /* ignore */ } };
+      var say = box.querySelector('[data-hc-say]');
+      say.onsubmit = function (e) {
+        e.preventDefault();
+        var t = say.text.value.trim(); if (!t) return;
+        send('POST', 'webinar/live/s/' + encodeURIComponent(id) + '/chat', { text: t, name: say.querySelector('[data-hc-name]').value }).then(function (r) { if (r && r.ok) { say.text.value = ''; refresh(); } else toast((r && r.error) || 'Not sent'); });
+      };
+      var ann = box.querySelector('[data-hc-ann]');
+      ann.onsubmit = function (e) {
+        e.preventDefault();
+        send('POST', 'webinar/live/s/' + encodeURIComponent(id) + '/announce', { text: ann.text.value, link_url: ann.link_url.value.trim(), link_label: ann.link_label.value, minutes: Number(ann.minutes.value), name: say.querySelector('[data-hc-name]').value }).then(function (r) {
+          if (r && r.ok) { ann.reset(); ann.minutes.value = 20; toast('Announced'); refresh(); } else ann.querySelector('[data-hc-amsg]').textContent = (r && r.error) || 'Couldn’t announce';
+        });
+      };
+      // Delegated actions on the refreshed lists.
+      box.querySelector('.hc-grid').addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b) return;
+        if (b.hasAttribute('data-hc-pin-id')) send('POST', 'webinar/live/s/' + encodeURIComponent(id) + '/pin', { message_id: Number(b.getAttribute('data-hc-pin-id')) || null }).then(refresh);
+        else if (b.hasAttribute('data-hc-del')) { if (confirm('Delete this message for everyone?')) fetch('/admin/api/webinar/live/chat/' + encodeURIComponent(b.getAttribute('data-hc-del')), { method: 'DELETE', credentials: 'same-origin' }).then(refresh); }
+        else if (b.hasAttribute('data-hc-end')) fetch('/admin/api/webinar/live/announcements/' + encodeURIComponent(b.getAttribute('data-hc-end')), { method: 'DELETE', credentials: 'same-origin' }).then(refresh);
+        else if (b.hasAttribute('data-hc-raise')) send('PUT', 'webinar/live/raises/' + encodeURIComponent(b.getAttribute('data-hc-raise')), { handled: true }).then(refresh);
+        else if (b.hasAttribute('data-lead-open')) openLead(b.getAttribute('data-lead-open'));
+      });
+      box.querySelector('.hc-grid').addEventListener('submit', function (e) {
+        var f = e.target.closest('[data-hc-reply]'); if (!f) return;
+        e.preventDefault();
+        send('POST', 'webinar/live/questions/' + encodeURIComponent(f.getAttribute('data-hc-reply')) + '/reply', { text: f.text.value, name: say.querySelector('[data-hc-name]').value }).then(function (r) { if (r && r.ok) { f.text.value = ''; toast('Reply sent to that viewer'); delete last['[data-hc-qs]']; refresh(); } else toast((r && r.error) || 'Not sent'); });
+      });
+      var ping = function () { if (!alive() || openId !== id) return clearInterval(pingTimer); send('POST', 'webinar/live/s/' + encodeURIComponent(id) + '/presence', { host: hostId }); };
+      clearInterval(pingTimer); ping(); pingTimer = setInterval(ping, 15000);
+      refresh();
+    }
+
+    function refresh() {
+      var id = openId;
+      if (!id) return;
+      if (!alive()) return stop();
+      clearTimeout(timer);
+      return fetch('/admin/api/webinar/live/s/' + encodeURIComponent(id), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!alive() || openId !== id || !d.session) return;
+        var s = d.session, p = d.presence || {};
+        set('[data-hc-head]', '<h2>' + esc(clock(s.starts_at)) + ' showing · ' + esc(STAGE(s)) + '</h2><p class="sub"><b>' + n(p.viewers) + '</b> watching now' + (p.replay ? ' · ' + n(p.replay) + ' on the replay' : '') + ' · peak ' + n(p.peak) + ' · ' + n(p.host) + ' from the team here (you included). Viewers see the count only when 3 or more are in.</p>');
+        var chatEl = box.querySelector('[data-hc-chat]');
+        var near = chatEl && chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 60;
+        var pinned = (d.chat || []).filter(function (m) { return m.pinned && !m.deleted; })[0];
+        set('[data-hc-pin]', pinned ? '<span class="muted">Pinned:</span> <b>' + esc(pinned.name) + '</b> ' + esc(pinned.body) + ' <button type="button" class="btn-sm ghost" data-hc-pin-id="0">Unpin</button>' : '');
+        set('[data-hc-chat]', (d.chat || []).length ? d.chat.map(function (m) {
+          return '<li class="hc-msg' + (m.author === 'team' ? ' team' : '') + (m.deleted ? ' deleted' : '') + '"><span class="hc-who">' + esc(m.name) + (m.author === 'team' ? ' <span class="pill">team</span>' : '') + '</span> <span class="muted">' + esc(clock(m.t)) + (m.at != null ? ' · min ' + Math.floor(m.at / 60) : '') + '</span>' +
+            '<div class="hc-body">' + (m.deleted ? '<i class="muted">deleted</i>' : esc(m.body)) + '</div>' +
+            (m.deleted ? '' : '<span class="hc-acts"><button type="button" class="btn-sm ghost" data-hc-pin-id="' + (m.pinned ? 0 : m.id) + '">' + (m.pinned ? 'Unpin' : 'Pin') + '</button><button type="button" class="btn-sm ghost" data-hc-del="' + m.id + '">Delete</button></span>') + '</li>';
+        }).join('') : '<li class="muted">No messages in this showing yet.</li>');
+        if (chatEl && near) chatEl.scrollTop = chatEl.scrollHeight;
+        var anns = (d.announcements || []).filter(function (a) { return a.live; });
+        set('[data-hc-anns]', anns.map(function (a) { return '<div class="hc-annlive"><span class="pill hc-hot">on now</span> ' + esc(a.body) + (a.link_url ? ' <span class="muted">→ ' + esc(a.link_url) + '</span>' : '') + ' <span class="muted">until ' + esc(clock(a.expires_at)) + '</span> <button type="button" class="btn-sm ghost" data-hc-end="' + esc(a.id) + '">End now</button></div>'; }).join(''));
+        var rs = d.raises || [];
+        set('[data-hc-raises]', rs.length ? '<h3 class="h3">Call requests</h3><div class="hc-raises">' + rs.map(function (h) {
+          return '<div class="hc-raise' + (h.handled ? ' done' : '') + '"><b>' + esc(h.name) + '</b> · ' + esc(h.band || '') + ' · ' + (h.replay ? 'replay' : 'showing') + (h.minute != null ? ', minute ' + h.minute : '') + ' · ' + esc(clock(h.t)) +
+            '<div class="muted">' + esc([h.phone, h.email].filter(Boolean).join(' · ')) + '</div>' +
+            '<button type="button" class="btn-sm ghost" data-lead-open="' + esc(h.lead_id) + '">Open lead</button> ' + (h.handled ? '<span class="muted">handled</span>' : '<button type="button" class="btn-sm" data-hc-raise="' + esc(h.id) + '">Mark handled</button>') + '</div>';
+        }).join('') + '</div>' : '');
+        var qBox = box.querySelector('[data-hc-qs]');
+        var typing = qBox && Array.prototype.some.call(qBox.querySelectorAll('input[name=text]'), function (i) { return i.value || i === document.activeElement; });
+        if (!typing) set('[data-hc-qs]', (d.questions || []).length ? d.questions.map(function (q) {
+          return '<div class="hc-q"><b>' + esc(q.name) + '</b> <span class="muted">' + esc(clock(q.t)) + (q.at != null ? ' · min ' + Math.floor(q.at / 60) : '') + '</span><p>' + esc(q.question) + '</p>' +
+            (q.ai ? '<p class="muted small"><b>AI assistant:</b> ' + esc(q.ai) + '</p>' : '') +
+            (q.team ? '<p class="small"><b>' + esc(q.teamBy || 'Team') + ' replied:</b> ' + esc(q.team) + '</p>' : '<form class="hc-form hc-reply" data-hc-reply="' + esc(q.id) + '"><input class="input" name="text" maxlength="1200" placeholder="Private reply to ' + esc(q.name) + '" required><button class="btn-sm" type="submit">Reply</button></form>') + '</div>';
+        }).join('') : '<p class="muted">No questions in this showing yet.</p>');
+        set('[data-hc-viewers]', table([
+          { label: 'Viewer', html: function (v) { return '<span class="hc-dot' + (v.online ? ' on' : '') + '" title="' + (v.online ? 'in the room now' : 'not in the room') + '"></span><button type="button" class="linkish" data-lead-open="' + esc(v.lead_id) + '">' + esc(v.name) + '</button>'; } },
+          { label: 'Revenue', html: function (v) { return esc(v.bandLabel || v.band || '–') + (v.band && !v.qualified ? ' <span class="muted">· under $1M</span>' : ''); } },
+          { label: 'Reached', num: true, html: function (v) { return v.joined || v.minute ? 'min ' + n(v.minute) : '<span class="muted">not yet</span>'; } },
+          { label: 'Poll answers', html: function (v) { return v.polls.length ? v.polls.map(esc).join('<br>') : '<span class="muted">–</span>'; } },
+        ], d.viewers || [], { cards: true }));
+        timer = setTimeout(refresh, 4000);
+      }).catch(function () { timer = setTimeout(refresh, 8000); });
+    }
+    list();
+  }
+
+  /** Webinar tab: the paid offer (Acquisition Assessment by default) and the optional paid seat. */
+  function webinarPassHtml(p) {
+    if (!p || !p.config) return '';
+    var c = p.config, k = p.kpis || {}, ch = p.checklist || {}, cap = p.capacity || {};
+    var MODE = { off: 'Off', upsell: 'Upsell', required: 'Required' };
+    var ok = function (b, yes, no) { return '<li class="' + (b ? 'ok' : 'todo') + '"><span>' + (b ? '✓' : '·') + '</span><div class="small">' + (b ? yes : no) + '</div></li>'; };
+    var modeLine = c.mode === c.requested ? MODE[c.mode] : MODE[c.requested] + ' (running as Off)';
+    return '<div class="card" style="margin-top:14px" data-pass-hq><div class="card-head"><div><h2>' + esc(c.offerName) + '</h2><p class="sub">The paid offer in the masterclass: ' + esc(c.priceLabel) + ' ' + esc(c.currency) +
+      ', credited against the advisory engagement if they continue. ' + (c.weeklyCap ? 'Capped at ' + n(c.weeklyCap) + ' a week.' : 'No weekly cap.') + (c.seat ? ' Paid seat: ' + esc(c.seat) + '.' : '') + '</p></div>' +
+      '<span class="pill">' + esc(modeLine) + '</span></div>' +
+      (c.reason ? '<div class="card notice" style="margin:10px 0">' + esc(c.reason) + '</div>' : '') +
+      '<div class="grid g-4 tiles" style="margin-top:8px">' +
+      tile('Sold', n(k.sold), pct(k.conversion, 1) + ' of ' + n(k.registrants) + ' registrants', null, { zeroOk: true }) +
+      tile('Revenue', k.revenueLabel || '–', 'after refunds · ' + (k.creditLabel || '–') + ' credit owed against engagements', null, { zeroOk: true }) +
+      tile('Refunds', n(k.refunds), k.openCheckouts ? n(k.openCheckouts) + ' checkout' + (k.openCheckouts === 1 ? '' : 's') + ' open now' : 'no open checkouts', null, { zeroOk: true }) +
+      tile('This week', cap.capped ? n(cap.left) + ' of ' + n(cap.cap) + ' left' : 'No cap', cap.capped ? n(cap.used) + ' sold or in checkout since Monday' : 'set a weekly cap under Integrations → Webinar', null, { zeroOk: true }) +
+      '</div>' +
+      (c.seat || k.seats ? '<p class="muted" style="margin-top:8px">Paid seats: ' + n(k.seats) + ' sold · ' + esc(k.seatRevenueLabel || '–') + ' · ' + n(k.seatRefunds) + ' refunded · ' + n(k.requiredRegistrants) + (k.requiredRegistrants === 1 ? ' registrant' : ' registrants') + ' needed one.</p>' : '') +
+      '<div class="grid g-2" style="margin-top:12px"><div><h3 class="h3">Buyers</h3>' +
+      ((p.holders || []).length ? table([
+        { label: 'Name', html: function (r) { return '<strong>' + esc(r.name) + '</strong>' + (r.status === 'refunded' ? ' <span class="pill">refunded</span>' : '') + '<div class="muted">' + esc(r.email || '') + '</div>'; } },
+        { label: 'Revenue', html: function (r) { return esc(r.band || '–'); } },
+        { label: 'Paid', html: function (r) { return esc(r.paid) + (r.credit ? '<div class="muted">' + esc(r.credit) + ' credit</div>' : ''); } },
+        { label: 'Pack', html: function (r) { return r.pack_viewed_at ? '✓ opened' : '<span class="muted">not yet</span>'; } },
+        { label: 'Session booked?', html: function (r) { return r.status === 'refunded' ? '' : '<label class="check"><input type="checkbox" data-pbooked="' + esc(r.id) + '"' + (r.review_booked_at ? ' checked' : '') + '> booked</label>' + (r.review_clicked_at && !r.review_booked_at ? '<div class="muted">opened the link</div>' : ''); } },
+      ], p.holders, { cards: true, rowAttr: function (r) { return 'data-lead-row="' + esc(r.lead_id) + '"'; } }) : '<p class="muted">No one has bought yet.</p>') + '</div>' +
+      '<div><h3 class="h3">Setup</h3><ul class="checklist">' +
+      ok(ch.secretKey, 'Stripe secret key added' + (ch.testMode ? ' (test mode)' : ''), 'Add the Stripe secret key (Integrations → Webinar)') +
+      ok(ch.webhookSecret, 'Webhook signing secret added', 'Add the webhook signing secret. Without it payments still confirm when buyers come back from Stripe, but refunds and closed tabs are missed.') +
+      ok(c.requested !== 'off', 'Mode: ' + esc(MODE[c.requested]), 'Set the paid offer to upsell or required') +
+      ok(ch.sessionUrl, 'Assessment session booking link set', 'Optional: add the session booking link, otherwise email each buyer to book') +
+      '</ul><p class="small" style="margin-top:8px">In Stripe → Developers → Webhooks → Add endpoint, paste:</p>' +
+      '<p><code style="word-break:break-all">' + esc(ch.webhookUrl) + '</code> <button type="button" class="btn-sm ghost" data-copy="' + esc(ch.webhookUrl) + '">Copy</button></p>' +
+      '<p class="small">and select these events: ' + (ch.events || []).map(function (e) { return '<code style="word-break:break-all">' + esc(e) + '</code>'; }).join(', ') + '.</p>' +
+      '<p class="small muted">Includes: ' + esc((c.perks || []).join(' · ')) + (c.customPerks ? ' (your own list)' : '') + '</p></div></div></div>';
+  }
+
   function renderWebinar() {
-    return Promise.all([api('webinar'), api('webinar/insights').catch(function () { return null; })]).then(function (both) {
-      var d = both[0], ins = both[1];
+    return Promise.all([api('webinar'), api('webinar/insights').catch(function () { return null; }), api('webinar/pass').catch(function () { return null; })]).then(function (both) {
+      var d = both[0], ins = both[1], pass = both[2];
       var k = d.kpis || {}, st = d.settings || {};
       var regs = k.registrations || 0;
       var when = function (t) { return new Date(t).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
       var MODE = { evergreen: 'Recording in sync', stream: 'Live in our room', live: 'Live link (Zoom…)' };
       var mins = function (s) { return s ? Math.round(s / 60) + ' min' : '–'; };
-      view.innerHTML =
+      view.innerHTML = '<div data-hostconsole></div>' +
         (st.placeholderVideo ? '<div class="card notice" style="margin-bottom:14px"><strong>Using the VSL as a placeholder recording.</strong> Add your webinar recording under Integrations → Webinar (WEBINAR_VIDEO_SRC).</div>' : '') +
         '<div class="grid g-4 tiles">' +
         tile('Registrations', n(regs), n(k.people) + (k.people === 1 ? ' person' : ' people')) +
@@ -798,7 +1008,7 @@
         tile('Weekly sessions', st.schedule || '–', (st.tz || '') + ' · ' + String(st.url || '').replace(/^https?:\/\//, '')) +
         '</div><div class="grid g-4 tiles" style="margin-top:14px">' +
         tile('Financial model', 'Open', 'Cost per registrant, per call and per client, and what the webinar makes per dollar of ads', 'finance') +
-        '</div>' +
+        '</div>' + webinarPassHtml(pass) +
         '<div class="grid g-2" style="margin-top:14px">' +
         '<div class="card"><h2>Upcoming sessions</h2><p class="sub">Weekly sessions are created automatically from the schedule in Integrations → Webinar. Add a one-off or live session below.</p>' +
         table([
@@ -832,13 +1042,22 @@
           { label: 'Came', html: function (r) { return r.joined_at ? '✓ ' + mins(r.watch_seconds) : r.replay_at ? 'replay' : '–'; } },
           { label: 'Offer', html: function (r) { return r.cta_at ? '✓' : ''; } },
           { label: 'Readiness', num: true, html: function (r) { return r.readiness != null ? '<strong>' + esc(n(r.readiness)) + '</strong>' + (r.readiness_gap ? '<div class="muted">gap: ' + esc(r.readiness_gap) + '</div>' : '') : '<span class="muted">–</span>'; } },
+          { label: 'Blueprint', html: function (r) { return r.token && (r.has_blueprint || r.joined_at || r.replay_at) ? '<a href="' + esc(String(st.url || '') + '/blueprint/' + r.token) + '" target="_blank" rel="noopener" data-stop>' + (r.has_blueprint ? 'Open' : 'Build') + ' ↗</a>' : ''; } },
           { label: 'Next', html: function (r) { return r.status === 'won' ? statusPill('won') : r.booked_at ? statusPill('booked') : r.app_completed_at ? statusPill('applied', 'applied' + (r.tier ? ' (' + r.tier + ')' : '')) : ''; } },
         ], d.registrants || [], { rowAttr: function (r) { return 'class="click" data-lead="' + esc(r.lead_id) + '" tabindex="0"'; } }) + '</div>';
       view.querySelectorAll('[data-lead]').forEach(function (row) { row.onclick = function () { openLead(row.getAttribute('data-lead')); }; });
+      view.querySelectorAll('[data-stop]').forEach(function (a) { a.onclick = function (e) { e.stopPropagation(); }; });
       drawWebinarCurve(view.querySelector('[data-wcurve]'), ins);
       view.querySelectorAll('[data-buyin-hide]').forEach(function (cb) {
         cb.onclick = function (e) { e.stopPropagation(); };
         cb.onchange = function () { send('PUT', 'webinar/buyin/' + encodeURIComponent(cb.getAttribute('data-buyin-hide')), { hidden: cb.checked }); };
+      });
+      renderHostConsole(view.querySelector('[data-hostconsole]'));
+      view.querySelectorAll('[data-pbooked]').forEach(function (cb) {
+        cb.onchange = function () { send('PUT', 'webinar/pass/' + encodeURIComponent(cb.getAttribute('data-pbooked')), { review_booked: cb.checked }); };
+      });
+      view.querySelectorAll('[data-copy]').forEach(function (b) {
+        b.onclick = function () { try { navigator.clipboard.writeText(b.getAttribute('data-copy')); toast('Copied'); } catch (e) { /* ignore */ } };
       });
       view.querySelectorAll('[data-qdone]').forEach(function (cb) {
         cb.onchange = function () { send('PUT', 'webinar/questions/' + encodeURIComponent(cb.getAttribute('data-qdone')), { handled: cb.checked }); };

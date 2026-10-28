@@ -203,6 +203,6 @@ export const ROOM_COPY: {
   askBox: {
     heading: 'Ask a question',
     placeholder: 'Type your question about a deal, the funding or the next step',
-    note: 'An AI assistant trained on Josh’s playbook answers instantly, and Josh’s team reads every question.',
+    note: 'An AI assistant trained on Josh’s playbook answers instantly, and every question is saved for Josh’s team.',
   },
 };

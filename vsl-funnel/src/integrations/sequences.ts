@@ -275,6 +275,8 @@ export const SEQUENCES = {
       { template: 'w_clicked', offsetMs: 100 * MIN, anchor: 'webinar_at', skipIf: (l) => !l.webinar_cta_at || l.webinar_cta_at < (l.webinar_at ?? 0) - 30 * MIN || pitched(l) },
       // stayed to the end → their worksheet (next morning-ish).
       { template: 'w_bonus', offsetMs: 20 * HOUR, anchor: 'webinar_at', skipIf: (l) => !cameToWebinar(l) || (l.webinar_watch_pct ?? 0) < 0.85 },
+      // watched past the pitch and hasn't applied → their Acquisition Blueprint (about 2 hours after the showing ends).
+      { template: 'w_blueprint', offsetMs: 3 * HOUR, anchor: 'webinar_at', skipIf: (l) => pitched(l) || !(cameToWebinar(l) || l.webinar_replay_at) || (l.webinar_watch_pct ?? 0) < LEFT_EARLY },
       // saved at least one key point in this showing → their notes, about 30 minutes after it ends.
       { template: 'w_notes', offsetMs: 90 * MIN, anchor: 'webinar_at', skipIfAsync: async (rt, l) => !l.webinar_at || !(await (await import('../webinar/experience')).savedNotesSince(rt, l.id, l.webinar_at - 30 * MIN)) },
     ],

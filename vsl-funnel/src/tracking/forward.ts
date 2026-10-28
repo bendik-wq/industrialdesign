@@ -72,6 +72,7 @@ function ga4EventName(name: string, props: Record<string, unknown>): string | un
 export function conversionValue(name: string, props: Record<string, unknown>, lead: Pick<LeadSnapshot, 'tier' | 'revenue'> | null): number | undefined {
   if (name === 'lead_qualified') return lead?.tier === 'A' ? ECONOMICS.programPrice * 0.1 : lead?.tier === 'B' ? ECONOMICS.programPrice * 0.03 : 0;
   if (name === 'booking_scheduled') return ECONOMICS.programPrice * 0.15;
+  if (name === 'webinar_offer_purchased' || name === 'webinar_seat_purchased') return Number(props.value) > 0 ? Number(props.value) : undefined;
   if (name === 'revenue_band' || name === 'qualified_1m_plus' || name === 'qualified_any_1m_plus' || name === 'qualified_10m_plus') return bandValue(props.band) || undefined;
   if (name === 'lead_status_changed' && props.to === 'showed') return ECONOMICS.programPrice * 0.3;
   if (name === 'lead_status_changed' && props.to === 'won') {
@@ -80,6 +81,9 @@ export function conversionValue(name: string, props: Record<string, unknown>, le
   }
   return undefined;
 }
+
+/** Paid events carry their own currency (Stripe's); everything else uses the programme currency. */
+const currencyOf = (ev: { props: Record<string, unknown> }) => (typeof ev.props.currency === 'string' && /^[A-Z]{3}$/.test(ev.props.currency) ? ev.props.currency : ECONOMICS.currency);
 
 export async function forwardEvent(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent) {
   const { settings } = rt;
@@ -223,7 +227,7 @@ async function toPostHog(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, le
     [`$feature/${HEADLINE_EXPERIMENT.id}`]: who.variant,
   };
   const value = conversionValue(ev.name, ev.props, lead);
-  if (value !== undefined) Object.assign(properties, { value, currency: ECONOMICS.currency });
+  if (value !== undefined) Object.assign(properties, { value, currency: currencyOf(ev) });
   if (lead) {
     // No email, name or phone: PostHog joins people by lead_id; contact details live only in Funnel HQ.
     properties.$set = {
@@ -263,7 +267,7 @@ async function toMeta(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead:
   const user_data = await metaUserData(who, lead);
   const value = conversionValue(ev.name, ev.props, lead);
   const custom_data: Record<string, unknown> = {};
-  if (value !== undefined) Object.assign(custom_data, { value, currency: ECONOMICS.currency });
+  if (value !== undefined) Object.assign(custom_data, { value, currency: currencyOf(ev) });
   if (lead?.tier) Object.assign(custom_data, { lead_tier: lead.tier, lead_score: lead.score });
   if (who.variant) custom_data.variant = who.variant;
   if (eventName === 'Purchase') Object.assign(custom_data, { order_id: lead?.id ?? ev.id, content_name: 'M&A advisory program' });
@@ -290,7 +294,7 @@ async function toGA4(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead: 
     session_id: who.sessionId,
     engagement_time_msec: 1,
     variant: who.variant,
-    ...(value !== undefined ? { value, currency: ECONOMICS.currency } : {}),
+    ...(value !== undefined ? { value, currency: currencyOf(ev) } : {}),
     ...(ev.name === 'vsl_50' ? { video_percent: 50 } : {}),
     ...(eventName === 'purchase' ? { transaction_id: lead?.id ?? ev.id } : {}),
   };

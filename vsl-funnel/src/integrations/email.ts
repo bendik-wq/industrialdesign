@@ -425,6 +425,7 @@ async function webinarContext(rt: Runtime, lead: Lead, link: (path: string) => s
     // Next just-in-time showing (the registration page), and the attendee worksheet.
     next: link(`${webinarBase(rt)}/`),
     worksheet: link(`${webinarBase(rt)}/worksheet/${reg.token}`),
+    blueprint: link(`${webinarBase(rt)}/blueprint/${reg.token}`),
     apply: link(`/w/${reg.token}`),
     // The watch experience: key points they saved, their notes page, and their own words on what a first deal would change.
     notes: (await rt.env.DB.prepare('SELECT text FROM webinar_notes WHERE reg_id = ? ORDER BY at_sec').bind(reg.id).all<{ text: string }>().catch(() => ({ results: [] as { text: string }[] }))).results.map((r) => r.text),

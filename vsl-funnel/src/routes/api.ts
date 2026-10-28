@@ -13,7 +13,10 @@ import { parseHeartbeat, recordHeartbeat } from '../tracking/vsl';
 import { transcribe } from '../lib/speech';
 import { react, refreshScoreFor, saveBuyIn, saveNote } from '../webinar/experience';
 import { addPhone, answerPoll, chapters, askQuestion, logCalc, offerClick, selfServeAgreement, thankYouAnswer, unlockBonus } from '../webinar/room';
+import { liveFeed, postChat, raiseHand } from '../webinar/live';
+import { blueprintAction } from '../webinar/blueprint';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
+import { PassError, createCheckout, markReviewClicked, passGate, seatRequired, syncPassReplay } from '../webinar/pass';
 
 export const api = new Hono<AppEnv>();
 
@@ -161,7 +164,10 @@ api.post('/webinar/register', async (c) => {
   try {
     const body = (await readJson<Record<string, unknown>>(c.req.raw)) ?? {};
     const rt = runtimeFrom(c);
-    const { registration } = await register(rt, c.get('visitor'), body);
+    const { registration, created } = await register(rt, c.get('visitor'), body);
+    // Paid seat (required mode with a seat price): this registration opens the room only once paid.
+    if (created && seatRequired(rt)) await rt.env.DB.prepare('UPDATE webinar_registrations SET pass_required = 1 WHERE id = ?').bind(registration.id).run();
+    if (created) await syncPassReplay(rt, registration.lead_id);
     return c.json({ ok: true, next: `${webinarBase(rt)}/registered/${registration.token}` });
   } catch (err) {
     return errorResponse(c, err);
@@ -182,7 +188,7 @@ api.post('/webinar/hb', async (c) => {
 api.post('/webinar/join', async (c) => {
   const { rt, reg, session } = await webinarReg(c);
   const open = session && session.mode === 'live' && Date.now() >= session.starts_at - 10 * 60_000 && ['waiting', 'running'].includes(phase(rt, session));
-  if (!reg || !session || !open) return c.json({ ok: false }, 404);
+  if (!reg || !session || !open || (await passGate(rt, reg))) return c.json({ ok: false }, 404);
   await markJoinedLive(rt, reg, session);
   return c.json({ ok: true, url: session.join_url });
 });
@@ -217,10 +223,31 @@ api.post('/webinar/bonus', roomAction(async (rt, reg, body, session) => ({ ...(a
 api.post('/webinar/note', roomAction((rt, reg, body) => saveNote(rt, reg, body)));
 api.post('/webinar/react', roomAction((rt, reg, body) => react(rt, reg, body, chapters(rt))));
 api.post('/webinar/buyin', roomAction((rt, reg, body) => saveBuyIn(rt, reg, body)));
+api.post('/webinar/blueprint', roomAction((rt, reg, body, session) => blueprintAction(rt, reg, session, body)));
 api.post('/webinar/offer', roomAction((rt, reg, body) => offerClick(rt, reg, body)));
 api.post('/webinar/start', roomAction((rt, reg) => selfServeAgreement(rt, reg)));
 api.post('/webinar/commit', roomAction((rt, reg, body) => thankYouAnswer(rt, reg, body)));
+// The real live layer: showing chat, presence, announcements, "get a call from Josh's team".
+api.post('/webinar/live/feed', roomAction((rt, reg, body, session) => liveFeed(rt, reg, session, body)));
+api.post('/webinar/live/chat', roomAction((rt, reg, body, session) => postChat(rt, reg, session, body)));
+api.post('/webinar/live/raise', roomAction((rt, reg, body, session) => raiseHand(rt, reg, session, body)));
 api.post('/webinar/phone', async (c) => roomAction((rt, reg, body) => addPhone(rt, reg, body, c.get('visitor').geo.country))(c));
+// One click to Stripe Checkout (the offer, or a paid seat), email prefilled; and the buyer's session-booking click.
+api.post('/webinar/checkout', async (c) => {
+  try {
+    const { rt, body, reg } = await webinarReg(c);
+    if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+    const r = await createCheckout(rt, reg, { kind: body.kind === 'seat' ? 'seat' : 'offer', from: body.from === 'room' ? 'room' : 'ty' });
+    return c.json({ ok: true, ...r, ...('paid' in r ? { next: `${webinarBase(rt)}/registered/${reg.token}` } : {}) });
+  } catch (err) {
+    if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
+    return errorResponse(c, err);
+  }
+});
+api.post('/webinar/pass/review', async (c) => {
+  const { rt, body } = await webinarReg(c);
+  return c.json(await markReviewClicked(rt, String(body.token ?? '')));
+});
 api.post('/webinar/move', async (c) => {
   try {
     const { rt, body, reg } = await webinarReg(c);

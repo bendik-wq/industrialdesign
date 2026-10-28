@@ -493,8 +493,6 @@ export async function experienceConfig(rt: Runtime, reg: Registration, chs: Chap
     buyinAt: BUYIN_AT,
     buyinMax: BUYIN_MAX,
     wall: publicWall(wall, REVENUE_LABEL, reg.lead_id),
-    // The personalised blueprint page (if it's live), else the worksheet.
-    blueprintUrls: [`/blueprint/${reg.token}`, `${webinarBase(rt)}/blueprint/${reg.token}`],
   };
 }
 

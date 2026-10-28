@@ -14,6 +14,7 @@
   <script defer src="/assets/webinar.js"></script>
   <script defer src="/assets/webinar-room.js"></script>
   <script defer src="/assets/webinar-experience.js"></script>
+  <script defer src="/assets/webinar-live.js"></script>
 </head>
 <body class="webinar">
   <header class="nav"><div class="wrap nav-in">
@@ -21,8 +22,9 @@
   </div></header>
   <main id="main">
     <section class="hero hero-center room"><div class="wrap">
-      <span class="eyebrow"><span data-slot="room_label">Masterclass</span> · <span data-slot="when"></span></span>
+      <span class="eyebrow"><span data-slot="room_label">Masterclass</span> · <span data-slot="when"></span><span data-if="pass_active"> · <span class="pass-badge" data-slot="pass_badge">Paid</span></span></span>
       <h1 class="h2" data-slot="webinar_title">The masterclass</h1>
+      <div class="live-banner" data-live-banner role="status" aria-live="polite" hidden></div>
       <div class="wx-grid" data-wx-grid><div class="wx-main" data-wx-main>
       <div class="room-stage" data-room>
         <div class="room-wait" data-wait>
@@ -39,17 +41,27 @@
           <p class="lede">That’s the end of the session. Thanks for watching.</p>
         </div>
       </div>
+      <p class="live-presence" data-live-presence aria-live="polite" hidden></p>
       <div class="wx-under" data-wx-under></div>
       </div><aside class="wx-panel" data-wx-panel hidden aria-label="Your deal, building as you watch"></aside></div>
       <div class="room-cta" data-cta hidden></div>
+      <section class="live-chat" data-live-chat aria-label="Showing chat" hidden></section>
+      <div class="room-pass" data-pass></div>
       <nav class="room-agenda" data-agenda aria-label="Masterclass agenda"></nav>
       <div class="room-side">
         <div class="room-moments" data-moments aria-live="polite"></div>
         <div class="room-ask card" data-ask></div>
+        <div class="live-raise card" data-live-raise hidden></div>
       </div>
       <p class="muted" data-if="replay">This replay is available until <span data-replay-until></span>.</p>
     </div></section>
   </main>
+  <div class="book-modal" data-book-modal hidden role="dialog" aria-modal="true" aria-label="Book a strategy call">
+    <div class="book-modal-in">
+      <div class="book-modal-head"><strong>Book a strategy call</strong><span class="muted small">The masterclass keeps playing behind this window.</span><button type="button" class="btn-sm ghost" data-book-close aria-label="Close">Close</button></div>
+      <div class="book-modal-cal" data-book-cal></div>
+    </div>
+  </div>
   <footer>
     <div class="wrap">
       <div class="foot-grid">
