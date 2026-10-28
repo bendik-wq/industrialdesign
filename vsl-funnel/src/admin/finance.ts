@@ -28,6 +28,13 @@ export async function financeActuals(rt: Runtime) {
     loadReps(rt.env),
     adsReport(rt, to - 30 * 86400_000, to).catch(() => null),
   ]);
+  // The paid ladder: tickets (paid seats), First Deal Sprints and the engagements Sprint buyers signed.
+  const ladder = await db.prepare(
+    `SELECT (SELECT COUNT(*) FROM webinar_passes WHERE kind = 'seat' AND status = 'paid' AND paid_at BETWEEN ?1 AND ?2) AS tickets,
+            (SELECT COUNT(*) FROM webinar_passes WHERE kind = 'offer' AND status = 'paid' AND paid_at BETWEEN ?1 AND ?2) AS sprints,
+            (SELECT COUNT(*) FROM contracts k WHERE k.status = 'signed' AND COALESCE(k.is_test, 0) = 0 AND k.signed_at BETWEEN ?1 AND ?2
+                AND EXISTS (SELECT 1 FROM webinar_passes p WHERE p.lead_id = k.lead_id AND p.kind = 'offer' AND p.status IN ('paid', 'refunded'))) AS engagements`,
+  ).bind(from, to).first<{ tickets: number; sprints: number; engagements: number }>().catch(() => null);
   const adsFor = (f: 'vsl' | 'webinar') => ads?.byFunnel.find((x) => x.funnel === f);
   const spendLive = (f: 'vsl' | 'webinar'): Live => { const a = adsFor(f); return a && a.spend > 0 ? { value: a.spend, n: a.campaigns, trust: true, unit: 'campaign', note: `ad spend in the last 30 days across ${a.campaigns} campaign${a.campaigns === 1 ? '' : 's'}` } : null; };
   const cpcLive = (f: 'vsl' | 'webinar'): Live => { const a = adsFor(f); const clicks = a ? a.visitors || a.link_clicks : 0; return a && a.cpc != null ? { value: a.cpc, n: clicks, unit: a.visitors ? 'visitor' : 'click', note: a.visitors ? 'ad spend ÷ visitors from those campaigns (last 30 days)' : 'ad spend ÷ link clicks reported by the ad platform (last 30 days)' } : null; };
@@ -70,6 +77,9 @@ export async function financeActuals(rt: Runtime) {
       book: rate(w.booked ?? 0, w.applied ?? 0, 'webinar applicants who booked'),
       show: rate(held, held + noShow, 'calls with an outcome logged, all time'),
       close: rate(won, won + lost, 'held calls won, all time'),
+      ticketBuy: ladder?.tickets ? rate(ladder.tickets, regs, 'registrants who paid for a seat') : null,
+      sprintRate: ladder?.sprints ? rate(ladder.sprints, att + (w.replays ?? 0), 'watchers who bought the First Deal Sprint') : null,
+      sprintToEng: ladder?.sprints ? rate(ladder.engagements, ladder.sprints, 'Sprint buyers who signed the engagement (signed in the same 90 days)') : null,
     },
     window: { from, to },
   };

@@ -43,6 +43,7 @@ import { addManualSpend, adsReport, deleteManualSpend, setCampaignFunnel } from 
 import { chooseAdAccount, listAdAccounts, metaAdsConfigured, metaAdsToken, syncMetaSpend } from '../integrations/meta-ads';
 import { webinarInsights } from '../admin/webinar';
 import { liveAdmin } from '../admin/live';
+import { dealSprintAdmin } from '../admin/deal-sprint';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -54,7 +55,7 @@ import { REP_ROLES, type Rep, clearRepCache, slugId } from '../sales/reps';
 import { LOST_REASONS, OBJECTIONS, PAYMENT_PLANS, TEMPERATURES, type LeadUpdate, applyLeadUpdate, deletePayment, recordPayment } from '../sales/outcomes';
 import { META_API_VERSION, metaUserData } from '../tracking/forward';
 import { geoFromRequest } from '../lib/geo';
-import { type Contract, type ContractInput, autoQuote, cleanInput, company, createContract, documentHtml, getContract, markPaid, paymentDetails, sendPaymentEmail, sendTest, signAndSend, signUrl, updateDraft, voidContract } from '../sales/contracts';
+import { type Contract, type ContractInput, autoQuote, cleanInput, company, createContract, documentHtml, getContract, markPaid, money, paymentDetails, sendPaymentEmail, sendTest, signAndSend, signUrl, sprintCredit, updateDraft, voidContract } from '../sales/contracts';
 import { PLACEMENTS, PRESETS, type TrackedLink, linkFunnels, newLinkCode, slug, youtubeId, youtubeMeta } from '../funnel/tracked-links';
 
 export const admin = new Hono<AppEnv>();
@@ -198,6 +199,7 @@ admin.put('/webinar/buyin/:id', async (c) => {
   return c.json({ ok: true });
 });
 admin.route('/webinar/live', liveAdmin); // host console (the real live layer)
+admin.route('/deal-sprint', dealSprintAdmin); // Sprint board + ladder report
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {
   const b = await c.req.json<{ review_booked?: boolean }>().catch(() => ({ review_booked: true }));
@@ -343,6 +345,7 @@ admin.get('/pages', (c) => {
     { group: 'Webinar', title: 'Room: minute 45 (offer)', desc: 'The offer: apply / book a call, and the Assessment when it’s switched on.', path: '/room/preview?hq_at=46' },
     { group: 'Webinar', title: 'Room: minute 52 (worksheet)', desc: 'The worksheet unlocks for everyone still watching.', path: '/room/preview?hq_at=53' },
     { group: 'Webinar', title: 'Replay', desc: 'The replay page after the showing ends (open for 48 hours).', path: '/replay/preview?hq_at=replay' },
+    { group: 'Webinar', title: 'Sprint page (First Deal Sprint buyers)', desc: 'The buyer’s Day 1 to Day 7 tracker, intake form, booking links and guarantee. Shown with a made-up buyer.', path: '/sprint/preview' },
     { group: 'Webinar', title: 'Deal pack (Assessment buyers)', desc: 'What a paid Assessment buyer gets straight away. Shown with a made-up buyer and illustrative numbers.', path: '/pack/preview' },
     { group: 'Other', title: 'Privacy policy', desc: 'Linked from every page and every email.', path: '/privacy' },
   ];
@@ -973,7 +976,14 @@ admin.get('/contracts', async (c) => {
 });
 
 /** Suggested terms for a lead (or blank ones for someone not in the funnel). */
-admin.get('/contracts/quote', async (c) => c.json(autoQuote(runtimeFrom(c), await leadOrNull(c.env, c.req.query('lead')))));
+admin.get('/contracts/quote', async (c) => {
+  const rt = runtimeFrom(c);
+  const lead = await leadOrNull(c.env, c.req.query('lead'));
+  const q = autoQuote(rt, lead);
+  // A First Deal Sprint buyer: the credit goes on the agreement automatically when it is saved.
+  const credit = lead ? await sprintCredit(rt, lead.id, q.currency) : null;
+  return c.json(credit ? { ...q, credit, basis: `${q.basis} ${credit.label} of ${money(credit.amount, q.currency)} comes off it on the agreement.` } : q);
+});
 
 /** The full document as it would look: a draft or unsaved form, or a sent / signed agreement. */
 admin.post('/contracts/preview', async (c) => {
@@ -983,7 +993,10 @@ admin.post('/contracts/preview', async (c) => {
     const k = await getContract(rt, body.id);
     return k ? c.json({ html: documentHtml(rt, k) }) : c.json({ error: 'not found' }, 404);
   }
-  return c.json({ html: documentHtml(rt, cleanInput(rt, body, await leadOrNull(c.env, body.lead))) });
+  const lead = await leadOrNull(c.env, body.lead);
+  const terms = cleanInput(rt, body, lead);
+  const credit = lead ? await sprintCredit(rt, lead.id, terms.currency) : null;
+  return c.json({ html: documentHtml(rt, { ...terms, credit_amount: credit?.amount ?? 0, credit_label: credit?.label ?? null }) });
 });
 
 admin.post('/contracts', async (c) => {

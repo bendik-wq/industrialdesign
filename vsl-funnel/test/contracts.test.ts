@@ -1,19 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { autoQuote, cleanInput, contractEmail, documentHtml, payLinkFor, signContract, termsHtml, type Contract } from '../src/sales/contracts';
+import { autoQuote, cleanInput, contractEmail, documentHtml, feeDue, payLinkFor, signContract, termsHtml, type Contract } from '../src/sales/contracts';
 
 const lead = (answers: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({ id: 'l1', email: 'sam@hvac.com', first_name: 'Sam', last_name: 'Lee', answers: JSON.stringify(answers), ...extra }) as never;
 const rt = { settings: { SITE_NAME: 'G&L M&A Advisory', BUSINESS_ADDRESS: 'Sheridan, WY 82801, USA' }, origin: 'https://apply.example.com', env: {} } as never;
 
 describe('auto-quote', () => {
-  it('starts at $20k and scales with revenue and EBITDA', () => {
-    expect(autoQuote(rt, lead({ revenue: '1_3m' })).fee).toBe(20_000);
-    expect(autoQuote(rt, lead({ revenue: '3_10m' })).fee).toBe(25_000);
-    expect(autoQuote(rt, lead({ revenue: '25_50m' })).fee).toBe(50_000);
+  it('follows the $40k to $70k ladder by revenue, with EBITDA overrides', () => {
+    expect(autoQuote(rt, lead({ revenue: 'lt1m' })).fee).toBe(40_000);
+    expect(autoQuote(rt, lead({ revenue: '1_3m' })).fee).toBe(40_000);
+    expect(autoQuote(rt, lead({ revenue: '3_10m' })).fee).toBe(50_000);
+    expect(autoQuote(rt, lead({ revenue: '10_25m' })).fee).toBe(60_000);
+    expect(autoQuote(rt, lead({ revenue: '25_50m' })).fee).toBe(70_000);
+    expect(autoQuote(rt, lead({ revenue: '50_100m' })).fee).toBe(75_000);
+    expect(autoQuote(rt, lead({ revenue: 'gt100m' })).fee).toBe(100_000);
     expect(autoQuote(rt, lead({ revenue: '10_25m', profit: 'pgt10m' })).fee).toBe(75_000);
-    expect(autoQuote(rt, lead({})).fee).toBe(20_000);
+    expect(autoQuote(rt, lead({ revenue: '1_3m', profit: 'p3_10m' })).fee).toBe(50_000);
+    expect(autoQuote(rt, lead({})).fee).toBe(40_000);
+    expect(autoQuote(rt, lead({})).basis).toContain('Typical engagements are $40k–$70k');
   });
   it('keeps old $10M+ answers working', () => {
-    expect(autoQuote(rt, lead({ revenue: 'gt10m', profit: 'gt1m' })).fee).toBe(35_000);
+    expect(autoQuote(rt, lead({ revenue: 'gt10m', profit: 'gt1m' })).fee).toBe(60_000);
   });
 });
 
@@ -29,7 +35,7 @@ describe('engagement letter', () => {
   });
   it('falls back to the quote for a bad fee and rejects a bad email', () => {
     const k = cleanInput(rt, { fee: -5, client_email: 'not-an-email' }, lead({ revenue: '25_50m' }));
-    expect(k.fee).toBe(50_000);
+    expect(k.fee).toBe(70_000);
     expect(k.client_email).toBeNull();
   });
 });
@@ -48,6 +54,13 @@ describe('the one-page agreement', () => {
     expect(html).toContain('E-SIGN Act');
     expect(html).not.toContain('Introductions'); // only with a success fee
     expect(termsHtml(rt, { ...k, success_fee: '2% of the purchase price, due at closing' })).toContain('Introductions');
+  });
+  it('shows the First Deal Sprint credit and the net amount due, only when there is one', () => {
+    expect(html).not.toContain('credit');
+    const credited = termsHtml(rt, { ...k, fee: 50_000, credit_amount: 3_000, credit_label: 'First Deal Sprint credit' });
+    expect(credited).toContain('First Deal Sprint credit: <strong>−$3,000 USD</strong>');
+    expect(credited).toContain('Net amount due: <strong>$47,000 USD</strong>');
+    expect(feeDue({ fee: 2_000, currency: 'USD', credit_amount: 3_000 }).net).toBe(0); // never below zero
   });
   it('stays short (one printed page)', () => {
     expect(html.replace(/<[^>]+>/g, '').split(/\s+/).length).toBeLessThan(650);

@@ -7,7 +7,11 @@
   var DEFAULTS = {
     shared: { currency: 'USD', fee: 22500, refund: 0.05, upfront: 0.7, commission: 0.1, fulfil: 2500, fixed: 8000, months: 12, growth: 0.05, target: 50000 },
     vsl: { on: true, spend: 10000, cpc: 5, optin: 0.05, appDone: 0.6, qualified: 0.3, book: 0.7, show: 0.7, close: 0.15 },
-    webinar: { on: true, spend: 6000, cpc: 3, reg: 0.25, attend: 0.35, applyAtt: 0.1, applyNo: 0.02, qualified: 0.35, book: 0.7, show: 0.75, close: 0.2 },
+    webinar: {
+      on: true, spend: 6000, cpc: 3, reg: 0.25, attend: 0.35, applyAtt: 0.1, applyNo: 0.02, qualified: 0.35, book: 0.7, show: 0.75, close: 0.2,
+      // The paid ladder: ticket to watch → First Deal Sprint sold in the room → advisory engagement (Sprint fee credited).
+      ladder: true, ticket: 100, ticketBuy: 0.5, sprintPrice: 3000, sprintRate: 0.08, sprintToEng: 0.3, engFee: 50000, sprintCost: 500,
+    },
   };
 
   function num(v, d) { v = Number(v); return isFinite(v) ? v : d; }
@@ -28,7 +32,10 @@
     });
     ['refund', 'upfront', 'commission'].forEach(function (f) { out.shared[f] = Math.min(1, out.shared[f]); });
     ['optin', 'appDone', 'qualified', 'book', 'show', 'close'].forEach(function (f) { out.vsl[f] = Math.min(1, out.vsl[f]); });
-    ['reg', 'attend', 'applyAtt', 'applyNo', 'qualified', 'book', 'show', 'close'].forEach(function (f) { out.webinar[f] = Math.min(1, out.webinar[f]); });
+    ['reg', 'attend', 'applyAtt', 'applyNo', 'qualified', 'book', 'show', 'close', 'ticketBuy', 'sprintRate', 'sprintToEng'].forEach(function (f) { out.webinar[f] = Math.min(1, out.webinar[f]); });
+    // Scenarios saved before the ladder existed keep their free-webinar numbers until the ladder is switched on.
+    var w = m.webinar;
+    if (w && typeof w === 'object' && Object.keys(w).length && w.ladder == null) out.webinar.ladder = false;
     out.shared.months = Math.max(1, Math.min(36, Math.round(out.shared.months)));
     out.shared.growth = Math.min(1, out.shared.growth);
     return out;
@@ -39,35 +46,52 @@
     var spend = spendOverride == null ? f.spend : spendOverride;
     var visitors = f.cpc > 0 ? spend / f.cpc : 0;
     var steps = [{ key: 'visitors', label: 'Landing-page visitors', n: visitors }];
-    var apps, leads;
+    var apps, leads, ladder = kind === 'webinar' && f.ladder, tickets = 0, sprints = 0, engagements = 0;
     if (kind === 'vsl') {
       leads = visitors * f.optin;
       apps = leads * f.appDone;
       steps.push({ key: 'leads', label: 'Gave contact details', n: leads }, { key: 'apps', label: 'Finished the application', n: apps });
     } else {
       leads = visitors * f.reg;
-      var att = leads * f.attend;
-      apps = att * f.applyAtt + (leads - att) * f.applyNo;
-      steps.push({ key: 'leads', label: 'Registered', n: leads }, { key: 'attended', label: 'Watched (live or replay)', n: att }, { key: 'apps', label: 'Applied', n: apps });
+      // With the paid ladder only ticket holders watch; the Sprint is sold to watchers, and some Sprint buyers sign the engagement.
+      var seats = ladder ? leads * f.ticketBuy : leads;
+      var att = seats * f.attend;
+      apps = att * f.applyAtt + (seats - att) * f.applyNo;
+      steps.push({ key: 'leads', label: 'Registered', n: leads });
+      if (ladder) { tickets = seats; steps.push({ key: 'tickets', label: 'Bought a ticket', n: tickets }); }
+      steps.push({ key: 'attended', label: 'Watched (live or replay)', n: att });
+      if (ladder) {
+        sprints = att * f.sprintRate;
+        engagements = sprints * f.sprintToEng;
+        steps.push({ key: 'sprints', label: 'Bought the First Deal Sprint', n: sprints }, { key: 'engagements', label: 'Signed the engagement', n: engagements });
+      }
+      steps.push({ key: 'apps', label: 'Applied', n: apps });
     }
-    var qual = apps * f.qualified, booked = qual * f.book, held = booked * f.show, deals = held * f.close;
-    steps.push({ key: 'qualified', label: 'Qualified ($1M+)', n: qual }, { key: 'booked', label: 'Booked a call', n: booked }, { key: 'held', label: 'Showed up', n: held }, { key: 'deals', label: 'Clients won', n: deals });
+    var qual = apps * f.qualified, booked = qual * f.book, held = booked * f.show, callDeals = held * f.close, deals = callDeals + engagements;
+    steps.push({ key: 'qualified', label: 'Qualified ($1M+)', n: qual }, { key: 'booked', label: 'Booked a call', n: booked }, { key: 'held', label: 'Showed up', n: held }, { key: 'deals', label: ladder ? 'Clients won (calls + Sprint engagements)' : 'Clients won', n: deals });
 
-    var gross = deals * s.fee, refunds = gross * s.refund, net = gross - refunds;
-    var commission = net * s.commission, fulfil = deals * s.fulfil;
+    // Revenue: tickets, Sprints, the engagement less the Sprint fee credited against it, and clients won on calls.
+    var ticketRev = tickets * (f.ticket || 0), sprintRev = sprints * (f.sprintPrice || 0), engRev = engagements * Math.max(0, (f.engFee || 0) - (f.sprintPrice || 0));
+    var closerRev = callDeals * s.fee + engRev;
+    var gross = ticketRev + sprintRev + closerRev, refunds = gross * s.refund, net = gross - refunds;
+    var commission = closerRev * (1 - s.refund) * s.commission, fulfil = deals * s.fulfil + sprints * (ladder ? f.sprintCost || 0 : 0);
     var profit = net - commission - fulfil - spend;
     var margin = s.fee * (1 - s.refund) * (1 - s.commission) - s.fulfil; // what one client leaves after refunds, commission and delivery
-    var dealsPerVisitor = div(deals, visitors);
+    var contribution = profit + spend; // everything the funnel leaves before ads
     return {
       kind: kind, spend: spend, steps: steps, visitors: visitors, leads: leads, apps: apps, qualified: qual, booked: booked, held: held, deals: deals,
+      tickets: tickets, sprints: sprints, engagements: engagements, revenue: { tickets: ticketRev, sprints: sprintRev, engagements: engRev, calls: callDeals * s.fee },
       gross: gross, refunds: refunds, net: net, commission: commission, fulfil: fulfil, profit: profit,
       cashNow: net * s.upfront - commission * s.upfront - fulfil - spend,
       unit: {
         perLead: div(spend, leads), perApp: div(spend, apps), perQualified: div(spend, qual), perBooked: div(spend, booked), perHeld: div(spend, held),
         cac: div(spend, deals), roas: div(net, spend), profitPerDollar: div(profit, spend), clientMargin: margin,
+        perTicket: div(spend, tickets), perSprint: div(spend, sprints),
+        // Fladlien's number: revenue per registrant (and per ticket), across the whole ladder.
+        revPerRegistrant: div(net, leads), revPerTicket: div(net, tickets),
         // Break-even points: the most you can pay and still not lose money on ads.
-        maxCac: margin, maxPerBooked: margin * f.show * f.close, maxPerHeld: margin * f.close,
-        maxCpc: dealsPerVisitor == null ? null : margin * dealsPerVisitor,
+        maxCac: deals > 0 ? contribution / deals : margin, maxPerBooked: booked > 0 && !ladder ? contribution / booked : margin * f.show * f.close, maxPerHeld: margin * f.close,
+        maxCpc: visitors > 0 ? contribution / visitors : null,
       },
     };
   }

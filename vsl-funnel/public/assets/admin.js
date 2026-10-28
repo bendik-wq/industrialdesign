@@ -282,6 +282,7 @@
     traffic: { group: 'Traffic', title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     links: { group: 'Traffic', title: 'Links & videos', sub: 'Tracked links for your Instagram bio, ManyChat, YouTube and more, followed to closed deals.', more: 'One tracked link per place you post it (Instagram bio, each ManyChat flow, each video), followed from the tap to the booked call and the closed deal.', render: renderLinks, filters: ['range'] },
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
+    dealsprint: { group: 'Traffic', title: 'Sprint board', sub: 'First Deal Sprint buyers, day by day, and the ladder from ticket to engagement.', more: 'Every First Deal Sprint buyer with their day of 7, intake, kickoff and Deal Plan session, and each deliverable. Fill in the link and notes and mark it Ready: the buyer gets one email and sees it on their Sprint page. Mark the outcome after the Deal Plan session (proposal sent starts the follow-up emails) and draft the engagement agreement with the Sprint credit applied. The ladder at the top counts tickets, watchers, Sprint buyers and signed engagements in the selected range, with revenue per registrant and per ticket.', render: renderDealSprint, filters: ['range'] },
     emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
     editor: { group: 'Follow-up', title: 'Email editor', sub: 'Read and edit every email the funnel sends.', more: 'Pick an email on the left, change the wording on the right and watch the preview update. Merge tags like {first_name} fill in for each person. Saving replaces the built-in wording for every future send; “Reset to default” brings the original back. Emails written from each lead’s own application answers are shown but can’t be edited here.', render: renderEditor, noFilters: true },
     search: { group: 'Traffic', title: 'Search & AI', sub: 'Who finds you through Google, Bing, ChatGPT, Claude, Perplexity, Gemini and Grok, and which AI crawlers are reading your pages.', more: 'The landing pages, 20 industry pages and the guides are open to search engines and AI assistants; the application, booking and personal pages never are. Crawler visits show the AI companies reading your pages (search bots and live answers lead to citations; training bots feed future models). Visitors and leads from AI Search are people who clicked through from an AI answer. New pages usually take days to weeks to show up in search.', render: renderSearch, filters: ['range'] },
@@ -484,6 +485,10 @@
       ['spend', 'Ad spend a month', 'money'], ['cpc', 'Cost per landing-page visitor', 'money2'], ['reg', 'Visitors who register', 'pct'],
       ['attend', 'Registrants who watch (live or replay)', 'pct'], ['applyAtt', 'Watchers who apply', 'pct'], ['applyNo', 'Non-watchers who apply (from the emails)', 'pct'],
       ['qualified', 'Applications that qualify ($1M+)', 'pct'], ['book', 'Qualified who book a call', 'pct'], ['show', 'Show rate', 'pct'], ['close', 'Close rate (of calls held)', 'pct'],
+      // The paid ladder (used when "Paid ladder" is ticked): ticket → First Deal Sprint → engagement.
+      ['ticket', 'Ladder: ticket price', 'money'], ['ticketBuy', 'Ladder: registrants who buy a ticket', 'pct'], ['sprintPrice', 'Ladder: First Deal Sprint price', 'money'],
+      ['sprintRate', 'Ladder: watchers who buy the Sprint', 'pct'], ['sprintToEng', 'Ladder: Sprint buyers who sign the engagement', 'pct'],
+      ['engFee', 'Ladder: engagement fee (before the Sprint credit)', 'money'], ['sprintCost', 'Ladder: delivery cost per Sprint', 'money'],
     ],
   };
   var FIN_MIN_N = 20; // fewer people than this and a live rate is shown but not trusted
@@ -515,6 +520,7 @@
       };
       var funnelCard = function (sec, title, sub) {
         return '<div class="card fm-funnel" data-fm-card="' + sec + '"><div class="card-head"><div><h2>' + esc(title) + '</h2><p class="sub">' + esc(sub) + '</p></div>' +
+          (sec === 'webinar' ? '<label class="fm-toggle"><input type="checkbox" data-fm-ladder' + (cur.data.webinar.ladder ? ' checked' : '') + '> Paid ladder</label>' : '') +
           '<label class="fm-toggle"><input type="checkbox" data-fm-on="' + sec + '"' + (cur.data[sec].on ? ' checked' : '') + '> Include</label></div>' +
           '<div class="fm-fields">' + fieldsHtml(sec) + '</div><div data-fm-out="' + sec + '"></div></div>';
       };
@@ -530,7 +536,7 @@
         '<div data-fm-total style="margin-top:14px"></div>' +
         '<div class="grid g-2" style="margin-top:14px">' +
         funnelCard('vsl', 'VSL funnel', 'Ad → VSL page → application → call → client.') +
-        funnelCard('webinar', 'Webinar funnel', 'Ad → registration → masterclass (live or replay) → application → call → client.') + '</div>' +
+        funnelCard('webinar', 'Webinar funnel', 'Ad → registration → masterclass (live or replay) → application → call → client. With the paid ladder: ticket → masterclass → First Deal Sprint → engagement, the Sprint fee credited against it.') + '</div>' +
         '<div class="card" style="margin-top:14px"><h2>Price and costs</h2><p class="sub">Shared by both funnels.</p><div class="fm-fields fm-fields-wide">' + fieldsHtml('shared') + '</div></div>' +
         '<div data-fm-proj style="margin-top:14px"></div><div class="grid g-2" data-fm-sens style="margin-top:14px"></div>';
 
@@ -544,6 +550,7 @@
           ['Cost per booked call', cm(u.perBooked)], ['Cost per call held', cm(u.perHeld)], ['Cost to win a client (CAC)', cm(u.cac)],
           ['Return on ad spend', u.roas == null ? '–' : u.roas.toFixed(1) + '×'], ['Profit per $1 of ads', u.profitPerDollar == null ? '–' : cm(u.profitPerDollar, 2)],
         ];
+        if (sec === 'webinar' && f.ladder) rows.unshift(['Revenue per registrant', cm(u.revPerRegistrant, 2)], ['Revenue per ticket', cm(u.revPerTicket, 2)], ['Cost per Sprint buyer', cm(u.perSprint)]);
         var be = [['Most you can pay per visitor', cm(u.maxCpc, 2), f.cpc > u.maxCpc], ['Most you can pay per booked call', cm(u.maxPerBooked), u.perBooked > u.maxPerBooked], ['Most you can pay per client', cm(u.maxCac), u.cac > u.maxCac]];
         return '<div class="fm-steps">' + p.steps.map(function (st, i) {
           var prev = i ? p.steps[i - 1].n : null;
@@ -596,6 +603,8 @@
         inp.oninput = function () { if (inp.value === '') return; setField(inp.getAttribute('data-fm'), inp.value); markDirty(); draw(); };
       });
       view.querySelectorAll('[data-fm-on]').forEach(function (cb) { cb.onchange = function () { cur.data[cb.getAttribute('data-fm-on')].on = cb.checked; markDirty(); draw(); }; });
+      var ladderCb = view.querySelector('[data-fm-ladder]');
+      ladderCb.onchange = function () { cur.data.webinar.ladder = ladderCb.checked; markDirty(); draw(); };
       view.querySelector('[data-fm-cur]').onchange = function () { cur.data.shared.currency = this.value; markDirty(); draw(); };
       var applyLive = function (path) {
         var p = path.split('.'), a = A[p[0]] && A[p[0]][p[1]], el = view.querySelector('[data-fm="' + path + '"]');
@@ -618,6 +627,7 @@
         cur.data = M.normalise({ shared: { currency: cur.data.shared.currency } });
         view.querySelectorAll('[data-fm]').forEach(function (el) { var p = el.getAttribute('data-fm').split('.'); el.value = shown(el.getAttribute('data-type'), cur.data[p[0]][p[1]]); });
         view.querySelectorAll('[data-fm-on]').forEach(function (cb) { cb.checked = true; });
+        ladderCb.checked = cur.data.webinar.ladder;
         markDirty(); draw();
       };
       var save = function (asNew) {
@@ -647,6 +657,7 @@
         view.querySelector('[data-fm-cur]').value = cur.data.shared.currency;
         view.querySelectorAll('[data-fm]').forEach(function (el) { var p = el.getAttribute('data-fm').split('.'); el.value = shown(el.getAttribute('data-type'), cur.data[p[0]][p[1]]); });
         view.querySelectorAll('[data-fm-on]').forEach(function (cb) { cb.checked = cur.data[cb.getAttribute('data-fm-on')].on; });
+        ladderCb.checked = cur.data.webinar.ladder;
         dirty = false; msg.textContent = ''; draw();
       };
       draw();
@@ -2404,6 +2415,15 @@
         ], all, { cards: true, rowAttr: function (k) { return 'class="click" data-kopen="' + esc(k.id) + '" tabindex="0" title="Preview and manage"'; } }) : '<p class="muted">No agreements yet. Press <strong>New agreement</strong>, or open a lead and use its Agreement card.</p>') + '</div>';
       view.querySelector('[data-k-new]').onclick = function () { openContractEditor(null, null, load); };
       view.querySelectorAll('[data-kopen]').forEach(function (r2) { r2.onclick = function () { openContract(r2.getAttribute('data-kopen'), load); }; });
+    });
+  }
+
+  /** Funnel HQ → Sprint board (public/assets/deal-sprint-board.js): First Deal Sprint delivery and the value ladder. */
+  function renderDealSprint() {
+    if (!window.DealSprintBoard) { view.innerHTML = '<div class="card">The Sprint board script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.DealSprintBoard.render({
+      view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load,
+      openContract: function (id) { openContract(id, load); },
     });
   }
 

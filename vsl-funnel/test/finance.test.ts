@@ -52,6 +52,37 @@ describe('financial model', () => {
     expect(M.funnel('vsl', m.vsl, m.shared).unit.cac).toBeNull();
   });
 
+  it('walks the paid ladder: ticket, First Deal Sprint, engagement with the Sprint fee credited', () => {
+    const m = M.normalise({
+      shared: { fee: 40000, refund: 0, commission: 0.1, fulfil: 0, fixed: 0 },
+      webinar: { ladder: true, spend: 10000, cpc: 5, reg: 0.5, ticketBuy: 0.5, attend: 0.5, applyAtt: 0, applyNo: 0, ticket: 100, sprintPrice: 3000, sprintRate: 0.1, sprintToEng: 0.5, engFee: 50000, sprintCost: 0 },
+    });
+    const p = M.funnel('webinar', m.webinar, m.shared);
+    expect(p.visitors).toBe(2000);
+    expect(p.leads).toBe(1000);
+    expect(p.tickets).toBe(500);
+    expect(p.sprints).toBeCloseTo(25);
+    expect(p.engagements).toBeCloseTo(12.5);
+    expect(p.deals).toBeCloseTo(12.5);
+    // 500 × $100 + 25 × $3,000 + 12.5 × ($50,000 − $3,000 credit)
+    expect(p.net).toBeCloseTo(50000 + 75000 + 587500);
+    expect(p.commission).toBeCloseTo(58750); // closer commission on the engagement only
+    expect(p.unit.revPerRegistrant).toBeCloseTo(712.5);
+    expect(p.unit.revPerTicket).toBeCloseTo(1425);
+    expect(p.unit.maxCpc).toBeCloseTo((p.profit + p.spend) / p.visitors);
+  });
+
+  it('new scenarios start with the ladder on; scenarios saved before it keep their free-webinar numbers', () => {
+    expect(M.normalise({}).webinar.ladder).toBe(true);
+    const old = M.normalise({ webinar: { spend: 3000, cpc: 3, reg: 0.5, attend: 0.4, close: 0.2 } });
+    expect(old.webinar.ladder).toBe(false);
+    expect(old.webinar.sprintPrice).toBe(M.DEFAULTS.webinar.sprintPrice); // defaults filled, unused until switched on
+    const p = M.funnel('webinar', old.webinar, old.shared);
+    expect(p.tickets).toBe(0);
+    expect(p.sprints).toBe(0);
+    expect(M.normalise({ webinar: { ladder: true, sprintRate: 4 } }).webinar.sprintRate).toBe(1);
+  });
+
   it('stores only numbers, switches and a currency code', () => {
     expect(cleanModel({ vsl: { spend: 5, on: true, evil: '<script>', 'bad key': 1 }, shared: { currency: 'AUD' }, other: { x: 1 } }))
       .toEqual({ shared: { currency: 'AUD' }, vsl: { spend: 5, on: true }, webinar: {} });
