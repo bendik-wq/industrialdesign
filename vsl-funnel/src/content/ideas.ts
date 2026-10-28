@@ -31,7 +31,7 @@ export const BELIEFS = [
 const BELIEF_KEYS = ['trust', 'like', 'possible', 'can_solve', 'better', 'now'] as const;
 const AWARENESS = ['unaware', 'problem_aware', 'solution_aware', 'product_aware', 'most_aware'] as const;
 
-const OFFER = `G&L M&A Advisory (Josh Li, co-founder). Helps owners of established, profitable businesses ($1M+ revenue; best fit $3M–$50M+) grow by buying other businesses (competitors, add-ons, suppliers) with little or none of their own cash: commercial debt + seller finance + seller rollover, tested so the target's profit covers repayments ~1.5× (DSCR). Funnel: YouTube → VSL → application → strategy call (never call it "free") → advisory engagement (typically $20k–$50k, larger groups more).`;
+const OFFER = `G&L M&A Advisory (Josh Li, co-founder). Helps owners of established, profitable businesses ($1M+ revenue; best fit $3M–$50M+) grow by buying other businesses (competitors, add-ons, suppliers) with little or none of their own cash: commercial debt + seller finance + seller rollover, tested so the target's profit covers repayments ~1.5× (DSCR). Funnel: YouTube → VSL → application → strategy call (never call it "free") → advisory engagement (typically $40k–$70k, larger groups more).`;
 
 // ───────────── Inputs ─────────────
 

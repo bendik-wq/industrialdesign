@@ -539,7 +539,8 @@ export function seatCardHtml(cfg: PassConfig, note: string | null = null) {
 export function holderCardHtml(rt: Runtime, cfg: PassConfig, pass: Pick<PassRow, 'product'>, token: string, compact = false) {
   const t = passCopy({ ...cfg, offerName: pass.product || cfg.offerName });
   const links = [
-    `<a class="btn btn-sm" href="${esc(packUrl(rt, token))}" target="_blank" rel="noopener">${esc(t.packLink)}</a>`,
+    `<a class="btn btn-sm" href="${esc(`${webinarBase(rt)}/sprint/${token}`)}" target="_blank" rel="noopener" data-deal-sprint>Open my Sprint page</a>`, // First Deal Sprint page (deal-sprint.ts)
+    `<a class="btn btn-sm secondary" href="${esc(packUrl(rt, token))}" target="_blank" rel="noopener">${esc(t.packLink)}</a>`,
     cfg.sessionUrl ? `<a class="btn btn-sm secondary" href="${esc(cfg.sessionUrl)}" target="_blank" rel="noopener" data-pass-review>${esc(t.sessionLink)}</a>` : '',
   ].join(' ');
   return `<div class="card pass-card active${compact ? ' compact' : ''}" data-pass-holder>

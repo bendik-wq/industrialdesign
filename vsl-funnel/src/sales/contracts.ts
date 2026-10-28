@@ -23,6 +23,8 @@ export interface Contract {
   signer_ip: string | null; signer_ua: string | null; signer_country: string | null;
   pay_link: string | null; pay_email_sent_at: number | null; paid_at: number | null;
   is_test: number; our_signer: string | null; our_signature: string | null; our_signature_kind: string | null; our_signed_at: number | null; our_signer_ip: string | null;
+  /** First Deal Sprint fee credited against this fee (whole units, same currency); 0 = none. */
+  credit_amount?: number | null; credit_label?: string | null; credit_pass_id?: string | null;
 }
 
 const DAY = 86_400_000;
@@ -72,10 +74,12 @@ export function paymentHtml(rt: Runtime, reference?: string) {
 
 // ───────────── Auto-quote ─────────────
 
-/** Fee by the size of the business. Most land at $20k–$50k; larger groups scale up. Edit freely per agreement. */
+/** Fee by the size of the business. Most land at $40k–$70k; larger groups scale up. Edit freely per agreement. */
 export const FEE_BY_REVENUE: Record<string, number> = {
-  lt1m: 20_000, '1_3m': 20_000, '3_10m': 25_000, gt10m: 35_000, '10_25m': 35_000, '25_50m': 50_000, '50_100m': 75_000, gt100m: 100_000,
+  lt1m: 40_000, '1_3m': 40_000, '3_10m': 50_000, gt10m: 60_000, '10_25m': 60_000, '25_50m': 70_000, '50_100m': 75_000, gt100m: 100_000,
 };
+/** The floor when nothing is known (and for under $1M, still editable per agreement). */
+export const BASE_FEE = 40_000;
 const FEE_BY_PROFIT: Record<string, number> = { p3_10m: 50_000, pgt10m: 75_000 };
 
 export const DEFAULT_SCOPE = [
@@ -90,12 +94,12 @@ export function autoQuote(rt: Runtime, lead: Lead | null) {
   const d = lead ? buildDossier(lead) : null;
   const byRev = d?.revenue ? FEE_BY_REVENUE[d.revenue] : undefined;
   const byProfit = d?.profit ? FEE_BY_PROFIT[d.profit] : undefined;
-  const fee = Math.max(byRev ?? 20_000, byProfit ?? 0);
+  const fee = Math.max(byRev ?? BASE_FEE, byProfit ?? 0);
   const basis = d ? [d.revenueLabel ? `revenue ${d.revenueLabel}` : 'revenue unknown', d.profitLabel ? `EBITDA ${d.profitLabel}` : null].filter(Boolean).join(', ') : 'no application on file';
   return {
     fee,
     currency: company(rt).currency,
-    basis: `Suggested from ${basis}. Typical engagements are $20k–$50k; larger groups scale up.`,
+    basis: `Suggested from ${basis}. Typical engagements are $40k–$70k; larger groups scale up.`,
     payment_terms: 'Due in full on signing.',
     success_fee: '',
     scope: DEFAULT_SCOPE,
@@ -115,7 +119,13 @@ export const money = (n: number, cur: string) => `${SYMBOL[cur] ?? `${cur} `}${M
 const list = (s: string | null | undefined) => (s ?? '').split('\n').map((x) => x.replace(/^[-•*]\s*/, '').replace(/[.;]\s*$/, '').trim()).filter(Boolean);
 const clause = (n: number, title: string, body: string) => `<p class="cl"><strong>${n}. ${escHtml(title)}.</strong> ${body}</p>`;
 
-export type Terms = Pick<Contract, 'title' | 'client_name' | 'client_email' | 'client_company' | 'fee' | 'currency' | 'payment_terms' | 'success_fee' | 'scope' | 'term_text'>;
+export type Terms = Pick<Contract, 'title' | 'client_name' | 'client_email' | 'client_company' | 'fee' | 'currency' | 'payment_terms' | 'success_fee' | 'scope' | 'term_text'> & Partial<Pick<Contract, 'credit_amount' | 'credit_label'>>;
+
+/** The Sprint credit on an agreement, and what is left to pay. */
+export function feeDue(k: Pick<Contract, 'fee' | 'currency'> & Partial<Pick<Contract, 'credit_amount' | 'credit_label'>>) {
+  const credit = Math.max(0, Math.min(Math.round(Number(k.credit_amount) || 0), k.fee));
+  return { credit, label: credit ? (k.credit_label || 'First Deal Sprint credit') : null, net: k.fee - credit, creditText: credit ? `−${money(credit, k.currency)}` : null };
+}
 
 /**
  * The terms as HTML (everything a person typed is escaped). Signature blocks are drawn separately
@@ -127,13 +137,14 @@ export function termsHtml(rt: Runtime, k: Terms, date = Date.now()) {
   const dated = new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Denver' });
   const scope = list(k.scope);
   const term = (k.term_text || '6 months from the date both parties sign').replace(/^(this agreement )?runs for\s*/i, '').replace(/\.$/, '');
+  const due = feeDue(k);
   let n = 0;
   const out = [
     `<h1>${escHtml(k.title || 'Advisory Agreement')}</h1>`,
     `<p class="meta">${escHtml(dated)}</p>`,
     `<p class="parties-line">Between <strong>${escHtml(co.name)}</strong>, ${escHtml(co.entity)}${co.address ? `, ${escHtml(co.address)}` : ''} (“<strong>G&amp;L</strong>”, “we”), and <strong>${escHtml(client)}</strong>${k.client_email ? ` (${escHtml(k.client_email)})` : ''} (“<strong>you</strong>”).</p>`,
     clause(++n, 'What we do', `We advise you on buying a business: ${scope.length ? scope.map((x) => escHtml(/^[A-Z][a-z]/.test(x) ? x[0].toLowerCase() + x.slice(1) : x)).join('; ') : 'acquisition strategy, finding targets, deal structuring and negotiation support'}.`),
-    clause(++n, 'Fee', `Our fee is <strong>${escHtml(money(k.fee, k.currency))}</strong>, ${escHtml((k.payment_terms || 'Due in full on signing.').replace(/^./, (ch) => ch.toLowerCase()).replace(/\.?$/, '.'))}${k.success_fee ? ` <strong>Success fee:</strong> ${escHtml(k.success_fee.replace(/\.?$/, '.'))}` : ''} The fee pays for our time and expertise, is earned when paid and is <strong>non-refundable</strong>, whether or not you complete a deal. Third-party costs (lenders, attorneys, valuers, due diligence) are yours. If you have a billing concern, raise it with us first rather than disputing or charging back a payment.`),
+    clause(++n, 'Fee', `Our fee is <strong>${escHtml(money(k.fee, k.currency))}</strong>, ${escHtml((k.payment_terms || 'Due in full on signing.').replace(/^./, (ch) => ch.toLowerCase()).replace(/\.?$/, '.'))}${due.credit ? ` ${escHtml(due.label!)}: <strong>${escHtml(due.creditText!)}</strong>. Net amount due: <strong>${escHtml(money(due.net, k.currency))}</strong>.` : ''}${k.success_fee ? ` <strong>Success fee:</strong> ${escHtml(k.success_fee.replace(/\.?$/, '.'))}` : ''} The fee pays for our time and expertise, is earned when paid and is <strong>non-refundable</strong>, whether or not you complete a deal. Third-party costs (lenders, attorneys, valuers, due diligence) are yours. If you have a billing concern, raise it with us first rather than disputing or charging back a payment.`),
     clause(++n, 'What we are not', 'We are business advisers. We are not your attorney, accountant, lender, investment adviser or broker-dealer. We don’t hold your money, sell securities, or give legal, tax or investment advice. Get your own professional advice before you sign any deal.'),
     clause(++n, 'No guarantee', 'Deals depend on sellers, lenders and markets we don’t control. We don’t promise that you will buy a business, obtain financing, or achieve any price, return or timeline. Any figures we share are estimates for discussion.'),
     clause(++n, 'Your decisions', 'You decide whether to make an offer, borrow or close, and you’re responsible for those decisions and for giving us accurate information.'),
@@ -207,13 +218,33 @@ export function cleanInput(rt: Runtime, body: ContractInput, lead: Lead | null) 
 export const getContract = (rt: Runtime, id: string) => rt.env.DB.prepare('SELECT * FROM contracts WHERE id = ?').bind(id).first<Contract>();
 export const contractByToken = (rt: Runtime, t: string) => (/^[0-9a-f]{40}$/.test(t) ? rt.env.DB.prepare('SELECT * FROM contracts WHERE token = ?').bind(t).first<Contract>() : Promise.resolve(null));
 
+/**
+ * The lead's paid First Deal Sprint fee, to credit against the engagement (whole units). Only when it was paid
+ * in the agreement's currency, and not already used on a signed agreement.
+ */
+export async function sprintCredit(rt: Runtime, leadId: string | null | undefined, currency: string) {
+  if (!leadId) return null;
+  const { passCreditFor, fromMinor } = await import('../webinar/pass');
+  const c = await passCreditFor(rt, leadId).catch(() => null);
+  if (!c || c.currency.toUpperCase() !== currency.toUpperCase()) return null;
+  const used = await rt.env.DB.prepare("SELECT credit_used_contract AS k FROM webinar_passes WHERE id = ?").bind(c.passId).first<{ k: string | null }>().catch(() => null);
+  if (used?.k) {
+    const signed = await rt.env.DB.prepare("SELECT 1 FROM contracts WHERE id = ? AND status = 'signed' AND COALESCE(is_test, 0) = 0").bind(used.k).first().catch(() => null);
+    if (signed) return null;
+  }
+  return { passId: c.passId, amount: Math.round(fromMinor(c.amount, c.currency)), label: `${c.product || 'First Deal Sprint'} credit` };
+}
+
 export async function createContract(rt: Runtime, lead: Lead | null, body: ContractInput, opts: { test?: boolean } = {}) {
   const k = cleanInput(rt, body, lead);
   const id = newId('k');
+  const credit = await sprintCredit(rt, lead?.id, k.currency);
+  const basis = autoQuote(rt, lead).basis + (credit ? ` ${credit.label} of ${money(credit.amount, k.currency)} applied.` : '');
   await rt.env.DB.prepare(
-    `INSERT INTO contracts (id, token, lead_id, status, title, client_name, client_email, client_company, fee, currency, payment_terms, success_fee, scope, term_text, quote_basis, created_at, is_test, pay_link)
-     VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, token(), lead?.id ?? '', k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, autoQuote(rt, lead).basis, Date.now(), opts.test ? 1 : 0, k.pay_link).run();
+    `INSERT INTO contracts (id, token, lead_id, status, title, client_name, client_email, client_company, fee, currency, payment_terms, success_fee, scope, term_text, quote_basis, created_at, is_test, pay_link, credit_amount, credit_label, credit_pass_id)
+     VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, token(), lead?.id ?? '', k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, basis, Date.now(), opts.test ? 1 : 0, k.pay_link,
+    credit?.amount ?? 0, credit?.label ?? null, credit?.passId ?? null).run();
   return getContract(rt, id);
 }
 
@@ -221,9 +252,10 @@ export async function updateDraft(rt: Runtime, c: Contract, body: ContractInput)
   if (c.status !== 'draft') throw new Error('Only drafts can be edited. Void it and make a new one.');
   const lead = c.lead_id ? await getLead(rt.env, c.lead_id) : null;
   const k = cleanInput(rt, { ...c, ...body }, lead);
+  const credit = await sprintCredit(rt, c.lead_id, k.currency);
   await rt.env.DB.prepare(
-    'UPDATE contracts SET title = ?, client_name = ?, client_email = ?, client_company = ?, fee = ?, currency = ?, payment_terms = ?, success_fee = ?, scope = ?, term_text = ?, pay_link = ? WHERE id = ?',
-  ).bind(k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, k.pay_link, c.id).run();
+    'UPDATE contracts SET title = ?, client_name = ?, client_email = ?, client_company = ?, fee = ?, currency = ?, payment_terms = ?, success_fee = ?, scope = ?, term_text = ?, pay_link = ?, credit_amount = ?, credit_label = ?, credit_pass_id = ? WHERE id = ?',
+  ).bind(k.title, k.client_name, k.client_email, k.client_company, k.fee, k.currency, k.payment_terms, k.success_fee, k.scope, k.term_text, k.pay_link, credit?.amount ?? 0, credit?.label ?? null, credit?.passId ?? null, c.id).run();
   return getContract(rt, c.id);
 }
 
@@ -260,8 +292,9 @@ async function sendContractEmail(rt: Runtime, c: Contract, kind: 'send' | 'remin
   const co = company(rt);
   const first = (c.client_name ?? '').split(' ')[0] || 'there';
   const link = signUrl(rt, c.token);
-  const fee = money(c.fee, c.currency);
-  const rows: [string, string][] = [['Agreement', c.title], ['Fee', fee], ['Term', (c.term_text ?? '').replace(/\.$/, '')]];
+  const due = feeDue(c);
+  const fee = money(due.net, c.currency);
+  const rows: [string, string][] = [['Agreement', c.title], ['Fee', money(c.fee, c.currency)], ...(due.credit ? [[due.label!, due.creditText!], ['Net amount due', fee]] as [string, string][] : []), ['Term', (c.term_text ?? '').replace(/\.$/, '')]];
   const base = { sender: c.our_signer ?? co.signer, company: co.name, address: co.address, test: Boolean(c.is_test) };
   const pre = c.is_test ? '[TEST] ' : '';
   const m =
@@ -328,7 +361,8 @@ export async function sendPaymentEmail(rt: Runtime, c: Contract, opts: { link?: 
   const bank = paymentDetails(rt)?.rows ?? [];
   if (!link && !bank.length) throw new Error('Add a payment link, or your bank details under Integrations → Contracts.');
   const co = company(rt);
-  const fee = money(c.fee, c.currency);
+  const due = feeDue(c);
+  const fee = money(due.net, c.currency);
   const first = (c.client_name ?? '').split(' ')[0] || 'there';
   const note = typeof opts.note === 'string' && opts.note.trim() ? escHtml(opts.note.trim().slice(0, 800)) : null;
   const copy = `${signUrl(rt, c.token)}/copy`;
@@ -343,7 +377,7 @@ export async function sendPaymentEmail(rt: Runtime, c: Contract, opts: { link?: 
       `Your signed agreement: <a href="${escHtml(copy)}">view or download</a>.`,
       ...(bank.length ? ['<span style="color:#8a5a00;font-size:13px">We will never change our bank details by email. If you get a message saying they have changed, call us before you pay.</span>'] : []),
     ],
-    rows: [['Agreement', c.title], ['Amount due', fee]],
+    rows: [['Agreement', c.title], ...(due.credit ? [['Fee', money(c.fee, c.currency)], [due.label!, due.creditText!]] as [string, string][] : []), ['Amount due', fee]],
     button: link ? { label: `Pay ${fee}`, href: link } : undefined,
   });
   await sendViaResend(rt, { to: c.client_email, subject: `${c.is_test ? '[TEST] ' : ''}Payment for your ${c.title}`, html: m.html, text: m.text, from: co.from, tags: { kind: 'contract_payment' } });
@@ -356,7 +390,8 @@ export async function markPaid(rt: Runtime, c: Contract, paid: boolean) {
   await rt.env.DB.prepare('UPDATE contracts SET paid_at = ? WHERE id = ?').bind(paid ? Date.now() : null, c.id).run();
   if (paid && !c.is_test && c.lead_id) {
     const lead = await getLead(rt.env, c.lead_id);
-    if (lead && (lead.cash_collected ?? 0) < c.fee) await updateLead(rt.env, lead.id, { cash_collected: c.fee });
+    const net = feeDue(c).net;
+    if (lead && (lead.cash_collected ?? 0) < net) await updateLead(rt.env, lead.id, { cash_collected: net });
   }
 }
 
@@ -414,6 +449,9 @@ async function afterSigned(rt: Runtime, c: Contract) {
   if (c.is_test) return;
   const lead = c.lead_id ? await getLead(rt.env, c.lead_id) : null;
   if (lead) await updateLead(rt.env, lead.id, { contract_signed_at: c.signed_at, revenue: lead.revenue || c.fee });
+  // The Sprint credit is now spent, and the Sprint board shows the engagement as signed.
+  if (c.credit_pass_id && feeDue(c).credit) await rt.env.DB.prepare('UPDATE webinar_passes SET credit_used_contract = ?, updated_at = ? WHERE id = ?').bind(c.id, Date.now(), c.credit_pass_id).run().catch(() => null);
+  if (c.lead_id) await (await import('../webinar/deal-sprint')).dealSprintSigned(rt, c).catch((e) => console.error('deal sprint signed', e));
   await notify(rt, { kind: 'won', title: `Agreement signed: ${money(c.fee, c.currency)}`, lead, lines: [c.client_name ?? c.client_email ?? '', c.title] }).catch(() => null);
 }
 

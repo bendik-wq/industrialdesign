@@ -33,6 +33,8 @@ import { maybeSyncContent } from './content/content';
 import { blueprintPage } from './webinar/blueprint';
 import { applyHandoff, icsFile, isWebinarHost, packPage, packSubmit, registeredPage, roomPage, webinarLanding, worksheetPage } from './webinar/pages';
 import { ensureSessions } from './webinar/webinar';
+import { dealSprintPage, dealSprintSubmit } from './webinar/deal-sprint';
+import { processDealSprintEmails } from './webinar/deal-sprint-emails';
 import { notesPage } from './webinar/experience';
 import { chapters } from './webinar/room';
 import { processSmsQueue } from './integrations/sms';
@@ -126,6 +128,8 @@ for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/blueprint/:token`, withVisitor, blueprintPage);
   app.get(`${prefix}/pack/:token`, withVisitor, packPage);
   app.post(`${prefix}/pack/:token`, withVisitor, packSubmit);
+  app.get(`${prefix}/sprint/:token`, withVisitor, dealSprintPage);
+  app.post(`${prefix}/sprint/:token`, withVisitor, dealSprintSubmit);
 }
 app.get('/w/:token', withVisitor, applyHandoff);
 app.get('/guides', withVisitor, guidesHub);
@@ -257,6 +261,7 @@ export default {
       quiet(processSmsQueue(rt), 'SMS'),
       quiet(sweepBots(rt), 'bot sweep'),
       quiet(processContractReminders(rt), 'contract reminders'),
+      quiet(processDealSprintEmails(rt), 'deal sprint emails'),
       quiet(maybeSyncMetaSpend(rt), 'Meta ad spend'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
