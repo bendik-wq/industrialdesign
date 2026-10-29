@@ -128,7 +128,7 @@ export const EXPERIENCE_COPY = {
     plan: 'A signed LOI by day 90',
   } as Record<string, string>,
   mappedHeading: 'Your deal is mapped',
-  mappedBody: 'Target, size, the 1.5x test, the stack, the group value and the 90 days, all from your own answers.',
+  mappedBody: 'Target, size, the 1.5x test, the stack, the group value and your next seven days, all from your own answers.',
   mappedButton: 'Open my acquisition blueprint',
   mappedButtonWorksheet: 'Open my deal worksheet',
 
