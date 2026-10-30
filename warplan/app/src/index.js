@@ -34,6 +34,8 @@ import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, i
 import { listRelationships, createRelationship, updateRelationship, deleteRelationship, lenderFit, setFinancing, deleteFinancing } from "./capabilities.js";
 import { getRoom, updateRoom, addItem, updateItem, deleteItem, teamUpload, deleteRoomFile, createLink, revokeLink, chaseSeller, sellerView, sellerNda, sellerUpload, sellerFile } from "./dealroom.js";
 import { today } from "./today.js";
+import { startRun, stepRun, getRun, listRuns, listFindings, setFinding, agentDefs, queueMonitors } from "./runs.js";
+import "./crew/index.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
 import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
@@ -61,6 +63,7 @@ export default {
         else if (type === "inbox") { await syncAgentInboxes(env, accountId, replyTriage(env, exec)); await syncGmail(env, accountId, replyTriage(env, exec)); }
         else if (type === "recording") await processRecording(env, accountId, msg.body.id);
         else if (type === "enrich") { const c = { accountId, user: { id: msg.body.userId, name: "Contact finder" }, isOwner: false }; await enrichTarget(env, c, msg.body.targetId, await dataKeys(env, c)); }
+        else if (type === "run") { const r = await stepRun(env, accountId, msg.body.runId, exec); if (r?.more && !env.WORK) await stepRun(env, accountId, msg.body.runId, exec); }
         else if (type === "watch") await runWatch(env, { accountId, user: { id: null, name: "Signal watch" } }, hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)), { limit: 120 });
         msg.ack();
       } catch (e) { console.error(`queue ${type} ${accountId}`, e); msg.retry({ delaySeconds: 60 }); }
@@ -69,7 +72,7 @@ export default {
   async scheduled(event, env, exec) {
     // Every 10 minutes: finish background jobs (meeting notes). Daily: the autopilot.
     if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), queueInboxes(env, exec), reconcileRuns(env).catch((e) => console.error("reconcile", e)), retryStuckRecordings(env).catch((e) => console.error("recordings", e))]));
-    else exec.waitUntil(Promise.all([autopilotAll(env, exec), queueWatch(env, exec)]));
+    else exec.waitUntil(Promise.all([autopilotAll(env, exec), queueWatch(env, exec), queueMonitors(env, exec).catch((e) => console.error("monitors", e))]));
   },
 };
 
@@ -628,6 +631,13 @@ async function route(request, env, url, ctx, exec) {
     if (!threadId) threadId = (await createThread(env, ctx, { agent: "josh", target: b.target_id })).id;
     return send(env, ctx, threadId, b, hooks);
   }
+  // Multi-layer agents: start a run, watch its layers, and work the alerts they raise.
+  if (p === "/api/crew" && m === "GET") return json({ agents: agentDefs().map(({ id, name, needsTarget, stages, monitor, describe, layers, icon }) => ({ id, name, needsTarget: !!needsTarget, stages: stages || null, monitor: !!monitor, describe, icon, layers: layers.map((l) => ({ id: l.id, title: l.title, kind: l.kind })) })) });
+  if (p === "/api/runs" && m === "GET") return json({ runs: await listRuns(env, ctx, { targetId: q.get("target_id"), agent: q.get("agent"), limit: q.get("limit") }) });
+  if (p === "/api/runs" && m === "POST") { const b = await body(request); return json(await startRun(env, ctx, String(b.agent || ""), { targetId: b.target_id, input: b.input && typeof b.input === "object" ? b.input : {} }, exec), 202); }
+  if ((r = p.match(/^\/api\/runs\/(\d+)$/)) && m === "GET") return json(await getRun(env, ctx, +r[1]));
+  if (p === "/api/findings" && m === "GET") return json({ findings: await listFindings(env, ctx, { targetId: q.get("target_id"), status: q.get("status") || "open" }) });
+  if ((r = p.match(/^\/api\/findings\/(\d+)$/)) && m === "PATCH") { const b = await body(request); return json(await setFinding(env, ctx, +r[1], String(b.status || ""))); }
   if (p === "/api/agent/tools" && m === "GET") return json({ tools: TOOLS.map(({ name, description, input_schema, write }) => ({ name, description, input_schema, write })) });
   if (p === "/api/inbox" && m === "GET") return json(await listInbox(env, ctx, ["pending", "done", "dismissed", "failed", "all"].includes(q.get("status")) ? q.get("status") : "pending"));
   if (p === "/api/inbox" && m === "POST") {

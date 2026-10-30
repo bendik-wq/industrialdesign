@@ -614,3 +614,57 @@ CREATE TABLE IF NOT EXISTS room_files (
   chunks INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS room_files_target ON room_files (account_id, target_id);
+-- v16: multi-layer agent runs. One row per run, one per layer it ran, and the findings it raised (alerts a monitor
+-- keeps open while the problem persists and resolves when it's gone).
+CREATE TABLE IF NOT EXISTS agent_runs (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER,
+  agent TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'queued',   -- queued | running | done | failed
+  step INTEGER NOT NULL DEFAULT 0,
+  input TEXT NOT NULL DEFAULT '{}',
+  state TEXT NOT NULL DEFAULT '{}',
+  summary TEXT,
+  error TEXT,
+  tokens_in INTEGER NOT NULL DEFAULT 0,
+  tokens_out INTEGER NOT NULL DEFAULT 0,
+  created_by INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  finished_at TEXT
+);
+CREATE INDEX IF NOT EXISTS agent_runs_account ON agent_runs (account_id, id DESC);
+CREATE INDEX IF NOT EXISTS agent_runs_target ON agent_runs (account_id, agent, target_id, status);
+CREATE TABLE IF NOT EXISTS agent_steps (
+  run_id INTEGER NOT NULL,
+  n INTEGER NOT NULL,
+  layer TEXT NOT NULL,
+  title TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'running',
+  summary TEXT,
+  data TEXT,
+  started_at TEXT,
+  finished_at TEXT,
+  PRIMARY KEY (run_id, n)
+);
+CREATE TABLE IF NOT EXISTS agent_findings (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER,
+  agent TEXT NOT NULL,
+  run_id INTEGER,
+  severity TEXT NOT NULL DEFAULT 'medium',
+  title TEXT NOT NULL,
+  detail TEXT NOT NULL DEFAULT '',
+  evidence TEXT NOT NULL DEFAULT '',
+  metric TEXT,
+  dedupe TEXT,
+  status TEXT NOT NULL DEFAULT 'open',      -- open | resolved | dismissed
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  resolved_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS agent_findings_open ON agent_findings (account_id, dedupe) WHERE status = 'open' AND dedupe IS NOT NULL;
+CREATE INDEX IF NOT EXISTS agent_findings_list ON agent_findings (account_id, status, target_id);
