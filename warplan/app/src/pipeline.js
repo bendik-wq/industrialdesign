@@ -1,6 +1,6 @@
 // The deal pipeline: acquisition targets, their timeline, and outgoing webhooks for the workspace's own systems.
 import { STAGES, normalizeDeal, CURS as CURRENCIES } from "../public/js/deal.js";
-import { publicUrl, safeFetch } from "./net.js";
+import { publicUrl, safeFetch, resolvesPublic } from "./net.js";
 import { seal, open } from "./keys.js";
 
 // Webhook signing secrets are stored sealed (AES-GCM, bound to the workspace), like every other credential. Rows from
@@ -277,6 +277,7 @@ export async function createHook(env, ctx, b) {
   try { url = new URL(String(b.url || "")); } catch { throw err(400, "Enter a full https:// URL"); }
   if (url.protocol !== "https:") throw err(400, "Webhooks must use https://");
   if (!publicUrl(url.toString(), { httpsOnly: true })) throw err(400, "Use a public https:// address (no IP addresses or internal names)");
+  if (!(await resolvesPublic(url.hostname))) throw err(400, "That address doesn't point to a public website");
   const n = (await env.DB.prepare("SELECT COUNT(*) AS n FROM webhooks WHERE account_id = ?1").bind(ctx.accountId).first()).n;
   if (n >= 10) throw err(400, "Ten webhooks is the limit; remove one first");
   const events = Array.isArray(b.events) && b.events.length ? b.events.filter((e) => HOOK_EVENTS.includes(e)).join(",") || "*" : "*";

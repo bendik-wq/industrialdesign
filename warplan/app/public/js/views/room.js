@@ -57,7 +57,7 @@ function itemRow(P, i) {
     <div class="ri-main"><span class="ri-title">${esc(i.title)}</span>${i.severity ? ` <span class="sev sev-${i.severity}">${SEV[i.severity]}</span>` : ""}${i.seller ? ' <span class="status-chip" title="The seller sees this on their link">seller</span>' : ""}
       ${i.action ? `<div class="small tone-${i.severity === "high" ? "bad" : "warn"}">Action: ${esc(i.action)}</div>` : ""}
       ${i.notes ? `<div class="small muted pre-line">${esc(i.notes)}</div>` : ""}
-      ${files.length ? `<div class="ri-files">${files.map((f) => `<a href="${f.url}" class="chip" download>${f.source === "seller" ? "⇪ " : ""}${esc(f.name)} · ${kb(f.size)}</a>`).join("")}</div>` : ""}</div>
+      ${files.length ? `<div class="ri-files">${files.map((f) => `<a href="${/^\/api\/files\/\d+$/.test(f.url) ? f.url : "#"}" class="chip" download>${f.source === "seller" ? "⇪ " : ""}${esc(f.name)} · ${kb(f.size)}</a>`).join("")}</div>` : ""}</div>
     <span class="ri-due ${i.due_date && i.due_date < todayYmd() && !["done", "received", "na"].includes(i.status) ? "tone-bad" : "muted"} small">${i.due_date ? dateLabel(i.due_date) : ""}</span>
     <button class="mini-btn" type="button" data-iedit="${i.id}" aria-label="Edit">Edit</button></li>`;
 }

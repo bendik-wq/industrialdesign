@@ -37,12 +37,16 @@ export async function startRun(env, ctx, agentId, { targetId = null, input = {} 
   // A run stuck mid-layer for 15 minutes (the Worker died: out of memory, a crash) is failed so the agent can run again.
   await env.DB.prepare("UPDATE agent_runs SET status = 'failed', error = 'Stopped: a layer didn\'t finish in 15 minutes', finished_at = ?2 WHERE account_id = ?1 AND status IN ('queued','running') AND updated_at < ?3")
     .bind(ctx.accountId, now(), new Date(Date.now() - 15 * 60_000).toISOString()).run();
-  const live = await env.DB.prepare("SELECT id FROM agent_runs WHERE account_id = ?1 AND agent = ?2 AND IFNULL(target_id, 0) = ?3 AND status IN ('queued','running')")
-    .bind(ctx.accountId, agentId, target?.id || 0).first();
-  if (live) return { id: live.id, already: true };
+  // Check and insert in one statement, so two clicks at once can't start two runs.
   const stamp = now();
   const run = await env.DB.prepare(`INSERT INTO agent_runs (account_id, target_id, agent, status, step, input, state, created_by, created_at, updated_at)
-    VALUES (?1, ?2, ?3, 'queued', 0, ?4, '{}', ?5, ?6, ?6) RETURNING id`).bind(ctx.accountId, target?.id || null, agentId, JSON.stringify(input).slice(0, 20000), ctx.user.id || null, stamp).first();
+    SELECT ?1, ?2, ?3, 'queued', 0, ?4, '{}', ?5, ?6, ?6
+    WHERE NOT EXISTS (SELECT 1 FROM agent_runs WHERE account_id = ?1 AND agent = ?3 AND IFNULL(target_id, 0) = IFNULL(?2, 0) AND status IN ('queued','running')) RETURNING id`)
+    .bind(ctx.accountId, target?.id || null, agentId, JSON.stringify(input).slice(0, 20000), ctx.user.id || null, stamp).first();
+  if (!run) {
+    const live = await env.DB.prepare("SELECT id FROM agent_runs WHERE account_id = ?1 AND agent = ?2 AND IFNULL(target_id, 0) = ?3 AND status IN ('queued','running')").bind(ctx.accountId, agentId, target?.id || 0).first();
+    return { id: live?.id, already: true };
+  }
   await kick(env, ctx.accountId, run.id, exec);
   return { id: run.id };
 }

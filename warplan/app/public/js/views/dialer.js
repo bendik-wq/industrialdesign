@@ -407,7 +407,7 @@ async function aiNotes(callSid) {
     if (r.status === "failed") { box.innerHTML = `<p class="muted small">Couldn't write AI notes for this call: ${esc(r.error || "unknown error")}</p>`; return; }
     if (r.status !== "done" || !r.notes) continue;
     const n = r.notes, D = S.data.dispositions, d = D[n.outcome];
-    box.innerHTML = `<div class="ai-head"><b>AI notes</b><span class="muted small">${n.sentiment ? esc(n.sentiment) : ""}${r.audio ? ` · <a href="${esc(r.audio)}" target="_blank" rel="noopener">play recording</a>` : ""}</span></div>
+    box.innerHTML = `<div class="ai-head"><b>AI notes</b><span class="muted small">${n.sentiment ? esc(n.sentiment) : ""}${r.audio ? ` · <a href="${/^\/|^https:\/\//.test(r.audio || "") ? esc(r.audio) : "#"}" target="_blank" rel="noopener">play recording</a>` : ""}</span></div>
       <p class="small">${esc(n.summary || "")}</p>
       ${n.next_step ? `<p class="small"><b>Next:</b> ${esc(n.next_step)}${n.callback_when ? ` <span class="chip">⏰ ${esc(n.callback_when)}</span>` : ""}</p>` : ""}
       ${n.motivation_tier ? `<p class="small"><b>Motivation (JL):</b> Tier ${n.motivation_tier}, ${["", "immediate seller (30-90 days)", "near-term seller (3-12 months)", "future seller (nurture 12+ months)"][n.motivation_tier]}${n.motivation_signals?.length ? ` · ${esc(n.motivation_signals.slice(0, 3).join("; "))}` : ""}</p>` : ""}

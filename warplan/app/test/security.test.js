@@ -79,3 +79,12 @@ test("open items closed: AI calls and data runs are reserved before they happen"
   assert.match(src("usage.js"), /'_hold'/);
   assert.match(src("monid.js"), /'RESERVED'/);
 });
+
+test("SSRF: names that resolve to private addresses are refused", async () => {
+  const { privateIp, resolvesPublic } = await import("../src/net.js");
+  for (const ip of ["127.0.0.1", "10.1.2.3", "172.20.0.1", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "::1", "fd00::1", "::ffff:127.0.0.1"]) assert.ok(privateIp(ip), ip);
+  for (const ip of ["104.16.1.1", "8.8.8.8", "2606:4700::1111"]) assert.equal(privateIp(ip), false, ip);
+  assert.equal(await resolvesPublic("127.0.0.1.nip.io", async () => ["127.0.0.1"]), false);
+  assert.equal(await resolvesPublic("example.com", async () => ["93.184.215.14"]), true);
+  assert.equal(await resolvesPublic("nothing.invalid", async () => []), false);
+});

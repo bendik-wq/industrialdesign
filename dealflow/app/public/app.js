@@ -367,7 +367,7 @@ async function openCompany(id) {
         <div><dt>Address</dt><dd>${esc(c.address || "–")}</dd></div>
         <div><dt>Activity code</dt><dd>${esc(c.industry_code || "–")}</dd></div>
         <div><dt>Phone</dt><dd>${c.phone ? `<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : "–"}</dd></div>
-        <div><dt>Website</dt><dd>${c.website ? `<a href="${esc(c.website)}" target="_blank" rel="noopener">${esc(c.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</a>` : "–"}</dd></div>
+        <div><dt>Website</dt><dd>${c.website && /^https?:\/\//i.test(c.website) ? `<a href="${esc(c.website)}" target="_blank" rel="noopener noreferrer">${esc(c.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</a>` : "–"}</dd></div>
       </dl>
       <div class="links">
         ${c.registry_url ? `<a href="${esc(c.registry_url)}" target="_blank" rel="noopener">Official registry ↗</a>` : ""}

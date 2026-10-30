@@ -260,7 +260,7 @@ function ownershipPanel(t) {
     <div class="panel-head"><h2 class="h3">Ownership</h2><span class="muted small">${esc(r.source)} · ${when(r.checked_at)}</span><button class="ghost small" id="ownBtn" type="button">Refresh</button></div>
     ${r.chain ? `<p class="own-flag">⚠ Likely a chain or corporate owner: ${r.names_count ? `${r.names_count} business names on one entity` : "owned by a company"}. Usually not a founder you can buy from.</p>` : r.owner_operator ? `<p class="own-flag ok">✓ Owner-operated${r.owner_guess ? `: ${esc(r.owner_guess)}` : ""}</p>` : ""}
     <dl class="facts own-facts">
-      <div><dt>Legal entity</dt><dd><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.entity_name)}</a></dd></div>
+      <div><dt>Legal entity</dt><dd><a href="${safeUrl(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.entity_name)}</a></dd></div>
       <div><dt>Type</dt><dd>${esc(r.entity_type || "–")}</dd></div>
       <div><dt>Registered</dt><dd>${r.since ? `${esc(r.since.slice(0, 4))}${years != null ? ` <small class="muted">${years} yrs</small>` : ""}` : "–"}</dd></div>
       ${r.names_count ? `<div><dt>Trading names</dt><dd>${r.names_count}</dd></div>` : ""}

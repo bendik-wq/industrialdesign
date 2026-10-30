@@ -177,10 +177,15 @@ export async function decideSuggestion(env, ctx, id, action) {
   if (!s) throw Object.assign(new Error("Suggestion not found"), { status: 404 });
   if (action === "dismiss") { await env.DB.prepare("UPDATE board_suggestions SET status = 'dismissed', updated_at = ?2 WHERE id = ?1").bind(s.id, now()).run(); return { ok: true }; }
   if (s.status === "added") return { ok: true, relationship_id: s.relationship_id };
+  // Claim it first so two clicks (or two tabs) can't both add the same person.
+  const claimed = await env.DB.prepare("UPDATE board_suggestions SET status = 'adding', updated_at = ?3 WHERE id = ?1 AND account_id = ?2 AND status NOT IN ('added','adding') RETURNING id").bind(s.id, ctx.accountId, now()).first();
+  if (!claimed) return { ok: true, already: true };
   const { createRelationship } = await import("../capabilities.js");
   const why = JSON.parse(s.why || "[]");
-  const rel = await createRelationship(env, ctx, { kind: "board", role: s.seat, name: s.name, firm: s.firm, linkedin: s.url, status: "prospect",
-    notes: [s.headline, s.credibility, why.length ? `Scored ${s.score}/100: ${why.join("; ")}` : "", s.watch_out ? `Watch out: ${s.watch_out}` : "", s.pitch ? `Message:\n${s.pitch}` : ""].filter(Boolean).join("\n\n") });
+  let rel;
+  try { rel = await createRelationship(env, ctx, { kind: "board", role: s.seat, name: s.name, firm: s.firm, linkedin: s.url, status: "prospect",
+    notes: [s.headline, s.credibility, why.length ? `Scored ${s.score}/100: ${why.join("; ")}` : "", s.watch_out ? `Watch out: ${s.watch_out}` : "", s.pitch ? `Message:\n${s.pitch}` : ""].filter(Boolean).join("\n\n") }); }
+  catch (e) { await env.DB.prepare("UPDATE board_suggestions SET status = ?2 WHERE id = ?1").bind(s.id, s.status).run(); throw e; }
   await env.DB.prepare("UPDATE board_suggestions SET status = 'added', relationship_id = ?2, updated_at = ?3 WHERE id = ?1").bind(s.id, rel.id, now()).run();
   return { ok: true, relationship_id: rel.id };
 }

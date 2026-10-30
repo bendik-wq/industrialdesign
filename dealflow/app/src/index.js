@@ -12,7 +12,7 @@ import { handleMcp } from "./mcp.js";
 import { recommend } from "../public/deal.js";
 import {
   getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie,
-  sha256, randomToken,
+  sha256, randomToken, safeEqual, endUserSession, endAllSessions,
 } from "./auth.js";
 import { normalizeClaim, conflicts, ownerOf, myTerritories, scopeToTerritory, territoryLabel } from "./tenancy.js";
 export { SearchWorkflow } from "./workflow.js";
@@ -119,6 +119,11 @@ const handler = {
       if (!ctx) {
         return url.pathname.startsWith("/api/") || url.pathname === "/mcp" ? json({ error: "Not signed in" }, 401) : Response.redirect(`${url.origin}/login`, 302);
       }
+      // CSRF: a signed-in browser's state changes must come from this site.
+      if (!["GET", "HEAD"].includes(request.method) && !ctx.viaToken) {
+        const origin = request.headers.get("Origin");
+        if (origin !== url.origin) return json({ error: "Cross-site request refused" }, 403);
+      }
       if (url.pathname === "/mcp") return handleMcp(request, mcpOps(env, ctx));
       if (!url.pathname.startsWith("/api")) return env.ASSETS.fetch(request);
       return await route(request, env, url, ctx);
@@ -151,7 +156,8 @@ async function authRoute(request, env, url) {
     // First run only: the person holding DASHBOARD_PASSWORD becomes the platform admin of account 1.
     const b = await body(request);
     if ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users").first()).n) fail(409, "Already set up. Sign in instead.");
-    if (!env.DASHBOARD_PASSWORD || b.setupKey !== env.DASHBOARD_PASSWORD) { await slow(); fail(401, "Wrong setup key"); }
+    if (await throttled(env, request, "setup")) fail(429, "Too many attempts. Wait 15 minutes.");
+    if (!env.DASHBOARD_PASSWORD || !safeEqual(String(b.setupKey || ""), env.DASHBOARD_PASSWORD)) { await slow(); fail(401, "Wrong setup key"); }
     const email = cleanEmail(b.email);
     if (!email) fail(400, "Enter a valid email");
     const problem = passwordProblem(b.password);
@@ -163,13 +169,24 @@ async function authRoute(request, env, url) {
   }
   if (p === "/api/login" && m === "POST") {
     const b = await body(request);
+    // Attempts are reserved before the password check (one transaction), so parallel guessing counts too.
+    if (await throttled(env, request, String(b.email || "").trim().toLowerCase().slice(0, 160))) { await slow(); fail(429, "Too many sign-in attempts. Wait 15 minutes and try again."); }
     const u = await findUserForLogin(env, b.email);
-    if (!u || !(await verifyPassword(String(b.password || ""), u.password_hash))) { await slow(); fail(401, "Wrong email or password"); }
+    // Unknown emails do the same password work, so timing doesn't reveal who has an account.
+    const ok = await verifyPassword(String(b.password || ""), u?.password_hash || (await dummyHash()));
+    if (!u || !ok) { await slow(); fail(401, "Wrong email or password"); }
     if (!u.account_active) fail(403, "This account is paused. Contact us to reactivate it.");
     await env.DB.prepare("UPDATE users SET last_login_at = ?2 WHERE id = ?1").bind(u.id, now()).run();
     return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, u) });
   }
-  if (p === "/api/logout" && m === "POST") return json({ ok: true }, 200, { "Set-Cookie": clearCookie });
+  if (p === "/api/logout" && m === "POST") {
+    // Ends this session on the server. ?everywhere=1 ends every session of this user and revokes their API tokens.
+    if (url.searchParams.get("everywhere") === "1") {
+      const c = await getContext(request, env);
+      if (c?.user?.id && !c.viaToken) { await env.DB.batch([env.DB.prepare("UPDATE users SET session_epoch = session_epoch + 1 WHERE id = ?1").bind(c.user.id), env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1").bind(c.user.id)]); await endAllSessions(env, c.user.id); }
+    } else await endUserSession(env, request);
+    return json({ ok: true }, 200, { "Set-Cookie": clearCookie });
+  }
   let r;
   if ((r = p.match(/^\/api\/invites\/([\w-]{20,})$/))) {
     const inv = await env.DB.prepare(
@@ -185,10 +202,13 @@ async function authRoute(request, env, url) {
       const problem = passwordProblem(b.password);
       if (problem) fail(400, problem);
       if (await env.DB.prepare("SELECT 1 FROM users WHERE email = ?1").bind(email).first()) fail(409, "That email already has a login. Sign in instead.");
+      // Claim the invite first, atomically: two parallel accepts can't both use it.
+      const claimed = await env.DB.prepare("UPDATE invites SET accepted_at = ?2 WHERE id = ?1 AND accepted_at IS NULL RETURNING id").bind(inv.id, now()).first();
+      if (!claimed) fail(404, "This invite link was already used. Ask for a new one.");
       const [u] = (await env.DB.batch([
         env.DB.prepare("INSERT INTO users (account_id, email, name, role, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING *")
           .bind(inv.account_id, email, String(b.name || "").trim().slice(0, 80), inv.role, await hashPassword(b.password), now()),
-        env.DB.prepare("UPDATE invites SET accepted_at = ?2 WHERE accepted_at IS NULL AND (id = ?1 OR lower(email) = ?3)").bind(inv.id, now(), email),
+        env.DB.prepare("UPDATE invites SET accepted_at = ?2 WHERE accepted_at IS NULL AND lower(email) = ?1").bind(email, now()),
       ])).map((x) => x.results[0]);
       return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, u) });
     }
@@ -196,9 +216,40 @@ async function authRoute(request, env, url) {
   return json({ error: "Not found" }, 404);
 }
 
+// Login/setup throttle: 10 per key+IP and 50 per IP in 15 minutes, reserved before the check in one transaction.
+async function throttled(env, request, key) {
+  const ip = request.headers.get("CF-Connecting-IP") || "?", stamp = now(), since = new Date(Date.now() - 15 * 60_000).toISOString();
+  // Attackers rotate IP addresses, so the account itself also has a cap across every IP (30 per 15 minutes).
+  const [, a, b, c] = await env.DB.batch([
+    env.DB.prepare("INSERT INTO login_attempts (key, created_at) VALUES (?1, ?4), (?2, ?4), (?3, ?4)").bind(`k:${key}|${ip}`, `ip:${ip}`, `k:${key}`, stamp),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(`k:${key}|${ip}`, since),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(`ip:${ip}`, since),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(`k:${key}`, since),
+  ]);
+  env.DB.prepare("DELETE FROM login_attempts WHERE created_at < ?1").bind(new Date(Date.now() - 864e5).toISOString()).run().catch(() => {});
+  return a.results[0].n > 10 || b.results[0].n > 50 || c.results[0].n > 30;
+}
+// AI spend: every model call reserves a usage row before it runs, in the same transaction as the limit check, so a
+// burst can't slip past. Per user 20/minute; per workspace 300 calls and 40 agent runs a day.
+async function meter(env, ctx, kind, accountId = ctx?.accountId) {
+  const uid = ctx?.user?.id || 0, stamp = now();
+  const [, perUser, perDay, runs] = await env.DB.batch([
+    env.DB.prepare("INSERT INTO usage (account_id, user_id, kind, created_at) VALUES (?1, ?2, ?3, ?4)").bind(accountId, uid || null, kind, stamp),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND IFNULL(user_id, 0) = ?2 AND created_at > ?3").bind(accountId, uid, new Date(Date.now() - 60_000).toISOString()),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND created_at >= ?2").bind(accountId, stamp.slice(0, 10)),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND kind = 'agent' AND created_at >= ?2").bind(accountId, stamp.slice(0, 10)),
+  ]);
+  if ((uid && perUser.results[0].n > 20) || perDay.results[0].n > 300 || (kind === "agent" && runs.results[0].n > 40))
+    fail(429, kind === "agent" ? "That's today's limit of agent runs for this workspace." : "That's a lot of AI requests. Give it a moment, or try again tomorrow.");
+}
+let DUMMY = null;
+const dummyHash = async () => (DUMMY ??= await hashPassword("not-a-real-password-placeholder"));
+
 // ------------------------------------------------------------------ routing
+const HUMAN_ONLY = /^\/api\/(tokens|team|territories\/\d+|admin|me\/password)/;
 async function route(request, env, url, ctx) {
   const p = url.pathname, m = request.method;
+  if (ctx.viaToken && m !== "GET" && HUMAN_ONLY.test(p)) fail(403, "API tokens can't change the team, tokens, territories or admin settings. Do it from the browser.");
   if (p === "/api" || p === "/api/") return json(API_DOCS);
   if (p === "/api/me" && m === "GET") return json(await me(env, ctx));
   if (p === "/api/me/password" && m === "POST") return changePassword(env, ctx, await body(request));
@@ -224,6 +275,10 @@ async function route(request, env, url, ctx) {
   if (p === "/api/agents/plan" && m === "POST") return json(await planAgent(env, ctx, (await body(request)).goal));
   if (p === "/api/agents" && m === "POST") return json(await createAgent(env, await body(request), ctx), 201);
   if (p === "/api/voice/transcribe" && m === "POST") {
+    const len = +(request.headers.get("Content-Length") || 0);
+    if (!len) fail(411, "Upload size missing");
+    if (len > 12e6) fail(413, "Recording too long; keep it under about 5 minutes");
+    await meter(env, ctx, "transcribe");
     const buf = await request.arrayBuffer();
     if (!buf.byteLength) fail(400, "No audio received");
     if (buf.byteLength > 12e6) fail(413, "Recording too long; keep it under about 5 minutes");
@@ -247,7 +302,9 @@ async function route(request, env, url, ctx) {
   if ((r = p.match(/^\/api\/team\/members\/(\d+)$/)) && m === "DELETE") {
     needOwner(ctx);
     if (+r[1] === ctx.user.id) fail(400, "You can't remove yourself");
+    if (!ctx.isAdmin && (await env.DB.prepare("SELECT is_admin FROM users WHERE id = ?1 AND account_id = ?2").bind(+r[1], ctx.accountId).first())?.is_admin) fail(403, "Only the platform admin can remove that person");
     await env.DB.batch([
+      env.DB.prepare("DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE id = ?1 AND account_id = ?2)").bind(+r[1], ctx.accountId),
       env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1 AND account_id = ?2").bind(+r[1], ctx.accountId),
       env.DB.prepare("DELETE FROM users WHERE id = ?1 AND account_id = ?2").bind(+r[1], ctx.accountId),
     ]);
@@ -304,6 +361,7 @@ async function route(request, env, url, ctx) {
     await company(env, +r[1], ctx);
     const row = await env.DB.prepare("SELECT content FROM ai_outputs WHERE account_id = ?1 AND company_id = ?2 AND kind = 'brief'").bind(ctx.accountId, +r[1]).first();
     if (!row) fail(404, "Write the brief first");
+    await meter(env, ctx, "speak");
     return new Response(await speak(env, row.content), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=3600" } });
   }
   if ((r = p.match(/^\/api\/companies\/(\d+)\/deal$/)) && m === "GET") return json(await deal(env, +r[1], url.searchParams.get("price"), ctx));
@@ -328,7 +386,12 @@ async function changePassword(env, ctx, b) {
   const problem = passwordProblem(b.next);
   if (problem) fail(400, problem);
   // Bumping the epoch signs out every other session.
-  const nu = await env.DB.prepare("UPDATE users SET password_hash = ?2, session_epoch = session_epoch + 1 WHERE id = ?1 RETURNING *").bind(u.id, await hashPassword(b.next)).first();
+  const [, upd] = await env.DB.batch([
+    env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1").bind(u.id),
+    env.DB.prepare("UPDATE users SET password_hash = ?2, session_epoch = session_epoch + 1 WHERE id = ?1 RETURNING *").bind(u.id, await hashPassword(b.next)),
+  ]);
+  const nu = upd.results[0];
+  await endAllSessions(env, u.id);
   return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, nu) });
 }
 
@@ -343,7 +406,6 @@ async function team(env, ctx) {
 }
 
 async function makeInvite(env, ctx, accountId, email, role, origin) {
-  if (email && (await env.DB.prepare("SELECT 1 FROM users WHERE email = ?1").bind(email).first())) fail(409, "That email already has a login");
   const token = randomToken();
   await env.DB.prepare("INSERT INTO invites (account_id, email, role, token_hash, expires_at, created_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6)")
     .bind(accountId, email, role, await sha256(token), new Date(Date.now() + INVITE_DAYS * 864e5).toISOString(), ctx.user.id || null).run();
@@ -530,6 +592,7 @@ export async function saveAi(db, accountId, companyId, kind, out) {
 }
 
 async function ai(env, id, body, ctx) {
+  await meter(env, ctx, "ai");
   const kind = body.kind === "letter" ? "letter" : "brief";
   const c = await company(env, id, ctx);
   if (!body.regenerate && c.ai[kind]) return { company_id: id, ...c.ai[kind] };
@@ -552,9 +615,19 @@ async function addCompany(env, body, ctx) {
 async function publicRoute(request, env, url) {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const b = await body(request);
-  if (url.pathname === "/api/public/valuation") return json(publicView(await lookup(b.country, b.number)));
+  // Public endpoints: 30 lookups and 5 lead forms an hour per (hashed) IP, 3 leads a day per company.
+  const ipKey = await sha256(`${env.SESSION_SECRET || ""}|${request.headers.get("CF-Connecting-IP") || "?"}`);
+  const hits = async (key, since) => (await env.DB.prepare("SELECT COUNT(*) AS n FROM public_hits WHERE key = ?1 AND created_at > ?2").bind(key, since).first()).n;
+  const hourAgo = new Date(Date.now() - 3600_000).toISOString();
+  if (url.pathname === "/api/public/valuation") {
+    if ((await hits(`v:${ipKey}`, hourAgo)) >= 30) return json({ error: "Too many lookups. Try again in an hour." }, 429);
+    await env.DB.prepare("INSERT INTO public_hits (key, created_at) VALUES (?1, ?2)").bind(`v:${ipKey}`, now()).run();
+  }
   if (url.pathname === "/api/public/lead") {
     if (b.website) return json({ ok: true }); // honeypot: bots fill every field
+    const co = `c:${String(b.country || "").slice(0, 4)}:${String(b.number || "").replace(/\W/g, "").slice(0, 30)}`;
+    if ((await hits(`l:${ipKey}`, hourAgo)) >= 5 || (await hits(co, new Date(Date.now() - 864e5).toISOString())) >= 3) return json({ error: "We already have your details. We'll be in touch." }, 429);
+    await env.DB.batch([env.DB.prepare("INSERT INTO public_hits (key, created_at) VALUES (?1, ?3), (?2, ?3)").bind(`l:${ipKey}`, co, now())]);
     const name = String(b.name || "").trim().slice(0, 120), email = String(b.email || "").trim().slice(0, 200);
     if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail(400, "Please give your name and a valid email");
     const c = await lookup(b.country, b.number);
@@ -566,6 +639,7 @@ async function publicRoute(request, env, url) {
     });
     return json({ ok: true });
   }
+  if (url.pathname === "/api/public/valuation") return json(publicView(await lookup(b.country, b.number)));
   return json({ error: "Not found" }, 404);
 }
 
@@ -587,6 +661,8 @@ async function listAgents(env, ctx) {
 }
 
 async function planAgent(env, ctx, goal) {
+  await meter(env, ctx, "plan");
+  goal = String(goal || "").slice(0, 1500);
   const plan = await planFromGoal(env, goal);
   try {
     plan.config.region = await scopeToTerritory(env, ctx, plan.config);
@@ -608,14 +684,18 @@ async function getAgent(env, id, ctx) {
   return { ...a, config, buyer: JSON.parse(a.buyer || "{}"), steps: describe(config), runs: runs.map((r) => ({ ...r, log: JSON.parse(r.log || "[]") })), targets };
 }
 
+// What an agent may know about the buyer (it goes into every letter prompt): five short fields, nothing else.
+const cleanBuyer = (b) => Object.fromEntries(["myName", "myCompany", "myAngle", "myPhone", "myEmail"].filter((k) => b && b[k] != null).map((k) => [k, String(b[k]).slice(0, 200)]));
+
 async function createAgent(env, body, ctx) {
   const config = validateConfig(body.config || {});
   config.region = await scopeToTerritory(env, ctx, config);
   const name = String(body.name || "").trim().slice(0, 60) || "Agent";
+  if ((await env.DB.prepare("SELECT COUNT(*) AS n FROM agents WHERE account_id = ?1 AND active = 1").bind(ctx.accountId).first()).n >= 10) fail(400, "Ten active agents is the limit; pause one first");
   const row = await env.DB.prepare(
     "INSERT INTO agents (account_id, name, goal, config, buyer, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING id"
-  ).bind(ctx.accountId, name, String(body.goal || "").slice(0, 1500), JSON.stringify(config), JSON.stringify(body.buyer || {}), now()).first();
-  if (body.run !== false) await startRun(env, ctx, row.id, body.trigger || "manual");
+  ).bind(ctx.accountId, name, String(body.goal || "").slice(0, 1500), JSON.stringify(config), JSON.stringify(cleanBuyer(body.buyer)), now()).first();
+  if (body.run !== false) await startRun(env, ctx, row.id, ["manual", "mcp"].includes(body.trigger) ? body.trigger : "manual");
   return getAgent(env, row.id, ctx);
 }
 
@@ -627,13 +707,15 @@ async function updateAgent(env, id, body, ctx) {
     config.region = await scopeToTerritory(env, ctx, config);
   }
   await env.DB.prepare("UPDATE agents SET name = ?2, config = ?3, active = ?4, buyer = ?5 WHERE id = ?1")
-    .bind(id, body.name ?? a.name, JSON.stringify(config), body.active === undefined ? a.active : body.active ? 1 : 0, body.buyer ? JSON.stringify(body.buyer) : a.buyer).run();
+    .bind(id, body.name == null ? a.name : String(body.name).trim().slice(0, 60) || a.name, JSON.stringify(config), body.active === undefined ? a.active : body.active ? 1 : 0, body.buyer ? JSON.stringify(cleanBuyer(body.buyer)) : a.buyer).run();
   return getAgent(env, id, ctx);
 }
 
 // ctx is null for scheduled runs (the cron has already filtered to active accounts).
 async function startRun(env, ctx, agentId, trigger) {
   if (ctx) await ownAgent(env, ctx, agentId);
+  const acct = ctx?.accountId ?? (await env.DB.prepare("SELECT account_id FROM agents WHERE id = ?1").bind(agentId).first())?.account_id;
+  if (acct) await meter(env, ctx, "agent", acct);
   const busy = await env.DB.prepare("SELECT id FROM agent_runs WHERE agent_id = ?1 AND status IN ('queued','running')").bind(agentId).first();
   if (busy) fail(409, "This agent is already running");
   const run = await env.DB.prepare(
@@ -652,6 +734,7 @@ export async function accountContext(env, accountId) {
 
 // ------------------------------------------------------------------ voice notes and home
 async function voiceNote(env, id, body, ctx) {
+  await meter(env, ctx, "voice");
   const text = String(body.text || "").trim();
   if (text.length < 5) fail(400, "The note is empty");
   const c = await company(env, id, ctx);
@@ -849,7 +932,7 @@ async function exportCsv(env, q, ctx) {
   const extra = { mail: "c.address IS NOT NULL AND c.owner_name IS NOT NULL", email: "c.email IS NOT NULL" }[format];
   const where = extra ? `${f.where} AND ${extra}` : f.where;
   const { results } = await env.DB.prepare(`SELECT c.*, COALESCE(p.status, 'New') AS status FROM ${f.from} ${where} ${f.order} LIMIT 10000`).bind(...f.binds).all();
-  const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const cell = (v) => { let s = v == null ? "" : String(v); if (/^\s*[=+\-@\t\r]/.test(s)) s = `'${s}`; return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const cols = CSV[format];
   const out = [cols.map(([h]) => h).join(","), ...results.map((r) => cols.map(([, k]) => cell(typeof k === "function" ? k(r) : r[k])).join(","))].join("\n");
   return new Response(out + "\n", { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="dealflow-${format}.csv"` } });

@@ -17,7 +17,7 @@ Clean: no SQL injection, XSS, command/path injection, SSRF to private networks, 
 | High | Prompt injection: tool results could steer Josh to leak data via URLs/searches or redirect a contact's email | House rule 6 (untrusted text is data), approval for data-like URLs/searches and for changes to email/phone/website |
 | Medium | API tokens survived password change and "sign out everywhere" | Both now delete the user's tokens |
 | Medium | Plain sign-out left the 30-day cookie valid | Sign-out bumps the session epoch (ends this user's sessions everywhere) |
-| Medium | Login rate limit raceable with parallel requests; anyone could lock a user out | Attempts reserved in one transaction before the password check; limits per email+IP (10), email (100), IP (50) |
+| Medium | Login rate limit raceable with parallel requests; anyone could lock a user out | Attempts reserved in one transaction before the password check; limits per email+IP (10), email (30, was 100), IP (50) |
 | Medium | Members/tokens could read the owner's personal iMessages | iMessage read/act routes owner-only, no tokens |
 | Medium | Members/tokens could read webhook URLs (Zapier/Make secrets) and key metadata | Redacted unless signed-in owner |
 | Medium | Seller-link visitors could overwrite the NDA acceptance record | NDA recorded once (`nda_at IS NULL`) |
@@ -52,6 +52,27 @@ Clean: no SQL injection, XSS, command/path injection, SSRF to private networks, 
 | Funnel: no bot check, raw IPs stored | Cloudflare Turnstile verified server-side; only a salted hash of the IP is kept (old IPs cleared) |
 | 15-second session cache | 5 seconds, reads only: every write re-checks the session (verified: a write right after sign-out gets 401) |
 
+## 2026-10-30: pentest (four parallel attackers against a local two-workspace copy, then live)
+
+Tried: cross-workspace access on every route (IDOR), stored/reflected XSS, SSRF, cookie forgery and tampering, session replay, CSRF, token tricks, login brute force, and races (parallel bursts).
+
+Held: workspace B's data could not be read or changed from workspace A on any route. Every forged/tampered cookie was refused (uid swap, expiry change, truncated or empty signature, old cookie name, duplicate cookies). Sign-out, password change, role change and removal all end the old session at once for writes. CSRF: cross-site, `null` and look-alike origins refused. Invites, NDA, Inbox approve and setup are single-use under parallel requests.
+
+| Sev | Found | Fix |
+|---|---|---|
+| Medium | SSRF guard only checked the text of the address, so a name like `127.0.0.1.nip.io` passed (Workers can't reach private networks, so not exploitable today) | Every fetch hop and webhook URL is resolved over DNS-over-HTTPS; any private, loopback, link-local, CGNAT or IPv4-mapped address is refused |
+| Low | Login cap per account was 100 / 15 min across all IPs | 30 |
+| Low | Board Scout "add" could add the same person twice under parallel clicks | Suggestion claimed atomically before the relationship is created |
+| Low | Two agent runs could start at once for the same target | Check and insert in one statement |
+| Low | Parallel seller uploads could overshoot the hourly cap and workspace quota | Both checked inside the insert |
+| Low | Three links rendered without a scheme check (research source, call recording, room file) | Scheme/path checked before rendering |
+| Low | JSON request bodies had no size limit | 1 MB, else 413 |
+
+Dealflow app (same day): `__Host-` cookie with server-side sessions, signing fails closed without `SESSION_SECRET`, legacy `API_TOKEN` removed, login throttled per account across IPs, AI and agent usage metered per user/workspace, public forms rate-limited, CSRF origin check, CSV formula escaping, security headers. Marketing site: CSP and security headers via `_headers`.
+
+Can't be fixed from this repo: the `cold-block` and `owners-vsl-funnel` Workers have no security headers and their source isn't here.
+
 ### Still open
 
-- Reads (GET) can be served from a 5-second session cache after a sign-out or removal; writes never are.
+- Reads (GET) can be served from a 5-second session cache after a sign-out or removal; writes never are (measured: about 3 s).
+- Login limits use `CF-Connecting-IP`; safe on Cloudflare (the edge sets it), but would be spoofable if the Worker were ever served off Cloudflare. The per-account cap is the backstop.

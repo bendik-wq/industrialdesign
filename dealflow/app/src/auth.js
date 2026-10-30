@@ -46,17 +46,32 @@ export function passwordProblem(pw) {
 }
 
 async function hmac(env, data) {
-  const secret = env.SESSION_SECRET || `session:${env.DASHBOARD_PASSWORD}`;
+  // Fail closed: never sign sessions with a guessable fallback (it used to fall back to the setup password).
+  const secret = env.SESSION_SECRET;
+  if (!secret || secret.length < 32) throw Object.assign(new Error("Sign-in isn't configured on this server (SESSION_SECRET)"), { status: 503 });
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return b64url(await crypto.subtle.sign("HMAC", key, enc.encode(data)));
 }
 
+// One server-side row per sign-in: signing out ends exactly that session. __Host- cookie: this host only, HTTPS, path /.
+export const COOKIE = "__Host-df_s";
+const COOKIE_RE = /(?:^|;\s*)__Host-df_s=([^;]+)/;
 export async function sessionCookie(env, user) {
   const exp = Date.now() + SESSION_DAYS * 864e5;
-  const sig = await hmac(env, `${user.id}.${exp}.${user.session_epoch}`);
-  return `df_s=${user.id}.${exp}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`;
+  const sid = b64url(crypto.getRandomValues(new Uint8Array(18)));
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO sessions (sid, user_id, expires_at, created_at) VALUES (?1, ?2, ?3, ?4)").bind(sid, user.id, new Date(exp).toISOString(), new Date().toISOString()),
+    env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?1").bind(new Date().toISOString()),
+  ]);
+  const sig = await hmac(env, `${user.id}.${exp}.${sid}.${user.session_epoch}`);
+  return `${COOKIE}=${user.id}.${exp}.${sid}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`;
 }
-export const clearCookie = "df_s=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
+export const clearCookie = `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+export async function endUserSession(env, request) {
+  const sid = (request.headers.get("Cookie") || "").match(COOKIE_RE)?.[1]?.split(".")[2];
+  if (sid) await env.DB.prepare("DELETE FROM sessions WHERE sid = ?1").bind(sid).run();
+}
+export async function endAllSessions(env, userId) { await env.DB.prepare("DELETE FROM sessions WHERE user_id = ?1").bind(userId).run(); }
 
 const USER_SQL = `SELECT u.id, u.account_id, u.email, u.name, u.role, u.is_admin, u.session_epoch, u.password_hash,
   a.name AS account_name, a.plan, a.max_territories, a.active AS account_active
@@ -76,22 +91,18 @@ export function toCtx(u) {
 export async function getContext(request, env) {
   const bearer = (request.headers.get("Authorization") || "").match(/^Bearer (.+)$/)?.[1]?.trim();
   if (bearer) {
-    if (env.API_TOKEN && safeEqual(bearer, env.API_TOKEN)) {
-      const acct = await env.DB.prepare("SELECT * FROM accounts WHERE id = 1").first();
-      return { user: { id: 0, email: "api", name: "Platform API", role: "owner" }, accountId: 1, account: { id: 1, name: acct?.name || "HQ", plan: acct?.plan, maxTerritories: acct?.max_territories }, isAdmin: true, isOwner: true, viaToken: true };
-    }
     const row = await env.DB.prepare(`${USER_SQL} JOIN api_tokens t ON t.user_id = u.id WHERE t.token_hash = ?1`).bind(await sha256(bearer)).first();
     if (!row || !row.account_active) return null;
     env.DB.prepare("UPDATE api_tokens SET last_used_at = ?2 WHERE token_hash = ?1").bind(await sha256(bearer), new Date().toISOString()).run().catch(() => {});
     return { ...toCtx(row), viaToken: true };
   }
-  const cookie = (request.headers.get("Cookie") || "").match(/(?:^|;\s*)df_s=([^;]+)/)?.[1];
+  const cookie = (request.headers.get("Cookie") || "").match(COOKIE_RE)?.[1];
   if (!cookie) return null;
-  const [uid, exp, sig] = cookie.split(".");
-  if (!uid || !(Number(exp) > Date.now())) return null;
-  const u = await env.DB.prepare(`${USER_SQL} WHERE u.id = ?1`).bind(+uid).first();
+  const [uid, exp, sid, sig] = cookie.split(".");
+  if (!uid || !sid || !(Number(exp) > Date.now())) return null;
+  const u = await env.DB.prepare(`${USER_SQL} JOIN sessions s ON s.user_id = u.id AND s.sid = ?2 WHERE u.id = ?1`).bind(+uid, sid).first();
   if (!u || !u.account_active) return null;
-  if (!safeEqual(sig || "", await hmac(env, `${u.id}.${exp}.${u.session_epoch}`))) return null;
+  if (!safeEqual(sig || "", await hmac(env, `${u.id}.${exp}.${sid}.${u.session_epoch}`))) return null;
   return toCtx(u);
 }
 

@@ -212,3 +212,12 @@ CREATE TABLE IF NOT EXISTS territories (
 CREATE INDEX IF NOT EXISTS territories_lookup ON territories (country, industry);
 CREATE INDEX IF NOT EXISTS territories_account ON territories (account_id);
 
+-- Security hardening (Oct 2026): server-side sessions, login attempt throttle, AI usage metering, public lead throttle.
+CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS sessions_user ON sessions (user_id);
+CREATE TABLE IF NOT EXISTS login_attempts (key TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS login_attempts_key ON login_attempts (key, created_at);
+CREATE TABLE IF NOT EXISTS usage (id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL, user_id INTEGER, kind TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS usage_acct ON usage (account_id, created_at);
+CREATE TABLE IF NOT EXISTS public_hits (key TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS public_hits_key ON public_hits (key, created_at);

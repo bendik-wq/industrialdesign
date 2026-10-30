@@ -210,16 +210,21 @@ export async function deleteItem(env, ctx, id) {
 
 // ------------------------------------------------------------------ files (team and seller uploads)
 // Stored in D1: small files in files.data, larger ones in ~1.8 MB chunks.
-export async function storeFile(env, accountId, targetId, { name, mime, bytes, itemId = null, source = "team", userId = null }) {
-  const used = (await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM files WHERE account_id = ?1").bind(accountId).first()).n;
-  if (used + bytes.length > WORKSPACE_BYTES) throw err(413, "This workspace's file storage is full. Delete old files from deal rooms first.");
+export async function storeFile(env, accountId, targetId, { name, mime, bytes, itemId = null, source = "team", userId = null, sellerCap = 0 }) {
   const stamp = now();
   // With an R2 bucket bound (FILES), the bytes live there and D1 keeps only the record (chunks = -1). Without one,
   // small files go in files.data and larger ones in ~1.8 MB chunks.
   const r2 = !!env.FILES;
   const chunks = r2 ? -1 : bytes.length > CHUNK ? Math.ceil(bytes.length / CHUNK) : 0;
-  const f = await env.DB.prepare("INSERT INTO files (account_id, target_id, name, mime, size, data, kind, created_by, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'room', ?7, ?8) RETURNING id")
-    .bind(accountId, targetId, name, mime, bytes.length, chunks ? new Uint8Array(0) : bytes, userId, stamp).first();
+  // The storage quota (and, for seller uploads, the hourly cap) is checked inside the insert itself, so parallel
+  // uploads can't overshoot it.
+  const f = await env.DB.prepare(`INSERT INTO files (account_id, target_id, name, mime, size, data, kind, created_by, created_at)
+    SELECT ?1, ?2, ?3, ?4, ?5, ?6, 'room', ?7, ?8
+    WHERE (SELECT COALESCE(SUM(size), 0) FROM files WHERE account_id = ?1) + ?5 <= ?9
+      AND (?10 = 0 OR (SELECT COUNT(*) FROM files WHERE account_id = ?1 AND target_id = ?2 AND created_by IS NULL AND kind = 'room' AND created_at > ?11) < ?10)
+    RETURNING id`)
+    .bind(accountId, targetId, name, mime, bytes.length, chunks ? new Uint8Array(0) : bytes, userId, stamp, WORKSPACE_BYTES, sellerCap, new Date(Date.now() - 3600_000).toISOString()).first();
+  if (!f) throw sellerCap ? err(429, "That's a lot of uploads in an hour, or this workspace's storage is full. Try again later, or email the buyer.") : err(413, "This workspace's file storage is full. Delete old files from deal rooms first.");
   if (r2) await env.FILES.put(r2Key(accountId, f.id), bytes, { httpMetadata: { contentType: mime } });
   else for (let i = 0; i < chunks; i++) await env.DB.prepare("INSERT INTO file_chunks (file_id, n, data) VALUES (?1, ?2, ?3)").bind(f.id, i, bytes.subarray(i * CHUNK, (i + 1) * CHUNK)).run();
   await env.DB.prepare("INSERT INTO room_files (file_id, account_id, target_id, item_id, source, chunks) VALUES (?1, ?2, ?3, ?4, ?5, ?6)").bind(f.id, accountId, targetId, itemId, source, chunks).run();
@@ -364,7 +369,7 @@ export async function sellerUpload(env, token, form, hooks) {
   if (gate.recent >= SELLER_UPLOADS_PER_HOUR) throw err(429, "That's a lot of uploads in an hour. Try again later, or email the buyer.");
   const file = form.get("file"), { name, mime } = checkUpload(file);
   if ((await roomFileCount(env, room.account_id, room.target_id)) >= MAX_ROOM_FILES) throw err(400, "This room is full. Email the buyer instead.");
-  const f = await storeFile(env, room.account_id, room.target_id, { name, mime, bytes: new Uint8Array(await file.arrayBuffer()), itemId: item.id, source: "seller" });
+  const f = await storeFile(env, room.account_id, room.target_id, { name, mime, bytes: new Uint8Array(await file.arrayBuffer()), itemId: item.id, source: "seller", sellerCap: SELLER_UPLOADS_PER_HOUR });
   const stamp = now();
   await env.DB.batch([
     env.DB.prepare("UPDATE deal_items SET status = 'received', done_at = COALESCE(done_at, ?2), updated_at = ?2 WHERE id = ?1 AND status IN ('open', 'requested')").bind(item.id, stamp),

@@ -241,15 +241,14 @@ async function authRoute(request, env, url) {
     const who = `e:${email}`, whoIp = `ei:${email}|${ip}`, stamp = now();
     const since = new Date(Date.now() - 15 * 60_000).toISOString();
     // Reserve the attempt before checking the password, in one transaction, so parallel guesses all count.
-    // Limits: 10 per email from one address (strict), 100 per email from anywhere (so a stranger can't lock a user
-    // out by guessing from one place), 50 per address across all emails.
+    // Limits: 10 per email from one address (strict), 30 per email from anywhere (attackers rotate IP addresses), 50 per address across all emails.
     const [, byEmailIp, byEmail, byIp] = await env.DB.batch([
       env.DB.prepare("INSERT INTO login_attempts (key, created_at) VALUES (?1, ?4), (?2, ?4), (?3, ?4)").bind(whoIp, who, `ip:${ip}`, stamp),
       env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(whoIp, since),
       env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(who, since),
       env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(`ip:${ip}`, since),
     ]);
-    if (byEmailIp.results[0].n > 10 || byEmail.results[0].n > 100 || byIp.results[0].n > 50) { await slow(); fail(429, "Too many sign-in attempts. Wait 15 minutes and try again."); }
+    if (byEmailIp.results[0].n > 10 || byEmail.results[0].n > 30 || byIp.results[0].n > 50) { await slow(); fail(429, "Too many sign-in attempts. Wait 15 minutes and try again."); }
     const u = await findUserForLogin(env, b.email);
     // Unknown emails do the same password work, so response time doesn't reveal who has an account.
     const ok = await verifyPassword(String(b.password || ""), u?.password_hash || DUMMY_HASH);

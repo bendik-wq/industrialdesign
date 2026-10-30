@@ -116,6 +116,7 @@ export async function handleMcp(request, ops) {
   let body;
   try { body = await request.json(); } catch { return rpcError(null, -32700, "Parse error"); }
   const batch = Array.isArray(body);
+  if (batch && body.length > 10) return new Response(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Batch too large (10 max)" } }), { headers: { "Content-Type": "application/json" } });
   const replies = (await Promise.all((batch ? body : [body]).map((m) => handle(m, ops)))).filter(Boolean);
   if (!replies.length) return new Response(null, { status: 202 });
   return new Response(JSON.stringify(batch ? replies : replies[0]), { headers: { "Content-Type": "application/json" } });
@@ -143,7 +144,7 @@ async function handle(msg, ops) {
         const result = await ops[name](args);
         return ok(msg.id, { content: [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result, null, 2) }] });
       } catch (e) {
-        return ok(msg.id, { isError: true, content: [{ type: "text", text: e.message || String(e) }] });
+        return ok(msg.id, { isError: true, content: [{ type: "text", text: e.status ? e.message : "Something went wrong" }] });
       }
     }
     default:

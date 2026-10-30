@@ -84,7 +84,7 @@ Timeline: ${lead.timeline || "not given"}${lead.message ? `\nMessage: ${lead.mes
     ).bind(company.id, lead.name, lead.email, lead.phone || null, lead.timeline || null, lead.message || null, v?.equity[0] ?? null, v?.equity[2] ?? null, c.currency, now, accountId),
     db.prepare(
       `INSERT INTO pipeline (account_id, company_id, status, notes, updated_at) VALUES (?4, ?1, 'Conversation', ?2, ?3)
-       ON CONFLICT (account_id, company_id) DO UPDATE SET status = 'Conversation', notes = ?2 || char(10) || char(10) || notes, updated_at = ?3`
+       ON CONFLICT (account_id, company_id) DO UPDATE SET status = CASE WHEN status IN ('New','Researching') THEN 'Conversation' ELSE status END, notes = substr(?2 || char(10) || char(10) || notes, 1, 20000), updated_at = ?3`
     ).bind(company.id, note, now, accountId),
     db.prepare("UPDATE searches SET found = (SELECT COUNT(*) FROM search_results WHERE search_id = ?1), total = (SELECT COUNT(*) FROM search_results WHERE search_id = ?1) WHERE id = ?1").bind(search.id),
   ]);
