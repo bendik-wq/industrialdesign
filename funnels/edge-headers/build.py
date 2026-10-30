@@ -2,7 +2,7 @@ import sys, json, email, os
 from email import policy
 T, W, MODE, SECURE = sys.argv[1:5]
 CONF = {
-    "owners-vsl-funnel": {"perm": "camera=(), microphone=(self), geolocation=(), payment=(self \"https://js.stripe.com\"), usb=()", "frame": "'self'", "xfo": "SAMEORIGIN", "report_only": r"^(/webinar)?/(registered|room|replay|worksheet|notes|blueprint|pack)/|^/book", "scripts": "head script", "hashes": ["h6D6VzTAMsJYUVVAqFwu452/qN8FcyJeOKkmsntdOnU="]},
+    "owners-vsl-funnel": {"perm": "camera=(), microphone=(self), geolocation=(), payment=(self \"https://js.stripe.com\"), usb=()", "frame": "'self'", "xfo": "SAMEORIGIN", "report_only": r"^$", "scripts": "head script", "hashes": ["h6D6VzTAMsJYUVVAqFwu452/qN8FcyJeOKkmsntdOnU="]},
     "cold-block": {"perm": "camera=(), microphone=(), geolocation=(), payment=(), usb=()", "frame": "'none'", "xfo": "DENY", "report_only": r"^$", "scripts": "script", "hashes": []},
 }[W]
 ct = [l.split(":", 1)[1].strip() for l in open(T + "/hdr") if l.lower().startswith("content-type")][0]

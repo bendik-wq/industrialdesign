@@ -43,6 +43,7 @@ import { webSearch, readPage, readDocument } from "./webtools.js";
 import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
 import { gmailAuthUrl, gmailCallback, syncGmail } from "./gmail.js";
+import { territoryRoute } from "./territory.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
 const INVITE_DAYS = 7;
@@ -87,7 +88,7 @@ export default {
 // Browser hardening on every response: no framing, no MIME sniffing, a strict content policy (own scripts only,
 // Google Fonts, audio from blob: for voice playback), and microphone access limited to this site.
 const SECURITY_HEADERS = {
-  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob: https://sdk.twilio.com https://media.twiliocdn.com; connect-src 'self' https://*.twilio.com wss://*.twilio.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://tile.openstreetmap.org; media-src 'self' blob: https://sdk.twilio.com https://media.twiliocdn.com; connect-src 'self' https://*.twilio.com wss://*.twilio.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
   "X-Frame-Options": "DENY",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -426,6 +427,8 @@ async function route(request, env, url, ctx, exec) {
 
   // Today: the ordered daily plan and the 3C scorecard
   if (p === "/api/today" && m === "GET") return json(await today(env, ctx, q.get("tz") || "UTC"));
+  // Densification map: sites, service areas, where to buy next
+  if (p.startsWith("/api/territory")) { const res = await territoryRoute(request, env, ctx, url, body); if (res) return res; }
   // C1/C2: board, bench, lenders; lender fit and financing per deal
   if (p === "/api/relationships" && m === "GET") return json(await listRelationships(env, ctx, q.get("kind")));
   if (p === "/api/relationships" && m === "POST") return json(await createRelationship(env, ctx, await body(request)), 201);
@@ -878,6 +881,9 @@ const API_DOCS = {
     ["GET", "/api/dialer/insights", "Best hours to call (owner's local time), caller-ID health, outcomes"],
     ["GET", "/api/dialer/team", "Leaderboard and who's dialing now"],
     ["GET", "/api/today?tz=", "Today: the ordered daily plan (callbacks, JL sequence touches, signals, deal deadlines, gate documents to chase, board and lender follow-ups) and the 3C scorecard"],
+    ["GET", "/api/territory", "Densification map data: your sites (service radius), pipeline targets with coordinates, default radius"],
+    ["GET", "/api/territory/plan", "Where to do the next deal: footprint, people in reach, local share, regions (arms), ranked targets (tuck-in / extend / new arm) and white space"],
+    ["POST", "/api/territory/sites", "Add a site {name, address | lat+lng, radius_km, target_id?}"],
     ["GET", "/api/relationships?kind=board|bench|lender", "C1/C2 hub: board, professional bench and the lender matrix, with the skill's metrics"],
     ["POST", "/api/relationships", "Add one {kind, role, name, firm, email, phone, linkedin, status, equity_pct, terms: {min_dscr, max_ltv, pg_policy, amort_years, timing_days, ticket_min, ticket_max, sectors, ...}, notes, next_date}"],
     ["GET", "/api/targets/:id/lenders", "Lenders from your matrix ranked by fit for this deal (ticket, DSCR, sector, PG, unsecured) and where financing stands"],

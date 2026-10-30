@@ -21,11 +21,13 @@ async function deepRun(ids) {
   toast(`Deep enrich finished: ${emails} owner email${emails === 1 ? "" : "s"} for $${spent.toFixed(2)}`);
 }
 
-export async function renderScout(seq) {
+export async function renderScout(seq, params = new URLSearchParams()) {
   view().innerHTML = skeleton(4);
   const info = await api("/api/scout");
   if (stale(seq)) return;
-  const last = local.get("scout", { source: "maps", industry: "hvac", region: "", min_staff: 0 });
+  const saved = local.get("scout", { source: "maps", industry: "hvac", region: "", min_staff: 0 });
+  // From the territory map's white space: search that town on maps.
+  const last = params.get("region") ? { ...saved, source: "maps", region: params.get("region").slice(0, 120) } : saved;
   let state = { ...last, page: 1, cursor: null, results: [], currency: "$", more: false, total: null };
   view().innerHTML = `
     <header class="page-head"><p class="eyebrow">Scout</p><h1>Find the owners. Get the numbers.</h1>

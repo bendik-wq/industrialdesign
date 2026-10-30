@@ -95,6 +95,10 @@ Clean: no secrets in tracked files or git history; PBKDF2-SHA256 100k with per-u
 
 The two Workers' source isn't in this repo. `funnels/edge-headers/deploy.sh <worker> enforce` downloads the live bundle, adds `secure.js` as the entry point and re-uploads it with the same bindings, secrets and assets. **Re-run it after any new deploy of those Workers**: a fresh deploy from their own source replaces the wrapper.
 
+Registrant-only pages (room, replay, registered, worksheet, notes, blueprint, pack, book) were switched to enforced as well (Oct 30): every one loaded in a browser with zero violations, with the Pixel, PostHog and page config running.
+
+Territory map (Oct 30): map tiles from tile.openstreetmap.org are the only new image source in the CSP; Leaflet 1.9.4 is vendored (integrity checked against the npm registry); geocoding (Nominatim) goes through `safeFetch` with no redirects, is cached and rate-limited per workspace (20/min, 400/day) and platform-wide (50/min); every site query is scoped to the workspace.
+
 ### Still open
 
-- Registrant-only pages of `owners-vsl-funnel` stay report-only until a real visit shows no violations (look for `csp-violation` in that Worker's logs).
+- Nothing.

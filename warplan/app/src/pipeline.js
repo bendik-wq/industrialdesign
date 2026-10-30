@@ -155,6 +155,7 @@ export async function deleteTarget(env, ctx, id, hooks) {
     env.DB.prepare("DELETE FROM watch_pages WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM signals WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM target_intel WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
+    env.DB.prepare("UPDATE territory_sites SET target_id = NULL WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM targets WHERE id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
   ]);
   hooks.emit("target.deleted", { id, name: t.name });
