@@ -6,7 +6,8 @@ import { isMillionPlus } from '../sales/qualify';
 import { identityFromLead, track } from '../tracking/track';
 import { answerQuestion } from './assistant';
 import { experienceConfig } from './experience';
-import { DEFAULT_CHAPTERS, DEFAULT_POLLS, type Chapter, type Poll } from './content';
+import { type Chapter, type Poll } from './content';
+import { edition } from './editions';
 import { type Registration, type Session, phase, webinarSettings } from './webinar';
 
 /** Everything people do inside the masterclass room, beyond watching: polls, questions, calculator, worksheet, offer. */
@@ -16,12 +17,12 @@ const TEN_PLUS = new Set(['10m+', '10m-25m', '25m-50m', '50m-100m', '100m+']);
 /** "0 Intro; 6 Where the deals are; …" from settings, else the defaults. */
 export function chapters(rt: Runtime): Chapter[] {
   const raw = (rt.settings.WEBINAR_CHAPTERS ?? '').trim();
-  if (!raw) return DEFAULT_CHAPTERS;
+  if (!raw) return edition(rt.settings).chapters;
   const out = raw.split(/[;\n]+/).map((p) => /^\s*(\d{1,3})\s+(.{2,60})$/.exec(p)).filter(Boolean).map((m) => ({ at: Number(m![1]), title: m![2].trim() }));
-  return out.length ? out.sort((a, b) => a.at - b.at) : DEFAULT_CHAPTERS;
+  return out.length ? out.sort((a, b) => a.at - b.at) : edition(rt.settings).chapters;
 }
-export const polls = (_rt: Runtime): Poll[] => DEFAULT_POLLS;
-export const bonusAtMin = (rt: Runtime) => { const n = Number(rt.settings.WEBINAR_BONUS_AT); const w = webinarSettings(rt); return Number.isFinite(n) && n > 0 ? Math.min(n, w.durationMin) : Math.max(1, w.durationMin - 3); };
+export const polls = (rt: Runtime): Poll[] => edition(rt.settings).polls;
+export const bonusAtMin = (rt: Runtime) => { const n = Number(rt.settings.WEBINAR_BONUS_AT); const w = webinarSettings(rt); return Number.isFinite(n) && n > 0 ? Math.min(n, w.durationMin) : Math.min(edition(rt.settings).bonusAtMin, w.durationMin); };
 export const selfServeOn = (rt: Runtime) => /^(on|true|yes|1)$/i.test((rt.settings.WEBINAR_SELF_SERVE ?? '').trim());
 
 async function log(rt: Runtime, reg: Registration, kind: string, o: { key?: string | null; value?: string | null; answer?: string | null; at?: number | null; replay?: boolean }) {
@@ -116,6 +117,7 @@ export async function roomExtras(rt: Runtime, reg: Registration) {
     polls: polls(rt).map((p) => ({ id: p.id, at: p.at, question: p.question, options: p.options })),
     answered: answered.results.map((r) => r.key),
     bonusAtSec: bonusAtMin(rt) * 60,
+    calcAt: edition(rt.settings).calcAt,
     qualified,
     selfServe: qualified && selfServeOn(rt),
     applied: Boolean(lead?.app_completed_at),

@@ -1,0 +1,9 @@
+.key
+audio/
+slides/
+segs/
+*.mp3
+*.mp4
+slides.json
+timeline.json
+concat.txt

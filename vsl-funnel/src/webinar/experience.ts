@@ -3,6 +3,7 @@ import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { newId } from '../lib/ids';
 import { render } from '../funnel/pages';
 import type { Chapter } from './content';
+import { allTakeaways, edition } from './editions';
 import { type Registration, getRegistration, getSession, phase, replayUrl, roomUrl, webinarBase } from './webinar';
 
 /**
@@ -392,7 +393,7 @@ export async function saveBuyIn(rt: Runtime, reg: Registration, body: { text?: u
 // ───────────── Notes ─────────────
 
 export async function saveNote(rt: Runtime, reg: Registration, body: { id?: unknown; saved?: unknown; replay?: unknown }) {
-  const t = TAKEAWAYS.find((x) => x.id === body.id);
+  const t = allTakeaways().find((x) => x.id === body.id);
   if (!t) return { ok: false as const };
   const db = rt.env.DB;
   if (body.saved === false) await db.prepare('DELETE FROM webinar_notes WHERE reg_id = ? AND takeaway_id = ?').bind(reg.id, t.id).run();
@@ -461,6 +462,7 @@ export async function refreshScoreFor(rt: Runtime, token: unknown) {
 /** Added to the room's config by roomExtras: everything the watch experience needs for this viewer. */
 export async function experienceConfig(rt: Runtime, reg: Registration, chs: Chapter[]) {
   const db = rt.env.DB;
+  const ed = edition(rt.settings);
   const safe = <T>(p: Promise<T>, d: T) => p.catch(() => d);
   const [{ inputs, calc }, notes, reacts, avg] = await Promise.all([
     scoreInputs(rt, reg),
@@ -475,9 +477,9 @@ export async function experienceConfig(rt: Runtime, reg: Registration, chs: Chap
   ]);
   const mine = await safe(db.prepare('SELECT kind, chapter_at FROM webinar_reactions WHERE reg_id = ?').bind(reg.id).all<{ kind: string; chapter_at: number }>(), { results: [] } as unknown as D1Result<{ kind: string; chapter_at: number }>);
   return {
-    takeaways: TAKEAWAYS,
-    recaps: chs.map((c) => ({ at: c.at, title: c.title, line: CHAPTER_RECAP[c.at] ?? '' })),
-    steps: BUILDER_STEPS,
+    takeaways: ed.takeaways,
+    recaps: chs.map((c) => ({ at: c.at, title: c.title, line: ed.recap(c.at) })),
+    steps: ed.steps,
     copy: EXPERIENCE_COPY,
     rules: SCORE_RULES,
     blockerGap: BLOCKER_GAP,
@@ -491,7 +493,7 @@ export async function experienceConfig(rt: Runtime, reg: Registration, chs: Chap
     average: publicAverage(avg?.n ?? 0, avg?.avg ?? null),
     notesUrl: notesUrl(rt, reg.token),
     buyin: buyin ? { text: buyin.value, shared: buyin.key === 'shared' } : null,
-    buyinAt: BUYIN_AT,
+    buyinAt: ed.buyinAt,
     buyinMax: BUYIN_MAX,
     wall: publicWall(wall, REVENUE_LABEL, reg.lead_id),
   };
@@ -560,6 +562,6 @@ export async function experienceInsights(rt: Runtime, range: { from: number; to:
     gaps: [...gaps.entries()].map(([gap, n]) => ({ gap, n })).sort((a, b) => b.n - a.n),
     buyins: buyins.results.map((b) => ({ id: b.id, text: b.text, shared: b.key === 'shared', hidden: Boolean(b.handled), created_at: b.created_at, lead_id: b.lead_id, name: [b.first_name, b.last_name].filter(Boolean).join(' ') || b.email || 'Someone', email: b.email, band: b.band, applied: Boolean(b.applied), booked: Boolean(b.booked) })),
     wallLive: new Set(buyins.results.filter((b) => b.key === 'shared' && !b.handled).map((b) => b.lead_id)).size >= WALL_MIN,
-    topNotes: [...topNotes.entries()].map(([id, n]) => ({ id, text: TAKEAWAYS.find((t) => t.id === id)?.text ?? id, n })).sort((a, b) => b.n - a.n).slice(0, 5),
+    topNotes: [...topNotes.entries()].map(([id, n]) => ({ id, text: allTakeaways().find((t) => t.id === id)?.text ?? id, n })).sort((a, b) => b.n - a.n).slice(0, 5),
   };
 }

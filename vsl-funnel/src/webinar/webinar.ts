@@ -1,4 +1,5 @@
 import type { Runtime } from '../app';
+import { edition } from './editions';
 import { VIDEOS } from '../config';
 import { newId } from '../lib/ids';
 import type { VisitorCtx } from '../lib/identity';
@@ -65,11 +66,11 @@ export function webinarSettings(rt: Runtime) {
     title: s.WEBINAR_TITLE || 'The Acquisition Masterclass',
     schedule: s.WEBINAR_SCHEDULE || 'Tue 19:00, Thu 12:00',
     tz: s.SALES_TIMEZONE || 'Australia/Sydney',
-    durationMin: num(s.WEBINAR_DURATION_MIN, 66),
-    pitchAtMin: num(s.WEBINAR_PITCH_AT, 38),
+    durationMin: num(s.WEBINAR_DURATION_MIN, edition(s).durationMin),
+    pitchAtMin: num(s.WEBINAR_PITCH_AT, edition(s).pitchAtMin),
     replayHours: num(s.WEBINAR_REPLAY_HOURS, 48),
-    videoSrc: s.WEBINAR_VIDEO_SRC || s.VSL_MAIN_SRC || VIDEOS.main.defaultSrc || '',
-    placeholderVideo: !s.WEBINAR_VIDEO_SRC,
+    videoSrc: s.WEBINAR_VIDEO_SRC || edition(s).videoSrc || s.VSL_MAIN_SRC || VIDEOS.main.defaultSrc || '',
+    placeholderVideo: !s.WEBINAR_VIDEO_SRC && !edition(s).videoSrc,
     streamHls: s.WEBINAR_STREAM_HLS || '',
   };
 }

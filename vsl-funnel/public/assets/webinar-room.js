@@ -22,7 +22,7 @@
   var chapters = cfg.chapters || [];
   if (agenda && chapters.length) {
     agenda.innerHTML = '<p class="room-agenda-h">In this masterclass</p><ol>' + chapters.map(function (c, i) {
-      return '<li data-ch="' + i + '">' + (cfg.replay ? '<button type="button" data-seek="' + c.at * 60 + '">' : '<span>') + '<b>' + c.at + 'm</b> ' + esc(c.title) + (cfg.replay ? '</button>' : '</span>') + '</li>';
+      return '<li data-ch="' + i + '">' + (cfg.replay ? '<button type="button" data-seek="' + c.at * 60 + '">' : '<span>') + '<b>' + (c.at % 1 ? Math.floor(c.at) + ':' + ('0' + Math.round((c.at % 1) * 60)).slice(-2) : c.at + 'm') + '</b> ' + esc(c.title) + (cfg.replay ? '</button>' : '</span>') + '</li>';
     }).join('') + '</ol>';
     agenda.addEventListener('click', function (e) {
       var b = e.target.closest('[data-seek]');
@@ -79,7 +79,7 @@
   // ── Deal calculator (illustrative) ──
   // Assumptions shown on the card: bank loan 9% over 10 years, seller note 6% over 5 years, 70/20/10 split.
   function payment(principal, rate, years) { return principal * rate / (1 - Math.pow(1 + rate, -years)); }
-  var calcAt = (function () { for (var i = 0; i < chapters.length; i++) if (/stack|fund|structur/i.test(chapters[i].title)) return chapters[i].at * 60; return 25 * 60; })();
+  var calcAt = cfg.calcAt || (function () { for (var i = 0; i < chapters.length; i++) if (/stack|fund|structur/i.test(chapters[i].title)) return chapters[i].at * 60; return 25 * 60; })();
   var calcShown = false;
   function calcCard() {
     var c = copy.calculator || {};
