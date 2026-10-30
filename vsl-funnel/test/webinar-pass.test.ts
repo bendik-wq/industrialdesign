@@ -169,10 +169,10 @@ describe('payments', () => {
 // ───────────── Modes, fallbacks, the seat gate ─────────────
 
 describe('modes and fallbacks', () => {
-  it('without a Stripe key nothing is sold and HQ is told why', () => {
+  it('without a payment provider (Whop or Stripe) nothing is sold and HQ is told why', () => {
     const up = passConfig({ WEBINAR_PASS: 'upsell' });
     expect(up.mode).toBe('off');
-    expect(up.reason).toMatch(/Stripe secret key is missing/);
+    expect(up.reason).toMatch(/no payment provider is connected.*Whop API key \(or the Stripe secret key\)/);
     const req = passConfig({ WEBINAR_PASS: 'required', WEBINAR_SEAT_PRICE: '49' });
     expect(req.mode).toBe('off');
     expect(req.reason).toMatch(/seats stay free/);

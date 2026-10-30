@@ -971,6 +971,7 @@
       ', credited against the advisory engagement if they continue. ' + (c.weeklyCap ? 'Capped at ' + n(c.weeklyCap) + ' a week.' : 'No weekly cap.') + (c.seat ? ' Paid seat: ' + esc(c.seat) + '.' : '') + '</p></div>' +
       '<span class="pill">' + esc(modeLine) + '</span></div>' +
       (c.reason ? '<div class="card notice" style="margin:10px 0">' + esc(c.reason) + '</div>' : '') +
+      (p.whop && p.whop.notes ? p.whop.notes.map(function (x) { return '<div class="card notice" style="margin:10px 0" data-whop-note="' + esc(x.level) + '">' + esc(x.text) + '</div>'; }).join('') : '') +
       '<div class="grid g-4 tiles" style="margin-top:8px">' +
       tile('Sold', n(k.sold), pct(k.conversion, 1) + ' of ' + n(k.registrants) + ' registrants', null, { zeroOk: true }) +
       tile('Revenue', k.revenueLabel || '–', 'after refunds · ' + (k.creditLabel || '–') + ' credit owed against engagements', null, { zeroOk: true }) +
@@ -992,11 +993,11 @@
         { label: 'Session booked?', html: function (r) { return r.status === 'refunded' ? '' : '<label class="check"><input type="checkbox" data-pbooked="' + esc(r.id) + '"' + (r.review_booked_at ? ' checked' : '') + '> booked</label>' + (r.review_clicked_at && !r.review_booked_at ? '<div class="muted">opened the link</div>' : ''); } },
       ], p.holders, { cards: true, rowAttr: function (r) { return 'data-lead-row="' + esc(r.lead_id) + '"'; } }) : '<p class="muted">No one has bought yet.</p>') + '</div>' +
       '<div><h3 class="h3">Setup</h3><ul class="checklist">' +
-      ok(ch.secretKey, 'Stripe secret key added' + (ch.testMode ? ' (test mode)' : ''), 'Add the Stripe secret key (Integrations → Webinar)') +
-      ok(ch.webhookSecret, 'Webhook signing secret added', 'Add the webhook signing secret. Without it payments still confirm when buyers come back from Stripe, but refunds and closed tabs are missed.') +
+      ok(ch.secretKey, (ch.providerName || 'Stripe') + ' key added' + (ch.testMode ? ' (test mode)' : ''), 'Add the Whop API key, or the Stripe secret key (Integrations → Webinar)') +
+      ok(ch.webhookSecret, 'Webhook signing secret added', 'Add the webhook signing secret' + (ch.provider === 'whop' ? ' (Integrations → Connect Whop does it)' : '') + '. Without it payments still confirm when buyers come back from ' + esc(ch.providerName || 'Stripe') + ', but refunds and closed tabs are missed.') +
       ok(c.requested !== 'off', 'Mode: ' + esc(MODE[c.requested]), 'Set the paid offer to upsell or required') +
       ok(ch.sessionUrl, 'Assessment session booking link set', 'Optional: add the session booking link, otherwise email each buyer to book') +
-      '</ul><p class="small" style="margin-top:8px">In Stripe → Developers → Webhooks → Add endpoint, paste:</p>' +
+      '</ul><p class="small" style="margin-top:8px">' + (ch.provider === 'whop' ? 'In Whop → Dashboard → Developer → Create webhook (or press Connect Whop on Integrations), use:' : 'In Stripe → Developers → Webhooks → Add endpoint, paste:') + '</p>' +
       '<p><code style="word-break:break-all">' + esc(ch.webhookUrl) + '</code> <button type="button" class="btn-sm ghost" data-copy="' + esc(ch.webhookUrl) + '">Copy</button></p>' +
       '<p class="small">and select these events: ' + (ch.events || []).map(function (e) { return '<code style="word-break:break-all">' + esc(e) + '</code>'; }).join(', ') + '.</p>' +
       '<p class="small muted">Includes: ' + esc((c.perks || []).join(' · ')) + (c.customPerks ? ' (your own list)' : '') + '</p></div></div></div>';
@@ -3503,7 +3504,7 @@
       var groupNames = Object.keys(groups);
       var slug = function (g) { return String(g).toLowerCase().replace(/[^a-z0-9]+/g, '-'); };
       // Status tile → the settings group that configures it (case-insensitive; tried with the key, then the label).
-      var TILE_GROUP = { email: 'Email', whatsapp: 'WhatsApp', voice: 'Voice', 'voice agent': 'Voice', aicalls: 'Voice', 'ai calls (elevenlabs)': 'Voice', booking: 'Booking', calendly: 'Booking', analytics: 'Analytics', posthog: 'Analytics', ga4: 'Analytics', meta: 'Ads', alerts: 'Alerts', slack: 'Alerts', 'team pings': 'Alerts', crm: 'Alerts', 'crm webhook': 'Alerts', video: 'Video' };
+      var TILE_GROUP = { email: 'Email', whatsapp: 'WhatsApp', voice: 'Voice', 'voice agent': 'Voice', aicalls: 'Voice', 'ai calls (elevenlabs)': 'Voice', booking: 'Booking', calendly: 'Booking', analytics: 'Analytics', posthog: 'Analytics', ga4: 'Analytics', meta: 'Ads', alerts: 'Alerts', slack: 'Alerts', 'team pings': 'Alerts', crm: 'Alerts', 'crm webhook': 'Alerts', video: 'Video', whop: 'Webinar' };
       var findGroup = function (name) {
         if (!name) return null;
         var want = String(TILE_GROUP[String(name).toLowerCase()] || name).toLowerCase();
@@ -3517,10 +3518,12 @@
         }).join('') + '</div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Calendly</h2><p class="sub">With the personal access token connected: exact call times the moment someone books, meeting links in the reminders, the host mapped to your closer, their booking answers, a signed webhook (bookings, cancellations, reschedules, no-shows) and an hourly sync. Calls booked straight from the Calendly link are imported for the sales numbers only; they get no emails.</p></div></div>' +
         '<div class="row"><button class="btn-sm" data-cal-connect>Connect webhook &amp; import</button><button class="btn-sm ghost" data-cal-sync>Sync now</button><button class="btn-sm ghost" data-cal-history>Import full history</button><span class="muted" data-cal-out></span></div></div>' +
+        '<div class="card" style="margin-top:14px" data-whop-card><div class="card-head"><div><h2>Payments: Whop</h2><p class="sub">With the Whop API key saved (Keys &amp; settings → Webinar), Whop takes the Masterclass ticket and First Deal Sprint payments instead of Stripe. Connect reads the company behind the key and creates the payments webhook (' + esc(d.webhooks.whop) + ': payment.succeeded, refund.created, refund.updated). Whop caps checkout links at $2,500 until you apply for higher ones in Whop → Settings → Payments.</p></div><div class="row"><button class="btn-sm" type="button" data-whop-connect>Connect Whop</button></div></div>' +
+        '<div data-whop-out class="muted small">' + esc((d.status.whop && d.status.whop.detail) || '') + '</div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Bounce blocking</h2><p class="sub">When an email hard-bounces or someone marks it as spam, Resend tells the funnel and that address is blocked: every queued email to it is cancelled and nothing is ever sent to it again, in any campaign.</p></div><div class="row"><button class="btn-sm" type="button" data-bb-connect>Connect bounce blocking</button></div></div>' +
         '<div class="row"><input class="input" type="email" placeholder="block an address by hand" data-bb-email style="flex:1"><button class="btn-sm ghost" type="button" data-bb-add>Block</button></div><div data-bb-list class="muted" style="margin-top:10px">Loading…</div></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Test email</h2><p class="sub">Sends a test through Resend to confirm the key, domain and From address.</p><div class="row"><input class="input" type="email" placeholder="you@company.com" data-test-to style="flex:1"><button class="btn-sm" data-test>Send test</button></div></div>' +
-        '<div class="card"><h2>Webhook URLs</h2><p class="sub">Paste these into each provider.</p><dl class="kv">' + kv('Calendly', d.webhooks.calendly) + kv('Cal.com / GHL / Zapier', d.webhooks.booking) + kv('WhatsApp Cloud API', d.webhooks.whatsapp) + kv('Vapi (voice) Server URL', d.webhooks.voice) + kv('Resend (bounces)', d.webhooks.resend) + '</dl></div></div>' +
+        '<div class="card"><h2>Webhook URLs</h2><p class="sub">Paste these into each provider.</p><dl class="kv">' + kv('Calendly', d.webhooks.calendly) + kv('Cal.com / GHL / Zapier', d.webhooks.booking) + kv('WhatsApp Cloud API', d.webhooks.whatsapp) + kv('Vapi (voice) Server URL', d.webhooks.voice) + kv('Resend (bounces)', d.webhooks.resend) + kv('Whop (payments)', d.webhooks.whop) + kv('Stripe (payments)', d.webhooks.stripe) + '</dl></div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Voice assistant</h2><p class="sub">Creates (or updates) the inbound assistant in your Vapi account from the copy, FAQs and rules in config. Save your Vapi keys and webhook secret first. Then in Vapi, set your phone number’s Server URL to the voice URL above and leave its assistant empty.</p></div><div class="row"><a class="btn-sm ghost" href="/admin/api/voice/assistant.json" target="_blank" rel="noopener">View JSON</a><button class="btn-sm" type="button" data-provision>Create / update assistant</button></div></div></div>' +
         '<form class="card" style="margin-top:14px" data-settings><div class="card-head sticky-head"><div><h2>Keys & settings</h2><p class="sub">Values set as Worker secrets/vars are locked here (they always win). Secrets are never shown — leave a masked field blank to keep it, type “-” to clear it.</p></div><button class="btn-sm" type="submit">Save changes</button></div>' +
         '<div class="set-jump">' + groupNames.map(function (g) { return '<a href="#integrations" data-set-jump="' + esc(slug(g)) + '">' + esc(g) + '</a>'; }).join('') + '</div>' +
@@ -3580,6 +3583,19 @@
         });
       };
       bbLoad();
+      view.querySelector('[data-whop-connect]').onclick = function () {
+        var out = view.querySelector('[data-whop-out]'), b = this;
+        b.disabled = true; out.textContent = 'Connecting to Whop…';
+        send('POST', 'whop/connect', {}).then(function (r) {
+          b.disabled = false;
+          if (!r.ok) { out.textContent = r.error || 'Failed'; return; }
+          var w = r.webhook || {};
+          out.innerHTML = '<b style="color:var(--good)">Connected to ' + esc((r.company && (r.company.title || r.company.id)) || 'Whop') + '</b> (' + esc(r.company && r.company.id) + '). ' +
+            (w.created ? 'Webhook created and its secret saved.' : esc(w.note || '')) +
+            ((r.steps || []).length ? '<ol style="margin:8px 0 0 18px">' + r.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' : '');
+          toast(w.created ? 'Whop connected ✓' : 'Whop company saved');
+        });
+      };
       view.querySelector('[data-bb-connect]').onclick = function () {
         bbList.textContent = 'Connecting to Resend…';
         send('POST', 'email/suppressions/connect', {}).then(function (r) { toast(r.ok ? 'Bounce blocking on ✓' : (r.error || 'Failed')); bbLoad(); });

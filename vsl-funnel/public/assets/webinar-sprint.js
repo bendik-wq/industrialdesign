@@ -57,15 +57,23 @@
     var err = holder.querySelector('.sprint-err');
     if (S.preview) { if (!err) { err = document.createElement('p'); err.className = 'pass-note sprint-err'; holder.appendChild(err); } err.textContent = C.preview || 'Preview'; return; }
     var label = b.innerHTML;
-    b.disabled = true; b.textContent = 'Opening secure checkout…';
+    b.disabled = true; b.textContent = S.startUrl ? 'Opening…' : 'Opening secure checkout…';
     F.track('cta_click', { id: 'webinar_sprint_checkout', label: plan ? 'plan' : 'full' });
-    if (W.sprint) { post('/api/webinar/cta', {}); post('/api/webinar/offer', { choice: 'sprint' }); }
+    var asked = W.sprint ? Promise.all([post('/api/webinar/cta', {}), post('/api/webinar/offer', { choice: 'sprint' })]) : Promise.resolve();
+    // Form first, then checkout, then the kickoff booking: the short form page opens checkout itself.
+    if (S.startUrl) {
+      var go = function () { location.href = S.startUrl + (plan ? '?plan=1' : ''); };
+      asked.then(go, go);
+      setTimeout(go, 1500); // never wait long on the tracking calls
+      return;
+    }
     post('/api/webinar/sprint/checkout', { plan: plan, from: W.sprintPage ? 'offer' : 'room' }).then(function (r) {
       if (r && r.url) { location.href = r.url; return; }
       if (r && r.next) { location.href = r.next; return; }
       b.disabled = false; b.innerHTML = label;
       if (!err) { err = document.createElement('p'); err.className = 'pass-note pass-err sprint-err'; err.setAttribute('role', 'alert'); holder.appendChild(err); }
       err.textContent = (r && r.error) || 'Payment couldn’t be started just now. Please try again in a minute.';
+      if (r && r.book) { var a = document.createElement('a'); a.href = r.book; a.textContent = 'Book a call'; err.appendChild(document.createTextNode(' ')); err.appendChild(a); }
     });
   });
 

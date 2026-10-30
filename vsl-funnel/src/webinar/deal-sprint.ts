@@ -86,6 +86,11 @@ export const DEAL_SPRINT_COPY = {
   credit: 'The full Sprint fee is credited against the engagement fee.',
   noResults: 'The Sprint is a plan and advice. It is not a promise of a deal, a loan or a return.',
   notFound: 'Your Sprint page opens once the First Deal Sprint is paid.',
+  welcomePaid: 'Payment received. Your Sprint has started, and the first step is your kickoff call.',
+  kickoffTopTitle: 'Book your kickoff call',
+  kickoffTopLede: 'Pick a time that suits you. On the call Josh’s team confirms your numbers and what you would buy first.',
+  kickoffNewTab: 'Open the calendar in a new tab',
+  confirming: 'Your payment is still being confirmed. This page refreshes by itself in a few seconds.',
   preview: 'Preview with a made-up buyer. Real buyers see their own progress, intake and links.',
 };
 
@@ -137,6 +142,12 @@ export async function sprintParts(rt: Runtime, passId: string) {
 
 export interface PortalView {
   name: string | null; product: string; day: number; fastBonus: boolean; preview: boolean; note: string | null;
+  /** Just back from checkout (?welcome=1). */
+  welcome?: boolean;
+  /** The registration token (the inline calendar reports a booked kickoff with it). */
+  token?: string;
+  /** The kickoff calendar to embed at the top (a Calendly link, name and email filled in), or null for a button. */
+  kickoffEmbed?: string | null;
   kickoff: { booked: boolean; held: boolean; url: string | null };
   plan: { booked: boolean; held: boolean; url: string | null };
   deliverables: (Deliverable & { status: DeliverableStatus; link: string | null; notes: string | null })[];
@@ -161,6 +172,8 @@ const STYLE = `<style>
 .ds-form{display:grid;gap:12px;margin-top:10px}.ds-form label{display:grid;gap:4px;font-size:14px;color:#374151}.ds-form textarea{min-height:76px}
 .ds-note{background:#e8f6ec;color:#14532d;border-radius:8px;padding:10px 12px}.ds-note.warn{background:#fdf3e2;color:#78350f}
 .ds-links{display:flex;flex-wrap:wrap;gap:10px}
+.ds-kickoff{border:1px solid var(--accent,#0f2c5c);border-radius:12px;padding:16px;margin:14px 0}.ds-kickoff .ds-note{margin-bottom:10px}
+.ds-cal{position:relative;width:100%;height:700px;border-radius:10px;overflow:hidden;background:#fff}.ds-cal iframe{width:100%;height:100%;border:0}
 @media (max-width:560px){.ds-day{grid-template-columns:1fr;gap:6px}}
 </style>`;
 
@@ -171,8 +184,19 @@ export function portalHtml(v: PortalView) {
   const kickoffStatus = v.kickoff.held ? 'done' : v.kickoff.booked ? 'booked' : 'waiting';
   const planStatus = v.plan.held ? 'done' : v.plan.booked ? 'booked' : 'waiting';
   const btn = (href: string, label: string, cls = '') => `<a class="btn btn-sm${cls}" href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}</a>`;
-  const next = !v.kickoff.booked && !v.kickoff.held
-    ? `<p>${esc(v.kickoff.url ? t.nextKickoff : t.nextKickoffEmail)}</p>${v.kickoff.url ? btn(v.kickoff.url, t.bookKickoff) : ''}`
+  // Until the kickoff is booked, the page opens on booking it: the calendar inline (Calendly), else a big button.
+  const kickoffOpen = !v.kickoff.booked && !v.kickoff.held;
+  const kickoffTop = kickoffOpen && v.kickoff.url
+    ? `<section class="ws-sec ds-kickoff" id="kickoff" data-kickoff="${esc(v.token ?? '')}">${v.welcome ? `<p class="ds-note" role="status">${esc(t.welcomePaid)}</p>` : ''}
+      <h2 class="h3">${esc(t.kickoffTopTitle)}</h2><p>${esc(t.kickoffTopLede)}</p>
+      ${v.kickoffEmbed
+        ? `<div class="ds-cal" data-kickoff-cal><iframe src="${esc(v.kickoffEmbed)}" title="${esc(t.kickoffTopTitle)}" loading="eager"></iframe></div><p class="muted small"><a href="${esc(v.kickoff.url)}" target="_blank" rel="noopener">${esc(t.kickoffNewTab)}</a></p>`
+        : `<a class="btn btn-lg" href="${esc(v.kickoff.url)}" target="_blank" rel="noopener" data-kickoff-link>${esc(t.bookKickoff)}</a>`}</section>`
+    : v.welcome ? `<p class="ds-note" role="status">${esc(t.welcomePaid)}</p>` : '';
+  const next = kickoffOpen && !v.kickoff.url
+    ? `<p>${esc(t.nextKickoffEmail)}</p>`
+    : kickoffOpen && !v.intake ? `<p>${esc(t.nextIntake)}</p><a class="btn btn-sm" href="#intake">${esc(t.intakeTitle)}</a>`
+    : kickoffOpen ? `<p>${esc(t.nextWaiting)}</p>`
     : !v.intake ? `<p>${esc(t.nextIntake)}</p><a class="btn btn-sm" href="#intake">${esc(t.intakeTitle)}</a>`
       : !v.plan.booked && !v.plan.held && v.day >= 4 ? `<p>${esc(t.nextPlan)}</p>${v.plan.url ? btn(v.plan.url, t.bookPlan) : `<p>${esc(t.planEmail)}</p>`}`
         : `<p>${esc(t.nextWaiting)}</p>`;
@@ -206,6 +230,7 @@ export function portalHtml(v: PortalView) {
     <h1 class="h2">${v.name ? `${esc(v.name)}, your` : 'Your'} ${esc(v.product)}</h1>
     <p class="lede">${v.day > SPRINT_DAYS ? 'All seven days are done.' : `Day ${v.day} of ${SPRINT_DAYS}.`} ${esc(t.lede)}</p></header>
   ${v.note ? `<p class="ds-note${v.note === t.intakeMissing ? ' warn' : ''}" role="status">${esc(v.note)}</p>` : ''}
+  ${kickoffTop}
   <div class="ds-next">${next}</div>
   <section class="ws-sec"><h2 class="h3">${esc(t.eyebrow)}</h2><ol class="ds-days">${days}</ol></section>
   <section class="ws-sec" id="intake"><h2 class="h3">${esc(t.intakeTitle)}</h2><p>${esc(t.intakeLede)}</p>
@@ -237,14 +262,46 @@ async function loadPortal(c: Context<AppEnv>) {
   return { rt, reg, pass };
 }
 
+/** A Calendly link as an inline embed with the buyer's name and email filled in; null for any other calendar. */
+export function kickoffEmbedUrl(url: string | null, o: { name?: string | null; email?: string | null; host: string }) {
+  if (!url) return null;
+  let u: URL;
+  try { u = new URL(url); } catch { return null; }
+  if (u.protocol !== 'https:' || !/(^|\.)calendly\.com$/i.test(u.hostname)) return null;
+  if (o.name) u.searchParams.set('name', o.name);
+  if (o.email) u.searchParams.set('email', o.email);
+  u.searchParams.set('embed_domain', o.host);
+  u.searchParams.set('embed_type', 'Inline');
+  u.searchParams.set('utm_source', 'sprint');
+  return u.toString();
+}
+
 const worksheet = (c: Context<AppEnv>, body: string) => render(c, '/webinar-worksheet.html', { title: 'First Deal Sprint', blocks: { worksheet: body } });
 
 export async function dealSprintPage(c: Context<AppEnv>) {
   const rt = runtimeFrom(c);
   if (c.req.param('token') === 'preview' && c.get('visitor')?.botReason === 'admin-preview') return worksheet(c, portalHtml(samplePortal(rt)));
-  const { reg, pass } = await loadPortal(c);
+  const loaded = await loadPortal(c);
+  const { reg } = loaded;
+  let { pass } = loaded;
+  const welcome = c.req.query('welcome') === '1';
+  if (reg && !pass && (welcome || c.req.query('pass') === 'success')) {
+    // Back from checkout before the webhook: ask the payment provider directly.
+    const { confirmOnReturn } = await import('./pass');
+    if ((await confirmOnReturn(rt, reg)) === 'paid') pass = await activePass(rt, reg.lead_id);
+    if (!pass && (await rt.env.DB.prepare("SELECT 1 FROM webinar_passes WHERE reg_id = ? AND kind = 'offer' AND status = 'pending'").bind(reg.id).first())) {
+      return render(c, '/webinar-worksheet.html', { title: 'First Deal Sprint', blocks: { worksheet: `<h1 class="h2">${esc(DEAL_SPRINT_COPY.kickoffTopTitle)}</h1><p class="lede" role="status">${esc(DEAL_SPRINT_COPY.confirming)}</p>` }, config: { webinar: { passConfirming: true } } });
+    }
+  }
   if (!reg || !pass) return worksheet(c, `<h1 class="h2">${esc(DEAL_SPRINT_COPY.notFound)}</h1>${reg ? `<p class="lede"><a href="${esc(`${webinarBase(rt)}/registered/${reg.token}`)}">Back to my confirmation</a></p>` : ''}`);
+  // Answers from the form before checkout fill the intake (when the payment arrived some other way first).
+  if (!(await rt.env.DB.prepare('SELECT 1 FROM deal_sprint_intake WHERE pass_id = ?').bind(pass.id).first())) {
+    await (await import('./sprint-start')).copyApplicationToIntake(rt, pass).catch((e) => console.error('sprint intake copy failed', e));
+  }
   const view = await portalView(rt, pass, reg.token);
+  const lead = await getLead(rt.env, pass.lead_id);
+  view.welcome = welcome;
+  view.kickoffEmbed = kickoffEmbedUrl(view.kickoff.url, { name: [lead?.first_name, lead?.last_name].filter(Boolean).join(' ') || null, email: lead?.email ?? null, host: new URL(c.req.url).host });
   const q = c.req.query('intake');
   view.note = q === 'saved' ? DEAL_SPRINT_COPY.intakeSaved : q === 'missing' ? DEAL_SPRINT_COPY.intakeMissing : null;
   return worksheet(c, portalHtml(view));
@@ -255,6 +312,7 @@ export async function portalView(rt: Runtime, pass: PassRow, token: string): Pro
   const [lead, parts] = await Promise.all([getLead(rt.env, pass.lead_id), sprintParts(rt, pass.id)]);
   const s = parts.sprint;
   return {
+    token,
     name: lead?.first_name ?? null,
     product: pass.product || passConfig(rt.settings).offerName,
     day: sprintDay(pass.paid_at ?? pass.created_at),

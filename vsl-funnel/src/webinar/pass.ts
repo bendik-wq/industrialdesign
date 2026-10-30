@@ -25,6 +25,15 @@ import { type Registration, getRegistration, roomUrl, startTicketedMessages, sto
 
 export type PassMode = 'off' | 'upsell' | 'required';
 export type PassKind = 'offer' | 'seat';
+export type PaymentProvider = 'whop' | 'stripe';
+
+/** Whop takes the payments when its API key is set; otherwise Stripe, when its key is. Null = nothing can be sold. */
+export function paymentProvider(s: Partial<Settings>): PaymentProvider | null {
+  if (String(s.WHOP_API_KEY ?? '').trim()) return 'whop';
+  if (String(s.STRIPE_SECRET_KEY ?? '').trim()) return 'stripe';
+  return null;
+}
+export const providerName = (p: PaymentProvider | null | undefined) => (p === 'whop' ? 'Whop' : 'Stripe');
 
 const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf']);
 
@@ -33,8 +42,10 @@ export interface Perk { title: string; body: string; /** "Day 1", "Day 7": where
 export interface PassConfig {
   /** What the owner asked for in settings. */
   requested: PassMode;
-  /** What actually runs (off when Stripe isn't connected). */
+  /** What actually runs (off when no payment provider is connected). */
   mode: PassMode;
+  /** Who takes the payments: Whop when its API key is set, else Stripe. */
+  provider: PaymentProvider | null;
   /** Why the requested mode isn't running, for Funnel HQ. */
   reason: string | null;
   offerName: string;
@@ -57,7 +68,7 @@ export interface PassConfig {
   tz: string;
 }
 
-const toMinor = (n: number, cur: string) => (ZERO_DECIMAL.has(cur.toLowerCase()) ? Math.round(n) : Math.round(n * 100));
+export const toMinor = (n: number, cur: string) => (ZERO_DECIMAL.has(cur.toLowerCase()) ? Math.round(n) : Math.round(n * 100));
 /** Stripe's smallest unit back to a display amount. */
 export const fromMinor = (amount: number, currency: string) => (ZERO_DECIMAL.has(currency.toLowerCase()) ? amount : amount / 100);
 
@@ -114,7 +125,8 @@ export function passConfig(s: Partial<Settings>, replayHours = Number(s.WEBINAR_
   const capRaw = String(s.WEBINAR_PASS_WEEKLY_CAP ?? '').trim();
   const capN = Number(capRaw);
   const sessionUrl = /^https:\/\/\S+$/i.test(String(s.WEBINAR_OFFER_SESSION_URL ?? '').trim()) ? String(s.WEBINAR_OFFER_SESSION_URL).trim() : null;
-  const hasKey = Boolean(String(s.STRIPE_SECRET_KEY ?? '').trim());
+  const provider = paymentProvider(s);
+  const hasKey = provider != null;
   const mode: PassMode = requested !== 'off' && hasKey ? requested : 'off';
   const offerName = String(s.WEBINAR_OFFER_NAME ?? '').trim().slice(0, 60) || DEFAULT_OFFER_NAME;
   const priceLabel = formatMoney(price, currency);
@@ -122,9 +134,9 @@ export function passConfig(s: Partial<Settings>, replayHours = Number(s.WEBINAR_
   const custom = String(s.WEBINAR_OFFER_PERKS ?? '').trim();
   const perks = custom ? parsePerks(custom, { price: priceLabel, replay_days: String(replayDays) }) : defaultPerks({ priceLabel, replayDays, replayHours, guarantee, sessionUrl });
   return {
-    requested, mode,
+    requested, mode, provider,
     reason: requested !== 'off' && !hasKey
-      ? `Set to ${requested}, but the Stripe secret key is missing, so nothing is on sale${requested === 'required' ? ' and seats stay free' : ''} until it is added.`
+      ? `Set to ${requested}, but no payment provider is connected, so nothing is on sale${requested === 'required' ? ' and seats stay free' : ''} until the Whop API key (or the Stripe secret key) is added.`
       : null,
     offerName,
     offerNoun: (offerName.split(/\s+/).pop() || 'sprint').toLowerCase(),
@@ -134,14 +146,15 @@ export function passConfig(s: Partial<Settings>, replayHours = Number(s.WEBINAR_
     weeklyCap: capRaw && Number.isInteger(capN) && capN >= 1 ? capN : null,
     perks, customPerks: Boolean(custom),
     priorityAnswers: Boolean(String(s.ANTHROPIC_API_KEY ?? '').trim()),
-    webhookReady: Boolean(String(s.STRIPE_WEBHOOK_SECRET ?? '').trim()),
+    webhookReady: Boolean(String((provider === 'whop' ? s.WHOP_WEBHOOK_SECRET : s.STRIPE_WEBHOOK_SECRET) ?? '').trim()),
     tz: String(s.SALES_TIMEZONE ?? '').trim() || 'Australia/Sydney',
   };
 }
 
 // ───────────── Copy (every string is checked by auditCopy in the tests) ─────────────
 
-export function passCopy(cfg: Pick<PassConfig, 'offerName' | 'offerNoun' | 'priceLabel' | 'guarantee'>) {
+export function passCopy(cfg: Pick<PassConfig, 'offerName' | 'offerNoun' | 'priceLabel' | 'guarantee'> & { provider?: PaymentProvider | null }) {
+  const whop = cfg.provider === 'whop';
   return {
     upsellEyebrow: 'For owners ready to look at a real deal',
     upsellHeading: `The ${cfg.offerName}`,
@@ -151,12 +164,12 @@ export function passCopy(cfg: Pick<PassConfig, 'offerName' | 'offerNoun' | 'pric
     button: `Start my ${cfg.offerName}`,
     bookCall: 'Book a strategy call instead',
     includes: `What the ${cfg.offerName} includes`,
-    secure: 'Secure payment by Stripe. Your email is filled in for you.',
+    secure: whop ? 'Secure checkout by Whop.' : 'Secure payment by Stripe. Your email is filled in for you.',
     noResults: `The ${cfg.offerName} is advice and a plan, not a promise of a deal, a loan or a return.`,
     activeEyebrow: 'Paid',
     activeHeading: `Your ${cfg.offerName} is under way`,
     activeBody: 'Your deal pack is ready now. Here is what happens next.',
-    confirming: 'Stripe is still confirming your payment. This page refreshes by itself in a few seconds.',
+    confirming: `${whop ? 'Whop' : 'Stripe'} is still confirming your payment. This page refreshes by itself in a few seconds.`,
     cancelled: 'No payment was taken. You can start it below whenever you are ready.',
     soldOut: `This week’s ${cfg.offerName} places have all been taken. New ones open on Monday.`,
     packLink: 'Open my deal pack',
@@ -179,7 +192,7 @@ export function passCopy(cfg: Pick<PassConfig, 'offerName' | 'offerNoun' | 'pric
  * worksheet and the Acquisition Blueprint (built at the pitch). The credit is applied by the First Deal Sprint
  * checkout from the lead's paid seat rows.
  */
-export function ticketCopy(o: { label: string; replayHours: number; durationMin?: number }) {
+export function ticketCopy(o: { label: string; replayHours: number; durationMin?: number; provider?: PaymentProvider | null }) {
   return {
     eyebrow: 'Masterclass ticket',
     priceLine: `${o.label} ticket. Credited in full if you start the First Deal Sprint.`,
@@ -201,7 +214,7 @@ export function ticketCopy(o: { label: string; replayHours: number; durationMin?
     guarantee: `Watch it. If you don’t think it was worth far more than ${o.label}, reply within 7 days for a full refund.`,
     formHeading: 'Get your ticket',
     button: `Get my ${o.label} ticket`,
-    privacy: `Next is secure checkout by Stripe for the ${o.label} ticket. We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time.`,
+    privacy: `Next is secure checkout by ${providerName(o.provider)} for the ${o.label} ticket. We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time.`,
     confirmedEyebrow: 'Ticket confirmed',
     confirmedHeading: 'Your Masterclass ticket is confirmed',
     confirmedBody: 'Your personal link is on its way to your inbox. The room opens at the time above.',
@@ -214,7 +227,7 @@ export function ticketFor(s: Partial<Settings>) {
   const cfg = passConfig(s);
   if (cfg.mode !== 'required' || !cfg.seat) return null;
   const dur = Number(s.WEBINAR_DURATION_MIN) > 0 ? Number(s.WEBINAR_DURATION_MIN) : 60;
-  return { cfg, label: cfg.seat.label, copy: ticketCopy({ label: cfg.seat.label, replayHours: ticketHours(s), durationMin: dur }) };
+  return { cfg, label: cfg.seat.label, copy: ticketCopy({ label: cfg.seat.label, replayHours: ticketHours(s), durationMin: dur, provider: cfg.provider }) };
 }
 
 // ───────────── Stripe signature ─────────────
@@ -284,6 +297,9 @@ export interface PassRow {
   // First Deal Sprint (migration 0035; see sprint.ts).
   list_amount?: number | null; ticket_credit?: number; installments?: number; installments_paid?: number;
   stripe_subscription_id?: string | null; plan_cancel_at?: number | null; fast_bonus?: number;
+  // Migration 0037: NULL/'stripe' or 'whop'. For Whop, stripe_session_id holds the checkout configuration id
+  // (ch_…) and stripe_payment_intent the payment id (pay_…).
+  provider?: PaymentProvider | null;
 }
 
 /** The lead's paid front-end offer, if any. */
@@ -362,6 +378,12 @@ interface StripeCheckoutSession {
   amount_total?: number | null; currency?: string | null; client_reference_id?: string | null; metadata?: Record<string, string> | null;
 }
 
+/** What the ticket buyer reads at checkout (Stripe and Whop alike). */
+export const ticketDescription = (cfg: Pick<PassConfig, 'seat'>) =>
+  `Your ticket to the masterclass with Josh Li. Credited in full if you start the First Deal Sprint. Ticket guarantee: if you don’t think it was worth far more than ${cfg.seat?.label ?? 'the ticket'}, reply within 7 days for a full refund.`;
+/** How long an unpaid Whop checkout is reused for the same registration (Whop links don't expire; this only stops reuse). */
+export const WHOP_SEAT_LIFE_MS = 24 * 3_600_000;
+
 /** The form body for a Checkout Session (exported for the tests). */
 export function checkoutForm(cfg: PassConfig, o: { kind: PassKind; passId: string; reg: Pick<Registration, 'id' | 'token' | 'lead_id'>; email: string | null; back: string; expiresAt: number; title?: string }) {
   const seat = o.kind === 'seat';
@@ -373,7 +395,7 @@ export function checkoutForm(cfg: PassConfig, o: { kind: PassKind; passId: strin
     'line_items[0][price_data][unit_amount]': String(seat ? cfg.seat?.amount ?? 0 : cfg.amount),
     'line_items[0][price_data][product_data][name]': seat ? `Masterclass ticket: ${o.title || 'The Acquisition Masterclass'}` : cfg.offerName,
     'line_items[0][price_data][product_data][description]': seat
-      ? `Your ticket to the masterclass with Josh Li. Credited in full if you start the First Deal Sprint. Ticket guarantee: if you don’t think it was worth far more than ${cfg.seat?.label ?? 'the ticket'}, reply within 7 days for a full refund.`
+      ? ticketDescription(cfg)
       : `${cfg.offerName} with G&L M&A Advisory. The full fee is credited against the advisory engagement if you continue. ${cfg.guarantee.replace(/\.$/, '')}.`,
     client_reference_id: o.reg.id,
     'metadata[kind]': o.kind,
@@ -393,7 +415,8 @@ export function checkoutForm(cfg: PassConfig, o: { kind: PassKind; passId: strin
 }
 
 export class PassError extends Error {
-  constructor(message: string, public status = 400) { super(message); }
+  /** book: where to book a call instead (shown with the message when checkout can't open). */
+  constructor(message: string, public status = 400, public book: string | null = null) { super(message); }
 }
 
 /** One click: starts (or reuses) a Stripe Checkout for this registration, email prefilled. */
@@ -405,8 +428,8 @@ export async function createCheckout(rt: Runtime, reg: Registration, o: { kind?:
   if (cfg.mode === 'off' || (kind === 'seat' && !cfg.seat)) throw new PassError('This isn’t available right now.', 409);
   if (kind === 'offer' ? await activePass(rt, reg.lead_id) : await anyPaid(rt, reg.lead_id)) return { paid: true as const };
   const now = Date.now();
-  const open = await rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE reg_id = ? AND kind = ? AND status = 'pending' AND checkout_url IS NOT NULL AND COALESCE(expires_at, 0) > ? ORDER BY created_at DESC LIMIT 1")
-    .bind(reg.id, kind, now + 60_000).first<PassRow>();
+  const open = await rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE reg_id = ? AND kind = ? AND status = 'pending' AND checkout_url IS NOT NULL AND COALESCE(expires_at, 0) > ? AND COALESCE(provider, 'stripe') = ? ORDER BY created_at DESC LIMIT 1")
+    .bind(reg.id, kind, now + 60_000, cfg.provider ?? 'stripe').first<PassRow>();
   if (open?.checkout_url) return { url: open.checkout_url };
   if (kind === 'offer') {
     const cap = await passCapacity(rt, cfg, now);
@@ -415,11 +438,17 @@ export async function createCheckout(rt: Runtime, reg: Registration, o: { kind?:
   const lead = await getLead(rt.env, reg.lead_id);
   const session = await rt.env.DB.prepare('SELECT title FROM webinar_sessions WHERE id = ?').bind(reg.session_id).first<{ title: string | null }>();
   const id = newId('wp');
-  const expiresAt = now + 31 * 60_000; // Stripe's minimum is 30 minutes
+  const expiresAt = now + (cfg.provider === 'whop' ? WHOP_SEAT_LIFE_MS : 31 * 60_000); // Stripe's minimum is 30 minutes
   const amount = kind === 'seat' ? cfg.seat!.amount : cfg.amount;
-  await rt.env.DB.prepare('INSERT INTO webinar_passes (id, reg_id, lead_id, kind, product, status, amount, currency, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(id, reg.id, reg.lead_id, kind, kind === 'seat' ? 'Masterclass ticket' : cfg.offerName, 'pending', amount, cfg.currency.toLowerCase(), expiresAt, now, now).run();
+  await rt.env.DB.prepare('INSERT INTO webinar_passes (id, reg_id, lead_id, kind, product, status, amount, currency, expires_at, provider, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, reg.id, reg.lead_id, kind, kind === 'seat' ? 'Masterclass ticket' : cfg.offerName, 'pending', amount, cfg.currency.toLowerCase(), expiresAt, cfg.provider ?? 'stripe', now, now).run();
   const back = o.from === 'room' ? roomUrl(rt, reg.token) : `${webinarBase(rt)}/registered/${reg.token}`;
+  if (cfg.provider === 'whop') {
+    const { startWhopCheckout } = await import('./whop');
+    const url = await startWhopCheckout(rt, { passId: id, kind, reg, amount, currency: cfg.currency, title: 'Masterclass ticket', description: ticketDescription(cfg), redirectUrl: `${back}?pass=success` });
+    await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'webinar_checkout_started', source: 'server', props: { pass_id: id, kind, from: o.from ?? 'ty', provider: 'whop' }, localOnly: true });
+    return { url };
+  }
   try {
     const s = await stripeApi<StripeCheckoutSession>(rt, 'POST', 'checkout/sessions',
       checkoutForm(cfg, { kind, passId: id, reg, email: lead?.email ?? null, back, expiresAt, title: session?.title || webinarSettings(rt).title }), id);
@@ -436,7 +465,7 @@ export async function createCheckout(rt: Runtime, reg: Registration, o: { kind?:
 
 // ───────────── Paid / refunded (shared by the webhook and the return check) ─────────────
 
-export interface PaidInput { sessionId: string; paymentIntent: string | null; amount: number | null; currency: string | null; regId: string | null; passId?: string | null; kind?: string | null }
+export interface PaidInput { sessionId: string; paymentIntent: string | null; amount: number | null; currency: string | null; regId: string | null; passId?: string | null; kind?: string | null; provider?: PaymentProvider }
 export type PaidEffects = (rt: Runtime, pass: PassRow) => Promise<void>;
 
 /**
@@ -455,8 +484,8 @@ export async function markPassPaid(rt: Runtime, p: PaidInput, effects: PaidEffec
   if (!row) {
     const reg = p.regId ? await db.prepare('SELECT id, lead_id FROM webinar_registrations WHERE id = ?').bind(p.regId).first<{ id: string; lead_id: string }>() : null;
     if (!reg) return { ok: false as const, reason: 'unknown registration' };
-    await db.prepare('INSERT OR IGNORE INTO webinar_passes (id, reg_id, lead_id, kind, status, amount, currency, stripe_session_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(newId('wp'), reg.id, reg.lead_id, p.kind === 'seat' ? 'seat' : 'offer', 'pending', p.amount ?? 0, (p.currency ?? 'usd').toLowerCase(), p.sessionId, now, now).run();
+    await db.prepare('INSERT OR IGNORE INTO webinar_passes (id, reg_id, lead_id, kind, status, amount, currency, stripe_session_id, provider, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(newId('wp'), reg.id, reg.lead_id, p.kind === 'seat' ? 'seat' : 'offer', 'pending', p.amount ?? 0, (p.currency ?? 'usd').toLowerCase(), p.sessionId, p.provider ?? 'stripe', now, now).run();
   }
   const res = await db.prepare(
     `UPDATE webinar_passes SET status = 'paid', paid_at = ?, updated_at = ?, stripe_payment_intent = COALESCE(?, stripe_payment_intent),
@@ -489,6 +518,8 @@ export async function passPaidEffects(rt: Runtime, pass: PassRow) {
   }
   const cfg = passConfig(rt.settings);
   await rt.env.DB.prepare('UPDATE leads SET updated_at = ? WHERE id = ?').bind(Date.now(), pass.lead_id).run(); // surfaces the lead as recently active
+  // The answers from the pre-payment form become the Sprint's intake, so the buyer doesn't type them twice.
+  await (await import('./sprint-start')).copyApplicationToIntake(rt, pass).catch((e) => console.error('sprint intake copy failed', e));
   await applyPassReplay(rt, pass.lead_id, true);
   // Meta Purchase / GA4: value = what was actually paid now (after the ticket credit; the first payment on a plan).
   await track(rt, who, { name: 'webinar_offer_purchased', source: 'webhook', path: '/webinar', props: { pass_id: pass.id, product: pass.product, value, currency: pass.currency.toUpperCase(), installments: pass.installments ?? 1, fast_bonus: Boolean(pass.fast_bonus) } });
@@ -575,6 +606,7 @@ export async function confirmOnReturn(rt: Runtime, reg: Registration) {
   const row = await rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE reg_id = ? AND stripe_session_id IS NOT NULL ORDER BY created_at DESC LIMIT 1").bind(reg.id).first<PassRow>();
   if (!row) return (await anyPaid(rt, reg.lead_id)) ? ('paid' as const) : ('unknown' as const);
   if (row.status === 'paid') return 'paid' as const;
+  if (row.provider === 'whop') return (await import('./whop')).whopConfirm(rt, row);
   if (!rt.settings.STRIPE_SECRET_KEY || !row.stripe_session_id) return 'unknown' as const;
   try {
     const s = await stripeApi<StripeCheckoutSession>(rt, 'GET', `checkout/sessions/${encodeURIComponent(row.stripe_session_id)}`);
@@ -781,6 +813,7 @@ export async function passReport(rt: Runtime, range: { from: number; to: number 
             SUM(status = 'pending' AND COALESCE(expires_at, 0) > ?) AS open_checkouts
        FROM webinar_passes WHERE kind = ? AND COALESCE(paid_at, created_at) BETWEEN ? AND ?`,
   ).bind(Date.now(), kind, range.from, range.to).first<Agg>();
+  const whop = cfg.provider === 'whop' ? await (await import('./whop')).whopHealth(rt, cfg) : null;
   const [offer, seat, regs, holders, cap] = await Promise.all([
     agg('offer'), agg('seat'),
     // Unpaid: registered while a ticket was required and nothing is paid (or it was refunded) for that person.
@@ -807,13 +840,17 @@ export async function passReport(rt: Runtime, range: { from: number; to: number 
       priorityAnswers: cfg.priorityAnswers, perks: cfg.perks.map((p) => p.title), customPerks: cfg.customPerks,
     },
     checklist: {
-      secretKey: Boolean(rt.settings.STRIPE_SECRET_KEY),
+      provider: cfg.provider,
+      providerName: providerName(cfg.provider),
+      secretKey: cfg.provider === 'whop' ? Boolean(rt.settings.WHOP_API_KEY) : Boolean(rt.settings.STRIPE_SECRET_KEY),
       webhookSecret: cfg.webhookReady,
-      webhookUrl: `${rt.origin}/hooks/stripe`,
-      events: [...STRIPE_EVENTS],
+      webhookUrl: `${rt.origin}/hooks/${cfg.provider === 'whop' ? 'whop' : 'stripe'}`,
+      events: cfg.provider === 'whop' ? [...(await import('./whop')).WHOP_EVENTS] : [...STRIPE_EVENTS],
       sessionUrl: Boolean(cfg.sessionUrl),
-      testMode: /^(sk|rk)_test_/.test(rt.settings.STRIPE_SECRET_KEY || ''),
+      testMode: cfg.provider === 'stripe' && /^(sk|rk)_test_/.test(rt.settings.STRIPE_SECRET_KEY || ''),
     },
+    /** Whop only: company, webhook, and the last checkout Whop refused (the $2,500 checkout-link cap). */
+    whop,
     kpis: {
       sold: n,
       refunds: offer?.refunds ?? 0,

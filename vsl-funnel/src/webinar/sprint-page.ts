@@ -5,7 +5,7 @@ import { identityFromLead, track } from '../tracking/track';
 import { type Registration, type Session, getRegistration, getSession, roomUrl, webinarSettings } from './webinar';
 import { type Perk, activePass, confirmOnReturn, holderCardHtml, passCapacity, passCopy } from './pass';
 import {
-  mmss, offerDeadline, pitchSec, reachedPitch, sprintCopy, sprintFaq, sprintPrice, sprintQualified, sprintSettings, sprintState, sprintWindow, ticketCredit, unlockSprint,
+  mmss, offerDeadline, pitchSec, reachedPitch, sprintCopy, sprintFaq, sprintPrice, sprintQualified, sprintSettings, sprintStartUrl, sprintState, sprintWindow, ticketCredit, unlockSprint,
 } from './sprint';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -93,5 +93,5 @@ export async function offerPage(c: Context<AppEnv>) {
     <section class="sprint-sec sprint-faq"><h2>Questions owners ask</h2>${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>
     ${buyBox()}
     <p class="sprint-more"><a href="${esc(room)}">${esc(t.backToRoom)}</a></p>`;
-  return page(cfg.offerName, html, { sprintPage: { token: reg.token, preview: isPreview, copy: t, ...sprintState(rt, session, reg, now) }, ty: reg.token });
+  return page(cfg.offerName, html, { sprintPage: { token: reg.token, preview: isPreview, copy: t, startUrl: sprintStartUrl(rt, reg.token), ...sprintState(rt, session, reg, now) }, ty: reg.token });
 }

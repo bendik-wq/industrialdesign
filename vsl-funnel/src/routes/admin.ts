@@ -791,6 +791,7 @@ admin.get('/integrations', async (c) => {
       voice: { label: 'Voice agent', connected: voiceConfigured(s), detail: voiceConfigured(s) ? [s.VAPI_ASSISTANT_ID ? 'Assistant ready' : 'Assistant answers inline (not saved in Vapi yet)', s.VOICE_PHONE_NUMBER && `Inbound line ${s.VOICE_PHONE_NUMBER}`, webCallsEnabled(s) ? 'Browser calls on' : 'Browser calls off'].filter(Boolean).join(' · ') : 'Inbound only. Add your Vapi keys and a webhook secret to switch it on.' },
       aiCalls: { label: 'AI calls (ElevenLabs)', connected: elevenConfigured(s), detail: elevenConfigured(s) ? `Confirmation calls ${s.AI_CALL_CONFIRM.trim().toLowerCase() === 'false' ? 'off' : 'on'} · speed-to-lead ${s.AI_CALL_SPEED_TO_LEAD.trim().toLowerCase() === 'false' ? 'off' : 'on'} · no-show rebook ${s.AI_CALL_REBOOK.trim().toLowerCase() === 'false' ? 'off' : 'on'} · consenting leads only` : 'Add an ElevenLabs API key, then finish setup on the Voice tab.' },
       video: { label: 'Video', connected: Boolean(s.VSL_MAIN_SRC), detail: s.VSL_MAIN_SRC ? 'Main VSL connected' : 'No VSL video yet — the page shows a placeholder.' },
+      whop: { label: 'Payments (Whop)', connected: Boolean(s.WHOP_API_KEY), detail: s.WHOP_API_KEY ? [`Whop takes the ticket and Sprint payments${s.WHOP_COMPANY_ID ? ` (${s.WHOP_COMPANY_ID})` : ''}`, s.WHOP_WEBHOOK_SECRET ? 'webhook signed' : 'no webhook yet: press Connect Whop'].join(' · ') : s.STRIPE_SECRET_KEY ? 'Not connected. Stripe takes the payments.' : 'Not connected. Add the Whop API key under Webinar to sell the ticket and the Sprint.' },
     },
     webhooks: {
       calendly: `${rt.origin}/hooks/calendly`,
@@ -798,8 +799,20 @@ admin.get('/integrations', async (c) => {
       whatsapp: `${rt.origin}/hooks/whatsapp`,
       voice: `${rt.origin}/hooks/voice`,
       resend: `${rt.origin}/hooks/resend`,
+      whop: `${rt.origin}/hooks/whop`,
+      stripe: `${rt.origin}/hooks/stripe`,
     },
   });
+});
+
+// ── Whop: company id from the API key, and the payments webhook (or the steps to add it by hand) ──
+admin.post('/whop/connect', async (c) => {
+  try {
+    const { connectWhop } = await import('../webinar/whop');
+    return c.json({ ok: true, ...(await connectWhop(runtimeFrom(c))) });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 400);
+  }
 });
 
 // ── YouTube idea generator ──────────────────────────────────────────

@@ -61,7 +61,10 @@ export function fastBonus(raw: string | null | undefined): Perk | null {
 
 export function sprintSettings(rt: Pick<Runtime, 'settings'>) {
   const cfg = passConfig(rt.settings);
-  return { cfg, plan: sprintPlan(rt.settings.WEBINAR_PASS_PLAN, cfg.currency), bonus: fastBonus(rt.settings.WEBINAR_FAST_BONUS) };
+  // The payment plan is a Stripe subscription. With Whop taking payments it is hidden: Whop shows its own
+  // pay-later options at checkout instead.
+  const plan = cfg.provider === 'stripe' ? sprintPlan(rt.settings.WEBINAR_PASS_PLAN, cfg.currency) : null;
+  return { cfg, plan, bonus: fastBonus(rt.settings.WEBINAR_FAST_BONUS) };
 }
 
 /** "38:00" */
@@ -108,7 +111,7 @@ export function sprintFaq(cfg: Pick<PassConfig, 'offerName' | 'priceLabel'>) {
     { q: `Is the ${cfg.priceLabel} wasted if I don’t continue?`, a: 'You keep everything: the capacity numbers, the buy box, the shortlist, the memo and the script. If you continue into the advisory engagement, the full fee comes off it. And if the Sprint wasn’t worth far more than you paid, tell us at your Deal Plan session and we refund it.' },
     { q: 'How much time does it take?', a: 'The kickoff call and your numbers on Day 1, short replies to Josh’s team during the week, and the 60-minute Deal Plan session on Day 7. Josh’s team does the research and the writing.' },
     { q: 'My business is under $1M in revenue.', a: `The ${n} is built for owners doing $1M or more a year, because a lender looks for a profitable business behind the buyer. Under that, start with the worksheet and the replay, and come back when your numbers are there.` },
-    { q: 'What happens after I pay?', a: 'Your deal pack opens straight away, and Josh’s team emails you to book the kickoff call and your Deal Plan session.' },
+    { q: 'What happens after I pay?', a: 'Your Sprint page opens straight away. You book the kickoff call there, and your deal pack is ready. Josh’s team books your Deal Plan session with you during the week.' },
   ];
 }
 
@@ -227,6 +230,12 @@ export function sprintPrice(cfg: Pick<PassConfig, 'amount' | 'currency' | 'price
 // ───────────── Checkout ─────────────
 
 export const offerUrl = (rt: Runtime, token: string) => `${webinarBase(rt)}/offer/${token}`;
+/** The short form before checkout (form, then pay, then book): every "Start my Sprint" button goes here. */
+export const sprintStartUrl = (rt: Runtime, token: string) => `${webinarBase(rt)}/sprint-start/${token}`;
+/** Where Whop sends a buyer after paying: their Sprint page, kickoff booking first. */
+export const sprintWelcomeUrl = (rt: Runtime, token: string) => `${webinarBase(rt)}/sprint/${token}?welcome=1`;
+/** An unpaid Whop checkout is reused for the same registration this long (Whop links don't expire). */
+export const WHOP_SPRINT_LIFE_MS = 2 * HOUR;
 
 /** One payment (Checkout payment mode), net of the ticket credit. Exported for the tests. */
 export function sprintCheckoutForm(cfg: PassConfig, o: { passId: string; reg: Pick<Registration, 'id' | 'token' | 'lead_id'>; email: string | null; back: string; expiresAt: number; amount: number; creditLabel: string | null; fastBonus: boolean }) {
@@ -281,7 +290,7 @@ export function sprintPlanForm(cfg: PassConfig, plan: SprintPlan, o: { passId: s
  * One click from the room or the offer page. Refused before the pitch and after the deadline (the
  * server decides, not the page). Reuses an open checkout of the same kind for this registration.
  */
-export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?: boolean; from?: 'room' | 'offer' } = {}, now = Date.now()) {
+export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?: boolean; from?: 'room' | 'offer' | 'start' } = {}, now = Date.now()) {
   const { cfg, plan: planCfg, bonus } = sprintSettings(rt);
   const t = sprintCopy(cfg, { opensAt: mmss(pitchSec(rt)) });
   if (cfg.mode === 'off') throw new PassError('This isn’t available right now.', 409);
@@ -301,8 +310,8 @@ export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?
   if (o.plan && !plan) throw new PassError('The payment plan isn’t available. You can pay in one payment.', 409);
   const installments = plan ? plan.count : 1;
 
-  const open = await rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE reg_id = ? AND kind = 'offer' AND status = 'pending' AND checkout_url IS NOT NULL AND COALESCE(expires_at, 0) > ? AND installments = ? ORDER BY created_at DESC LIMIT 1")
-    .bind(r.id, now + 60_000, installments).first<PassRow>();
+  const open = await rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE reg_id = ? AND kind = 'offer' AND status = 'pending' AND checkout_url IS NOT NULL AND COALESCE(expires_at, 0) > ? AND installments = ? AND COALESCE(provider, 'stripe') = ? ORDER BY created_at DESC LIMIT 1")
+    .bind(r.id, now + 60_000, installments, cfg.provider ?? 'stripe').first<PassRow>();
   if (open?.checkout_url) return { url: open.checkout_url };
   const cap = await passCapacity(rt, cfg, now);
   if (cap.full) throw new PassError(passCopy(cfg).soldOut, 409);
@@ -314,13 +323,14 @@ export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?
   const creditApplied = plan ? price.plan!.credit : price.credit;
   const fast = bonus && w.bonusOpen ? 1 : 0;
   const id = newId('wp');
-  const expiresAt = now + 31 * MIN; // Stripe's minimum is 30 minutes
+  const whop = cfg.provider === 'whop';
+  const expiresAt = now + (whop ? WHOP_SPRINT_LIFE_MS : 31 * MIN); // Stripe's minimum is 30 minutes
   await rt.env.DB.prepare(
-    `INSERT INTO webinar_passes (id, reg_id, lead_id, kind, product, status, amount, currency, expires_at, list_amount, ticket_credit, installments, fast_bonus, created_at, updated_at)
-     VALUES (?, ?, ?, 'offer', ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, r.id, r.lead_id, cfg.offerName, amount, cfg.currency.toLowerCase(), expiresAt, plan ? plan.totalAmount : cfg.amount, creditApplied, installments, fast, now, now).run();
+    `INSERT INTO webinar_passes (id, reg_id, lead_id, kind, product, status, amount, currency, expires_at, list_amount, ticket_credit, installments, fast_bonus, provider, created_at, updated_at)
+     VALUES (?, ?, ?, 'offer', ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, r.id, r.lead_id, cfg.offerName, amount, cfg.currency.toLowerCase(), expiresAt, plan ? plan.totalAmount : cfg.amount, creditApplied, installments, fast, cfg.provider ?? 'stripe', now, now).run();
   const who = await identityFromLead(rt.env, r.lead_id);
-  const started = () => track(rt, who, { name: 'webinar_checkout_started', source: 'server', props: { pass_id: id, kind: 'offer', from: o.from ?? 'room', plan: Boolean(plan), fast_bonus: Boolean(fast), value: fromMinor(amount, cfg.currency) }, localOnly: true });
+  const started = () => track(rt, who, { name: 'webinar_checkout_started', source: 'server', props: { pass_id: id, kind: 'offer', from: o.from ?? 'room', plan: Boolean(plan), fast_bonus: Boolean(fast), value: fromMinor(amount, cfg.currency), provider: cfg.provider }, localOnly: true });
 
   // The ticket credit covers the whole price: nothing to charge, the Sprint starts now.
   if (amount <= 0) {
@@ -331,9 +341,19 @@ export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?
     return { paid: true as const };
   }
 
-  const lead = await getLead(rt.env, r.lead_id);
-  const back = o.from === 'offer' ? offerUrl(rt, r.token) : roomUrl(rt, r.token);
   const creditLabel = creditApplied ? formatMoney(fromMinor(creditApplied, cfg.currency), cfg.currency) : null;
+  if (whop) {
+    // One payment at the exact price after the ticket credit; Whop returns the buyer to their Sprint page.
+    const { startWhopCheckout } = await import('./whop');
+    const url = await startWhopCheckout(rt, {
+      passId: id, kind: 'offer', reg: r, amount, currency: cfg.currency, title: cfg.offerName, description: sprintStripeDescription(cfg, creditLabel),
+      redirectUrl: sprintWelcomeUrl(rt, r.token), metadata: { fast_bonus: fast ? '1' : '0' },
+    });
+    await started();
+    return { url };
+  }
+  const lead = await getLead(rt.env, r.lead_id);
+  const back = o.from === 'offer' || o.from === 'start' ? offerUrl(rt, r.token) : roomUrl(rt, r.token);
   try {
     let form: Record<string, string>;
     if (plan) {
@@ -455,6 +475,7 @@ export async function sprintRoomConfig(rt: Runtime, reg: RegLike, session: Sessi
     full: cap.full, soldOut: cap.full ? pc.soldOut : null, capLabel: cap.label,
     fine: `${pc.secure} ${pc.noResults}`,
     offerUrl: offerUrl(rt, reg.token),
+    startUrl: sprintStartUrl(rt, reg.token),
     applyUrl: o.applyUrl,
     tz: cfg.tz,
     ...sprintState(rt, session, reg, now),

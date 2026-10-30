@@ -16,7 +16,8 @@ import { addPhone, answerPoll, chapters, askQuestion, logCalc, offerClick, selfS
 import { liveFeed, postChat, raiseHand } from '../webinar/live';
 import { blueprintAction } from '../webinar/blueprint';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
-import { PassError, createCheckout, markReviewClicked, passGate, syncPassReplay } from '../webinar/pass';
+import { PassError, activePass, createCheckout, markReviewClicked, passGate, syncPassReplay } from '../webinar/pass';
+import { ensureDealSprint } from '../webinar/deal-sprint';
 import { createSprintCheckout, unlockSprint } from '../webinar/sprint';
 
 export const api = new Hono<AppEnv>();
@@ -246,7 +247,7 @@ api.post('/webinar/checkout', async (c) => {
     const r = await createCheckout(rt, reg, { kind: body.kind === 'seat' ? 'seat' : 'offer', from: body.from === 'room' ? 'room' : 'ty' });
     return c.json({ ok: true, ...r, ...('paid' in r ? { next: `${webinarBase(rt)}/registered/${reg.token}` } : {}) });
   } catch (err) {
-    if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
+    if (err instanceof PassError) return c.json({ ok: false, error: err.message, ...(err.book ? { book: err.book } : {}) }, err.status as 400);
     return errorResponse(c, err);
   }
 });
@@ -260,10 +261,19 @@ api.post('/webinar/sprint/checkout', async (c) => {
     const r = await createSprintCheckout(rt, reg, { plan: body.plan === true, from: body.from === 'offer' ? 'offer' : 'room' });
     return c.json({ ok: true, ...r, ...('paid' in r ? { next: `${webinarBase(rt)}/offer/${reg.token}` } : {}) });
   } catch (err) {
-    if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
+    if (err instanceof PassError) return c.json({ ok: false, error: err.message, ...(err.book ? { book: err.book } : {}) }, err.status as 400);
     return errorResponse(c, err);
   }
 });
+// The buyer booked the kickoff in the calendar on their Sprint page (Calendly's own "scheduled" message).
+api.post('/webinar/sprint/kickoff', roomAction(async (rt, reg) => {
+  const pass = await activePass(rt, reg.lead_id);
+  if (!pass) return { ok: false };
+  await ensureDealSprint(rt, pass);
+  const now = Date.now();
+  await rt.env.DB.prepare('UPDATE deal_sprints SET kickoff_booked_at = COALESCE(kickoff_booked_at, ?), updated_at = ? WHERE pass_id = ?').bind(now, now, pass.id).run();
+  return { ok: true };
+}));
 api.post('/webinar/pass/review', async (c) => {
   const { rt, body } = await webinarReg(c);
   return c.json(await markReviewClicked(rt, String(body.token ?? '')));

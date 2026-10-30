@@ -127,6 +127,8 @@
         b.disabled = false; b.textContent = label;
         var p = b.parentNode.querySelector('.pass-err') || document.createElement('p');
         p.className = 'pass-note pass-err'; p.setAttribute('role', 'alert'); p.textContent = (r && r.error) || 'Payment couldn’t be started just now. Please try again in a minute.';
+        // Checkout couldn't open (for example Whop refused it): the way to book a call instead.
+        if (r && r.book) { var a = document.createElement('a'); a.href = r.book; a.textContent = 'Book a call'; p.appendChild(document.createTextNode(' ')); p.appendChild(a); }
         b.parentNode.insertBefore(p, b.nextSibling);
       });
       return;
@@ -134,6 +136,18 @@
     var rv = e.target.closest && e.target.closest('[data-pass-review]');
     if (rv) post('/api/webinar/pass/review', { token: cfg.token || cfg.ty });
   });
+  // The First Deal Sprint page: a kickoff booked in the inline calendar marks the kickoff as booked.
+  var kick = document.querySelector('[data-kickoff-cal]');
+  var kickToken = kick && kick.closest('[data-kickoff]') && kick.closest('[data-kickoff]').getAttribute('data-kickoff');
+  if (kick && kickToken) {
+    window.addEventListener('message', function (e) {
+      var d = e.data || {};
+      try { if (!/(^|\.)calendly\.com$/.test(new URL(e.origin).hostname)) return; } catch (err) { return; }
+      if (d.event !== 'calendly.event_scheduled') return;
+      F.track('cta_click', { id: 'deal_sprint_kickoff_booked' });
+      post('/api/webinar/sprint/kickoff', { token: kickToken });
+    });
+  }
   // Back from Stripe before the payment has confirmed: look again shortly (the server asks Stripe each time).
   if (cfg.passConfirming) {
     var tries = 0;

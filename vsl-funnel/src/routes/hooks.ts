@@ -9,6 +9,7 @@ import { finishInbound, initiationData } from '../integrations/elevenlabs-inboun
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { handleResendEvent, verifyResend } from '../integrations/bounces';
 import { handleStripeEvent, verifyStripeSignature } from '../webinar/pass';
+import { handleWhopEvent, verifyWhopSignature } from '../webinar/whop';
 
 /** Inbound webhooks from Resend (bounces), Calendly, Cal.com / CRMs, the WhatsApp Cloud API, Vapi and ElevenLabs (voice). All verified. */
 export const hooks = new Hono<AppEnv>();
@@ -66,6 +67,24 @@ hooks.post('/stripe', async (c) => {
     return c.json({ error: 'invalid json' }, 400);
   }
   return c.json({ received: true, ...(await handleStripeEvent(rt, body)) });
+});
+
+// Whop: ticket and Sprint payments, refunds (Standard Webhooks signature, 5-minute tolerance; fails closed).
+hooks.post('/whop', async (c) => {
+  const rt = runtimeFrom(c);
+  const secret = rt.settings.WHOP_WEBHOOK_SECRET;
+  if (!secret) return c.json({ error: 'WHOP_WEBHOOK_SECRET not configured' }, 501);
+  const raw = await c.req.text();
+  const h = { id: c.req.header('webhook-id'), timestamp: c.req.header('webhook-timestamp'), signature: c.req.header('webhook-signature') };
+  if (!h.id || !h.timestamp || !h.signature) return c.json({ error: 'unsigned' }, 400);
+  if (!(await verifyWhopSignature(secret, raw, h))) return c.json({ error: 'bad signature' }, 401);
+  let body: Parameters<typeof handleWhopEvent>[1];
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return c.json({ error: 'invalid json' }, 400);
+  }
+  return c.json({ received: true, ...(await handleWhopEvent(rt, body)) });
 });
 
 hooks.post('/booking', async (c) => {
