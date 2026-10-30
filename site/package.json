@@ -10,6 +10,6 @@
   "devDependencies": {
     "@google/model-viewer": "4.3.1",
     "marked": "18.1.0",
-    "wrangler": "4.147.0"
+    "wrangler": "4.156.0"
   }
 }

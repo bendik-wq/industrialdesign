@@ -858,7 +858,7 @@ function filters(q, ctx) {
   const status = q.get("status");
   if (status === "Any") where.push("p.status IS NOT NULL AND p.status != 'New'");
   else if (STATUSES.includes(status)) where.push(status === "New" ? "(p.status IS NULL OR p.status = 'New')" : `p.status = ${bind(status)}`);
-  return { from, where: `WHERE ${where.join(" AND ")}`, binds, order: `ORDER BY ${SORTS[q.get("sort")] || SORTS.fit}, c.fit_score DESC, c.id` };
+  return { from, where: `WHERE ${where.join(" AND ")}`, binds, order: `ORDER BY ${Object.hasOwn(SORTS, q.get("sort") || "") ? SORTS[q.get("sort")] : SORTS.fit}, c.fit_score DESC, c.id` };
 }
 const LIST = `c.id, c.country, c.name, c.legal_form, c.city, c.region, c.founded, c.employees_min, c.employees_band, c.revenue, c.currency,
   c.owner_name, c.owner_age, c.size_score, c.succession_score, c.fit_score, c.verdict, c.summary, c.reviews, c.rating,
@@ -868,7 +868,7 @@ const LIST = `c.id, c.country, c.name, c.legal_form, c.city, c.region, c.founded
 async function listCompanies(env, q, ctx) {
   const f = filters(q, ctx);
   const limit = Math.min(200, Math.max(1, Number(q.get("limit")) || 50));
-  const page = Math.max(1, Number(q.get("page")) || 1);
+  const page = Math.min(10000, Math.max(1, Math.floor(Number(q.get("page"))) || 1));
   const [rows, total] = await env.DB.batch([
     env.DB.prepare(`SELECT ${LIST} FROM ${f.from} ${f.where} ${f.order} LIMIT ${limit} OFFSET ${(page - 1) * limit}`).bind(...f.binds),
     env.DB.prepare(`SELECT COUNT(*) AS n FROM ${f.from} ${f.where}`).bind(...f.binds),

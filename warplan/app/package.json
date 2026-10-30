@@ -10,7 +10,7 @@
     "db:migrate": "wrangler d1 execute warplan --remote --file migrations/0001_link_expiry.sql"
   },
   "devDependencies": {
-    "wrangler": "4.147.0"
+    "wrangler": "4.156.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0"

@@ -9,7 +9,7 @@
     "db:seed": "wrangler d1 execute dealflow --remote --file ../data/seed.sql"
   },
   "devDependencies": {
-    "wrangler": "4.147.0"
+    "wrangler": "4.156.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0"

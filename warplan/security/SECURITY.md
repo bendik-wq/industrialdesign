@@ -72,7 +72,17 @@ Dealflow app (same day): `__Host-` cookie with server-side sessions, signing fai
 
 Can't be fixed from this repo: the `cold-block` and `owners-vsl-funnel` Workers have no security headers and their source isn't here.
 
-### Still open
+## 2026-10-30: full-repo audit (auth, access control, secrets, injection, dependencies, headers)
+
+Clean: no secrets in tracked files or git history; PBKDF2-SHA256 100k with per-user salt in both apps; every SQL value bound, every dynamic column from an allowlist; no CORS headers (same-origin only); generic 500s, no stack traces; HSTS + CSP + frame/nosniff headers live on every host; lockfiles all from registry.npmjs.org with integrity hashes.
+
+| Sev | Found | Fix |
+|---|---|---|
+| High (dev only) | `wrangler` 4.147 pulled in vulnerable `miniflare` / `sharp` (librsvg CVE) / `undici` (DoS, SRI bypass) in all three apps; local tooling, not deployed code | `wrangler` 4.156.0, `npm audit` now 0 |
+| Medium | Funnel CSP allowed `'unsafe-inline'` scripts (one inline block) | Script moved to `/app.js`; `script-src 'self' https://challenges.cloudflare.com` |
+| Medium | Funnel admin lockout per IP only; rotating IPs allowed unlimited password guesses | Also locks after 50 failures/hour from everywhere |
+| Low | Funnel skipped the bot check entirely if `TURNSTILE_SECRET` were missing | Fails closed (503) |
+| Low | Dealflow `?sort=constructor` / `?page=1e309` produced malformed SQL (500) | `Object.hasOwn` on the sort map; page capped |
 
 - Reads (GET) can be served from a 5-second session cache after a sign-out or removal; writes never are (measured: about 3 s).
 - Login limits use `CF-Connecting-IP`; safe on Cloudflare (the edge sets it), but would be spoofable if the Worker were ever served off Cloudflare. The per-account cap is the backstop.
