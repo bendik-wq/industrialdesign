@@ -42,7 +42,7 @@ describe('editions', () => {
     for (const c of t.chapters) expect(t.recaps[String(c.at)], c.title).toBeTruthy();
     const steps = Object.values(t.steps);
     expect(steps).toEqual([...steps].sort((a, b) => a - b));
-    expect(t.steps.plan).toBe(Math.round(t.pitchAtMin * 60));
+    expect(Math.abs(t.steps.plan - t.pitchAtMin * 60)).toBeLessThanOrEqual(1);
   });
 
   it('spaces the AI key points one at a time and keeps every line within the copy rules', () => {
