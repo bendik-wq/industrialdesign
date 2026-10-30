@@ -4,7 +4,8 @@
 // earnings that weren't. The skill's red flags: financials ≠ tax returns (walk away), concentration (1-2 entities >30%;
 // >50% walk or heavily discount), underfunded working capital, slipping margin.
 import { registerAgent } from "../runs.js";
-import { xray } from "./maths.js";
+import { xray, JL_DSCR } from "./maths.js";
+import { targetDeal, dealModel } from "../../public/js/deal.js";
 import { mergeFindings, FINDINGS_RULE, crewSystem, targetSheets, extract, FINDINGS_SCHEMA, verifyFindings, money } from "./common.js";
 
 const n = { type: ["number", "null"] };
@@ -74,6 +75,12 @@ ${FINDINGS_RULE}
         const graded = e.addbacks.map((a) => ({ ...a, class: cls.get(a.label.trim().toLowerCase()) || "unclassified" }));
         const x = xray({ ...e, addbacks: graded });
         const a = x.adjusted_ebitda;
+        // The lender's view: banks underwrite on tax-return profit plus only the add-backs the paperwork supports,
+        // at the price you're actually paying. (Lenders decline on tax-return basis; QoE gaps kill ~21% of broken LOIs.)
+        const taxYear = [...e.tax].sort((p, q) => String(p.year).localeCompare(String(q.year))).at(-1);
+        const deal = targetDeal(L.target), price = L.target.asking || dealModel(deal).price;
+        const view = (ebitda) => { if (!(ebitda > 0) || !(price > 0)) return null; const m = dealModel({ ...deal, ebitda, multiple: price / ebitda }); return { ebitda: Math.round(ebitda), multiple: Math.round((price / ebitda) * 100) / 100, min_dscr: m.minDscr == null ? null : Math.round(m.minDscr * 100) / 100, max_price_at_1_5x: m.maxPrice ? Math.round(m.maxPrice) : null }; };
+        x.lender_view = { price: Math.round(price), structure: deal, on_defensible: a ? view(a.base) : null, on_tax_return: taxYear?.net_profit != null ? view(taxYear.net_profit + (a?.by_class.documented || 0)) : null, tax_year: taxYear?.year || null };
         return { summary: a ? `Reported ${money(a.reported)}; seller says ${money(a.seller_adjusted)}; defensible ${money(a.base)} (range ${money(a.low)}–${money(a.high)})` : "No EBITDA found in the files", data: { ...x, addbacks: graded } };
       },
     },
@@ -90,6 +97,10 @@ ${FINDINGS_RULE}
         else if (c && c.top2 > 30) hard.push({ key: "concentration_30", severity: "medium", title: `Top two customers are ${c.top2}% of revenue`, detail: "The skill's red flag: 1-2 entities over 30% of revenue.", evidence: "Customer list", action: "Check contract assignability and talk to those customers before settlement." });
         const a = x.adjusted_ebitda;
         if (a && a.addback_share_pct != null && a.addback_share_pct > 20) hard.push({ key: "addbacks_heavy", severity: "medium", title: `Add-backs are ${a.addback_share_pct}% of reported EBITDA`, detail: `Only ${money(a.by_class.documented)} of ${money(a.claimed_addbacks)} is documented.`, evidence: "Add-back grading", action: "Price on the defensible figure, not the seller's." });
+        const lv = x.lender_view;
+        for (const [k, v, label] of [["tax", lv?.on_tax_return, `tax-return profit (${lv?.tax_year}) plus documented add-backs`], ["defensible", lv?.on_defensible, "defensible EBITDA"]]) {
+          if (v?.min_dscr != null && v.min_dscr < JL_DSCR) { hard.push({ key: `bankability_${k}`, severity: "high", title: `At ${money(lv.price)} the deal covers its debt only ${v.min_dscr}x on ${label}`, detail: `${money(v.ebitda)} of earnings is ${v.multiple}x. The skill's floor is 1.5x, and lenders underwrite on what the tax returns support.`, evidence: "Deal model at the asking price", action: `Offer no more than ${money(v.max_price_at_1_5x)}, or restructure (longer terms, a payment holiday, more vendor finance).` }); break; }
+        }
         if (x.margin_change_pts != null && x.margin_change_pts < -3) hard.push({ key: "margin_slip", severity: "medium", title: `EBITDA margin slipped ${x.margin_change_pts} points`, detail: "The skill's red flag: slipping gross margin masked by accounting changes.", evidence: "P&L by year", action: "Find out why before you agree a price." });
         const findings = mergeFindings(hard, kept);
         return { summary: `${findings.length} finding(s)${dropped.length ? `, ${dropped.length} dropped for unsupported numbers` : ""}`, data: { findings, dropped } };
@@ -107,6 +118,7 @@ ${FINDINGS_RULE}
           ...(x.concentration ? ["## Customers", `- ${x.concentration.customers} customers; top 1 ${x.concentration.top1}% (${x.concentration.top1_name}), top 2 ${x.concentration.top2}%, top 5 ${x.concentration.top5}%`, ""] : []),
           ...(x.working_capital_peg ? ["## Working capital peg", `- Average ${money(x.working_capital_peg.average)} over ${x.working_capital_peg.periods} period(s) (range ${money(x.working_capital_peg.min)} – ${money(x.working_capital_peg.max)})`, ""] : []),
           ...(x.addbacks.length ? ["## Add-backs", "| Add-back | Amount | Grade | Why |", "|---|---|---|---|", ...x.addbacks.map((b) => `| ${b.label} | ${money(b.amount)} | ${b.class} | ${(gr.addbacks.find((g) => g.label.trim().toLowerCase() === b.label.trim().toLowerCase())?.why || "").replace(/\|/g, "/")} |`), ""] : []),
+          ...(x.lender_view?.on_tax_return || x.lender_view?.on_defensible ? ["## The lender's view", `At ${money(x.lender_view.price)}: ${[["tax-return basis", x.lender_view.on_tax_return], ["defensible EBITDA", x.lender_view.on_defensible]].filter(([, v]) => v).map(([l, v]) => `${l} ${money(v.ebitda)} → ${v.multiple}x, weakest-year cover ${v.min_dscr}x, max price at 1.5x ${money(v.max_price_at_1_5x)}`).join("; ")}.`, ""] : []),
           "## Findings", ...v.findings.map((f) => `- **${f.title}** (${f.severity}). ${f.detail} *Do:* ${f.action}`),
           "", "## Questions for the seller", ...gr.questions.map((q) => `- ${q}`),
           "", "_Numbers are read only from the seller's files and recomputed in code; anything the model reported that wasn't in a file was dropped._",
