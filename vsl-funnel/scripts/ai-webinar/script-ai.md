@@ -1,6 +1,6 @@
 # The Acquisition Masterclass (AI edition): script
 
-**Presenter:** Josh Li, in an AI version of his voice (disclosed at the start and on every slide)
+**Presenter:** an AI narrator voice (disclosed at the start and on every slide), presenting Josh Li's method in the third person
 **Built on:** Jason Fladlien's webinar principles. The webinar has one job, to help the viewer decide on one offer. The offer is named in the first two minutes. Every teaching point is a reason to buy, answering what and why, never a full how-to. Objections are handled inside the content. The stack is repeated with a reason behind each part. The guarantee is bigger than the price. The only deadlines are real and enforced. The close gives permission to decide now.
 **Offer:** The First Deal Sprint, $3,000 (the $100 ticket comes off), 7 days, with the full fee credited against the advisory engagement.
 **Format rules for the build script:** `## [mm:ss] Title` starts a chapter. `[SLIDE: …]` starts a new slide. `[ON SCREEN: …]` adds a line to the current slide. `[POLL: id]`, `[CALCULATOR]`, `[BUY-IN]`, `[SPRINT UNLOCKS]` and `[WORKSHEET]` are room cues, timed from the rendered audio. Plain paragraphs are spoken.
@@ -11,15 +11,15 @@
 
 [SLIDE: The Acquisition Masterclass | How owners doing $1M+ buy the next business with the bank's money and the seller's]
 
-Before anything else, one thing you should know. This masterclass is presented in an AI version of my voice. The method, the numbers and every word of it are mine and my team's. I made it this way so you can watch it at a time that suits you, and so every owner gets exactly the same masterclass.
+Before anything else, one thing you should know. This masterclass is narrated by an AI voice. The method, the numbers and every word of it come from Josh Li and his team at G&L M&A Advisory. It's made this way so you can watch it at a time that suits you, and so every owner gets exactly the same masterclass.
 
 [SLIDE: This hour has one job | To help you decide one thing]
 
-My name is Josh Li. I run JC Health Group, my own healthcare holding company, and I co-founded G&L M&A Advisory.
+The method is Josh Li's. Josh runs JC Health Group, his own healthcare holding company, and he co-founded G&L M&A Advisory.
 
-This masterclass has one job, and I'm going to be upfront about it. By the end, you'll decide whether to start something called the First Deal Sprint. It's seven days with my team, where we map out the first business you'd buy, how much your profit can carry, and how the price gets funded with the bank's money and the seller's.
+This masterclass has one job, and it's only fair to be upfront about it. By the end, you'll decide whether to start something called the First Deal Sprint. It's seven days with Josh's team, where they map out the first business you'd buy, how much your profit can carry, and how the price gets funded with the bank's money and the seller's.
 
-I'm telling you now, in the first minute, because you paid to be here and you deserve to know where this is going. Everything I teach you in the next forty minutes is real and you can use it without ever buying anything. And everything I teach you is also a reason the Sprint exists. You'll see both as we go.
+You're hearing it in the first minute because you paid to be here and you deserve to know where this is going. Everything in the next twenty minutes is real, and you can use it without ever buying anything. And every part of it is also a reason the Sprint exists. You'll see both as we go.
 
 [ON SCREEN: The First Deal Sprint. 7 days. Your first deal mapped out.]
 
@@ -27,13 +27,13 @@ I'm telling you now, in the first minute, because you paid to be here and you de
 
 Here's who it's for. You run a business doing more than a million dollars a year in revenue. It makes a real profit. And you've started to feel that growing it one customer at a time is getting slower and more expensive every year.
 
-If your business does under a million a year, stay and learn. The Sprint won't be for you yet, and I'll tell you why when we get there.
+If your business does under a million a year, stay and learn. The Sprint won't be for you yet, and you'll hear why when we get there.
 
 [POLL: target_type]
 
 [SLIDE: First question]
 
-A quick question has just appeared under the video. If the money were sorted, what kind of business would you buy first? A competitor, a supplier, a customer, or something next to what you do. Tap the closest one. It starts building your deal, right beside the video, and it's the first thing my team would look at if you start the Sprint.
+A quick question has just appeared under the video. If the money were sorted, what kind of business would you buy first? A competitor, a supplier, a customer, or something next to what you do. Tap the closest one. It starts building your deal, right beside the video, and it's the first thing Josh's team would look at if you start the Sprint.
 
 ## [03:00] The real problem
 
@@ -49,7 +49,7 @@ Most owners believe the thing stopping them is cash. They think they need a big 
 
 [SLIDE: Two seller-financed acquisitions]
 
-I bought my clinics in two acquisitions, and in both of them the sellers financed one hundred percent of the price. What made that possible wasn't a pile of cash sitting there. It was a structure the sellers could say yes to.
+Josh bought his clinics in two acquisitions, and in both of them the sellers financed one hundred percent of the price. What made that possible wasn't a pile of cash sitting there. It was a structure the sellers could say yes to.
 
 That's the whole game. When the structure is right, the money shows up from three places, and none of them is your savings.
 
@@ -63,7 +63,7 @@ Now here's why that matters for you, today. If the problem is structure, it can 
 
 [SLIDE: What 90 owners told us]
 
-Ninety owners booked a call with my team. Thirty-nine of them said the same thing: they want to buy companies. Twenty-four had never bought one. Twenty-four wanted help getting a deal funded, and twenty-three wanted help structuring the debt.
+Ninety owners booked a call with Josh's team. Thirty-nine of them said the same thing: they want to buy companies. Twenty-four had never bought one. Twenty-four wanted help getting a deal funded, and twenty-three wanted help structuring the debt.
 
 [ON SCREEN: 39 of 90 want to buy. 24 never have. 24 need funding help. 23 need structuring help.]
 
@@ -85,7 +85,7 @@ Every year you spend on the slow path, a retiring owner in your market sells to 
 
 [SLIDE: Your biggest blocker]
 
-There's a question under the video now. What's the biggest thing stopping you from doing a deal this year? Finding deals, financing, structuring, time, or confidence. Be honest. Whatever you pick, I'm going to show you how the Sprint deals with it.
+There's a question under the video now. What's the biggest thing stopping you from doing a deal this year? Finding deals, financing, structuring, time, or confidence. Be honest. Whatever you pick, you're about to see how the Sprint deals with it.
 
 ## [08:00] Where the deals are
 
@@ -111,7 +111,7 @@ Private equity funds are buying these owners too, with the same structure you're
 
 Here's how this connects to the Sprint. The reason owners never find these businesses isn't that they're hidden. It's that they never decided exactly what they're looking for, and nobody built them a list.
 
-On day three of the Sprint, we build your buy box: the size, the location, the fit with what you already run, and the kind of owner who's ready to sell. On day four, my team goes into your market and pulls a first shortlist of owner run businesses that match it. Real businesses you could call.
+On day three of the Sprint, the team builds your buy box: the size, the location, the fit with what you already run, and the kind of owner who's ready to sell. On day four, Josh's team goes into your market and pulls a first shortlist of owner run businesses that match it. Real businesses you could call.
 
 [ON SCREEN: Sprint Day 3: your buy box. Day 4: your first shortlist.]
 
@@ -147,11 +147,11 @@ Push the payments to three hundred and fifty thousand, and it drops to one point
 
 [SLIDE: Banks don't reject buyers]
 
-So when owners tell me banks won't lend to them for an acquisition, here's what's really going on. Banks don't reject buyers. They reject structures. Bring a lender a business that clears one and a half times, financials that match the tax returns, and a buyer who already runs the same kind of business, and you're in a very different conversation.
+So when owners say banks won't lend to them for an acquisition, here's what's really going on. Banks don't reject buyers. They reject structures. Bring a lender a business that clears one and a half times, financials that match the tax returns, and a buyer who already runs the same kind of business, and you're in a very different conversation.
 
 [SLIDE: Day 2 and Day 5 of the Sprint]
 
-And here's the second reason the Sprint exists. On day two, we work out your acquisition capacity: how much debt your own profit can carry at one and a half times, and the size of target that supports. On day five, you get your deal-structure memo, in writing. How a deal for your target splits across commercial debt, seller finance and seller rollover, run through the test, with the levers to pull if it falls short.
+And here's the second reason the Sprint exists. On day two, the team works out your acquisition capacity: how much debt your own profit can carry at one and a half times, and the size of target that supports. On day five, you get your deal-structure memo, in writing. How a deal for your target splits across commercial debt, seller finance and seller rollover, run through the test, with the levers to pull if it falls short.
 
 [ON SCREEN: Sprint Day 2: your capacity number. Day 5: your deal-structure memo.]
 
@@ -185,7 +185,7 @@ That's what's really on the table. The first deal is the hard one. It's also the
 
 [SLIDE: Your turn]
 
-So I want you to answer the most useful question of the day. It's just appeared beside the video. In one sentence, what would your first acquisition change for you? More profit without more hours, a business that runs without you, a bigger exit, or something of your own. Write it down. In a moment I'm going to show you the fastest way to get it.
+So here's the most useful question of the day. It's just appeared beside the video. In one sentence, what would your first acquisition change for you? More profit without more hours, a business that runs without you, a bigger exit, or something of your own. Write it down. In a moment you'll see the fastest way to get it.
 
 ## [19:00] The First Deal Sprint
 
@@ -195,21 +195,21 @@ So I want you to answer the most useful question of the day. It's just appeared 
 
 The First Deal Sprint has just unlocked under the video. It opened at this minute for everyone watching, and it's only offered to people who've watched this masterclass.
 
-Here's the whole thing, simply. Seven days with my team. We take everything you've seen so far and apply it to your business and the first deal you'd do. By day seven, you're holding your first deal on paper.
+Here's the whole thing, simply. Seven days with Josh's team. They take everything you've seen so far and apply it to your business and the first deal you'd do. By day seven, you're holding your first deal on paper.
 
 [ON SCREEN: 7 days. Your first deal on paper.]
 
 [SLIDE: Why we built it]
 
-I'll tell you why we built it, because the reason matters more than the list.
+Here's why it was built, because the reason matters more than the list.
 
-For years, the first step with my team was a thirty minute strategy call. It worked, but thirty minutes isn't enough to do the real work. Owners left with a feeling that it was possible and nothing they could act on. So we built the Sprint. Instead of talking about your first deal, we build it with you, in a week.
+For years, the first step with Josh's team was a thirty minute strategy call. It worked, but thirty minutes isn't enough to do the real work. Owners left with a feeling that it was possible and nothing they could act on. So they built the Sprint. Instead of talking about your first deal, they build it with you, in a week.
 
 [SLIDE: Day 1 | Kickoff and your numbers]
 
 Here's what happens, day by day.
 
-Day one, you kick off with my team, and your numbers come in through a short intake. Everything you've tapped in this room comes with you, so we don't start from zero.
+Day one, you kick off with Josh's team, and your numbers come in through a short intake. Everything you've tapped in this room comes with you, so nobody starts from zero.
 
 [SLIDE: Day 2 | Your acquisition capacity]
 
@@ -221,7 +221,7 @@ Day three, your buy box. The business to buy first, described so clearly that an
 
 [SLIDE: Day 4 | Your first shortlist]
 
-Day four, your first shortlist. My team goes into your market and pulls owner run businesses that match the buy box. This is the step most owners never get to on their own, because it's slow and nobody shows them where to look.
+Day four, your first shortlist. Josh's team goes into your market and pulls owner run businesses that match the buy box. This is the step most owners never get to on their own, because it's slow and nobody shows them where to look.
 
 [SLIDE: Day 5 | Your deal-structure memo]
 
@@ -233,7 +233,7 @@ Day six, your outreach script. The first message to an owner with no successor, 
 
 [SLIDE: Day 7 | Your Deal Plan session]
 
-And day seven, your Deal Plan session. Sixty minutes with my team, with the whole deal on the table. Your capacity, your buy box, your shortlist, your structure and your script. We answer every question you have about doing the deal.
+And day seven, your Deal Plan session. Sixty minutes with Josh's team, with the whole deal on the table. Your capacity, your buy box, your shortlist, your structure and your script. They answer every question you have about doing the deal.
 
 [ON SCREEN: Day 1 kickoff. Day 2 capacity. Day 3 buy box. Day 4 shortlist. Day 5 memo. Day 6 script. Day 7 Deal Plan session.]
 
@@ -241,7 +241,7 @@ And day seven, your Deal Plan session. Sixty minutes with my team, with the whol
 
 [SLIDE: Is it right for you?]
 
-There's a question under the video now. Is the First Deal Sprint right for you? Answer it honestly. If you have a question first, pick that and type it in the question box. My team reads every one.
+There's a question under the video now. Is the First Deal Sprint right for you? Answer it honestly. If you have a question first, pick that and type it in the question box. Josh's team reads every one.
 
 ## [24:00] What it costs, and what protects you
 
@@ -259,17 +259,17 @@ Compare it with doing it alone. A few hundred dollars an hour for an accountant 
 
 [SLIDE: The guarantee]
 
-Now the guarantee, and I want it bigger than the price.
+Now the guarantee, and it's bigger than the price.
 
-Do the Sprint. Come to your Deal Plan session. If at the end of that session you don't think it was worth far more than you paid, tell us that day, and we refund the full fee. You keep the plan.
+Do the Sprint. Come to your Deal Plan session. If at the end of that session you don't think it was worth far more than you paid, tell the team that day, and they refund the full fee. You keep the plan.
 
-[ON SCREEN: Not worth far more than you paid? Tell us at the end of your Deal Plan session for a full refund.]
+[ON SCREEN: Not worth far more than you paid? Tell the team at the end of your Deal Plan session for a full refund.]
 
-I can offer that because the Sprint is built to be useful whether or not you ever work with us again. The capacity number, the buy box, the shortlist, the memo and the script are yours. The only way it fails is if we don't do the work, and then you shouldn't pay for it.
+That's possible because the Sprint is built to be useful whether or not you ever work with G&L again. The capacity number, the buy box, the shortlist, the memo and the script are yours. The only way it fails is if the team doesn't do the work, and then you shouldn't pay for it.
 
 [SLIDE: Credited in full]
 
-And there's a second protection. At your Deal Plan session, if you want my team with you through the whole deal, through the outreach, the negotiation, the lender introductions and the letter of intent, that's our advisory engagement. If you go ahead with it, every dollar you paid for the Sprint comes off the fee.
+And there's a second protection. At your Deal Plan session, if you want Josh's team with you through the whole deal, through the outreach, the negotiation, the lender introductions and the letter of intent, that's the advisory engagement. If you go ahead with it, every dollar you paid for the Sprint comes off the fee.
 
 So the Sprint ends one of three ways. It was worth far more than you paid. It's refunded. Or it's credited in full. There's no version where you pay for nothing.
 
@@ -279,7 +279,7 @@ So the Sprint ends one of three ways. It was worth far more than you paid. It's 
 
 There's one more thing, and it has a real deadline.
 
-If you start the Sprint within twenty-four hours of it unlocking for you, I'll review your Deal Plan personally. Before your day seven session, I read your deal-structure memo and add my own notes to it. My time is the scarcest thing in the business, and I'd rather spend it on owners who act while the numbers are fresh. The countdown under the video is your own. When it runs out, the bonus is gone, and the site removes it.
+If you start the Sprint within twenty-four hours of it unlocking for you, Josh reviews your Deal Plan personally. Before your day seven session, he reads your deal-structure memo and adds his own notes to it. Josh's time is the scarcest thing in the business, and he'd rather spend it on owners who act while the numbers are fresh. The countdown under the video is your own. When it runs out, the bonus is gone, and the site removes it.
 
 [ON SCREEN: Start within 24 hours: Josh reviews your Deal Plan personally.]
 
@@ -291,11 +291,11 @@ The Sprint itself closes when your replay closes, forty-eight hours after this s
 
 [SLIDE: The questions that decide it]
 
-Owners rarely doubt that this works. They doubt it'll work for them. So let me take the reasons owners hold back, one at a time.
+Owners rarely doubt that this works. They doubt it'll work for them. So here are the reasons owners hold back, one at a time.
 
 [SLIDE: "I'm not ready to buy yet."]
 
-I'm not ready to buy yet. The Sprint isn't buying a business. It's finding out what you'd buy, what you can carry and how it would be funded, before you commit to anything. Most owners who say they're not ready don't know their capacity number. Once they do, the timing question answers itself.
+The first one: I'm not ready to buy yet. The Sprint isn't buying a business. It's finding out what you'd buy, what you can carry and how it would be funded, before you commit to anything. Most owners who say they're not ready don't know their capacity number. Once they do, the timing question answers itself.
 
 [SLIDE: "What if there's nothing I want on the shortlist?"]
 
@@ -303,7 +303,7 @@ What if the shortlist has nothing I want? Then the buy box tells you where to wi
 
 [SLIDE: "I don't have the time."]
 
-I don't have the time. A kickoff call, an intake of about twenty minutes, and the sixty-minute Deal Plan session. About three hours across seven days. My team does the heavy lifting in between.
+I don't have the time. A kickoff call, an intake of about twenty minutes, and the sixty-minute Deal Plan session. About three hours across seven days. Josh's team does the heavy lifting in between.
 
 [SLIDE: "I'm already talking to a seller."]
 
@@ -311,7 +311,7 @@ I'm already talking to a seller. Then it's even more useful. Your shortlist star
 
 [SLIDE: "I've been burned by a course before."]
 
-I've bought a course like this before, and it went nowhere. That's why the Sprint isn't a course. There are no modules. My team builds your plan with you, on your numbers. And the guarantee means you only keep paying if it was worth far more than it cost.
+I've bought a course like this before, and it went nowhere. That's why the Sprint isn't a course. There are no modules. Josh's team builds your plan with you, on your numbers. And the guarantee means you only keep paying if it was worth far more than it cost.
 
 [SLIDE: "Does it work where I am?"]
 
@@ -343,7 +343,7 @@ Earlier you wrote down what your first acquisition would change for you. It's be
 
 [SLIDE: Permission to decide]
 
-You don't need more information to make this decision. You've seen the method, the test, the structure, the price and the guarantee. The guarantee means the risk sits with my team, not with you. So if you're doing over a million a year and that sentence you wrote matters to you, give yourself permission to decide now.
+You don't need more information to make this decision. You've seen the method, the test, the structure, the price and the guarantee. The guarantee means the risk sits with Josh's team, not with you. So if you're doing over a million a year and that sentence you wrote matters to you, give yourself permission to decide now.
 
 [ON SCREEN: Start the First Deal Sprint. Button under the video. $2,900 today with your ticket credit.]
 
@@ -351,7 +351,7 @@ You don't need more information to make this decision. You've seen the method, t
 
 Click the button under the video. It opens a secure checkout with your email filled in, and it takes about a minute. The moment it's paid, your Sprint page opens with the kickoff booking. Book it for the next two days, so day one starts while today is fresh.
 
-If you'd rather talk to my team first, the strategy call link is right beside the button, and the calendar opens next to the video.
+If you'd rather talk to Josh's team first, the strategy call link is right beside the button, and the calendar opens next to the video.
 
 [WORKSHEET]
 

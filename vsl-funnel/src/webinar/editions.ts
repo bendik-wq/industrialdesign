@@ -7,8 +7,8 @@ import { AI_TIMELINE } from './edition-ai';
  * Which recording the room plays, and the timeline that goes with it.
  *
  *  - recorded: Josh's own recording of script v3 (66 minutes, the Sprint unlocks at 38:00). The default.
- *  - ai: the AI edition, presented in an AI version of Josh's voice (disclosed at the start and on every
- *    slide), pitching the First Deal Sprint from the first minute. Its timeline is generated from the
+ *  - ai: the AI edition, narrated by an AI voice presenting Josh's method (disclosed at the start and on
+ *    every slide), pitching the First Deal Sprint from the first minute. Its timeline is generated from the
  *    rendered audio by the build (edition-ai.ts), so every cue lands on the words it belongs to.
  *
  * Settings still win: WEBINAR_DURATION_MIN, WEBINAR_PITCH_AT, WEBINAR_BONUS_AT, WEBINAR_CHAPTERS and

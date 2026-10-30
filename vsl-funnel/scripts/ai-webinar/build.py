@@ -19,11 +19,11 @@ SCRIPT = os.path.join(HERE, 'script-ai.md')
 AUDIO = os.path.join(HERE, 'audio'); SLIDES = os.path.join(HERE, 'slides'); SEGS = os.path.join(HERE, 'segs')
 OUT_MEDIA = os.path.join(REPO, 'public/assets/media/webinar/ai')
 OUT_TS = os.path.join(REPO, 'src/webinar/edition-ai.ts')
-VOICE = os.environ.get('VOICE_ID', 'CzDOqzvGBuRK8lMYWZ2O')  # "Josh Li v3" (cloned, used with disclosure)
+VOICE = os.environ.get('VOICE_ID', 'JBFqnCBsd6RMkjVDRZzb')  # George: warm British storyteller (stock voice, AI narration disclosed)
 MODEL = 'eleven_multilingual_v2'
 WPM = 165  # the cloned voice at speed 0.85 with paragraph breaks (measured 208 wpm at full speed)
 DRY = '--dry' in sys.argv; SAMPLE = '--sample' in sys.argv
-FOOTER = 'The Acquisition Masterclass · Presented in an AI version of Josh Li’s voice'
+FOOTER = 'The Acquisition Masterclass · Narrated by an AI voice · Method by Josh Li'
 
 # Key points shown in the room: (id, text, phrase in the script it lands on). Texts follow the room's copy rules.
 TAKEAWAYS = [
@@ -101,7 +101,7 @@ def tts(seg, prev_text, next_text):
         return dry
     api_key = open(os.path.join(HERE, '.key')).read().strip()
     body = {'text': seg['text'], 'model_id': MODEL, 'previous_text': prev_text[-600:], 'next_text': next_text[:300],
-            'voice_settings': {'stability': 0.5, 'similarity_boost': 0.8, 'style': 0.15, 'use_speaker_boost': True, 'speed': 0.85}}
+            'voice_settings': {'stability': 0.5, 'similarity_boost': 0.8, 'style': 0.15, 'use_speaker_boost': True, 'speed': float(os.environ.get('VOICE_SPEED', '1.0'))}}
     req = urllib.request.Request(f'https://api.elevenlabs.io/v1/text-to-speech/{VOICE}?output_format=mp3_44100_128',
                                  data=json.dumps(body).encode(), headers={'xi-api-key': api_key, 'content-type': 'application/json'})
     with urllib.request.urlopen(req, timeout=300) as r, open(path + '.part', 'wb') as f: f.write(r.read())
