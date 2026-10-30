@@ -1,6 +1,6 @@
 # AI-edition masterclass
 
-Builds the AI edition of the masterclass: Josh's method narrated by an AI voice (ElevenLabs stock voice "George", British,
+Builds the AI edition of the masterclass: Josh's method narrated by an AI voice (ElevenLabs library voice "Christopher", British, at 92% speed,
 disclosed in the opening and on every slide), pitching the First Deal Sprint from the first minute.
 `script-ai-josh.md` is the first-person version for Josh's own cloned voice once his professional clone is trained
 (run with `VOICE_ID=4VFizj5F8jBY7TGDsGjk` after swapping the script in).

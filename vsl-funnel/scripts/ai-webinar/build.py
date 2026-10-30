@@ -19,7 +19,7 @@ SCRIPT = os.path.join(HERE, 'script-ai.md')
 AUDIO = os.path.join(HERE, 'audio'); SLIDES = os.path.join(HERE, 'slides'); SEGS = os.path.join(HERE, 'segs')
 OUT_MEDIA = os.path.join(REPO, 'public/assets/media/webinar/ai')
 OUT_TS = os.path.join(REPO, 'src/webinar/edition-ai.ts')
-VOICE = os.environ.get('VOICE_ID', 'JBFqnCBsd6RMkjVDRZzb')  # George: warm British storyteller (stock voice, AI narration disclosed)
+VOICE = os.environ.get('VOICE_ID', 'G17SuINrv2H9FC6nvetn')  # Christopher: gentle, trustworthy British narrator (library voice, AI narration disclosed)
 MODEL = 'eleven_multilingual_v2'
 WPM = 165  # the cloned voice at speed 0.85 with paragraph breaks (measured 208 wpm at full speed)
 DRY = '--dry' in sys.argv; SAMPLE = '--sample' in sys.argv
@@ -145,7 +145,10 @@ def main():
         lst.append(f"file '{out}'")
     open(os.path.join(HERE, 'concat.txt'), 'w').write('\n'.join(lst))
     full = os.path.join(HERE, 'masterclass-ai.mp4')
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', os.path.join(HERE, 'concat.txt'), '-c', 'copy', full], check=True)
+    raw = os.path.join(HERE, 'masterclass-raw.mp4')
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', os.path.join(HERE, 'concat.txt'), '-c', 'copy', raw], check=True)
+    # Even loudness for speech (-16 LUFS) with peaks kept under -1.5 dB, so no line clips or drops away.
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', raw, '-c:v', 'copy', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=9', '-c:a', 'aac', '-b:a', '96k', '-ar', '44100', full], check=True)
     # Timeline from the real segment lengths.
     t = 0.0; chapters, cues, starts = [], {}, []
     for sg in segs:

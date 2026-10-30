@@ -2,112 +2,112 @@
 import type { EditionTimeline } from './editions';
 
 export const AI_TIMELINE: EditionTimeline = {
-  "durationMin": 22.25,
-  "pitchAtMin": 11.31,
-  "bonusAtMin": 21.06,
-  "buyinAt": 658,
-  "calcAt": 452,
+  "durationMin": 20.79,
+  "pitchAtMin": 10.7,
+  "bonusAtMin": 19.63,
+  "buyinAt": 621,
+  "calcAt": 426,
   "chapters": [
     {
       "at": 0.0,
       "title": "One decision"
     },
     {
-      "at": 1.9,
+      "at": 1.82,
       "title": "The real problem"
     },
     {
-      "at": 4.72,
+      "at": 4.5,
       "title": "Where the deals are"
     },
     {
-      "at": 6.81,
+      "at": 6.4,
       "title": "The test every deal has to pass"
     },
     {
-      "at": 10.0,
+      "at": 9.42,
       "title": "Why this is worth so much more than the profit"
     },
     {
-      "at": 11.31,
+      "at": 10.7,
       "title": "The First Deal Sprint"
     },
     {
-      "at": 14.22,
+      "at": 13.38,
       "title": "What it costs, and what protects you"
     },
     {
-      "at": 17.18,
+      "at": 16.09,
       "title": "Is this for you?"
     },
     {
-      "at": 19.41,
+      "at": 18.12,
       "title": "Your decision"
     }
   ],
   "recaps": {
     "0": "What this masterclass is for, who it is for, and the First Deal Sprint named up front.",
-    "1.9": "Your first deal is a structure problem: commercial debt, seller finance and seller rollover, not your savings.",
-    "4.72": "Off market, with owners who have no successor, found through a buy box and a shortlist.",
-    "6.81": "Yearly profit divided by yearly debt payments has to clear about 1.5x, and banks reject structures, not buyers.",
-    "10": "Illustrative ranges of 3 to 5x profit for one business against 8 to 12x for a group.",
-    "11.31": "The Sprint opened: seven days, one deal mapped out, day by day.",
-    "14.22": "The price, the ticket credit, the guarantee, the credit against the engagement, the bonus and when it closes.",
-    "17.18": "The reasons owners hold back, answered one at a time.",
-    "19.41": "Two ways to leave, permission to decide, and the worksheet."
+    "1.82": "Your first deal is a structure problem: commercial debt, seller finance and seller rollover, not your savings.",
+    "4.5": "Off market, with owners who have no successor, found through a buy box and a shortlist.",
+    "6.4": "Yearly profit divided by yearly debt payments has to clear about 1.5x, and banks reject structures, not buyers.",
+    "9.42": "Illustrative ranges of 3 to 5x profit for one business against 8 to 12x for a group.",
+    "10.7": "The Sprint opened: seven days, one deal mapped out, day by day.",
+    "13.38": "The price, the ticket credit, the guarantee, the credit against the engagement, the bonus and when it closes.",
+    "16.09": "The reasons owners hold back, answered one at a time.",
+    "18.12": "Two ways to leave, permission to decide, and the worksheet."
   },
   "polls": {
-    "target_type": 1.53,
-    "blocker": 4.45,
-    "own_cash": 9.66,
-    "soft_close": 14.0
+    "target_type": 1.44,
+    "blocker": 4.27,
+    "own_cash": 9.12,
+    "soft_close": 13.18
   },
   "steps": {
     "target": 0,
-    "size": 114,
-    "where": 283,
-    "test": 408,
-    "stack": 452,
-    "group": 600,
-    "plan": 678
+    "size": 109,
+    "where": 270,
+    "test": 384,
+    "stack": 426,
+    "group": 565,
+    "plan": 642
   },
   "takeaways": [
     {
       "id": "structure-problem",
-      "at": 121,
+      "at": 116,
       "text": "Your first acquisition is a structure problem, not a money problem."
     },
     {
       "id": "revenue-gap",
-      "at": 235,
+      "at": 225,
       "text": "Illustrative: adding $500,000 of profit at a 15% margin takes about $3.3M of new revenue, or one acquisition of a business that already makes it."
     },
     {
       "id": "dscr",
-      "at": 429,
+      "at": 404,
       "text": "Debt service coverage is yearly profit divided by yearly debt payments, and lenders want to see about 1.5x or better."
     },
     {
       "id": "structures",
-      "at": 518,
+      "at": 489,
       "text": "Banks do not reject buyers, they reject structures."
     },
     {
       "id": "multiples",
-      "at": 607,
+      "at": 572,
       "text": "Illustrative ranges: one small business trades at 3 to 5x profit, and a group of them at 8 to 12x."
     },
     {
       "id": "sprint-days",
-      "at": 727,
+      "at": 691,
       "text": "The First Deal Sprint: in seven days, your acquisition capacity, your buy box, a first shortlist, a deal-structure memo, an outreach script and a Deal Plan session."
     },
     {
       "id": "guarantee",
-      "at": 916,
+      "at": 860,
       "text": "The Sprint guarantee: if at the end of your Deal Plan session it was not worth far more than you paid, tell the team that day and the full fee is refunded."
     }
   ],
   "mode": "voiced",
-  "seconds": 1305
+  "seconds": 1217
 };
