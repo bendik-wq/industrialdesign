@@ -12,6 +12,8 @@
     "binding": "ASSETS",
     "run_worker_first": true
   },
+  // Uploaded files (deal rooms). D1 keeps the record; the bytes live here.
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "warplan-files" }],
   "d1_databases": [
     { "binding": "DB", "database_name": "warplan", "database_id": "a4a90461-4f49-453a-9f9b-3e956efb913f" }
   ],

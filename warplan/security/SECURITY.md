@@ -42,7 +42,7 @@ Clean: no SQL injection, XSS, command/path injection, SSRF to private networks, 
 | Tokens in URLs (`/mcp/wp_…`, hook paths) in request logs | Per-request invocation logs off (`observability.logs.invocation_logs: false`); console logs kept |
 | Webhook signing secrets in plain text | Sealed with AES-GCM bound to the workspace (`sealed:v1:`); older rows re-sealed on first use |
 | Legacy `API_TOKEN` platform-admin secret | Code path removed (it wasn't set in production) |
-| Files stored in D1 | R2 storage path built: with an R2 bucket bound as `FILES`, new files go to R2 and a cron job moves existing ones across. **Needs R2 enabled on the Cloudflare account** (dashboard → R2), then `wrangler r2 bucket create warplan-files` and a `FILES` binding. Until then the 1.5 GB/workspace quota applies |
+| Files stored in D1 | Uploaded files live in R2 (`warplan-files`, binding `FILES`); D1 keeps only the record. A cron job moves any older D1 files across. Verified live: upload → stored in R2 with 0 bytes in D1 → download byte-identical → target delete removes the object. 1.5 GB/workspace quota still applies |
 | AI and data budgets could be overshot by a burst | Calls reserve a hold before running (`_hold` usage rows, `RESERVED` data runs) inside the same transaction as the limit check |
 | Seller links never expired | Expire after 60 days (`link_expires_at`, migration `0001_link_expiry.sql`); a new link resets it |
 | No `__Host-` cookie prefix | Cookie is `__Host-wp_s` (everyone signed in again once) |
@@ -54,5 +54,4 @@ Clean: no SQL injection, XSS, command/path injection, SSRF to private networks, 
 
 ### Still open
 
-- R2: waiting for R2 to be enabled on the Cloudflare account (see above).
 - Reads (GET) can be served from a 5-second session cache after a sign-out or removal; writes never are.
