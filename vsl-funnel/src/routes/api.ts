@@ -18,6 +18,7 @@ import { blueprintAction } from '../webinar/blueprint';
 import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
 import { PassError, activePass, createCheckout, markReviewClicked, passGate, syncPassReplay } from '../webinar/pass';
 import { ensureDealSprint } from '../webinar/deal-sprint';
+import { sameOriginWrite } from '../admin/auth';
 import { createSprintCheckout, unlockSprint } from '../webinar/sprint';
 
 export const api = new Hono<AppEnv>();
@@ -265,6 +266,24 @@ api.post('/webinar/sprint/checkout', async (c) => {
     return errorResponse(c, err);
   }
 });
+// One-click Sprint for Whop ticket buyers: the confirm step's numbers, then the charge on the ticket's card.
+// Same-origin only; same gate as checkout; one attempt in flight per registration (see one-click.ts).
+for (const [path, run] of [
+  ['/webinar/sprint/one-click/quote', (rt: ReturnType<typeof runtimeFrom>, reg: NonNullable<Awaited<ReturnType<typeof getRegistration>>>, ip: string | null) => import('../webinar/one-click').then((m) => m.oneClickQuote(rt, reg, { ip }))],
+  ['/webinar/sprint/one-click', (rt: ReturnType<typeof runtimeFrom>, reg: NonNullable<Awaited<ReturnType<typeof getRegistration>>>) => import('../webinar/one-click').then((m) => m.oneClickSprint(rt, reg))],
+] as const) {
+  api.post(path, async (c) => {
+    if (!sameOriginWrite(c)) return c.json({ ok: false, error: 'forbidden' }, 403);
+    try {
+      const { rt, reg } = await webinarReg(c);
+      if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+      return c.json(await run(rt, reg, c.req.header('cf-connecting-ip') ?? null));
+    } catch (err) {
+      if (err instanceof PassError) return c.json({ ok: false, error: err.message, ...(err.book ? { book: err.book } : {}) }, err.status as 400);
+      return errorResponse(c, err);
+    }
+  });
+}
 // The buyer booked the kickoff in the calendar on their Sprint page (Calendly's own "scheduled" message).
 api.post('/webinar/sprint/kickoff', roomAction(async (rt, reg) => {
   const pass = await activePass(rt, reg.lead_id);

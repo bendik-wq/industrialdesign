@@ -33,23 +33,33 @@ export const CHECKOUT_UNAVAILABLE = 'Checkout isn’t available right now. Book 
 export const WHOP_PRODUCT: Record<PassKind, string> = { seat: 'vsl-funnel-masterclass-ticket', offer: 'vsl-funnel-first-deal-sprint' };
 
 export class WhopError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public code: string | null = null) { super(message); }
 }
 
 type Obj = Record<string, unknown>;
 const obj = (v: unknown): Obj => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Obj) : {});
 const str = (v: unknown) => (typeof v === 'string' && v ? v : null);
 
-export async function whopApi<T>(rt: Runtime, method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+/**
+ * The payments API that charges a saved method (POST /payments, its status, payment quotes) is Whop's
+ * newer native API: those calls are pinned to this version instead.
+ */
+export const WHOP_NATIVE_VERSION = '2026-10-29-8';
+
+export async function whopApi<T>(rt: Runtime, method: 'GET' | 'POST', path: string, body?: unknown, o: { version?: string; idempotencyKey?: string } = {}): Promise<T> {
   const key = String(rt.settings.WHOP_API_KEY ?? '').trim();
   if (!key) throw new WhopError(0, 'Whop is not connected');
   const res = await fetch(`${WHOP_API}/${path}`, {
     method,
-    headers: { authorization: `Bearer ${key}`, 'api-version-date': WHOP_API_VERSION, accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
+    headers: {
+      authorization: `Bearer ${key}`, 'api-version-date': o.version ?? WHOP_API_VERSION, accept: 'application/json',
+      ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      ...(o.idempotencyKey ? { 'idempotency-key': o.idempotencyKey } : {}),
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  const json = (await res.json().catch(() => ({}))) as T & { error?: { message?: string }; message?: string };
-  if (!res.ok) throw new WhopError(res.status, `Whop ${res.status}: ${json.error?.message ?? json.message ?? 'request failed'}`);
+  const json = (await res.json().catch(() => ({}))) as T & { error?: { message?: string; code?: string }; message?: string };
+  if (!res.ok) throw new WhopError(res.status, `Whop ${res.status}: ${json.error?.message ?? json.message ?? 'request failed'}`, json.error?.code ?? null);
   return json;
 }
 
@@ -221,7 +231,37 @@ export async function whopPaymentPaid(rt: Runtime, pay: Obj, effects: PaidEffect
     sessionId, paymentIntent: payId, amount: money ? toMinor(money.major, currency) : null, currency,
     regId: str(meta.reg_id) ?? row?.reg_id ?? null, passId: row?.id ?? str(meta.pass_id), kind: str(meta.kind) ?? row?.kind ?? null, provider: 'whop',
   }, effects);
+  // Keep the buyer's member and saved payment method: the ticket's card is what one-click charges for the Sprint.
+  if (r.ok) await storePaymentMethod(rt, r.pass.id, pay).catch((e) => console.error('whop payment method', String(e).slice(0, 200)));
   return r.ok ? { paid: r.pass.id, duplicate: r.duplicate } : { ignored: r.reason };
+}
+
+export interface SavedMethod { memberId: string; paymentMethodId: string; brand: string | null; last4: string | null }
+
+/** The member, saved method and card from a Whop payment, in either shape (pinned: nested objects; native: ids). */
+export function paymentMethodOf(pay: Obj): Partial<SavedMethod> {
+  const pm = obj(pay.payment_method), card = obj(pm.card), inst = obj(obj(pay.payment_instrument).card);
+  return {
+    memberId: str(pay.member_id) ?? str(obj(pay.member).id) ?? undefined,
+    paymentMethodId: str(pay.payment_method_id) ?? str(pm.id) ?? undefined,
+    brand: str(pay.card_brand) ?? str(card.brand) ?? str(inst.brand),
+    last4: str(pay.card_last4) ?? str(card.last4) ?? str(inst.last4),
+  };
+}
+
+/** Stores the payment's member and method on the purchase, asking Whop for the payment when the event left them out. */
+export async function storePaymentMethod(rt: Runtime, passId: string, pay: Obj) {
+  let m = paymentMethodOf(pay);
+  const payId = str(pay.id);
+  if ((!m.memberId || !m.paymentMethodId) && payId && rt.settings.WHOP_API_KEY) {
+    const full = await whopApi<Obj>(rt, 'GET', `payments/${encodeURIComponent(payId)}`).catch(() => null);
+    if (full) m = { ...paymentMethodOf(full), ...Object.fromEntries(Object.entries(m).filter(([, v]) => v)) };
+  }
+  if (!m.memberId || !m.paymentMethodId) return false;
+  await rt.env.DB.prepare(
+    'UPDATE webinar_passes SET whop_member_id = ?, whop_payment_method_id = ?, card_brand = COALESCE(?, card_brand), card_last4 = COALESCE(?, card_last4) WHERE id = ?',
+  ).bind(m.memberId, m.paymentMethodId, m.brand ?? null, m.last4 ?? null, passId).run();
+  return true;
 }
 
 /** A succeeded Whop refund → withdraw the purchase (full) or record what was returned (partial). */
@@ -257,6 +297,8 @@ export async function handleWhopEvent(rt: Runtime, ev: { type?: string; data?: u
 /** Back from Whop with ?pass=success: look the payment up by our checkout configuration, in case the webhook hasn't arrived. */
 export async function whopConfirm(rt: Runtime, row: PassRow, effects: PaidEffects = passPaidEffects): Promise<'paid' | 'pending' | 'unknown'> {
   if (!rt.settings.WHOP_API_KEY || !row.stripe_session_id) return 'unknown';
+  // A one-click payment (back from 3D Secure, or still settling): its own status decides.
+  if (row.stripe_session_id.startsWith('whop_pay_')) return (await import('./one-click')).settleOneClick(rt, row, effects);
   try {
     const q = new URLSearchParams({ company_id: await whopCompanyId(rt), first: '10' });
     q.append('checkout_configuration_ids', row.stripe_session_id);
@@ -328,7 +370,8 @@ export async function whopHealth(rt: Runtime, cfg: Pick<PassConfig, 'price' | 'c
   const notes: { level: 'warn' | 'info'; text: string }[] = [];
   if (lastError?.limit) notes.push({ level: 'warn', text: `Whop refused a ${lastError.title} checkout for ${lastError.amount} on ${new Date(lastError.at).toUTCString()}: Whop caps checkout links at ${cap} until the account is approved for higher ones. Apply in Whop → Settings → Payments (access higher checkout links). Until then buyers see “${CHECKOUT_UNAVAILABLE}” with a link to book a call, and the team gets a Slack alert.` });
   else if (lastError) notes.push({ level: 'warn', text: `Whop refused the last ${lastError.title} checkout (${new Date(lastError.at).toUTCString()}): ${lastError.message}` });
-  else if (overCap && !aboveCapOk) notes.push({ level: 'info', text: `The ${cfg.offerName} (${cfg.priceLabel}) is above Whop’s default ${cap} checkout-link cap. If Whop hasn’t approved higher checkout links for this account yet, apply in Whop → Settings → Payments before the next masterclass.` });
+  const denied = await kvJson<{ at: number; message: string }>(rt, 'whop:charge_denied');
+  if (denied) notes.push({ level: 'warn', text: `One-click Sprint payments are failing (${new Date(denied.at).toUTCString()}): the Whop API key can’t charge saved cards (${denied.message}). In Whop → Dashboard → Developer → API keys, give this key the payment:charge permission. Until then those buyers go through the form and checkout.` });
   if (!rt.settings.WHOP_WEBHOOK_SECRET) notes.push({ level: 'warn', text: `No Whop webhook secret yet. Press “Connect Whop” on Integrations, or set the webhook up by hand: ${url}, events ${WHOP_EVENTS.join(', ')}. Without it payments still confirm when buyers come back from Whop, but refunds and closed tabs are missed.` });
   return { companyId: rt.settings.WHOP_COMPANY_ID || null, webhookSecret: Boolean(rt.settings.WHOP_WEBHOOK_SECRET), webhookUrl: url, events: [...WHOP_EVENTS], lastError, overCap, aboveCapOk, notes };
 }

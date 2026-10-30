@@ -193,7 +193,12 @@ export async function sprintStartPage(c: Context<AppEnv>) {
   if (!g.ok) return g.redirect ? c.redirect(g.redirect, 302) : page(c, g.title, g.html);
   const missing = c.req.query('missing') === '1';
   const { cfg } = sprintSettings(g.rt);
-  return formPage(c, g, { plan: c.req.query('plan') === '1', note: missing ? { text: sprintStartCopy({ offerName: cfg.offerName, price: '', whop: false }).missing } : null });
+  // Sent here from a one-click payment that didn't go through.
+  const oc = c.req.query('one_click');
+  const { oneClickCopy } = await import('./one-click');
+  const ocNote = oc === 'declined' ? oneClickCopy({ card: null }).declined : oc === 'unavailable' ? oneClickCopy({ card: null }).unavailable : null;
+  const note = missing ? sprintStartCopy({ offerName: cfg.offerName, price: '', whop: false }).missing : ocNote;
+  return formPage(c, g, { plan: c.req.query('plan') === '1', note: note ? { text: note } : null });
 }
 
 /** POST /sprint-start/:token: save the answers, then straight to checkout. */

@@ -290,7 +290,12 @@ export function sprintPlanForm(cfg: PassConfig, plan: SprintPlan, o: { passId: s
  * One click from the room or the offer page. Refused before the pitch and after the deadline (the
  * server decides, not the page). Reuses an open checkout of the same kind for this registration.
  */
-export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?: boolean; from?: 'room' | 'offer' | 'start' } = {}, now = Date.now()) {
+/**
+ * The server's gate for buying the Sprint (checkout and one-click alike): on sale, a $1M+ registration that
+ * reached the pitch (unlocked here if the room never reported it), before the offer deadline, not bought yet.
+ * Throws PassError when refused.
+ */
+export async function sprintBuyGate(rt: Runtime, reg: RegLike, now = Date.now(), how = 'checkout') {
   const { cfg, plan: planCfg, bonus } = sprintSettings(rt);
   const t = sprintCopy(cfg, { opensAt: mmss(pitchSec(rt)) });
   if (cfg.mode === 'off') throw new PassError('This isn’t available right now.', 409);
@@ -302,10 +307,17 @@ export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?
   if (r.offer_unlocked_at == null) {
     if (!reachedPitch(rt, session, r, now)) throw new PassError(t.notYet, 403);
     if (sprintWindow(rt, session, r, now).closed) throw new PassError(t.closed, 410);
-    r = await markUnlocked(rt, r, session, now, 'checkout');
+    r = await markUnlocked(rt, r, session, now, how);
   }
   const w = sprintWindow(rt, session, r, now);
   if (w.closed) throw new PassError(t.closed, 410);
+  return { paid: false as const, cfg, planCfg, bonus, w, r, session };
+}
+
+export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?: boolean; from?: 'room' | 'offer' | 'start' } = {}, now = Date.now()) {
+  const g = await sprintBuyGate(rt, reg, now);
+  if (g.paid) return { paid: true as const };
+  const { cfg, planCfg, bonus, w, r } = g;
   const plan = o.plan ? planCfg : null;
   if (o.plan && !plan) throw new PassError('The payment plan isn’t available. You can pay in one payment.', 409);
   const installments = plan ? plan.count : 1;
@@ -476,6 +488,8 @@ export async function sprintRoomConfig(rt: Runtime, reg: RegLike, session: Sessi
     fine: `${pc.secure} ${pc.noResults}`,
     offerUrl: offerUrl(rt, reg.token),
     startUrl: sprintStartUrl(rt, reg.token),
+    // Bought the ticket through Whop: one click on that card instead of the form and checkout.
+    oneClick: o.preview ? null : await (await import('./one-click')).oneClickInfo(rt, reg),
     applyUrl: o.applyUrl,
     tz: cfg.tz,
     ...sprintState(rt, session, reg, now),

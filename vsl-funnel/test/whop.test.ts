@@ -272,13 +272,14 @@ describe('Whop checkout', () => {
     expect(isCheckoutLimitError('Whop 500: oops', 500, 2900, 'usd')).toBe(false);
   });
 
-  it('before any refusal, HQ is reminded the Sprint is above the cap until a checkout above it has worked', async () => {
+  it('no cap note until Whop actually refuses a checkout; a checkout that works clears an old refusal', async () => {
+    expect((await whopHealth(rt, passConfig(rt.settings))).notes.map((n) => n.text).join(' ')).not.toMatch(/\$2,500/);
+    stubWhop({ checkoutError: { status: 422, message: 'Checkout links over $2,500 need approval' } });
+    await createSprintCheckout(rt, reg(db)).catch(() => null);
+    expect((await whopHealth(rt, passConfig(rt.settings))).notes.map((n) => n.text).join(' ')).toMatch(/caps checkout links at \$2,500/);
     stubWhop();
-    const before = await whopHealth(rt, passConfig(rt.settings));
-    expect(before.notes.map((n) => n.text).join(' ')).toMatch(/above Whop’s default \$2,500 checkout-link cap/);
     await createSprintCheckout(rt, reg(db));
-    const after = await whopHealth(rt, passConfig(rt.settings));
-    expect(after.notes.map((n) => n.text).join(' ')).not.toMatch(/checkout-link cap/);
+    expect((await whopHealth(rt, passConfig(rt.settings))).notes.map((n) => n.text).join(' ')).not.toMatch(/\$2,500/);
   });
 });
 

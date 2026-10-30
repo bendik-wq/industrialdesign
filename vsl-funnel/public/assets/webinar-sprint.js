@@ -56,6 +56,7 @@
     var holder = b.closest('[data-sprint-buybox]') || b.parentNode;
     var err = holder.querySelector('.sprint-err');
     if (S.preview) { if (!err) { err = document.createElement('p'); err.className = 'pass-note sprint-err'; holder.appendChild(err); } err.textContent = C.preview || 'Preview'; return; }
+    if (S.oneClick && !plan) { oneClick(b, holder); return; }
     var label = b.innerHTML;
     b.disabled = true; b.textContent = S.startUrl ? 'Opening…' : 'Opening secure checkout…';
     F.track('cta_click', { id: 'webinar_sprint_checkout', label: plan ? 'plan' : 'full' });
@@ -76,6 +77,47 @@
       if (r && r.book) { var a = document.createElement('a'); a.href = r.book; a.textContent = 'Book a call'; err.appendChild(document.createTextNode(' ')); err.appendChild(a); }
     });
   });
+
+  // ── One click (bought the ticket through Whop): confirm what is charged and to which card, then pay ──
+  function note(holder, text, book) {
+    var err = holder.querySelector('.sprint-err');
+    if (!err) { err = document.createElement('p'); err.className = 'pass-note pass-err sprint-err'; err.setAttribute('role', 'alert'); holder.appendChild(err); }
+    err.textContent = text;
+    if (book) { var a = document.createElement('a'); a.href = book; a.textContent = 'Book a call'; err.appendChild(document.createTextNode(' ')); err.appendChild(a); }
+  }
+  function oneClick(b, holder) {
+    var label = b.innerHTML;
+    b.disabled = true; b.textContent = 'Opening…';
+    F.track('cta_click', { id: 'webinar_sprint_one_click' });
+    if (W.sprint) { post('/api/webinar/cta', {}); post('/api/webinar/offer', { choice: 'sprint' }); }
+    post('/api/webinar/sprint/one-click/quote', {}).then(function (q) {
+      b.disabled = false; b.innerHTML = label;
+      if (q && q.next) { location.href = q.next; return; }
+      if (q && q.fallback) { location.href = q.fallback; return; }
+      if (!q || !q.lines) { note(holder, (q && q.error) || (S.oneClick.copy && S.oneClick.copy.unavailable) || '', q && q.book); return; }
+      var box = holder.querySelector('.sprint-oc');
+      if (!box) { box = document.createElement('div'); box.className = 'card sprint-oc'; box.style.marginTop = '12px'; holder.insertBefore(box, b.parentNode.nextSibling); }
+      var row = function (l, a, strong) { return '<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0' + (strong ? ';border-top:1px solid #e4e7ec;font-weight:700' : '') + '"><span>' + esc(l) + '</span><span class="nw">' + esc(a) + '</span></div>'; };
+      box.innerHTML = '<p class="pass-eyebrow">' + esc(q.copy.confirmHeading) + '</p>' +
+        q.lines.map(function (x) { return row(x.label, x.amount); }).join('') + row('Total', q.total, true) +
+        '<p class="sprint-fine">' + esc(q.copy.charged) + '</p>' +
+        '<div class="pass-room-btns"><button type="button" class="btn btn-lg pass-btn" data-oc-pay>' + esc(q.copy.confirmButton) + '</button>' +
+        '<a class="btn btn-lg secondary" href="' + esc(S.startUrl) + '" data-oc-other>' + esc(q.copy.otherCard) + '</a></div>';
+      var pay = box.querySelector('[data-oc-pay]');
+      pay.addEventListener('click', function () {
+        if (pay.disabled) return;
+        pay.disabled = true; pay.textContent = q.copy.paying;
+        F.track('cta_click', { id: 'webinar_sprint_one_click_confirm' });
+        post('/api/webinar/sprint/one-click', { confirm: true }).then(function (r) {
+          if (r && r.next) { location.href = r.next; return; }
+          if (r && r.fallback) { location.href = r.fallback; return; }
+          pay.disabled = false; pay.textContent = q.copy.confirmButton;
+          note(holder, (r && r.error) || (S.oneClick.copy && S.oneClick.copy.unavailable) || '', r && r.book);
+        });
+      });
+      box.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
+    });
+  }
 
   // ── The offer page needs nothing more ──
   if (!W.sprint || !document.querySelector('[data-room]')) { tickCountdowns(); return; }

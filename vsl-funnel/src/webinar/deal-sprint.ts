@@ -225,16 +225,20 @@ export function portalHtml(v: PortalView) {
         : `<input class="input" type="${f.kind === 'url' ? 'url' : 'text'}" ${attrs} maxlength="${f.kind === 'url' ? 500 : 200}" value="${val(f.key)}">`;
     return `<label>${esc(f.label)}${input}</label>`;
   }).join('');
+  // Not filled in yet (a one-click buyer skipped the form before paying): the questions sit right under the
+  // kickoff booking. Once saved, the form moves below the seven days for updates.
+  const intake = `<section class="ws-sec" id="intake"><h2 class="h3">${esc(t.intakeTitle)}</h2><p>${esc(t.intakeLede)}</p>
+    <form class="ds-form" method="post">${fields}<button class="btn" type="submit"${off}>${esc(v.intake ? t.intakeUpdate : t.intakeButton)}</button></form></section>`;
   return `${STYLE}${v.preview ? `<p class="muted no-print">${esc(t.preview)}</p>` : ''}
   <header class="ws-head ds-head"><span class="eyebrow"><span class="pass-badge">${esc(v.product)}</span></span>
     <h1 class="h2">${v.name ? `${esc(v.name)}, your` : 'Your'} ${esc(v.product)}</h1>
     <p class="lede">${v.day > SPRINT_DAYS ? 'All seven days are done.' : `Day ${v.day} of ${SPRINT_DAYS}.`} ${esc(t.lede)}</p></header>
   ${v.note ? `<p class="ds-note${v.note === t.intakeMissing ? ' warn' : ''}" role="status">${esc(v.note)}</p>` : ''}
   ${kickoffTop}
+  ${v.intake ? '' : intake}
   <div class="ds-next">${next}</div>
   <section class="ws-sec"><h2 class="h3">${esc(t.eyebrow)}</h2><ol class="ds-days">${days}</ol></section>
-  <section class="ws-sec" id="intake"><h2 class="h3">${esc(t.intakeTitle)}</h2><p>${esc(t.intakeLede)}</p>
-    <form class="ds-form" method="post">${fields}<button class="btn" type="submit"${off}>${esc(v.intake ? t.intakeUpdate : t.intakeButton)}</button></form></section>
+  ${v.intake ? intake : ''}
   <section class="ws-sec"><h2 class="h3">${esc(t.linksTitle)}</h2><p class="ds-links">${btn(v.links.pack, t.packLink, ' secondary')} ${btn(v.links.blueprint, t.blueprintLink, ' secondary')}</p></section>
   ${v.fastBonus ? `<section class="ws-sec"><h2 class="h3">${esc(t.bonusTitle)}</h2><p>${esc(DEAL_SPRINT_DELIVERABLES.find((d) => d.bonus)!.title)}. ${esc(DEAL_SPRINT_DELIVERABLES.find((d) => d.bonus)!.body)}</p></section>` : ''}
   <section class="ws-sec"><h2 class="h3">${esc(t.guaranteeTitle)}</h2><p>${esc(t.guarantee)}</p></section>
@@ -289,6 +293,11 @@ export async function dealSprintPage(c: Context<AppEnv>) {
     // Back from checkout before the webhook: ask the payment provider directly.
     const { confirmOnReturn } = await import('./pass');
     if ((await confirmOnReturn(rt, reg)) === 'paid') pass = await activePass(rt, reg.lead_id);
+    // A one-click payment that failed (3D Secure not passed, card declined): the normal form and checkout.
+    if (!pass && !(await rt.env.DB.prepare("SELECT 1 FROM webinar_passes WHERE reg_id = ? AND kind = 'offer' AND status = 'pending'").bind(reg.id).first())
+      && (await (await import('./one-click')).recentFailedOneClick(rt, reg.id))) {
+      return c.redirect(`${webinarBase(rt)}/sprint-start/${reg.token}?one_click=declined`, 302);
+    }
     if (!pass && (await rt.env.DB.prepare("SELECT 1 FROM webinar_passes WHERE reg_id = ? AND kind = 'offer' AND status = 'pending'").bind(reg.id).first())) {
       return render(c, '/webinar-worksheet.html', { title: 'First Deal Sprint', blocks: { worksheet: `<h1 class="h2">${esc(DEAL_SPRINT_COPY.kickoffTopTitle)}</h1><p class="lede" role="status">${esc(DEAL_SPRINT_COPY.confirming)}</p>` }, config: { webinar: { passConfirming: true } } });
     }

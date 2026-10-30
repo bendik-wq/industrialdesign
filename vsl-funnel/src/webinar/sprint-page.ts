@@ -93,5 +93,5 @@ export async function offerPage(c: Context<AppEnv>) {
     <section class="sprint-sec sprint-faq"><h2>Questions owners ask</h2>${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>
     ${buyBox()}
     <p class="sprint-more"><a href="${esc(room)}">${esc(t.backToRoom)}</a></p>`;
-  return page(cfg.offerName, html, { sprintPage: { token: reg.token, preview: isPreview, copy: t, startUrl: sprintStartUrl(rt, reg.token), ...sprintState(rt, session, reg, now) }, ty: reg.token });
+  return page(cfg.offerName, html, { sprintPage: { token: reg.token, preview: isPreview, copy: t, startUrl: sprintStartUrl(rt, reg.token), oneClick: isPreview ? null : await (await import('./one-click')).oneClickInfo(rt, reg), ...sprintState(rt, session, reg, now) }, ty: reg.token });
 }
