@@ -386,6 +386,16 @@ async function route(request, env, url, ctx, exec) {
   // Pipeline
   if (p === "/api/targets" && m === "GET") return json(await listTargets(env, ctx, q));
   if (p === "/api/targets" && m === "POST") return json(await createTarget(env, ctx, await body(request), hooks), 201);
+  // Remove several targets at once (owner, signed in; same cascade as a single delete).
+  if (p === "/api/targets/delete" && m === "POST") {
+    needOwner(ctx); if (ctx.viaToken) fail(403, "Delete targets from the app, signed in.");
+    const raw = (await body(request)).ids;
+    const ids = [...new Set((Array.isArray(raw) ? raw : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (!ids.length || ids.length > 200) fail(400, "Pick 1 to 200 targets to remove");
+    let deleted = 0;
+    for (const id of ids) { try { await deleteTarget(env, ctx, id, hooks); deleted++; } catch (e) { if (e.status !== 404) throw e; } }
+    return json({ deleted, missing: ids.length - deleted });
+  }
   if (p === "/api/targets/import" && m === "POST") return json(await importTargets(env, ctx, await body(request), hooks), 201);
   if (p === "/api/targets.csv" && m === "GET") return exportCsv(env, ctx);
   if ((r = p.match(/^\/api\/targets\/(\d+)$/))) {

@@ -1542,3 +1542,13 @@ table.grid input { width: 100%; min-width: 80px; }
   .terr-side { border-left: 0; border-top: 1px solid var(--line-strong); max-height: none; min-height: 0; }
 }
 .banner { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--line); border-left: 3px solid var(--signal); background: var(--surface); font-size: 13px; color: var(--ink-2); }
+/* remove controls (pipeline, Scout) */
+.row-x { background: none; border: 1px solid transparent; color: var(--muted); width: 28px; height: 28px; border-radius: var(--r); font-size: 13px; line-height: 1; cursor: pointer; }
+.row-x:hover, .row-x:focus-visible { color: var(--bad); border-color: var(--bad); }
+.sel-col { width: 36px; text-align: center; }
+.sel-bar { position: sticky; top: 0; z-index: 5; background: var(--surface); border: 1px solid var(--line-strong); padding: 8px 12px; margin-bottom: 8px; }
+.tcard-wrap { position: relative; }
+.card-x { position: absolute; top: 6px; right: 6px; background: var(--surface); opacity: 0; }
+.tcard-wrap:hover .card-x, .card-x:focus-visible { opacity: 1; }
+@media (hover: none) { .card-x { opacity: .7; } }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

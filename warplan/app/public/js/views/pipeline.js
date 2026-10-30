@@ -75,19 +75,21 @@ function board(targets) {
     const e = items.reduce((x, t) => x + (t.ebitda || 0), 0);
     return `<section class="col ${s.id === "lost" ? "col-lost" : ""}" data-stage="${s.id}" role="listitem" aria-label="${s.label}">
       <header><h2>${s.label}</h2><span>${items.length}${e ? ` · ${money(e, items[0]?.currency || "$")}` : ""}</span></header>
-      <div class="col-body">${items.map(card).join("") || `<p class="col-empty">Drop a target here</p>`}</div></section>`;
+      <div class="col-body">${items.map((t) => (session.me?.isOwner ? `<div class="tcard-wrap">${card(t)}<button type="button" class="row-x card-x" data-rm="${t.id}" title="Remove ${esc(t.name)}" aria-label="Remove ${esc(t.name)}">✕</button></div>` : card(t))).join("") || `<p class="col-empty">Drop a target here</p>`}</div></section>`;
   }).join("")}</div>`;
 }
 
 function table(targets) {
-  return `<div class="table-wrap panel flush"><table class="ttable" id="ttable"><thead><tr>
-    <th data-sort="name">Company</th><th data-sort="stage">Stage</th><th data-sort="ebitda" class="num">EBITDA</th><th data-sort="revenue" class="num">Revenue</th><th data-sort="owner_age" class="num">Owner age</th><th data-sort="readiness" class="num">Readiness</th><th data-sort="next_date">Next action</th><th data-sort="updated_at">Updated</th></tr></thead>
+  const owner = !!session.me?.isOwner;
+  return `${owner ? `<div class="toolbar sel-bar" id="selBar" hidden><span id="selN">0 selected</span><span class="spacer"></span><button class="ghost" type="button" id="selNone">Clear</button><button class="danger-btn" type="button" id="selDel">Remove selected</button></div>` : ""}
+    <div class="table-wrap panel flush"><table class="ttable" id="ttable"><thead><tr>
+    ${owner ? `<th class="sel-col"><input type="checkbox" id="selAll" aria-label="Select all targets"></th>` : ""}<th data-sort="name">Company</th><th data-sort="stage">Stage</th><th data-sort="ebitda" class="num">EBITDA</th><th data-sort="revenue" class="num">Revenue</th><th data-sort="owner_age" class="num">Owner age</th><th data-sort="readiness" class="num">Readiness</th><th data-sort="next_date">Next action</th><th data-sort="updated_at">Updated</th>${owner ? `<th class="sel-col"></th>` : ""}</tr></thead>
     <tbody>${targets.map((t) => `<tr data-href="#/targets/${t.id}" data-name="${esc(t.name.toLowerCase())}" data-stage="${STAGES.findIndex((s) => s.id === t.stage)}" data-ebitda="${t.ebitda ?? -1}" data-revenue="${t.revenue ?? -1}" data-owner_age="${t.owner_age ?? -1}" data-readiness="${t.readiness ?? -1}" data-next_date="${t.next_date || "9999"}" data-updated_at="${t.updated_at}">
-      <td><a href="#/targets/${t.id}"><b>${esc(t.name)}</b></a><small class="muted block">${esc([t.industry, t.location].filter(Boolean).join(" · "))}</small></td>
+      ${owner ? `<td class="sel-col"><input type="checkbox" data-sel="${t.id}" aria-label="Select ${esc(t.name)}"></td>` : ""}      <td><a href="#/targets/${t.id}"><b>${esc(t.name)}</b></a><small class="muted block">${esc([t.industry, t.location].filter(Boolean).join(" · "))}</small></td>
       <td><span class="stage-pill s-${t.stage}">${stageById(t.stage).label}</span></td>
       <td class="num">${money(t.ebitda, t.currency)}</td><td class="num">${money(t.revenue, t.currency)}</td><td class="num">${t.owner_age ?? "–"}</td><td class="num">${t.readiness ?? "–"}</td>
       <td>${t.next_action ? `${esc(t.next_action)}${t.next_date ? `<small class="muted block ${t.next_date < todayYmd() ? "tone-bad" : ""}">${dateLabel(t.next_date)}</small>` : ""}` : '<span class="muted">–</span>'}</td>
-      <td class="muted">${when(t.updated_at)}</td></tr>`).join("")}</tbody></table></div>`;
+      <td class="muted">${when(t.updated_at)}</td>${owner ? `<td class="sel-col"><button type="button" class="row-x" data-rm="${t.id}" title="Remove ${esc(t.name)}" aria-label="Remove ${esc(t.name)}">✕</button></td>` : ""}</tr>`).join("")}</tbody></table></div>`;
 }
 
 function sortTable(th) {
@@ -105,9 +107,38 @@ function sortTable(th) {
   rows.forEach((r) => tbody.append(r));
 }
 
+// Remove targets: one at a time (✕ on the row) or several (tick them, then "Remove selected"). Owners only.
+async function removeTargets(ids, targets, params) {
+  const names = ids.map((id) => targets.find((t) => t.id === id)?.name).filter(Boolean);
+  const live = ids.filter((id) => !["sourced", "lost"].includes(targets.find((t) => t.id === id)?.stage)).length;
+  const ok = await dialog({ title: ids.length === 1 ? `Remove ${names[0]}?` : `Remove ${ids.length} targets?`, danger: true, submit: ids.length === 1 ? "Remove" : `Remove ${ids.length}`,
+    html: `<p>${ids.length === 1 ? "It comes out of the pipeline" : "They come out of the pipeline"} with ${ids.length === 1 ? "its" : "their"} notes, contacts, documents and deal room. This can't be undone.</p>
+      ${live ? `<p class="tone-bad"><b>${live} ${live === 1 ? "is" : "are"} past Sourced</b> (a live conversation or deal).</p>` : ""}
+      ${ids.length > 1 ? `<p class="muted small">${names.slice(0, 8).map(esc).join(", ")}${names.length > 8 ? ` and ${names.length - 8} more` : ""}</p>` : ""}` });
+  if (!ok) return;
+  try {
+    const r = await post("/api/targets/delete", { ids });
+    toast(`Removed ${r.deleted} target${r.deleted === 1 ? "" : "s"}`);
+    renderPipeline(++session.seq, params);
+  } catch (e) { fail(e); }
+}
+function wireRemove(targets, params) {
+  $$(".card-x").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); removeTargets([+b.dataset.rm], targets, params); }));
+  if (!$("#selBar")) return;
+  const boxes = () => $$("[data-sel]");
+  const picked = () => boxes().filter((b) => b.checked).map((b) => +b.dataset.sel);
+  const sync = () => { const n = picked().length; $("#selBar").hidden = !n; $("#selN").textContent = `${n} selected`; $("#selAll").checked = n > 0 && n === boxes().length; $("#selAll").indeterminate = n > 0 && n < boxes().length; };
+  boxes().forEach((b) => b.addEventListener("change", sync));
+  $("#selAll").addEventListener("change", (e) => { boxes().forEach((b) => { b.checked = e.target.checked; }); sync(); });
+  $("#selNone").addEventListener("click", () => { boxes().forEach((b) => { b.checked = false; }); sync(); });
+  $("#selDel").addEventListener("click", () => removeTargets(picked(), targets, params));
+  $$("#ttable [data-rm]").forEach((b) => b.addEventListener("click", () => removeTargets([+b.dataset.rm], targets, params)));
+}
+
 // Drag a card to another column to change its stage.
 function wireBoard(targets, seq, params) {
-  $$("#ttable tbody tr").forEach((tr) => tr.addEventListener("click", (e) => { if (!e.target.closest("a")) location.hash = tr.dataset.href; }));
+  $$("#ttable tbody tr").forEach((tr) => tr.addEventListener("click", (e) => { if (!e.target.closest("a, input, button, .sel-col")) location.hash = tr.dataset.href; }));
+  wireRemove(targets, params);
   let dragId = null;
   $$(".tcard").forEach((c) => {
     c.addEventListener("dragstart", (e) => { dragId = c.dataset.id; c.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId); });

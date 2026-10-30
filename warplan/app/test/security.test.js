@@ -94,3 +94,13 @@ test("rate-limit IP only trusted from Cloudflare's edge", async () => {
   assert.match(idx, /const clientIp = \(request\) => \(request\.cf \? request\.headers\.get\("CF-Connecting-IP"\) : null\) \|\| "\?"/);
   assert.doesNotMatch(idx.replace(/const clientIp[^\n]*/, ""), /headers\.get\("CF-Connecting-IP"\)/);
 });
+
+test("bulk target delete: owners only, signed in, capped, same cascade as a single delete", () => {
+  const idx = src("index.js");
+  const i = idx.indexOf('p === "/api/targets/delete"');
+  assert.ok(i > 0);
+  const block = idx.slice(i, i + 700);
+  assert.match(block, /needOwner\(ctx\); if \(ctx\.viaToken\) fail\(403/);
+  assert.match(block, /ids\.length > 200/);
+  assert.match(block, /await deleteTarget\(env, ctx, id, hooks\)/);
+});

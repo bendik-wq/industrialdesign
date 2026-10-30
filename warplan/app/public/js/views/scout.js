@@ -67,35 +67,49 @@ export async function renderScout(seq, params = new URLSearchParams()) {
   };
   form.addEventListener("submit", (e) => { e.preventDefault(); search(false); });
 
+  // Removed results stay hidden on later searches (kept in this browser).
+  const keyOf = (r) => `${String(r.name || "").toLowerCase().trim()}|${String(r.location || "").toLowerCase().trim()}`;
+  const hidden = new Set(local.get("scoutHidden", []));
+  const hide = (list) => { list.forEach((r) => hidden.add(keyOf(r))); local.set("scoutHidden", [...hidden].slice(-3000)); drawResults(); };
   const drawResults = () => {
-    const rows = state.results, c = state.currency;
-    if (!rows.length) { $("#results").innerHTML = `<div class="empty"><h2>Nothing found</h2><p class="muted">Try another region, a lower staff minimum, or another source.</p></div>`; return; }
+    const all = state.results, c = state.currency;
+    const rows = all.filter((r) => !hidden.has(keyOf(r)));
+    const gone = all.length - rows.length;
+    if (!rows.length) { $("#results").innerHTML = `<div class="empty"><h2>${gone ? "Everything here is removed" : "Nothing found"}</h2><p class="muted">${gone ? `${gone} removed result${gone === 1 ? "" : "s"} hidden. <button class="link-btn" type="button" id="unhide">Show them again</button>` : "Try another region, a lower staff minimum, or another source."}</p></div>`; $("#unhide")?.addEventListener("click", () => { hidden.clear(); local.set("scoutHidden", []); drawResults(); }); return; }
     const withEmail = rows.filter((r) => r.email).length, withPhone = rows.filter((r) => r.phone).length, withOwner = rows.filter((r) => r.owner_name).length;
     $("#results").innerHTML = `
       <div class="toolbar scout-bar">
-        <span class="muted small">${state.total != null ? `${state.total} matches · ` : ""}showing ${rows.length} · ${withOwner} with an owner · ${withEmail} with email · ${withPhone} with phone</span>
+        <span class="muted small">${state.total != null ? `${state.total} matches · ` : ""}showing ${rows.length}${gone ? ` (${gone} removed · <button class="link-btn" type="button" id="unhide">show</button>)` : ""} · ${withOwner} with an owner · ${withEmail} with email · ${withPhone} with phone</span>
         <span class="spacer"></span>
         <label class="check"><input type="checkbox" id="findC" checked> Find contacts on their websites</label>
         ${info.monid ? `<label class="check" title="Owner email (verified) + LinkedIn via Monid, about $0.05–0.08 each"><input type="checkbox" id="deepC"> Deep enrich owners (~$0.06 each)</label>` : ""}
+        <button class="ghost" id="rmSel" type="button" disabled>Remove 0</button>
         <button class="primary" id="addSel" type="button" disabled>Add 0 to pipeline</button>
       </div>
       <div class="table-wrap panel flush"><table class="ttable scout-table">
-        <thead><tr><th><input type="checkbox" id="all" aria-label="Select all"></th><th>Company</th><th>Owner</th><th>Contact</th><th class="num">Revenue</th><th class="num">Op. profit</th><th class="num">${["maps", "places", "yelp"].includes(state.source) ? "Rating" : "Staff"}</th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="all" aria-label="Select all"></th><th>Company</th><th>Owner</th><th>Contact</th><th class="num">Revenue</th><th class="num">Op. profit</th><th class="num">${["maps", "places", "yelp"].includes(state.source) ? "Rating" : "Staff"}</th><th><span class="sr-only">Remove</span></th></tr></thead>
         <tbody>${rows.map((r, i) => `<tr class="${r.in_pipeline ? "dim" : ""}">
-          <td><input type="checkbox" data-i="${i}" ${r.in_pipeline ? "disabled" : ""} aria-label="Select ${esc(r.name)}"></td>
+          <td><input type="checkbox" data-i="${i}" aria-label="Select ${esc(r.name)}"></td>
           <td><b>${esc(r.name)}</b>${r.in_pipeline ? ' <span class="chip">in pipeline</span>' : ""}<small class="muted block">${esc(r.location || "")}${r.founded ? ` · since ${esc(r.founded)}` : ""}${r.category ? ` · ${esc(r.category)}` : ""}${r.registry_url ? ` · <a href="${safeUrl(r.registry_url)}" target="_blank" rel="noopener noreferrer">record</a>` : ""}${r.website ? ` · <a href="${safeUrl(r.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ""}</small></td>
           <td>${r.owner_name ? `${esc(r.owner_name)}${r.owner_age ? ` <span class="age ${r.owner_age >= 60 ? "old" : ""}">${r.owner_age}</span>` : ""}` : '<span class="muted">–</span>'}</td>
           <td class="small">${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ""}${r.email && r.phone ? "<br>" : ""}${r.phone ? `<a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : ""}${!r.email && !r.phone ? '<span class="muted">find after import</span>' : ""}</td>
-          <td class="num">${r.revenue != null ? money(r.revenue, c) : "–"}</td><td class="num ${r.ebitda < 0 ? "tone-bad" : ""}">${r.ebitda != null ? money(r.ebitda, c) : "–"}</td><td class="num">${r.employees != null || r.employees_label ? esc(r.employees ?? r.employees_label) : (r.rating ? `★${esc(r.rating)} <small class="muted">(${esc(r.reviews)})</small>` : "–")}</td></tr>`).join("")}</tbody></table></div>
+          <td class="num">${r.revenue != null ? money(r.revenue, c) : "–"}</td><td class="num ${r.ebitda < 0 ? "tone-bad" : ""}">${r.ebitda != null ? money(r.ebitda, c) : "–"}</td><td class="num">${r.employees != null || r.employees_label ? esc(r.employees ?? r.employees_label) : (r.rating ? `★${esc(r.rating)} <small class="muted">(${esc(r.reviews)})</small>` : "–")}</td><td><button type="button" class="row-x" data-x="${i}" title="Remove ${esc(r.name)} from these results" aria-label="Remove ${esc(r.name)}">✕</button></td></tr>`).join("")}</tbody></table></div>
       ${state.more ? `<div class="center-row row"><button class="ghost" id="more" type="button">Load more</button></div>` : ""}
       <p class="muted small">Owner age is from the registry's birth year. 60+ is highlighted: the classic succession window. Operating profit is as filed (EBIT), a floor for EBITDA.</p>`;
     const boxes = () => $$("[data-i]:checked");
-    const sync = () => { const n = boxes().length; $("#addSel").disabled = !n; $("#addSel").textContent = `Add ${n} to pipeline`; };
+    const sync = () => {
+      const all = boxes().length, n = boxes().filter((b) => !rows[+b.dataset.i].in_pipeline).length;
+      $("#addSel").disabled = !n; $("#addSel").textContent = `Add ${n} to pipeline`;
+      $("#rmSel").disabled = !all; $("#rmSel").textContent = `Remove ${all}`;
+    };
+    $("#rmSel").addEventListener("click", () => hide(boxes().map((b) => rows[+b.dataset.i])));
+    $$("[data-x]").forEach((b) => b.addEventListener("click", () => hide([rows[+b.dataset.x]])));
+    $("#unhide")?.addEventListener("click", () => { hidden.clear(); local.set("scoutHidden", []); drawResults(); });
     $$("[data-i]").forEach((b) => b.addEventListener("change", sync));
-    $("#all").addEventListener("change", (e) => { $$("[data-i]:not(:disabled)").forEach((b) => { b.checked = e.target.checked; }); sync(); });
+    $("#all").addEventListener("change", (e) => { $$("[data-i]").forEach((b) => { b.checked = e.target.checked; }); sync(); });
     $("#more")?.addEventListener("click", () => { state.page += 1; search(true); });
     $("#addSel").addEventListener("click", async (e) => {
-      const picked = boxes().map((b) => rows[+b.dataset.i]);
+      const picked = boxes().map((b) => rows[+b.dataset.i]).filter((r) => !r.in_pipeline);
       e.currentTarget.disabled = true; e.currentTarget.textContent = "Adding…";
       try {
         const deep = !!$("#deepC")?.checked;
