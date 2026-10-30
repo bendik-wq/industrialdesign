@@ -127,7 +127,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ------------------------------------------------------------------ boot
-$("#logout").addEventListener("click", async () => { await fetch("/api/logout?everywhere=0&end=1", { method: "POST" }); location.href = "/login"; });
+$("#logout").addEventListener("click", async () => { await fetch("/api/logout", { method: "POST" }); location.href = "/login"; });
 (async () => {
   try {
     [session.me, session.team] = await Promise.all([api("/api/me"), api("/api/agents"), synced.load(["deal", "ladder", "profile"])]);

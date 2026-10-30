@@ -3,7 +3,7 @@
 //   Tools: Deal Builder, Value Ladder, Pipeline. Platform: teams, bring-your-own AI keys, API tokens, webhooks, usage.
 import { transcribe } from "./ai.js";
 import { publicAgents } from "./agents.js";
-import { forgetSessions, getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie, sha256, randomToken, safeEqual } from "./auth.js";
+import { forgetSessions, getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie, sha256, randomToken, safeEqual, endUserSession, endAllSessions } from "./auth.js";
 import { json, fail, body, now, slow, cleanEmail, displayName, needOwner } from "./http.js";
 import { listThreads, getThread, createThread, updateThread, deleteThread, send, sendStream, debrief, simulatorInfo, speakCached, voiceSettings, saveVoiceSettings } from "./conversations.js";
 import { listTargets, getTarget, getTargetFull, createTarget, updateTarget, deleteTarget, addEvent, deleteEvent, importTargets, exportCsv, hookEmitter, listHooks, createHook, testHook, deleteHook, rowToTarget } from "./pipeline.js";
@@ -32,6 +32,7 @@ import { runWatch, listSignals, markSeen } from "./watch.js";
 import { buildModel, listFiles, getFile, deleteFile, labStatus, deleteLab } from "./lab.js";
 import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, imessageMessages, sendText, blueBubblesHook, refreshIMessage, markRead, startTyping, react, imessageLive } from "./imessage.js";
 import { listRelationships, createRelationship, updateRelationship, deleteRelationship, lenderFit, setFinancing, deleteFinancing } from "./capabilities.js";
+import { migrateFilesToR2 } from "./dealroom.js";
 import { getRoom, updateRoom, addItem, updateItem, deleteItem, teamUpload, deleteRoomFile, createLink, revokeLink, chaseSeller, sellerView, sellerNda, sellerUpload, sellerFile } from "./dealroom.js";
 import { today } from "./today.js";
 import { listActuals, saveActuals, deleteActual } from "./actuals.js";
@@ -73,7 +74,7 @@ export default {
   },
   async scheduled(event, env, exec) {
     // Every 10 minutes: finish background jobs (meeting notes). Daily: the autopilot.
-    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), queueInboxes(env, exec), reconcileRuns(env).catch((e) => console.error("reconcile", e)), retryStuckRecordings(env).catch((e) => console.error("recordings", e))]));
+    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), queueInboxes(env, exec), reconcileRuns(env).catch((e) => console.error("reconcile", e)), retryStuckRecordings(env).catch((e) => console.error("recordings", e)), migrateFilesToR2(env).catch((e) => console.error("r2", e))]));
     else exec.waitUntil(Promise.all([autopilotAll(env, exec), queueWatch(env, exec), queueMonitors(env, exec).catch((e) => console.error("monitors", e))]));
   },
 };
@@ -262,17 +263,14 @@ async function authRoute(request, env, url) {
     return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, u) });
   }
   if (p === "/api/logout" && m === "POST") {
-    // ?everywhere=1 also ends every other session of this user (a copied cookie stops working too).
-    // Plain sign-out also bumps the epoch: a copied cookie must stop working the moment you sign out. (It signs out
-    // your other devices too; ?everywhere=1 additionally revokes your API tokens.)
-    if (url.searchParams.get("end") === "1" && url.searchParams.get("everywhere") !== "1") {
-      const ctx = await getContext(request, env);
-      if (ctx?.user?.id && !ctx.viaToken) { await env.DB.prepare("UPDATE users SET session_epoch = session_epoch + 1 WHERE id = ?1").bind(ctx.user.id).run(); forgetSessions(); }
-    }
+    // Sign-out ends this session on the server. ?everywhere=1 ends every session of this user and revokes their API tokens.
     if (url.searchParams.get("everywhere") === "1") {
       const ctx = await getContext(request, env);
-      if (ctx?.user?.id && !ctx.viaToken) { await env.DB.batch([env.DB.prepare("UPDATE users SET session_epoch = session_epoch + 1 WHERE id = ?1").bind(ctx.user.id), env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1").bind(ctx.user.id)]); forgetSessions(); }
-    }
+      if (ctx?.user?.id && !ctx.viaToken) {
+        await env.DB.batch([env.DB.prepare("UPDATE users SET session_epoch = session_epoch + 1 WHERE id = ?1").bind(ctx.user.id), env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1").bind(ctx.user.id)]);
+        await endAllSessions(env, ctx.user.id);
+      }
+    } else await endUserSession(env, request);
     return json({ ok: true }, 200, { "Set-Cookie": clearCookie });
   }
   const r = p.match(/^\/api\/invites\/([\w-]{20,})$/);
@@ -388,7 +386,7 @@ async function route(request, env, url, ctx, exec) {
   if ((r = p.match(/^\/api\/targets\/(\d+)$/))) {
     if (m === "GET") return json(await getTargetFull(env, ctx, +r[1]));
     if (m === "PATCH") return json(await updateTarget(env, ctx, +r[1], await body(request), hooks));
-    if (m === "DELETE") return json(await deleteTarget(env, ctx, +r[1], hooks));
+    if (m === "DELETE") { needOwner(ctx); if (ctx.viaToken) fail(403, "Delete targets from the app, signed in."); return json(await deleteTarget(env, ctx, +r[1], hooks)); }
   }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/events$/)) && m === "POST") return json(await addEvent(env, ctx, +r[1], await body(request), hooks), 201);
   if ((r = p.match(/^\/api\/targets\/(\d+)\/events\/(\d+)$/)) && m === "DELETE") return json(await deleteEvent(env, ctx, +r[1], +r[2]));
@@ -582,7 +580,7 @@ async function route(request, env, url, ctx, exec) {
   if ((r = p.match(/^\/api\/documents\/(\d+)$/))) {
     if (m === "GET") return json(await getDoc(env, ctx, +r[1]));
     if (m === "PATCH") return json(await updateDoc(env, ctx, +r[1], await body(request)));
-    if (m === "DELETE") { await env.DB.prepare("DELETE FROM documents WHERE id = ?1 AND account_id = ?2").bind(+r[1], ctx.accountId).run(); return json({ ok: true }); }
+    if (m === "DELETE") { needOwner(ctx); if (ctx.viaToken) fail(403, "Delete documents from the app, signed in."); await env.DB.prepare("DELETE FROM documents WHERE id = ?1 AND account_id = ?2").bind(+r[1], ctx.accountId).run(); return json({ ok: true }); }
   }
 
   // Team, tokens
@@ -607,6 +605,7 @@ async function route(request, env, url, ctx, exec) {
         env.DB.prepare("DELETE FROM threads WHERE user_id = ?1").bind(gone.id),
         env.DB.prepare("DELETE FROM user_state WHERE user_id = ?1").bind(gone.id),
         env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1").bind(gone.id),
+        env.DB.prepare("DELETE FROM sessions WHERE user_id = ?1").bind(gone.id),
         env.DB.prepare("DELETE FROM mailboxes WHERE user_id = ?1").bind(gone.id),
         env.DB.prepare("DELETE FROM users WHERE id = ?1").bind(gone.id),
       ]);
@@ -713,6 +712,7 @@ async function changePassword(env, ctx, b) {
     env.DB.prepare("UPDATE users SET password_hash = ?2, session_epoch = session_epoch + 1 WHERE id = ?1 RETURNING *").bind(u.id, await hashPassword(b.next)),
   ]);
   const nu = upd.results[0];
+  await endAllSessions(env, u.id);
   forgetSessions();
   return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, nu) });
 }
@@ -788,7 +788,6 @@ async function invite(env, ctx, b, origin) {
   needOwner(ctx);
   const email = b.email ? cleanEmail(b.email) : "";
   if (b.email && !email) fail(400, "That email doesn't look right");
-  if (email && (await env.DB.prepare("SELECT 1 FROM users WHERE email = ?1").bind(email).first())) fail(409, "That email already has a login");
   const token = randomToken();
   const role = b.role === "owner" ? "owner" : "member";
   await env.DB.prepare("INSERT INTO invites (account_id, email, role, token_hash, expires_at, created_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6)")

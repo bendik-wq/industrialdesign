@@ -90,7 +90,8 @@ export async function budget(env, ctx) {
     cfg.monthly_usd = Math.min(cfg.monthly_usd, cap); cfg.approve_over_usd = Math.min(cfg.approve_over_usd, 0.1); cfg.platform = true;
   }
   const month = now().slice(0, 7);
-  const s = await env.DB.prepare("SELECT COALESCE(SUM(cost), 0) AS spent, COUNT(*) AS runs FROM monid_runs WHERE account_id = ?1 AND created_at >= ?2").bind(ctx.accountId, `${month}-01`).first();
+  // Holds older than an hour (a Worker that died mid-run) stop counting.
+  const s = await env.DB.prepare("SELECT COALESCE(SUM(CASE WHEN status = 'RESERVED' AND created_at < ?3 THEN 0 ELSE cost END), 0) AS spent, COUNT(*) AS runs FROM monid_runs WHERE account_id = ?1 AND created_at >= ?2").bind(ctx.accountId, `${month}-01`, new Date(Date.now() - 3600_000).toISOString()).first();
   return { ...cfg, month, spent_usd: +s.spent.toFixed(4), runs: s.runs, left_usd: +Math.max(0, cfg.monthly_usd - s.spent).toFixed(4) };
 }
 export async function setBudget(env, ctx, b) {
@@ -143,8 +144,18 @@ export async function run(env, ctx, { provider, endpoint, input = {} }, { purpos
   key = key || (await needKey(env, ctx));
   if (!provider || !endpoint) throw err(400, "Say which provider and endpoint to run (find them with monid_discover)");
   if (targetId && !(await env.DB.prepare("SELECT 1 FROM targets WHERE id = ?1 AND account_id = ?2").bind(+targetId, ctx.accountId).first())) targetId = null;
+  // Reserve a hold against the budget before calling (inserted and checked in one transaction), so parallel runs
+  // can't overshoot; the hold becomes the run's real cost when it finishes.
   const b = await budget(env, ctx);
-  if (b.left_usd <= 0) throw err(402, `This month's data budget ($${b.monthly_usd}) is used up. Raise it under Settings → Integrations → Monid.`);
+  const [hold] = (await env.DB.batch([env.DB.prepare("INSERT INTO monid_runs (account_id, user_id, target_id, provider, endpoint, run_id, status, cost, purpose, created_at) VALUES (?1, ?2, ?3, ?4, ?5, NULL, 'RESERVED', ?6, ?7, ?8) RETURNING id")
+    .bind(ctx.accountId, ctx.user?.id || null, targetId, provider, endpoint, RUN_HOLD_USD, String(purpose).slice(0, 200), now())])).map((x) => x.results[0]);
+  const after = await budget(env, ctx);
+  if (after.spent_usd > b.monthly_usd + 1e-9 || b.left_usd <= 0) {
+    await env.DB.prepare("DELETE FROM monid_runs WHERE id = ?1").bind(hold.id).run();
+    throw err(402, `This month's data budget ($${b.monthly_usd}) is used up. Raise it under Settings → Integrations → Monid.`);
+  }
+  const settle = (status, cost, runId = null) => env.DB.prepare("UPDATE monid_runs SET status = ?2, cost = ?3, run_id = ?4 WHERE id = ?1").bind(hold.id, status, cost, runId).run();
+  try {
   const clean = { ...(input.body && { body: input.body }), ...(input.queryParams && { queryParams: input.queryParams }), ...(input.pathParams && { pathParams: input.pathParams }) };
   let r = await call(key, "POST", "/v1/run", { provider, endpoint, input: clean });
   const runId = r.runId || r.id;
@@ -156,8 +167,7 @@ export async function run(env, ctx, { provider, endpoint, input = {} }, { purpos
   // The synchronous answer to POST /v1/run carries no cost; the run record does.
   if (DONE.has(r.status) && r.cost == null && runId) { try { const full = await call(key, "GET", `/v1/runs/${encodeURIComponent(runId)}`); r = { ...full, output: r.output ?? full.output }; } catch { /* cost stays unknown */ } }
   const cost = +(r.cost?.value ?? 0) || 0;
-  await env.DB.prepare("INSERT INTO monid_runs (account_id, user_id, target_id, provider, endpoint, run_id, status, cost, purpose, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)")
-    .bind(ctx.accountId, ctx.user?.id || null, targetId, provider, endpoint, runId || null, r.status || "UNKNOWN", cost, String(purpose).slice(0, 200), now()).run();
+  await settle(r.status || "UNKNOWN", cost, runId || null);
   if (r.status === "FAILED" || r.status === "BLOCKED" || r.status === "TIMED_OUT") throw err(r.status === "BLOCKED" && /balance/i.test(r.reason || "") ? 402 : 502, `Monid ${provider} ${endpoint}: ${r.error?.message || r.reason || r.status.toLowerCase().replace("_", " ")}`);
   // Monid can report COMPLETED while the provider itself refused the request (bad field, no match): surface that.
   const ph = r.providerResponse?.httpStatus;
@@ -166,7 +176,14 @@ export async function run(env, ctx, { provider, endpoint, input = {} }, { purpos
     throw err(ph === 404 ? 404 : 502, `${provider} ${endpoint}: ${String(why).slice(0, 200)}`);
   }
   return { run_id: runId, status: r.status, cost_usd: cost, output: r.output ?? null };
+  } catch (e) {
+    // A call that never reached Monid costs nothing; one that did is settled above before any later error.
+    await env.DB.prepare("UPDATE monid_runs SET status = 'FAILED', cost = 0 WHERE id = ?1 AND status = 'RESERVED'").bind(hold.id).run().catch(() => {});
+    throw e;
+  }
 }
+// What a run holds against the monthly budget while it's in flight.
+const RUN_HOLD_USD = 0.25;
 
 // Check on (and log the final cost of) a run that was still going.
 export async function result(env, ctx, runId) {

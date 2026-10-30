@@ -714,3 +714,11 @@ CREATE TABLE IF NOT EXISTS board_suggestions (
   UNIQUE (account_id, url)
 );
 CREATE INDEX IF NOT EXISTS board_suggestions_list ON board_suggestions (account_id, status, seat, score DESC);
+-- v19: one row per signed-in session, so signing out ends exactly that session (security audit, Oct 2026).
+CREATE TABLE IF NOT EXISTS sessions (
+  sid TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sessions_user ON sessions (user_id);

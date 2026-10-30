@@ -11,20 +11,30 @@ const priceFor = (model) => PRICES[Object.keys(PRICES).find((k) => String(model)
 export const DAILY_PLATFORM_CALLS = 300; // per workspace per day on platform keys
 export const PER_MINUTE = 20; // per user, any key: stops runaway loops and scripts
 
+// Reserve the call before making it: a hold row is inserted and counted in the same transaction, so a burst of
+// parallel requests can't all slip under the limits. record() turns the hold into the real usage row.
 export async function checkLimits(env, ai, ctx) {
   const minuteAgo = new Date(Date.now() - 60_000).toISOString();
-  const dayStart = new Date().toISOString().slice(0, 10);
-  const [perUser, perDay] = await env.DB.batch([
-    env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE user_id = ?1 AND created_at > ?2").bind(ctx.user.id || 0, minuteAgo),
+  const dayStart = new Date().toISOString().slice(0, 10), stamp = new Date().toISOString(), uid = ctx.user?.id || 0;
+  const [, perUser, perAccount, perDay] = await env.DB.batch([
+    env.DB.prepare("INSERT INTO usage (account_id, user_id, feature, model, input_tokens, output_tokens, cached_tokens, own_key, created_at) VALUES (?1, ?2, '_hold', '', 0, 0, 0, ?3, ?4)").bind(ctx.accountId, uid || null, ai.ownKey ? 1 : 0, stamp),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND IFNULL(user_id, 0) = ?2 AND created_at > ?3").bind(ctx.accountId, uid, minuteAgo),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND created_at > ?2").bind(ctx.accountId, minuteAgo),
     env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND own_key = 0 AND created_at >= ?2").bind(ctx.accountId, dayStart),
   ]);
-  if (perUser.results[0].n >= PER_MINUTE) throw err(429, "That's a lot of requests in a minute. Give it a moment.");
-  if (!ai.ownKey && perDay.results[0].n >= DAILY_PLATFORM_CALLS)
-    throw err(429, `Your workspace has used today's ${DAILY_PLATFORM_CALLS} included AI calls. Connect your own Anthropic key under Settings → Integrations for unlimited use.`);
+  const over = perUser.results[0].n > PER_MINUTE ? "That's a lot of requests in a minute. Give it a moment."
+    : perAccount.results[0].n > PER_MINUTE * 3 ? "Your workspace is making a lot of AI requests right now. Give it a moment."
+    : !ai.ownKey && perDay.results[0].n > DAILY_PLATFORM_CALLS ? `Your workspace has used today's ${DAILY_PLATFORM_CALLS} included AI calls. Connect your own Anthropic key under Settings → Integrations for unlimited use.` : null;
+  if (over) {
+    await env.DB.prepare("DELETE FROM usage WHERE id = (SELECT id FROM usage WHERE account_id = ?1 AND IFNULL(user_id, 0) = ?2 AND feature = '_hold' AND created_at = ?3 LIMIT 1)").bind(ctx.accountId, uid, stamp).run();
+    throw err(429, over);
+  }
 }
 
 export async function record(env, ai, ctx, feature, out) {
   if (!out?.usage) return;
+  // Release this caller's oldest hold (made by checkLimits); the real row below replaces it.
+  await env.DB.prepare("DELETE FROM usage WHERE id = (SELECT id FROM usage WHERE account_id = ?1 AND IFNULL(user_id, 0) = ?2 AND feature = '_hold' ORDER BY id LIMIT 1)").bind(ctx.accountId, ctx.user?.id || 0).run().catch(() => {});
   await env.DB.prepare("INSERT INTO usage (account_id, user_id, feature, model, input_tokens, output_tokens, cached_tokens, own_key, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")
     .bind(ctx.accountId, ctx.user.id || null, feature, String(out.model || "?"), out.usage.input | 0, out.usage.output | 0, out.usage.cached | 0, ai.ownKey ? 1 : 0, new Date().toISOString())
     .run().catch((e) => console.warn("usage record failed", e.message));
@@ -41,8 +51,8 @@ export async function summary(env, ctx, days = 30) {
   const dayStart = new Date().toISOString().slice(0, 10);
   const [byFeature, byDay, today] = await env.DB.batch([
     env.DB.prepare(`SELECT feature, model, COUNT(*) AS calls, SUM(input_tokens) AS input, SUM(output_tokens) AS output, SUM(cached_tokens) AS cached, SUM(own_key) AS own
-      FROM usage WHERE account_id = ?1 AND created_at >= ?2 GROUP BY feature, model ORDER BY calls DESC`).bind(ctx.accountId, since),
-    env.DB.prepare("SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS calls FROM usage WHERE account_id = ?1 AND created_at >= ?2 GROUP BY day ORDER BY day").bind(ctx.accountId, since),
+      FROM usage WHERE account_id = ?1 AND created_at >= ?2 AND feature != '_hold' GROUP BY feature, model ORDER BY calls DESC`).bind(ctx.accountId, since),
+    env.DB.prepare("SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS calls FROM usage WHERE account_id = ?1 AND created_at >= ?2 AND feature != '_hold' GROUP BY day ORDER BY day").bind(ctx.accountId, since),
     env.DB.prepare("SELECT COUNT(*) AS n FROM usage WHERE account_id = ?1 AND own_key = 0 AND created_at >= ?2").bind(ctx.accountId, dayStart),
   ]);
   const rows = byFeature.results.map((r) => {

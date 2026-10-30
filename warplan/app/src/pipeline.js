@@ -1,6 +1,18 @@
 // The deal pipeline: acquisition targets, their timeline, and outgoing webhooks for the workspace's own systems.
 import { STAGES, normalizeDeal, CURS as CURRENCIES } from "../public/js/deal.js";
 import { publicUrl, safeFetch } from "./net.js";
+import { seal, open } from "./keys.js";
+
+// Webhook signing secrets are stored sealed (AES-GCM, bound to the workspace), like every other credential. Rows from
+// before sealing are re-sealed the first time they're used.
+const hookAad = (accountId) => `acct:${accountId}:webhook`;
+async function sealSecret(env, accountId, secret) { const s = await seal(env, secret, hookAad(accountId)); return `sealed:v1:${s.iv}:${s.ciphertext}`; }
+async function hookSecret(env, hook) {
+  const v = String(hook.secret || "");
+  if (v.startsWith("sealed:v1:")) { const [, , iv, ciphertext] = v.split(":"); return open(env, { iv, ciphertext }, hookAad(hook.account_id)); }
+  await env.DB.prepare("UPDATE webhooks SET secret = ?3 WHERE id = ?1 AND account_id = ?2").bind(hook.id, hook.account_id, await sealSecret(env, hook.account_id, v)).run().catch(() => {});
+  return v;
+}
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -121,6 +133,7 @@ export async function updateTarget(env, ctx, id, b, hooks) {
 
 export async function deleteTarget(env, ctx, id, hooks) {
   const t = await own(env, ctx, id);
+  if (env.FILES) { const { results: fs } = await env.DB.prepare("SELECT file_id FROM room_files WHERE target_id = ?1 AND account_id = ?2 AND chunks = -1").bind(id, ctx.accountId).all(); for (const f of fs) await env.FILES.delete(`room/${ctx.accountId}/${f.file_id}`); }
   await env.DB.batch([
     env.DB.prepare("DELETE FROM target_events WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
     env.DB.prepare("DELETE FROM documents WHERE target_id = ?1 AND account_id = ?2").bind(id, ctx.accountId),
@@ -231,7 +244,7 @@ export async function deliver(env, hook, type, data) {
   try {
     const r = await safeFetch(hook.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "User-Agent": "Warplan-Webhooks/1", "X-Warplan-Event": type, "X-Warplan-Timestamp": String(ts), "X-Warplan-Signature": `sha256=${await sign(hook.secret, `${ts}.${body}`)}` },
+      headers: { "Content-Type": "application/json", "User-Agent": "Warplan-Webhooks/1", "X-Warplan-Event": type, "X-Warplan-Timestamp": String(ts), "X-Warplan-Signature": `sha256=${await sign(await hookSecret(env, hook), `${ts}.${body}`)}` },
       body,
       signal: AbortSignal.timeout(8000),
     }, { hops: 0 }); // signed deliveries never follow a redirect to another host
@@ -269,7 +282,7 @@ export async function createHook(env, ctx, b) {
   const events = Array.isArray(b.events) && b.events.length ? b.events.filter((e) => HOOK_EVENTS.includes(e)).join(",") || "*" : "*";
   const secret = `whsec_${[...crypto.getRandomValues(new Uint8Array(24))].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
   const h = await env.DB.prepare("INSERT INTO webhooks (account_id, url, secret, events, created_at) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id, url, events, active, created_at")
-    .bind(ctx.accountId, url.toString(), secret, events, now()).first();
+    .bind(ctx.accountId, url.toString(), await sealSecret(env, ctx.accountId, secret), events, now()).first();
   return { ...h, secret }; // the signing secret is shown once
 }
 

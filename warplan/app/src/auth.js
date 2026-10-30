@@ -2,7 +2,7 @@
 //   Passwords: PBKDF2-SHA256, 100k iterations (the Workers maximum), per-user salt.
 //   Sessions: stateless signed cookie "uid.exp.sig"; the signature covers the user's session epoch, so changing
 //   a password (or an admin removing a user) invalidates every existing session.
-//   API tokens: random, shown once, stored only as SHA-256. The legacy API_TOKEN secret acts as platform admin.
+//   API tokens: random, shown once, stored only as SHA-256. Sessions: one server-side row per sign-in (sessions table).
 
 const SESSION_DAYS = 30;
 const ITER = 100000;
@@ -53,12 +53,24 @@ export async function hmac(env, data) {
   return b64url(await crypto.subtle.sign("HMAC", key, enc.encode(data)));
 }
 
+// Sessions: each sign-in gets its own id, stored server-side, so signing out ends exactly that session (and a copied
+// cookie dies with it). The cookie is __Host- prefixed: only this exact host, over HTTPS, path /, can set or read it.
+export const COOKIE = "__Host-wp_s";
+const COOKIE_RE = /(?:^|;\s*)__Host-wp_s=([^;]+)/;
 export async function sessionCookie(env, user) {
   const exp = Date.now() + SESSION_DAYS * 864e5;
-  const sig = await hmac(env, `${user.id}.${exp}.${user.session_epoch}.${user.created_at}`);
-  return `df_s=${user.id}.${exp}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`;
+  const sid = b64url(crypto.getRandomValues(new Uint8Array(18)));
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO sessions (sid, user_id, expires_at, created_at) VALUES (?1, ?2, ?3, ?4)").bind(sid, user.id, new Date(exp).toISOString(), new Date().toISOString()),
+    env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?1").bind(new Date().toISOString()),
+  ]);
+  const sig = await hmac(env, `${user.id}.${exp}.${sid}.${user.session_epoch}.${user.created_at}`);
+  return `${COOKIE}=${user.id}.${exp}.${sid}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`;
 }
-export const clearCookie = "df_s=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
+export const clearCookie = `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+export const sessionId = (request) => (request.headers.get("Cookie") || "").match(COOKIE_RE)?.[1]?.split(".")[2] || null;
+export async function endUserSession(env, request) { const sid = sessionId(request); if (sid) await env.DB.prepare("DELETE FROM sessions WHERE sid = ?1").bind(sid).run(); forgetSessions(); }
+export async function endAllSessions(env, userId, keepSid = null) { await env.DB.prepare("DELETE FROM sessions WHERE user_id = ?1 AND sid != ?2").bind(userId, keepSid || "").run(); forgetSessions(); }
 
 const USER_SQL = `SELECT u.id, u.account_id, u.email, u.name, u.role, u.is_admin, u.session_epoch, u.created_at, u.password_hash,
   a.name AS account_name, a.plan, a.max_territories, a.active AS account_active
@@ -75,15 +87,16 @@ export function toCtx(u) {
 }
 
 // Resolve who is calling. Returns null when not signed in.
-// Verified sessions are cached in this isolate for 15 seconds, so a burst of requests (a page load, a busy team)
-// costs one database lookup instead of one per request. Sign-outs, password changes and removals take effect
-// everywhere within 15 seconds (immediately on the isolate that handled them).
-const SESSION_TTL_MS = 15_000, sessionCache = new Map();
+// Verified sessions are cached in this isolate for 5 seconds, and only for reads: a burst of page-load GETs costs one
+// database lookup, while every change (POST/PUT/PATCH/DELETE) re-checks the session, so a sign-out, removal or role
+// change is enforced on writes immediately and on reads within 5 seconds.
+const SESSION_TTL_MS = 5_000, sessionCache = new Map();
 export function forgetSessions() { sessionCache.clear(); }
 export async function getContext(request, env) {
-  const key = (request.headers.get("Authorization") || "") + "|" + ((request.headers.get("Cookie") || "").match(/(?:^|;\s*)df_s=([^;]+)/)?.[1] || "");
+  const key = (request.headers.get("Authorization") || "") + "|" + ((request.headers.get("Cookie") || "").match(COOKIE_RE)?.[1] || "");
   if (key === "|") return null;
-  const hit = sessionCache.get(key);
+  const read = request.method === "GET" || request.method === "HEAD";
+  const hit = read && sessionCache.get(key);
   if (hit && hit.exp > Date.now()) return hit.ctx;
   const ctx = await resolveContext(request, env);
   if (ctx) {
@@ -95,22 +108,18 @@ export async function getContext(request, env) {
 async function resolveContext(request, env) {
   const bearer = (request.headers.get("Authorization") || "").match(/^Bearer (.+)$/)?.[1]?.trim();
   if (bearer) {
-    if (env.API_TOKEN && safeEqual(bearer, env.API_TOKEN)) {
-      const acct = await env.DB.prepare("SELECT * FROM accounts WHERE id = 1").first();
-      return { user: { id: 0, email: "api", name: "Platform API", role: "owner" }, accountId: 1, account: { id: 1, name: acct?.name || "HQ", plan: acct?.plan, maxTerritories: acct?.max_territories }, isAdmin: true, isOwner: true, viaToken: true };
-    }
     const row = await env.DB.prepare(`${USER_SQL} JOIN api_tokens t ON t.user_id = u.id WHERE t.token_hash = ?1`).bind(await sha256(bearer)).first();
     if (!row || !row.account_active) return null;
     env.DB.prepare("UPDATE api_tokens SET last_used_at = ?2 WHERE token_hash = ?1").bind(await sha256(bearer), new Date().toISOString()).run().catch(() => {});
     return { ...toCtx(row), viaToken: true };
   }
-  const cookie = (request.headers.get("Cookie") || "").match(/(?:^|;\s*)df_s=([^;]+)/)?.[1];
+  const cookie = (request.headers.get("Cookie") || "").match(COOKIE_RE)?.[1];
   if (!cookie) return null;
-  const [uid, exp, sig] = cookie.split(".");
-  if (!uid || !(Number(exp) > Date.now())) return null;
-  const u = await env.DB.prepare(`${USER_SQL} WHERE u.id = ?1`).bind(+uid).first();
+  const [uid, exp, sid, sig] = cookie.split(".");
+  if (!uid || !sid || !(Number(exp) > Date.now())) return null;
+  const u = await env.DB.prepare(`${USER_SQL} JOIN sessions s ON s.user_id = u.id AND s.sid = ?2 WHERE u.id = ?1`).bind(+uid, sid).first();
   if (!u || !u.account_active) return null;
-  if (!safeEqual(sig || "", await hmac(env, `${u.id}.${exp}.${u.session_epoch}.${u.created_at}`))) return null;
+  if (!safeEqual(sig || "", await hmac(env, `${u.id}.${exp}.${sid}.${u.session_epoch}.${u.created_at}`))) return null;
   return toCtx(u);
 }
 

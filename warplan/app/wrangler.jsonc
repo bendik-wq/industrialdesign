@@ -4,7 +4,9 @@
   "main": "src/index.js",
   "compatibility_date": "2026-10-06",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-  "observability": { "enabled": true },
+  // Console logs stay on; per-request invocation logs (which record full URLs, including tokens in /mcp/wp_… and
+  // webhook paths) are off.
+  "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",

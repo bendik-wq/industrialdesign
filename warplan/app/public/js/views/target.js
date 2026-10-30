@@ -42,7 +42,7 @@ export async function renderTarget(id, seq) {
             <a role="menuitem" href="#/builder?target=${t.id}">Structure the deal</a>
             <button type="button" role="menuitem" id="edit">Edit details…</button>
             <hr>
-            <button type="button" role="menuitem" id="del" class="danger">Delete target…</button>
+            ${session.me?.isOwner ? `<button type="button" role="menuitem" id="del" class="danger">Delete target…</button>` : ""}
           </div>
         </div>
       </div>
@@ -221,7 +221,7 @@ export async function renderTarget(id, seq) {
       <label class="field">What the owner wants (motivation, fears, timing)<textarea name="motivation" rows="3" maxlength="2000">${esc(t.motivation)}</textarea></label>` });
     if (r) patch(r, "Saved");
   });
-  $("#del").addEventListener("click", async () => {
+  $("#del")?.addEventListener("click", async () => {
     if (!(await confirmBox(`Delete ${t.name}?`, "This deletes the target, its timeline and every document the agents wrote for it. It can't be undone."))) return;
     try { await api(`/api/targets/${t.id}`, { method: "DELETE" }); toast("Deleted"); location.hash = "#/pipeline"; } catch (e) { fail(e); }
   });

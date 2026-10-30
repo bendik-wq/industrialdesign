@@ -88,6 +88,7 @@
       section.block { padding: 56px 0; }
     }
   </style>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
   <header class="nav"><div class="wrap nav-in">
@@ -145,6 +146,7 @@
             <textarea id="systems" name="systems" placeholder="e.g. Xero, ServiceM8, an old server, spreadsheets, a CRM"></textarea></div>
           <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
           <label class="consent"><input type="checkbox" name="consent" value="yes" required> I agree to be contacted by G&amp;L M&amp;A Advisory about valuing and selling my business's data.</label>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFtMG3q9E9Iei2As" style="margin:0 0 14px"></div>
           <button class="btn" type="submit" id="submit" style="width:100%">Submit my application</button>
           <p class="msg err" id="err" role="alert" hidden></p>
         </form>
@@ -183,13 +185,14 @@
       btn.disabled = true; btn.textContent = "Sending…";
       const data = Object.fromEntries(new FormData(f));
       data.watched = Math.round(v.currentTime || 0);
+      data.turnstile = (f.querySelector("[name='cf-turnstile-response']") || {}).value || "";
       data.source = new URLSearchParams(location.search).get("utm_source") || document.referrer || "";
       try {
         const r = await fetch("/api/apply", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
         if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Something went wrong. Please try again.");
         f.hidden = true; document.getElementById("done").hidden = false;
       } catch (x) {
-        err.textContent = x.message; err.hidden = false; btn.disabled = false; btn.textContent = "Submit my application";
+        err.textContent = x.message; err.hidden = false; btn.disabled = false; btn.textContent = "Submit my application"; if (window.turnstile) window.turnstile.reset();
       }
     });
   </script>

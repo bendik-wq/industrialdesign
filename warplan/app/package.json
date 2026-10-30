@@ -6,7 +6,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:schema": "wrangler d1 execute warplan --remote --file schema.sql",
-    "test": "node --import ./test/text-loader.mjs --test test/*.test.js"
+    "test": "node --import ./test/text-loader.mjs --test test/*.test.js",
+    "db:migrate": "wrangler d1 execute warplan --remote --file migrations/0001_link_expiry.sql"
   },
   "devDependencies": {
     "wrangler": "4.147.0"

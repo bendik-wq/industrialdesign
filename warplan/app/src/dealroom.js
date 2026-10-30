@@ -26,6 +26,7 @@ const CHUNK = 1_800_000;
 const MAX_ROOM_FILES = 60;
 // Every workspace's files share one database: a workspace stores at most this much, and a seller link takes at most
 // 30 uploads an hour, so one link or one script can't fill it for everyone.
+export const LINK_DAYS = 60;
 export const WORKSPACE_BYTES = 1.5 * 1024 * 1024 * 1024, SELLER_UPLOADS_PER_HOUR = 30;
 const MIME = { pdf: "application/pdf", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xls: "application/vnd.ms-excel", csv: "text/csv", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", doc: "application/msword", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", txt: "text/plain" };
 export const extOf = (name) => (String(name).toLowerCase().match(/\.([a-z0-9]{2,5})$/) || [])[1] || "";
@@ -213,18 +214,27 @@ export async function storeFile(env, accountId, targetId, { name, mime, bytes, i
   const used = (await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM files WHERE account_id = ?1").bind(accountId).first()).n;
   if (used + bytes.length > WORKSPACE_BYTES) throw err(413, "This workspace's file storage is full. Delete old files from deal rooms first.");
   const stamp = now();
-  const chunks = bytes.length > CHUNK ? Math.ceil(bytes.length / CHUNK) : 0;
+  // With an R2 bucket bound (FILES), the bytes live there and D1 keeps only the record (chunks = -1). Without one,
+  // small files go in files.data and larger ones in ~1.8 MB chunks.
+  const r2 = !!env.FILES;
+  const chunks = r2 ? -1 : bytes.length > CHUNK ? Math.ceil(bytes.length / CHUNK) : 0;
   const f = await env.DB.prepare("INSERT INTO files (account_id, target_id, name, mime, size, data, kind, created_by, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'room', ?7, ?8) RETURNING id")
     .bind(accountId, targetId, name, mime, bytes.length, chunks ? new Uint8Array(0) : bytes, userId, stamp).first();
-  for (let i = 0; i < chunks; i++) await env.DB.prepare("INSERT INTO file_chunks (file_id, n, data) VALUES (?1, ?2, ?3)").bind(f.id, i, bytes.subarray(i * CHUNK, (i + 1) * CHUNK)).run();
+  if (r2) await env.FILES.put(r2Key(accountId, f.id), bytes, { httpMetadata: { contentType: mime } });
+  else for (let i = 0; i < chunks; i++) await env.DB.prepare("INSERT INTO file_chunks (file_id, n, data) VALUES (?1, ?2, ?3)").bind(f.id, i, bytes.subarray(i * CHUNK, (i + 1) * CHUNK)).run();
   await env.DB.prepare("INSERT INTO room_files (file_id, account_id, target_id, item_id, source, chunks) VALUES (?1, ?2, ?3, ?4, ?5, ?6)").bind(f.id, accountId, targetId, itemId, source, chunks).run();
   return { id: f.id, name, size: bytes.length, created_at: stamp };
 }
+export const r2Key = (accountId, fileId) => `room/${accountId}/${fileId}`;
 
 // The bytes of a stored file (chunked or not), or null.
 export async function fileBytes(env, accountId, id) {
   const f = await env.DB.prepare("SELECT f.name, f.mime, f.data, rf.chunks FROM files f LEFT JOIN room_files rf ON rf.file_id = f.id WHERE f.id = ?1 AND f.account_id = ?2").bind(+id, accountId).first();
   if (!f) return null;
+  if (f.chunks === -1) {
+    const o = env.FILES ? await env.FILES.get(r2Key(accountId, id)) : null;
+    return o ? { name: f.name, mime: f.mime, body: new Uint8Array(await o.arrayBuffer()) } : null;
+  }
   if (!f.chunks) return { name: f.name, mime: f.mime, body: f.data instanceof ArrayBuffer ? f.data : new Uint8Array(f.data) };
   const { results } = await env.DB.prepare("SELECT data FROM file_chunks WHERE file_id = ?1 ORDER BY n").bind(+id).all();
   const parts = results.map((r) => new Uint8Array(r.data)), size = parts.reduce((t, p) => t + p.length, 0);
@@ -256,6 +266,7 @@ export async function teamUpload(env, ctx, targetId, form) {
 }
 
 export async function deleteRoomFile(env, ctx, id) {
+  if (env.FILES && (await env.DB.prepare("SELECT 1 FROM files WHERE id = ?1 AND account_id = ?2").bind(+id, ctx.accountId).first())) await env.FILES.delete(r2Key(ctx.accountId, +id));
   await env.DB.batch([
     env.DB.prepare("DELETE FROM file_chunks WHERE file_id = (SELECT id FROM files WHERE id = ?1 AND account_id = ?2)").bind(+id, ctx.accountId),
     env.DB.prepare("DELETE FROM room_files WHERE file_id = ?1 AND account_id = ?2").bind(+id, ctx.accountId),
@@ -269,10 +280,11 @@ export async function createLink(env, ctx, targetId, origin) {
   const t = await target(env, ctx, targetId);
   await ensureRoom(env, ctx.accountId, t);
   const token = randomToken("r_");
-  await env.DB.prepare("UPDATE deal_rooms SET token_hash = ?3, token_hint = ?4, link_on = 1, updated_at = ?5 WHERE target_id = ?1 AND account_id = ?2").bind(t.id, ctx.accountId, await sha256(token), token.slice(-4), now()).run();
+  const expires = new Date(Date.now() + LINK_DAYS * 864e5).toISOString();
+  await env.DB.prepare("UPDATE deal_rooms SET token_hash = ?3, token_hint = ?4, link_on = 1, link_expires_at = ?6, updated_at = ?5 WHERE target_id = ?1 AND account_id = ?2").bind(t.id, ctx.accountId, await sha256(token), token.slice(-4), now(), expires).run();
   // Asking for the gate items is the moment they become "requested".
   await env.DB.prepare("UPDATE deal_items SET status = 'requested', updated_at = ?3 WHERE account_id = ?1 AND target_id = ?2 AND list = 'gate' AND seller = 1 AND status = 'open'").bind(ctx.accountId, t.id, now()).run();
-  return { url: `${origin}/r/${token}`, note: "Anyone with this link can see the requested items and upload to them. Making a new link turns the old one off." };
+  return { url: `${origin}/r/${token}`, expires_at: expires, note: `Anyone with this link can see the requested items and upload to them until ${expires.slice(0, 10)} (${LINK_DAYS} days). Making a new link turns the old one off.` };
 }
 
 export async function revokeLink(env, ctx, targetId) {
@@ -303,6 +315,7 @@ async function roomByToken(env, token) {
   if (!/^r_[\w-]{20,64}$/.test(String(token || ""))) throw err(404, "This link isn't valid");
   const room = await env.DB.prepare("SELECT * FROM deal_rooms WHERE token_hash = ?1 AND link_on = 1").bind(await sha256(token)).first();
   if (!room) throw err(404, "This link has been turned off. Ask the buyer for a new one.");
+  if (room.link_expires_at && room.link_expires_at < now()) throw err(410, "This link has expired. Ask the buyer for a new one.");
   return room;
 }
 
@@ -368,4 +381,23 @@ export async function sellerFile(env, token, fileId) {
   if (!ok) throw err(404, "No such file");
   const f = await fileBytes(env, room.account_id, fileId);
   return new Response(f.body, { headers: { "Content-Type": f.mime, "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+}
+
+// Once an R2 bucket is bound, move files stored in D1 across, a few per run (cron), oldest first.
+export async function migrateFilesToR2(env, limit = 15) {
+  if (!env.FILES) return { moved: 0 };
+  const { results } = await env.DB.prepare("SELECT file_id, account_id FROM room_files WHERE chunks >= 0 ORDER BY file_id LIMIT ?1").bind(limit).all();
+  let moved = 0;
+  for (const r of results) {
+    const b = await fileBytes(env, r.account_id, r.file_id);
+    if (!b) continue;
+    await env.FILES.put(r2Key(r.account_id, r.file_id), b.body, { httpMetadata: { contentType: b.mime } });
+    await env.DB.batch([
+      env.DB.prepare("UPDATE room_files SET chunks = -1 WHERE file_id = ?1").bind(r.file_id),
+      env.DB.prepare("UPDATE files SET data = ?2 WHERE id = ?1").bind(r.file_id, new Uint8Array(0)),
+      env.DB.prepare("DELETE FROM file_chunks WHERE file_id = ?1").bind(r.file_id),
+    ]);
+    moved++;
+  }
+  return { moved };
 }

@@ -9,10 +9,21 @@ const csvCell = (v) => {
   return `"${s.replace(/"/g, '""')}"`;
 };
 
+async function ipHash(ip, env) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${env.TURNSTILE_SECRET || "data-vsl"}|${ip}`));
+  return [...new Uint8Array(d)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function apply(req, env) {
   let d;
   try { d = await req.json(); } catch { return json({ error: "Invalid request." }, 400); }
   if (d.website) return json({ ok: true }); // honeypot: bots fill the hidden field
+  // Cloudflare Turnstile: the browser proves it's a person; the token is checked server-side.
+  if (env.TURNSTILE_SECRET) {
+    const form = new FormData(); form.append("secret", env.TURNSTILE_SECRET); form.append("response", String(d.turnstile || "")); form.append("remoteip", req.headers.get("cf-connecting-ip") || "");
+    const v = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form }).then((r) => r.json()).catch(() => ({}));
+    if (!v.success) return json({ error: "Please complete the check above the button and try again." }, 400);
+  }
   const lead = {
     name: clip(d.name, 120), business: clip(d.business, 160), email: clip(d.email, 200).toLowerCase(),
     phone: clip(d.phone, 40), status: d.status === "closed" ? "closed" : d.status === "operating" ? "operating" : "",
@@ -21,7 +32,8 @@ async function apply(req, env) {
   };
   if (!lead.name || !lead.business || !lead.phone || !lead.status || d.consent !== "yes" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email))
     return json({ error: "Please fill in your name, business, email, mobile, trading status and tick the consent box." }, 400);
-  const ip = req.headers.get("cf-connecting-ip") || "";
+  // Visitors' IP addresses aren't stored: only a salted hash, enough to rate-limit repeat submissions.
+  const ip = await ipHash(req.headers.get("cf-connecting-ip") || "", env);
   const recent = await env.DB.prepare("SELECT COUNT(*) AS n FROM leads WHERE ip = ? AND created_at > datetime('now', '-1 hour')").bind(ip).first();
   if (recent && recent.n >= 5) return json({ error: "Too many submissions. Please try again later." }, 429);
   await env.DB.prepare(
@@ -70,7 +82,7 @@ async function media(req, env) {
 }
 
 const HEADERS = {
-  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin", "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };

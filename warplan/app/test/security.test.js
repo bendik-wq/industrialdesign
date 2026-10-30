@@ -54,3 +54,28 @@ test("seller links: NDA recorded once, uploads need the NDA, a rate limit and a 
   assert.match(room, /Accept the confidentiality agreement first/);
   assert.match(room, /WORKSPACE_BYTES/);
 });
+
+test("open items closed: per-session revocation, __Host- cookie, no legacy admin token, short cache", () => {
+  const auth = src("auth.js");
+  assert.match(auth, /export const COOKIE = "__Host-wp_s"/);
+  assert.match(auth, /JOIN sessions s ON s\.user_id = u\.id AND s\.sid = \?2/);
+  assert.doesNotMatch(auth, /env\.API_TOKEN/);
+  assert.match(auth, /SESSION_TTL_MS = 5_000/);
+  assert.match(auth, /const read = request\.method === "GET"/);
+  assert.match(src("index.js"), /else await endUserSession\(env, request\)/);
+});
+
+test("open items closed: sealed webhook secrets, R2-ready files, expiring seller links, owner-only deletes", () => {
+  assert.match(src("pipeline.js"), /sealed:v1:/);
+  assert.match(src("dealroom.js"), /if \(r2\) await env\.FILES\.put/);
+  assert.match(src("dealroom.js"), /link_expires_at < now\(\)\) throw err\(410/);
+  const index = src("index.js");
+  assert.match(index, /if \(m === "DELETE"\) \{ needOwner\(ctx\); if \(ctx\.viaToken\) fail\(403, "Delete targets/);
+  assert.doesNotMatch(index, /fail\(409, "That email already has a login"\)/);
+  assert.match(readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"), /"invocation_logs": false/);
+});
+
+test("open items closed: AI calls and data runs are reserved before they happen", () => {
+  assert.match(src("usage.js"), /'_hold'/);
+  assert.match(src("monid.js"), /'RESERVED'/);
+});
