@@ -52,6 +52,11 @@ const DUMMY_HASH = "pbkdf2$100000$c2FsdHNhbHRzYWx0c2FsdA==$3vVJ8yFqZbS4m0t0dKkQ4
 const PUBLIC_PATHS = new Set(["/login", "/login.html", "/login.js", "/join", "/join.html", "/join.js", "/style.css", "/favicon.svg", "/robots.txt", "/404", "/404.html", "/manifest.webmanifest", "/og.png", "/apple-touch-icon.png"]);
 const STATE_KEYS = new Set(["deal", "ladder", "profile", "prefs"]);
 
+// The visitor's IP for rate limits. Cloudflare's edge sets CF-Connecting-IP and overwrites any value the client sends;
+// request.cf is only present when the request came through the edge, so off-edge (where the header would be
+// client-controlled) every request shares one bucket instead of trusting it.
+const clientIp = (request) => (request.cf ? request.headers.get("CF-Connecting-IP") : null) || "?";
+
 export default {
   async fetch(request, env, exec) {
     return secure(await handle(request, env, exec));
@@ -172,7 +177,7 @@ async function sellerRoute(request, env, url, exec) {
   }
   if (m !== "GET" && request.headers.get("Origin") && request.headers.get("Origin") !== url.origin) fail(403, "Cross-site request blocked");
   if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})$/)) && m === "GET") return json(await sellerView(env, r[1]));
-  if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/nda$/)) && m === "POST") return json(await sellerNda(env, r[1], await body(request), request.headers.get("CF-Connecting-IP"), hooks));
+  if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/nda$/)) && m === "POST") return json(await sellerNda(env, r[1], await body(request), clientIp(request), hooks));
   if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/upload$/)) && m === "POST") {
     { const len = request.headers.get("Content-Length"); if (!len) fail(411, "Upload size missing"); if (+len > 21 * 1024 * 1024) fail(413, "Files up to 20 MB"); }
     return json(await sellerUpload(env, r[1], await request.formData(), hooks), 201);
@@ -237,7 +242,7 @@ async function authRoute(request, env, url) {
   }
   if (p === "/api/login" && m === "POST") {
     const b = await body(request);
-    const ip = request.headers.get("CF-Connecting-IP") || "?", email = String(b.email || "").trim().toLowerCase().slice(0, 160);
+    const ip = clientIp(request), email = String(b.email || "").trim().toLowerCase().slice(0, 160);
     const who = `e:${email}`, whoIp = `ei:${email}|${ip}`, stamp = now();
     const since = new Date(Date.now() - 15 * 60_000).toISOString();
     // Reserve the attempt before checking the password, in one transaction, so parallel guesses all count.

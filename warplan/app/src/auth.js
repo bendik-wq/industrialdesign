@@ -87,23 +87,11 @@ export function toCtx(u) {
 }
 
 // Resolve who is calling. Returns null when not signed in.
-// Verified sessions are cached in this isolate for 5 seconds, and only for reads: a burst of page-load GETs costs one
-// database lookup, while every change (POST/PUT/PATCH/DELETE) re-checks the session, so a sign-out, removal or role
-// change is enforced on writes immediately and on reads within 5 seconds.
-const SESSION_TTL_MS = 5_000, sessionCache = new Map();
-export function forgetSessions() { sessionCache.clear(); }
+// Every request re-checks the session in the database (no cache), so a sign-out, removal or role change applies to
+// the very next request, reads included, in every isolate.
+export function forgetSessions() {}
 export async function getContext(request, env) {
-  const key = (request.headers.get("Authorization") || "") + "|" + ((request.headers.get("Cookie") || "").match(COOKIE_RE)?.[1] || "");
-  if (key === "|") return null;
-  const read = request.method === "GET" || request.method === "HEAD";
-  const hit = read && sessionCache.get(key);
-  if (hit && hit.exp > Date.now()) return hit.ctx;
-  const ctx = await resolveContext(request, env);
-  if (ctx) {
-    if (sessionCache.size > 5000) sessionCache.clear();
-    sessionCache.set(key, { ctx, exp: Date.now() + SESSION_TTL_MS });
-  }
-  return ctx;
+  return resolveContext(request, env);
 }
 async function resolveContext(request, env) {
   const bearer = (request.headers.get("Authorization") || "").match(/^Bearer (.+)$/)?.[1]?.trim();

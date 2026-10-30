@@ -55,13 +55,13 @@ test("seller links: NDA recorded once, uploads need the NDA, a rate limit and a 
   assert.match(room, /WORKSPACE_BYTES/);
 });
 
-test("open items closed: per-session revocation, __Host- cookie, no legacy admin token, short cache", () => {
+test("open items closed: per-session revocation, __Host- cookie, no legacy admin token, no session cache", () => {
   const auth = src("auth.js");
   assert.match(auth, /export const COOKIE = "__Host-wp_s"/);
   assert.match(auth, /JOIN sessions s ON s\.user_id = u\.id AND s\.sid = \?2/);
   assert.doesNotMatch(auth, /env\.API_TOKEN/);
-  assert.match(auth, /SESSION_TTL_MS = 5_000/);
-  assert.match(auth, /const read = request\.method === "GET"/);
+  assert.doesNotMatch(auth, /sessionCache|SESSION_TTL_MS/); // no session cache: revocation applies to the next request
+  assert.match(auth, /export async function getContext\(request, env\) \{\n  return resolveContext\(request, env\);/);
   assert.match(src("index.js"), /else await endUserSession\(env, request\)/);
 });
 
@@ -87,4 +87,10 @@ test("SSRF: names that resolve to private addresses are refused", async () => {
   assert.equal(await resolvesPublic("127.0.0.1.nip.io", async () => ["127.0.0.1"]), false);
   assert.equal(await resolvesPublic("example.com", async () => ["93.184.215.14"]), true);
   assert.equal(await resolvesPublic("nothing.invalid", async () => []), false);
+});
+
+test("rate-limit IP only trusted from Cloudflare's edge", async () => {
+  const idx = src("index.js");
+  assert.match(idx, /const clientIp = \(request\) => \(request\.cf \? request\.headers\.get\("CF-Connecting-IP"\) : null\) \|\| "\?"/);
+  assert.doesNotMatch(idx.replace(/const clientIp[^\n]*/, ""), /headers\.get\("CF-Connecting-IP"\)/);
 });

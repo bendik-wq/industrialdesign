@@ -74,6 +74,11 @@ const API_DOCS = {
   ],
 };
 
+// The visitor's IP for rate limits. Cloudflare's edge sets CF-Connecting-IP and overwrites any value the client sends;
+// request.cf is only present when the request came through the edge, so off-edge (where the header would be
+// client-controlled) every request shares one bucket instead of trusting it.
+const clientIp = (request) => (request.cf ? request.headers.get("CF-Connecting-IP") : null) || "?";
+
 export default {
   // Hourly: start any agent whose daily/weekly schedule is due.
   async scheduled(controller, env, ctx) {
@@ -218,7 +223,7 @@ async function authRoute(request, env, url) {
 
 // Login/setup throttle: 10 per key+IP and 50 per IP in 15 minutes, reserved before the check in one transaction.
 async function throttled(env, request, key) {
-  const ip = request.headers.get("CF-Connecting-IP") || "?", stamp = now(), since = new Date(Date.now() - 15 * 60_000).toISOString();
+  const ip = clientIp(request), stamp = now(), since = new Date(Date.now() - 15 * 60_000).toISOString();
   // Attackers rotate IP addresses, so the account itself also has a cap across every IP (30 per 15 minutes).
   const [, a, b, c] = await env.DB.batch([
     env.DB.prepare("INSERT INTO login_attempts (key, created_at) VALUES (?1, ?4), (?2, ?4), (?3, ?4)").bind(`k:${key}|${ip}`, `ip:${ip}`, `k:${key}`, stamp),
@@ -616,7 +621,7 @@ async function publicRoute(request, env, url) {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const b = await body(request);
   // Public endpoints: 30 lookups and 5 lead forms an hour per (hashed) IP, 3 leads a day per company.
-  const ipKey = await sha256(`${env.SESSION_SECRET || ""}|${request.headers.get("CF-Connecting-IP") || "?"}`);
+  const ipKey = await sha256(`${env.SESSION_SECRET || ""}|${clientIp(request)}`);
   const hits = async (key, since) => (await env.DB.prepare("SELECT COUNT(*) AS n FROM public_hits WHERE key = ?1 AND created_at > ?2").bind(key, since).first()).n;
   const hourAgo = new Date(Date.now() - 3600_000).toISOString();
   if (url.pathname === "/api/public/valuation") {
