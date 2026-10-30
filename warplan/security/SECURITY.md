@@ -84,5 +84,17 @@ Clean: no secrets in tracked files or git history; PBKDF2-SHA256 100k with per-u
 | Low | Funnel skipped the bot check entirely if `TURNSTILE_SECRET` were missing | Fails closed (503) |
 | Low | Dealflow `?sort=constructor` / `?page=1e309` produced malformed SQL (500) | `Object.hasOwn` on the sort map; page capped |
 
-- Reads (GET) can be served from a 5-second session cache after a sign-out or removal; writes never are (measured: about 3 s).
-- Login limits use `CF-Connecting-IP`; safe on Cloudflare (the edge sets it), but would be spoofable if the Worker were ever served off Cloudflare. The per-account cap is the backstop.
+## 2026-10-30: last open items closed; headers on the two outside Workers
+
+| Was open | Now |
+|---|---|
+| Reads could use a 5-second session cache after sign-out/removal | Cache removed: every request re-checks the session. Verified live: 401 on the very next read after sign-out |
+| Rate limits trusted `CF-Connecting-IP` even off Cloudflare | Read only when `request.cf` is present (the edge set it); otherwise one shared bucket. Seller-NDA IP uses the same helper. Dealflow too |
+| `cold-block` had no security headers | Wrapped (`funnels/edge-headers`): HSTS, nosniff, Referrer-Policy, Permissions-Policy, X-Frame-Options DENY, nonce + `strict-dynamic` CSP. Game, three.js and WebSocket (101) verified |
+| `owners-vsl-funnel` public pages had a minimal CSP (scripts unrestricted) and no Permissions-Policy | Same wrapper: per-request nonce on `<head>` scripts (the app's own, Meta Pixel, PostHog), `strict-dynamic`, admin-login snippet allowed by hash, Permissions-Policy (microphone only for voice input). Enforced on every public page; verified in a browser with zero violations and Pixel/PostHog/config loading. Registrant-only pages (`/registered`, `/room`, `/replay`, `/worksheet`, `/notes`, `/blueprint`, `/pack`, `/book`) run it report-only, logging any violation via `/__csp-report`, until real visits confirm they're clean |
+
+The two Workers' source isn't in this repo. `funnels/edge-headers/deploy.sh <worker> enforce` downloads the live bundle, adds `secure.js` as the entry point and re-uploads it with the same bindings, secrets and assets. **Re-run it after any new deploy of those Workers**: a fresh deploy from their own source replaces the wrapper.
+
+### Still open
+
+- Registrant-only pages of `owners-vsl-funnel` stay report-only until a real visit shows no violations (look for `csp-violation` in that Worker's logs).
