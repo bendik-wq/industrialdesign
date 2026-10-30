@@ -485,7 +485,7 @@ describe('Connect Whop', () => {
     const r = await connectWhop(rt);
     expect(r).toMatchObject({ company: { id: 'biz_test' }, webhookUrl: 'https://apply.test/hooks/whop', webhook: { created: true }, steps: [] });
     const create = calls.find((c) => c.method === 'POST' && c.path === 'webhooks')!;
-    expect(create.body).toMatchObject({ url: 'https://apply.test/hooks/whop', events: [...WHOP_EVENTS], api_version: 'v1', resource_id: 'biz_test' });
+    expect(create.body).toMatchObject({ url: 'https://apply.test/hooks/whop', events: [...WHOP_EVENTS], resource_id: 'biz_test' });
     const saved = Object.fromEntries((db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[]).map((x) => [x.key, x.value]));
     expect(saved).toMatchObject({ WHOP_COMPANY_ID: 'biz_test', WHOP_WEBHOOK_SECRET: 'ws_new_secret' });
   });

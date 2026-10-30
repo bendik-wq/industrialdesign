@@ -306,7 +306,7 @@ export async function connectWhop(rt: Runtime) {
     webhook = { created: false, id: existing.id ?? null, note: 'A webhook for this URL already exists in Whop, but Whop only shows its secret in the dashboard. Copy it from Whop → Developer (Secret column) into “Whop webhook secret”, or delete that webhook and press Connect Whop again.' };
   } else {
     try {
-      const w = await whopApi<{ id?: string; webhook_secret?: string }>(rt, 'POST', 'webhooks', { url, events: [...WHOP_EVENTS], api_version: 'v1', api_version_date: WHOP_API_VERSION, resource_id: me.id, enabled: true });
+      const w = await whopApi<{ id?: string; webhook_secret?: string }>(rt, 'POST', 'webhooks', { url, events: [...WHOP_EVENTS], api_version_date: WHOP_API_VERSION, resource_id: me.id, enabled: true });
       if (!w.webhook_secret) throw new Error('Whop returned no webhook secret');
       await saveSettings(rt.env, { WHOP_WEBHOOK_SECRET: w.webhook_secret });
       webhook = { created: true, id: w.id ?? null };
