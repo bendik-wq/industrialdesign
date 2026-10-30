@@ -90,6 +90,24 @@ export default {
   },
 
   async fetch(request, env) {
+    return secure(await handler.handle(request, env));
+  },
+};
+
+// Browser hardening on every response the Worker builds (static files get the same from public/_headers).
+const SECURITY_HEADERS = {
+  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "X-Frame-Options": "DENY", "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin", "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+function secure(res) {
+  const r = new Response(res.body, res);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!r.headers.has(k)) r.headers.set(k, v);
+  return r;
+}
+
+const handler = {
+  async handle(request, env) {
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith("/api/auth/") || url.pathname === "/api/login" || url.pathname === "/api/logout" || url.pathname === "/api/setup" || url.pathname.startsWith("/api/invites/")) {

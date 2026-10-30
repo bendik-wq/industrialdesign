@@ -197,6 +197,9 @@ for (const p of PRODUCTS) writeFileSync(join(DIST, `${p.slug}.html`), productPag
 writeFileSync(join(DIST, "404.html"), layout("Not found · industrialdesign", "Page not found.", `
 <main><section class="intro"><p class="eyebrow">404</p><h1>Page not found</h1><p class="lede"><a href="/">Back to all designs</a></p></section></main>`));
 writeFileSync(join(DIST, "_headers"), [
+  // Security headers on every page: model-viewer needs blob: workers and data:/blob: images; nothing loads from
+  // other origins, and nothing may frame the site.
+  "/*\n  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' blob: data:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'\n  Strict-Transport-Security: max-age=31536000; includeSubDomains\n  X-Frame-Options: DENY\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()",
   "/assets/*\n  Cache-Control: public, max-age=86400",
   "/out/*\n  Cache-Control: public, max-age=3600",
   "/renders/*\n  Cache-Control: public, max-age=3600",
