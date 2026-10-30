@@ -24,6 +24,9 @@ export const HEALTHCARE = /dental|dentist|clinic|medical|health|physio|chiro|opt
 export const MAX_FILE = 20 * 1024 * 1024;
 const CHUNK = 1_800_000;
 const MAX_ROOM_FILES = 60;
+// Every workspace's files share one database: a workspace stores at most this much, and a seller link takes at most
+// 30 uploads an hour, so one link or one script can't fill it for everyone.
+export const WORKSPACE_BYTES = 1.5 * 1024 * 1024 * 1024, SELLER_UPLOADS_PER_HOUR = 30;
 const MIME = { pdf: "application/pdf", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xls: "application/vnd.ms-excel", csv: "text/csv", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", doc: "application/msword", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", txt: "text/plain" };
 export const extOf = (name) => (String(name).toLowerCase().match(/\.([a-z0-9]{2,5})$/) || [])[1] || "";
 
@@ -207,6 +210,8 @@ export async function deleteItem(env, ctx, id) {
 // ------------------------------------------------------------------ files (team and seller uploads)
 // Stored in D1: small files in files.data, larger ones in ~1.8 MB chunks.
 export async function storeFile(env, accountId, targetId, { name, mime, bytes, itemId = null, source = "team", userId = null }) {
+  const used = (await env.DB.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM files WHERE account_id = ?1").bind(accountId).first()).n;
+  if (used + bytes.length > WORKSPACE_BYTES) throw err(413, "This workspace's file storage is full. Delete old files from deal rooms first.");
   const stamp = now();
   const chunks = bytes.length > CHUNK ? Math.ceil(bytes.length / CHUNK) : 0;
   const f = await env.DB.prepare("INSERT INTO files (account_id, target_id, name, mime, size, data, kind, created_by, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'room', ?7, ?8) RETURNING id")
@@ -324,8 +329,10 @@ export async function sellerNda(env, token, b, ip, hooks) {
   const name = text(b.name, 120);
   if (name.length < 3 || !b.agree) throw err(400, "Type your full name and tick the box");
   const stamp = now();
+  // The acceptance record (who, when, from where) is written once and never overwritten by a later visitor.
+  const first = await env.DB.prepare("UPDATE deal_rooms SET nda_at = ?2, nda_name = ?3, nda_ip = ?4, seller_name = COALESCE(seller_name, ?3), updated_at = ?2 WHERE target_id = ?1 AND nda_at IS NULL").bind(room.target_id, stamp, name, String(ip || "").slice(0, 60)).run();
+  if (!first.meta.changes) return { ok: true, already: true };
   await env.DB.batch([
-    env.DB.prepare("UPDATE deal_rooms SET nda_at = ?2, nda_name = ?3, nda_ip = ?4, seller_name = COALESCE(seller_name, ?3), updated_at = ?2 WHERE target_id = ?1").bind(room.target_id, stamp, name, String(ip || "").slice(0, 60)),
     env.DB.prepare("UPDATE deal_items SET status = 'done', done_at = ?3, updated_at = ?3 WHERE account_id = ?1 AND target_id = ?2 AND list = 'gate' AND title LIKE 'NDA%'").bind(room.account_id, room.target_id, stamp),
     env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, NULL, 'Seller link', 'note', ?3, ?4)").bind(room.account_id, room.target_id, `NDA accepted by ${name} on the seller link.`, stamp),
   ]);
@@ -338,6 +345,10 @@ export async function sellerUpload(env, token, form, hooks) {
   const itemId = +form.get("item");
   const item = await env.DB.prepare("SELECT id, title FROM deal_items WHERE id = ?1 AND account_id = ?2 AND target_id = ?3 AND seller = 1 AND upload = 1").bind(itemId, room.account_id, room.target_id).first();
   if (!item) throw err(400, "Pick what this file is for");
+  const gate = await env.DB.prepare(`SELECT r.nda_at, (SELECT COUNT(*) FROM room_files rf JOIN files f ON f.id = rf.file_id WHERE rf.account_id = r.account_id AND rf.target_id = r.target_id AND rf.source = 'seller' AND f.created_at > ?3) AS recent
+    FROM deal_rooms r WHERE r.target_id = ?1 AND r.account_id = ?2`).bind(room.target_id, room.account_id, new Date(Date.now() - 3600_000).toISOString()).first();
+  if (!gate?.nda_at) throw err(403, "Accept the confidentiality agreement first");
+  if (gate.recent >= SELLER_UPLOADS_PER_HOUR) throw err(429, "That's a lot of uploads in an hour. Try again later, or email the buyer.");
   const file = form.get("file"), { name, mime } = checkUpload(file);
   if ((await roomFileCount(env, room.account_id, room.target_id)) >= MAX_ROOM_FILES) throw err(400, "This room is full. Email the buyer instead.");
   const f = await storeFile(env, room.account_id, room.target_id, { name, mime, bytes: new Uint8Array(await file.arrayBuffer()), itemId: item.id, source: "seller" });

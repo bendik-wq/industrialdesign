@@ -118,7 +118,7 @@ function cleanMeta(provider, meta = {}) {
   if (provider === "emailbison") {
     let u; try { u = new URL(String(meta.baseUrl || "").trim()); } catch { /* checked below */ }
     // An https host name only: no IP literals, ports or paths, so the key can't be pointed at something internal.
-    if (!u || u.protocol !== "https:" || u.port || /^[\d.]+$|^\[|localhost/i.test(u.hostname)) throw err(400, "Paste your EmailBison address, e.g. https://dedi.emailbison.com");
+    if (!u || u.protocol !== "https:" || u.port || !publicUrl(u.toString(), { httpsOnly: true })) throw err(400, "Paste your EmailBison address, e.g. https://dedi.emailbison.com");
     out.baseUrl = u.origin;
   }
   if (provider === "bluebubbles") {

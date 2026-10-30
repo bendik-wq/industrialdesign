@@ -44,7 +44,8 @@ function authorised(req, env) {
 }
 
 async function exportLeads(req, env) {
-  if (!authorised(req, env)) return new Response("Login required", { status: 401, headers: { "www-authenticate": 'Basic realm="Data VSL leads"' } });
+  if (await adminLocked(req, env, false)) return new Response("Too many attempts. Try again in an hour.", { status: 429 });
+  if (!authorised(req, env)) { const hasCreds = (req.headers.get("authorization") || "").startsWith("Basic "); if (hasCreds) await adminLocked(req, env, true); return new Response("Login required", { status: 401, headers: { "www-authenticate": 'Basic realm="Data VSL leads"' } }); }
   const { results } = await env.DB.prepare("SELECT created_at, name, business, email, phone, status, industry, years, systems, watched, source, country FROM leads ORDER BY id DESC").all();
   const cols = ["created_at", "name", "business", "email", "phone", "status", "industry", "years", "systems", "watched", "source", "country"];
   const csv = [cols.join(","), ...results.map((r) => cols.map((c) => csvCell(r[c])).join(","))].join("\n");
@@ -68,12 +69,31 @@ async function media(req, env) {
   });
 }
 
+const HEADERS = {
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin", "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+const secure = (res) => { const r = new Response(res.body, res); for (const [k, v] of Object.entries(HEADERS)) r.headers.set(k, v); return r; };
+
+// Failed admin logins per IP: 10 an hour, then locked out for the hour.
+async function adminLocked(req, env, failed) {
+  const ip = req.headers.get("cf-connecting-ip") || "?";
+  if (failed) await env.DB.prepare("INSERT INTO admin_fails (ip, at) VALUES (?1, datetime('now'))").bind(ip).run();
+  const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM admin_fails WHERE ip = ?1 AND at > datetime('now', '-1 hour')").bind(ip).first();
+  return (r?.n || 0) >= 10;
+}
+
 export default {
-  async fetch(req, env) {
+  async fetch(req, env) { return secure(await route(req, env)); },
+};
+
+async function route(req, env) {
+  {
     const url = new URL(req.url);
     if (url.pathname.startsWith("/media/") && url.pathname.endsWith(".mp4")) return media(req, env);
     if (url.pathname === "/api/apply" && req.method === "POST") return apply(req, env);
     if (url.pathname === "/admin/leads.csv") return exportLeads(req, env);
     return env.ASSETS.fetch(req);
-  },
-};
+  }
+}

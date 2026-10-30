@@ -3,7 +3,7 @@
 //   Tools: Deal Builder, Value Ladder, Pipeline. Platform: teams, bring-your-own AI keys, API tokens, webhooks, usage.
 import { transcribe } from "./ai.js";
 import { publicAgents } from "./agents.js";
-import { forgetSessions, getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie, sha256, randomToken } from "./auth.js";
+import { forgetSessions, getContext, findUserForLogin, verifyPassword, hashPassword, passwordProblem, sessionCookie, clearCookie, sha256, randomToken, safeEqual } from "./auth.js";
 import { json, fail, body, now, slow, cleanEmail, displayName, needOwner } from "./http.js";
 import { listThreads, getThread, createThread, updateThread, deleteThread, send, sendStream, debrief, simulatorInfo, speakCached, voiceSettings, saveVoiceSettings } from "./conversations.js";
 import { listTargets, getTarget, getTargetFull, createTarget, updateTarget, deleteTarget, addEvent, deleteEvent, importTargets, exportCsv, hookEmitter, listHooks, createHook, testHook, deleteHook, rowToTarget } from "./pipeline.js";
@@ -19,7 +19,7 @@ import { scoutInfo, scoutSearch, toTarget } from "./scout.js";
 import { listContacts, enrichTarget, addContact, deleteContact } from "./contacts.js";
 import { needsApproval } from "./monid.js";
 import { balance as monidBalance, budget as monidBudget, setBudget as setMonidBudget, recentRuns, discover as monidDiscover, describe as monidDescribe, run as monidRun, compact } from "./monid.js";
-import { reconcileRuns } from "./monid.js";
+import { reconcileRuns, userRunnable } from "./monid.js";
 import { deepEnrich } from "./waterfall.js";
 import { connectedSequencers, listCampaigns, pushToCampaign, replyHookInfo, rotateReplyHook, accountForReplyHook, handleReply, SEQUENCERS } from "./sequencers.js";
 import { queue as callQueue, logCall, callHistory, startBridge, bridgeStatus, hangup, preDial, claim, brief, checkLines, startSession, endSession, sessionStats, teamStats, insights, dialerSettings, saveDialerSettings } from "./dialer.js";
@@ -173,7 +173,7 @@ async function sellerRoute(request, env, url, exec) {
   if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})$/)) && m === "GET") return json(await sellerView(env, r[1]));
   if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/nda$/)) && m === "POST") return json(await sellerNda(env, r[1], await body(request), request.headers.get("CF-Connecting-IP"), hooks));
   if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/upload$/)) && m === "POST") {
-    if (+(request.headers.get("Content-Length") || 0) > 21 * 1024 * 1024) fail(413, "Files up to 20 MB");
+    { const len = request.headers.get("Content-Length"); if (!len) fail(411, "Upload size missing"); if (+len > 21 * 1024 * 1024) fail(413, "Files up to 20 MB"); }
     return json(await sellerUpload(env, r[1], await request.formData(), hooks), 201);
   }
   if ((r = p.match(/^\/hooks\/room\/([\w-]{10,80})\/files\/(\d+)$/)) && m === "GET") return await sellerFile(env, r[1], +r[2]);
@@ -225,7 +225,7 @@ async function authRoute(request, env, url) {
     // First run only: whoever holds DASHBOARD_PASSWORD becomes the admin of account 1.
     const b = await body(request);
     if ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users").first()).n) fail(409, "Already set up. Sign in instead.");
-    if (!env.DASHBOARD_PASSWORD || b.setupKey !== env.DASHBOARD_PASSWORD) { await slow(); fail(401, "Wrong setup key"); }
+    if (!env.DASHBOARD_PASSWORD || !safeEqual(String(b.setupKey || ""), String(env.DASHBOARD_PASSWORD || ""))) { await slow(); fail(401, "Wrong setup key"); }
     const email = cleanEmail(b.email);
     if (!email) fail(400, "Enter a valid email");
     const problem = passwordProblem(b.password);
@@ -236,32 +236,42 @@ async function authRoute(request, env, url) {
   }
   if (p === "/api/login" && m === "POST") {
     const b = await body(request);
-    const ip = request.headers.get("CF-Connecting-IP") || "?", who = `e:${String(b.email || "").trim().toLowerCase().slice(0, 160)}`;
+    const ip = request.headers.get("CF-Connecting-IP") || "?", email = String(b.email || "").trim().toLowerCase().slice(0, 160);
+    const who = `e:${email}`, whoIp = `ei:${email}|${ip}`, stamp = now();
     const since = new Date(Date.now() - 15 * 60_000).toISOString();
-    const [byEmail, byIp] = await env.DB.batch([
+    // Reserve the attempt before checking the password, in one transaction, so parallel guesses all count.
+    // Limits: 10 per email from one address (strict), 100 per email from anywhere (so a stranger can't lock a user
+    // out by guessing from one place), 50 per address across all emails.
+    const [, byEmailIp, byEmail, byIp] = await env.DB.batch([
+      env.DB.prepare("INSERT INTO login_attempts (key, created_at) VALUES (?1, ?4), (?2, ?4), (?3, ?4)").bind(whoIp, who, `ip:${ip}`, stamp),
+      env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(whoIp, since),
       env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(who, since),
       env.DB.prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE key = ?1 AND created_at > ?2").bind(`ip:${ip}`, since),
     ]);
-    if (byEmail.results[0].n >= 10 || byIp.results[0].n >= 50) { await slow(); fail(429, "Too many sign-in attempts. Wait 15 minutes, or reset your password."); }
+    if (byEmailIp.results[0].n > 10 || byEmail.results[0].n > 100 || byIp.results[0].n > 50) { await slow(); fail(429, "Too many sign-in attempts. Wait 15 minutes and try again."); }
     const u = await findUserForLogin(env, b.email);
     // Unknown emails do the same password work, so response time doesn't reveal who has an account.
     const ok = await verifyPassword(String(b.password || ""), u?.password_hash || DUMMY_HASH);
     if (!u || !ok) {
-      await env.DB.batch([
-        env.DB.prepare("INSERT INTO login_attempts (key, created_at) VALUES (?1, ?3), (?2, ?3)").bind(who, `ip:${ip}`, now()),
-        env.DB.prepare("DELETE FROM login_attempts WHERE created_at < ?1").bind(new Date(Date.now() - 864e5).toISOString()),
-      ]);
+      await env.DB.prepare("DELETE FROM login_attempts WHERE created_at < ?1").bind(new Date(Date.now() - 864e5).toISOString()).run();
       await slow(); fail(401, "Wrong email or password");
     }
+    await env.DB.prepare("DELETE FROM login_attempts WHERE key IN (?1, ?2) ").bind(whoIp, who).run();
     if (!u.account_active) fail(403, "This account is paused");
     await env.DB.prepare("UPDATE users SET last_login_at = ?2 WHERE id = ?1").bind(u.id, now()).run();
     return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, u) });
   }
   if (p === "/api/logout" && m === "POST") {
     // ?everywhere=1 also ends every other session of this user (a copied cookie stops working too).
-    if (url.searchParams.get("everywhere") === "1") {
+    // Plain sign-out also bumps the epoch: a copied cookie must stop working the moment you sign out. (It signs out
+    // your other devices too; ?everywhere=1 additionally revokes your API tokens.)
+    if (url.searchParams.get("end") === "1" && url.searchParams.get("everywhere") !== "1") {
       const ctx = await getContext(request, env);
       if (ctx?.user?.id && !ctx.viaToken) { await env.DB.prepare("UPDATE users SET session_epoch = session_epoch + 1 WHERE id = ?1").bind(ctx.user.id).run(); forgetSessions(); }
+    }
+    if (url.searchParams.get("everywhere") === "1") {
+      const ctx = await getContext(request, env);
+      if (ctx?.user?.id && !ctx.viaToken) { await env.DB.batch([env.DB.prepare("UPDATE users SET session_epoch = session_epoch + 1 WHERE id = ?1").bind(ctx.user.id), env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1").bind(ctx.user.id)]); forgetSessions(); }
     }
     return json({ ok: true }, 200, { "Set-Cookie": clearCookie });
   }
@@ -301,11 +311,14 @@ async function authRoute(request, env, url) {
 
 // ------------------------------------------------------------------ routes
 // Admin actions a leaked API token must never be able to take: people, keys, webhooks, phone and reply-hook setup.
+const TOKEN_VIA_INBOX = /^\/api\/(email\/send|phone\/(sms|call)|imessage\/(send|react|typing|read)|sequencers\/push|meetings\/record|dialer\/(bridge|predial|session)|monid\/run|runs$|inbox\/\d+\/dismiss|targets\/\d+\/enrich|board\/suggestions)/;
 const HUMAN_ONLY = /^\/api\/(voice\/settings|team|tokens|integrations|webhooks|mailbox|replies\/hook|phone\/(setup|incoming|numbers|buy|available)|phone$|imessage\/(connect|hook|refresh)|imessage$|monid\/budget|autopilot$|dialer\/settings|lab$|me\/password)/;
 
 async function route(request, env, url, ctx, exec) {
   const p = url.pathname, m = request.method, q = url.searchParams;
   if (ctx.viaToken && m !== "GET" && HUMAN_ONLY.test(p)) fail(403, "API tokens can't change team, keys, webhooks or phone settings. Sign in to do that.");
+  // Sending and paid actions go through the Inbox for API tokens and MCP clients: a person approves them.
+  if (ctx.viaToken && m !== "GET" && TOKEN_VIA_INBOX.test(p)) fail(403, "API tokens can't send or spend directly. Queue it for a person to approve: POST /api/inbox {tool, input} (tools: GET /api/agent/tools).");
   const hooks = hookEmitter(env, ctx.accountId, (pr) => exec.waitUntil(pr));
   if (p === "/api" || p === "/api/") return json(API_DOCS);
 
@@ -432,7 +445,7 @@ async function route(request, env, url, ctx, exec) {
     if (m === "DELETE") return json(await deleteItem(env, ctx, +r[1]));
   }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/room\/files$/)) && m === "POST") {
-    if (+(request.headers.get("Content-Length") || 0) > 21 * 1024 * 1024) fail(413, "Files up to 20 MB");
+    { const len = request.headers.get("Content-Length"); if (!len) fail(411, "Upload size missing"); if (+len > 21 * 1024 * 1024) fail(413, "Files up to 20 MB"); }
     return json(await teamUpload(env, ctx, +r[1], await request.formData()), 201);
   }
   if ((r = p.match(/^\/api\/room\/files\/(\d+)$/)) && m === "DELETE") return json(await deleteRoomFile(env, ctx, +r[1]));
@@ -468,9 +481,10 @@ async function route(request, env, url, ctx, exec) {
   }
   if (p === "/api/monid/budget" && m === "PUT") { needOwner(ctx); return json(await setMonidBudget(env, ctx, await body(request))); }
   if (p === "/api/monid/discover" && m === "POST") { const b = await body(request); if (!String(b.query || "").trim()) fail(400, "Describe the data you need"); return json({ endpoints: await monidDiscover(env, ctx, b.query, b.limit || 10) }); }
-  if (p === "/api/monid/inspect" && m === "POST") { const b = await body(request); return json(await monidDescribe(env, ctx, String(b.provider || ""), String(b.endpoint || ""))); }
+  if (p === "/api/monid/inspect" && m === "POST") { const b = await body(request); { const no = userRunnable(b.provider); if (no) fail(403, no); } return json(await monidDescribe(env, ctx, String(b.provider || ""), String(b.endpoint || ""))); }
   if (p === "/api/monid/run" && m === "POST") {
     const b = await body(request);
+    { const no = userRunnable(b.provider); if (no) fail(403, no); }
     if (!ctx.isOwner) { const why = await needsApproval(env, ctx, String(b.provider || ""), String(b.endpoint || ""), b.input || {}); if (why) fail(403, `${why}. Ask a workspace owner to run it.`); }
     const out = await monidRun(env, ctx, { provider: String(b.provider || ""), endpoint: String(b.endpoint || ""), input: b.input || {} }, { purpose: String(b.reason || "Data console"), targetId: b.target_id ? +b.target_id : null });
     return json({ ...out, output: b.full ? out.output : compact(out.output) });
@@ -505,6 +519,8 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/imessage" && m === "GET") return json(await imessageStatus(env, ctx));
   if (p === "/api/imessage" && m === "DELETE") { needOwner(ctx); return json(await disconnectIMessage(env, ctx)); }
   if (p === "/api/imessage/hook" && m === "POST") { needOwner(ctx); return json(await connectIMessage(env, ctx, url.origin)); }
+  // The relay is the owner's own Mac and number: personal chats live there. Only owners, signed in, read or act on it.
+  if (/^\/api\/imessage\/(threads|messages|live|read|typing|react|send)$/.test(p)) { needOwner(ctx); if (ctx.viaToken) fail(403, "iMessage is only available to a signed-in owner."); }
   if (p === "/api/imessage/threads" && m === "GET") return json(await imessageThreads(env, ctx));
   if (p === "/api/imessage/messages" && m === "GET") return json(await imessageMessages(env, ctx, String(q.get("chat") || "")));
   if (p === "/api/imessage/refresh" && m === "POST") { needOwner(ctx); return json(await refreshIMessage(env, ctx)); }
@@ -580,6 +596,8 @@ async function route(request, env, url, ctx, exec) {
   if ((r = p.match(/^\/api\/team\/members\/(\d+)$/))) {
     needOwner(ctx);
     if (+r[1] === ctx.user.id) fail(400, "You can't change your own access here");
+    // The platform admin can only be removed or demoted by the platform admin.
+    if (!ctx.isAdmin && (await env.DB.prepare("SELECT is_admin FROM users WHERE id = ?1 AND account_id = ?2").bind(+r[1], ctx.accountId).first())?.is_admin) fail(403, "Only the platform admin can change that person's access");
     if (m === "DELETE") {
       const gone = await env.DB.prepare("SELECT id FROM users WHERE id = ?1 AND account_id = ?2").bind(+r[1], ctx.accountId).first();
       if (!gone) fail(404, "That person isn't in this workspace");
@@ -610,7 +628,11 @@ async function route(request, env, url, ctx, exec) {
   }
 
   // Integrations: bring-your-own keys and webhooks (owners only)
-  if (p === "/api/integrations" && m === "GET") return json({ keys: await listKeys(env, ctx.accountId), models: MODELS, ...(await listHooks(env, ctx)), canEdit: ctx.isOwner });
+  if (p === "/api/integrations" && m === "GET") {
+    // Webhook URLs (Zapier/Make catch-hooks are bearer secrets) and key metadata (numbers, relay hosts) are owner-only.
+    const full = ctx.isOwner && !ctx.viaToken, hk = await listHooks(env, ctx), keys = await listKeys(env, ctx.accountId);
+    return json({ keys: full ? keys : keys.map(({ meta, ...k }) => k), models: MODELS, ...hk, ...(full ? {} : { hooks: (hk.hooks || []).map(({ url, secret, ...h }) => ({ ...h, url: url ? String(url).replace(/^(https?:\/\/[^/]+).*/, "$1/…") : url })) }), canEdit: ctx.isOwner });
+  }
   if ((r = p.match(/^\/api\/integrations\/(\w+)$/))) {
     needOwner(ctx);
     if (m === "PUT") {
@@ -686,7 +708,11 @@ async function changePassword(env, ctx, b) {
   const problem = passwordProblem(b.next);
   if (problem) fail(400, problem);
   // Bumping the epoch signs out every other session.
-  const nu = await env.DB.prepare("UPDATE users SET password_hash = ?2, session_epoch = session_epoch + 1 WHERE id = ?1 RETURNING *").bind(u.id, await hashPassword(b.next)).first();
+  const [, upd] = await env.DB.batch([
+    env.DB.prepare("DELETE FROM api_tokens WHERE user_id = ?1").bind(u.id), // a stolen session may have minted one
+    env.DB.prepare("UPDATE users SET password_hash = ?2, session_epoch = session_epoch + 1 WHERE id = ?1 RETURNING *").bind(u.id, await hashPassword(b.next)),
+  ]);
+  const nu = upd.results[0];
   forgetSessions();
   return json({ ok: true }, 200, { "Set-Cookie": await sessionCookie(env, nu) });
 }

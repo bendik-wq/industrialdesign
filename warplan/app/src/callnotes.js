@@ -5,6 +5,7 @@
 // and the business, objections. The dialer shows them under the call; they land on the target's timeline too.
 // Consent: the notice plays to every recorded call, so it works in all-party-consent places (CA, FL, WA, AU…).
 import { transcribe, chatJson } from "./ai.js";
+import { record } from "./usage.js";
 import { aiEnv } from "./keys.js";
 import { twilio, DISPOSITIONS } from "./dialer.js";
 import { MOTIVATION } from "../public/js/jl.js";
@@ -87,7 +88,9 @@ export async function processRecording(env, accountId, id) {
     const { text } = await transcribe(env, audio, "Phone call: a buyer calls a business owner about one day selling the business. Receptionist, voicemail, callback, owner, practice, clinic.");
     if (!text) return fail("Nothing intelligible in the recording");
     const ai = await aiEnv(env, ctx);
-    const { data } = await chatJson(ai, SYSTEM(), `Call length ${rec.duration}s.\n\nTRANSCRIPT:\n${text.slice(0, 24000)}`, schema(), 1200, "low");
+    const out = await chatJson(ai, SYSTEM(), `Call length ${rec.duration}s.\n\nTRANSCRIPT:\n${text.slice(0, 24000)}`, schema(), 1200, "low");
+    await record(env, ai, ctx, "call-notes", out);
+    const { data } = out;
     await env.DB.prepare("UPDATE call_recordings SET status = 'done', transcript = ?3, summary = ?4, updated_at = ?5 WHERE id = ?1 AND account_id = ?2").bind(id, accountId, text.slice(0, 60000), JSON.stringify(data), now()).run();
     if (rec.target_id) {
       const body = `AI call notes (${Math.round(rec.duration / 60) || "<1"} min): ${data.summary}${data.next_step ? ` Next: ${data.next_step}.` : ""}${data.owner_facts?.length ? `\n${data.owner_facts.map((f) => `- ${f}`).join("\n")}` : ""}`;

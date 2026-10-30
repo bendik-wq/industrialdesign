@@ -45,16 +45,23 @@ ws.column_dimensions["C"].width = 48
 names = {}
 
 
+def txt(v):
+    # Free text from the deal (notes, industry, add-back labels) must never become a formula in a file sent to banks.
+    if isinstance(v, str) and v[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + v
+    return v
+
+
 def put(row, label, value, fmt=None, note="", key=None, is_input=True):
     ws.cell(row=row, column=1, value=label).font = ink
-    c = ws.cell(row=row, column=2, value=value)
+    c = ws.cell(row=row, column=2, value=txt(value))
     c.font = inp if is_input else bold
     if is_input:
         c.fill = input_fill
     if fmt:
         c.number_format = fmt
     if note:
-        ws.cell(row=row, column=3, value=note).font = muted
+        ws.cell(row=row, column=3, value=txt(note)).font = muted
     if key:
         names[key] = f"Inputs!$B${row}"
     return f"Inputs!$B${row}"
@@ -173,7 +180,7 @@ sm.column_dimensions["B"].width = 20
 sm.column_dimensions["C"].width = 54
 sm["A1"] = f"{job.get('company') or 'Target'}"
 sm["A1"].font = title
-sm["A2"] = job.get("subtitle") or "Deal model"
+sm["A2"] = txt(job.get("subtitle") or "Deal model")
 sm["A2"].font = muted
 rows = [
     ("Adjusted EBITDA", f"={N['ebitda']}", MONEY, ""),
@@ -227,7 +234,7 @@ for i, sw in enumerate(swings):
 if job.get("notes"):
     sm["A33"] = "Notes"
     sm["A33"].font = bold
-    sm["A34"] = job["notes"]
+    sm["A34"] = txt(job["notes"])
     sm["A34"].alignment = Alignment(wrap_text=True, vertical="top")
     sm.merge_cells("A34:F40")
 

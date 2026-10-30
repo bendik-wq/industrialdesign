@@ -6,6 +6,7 @@
 import { run, result, monidKey } from "./monid.js";
 import { getTarget, updateTarget, hookEmitter } from "./pipeline.js";
 import { chatJson } from "./ai.js";
+import { record } from "./usage.js";
 import { aiEnv } from "./keys.js";
 import { safeFetch } from "./net.js";
 
@@ -71,8 +72,10 @@ async function finish(env, job, ctx) {
   const t = job.target_id ? await getTarget(env, ctx, job.target_id).catch(() => null) : null;
   let notes;
   try {
-    ({ data: notes } = await chatJson(ai, `You take notes for a buyer of small private companies after a meeting with a business owner. Be factual: only what was said. Capture the owner's name if stated, motivations (retirement, health, family, staff), any numbers (revenue, profit, staff, price ideas), objections and promised next steps.`,
-      `${t ? `Company: ${t.name} (${t.location || ""})\n` : ""}Transcript:\n${text.slice(0, 30000)}`, NOTES_SCHEMA, 2000, "low"));
+    const out = await chatJson(ai, `You take notes for a buyer of small private companies after a meeting with a business owner. Be factual: only what was said. Capture the owner's name if stated, motivations (retirement, health, family, staff), any numbers (revenue, profit, staff, price ideas), objections and promised next steps.`,
+      `${t ? `Company: ${t.name} (${t.location || ""})\n` : ""}Transcript:\n${text.slice(0, 30000)}`, NOTES_SCHEMA, 2000, "low");
+    notes = out.data;
+    await record(env, ai, ctx, "meeting-notes", out);
   } catch { notes = { summary: text.slice(0, 600), facts: [], owner_motivation: "", numbers_mentioned: [], next_steps: [], next_action: "Review the transcript", days_until_next: 1, owner_name: null }; }
   if (t) {
     const hooks = hookEmitter(env, ctx.accountId, () => {});

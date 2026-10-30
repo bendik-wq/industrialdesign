@@ -44,6 +44,7 @@ function friendly(e) {
   if (e.status === 401 || e.status === 403) return err(502, "The Anthropic key was rejected. Check it under Settings → Integrations.");
   if (e.status === 429) return err(429, "Claude is rate-limiting this key right now. Try again in a minute.");
   if (e.status === 400 && /credit|billing/i.test(e.message)) return err(402, "The Anthropic account behind this key is out of credit.");
+  if (e.status) { console.error("anthropic", e.status, String(e.message).slice(0, 300)); return err(502, "The AI provider returned an error. Try again in a minute."); }
   return e;
 }
 

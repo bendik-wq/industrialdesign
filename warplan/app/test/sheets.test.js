@@ -33,3 +33,21 @@ test("parseXlsx reads shared strings, numbers, gaps and sheet names", async () =
   assert.deepEqual(book.sheets[1].rows[0], ["", "A <tag> & quote's"]);
   assert.match(sheetText(book), /Revenue \| 120500.5 \| 118000 \| 131250/);
 });
+
+test("zip bombs and absurd CSV rows are refused or capped", async () => {
+  const { parseXlsx, parseCsv, MAX_COLS } = await import("../src/sheets.js");
+  // A deflate stream of 60 MB of zeros, wrapped in a minimal zip with an honest-looking small declared size.
+  const raw = new Uint8Array(60 * 1024 * 1024);
+  const comp = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
+  const name = new TextEncoder().encode("xl/workbook.xml");
+  const local = new Uint8Array(30 + name.length), cd = new Uint8Array(46 + name.length), end = new Uint8Array(22);
+  const L = new DataView(local.buffer), C = new DataView(cd.buffer), E = new DataView(end.buffer);
+  L.setUint32(0, 0x04034b50, true); L.setUint16(8, 8, true); L.setUint32(18, comp.length, true); L.setUint32(22, 1000, true); L.setUint16(26, name.length, true); local.set(name, 30);
+  C.setUint32(0, 0x02014b50, true); C.setUint16(10, 8, true); C.setUint32(20, comp.length, true); C.setUint32(24, 1000, true); C.setUint16(28, name.length, true); C.setUint32(42, 0, true); cd.set(name, 46);
+  E.setUint32(0, 0x06054b50, true); E.setUint16(8, 1, true); E.setUint16(10, 1, true); E.setUint32(12, cd.length, true); E.setUint32(16, local.length + comp.length, true);
+  const zip = new Uint8Array(local.length + comp.length + cd.length + end.length);
+  zip.set(local, 0); zip.set(comp, local.length); zip.set(cd, local.length + comp.length); zip.set(end, local.length + comp.length + cd.length);
+  await assert.rejects(parseXlsx(zip), /expands to far more data/);
+  const wide = parseCsv(",".repeat(200000) + "\n1,2\n");
+  assert.ok(wide.sheets[0].rows.every((r) => r.length <= MAX_COLS));
+});

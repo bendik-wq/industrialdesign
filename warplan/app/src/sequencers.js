@@ -7,6 +7,7 @@ import { providerKeys } from "./keys.js";
 import { listContacts } from "./contacts.js";
 import { updateTarget, getTarget } from "./pipeline.js";
 import { chatJson } from "./ai.js";
+import { checkLimits, record } from "./usage.js";
 import { propose } from "./approvals.js";
 import { sha256, randomToken } from "./auth.js";
 import { STAGES } from "../public/js/deal.js";
@@ -18,7 +19,7 @@ const now = () => new Date().toISOString();
 const MAX_PUSH = 200;
 
 async function req(name, url, init = {}) {
-  const res = await fetch(url, { ...init, headers: { Accept: "application/json", ...(init.body && { "Content-Type": "application/json" }), ...(init.headers || {}) } });
+  const res = await fetch(url, { ...init, redirect: "manual", headers: { Accept: "application/json", ...(init.body && { "Content-Type": "application/json" }), ...(init.headers || {}) } });
   const text = await res.text();
   let data; try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text.slice(0, 200) }; }
   if (res.status === 401 || res.status === 403) throw err(400, `${name} rejected the API key`);
@@ -125,13 +126,16 @@ async function leadFor(env, ctx, t) {
 }
 
 // One short, specific opening line per lead, written from what's on file (no numbers, no price talk).
-async function personalize(ai, leads, targets) {
+async function personalize(env, ctx, ai, leads, targets) {
   const facts = leads.map((l) => { const t = targets.find((x) => x.id === l.target_id); return `${l.target_id}: ${t.name} · ${t.industry || ""} · ${t.location || ""} · owner ${t.owner_name || "unknown"}${t.owner_age ? `, ${t.owner_age}` : ""} · ${(t.motivation || "").slice(0, 200)}`; }).join("\n");
   try {
-    const { data: r } = await chatJson(ai, "You write the first line of a cold email from someone who buys and keeps well-run local businesses to the owner. One sentence, under 25 words, specific to the company (its town, trade, how long it has run), warm, no flattery clichés, no numbers, no mention of buying, price or valuation. Same language as the company's country.",
+    await checkLimits(env, ai, ctx);
+    const out = await chatJson({ ...ai, CLAUDE_MODEL: "claude-haiku-5-5" }, "You write the first line of a cold email from someone who buys and keeps well-run local businesses to the owner. One sentence, under 25 words, specific to the company (its town, trade, how long it has run), warm, no flattery clichés, no numbers, no mention of buying, price or valuation. Same language as the company's country.",
       `Write one opening line for each company. Return {"lines":[{"id":<id>,"line":"..."}]}.\n${facts}`,
       { type: "object", properties: { lines: { type: "array", items: { type: "object", properties: { id: { type: "integer" }, line: { type: "string" } }, required: ["id", "line"], additionalProperties: false } } }, required: ["lines"], additionalProperties: false }, 2500, "low");
-    for (const x of r.lines || []) { const l = leads.find((y) => y.target_id === +x.id); if (l) l.personalization = String(x.line).slice(0, 300); }
+    await record(env, ai, ctx, "personalize", out);
+    const r = out.data;
+    for (const x of r.lines || []) { const l = leads.find((y) => y.target_id === +x.id); if (l) l.personalization = String(x.line).replace(/https?:\/\/\S+|www\.\S+|\S+@\S+|[<>{}[\]]/g, "").replace(/\s+/g, " ").trim().slice(0, 300); }
   } catch (e) { console.warn("personalize", e.message); }
 }
 
@@ -153,7 +157,7 @@ export async function pushToCampaign(env, ctx, b, hooks, ai) {
     else leads.push(l);
   }
   if (!leads.length) return { pushed: 0, skipped, receipt: "Nothing pushed: none of those targets has a usable email yet" };
-  if (b.personalize !== false && ai) await personalize(ai, leads, targets);
+  if (b.personalize !== false && ai) await personalize(env, ctx, ai, leads, targets);
   const campaignName = String(b.campaign_name || "").slice(0, 120);
   const r = await ADAPTERS[provider].push(k, campaignId, leads);
   const stamp = now(), okSet = new Set(r.ok), stmts = [];
@@ -234,9 +238,20 @@ export async function handleReply(env, account, payload, ai, hooks, provider = "
     const row = await env.DB.prepare(`SELECT id FROM targets WHERE account_id = ?1 AND (lower(email) = ?2 OR id IN (SELECT target_id FROM contacts WHERE account_id = ?1 AND value = ?2) OR id IN (SELECT target_id FROM campaign_leads WHERE account_id = ?1 AND email = ?2)) LIMIT 1`).bind(ctx.accountId, e).first();
     if (row) { target = await getTarget(env, ctx, row.id); from = e; break; }
   }
+  // The same reply delivered twice (webhook retries, inbox re-reads) is handled once.
+  if (await env.DB.prepare("SELECT 1 FROM replies WHERE account_id = ?1 AND from_email = ?2 AND subject = ?3 AND body = ?4 AND created_at > ?5").bind(ctx.accountId, from, p.subject, p.text, new Date(Date.now() - 3 * 864e5).toISOString()).first())
+    return { ok: true, ignored: "duplicate" };
   let tri;
-  try { ({ data: tri } = await chatJson(ai, TRIAGE_SYSTEM, `Company: ${target ? `${target.name} (${target.industry || ""}, ${target.location || ""}), owner ${target.owner_name || "unknown"}` : "unknown"}\nSubject: ${p.subject}\nReply:\n${p.text || "(empty)"}`, TRIAGE_SCHEMA, 1200, "low")); }
-  catch (e) { console.warn("triage", e.message); tri = { category: "other", summary: p.text.slice(0, 160), next_action: "Read the reply and answer", days_until_next: 0, draft_reply: "" }; }
+  // Only replies from people you actually contacted are read by the AI (strangers can't run up the bill), on the
+  // small model, metered against the workspace's limits like every other AI call.
+  const fallback = () => ({ category: "other", summary: p.text.slice(0, 160), next_action: "Read the reply and answer", days_until_next: 0, draft_reply: "" });
+  if (!target) tri = fallback();
+  else try {
+    await checkLimits(env, ai, ctx);
+    const out = await chatJson({ ...ai, CLAUDE_MODEL: "claude-haiku-5-5" }, TRIAGE_SYSTEM, `Company: ${target ? `${target.name} (${target.industry || ""}, ${target.location || ""}), owner ${target.owner_name || "unknown"}` : "unknown"}\nSubject: ${p.subject}\nReply:\n${p.text || "(empty)"}`, TRIAGE_SCHEMA, 1200, "low");
+    tri = out.data;
+    await record(env, ai, ctx, "reply-triage", out);
+  } catch (e) { console.warn("triage", e.message); tri = fallback(); }
   const cat = TRIAGE_SCHEMA.properties.category.enum.includes(tri.category) ? tri.category : "other";
   const stamp = now();
   await env.DB.prepare("INSERT INTO replies (account_id, target_id, provider, from_email, subject, body, category, summary, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")

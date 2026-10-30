@@ -13,6 +13,7 @@ import { getTarget } from "./pipeline.js";
 import { run } from "./monid.js";
 import { fetchPage } from "./enrich.js";
 import { chatJson } from "./ai.js";
+import { record } from "./usage.js";
 import { webSearch } from "./webtools.js";
 
 const now = () => new Date().toISOString();
@@ -119,7 +120,9 @@ export async function researchTarget(env, ctx, targetId, ai) {
     articles.length && `NEWS:\n${articles.map((a) => `- ${a.published_at || a.date || ""} ${a.headline || a.title}: ${String(a.description || "").slice(0, 200)}`).join("\n")}`,
   ].filter(Boolean).join("\n\n");
 
-  const { data } = await chatJson(ai, SYSTEM, `Assess this company for acquisition.\n\n${sources}`, SCHEMA, 2500, "medium");
+  const out = await chatJson(ai, SYSTEM, `Assess this company for acquisition.\n\n${sources}`, SCHEMA, 2500, "medium");
+  await record(env, ai, ctx, "research", out);
+  const { data } = out;
   const score = Math.max(0, Math.min(100, Math.round(+data.readiness_score || 0)));
   const intel = {
     ...data, readiness_score: score,

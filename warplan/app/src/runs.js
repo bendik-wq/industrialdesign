@@ -26,6 +26,7 @@ export const agentDefs = () => [...DEFS.values()];
 export async function startRun(env, ctx, agentId, { targetId = null, input = {} } = {}, exec) {
   const def = DEFS.get(agentId);
   if (!def) throw err(404, "No such agent");
+  if (def.ownerOnly && !ctx.isOwner) throw err(403, `${def.name} spends from the data wallet: ask a workspace owner to run it`);
   let target = null;
   if (def.needsTarget) {
     if (!targetId) throw err(400, `${def.name} needs a target`);
@@ -33,6 +34,9 @@ export async function startRun(env, ctx, agentId, { targetId = null, input = {} 
     if (def.stages && !def.stages.includes(target.stage)) throw err(400, `${def.name} runs on targets at: ${def.stages.join(", ")}`);
   }
   // One live run per agent and target at a time.
+  // A run stuck mid-layer for 15 minutes (the Worker died: out of memory, a crash) is failed so the agent can run again.
+  await env.DB.prepare("UPDATE agent_runs SET status = 'failed', error = 'Stopped: a layer didn\'t finish in 15 minutes', finished_at = ?2 WHERE account_id = ?1 AND status IN ('queued','running') AND updated_at < ?3")
+    .bind(ctx.accountId, now(), new Date(Date.now() - 15 * 60_000).toISOString()).run();
   const live = await env.DB.prepare("SELECT id FROM agent_runs WHERE account_id = ?1 AND agent = ?2 AND IFNULL(target_id, 0) = ?3 AND status IN ('queued','running')")
     .bind(ctx.accountId, agentId, target?.id || 0).first();
   if (live) return { id: live.id, already: true };

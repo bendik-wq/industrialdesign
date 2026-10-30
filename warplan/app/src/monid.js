@@ -49,7 +49,7 @@ export async function discover(env, ctx, query, limit = 8) {
   const key = await needKey(env, ctx);
   const d = await call(key, "POST", "/v1/discover", { query: String(query).slice(0, 300), limit: Math.max(1, Math.min(20, +limit || 8)) });
   const items = d.results || d.endpoints || d.items || d.data || [];
-  return items.filter((x) => !forbidden(x.provider, x.endpoint)).map((x) => ({
+  return items.filter((x) => !forbidden(x.provider, x.endpoint) && !userRunnable(x.provider)).map((x) => ({
     provider: x.provider, endpoint: x.endpoint, name: x.providerName || x.provider, description: String(x.summary || x.description || "").slice(0, 300),
     price: priceText(x.price), score: x.score ?? undefined,
   }));
@@ -123,6 +123,14 @@ export async function needsApproval(env, ctx, provider, endpoint, input) {
 // the browser phone (STOP suppression, daily caps).
 const FORBIDDEN = [/^saperly$/i, /^bland/i, /^vapi/i, /^retell/i, /^synthflow/i, /^air\.ai$/i];
 const FORBIDDEN_ENDPOINT = /(place-?calls?|\/voice\/call|outbound-?call|make-?call|start-?call|\/calls?\/create|ringless|voicemail-?drop|\/send-?(sms|messages?)$)/i;
+// Providers that hold per-account resources on the Monid account (mail inboxes, VMs, meeting bots, file storage).
+// Workspaces without their own Monid key share the platform's, so letting a user or an agent call these with free-form
+// ids would reach other workspaces' inboxes and machines. Only Warplan's own code calls them, with ids it owns.
+const ACCOUNT_RESOURCES = /^(agentmail|smolmachine|smol.*|recall.*|sfs|monid|e2b|daytona|modal|browserbase)$/i;
+export function userRunnable(provider) {
+  return ACCOUNT_RESOURCES.test(String(provider || "").trim()) ? `${provider} isn't available from the data console or agents: Warplan uses it internally for your inbox, Deal Lab and meeting notes.` : null;
+}
+
 export function forbidden(provider, endpoint) {
   if (FORBIDDEN.some((re) => re.test(String(provider || ""))) || FORBIDDEN_ENDPOINT.test(String(endpoint || "")) && !/^agentmail$/i.test(provider))
     return "Warplan doesn't place AI or automated phone calls or send texts outside the phone: they carry heavy fines. Calls are made by you from the dialer or the browser phone.";

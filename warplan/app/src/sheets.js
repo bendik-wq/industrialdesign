@@ -4,6 +4,8 @@
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 export const MAX_ROWS = 5000, MAX_COLS = 60;
+// Zip-bomb guards: no single part of a workbook may inflate past MAX_ENTRY, or the whole file past MAX_TOTAL.
+export const MAX_ENTRY = 40 * 1024 * 1024, MAX_TOTAL = 120 * 1024 * 1024, MAX_CELL = 2000;
 
 // ── CSV ─────────────────────────────────────────────────────────────────────
 export function parseCsv(text) {
@@ -17,14 +19,14 @@ export function parseCsv(text) {
       if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
       else cell += c;
     } else if (c === '"' && cell === "") q = true;
-    else if (c === delim) { row.push(cell); cell = ""; }
+    else if (c === delim) { if (row.length < MAX_COLS) row.push(cell.slice(0, MAX_CELL)); cell = ""; }
     else if (c === "\n" || c === "\r") {
       if (c === "\r" && text[i + 1] === "\n") i++;
-      row.push(cell); cell = "";
+      if (row.length < MAX_COLS) row.push(cell.slice(0, MAX_CELL)); cell = "";
       if (row.some((x) => x.trim() !== "")) rows.push(row);
       row = [];
       if (rows.length >= MAX_ROWS) break;
-    } else cell += c;
+    } else if (cell.length < MAX_CELL) cell += c;
   }
   if (cell !== "" || row.length) { row.push(cell); if (row.some((x) => x.trim() !== "")) rows.push(row); }
   return { sheets: [{ name: "Sheet1", rows: rows.map((r) => r.slice(0, MAX_COLS).map(cellValue)) }] };
@@ -43,10 +45,21 @@ export function cellValue(v) {
 }
 
 // ── XLSX ────────────────────────────────────────────────────────────────────
-async function inflate(bytes) {
-  const ds = new DecompressionStream("deflate-raw");
-  const out = new Response(new Blob([bytes]).stream().pipeThrough(ds));
-  return new Uint8Array(await out.arrayBuffer());
+async function inflate(bytes, budget) {
+  const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader();
+  const parts = [];
+  let size = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    size += value.length;
+    budget.used += value.length;
+    if (size > MAX_ENTRY || budget.used > MAX_TOTAL) { await reader.cancel().catch(() => {}); throw err(413, "That workbook expands to far more data than a spreadsheet should. Save it as .csv and upload again."); }
+    parts.push(value);
+  }
+  const out = new Uint8Array(size);
+  let o = 0; for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
 }
 
 // Minimal zip reader: walk the central directory, return {name: async () => Uint8Array}.
@@ -58,10 +71,11 @@ export function unzip(buf) {
   if (eocd < 0) throw err(400, "That file isn't a valid .xlsx (no zip directory found)");
   const count = dv.getUint16(eocd + 10, true);
   let p = dv.getUint32(eocd + 16, true);
-  const files = {}, dec = new TextDecoder();
+  const files = {}, dec = new TextDecoder(), budget = { used: 0 };
+  if (count > 5000) throw err(400, "That file has too many parts to be a spreadsheet");
   for (let n = 0; n < count; n++) {
     if (dv.getUint32(p, true) !== 0x02014b50) break;
-    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), usize = dv.getUint32(p + 24, true);
     const nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
     const local = dv.getUint32(p + 42, true);
     const name = dec.decode(b.subarray(p + 46, p + 46 + nlen));
@@ -69,7 +83,8 @@ export function unzip(buf) {
       const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
       const data = b.subarray(start, start + csize);
       if (method === 0) return data;
-      if (method === 8) return inflate(data);
+      if (usize > MAX_ENTRY) throw err(413, "That workbook is too large to read. Save it as .csv and upload again.");
+      if (method === 8) return inflate(data, budget);
       throw err(400, `Unsupported compression in ${name}`);
     };
     p += 46 + nlen + elen + clen;

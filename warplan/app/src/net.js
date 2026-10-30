@@ -22,7 +22,9 @@ export async function safeFetch(raw, init = {}, { httpsOnly = false, hops = 4 } 
     if (!url) throw err(400, "That address isn't a public web address");
     const res = await fetch(url.toString(), { ...init, redirect: "manual" });
     if (res.status < 300 || res.status >= 400 || !res.headers.get("Location")) return res;
-    url = publicUrl(new URL(res.headers.get("Location"), url).toString(), { httpsOnly });
+    const next = publicUrl(new URL(res.headers.get("Location"), url).toString(), { httpsOnly });
+    if (next && url && next.host !== url.host) init = { method: "GET", headers: Object.fromEntries(Object.entries(Object.fromEntries(new Headers(init.headers || {}))).filter(([k]) => !/^(authorization|cookie|x-warplan-signature|x-api-key)$/i.test(k))) };
+    url = next;
   }
   throw err(502, "Too many redirects");
 }

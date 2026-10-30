@@ -189,9 +189,9 @@ export async function importTargets(env, ctx, b, hooks) {
 const CSV_COLS = ["name", "industry", "location", "website", "owner_name", "owner_age", "phone", "email", "employees", "revenue", "ebitda", "asking", "currency", "stage", "priority", "source", "next_action", "next_date", "tags", "motivation", "created_at", "updated_at"];
 export async function exportCsv(env, ctx) {
   const rows = await listTargets(env, ctx, new URLSearchParams());
-  const cell = (v) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const cell = (v) => { const s = String(v ?? ""); return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   // Prefix formula-looking cells so spreadsheets don't execute them.
-  const safe = (v) => (typeof v === "string" && /^[=+\-@]/.test(v) ? `'${v}` : v);
+  const safe = (v) => (typeof v === "string" && /^\s*[=+\-@\t\r]/.test(v) ? `'${v}` : v);
   const body = [CSV_COLS.join(","), ...rows.map((r) => CSV_COLS.map((c) => cell(safe(r[c]))).join(","))].join("\n");
   return new Response(body, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="warplan-pipeline-${now().slice(0, 10)}.csv"` } });
 }
@@ -234,7 +234,7 @@ export async function deliver(env, hook, type, data) {
       headers: { "Content-Type": "application/json", "User-Agent": "Warplan-Webhooks/1", "X-Warplan-Event": type, "X-Warplan-Timestamp": String(ts), "X-Warplan-Signature": `sha256=${await sign(hook.secret, `${ts}.${body}`)}` },
       body,
       signal: AbortSignal.timeout(8000),
-    });
+    }, { hops: 0 }); // signed deliveries never follow a redirect to another host
     status = r.status;
   } catch { status = 0; }
   await env.DB.prepare("UPDATE webhooks SET last_status = ?2, last_at = ?3 WHERE id = ?1").bind(hook.id, status, now()).run();

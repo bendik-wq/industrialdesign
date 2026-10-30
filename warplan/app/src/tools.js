@@ -10,7 +10,7 @@ import { sendEmail } from "./mailer.js";
 import { dataKeys } from "./keys.js";
 import { propose } from "./approvals.js";
 import { importTargets } from "./pipeline.js";
-import { discover, describe, run as monidRun, result as monidResult, needsApproval, compact, budget } from "./monid.js";
+import { discover, describe, run as monidRun, result as monidResult, needsApproval, compact, budget, userRunnable } from "./monid.js";
 import { deepEnrich, DEEP_ENRICH_PRICE } from "./waterfall.js";
 import { SEQUENCERS, listCampaigns, pushToCampaign } from "./sequencers.js";
 import { queue as callQueue, logCall, DISPOSITIONS } from "./dialer.js";
@@ -45,6 +45,14 @@ const TARGET_PROPS = {
 const pick = (o, keys) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => keys.includes(k)));
 
 // `write: true` marks tools that change data (MCP clients show them as non-read-only; the autopilot asks first).
+// A URL whose query string or path could carry workspace data to someone else's server needs a person's OK.
+export function exfilRisk(u) {
+  let url; try { url = new URL(String(u || "")); } catch { return null; }
+  const q = url.search.length + url.hash.length;
+  if (q > 80 || url.pathname.length > 200 || /@|%40/.test(url.search + url.pathname)) return "Reads a link that could send workspace data to another site";
+  return null;
+}
+
 export const TOOLS = [
   {
     name: "search_pipeline", write: false,
@@ -77,6 +85,9 @@ export const TOOLS = [
   },
   {
     name: "update_target", write: true,
+    // Where messages go (email, phone, website) only changes with a person's OK: a planted page or document must not
+    // redirect the next approved email to an attacker.
+    approval: (env, ctx, i) => (["email", "phone", "website"].some((k) => k in i) ? "Changes where messages to this business go" : null),
     description: "Change a target's fields: stage (move it through the pipeline), next_action + next_date, numbers, owner details, motivation, priority. Only send the fields that change.",
     input_schema: { type: "object", properties: { target_id: { type: "integer" }, ...TARGET_PROPS, lost_reason: { type: "string" } }, required: ["target_id"] },
     run: async (env, ctx, i, hooks) => {
@@ -217,15 +228,16 @@ export const TOOLS = [
     name: "monid_inspect", write: false,
     description: "The input schema (body, queryParams, pathParams), price and notes for one Monid endpoint. Always inspect before the first monid_run of an endpoint.",
     input_schema: { type: "object", properties: { provider: { type: "string" }, endpoint: { type: "string" } }, required: ["provider", "endpoint"] },
-    run: async (env, ctx, i) => describe(env, ctx, i.provider, i.endpoint),
+    run: async (env, ctx, i) => { const no = userRunnable(i.provider); if (no) throw err(no); return describe(env, ctx, i.provider, i.endpoint); },
   },
   {
     name: "monid_run", write: true,
-    approval: (env, ctx, i) => needsApproval(env, ctx, i.provider, i.endpoint, i.input || {}),
+    approval: (env, ctx, i) => { if (userRunnable(i.provider)) return null; return needsApproval(env, ctx, i.provider, i.endpoint, i.input || {}); },
     title: (i) => `Run ${i.provider} ${i.endpoint}${i.reason ? `: ${String(i.reason).slice(0, 80)}` : ""}`,
     description: "Run one Monid endpoint and get its data (costs money from the workspace's Monid wallet; runs within the monthly budget, and anything over the auto-approve limit or with an unknown total waits for approval in the Inbox). input = {body?, queryParams?, pathParams?} exactly as monid_inspect describes. Always set a result limit (max_results, maxItems, limit) when the endpoint charges per result. Long runs return status RUNNING and a run_id for monid_result.",
     input_schema: { type: "object", properties: { provider: { type: "string" }, endpoint: { type: "string" }, input: { type: "object", properties: { body: { type: "object" }, queryParams: { type: "object" }, pathParams: { type: "object" } } }, reason: { type: "string", description: "Why, in a few words (shown in the Inbox and the spend log)" }, target_id: { type: "integer" } }, required: ["provider", "endpoint"] },
     run: async (env, ctx, i) => {
+      { const no = userRunnable(i.provider); if (no) throw err(no); }
       const r = await monidRun(env, ctx, { provider: i.provider, endpoint: i.endpoint, input: i.input || {} }, { purpose: i.reason || "Agent", targetId: i.target_id ? +i.target_id : null });
       return { ...r, output: compact(r.output), receipt: `Ran ${i.provider} ${i.endpoint} ($${r.cost_usd.toFixed(4)})` };
     },
@@ -344,18 +356,21 @@ export const TOOLS = [
     name: "web_search", write: false,
     description: "Search the web (Google-style operators work: site:, quotes, -term) and read the top results' text in one go. Use for anything not in Warplan: an owner's background, local news, a company's history, industry multiples, lenders. ~$0.003 a search.",
     input_schema: { type: "object", properties: { query: { type: "string" }, site: { type: "string", description: "Limit to one domain (optional)" }, freshness: { type: "string", enum: ["last_24_hours", "last_week", "last_month", "last_year"] } }, required: ["query"] },
+    approval: (env, ctx, i) => (String(i.query || "").length > 300 || /@|\b\d{6,}\b/.test(String(i.query || "")) ? "A long or data-like search query (could carry workspace data out)" : null),
     run: async (env, ctx, i) => webSearch(env, ctx, i),
   },
   {
     name: "read_webpage", write: false,
     description: "Read any web page as clean text (JavaScript sites and bot walls handled). ~$0.003.",
     input_schema: { type: "object", properties: { url: { type: "string" } }, required: ["url"] },
+    approval: (env, ctx, i) => exfilRisk(i.url),
     run: async (env, ctx, i) => readPage(env, ctx, i),
   },
   {
     name: "read_document", write: false,
     description: "Read a document from a public https link (PDF, Word, Excel, PowerPoint, scans with ocr=true) into text: a CIM, P&L, tax return, lease or customer list. Then analyse it or pass it to draft_document. ~$0.003.",
     input_schema: { type: "object", properties: { url: { type: "string" }, ocr: { type: "boolean" } }, required: ["url"] },
+    approval: (env, ctx, i) => exfilRisk(i.url),
     run: async (env, ctx, i) => readDocument(env, ctx, i),
   },
   {

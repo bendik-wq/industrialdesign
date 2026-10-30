@@ -30,7 +30,7 @@ export async function listInbox(env, ctx, status = "pending") {
   return results.map((r) => ({ ...r, input: JSON.parse(r.input), result: r.result ? JSON.parse(r.result) : null, write: !!toolByName(r.tool)?.write }));
 }
 
-const COSTLY = new Set(["monid_run", "deep_enrich"]);
+const COSTLY = new Set(["monid_run", "deep_enrich", "record_meeting", "push_to_campaign"]);
 
 export async function decide(env, ctx, id, approve, hooks) {
   const a = await env.DB.prepare("SELECT * FROM agent_actions WHERE id = ?1 AND account_id = ?2").bind(id, ctx.accountId).first();

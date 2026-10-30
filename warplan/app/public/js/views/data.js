@@ -98,10 +98,11 @@ async function openRunner(ep) {
 }
 
 function field(g, k, s, req) {
-  const t = Array.isArray(s.type) ? s.type.find((x) => x !== "null") : s.type || (s.enum ? "string" : "string");
+  const raw = Array.isArray(s.type) ? s.type.find((x) => x !== "null") : s.type || "string";
+  const t = ["string", "integer", "number", "boolean", "array", "object"].includes(raw) ? raw : "string";
   const label = `${esc(s.title || k)}${req ? " *" : ""}`;
   const help = s.description ? `<small class="muted">${esc(String(s.description).slice(0, 160))}</small>` : "";
-  const attrs = `data-g="${g}" data-k="${esc(k)}" data-t="${t}" ${req ? "required" : ""}`;
+  const attrs = `data-g="${esc(g)}" data-k="${esc(k)}" data-t="${t}" ${req ? "required" : ""}`;
   const def = s.default ?? s.prefill ?? s.example ?? "";
   if (s.enum) return `<label class="field">${label}<select ${attrs}>${req ? "" : '<option value="">–</option>'}${s.enum.map((v) => `<option ${String(v) === String(def) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>${help}</label>`;
   if (t === "boolean") return `<label class="check"><input type="checkbox" ${attrs} ${def === true ? "checked" : ""}> ${label}</label>`;

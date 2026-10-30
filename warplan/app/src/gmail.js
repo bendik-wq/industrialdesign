@@ -97,6 +97,8 @@ export async function syncGmail(env, accountId, triage) {
         if (!from || from === box.email) continue;
         const known = await env.DB.prepare("SELECT 1 FROM sent_emails WHERE account_id = ?1 AND to_email = ?2 LIMIT 1").bind(box.account_id, from).first();
         if (!known) continue;
+        // A From header is easy to forge: only mail that passed the sender-domain checks may move a deal.
+        if (!/\b(dmarc=pass|dkim=pass)\b/i.test(h["authentication-results"] || "")) { console.warn("gmail: unauthenticated reply skipped"); continue; }
         try { await triage(env, { account_id: box.account_id, account_name: box.account_name }, { lead_email: from, subject: h.subject || "", reply_text: bodyText(m.payload).slice(0, 8000) }, "gmail"); replies++; }
         catch (e) { console.warn("gmail triage", e.message); }
       }
