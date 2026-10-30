@@ -668,3 +668,25 @@ CREATE TABLE IF NOT EXISTS agent_findings (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS agent_findings_open ON agent_findings (account_id, dedupe) WHERE status = 'open' AND dedupe IS NOT NULL;
 CREATE INDEX IF NOT EXISTS agent_findings_list ON agent_findings (account_id, status, target_id);
+-- v17: monthly actuals for businesses you own (typed in, or imported by an agent from an uploaded P&L), and
+-- snapshots of staff and customer lists so the retention agent can compare today with the day you bought it.
+CREATE TABLE IF NOT EXISTS actuals (
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  period TEXT NOT NULL,                -- YYYY-MM
+  revenue REAL, gross_profit REAL, wages REAL, ebitda REAL,
+  cash REAL, receivables REAL, payables REAL, debt_service REAL, headcount INTEGER, customers INTEGER,
+  source TEXT NOT NULL DEFAULT 'manual', -- manual | file:<id>
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, target_id, period)
+);
+CREATE TABLE IF NOT EXISTS snapshots (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  target_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,                  -- staff | customers
+  taken_at TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT '',
+  data TEXT NOT NULL                   -- JSON list
+);
+CREATE INDEX IF NOT EXISTS snapshots_target ON snapshots (account_id, target_id, kind, taken_at);

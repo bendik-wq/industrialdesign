@@ -59,6 +59,10 @@ export async function today(env, ctx, tz = "UTC") {
     const why = dueNext ? `Follow-up due ${x.next_date}` : x.kind === "lender" ? `${since} days since you spoke. The skill: send quarterly email updates on pipeline.` : x.kind === "board" ? `${since} days since you spoke. The skill: 2-4 hours monthly board meetings.` : `${since} days since you spoke.`;
     add({ kind: x.kind, block: "relationships", urgent: dueNext && x.next_date < day, title: `${x.kind === "lender" ? "Lender" : x.kind === "board" ? "Board" : "Bench"}: ${x.name}${x.firm ? ` (${x.firm})` : ""}`, detail: why, href: `#/capital?focus=${x.id}` });
   }
+  // The crew's open alerts on deals and owned businesses (high first).
+  const { results: alerts } = await env.DB.prepare(`SELECT f.id, f.target_id, f.severity, f.title, f.run_id, t.name FROM agent_findings f LEFT JOIN targets t ON t.id = f.target_id
+    WHERE f.account_id = ?1 AND f.status = 'open' AND f.severity IN ('high','medium') ORDER BY CASE f.severity WHEN 'high' THEN 0 ELSE 1 END, f.updated_at DESC LIMIT 12`).bind(ctx.accountId).all();
+  for (const f of alerts) add({ kind: "issue", block: "deals", urgent: f.severity === "high", title: `${f.name ? `${f.name}: ` : ""}${f.title}`, detail: `Crew alert (${f.severity})`, href: f.run_id ? `#/crew/${f.run_id}` : "#/crew", target_id: f.target_id });
   if (inbox[0].n) add({ kind: "approvals", block: "followups", urgent: false, title: `${inbox[0].n} agent action${inbox[0].n === 1 ? "" : "s"} waiting for your approval`, href: "#/inbox" });
 
   const order = ["calls", "followups", "linkedin", "deals", "relationships"];

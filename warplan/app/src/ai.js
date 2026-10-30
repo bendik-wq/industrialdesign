@@ -55,7 +55,7 @@ export async function chat(env, system, messages, maxTokens = 1200, effort = "lo
   const sys = asSys(system);
   if (env.ANTHROPIC_API_KEY) {
     let res;
-    try { res = await claude(env).beta.messages.create(claudeRequest(env, sys, messages, maxTokens, effort)); }
+    try { res = await claude(env).beta.messages.stream(claudeRequest(env, sys, messages, maxTokens, effort)).finalMessage(); } // streamed: large budgets need it
     catch (e) { throw friendly(e); }
     if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
     return { text: res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim(), model: res.model, usage: claudeUsage(res.usage) };
@@ -107,7 +107,7 @@ export async function chatJson(env, system, prompt, schema, maxTokens = 2000, ef
   const sys = asSys(system);
   if (env.ANTHROPIC_API_KEY) {
     let res;
-    try { res = await claude(env).beta.messages.create(claudeRequest(env, sys, [{ role: "user", content: prompt }], maxTokens, effort, { format: { type: "json_schema", schema } })); }
+    try { res = await claude(env).beta.messages.stream(claudeRequest(env, sys, [{ role: "user", content: prompt }], maxTokens, effort, { format: { type: "json_schema", schema } })).finalMessage(); }
     catch (e) { throw friendly(e); }
     if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
     const raw = res.content.filter((b) => b.type === "text").map((b) => b.text).join("");

@@ -2,7 +2,7 @@ import { $, $$, esc, api, post, md, view, stale, toast, fail, confirmBox, copy, 
 import { askJoshAbout } from "./josh.js";
 import { composeEmail, splitEmail } from "./email.js";
 
-const KIND = { loi: "Letter of intent", memo: "Investment memo", outreach: "Outreach", diligence: "Diligence", board: "Board pack", plan100: "100-day plan", lender: "Lender pack" };
+const KIND = { loi: "Letter of intent", memo: "Investment memo", outreach: "Outreach", diligence: "Diligence", board: "Board pack", plan100: "100-day plan", lender: "Lender pack", covenant: "Covenant watch", xray: "Earnings X-Ray", retention: "Retention watch", gatekeeper: "Gatekeeper verdict" };
 
 export async function renderDesk(seq, params) {
   view().innerHTML = skeleton(5);

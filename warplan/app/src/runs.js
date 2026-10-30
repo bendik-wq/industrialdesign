@@ -185,6 +185,12 @@ export async function setFinding(env, ctx, id, status) {
   return { ok: true };
 }
 
+// When a monitor last finished on this target (scheduled runs skip the model when nothing changed since then).
+export async function lastDone(env, accountId, agent, targetId) {
+  const r = await env.DB.prepare("SELECT created_at FROM agent_runs WHERE account_id = ?1 AND agent = ?2 AND target_id = ?3 AND status = 'done' ORDER BY id DESC LIMIT 1").bind(accountId, agent, targetId).first();
+  return r?.created_at || null;
+}
+
 // Monitors (def.monitor = true) re-run on the daily cron for every target they watch.
 export async function queueMonitors(env, exec) {
   const monitors = agentDefs().filter((d) => d.monitor);
@@ -192,7 +198,7 @@ export async function queueMonitors(env, exec) {
   for (const d of monitors) {
     const { results } = await env.DB.prepare(`SELECT t.account_id, t.id FROM targets t JOIN accounts a ON a.id = t.account_id AND a.active = 1
       WHERE t.stage IN (SELECT value FROM json_each(?1)) AND NOT EXISTS (SELECT 1 FROM agent_runs r WHERE r.agent = ?2 AND r.target_id = t.id AND r.created_at > ?3) LIMIT 500`)
-      .bind(JSON.stringify(d.stages || ["closed"]), d.id, new Date(Date.now() - 20 * 3600_000).toISOString()).all();
+      .bind(JSON.stringify(d.monitorStages || d.stages || ["closed"]), d.id, new Date(Date.now() - 20 * 3600_000).toISOString()).all();
     for (const t of results) {
       const owner = await runCtx(env, t.account_id, null).catch(() => null);
       if (owner) await startRun(env, owner, d.id, { targetId: t.id, input: { scheduled: true } }, exec).catch((e) => console.error("monitor", d.id, t.id, e.message));

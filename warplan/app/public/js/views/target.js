@@ -1,4 +1,5 @@
-import { $, $$, esc, safeUrl, api, post, md, view, stale, toast, fail, dialog, confirmBox, when, todayYmd, addDays, dateLabel, skeleton, micButton, MIC } from "../core.js";
+import { crewPanel, wireCrewPanel } from "./crew.js";
+import { $, $$, esc, safeUrl, api, post, md, view, stale, session, toast, fail, dialog, confirmBox, when, todayYmd, addDays, dateLabel, skeleton, micButton, MIC } from "../core.js";
 import { STAGES, stageById, dealModel, targetDeal, money } from "../deal.js";
 import { TARGET_FIELDS } from "./pipeline.js";
 import { askJoshAbout } from "./josh.js";
@@ -77,6 +78,8 @@ export async function renderTarget(id, seq) {
           </div>
         </section>
 
+        <div id="crewSlot"></div>
+
         <section class="panel">
           <h2 class="h3">Timeline</h2>
           <form id="noteForm" class="note-form">
@@ -130,6 +133,7 @@ export async function renderTarget(id, seq) {
       </aside>
     </div>`;
 
+  crewPanel(t).then((html) => { if (stale(seq) || !$("#crewSlot")) return; $("#crewSlot").innerHTML = html; wireCrewPanel(t, () => renderTarget(id, ++session.seq)); }).catch(() => {});
   const mail = (to = "") => composeEmail({ target: t, contacts: t.contacts, to }).then((sent) => { if (sent) renderTarget(id, seq); });
   $("#emailOwner").addEventListener("click", () => mail());
   $("#researchBtn")?.addEventListener("click", async (e) => {

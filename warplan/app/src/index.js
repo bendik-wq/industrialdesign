@@ -34,6 +34,7 @@ import { imessageStatus, connectIMessage, disconnectIMessage, imessageThreads, i
 import { listRelationships, createRelationship, updateRelationship, deleteRelationship, lenderFit, setFinancing, deleteFinancing } from "./capabilities.js";
 import { getRoom, updateRoom, addItem, updateItem, deleteItem, teamUpload, deleteRoomFile, createLink, revokeLink, chaseSeller, sellerView, sellerNda, sellerUpload, sellerFile } from "./dealroom.js";
 import { today } from "./today.js";
+import { listActuals, saveActuals, deleteActual } from "./actuals.js";
 import { startRun, stepRun, getRun, listRuns, listFindings, setFinding, agentDefs, queueMonitors } from "./runs.js";
 import "./crew/index.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
@@ -633,6 +634,9 @@ async function route(request, env, url, ctx, exec) {
   }
   // Multi-layer agents: start a run, watch its layers, and work the alerts they raise.
   if (p === "/api/crew" && m === "GET") return json({ agents: agentDefs().map(({ id, name, needsTarget, stages, monitor, describe, layers, icon }) => ({ id, name, needsTarget: !!needsTarget, stages: stages || null, monitor: !!monitor, describe, icon, layers: layers.map((l) => ({ id: l.id, title: l.title, kind: l.kind })) })) });
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/actuals$/)) && m === "GET") return json({ actuals: await listActuals(env, ctx, +r[1], Math.min(120, +q.get("months") || 36)) });
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/actuals$/)) && m === "PUT") { const b = await body(request); return json(await saveActuals(env, ctx, +r[1], b.rows)); }
+  if ((r = p.match(/^\/api\/targets\/(\d+)\/actuals\/(\d{4}-\d{2})$/)) && m === "DELETE") return json(await deleteActual(env, ctx, +r[1], r[2]));
   if (p === "/api/runs" && m === "GET") return json({ runs: await listRuns(env, ctx, { targetId: q.get("target_id"), agent: q.get("agent"), limit: q.get("limit") }) });
   if (p === "/api/runs" && m === "POST") { const b = await body(request); return json(await startRun(env, ctx, String(b.agent || ""), { targetId: b.target_id, input: b.input && typeof b.input === "object" ? b.input : {} }, exec), 202); }
   if ((r = p.match(/^\/api\/runs\/(\d+)$/)) && m === "GET") return json(await getRun(env, ctx, +r[1]));

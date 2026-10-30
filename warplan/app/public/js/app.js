@@ -18,8 +18,9 @@ import { renderData } from "./views/data.js";
 import { renderToday } from "./views/today.js";
 import { renderCapital } from "./views/capital.js";
 import { renderRoom } from "./views/room.js";
+import { renderCrew, renderRun, renderActuals } from "./views/crew.js";
 
-const TITLES = { home: "Home", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Agents", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data", today: "Today", capital: "Board, bench & lenders", room: "Deal room" };
+const TITLES = { home: "Home", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Agents", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data", today: "Today", capital: "Board, bench & lenders", room: "Deal room", crew: "The crew", actuals: "Monthly actuals" };
 
 async function router() {
   const seq = ++session.seq;
@@ -47,6 +48,8 @@ async function router() {
     if (viewName === "data") return await renderData(seq);
     if (viewName === "today") return await renderToday(seq);
     if (viewName === "capital") return await renderCapital(seq, params);
+    if (viewName === "crew") return id ? await renderRun(Number(id), seq) : await renderCrew(seq, params);
+    if (viewName === "actuals" && id) return await renderActuals(Number(id), seq);
     if (viewName === "room" && id) return await renderRoom(Number(id), seq, params);
     if (viewName === "settings") return await renderSettings(id, seq);
     if (viewName !== "home") { history.replaceState(null, "", "#/home"); }

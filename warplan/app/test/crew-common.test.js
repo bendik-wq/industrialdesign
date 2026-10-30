@@ -24,3 +24,8 @@ test("verifyFindings drops findings with unsupported numbers", () => {
   assert.equal(money(1234567), "$1.23M");
   assert.equal(money(-45210), "-$45k");
 });
+
+test("years and comma-separated money aren't flagged as invented numbers", () => {
+  assert.equal(supported("FY2025 revenue gap of 12.02% (2024, 2025,)", [0.1202]).ok, true);
+  assert.equal(supported("revenue $1,445,000", [1445000]).ok, true);
+});

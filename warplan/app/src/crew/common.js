@@ -53,7 +53,7 @@ export const pct = (x, d = 0) => (Number.isFinite(x) ? `${(x * 100).toFixed(d)}%
 // dropped. This is the verify layer's core: the model may interpret, never invent.
 export function numbersIn(text) {
   const out = [];
-  for (const m of String(text).matchAll(/(-?\$?\d[\d,]*(?:\.\d+)?)\s*(k|m|M|%|x)?(?![\w.])/g)) {
+  for (const m of String(text).matchAll(/(-?\$?\d+(?:,\d{3})*(?:\.\d+)?)\s*(k|m|M|%|x)?(?![\w.])/g)) {
     let n = Number(m[1].replace(/[$,]/g, ""));
     if (!Number.isFinite(n)) continue;
     const u = m[2];
@@ -67,7 +67,8 @@ export function supported(text, known) {
   const vals = known.filter(Number.isFinite);
   const bad = [];
   for (const { raw, n, unit } of numbersIn(text)) {
-    if (!unit && Math.abs(n) < 100 && Number.isInteger(n)) continue; // counts, days, years: "3 customers", "90 days"
+    if (!unit && Math.abs(n) < 100 && Number.isInteger(n)) continue; // counts and days: "3 customers", "90 days"
+    if (!unit && Number.isInteger(n) && n >= 1990 && n <= 2100 && !/[$,.]/.test(raw)) continue; // years: "FY2025"
     const ok = vals.some((v) => {
       const cands = [v, v * 100, v / 100];
       return cands.some((c) => (c === 0 ? n === 0 : Math.abs(c - n) / Math.abs(c) <= 0.011 || Math.abs(c - n) <= (Math.abs(n) >= 50 ? 0.6 : 0.006)));
@@ -121,3 +122,40 @@ export function verifyFindings(findings, computed) {
   }
   return { kept, dropped };
 }
+
+// ── extraction ──────────────────────────────────────────────────────────────
+// The model maps messy spreadsheets into a fixed shape; code then keeps only numbers that literally appear in the
+// files (or are within rounding of one). A number the model "found" that isn't in any cell is set to null.
+export function sheetNumbers(sheets) {
+  const out = [];
+  for (const s of sheets) for (const sh of s.book.sheets) for (const r of sh.rows) for (const c of r) if (typeof c === "number") out.push(c);
+  return out;
+}
+const near = (n, known) => known.some((k) => k === n || (k !== 0 && Math.abs(k - n) / Math.abs(k) <= 0.005) || Math.abs(k - n) < 1);
+export function scrubNumbers(value, known, dropped = []) {
+  if (typeof value === "number") { if (near(value, known)) return value; dropped.push(value); return null; }
+  if (Array.isArray(value)) return value.map((v) => scrubNumbers(v, known, dropped));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, /year|period|date/i.test(k) ? v : scrubNumbers(v, known, dropped)]));
+  return value;
+}
+
+export async function extract(L, sheets, schema, instructions, maxTokens = 6000) {
+  const data = await L.ask(crewSystem("Due Diligence Quality of Earnings EBITDA adjustments working capital"),
+    `${instructions}\n\nRules: copy numbers exactly as they appear in the files (no arithmetic, no totals you computed yourself, no guesses). Periods as YYYY-MM for months, YYYY for years. If something isn't in the files, leave it out.\n\n<files>\n${filesBlock(sheets)}\n</files>`,
+    schema, maxTokens, "medium");
+  const dropped = [];
+  const clean = scrubNumbers(data, sheetNumbers(sheets), dropped);
+  return { data: clean, dropped: dropped.length };
+}
+
+// Code-made alerts win; a model finding on the same topic is a duplicate. Findings that only say data is missing
+// are noise (the report lists what's missing).
+const TOPICS = { tax: /tax return|tax/i, concentration: /concentrat|top (one|two|1|2|five|5)|largest customer/i, addback: /add-?back|normalis|normaliz/i, cash: /proof of cash|deposit|13-week|cash/i, margin: /margin/i, cover: /dscr|debt cover|coverage|covenant/i, stress: /stress|20%/i, capacity: /integrat|capacity/i, alerts: /open (high|high-severity)? ?alert|high-severity alert/i, arbitrage: /arbitrage|multiple/i, people: /flight risk|retention|left|departed/i, customers_lost: /lost customer|customers? (gone|lost)|churn/i };
+const topicsOf = (f) => Object.keys(TOPICS).filter((k) => TOPICS[k].test(`${f.key} ${f.title}`));
+export function mergeFindings(hard, modelFindings) {
+  const taken = new Set(hard.flatMap(topicsOf));
+  const keys = new Set(hard.map((h) => h.key));
+  const extra = modelFindings.filter((f) => !keys.has(f.key) && !topicsOf(f).some((t) => taken.has(t)) && !/\b(unknown|no data|not available|lack of (historical )?data|insufficient data)\b/i.test(`${f.title} ${f.detail}`));
+  return [...hard, ...extra];
+}
+export const FINDINGS_RULE = "Code has already raised the standard alerts from these numbers; add only findings it would miss (judgement, context, what the numbers mean together). Don't raise a finding just because data is missing.";
