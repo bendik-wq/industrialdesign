@@ -37,6 +37,7 @@ import { today } from "./today.js";
 import { listActuals, saveActuals, deleteActual } from "./actuals.js";
 import { startRun, stepRun, getRun, listRuns, listFindings, setFinding, agentDefs, queueMonitors } from "./runs.js";
 import "./crew/index.js";
+import { listSuggestions, decideSuggestion, boardScoutDefaults } from "./crew/boardscout.js";
 import { webSearch, readPage, readDocument } from "./webtools.js";
 import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
@@ -637,6 +638,8 @@ async function route(request, env, url, ctx, exec) {
   if ((r = p.match(/^\/api\/targets\/(\d+)\/actuals$/)) && m === "GET") return json({ actuals: await listActuals(env, ctx, +r[1], Math.min(120, +q.get("months") || 36)) });
   if ((r = p.match(/^\/api\/targets\/(\d+)\/actuals$/)) && m === "PUT") { const b = await body(request); return json(await saveActuals(env, ctx, +r[1], b.rows)); }
   if ((r = p.match(/^\/api\/targets\/(\d+)\/actuals\/(\d{4}-\d{2})$/)) && m === "DELETE") return json(await deleteActual(env, ctx, +r[1], r[2]));
+  if (p === "/api/board/suggestions" && m === "GET") return json({ suggestions: await listSuggestions(env, ctx, ["new", "added", "dismissed"].includes(q.get("status")) ? q.get("status") : "new"), defaults: await boardScoutDefaults(env, ctx) });
+  if ((r = p.match(/^\/api\/board\/suggestions\/(\d+)\/(add|dismiss)$/)) && m === "POST") return json(await decideSuggestion(env, ctx, +r[1], r[2]));
   if (p === "/api/runs" && m === "GET") return json({ runs: await listRuns(env, ctx, { targetId: q.get("target_id"), agent: q.get("agent"), limit: q.get("limit") }) });
   if (p === "/api/runs" && m === "POST") { const b = await body(request); return json(await startRun(env, ctx, String(b.agent || ""), { targetId: b.target_id, input: b.input && typeof b.input === "object" ? b.input : {} }, exec), 202); }
   if ((r = p.match(/^\/api\/runs\/(\d+)$/)) && m === "GET") return json(await getRun(env, ctx, +r[1]));

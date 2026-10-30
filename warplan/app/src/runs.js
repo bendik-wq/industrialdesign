@@ -96,7 +96,7 @@ export async function stepRun(env, accountId, runId, exec) {
   if (out.headline) state._headline = out.headline;
   await env.DB.batch([
     env.DB.prepare("UPDATE agent_steps SET status = 'done', summary = ?3, data = ?4, finished_at = ?5 WHERE run_id = ?1 AND n = ?2")
-      .bind(run.id, run.step, String(out.summary || "").slice(0, 1000), JSON.stringify(out.data ?? null).slice(0, 60000), now()),
+      .bind(run.id, run.step, String(out.summary || "").slice(0, 1000), stepData(out.data), now()),
     env.DB.prepare("UPDATE agent_runs SET step = step + 1, status = 'queued', state = ?2, tokens_in = tokens_in + ?3, tokens_out = tokens_out + ?4, updated_at = ?5 WHERE id = ?1")
       .bind(run.id, JSON.stringify(state).slice(0, 400000), tokens.in, tokens.out, now()),
   ]);
@@ -105,6 +105,13 @@ export async function stepRun(env, accountId, runId, exec) {
   if (env.WORK) await env.WORK.send({ type: "run", accountId, runId: run.id });
   return { more: true };
 }
+
+// A layer's working, stored for the run view. Too big to store whole: keep valid JSON with a preview.
+function stepData(data) {
+  const j = JSON.stringify(data ?? null);
+  return j.length <= 60000 ? j : JSON.stringify({ truncated: true, bytes: j.length, preview: j.slice(0, 50000) });
+}
+const parse = (j) => { try { return JSON.parse(j); } catch { return { unreadable: true }; } };
 
 async function fail(env, run, message) {
   await env.DB.prepare("UPDATE agent_runs SET status = 'failed', error = ?2, updated_at = ?3, finished_at = ?3 WHERE id = ?1").bind(run.id, String(message).slice(0, 500), now()).run();
@@ -159,7 +166,7 @@ export async function getRun(env, ctx, id) {
   return {
     ...run, input: JSON.parse(run.input || "{}"), summary: run.summary ? JSON.parse(run.summary) : null,
     name: def?.name, layers: (def?.layers || []).map((l) => ({ id: l.id, title: l.title, kind: l.kind })),
-    steps: steps.results.map((s) => ({ ...s, data: s.data ? JSON.parse(s.data) : null })),
+    steps: steps.results.map((s) => ({ ...s, data: s.data ? parse(s.data) : null })),
     findings: findings.results.map((f) => ({ ...f, metric: f.metric ? JSON.parse(f.metric) : null })),
   };
 }

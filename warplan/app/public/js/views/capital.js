@@ -1,7 +1,7 @@
 // Board, bench & lenders: C1 (Capabilities) and C2 (Capital) of the JL skill's 3C model. The board seats and
 // founders' equity, the professional bench on rolled fees, the lender matrix (20-50 lenders before the first deal),
 // the skill's scripts for each, and the credibility packet. All copy on this page is quoted from the skill.
-import { $, $$, esc, api, post, toast, fail, view, stale, synced, dialog, confirmBox, copy, skeleton, todayYmd, dateLabel } from "../core.js";
+import { $, $$, esc, api, post, toast, fail, view, stale, session, synced, dialog, confirmBox, copy, skeleton, todayYmd, dateLabel } from "../core.js";
 import { BOARD_ROLES, BENCH_ROLES, RECRUITMENT, BENCH_FEES, FOUNDER_EQUITY, CREDIBILITY_OUTPUTS, C1_SCRIPTS, C2_SCRIPTS, LENDER_APPROACH, LENDER_QUESTIONS, LENDER_ONGOING, LENDER_FIELDS, LENDER_TARGET, CAPITAL_CRITICAL, UNSECURED_CONVERSION, REL_STATUSES, JL_SOURCE } from "../jl.js";
 import { money } from "../deal.js";
 
@@ -38,7 +38,7 @@ export async function renderCapital(seq, params) {
     <nav class="tabs" style="margin-top:24px">${TABS.map(([k, l]) => `<a href="#/capital?tab=${k}" class="${k === tab ? "on" : ""}" ${k === tab ? 'aria-current="page"' : ""}>${l}</a>`).join("")}</nav>
     <div id="pane"></div>`;
   const pane = $("#pane");
-  if (tab === "board") pane.innerHTML = seatsPanel(s) + listPanel("board", rows) + guide("Recruitment strategy", RECRUITMENT) + guide(FOUNDER_EQUITY.title, FOUNDER_EQUITY.lines);
+  if (tab === "board") pane.innerHTML = seatsPanel(s) + `<div id="suggest"></div>` + listPanel("board", rows) + guide("Recruitment strategy", RECRUITMENT) + guide(FOUNDER_EQUITY.title, FOUNDER_EQUITY.lines);
   if (tab === "bench") pane.innerHTML = listPanel("bench", rows) + guide("Fee structures", BENCH_FEES) + guide("External professional bench", BENCH_ROLES.map((r) => `${r.label}: ${r.text}`));
   if (tab === "lender") pane.innerHTML = matrixPanel(rows, s) + guide("Approach banks as interviewer, not beggar", LENDER_APPROACH) + guide("Phase 3: ongoing relationship", LENDER_ONGOING) + guide("Critical metrics", CAPITAL_CRITICAL);
   if (tab === "scripts") pane.innerHTML = scriptsPane();
@@ -48,6 +48,7 @@ export async function renderCapital(seq, params) {
     try { const d = await post("/api/documents/generate", { kind: "credibility" }); location.hash = `#/desk/${d.id}`; } catch (err) { fail(err); e.target.disabled = false; e.target.textContent = "Write the credibility packet"; }
   });
   wire(rows, seq);
+  if (tab === "board") suggestions(seq);
   const focus = params.get("focus");
   if (focus) { const r = rows.find((x) => x.id === +focus); if (r) edit(r.kind, r, seq); }
 }
@@ -170,3 +171,47 @@ async function edit(kind, r, seq) {
     renderCapital(seq, new URLSearchParams(location.hash.split("?")[1] || ""));
   } catch (e) { fail(e); }
 }
+
+// Board Scout: credible people in your area for each open seat, found on LinkedIn and scored on their real record.
+async function suggestions(seq) {
+  const box = $("#suggest");
+  if (!box) return;
+  let d;
+  try { d = await api("/api/board/suggestions"); } catch (e) { box.innerHTML = ""; return; }
+  if (stale(seq) || !$("#suggest")) return;
+  const label = Object.fromEntries(BOARD_ROLES.map((r) => [r.id, r.label]));
+  const bySeat = BOARD_ROLES.map((r) => [r.id, d.suggestions.filter((x) => x.seat === r.id)]).filter(([, l]) => l.length);
+  box.innerHTML = `<section class="panel">
+    <div class="panel-head"><h2 class="h3">Suggested candidates</h2><span class="muted small">Found on LinkedIn by Board Scout and scored on each person's real track record</span></div>
+    <form id="scoutForm" class="row wrap">
+      <label class="field"><span class="small muted">Area</span><input name="area" value="${esc(d.defaults.area || "")}" placeholder="e.g. Newcastle, Australia" required></label>
+      <label class="field"><span class="small muted">Your sector</span><input name="sector" value="${esc(d.defaults.sector || "")}" placeholder="e.g. physiotherapy, allied health"></label>
+      <button class="primary" type="submit">Find board candidates</button><span class="muted small">About $0.60 of LinkedIn data per search</span>
+    </form>
+    ${bySeat.length ? bySeat.map(([seat, list]) => `<h3 class="h4 rsec">${esc(label[seat])}</h3><div class="cands">${list.map(cand).join("")}</div>`).join("")
+      : `<p class="muted">No suggestions yet. Board Scout searches LinkedIn for each open seat in your area and keeps the strongest three per seat.</p>`}
+  </section>`;
+  $("#scoutForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    const b = e.target.querySelector("button"); b.disabled = true; b.textContent = "Starting…";
+    try { const r = await post("/api/runs", { agent: "boardscout", input: { area: f.area, sector: f.sector } }); location.hash = `#/crew/${r.id}`; }
+    catch (err) { fail(err); b.disabled = false; b.textContent = "Find board candidates"; }
+  });
+  $$("[data-sug]").forEach((b) => b.addEventListener("click", async () => {
+    b.disabled = true;
+    try { await post(`/api/board/suggestions/${b.dataset.sug}/${b.dataset.act}`); toast(b.dataset.act === "add" ? "Added to the board list as a prospect" : "Dismissed"); renderCapital(++session.seq, new URLSearchParams("tab=board")); }
+    catch (err) { fail(err); b.disabled = false; }
+  }));
+  $$("[data-copypitch]").forEach((b) => b.addEventListener("click", () => copy(d.suggestions.find((x) => x.id === +b.dataset.copypitch)?.pitch || "", "Message copied")));
+}
+
+const cand = (c) => `<article class="cand">
+  <div class="cand-head"><a href="${esc(/^https:\/\/([a-z]+\.)?linkedin\.com\//i.test(c.url) ? c.url : "#")}" target="_blank" rel="noopener noreferrer"><b>${esc(c.name)}</b></a><span class="score">${c.score}<small>/100</small></span></div>
+  <p class="small">${esc(c.headline)}${c.location ? ` · <span class="muted">${esc(c.location)}</span>` : ""}</p>
+  ${c.credibility ? `<p class="small">${esc(c.credibility)}</p>` : ""}
+  <p class="chips">${c.why.map((w) => `<span class="chip">${esc(w)}</span>`).join("")}</p>
+  ${c.watch_out ? `<p class="small tone-warn">Watch out: ${esc(c.watch_out)}</p>` : ""}
+  ${c.pitch ? `<details><summary class="small">The message (the skill's board script)</summary><p class="small pre">${esc(c.pitch)}</p><button class="mini-btn" type="button" data-copypitch="${c.id}">Copy</button></details>` : ""}
+  <div class="row"><button class="primary small" type="button" data-sug="${c.id}" data-act="add">Add as prospect</button><button class="link small" type="button" data-sug="${c.id}" data-act="dismiss">Dismiss</button></div>
+</article>`;

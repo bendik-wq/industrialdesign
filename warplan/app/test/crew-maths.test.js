@@ -87,3 +87,28 @@ test("x-ray groups a July-June year into one financial year", async () => {
   assert.equal(x.years[0].months, 12);
   assert.equal(x.tax_check[0].revenue_gap_pct, 0);
 });
+
+test("board scout scores a seasoned local CFO above a junior out-of-area one", async () => {
+  const { scoreCandidate } = await import("../src/crew/maths.js");
+  const vet = { firstName: "Paul", lastName: "Perosin", headline: "CFO Private Equity, CEO Private Family Office", city: "Sydney", connectionsCount: 900,
+    experience: [{ position: "Chief Financial Officer", companyName: "M&J Chickens", startDate: { year: 2024 }, endDate: { text: "Present" } },
+      { position: "Chief Financial Officer", companyName: "Harris Farm Markets", startDate: { year: 2021 }, endDate: { year: 2024 } },
+      { position: "Executive Board Member", companyName: "Western Sydney Wanderers FC", startDate: { year: 2014 }, endDate: { year: 2024 } },
+      { position: "Finance Manager", companyName: "Retail Co", startDate: { year: 2001 }, endDate: { year: 2014 } }] };
+  const junior = { firstName: "A", lastName: "B", headline: "Analyst", city: "Perth", experience: [{ position: "Financial Analyst", companyName: "X", startDate: { year: 2022 }, endDate: { text: "Present" } }] };
+  const a = scoreCandidate(vet, "finance", { area: "Sydney", nowYear: 2026 }), b = scoreCandidate(junior, "finance", { area: "Sydney", nowYear: 2026 });
+  assert.ok(a.score >= 60, `vet ${a.score} ${a.why}`);
+  assert.ok(b.score < 20, `junior ${b.score}`);
+  assert.equal(a.board_roles, 1);
+  assert.equal(a.career_years, 25);
+  const op = scoreCandidate({ ...vet, experience: [{ position: "General Manager", companyName: "Coastal Physiotherapy", startDate: { year: 2010 }, endDate: { text: "Present" } }] }, "sector", { area: "Sydney", sector: "physio, allied health", nowYear: 2026 });
+  assert.ok(op.score >= 40, `sector ${op.score} ${op.why}`);
+});
+
+test("board scout counts overlapping roles once", async () => {
+  const { scoreCandidate } = await import("../src/crew/maths.js");
+  const p = { firstName: "J", lastName: "B", city: "New York", experience: [
+    { position: "CEO", companyName: "A", startDate: { year: 1990 }, endDate: { year: 2010 } },
+    { position: "Managing Director", companyName: "B", startDate: { year: 2000 }, endDate: { year: 2015 } }] };
+  assert.equal(scoreCandidate(p, "chair", { area: "New York", nowYear: 2026 }).seat_years, 25);
+});

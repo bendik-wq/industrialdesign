@@ -3,3 +3,4 @@ import "./covenant.js";
 import "./xray.js";
 import "./retention.js";
 import "./gatekeeper.js";
+import "./boardscout.js";

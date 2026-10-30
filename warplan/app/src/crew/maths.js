@@ -243,3 +243,60 @@ export function gatekeeper({ portfolio = [], candidate, backlog = [], highAlerts
     integration: { integrating: unintegrated.map((b) => b.name), overdue_items: overdue, load_index: loadIndex },
   };
 }
+
+// ── board scout ─────────────────────────────────────────────────────────────
+// Credibility scoring for board candidates against the skill's four seats:
+//   Chair: "Former executive or industry titan for credibility"; Finance Lead: "CFO/credit veteran who understands deal
+//   structures"; Legal Lead: "M&A attorney or former general counsel"; Sector Operator: "Industry expert with
+//   operational experience". Recruitment targets "recently retired executives looking for meaningful involvement".
+export const SEAT_RULES = {
+  chair: { must: /\b(ceo|chief executive|managing director|\bmd\b|president|chair(man|woman|person)?|founder|group executive|general manager)\b/i, bonus: /\b(board|non-?executive|director|chair)\b/i },
+  finance: { must: /\b(cfo|chief financial|finance director|financial controller|head of finance|credit|lending|banker|banking|transaction services|corporate finance|m&a|private equity|investment director)\b/i, bonus: /\b(ca|cpa|fca|cfa|chartered accountant|m&a|acquisition|transaction|deal|credit|private equity|investment)\b/i },
+  legal: { must: /\b(general counsel|legal counsel|lawyer|solicitor|attorney|partner|barrister|head of legal|chief legal)\b/i, bonus: /\b(m&a|mergers|acquisitions|corporate|commercial|transaction)\b/i },
+  sector: { must: /\b(ceo|coo|chief operating|general manager|operations|managing director|owner|founder|director|head of|practice manager|principal)\b/i, bonus: null },
+};
+const yearOf = (d) => Number(d?.year) || (/(\d{4})/.exec(d?.text || "")?.[1] ? Number(/(\d{4})/.exec(d.text)[1]) : null);
+const ongoing = (j) => !j.endDate || /present/i.test(j.endDate.text || "");
+
+// p: a LinkedIn profile ({firstName, lastName, headline, city, location, url, connectionsCount, experience: [{position,
+// companyName, startDate, endDate}], currentPosition}); seat: chair | finance | legal | sector; ctx: {area, sectorRe}.
+export function scoreCandidate(p, seat, { area = "", sector = "", nowYear = new Date().getUTCFullYear() } = {}) {
+  const rule = SEAT_RULES[seat];
+  const exp = (p.experience || []).filter((j) => j && j.position);
+  const text = (j) => `${j.position} ${j.companyName || ""}`;
+  const starts = exp.map((j) => yearOf(j.startDate)).filter(Boolean);
+  const career = starts.length ? nowYear - Math.min(...starts) : null;
+  const seatRoles = exp.filter((j) => rule.must.test(text(j)) || (seat === "finance" && /\bfinance\b/i.test(j.position)));
+  // Years in seat-relevant roles, overlapping roles counted once (a CEO who is also a director isn't two careers).
+  const spans = seatRoles.map((j) => [yearOf(j.startDate), ongoing(j) ? nowYear : yearOf(j.endDate)]).filter(([a, b]) => a && b && b >= a).sort((x, y) => x[0] - y[0]);
+  let seatYears = 0, edge = -Infinity;
+  for (const [a, b] of spans) { const from = Math.max(a, edge); if (b > from) seatYears += b - from; edge = Math.max(edge, b); }
+  const board = exp.filter((j) => /\b(board|non-?executive|chair|director of the board|advisory board|trustee)\b/i.test(j.position));
+  const sectorRe = sector ? new RegExp(`\\b(${sector.split(/[,/|]+/).map((s) => s.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).filter(Boolean).join("|")})`, "i") : null;
+  const sectorHits = sectorRe ? exp.filter((j) => sectorRe.test(`${text(j)} ${j.description || ""}`)).length + (sectorRe.test(p.headline || "") ? 1 : 0) : 0;
+  const current = exp.filter(ongoing);
+  // "Recently retired, looking for meaningful involvement": advisory/independent/board-only today, or a recent exit.
+  const available = /\b(retired|semi-retired|independent|adviser|advisor|consultant|non-?executive|portfolio|board member|gaicd)\b/i.test(`${p.headline || ""} ${current.map((j) => j.position).join(" ")}`) || p.openToWork === true;
+  const local = area ? new RegExp(area.split(/[,\s]+/)[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(`${p.city || ""} ${p.location || ""} ${p.state || ""}`) : true;
+  const designations = /\b(gaicd|faicd|fca|ca|cpa|cfa|llb|jd|mba)\b/i.test(`${p.firstName} ${p.lastName} ${p.headline || ""}`);
+  let score = 0;
+  const why = [];
+  if (seatRoles.length) { score += Math.min(35, 15 + seatYears * 2); why.push(`${seatYears} yr${seatYears === 1 ? "" : "s"} in ${seat === "chair" ? "chief-executive" : seat === "finance" ? "CFO/finance/credit" : seat === "legal" ? "legal/counsel" : "operating"} roles`); }
+  if (rule.bonus && exp.some((j) => rule.bonus.test(text(j)) || rule.bonus.test(p.headline || ""))) { score += 8; why.push(seat === "chair" ? "board seats held" : seat === "finance" ? "deal or credit experience" : seat === "legal" ? "M&A or corporate law" : ""); }
+  if (board.length) { score += Math.min(15, board.length * 5); why.push(`${board.length} board/non-exec role${board.length === 1 ? "" : "s"}`); }
+  if (career != null) { score += career >= 25 ? 12 : career >= 15 ? 8 : career >= 10 ? 4 : 0; if (career >= 15) why.push(`${career}-year career`); }
+  if (sectorHits) { score += Math.min(15, sectorHits * 5) * (seat === "sector" ? 2 : 1); why.push(`${sectorHits} role${sectorHits === 1 ? "" : "s"} in ${sector}`); }
+  if (available) { score += 8; why.push("advisory/independent now: open to involvement"); }
+  if (designations) { score += 4; why.push("professional designation"); }
+  if ((p.connectionsCount || 0) >= 500) { score += 3; }
+  if (!local) score -= 15;
+  if (seat === "sector" && !sectorHits) score -= 20;
+  if (!seatRoles.length) score -= 25;
+  return {
+    seat, score: Math.max(0, Math.min(100, Math.round(score))), why: why.filter(Boolean),
+    name: [p.firstName, p.lastName].filter(Boolean).join(" ").trim(), headline: p.headline || "", location: [p.city, p.state, p.country].filter(Boolean).join(", ") || p.location || "",
+    url: p.url || "", connections: p.connectionsCount ?? null, career_years: career, seat_years: seatYears, board_roles: board.length, available, local,
+    current: current.slice(0, 2).map((j) => `${j.position} @ ${j.companyName || "?"}`),
+    roles: exp.slice(0, 8).map((j) => `${j.position} @ ${j.companyName || "?"} (${j.startDate?.text || "?"}–${j.endDate?.text || "?"})`),
+  };
+}

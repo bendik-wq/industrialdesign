@@ -690,3 +690,27 @@ CREATE TABLE IF NOT EXISTS snapshots (
   data TEXT NOT NULL                   -- JSON list
 );
 CREATE INDEX IF NOT EXISTS snapshots_target ON snapshots (account_id, target_id, kind, taken_at);
+-- v18: board candidates the Board Scout found (LinkedIn), waiting for you to add or dismiss.
+CREATE TABLE IF NOT EXISTS board_suggestions (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  url TEXT NOT NULL,
+  seat TEXT NOT NULL,                  -- chair | finance | legal | sector
+  name TEXT NOT NULL,
+  headline TEXT NOT NULL DEFAULT '',
+  location TEXT NOT NULL DEFAULT '',
+  firm TEXT NOT NULL DEFAULT '',
+  score INTEGER NOT NULL DEFAULT 0,
+  why TEXT NOT NULL DEFAULT '[]',      -- JSON list of scored reasons
+  credibility TEXT NOT NULL DEFAULT '',
+  watch_out TEXT NOT NULL DEFAULT '',
+  pitch TEXT NOT NULL DEFAULT '',
+  roles TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'new',  -- new | added | dismissed
+  run_id INTEGER,
+  relationship_id INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (account_id, url)
+);
+CREATE INDEX IF NOT EXISTS board_suggestions_list ON board_suggestions (account_id, status, seat, score DESC);
