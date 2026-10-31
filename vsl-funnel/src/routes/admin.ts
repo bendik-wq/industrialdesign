@@ -47,6 +47,7 @@ import { liveAdmin } from '../admin/live';
 import { liveEventsAdmin } from '../live/admin';
 import { zoomConfigured } from '../live/zoom';
 import { createZoomFor } from '../live/stream';
+import { MATERIAL_IDS, isMaterialId, parseMaterial, summarize } from '../admin/materials';
 import { dealSprintAdmin } from '../admin/deal-sprint';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
@@ -1366,4 +1367,24 @@ admin.get('/email-preview/:template', async (c) => {
   // Sandboxed: the preview can contain a lead's own words, and it renders on the dashboard's origin.
   c.header('content-security-policy', 'sandbox; default-src \'none\'; img-src https: data:; style-src \'unsafe-inline\'');
   return c.html(renderEmail(content, { openPixel: null, unsubscribeUrl: '#', signature: rt.settings.EMAIL_SIGNATURE || 'Josh', address: rt.settings.BUSINESS_ADDRESS || rt.settings.SITE_NAME || '' }).html);
+});
+
+// ───────────── Materials: webinar and challenge scripts, decks and run sheets (Funnel HQ → Materials) ─────────────
+async function readMaterial(c: Context<AppEnv>, id: string): Promise<string | null> {
+  if (!isMaterialId(id)) return null;
+  const res = await c.env.ASSETS.fetch(new Request(new URL(`/materials/${id}.md`, c.req.url)));
+  return res.ok ? res.text() : null;
+}
+admin.get('/materials', async (c) => {
+  const rows = await Promise.all(MATERIAL_IDS.map(async (id) => {
+    const md = await readMaterial(c, id);
+    return md == null ? null : summarize(id, parseMaterial(md));
+  }));
+  return c.json({ materials: rows.filter(Boolean) });
+});
+admin.get('/materials/:id', async (c) => {
+  const id = c.req.param('id');
+  const md = await readMaterial(c, id);
+  if (md == null) return c.json({ error: 'not found' }, 404);
+  return c.json({ id, ...parseMaterial(md) });
 });
