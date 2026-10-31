@@ -23,7 +23,7 @@ const signOff = (rt: Runtime) => `${rt.settings.SITE_NAME || 'G&L M&A Advisory'}
 /** Built-in check-in for each client type, aimed at the first open item. Passes auditEmail (tested). */
 export function templateCheckin(o: { name: string; type: ClientType; openItem: string | null; signOff: string }): CheckinDraft {
   const hi = `Hi ${o.name},`;
-  const item = o.openItem ? `The next step on our side of the list is: ${o.openItem.toLowerCase()}.` : 'Everything on the onboarding list is done.';
+  const item = o.openItem ? `One item is still open on your onboarding list: ${o.openItem.toLowerCase()}.` : 'Everything on your onboarding list is done.';
   const by: Record<ClientType, { subject: string; body: string[] }> = {
     sprint: {
       subject: 'Checking in on your First Deal Sprint',
