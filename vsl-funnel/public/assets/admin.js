@@ -272,6 +272,7 @@
     live: { group: 'Today', title: 'Live', sub: 'Who’s on the site now, and everything people did — from the last hour back to all time.', render: renderLive, noFilters: true },
     leads: { group: 'Sell', title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads, filters: ['range', 'channel'] },
     sales: { group: 'Sell', title: 'Calls & deals', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here.', more: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales, filters: ['range'] },
+    dminbox: { group: 'Sell', title: 'DM inbox', sub: 'Instagram DMs in one priority inbox: scored, assigned, answered inside Meta’s windows.', more: 'Conversations from Instagram (Meta’s official API: DMs, Story replies and mentions, comments) sorted by Hot / Warm / Cold and how long they have waited. Assign setters, tag, add notes, reply with scripts or an AI draft you edit and send yourself. Control center: yesterday’s results, today’s tasks, setter numbers and bulk reassign. Scripts show which openers get replies and bookings. Keyword triggers tag, assign and send the first message.', render: renderDmInbox, noFilters: true },
     finance: { group: 'Sell', title: 'Financial model', sub: 'What the VSL and webinar funnels make per dollar of ads, and what it takes to hit a profit target.', more: 'A monthly model for each funnel: ad spend and cost per visitor in, then every conversion step down to clients won, revenue, profit, cost per booked call and CAC. Break-even lines show the most you can pay per visitor, per call and per client. The projection grows spend month by month and shows the cash you need before it pays back. Live funnel numbers sit next to each assumption once there’s enough data.', render: renderFinance, noFilters: true },
     insights: { group: 'Sell', title: 'Best leads', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
     map: { group: 'Funnel', title: 'Funnel map', sub: 'Every page, decision and automation, with live numbers.', more: 'How everything fits together: every page, decision and automation from ad click to closed deal, with live numbers. Drag to rearrange, click any box to see how it works, and add your own steps.', render: renderMap },
@@ -2461,6 +2462,11 @@
     return window.SalesActions.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
   }
 
+  function renderDmInbox() {
+    if (!window.DmInbox) { view.innerHTML = '<div class="card">The DM inbox script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.DmInbox.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
+  }
+
   function renderChallenge() {
     if (!window.ChallengeBoard) { view.innerHTML = '<div class="card">The Challenge script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return window.ChallengeBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
@@ -3577,6 +3583,7 @@
         '<div class="row"><button class="btn-sm" data-cal-connect>Connect webhook &amp; import</button><button class="btn-sm ghost" data-cal-sync>Sync now</button><button class="btn-sm ghost" data-cal-history>Import full history</button><span class="muted" data-cal-out></span></div></div>' +
         '<div class="card" style="margin-top:14px" data-whop-card><div class="card-head"><div><h2>Payments: Whop</h2><p class="sub">With the Whop API key saved (Keys &amp; settings → Webinar), Whop takes the Masterclass ticket and First Deal Sprint payments instead of Stripe. Connect reads the company behind the key and creates the payments webhook (' + esc(d.webhooks.whop) + ': payment.succeeded, refund.created, refund.updated). Whop caps checkout links at $2,500 until you apply for higher ones in Whop → Settings → Payments.</p></div><div class="row"><button class="btn-sm" type="button" data-whop-connect>Connect Whop</button></div></div>' +
         '<div data-whop-out class="muted small">' + esc((d.status.whop && d.status.whop.detail) || '') + '</div></div>' +
+        '<div style="margin-top:14px" data-dm-int></div>' +
         '<div class="card" style="margin-top:14px" data-zoom-card><div class="card-head"><div><h2>Zoom</h2><p class="sub">Live webinar sessions and challenge days run on Zoom. Each event has a host console (Webinar → Upcoming sessions → Host console) where you paste its Zoom link. With a Zoom Server-to-Server OAuth app connected (Keys &amp; settings → Live), Funnel HQ creates the meeting itself, or a Zoom Webinar when your account has the add-on, and opens a fresh host start link for you.</p></div><div class="row"><button class="btn-sm" type="button" data-zoom-check>Check</button></div></div>' +
         '<div data-zoom-out class="muted small">' + esc((d.status.zoom && d.status.zoom.detail) || '') + '</div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Bounce blocking</h2><p class="sub">When an email hard-bounces or someone marks it as spam, Resend tells the funnel and that address is blocked: every queued email to it is cancelled and nothing is ever sent to it again, in any campaign.</p></div><div class="row"><button class="btn-sm" type="button" data-bb-connect>Connect bounce blocking</button></div></div>' +
@@ -3655,6 +3662,8 @@
           toast(w.created ? 'Whop connected ✓' : 'Whop company saved');
         });
       };
+      var dmInt = view.querySelector('[data-dm-int]');
+      if (dmInt && window.DmInbox) window.DmInbox.integrationCard(dmInt, { api: api, send: send, esc: esc });
       view.querySelector('[data-zoom-check]').onclick = function () {
         var out = view.querySelector('[data-zoom-out]'), b = this;
         b.disabled = true; out.textContent = 'Asking Zoom…';

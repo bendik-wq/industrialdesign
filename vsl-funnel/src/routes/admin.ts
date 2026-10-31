@@ -1,3 +1,4 @@
+import { mountDmAdmin } from '../dm/routes';
 import { mountLiveAdmin } from '../live/funnel-routes';
 import type { Env } from '../env';
 import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown, type Sprint } from '../content/ideas';
@@ -70,6 +71,7 @@ import { PLACEMENTS, PRESETS, type TrackedLink, linkFunnels, newLinkCode, slug, 
 export const admin = new Hono<AppEnv>();
 admin.use('*', requireAdmin);
 mountLiveAdmin(admin); // Live webinars: events, host controls, the deposit offer (src/live/routes.ts)
+mountDmAdmin(admin); // Instagram DM inbox: /admin/api/dm/* (src/dm/routes.ts)
 
 const filters = (c: { req: { query: () => Record<string, string> } }) => parseFilters(c.req.query());
 

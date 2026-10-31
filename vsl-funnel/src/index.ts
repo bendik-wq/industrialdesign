@@ -52,6 +52,7 @@ import { maybeRunResearch } from './research/brief';
 import { maybeRunAutopilot } from './marketing/autopilot';
 import './marketing/angles'; // registers marketing.test_angle / marketing.launch_angle_ads
 import { processFollowupQueue } from './sales/followups';
+import { processDm } from './dm/routes';
 
 const app = new Hono<AppEnv>();
 
@@ -322,6 +323,7 @@ export default {
       quiet(maybeRunResearch(rt), 'research'),
       quiet(maybeRunAutopilot(rt), 'ads autopilot'),
       quiet(processFollowupQueue(rt), 'sales follow-ups'),
+      quiet(processDm(rt), 'Instagram DM inbox'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);
