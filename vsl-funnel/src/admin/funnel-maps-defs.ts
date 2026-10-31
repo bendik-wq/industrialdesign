@@ -1,0 +1,680 @@
+/**
+ * Funnel maps: every funnel we run, stage by stage, as Funnel HQ → Funnel map draws it.
+ *
+ * Each stage says what the person sees, what happens behind it (automation, timing, conditions), which
+ * settings control it, which Funnel HQ tab it lives in and, where one exists, its public page. Everything here
+ * describes code that exists today; anything off by default or configurable says so. Live numbers are attached
+ * by funnel-maps.ts from our own tables (the `count` key of a stage), never written here.
+ *
+ * Every string is checked by auditCopy in test/funnel-maps.test.ts, and every tab must exist in admin.js.
+ */
+
+export type StageKind = 'traffic' | 'page' | 'decision' | 'auto' | 'people' | 'data';
+export type AutoType = 'email' | 'sms' | 'ai_call' | 'ping' | 'charge' | 'approval' | 'ai' | 'webhook';
+
+export interface Automation {
+  type: AutoType;
+  label: string;
+  /** When it runs, in plain words. */
+  timing: string;
+  /** emails.sequence: the server adds the number of steps (from SEQUENCES / LONG_FLOWS) and the sends in range. */
+  seq?: string;
+  /** outbound_calls.kind for AI calls: the server adds the calls in range. */
+  call?: 'confirm' | 'speed_to_lead' | 'rebook';
+  /** Only these templates of the sequence (SQL LIKE patterns), when the stage owns part of a sequence. */
+  tpl?: string[];
+}
+
+export interface Stage {
+  id: string;
+  kind: StageKind;
+  /** Default position on the canvas (px). */
+  x: number;
+  y: number;
+  title: string;
+  sub: string;
+  /** What the person sees (absent for stages that run with nobody looking, such as data or cron jobs). */
+  sees?: string;
+  /** What happens behind it: the automation, timing and conditions. */
+  behind: string;
+  autos?: Automation[];
+  /** Setting keys (src/settings.ts) that control this stage. */
+  settings?: string[];
+  /** Funnel HQ tab id. */
+  tab: string;
+  /** Public page path, and an admin preview path (hq_preview=1 is added by the server). */
+  page?: { path: string; preview?: string; label?: string };
+  /** Key into the map's live counts. */
+  count?: string;
+  /** The stage this one converts from (default: the previous stage in the ladder). */
+  from?: string;
+}
+
+export interface FunnelMapDef {
+  id: string;
+  title: string;
+  short: string;
+  summary: string;
+  /** Webinar attribution funnel id, when TRACK's /admin/api/attribution/stages covers this funnel. */
+  attribution?: 'auto' | 'live' | 'challenge';
+  /** The main stages in order: the overview strip and the conversion chain. */
+  ladder: string[];
+  stages: Stage[];
+  /** [from, to, label?, style?] style: auto | data | dash */
+  edges: [string, string, string?, string?][];
+}
+
+const G = 270, R = 140;
+type StageIn = Omit<Stage, 'x' | 'y'>;
+/** A stage placed on the grid: column, row. */
+const at = (col: number, row: number, s: StageIn): Stage => ({ ...s, x: 40 + col * G, y: 40 + row * R });
+/** A stage at an exact position (the VSL map keeps the positions saved layouts were made against). */
+const xy = (x: number, y: number, s: StageIn): Stage => ({ ...s, x, y });
+
+// ───────────────────────────── 1. VSL and application ─────────────────────────────
+
+const VSL: FunnelMapDef = {
+  id: 'vsl',
+  title: 'VSL and application',
+  short: 'VSL',
+  summary: 'Ads and links bring owners to the video, the application scores them A, B or C, and qualified owners book a strategy call with a closer.',
+  ladder: ['landers', 'vsl', 'apply', 'score', 'booked', 'call', 'won'],
+  stages: [
+    xy(40, 40, { id: 'meta', kind: 'traffic', title: 'Meta ads', sub: 'Facebook and Instagram', tab: 'traffic', count: 'meta',
+      sees: 'An ad in their feed. The click lands on an industry page (/for/<industry>) or the smart link /m.',
+      behind: 'Campaign, ad set, ad and placement ride along in the URL, so every lead is traced to the exact ad. The count is visitors whose session was classed as Paid Social.',
+      settings: ['META_PIXEL_ID', 'META_ACCESS_TOKEN', 'META_ADS_TOKEN', 'META_AD_ACCOUNT_ID'] }),
+    xy(40, 200, { id: 'youtube', kind: 'traffic', title: 'YouTube and tracked links', sub: 'One link per video and placement', tab: 'links', count: 'video',
+      sees: 'A short link (/l/<code>) in a video description, pinned comment or bio.',
+      behind: 'Each tracked link counts its clicks and follows them to booked calls and revenue in Links & videos. The count here is visitors from video channels.' }),
+    xy(40, 360, { id: 'organic', kind: 'traffic', title: 'Direct, social and search', sub: 'Everyone else', tab: 'traffic', count: 'organic',
+      sees: 'The address typed in, a shared post, a search result or an AI answer.',
+      behind: 'UTMs are captured when present; otherwise the referrer decides the channel (Direct, Organic Search, Organic Social, Referral, AI Search).' }),
+    xy(40, 560, { id: 'caldirect', kind: 'traffic', title: 'Calendly link (direct)', sub: 'Skips the funnel', tab: 'insights', count: 'direct_booked',
+      sees: 'Josh’s Calendly page, with no video and no application.',
+      behind: 'Direct bookings are imported by the Calendly sync and tiered from their booking-form answers. They get none of the funnel’s pre-call emails, because they never applied.',
+      settings: ['CALENDLY_API_TOKEN'] }),
+    xy(330, 40, { id: 'smart', kind: 'decision', title: 'Smart route /m', sub: 'Industry from the ad name', tab: 'pages',
+      sees: 'Nothing: it forwards them in a moment.',
+      behind: 'Reads the industry from ?ind= or from the campaign, ad set or ad name (for example “Dental LAL 2%”). A match goes to that industry’s landers; no match goes to the main page.',
+      page: { path: '/m' } }),
+    xy(330, 190, { id: 'landers', kind: 'page', title: 'Industry landers', sub: '20 industries, 5 headlines each', tab: 'pages', count: 'landing',
+      sees: 'A landing page written for their industry, with the video.',
+      behind: 'Thompson sampling picks the headline: every headline gets its first 60 visitors, then traffic shifts to the one that starts the most applications (qualified applications once an industry has 30 of them). The count is everyone who landed on a VSL page.',
+      page: { path: '/for/dental', preview: '/for/dental' } }),
+    xy(330, 360, { id: 'main', kind: 'page', title: 'Main page A/B', sub: 'Headline A against B', tab: 'pages', count: 'main',
+      sees: 'The main page at /, with one of two headlines.',
+      behind: 'Visitors are split 50/50 between two headlines and keep theirs on return. Judged on applications per visitor with a significance test in Landing pages & tests.',
+      page: { path: '/', preview: '/' } }),
+    xy(620, 260, { id: 'vsl', kind: 'page', title: 'VSL', sub: 'Video with a floating player', tab: 'vsl', count: 'play',
+      sees: 'The video, playing muted with a “click for sound” overlay, and the application button below it.',
+      behind: 'Every second watched is recorded: rewatches, skips, pauses and where they drop off. Reaching the pitch reveals the call to action.',
+      settings: ['VSL_MAIN_SRC', 'VSL_MAIN_POSTER'], page: { path: '/', preview: '/' } }),
+    xy(900, 260, { id: 'apply', kind: 'page', title: 'Application', sub: '10 steps, one at a time', tab: 'application', count: 'lead',
+      sees: 'Contact details first (name, email, phone and an optional box to agree to calls), then nine questions one at a time: the business, role, revenue, profit, goal, timeline, blockers, readiness and why now.',
+      behind: 'Each answer is saved as they go, so an abandoned application can still be followed up. The microphone button and the invisible bot check are both settings.',
+      settings: ['VOICE_INPUT', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'BLOCKLIST'], page: { path: '/apply', preview: '/apply' } }),
+    xy(1180, 260, { id: 'score', kind: 'decision', title: 'Score and tier', sub: 'A, B or C', tab: 'application', count: 'applied',
+      sees: 'Nothing changes on screen: the next page depends on the tier.',
+      behind: 'Answers earn points; 70 or more is A, 40 or more is B, anything lower is C. Hard rules cap the tier (for example under $1M revenue, an industry lenders won’t fund, or the blocklist). A smooth round-robin then picks the closer.',
+      settings: ['BLOCKLIST'] }),
+    xy(1460, 70, { id: 'tierA', kind: 'page', title: 'A-tier: calendar', sub: '$1M+ and ready', tab: 'sales', count: 'tier_a', from: 'score',
+      sees: 'The closer’s calendar on /book.',
+      behind: 'The team gets a hot-lead alert. With the Calendly token connected, a booking is confirmed straight away with the exact time, meeting link and host. With no A-tier calendar set, A-tier goes to the part 2 video instead.',
+      settings: ['BOOKING_URL_A', 'CALENDLY_API_TOKEN'], page: { path: '/book?hq_as=qualified', preview: '/book?hq_as=qualified' } }),
+    xy(1460, 270, { id: 'tierB', kind: 'page', title: 'B-tier: part 2 video', sub: 'Promising', tab: 'vsl', count: 'tier_b', from: 'score',
+      sees: 'The breakout video, which handles the main objections, then the calendar.',
+      behind: 'B-tier books on the B calendar (the setter’s), and the B-tier emails push them to book.',
+      settings: ['BOOKING_URL_B', 'VSL_BREAKOUT_SRC'], page: { path: '/breakout?hq_as=qualified', preview: '/breakout?hq_as=qualified' } }),
+    xy(1460, 470, { id: 'tierC', kind: 'page', title: 'C-tier: resources', sub: 'Not ready yet', tab: 'emails', count: 'tier_c', from: 'score',
+      sees: 'The resources page with the toolkit, and no calendar.',
+      behind: 'No call is offered. The C-tier emails teach the method until they grow into a fit, then invite them to reapply.',
+      autos: [{ type: 'email', label: 'C-tier education', seq: 'tier_c', timing: '1 minute to 21 days after applying' }],
+      page: { path: '/resources', preview: '/resources' } }),
+    xy(1760, 170, { id: 'booked', kind: 'page', title: 'Call booked', sub: 'Calendly webhook and sync', tab: 'sales', count: 'booked', from: 'qualified',
+      sees: 'A confirmation page and email with the time and the pre-call video.',
+      behind: 'The signed Calendly webhook and the hourly sync record bookings, reschedules, cancellations and no-shows. The host becomes the closer, and every follow-up starts here.',
+      autos: [{ type: 'email', label: 'Confirmation and reminders', seq: 'booked', timing: 'At booking, then 48 h, 24 h, 3 h, 1 h and 10 minutes before the call' }],
+      settings: ['CALENDLY_SIGNING_KEY', 'CALENDLY_API_TOKEN', 'VSL_PRECALL_SRC'], page: { path: '/breakout?hq_as=booked', preview: '/breakout?hq_as=booked' } }),
+    xy(2060, 170, { id: 'call', kind: 'people', title: 'Strategy call', sub: '30 minutes by video', tab: 'sales', count: 'showed',
+      sees: 'The video call with the closer.',
+      behind: 'The closer is pinged about 15 minutes before with the lead’s details and how much of the video they watched. The outcome is logged in Calls & deals.',
+      autos: [{ type: 'ping', label: 'Call in 15 minutes', timing: '5 to 20 minutes before the call' }],
+      settings: ['SLACK_WEBHOOK_URL', 'DISCORD_WEBHOOK_URL', 'SALES_TIMEZONE'] }),
+    xy(2340, 60, { id: 'won', kind: 'people', title: 'Won', sub: 'Deal and payments', tab: 'sales', count: 'won',
+      sees: 'Their agreement to sign and the onboarding emails.',
+      behind: 'Deal value, the payments ledger (cash collected, instalments, refunds) and the contract date are logged. The wins channel is pinged and Purchase goes to Meta from the server.',
+      autos: [{ type: 'ping', label: 'Win alert', timing: 'When the deal is marked won' }],
+      settings: ['SLACK_WINS_WEBHOOK_URL', 'DISCORD_WINS_WEBHOOK_URL'] }),
+    xy(2340, 200, { id: 'lost', kind: 'people', title: 'Lost', sub: 'With the reason', tab: 'sales', count: 'lost', from: 'call',
+      behind: 'The lost reason and the main objection are logged and feed Calls & deals, where the reasons deals are lost are counted.' }),
+    xy(2340, 340, { id: 'noshow', kind: 'people', title: 'No-show', sub: '7 rebook emails and an AI call', tab: 'sales', count: 'no_show', from: 'booked',
+      sees: 'Rebooking emails written from their application: their goal, their blocker and the numbers the call was going to run.',
+      behind: 'Seven emails over 14 days, an AI call when they agreed to calls, and a team ping. Calendly no-show marks sync in too.',
+      autos: [{ type: 'email', label: 'Rebook run', seq: 'no_show', timing: '15 minutes to 14 days after the no-show' }, { type: 'ping', label: 'No-show alert', timing: 'When the no-show is logged' }] }),
+    xy(2620, 340, { id: 'rebookcall', kind: 'auto', title: 'AI rebook call', sub: 'No-shows who agreed to calls', tab: 'voice',
+      sees: 'A phone call from the assistant, who offers a new time and emails the link.',
+      behind: 'About 20 minutes after a no-show is logged, inside local calling hours, only with call consent, within the daily cap.',
+      autos: [{ type: 'ai_call', label: 'Rebook call', call: 'rebook', timing: 'About 20 minutes after the no-show' }],
+      settings: ['AI_CALL_REBOOK', 'AI_CALL_DAILY_CAP', 'ELEVENLABS_API_KEY', 'ELEVENLABS_AGENT_ID'] }),
+    xy(1760, 10, { id: 'cancel', kind: 'people', title: 'Cancelled', sub: 'Calendly cancellation', tab: 'sales', count: 'cancelled', from: 'booked',
+      behind: 'When someone cancels, the reminders and pre-call emails stop and the rebooking run starts.' }),
+    xy(2060, 10, { id: 'cxseq', kind: 'auto', title: 'Rebook emails', sub: '4 emails over 6 days', tab: 'emails',
+      sees: 'Emails that pick up where they were, handle their stated blocker and quote their why-now back.',
+      behind: 'They stop the moment the person books again.',
+      autos: [{ type: 'email', label: 'Cancelled run', seq: 'cancelled', timing: '30 minutes to 6 days after cancelling' }] }),
+    xy(2620, 60, { id: 'onboard', kind: 'auto', title: 'Onboarding emails', sub: '6 emails over 30 days', tab: 'emails',
+      sees: 'Welcome and the 90-day plan, homework, the target list, a week-one check-in, getting lender-ready and the LOI push.',
+      behind: 'Runs for deals marked won and stops if the deal is refunded.',
+      autos: [{ type: 'email', label: 'Won onboarding', seq: 'won', timing: '10 minutes to 30 days after the win' }] }),
+    xy(2620, 200, { id: 'lostseq', kind: 'auto', title: 'Re-engagement', sub: '6 emails over 6 months', tab: 'emails',
+      sees: 'Long-tail emails angled on why they said no, with industry notes and their own numbers.',
+      behind: 'Stops if they book again.',
+      autos: [{ type: 'email', label: 'Lost run', seq: 'lost', timing: '3 to 180 days after the loss' }] }),
+    xy(1760, 380, { id: 'aicall', kind: 'auto', title: 'AI confirmation call', sub: 'ElevenLabs, with consent', tab: 'voice',
+      sees: 'A short call that confirms the time, preps them and emails a new link if they need to move it.',
+      behind: 'About 2 minutes after booking, only when they ticked the call-consent box, inside calling hours, at most 2 attempts.',
+      autos: [{ type: 'ai_call', label: 'Confirmation call', call: 'confirm', timing: 'About 2 minutes after booking' }],
+      settings: ['AI_CALL_CONFIRM', 'AI_CALL_DAILY_CAP', 'AI_CALL_CALLBACK_NUMBER', 'ELEVENLABS_API_KEY'] }),
+    xy(1760, 520, { id: 'precall', kind: 'auto', title: 'Pre-call emails', sub: 'Written from their application', tab: 'emails',
+      sees: 'A run of emails between booking and the call: first the ones written from their own answers (their blocker, their numbers, their industry, their why-now), then one-pain-point emails.',
+      behind: 'Spread over 7am to 9pm their time, at least 45 minutes apart, ending a little over 2 hours before the call. The settings cap one day and set the least and most per person; 0 per day turns the run off.',
+      autos: [{ type: 'email', label: 'Pre-call run', seq: 'precall', timing: 'From 45 minutes after booking until about 2 hours before the call' }],
+      settings: ['PRECALL_EMAILS_PER_DAY', 'PRECALL_EMAILS_MIN', 'PRECALL_EMAILS_MAX'] }),
+    xy(2060, 380, { id: 'reppings', kind: 'auto', title: 'Team pings', sub: 'Slack or Discord', tab: 'team',
+      behind: 'Hot leads, bookings, cancellations, call-in-15-minutes, no-shows, wins and a daily digest, with the rep mentioned.',
+      autos: [{ type: 'ping', label: 'Daily digest', timing: 'Every day at the digest hour, sales time zone' }],
+      settings: ['SLACK_WEBHOOK_URL', 'DISCORD_WEBHOOK_URL', 'DIGEST_HOUR', 'SALES_TIMEZONE'] }),
+    xy(2340, 480, { id: 'postcall', kind: 'auto', title: 'Post-call follow-up', sub: '9 emails over 21 days', tab: 'emails',
+      sees: 'Emails that answer the objection logged on the call, a recap of their plan, the cost of waiting and their own why-now.',
+      behind: 'For people who showed but haven’t decided. Stops when the status changes.',
+      autos: [{ type: 'email', label: 'Post-call run', seq: 'post_call', timing: '2 hours to 21 days after the call' }] }),
+    xy(1760, 800, { id: 'nurture', kind: 'auto', title: '6-month nurture', sub: '9 emails, never booked', tab: 'emails',
+      sees: 'Their industry, their blocker, their numbers, why sellers carry notes, the 1.5x rule and their own words back.',
+      behind: 'Applied but never booked: from day 25 to month 6. Stops the moment they book.',
+      autos: [{ type: 'email', label: 'Nurture', seq: 'nurture', timing: '25 to 180 days after applying' }] }),
+    xy(1460, 800, { id: 'dossier', kind: 'data', title: 'Application reader', sub: 'Answers and booking answers', tab: 'leads',
+      behind: 'Turns each lead’s application and Calendly answers into talking points: industry, size, profit, goal, timeline, blockers, why-now in their words, objection and lost reason, plus an illustrative first-deal size. Every follow-up email is written from it at send time.' }),
+    xy(900, 480, { id: 'abandon', kind: 'auto', title: 'Abandoned application', sub: '5 recovery emails', tab: 'emails',
+      sees: 'Emails that bring them back to the step they left.',
+      behind: 'Gave contact details but didn’t finish. Stopped the moment they submit.',
+      autos: [{ type: 'email', label: 'Abandoned run', seq: 'abandoned', timing: '15 minutes to 4 days after leaving' }] }),
+    xy(1180, 480, { id: 'speed', kind: 'auto', title: 'Speed-to-lead AI call', sub: 'Qualified, not booked', tab: 'voice',
+      sees: 'A short call that offers to email the booking link.',
+      behind: 'About 5 minutes after an A or B application with no booking, only with call consent.',
+      autos: [{ type: 'ai_call', label: 'Speed-to-lead call', call: 'speed_to_lead', timing: 'About 5 minutes after applying' }],
+      settings: ['AI_CALL_SPEED_TO_LEAD', 'AI_CALL_DAILY_CAP'] }),
+    xy(1460, 640, { id: 'tierseq', kind: 'auto', title: 'Get-booked emails', sub: 'A and B sequences', tab: 'emails',
+      sees: 'A run for their tier until they book.',
+      behind: 'Both stop at a booking. After the short runs, the six-month flows take over when that setting is on.',
+      autos: [
+        { type: 'email', label: 'A-tier', seq: 'tier_a', timing: '2 minutes to 7 days after applying' },
+        { type: 'email', label: 'B-tier', seq: 'tier_b', timing: '2 minutes to 10 days after applying' },
+      ],
+      settings: ['LONG_FLOW_EMAILS', 'LONG_FLOW_DAYS'] }),
+    xy(330, 760, { id: 'tracking', kind: 'data', title: 'Tracking', sub: 'Every visit, click, field and second', tab: 'tracking',
+      behind: 'First-party: page views, scroll, sections read, clicks, form friction (never the values typed), video seconds, tab switches and the exit point. Conversions go server-side to Meta, GA4 and PostHog when their keys are set.',
+      settings: ['META_ACCESS_TOKEN', 'GA4_MEASUREMENT_ID', 'GA4_API_SECRET', 'POSTHOG_KEY'] }),
+    xy(620, 760, { id: 'profile', kind: 'data', title: 'Behaviour profile', sub: 'Facts per lead', tab: 'leads',
+      behind: 'Everything a lead did, turned into facts: where they stopped the video, FAQ questions opened, their own words, return visits and the industry page. Visible on each lead.' }),
+    xy(900, 760, { id: 'triggers', kind: 'auto', title: 'Behaviour-triggered emails', sub: 'One-off, from what they did', tab: 'emails',
+      sees: 'One email about the thing they just did: picked a day without booking, watched most of the video, re-read the guarantee, read a guide.',
+      behind: 'Each fires once per person and is re-checked right before sending.',
+      autos: [{ type: 'email', label: 'Behaviour emails', seq: 'behaviour', timing: 'Shortly after the action' }] }),
+    xy(1180, 760, { id: 'personal', kind: 'data', title: 'Personalised emails', sub: 'Rewritten per person', tab: 'emails',
+      behind: 'With EMAIL_PERSONALIZE set to ai and the Anthropic key, Claude rewrites each email around one or two facts earlier emails didn’t use; rules adds a personal opening line; off sends the templates as written. Links never go to the model.',
+      autos: [{ type: 'ai', label: 'Email rewrite', timing: 'At send time' }],
+      settings: ['EMAIL_PERSONALIZE', 'ANTHROPIC_API_KEY'] }),
+    xy(1760, 660, { id: 'callback', kind: 'auto', title: 'Callback agent', sub: 'People who ring back', tab: 'voice',
+      sees: 'Anyone who rings the number back gets the assistant, who knows who they are from caller ID.',
+      behind: 'The callback agent can confirm, rebook or log a callback request.',
+      settings: ['ELEVENLABS_INBOUND_AGENT_ID', 'AI_CALL_CALLBACK_NUMBER'] }),
+    xy(40, 980, { id: 'wroom', kind: 'traffic', title: 'From the masterclass', sub: 'When no paid offer is on', tab: 'webinar',
+      sees: 'The “See if you qualify” button in the masterclass room.',
+      behind: 'With WEBINAR_PASS off, the masterclass hands viewers to this application. With a paid offer on, the room sells the First Deal Sprint instead (see the Automated webinar map).',
+      settings: ['WEBINAR_PASS'] }),
+  ],
+  edges: [
+    ['meta', 'smart'], ['meta', 'landers'], ['youtube', 'main'], ['organic', 'main'],
+    ['smart', 'landers', 'match'], ['smart', 'main', 'no match'],
+    ['landers', 'vsl'], ['main', 'vsl'],
+    ['vsl', 'apply'], ['apply', 'score', 'submitted'],
+    ['score', 'tierA', 'A'], ['score', 'tierB', 'B'], ['score', 'tierC', 'C'],
+    ['tierA', 'booked'], ['tierB', 'booked'],
+    ['booked', 'call', 'showed'], ['call', 'won'], ['call', 'lost'], ['booked', 'noshow', 'missed'],
+    ['caldirect', 'booked', 'skips the funnel', 'dash'],
+    ['booked', 'aicall', '', 'auto'], ['booked', 'precall', '', 'auto'], ['booked', 'reppings', '', 'auto'], ['call', 'postcall', '', 'auto'],
+    ['noshow', 'booked', 'rebook', 'auto'], ['noshow', 'rebookcall', '', 'auto'],
+    ['booked', 'cancel', 'cancelled'], ['cancel', 'cxseq', '', 'auto'], ['won', 'onboard', '', 'auto'], ['lost', 'lostseq', '', 'auto'],
+    ['tierseq', 'nurture', 'still not booked', 'auto'], ['tierC', 'nurture', '', 'auto'],
+    ['apply', 'dossier', 'answers', 'data'], ['dossier', 'precall', '', 'data'], ['dossier', 'postcall', '', 'data'], ['dossier', 'nurture', '', 'data'],
+    ['apply', 'abandon', 'didn’t finish', 'auto'], ['abandon', 'apply', '', 'auto'],
+    ['score', 'speed', '', 'auto'], ['speed', 'booked', '', 'auto'],
+    ['tierA', 'tierseq', '', 'auto'], ['tierB', 'tierseq', '', 'auto'], ['tierseq', 'booked', '', 'auto'],
+    ['wroom', 'apply', 'offer off'],
+    ['tracking', 'profile', '', 'data'], ['profile', 'triggers', '', 'data'], ['triggers', 'personal', '', 'data'], ['profile', 'personal', '', 'data'],
+    ['vsl', 'tracking', '', 'data'], ['aicall', 'callback', '', 'auto'],
+  ],
+};
+
+// ───────────────────────────── 2. Automated webinar ─────────────────────────────
+
+const AUTO: FunnelMapDef = {
+  id: 'auto',
+  title: 'Automated webinar',
+  short: 'Masterclass',
+  summary: 'The masterclass at live.grosfjeld-li.com: registration, an optional paid ticket, the recording played in sync, the First Deal Sprint unlocking at the pitch, the 7-day Sprint, then the engagement agreement.',
+  attribution: 'auto',
+  ladder: ['wreg', 'wticket', 'wroom', 'wpitch', 'wsprint', 'wplan', 'wsigned'],
+  stages: [
+    at(0, 0, { id: 'wads', kind: 'traffic', title: 'Ads and links', sub: 'Meta, YouTube, email', tab: 'traffic',
+      sees: 'An ad or link pointing to the registration page.',
+      behind: 'The full ad attribution (campaign, ad set, ad) is kept on the registration and the lead, so Traffic & ads and Ads autopilot can judge each ad on tickets and Sprints.',
+      settings: ['WEBINAR_URL'] }),
+    at(1, 0, { id: 'wland', kind: 'page', title: 'Registration page', sub: 'Pick a showing', tab: 'webinar', count: 'landing',
+      sees: 'The masterclass title and one of the test headlines, a choice of showings, then first name, email and revenue band.',
+      behind: 'Showings come from the weekly schedule plus just-in-time showings that start every few minutes inside set local hours. The headline test shifts traffic to the headline that brings the most $1M+ sign-ups when set to auto.',
+      settings: ['WEBINAR_TITLE', 'WEBINAR_SCHEDULE', 'WEBINAR_JIT_EVERY', 'WEBINAR_JIT_HOURS', 'WEBINAR_HEADLINE_TEST'], page: { path: '/webinar', preview: '/webinar' } }),
+    at(2, 0, { id: 'wreg', kind: 'people', title: 'Registered', sub: 'Lead created, Meta gets CompleteRegistration', tab: 'webinar', count: 'registered',
+      sees: 'The thank-you page with the time, calendar links and a question about what they would buy first.',
+      behind: 'A lead is created or matched by email. With a paid ticket on, nothing about the session goes out until the ticket is paid; the ticket emails go instead.',
+      autos: [
+        { type: 'email', label: 'Pre-webinar run', seq: 'prewebinar', timing: 'Up to the daily cap, 7am to 9pm their time, until about 3 hours before the session' },
+        { type: 'email', label: 'Confirmation and reminders', seq: 'webinar', tpl: ['w_confirm', 'w_24h', 'w_3h', 'w_15m'], timing: 'At sign-up, then 24 h, 3 h and 15 minutes before' },
+      ],
+      settings: ['PREWEBINAR_EMAILS_PER_DAY'], page: { path: '/registered/preview', preview: '/registered/preview' } }),
+    at(3, 0, { id: 'wticket', kind: 'page', title: 'Masterclass ticket', sub: 'Whop card form, card saved', tab: 'webinar', count: 'ticket',
+      sees: 'A ticket page with Whop’s card fields and a line above the pay button saying the card is saved for a one-click Sprint later.',
+      behind: 'Only when WEBINAR_PASS is required and WEBINAR_SEAT_PRICE is set; otherwise watching costs nothing and this step is skipped. Whop saves the card when the payment succeeds. WHOP_TICKET_FORM off uses Whop’s hosted checkout, which keeps no card.',
+      autos: [
+        { type: 'charge', label: 'Ticket payment', timing: 'On the ticket page' },
+        { type: 'email', label: 'Finish your ticket', seq: 'ticket', timing: '1 hour, 1 day and 3 days after registering, until paid' },
+      ],
+      settings: ['WEBINAR_PASS', 'WEBINAR_SEAT_PRICE', 'WHOP_API_KEY', 'WHOP_WEBHOOK_SECRET', 'WHOP_TICKET_FORM'] }),
+    at(4, 0, { id: 'wroom', kind: 'page', title: 'Room', sub: 'Recording in sync', tab: 'webinar', count: 'attended', from: 'wreg',
+      sees: 'Their own room link: a countdown, then the masterclass playing at the same moment for everyone in the showing, chapters, polls, a question box, the deal calculator and the showing chat.',
+      behind: 'WEBINAR_EDITION picks Josh’s recording or the AI edition. Minutes watched are tracked; the attendee worksheet unlocks at the set minute; questions are answered by the assistant when the Anthropic key is set. The count is registrations that joined live or watched the replay.',
+      settings: ['WEBINAR_EDITION', 'WEBINAR_VIDEO_SRC', 'WEBINAR_DURATION_MIN', 'WEBINAR_CHAT', 'WEBINAR_BONUS_AT', 'WEBINAR_AI_MODEL', 'WEBINAR_CHAPTERS'],
+      page: { path: '/room/preview?hq_at=3', preview: '/room/preview?hq_at=3', label: 'Room preview' } }),
+    at(5, 0, { id: 'wpitch', kind: 'decision', title: 'Sprint unlocks', sub: 'At the pitch minute', tab: 'webinar', count: 'unlocked',
+      sees: 'The First Deal Sprint card, locked with “opens at 38:00”, then open at the pitch.',
+      behind: 'The unlock is stored per registration, so a reload never resets it. Checkout only works for someone who reached the pitch and before their replay closes. The price today is the Sprint price minus their paid ticket. Off when WEBINAR_PASS is off, in which case the room offers the application.',
+      autos: [{ type: 'email', label: 'Sprint closing emails', seq: 'webinar', tpl: ['w_sprint_%'], timing: 'Re-timed from the unlock: open, bonus, closing and closed' }],
+      settings: ['WEBINAR_PASS', 'WEBINAR_PITCH_AT', 'WEBINAR_OFFER_NAME', 'WEBINAR_PASS_PRICE', 'WEBINAR_PASS_WEEKLY_CAP', 'WEBINAR_FAST_BONUS', 'WEBINAR_PASS_PLAN'],
+      page: { path: '/room/preview?hq_at=pitch', preview: '/room/preview?hq_at=pitch', label: 'Room at the pitch' } }),
+    at(6, 0, { id: 'wsprint', kind: 'people', title: 'Sprint bought', sub: 'One click on the saved card', tab: 'dealsprint', count: 'sprint',
+      sees: 'A confirm step with what is charged, to which card and Whop’s service fee. Without a saved card: the Sprint start form, then checkout.',
+      behind: 'One-click charges the card saved with the ticket as a customer-initiated payment, so 3D Secure can run. One attempt in flight per registration. A decline falls back to the normal checkout. Buyers inside the fast-action window get the bonus.',
+      autos: [{ type: 'charge', label: 'One-click Sprint charge', timing: 'When they confirm' }, { type: 'ping', label: 'Payment alert', timing: 'When the payment needs attention' }],
+      settings: ['WHOP_BUYER_FEE_PERCENT', 'WEBINAR_PASS_REFUND'], page: { path: '/offer/preview', preview: '/offer/preview', label: 'Offer page' } }),
+    at(7, 0, { id: 'wplan', kind: 'people', title: 'Sprint: 7 days', sub: 'Kickoff, deliverables, Deal Plan session', tab: 'dealsprint', count: 'plan_held',
+      sees: 'Their Sprint page: day of 7, the intake, the kickoff booking, each deliverable as it is marked ready, and the Deal Plan session on Day 7.',
+      behind: 'Deliverables: acquisition capacity (Day 2), buy box (Day 3), a first shortlist (Day 4), the deal-structure memo (Day 5), the owner outreach script (Day 6), and Josh’s review for fast-action buyers (Day 7). Marking one ready sends one email. The count is Deal Plan sessions held.',
+      autos: [{ type: 'email', label: 'Sprint emails', seq: 'deal_sprint', timing: 'Welcome, intake reminder from day 1, session prep from day 4, then proposal follow-ups 1, 3 and 7 days after the proposal' }],
+      settings: ['DEAL_SPRINT_KICKOFF_URL', 'DEAL_SPRINT_PLAN_URL'], page: { path: '/sprint/preview', preview: '/sprint/preview', label: 'Sprint page' } }),
+    at(8, 0, { id: 'wsigned', kind: 'people', title: 'Engagement signed', sub: '$40K to $70K, Sprint credited', tab: 'contracts', count: 'signed',
+      sees: 'The engagement agreement to e-sign, with the Sprint fee credited.',
+      behind: 'Drafted from the Sprint board with the fee auto-quoted from their revenue band and everything paid for the Sprint (ticket included) credited. The count is signed agreements that carry a Sprint credit.',
+      settings: ['CONTRACT_COMPANY', 'CONTRACT_SIGNER', 'ENGAGEMENT_GUARANTEE'] }),
+    at(4, 1, { id: 'wmissed', kind: 'people', title: 'Missed it', sub: 'Next showing and replay', tab: 'webinar', count: 'missed', from: 'wreg',
+      sees: 'An email offering the next showing (within 20 minutes of their start), then the replay.',
+      behind: 'Each of these is checked when due and skipped for anyone who has joined, applied or booked since.',
+      autos: [{ type: 'email', label: 'Missed and replay emails', seq: 'webinar', tpl: ['w_live', 'w_next_showing', 'w_missed', 'w_replay_last', 'w_offer', 'w_story', 'w_last'], timing: '3 minutes (“we’ve started”), 20 minutes (next showing) and 80 minutes after the start, then 40 hours, 3, 5 and 8 days' }] }),
+    at(5, 1, { id: 'wreplay', kind: 'page', title: 'Replay', sub: 'Open for the replay hours', tab: 'webinar', count: 'replay',
+      sees: 'The recording on their own link, with the same offer gate.',
+      behind: 'Closes after WEBINAR_REPLAY_HOURS; then the link shows the next showing. Sprint buyers keep it for WEBINAR_PASS_REPLAY_DAYS.',
+      settings: ['WEBINAR_REPLAY_HOURS', 'WEBINAR_PASS_REPLAY_DAYS'], page: { path: '/replay/preview?hq_at=replay', preview: '/replay/preview?hq_at=replay' } }),
+    at(6, 1, { id: 'wnobuy', kind: 'auto', title: 'Watched, didn’t buy', sub: 'Closing emails until the deadline', tab: 'emails',
+      sees: 'Emails about the Sprint: it’s open, the fast-action bonus, the last hours, closed.',
+      behind: 'Only for viewers who unlocked the Sprint and haven’t bought, re-timed from their real unlock and offer deadline. Stays quiet for anyone who already bought.',
+      autos: [{ type: 'email', label: 'Sprint closing run', seq: 'webinar', tpl: ['w_sprint_%'], timing: 'From the unlock until the replay closes' }] }),
+    at(7, 1, { id: 'wproposal', kind: 'decision', title: 'After the Deal Plan', sub: 'Proposal, signed, not continuing', tab: 'dealsprint', count: 'proposal', from: 'wplan',
+      behind: 'The team marks the outcome after the session. Proposal sent starts the proposal follow-up emails. Refunds follow the Sprint guarantee in WEBINAR_PASS_REFUND.' }),
+    at(2, 1, { id: 'wtrack', kind: 'data', title: 'Tracking', sub: 'Room, offer and payments', tab: 'tracking',
+      behind: 'Registration, join, watch minutes, polls, questions, the offer unlock and checkout are first-party events. Registrations, tickets and Sprint purchases go to Meta from the server.',
+      settings: ['META_ACCESS_TOKEN', 'META_PIXEL_ID'] }),
+  ],
+  edges: [
+    ['wads', 'wland'], ['wland', 'wreg', 'signed up'], ['wreg', 'wticket', 'ticket on'], ['wticket', 'wroom', 'paid'], ['wreg', 'wroom', 'no ticket', 'dash'],
+    ['wroom', 'wpitch', 'reached the pitch'], ['wpitch', 'wsprint', 'bought'], ['wsprint', 'wplan'], ['wplan', 'wproposal'], ['wproposal', 'wsigned', 'signed'],
+    ['wreg', 'wmissed', 'didn’t join'], ['wmissed', 'wreplay', '', 'auto'], ['wreplay', 'wpitch'], ['wpitch', 'wnobuy', 'didn’t buy', 'auto'], ['wnobuy', 'wsprint', '', 'auto'],
+    ['wroom', 'wtrack', '', 'data'],
+  ],
+};
+
+// ───────────────────────────── 3. Live webinar on Zoom ─────────────────────────────
+
+const LIVE: FunnelMapDef = {
+  id: 'live',
+  title: 'Live webinar on Zoom',
+  short: 'Live webinar',
+  summary: 'A scheduled live session with Josh on Zoom: registration (no charge, or a ticket), the companion room, the host opens the deposit offer live, and deposit buyers go to onboarding and the engagement agreement.',
+  attribution: 'live',
+  ladder: ['lreg', 'lticket', 'ljoin', 'loffer', 'ldeposit', 'lsigned'],
+  stages: [
+    at(0, 0, { id: 'lads', kind: 'traffic', title: 'Ads and links', sub: 'Pointing at /live', tab: 'traffic',
+      behind: 'Ads and links point at the live landing page. Ad attribution is kept on the registration and the lead.' }),
+    at(1, 0, { id: 'lland', kind: 'page', title: 'Landing /live', sub: 'The next real event', tab: 'liveevents', count: 'landing',
+      sees: 'The next scheduled event with a countdown to its real start time, and the registration form.',
+      behind: 'Events are created in Live webinars. The countdown reads the event’s stored start time.',
+      page: { path: '/live', preview: '/live' } }),
+    at(2, 0, { id: 'lreg', kind: 'people', title: 'Registered', sub: 'Free or ticketed', tab: 'liveevents', count: 'registered',
+      sees: 'A welcome page with the time and the room link.',
+      behind: 'Registration costs nothing unless LIVE_TICKET_PRICE is set. Texts go only to people who ticked the box.',
+      autos: [{ type: 'email', label: 'Live reminders', seq: 'live', tpl: ['live_confirm', 'live_r24h', 'live_r1h', 'live_r10m', 'live_live'], timing: 'Confirmation, 24 hours, 1 hour and 10 minutes before, and “we’re live” if they haven’t joined' }, { type: 'sms', label: 'Reminder texts', timing: 'The same moments, with consent' }],
+      settings: ['LIVE_TICKET_PRICE'] }),
+    at(3, 0, { id: 'lticket', kind: 'page', title: 'Live ticket', sub: 'Only when a price is set', tab: 'liveevents', count: 'ticket',
+      sees: 'Our Whop ticket page; the card is saved for a one-click deposit.',
+      behind: 'Off by default (LIVE_TICKET_PRICE blank). Unpaid registrants get one nudge 30 minutes after registering. The ticket comes off the deposit price later.',
+      autos: [{ type: 'charge', label: 'Ticket payment', timing: 'On the ticket page' }],
+      settings: ['LIVE_TICKET_PRICE', 'WHOP_API_KEY'] }),
+    at(4, 0, { id: 'ljoin', kind: 'page', title: 'Room and Zoom', sub: 'Companion room opens Zoom', tab: 'liveevents', count: 'joined', from: 'lreg',
+      sees: 'Their room: Join on Zoom (new tab) from 15 minutes before, real presence and chat, the host’s polls and pinned message.',
+      behind: 'Every email link goes to the room, which opens Zoom. The Zoom meeting can be created from the host console with the Zoom keys, or pasted as a link. The count is registrants who opened their room.',
+      settings: ['ZOOM_ACCOUNT_ID', 'ZOOM_CLIENT_ID', 'ZOOM_CLIENT_SECRET', 'ZOOM_HOST_USER'] }),
+    at(5, 0, { id: 'loffer', kind: 'decision', title: 'Host opens the offer', sub: 'From the host console', tab: 'liveevents', count: 'offer_seen',
+      sees: 'The deposit offer appearing in every room at once, with the guarantee, the 7-day money-back and the real deadline.',
+      behind: 'The host presses Open the offer, and can show the timer, pin a message and close the offer. It closes LIVE_OFFER_HOURS after the event ends, or earlier if the host closes it; the replay closes with it. The count is registrants who saw the offer.',
+      settings: ['LIVE_OFFER_HOURS', 'GUARANTEE_HEADLINE', 'GUARANTEE_BODY', 'GUARANTEE_CONDITIONS', 'MONEY_BACK_BODY'] }),
+    at(6, 0, { id: 'ldeposit', kind: 'people', title: 'Deposit paid', sub: 'Credited in full', tab: 'liveevents', count: 'deposit',
+      sees: 'One click on the saved card where there is one, else our Whop payment page.',
+      behind: 'The deposit holds their place in this intake and is credited in full against the engagement fee. ENGAGEMENT_INTAKE_CAP is a real weekly cap, shown only when set. On payment: a team alert, the welcome email with the onboarding booking link, and the engagement agreement drafted with the deposit credited.',
+      autos: [{ type: 'charge', label: 'One-click deposit', timing: 'When they confirm' }, { type: 'email', label: 'Deposit welcome', seq: 'deposit', timing: 'Straight after payment' }, { type: 'ping', label: 'Deposit alert', timing: 'Straight after payment' }],
+      settings: ['ENGAGEMENT_DEPOSIT', 'ENGAGEMENT_DEPOSIT_CURRENCY', 'ENGAGEMENT_INTAKE_CAP', 'ENGAGEMENT_ONBOARDING_URL'] }),
+    at(7, 0, { id: 'lsigned', kind: 'people', title: 'Engagement signed', sub: 'After the onboarding call', tab: 'contracts', count: 'signed',
+      sees: 'A short onboarding call (post-purchase, not a sales call), then the agreement to e-sign with the balance due.',
+      behind: 'The count is signed agreements for people with a paid live deposit. The guarantee is written into the agreement when ENGAGEMENT_GUARANTEE is on.',
+      settings: ['ENGAGEMENT_GUARANTEE'] }),
+    at(4, 1, { id: 'lreplay', kind: 'page', title: 'Replay', sub: 'Closes with the offer', tab: 'liveevents', count: 'replay', from: 'lreg',
+      sees: 'The replay link in their room once the host pastes it.',
+      behind: 'Replay emails go to people without a deposit: one 30 minutes after the event window, and a last-hours email before the replay closes when the offer was opened.',
+      autos: [{ type: 'email', label: 'Replay emails', seq: 'live', tpl: ['live_replay', 'live_replay_last'], timing: 'After the event, and in the last 6 hours before it closes' }] }),
+    at(6, 1, { id: 'lunpaid', kind: 'auto', title: 'Unpaid checkouts', sub: 'Follow-up actions', tab: 'salesops',
+      sees: 'A personal follow-up by email or text, only once approved.',
+      behind: 'The unpaid play in Follow-up actions finds deposit and ticket checkouts started and never paid, drafts one message each and waits for approval.',
+      autos: [{ type: 'approval', label: 'Bulk follow-up', timing: 'When the owner runs the play' }] }),
+    at(2, 1, { id: 'lhost', kind: 'data', title: 'Host console', sub: 'Polls, pin, timer, offer', tab: 'liveevents',
+      behind: 'One page per event for the host: open and close the offer, show the timer, pin a message, push a poll and read the room chat. Every timer comes from the server’s clock.',
+      page: { path: '/live', label: 'Landing page' } }),
+  ],
+  edges: [
+    ['lads', 'lland'], ['lland', 'lreg'], ['lreg', 'lticket', 'price set'], ['lticket', 'ljoin', 'paid'], ['lreg', 'ljoin', 'no ticket', 'dash'],
+    ['ljoin', 'loffer'], ['loffer', 'ldeposit', 'paid'], ['ldeposit', 'lsigned'], ['lreg', 'lreplay', 'after the event'], ['lreplay', 'loffer'],
+    ['loffer', 'lunpaid', 'started, didn’t pay', 'auto'], ['lunpaid', 'ldeposit', '', 'auto'], ['lhost', 'loffer', '', 'data'],
+  ],
+};
+
+// ───────────────────────────── 4. 5-day First Deal Challenge ─────────────────────────────
+
+const CHALLENGE: FunnelMapDef = {
+  id: 'challenge',
+  title: 'First Deal Challenge',
+  short: 'Challenge',
+  summary: 'Five live days on Zoom: a paid ticket, a one-click VIP upgrade, a worksheet each day, a soft offer on Day 4 and the full pitch on Day 5, then the engagement deposit.',
+  attribution: 'challenge',
+  ladder: ['creg', 'cticket', 'cd1', 'cd3', 'cd5', 'cdeposit', 'csigned'],
+  stages: [
+    at(0, 0, { id: 'cland', kind: 'page', title: 'Landing /challenge', sub: 'Next cohort', tab: 'challenge', count: 'landing',
+      sees: 'The next cohort’s five days and the sign-up form: name, email, revenue band and an optional mobile for reminder texts.',
+      behind: 'Cohorts are created in Funnel HQ → Challenge: five days at the same local time, each editable.',
+      settings: ['CHALLENGE_TIMEZONE', 'CHALLENGE_DURATION_MIN'], page: { path: '/challenge', preview: '/challenge' } }),
+    at(1, 0, { id: 'creg', kind: 'people', title: 'Signed up', sub: 'Before paying', tab: 'challenge', count: 'registered',
+      behind: 'A lead is created or matched by email. The ticket page comes next.' }),
+    at(2, 0, { id: 'cticket', kind: 'page', title: 'Ticket paid', sub: 'Whop card form, card saved', tab: 'challenge', count: 'ticket',
+      sees: 'Our ticket page with Whop’s card fields and the card-saving consent.',
+      behind: 'The ticket price is credited against the deposit later. One payment in flight per registration; the webhook settles anything the browser didn’t.',
+      autos: [{ type: 'charge', label: 'Ticket payment', timing: 'On the ticket page' }, { type: 'email', label: 'Challenge emails', seq: 'challenge', tpl: ['ch_confirm', 'ch_d%', 'ch_vip_welcome'], timing: 'Confirmation now; per day the morning-of, 1 hour before, live now, then replay and worksheet' }],
+      settings: ['CHALLENGE_PRICE', 'CHALLENGE_CURRENCY', 'WHOP_API_KEY'] }),
+    at(3, 0, { id: 'cvip', kind: 'decision', title: 'VIP upgrade', sub: 'One click, offered once', tab: 'challenge', count: 'vip', from: 'cticket',
+      sees: 'Right after the ticket: a hot seat with Josh after every session, the recordings to keep and written feedback on worksheets.',
+      behind: 'One click on the saved card (3D Secure possible), or the card form when there is no saved card or it is declined.',
+      autos: [{ type: 'charge', label: 'One-click VIP charge', timing: 'Right after the ticket' }],
+      settings: ['CHALLENGE_VIP_PRICE'] }),
+    at(3, 1, { id: 'cd1', kind: 'page', title: 'Day 1', sub: 'Your acquisition capacity', tab: 'challenge', count: 'day1', from: 'cticket',
+      sees: 'Their day page with Join on Zoom, the worksheet, the poll and the cohort chat.',
+      behind: 'Join on Zoom or the companion page open from 15 minutes before the start to 15 after the end counts as live attendance. The count is people present live or on the replay.' }),
+    at(4, 1, { id: 'cd2', kind: 'page', title: 'Day 2', sub: 'Your buy box', tab: 'challenge', count: 'day2',
+      behind: 'Same day page. Worksheets are submitted on the page and VIP worksheets get written feedback.' }),
+    at(5, 1, { id: 'cd3', kind: 'page', title: 'Day 3', sub: 'Owners and outreach', tab: 'challenge', count: 'day3',
+      behind: 'The progress tracker shows days attended and homework done, counted from real rows.' }),
+    at(6, 1, { id: 'cd4', kind: 'page', title: 'Day 4', sub: 'The stack and the 1.5x test', tab: 'challenge', count: 'day4',
+      sees: 'At the end, a soft offer: the deposit, opened by the host.',
+      behind: 'The host opens the offer from the host console or Funnel HQ. It stays open until the cohort’s deadline.' }),
+    at(7, 1, { id: 'cd5', kind: 'page', title: 'Day 5', sub: 'Your deal plan and the pitch', tab: 'challenge', count: 'day5',
+      sees: 'The full pitch: the deposit, the guarantee and the deadline.',
+      behind: 'The offer closes for good CHALLENGE_OFFER_HOURS after Day 5 ends; every countdown is to that deadline and the server refuses after it.',
+      settings: ['CHALLENGE_OFFER_HOURS'] }),
+    at(8, 1, { id: 'cdeposit', kind: 'people', title: 'Deposit paid', sub: 'Credited in full', tab: 'challenge', count: 'deposit',
+      sees: 'One click on the ticket’s saved card, or our Whop payment page.',
+      behind: 'The same engagement deposit as the live webinar: the ticket comes off the price, the deposit is credited in full on the agreement, and the onboarding email goes out.',
+      autos: [{ type: 'charge', label: 'One-click deposit', timing: 'When they confirm' }, { type: 'email', label: 'Offer emails', seq: 'challenge', tpl: ['ch_offer_%'], timing: '20 minutes after Day 5, 24 hours, 6 hours and 1 hour before the deadline; stop at a deposit' }],
+      settings: ['ENGAGEMENT_DEPOSIT', 'ENGAGEMENT_ONBOARDING_URL', 'ENGAGEMENT_INTAKE_CAP'] }),
+    at(9, 1, { id: 'csigned', kind: 'people', title: 'Engagement signed', sub: 'After onboarding', tab: 'contracts', count: 'signed',
+      behind: 'The count is signed agreements for people with a paid challenge deposit.',
+      settings: ['ENGAGEMENT_GUARANTEE'] }),
+    at(4, 2, { id: 'chomework', kind: 'data', title: 'Worksheets', sub: 'One per day', tab: 'challenge', count: 'homework', from: 'cd1',
+      sees: 'A worksheet on each day page with a submit button.',
+      behind: 'Each submit is one row per person and day. The count is worksheets submitted in the range.' }),
+    at(5, 2, { id: 'chot', kind: 'people', title: 'VIP hot seats', sub: 'After each session', tab: 'challenge', count: 'hotseat', from: 'cvip',
+      sees: 'VIPs queue a question and get the hot seat link on each day page.',
+      behind: 'Josh works through the queue live after the session.' }),
+    at(6, 2, { id: 'creplay', kind: 'page', title: 'Replays', sub: 'Until the offer closes', tab: 'challenge',
+      behind: 'The host pastes each day’s replay link. Replays close when the offer closes after Day 5; VIPs keep them.' }),
+  ],
+  edges: [
+    ['cland', 'creg'], ['creg', 'cticket'], ['cticket', 'cvip', 'offered once'], ['cticket', 'cd1'], ['cd1', 'cd2'], ['cd2', 'cd3'], ['cd3', 'cd4'], ['cd4', 'cd5'],
+    ['cd4', 'cdeposit', 'soft offer'], ['cd5', 'cdeposit', 'pitch'], ['cdeposit', 'csigned'], ['cd1', 'chomework', '', 'data'], ['cvip', 'chot', '', 'auto'], ['cd5', 'creplay', '', 'dash'],
+  ],
+};
+
+// ───────────────────────────── 5. Instagram DM sales ─────────────────────────────
+
+const DM: FunnelMapDef = {
+  id: 'dm',
+  title: 'Instagram DM sales',
+  short: 'DM sales',
+  summary: 'Comments, Story replies and DMs arrive through Meta’s official API, get scored Hot, Warm or Cold, a setter works the conversation to a booked call, the closer gets a summary, and setters earn commission on the cash.',
+  ladder: ['dmthread', 'dmreplied', 'dmhot', 'dmbooked', 'dmshowed', 'dmclosed'],
+  stages: [
+    at(0, 0, { id: 'dmcomment', kind: 'traffic', title: 'Comments', sub: 'Keyword on a post', tab: 'dminbox', count: 'src_comment',
+      sees: 'They comment a keyword under a post.',
+      behind: 'Meta’s webhook delivers the comment. A matching keyword trigger can send the one private reply Meta allows per comment (within 7 days) and a public reply.',
+      settings: ['IG_ACCESS_TOKEN', 'IG_APP_SECRET', 'IG_WEBHOOK_VERIFY_TOKEN'] }),
+    at(0, 1, { id: 'dmstory', kind: 'traffic', title: 'Story replies', sub: 'Replies and mentions', tab: 'dminbox', count: 'src_story',
+      behind: 'Story replies and mentions arrive as messages and start a conversation.' }),
+    at(0, 2, { id: 'dmdirect', kind: 'traffic', title: 'Direct messages', sub: 'Including click-to-DM ads', tab: 'dminbox', count: 'src_dm',
+      behind: 'A DM opens Meta’s 24-hour window (up to 7 days after a click-to-Direct ad). Nothing here reads Instagram any other way.' }),
+    at(1, 1, { id: 'dmthread', kind: 'page', title: 'Priority inbox', sub: 'One thread per person', tab: 'dminbox', count: 'threads',
+      sees: 'The setter sees conversations sorted by band, waiting time and how soon the window closes.',
+      behind: 'Keyword triggers tag, assign and send the first message inside the window. A thread links to a lead when a message carries the lead’s email or phone, or the handle appears in their application.',
+      autos: [{ type: 'ai', label: 'Junk and closing flags', timing: 'When a message arrives' }],
+      settings: ['IG_ACCOUNT_ID', 'DM_MODEL'] }),
+    at(2, 1, { id: 'dmhot', kind: 'decision', title: 'Hot, Warm or Cold', sub: 'Revenue potential', tab: 'dminbox', count: 'hot', from: 'dmthread',
+      behind: 'A score from 0 to 100 from the revenue band (when known from an application), business size, intent words and engagement, minus low-fit and spam signals. 55 or more is Hot, 20 or more is Warm. The count is Hot threads.',
+      autos: [{ type: 'ping', label: 'Hot lead waiting', timing: 'When a Hot thread waits longer than the alert minutes' }],
+      settings: ['DM_HOT_ALERT_MIN'] }),
+    at(3, 1, { id: 'dmreplied', kind: 'people', title: 'Setter replies', sub: 'Scripts or an AI draft', tab: 'dminbox', count: 'replied', from: 'dmthread',
+      sees: 'A reply from the setter, written by them or edited from a draft.',
+      behind: 'Drafts come from the scripts library (Claude with the key, word overlap without). Sending is refused outside Meta’s window; the human-agent tag (7 days) is a setting that needs Meta’s approval. The FAQ assistant is off by default and says it is automated.',
+      autos: [{ type: 'ai', label: 'Reply draft', timing: 'When the setter asks' }],
+      settings: ['DM_HUMAN_AGENT', 'DM_AUTO_REPLY'] }),
+    at(4, 1, { id: 'dmbooked', kind: 'people', title: 'Call booked', sub: 'Closer gets a summary', tab: 'dminbox', count: 'booked',
+      sees: 'A booking link from the setter.',
+      behind: 'When a thread is marked booked (or its lead books), a pre-call summary is written for the closer, attached to the conversation and posted to the team channel.',
+      autos: [{ type: 'ai', label: 'Pre-call summary', timing: 'When booked' }, { type: 'ping', label: 'Summary to the team', timing: 'When booked' }] }),
+    at(5, 1, { id: 'dmshowed', kind: 'people', title: 'Call held', sub: 'Synced with the lead', tab: 'sales', count: 'showed',
+      behind: 'Status moves both ways: a showed, won or lost lead updates its thread, and the thread updates the lead.' }),
+    at(6, 1, { id: 'dmclosed', kind: 'people', title: 'Closed', sub: 'Commission on cash', tab: 'dminbox', count: 'closed',
+      behind: 'Setter commission is their commission percentage (Reps & routing) of the cash collected on the linked lead.' }),
+    at(6, 2, { id: 'dmlost', kind: 'people', title: 'Lost', sub: 'Stays in the inbox', tab: 'dminbox', count: 'lost', from: 'dmshowed',
+      behind: 'Lost threads sink to the bottom of the priority list.' }),
+    at(3, 2, { id: 'dmdigest', kind: 'auto', title: 'Daily digest', sub: 'Per setter', tab: 'dminbox',
+      behind: 'At the digest hour each setter gets yesterday’s results and today’s tasks: unanswered Hot leads, follow-ups due and windows closing within 3 hours. Missed follow-ups raise an alert.',
+      autos: [{ type: 'ping', label: 'Setter digest', timing: 'Daily at the digest hour' }],
+      settings: ['DM_DIGEST', 'DIGEST_HOUR'] }),
+  ],
+  edges: [
+    ['dmcomment', 'dmthread', 'trigger'], ['dmstory', 'dmthread'], ['dmdirect', 'dmthread'], ['dmthread', 'dmhot'], ['dmhot', 'dmreplied'], ['dmreplied', 'dmbooked'],
+    ['dmbooked', 'dmshowed'], ['dmshowed', 'dmclosed'], ['dmshowed', 'dmlost'], ['dmreplied', 'dmdigest', '', 'auto'],
+  ],
+};
+
+// ───────────────────────────── 6. Reactivation and long flows ─────────────────────────────
+
+const NURTURE: FunnelMapDef = {
+  id: 'nurture',
+  title: 'Reactivation and long flows',
+  short: 'Long flows',
+  summary: 'Everyone who doesn’t buy stays in one email programme: the short runs, then six-month flows, page-behaviour emails, hand-launched reactivation of past leads, and approved follow-up batches.',
+  ladder: ['nlflows', 'nlsent', 'nrxlaunch', 'nrxback'],
+  stages: [
+    at(0, 0, { id: 'nlentry', kind: 'traffic', title: 'Didn’t buy yet', sub: 'From every funnel', tab: 'leads',
+      behind: 'Abandoned applications, A, B and C tiers, no-shows, cancellations, post-call, lost and never-booked leads each start their own short run. A person is only ever in one flow.' }),
+    at(1, 0, { id: 'nlflows', kind: 'auto', title: 'Short runs', sub: 'The original sequences', tab: 'emails', count: 'short_sent',
+      sees: 'The emails described on the VSL map for their stage.',
+      behind: 'Each run stops at its goal (submitting, booking, rebooking).',
+      autos: [
+        { type: 'email', label: 'Abandoned', seq: 'abandoned', timing: '15 minutes to 4 days' },
+        { type: 'email', label: 'No-show', seq: 'no_show', timing: '15 minutes to 14 days' },
+        { type: 'email', label: 'Post-call', seq: 'post_call', timing: '2 hours to 21 days' },
+        { type: 'email', label: 'Lost', seq: 'lost', timing: '3 to 180 days' },
+      ] }),
+    at(2, 0, { id: 'nlsent', kind: 'auto', title: 'Six-month flows', sub: 'Every follow-up flow', tab: 'emails', count: 'long_sent',
+      sees: 'About 10 emails a day in month 1, 6 a day in months 2 and 3, then 3 or 4 a day, 8am to 8pm their time.',
+      behind: 'Each flow has its own emails, then library emails picked from what the person has read on the site. LONG_FLOW_EMAILS 0 turns the six-month part off (the short runs still go). The count is emails sent by the flows in the range.',
+      autos: [{ type: 'email', label: 'Nurture (never booked)', seq: 'nurture', timing: '25 to 180 days' }, { type: 'email', label: 'C-tier', seq: 'tier_c', timing: '1 minute to 21 days, then six months' }],
+      settings: ['LONG_FLOW_EMAILS', 'LONG_FLOW_DAYS', 'EMAIL_PERSONALIZE'] }),
+    at(2, 1, { id: 'nlpage', kind: 'auto', title: 'Page-behaviour emails', sub: 'One per action', tab: 'emails', count: 'behaviour_sent',
+      sees: 'One email about what they just looked at: a guide, their industry page, the masterclass page without signing up, or a return after a quiet spell.',
+      behind: 'Sent once per person per email, written about the topic, never about how we know.',
+      autos: [{ type: 'email', label: 'Behaviour', seq: 'behaviour', timing: 'About an hour after the action' }] }),
+    at(1, 2, { id: 'nrxpick', kind: 'decision', title: 'Pick who gets it', sub: 'Reviewed by hand', tab: 'reactivation',
+      sees: 'In Reactivation the owner picks groups (past calls with no outcome, no-shows, cancellations, applied never booked, started the application, nurture, lost over 60 days ago) and can untick anyone.',
+      behind: 'Never automatic. Unsubscribed people, clients, people ruled out and anyone reactivated in the last 90 days are left out.' }),
+    at(2, 2, { id: 'nrxlaunch', kind: 'auto', title: 'Reactivation launched', sub: '30 days, then six months', tab: 'reactivation', count: 'rx_launched',
+      sees: 'Emails written from their application or booking answers, 3 to 5 a day for 30 days.',
+      behind: 'B and C tiers get their own six-month reactivation. Sending is spread over days to protect email reputation, and stops for anyone who books, applies again, unsubscribes or becomes a client.',
+      autos: [{ type: 'email', label: 'Reactivation (A)', seq: 'reactivation', timing: '30 days, 8am to 7pm' }, { type: 'email', label: 'Reactivation B', seq: 'reactivation_b', timing: 'Six months' }, { type: 'email', label: 'Reactivation C', seq: 'reactivation_c', timing: 'Six months' }] }),
+    at(3, 2, { id: 'nrxback', kind: 'people', title: 'Came back', sub: 'Booked or applied again', tab: 'reactivation', count: 'rx_back',
+      behind: 'Reactivated people who booked a call or finished an application after their reactivation started.' }),
+    at(3, 0, { id: 'nlsms', kind: 'auto', title: 'Texts and WhatsApp', sub: 'Consent only', tab: 'sms', count: 'sms_sent',
+      behind: 'Text sequences run beside the emails for people who ticked call-or-text, 8am to 8pm their time, at most 3 a day. Texts send once the Twilio keys and SMS_FROM are set; SMS_ENABLED false turns them off.',
+      autos: [{ type: 'sms', label: 'Text sequences', timing: 'Per sequence, inside sending hours' }],
+      settings: ['SMS_ENABLED', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'SMS_FROM'] }),
+    at(3, 1, { id: 'nlbatch', kind: 'auto', title: 'Follow-up batches', sub: 'Quiet, no-shows, unpaid', tab: 'salesops', count: 'batch_sent',
+      sees: 'A personal email or text, only after approval.',
+      behind: 'Three plays: leads quiet for SALES_QUIET_DAYS, no-shows from the last 30 days, and unpaid checkouts. One proposal with a preview of every message; consent, unsubscribes and sending hours are checked again at send.',
+      autos: [{ type: 'approval', label: 'Bulk follow-up', timing: 'When the owner approves' }],
+      settings: ['SALES_QUIET_DAYS'] }),
+  ],
+  edges: [
+    ['nlentry', 'nlflows'], ['nlflows', 'nlsent', 'still no'], ['nlsent', 'nlpage', '', 'data'], ['nlentry', 'nrxpick', 'months later', 'dash'], ['nrxpick', 'nrxlaunch'],
+    ['nrxlaunch', 'nrxback'], ['nlflows', 'nlsms', '', 'auto'], ['nlsent', 'nlbatch', '', 'dash'],
+  ],
+};
+
+// ───────────────────────────── 7. After the sale ─────────────────────────────
+
+const AFTER: FunnelMapDef = {
+  id: 'after',
+  title: 'After the sale',
+  short: 'After the sale',
+  summary: 'Sprint buyers, deposit buyers and signed clients become clients: the Sprint board, the engagement agreement, health scores and check-ins in Client Success, and Support answers.',
+  ladder: ['aclient', 'asprint', 'acontract', 'apaid', 'ahealth'],
+  stages: [
+    at(0, 0, { id: 'aclient', kind: 'people', title: 'Becomes a client', sub: 'Sprint, deposit or agreement', tab: 'clients', count: 'clients',
+      behind: 'A client is anyone with a paid First Deal Sprint, a paid engagement deposit (live or challenge) or a signed engagement agreement. The count is people who became a client in the range.' }),
+    at(1, 0, { id: 'asprint', kind: 'page', title: 'Sprint board', sub: '7 days, day by day', tab: 'dealsprint', count: 'sprints',
+      sees: 'Sprint buyers see their Sprint page; the team sees each buyer’s day, intake, kickoff and deliverables.',
+      behind: 'Marking a deliverable ready emails the buyer once. The outcome after the Deal Plan session starts the proposal follow-up.',
+      autos: [{ type: 'email', label: 'Sprint emails', seq: 'deal_sprint', timing: 'Over the 7 days and after the proposal' }],
+      settings: ['DEAL_SPRINT_KICKOFF_URL', 'DEAL_SPRINT_PLAN_URL'] }),
+    at(2, 0, { id: 'acontract', kind: 'page', title: 'Agreement sent and signed', sub: 'E-sign from Josh', tab: 'contracts', count: 'signed',
+      sees: 'A one-page agreement to read and sign online.',
+      behind: 'Fee auto-quoted from their revenue band, credits applied (Sprint, deposit), signed for the company, then emailed for their signature. Every signature records the time, IP and a fingerprint of the terms. The count is agreements signed in the range.',
+      settings: ['CONTRACT_FROM', 'CONTRACT_SIGNER', 'CONTRACT_NOTIFY_EMAIL', 'ENGAGEMENT_GUARANTEE'] }),
+    at(3, 0, { id: 'apaid', kind: 'people', title: 'Paid', sub: 'Balance after credits', tab: 'contracts', count: 'paid',
+      sees: 'Payment details on the signed agreement, and a Pay now button when a payment link is set.',
+      behind: 'Marked paid from Agreements. Bank details show only when the bank settings are filled.',
+      settings: ['CONTRACT_PAY_BANK', 'CONTRACT_PAY_LINK'] }),
+    at(4, 0, { id: 'ahealth', kind: 'data', title: 'Health score', sub: 'Starts at 100', tab: 'clients', count: 'at_risk', from: 'aclient',
+      behind: 'Rebuilt daily at CS_DAILY_HOUR. Every deduction comes from our own rows (Sprint deliverables and calls, intake, payments, weekly sessions logged, reply times, last two-way contact, open escalations) with the view it came from. The count is clients currently scored at risk.',
+      settings: ['CS_DAILY_HOUR'] }),
+    at(4, 1, { id: 'acheckin', kind: 'auto', title: 'Check-ins', sub: 'Drafted, then approved', tab: 'clients', count: 'checkins_sent',
+      sees: 'A short check-in email in the team’s voice.',
+      behind: 'The daily job drafts one for each client whose check-in is due (Claude with the key, else the built-in template), audits it against the copy rules and proposes it in Command. Nothing is sent until approved, unless cs.checkin is set to auto.',
+      autos: [{ type: 'ai', label: 'Check-in draft', timing: 'Daily' }, { type: 'approval', label: 'Approve check-in', timing: 'Before sending' }],
+      settings: ['CS_AI_MODEL', 'OPS_AUTO_KINDS'] }),
+    at(2, 1, { id: 'asupport', kind: 'page', title: 'Support', sub: 'Email and room questions', tab: 'support', count: 'support',
+      sees: 'An answer by email, only once a person approves it.',
+      behind: 'Questions arrive by email (Resend inbound or a forwarder) and from the rooms. Claude drafts from our own guides, materials, the guarantee, the FAQ and the offer terms, with sources and a confidence. Money, refunds, payments, legal and low-confidence drafts are marked Needs a person.',
+      autos: [{ type: 'ai', label: 'Answer draft', timing: 'When a question arrives' }, { type: 'approval', label: 'Approve reply', timing: 'Before sending' }],
+      settings: ['SUPPORT_AI_MODEL', 'SUPPORT_MIN_CONFIDENCE', 'SUPPORT_FROM', 'SUPPORT_INBOUND_SECRET'] }),
+    at(3, 1, { id: 'aescalate', kind: 'people', title: 'Escalated', sub: 'Needs a person', tab: 'support', count: 'escalated', from: 'asupport',
+      behind: 'An escalated draft is never sent automatically, even with support replies set to auto. Open escalations also lower the client’s health score.' }),
+    at(1, 1, { id: 'awon', kind: 'auto', title: 'Onboarding emails', sub: 'Deals won on a call', tab: 'emails',
+      behind: 'Deals won from a strategy call get the 30-day onboarding run (see the VSL map).',
+      autos: [{ type: 'email', label: 'Won onboarding', seq: 'won', timing: '10 minutes to 30 days' }] }),
+  ],
+  edges: [
+    ['aclient', 'asprint', 'Sprint'], ['asprint', 'acontract', 'proposal'], ['aclient', 'acontract', 'deposit', 'dash'], ['acontract', 'apaid'], ['apaid', 'ahealth'],
+    ['ahealth', 'acheckin', '', 'auto'], ['aclient', 'awon', '', 'auto'], ['asupport', 'aescalate'], ['aescalate', 'ahealth', '', 'data'],
+  ],
+};
+
+// ───────────────────────────── 8. The AI departments ─────────────────────────────
+
+const OPS: FunnelMapDef = {
+  id: 'ops',
+  title: 'AI departments',
+  short: 'AI departments',
+  summary: 'Research finds what owners say, Marketing turns it into ads and runs the autopilot, Sales drafts follow-ups, and Command holds every action that changes something until it is approved.',
+  ladder: ['oresearch', 'oangles', 'omarketing', 'oapprove', 'odone'],
+  stages: [
+    at(0, 0, { id: 'oresearch', kind: 'data', title: 'Research', sub: 'Daily collection', tab: 'research', count: 'items',
+      behind: 'Once a day Funnel HQ reads Reddit (official API), the Meta Ad Library, YouTube and our own leads’ answers, in small jobs spread over the cron. The count is items collected in the range.',
+      autos: [{ type: 'ping', label: 'Weekly research brief', timing: 'On the brief day and hour' }],
+      settings: ['RESEARCH_ENABLED', 'RESEARCH_HOUR', 'RESEARCH_BRIEF_DAY', 'REDDIT_CLIENT_ID', 'META_AD_LIBRARY_TOKEN', 'YOUTUBE_API_KEY'] }),
+    at(1, 0, { id: 'othemes', kind: 'data', title: 'Themes', sub: 'Complaints, desires, competitors', tab: 'research', count: 'themes',
+      behind: 'Claude clusters the items into themes (keyword rules without the key). Counts are the stored rows linked to a theme and quotes are stored excerpts with links, never model text.',
+      autos: [{ type: 'ai', label: 'Clustering', timing: 'After each collection' }],
+      settings: ['RESEARCH_MODEL'] }),
+    at(2, 0, { id: 'oangles', kind: 'data', title: 'Angles', sub: 'Checked against the copy rules', tab: 'research', count: 'angles',
+      behind: 'Angles are drafted from the themes with a proof point picked from the approved list, pass the copy audit, and must not reuse 6 or more words in a row from any competitor ad. Send to Marketing proposes a test.' }),
+    at(3, 0, { id: 'omarketing', kind: 'auto', title: 'Ad drafts', sub: 'Three per angle', tab: 'autopilot', count: 'drafts',
+      behind: 'Claude writes three primary texts with headlines, each checked by the copy audit and rewritten once or dropped. Launching them is a proposal; on approval, with the write token, a Page id and an ad set, each becomes a paused ad. Without the token: a paste-ready spec.',
+      autos: [{ type: 'ai', label: 'Ad copy', timing: 'When an angle is sent' }, { type: 'approval', label: 'Launch ads', timing: 'Before anything reaches Meta' }],
+      settings: ['ADS_AI_MODEL', 'META_ADS_WRITE_TOKEN', 'ADS_PAGE_ID', 'ADS_LANDING_URL'] }),
+    at(3, 1, { id: 'oautopilot', kind: 'auto', title: 'Ads autopilot', sub: 'Hourly, ad level', tab: 'autopilot', count: 'autopilot',
+      behind: 'Each hour Meta is read at ad level and every ad is joined to its leads, tickets, bookings and deposits. Fatigue and losers get a pause proposal, winners a paused duplicate, and budget moves within the daily limit. The count is autopilot proposals in the range.',
+      autos: [{ type: 'approval', label: 'Pause, duplicate, shift budget', timing: 'Hourly proposals' }],
+      settings: ['ADS_AUTOPILOT', 'ADS_LOSER_SPEND', 'ADS_MAX_DAILY_SHIFT_PCT', 'ADS_TARGET_CPA_TICKET', 'ADS_WINNER_MIN_RESULTS'] }),
+    at(2, 1, { id: 'osales', kind: 'auto', title: 'Sales follow-ups', sub: 'Quiet, no-shows, unpaid', tab: 'salesops', count: 'followups',
+      behind: 'Each play drafts one message per lead and channel and queues one bulk proposal with every message previewed. The count is follow-up messages sent in the range.',
+      autos: [{ type: 'approval', label: 'Bulk follow-up', timing: 'Before sending' }],
+      settings: ['SALES_QUIET_DAYS'] }),
+    at(1, 1, { id: 'oclients', kind: 'auto', title: 'Client check-ins and support', sub: 'Drafts wait for approval', tab: 'clients',
+      behind: 'Client Success check-ins and Support replies go through the same approvals (see After the sale).' }),
+    at(4, 0, { id: 'oapprove', kind: 'decision', title: 'Approvals in Command', sub: 'Approve, edit or reject', tab: 'command', count: 'proposed',
+      sees: 'The owner sees each proposal with its numbers and where they came from.',
+      behind: 'Anything that spends money, sends to leads in bulk, changes ads or contacts a client waits here, unless its kind is listed in OPS_AUTO_KINDS. The count is proposals created in the range.',
+      settings: ['OPS_AUTO_KINDS'] }),
+    at(5, 0, { id: 'odone', kind: 'people', title: 'Carried out', sub: 'Logged in the activity log', tab: 'command', count: 'executed',
+      behind: 'An approved action runs through its department’s handler and the result is logged. The count is actions carried out in the range.' }),
+    at(4, 1, { id: 'obrief', kind: 'auto', title: 'Brief, alerts, routines', sub: 'Slack and Command', tab: 'command',
+      behind: 'The morning brief at OPS_BRIEF_TIME, hourly monitors that compare the last 24 hours and 7 days with the period before, and routines that run saved instructions on a schedule.',
+      autos: [{ type: 'ping', label: 'Morning brief and alerts', timing: 'Daily and hourly' }],
+      settings: ['OPS_BRIEF_TIME', 'OPS_TIMEZONE', 'OPS_MONITORS', 'OPS_ALERT_DROP_PCT', 'OPS_SLACK_WEBHOOK_URL'] }),
+    at(5, 1, { id: 'ohooks', kind: 'data', title: 'Webhooks and connector', sub: 'Zapier and Claude', tab: 'integrations', count: 'hooks',
+      behind: 'Business events are read from our tables each cron run and sent as signed JSON to subscribed URLs, with retries. The Claude connector (MCP) reads the same data with its token. The count is webhook events stored in the range.',
+      autos: [{ type: 'webhook', label: 'Outbound events', timing: 'Every cron run' }],
+      settings: ['MCP_TOKEN', 'ZAPIER_INBOUND_SECRET'] }),
+  ],
+  edges: [
+    ['oresearch', 'othemes'], ['othemes', 'oangles'], ['oangles', 'omarketing', 'Send to Marketing'], ['omarketing', 'oapprove'], ['oautopilot', 'oapprove'],
+    ['osales', 'oapprove'], ['oclients', 'oapprove'], ['oapprove', 'odone', 'approved'], ['odone', 'obrief', '', 'data'], ['odone', 'ohooks', '', 'data'],
+  ],
+};
+
+export const FUNNEL_MAPS: FunnelMapDef[] = [VSL, AUTO, LIVE, CHALLENGE, DM, NURTURE, AFTER, OPS];
+export const mapById = (id: string) => FUNNEL_MAPS.find((m) => m.id === id) ?? null;
