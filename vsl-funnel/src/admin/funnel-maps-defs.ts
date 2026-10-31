@@ -20,7 +20,7 @@ export interface Automation {
   /** emails.sequence: the server adds the number of steps (from SEQUENCES / LONG_FLOWS) and the sends in range. */
   seq?: string;
   /** outbound_calls.kind for AI calls: the server adds the calls in range. */
-  call?: 'confirm' | 'speed_to_lead' | 'rebook';
+  call?: 'confirm' | 'speed_to_lead' | 'rebook' | 'w_pre_welcome' | 'w_pre_day' | 'w_pre_start' | 'w_left' | 'w_post_nobuy' | 'w_post_missed' | 'w_post_bought';
   /** Only these templates of the sequence (SQL LIKE patterns), when the stage owns part of a sequence. */
   tpl?: string[];
 }
@@ -333,12 +333,28 @@ const AUTO: FunnelMapDef = {
     at(2, 1, { id: 'wtrack', kind: 'data', title: 'Tracking', sub: 'Room, offer and payments', tab: 'tracking',
       behind: 'Registration, join, watch minutes, polls, questions, the offer unlock and checkout are first-party events. Registrations, tickets and Sprint purchases go to Meta from the server.',
       settings: ['META_ACCESS_TOKEN', 'META_PIXEL_ID'] }),
+    at(3, 3, { id: 'wcalls', kind: 'auto', title: 'Webinar AI calls', sub: 'Before, mid-session, after', tab: 'voice',
+      sees: 'A short phone call from an AI assistant for Josh’s team.',
+      behind: 'Before: a welcome call about 5 minutes after registering, a day-before call, and a starting-in-10-minutes call. Mid-session: anyone who leaves before the end and doesn’t come back gets a call with a link that resumes at the minute they left. After: people who attended but didn’t buy get one call while the offer is open; people who missed it get a replay call; buyers get a thank-you call about what happens next and are never pitched what they bought. Calls go only to people who ticked the call box on the form, inside calling hours for their phone number, at most 2 a day and AI_CALL_WEEKLY_CAP a week per person, within the global AI_CALL_DAILY_CAP. The agent says it is an AI assistant for Josh’s team. Links are emailed or texted, never read out. Saying stop ends every call, email and text. A flow stops as soon as its goal is met: joined, rejoined, watched or bought. Nothing dials until the webinar call agent is created in AI calls.',
+      autos: [
+        { type: 'ai_call', label: 'Welcome call', call: 'w_pre_welcome', timing: 'About 5 minutes after registering' },
+        { type: 'ai_call', label: 'Day-before call', call: 'w_pre_day', timing: 'The day before, for early registrations' },
+        { type: 'ai_call', label: 'Starting soon call', call: 'w_pre_start', timing: '10 minutes before the start' },
+        { type: 'ai_call', label: 'Left mid-session call', call: 'w_left', timing: 'After AI_CALL_W_LEFT_WAIT_MIN minutes away' },
+        { type: 'ai_call', label: 'Attended, didn’t buy', call: 'w_post_nobuy', timing: 'About 1 hour after the end, while the offer is open' },
+        { type: 'ai_call', label: 'Missed it, replay', call: 'w_post_missed', timing: 'About 90 minutes after the end' },
+        { type: 'ai_call', label: 'Thank-you call', call: 'w_post_bought', timing: 'About 30 minutes after a purchase' },
+      ],
+      settings: ['AI_CALL_W_PRE', 'AI_CALL_W_LEFT', 'AI_CALL_W_NOBUY', 'AI_CALL_W_BOUGHT', 'AI_CALL_W_LEFT_WAIT_MIN', 'AI_CALL_WEEKLY_CAP', 'AI_CALL_DAILY_CAP', 'AI_CALL_CALLBACK_NUMBER'] }),
+    at(1, 3, { id: 'wattrib', kind: 'data', title: 'Webinar attribution', sub: 'Source to revenue', tab: 'wattrib',
+      behind: 'Every registration and purchase keeps its first touch, last touch and full path: UTMs, tracked link, Meta ad id from utm_content, click ids, landing page and device, carried across apply. and live. and through Whop checkout. Revenue net of refunds by source, campaign and ad with first, last or linear credit, cost per buyer and ROAS from the Meta spend sync, retention per minute and cohorts.',
+      settings: ['META_STAGE_EVENTS', 'PUBLIC_URL', 'WEBINAR_URL'] }),
   ],
   edges: [
     ['wads', 'wland'], ['wland', 'wreg', 'signed up'], ['wreg', 'wticket', 'ticket on'], ['wticket', 'wroom', 'paid'], ['wreg', 'wroom', 'no ticket', 'dash'],
     ['wroom', 'wpitch', 'reached the pitch'], ['wpitch', 'wsprint', 'bought'], ['wsprint', 'wplan'], ['wplan', 'wproposal'], ['wproposal', 'wsigned', 'signed'],
     ['wreg', 'wmissed', 'didn’t join'], ['wmissed', 'wreplay', '', 'auto'], ['wreplay', 'wpitch'], ['wpitch', 'wnobuy', 'didn’t buy', 'auto'], ['wnobuy', 'wsprint', '', 'auto'],
-    ['wroom', 'wtrack', '', 'data'],
+    ['wroom', 'wtrack', '', 'data'], ['wreg', 'wcalls', '', 'auto'], ['wroom', 'wcalls', 'left early', 'auto'], ['wtrack', 'wattrib', '', 'data'],
   ],
 };
 
@@ -396,11 +412,27 @@ const LIVE: FunnelMapDef = {
     at(2, 1, { id: 'lhost', kind: 'data', title: 'Host console', sub: 'Polls, pin, timer, offer', tab: 'liveevents',
       behind: 'One page per event for the host: open and close the offer, show the timer, pin a message, push a poll and read the room chat. Every timer comes from the server’s clock.',
       page: { path: '/live', label: 'Landing page' } }),
+    at(3, 3, { id: 'lcalls', kind: 'auto', title: 'Webinar AI calls', sub: 'Before, mid-session, after', tab: 'voice',
+      sees: 'A short phone call from an AI assistant for Josh’s team.',
+      behind: 'Before: a welcome call about 5 minutes after registering, a day-before call, and a starting-in-10-minutes call. Mid-session: anyone who closes the room before the end gets a call; our room only sees its own tab, so if they are still on Zoom the agent apologises and ends the call. After: people who attended but didn’t buy get one call while the offer is open; people who missed it get a replay call; buyers get a thank-you call about what happens next and are never pitched what they bought. Calls go only to people who ticked the call box on the form, inside calling hours for their phone number, at most 2 a day and AI_CALL_WEEKLY_CAP a week per person, within the global AI_CALL_DAILY_CAP. The agent says it is an AI assistant for Josh’s team. Links are emailed or texted, never read out. Saying stop ends every call, email and text. A flow stops as soon as its goal is met: joined, rejoined, watched or bought. Nothing dials until the webinar call agent is created in AI calls.',
+      autos: [
+        { type: 'ai_call', label: 'Welcome call', call: 'w_pre_welcome', timing: 'About 5 minutes after registering' },
+        { type: 'ai_call', label: 'Day-before call', call: 'w_pre_day', timing: 'The day before, for early registrations' },
+        { type: 'ai_call', label: 'Starting soon call', call: 'w_pre_start', timing: '10 minutes before the start' },
+        { type: 'ai_call', label: 'Left mid-session call', call: 'w_left', timing: 'After AI_CALL_W_LEFT_WAIT_MIN minutes away' },
+        { type: 'ai_call', label: 'Attended, didn’t buy', call: 'w_post_nobuy', timing: 'About 1 hour after the end, while the offer is open' },
+        { type: 'ai_call', label: 'Missed it, replay', call: 'w_post_missed', timing: 'About 90 minutes after the end' },
+        { type: 'ai_call', label: 'Thank-you call', call: 'w_post_bought', timing: 'About 30 minutes after a purchase' },
+      ],
+      settings: ['AI_CALL_W_PRE', 'AI_CALL_W_LEFT', 'AI_CALL_W_NOBUY', 'AI_CALL_W_BOUGHT', 'AI_CALL_W_LEFT_WAIT_MIN', 'AI_CALL_WEEKLY_CAP', 'AI_CALL_DAILY_CAP', 'AI_CALL_CALLBACK_NUMBER'] }),
+    at(1, 3, { id: 'lattrib', kind: 'data', title: 'Webinar attribution', sub: 'Source to revenue', tab: 'wattrib',
+      behind: 'Every registration and purchase keeps its first touch, last touch and full path: UTMs, tracked link, Meta ad id from utm_content, click ids, landing page and device, carried across apply. and live. and through Whop checkout. Revenue net of refunds by source, campaign and ad with first, last or linear credit, cost per buyer and ROAS from the Meta spend sync, retention per minute and cohorts.',
+      settings: ['META_STAGE_EVENTS', 'PUBLIC_URL', 'WEBINAR_URL'] }),
   ],
   edges: [
     ['lads', 'lland'], ['lland', 'lreg'], ['lreg', 'lticket', 'price set'], ['lticket', 'ljoin', 'paid'], ['lreg', 'ljoin', 'no ticket', 'dash'],
     ['ljoin', 'loffer'], ['loffer', 'ldeposit', 'paid'], ['ldeposit', 'lsigned'], ['lreg', 'lreplay', 'after the event'], ['lreplay', 'loffer'],
-    ['loffer', 'lunpaid', 'started, didn’t pay', 'auto'], ['lunpaid', 'ldeposit', '', 'auto'], ['lhost', 'loffer', '', 'data'],
+    ['loffer', 'lunpaid', 'started, didn’t pay', 'auto'], ['lunpaid', 'ldeposit', '', 'auto'], ['lhost', 'loffer', '', 'data'], ['lreg', 'lcalls', '', 'auto'], ['ljoin', 'lcalls', 'left early', 'auto'], ['lreg', 'lattrib', '', 'data'],
   ],
 };
 
@@ -460,10 +492,26 @@ const CHALLENGE: FunnelMapDef = {
       behind: 'Josh works through the queue live after the session.' }),
     at(6, 2, { id: 'creplay', kind: 'page', title: 'Replays', sub: 'Until the offer closes', tab: 'challenge',
       behind: 'The host pastes each day’s replay link. Replays close when the offer closes after Day 5; VIPs keep them.' }),
+    at(3, 3, { id: 'ccalls', kind: 'auto', title: 'Webinar AI calls', sub: 'Before, mid-session, after', tab: 'voice',
+      sees: 'A short phone call from an AI assistant for Josh’s team.',
+      behind: 'Before: a welcome call about 5 minutes after registering, a day-before call, and a starting-in-10-minutes call. The welcome call waits until the ticket is paid, and the starting-soon call runs on Days 1 and 5. Mid-session: anyone who closes the room before the end gets a call. After: people who attended but didn’t buy get one call while the offer is open; people who missed it get a replay call; buyers get a thank-you call about what happens next and are never pitched what they bought. Calls go only to people who ticked the call box on the form, inside calling hours for their phone number, at most 2 a day and AI_CALL_WEEKLY_CAP a week per person, within the global AI_CALL_DAILY_CAP. The agent says it is an AI assistant for Josh’s team. Links are emailed or texted, never read out. Saying stop ends every call, email and text. A flow stops as soon as its goal is met: joined, rejoined, watched or bought. Nothing dials until the webinar call agent is created in AI calls.',
+      autos: [
+        { type: 'ai_call', label: 'Welcome call', call: 'w_pre_welcome', timing: 'About 5 minutes after registering' },
+        { type: 'ai_call', label: 'Day-before call', call: 'w_pre_day', timing: 'The day before, for early registrations' },
+        { type: 'ai_call', label: 'Starting soon call', call: 'w_pre_start', timing: '10 minutes before the start' },
+        { type: 'ai_call', label: 'Left mid-session call', call: 'w_left', timing: 'After AI_CALL_W_LEFT_WAIT_MIN minutes away' },
+        { type: 'ai_call', label: 'Attended, didn’t buy', call: 'w_post_nobuy', timing: 'About 1 hour after the end, while the offer is open' },
+        { type: 'ai_call', label: 'Missed it, replay', call: 'w_post_missed', timing: 'About 90 minutes after the end' },
+        { type: 'ai_call', label: 'Thank-you call', call: 'w_post_bought', timing: 'About 30 minutes after a purchase' },
+      ],
+      settings: ['AI_CALL_W_PRE', 'AI_CALL_W_LEFT', 'AI_CALL_W_NOBUY', 'AI_CALL_W_BOUGHT', 'AI_CALL_W_LEFT_WAIT_MIN', 'AI_CALL_WEEKLY_CAP', 'AI_CALL_DAILY_CAP', 'AI_CALL_CALLBACK_NUMBER'] }),
+    at(1, 3, { id: 'cattrib', kind: 'data', title: 'Webinar attribution', sub: 'Source to revenue', tab: 'wattrib',
+      behind: 'Every registration and purchase keeps its first touch, last touch and full path: UTMs, tracked link, Meta ad id from utm_content, click ids, landing page and device, carried across apply. and live. and through Whop checkout. Revenue net of refunds by source, campaign and ad with first, last or linear credit, cost per buyer and ROAS from the Meta spend sync, retention per minute and cohorts.',
+      settings: ['META_STAGE_EVENTS', 'PUBLIC_URL', 'WEBINAR_URL'] }),
   ],
   edges: [
     ['cland', 'creg'], ['creg', 'cticket'], ['cticket', 'cvip', 'offered once'], ['cticket', 'cd1'], ['cd1', 'cd2'], ['cd2', 'cd3'], ['cd3', 'cd4'], ['cd4', 'cd5'],
-    ['cd4', 'cdeposit', 'soft offer'], ['cd5', 'cdeposit', 'pitch'], ['cdeposit', 'csigned'], ['cd1', 'chomework', '', 'data'], ['cvip', 'chot', '', 'auto'], ['cd5', 'creplay', '', 'dash'],
+    ['cd4', 'cdeposit', 'soft offer'], ['cd5', 'cdeposit', 'pitch'], ['cdeposit', 'csigned'], ['cd1', 'chomework', '', 'data'], ['cvip', 'chot', '', 'auto'], ['cd5', 'creplay', '', 'dash'], ['cticket', 'ccalls', '', 'auto'], ['creg', 'cattrib', '', 'data'],
   ],
 };
 
@@ -566,10 +614,14 @@ const NURTURE: FunnelMapDef = {
       behind: 'Three plays: leads quiet for SALES_QUIET_DAYS, no-shows from the last 30 days, and unpaid checkouts. One proposal with a preview of every message; consent, unsubscribes and sending hours are checked again at send.',
       autos: [{ type: 'approval', label: 'Bulk follow-up', timing: 'When the owner approves' }],
       settings: ['SALES_QUIET_DAYS'] }),
+    at(4, 1, { id: 'nwinback', kind: 'auto', title: 'Win-back', sub: 'Cold leads to the newest funnels', tab: 'winback',
+      sees: '4 to 6 emails written from their own application, inviting them to the masterclass, the next live webinar or the next challenge, with its real date.',
+      behind: 'Off until the owner starts a campaign and approves it in Command. Pick who (lost, no-show, cancelled, applied but never booked, registered but never bought, ticket without the Sprint) and how long they have been quiet. Buyers, clients, unsubscribes, bounces and anyone emailed by reactivation in the last 30 days are left out. Sends between the campaign hours, up to the campaign’s daily cap, and a person’s emails stop the moment they register, buy, book, apply or reply.',
+      autos: [{ type: 'email', label: 'Win-back sequence', seq: 'winback', timing: 'After approval, inside the campaign’s hours' }, { type: 'approval', label: 'Start campaign', timing: 'When the owner approves it in Command' }] }),
   ],
   edges: [
     ['nlentry', 'nlflows'], ['nlflows', 'nlsent', 'still no'], ['nlsent', 'nlpage', '', 'data'], ['nlentry', 'nrxpick', 'months later', 'dash'], ['nrxpick', 'nrxlaunch'],
-    ['nrxlaunch', 'nrxback'], ['nlflows', 'nlsms', '', 'auto'], ['nlsent', 'nlbatch', '', 'dash'],
+    ['nrxlaunch', 'nrxback'], ['nlflows', 'nlsms', '', 'auto'], ['nlsent', 'nlbatch', '', 'dash'], ['nlsent', 'nwinback', 'months later', 'dash'],
   ],
 };
 
