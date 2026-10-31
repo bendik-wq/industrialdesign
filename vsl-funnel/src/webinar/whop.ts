@@ -17,7 +17,7 @@ import type { Registration } from './webinar';
  *  - Webhooks are Standard Webhooks: HMAC-SHA256 over `${webhook-id}.${webhook-timestamp}.${raw body}`, keyed
  *    with the literal bytes of the `ws_…` secret, base64 in `webhook-signature: v1,<sig>`; 5-minute tolerance.
  *  - Whop caps checkout links at $2,500 until the account is approved for higher ones (Whop → Settings →
- *    Payments). The Sprint is above that, so a refused checkout shows the viewer a booking path, alerts the
+ *    Payments). The Sprint is above that, so a refused checkout shows the viewer Try again and Email the team, alerts the
  *    team on Slack with the cause, and shows a health note in Funnel HQ.
  */
 
@@ -27,8 +27,8 @@ export const WHOP_API_VERSION = '2026-08-14';
 export const WHOP_EVENTS = ['payment.succeeded', 'refund.created', 'refund.updated'] as const;
 /** Whop's checkout-link cap for accounts not yet approved for higher ones (USD). */
 export const WHOP_CHECKOUT_CAP = 2500;
-/** What the viewer sees when Whop refuses a checkout, with a link to book a call. */
-export const CHECKOUT_UNAVAILABLE = 'Checkout isn’t available right now. Book a call and the team will take it from there.';
+/** What the viewer sees when Whop refuses a checkout (with Try again and Email the team next to it). */
+export const CHECKOUT_UNAVAILABLE = 'Checkout didn’t open just now. Try again in a minute, or email the team and they send you a payment link.';
 /** Found or created by external id, so every checkout reuses the same two (hidden) Whop products. */
 export const WHOP_PRODUCT: Record<PassKind, string> = { seat: 'vsl-funnel-masterclass-ticket', offer: 'vsl-funnel-first-deal-sprint' };
 
@@ -112,13 +112,11 @@ export function whopCheckoutBody(companyId: string, o: WhopCheckoutInput) {
   };
 }
 
-/** Where a viewer books a call when checkout can't open. */
-export const bookingPath = (rt: Runtime, token: string) => `${rt.origin}/w/${token}`;
 
 /**
  * Creates the Whop checkout for a pending pass row and stores its id and link on the row. If Whop refuses
  * (the $2,500 checkout-link cap, or anything else), the row is closed, the team is alerted and the viewer
- * gets CHECKOUT_UNAVAILABLE with the booking path.
+ * gets CHECKOUT_UNAVAILABLE.
  */
 export async function startWhopCheckout(rt: Runtime, o: WhopCheckoutInput): Promise<string> {
   try {
@@ -132,7 +130,7 @@ export async function startWhopCheckout(rt: Runtime, o: WhopCheckoutInput): Prom
     await rt.env.DB.prepare("UPDATE webinar_passes SET status = 'expired', updated_at = ? WHERE id = ?").bind(Date.now(), o.passId).run();
     console.error('whop checkout failed', String(e).slice(0, 300));
     await checkoutFailed(rt, { kind: o.kind, amount: o.amount, currency: o.currency, title: o.title, error: e, leadId: o.reg.lead_id }).catch((x) => console.error('whop failure alert', x));
-    throw new PassError(CHECKOUT_UNAVAILABLE, 503, bookingPath(rt, o.reg.token));
+    throw new PassError(CHECKOUT_UNAVAILABLE, 503);
   }
 }
 
@@ -178,7 +176,7 @@ export async function checkoutFailed(rt: Runtime, o: { kind: PassKind; amount: n
       limit
         ? `Cause: Whop caps checkout links at ${formatMoney(WHOP_CHECKOUT_CAP, 'USD')} until the account is approved for higher ones. Apply in Whop → Settings → Payments (access higher checkout links); Whop reviews it within 24 hours.`
         : `Whop said: ${message}`,
-      `The buyer saw: ${CHECKOUT_UNAVAILABLE} (with the link to book a call). Reach out to them directly.`,
+      `The buyer saw: ${CHECKOUT_UNAVAILABLE}. Reach out to them directly.`,
     ],
   }).catch((e) => console.error('whop alert failed', e)));
   return { alerted: true, limit };
@@ -368,7 +366,7 @@ export async function whopHealth(rt: Runtime, cfg: Pick<PassConfig, 'price' | 'c
   const url = whopWebhookUrl(rt);
   const cap = formatMoney(WHOP_CHECKOUT_CAP, 'USD');
   const notes: { level: 'warn' | 'info'; text: string }[] = [];
-  if (lastError?.limit) notes.push({ level: 'warn', text: `Whop refused a ${lastError.title} checkout for ${lastError.amount} on ${new Date(lastError.at).toUTCString()}: Whop caps checkout links at ${cap} until the account is approved for higher ones. Apply in Whop → Settings → Payments (access higher checkout links). Until then buyers see “${CHECKOUT_UNAVAILABLE}” with a link to book a call, and the team gets a Slack alert.` });
+  if (lastError?.limit) notes.push({ level: 'warn', text: `Whop refused a ${lastError.title} checkout for ${lastError.amount} on ${new Date(lastError.at).toUTCString()}: Whop caps checkout links at ${cap} until the account is approved for higher ones. Apply in Whop → Settings → Payments (access higher checkout links). Until then buyers see “${CHECKOUT_UNAVAILABLE}” with Try again and Email the team, and the team gets a Slack alert.` });
   else if (lastError) notes.push({ level: 'warn', text: `Whop refused the last ${lastError.title} checkout (${new Date(lastError.at).toUTCString()}): ${lastError.message}` });
   const denied = await kvJson<{ at: number; message: string }>(rt, 'whop:charge_denied');
   if (denied) notes.push({ level: 'warn', text: `One-click Sprint payments are failing (${new Date(denied.at).toUTCString()}): the Whop API key can’t charge saved cards (${denied.message}). In Whop → Dashboard → Developer → API keys, give this key the payment:charge permission. Until then those buyers go through the form and checkout.` });

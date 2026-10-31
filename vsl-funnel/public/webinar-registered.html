@@ -13,49 +13,41 @@
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/webinar.js"></script>
 </head>
-<body class="webinar">
+<body class="webinar ty-body">
   <header class="nav"><div class="wrap nav-in">
     <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory"><b>G&amp;L</b> <span>M&amp;A Advisory</span></a>
   </div></header>
   <main id="main">
-    <section class="hero hero-center"><div class="wrap narrow center">
-      <span class="eyebrow" data-slot="ty_eyebrow">You’re registered</span>
-      <h1 class="display" data-slot="ty_heading">See you there</h1>
-      <p class="lede"><strong data-slot="webinar_title">The masterclass</strong><br><span data-slot="when"></span></p>
-      <div data-if="!pass_gate">
-      <div class="countdown" data-countdown aria-live="polite"></div>
-      <div data-if="soon"><p><a class="btn btn-lg" data-href="room" href="#">Go to the masterclass room now</a></p><p class="muted">It starts by itself. Keep the page open.</p></div>
-      <div data-if="!soon">
-        <p><a class="btn btn-lg" data-href="google" href="#" target="_blank" rel="noopener">Add it to Google Calendar</a></p>
-        <p class="cal-links"><a data-href="ics" href="#">Apple / Outlook calendar</a> · <a data-href="room" href="#">My link to the session</a></p>
-      </div>
-      <div class="ty-paras" data-html="ty_paras"></div>
+    <section class="ty"><div class="wrap narrow">
+      <div class="ty-card">
+        <p class="ty-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-slot="ty_eyebrow">You’re registered</span></p>
+        <h1 class="ty-h" data-slot="ty_heading">See you there</h1>
+        <div data-if="!pass_gate">
+          <p class="ty-sub" data-slot="ty_sub"></p>
+          <div class="ty-when">
+            <p class="ty-title" data-slot="webinar_title">The masterclass</p>
+            <p class="ty-time" data-slot="when"></p>
+            <div class="countdown ty-count" data-countdown aria-live="polite"></div>
+          </div>
+          <p class="ty-go"><a class="btn btn-lg ty-btn" data-href="room" href="#">Join the masterclass room <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></p>
+          <p class="ty-note" data-if="soon">It starts by itself. Keep the page open.</p>
+          <p class="ty-cal" data-if="!soon">Save the link: <a data-href="google" href="#" target="_blank" rel="noopener">Google Calendar</a> · <a data-href="ics" href="#">Apple / Outlook</a></p>
+        </div>
       </div>
       <div class="ty-pass" data-if="has_pass" data-html="pass_card"></div>
       <div data-if="!pass_gate">
-      <div class="card ty-commit" data-ty-commit>
-        <p class="room-moment-h" data-slot="ty_question">Which business would you most like to own?</p>
-        <div class="room-opts" data-html="ty_options"></div>
-        <p class="muted small" data-ty-thanks hidden>Got it. The session will speak to that.</p>
-      </div>
-      <div class="card ty-phone" data-if="ask_phone">
-        <p class="room-moment-h">Get a text when it starts</p>
-        <form data-ty-phone class="ty-phone-f"><input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="Mobile number" required><button class="btn btn-sm" type="submit">Text me</button></form>
-        <p class="muted small">One text before the session and one when it starts. Msg &amp; data rates may apply. Reply STOP to opt out.</p>
-      </div>
-      <div class="card ty-video" data-if="has_preframe">
-        <p class="room-moment-h">Watch this first · about a minute</p>
-        <p class="room-q" data-slot="preframe_q"></p>
-        <div data-html="preframe_video"></div>
-      </div>
-      <div class="card next-steps" style="text-align:left;margin-top:28px">
-        <strong>Three things before the session</strong>
-        <ol>
-          <li>Check your inbox for the confirmation (it has your personal link). If it’s not there, look in promotions or spam.</li>
-          <li>Block out the hour. It’s worth watching start to finish.</li>
-          <li>Have a business in mind you’d love to own. By the end you’ll know how a deal for it could be structured.</li>
-        </ol>
-      </div>
+        <div class="ty-extra">
+          <div class="ty-q" data-ty-commit>
+            <p class="ty-q-h"><span class="ty-opt">Optional</span> <span data-slot="ty_question">Which business would you most like to own?</span></p>
+            <div class="room-opts ty-opts" data-html="ty_options"></div>
+            <p class="muted small" data-ty-thanks hidden>Got it. The session will speak to that.</p>
+          </div>
+          <div class="ty-phone" data-if="ask_phone">
+            <p class="ty-q-h"><span class="ty-opt">Optional</span> Get a text when it starts</p>
+            <form data-ty-phone class="ty-phone-f"><label class="wx-sr" for="ty-tel">Mobile number</label><input id="ty-tel" type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="Mobile number" required><button class="btn btn-sm" type="submit">Text me</button></form>
+            <p class="muted small">One text before the session and one when it starts. Msg &amp; data rates may apply. Reply STOP to opt out.</p>
+          </div>
+        </div>
       </div>
     </div></section>
   </main>

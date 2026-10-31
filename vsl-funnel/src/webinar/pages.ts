@@ -9,14 +9,11 @@ import { roomExtras, worksheetOpen } from './room';
 import { liveRoomConfig } from './live';
 import { BLUEPRINT_ROOM_COPY, blueprintUrl } from './blueprint';
 import { ROOM_COPY, THANK_YOU, WORKSHEET } from './content';
-import { FAQ_VIDEOS } from '../content/faq-videos';
-import { FAQ_READY } from '../content/faq-videos-ready';
 import { identityFromVisitor, track } from '../tracking/track';
 import {
   type Registration, type Session, getRegistration, getSession, googleCalendarUrl, ics, jitSettings, nextJitStart, openSessions, phase, replayEndsAt, replayUrl, roomUrl, webinarBase, webinarSettings,
 } from './webinar';
 import { PassError, activePass, confirmOnReturn, createCheckout, dealMaths, dealReviewPack, formatMoney, markPackViewed, passConfig, passCopy, passGate, registeredPassBlock, roomPassConfig, ticketFor } from './pass';
-import { bookingUrlFor } from '../funnel/routing';
 import { sprintRoomConfig } from './sprint';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -59,7 +56,8 @@ export async function webinarLanding(c: Context<AppEnv>) {
   return render(c, '/webinar.html', {
     title: w.title,
     slots: {
-      webinar_title: esc(w.title), duration: String(w.durationMin), hl_h1: hl.h1, hl_lede: esc(hl.lede),
+      webinar_title: esc(w.title), duration: String(Math.round(w.durationMin)), hl_h1: hl.h1, hl_lede: esc(fitLength(hl.lede, w.durationMin)),
+      hero_cta: esc(ticket ? ticket.copy.button : 'Save my seat'),
       ...(ticket ? { form_heading: esc(ticket.copy.formHeading), register_cta: esc(ticket.copy.button), register_note: `${esc(ticket.copy.privacy)} <a href="/privacy">Privacy policy</a>.` } : {}),
     },
     blocks: {
@@ -80,17 +78,22 @@ export async function webinarLanding(c: Context<AppEnv>) {
 
 type TicketCopy = NonNullable<ReturnType<typeof ticketFor>>['copy'];
 
-/** Under the headline: the ticket price and the credit, in one line. */
-const ticketPriceHtml = (t: TicketCopy) => `<p class="ticket-price"><span class="eyebrow">${esc(t.eyebrow)}</span> <strong>${esc(t.priceLine)}</strong></p>`;
+/** The headlines were written for the hour-long recording: the shorter AI edition says its own length. */
+export function fitLength(lede: string, durationMin: number) {
+  if (durationMin >= 45) return lede;
+  const m = `${Math.round(durationMin)} minutes`;
+  return lede.replace(/\bIn one hour\b/g, `In ${m}`).replace(/\bin one hour\b/g, `in ${m}`).replace(/\bOne hour\b/g, m.charAt(0).toUpperCase() + m.slice(1)).replace(/\bone hour\b/g, m);
+}
 
-/** Beside the form: why it is paid, what the ticket includes, the credit and the ticket guarantee. */
+/** Under the hero button: the ticket's credit and its guarantee, one line. */
+const ticketPriceHtml = (t: TicketCopy) => `<p class="ticket-price"><strong>${esc(t.priceLine)}</strong> <span>${esc(t.guaranteeShort)}</span></p>`;
+
+/** Beside the form: what the ticket includes (titles only), the credit and the ticket guarantee. */
 function ticketBlockHtml(t: TicketCopy) {
-  return `<div class="card ticket-card">
-    <h3 class="h3">${esc(t.whyHeading)}</h3>
-    ${t.why.map((p) => `<p>${esc(p)}</p>`).join('')}
+  return `<div class="card ticket-card wl-ticket">
     <p class="field-label">${esc(t.includesHeading)}</p>
-    <ul class="ticks">${t.includes.map((i) => `<li><strong>${esc(i.title)}.</strong> ${esc(i.body)}</li>`).join('')}</ul>
-    <p><strong>${esc(t.credit)}</strong></p>
+    <ul class="ticks wl-includes">${t.includes.map((i) => `<li>${esc(i.title)}</li>`).join('')}</ul>
+    <p class="wl-credit"><strong>${esc(t.credit)}</strong></p>
     <p class="ticket-guarantee"><strong>${esc(t.guaranteeHeading)}.</strong> ${esc(t.guarantee)}</p>
   </div>`;
 }
@@ -153,27 +156,28 @@ export async function registeredPage(c: Context<AppEnv>) {
   const tz = c.get('visitor').geo.timezone ?? lead?.timezone ?? null;
   // Starting within 20 minutes (a just-in-time showing): send them straight to the room instead of the calendar.
   const soon = session.starts_at - Date.now() < 20 * 60_000;
-  const clip = FAQ_VIDEOS.find((f) => f.id === 'faq-5-seller-buyout' && FAQ_READY.includes(f.id)) ?? FAQ_VIDEOS.find((f) => FAQ_READY.includes(f.id));
   const committed = await rt.env.DB.prepare("SELECT value FROM webinar_interactions WHERE reg_id = ? AND kind = 'commit'").bind(reg.id).first<{ value: string }>();
   // Deal Room Pass: the offer (upsell), the payment step (required), or the holder's perks.
   const pass = await registeredPassBlock(rt, reg, { pass: c.req.query('pass') ?? null });
-  const ticketed = 'ticket' in pass && pass.ticket;
+  // The preview shows a paid ticket holder's page when tickets are on.
+  const ticket = ticketFor(rt.settings);
+  const ticketed = ('ticket' in pass && pass.ticket) || (reg.token === 'preview' && Boolean(ticket) && !pass.gate);
+  const name = lead?.first_name ? `, ${lead.first_name}` : '';
   return render(c, '/webinar-registered.html', {
     title: pass.gate ? 'Get your ticket' : ticketed ? 'Ticket confirmed' : 'You’re registered',
     slots: {
       webinar_title: esc(session.title || w.title), when: esc(when(session.starts_at, tz)),
       ty_eyebrow: esc(pass.gate ? passCopy(passConfig(rt.settings)).seatEyebrow : ticketed ? 'Ticket confirmed' : 'You’re registered'),
-      ty_heading: esc(pass.gate ? `Almost there${lead?.first_name ? `, ${lead.first_name}` : ''}. Your seat in the room is confirmed once your ticket is paid.` : soon ? `You’re in${lead?.first_name ? `, ${lead.first_name}` : ''}. It starts in a few minutes.` : THANK_YOU.heading),
+      ty_heading: esc(pass.gate ? `Almost there${name}. Your seat in the room is confirmed once your ticket is paid.` : soon ? `You’re in${name}. It starts in a few minutes.` : ticketed ? `You’re in${name}. Your seat is confirmed.` : THANK_YOU.heading),
+      ty_sub: esc(ticketed && ticket ? `Your personal link is on its way to your inbox. ${ticket.copy.credit}` : 'Your personal link is on its way to your inbox.'),
       ty_question: esc(THANK_YOU.question),
-      preframe_q: clip ? esc(clip.q) : '',
     },
     blocks: {
-      ty_paras: (soon ? THANK_YOU.paras.filter((p) => !/calendar/i.test(p)) : THANK_YOU.paras).map((p) => `<p>${esc(p)}</p>`).join(''),
       ty_options: THANK_YOU.options.map((o) => `<button type="button" class="btn-opt${committed?.value === o.value ? ' picked' : ''}" data-ty="${esc(o.value)}">${esc(o.label)}</button>`).join(''),
-      preframe_video: clip ? `<video controls playsinline preload="none" poster="/assets/media/faq/${clip.id}.jpg" data-hls="/assets/media/faq/${clip.id}/index.m3u8"></video>` : '',
-      pass_card: pass.html,
+      // The ticket is confirmed in the heading; the card below is only for the payment step or a buyer's Sprint.
+      pass_card: ticketed ? pass.rest : pass.html,
     },
-    show: { soon: soon && !pass.gate, ask_phone: !lead?.phone, has_preframe: Boolean(clip), pass_gate: pass.gate, has_pass: Boolean(pass.html) },
+    show: { soon: soon && !pass.gate, ask_phone: !lead?.phone, pass_gate: pass.gate, has_pass: Boolean(ticketed ? pass.rest : pass.html) },
     hrefs: { room: roomUrl(rt, reg.token), ics: `${webinarBase(rt)}/ics/${reg.token}`, google: googleCalendarUrl(rt, session, reg) },
     config: { webinar: { startsAt: session.starts_at, ty: reg.token, passConfirming: pass.confirming } },
   });
@@ -216,11 +220,15 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
   const holderPass = await roomPassConfig(rt, reg, extras.qualified);
   // The First Deal Sprint: locked from the start, unlocks at the pitch (webinar-sprint.js). Buyers see their card instead.
   const applyUrl = `${rt.origin}/w/${reg.token}`;
-  const sprint = holderPass?.active ? null : await sprintRoomConfig(rt, reg, session, extras.qualified, { preview: reg.token === 'preview', applyUrl });
+  const preview = reg.token === 'preview';
+  // Preview past the pitch: shown as a viewer for whom the Sprint unlocked at the pitch minute (bonus clock running from then).
+  const pitchAt = session.starts_at + w.pitchAtMin * 60_000;
+  const sprintReg = preview && Date.now() >= pitchAt ? { ...reg, offer_unlocked_at: pitchAt } : reg;
+  const sprint = holderPass?.active ? null : await sprintRoomConfig(rt, sprintReg, session, extras.qualified, { preview });
   const pass = sprint ? null : holderPass;
-  // "Book a strategy call instead": the closer's calendar inline in the room, name and email filled in.
-  const bookingUrl = ((pass && !pass.active) || sprint) && lead ? bookingUrlFor(rt, lead.closer_id, lead.tier_override ?? lead.tier ?? null) : null;
-  const booking = bookingUrl && lead ? { url: bookingUrl, provider: /calendly\.com/.test(bookingUrl) ? 'calendly' : 'iframe', prefill: { name: [lead.first_name, lead.last_name].filter(Boolean).join(' '), email: lead.email, leadId: lead.id, ref: lead.ref_code } } : null;
+  // The Sprint is the one decision in this room: no call booking beside it.
+  const live = await liveRoomConfig(rt, reg, replay);
+  if (sprint && live) live.raise = false;
   return render(c, '/webinar-room.html', {
     title: session.title || w.title,
     slots: {
@@ -252,10 +260,9 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         ...extras,
         copy: ROOM_COPY,
         replayUntil: replayEndsAt(rt, session, reg.replay_until),
-        live: await liveRoomConfig(rt, reg, replay),
+        live,
         pass,
         sprint,
-        booking,
       },
     },
   });

@@ -856,3 +856,68 @@ html.modal-open { overflow: hidden; }
 .pass-btn .nw { white-space: nowrap; }
 .pack-form input { font: var(--t-body); padding: 10px 12px; border: 1px solid var(--hair-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
 @media (max-width: 640px) { .pass-room .pass-btn .nw { display: none; } }
+
+/* ───────────── Masterclass landing (/webinar): hero and the ticket button above the fold, a tight form ───────────── */
+.wl-hero { padding: 56px 0 8px; }
+.wl-hero .eyebrow { margin-bottom: 14px; }
+.wl-hero .display { font-size: clamp(32px, 4.4vw, 56px); margin-bottom: 18px; }
+.wl-hero .lede { font-size: clamp(17px, 1.5vw, 19px); }
+.wl-cta { display: grid; justify-items: center; gap: 10px; margin: 26px auto 0; }
+.wl-btn { min-width: 300px; font-size: 18px; padding: 20px 36px; border-radius: 12px; }
+.webinar .wl-cta .ticket-price { margin: 0; max-width: 560px; font: 400 14px/1.5 var(--font); color: var(--ink-2); }
+.webinar .wl-cta .ticket-price strong { display: block; color: var(--ink); font-weight: 600; }
+.wl-hero .for-whom { margin-top: 22px; font-size: 14px; }
+.wl-reg { margin-top: 56px; padding-block: 64px; }
+.wl-reg .apply-grid { gap: 56px; }
+.wl-reg .section-title { font-size: clamp(26px, 2.6vw, 34px); }
+.wl-ticks { gap: 10px; margin-top: 18px; }
+.wl-ticks li { font-size: 15.5px; }
+.wl-ticks strong { color: var(--ink); font-weight: 600; }
+.webinar .wl-ticket { margin-top: 24px; }
+.wl-includes li { font-size: 15px; color: var(--ink); }
+.wl-credit { font-size: 15px; }
+.wl-host { margin-top: 18px; padding: 16px 18px; border: 1px solid var(--hair); border-radius: 10px; background: var(--surface); font-size: 14.5px; }
+.wl-host p { margin: 4px 0 0; color: var(--ink-2); }
+.wl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.wl-submit { width: 100%; font-size: 17px; padding: 18px 24px; border-radius: 12px; }
+@media (max-width: 900px) {
+  .wl-reg .apply-grid { display: flex; flex-direction: column-reverse; gap: 28px; }
+}
+@media (max-width: 640px) {
+  .wl-hero { padding-top: 28px; }
+  .wl-hero .display { font-size: 31px; line-height: 1.12; }
+  .wl-btn { width: 100%; min-width: 0; }
+  .wl-reg { margin-top: 32px; padding-block: 36px; }
+  .wl-row { grid-template-columns: 1fr; }
+}
+
+/* ───────────── Thank-you page: ticket confirmed, the time, one big way into the room ───────────── */
+.ty-body { background: var(--bg-alt); }
+.ty { padding: 40px 0 64px; }
+.ty .wrap.narrow { max-width: 640px; }
+.ty-card { background: var(--surface); border: 1px solid var(--hair); border-radius: 18px; padding: 36px 32px 30px; text-align: center; box-shadow: 0 24px 60px -40px rgba(13, 21, 38, .4); }
+.ty-badge { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 16px; padding: 7px 13px; border-radius: 999px; background: #e8f6ee; color: #146c43; font: 700 12.5px/1 var(--font); text-transform: uppercase; letter-spacing: .07em; }
+.ty-badge svg { width: 16px; height: 16px; }
+.ty-h { margin: 0 0 10px; font: 500 clamp(30px, 4.4vw, 44px)/1.1 var(--serif); letter-spacing: -.015em; color: var(--ink); text-wrap: balance; }
+.ty-sub { margin: 0 auto; max-width: 480px; font: 400 15.5px/1.55 var(--font); color: var(--ink-2); }
+.ty-when { margin: 24px 0 0; padding: 18px 16px 4px; border-radius: 14px; background: var(--bg-alt); }
+.ty-title { margin: 0; font: 600 15px/1.4 var(--font); color: var(--ink); }
+.ty-time { margin: 4px 0 0; font: 500 20px/1.35 var(--serif); color: var(--ink); }
+.ty-count { margin: 10px 0 12px; font-size: 26px; }
+.ty-go { margin: 22px 0 0; }
+.ty-btn { width: 100%; min-height: 64px; font-size: 18px; border-radius: 12px; }
+.ty-note, .ty-cal { margin: 12px 0 0; font: 400 14px/1.5 var(--font); color: var(--muted); }
+.ty-cal a { color: var(--ink); font-weight: 600; }
+.ty-pass { margin-top: 18px; text-align: left; }
+.ty-extra { display: grid; gap: 14px; margin-top: 22px; }
+.ty-extra .ty-q, .ty-extra .ty-phone { max-width: none; margin: 0; background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 18px 20px; }
+.wl-reg .opts-2 { grid-template-columns: 1fr 1fr; }
+.ty-q-h { margin: 0 0 10px; font: 600 15px/1.4 var(--font); color: var(--ink); }
+.ty-opt { display: inline-block; margin-right: 6px; padding: 3px 7px; border-radius: 6px; background: var(--bg-alt); font: 600 11px/1.2 var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); vertical-align: 1px; }
+.ty-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ty-phone .muted.small { margin: 8px 0 0; }
+@media (max-width: 640px) {
+  .ty { padding-top: 20px; }
+  .ty-card { padding: 26px 18px 22px; }
+  .ty-opts { grid-template-columns: 1fr; }
+}

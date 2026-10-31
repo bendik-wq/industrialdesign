@@ -139,7 +139,7 @@ export const EXPERIENCE_COPY = {
   scoreAverage: 'The average across {n} viewers of this masterclass is {avg}.',
   gapLabel: 'Your gap',
   nextLabel: 'Your next step',
-  nextApply: 'Apply for a strategy call',
+  nextSprint: 'See the First Deal Sprint',
   nextWorksheet: 'Get the worksheet',
 
   savedHeading: 'Your notes',
@@ -149,8 +149,9 @@ export const EXPERIENCE_COPY = {
   saveButton: 'Save to my notes',
   savedButton: 'Saved to your notes',
 
-  catchUpHeading: 'You joined at {time}. Here is what you missed.',
-  awayHeading: 'While you were away ({mins}):',
+  catchUpHeading: 'You joined at {time}',
+  catchUpLink: 'See what you missed',
+  awayHeading: 'You were away for {mins}',
   awaySameChapter: 'Still in “{chapter}”.',
 
   reactPrompt: 'Mark this part',
@@ -158,7 +159,7 @@ export const EXPERIENCE_COPY = {
   reactDone: 'Marked',
   reactCount: { new: '{n} viewers marked this part “New to me”.', do: '{n} viewers marked this part “I would do this”.', explain: '{n} viewers asked for more on this part.' } as Record<string, string>,
   explainQuestion: 'Explain this part of the masterclass in more detail: {what}',
-  explainSent: 'Your question went to the assistant. The answer is in the question box below.',
+  explainSent: 'Your question went to the assistant. The answer is under Ask.',
 
   buyinEyebrow: 'Your turn',
   buyinHeading: 'In one sentence: what would your first acquisition change for you?',
@@ -225,17 +226,17 @@ export const BLOCKER_GAP: Record<string, string> = {
 
 /** What to do next about each gap (shown at the pitch). */
 export const GAP_NEXT: Record<string, string> = {
-  'finding the right deal': 'On a strategy call the team sets your target profile and the outreach that reaches owners with no successor.',
-  'financing structure': 'On a strategy call the team builds the stack on your numbers across commercial debt, seller finance and seller rollover, tested at 1.5x.',
-  'deal structure': 'On a strategy call the team maps the note, the rollover and the lender’s share so the structure clears 1.5x.',
-  'time to run the process': 'The 90 days take a few focused hours a week. On a strategy call the team shows you where those hours go.',
-  'confidence for a first deal': 'The first deal is done with you. On a strategy call the team maps it step by step from your own numbers.',
+  'finding the right deal': 'In the First Deal Sprint the team builds your buy box and a first shortlist of owners with no successor.',
+  'financing structure': 'In the First Deal Sprint the team writes the stack on your numbers across commercial debt, seller finance and seller rollover, tested at 1.5x.',
+  'deal structure': 'In the First Deal Sprint your deal-structure memo maps the note, the rollover and the lender’s share so the structure clears 1.5x.',
+  'time to run the process': 'The Sprint asks for a kickoff call, short replies and one 60-minute session. Josh’s team does the research and the writing.',
+  'confidence for a first deal': 'The first deal is done with you. The Sprint maps it step by step from your own numbers.',
   'business size': 'Keep growing toward $1M a year, and run one business through the worksheet so you are ready when you cross that line.',
-  'a clear target': 'On a strategy call the team sets your target profile with you: size, location and the kind of owner who is ready to sell.',
-  'a timeline': 'Pick the date you want a signed LOI by. On a strategy call the team works the 90 days back from it.',
-  'deal numbers that clear 1.5x': 'On a strategy call the team builds the stack on your numbers across commercial debt, seller finance and seller rollover, tested at 1.5x.',
-  'your stance on own cash': 'On a strategy call the team shows how the stack stands without your cash, and where cash helps when you want it to.',
-  'naming what stops you': 'On a strategy call the team starts with whatever is stopping you and maps the first deal from there.',
+  'a clear target': 'The Sprint sets your buy box with you: size, location and the kind of owner who is ready to sell.',
+  'a timeline': 'Pick the date you want a signed LOI by. Your Deal Plan session agrees the 90 days back from it.',
+  'deal numbers that clear 1.5x': 'In the First Deal Sprint the team runs your numbers across commercial debt, seller finance and seller rollover, tested at 1.5x.',
+  'your stance on own cash': 'Your Sprint memo shows how the stack stands without your cash, and where cash helps when you want it to.',
+  'naming what stops you': 'The Sprint kickoff starts with whatever is stopping you and maps the first deal from there.',
 };
 
 export interface ScoreResult { score: number; gap: string; next: string; factors: { id: string; label: string; max: number; points: number; answered: boolean; raise: string }[] }

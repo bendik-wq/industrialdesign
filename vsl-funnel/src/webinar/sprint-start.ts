@@ -7,7 +7,7 @@ import { identityFromLead, track } from '../tracking/track';
 import { type Registration, type Session, getRegistration, getSession, roomUrl } from './webinar';
 import { type PassRow, PassError, activePass } from './pass';
 import {
-  createSprintCheckout, mmss, offerDeadline, offerUrl, pitchSec, reachedPitch, sprintCopy, sprintPrice, sprintQualified, sprintSettings, sprintWelcomeUrl, sprintWindow, ticketCredit,
+  createSprintCheckout, mmss, offerDeadline, offerUrl, pitchSec, reachedPitch, sprintCopy, sprintPrice, sprintQualified, sprintSettings, sprintWelcomeUrl, sprintWindow, teamEmail, ticketCredit,
   unlockSprint,
 } from './sprint';
 import { INTAKE_FIELDS, dealSprintUrl, ensureDealSprint } from './deal-sprint';
@@ -46,17 +46,18 @@ export const APPLICATION_FIELDS: AppField[] = [
 /** Every visible string on the form page (checked by auditCopy in the tests). */
 export function sprintStartCopy(o: { offerName: string; price: string; whop: boolean }) {
   return {
-    eyebrow: 'Step 1 of 3',
-    steps: ['Your business', 'Secure checkout', 'Book your kickoff call'],
+    steps: ['Confirm and pay', 'Book your kickoff call'],
     heading: `Start your ${o.offerName}`,
-    lede: 'Seven questions about your business. Josh’s team reads your answers before the kickoff call, so the call starts on your numbers. Secure checkout opens straight after.',
+    lede: 'Three answers about your business, then secure checkout. Josh’s team reads them before your kickoff call, so the call starts on your numbers.',
+    today: 'Today',
+    more: 'Add more detail for the team (optional)',
     button: `Continue to secure checkout · ${o.price}`,
     missing: 'Add your revenue, your EBITDA and your industry, then continue.',
     privacy: 'Your answers go to Josh’s team only, and they fill in your Sprint intake for you.',
     secure: o.whop ? 'Secure checkout by Whop.' : 'Secure payment by Stripe.',
-    payLater: 'At checkout Whop also offers pay-later options such as Klarna and Affirm, where they are available to you.',
-    bookCall: 'Book a call instead',
-    backToOffer: `Read everything in the ${o.offerName}`,
+    payLater: 'Pay by card, or in instalments with Klarna, Afterpay or Splitit where they are offered to you.',
+    emailTeam: 'Email the team',
+    backToOffer: 'Back to the offer',
   };
 }
 
@@ -108,13 +109,6 @@ export async function copyApplicationToIntake(rt: Runtime, pass: Pick<PassRow, '
 
 // ───────────── The page ─────────────
 
-const STYLE = `<style>
-.ss-steps{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;padding:0;margin:0 0 14px;font-size:13px;color:#6b7280}
-.ss-steps li.on{color:var(--accent,#0f2c5c);font-weight:600}.ss-form{display:grid;gap:12px;margin-top:14px}
-.ss-form label{display:grid;gap:4px;font-size:14px;color:#374151}.ss-form textarea{min-height:76px}
-.ss-note{background:#fdf3e2;color:#78350f;border-radius:8px;padding:10px 12px}.ss-fine{font-size:13px;color:#6b7280;margin:6px 0 0}
-</style>`;
-
 export type Gate = { ok: true; rt: Runtime; reg: RegLike; session: Session } | { ok: false; rt: Runtime; title: string; html: string; redirect?: string };
 
 /** The same gate as checkout: unlocked for this registration (or reached the pitch), before the offer deadline. */
@@ -125,9 +119,10 @@ export async function sprintStartGate(rt: Runtime, token: string, now = Date.now
   const { cfg } = sprintSettings(rt);
   const t = sprintCopy(cfg, { opensAt: mmss(pitchSec(rt)) });
   const room = roomUrl(rt, reg.token);
-  const apply = `${rt.origin}/w/${reg.token}`;
+  const email = teamEmail(rt);
+  const emailLink = email ? ` <a href="mailto:${esc(email)}">${esc(t.closedEmail)}</a>` : '';
   if (await activePass(rt, reg.lead_id)) return { ok: false, rt, title: cfg.offerName, html: '', redirect: dealSprintUrl(rt, reg.token) };
-  if (cfg.mode === 'off') return { ok: false, rt, title: cfg.offerName, html: `<h1 class="h2">The ${esc(cfg.offerName)} isn’t open right now</h1><p class="lede"><a href="${esc(apply)}">Apply for a strategy call</a> instead.</p>` };
+  if (cfg.mode === 'off') return { ok: false, rt, title: cfg.offerName, html: `<div class="offer-msg"><h1 class="h2">The ${esc(cfg.offerName)} isn’t open right now</h1><p class="lede">It opens again with the next masterclass.${emailLink}</p></div>` };
   if (!(await sprintQualified(rt, reg))) return { ok: false, rt, title: cfg.offerName, html: `<h1 class="h2">The ${esc(cfg.offerName)} is for owners doing $1M or more a year</h1><p class="lede">Start with the worksheet and the replay. <a href="${esc(room)}">${esc(t.backToRoom)}</a></p>` };
   if (reg.offer_unlocked_at == null && reachedPitch(rt, session, reg, now) && now < offerDeadline(rt, session, reg)) {
     const r = await unlockSprint(rt, reg, session, {}, now);
@@ -135,17 +130,20 @@ export async function sprintStartGate(rt: Runtime, token: string, now = Date.now
   }
   const w = sprintWindow(rt, session, reg, now);
   if (!w.unlocked) return { ok: false, rt, title: cfg.offerName, html: `<p class="eyebrow">${esc(t.lockedEyebrow)}</p><h1 class="h2">${esc(t.lockedHeading)}</h1><p class="lede">${esc(t.notYet)}</p><p><a class="btn" href="${esc(room)}">${esc(t.backToRoom)}</a></p>` };
-  if (w.closed) return { ok: false, rt, title: cfg.offerName, html: `<h1 class="h2">${esc(cfg.offerName)}</h1><p class="lede">${esc(t.closed)}</p><p><a class="btn" href="${esc(apply)}">${esc(t.closedButton)}</a></p>` };
+  if (w.closed) return { ok: false, rt, title: cfg.offerName, html: `<div class="offer-msg"><h1 class="h2">${esc(cfg.offerName)}</h1><p class="lede">${esc(t.closed)}${emailLink}</p></div>` };
   return { ok: true, rt, reg, session };
 }
 
 const page = (c: Context<AppEnv>, title: string, html: string) => render(c, '/webinar-offer.html', { title, blocks: { offer: html }, config: { webinar: {} } });
 
 /** The form (pure, for the tests). */
-export function startFormHtml(o: { offerName: string; price: string; whop: boolean; plan: boolean; values: Partial<Record<AppField['key'], string | null>>; note: { text: string; book?: string | null } | null; offerUrl: string; apply: string }) {
+export function startFormHtml(o: {
+  offerName: string; price: string; listPrice?: string | null; whop: boolean; plan: boolean; values: Partial<Record<AppField['key'], string | null>>;
+  note: { text: string; email?: string | null } | null; offerUrl: string; guarantee?: string | null; preview?: boolean;
+}) {
   const t = sprintStartCopy(o);
   const val = (k: AppField['key']) => esc(String(o.values[k] ?? ''));
-  const fields = APPLICATION_FIELDS.map((f) => {
+  const field = (f: AppField) => {
     const attrs = `name="${f.key}"${f.required ? ' required' : ''}${f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : ''}`;
     let input: string;
     if (f.kind === 'select') {
@@ -154,20 +152,30 @@ export function startFormHtml(o: { offerName: string; price: string; whop: boole
       input = `<select class="input" ${attrs}><option value="">Choose one</option>${opts.map((x) => `<option${x === cur ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select>`;
     } else if (f.kind === 'textarea') input = `<textarea class="input" ${attrs} maxlength="2000">${val(f.key)}</textarea>`;
     else input = `<input class="input" type="${f.kind === 'url' ? 'url' : 'text'}" ${attrs} maxlength="${f.kind === 'url' ? 500 : 200}" value="${val(f.key)}">`;
-    return `<label>${esc(f.label)}${input}</label>`;
-  }).join('');
-  return `${STYLE}
-    <ol class="ss-steps">${t.steps.map((s, i) => `<li${i === 0 ? ' class="on"' : ''}>${i + 1}. ${esc(s)}</li>`).join('')}</ol>
-    <header class="sprint-head"><p class="eyebrow">${esc(t.eyebrow)}</p><h1 class="h2">${esc(t.heading)}</h1><p class="lede">${esc(t.lede)}</p></header>
-    ${o.note ? `<p class="ss-note" role="alert">${esc(o.note.text)}${o.note.book ? ` <a href="${esc(o.note.book)}">${esc(t.bookCall)}</a>` : ''}</p>` : ''}
-    <form class="ss-form" method="post" data-sprint-start>${o.plan ? '<input type="hidden" name="plan" value="1">' : ''}${fields}
-      <button class="btn btn-lg pass-btn" type="submit">${esc(t.button)}</button>
-      <p class="ss-fine">${esc(t.privacy)} ${esc(t.secure)}${o.whop ? ` ${esc(t.payLater)}` : ''}</p>
+    return `<label>${esc(f.label)}${f.required ? '' : ' <span class="opt-l">(optional)</span>'}${input}</label>`;
+  };
+  const required = APPLICATION_FIELDS.filter((f) => f.required);
+  const optional = APPLICATION_FIELDS.filter((f) => !f.required);
+  const filled = optional.some((f) => o.values[f.key]);
+  const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  const shield = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.4-3 7.9-7 9-4-1.1-7-4.6-7-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
+  return `<div class="ss-card">
+    <ol class="ss-steps" aria-label="Steps">${t.steps.map((s, i) => `<li${i === 0 ? ' class="on" aria-current="step"' : ''}><b>${i + 1}</b>${esc(s)}</li>`).join('')}</ol>
+    <h1 class="ss-h">${esc(t.heading)}</h1><p class="ss-lede">${esc(t.lede)}</p>
+    <p class="ss-sum"><strong>${esc(o.offerName)}</strong><span>${o.listPrice && o.listPrice !== o.price ? `<s>${esc(o.listPrice)}</s>` : ''}${esc(o.price)}</span></p>
+    ${o.note ? `<p class="ss-note" role="alert">${esc(o.note.text)}${o.note.email ? ` <a href="mailto:${esc(o.note.email)}">${esc(t.emailTeam)}</a>` : ''}</p>` : ''}
+    <form class="ss-form" method="post" data-sprint-start>${o.plan ? '<input type="hidden" name="plan" value="1">' : ''}
+      ${required.map(field).join('')}
+      <details class="ss-more"${filled ? ' open' : ''}><summary>${esc(t.more)}</summary><div>${optional.map(field).join('')}</div></details>
+      <div class="ss-submit"><button class="buy-btn buy-btn-xl" type="submit"${o.preview ? ' disabled title="Preview"' : ''}><span>${esc(t.button)}</span>${arrow}</button></div>
+      ${o.guarantee ? `<p class="ss-g">${shield}<span>${esc(o.guarantee)}</span></p>` : ''}
+      <p class="ss-fine">${esc(t.secure)}${o.whop ? ` ${esc(t.payLater)}` : ''} ${esc(t.privacy)}</p>
     </form>
-    <p class="sprint-more"><a href="${esc(o.offerUrl)}">${esc(t.backToOffer)}</a> · <a href="${esc(o.apply)}">${esc(t.bookCall)}</a></p>`;
+  </div>
+  <p class="ss-back"><a href="${esc(o.offerUrl)}">${esc(t.backToOffer)}</a></p>`;
 }
 
-async function formPage(c: Context<AppEnv>, g: Extract<Gate, { ok: true }>, o: { plan: boolean; values?: Partial<Record<AppField['key'], string | null>>; note: { text: string; book?: string | null } | null }) {
+async function formPage(c: Context<AppEnv>, g: Extract<Gate, { ok: true }>, o: { plan: boolean; values?: Partial<Record<AppField['key'], string | null>>; note: { text: string; email?: string | null } | null }) {
   const { rt, reg } = g;
   const { cfg, plan } = sprintSettings(rt);
   const credit = await ticketCredit(rt, reg.lead_id, cfg.currency);
@@ -181,14 +189,27 @@ async function formPage(c: Context<AppEnv>, g: Extract<Gate, { ok: true }>, o: {
     values = prev ?? { revenue: band ? REVENUE_LABEL[band] ?? null : null };
   }
   const html = startFormHtml({
-    offerName: cfg.offerName, price: usePlan ? price.plan!.button : price.todayLabel, whop: cfg.provider === 'whop', plan: usePlan, values, note: o.note,
-    offerUrl: offerUrl(rt, reg.token), apply: `${rt.origin}/w/${reg.token}`,
+    offerName: cfg.offerName, price: usePlan ? price.plan!.button : price.todayLabel, listPrice: usePlan ? null : cfg.priceLabel, whop: cfg.provider === 'whop', plan: usePlan, values, note: o.note,
+    offerUrl: offerUrl(rt, reg.token), guarantee: sprintCopy(cfg).guaranteeShort,
+  });
+  return page(c, `Start your ${cfg.offerName}`, html);
+}
+
+/** Funnel HQ → Page previews: the form as a $1M+ ticket holder sees it (ticket credited). Nothing is saved; the button is off. */
+function previewForm(c: Context<AppEnv>) {
+  const rt = runtimeFrom(c);
+  const { cfg, plan } = sprintSettings(rt);
+  const price = sprintPrice(cfg, plan, cfg.seat ? cfg.seat.amount : 0);
+  const html = `<p class="offer-preview">${esc(sprintCopy(cfg).preview)} Shown as a $1M+ ticket holder.</p>` + startFormHtml({
+    offerName: cfg.offerName, price: price.todayLabel, listPrice: cfg.priceLabel, whop: cfg.provider === 'whop', plan: false, values: { revenue: REVENUE_LABEL['3m-10m'] ?? null },
+    note: null, offerUrl: offerUrl(rt, 'preview'), guarantee: sprintCopy(cfg).guaranteeShort, preview: true,
   });
   return page(c, `Start your ${cfg.offerName}`, html);
 }
 
 /** GET /sprint-start/:token */
 export async function sprintStartPage(c: Context<AppEnv>) {
+  if (c.req.param('token') === 'preview' && c.get('visitor')?.botReason === 'admin-preview') return previewForm(c);
   const g = await sprintStartGate(runtimeFrom(c), c.req.param('token') ?? '');
   if (!g.ok) return g.redirect ? c.redirect(g.redirect, 302) : page(c, g.title, g.html);
   const missing = c.req.query('missing') === '1';
@@ -216,6 +237,6 @@ export async function sprintStartSubmit(c: Context<AppEnv>) {
     return c.redirect('url' in r && r.url ? r.url : sprintWelcomeUrl(g.rt, g.reg.token), 303);
   } catch (e) {
     if (!(e instanceof PassError)) throw e;
-    return formPage(c, g, { plan, values: data, note: { text: e.message, book: e.book } });
+    return formPage(c, g, { plan, values: data, note: { text: e.message, email: teamEmail(g.rt) } });
   }
 }
