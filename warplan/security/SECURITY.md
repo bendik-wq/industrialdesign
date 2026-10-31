@@ -111,6 +111,10 @@ The directory is static, public data (firm names, websites, published criteria),
 
 Sending mailboxes in the pool are workspace-owned, added only by owners signed in; an SMTP login is tested before it's saved and the password is sealed (AES-GCM) bound to the workspace and address. Every send checks the box belongs to the workspace and is active, and respects its own daily cap and warm-up ramp; rotated emails carry Reply-To (and List-Unsubscribe) pointing at the sender's own mailbox so replies and opt-outs still stop the bots. A prospect stays on one mailbox. Strategic buyers come from public business listings; only shared inboxes (info@, contact@, ceo@ …) are emailed, otherwise the phone goes on the call list.
 
+## 2026-10-31: email tracking and Instantly delivery
+
+Tracking is off by default and per bot. The open image and click redirect use tokens signed with the server secret (HMAC), so opens can't be forged and the redirect only goes to links Warplan itself put in an email (no open redirect); unknown or tampered tokens get a 404 or an untracked image. Instantly delivery uses the workspace's own Instantly key (stored sealed like every other key), needs an explicit owner confirmation, creates campaigns with stop-on-reply on and the unsubscribe header inserted, and reads activity back to stop replies and record unsubscribes in the do-not-contact list.
+
 ### Still open
 
 - Nothing.

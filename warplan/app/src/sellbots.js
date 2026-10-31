@@ -11,6 +11,7 @@ import { renderEmail } from "../public/js/bot-emails.js";
 import { dataKeys } from "./keys.js";
 import { scoutSearch } from "./scout.js";
 import { industryById } from "./data/industries.js";
+import { ensureCampaign, pushLead, leadStats } from "./instantly.js";
 
 const json = (s, d) => { try { return JSON.parse(s); } catch { return d; } };
 const FX = { "$": 1, "US$": 1, "A$": 0.65, "NZ$": 0.6, "C$": 0.73, "£": 1.27, "€": 1.08, "kr": 0.093 };
@@ -69,6 +70,20 @@ function sellVars(bot, f) {
 }
 
 async function send(env, bot, ctx, hooks, p, f, step, sum, log) {
+  if (bot.delivery === "instantly") {
+    if (step > 1) return "sent"; // Instantly runs the follow-ups
+    const kind = f.strategic ? "strategic" : "sell";
+    try {
+      const cid = await ensureCampaign(env, bot, sum.ikey, kind, { ...sellVars(bot, { name: "" }), kind }, log);
+      await pushLead(sum.ikey, cid, { email: p.email, company_name: f.name, website: f.website || undefined, custom_variables: { wp_first: "there", wp_buyer: f.name } });
+      await env.DB.prepare("UPDATE sell_prospects SET step = 1, mailbox = 'instantly', next_at = NULL, updated_at = ?2 WHERE id = ?1").bind(p.id, now()).run();
+      await log(env, bot, null, "sent", `Added ${f.name} (${p.email}) to the Instantly campaign${f.strategic ? " for strategic buyers" : ""}`);
+      sum.first++; return "sent";
+    } catch (e) {
+      await env.DB.prepare("UPDATE sell_prospects SET status = 'bounced', updated_at = ?2 WHERE id = ?1").bind(p.id, now()).run();
+      await log(env, bot, null, "error", `Couldn't add ${f.name} to Instantly: ${e.message}`); return "stop";
+    }
+  }
   const tpl = json(bot.templates, {}) || {};
   const { subject, body } = renderEmail(f.strategic ? tpl.strategic || {} : tpl, step, sellVars(bot, f));
   const next = new Date(Date.now() + bot.gap_days * 864e5 - 30 * 60_000).toISOString();
@@ -86,7 +101,8 @@ async function send(env, bot, ctx, hooks, p, f, step, sum, log) {
     sum.queued++; return "queued";
   }
   try {
-    await sendEmail(env, ctx, { to: p.email, subject, body, in_reply_to: first?.message_id || null, pool_id: mb?.pool_id || null }, hooks);
+    await sendEmail(env, ctx, { to: p.email, subject, body, in_reply_to: first?.message_id || null, pool_id: mb?.pool_id || null,
+      ...((bot.track_opens || bot.track_clicks) && { track: { kind: "s", id: p.id, opens: !!bot.track_opens, clicks: !!bot.track_clicks } }) }, hooks);
     sum.rot?.used(mb);
     await env.DB.prepare("UPDATE sell_prospects SET step = ?2, next_at = ?3, subject = CASE WHEN subject = '' THEN ?4 ELSE subject END, updated_at = ?5 WHERE id = ?1").bind(p.id, step, next, subject, now()).run();
     await log(env, bot, null, step === 1 ? "sent" : "follow_up", step === 1 ? `Sent the first email to ${f.name} (${p.email})` : `Sent follow-up ${step - 1} to ${f.name}: email ${step} of ${bot.touches}`);
@@ -116,8 +132,10 @@ export async function runSell(env, bot, ctx, hooks, sum, log) {
     const { results } = await env.DB.prepare(`UPDATE sell_prospects AS p SET status = ?3, updated_at = ?4 WHERE p.bot_id = ?1 AND p.account_id = ?2 AND p.status = 'active' AND ${cond} RETURNING fund_id`).bind(bot.id, bot.account_id, status, stamp).all();
     for (const r of results) { sum.stopped++; await log(env, bot, null, status === "replied" ? "replied" : "skipped", `${fundById(r.fund_id)?.name || "A fund"} ${why}`); }
   }
+  // Instantly: read activity back (it sends the follow-ups itself).
+  if (bot.delivery === "instantly") await syncSell(env, bot, sum, log);
   // 2. Follow-ups.
-  const { results: due } = await env.DB.prepare("SELECT * FROM sell_prospects WHERE bot_id = ?1 AND account_id = ?2 AND status = 'active' AND next_at <= ?3 ORDER BY next_at LIMIT 150").bind(bot.id, bot.account_id, stamp).all();
+  const { results: due } = bot.delivery === "instantly" ? { results: [] } : await env.DB.prepare("SELECT * FROM sell_prospects WHERE bot_id = ?1 AND account_id = ?2 AND status = 'active' AND next_at <= ?3 ORDER BY next_at LIMIT 150").bind(bot.id, bot.account_id, stamp).all();
   for (const p of due) {
     const f = buyerOf(p);
     if (!f?.name) continue;
@@ -158,8 +176,32 @@ export async function runSell(env, bot, ctx, hooks, sum, log) {
   }
 }
 
+async function syncSell(env, bot, sum, log) {
+  const ids = json(bot.ext_campaign, {}) || {};
+  const stats = new Map();
+  for (const kind of ["sell", "strategic"]) {
+    if (!ids[kind]) continue;
+    try { for (const x of await leadStats(sum.ikey, ids[kind])) stats.set(x.email, x); } catch (e) { sum.notes.push(`Couldn't read Instantly stats: ${e.message}`); }
+  }
+  if (!stats.size) return;
+  const { results } = await env.DB.prepare("SELECT * FROM sell_prospects WHERE bot_id = ?1 AND account_id = ?2 AND mailbox = 'instantly' AND status = 'active'").bind(bot.id, bot.account_id).all();
+  for (const p of results) {
+    const x = stats.get(p.email);
+    if (!x) continue;
+    const status = x.replies > 0 ? "replied" : x.status === -1 ? "bounced" : x.status === -2 ? "opted_out" : x.status === 3 ? "finished" : "active";
+    await env.DB.prepare("UPDATE sell_prospects SET opens = ?2, clicks = ?3, last_open = COALESCE(?4, last_open), status = ?5, step = CASE WHEN ?5 = 'finished' THEN ?6 ELSE step END, updated_at = ?7 WHERE id = ?1")
+      .bind(p.id, x.opens, x.clicks, x.last_open, status, bot.touches, now()).run();
+    const name = (buyerOf(p) || {}).name || "A buyer";
+    if (status === "opted_out") await env.DB.prepare("INSERT OR IGNORE INTO suppressions (account_id, email, reason, created_at) VALUES (?1, ?2, 'Unsubscribed (Instantly)', ?3)").bind(bot.account_id, p.email, now()).run();
+    if (status === "replied") { sum.stopped++; await log(env, bot, null, "replied", `${name} replied in Instantly: the flow stopped`); }
+  }
+  // Buyers opening again and again: worth a call (or a nudge from you).
+  const { results: hot } = await env.DB.prepare("UPDATE sell_prospects SET hot = 1 WHERE bot_id = ?1 AND account_id = ?2 AND status = 'active' AND hot = 0 AND opens >= 3 RETURNING *").bind(bot.id, bot.account_id).all();
+  for (const p of hot) { const b = buyerOf(p) || {}; await log(env, bot, null, "call", `${b.name || "A buyer"} opened your emails ${p.opens} times: follow up${b.phone ? ` on ${b.phone}` : b.contact_url ? ` via ${b.contact_url}` : ""} while it's warm`); sum.calls++; }
+}
+
 export async function listSellProspects(env, bot) {
-  const { results } = await env.DB.prepare("SELECT * FROM sell_prospects WHERE bot_id = ?1 AND account_id = ?2 ORDER BY CASE status WHEN 'replied' THEN 0 WHEN 'active' THEN 1 WHEN 'no_email' THEN 2 ELSE 3 END, updated_at DESC LIMIT 300").bind(bot.id, bot.account_id).all();
+  const { results } = await env.DB.prepare("SELECT * FROM sell_prospects WHERE bot_id = ?1 AND account_id = ?2 ORDER BY CASE status WHEN 'replied' THEN 0 WHEN 'active' THEN 1 WHEN 'no_email' THEN 2 ELSE 3 END, opens DESC, updated_at DESC LIMIT 300").bind(bot.id, bot.account_id).all();
   return results.map((p) => {
     if (p.buyer_kind === "strategic") { const b = json(p.buyer, {}) || {}; return { ...p, buyer: undefined, name: b.name || "Strategic buyer", location: b.location || "", website: b.website || "", phone: b.phone || "", strategic: true, size: [b.locations > 1 && `${b.locations} locations`, b.reviews && `${b.reviews} reviews`].filter(Boolean).join(" · ") }; }
     const f = fundById(p.fund_id) || {};

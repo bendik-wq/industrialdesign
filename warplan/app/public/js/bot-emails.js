@@ -272,6 +272,8 @@ export function renderEmail(templates, step, vars) {
     Business: (vars.business || "my business").replace(/^./, (c) => c.toUpperCase()),
     revenue: money(vars.revenue, vars.currency || "$") || "strong", ebitda: money(vars.ebitda, vars.currency || "$") || "solid",
   };
+  // overrides: placeholders a sending platform fills per lead (e.g. {first} → "{{wp_first}}" for Instantly).
+  Object.assign(v, vars.overrides || {});
   const fill = (s) => String(s).replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
   let text = fill(body).replace(/\n{3,}/g, "\n\n").trim();
   if (!v.group) text = text.replace(/, I run \./, ".").replace(/ from \.(?=\s)/, ".").replace(/\n\s*$/gm, "\n").trim();

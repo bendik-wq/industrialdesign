@@ -5,6 +5,7 @@
 import { seal, open } from "./keys.js";
 import { run as monidRun } from "./monid.js";
 import { gmailSend, gmailConfigured } from "./gmail.js";
+import { pixelUrl, trackLinks } from "./tracking.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const now = () => new Date().toISOString();
@@ -95,9 +96,14 @@ const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 const wrap76 = (s) => s.replace(/(.{76})/g, "$1\r\n");
 const encHeader = (s) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(s)}?=`);
 const htmlEsc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-export function buildMessage({ from, fromName, to, subject, text, messageId, unsubscribe, inReplyTo = null, replyTo = null }) {
+// The HTML part: paragraphs, with web addresses as links.
+export function htmlOf(text) {
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#111">${text.split(/\n{2,}/).map((p) => `<p>${htmlEsc(p).replace(/\n/g, "<br>").replace(/https?:\/\/[^\s<>"]+[^\s<>".,)]/g, (u) => `<a href="${u}">${u}</a>`)}</p>`).join("")}</div>`;
+}
+
+export function buildMessage({ from, fromName, to, subject, text, messageId, unsubscribe, inReplyTo = null, replyTo = null, html: htmlIn = null }) {
   const boundary = `wp_${crypto.randomUUID()}`;
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#111">${text.split(/\n{2,}/).map((p) => `<p>${htmlEsc(p).replace(/\n/g, "<br>")}</p>`).join("")}</div>`;
+  const html = htmlIn || htmlOf(text);
   const headers = [
     `From: ${fromName ? `${encHeader(fromName)} <${from}>` : from}`,
     `To: ${to}`,
@@ -262,10 +268,18 @@ export async function sendEmail(env, ctx, b, hooks) {
   // Follow-ups thread under the first email (In-Reply-To), so the owner sees one conversation.
   const inReplyTo = /^<[^<>\s]{3,200}>$/.test(String(b.in_reply_to || "")) ? b.in_reply_to : null;
   const replyTo = pool && main && main.email !== pool.email ? main.email : null;
-  const raw = buildMessage({ from: box.email, fromName: box.from_name, to, subject, text: body, messageId, unsubscribe: replyTo || box.email, inReplyTo, replyTo });
+  // Tracking (bots only, when switched on): links through a signed redirect, and a 1x1 image for opens.
+  let html = null;
+  const tr = b.track && ["b", "s"].includes(b.track.kind) && Number.isInteger(+b.track.id) ? b.track : null;
+  if (tr && (tr.opens || tr.clicks)) {
+    html = htmlOf(body);
+    if (tr.clicks) html = await trackLinks(env, tr.kind, +tr.id, html);
+    if (tr.opens) html = html.replace(/<\/div>$/, `<img src="${await pixelUrl(env, tr.kind, +tr.id)}" width="1" height="1" alt="" style="display:block;border:0"></div>`);
+  }
+  const raw = buildMessage({ from: box.email, fromName: box.from_name, to, subject, text: body, messageId, unsubscribe: replyTo || box.email, inReplyTo, replyTo, html });
   let status = "sent", error = null;
   try {
-    if (box.host === "agentmail") await monidRun(env, ctx, { provider: "agentmail", endpoint: "/send-messages", input: { body: { inboxId: box.username, to: [to], subject, text: body, headers: { "List-Unsubscribe": `<mailto:${replyTo || box.email}?subject=unsubscribe>`, ...(replyTo && { "Reply-To": replyTo }), ...(inReplyTo && { "In-Reply-To": inReplyTo, References: inReplyTo }) } } } }, { purpose: `Email to ${to}`, targetId: target?.id || null });
+    if (box.host === "agentmail") await monidRun(env, ctx, { provider: "agentmail", endpoint: "/send-messages", input: { body: { inboxId: box.username, to: [to], subject, text: body, ...(html && { html }), headers: { "List-Unsubscribe": `<mailto:${replyTo || box.email}?subject=unsubscribe>`, ...(replyTo && { "Reply-To": replyTo }), ...(inReplyTo && { "In-Reply-To": inReplyTo, References: inReplyTo }) } } } }, { purpose: `Email to ${to}`, targetId: target?.id || null });
     else if (box.host === "gmail") await gmailSend(env, box, raw);
     else await smtpSend(box, await open(env, box, pool ? poolAad(pool) : aad(ctx.user.id)), to, raw);
   }

@@ -43,7 +43,7 @@ function card(b, owner) {
   const s = b.stats || {};
   const sell = b.kind === "sell";
   return `<article class="bot-card ${b.status}">
-    <header><a href="#/bots/${b.id}"><h2>${esc(b.name)}</h2></a><span class="chip">${sell ? "Selling" : "Buying"}</span><span class="chip ${b.status === "active" ? "on" : ""}">${b.status === "active" ? (b.running ? "Running…" : "Active") : "Paused"}</span><span class="chip">${b.mode === "autopilot" ? "Autopilot" : "Review first"}</span></header>
+    <header><a href="#/bots/${b.id}"><h2>${esc(b.name)}</h2></a><span class="chip">${sell ? "Selling" : "Buying"}</span><span class="chip ${b.status === "active" ? "on" : ""}">${b.status === "active" ? (b.running ? "Running…" : "Active") : "Paused"}</span><span class="chip">${b.delivery === "instantly" ? "Via Instantly" : b.mode === "autopilot" ? "Autopilot" : "Review first"}</span></header>
     <p class="muted small">${esc(sub(b))}</p>
     <div class="bot-stats">
       <div><b>${s.active || 0}</b><span>${sell ? "buyers emailing" : "emailing"}</span></div><div><b>${s.emails || 0}</b><span>emails</span></div>
@@ -104,17 +104,18 @@ async function renderBot(seq, d, id, params) {
   if (stale(seq)) return;
   if (sell) {
     pane.innerHTML = !rows.length ? `<p class="muted">No buyers contacted yet. Start the bot or press Run now: it picks the best-fitting funds from the <a href="#/buyers">buyers directory</a>.</p>`
-      : `<div class="table-wrap panel flush"><table class="ttable"><thead><tr><th>Buyer</th><th>Status</th><th class="num">Emails</th><th>Size</th><th>Next email</th><th></th></tr></thead><tbody>
+      : `<div class="table-wrap panel flush"><table class="ttable"><thead><tr><th>Buyer</th><th>Status</th><th class="num">Emails</th><th class="num">Opens</th><th>Size</th><th>Next email</th><th></th></tr></thead><tbody>
         ${rows.map((r) => `<tr><td>${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener noreferrer"><b>${esc(r.name)}</b></a>` : `<b>${esc(r.name)}</b>`} <span class="chip">${r.strategic ? "Strategic" : "Fund"}</span><small class="muted block">${esc(r.location || "")}${r.email ? ` · ${esc(r.email)}` : r.contact_url ? ` · <a href="${esc(r.contact_url)}" target="_blank" rel="noopener noreferrer">contact page</a>` : r.phone ? ` · call <a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : ""}</small></td>
-          <td><span class="chip st-${esc(r.status)}">${STATUS[r.status] || esc(r.status)}</span></td><td class="num">${r.step}/${b.touches}</td><td class="small">${esc(r.size || (r.segment === "mm" ? "Middle market" : "Lower middle market"))}</td>
+          <td><span class="chip st-${esc(r.status)}">${STATUS[r.status] || esc(r.status)}</span></td><td class="num">${r.step}/${b.touches}</td><td class="num ${r.opens >= 3 ? "tone-good" : ""}">${r.opens || 0}${r.clicks ? ` · ${r.clicks} click${r.clicks === 1 ? "" : "s"}` : ""}</td><td class="small">${esc(r.size || (r.segment === "mm" ? "Middle market" : "Lower middle market"))}</td>
           <td>${r.status === "active" && r.next_at ? when(r.next_at) : "–"}</td><td>${owner && r.status === "active" ? `<button class="link" type="button" data-p="${r.id}" data-a="stop">Stop</button>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
   } else {
     const list = tab === "calls" ? rows.filter((r) => r.status === "call" || r.status === "no_email") : rows;
     pane.innerHTML = !list.length ? `<p class="muted">${tab === "calls" ? "Nobody to call yet. A prospect lands here after the last email with no reply, or when there's no email to find. Every 7th email also creates a call task on the target." : "No prospects yet."}</p>`
-      : `<div class="table-wrap panel flush"><table class="ttable"><thead><tr><th>Business</th><th>Status</th><th class="num">Emails</th><th>${tab === "calls" ? "Phone" : "Next email"}</th><th>Signals</th><th></th></tr></thead><tbody>
+      : `<div class="table-wrap panel flush"><table class="ttable"><thead><tr><th>Business</th><th>Status</th><th class="num">Emails</th><th class="num">Opens</th><th>${tab === "calls" ? "Phone" : "Next email"}</th><th>Signals</th><th></th></tr></thead><tbody>
         ${list.map((r) => `<tr><td><a href="#/targets/${r.target_id}"><b>${esc(r.name)}</b></a><small class="muted block">${esc(r.location || "")}${r.email ? ` · ${esc(r.email)} (${KIND[r.email_kind] || "email"})` : ""}</small></td>
           <td><span class="chip st-${esc(r.status)}">${STATUS[r.status] || esc(r.status)}</span></td><td class="num">${r.step}/${b.touches}</td>
-          <td>${tab === "calls" || r.status === "call" || r.status === "no_email" ? (r.phone ? `<a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : '<span class="muted">no number</span>') : r.status === "active" && r.next_at ? when(r.next_at) : "–"}</td>
+          <td class="num ${r.opens >= 3 ? "tone-good" : ""}">${r.opens || 0}${r.clicks ? ` · ${r.clicks} click${r.clicks === 1 ? "" : "s"}` : ""}</td>
+          <td>${tab === "calls" || r.status === "call" || r.status === "no_email" ? (r.phone ? `<a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : '<span class="muted">no number</span>') : r.mailbox === "instantly" && r.status === "active" ? "in Instantly" : r.status === "active" && r.next_at ? when(r.next_at) : "–"}</td>
           <td class="small">${(r.signals || []).map((x) => esc(x.label)).join(" · ") || '<span class="muted">–</span>'}</td>
           <td class="row">${owner ? (r.status === "active" ? `<button class="link" type="button" data-p="${r.id}" data-a="stop">Stop</button>` : r.status === "call" || r.status === "no_email" ? `<button class="link" type="button" data-p="${r.id}" data-a="called">Called</button>` : "") : ""}</td></tr>`).join("")}</tbody></table></div>`;
   }
@@ -180,10 +181,18 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
         <div class="two"><label class="field">Flow length<select name="flow">${FLOW_LENGTHS.map((n) => `<option value="${n}" ${n === flowDays ? "selected" : ""}>${n} days (${n} emails)</option>`).join("")}</select></label><label class="field">${sell ? "New buyers a day" : "New businesses a day"}<input name="daily_new" type="number" min="1" max="30" value="${cur.daily_new}"></label></div>
         <div class="two"><label class="field">Days between emails<input name="gap_days" type="number" min="1" max="14" value="${cur.gap_days}"></label><label class="field">Send from (hour)<input name="send_hour" type="number" min="6" max="18" value="${cur.send_hour}"></label></div>
         <label class="field">Time zone<select name="timezone">${[...new Set([cur.timezone, ...TZS])].map((z) => `<option ${z === cur.timezone ? "selected" : ""}>${esc(z)}</option>`).join("")}</select></label>
+        <h3 class="terr-h">Delivery</h3>
+        <label class="check"><input type="radio" name="delivery" value="direct" ${cur.delivery !== "instantly" ? "checked" : ""}> Warplan sends from your mailboxes</label>
+        <label class="check"><input type="radio" name="delivery" value="instantly" ${cur.delivery === "instantly" ? "checked" : ""} ${d.instantly ? "" : "disabled"}> Instantly sends it (warmed mailboxes, inbox rotation, its own deliverability)${d.instantly ? "" : ` · <a href="#/settings/integrations">connect Instantly</a>`}</label>
+        <label class="check" id="confirmInst" hidden><input type="checkbox" name="confirm_instantly"> I'm sure: Instantly sends the whole flow without per-email review. The bot creates the campaign; add your Instantly sending accounts to it.</label>
+        <div class="row"><label class="check"><input type="checkbox" name="track_opens" ${cur.track_opens ? "checked" : ""}> Track opens</label><label class="check"><input type="checkbox" name="track_clicks" ${cur.track_clicks ? "checked" : ""}> Track clicks</label></div>
+        <p class="muted small">Off is better for cold email: tracking images push it towards spam, and Apple Mail opens every email by itself, so opens over-count. The bot emails have no links, so clicks only count if you add one. Anyone who opens 3+ times becomes a call task.</p>
+        <div id="sendFrom">
         <h3 class="terr-h">Send from</h3>
         ${boxes.length ? `<div class="box-picks">${boxes.map((x) => `<label class="check"><input type="checkbox" name="mb_${x.key}" ${(cur.mailboxes || ["main"]).map(String).includes(x.key) ? "checked" : ""}> ${esc(x.email)} <span class="muted small">(${esc(x.note)})</span></label>`).join("")}</div>
           <p class="muted small">The bot spreads each day's emails across the ticked mailboxes. Each prospect always hears from the same one. <a href="#/settings/email">Add sending mailboxes</a></p>`
           : `<p class="muted small">No mailbox yet: <a href="#/settings/email">connect one, or add sending mailboxes</a>.</p>`}
+        </div>
         <h3 class="terr-h">Sending</h3>
         <label class="check"><input type="radio" name="mode" value="review" ${cur.mode !== "autopilot" ? "checked" : ""}> Review first: every email waits for your approval in the Inbox</label>
         <label class="check"><input type="radio" name="mode" value="autopilot" ${cur.mode === "autopilot" ? "checked" : ""}> Autopilot: sends on its own from your mailbox</label>
@@ -221,6 +230,8 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
       form.flow.addEventListener("change", () => { if (!edited) loadDefaults(); });
       $("#resetTpl", dlg).addEventListener("click", loadDefaults);
       form.industry?.addEventListener("change", () => { const i = (industries || []).find((x) => x.id === form.industry.value); if (i && !b) form.buying.value = buyingFor(i.id, i.label.split(/[\/&(]/)[0].trim().toLowerCase()); draw(); });
+      const delv = () => { const inst = form.delivery.value === "instantly"; $("#confirmInst", dlg).hidden = !(inst && cur.delivery !== "instantly"); $("#sendFrom", dlg).hidden = inst; };
+      $$("input[name=delivery]", dlg).forEach((r) => r.addEventListener("change", delv)); delv();
       $$("input[name=mode]", dlg).forEach((r) => r.addEventListener("change", () => { $("#confirmWrap", dlg).hidden = !(form.mode.value === "autopilot" && cur.mode !== "autopilot"); }));
       $("#useSites", dlg)?.addEventListener("click", async (e) => {
         e.target.textContent = "Looking up your sites…";
@@ -252,7 +263,7 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
   const touches = +f.flow;
   const ssteps = sell ? stpl.steps.map((_, i) => f[`sstep${i}`]) : [];
   const mailboxes = boxes.filter((x) => f[`mb_${x.key}`]).map((x) => x.key);
-  const body = { name: f.name, kind, sender_name: f.sender_name, phone: f.phone, ...(boxes.length && { mailboxes: mailboxes.length ? mailboxes : ["main"] }), daily_new: +f.daily_new, touches, gap_days: +f.gap_days, send_hour: +f.send_hour, timezone: f.timezone, mode: f.mode, confirm_autopilot: !!f.confirm_autopilot,
+  const body = { name: f.name, kind, sender_name: f.sender_name, phone: f.phone, delivery: f.delivery || "direct", confirm_instantly: !!f.confirm_instantly, track_opens: !!f.track_opens, track_clicks: !!f.track_clicks, ...(boxes.length && { mailboxes: mailboxes.length ? mailboxes : ["main"] }), daily_new: +f.daily_new, touches, gap_days: +f.gap_days, send_hour: +f.send_hour, timezone: f.timezone, mode: f.mode, confirm_autopilot: !!f.confirm_autopilot,
     // Only save wording that differs from our defaults, so copy improvements reach bots that never changed it.
     templates: (() => {
       const dft = defaultTemplates(kind, touches), out = f.subject === dft.subject && steps.join("\u0000") === dft.steps.join("\u0000") ? {} : { subject: f.subject, steps };

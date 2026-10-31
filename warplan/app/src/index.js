@@ -45,6 +45,7 @@ import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
 import { gmailAuthUrl, gmailCallback, syncGmail } from "./gmail.js";
 import { territoryRoute } from "./territory.js";
 import { botsRoute, queueBots, runBot } from "./bots.js";
+import { trackRoute } from "./tracking.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS, listPool, addPoolMailbox, updatePoolMailbox, deletePoolMailbox } from "./mailer.js";
 
 const INVITE_DAYS = 7;
@@ -114,6 +115,8 @@ async function handle(request, env, exec) {
     if (PUBLIC_PATHS.has(p)) return asset(request, env, p);
     // The app's own code holds no data (all of it is behind /api), so it's served without a session lookup.
     if (/^\/(js|vendor)\/[\w./-]+\.js$/.test(p) && !p.includes("..")) return asset(request, env, p);
+    // Bot email tracking: open image and click redirect (signed tokens, no session).
+    if ((p.startsWith("/o/") || p.startsWith("/c/")) && request.method === "GET") { const t = await trackRoute(request, env, url); if (t) return t; }
     if (p.startsWith("/hooks/replies/")) return await replyHook(request, env, url, exec);
     if (p.startsWith("/hooks/twilio/")) return await twilioHook(request, env, url, (accountId) => hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)), (pr) => exec.waitUntil(pr));
     if (p.startsWith("/r/") || p.startsWith("/hooks/room/")) return await sellerRoute(request, env, url, exec);

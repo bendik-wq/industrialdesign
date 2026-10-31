@@ -24,6 +24,8 @@ import { renderEmail, cleanTemplates, buyingFor, MAX_TOUCHES } from "../public/j
 import { km } from "../public/js/territory.js";
 import { runSell, listSellProspects, matchFunds } from "./sellbots.js";
 import { rotation } from "./rotation.js";
+import { instantlyKey, ensureCampaign, pushLead, leadStats } from "./instantly.js";
+import { providerKeys } from "./keys.js";
 import { FUNDS } from "./data/funds.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
@@ -83,6 +85,12 @@ function clean(b, cur = {}) {
   if ("templates" in b) o.templates = JSON.stringify(cleanTemplates(b.templates));
   if ("status" in b) o.status = b.status === "active" ? "active" : "paused";
   if ("mode" in b) o.mode = b.mode === "autopilot" ? "autopilot" : "review";
+  if ("delivery" in b) {
+    o.delivery = b.delivery === "instantly" ? "instantly" : "direct";
+    if (o.delivery === "instantly" && cur.delivery !== "instantly" && !b.confirm_instantly) throw err(400, "Tick the box to confirm Instantly sends the flow without per-email review");
+  }
+  if ("track_opens" in b) o.track_opens = b.track_opens ? 1 : 0;
+  if ("track_clicks" in b) o.track_clicks = b.track_clicks ? 1 : 0;
   if ("mailboxes" in b) {
     const list = [...new Set((Array.isArray(b.mailboxes) ? b.mailboxes : []).map(String).filter((k) => k === "main" || /^\d{1,9}$/.test(k)))].slice(0, 21);
     if (!list.length) throw err(400, "Pick at least one mailbox to send from");
@@ -90,7 +98,7 @@ function clean(b, cur = {}) {
   }
   return o;
 }
-const botOut = (r) => ({ ...r, mailboxes: json(r.mailboxes, ["main"]), areas: json(r.areas, []), templates: json(r.templates, {}), sell: json(r.sell, {}), buyers: json(r.buyers, {}), cursor: undefined, lock_until: undefined, running: !!(r.lock_until && r.lock_until > now()) });
+const botOut = (r) => ({ ...r, ext_campaign: json(r.ext_campaign, {}), mailboxes: json(r.mailboxes, ["main"]), areas: json(r.areas, []), templates: json(r.templates, {}), sell: json(r.sell, {}), buyers: json(r.buyers, {}), cursor: undefined, lock_until: undefined, running: !!(r.lock_until && r.lock_until > now()) });
 
 function needOwnerHuman(ctx) {
   if (!ctx.isOwner) throw err(403, "Only workspace owners can set up or change prospecting bots");
@@ -155,16 +163,17 @@ export async function listBots(env, ctx) {
     bots: bots.results.map((r) => ({ ...botOut(r), stats: by[r.id] || { emails: 0 } })),
     mailbox: box ? { email: box.email, daily_limit: box.daily_limit } : null,
     data_ready: !!keys.monid, suggest, max_touches: MAX_TOUCHES, funds: FUNDS.length,
+    instantly: !!(await providerKeys(env, ctx, ["instantly"]).catch(() => ({}))).instantly,
   };
 }
 
 export async function listProspects(env, ctx, id, status) {
   const bot = await own(env, ctx, id);
   if (bot.kind === "sell") return (await listSellProspects(env, bot)).filter((p) => !status || p.status === status);
-  const { results } = await env.DB.prepare(`SELECT p.id, p.target_id, p.email, p.email_kind, p.status, p.step, p.next_at, p.score, p.signals, p.created_at, p.updated_at,
+  const { results } = await env.DB.prepare(`SELECT p.id, p.target_id, p.email, p.email_kind, p.status, p.step, p.next_at, p.score, p.signals, p.created_at, p.updated_at, p.opens, p.clicks, p.last_open, p.mailbox,
       t.name, t.location, t.phone, t.owner_name, t.website, t.stage
     FROM bot_prospects p JOIN targets t ON t.id = p.target_id AND t.account_id = p.account_id
-    WHERE p.bot_id = ?1 AND p.account_id = ?2 AND (?3 IS NULL OR p.status = ?3) ORDER BY CASE p.status WHEN 'call' THEN 0 WHEN 'replied' THEN 1 WHEN 'active' THEN 2 ELSE 3 END, p.updated_at DESC LIMIT 300`)
+    WHERE p.bot_id = ?1 AND p.account_id = ?2 AND (?3 IS NULL OR p.status = ?3) ORDER BY CASE p.status WHEN 'call' THEN 0 WHEN 'replied' THEN 1 WHEN 'active' THEN 2 ELSE 3 END, p.opens DESC, p.updated_at DESC LIMIT 300`)
     .bind(bot.id, ctx.accountId, status || null).all();
   return results.map((r) => ({ ...r, signals: json(r.signals, []) }));
 }
@@ -278,23 +287,29 @@ export async function runBot(env, accountId, botId, hooks, { manual = false } = 
     const ctx = await senderCtx(env, bot);
     if (!ctx) { await env.DB.prepare("UPDATE bots SET status = 'paused' WHERE id = ?1").bind(bot.id).run(); await log(env, bot, null, "error", "Paused: the person it sends as is no longer in the workspace"); return { ok: false, reason: "no sender" }; }
     sum.rot = await rotation(env, bot, ctx);
-    if (bot.mode === "autopilot" && !sum.rot.size) {
+    if (bot.delivery === "instantly") { try { sum.ikey = await instantlyKey(env, ctx); } catch (e) { await log(env, bot, null, "error", e.message); return { ok: false, reason: e.message }; } }
+    else if (bot.mode === "autopilot" && !sum.rot.size) {
       await log(env, bot, null, "error", "No mailbox to send from: connect one in Settings → Email, or pick a sending mailbox on the bot"); return { ok: false, reason: "no mailbox" };
     }
     if (bot.kind === "sell") await runSell(env, bot, ctx, hooks, sum, log);
-    else {
+    else if (bot.delivery === "instantly") {
       await refresh(env, bot, sum);
+      await syncBuy(env, bot, ctx, hooks, sum);
+      await findNew(env, bot, ctx, hooks, sum);
+    } else {
+      await refresh(env, bot, sum);
+      await hotCalls(env, bot, ctx, hooks, sum);
       const capped = await followUps(env, bot, ctx, hooks, sum);
       if (!capped) await findNew(env, bot, ctx, hooks, sum);
     }
     const parts = [sum.first && `${sum.first} first email${sum.first === 1 ? "" : "s"}`, sum.followups && `${sum.followups} follow-up${sum.followups === 1 ? "" : "s"}`, sum.queued && `${sum.queued} queued for review`,
       sum.calls && `${sum.calls} to call`, sum.stopped && `${sum.stopped} stopped (replied or opted out)`, sum.no_email && `${sum.no_email} without an email (call list)`].filter(Boolean);
     await log(env, bot, null, "run", `${manual ? "Run now" : "Morning run"}: ${parts.join(" · ") || "nothing due"}${sum.notes.length ? `. ${sum.notes.join(" ")}` : ""}`);
-    delete sum.rot;
+    delete sum.rot; delete sum.ikey;
     hooks?.emit("bot.run", { bot_id: bot.id, bot: bot.name, ...sum, notes: undefined });
     return { ok: true, ...sum };
   } catch (e) {
-    delete sum.rot;
+    delete sum.rot; delete sum.ikey;
     console.error("bot run", e);
     await log(env, bot, null, "error", e.status ? e.message : "The run stopped on an error; it tries again tomorrow");
     return { ok: false, reason: e.message };
@@ -356,7 +371,8 @@ async function deliver(env, bot, ctx, hooks, p, t, step, sum) {
     return "queued";
   }
   try {
-    const r = await sendEmail(env, ctx, { to: p.email, subject, body, target_id: t.id, in_reply_to: first?.message_id || null, pool_id: mb?.pool_id || null }, hooks);
+    const r = await sendEmail(env, ctx, { to: p.email, subject, body, target_id: t.id, in_reply_to: first?.message_id || null, pool_id: mb?.pool_id || null,
+      ...((bot.track_opens || bot.track_clicks) && { track: { kind: "b", id: p.id, opens: !!bot.track_opens, clicks: !!bot.track_clicks } }) }, hooks);
     sum.rot?.used(mb);
     await env.DB.prepare("UPDATE bot_prospects SET step = ?2, next_at = ?3, subject = CASE WHEN subject = '' THEN ?4 ELSE subject END, thread_id = CASE WHEN thread_id = '' THEN ?5 ELSE thread_id END, updated_at = ?6 WHERE id = ?1")
       .bind(p.id, step, next, subject, r.message_id || "", now()).run();
@@ -409,6 +425,64 @@ async function followUps(env, bot, ctx, hooks, sum) {
     }
   }
   return false;
+}
+
+// ------------------------------------------------------------------ Instantly delivery and tracking
+async function toInstantly(env, bot, p, t, signals, sum) {
+  try {
+    const base = varsFor(bot, { name: "", location: "" }, { signals: "[]" });
+    const cid = await ensureCampaign(env, bot, sum.ikey, "buy", base, log);
+    const v = varsFor(bot, t, { signals: JSON.stringify(signals) });
+    const sig = renderEmail({ steps: ["{signal}"] }, 1, { ...v, kind: "buy" }).body.trim();
+    await pushLead(sum.ikey, cid, { email: p.email, first_name: v.first || undefined, company_name: t.name, website: t.website || undefined, phone: t.phone || undefined,
+      custom_variables: { wp_first: v.first || "there", wp_company: t.name, wp_area: v.area || "your area", wp_signal: sig ? ` ${sig}` : "" } });
+    await env.DB.prepare("UPDATE bot_prospects SET step = 1, mailbox = 'instantly', next_at = NULL, updated_at = ?2 WHERE id = ?1").bind(p.id, now()).run();
+    await log(env, bot, t.id, "sent", `Added ${t.name} (${p.email}) to the Instantly campaign: the ${bot.touches}-day flow starts there`);
+    sum.first++;
+  } catch (e) {
+    await env.DB.prepare("UPDATE bot_prospects SET status = 'bounced', updated_at = ?2 WHERE id = ?1").bind(p.id, now()).run();
+    await log(env, bot, t.id, "error", `Couldn't add ${t.name} to Instantly: ${e.message}`);
+  }
+}
+
+// Read opens, clicks, replies, bounces and unsubscribes back from Instantly.
+async function syncBuy(env, bot, ctx, hooks, sum) {
+  const cid = (json(bot.ext_campaign, {}) || {}).buy;
+  if (!cid) return;
+  let stats;
+  try { stats = await leadStats(sum.ikey, cid); } catch (e) { sum.notes.push(`Couldn't read Instantly stats: ${e.message}`); return; }
+  const by = new Map(stats.map((x) => [x.email, x]));
+  const { results } = await env.DB.prepare(`SELECT p.*, t.name, t.owner_name, t.phone AS t_phone FROM bot_prospects p JOIN targets t ON t.id = p.target_id AND t.account_id = p.account_id
+    WHERE p.bot_id = ?1 AND p.account_id = ?2 AND p.mailbox = 'instantly' AND p.status = 'active'`).bind(bot.id, bot.account_id).all();
+  for (const p of results) {
+    const x = by.get(p.email);
+    if (!x) continue;
+    const status = x.replies > 0 ? "replied" : x.status === -1 ? "bounced" : x.status === -2 ? "opted_out" : x.status === 3 ? "call" : "active";
+    await env.DB.prepare("UPDATE bot_prospects SET opens = ?2, clicks = ?3, last_open = COALESCE(?4, last_open), status = ?5, step = CASE WHEN ?5 = 'call' THEN ?6 ELSE step END, updated_at = ?7 WHERE id = ?1")
+      .bind(p.id, x.opens, x.clicks, x.last_open, status, bot.touches, now()).run();
+    if (status === "opted_out") await env.DB.prepare("INSERT OR IGNORE INTO suppressions (account_id, email, reason, created_at) VALUES (?1, ?2, 'Unsubscribed (Instantly)', ?3)").bind(bot.account_id, p.email, now()).run();
+    if (status === "replied") { sum.stopped++; await log(env, bot, p.target_id, "replied", `${p.name} replied in Instantly: the flow stopped`); }
+    if (status === "call") {
+      await updateTarget(env, ctx, p.target_id, { next_action: `Call ${p.owner_name || "the owner"}: the ${bot.touches}-day flow finished with no reply${p.t_phone ? ` · ${p.t_phone}` : ""}`, next_date: localParts(bot.timezone).date, priority: 1 }, hooks).catch(() => {});
+      await log(env, bot, p.target_id, "call", `No reply after the ${bot.touches}-day flow: call ${p.name}${p.t_phone ? ` on ${p.t_phone}` : ""}${x.opens ? ` (opened ${x.opens} times)` : ""}`);
+      sum.calls++;
+    }
+  }
+  await hotCalls(env, bot, ctx, hooks, sum);
+}
+
+// Opened 3+ times with no reply: they're reading. Raise a call task once.
+async function hotCalls(env, bot, ctx, hooks, sum) {
+  const { results } = await env.DB.prepare(`UPDATE bot_prospects AS p SET hot = 1 WHERE p.bot_id = ?1 AND p.account_id = ?2 AND p.status = 'active' AND p.hot = 0 AND p.opens >= 3 RETURNING p.target_id, p.opens, p.clicks`)
+    .bind(bot.id, bot.account_id).all();
+  for (const r of results) {
+    const t = await env.DB.prepare("SELECT name, owner_name, phone FROM targets WHERE id = ?1 AND account_id = ?2").bind(r.target_id, bot.account_id).first();
+    if (!t) continue;
+    if (t.phone) await updateTarget(env, ctx, r.target_id, { next_action: `Call ${t.owner_name || "the owner"} now: opened your emails ${r.opens} times · ${t.phone}`, next_date: localParts(bot.timezone).date, priority: 1 }, hooks).catch(() => {});
+    await log(env, bot, r.target_id, "call", `${t.name} opened your emails ${r.opens} times${r.clicks ? ` and clicked ${r.clicks}` : ""}: call ${t.phone || "them"} while it's warm`);
+    hooks?.emit("bot.hot", { bot_id: bot.id, target_id: r.target_id, target: t.name, opens: r.opens, clicks: r.clicks, phone: t.phone || null });
+    sum.calls++;
+  }
 }
 
 // Rank what the search found: size (reviews), quality (rating), a website to email, a phone, and how close it is to
@@ -480,6 +554,7 @@ async function findNew(env, bot, ctx, hooks, sum) {
     if (!p) continue;
     if (!email) { sum.no_email++; await log(env, bot, t.id, "found", `Found ${t.name} (${signals.map((s) => s.label).join(", ") || "no signals"}) but no email: on the call list${r.phone ? ` · ${r.phone}` : ""}`); continue; }
     await log(env, bot, t.id, "found", `Found ${t.name}: score ${score}${signals.length ? ` (${signals.map((s) => s.label).join(", ")})` : ""}, emailing the ${kind === "owner" ? "owner" : kind === "decision_maker" ? "decision maker" : "front desk"}`);
+    if (bot.delivery === "instantly") { await toInstantly(env, bot, p, { ...t, phone: r.phone, website: r.website }, signals, sum); continue; }
     const res = await deliver(env, bot, ctx, hooks, p, { id: t.id, name: t.name, owner_name: t.owner_name, location: t.location }, 1, sum);
     if (res === "cap") break;
   }

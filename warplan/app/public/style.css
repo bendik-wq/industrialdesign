@@ -1598,3 +1598,4 @@ table.grid input { width: 100%; min-width: 80px; }
 .box-picks { display: grid; gap: 4px; }
 .pool-panel { margin-top: 18px; }
 .pool-table input { padding: 4px 6px; }
+.tone-good { color: var(--good); font-weight: 600; }
