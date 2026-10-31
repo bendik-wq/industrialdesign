@@ -277,7 +277,7 @@
     clients: { group: 'Sell', title: 'Clients', sub: 'Every client’s health, flags, onboarding checklist, timeline and next check-in.', more: 'A client is anyone who paid for the First Deal Sprint, paid the engagement deposit or signed the engagement agreement. Health starts at 100 and every deduction comes from our own data (Sprint deliverables and calls, intake, payments, weekly sessions you log, reply times, last two-way contact, open support escalations), listed with the view it came from. Check-ins are drafted daily in the team’s voice and wait here for your approval before anything is sent.', render: renderClientsTab, noFilters: true },
     support: { group: 'Follow-up', title: 'Support', sub: 'Questions by email and from the rooms, with drafted answers, sources and escalations.', more: 'Support email (Resend inbound or any forwarder), masterclass and live room questions and challenge hot seats land here. Claude drafts each answer from our own guides, materials, the guarantee, the FAQ and the offer terms, with the sources it used and a confidence. Anything about money, refunds, payments or legal, and anything below the confidence threshold, is marked Needs a person. Nothing is sent until you approve it.', render: renderSupportTab, noFilters: true },
     insights: { group: 'Sell', title: 'Best leads', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
-    map: { group: 'Funnel', title: 'Funnel map', sub: 'Every page, decision and automation, with live numbers.', more: 'How everything fits together: every page, decision and automation from ad click to closed deal, with live numbers. Drag to rearrange, click any box to see how it works, and add your own steps.', render: renderMap },
+    map: { group: 'Funnel', title: 'Funnel maps', sub: 'Every funnel, stage by stage, with what runs behind each step and live numbers.', more: 'One map per funnel: the VSL and application, the automated webinar, the live webinar, the challenge, Instagram DMs, the long email flows, after the sale and the AI departments. Click any stage for what the person sees, what runs behind it, the settings that control it and its numbers for the selected range. All funnels shows every funnel as a strip of its stages. Drag to rearrange and add your own steps; layouts are saved per map.', render: renderMap, filters: ['range'] },
     screens: { group: 'Funnel', title: 'Page previews', sub: 'Every page in the funnel, in order, live.', more: 'Every page in the funnel, in order, live. Previews never count as visits, never fire ad pixels and can’t submit anything.', render: renderScreens, noFilters: true },
     pages: { group: 'Funnel', title: 'Landing pages & tests', sub: 'Every landing page and headline test, traced to cash.', more: 'Every page people land on, and every headline being tested: the main page’s A/B test plus 100 industry landers (20 industries × 5 headlines). Each visit is traced to applications, bookings and cash.', render: renderLanders },
     vsl: { group: 'Funnel', title: 'Video (VSL)', sub: 'Who watches, where they drop, and when they reach the pitch.', render: renderVsl },
@@ -436,22 +436,9 @@
   }
 
   function renderMap() {
-    var sum = function (arr, k) { return (arr || []).reduce(function (t, x) { return t + (x[k] || 0); }, 0); };
-    var soft = function (p) { return p.catch(function () { return {}; }); };
-    return Promise.all([
-      api('overview'), soft(api('landers')), soft(api('triggers')), soft(api('experiments')),
-      soft(fetch('/admin/api/map-layout', { credentials: 'same-origin' }).then(function (r) { return r.json(); })),
-      soft(fetch('/admin/api/map-custom', { credentials: 'same-origin' }).then(function (r) { return r.json(); })),
-    ]).then(function (r) {
-      FunnelMap.render(view, {
-        esc: esc, n: n, pct: pct, money: money, go: go,
-        layout: r[4].layout || null,
-        stats: { kpis: r[0].kpis, funnel: r[0].funnel, landerVisitors: sum(r[1].byIndustry, 'visitors'), mainVisitors: sum(r[3].variants, 'visitors'), triggerSent: sum(r[2].rules, 'sent') },
-        save: function (pos) { send('PUT', 'map-layout', { layout: pos }); },
-        custom: r[5].custom || null,
-        saveCustom: function (custom) { send('PUT', 'map-custom', { custom: custom }); },
-        tabs: Object.keys(TABS).filter(function (k) { return k !== 'map'; }).map(function (k) { return { id: k, title: TABS[k].title }; }),
-      });
+    return FunnelMap.render(view, {
+      esc: esc, n: n, pct: pct, money: money, go: go, api: api, send: send,
+      tabs: Object.keys(TABS).filter(function (k) { return k !== 'map'; }).map(function (k) { return { id: k, title: TABS[k].title }; }),
     });
   }
   var screenPrefs = (function () { try { return JSON.parse(localStorage.getItem('hq_screens') || '{}'); } catch (e) { return {}; } })();
