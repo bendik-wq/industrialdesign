@@ -52,7 +52,7 @@
     e.preventDefault();
     var btn = reg.querySelector('button[type=submit]');
     var picked = reg.querySelector('input[name=session_id]:checked');
-    var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', sms_consent: Boolean(reg.sms_consent && reg.sms_consent.checked), session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36), pixel_eid: F.uid ? F.uid() : '' };
+    var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', sms_consent: Boolean(reg.sms_consent && reg.sms_consent.checked), call_consent: Boolean(reg.call_consent && reg.call_consent.checked), session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36), pixel_eid: F.uid ? F.uid() : '' };
     var rev = reg.querySelector('input[name=revenue]:checked');
     body.revenue = rev ? rev.value : '';
     body.headline = (window.FUNNEL && window.FUNNEL.webinar && window.FUNNEL.webinar.headline) || '';
@@ -250,6 +250,7 @@
         video.addEventListener('ended', end);
       }
       video.play().catch(function () {});
+      if (cfg.replay) { var resumeAt = Number(new URLSearchParams(location.search).get('t')) || 0; if (resumeAt > 0) { if (video.readyState >= 1) video.currentTime = resumeAt; else video.addEventListener('loadedmetadata', function () { video.currentTime = resumeAt; }, { once: true }); } } // ?t= from an AI call's pick-up link
       if (!cfg.replay) soundButton();
       var fs = document.createElement('button');
       fs.type = 'button'; fs.className = 'btn btn-sm ghost room-fs'; fs.textContent = 'Full screen';

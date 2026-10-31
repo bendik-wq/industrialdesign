@@ -26,7 +26,8 @@ import { optOut, sendLinkEmail } from './voice';
  */
 
 const API = 'https://api.elevenlabs.io';
-export type CallKind = 'confirm' | 'speed_to_lead' | 'rebook' | 'test';
+// w_*: the webinar, live Zoom and challenge flows (./webinar-calls.ts), dialled from the same queue.
+export type CallKind = 'confirm' | 'speed_to_lead' | 'rebook' | 'test' | `w_${string}`;
 
 export interface OutboundCall {
   id: string;
@@ -295,16 +296,16 @@ async function phoneProvider(rt: Runtime) {
 }
 
 /** Places one call now. Returns the conversation id. */
-export async function dial(rt: Runtime, lead: Lead, kind: CallKind, provider?: string, toNumber?: string) {
+export async function dial(rt: Runtime, lead: Lead, kind: CallKind, provider?: string, toNumber?: string, override?: { agentId: string; vars: Record<string, string> }) {
   const s = rt.settings;
   const path = (provider ?? (await phoneProvider(rt))) === 'sip_trunk' ? '/v1/convai/sip-trunk/outbound-call' : '/v1/convai/twilio/outbound-call';
   const res = await el<{ success: boolean; message: string; conversation_id: string | null; callSid?: string | null; sip_call_id?: string | null }>(s, path, {
     method: 'POST',
     body: {
-      agent_id: s.ELEVENLABS_AGENT_ID,
+      agent_id: override?.agentId ?? s.ELEVENLABS_AGENT_ID,
       agent_phone_number_id: s.ELEVENLABS_PHONE_NUMBER_ID,
       to_number: toNumber ?? lead.phone,
-      conversation_initiation_client_data: { dynamic_variables: variables(rt, lead, kind) },
+      conversation_initiation_client_data: { dynamic_variables: override?.vars ?? variables(rt, lead, kind) },
     },
   });
   if (!res.success || !res.conversation_id) throw new Error(res.message || 'call not started');
@@ -331,6 +332,13 @@ export async function processCallQueue(rt: Runtime) {
       await db.prepare(`UPDATE outbound_calls SET status = 'skipped', error = ?, updated_at = ? WHERE id = ?`).bind(why, now, call.id).run();
       continue;
     }
+    // Webinar flows: their own goal, hours, per-person caps and agent (the row is moved or skipped when not now).
+    let override: { agentId: string; vars: Record<string, string> } | undefined;
+    if (call.kind.startsWith('w_')) {
+      const r = await (await import('./webinar-calls')).webinarPreDial(rt, call, lead, now);
+      if (!r) continue;
+      override = r;
+    }
     if (!inCallingHours(now, tz)) {
       const next = nextCallingTime(now, tz);
       await db.prepare(`UPDATE outbound_calls SET status = ?, attempts = attempts - 1, run_at = ?, updated_at = ? WHERE id = ?`).bind(next ? 'queued' : 'skipped', next ?? now, now, call.id).run();
@@ -338,8 +346,8 @@ export async function processCallQueue(rt: Runtime) {
     }
     try {
       provider ??= await phoneProvider(rt);
-      const { conversationId, callSid } = await dial(rt, lead, call.kind, provider);
-      await db.prepare(`UPDATE outbound_calls SET conversation_id = ?, call_sid = ?, error = NULL, updated_at = ? WHERE id = ?`).bind(conversationId, callSid, Date.now(), call.id).run();
+      const { conversationId, callSid } = await dial(rt, lead, call.kind, provider, undefined, override);
+      await db.prepare(`UPDATE outbound_calls SET conversation_id = ?, call_sid = ?, error = NULL, wc_dialed_at = ?, updated_at = ? WHERE id = ?`).bind(conversationId, callSid, Date.now(), Date.now(), call.id).run();
       await track(rt, await identityFromLead(rt.env, lead.id), { name: 'ai_call_started', source: 'server', props: { kind: call.kind, attempt: call.attempts + 1, conversation_id: conversationId } });
       dialed++;
     } catch (e) {
@@ -373,8 +381,9 @@ async function retryOrFail(rt: Runtime, call: OutboundCall, lead: Lead, status: 
   if (stillWanted) {
     // New row per attempt keeps each conversation id unique; the old one keeps its result.
     await rt.env.DB.prepare(`UPDATE outbound_calls SET status = ?, error = ?, updated_at = ? WHERE id = ?`).bind(status, error, now, call.id).run();
-    await rt.env.DB.prepare(`INSERT INTO outbound_calls (id, lead_id, kind, status, run_at, attempts, created_at, updated_at) VALUES (?, ?, ?, 'queued', ?, ?, ?, ?)`)
-      .bind(newId('oc'), call.lead_id, call.kind, next, call.attempts, now, now).run();
+    const wc = call as OutboundCall & { wc_ref?: string | null; wc_meta?: string | null };
+    await rt.env.DB.prepare(`INSERT INTO outbound_calls (id, lead_id, kind, status, run_at, attempts, created_at, updated_at, wc_ref, wc_meta) VALUES (?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?)`)
+      .bind(newId('oc'), call.lead_id, call.kind, next, call.attempts, now, now, wc.wc_ref ?? null, wc.wc_meta ?? null).run();
   } else {
     await rt.env.DB.prepare(`UPDATE outbound_calls SET status = ?, error = ?, updated_at = ? WHERE id = ?`).bind(status, error, now, call.id).run();
   }
@@ -413,6 +422,7 @@ export async function finishCall(rt: Runtime, conv: Conversation, failureReason?
   if (!call || call.status !== 'dialing') return false;
   const lead = await getLead(rt.env, call.lead_id);
   if (!lead) return false;
+  if (call.kind.startsWith('w_')) return (await import('./webinar-calls')).finishWebinarCall(rt, call, lead, conv, failureReason);
   const now = Date.now();
   const facts = factsFrom(conv);
   const duration = conv.metadata?.call_duration_secs ?? 0;

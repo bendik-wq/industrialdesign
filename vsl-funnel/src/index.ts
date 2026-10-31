@@ -25,6 +25,7 @@ import { loadReps } from './sales/reps';
 import { pingUpcomingCalls } from './sales/outcomes';
 import { maybeSendDigest } from './sales/digest';
 import { processCallQueue } from './integrations/elevenlabs';
+import { planWebinarCalls } from './integrations/webinar-calls';
 import { syncInbound } from './integrations/elevenlabs-inbound';
 import { syncCalendly } from './integrations/calendly';
 import { processTriggers } from './personalize/triggers';
@@ -336,6 +337,7 @@ export default {
       quiet(processClientsSupport(rt), 'clients, support and webhooks'),
       quiet(processWinback(rt), 'win-back (approved campaigns only)'),
       quiet(syncAttribution(rt), 'webinar attribution'),
+      quiet(planWebinarCalls(rt), 'webinar AI calls'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

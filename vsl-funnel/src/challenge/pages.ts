@@ -11,6 +11,7 @@ import { confirmOnReturn, hostedCheckout, nextStep, payFormConfig, payUrl, skipV
 import { offerView } from './offer';
 import { type ParticipantView, homeworkFor, joinDay, myPoll, participantView, pollResults, replayDay } from './room';
 import { DAYS_IN_CHALLENGE, type DayRow, countdownText, dayEnds, eventKey, formatDate, formatWhen } from './schedule';
+import { WEBINAR_CALL_CONSENT } from '../integrations/call-consent';
 
 /**
  * The First Deal Challenge pages. One calm system (challenge.css, the same tokens as the masterclass room):
@@ -71,6 +72,7 @@ export function landingHtml(o: { next: LoadedCohort | null; now: number; ticketL
         <p class="chx-under" data-ch-under hidden>${esc(LANDING.under1m)}</p>
         <label class="chx-f chx-f-wide"><span>Mobile (optional)</span><input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
         <label class="chx-check chx-f-wide"><input type="checkbox" name="sms_consent"> <span>${esc(LANDING.smsConsent)}</span></label>
+        <label class="chx-check chx-f-wide"><input type="checkbox" name="call_consent"> <span>${esc(WEBINAR_CALL_CONSENT.text)}</span></label>
       </div>
       ${o.turnstile ? `<div class="cf-turnstile" data-sitekey="${esc(o.turnstile)}" data-size="flexible"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : ''}
       <button class="chx-buy" type="submit">${esc(cta)} ${ICON.arrow}</button>

@@ -113,6 +113,7 @@ export async function registerChallenge(rt: Runtime, v: VisitorCtx, body: Record
   const bandIsNew = !lead.revenue_band;
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
   if (phone && wantsTexts && !lead.phone) await updateLead(rt.env, lead.id, { phone, sms_consent_at: now });
+  await (await import('../integrations/call-consent')).recordCallConsent(rt, lead.id, phone, body, now); // optional AI-call consent box
 
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'challenge_registered', source: 'server', path: '/challenge', props: { cohort_id: cohort.id, band }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });

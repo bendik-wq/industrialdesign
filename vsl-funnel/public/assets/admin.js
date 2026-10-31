@@ -2755,6 +2755,8 @@
           { label: 'Summary', html: function (v) { return esc((v.summary || '').slice(0, 180)); } },
           { label: 'Rec.', html: function (v) { return v.recording_url ? '<a href="' + esc(v.recording_url) + '" target="_blank" rel="noopener">▶</a>' : ''; } },
         ], d.calls, { cards: true }) : '<p class="muted">No AI calls yet.</p>') + '</div>';
+      var wcRoot = document.createElement('div'); wcRoot.setAttribute('data-wc-root', ''); view.insertBefore(wcRoot, view.querySelector('.tiles')); // Webinar calls (admin-wcalls.js)
+      if (window.WebinarCalls) window.WebinarCalls.render({ el: wcRoot, api: api, send: send, esc: esc, n: n, when: when, table: table, toast: toast, emptyState: emptyState, openLead: openLead });
       view.querySelectorAll('[data-open]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); openLead(a.getAttribute('data-open')); }; });
       view.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function (ev) { ev.preventDefault(); go(a.getAttribute('data-go')); }; });
       var pv = view.querySelector('[data-el-provision]');
