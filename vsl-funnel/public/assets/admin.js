@@ -300,6 +300,7 @@
     contracts: { group: 'Contracts', title: 'Agreements', sub: 'One-page advisory agreements: draft, preview, sign, send from Josh, and track their signature.', more: 'Make a new agreement for any lead (fee auto-quoted from their application) or anyone else, preview the exact document, sign it for the company, and it’s emailed from Josh for their e-signature. Every signature is recorded with time, IP and a fingerprint of the exact terms. Send yourself a test first.', render: renderContracts, noFilters: true },
     ytideas: { group: 'Traffic', title: 'YouTube ideas', sub: 'The next two weeks of videos, planned from what your applicants actually say, what’s winning on YouTube and what already made you money.', more: 'Twelve inputs in, 5–10 topics out, every two weeks. Each topic comes with the demand behind it, the belief it installs, two titles, two thumbnails, the hook, a mini-VSL outline and the CTA, in binge order. Export to Google Docs or Miro, or press “Explore” on any new angle to plan a sprint around it.', render: renderYtIdeas, noFilters: true },
     reactivation: { group: 'Follow-up', title: 'Reactivation', sub: 'Bring back people already in the database: past calls, no-shows, unfinished applications.', more: 'Pick the groups, untick anyone who shouldn’t get it (existing clients, friends), preview the 6 emails and launch. Sending is spread out over days to protect your email reputation. It stops for anyone who books or applies again, unsubscribes or becomes a client.', render: renderReactivation, noFilters: true },
+    winback: { group: 'Follow-up', title: 'Win-back', sub: 'Invite cold leads into the Masterclass, the next live webinar or the next challenge cohort.', more: 'Build a group (lost, no-show, cancelled, applied and never booked, registered and never bought, ticket and no Sprint), see exactly who would receive it, pick the destination and preview every email. Nothing sends until you press Start and approve it in Command. Each person stops getting emails the moment they register, buy, book or reply.', render: renderWinback, noFilters: true },
     sms: { group: 'Follow-up', title: 'SMS & WhatsApp', sub: 'Text and WhatsApp sequences: wording, timing and links.', more: 'Message sequences by text or WhatsApp: drag messages to organise them, edit the wording and timing, choose the link and when to skip. Only to people who agreed, 8am–8pm their time, max 3 a day.', render: renderSmsTab, noFilters: true },
     voice: { group: 'Follow-up', title: 'AI calls', sub: 'Outbound confirmations and inbound calls: transcripts, recordings, outcomes.', more: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice, filters: ['range'] },
     team: { group: 'Setup', title: 'Reps & routing', sub: 'Who takes calls, which tiers they get, and where the team gets pinged.', more: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
@@ -2472,6 +2473,11 @@
   function renderChallenge() {
     if (!window.ChallengeBoard) { view.innerHTML = '<div class="card">The Challenge script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return window.ChallengeBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
+  }
+
+  function renderWinback() {
+    if (!window.WinbackBoard) { view.innerHTML = '<div class="card">The Win-back script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.WinbackBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
   }
 
   function renderResearch() {

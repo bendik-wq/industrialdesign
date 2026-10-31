@@ -291,6 +291,9 @@ async function linkSig(rt: Runtime, emailId: string, target: string) {
   return (await hmacHex(await getSecret(rt.env), `${emailId}|${target}`)).slice(0, 16);
 }
 
+/** Signs a tracked email link (/r/<email id>/<sig>?u=<target>) for senders outside the queue (win-back). */
+export const signEmailLink = (rt: Runtime, emailId: string, target: string) => linkSig(rt, emailId, target);
+
 export async function verifyLinkSig(rt: Runtime, emailId: string, target: string, sig: string) {
   return safeEqual(await linkSig(rt, emailId, target), sig);
 }

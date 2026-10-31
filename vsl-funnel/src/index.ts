@@ -52,6 +52,7 @@ import { maybeRunResearch } from './research/brief';
 import { maybeRunAutopilot } from './marketing/autopilot';
 import './marketing/angles'; // registers marketing.test_angle / marketing.launch_angle_ads
 import { processFollowupQueue } from './sales/followups';
+import { processWinback } from './winback/campaigns';
 import { processDm } from './dm/routes';
 import { opsHooks } from './integrations/hooks-in';
 import { mcpRoute } from './mcp/server';
@@ -332,6 +333,7 @@ export default {
       quiet(processFollowupQueue(rt), 'sales follow-ups'),
       quiet(processDm(rt), 'Instagram DM inbox'),
       quiet(processClientsSupport(rt), 'clients, support and webhooks'),
+      quiet(processWinback(rt), 'win-back (approved campaigns only)'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);
