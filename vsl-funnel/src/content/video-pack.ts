@@ -545,7 +545,7 @@ export async function googleExchange(clientId: string, secret: string, origin: s
   return j.refresh_token;
 }
 
-async function googleAccess(rt: Runtime, fetcher: typeof fetch) {
+export async function googleAccess(rt: Runtime, fetcher: typeof fetch) {
   const s = rt.settings;
   const r = await fetcher('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: s.GOOGLE_CLIENT_ID, client_secret: s.GOOGLE_CLIENT_SECRET, refresh_token: s.GOOGLE_REFRESH_TOKEN, grant_type: 'refresh_token' }) });
   const j = (await r.json()) as { access_token?: string; error_description?: string; error?: string };

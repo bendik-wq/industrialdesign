@@ -267,6 +267,7 @@
 
   // ───────────── tabs ─────────────
   var TABS = {
+    command: { group: 'Command', title: 'Command', sub: 'Your Chief of Staff: ask about the numbers, give instructions, approve what the departments propose.', more: 'Chat answers from live Funnel HQ data and links each number to the view it comes from. Anything that changes something (contacting leads or clients, ad changes, spending money) waits in Approvals until you approve it, unless you switched that kind of action to auto in Integrations (Command). The activity log shows every action across departments. Routines run saved instructions on a schedule; the hourly check raises alerts; the morning brief goes to Slack and lands here.', render: renderCommand, noFilters: true },
     overview: { group: 'Today', title: 'Overview', sub: 'Every step from ad click to closed deal.', render: renderOverview },
     live: { group: 'Today', title: 'Live', sub: 'Who’s on the site now, and everything people did — from the last hour back to all time.', render: renderLive, noFilters: true },
     leads: { group: 'Sell', title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads, filters: ['range', 'channel'] },
@@ -348,6 +349,10 @@
     // Stop page previews before their view is replaced, so third-party scripts inside them end cleanly.
     view.querySelectorAll('.screen-frame iframe').forEach(function (f) { f.src = 'about:blank'; });
     if (tab === 'experiments' || tab === 'landers') tab = 'pages';
+    // Command sections live in the hash: #command/approvals, #command/thread=<id>.
+    var cmdSub = '';
+    if (typeof tab === 'string' && tab.indexOf('command/') === 0) { cmdSub = tab.slice(8); tab = 'command'; }
+    state.commandSub = cmdSub;
     if (!TABS[tab]) tab = 'overview';
     var T = TABS[tab];
     state.tab = tab;
@@ -367,7 +372,7 @@
     filtersEl.querySelectorAll('select[data-filter]').forEach(function (sel) { sel.style.display = !f || f.indexOf(sel.getAttribute('data-filter')) > -1 ? '' : 'none'; });
     updateFilterCue();
     if (!routing) {
-      var h = '#' + tab;
+      var h = '#' + tab + (tab === 'command' && cmdSub ? '/' + cmdSub : '');
       // A lead hash left over from a drawer that go() just closed is replaced, never stacked.
       if (location.hash.indexOf('#lead=') === 0) setHash('replaceState', h);
       else if (location.hash !== h) setHash(opts && opts.replace ? 'replaceState' : 'pushState', h);
@@ -397,7 +402,7 @@
       return;
     }
     closeDrawers();
-    if ((h || 'overview') !== state.tab) {
+    if ((h || 'overview') !== state.tab + (state.tab === 'command' && state.commandSub ? '/' + state.commandSub : '')) {
       routing = true; go(h || 'overview'); routing = false;
       if (typed) window.scrollTo(0, 0); // a typed hash is a fresh visit: start at the top
     }
@@ -2428,6 +2433,21 @@
     return window.LiveEventsBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, table: table, emptyState: emptyState, reload: load });
   }
 
+  function renderCommand() {
+    if (!window.CommandBoard) { view.innerHTML = '<div class="card">The Command script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.CommandBoard.render({
+      view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, ago: ago, tile: tile, toast: toast, emptyState: emptyState, reload: load,
+      sub: state.commandSub || '',
+      // Change the Command section (chat, approvals, thread=…). silent: only update the address, don't re-render.
+      setSub: function (sub, o) {
+        state.commandSub = sub || '';
+        var h = '#command' + (state.commandSub ? '/' + state.commandSub : '');
+        if (location.hash !== h) setHash(o && o.silent ? 'replaceState' : 'pushState', h);
+        if (!(o && o.silent)) load();
+      },
+    });
+  }
+
   function renderChallenge() {
     if (!window.ChallengeBoard) { view.innerHTML = '<div class="card">The Challenge script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return window.ChallengeBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
@@ -3794,6 +3814,7 @@
     else go(h || 'overview', { replace: true });
     lastHash = location.hash;
     markEntry();
+    if (state.tab !== 'command') api('ops', {}, { noRange: true }).then(function (d) { var el = document.querySelector('[data-nav-badge="command"]'); if (el && d && d.pending) { el.textContent = d.pending > 99 ? '99+' : String(d.pending); el.hidden = false; el.title = d.pending + ' waiting for your decision'; } }).catch(function () {});
     if (state.tab !== 'overview' && state.tab !== 'sales') api('sales').then(function (d) { setNavBadge('sales', d && d.needsOutcome ? d.needsOutcome.length : 0); }).catch(function () {});
   });
 })();

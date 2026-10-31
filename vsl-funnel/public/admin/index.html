@@ -13,6 +13,7 @@
   <script defer src="/assets/live-events-board.js"></script>
   <script defer src="/assets/materials.js"></script>
   <script defer src="/assets/admin-challenge.js"></script>
+  <script defer src="/assets/admin-command.js"></script>
   <script defer src="/assets/admin.js"></script>
 </head>
 <body>
@@ -23,6 +24,9 @@
       <div class="side-menu" id="side-menu">
         <form class="nav-search" data-nav-search role="search"><input type="search" name="q" placeholder="Find a lead…  /" aria-label="Find a lead by name, email, phone or ref" autocomplete="off"></form>
         <nav data-nav aria-label="Dashboard sections">
+          <div class="nav-group"><p class="nav-h">Command</p>
+            <button data-tab="command">Command <span class="nav-badge" data-nav-badge="command" hidden></span></button>
+          </div>
           <div class="nav-group"><p class="nav-h">Today</p>
             <button data-tab="overview" aria-current="page">Overview</button>
             <button data-tab="live">Live <span class="live-dot" aria-hidden="true"></span></button>

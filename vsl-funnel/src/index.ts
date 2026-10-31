@@ -47,6 +47,7 @@ import { alertUnconfirmedBookings } from './integrations/booking';
 import { guaranteePage, liveLanding, liveRoom, liveTicketPage, liveWelcome, liveWorksheet } from './live/pages';
 import { processLiveMessages } from './live/events';
 import { payPage } from './sales/pay-page';
+import { runOps } from './ops/cron';
 
 const app = new Hono<AppEnv>();
 
@@ -313,6 +314,7 @@ export default {
       quiet(processDealSprintEmails(rt), 'deal sprint emails'),
       quiet(maybeSyncMetaSpend(rt), 'Meta ad spend'),
       quiet(processLiveMessages(rt), 'live webinar messages'),
+      quiet(runOps(rt), 'Command (routines, alerts, brief)'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

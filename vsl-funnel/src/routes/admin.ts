@@ -50,6 +50,7 @@ import { createZoomFor } from '../live/stream';
 import { MATERIAL_IDS, isMaterialId, parseMaterial, summarize } from '../admin/materials';
 import { dealSprintAdmin } from '../admin/deal-sprint';
 import { challengeAdmin } from '../challenge/admin';
+import { opsAdmin } from '../ops/routes';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -208,6 +209,7 @@ admin.put('/webinar/buyin/:id', async (c) => {
 admin.route('/webinar/live', liveAdmin); // host console (the real live layer)
 admin.route('/live-events', liveEventsAdmin); // live events on Zoom: join link, Zoom meeting, host start link
 admin.route('/deal-sprint', dealSprintAdmin); // Sprint board + ladder report
+admin.route('/ops', opsAdmin); // Funnel HQ → Command: chat, approvals, activity, routines, alerts, documents (src/ops/*)
 admin.route('/challenge', challengeAdmin); // Funnel HQ → Challenge (cohorts, registrants, report)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {

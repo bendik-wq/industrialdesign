@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -160,6 +160,17 @@ export const SETTINGS = [
   { key: 'GUARANTEE_CONDITIONS', label: 'Guarantee conditions (override, one per line)', group: 'Live funnel', placeholder: '', help: 'Blank = the approved five conditions (kickoff and financials within 7 days, weekly sessions, weekly owner outreach, replies within 2 business days, the buy box and the 1.5x test). Shown in full wherever the guarantee appears and written into the agreement.' },
   { key: 'AI_CALL_DAILY_CAP', label: 'Max AI calls per day (all leads)', group: 'Voice', placeholder: '40', help: 'A ceiling on outbound AI calls queued in any 24 hours, so a flood of fake sign-ups can’t run up a phone bill. Each number is also limited to 3 calls a week.' },
   { key: 'AI_CALL_CALLBACK_NUMBER', label: 'Callback number said on AI calls', group: 'Voice', placeholder: '+1 229 404 6271', help: 'Read out on every AI call and voicemail so people can call back (required for AI-voice calls to US numbers).' },
+
+  // ── Funnel HQ → Command: the Chief of Staff, approvals, routines, alerts and briefs (src/ops/*) ──
+  { key: 'OPS_MODEL', label: 'Command: chat model', group: 'Command', placeholder: 'claude-sonnet-5-5', help: 'The model that answers in the Command chat, runs routines and writes documents (needs the Anthropic API key under Email). Blank uses Claude Sonnet 5.5.' },
+  { key: 'OPS_AUTO_KINDS', label: 'Command: actions that run without approval', group: 'Command', placeholder: 'ops.document, ops.slack_message', help: 'Comma-separated action kinds (as shown in the Approvals queue) that run straight away instead of waiting for you. Blank = every proposed action waits for Approve. Anything that spends money, sends to leads in bulk, changes ads or contacts a client should stay off this list unless you mean it.' },
+  { key: 'OPS_TIMEZONE', label: 'Command: your time zone', group: 'Command', placeholder: 'Australia/Sydney', help: 'Routines, the morning brief and “yesterday” use this time zone. Blank = the sales team time zone.' },
+  { key: 'OPS_BRIEF_TIME', label: 'Command: morning brief time', group: 'Command', placeholder: '07:30', help: 'HH:MM in your time zone. Posted to Slack and the Command tab every day; on Mondays it is the weekend summary. off = no brief.' },
+  { key: 'OPS_MONITORS', label: 'Command: hourly alerts', group: 'Command', placeholder: 'on', help: 'on = every hour the last 24 hours and 7 days are compared with the period before for visitors, sign-ups, tickets, bookings, show rate, deals, Sprint and deposit sales and cost per lead and per booked call by campaign. off = no alerts.' },
+  { key: 'OPS_ALERT_DROP_PCT', label: 'Command: alert on a drop of (%)', group: 'Command', placeholder: '30', help: 'A metric that falls by at least this much against the period before raises an alert.' },
+  { key: 'OPS_ALERT_SPIKE_PCT', label: 'Command: alert on a rise of (%)', group: 'Command', placeholder: '50', help: 'A metric that rises by at least this much raises an alert (for costs, a rise is bad news).' },
+  { key: 'OPS_ALERT_MIN_COUNT', label: 'Command: smallest count worth an alert', group: 'Command', placeholder: '5', help: 'Changes on fewer than this many (in either period) are ignored, so one booking more or less never pages you.' },
+  { key: 'OPS_SLACK_WEBHOOK_URL', label: 'Command: Slack webhook for briefs and alerts', group: 'Command', secret: true, help: 'Optional separate channel for the brief, alerts, routine results and approvals. Blank = the team alerts webhook.' },
 
   { key: 'POSTHOG_KEY', label: 'PostHog project API key', group: 'Analytics', secret: true, placeholder: 'phc_…', help: 'Every event is mirrored to PostHog server-side.' },
   { key: 'POSTHOG_HOST', label: 'PostHog host', group: 'Analytics', placeholder: 'https://us.i.posthog.com' },
