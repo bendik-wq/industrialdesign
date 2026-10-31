@@ -113,23 +113,17 @@ export async function payTicket(rt: Runtime, reg: Registration, o: { confirmatio
 
   let pay: Record<string, unknown>;
   try {
-    pay = await whopApi<Record<string, unknown>>(rt, 'POST', 'payments', {
-      account_id: await whopCompanyId(rt),
-      variant: {
-        currency: cfg.currency.toLowerCase(), billing_type: 'one_time', initial_price: cfg.seat.price, title: 'Masterclass ticket', description: ticketDescription(cfg), visibility: 'hidden',
-        product: { external_identifier: WHOP_PRODUCT.seat, title: 'Masterclass ticket', visibility: 'hidden' },
-      },
-      confirmation_token: ctok,
-      setup_future_usage: 'off_session', // the page told the buyer the card is saved for a one-click Sprint
-      return_url: settleUrl,
+    pay = await createElementsPayment(rt, {
+      title: 'Masterclass ticket', description: ticketDescription(cfg), externalId: WHOP_PRODUCT.seat, price: cfg.seat.price, currency: cfg.currency,
+      confirmationToken: ctok, saveCard: true, // the page told the buyer the card is saved for a one-click Sprint
+      returnUrl: settleUrl,
       metadata: { pass_id: id, reg_id: reg.id, reg_token: reg.token, lead_id: reg.lead_id, kind: 'seat', embedded: '1' },
-    }, { version: WHOP_NATIVE_VERSION, idempotencyKey: `ticket_${id}` });
-    if (!str(pay.id)) throw new WhopError(0, 'Whop returned no payment id');
+      idempotencyKey: `ticket_${id}`,
+    });
   } catch (e) {
     await expire();
     const message = e instanceof Error ? e.message : String(e);
-    const status = e instanceof WhopError ? e.status : 0;
-    const declined = status !== 401 && status !== 403 && /declin|insufficient|do_not_honor|card_|incorrect|expired/i.test(`${message} ${e instanceof WhopError ? e.code ?? '' : ''}`);
+    const declined = paymentDeclined(e);
     console.error('ticket payment failed', message.slice(0, 300));
     if (!declined) await checkoutFailed(rt, { kind: 'seat', amount: cfg.seat.amount, currency: cfg.currency, title: 'Masterclass ticket', error: e, leadId: reg.lead_id }).catch((x) => console.error('ticket alert', x));
     return { ok: false, error: declined ? copy.declined : copy.failed, hosted };
@@ -144,6 +138,36 @@ export async function payTicket(rt: Runtime, reg: Registration, o: { confirmatio
   // A step left for the buyer (3D Secure, a redirect) or the charge still being decided: the browser
   // finishes it with the client secret, then comes back to the return page.
   return { ok: true, payment: payId, client_secret: str(pay.client_secret), settle: settleUrl };
+}
+
+/**
+ * One Whop payment from the payment elements' confirmation token (shared by the Masterclass ticket and the
+ * challenge ticket and VIP upgrade). saveCard keeps the method for a later one-click charge; the page must say so.
+ */
+export async function createElementsPayment(rt: Runtime, o: {
+  title: string; description: string; externalId: string; price: number; currency: string; confirmationToken: string;
+  saveCard: boolean; returnUrl: string; metadata: Record<string, string>; idempotencyKey: string;
+}) {
+  const pay = await whopApi<Record<string, unknown>>(rt, 'POST', 'payments', {
+    account_id: await whopCompanyId(rt),
+    variant: {
+      currency: o.currency.toLowerCase(), billing_type: 'one_time', initial_price: o.price, title: o.title, description: o.description, visibility: 'hidden',
+      product: { external_identifier: o.externalId, title: o.title, visibility: 'hidden' },
+    },
+    confirmation_token: o.confirmationToken,
+    ...(o.saveCard ? { setup_future_usage: 'off_session' } : {}),
+    return_url: o.returnUrl,
+    metadata: o.metadata,
+  }, { version: WHOP_NATIVE_VERSION, idempotencyKey: o.idempotencyKey });
+  if (!str(pay.id)) throw new WhopError(0, 'Whop returned no payment id');
+  return pay;
+}
+
+/** A card problem the buyer can fix (declined, insufficient funds), as opposed to our side failing. */
+export function paymentDeclined(e: unknown) {
+  const message = e instanceof Error ? e.message : String(e);
+  const status = e instanceof WhopError ? e.status : 0;
+  return status !== 401 && status !== 403 && /declin|insufficient|do_not_honor|card_|incorrect|expired/i.test(`${message} ${e instanceof WhopError ? e.code ?? '' : ''}`);
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

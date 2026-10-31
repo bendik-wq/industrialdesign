@@ -3,6 +3,7 @@ import { FOLLOWUP_TEMPLATES } from '../followup/templates';
 import { WEBINAR_TEMPLATES } from '../webinar/templates';
 import { PREWEBINAR_TEMPLATES } from '../webinar/prewebinar';
 import { LONG_TEMPLATES } from '../longflow';
+import { CHALLENGE_TEMPLATES, type ChallengeEmailCtx } from '../challenge/emails';
 
 /**
  * Email copy. Plain, personal, letter-style emails from Josh — they read like
@@ -30,6 +31,8 @@ export interface TemplateCtx {
   /** Long flows: the flow's main ask, and where the masterclass sign-up lives. */
   ask?: import('../longflow/kit').Ask;
   webinarUrl?: string;
+  /** The First Deal Challenge registration (ch_ emails): personal hub and day page links, days, VIP, offer deadline. */
+  challenge?: ChallengeEmailCtx | null;
 }
 
 /** The First Deal Sprint in the closing emails (webinar/sprint.ts sprintEmailContext). */
@@ -1309,7 +1312,7 @@ export const TEMPLATES: Record<string, Template> = {
 };
 
 // Follow-up written from each lead's application and booking answers (src/followup).
-Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES, WEBINAR_TEMPLATES, PREWEBINAR_TEMPLATES, LONG_TEMPLATES);
+Object.assign(TEMPLATES, FOLLOWUP_TEMPLATES, WEBINAR_TEMPLATES, PREWEBINAR_TEMPLATES, LONG_TEMPLATES, CHALLENGE_TEMPLATES);
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 

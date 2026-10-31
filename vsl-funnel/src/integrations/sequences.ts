@@ -7,6 +7,7 @@ import { REACTIVATE_C_ORDER } from '../followup/reactivation-c';
 import { FOLLOWUP_GROUPS, prepTemplates } from '../followup/templates';
 import { PREWEBINAR_IDS } from '../webinar/prewebinar';
 import { PAGE_RULES } from '../longflow/page-rules';
+import { CH_CYCLE, CH_STEPS, challengeSkip, challengeStop } from '../challenge/emails';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -386,6 +387,14 @@ export const SEQUENCES = {
       { template: 'won_5', offsetMs: 14 * DAY },
       { template: 'won_6', offsetMs: 30 * DAY },
     ],
+  },
+  challenge: {
+    id: 'challenge',
+    description: 'The First Deal Challenge: confirmation, daily reminders, replay and worksheet nudges, VIP notes, offer emails until the deadline',
+    // One block per challenge registration; send times come from the cohort's days (challenge/emails.ts).
+    cycle: CH_CYCLE,
+    stopIfAsync: challengeStop,
+    steps: CH_STEPS.map((template) => ({ template, offsetMs: 0, skipIfAsync: challengeSkip(template) })),
   },
   nurture: {
     id: 'nurture',

@@ -2731,7 +2731,7 @@
     call: [{ v: 'before', label: 'before the call' }, { v: 'after', label: 'after the call starts' }],
     webinar: [{ v: 'before', label: 'before the webinar' }, { v: 'after', label: 'after the webinar starts' }],
   };
-  var SMS_LINK_LABEL = { none: 'No link', join: 'Meeting link (join)', reschedule: 'Reschedule link', book: 'Booking page', apply: 'Application', breakout: 'Prep video page', webinar_room: 'Their webinar room', webinar_replay: 'Webinar replay' };
+  var SMS_LINK_LABEL = { none: 'No link', join: 'Meeting link (join)', reschedule: 'Reschedule link', book: 'Booking page', apply: 'Application', breakout: 'Prep video page', webinar_room: 'Their webinar room', webinar_replay: 'Webinar replay', challenge_today: 'Their challenge day page' };
   var SMS_SKIP_LABEL = { applied: 'they’ve applied', booked: 'they’ve booked', confirmed: 'they replied C', attended: 'they came to the webinar', missed: 'they missed the webinar', clicked: 'they clicked an earlier text' };
   var SMS_TAGS = ['first_name', 'call_time', 'closer', 'link', 'webinar_time', 'site_name'];
   var SAMPLE = { first_name: 'Dana', call_time: 'Thursday 16 October, 10:00 am AEDT', closer: 'Josh Li', link: 'apply.grosfjeld-li.com/s/k3x9q2', webinar_time: 'Tuesday 20 October, 7:00 pm AEDT', site_name: 'G&L' };
@@ -2805,6 +2805,7 @@
       var rels = (rel.trigger).map(function (r) { return { a: 'trigger', v: r.v, label: r.label }; });
       if (seq.id === 'booked' || seq.id === 'no_show' || seq.id === 'showed') rels = rels.concat(rel.call.map(function (r) { return { a: 'call', v: r.v, label: r.label }; }));
       if (seq.id === 'webinar') rels = rels.concat(rel.webinar.map(function (r) { return { a: 'webinar', v: r.v, label: r.label }; }));
+      if (seq.id === 'challenge') [1, 2, 3, 4, 5].forEach(function (d) { rels = rels.concat([{ a: 'day' + d, v: 'before', label: 'before Day ' + d + ' starts' }, { a: 'day' + d, v: 'after', label: 'after Day ' + d + ' starts' }]); });
       var relSel = '<select class="input" data-f="rel">' + rels.map(function (r) { var val = r.a + ':' + r.v; return '<option value="' + val + '"' + (st.anchor === r.a && (r.a === 'trigger' || r.v === dir) ? ' selected' : '') + '>' + esc(r.label) + '</option>'; }).join('') + '</select>';
       var prev = smsPreview(st.body);
       var segs = smsSegs(prev + (st.link !== 'none' && st.body.indexOf('{link}') < 0 ? ' ' + SAMPLE.link : ''));
