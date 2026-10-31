@@ -93,6 +93,7 @@ export function guaranteeHtml(rt: Runtime): string {
     <p class="gt-c-l">It applies when you do your part:</p>
     <ul class="gt-c">${g.conditions.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
     <p class="gt-def">${g.definitions.map(esc).join(' ')}</p>
+    <p class="gt-def"><strong>${esc(g.moneyBack.headline)}:</strong> ${esc(g.moneyBack.body)}</p>
     <p class="gt-def"><strong>The deposit itself:</strong> ${esc(DEPOSIT_REFUND_TERMS)}</p>
     <p class="gt-link"><a href="${esc(g.url)}">Read the guarantee and its conditions</a></p>
   </section>`;

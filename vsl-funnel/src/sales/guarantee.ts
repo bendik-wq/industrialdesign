@@ -1,7 +1,8 @@
 import type { Runtime } from '../app';
 
 /**
- * The engagement guarantee (owner approved): "Signed LOI in 90 days, or we keep working free".
+ * The engagement guarantees (owner approved): a 7-day money-back guarantee, then "Signed LOI in 90 days, or we
+ * keep working free".
  * One wording everywhere it is advertised (the live room's deposit offer, the challenge pitch, the welcome
  * page, /guarantee) and written into the engagement agreement, always with its conditions in full and a link
  * to them. Settings may override the wording (GUARANTEE_HEADLINE, GUARANTEE_BODY, GUARANTEE_CONDITIONS, one
@@ -22,9 +23,12 @@ export const GUARANTEE_DEFINITIONS = [
   'A letter of intent means a signed, non-binding LOI with a seller for a business inside the agreed buy box.',
   'The guarantee doesn’t promise financing, a closed acquisition, or any return.',
 ];
+/** The program's 7-day money-back guarantee (owner confirmed): it runs alongside the LOI guarantee and has no conditions. */
+export const MONEY_BACK_HEADLINE = '7-day money-back guarantee';
+export const MONEY_BACK_BODY = 'If the engagement isn’t right for you, tell the team within 7 days of signing and you get a full refund of everything you paid. No conditions apply in those first 7 days. After that, the LOI guarantee covers you.';
 export const LEGAL_REVIEW_NOTE = 'For legal review: the guarantee wording and conditions have not been reviewed by an attorney yet.';
 
-export interface Guarantee { headline: string; body: string; conditions: string[]; definitions: string[]; url: string }
+export interface Guarantee { headline: string; body: string; conditions: string[]; definitions: string[]; url: string; moneyBack: { headline: string; body: string } }
 
 const clean = (v: string | undefined) => (v ?? '').replace(/[<>]/g, '').trim();
 
@@ -37,6 +41,7 @@ export function guarantee(rt: Pick<Runtime, 'settings' | 'origin'>): Guarantee {
     conditions: conditions.length ? conditions.slice(0, 12) : GUARANTEE_CONDITIONS,
     definitions: GUARANTEE_DEFINITIONS,
     url: `${rt.origin}/guarantee`,
+    moneyBack: { headline: MONEY_BACK_HEADLINE, body: clean(s.MONEY_BACK_BODY) || MONEY_BACK_BODY },
   };
 }
 

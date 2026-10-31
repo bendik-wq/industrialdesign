@@ -141,6 +141,8 @@ export function termsHtml(rt: Runtime, k: Terms, date = Date.now()) {
   const due = feeDue(k);
   // The LOI guarantee with its conditions (sales/guarantee.ts), unless switched off in settings.
   const g = guaranteeInAgreements(rt.settings) ? guarantee(rt) : null;
+  // The 7-day money-back guarantee is in every engagement agreement.
+  const mb = guarantee(rt).moneyBack;
   let n = 0;
   const out = [
     `<h1>${escHtml(k.title || 'Advisory Agreement')}</h1>`,
@@ -148,6 +150,7 @@ export function termsHtml(rt: Runtime, k: Terms, date = Date.now()) {
     `<p class="parties-line">Between <strong>${escHtml(co.name)}</strong>, ${escHtml(co.entity)}${co.address ? `, ${escHtml(co.address)}` : ''} (“<strong>G&amp;L</strong>”, “we”), and <strong>${escHtml(client)}</strong>${k.client_email ? ` (${escHtml(k.client_email)})` : ''} (“<strong>you</strong>”).</p>`,
     clause(++n, 'What we do', `We advise you on buying a business: ${scope.length ? scope.map((x) => escHtml(/^[A-Z][a-z]/.test(x) ? x[0].toLowerCase() + x.slice(1) : x)).join('; ') : 'acquisition strategy, finding targets, deal structuring and negotiation support'}.`),
     clause(++n, 'Fee', `Our fee is <strong>${escHtml(money(k.fee, k.currency))}</strong>, ${escHtml((k.payment_terms || 'Due in full on signing.').replace(/^./, (ch) => ch.toLowerCase()).replace(/\.?$/, '.'))}${due.credit ? ` ${escHtml(due.label!)}: <strong>${escHtml(due.creditText!)}</strong>. Net amount due: <strong>${escHtml(money(due.net, k.currency))}</strong>.` : ''}${k.success_fee ? ` <strong>Success fee:</strong> ${escHtml(k.success_fee.replace(/\.?$/, '.'))}` : ''} The fee pays for our time and expertise, is earned when paid and is <strong>non-refundable</strong>${g ? ' (except as the guarantee in this agreement provides)' : ''}, whether or not you complete a deal. Third-party costs (lenders, attorneys, valuers, due diligence) are yours. If you have a billing concern, raise it with us first rather than disputing or charging back a payment.`),
+    clause(++n, mb.headline.replace(/^./, (ch) => ch.toUpperCase()), `${escHtml(mb.body)} The 7 days run from the date both parties sign. Refunds go back to the original payment method.`),
     clause(++n, 'What we are not', 'We are business advisers. We are not your attorney, accountant, lender, investment adviser or broker-dealer. We don’t hold your money, sell securities, or give legal, tax or investment advice. Get your own professional advice before you sign any deal.'),
     clause(++n, g ? 'No other promise' : 'No guarantee', `Deals depend on sellers, lenders and markets we don’t control. ${g ? 'Apart from the guarantee in the next section, we' : 'We'} don’t promise that you will buy a business, obtain financing, or achieve any price, return or timeline. Any figures we share are estimates for discussion.`),
     ...(g ? [clause(++n, `Guarantee: ${g.headline}`, `${escHtml(g.body)} The guarantee applies only if you meet every one of these conditions: ${g.conditions.map((x, i) => `(${String.fromCharCode(97 + i)}) ${escHtml(x.replace(/\.$/, ''))}`).join('; ')}. ${g.definitions.map(escHtml).join(' ')} The 90 days run from the date both parties sign. To claim, email us within 14 days after the 90 days end; we confirm the conditions from our session and outreach records.`)] : []),

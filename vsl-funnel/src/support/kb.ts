@@ -40,7 +40,7 @@ export function chunkMarkdown(md: string, max = 1400): { heading: string; text: 
 export function staticPassages(rt: Pick<Runtime, 'settings' | 'origin'>): Passage[] {
   const out: Passage[] = [];
   const g = guarantee(rt);
-  out.push({ id: 'guarantee', weight: 1.6, title: `The guarantee: ${g.headline}`, url: g.url, internal: false, text: [g.body, 'Conditions:', ...g.conditions, ...GUARANTEE_DEFINITIONS].join('\n') });
+  out.push({ id: 'guarantee', weight: 1.6, title: `The guarantee: ${g.headline}`, url: g.url, internal: false, text: [g.body, 'Conditions:', ...g.conditions, ...GUARANTEE_DEFINITIONS, `${g.moneyBack.headline}: ${g.moneyBack.body}`, 'Both guarantees cover the engagement and do not conflict: the 7-day money-back guarantee applies first, then the LOI guarantee.'].join('\n') });
   const dep = depositConfig(rt as Runtime);
   out.push({
     id: 'offer-deposit', weight: 1.4, title: 'Engagement deposit terms', url: g.url, internal: false,

@@ -293,6 +293,8 @@ export async function guaranteePage(c: Context<AppEnv>) {
     <ol class="lv-next">${g.conditions.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
     <h2 class="lv-h2">What it means</h2>
     ${g.definitions.map((x) => `<p class="lv-offer-p">${esc(x)}</p>`).join('')}
+    <h2 class="lv-h2">${esc(g.moneyBack.headline)}</h2>
+    <p class="lv-offer-p">${esc(g.moneyBack.body)}</p>
     <p class="lv-offer-p">The 90 days run from the date both parties sign the engagement agreement. To claim, email the team within 14 days after the 90 days end. The team confirms the conditions from the session and outreach records. Your engagement agreement holds the binding wording.</p>
   </div></section>`;
   return render(c, '/live.html', { title: 'The guarantee', blocks: { navmeta: '', main }, seo: { title: `${g.headline} | G&L M&A Advisory`, description: g.body, path: '/guarantee', index: false } });
