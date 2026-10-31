@@ -55,7 +55,6 @@ export function sprintStartCopy(o: { offerName: string; price: string; whop: boo
     missing: 'Add your revenue, your EBITDA and your industry, then continue.',
     privacy: 'Your answers go to Josh’s team only, and they fill in your Sprint intake for you.',
     secure: o.whop ? 'Secure checkout by Whop.' : 'Secure payment by Stripe.',
-    payLater: 'Pay by card, or in instalments with Klarna, Afterpay or Splitit where they are offered to you.',
     emailTeam: 'Email the team',
     backToOffer: 'Back to the offer',
   };
@@ -169,7 +168,7 @@ export function startFormHtml(o: {
       <details class="ss-more"${filled ? ' open' : ''}><summary>${esc(t.more)}</summary><div>${optional.map(field).join('')}</div></details>
       <div class="ss-submit"><button class="buy-btn buy-btn-xl" type="submit"${o.preview ? ' disabled title="Preview"' : ''}><span>${esc(t.button)}</span>${arrow}</button></div>
       ${o.guarantee ? `<p class="ss-g">${shield}<span>${esc(o.guarantee)}</span></p>` : ''}
-      <p class="ss-fine">${esc(t.secure)}${o.whop ? ` ${esc(t.payLater)}` : ''} ${esc(t.privacy)}</p>
+      <p class="ss-fine">${esc(t.secure)} ${esc(t.privacy)}</p>
     </form>
   </div>
   <p class="ss-back"><a href="${esc(o.offerUrl)}">${esc(t.backToOffer)}</a></p>`;
@@ -180,7 +179,7 @@ async function formPage(c: Context<AppEnv>, g: Extract<Gate, { ok: true }>, o: {
   const { cfg, plan } = sprintSettings(rt);
   const credit = await ticketCredit(rt, reg.lead_id, cfg.currency);
   const price = sprintPrice(cfg, plan, credit);
-  const usePlan = o.plan && Boolean(price.plan);
+  const usePlan = false; // one payment only: buyers can't spread it
   let values = o.values;
   if (!values) {
     // Prefill: what they answered before, else their revenue band from the registration (or the lead).
@@ -228,7 +227,7 @@ export async function sprintStartSubmit(c: Context<AppEnv>) {
   const g = await sprintStartGate(runtimeFrom(c), c.req.param('token') ?? '');
   if (!g.ok) return g.redirect ? c.redirect(g.redirect, 303) : page(c, g.title, g.html);
   const form = (await c.req.parseBody().catch(() => ({}))) as Record<string, unknown>;
-  const plan = form.plan === '1';
+  const plan = false; // one payment only
   const { data, complete } = cleanApplication(form);
   if (!complete) return c.redirect(`${c.req.path}?missing=1${plan ? '&plan=1' : ''}`, 303);
   await saveApplication(g.rt, g.reg, data);

@@ -51,7 +51,6 @@ export function offerBuyHtml(S: SprintRoom, now = Date.now(), o: { full: boolean
       <div class="buy-price">${S.credit ? `<s class="buy-anchor">${esc(S.listPrice)}</s>` : ''}<span class="buy-today"><b>${esc(S.price)}</b> ${esc(C.today)}</span>${S.credit ? `<span class="buy-credit">${esc(fill(C.creditApplied, { credit: S.credit }))}</span>` : ''}</div>
       <p class="buy-steps"><span class="on">${esc(C.stepNow)}</span><span aria-hidden="true">→</span><span>${esc(C.stepNext)}</span></p>
       ${button}
-      ${S.plan && !S.full ? `<button type="button" class="buy-plan" data-sprint-buy="plan" data-where="offer">${esc(S.plan.line)}</button>` : ''}
       <p class="buy-micro">${esc(micro)}</p>
       <p class="buy-guarantee">${SHIELD}<span>${o.full ? `<strong>${esc(C.guaranteeBadge)}.</strong> ${esc(S.guarantee)}` : esc(C.guaranteeShort)}</span></p>
       ${S.whop && o.full ? `<div class="buy-pay"><ul aria-label="${esc(C.payments)}">${C.paymentBadges.map((b) => `<li>${esc(b)}</li>`).join('')}</ul><p>${esc(C.payments)}</p></div>` : ''}
