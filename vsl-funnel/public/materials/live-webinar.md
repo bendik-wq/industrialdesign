@@ -909,13 +909,15 @@ That's for ninety days of my team working beside you on every part of your first
 
 You don't pay that tonight. Tonight, a five thousand dollar deposit locks your place in this intake.
 
-Every dollar of the deposit comes off your engagement fee. If you're in the forty thousand dollar band, the balance is thirty-five thousand. If you're in the fifty thousand band, it's forty-five.
+Every dollar of the deposit comes off your engagement fee. And the hundred dollars you paid for your ticket to tonight comes off the deposit, so tonight it's four thousand nine hundred. If you're in the forty thousand dollar band, the balance after the deposit is thirty-five thousand. If you're in the fifty thousand band, it's forty-five.
 
-[ON SCREEN: $5,000 tonight. Credited in full against the engagement fee. The balance is due when you sign the engagement agreement.]
+[ON SCREEN: $5,000 tonight, less your $100 ticket · Credited in full against the engagement fee · Refundable until you sign · The balance is due when you sign]
 
 After you place your deposit, my team books a short onboarding call with you. That call is to confirm your band, answer the practical questions and set your kickoff date. It's onboarding for people who've already decided, not a sales call. Then you sign the engagement agreement, the balance is due on signing, and the guarantee is written into that agreement.
 
 If you bought a ticket with a card, placing the deposit is one tap in the room tab. If not, it's a short checkout right there on the same page.
+
+And one more thing about the deposit, because careful owners ask. It's refundable until you sign. If you have your onboarding call and decide not to go ahead, tell my team within fourteen days and the deposit comes back in full. Once you sign, it becomes part of the fee, and the guarantee covers everything you paid.
 
 [HOST: PIN Deposit: $5,000, credited in full. The button is in the room tab.]
 

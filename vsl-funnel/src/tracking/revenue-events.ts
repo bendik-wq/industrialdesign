@@ -36,7 +36,7 @@ export function revenueMetaName(name: string, props: Record<string, unknown>): s
 export const REVENUE_EVENT_NAMES = new Set(['revenue_band', 'qualified_1m_plus', 'qualified_any_1m_plus', 'qualified_10m_plus']);
 
 /** Fire the band event, then the $1M+ events (overall and for this funnel) and $10M+ when they apply. */
-export async function trackRevenueEvents(rt: Runtime, who: TrackIdentity, band: string | null, funnel: 'webinar' | 'application', path: string) {
+export async function trackRevenueEvents(rt: Runtime, who: TrackIdentity, band: string | null, funnel: 'webinar' | 'application' | 'challenge', path: string) {
   if (!band || !BAND_EVENT[band]) return;
   const props = { band, funnel };
   await track(rt, who, { name: 'revenue_band', source: 'server', path, props });

@@ -42,7 +42,7 @@ On Day 1 you found your capacity: the profit range of a business you can run, an
 
 Day 3 gave you your owners: five places to find them, a list of ten, a first message with four lines and no price, and the second conversation, where you explain how you'd pay from the seller's side. And on Day 4 you built the stack, commercial debt, seller finance and seller rollover, ran the test, and learned the four levers for a deal that fails it.
 
-[ON SCREEN: Day 1 capacity · Day 2 buy box · Day 3 owners and outreach · Day 4 the stack and the test · Day 5 the plan.]
+[ON SCREEN: Day 1 capacity · Day 2 buy box · Day 3 owners and outreach · Day 4 the stack and the test · Day 5 the plan]
 
 That's the method. Today it becomes one page, and one decision.
 
@@ -60,7 +60,7 @@ Thank you. If you've done all four, today's worksheet takes you twenty minutes. 
 
 Here's your deal plan. It's one page with seven sections, and you've already written most of it.
 
-[ON SCREEN: 1. Capacity · 2. Buy box · 3. Owner list and first message · 4. The stack · 5. The test and the levers · 6. The order of conversations · 7. The first 90 days.]
+[ON SCREEN: 1) Capacity · 2) Buy box · 3) Owner list and first message · 4) The stack · 5) The test and the levers · 6) The order of conversations · 7) The first 90 days]
 
 I'm going to walk through each section, show you what goes in it, and tell you the one mistake to check for. Then I'll show you a complete plan, a composite, so you can see what good looks like.
 
@@ -72,7 +72,7 @@ Over five days, you've produced a lot: numbers, lists, messages, structures. Spr
 
 It's also something you can hand to someone else. Your accountant, your lawyer, a business partner, a lender. When they read it, they see an owner who has thought it through, and that changes how every one of them treats you.
 
-[SLIDE: Section 1. Capacity.]
+[SLIDE: Section 1) Capacity]
 
 Section one is your capacity, from Day 1. Two lines. The profit range of a first target you can run. And the price that profit can carry at one and a half times, on the terms you expect to get.
 
@@ -80,13 +80,13 @@ Add the honest answer to who runs your business on the days you're in the new on
 
 The mistake to check for: a capacity built on your own profit instead of the target's, or on a seller's profit that hasn't been rebuilt with a fair salary for the person who'll run it.
 
-[SLIDE: Section 2. Buy box.]
+[SLIDE: Section 2) Buy box]
 
 Section two is your buy box, from Day 2. Your eight lines, then the two-sentence version you'd say to an owner on the phone.
 
 The mistake to check for: a buy box that's too broad. If someone else couldn't build a list from it without asking you anything, tighten it.
 
-[SLIDE: Section 3. Owners and the first message.]
+[SLIDE: Section 3) Owners and the first message]
 
 Section three is your owner list and your first message, from Day 3. The ten owners with their columns, the one you'd contact first and why, and your four-line message with a real line two.
 
@@ -94,7 +94,7 @@ Add your weekly rhythm: twenty-five owner contacts a week, the day and time you'
 
 The mistake to check for: a plan that sends ten messages and stops. The list is the start. The rhythm is what turns it into deals.
 
-[SLIDE: Section 4. The stack.]
+[SLIDE: Section 4) The stack]
 
 Section four is your stack, from Day 4. For your first target, or a realistic version of it: the price, the split, and the dollar amount of each piece. Commercial debt, seller finance and seller rollover.
 
@@ -102,7 +102,7 @@ Add the working capital line if the deal needs one, with its payment.
 
 The mistake to check for: a stack with no rollover. Rollover is the piece with no yearly payment, and leaving it out makes every deal harder to pass.
 
-[SLIDE: Section 5. The test and the levers.]
+[SLIDE: Section 5) The test and the levers]
 
 Section five is the test and the levers, also from Day 4. The yearly payments on each piece, the total, and the coverage. If it fails, the levers you'd pull, in the order you'd offer them to the seller, and the coverage after each.
 
@@ -110,21 +110,21 @@ And one more line: your walk-away point. The price, or the coverage, at which yo
 
 The mistake to check for: a test run on year one of a payment holiday. Run it on the years after the holiday ends.
 
-[SLIDE: Section 6. The order of conversations.]
+[SLIDE: Section 6) The order of conversations]
 
 Section six is the order of your conversations. Four steps, with names. The seller: agree the shape. You: run the test. The lender: which lenders you'll approach, in what order. And the letter of intent: which lawyer and accountant check it before you sign.
 
 The mistake to check for: a lender at step one. The seller comes first, because the seller's pieces decide the bank's.
 
-[SLIDE: Section 7. The first ninety days.]
+[SLIDE: Section 7) The first ninety days]
 
 And section seven is the first ninety days, which I'll walk through in a minute. It's the calendar that turns the other six sections into actions.
 
-[SLIDE: A complete deal plan. A composite, for illustration only.]
+[SLIDE: A complete deal plan · A composite, for illustration only]
 
 Here's what a complete plan looks like. This is a composite, made up to show the shape, with illustrative numbers.
 
-[ON SCREEN: Composite deal plan. Capacity: target profit $300K to $600K, price up to about 3.3x, operations manager runs our business two days a week. Buy box: physiotherapy clinics, competitor, within 90 minutes, owner 15+ years with no successor, senior clinician in place, 3 years clean financials, no referrer over 20%. Owners: 10 listed, first message drafted, 25 contacts a week on Monday to Friday mornings. Stack: $1.5M at 70/20/10 with a $150K working capital line. Test: about 1.6x. Levers in order: longer note, more rollover, price. Walk away below 1.5x after levers. Order: seller, test, two lenders, LOI checked by our accountant and lawyer.]
+[ON SCREEN: Composite deal plan · Capacity: target profit $300K to $600K, price up to about 3.3x, operations manager runs our business two days a week · Buy box: physiotherapy clinics, competitor, within 90 minutes, owner 15+ years with no successor, senior clinician in place, 3 years clean financials, no referrer over 20% · Owners: 10 listed, first message drafted, 25 contacts a week on Monday to Friday mornings · Stack: $1.5M at 70/20/10 with a $150K working capital line · Test: about 1.6x · Levers in order: longer note, more rollover, price · Walk away below 1.5x after levers · Order: seller, test, two lenders, LOI checked by our accountant and lawyer]
 
 Capacity: a target making three to six hundred thousand a year in profit, at a price up to about three point three times, with an operations manager who runs the main business two days a week.
 
@@ -144,25 +144,25 @@ Type in the chat which section of your plan is weakest right now. One to seven.
 
 Thank you. Whatever number you typed, that's where your weekend goes. A plan with one weak section is a plan with one clear next step.
 
-[SLIDE: What your plan is worth. Illustrative.]
+[SLIDE: What your plan is worth · Illustrative]
 
 Before we go to the calendar, let's put a value on the plan, so you know what's at stake when you decide how to run it.
 
 Take the illustrative deal we've used all week. A business making five hundred thousand dollars a year in profit, bought for one and a half million, at seventy, twenty, ten, with a working capital line. Payments of about three hundred and seventeen thousand a year, including the line.
 
-[ON SCREEN: Illustrative. $500,000 profit · about $317,000 a year in payments · about $183,000 a year left over · the debt paid down by the business itself.]
+[ON SCREEN: Illustrative · $500,000 profit · about $317,000 a year in payments · about $183,000 a year left over · the debt paid down by the business itself]
 
 After every payment, the business has about a hundred and eighty-three thousand dollars a year left over. That's cash flow from a business you bought with none of your own money in the deal, on these illustrative numbers.
 
 And every year, the business pays down its own debt. The bank loan shrinks, the seller's note gets paid off in four years, and the share of the business that's truly yours grows without you adding a dollar.
 
-[SLIDE: And the multiple. Illustrative.]
+[SLIDE: And the multiple · Illustrative]
 
 Then there's the multiple. Remember the illustration from Day 1: one small business at three to five times profit, a group at eight to twelve times.
 
 Your current business plus that first acquisition is the start of a group. Two businesses, each making five hundred thousand, are worth an illustrative four million sold one at a time at four times profit. Put them under a management team and sold as a group at nine times, the same million dollars of profit is worth nine million.
 
-[ON SCREEN: Illustrative. Two businesses × $500,000 at 4x = $4M. As one group with $1M profit at 9x = $9M.]
+[ON SCREEN: Illustrative · Two businesses × $500,000 at 4x = $4M · As one group with $1M profit at 9x = $9M]
 
 Those are illustrative numbers, and the real ones depend on your industry, your market and what you build. But the shape is real, and it's why funds are buying the businesses in your market right now.
 
@@ -178,7 +178,7 @@ The second gap is a list with no connections. If the "how you're connected" colu
 
 The third gap is a stack with no rollover. If your stack is just bank and note, add a rollover line and rerun the test. Even five or ten percent of the price in rollover lowers the payments, and it gives you something to offer a seller who wants to stay involved.
 
-[ON SCREEN: Three gaps: a capacity built on a guess · a list with no connections · a stack with no rollover.]
+[ON SCREEN: Three gaps: a capacity built on a guess · a list with no connections · a stack with no rollover]
 
 Close those three, and your plan is ready to run on Monday, whichever way you decide to run it.
 
@@ -190,33 +190,33 @@ Now section seven. Here's what the first ninety days look like if you run this p
 
 I'm going to be precise about what's in your control and what isn't. You control the work. You don't control when a particular owner is ready, what a lender decides, or what due diligence finds. The plan is built around the work, because that's what moves the rest.
 
-[SLIDE: Weeks 1 and 2. Foundations.]
+[SLIDE: Weeks 1 and 2) Foundations]
 
 Weeks one and two are foundations. You confirm your capacity with your real numbers and your accountant, and the buy box gets tightened. The holding company structure goes to your advisers to set up, or at least to start. And your owner list grows from ten to fifty, using all five places from Day 3.
 
 And you write your scripts: the first message, the two follow-ups, and the answers to the five things owners say. By the end of week two, outreach is ready to run every week without you having to think about it.
 
-[ON SCREEN: Weeks 1 and 2: confirm capacity · tighten the buy box · start the holding company · build the list to 50 · write the scripts.]
+[ON SCREEN: Weeks 1 and 2: confirm capacity · tighten the buy box · start the holding company · build the list to 50 · write the scripts]
 
-[SLIDE: Weeks 3 to 6. Outreach and first conversations.]
+[SLIDE: Weeks 3 to 6) Outreach and first conversations]
 
 Weeks three to six are outreach and first conversations. Twenty-five owner contacts a week, every week. First messages, follow-ups, calls from introductions.
 
 The owners who reply get a coffee. You run the first conversation, listen for their timeline and their fears, and end with a small next step. By the end of week six, you've made around a hundred contacts and had your first conversations. Some owners will have said not now. Write down when to check back, and do.
 
-[SLIDE: Weeks 7 to 10. Second conversations and the first pass.]
+[SLIDE: Weeks 7 to 10 · Second conversations and the first pass]
 
 Weeks seven to ten are second conversations and the first pass. The owners who are interested hear how you'd pay, from their side: their people, their name, their role, then the three parts. The ones that go well sign an NDA and send three years of financials.
 
 You run the first pass on each set of financials: statements against tax returns, rebuilt profit, trend, concentration, and the test. Most deals end here, and that's good. You keep the outreach going every week, because the next owner is still out there.
 
-[ON SCREEN: Weeks 7 to 10: second conversations · NDAs and financials · the first pass and the test · outreach every week.]
+[ON SCREEN: Weeks 7 to 10: second conversations · NDAs and financials · the first pass and the test · outreach every week]
 
-[SLIDE: Weeks 11 to 13. Shape, lender and letter of intent.]
+[SLIDE: Weeks 11 to 13 · Shape, lender and letter of intent]
 
 Weeks eleven to thirteen are shape, lender and letter of intent. When a deal passes the test, you agree the shape with the seller, pulling levers if needed and offering choices. You take the shape to lenders with your one-page deal summary. And when the shape holds, you put it in a letter of intent, checked by your lawyer and accountant.
 
-[ON SCREEN: Weeks 11 to 13: agree the shape · lender conversations · a signed letter of intent.]
+[ON SCREEN: Weeks 11 to 13: agree the shape · lender conversations · a signed letter of intent]
 
 That's the plan. It's demanding, and none of it is complicated. Every step is something you've learned this week.
 
@@ -238,7 +238,7 @@ It stalls in week three, when the outreach stops because the business had a busy
 
 It stalls at the first pass, when the financials arrive and the buyer can't tell whether the add-backs are real. Then there.s week eleven, when the deal fails the test and the buyer pulls the wrong lever, or forces it on the seller. And it stalls at the lender, when a buyer walks in without a structure, or with one that doesn't fit the lender's rules.
 
-[ON SCREEN: Where first deals stall: outreach stops · "I want all cash" · add-backs you can't verify · the wrong lever · the wrong lender, or the lender first.]
+[ON SCREEN: Where first deals stall: outreach stops · "I want all cash" · add-backs you can't verify · the wrong lever · the wrong lender, or the lender first]
 
 Every one of those is avoidable. And every one of them is a place where someone who's seen it before changes the outcome. Keep that list in mind, because it's the list the second half of today is built around.
 
@@ -248,7 +248,7 @@ People always ask how many hours this takes, so here's an honest answer for a we
 
 About thirty minutes a day on outreach, five days a week. One or two owner conversations, an hour each, including travel. An hour or two on financials when a set arrives. And an hour of working time on the plan itself: reviewing the list, preparing for the next conversation, and updating the numbers.
 
-[ON SCREEN: A typical week: 2.5 hours of outreach · 1 to 2 owner conversations · 1 to 2 hours on financials · 1 hour on the plan.]
+[ON SCREEN: A typical week: 2.5 hours of outreach · 1 to 2 owner conversations · 1 to 2 hours on financials · 1 hour on the plan]
 
 Call it six to eight hours a week. It's real time, and it's less than most owners in this room spend fixing problems that a manager should be fixing. The owners who make it work protect those hours in the calendar, the same way they'd protect a meeting with their biggest customer.
 
@@ -262,7 +262,7 @@ The second belief was about you: I wouldn't know how. You now have a capacity nu
 
 The third belief was about the outside world: the sellers, the banks, the market. You've seen where the owners with no successor are, and how to reach them before a broker does. Banks, as you now know, reject structures rather than buyers, and you know how to bring a structure they can say yes to. And you've seen that the mechanics hold in Australia and the United States alike.
 
-[ON SCREEN: The vehicle works · you know how · the sellers and lenders are there. What's left is how you run the plan.]
+[ON SCREEN: The vehicle works · you know how · the sellers and lenders are there · What's left is how you run the plan]
 
 Type in the chat whether the belief you picked on Day 1 is still standing. Yes or no.
 
@@ -272,7 +272,7 @@ Thank you. For most owners, by Day 5, the beliefs are gone and something more pr
 
 ## [25:01] Hot seat: your deal plan
 
-[SLIDE: Hot seat. Your deal plan, live.]
+[SLIDE: Hot seat · Your deal plan, live]
 
 Before we move on, let's review one plan live. If you'd like to put your deal plan on screen, raise your hand in Zoom, and my team will bring you up. Rounded numbers are fine, and no business names.
 
@@ -312,7 +312,7 @@ For the next part of this session, there's one decision on the table, and I'd li
 
 You've got a deal plan. The question is how you run it. There are really only three ways.
 
-[ON SCREEN: Three ways to run your plan: put it in a drawer · run it on your own · run it with my team in the room for 90 days.]
+[ON SCREEN: Three ways to run your plan: put it in a drawer · run it on your own · run it with my team in the room for 90 days]
 
 The first way is to put it in a drawer. The week was interesting, the plan is good, and then Monday comes, the business takes the week, and the plan stays where it is. I'm not going to pretend that isn't the most common outcome of any course or challenge, because it is.
 
@@ -323,7 +323,7 @@ The third way is to run it with my team in the room, for ninety days, aimed at o
 That's the offer, and I'm going to take you through all of it now. What's in it, why each part exists, what it costs, the deposit tonight, and the guarantee, word for word, with its conditions.
 
 [HOST: OPEN OFFER]
-[ON SCREEN: The offer is open. Go back to the tab you joined from.]
+[ON SCREEN: The offer is open · Go back to the tab you joined from]
 
 The offer is open now. Go back to the tab you joined from, the button is there now. You'll see the engagement deposit, the guarantee with its conditions, and the deadline.
 
@@ -341,7 +341,7 @@ And you've just seen the list of places a first deal stalls. Outreach that stops
 
 Before I show you the engagement, let me put the three ways side by side, honestly, so you can see what each one costs and what each one gets you.
 
-[ON SCREEN: The drawer: costs nothing today, costs the most over time · On your own: costs less in fees, more in time and mistakes · With my team: costs a fee, carries a guarantee, and has someone in the room at every stall point.]
+[ON SCREEN: The drawer: costs nothing today, costs the most over time · On your own: costs less in fees, more in time and mistakes · With my team: costs a fee, carries a guarantee, and has someone in the room at every stall point]
 
 The drawer costs nothing today. It's also the most expensive option over time, because it keeps you exactly where you are: at the ceiling, building value at a single business multiple, while the owners with no successor in your market sell to someone else.
 
@@ -367,81 +367,81 @@ It's built on the model we've used all week, which we call the 3C model: Capabil
 
 Here are the pieces, one at a time, with the reason for each one.
 
-[SLIDE: Piece 1. Kickoff and your starting point.]
+[SLIDE: Piece 1) Kickoff and your starting point]
 
 The first piece is the kickoff, in your first week. We go through your business, your real numbers and the last two years of your financials. We confirm your capacity: the size of deal you can carry and run.
 
-[ON SCREEN: Piece 1. Kickoff: your numbers, your last two years of financials, your capacity confirmed.]
+[ON SCREEN: Piece 1) Kickoff: your numbers, your last two years of financials, your capacity confirmed]
 
 The reason is that everything else is sized from it. A buy box built on the wrong capacity sends you after the wrong owners for three months. And your own financials are part of what a lender reads, so if anything in them needs tidying, we want to know in week one, not in week eleven.
 
-[SLIDE: Piece 2. Your buy box, agreed in writing.]
+[SLIDE: Piece 2) Your buy box, agreed in writing]
 
 The second piece is your buy box, agreed in writing between you and my team. Your eight lines, tested against your market, tightened where they're loose.
 
 The reason is that the buy box is the filter for everything that follows. It decides which owners go on your list, which deals get a first pass, and which ones you walk away from. It's also the line that the guarantee is drawn around, which I'll explain when we get there. A buy box that's agreed in writing protects you from the deal you fall in love with in week eight.
 
-[SLIDE: Piece 3. Finding targets, including off-market owners.]
+[SLIDE: Piece 3) Finding targets, including off-market owners]
 
 The third piece is finding targets, including the off-market owners with no successor. We build your owner list with you, from the five places you learned on Day 3, and we give you the outreach scripts: the first message, the follow-ups, and the answers to what owners say.
 
 Then you run the outreach every week. Twenty-five owner contacts a week, using the scripts.
 
-[ON SCREEN: Piece 3. Your owner list, built with you · the outreach scripts · 25 owner contacts a week.]
+[ON SCREEN: Piece 3) Your owner list, built with you · the outreach scripts · 25 owner contacts a week]
 
 The reason is week three. The single most common way a first deal dies is that outreach stops, because nobody's holding the rhythm. Owners sell to the buyer who was in touch when they were ready, and the rhythm is how you're that buyer. The scripts mean you never stare at a blank page wondering what to say to an owner who just replied.
 
-[SLIDE: Capabilities. How you show up.]
+[SLIDE: Capabilities · How you show up]
 
 Running through the first three pieces is the first C, Capabilities, so let me say what that means in practice.
 
 Sellers sell to whoever makes them feel safe, and lenders lend to buyers who look like they'll finish what they start. Part of the engagement is making sure you show up that way: a clear one-page summary of you and your business for sellers, a buy box you can say in two sentences, your own advisers named and involved, and later, a deal summary a lender can read in two minutes.
 
-[ON SCREEN: Capabilities: your one-page summary · a buy box you can say in two sentences · your advisers involved · a lender-ready deal summary.]
+[ON SCREEN: Capabilities: your one-page summary · a buy box you can say in two sentences · your advisers involved · a lender-ready deal summary]
 
 Private equity funds bring all of this to every seller they meet. You can bring a version of it at your scale, and with an operator's credibility on top, it puts you ahead of most buyers a seller will ever talk to.
 
-[SLIDE: Piece 4. Weekly working sessions.]
+[SLIDE: Piece 4) Weekly working sessions]
 
 The fourth piece is the weekly working sessions. Every week, for the ninety days, you sit down with my team and work on your deal: the list, the replies, the conversations you had, the financials that arrived, the numbers.
 
-[ON SCREEN: Piece 4. Weekly working sessions for 90 days: the list, the conversations, the financials, the numbers.]
+[ON SCREEN: Piece 4) Weekly working sessions for 90 days: the list, the conversations, the financials, the numbers]
 
 The reason is that a first deal is a long series of small decisions, and each one is easier with someone who's seen it before. What do I say to the seller who wants to stay for three years? Is this add-back real? Should I take this second meeting or move on? Those questions come up every week, and the working session is where they get answered before they cost you anything.
 
 The sessions are also accountability. Knowing you'll be in the room next week with your outreach numbers on the screen is what keeps the rhythm going in the weeks when your business is busy.
 
-[SLIDE: Piece 5. Reviewing and modelling shortlisted targets.]
+[SLIDE: Piece 5) Reviewing and modelling shortlisted targets]
 
 The fifth piece is reviewing and modelling your shortlisted targets. When financials arrive, we run the first pass with you: the statements against the tax returns, the rebuilt profit with a fair salary for whoever runs it, the trend, the concentration, and the test.
 
-[ON SCREEN: Piece 5. The first pass on every shortlisted target: statements against tax returns · rebuilt profit · trend · concentration · the 1.5x test.]
+[ON SCREEN: Piece 5) The first pass on every shortlisted target: statements against tax returns · rebuilt profit · trend · concentration · the 1.5x test]
 
 The reason is the add-backs. Sellers present their profit in the best light, and a first-time buyer struggles to tell which numbers a lender will accept and which they'll cut. Getting that wrong in either direction is expensive. You either overpay for a profit that isn't there, or you walk away from a good business because the numbers looked worse than they are.
 
-[SLIDE: Piece 6. Structuring the deal.]
+[SLIDE: Piece 6) Structuring the deal]
 
 The sixth piece is structuring the deal: the stack of commercial debt, seller finance and seller rollover, and the levers when it fails the test.
 
 And we prepare you for the seller conversations that matter. The second conversation, where you explain how you'd pay. The conversation where you take a lever to the seller and offer choices. And the moment a seller says "I want all cash".
 
-[ON SCREEN: Piece 6. Structuring: the stack, the levers, and preparation for every seller conversation that matters.]
+[ON SCREEN: Piece 6) Structuring: the stack, the levers, and preparation for every seller conversation that matters]
 
 The reason is week seven and week eleven. Those are the two places a deal that should have happened falls apart, because the buyer didn't know what to say, or pulled the wrong lever, or forced one on the seller. We've thought about those conversations a great deal, and you'll walk into each of them prepared.
 
-[SLIDE: Piece 7. Introducing lenders.]
+[SLIDE: Piece 7) Introducing lenders]
 
 The seventh piece is the lender side. We help you prepare the one-page deal summary, and we introduce lenders who fit your deal and your country.
 
-[ON SCREEN: Piece 7. The deal summary, and introductions to lenders who fit your deal.]
+[ON SCREEN: Piece 7) The deal summary, and introductions to lenders who fit your deal]
 
 The reason is that lenders differ, sometimes a lot. Their appetite for acquisitions, their rules on seller notes and rollovers, their terms and their view on personal guarantees all vary. Approaching the wrong lender, or approaching any lender before the seller has agreed the shape, is how first-time buyers conclude that banks don't lend for acquisitions.
 
-[SLIDE: Piece 8. Support through the letter of intent and due diligence.]
+[SLIDE: Piece 8) Support through the letter of intent and due diligence]
 
 The eighth piece is support through the letter of intent and due diligence. We work with you on the terms of the LOI, alongside your own lawyer and accountant, and we support you through the due diligence that follows.
 
-[ON SCREEN: Piece 8. Support through the LOI and due diligence, alongside your own lawyer and accountant.]
+[ON SCREEN: Piece 8) Support through the LOI and due diligence, alongside your own lawyer and accountant]
 
 The reason is that the letter of intent sets the shape of everything after it. A badly drafted LOI locks in a structure that fails later, or leaves out the handover terms that keep the seller involved. And due diligence is where a deal either confirms what you knew or surprises you, so you want someone next to you who knows what to look for.
 
@@ -453,7 +453,7 @@ In weeks one and two, the foundations, the kickoff confirms your capacity on you
 
 In weeks three to six, outreach and first conversations, you send twenty-five contacts a week, and every week's working session looks at what went out, who replied, and what to say next. When an owner says yes to a coffee, we prepare you for the first conversation, and you tell us afterwards what you heard.
 
-[ON SCREEN: Weeks 1 and 2: kickoff, buy box in writing, list and scripts · Weeks 3 to 6: outreach reviewed every week, first conversations prepared · Weeks 7 to 10: second conversations, first pass on every set of financials · Weeks 11 to 13: shape, levers, lender introductions, the LOI.]
+[ON SCREEN: Weeks 1 and 2: kickoff, buy box in writing, list and scripts · Weeks 3 to 6: outreach reviewed every week, first conversations prepared · Weeks 7 to 10: second conversations, first pass on every set of financials · Weeks 11 to 13: shape, levers, lender introductions, the LOI]
 
 In weeks seven to ten, second conversations and the first pass, we prepare you for the conversation about how you'd pay, and we run the first pass with you on every set of financials that arrives. You'll know within days whether a business deserves more of your time.
 
@@ -475,7 +475,7 @@ On Monday morning, you add five new owners to your list and send their first mes
 
 Then comes the working session. On the screen: how many contacts went out, who replied and what they said, what you heard in Thursday's coffee, and what to do next with each live conversation. If a set of financials arrived, we start the first pass together. If a seller asked how you'd pay, we prepare the second conversation.
 
-[ON SCREEN: A week inside: outreach with the scripts · a prepared owner conversation · the working session · the first pass on any financials that arrived.]
+[ON SCREEN: A week inside: outreach with the scripts · a prepared owner conversation · the working session · the first pass on any financials that arrived]
 
 And when something comes up between sessions, a seller reply you're not sure how to answer, an add-back that looks odd, you send it to my team, and it gets dealt with before it becomes a problem.
 
@@ -511,7 +511,7 @@ Day 2 was your buy box. In the engagement, it's agreed in writing and tested aga
 
 Day 3 was owners and outreach. In the engagement, you get the list built with you, the scripts for every stage, and a working session every week that keeps the rhythm alive in the weeks your business tries to take over.
 
-[ON SCREEN: Day 1 capacity: confirmed at kickoff · Day 2 buy box: agreed in writing · Day 3 outreach: scripts and weekly sessions · Day 4 the stack and the test: done with you on every target · Day 5 the plan: run with my team.]
+[ON SCREEN: Day 1 capacity: confirmed at kickoff · Day 2 buy box: agreed in writing · Day 3 outreach: scripts and weekly sessions · Day 4 the stack and the test: done with you on every target · Day 5 the plan: run with my team]
 
 Day 4 was the stack and the test. In the engagement, the first pass and the test are run with you on every shortlisted target, the levers are prepared before you take them to a seller, and the lender conversation comes with introductions and a deal summary.
 
@@ -523,7 +523,7 @@ Everything you learned this week is the what and the why. The engagement is the 
 
 Here's the whole engagement in one slide.
 
-[ON SCREEN: 90 days, done with you. 1. Kickoff and your capacity · 2. Your buy box in writing · 3. Your owner list and the outreach scripts · 4. Weekly working sessions · 5. The first pass on every shortlisted target · 6. Structuring and seller conversations · 7. The deal summary and lender introductions · 8. Support through the LOI and due diligence.]
+[ON SCREEN: 90 days, done with you · 1) Kickoff and your capacity · 2) Your buy box in writing · 3) Your owner list and the outreach scripts · 4) Weekly working sessions · 5) The first pass on every shortlisted target · 6) Structuring and seller conversations · 7) The deal summary and lender introductions · 8) Support through the LOI and due diligence]
 
 A kickoff that confirms your capacity. A buy box agreed in writing. Your owner list and the outreach scripts. Weekly working sessions for ninety days. The first pass on every shortlisted target. Structuring, and preparation for every seller conversation that matters. The deal summary and lender introductions. And support through the letter of intent and due diligence.
 
@@ -539,7 +539,7 @@ Let's talk about the price, plainly.
 
 The engagement fee depends on the size of your business, because a bigger business means a bigger deal, more complex financials and more work for my team.
 
-[ON SCREEN: Engagement fee by revenue. $1M to $3M: $40,000 · $3M to $10M: $50,000 · $10M to $25M: $60,000 · $25M to $50M: $70,000.]
+[ON SCREEN: Engagement fee by revenue · $1M to $3M: $40,000 · $3M to $10M: $50,000 · $10M to $25M: $60,000 · $25M to $50M: $70,000]
 
 If your business does one to three million dollars a year in revenue, the fee is forty thousand dollars. Between three and ten million, it's fifty thousand. A business doing ten to twenty-five million pays sixty thousand, and from twenty-five to fifty million, the fee is seventy thousand.
 
@@ -549,7 +549,7 @@ That's the fee for the ninety-day engagement.
 
 Tonight, you don't pay the fee. You pay a deposit of five thousand dollars.
 
-[ON SCREEN: Tonight: a $5,000 deposit, credited in full against your engagement fee. Your $100 challenge ticket comes off the deposit.]
+[ON SCREEN: Tonight: a $5,000 deposit, credited in full against your engagement fee · Your $100 challenge ticket comes off the deposit]
 
 The deposit holds your place in this intake. It's credited in full against your engagement fee, so every dollar of it counts toward the fee. And the hundred dollars you paid for your challenge ticket comes off the deposit, so tonight's payment is four thousand nine hundred dollars.
 
@@ -561,7 +561,7 @@ My team books a short onboarding call with you. It's not a sales call. Nobody on
 
 Then you receive the engagement agreement to sign online. The balance of the fee, after the deposit and the ticket credit, is due when you sign. And then we schedule your kickoff.
 
-[ON SCREEN: After the deposit: an onboarding call (not a sales call) · the engagement agreement to sign · the balance due on signing · your kickoff.]
+[ON SCREEN: After the deposit: an onboarding call (not a sales call) · the engagement agreement to sign · the balance due on signing · your kickoff]
 
 [SLIDE: How to pay]
 
@@ -583,33 +583,33 @@ And why hold a place at all? Because my team works with a set number of owners a
 
 Forty to seventy thousand dollars is real money, and I'd be suspicious of anyone who told you otherwise. So let's put it next to the numbers it should be compared with. All of these are illustrative, from the examples we've used all week.
 
-[SLIDE: Against the value of the first deal. Illustrative.]
+[SLIDE: Against the value of the first deal · Illustrative]
 
 Start with the value of a first deal. On the illustrative deal from this week, a business making five hundred thousand a year, the payments come to about three hundred and seventeen thousand a year, and about a hundred and eighty-three thousand a year is left over.
 
-[ON SCREEN: Illustrative. A first deal leaving about $183,000 a year after every payment, plus the debt it pays down, plus the group multiple.]
+[ON SCREEN: Illustrative · A first deal leaving about $183,000 a year after every payment, plus the debt it pays down, plus the group multiple]
 
 That's before the debt the business pays down for you every year, and before the group multiple that opens up when your business becomes two. On those illustrative numbers, one year of the leftover cash flow from a single deal is several times the fee.
 
 None of that is a promise. I can't promise you a deal, a lender, or a return, and neither can anyone honest. It's the scale of what's at stake, so you can weigh the fee properly.
 
-[SLIDE: Against the cost of waiting. Illustrative.]
+[SLIDE: Against the cost of waiting · Illustrative]
 
 Now the cost of waiting. On Day 1, we put a number on the competitor down the road. If that business makes five hundred thousand a year, every quarter you wait is about a hundred and twenty-five thousand dollars of profit that belongs to someone else.
 
-[ON SCREEN: Illustrative. Every quarter of waiting on a $500,000 business: about $125,000 of profit someone else owns.]
+[ON SCREEN: Illustrative · Every quarter of waiting on a $500,000 business: about $125,000 of profit someone else owns]
 
 And it's not just profit. That owner will sell to someone. If it's another competitor or a fund, you now compete with a bigger business, with more scale, for the same customers and the same staff.
 
 Then there's your own ceiling. Every year you stay a single business, you build value at a single business multiple, and you stay the bottleneck in your own company.
 
-[SLIDE: Against the cost of a bad first deal. Illustrative.]
+[SLIDE: Against the cost of a bad first deal · Illustrative]
 
 And the biggest number of all: the cost of a bad first deal.
 
 On Day 4, we looked at a composite buyer who skipped the test. He paid two million for a business making five hundred thousand, with no rollover, at one point zero eight coverage. When the business lost a customer, he was short about a hundred and eleven thousand dollars a year, about nine thousand a month, from his own pocket.
 
-[ON SCREEN: Illustrative. A first deal bought at 1.08x: about $111,000 a year from the buyer's own pocket after one lost customer.]
+[ON SCREEN: Illustrative · A first deal bought at 1.08x: about $111,000 a year from the buyer's own pocket after one lost customer]
 
 That's one year. Add the attention it takes from the business that pays your bills, and the second deal that no lender will now fund, and a bad first deal costs many times the engagement fee. And the owner who wrote "I've acquired ten clinics, but some haven't made money" knows exactly what that feels like.
 
@@ -629,7 +629,7 @@ Before the guarantee, let me run through what you get one more time, with the pr
 
 A kickoff in your first week that confirms your capacity on your real numbers. Your buy box agreed in writing. Your owner list, built with you, and the outreach scripts for every stage. Weekly working sessions for ninety days. The first pass and the test on every shortlisted target. Structuring, with the levers and preparation for every seller conversation that matters. The deal summary and introductions to lenders who fit your deal. And support through the letter of intent and due diligence.
 
-[ON SCREEN: Everything above, for a fee of $40K to $70K by revenue. Tonight: a $5,000 deposit, credited in full, less your $100 ticket.]
+[ON SCREEN: Everything above, for a fee of $40K to $70K by revenue · Tonight: a $5,000 deposit, credited in full, less your $100 ticket]
 
 For a fee of forty to seventy thousand dollars, depending on the size of your business. And tonight, a deposit of five thousand dollars, credited in full against that fee, with your challenge ticket taken off it.
 
@@ -641,7 +641,7 @@ Now let me show you why the risk of all of that sits with us and not with you.
 
 Now the guarantee. I'm going to read it word for word, because it matters that you hear exactly what it says and exactly what it doesn't.
 
-[ON SCREEN: If you don't have a signed letter of intent within 90 days, Josh's team keeps working with you at no extra cost until you do. Or, if you prefer, take a full refund of everything you paid.]
+[ON SCREEN: If you don't have a signed letter of intent within 90 days, Josh's team keeps working with you at no extra cost until you do · Or, if you prefer, take a full refund of everything you paid]
 
 Here it is, as it's written in the engagement agreement.
 
@@ -659,7 +659,7 @@ The guarantee does exactly that. Either you get the milestone, or you get more o
 
 The guarantee has conditions, and I'm going to read every one of them, because a guarantee without its conditions is a slogan. They're on the page in the tab you joined from, and they're written into the engagement agreement.
 
-[ON SCREEN: The conditions. Kickoff and your last two years of financials within 7 days of signing · attend the weekly working sessions, missing no more than two · send the agreed owner outreach each week, 25 owner contacts a week using the scripts provided · reply to the team within 2 business days · follow the agreed buy box and the 1.5x test.]
+[ON SCREEN: The conditions · Kickoff and your last two years of financials within 7 days of signing · attend the weekly working sessions, missing no more than two · send the agreed owner outreach each week, 25 owner contacts a week using the scripts provided · reply to the team within 2 business days · follow the agreed buy box and the 1.5x test]
 
 Condition one. Hold your kickoff and send us the last two years of financials within seven days of signing.
 
@@ -689,9 +689,9 @@ A letter of intent means a signed, non-binding LOI with a seller for a business 
 
 And here's what the guarantee doesn't cover. The guarantee doesn't promise financing, a closed acquisition, or any return. Lenders make their own decisions, due diligence finds what it finds, and what happens after closing depends on you and the business. Nobody can honestly promise those, and I won't.
 
-[ON SCREEN: A letter of intent means a signed, non-binding LOI with a seller for a business inside the agreed buy box. The guarantee doesn't promise financing, a closed acquisition, or any return.]
+[ON SCREEN: A letter of intent means a signed, non-binding LOI with a seller for a business inside the agreed buy box · The guarantee doesn't promise financing, a closed acquisition, or any return]
 
-[SLIDE: How the guarantee works in practice. Three composites.]
+[SLIDE: How the guarantee works in practice · Three composites]
 
 Let me show you how the guarantee works in practice, with three composite owners, made up to make the rules clear.
 
@@ -699,7 +699,7 @@ The first owner does the work. Kickoff in the first week, every working session 
 
 The second owner does exactly the same work. Every condition met. But the owners in her market take longer to decide, and on day ninety there's no signed LOI yet, just two promising conversations. She chooses. She can have my team keep working with her at no extra cost until she has a signed LOI, or she can take a full refund of everything she paid. Most owners in her position would keep going, because the conversations are close. Either way, the choice is hers.
 
-[ON SCREEN: Composites. Owner 1: did the work, LOI in week 10. Owner 2: did the work, no LOI by day 90, chooses more time at no extra cost or a full refund. Owner 3: stopped the outreach in week 4, outside the guarantee.]
+[ON SCREEN: Composites · Owner 1: did the work, LOI in week 10 · Owner 2: did the work, no LOI by day 90, chooses more time at no extra cost or a full refund · Owner 3: stopped the outreach in week 4, outside the guarantee]
 
 The third owner stops the outreach in week four, because his business had a busy month, and doesn't restart it. He also chases a business outside the buy box because he liked the owner. On day ninety, there's no LOI. The guarantee doesn't apply, because the conditions weren't met, and he knew that from the day he signed.
 
@@ -720,7 +720,7 @@ So the decision in front of you isn't really about the fee. With the guarantee, 
 
 The offer has a deadline, and I'll tell you exactly what it is and the real reason for it.
 
-[ON SCREEN: The deposit offer closes 48 hours after this session ends. The replay closes with it.]
+[ON SCREEN: The deposit offer closes 48 hours after this session ends · The replay closes with it]
 
 The deposit offer from this challenge closes forty-eight hours after this session ends. The countdown on your day page shows the exact time, and it's enforced by the system. When it reaches zero, the button disappears, and the replay of today closes with it.
 
@@ -750,7 +750,7 @@ It isn't for you if you want someone to buy a business for you while you watch. 
 
 And it isn't for you if you're looking for a way to buy a business that loses money. The test rules those out, on purpose, and the guarantee is drawn around the test.
 
-[SLIDE: Questions you might be asking yourself]
+[SLIDE: The questions owners ask at this point]
 
 Now let me answer the questions I'd be asking myself if I were in your seat. Some of you have typed them in the chat already.
 
@@ -798,7 +798,7 @@ But the owners with no successor in your market are getting older right now. Fun
 
 "What if no deal comes along in ninety days?" That's what the guarantee covers. If you've met the conditions and you don't have a signed LOI in ninety days, my team keeps working with you at no extra cost until you do, or you take a full refund. And if the deals you find fail the test, walking away from them is the plan working, not failing.
 
-[SLIDE: "A letter of intent is non-binding. Why does it matter?"]
+[SLIDE: "A letter of intent is non-binding · Why does it matter?"]
 
 "A letter of intent is non-binding, so why is it the milestone?" Because it's the point where the deal becomes real. A seller who signs an LOI has agreed the price and the shape with you, in writing, and stops talking to other buyers. The lender starts their formal process, and due diligence begins.
 
@@ -850,7 +850,7 @@ Let me take you ninety days forward.
 
 Ninety days from tonight, you'll be ninety days older either way. Your business will have had another quarter. The owners with no successor in your market will be another quarter closer to deciding who to sell to.
 
-[ON SCREEN: In 90 days, you'll be 90 days older either way. The only difference is what you did with them.]
+[ON SCREEN: In 90 days, you'll be 90 days older either way · The only difference is what you did with them]
 
 In one version of the next ninety days, the deal plan went in the drawer. You meant to start the outreach, and the business had a busy month. You still have the plan, and you're still at the ceiling.
 
@@ -878,7 +878,7 @@ If the answer is no, that's a real decision, and I respect it. Take your deal pl
 
 If the answer is yes, go back to the tab you joined from, the button is there now. Pay the deposit, and my team will be in touch to book your onboarding call.
 
-[ON SCREEN: Yes or no. Both are decisions. Go back to the tab you joined from.]
+[ON SCREEN: Yes or no · Both are decisions · Go back to the tab you joined from]
 
 The answer that costs the most is maybe. Maybe keeps the plan out of the drawer and out of action at the same time. Maybe is how forty-eight hours become a month, and a month becomes a year at the same ceiling.
 
@@ -886,7 +886,7 @@ The answer that costs the most is maybe. Maybe keeps the plan out of the drawer 
 
 Here's everything in one slide.
 
-[ON SCREEN: The engagement: 90 days, done with you. Kickoff, buy box in writing, owner list and scripts, weekly working sessions, first pass on every target, structuring and seller conversations, lender introductions, support through the LOI and due diligence. Fee by revenue: $40K, $50K, $60K or $70K. Tonight: a $5,000 deposit, credited in full, less your $100 ticket. The guarantee: a signed LOI in 90 days, or we keep working at no extra cost, or a full refund, with its conditions. Closes 48 hours after this session ends.]
+[ON SCREEN: The engagement: 90 days, done with you · Kickoff, buy box in writing, owner list and scripts, weekly working sessions, first pass on every target, structuring and seller conversations, lender introductions, support through the LOI and due diligence · Fee by revenue: $40K, $50K, $60K or $70K · Tonight: a $5,000 deposit, credited in full, less your $100 ticket · The guarantee: a signed LOI in 90 days, or we keep working at no extra cost, or a full refund, with its conditions · Closes 48 hours after this session ends]
 
 Ninety days, done with you, with every piece you've just heard. A fee set by the size of your business, from forty to seventy thousand dollars. Tonight, a deposit of five thousand dollars, credited in full, with your challenge ticket taken off it. The guarantee, with its conditions. And forty-eight hours, shown on your day page.
 
@@ -908,7 +908,7 @@ The question is which fee band applies. It's set by your annual revenue: one to 
 
 [NOTE: Prepared answer. "Is the deposit refundable?"]
 
-The question is about the deposit. The deposit is part of everything you paid, so it's covered by the guarantee on the terms I read out: if you meet the conditions and don't have a signed LOI in ninety days, you can choose a full refund of everything you paid. The engagement agreement sets out the terms in full, including what happens if the onboarding call finds the engagement isn't a fit for your business. Read it before you sign.
+The question is about the deposit. Yes, until you sign. If you decide not to sign the engagement, tell the team within fourteen days of your onboarding call and the deposit comes back in full. Once you sign, it becomes part of the fee, and from then on the guarantee covers everything you paid, on the terms I read out.
 
 [NOTE: Prepared answer. "When does the 90 days start?"]
 

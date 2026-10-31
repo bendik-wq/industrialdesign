@@ -283,6 +283,7 @@
     links: { group: 'Traffic', title: 'Links & videos', sub: 'Tracked links for your Instagram bio, ManyChat, YouTube and more, followed to closed deals.', more: 'One tracked link per place you post it (Instagram bio, each ManyChat flow, each video), followed from the tap to the booked call and the closed deal.', render: renderLinks, filters: ['range'] },
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
     liveevents: { group: 'Traffic', title: 'Live webinars', sub: 'Live sessions with Josh on Zoom: registrations, attendance, the deposit offer and the ladder.', more: 'Schedule a live webinar (the landing page /live shows the next one with a real countdown), see who registered and who came, open the host console, and run the deposit offer: Open the offer shows it in every room at once, with its real deadline, Show timer, Pin message and Close offer. Deposit buyers, revenue and show rate per event, and the ladder from registration to a signed engagement.', render: renderLiveEvents, filters: ['range'] },
+    challenge: { group: 'Traffic', title: 'Challenge', sub: 'The First Deal Challenge: cohorts, registrants, attendance, worksheets and deposits, per day.', more: 'Create a cohort (five days at the same local time, each editable), paste each day’s Zoom link (or create it in the host console), and after each session paste the replay link. Registrants, VIPs, live attendance and replays, worksheets, deposits and revenue are counted per cohort and per day. Days 4 and 5 have the Open offer switch (also in the host console); the offer closes for good at the cohort’s deadline.', render: renderChallenge, noFilters: true },
     dealsprint: { group: 'Traffic', title: 'Sprint board', sub: 'First Deal Sprint buyers, day by day, and the ladder from ticket to engagement.', more: 'Every First Deal Sprint buyer with their day of 7, intake, kickoff and Deal Plan session, and each deliverable. Fill in the link and notes and mark it Ready: the buyer gets one email and sees it on their Sprint page. Mark the outcome after the Deal Plan session (proposal sent starts the follow-up emails) and draft the engagement agreement with the Sprint credit applied. The ladder at the top counts tickets, watchers, Sprint buyers and signed engagements in the selected range, with revenue per registrant and per ticket.', render: renderDealSprint, filters: ['range'] },
     materials: { group: 'Traffic', title: 'Materials', sub: 'Webinar and challenge scripts, slide decks, presenter window and run sheets.', more: 'Every script in one place, from public/materials. Read the script with the cues marked and the timing per chapter, present the slides full screen (share that window in Zoom), open the presenter window for your notes, the clock and the next host cue, print the run sheet, download the script, or save the deck as a PDF. Scripts are only served to people logged in here.', render: renderMaterials, noFilters: true },
     emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
@@ -2427,6 +2428,11 @@
     return window.LiveEventsBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, table: table, emptyState: emptyState, reload: load });
   }
 
+  function renderChallenge() {
+    if (!window.ChallengeBoard) { view.innerHTML = '<div class="card">The Challenge script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.ChallengeBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
+  }
+
   function renderDealSprint() {
     if (!window.DealSprintBoard) { view.innerHTML = '<div class="card">The Sprint board script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return window.DealSprintBoard.render({
@@ -2743,7 +2749,7 @@
     call: [{ v: 'before', label: 'before the call' }, { v: 'after', label: 'after the call starts' }],
     webinar: [{ v: 'before', label: 'before the webinar' }, { v: 'after', label: 'after the webinar starts' }],
   };
-  var SMS_LINK_LABEL = { none: 'No link', join: 'Meeting link (join)', reschedule: 'Reschedule link', book: 'Booking page', apply: 'Application', breakout: 'Prep video page', webinar_room: 'Their webinar room', webinar_replay: 'Webinar replay' };
+  var SMS_LINK_LABEL = { none: 'No link', join: 'Meeting link (join)', reschedule: 'Reschedule link', book: 'Booking page', apply: 'Application', breakout: 'Prep video page', webinar_room: 'Their webinar room', webinar_replay: 'Webinar replay', challenge_today: 'Their challenge day page' };
   var SMS_SKIP_LABEL = { applied: 'they’ve applied', booked: 'they’ve booked', confirmed: 'they replied C', attended: 'they came to the webinar', missed: 'they missed the webinar', clicked: 'they clicked an earlier text' };
   var SMS_TAGS = ['first_name', 'call_time', 'closer', 'link', 'webinar_time', 'site_name'];
   var SAMPLE = { first_name: 'Dana', call_time: 'Thursday 16 October, 10:00 am AEDT', closer: 'Josh Li', link: 'apply.grosfjeld-li.com/s/k3x9q2', webinar_time: 'Tuesday 20 October, 7:00 pm AEDT', site_name: 'G&L' };
@@ -2817,6 +2823,7 @@
       var rels = (rel.trigger).map(function (r) { return { a: 'trigger', v: r.v, label: r.label }; });
       if (seq.id === 'booked' || seq.id === 'no_show' || seq.id === 'showed') rels = rels.concat(rel.call.map(function (r) { return { a: 'call', v: r.v, label: r.label }; }));
       if (seq.id === 'webinar') rels = rels.concat(rel.webinar.map(function (r) { return { a: 'webinar', v: r.v, label: r.label }; }));
+      if (seq.id === 'challenge') [1, 2, 3, 4, 5].forEach(function (d) { rels = rels.concat([{ a: 'day' + d, v: 'before', label: 'before Day ' + d + ' starts' }, { a: 'day' + d, v: 'after', label: 'after Day ' + d + ' starts' }]); });
       var relSel = '<select class="input" data-f="rel">' + rels.map(function (r) { var val = r.a + ':' + r.v; return '<option value="' + val + '"' + (st.anchor === r.a && (r.a === 'trigger' || r.v === dir) ? ' selected' : '') + '>' + esc(r.label) + '</option>'; }).join('') + '</select>';
       var prev = smsPreview(st.body);
       var segs = smsSegs(prev + (st.link !== 'none' && st.body.indexOf('{link}') < 0 ? ' ' + SAMPLE.link : ''));

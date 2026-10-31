@@ -37,6 +37,7 @@ const STOP: Record<SmsTrigger, (l: Lead) => boolean> = {
   lost: (l) => l.status !== 'lost' || booked(l),
   won: (l) => l.status !== 'won' || Boolean(l.refunded_at),
   webinar: (l) => ['won', 'lost', 'disqualified'].includes(l.status),
+  challenge: (l) => !l.challenge_token, // refunded (the token is cleared)
 };
 
 const SKIP: Record<(typeof SMS_SKIPS)[number], (l: Lead, clicked: boolean) => boolean> = {
@@ -121,21 +122,22 @@ export function nextTextingTime(t: number, zones: string[]) {
   return null;
 }
 
-function anchorTime(step: SmsStepDef, lead: Lead, now: number) {
+function anchorTime(step: SmsStepDef, lead: Lead, now: number, anchors: Record<string, number> = {}) {
   if (step.anchor === 'call') return lead.call_at ?? null;
   if (step.anchor === 'webinar') return lead.webinar_at ?? null;
+  if (/^day\d$/.test(step.anchor)) return anchors[step.anchor] ?? null; // a challenge day's start, given by the caller
   return now;
 }
 
 /** Starts a trigger's sequence for this lead (re-starting reschedules texts that haven't gone yet). */
-export async function startSms(rt: Runtime, lead: Lead, trigger: SmsTrigger) {
+export async function startSms(rt: Runtime, lead: Lead, trigger: SmsTrigger, anchors: Record<string, number> = {}) {
   if (!smsOn(rt) || smsBlock(lead)) return 0;
   if (!smsOk(lead) && !(waOk(lead) && cloudApiConfigured(rt.settings))) return 0;
   const seq = (await loadSmsSequences(rt)).find((s) => s.id === trigger);
   if (!seq?.enabled) return 0;
   const now = Date.now();
   const stmts = seq.steps.flatMap((step) => {
-    const anchor = anchorTime(step, lead, now);
+    const anchor = anchorTime(step, lead, now, anchors);
     if (anchor == null) return [];
     const sendAt = anchor + step.offsetMin * MIN;
     if (step.anchor !== 'trigger' && sendAt < now - 5 * MIN) return [];
@@ -168,6 +170,7 @@ function linkTarget(rt: Runtime, lead: Lead, kind: SmsStepDef['link']) {
     case 'breakout': return `${rt.origin}/breakout`;
     case 'webinar_room': return lead.webinar_token ? `${web}/room/${lead.webinar_token}` : web;
     case 'webinar_replay': return lead.webinar_token ? `${web}/replay/${lead.webinar_token}` : web;
+    case 'challenge_today': return lead.challenge_token ? `${rt.origin}/challenge/today/${lead.challenge_token}` : `${rt.origin}/challenge`;
     default: return null;
   }
 }
@@ -254,6 +257,8 @@ export async function processSmsQueue(rt: Runtime, limit = 40) {
     if (!claim.meta.changes) continue;
     const skip = (why: string) => rt.env.DB.prepare("UPDATE sms_messages SET status = 'skipped', error = ? WHERE id = ?").bind(why, row.id).run();
     const lead = await getLead(rt.env, row.lead_id);
+    // Challenge texts link to the person's own day page (and stop after a refund): look up their registration.
+    if (lead && row.sequence === 'challenge') lead.challenge_token = await (await import('../challenge/emails')).currentChallengeToken(rt, lead.id);
     const seq = sequences.find((s) => s.id === row.sequence);
     const step = seq?.steps.find((s) => s.n === row.step);
     if (!lead) { await skip('lead deleted'); continue; }
@@ -272,7 +277,8 @@ export async function processSmsQueue(rt: Runtime, limit = 40) {
       const next = nextTextingTime(now, zones);
       const anchor = step.anchor === 'call' ? lead.call_at : step.anchor === 'webinar' ? lead.webinar_at : null;
       // A "before the call" text that can only go after the call has started is pointless.
-      const stale = !next || (anchor != null && step.offsetMin < 0 && next > anchor);
+      // A challenge day text ("starts in an hour", "we're live") is only right at its moment.
+      const stale = !next || (anchor != null && step.offsetMin < 0 && next > anchor) || /^day\d$/.test(step.anchor);
       await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, attempts = attempts - 1, send_at = ?, error = ? WHERE id = ?').bind(stale ? 'skipped' : 'pending', next ?? now, stale ? 'outside texting hours' : null, row.id).run();
       continue;
     }

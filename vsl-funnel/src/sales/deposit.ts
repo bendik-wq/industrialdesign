@@ -81,6 +81,9 @@ export function depositCopy(cfg: Pick<DepositConfig, 'label' | 'cap'>, o: { left
 }
 
 /** The guarantee block with its conditions in full and the link to the full wording (/guarantee). */
+/** Owner decision: the deposit is refundable until the engagement agreement is signed. */
+export const DEPOSIT_REFUND_TERMS = 'If you decide not to sign the engagement, tell the team within 14 days of your onboarding call and the deposit is refunded in full. Once you sign, it becomes part of the fee and the guarantee covers it.';
+
 export function guaranteeHtml(rt: Runtime): string {
   const g = guarantee(rt);
   return `<section class="gt" aria-label="The guarantee">
@@ -90,6 +93,7 @@ export function guaranteeHtml(rt: Runtime): string {
     <p class="gt-c-l">It applies when you do your part:</p>
     <ul class="gt-c">${g.conditions.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
     <p class="gt-def">${g.definitions.map(esc).join(' ')}</p>
+    <p class="gt-def"><strong>The deposit itself:</strong> ${esc(DEPOSIT_REFUND_TERMS)}</p>
     <p class="gt-link"><a href="${esc(g.url)}">Read the guarantee and its conditions</a></p>
   </section>`;
 }
@@ -295,6 +299,11 @@ export async function depositPaidEffects(rt: Runtime, pass: PassRow) {
   await rt.env.DB.prepare('UPDATE leads SET updated_at = ? WHERE id = ?').bind(Date.now(), pass.lead_id).run();
   // Meta Purchase / GA4: value = what was actually paid now.
   await track(rt, await identityFromLead(rt.env, pass.lead_id), { name: 'engagement_deposit_purchased', source: 'webhook', props: { pass_id: pass.id, product: 'Engagement deposit', value, currency: pass.currency.toUpperCase(), source: p.source ?? null, ref_id: p.ref_id ?? null } }).catch((e) => console.error('deposit track', e));
+  // A deposit from the challenge also marks that registration's deposit (stops the offer emails, counts in the cohort report).
+  if (p.source === 'challenge' && p.ref_id) {
+    const { recordChallengeDeposit } = await import('../challenge/offer');
+    await recordChallengeDeposit(rt, { refId: p.ref_id, amount: pass.amount, currency: pass.currency }).catch((e) => console.error('challenge deposit record', e));
+  }
   const contractId = await draftEngagementForDeposit(rt, pass.lead_id).catch((e) => { console.error('deposit agreement draft', e); return null; });
   if (lead) {
     const { notifySlack } = await import('../integrations/notify');

@@ -287,8 +287,10 @@ export async function whopRefund(rt: Runtime, rf: Obj) {
 export async function handleWhopEvent(rt: Runtime, ev: { type?: string; data?: unknown }, effects: PaidEffects = passPaidEffects) {
   const type = String(ev.type ?? '');
   const data = obj(ev.data);
+  // The First Deal Challenge's ticket and VIP carry their own metadata (challenge/payments.ts).
+  if (type === 'payment.succeeded' && obj(data.metadata).challenge_order_id) return (await import('../challenge/payments')).challengePaymentPaid(rt, data);
   if (type === 'payment.succeeded') return whopPaymentPaid(rt, data, effects);
-  if (type === 'refund.created' || type === 'refund.updated') return whopRefund(rt, data);
+  if (type === 'refund.created' || type === 'refund.updated') return (await (await import('../challenge/payments')).challengeRefund(rt, data)) ?? whopRefund(rt, data);
   return { ignored: type || 'unknown' };
 }
 

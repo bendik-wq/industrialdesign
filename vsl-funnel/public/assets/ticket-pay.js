@@ -4,7 +4,8 @@
    buyer still owes (3D Secure) runs here with the payment's client secret. */
 (function () {
   'use strict';
-  var T = ((window.FUNNEL || {}).webinar || {}).ticketPay;
+  // The Masterclass ticket (FUNNEL.webinar.ticketPay) or a First Deal Challenge ticket / VIP (FUNNEL.ticketPay).
+  var T = ((window.FUNNEL || {}).webinar || {}).ticketPay || (window.FUNNEL || {}).ticketPay;
   var box = document.querySelector('[data-ticket-pay]');
   if (!T || !box) return;
   var F = window.funnel || { track: function () {} };
@@ -18,8 +19,8 @@
     btn.disabled = false; btn.textContent = C.button;
   }
   function post(body) {
-    // The same form pays other waiting purchases (the engagement deposit, the live ticket) at T.endpoint.
-    return fetch(T.endpoint || '/api/webinar/ticket/pay', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    // The same form pays other waiting purchases (the engagement deposit, the live ticket, the challenge ticket and VIP).
+    return fetch(T.endpoint || T.payUrl || '/api/webinar/ticket/pay', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().catch(function () { return {}; }); }).catch(function () { return {}; });
   }
 
@@ -35,7 +36,7 @@
       whop = window.WhopElements();
       payments = whop.payments.create({
         accountId: T.accountId, currency: T.currency, amount: T.amount,
-        setupFutureUsage: 'off_session', // Whop shows its save consent and keeps the card for the one-click Sprint
+        setupFutureUsage: T.saveCard === false ? undefined : 'off_session', // Whop shows its save consent and keeps the card for a later one-click charge
         returnUrl: T.returnUrl,
       });
       var slot = box.querySelector('[data-whop-payment]');
@@ -50,9 +51,10 @@
     btn.addEventListener('click', function () {
       if (btn.disabled) return;
       btn.disabled = true; btn.textContent = C.paying; err.hidden = true;
-      F.track('cta_click', { id: 'webinar_ticket_pay' });
+      F.track('cta_click', { id: T.trackId || 'webinar_ticket_pay' });
       payments.createConfirmationToken({ billingDetails: T.email ? { email: T.email } : {} }).then(function (res) {
         var b = { token: T.token, confirmation_token: res.confirmationToken };
+        if (T.kind) b.kind = T.kind;
         if (T.extra) Object.keys(T.extra).forEach(function (k) { b[k] = T.extra[k]; });
         return post(b);
       }, function (e) {

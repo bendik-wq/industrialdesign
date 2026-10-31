@@ -44,7 +44,7 @@ Check two: did you use the profit after a fair salary for whoever runs the targe
 
 Check three: did you answer line five honestly? If you wrote "nobody" next to who runs your business while you're in the new one, your real capacity is smaller than the maths says. That's not a reason to stop. It's a reason to make the first target one with a manager already in place, which is a line in today's buy box.
 
-[ON SCREEN: Three checks: the target's profit, not yours · profit after a fair salary for whoever runs it · an honest answer to who runs your business.]
+[ON SCREEN: Three checks: the target's profit, not yours · profit after a fair salary for whoever runs it · an honest answer to who runs your business]
 
 Type in the chat whether your number survived all three checks. Yes, or the number of the check that caught you.
 
@@ -74,7 +74,7 @@ Thank you. By the end of today, every one of you should be able to move up at le
 
 A buy box is a short written description of the business you'll buy. It's one page, it fits on a screen, and it tells you, your advisers and the owners you approach exactly what you're looking for.
 
-[ON SCREEN: A buy box decides what you look at, who you call, and what you say no to.]
+[ON SCREEN: A buy box decides what you look at, who you call, and what you say no to]
 
 It does three jobs. First, it decides what you look at, so you stop spending evenings on listings that were never a fit. Second, it settles who you call, so your outreach goes to the right owners. And it decides what you say no to, which is the job that saves you the most money.
 
@@ -112,7 +112,7 @@ The first line of your buy box is the kind of business you'll buy. There are fou
 
 Each one has a clear upside and a clear trap. I'll take them one at a time.
 
-[SLIDE: 1. A competitor]
+[SLIDE: 1) A competitor]
 
 A competitor does the same work as you, for the same kind of customer, in a place or a segment you don't already reach.
 
@@ -120,43 +120,43 @@ The upside is that you understand the business completely. You know what good lo
 
 There's a second upside that owners love. Combining two competitors creates savings you can see on paper: one set of software, shared purchasing, one finance function, a single marketing budget doing the work of two. Those savings raise the profit of the combined group.
 
-[ON SCREEN: Competitor. Upside: you know it, the seller trusts you, the savings are real. Trap: the overlap you were counting on isn't there.]
+[ON SCREEN: Competitor · Upside: you know it, the seller trusts you, the savings are real · Trap: the overlap you were counting on isn't there]
 
 The trap with a competitor is overlap. If the business sits right next to yours, some customers use both, and you can lose some of that revenue when they realise both businesses are now the same owner. And if you plan the deal around savings, check they're real before you count them, because savings on a slide are easier to find than savings in a payroll.
 
 For most owners in this room, a competitor is the first deal I'd look at, and I'll come back to why in a minute.
 
-[SLIDE: 2. A supplier]
+[SLIDE: 2) A supplier]
 
 A supplier sells you something you already buy. Equipment, materials, a service you outsource, a lab, a parts distributor.
 
 The upside is margin. Today you pay that supplier a profit on everything you buy from them. When you own them, that profit stays inside your group. You also control quality, supply and price on something your business depends on.
 
-[ON SCREEN: Supplier. Upside: you keep the margin you pay out today. Trap: their other customers leave once a competitor owns them.]
+[ON SCREEN: Supplier · Upside: you keep the margin you pay out today · Trap: their other customers leave once a competitor owns them]
 
 The trap is the supplier's other customers. If your competitors buy from that supplier too, some of them will stop once they learn you own it. Suddenly the business you bought loses part of its revenue on the day the news gets out. So when you look at a supplier, read the customer list carefully, and ask how much of the revenue comes from businesses that compete with you.
 
 A supplier also runs on a different operating model from yours. You know how to sell what they make, which isn't the same as knowing how to make it.
 
-[SLIDE: 3. A customer]
+[SLIDE: 3) A customer]
 
 A customer buys from you. In some industries, that's a business that sells on what you make, or uses your service as part of theirs.
 
 The upside is demand. When you own a customer, you control a channel for your own product, and you can grow both businesses together.
 
-[ON SCREEN: Customer. Upside: you control demand. Trap: you're learning a new business, and their suppliers include your competitors.]
+[ON SCREEN: Customer · Upside: you control demand · Trap: you're learning a new business, and their suppliers include your competitors]
 
 The trap is that you're learning a new business. A customer's operations, customers and risks are different from yours, and your industry knowledge helps less than it does with a competitor. They also buy from your competitors today, and those relationships change when you own them.
 
 Owning a customer can be a great second or third deal. As a first deal, it asks you to learn the acquisition process and a new business at the same time.
 
-[SLIDE: 4. An adjacent business]
+[SLIDE: 4) An adjacent business]
 
 An adjacent business sells something different to the same people you already serve. A physiotherapy group buying a sports medicine clinic. An HVAC business buying a plumbing business. An accounting firm buying a payroll provider.
 
 The upside is the customer base. You can offer your services to their customers, and theirs to yours, and the combined business is worth more to each customer than either was alone.
 
-[ON SCREEN: Adjacent. Upside: you sell more to the same customers. Trap: you don't know the operations, and cross-selling takes longer than the slide says.]
+[ON SCREEN: Adjacent · Upside: you sell more to the same customers · Trap: you don't know the operations, and cross-selling takes longer than the slide says]
 
 The trap is the same as with a customer, in a milder form. You know the customers, but you don't know the operations. And cross-selling, which looks automatic on paper, takes real work and real time to happen. Don't put it in the price you pay, and don't count on it in your test.
 
@@ -194,7 +194,7 @@ The best deals sit with an owner who hasn't listed yet. Plenty of them never wil
 
 That owner has been running the business for twenty or thirty years. The kids have their own careers. The senior staff can run the floor but can't buy the business. And the owner knows, somewhere in the back of their mind, that they're going to have to do something about it.
 
-[ON SCREEN: The owner with no successor: years in the business · no family to take over · staff who can't buy it · a growing sense that something has to happen.]
+[ON SCREEN: The owner with no successor: years in the business · no family to take over · staff who can't buy it · a growing sense that something has to happen]
 
 Every industry has a generation of owners in that spot right now. If your industry has small, profitable, owner-run businesses, it has this seller, probably within an hour of where you're sitting.
 
@@ -218,7 +218,7 @@ The third is the energy of the business. The website hasn't changed in years, th
 
 The fourth is what the owner says. They mention retirement to suppliers. Some complain about regulations, staffing or the paperwork. They talk about their grandchildren more than their plans. People in your industry hear it, and so do your staff.
 
-[ON SCREEN: Four signs: long tenure · no successor · a business that's stopped pushing · an owner who talks about stepping back.]
+[ON SCREEN: Four signs: long tenure · no successor · a business that's stopped pushing · an owner who talks about stepping back]
 
 Type in the chat: can you name one owner in your market who shows at least two of those four signs? Just type yes or no. Don't type their name.
 
@@ -246,7 +246,7 @@ They're afraid of what happens to their people. Some of their staff have been wi
 
 They're afraid of losing their identity. For thirty years they've been the person who owns that business. Selling it raises a quiet question about who they are on the Monday after settlement, and a role in the transition, or a rollover stake, answers part of that question.
 
-[ON SCREEN: The owner's fears: being taken advantage of · what happens to their people · who they are after the sale · not being paid.]
+[ON SCREEN: The owner's fears: being taken advantage of · what happens to their people · who they are after the sale · not being paid]
 
 And they're afraid of not being paid. Which is why they'll ask how you'd pay, and why the answer has to make sense from their side of the table.
 
@@ -272,7 +272,7 @@ That one line tells you who to approach first, and it tells you what to listen f
 
 Now let's build the whole thing. Your buy box has eight lines. You'll fill them in tonight on the worksheet on your day page, and I'm going to walk through each one with an illustrative example.
 
-[ON SCREEN: 1. Industry · 2. Kind of target · 3. Where · 4. Size · 5. Owner situation · 6. Who runs it · 7. Financial standards · 8. Deal-breakers]
+[ON SCREEN: 1) Industry · 2) Kind of target · 3) Where · 4) Size · 5) Owner situation · 6) Who runs it · 7) Financial standards · 8) Deal-breakers]
 
 Line one is the industry. Be specific. "Healthcare" is too broad, while "allied health clinics" is useful and "physiotherapy and exercise physiology clinics" is better. The narrower the line, the easier it is to build a list of owners and the more credible you sound when you call them.
 
@@ -280,7 +280,7 @@ Line two is the kind of target: competitor, supplier, customer or adjacent. For 
 
 Line three is where. A geography you can actually manage. Close enough to drive to, or in a city where you already have staff, suppliers or customers. A business four hours away is a business you'll visit less than you planned.
 
-[SLIDE: Line four. Size, from your capacity number.]
+[SLIDE: Line four · Size, from your capacity number]
 
 Line four is size, and it comes straight from last night's homework. Write the profit range of your first target and the illustrative price that profit can carry on the test.
 
@@ -288,7 +288,7 @@ For example: target profit of three to six hundred thousand dollars a year, pric
 
 Add a revenue range if it helps your search, because owners and databases talk in revenue more than profit. But the profit line is the one that decides whether the deal passes.
 
-[SLIDE: Lines five and six. The owner, and who runs it after.]
+[SLIDE: Lines five and six · The owner, and who runs it after]
 
 Line five is the owner situation we just covered. Long tenure, no successor, open to a handover.
 
@@ -296,11 +296,11 @@ Line six is who runs the business after the seller steps back. This is the line 
 
 There are three answers. A manager is already in place and runs the business day to day. A senior staff member can step up with support. Or the owner does everything, and you'll need to hire or move someone in. For a first deal, I'd want one of the first two.
 
-[ON SCREEN: Line 6. Who runs it after? A manager in place · a senior person who can step up · nobody yet.]
+[ON SCREEN: Line 6) Who runs it after? A manager in place · a senior person who can step up · nobody yet]
 
 If the answer is nobody, the deal can still work, but your capacity number from last night shrinks, because part of it now goes on running the business yourself.
 
-[SLIDE: Line seven. Financial standards.]
+[SLIDE: Line seven · Financial standards]
 
 Line seven is your financial standards. These are the minimums a business has to meet before you'll look closely.
 
@@ -308,7 +308,7 @@ Three years of financial statements that match the tax returns. Profit that's st
 
 And the target has to pass the one and a half times test at a price inside your capacity. If it doesn't pass, and none of the Day 4 levers fix it, it's out.
 
-[SLIDE: Line eight. Deal-breakers.]
+[SLIDE: Line eight · Deal-breakers]
 
 Line eight is your deal-breakers: the things that end a conversation, however good everything else looks. We'll build that list in the red flags section in a minute.
 
@@ -316,7 +316,7 @@ Line eight is your deal-breakers: the things that end a conversation, however go
 
 Here's what a full buy box looks like, with illustrative details.
 
-[ON SCREEN: Illustrative buy box. Physiotherapy clinics · competitor · within 90 minutes of our main site · $300K to $600K profit, price up to about 3.3x · owner 15+ years, no successor, will stay 6 to 12 months · senior clinician who can run it · 3 years of clean financials, no customer over 20% · walk away on any red flag.]
+[ON SCREEN: Illustrative buy box · Physiotherapy clinics · competitor · within 90 minutes of our main site · $300K to $600K profit, price up to about 3.3x · owner 15+ years, no successor, will stay 6 to 12 months · senior clinician who can run it · 3 years of clean financials, no customer over 20% · walk away on any red flag]
 
 Physiotherapy clinics. A competitor. Within ninety minutes of our main clinic. Three hundred to six hundred thousand dollars a year in profit, price up to about three point three times on our structure.
 
@@ -336,11 +336,11 @@ I'm reading a few. Listen to how much clearer the short ones sound. An owner hea
 
 Keep tightening yours tonight. By tomorrow, the sentence you type in the chat becomes the second line of your first message to an owner.
 
-[SLIDE: Three buy boxes. Composites, for illustration only.]
+[SLIDE: Three buy boxes · Composites, for illustration only]
 
 To make this concrete, here are three buy boxes for three different owners. They're composites, made up to show how the same eight lines produce very different targets.
 
-[ON SCREEN: Composite A. HVAC services, $6M revenue. Buys a competitor's residential service book in the next suburb over.]
+[ON SCREEN: Composite A · HVAC services, $6M revenue · Buys a competitor's residential service book in the next suburb over]
 
 Owner A runs an HVAC service business doing six million a year in revenue. Their buy box says residential HVAC and plumbing service businesses, a competitor or a close adjacent, inside the metro area they already cover.
 
@@ -348,13 +348,13 @@ Size comes from their capacity number: two hundred and fifty to five hundred tho
 
 Read that back and you can see the whole search. They know which owners to call, what to ask in the first meeting and what makes them walk away.
 
-[ON SCREEN: Composite B. Accounting firm, $3M revenue. Buys a retiring partner's client book.]
+[ON SCREEN: Composite B · Accounting firm, $3M revenue · Buys a retiring partner's client book]
 
 Owner B runs an accounting firm doing three million a year. Their buy box says small accounting practices with a retiring principal, a competitor, within the same state so the clients don't notice the change.
 
 Their size line is smaller, a hundred and fifty to three hundred thousand dollars of profit, because the target's clients are attached to the retiring principal and the handover is the biggest risk. So line five matters more than anything else: a principal who'll stay for twelve months and introduce every major client personally. Their deal-breaker is a book where the top ten clients are more than half the fees.
 
-[ON SCREEN: Composite C. Dental group, $14M revenue. Buys a single-site practice with an associate who wants to stay.]
+[ON SCREEN: Composite C · Dental group, $14M revenue · Buys a single-site practice with an associate who wants to stay]
 
 Owner C runs a dental group doing fourteen million a year across several sites. Their buy box says single-site general dental practices with a principal near retirement, a competitor, in suburbs next to their existing sites.
 
@@ -366,7 +366,7 @@ Three industries, three sizes, three very different targets. What they share is 
 
 Notice too that each deal-breaker is specific to the industry. The HVAC owner worries about vans and builders, the accountant about client concentration, the dentist about leases and chairs. Your line eight should read like it was written by someone who knows your industry, because it was.
 
-[SLIDE: Rebuilding the profit. Illustrative.]
+[SLIDE: Rebuilding the profit · Illustrative]
 
 Before we get to the red flags, one more skill belongs in your buy box, because it decides whether a business really fits your size line. It's rebuilding the seller's profit into the number a lender will actually use.
 
@@ -374,7 +374,7 @@ Sellers show you their profit with add-backs. That means expenses that run throu
 
 What sellers rarely do is take out the cost of replacing themselves. If the owner works full time in the business and pays themselves a small salary, someone has to do that job after the sale, and that someone costs money.
 
-[ON SCREEN: Illustrative. Seller's profit with add-backs: $650,000. Less a manager at a fair salary: $170,000. Profit to test: $480,000.]
+[ON SCREEN: Illustrative · Seller's profit with add-backs: $650,000 · Less a manager at a fair salary: $170,000 · Profit to test: $480,000]
 
 Here's an illustration. A seller tells you the business makes six hundred and fifty thousand dollars a year, with their add-backs included. They work in it five days a week and pay themselves very little.
 
@@ -396,7 +396,7 @@ Thank you. If you typed yes or don't know, rebuild the profit with a manager's s
 
 ## [39:54] Hot seat: a buy box, live
 
-[SLIDE: Hot seat. Your buy box, live.]
+[SLIDE: Hot seat · Your buy box, live]
 
 Let's build one live. If you'd like to work through your buy box on camera, raise your hand in Zoom now and my team will bring you up. Share what you're comfortable sharing, and rounded numbers are fine.
 
@@ -436,7 +436,7 @@ So your first buy box is also the first page of your group. If deal one is a com
 
 If deal one is a random business that happened to be available, it doesn't fit anything. You've bought a second job instead of the start of a group.
 
-[ON SCREEN: Deal one sets up deals two and three. A buy box that fits together builds a group a buyer will pay a group multiple for.]
+[ON SCREEN: Deal one sets up deals two and three · A buy box that fits together builds a group a buyer will pay a group multiple for]
 
 That's why I push owners toward narrow buy boxes even when a broad one feels safer. A narrow buy box today is what lets you tell a buyer, years from now, that you own a group with a clear story and a management team, rather than a collection of businesses you happened to buy.
 
@@ -458,31 +458,31 @@ Back to the owner who wrote: I've acquired ten clinics, but some haven't made mo
 
 That's an owner who knows how to buy. They've done it ten times. What they didn't have was a door that some deals couldn't get through. Each of the red flags I'm about to give you is a reason a profitable-looking business turns out not to make money once you own it.
 
-[SLIDE: Red flag 1. The financials don't match the tax returns.]
+[SLIDE: Red flag 1) The financials don't match the tax returns]
 
 Red flag one: the financials don't match the tax returns.
 
 Sellers sometimes show you one set of numbers and file another. Sometimes it's an honest mess, and sometimes it isn't. Either way, a lender will rebuild the profit from what was filed with the tax office, and that's the number your test runs on. If the profit you're buying only exists in a spreadsheet, you're paying for something that isn't there.
 
-[SLIDE: Red flag 2. One customer is most of the revenue.]
+[SLIDE: Red flag 2) One customer is most of the revenue]
 
 Red flag two: one customer or one referrer makes up a large share of the revenue.
 
 If a single customer is thirty or forty percent of the business, you're not buying a business, you're buying a contract that can end. When that customer leaves, the profit leaves with them, and your payments to the bank and the seller don't.
 
-[SLIDE: Red flag 3. The seller won't stay for the handover.]
+[SLIDE: Red flag 3) The seller won't stay for the handover]
 
 Red flag three: the seller won't stay through the handover.
 
 A seller who wants all cash and a clean exit on day one is telling you something. Either they know a problem is coming, or the business depends on them in ways you won't see until they're gone. A seller who trusts the business is happy to stay six or twelve months, and a seller with a rollover has every reason to.
 
-[SLIDE: Red flag 4. The profit leaves with the owner.]
+[SLIDE: Red flag 4) The profit leaves with the owner]
 
 Red flag four: the profit leaves with the owner.
 
 Some businesses only make money because the owner works sixty or eighty hours a week and pays themselves almost nothing. When you replace the owner with a manager on a fair salary, the profit shrinks, or disappears. Always rebuild the profit with a fair wage for whoever will run it, and test that number, not the seller's.
 
-[ON SCREEN: Walk away if: the financials don't match the tax returns · one customer is most of the revenue · the seller won't stay for the handover · the profit leaves with the owner.]
+[ON SCREEN: Walk away if: the financials don't match the tax returns · one customer is most of the revenue · the seller won't stay for the handover · the profit leaves with the owner]
 
 Those four are the ones we walk away from every time. There are a few more I'd add to your deal-breaker list depending on your industry.
 
@@ -512,7 +512,7 @@ When you ask the owner about their best customers, listen for how many names com
 
 When you ask about the team, listen for whether the owner talks about people who could run the place, or only about people who do the work. If every decision runs through the owner, line six of your buy box is already in trouble.
 
-[ON SCREEN: In the first meeting, listen for: one customer in every answer · a team that can't decide without the owner · "I'd want to be out quickly" · "the books are a bit messy".]
+[ON SCREEN: In the first meeting, listen for: one customer in every answer · a team that can't decide without the owner · "I'd want to be out quickly" · "the books are a bit messy"]
 
 And when you ask what they'd want for themselves after a sale, listen for how quickly they want out. A seller who says they'd want to be gone on settlement day is telling you the handover will be hard.
 
@@ -528,7 +528,7 @@ There's a poll on screen. Which of the red flags have you seen in a business you
 
 Thank you. Write the ones that matter in your industry into line eight of your buy box tonight. That's your door, and it's the door the owner with ten clinics wishes they'd had.
 
-[SLIDE: A second hot seat. Your deal-breakers.]
+[SLIDE: A second hot seat · Your deal-breakers]
 
 Let's finish the buy box from the hot seat earlier, or take a new volunteer. If you'd like to build your deal-breakers live, raise your hand in Zoom now.
 
@@ -551,7 +551,7 @@ Thank you. Look at how specific that is. When a business fails one of those line
 
 Here's today's homework. It's on the worksheet on your challenge day page, in the tab you joined from. Fill in all eight lines and press submit.
 
-[ON SCREEN: 1. Industry · 2. Kind of target · 3. Where · 4. Size from your capacity number · 5. Owner situation · 6. Who runs it after · 7. Financial standards · 8. Deal-breakers. Then two sentences that say it all.]
+[ON SCREEN: 1) Industry · 2) Kind of target · 3) Where · 4) Size from your capacity number · 5) Owner situation · 6) Who runs it after · 7) Financial standards · 8) Deal-breakers · Then two sentences that say it all]
 
 Fill in the eight lines we just walked through. Then write your buy box as two sentences, the way you'd say it to an owner on the phone.
 

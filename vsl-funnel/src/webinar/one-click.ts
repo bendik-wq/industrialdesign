@@ -34,11 +34,13 @@ export interface StoredMethod { member_id: string; payment_method_id: string; ca
 
 /** The method saved from the lead's paid Whop ticket (the newest one), if any. */
 export async function savedTicketMethod(rt: Runtime, leadId: string) {
-  return rt.env.DB.prepare(
+  return (await rt.env.DB.prepare(
     `SELECT whop_member_id AS member_id, whop_payment_method_id AS payment_method_id, card_brand, card_last4 FROM webinar_passes
       WHERE lead_id = ? AND kind = 'seat' AND status = 'paid' AND provider = 'whop' AND whop_member_id IS NOT NULL AND whop_payment_method_id IS NOT NULL
       ORDER BY paid_at DESC LIMIT 1`,
-  ).bind(leadId).first<StoredMethod>();
+  ).bind(leadId).first<StoredMethod>())
+    // Or the card saved with a First Deal Challenge ticket (challenge/payments.ts).
+    ?? (await import('../challenge/payments')).savedChallengeMethod(rt, leadId);
 }
 
 const BRANDS: Record<string, string> = { visa: 'Visa', mastercard: 'Mastercard', amex: 'American Express', american_express: 'American Express', discover: 'Discover', jcb: 'JCB', diners: 'Diners Club', unionpay: 'UnionPay' };
@@ -159,7 +161,7 @@ const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const TERMINAL = new Set(['succeeded', 'requires_action', 'canceled']);
 
 /** The payment's status (native API), polled briefly until it settles one way or the other. */
-async function pollStatus(rt: Runtime, payId: string, o: { tries?: number; sleep?: (ms: number) => Promise<unknown> } = {}) {
+export async function pollStatus(rt: Runtime, payId: string, o: { tries?: number; sleep?: (ms: number) => Promise<unknown> } = {}) {
   const tries = o.tries ?? 4;
   let st: Obj = {};
   for (let i = 0; i < tries; i++) {

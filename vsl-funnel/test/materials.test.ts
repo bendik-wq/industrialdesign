@@ -6,7 +6,7 @@ import { MATERIAL_IDS, parseMaterial, toSec } from '../src/admin/materials';
 const node = (globalThis as unknown as { process: { getBuiltinModule(id: string): unknown; cwd(): string } }).process;
 const fs = node.getBuiltinModule('node:fs') as { readdirSync(p: string): string[]; readFileSync(p: string, enc: string): string };
 const DIR = `${node.cwd()}/public/materials`;
-const files: string[] = fs.readdirSync(DIR).filter((f) => f.endsWith('.md'));
+const files: string[] = fs.readdirSync(DIR).filter((f) => f.endsWith('.md') && !['challenge-emails.md', 'challenge-homework.md'].includes(f)); // the emails and worksheets are reference copy, not scripts
 const load = (f: string) => parseMaterial(fs.readFileSync(`${DIR}/${f}`, 'utf8'));
 
 // The guarantee's conditions, said out loud wherever the deposit is sold (see the shared brief).

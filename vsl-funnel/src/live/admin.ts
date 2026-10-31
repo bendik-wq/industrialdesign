@@ -126,6 +126,7 @@ export async function liveHostPage(c: Context<AppEnv>) {
 <script defer src="/assets/live-player.js"></script>
 <script defer src="/assets/live-host.js"></script>
 <script defer src="/assets/live-events-board.js"></script>
+${key.startsWith('challenge:') ? '<script defer src="/assets/challenge-host.js"></script>' : ''}
 </head>
 <body class="lh-body">
 <script type="application/json" id="live-host-data">${json}</script>

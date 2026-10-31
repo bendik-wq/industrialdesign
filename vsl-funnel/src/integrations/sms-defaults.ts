@@ -17,11 +17,13 @@ export const SMS_TRIGGERS = {
   lost: 'Marked lost',
   won: 'Closed (won)',
   webinar: 'Registered for the webinar',
+  challenge: 'Paid for the First Deal Challenge',
 } as const;
 export type SmsTrigger = keyof typeof SMS_TRIGGERS;
 
-export const SMS_ANCHORS = ['trigger', 'call', 'webinar'] as const;
-export const SMS_LINKS = ['none', 'join', 'reschedule', 'book', 'apply', 'breakout', 'webinar_room', 'webinar_replay'] as const;
+/** day1..day5: the start of that day of the lead's First Deal Challenge cohort (challenge trigger only). */
+export const SMS_ANCHORS = ['trigger', 'call', 'webinar', 'day1', 'day2', 'day3', 'day4', 'day5'] as const;
+export const SMS_LINKS = ['none', 'join', 'reschedule', 'book', 'apply', 'breakout', 'webinar_room', 'webinar_replay', 'challenge_today'] as const;
 export const SMS_SKIPS = ['applied', 'booked', 'confirmed', 'attended', 'missed', 'clicked'] as const;
 /** sms = text only; whatsapp = WhatsApp when we can reach them there, otherwise the same message by SMS. */
 export const SMS_CHANNELS = ['sms', 'whatsapp'] as const;
@@ -129,5 +131,13 @@ export const DEFAULT_SMS_SEQUENCES: SmsSequenceDef[] = [
       s(6, 'webinar', 80, 'webinar_replay', 'You missed it, {first_name}. The replay is up for 48 hours: {link}', ['attended', 'applied']),
       s(7, 'webinar', 80, 'apply', 'Thanks for coming, {first_name}. If it made sense for your business, the next step is a 2-minute application: {link}', ['missed', 'applied', 'booked']),
     ],
+  },
+  {
+    // The First Deal Challenge: an hour before and at the start of each day; the link opens their day page (Join on Zoom is there).
+    id: 'challenge', enabled: true, next: 11,
+    steps: [1, 2, 3, 4, 5].flatMap((d, i) => [
+      s(i * 2 + 1, `day${d}` as SmsStepDef['anchor'], -60, 'challenge_today', `{first_name}, Day ${d} of the First Deal Challenge starts in an hour. Your page with the Zoom link: {link}`),
+      s(i * 2 + 2, `day${d}` as SmsStepDef['anchor'], 0, 'challenge_today', `We're live on Day ${d}, {first_name}. Join from your page: {link}`),
+    ]),
   },
 ];

@@ -55,7 +55,7 @@ That's the starting idea for everything this week. A business you buy can be pai
 
 Ninety business owners booked a call with my team, and I read every booking form. Their answers tell you a lot about the person in this room.
 
-[ON SCREEN: 90 owners booked calls. 39 want to buy companies. 24 had never bought one. 24 wanted funding help. 23 wanted debt-structuring help.]
+[ON SCREEN: 90 owners booked calls · 39 want to buy companies · 24 had never bought one · 24 wanted funding help · 23 wanted debt-structuring help]
 
 Thirty-nine of the ninety ticked buying companies as the thing they wanted. Twenty-four had never bought a business before. Twenty-four wanted help getting a deal funded, and twenty-three wanted help structuring the debt.
 
@@ -74,7 +74,7 @@ Each day has one job. Today is your capacity. Day 2 is your buy box, which means
 Day 4 is the funding stack and the one and a half times test, which is where most of the no money down advice you've heard falls apart. And Day 5 pulls it all into one deal plan.
 
 [SLIDE: Keep the day page open]
-[ON SCREEN: Zoom for the session. The day page in another tab for the worksheet, your progress and your questions.]
+[ON SCREEN: Zoom for the session · The day page in another tab for the worksheet, your progress and your questions]
 
 You joined this Zoom from a link on your challenge day page. Keep that page open in another tab, all week. Everything you need besides me lives there.
 
@@ -124,7 +124,7 @@ Here's how the ceiling forms. A business grows fast while the owner can still to
 
 Then it reaches the size where the owner becomes the bottleneck. Every extra point of growth needs another hire, another layer of management and more of your week, and the profit from that growth turns up a year later, if it turns up at all.
 
-[ON SCREEN: Revenue moves a little. Your hours keep climbing.]
+[ON SCREEN: Revenue moves a little · Your hours keep climbing]
 
 That's the ceiling. Revenue keeps moving a little, and your hours keep climbing.
 
@@ -152,7 +152,7 @@ You buy a business that's already been built. Somebody else spent fifteen or twe
 
 When you buy it, all of that joins your business in one move. And the price is paid by a lender, by the seller's note and by the seller's rollover, out of the profit of the business you bought.
 
-[SLIDE: Two owners. A composite, for illustration only.]
+[SLIDE: Two owners · A composite, for illustration only]
 
 Here's how big the gap gets. Take two owners, made up to make a point. Same industry, same city, each doing three million a year.
 
@@ -164,13 +164,13 @@ The gap between those two owners has nothing to do with talent or effort. One of
 
 ## [14:41] Why buying beats building
 
-[SLIDE: Building versus buying. Illustrative.]
+[SLIDE: Building versus buying · Illustrative]
 
 Let me put numbers on it, because owners in this room respond to numbers more than to stories.
 
 Say your business runs at a fifteen percent profit margin, and you want another five hundred thousand dollars a year in profit.
 
-[ON SCREEN: Illustrative. $500,000 more profit at a 15% margin needs about $3.3M of new revenue.]
+[ON SCREEN: Illustrative · $500,000 more profit at a 15% margin needs about $3.3M of new revenue]
 
 Growing it from scratch, you need about three point three million dollars of new revenue to get there. That's new customers, new staff, new systems, and years of your attention.
 
@@ -192,19 +192,19 @@ The second is risk. A new location, a new product or a new market is a bet on so
 
 And the third is value, which is the one owners miss. A dollar of profit inside a group is worth more than the same dollar inside a single owner-run business.
 
-[SLIDE: Illustrative ranges. One small business: 3 to 5x profit. A group: 8 to 12x profit.]
+[SLIDE: Illustrative ranges · One small business: 3 to 5x profit · A group: 8 to 12x profit]
 
 Businesses are valued at a multiple of their profit, and the multiple depends on what kind of business the buyer thinks they're getting.
 
 As an illustration, one small, owner-run business can trade at three to five times its profit. A group of them, with a management layer and no single owner holding it together, can trade at eight to twelve times. The real number depends on your industry and your market, and the gap between the two is why private equity funds buy small businesses and stitch them together.
 
-[SLIDE: The same profit, two values. Illustrative.]
+[SLIDE: The same profit, two values · Illustrative]
 
 Run the illustration. Two businesses, each making five hundred thousand dollars a year.
 
 Sold one at a time at four times profit, each one is worth two million, so four million for the pair. Put them together under a management team and sell them as a group at nine times, and the combined million dollars of profit is worth nine million.
 
-[ON SCREEN: Illustrative. Two businesses × $500,000 at 4x = $4M. One group with $1M profit at 9x = $9M.]
+[ON SCREEN: Illustrative · Two businesses × $500,000 at 4x = $4M · One group with $1M profit at 9x = $9M]
 
 Nobody worked harder in that example. The profit didn't change. The structure around it did, and the structure is worth five million dollars.
 
@@ -234,7 +234,7 @@ Hold that answer, because tomorrow we turn it into your buy box. Each of those f
 
 If buying beats building by that much, why doesn't every owner above the ceiling do it? I've asked that question of a lot of owners, and the answer comes down to three beliefs. Each one feels true from the inside, and each one is wrong in a way you can check.
 
-[ON SCREEN: 1. Acquisitions are for funds and rich people. 2. I wouldn't know how. 3. The money, the sellers and the banks aren't there for me.]
+[ON SCREEN: 1) Acquisitions are for funds and rich people · 2) I wouldn't know how · 3) The money, the sellers and the banks aren't there for me]
 
 The first belief is about the vehicle. It says acquisitions are something funds do, or people who already have millions in the bank. Buying a business sounds like a boardroom, a team of bankers and a cheque you'd never write.
 
@@ -242,7 +242,7 @@ The second belief is about you. It says, even if the vehicle works, I wouldn't k
 
 And the third belief is about the world outside. It says the sellers aren't there, the banks won't lend, my market is different, and the timing is wrong.
 
-[SLIDE: Belief one. The vehicle.]
+[SLIDE: Belief one · The vehicle]
 
 Take the first one. Private equity funds do buy small businesses, and they use the same structure you're learning this week: debt against the business's cash flow, a seller note and a slice of rollover.
 
@@ -250,7 +250,7 @@ The fund's advantage isn't its cash. A fund borrows most of what it pays, the sa
 
 And you have an advantage the fund doesn't. You're an operator in the same industry. A fund sends an analyst with a spreadsheet. You turn up as someone who has done the same work for years, and who'll still be in the industry long after the papers are signed. To a seller with no successor, that difference is enormous.
 
-[SLIDE: Belief two. Your ability.]
+[SLIDE: Belief two · Your ability]
 
 The second belief, the one about your ability. Look at what you already do every week. You read a profit and loss statement. Hiring and managing people is part of your week. You negotiate with suppliers and landlords, and you've kept customers through bad years.
 
@@ -258,7 +258,7 @@ Buying a business uses every one of those skills. The parts you haven't done yet
 
 Twenty-four of the ninety owners who booked a call with my team had never bought a business. A first deal is a learnable process, and every owner who has done one started without having done one.
 
-[SLIDE: Belief three. The outside world.]
+[SLIDE: Belief three · The outside world]
 
 And the third belief, about sellers, banks and markets. Every industry with small, profitable, owner-run businesses has owners getting older with nobody to take over. That seller is in your market today, whether you've met them or not.
 
@@ -278,7 +278,7 @@ I'm reading the answers. Whichever number you typed, the rest of this week is bu
 
 Now the question every owner asks me first. If I'm not putting in my own cash, who is?
 
-[ON SCREEN: Commercial debt. Seller finance. Seller rollover.]
+[ON SCREEN: Commercial debt · Seller finance · Seller rollover]
 
 Three groups, and none of them is you.
 
@@ -319,7 +319,7 @@ Somebody piles debt onto a business that can't carry it. The deal closes, the fi
 So the buyer starts feeding it from their own pocket. The no money down deal ends up costing them everything they had.
 
 [SLIDE: Debt service coverage]
-[ON SCREEN: Debt service coverage = yearly profit ÷ yearly debt payments. Target: about 1.5x.]
+[ON SCREEN: Debt service coverage = yearly profit ÷ yearly debt payments · Target: about 1.5x]
 
 There's one number that stops that from happening, and lenders have used it for a long time. It's called the debt service coverage ratio.
 
@@ -327,7 +327,7 @@ You take the yearly profit of the business you're buying, before interest and ta
 
 At about one and a half times, the business earns roughly a dollar fifty for every dollar it owes each year. It pays its own debt and keeps a buffer for a bad month, a lost customer or a slow season.
 
-[SLIDE: Banks don't reject buyers. They reject structures.]
+[SLIDE: Banks don't reject buyers · They reject structures]
 
 This is the belief I most want to break today.
 
@@ -337,11 +337,11 @@ What the bank is really saying is that the structure in front of them doesn't wo
 
 Bring them a business that clears one and a half times, financials that match the tax returns, and a buyer who already runs a profitable company in the same industry, and you're having a very different conversation.
 
-[ON SCREEN: Banks don't reject buyers. They reject structures.]
+[ON SCREEN: Banks don't reject buyers · They reject structures]
 
 Banks don't reject buyers. They reject structures.
 
-[SLIDE: A worked example. Illustrative only. Education, not financial advice.]
+[SLIDE: A worked example · Illustrative only · Education, not financial advice]
 
 Here's the test in numbers. Everything I show you this week is illustrative. It's education, and not financial, legal or tax advice, and every real deal gets structured on its own numbers with your own advisers.
 
@@ -349,13 +349,13 @@ Say a competitor makes five hundred thousand dollars a year in profit, and you a
 
 The bank lends seventy percent, which is one million and fifty thousand dollars. The seller carries twenty percent as a note, three hundred thousand. And the seller rolls ten percent, a hundred and fifty thousand, into the new company.
 
-[ON SCREEN: Illustrative terms. Bank: 10% over 7 years. Seller note: 6% over 4 years.]
+[ON SCREEN: Illustrative terms · Bank: 10% over 7 years · Seller note: 6% over 4 years]
 
 For the payments, I'll use illustrative terms: the bank loan at ten percent over seven years, and the seller's note at six percent over four years.
 
 On those terms, the bank loan costs about two hundred and sixteen thousand dollars a year. The seller's note costs about eighty-seven thousand. Together, roughly three hundred thousand dollars a year in payments.
 
-[ON SCREEN: Illustrative. $500,000 ÷ about $302,000 = about 1.65x. Passes.]
+[ON SCREEN: Illustrative · $500,000 ÷ about $302,000 = about 1.65x · Passes]
 
 Five hundred thousand divided by about three hundred thousand comes to about one point six five. That clears the line. The business pays its own debt, and there's close to two hundred thousand a year left over.
 
@@ -363,7 +363,7 @@ Now let's change one thing. Say you agree a price of two million instead, four t
 
 The bank loan becomes one million four hundred thousand, and costs about two hundred and eighty-eight thousand a year. The note becomes four hundred thousand, and costs about a hundred and fifteen thousand. That's about four hundred and three thousand dollars a year in payments.
 
-[ON SCREEN: Illustrative. $500,000 ÷ about $403,000 = about 1.24x. Fails.]
+[ON SCREEN: Illustrative · $500,000 ÷ about $403,000 = about 1.24x · Fails]
 
 Five hundred thousand divided by four hundred and three thousand is about one point two four. That fails. On paper, the business still makes money, but the buffer is gone, and a lender sees that in about ten seconds.
 
@@ -393,7 +393,7 @@ Second, whether those financials match the tax returns. A profit that only exist
 
 Third, how much of the price they're being asked to carry. When the seller carries a note behind the bank and rolls part of the price into equity, the bank funds a smaller share of the deal, and the seller has shown they believe in the business.
 
-[ON SCREEN: What a lender reads: three years of profit · financials that match the tax returns · their share of the price · the buyer.]
+[ON SCREEN: What a lender reads: three years of profit · financials that match the tax returns · their share of the price · the buyer]
 
 And fourth, they read you. A buyer who already runs a profitable business in the same industry is the lowest risk buyer a lender sees. That's one more reason this challenge is built for owners above a million in revenue, and why your own clean books count toward your capacity.
 
@@ -417,7 +417,7 @@ Now we get to today's number. When owners ask how much debt they can take on, th
 
 They look at their own business. They think, my company makes eight hundred thousand a year, so how much could I borrow against that? Then they get nervous, because they don't want to put the business they've built on the line for something new.
 
-[ON SCREEN: The business you buy carries its own debt. Your business is the proof you can run it.]
+[ON SCREEN: The business you buy carries its own debt · Your business is the proof you can run it]
 
 That's the wrong frame. In a well-structured acquisition, the business you buy carries its own debt, out of its own profit. That's what the one and a half times test measures.
 
@@ -425,7 +425,7 @@ Your business plays a different role. It's the proof that you can run the asset.
 
 So the question today has two halves. How much debt can the target's profit carry? And how big a business can you actually take on, given the business you already run?
 
-[SLIDE: Half one. What the target's profit can carry. Illustrative.]
+[SLIDE: Half one · What the target's profit can carry · Illustrative]
 
 Start with the first half, the maths. It's three steps, and you can do them on the back of an envelope.
 
@@ -433,13 +433,13 @@ Step one: take the yearly profit of a business you'd want to buy. If you don't h
 
 Step two: divide that profit by one and a half. The answer is the most the business can pay in debt each year and still pass the test.
 
-[ON SCREEN: Step 2. Target profit ÷ 1.5 = the most it can pay in debt each year.]
+[ON SCREEN: Step 2) Target profit ÷ 1.5 = the most it can pay in debt each year]
 
 On our illustrative five hundred thousand dollar business, that's about three hundred and thirty-three thousand a year.
 
 Step three: turn that yearly payment into a price. On the illustrative terms I just used, with a seventy, twenty, ten split, each dollar of price costs about twenty cents a year in payments.
 
-[ON SCREEN: Step 3. Illustrative terms, 70/20/10: yearly payments × 5 ≈ the price the deal can carry.]
+[ON SCREEN: Step 3) Illustrative terms, 70/20/10: yearly payments × 5 ≈ the price the deal can carry]
 
 So you multiply the yearly payment by five. Three hundred and thirty-three thousand times five is about one point six six million dollars.
 
@@ -459,7 +459,7 @@ One honest caveat about the terms. Rates and loan lengths change with the market
 
 That's why I'm calling everything on these slides illustrative. The method stays the same: profit, divided by one and a half, turned into a price on the terms you can actually get. On Day 4 you'll see how each change in terms moves the line.
 
-[SLIDE: Your turn. Type your number in the chat.]
+[SLIDE: Your turn · Type your number in the chat]
 
 Now your turn. Take the profit of a business you'd want to buy, the real one or the right-sized guess. Divide it by one and a half, then multiply by five.
 
@@ -469,13 +469,13 @@ Type the answer in the chat. One number. That's the illustrative price your firs
 
 I'm reading a few. Every one of these numbers is a deal size you can now say out loud with a reason behind it. That's more than most first-time buyers bring to their first meeting with a seller.
 
-[SLIDE: A second example, a bigger owner. Illustrative.]
+[SLIDE: A second example, a bigger owner · Illustrative]
 
 Let me run the same maths on a bigger example, because some of you are running businesses well above ten million in revenue, and your first deal can be bigger too.
 
 Say the target makes one million two hundred thousand dollars a year in profit. Divide by one and a half, and the most it can pay in debt each year is eight hundred thousand.
 
-[ON SCREEN: Illustrative. $1.2M profit ÷ 1.5 = $800,000 a year. × 5 ≈ $4M price.]
+[ON SCREEN: Illustrative · $1.2M profit ÷ 1.5 = $800,000 a year · × 5 ≈ $4M price]
 
 Multiply by five, and the structure can carry a price of about four million dollars, on the same illustrative terms. That's about three point three times profit again, because the ratio doesn't care how big the deal is. The test scales.
 
@@ -483,7 +483,7 @@ At that size, a few things change. The lender looks harder at the management tea
 
 The method stays put: profit, divided by one and a half, turned into a price.
 
-[SLIDE: A hot seat. Your capacity, live.]
+[SLIDE: A hot seat · Your capacity, live]
 
 I'd like to do one live, with a real owner. If you'd like to work through your capacity number on camera, raise your hand in Zoom now. My team will bring one of you up. You only need to share the numbers you're comfortable sharing, and you can use rounded ones.
 
@@ -503,13 +503,13 @@ And the last question, the hard one: who runs your business on the days you're i
 
 Thank you. Look at what just happened in four minutes. That owner went from "I'd like to buy something" to a size, a price ceiling and the gap they need to close before the first deal. Everyone in this room can do the same tonight with the worksheet.
 
-[SLIDE: Half two. What you can take on.]
+[SLIDE: Half two · What you can take on]
 
 Now the second half, which no calculator answers for you. How big a business can you actually run alongside the one you've got?
 
 The maths says a five hundred thousand dollar profit business can carry about one point six six million dollars of price. It doesn't say whether you can run that business on day one and keep your current one growing.
 
-[ON SCREEN: Three questions. Who runs your business when you're in the new one? How big is the target next to yours? Who runs the target after the seller steps back?]
+[ON SCREEN: Three questions · Who runs your business when you're in the new one? How big is the target next to yours? Who runs the target after the seller steps back?]
 
 Three questions decide it. First, who runs your current business when you spend two days a week inside the new one? If the answer is nobody, that's a problem to solve before your first deal, and it shapes the size you buy.
 
@@ -521,7 +521,7 @@ Third, who runs the target after the seller steps back? A business with a manage
 
 Put the two halves together and you get your acquisition capacity: a target profit range you can run, and the price that profit can carry on the test.
 
-[ON SCREEN: Your acquisition capacity = a target profit range you can run + the price it can carry at 1.5x.]
+[ON SCREEN: Your acquisition capacity = a target profit range you can run + the price it can carry at 1.5x]
 
 For example, and this is illustrative: "My first deal is a business making three hundred to six hundred thousand a year in profit, at a price up to about three point three times that profit on a seventy, twenty, ten structure, and a manager or senior staff member who can run it day to day."
 
@@ -533,7 +533,7 @@ One more thing about your own business, because it matters more than owners expe
 
 Your profit isn't the thing paying for the deal, and you shouldn't want it to be. But a lender does read it. A buyer whose business is profitable, with clean books that match the tax returns, is the lowest risk buyer that lender sees all year.
 
-[ON SCREEN: A $5.5M radiology deal needed no personal guarantee. The deal was over $5M and the equipment secured the loan.]
+[ON SCREEN: A $5.5M radiology deal needed no personal guarantee · The deal was over $5M and the equipment secured the loan]
 
 And bigger isn't always harder. One radiology deal of five and a half million dollars needed no personal guarantee, because the deal was over five million and the equipment secured the loan. Size, collateral and the quality of the business change what a lender asks of you.
 
@@ -555,13 +555,13 @@ Before the homework, let's talk about the cost of doing nothing, because owners 
 
 The first cost is time. If hiring and marketing add ten or fifteen percent a year, doubling your profit takes most of a decade. Every year you spend getting there by hand is a year the acquisition route would have handed you that profit in one move.
 
-[ON SCREEN: Illustrative. A target making $500,000 a year. Every quarter of waiting is about $125,000 of profit someone else owns.]
+[ON SCREEN: Illustrative · A target making $500,000 a year · Every quarter of waiting is about $125,000 of profit someone else owns]
 
 The second cost is the business down the road. Put an illustrative number on it. If there's a competitor near you making five hundred thousand dollars a year, every quarter you wait is about a hundred and twenty-five thousand dollars of profit that belongs to someone else.
 
 And that business is going to sell. The owner is getting older, there's no successor, and sooner or later a buyer turns up. If the buyer is another competitor, or a fund building a group in your industry, those customers and that team get pointed at you.
 
-[SLIDE: The third cost. What your business is worth.]
+[SLIDE: The third cost · What your business is worth]
 
 The third cost is what your own business is worth. A single owner-run business sells at a single business multiple. Every year you stay a single business, you're building value at the lower number, and leaving the group multiple on the table.
 
@@ -588,7 +588,7 @@ Thank you. Keep that answer somewhere you can see it this week. It's the reason 
 
 Here's today's homework. It's on the worksheet on your challenge day page, in the tab you joined from. Fill it in and press submit on that page tonight.
 
-[ON SCREEN: 1. Your profit last year. 2. The target profit range for your first deal. 3. Target profit ÷ 1.5. 4. × 5 for the illustrative price. 5. Who runs your business while you're in the new one. 6. Your capacity sentence.]
+[ON SCREEN: 1) Your profit last year · 2) The target profit range for your first deal · 3) Target profit ÷ 1.5) 4) × 5 for the illustrative price · 5) Who runs your business while you're in the new one · 6) Your capacity sentence]
 
 There are six lines. One: your own business's profit last year, before interest and tax. Two: the profit range you'd want in a first target. Three: the top of that range divided by one and a half.
 

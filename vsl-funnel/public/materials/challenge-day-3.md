@@ -64,7 +64,7 @@ A listed business is an auction. A broker has been paid to get the highest price
 
 An off-market deal starts somewhere else entirely. It starts with two owners talking about what each of them needs. There's no auction pushing the price up, and no broker setting the terms.
 
-[ON SCREEN: Off market: no auction, no broker setting terms, two owners working out what each of them needs.]
+[ON SCREEN: Off market: no auction, no broker setting terms, two owners working out what each of them needs]
 
 That matters for the structure we're building this week. A seller note and a rollover are easy to agree when the seller is talking to the person who'll run their business. They're much harder to agree in an auction, where every bidder is being compared on the cash they put on the table.
 
@@ -106,7 +106,7 @@ Your advantage is that you're an operator in the same industry. Your disadvantag
 
 Here are the five places I'd look, in order. Most of them cost nothing but time, and the first three you already have access to.
 
-[SLIDE: 1. Your own business]
+[SLIDE: 1) Your own business]
 
 The first place is your own business. Your senior staff hear everything. They know which competitor's owner keeps talking about retiring, which business has lost its best people, and whose kids have no interest in taking over.
 
@@ -114,7 +114,7 @@ Your customers know things too. In a lot of industries, customers use more than 
 
 Ask your leadership team one question this week: which owners in our industry do you think are thinking about stepping back? Write down every name.
 
-[SLIDE: 2. Your suppliers]
+[SLIDE: 2) Your suppliers]
 
 The second place is your suppliers, and it's the one most owners overlook.
 
@@ -124,13 +124,13 @@ A supplier's sales rep visits every business in your industry in your region. Th
 
 Next time a rep visits, ask them directly. Which of your customers are winding down? Would any of them want an introduction to someone who'd keep the business going and keep buying from you?
 
-[SLIDE: 3. Your industry]
+[SLIDE: 3) Your industry]
 
 The third place is your industry itself. Associations, conferences, regional groups, training events and the industry's online forums.
 
 These are the rooms where owners talk to each other. The owner who's been coming to the same association dinner for twenty-five years is exactly the seller in your buy box. Go to the next event with a list of names you're hoping to meet, and the sentence you typed in the chat today.
 
-[SLIDE: 4. The advisers who serve owners]
+[SLIDE: 4) The advisers who serve owners]
 
 The fourth place is the advisers who serve owners: accountants, lawyers, bankers and financial planners who work with businesses like yours.
 
@@ -138,13 +138,13 @@ An accountant who looks after twenty small businesses in your industry knows whi
 
 Tell your own accountant and lawyer what your buy box is. Ask them who else in their network works with owners in your industry.
 
-[SLIDE: 5. Public records and directories]
+[SLIDE: 5) Public records and directories]
 
 The fifth place is public records and directories, which is where you build the bulk of your list.
 
 In Australia, company records show who the directors of a company are and how long they've been there. In the United States, state business registries show similar information for each state. Industry directories, licensing boards, maps and review sites tell you who operates where, how long they've been trading and roughly how big they are.
 
-[ON SCREEN: Public records show directors and how long they've held the role. Directories, licensing boards and maps show who operates where.]
+[ON SCREEN: Public records show directors and how long they've held the role · Directories, licensing boards and maps show who operates where]
 
 None of these sources tells you an owner wants to sell. What they give you is a list of every business that fits your buy box on paper, with an owner's name next to it. The first four places tell you which of those owners to call first.
 
@@ -154,7 +154,7 @@ For each owner on your list, write down six things.
 
 The business name and the owner's name. Where it is. Your best estimate of size. How long the owner has been running it. Any sign of no successor you've heard about. And how you're connected to them, if you are: a shared supplier, a mutual contact, an association you both belong to.
 
-[ON SCREEN: Your owner list: business · owner · where · estimated size · years in the business · signs of no successor · how you're connected.]
+[ON SCREEN: Your owner list: business · owner · where · estimated size · years in the business · signs of no successor · how you're connected]
 
 That last column matters more than it looks. A message that starts with "our shared rep at the supplier mentioned you" gets read. A message from a stranger with no connection gets read less.
 
@@ -174,7 +174,7 @@ Here's the honest arithmetic. Most owners you contact won't reply the first time
 
 That's not a failure rate. It's how off-market buying works, and every buyer who does deals, including the funds, runs the same funnel.
 
-[ON SCREEN: The rhythm we use: 25 owner contacts a week, every week, using the same scripts, tracked on one list.]
+[ON SCREEN: The rhythm we use: 25 owner contacts a week, every week, using the same scripts, tracked on one list]
 
 So the rhythm we use is twenty-five owner contacts a week. Every week. A contact is a message, a letter, a call, a follow-up or a meeting, with an owner on your list.
 
@@ -186,7 +186,7 @@ Here's what the rhythm looks like in a normal week, so you can see it fits aroun
 
 Monday, you add five new owners to your list from one of the five places, and send their first messages. Tuesday and Wednesday, you send the follow-ups that are due, the second and third touches. Thursday, you make the calls that came from introductions or replies. Friday, you update the list: who replied, what they said, and when to check back.
 
-[ON SCREEN: A weekly rhythm. Mon: five new owners and first messages · Tue and Wed: follow-ups due · Thu: calls from replies and introductions · Fri: update the list.]
+[ON SCREEN: A weekly rhythm · Mon: five new owners and first messages · Tue and Wed: follow-ups due · Thu: calls from replies and introductions · Fri: update the list]
 
 That's five contacts a day, around thirty minutes, at the same time every day. Owners who put it in the calendar like a meeting keep doing it. Owners who do it when they have a spare moment stop in the second week, because there's never a spare moment.
 
@@ -198,7 +198,7 @@ The reason it has to be every week is timing. An owner who says not now in March
 
 You can't predict which owner, or which month. What you can control is being the credible buyer who was already in touch when it changed. Owners sell to the person who was there when they were ready, and the weekly rhythm is how you make sure that's you.
 
-[SLIDE: Two buyers, one market. A composite, for illustration only.]
+[SLIDE: Two buyers, one market · A composite, for illustration only]
 
 Here's what the rhythm does over a few months. Two buyers, made up to make a point, in the same industry and the same city.
 
@@ -206,7 +206,7 @@ The first buyer sends a burst of messages in the first week, gets a couple of po
 
 The second buyer sends twenty-five contacts a week and never misses one. Most weeks feel like nothing happened. Then, around the third month, an owner who'd said not now in the first month calls back, because her practice manager just resigned and she's tired. The second buyer is the only credible operator she's heard from more than once.
 
-[ON SCREEN: Composite. Same market, same owners. The difference is who was still in touch when the owner was ready.]
+[ON SCREEN: Composite · Same market, same owners · The difference is who was still in touch when the owner was ready]
 
 Same market, same owners. The difference is who was still in touch when the owner was ready. That's what the rhythm buys you.
 
@@ -232,7 +232,7 @@ Now the first message. It matters more than people expect, and most buyers get i
 
 Here's the one word that kills a first message if it's in the opening line: "acquisition."
 
-[ON SCREEN: The word that kills a first message in its opening line: "acquisition".]
+[ON SCREEN: The word that kills a first message in its opening line: "acquisition"]
 
 When an owner who hasn't decided to sell reads "acquisition" in the first line, they file you with the brokers, the funds and the spam. The message is about a transaction, and they're not ready for a transaction. They're ready, at most, for a conversation about the future of their business and their people.
 
@@ -246,17 +246,17 @@ Line one says who you are and how you're connected. "I run a physiotherapy group
 
 Line two says something true and specific about their business. "You've built one of the most respected practices in the area, and I've heard your team talk about how long they've been with you." It shows you know who they are, and it isn't flattery if it's true.
 
-[ON SCREEN: 1. Who you are and how you're connected · 2. Something true about their business · 3. Why you're writing · 4. A small, easy ask.]
+[ON SCREEN: 1) Who you are and how you're connected · 2) Something true about their business · 3) Why you're writing · 4) A small, easy ask]
 
 Line three says why you're writing. "I'm building a group of clinics run by people who care about their patients and staff, and I'd value a conversation about what you want for the future of the practice, whenever that is." This is where your buy box sentence lives, in softer words.
 
 Line four is a small, easy ask. "Would you be open to a coffee in the next few weeks? No agenda beyond getting to know each other." A coffee is easy to say yes to. A meeting about selling the business is not.
 
-[SLIDE: A first message. Illustrative.]
+[SLIDE: A first message · Illustrative]
 
 Put together, it reads like this. I'll read it the way you'd write it.
 
-[ON SCREEN: Illustrative first message. "I run a physiotherapy group in the northern suburbs, and our rep at the equipment supplier mentioned your clinic. You've built one of the most respected practices in the area. I'm building a group of clinics run by people who care about their patients and staff, and I'd value a conversation about what you want for the future of your practice, whenever that is. Would you be open to a coffee in the next few weeks?"]
+[ON SCREEN: Illustrative first message · "I run a physiotherapy group in the northern suburbs, and our rep at the equipment supplier mentioned your clinic · You've built one of the most respected practices in the area · I'm building a group of clinics run by people who care about their patients and staff, and I'd value a conversation about what you want for the future of your practice, whenever that is · Would you be open to a coffee in the next few weeks?"]
 
 I run a physiotherapy group in the northern suburbs, and our rep at the equipment supplier mentioned your clinic. You've built one of the most respected practices in the area. I'm building a group of clinics run by people who care about their patients and staff, and I'd value a conversation about what you want for the future of your practice, whenever that is. Would you be open to a coffee in the next few weeks?
 
@@ -272,7 +272,7 @@ Writing to a customer, or a business that sells on what you make, line three tal
 
 And writing to an adjacent business, line three talks about the customers you share. "Our clients use both of our services, and I've always admired how you look after them. I'd value a conversation about the future of the business, whenever that's on your mind."
 
-[ON SCREEN: Line three changes with the target. Supplier: continuity · Customer: the shared market · Adjacent: the customers you both serve.]
+[ON SCREEN: Line three changes with the target · Supplier: continuity · Customer: the shared market · Adjacent: the customers you both serve]
 
 In every version, line three is about their future and the people they care about. Your plan stays in the background until they ask about it.
 
@@ -326,7 +326,7 @@ When they reply, they'll say one of three things.
 
 ## [30:00] Hot seat: your first message, live
 
-[SLIDE: Hot seat. Your first message, live.]
+[SLIDE: Hot seat · Your first message, live]
 
 Let's write one live. If you'd like to draft your first message on camera, raise your hand in Zoom now and my team will bring you up. You don't need to name the owner you're writing to.
 
@@ -358,7 +358,7 @@ The owner said yes to a coffee, and the next hour decides whether there is a sec
 
 The first conversation is not a negotiation. You're not there to talk about price, structure or timing. You're there to understand the owner, and to let them decide whether you're the kind of person they'd trust with their business.
 
-[ON SCREEN: The first conversation: listen more than you talk · learn their story · understand what they want · leave them wanting a second conversation.]
+[ON SCREEN: The first conversation: listen more than you talk · learn their story · understand what they want · leave them wanting a second conversation]
 
 Listen more than you talk. Ask them how they started the business, what they're proudest of, how the industry has changed, who their key people are, and what they want the next few years to look like.
 
@@ -420,7 +420,7 @@ And the fifth is "My staff will panic if they hear about this." They're right to
 
 Tell them confidentiality protects both of you, and that nothing reaches their team until the owner decides it should. Explain that when the time comes, you'd want to meet the key people with them, and tell the team together what stays the same. That answer, said calmly, does more for trust than anything else in the first conversation.
 
-[ON SCREEN: Five things owners say: "I'm not ready yet" · "my kids may want it" · "what would you pay?" · "I'd want to stay involved" · "my staff will panic".]
+[ON SCREEN: Five things owners say: "I'm not ready yet" · "my kids may want it" · "what would you pay?" · "I'd want to stay involved" · "my staff will panic"]
 
 Type in the chat which of those five you think you'll hear most in your industry.
 
@@ -442,7 +442,7 @@ When a seller asks how you'd pay, they're asking four questions at once.
 
 Will I actually get the money? Are my people going to be looked after? Does the business keep its name and reputation? And what's my role, if any, after the sale?
 
-[ON SCREEN: "How would you pay?" really means: Will I get paid? Will my people be looked after? Will the business keep its name? What's my role after?]
+[ON SCREEN: "How would you pay?" really asks about · getting paid · the team looked after · the name kept · their role after]
 
 A buyer who answers only the first question, with a number, misses three of the four. A buyer who answers all four, in the right order, is the buyer the seller chooses, even against someone offering more cash.
 
@@ -462,13 +462,13 @@ The second part is the seller note. A share of the price is paid to them over a 
 
 The third part is the seller rollover. They keep a slice of the business, so they share in whatever it becomes as part of a bigger group. They get paid twice: once at settlement, and again when the group is sold or their stake is bought out.
 
-[ON SCREEN: How the seller gets paid: most of it at settlement from a commercial lender · a share over a few years as a seller note · a slice kept as seller rollover, paid again later.]
+[ON SCREEN: How the seller gets paid: most of it at settlement from a commercial lender · a share over a few years as a seller note · a slice kept as seller rollover, paid again later]
 
-[SLIDE: The seller's side, in numbers. Illustrative.]
+[SLIDE: The seller's side, in numbers · Illustrative]
 
 Here's what that looks like from their side, with the illustrative deal from Day 1: a business making five hundred thousand a year, at a price of one and a half million.
 
-[ON SCREEN: Illustrative. $1.05M at settlement · $300,000 seller note, paid over 4 years with interest · $150,000 seller rollover, a stake in the group.]
+[ON SCREEN: Illustrative · $1.05M at settlement · $300,000 seller note, paid over 4 years with interest · $150,000 seller rollover, a stake in the group]
 
 At settlement, they receive one million and fifty thousand dollars, funded by the lender. Over the next four years, they receive three hundred thousand dollars plus interest, from the seller note, paid out of the business's profit. And they keep a stake worth a hundred and fifty thousand at the price you paid, in a group that you're building toward a group multiple.
 
@@ -498,7 +498,7 @@ That's the hidden benefit of the rollover, and of the note. When a seller agrees
 
 When I bought my clinics, the sellers carried one hundred percent of the price. They were betting on the business, and on me, and I took that seriously.
 
-[SLIDE: Role play. The second conversation.]
+[SLIDE: Role play · The second conversation]
 
 Let's practise the hard part. I'm going to play the seller, and I'd like one of you to play the buyer. Raise your hand in Zoom if you'd like to try, and my team will bring you on.
 
@@ -520,7 +520,7 @@ Bring a one-page summary of who you are. Your business, how long you've run it, 
 
 Bring the names of your advisers. The accountant and the lawyer who'd work on the deal. A buyer with a professional team behind them reads as someone who finishes what they start.
 
-[ON SCREEN: What builds a seller's trust: a one-page summary of you · your advisers' names · a clear buy box · a plan for their people.]
+[ON SCREEN: What builds a seller's trust: a one-page summary of you · your advisers' names · a clear buy box · a plan for their people]
 
 Bring your buy box, in words. When the seller hears that you've decided exactly what you buy, and their business fits it, they stop wondering whether you're shopping around for any deal at all.
 
@@ -534,7 +534,7 @@ When the second conversation goes well, you ask for two things: a signed non-dis
 
 The NDA protects the seller, and asking for it first shows you'll treat their information properly. The financials let you rebuild the profit with a fair salary for whoever runs it, run your capacity maths, and test the deal at one and a half times before you talk about price.
 
-[ON SCREEN: After the second conversation: an NDA, then three years of financials and tax returns. Price comes after the test.]
+[ON SCREEN: After the second conversation: an NDA, then three years of financials and tax returns · Price comes after the test]
 
 And here's the order that matters. You test before you talk about price. If you name a number before you've run the test, you've just made a promise the structure may not be able to keep.
 
@@ -550,7 +550,7 @@ Third, look at the trend across three years. Steady or rising is what a lender w
 
 Fourth, look for concentration: one customer, one referrer, one contract or one key person carrying too much of the business.
 
-[ON SCREEN: The first pass: statements against tax returns · rebuild the profit · three-year trend · concentration · then the test.]
+[ON SCREEN: The first pass: statements against tax returns · rebuild the profit · three-year trend · concentration · then the test]
 
 And fifth, run your capacity maths and the test on the rebuilt profit. If it passes at a price inside your capacity, you have a deal worth structuring. If it fails, tomorrow's levers tell you whether it can be rescued.
 
@@ -564,7 +564,7 @@ You build the list. You contact twenty-five owners a week, every week, with the 
 
 You run the first pass and the test. And when a deal passes, you agree the shape with the seller, take it to a lender, and put it into a letter of intent. That last part is tomorrow.
 
-[ON SCREEN: List · 25 contacts a week · coffee · second conversation · NDA and financials · first pass and test · agree the shape · lender · LOI.]
+[ON SCREEN: List · 25 contacts a week · coffee · second conversation · NDA and financials · first pass and test · agree the shape · lender · LOI]
 
 Every step on that road is learnable, and you've now seen all of them except the stack and the lender, which we build tomorrow.
 
@@ -575,7 +575,7 @@ Every step on that road is learnable, and you've now seen all of them except the
 
 Here's today's homework. It's on the worksheet on your challenge day page, in the tab you joined from. Fill it in and press submit tonight.
 
-[ON SCREEN: 1. Ten owners who fit your buy box, with the six columns · 2. Your first message, four lines · 3. Your second touch, two lines · 4. The one owner you'd contact first, and why.]
+[ON SCREEN: 1) Ten owners who fit your buy box, with the six columns · 2) Your first message, four lines · 3) Your second touch, two lines · 4) The one owner you'd contact first, and why]
 
 Part one: list ten owners who fit your buy box. For each one, fill in the columns: the business, the owner, where, estimated size, years in the business, any signs of no successor, and how you're connected.
 

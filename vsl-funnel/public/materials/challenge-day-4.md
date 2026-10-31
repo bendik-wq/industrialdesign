@@ -46,7 +46,7 @@ Check two: is there at least one sign of no successor next to most of the names?
 
 Check three: does line two of your first message say something true and specific about the owner at the top of the list? If it could be sent to anyone, rewrite it before you send it.
 
-[ON SCREEN: Three checks: every owner fits the buy box · signs of no successor next to most names · a specific line two.]
+[ON SCREEN: Three checks: every owner fits the buy box · signs of no successor next to most names · a specific line two]
 
 Type in the chat whether your list passed all three. Yes, or the number of the check that caught you.
 
@@ -78,29 +78,29 @@ Let's build the stack. I'll use the same illustrative deal we've used all week, 
 
 Everything on these slides is illustrative. It's education, not financial, legal or tax advice, and every real deal gets structured on its own numbers with your own advisers.
 
-[ON SCREEN: Illustrative. 70 / 20 / 10. Commercial debt $1.05M · Seller finance $300,000 · Seller rollover $150,000.]
+[ON SCREEN: Illustrative · 70 / 20 / 10 · Commercial debt $1.05M · Seller finance $300,000 · Seller rollover $150,000]
 
 The illustrative split is seventy, twenty, ten. Seventy percent from a commercial lender, twenty percent as a seller note, and ten percent as a seller rollover. I'll take each piece in turn, with the reason it sits where it does.
 
-[SLIDE: Piece 1. Commercial debt, 70%.]
+[SLIDE: Piece 1) Commercial debt, 70%]
 
 The first piece is commercial debt, seventy percent of the price. On our deal that's one million and fifty thousand dollars.
 
 A commercial lender funds it, lending against the cash flow of the business you're buying. In the United States that includes SBA-backed acquisition loans, which exist specifically to fund the purchase of small businesses. In Australia it's the banks and private lenders that lend against business cash flow. The lenders differ by country and by deal, and what they test is the same: can this business pay this debt out of its own profit, with a buffer.
 
-[ON SCREEN: Illustrative terms. Bank: 10% over 7 years ≈ $216,000 a year on $1.05M.]
+[ON SCREEN: Illustrative terms · Bank: 10% over 7 years ≈ $216,000 a year on $1.05M]
 
 On our illustrative terms, ten percent over seven years, that loan costs about two hundred and sixteen thousand dollars a year.
 
 Why does the bank sit at seventy and not a hundred? Because the bank wants other people's money in the deal alongside theirs, sitting behind them. If something goes wrong, the bank gets paid first. The seller's note and the seller's rollover are that cushion, and they're the reason the bank is comfortable.
 
-[SLIDE: Piece 2. Seller finance, 20%.]
+[SLIDE: Piece 2) Seller finance, 20%]
 
 The second piece is seller finance, twenty percent of the price. On our deal that's three hundred thousand dollars.
 
 The seller carries it as a note: a loan from the seller to the new company, paid back over a few years, with interest, out of the profit of the business they just sold. It sits behind the bank, which means the bank gets paid first, and that's exactly why the bank likes it.
 
-[ON SCREEN: Illustrative terms. Seller note: 6% over 4 years ≈ $87,000 a year on $300,000.]
+[ON SCREEN: Illustrative terms · Seller note: 6% over 4 years ≈ $87,000 a year on $300,000]
 
 On our illustrative terms, six percent over four years, the note costs about eighty-seven thousand dollars a year.
 
@@ -108,23 +108,23 @@ The note can also start with a payment holiday: a few months, or a year, where n
 
 This is the layer I used on my own clinics, at one hundred percent, on both deals. When an owner tells me sellers won't carry a note, I know that's a belief and not a rule.
 
-[SLIDE: Piece 3. Seller rollover, 10%.]
+[SLIDE: Piece 3) Seller rollover, 10%]
 
 The third piece is seller rollover, ten percent of the price. On our deal that's a hundred and fifty thousand dollars.
 
 The seller doesn't receive that part in cash. They roll it into equity in the new company, so they keep a stake in the business after the sale. They get paid twice: once at settlement, and again when the group is sold or their stake is bought out.
 
-[ON SCREEN: Seller rollover: no yearly payment. The seller keeps a stake and gets paid twice.]
+[ON SCREEN: Seller rollover: no yearly payment · The seller keeps a stake and gets paid twice]
 
 Rollover has one property that makes it so useful in the test. It carries no yearly payment. It's ownership, not debt. Every dollar of price you move into rollover is a dollar that doesn't need to be serviced each year.
 
 And it does something for the deal beyond the maths. A seller with ten percent still in the business has every reason to help with the handover, keep the best staff on side and introduce you to the key customers. Their money is riding on it.
 
-[SLIDE: The stack, tested. Illustrative.]
+[SLIDE: The stack, tested · Illustrative]
 
 Now add it up. About two hundred and sixteen thousand a year for the bank, and eighty-seven thousand for the note. About three hundred and two thousand dollars a year in total. The rollover adds nothing to the yearly payments.
 
-[ON SCREEN: Illustrative. $500,000 ÷ about $302,000 = about 1.65x. Passes.]
+[ON SCREEN: Illustrative · $500,000 ÷ about $302,000 = about 1.65x · Passes]
 
 Five hundred thousand divided by about three hundred and two thousand is about one point six five. The deal passes, with close to two hundred thousand a year left over after every payment.
 
@@ -136,19 +136,19 @@ Type in the chat which of the three pieces surprised you most this week: the ban
 
 Thank you. For most owners, it's the rollover, because nobody tells you a seller can be part of how you pay them.
 
-[SLIDE: The same stack, a bigger deal. Illustrative.]
+[SLIDE: The same stack, a bigger deal · Illustrative]
 
 Some of you run businesses well above ten million in revenue, so let's run the same stack on a bigger deal and see what changes.
 
 Say the target makes one million two hundred thousand dollars a year in profit, and you agree a price of four million, about three point three times profit. Split it seventy, twenty, ten.
 
-[ON SCREEN: Illustrative. $4M at 70/20/10. Bank $2.8M ≈ $575,000 · Note $800,000 over 4 years ≈ $231,000 · Rollover $400,000 · Total ≈ $806,000 · Coverage ≈ 1.49x.]
+[ON SCREEN: Illustrative · $4M at 70/20/10 · Bank $2.8M ≈ $575,000 · Note $800,000 over 4 years ≈ $231,000 · Rollover $400,000 · Total ≈ $806,000 · Coverage ≈ 1.49x]
 
 The bank lends two point eight million, about five hundred and seventy-five thousand a year on our illustrative terms. The note is eight hundred thousand over four years, about two hundred and thirty-one thousand a year. The rollover is four hundred thousand, with no payment. Total payments, about eight hundred and six thousand. Coverage, about one point four nine. A whisker under the line.
 
 Now pull the smallest lever there is. Stretch the note from four years to five. The note payment drops to about a hundred and ninety thousand a year, total payments fall to about seven hundred and sixty-five thousand, and coverage rises to about one point five seven.
 
-[ON SCREEN: Illustrative. Note over 5 years ≈ $190,000 a year. Total ≈ $765,000. Coverage ≈ 1.57x. Passes.]
+[ON SCREEN: Illustrative · Note over 5 years ≈ $190,000 a year · Total ≈ $765,000 · Coverage ≈ 1.57x · Passes]
 
 The test scales. A bigger deal is the same fraction with bigger numbers. What changes at that size is who's across the table: a seller with advisers, a lender who looks harder at your management team, and a rollover that's worth real money to the seller.
 
@@ -156,7 +156,7 @@ The test scales. A bigger deal is the same fraction with bigger numbers. What ch
 
 Before we go further, here's how the shape of the stack follows the seller in front of you. Three shapes, and the kind of seller each one fits.
 
-[ON SCREEN: 100% seller finance: a smaller business, a motivated seller who trusts you · 60/40 debt and rollover: a seller who wants to stay invested · 70/20/10: the all-rounder for a mid-sized deal.]
+[ON SCREEN: 100% seller finance: a smaller business, a motivated seller who trusts you · 60/40 debt and rollover: a seller who wants to stay invested · 70/20/10: the all-rounder for a mid-sized deal]
 
 One hundred percent seller finance fits a smaller business with a motivated seller who trusts you and wants to be paid from the business over time. There's no bank, which makes it simple and fast. It's how I bought my clinics, both times. The limit is size: a seller can only carry so much, and the note payments still have to pass the test.
 
@@ -172,7 +172,7 @@ You'll know which shape fits from the first two conversations. That's why we lis
 
 You've used the test all week, so let's make sure you understand every part of it, because tomorrow it goes into your deal plan.
 
-[ON SCREEN: Debt service coverage = yearly profit ÷ yearly payments on all the debt. Target: about 1.5x.]
+[ON SCREEN: Debt service coverage = yearly profit ÷ yearly payments on all the debt · Target: about 1.5x]
 
 The top of the fraction is the yearly profit of the business you're buying, before interest and tax. Rebuilt the way we did on Day 2: real add-backs in, a fair salary for whoever runs it taken out, and tested against the tax returns.
 
@@ -192,7 +192,7 @@ Four things move the coverage, and you can see them all in the fraction.
 
 The profit, on the top. A higher, cleaner profit raises the coverage. The price, which sets how much debt there is. A lower price lowers the payments. The split, which decides how much of the price is debt and how much is rollover. More rollover, fewer payments. And the terms, which decide how big each year's payment is. Longer terms and lower rates, smaller payments.
 
-[ON SCREEN: Four things move the coverage: the profit · the price · the split · the terms.]
+[ON SCREEN: Four things move the coverage: the profit · the price · the split · the terms]
 
 Hold those four in your head, because the levers are just ways of moving the last three.
 
@@ -202,19 +202,19 @@ Hold those four in your head, because the levers are just ways of moving the las
 
 Now the deal from Day 1. Same business, five hundred thousand a year in profit. But this time the seller wants two million dollars, four times profit, and you start with the same seventy, twenty, ten split on the same terms.
 
-[ON SCREEN: Illustrative. $2M price, 70/20/10. Bank $1.4M ≈ $288,000 a year · Note $400,000 ≈ $115,000 a year · Total ≈ $403,000 · Coverage ≈ 1.24x. Fails.]
+[ON SCREEN: Illustrative · $2M price, 70/20/10 · Bank $1.4M ≈ $288,000 a year · Note $400,000 ≈ $115,000 a year · Total ≈ $403,000 · Coverage ≈ 1.24x · Fails]
 
 The bank loan is one million four hundred thousand, about two hundred and eighty-eight thousand a year. The note is four hundred thousand, about a hundred and fifteen thousand a year. Together, about four hundred and three thousand. Five hundred divided by four hundred and three is about one point two four. It fails.
 
 On Day 1, I asked what you'd do with it. Some of you said walk away, and some said pay less. Both are on the list. Here are all four levers, one at a time, with the coverage after each.
 
-[SLIDE: Lever 1. Stretch the seller note.]
+[SLIDE: Lever 1) Stretch the seller note]
 
 Lever one: stretch the seller's note over more years.
 
 Instead of four years, the four hundred thousand dollar note is paid over seven, at the same six percent. Each payment gets smaller, because it's spread further.
 
-[ON SCREEN: Illustrative. Note over 7 years ≈ $72,000 a year (was $115,000). Total ≈ $360,000. Coverage ≈ 1.39x. Better, still short.]
+[ON SCREEN: Illustrative · Note over 7 years ≈ $72,000 a year (was $115,000) · Total ≈ $360,000 · Coverage ≈ 1.39x · Better, still short]
 
 The note drops from about a hundred and fifteen thousand a year to about seventy-two thousand. Total payments fall to about three hundred and sixty thousand, and coverage rises to about one point three nine.
 
@@ -222,25 +222,25 @@ That's better, and it's still short of the line. One lever won't always do it on
 
 For the seller, a longer note means they're paid over more years, with interest the whole time. Some sellers like that, because it's a steady income from a business they trust. Some don't, and that's why it's a conversation and not an assumption.
 
-[SLIDE: Lever 2. A payment holiday on the note.]
+[SLIDE: Lever 2) A payment holiday on the note]
 
 Lever two: a payment holiday on the seller's note.
 
 For the first year, nothing is paid on the note. The business settles in under new ownership, you learn how it runs, and the cash builds up. After the holiday, the note payments start.
 
-[ON SCREEN: Illustrative. Year one with a note holiday: bank only ≈ $288,000. Coverage ≈ 1.74x in year one. From year two: back to the full payments.]
+[ON SCREEN: Illustrative · Year one with a note holiday: bank only ≈ $288,000 · Coverage ≈ 1.74x in year one · From year two: back to the full payments]
 
 In year one, the only payment is the bank's, about two hundred and eighty-eight thousand, so year-one coverage is about one point seven four.
 
 Here's the honest part. A holiday helps the first year, which is when most new owners are most stretched. It doesn't fix the years after it. A lender will look at the coverage once the holiday ends, and if that number fails, the deal still fails. So a holiday is a lever for the transition, and you combine it with something that fixes the long run.
 
-[SLIDE: Lever 3. Move more of the price into rollover.]
+[SLIDE: Lever 3) Move more of the price into rollover]
 
 Lever three: move more of the price out of debt and into the seller's rollover.
 
 Instead of seventy, twenty, ten, the split becomes sixty, twenty, twenty. The bank funds sixty percent, one point two million. The seller carries twenty percent as a note, four hundred thousand, over seven years. And the seller rolls twenty percent, four hundred thousand, into equity.
 
-[ON SCREEN: Illustrative. 60/20/20 at $2M. Bank $1.2M ≈ $247,000 · Note $400,000 over 7 years ≈ $72,000 · Rollover $400,000, no payment · Total ≈ $318,000 · Coverage ≈ 1.57x. Passes.]
+[ON SCREEN: Illustrative · 60/20/20 at $2M · Bank $1.2M ≈ $247,000 · Note $400,000 over 7 years ≈ $72,000 · Rollover $400,000, no payment · Total ≈ $318,000 · Coverage ≈ 1.57x · Passes]
 
 The bank loan costs about two hundred and forty-seven thousand a year, and the note about seventy-two thousand. That's about three hundred and eighteen thousand in total. Five hundred divided by three hundred and eighteen is about one point five seven. It passes.
 
@@ -248,13 +248,13 @@ Look at what happened. The seller got their two million dollar price. They took 
 
 For the seller, the case for a bigger rollover is the group multiple from Day 1. Twenty percent of a business valued as part of a group can be worth more, later, than the same twenty percent in cash today. That's illustrative, and it depends on what you build. It's also exactly the conversation a seller who believes in their business is willing to have.
 
-[SLIDE: Lever 4. Renegotiate the price.]
+[SLIDE: Lever 4) Renegotiate the price]
 
 Lever four: renegotiate the price.
 
 Back to seventy, twenty, ten on the original terms. At what price does the deal pass? Our capacity maths from Day 1 said about three point three times profit, so about one point six five million.
 
-[ON SCREEN: Illustrative. $1.65M at 70/20/10. Bank $1.155M ≈ $237,000 · Note $330,000 ≈ $95,000 · Total ≈ $332,000 · Coverage ≈ 1.50x. On the line.]
+[ON SCREEN: Illustrative · $1.65M at 70/20/10 · Bank $1.155M ≈ $237,000 · Note $330,000 ≈ $95,000 · Total ≈ $332,000 · Coverage ≈ 1.50x · On the line]
 
 At one point six five million, the bank loan costs about two hundred and thirty-seven thousand a year and the note about ninety-five thousand. Total payments are about three hundred and thirty-two thousand, and coverage is about one point five. Right on the line.
 
@@ -268,7 +268,7 @@ Start with the test, in plain words. "I've been through your numbers carefully. 
 
 Then offer choices, not demands. "There are a few ways to make it work. We can keep the price and stretch your note over more years. Or you keep a bigger stake in the business, so you share in more of what it becomes. Or we adjust the price a little, with more cash at settlement. Which of those would suit you best?"
 
-[ON SCREEN: Taking a lever to the seller: explain the test in plain words · protect their business, not your margin · offer choices · let them pick.]
+[ON SCREEN: Taking a lever to the seller: explain the test in plain words · protect their business, not your margin · offer choices · let them pick]
 
 Notice what that does. You've explained the problem as protecting their business, which is true. You've given them three options, each of which answers a different worry. And because they choose, the answer is theirs.
 
@@ -278,23 +278,23 @@ A seller who picks the lever is a seller who'll sign the letter of intent. A sel
 
 And if none of the four levers gets the deal over the line, you walk away before you've signed anything.
 
-[ON SCREEN: Walking away from a deal that fails the test is the most profitable decision a buyer ever makes.]
+[ON SCREEN: Walking away from a deal that fails the test is the most profitable decision a buyer ever makes]
 
 Walking away from a deal that fails the test is the most profitable decision a buyer ever makes. The owner who wrote "I've acquired ten clinics, but some haven't made money" would tell you the same thing. Some of those clinics should have been walked away from at this exact step.
 
-[SLIDE: What a bad structure costs. A composite, for illustration only.]
+[SLIDE: What a bad structure costs · A composite, for illustration only]
 
 Let me show you what happens when the test is skipped, because the cost is bigger than most owners expect.
 
 A composite buyer, made up to make a point. He finds a business making five hundred thousand a year, falls in love with it, and agrees to the seller's price of two million. No rollover, because he didn't know to ask. Seventy percent from the bank, thirty as a note over four years.
 
-[ON SCREEN: Illustrative. $2M at 70/30, no rollover. Bank ≈ $288,000 · Note $600,000 over 4 years ≈ $173,000 · Total ≈ $461,000 · Coverage ≈ 1.08x.]
+[ON SCREEN: Illustrative · $2M at 70/30, no rollover · Bank ≈ $288,000 · Note $600,000 over 4 years ≈ $173,000 · Total ≈ $461,000 · Coverage ≈ 1.08x]
 
 His payments come to about four hundred and sixty-one thousand a year. Coverage is about one point zero eight. On paper, the business still pays its debt. In practice, there's almost nothing left.
 
 Then, in the second year, the business loses a large customer and its profit falls to three hundred and fifty thousand. Now the payments are bigger than the profit by more than a hundred thousand dollars a year.
 
-[ON SCREEN: Illustrative. Profit falls to $350,000. Payments ≈ $461,000. Shortfall ≈ $111,000 a year, about $9,000 a month from the buyer's own pocket.]
+[ON SCREEN: Illustrative · Profit falls to $350,000 · Payments ≈ $461,000 · Shortfall ≈ $111,000 a year, about $9,000 a month from the buyer's own pocket]
 
 That's about nine thousand dollars a month coming out of his own pocket, or his other business, to keep the new one alive. His attention moves from the business that pays his bills to the one that's draining them. And the second deal he wanted is off the table, because no lender wants to fund a buyer whose first deal is struggling.
 
@@ -322,7 +322,7 @@ Now the part that surprises owners most. A well-structured deal gets over-financ
 
 When you buy a business, you need more than the price. There are closing costs: lawyers, accountants, due diligence, lender fees. And the business needs cash on day one to pay staff and suppliers while customer payments come in. Most first-time buyers assume that's the part they have to fund from their own pocket.
 
-[ON SCREEN: Illustrative. A working capital line of $150,000 for closing costs and day-one cash, interest-only at 10% ≈ $15,000 a year.]
+[ON SCREEN: Illustrative · A working capital line of $150,000 for closing costs and day-one cash, interest-only at 10% ≈ $15,000 a year]
 
 It doesn't have to be. A working capital line, from the same lender or another, covers the closing costs and gives the business cash on day one. Illustratively, a line of a hundred and fifty thousand dollars, interest-only at ten percent, costs about fifteen thousand dollars a year.
 
@@ -332,7 +332,7 @@ Here's the rule: the payments on that line count in the test as well. You don't 
 
 Take the passing deal from lever three, at about three hundred and eighteen thousand a year in payments. Add fifteen thousand for the working capital line, and you're at about three hundred and thirty-three thousand.
 
-[ON SCREEN: Illustrative. $500,000 ÷ about $333,000 = about 1.50x with the working capital line included.]
+[ON SCREEN: Illustrative · $500,000 ÷ about $333,000 = about 1.50x with the working capital line included]
 
 Five hundred divided by three hundred and thirty-three is about one point five. Still on the line. So in this illustration, the financing covers the price, the closing costs and the day-one cash, and the business still passes the test.
 
@@ -352,7 +352,7 @@ One more structural point. You buy through a company, not in your own name.
 
 A holding company sits at the top, and a separate company owns each business you buy underneath it. That keeps each acquisition standing on its own, keeps the debt attached to the business it was borrowed for, and gives you a clean structure for the second and third deals.
 
-[ON SCREEN: A holding company on top, a separate company for each business underneath.]
+[ON SCREEN: A holding company on top, a separate company for each business underneath]
 
 Your accountant and lawyer set that up for your country and your situation. That's education, not legal or tax advice. What matters today is that the structure exists before you sign anything binding.
 
@@ -368,7 +368,7 @@ One more reason the stack matters, and it's the one that makes the whole thing w
 
 Every year after the deal, the business pays down its debt out of its own profit. The bank loan shrinks, and the seller's note gets paid off. The business you bought with other people's money becomes, year by year, a business you own more of, with less debt against it.
 
-[ON SCREEN: Illustrative. Year by year, the business pays its own debt down. Your equity grows without you adding a dollar.]
+[ON SCREEN: Illustrative · Year by year, the business pays its own debt down · Your equity grows without you adding a dollar]
 
 And if you build a group, the value of what you own is the group's profit times a group multiple. Illustratively, eight to twelve times instead of three to five. The seller with a rollover shares in that too, which is why they agreed to it.
 
@@ -390,7 +390,7 @@ Now the mistake almost every first-time buyer makes, and the one that costs the 
 
 The first-time buyer finds a business they like, walks into a bank, and asks for a loan. They don't bring a structure, because they haven't agreed anything with the seller yet. The bank says no to the structure they didn't bring, and the buyer leaves convinced that banks don't lend for acquisitions.
 
-[ON SCREEN: The order: 1. Agree the shape with the seller · 2. Run the test · 3. Take the shape to a lender · 4. Put it in a letter of intent.]
+[ON SCREEN: The order: 1) Agree the shape with the seller · 2) Run the test · 3) Take the shape to a lender · 4) Put it in a letter of intent]
 
 Here's the right order. First, agree the shape of the deal with the seller: the price, how much they'll carry as a note, on what terms, and how much they'll roll. Second, run the test on that shape. Third, take the shape to a lender, with the test already run, and ask them to fund the rest. And fourth, put the agreed shape into a letter of intent.
 
@@ -414,7 +414,7 @@ At the top, the business: what it does, where, how long it's traded, and its reb
 
 Then you: your business, how long you've run it, your own profit, and your experience in the industry. And finally, your plan: who runs the business day to day, how long the seller stays for the handover, and what changes in the first year, which in a good deal is very little.
 
-[ON SCREEN: The deal summary: the business · the agreed shape · the test · the buyer · the plan.]
+[ON SCREEN: The deal summary: the business · the agreed shape · the test · the buyer · the plan]
 
 One page. A lender who reads it knows in two minutes that you've done the work, and the rest of the meeting is about the details rather than whether you're serious.
 
@@ -424,7 +424,7 @@ When you take the deal to a lender, expect them to ask for the same things you a
 
 Lender programmes have their own rules about seller notes and rollovers. Some want the note to wait for a period before any payments start, and some cap how much of the price can sit in certain pieces. Your structure has to fit the lender's rules, and that's one more reason the lender conversation comes after the seller's but before anything is signed.
 
-[ON SCREEN: A $5.5M radiology deal needed no personal guarantee. The deal was over $5M and the equipment secured the loan.]
+[ON SCREEN: A $5.5M radiology deal needed no personal guarantee · The deal was over $5M and the equipment secured the loan]
 
 And the question of personal guarantees comes up here. Some lenders ask for one, especially on smaller deals. One radiology deal of five and a half million dollars needed no personal guarantee, because the deal was over five million and the equipment secured the loan. Ask every lender early, and get the answer in writing.
 
@@ -434,7 +434,7 @@ Then comes the letter of intent. An LOI is a signed, non-binding agreement betwe
 
 It's non-binding on the price and the terms, which means either side can still walk away if due diligence turns up a problem. But it's the moment the deal becomes real. The seller stops talking to other buyers, you start due diligence, and the lender starts their formal process.
 
-[ON SCREEN: A letter of intent: signed, non-binding, the agreed shape of the deal. The milestone that turns a conversation into a deal.]
+[ON SCREEN: A letter of intent: signed, non-binding, the agreed shape of the deal · The milestone that turns a conversation into a deal]
 
 That's why we aim for a signed letter of intent, and not a closing date. You control the steps up to the LOI. Closing depends on due diligence and a lender's process, and nobody controls those dates precisely.
 
@@ -444,7 +444,7 @@ So you can see the whole road, here's what happens after the letter of intent, b
 
 The centre of it is the quality of the earnings. An accountant goes through the financials in detail and confirms the profit you tested is real: the add-backs, the trend, the customers, and whether the profit will continue after the owner leaves.
 
-[ON SCREEN: Due diligence: quality of earnings · customers and contracts · staff · premises and leases · legal and regulatory · equipment and systems.]
+[ON SCREEN: Due diligence: quality of earnings · customers and contracts · staff · premises and leases · legal and regulatory · equipment and systems]
 
 Alongside it, you check the customers and contracts, the staff and their terms, the premises and the lease, any legal or regulatory issues in your industry, and the state of the equipment and systems.
 
@@ -458,7 +458,7 @@ A seller with a rollover and a note has every reason to help. Use it. Agree a ha
 
 ## [42:46] Run the test on your owner
 
-[SLIDE: Your turn. Run the test on your owner.]
+[SLIDE: Your turn · Run the test on your owner]
 
 Now your turn. Take the owner at the top of your list, and the profit you typed in the chat at the start. We're going to run the whole thing.
 
@@ -472,7 +472,7 @@ Step three: split it seventy, twenty, ten. Seventy percent from the bank, twenty
 
 Step four: work out the payments on our illustrative terms. For every million dollars of bank loan, about two hundred and five thousand a year. For every million of seller note over four years, about two hundred and eighty-nine thousand a year.
 
-[ON SCREEN: Illustrative terms. Each $1M of bank debt (10%, 7 years) ≈ $205,000 a year. Each $1M of seller note (6%, 4 years) ≈ $289,000 a year.]
+[ON SCREEN: Illustrative terms · Each $1M of bank debt (10%, 7 years) ≈ $205,000 a year · Each $1M of seller note (6%, 4 years) ≈ $289,000 a year]
 
 Step five: divide your profit by the total yearly payments. Type your coverage in the chat. One number.
 
@@ -484,7 +484,7 @@ Anyone whose deal is over the line, that's a business on your list that could pa
 
 ## [45:25] Hot seat: a deal, live
 
-[SLIDE: Hot seat. A deal, live.]
+[SLIDE: Hot seat · A deal, live]
 
 Let's do one live. If you'd like to put your deal on screen and pull the levers with me, raise your hand in Zoom and my team will bring you up. Rounded numbers are fine, and no business names.
 
@@ -509,7 +509,7 @@ Thank you. Everyone watching, notice that the lever came from the seller convers
 
 Here's today's homework. It's on the worksheet on your challenge day page, in the tab you joined from. Fill it in and press submit tonight.
 
-[ON SCREEN: 1. Rebuilt profit · 2. Price · 3. The split and each piece · 4. Yearly payments · 5. Coverage · 6. If it fails, the levers in order · 7. The order of your conversations.]
+[ON SCREEN: 1) Rebuilt profit · 2) Price · 3) The split and each piece · 4) Yearly payments · 5) Coverage · 6) If it fails, the levers in order · 7) The order of your conversations]
 
 Seven parts, for the owner at the top of your list. One: the rebuilt profit, your best estimate. Two: the price. Three: the split, with the dollar amount of each piece. Four: the yearly payments on each piece and the total.
 

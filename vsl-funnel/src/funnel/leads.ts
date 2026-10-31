@@ -56,6 +56,8 @@ export interface Lead {
   webinar_cta_at: number | null;
   webinar_replay_at: number | null;
   webinar_token: string | null;
+  /** Not a column (leads is at D1's 100-column limit): the current challenge registration's token, filled in by the SMS queue before a challenge text. */
+  challenge_token?: string | null;
   sms_opt_out_at: number | null;
   sms_confirmed_at: number | null;
   sms_consent_at: number | null;

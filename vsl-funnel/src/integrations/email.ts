@@ -368,6 +368,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     ask: opts.ask ?? askFor(null, lead),
     webinarUrl: `${webinarBase(rt)}`,
     ...(webinar ? { applyUrl: webinar.apply } : {}),
+    challenge: /^ch_/.test(template) ? await (await import('../challenge/emails')).challengeEmailContext(rt, lead, link) : null,
   };
   // An edit made in Funnel HQ → Email editor replaces the built-in wording.
   const override = opts.override !== undefined ? opts.override : isEditable(template) ? (await loadOverrides(rt)).get(template) : undefined;
