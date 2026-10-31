@@ -295,7 +295,8 @@ export async function welcomePage(c: Context<AppEnv>) {
 
 function sessionCard(v: ParticipantView, reg: Registration, d: ParticipantView['days'][number], o: { compact?: boolean } = {}) {
   const join = d.join_url ? `/challenge/join/${reg.token}/${d.day}` : null;
-  const title = `<p class="chx-eyebrow">Day ${d.day} of ${DAYS_IN_CHALLENGE}</p><h2 class="chx-h2 chx-sc-h">${esc(d.content.title)}</h2>`;
+  // On the day page the page header carries the day and title, so the card doesn't repeat them.
+  const title = o.compact ? '' : `<p class="chx-eyebrow">Day ${d.day} of ${DAYS_IN_CHALLENGE}</p><h2 class="chx-h2 chx-sc-h">${esc(d.content.title)}</h2>`;
   const when = `<p class="chx-sc-when" data-local-when="${d.starts_at}">${esc(formatWhen(d.starts_at, v.cohort.timezone))}</p>`;
   const joinBtn = join ? `<a class="chx-go" href="${esc(join)}" target="_blank" rel="noopener">${esc(HUB.join)} ${ICON.ext}</a><p class="chx-fine">${esc(HUB.joinNote)}</p>` : `<p class="chx-fine">${esc(HUB.noLink)}</p>`;
   let state = '';
@@ -451,12 +452,12 @@ function vipAreaHtml(d: DayRow, vip: boolean, review: Awaited<ReturnType<typeof 
   </section>`;
 }
 
-function chatHtml(open: boolean) {
+function chatHtml(open: boolean, ended = false) {
   return `<aside class="chx-chat" data-ch-chat aria-label="${esc(DAY_PAGE.chatHeading)}">
     <div class="chx-chat-head"><h2 class="chx-h3">${esc(DAY_PAGE.chatHeading)}</h2><p class="chx-fine" data-ch-presence></p></div>
     <p class="chx-fine">${esc(DAY_PAGE.chatNote)}</p>
     <div class="chx-pin" data-ch-pin hidden></div>
-    <ol class="chx-msgs" data-ch-msgs aria-live="polite"><li class="chx-empty">${esc(open ? DAY_PAGE.chatEmpty : DAY_PAGE.chatClosed)}</li></ol>
+    <ol class="chx-msgs" data-ch-msgs aria-live="polite"><li class="chx-empty">${esc(open ? DAY_PAGE.chatEmpty : ended ? DAY_PAGE.chatEnded : DAY_PAGE.chatClosed)}</li></ol>
     <form class="chx-send" data-ch-send${open ? '' : ' hidden'}><input name="text" maxlength="400" placeholder="${esc(DAY_PAGE.chatPlaceholder)}" aria-label="${esc(DAY_PAGE.chatPlaceholder)}" autocomplete="off"><button type="submit">${esc(DAY_PAGE.chatSend)}</button></form>
     <p class="chx-err" data-ch-chat-err hidden></p>
   </aside>`;
@@ -484,7 +485,9 @@ export async function dayPage(c: Context<AppEnv>) {
     <p class="chx-back"><a href="/challenge/hub/${esc(reg.token)}">← ${esc(DAY_PAGE.back)}</a></p>
     <div class="chx-day-grid">
       <div class="chx-day-main">
-        <div class="chx-player" data-ch-player${d.phase === 'ended' ? '' : ' data-mount="1"'}>${sessionCard(v, reg, d)}</div>
+        <p class="chx-eyebrow">Day ${n} of ${DAYS_IN_CHALLENGE}${v.vip ? ' · VIP' : ''}</p>
+        <h1 class="chx-h1 chx-h1-s">${esc(d.content.title)}</h1>
+        <div class="chx-player" data-ch-player${d.phase === 'ended' ? '' : ' data-mount="1"'}>${sessionCard(v, reg, d, { compact: true })}</div>
         ${notify}
         ${offer}
         <p class="chx-p chx-day-line">${esc(d.content.line)}</p>
@@ -494,7 +497,7 @@ export async function dayPage(c: Context<AppEnv>) {
         ${locked ? '' : pollHtml(n, mine, results)}
         ${vipAreaHtml(d, v.vip, v.vip ? saved : null, reg.token, cfg.vipOn, payUrl(rt, reg.token, 'vip'))}
       </div>
-      ${chatHtml(d.phase !== 'ended' || Date.now() <= dayEnds(d) + 30 * 60_000 ? Date.now() >= d.starts_at - 30 * 60_000 : false)}
+      ${chatHtml(Date.now() >= d.starts_at - 30 * 60_000 && Date.now() <= dayEnds(d) + 30 * 60_000, Date.now() > dayEnds(d) + 30 * 60_000)}
     </div>
   </div></section>`;
   return page(c, {

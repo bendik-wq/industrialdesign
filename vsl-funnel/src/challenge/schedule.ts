@@ -132,12 +132,14 @@ export function parseEventKey(key: string) {
   return m ? { cohortId: m[1], day: Number(m[2]) } : null;
 }
 
-/** "Monday 9 November, 7:00 pm AEDT" in a time zone. */
+/** en-AU names Australian zones (AEDT), en-US the American ones (EST): each audience sees its own abbreviation. */
+const localeFor = (tz: string) => (/^(Australia|Pacific\/Auckland)/.test(tz) ? 'en-AU' : 'en-US');
+/** "Monday, November 9, 7:00 PM EST" (or "Monday 9 November, 7:00 pm AEDT") in a time zone. */
 export function formatWhen(t: number, tz: string, o: { weekday?: boolean; tzName?: boolean } = {}) {
-  const fmt = (zone: string) => new Intl.DateTimeFormat('en-AU', { weekday: o.weekday === false ? undefined : 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZoneName: o.tzName === false ? undefined : 'short', timeZone: zone }).format(t);
+  const fmt = (zone: string) => new Intl.DateTimeFormat(localeFor(zone), { weekday: o.weekday === false ? undefined : 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZoneName: o.tzName === false ? undefined : 'short', timeZone: zone }).format(t);
   try { return fmt(tz); } catch { return fmt('UTC'); }
 }
 export function formatDate(t: number, tz: string) {
-  const fmt = (zone: string) => new Intl.DateTimeFormat('en-AU', { weekday: 'short', day: 'numeric', month: 'short', timeZone: zone }).format(t);
+  const fmt = (zone: string) => new Intl.DateTimeFormat(localeFor(zone), { weekday: 'short', day: 'numeric', month: 'short', timeZone: zone }).format(t);
   try { return fmt(tz); } catch { return fmt('UTC'); }
 }

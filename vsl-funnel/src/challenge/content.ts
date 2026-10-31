@@ -148,7 +148,7 @@ export const CHECKOUT = {
   ticketButton: (label: string) => `Pay ${label}`,
   vipEyebrow: 'One upgrade, offered once',
   vipHeading: 'Make it VIP',
-  vipLede: 'Your ticket is confirmed. VIP adds three things to the same five days.',
+  vipLede: 'VIP adds three things to the same five days.',
   vipPerks: [
     { title: 'A hot seat with Josh after every session', body: 'Bring your own deal. Josh works through VIP questions live after each day’s session.' },
     { title: 'The recordings, yours to keep', body: 'Everyone else’s replays close when the offer closes after Day 5.' },
@@ -212,6 +212,7 @@ export const DAY_PAGE = {
   chatNote: 'Owners in this cohort. Names show as first name and last initial.',
   chatEmpty: 'No messages yet. Say hello to the cohort.',
   chatClosed: 'The chat opens 30 minutes before the session.',
+  chatEnded: 'The chat for this session has closed. Messages from the day stay here.',
   chatPlaceholder: 'Write a message',
   chatSend: 'Send',
   hotHeading: 'VIP hot seat',
