@@ -88,6 +88,8 @@ app.on(['GET', 'HEAD'], '/media/:file{[\\w.-]+\\.(mp4|webm|jpg)}', async (c) => 
 });
 // ── Search + AI search: robots.txt (AI crawlers named), sitemap, llms.txt (per host) ──
 app.get('/robots.txt', robotsRoute);
+// Apple Pay domain verification for Whop's payment form (Apple Pay and Google Pay on our own pages).
+app.get('/.well-known/apple-developer-merchantid-domain-association', (c) => c.env.ASSETS.fetch(new Request(new URL('/.well-known/apple-developer-merchantid-domain-association', c.req.url))));
 app.get('/sitemap.xml', sitemapRoute);
 app.get('/llms.txt', llmsRoute);
 app.get('/llms-full.txt', llmsFullRoute);
