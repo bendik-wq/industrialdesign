@@ -383,11 +383,12 @@ describe('pay-first Sprint form', () => {
     expect(a.complete).toBe(false);
   });
 
-  it('the form: revenue band prefilled, card only (no pay-later wording), plan carried only when asked', () => {
+  it('the form: revenue band prefilled, Whop payment methods only with Whop, plan carried only when asked', () => {
     const base = { offerName: 'First Deal Sprint', price: '$2,900', plan: false, values: { revenue: '$3M–$10M' }, note: null, offerUrl: '/offer/x' };
     const html = startFormHtml({ ...base, whop: true });
     expect(html).toContain('<option selected>$3M–$10M</option>');
-    expect(html).not.toMatch(/klarna|afterpay|affirm|splitit|instal|pay later/i);
+    expect(html).toContain('aria-label="Klarna"'); // Whop's real checkout methods, as one quiet row
+    expect(html).not.toMatch(/splitit|affirm/i);
     expect(html).toContain('method="post"');
     expect(html).not.toContain('name="plan"');
     expect(startFormHtml({ ...base, whop: false, plan: true })).toContain('name="plan" value="1"');

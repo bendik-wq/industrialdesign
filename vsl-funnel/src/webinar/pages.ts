@@ -89,10 +89,11 @@ export function fitLength(lede: string, durationMin: number) {
 const ticketPriceHtml = (t: TicketCopy) => `<p class="ticket-price"><strong>${esc(t.priceLine)}</strong> <span>${esc(t.guaranteeShort)}</span></p>`;
 
 /** Beside the form: what the ticket includes (titles only), the credit and the ticket guarantee. */
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 function ticketBlockHtml(t: TicketCopy) {
   return `<div class="card ticket-card wl-ticket">
-    <p class="field-label">${esc(t.includesHeading)}</p>
-    <ul class="ticks wl-includes">${t.includes.map((i) => `<li>${esc(i.title)}</li>`).join('')}</ul>
+    <p class="field-label">Also with your ticket</p>
+    <p class="wl-includes">${esc(cap(t.includes.slice(1).map((i, n, a) => `${n && n === a.length - 1 ? 'and ' : ''}${i.title.charAt(0).toLowerCase()}${i.title.slice(1)}`).join(', ').replace(/, and /, ' and ')))}.</p>
     <p class="wl-credit"><strong>${esc(t.credit)}</strong></p>
     <p class="ticket-guarantee"><strong>${esc(t.guaranteeHeading)}.</strong> ${esc(t.guarantee)}</p>
   </div>`;

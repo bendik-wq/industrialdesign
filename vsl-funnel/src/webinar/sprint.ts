@@ -82,28 +82,29 @@ export function sprintCopy(cfg: Pick<PassConfig, 'offerName' | 'priceLabel' | 'g
     unlockedEyebrow: 'Open now',
     fromMasterclass: 'From this masterclass',
     heading: `The ${n}`,
-    promise: 'Seven days with Josh’s team: your first deal mapped out in writing, then a 60-minute Deal Plan session to agree your next 90 days.',
+    promise: 'Your first deal, mapped out in writing with Josh’s team in seven days.',
     lede: 'Seven days with Josh’s team. You get your acquisition capacity, your buy box, a first shortlist and the deal structure in writing, then a 60-minute Deal Plan session to agree your next 90 days.',
     timeline: 'What you get, day by day',
-    daysShow: 'See what each day includes',
+    daysShow: 'What you get',
     daysHide: 'Hide the details',
     button: `Start my ${n}`,
     buttonShort: 'Start now',
     planButton: 'Pay in',
     today: 'today',
-    creditApplied: '{credit} ticket credit applied',
-    micro: 'Secure checkout · about two minutes',
-    microOneClick: 'One click · charged to the {card} from your ticket',
-    microOneClickNoCard: 'One click · charged to the card from your ticket',
+    creditApplied: 'with your {credit} ticket credit',
+    micro: 'Secure checkout · then book your kickoff call',
+    microOneClick: 'One click with the {card} from your ticket',
+    microOneClickNoCard: 'One click with the card from your ticket',
     stepNow: 'Step 1 of 2: confirm and pay',
     stepNext: 'Step 2: book your kickoff call',
     guaranteeBadge: 'Deal Plan guarantee',
-    guaranteeShort: 'Covered by the Deal Plan guarantee: a full refund if it wasn’t worth far more than you paid.',
-    payments: 'Secure checkout by Whop.',
-    paymentBadges: ['Card'],
+    guaranteeShort: 'Deal Plan guarantee: a full refund if it wasn’t worth far more than you paid.',
+    payments: 'Payment methods at checkout',
+    payOverTime: 'Pay in full, or over time with Klarna or Afterpay where offered.',
+    payAnother: 'Pay another way',
     bonusEyebrow: 'Fast-action bonus',
     bonusEnds: 'Yours if you start in the next',
-    bonusEndsIn: 'Bonus ends in',
+    bonusEndsIn: 'ends in',
     bonusGone: 'The fast-action bonus window has closed. Everything else in the Sprint stays the same.',
     closesIn: 'Offer closes in',
     deadline: `The ${n} is part of this masterclass, so it closes when your replay does`,
@@ -114,7 +115,7 @@ export function sprintCopy(cfg: Pick<PassConfig, 'offerName' | 'priceLabel' | 'g
     closedEmail: 'Questions about it? Email the team.',
     notYet: `The ${n} opens at ${o.opensAt} in the masterclass. Watch to that point and it opens here.`,
     backToRoom: 'Back to the masterclass',
-    offerPage: 'Read the full details',
+    offerPage: 'Full details',
     guaranteeHeading: 'The Deal Plan guarantee',
     guaranteeNote: 'The guarantee is about the refund. It is not a promise of a deal, a loan or a return.',
     creditNote: `Everything you pay for the ${n}, your masterclass ticket included, comes off the advisory engagement if you continue.`,
@@ -521,6 +522,8 @@ export async function sprintRoomConfig(rt: Runtime, reg: RegLike, session: Sessi
     // Real buyers only, and only once there are enough to mean something.
     started: o.preview ? null : await startedThisWeek(rt, cfg, now),
     whop: cfg.provider === 'whop',
+    // Whop's checkout methods as one quiet row (with one click, under "Pay another way": one click itself is the saved card).
+    payRow: cfg.provider === 'whop' ? payLogosHtml(t.payments) : null,
     fine: `${pc.secure} ${pc.noResults}`,
     offerUrl: offerUrl(rt, reg.token),
     startUrl: sprintStartUrl(rt, reg.token),
@@ -530,6 +533,26 @@ export async function sprintRoomConfig(rt: Runtime, reg: RegLike, session: Sessi
     tz: cfg.tz,
     ...sprintState(rt, session, reg, now),
   };
+}
+
+// ───────────── Payment methods (what Whop's checkout really offers), as one quiet greyscale row ─────────────
+
+const MARK = (w: number, label: string, body: string) =>
+  `<li><svg viewBox="0 0 ${w} 20" width="${w}" height="20" role="img" aria-label="${label}"><title>${label}</title>${body}</svg></li>`;
+const TXT = (x: number, s: string, extra = '') => `<text x="${x}" y="14.5" font-family="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" font-size="13" font-weight="700" fill="currentColor"${extra}>${s}</text>`;
+const APPLE = '<path fill="currentColor" d="M10.3 5.3c.5-.6.8-1.4.7-2.3-.7 0-1.6.5-2.1 1.1-.5.5-.8 1.3-.7 2.2.8 0 1.6-.4 2.1-1zm.7 1.2c-1.2-.1-2.2.7-2.7.7-.6 0-1.4-.7-2.4-.7-1.2 0-2.3.7-2.9 1.8-1.3 2.2-.3 5.4.9 7.2.6.9 1.3 1.8 2.2 1.8.9 0 1.2-.6 2.3-.6 1.1 0 1.4.6 2.3.6 1 0 1.6-.9 2.2-1.8.7-1 1-2 1-2.1 0 0-1.9-.7-1.9-2.8 0-1.8 1.5-2.6 1.5-2.7-.8-1.2-2.1-1.3-2.5-1.4z"/>';
+/** Apple Pay, Google Pay, PayPal, the card networks, Klarna and Afterpay: Whop's live checkout offers these. */
+export function payLogosHtml(label: string) {
+  return `<ul class="pay-logos" aria-label="${label}">${[
+    MARK(42, 'Apple Pay', `${APPLE}${TXT(16, 'Pay', ' font-weight="600"')}`),
+    MARK(42, 'Google Pay', `${TXT(0, 'G', ' font-weight="600"')}${TXT(12, 'Pay', ' font-weight="600"')}`),
+    MARK(50, 'PayPal', TXT(0, 'PayPal', ' font-style="italic" font-weight="800"')),
+    MARK(36, 'Visa', TXT(0, 'VISA', ' font-style="italic" font-weight="800" letter-spacing=".5"')),
+    MARK(30, 'Mastercard', '<circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="19" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/>'),
+    MARK(42, 'American Express', TXT(0, 'AMEX', ' font-weight="800" letter-spacing=".6"')),
+    MARK(46, 'Klarna', TXT(0, 'Klarna', ' font-weight="700"')),
+    MARK(60, 'Afterpay', TXT(0, 'afterpay', ' font-weight="800"')),
+  ].join('')}</ul>`;
 }
 
 /** The team's address for "Email the team" (the reply-to address, else the sender's). Null when neither is set. */

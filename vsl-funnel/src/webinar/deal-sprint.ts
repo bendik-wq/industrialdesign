@@ -86,7 +86,7 @@ export const DEAL_SPRINT_COPY = {
   credit: 'The full Sprint fee is credited against the engagement fee.',
   noResults: 'The Sprint is a plan and advice. It is not a promise of a deal, a loan or a return.',
   notFound: 'Your Sprint page opens once the First Deal Sprint is paid.',
-  welcomePaid: 'Payment received. Your Sprint has started, and the first step is your kickoff call.',
+  welcomePaid: 'Payment received. Your Sprint has started.',
   kickoffTopTitle: 'Book your kickoff call',
   kickoffTopLede: 'Pick a time that suits you. On the call Josh’s team confirms your numbers and what you would buy first.',
   kickoffNewTab: 'Open the calendar in a new tab',
@@ -161,21 +161,42 @@ const STATUS_LABEL: Record<string, string> = { waiting: 'Waiting', in_progress: 
 const pill = (s: string) => `<span class="ds-pill ds-s-${esc(s)}">${esc(STATUS_LABEL[s] ?? s)}</span>`;
 const paras = (s: string) => esc(s).replace(/\r?\n/g, '<br>');
 
+// The Sprint page in the buyer pages' calm system: one card for the one action, then quiet hairline sections.
 const STYLE = `<style>
-.ds-head{margin-bottom:8px}.ds-next{background:var(--accent-tint,#eef3fb);border:1px solid var(--accent,#0f2c5c);border-radius:10px;padding:14px 16px;margin:14px 0}
-.ds-next p{margin:0 0 8px}.ds-days{list-style:none;padding:0;margin:8px 0}.ds-day{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:14px 0;border-top:1px solid #e4e7ec}
-.ds-day.today .ds-dn{color:var(--accent,#0f2c5c);font-weight:700}.ds-dn{font:600 13px/1.3 var(--font,inherit);color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
-.ds-item{margin:0 0 10px}.ds-item:last-child{margin-bottom:0}.ds-item h3{font-size:16px;margin:0 0 4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ds-item p{margin:0 0 6px;color:#4a5468}
-.ds-ready{background:#f6f8f4;border-radius:8px;padding:10px 12px;margin-top:6px;overflow-wrap:anywhere}
-.ds-pill{display:inline-block;font:600 11px/1 var(--font,inherit);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;border-radius:999px;background:#eef0f3;color:#4a5468}
-.ds-s-ready,.ds-s-done,.ds-s-received{background:#e8f6ec;color:#14532d}.ds-s-in_progress,.ds-s-booked{background:#fdf3e2;color:#78350f}
-.ds-form{display:grid;gap:12px;margin-top:10px}.ds-form label{display:grid;gap:4px;font-size:14px;color:#374151}.ds-form textarea{min-height:76px}
-.ds-note{background:#e8f6ec;color:#14532d;border-radius:8px;padding:10px 12px}.ds-note.warn{background:#fdf3e2;color:#78350f}
-.ds-links{display:flex;flex-wrap:wrap;gap:10px}
-.ds-kickoff{border:1px solid var(--accent,#0f2c5c);border-radius:12px;padding:16px;margin:14px 0}.ds-kickoff .ds-note{margin-bottom:10px}
-.ds-cal{position:relative;width:100%;height:700px;border-radius:10px;overflow:hidden;background:#fff}.ds-cal iframe{width:100%;height:100%;border:0}
-@media (max-width:560px){.ds-day{grid-template-columns:1fr;gap:6px}}
+.ds{--i:#1d1d1f;--i2:#6e6e73;--i3:#86868b;--h:rgba(0,0,0,.1);--f:#f5f5f7;--n:#0f2c5c;--ok:#1d7a4f;--ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Inter,Arial,sans-serif;font-family:var(--ui);color:var(--i);-webkit-font-smoothing:antialiased}
+.worksheet:has(.ds) .ws-actions{display:none}
+.ds p{margin:0}.ds a{color:var(--n);text-decoration:none}.ds a:hover{text-decoration:underline}
+.ds .ds-top{margin:8px 0 24px;font:500 14px/1.4 var(--ui);color:var(--i3);text-align:center}
+.ds-head{margin:8px 0 32px}.ds-head h1{font:500 clamp(30px,4vw,44px)/1.1 var(--serif);letter-spacing:-.02em;margin:0 0 8px}.ds-head .lede{font:400 17px/1.5 var(--ui);color:var(--i2);max-width:none}
+.ds-card{background:var(--f);border-radius:28px;padding:48px 40px 40px;text-align:center;margin:0 0 48px}
+.ds-ok{display:inline-flex;align-items:center;gap:6px;font:600 14px/1.2 var(--ui);color:var(--ok);margin:0 0 16px!important}.ds-ok svg{width:16px;height:16px}
+.ds-card h1,.ds-card h2{font:500 clamp(30px,4vw,44px)/1.08 var(--serif);letter-spacing:-.02em;margin:0 0 12px;color:var(--i)}
+.ds-card .ds-lede{font:400 17px/1.5 var(--ui);color:var(--i2);max-width:440px;margin:0 auto 32px}
+.ds-go{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:0 32px;border-radius:999px;background:var(--n);color:#fff!important;font:600 17px/1.2 var(--ui);text-decoration:none!important;width:100%;max-width:420px;box-sizing:border-box}
+.ds-go:hover{background:#163a76}
+.ds-cal{position:relative;width:100%;height:700px;border-radius:16px;overflow:hidden;background:#fff;text-align:left}.ds-cal iframe{width:100%;height:100%;border:0}
+.ds-card .ds-alt{margin-top:16px!important;font:400 14px/1.4 var(--ui);color:var(--i3)}
+.ds-next{margin:0 0 40px;padding:20px 0;border-top:1px solid var(--h);border-bottom:1px solid var(--h);font:400 15px/1.5 var(--ui);color:var(--i2)}
+.ds-next p{margin:0 0 12px}.ds-next p:last-child{margin:0}
+.ds-sec{padding:32px 0;border-top:1px solid var(--h)}.ds-sec h2{font:600 19px/1.3 var(--ui);letter-spacing:-.01em;margin:0 0 12px;color:var(--i)}.ds-sec>p{font:400 15px/1.55 var(--ui);color:var(--i2)}
+.ds-days{list-style:none;padding:0;margin:0}.ds-day{display:grid;grid-template-columns:64px 1fr;gap:16px;padding:16px 0;border-top:1px solid var(--h)}.ds-day:first-child{border-top:0}
+.ds-dn{font:500 13px/1.6 var(--ui);color:var(--i3)}.ds-day.today .ds-dn{color:var(--n);font-weight:600}
+.ds-item{margin:0 0 12px}.ds-item:last-child{margin-bottom:0}.ds-item h3{font:600 15px/1.4 var(--ui);margin:0 0 2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ds-item p{font:400 14px/1.5 var(--ui);color:var(--i2);margin:0 0 6px}
+.ds-ready{margin-top:6px;overflow-wrap:anywhere;font:400 14px/1.5 var(--ui)}
+.ds-pill{display:inline-block;font:500 12px/1 var(--ui);padding:4px 8px;border-radius:999px;background:var(--f);color:var(--i2)}
+.ds-s-ready,.ds-s-done,.ds-s-received{color:var(--ok);background:#eaf6ef}.ds-s-in_progress,.ds-s-booked{color:#7a5200;background:#fff6e0}
+.ds-form{display:grid;gap:16px;margin-top:16px}.ds-form label{display:grid;gap:6px;font:500 14px/1.35 var(--ui);color:var(--i)}
+.ds-form .input{width:100%;box-sizing:border-box;font:400 16px/1.3 var(--ui);background:var(--f);border:1px solid transparent;border-radius:10px;padding:12px 14px;min-height:48px}.ds-form textarea.input{min-height:88px}
+.ds-form .input:focus{outline:none;background:#fff;border-color:var(--n);box-shadow:0 0 0 3px rgba(15,44,92,.15)}
+.ds-form .btn,.ds-links .btn{border-radius:999px;box-shadow:none;background:var(--n);border-color:var(--n);color:#fff;justify-self:start}.ds-form .btn::after,.ds-links .btn::after{display:none}
+.ds-links{display:flex;flex-wrap:wrap;gap:16px}.ds-links .btn{background:none;color:var(--n);border:0;padding:0;font:500 15px/1.4 var(--ui)}
+.ds-day .btn{border-radius:999px;box-shadow:none}.ds-day .btn::after{display:none}
+.ds-note{background:#eaf6ef;color:#14532d;border-radius:12px;padding:12px 16px;font:400 14px/1.5 var(--ui);margin:0 0 24px!important}.ds-note.warn{background:#fff6e0;color:#6b4a00}
+.ds-rest{border-top:1px solid var(--h)}.ds-rest>summary{cursor:pointer;list-style:none;padding:20px 0;text-align:center;font:500 15px/1.4 var(--ui);color:var(--n)}.ds-rest>summary::-webkit-details-marker{display:none}.ds-rest[open]>summary{padding-bottom:0}
+.ds-disc{margin:32px 0 0!important;font:400 12px/1.5 var(--ui);color:var(--i3)}
+@media (max-width:560px){.ds-day{grid-template-columns:1fr;gap:4px}.ds-card{padding:36px 20px 28px;border-radius:22px}}
 </style>`;
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
 /** The page body (pure, for the tests and the preview). */
 export function portalHtml(v: PortalView) {
@@ -187,13 +208,13 @@ export function portalHtml(v: PortalView) {
   // Until the kickoff is booked, the page opens on booking it: the calendar inline (Calendly), else a big button.
   const kickoffOpen = !v.kickoff.booked && !v.kickoff.held;
   const kickoffTop = kickoffOpen && v.kickoff.url
-    ? `<section class="ws-sec ds-kickoff" id="kickoff" data-kickoff="${esc(v.token ?? '')}">${v.welcome ? `<p class="ds-note" role="status">${esc(t.welcomePaid)}</p>` : ''}
-      <h2 class="h3">${esc(t.kickoffTopTitle)}</h2><p>${esc(t.kickoffTopLede)}</p>
+    ? `<section class="ds-card" id="kickoff" data-kickoff="${esc(v.token ?? '')}">${v.welcome ? `<p class="ds-ok" role="status">${CHECK}${esc(t.welcomePaid)}</p>` : ''}
+      <h1>${esc(t.kickoffTopTitle)}</h1><p class="ds-lede">${esc(t.kickoffTopLede)}</p>
       ${v.kickoffEmbed
-        ? `<div class="ds-cal" data-kickoff-cal><iframe src="${esc(v.kickoffEmbed)}" title="${esc(t.kickoffTopTitle)}" loading="eager"></iframe></div><p class="muted small"><a href="${esc(v.kickoff.url)}" target="_blank" rel="noopener">${esc(t.kickoffNewTab)}</a></p>`
-        : `<a class="btn btn-lg" href="${esc(v.kickoff.url)}" target="_blank" rel="noopener" data-kickoff-link>${esc(t.bookKickoff)}</a>`}</section>`
+        ? `<div class="ds-cal" data-kickoff-cal><iframe src="${esc(v.kickoffEmbed)}" title="${esc(t.kickoffTopTitle)}" loading="eager"></iframe></div><p class="ds-alt"><a href="${esc(v.kickoff.url)}" target="_blank" rel="noopener">${esc(t.kickoffNewTab)}</a></p>`
+        : `<a class="ds-go" href="${esc(v.kickoff.url)}" target="_blank" rel="noopener" data-kickoff-link>${esc(t.bookKickoff)}</a>`}</section>`
     : v.welcome ? `<p class="ds-note" role="status">${esc(t.welcomePaid)}</p>` : '';
-  const next = kickoffOpen && !v.kickoff.url
+  const next =kickoffOpen && !v.kickoff.url
     ? `<p>${esc(t.nextKickoffEmail)}</p>`
     : kickoffOpen && !v.intake ? `<p>${esc(t.nextIntake)}</p><a class="btn btn-sm" href="#intake">${esc(t.intakeTitle)}</a>`
     : kickoffOpen ? `<p>${esc(t.nextWaiting)}</p>`
@@ -209,7 +230,7 @@ export function portalHtml(v: PortalView) {
   const days = Array.from({ length: SPRINT_DAYS }, (_, i) => i + 1).map((day) => {
     const items: string[] = [];
     if (day === 1) {
-      items.push(item(t.kickoffTitle, t.kickoffBody, kickoffStatus, !v.kickoff.booked && !v.kickoff.held && v.kickoff.url ? btn(v.kickoff.url, t.bookKickoff, ' secondary') : ''));
+      items.push(item(t.kickoffTitle, t.kickoffBody, kickoffStatus, '' /* booked from the card at the top */));
       items.push(item(t.intakeTitle, t.intakeLede, v.intake ? 'received' : 'waiting', v.intake ? '' : '<a href="#intake">Fill it in below</a>'));
     }
     for (const d of v.deliverables.filter((x) => x.day === day && (!x.bonus || v.fastBonus))) items.push(item(d.title, d.body, d.status, delivered(d)));
@@ -227,23 +248,27 @@ export function portalHtml(v: PortalView) {
   }).join('');
   // Not filled in yet (a one-click buyer skipped the form before paying): the questions sit right under the
   // kickoff booking. Once saved, the form moves below the seven days for updates.
-  const intake = `<section class="ws-sec" id="intake"><h2 class="h3">${esc(t.intakeTitle)}</h2><p>${esc(t.intakeLede)}</p>
+  const intake = `<section class="ds-sec" id="intake"><h2>${esc(t.intakeTitle)}</h2><p>${esc(t.intakeLede)}</p>
     <form class="ds-form" method="post">${fields}<button class="btn" type="submit"${off}>${esc(v.intake ? t.intakeUpdate : t.intakeButton)}</button></form></section>`;
-  return `${STYLE}${v.preview ? `<p class="muted no-print">${esc(t.preview)}</p>` : ''}
-  <header class="ws-head ds-head"><span class="eyebrow"><span class="pass-badge">${esc(v.product)}</span></span>
-    <h1 class="h2">${v.name ? `${esc(v.name)}, your` : 'Your'} ${esc(v.product)}</h1>
-    <p class="lede">${v.day > SPRINT_DAYS ? 'All seven days are done.' : `Day ${v.day} of ${SPRINT_DAYS}.`} ${esc(t.lede)}</p></header>
+  const dayLine = v.day > SPRINT_DAYS ? 'All seven days are done.' : `Day ${v.day} of ${SPRINT_DAYS}.`;
+  const sec = (title: string, body: string, id = '') => `<section class="ds-sec"${id ? ` id="${id}"` : ''}><h2>${esc(title)}</h2>${body}</section>`;
+  // While the kickoff waits to be booked, that is the one card on the page; the rest sits quietly below it.
+  return `${STYLE}<div class="ds">${v.preview ? `<p class="ds-top">${esc(t.preview)}</p>` : ''}
+  ${kickoffTop
+    ? `<p class="ds-top">${v.name ? `${esc(v.name)} · ` : ''}${esc(v.product)} · ${dayLine}</p>`
+    : `<header class="ds-head"><h1>${v.name ? `${esc(v.name)}, your` : 'Your'} ${esc(v.product)}</h1><p class="lede">${dayLine} ${esc(t.lede)}</p></header>`}
   ${v.note ? `<p class="ds-note${v.note === t.intakeMissing ? ' warn' : ''}" role="status">${esc(v.note)}</p>` : ''}
   ${kickoffTop}
   ${v.intake ? '' : intake}
-  <div class="ds-next">${next}</div>
-  <section class="ws-sec"><h2 class="h3">${esc(t.eyebrow)}</h2><ol class="ds-days">${days}</ol></section>
+  ${kickoffTop ? '<details class="ds-rest"><summary>Your seven days, your links and the guarantee</summary>' : `<div class="ds-next">${next}</div>`}
+  ${sec(t.eyebrow, `<ol class="ds-days">${days}</ol>`)}
   ${v.intake ? intake : ''}
-  <section class="ws-sec"><h2 class="h3">${esc(t.linksTitle)}</h2><p class="ds-links">${btn(v.links.pack, t.packLink, ' secondary')} ${btn(v.links.blueprint, t.blueprintLink, ' secondary')}</p></section>
-  ${v.fastBonus ? `<section class="ws-sec"><h2 class="h3">${esc(t.bonusTitle)}</h2><p>${esc(DEAL_SPRINT_DELIVERABLES.find((d) => d.bonus)!.title)}. ${esc(DEAL_SPRINT_DELIVERABLES.find((d) => d.bonus)!.body)}</p></section>` : ''}
-  <section class="ws-sec"><h2 class="h3">${esc(t.guaranteeTitle)}</h2><p>${esc(t.guarantee)}</p></section>
-  <section class="ws-sec"><h2 class="h3">${esc(t.afterTitle)}</h2><p>${esc(t.after)}</p><p>${esc(v.credit ? `${t.credit.replace('The full Sprint fee', `The full ${v.credit}`)}` : t.credit)}</p></section>
-  <p class="muted ws-disc">${esc(t.noResults)} Education and advice, not legal, tax or financial advice.</p>`;
+  ${sec(t.linksTitle, `<p class="ds-links">${btn(v.links.pack, t.packLink, ' secondary')} ${btn(v.links.blueprint, t.blueprintLink, ' secondary')}</p>`)}
+  ${v.fastBonus ? sec(t.bonusTitle, `<p>${esc(DEAL_SPRINT_DELIVERABLES.find((d) => d.bonus)!.title)}. ${esc(DEAL_SPRINT_DELIVERABLES.find((d) => d.bonus)!.body)}</p>`) : ''}
+  ${sec(t.guaranteeTitle, `<p>${esc(t.guarantee)}</p>`)}
+  ${sec(t.afterTitle, `<p>${esc(t.after)} ${esc(v.credit ? `${t.credit.replace('The full Sprint fee', `The full ${v.credit}`)}` : t.credit)}</p>`)}
+  ${kickoffTop ? '</details>' : ''}
+  <p class="ds-disc">${esc(t.noResults)} Education and advice, not legal, tax or financial advice.</p></div>`;
 }
 
 /** The made-up buyer for Funnel HQ → Page previews. Nothing is read or saved. */
@@ -284,7 +309,12 @@ const worksheet = (c: Context<AppEnv>, body: string) => render(c, '/webinar-work
 
 export async function dealSprintPage(c: Context<AppEnv>) {
   const rt = runtimeFrom(c);
-  if (c.req.param('token') === 'preview' && c.get('visitor')?.botReason === 'admin-preview') return worksheet(c, portalHtml(samplePortal(rt)));
+  if (c.req.param('token') === 'preview' && c.get('visitor')?.botReason === 'admin-preview') {
+    // ?welcome=1: just back from checkout, the kickoff still to book (the one card on the page).
+    const s = samplePortal(rt);
+    const fresh = c.req.query('welcome') === '1';
+    return worksheet(c, portalHtml(fresh ? { ...s, welcome: true, day: 1, kickoff: { booked: false, held: false, url: s.kickoff.url ?? '#' }, deliverables: s.deliverables.map((d) => ({ ...d, status: 'waiting' as DeliverableStatus, link: null, notes: null })) } : s));
+  }
   const loaded = await loadPortal(c);
   const { reg } = loaded;
   let { pass } = loaded;

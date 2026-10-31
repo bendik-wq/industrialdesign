@@ -63,7 +63,7 @@
       if (left <= 0 && !el.hasAttribute('data-done')) {
         el.setAttribute('data-done', '');
         var what = el.getAttribute('data-sprint-kind');
-        if (what === 'bonus') { var box = el.closest('[data-sprint-bonus]'); if (box) box.innerHTML = '<p class="buy-bonus-gone">' + esc(C.bonusGone) + '</p>'; paintBar(); }
+        if (what === 'bonus') { var box = el.closest('[data-sprint-bonus]'); if (box) { box.textContent = C.bonusGone; box.classList.add('gone'); } paintBar(); }
         if (what === 'deadline') { if (S.preview) return; if (W.sprintPage) location.reload(); else { state.closed = true; drawn = null; render(); } }
       }
     });
@@ -162,11 +162,11 @@
     var row = function (l, a, strong) { return '<div class="buy-row' + (strong ? ' total' : '') + '"><span>' + esc(l) + '</span><span class="nw">' + esc(a) + '</span></div>'; };
     var box = openModal('<p class="buy-steps-mini">' + esc(C.stepNow) + ' · ' + esc(C.stepNext) + '</p><p class="buy-modal-h">' + esc(q.copy.confirmHeading) + '</p>' +
       q.lines.map(function (x) { return row(x.label, x.amount); }).join('') + row('Total', q.total, true) +
-      '<p class="buy-fine">' + esc(q.copy.charged) + '</p>' +
-      '<button type="button" class="buy-btn buy-btn-xl" data-oc-pay><span data-label>' + esc(q.copy.confirmButton) + '</span> ' + arrow + '</button>' +
-      '<p class="buy-guarantee">' + shield + '<span>' + esc(C.guaranteeShort) + '</span></p>' +
+      '<p class="bh-fine">' + esc(q.copy.charged) + '</p>' +
+      '<button type="button" class="buy-btn" data-oc-pay><span data-label>' + esc(q.copy.confirmButton) + '</span> ' + arrow + '</button>' +
+      '<p class="bh-g">' + shield + '<span>' + esc(C.guaranteeShort) + '</span></p>' +
       '<p class="buy-modal-alt"><a href="' + esc(S.startUrl) + '" data-oc-other>' + esc(q.copy.otherCard) + '</a></p>' +
-      (S.preview ? '<p class="buy-preview">' + esc(C.preview) + '</p>' : ''), q.copy.confirmHeading, 'buy-confirm');
+      (S.preview ? '<p class="bh-preview">' + esc(C.preview) + '</p>' : ''), q.copy.confirmHeading, 'buy-confirm');
     var pay = box.querySelector('[data-oc-pay]');
     pay.addEventListener('click', function () {
       if (pay.disabled || S.preview) return;
@@ -181,32 +181,40 @@
   }
 
   // ── Pieces shared by the room's offer block and the bar ──
-  function buttonHtml(where, xl) {
-    if (S.full) return '<p class="buy-soldout">' + esc(S.soldOut) + '</p>';
-    var label = where === 'bar' ? C.buttonShort : C.button;
-    return '<button type="button" class="buy-btn' + (xl ? ' buy-btn-xl' : '') + '" data-sprint-buy="full" data-where="' + where + '"><span data-label>' + esc(label) + '</span><span class="buy-btn-price">' + esc(S.price) + '</span>' + arrow + '</button>';
+  // The same markup as the offer page's buy core (sprint-page.ts buyCoreHtml).
+  function buttonHtml(where, short) {
+    if (S.full) return '<p class="bh-soldout">' + esc(S.soldOut) + '</p>';
+    return '<button type="button" class="buy-btn" data-sprint-buy="full" data-where="' + where + '"><span data-label>' + esc(short ? C.buttonShort : C.button) + '</span>' + arrow + '</button>';
   }
   function microHtml() {
     if (S.oneClick) return S.oneClick.card ? fill(C.microOneClick, { card: S.oneClick.card }) : C.microOneClickNoCard;
     return C.micro;
   }
   function priceHtml() {
-    return '<div class="buy-price">' + (S.credit ? '<s class="buy-anchor">' + esc(S.listPrice) + '</s>' : '') + '<span class="buy-today"><b>' + esc(S.price) + '</b> ' + esc(C.today) + '</span>' +
-      (S.credit ? '<span class="buy-credit">' + esc(fill(C.creditApplied, { credit: S.credit })) + '</span>' : '') + '</div>';
+    return '<p class="bh-price"><b>' + esc(S.price) + '</b>' + (S.credit ? ' <s>' + esc(S.listPrice) + '</s> <span>' + esc(fill(C.creditApplied, { credit: S.credit })) + '</span>' : '') + '</p>';
   }
-  function daysHtml() {
-    var days = (S.perks || []).filter(function (p) { return p.day; });
-    return '<div class="buy-days"><p class="buy-label">' + esc(C.timeline) + '</p><ol class="buy-chips">' + days.map(function (p) {
-      return '<li><span>' + esc(p.day) + '</span>' + esc(p.title) + '</li>';
-    }).join('') + '</ol><details class="buy-more"><summary><span class="when-closed">' + esc(C.daysShow) + '</span><span class="when-open">' + esc(C.daysHide) + '</span></summary>' +
-      '<ol class="buy-daylist">' + (S.perks || []).map(function (p) { return '<li><span class="buy-day">' + esc(p.day || '+') + '</span><div><strong>' + esc(p.title) + '</strong>' + (p.body ? '<span>' + esc(p.body) + '</span>' : '') + '</div></li>'; }).join('') + '</ol>' +
-      '<p class="buy-fine">' + esc(C.creditNote) + ' ' + esc(S.fine) + '</p></details></div>';
+  function payHtml() {
+    if (!S.payRow) return '';
+    return '<div class="bh-pay">' + (S.oneClick && S.startUrl ? '<a class="bh-alt" href="' + esc(S.startUrl) + '">' + esc(C.payAnother) + '</a>' : '') + S.payRow + '<p>' + esc(C.payOverTime) + '</p></div>';
   }
   function bonusHtml() {
     if (!S.bonus) return '';
-    if (!bonusOpen()) return '<div class="buy-bonus gone" data-sprint-bonus><p class="buy-bonus-gone">' + esc(C.bonusGone) + '</p></div>';
-    return '<div class="buy-bonus" data-sprint-bonus><div class="buy-bonus-t"><p class="buy-label">' + esc(C.bonusEyebrow) + '</p><p><strong>' + esc(S.bonus.title) + '</strong>' + (S.bonus.body ? ': ' + esc(S.bonus.body) : '') + '</p></div>' +
-      '<div class="buy-bonus-c"><span>' + esc(C.bonusEndsIn) + '</span>' + timer(state.bonusEndsAt, 'bonus', 'buy-timer big') + '</div></div>';
+    if (!bonusOpen()) return '<p class="bh-timer gone" data-sprint-bonus>' + esc(C.bonusGone) + '</p>';
+    return '<p class="bh-timer" data-sprint-bonus><span>' + esc(C.bonusEyebrow) + ': ' + esc(S.bonus.title) + '</span> <span class="nw">' + esc(C.bonusEndsIn) + ' ' + timer(state.bonusEndsAt, 'bonus') + '</span></p>';
+  }
+  function coreHtml(where) {
+    return '<div class="bh-buy" data-sprint-buybox>' + priceHtml() + buttonHtml(where) +
+      '<p class="bh-micro">' + esc(microHtml()) + '</p>' +
+      '<p class="bh-g">' + shield + '<span>' + esc(C.guaranteeShort) + '</span></p>' +
+      payHtml() + bonusHtml() +
+      (S.started ? '<p class="bh-proof">' + esc(fill(C.started, { n: S.started })) + '</p>' : '') +
+      (S.capLabel ? '<p class="bh-proof">' + esc(S.capLabel) + '</p>' : '') + '</div>';
+  }
+  function daysHtml() {
+    var days = (S.perks || []).filter(function (p) { return p.day; });
+    return '<details class="bh-more"><summary>' + esc(C.daysShow) + '</summary><ol class="bh-days">' + days.map(function (p) {
+      return '<li><span>' + esc(p.day) + '</span><div><strong>' + esc(p.title) + '</strong>' + (p.body ? '<p>' + esc(p.body) + '</p>' : '') + '</div></li>';
+    }).join('') + '</ol><p class="bh-fine">' + esc(C.creditNote) + ' ' + esc(S.fine) + '</p></details>';
   }
 
   // ── The room ──
@@ -216,7 +224,7 @@
   if (cta && !W.booked) cta.classList.add('sprint-off');
   var line = document.querySelector('[data-offer-line]');
   var box = document.createElement('section');
-  box.className = 'buy-hero';
+  box.className = 'bh bh-room';
   box.setAttribute('aria-label', S.name);
   box.id = 'sprint-offer';
   var asking = false, retryAt = 0;
@@ -230,27 +238,16 @@
     line.hidden = false;
   }
   function openHtml() {
-    return '<div class="buy-top"><p class="buy-badge">' + lockSvg(true) + esc(C.unlockedEyebrow) + ' · ' + esc(C.fromMasterclass) + '</p>' +
-      '<h2 class="buy-h">' + esc(C.heading) + '</h2><p class="buy-promise">' + esc(C.promise) + '</p></div>' +
-      bonusHtml() +
-      '<div class="buy-box" data-sprint-buybox>' +
-      (buyin ? '<p class="buy-said"><span>' + esc(C.youSaid) + ':</span> “' + esc(buyin) + '”</p>' : '') +
-      priceHtml() +
-      '<p class="buy-steps"><span class="on">' + esc(C.stepNow) + '</span><span aria-hidden="true">→</span><span>' + esc(C.stepNext) + '</span></p>' +
-      buttonHtml('hero', true) +
-      '<p class="buy-micro">' + esc(microHtml()) + '</p>' +
-      '<p class="buy-guarantee">' + shield + '<span><strong>' + esc(C.guaranteeBadge) + '.</strong> ' + esc(S.guarantee) + '</span></p>' +
-      (S.whop ? '<div class="buy-pay"><ul aria-label="' + esc(C.payments) + '">' + (C.paymentBadges || []).map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul><p>' + esc(C.payments) + '</p></div>' : '') +
-      (S.started ? '<p class="buy-proof">' + esc(fill(C.started, { n: S.started })) + '</p>' : '') +
-      (S.capLabel ? '<p class="buy-proof">' + esc(S.capLabel) + '</p>' : '') +
-      '</div>' +
-      daysHtml() +
-      '<p class="buy-foot"><span>' + esc(C.deadlineShort) + ' ' + timer(state.deadline, 'deadline', 'buy-timer') + '</span><a href="' + esc(S.offerUrl) + '" target="_blank" rel="noopener" data-sprint-page>' + esc(C.offerPage) + ' →</a></p>' +
-      (S.preview ? '<p class="buy-preview">' + esc(C.preview) + '</p>' : '');
+    return (buyin ? '<p class="bh-said">“' + esc(buyin) + '”<span>' + esc(C.youSaid) + '</span></p>' : '') +
+      '<p class="bh-eyebrow">' + esc(C.unlockedEyebrow) + '</p>' +
+      '<h2 class="bh-h">' + esc(C.heading) + '</h2><p class="bh-line">' + esc(C.promise) + '</p>' +
+      coreHtml('hero') + daysHtml() +
+      '<p class="bh-close">' + esc(C.deadlineShort) + ' ' + timer(state.deadline, 'deadline') + ' · <a href="' + esc(S.offerUrl) + '" target="_blank" rel="noopener" data-sprint-page>' + esc(C.offerPage) + '</a></p>' +
+      (S.preview ? '<p class="bh-preview">' + esc(C.preview) + '</p>' : '');
   }
   function closedHtml() {
     var m = mailto();
-    return '<div class="buy-closed"><p class="buy-h small">' + esc(C.heading) + '</p><p>' + esc(C.closed) + (m ? ' <a href="' + esc(m) + '">' + esc(C.closedEmail) + '</a>' : '') + '</p></div>';
+    return '<h2 class="bh-h small">' + esc(C.heading) + '</h2><p class="bh-line">' + esc(C.closed) + (m ? ' <a href="' + esc(m) + '">' + esc(C.closedEmail) + '</a>' : '') + '</p>';
   }
 
   function render(animate) {
@@ -263,7 +260,7 @@
     box.innerHTML = want === 'closed' ? closedHtml() : openHtml();
     box.classList.toggle('closed', want === 'closed');
     if (R.offer) R.offer(box); else if (cta && cta.parentNode) cta.parentNode.insertBefore(box, cta);
-    if (want === 'open' && was === 'locked' && animate && !reduced) { box.classList.add('buy-revealed'); setTimeout(function () { box.classList.remove('buy-revealed'); }, 1400); }
+    if (want === 'open' && was === 'locked' && animate && !reduced) { box.classList.add('bh-revealed'); setTimeout(function () { box.classList.remove('bh-revealed'); }, 600); }
     var page = box.querySelector('[data-sprint-page]');
     if (page) page.addEventListener('click', function () { F.track('cta_click', { id: 'webinar_sprint_page' }); });
     paintBar();
@@ -315,7 +312,7 @@
     });
     if (!inRoom) {
       // Offer page: the bar appears once the main button has scrolled away.
-      var main = document.querySelector('.buy-box .buy-btn');
+      var main = document.querySelector('.bh-buy .buy-btn');
       if (main && 'IntersectionObserver' in window) { barAway = false; } else barAway = true;
       if (main && 'IntersectionObserver' in window) new IntersectionObserver(function (es) { barAway = !es[0].isIntersecting; paintBar(); }).observe(main);
     }
@@ -334,9 +331,9 @@
     var to = b ? state.bonusEndsAt : state.deadline;
     bar.innerHTML = '<div class="buybar-in">' +
       (inRoom && R.openSheet ? '<button type="button" class="buybar-tools" data-bar-tools aria-label="' + esc(C.tools) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>' : '') +
-      '<div class="buybar-info"><p class="buybar-name"><strong>' + esc(S.name) + '</strong><span class="buybar-price">' + (S.credit ? '<s>' + esc(S.listPrice) + '</s> ' : '') + esc(S.price) + '</span></p>' +
-      '<p class="buybar-clock"><span>' + esc(b ? C.bonusEndsIn : C.closesIn) + '</span> ' + timer(to, b ? 'bonus' : 'deadline', 'buy-timer') + '</p></div>' +
-      '<div class="buybar-act">' + buttonHtml('bar', false) + '<p class="buybar-g">' + shield + esc(C.guaranteeBadge) + '</p></div></div>';
+      '<div class="buybar-info"><p class="buybar-name"><span class="bb-n">' + esc(S.name) + '</span><span class="bb-p">' + esc(S.price) + '</span></p>' +
+      '<p class="buybar-meta"><b class="bb-pm">' + esc(S.price) + '</b><span class="buybar-sep" aria-hidden="true">·</span><span>' + (b ? '<span class="bb-l">Fast-action bonus </span><span class="bb-s">Bonus </span>' + esc(C.bonusEndsIn) : esc(C.closesIn)) + ' ' + timer(to, b ? 'bonus' : 'deadline') + '</span></p></div>' +
+      buttonHtml('bar', true) + '</div>';
     bar.hidden = false;
     tickCountdowns();
   }
@@ -349,12 +346,11 @@
       shown = true; store.set(key, '1');
       var b = bonusOpen();
       F.track('cta_click', { id: 'webinar_sprint_exit_nudge', label: why });
-      openModal('<p class="buy-label">' + esc(C.exitHeading) + '</p>' +
-        '<p class="buy-modal-h">' + esc(b ? C.exitBonus : C.exitClose) + '</p>' +
+      openModal('<p class="buy-modal-k">' + esc(b ? C.exitBonus : C.exitClose) + '</p>' +
         '<p class="buy-modal-clock">' + timer(b ? state.bonusEndsAt : state.deadline, b ? 'bonus' : 'deadline', 'buy-timer huge') + '</p>' +
-        (b && S.bonus ? '<p class="buy-modal-bonus"><strong>' + esc(S.bonus.title) + '</strong>' + (S.bonus.body ? ': ' + esc(S.bonus.body) : '') + '</p>' : '') +
-        priceHtml() + buttonHtml('exit', true) +
-        '<p class="buy-guarantee">' + shield + '<span>' + esc(C.guaranteeShort) + '</span></p>' +
+        (b && S.bonus ? '<p class="buy-modal-bonus">' + esc(S.bonus.title) + '</p>' : '') +
+        priceHtml() + buttonHtml('exit') +
+        '<p class="bh-g">' + shield + '<span>' + esc(C.guaranteeShort) + '</span></p>' +
         '<p class="buy-modal-alt"><button type="button" class="linkish" data-modal-close>' + esc(inRoom ? C.exitStay : C.exitNotNow) + '</button></p>', C.exitHeading, 'buy-exit');
       tickCountdowns();
     }
