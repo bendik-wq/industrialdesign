@@ -18,7 +18,8 @@
     btn.disabled = false; btn.textContent = C.button;
   }
   function post(body) {
-    return fetch('/api/webinar/ticket/pay', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    // The same form pays other waiting purchases (the engagement deposit, the live ticket) at T.endpoint.
+    return fetch(T.endpoint || '/api/webinar/ticket/pay', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().catch(function () { return {}; }); }).catch(function () { return {}; });
   }
 
@@ -51,7 +52,9 @@
       btn.disabled = true; btn.textContent = C.paying; err.hidden = true;
       F.track('cta_click', { id: 'webinar_ticket_pay' });
       payments.createConfirmationToken({ billingDetails: T.email ? { email: T.email } : {} }).then(function (res) {
-        return post({ token: T.token, confirmation_token: res.confirmationToken });
+        var b = { token: T.token, confirmation_token: res.confirmationToken };
+        if (T.extra) Object.keys(T.extra).forEach(function (k) { b[k] = T.extra[k]; });
+        return post(b);
       }, function (e) {
         // A closed Apple Pay / Google Pay sheet is a cancel, not an error.
         btn.disabled = false; btn.textContent = C.button;

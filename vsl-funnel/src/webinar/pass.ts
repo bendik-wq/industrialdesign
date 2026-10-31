@@ -24,7 +24,8 @@ import { type Registration, getRegistration, roomUrl, startTicketedMessages, sto
  */
 
 export type PassMode = 'off' | 'upsell' | 'required';
-export type PassKind = 'offer' | 'seat';
+/** offer = First Deal Sprint · seat = Masterclass ticket · deposit = engagement deposit (sales/deposit.ts) · live_ticket = live webinar ticket (live/events.ts). */
+export type PassKind = 'offer' | 'seat' | 'deposit' | 'live_ticket';
 export type PaymentProvider = 'whop' | 'stripe';
 
 /** Whop takes the payments when its API key is set; otherwise Stripe, when its key is. Null = nothing can be sold. */
@@ -309,10 +310,24 @@ export const activePass = (rt: Runtime, leadId: string) =>
 const anyPaid = (rt: Runtime, leadId: string) =>
   rt.env.DB.prepare("SELECT kind FROM webinar_passes WHERE lead_id = ? AND status = 'paid' LIMIT 1").bind(leadId).first<{ kind: PassKind }>();
 
-/** The credit to show on an agreement (smallest currency unit), or null. */
+/**
+ * The credit to show on an agreement (smallest currency unit), or null: the paid First Deal Sprint and the
+ * paid engagement deposit (both credited in full), in the newest purchase's currency. Purchases whose credit
+ * was already used on a signed (non-test) agreement are left out. passId is the purchase ids joined with ','.
+ */
 export async function passCreditFor(rt: Runtime, leadId: string) {
-  const p = await activePass(rt, leadId);
-  return p && p.credit_amount > 0 ? { passId: p.id, product: p.product, amount: p.credit_amount, currency: p.currency, display: formatMoney(fromMinor(p.credit_amount, p.currency), p.currency.toUpperCase()) } : null;
+  const { results } = await rt.env.DB.prepare(
+    `SELECT p.id, p.kind, p.product, p.credit_amount, p.currency FROM webinar_passes p
+      WHERE p.lead_id = ? AND p.kind IN ('offer', 'deposit') AND p.status = 'paid' AND p.credit_amount > 0
+        AND NOT EXISTS (SELECT 1 FROM contracts k WHERE k.id = p.credit_used_contract AND k.status = 'signed' AND COALESCE(k.is_test, 0) = 0)
+      ORDER BY p.paid_at DESC`,
+  ).bind(leadId).all<{ id: string; kind: PassKind; product: string | null; credit_amount: number; currency: string }>();
+  const cur = results[0]?.currency;
+  const list = results.filter((p) => p.currency === cur);
+  if (!list.length || !cur) return null;
+  const amount = list.reduce((a, p) => a + p.credit_amount, 0);
+  const names = [...new Set(list.map((p) => p.product || (p.kind === 'deposit' ? 'Engagement deposit' : DEFAULT_OFFER_NAME)))];
+  return { passId: list.map((p) => p.id).join(','), product: names.join(' and '), amount, currency: cur, display: formatMoney(fromMinor(amount, cur), cur.toUpperCase()) };
 }
 
 /** Room gate: a paid seat is required (required mode + seat price), they registered under it, and nothing is paid. */
@@ -490,7 +505,7 @@ export async function markPassPaid(rt: Runtime, p: PaidInput, effects: PaidEffec
   const res = await db.prepare(
     `UPDATE webinar_passes SET status = 'paid', paid_at = ?, updated_at = ?, stripe_payment_intent = COALESCE(?, stripe_payment_intent),
             amount = COALESCE(?, amount), currency = COALESCE(?, currency),
-            credit_amount = CASE WHEN kind = 'offer' THEN COALESCE(?, amount) + ticket_credit ELSE 0 END,
+            credit_amount = CASE WHEN kind IN ('offer', 'deposit') THEN COALESCE(?, amount) + ticket_credit ELSE 0 END,
             installments_paid = MAX(installments_paid, 1)
       WHERE stripe_session_id = ? AND status IN ('pending', 'expired')`,
   ).bind(now, now, p.paymentIntent, p.amount, p.currency ? p.currency.toLowerCase() : null, p.amount, p.sessionId).run();
@@ -502,6 +517,9 @@ export async function markPassPaid(rt: Runtime, p: PaidInput, effects: PaidEffec
 
 /** What a payment sets in motion. */
 export async function passPaidEffects(rt: Runtime, pass: PassRow) {
+  // The live funnels' purchases have their own effects (onboarding, live reminders).
+  if (pass.kind === 'deposit') return (await import('../sales/deposit')).depositPaidEffects(rt, pass);
+  if (pass.kind === 'live_ticket') return (await import('../live/events')).liveTicketPaidEffects(rt, pass);
   const value = fromMinor(pass.amount, pass.currency);
   const who = await identityFromLead(rt.env, pass.lead_id);
   const lead = await getLead(rt.env, pass.lead_id);
@@ -555,6 +573,7 @@ export async function markPassRefunded(rt: Runtime, o: { paymentIntent: string |
   }
   // A refunded ticket closes the room again (passGate finds nothing paid) and stops what the ticket started.
   if (pass.kind === 'seat' && !(await anyPaid(rt, pass.lead_id))) await stopTicketedMessages(rt, pass.lead_id);
+  if (pass.kind === 'deposit') await (await import('../sales/deposit')).depositRefunded(rt, pass).catch((e) => console.error('deposit refund', e));
   await track(rt, await identityFromLead(rt.env, pass.lead_id), { name: 'webinar_purchase_refunded', source: 'webhook', props: { pass_id: pass.id, kind: pass.kind }, localOnly: true });
   return { ok: true as const, duplicate: false };
 }

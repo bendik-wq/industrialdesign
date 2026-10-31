@@ -40,6 +40,8 @@ describe('engagement letter', () => {
   });
 });
 
+const noGuarantee = { settings: { SITE_NAME: 'G&L M&A Advisory', BUSINESS_ADDRESS: 'Sheridan, WY 82801, USA', ENGAGEMENT_GUARANTEE: 'off' }, origin: 'https://apply.example.com', env: {} } as never;
+
 describe('the one-page agreement', () => {
   const k = cleanInput(rt, {}, lead({ revenue: '3_10m' }));
   const html = termsHtml(rt, k);
@@ -62,8 +64,20 @@ describe('the one-page agreement', () => {
     expect(credited).toContain('Net amount due: <strong>$47,000 USD</strong>');
     expect(feeDue({ fee: 2_000, currency: 'USD', credit_amount: 3_000 }).net).toBe(0); // never below zero
   });
-  it('stays short (one printed page)', () => {
-    expect(html.replace(/<[^>]+>/g, '').split(/\s+/).length).toBeLessThan(650);
+  it('stays short (one printed page without the guarantee, under 800 words with it)', () => {
+    const off = termsHtml(noGuarantee, k);
+    expect(off.replace(/<[^>]+>/g, '').split(/\s+/).length).toBeLessThan(650);
+    expect(html.replace(/<[^>]+>/g, '').split(/\s+/).length).toBeLessThan(800);
+  });
+  it('carries the LOI guarantee with every condition, and the fee is refundable only through it', () => {
+    expect(html).toContain('Guarantee: Signed LOI in 90 days, or we keep working free');
+    expect(html).toContain('keeps working with you at no extra cost until you do');
+    for (const c of ['within 7 days of signing', 'missing no more than two', '25 owner contacts a week', 'within 2 business days', 'the 1.5x test']) expect(html).toContain(c);
+    expect(html).toContain('doesn’t promise financing, a closed acquisition, or any return');
+    expect(html).toContain('non-refundable</strong> (except as the guarantee in this agreement provides)');
+    const off = termsHtml(noGuarantee, k);
+    expect(off).not.toContain('Signed LOI in 90 days');
+    expect(off).toContain('No guarantee');
   });
   it('shows Josh as co-founder, awaiting both signatures until signed', () => {
     const doc = documentHtml(rt, k);

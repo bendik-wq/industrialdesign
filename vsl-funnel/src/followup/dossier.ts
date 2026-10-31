@@ -54,7 +54,7 @@ export const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&l
 const safe = (s: string | null) => (s == null ? null : escHtml(defang(s)));
 
 /** Revenue bands from Calendly qualification ("1-3m"…) mapped onto the application's values. */
-const BAND_TO_REVENUE: Record<string, string> = { '<1m': 'lt1m', '1-3m': '1_3m', '3-10m': '3_10m', '10m+': 'gt10m', '10m-25m': '10_25m', '20m+': '10_25m', '25m-50m': '25_50m', '50m-100m': '50_100m', '100m+': 'gt100m' };
+const BAND_TO_REVENUE: Record<string, string> = { '<1m': 'lt1m', '1-3m': '1_3m', '1m-3m': '1_3m', '3-10m': '3_10m', '3m-10m': '3_10m', '10m+': 'gt10m', '10m-25m': '10_25m', '20m+': '10_25m', '25m-50m': '25_50m', '50m-100m': '50_100m', '100m+': 'gt100m' };
 
 const DEALS: Record<string, DealShape> = {
   lt250k: { targetProfit: '$150k–$300k', price: '$450k–$1M', combined: 'a combined business making around double your profit today' },
