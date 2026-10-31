@@ -272,6 +272,8 @@
     leads: { group: 'Sell', title: 'Leads', sub: 'Every applicant, scored and routed. Click a row for their full journey.', render: renderLeads, filters: ['range', 'channel'] },
     sales: { group: 'Sell', title: 'Calls & deals', sub: 'Calls, show rate, closes and cash by rep. Log outcomes here.', more: 'Calls, show rate, closes and cash by rep. Log outcomes here — wins ping the team in Slack / Discord.', render: renderSales, filters: ['range'] },
     finance: { group: 'Sell', title: 'Financial model', sub: 'What the VSL and webinar funnels make per dollar of ads, and what it takes to hit a profit target.', more: 'A monthly model for each funnel: ad spend and cost per visitor in, then every conversion step down to clients won, revenue, profit, cost per booked call and CAC. Break-even lines show the most you can pay per visitor, per call and per client. The projection grows spend month by month and shows the cash you need before it pays back. Live funnel numbers sit next to each assumption once there’s enough data.', render: renderFinance, noFilters: true },
+    clients: { group: 'Sell', title: 'Clients', sub: 'Every client’s health, flags, onboarding checklist, timeline and next check-in.', more: 'A client is anyone who paid for the First Deal Sprint, paid the engagement deposit or signed the engagement agreement. Health starts at 100 and every deduction comes from our own data (Sprint deliverables and calls, intake, payments, weekly sessions you log, reply times, last two-way contact, open support escalations), listed with the view it came from. Check-ins are drafted daily in the team’s voice and wait here for your approval before anything is sent.', render: renderClientsTab, noFilters: true },
+    support: { group: 'Follow-up', title: 'Support', sub: 'Questions by email and from the rooms, with drafted answers, sources and escalations.', more: 'Support email (Resend inbound or any forwarder), masterclass and live room questions and challenge hot seats land here. Claude drafts each answer from our own guides, materials, the guarantee, the FAQ and the offer terms, with the sources it used and a confidence. Anything about money, refunds, payments or legal, and anything below the confidence threshold, is marked Needs a person. Nothing is sent until you approve it.', render: renderSupportTab, noFilters: true },
     insights: { group: 'Sell', title: 'Best leads', sub: 'Who your best leads are: everyone who booked, split by tier, with the A-tier unpacked.', render: renderInsights, noFilters: true },
     map: { group: 'Funnel', title: 'Funnel map', sub: 'Every page, decision and automation, with live numbers.', more: 'How everything fits together: every page, decision and automation from ad click to closed deal, with live numbers. Drag to rearrange, click any box to see how it works, and add your own steps.', render: renderMap },
     screens: { group: 'Funnel', title: 'Page previews', sub: 'Every page in the funnel, in order, live.', more: 'Every page in the funnel, in order, live. Previews never count as visits, never fire ad pixels and can’t submit anything.', render: renderScreens, noFilters: true },
@@ -2441,6 +2443,16 @@
     });
   }
 
+  /** Funnel HQ → Clients and Support (public/assets/ops-e.js). */
+  function renderClientsTab() {
+    if (!window.ClientsBoard) { view.innerHTML = '<div class="card">The Clients script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.ClientsBoard.render({ view: view, esc: esc, n: n, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
+  }
+  function renderSupportTab() {
+    if (!window.SupportBoard) { view.innerHTML = '<div class="card">The Support script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.SupportBoard.render({ view: view, esc: esc, n: n, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
+  }
+
   function renderMaterials() {
     if (!window.Materials) { view.innerHTML = '<div class="card">The Materials script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return window.Materials.render({ view: view, api: api, esc: esc, toast: toast });
@@ -3557,6 +3569,13 @@
           }).join('') + '</details>';
         }).join('') + '<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn-sm" type="submit">Save changes</button></div></form>';
       openSettings = null;
+      // Claude (MCP) and Zapier & webhooks panels (public/assets/ops-e.js), above Keys & settings.
+      if (window.AutomationsPanel) {
+        var autoBox = document.createElement('div');
+        var settingsForm = view.querySelector('[data-settings]');
+        settingsForm.parentNode.insertBefore(autoBox, settingsForm);
+        window.AutomationsPanel.render(autoBox, { esc: esc, when: when, toast: toast }).catch(function (e) { autoBox.innerHTML = '<div class="card">' + esc(e.message) + '</div>'; });
+      }
 
       var jumpTo = function (key) {
         var el = document.getElementById('set-' + key);

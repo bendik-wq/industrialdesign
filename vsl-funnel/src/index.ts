@@ -47,6 +47,9 @@ import { alertUnconfirmedBookings } from './integrations/booking';
 import { guaranteePage, liveLanding, liveRoom, liveTicketPage, liveWelcome, liveWorksheet } from './live/pages';
 import { processLiveMessages } from './live/events';
 import { payPage } from './sales/pay-page';
+import { opsHooks } from './integrations/hooks-in';
+import { mcpRoute } from './mcp/server';
+import { processClientsSupport } from './ops/e-cron';
 
 const app = new Hono<AppEnv>();
 
@@ -174,7 +177,11 @@ app.route('/sign', sign);
 app.get('/api/live/:key/offer', challengeOfferRoute); // challenge-offer state, polled by the challenge day page
 app.get('/api/live/:key/status', liveStatusRoute); // before /api: no visitor logging on each poll
 app.route('/api', api);
+app.route('/hooks', opsHooks); // support email (Resend inbound / forwarders) and Zapier actions (builder E)
 app.route('/hooks', hooks);
+// Remote MCP server for Claude (Streamable HTTP). Bearer token, or the secret connector URL /mcp/k/<token>.
+app.on(['GET', 'POST', 'DELETE', 'OPTIONS'], '/mcp', mcpRoute);
+app.on(['GET', 'POST', 'DELETE', 'OPTIONS'], '/mcp/k/:token{[A-Za-z0-9_-]{16,200}}', mcpRoute);
 app.route('/', links);
 
 // ── PostHog reverse proxy (first-party, so session replay survives ad blockers) ──
@@ -313,6 +320,7 @@ export default {
       quiet(processDealSprintEmails(rt), 'deal sprint emails'),
       quiet(maybeSyncMetaSpend(rt), 'Meta ad spend'),
       quiet(processLiveMessages(rt), 'live webinar messages'),
+      quiet(processClientsSupport(rt), 'clients, support and webhooks'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);
