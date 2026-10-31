@@ -270,15 +270,31 @@
     beat = setInterval(function () { maybeCta(elapsed()); }, 15000);
   }
 
+  // Live on Zoom: the "Join on Zoom" card (live-player.js) with the start time, a real countdown and the link once it opens.
+  function startLink() {
+    show(waitEl, false); show(liveEl, true);
+    window.LivePlayer.mount(liveEl, {
+      key: cfg.livePlayback.key, playback: cfg.livePlayback.playback, serverNow: cfg.serverNow,
+      onJoin: function () {
+        F.track('cta_click', { id: 'webinar_join_zoom' });
+        try { fetch('/api/webinar/join', { method: 'POST', credentials: 'same-origin', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: cfg.token }) }); } catch (e) { /* attendance only */ }
+      },
+    });
+    maybeCta(elapsed());
+    beat = setInterval(function () { maybeCta(elapsed()); }, 15000);
+  }
+
   function start() {
     if (started) return;
     started = true;
+    if (cfg.livePlayback && !cfg.replay && window.LivePlayer) return startLink();
     if (cfg.mode === 'live' && !cfg.replay) return startLive();
     if (!cfg.video) { show(waitEl, false); show(endedEl, true); endedEl.querySelector('p').textContent = 'The video for this session isn’t available yet. We’ll email you the replay.'; return; }
     startVideo();
   }
 
   if (cfg.replay) { start(); return; }
+  if (cfg.livePlayback && window.LivePlayer) { start(); return; }
   if (cfg.mode === 'evergreen' && elapsed() >= cfg.durationSec) return end();
   // Live links open 10 minutes early so people can get in before the start.
   var opensAt = cfg.mode === 'live' ? cfg.startsAt - 10 * 60000 : cfg.startsAt;
