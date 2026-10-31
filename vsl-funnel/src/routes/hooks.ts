@@ -1,3 +1,4 @@
+import { mountDmHooks } from '../dm/routes';
 import { handleInboundSms, verifyTwilio } from '../integrations/sms';
 import { Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
@@ -13,6 +14,7 @@ import { handleWhopEvent, verifyWhopSignature } from '../webinar/whop';
 
 /** Inbound webhooks from Resend (bounces), Calendly, Cal.com / CRMs, the WhatsApp Cloud API, Vapi and ElevenLabs (voice). All verified. */
 export const hooks = new Hono<AppEnv>();
+mountDmHooks(hooks); // Instagram DMs: GET/POST /hooks/instagram (src/dm/routes.ts)
 
 hooks.post('/calendly', async (c) => {
   const rt = runtimeFrom(c);

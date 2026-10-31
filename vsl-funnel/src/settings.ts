@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Instagram DMs';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -196,6 +196,18 @@ export const SETTINGS = [
   { key: 'YT_NOTES', label: 'YouTube ideas: rules for every sprint', group: 'Content', help: 'Anything that overrides everything else, e.g. “no faceless videos”, “Josh can’t film in December”.' },
   { key: 'INSTAGRAM_USER_ID', label: 'Instagram account ID', group: 'Content', help: 'The Instagram Business/Creator account ID (Graph API Explorer → me/accounts → instagram_business_account).' },
   { key: 'INSTAGRAM_ACCESS_TOKEN', label: 'Instagram access token', group: 'Content', secret: true, help: 'A long-lived token with instagram_basic and instagram_manage_insights (Meta app → Instagram Graph API).' },
+
+  // ── Instagram DM sales inbox (src/dm/*): Meta's official Instagram API only, never scraping ──
+  { key: 'IG_APP_ID', label: 'Meta app ID', group: 'Instagram DMs', help: 'developers.facebook.com → My Apps → your app → App settings → Basic. The app needs the Instagram product with the messaging and comments permissions.' },
+  { key: 'IG_APP_SECRET', label: 'Meta app secret', group: 'Instagram DMs', secret: true, help: 'Same page as the app ID. Checks that every webhook really comes from Meta (X-Hub-Signature-256).' },
+  { key: 'IG_ACCESS_TOKEN', label: 'Instagram access token (long-lived)', group: 'Instagram DMs', secret: true, help: 'An Instagram User token (Instagram Login, starts with IG) or a Page / system user token (Facebook Login) with instagram_business_manage_messages or instagram_manage_messages, plus the comments permission. Long-lived Instagram User tokens last 60 days: Check renews one when it is more than a day old.' },
+  { key: 'IG_ACCOUNT_ID', label: 'Instagram professional account ID', group: 'Instagram DMs', help: 'Filled in by Check when blank.' },
+  { key: 'IG_WEBHOOK_VERIFY_TOKEN', label: 'Webhook verify token', group: 'Instagram DMs', secret: true, help: 'Any long random string. Paste the same value in the Meta app under Webhooks, with the callback URL <your domain>/hooks/instagram.' },
+  { key: 'DM_MODEL', label: 'DM inbox AI model', group: 'Instagram DMs', placeholder: 'claude-haiku-5-5', help: 'Drafts replies, flags junk and leads about to close, writes pre-call summaries. Needs the Anthropic API key (under Email). Without it the inbox runs on rules only.' },
+  { key: 'DM_AUTO_REPLY', label: 'Automated FAQ assistant', group: 'Instagram DMs', placeholder: 'off', help: 'off (default) = a setter sends every reply. on = an automated assistant answers questions covered by your FAQ scripts, inside the 24-hour window, and says it is an automated assistant in every message. Anything else waits for a setter.' },
+  { key: 'DM_HUMAN_AGENT', label: 'Human agent tag (7-day replies)', group: 'Instagram DMs', placeholder: 'off', help: 'on = setters can reply up to 7 days after the person’s last message, sent with Meta’s HUMAN_AGENT tag. Switch it on only after Meta has approved the Human Agent permission for your app. Automated messages never use it.' },
+  { key: 'DM_HOT_ALERT_MIN', label: 'Alert when a hot lead waits (minutes)', group: 'Instagram DMs', placeholder: '15', help: 'Slack / Discord alert when a hot lead has waited this long for a reply. 0 turns it off.' },
+  { key: 'DM_DIGEST', label: 'Daily digest per setter', group: 'Instagram DMs', placeholder: 'on', help: 'At the daily digest hour: each setter gets yesterday’s results and today’s tasks in Slack (mentioned by their Slack user ID) and by email when they have one. off turns it off.' },
 
   { key: 'SEO_INDEXING', label: 'Show pages in Google & AI search', group: 'Search', placeholder: 'on', help: 'The landing pages, industry pages and guides are open to Google, Bing and AI assistants (ChatGPT, Claude, Perplexity, Gemini, Grok). The application, booking and personal pages never are. Type off to hide everything from search.' },
   { key: 'GOOGLE_SITE_VERIFICATION', label: 'Google Search Console code', group: 'Search', placeholder: 'abc123…', help: 'search.google.com/search-console → Add property → URL prefix → HTML tag: paste only the content="…" value. Then submit /sitemap.xml there.' },
