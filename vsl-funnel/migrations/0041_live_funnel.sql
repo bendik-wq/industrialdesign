@@ -2,6 +2,8 @@
 -- engagement deposit, its offer. The auto webinar's tables are untouched: live events and their
 -- registrations have their own tables; the room's chat, presence and peaks reuse webinar_chat,
 -- webinar_presence and webinar_live_peaks keyed by the event id (le…, never a webinar_sessions id).
+-- The live engine's own live_events table (0040, key 'webinar:<id>') mirrors each event's schedule and Zoom link
+-- for the host console; live_webinars stays the source of truth for the funnel (offer, deadline, reminders).
 
 CREATE TABLE live_webinars (
   id               TEXT PRIMARY KEY,
@@ -51,6 +53,7 @@ CREATE TABLE live_webinar_polls (
   event_id   TEXT NOT NULL,
   question   TEXT NOT NULL,
   options    TEXT NOT NULL,                       -- JSON array of strings
+  preset     TEXT,                                -- the script's poll id (target_type, timeline, blocker, own_cash, buy_in) or null for a typed poll
   opened_at  INTEGER NOT NULL,
   closed_at  INTEGER
 );
@@ -58,7 +61,8 @@ CREATE INDEX idx_live_webinar_polls_event ON live_webinar_polls(event_id, opened
 CREATE TABLE live_webinar_poll_votes (
   poll_id    TEXT NOT NULL,
   reg_id     TEXT NOT NULL,
-  choice     INTEGER NOT NULL,
+  choice     INTEGER NOT NULL,                    -- -1 for the buy-in sentence
+  text       TEXT,                                -- the buy-in sentence (buy_in)
   created_at INTEGER NOT NULL,
   PRIMARY KEY (poll_id, reg_id)
 );

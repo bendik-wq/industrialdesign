@@ -103,7 +103,7 @@
       }
       if (window.LivePlayer && !player) {
         player = window.LivePlayer.mount(el, {
-          key: CFG.key, playback: CFG.playback, serverNow: now(), poll: false, title: CFG.title, note: C.keepOpen,
+          key: CFG.key, playback: CFG.playback, serverNow: now(), poll: false, title: CFG.title, note: C.joinBody,
           onJoin: joined, onNeedLink: function () { tick(); },
         });
       }
@@ -224,6 +224,21 @@
       if (!p) { pollEl.hidden = true; pollId = null; return; }
       pollEl.hidden = false;
       var opts = $('[data-poll-opts]', pollEl);
+      if (p.buyin) {
+        // The buy-in moment: one sentence in their own words, with three starting points.
+        if (pollId === p.id) return;
+        pollId = p.id;
+        $('[data-poll-q]', pollEl).innerHTML = p.question; // server-escaped
+        opts.innerHTML = '';
+        if (p.saved) { var done = document.createElement('p'); done.className = 'lv-offer-p'; done.textContent = p.saved; opts.appendChild(done); return; }
+        var chips = document.createElement('div'); chips.className = 'lv-chips';
+        var ta = document.createElement('textarea'); ta.className = 'lv-ta'; ta.maxLength = 300; ta.placeholder = p.placeholder; ta.rows = 2;
+        p.prompts.forEach(function (x) { var c = document.createElement('button'); c.type = 'button'; c.className = 'lv-chip'; c.innerHTML = x; c.addEventListener('click', function () { ta.value = c.textContent + ': '; ta.focus(); }); chips.appendChild(c); });
+        var save = document.createElement('button'); save.type = 'button'; save.className = 'lv-btn-2'; save.textContent = p.button;
+        save.addEventListener('click', function () { post(CFG.vote, { token: token, poll: p.id, text: ta.value }).then(function (r) { if (r && r.ok) { p.saved = r.saved; pollId = null; drawPoll(p); } }); });
+        opts.appendChild(chips); opts.appendChild(ta); opts.appendChild(save);
+        return;
+      }
       if (pollId === p.id && p.voted == null) return;
       pollId = p.id;
       $('[data-poll-q]', pollEl).innerHTML = p.question; // server-escaped

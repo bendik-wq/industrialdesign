@@ -9,6 +9,8 @@ import { identityFromLead, identityFromVisitor, track } from '../tracking/track'
 import { trackRevenueEvents } from '../tracking/revenue-events';
 import { type PassRow, formatMoney, fromMinor, paymentProvider, toMinor } from '../webinar/pass';
 import { playbackFor, upsertLiveEvent } from './stream';
+import { DEFAULT_POLLS } from '../webinar/content';
+import { EXPERIENCE_COPY } from '../webinar/experience';
 import { PRESENCE_MS, chatLabel, chatRate, countPresence, escapeHtml, presenceLine, sanitiseChat, viewerName } from '../webinar/live';
 
 /**
@@ -26,6 +28,8 @@ import { PRESENCE_MS, chatLabel, chatRate, countPresence, escapeHtml, presenceLi
  */
 
 export const LIVE_SEQUENCE = 'live';
+/** [HOST: TAKE QUESTIONS]: pinned in every room. */
+export const TAKE_QUESTIONS_PIN = 'Josh is taking questions now. Type yours in the Zoom chat. The deposit button stays in this tab.';
 const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 
 export interface LiveEvent {
@@ -175,6 +179,7 @@ export async function hostAction(rt: Runtime, id: string, body: Record<string, u
       return { ok: true as const };
     }
     case 'unpin': await set('pinned = NULL, pinned_at = NULL'); return { ok: true as const };
+    case 'take_questions': await set('pinned = ?, pinned_at = ?', TAKE_QUESTIONS_PIN, now); return { ok: true as const };
     case 'end':
       if (now < ev.starts_at) return { ok: false as const, error: 'The event hasn’t started' };
       await set('ended_at = COALESCE(ended_at, ?)', Math.min(now, eventEnd(ev)));
@@ -185,15 +190,25 @@ export async function hostAction(rt: Runtime, id: string, body: Record<string, u
 
 // ───────────── polls ─────────────
 
+/** The polls the live webinar script cues ([HOST: POLL <id>]): the masterclass polls plus the buy-in sentence. */
+export const POLL_PRESETS = ['target_type', 'timeline', 'blocker', 'own_cash', 'buy_in'] as const;
+export function presetPoll(id: string) {
+  if (id === 'buy_in') return { question: EXPERIENCE_COPY.buyinHeading, options: EXPERIENCE_COPY.buyinPrompts };
+  const p = DEFAULT_POLLS.find((x) => x.id === id);
+  return p ? { question: p.question, options: p.options.map((o) => o.label) } : null;
+}
+
 export async function pushPoll(rt: Runtime, eventId: string, body: Record<string, unknown>) {
   if (!(await getEvent(rt, eventId))) return { ok: false as const, error: 'Event not found' };
-  const question = plain(body.question, 200);
-  const options = (Array.isArray(body.options) ? body.options : String(body.options ?? '').split('\n')).map((o) => plain(o, 80)).filter(Boolean).slice(0, 5);
+  const preset = typeof body.preset === 'string' && (POLL_PRESETS as readonly string[]).includes(body.preset) ? body.preset : null;
+  const fromPreset = preset ? presetPoll(preset) : null;
+  const question = fromPreset?.question ?? plain(body.question, 200);
+  const options = fromPreset?.options ?? (Array.isArray(body.options) ? body.options : String(body.options ?? '').split('\n')).map((o) => plain(o, 80)).filter(Boolean).slice(0, 5);
   if (!question || options.length < 2) return { ok: false as const, error: 'Write the question and at least two answers' };
   const now = Date.now();
   await rt.env.DB.prepare('UPDATE live_webinar_polls SET closed_at = ? WHERE event_id = ? AND closed_at IS NULL').bind(now, eventId).run();
   const id = newId('lp');
-  await rt.env.DB.prepare('INSERT INTO live_webinar_polls (id, event_id, question, options, opened_at) VALUES (?, ?, ?, ?, ?)').bind(id, eventId, question, JSON.stringify(options), now).run();
+  await rt.env.DB.prepare('INSERT INTO live_webinar_polls (id, event_id, question, options, preset, opened_at) VALUES (?, ?, ?, ?, ?, ?)').bind(id, eventId, question, JSON.stringify(options), preset, now).run();
   return { ok: true as const, id };
 }
 export async function closePoll(rt: Runtime, eventId: string) {
@@ -206,8 +221,15 @@ async function pollResults(rt: Runtime, pollId: string, n: number) {
   return { counts, total: counts.reduce((a, b) => a + b, 0) };
 }
 export async function vote(rt: Runtime, reg: LiveReg, body: Record<string, unknown>) {
-  const poll = await rt.env.DB.prepare('SELECT * FROM live_webinar_polls WHERE id = ? AND event_id = ? AND closed_at IS NULL').bind(String(body.poll ?? ''), reg.event_id).first<{ id: string; options: string }>();
+  const poll = await rt.env.DB.prepare('SELECT * FROM live_webinar_polls WHERE id = ? AND event_id = ? AND closed_at IS NULL').bind(String(body.poll ?? ''), reg.event_id).first<{ id: string; options: string; preset: string | null }>();
   if (!poll) return { ok: false as const, error: 'This poll has closed.' };
+  if (poll.preset === 'buy_in') {
+    // The buy-in sentence: their own words (kept private; the team sees them in the event report).
+    const text = plain(body.text, 300);
+    if (!text) return { ok: false as const, error: 'Write a sentence first' };
+    await rt.env.DB.prepare('INSERT INTO live_webinar_poll_votes (poll_id, reg_id, choice, text, created_at) VALUES (?, ?, -1, ?, ?) ON CONFLICT(poll_id, reg_id) DO UPDATE SET text = excluded.text').bind(poll.id, reg.id, text, Date.now()).run();
+    return { ok: true as const, saved: EXPERIENCE_COPY.buyinThanks };
+  }
   const n = (JSON.parse(poll.options) as string[]).length;
   const choice = Math.round(Number(body.choice));
   if (!Number.isInteger(choice) || choice < 0 || choice >= n) return { ok: false as const, error: 'Pick an answer' };
@@ -584,7 +606,9 @@ export async function liveFeed(rt: Runtime, reg: LiveReg, body: Record<string, u
   if (p) {
     const options = JSON.parse(p.options) as string[];
     const mine = await db.prepare('SELECT choice FROM live_webinar_poll_votes WHERE poll_id = ? AND reg_id = ?').bind(p.id, reg.id).first<{ choice: number }>();
-    poll = { id: p.id, question: escapeHtml(p.question), options: options.map(escapeHtml), voted: mine ? mine.choice : null, results: mine ? await pollResults(rt, p.id, options.length) : null };
+    poll = (p as { preset?: string | null }).preset === 'buy_in'
+      ? { id: p.id, buyin: true, question: escapeHtml(p.question), eyebrow: EXPERIENCE_COPY.buyinEyebrow, prompts: options.map(escapeHtml), placeholder: EXPERIENCE_COPY.buyinPlaceholder, button: EXPERIENCE_COPY.buyinButton, saved: mine ? EXPERIENCE_COPY.buyinThanks : null }
+      : { id: p.id, question: escapeHtml(p.question), options: options.map(escapeHtml), voted: mine ? mine.choice : null, results: mine ? await pollResults(rt, p.id, options.length) : null };
   }
   const chatStageFor = st.stage === 'live' ? 'running' : st.stage === 'waiting' ? 'waiting' : st.stage === 'replay' ? 'replay' : 'closed';
   return {
@@ -691,7 +715,8 @@ export async function eventReport(rt: Runtime, id: string) {
   const pollRows = [];
   for (const p of polls.results as { id: string; question: string; options: string; opened_at: number; closed_at: number | null }[]) {
     const options = JSON.parse(p.options) as string[];
-    pollRows.push({ id: p.id, question: p.question, options, open: !p.closed_at, ...(await pollResults(rt, p.id, options.length)) });
+    const sentences = (p as { preset?: string | null }).preset === 'buy_in' ? (await db.prepare('SELECT text FROM live_webinar_poll_votes WHERE poll_id = ? AND text IS NOT NULL ORDER BY created_at DESC LIMIT 50').bind(p.id).all<{ text: string }>()).results.map((x) => x.text) : null;
+    pollRows.push({ id: p.id, question: p.question, options, open: !p.closed_at, sentences, ...(await pollResults(rt, p.id, options.length)) });
   }
   return {
     event: { ...ev, when: formatCallTime(ev.starts_at, ev.tz), stage: liveStage(ev, now, s.offerHours), consoleUrl: hostConsoleUrl(rt, ev.id), streamKey: streamKey(ev.id), landing: `${liveBase(rt)}/live` },
