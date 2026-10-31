@@ -2,9 +2,9 @@
 import type { EditionTimeline } from './editions';
 
 export const AI_TIMELINE: EditionTimeline = {
-  "durationMin": 20.79,
+  "durationMin": 20.82,
   "pitchAtMin": 10.7,
-  "bonusAtMin": 19.63,
+  "bonusAtMin": 19.65,
   "buyinAt": 621,
   "calcAt": 426,
   "chapters": [
@@ -41,7 +41,7 @@ export const AI_TIMELINE: EditionTimeline = {
       "title": "Is this for you?"
     },
     {
-      "at": 18.12,
+      "at": 18.15,
       "title": "Your decision"
     }
   ],
@@ -54,7 +54,7 @@ export const AI_TIMELINE: EditionTimeline = {
     "10.7": "The Sprint opened: seven days, one deal mapped out, day by day.",
     "13.38": "The price, the ticket credit, the guarantee, the credit against the engagement, the bonus and when it closes.",
     "16.09": "The reasons owners hold back, answered one at a time.",
-    "18.12": "Two ways to leave, permission to decide, and the worksheet."
+    "18.15": "Two ways to leave, permission to decide, and the worksheet."
   },
   "polls": {
     "target_type": 1.44,
@@ -109,5 +109,5 @@ export const AI_TIMELINE: EditionTimeline = {
     }
   ],
   "mode": "voiced",
-  "seconds": 1217
+  "seconds": 1219
 };

@@ -285,7 +285,7 @@ If you start the Sprint within twenty-four hours of it unlocking for you, Josh r
 
 [SLIDE: When it closes]
 
-The Sprint itself closes when your replay closes, forty-eight hours after this showing ends. The reason is simple. The Sprint is built on what you did in this room, your answers and your numbers, and they all carry into day one. Two days from now, they're cold. After that, the way in is a strategy call.
+The Sprint itself closes when your replay closes, forty-eight hours after this showing ends. The reason is simple. The Sprint is built on what you did in this room, your answers and your numbers, and they all carry into day one. Two days from now, they're cold. After that, the offer from this masterclass is gone.
 
 ## [29:00] Is this for you?
 
@@ -321,9 +321,9 @@ Does the financing work where I am? In the US and in Australia, commercial lende
 
 And if your business is under a million a year, the Sprint isn't for you yet. The shortlist and the structure need a business with enough profit behind it. Keep building, use the worksheet that's coming, and come back when you cross that line.
 
-[SLIDE: "Why not just book a call?"]
+[SLIDE: "Can I spread the payment?"]
 
-Why not just book a call? You can, and the link is right next to the button. A call tells you whether it's possible. The Sprint hands you the plan. If you decide on evidence, the Sprint gives you the evidence.
+Can I spread the payment? Yes. At checkout you can split it with options like Klarna, Afterpay or Splitit, so the Sprint starts this week and the payments follow over the next few months. The guarantee and the credit work the same either way.
 
 ## [34:00] Your decision
 
@@ -351,7 +351,7 @@ You don't need more information to make this decision. You've seen the method, t
 
 Click the button under the video. It opens a secure checkout with your email filled in, and it takes about a minute. The moment it's paid, your Sprint page opens with the kickoff booking. Book it for the next two days, so day one starts while today is fresh.
 
-If you'd rather talk to Josh's team first, the strategy call link is right beside the button, and the calendar opens next to the video.
+If you have a question first, type it in the question box beside the video. Josh's team reads every one, and the button stays right there while you wait.
 
 [WORKSHEET]
 
