@@ -218,6 +218,28 @@ app.get('/oauth/google/callback', async (c) => {
   }
 });
 app.route('/admin/api', admin);
+// Scripts and decks (public/materials/*.md) are admin-only: anyone else gets a plain 404, as if they didn't exist.
+app.get('/materials/:file{[a-z0-9][a-z0-9-]{0,60}\\.md}', async (c) => {
+  if (!(await isAdmin(c))) return c.notFound();
+  const res = await c.env.ASSETS.fetch(new Request(new URL(`/materials/${c.req.param('file')}`, c.req.url)));
+  if (!res.ok) return c.notFound();
+  const headers: Record<string, string> = { 'content-type': 'text/markdown; charset=utf-8', 'cache-control': 'no-store', 'x-frame-options': 'DENY' };
+  if (c.req.query('download')) headers['content-disposition'] = `attachment; filename="${c.req.param('file')}"`;
+  return new Response(res.body, { headers });
+});
+app.get('/materials/*', (c) => c.notFound());
+app.get('/materials', (c) => c.notFound());
+// Presenter deck, presenter window, printable script and run sheet for one material (opened from Funnel HQ → Materials).
+app.get('/admin/present', requireAdmin, async (c) => {
+  const res = await c.env.ASSETS.fetch(new Request(new URL('/admin/present.html', c.req.url)));
+  return new Response(res.body, {
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store',
+      'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    },
+  });
+});
 app.get('/admin', requireAdmin, async (c) => {
   const res = await c.env.ASSETS.fetch(new Request(new URL('/admin/index.html', c.req.url)));
   return new Response(res.body, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
