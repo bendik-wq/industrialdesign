@@ -103,6 +103,10 @@ Territory map (Oct 30): map tiles from tile.openstreetmap.org are the only new i
 
 Owner-only and signed-in only to create, change, run or switch to autopilot (autopilot needs an explicit confirmation). Every query is scoped to the workspace. Sends go through the normal mailbox path (do-not-contact list, daily cap, sender name and opt-out line on every email); a reply, opt-out, bounce or manual stage change stops a prospect; emails per prospect are capped at 10; runs are weekdays only, locked so two can't overlap, and the daily new-business total holds across manual runs. Thread headers only accept a Message-ID. Business search and paid lookups stay inside the workspace's data budget.
 
+## 2026-10-31: sell-side bots and buyers directory
+
+The directory is static, public data (firm names, websites, published criteria), bundled with the app. Sell bots email only a fund's shared inbox found on its own website (deals@, info@ …), never a named person; fund contact lookups are cached across workspaces because they're public. Flows go up to 60 emails (weekdays only) with the same stop rules: reply, opt-out, bounce, or the owner skipping an email in review mode; an out-of-office reply pauses a week. Sell prospects are scoped to the workspace and a fund contacted by one bot isn't picked again by another.
+
 ### Still open
 
 - Nothing.
