@@ -1,8 +1,10 @@
 import type { Runtime } from '../app';
 import { newId } from '../lib/ids';
 import { formatMoney, fromMinor, toMinor } from '../webinar/pass';
+import { cleanJoinUrl, upsertLiveEvent } from '../live/stream';
+import { DAY_TITLES } from './content';
 import {
-  type CohortRow, type DayRow, DAYS_IN_CHALLENGE, MIN, dayEnds, offerCloseAt, offerHours, registrationOpen, scheduleDays, validDate, validTime, validTimeZone,
+  type CohortRow, type DayRow, DAYS_IN_CHALLENGE, MIN, dayEnds, eventKey, offerCloseAt, offerHours, registrationOpen, scheduleDays, validDate, validTime, validTimeZone,
 } from './schedule';
 
 /** Prices and switches (Funnel HQ → Integrations → Webinar, "Challenge" settings). */
@@ -39,8 +41,33 @@ export interface Registration {
 }
 
 export const getCohort = (rt: Runtime, id: string) => rt.env.DB.prepare('SELECT * FROM challenge_cohorts WHERE id = ?').bind(id).first<Cohort>();
-export const getDays = async (rt: Runtime, cohortId: string) =>
-  (await rt.env.DB.prepare('SELECT * FROM challenge_days WHERE cohort_id = ? ORDER BY day').bind(cohortId).all<DayRow>()).results;
+/**
+ * The cohort's days. The join link is the live engine's (live_events, set in the host console or created
+ * through the Zoom API) when it has one, else the link saved on the day in Funnel HQ.
+ */
+export async function getDays(rt: Runtime, cohortId: string) {
+  const db = rt.env.DB;
+  const [days, live] = await db.batch([
+    db.prepare('SELECT * FROM challenge_days WHERE cohort_id = ? ORDER BY day').bind(cohortId),
+    db.prepare("SELECT key, join_url FROM live_events WHERE key LIKE ? AND join_url IS NOT NULL").bind(`challenge:${cohortId}:%`),
+  ]);
+  const links = new Map((live.results as { key: string; join_url: string }[]).map((r) => [r.key, cleanJoinUrl(r.join_url)]));
+  return (days.results as DayRow[]).map((d) => ({ ...d, join_url: links.get(eventKey(cohortId, d.day)) || d.join_url }));
+}
+
+/** Registers (or re-times) each day with the live engine, so the host console shows it and can create its Zoom meeting. */
+export async function syncLiveEvents(rt: Runtime, cohortId: string) {
+  const c = await getCohort(rt, cohortId);
+  if (!c) return;
+  const { results } = await rt.env.DB.prepare('SELECT * FROM challenge_days WHERE cohort_id = ? ORDER BY day').bind(cohortId).all<DayRow>();
+  for (const d of results) {
+    await upsertLiveEvent(rt, eventKey(cohortId, d.day), {
+      title: `The First Deal Challenge, Day ${d.day}: ${DAY_TITLES[d.day - 1]} (${c.name})`.slice(0, 200),
+      startsAt: d.starts_at, durationMin: d.duration_min,
+      ...(d.join_url ? { joinUrl: d.join_url } : {}),
+    }).catch((e) => console.error('live event sync', String(e).slice(0, 200)));
+  }
+}
 export const getReg = (rt: Runtime, token: string) =>
   /^[a-z0-9]{16,40}$/i.test(token) ? rt.env.DB.prepare('SELECT * FROM challenge_registrations WHERE token = ?').bind(token).first<Registration>() : Promise.resolve(null);
 export const getRegById = (rt: Runtime, id: string) => rt.env.DB.prepare('SELECT * FROM challenge_registrations WHERE id = ?').bind(id).first<Registration>();
@@ -148,6 +175,8 @@ export async function updateDay(rt: Runtime, cohortId: string, day: number, body
   const hot = body.hot_seat_url !== undefined ? httpsOrNull(body.hot_seat_url) : cur.hot_seat_url;
   await rt.env.DB.prepare('UPDATE challenge_days SET starts_at = ?, duration_min = ?, join_url = ?, replay_url = ?, hot_seat_url = ?, edited = ?, updated_at = ? WHERE cohort_id = ? AND day = ?')
     .bind(startsAt, duration, join, replay, hot, edited, now, cohortId, day).run();
+  // The live engine holds the link the room hands out: a link changed (or cleared) here changes it there too.
+  await upsertLiveEvent(rt, eventKey(cohortId, day), { startsAt, durationMin: duration, ...(body.join_url !== undefined ? { joinUrl: join } : {}) }).catch((e) => console.error('live event', String(e).slice(0, 200)));
   return { moved: startsAt !== cur.starts_at || duration !== cur.duration_min, replayAdded: !cur.replay_url && Boolean(replay) };
 }
 

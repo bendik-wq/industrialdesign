@@ -141,5 +141,3 @@ CREATE TABLE challenge_deposits (
   currency   TEXT
 );
 
--- The lead's current challenge registration (like webinar_token), for texts and emails.
-ALTER TABLE leads ADD COLUMN challenge_token TEXT;

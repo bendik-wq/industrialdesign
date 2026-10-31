@@ -13,6 +13,7 @@ import { getCookie } from 'hono/cookie';
 import { admin } from './routes/admin';
 import { liveHostPage } from './live/admin';
 import { liveStatusRoute } from './live/routes';
+import { challengeOfferRoute, mountChallengePages } from './challenge/routes';
 import { api } from './routes/api';
 import { hooks } from './routes/hooks';
 import { links } from './routes/links';
@@ -124,6 +125,7 @@ app.use('*', async (c, next) => {
 app.get('/', withVisitor, (c) => (isWebinarHost(c) ? webinarLanding(c) : landingPage(c)));
 app.get('/data', (c) => c.redirect('/', 301));
 app.get('/webinar', withVisitor, webinarLanding);
+mountChallengePages(app, withVisitor); // the First Deal Challenge (challenge/pages.ts)
 for (const prefix of ['', '/webinar']) {
   app.get(`${prefix}/registered/:token`, withVisitor, registeredPage);
   app.get(`${prefix}/ticket/:token`, withVisitor, ticketPage);
@@ -158,6 +160,7 @@ app.get('/privacy', withVisitor, staticPage('/privacy.html', 'Privacy policy'));
 
 // ── Public APIs, tracked links, webhooks ──
 app.route('/sign', sign);
+app.get('/api/live/:key/offer', challengeOfferRoute); // challenge-offer state, polled by the challenge day page
 app.get('/api/live/:key/status', liveStatusRoute); // before /api: no visitor logging on each poll
 app.route('/api', api);
 app.route('/hooks', hooks);

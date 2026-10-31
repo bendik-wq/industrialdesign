@@ -319,7 +319,6 @@ export async function markOrderPaid(rt: Runtime, o: Order, payId: string | null,
   const { startChallengeMessages, vipWelcome } = await import('./emails');
   if (o.kind === 'ticket') {
     await rt.env.DB.prepare("UPDATE challenge_registrations SET status = 'paid', paid_at = ? WHERE id = ? AND status = 'pending'").bind(now, reg.id).run();
-    await updateLead(rt.env, reg.lead_id, { challenge_token: reg.token });
     await startChallengeMessages(rt, reg.id);
     await track(rt, who, { name: 'challenge_ticket_paid', source: 'server', path: '/challenge', props: { order_id: o.id, cohort_id: reg.cohort_id, value, currency: o.currency.toUpperCase() } });
   } else {
@@ -492,8 +491,6 @@ export async function challengeRefund(rt: Runtime, rf: Obj) {
       await rt.env.DB.prepare("UPDATE challenge_registrations SET status = 'refunded', refunded_at = ? WHERE id = ?").bind(now, reg.id).run();
       const { stopChallengeMessages } = await import('./emails');
       await stopChallengeMessages(rt, reg.lead_id);
-      const lead = await getLead(rt.env, reg.lead_id);
-      if (lead?.challenge_token === reg.token) await updateLead(rt.env, reg.lead_id, { challenge_token: null });
     } else if (reg && o.kind === 'vip') {
       await rt.env.DB.prepare('UPDATE challenge_registrations SET vip = 0 WHERE id = ?').bind(reg.id).run();
     }

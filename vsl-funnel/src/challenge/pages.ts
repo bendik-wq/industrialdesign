@@ -33,11 +33,11 @@ const ICON = {
 };
 const cd = (target: number, now: number, cls = '') => `<span class="chx-cd ${cls}" data-countdown="${target}" data-now="${now}">${esc(countdownText(target - now))}</span>`;
 
-async function page(c: Context<AppEnv>, o: { title: string; main: string; bar?: string; navright?: string; config?: Record<string, unknown>; legal?: string; seo?: boolean }) {
+async function page(c: Context<AppEnv>, o: { title: string; main: string; bar?: string; navright?: string; config?: Record<string, unknown>; legal?: string; seo?: boolean; ticketPay?: unknown }) {
   return render(c, '/challenge.html', {
     title: o.title,
     blocks: { main: o.main, bar: o.bar ?? '', navright: o.navright ?? '', legal: esc(o.legal ?? LANDING.disclaimer) },
-    config: { challenge: o.config ?? {} },
+    config: { challenge: o.config ?? {}, ...(o.ticketPay ? { ticketPay: o.ticketPay } : {}) },
     seo: o.seo ? { title: `${CHALLENGE_NAME} | Five live days with Josh Li`, description: LANDING.lede, path: '/challenge', index: true } : undefined,
   });
 }
@@ -187,7 +187,8 @@ export async function payPage(c: Context<AppEnv>) {
     title: form.copy.heading,
     main: payHtml({ copy: form.copy, note, hostedUrl: form.hostedUrl, summary: kind === 'ticket' ? `${CHALLENGE_NAME} · ${summaryLine(L)}` : 'VIP upgrade · hot seats, recordings, worksheet feedback', price, kind }),
     config: { token: reg.token },
-  }).then((res) => res).catch(() => notFound(c)) as Promise<Response>;
+    ticketPay: form,
+  });
 }
 
 export function vipHtml(o: { label: string; total: string | null; fee: number; card: string | null; oneClick: boolean; token: string; skipUrl: string; formUrl: string }) {
@@ -472,8 +473,9 @@ export async function dayPage(c: Context<AppEnv>) {
   const cfg = challengeConfig(rt.settings);
   const [saved, mine, results, ov] = await Promise.all([homeworkFor(rt, reg.id, n), myPoll(rt, reg.id, n), pollResults(rt, reg.cohort_id, n), offerView(rt, reg)]);
   const key = eventKey(reg.cohort_id, n);
-  // Builder A's player: in link mode (Zoom) our own join card does the job and counts attendance; a stream mounts the player.
-  const playback = await playbackFor(rt, key, d.join_url ? `${rt.origin}/challenge/join/${reg.token}/${n}` : null).catch(() => null);
+  // The live engine's Zoom card (live-player.js) mounts over our own session card until the session ends; without
+  // the script our card stays (its Join button goes through /challenge/join, which counts attendance).
+  const playback = await playbackFor(rt, key, d.join_url, { startsAt: d.starts_at, durationMin: d.duration_min }).catch(() => null);
   const offerDay = n >= 4;
   const locked = Date.now() < d.starts_at - 30 * 60_000;
   const offer = offerDay || v.offer.open ? offerBlockHtml({ view: ov, closeAt: v.closeAt, now: v.now, soft: v.offer.day === 4 || (!v.offer.open && n === 4), guarantee: guaranteeHtml(rt), open: v.offer.open || ov.paid, token: reg.token, day: n }) : '';
@@ -482,8 +484,7 @@ export async function dayPage(c: Context<AppEnv>) {
     <p class="chx-back"><a href="/challenge/hub/${esc(reg.token)}">← ${esc(DAY_PAGE.back)}</a></p>
     <div class="chx-day-grid">
       <div class="chx-day-main">
-        ${playback?.mode === 'stream' ? '<div class="chx-player" data-ch-player></div>' : ''}
-        ${sessionCard(v, reg, d)}
+        <div class="chx-player" data-ch-player${d.phase === 'ended' ? '' : ' data-mount="1"'}>${sessionCard(v, reg, d)}</div>
         ${notify}
         ${offer}
         <p class="chx-p chx-day-line">${esc(d.content.line)}</p>
@@ -505,7 +506,8 @@ export async function dayPage(c: Context<AppEnv>) {
       token: reg.token, day: n, key, now: v.now, offerDay, offerOpen: v.offer.open,
       feed: '/api/challenge/feed', chat: '/api/challenge/chat', worksheet: '/api/challenge/worksheet', poll: '/api/challenge/poll', hot: '/api/challenge/hot', deposit: '/api/challenge/deposit',
       offerUrl: `/api/live/${encodeURIComponent(key)}/offer`,
-      playback: playback ? { ...playback, statusUrl: `/api/live/${encodeURIComponent(key)}/offer` } : null,
+      playback, joined: '/api/challenge/joined',
+      playerNote: HUB.joinNote,
       copy: { notifyOn: DAY_PAGE.notifyOn, notifyTitle: DAY_PAGE.notifyTitle, calcPass: DAY_PAGE.calcPass, calcFail: DAY_PAGE.calcFail, chatEmpty: DAY_PAGE.chatEmpty, pollThanks: DAY_PAGE.pollThanks, team: 'Team', closed: OFFER.closed },
     },
   });

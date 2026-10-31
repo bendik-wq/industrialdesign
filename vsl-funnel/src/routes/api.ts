@@ -20,6 +20,7 @@ import { PassError, activePass, createCheckout, markReviewClicked, passGate, syn
 import { ensureDealSprint } from '../webinar/deal-sprint';
 import { sameOriginWrite } from '../admin/auth';
 import { createSprintCheckout, unlockSprint } from '../webinar/sprint';
+import { challengeApi } from '../challenge/routes';
 
 export const api = new Hono<AppEnv>();
 
@@ -161,6 +162,9 @@ api.post('/booking/client', async (c) => {
   else await markBooked(rt, lead, { callAt: null, provider: `${String(body.provider).slice(0, 20)}-client`, ref, verified: false });
   return c.json({ ok: true, next: '/breakout' });
 });
+
+// ── The First Deal Challenge (challenge/routes.ts) ──
+api.route('/challenge', challengeApi);
 
 // ── Webinar ──
 api.post('/webinar/register', async (c) => {

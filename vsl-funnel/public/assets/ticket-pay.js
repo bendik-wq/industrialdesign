@@ -4,7 +4,8 @@
    buyer still owes (3D Secure) runs here with the payment's client secret. */
 (function () {
   'use strict';
-  var T = ((window.FUNNEL || {}).webinar || {}).ticketPay;
+  // The Masterclass ticket (FUNNEL.webinar.ticketPay) or a First Deal Challenge ticket / VIP (FUNNEL.ticketPay).
+  var T = ((window.FUNNEL || {}).webinar || {}).ticketPay || (window.FUNNEL || {}).ticketPay;
   var box = document.querySelector('[data-ticket-pay]');
   if (!T || !box) return;
   var F = window.funnel || { track: function () {} };
@@ -18,7 +19,7 @@
     btn.disabled = false; btn.textContent = C.button;
   }
   function post(body) {
-    return fetch('/api/webinar/ticket/pay', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    return fetch(T.payUrl || '/api/webinar/ticket/pay', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().catch(function () { return {}; }); }).catch(function () { return {}; });
   }
 
@@ -34,7 +35,7 @@
       whop = window.WhopElements();
       payments = whop.payments.create({
         accountId: T.accountId, currency: T.currency, amount: T.amount,
-        setupFutureUsage: 'off_session', // Whop shows its save consent and keeps the card for the one-click Sprint
+        setupFutureUsage: T.saveCard === false ? undefined : 'off_session', // Whop shows its save consent and keeps the card for a later one-click charge
         returnUrl: T.returnUrl,
       });
       var slot = box.querySelector('[data-whop-payment]');
@@ -49,9 +50,9 @@
     btn.addEventListener('click', function () {
       if (btn.disabled) return;
       btn.disabled = true; btn.textContent = C.paying; err.hidden = true;
-      F.track('cta_click', { id: 'webinar_ticket_pay' });
+      F.track('cta_click', { id: T.trackId || 'webinar_ticket_pay' });
       payments.createConfirmationToken({ billingDetails: T.email ? { email: T.email } : {} }).then(function (res) {
-        return post({ token: T.token, confirmation_token: res.confirmationToken });
+        return post({ token: T.token, kind: T.kind, confirmation_token: res.confirmationToken });
       }, function (e) {
         // A closed Apple Pay / Google Pay sheet is a cancel, not an error.
         btn.disabled = false; btn.textContent = C.button;

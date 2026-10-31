@@ -132,9 +132,14 @@ export async function stopChallengeMessages(rt: Runtime, leadId: string) {
 
 // ───────────── send-time rules (SEQUENCES.challenge) ─────────────
 
-async function currentReg(rt: Runtime, lead: Pick<Lead, 'challenge_token'>) {
-  if (!lead.challenge_token) return null;
-  return rt.env.DB.prepare('SELECT * FROM challenge_registrations WHERE token = ?').bind(lead.challenge_token).first<RegRow>();
+/** The lead's current challenge registration: the newest one past payment (paid, or refunded, which stops everything). */
+export async function currentReg(rt: Runtime, lead: Pick<Lead, 'id'>) {
+  return rt.env.DB.prepare("SELECT * FROM challenge_registrations WHERE lead_id = ? AND status != 'pending' ORDER BY COALESCE(paid_at, created_at) DESC LIMIT 1").bind(lead.id).first<RegRow>();
+}
+/** The token of the lead's current paid registration (the SMS queue fills lead.challenge_token with it). */
+export async function currentChallengeToken(rt: Runtime, leadId: string) {
+  const r = await currentReg(rt, { id: leadId });
+  return r?.status === 'paid' ? r.token : null;
 }
 /** The whole run stops when the registration isn't paid any more (refund) or the cohort was cancelled. */
 export async function challengeStop(rt: Runtime, lead: Lead) {
@@ -211,7 +216,7 @@ export async function challengeEmailContext(rt: Runtime, lead: Lead, link: (path
 type T = (c: TemplateCtx) => EmailContent;
 const ch = (c: TemplateCtx): ChallengeEmailCtx => (c as TemplateCtx & { challenge?: ChallengeEmailCtx | null }).challenge ?? {
   hub: c.link('/challenge'), ics: c.link('/challenge'), vip: false, closes: '48 hours after Day 5', deposit: '$5,000', credit: '$100',
-  days: DAYS.map((d) => ({ n: d.n, title: d.title, line: d.line, when: `Day ${d.n}`, page: c.link('/challenge'), replay: null, attended: false, homework: false })),
+  days: DAYS.map((d) => ({ n: d.n, title: d.title, line: d.line, when: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'][d.n - 1], page: c.link('/challenge'), replay: null, attended: false, homework: false })),
 };
 const day = (c: TemplateCtx, n: number) => ch(c).days.find((d) => d.n === n) ?? ch(c).days[0];
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -264,7 +269,7 @@ function dayTemplates(n: number): Record<string, T> {
       };
     },
     [`ch_d${n}_vip`]: (c) => ({
-      subject: `VIP: today’s hot seat`,
+      subject: `VIP: the Day ${n} hot seat`,
       preheader: 'Straight after the session.',
       body: [
         `${c.name},`,
@@ -283,7 +288,7 @@ export const CHALLENGE_TEMPLATES: Record<string, T> = {
     body: [
       `Hey ${c.name},`,
       'Your ticket for the First Deal Challenge is confirmed.',
-      ch(c).days.map((d) => `<strong>Day ${d.n}</strong>, ${d.when}: ${d.title}`).join('<br>'),
+      ch(c).days.map((d) => `${d.when}: <strong>${d.title}</strong> (Day ${d.n})`).join('<br>'),
       'Every session runs on Zoom. Your challenge page has the Zoom link for each day, the worksheets, the cohort chat and your progress.',
       `Add all five days to your calendar: <a href="${ch(c).ics}">Apple or Outlook</a>.`,
     ],

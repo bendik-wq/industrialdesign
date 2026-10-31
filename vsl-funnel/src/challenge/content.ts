@@ -112,7 +112,7 @@ export const dayContent = (n: number) => DAYS.find((d) => d.n === n) ?? null;
 
 export const LANDING = {
   eyebrow: 'Live with Josh Li',
-  h1: 'Five days. One deal mapped out. Live with Josh.',
+  h1: 'Five days. One deal mapped out, live with Josh.',
   lede: 'Five live sessions on Zoom. Each day takes one piece of your first acquisition and you finish it with Josh: the business you buy, the owners you call, and the structure that funds the price with commercial debt, seller finance and seller rollover.',
   timelineHeading: 'The five days',
   timelineNote: 'Each session runs 60 to 90 minutes, with a short worksheet you finish that day.',

@@ -282,6 +282,7 @@
     traffic: { group: 'Traffic', title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     links: { group: 'Traffic', title: 'Links & videos', sub: 'Tracked links for your Instagram bio, ManyChat, YouTube and more, followed to closed deals.', more: 'One tracked link per place you post it (Instagram bio, each ManyChat flow, each video), followed from the tap to the booked call and the closed deal.', render: renderLinks, filters: ['range'] },
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
+    challenge: { group: 'Traffic', title: 'Challenge', sub: 'The First Deal Challenge: cohorts, registrants, attendance, worksheets and deposits, per day.', more: 'Create a cohort (five days at the same local time, each editable), paste each day’s Zoom link (or create it in the host console), and after each session paste the replay link. Registrants, VIPs, live attendance and replays, worksheets, deposits and revenue are counted per cohort and per day. Days 4 and 5 have the Open offer switch (also in the host console); the offer closes for good at the cohort’s deadline.', render: renderChallenge, noFilters: true },
     dealsprint: { group: 'Traffic', title: 'Sprint board', sub: 'First Deal Sprint buyers, day by day, and the ladder from ticket to engagement.', more: 'Every First Deal Sprint buyer with their day of 7, intake, kickoff and Deal Plan session, and each deliverable. Fill in the link and notes and mark it Ready: the buyer gets one email and sees it on their Sprint page. Mark the outcome after the Deal Plan session (proposal sent starts the follow-up emails) and draft the engagement agreement with the Sprint credit applied. The ladder at the top counts tickets, watchers, Sprint buyers and signed engagements in the selected range, with revenue per registrant and per ticket.', render: renderDealSprint, filters: ['range'] },
     emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
     editor: { group: 'Follow-up', title: 'Email editor', sub: 'Read and edit every email the funnel sends.', more: 'Pick an email on the left, change the wording on the right and watch the preview update. Merge tags like {first_name} fill in for each person. Saving replaces the built-in wording for every future send; “Reset to default” brings the original back. Emails written from each lead’s own application answers are shown but can’t be edited here.', render: renderEditor, noFilters: true },
@@ -2420,6 +2421,11 @@
   }
 
   /** Funnel HQ → Sprint board (public/assets/deal-sprint-board.js): First Deal Sprint delivery and the value ladder. */
+  function renderChallenge() {
+    if (!window.ChallengeBoard) { view.innerHTML = '<div class="card">The Challenge script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.ChallengeBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
+  }
+
   function renderDealSprint() {
     if (!window.DealSprintBoard) { view.innerHTML = '<div class="card">The Sprint board script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return window.DealSprintBoard.render({

@@ -257,6 +257,8 @@ export async function processSmsQueue(rt: Runtime, limit = 40) {
     if (!claim.meta.changes) continue;
     const skip = (why: string) => rt.env.DB.prepare("UPDATE sms_messages SET status = 'skipped', error = ? WHERE id = ?").bind(why, row.id).run();
     const lead = await getLead(rt.env, row.lead_id);
+    // Challenge texts link to the person's own day page (and stop after a refund): look up their registration.
+    if (lead && row.sequence === 'challenge') lead.challenge_token = await (await import('../challenge/emails')).currentChallengeToken(rt, lead.id);
     const seq = sequences.find((s) => s.id === row.sequence);
     const step = seq?.steps.find((s) => s.n === row.step);
     if (!lead) { await skip('lead deleted'); continue; }
