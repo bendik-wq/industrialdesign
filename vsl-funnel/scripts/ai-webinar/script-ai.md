@@ -247,7 +247,7 @@ There's a question under the video now. Is the First Deal Sprint right for you? 
 
 [SLIDE: The price]
 
-The First Deal Sprint is three thousand dollars. The hundred dollars you paid for your ticket comes off, so it's two thousand nine hundred today. If you'd rather spread it, there's a two-payment option at checkout.
+The First Deal Sprint is three thousand dollars. The hundred dollars you paid for your ticket comes off, so it's two thousand nine hundred today.
 
 [ON SCREEN: $3,000. Your $100 ticket comes off: $2,900 today.]
 
@@ -321,9 +321,9 @@ Does the financing work where I am? In the US and in Australia, commercial lende
 
 And if your business is under a million a year, the Sprint isn't for you yet. The shortlist and the structure need a business with enough profit behind it. Keep building, use the worksheet that's coming, and come back when you cross that line.
 
-[SLIDE: "Can I spread the payment?"]
+[SLIDE: "What do you need from me first?"]
 
-Can I spread the payment? Yes. At checkout you can split it with options like Klarna, Afterpay or Splitit, so the Sprint starts this week and the payments follow over the next few months. The guarantee and the credit work the same either way.
+What do you need from me first? Your last two or three years of financials if you have them to hand, and about twenty minutes for the intake. If the financials take a few days to pull together, start anyway. The capacity number begins from what you tell the team and gets sharper as the documents come in.
 
 ## [34:00] Your decision
 

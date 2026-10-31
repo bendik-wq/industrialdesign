@@ -2,9 +2,9 @@
 import type { EditionTimeline } from './editions';
 
 export const AI_TIMELINE: EditionTimeline = {
-  "durationMin": 20.82,
+  "durationMin": 20.76,
   "pitchAtMin": 10.7,
-  "bonusAtMin": 19.65,
+  "bonusAtMin": 19.6,
   "buyinAt": 621,
   "calcAt": 426,
   "chapters": [
@@ -37,11 +37,11 @@ export const AI_TIMELINE: EditionTimeline = {
       "title": "What it costs, and what protects you"
     },
     {
-      "at": 16.09,
+      "at": 16.0,
       "title": "Is this for you?"
     },
     {
-      "at": 18.15,
+      "at": 18.1,
       "title": "Your decision"
     }
   ],
@@ -53,8 +53,8 @@ export const AI_TIMELINE: EditionTimeline = {
     "9.42": "Illustrative ranges of 3 to 5x profit for one business against 8 to 12x for a group.",
     "10.7": "The Sprint opened: seven days, one deal mapped out, day by day.",
     "13.38": "The price, the ticket credit, the guarantee, the credit against the engagement, the bonus and when it closes.",
-    "16.09": "The reasons owners hold back, answered one at a time.",
-    "18.15": "Two ways to leave, permission to decide, and the worksheet."
+    "16": "The reasons owners hold back, answered one at a time.",
+    "18.1": "Two ways to leave, permission to decide, and the worksheet."
   },
   "polls": {
     "target_type": 1.44,
@@ -104,10 +104,10 @@ export const AI_TIMELINE: EditionTimeline = {
     },
     {
       "id": "guarantee",
-      "at": 860,
+      "at": 854,
       "text": "The Sprint guarantee: if at the end of your Deal Plan session it was not worth far more than you paid, tell the team that day and the full fee is refunded."
     }
   ],
   "mode": "voiced",
-  "seconds": 1219
+  "seconds": 1216
 };
