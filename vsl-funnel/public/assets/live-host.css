@@ -1,0 +1,41 @@
+/* Funnel HQ → host console for one live event. Builds on admin.css tokens. */
+.lh-body { background: var(--plane); }
+.lh-top { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 13px; }
+.lh-back { color: var(--ink); font-weight: 700; text-decoration: none; }
+.lh-crumb { color: var(--muted); }
+.lh-crumb::before { content: "/"; margin-right: 10px; color: var(--axis); }
+.lh-key { margin-left: auto; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50vw; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.lh { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+.lh-controls:empty { display: none; }
+.lh-head { margin-bottom: 24px; }
+.lh-eyebrow { margin: 0 0 4px; color: var(--tier-a); font-size: 13px; font-weight: 650; }
+.lh-head h1 { margin: 0 0 6px; font-size: 26px; line-height: 1.2; letter-spacing: -.01em; font-weight: 650; }
+.lh-when { margin: 0; color: var(--ink-2); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.lh-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 650; background: var(--surface-2); color: var(--ink-2); }
+.lh-pill.on { color: var(--tier-a); }
+.lh-pill.live { color: var(--good-text); }
+.lh-pill.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+.lh-sec { padding: 20px 0; border-top: 1px solid var(--border); }
+.lh-sec h2 { margin: 0 0 10px; font-size: 15px; font-weight: 650; }
+.lh-sec > p { margin: 0 0 10px; }
+.lh-setup { background: var(--surface-2); border: 0; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.lh-setup details { margin-top: 6px; }
+.lh-setup summary { cursor: pointer; font-weight: 650; color: var(--tier-a); }
+.lh-setup ol { margin: 10px 0 0; padding-left: 20px; }
+.lh-setup li { margin-bottom: 6px; }
+.lh-warn { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.lh-help { color: var(--muted); font-size: 12.5px; }
+.lh-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lh-form { margin-top: 12px; }
+.lh-grow { flex: 1 1 260px; }
+.lh-link { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+.lh-link .mono { word-break: break-all; }
+.lh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lh-grid label { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.lh-full { grid-column: 1 / -1; }
+.input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; min-height: 38px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.lh-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 10px; font-weight: 600; z-index: 10; }
+.lh-toast.bad { background: var(--critical); color: #fff; }
+@media (max-width: 560px) { .lh-grid { grid-template-columns: 1fr; } .lh-key { display: none; } }

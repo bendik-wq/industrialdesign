@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -108,6 +108,10 @@ export const SETTINGS = [
   { key: 'WEBINAR_SCHEDULE', label: 'Weekly sessions', group: 'Webinar', placeholder: 'Tue 19:00, Thu 12:00', help: 'Recurring session times in the sales time zone (days: Mon–Sun, 24h clock). Sessions are created two weeks ahead. Add one-off or live sessions on the Webinar tab.' },
   { key: 'WEBINAR_VIDEO_SRC', label: 'Webinar recording (MP4 / HLS URL)', group: 'Webinar', placeholder: 'https://…/webinar.mp4', help: 'Played in sync in the webinar room for scheduled (recorded) sessions, and as the replay. Until it’s set, the main VSL is used as a placeholder.' },
   { key: 'WEBINAR_STREAM_HLS', label: 'Live stream playback URL (Cloudflare Stream)', group: 'Webinar', placeholder: 'https://customer-xxxx.cloudflarestream.com/<live input id>/manifest/video.m3u8', help: 'For “Live in our room” sessions. Cloudflare dashboard → Stream → Live inputs → your input → HLS playback URL. Stream into it from OBS, StreamYard or Zoom (Live on custom streaming service) using the RTMPS URL + key shown there.' },
+  { key: 'ZOOM_ACCOUNT_ID', label: 'Zoom account ID', group: 'Live', help: 'Optional: lets Funnel HQ create the Zoom meeting for each live event. Without it, paste a Zoom link per event in the host console. marketplace.zoom.us → Develop → Build app → Server-to-Server OAuth app → App credentials.' },
+  { key: 'ZOOM_CLIENT_ID', label: 'Zoom client ID', group: 'Live', help: 'From the same Server-to-Server OAuth app.' },
+  { key: 'ZOOM_CLIENT_SECRET', label: 'Zoom client secret', group: 'Live', secret: true, help: 'From the same app. Scopes to add: meeting:write:meeting:admin and meeting:read:meeting:admin (plus webinar:write:webinar:admin, webinar:read:webinar:admin and webinar:read:list_webinars:admin if the account has Zoom Webinars).' },
+  { key: 'ZOOM_HOST_USER', label: 'Zoom host (email)', group: 'Live', placeholder: 'me', help: 'Whose Zoom account hosts the events. Blank = the user who created the app.' },
   { key: 'WEBINAR_EDITION', label: 'Which masterclass plays', group: 'Webinar', placeholder: 'recorded', help: 'recorded = Josh’s own recording (script v3, 66 minutes, the Sprint unlocks at 38:00; set the recording link below). ai = the AI edition, narrated by an AI voice presenting Josh’s method (disclosed at the start and on every slide), about 22 minutes, pitching the First Deal Sprint from the first minute. Its chapters, polls, key points, calculator, buy-in and unlock are timed from its own audio. The length, offer and worksheet minutes below override it when set.' },
   { key: 'WEBINAR_DURATION_MIN', label: 'Webinar length (minutes)', group: 'Webinar', placeholder: '66', help: 'When the session counts as finished and the replay opens.' },
   { key: 'WEBINAR_PITCH_AT', label: 'Offer appears at (minutes in)', group: 'Webinar', placeholder: '38', help: 'The pitch minute: the First Deal Sprint unlocks in the room at this point of the recording (live and replay alike), and checkout only works for viewers who reached it.' },

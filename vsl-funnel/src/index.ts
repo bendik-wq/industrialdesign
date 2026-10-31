@@ -11,6 +11,8 @@ import { retryForwards } from './tracking/forward';
 import { COOKIE, resolveVisitor } from './lib/identity';
 import { getCookie } from 'hono/cookie';
 import { admin } from './routes/admin';
+import { liveHostPage } from './live/admin';
+import { liveStatusRoute } from './live/routes';
 import { api } from './routes/api';
 import { hooks } from './routes/hooks';
 import { links } from './routes/links';
@@ -156,6 +158,7 @@ app.get('/privacy', withVisitor, staticPage('/privacy.html', 'Privacy policy'));
 
 // ── Public APIs, tracked links, webhooks ──
 app.route('/sign', sign);
+app.get('/api/live/:key/status', liveStatusRoute); // before /api: no visitor logging on each poll
 app.route('/api', api);
 app.route('/hooks', hooks);
 app.route('/', links);
@@ -218,6 +221,7 @@ app.get('/oauth/google/callback', async (c) => {
   }
 });
 app.route('/admin/api', admin);
+app.get('/admin/live/:key', requireAdmin, liveHostPage); // host console for one live event (Zoom)
 app.get('/admin', requireAdmin, async (c) => {
   const res = await c.env.ASSETS.fetch(new Request(new URL('/admin/index.html', c.req.url)));
   return new Response(res.body, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
