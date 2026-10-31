@@ -279,7 +279,7 @@ export const WEBINAR_TEMPLATES: Record<string, T> = {
       preheader: `Open until ${s.closes}, then it closes with your replay.`,
       body: [
         `${c.name},`,
-        `The ${s.name} from your masterclass closes at ${s.closes}, when your replay comes down. After that, the next step is a strategy call.`,
+        `The ${s.name} from your masterclass closes at ${s.closes}, when your replay comes down.`,
         `Owners ask me whether the ${s.price} is wasted if they don’t go on with us. You keep everything: the capacity numbers, the buy box, the shortlist, the memo and the outreach script.`,
         'If you do continue, the full fee comes off the advisory engagement.',
         `And the guarantee stands: ${s.guarantee.charAt(0).toLowerCase()}${s.guarantee.slice(1)}`,
@@ -292,14 +292,13 @@ export const WEBINAR_TEMPLATES: Record<string, T> = {
     const s = sp(c);
     return {
       subject: `the ${s.name} has closed`,
-      preheader: 'You can still apply for a strategy call.',
+      preheader: 'If something held you back, reply and tell me what it was.',
       body: [
         `${c.name},`,
-        `The ${s.name} offer from your masterclass has closed. You can still apply for a strategy call.`,
-        'If what held you back was “what if there’s no business for me to buy”, that is the first thing the call looks at.',
-        'My team goes through your numbers and your market with you and tells you straight whether a first deal fits. When it does, we map it out across commercial debt, seller finance and seller rollover.',
+        `The ${s.name} offer from your masterclass has closed.`,
+        'If what held you back was “what if there’s no business for me to buy”, reply to this email and tell me. My team reads every reply.',
+        'Send your revenue, your industry and the kind of business you would buy first. We tell you straight whether a first deal fits, and how it splits across commercial debt, seller finance and seller rollover.',
       ],
-      cta: { label: 'Apply for a strategy call →', href: s.apply },
     };
   },
   w_blueprint: (c) => ({

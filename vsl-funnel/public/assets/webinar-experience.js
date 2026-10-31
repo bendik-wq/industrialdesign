@@ -9,8 +9,8 @@
   'use strict';
   var cfg = (window.FUNNEL && window.FUNNEL.webinar) || {};
   var X = cfg.experience;
-  var panel = document.querySelector('[data-wx-panel]'), under = document.querySelector('[data-wx-under]'), grid = document.querySelector('[data-wx-grid]');
-  if (!cfg.token || !X || !panel || !under || !grid) return;
+  var panel = document.querySelector('[data-wx-panel]'), notesEl = document.querySelector('[data-wx-notes]'), R = window.ROOM;
+  if (!cfg.token || !X || !panel || !R) return;
   var C = X.copy || {};
   var F = window.funnel || { track: function () {} };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); };
@@ -32,14 +32,7 @@
   var recaps = X.recaps || [];
   var chapterOf = function (sec) { var c = recaps[0] || { at: 0, title: '' }; recaps.forEach(function (r) { if (sec >= r.at * 60) c = r; }); return c; };
 
-  // ── Layout: video, key points and the offer on the left; the panel beside it (desktop) or under it (mobile) ──
-  var main = document.querySelector('[data-wx-main]'), ctaEl = document.querySelector('[data-cta]');
-  if (main && ctaEl) main.appendChild(ctaEl);
-  var rest = document.createElement('div'); rest.className = 'wx-rest';
-  ['[data-live-chat]', '[data-pass]', '[data-agenda]', '.room-side'].forEach(function (s) { var el = document.querySelector(s); if (el) rest.appendChild(el); });
-  grid.appendChild(rest);
-  grid.classList.add('wx-on');
-  document.documentElement.classList.add('wx-room');
+  // Layout (webinar-room.js): the deal builder lives in the "Your deal" tab, notes in "Notes", moments in the now slot.
 
   // ── State: their answers so far ──
   var inputs = X.inputs || {};
@@ -121,11 +114,10 @@
   var built = false, open = {};
   function buildPanel() {
     panel.innerHTML =
-      '<header class="wx-head"><p class="wx-eyebrow">' + esc(C.panelEyebrow) + '</p><h2 class="wx-h">' + esc(C.panelHeading) + '</h2><p class="wx-intro">' + esc(C.panelIntro) + '</p></header>' +
+      '<header class="wx-head"><h2 class="wx-h">' + esc(C.panelHeading) + '</h2><p class="wx-intro">' + esc(C.panelIntro) + '</p></header>' +
       '<div class="wx-mapped" data-wx-mapped hidden></div>' +
       '<section class="wx-score" data-wx-score></section>' +
-      '<ol class="wx-steps">' + steps.map(function (s) { return '<li class="wx-step locked" data-step="' + esc(s.id) + '"><span class="wx-mark" aria-hidden="true"></span><div class="wx-step-in"><p class="wx-step-h"><span class="wx-time">' + mmss(s.at) + '</span>' + esc(s.title) + '</p><div class="wx-step-b"></div></div></li>'; }).join('') + '</ol>' +
-      '<section class="wx-notes" data-wx-notes></section>';
+      '<ol class="wx-steps">' + steps.map(function (s) { return '<li class="wx-step locked" data-step="' + esc(s.id) + '"><span class="wx-mark" aria-hidden="true"></span><div class="wx-step-in"><p class="wx-step-h"><span class="wx-time">' + mmss(s.at) + '</span>' + esc(s.title) + '</p><div class="wx-step-b"></div></div></li>'; }).join('') + '</ol>';
     panel.hidden = false;
     built = true;
   }
@@ -189,13 +181,20 @@
       var wasHidden = box.hidden;
       box.innerHTML = '<p class="wx-mapped-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' + esc(C.mappedHeading) + '</p>' +
         (buyin && buyin.text ? '<p class="wx-playback">' + esc(fill(C.buyinPlayback, { text: buyin.text })) + '</p>' : '<p class="wx-sub">' + esc(C.mappedBody) + '</p>') +
-        '<div class="wx-mapped-act"><a class="btn btn-sm" href="' + esc(cfg.qualified === false ? cfg.worksheetUrl : cfg.applyUrl) + '" target="_blank" rel="noopener" data-wx-next>' + esc(cfg.qualified === false ? C.nextWorksheet : C.nextApply) + '</a>' +
-        (nextUrl !== cfg.worksheetUrl || cfg.qualified !== false ? '<a class="wx-link" href="' + esc(nextUrl) + '" target="_blank" rel="noopener" data-wx-blueprint>' + esc(nextLabel) + ' →</a>' : '') + '</div>';
+        // One next step: the Sprint above the video ($1M+), or the worksheet (under $1M). No call booking here.
+        (cfg.qualified === false ? '<div class="wx-mapped-act"><a class="btn btn-sm" href="' + esc(cfg.worksheetUrl) + '" target="_blank" rel="noopener" data-wx-next>' + esc(C.nextWorksheet) + '</a></div>'
+          : cfg.sprint ? '<div class="wx-mapped-act"><a class="btn btn-sm" href="#sprint-offer" data-wx-next>' + esc(cfg.sprint.name ? 'See the ' + cfg.sprint.name : C.nextSprint) + '</a></div>' : '');
       box.hidden = false;
       if (wasHidden && !reduced) { box.classList.add('wx-just'); setTimeout(function () { box.classList.remove('wx-just'); }, 1600); }
-      var a = box.querySelector('[data-wx-blueprint]');
-      if (a) a.onclick = function () { F.track('cta_click', { id: 'webinar_blueprint', label: nextLabel }); };
-      box.querySelector('[data-wx-next]').onclick = function () { post('/api/webinar/cta', {}); F.track('cta_click', { id: 'webinar_mapped_next' }); };
+      var nx = box.querySelector('[data-wx-next]');
+      if (nx) nx.onclick = function (e) {
+        F.track('cta_click', { id: 'webinar_mapped_next' });
+        if (nx.getAttribute('href') !== '#sprint-offer') return;
+        e.preventDefault();
+        if (R.closeSheet) R.closeSheet();
+        var o = document.getElementById('sprint-offer');
+        if (o) { o.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); var b = o.querySelector('.buy-btn'); if (b) setTimeout(function () { b.focus({ preventScroll: true }); }, 400); }
+      };
     };
     if (nextUrl) draw(); else resolveBlueprint(draw);
   }
@@ -220,7 +219,8 @@
 
   // ── Saved notes ──
   function renderNotes() {
-    var el = panel.querySelector('[data-wx-notes]');
+    var el = notesEl;
+    if (!el) return;
     var saved = (X.takeaways || []).filter(function (t) { return notes[t.id]; });
     el.innerHTML = '<p class="wx-eyebrow">' + esc(C.savedHeading) + (saved.length ? ' <span class="wx-count">' + saved.length + '</span>' : '') + '</p>' +
       (saved.length ? '<ol class="wx-notes-mini">' + saved.map(function (t) { return '<li><span>' + mmss(t.at) + '</span>' + esc(t.text) + '</li>'; }).join('') + '</ol><a class="wx-link" href="' + esc(X.notesUrl) + '" target="_blank" rel="noopener">' + esc(C.savedLink) + ' →</a>'
@@ -238,8 +238,8 @@
   }
 
   // ── Under the video: catch-up / away recap, reactions, key points, the buy-in question ──
-  under.innerHTML = '<div data-wx-catch></div><div class="wx-react" data-wx-react></div><div data-wx-moment></div><div data-wx-buyin></div>';
-  var catchEl = under.querySelector('[data-wx-catch]'), reactEl = under.querySelector('[data-wx-react]'), momentEl = under.querySelector('[data-wx-moment]'), buyinEl = under.querySelector('[data-wx-buyin]');
+  // Reactions sit in the now slot's resting line; key points and the buy-in question take the slot itself.
+  var reactEl = R.idle.querySelector('[data-idle-react]');
 
   function collapse(card, ms) {
     var t = setTimeout(function () { close(); }, ms);
@@ -255,24 +255,14 @@
     if (x) x.onclick = close;
     return close;
   }
-  function recapCard(heading, lines, ms) {
-    catchEl.innerHTML = '';
-    var card = document.createElement('div');
-    card.className = 'wx-card wx-catch';
-    card.setAttribute('role', 'status');
-    card.innerHTML = '<div class="wx-catch-top"><p class="wx-catch-h">' + esc(heading) + '</p><button type="button" class="wx-x" data-wx-close aria-label="Close">×</button></div>' +
-      '<ul>' + lines.map(function (l) { return '<li><b>' + esc(l.t) + '</b>' + (l.line ? ' <span>' + esc(l.line) + '</span>' : '') + '</li>'; }).join('') + '</ul>' +
-      '<i class="wx-timer" style="animation-duration:' + ms + 'ms"></i>';
-    catchEl.appendChild(card);
-    collapse(card, ms);
-  }
+  function recapCard(heading, lines) { R.catchLine(heading, C.catchUpLink || 'See what you missed', lines); }
 
   // Late join: a showing in progress, opened after minute 3.
   if (!cfg.replay && cfg.startsAt && cfg.serverNow && cfg.mode !== 'live') {
     var joined = (cfg.serverNow - cfg.startsAt) / 1000;
     if (joined > 180 && joined < duration) {
       var missed = recaps.filter(function (r) { return r.at * 60 < joined; });
-      if (missed.length) recapCard(fill(C.catchUpHeading, { time: mmss(joined) }), missed.map(function (r) { return { t: r.title, line: r.line }; }), 20000);
+      if (missed.length) recapCard(fill(C.catchUpHeading, { time: mmss(joined) }), missed.map(function (r) { return { t: r.title, line: r.line }; }));
     }
   }
 
@@ -319,7 +309,8 @@
     if (!note) { note = document.createElement('p'); note.className = 'wx-react-note'; reactEl.appendChild(note); }
     note.innerHTML = esc(C.explainSent) + (ask ? ' <button type="button" class="linkish" data-wx-goask>Show me</button>' : '');
     var go = note.querySelector('[data-wx-goask]');
-    if (go) go.onclick = function () { ask.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); };
+    if (go) go.onclick = function () { R.openSheet('ask'); };
+    R.ping('ask');
     post('/api/webinar/ask', { question: q, pos: Math.round(p) }).then(function (r) {
       if (!item) return;
       var el = item.querySelector('.qa-a');
@@ -337,12 +328,12 @@
     momentId = cur && cur.id;
     if (!cur) return;
     var card = document.createElement('div');
-    card.className = 'wx-card wx-moment' + (reduced ? '' : ' wx-in');
+    card.className = 'now-card wx-moment';
     card.innerHTML = '<div class="wx-moment-top"><p class="wx-eyebrow">' + esc(C.takeawayEyebrow) + ' · ' + mmss(cur.at) + '</p></div><p class="wx-moment-t">' + esc(cur.text) + '</p>' +
       '<button type="button" class="wx-save' + (notes[cur.id] ? ' saved' : '') + '" aria-pressed="' + Boolean(notes[cur.id]) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/></svg><span>' + esc(notes[cur.id] ? C.savedButton : C.saveButton) + '</span></button>';
     var id = cur.id;
     card.querySelector('.wx-save').onclick = function (e) { toggleNote(id, e.currentTarget); };
-    momentEl.appendChild(card);
+    if (!R.now(card, { after: 'drop' })) return;
     closeMoment = collapse(card, Math.max(1000, (cur.at + 75 - p) * 1000));
   }
 
@@ -357,8 +348,8 @@
     if (buyinShown || p < (X.buyinAt || 2300)) return;
     buyinShown = true;
     var card = document.createElement('div');
-    card.className = 'wx-card wx-buyin' + (reduced ? '' : ' wx-in');
-    if (buyin) { card.innerHTML = '<p class="wx-eyebrow">' + esc(C.buyinEyebrow) + '</p><p class="wx-playback">' + esc(fill(C.buyinPlayback, { text: buyin.text }).replace(/ Here is how to start\.$/, '')) + '</p>' + wallHtml(); if (!X.wall || !X.wall.length) card.hidden = true; buyinEl.appendChild(card); return; }
+    card.className = 'now-card wx-buyin';
+    if (buyin) return; // already answered: their words come back above the offer
     var max = X.buyinMax || 280;
     card.innerHTML = '<p class="wx-eyebrow">' + esc(C.buyinEyebrow) + '</p><p class="wx-buyin-q">' + esc(C.buyinHeading) + '</p>' +
       '<div class="wx-prompts">' + (C.buyinPrompts || []).map(function (t) { return '<button type="button" class="wx-chip" data-wx-p>' + esc(t) + '</button>'; }).join('') + '</div>' +
@@ -392,7 +383,7 @@
         tick();
       });
     });
-    buyinEl.appendChild(card);
+    R.now(card, { keep: 'deal' });
   }
 
   // ── Tab away: the real chapter in the title; a short recap when they come back after a minute ──
@@ -413,7 +404,7 @@
     (X.takeaways || []).forEach(function (t) { if (t.at > from && t.at <= now) lines.push({ t: C.takeawayEyebrow + ' · ' + mmss(t.at), line: t.text }); });
     if (!lines.length) lines.push({ t: fill(C.awaySameChapter, { chapter: chapterOf(now).title }), line: '' });
     var mins = Math.max(1, Math.round(gone / 60));
-    recapCard(fill(C.awayHeading, { mins: mins + ' min' }), lines.slice(0, 6), 30000);
+    recapCard(fill(C.awayHeading, { mins: mins + ' min' }), lines.slice(0, 6));
   });
 
   // ── Their answers, as they give them ──

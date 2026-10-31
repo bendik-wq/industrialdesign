@@ -248,7 +248,7 @@ api.post('/webinar/checkout', async (c) => {
     const r = await createCheckout(rt, reg, { kind: body.kind === 'seat' ? 'seat' : 'offer', from: body.from === 'room' ? 'room' : 'ty' });
     return c.json({ ok: true, ...r, ...('paid' in r ? { next: `${webinarBase(rt)}/registered/${reg.token}` } : {}) });
   } catch (err) {
-    if (err instanceof PassError) return c.json({ ok: false, error: err.message, ...(err.book ? { book: err.book } : {}) }, err.status as 400);
+    if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
     return errorResponse(c, err);
   }
 });
@@ -262,7 +262,7 @@ api.post('/webinar/sprint/checkout', async (c) => {
     const r = await createSprintCheckout(rt, reg, { plan: body.plan === true, from: body.from === 'offer' ? 'offer' : 'room' });
     return c.json({ ok: true, ...r, ...('paid' in r ? { next: `${webinarBase(rt)}/offer/${reg.token}` } : {}) });
   } catch (err) {
-    if (err instanceof PassError) return c.json({ ok: false, error: err.message, ...(err.book ? { book: err.book } : {}) }, err.status as 400);
+    if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
     return errorResponse(c, err);
   }
 });
@@ -279,7 +279,7 @@ for (const [path, run] of [
       if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
       return c.json(await run(rt, reg, c.req.header('cf-connecting-ip') ?? null));
     } catch (err) {
-      if (err instanceof PassError) return c.json({ ok: false, error: err.message, ...(err.book ? { book: err.book } : {}) }, err.status as 400);
+      if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
       return errorResponse(c, err);
     }
   });

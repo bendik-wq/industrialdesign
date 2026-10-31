@@ -3,9 +3,9 @@ import { type AppEnv, runtimeFrom } from '../app';
 import { render } from '../funnel/pages';
 import { identityFromLead, track } from '../tracking/track';
 import { type Registration, type Session, getRegistration, getSession, roomUrl, webinarSettings } from './webinar';
-import { type Perk, activePass, confirmOnReturn, holderCardHtml, passCapacity, passCopy } from './pass';
+import { activePass, confirmOnReturn, holderCardHtml } from './pass';
 import {
-  mmss, offerDeadline, pitchSec, reachedPitch, sprintCopy, sprintFaq, sprintPrice, sprintQualified, sprintSettings, sprintStartUrl, sprintState, sprintWindow, ticketCredit, unlockSprint,
+  type SprintRoom, mmss, offerDeadline, pitchSec, reachedPitch, sprintCopy, sprintFaq, sprintQualified, sprintRoomConfig, sprintSettings, sprintWindow, teamEmail, unlockSprint,
 } from './sprint';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -28,9 +28,41 @@ function previewOffer(c: Context<AppEnv>) {
   return { rt, reg, session };
 }
 
-const perkItems = (perks: Perk[]) => `<ol class="sprint-days">${perks.map((p) => `<li${p.day ? '' : ' class="nod"'}>${p.day ? `<span class="sprint-day">${esc(p.day)}</span>` : '<span class="sprint-day plus">+</span>'}<div><strong>${esc(p.title)}</strong>${p.body ? `<span>${esc(p.body)}</span>` : ''}</div></li>`).join('')}</ol>`;
+const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.4-3 7.9-7 9-4-1.1-7-4.6-7-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
+const LOCK_OPEN = '<svg class="sprint-lock-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.8"/></svg>';
+const timer = (to: number, kind: 'bonus' | 'deadline', cls = 'buy-timer') => `<b class="${cls}" role="timer" aria-live="off" data-sprint-to="${to}" data-sprint-kind="${kind}"></b>`;
+const fill = (t: string, o: Record<string, string | number>) => t.replace(/\{(\w+)\}/g, (_, k) => String(o[k] ?? ''));
 
-/** /offer/:token: the full sales page for the Sprint, open from the unlock until the offer deadline. */
+/** The buy block (the same one the room shows at the unlock), server-rendered. `full` = with the bonus and the promise. */
+export function offerBuyHtml(S: SprintRoom, now = Date.now(), o: { full: boolean } = { full: true }) {
+  const C = S.copy;
+  const bonusOpen = Boolean(S.bonus && S.bonusEndsAt && S.bonusEndsAt > now);
+  const micro = S.oneClick ? (S.oneClick.card ? fill(C.microOneClick, { card: S.oneClick.card }) : C.microOneClickNoCard) : C.micro;
+  const bonus = !S.bonus ? '' : bonusOpen
+    ? `<div class="buy-bonus" data-sprint-bonus><div class="buy-bonus-t"><p class="buy-label">${esc(C.bonusEyebrow)}</p><p><strong>${esc(S.bonus.title)}</strong>${S.bonus.body ? `: ${esc(S.bonus.body)}` : ''}</p></div><div class="buy-bonus-c"><span>${esc(C.bonusEndsIn)}</span>${timer(S.bonusEndsAt!, 'bonus', 'buy-timer big')}</div></div>`
+    : `<div class="buy-bonus gone" data-sprint-bonus><p class="buy-bonus-gone">${esc(C.bonusGone)}</p></div>`;
+  const button = S.full ? `<p class="buy-soldout">${esc(S.soldOut ?? '')}</p>`
+    : `<button type="button" class="buy-btn buy-btn-xl" data-sprint-buy="full" data-where="${o.full ? 'offer' : 'offer_end'}"><span data-label>${esc(C.button)}</span><span class="buy-btn-price">${esc(S.price)}</span>${ARROW}</button>`;
+  return `<section class="buy-hero offer-hero" aria-label="${esc(S.name)}">
+    ${o.full ? `<p class="buy-badge">${LOCK_OPEN}${esc(C.unlockedEyebrow)} · ${esc(C.fromMasterclass)}</p><h1 class="buy-h">${esc(C.heading)}</h1><p class="buy-promise">${esc(C.promise)}</p>` : `<h2 class="buy-h small">${esc(C.heading)}</h2>`}
+    ${bonus}
+    <div class="buy-box" data-sprint-buybox>
+      <div class="buy-price">${S.credit ? `<s class="buy-anchor">${esc(S.listPrice)}</s>` : ''}<span class="buy-today"><b>${esc(S.price)}</b> ${esc(C.today)}</span>${S.credit ? `<span class="buy-credit">${esc(fill(C.creditApplied, { credit: S.credit }))}</span>` : ''}</div>
+      <p class="buy-steps"><span class="on">${esc(C.stepNow)}</span><span aria-hidden="true">→</span><span>${esc(C.stepNext)}</span></p>
+      ${button}
+      ${S.plan && !S.full ? `<button type="button" class="buy-plan" data-sprint-buy="plan" data-where="offer">${esc(S.plan.line)}</button>` : ''}
+      <p class="buy-micro">${esc(micro)}</p>
+      <p class="buy-guarantee">${SHIELD}<span>${o.full ? `<strong>${esc(C.guaranteeBadge)}.</strong> ${esc(S.guarantee)}` : esc(C.guaranteeShort)}</span></p>
+      ${S.whop && o.full ? `<div class="buy-pay"><ul aria-label="${esc(C.payments)}">${C.paymentBadges.map((b) => `<li>${esc(b)}</li>`).join('')}</ul><p>${esc(C.payments)}</p></div>` : ''}
+      ${S.started && o.full ? `<p class="buy-proof">${esc(fill(C.started, { n: S.started }))}</p>` : ''}
+      ${S.capLabel ? `<p class="buy-proof">${esc(S.capLabel)}</p>` : ''}
+    </div>
+    <p class="buy-foot"><span>${esc(C.deadlineShort)} ${timer(S.deadline, 'deadline')}</span></p>
+  </section>`;
+}
+
+/** /offer/:token: the Sprint's own page, open from the unlock until the offer deadline. One column, one button. */
 export async function offerPage(c: Context<AppEnv>) {
   const isPreview = c.req.param('token') === 'preview' && c.get('visitor')?.botReason === 'admin-preview';
   const base = isPreview ? previewOffer(c) : await (async () => {
@@ -42,18 +74,20 @@ export async function offerPage(c: Context<AppEnv>) {
   const { rt, session } = base;
   let reg = base.reg;
   const page = (title: string, html: string, config: Record<string, unknown> = {}) => render(c, '/webinar-offer.html', { title, blocks: { offer: html }, config: { webinar: config } });
-  if (!reg || !session) return page('Link not found', '<h1 class="h2">We couldn’t find that link</h1><p class="lede">Open the masterclass from the link in your confirmation email.</p>');
-  const { cfg, plan, bonus } = sprintSettings(rt);
+  const msg = (h: string, body: string, btn?: { href: string; label: string }) => `<div class="offer-msg"><h1 class="h2">${h}</h1><p class="lede">${body}</p>${btn ? `<p><a class="btn" href="${esc(btn.href)}">${esc(btn.label)}</a></p>` : ''}</div>`;
+  if (!reg || !session) return page('Link not found', msg('We couldn’t find that link', 'Open the masterclass from the link in your confirmation email.'));
+  const { cfg } = sprintSettings(rt);
   const t = sprintCopy(cfg, { opensAt: mmss(pitchSec(rt)) });
   const room = roomUrl(rt, reg.token);
-  const apply = `${rt.origin}/w/${reg.token}`;
+  const email = teamEmail(rt);
+  const emailLink = email ? ` <a href="mailto:${esc(email)}">${esc(t.closedEmail)}</a>` : '';
 
   if (!isPreview) {
     if (c.req.query('pass') === 'success') await confirmOnReturn(rt, reg);
     const holder = await activePass(rt, reg.lead_id);
     if (holder) return page(`Your ${cfg.offerName}`, holderCardHtml(rt, cfg, holder, reg.token), { ty: reg.token });
-    if (cfg.mode === 'off') return page(cfg.offerName, `<h1 class="h2">The ${esc(cfg.offerName)} isn’t open right now</h1><p class="lede"><a href="${esc(apply)}">Apply for a strategy call</a> instead.</p>`);
-    if (!(await sprintQualified(rt, reg))) return page(cfg.offerName, `<h1 class="h2">The ${esc(cfg.offerName)} is for owners doing $1M or more a year</h1><p class="lede">Start with the worksheet and the replay. <a href="${esc(room)}">${esc(t.backToRoom)}</a></p>`);
+    if (cfg.mode === 'off') return page(cfg.offerName, msg(`The ${esc(cfg.offerName)} isn’t open right now`, `It opens again with the next masterclass.${emailLink}`));
+    if (!(await sprintQualified(rt, reg))) return page(cfg.offerName, msg(`The ${esc(cfg.offerName)} is for owners doing $1M or more a year`, `Start with the worksheet and the replay. <a href="${esc(room)}">${esc(t.backToRoom)}</a>`));
     // Reached the pitch on the server's evidence but the room never reported it (closed the tab at the pitch): open it now.
     if (reg.offer_unlocked_at == null && reachedPitch(rt, session, reg) && Date.now() < offerDeadline(rt, session, reg)) {
       const r = await unlockSprint(rt, reg, session, {});
@@ -62,36 +96,19 @@ export async function offerPage(c: Context<AppEnv>) {
   }
   const now = Date.now();
   const w = sprintWindow(rt, session, reg, now);
-  if (!w.unlocked) return page(cfg.offerName, `<p class="eyebrow">${esc(t.lockedEyebrow)}</p><h1 class="h2">${esc(t.lockedHeading)}</h1><p class="lede">${esc(t.notYet)}</p><p><a class="btn" href="${esc(room)}">${esc(t.backToRoom)}</a></p>`);
-  if (w.closed) return page(cfg.offerName, `<h1 class="h2">${esc(cfg.offerName)}</h1><p class="lede">${esc(t.closed)}</p><p><a class="btn" href="${esc(apply)}">${esc(t.closedButton)}</a></p>`);
+  if (!w.unlocked) return page(cfg.offerName, `<div class="offer-msg"><p class="eyebrow">${esc(t.lockedEyebrow)}</p><h1 class="h2">${esc(t.lockedHeading)}</h1><p class="lede">${esc(t.notYet)}</p><p><a class="btn" href="${esc(room)}">${esc(t.backToRoom)}</a></p></div>`);
+  if (w.closed) return page(cfg.offerName, msg(esc(cfg.offerName), `${esc(t.closed)}${emailLink}`));
 
+  const S = await sprintRoomConfig(rt, reg, session, true, { preview: isPreview });
+  if (!S) return page(cfg.offerName, msg(`The ${esc(cfg.offerName)} isn’t open right now`, emailLink.trim()));
   if (!isPreview) await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'webinar_offer_page_view', source: 'server', path: '/offer', props: { session_id: session.id, offer: cfg.offerName } });
-  const credit = isPreview ? 0 : await ticketCredit(rt, reg.lead_id, cfg.currency);
-  const price = sprintPrice(cfg, plan, credit);
-  const cap = isPreview ? { full: false, label: null } : await passCapacity(rt, cfg, now);
-  const pc = passCopy(cfg);
-  const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-  const buyBox = () => `<div class="sprint-buy" data-sprint-buybox>
-      <p class="sprint-price">${esc(price.line)}</p>
-      ${price.plan ? `<p class="sprint-plan">${esc(price.plan.line)}</p>` : ''}
-      <p class="sprint-fine">${esc(t.creditNote)}</p>
-      ${bonus ? (w.bonusOpen
-        ? `<div class="sprint-bonus" data-sprint-bonus><p class="pass-eyebrow">${esc(t.bonusEyebrow)}</p><p class="sprint-bonus-t"><strong>${esc(bonus.title)}</strong>${bonus.body ? `: ${esc(bonus.body)}` : ''}</p><p class="sprint-bonus-c">${esc(t.bonusEnds)} <b data-sprint-to="${w.bonusEndsAt}" data-sprint-kind="bonus"></b></p></div>`
-        : `<div class="sprint-bonus" data-sprint-bonus><p class="sprint-bonus-gone">${esc(t.bonusGone)}</p></div>`) : ''}
-      ${cap.label ? `<p class="pass-cap">${esc(cap.label)}</p>` : ''}
-      <div class="pass-room-btns">${cap.full ? `<p class="pass-note">${esc(pc.soldOut)}</p>` : `<button type="button" class="btn btn-lg pass-btn" data-sprint-buy="full"><span>${esc(t.button)} <span class="nw">· ${esc(price.todayLabel)}</span></span> ${arrow}</button>${price.plan ? `<button type="button" class="btn btn-lg secondary" data-sprint-buy="plan">${esc(t.planButton)} ${esc(price.plan.button)}</button>` : ''}`}
-        <a class="btn btn-lg secondary" href="${esc(apply)}">${esc(t.bookCall)}</a></div>
-      <p class="sprint-deadline">${esc(t.deadline)}: <b data-sprint-to="${w.deadline}" data-sprint-kind="deadline"></b></p>
-      <p class="pass-fine">${esc(pc.secure)} ${esc(pc.noResults)}</p>
-    </div>`;
   const faq = sprintFaq(cfg);
-  const html = `${isPreview ? `<p class="pass-note">${esc(t.preview)} Shown as a viewer five minutes after it opened.</p>` : ''}
-    <header class="sprint-head"><p class="eyebrow"><span class="sprint-badge">${esc(t.unlockedEyebrow)}</span> From your masterclass</p><h1 class="h1">${esc(t.heading)}</h1><p class="lede">${esc(t.lede)}</p></header>
-    ${buyBox()}
-    <section class="sprint-sec"><h2>${esc(t.timeline)}</h2>${perkItems(cfg.perks)}</section>
-    <section class="sprint-sec sprint-guarantee"><p class="pass-eyebrow">${esc(t.guaranteeHeading)}</p><p>${esc(cfg.guarantee)}</p><p class="sprint-fine">${esc(t.guaranteeNote)}</p></section>
-    <section class="sprint-sec sprint-faq"><h2>Questions owners ask</h2>${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>
-    ${buyBox()}
-    <p class="sprint-more"><a href="${esc(room)}">${esc(t.backToRoom)}</a></p>`;
-  return page(cfg.offerName, html, { sprintPage: { token: reg.token, preview: isPreview, copy: t, startUrl: sprintStartUrl(rt, reg.token), oneClick: isPreview ? null : await (await import('./one-click')).oneClickInfo(rt, reg), ...sprintState(rt, session, reg, now) }, ty: reg.token });
+  const html = `${isPreview ? `<p class="offer-preview">${esc(t.preview)} Shown as a $1M+ ticket holder five minutes after it opened.</p>` : ''}
+    ${offerBuyHtml(S, now)}
+    <section class="offer-sec"><h2>${esc(t.timeline)}</h2><ol class="offer-days">${cfg.perks.filter((p) => p.day || !/guarantee/i.test(p.title)).map((p) => `<li><span class="d">${esc(p.day || 'Plus')}</span><div><strong>${esc(p.title)}</strong>${p.body ? esc(p.body) : ''}</div></li>`).join('')}</ol></section>
+    <section class="offer-sec"><div class="offer-guarantee">${SHIELD}<div><p><strong>${esc(t.guaranteeHeading)}.</strong> ${esc(cfg.guarantee)}</p><p class="fine">${esc(t.guaranteeNote)} ${esc(t.creditNote)}</p></div></div></section>
+    <section class="offer-sec sprint-faq"><h2>Questions owners ask</h2>${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>
+    <div class="offer-final">${offerBuyHtml(S, now, { full: false })}</div>
+    <p class="offer-back"><a href="${esc(room)}">${esc(t.backToRoom)}</a></p>`;
+  return page(cfg.offerName, html, { sprintPage: { ...S, token: reg.token }, ty: reg.token });
 }

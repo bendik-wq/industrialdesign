@@ -44,7 +44,7 @@
     var toggle = chatEl.querySelector('[data-live-toggle]');
     var setOpen = function (on) { open = on; chatEl.classList.toggle('open', on); toggle.setAttribute('aria-expanded', String(on)); if (on) { unread = 0; paintCount(); list.scrollTop = list.scrollHeight; } };
     toggle.addEventListener('click', function () { setOpen(!open); });
-    setOpen(!mobile.matches);
+    setOpen(true); // it has its own tab in the room
     if (form) {
       var anon = form.querySelector('[data-live-anon]'), input = form.querySelector('input[type=text]'), err = form.querySelector('[data-live-err]'), btn = form.querySelector('button');
       anon.checked = store.get('wl_anon') === '1';
@@ -79,6 +79,7 @@
     el.innerHTML = msgHtml(m);
     list.appendChild(el); msgs[m.id] = el; total++;
     if (!open && !mine) unread++;
+    if (!mine && window.ROOM) window.ROOM.ping('chat');
     if (near || mine) list.scrollTop = list.scrollHeight;
     paintCount();
   }
@@ -116,6 +117,7 @@
       var el = document.createElement('div'); el.className = 'qa live-reply';
       el.innerHTML = '<p class="qa-q">' + r.q + '</p><p class="qa-a"><span class="qa-tag live-tag">' + esc(r.by) + '</span> ' + r.a + '</p>';
       repliesBox.prepend(el);
+      if (window.ROOM) window.ROOM.ping('ask');
     });
   }
 

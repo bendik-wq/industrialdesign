@@ -159,7 +159,7 @@ describe('unlock at the pitch, enforced by the server', () => {
     await expect(createSprintCheckout(rt, reg(db))).rejects.toMatchObject({ status: 403, message: expect.stringMatching(/opens at 38:00/) });
     db.prepare("UPDATE webinar_registrations SET offer_unlocked_at = ? WHERE id = 'r1'").run(START + 38 * MIN);
     const closed = START + 60 * MIN + 48 * HOUR + 1;
-    await expect(createSprintCheckout(rt, reg(db), {}, closed)).rejects.toMatchObject({ status: 410, message: 'The First Deal Sprint offer from your masterclass has closed. You can still apply for a strategy call.' });
+    await expect(createSprintCheckout(rt, reg(db), {}, closed)).rejects.toMatchObject({ status: 410, message: 'The First Deal Sprint offer from your masterclass has closed.' });
   });
 
   it('a registration that reached the pitch (saved position) can check out even if the room never reported the unlock', async () => {
@@ -314,19 +314,33 @@ describe('room and thank-you page', () => {
   it('the room config: locked until the pitch, the real price line, the plan and the bonus; none for buyers or under $1M', async () => {
     const db = freshDb(); seed(db); ticket(db, 't1');
     const rt = makeRt(db);
-    const c = (await sprintRoomConfig(rt, reg(db), session(db), true, { applyUrl: 'https://apply.test/w/x' }))!;
+    const c = (await sprintRoomConfig(rt, reg(db), session(db), true, {}))!;
     expect(c).toMatchObject({ unlocked: false, opensAtSec: 2280, priceLine: '$3,000 − $100 ticket credit = $2,900 today', price: '$2,900', capLabel: null });
     expect(c.copy.lockedHeading).toBe('The First Deal Sprint opens at 38:00');
     expect(c.plan?.button).toBe('2 payments of $1,550');
     expect(c.bonus?.title).toBe('Josh reviews your Deal Plan personally');
-    expect(await sprintRoomConfig(rt, reg(db), session(db), false, { applyUrl: '' })).toBeNull();
+    expect(await sprintRoomConfig(rt, reg(db), session(db), false, {})).toBeNull();
     db.prepare("INSERT INTO webinar_passes (id, reg_id, lead_id, kind, status, amount, currency, created_at, updated_at) VALUES ('wpx', 'r1', 'l1', 'offer', 'paid', 300000, 'usd', 1, 1)").run();
-    expect(await sprintRoomConfig(rt, reg(db), session(db), true, { applyUrl: '' })).toBeNull();
+    expect(await sprintRoomConfig(rt, reg(db), session(db), true, {})).toBeNull();
   });
   it('a real cap shows the real count', async () => {
     const db = freshDb(); seed(db);
-    const c = (await sprintRoomConfig(makeRt(db, { ...SETTINGS, WEBINAR_PASS_WEEKLY_CAP: '5' }), reg(db), session(db), true, { applyUrl: '' }))!;
+    const c = (await sprintRoomConfig(makeRt(db, { ...SETTINGS, WEBINAR_PASS_WEEKLY_CAP: '5' }), reg(db), session(db), true, {}))!;
     expect(c.capLabel).toBe('5 of 5 First Deal Sprint places left this week');
+  });
+  it('social proof only from real paid Sprints, and only from 3 up; no call path anywhere in the copy', async () => {
+    const db = freshDb(); seed(db);
+    const rt = makeRt(db, { ...SETTINGS, EMAIL_REPLY_TO: 'Josh’s team <team@gl.test>' });
+    const paid = (id: string) => db.prepare("INSERT INTO webinar_passes (id, reg_id, lead_id, kind, status, amount, currency, paid_at, created_at, updated_at) VALUES (?, 'rx', 'lx', 'offer', 'paid', 290000, 'usd', ?, 1, 1)").run(id, Date.now());
+    paid('a'); paid('b');
+    let c = (await sprintRoomConfig(rt, reg(db), session(db), true, {}))!;
+    expect(c.started).toBeNull();
+    expect(c.teamEmail).toBe('team@gl.test');
+    paid('c');
+    c = (await sprintRoomConfig(rt, reg(db), session(db), true, {}))!;
+    expect(c.started).toBe(3);
+    expect(JSON.stringify(c.copy)).not.toMatch(/call instead|strategy call|book a call/i);
+    expect(JSON.stringify(c)).not.toMatch(/applyUrl/);
   });
 });
 
@@ -394,7 +408,7 @@ describe('closing emails', () => {
         expect(text, t).toMatch(/seller rollover|strategy call|First Deal Sprint/);
       }
     }
-    expect(TEMPLATES.w_sprint_closed({ lead, name: 'Dana', link: (p: string) => p, webinar: { ...webinar, sprint } } as unknown as TemplateCtx).body.join(' ')).toContain('The First Deal Sprint offer from your masterclass has closed. You can still apply for a strategy call.');
+    expect(TEMPLATES.w_sprint_closed({ lead, name: 'Dana', link: (p: string) => p, webinar: { ...webinar, sprint } } as unknown as TemplateCtx).body.join(' ')).toContain('The First Deal Sprint offer from your masterclass has closed. If what held you back');
   });
 });
 

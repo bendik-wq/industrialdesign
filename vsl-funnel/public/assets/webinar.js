@@ -226,7 +226,7 @@
 
   function soundButton() {
     var b = document.createElement('button');
-    b.type = 'button'; b.className = 'btn room-sound'; b.textContent = '🔊 Click for sound';
+    b.type = 'button'; b.className = 'btn room-sound'; b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>Turn the sound on';
     b.addEventListener('click', function () { video.muted = false; video.play().catch(function () {}); b.remove(); F.track('webinar_unmute', {}); });
     videoBox.appendChild(b);
   }

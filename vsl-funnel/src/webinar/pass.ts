@@ -212,6 +212,7 @@ export function ticketCopy(o: { label: string; replayHours: number; durationMin?
     credit: `Your ${o.label} comes off the First Deal Sprint if you start it after the masterclass.`,
     guaranteeHeading: 'The ticket guarantee',
     guarantee: `Watch it. If you don’t think it was worth far more than ${o.label}, reply within 7 days for a full refund.`,
+    guaranteeShort: `Not worth far more than ${o.label}? Reply within 7 days for a full refund.`,
     formHeading: 'Get your ticket',
     button: `Get my ${o.label} ticket`,
     privacy: `Next is secure checkout by ${providerName(o.provider)} for the ${o.label} ticket. We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time.`,
@@ -226,7 +227,7 @@ const ticketHours = (s: Partial<Settings>) => (Number(s.WEBINAR_REPLAY_HOURS) > 
 export function ticketFor(s: Partial<Settings>) {
   const cfg = passConfig(s);
   if (cfg.mode !== 'required' || !cfg.seat) return null;
-  const dur = Number(s.WEBINAR_DURATION_MIN) > 0 ? Number(s.WEBINAR_DURATION_MIN) : 60;
+  const dur = Math.round(webinarSettings({ settings: s } as Runtime).durationMin);
   return { cfg, label: cfg.seat.label, copy: ticketCopy({ label: cfg.seat.label, replayHours: ticketHours(s), durationMin: dur, provider: cfg.provider }) };
 }
 
@@ -415,8 +416,7 @@ export function checkoutForm(cfg: PassConfig, o: { kind: PassKind; passId: strin
 }
 
 export class PassError extends Error {
-  /** book: where to book a call instead (shown with the message when checkout can't open). */
-  constructor(message: string, public status = 400, public book: string | null = null) { super(message); }
+  constructor(message: string, public status = 400) { super(message); }
 }
 
 /** One click: starts (or reuses) a Stripe Checkout for this registration, email prefilled. */
@@ -706,12 +706,13 @@ export async function registeredPassBlock(rt: Runtime, reg: Registration, query:
   // Ticket mode: a paid ticket gets its confirmation above whatever card follows.
   const ticket = cfg.mode === 'required' && cfg.seat && (await paidTicket(rt, reg.lead_id)) ? ticketConfirmedHtml(cfg, replayHours) : '';
   const holder = await activePass(rt, reg.lead_id);
-  if (holder) return { html: ticket + holderCardHtml(rt, cfg, holder, reg.token), gate: false, active: true, confirming: false, ticket: Boolean(ticket) };
-  if (cfg.mode === 'off') return { html: '', gate: false, active: false, confirming: false, ticket: false };
+  if (holder) return { html: ticket + holderCardHtml(rt, cfg, holder, reg.token), rest: holderCardHtml(rt, cfg, holder, reg.token), gate: false, active: true, confirming: false, ticket: Boolean(ticket) };
+  if (cfg.mode === 'off') return { html: '', rest: '', gate: false, active: false, confirming: false, ticket: false };
   const gate = await passGate(rt, reg);
-  if (gate) return { html: seatCardHtml(cfg, note, replayHours), gate: true, active: false, confirming: note === passCopy(cfg).confirming, ticket: false };
+  if (gate) return { html: seatCardHtml(cfg, note, replayHours), rest: seatCardHtml(cfg, note, replayHours), gate: true, active: false, confirming: note === passCopy(cfg).confirming, ticket: false };
   // The First Deal Sprint is not sold before the masterclass: it unlocks in the room at the pitch (sprint.ts).
-  return { html: ticket + (note ? `<p class="pass-note" role="status">${esc(note)}</p>` : ''), gate: false, active: false, confirming: note === passCopy(cfg).confirming, ticket: Boolean(ticket) };
+  const n = note ? `<p class="pass-note" role="status">${esc(note)}</p>` : '';
+  return { html: ticket + n, rest: n, gate: false, active: false, confirming: note === passCopy(cfg).confirming, ticket: Boolean(ticket) };
 }
 
 /** Room config: the buyer's card, or the one-click offer for $1M+ viewers at the pitch. */

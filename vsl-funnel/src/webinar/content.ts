@@ -158,7 +158,7 @@ export const WORKSHEET: { title: string; intro: string; sections: WorksheetSecti
 };
 
 export const THANK_YOU: { heading: string; paras: string[]; question: string; options: { value: string; label: string }[] } = {
-  heading: 'You’re registered. Now block the hour.',
+  heading: 'You’re registered. Now block out the time.',
   paras: [
     'Your personal link is on its way to your inbox.',
     'Add the masterclass to your calendar right now and block the full hour. The funding stack comes in the second half, and that is the part that changes how you see your next deal.',

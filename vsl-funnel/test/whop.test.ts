@@ -243,12 +243,13 @@ describe('Whop checkout', () => {
     expect(calls.filter((c) => c.path === 'checkout_configurations')).toHaveLength(1);
   });
 
-  it('a refused checkout (the $2,500 cap): polite message and booking path, row closed, one Slack alert with the cause, a health note', async () => {
+  it('a refused checkout (the $2,500 cap): polite message (try again or email the team), row closed, one Slack alert with the cause, a health note', async () => {
     rt = makeRt(db, { ...WHOP, SLACK_WEBHOOK_URL: 'https://hooks.slack.test/x' });
     const calls = stubWhop({ checkoutError: { status: 422, message: 'Checkout links over $2,500 need approval' } });
     const err = await createSprintCheckout(rt, reg(db)).catch((e) => e);
     expect(err).toBeInstanceOf(PassError);
-    expect(err).toMatchObject({ status: 503, message: CHECKOUT_UNAVAILABLE, book: `https://apply.test/w/${TOKEN}` });
+    expect(err).toMatchObject({ status: 503, message: CHECKOUT_UNAVAILABLE });
+    expect(err.message).not.toMatch(/call/i);
     await Promise.all(pending);
     expect(pass(db).status).toBe('expired');
     expect(JSON.parse(kv(db, 'whop:checkout_error')!)).toMatchObject({ limit: true, kind: 'offer', amount: '$3,000' });
@@ -383,7 +384,7 @@ describe('pay-first Sprint form', () => {
   });
 
   it('the form: revenue band prefilled, pay-later note only with Whop, plan carried only when asked', () => {
-    const base = { offerName: 'First Deal Sprint', price: '$2,900', plan: false, values: { revenue: '$3M–$10M' }, note: null, offerUrl: '/offer/x', apply: '/w/x' };
+    const base = { offerName: 'First Deal Sprint', price: '$2,900', plan: false, values: { revenue: '$3M–$10M' }, note: null, offerUrl: '/offer/x' };
     const html = startFormHtml({ ...base, whop: true });
     expect(html).toContain('<option selected>$3M–$10M</option>');
     expect(html).toContain('Klarna');
@@ -391,8 +392,9 @@ describe('pay-first Sprint form', () => {
     expect(html).not.toContain('name="plan"');
     expect(startFormHtml({ ...base, whop: false, plan: true })).toContain('name="plan" value="1"');
     expect(startFormHtml({ ...base, whop: false })).not.toContain('Klarna');
-    const err = startFormHtml({ ...base, whop: true, note: { text: CHECKOUT_UNAVAILABLE, book: '/w/x' }, values: { industry: '<b>x</b>' } });
-    expect(err).toContain('Checkout isn’t available right now. Book a call and the team will take it from there. <a href="/w/x">Book a call instead</a>');
+    const err = startFormHtml({ ...base, whop: true, note: { text: CHECKOUT_UNAVAILABLE, email: 'team@gl.test' }, values: { industry: '<b>x</b>' } });
+    expect(err).toContain(`${CHECKOUT_UNAVAILABLE} <a href="mailto:team@gl.test">Email the team</a>`);
+    expect(html).not.toMatch(/book a call|strategy call/i);
     expect(err).not.toContain('<b>x</b>');
   });
 

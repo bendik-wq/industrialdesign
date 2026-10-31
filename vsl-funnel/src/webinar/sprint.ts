@@ -78,26 +78,57 @@ export function sprintCopy(cfg: Pick<PassConfig, 'offerName' | 'priceLabel' | 'g
     lockedEyebrow: 'Opens during the masterclass',
     lockedHeading: `The ${n} opens at ${o.opensAt}`,
     lockedTease: `Seven days with Josh’s team that turn this structure into a written plan for your first deal. Keep watching: it opens at that minute.`,
+    lockedLine: `The ${n} opens at ${o.opensAt}`,
     unlockedEyebrow: 'Open now',
+    fromMasterclass: 'From this masterclass',
     heading: `The ${n}`,
+    promise: 'Seven days with Josh’s team: your first deal mapped out in writing, then a 60-minute Deal Plan session to agree your next 90 days.',
     lede: 'Seven days with Josh’s team. You get your acquisition capacity, your buy box, a first shortlist and the deal structure in writing, then a 60-minute Deal Plan session to agree your next 90 days.',
     timeline: 'What you get, day by day',
+    daysShow: 'See what each day includes',
+    daysHide: 'Hide the details',
     button: `Start my ${n}`,
+    buttonShort: 'Start now',
     planButton: 'Pay in',
-    bookCall: 'Book a strategy call instead',
+    today: 'today',
+    creditApplied: '{credit} ticket credit applied',
+    micro: 'Secure checkout · about two minutes',
+    microOneClick: 'One click · charged to the {card} from your ticket',
+    microOneClickNoCard: 'One click · charged to the card from your ticket',
+    stepNow: 'Step 1 of 2: confirm and pay',
+    stepNext: 'Step 2: book your kickoff call',
+    guaranteeBadge: 'Deal Plan guarantee',
+    guaranteeShort: 'Covered by the Deal Plan guarantee: a full refund if it wasn’t worth far more than you paid.',
+    payments: 'Pay by card, or in instalments with Klarna, Afterpay or Splitit at checkout where they are offered to you.',
+    paymentBadges: ['Card', 'Klarna', 'Afterpay', 'Splitit'],
     bonusEyebrow: 'Fast-action bonus',
     bonusEnds: 'Yours if you start in the next',
+    bonusEndsIn: 'Bonus ends in',
     bonusGone: 'The fast-action bonus window has closed. Everything else in the Sprint stays the same.',
+    closesIn: 'Offer closes in',
     deadline: `The ${n} is part of this masterclass, so it closes when your replay does`,
-    closed: `The ${n} offer from your masterclass has closed. You can still apply for a strategy call.`,
-    closedButton: 'Apply for a strategy call',
+    deadlineShort: 'Closes with your replay in',
+    started: '{n} owners started the Sprint this week',
+    youSaid: 'You said',
+    closed: `The ${n} offer from your masterclass has closed.`,
+    closedEmail: 'Questions about it? Email the team.',
     notYet: `The ${n} opens at ${o.opensAt} in the masterclass. Watch to that point and it opens here.`,
     backToRoom: 'Back to the masterclass',
-    offerPage: `Read everything in the ${n}`,
+    offerPage: 'Read the full details',
     guaranteeHeading: 'The Deal Plan guarantee',
     guaranteeNote: 'The guarantee is about the refund. It is not a promise of a deal, a loan or a return.',
     creditNote: `Everything you pay for the ${n}, your masterclass ticket included, comes off the advisory engagement if you continue.`,
     buyinLead: 'You said',
+    exitHeading: 'Before you go',
+    exitBonus: 'Your fast-action bonus ends in',
+    exitClose: `The ${n} closes with your replay in`,
+    exitStay: 'Keep watching',
+    exitNotNow: 'Not now',
+    close: 'Close',
+    checkoutFailed: 'Checkout didn’t open just now. Try again, or email the team and they send you a payment link.',
+    tryAgain: 'Try again',
+    emailTeam: 'Email the team',
+    tools: 'Room',
     preview: 'Preview: the buttons don’t take payments here.',
   };
 }
@@ -302,7 +333,7 @@ export async function sprintBuyGate(rt: Runtime, reg: RegLike, now = Date.now(),
   const session = await getSession(rt, reg.session_id);
   if (!session) throw new PassError('Link not found', 404);
   if (await activePass(rt, reg.lead_id)) return { paid: true as const };
-  if (!(await sprintQualified(rt, reg))) throw new PassError(`The ${cfg.offerName} is for owners doing $1M or more a year. You can still apply for a strategy call.`, 403);
+  if (!(await sprintQualified(rt, reg))) throw new PassError(`The ${cfg.offerName} is for owners doing $1M or more a year.`, 403);
   let r = reg;
   if (r.offer_unlocked_at == null) {
     if (!reachedPitch(rt, session, r, now)) throw new PassError(t.notYet, 403);
@@ -463,17 +494,19 @@ export async function handleInvoicePaid(rt: Runtime, inv: Record<string, unknown
 // ───────────── The room ─────────────
 
 /** The Sprint panel's config for the room (null when it isn't offered to this viewer). */
-export async function sprintRoomConfig(rt: Runtime, reg: RegLike, session: Session, qualified: boolean, o: { preview?: boolean; applyUrl: string } = { applyUrl: '' }) {
+export async function sprintRoomConfig(rt: Runtime, reg: RegLike, session: Session, qualified: boolean, o: { preview?: boolean } = {}) {
   const { cfg, plan, bonus } = sprintSettings(rt);
   if ((cfg.mode === 'off' && !o.preview) || !qualified) return null;
   if (!o.preview && (await activePass(rt, reg.lead_id))) return null;
   const now = Date.now();
   const opensAt = mmss(pitchSec(rt));
   const t = sprintCopy(cfg, { opensAt });
-  const credit = o.preview ? 0 : await ticketCredit(rt, reg.lead_id, cfg.currency);
+  // The preview shows what a $1M+ ticket holder sees: their ticket credited, one click on the ticket's card (Whop).
+  const credit = o.preview ? previewCredit(cfg) : await ticketCredit(rt, reg.lead_id, cfg.currency);
   const price = sprintPrice(cfg, plan, credit);
   const cap = o.preview ? { full: false, label: null } : await passCapacity(rt, cfg, now);
   const pc = passCopy(cfg);
+  const oneClick = o.preview ? await previewOneClick(rt, cfg, price.today) : await (await import('./one-click')).oneClickInfo(rt, reg);
   return {
     preview: Boolean(o.preview),
     name: cfg.offerName,
@@ -485,14 +518,59 @@ export async function sprintRoomConfig(rt: Runtime, reg: RegLike, session: Sessi
     guarantee: cfg.guarantee,
     bonus,
     full: cap.full, soldOut: cap.full ? pc.soldOut : null, capLabel: cap.label,
+    // Real buyers only, and only once there are enough to mean something.
+    started: o.preview ? null : await startedThisWeek(rt, cfg, now),
+    whop: cfg.provider === 'whop',
     fine: `${pc.secure} ${pc.noResults}`,
     offerUrl: offerUrl(rt, reg.token),
     startUrl: sprintStartUrl(rt, reg.token),
     // Bought the ticket through Whop: one click on that card instead of the form and checkout.
-    oneClick: o.preview ? null : await (await import('./one-click')).oneClickInfo(rt, reg),
-    applyUrl: o.applyUrl,
+    oneClick,
+    teamEmail: teamEmail(rt),
     tz: cfg.tz,
     ...sprintState(rt, session, reg, now),
+  };
+}
+
+/** The team's address for "Email the team" (the reply-to address, else the sender's). Null when neither is set. */
+export function teamEmail(rt: Pick<Runtime, 'settings'>) {
+  const raw = String(rt.settings.EMAIL_REPLY_TO || rt.settings.EMAIL_FROM || '').trim();
+  const m = /<([^<>\s]+@[^<>\s]+)>/.exec(raw) ?? /^([^<>\s]+@[^<>\s]+)$/.exec(raw);
+  return m ? m[1] : null;
+}
+
+/** Paid First Deal Sprints this week (the same week as the weekly cap). Shown only from 3 up; null below that. */
+export async function startedThisWeek(rt: Runtime, cfg: Pick<PassConfig, 'tz'>, now = Date.now()) {
+  const { weekStart } = await import('./pass');
+  const row = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM webinar_passes WHERE kind = 'offer' AND status = 'paid' AND paid_at >= ?")
+    .bind(weekStart(now, cfg.tz)).first<{ n: number }>().catch(() => null);
+  const n = Number(row?.n ?? 0);
+  return n >= 3 ? n : null;
+}
+
+/** Preview only: the ticket price as the credit, as a paid ticket holder has it. */
+const previewCredit = (cfg: PassConfig) => (cfg.seat ? cfg.seat.amount : 0);
+
+/** Preview only: one click on a sample card, with the confirm step's real numbers (price, Whop's fee, total). */
+async function previewOneClick(rt: Runtime, cfg: PassConfig, today: number) {
+  if (cfg.provider !== 'whop') return null;
+  const { buyerFeePercent, oneClickCopy } = await import('./one-click');
+  const card = 'Visa ending 4242';
+  const m = (minor: number) => formatMoney(fromMinor(minor, cfg.currency), cfg.currency);
+  const pct = buyerFeePercent(rt.settings);
+  const fee = Math.round(today * pct / 100);
+  const credit = previewCredit(cfg);
+  return {
+    card, copy: oneClickCopy({ card }),
+    previewQuote: {
+      card,
+      lines: [
+        { label: credit ? `${cfg.offerName} (${cfg.priceLabel} less your ${m(credit)} ticket)` : cfg.offerName, amount: m(today) },
+        ...(fee ? [{ label: `Whop service fee (${pct}%)`, amount: m(fee) }] : []),
+      ],
+      total: m(today + fee),
+      copy: oneClickCopy({ card, total: m(today + fee) }),
+    },
   };
 }
 

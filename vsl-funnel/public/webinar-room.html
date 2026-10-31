@@ -18,52 +18,61 @@
   <script defer src="/assets/webinar-live.js"></script>
   <script defer src="/assets/webinar-sprint.js"></script>
 </head>
-<body class="webinar">
-  <header class="nav"><div class="wrap nav-in">
+<body class="webinar rm-body">
+  <header class="nav rm-nav"><div class="wrap nav-in">
     <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory"><b>G&amp;L</b> <span>M&amp;A Advisory</span></a>
+    <p class="rm-meta"><span data-slot="room_label">Masterclass</span><span data-if="pass_active"> · <span class="pass-badge" data-slot="pass_badge">Paid</span></span></p>
   </div></header>
-  <main id="main">
-    <section class="hero hero-center room"><div class="wrap">
-      <span class="eyebrow"><span data-slot="room_label">Masterclass</span> · <span data-slot="when"></span><span data-if="pass_active"> · <span class="pass-badge" data-slot="pass_badge">Paid</span></span></span>
-      <h1 class="h2" data-slot="webinar_title">The masterclass</h1>
+  <main id="main" class="rm">
+    <div class="wrap rm-wrap">
+      <header class="rm-head">
+        <h1 class="rm-title" data-slot="webinar_title">The masterclass</h1>
+        <p class="rm-when" data-slot="when"></p>
+      </header>
       <div class="live-banner" data-live-banner role="status" aria-live="polite" hidden></div>
-      <div class="wx-grid" data-wx-grid><div class="wx-main" data-wx-main>
-      <div class="room-stage" data-room>
-        <div class="room-wait" data-wait>
-          <p class="lede">Welcome<span data-slot="first_name_comma"></span>. We start in</p>
-          <div class="countdown big" data-countdown aria-live="polite"></div>
-          <p class="muted">Keep this page open. It starts by itself.</p>
+      <div class="rm-grid">
+        <div class="rm-main">
+          <div class="room-stage" data-room>
+            <div class="room-wait" data-wait>
+              <p class="lede">Welcome<span data-slot="first_name_comma"></span>. We start in</p>
+              <div class="countdown big" data-countdown aria-live="polite"></div>
+              <p class="muted">Keep this page open. It starts by itself.</p>
+            </div>
+            <div class="room-video" data-video hidden></div>
+            <div class="room-live" data-live hidden>
+              <p class="lede">The session is on now.</p>
+              <a class="btn btn-lg" href="#" data-join>Join the live session</a>
+            </div>
+            <div class="room-ended" data-ended hidden>
+              <p class="lede">That’s the end of the session. Thanks for watching.</p>
+            </div>
+          </div>
+          <p class="live-presence" data-live-presence aria-live="polite" hidden></p>
+          <div class="rm-catch" data-catch hidden></div>
+          <p class="rm-lockline" data-offer-line hidden></p>
+          <section class="rm-now" data-now aria-label="Now in the masterclass">
+            <div class="now-idle" data-now-idle></div>
+          </section>
+          <div class="room-cta" data-cta hidden></div>
+          <div class="room-pass" data-pass></div>
+          <p class="muted small rm-replay" data-if="replay">This replay is available until <span data-replay-until></span>.</p>
         </div>
-        <div class="room-video" data-video hidden></div>
-        <div class="room-live" data-live hidden>
-          <p class="lede">The session is on now.</p>
-          <a class="btn btn-lg" href="#" data-join>Join the live session</a>
-        </div>
-        <div class="room-ended" data-ended hidden>
-          <p class="lede">That’s the end of the session. Thanks for watching.</p>
-        </div>
+        <aside class="rm-side" data-side aria-label="Room tools">
+          <div class="rm-sheet-head"><strong>Room</strong><button type="button" class="rm-sheet-x" data-sheet-close aria-label="Close">×</button></div>
+          <div class="rm-tabs" role="tablist" aria-label="Room tools" data-tabs></div>
+          <div class="rm-panes">
+            <div class="rm-pane" role="tabpanel" data-pane="deal" hidden><div class="rm-dealmoved" data-deal-moved></div><div class="wx-panel" data-wx-panel hidden></div></div>
+            <div class="rm-pane" role="tabpanel" data-pane="ask" hidden><div class="room-ask" data-ask></div><div class="live-raise" data-live-raise hidden></div></div>
+            <div class="rm-pane" role="tabpanel" data-pane="chat" hidden><section class="live-chat" data-live-chat aria-label="Showing chat" hidden></section></div>
+            <div class="rm-pane" role="tabpanel" data-pane="chapters" hidden><nav class="room-agenda" data-agenda aria-label="Masterclass chapters"></nav></div>
+            <div class="rm-pane" role="tabpanel" data-pane="notes" hidden><section class="wx-notes" data-wx-notes></section></div>
+          </div>
+        </aside>
       </div>
-      <p class="live-presence" data-live-presence aria-live="polite" hidden></p>
-      <div class="wx-under" data-wx-under></div>
-      </div><aside class="wx-panel" data-wx-panel hidden aria-label="Your deal, building as you watch"></aside></div>
-      <div class="room-cta" data-cta hidden></div>
-      <section class="live-chat" data-live-chat aria-label="Showing chat" hidden></section>
-      <div class="room-pass" data-pass></div>
-      <nav class="room-agenda" data-agenda aria-label="Masterclass agenda"></nav>
-      <div class="room-side">
-        <div class="room-moments" data-moments aria-live="polite"></div>
-        <div class="room-ask card" data-ask></div>
-        <div class="live-raise card" data-live-raise hidden></div>
-      </div>
-      <p class="muted" data-if="replay">This replay is available until <span data-replay-until></span>.</p>
-    </div></section>
-  </main>
-  <div class="book-modal" data-book-modal hidden role="dialog" aria-modal="true" aria-label="Book a strategy call">
-    <div class="book-modal-in">
-      <div class="book-modal-head"><strong>Book a strategy call</strong><span class="muted small">The masterclass keeps playing behind this window.</span><button type="button" class="btn-sm ghost" data-book-close aria-label="Close">Close</button></div>
-      <div class="book-modal-cal" data-book-cal></div>
     </div>
-  </div>
+  </main>
+  <nav class="rm-dock" data-dock aria-label="Room tools"></nav>
+  <div class="rm-scrim" data-scrim hidden></div>
   <footer>
     <div class="wrap">
       <div class="foot-grid">

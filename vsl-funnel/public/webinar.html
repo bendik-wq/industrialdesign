@@ -19,31 +19,33 @@
     <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory"><b>G&amp;L</b> <span>M&amp;A Advisory</span></a>
   </div></header>
   <main id="main">
-    <section class="hero hero-center" data-section="webinar_hero">
+    <section class="hero hero-center wl-hero" data-section="webinar_hero">
       <div class="wrap narrow">
         <span class="eyebrow">Online masterclass with Josh Li · about <span data-slot="duration">60</span> minutes</span>
         <h1 class="display" data-slot="hl_h1">How owners are buying their competitors with <em><span class="nw">no money down</span></em>, and working towards a signed LOI in 90 days</h1>
         <p class="lede" data-slot="hl_lede"></p>
+        <div class="wl-cta">
+          <a class="btn btn-lg wl-btn" href="#register" data-track="cta_click" data-track-id="webinar_hero_cta"><span data-slot="hero_cta">Save my seat</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <div data-if="ticket" data-html="ticket_price"></div>
+        </div>
         <p class="for-whom"><strong>For owners of businesses doing $1M+ a year.</strong> If that’s not you yet, this session isn’t for you.</p>
-        <div data-if="ticket" data-html="ticket_price"></div>
       </div>
     </section>
 
-    <section class="apply-section" id="register" data-section="webinar_register">
+    <section class="apply-section wl-reg" id="register" data-section="webinar_register">
       <div class="wrap apply-grid">
         <div class="apply-copy">
           <h2 class="section-title" data-slot="webinar_title">The Acquisition Masterclass</h2>
-          <p class="section-sub">In the session you’ll see:</p>
-          <ul class="ticks">
-            <li><strong>Where the good deals are.</strong> Why the best acquisitions never get listed, and how owners find the business down the road whose owner wants out.</li>
-            <li><strong>How the deal gets funded.</strong> Commercial debt, seller finance and seller rollover, tested at about 1.5x debt service coverage, stacked so the financing covers more than the price.</li>
-            <li><strong>The 90-day path to a signed LOI.</strong> Week by week, from target list to offer, without stepping away from your own business.</li>
-            <li><strong>Whether it fits you.</strong> The numbers a business needs before an acquisition makes sense, so you can tell for yourself.</li>
+          <ul class="ticks wl-ticks">
+            <li><strong>Where the good deals are:</strong> off market, with owners who have no successor.</li>
+            <li><strong>How the deal gets funded:</strong> commercial debt, seller finance and seller rollover, tested at 1.5x.</li>
+            <li><strong>The path to a signed LOI:</strong> week by week, from target list to offer.</li>
+            <li><strong>Whether it fits you:</strong> the numbers a business needs first.</li>
           </ul>
           <div data-if="ticket" data-html="ticket_block"></div>
-          <div class="host card">
+          <div class="host wl-host">
             <strong>Your host: Josh Li</strong>
-            <p>Founder of JC Health Group. Josh has bought two businesses with 100% seller finance, and works with owners to do the same: done with you, not done for you.</p>
+            <p>Founder of JC Health Group. Josh has bought two businesses with 100% seller finance, and works with owners to do the same.</p>
           </div>
         </div>
         <div class="form-card">
@@ -55,8 +57,10 @@
               <div class="opts" data-html="sessions"></div>
             </div>
             <div data-if="!has_sessions" data-html="sessions"></div>
-            <div class="field"><label for="w-first">First name</label><input id="w-first" name="first_name" autocomplete="given-name" required></div>
-            <div class="field"><label for="w-email">Email</label><input id="w-email" name="email" type="email" autocomplete="email" required></div>
+            <div class="wl-row">
+              <div class="field"><label for="w-first">First name</label><input id="w-first" name="first_name" autocomplete="given-name" required></div>
+              <div class="field"><label for="w-email">Email</label><input id="w-email" name="email" type="email" autocomplete="email" required></div>
+            </div>
             <div class="field"><p class="field-label" id="w-rev-l">Your business’s annual revenue</p>
               <div class="opts opts-2" role="radiogroup" aria-labelledby="w-rev-l">
                 <label class="opt"><input type="radio" name="revenue" value="lt1m"><span>Under $1M</span></label>
@@ -69,7 +73,7 @@
               </div></div>
             <div class="field"><label for="w-phone">Mobile <span class="muted">(optional, for a text reminder)</span></label><input id="w-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel"></div>
             <label class="check"><input type="checkbox" name="sms_consent"><span>Text or WhatsApp me the link and a reminder before the session. Msg &amp; data rates may apply. Reply STOP to opt out.</span></label>
-            <button class="btn btn-lg" type="submit" data-track="cta_click" data-track-id="webinar_register"><span data-slot="register_cta">Save my seat</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+            <button class="btn btn-lg wl-submit" type="submit" data-track="cta_click" data-track-id="webinar_register"><span data-slot="register_cta">Save my seat</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
             <p class="privacy-note" data-slot="register_note">We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time. <a href="/privacy">Privacy policy</a>.</p>
           </form>
           <div data-turnstile></div>
