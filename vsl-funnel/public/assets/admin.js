@@ -283,6 +283,7 @@
     links: { group: 'Traffic', title: 'Links & videos', sub: 'Tracked links for your Instagram bio, ManyChat, YouTube and more, followed to closed deals.', more: 'One tracked link per place you post it (Instagram bio, each ManyChat flow, each video), followed from the tap to the booked call and the closed deal.', render: renderLinks, filters: ['range'] },
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
     dealsprint: { group: 'Traffic', title: 'Sprint board', sub: 'First Deal Sprint buyers, day by day, and the ladder from ticket to engagement.', more: 'Every First Deal Sprint buyer with their day of 7, intake, kickoff and Deal Plan session, and each deliverable. Fill in the link and notes and mark it Ready: the buyer gets one email and sees it on their Sprint page. Mark the outcome after the Deal Plan session (proposal sent starts the follow-up emails) and draft the engagement agreement with the Sprint credit applied. The ladder at the top counts tickets, watchers, Sprint buyers and signed engagements in the selected range, with revenue per registrant and per ticket.', render: renderDealSprint, filters: ['range'] },
+    materials: { group: 'Traffic', title: 'Materials', sub: 'Webinar and challenge scripts, slide decks, presenter window and run sheets.', more: 'Every script in one place, from public/materials. Read the script with the cues marked and the timing per chapter, present the slides full screen (share that window in Zoom), open the presenter window for your notes, the clock and the next host cue, print the run sheet, download the script, or save the deck as a PDF. Scripts are only served to people logged in here.', render: renderMaterials, noFilters: true },
     emails: { group: 'Follow-up', title: 'Emails', sub: 'Sequences, deliverability and engagement.', render: renderEmailsWithFlow, filters: ['range'] },
     editor: { group: 'Follow-up', title: 'Email editor', sub: 'Read and edit every email the funnel sends.', more: 'Pick an email on the left, change the wording on the right and watch the preview update. Merge tags like {first_name} fill in for each person. Saving replaces the built-in wording for every future send; “Reset to default” brings the original back. Emails written from each lead’s own application answers are shown but can’t be edited here.', render: renderEditor, noFilters: true },
     search: { group: 'Traffic', title: 'Search & AI', sub: 'Who finds you through Google, Bing, ChatGPT, Claude, Perplexity, Gemini and Grok, and which AI crawlers are reading your pages.', more: 'The landing pages, 20 industry pages and the guides are open to search engines and AI assistants; the application, booking and personal pages never are. Crawler visits show the AI companies reading your pages (search bots and live answers lead to citations; training bots feed future models). Visitors and leads from AI Search are people who clicked through from an AI answer. New pages usually take days to weeks to show up in search.', render: renderSearch, filters: ['range'] },
@@ -2426,6 +2427,11 @@
       view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load,
       openContract: function (id) { openContract(id, load); },
     });
+  }
+
+  function renderMaterials() {
+    if (!window.Materials) { view.innerHTML = '<div class="card">The Materials script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.Materials.render({ view: view, api: api, esc: esc, toast: toast });
   }
 
   // ───────────── YouTube idea generator ─────────────
