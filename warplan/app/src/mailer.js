@@ -95,12 +95,13 @@ const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 const wrap76 = (s) => s.replace(/(.{76})/g, "$1\r\n");
 const encHeader = (s) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(s)}?=`);
 const htmlEsc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-export function buildMessage({ from, fromName, to, subject, text, messageId, unsubscribe, inReplyTo = null }) {
+export function buildMessage({ from, fromName, to, subject, text, messageId, unsubscribe, inReplyTo = null, replyTo = null }) {
   const boundary = `wp_${crypto.randomUUID()}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#111">${text.split(/\n{2,}/).map((p) => `<p>${htmlEsc(p).replace(/\n/g, "<br>")}</p>`).join("")}</div>`;
   const headers = [
     `From: ${fromName ? `${encHeader(fromName)} <${from}>` : from}`,
     `To: ${to}`,
+    ...(replyTo ? [`Reply-To: ${replyTo}`] : []),
     `Subject: ${encHeader(subject)}`,
     `Date: ${new Date().toUTCString().replace("GMT", "+0000")}`,
     `Message-ID: ${messageId}`,
@@ -147,18 +148,21 @@ export async function createAgentInbox(env, ctx, b) {
 
 // Read new replies in AgentMail inboxes and hand them to reply triage (same path as sequencer replies).
 export async function syncAgentInboxes(env, accountId = null, triage) {
+  // Managed inboxes in the rotation pool are read too: most replies go to Reply-To, but some come back to the sender.
+  const { results: pooled } = await env.DB.prepare("SELECT p.id, p.account_id, p.email, p.updated_at, a.name AS account_name FROM mailbox_pool p JOIN accounts a ON a.id = p.account_id AND a.active = 1 WHERE p.host = 'agentmail' AND p.active = 1 AND (?1 IS NULL OR p.account_id = ?1)").bind(accountId).all().catch(() => ({ results: [] }));
   const { results } = await env.DB.prepare("SELECT m.user_id, m.account_id, m.email, m.updated_at, a.name AS account_name, u.name, u.email AS user_email, u.role FROM mailboxes m JOIN accounts a ON a.id = m.account_id AND a.active = 1 JOIN users u ON u.id = m.user_id WHERE m.host = 'agentmail' AND (?1 IS NULL OR m.account_id = ?1) LIMIT 200").bind(accountId).all();
   let replies = 0;
-  for (const box of results) {
+  for (const box of [...results, ...pooled.map((x) => ({ ...x, user_id: null, key: `pool:${x.id}`, name: "Sending inbox", user_email: "", role: "member" }))]) {
     const ctx = { accountId: box.account_id, user: { id: box.user_id, name: box.name, email: box.user_email, role: box.role } };
-    const since = (await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = ?2").bind(box.account_id, `agentmail:${box.user_id}`).first())?.data;
+    const key = `agentmail:${box.key || box.user_id}`;
+    const since = (await env.DB.prepare("SELECT data FROM settings WHERE account_id = ?1 AND key = ?2").bind(box.account_id, key).first())?.data;
     const after = since ? JSON.parse(since).after : box.updated_at;
     try {
       const r = await monidRun(env, ctx, { provider: "agentmail", endpoint: "/list-messages", input: { body: { inboxId: box.email, after, ascending: true, limit: 50 } } }, { purpose: "Check inbox" });
       const msgs = r.output?.messages || r.output?.data || [];
       // The read position moves after every message, and one message that fails is skipped, so nothing is handled
       // twice and one bad email can't block the inbox.
-      const save = (at) => env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (account_id, key) DO UPDATE SET data = ?3, updated_at = ?4").bind(box.account_id, `agentmail:${box.user_id}`, JSON.stringify({ after: at }), now()).run();
+      const save = (at) => env.DB.prepare("INSERT INTO settings (account_id, key, data, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (account_id, key) DO UPDATE SET data = ?3, updated_at = ?4").bind(box.account_id, key, JSON.stringify({ after: at }), now()).run();
       for (const m of msgs) {
         const from = String(m.from || m.from_ || "").match(/[^\s<>"]+@[^\s<>"]+/)?.[0]?.toLowerCase();
         const at = m.timestamp || m.created_at || null;
@@ -170,7 +174,7 @@ export async function syncAgentInboxes(env, accountId = null, triage) {
       }
     } catch (e) { console.warn("agentmail sync", box.email, e.message); }
   }
-  return { inboxes: results.length, replies };
+  return { inboxes: results.length + pooled.length, replies };
 }
 
 export async function getMailbox(env, ctx) {
@@ -229,7 +233,12 @@ export function composeBody(text, box) {
 }
 
 export async function sendEmail(env, ctx, b, hooks) {
-  const box = await env.DB.prepare("SELECT * FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id || 0).first();
+  const main = await env.DB.prepare("SELECT * FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id || 0).first();
+  // A pool mailbox (rotation): workspace-owned, its own daily cap and warm-up; replies go to the sender's own mailbox.
+  const poolId = b.pool_id ? +b.pool_id : null;
+  const pool = poolId ? await env.DB.prepare("SELECT * FROM mailbox_pool WHERE id = ?1 AND account_id = ?2 AND active = 1").bind(poolId, ctx.accountId).first() : null;
+  if (poolId && !pool) throw err(400, "That sending mailbox isn't available any more");
+  const box = pool || main;
   if (!box) throw err(400, "Connect your mailbox first: Settings → Email");
   const to = cleanEmail(b.to);
   if (!to) throw err(400, "That recipient address doesn't look right");
@@ -237,8 +246,12 @@ export async function sendEmail(env, ctx, b, hooks) {
   const text = String(b.body || "").trim().slice(0, 20000);
   if (!subject || !text) throw err(400, "Write a subject and a message");
   if (await env.DB.prepare("SELECT 1 FROM suppressions WHERE account_id = ?1 AND email = ?2").bind(ctx.accountId, to).first()) throw err(409, `${to} asked not to be contacted. Remove them from the do-not-contact list first if that's wrong.`);
-  const sentToday = (await env.DB.prepare("SELECT COUNT(*) AS n FROM sent_emails WHERE user_id = ?1 AND status = 'sent' AND created_at >= ?2").bind(ctx.user.id, now().slice(0, 10)).first()).n;
-  if (sentToday >= box.daily_limit) throw err(429, `You've sent your ${box.daily_limit} emails for today. Cold email from a personal mailbox goes to spam fast above that; raise the cap in Settings → Email if you're sure.`);
+  if (pool) {
+    const { sent, cap } = await poolToday(env, pool);
+    if (sent >= cap) throw err(429, `${pool.email} has sent its ${cap} emails for today${pool.warmup && cap < pool.daily_limit ? " (still warming up)" : ""}`);
+  }
+  const sentToday = pool ? 0 : (await env.DB.prepare("SELECT COUNT(*) AS n FROM sent_emails WHERE user_id = ?1 AND status = 'sent' AND pool_id IS NULL AND created_at >= ?2").bind(ctx.user.id, now().slice(0, 10)).first()).n;
+  if (!pool && sentToday >= box.daily_limit) throw err(429, `You've sent your ${box.daily_limit} emails for today. Cold email from a personal mailbox goes to spam fast above that; raise the cap in Settings → Email if you're sure.`);
   let target = null;
   if (b.target_id) {
     target = await env.DB.prepare("SELECT id, name, stage, email FROM targets WHERE id = ?1 AND account_id = ?2").bind(+b.target_id, ctx.accountId).first();
@@ -248,17 +261,18 @@ export async function sendEmail(env, ctx, b, hooks) {
   const messageId = `<${crypto.randomUUID()}@${box.email.split("@")[1]}>`;
   // Follow-ups thread under the first email (In-Reply-To), so the owner sees one conversation.
   const inReplyTo = /^<[^<>\s]{3,200}>$/.test(String(b.in_reply_to || "")) ? b.in_reply_to : null;
-  const raw = buildMessage({ from: box.email, fromName: box.from_name, to, subject, text: body, messageId, unsubscribe: box.email, inReplyTo });
+  const replyTo = pool && main && main.email !== pool.email ? main.email : null;
+  const raw = buildMessage({ from: box.email, fromName: box.from_name, to, subject, text: body, messageId, unsubscribe: replyTo || box.email, inReplyTo, replyTo });
   let status = "sent", error = null;
   try {
-    if (box.host === "agentmail") await monidRun(env, ctx, { provider: "agentmail", endpoint: "/send-messages", input: { body: { inboxId: box.username, to: [to], subject, text: body, headers: { "List-Unsubscribe": `<mailto:${box.email}?subject=unsubscribe>`, ...(inReplyTo && { "In-Reply-To": inReplyTo, References: inReplyTo }) } } } }, { purpose: `Email to ${to}`, targetId: target?.id || null });
+    if (box.host === "agentmail") await monidRun(env, ctx, { provider: "agentmail", endpoint: "/send-messages", input: { body: { inboxId: box.username, to: [to], subject, text: body, headers: { "List-Unsubscribe": `<mailto:${replyTo || box.email}?subject=unsubscribe>`, ...(replyTo && { "Reply-To": replyTo }), ...(inReplyTo && { "In-Reply-To": inReplyTo, References: inReplyTo }) } } } }, { purpose: `Email to ${to}`, targetId: target?.id || null });
     else if (box.host === "gmail") await gmailSend(env, box, raw);
-    else await smtpSend(box, await open(env, box, aad(ctx.user.id)), to, raw);
+    else await smtpSend(box, await open(env, box, pool ? poolAad(pool) : aad(ctx.user.id)), to, raw);
   }
   catch (e) { status = "failed"; error = e.status ? e.message : "Sending failed"; if (!e.status) console.error("smtp", e); }
   const stamp = now();
-  const writes = [env.DB.prepare("INSERT INTO sent_emails (account_id, user_id, target_id, to_email, subject, body, status, error, message_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)")
-    .bind(ctx.accountId, ctx.user.id, target?.id || null, to, subject, body, status, error, messageId, stamp)];
+  const writes = [env.DB.prepare("INSERT INTO sent_emails (account_id, user_id, target_id, to_email, subject, body, status, error, message_id, created_at, pool_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)")
+    .bind(ctx.accountId, ctx.user.id || 0, target?.id || null, to, subject, body, status, error, messageId, stamp, pool?.id || null)];
   if (target && status === "sent") {
     writes.push(env.DB.prepare("INSERT INTO target_events (account_id, target_id, user_id, user_name, kind, body, created_at) VALUES (?1, ?2, ?3, ?4, 'email', ?5, ?6)")
       .bind(ctx.accountId, target.id, ctx.user.id, ctx.user.name || ctx.user.email, `Emailed ${to}: “${subject}”\n\n${text.slice(0, 1500)}`, stamp));
@@ -268,7 +282,7 @@ export async function sendEmail(env, ctx, b, hooks) {
   await env.DB.batch(writes);
   if (status === "failed") throw err(502, error);
   hooks?.emit("email.sent", { target_id: target?.id || null, to, subject });
-  return { ok: true, to, subject, message_id: messageId, receipt: `Emailed ${to} from ${box.email}` };
+  return { ok: true, to, subject, message_id: messageId, from: box.email, receipt: `Emailed ${to} from ${box.email}` };
 }
 
 export async function listSent(env, ctx, targetId) {
@@ -287,5 +301,81 @@ export async function listSuppressions(env, ctx) {
 }
 export async function unsuppress(env, ctx, email) {
   await env.DB.prepare("DELETE FROM suppressions WHERE account_id = ?1 AND email = ?2").bind(ctx.accountId, cleanEmail(email)).run();
+  return { ok: true };
+}
+
+// ------------------------------------------------------------------ mailbox pool (rotation for bots)
+// Extra sending mailboxes owned by the workspace. Bots spread their emails across them; each has its own daily cap,
+// and a new one warms up (5 a day, +3 a day) so a fresh domain isn't burned by a sudden burst.
+const poolAad = (box) => `pool:${box.account_id}:${box.email}`;
+const daysSince = (iso) => Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 864e5));
+export const warmCap = (box) => (box.warmup ? Math.min(box.daily_limit, 5 + 3 * daysSince(box.created_at)) : box.daily_limit);
+export async function poolToday(env, box) {
+  const sent = (await env.DB.prepare("SELECT COUNT(*) AS n FROM sent_emails WHERE pool_id = ?1 AND status = 'sent' AND created_at >= ?2").bind(box.id, now().slice(0, 10)).first()).n;
+  return { sent, cap: warmCap(box) };
+}
+const poolOut = async (env, r) => ({ id: r.id, email: r.email, from_name: r.from_name, kind: r.host === "agentmail" ? "managed" : "smtp", host: r.host === "agentmail" ? "" : r.host,
+  daily_limit: r.daily_limit, warmup: !!r.warmup, active: !!r.active, created_at: r.created_at, ...(await poolToday(env, r)) });
+
+export async function listPool(env, ctx) {
+  const { results } = await env.DB.prepare("SELECT * FROM mailbox_pool WHERE account_id = ?1 ORDER BY id").bind(ctx.accountId).all();
+  const main = await env.DB.prepare("SELECT email, daily_limit FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id || 0).first();
+  const mainSent = main ? (await env.DB.prepare("SELECT COUNT(*) AS n FROM sent_emails WHERE user_id = ?1 AND status = 'sent' AND pool_id IS NULL AND created_at >= ?2").bind(ctx.user.id, now().slice(0, 10)).first()).n : 0;
+  return { main: main ? { email: main.email, cap: main.daily_limit, sent: mainSent } : null, pool: await Promise.all(results.map((r) => poolOut(env, r))), presets: PRESETS };
+}
+
+const poolOwner = (ctx) => { if (!ctx.isOwner) throw err(403, "Only workspace owners can add sending mailboxes"); if (ctx.viaToken) throw err(403, "Add sending mailboxes in the app, signed in"); };
+async function poolCount(env, ctx) { return (await env.DB.prepare("SELECT COUNT(*) AS n FROM mailbox_pool WHERE account_id = ?1").bind(ctx.accountId).first()).n; }
+
+export async function addPoolMailbox(env, ctx, b) {
+  poolOwner(ctx);
+  if ((await poolCount(env, ctx)) >= 20) throw err(400, "That's 20 sending mailboxes; remove one first");
+  const main = await env.DB.prepare("SELECT signature, postal_address, from_name FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id || 0).first();
+  const fromName = String(b.from_name ?? main?.from_name ?? ctx.user.name ?? "").trim().slice(0, 80);
+  const limit = Math.min(100, Math.max(1, +b.daily_limit || 30));
+  const stamp = now();
+  let row;
+  if (b.kind === "managed") {
+    const username = String(b.username || "").toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 40) || undefined;
+    const r = await monidRun(env, ctx, { provider: "agentmail", endpoint: "/create-inboxes", input: { body: { ...(username && { username }), ...(fromName && { displayName: fromName }) } } }, { purpose: "Create a sending inbox" });
+    const inbox = r.output?.email || r.output?.inboxId || r.output?.inbox_id;
+    if (!inbox) throw err(502, "The inbox couldn't be created. Try another name.");
+    row = { email: String(inbox).toLowerCase(), host: "agentmail", port: 0, username: inbox, ciphertext: "", iv: "" };
+  } else {
+    const preset = PRESETS[b.preset] || null;
+    const email = cleanEmail(b.email);
+    if (!email) throw err(400, "Enter the email address to send from");
+    const host = String(b.host || preset?.host || "").trim().toLowerCase();
+    const port = Number(b.port || preset?.port || 465);
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(host)) throw err(400, "Enter the SMTP host");
+    if (![465, 587, 2525].includes(port)) throw err(400, "Use port 465 (TLS) or 587 (STARTTLS)");
+    const username = String(b.username || email).trim();
+    const password = String(b.password || "").replace(/\s+/g, "");
+    if (!password) throw err(400, "Enter the app password");
+    await session({ email, host, port, username }, password, async () => true); // prove the login works before saving
+    const sealed = await seal(env, password, poolAad({ account_id: ctx.accountId, email }));
+    row = { email, host, port, username, ciphertext: sealed.ciphertext, iv: sealed.iv };
+  }
+  const saved = await env.DB.prepare(`INSERT INTO mailbox_pool (account_id, created_by, email, from_name, host, port, username, ciphertext, iv, signature, postal_address, daily_limit, warmup, active, created_at, updated_at)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 1, ?14, ?14) ON CONFLICT (account_id, email) DO NOTHING RETURNING *`)
+    .bind(ctx.accountId, ctx.user.id || null, row.email, fromName, row.host, row.port, row.username, row.ciphertext, row.iv, String(b.signature ?? main?.signature ?? "").slice(0, 1000), String(b.postal_address ?? main?.postal_address ?? "").slice(0, 300), limit, b.warmup === false ? 0 : 1, stamp).first();
+  if (!saved) throw err(409, `${row.email} is already in your sending mailboxes`);
+  return poolOut(env, saved);
+}
+
+export async function updatePoolMailbox(env, ctx, id, b) {
+  poolOwner(ctx);
+  const cur = await env.DB.prepare("SELECT * FROM mailbox_pool WHERE id = ?1 AND account_id = ?2").bind(+id, ctx.accountId).first();
+  if (!cur) throw err(404, "Mailbox not found");
+  const row = await env.DB.prepare("UPDATE mailbox_pool SET daily_limit = ?3, warmup = ?4, active = ?5, from_name = ?6, updated_at = ?7 WHERE id = ?1 AND account_id = ?2 RETURNING *")
+    .bind(cur.id, ctx.accountId, "daily_limit" in b ? Math.min(100, Math.max(1, +b.daily_limit || cur.daily_limit)) : cur.daily_limit, "warmup" in b ? (b.warmup ? 1 : 0) : cur.warmup,
+      "active" in b ? (b.active ? 1 : 0) : cur.active, "from_name" in b ? String(b.from_name || "").slice(0, 80) : cur.from_name, now()).first();
+  return poolOut(env, row);
+}
+
+export async function deletePoolMailbox(env, ctx, id) {
+  poolOwner(ctx);
+  const r = await env.DB.prepare("DELETE FROM mailbox_pool WHERE id = ?1 AND account_id = ?2").bind(+id, ctx.accountId).run();
+  if (!r.meta.changes) throw err(404, "Mailbox not found");
   return { ok: true };
 }

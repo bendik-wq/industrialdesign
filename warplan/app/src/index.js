@@ -45,7 +45,7 @@ import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
 import { gmailAuthUrl, gmailCallback, syncGmail } from "./gmail.js";
 import { territoryRoute } from "./territory.js";
 import { botsRoute, queueBots, runBot } from "./bots.js";
-import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
+import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS, listPool, addPoolMailbox, updatePoolMailbox, deletePoolMailbox } from "./mailer.js";
 
 const INVITE_DAYS = 7;
 // A real PBKDF2 hash of a random password: verified against when the email is unknown, to keep timing equal.
@@ -582,6 +582,13 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/mailbox" && m === "DELETE") return json(await deleteMailbox(env, ctx));
   if (p === "/api/google/connect" && m === "GET") return Response.redirect(await gmailAuthUrl(env, ctx, url.origin), 302);
   if (p === "/api/google/callback" && m === "GET") return await gmailCallback(env, ctx, url);
+  // Sending mailboxes the bots rotate through (owners, signed in)
+  if (p === "/api/mailbox/pool" && m === "GET") return json(await listPool(env, ctx));
+  if (p === "/api/mailbox/pool" && m === "POST") return json(await addPoolMailbox(env, ctx, await body(request)), 201);
+  if ((r = p.match(/^\/api\/mailbox\/pool\/(\d+)$/))) {
+    if (m === "PATCH") return json(await updatePoolMailbox(env, ctx, +r[1], await body(request)));
+    if (m === "DELETE") return json(await deletePoolMailbox(env, ctx, +r[1]));
+  }
   if (p === "/api/mailbox/agentmail" && m === "POST") return json(await createAgentInbox(env, ctx, await body(request)), 201);
   if (p === "/api/mailbox/sync" && m === "POST") { const [a, g] = await Promise.all([syncAgentInboxes(env, ctx.accountId, replyTriage(env, exec)), syncGmail(env, ctx.accountId, replyTriage(env, exec))]); return json({ replies: (a?.replies || 0) + (g?.replies || 0) }); }
   if (p === "/api/mailbox/test" && m === "POST") {

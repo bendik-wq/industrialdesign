@@ -140,14 +140,83 @@ const SELL_60_EXTRA = [
   "Hi {first},\n\nFinal email. If {fund} wants to look at {business} later, my number is {phone}.\n\n{sender}",
 ];
 
+// ------------------------------------------------------------------ selling: strategic buyers (bigger operators in the same field)
+const STRAT_30 = [
+  "Hi {first},\n\nI'm {sender}. I'm selling {business}: {revenue} revenue, {ebitda} EBITDA. It would add {area} to {buyer}'s footprint.\n\nWant to talk?\n\n{sender}",
+  "Hi {first},\n\nFollowing up on {business}. Same customers, same work as {buyer}, in {area}.\n\nAre you interested?\n\n{sender}",
+  "Hi {first},\n\nBuying {business} gets {buyer} a trained team, a customer base and a location in {area} in one step.\n\nShall I send the details?\n\n{sender}",
+  "Hi {first},\n\nI'm talking to a small number of buyers. {buyer} is one I'd like at the table.\n\nOpen to a call?\n\n{sender}",
+  "Hi {first},\n\nThe staff stay and the customers stay. You get the growth without the start-up cost.\n\nInterested in {business}?\n\n{sender}",
+  "Hi {first},\n\nWho at {buyer} looks at acquisitions? I'll send it to them directly.\n\n{sender}",
+  "Hi {first},\n\nA call is quicker: {phone}.\n\n{sender}",
+  "Hi {first},\n\n{Business} has grown every year. The numbers are ready to share under NDA.\n\nWant them?\n\n{sender}",
+  "Hi {first},\n\nIf {buyer} is expanding in {area}, this is the fastest way to do it.\n\nShall we talk?\n\n{sender}",
+  "Hi {first},\n\nIf it's not a fit, reply \"pass\" and I'll take {buyer} off the list.\n\n{sender}",
+  "Hi {first},\n\nThe owner will stay for a handover so nothing is lost in the transition.\n\nInterested?\n\n{sender}",
+  "Hi {first},\n\nCombining {business} with {buyer} cuts costs on admin, purchasing and marketing straight away.\n\nWorth a conversation?\n\n{sender}",
+  "Hi {first},\n\nWe're setting up meetings with interested buyers. Want a time?\n\n{sender}",
+  "Hi {first},\n\nMy direct line is {phone}. Ten minutes is enough to see if it fits.\n\n{sender}",
+  "Hi {first},\n\nI'd rather sell to an operator who knows this work than to a fund. That's why I'm writing to {buyer}.\n\nInterested?\n\n{sender}",
+  "Hi {first},\n\nStill keen to include {buyer}. Reply \"send\" and the summary is in your inbox today.\n\n{sender}",
+  "Hi {first},\n\nOther buyers are looking. If {buyer} wants a look, now is the time.\n\n{sender}",
+  "Hi {first},\n\nWhat would {buyer} need to see to make an offer on {business}?\n\n{sender}",
+  "Hi {first},\n\nIf the timing's wrong, tell me when to come back.\n\n{sender}",
+  "Hi {first},\n\n{Business}. {revenue} revenue. {ebitda} EBITDA. In {area}. For sale this quarter.\n\nInterested?\n\n{sender}",
+  "Hi {first},\n\nI can share the customer mix, staff list and monthly numbers after an NDA.\n\nShall I send the NDA?\n\n{sender}",
+  "Hi {first},\n\nI've written a few times. A call is easier: {phone}.\n\n{sender}",
+  "Hi {first},\n\nThe business runs day to day without the owner. The team is in place.\n\nInterested in the detail?\n\n{sender}",
+  "Hi {first},\n\nA competitor buying {business} would take this patch from {buyer}. Better that {buyer} owns it.\n\nShall we talk?\n\n{sender}",
+  "Hi {first},\n\nI'd like an answer from each buyer soon. Is {buyer} in or out?\n\n{sender}",
+  "Hi {first},\n\nIf someone else at {buyer} handles this, point me to them.\n\n{sender}",
+  "Hi {first},\n\nLast call for first offers on {business}. Reply and I'll send everything.\n\n{sender}",
+  "Hi {first},\n\nShort version: {business} is for sale and it fits {buyer}. Want the details?\n\n{sender}",
+  "Hi {first},\n\nTwo emails left from me. My number is {phone}.\n\n{sender}",
+  "Hi {first},\n\nLast email on {business} for now. If {buyer} wants a look later, call me on {phone}.\n\n{sender}",
+];
+const STRAT_60_EXTRA = [
+  "Hi {first},\n\nUpdate on {business}: still for sale, and the year closed strong.\n\nWant the numbers?\n\n{sender}",
+  "Hi {first},\n\nWe're in talks with a few buyers. There's still room for {buyer}.\n\nInterested?\n\n{sender}",
+  "Hi {first},\n\nIs {buyer} still growing in {area}? If so, {business} should be on your desk.\n\n{sender}",
+  "Hi {first},\n\nThe owner wants the team looked after. An operator like {buyer} does that better than anyone.\n\nShall we talk?\n\n{sender}",
+  "Hi {first},\n\n{Business}: {ebitda} EBITDA. Still available.\n\nWant the summary?\n\n{sender}",
+  "Hi {first},\n\nCall me on {phone} and I'll walk you through it in 10 minutes.\n\n{sender}",
+  "Hi {first},\n\nWe can move fast for the right buyer. Exclusivity is on the table.\n\nIs {buyer} interested?\n\n{sender}",
+  "Hi {first},\n\nThe books are clean and ready for review.\n\nShall I send the pack?\n\n{sender}",
+  "Hi {first},\n\nBuying is cheaper than opening a new site from scratch, and the customers come with it.\n\nWorth a look?\n\n{sender}",
+  "Hi {first},\n\nReply with one word: interested, pass or later.\n\n{sender}",
+  "Hi {first},\n\nCustomers stay year after year. The detail is in the summary.\n\nWant it?\n\n{sender}",
+  "Hi {first},\n\nA short call this week? {call}\n\n{sender}",
+  "Hi {first},\n\nThe staff are experienced and committed to staying. That's rare in this field.\n\nInterested?\n\n{sender}",
+  "Hi {first},\n\nIf {buyer} wants to buy rather than build in {area}, this is it.\n\nShall we talk?\n\n{sender}",
+  "Hi {first},\n\nWhat size of acquisition is {buyer} looking at? I'll tell you straight if this fits.\n\n{sender}",
+  "Hi {first},\n\nStill selling {business}. Still keen to include {buyer}.\n\n{sender}",
+  "Hi {first},\n\nI'm happy to meet at your office or ours. Which suits?\n\n{sender}",
+  "Hi {first},\n\nMy number again: {phone}.\n\n{sender}",
+  "Hi {first},\n\nWe expect to pick a buyer soon. Do you want to be in the running?\n\n{sender}",
+  "Hi {first},\n\nIf {buyer} isn't buying this year, tell me and I'll stop.\n\n{sender}",
+  "Hi {first},\n\nThe summary is two pages. It takes five minutes to read.\n\nShall I send it?\n\n{sender}",
+  "Hi {first},\n\nThe owner is open to staying on part time if that helps {buyer}.\n\nInterested?\n\n{sender}",
+  "Hi {first},\n\nWe're open to a full sale or a staged sale over a couple of years.\n\nWhich would {buyer} consider?\n\n{sender}",
+  "Hi {first},\n\nTwo months in, interest is strong. A last look for {buyer}?\n\n{sender}",
+  "Hi {first},\n\nWhat would make {business} a yes for {buyer}?\n\n{sender}",
+  "Hi {first},\n\nA few emails left from me. After that, call {phone} any time.\n\n{sender}",
+  "Hi {first},\n\nIf you know another operator who should see {business}, I'd value the introduction.\n\n{sender}",
+  "Hi {first},\n\nLast chance to see {business} before we pick a buyer.\n\nWant the details?\n\n{sender}",
+  "Hi {first},\n\nI'll stop here so I'm not filling your inbox.\n\n{sender}",
+  "Hi {first},\n\nFinal email. If {buyer} wants to look at {business} later, my number is {phone}.\n\n{sender}",
+  "Hi {first},\n\nThe location, the lease and the equipment all come with it.\n\nInterested?\n\n{sender}",
+  "Hi {first},\n\nOperators who bought businesses like this one doubled their reach in a year.\n\nShall we talk?\n\n{sender}",
+];
+
 export const FLOWS = {
   buy: { subject: "Buying {buying} in {area}", 30: BUY_30, 60: [...BUY_30.slice(0, 28), ...BUY_60_EXTRA] },
   sell: { subject: "For sale: {business}", 30: SELL_30, 60: [...SELL_30.slice(0, 28), ...SELL_60_EXTRA] },
+  strategic: { subject: "{Business}: a fit for {buyer}", 30: STRAT_30, 60: [...STRAT_30.slice(0, 28), ...STRAT_60_EXTRA.slice(0, 32)] },
 };
 // A short flow keeps the opener, the strongest follow-ups and the final email.
 const shortFlow = (all) => [all[0], all[1], all[2], all[4], all[6], all[8], all[12], all[16], all[21], all[29]];
 export function defaultTemplates(kind = "buy", days = 30) {
-  const f = FLOWS[kind === "sell" ? "sell" : "buy"];
+  const f = FLOWS[FLOWS[kind] ? kind : "buy"];
   return { subject: f.subject, steps: days >= 60 ? f[60] : days <= 10 ? shortFlow(f[30]) : f[30] };
 }
 export const DEFAULT_TEMPLATES = defaultTemplates("buy", 30);
@@ -183,7 +252,7 @@ const money = (v, cur = "$") => (!(+v > 0) ? "" : +v >= 1e6 ? `${cur}${(+v / 1e6
 // step: 1-based. vars (buy): first, company, sender, group, buying, area, phone, signals, touches, gapDays, kind
 //                vars (sell): first, fund, sender, business, sector, area, revenue, ebitda, currency, phone, touches
 export function renderEmail(templates, step, vars) {
-  const kind = vars.kind === "sell" ? "sell" : "buy";
+  const kind = FLOWS[vars.kind] ? vars.kind : "buy";
   const base = defaultTemplates(kind, vars.touches || 30);
   const t = { ...base, ...(templates || {}) };
   const steps = Array.isArray(t.steps) && t.steps.length ? t.steps : base.steps;
@@ -199,7 +268,7 @@ export function renderEmail(templates, step, vars) {
     buying: vars.buying || "businesses like yours", area: vars.area || "your area", phone: phone || "reply to this email",
     call: phone ? `Call or text me on ${phone}.` : "Reply to this email and I'll call you.", signal: signalLine(vars.signals || {}),
     when: (vars.gapDays || 1) <= 1 ? "yesterday" : "the other day",
-    fund: vars.fund || "your fund", business: vars.business || "my business", sector: vars.sector || "this sector",
+    fund: vars.fund || "your fund", buyer: vars.buyer || vars.fund || "your business", business: vars.business || "my business", sector: vars.sector || "this sector",
     Business: (vars.business || "my business").replace(/^./, (c) => c.toUpperCase()),
     revenue: money(vars.revenue, vars.currency || "$") || "strong", ebitda: money(vars.ebitda, vars.currency || "$") || "solid",
   };
@@ -210,8 +279,9 @@ export function renderEmail(templates, step, vars) {
   return { subject: step === 1 ? first : `Re: ${first}`, body: text };
 }
 
-export function cleanTemplates(t) {
+export function cleanTemplates(t, nested = true) {
   const out = {};
+  if (nested && t && t.strategic && typeof t.strategic === "object") { const st = cleanTemplates(t.strategic, false); if (Object.keys(st).length) out.strategic = st; }
   if (t && typeof t.subject === "string" && t.subject.trim()) out.subject = t.subject.trim().slice(0, 140);
   if (t && Array.isArray(t.steps)) {
     const steps = t.steps.map((s) => String(s || "").trim().slice(0, 2000)).filter(Boolean).slice(0, MAX_TOUCHES);

@@ -399,6 +399,7 @@ async function emailTab(seq) {
   });
   $("#mbTest")?.addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { await post("/api/mailbox/test"); toast(`Test sent to ${box.email}. Check your inbox.`); } catch (err) { fail(err); } e.currentTarget.disabled = false; });
   $("#mbOff")?.addEventListener("click", async () => { if (!(await confirmBox("Disconnect your mailbox?", "Warplan won't be able to send email for you until you connect it again.", "Disconnect"))) return; try { await api("/api/mailbox", { method: "DELETE" }); emailTab(seq); } catch (e) { fail(e); } });
+  poolPanel(seq);
   $("#supForm").addEventListener("submit", async (e) => { e.preventDefault(); try { await post("/api/suppressions", Object.fromEntries(new FormData(e.target))); emailTab(seq); } catch (err) { fail(err); } });
   $$("[data-unsup]").forEach((b) => b.addEventListener("click", async () => { try { await api(`/api/suppressions?email=${encodeURIComponent(b.dataset.unsup)}`, { method: "DELETE" }); emailTab(seq); } catch (e) { fail(e); } }));
 }
@@ -409,4 +410,49 @@ async function bbHookResult(r) {
   if (r.error) return toast(`Connected, but incoming messages aren't set up: ${r.error}`, "error");
   if (r.webhook_registered) return toast("iMessage relay connected. Replies now land on your targets' timelines.");
   if (r.url) await dialog({ title: "One more step for incoming iMessages", submit: "", html: `<p>In BlueBubbles Server → <b>API & Webhooks</b> → Add webhook, paste this URL and tick <b>New messages</b>. Shown once.</p><div class="secret"><code>${esc(r.url)}</code><button class="ghost" type="button" data-cp>Copy</button></div>`, onOpen: (dl) => $("[data-cp]", dl).addEventListener("click", () => copy(r.url, "URL copied")) });
+}
+
+// Sending mailboxes the prospecting bots rotate through: each has its own daily cap and warms up from a few a day.
+async function poolPanel(seq) {
+  const d = await api("/api/mailbox/pool").catch(() => null);
+  if (stale(seq) || !d) return;
+  const owner = !!session.me?.isOwner;
+  let el = $("#poolPanel");
+  if (!el) { el = document.createElement("section"); el.id = "poolPanel"; el.className = "panel form-panel pool-panel"; $("#tab").append(el); }
+  el.innerHTML = `
+    <div class="panel-head"><h2 class="h3">Sending mailboxes for bots</h2><span class="status ${d.pool.length ? "on" : ""}">${d.pool.length + (d.main ? 1 : 0)} in rotation</span></div>
+    <p class="muted small">Bots spread each day's emails across these, so no single address sends too many. Use a separate domain for cold email (e.g. getyourgroup.com instead of yourgroup.com). New mailboxes warm up: 5 a day, then 3 more each day up to their cap. Replies go to your main mailbox, so the bots still see them.</p>
+    <table class="list-table pool-table"><thead><tr><th>Mailbox</th><th class="num">Today</th><th>Cap</th><th></th></tr></thead><tbody>
+      ${d.main ? `<tr><td><b>${esc(d.main.email)}</b><small class="muted block">Your main mailbox</small></td><td class="num">${d.main.sent}/${d.main.cap}</td><td class="muted small">Set above</td><td></td></tr>` : ""}
+      ${d.pool.map((b) => `<tr class="${b.active ? "" : "dim"}"><td><b>${esc(b.email)}</b><small class="muted block">${b.kind === "managed" ? "Managed inbox" : esc(b.host)}${b.warmup && b.cap < b.daily_limit ? ` · warming up (${b.cap}/day today)` : ""}${b.active ? "" : " · paused"}</small></td>
+        <td class="num">${b.sent}/${b.cap}</td>
+        <td>${owner ? `<input type="number" min="1" max="100" value="${b.daily_limit}" data-cap="${b.id}" aria-label="Daily cap for ${esc(b.email)}" style="width:70px">` : b.daily_limit}</td>
+        <td class="row">${owner ? `<button class="link" type="button" data-warm="${b.id}" data-on="${b.warmup ? 1 : 0}">${b.warmup ? "Warm-up on" : "Warm-up off"}</button><button class="link" type="button" data-act="${b.id}" data-on="${b.active ? 1 : 0}">${b.active ? "Pause" : "Resume"}</button><button class="link danger" type="button" data-rmbox="${b.id}">Remove</button>` : ""}</td></tr>`).join("")}
+    </tbody></table>
+    ${!d.pool.length ? `<p class="muted small">No extra mailboxes yet. Add a few to send more each day without hurting any one address.</p>` : ""}
+    ${owner ? `<div class="row"><button class="ghost" type="button" id="addManaged">+ Managed inbox (about $1/month)</button><button class="ghost" type="button" id="addSmtp">+ Your own mailbox (SMTP)</button></div>` : ""}`;
+  const reload = () => poolPanel(seq);
+  $("#addManaged", el)?.addEventListener("click", async () => {
+    const f = await dialog({ title: "New managed inbox", submit: "Create", html: `<label class="field">Name before the @ (optional)<input name="username" maxlength="40" placeholder="bendik.deals"></label><label class="field">Sender name<input name="from_name" maxlength="80" value="${esc(session.me?.user?.name || "")}"></label><label class="field">Daily cap<input name="daily_limit" type="number" min="1" max="100" value="30"></label>` });
+    if (!f) return;
+    try { const b = await post("/api/mailbox/pool", { kind: "managed", ...f, daily_limit: +f.daily_limit }); toast(`${b.email} added to the rotation`); reload(); } catch (e) { fail(e); }
+  });
+  $("#addSmtp", el)?.addEventListener("click", async () => {
+    const f = await dialog({ title: "Add a sending mailbox", submit: "Verify & add", html: `
+      <label class="field">Provider<select name="preset">${Object.entries(d.presets).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("")}</select></label>
+      <label class="field">Email address<input name="email" type="email" required placeholder="bendik@getyourgroup.com"></label>
+      <label class="field">App password<input name="password" type="password" required autocomplete="new-password"></label>
+      <div class="two"><label class="field">SMTP host (Other only)<input name="host" placeholder="smtp.example.com"></label><label class="field">Port<input name="port" type="number" placeholder="465"></label></div>
+      <div class="two"><label class="field">Sender name<input name="from_name" maxlength="80" value="${esc(session.me?.user?.name || "")}"></label><label class="field">Daily cap<input name="daily_limit" type="number" min="1" max="100" value="30"></label></div>
+      <p class="muted small">We sign in once to check it works, then store the password encrypted.</p>` });
+    if (!f) return;
+    try { const b = await post("/api/mailbox/pool", { kind: "smtp", ...f, port: f.port ? +f.port : undefined, daily_limit: +f.daily_limit }); toast(`${b.email} added to the rotation`); reload(); } catch (e) { fail(e); }
+  });
+  $$("[data-cap]", el).forEach((i) => i.addEventListener("change", async () => { try { await post(`/api/mailbox/pool/${i.dataset.cap}`, { daily_limit: +i.value }, "PATCH"); toast("Cap saved"); reload(); } catch (e) { fail(e); } }));
+  $$("[data-warm]", el).forEach((x) => x.addEventListener("click", async () => { try { await post(`/api/mailbox/pool/${x.dataset.warm}`, { warmup: x.dataset.on !== "1" }, "PATCH"); reload(); } catch (e) { fail(e); } }));
+  $$("[data-act]", el).forEach((x) => x.addEventListener("click", async () => { try { await post(`/api/mailbox/pool/${x.dataset.act}`, { active: x.dataset.on !== "1" }, "PATCH"); reload(); } catch (e) { fail(e); } }));
+  $$("[data-rmbox]", el).forEach((x) => x.addEventListener("click", async () => {
+    if (!(await confirmBox("Remove this mailbox?", "Bots stop sending from it. Prospects it was emailing move to another mailbox.", "Remove"))) return;
+    try { await api(`/api/mailbox/pool/${x.dataset.rmbox}`, { method: "DELETE" }); reload(); } catch (e) { fail(e); }
+  }));
 }

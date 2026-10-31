@@ -107,6 +107,10 @@ Owner-only and signed-in only to create, change, run or switch to autopilot (aut
 
 The directory is static, public data (firm names, websites, published criteria), bundled with the app. Sell bots email only a fund's shared inbox found on its own website (deals@, info@ …), never a named person; fund contact lookups are cached across workspaces because they're public. Flows go up to 60 emails (weekdays only) with the same stop rules: reply, opt-out, bounce, or the owner skipping an email in review mode; an out-of-office reply pauses a week. Sell prospects are scoped to the workspace and a fund contacted by one bot isn't picked again by another.
 
+## 2026-10-31: mailbox rotation and strategic buyers
+
+Sending mailboxes in the pool are workspace-owned, added only by owners signed in; an SMTP login is tested before it's saved and the password is sealed (AES-GCM) bound to the workspace and address. Every send checks the box belongs to the workspace and is active, and respects its own daily cap and warm-up ramp; rotated emails carry Reply-To (and List-Unsubscribe) pointing at the sender's own mailbox so replies and opt-outs still stop the bots. A prospect stays on one mailbox. Strategic buyers come from public business listings; only shared inboxes (info@, contact@, ceo@ …) are emailed, otherwise the phone goes on the call list.
+
 ### Still open
 
 - Nothing.

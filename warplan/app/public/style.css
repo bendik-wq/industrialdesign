@@ -1595,3 +1595,6 @@ table.grid input { width: 100%; min-width: 80px; }
 .bot-form details.step textarea { width: 100%; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
 .bot-form #steps { display: grid; gap: 6px; max-height: 520px; overflow: auto; }
 .buyers-table td { vertical-align: top; }
+.box-picks { display: grid; gap: 4px; }
+.pool-panel { margin-top: 18px; }
+.pool-table input { padding: 4px 6px; }

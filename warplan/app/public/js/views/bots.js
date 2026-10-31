@@ -105,7 +105,7 @@ async function renderBot(seq, d, id, params) {
   if (sell) {
     pane.innerHTML = !rows.length ? `<p class="muted">No buyers contacted yet. Start the bot or press Run now: it picks the best-fitting funds from the <a href="#/buyers">buyers directory</a>.</p>`
       : `<div class="table-wrap panel flush"><table class="ttable"><thead><tr><th>Buyer</th><th>Status</th><th class="num">Emails</th><th>Size</th><th>Next email</th><th></th></tr></thead><tbody>
-        ${rows.map((r) => `<tr><td><a href="${esc(r.website || "#")}" target="_blank" rel="noopener noreferrer"><b>${esc(r.name)}</b></a><small class="muted block">${esc(r.location || "")}${r.email ? ` · ${esc(r.email)}` : r.contact_url ? ` · <a href="${esc(r.contact_url)}" target="_blank" rel="noopener noreferrer">contact page</a>` : ""}</small></td>
+        ${rows.map((r) => `<tr><td>${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener noreferrer"><b>${esc(r.name)}</b></a>` : `<b>${esc(r.name)}</b>`} <span class="chip">${r.strategic ? "Strategic" : "Fund"}</span><small class="muted block">${esc(r.location || "")}${r.email ? ` · ${esc(r.email)}` : r.contact_url ? ` · <a href="${esc(r.contact_url)}" target="_blank" rel="noopener noreferrer">contact page</a>` : r.phone ? ` · call <a href="tel:${esc(r.phone.replace(/\s/g, ""))}">${esc(r.phone)}</a>` : ""}</small></td>
           <td><span class="chip st-${esc(r.status)}">${STATUS[r.status] || esc(r.status)}</span></td><td class="num">${r.step}/${b.touches}</td><td class="small">${esc(r.size || (r.segment === "mm" ? "Middle market" : "Lower middle market"))}</td>
           <td>${r.status === "active" && r.next_at ? when(r.next_at) : "–"}</td><td>${owner && r.status === "active" ? `<button class="link" type="button" data-p="${r.id}" data-a="stop">Stop</button>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
   } else {
@@ -134,9 +134,13 @@ function emailsPane(pane, b) {
 // ------------------------------------------------------------------ setup
 async function editBot(d, b = null, kind = "buy", preset = {}) {
   const s = d.suggest || {};
+  const pool = await api("/api/mailbox/pool").catch(() => ({ main: null, pool: [] }));
   const sell = kind === "sell";
   const cur = b || { name: "", kind, industry: s.industry || "physio", areas: [], buying: s.buying || "", sender_name: s.name || "", group_name: s.company || "", phone: s.phone || "", daily_new: sell ? 5 : 10, touches: 30, gap_days: 1, send_hour: 9, timezone: s.timezone || "Australia/Melbourne", owner_emails: 1, mode: "review", templates: {},
-    sell: { currency: "A$" }, buyers: { segments: ["lmm"], countries: ["AU"], sectors: "", ...(preset.buyers || {}) } };
+    sell: { currency: "A$" }, buyers: { funds: true, segments: ["lmm"], countries: ["AU"], sectors: "", strategic: { on: false, industry: s.industry || "physio", areas: [] }, ...(preset.buyers || {}) }, mailboxes: ["main", ...pool.pool.filter((x) => x.active).map((x) => String(x.id))] };
+  const boxes = [...(pool.main ? [{ key: "main", email: pool.main.email, note: "your main mailbox" }] : []), ...pool.pool.map((x) => ({ key: String(x.id), email: x.email, note: `${x.cap}/day${x.active ? "" : ", paused"}` }))];
+  const strat = cur.buyers?.strategic || { on: false, industry: s.industry || "physio", areas: [] };
+  let stpl = { subject: cur.templates?.strategic?.subject || defaultTemplates("strategic", cur.touches).subject, steps: cur.templates?.strategic?.steps || defaultTemplates("strategic", cur.touches).steps };
   const flowDays = FLOW_LENGTHS.includes(cur.touches) ? cur.touches : 30;
   let tpl = { subject: cur.templates?.subject || defaultTemplates(kind, cur.touches).subject, steps: cur.templates?.steps || defaultTemplates(kind, cur.touches).steps };
   const custom = !!(cur.templates?.steps || cur.templates?.subject);
@@ -150,11 +154,19 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
         <label class="field">How buyers should read it<input name="business" maxlength="120" required value="${esc(cur.sell?.business || "")}" placeholder="a physio group in Melbourne's west"></label>
         <div class="two"><label class="field">Sector<input name="sector" maxlength="60" value="${esc(cur.sell?.sector || "")}" placeholder="allied health"></label><label class="field">Location<input name="location" maxlength="80" value="${esc(cur.sell?.location || "")}" placeholder="Melbourne"></label></div>
         <div class="three"><label class="field">Currency<select name="currency">${CURS.map((c) => `<option ${c === (cur.sell?.currency || "A$") ? "selected" : ""}>${c}</option>`).join("")}</select></label><label class="field">Revenue<input name="revenue" inputmode="numeric" value="${cur.sell?.revenue || ""}" placeholder="4200000"></label><label class="field">EBITDA<input name="ebitda" inputmode="numeric" value="${cur.sell?.ebitda || ""}" placeholder="900000"></label></div>
+        <label class="field">Your business name (never shown to buyers; skips your own listing)<input name="ownname" maxlength="120" value="${esc(cur.sell?.name || "")}" placeholder="Westside Physio"></label>
         <h3 class="terr-h">Which buyers</h3>
+        <label class="check"><input type="checkbox" name="funds" ${cur.buyers?.funds !== false ? "checked" : ""}> Private equity funds from the buyers directory</label>
         <div class="row"><label class="check"><input type="checkbox" name="seg_lmm" ${(cur.buyers?.segments || []).includes("lmm") ? "checked" : ""}> Lower middle market</label><label class="check"><input type="checkbox" name="seg_mm" ${(cur.buyers?.segments || []).includes("mm") ? "checked" : ""}> Middle market</label></div>
         <div class="country-picks">${COUNTRIES.map(([c, n]) => `<label class="check"><input type="checkbox" name="c_${c}" ${(cur.buyers?.countries || []).includes(c) ? "checked" : ""}> ${n}</label>`).join("")}</div>
         <label class="field">Sectors they should invest in (comma separated)<input name="sectors" maxlength="160" value="${esc(cur.buyers?.sectors || "")}" placeholder="healthcare, allied health"></label>
-        <p class="muted small" id="matchCount"></p>` : `
+        <p class="muted small" id="matchCount"></p>
+        <label class="check"><input type="checkbox" name="strat_on" ${strat.on ? "checked" : ""}> Strategic buyers: bigger operators in the same field near you (several locations, lots of reviews)</label>
+        <div id="stratBox" ${strat.on ? "" : "hidden"}>
+          <label class="field">Their industry<select name="strat_industry">${(industries || []).map((i) => `<option value="${i.id}" ${i.id === strat.industry ? "selected" : ""}>${esc(i.label)}</option>`).join("")}</select></label>
+          <label class="field">Areas to search (one per line)<textarea name="strat_areas" rows="2" placeholder="Melbourne, Victoria&#10;Geelong, Victoria">${esc((strat.areas || []).join("\n"))}</textarea></label>
+          <p class="muted small">Half of each day's new buyers are strategic when funds are on too.</p>
+        </div>` : `
         <h3 class="terr-h">What it looks for</h3>
         <label class="field">Kind of business<select name="industry">${(industries || []).map((i) => `<option value="${i.id}" ${i.id === cur.industry ? "selected" : ""}>${esc(i.label)}</option>`).join("")}</select></label>
         <label class="field">Areas (one per line; it rotates through them)<textarea name="areas" rows="3" required placeholder="Melton, Victoria&#10;Werribee, Victoria">${esc((cur.areas || []).join("\n"))}</textarea></label>
@@ -168,6 +180,10 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
         <div class="two"><label class="field">Flow length<select name="flow">${FLOW_LENGTHS.map((n) => `<option value="${n}" ${n === flowDays ? "selected" : ""}>${n} days (${n} emails)</option>`).join("")}</select></label><label class="field">${sell ? "New buyers a day" : "New businesses a day"}<input name="daily_new" type="number" min="1" max="30" value="${cur.daily_new}"></label></div>
         <div class="two"><label class="field">Days between emails<input name="gap_days" type="number" min="1" max="14" value="${cur.gap_days}"></label><label class="field">Send from (hour)<input name="send_hour" type="number" min="6" max="18" value="${cur.send_hour}"></label></div>
         <label class="field">Time zone<select name="timezone">${[...new Set([cur.timezone, ...TZS])].map((z) => `<option ${z === cur.timezone ? "selected" : ""}>${esc(z)}</option>`).join("")}</select></label>
+        <h3 class="terr-h">Send from</h3>
+        ${boxes.length ? `<div class="box-picks">${boxes.map((x) => `<label class="check"><input type="checkbox" name="mb_${x.key}" ${(cur.mailboxes || ["main"]).map(String).includes(x.key) ? "checked" : ""}> ${esc(x.email)} <span class="muted small">(${esc(x.note)})</span></label>`).join("")}</div>
+          <p class="muted small">The bot spreads each day's emails across the ticked mailboxes. Each prospect always hears from the same one. <a href="#/settings/email">Add sending mailboxes</a></p>`
+          : `<p class="muted small">No mailbox yet: <a href="#/settings/email">connect one, or add sending mailboxes</a>.</p>`}
         <h3 class="terr-h">Sending</h3>
         <label class="check"><input type="radio" name="mode" value="review" ${cur.mode !== "autopilot" ? "checked" : ""}> Review first: every email waits for your approval in the Inbox</label>
         <label class="check"><input type="radio" name="mode" value="autopilot" ${cur.mode === "autopilot" ? "checked" : ""}> Autopilot: sends on its own from your mailbox</label>
@@ -176,9 +192,11 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
       <section>
         <h3 class="terr-h">The emails</h3>
         <p class="muted small">${custom ? "Your own wording." : "Our direct copy for this flow. Edit any day to make it yours."} <button class="link-btn small" type="button" id="resetTpl">Use the default copy</button></p>
-        <label class="field">Subject<input name="subject" maxlength="140" value="${esc(tpl.subject)}"></label>
-        <div id="steps">${stepsHtml(tpl.steps)}</div>
-        <p class="muted small">Placeholders: ${sell ? "{fund} {business} {Business} {sector} {area} {revenue} {ebitda} {sender} {phone} {call}" : "{first} {company} {sender} {group} {buying} {area} {phone} {call} {signal} {when}"}</p>
+        ${sell ? `<div class="seg" role="group" aria-label="Which emails"><button type="button" class="on" data-set="funds">To funds</button><button type="button" data-set="strategic">To strategic buyers</button></div>` : ""}
+        <div id="setFunds"><label class="field">Subject<input name="subject" maxlength="140" value="${esc(tpl.subject)}"></label>
+        <div id="steps">${stepsHtml(tpl.steps)}</div></div>
+        ${sell ? `<div id="setStrat" hidden><label class="field">Subject<input name="ssubject" maxlength="140" value="${esc(stpl.subject)}"></label><div id="ssteps">${stepsHtml(stpl.steps).replace(/name="step/g, 'name="sstep')}</div></div>` : ""}
+        <p class="muted small">Placeholders: ${sell ? "{fund} or {buyer} {business} {Business} {sector} {area} {revenue} {ebitda} {sender} {phone} {call}" : "{first} {company} {sender} {group} {buying} {area} {phone} {call} {signal} {when}"}</p>
         <h3 class="terr-h">Preview: day 1</h3><div id="preview" class="bot-preview"></div>
       </section>
     </div>`,
@@ -194,8 +212,12 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
         const e = renderEmail({ subject: v.subject, steps }, 1, sample(fake));
         $("#preview", dlg).innerHTML = `<b>${esc(e.subject)}</b><pre>${esc(e.body)}</pre>`;
       };
-      const loadDefaults = () => { tpl = defaultTemplates(kind, +form.flow.value); form.subject.value = tpl.subject; $("#steps", dlg).innerHTML = stepsHtml(tpl.steps); edited = false; draw(); };
-      form.addEventListener("input", (e) => { if (e.target.name === "subject" || /^step\d+$/.test(e.target.name || "")) edited = true; draw(); });
+      const loadDefaults = () => {
+        tpl = defaultTemplates(kind, +form.flow.value); form.subject.value = tpl.subject; $("#steps", dlg).innerHTML = stepsHtml(tpl.steps);
+        if (sell) { stpl = defaultTemplates("strategic", +form.flow.value); form.ssubject.value = stpl.subject; $("#ssteps", dlg).innerHTML = stepsHtml(stpl.steps).replace(/name="step/g, 'name="sstep'); }
+        edited = false; draw();
+      };
+      form.addEventListener("input", (e) => { if (/^s?subject$/.test(e.target.name || "") || /^s?step\d+$/.test(e.target.name || "")) edited = true; draw(); });
       form.flow.addEventListener("change", () => { if (!edited) loadDefaults(); });
       $("#resetTpl", dlg).addEventListener("click", loadDefaults);
       form.industry?.addEventListener("change", () => { const i = (industries || []).find((x) => x.id === form.industry.value); if (i && !b) form.buying.value = buyingFor(i.id, i.label.split(/[\/&(]/)[0].trim().toLowerCase()); draw(); });
@@ -205,6 +227,11 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
         try { const r = await api("/api/bots/areas"); if (r.areas.length) { form.areas.value = r.areas.join("\n"); draw(); e.target.textContent = "Filled from your sites"; } else e.target.textContent = "Couldn't name those areas: type them in"; } catch (err2) { e.target.textContent = err2.message; }
       });
       if (sell) {
+        form.strat_on.addEventListener("change", () => { $("#stratBox", dlg).hidden = !form.strat_on.checked; });
+        $$("[data-set]", dlg).forEach((btn) => btn.addEventListener("click", () => {
+          $$("[data-set]", dlg).forEach((x) => x.classList.toggle("on", x === btn));
+          $("#setFunds", dlg).hidden = btn.dataset.set !== "funds"; $("#setStrat", dlg).hidden = btn.dataset.set === "funds";
+        }));
         const count = async () => {
           const v = values(); const p = new URLSearchParams();
           ["lmm", "mm"].forEach((x) => v[`seg_${x}`] && p.append("segment", x));
@@ -223,11 +250,18 @@ async function editBot(d, b = null, kind = "buy", preset = {}) {
   if (!f) return;
   const steps = tpl.steps.map((_, i) => f[`step${i}`]);
   const touches = +f.flow;
-  const body = { name: f.name, kind, sender_name: f.sender_name, phone: f.phone, daily_new: +f.daily_new, touches, gap_days: +f.gap_days, send_hour: +f.send_hour, timezone: f.timezone, mode: f.mode, confirm_autopilot: !!f.confirm_autopilot,
+  const ssteps = sell ? stpl.steps.map((_, i) => f[`sstep${i}`]) : [];
+  const mailboxes = boxes.filter((x) => f[`mb_${x.key}`]).map((x) => x.key);
+  const body = { name: f.name, kind, sender_name: f.sender_name, phone: f.phone, ...(boxes.length && { mailboxes: mailboxes.length ? mailboxes : ["main"] }), daily_new: +f.daily_new, touches, gap_days: +f.gap_days, send_hour: +f.send_hour, timezone: f.timezone, mode: f.mode, confirm_autopilot: !!f.confirm_autopilot,
     // Only save wording that differs from our defaults, so copy improvements reach bots that never changed it.
-    templates: (() => { const dft = defaultTemplates(kind, touches); return f.subject === dft.subject && steps.join("\u0000") === dft.steps.join("\u0000") ? {} : { subject: f.subject, steps }; })() };
-  if (sell) Object.assign(body, { sell: { business: f.business, sector: f.sector, location: f.location, revenue: f.revenue, ebitda: f.ebitda, currency: f.currency },
-    buyers: { segments: ["lmm", "mm"].filter((x) => f[`seg_${x}`]), countries: COUNTRIES.map(([c]) => c).filter((c) => f[`c_${c}`]), sectors: f.sectors } });
+    templates: (() => {
+      const dft = defaultTemplates(kind, touches), out = f.subject === dft.subject && steps.join("\u0000") === dft.steps.join("\u0000") ? {} : { subject: f.subject, steps };
+      if (sell) { const sd = defaultTemplates("strategic", touches); if (!(f.ssubject === sd.subject && ssteps.join("\u0000") === sd.steps.join("\u0000"))) out.strategic = { subject: f.ssubject, steps: ssteps }; }
+      return out;
+    })() };
+  if (sell) Object.assign(body, { sell: { business: f.business, name: f.ownname, sector: f.sector, location: f.location, revenue: f.revenue, ebitda: f.ebitda, currency: f.currency },
+    buyers: { funds: !!f.funds, segments: ["lmm", "mm"].filter((x) => f[`seg_${x}`]), countries: COUNTRIES.map(([c]) => c).filter((c) => f[`c_${c}`]), sectors: f.sectors,
+      strategic: { on: !!f.strat_on, industry: f.strat_industry, areas: String(f.strat_areas || "").split("\n") } } });
   else Object.assign(body, { industry: f.industry, areas: f.areas.split("\n"), buying: f.buying, group_name: f.group_name, owner_emails: !!f.owner_emails });
   try {
     const saved = b ? await post(`/api/bots/${b.id}`, body, "PATCH") : await post("/api/bots", body);

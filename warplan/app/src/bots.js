@@ -23,6 +23,7 @@ import { safeFetch } from "./net.js";
 import { renderEmail, cleanTemplates, buyingFor, MAX_TOUCHES } from "../public/js/bot-emails.js";
 import { km } from "../public/js/territory.js";
 import { runSell, listSellProspects, matchFunds } from "./sellbots.js";
+import { rotation } from "./rotation.js";
 import { FUNDS } from "./data/funds.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
@@ -53,13 +54,17 @@ function clean(b, cur = {}) {
     if ("sell" in b || !cur.id) {
       const x = b.sell || {};
       const money = (v) => { const n = Number(String(v ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? Math.round(n) : null; };
-      const sv = { business: text(x.business, 120), sector: text(x.sector, 60), location: text(x.location, 80), revenue: money(x.revenue), ebitda: money(x.ebitda), currency: ["$", "A$", "NZ$", "C$", "£", "€", "kr"].includes(x.currency) ? x.currency : "$" };
+      const sv = { business: text(x.business, 120), name: text(x.name, 120), sector: text(x.sector, 60), location: text(x.location, 80), revenue: money(x.revenue), ebitda: money(x.ebitda), currency: ["$", "A$", "NZ$", "C$", "£", "€", "kr"].includes(x.currency) ? x.currency : "$" };
       if (!sv.business) throw err(400, "Describe the business the way buyers should read it, e.g. “a physio group in Melbourne's west”");
       o.sell = JSON.stringify(sv);
     }
     if ("buyers" in b || !cur.id) {
       const y = b.buyers || {};
-      o.buyers = JSON.stringify({ segments: (Array.isArray(y.segments) ? y.segments : []).filter((v) => v === "lmm" || v === "mm"), countries: (Array.isArray(y.countries) ? y.countries : []).map((c) => text(c, 2).toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c)).slice(0, 12), sectors: text(y.sectors, 160) });
+      const st = y.strategic || {};
+      const strategic = { on: !!st.on, industry: industryById(st.industry) ? st.industry : "", areas: (Array.isArray(st.areas) ? st.areas : String(st.areas || "").split(/[;\n]/)).map((a) => text(a, 80)).filter(Boolean).slice(0, 6) };
+      if (strategic.on && (!strategic.industry || !strategic.areas.length)) throw err(400, "For strategic buyers, pick their industry and at least one area");
+      if (y.funds === false && !strategic.on) throw err(400, "Pick funds, strategic buyers or both");
+      o.buyers = JSON.stringify({ funds: y.funds !== false, segments: (Array.isArray(y.segments) ? y.segments : []).filter((v) => v === "lmm" || v === "mm"), countries: (Array.isArray(y.countries) ? y.countries : []).map((c) => text(c, 2).toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c)).slice(0, 12), sectors: text(y.sectors, 160), strategic });
     }
   }
   if (!sell && ("industry" in b || !cur.industry)) { if (!industryById(b.industry)) throw err(400, "Pick the kind of business it looks for"); o.industry = b.industry; }
@@ -78,9 +83,14 @@ function clean(b, cur = {}) {
   if ("templates" in b) o.templates = JSON.stringify(cleanTemplates(b.templates));
   if ("status" in b) o.status = b.status === "active" ? "active" : "paused";
   if ("mode" in b) o.mode = b.mode === "autopilot" ? "autopilot" : "review";
+  if ("mailboxes" in b) {
+    const list = [...new Set((Array.isArray(b.mailboxes) ? b.mailboxes : []).map(String).filter((k) => k === "main" || /^\d{1,9}$/.test(k)))].slice(0, 21);
+    if (!list.length) throw err(400, "Pick at least one mailbox to send from");
+    o.mailboxes = JSON.stringify(list);
+  }
   return o;
 }
-const botOut = (r) => ({ ...r, areas: json(r.areas, []), templates: json(r.templates, {}), sell: json(r.sell, {}), buyers: json(r.buyers, {}), cursor: undefined, lock_until: undefined, running: !!(r.lock_until && r.lock_until > now()) });
+const botOut = (r) => ({ ...r, mailboxes: json(r.mailboxes, ["main"]), areas: json(r.areas, []), templates: json(r.templates, {}), sell: json(r.sell, {}), buyers: json(r.buyers, {}), cursor: undefined, lock_until: undefined, running: !!(r.lock_until && r.lock_until > now()) });
 
 function needOwnerHuman(ctx) {
   if (!ctx.isOwner) throw err(403, "Only workspace owners can set up or change prospecting bots");
@@ -267,8 +277,9 @@ export async function runBot(env, accountId, botId, hooks, { manual = false } = 
   try {
     const ctx = await senderCtx(env, bot);
     if (!ctx) { await env.DB.prepare("UPDATE bots SET status = 'paused' WHERE id = ?1").bind(bot.id).run(); await log(env, bot, null, "error", "Paused: the person it sends as is no longer in the workspace"); return { ok: false, reason: "no sender" }; }
-    if (bot.mode === "autopilot" && !(await env.DB.prepare("SELECT 1 FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id).first())) {
-      await log(env, bot, null, "error", "No mailbox connected for the sender: connect one in Settings → Email"); return { ok: false, reason: "no mailbox" };
+    sum.rot = await rotation(env, bot, ctx);
+    if (bot.mode === "autopilot" && !sum.rot.size) {
+      await log(env, bot, null, "error", "No mailbox to send from: connect one in Settings → Email, or pick a sending mailbox on the bot"); return { ok: false, reason: "no mailbox" };
     }
     if (bot.kind === "sell") await runSell(env, bot, ctx, hooks, sum, log);
     else {
@@ -279,9 +290,11 @@ export async function runBot(env, accountId, botId, hooks, { manual = false } = 
     const parts = [sum.first && `${sum.first} first email${sum.first === 1 ? "" : "s"}`, sum.followups && `${sum.followups} follow-up${sum.followups === 1 ? "" : "s"}`, sum.queued && `${sum.queued} queued for review`,
       sum.calls && `${sum.calls} to call`, sum.stopped && `${sum.stopped} stopped (replied or opted out)`, sum.no_email && `${sum.no_email} without an email (call list)`].filter(Boolean);
     await log(env, bot, null, "run", `${manual ? "Run now" : "Morning run"}: ${parts.join(" · ") || "nothing due"}${sum.notes.length ? `. ${sum.notes.join(" ")}` : ""}`);
+    delete sum.rot;
     hooks?.emit("bot.run", { bot_id: bot.id, bot: bot.name, ...sum, notes: undefined });
     return { ok: true, ...sum };
   } catch (e) {
+    delete sum.rot;
     console.error("bot run", e);
     await log(env, bot, null, "error", e.status ? e.message : "The run stopped on an error; it tries again tomorrow");
     return { ok: false, reason: e.message };
@@ -328,8 +341,14 @@ async function deliver(env, bot, ctx, hooks, p, t, step, sum) {
   const next = new Date(Date.now() + bot.gap_days * 864e5 - 30 * 60_000).toISOString();
   // Thread under the first email that actually went out to this address.
   const first = step > 1 ? await env.DB.prepare("SELECT message_id FROM sent_emails WHERE account_id = ?1 AND target_id = ?2 AND to_email = ?3 AND status = 'sent' ORDER BY id LIMIT 1").bind(bot.account_id, t.id, p.email).first() : null;
+  // Which mailbox: the prospect's own (same thread) or the one with most room today.
+  const mb = sum.rot?.size ? sum.rot.pick(p.mailbox || null) : null;
+  if (mb === "wait") return "wait";
+  if (sum.rot?.size && !mb) { if (!sum.notes.includes(CAP_NOTE)) sum.notes.push(CAP_NOTE); return "cap"; }
+  if (mb && !p.mailbox) await env.DB.prepare("UPDATE bot_prospects SET mailbox = ?2 WHERE id = ?1").bind(p.id, mb.key).run();
   if (bot.mode !== "autopilot") {
-    const id = await propose(env, bot.account_id, { tool: "send_email", target_id: t.id, input: { to: p.email, subject, body, target_id: t.id, ...(first?.message_id && { in_reply_to: first.message_id }) },
+    sum.rot?.used(mb);
+    const id = await propose(env, bot.account_id, { tool: "send_email", target_id: t.id, input: { to: p.email, subject, body, target_id: t.id, ...(mb?.pool_id && { pool_id: mb.pool_id }), ...(first?.message_id && { in_reply_to: first.message_id }) },
       title: `${bot.name}: ${step === 1 ? "first email" : `follow-up ${step - 1}`} to ${t.name}`, reason: body.slice(0, 400), source: "bot", dedupe: `bot:${p.id}:${step}` });
     await env.DB.prepare("UPDATE bot_prospects SET step = ?2, next_at = ?3, subject = CASE WHEN subject = '' THEN ?4 ELSE subject END, action_id = ?5, updated_at = ?6 WHERE id = ?1").bind(p.id, step, next, subject, id, now()).run();
     await log(env, bot, t.id, "queued", `${step === 1 ? "First email" : `Follow-up ${step - 1}`} to ${t.name} (${p.email}) is waiting for your review in the Inbox`);
@@ -337,15 +356,16 @@ async function deliver(env, bot, ctx, hooks, p, t, step, sum) {
     return "queued";
   }
   try {
-    const r = await sendEmail(env, ctx, { to: p.email, subject, body, target_id: t.id, in_reply_to: first?.message_id || null }, hooks);
+    const r = await sendEmail(env, ctx, { to: p.email, subject, body, target_id: t.id, in_reply_to: first?.message_id || null, pool_id: mb?.pool_id || null }, hooks);
+    sum.rot?.used(mb);
     await env.DB.prepare("UPDATE bot_prospects SET step = ?2, next_at = ?3, subject = CASE WHEN subject = '' THEN ?4 ELSE subject END, thread_id = CASE WHEN thread_id = '' THEN ?5 ELSE thread_id END, updated_at = ?6 WHERE id = ?1")
       .bind(p.id, step, next, subject, r.message_id || "", now()).run();
-    await log(env, bot, t.id, step === 1 ? "sent" : "follow_up", step === 1 ? `Sent the first email to ${t.name} (${p.email})` : `Sent follow-up ${step - 1} to ${t.name} (${p.email}): email ${step} of ${bot.touches}`);
+    await log(env, bot, t.id, step === 1 ? "sent" : "follow_up", `${step === 1 ? `Sent the first email to ${t.name} (${p.email})` : `Sent follow-up ${step - 1} to ${t.name} (${p.email}): email ${step} of ${bot.touches}`}${sum.rot?.size > 1 ? ` from ${r.from}` : ""}`);
     hooks?.emit("bot.email_sent", { bot_id: bot.id, target_id: t.id, target: t.name, to: p.email, step, of: bot.touches });
     if (step === 1) sum.first++; else sum.followups++;
     return "sent";
   } catch (e) {
-    if (e.status === 429) { sum.notes.push("Reached the mailbox's daily sending cap; the rest go tomorrow."); return "cap"; }
+    if (e.status === 429) { sum.rot?.full(mb); if (sum.rot?.left() > 0) return "wait"; if (!sum.notes.includes(CAP_NOTE)) sum.notes.push(CAP_NOTE); return "cap"; }
     const status = e.status === 409 ? "opted_out" : "bounced";
     await env.DB.prepare("UPDATE bot_prospects SET status = ?2, updated_at = ?3 WHERE id = ?1").bind(p.id, status, now()).run();
     await log(env, bot, t.id, status === "opted_out" ? "skipped" : "error", status === "opted_out" ? `${p.email} is on the do-not-contact list` : `Couldn't send to ${p.email}: ${e.message}`);
@@ -353,6 +373,8 @@ async function deliver(env, bot, ctx, hooks, p, t, step, sum) {
     return "stop";
   }
 }
+
+const CAP_NOTE = "Every sending mailbox reached today's cap; the rest go tomorrow.";
 
 // 2. Follow-ups that are due. After the last email, hand the prospect over to call.
 async function followUps(env, bot, ctx, hooks, sum) {
