@@ -30,7 +30,7 @@ export const WHOP_CHECKOUT_CAP = 2500;
 /** What the viewer sees when Whop refuses a checkout (with Try again and Email the team next to it). */
 export const CHECKOUT_UNAVAILABLE = 'Checkout didn’t open just now. Try again in a minute, or email the team and they send you a payment link.';
 /** Found or created by external id, so every checkout reuses the same two (hidden) Whop products. */
-export const WHOP_PRODUCT: Record<PassKind, string> = { seat: 'vsl-funnel-masterclass-ticket', offer: 'vsl-funnel-first-deal-sprint' };
+export const WHOP_PRODUCT: Record<PassKind, string> = { seat: 'vsl-funnel-masterclass-ticket', offer: 'vsl-funnel-first-deal-sprint', deposit: 'vsl-funnel-engagement-deposit', live_ticket: 'vsl-funnel-live-ticket' };
 
 export class WhopError extends Error {
   constructor(public status: number, message: string, public code: string | null = null) { super(message); }

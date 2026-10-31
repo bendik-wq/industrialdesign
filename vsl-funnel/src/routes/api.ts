@@ -20,6 +20,7 @@ import { PassError, activePass, createCheckout, markReviewClicked, passGate, syn
 import { ensureDealSprint } from '../webinar/deal-sprint';
 import { sameOriginWrite } from '../admin/auth';
 import { createSprintCheckout, unlockSprint } from '../webinar/sprint';
+import { mountLiveApi } from '../live/routes';
 
 export const api = new Hono<AppEnv>();
 
@@ -342,3 +343,6 @@ api.post('/voice/start', async (c) => {
   await track(rt, identityFromVisitor(v, null, lead.id), { name: 'voice_web_start', source: 'server', props: { disclosure: VOICE_AGENT.disclosureVersion, text: VOICE_AGENT.webDisclosure } });
   return c.json({ ok: true, ...cfg });
 });
+
+// ── Live webinar funnel and the engagement deposit (src/live/routes.ts) ──
+mountLiveApi(api);

@@ -4,6 +4,7 @@ import { type Lead, getLead, updateLead } from '../funnel/leads';
 import { emailConfigured, sendViaResend } from '../integrations/email';
 import { notify } from '../integrations/notify';
 import { newId } from '../lib/ids';
+import { guarantee, guaranteeInAgreements } from './guarantee';
 
 /**
  * Advisory agreements: a one-page contract, auto-quoted from what the lead told us, signed by us first
@@ -138,15 +139,18 @@ export function termsHtml(rt: Runtime, k: Terms, date = Date.now()) {
   const scope = list(k.scope);
   const term = (k.term_text || '6 months from the date both parties sign').replace(/^(this agreement )?runs for\s*/i, '').replace(/\.$/, '');
   const due = feeDue(k);
+  // The LOI guarantee with its conditions (sales/guarantee.ts), unless switched off in settings.
+  const g = guaranteeInAgreements(rt.settings) ? guarantee(rt) : null;
   let n = 0;
   const out = [
     `<h1>${escHtml(k.title || 'Advisory Agreement')}</h1>`,
     `<p class="meta">${escHtml(dated)}</p>`,
     `<p class="parties-line">Between <strong>${escHtml(co.name)}</strong>, ${escHtml(co.entity)}${co.address ? `, ${escHtml(co.address)}` : ''} (“<strong>G&amp;L</strong>”, “we”), and <strong>${escHtml(client)}</strong>${k.client_email ? ` (${escHtml(k.client_email)})` : ''} (“<strong>you</strong>”).</p>`,
     clause(++n, 'What we do', `We advise you on buying a business: ${scope.length ? scope.map((x) => escHtml(/^[A-Z][a-z]/.test(x) ? x[0].toLowerCase() + x.slice(1) : x)).join('; ') : 'acquisition strategy, finding targets, deal structuring and negotiation support'}.`),
-    clause(++n, 'Fee', `Our fee is <strong>${escHtml(money(k.fee, k.currency))}</strong>, ${escHtml((k.payment_terms || 'Due in full on signing.').replace(/^./, (ch) => ch.toLowerCase()).replace(/\.?$/, '.'))}${due.credit ? ` ${escHtml(due.label!)}: <strong>${escHtml(due.creditText!)}</strong>. Net amount due: <strong>${escHtml(money(due.net, k.currency))}</strong>.` : ''}${k.success_fee ? ` <strong>Success fee:</strong> ${escHtml(k.success_fee.replace(/\.?$/, '.'))}` : ''} The fee pays for our time and expertise, is earned when paid and is <strong>non-refundable</strong>, whether or not you complete a deal. Third-party costs (lenders, attorneys, valuers, due diligence) are yours. If you have a billing concern, raise it with us first rather than disputing or charging back a payment.`),
+    clause(++n, 'Fee', `Our fee is <strong>${escHtml(money(k.fee, k.currency))}</strong>, ${escHtml((k.payment_terms || 'Due in full on signing.').replace(/^./, (ch) => ch.toLowerCase()).replace(/\.?$/, '.'))}${due.credit ? ` ${escHtml(due.label!)}: <strong>${escHtml(due.creditText!)}</strong>. Net amount due: <strong>${escHtml(money(due.net, k.currency))}</strong>.` : ''}${k.success_fee ? ` <strong>Success fee:</strong> ${escHtml(k.success_fee.replace(/\.?$/, '.'))}` : ''} The fee pays for our time and expertise, is earned when paid and is <strong>non-refundable</strong>${g ? ' (except as the guarantee in this agreement provides)' : ''}, whether or not you complete a deal. Third-party costs (lenders, attorneys, valuers, due diligence) are yours. If you have a billing concern, raise it with us first rather than disputing or charging back a payment.`),
     clause(++n, 'What we are not', 'We are business advisers. We are not your attorney, accountant, lender, investment adviser or broker-dealer. We don’t hold your money, sell securities, or give legal, tax or investment advice. Get your own professional advice before you sign any deal.'),
-    clause(++n, 'No guarantee', 'Deals depend on sellers, lenders and markets we don’t control. We don’t promise that you will buy a business, obtain financing, or achieve any price, return or timeline. Any figures we share are estimates for discussion.'),
+    clause(++n, g ? 'No other promise' : 'No guarantee', `Deals depend on sellers, lenders and markets we don’t control. ${g ? 'Apart from the guarantee in the next section, we' : 'We'} don’t promise that you will buy a business, obtain financing, or achieve any price, return or timeline. Any figures we share are estimates for discussion.`),
+    ...(g ? [clause(++n, `Guarantee: ${g.headline}`, `${escHtml(g.body)} The guarantee applies only if you meet every one of these conditions: ${g.conditions.map((x, i) => `(${String.fromCharCode(97 + i)}) ${escHtml(x.replace(/\.$/, ''))}`).join('; ')}. ${g.definitions.map(escHtml).join(' ')} The 90 days run from the date both parties sign. To claim, email us within 14 days after the 90 days end; we confirm the conditions from our session and outreach records.`)] : []),
     clause(++n, 'Your decisions', 'You decide whether to make an offer, borrow or close, and you’re responsible for those decisions and for giving us accurate information.'),
     clause(++n, 'Confidentiality and our materials', 'Each of us keeps the other’s confidential information private, except where the law requires otherwise or when shared with professional advisers who keep it confidential. Our models, templates and methods remain ours and are for your own use only.'),
   ];
@@ -227,11 +231,7 @@ export async function sprintCredit(rt: Runtime, leadId: string | null | undefine
   const { passCreditFor, fromMinor } = await import('../webinar/pass');
   const c = await passCreditFor(rt, leadId).catch(() => null);
   if (!c || c.currency.toUpperCase() !== currency.toUpperCase()) return null;
-  const used = await rt.env.DB.prepare("SELECT credit_used_contract AS k FROM webinar_passes WHERE id = ?").bind(c.passId).first<{ k: string | null }>().catch(() => null);
-  if (used?.k) {
-    const signed = await rt.env.DB.prepare("SELECT 1 FROM contracts WHERE id = ? AND status = 'signed' AND COALESCE(is_test, 0) = 0").bind(used.k).first().catch(() => null);
-    if (signed) return null;
-  }
+  // passCreditFor already leaves out purchases whose credit was used on a signed agreement.
   return { passId: c.passId, amount: Math.round(fromMinor(c.amount, c.currency)), label: `${c.product || 'First Deal Sprint'} credit` };
 }
 
@@ -450,7 +450,10 @@ async function afterSigned(rt: Runtime, c: Contract) {
   const lead = c.lead_id ? await getLead(rt.env, c.lead_id) : null;
   if (lead) await updateLead(rt.env, lead.id, { contract_signed_at: c.signed_at, revenue: lead.revenue || c.fee });
   // The Sprint credit is now spent, and the Sprint board shows the engagement as signed.
-  if (c.credit_pass_id && feeDue(c).credit) await rt.env.DB.prepare('UPDATE webinar_passes SET credit_used_contract = ?, updated_at = ? WHERE id = ?').bind(c.id, Date.now(), c.credit_pass_id).run().catch(() => null);
+  if (c.credit_pass_id && feeDue(c).credit) {
+    const ids = c.credit_pass_id.split(',').filter(Boolean).slice(0, 10); // the Sprint and the engagement deposit
+    await rt.env.DB.prepare(`UPDATE webinar_passes SET credit_used_contract = ?, updated_at = ? WHERE id IN (${ids.map(() => '?').join(',')})`).bind(c.id, Date.now(), ...ids).run().catch(() => null);
+  }
   if (c.lead_id) await (await import('../webinar/deal-sprint')).dealSprintSigned(rt, c).catch((e) => console.error('deal sprint signed', e));
   await notify(rt, { kind: 'won', title: `Agreement signed: ${money(c.fee, c.currency)}`, lead, lines: [c.client_name ?? c.client_email ?? '', c.title] }).catch(() => null);
 }

@@ -41,6 +41,9 @@ import { sprintStartPage, sprintStartSubmit } from './webinar/sprint-start';
 import { chapters } from './webinar/room';
 import { processSmsQueue } from './integrations/sms';
 import { alertUnconfirmedBookings } from './integrations/booking';
+import { guaranteePage, liveLanding, liveRoom, liveTicketPage, liveWelcome, liveWorksheet } from './live/pages';
+import { processLiveMessages } from './live/events';
+import { payPage } from './sales/pay-page';
 
 const app = new Hono<AppEnv>();
 
@@ -141,6 +144,14 @@ for (const prefix of ['', '/webinar']) {
   app.post(`${prefix}/sprint-start/:token`, withVisitor, sprintStartSubmit);
 }
 app.get('/w/:token', withVisitor, applyHandoff);
+// ── Live webinar funnel (on the webinar host and the main domain) and the engagement deposit ──
+app.get('/live', withVisitor, liveLanding);
+app.get('/live/room/:token', withVisitor, liveRoom);
+app.get('/live/ticket/:token', withVisitor, liveTicketPage);
+app.get('/live/welcome/:token', withVisitor, liveWelcome);
+app.get('/live/worksheet/:token', withVisitor, liveWorksheet);
+app.get('/guarantee', withVisitor, guaranteePage);
+app.get('/pay/:ref', withVisitor, payPage);
 app.get('/guides', withVisitor, guidesHub);
 app.get('/guides/:file{[a-z0-9-]+\\.md}', guideMarkdownPage);
 app.get('/guides/:slug{[a-z0-9-]+}', withVisitor, guidePage);
@@ -272,6 +283,7 @@ export default {
       quiet(processContractReminders(rt), 'contract reminders'),
       quiet(processDealSprintEmails(rt), 'deal sprint emails'),
       quiet(maybeSyncMetaSpend(rt), 'Meta ad spend'),
+      quiet(processLiveMessages(rt), 'live webinar messages'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);
