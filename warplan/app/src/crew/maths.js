@@ -227,7 +227,7 @@ export function gatekeeper({ portfolio = [], candidate, backlog = [], highAlerts
   const checks = [
     { id: "deal_dscr", pass: m.minDscr == null || m.minDscr >= JL_DSCR, label: "This deal covers its own debt at 1.5x", value: r2(m.minDscr) },
     { id: "group_dscr", pass: groupDscr == null || groupDscr >= JL_DSCR, label: "The group still covers all its debt at 1.5x", value: r2(groupDscr) },
-    { id: "library", pass: m.library.ok, label: "Structure is from the JL library", value: m.library.ok ? "yes" : m.library.issues?.join("; ") || "no" },
+    { id: "library", pass: m.library.ok, label: "Structure is from the structure library", value: m.library.ok ? "yes" : m.library.issues?.join("; ") || "no" },
     { id: "control", pass: m.control, label: "You keep control", value: r2(m.yourVotes) },
     { id: "capacity", pass: unintegrated.length < 2 && overdue < 10, label: "Integration capacity: fewer than 2 businesses still integrating and under 10 overdue plan items", value: `${unintegrated.length} integrating, ${overdue} overdue` },
     { id: "alerts", pass: highAlerts === 0, label: "No open high-severity alert on a business you already own", value: highAlerts },

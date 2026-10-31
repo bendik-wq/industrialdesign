@@ -1552,3 +1552,39 @@ table.grid input { width: 100%; min-width: 80px; }
 .tcard-wrap:hover .card-x, .card-x:focus-visible { opacity: 1; }
 @media (hover: none) { .card-x { opacity: .7; } }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------------------------------------------------------------- prospecting bots */
+.bot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-bottom: 18px; }
+.bot-card { border: 1px solid var(--line-strong); background: var(--surface); padding: 18px 20px; display: grid; gap: 12px; }
+.bot-card.paused { opacity: .85; }
+.bot-card header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.bot-card header a { text-decoration: none; color: var(--ink); margin-right: auto; }
+.bot-card h2 { font-size: 20px; margin: 0; }
+.bot-card .chip.on { border-color: var(--good); color: var(--good); }
+.bot-card p { margin: 0; }
+.bot-stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); }
+.bot-stats div { padding: 10px 12px; border-right: 1px solid var(--line); display: grid; }
+.bot-stats div:last-child { border-right: 0; }
+.bot-stats b { font: 600 24px var(--mono); letter-spacing: -0.03em; }
+.bot-stats span { font: 500 10.5px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.bot-stats .hot b { color: var(--signal-ink); }
+.bot-card footer { gap: 8px; }
+.bot-card footer .muted { margin-left: auto; }
+.bot-log { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.bot-log li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+.bot-log li a { color: var(--ink); text-decoration: none; }
+.bot-log li a:hover { color: var(--signal-ink); }
+.bot-log .ico { font: 600 13px var(--mono); color: var(--muted); text-align: center; }
+.bot-log .k-call .ico, .bot-log .k-replied .ico { color: var(--signal-ink); }
+.bot-log .k-error .ico { color: var(--bad); }
+.bot-emails { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: e; }
+.bot-emails li { border: 1px solid var(--line); background: var(--surface); padding: 14px 16px; }
+.bot-emails pre, .bot-preview pre, .modal .bot-preview pre { white-space: pre-wrap; font: 14px/1.55 var(--sans); margin: 8px 0 0; color: var(--ink); background: none; border: 0; padding: 0; }
+.bot-form { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.bot-form section { display: grid; gap: 10px; align-content: start; }
+.bot-form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bot-preview { border: 1px solid var(--line); background: var(--bg); padding: 12px 14px; }
+.chip.st-call, .chip.st-no_email { border-color: var(--signal); color: var(--signal-ink); }
+.chip.st-replied { border-color: var(--good); color: var(--good); }
+.chip.st-bounced, .chip.st-opted_out { color: var(--muted); }
+@media (max-width: 860px) { .bot-form { grid-template-columns: 1fr; } .bot-stats { grid-template-columns: 1fr 1fr; } .bot-stats div:nth-child(2) { border-right: 0; } }

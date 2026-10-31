@@ -99,6 +99,10 @@ Registrant-only pages (room, replay, registered, worksheet, notes, blueprint, pa
 
 Territory map (Oct 30): map tiles from tile.openstreetmap.org are the only new image source in the CSP; Leaflet 1.9.4 is vendored (integrity checked against the npm registry); geocoding (Nominatim) goes through `safeFetch` with no redirects, is cached and rate-limited per workspace (20/min, 400/day) and platform-wide (50/min); every site query is scoped to the workspace.
 
+## 2026-10-31: prospecting bots
+
+Owner-only and signed-in only to create, change, run or switch to autopilot (autopilot needs an explicit confirmation). Every query is scoped to the workspace. Sends go through the normal mailbox path (do-not-contact list, daily cap, sender name and opt-out line on every email); a reply, opt-out, bounce or manual stage change stops a prospect; emails per prospect are capped at 10; runs are weekdays only, locked so two can't overlap, and the daily new-business total holds across manual runs. Thread headers only accept a Message-ID. Business search and paid lookups stay inside the workspace's data budget.
+
 ### Still open
 
 - Nothing.

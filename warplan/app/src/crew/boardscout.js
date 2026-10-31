@@ -38,7 +38,7 @@ export { defaults as boardScoutDefaults };
 
 registerAgent({
   id: "boardscout", name: "Board Scout", icon: "users", needsTarget: false, ownerOnly: true,
-  describe: "Finds credible people in your area for the four board seats the 3C model calls for (Chair, Finance Lead, Legal Lead, Sector Operator): searches LinkedIn, scores every person's real work history against each seat (years in the role, board seats, career length, your sector, whether they're now advisory or recently retired, local), explains the strongest three per seat, and writes the skill's recruitment message with their names filled in. Suggestions wait on Board & lenders for you to add or dismiss. About $0.60 of Monid data per run.",
+  describe: "Finds credible people in your area for the four board seats the 3C model calls for (Chair, Finance Lead, Legal Lead, Sector Operator): searches LinkedIn, scores every person's real work history against each seat (years in the role, board seats, career length, your sector, whether they're now advisory or recently retired, local), explains the strongest three per seat, and writes the board recruitment message with their names filled in. Suggestions wait on Board & lenders for you to add or dismiss. About $0.60 of data per run.",
   layers: [
     {
       id: "plan", title: "Work out the open seats, your area and your sector", kind: "gather",

@@ -17,7 +17,7 @@ export async function renderBuilder(seq, params) {
   const num = (path, label, attrs = "") => { const [a, b] = path.split("."); const v = b ? d[a][b] : d[a]; return `<label>${label}<input data-p="${path}" type="number" inputmode="decimal" value="${v}" ${attrs}></label>`; };
   view().innerHTML = `
     <header class="page-head"><p class="eyebrow">Deal Builder${target ? ` · <a href="#/targets/${target.id}">${esc(target.name)}</a>` : ""}</p><h1>${target ? `Structure ${esc(target.name)}.` : "Any structure. Two rules."}</h1>
-      <p class="lede">Build from the JL skill's structure library: 100% vendor finance, or a Seller-Lender Blend (commercial debt with seller rollover or a subordinated vendor note). The deal works when it's a library structure, you keep majority control, and the business covers every repayment at least 1.5 times, every year.</p>
+      <p class="lede">Build from the structure library: 100% vendor finance, or a Seller-Lender Blend (commercial debt with seller rollover or a subordinated vendor note). The deal works when it's a library structure, you keep majority control, and the business covers every repayment at least 1.5 times, every year.</p>
       ${target ? `<p class="saved-note" id="savedNote">Saved to ${esc(target.name)} automatically.</p>` : ""}</header>
     <div class="presets">${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="preset" data-preset="${k}"><b>${esc(p.name)}</b><small>${esc(p.note)}</small></button>`).join("")}</div>
     <div class="builder">

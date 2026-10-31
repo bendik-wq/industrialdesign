@@ -103,12 +103,12 @@ const places = {
 
 // ------------------------------------------------------------------ Google Maps via Monid (anywhere, no Google key)
 const maps = {
-  id: "maps", label: "Anywhere · Google Maps (Monid)", flag: "📍", currency: "$", needs: "monid",
+  id: "maps", label: "Anywhere · Google Maps (business data)", flag: "📍", currency: "$", needs: "monid",
   regionLabel: "City or area", regions: "text",
   gives: ["Every business Google lists: phone, website, category", "Rating and review count (size signal)", "20 per page for a fraction of a cent", "Then Deep enrich finds the owner's email"],
   async search(env, q, keys, ctx) {
     const ind = industryById(q.industry);
-    if (!keys.monid) throw err(400, "Connect a Monid key under Settings → Integrations");
+    if (!keys.monid) throw err(400, "Connect business data under Settings → Integrations");
     if (!q.region) throw err(400, "Type a city or area, e.g. “Austin, TX”");
     const r = await monidRun(env, ctx, { provider: "litescrape", endpoint: "/google/maps", input: { queryParams: { q: ind.places, type: "search", location: q.region, z: 12, ...(q.page > 1 && { start: (q.page - 1) * 20 }) } } }, { purpose: `Scout: ${ind.places} in ${q.region}`, key: keys.monid, maxWaitMs: 28000 });
     const list = r.output?.local_results || [];
@@ -117,7 +117,7 @@ const maps = {
       return {
         source: "maps", source_id: x.place_id || x.data_id || x.title, name: x.title, location: parts.length > 2 ? parts.slice(-2).join(", ").replace(/\s+\d{4,6}$/, "") : x.address || q.region, address: x.address || "",
         website: cleanUrl(x.website), email: "", phone: x.phone || "", employees: null, revenue: null, ebitda: null,
-        rating: x.rating ?? null, reviews: x.reviews ?? 0, category: x.type || "", people: [], registry_url: x.place_id ? `https://www.google.com/maps/place/?q=place_id:${x.place_id}` : "",
+        rating: x.rating ?? null, reviews: x.reviews ?? 0, category: x.type || "", people: [], lat: x.gps_coordinates?.latitude ?? null, lng: x.gps_coordinates?.longitude ?? null, registry_url: x.place_id ? `https://www.google.com/maps/place/?q=place_id:${x.place_id}` : "",
       };
     });
     return { results: rows, more: list.length >= 20, total: null, cost_usd: r.cost_usd };
@@ -142,12 +142,12 @@ const HEADCOUNT = (min) => ["1-10", "11-50", "51-200", "201-500", "501-1000"].fi
 
 // ------------------------------------------------------------------ Yelp via Monid (anywhere Yelp covers)
 const yelp = {
-  id: "yelp", label: "Anywhere · Yelp (Monid)", flag: "★", currency: "$", needs: "monid",
+  id: "yelp", label: "Anywhere · Yelp", flag: "★", currency: "$", needs: "monid",
   regionLabel: "City or area", regions: "text",
   gives: ["Local businesses Yelp lists, by most reviewed", "Phone, address, rating and review count", "Strong for trades, clinics, auto, restaurants"],
   async search(env, q, keys, ctx) {
     const ind = industryById(q.industry);
-    if (!keys.monid) throw err(400, "Connect a Monid key under Settings → Integrations");
+    if (!keys.monid) throw err(400, "Connect business data under Settings → Integrations");
     if (!q.region) throw err(400, "Type a city or area, e.g. “Austin, TX”");
     const r = await monidRun(env, ctx, { provider: "litescrape", endpoint: "/yelp/search", input: { queryParams: { find_desc: ind.places, find_loc: q.region, sortby: "review_count", ...(q.page > 1 && { start: (q.page - 1) * 10 }) } } }, { purpose: `Scout (Yelp): ${ind.places} in ${q.region}`, key: keys.monid });
     const list = r.output?.organic_results || [];
@@ -168,7 +168,7 @@ const companydb = {
   gives: ["B2B database of companies with a website", "Filter by headcount (use Min. staff)", "Free to search; then Deep enrich finds the owner"],
   async search(env, q, keys, ctx) {
     const ind = industryById(q.industry);
-    if (!keys.monid) throw err(400, "Connect a Monid key under Settings → Integrations");
+    if (!keys.monid) throw err(400, "Connect business data under Settings → Integrations");
     const place = parsePlace(q.region);
     if (!place.country && !place.city) throw err(400, "Type a place, e.g. “Boise, ID”, “Texas, US” or “Manchester, UK”");
     const loc = place.country ? { country: place.country, ...(place.state && { state: place.state }), ...(place.city && { city: place.city }) } : null;
@@ -184,17 +184,17 @@ const companydb = {
 
 // ------------------------------------------------------------------ Apollo companies via Monid (revenue + founded year)
 const apollo = {
-  id: "apollo", label: "Companies by revenue · Apollo (Monid)", flag: "$", currency: "$", needs: "monid",
+  id: "apollo", label: "Companies by revenue", flag: "$", currency: "$", needs: "monid",
   regionLabel: "City, state or country", regions: "text",
   gives: ["Companies with $1M+ estimated revenue", "Founded year (owner tenure), headcount, phone, website", "≈$0.03 per page of 25"],
   async search(env, q, keys, ctx) {
     const ind = industryById(q.industry);
-    if (!keys.monid) throw err(400, "Connect a Monid key under Settings → Integrations");
+    if (!keys.monid) throw err(400, "Connect business data under Settings → Integrations");
     if (!q.region) throw err(400, "Type a place, e.g. “Boise, Idaho” or “Texas”");
     const ranges = HEADCOUNT(q.minStaff || 5).map((r) => r.replace("-", ","));
     const r = await monidRun(env, ctx, { provider: "apollo", endpoint: "/mixed_companies/search", input: { queryParams: {
       "organization_locations[]": [fullState(q.region)], "q_organization_keyword_tags[]": [keywordFor(ind)], "organization_num_employees_ranges[]": ranges, "revenue_range[min]": 1000000, per_page: 25, page: q.page,
-    } } }, { purpose: `Scout (Apollo): ${ind.label} in ${q.region}`, key: keys.monid });
+    } } }, { purpose: `Scout (by revenue): ${ind.label} in ${q.region}`, key: keys.monid });
     const list = r.output?.organizations || r.output?.accounts || [];
     const pg = r.output?.pagination || {};
     return {
@@ -269,7 +269,7 @@ export function toTarget(r, currency) {
   return {
     name: r.name, industry: r.industry || "", location: r.location || "", website: r.website || "", owner_name: r.owner_name || "", owner_age: r.owner_age ?? null,
     phone: r.phone || "", email: r.email || "", employees: r.employees ?? null, revenue: r.revenue ?? null, ebitda: r.ebitda ?? null, currency: currency || "$",
-    stage: "sourced", source: `Scout · ${({ uk_ch: "Companies House", places: "Google Maps", maps: "Google Maps (Monid)", yelp: "Yelp", companydb: "Company database", apollo: "Apollo", osm: "OpenStreetMap" })[r.source] || r.source}`,
+    stage: "sourced", source: `Scout · ${({ uk_ch: "Companies House", places: "Google Maps", maps: "Google Maps", yelp: "Yelp", companydb: "Company database", apollo: "Company database (revenue)", osm: "OpenStreetMap" })[r.source] || r.source}`,
     motivation: [people && `People on file: ${people}.`, r.founded && `Founded ${r.founded}.`, r.address && `Address: ${r.address}.`, r.registry_url && `Record: ${r.registry_url}`].filter(Boolean).join(" "),
   };
 }

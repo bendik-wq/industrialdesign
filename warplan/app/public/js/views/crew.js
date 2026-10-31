@@ -17,7 +17,7 @@ export async function renderCrew(seq, params = new URLSearchParams()) {
   for (const f of findings) { const k = f.target_name || "Workspace"; byTarget.set(k, [...(byTarget.get(k) || []), f]); }
   view().innerHTML = `
     <header class="page-head"><p class="eyebrow">Agents</p><h1>The crew</h1>
-      <p class="lede muted">Agents that work in layers: they gather the facts, compute the numbers in code, reason over them with the JL skill, check every claim against the numbers, then raise alerts and queue next steps for your approval. Nothing is sent or changed without you.</p></header>
+      <p class="lede muted">Agents that work in layers: they gather the facts, compute the numbers in code, reason over them with the 3C model, check every claim against the numbers, then raise alerts and queue next steps for your approval. Nothing is sent or changed without you.</p></header>
     <section class="panel">
       <div class="panel-head"><h2 class="h3">Open alerts</h2><span class="muted small">${findings.length} open · ${findings.filter((f) => f.severity === "high").length} high</span></div>
       ${findings.length ? [...byTarget].map(([name, list]) => `<h3 class="h4 rsec">${esc(name)}</h3><ul class="alerts">${list.map(alertRow).join("")}</ul>`).join("") : `<p class="muted">No open alerts. The monitors re-check the businesses you own every morning.</p>`}

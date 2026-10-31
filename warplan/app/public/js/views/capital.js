@@ -69,7 +69,7 @@ const actions = (r) => `<td class="acts"><button class="mini-btn" data-touch="${
 
 function listPanel(kind, rows) {
   const list = rows.filter((r) => r.kind === kind);
-  if (!list.length) return `<section class="panel empty"><h2>${kind === "board" ? "No board members yet" : "No one on the bench yet"}</h2><p class="muted">${kind === "board" ? "“Target recently retired executives looking for meaningful involvement.” Add the people you'd ask, then pitch them with the skill's script." : "Accountants for the QoE, M&A lawyers, an industry SME, on delayed or rolled fees."}</p><button class="primary" type="button" data-add="${kind}">Add the first one</button></section>`;
+  if (!list.length) return `<section class="panel empty"><h2>${kind === "board" ? "No board members yet" : "No one on the bench yet"}</h2><p class="muted">${kind === "board" ? "“Target recently retired executives looking for meaningful involvement.” Add the people you'd ask, then pitch them with the board script." : "Accountants for the QoE, M&A lawyers, an industry SME, on delayed or rolled fees."}</p><button class="primary" type="button" data-add="${kind}">Add the first one</button></section>`;
   return `<section class="panel flush table-wrap"><table class="list-table rel-table"><thead><tr><th>Name</th><th>Role</th><th>Status</th><th>${kind === "board" ? "Equity" : "Fees"}</th><th>Last touch</th><th>Next</th><th></th></tr></thead><tbody>
     ${list.map((r) => `<tr class="${r.status === "passed" ? "muted" : ""}"><td><b>${esc(r.name)}</b>${r.firm ? `<br><small class="muted">${esc(r.firm)}</small>` : ""}</td><td>${esc(roleLabel(kind, r.role))}</td><td>${statusSelect(r)}</td>
       <td>${kind === "board" ? (r.equity_pct != null ? `${r.equity_pct}%` : "—") : esc(r.terms.fees || "—")}</td><td>${lastSeen(r)}</td><td>${due(r)}</td>${actions(r)}</tr>`).join("")}
@@ -140,7 +140,7 @@ async function edit(kind, r, seq) {
   const t = r?.terms || {};
   const roles = kind === "board" ? BOARD_ROLES : kind === "bench" ? BENCH_ROLES : null;
   const field = (name, label, value = "", type = "text", extra = "") => `<label>${esc(label)}<input name="${name}" type="${type}" value="${esc(value ?? "")}" ${extra}></label>`;
-  const lenderFields = kind === "lender" ? `<h3 class="h4">Lender matrix</h3><p class="muted small">From the interview. Each field has the skill's question to ask.</p><div class="form-grid">${LENDER_FIELDS.map((f) => {
+  const lenderFields = kind === "lender" ? `<h3 class="h4">Lender matrix</h3><p class="muted small">From the interview. Each field has the question to ask.</p><div class="form-grid">${LENDER_FIELDS.map((f) => {
     const q = LENDER_QUESTIONS.flatMap((g) => g.qs).find((x) => x.toLowerCase().includes(f.label.toLowerCase().split(" ")[0].slice(0, 5)));
     const input = f.type === "select" ? `<select name="t_${f.k}"><option value="">?</option>${f.options.map((o) => `<option ${t[f.k] === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>` : `<input name="t_${f.k}" type="${f.type === "number" ? "number" : "text"}" ${f.step ? `step="${f.step}"` : 'step="any"'} value="${esc(t[f.k] ?? "")}">`;
     return `<label title="${esc(q || "")}">${esc(f.label)}${f.suffix ? ` (${esc(f.suffix.trim())})` : ""}${input}</label>`;
@@ -212,6 +212,6 @@ const cand = (c) => `<article class="cand">
   ${c.credibility ? `<p class="small">${esc(c.credibility)}</p>` : ""}
   <p class="chips">${c.why.map((w) => `<span class="chip">${esc(w)}</span>`).join("")}</p>
   ${c.watch_out ? `<p class="small tone-warn">Watch out: ${esc(c.watch_out)}</p>` : ""}
-  ${c.pitch ? `<details><summary class="small">The message (the skill's board script)</summary><p class="small pre">${esc(c.pitch)}</p><button class="mini-btn" type="button" data-copypitch="${c.id}">Copy</button></details>` : ""}
+  ${c.pitch ? `<details><summary class="small">The message (the board script)</summary><p class="small pre">${esc(c.pitch)}</p><button class="mini-btn" type="button" data-copypitch="${c.id}">Copy</button></details>` : ""}
   <div class="row"><button class="primary small" type="button" data-sug="${c.id}" data-act="add">Add as prospect</button><button class="link small" type="button" data-sug="${c.id}" data-act="dismiss">Dismiss</button></div>
 </article>`;

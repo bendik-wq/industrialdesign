@@ -68,7 +68,7 @@ export function clocks(room, today = now()) {
   if (room.dd_start) {
     const end = room.contract_start || room.settled_at || today, used = daysBetween(room.dd_start, end);
     out.dd = { used, max: TIMELINE.ddDays, done: !!(room.contract_start || room.settled_at) };
-    if (!out.dd.done) { if (used > TIMELINE.ddDays) warn("high", `Diligence is on day ${used}: the skill's window is 90 days maximum.`); else if (used > TIMELINE.ddDays - 15) warn("medium", `Diligence is on day ${used} of 90.`); }
+    if (!out.dd.done) { if (used > TIMELINE.ddDays) warn("high", `Diligence is on day ${used}: the window is 90 days maximum.`); else if (used > TIMELINE.ddDays - 15) warn("medium", `Diligence is on day ${used} of 90.`); }
   }
   if (room.contract_start) {
     const used = daysBetween(room.contract_start, room.settled_at || today);
@@ -79,7 +79,7 @@ export function clocks(room, today = now()) {
   if (loi) {
     const months = daysBetween(loi, room.settled_at || today) / 30.4;
     out.loiToClose = { months: Math.round(months * 10) / 10, done: !!room.settled_at };
-    if (!room.settled_at && months > 6) warn("medium", `${Math.floor(months)} months since the offer: the skill's total process is 3-6 months from LOI to close.`);
+    if (!room.settled_at && months > 6) warn("medium", `${Math.floor(months)} months since the offer: the total process is 3-6 months from LOI to close.`);
   }
   if (room.first_contact && room.settled_at) out.contactToClose = daysBetween(room.first_contact, room.settled_at);
   if (room.offer_price && room.final_price) out.ddVariance = Math.round(((room.final_price - room.offer_price) / room.offer_price) * 1000) / 10;

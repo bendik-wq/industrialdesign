@@ -20,7 +20,7 @@ export async function monidKey(env, ctx) {
 }
 async function needKey(env, ctx) {
   const key = await monidKey(env, ctx);
-  if (!key) throw err(400, "Connect a Monid key under Settings → Integrations to use the data marketplace");
+  if (!key) throw err(400, "Connect business data under Settings → Integrations to use data lookups");
   return key;
 }
 
@@ -28,9 +28,9 @@ async function call(key, method, path, payload) {
   const res = await fetch(BASE + path, { method, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" }, body: payload ? JSON.stringify(payload) : undefined });
   const text = await res.text();
   let data; try { data = JSON.parse(text); } catch { data = { message: text.slice(0, 300) }; }
-  if (res.status === 401 || res.status === 403) throw err(400, "Monid rejected the key");
-  if (res.status === 402) throw err(402, "The Monid wallet is empty; top it up at monid.ai");
-  if (!res.ok) throw err(res.status === 404 ? 404 : 502, `Monid: ${data?.error?.message || data?.message || `answered ${res.status}`}`);
+  if (res.status === 401 || res.status === 403) throw err(400, "The data provider rejected the key");
+  if (res.status === 402) throw err(402, "The data wallet is empty; top it up on the Data page");
+  if (!res.ok) throw err(res.status === 404 ? 404 : 502, `Data lookup: ${data?.error?.message || data?.message || `answered ${res.status}`}`);
   return data;
 }
 
@@ -142,7 +142,7 @@ export async function run(env, ctx, { provider, endpoint, input = {} }, { purpos
   const no = forbidden(provider, endpoint);
   if (no) throw err(403, no);
   key = key || (await needKey(env, ctx));
-  if (!provider || !endpoint) throw err(400, "Say which provider and endpoint to run (find them with monid_discover)");
+  if (!provider || !endpoint) throw err(400, "Say which provider and endpoint to run (search the data sources first)");
   if (targetId && !(await env.DB.prepare("SELECT 1 FROM targets WHERE id = ?1 AND account_id = ?2").bind(+targetId, ctx.accountId).first())) targetId = null;
   // Reserve a hold against the budget before calling (inserted and checked in one transaction), so parallel runs
   // can't overshoot; the hold becomes the run's real cost when it finishes.
@@ -152,7 +152,7 @@ export async function run(env, ctx, { provider, endpoint, input = {} }, { purpos
   const after = await budget(env, ctx);
   if (after.spent_usd > b.monthly_usd + 1e-9 || b.left_usd <= 0) {
     await env.DB.prepare("DELETE FROM monid_runs WHERE id = ?1").bind(hold.id).run();
-    throw err(402, `This month's data budget ($${b.monthly_usd}) is used up. Raise it under Settings → Integrations → Monid.`);
+    throw err(402, `This month's data budget ($${b.monthly_usd}) is used up. Raise it on the Data page.`);
   }
   const settle = (status, cost, runId = null) => env.DB.prepare("UPDATE monid_runs SET status = ?2, cost = ?3, run_id = ?4 WHERE id = ?1").bind(hold.id, status, cost, runId).run();
   try {
@@ -168,7 +168,7 @@ export async function run(env, ctx, { provider, endpoint, input = {} }, { purpos
   if (DONE.has(r.status) && r.cost == null && runId) { try { const full = await call(key, "GET", `/v1/runs/${encodeURIComponent(runId)}`); r = { ...full, output: r.output ?? full.output }; } catch { /* cost stays unknown */ } }
   const cost = +(r.cost?.value ?? 0) || 0;
   await settle(r.status || "UNKNOWN", cost, runId || null);
-  if (r.status === "FAILED" || r.status === "BLOCKED" || r.status === "TIMED_OUT") throw err(r.status === "BLOCKED" && /balance/i.test(r.reason || "") ? 402 : 502, `Monid ${provider} ${endpoint}: ${r.error?.message || r.reason || r.status.toLowerCase().replace("_", " ")}`);
+  if (r.status === "FAILED" || r.status === "BLOCKED" || r.status === "TIMED_OUT") throw err(r.status === "BLOCKED" && /balance/i.test(r.reason || "") ? 402 : 502, `${provider} ${endpoint}: ${r.error?.message || r.reason || r.status.toLowerCase().replace("_", " ")}`);
   // Monid can report COMPLETED while the provider itself refused the request (bad field, no match): surface that.
   const ph = r.providerResponse?.httpStatus;
   if (r.status === "COMPLETED" && ph >= 400 && (r.output == null || (Array.isArray(r.output) && !r.output.length))) {

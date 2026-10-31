@@ -32,7 +32,7 @@ export async function renderPipeline(seq, params) {
       <div class="seg" role="group" aria-label="View"><button type="button" data-v="board" class="${mode === "board" ? "on" : ""}" aria-pressed="${mode === "board"}">Board</button><button type="button" data-v="table" class="${mode === "table" ? "on" : ""}" aria-pressed="${mode === "table"}">Table</button></div>
       <span class="spacer"></span>
       <button class="ghost" id="pushBtn" type="button" ${live.length ? "" : "disabled"}>⇢ Add to campaign</button>
-      <button class="ghost" id="importBtn" type="button" title="Your own sheet, or a ListKit / Apollo / Clay export">Import CSV</button>
+      <button class="ghost" id="importBtn" type="button" title="Your own sheet, or a ListKit export">Import CSV</button>
       <button class="ghost" id="ownBulk" type="button" title="Official registry check for Australian and UK targets: years registered, chains and corporate owners. Free">Check ownership</button>
       <a class="ghost" href="/api/targets.csv" download>Export CSV</a>
     </div>

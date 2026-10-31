@@ -91,6 +91,8 @@ async function team(seq) {
 }
 
 // ------------------------------------------------------------------ integrations
+// Model IDs shown as plain names (the option value stays the real ID).
+const modelName = (m) => { const s = String(m || ""); return /opus/i.test(s) ? "Most capable" : /sonnet/i.test(s) ? "Balanced" : /haiku/i.test(s) ? "Fastest" : /llama|@cf\//i.test(s) ? "Built-in AI" : s === "?" ? "?" : "AI model"; };
 async function integrations(seq) {
   const [d, seqs] = await Promise.all([api("/api/integrations"), api("/api/sequencers")]);
   if (stale(seq)) return;
@@ -112,11 +114,11 @@ async function integrations(seq) {
     ${d.canEdit ? "" : `<p class="notice">Only workspace owners can change integrations.</p>`}
     <div class="settings-grid">
       <form class="panel form-panel provider" data-provider="anthropic">
-        <div class="panel-head"><h2 class="h3">Anthropic · Claude</h2><span class="status ${k.anthropic.connected ? "on" : ""}">${k.anthropic.connected ? `Connected ··${esc(k.anthropic.last4)}` : "Not connected"}</span></div>
-        <p class="muted small">Claude powers Josh (with all of his video transcripts in context), the debriefs and every agent. Without a key: ${esc(k.anthropic.platformFallback)}.</p>
+        <div class="panel-head"><h2 class="h3">Your own AI key (optional)</h2><span class="status ${k.anthropic.connected ? "on" : ""}">${k.anthropic.connected ? `Connected ··${esc(k.anthropic.last4)}` : "Not connected"}</span></div>
+        <p class="muted small">The AI model behind Josh (with all of his video transcripts in context), the debriefs and every agent. Without a key: ${esc(k.anthropic.platformFallback)}.</p>
         <label class="field">API key<input name="key" type="password" autocomplete="off" spellcheck="false" placeholder="${k.anthropic.connected ? "Paste a new key to replace the current one" : "sk-ant-…"}" ${dis}></label>
-        <label class="field">Workspace ID (only for sk-ant-usr- keys)<input name="workspaceId" value="${esc(k.anthropic.meta.workspaceId || "")}" placeholder="wrkspc_…" ${dis}></label>
-        <label class="field">Model<select name="model" ${dis}>${d.models.map((m) => `<option ${m === (k.anthropic.meta.model || d.models[0]) ? "selected" : ""}>${m}</option>`).join("")}</select></label>
+        <label class="field">AI workspace ID (only for user keys)<input name="workspaceId" value="${esc(k.anthropic.meta.workspaceId || "")}" placeholder="wrkspc_…" ${dis}></label>
+        <label class="field">Model<select name="model" ${dis}>${d.models.map((m) => `<option value="${esc(m)}" ${m === (k.anthropic.meta.model || d.models[0]) ? "selected" : ""}>${esc(modelName(m))}</option>`).join("")}</select></label>
         <p class="muted small">${esc(k.anthropic.hint)}</p>
         <div class="row">${d.canEdit ? `<button class="primary" type="submit">${k.anthropic.connected ? "Save" : "Verify & connect"}</button>${k.anthropic.connected ? `<button class="ghost" type="button" data-disconnect>Disconnect</button>` : ""}` : ""}</div>
       </form>
@@ -253,7 +255,7 @@ async function usage(seq) {
     <div class="metric-strip">
       <div><span>AI calls · 30 days</span><b>${u.totals.calls}</b><small>${fmt(u.totals.input + u.totals.cached)} tokens in · ${fmt(u.totals.output)} out</small></div>
       <div><span>Cached input</span><b>${fmt(u.totals.cached)}</b><small>billed at a tenth</small></div>
-      <div><span>Est. Claude cost</span><b>$${u.totals.cost.toFixed(2)}</b><small>at list prices</small></div>
+      <div><span>Est. AI cost</span><b>$${u.totals.cost.toFixed(2)}</b><small>at list prices</small></div>
       <div class="${!brain.own && u.platformToday >= u.platformDailyLimit * 0.8 ? "alert" : ""}"><span>Included today</span><b>${brain.own ? "∞" : `${u.platformToday}/${u.platformDailyLimit}`}</b><small>${brain.own ? "your own key: no limit" : "calls on the platform's AI"}</small></div>
     </div>
     <section class="panel">
@@ -262,12 +264,18 @@ async function usage(seq) {
     </section>
     <section class="panel">
       <h2 class="h3">By feature</h2>
-      ${u.rows.length ? `<div class="table-wrap"><table class="list-table"><thead><tr><th>Feature</th><th>Model</th><th class="num">Calls</th><th class="num">In</th><th class="num">Cached</th><th class="num">Out</th><th class="num">Est. cost</th></tr></thead><tbody>${u.rows.map((r) => `<tr><td>${esc(label(r.feature))}</td><td class="small muted">${esc(r.model)}${r.own ? " · own key" : ""}</td><td class="num">${r.calls}</td><td class="num">${fmt(r.input)}</td><td class="num">${fmt(r.cached)}</td><td class="num">${fmt(r.output)}</td><td class="num">${r.cost ? `$${r.cost.toFixed(2)}` : "–"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted small">Nothing yet.</p>`}
-      <p class="muted small">Workers AI calls show no cost here; they're covered by the platform. Claude costs are billed by Anthropic to whoever owns the key.</p>
+      ${u.rows.length ? `<div class="table-wrap"><table class="list-table"><thead><tr><th>Feature</th><th>Model</th><th class="num">Calls</th><th class="num">In</th><th class="num">Cached</th><th class="num">Out</th><th class="num">Est. cost</th></tr></thead><tbody>${u.rows.map((r) => `<tr><td>${esc(label(r.feature))}</td><td class="small muted">${esc(modelName(r.model))}${r.own ? " · own key" : ""}</td><td class="num">${r.calls}</td><td class="num">${fmt(r.input)}</td><td class="num">${fmt(r.cached)}</td><td class="num">${fmt(r.output)}</td><td class="num">${r.cost ? `$${r.cost.toFixed(2)}` : "–"}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted small">Nothing yet.</p>`}
+      <p class="muted small">Built-in AI calls show no cost here; they're covered by the platform. Other AI costs are billed to whoever owns the key.</p>
     </section>`;
 }
 
 // ------------------------------------------------------------------ connect: plug Warplan into everything
+// Tool descriptions are written for AI models (they name sources); show users the first sentence in plain terms.
+const plainDesc = (d) => String(d || "").split(/(?<=\.)\s/)[0]
+  .replace(/\b(the )?JL skill('s)?|\bthe skill('s)?/gi, (m) => (/'s$/.test(m) ? "the playbook's" : "the playbook"))
+  .replace(/\bMonid( data)?( marketplace)?\b/gi, "the data network").replace(/\b(Claude|Anthropic)\b/g, "AI")
+  .replace(/\(?(Hunter|Apollo(-style)?|Clay|litescrape|apify|AgentMail)\)?/gi, "").replace(/\s{2,}/g, " ").replace(/\s+([,.)])/g, "$1").trim();
+
 async function connect(seq) {
   const tools = (await api("/api/agent/tools")).tools;
   if (stale(seq)) return;
@@ -282,7 +290,7 @@ async function connect(seq) {
   const draw = (tok) => {
     const s = snippets(tok || "wp_YOUR_TOKEN");
     $("#tab").innerHTML = `
-    <p class="lede tight">Warplan speaks MCP, the open standard AI apps use to call tools. Connect it once and Claude, Cursor, n8n or your own agent can search your pipeline, add targets, move stages, log calls, run the deal engine and have the agents write letters and LOIs, as you, in your workspace.</p>
+    <p class="lede tight">Warplan speaks MCP, the open standard AI apps use to call tools. Connect it once and your AI assistant, Cursor, n8n or your own agent can search your pipeline, add targets, move stages, log calls, run the deal engine and have the agents write letters and LOIs, as you, in your workspace.</p>
     <section class="panel">
       <div class="panel-head"><h2 class="h3">1 · Get a connection token</h2>${tok ? `<span class="status on">Token ready</span>` : `<button class="primary" id="mkTok" type="button">Create a connection token</button>`}</div>
       <p class="muted small">${tok ? "Copy what you need below now: the token is shown only once. Revoke it any time under Settings → API." : "A token acts as you. Make one per app so you can revoke them separately."}</p>
@@ -302,7 +310,7 @@ async function connect(seq) {
     </section>
     <section class="panel">
       <h2 class="h3">What connected agents can do</h2>
-      <div class="table-wrap"><table class="list-table api-table"><tbody>${tools.map((t) => `<tr><td><code>${esc(t.name)}</code></td><td><span class="method ${t.write ? "m-post" : "m-get"}">${t.write ? "WRITE" : "READ"}</span></td><td class="small">${esc(t.description)}</td></tr>`).join("")}</tbody></table></div>
+      <div class="table-wrap"><table class="list-table api-table"><tbody>${tools.map((t) => `<tr><td><code>${esc(t.name)}</code></td><td><span class="method ${t.write ? "m-post" : "m-get"}">${t.write ? "WRITE" : "READ"}</span></td><td class="small">${esc(plainDesc(t.description))}</td></tr>`).join("")}</tbody></table></div>
       <p class="muted small">Want a person to sign off first? External agents can <code>POST /api/inbox</code> to queue an action; it waits in the Inbox until someone approves it.</p>
     </section>`;
     $("#mkTok")?.addEventListener("click", async () => {
@@ -329,7 +337,7 @@ async function emailTab(seq) {
     <div class="settings-grid">
       <section class="panel form-panel gmail-card">
         <div class="panel-head"><h2 class="h3">Gmail</h2><span class="status ${oauth ? "on" : ""}">${oauth ? `Connected · ${esc(box.email)}` : "Sign in with Google"}</span></div>
-        <p class="muted small">The easy way, like connecting Gmail in Claude: sign in with Google and Warplan sends from your real Gmail or Google Workspace address (it shows in your Sent folder) and reads replies from owners you've emailed, every 10 minutes, with a drafted answer waiting in your Inbox. Nothing sends without your approval. No app password.</p>
+        <p class="muted small">The easy way: sign in with Google and Warplan sends from your real Gmail or Google Workspace address (it shows in your Sent folder) and reads replies from owners you've emailed, every 10 minutes, with a drafted answer waiting in your Inbox. Nothing sends without your approval. No app password.</p>
         ${box.gmailAvailable ? `<div class="row"><a class="primary" href="/api/google/connect">${oauth ? "Reconnect Gmail" : "Connect Gmail"}</a>${oauth ? `<button class="ghost" type="button" id="gmSync">Check for replies now</button>` : ""}</div>`
           : `<p class="small tone-warn">Google sign-in isn't switched on for this Warplan yet. ${session.me.isOwner ? "It needs a Google Cloud OAuth client (one-time, about 10 minutes); the steps are in the Warplan README under “Connect Gmail”." : "Ask the workspace owner to switch it on."}</p>`}
       </section>
@@ -347,8 +355,8 @@ async function emailTab(seq) {
         <div class="row"><button class="primary" type="submit">${box.connected ? "Save" : "Connect & verify"}</button>${box.connected ? `<button class="ghost" type="button" id="mbTest">Send me a test</button><button class="ghost" type="button" id="mbOff">Disconnect</button>` : ""}</div>
       </form>
       <section class="panel form-panel">
-        <div class="panel-head"><h2 class="h3">Or: a ready-made inbox</h2><span class="status ${box.host === "agentmail" ? "on" : ""}">${box.host === "agentmail" ? "In use" : "AgentMail"}</span></div>
-        <p class="muted small">No app password needed: Warplan creates a real inbox for you (e.g. <code>bendik.deals@agentmail.to</code>) on your Monid wallet, about $1 a month. Emails send from it, and replies are read automatically every 10 minutes: sorted by the AI, put on the right target, with a drafted answer in your Inbox.</p>
+        <div class="panel-head"><h2 class="h3">Or: a ready-made inbox</h2><span class="status ${box.host === "agentmail" ? "on" : ""}">${box.host === "agentmail" ? "In use" : "Managed inbox"}</span></div>
+        <p class="muted small">No app password needed: Warplan creates a real inbox for you (e.g. <code>bendik.deals@agentmail.to</code>) on your data wallet, about $1 a month. Emails send from it, and replies are read automatically every 10 minutes: sorted by the AI, put on the right target, with a drafted answer in your Inbox.</p>
         <form class="row" id="amForm"><input name="username" placeholder="name (optional)" maxlength="40" style="flex:1"><button class="ghost" type="submit">Create my inbox</button></form>
         ${box.host === "agentmail" ? `<button class="link" type="button" id="amSync">Check for replies now</button>` : ""}
       </section>
@@ -361,7 +369,7 @@ async function emailTab(seq) {
     </div>`;
   $("#amForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!(await confirmBox("Create an inbox?", "This creates a real email inbox on your Monid wallet (about $1 a month) and makes it the address your emails send from.", "Create it"))) return;
+    if (!(await confirmBox("Create an inbox?", "This creates a real email inbox on your data wallet (about $1 a month) and makes it the address your emails send from.", "Create it"))) return;
     try { const r = await post("/api/mailbox/agentmail", { username: e.target.username.value, from_name: session.me.user.name }); toast(r.receipt); emailTab(seq); } catch (err) { fail(err); }
   });
   $("#amSync")?.addEventListener("click", async () => { try { const r = await post("/api/mailbox/sync"); toast(`${r.replies} new repl${r.replies === 1 ? "y" : "ies"}`); } catch (e) { fail(e); } });

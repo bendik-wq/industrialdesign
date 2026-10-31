@@ -44,6 +44,7 @@ import { recordMeeting, listJobs, processJobs } from "./jobs.js";
 import { createAgentInbox, syncAgentInboxes } from "./mailer.js";
 import { gmailAuthUrl, gmailCallback, syncGmail } from "./gmail.js";
 import { territoryRoute } from "./territory.js";
+import { botsRoute, queueBots, runBot } from "./bots.js";
 import { getMailbox, saveMailbox, deleteMailbox, sendEmail, listSent, suppress, listSuppressions, unsuppress, PRESETS } from "./mailer.js";
 
 const INVITE_DAYS = 7;
@@ -73,6 +74,7 @@ export default {
         else if (type === "recording") await processRecording(env, accountId, msg.body.id);
         else if (type === "enrich") { const c = { accountId, user: { id: msg.body.userId, name: "Contact finder" }, isOwner: false }; await enrichTarget(env, c, msg.body.targetId, await dataKeys(env, c)); }
         else if (type === "run") { const r = await stepRun(env, accountId, msg.body.runId, exec); if (r?.more && !env.WORK) await stepRun(env, accountId, msg.body.runId, exec); }
+        else if (type === "bot") await runBot(env, accountId, msg.body.botId, hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)));
         else if (type === "watch") await runWatch(env, { accountId, user: { id: null, name: "Signal watch" } }, hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)), { limit: 120 });
         msg.ack();
       } catch (e) { console.error(`queue ${type} ${accountId}`, e); msg.retry({ delaySeconds: 60 }); }
@@ -80,7 +82,7 @@ export default {
   },
   async scheduled(event, env, exec) {
     // Every 10 minutes: finish background jobs (meeting notes). Daily: the autopilot.
-    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([processJobs(env), queueInboxes(env, exec), reconcileRuns(env).catch((e) => console.error("reconcile", e)), retryStuckRecordings(env).catch((e) => console.error("recordings", e)), migrateFilesToR2(env).catch((e) => console.error("r2", e))]));
+    if (event.cron === "*/10 * * * *") exec.waitUntil(Promise.all([queueBots(env, exec, (accountId, botId) => runBot(env, accountId, botId, hookEmitter(env, accountId, (pr) => exec.waitUntil(pr)))).catch((e) => console.error("bots", e)), processJobs(env), queueInboxes(env, exec), reconcileRuns(env).catch((e) => console.error("reconcile", e)), retryStuckRecordings(env).catch((e) => console.error("recordings", e)), migrateFilesToR2(env).catch((e) => console.error("r2", e))]));
     else exec.waitUntil(Promise.all([autopilotAll(env, exec), queueWatch(env, exec), queueMonitors(env, exec).catch((e) => console.error("monitors", e))]));
   },
 };
@@ -439,6 +441,8 @@ async function route(request, env, url, ctx, exec) {
   if (p === "/api/today" && m === "GET") return json(await today(env, ctx, q.get("tz") || "UTC"));
   // Densification map: sites, service areas, where to buy next
   if (p.startsWith("/api/territory")) { const res = await territoryRoute(request, env, ctx, url, body); if (res) return res; }
+  // Prospecting bots: find, email and follow up the businesses you'd buy, then hand you the ones to call
+  if (p.startsWith("/api/bots")) { const res = await botsRoute(request, env, ctx, url, body, hooks); if (res !== undefined) return json(res, m === "POST" && p === "/api/bots" ? 201 : 200); }
   // C1/C2: board, bench, lenders; lender fit and financing per deal
   if (p === "/api/relationships" && m === "GET") return json(await listRelationships(env, ctx, q.get("kind")));
   if (p === "/api/relationships" && m === "POST") return json(await createRelationship(env, ctx, await body(request)), 201);
@@ -859,11 +863,11 @@ const API_DOCS = {
     ["POST", "/mcp", "MCP server (Streamable HTTP): tools/list, tools/call. Auth: Bearer token or /mcp/<token>"],
     ["POST", "/api/scout/search", "Find companies {source: no|fr|uk|places|osm, industry, region, min_staff, page}"],
     ["POST", "/api/scout/import", "Add found companies to the pipeline {companies, currency, find_contacts?}"],
-    ["POST", "/api/targets/:id/contacts/find", "Run the contact finder (website emails/phones, owner address guesses, Hunter)"],
+    ["POST", "/api/targets/:id/contacts/find", "Run the contact finder (website emails/phones, owner address guesses, email finder)"],
     ["POST", "/api/email/send", "Send from your connected mailbox {to, subject, body, target_id}"],
     ["GET", "/api/email/sent?target=", "Emails sent"],
-    ["POST", "/api/targets/:id/enrich", "Deep enrich via Monid {mobile?, linkedin?}: owner email (verified), all domain emails, LinkedIn, optional mobile"],
-    ["GET", "/api/monid", "Monid wallet balance, this month's data budget and spend, recent runs"],
+    ["POST", "/api/targets/:id/enrich", "Deep enrich from business data {mobile?, linkedin?}: owner email (verified), all domain emails, LinkedIn, optional mobile"],
+    ["GET", "/api/monid", "Data wallet balance, this month's data budget and spend, recent runs"],
     ["POST", "/api/monid/discover", "Search 2,500+ data APIs {query}"],
     ["POST", "/api/monid/inspect", "An endpoint's input schema and price {provider, endpoint}"],
     ["POST", "/api/monid/run", "Run an endpoint {provider, endpoint, input: {body, queryParams, pathParams}, reason}"],
@@ -890,11 +894,14 @@ const API_DOCS = {
     ["GET", "/api/calls/notes?call_sid=CA…", "AI notes for a recorded call (when recording is on): summary, suggested outcome, next step, callback time, owner facts"],
     ["GET", "/api/dialer/insights", "Best hours to call (owner's local time), caller-ID health, outcomes"],
     ["GET", "/api/dialer/team", "Leaderboard and who's dialing now"],
-    ["GET", "/api/today?tz=", "Today: the ordered daily plan (callbacks, JL sequence touches, signals, deal deadlines, gate documents to chase, board and lender follow-ups) and the 3C scorecard"],
+    ["GET", "/api/today?tz=", "Today: the ordered daily plan (callbacks, follow-up sequence touches, signals, deal deadlines, gate documents to chase, board and lender follow-ups) and the 3C scorecard"],
+    ["GET", "/api/bots", "Prospecting bots with their stats (owners create and change them in the app)"],
+    ["GET", "/api/bots/:id/prospects?status=active|call|replied|no_email", "Who a bot found, how many emails each got, and the call list"],
+    ["GET", "/api/bots/:id/log", "What a bot did: found, emailed, followed up, handed over to call"],
     ["GET", "/api/territory", "Densification map data: your sites (service radius), pipeline targets with coordinates, default radius"],
     ["GET", "/api/territory/plan", "Where to do the next deal: footprint, people in reach, local share, regions (arms), ranked targets (tuck-in / extend / new arm) and white space"],
     ["POST", "/api/territory/sites", "Add a site {name, address | lat+lng, radius_km, target_id?}"],
-    ["GET", "/api/relationships?kind=board|bench|lender", "C1/C2 hub: board, professional bench and the lender matrix, with the skill's metrics"],
+    ["GET", "/api/relationships?kind=board|bench|lender", "C1/C2 hub: board, professional bench and the lender matrix, with the 3C metrics"],
     ["POST", "/api/relationships", "Add one {kind, role, name, firm, email, phone, linkedin, status, equity_pct, terms: {min_dscr, max_ltv, pg_policy, amort_years, timing_days, ticket_min, ticket_max, sectors, ...}, notes, next_date}"],
     ["GET", "/api/targets/:id/lenders", "Lenders from your matrix ranked by fit for this deal (ticket, DSCR, sector, PG, unsecured) and where financing stands"],
     ["POST", "/api/targets/:id/financing", "Track a deal with a lender {relationship_id, stage: sent|term_sheet|credit|approved|declined, amount?, terms?}"],

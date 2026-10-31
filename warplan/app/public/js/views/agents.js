@@ -3,7 +3,7 @@ import { esc, view, session } from "../core.js";
 const BETS = [
   { t: "Josh knows your deals", s: "live", d: "Josh sees your pipeline, your profile and the target you're talking about, so his push is about your real owners, your real numbers and the next action you're avoiding." },
   { t: "Practise the real owner", s: "live", d: "Turn any target into a practice call: the AI plays that owner, with hidden motives built from what you know about them. Rehearse the call before you dial." },
-  { t: "Your own AI, no limits", s: "live", d: "Connect your own Anthropic and ElevenLabs keys and every agent runs on them: Claude with all of Josh's videos in context, your chosen voice, no daily cap." },
+  { t: "Your own AI, no limits", s: "live", d: "Connect your own AI and ElevenLabs keys and every agent runs on them: the AI with all of Josh's videos in context, your chosen voice, no daily cap." },
   { t: "Plugs into your stack", s: "live", d: "API tokens and signed webhooks: push targets in from your CRM or scraper, send stage changes to Zapier, Make or Slack." },
   { t: "Josh on the live call", s: "next", d: "With everyone's consent, Josh listens to real seller calls and whispers the next question on screen, then writes the notes and next steps automatically." },
   { t: "Sellers come to you", s: "next", d: "A 'what is my business worth' page for your territory. Local owners value their company and land in your pipeline: off-market deals on autopilot." },

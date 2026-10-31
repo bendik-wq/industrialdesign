@@ -24,7 +24,7 @@ export async function checkLimits(env, ai, ctx) {
   ]);
   const over = perUser.results[0].n > PER_MINUTE ? "That's a lot of requests in a minute. Give it a moment."
     : perAccount.results[0].n > PER_MINUTE * 3 ? "Your workspace is making a lot of AI requests right now. Give it a moment."
-    : !ai.ownKey && perDay.results[0].n > DAILY_PLATFORM_CALLS ? `Your workspace has used today's ${DAILY_PLATFORM_CALLS} included AI calls. Connect your own Anthropic key under Settings → Integrations for unlimited use.` : null;
+    : !ai.ownKey && perDay.results[0].n > DAILY_PLATFORM_CALLS ? `Your workspace has used today's ${DAILY_PLATFORM_CALLS} included AI calls. Connect your own AI key under Settings → Integrations for unlimited use.` : null;
   if (over) {
     await env.DB.prepare("DELETE FROM usage WHERE id = (SELECT id FROM usage WHERE account_id = ?1 AND IFNULL(user_id, 0) = ?2 AND feature = '_hold' AND created_at = ?3 LIMIT 1)").bind(ctx.accountId, uid, stamp).run();
     throw err(429, over);

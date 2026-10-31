@@ -41,9 +41,9 @@ const llamaUsage = (u = {}) => ({ input: u.prompt_tokens || 0, output: u.complet
 // In JSON mode `response` can arrive already parsed (an object), so callers check the type.
 const llamaText = (out) => out?.choices?.[0]?.message?.content ?? out?.response ?? "";
 function friendly(e) {
-  if (e.status === 401 || e.status === 403) return err(502, "The Anthropic key was rejected. Check it under Settings → Integrations.");
-  if (e.status === 429) return err(429, "Claude is rate-limiting this key right now. Try again in a minute.");
-  if (e.status === 400 && /credit|billing/i.test(e.message)) return err(402, "The Anthropic account behind this key is out of credit.");
+  if (e.status === 401 || e.status === 403) return err(502, "The AI key was rejected. Check it under Settings → Integrations.");
+  if (e.status === 429) return err(429, "The AI is rate-limiting this key right now. Try again in a minute.");
+  if (e.status === 400 && /credit|billing/i.test(e.message)) return err(402, "The AI account behind this key is out of credit.");
   if (e.status) { console.error("anthropic", e.status, String(e.message).slice(0, 300)); return err(502, "The AI provider returned an error. Try again in a minute."); }
   return e;
 }
@@ -61,7 +61,7 @@ export async function chat(env, system, messages, maxTokens = 1200, effort = "lo
     if (res.stop_reason === "refusal") throw err(422, "The model declined this request");
     return { text: res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim(), model: res.model, usage: claudeUsage(res.usage) };
   }
-  if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
+  if (!env.AI) throw err(503, "No AI configured: add an AI key under Settings → Integrations");
   const out = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: llamaSystem(sys) }, ...messages], max_tokens: maxTokens });
   return { text: String(llamaText(out) || "").trim(), model: WORKERS_AI_MODEL, usage: llamaUsage(out.usage) };
 }
@@ -78,7 +78,7 @@ export async function chatStream(env, system, messages, maxTokens, effort, onTex
       return { text: res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim(), model: res.model, usage: claudeUsage(res.usage) };
     } catch (e) { throw friendly(e); }
   }
-  if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
+  if (!env.AI) throw err(503, "No AI configured: add an AI key under Settings → Integrations");
   const body = await env.AI.run(WORKERS_AI_MODEL, { messages: [{ role: "system", content: llamaSystem(sys) }, ...messages], max_tokens: maxTokens, stream: true });
   const reader = body.getReader(), dec = new TextDecoder();
   let buf = "", text = "", usage = {};
@@ -114,7 +114,7 @@ export async function chatJson(env, system, prompt, schema, maxTokens = 2000, ef
     const raw = res.content.filter((b) => b.type === "text").map((b) => b.text).join("");
     return { data: JSON.parse(raw), model: res.model, usage: claudeUsage(res.usage) };
   }
-  if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
+  if (!env.AI) throw err(503, "No AI configured: add an AI key under Settings → Integrations");
   // Llama's strict JSON mode tends to return empty defaults on long prompts, so ask for JSON in plain text and parse it.
   const instruction = `${prompt}\n\nReply with ONLY one JSON object, no prose and no code fences, matching this JSON schema:\n${JSON.stringify(schema)}`;
   let lastErr;
@@ -128,11 +128,11 @@ export async function chatJson(env, system, prompt, schema, maxTokens = 2000, ef
       if (data && typeof data === "object" && Object.keys(data).length) return { data, model: WORKERS_AI_MODEL, usage: llamaUsage(out.usage) };
     } catch (e) { lastErr = e; }
   }
-  throw err(502, `The AI returned something unreadable${lastErr ? "" : " (empty)"}. Try again, or connect Claude under Settings → Integrations.`);
+  throw err(502, `The AI returned something unreadable${lastErr ? "" : " (empty)"}. Try again, or connect your own AI key under Settings → Integrations.`);
 }
 
 export async function transcribe(env, audio, hint = "") {
-  if (!env.AI) throw err(503, "Voice needs the Workers AI binding");
+  if (!env.AI) throw err(503, "Voice needs the built-in AI, which isn't set up here");
   const out = await env.AI.run(STT_MODEL, {
     audio: Buffer.from(audio).toString("base64"),
     vad_filter: true,
@@ -224,7 +224,7 @@ export async function speak(env, text, speaker = "orion", voice = null) {
     const v = speaker === "arcas" ? cleanVoice(voice || {}) : { ...VOICE_DEFAULTS, stability: 0.5, similarity: 0.75, style: 0 };
     try { return await elevenLabs(env, clean, pick(env), v); } catch (e) { console.warn(e.message); }
   }
-  if (!env.AI) throw err(503, "Voice needs the Workers AI binding");
+  if (!env.AI) throw err(503, "Voice needs the built-in AI, which isn't set up here");
   return env.AI.run(TTS_MODEL, { text: clean.slice(0, 1900), speaker: SPEAKERS.includes(speaker) ? speaker : "orion", encoding: "mp3" });
 }
 
@@ -266,7 +266,7 @@ export async function agentLoop(env, system, messages, tools, exec, { maxTokens 
     }
     return { text: text.trim(), model, usage, actions };
   }
-  if (!env.AI) throw err(503, "No AI configured: add an Anthropic key under Settings → Integrations");
+  if (!env.AI) throw err(503, "No AI configured: add an AI key under Settings → Integrations");
   // Llama makes one call per round: allow a few rounds, stop when it repeats itself, then answer without tools.
   const base = [{ role: "system", content: llamaSystem(sys) }, ...messages];
   const convo = [...base], seen = new Set();

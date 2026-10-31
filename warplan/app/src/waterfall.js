@@ -52,13 +52,13 @@ export async function deepEnrich(env, ctx, targetId, { mobile = false, linkedin 
     const out = await step("Google Maps lookup", { provider: "litescrape", endpoint: "/google/maps", input: { queryParams: { q: `${t.name} ${t.location || ""}`.trim(), type: "search", ...(t.location && { location: t.location, z: 12 }) } } });
     const hit = (out?.local_results || []).find((x) => x.title && x.title.toLowerCase().includes(t.name.toLowerCase().split(/\s+/)[0])) || out?.place_results;
     if (hit?.website) website = hit.website;
-    if (hit?.phone) add({ kind: "phone", value: hit.phone, label: "Main line (Google Maps)", source: "Monid · Google Maps", confidence: "high" });
+    if (hit?.phone) add({ kind: "phone", value: hit.phone, label: "Main line (Google Maps)", source: "Google Maps", confidence: "high" });
   }
   const domain = domainOf(website);
   if (!domain) throw err(400, `No website for ${t.name}, so there's no domain to search. Add the website (or try Scout's Google Maps source) and run it again.`);
 
   // 2. Everyone published on the domain.
-  const ds = dataOf(await step("Hunter domain search", { provider: "hunterio", endpoint: "/domain-search", input: { body: { domain, limit: 10 } } }));
+  const ds = dataOf(await step("Domain email search", { provider: "hunterio", endpoint: "/domain-search", input: { body: { domain, limit: 10 } } }));
   let leader = null; // a general manager / MD: the best contact when no owner turns up
   for (const e of ds.emails || []) {
     const name = [e.first_name, e.last_name].filter(Boolean).join(" ");
@@ -66,8 +66,8 @@ export async function deepEnrich(env, ctx, targetId, { mobile = false, linkedin 
     const isOwner = ownerName ? !!name && sameName(name, ownerName) : OWNER_TITLE.test(e.position || "");
     const isLeader = !isOwner && LEADER_TITLE.test(e.position || "");
     if (isOwner && !ownerName && name) ownerName = name;
-    add({ kind: "email", value, label: `${name || (e.type === "generic" ? "General inbox" : "Person")}${e.position ? `, ${e.position}` : ""}${isOwner ? " (owner)" : isLeader ? " (decision maker)" : ""}`, source: "Monid · Hunter", confidence: (e.confidence || 0) >= 80 ? "high" : "medium", owner: isOwner });
-    if (e.phone_number) add({ kind: "phone", value: e.phone_number, label: `${name || "Office"} (Hunter)`, source: "Monid · Hunter", confidence: "medium" });
+    add({ kind: "email", value, label: `${name || (e.type === "generic" ? "General inbox" : "Person")}${e.position ? `, ${e.position}` : ""}${isOwner ? " (owner)" : isLeader ? " (decision maker)" : ""}`, source: "Email finder", confidence: (e.confidence || 0) >= 80 ? "high" : "medium", owner: isOwner });
+    if (e.phone_number) add({ kind: "phone", value: e.phone_number, label: `${name || "Office"}`, source: "Email finder", confidence: "medium" });
     if (isOwner) { ownerEmail ||= value; if (e.linkedin) ownerLinkedIn ||= /^https?:/.test(e.linkedin) ? e.linkedin : `https://www.linkedin.com/in/${e.linkedin}`; }
     if (isLeader && !leader) leader = { email: value, name };
   }
@@ -80,36 +80,36 @@ export async function deepEnrich(env, ctx, targetId, { mobile = false, linkedin 
     // Apollo's keyword search wants a short name: "Right Now Heating", not the full legal name.
     const short = t.name.replace(/\(.*?\)|,.*$/g, "").split(/\s+/).filter((w) => !/^(&|and|og|et|und|inc\.?|llc|ltd\.?|as|ab)$/i.test(w)).slice(0, 3).join(" ");
     for (const queryParams of [{ "q_organization_domains_list[]": [domain] }, { q_keywords: short }]) {
-      const out = await step("Apollo owner search", { provider: "apollo", endpoint: "/mixed_people/api_search", input: { queryParams: { ...queryParams, "person_seniorities[]": ["owner", "founder", "c_suite"], per_page: 5 } } });
+      const out = await step("Owner search", { provider: "apollo", endpoint: "/mixed_people/api_search", input: { queryParams: { ...queryParams, "person_seniorities[]": ["owner", "founder", "c_suite"], per_page: 5 } } });
       person = (out?.people || []).find((p) => { const org = words(p.organization?.name); return queryParams.q_organization_domains_list || mine.filter((w) => org.includes(w)).length >= Math.min(2, mine.length); });
       if (person) break;
     }
     if (person?.id) {
-      const m = await step("Apollo match", { provider: "apollo", endpoint: "/people/match", input: { queryParams: { id: person.id } } });
+      const m = await step("Owner match", { provider: "apollo", endpoint: "/people/match", input: { queryParams: { id: person.id } } });
       const pp = m?.person || m;
       // Similar names are common (franchises, "Smith Plumbing" in every town): keep the match only if the
       // person's employer is on our domain.
       const theirs = [pp?.organization?.primary_domain, domainOf(pp?.organization?.website_url || ""), String(pp?.email || "").split("@")[1]].filter(Boolean).map((x) => x.toLowerCase().replace(/^www\./, ""));
       const same = theirs.includes(domain);
-      if (!same) steps.push({ step: "Apollo match", status: "discarded", error: `Matched someone at ${theirs[0] || "another company"}, not ${domain}` });
+      if (!same) steps.push({ step: "Owner match", status: "discarded", error: `Matched someone at ${theirs[0] || "another company"}, not ${domain}` });
       const name = same ? [pp?.first_name, pp?.last_name].filter(Boolean).join(" ") : "";
       if (name) ownerName = name;
       if (same && pp?.linkedin_url) ownerLinkedIn = pp.linkedin_url;
       if (same && pp?.email && !/^email_not_unlocked/.test(pp.email)) {
         ownerEmail = String(pp.email).toLowerCase();
-        add({ kind: "email", value: ownerEmail, label: `${name || "Owner"}${pp.title ? `, ${pp.title}` : ""} (owner)`, source: "Monid · Apollo", confidence: pp.email_status === "verified" ? "high" : "medium", owner: true });
+        add({ kind: "email", value: ownerEmail, label: `${name || "Owner"}${pp.title ? `, ${pp.title}` : ""} (owner)`, source: "People data", confidence: pp.email_status === "verified" ? "high" : "medium", owner: true });
       }
     }
   }
 
   // 3b. Owner's address from their name.
   if (!ownerEmail && ownerName) {
-    const ef = dataOf(await step("Hunter email finder", { provider: "hunterio", endpoint: "/email-finder", input: { queryParams: { domain, full_name: splitName(ownerName).first + (splitName(ownerName).last ? ` ${splitName(ownerName).last}` : "") } } }));
+    const ef = dataOf(await step("Email finder", { provider: "hunterio", endpoint: "/email-finder", input: { queryParams: { domain, full_name: splitName(ownerName).first + (splitName(ownerName).last ? ` ${splitName(ownerName).last}` : "") } } }));
     if (ef.email) {
       ownerEmail = String(ef.email).toLowerCase();
-      add({ kind: "email", value: ownerEmail, label: `${ownerName}${ef.position ? `, ${ef.position}` : ""} (owner)`, source: "Monid · Hunter finder", confidence: (ef.score || 0) >= 80 ? "high" : "medium", owner: true });
+      add({ kind: "email", value: ownerEmail, label: `${ownerName}${ef.position ? `, ${ef.position}` : ""} (owner)`, source: "Email finder", confidence: (ef.score || 0) >= 80 ? "high" : "medium", owner: true });
       if (ef.linkedin_url || ef.linkedin) ownerLinkedIn ||= ef.linkedin_url || `https://www.linkedin.com/in/${ef.linkedin}`;
-      if (ef.phone_number) add({ kind: "phone", value: ef.phone_number, label: `${ownerName} (Hunter)`, source: "Monid · Hunter finder", confidence: "medium" });
+      if (ef.phone_number) add({ kind: "phone", value: ef.phone_number, label: `${ownerName}`, source: "Email finder", confidence: "medium" });
     }
   }
 
@@ -120,7 +120,7 @@ export async function deepEnrich(env, ctx, targetId, { mobile = false, linkedin 
   // 4. Will it bounce?
   let verdict = null;
   if (ownerEmail) {
-    const v = dataOf(await step("Hunter verifier", { provider: "hunterio", endpoint: "/email-verifier", input: { queryParams: { email: ownerEmail } } }));
+    const v = dataOf(await step("Email verifier", { provider: "hunterio", endpoint: "/email-verifier", input: { queryParams: { email: ownerEmail } } }));
     verdict = v.status || v.result || null;
     const c = found.find((f) => f.value === ownerEmail);
     if (c && verdict === "valid") c.confidence = "high";
@@ -137,15 +137,15 @@ export async function deepEnrich(env, ctx, targetId, { mobile = false, linkedin 
     const url = p?.linkedinUrl || p?.profileUrl || p?.url || (p?.publicIdentifier && `https://www.linkedin.com/in/${p.publicIdentifier}`);
     if (url) ownerLinkedIn = url;
   }
-  if (ownerLinkedIn) add({ kind: "linkedin", value: ownerLinkedIn, label: `${ownerName || "Owner"} (owner)`, source: "Monid · LinkedIn", confidence: "medium" });
+  if (ownerLinkedIn) add({ kind: "linkedin", value: ownerLinkedIn, label: `${ownerName || "Owner"} (owner)`, source: "LinkedIn", confidence: "medium" });
 
   // 6. Mobile, only on request.
   if (mobile) {
     if (!ownerLinkedIn || !ownerName) steps.push({ step: "Mobile number", status: "skipped", error: "Needs the owner's name and LinkedIn first" });
     else {
-      const out = await step("Mobile number (Clay)", { provider: "clay", endpoint: "/enrichment/mobile-phone", input: { body: { "Social Profile URL": ownerLinkedIn, "Full Name": ownerName, "Company Name": t.name, ...(domain && { "Company Domain": domain }) } } });
+      const out = await step("Mobile number", { provider: "clay", endpoint: "/enrichment/mobile-phone", input: { body: { "Social Profile URL": ownerLinkedIn, "Full Name": ownerName, "Company Name": t.name, ...(domain && { "Company Domain": domain }) } } });
       const m = out?.["Mobile Phone"] || out?.mobile_phone;
-      if (m) add({ kind: "phone", value: m, label: `${ownerName} mobile (owner)`, source: "Monid · Clay", confidence: "high", owner: true });
+      if (m) add({ kind: "phone", value: m, label: `${ownerName} mobile (owner)`, source: "Mobile lookup", confidence: "high", owner: true });
     }
   }
 

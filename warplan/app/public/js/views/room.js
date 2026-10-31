@@ -78,7 +78,7 @@ function gatePane(P) {
     <section class="panel"><h2 class="h3">Seller's side</h2>
       <p>${r.link_on ? `Link on (…${esc(r.token_hint)}). ${r.seller_views ? `Opened ${r.seller_views} time${r.seller_views === 1 ? "" : "s"}, last ${when(r.seller_seen_at)}.` : "Not opened yet."}` : "No link yet. Make one and send it to the owner after the call: they accept the NDA and upload the documents there, no account needed."}</p>
       <p>${r.nda_at ? `<span class="tone-ok">NDA accepted</span> by ${esc(r.nda_name)} on ${dateLabel(r.nda_at.slice(0, 10))}.` : "NDA not accepted yet."}</p>
-      ${g ? `<p class="${g.level === "high" ? "tone-ok" : g.level === "low" ? "tone-bad" : "muted"}">Motivation signal: ${esc(g.text)}${g.level === "high" || g.level === "low" ? ` <span class="muted small">(JL skill: reading seller signals)</span>` : ""}</p>` : ""}
+      ${g ? `<p class="${g.level === "high" ? "tone-ok" : g.level === "low" ? "tone-bad" : "muted"}">Motivation signal: ${esc(g.text)}${g.level === "high" || g.level === "low" ? ` <span class="muted small">(reading seller signals)</span>` : ""}</p>` : ""}
       <div class="row"><button class="ghost" id="chase" type="button">Chase for what's outstanding</button></div>
       <p class="muted small">The chase email waits for your approval in the Inbox before anything is sent.</p></section>
     ${R.healthcare ? "" : `<p class="muted small">Not a healthcare business, so the billing-by-practitioner line was left out. Add it with + Add a line if it applies.</p>`}`;
@@ -164,7 +164,7 @@ function wireMilestones(P) {
     try { const r = await post(`/api/targets/${P.id}/room/chase`, {}); toast(r.queued ? "Chase email drafted: approve it in the Inbox" : "Already drafted today: it's in the Inbox"); } catch (e) { fail(e); }
   });
   $("#flag")?.addEventListener("click", async () => {
-    const f = await dialog({ title: "Log a red flag", html: `<p class="muted small">From the skill's Red Flag Decision Matrix; the severity and action come with it.</p>
+    const f = await dialog({ title: "Log a red flag", html: `<p class="muted small">From the Red Flag Decision Matrix; the severity and action come with it.</p>
       <label>Red flag<select name="title">${P.R.redFlagMatrix.map((x) => `<option value="${esc(x.flag)}">${esc(x.flag)} · ${x.severity.toUpperCase()} · ${esc(x.action)}</option>`).join("")}<option value="">Something else…</option></select></label>
       <label>Or describe it<input name="custom" maxlength="300"></label><label>Severity (if something else)<select name="severity"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></label>
       <label>Notes<textarea name="notes" rows="3"></textarea></label>`, submit: "Log it" });

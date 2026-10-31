@@ -11,9 +11,9 @@ import { verifyBlueBubbles } from "./imessage.js";
 
 export const PROVIDERS = {
   anthropic: {
-    label: "Anthropic (Claude)",
+    label: "Your own AI key (optional)",
     pattern: /^sk-ant-[A-Za-z0-9_-]{20,}$/,
-    hint: "A workspace key (sk-ant-api03-…) from console.anthropic.com → API keys. A user key (sk-ant-usr-…) also works with its workspace ID (wrkspc_…).",
+    hint: "A workspace key (sk-ant-api03-…) from console.anthropic.com → API keys. A user key (sk-ant-usr-…) also works with its AI workspace ID (wrkspc_…).",
     meta: ["model", "workspaceId"],
   },
   elevenlabs: {
@@ -35,15 +35,15 @@ export const PROVIDERS = {
     meta: [],
   },
   hunter: {
-    label: "Hunter.io (verified owner emails)",
+    label: "Email finder key (verified owner emails)",
     pattern: /^[0-9a-f]{40}$/i,
-    hint: "hunter.io → API → copy your key. Free tier: 25 searches a month.",
+    hint: "Get a key at hunter.io → API. Free tier: 25 searches a month.",
     meta: [],
   },
   monid: {
-    label: "Monid (2,500+ data & scraping APIs)",
+    label: "Business data key (2,500+ data sources)",
     pattern: /^monid_(live|test)_[A-Za-z0-9]{16,}$/,
-    hint: "monid.ai → API keys. One prepaid wallet for Google Maps scraping, Hunter, LinkedIn, Apify and thousands more. Spend is capped per month under Settings → Integrations.",
+    hint: "Get a key at monid.ai → API keys. One prepaid wallet for Google Maps, verified emails, LinkedIn and thousands more data sources. Spend is capped per month under Settings → Integrations.",
     meta: [],
   },
   instantly: {
@@ -105,7 +105,7 @@ export async function listKeys(env, accountId) {
   return Object.entries(PROVIDERS).map(([id, p]) => ({
     id, label: p.label, hint: p.hint, metaFields: ["anthropic", "elevenlabs"].includes(id) ? [] : p.meta,
     connected: !!have[id], last4: have[id]?.hint || "", meta: have[id] ? JSON.parse(have[id].meta) : {}, updatedAt: have[id]?.updated_at || null,
-    platformFallback: id === "anthropic" ? (env.ANTHROPIC_API_KEY ? "Claude (platform key)" : "Workers AI (Llama 3.3 70B)") : id === "elevenlabs" ? (env.ELEVENLABS_API_KEY ? "ElevenLabs (platform key)" : "Workers AI voices") : id === "monid" && env.MONID_API_KEY ? "Monid (platform key)" : "not available",
+    platformFallback: id === "anthropic" ? (env.ANTHROPIC_API_KEY ? "the platform's AI" : "the built-in AI") : id === "elevenlabs" ? (env.ELEVENLABS_API_KEY ? "ElevenLabs (platform key)" : "built-in voices") : id === "monid" && env.MONID_API_KEY ? "Platform key" : "not available",
     group: ["anthropic", "elevenlabs"].includes(id) ? "ai" : ["instantly", "smartlead", "emailbison", "twilio", "bluebubbles"].includes(id) ? "outreach" : "data",
   }));
 }
@@ -144,9 +144,9 @@ function cleanMeta(provider, meta = {}) {
 export async function verifyKey(provider, key, meta = {}) {
   if (provider === "anthropic") {
     const r = await fetch("https://api.anthropic.com/v1/models?limit=1", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01", ...(meta.workspaceId && { "anthropic-workspace-id": meta.workspaceId }) } });
-    if (r.status === 401 || r.status === 403) throw err(400, "Anthropic rejected that key");
-    if (r.status === 400) { const m = (await r.json().catch(() => ({})))?.error?.message || ""; throw err(400, /workspace/i.test(m) ? "This user key (sk-ant-usr-…) isn't tied to a workspace: also paste the workspace ID (wrkspc_…, console.anthropic.com → Settings → Workspaces), or use a workspace key (sk-ant-api03-…)." : `Anthropic: ${m || "the key isn't valid"}`); }
-    if (!r.ok) throw err(502, `Anthropic answered ${r.status}; try again in a minute`);
+    if (r.status === 401 || r.status === 403) throw err(400, "The AI provider rejected that key");
+    if (r.status === 400) { const m = (await r.json().catch(() => ({})))?.error?.message || ""; throw err(400, /workspace/i.test(m) ? "This user key (sk-ant-usr-…) isn't tied to a workspace: also paste the AI workspace ID (wrkspc_…, found under Settings → Workspaces in the same console), or use a workspace key (sk-ant-api03-…)." : `AI provider: ${m || "the key isn't valid"}`); }
+    if (!r.ok) throw err(502, `The AI provider answered ${r.status}; try again in a minute`);
     return true;
   }
   if (provider === "elevenlabs") {
@@ -168,8 +168,8 @@ export async function verifyKey(provider, key, meta = {}) {
   }
   if (provider === "hunter") {
     const r = await fetch(`https://api.hunter.io/v2/account?api_key=${encodeURIComponent(key)}`);
-    if (r.status === 401 || r.status === 403) throw err(400, "Hunter rejected that key");
-    if (!r.ok) throw err(502, `Hunter answered ${r.status}; try again in a minute`);
+    if (r.status === 401 || r.status === 403) throw err(400, "The email finder rejected that key");
+    if (!r.ok) throw err(502, `The email finder answered ${r.status}; try again in a minute`);
     return true;
   }
   const check = async (url, init, name) => {
@@ -178,7 +178,7 @@ export async function verifyKey(provider, key, meta = {}) {
     if (!r.ok) throw err(502, `${name} answered ${r.status}; check the details and try again`);
     return true;
   };
-  if (provider === "monid") return check("https://api.monid.ai/v1/wallet/balance", { headers: { Authorization: `Bearer ${key}` } }, "Monid");
+  if (provider === "monid") return check("https://api.monid.ai/v1/wallet/balance", { headers: { Authorization: `Bearer ${key}` } }, "The data provider");
   if (provider === "instantly") return check("https://api.instantly.ai/api/v2/campaigns?limit=1", { headers: { Authorization: `Bearer ${key}` } }, "Instantly");
   if (provider === "smartlead") return check(`https://server.smartlead.ai/api/v1/campaigns?api_key=${encodeURIComponent(key)}`, {}, "Smartlead");
   if (provider === "emailbison") return check(`${meta.baseUrl}/api/campaigns`, { headers: { Authorization: `Bearer ${key}`, Accept: "application/json" } }, "EmailBison");

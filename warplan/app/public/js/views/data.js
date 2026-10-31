@@ -19,8 +19,8 @@ export async function renderData(seq) {
   if (stale(seq)) return;
   if (!m.connected) {
     view().innerHTML = `<header class="page-head"><p class="eyebrow">Data</p><h1>2,500 data sources. One key.</h1>
-      <p class="lede">Connect Monid to search Google Maps anywhere in Scout, deep-enrich owners (verified email, LinkedIn, mobile), and let Josh pull any data he needs: reviews, job posts, LinkedIn, company financials, web pages. One prepaid wallet, a monthly cap you set.</p></header>
-      <div class="panel"><a class="primary" href="#/settings/integrations">Connect Monid →</a> <span class="muted small">Get a key at monid.ai.</span></div>`;
+      <p class="lede">Connect business data to search Google Maps anywhere in Scout, deep-enrich owners (verified email, LinkedIn, mobile), and let Josh pull any data he needs: reviews, job posts, LinkedIn, company financials, web pages. One prepaid wallet, a monthly cap you set.</p></header>
+      <div class="panel"><a class="primary" href="#/settings/integrations">Connect business data →</a> <span class="muted small">The key goes under Settings → Integrations.</span></div>`;
     return;
   }
   const b = m.budget, pct = b.monthly_usd ? Math.min(100, (b.spent_usd / b.monthly_usd) * 100) : 100;
@@ -70,7 +70,7 @@ async function openRunner(ep) {
     <p class="small">${esc(d.description || "")}</p>
     <p class="small"><b>${esc(d.price)}</b>${d.typical_seconds ? ` · usually ${d.typical_seconds}s` : ""}${(d.price_raw?.notes || []).length ? ` · <span class="muted">${esc(d.price_raw.notes.join(" "))}</span>` : ""}</p>
     ${groups.map((g) => `<fieldset class="form-grid"><legend class="muted small">${g === "body" ? "Input" : g === "queryParams" ? "Query" : "Path"}</legend>${Object.entries(d.input[g].properties).slice(0, 30).map(([k, s]) => field(g, k, s, (d.input[g].required || []).includes(k))).join("")}</fieldset>`).join("") || `<p class="muted">No inputs.</p>`}
-    <div class="row"><button class="primary" type="submit">Run</button><span class="muted small">Charged to your Monid wallet and logged below.</span></div>
+    <div class="row"><button class="primary" type="submit">Run</button><span class="muted small">Charged to your data wallet and logged below.</span></div>
     <div id="out"></div></form>`;
   $("#runForm").addEventListener("submit", async (e) => {
     e.preventDefault();

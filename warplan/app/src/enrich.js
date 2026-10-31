@@ -83,15 +83,15 @@ export function companyPattern(emails) {
 
 async function hunter(key, domain, owner) {
   const out = [];
-  const q = (path) => fetch(`https://api.hunter.io/v2/${path}&api_key=${encodeURIComponent(key)}`, { signal: AbortSignal.timeout(10000) }).then((r) => (r.ok ? r.json() : r.status === 401 ? Promise.reject(err(400, "Hunter rejected the API key")) : null));
+  const q = (path) => fetch(`https://api.hunter.io/v2/${path}&api_key=${encodeURIComponent(key)}`, { signal: AbortSignal.timeout(10000) }).then((r) => (r.ok ? r.json() : r.status === 401 ? Promise.reject(err(400, "The email finder rejected the API key")) : null));
   const parts = String(owner || "").trim().split(/\s+/);
   if (parts.length >= 2) {
     const f = await q(`email-finder?domain=${encodeURIComponent(domain)}&first_name=${encodeURIComponent(parts[0])}&last_name=${encodeURIComponent(parts[parts.length - 1])}`);
-    if (f?.data?.email) out.push({ kind: "email", value: f.data.email.toLowerCase(), label: `${owner} (owner)`, source: "Hunter", confidence: f.data.score >= 80 ? "high" : "medium" });
+    if (f?.data?.email) out.push({ kind: "email", value: f.data.email.toLowerCase(), label: `${owner} (owner)`, source: "Email finder", confidence: f.data.score >= 80 ? "high" : "medium" });
   }
   const d = await q(`domain-search?domain=${encodeURIComponent(domain)}&limit=10`);
-  for (const e of d?.data?.emails || []) out.push({ kind: "email", value: e.value.toLowerCase(), label: [e.first_name, e.last_name].filter(Boolean).join(" ") + (e.position ? ` · ${e.position}` : "") || e.type, source: "Hunter", confidence: e.confidence >= 80 ? "high" : "medium" });
-  if (d?.data?.pattern) out.push({ kind: "pattern", value: d.data.pattern, label: "Company email pattern", source: "Hunter", confidence: "medium" });
+  for (const e of d?.data?.emails || []) out.push({ kind: "email", value: e.value.toLowerCase(), label: [e.first_name, e.last_name].filter(Boolean).join(" ") + (e.position ? ` · ${e.position}` : "") || e.type, source: "Email finder", confidence: e.confidence >= 80 ? "high" : "medium" });
+  if (d?.data?.pattern) out.push({ kind: "pattern", value: d.data.pattern, label: "Company email pattern", source: "Email finder", confidence: "medium" });
   return out;
 }
 

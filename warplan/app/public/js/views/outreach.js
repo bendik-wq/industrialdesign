@@ -50,8 +50,8 @@ export async function pushDialog(targets) {
 export async function deepEnrichDialog(t) {
   const r = await dialog({
     title: `Deep enrich ${t.name}`, submit: "Run it",
-    html: `<p>Finds the owner's email (and checks it won't bounce), every published address on the domain with names and titles, and the owner's LinkedIn, through the Monid data marketplace.</p>
-      <p class="muted small">Typically $0.05–0.08 from your Monid wallet, charged only for what's found. ${t.website ? "" : "No website on file: it looks the company up on Google Maps first."}</p>
+    html: `<p>Finds the owner's email (and checks it won't bounce), every published address on the domain with names and titles, and the owner's LinkedIn, through our data network.</p>
+      <p class="muted small">Typically $0.05–0.08 from your data wallet, charged only for what's found. ${t.website ? "" : "No website on file: it looks the company up on Google Maps first."}</p>
       <label class="check"><input type="checkbox" name="mobile"> Also find the owner's mobile number (about $0.57, only charged if one is found)</label>`,
   });
   if (!r) return null;

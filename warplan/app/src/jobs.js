@@ -103,7 +103,7 @@ export async function processJobs(env, accountId = null) {
     // Meetings can be booked up to a week ahead, so a job gets 8 days before it's given up on.
     const expired = Date.parse(job.created_at) < Date.now() - 864e5 * 8;
     try {
-      if (!(await monidKey(env, ctx))) { await failJob(job, "The Monid key was removed"); continue; }
+      if (!(await monidKey(env, ctx))) { await failJob(job, "The business data key was removed"); continue; }
       const out = await finish(env, job, ctx);
       if (out) { await env.DB.prepare("UPDATE jobs SET status = ?2, result = ?3, updated_at = ?4 WHERE id = ?1").bind(job.id, out.status, JSON.stringify(out.result), now()).run(); done++; continue; }
     } catch (e) { console.warn("job", job.id, e.message); }

@@ -23,7 +23,7 @@ export async function renderHome(seq) {
     { done: h.total > 0, label: "Add your first targets (aim for ten)", action: "add" },
     { done: h.practice.calls > 0, label: "Practise a first call with an AI owner", href: "#/simulator" },
     { done: !!synced.get("deal", null), label: "Structure a deal that passes both rules", href: "#/builder" },
-    ...(me.isOwner ? [{ done: brain.kind === "claude", label: "Connect Claude for Josh's full brain", href: "#/settings/integrations" }] : []),
+    ...(me.isOwner ? [{ done: brain.kind === "claude", label: "Connect an AI key for Josh's full brain", href: "#/settings/integrations" }] : []),
   ];
   const left = steps.filter((s) => !s.done).length;
   const live = h.stages.filter((s) => s.id !== "lost" && s.id !== "closed");

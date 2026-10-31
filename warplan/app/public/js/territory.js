@@ -118,7 +118,7 @@ const STAGE_LABEL = { sourced: "Sourced", contacted: "Contacted", first_call: "F
 export const KINDS = {
   tuckin: { label: "Tuck-in", text: "Inside your footprint: shares the team, vans, office and brand you already run, and lifts your local share." },
   extend: { label: "Extend", text: "Next to your footprint: new customers within reach of the team you already have." },
-  arm: { label: "New arm", text: "A new region. The skill runs each region as its own arm, with its own manager." },
+  arm: { label: "New arm", text: "A new region, run as its own arm with its own manager." },
   first: { label: "First deal", text: "Your first location. Pick a big metro with many small operators to buy next." },
 };
 const fmtN = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `${Math.round(n / 1e3)}k` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(Math.round(n)));

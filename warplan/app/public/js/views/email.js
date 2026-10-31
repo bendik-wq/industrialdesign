@@ -20,7 +20,7 @@ export async function composeEmail({ target = null, contacts = [], to = "", subj
     html: `<div class="two"><label class="field">From<input value="${esc(box.from_name ? `${box.from_name} <${box.email}>` : box.email)}" disabled></label>
         <label class="field">To<input name="to" type="email" required value="${esc(best)}" list="toList" autocomplete="off"></label></div>
       <datalist id="toList">${emails.map((c) => `<option value="${esc(c.value)}">${esc(c.label)}${c.confidence === "guess" ? " · guess" : ""}</option>`).join("")}</datalist>
-      ${emails.some((c) => c.value === best && c.confidence === "guess") ? `<p class="notice small">That address is a guess from the owner's name. It may bounce: a verified one (Hunter, or the website) is safer.</p>` : ""}
+      ${emails.some((c) => c.value === best && c.confidence === "guess") ? `<p class="notice small">That address is a guess from the owner's name. It may bounce: a verified one (email finder, or the website) is safer.</p>` : ""}
       <label class="field">Subject<input name="subject" required maxlength="200" value="${esc(subject)}"></label>
       <label class="field">Message<textarea name="body" rows="12" required>${esc(body)}</textarea></label>
       <div class="row compose-tools">${target ? `<button type="button" class="ghost" data-write>✎ Write it for me</button>` : ""}<span class="muted small">Your signature${box.postal_address ? ", postal address" : ""} and a one-line opt-out are added automatically. ${box.sentToday}/${box.daily_limit} sent today.</span></div>`,

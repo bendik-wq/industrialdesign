@@ -1,7 +1,7 @@
 import { $, $$, esc, api, post, view, session, stale, toast, fail, when, skeleton, emptyState } from "../core.js";
 
 const TOOL = { draft_document: "Write a document", log_activity: "Log on the timeline", update_target: "Update a target", create_target: "Add a target" };
-const SOURCE = { autopilot: "Autopilot", api: "API", user: "You", mcp: "AI app" };
+const SOURCE = { autopilot: "Autopilot", api: "API", user: "You", mcp: "AI app", bot: "Prospecting bot" };
 
 // Show the count of pending proposals on the nav item.
 export async function refreshInboxBadge() {

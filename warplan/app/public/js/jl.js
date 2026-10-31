@@ -4,7 +4,7 @@
 // or add to these: if the skill doesn't cover something, Warplan says so instead of making it up.
 // Placeholders: [Name] owner's first name, [Your Name], [Company] your company, [industry], [business name].
 
-export const JL_SOURCE = "JL skill: the 3C Acquisition Model";
+export const JL_SOURCE = "3C Acquisition Model";
 
 export const SCRIPTS = {
   opener: {

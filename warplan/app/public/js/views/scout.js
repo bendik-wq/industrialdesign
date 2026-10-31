@@ -82,7 +82,7 @@ export async function renderScout(seq, params = new URLSearchParams()) {
         <span class="muted small">${state.total != null ? `${state.total} matches · ` : ""}showing ${rows.length}${gone ? ` (${gone} removed · <button class="link-btn" type="button" id="unhide">show</button>)` : ""} · ${withOwner} with an owner · ${withEmail} with email · ${withPhone} with phone</span>
         <span class="spacer"></span>
         <label class="check"><input type="checkbox" id="findC" checked> Find contacts on their websites</label>
-        ${info.monid ? `<label class="check" title="Owner email (verified) + LinkedIn via Monid, about $0.05–0.08 each"><input type="checkbox" id="deepC"> Deep enrich owners (~$0.06 each)</label>` : ""}
+        ${info.monid ? `<label class="check" title="Owner email (verified) + LinkedIn from business data, about $0.05–0.08 each"><input type="checkbox" id="deepC"> Deep enrich owners (~$0.06 each)</label>` : ""}
         <button class="ghost" id="rmSel" type="button" disabled>Remove 0</button>
         <button class="primary" id="addSel" type="button" disabled>Add 0 to pipeline</button>
       </div>

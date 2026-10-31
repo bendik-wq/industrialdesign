@@ -47,7 +47,7 @@ registerAgent({
           const changed = actuals.some((a) => !since || a.updated_at > since);
           if (since && !changed) return { stop: "No new actuals or files since the last check.", summary: "Nothing new", data: { months: actuals.length } };
         }
-        return { summary: `${actuals.length} months of actuals, ${fresh.length} new file(s) to import, covenant ${covenant}x${lender ? ` (${lender.name})` : " (the skill's 1.5x floor)"}`, data: { closed, covenant, lender: lender?.name || null, deal: targetDeal(target), months: actuals.length, fresh: fresh.map((s) => s.id), skipped } };
+        return { summary: `${actuals.length} months of actuals, ${fresh.length} new file(s) to import, covenant ${covenant}x${lender ? ` (${lender.name})` : " (the 1.5x floor)"}`, data: { closed, covenant, lender: lender?.name || null, deal: targetDeal(target), months: actuals.length, fresh: fresh.map((s) => s.id), skipped } };
       },
     },
     {

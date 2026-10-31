@@ -83,7 +83,7 @@ export async function renderTerritory(seq, params) {
       <div class="kpi ${s.share >= 0.5 ? "accent" : ""}"><span>Local share</span><b>${s.sites ? Math.round(s.share * 100) : 0}%</b><small>${s.owned} of ${s.operators} known operators in your footprint</small></div>
       <div class="kpi"><span>Regions (arms)</span><b>${s.arms}</b><small>${s.arms > 1 ? "Each region runs as its own arm" : "One region: keep densifying it"}</small></div>`;
     const owned = data.sites.length, next = owned < 10 ? 10 : owned < 50 ? 50 : 100;
-    $("#milestone").textContent = `${owned} site${owned === 1 ? "" : "s"} on the map. The skill's milestones: “10 businesses = 1% market share → $5-10M exit”, “50 businesses = 5% market share → $40-80M exit”. Next mark: ${next}.`;
+    $("#milestone").textContent = `${owned} site${owned === 1 ? "" : "s"} on the map. Milestones: “10 businesses = 1% market share → $5-10M exit”, “50 businesses = 5% market share → $40-80M exit”. Next mark: ${next}.`;
 
     layers.sites.clearLayers(); layers.targets.clearLayers(); layers.space.clearLayers();
     const sig = css("--signal");

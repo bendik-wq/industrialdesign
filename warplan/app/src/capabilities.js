@@ -136,7 +136,7 @@ export function scoreLender(l, need) {
     add("Ticket size", ok, `${money(t.ticket_min || 0, need.cur)}–${t.ticket_max != null ? money(t.ticket_max, need.cur) : "any"} vs ${money(amount, need.cur)}`);
   } else add("Ticket size", null, "Ask: What size tickets do you typically finance?");
   if (t.min_dscr != null && need.minDscr != null && !need.hypothetical) add("DSCR", need.minDscr >= t.min_dscr, `deal ${need.minDscr.toFixed(2)}x vs their ${t.min_dscr}x minimum`);
-  else if (t.min_dscr != null) add("DSCR", null, `their minimum ${t.min_dscr}x; the skill's own floor is 1.5x`);
+  else if (t.min_dscr != null) add("DSCR", null, `their minimum ${t.min_dscr}x; the 3C floor is 1.5x`);
   else add("DSCR", null, "Ask: What DSCR do you require? ICR?");
   if (t.sectors && need.industry) {
     const words = need.industry.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3);

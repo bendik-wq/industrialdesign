@@ -56,7 +56,7 @@ export async function today(env, ctx, tz = "UTC") {
     const dueNext = x.next_date && x.next_date <= day;
     const stale = since != null && since > STALE_DAYS[x.kind] && ["agreed", "signed", "engaged", "interviewed", "relationship"].includes(x.status);
     if (!dueNext && !stale) continue;
-    const why = dueNext ? `Follow-up due ${x.next_date}` : x.kind === "lender" ? `${since} days since you spoke. The skill: send quarterly email updates on pipeline.` : x.kind === "board" ? `${since} days since you spoke. The skill: 2-4 hours monthly board meetings.` : `${since} days since you spoke.`;
+    const why = dueNext ? `Follow-up due ${x.next_date}` : x.kind === "lender" ? `${since} days since you spoke. Send quarterly email updates on pipeline.` : x.kind === "board" ? `${since} days since you spoke. Plan on 2-4 hours of monthly board meetings.` : `${since} days since you spoke.`;
     add({ kind: x.kind, block: "relationships", urgent: dueNext && x.next_date < day, title: `${x.kind === "lender" ? "Lender" : x.kind === "board" ? "Board" : "Bench"}: ${x.name}${x.firm ? ` (${x.firm})` : ""}`, detail: why, href: `#/capital?focus=${x.id}` });
   }
   // The crew's open alerts on deals and owned businesses (high first).

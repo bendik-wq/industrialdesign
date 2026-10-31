@@ -58,7 +58,7 @@ export async function streamReply(threadId, text, bubble, signal) {
 }
 
 // Live receipts while the agent works: what it read (quietly) and what it changed (prominently).
-const TOOL_LABEL = { search_pipeline: "Searched the pipeline", get_target: "Read the target", pipeline_overview: "Checked the pipeline", list_documents: "Looked at documents", get_document: "Read a document", model_deal: "Ran the deal engine", draft_document: "Writing a document" };
+const TOOL_LABEL = { search_pipeline: "Searched the pipeline", get_target: "Read the target", pipeline_overview: "Checked the pipeline", list_documents: "Looked at documents", get_document: "Read a document", model_deal: "Ran the deal engine", draft_document: "Writing a document", monid_discover: "Searched data sources", monid_inspect: "Checked a data source", monid_result: "Checked a data lookup" };
 export function actionsHtml(acts) {
   if (!acts.length) return "";
   return `<div class="acts">${acts.map((a) => `<div class="act ${a.ok ? (a.write ? "did" : "read") : "fail"}">${a.ok ? (a.write ? "✓" : "·") : "✕"} ${esc(a.write || !a.ok ? a.receipt || a.name : TOOL_LABEL[a.name] || a.name)}${a.link ? ` <a href="${esc(a.link.replace(/^\//, ""))}">open</a>` : ""}</div>`).join("")}</div>`;
@@ -112,7 +112,7 @@ export async function renderJosh(id, seq) {
           <textarea id="input" rows="1" placeholder="Type, or tap the mic and talk…" aria-label="Message to Josh"></textarea>
           <button class="primary" id="send" type="button">Send</button>
         </div>
-        <p class="brain muted">${brain.kind === "claude" ? `Claude · ${esc(brain.model)}${brain.own ? " · your key" : ""}` : `Workers AI · <a href="#/settings/integrations">connect Claude for sharper answers</a>`}</p>
+        <p class="brain muted">${brain.kind === "claude" ? `AI${brain.own ? " · your key" : ""}` : `Built-in AI · <a href="#/settings/integrations">connect your own AI key for sharper answers</a>`}</p>
       </section>
     </div>`;
   $("#speakToggle").addEventListener("change", (e) => local.set("speak", e.target.checked));

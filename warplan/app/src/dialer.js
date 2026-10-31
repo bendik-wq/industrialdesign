@@ -305,7 +305,7 @@ export async function logCall(env, ctx, b, hooks) {
     let n = 0;
     for (const c of results) { if (["no_answer", "voicemail"].includes(c.disposition)) n++; else break; } // since they last picked up (includes this call)
     const step = nextInSequence(((Math.max(1, n) - 1) % 4) + 1);
-    fields.next_action = `JL sequence: ${[...step.between.map((x) => `day ${x.day} ${x.text.toLowerCase()}`), step.next ? `day ${step.next.day} ${step.next.text.toLowerCase()}` : ""].filter(Boolean).join("; ")}`.slice(0, 240);
+    fields.next_action = `Follow-up sequence: ${[...step.between.map((x) => `day ${x.day} ${x.text.toLowerCase()}`), step.next ? `day ${step.next.day} ${step.next.text.toLowerCase()}` : ""].filter(Boolean).join("; ")}`.slice(0, 240);
     fields.next_date = ymd(step.between[0] ? step.between[0].day - step.lastDay : step.daysToNext || 1);
   }
   if (d.stage && idx(t.stage) < idx(d.stage)) fields.stage = d.stage;

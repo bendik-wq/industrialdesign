@@ -73,7 +73,7 @@ export const KINDS = {
       const { text, m } = dealBlock(t);
       return `<facts>\n${targetFacts(t)}\n</facts>\n${text}\n${buyerBlock(p)}\nDate: ${today()}
 Write a non-binding letter of intent (LOI) from the buyer to the owner, in markdown, ready to edit. Sections: opening paragraph (warm, respectful, why this business); 1. Purchase price and structure (use the deal exactly, with every element, amount and term); 2. What stays the same (name, team, customers; the owner's transition role and length as [placeholder] unless known); 3. Due diligence (scope and a [45]-day period); 4. Conditions (financing, satisfactory diligence, definitive agreements); 5. Exclusivity ([60] days) and confidentiality; 6. Non-binding nature (only exclusivity, confidentiality and governing law are binding); 7. Timeline to closing; then the signature blocks for both parties.
-${m.works ? "" : "Before the letter, add a short boxed note (a markdown blockquote) saying the structure currently fails a house rule (including being outside the JL skill's structure library) and what to fix before sending."}
+${m.works ? "" : "Before the letter, add a short boxed note (a markdown blockquote) saying the structure currently fails a house rule (including being outside the standard structure library) and what to fix before sending."}
 End with a one-line reminder that a lawyer should review it before sending.`;
     },
   },
@@ -214,7 +214,7 @@ Review these financials like a buy-side quality-of-earnings analyst. Compute rep
     board: `Board meeting ${new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`,
   };
   // The packet's templates are the skill's own lines, not the model's.
-  if (kind === "credibility") out.text = `${out.text.trim()}\n\n## NBIO template\n${NBIO.includes.map((x) => `### ${x}\n[ ]`).join("\n")}\n\n## Diligence checklist\n${[...new Set(ROOM_TEMPLATES.dd.map((x) => x.section))].map((sec) => `### ${sec}\n${ROOM_TEMPLATES.dd.filter((x) => x.section === sec).map((x) => `- [ ] ${x.title}`).join("\n")}`).join("\n\n")}\n\n_Templates from the JL skill: the 3C Acquisition Model. Check every name and number before sharing._`;
+  if (kind === "credibility") out.text = `${out.text.trim()}\n\n## NBIO template\n${NBIO.includes.map((x) => `### ${x}\n[ ]`).join("\n")}\n\n## Diligence checklist\n${[...new Set(ROOM_TEMPLATES.dd.map((x) => x.section))].map((sec) => `### ${sec}\n${ROOM_TEMPLATES.dd.filter((x) => x.section === sec).map((x) => `- [ ] ${x.title}`).join("\n")}`).join("\n\n")}\n\n_Templates from the 3C Acquisition Model. Check every name and number before sharing._`;
   return { kind, title: titles[kind], content: out.text, meta: { channel: opts.channel || null, language: opts.language || null }, out };
 }
 

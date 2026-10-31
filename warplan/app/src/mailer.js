@@ -95,7 +95,7 @@ const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 const wrap76 = (s) => s.replace(/(.{76})/g, "$1\r\n");
 const encHeader = (s) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(s)}?=`);
 const htmlEsc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-export function buildMessage({ from, fromName, to, subject, text, messageId, unsubscribe }) {
+export function buildMessage({ from, fromName, to, subject, text, messageId, unsubscribe, inReplyTo = null }) {
   const boundary = `wp_${crypto.randomUUID()}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#111">${text.split(/\n{2,}/).map((p) => `<p>${htmlEsc(p).replace(/\n/g, "<br>")}</p>`).join("")}</div>`;
   const headers = [
@@ -104,6 +104,7 @@ export function buildMessage({ from, fromName, to, subject, text, messageId, uns
     `Subject: ${encHeader(subject)}`,
     `Date: ${new Date().toUTCString().replace("GMT", "+0000")}`,
     `Message-ID: ${messageId}`,
+    ...(inReplyTo ? [`In-Reply-To: ${inReplyTo}`, `References: ${inReplyTo}`] : []),
     "MIME-Version: 1.0",
     ...(unsubscribe ? [`List-Unsubscribe: <mailto:${unsubscribe}?subject=unsubscribe>`] : []),
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
@@ -245,10 +246,12 @@ export async function sendEmail(env, ctx, b, hooks) {
   }
   const body = composeBody(text, box);
   const messageId = `<${crypto.randomUUID()}@${box.email.split("@")[1]}>`;
-  const raw = buildMessage({ from: box.email, fromName: box.from_name, to, subject, text: body, messageId, unsubscribe: box.email });
+  // Follow-ups thread under the first email (In-Reply-To), so the owner sees one conversation.
+  const inReplyTo = /^<[^<>\s]{3,200}>$/.test(String(b.in_reply_to || "")) ? b.in_reply_to : null;
+  const raw = buildMessage({ from: box.email, fromName: box.from_name, to, subject, text: body, messageId, unsubscribe: box.email, inReplyTo });
   let status = "sent", error = null;
   try {
-    if (box.host === "agentmail") await monidRun(env, ctx, { provider: "agentmail", endpoint: "/send-messages", input: { body: { inboxId: box.username, to: [to], subject, text: body, headers: { "List-Unsubscribe": `<mailto:${box.email}?subject=unsubscribe>` } } } }, { purpose: `Email to ${to}`, targetId: target?.id || null });
+    if (box.host === "agentmail") await monidRun(env, ctx, { provider: "agentmail", endpoint: "/send-messages", input: { body: { inboxId: box.username, to: [to], subject, text: body, headers: { "List-Unsubscribe": `<mailto:${box.email}?subject=unsubscribe>`, ...(inReplyTo && { "In-Reply-To": inReplyTo, References: inReplyTo }) } } } }, { purpose: `Email to ${to}`, targetId: target?.id || null });
     else if (box.host === "gmail") await gmailSend(env, box, raw);
     else await smtpSend(box, await open(env, box, aad(ctx.user.id)), to, raw);
   }
@@ -265,7 +268,7 @@ export async function sendEmail(env, ctx, b, hooks) {
   await env.DB.batch(writes);
   if (status === "failed") throw err(502, error);
   hooks?.emit("email.sent", { target_id: target?.id || null, to, subject });
-  return { ok: true, to, subject, receipt: `Emailed ${to} from ${box.email}` };
+  return { ok: true, to, subject, message_id: messageId, receipt: `Emailed ${to} from ${box.email}` };
 }
 
 export async function listSent(env, ctx, targetId) {

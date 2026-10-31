@@ -10,7 +10,7 @@ import { mergeFindings, FINDINGS_RULE, crewSystem, FINDINGS_SCHEMA, verifyFindin
 
 registerAgent({
   id: "gatekeeper", name: "Add-on Gatekeeper", icon: "gate", needsTarget: true, stages: ["first_call", "meeting", "docs", "loi", "diligence"],
-  describe: "Before you send an offer: stacks this deal on top of every business you already own and checks the whole group still covers its debt at 1.5x, that the structure is from the JL library, that you keep control, that you have the capacity to integrate it (businesses still mid-integration, overdue 100-day items, open high alerts), and how much of the value is real versus multiple arbitrage. Verdict: pursue, pause or restructure, with the maximum price that still works.",
+  describe: "Before you send an offer: stacks this deal on top of every business you already own and checks the whole group still covers its debt at 1.5x, that the structure is from the structure library, that you keep control, that you have the capacity to integrate it (businesses still mid-integration, overdue 100-day items, open high alerts), and how much of the value is real versus multiple arbitrage. Verdict: pursue, pause or restructure, with the maximum price that still works.",
   layers: [
     {
       id: "gather", title: "Load the portfolio, its real cash flow and the integration backlog", kind: "gather",

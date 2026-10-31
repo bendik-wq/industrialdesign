@@ -410,7 +410,7 @@ async function aiNotes(callSid) {
     box.innerHTML = `<div class="ai-head"><b>AI notes</b><span class="muted small">${n.sentiment ? esc(n.sentiment) : ""}${r.audio ? ` · <a href="${/^\/|^https:\/\//.test(r.audio || "") ? esc(r.audio) : "#"}" target="_blank" rel="noopener">play recording</a>` : ""}</span></div>
       <p class="small">${esc(n.summary || "")}</p>
       ${n.next_step ? `<p class="small"><b>Next:</b> ${esc(n.next_step)}${n.callback_when ? ` <span class="chip">⏰ ${esc(n.callback_when)}</span>` : ""}</p>` : ""}
-      ${n.motivation_tier ? `<p class="small"><b>Motivation (JL):</b> Tier ${n.motivation_tier}, ${["", "immediate seller (30-90 days)", "near-term seller (3-12 months)", "future seller (nurture 12+ months)"][n.motivation_tier]}${n.motivation_signals?.length ? ` · ${esc(n.motivation_signals.slice(0, 3).join("; "))}` : ""}</p>` : ""}
+      ${n.motivation_tier ? `<p class="small"><b>Motivation:</b> Tier ${n.motivation_tier}, ${["", "immediate seller (30-90 days)", "near-term seller (3-12 months)", "future seller (nurture 12+ months)"][n.motivation_tier]}${n.motivation_signals?.length ? ` · ${esc(n.motivation_signals.slice(0, 3).join("; "))}` : ""}</p>` : ""}
       ${n.owner_facts?.length ? `<ul class="small ai-facts">${n.owner_facts.slice(0, 6).map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
       <div class="row">${d ? `<button class="primary small" type="button" id="aiLog">Log “${esc(d.label)}” <kbd>${d.key}</kbd></button>` : ""}<button class="ghost small" type="button" id="aiUse">Use these notes</button></div>`;
     $(`[data-d="${n.outcome}"]`)?.classList.add("suggested");
