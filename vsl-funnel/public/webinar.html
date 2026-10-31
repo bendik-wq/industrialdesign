@@ -14,7 +14,7 @@
   <script defer src="/assets/f.js"></script>
   <script defer src="/assets/webinar.js"></script>
 </head>
-<body class="webinar">
+<body class="webinar wl-body">
   <header class="nav"><div class="wrap nav-in">
     <a class="logo" href="/" aria-label="G&amp;L M&amp;A Advisory"><b>G&amp;L</b> <span>M&amp;A Advisory</span></a>
   </div></header>
@@ -25,7 +25,7 @@
         <h1 class="display" data-slot="hl_h1">How owners are buying their competitors with <em><span class="nw">no money down</span></em>, and working towards a signed LOI in 90 days</h1>
         <p class="lede" data-slot="hl_lede"></p>
         <div class="wl-cta">
-          <a class="btn btn-lg wl-btn" href="#register" data-track="cta_click" data-track-id="webinar_hero_cta"><span data-slot="hero_cta">Save my seat</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="a-gold wl-btn" href="#register" data-track="cta_click" data-track-id="webinar_hero_cta"><span data-slot="hero_cta">Save my seat</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
           <div data-if="ticket" data-html="ticket_price"></div>
         </div>
         <p class="for-whom"><strong>For owners of businesses doing $1M+ a year.</strong> If that’s not you yet, this session isn’t for you.</p>
@@ -50,7 +50,6 @@
         </div>
         <div class="form-card">
           <h3 class="h3" style="margin-top:0" data-slot="form_heading">Save your seat</h3>
-          <div data-if="ticket" data-html="ticket_form_note"></div>
           <form data-webinar-register novalidate autocomplete="on">
             <div data-if="has_sessions">
               <p class="field-label">Pick a time (shown in your time zone)</p>
@@ -73,7 +72,7 @@
               </div></div>
             <div class="field"><label for="w-phone">Mobile <span class="muted">(optional, for a text reminder)</span></label><input id="w-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel"></div>
             <label class="check"><input type="checkbox" name="sms_consent"><span>Text or WhatsApp me the link and a reminder before the session. Msg &amp; data rates may apply. Reply STOP to opt out.</span></label>
-            <button class="btn btn-lg wl-submit" type="submit" data-track="cta_click" data-track-id="webinar_register"><span data-slot="register_cta">Save my seat</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+            <button class="a-gold wl-submit" type="submit" data-track="cta_click" data-track-id="webinar_register"><span data-slot="register_cta">Save my seat</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
             <p class="privacy-note" data-slot="register_note">We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time. <a href="/privacy">Privacy policy</a>.</p>
           </form>
           <div data-turnstile></div>

@@ -30,36 +30,35 @@ function previewOffer(c: Context<AppEnv>) {
 
 const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.4-3 7.9-7 9-4-1.1-7-4.6-7-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
-const LOCK_OPEN = '<svg class="sprint-lock-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.8"/></svg>';
 const timer = (to: number, kind: 'bonus' | 'deadline', cls = 'buy-timer') => `<b class="${cls}" role="timer" aria-live="off" data-sprint-to="${to}" data-sprint-kind="${kind}"></b>`;
 const fill = (t: string, o: Record<string, string | number>) => t.replace(/\{(\w+)\}/g, (_, k) => String(o[k] ?? ''));
 
-/** The buy block (the same one the room shows at the unlock), server-rendered. `full` = with the bonus and the promise. */
-export function offerBuyHtml(S: SprintRoom, now = Date.now(), o: { full: boolean } = { full: true }) {
+/**
+ * The buy core shared by the offer page's hero and its closing block (the room draws the same markup in
+ * webinar-sprint.js): price with the real ticket credit, one button, one line under it, the guarantee,
+ * Whop's payment methods, the real bonus clock.
+ */
+export function buyCoreHtml(S: SprintRoom, now = Date.now(), where = 'offer', compact = false) {
   const C = S.copy;
   const bonusOpen = Boolean(S.bonus && S.bonusEndsAt && S.bonusEndsAt > now);
   const micro = S.oneClick ? (S.oneClick.card ? fill(C.microOneClick, { card: S.oneClick.card }) : C.microOneClickNoCard) : C.micro;
+  const button = S.full ? `<p class="bh-soldout">${esc(S.soldOut ?? '')}</p>`
+    : `<button type="button" class="buy-btn" data-sprint-buy="full" data-where="${where}"><span data-label>${esc(C.button)}</span>${ARROW}</button>`;
   const bonus = !S.bonus ? '' : bonusOpen
-    ? `<div class="buy-bonus" data-sprint-bonus><div class="buy-bonus-t"><p class="buy-label">${esc(C.bonusEyebrow)}</p><p><strong>${esc(S.bonus.title)}</strong>${S.bonus.body ? `: ${esc(S.bonus.body)}` : ''}</p></div><div class="buy-bonus-c"><span>${esc(C.bonusEndsIn)}</span>${timer(S.bonusEndsAt!, 'bonus', 'buy-timer big')}</div></div>`
-    : `<div class="buy-bonus gone" data-sprint-bonus><p class="buy-bonus-gone">${esc(C.bonusGone)}</p></div>`;
-  const button = S.full ? `<p class="buy-soldout">${esc(S.soldOut ?? '')}</p>`
-    : `<button type="button" class="buy-btn buy-btn-xl" data-sprint-buy="full" data-where="${o.full ? 'offer' : 'offer_end'}"><span data-label>${esc(C.button)}</span><span class="buy-btn-price">${esc(S.price)}</span>${ARROW}</button>`;
-  return `<section class="buy-hero offer-hero" aria-label="${esc(S.name)}">
-    ${o.full ? `<p class="buy-badge">${LOCK_OPEN}${esc(C.unlockedEyebrow)} · ${esc(C.fromMasterclass)}</p><h1 class="buy-h">${esc(C.heading)}</h1><p class="buy-promise">${esc(C.promise)}</p>` : `<h2 class="buy-h small">${esc(C.heading)}</h2>`}
-    ${bonus}
-    <div class="buy-box" data-sprint-buybox>
-      <div class="buy-price">${S.credit ? `<s class="buy-anchor">${esc(S.listPrice)}</s>` : ''}<span class="buy-today"><b>${esc(S.price)}</b> ${esc(C.today)}</span>${S.credit ? `<span class="buy-credit">${esc(fill(C.creditApplied, { credit: S.credit }))}</span>` : ''}</div>
-      <p class="buy-steps"><span class="on">${esc(C.stepNow)}</span><span aria-hidden="true">→</span><span>${esc(C.stepNext)}</span></p>
+    ? `<p class="bh-timer" data-sprint-bonus><span>${esc(C.bonusEyebrow)}: ${esc(S.bonus.title)}</span> <span class="nw">${esc(C.bonusEndsIn)} ${timer(S.bonusEndsAt!, 'bonus')}</span></p>`
+    : `<p class="bh-timer gone" data-sprint-bonus>${esc(C.bonusGone)}</p>`;
+  return `<div class="bh-buy" data-sprint-buybox>
+      <p class="bh-price"><b>${esc(S.price)}</b>${S.credit ? ` <s>${esc(S.listPrice)}</s> <span>${esc(fill(C.creditApplied, { credit: S.credit }))}</span>` : ''}</p>
       ${button}
-      <p class="buy-micro">${esc(micro)}</p>
-      <p class="buy-guarantee">${SHIELD}<span>${o.full ? `<strong>${esc(C.guaranteeBadge)}.</strong> ${esc(S.guarantee)}` : esc(C.guaranteeShort)}</span></p>
-      ${S.whop && o.full ? `<div class="buy-pay"><ul aria-label="${esc(C.payments)}">${C.paymentBadges.map((b) => `<li>${esc(b)}</li>`).join('')}</ul><p>${esc(C.payments)}</p></div>` : ''}
-      ${S.started && o.full ? `<p class="buy-proof">${esc(fill(C.started, { n: S.started }))}</p>` : ''}
-      ${S.capLabel ? `<p class="buy-proof">${esc(S.capLabel)}</p>` : ''}
-    </div>
-    <p class="buy-foot"><span>${esc(C.deadlineShort)} ${timer(S.deadline, 'deadline')}</span></p>
-  </section>`;
+      <p class="bh-micro">${esc(micro)}</p>
+      <p class="bh-g">${SHIELD}<span>${esc(C.guaranteeShort)}</span></p>
+      ${S.payRow && !compact ? `<div class="bh-pay">${S.oneClick && S.startUrl ? `<a class="bh-alt" href="${esc(S.startUrl)}">${esc(C.payAnother)}</a>` : ''}${S.payRow}<p>${esc(C.payOverTime)}</p></div>` : ''}
+      ${compact ? '' : bonus}
+      ${S.started && !compact ? `<p class="bh-proof">${esc(fill(C.started, { n: S.started }))}</p>` : ''}
+      ${S.capLabel ? `<p class="bh-proof">${esc(S.capLabel)}</p>` : ''}
+    </div>`;
 }
+
 
 /** /offer/:token: the Sprint's own page, open from the unlock until the offer deadline. One column, one button. */
 export async function offerPage(c: Context<AppEnv>) {
@@ -102,12 +101,24 @@ export async function offerPage(c: Context<AppEnv>) {
   if (!S) return page(cfg.offerName, msg(`The ${esc(cfg.offerName)} isn’t open right now`, emailLink.trim()));
   if (!isPreview) await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'webinar_offer_page_view', source: 'server', path: '/offer', props: { session_id: session.id, offer: cfg.offerName } });
   const faq = sprintFaq(cfg);
-  const html = `${isPreview ? `<p class="offer-preview">${esc(t.preview)} Shown as a $1M+ ticket holder five minutes after it opened.</p>` : ''}
-    ${offerBuyHtml(S, now)}
-    <section class="offer-sec"><h2>${esc(t.timeline)}</h2><ol class="offer-days">${cfg.perks.filter((p) => p.day || !/guarantee/i.test(p.title)).map((p) => `<li><span class="d">${esc(p.day || 'Plus')}</span><div><strong>${esc(p.title)}</strong>${p.body ? esc(p.body) : ''}</div></li>`).join('')}</ol></section>
-    <section class="offer-sec"><div class="offer-guarantee">${SHIELD}<div><p><strong>${esc(t.guaranteeHeading)}.</strong> ${esc(cfg.guarantee)}</p><p class="fine">${esc(t.guaranteeNote)} ${esc(t.creditNote)}</p></div></div></section>
-    <section class="offer-sec sprint-faq"><h2>Questions owners ask</h2>${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>
-    <div class="offer-final">${offerBuyHtml(S, now, { full: false })}</div>
-    <p class="offer-back"><a href="${esc(room)}">${esc(t.backToRoom)}</a></p>`;
+  // Product-page rhythm: the hero (name, one line, price, the button), three short sections, the button again.
+  const days = cfg.perks.filter((p) => p.day);
+  const plus = cfg.perks.filter((p) => !p.day && !/guarantee/i.test(p.title));
+  const html = `${isPreview ? `<p class="op-preview">${esc(t.preview)} Shown as a $1M+ ticket holder five minutes after it opened.</p>` : ''}
+    <section class="op-hero bh" aria-label="${esc(S.name)}">
+      <p class="bh-eyebrow">${esc(t.unlockedEyebrow)} · ${esc(t.fromMasterclass)}</p>
+      <h1 class="bh-h">${esc(t.heading)}</h1>
+      <p class="bh-line">${esc(t.promise)}</p>
+      ${buyCoreHtml(S, now, 'offer')}
+      <p class="bh-close">${esc(t.deadlineShort)} ${timer(S.deadline, 'deadline')}</p>
+    </section>
+    <section class="op-sec"><h2>${esc(t.daysShow)}</h2>
+      <ol class="op-days">${days.map((p) => `<li><span>${esc(p.day ?? "")}</span><div><strong>${esc(p.title)}</strong>${p.body ? `<p>${esc(p.body)}</p>` : ''}</div></li>`).join('')}</ol>
+      ${plus.map((p) => `<p class="op-plus"><strong>${esc(p.title)}.</strong> ${esc(p.body ?? '')}</p>`).join('')}
+    </section>
+    <section class="op-sec op-center"><h2>${esc(t.guaranteeHeading)}</h2><p class="op-big">${esc(cfg.guarantee)}</p><p class="op-fine">${esc(t.guaranteeNote)}</p></section>
+    <section class="op-sec"><h2>Questions</h2><div class="op-faq">${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</div></section>
+    <section class="op-final bh"><h2 class="bh-h small">${esc(t.button)}</h2>${buyCoreHtml(S, now, 'offer_end', true)}<p class="bh-close">${esc(t.deadlineShort)} ${timer(S.deadline, 'deadline')}</p></section>
+    <p class="op-back"><a href="${esc(room)}">${esc(t.backToRoom)}</a></p>`;
   return page(cfg.offerName, html, { sprintPage: { ...S, token: reg.token }, ty: reg.token });
 }

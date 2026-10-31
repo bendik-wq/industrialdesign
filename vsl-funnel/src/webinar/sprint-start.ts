@@ -7,7 +7,7 @@ import { identityFromLead, track } from '../tracking/track';
 import { type Registration, type Session, getRegistration, getSession, roomUrl } from './webinar';
 import { type PassRow, PassError, activePass } from './pass';
 import {
-  createSprintCheckout, mmss, offerDeadline, offerUrl, pitchSec, reachedPitch, sprintCopy, sprintPrice, sprintQualified, sprintSettings, sprintWelcomeUrl, sprintWindow, teamEmail, ticketCredit,
+  createSprintCheckout, mmss, offerDeadline, offerUrl, payLogosHtml, pitchSec, reachedPitch, sprintCopy, sprintPrice, sprintQualified, sprintSettings, sprintWelcomeUrl, sprintWindow, teamEmail, ticketCredit,
   unlockSprint,
 } from './sprint';
 import { INTAKE_FIELDS, dealSprintUrl, ensureDealSprint } from './deal-sprint';
@@ -48,10 +48,10 @@ export function sprintStartCopy(o: { offerName: string; price: string; whop: boo
   return {
     steps: ['Confirm and pay', 'Book your kickoff call'],
     heading: `Start your ${o.offerName}`,
-    lede: 'Three answers about your business, then secure checkout. Josh’s team reads them before your kickoff call, so the call starts on your numbers.',
+    lede: 'Three answers, then secure checkout. Josh’s team reads them before your kickoff call.',
     today: 'Today',
     more: 'Add more detail for the team (optional)',
-    button: `Continue to secure checkout · ${o.price}`,
+    button: `Continue to checkout · ${o.price}`,
     missing: 'Add your revenue, your EBITDA and your industry, then continue.',
     privacy: 'Your answers go to Josh’s team only, and they fill in your Sprint intake for you.',
     secure: o.whop ? 'Secure checkout by Whop.' : 'Secure payment by Stripe.',
@@ -166,8 +166,9 @@ export function startFormHtml(o: {
     <form class="ss-form" method="post" data-sprint-start>${o.plan ? '<input type="hidden" name="plan" value="1">' : ''}
       ${required.map(field).join('')}
       <details class="ss-more"${filled ? ' open' : ''}><summary>${esc(t.more)}</summary><div>${optional.map(field).join('')}</div></details>
-      <div class="ss-submit"><button class="buy-btn buy-btn-xl" type="submit"${o.preview ? ' disabled title="Preview"' : ''}><span>${esc(t.button)}</span>${arrow}</button></div>
-      ${o.guarantee ? `<p class="ss-g">${shield}<span>${esc(o.guarantee)}</span></p>` : ''}
+      <div class="ss-submit"><button class="buy-btn" type="submit"${o.preview ? ' disabled title="Preview"' : ''}><span>${esc(t.button)}</span>${arrow}</button></div>
+      ${o.guarantee ? `<p class="bh-g">${shield}<span>${esc(o.guarantee)}</span></p>` : ''}
+      ${o.whop ? `<div class="bh-pay">${payLogosHtml(sprintCopy({ offerName: o.offerName, priceLabel: o.price, guarantee: '' }).payments)}<p>${esc(sprintCopy({ offerName: o.offerName, priceLabel: o.price, guarantee: '' }).payOverTime)}</p></div>` : ''}
       <p class="ss-fine">${esc(t.secure)} ${esc(t.privacy)}</p>
     </form>
   </div>
@@ -199,7 +200,7 @@ function previewForm(c: Context<AppEnv>) {
   const rt = runtimeFrom(c);
   const { cfg, plan } = sprintSettings(rt);
   const price = sprintPrice(cfg, plan, cfg.seat ? cfg.seat.amount : 0);
-  const html = `<p class="offer-preview">${esc(sprintCopy(cfg).preview)} Shown as a $1M+ ticket holder.</p>` + startFormHtml({
+  const html = `<p class="op-preview">${esc(sprintCopy(cfg).preview)} Shown as a $1M+ ticket holder.</p>` + startFormHtml({
     offerName: cfg.offerName, price: price.todayLabel, listPrice: cfg.priceLabel, whop: cfg.provider === 'whop', plan: false, values: { revenue: REVENUE_LABEL['3m-10m'] ?? null },
     note: null, offerUrl: offerUrl(rt, 'preview'), guarantee: sprintCopy(cfg).guaranteeShort, preview: true,
   });
