@@ -304,6 +304,7 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   const bandIsNew = !lead.revenue_band;
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
   if (phone && wantsTexts && !lead.phone && !newLead) await updateLead(rt.env, lead.id, { phone, sms_consent_at: now });
+  await (await import('../integrations/call-consent')).recordCallConsent(rt, lead.id, phone, body, now); // optional AI-call consent box
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'live_registered', source: 'server', path: '/live', props: { event_id: ev.id, starts_at: ev.starts_at, band, ticket: Boolean(ticketRequired) }, eventId: typeof body.event_id_track === 'string' ? body.event_id_track : undefined });
   if (bandIsNew) await trackRevenueEvents(rt, who, band, 'webinar', '/live');

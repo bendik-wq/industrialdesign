@@ -57,6 +57,7 @@ import { autopilotAdmin } from '../marketing/admin';
 import { clientsAdmin } from '../clients/admin';
 import { supportAdmin } from '../support/admin';
 import { automationsAdmin } from '../integrations/automations-admin';
+import { webinarCallsAdmin } from '../admin/webinar-calls';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -223,6 +224,7 @@ admin.route('/autopilot', autopilotAdmin); // Funnel HQ → Ads autopilot + Foll
 admin.route('/clients', clientsAdmin); // Funnel HQ → Clients (health, flags, check-ins, timeline)
 admin.route('/support', supportAdmin); // Funnel HQ → Support (threads, drafts, escalations)
 admin.route('/automations', automationsAdmin); // Integrations → Claude (MCP) and Zapier & webhooks
+admin.route('/webinar-calls', webinarCallsAdmin); // AI calls → Webinar calls (webinar, live Zoom, challenge flows)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {
   const b = await c.req.json<{ review_booked?: boolean }>().catch(() => ({ review_booked: true }));

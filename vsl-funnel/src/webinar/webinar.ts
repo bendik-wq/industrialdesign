@@ -282,6 +282,7 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   const bandIsNew = !lead.revenue_band;
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
   lead = (await getLead(rt.env, lead.id))!;
+  if (await (await import('../integrations/call-consent')).recordCallConsent(rt, lead.id, phone, body)) lead = (await getLead(rt.env, lead.id))!; // optional AI-call consent box
   const ticketed = await scheduleEmails(rt, lead, session, reg);
   if (ticketed && !underMillion(lead.revenue_band)) await startSms(rt, lead, 'webinar');
 

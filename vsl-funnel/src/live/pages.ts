@@ -8,6 +8,7 @@ import { type LiveEvent, type LiveReg, ROOM_COPY, getEvent, getLiveReg, liveBase
 import { depositConfig, depositCopy, depositQuote, depositStatus, guaranteeHtml, onboardingUrl } from '../sales/deposit';
 import { guarantee } from '../sales/guarantee';
 import { playbackFor } from './stream';
+import { WEBINAR_CALL_CONSENT } from '../integrations/call-consent';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
@@ -77,6 +78,7 @@ export async function liveLanding(c: Context<AppEnv>) {
           <fieldset class="lv-field"><legend>Your business’s annual revenue</legend><div class="lv-opts">${REVENUE.map(([k, l]) => `<label class="lv-opt"><input type="radio" name="revenue" value="${k}"><span>${esc(l)}</span></label>`).join('')}</div></fieldset>
           <label class="lv-field"><span>Mobile <span class="lv-muted">(optional, for a text reminder)</span></span><input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
           <label class="lv-check"><input type="checkbox" name="sms_consent"><span>${esc(L.sms)}</span></label>
+          <label class="lv-check"><input type="checkbox" name="call_consent"><span>${esc(WEBINAR_CALL_CONSENT.text)}</span></label>
           <div data-turnstile></div>
           <button class="buy-btn" type="submit" data-track="cta_click" data-track-id="live_register">${esc(btn)} ${ARROW}</button>
           <p class="lv-err" role="alert" data-err hidden></p>
