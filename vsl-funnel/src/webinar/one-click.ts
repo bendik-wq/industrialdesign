@@ -4,7 +4,7 @@ import { getLead } from '../funnel/leads';
 import { identityFromLead, track } from '../tracking/track';
 import { type PaidEffects, type PassRow, PassError, formatMoney, fromMinor, markPassPaid, passCapacity, passCopy, passPaidEffects, toMinor } from './pass';
 import { createSprintCheckout, sprintBuyGate, sprintPrice, sprintStartUrl, sprintWelcomeUrl, ticketCredit, WHOP_SPRINT_LIFE_MS } from './sprint';
-import { WHOP_NATIVE_VERSION, WHOP_PRODUCT, WhopError, whopApi, whopCompanyId, whopMoney } from './whop';
+import { WHOP_NATIVE_VERSION, WHOP_PRODUCT, WhopError, storePaymentMethod, whopApi, whopCompanyId, whopMoney } from './whop';
 import type { Registration } from './webinar';
 
 /**
@@ -177,9 +177,11 @@ const actionUrl = (st: Obj) => {
   return na.type === 'redirect' ? str(obj(na.data).url) : null;
 };
 
-async function markOneClickPaid(rt: Runtime, row: Pick<PassRow, 'id' | 'reg_id' | 'amount' | 'currency'>, payId: string, effects: PaidEffects) {
-  const r = await markPassPaid(rt, { sessionId: `whop_${payId}`, paymentIntent: payId, amount: row.amount, currency: row.currency, regId: row.reg_id, passId: row.id, kind: 'offer', provider: 'whop' }, effects);
-  await rt.env.DB.prepare("DELETE FROM kv_state WHERE key = 'whop:charge_denied'").run();
+export async function markWhopPaymentPaid(rt: Runtime, row: Pick<PassRow, 'id' | 'reg_id' | 'amount' | 'currency'> & { kind?: PassRow['kind']; whop_payment_method_id?: unknown }, payId: string, effects: PaidEffects) {
+  const r = await markPassPaid(rt, { sessionId: `whop_${payId}`, paymentIntent: payId, amount: row.amount, currency: row.currency, regId: row.reg_id, passId: row.id, kind: row.kind ?? 'offer', provider: 'whop' }, effects);
+  if ((row.kind ?? 'offer') === 'offer') await rt.env.DB.prepare("DELETE FROM kv_state WHERE key = 'whop:charge_denied'").run();
+  // A ticket paid on our own page: keep the card Whop saved with it, for the one-click Sprint.
+  if (!row.whop_payment_method_id) await storePaymentMethod(rt, row.id, { id: payId }).catch((e) => console.error('whop payment method', String(e).slice(0, 200)));
   return r;
 }
 
@@ -246,9 +248,9 @@ export async function oneClickSprint(rt: Runtime, reg: RegLike, o: { now?: numbe
   await rt.env.DB.prepare('UPDATE webinar_passes SET stripe_session_id = COALESCE(stripe_session_id, ?), stripe_payment_intent = ?, updated_at = ? WHERE id = ?').bind(`whop_${payId}`, payId, Date.now(), id).run();
 
   const st = await pollStatus(rt, payId, { sleep: o.sleep, tries: o.tries });
-  const row = { id, reg_id: r.id, amount: price.today, currency: cfg.currency.toLowerCase() };
+  const row = { id, reg_id: r.id, amount: price.today, currency: cfg.currency.toLowerCase(), kind: 'offer' as const, whop_payment_method_id: m.payment_method_id };
   if (st.status === 'succeeded') {
-    await markOneClickPaid(rt, row, payId, effects);
+    await markWhopPaymentPaid(rt, row, payId, effects);
     await log('paid', { pass_id: id, value: fromMinor(price.today, cfg.currency) });
     return { ok: true, next: welcome, outcome: 'paid' };
   }
@@ -276,7 +278,7 @@ export async function settleOneClick(rt: Runtime, row: PassRow, effects: PaidEff
   if (row.status === 'paid') return 'paid';
   const st = await pollStatus(rt, payId, { tries: 1 });
   if (st.status === 'succeeded') {
-    await markOneClickPaid(rt, row, payId, effects);
+    await markWhopPaymentPaid(rt, row, payId, effects);
     return 'paid';
   }
   if (failed(st)) {

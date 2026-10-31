@@ -173,6 +173,9 @@ api.post('/webinar/register', async (c) => {
     // Paid ticket (required mode with a seat price; register() marked it): straight on to Stripe Checkout.
     // If Checkout can't start, the thank-you page shows the ticket card with its own button.
     if (await passGate(rt, registration)) {
+      // Whop: the ticket page with the embedded form (card saved for a one-click Sprint).
+      const tp = await import('../webinar/ticket-pay');
+      if (tp.embeddedTicketOn(rt.settings)) return c.json({ ok: true, next: tp.ticketPayUrl(rt, registration.token), checkout: true });
       const r = await createCheckout(rt, registration, { kind: 'seat', from: 'ty' }).catch((e) => { console.error('ticket checkout', String(e).slice(0, 200)); return null; });
       if (r && 'url' in r && r.url) return c.json({ ok: true, next: r.url, checkout: true });
     }
@@ -245,6 +248,9 @@ api.post('/webinar/checkout', async (c) => {
   try {
     const { rt, body, reg } = await webinarReg(c);
     if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+    if (body.kind === 'seat' && (await import('../webinar/ticket-pay')).embeddedTicketOn(rt.settings) && (await passGate(rt, reg))) {
+      return c.json({ ok: true, next: (await import('../webinar/ticket-pay')).ticketPayUrl(rt, reg.token) });
+    }
     const r = await createCheckout(rt, reg, { kind: body.kind === 'seat' ? 'seat' : 'offer', from: body.from === 'room' ? 'room' : 'ty' });
     return c.json({ ok: true, ...r, ...('paid' in r ? { next: `${webinarBase(rt)}/registered/${reg.token}` } : {}) });
   } catch (err) {
@@ -284,6 +290,19 @@ for (const [path, run] of [
     }
   });
 }
+// The ticket paid on our own page: the confirmation token from Whop's payment elements becomes the payment,
+// with the card saved for the one-click Sprint (ticket-pay.ts). Same-origin only.
+api.post('/webinar/ticket/pay', async (c) => {
+  if (!sameOriginWrite(c)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  try {
+    const { rt, body, reg } = await webinarReg(c);
+    if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+    return c.json(await (await import('../webinar/ticket-pay')).payTicket(rt, reg, { confirmationToken: body.confirmation_token }));
+  } catch (err) {
+    if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
+    return errorResponse(c, err);
+  }
+});
 // The buyer booked the kickoff in the calendar on their Sprint page (Calendly's own "scheduled" message).
 api.post('/webinar/sprint/kickoff', roomAction(async (rt, reg) => {
   const pass = await activePass(rt, reg.lead_id);

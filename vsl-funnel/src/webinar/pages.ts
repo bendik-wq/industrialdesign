@@ -109,6 +109,12 @@ export async function ticketPage(c: Context<AppEnv>) {
   const thanks = `${webinarBase(rt)}/registered/${reg.token}`;
   if (!(await passGate(rt, reg))) return c.redirect(thanks, 302);
   if (session.status === 'cancelled' || session.starts_at < Date.now() - 10 * 60_000) return c.redirect(`${webinarBase(rt)}#register`, 302);
+  // Whop: the ticket is paid on this page with Whop's payment elements, card saved for a one-click Sprint
+  // (ticket-pay.ts). ?hosted=1 (or WHOP_TICKET_FORM=off) keeps Whop's hosted checkout.
+  const tp = await import('./ticket-pay');
+  if (tp.embeddedTicketOn(rt.settings) && c.req.query('hosted') !== '1') {
+    try { return await tp.ticketPayPage(c, rt, reg); } catch (e) { console.error('ticket form', String(e).slice(0, 200)); }
+  }
   try {
     const r = await createCheckout(rt, reg, { kind: 'seat', from: 'ty' });
     return c.redirect('url' in r && r.url ? r.url : thanks, 302);
