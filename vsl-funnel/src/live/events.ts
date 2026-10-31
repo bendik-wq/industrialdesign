@@ -8,6 +8,7 @@ import { APP_REVENUE_BAND, REVENUE_LABEL, isMillionPlus } from '../sales/qualify
 import { identityFromLead, identityFromVisitor, track } from '../tracking/track';
 import { trackRevenueEvents } from '../tracking/revenue-events';
 import { type PassRow, formatMoney, fromMinor, paymentProvider, toMinor } from '../webinar/pass';
+import { playbackFor, upsertLiveEvent } from './stream';
 import { PRESENCE_MS, chatLabel, chatRate, countPresence, escapeHtml, presenceLine, sanitiseChat, viewerName } from '../webinar/live';
 
 /**
@@ -94,13 +95,13 @@ export const joinOpen = (ev: Pick<LiveEvent, 'starts_at' | 'duration_min' | 'end
 
 // ───────────── events (Funnel HQ) ─────────────
 
-export const getEvent = (rt: Runtime, id: string) => rt.env.DB.prepare('SELECT * FROM live_events WHERE id = ?').bind(id).first<LiveEvent>();
+export const getEvent = (rt: Runtime, id: string) => rt.env.DB.prepare('SELECT * FROM live_webinars WHERE id = ?').bind(id).first<LiveEvent>();
 export const getLiveReg = (rt: Runtime, token: string) =>
-  /^[a-z0-9]{16,40}$/.test(token) ? rt.env.DB.prepare('SELECT * FROM live_registrations WHERE token = ?').bind(token).first<LiveReg>() : Promise.resolve(null);
+  /^[a-z0-9]{16,40}$/.test(token) ? rt.env.DB.prepare('SELECT * FROM live_webinar_regs WHERE token = ?').bind(token).first<LiveReg>() : Promise.resolve(null);
 
 /** The next event people can register for (until 30 minutes after it starts). */
 export async function nextEvent(rt: Runtime, now = Date.now()) {
-  return rt.env.DB.prepare("SELECT * FROM live_events WHERE status = 'scheduled' AND starts_at > ? ORDER BY starts_at LIMIT 1").bind(now - 30 * MIN).first<LiveEvent>();
+  return rt.env.DB.prepare("SELECT * FROM live_webinars WHERE status = 'scheduled' AND starts_at > ? ORDER BY starts_at LIMIT 1").bind(now - 30 * MIN).first<LiveEvent>();
 }
 
 const https = (v: unknown) => (typeof v === 'string' && /^https:\/\/[^\s"'<>]{3,}$/.test(v.trim()) ? v.trim().slice(0, 500) : null);
@@ -130,14 +131,18 @@ export async function saveEvent(rt: Runtime, body: Record<string, unknown>, id?:
   if (body.replay_url && !replayUrl) return { ok: false as const, error: 'The replay link must start with https://' };
   const status = body.status === 'cancelled' ? 'cancelled' : body.status === 'scheduled' ? 'scheduled' : prev?.status ?? 'scheduled';
   const now = Date.now();
+  // The live engine (stream.ts, key webinar:<id>) keeps the schedule and the Zoom link for the host console.
+  const sync = (eid: string) => upsertLiveEvent(rt, streamKey(eid), { title, startsAt, durationMin: duration, ...(body.join_url !== undefined || !prev ? { joinUrl } : {}) }).catch((e) => console.error('live engine sync', e));
   if (prev) {
-    await rt.env.DB.prepare('UPDATE live_events SET title = ?, starts_at = ?, tz = ?, duration_min = ?, join_url = ?, replay_url = ?, status = ?, updated_at = ? WHERE id = ?')
+    await rt.env.DB.prepare('UPDATE live_webinars SET title = ?, starts_at = ?, tz = ?, duration_min = ?, join_url = ?, replay_url = ?, status = ?, updated_at = ? WHERE id = ?')
       .bind(title, startsAt, tz, duration, joinUrl, replayUrl, status, now, prev.id).run();
+    await sync(prev.id);
     return { ok: true as const, id: prev.id };
   }
   const nid = newId('le');
-  await rt.env.DB.prepare('INSERT INTO live_events (id, title, starts_at, tz, duration_min, join_url, replay_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+  await rt.env.DB.prepare('INSERT INTO live_webinars (id, title, starts_at, tz, duration_min, join_url, replay_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .bind(nid, title, startsAt, tz, duration, joinUrl, replayUrl, status, now, now).run();
+  await sync(nid);
   return { ok: true as const, id: nid };
 }
 
@@ -147,7 +152,7 @@ export async function hostAction(rt: Runtime, id: string, body: Record<string, u
   if (!ev) return { ok: false as const, error: 'Event not found' };
   const db = rt.env.DB;
   const hours = liveSettings(rt).offerHours;
-  const set = (sql: string, ...args: unknown[]) => db.prepare(`UPDATE live_events SET ${sql}, updated_at = ? WHERE id = ?`).bind(...args, now, id).run();
+  const set = (sql: string, ...args: unknown[]) => db.prepare(`UPDATE live_webinars SET ${sql}, updated_at = ? WHERE id = ?`).bind(...args, now, id).run();
   switch (body.action) {
     case 'open_offer':
       if (ev.status !== 'scheduled') return { ok: false as const, error: 'This event is cancelled' };
@@ -186,27 +191,27 @@ export async function pushPoll(rt: Runtime, eventId: string, body: Record<string
   const options = (Array.isArray(body.options) ? body.options : String(body.options ?? '').split('\n')).map((o) => plain(o, 80)).filter(Boolean).slice(0, 5);
   if (!question || options.length < 2) return { ok: false as const, error: 'Write the question and at least two answers' };
   const now = Date.now();
-  await rt.env.DB.prepare('UPDATE live_polls SET closed_at = ? WHERE event_id = ? AND closed_at IS NULL').bind(now, eventId).run();
+  await rt.env.DB.prepare('UPDATE live_webinar_polls SET closed_at = ? WHERE event_id = ? AND closed_at IS NULL').bind(now, eventId).run();
   const id = newId('lp');
-  await rt.env.DB.prepare('INSERT INTO live_polls (id, event_id, question, options, opened_at) VALUES (?, ?, ?, ?, ?)').bind(id, eventId, question, JSON.stringify(options), now).run();
+  await rt.env.DB.prepare('INSERT INTO live_webinar_polls (id, event_id, question, options, opened_at) VALUES (?, ?, ?, ?, ?)').bind(id, eventId, question, JSON.stringify(options), now).run();
   return { ok: true as const, id };
 }
 export async function closePoll(rt: Runtime, eventId: string) {
-  await rt.env.DB.prepare('UPDATE live_polls SET closed_at = ? WHERE event_id = ? AND closed_at IS NULL').bind(Date.now(), eventId).run();
+  await rt.env.DB.prepare('UPDATE live_webinar_polls SET closed_at = ? WHERE event_id = ? AND closed_at IS NULL').bind(Date.now(), eventId).run();
   return { ok: true as const };
 }
 async function pollResults(rt: Runtime, pollId: string, n: number) {
-  const { results } = await rt.env.DB.prepare('SELECT choice, COUNT(*) AS n FROM live_poll_votes WHERE poll_id = ? GROUP BY choice').bind(pollId).all<{ choice: number; n: number }>();
+  const { results } = await rt.env.DB.prepare('SELECT choice, COUNT(*) AS n FROM live_webinar_poll_votes WHERE poll_id = ? GROUP BY choice').bind(pollId).all<{ choice: number; n: number }>();
   const counts = Array.from({ length: n }, (_, i) => results.find((r) => r.choice === i)?.n ?? 0);
   return { counts, total: counts.reduce((a, b) => a + b, 0) };
 }
 export async function vote(rt: Runtime, reg: LiveReg, body: Record<string, unknown>) {
-  const poll = await rt.env.DB.prepare('SELECT * FROM live_polls WHERE id = ? AND event_id = ? AND closed_at IS NULL').bind(String(body.poll ?? ''), reg.event_id).first<{ id: string; options: string }>();
+  const poll = await rt.env.DB.prepare('SELECT * FROM live_webinar_polls WHERE id = ? AND event_id = ? AND closed_at IS NULL').bind(String(body.poll ?? ''), reg.event_id).first<{ id: string; options: string }>();
   if (!poll) return { ok: false as const, error: 'This poll has closed.' };
   const n = (JSON.parse(poll.options) as string[]).length;
   const choice = Math.round(Number(body.choice));
   if (!Number.isInteger(choice) || choice < 0 || choice >= n) return { ok: false as const, error: 'Pick an answer' };
-  await rt.env.DB.prepare('INSERT INTO live_poll_votes (poll_id, reg_id, choice, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(poll_id, reg_id) DO NOTHING').bind(poll.id, reg.id, choice, Date.now()).run();
+  await rt.env.DB.prepare('INSERT INTO live_webinar_poll_votes (poll_id, reg_id, choice, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(poll_id, reg_id) DO NOTHING').bind(poll.id, reg.id, choice, Date.now()).run();
   return { ok: true as const, results: await pollResults(rt, poll.id, n) };
 }
 
@@ -257,13 +262,13 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
     newLead = true;
     await linkVisitor(rt.env, v.visitorId, lead.id);
   }
-  const existing = await rt.env.DB.prepare('SELECT * FROM live_registrations WHERE event_id = ? AND lead_id = ?').bind(ev.id, lead.id).first<LiveReg>();
+  const existing = await rt.env.DB.prepare('SELECT * FROM live_webinar_regs WHERE event_id = ? AND lead_id = ?').bind(ev.id, lead.id).first<LiveReg>();
   if (existing) {
     if (v.leadId === lead.id) return { reg: existing, event: ev, lead, created: false };
     throw new ApplicationError('You’re already registered for this session. Your room link is in the confirmation email (check spam too).', 'email', 409);
   }
   await rt.env.DB.prepare('INSERT INTO kv_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(ipKey, JSON.stringify({ n: rate.n + 1, t: rate.t })).run();
-  const prior = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM live_registrations WHERE lead_id = ?').bind(lead.id).first<{ n: number }>();
+  const prior = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM live_webinar_regs WHERE lead_id = ?').bind(lead.id).first<{ n: number }>();
   const s = liveSettings(rt);
   const ticketRequired = s.ticket && paymentProvider(rt.settings) === 'whop' ? 1 : 0;
   // Texts only to a number given with the box ticked (here, or on an earlier form).
@@ -272,7 +277,7 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
     id: newId('lr'), token: token(), event_id: ev.id, lead_id: lead.id, seq: prior?.n ?? 0, new_lead: newLead ? 1 : 0, revenue_band: band, ticket_required: ticketRequired, sms_ok: smsOk,
     joined_at: null, zoom_clicked_at: null, last_seen_at: null, offer_seen_at: null, offer_clicked_at: null, replay_at: null, created_at: now,
   };
-  await rt.env.DB.prepare('INSERT INTO live_registrations (id, token, event_id, lead_id, seq, new_lead, revenue_band, ticket_required, sms_ok, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+  await rt.env.DB.prepare('INSERT INTO live_webinar_regs (id, token, event_id, lead_id, seq, new_lead, revenue_band, ticket_required, sms_ok, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .bind(reg.id, reg.token, reg.event_id, reg.lead_id, reg.seq, reg.new_lead, band, ticketRequired, smsOk, now).run();
   const bandIsNew = !lead.revenue_band;
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
@@ -309,7 +314,7 @@ export async function startLiveTicket(rt: Runtime, reg: LiveReg) {
 export async function liveTicketPaidEffects(rt: Runtime, pass: PassRow) {
   const value = fromMinor(pass.amount, pass.currency);
   await track(rt, await identityFromLead(rt.env, pass.lead_id), { name: 'live_ticket_purchased', source: 'webhook', path: '/live', props: { pass_id: pass.id, product: 'Live webinar ticket', value, currency: pass.currency.toUpperCase() } }).catch(() => null);
-  const reg = await rt.env.DB.prepare('SELECT * FROM live_registrations WHERE id = ?').bind(pass.reg_id).first<LiveReg>();
+  const reg = await rt.env.DB.prepare('SELECT * FROM live_webinar_regs WHERE id = ?').bind(pass.reg_id).first<LiveReg>();
   const ev = reg ? await getEvent(rt, reg.event_id) : null;
   const lead = await getLead(rt.env, pass.lead_id);
   if (reg && ev && lead) rt.waitUntil(sendDueMessages(rt, ev, reg, lead).then(() => undefined));
@@ -461,10 +466,10 @@ export async function sendDueMessages(rt: Runtime, ev: LiveEvent, reg: LiveReg, 
 
 /** Cron (every 5 minutes): reminders and replay emails for events from 3 days ago to 2 days ahead. */
 export async function processLiveMessages(rt: Runtime, now = Date.now()) {
-  const { results: events } = await rt.env.DB.prepare("SELECT * FROM live_events WHERE status = 'scheduled' AND starts_at BETWEEN ? AND ?").bind(now - 4 * DAY, now + 2 * DAY).all<LiveEvent>();
+  const { results: events } = await rt.env.DB.prepare("SELECT * FROM live_webinars WHERE status = 'scheduled' AND starts_at BETWEEN ? AND ?").bind(now - 4 * DAY, now + 2 * DAY).all<LiveEvent>();
   let sent = 0;
   for (const ev of events) {
-    const { results: regs } = await rt.env.DB.prepare('SELECT * FROM live_registrations WHERE event_id = ? LIMIT 2000').bind(ev.id).all<LiveReg>();
+    const { results: regs } = await rt.env.DB.prepare('SELECT * FROM live_webinar_regs WHERE event_id = ? LIMIT 2000').bind(ev.id).all<LiveReg>();
     for (const reg of regs) {
       const lead = await getLead(rt.env, reg.lead_id);
       if (!lead) continue;
@@ -531,9 +536,14 @@ export async function roomState(rt: Runtime, ev: LiveEvent, reg: LiveReg, now = 
   const s = liveSettings(rt);
   const w = offerWindow(ev, now, s.offerHours);
   const stage = liveStage(ev, now, s.offerHours);
+  // The Zoom link comes from the live engine (pasted in the host console or Funnel HQ, or created through the Zoom API),
+  // handed out only inside its join window; never once the event is cancelled or closed.
+  const pb = ev.status === 'scheduled' && stage !== 'closed'
+    ? await playbackFor(rt, streamKey(ev.id), ev.join_url, { startsAt: ev.starts_at, durationMin: Math.max(1, Math.round((w.end - ev.starts_at) / MIN)) }).catch(() => null)
+    : null;
   return {
     stage, now, startsAt: ev.starts_at, endsAt: w.end,
-    joinUrl: joinOpen(ev, now) ? ev.join_url : null,
+    joinUrl: pb?.joinUrl ?? null, hasLink: pb?.mode === 'link',
     replayUrl: stage === 'replay' ? ev.replay_url : null, replayClosesAt: w.replayClosesAt,
     offer: { opened: w.opened, open: w.open && stage !== 'closed', closesAt: w.closesAt },
     timer: ev.timer_on && w.open ? { closesAt: w.closesAt } : null,
@@ -551,11 +561,11 @@ export async function liveFeed(rt: Runtime, reg: LiveReg, body: Record<string, u
   const st = await roomState(rt, ev, reg, now);
   if (body.presence === true && (st.stage === 'live' || st.stage === 'waiting' || st.stage === 'replay')) {
     await ping(rt, ev.id, reg.id, st.stage === 'replay' ? 'replay' : 'viewer', now);
-    if (st.stage === 'live' && !reg.joined_at) await db.prepare('UPDATE live_registrations SET joined_at = COALESCE(joined_at, ?) WHERE id = ?').bind(now, reg.id).run();
-    if (st.stage === 'replay' && !reg.replay_at) await db.prepare('UPDATE live_registrations SET replay_at = COALESCE(replay_at, ?) WHERE id = ?').bind(now, reg.id).run();
-    await db.prepare('UPDATE live_registrations SET last_seen_at = ? WHERE id = ?').bind(now, reg.id).run();
+    if (st.stage === 'live' && !reg.joined_at) await db.prepare('UPDATE live_webinar_regs SET joined_at = COALESCE(joined_at, ?) WHERE id = ?').bind(now, reg.id).run();
+    if (st.stage === 'replay' && !reg.replay_at) await db.prepare('UPDATE live_webinar_regs SET replay_at = COALESCE(replay_at, ?) WHERE id = ?').bind(now, reg.id).run();
+    await db.prepare('UPDATE live_webinar_regs SET last_seen_at = ? WHERE id = ?').bind(now, reg.id).run();
   }
-  if (st.offer.open && !reg.offer_seen_at) await db.prepare('UPDATE live_registrations SET offer_seen_at = COALESCE(offer_seen_at, ?) WHERE id = ?').bind(now, reg.id).run();
+  if (st.offer.open && !reg.offer_seen_at) await db.prepare('UPDATE live_webinar_regs SET offer_seen_at = COALESCE(offer_seen_at, ?) WHERE id = ?').bind(now, reg.id).run();
   const after = Math.max(0, Math.floor(Number(body.after) || 0));
   const since = Math.max(0, Math.floor(Number(body.since) || 0));
   const cols = 'id, author, name, CASE WHEN deleted_at IS NULL THEN body END AS body, pinned_at, deleted_at, created_at';
@@ -564,7 +574,7 @@ export async function liveFeed(rt: Runtime, reg: LiveReg, body: Record<string, u
     after === 0
       ? db.prepare(`SELECT ${cols} FROM webinar_chat WHERE session_id = ? AND deleted_at IS NULL ORDER BY id DESC LIMIT 150`).bind(ev.id)
       : db.prepare(`SELECT ${cols} FROM webinar_chat WHERE session_id = ? AND (id > ? OR updated_at > ?) ORDER BY id LIMIT 200`).bind(ev.id, after, since - 2000),
-    db.prepare('SELECT * FROM live_polls WHERE event_id = ? AND closed_at IS NULL ORDER BY opened_at DESC LIMIT 1').bind(ev.id),
+    db.prepare('SELECT * FROM live_webinar_polls WHERE event_id = ? AND closed_at IS NULL ORDER BY opened_at DESC LIMIT 1').bind(ev.id),
   ]);
   const presence = countPresence(res[0].results as { who: string; kind: string; seen_at: number }[], now, reg.id);
   let msgs = res[1].results as ChatRow[];
@@ -573,7 +583,7 @@ export async function liveFeed(rt: Runtime, reg: LiveReg, body: Record<string, u
   let poll = null;
   if (p) {
     const options = JSON.parse(p.options) as string[];
-    const mine = await db.prepare('SELECT choice FROM live_poll_votes WHERE poll_id = ? AND reg_id = ?').bind(p.id, reg.id).first<{ choice: number }>();
+    const mine = await db.prepare('SELECT choice FROM live_webinar_poll_votes WHERE poll_id = ? AND reg_id = ?').bind(p.id, reg.id).first<{ choice: number }>();
     poll = { id: p.id, question: escapeHtml(p.question), options: options.map(escapeHtml), voted: mine ? mine.choice : null, results: mine ? await pollResults(rt, p.id, options.length) : null };
   }
   const chatStageFor = st.stage === 'live' ? 'running' : st.stage === 'waiting' ? 'waiting' : st.stage === 'replay' ? 'replay' : 'closed';
@@ -618,10 +628,11 @@ export async function teamLiveChat(rt: Runtime, eventId: string, body: Record<st
 export async function joinZoom(rt: Runtime, reg: LiveReg) {
   const ev = await getEvent(rt, reg.event_id);
   const now = Date.now();
-  if (!ev || !joinOpen(ev, now) || !ev.join_url || (await ticketGate(rt, reg))) return { ok: false as const };
-  await rt.env.DB.prepare('UPDATE live_registrations SET zoom_clicked_at = COALESCE(zoom_clicked_at, ?), joined_at = COALESCE(joined_at, ?) WHERE id = ?').bind(now, now >= ev.starts_at ? now : null, reg.id).run();
+  const url = ev ? (await roomState(rt, ev, reg, now)).joinUrl : null;
+  if (!ev || !url || (await ticketGate(rt, reg))) return { ok: false as const };
+  await rt.env.DB.prepare('UPDATE live_webinar_regs SET zoom_clicked_at = COALESCE(zoom_clicked_at, ?), joined_at = COALESCE(joined_at, ?) WHERE id = ?').bind(now, now >= ev.starts_at ? now : null, reg.id).run();
   if (!reg.zoom_clicked_at) await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'live_joined', source: 'server', props: { event_id: ev.id }, localOnly: true }).catch(() => null);
-  return { ok: true as const, url: ev.join_url };
+  return { ok: true as const, url };
 }
 
 /** The deposit button in the room: only while the host's offer is open, $1M+ only. */
@@ -633,7 +644,7 @@ export async function roomDeposit(rt: Runtime, reg: LiveReg, body: Record<string
   const { depositCopy, depositConfig, startDeposit } = await import('../sales/deposit');
   if (!w.open) return { error: depositCopy(depositConfig(rt)).closed };
   if (!isMillionPlus(reg.revenue_band)) return { error: depositCopy(depositConfig(rt)).underMillionBody };
-  await rt.env.DB.prepare('UPDATE live_registrations SET offer_clicked_at = COALESCE(offer_clicked_at, ?) WHERE id = ?').bind(now, reg.id).run();
+  await rt.env.DB.prepare('UPDATE live_webinar_regs SET offer_clicked_at = COALESCE(offer_clicked_at, ?) WHERE id = ?').bind(now, reg.id).run();
   return startDeposit(rt, { leadId: reg.lead_id, source: 'live', refId: ev.id, regToken: reg.token, oneClick: body.one_click === true, returnUrl: liveWelcomeUrl(rt, reg.token) });
 }
 
@@ -643,12 +654,12 @@ export async function roomDeposit(rt: Runtime, reg: LiveReg, body: Record<string
 export async function listEvents(rt: Runtime) {
   const { results } = await rt.env.DB.prepare(
     `SELECT e.*,
-       (SELECT COUNT(*) FROM live_registrations r WHERE r.event_id = e.id) AS registered,
-       (SELECT COUNT(*) FROM live_registrations r WHERE r.event_id = e.id AND r.joined_at IS NOT NULL) AS attended,
+       (SELECT COUNT(*) FROM live_webinar_regs r WHERE r.event_id = e.id) AS registered,
+       (SELECT COUNT(*) FROM live_webinar_regs r WHERE r.event_id = e.id AND r.joined_at IS NOT NULL) AS attended,
        (SELECT peak_viewers FROM webinar_live_peaks k WHERE k.session_id = e.id) AS peak,
        (SELECT COUNT(*) FROM webinar_passes p WHERE p.kind = 'deposit' AND p.source = 'live' AND p.ref_id = e.id AND p.status = 'paid') AS deposits,
        (SELECT COALESCE(SUM(p.amount - p.refunded_amount), 0) FROM webinar_passes p WHERE p.source = 'live' AND p.ref_id = e.id AND p.status IN ('paid', 'refunded') AND p.kind IN ('deposit', 'live_ticket')) AS revenue
-     FROM live_events e ORDER BY e.starts_at DESC LIMIT 100`,
+     FROM live_webinars e ORDER BY e.starts_at DESC LIMIT 100`,
   ).all<LiveEvent & Record<string, number>>();
   const s = liveSettings(rt);
   const now = Date.now();
@@ -663,11 +674,11 @@ export async function eventReport(rt: Runtime, id: string) {
   const now = Date.now();
   const s = liveSettings(rt);
   const [regs, passes, peak, presence, polls] = await db.batch([
-    db.prepare(`SELECT r.*, l.first_name, l.last_name, l.email, l.phone FROM live_registrations r JOIN leads l ON l.id = r.lead_id WHERE r.event_id = ? ORDER BY r.created_at DESC LIMIT 2000`).bind(id),
+    db.prepare(`SELECT r.*, l.first_name, l.last_name, l.email, l.phone FROM live_webinar_regs r JOIN leads l ON l.id = r.lead_id WHERE r.event_id = ? ORDER BY r.created_at DESC LIMIT 2000`).bind(id),
     db.prepare(`SELECT id, lead_id, kind, status, amount, currency, ticket_credit, refunded_amount, one_click, paid_at, created_at FROM webinar_passes WHERE source = 'live' AND ref_id = ? ORDER BY created_at DESC`).bind(id),
     db.prepare('SELECT peak_viewers, peak_at FROM webinar_live_peaks WHERE session_id = ?').bind(id),
     db.prepare("SELECT COUNT(*) AS n FROM webinar_presence WHERE session_id = ? AND kind = 'viewer' AND seen_at > ?").bind(id, now - PRESENCE_MS.viewer),
-    db.prepare('SELECT * FROM live_polls WHERE event_id = ? ORDER BY opened_at DESC LIMIT 10').bind(id),
+    db.prepare('SELECT * FROM live_webinar_polls WHERE event_id = ? ORDER BY opened_at DESC LIMIT 10').bind(id),
   ]);
   const rs = regs.results as (LiveReg & { first_name: string | null; last_name: string | null; email: string | null; phone: string | null })[];
   const ps = passes.results as { id: string; lead_id: string; kind: string; status: string; amount: number; currency: string; ticket_credit: number; refunded_amount: number; one_click: number; paid_at: number | null }[];
@@ -706,13 +717,13 @@ export async function liveLadder(rt: Runtime, range: { from: number; to: number 
   const db = rt.env.DB;
   const r = await db.prepare(
     `SELECT COUNT(*) AS registered, SUM(r.joined_at IS NOT NULL) AS attended, SUM(r.offer_seen_at IS NOT NULL) AS offer_seen, SUM(r.offer_clicked_at IS NOT NULL) AS offer_clicked, COUNT(DISTINCT r.lead_id) AS people
-       FROM live_registrations r JOIN live_events e ON e.id = r.event_id WHERE e.starts_at BETWEEN ? AND ?`,
+       FROM live_webinar_regs r JOIN live_webinars e ON e.id = r.event_id WHERE e.starts_at BETWEEN ? AND ?`,
   ).bind(range.from, range.to).first<Record<string, number | null>>();
   const p = await db.prepare(
     `SELECT SUM(p.kind = 'live_ticket' AND p.status = 'paid') AS tickets, SUM(p.kind = 'deposit' AND p.status = 'paid') AS deposits,
             COALESCE(SUM(CASE WHEN p.status IN ('paid', 'refunded') THEN p.amount - p.refunded_amount ELSE 0 END), 0) AS revenue, MAX(p.currency) AS currency,
             COUNT(DISTINCT CASE WHEN p.kind = 'deposit' AND p.status = 'paid' AND EXISTS (SELECT 1 FROM contracts k WHERE k.lead_id = p.lead_id AND k.status = 'signed' AND COALESCE(k.is_test, 0) = 0) THEN p.lead_id END) AS signed
-       FROM webinar_passes p JOIN live_events e ON e.id = p.ref_id WHERE p.source = 'live' AND e.starts_at BETWEEN ? AND ?`,
+       FROM webinar_passes p JOIN live_webinars e ON e.id = p.ref_id WHERE p.source = 'live' AND e.starts_at BETWEEN ? AND ?`,
   ).bind(range.from, range.to).first<Record<string, number | string | null>>();
   const cur = String(p?.currency ?? liveSettings(rt).currency).toUpperCase();
   const reg = Number(r?.registered ?? 0);

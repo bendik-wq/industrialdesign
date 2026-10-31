@@ -1,4 +1,4 @@
-import { mountLiveAdmin } from '../live/routes';
+import { mountLiveAdmin } from '../live/funnel-routes';
 import type { Env } from '../env';
 import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown, type Sprint } from '../content/ideas';
 import { buildMiroBoard, docShell, sprintPage } from '../content/sprint-export';
@@ -44,6 +44,9 @@ import { addManualSpend, adsReport, deleteManualSpend, setCampaignFunnel } from 
 import { chooseAdAccount, listAdAccounts, metaAdsConfigured, metaAdsToken, syncMetaSpend } from '../integrations/meta-ads';
 import { webinarInsights } from '../admin/webinar';
 import { liveAdmin } from '../admin/live';
+import { liveEventsAdmin } from '../live/admin';
+import { zoomConfigured } from '../live/zoom';
+import { createZoomFor } from '../live/stream';
 import { dealSprintAdmin } from '../admin/deal-sprint';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
@@ -201,6 +204,7 @@ admin.put('/webinar/buyin/:id', async (c) => {
   return c.json({ ok: true });
 });
 admin.route('/webinar/live', liveAdmin); // host console (the real live layer)
+admin.route('/live-events', liveEventsAdmin); // live events on Zoom: join link, Zoom meeting, host start link
 admin.route('/deal-sprint', dealSprintAdmin); // Sprint board + ladder report
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {
@@ -238,13 +242,19 @@ admin.post('/webinar/sessions', async (c) => {
   const mode = ['evergreen', 'stream', 'live'].includes(String(b.mode)) ? String(b.mode) : 'evergreen';
   const https = (v: unknown) => (typeof v === 'string' && /^https:\/\/[^\s"'<>]+$/.test(v.trim()) ? v.trim().slice(0, 500) : null);
   const joinUrl = https(b.join_url);
-  if (mode === 'live' && !joinUrl) return c.json({ error: 'Live sessions need the https join link (Zoom, YouTube, StreamYard…)' }, 400);
+  if (mode === 'live' && !joinUrl && !zoomConfigured(c.get('settings'))) return c.json({ error: 'Live sessions need the https join link (Zoom, YouTube, StreamYard…), or connect Zoom under Integrations → Live to create the meeting automatically' }, 400);
   const title = typeof b.title === 'string' ? b.title.replace(/[<>]/g, '').trim().slice(0, 120) || null : null;
   const id = newId('ws');
   const res = await c.env.DB.prepare("INSERT OR IGNORE INTO webinar_sessions (id, starts_at, title, mode, join_url, video_src, status, auto, created_at) VALUES (?, ?, ?, ?, ?, ?, 'scheduled', 0, ?)")
     .bind(id, startsAt, title, mode, joinUrl, https(b.video_src), Date.now()).run();
   if (!res.meta.changes) return c.json({ error: 'There’s already a session at that exact time' }, 409);
-  return c.json({ ok: true, id });
+  // A live session without a link: create the Zoom meeting now (the host console can retry or take a pasted link).
+  if (mode === 'live' && !joinUrl) {
+    const rt = runtimeFrom(c);
+    const zoom = await createZoomFor(rt, `webinar:${id}`, { startsAt, title: title ?? undefined }).then((z) => ({ ok: true, kind: z.kind }), (e: unknown) => ({ ok: false, error: e instanceof Error ? e.message : 'Zoom didn’t answer' }));
+    return c.json({ ok: true, id, zoom, host: `/admin/live/${encodeURIComponent(`webinar:${id}`)}` });
+  }
+  return c.json({ ok: true, id, host: mode === 'evergreen' ? null : `/admin/live/${encodeURIComponent(`webinar:${id}`)}` });
 });
 admin.delete('/webinar/sessions/:id', async (c) => c.json({ ok: true, ...(await cancelSession(runtimeFrom(c), c.req.param('id'))) }));
 
@@ -793,6 +803,7 @@ admin.get('/integrations', async (c) => {
       voice: { label: 'Voice agent', connected: voiceConfigured(s), detail: voiceConfigured(s) ? [s.VAPI_ASSISTANT_ID ? 'Assistant ready' : 'Assistant answers inline (not saved in Vapi yet)', s.VOICE_PHONE_NUMBER && `Inbound line ${s.VOICE_PHONE_NUMBER}`, webCallsEnabled(s) ? 'Browser calls on' : 'Browser calls off'].filter(Boolean).join(' · ') : 'Inbound only. Add your Vapi keys and a webhook secret to switch it on.' },
       aiCalls: { label: 'AI calls (ElevenLabs)', connected: elevenConfigured(s), detail: elevenConfigured(s) ? `Confirmation calls ${s.AI_CALL_CONFIRM.trim().toLowerCase() === 'false' ? 'off' : 'on'} · speed-to-lead ${s.AI_CALL_SPEED_TO_LEAD.trim().toLowerCase() === 'false' ? 'off' : 'on'} · no-show rebook ${s.AI_CALL_REBOOK.trim().toLowerCase() === 'false' ? 'off' : 'on'} · consenting leads only` : 'Add an ElevenLabs API key, then finish setup on the Voice tab.' },
       video: { label: 'Video', connected: Boolean(s.VSL_MAIN_SRC), detail: s.VSL_MAIN_SRC ? 'Main VSL connected' : 'No VSL video yet — the page shows a placeholder.' },
+      zoom: { label: 'Zoom (live events)', connected: zoomConfigured(s), detail: zoomConfigured(s) ? 'Funnel HQ creates the Zoom meeting for each live event. Press Check on the Zoom card to test it.' : 'Not connected. Live events still run: paste a Zoom link per event in its host console.' },
       whop: { label: 'Payments (Whop)', connected: Boolean(s.WHOP_API_KEY), detail: s.WHOP_API_KEY ? [`Whop takes the ticket and Sprint payments${s.WHOP_COMPANY_ID ? ` (${s.WHOP_COMPANY_ID})` : ''}`, s.WHOP_WEBHOOK_SECRET ? 'webhook signed' : 'no webhook yet: press Connect Whop'].join(' · ') : s.STRIPE_SECRET_KEY ? 'Not connected. Stripe takes the payments.' : 'Not connected. Add the Whop API key under Webinar to sell the ticket and the Sprint.' },
     },
     webhooks: {

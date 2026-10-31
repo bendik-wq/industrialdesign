@@ -20,7 +20,7 @@ import { PassError, activePass, createCheckout, markReviewClicked, passGate, syn
 import { ensureDealSprint } from '../webinar/deal-sprint';
 import { sameOriginWrite } from '../admin/auth';
 import { createSprintCheckout, unlockSprint } from '../webinar/sprint';
-import { mountLiveApi } from '../live/routes';
+import { mountLiveApi } from '../live/funnel-routes';
 
 export const api = new Hono<AppEnv>();
 

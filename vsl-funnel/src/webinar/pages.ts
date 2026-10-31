@@ -1,3 +1,4 @@
+import { playbackFor } from '../live/stream';
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { render } from '../funnel/pages';
@@ -235,6 +236,13 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
   const pass = sprint ? null : holderPass;
   // The Sprint is the one decision in this room: no call booking beside it.
   const live = await liveRoomConfig(rt, reg, replay);
+  // Live on Zoom (src/live/stream.ts): the room shows the "Join on Zoom" card. A stream session without a stream URL
+  // (WEBINAR_STREAM_HLS or the session's own) falls back to its link too.
+  const liveKey = `webinar:${session.id}`;
+  const streamUrl = session.mode === 'stream' ? session.video_src || w.streamHls || null : null;
+  const livePlayback = !replay && (session.mode === 'live' || (session.mode === 'stream' && !streamUrl))
+    ? { key: liveKey, playback: await playbackFor(rt, liveKey, session.join_url) }
+    : null;
   if (sprint && live) live.raise = false;
   return render(c, '/webinar-room.html', {
     title: session.title || w.title,
@@ -268,6 +276,7 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         copy: ROOM_COPY,
         replayUntil: replayEndsAt(rt, session, reg.replay_until),
         live,
+        livePlayback,
         pass,
         sprint,
       },

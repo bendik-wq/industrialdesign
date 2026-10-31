@@ -156,7 +156,7 @@ export async function liveRoom(c: Context<AppEnv>) {
     const [h, b] = st.stage === 'closed' ? [C.closedHeading, C.closedBody] : [C.cancelledHeading, C.cancelledBody];
     return render(c, '/live.html', { title: h, blocks: { navmeta: '', main: `<section class="lv-room"><div class="wrap lv-rwrap">${head}<div class="lv-card"><h2 class="lv-offer-h">${esc(h)}</h2><p class="lv-offer-p">${esc(b)}</p></div></div></section>` } });
   }
-  const playback = await playbackFor(rt, streamKey(ev.id), st.joinUrl);
+  const playback = await playbackFor(rt, streamKey(ev.id), ev.join_url, { startsAt: ev.starts_at, durationMin: Math.max(1, Math.round((st.endsAt - ev.starts_at) / 60_000)) });
   const offer = await offerBlock(rt, reg);
   const q = await depositQuote(rt, reg.lead_id);
   const main = `<section class="lv-room"><div class="wrap lv-rwrap">
@@ -195,7 +195,7 @@ export async function liveRoom(c: Context<AppEnv>) {
     blocks: { main, navmeta: '' },
     config: {
       live: {
-        page: 'room', token: reg.token, title: ev.title, state: st, playback: { ...playback, statusUrl: `/api/live/status/${reg.token}` },
+        page: 'room', token: reg.token, title: ev.title, state: st, key: streamKey(ev.id), serverNow: now, playback: { ...playback, joinUrl: st.joinUrl },
         feed: '/api/live/feed', chat: '/api/live/chat', vote: '/api/live/vote', join: '/api/live/join', buy: '/api/live/deposit',
         oneClick: q.oneClick && !q.paid ? q.oneClick : null, paid: q.paid, copy: { ...C, offerTitle: `${C.offerNotice} · ${ev.title}`, notifyBody: `${depositCopy(depositConfig(rt)).price}. Go back to the tab you came from.` },
       },

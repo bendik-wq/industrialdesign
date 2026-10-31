@@ -3,7 +3,7 @@
 -- registrations have their own tables; the room's chat, presence and peaks reuse webinar_chat,
 -- webinar_presence and webinar_live_peaks keyed by the event id (le…, never a webinar_sessions id).
 
-CREATE TABLE live_events (
+CREATE TABLE live_webinars (
   id               TEXT PRIMARY KEY,
   title            TEXT NOT NULL,
   starts_at        INTEGER NOT NULL,
@@ -22,9 +22,9 @@ CREATE TABLE live_events (
   created_at       INTEGER NOT NULL,
   updated_at       INTEGER NOT NULL
 );
-CREATE INDEX idx_live_events_start ON live_events(status, starts_at);
+CREATE INDEX idx_live_webinars_start ON live_webinars(status, starts_at);
 
-CREATE TABLE live_registrations (
+CREATE TABLE live_webinar_regs (
   id               TEXT PRIMARY KEY,
   token            TEXT NOT NULL UNIQUE,          -- personal room link
   event_id         TEXT NOT NULL,
@@ -42,11 +42,11 @@ CREATE TABLE live_registrations (
   replay_at        INTEGER,                       -- in the room after the event ended
   created_at       INTEGER NOT NULL
 );
-CREATE UNIQUE INDEX idx_live_reg_once ON live_registrations(event_id, lead_id);
-CREATE INDEX idx_live_reg_lead ON live_registrations(lead_id);
+CREATE UNIQUE INDEX idx_live_reg_once ON live_webinar_regs(event_id, lead_id);
+CREATE INDEX idx_live_reg_lead ON live_webinar_regs(lead_id);
 
 -- Polls the host pushes to every room.
-CREATE TABLE live_polls (
+CREATE TABLE live_webinar_polls (
   id         TEXT PRIMARY KEY,
   event_id   TEXT NOT NULL,
   question   TEXT NOT NULL,
@@ -54,8 +54,8 @@ CREATE TABLE live_polls (
   opened_at  INTEGER NOT NULL,
   closed_at  INTEGER
 );
-CREATE INDEX idx_live_polls_event ON live_polls(event_id, opened_at);
-CREATE TABLE live_poll_votes (
+CREATE INDEX idx_live_webinar_polls_event ON live_webinar_polls(event_id, opened_at);
+CREATE TABLE live_webinar_poll_votes (
   poll_id    TEXT NOT NULL,
   reg_id     TEXT NOT NULL,
   choice     INTEGER NOT NULL,

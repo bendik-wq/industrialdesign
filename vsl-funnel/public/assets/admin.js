@@ -1009,7 +1009,7 @@
       var k = d.kpis || {}, st = d.settings || {};
       var regs = k.registrations || 0;
       var when = function (t) { return new Date(t).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
-      var MODE = { evergreen: 'Recording in sync', stream: 'Live in our room', live: 'Live link (Zoom…)' };
+      var MODE = { evergreen: 'Recording in sync', stream: 'Live in our room', live: 'Live on Zoom' };
       var mins = function (s) { return s ? Math.round(s / 60) + ' min' : '–'; };
       view.innerHTML = '<div data-hostconsole></div>' +
         (st.placeholderVideo ? '<div class="card notice" style="margin-bottom:14px"><strong>Using the VSL as a placeholder recording.</strong> Add your webinar recording under Integrations → Webinar (WEBINAR_VIDEO_SRC).</div>' : '') +
@@ -1032,12 +1032,12 @@
           { label: 'Starts', nw: true, html: function (r) { return esc(when(r.starts_at)) + (r.status === 'cancelled' ? ' <span class="pill">cancelled</span>' : ''); } },
           { label: 'Type', html: function (r) { return esc(MODE[r.mode] || r.mode) + (r.auto ? ' <span class="muted">· weekly</span>' : ''); } },
           { label: 'Registered', key: 'registrations', num: true, fmt: n },
-          { label: '', html: function (r) { return r.status === 'cancelled' ? '' : '<button class="btn-sm ghost" data-cancel="' + esc(r.id) + '">Cancel &amp; move people</button>'; } },
+          { label: '', html: function (r) { return r.status === 'cancelled' ? '' : (r.mode !== 'evergreen' ? '<a class="btn-sm ghost" href="/admin/live/' + encodeURIComponent('webinar:' + r.id) + '" target="_blank" rel="noopener">Host console</a> ' : '') + '<button class="btn-sm ghost" data-cancel="' + esc(r.id) + '">Cancel &amp; move people</button>'; } },
         ], d.upcoming || [], { cards: true }) +
         '<form class="wform" data-wform style="margin-top:14px"><h3 class="h3">Add a session</h3>' +
         '<label>Date &amp; time <input class="input" type="datetime-local" name="starts_at" required></label>' +
-        '<label>Type <select class="input" name="mode"><option value="evergreen">Recording played in sync</option><option value="stream">Live in our own room (Cloudflare Stream)</option><option value="live">Live on Zoom / YouTube (join link)</option></select></label>' +
-        '<label data-joinwrap hidden>Join link <input class="input" name="join_url" placeholder="https://zoom.us/j/…"></label>' +
+        '<label>Type <select class="input" name="mode"><option value="evergreen">Recording played in sync</option><option value="live">Live on Zoom (join link)</option><option value="stream">Live in our own room (stream URL)</option></select></label>' +
+        '<label data-joinwrap hidden>Join link <input class="input" name="join_url" placeholder="https://zoom.us/j/…"><span class="muted small">With Zoom connected (Integrations → Zoom), leave it blank and the meeting is created for you. You can also add it later in the session’s host console.</span></label>' +
         '<label>Title (optional) <input class="input" name="title" maxlength="120" placeholder="' + esc(st.title) + '"></label>' +
         '<button class="btn-sm" type="submit">Add session</button> <span class="muted" data-wmsg></span></form></div>' +
         '<div class="card"><h2>Past sessions</h2><p class="sub">Show rate, how far people watched, and what they did next.</p>' +
@@ -1099,7 +1099,7 @@
         e.preventDefault();
         var t = new Date(f.starts_at.value).getTime();
         send('POST', 'webinar/sessions', { starts_at: t, mode: f.mode.value, join_url: f.join_url.value, title: f.title.value }).then(function (r) {
-          if (r && r.ok) load(); else f.querySelector('[data-wmsg]').textContent = (r && r.error) || 'Couldn’t add the session';
+          if (r && r.ok) { if (r.zoom) toast(r.zoom.ok ? 'Zoom ' + r.zoom.kind + ' created' : 'Session added. Zoom: ' + r.zoom.error + ' Paste a link in its host console.'); load(); } else f.querySelector('[data-wmsg]').textContent = (r && r.error) || 'Couldn’t add the session';
         });
       };
     });
@@ -3504,7 +3504,7 @@
       var groupNames = Object.keys(groups);
       var slug = function (g) { return String(g).toLowerCase().replace(/[^a-z0-9]+/g, '-'); };
       // Status tile → the settings group that configures it (case-insensitive; tried with the key, then the label).
-      var TILE_GROUP = { email: 'Email', whatsapp: 'WhatsApp', voice: 'Voice', 'voice agent': 'Voice', aicalls: 'Voice', 'ai calls (elevenlabs)': 'Voice', booking: 'Booking', calendly: 'Booking', analytics: 'Analytics', posthog: 'Analytics', ga4: 'Analytics', meta: 'Ads', alerts: 'Alerts', slack: 'Alerts', 'team pings': 'Alerts', crm: 'Alerts', 'crm webhook': 'Alerts', video: 'Video', whop: 'Webinar' };
+      var TILE_GROUP = { email: 'Email', whatsapp: 'WhatsApp', voice: 'Voice', 'voice agent': 'Voice', aicalls: 'Voice', 'ai calls (elevenlabs)': 'Voice', booking: 'Booking', calendly: 'Booking', analytics: 'Analytics', posthog: 'Analytics', ga4: 'Analytics', meta: 'Ads', alerts: 'Alerts', slack: 'Alerts', 'team pings': 'Alerts', crm: 'Alerts', 'crm webhook': 'Alerts', video: 'Video', whop: 'Webinar', zoom: 'Live', 'zoom (live events)': 'Live' };
       var findGroup = function (name) {
         if (!name) return null;
         var want = String(TILE_GROUP[String(name).toLowerCase()] || name).toLowerCase();
@@ -3520,6 +3520,8 @@
         '<div class="row"><button class="btn-sm" data-cal-connect>Connect webhook &amp; import</button><button class="btn-sm ghost" data-cal-sync>Sync now</button><button class="btn-sm ghost" data-cal-history>Import full history</button><span class="muted" data-cal-out></span></div></div>' +
         '<div class="card" style="margin-top:14px" data-whop-card><div class="card-head"><div><h2>Payments: Whop</h2><p class="sub">With the Whop API key saved (Keys &amp; settings → Webinar), Whop takes the Masterclass ticket and First Deal Sprint payments instead of Stripe. Connect reads the company behind the key and creates the payments webhook (' + esc(d.webhooks.whop) + ': payment.succeeded, refund.created, refund.updated). Whop caps checkout links at $2,500 until you apply for higher ones in Whop → Settings → Payments.</p></div><div class="row"><button class="btn-sm" type="button" data-whop-connect>Connect Whop</button></div></div>' +
         '<div data-whop-out class="muted small">' + esc((d.status.whop && d.status.whop.detail) || '') + '</div></div>' +
+        '<div class="card" style="margin-top:14px" data-zoom-card><div class="card-head"><div><h2>Zoom</h2><p class="sub">Live webinar sessions and challenge days run on Zoom. Each event has a host console (Webinar → Upcoming sessions → Host console) where you paste its Zoom link. With a Zoom Server-to-Server OAuth app connected (Keys &amp; settings → Live), Funnel HQ creates the meeting itself, or a Zoom Webinar when your account has the add-on, and opens a fresh host start link for you.</p></div><div class="row"><button class="btn-sm" type="button" data-zoom-check>Check</button></div></div>' +
+        '<div data-zoom-out class="muted small">' + esc((d.status.zoom && d.status.zoom.detail) || '') + '</div></div>' +
         '<div class="card" style="margin-top:14px"><div class="card-head"><div><h2>Bounce blocking</h2><p class="sub">When an email hard-bounces or someone marks it as spam, Resend tells the funnel and that address is blocked: every queued email to it is cancelled and nothing is ever sent to it again, in any campaign.</p></div><div class="row"><button class="btn-sm" type="button" data-bb-connect>Connect bounce blocking</button></div></div>' +
         '<div class="row"><input class="input" type="email" placeholder="block an address by hand" data-bb-email style="flex:1"><button class="btn-sm ghost" type="button" data-bb-add>Block</button></div><div data-bb-list class="muted" style="margin-top:10px">Loading…</div></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card"><h2>Test email</h2><p class="sub">Sends a test through Resend to confirm the key, domain and From address.</p><div class="row"><input class="input" type="email" placeholder="you@company.com" data-test-to style="flex:1"><button class="btn-sm" data-test>Send test</button></div></div>' +
@@ -3595,6 +3597,17 @@
             ((r.steps || []).length ? '<ol style="margin:8px 0 0 18px">' + r.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' : '');
           toast(w.created ? 'Whop connected ✓' : 'Whop company saved');
         });
+      };
+      view.querySelector('[data-zoom-check]').onclick = function () {
+        var out = view.querySelector('[data-zoom-out]'), b = this;
+        b.disabled = true; out.textContent = 'Asking Zoom…';
+        fetch('/admin/api/live-events/zoom/check', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (r) {
+          b.disabled = false;
+          var head = r.ready ? '<b style="color:var(--good)">Ready.</b> Funnel HQ can create Zoom meetings' + (r.webinars ? ' and Zoom Webinars' : r.webinars === false ? ' (no Zoom Webinar add-on, so meetings)' : '') + '.' + (r.canRefreshHostLink ? '' : ' Add meeting:read:meeting:admin so the host start link refreshes.')
+            : (r.configured ? '<b>Not ready.</b> ' : '') + esc(r.reason || '');
+          out.innerHTML = head + (r.scopes && r.scopes.length ? '<div class="mono" style="margin-top:6px">Scopes: ' + esc(r.scopes.join(' ')) + '</div>' : '') +
+            (r.ready ? '' : '<ol style="margin:8px 0 0 18px">' + (r.steps || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>');
+        }).catch(function () { b.disabled = false; out.textContent = 'Couldn’t reach Funnel HQ. Try again.'; });
       };
       view.querySelector('[data-bb-connect]').onclick = function () {
         bbList.textContent = 'Connecting to Resend…';
