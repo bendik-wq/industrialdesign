@@ -280,6 +280,8 @@
     vsl: { group: 'Funnel', title: 'Video (VSL)', sub: 'Who watches, where they drop, and when they reach the pitch.', render: renderVsl },
     application: { group: 'Funnel', title: 'Application', sub: 'Step drop-off, answers and lead scoring.', render: renderApplication },
     behaviour: { group: 'Funnel', title: 'On-page behaviour', sub: 'What people click, where the form slows them down and where they leave.', more: 'What people click, where the form slows them down, where they leave, what they re-read and highlight. Nothing anyone types is ever recorded.', render: renderBehaviour, filters: ['range'] },
+    autopilot: { group: 'Traffic', title: 'Ads autopilot', sub: 'Every ad judged on our own results, with proposed changes to approve.', more: 'Meta is read every hour at ad level. Each ad is matched to its leads, revenue band, tickets, bookings and deposits by utm_content. Fatigued and losing ads get a pause proposal, winners a duplicate, and budget moves from losing ad sets to winning ones within your daily limit. Nothing changes on Meta until you approve, unless you set that change to auto. Without a write token, approving means you made the change in Ads Manager yourself.', render: renderAutopilot, noFilters: true },
+    salesops: { group: 'Sell', title: 'Follow-up actions', sub: 'Follow up with quiet leads, no-shows and unpaid checkouts in one approved batch.', more: 'Pick an action, preview every drafted message, edit or remove any of them, then approve. Consent, unsubscribes, the suppression list and sending hours are checked when drafting and again at the moment of sending.', render: renderSalesOps, noFilters: true },
     traffic: { group: 'Traffic', title: 'Traffic & ads', sub: 'Which sources, campaigns and ads produce qualified leads — not just clicks.', render: renderTraffic },
     links: { group: 'Traffic', title: 'Links & videos', sub: 'Tracked links for your Instagram bio, ManyChat, YouTube and more, followed to closed deals.', more: 'One tracked link per place you post it (Instagram bio, each ManyChat flow, each video), followed from the tap to the booked call and the closed deal.', render: renderLinks, filters: ['range'] },
     webinar: { group: 'Traffic', title: 'Webinar', sub: 'Sessions, registrations, attendance and what they did next.', more: 'The masterclass at live.grosfjeld-li.com: sessions, who registered, who came and how long they watched, and how many went on to apply, book and buy.', render: renderWebinar, filters: ['range'] },
@@ -2447,6 +2449,16 @@
         if (!(o && o.silent)) load();
       },
     });
+  }
+
+  function renderAutopilot() {
+    if (!window.AdsAutopilot) { view.innerHTML = '<div class="card">The Ads autopilot script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.AdsAutopilot.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
+  }
+
+  function renderSalesOps() {
+    if (!window.SalesActions) { view.innerHTML = '<div class="card">The Follow-up actions script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.SalesActions.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
   }
 
   function renderChallenge() {
