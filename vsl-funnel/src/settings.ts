@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -268,6 +268,17 @@ export const SETTINGS = [
   { key: 'RESEARCH_AD_KEYWORDS', label: 'Research: Ad Library searches', group: 'Research', placeholder: 'buy a business, business acquisition, seller financing, acquire a company', help: 'Comma separated. Blank = the list shown.' },
   { key: 'RESEARCH_AD_COUNTRIES', label: 'Research: ad countries', group: 'Research', placeholder: 'US, GB, AU, IE', help: 'Two-letter codes. Meta’s Ad Library API returns commercial ads only where they reached the UK or the EU, so keep GB or an EU country in the list.' },
   { key: 'RESEARCH_YT_QUERIES', label: 'Research: YouTube searches', group: 'Research', placeholder: 'buy a business, business acquisition, ETA search fund, seller financing, SBA 7a loan', help: 'Comma separated. Needs the YouTube Data API key under Content.' },
+  // ── Clients & support, Claude (MCP) and Zapier (builder E: src/clients, src/support, src/mcp, src/integrations/webhooks-out.ts) ──
+  { key: 'CS_AI_MODEL', label: 'Client check-in model', group: 'Clients & support', placeholder: 'claude-sonnet-5-5', help: 'Drafts client check-ins in the team’s voice (needs the Anthropic API key under Email). Blank uses Claude Sonnet. Without a key, check-ins use the built-in template.' },
+  { key: 'CS_DAILY_HOUR', label: 'Daily client health run (hour)', group: 'Clients & support', placeholder: '7', help: 'Local hour (sales team time zone) when health scores are rebuilt and due check-ins are drafted for approval.' },
+  { key: 'SUPPORT_AI_MODEL', label: 'Support answer model', group: 'Clients & support', placeholder: 'claude-sonnet-5-5', help: 'Drafts answers to support emails and room questions from our own guides, materials, the guarantee, the FAQ and the offer terms, with citations. Blank uses Claude Sonnet.' },
+  { key: 'SUPPORT_MIN_CONFIDENCE', label: 'Support: confidence needed to skip escalation', group: 'Clients & support', placeholder: '0.7', help: 'Drafts below this confidence (0 to 1) go to a person. Anything about money, refunds, payments or legal always goes to a person.' },
+  { key: 'SUPPORT_FROM', label: 'Support: reply From address', group: 'Clients & support', placeholder: 'G&L Support <support@mail.example.com>', help: 'Blank uses the From address under Email.' },
+  { key: 'SUPPORT_INBOUND_SECRET', label: 'Support: forwarding secret', group: 'Clients & support', secret: true, help: 'Shared secret for POST /hooks/support-email (a forwarder such as Zapier, Make or a Cloudflare Email Worker sends it in the X-Support-Secret header).' },
+  { key: 'SUPPORT_RESEND_WEBHOOK_SECRET', label: 'Support: Resend inbound webhook secret', group: 'Clients & support', secret: true, placeholder: 'whsec_…', help: 'Filled in by “Connect support inbox” (Funnel HQ → Support). Resend → Webhooks, endpoint <your domain>/hooks/resend-inbound, event email.received.' },
+  { key: 'MCP_TOKEN', label: 'Claude connector (MCP) token', group: 'Clients & support', secret: true, help: 'Bearer token for the MCP server at /mcp. Use “Generate new token” under Integrations → Claude (MCP); generating a new one stops the old one at once.' },
+  { key: 'MCP_ALLOWED_ORIGINS', label: 'MCP: extra allowed browser origins', group: 'Clients & support', placeholder: 'https://claude.ai', help: 'Requests that carry an Origin header must come from this site, claude.ai or claude.com, or one listed here (comma separated). Requests without an Origin (Claude Code, Claude Desktop, claude.ai connectors) only need the token.' },
+  { key: 'ZAPIER_INBOUND_SECRET', label: 'Zapier: inbound action secret', group: 'Clients & support', secret: true, help: 'Shared secret for POST /hooks/zapier/create-lead and /hooks/zapier/add-note (header X-Zapier-Secret).' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

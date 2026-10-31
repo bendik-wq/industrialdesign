@@ -360,10 +360,11 @@ describe('Funnel HQ routes', () => {
     const res = await app.request(`/admin/api/research/angles/${angle.id}/send`, { method: 'POST', body: '{}' }, env, exec);
     const body = await res.json() as { ok: boolean; actionId: string };
     expect(body.ok).toBe(true);
-    const actions = db.prepare('SELECT id, dept, kind, status, actor, payload FROM ops_actions ORDER BY created_at').all() as { id: string; dept: string; kind: string; status: string; actor: string; payload: string }[];
+    const actions = db.prepare('SELECT id, dept, kind, status, actor, payload, risk FROM ops_actions ORDER BY created_at').all() as { id: string; dept: string; kind: string; status: string; actor: string; payload: string; risk: string | null }[];
     const proposal = actions.find((a) => a.kind === 'marketing.test_angle')!;
     expect(proposal).toMatchObject({ id: body.actionId, dept: 'marketing', status: 'proposed' });
-    expect(JSON.parse(proposal.payload)).toMatchObject({ angleId: angle.id, hook: angle.hook, risk: 'medium' });
+    expect(JSON.parse(proposal.payload)).toMatchObject({ angleId: angle.id, hook: angle.hook });
+    expect(proposal.risk ?? JSON.parse(proposal.payload).risk).toBe('medium');
     expect(actions.find((a) => a.kind === 'research.angle_sent')).toMatchObject({ dept: 'research', actor: 'you', status: 'done' });
     expect(db.prepare('SELECT status, action_id FROM research_angles WHERE id = ?').get(angle.id)).toEqual({ status: 'approved', action_id: body.actionId });
     expect((await app.request(`/admin/api/research/angles/${angle.id}/send`, { method: 'POST', body: '{}' }, env, exec)).status).toBe(409);
