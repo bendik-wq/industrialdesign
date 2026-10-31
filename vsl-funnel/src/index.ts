@@ -48,6 +48,7 @@ import { guaranteePage, liveLanding, liveRoom, liveTicketPage, liveWelcome, live
 import { processLiveMessages } from './live/events';
 import { payPage } from './sales/pay-page';
 import { runOps } from './ops/cron';
+import { maybeRunResearch } from './research/brief';
 
 const app = new Hono<AppEnv>();
 
@@ -315,6 +316,7 @@ export default {
       quiet(maybeSyncMetaSpend(rt), 'Meta ad spend'),
       quiet(processLiveMessages(rt), 'live webinar messages'),
       quiet(runOps(rt), 'Command (routines, alerts, brief)'),
+      quiet(maybeRunResearch(rt), 'research'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

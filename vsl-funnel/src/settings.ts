@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -222,6 +222,22 @@ export const SETTINGS = [
   { key: 'TURNSTILE_SECRET_KEY', label: 'Turnstile secret key', group: 'Security', secret: true },
   { key: 'CONSENT_REQUIRED_EU', label: 'Cookie consent for EU visitors', group: 'Security', placeholder: 'true' },
   { key: 'IP_ANONYMIZE', label: 'Store hashed IPs only', group: 'Security', placeholder: 'false' },
+
+  { key: 'RESEARCH_ENABLED', label: 'Research: daily collection', group: 'Research', placeholder: 'on', help: 'on (default) = once a day Funnel HQ reads Reddit, the Meta Ad Library, YouTube and your own leads’ answers in small slices, then finds themes and drafts angles. off = only when you press Collect now in Research.' },
+  { key: 'RESEARCH_MODEL', label: 'Research: analysis model', group: 'Research', placeholder: 'claude-sonnet-5-5', help: 'Clusters complaints and desires, reads competitor offers and drafts angles (needs the Anthropic API key under Email). Without the key the raw data is still collected and grouped by rules.' },
+  { key: 'RESEARCH_HOUR', label: 'Research: collection starts at (hour, sales time zone)', group: 'Research', placeholder: '2' },
+  { key: 'RESEARCH_BRIEF_DAY', label: 'Research: weekly brief day', group: 'Research', placeholder: 'Mon', help: 'The research brief goes to Slack / Discord and the action log on this day. off = no brief.' },
+  { key: 'RESEARCH_BRIEF_HOUR', label: 'Research: weekly brief hour (0 to 23)', group: 'Research', placeholder: '9' },
+  { key: 'RESEARCH_SUBREDDITS', label: 'Research: subreddits', group: 'Research', placeholder: 'smallbusiness, Entrepreneur, sweatystartup, fatFIRE, acquisitions, smallbusinessowner, consulting, HVAC, Plumbing, dentistry, msp, Accounting', help: 'Comma separated, without r/. Blank = the list shown. Add the subreddits of the industries you sell to.' },
+  { key: 'RESEARCH_KEYWORDS', label: 'Research: Reddit searches', group: 'Research', placeholder: 'buy a business, acquisition, SBA loan, seller financing, succession, exit', help: 'Comma separated. Blank = the list shown.' },
+  { key: 'REDDIT_CLIENT_ID', label: 'Reddit app client ID', group: 'Research', help: 'Optional. reddit.com/prefs/apps → create app (type “script” or “web app”). With it, Funnel HQ reads through Reddit’s OAuth API. Without it, the public .json pages are read slowly with a descriptive User-Agent.' },
+  { key: 'REDDIT_CLIENT_SECRET', label: 'Reddit app secret', group: 'Research', secret: true },
+  { key: 'REDDIT_USERNAME', label: 'Reddit username (for the User-Agent)', group: 'Research', placeholder: 'your_reddit_name', help: 'Reddit asks every API client to name a contact in its User-Agent.' },
+  { key: 'META_AD_LIBRARY_TOKEN', label: 'Meta Ad Library token', group: 'Research', secret: true, help: 'A token from an app with Ad Library API access (facebook.com/ads/library/api → confirm your identity). Blank = the Meta ads token above is tried.' },
+  { key: 'RESEARCH_COMPETITORS', label: 'Research: competitor advertisers', group: 'Research', placeholder: 'Brand name|123456789012345, Another brand', help: 'Comma separated. Each is a Facebook page name, or name|page ID for an exact match (the page ID is in the page’s About → Page transparency).' },
+  { key: 'RESEARCH_AD_KEYWORDS', label: 'Research: Ad Library searches', group: 'Research', placeholder: 'buy a business, business acquisition, seller financing, acquire a company', help: 'Comma separated. Blank = the list shown.' },
+  { key: 'RESEARCH_AD_COUNTRIES', label: 'Research: ad countries', group: 'Research', placeholder: 'US, GB, AU, IE', help: 'Two-letter codes. Meta’s Ad Library API returns commercial ads only where they reached the UK or the EU, so keep GB or an EU country in the list.' },
+  { key: 'RESEARCH_YT_QUERIES', label: 'Research: YouTube searches', group: 'Research', placeholder: 'buy a business, business acquisition, ETA search fund, seller financing, SBA 7a loan', help: 'Comma separated. Needs the YouTube Data API key under Content.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

@@ -51,6 +51,7 @@ import { MATERIAL_IDS, isMaterialId, parseMaterial, summarize } from '../admin/m
 import { dealSprintAdmin } from '../admin/deal-sprint';
 import { challengeAdmin } from '../challenge/admin';
 import { opsAdmin } from '../ops/routes';
+import { researchAdmin } from '../research/admin';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -211,6 +212,7 @@ admin.route('/live-events', liveEventsAdmin); // live events on Zoom: join link,
 admin.route('/deal-sprint', dealSprintAdmin); // Sprint board + ladder report
 admin.route('/ops', opsAdmin); // Funnel HQ → Command: chat, approvals, activity, routines, alerts, documents (src/ops/*)
 admin.route('/challenge', challengeAdmin); // Funnel HQ → Challenge (cohorts, registrants, report)
+admin.route('/research', researchAdmin); // Funnel HQ → Research (themes, competitor ads, angle backlog)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {
   const b = await c.req.json<{ review_booked?: boolean }>().catch(() => ({ review_booked: true }));
