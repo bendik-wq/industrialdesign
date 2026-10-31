@@ -72,7 +72,7 @@ function ga4EventName(name: string, props: Record<string, unknown>): string | un
 export function conversionValue(name: string, props: Record<string, unknown>, lead: Pick<LeadSnapshot, 'tier' | 'revenue'> | null): number | undefined {
   if (name === 'lead_qualified') return lead?.tier === 'A' ? ECONOMICS.programPrice * 0.1 : lead?.tier === 'B' ? ECONOMICS.programPrice * 0.03 : 0;
   if (name === 'booking_scheduled') return ECONOMICS.programPrice * 0.15;
-  if (name === 'webinar_offer_purchased' || name === 'webinar_seat_purchased' || name === 'engagement_deposit_purchased' || name === 'live_ticket_purchased') return Number(props.value) > 0 ? Number(props.value) : undefined;
+  if (name === 'webinar_offer_purchased' || name === 'webinar_seat_purchased' || name === 'engagement_deposit_purchased' || name === 'live_ticket_purchased' || name === 'challenge_ticket_paid' || name === 'challenge_vip_paid') return Number(props.value) > 0 ? Number(props.value) : undefined;
   if (name === 'revenue_band' || name === 'qualified_1m_plus' || name === 'qualified_any_1m_plus' || name === 'qualified_10m_plus') return bandValue(props.band) || undefined;
   if (name === 'lead_status_changed' && props.to === 'showed') return ECONOMICS.programPrice * 0.3;
   if (name === 'lead_status_changed' && props.to === 'won') {
@@ -275,7 +275,9 @@ async function toMeta(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead:
       ? { order_id: String(ev.props.pass_id ?? ev.id), content_name: 'Masterclass ticket' }
       : ev.name === 'webinar_offer_purchased' || ev.name === 'engagement_deposit_purchased' || ev.name === 'live_ticket_purchased'
         ? { order_id: String(ev.props.pass_id ?? ev.id), content_name: String(ev.props.product ?? 'First Deal Sprint') }
-        : { order_id: lead?.id ?? ev.id, content_name: 'M&A advisory program' };
+        : ev.name === 'challenge_ticket_paid' || ev.name === 'challenge_vip_paid'
+          ? { order_id: String(ev.props.order_id ?? ev.id), content_name: ev.name === 'challenge_vip_paid' ? 'First Deal Challenge VIP' : 'First Deal Challenge ticket' }
+          : { order_id: lead?.id ?? ev.id, content_name: 'M&A advisory program' };
     Object.assign(custom_data, content);
   }
 

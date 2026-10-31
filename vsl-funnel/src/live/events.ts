@@ -307,6 +307,7 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'live_registered', source: 'server', path: '/live', props: { event_id: ev.id, starts_at: ev.starts_at, band, ticket: Boolean(ticketRequired) }, eventId: typeof body.event_id_track === 'string' ? body.event_id_track : undefined });
   if (bandIsNew) await trackRevenueEvents(rt, who, band, 'webinar', '/live');
+  await (await import('../attribution/hooks')).onRegistered(rt, v, { funnel: 'live', regId: reg.id, leadId: lead.id, at: now, cohortRef: ev.id, pixelEid: body.pixel_eid }); // first/last touch + Lead (attribution)
   // The confirmation goes out now (the cron is the backup).
   rt.waitUntil(sendDueMessages(rt, ev, reg, (await getLead(rt.env, lead.id))!, now).then(() => undefined));
   if (['10m-25m', '25m-50m', '50m-100m', '100m+'].includes(band)) {
@@ -586,8 +587,16 @@ export async function liveFeed(rt: Runtime, reg: LiveReg, body: Record<string, u
     if (st.stage === 'live' && !reg.joined_at) await db.prepare('UPDATE live_webinar_regs SET joined_at = COALESCE(joined_at, ?) WHERE id = ?').bind(now, reg.id).run();
     if (st.stage === 'replay' && !reg.replay_at) await db.prepare('UPDATE live_webinar_regs SET replay_at = COALESCE(replay_at, ?) WHERE id = ?').bind(now, reg.id).run();
     await db.prepare('UPDATE live_webinar_regs SET last_seen_at = ? WHERE id = ?').bind(now, reg.id).run();
+    if (st.stage === 'live') {
+      const A = await import('../attribution/hooks');
+      await (await import('../attribution/stages')).recordMinute(rt, { funnel: 'live', eventRef: ev.id, regId: reg.id, leadId: reg.lead_id, startsAt: ev.starts_at, now }).catch(() => null);
+      if (!reg.joined_at) await A.onRoomSignal(rt, { kind: 'attended', funnel: 'live', regId: reg.id, leadId: reg.lead_id, at: now, cohortRef: ev.id, detail: 'room' });
+    }
   }
-  if (st.offer.open && !reg.offer_seen_at) await db.prepare('UPDATE live_webinar_regs SET offer_seen_at = COALESCE(offer_seen_at, ?) WHERE id = ?').bind(now, reg.id).run();
+  if (st.offer.open && !reg.offer_seen_at) {
+    await db.prepare('UPDATE live_webinar_regs SET offer_seen_at = COALESCE(offer_seen_at, ?) WHERE id = ?').bind(now, reg.id).run();
+    await (await import('../attribution/hooks')).onRoomSignal(rt, { kind: 'offer_seen', funnel: 'live', regId: reg.id, leadId: reg.lead_id, at: now, cohortRef: ev.id });
+  }
   const after = Math.max(0, Math.floor(Number(body.after) || 0));
   const since = Math.max(0, Math.floor(Number(body.since) || 0));
   const cols = 'id, author, name, CASE WHEN deleted_at IS NULL THEN body END AS body, pinned_at, deleted_at, created_at';
@@ -656,6 +665,7 @@ export async function joinZoom(rt: Runtime, reg: LiveReg) {
   if (!ev || !url || (await ticketGate(rt, reg))) return { ok: false as const };
   await rt.env.DB.prepare('UPDATE live_webinar_regs SET zoom_clicked_at = COALESCE(zoom_clicked_at, ?), joined_at = COALESCE(joined_at, ?) WHERE id = ?').bind(now, now >= ev.starts_at ? now : null, reg.id).run();
   if (!reg.zoom_clicked_at) await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'live_joined', source: 'server', props: { event_id: ev.id }, localOnly: true }).catch(() => null);
+  if (now >= ev.starts_at && !reg.joined_at) await (await import('../attribution/hooks')).onRoomSignal(rt, { kind: 'attended', funnel: 'live', regId: reg.id, leadId: reg.lead_id, at: now, cohortRef: ev.id, detail: 'zoom' });
   return { ok: true as const, url };
 }
 

@@ -287,6 +287,7 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
 
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'webinar_registered', source: 'server', path: '/webinar', props: { session_id: session.id, starts_at: session.starts_at, mode: session.mode, band, headline }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });
+  await (await import('../attribution/hooks')).onRegistered(rt, v, { funnel: 'auto', regId: reg.id, leadId: lead.id, at: now, cohortRef: session.id, pixelEid: body.pixel_eid }); // first/last touch + Lead (attribution)
   // Revenue events once per person (an application may already have sent them); "$1M+ webinar" on their first registration.
   if (bandIsNew) await trackRevenueEvents(rt, who, band, 'webinar', '/webinar');
   // Big fish: tell the team straight away so someone can reach out before the session.
@@ -416,6 +417,7 @@ export async function heartbeat(rt: Runtime, reg: Registration, session: Session
       webinar_watch_pct: Math.max(lead.webinar_watch_pct ?? 0, Math.round(pct * 100) / 100),
     });
     if (!replay && !reg.joined_at) await track(rt, await identityFromLead(rt.env, lead.id), { name: 'webinar_joined', source: 'server', props: { session_id: session.id, mode: session.mode } });
+    if (!replay && !reg.joined_at) await (await import('../attribution/hooks')).onRoomSignal(rt, { kind: 'attended', funnel: 'auto', regId: reg.id, leadId: reg.lead_id, at: now, cohortRef: session.id, detail: 'room' });
     if (replay && !reg.replay_at) await track(rt, await identityFromLead(rt.env, lead.id), { name: 'webinar_replay', source: 'server', props: { session_id: session.id } });
   }
   return { ok: true, phase: p, pct };
@@ -427,6 +429,7 @@ export async function markJoinedLive(rt: Runtime, reg: Registration, session: Se
   await rt.env.DB.prepare('UPDATE webinar_registrations SET joined_at = COALESCE(joined_at, ?), last_seen_at = ? WHERE id = ?').bind(now, now, reg.id).run();
   await updateLead(rt.env, reg.lead_id, { webinar_attended_at: now });
   if (!reg.joined_at) await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'webinar_joined', source: 'server', props: { session_id: session.id, mode: 'live' } });
+  if (!reg.joined_at) await (await import('../attribution/hooks')).onRoomSignal(rt, { kind: 'attended', funnel: 'auto', regId: reg.id, leadId: reg.lead_id, at: now, cohortRef: session.id, detail: 'join_click' });
 }
 
 export async function markCta(rt: Runtime, reg: Registration) {

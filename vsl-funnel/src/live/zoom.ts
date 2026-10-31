@@ -56,7 +56,7 @@ export async function zoomToken(rt: Runtime): Promise<{ token: string; scope: st
   return tokenCache;
 }
 
-async function zoomApi<T>(rt: Runtime, method: string, path: string, body?: unknown): Promise<T> {
+export async function zoomApi<T>(rt: Runtime, method: string, path: string, body?: unknown): Promise<T> {
   const { token } = await zoomToken(rt);
   const res = await fetch(`${ZOOM_API}${path}`, {
     method,

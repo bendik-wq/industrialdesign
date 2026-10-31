@@ -50,10 +50,11 @@
       var data = {}; new FormData(form).forEach(function (v, k) { data[k] = v; });
       data.sms_consent = Boolean(form.sms_consent && form.sms_consent.checked);
       var ts = $('[name="cf-turnstile-response"]', form); if (ts) data.turnstile = ts.value;
+      data.event_id = 'cr' + Date.now().toString(36); data.pixel_eid = F.uid ? F.uid() : '';
       var label = btn.innerHTML; btn.disabled = true; btn.textContent = 'One moment…';
       F.track('cta_click', { id: 'challenge_register' });
       post(CFG.register || '/api/challenge/register', data).then(function (r) {
-        if (r && r.next) { location.href = r.next; return; }
+        if (r && r.next) { if (F.pixel) F.pixel('CompleteRegistration', data.event_id); if (F.pixel) F.pixel('Lead', data.pixel_eid); location.href = F.xdUrl ? F.xdUrl(r.next) : r.next; return; }
         btn.disabled = false; btn.innerHTML = label;
         err.hidden = false; err.textContent = (r && r.error) || 'Something went wrong. Try again.';
         if (r && r.field && form[r.field]) form[r.field].focus();

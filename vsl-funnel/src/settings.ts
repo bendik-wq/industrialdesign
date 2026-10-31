@@ -201,6 +201,7 @@ export const SETTINGS = [
   { key: 'ADS_AI_MODEL', label: 'Ad copy model', group: 'Ads', placeholder: 'claude-sonnet-5-5', help: 'Writes ad drafts from research angles (needs the Anthropic API key under Email). Blank uses a planning model.' },
   // Sales follow-up actions (src/sales/followups.ts).
   { key: 'SALES_QUIET_DAYS', label: 'Lead counts as quiet after (days)', group: 'Booking', placeholder: '5', help: 'Sales follow-up: no reply, click or page visit in this many days.' },
+  { key: 'META_STAGE_EVENTS', label: 'Send webinar stage events to Meta', group: 'Ads', placeholder: 'true', help: 'Lead on each webinar, live webinar and challenge registration, plus the custom events WebinarAttended and WebinarOfferSeen (once per registration). Set to false to stop them. Consent rules still apply.' },
   { key: 'META_TEST_EVENT_CODE', label: 'Meta test event code', group: 'Ads', help: 'Only while testing in Events Manager. Clear it before going live.' },
 
   { key: 'SLACK_WEBHOOK_URL', label: 'Slack webhook — team alerts', group: 'Alerts', secret: true, help: 'Hot leads, bookings, call-starting pings, no-shows, daily digest. Slack → Apps → Incoming Webhooks.' },

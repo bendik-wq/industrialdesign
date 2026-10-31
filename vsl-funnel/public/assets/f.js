@@ -55,7 +55,27 @@
     window.fbq(custom ? 'trackCustom' : 'track', eventName, data || {}, eventId ? { eventID: eventId } : undefined);
   }
 
-  window.funnel = { cfg: cfg, track: track, flush: flush, pixel: pixel, uid: uid, send: send };
+  // Webinar attribution: a link to our other domain (apply. ↔ live.) carries this browser's signed id, so the
+  // visit there joins this one (same person, one touch path). Only our own hosts, never third parties.
+  var xd = cfg.xd && cfg.xd.token && cfg.xd.hosts && cfg.xd.hosts.length ? cfg.xd : null;
+  function xdUrl(href) {
+    if (!xd || !href) return href;
+    try {
+      var u = new URL(href, location.href);
+      if (xd.hosts.indexOf(u.host) < 0 || u.searchParams.has(xd.param)) return href;
+      u.searchParams.set(xd.param, xd.token);
+      return u.toString();
+    } catch (e) { return href; }
+  }
+  if (xd) {
+    var decorate = function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      if (a) { var next = xdUrl(a.href); if (next !== a.href) a.href = next; }
+    };
+    ['mousedown', 'touchstart', 'keydown', 'click'].forEach(function (t) { document.addEventListener(t, decorate, { capture: true, passive: true }); });
+  }
+
+  window.funnel = { cfg: cfg, track: track, flush: flush, pixel: pixel, uid: uid, send: send, xdUrl: xdUrl };
 
   // Browser context, once per session.
   try {

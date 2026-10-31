@@ -117,6 +117,7 @@ export async function registerChallenge(rt: Runtime, v: VisitorCtx, body: Record
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'challenge_registered', source: 'server', path: '/challenge', props: { cohort_id: cohort.id, band }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });
   if (bandIsNew) await trackRevenueEvents(rt, who, band, 'challenge', '/challenge');
+  await (await import('../attribution/hooks')).onRegistered(rt, v, { funnel: 'challenge', regId: reg.id, leadId: lead.id, at: now, cohortRef: cohort.id, pixelEid: body.pixel_eid }); // first/last touch + Lead (attribution)
 
   // A free cohort (CHALLENGE_PRICE 0): the ticket is confirmed straight away.
   if (challengeConfig(rt.settings).free) await markOrderPaid(rt, await freeOrder(rt, reg), null);
@@ -314,6 +315,7 @@ export async function markOrderPaid(rt: Runtime, o: Order, payId: string | null,
   if (payId && o.provider === 'whop') await storeMethod(rt, o.id, pay ?? { id: payId }).catch((e) => console.error('challenge card', String(e).slice(0, 200)));
   const reg = await getRegById(rt, o.reg_id);
   if (!reg) return { duplicate: false };
+  await (await import('../attribution/hooks')).onOrderPaid(rt, { ...o, paid_at: now }); // conversion with first/last touch (attribution)
   const who = await identityFromLead(rt.env, reg.lead_id);
   const value = fromMinor(o.amount, o.currency);
   const { startChallengeMessages, vipWelcome } = await import('./emails');

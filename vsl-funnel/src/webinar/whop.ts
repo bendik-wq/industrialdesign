@@ -49,6 +49,11 @@ export const WHOP_NATIVE_VERSION = '2026-10-29-8';
 export async function whopApi<T>(rt: Runtime, method: 'GET' | 'POST', path: string, body?: unknown, o: { version?: string; idempotencyKey?: string } = {}): Promise<T> {
   const key = String(rt.settings.WHOP_API_KEY ?? '').trim();
   if (!key) throw new WhopError(0, 'Whop is not connected');
+  // Every checkout and payment we create carries where the buyer came from (attribution), next to our own ids.
+  if (method === 'POST' && (path === 'payments' || path === 'checkout_configurations') && body && typeof body === 'object') {
+    const b = body as { metadata?: Record<string, string> };
+    if (b.metadata?.lead_id) b.metadata = { ...(await (await import('../attribution/capture')).checkoutAttribution(rt.env, b.metadata.lead_id)), ...b.metadata };
+  }
   const res = await fetch(`${WHOP_API}/${path}`, {
     method,
     headers: {
@@ -288,8 +293,11 @@ export async function handleWhopEvent(rt: Runtime, ev: { type?: string; data?: u
   const type = String(ev.type ?? '');
   const data = obj(ev.data);
   // The First Deal Challenge's ticket and VIP carry their own metadata (challenge/payments.ts).
-  if (type === 'payment.succeeded' && obj(data.metadata).challenge_order_id) return (await import('../challenge/payments')).challengePaymentPaid(rt, data);
-  if (type === 'payment.succeeded') return whopPaymentPaid(rt, data, effects);
+  if (type === 'payment.succeeded') {
+    const r = obj(data.metadata).challenge_order_id ? await (await import('../challenge/payments')).challengePaymentPaid(rt, data) : await whopPaymentPaid(rt, data, effects);
+    await (await import('../attribution/hooks')).onWhopPayment(rt, data); // the attribution the checkout carried in its metadata
+    return r;
+  }
   if (type === 'refund.created' || type === 'refund.updated') return (await (await import('../challenge/payments')).challengeRefund(rt, data)) ?? whopRefund(rt, data);
   return { ignored: type || 'unknown' };
 }
