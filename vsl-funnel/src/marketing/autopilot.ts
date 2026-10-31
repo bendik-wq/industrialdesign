@@ -334,7 +334,8 @@ const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String
 const noWrite = (steps: string) => ({ ok: false, summary: `Not sent to Meta: no write token (ads_management) is connected. ${steps}` });
 const manualOk = (p: P) => p.manual_ack === true;
 
-registerActionHandler('marketing.pause_ad', async (rt, p) => {
+registerActionHandler('marketing.pause_ad', async (rt, raw) => {
+  const p = (raw ?? {}) as Record<string, unknown>;
   const ad = { ad_id: str(p.ad_id), name: str(p.ad_name) || str(p.ad_id) };
   if (!/^\d{1,30}$/.test(ad.ad_id)) return { ok: false, summary: 'No valid ad id in the proposal.' };
   if (!metaWriteConfigured(rt)) return manualOk(p) ? { ok: true, summary: `Marked as paused by hand in Ads Manager: ${ad.name}.` } : noWrite(manualSteps.pause(ad));
@@ -343,7 +344,8 @@ registerActionHandler('marketing.pause_ad', async (rt, p) => {
   return { ok: true, summary: `Paused on Meta: ${ad.name}.` };
 });
 
-registerActionHandler('marketing.duplicate_ad', async (rt, p) => {
+registerActionHandler('marketing.duplicate_ad', async (rt, raw) => {
+  const p = (raw ?? {}) as Record<string, unknown>;
   const ad = { ad_id: str(p.ad_id), name: str(p.ad_name) || str(p.ad_id) };
   if (!/^\d{1,30}$/.test(ad.ad_id)) return { ok: false, summary: 'No valid ad id in the proposal.' };
   if (!metaWriteConfigured(rt)) return manualOk(p) ? { ok: true, summary: `Marked as duplicated by hand in Ads Manager: ${ad.name}.` } : noWrite(manualSteps.duplicate(ad));
@@ -352,7 +354,8 @@ registerActionHandler('marketing.duplicate_ad', async (rt, p) => {
   return { ok: true, summary: `Duplicated on Meta (paused, review then publish): ${ad.name}${copy ? ` → new ad ${copy}` : ''}.` };
 });
 
-registerActionHandler('marketing.shift_budget', async (rt, p) => {
+registerActionHandler('marketing.shift_budget', async (rt, raw) => {
+  const p = (raw ?? {}) as Record<string, unknown>;
   const from = str(p.from_adset), to = str(p.to_adset);
   if (!/^\d{1,30}$/.test(from) || !/^\d{1,30}$/.test(to) || from === to) return { ok: false, summary: 'The proposal needs two different ad sets.' };
   const t = adsTargets(rt.settings as unknown as Record<string, string>);
@@ -375,7 +378,7 @@ registerActionHandler('marketing.shift_budget', async (rt, p) => {
     await setMetaDailyBudget(rt, from, b.fromAfter);
     await setMetaDailyBudget(rt, to, b.toAfter);
   }
-  const actionId = str(p._action_id) || null;
+  const actionId = str(p.action_id) || null; // the handler gets the payload only; kept when a caller adds it
   await db.batch([
     db.prepare('INSERT INTO ads_budget_shifts (id, day, adset_id, delta, before_amt, after_amt, action_id, applied, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(newId('bs'), ymd(now), from, -b.amount, f.daily_budget, b.fromAfter, actionId, write ? 1 : 0, now),
     db.prepare('INSERT INTO ads_budget_shifts (id, day, adset_id, delta, before_amt, after_amt, action_id, applied, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(newId('bs'), ymd(now), to, b.amount, g.daily_budget, b.toAfter, actionId, write ? 1 : 0, now),

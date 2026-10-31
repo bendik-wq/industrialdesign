@@ -18,7 +18,7 @@
 import { Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { saveSettings } from '../settings';
-import { decideAction, getAction, listActions, updateActionPayload } from '../ops/actions';
+import { approveAction, editAction, getAction, listActions, rejectAction } from '../ops/actions';
 import { metaAdsConfigured, metaWriteConfigured, syncAdLevel } from '../integrations/meta-ads';
 import { adsTargets, autopilotOn, boundShift, loadAdStats, logSync, runAutopilot, verdicts } from './autopilot';
 import { type AdDraft, auditDraft, draftAndPropose } from './angles';
@@ -39,8 +39,8 @@ autopilotAdmin.get('/', async (c) => {
   const [stats, adsets, proposals, history, drafts, synced, shifts] = await Promise.all([
     loadAdStats(rt, 14),
     db.prepare("SELECT id, name, daily_budget, effective_status, campaign_id FROM ad_entities WHERE level = 'adset' ORDER BY name").all<{ id: string; name: string | null; daily_budget: number | null; effective_status: string | null; campaign_id: string | null }>(),
-    listActions(rt, { dept: 'marketing', status: ['proposed'], limit: 100 }),
-    listActions(rt, { dept: 'marketing', status: ['done', 'failed', 'rejected', 'approved'], limit: 60 }),
+    listActions(rt, { dept: 'marketing', status: 'proposed', limit: 100 }),
+    listActions(rt, { dept: 'marketing', limit: 200 }).then((rows) => rows.filter((r) => r.status !== 'proposed').slice(0, 60)),
     db.prepare('SELECT id, angle, drafts, adset_id, creative_id, status, ad_ids, spec, action_id, error, created_at FROM ads_angle_drafts ORDER BY created_at DESC LIMIT 20').all<Record<string, unknown>>(),
     db.prepare("SELECT value FROM settings WHERE key = '_meta_ads_level_synced_at'").first<{ value: string }>().catch(() => null),
     db.prepare('SELECT day, adset_id, delta, before_amt, after_amt, applied, created_at FROM ads_budget_shifts ORDER BY created_at DESC LIMIT 20').all(),
@@ -93,12 +93,12 @@ autopilotAdmin.post('/actions/:id/approve', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as { manual?: boolean };
   const row = await getAction(rt, id);
   if (!row) return c.json({ ok: false, error: 'Not found' }, 404);
-  if (body.manual && row.status === 'proposed') await updateActionPayload(rt, id, { ...(parse(row.payload) ?? {}), manual_ack: true });
-  const r = await decideAction(rt, id, 'approve', 'you');
+  if (body.manual && row.status === 'proposed') await editAction(rt, id, { payload: { ...(parse(row.payload) ?? {}), manual_ack: true } });
+  const r = await approveAction(rt, id, 'you');
   return c.json({ ok: r.ok, summary: r.summary });
 });
 autopilotAdmin.post('/actions/:id/reject', async (c) => {
-  const r = await decideAction(runtimeFrom(c), c.req.param('id'), 'reject', 'you');
+  const r = await rejectAction(runtimeFrom(c), c.req.param('id'), 'you');
   return c.json({ ok: r.ok, summary: r.summary });
 });
 autopilotAdmin.put('/actions/:id', async (c) => {
@@ -114,7 +114,7 @@ autopilotAdmin.put('/actions/:id', async (c) => {
     const bounded = boundShift({ fromBudget: Number(payload.from_before) || 0, toBudget: Number(payload.to_before) || 0, requested: minor, maxPct: t.maxShiftPct, cap: t.maxDailyBudget != null ? t.maxDailyBudget * 100 : null });
     if (bounded.amount < 100) return c.json({ ok: false, error: `That's outside today's limit (${t.maxShiftPct}% of either daily budget).` }, 400);
     payload.amount = bounded.amount;
-    await updateActionPayload(rt, id, payload, `Move ${(bounded.amount / 100).toFixed(2)}/day from "${payload.from_name}" to "${payload.to_name}"`);
+    await editAction(rt, id, { payload, summary: `Move ${(bounded.amount / 100).toFixed(2)}/day from "${payload.from_name}" to "${payload.to_name}"` });
     return c.json({ ok: true, amount: bounded.amount / 100, capped: bounded.amount !== minor });
   }
   if (row.kind === 'marketing.launch_angle_ads') {
@@ -126,7 +126,7 @@ autopilotAdmin.put('/actions/:id', async (c) => {
     }
     if (b.adset_id !== undefined) payload.adset_id = /^\d{1,30}$/.test(String(b.adset_id)) ? String(b.adset_id) : null;
     if (b.creative_id !== undefined) payload.creative_id = /^\d{1,30}$/.test(String(b.creative_id)) ? String(b.creative_id) : null;
-    await updateActionPayload(rt, id, payload);
+    await editAction(rt, id, { payload });
     return c.json({ ok: true });
   }
   return c.json({ ok: false, error: 'This proposal has nothing to edit: approve or reject it.' }, 400);

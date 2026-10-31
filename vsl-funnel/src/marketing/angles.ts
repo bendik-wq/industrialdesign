@@ -127,12 +127,14 @@ export function angleSpec(rt: Runtime, angle: string, drafts: AdDraft[], adsetId
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 
-registerActionHandler('marketing.test_angle', async (rt, p) => {
+registerActionHandler('marketing.test_angle', async (rt, raw) => {
+  const p = (raw ?? {}) as Record<string, unknown>;
   const r = await draftAndPropose(rt, { angle: str(p.angle), evidence: str(p.evidence), audience: str(p.audience), adset_id: str(p.adset_id), creative_id: str(p.creative_id) });
   return { ok: true, summary: `${r.drafts.length} ad drafts written for "${r.angle.slice(0, 80)}". The launch proposal is waiting in Ads autopilot.` };
 });
 
-registerActionHandler('marketing.launch_angle_ads', async (rt, p) => {
+registerActionHandler('marketing.launch_angle_ads', async (rt, raw) => {
+  const p = (raw ?? {}) as Record<string, unknown>;
   const draftId = str(p.draft_id);
   const row = await rt.env.DB.prepare('SELECT * FROM ads_angle_drafts WHERE id = ?').bind(draftId).first<{ id: string; angle: string; drafts: string; adset_id: string | null; creative_id: string | null }>();
   if (!row) return { ok: false, summary: 'Draft not found.' };

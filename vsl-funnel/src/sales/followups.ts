@@ -386,7 +386,8 @@ async function sendText(rt: Runtime, m: MsgRow, lead: Lead, now: number) {
   return status;
 }
 
-registerActionHandler('sales.bulk_followup', async (rt, p) => {
+registerActionHandler('sales.bulk_followup', async (rt, raw) => {
+  const p = (raw ?? {}) as Record<string, unknown>;
   const batchId = typeof p.batch_id === 'string' ? p.batch_id : '';
   if (!/^fb[a-z0-9]{8,}$/.test(batchId)) return { ok: false, summary: 'No batch in the proposal.' };
   const r = await approveBatch(rt, batchId);

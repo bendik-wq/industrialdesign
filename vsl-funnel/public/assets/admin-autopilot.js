@@ -69,7 +69,7 @@
         '<p class="muted small">Every draft is checked against the copy rules before you see it. Approving creates paused ads tagged with their own utm_content, or a spec to paste when there is no write token.</p>' + drafts + '</div>';
 
       var hist = (d.history || []).map(function (h) {
-        return '<tr><td>' + esc(when(h.decided_at || h.created_at)) + '</td><td>' + esc(KIND[h.kind] || h.kind) + '</td><td>' + esc(h.summary) + (h.result ? '<div class="ap-why">' + esc(h.result) + '</div>' : '') + '</td><td><span class="pill">' + esc(h.status) + '</span> <span class="muted small">' + esc(h.actor) + '</span></td></tr>';
+        return '<tr><td>' + esc(when(h.decided_at || h.created_at)) + '</td><td>' + esc(KIND[h.kind] || h.kind) + '</td><td>' + esc(h.summary) + (h.result ? '<div class="ap-why">' + esc(h.result) + '</div>' : '') + '</td><td><span class="pill">' + esc(h.status) + '</span> <span class="muted small">' + esc(h.decided_by || h.actor) + '</span></td></tr>';
       }).join('');
       var histCard = '<div class="card ap-card"><div class="ap-head"><h2>History</h2></div>' + (hist ? '<div class="table-wrap"><table class="ap-table"><thead><tr><th>When</th><th>Change</th><th>What happened</th><th>Status</th></tr></thead><tbody>' + hist + '</tbody></table></div>' : '<p class="muted">No decisions yet.</p>') + '</div>';
 

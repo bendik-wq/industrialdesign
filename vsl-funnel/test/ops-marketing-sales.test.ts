@@ -4,7 +4,7 @@ import { auditCopy, auditEmail } from '../src/content/copy-rules';
 import { storeAdLevel, syncAdLevel } from '../src/integrations/meta-ads';
 import { type AdStat, type DayRow, adsTargets, boundShift, fatigue, loadAdStats, loser, runAutopilot, verdicts, winner } from '../src/marketing/autopilot';
 import { type Complete, auditDraft, draftAndPropose, writeAngleDrafts } from '../src/marketing/angles';
-import { decideAction, getAction, hasActionHandler, listActions, proposeAction, updateActionPayload } from '../src/ops/actions';
+import { approveAction, editAction, getAction, hasHandler, listActions, proposeAction, rejectAction } from '../src/ops/actions';
 import { type Candidate, approveBatch, baseEmail, baseSms, findCandidates, inEmailHours, matchSalesCommand, processFollowupQueue, proposeFollowups } from '../src/sales/followups';
 import type { Lead } from '../src/funnel/leads';
 
@@ -35,6 +35,9 @@ function freshDb() {
   const db = new DatabaseSync(':memory:');
   const dir = `${node.cwd()}/migrations`;
   for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) db.exec(fs.readFileSync(`${dir}/${f}`, 'utf8'));
+  // ops_actions is builder A's migration (0043); created here when this tree doesn't have it yet.
+  db.exec(`CREATE TABLE IF NOT EXISTS ops_actions (id TEXT PRIMARY KEY, dept TEXT NOT NULL, kind TEXT NOT NULL, summary TEXT NOT NULL, detail TEXT, lead_id TEXT, actor TEXT NOT NULL,
+    status TEXT NOT NULL, risk TEXT, payload TEXT, result TEXT, source TEXT, decided_by TEXT, decided_at INTEGER, executed_at INTEGER, edited_at INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`);
   return db;
 }
 const BASE: Record<string, string> = { META_ADS_TOKEN: 'read_tok', META_AD_ACCOUNT_ID: '123456', ADS_TARGET_CPA_TICKET: '150', SALES_TIMEZONE: 'Australia/Sydney', SITE_NAME: 'G&L', EMAIL_PERSONALIZE: '', SMS_ENABLED: '' };
@@ -186,7 +189,7 @@ describe('ads autopilot proposals and execution', () => {
     const rt = makeRt(db);
     const r = await runAutopilot(rt, now);
     expect(r.proposed).toHaveLength(3);
-    const props = await listActions(rt, { dept: 'marketing', status: ['proposed'] });
+    const props = await listActions(rt, { dept: 'marketing', status: 'proposed' });
     const kinds = props.map((p) => p.kind).sort();
     expect(kinds).toEqual(['marketing.duplicate_ad', 'marketing.pause_ad', 'marketing.shift_budget']);
     const shift = props.find((p) => p.kind === 'marketing.shift_budget')!;
@@ -201,16 +204,16 @@ describe('ads autopilot proposals and execution', () => {
     expect((await runAutopilot(rt, now + 3600_000)).proposed).toHaveLength(0);
 
     const pause = props.find((p) => p.kind === 'marketing.pause_ad')!;
-    const res = await decideAction(rt, pause.id, 'approve');
+    const res = await approveAction(rt, pause.id);
     expect(res.ok).toBe(false);
     expect(res.summary).toMatch(/Not sent to Meta: no write token.*Apply manually/);
     expect((await getAction(rt, pause.id))!.status).toBe('failed');
 
     // "I applied it in Ads Manager": recorded as done by hand.
     const dup = props.find((p) => p.kind === 'marketing.duplicate_ad')!;
-    await updateActionPayload(rt, dup.id, { ...JSON.parse(dup.payload!), manual_ack: true });
-    expect(await decideAction(rt, dup.id, 'approve')).toMatchObject({ ok: true, summary: expect.stringMatching(/by hand/) });
-    expect(await decideAction(rt, shift.id, 'reject')).toMatchObject({ ok: true });
+    await editAction(rt, dup.id, { payload: { ...JSON.parse(dup.payload!), manual_ack: true } });
+    expect(await approveAction(rt, dup.id)).toMatchObject({ ok: true, summary: expect.stringMatching(/by hand/) });
+    expect(await rejectAction(rt, shift.id)).toMatchObject({ ok: true });
   });
 
   it('with the write token: approved pause and budget shift call the Marketing API, within today\'s bounds', async () => {
@@ -223,10 +226,10 @@ describe('ads autopilot proposals and execution', () => {
       return json(404, {});
     }));
     await runAutopilot(rt, now);
-    const props = await listActions(rt, { dept: 'marketing', status: ['proposed'] });
+    const props = await listActions(rt, { dept: 'marketing', status: 'proposed' });
     expect(props.every((p) => !p.detail!.includes('Apply manually'))).toBe(true);
     const pause = props.find((p) => p.kind === 'marketing.pause_ad')!;
-    expect(await decideAction(rt, pause.id, 'approve')).toMatchObject({ ok: true, summary: 'Paused on Meta: Loser ad.' });
+    expect(await approveAction(rt, pause.id)).toMatchObject({ ok: true, summary: 'Paused on Meta: Loser ad.' });
     expect(calls[0].url).toBe('https://graph.facebook.com/v21.0/9001');
     expect(calls[0].body.get('status')).toBe('PAUSED');
     expect(calls[0].body.get('access_token')).toBe('write_tok');
@@ -234,8 +237,8 @@ describe('ads autopilot proposals and execution', () => {
 
     // The owner edits the amount upward; execution still holds the 20% line.
     const shift = props.find((p) => p.kind === 'marketing.shift_budget')!;
-    await updateActionPayload(rt, shift.id, { ...JSON.parse(shift.payload!), amount: 999_999 });
-    const r = await decideAction(rt, shift.id, 'approve');
+    await editAction(rt, shift.id, { payload: { ...JSON.parse(shift.payload!), amount: 999_999 } });
+    const r = await approveAction(rt, shift.id);
     expect(r).toMatchObject({ ok: true });
     expect(r.summary).toMatch(/Moved on Meta: 10\.00\/day from "Broad" \(now 90\.00\) to "Owners 1M\+" \(now 60\.00\)/);
     const budgets = calls.filter((c) => c.body.has('daily_budget')).map((c) => [c.url.split('/').pop(), c.body.get('daily_budget')]);
@@ -244,11 +247,11 @@ describe('ads autopilot proposals and execution', () => {
 
     // A second move between the same ad sets today is refused: the receiver's 20% is used up.
     const again = await proposeAction(rt, { dept: 'marketing', kind: 'marketing.shift_budget', summary: 'again', detail: 'x', risk: 'high', payload: { from_adset: '801', to_adset: '802', amount: 500 } });
-    expect(await decideAction(rt, again, 'approve')).toMatchObject({ ok: false, summary: expect.stringMatching(/Nothing to move/) });
+    expect(await approveAction(rt, again)).toMatchObject({ ok: false, summary: expect.stringMatching(/Nothing to move/) });
   });
 
   it('every action kind has a handler registered', () => {
-    for (const k of ['marketing.pause_ad', 'marketing.duplicate_ad', 'marketing.shift_budget', 'marketing.test_angle', 'marketing.launch_angle_ads', 'sales.bulk_followup']) expect(hasActionHandler(k), k).toBe(true);
+    for (const k of ['marketing.pause_ad', 'marketing.duplicate_ad', 'marketing.shift_budget', 'marketing.test_angle', 'marketing.launch_angle_ads', 'sales.bulk_followup']) expect(hasHandler(k), k).toBe(true);
   });
 
   it('a kind set to auto runs at once and is logged', async () => {
@@ -257,9 +260,9 @@ describe('ads autopilot proposals and execution', () => {
     const rt = makeRt(db, { OPS_AUTO_KINDS: 'marketing.duplicate_ad', META_ADS_WRITE_TOKEN: 'w' });
     vi.stubGlobal('fetch', vi.fn(async () => json(200, { copied_ad_id: '9100' })));
     await runAutopilot(rt, now);
-    const done = await listActions(rt, { dept: 'marketing', status: ['done'] });
+    const done = await listActions(rt, { dept: 'marketing', status: 'done' });
     expect(done).toHaveLength(1);
-    expect(done[0]).toMatchObject({ kind: 'marketing.duplicate_ad', actor: 'auto' });
+    expect(done[0]).toMatchObject({ kind: 'marketing.duplicate_ad', decided_by: 'auto' });
     expect(done[0].result).toMatch(/new ad 9100/);
   });
 });
@@ -295,7 +298,7 @@ describe('new ad drafts from angles', () => {
     expect(prop.detail).toMatch(/paste-ready spec/);
 
     // Approve without the write token: a spec to paste, tagged per ad.
-    const res = await decideAction(rt, r.actionId, 'approve');
+    const res = await approveAction(rt, r.actionId);
     expect(res).toMatchObject({ ok: true, summary: expect.stringMatching(/Spec ready to paste.*no write token/) });
     const row = db.prepare('SELECT status, spec FROM ads_angle_drafts WHERE id = ?').get(r.id) as { status: string; spec: string };
     expect(row.status).toBe('exported');
@@ -318,7 +321,7 @@ describe('new ad drafts from angles', () => {
     const db = freshDb();
     const rt = makeRt(db, { ANTHROPIC_API_KEY: '' });
     const id = await proposeAction(rt, { dept: 'research', kind: 'marketing.test_angle', summary: 'Test angle', detail: 'x', risk: 'low', payload: { angle: 'Owners fear personal guarantees' } });
-    expect(await decideAction(rt, id, 'approve')).toMatchObject({ ok: false, summary: expect.stringMatching(/Anthropic API key/) });
+    expect(await approveAction(rt, id)).toMatchObject({ ok: false, summary: expect.stringMatching(/Anthropic API key/) });
   });
 
   it('with the write token, a Page and an ad set: one paused ad per draft, reusing the creative\'s image, tagged with utm_content', async () => {
@@ -333,7 +336,7 @@ describe('new ad drafts from angles', () => {
       posts.push({ url: u, body: init.body! });
       return json(200, { id: u.endsWith('/adcreatives') ? `cr${++n}` : `ad${n}` });
     }));
-    const res = await decideAction(rt, r.actionId, 'approve');
+    const res = await approveAction(rt, r.actionId);
     expect(res).toMatchObject({ ok: true, summary: expect.stringMatching(/3 paused ads created in ad set 802 with the chosen image/) });
     const creatives = posts.filter((p) => p.url.endsWith('/act_123456/adcreatives'));
     const ads = posts.filter((p) => p.url.endsWith('/act_123456/ads'));
@@ -457,7 +460,7 @@ describe('sales follow-up actions', () => {
     const r = await proposeFollowups(rt, 'no_show', { channels: ['email'] });
     expect(r.previews).toHaveLength(1);
     expect(r.previews[0].text).toContain('https://calendly.com/reschedulings/abc');
-    const res = await decideAction(rt, r.actionId!, 'approve');
+    const res = await approveAction(rt, r.actionId!);
     expect(res).toMatchObject({ ok: true, summary: expect.stringMatching(/1 sent \(1 simulated/) });
   });
 
