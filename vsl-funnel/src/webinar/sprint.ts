@@ -61,8 +61,8 @@ export function fastBonus(raw: string | null | undefined): Perk | null {
 
 export function sprintSettings(rt: Pick<Runtime, 'settings'>) {
   const cfg = passConfig(rt.settings);
-  // The payment plan is a Stripe subscription. With Whop taking payments it is hidden: Whop shows its own
-  // pay-later options at checkout instead.
+  // The payment plan is a Stripe subscription, kept for the backend only: buyers are never offered a way to
+  // spread the payment (no plan, no pay-later wording anywhere they look). Whop: none at all.
   const plan = cfg.provider === 'stripe' ? sprintPlan(rt.settings.WEBINAR_PASS_PLAN, cfg.currency) : null;
   return { cfg, plan, bonus: fastBonus(rt.settings.WEBINAR_FAST_BONUS) };
 }
@@ -99,8 +99,8 @@ export function sprintCopy(cfg: Pick<PassConfig, 'offerName' | 'priceLabel' | 'g
     stepNext: 'Step 2: book your kickoff call',
     guaranteeBadge: 'Deal Plan guarantee',
     guaranteeShort: 'Covered by the Deal Plan guarantee: a full refund if it wasn’t worth far more than you paid.',
-    payments: 'Pay by card, or in instalments with Klarna, Afterpay or Splitit at checkout where they are offered to you.',
-    paymentBadges: ['Card', 'Klarna', 'Afterpay', 'Splitit'],
+    payments: 'Secure checkout by Whop.',
+    paymentBadges: ['Card'],
     bonusEyebrow: 'Fast-action bonus',
     bonusEnds: 'Yours if you start in the next',
     bonusEndsIn: 'Bonus ends in',
@@ -513,7 +513,7 @@ export async function sprintRoomConfig(rt: Runtime, reg: RegLike, session: Sessi
     copy: t,
     opensAtSec: pitchSec(rt),
     price: price.todayLabel, listPrice: cfg.priceLabel, priceLine: price.line, credit: price.creditLabel,
-    plan: price.plan ? { line: price.plan.line, button: price.plan.button } : null,
+    plan: null, // one payment only: buyers can't spread it
     perks: cfg.perks,
     guarantee: cfg.guarantee,
     bonus,
@@ -648,7 +648,7 @@ export async function sprintEmailContext(rt: Runtime, reg: RegLike, session: Ses
     bonusBody: bonus?.body ?? null,
     price: cfg.priceLabel,
     priceLine: price.line,
-    plan: price.plan?.label ?? null,
+    plan: null, // one payment only
     guarantee: cfg.guarantee,
     apply: link(`/w/${reg.token}`),
   };

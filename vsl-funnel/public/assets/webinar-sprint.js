@@ -238,7 +238,6 @@
       priceHtml() +
       '<p class="buy-steps"><span class="on">' + esc(C.stepNow) + '</span><span aria-hidden="true">→</span><span>' + esc(C.stepNext) + '</span></p>' +
       buttonHtml('hero', true) +
-      (S.plan && !S.full ? '<button type="button" class="buy-plan" data-sprint-buy="plan" data-where="hero">' + esc(S.plan.line) + '</button>' : '') +
       '<p class="buy-micro">' + esc(microHtml()) + '</p>' +
       '<p class="buy-guarantee">' + shield + '<span><strong>' + esc(C.guaranteeBadge) + '.</strong> ' + esc(S.guarantee) + '</span></p>' +
       (S.whop ? '<div class="buy-pay"><ul aria-label="' + esc(C.payments) + '">' + (C.paymentBadges || []).map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul><p>' + esc(C.payments) + '</p></div>' : '') +

@@ -28,7 +28,8 @@ const sp = (c: TemplateCtx): SprintEmailCtx => {
 };
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const bonusLine = (s: SprintEmailCtx) => (s.bonusTitle && s.bonusEnds ? `Fast-action bonus until ${s.bonusEnds}: ${s.bonusTitle}.${s.bonusBody ? ` ${cap(s.bonusBody.replace(/\.$/, ''))}.` : ''}` : '');
-const priceWithPlan = (s: SprintEmailCtx) => `${s.priceLine}${s.plan ? `, or ${s.plan}` : ''}.`;
+// One payment only: buyers are never offered a plan or a way to spread the price.
+const priceWithPlan = (s: SprintEmailCtx) => `${s.priceLine}.`;
 
 export const WEBINAR_TEMPLATES: Record<string, T> = {
   // "Finish your ticket": registered while the ticket is paid, not paid yet (SEQUENCES.ticket). Stops once it is paid.

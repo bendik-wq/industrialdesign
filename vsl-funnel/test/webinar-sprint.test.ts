@@ -317,7 +317,7 @@ describe('room and thank-you page', () => {
     const c = (await sprintRoomConfig(rt, reg(db), session(db), true, {}))!;
     expect(c).toMatchObject({ unlocked: false, opensAtSec: 2280, priceLine: '$3,000 − $100 ticket credit = $2,900 today', price: '$2,900', capLabel: null });
     expect(c.copy.lockedHeading).toBe('The First Deal Sprint opens at 38:00');
-    expect(c.plan?.button).toBe('2 payments of $1,550');
+    expect(c.plan).toBeNull(); // one payment only: buyers are never offered a plan
     expect(c.bonus?.title).toBe('Josh reviews your Deal Plan personally');
     expect(await sprintRoomConfig(rt, reg(db), session(db), false, {})).toBeNull();
     db.prepare("INSERT INTO webinar_passes (id, reg_id, lead_id, kind, status, amount, currency, created_at, updated_at) VALUES ('wpx', 'r1', 'l1', 'offer', 'paid', 300000, 'usd', 1, 1)").run();
