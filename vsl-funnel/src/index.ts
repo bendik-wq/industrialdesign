@@ -56,6 +56,7 @@ import { processDm } from './dm/routes';
 import { opsHooks } from './integrations/hooks-in';
 import { mcpRoute } from './mcp/server';
 import { processClientsSupport } from './ops/e-cron';
+import { syncAttribution } from './attribution/stages';
 
 const app = new Hono<AppEnv>();
 
@@ -332,6 +333,7 @@ export default {
       quiet(processFollowupQueue(rt), 'sales follow-ups'),
       quiet(processDm(rt), 'Instagram DM inbox'),
       quiet(processClientsSupport(rt), 'clients, support and webhooks'),
+      quiet(syncAttribution(rt), 'webinar attribution'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);

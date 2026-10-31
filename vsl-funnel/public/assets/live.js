@@ -58,10 +58,11 @@
       fd.forEach(function (v, k) { body[k] = v; });
       body.sms_consent = !!form.querySelector('[name=sms_consent]').checked;
       body.turnstile = tsToken;
+      body.pixel_eid = F.uid ? F.uid() : '';
       err.hidden = true;
       btn.disabled = true;
       post(CFG.register, body).then(function (r) {
-        if (r && r.next) { F.track('live_register_submit', {}); location.href = r.next; return; }
+        if (r && r.next) { F.track('live_register_submit', {}); if (F.pixel) F.pixel('Lead', body.pixel_eid); location.href = F.xdUrl ? F.xdUrl(r.next) : r.next; return; }
         btn.disabled = false;
         err.textContent = (r && r.error) || 'Something went wrong. Please try again.';
         err.hidden = false;

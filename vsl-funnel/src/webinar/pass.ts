@@ -512,6 +512,7 @@ export async function markPassPaid(rt: Runtime, p: PaidInput, effects: PaidEffec
   const pass = (await db.prepare('SELECT * FROM webinar_passes WHERE stripe_session_id = ?').bind(p.sessionId).first<PassRow>())!;
   if ((res.meta.changes ?? 0) === 0) return { ok: true as const, duplicate: true, pass };
   await effects(rt, pass);
+  await (await import('../attribution/hooks')).onPassPaid(rt, pass); // conversion with first/last touch (attribution)
   return { ok: true as const, duplicate: false, pass };
 }
 

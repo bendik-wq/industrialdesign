@@ -53,6 +53,7 @@ export async function joinDay(rt: Runtime, reg: Registration, n: number, now = D
   if (!d?.join_url) return null;
   if (inLiveWindow(d, now)) {
     await touch(rt, reg.id, n, 'joined_at', now);
+    await (await import('../attribution/hooks')).onRoomSignal(rt, { kind: 'attended', funnel: 'challenge', regId: reg.id, leadId: reg.lead_id, at: now, cohortRef: reg.cohort_id, detail: `day ${n}` });
     await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'challenge_join', source: 'server', path: '/challenge', props: { cohort_id: reg.cohort_id, day: n }, localOnly: true }).catch(() => null);
   }
   return d.join_url;
@@ -155,6 +156,7 @@ export async function dayFeed(rt: Runtime, reg: Registration, day: number, body:
     if (inLiveWindow(d, now)) {
       const p = await db.prepare('SELECT first_at FROM webinar_presence WHERE session_id = ? AND who = ?').bind(key, reg.id).first<{ first_at: number }>();
       if (p && now - Math.max(p.first_at, d.starts_at - 15 * MIN) >= PRESENT_AFTER_MS) await touch(rt, reg.id, day, 'present_at', now);
+      await (await import('../attribution/stages')).recordMinute(rt, { funnel: 'challenge', eventRef: key, regId: reg.id, leadId: reg.lead_id, startsAt: d.starts_at, now }).catch(() => null);
     }
   }
   const after = Math.max(0, Math.floor(Number(body.after) || 0));
@@ -172,6 +174,7 @@ export async function dayFeed(rt: Runtime, reg: Registration, day: number, body:
   const phase = dayPhase(d, now);
   const stage = phase === 'live' ? 'running' : phase === 'soon' ? 'waiting' : open ? 'after' : 'closed';
   const offer = await cohortOffer(rt, reg.cohort_id, now);
+  if (offer.open && body.presence === true) await (await import('../attribution/hooks')).onRoomSignal(rt, { kind: 'offer_seen', funnel: 'challenge', regId: reg.id, leadId: reg.lead_id, at: now, cohortRef: reg.cohort_id, detail: `day ${day}` });
   return {
     ok: true as const,
     now,

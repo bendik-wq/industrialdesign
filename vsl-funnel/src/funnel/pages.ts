@@ -124,6 +124,12 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
   const asset = await c.env.ASSETS.fetch(new Request(new URL(assetPath, url.origin)));
   if (!asset.ok) return c.notFound();
 
+  // Webinar attribution: the funnel's "visit" stage, the cross-domain join, and the token links to our other domain carry.
+  const attr = await import('../attribution/hooks');
+  const webinarHost = (await import('../webinar/pages')).isWebinarHost(c);
+  if (!isPrefetch) rt.waitUntil(attr.onFunnelPage(c, rt, v, url, webinarHost));
+  const xd = v.botReason === 'admin-preview' ? null : await attr.xdConfig(rt, v, url.host).catch(() => null);
+
   const s = c.get('settings');
   const config = {
     page: view.trackPath ?? url.pathname,
@@ -136,6 +142,7 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
     pixel: Boolean(s.META_PIXEL_ID && v.marketingConsent && v.botReason !== 'admin-preview'),
     preview: v.botReason === 'admin-preview',
     siteName: s.SITE_NAME || BRAND.name,
+    ...(xd ? { xd } : {}),
     ...view.config,
   };
 

@@ -52,7 +52,7 @@
     e.preventDefault();
     var btn = reg.querySelector('button[type=submit]');
     var picked = reg.querySelector('input[name=session_id]:checked');
-    var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', sms_consent: Boolean(reg.sms_consent && reg.sms_consent.checked), session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36) };
+    var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', sms_consent: Boolean(reg.sms_consent && reg.sms_consent.checked), session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36), pixel_eid: F.uid ? F.uid() : '' };
     var rev = reg.querySelector('input[name=revenue]:checked');
     body.revenue = rev ? rev.value : '';
     body.headline = (window.FUNNEL && window.FUNNEL.webinar && window.FUNNEL.webinar.headline) || '';
@@ -64,7 +64,8 @@
     btn.disabled = true;
     post('/api/webinar/register', body).then(function (r) {
       btn.disabled = false;
-      if (r && r.next) { F.track('webinar_register_click', {}); location.href = r.next; }
+      // Pixel copies of the server's CompleteRegistration and Lead, with the same event ids (Meta keeps one of each).
+      if (r && r.next) { F.track('webinar_register_click', {}); if (F.pixel) F.pixel('CompleteRegistration', body.event_id); if (F.pixel) F.pixel('Lead', body.pixel_eid); location.href = F.xdUrl ? F.xdUrl(r.next) : r.next; }
       else error(reg, (r && r.error) || 'Something went wrong — please try again.');
     });
   });

@@ -194,6 +194,7 @@ async function markUnlocked(rt: Runtime, reg: RegLike, session: Session, now: nu
   if ((res.meta.changes ?? 0) > 0) {
     await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'webinar_offer_unlocked', source: 'server', path: '/webinar', props: { session_id: session.id, how, offer: passConfig(rt.settings).offerName } });
     await scheduleClosingEmails(rt, fresh, session).catch((e) => console.error('sprint closing emails', e));
+    await (await import('../attribution/hooks')).onRoomSignal(rt, { kind: 'offer_seen', funnel: 'auto', regId: reg.id, leadId: reg.lead_id, at: now, cohortRef: session.id, detail: how });
   }
   return fresh;
 }

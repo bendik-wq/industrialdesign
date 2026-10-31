@@ -88,6 +88,14 @@ export const META_EVENTS: Partial<Record<string, string>> = {
   engagement_deposit_purchased: 'Purchase', // the engagement deposit (live webinar / challenge); value = what was paid
   live_ticket_purchased: 'Purchase', // the paid live webinar ticket
   live_registered: 'CompleteRegistration',
+  // Webinar attribution (src/attribution): the challenge's registration and purchases, which had no Meta event,
+  // plus Lead once per registration and custom events for attending and seeing the offer (sent once each).
+  challenge_registered: 'CompleteRegistration',
+  challenge_ticket_paid: 'Purchase',
+  challenge_vip_paid: 'Purchase',
+  attr_lead: 'Lead',
+  attr_attended: 'WebinarAttended',
+  attr_offer_seen: 'WebinarOfferSeen',
   app_submitted: 'SubmitApplication',
   lead_qualified: 'QualifiedLead',
   booking_scheduled: 'Schedule',
@@ -106,6 +114,12 @@ export const GA4_EVENTS: Partial<Record<string, string>> = {
   engagement_deposit_purchased: 'purchase',
   live_ticket_purchased: 'purchase',
   live_registered: 'sign_up',
+  challenge_registered: 'sign_up',
+  challenge_ticket_paid: 'purchase',
+  challenge_vip_paid: 'purchase',
+  attr_lead: 'generate_lead',
+  attr_attended: 'webinar_attended',
+  attr_offer_seen: 'webinar_offer_seen',
   app_submitted: 'submit_application',
   lead_qualified: 'qualify_lead',
   booking_scheduled: 'book_appointment',
