@@ -22,6 +22,8 @@ import { propose } from "./approvals.js";
 import { safeFetch } from "./net.js";
 import { renderEmail, cleanTemplates, buyingFor, MAX_TOUCHES } from "../public/js/bot-emails.js";
 import { km } from "../public/js/territory.js";
+import { runSell, listSellProspects, matchFunds } from "./sellbots.js";
+import { FUNDS } from "./data/funds.js";
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const text = (v, max) => String(v ?? "").trim().slice(0, max);
@@ -44,15 +46,31 @@ const validTz = (tz) => { try { new Intl.DateTimeFormat("en", { timeZone: tz });
 function clean(b, cur = {}) {
   const o = {};
   if ("name" in b || !cur.name) { o.name = text(b.name, 80); if (!o.name) throw err(400, "Give the bot a name"); }
-  if ("industry" in b || !cur.industry) { if (!industryById(b.industry)) throw err(400, "Pick the kind of business it looks for"); o.industry = b.industry; }
-  if ("areas" in b) {
+  const sell = (b.kind || cur.kind) === "sell";
+  if (!cur.id) o.kind = sell ? "sell" : "buy";
+  if (sell) {
+    if (!cur.id) { o.industry = "sell"; o.areas = "[]"; }
+    if ("sell" in b || !cur.id) {
+      const x = b.sell || {};
+      const money = (v) => { const n = Number(String(v ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? Math.round(n) : null; };
+      const sv = { business: text(x.business, 120), sector: text(x.sector, 60), location: text(x.location, 80), revenue: money(x.revenue), ebitda: money(x.ebitda), currency: ["$", "A$", "NZ$", "C$", "£", "€", "kr"].includes(x.currency) ? x.currency : "$" };
+      if (!sv.business) throw err(400, "Describe the business the way buyers should read it, e.g. “a physio group in Melbourne's west”");
+      o.sell = JSON.stringify(sv);
+    }
+    if ("buyers" in b || !cur.id) {
+      const y = b.buyers || {};
+      o.buyers = JSON.stringify({ segments: (Array.isArray(y.segments) ? y.segments : []).filter((v) => v === "lmm" || v === "mm"), countries: (Array.isArray(y.countries) ? y.countries : []).map((c) => text(c, 2).toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c)).slice(0, 12), sectors: text(y.sectors, 160) });
+    }
+  }
+  if (!sell && ("industry" in b || !cur.industry)) { if (!industryById(b.industry)) throw err(400, "Pick the kind of business it looks for"); o.industry = b.industry; }
+  if (sell) {} else if ("areas" in b) {
     const list = (Array.isArray(b.areas) ? b.areas : String(b.areas || "").split(/[;\n]/)).map((a) => text(a, 80)).filter(Boolean).slice(0, 8);
     if (!list.length) throw err(400, "Add at least one area, e.g. “Melton, Victoria”");
     o.areas = JSON.stringify(list);
   } else if (!cur.areas) throw err(400, "Add at least one area, e.g. “Melton, Victoria”");
   for (const [k, n] of [["buying", 120], ["sender_name", 80], ["group_name", 80], ["phone", 40]]) if (k in b) o[k] = text(b[k], n);
   if ("daily_new" in b) o.daily_new = int(b.daily_new, 1, 30, 10);
-  if ("touches" in b) o.touches = int(b.touches, 1, MAX_TOUCHES, 6);
+  if ("touches" in b) o.touches = int(b.touches, 1, MAX_TOUCHES, 30);
   if ("gap_days" in b) o.gap_days = int(b.gap_days, 1, 14, 1);
   if ("send_hour" in b) o.send_hour = int(b.send_hour, 6, 18, 9);
   if ("timezone" in b) { if (!validTz(b.timezone)) throw err(400, "Pick a time zone"); o.timezone = text(b.timezone, 60); }
@@ -62,7 +80,7 @@ function clean(b, cur = {}) {
   if ("mode" in b) o.mode = b.mode === "autopilot" ? "autopilot" : "review";
   return o;
 }
-const botOut = (r) => ({ ...r, areas: json(r.areas, []), templates: json(r.templates, {}), cursor: undefined, lock_until: undefined, running: !!(r.lock_until && r.lock_until > now()) });
+const botOut = (r) => ({ ...r, areas: json(r.areas, []), templates: json(r.templates, {}), sell: json(r.sell, {}), buyers: json(r.buyers, {}), cursor: undefined, lock_until: undefined, running: !!(r.lock_until && r.lock_until > now()) });
 
 function needOwnerHuman(ctx) {
   if (!ctx.isOwner) throw err(403, "Only workspace owners can set up or change prospecting bots");
@@ -115,7 +133,8 @@ async function own(env, ctx, id) {
 export async function listBots(env, ctx) {
   const [bots, stats, box, keys, suggest] = await Promise.all([
     env.DB.prepare("SELECT * FROM bots WHERE account_id = ?1 ORDER BY id").bind(ctx.accountId).all(),
-    env.DB.prepare(`SELECT bot_id, status, COUNT(*) AS n, SUM(step) AS emails FROM bot_prospects WHERE account_id = ?1 GROUP BY bot_id, status`).bind(ctx.accountId).all(),
+    env.DB.prepare(`SELECT bot_id, status, COUNT(*) AS n, SUM(step) AS emails FROM bot_prospects WHERE account_id = ?1 GROUP BY bot_id, status
+      UNION ALL SELECT bot_id, status, COUNT(*) AS n, SUM(step) AS emails FROM sell_prospects WHERE account_id = ?1 GROUP BY bot_id, status`).bind(ctx.accountId).all(),
     env.DB.prepare("SELECT email, daily_limit FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id || 0).first(),
     dataKeys(env, ctx).catch(() => ({})),
     suggestions(env, ctx),
@@ -125,12 +144,13 @@ export async function listBots(env, ctx) {
   return {
     bots: bots.results.map((r) => ({ ...botOut(r), stats: by[r.id] || { emails: 0 } })),
     mailbox: box ? { email: box.email, daily_limit: box.daily_limit } : null,
-    data_ready: !!keys.monid, suggest, max_touches: MAX_TOUCHES,
+    data_ready: !!keys.monid, suggest, max_touches: MAX_TOUCHES, funds: FUNDS.length,
   };
 }
 
 export async function listProspects(env, ctx, id, status) {
   const bot = await own(env, ctx, id);
+  if (bot.kind === "sell") return (await listSellProspects(env, bot)).filter((p) => !status || p.status === status);
   const { results } = await env.DB.prepare(`SELECT p.id, p.target_id, p.email, p.email_kind, p.status, p.step, p.next_at, p.score, p.signals, p.created_at, p.updated_at,
       t.name, t.location, t.phone, t.owner_name, t.website, t.stage
     FROM bot_prospects p JOIN targets t ON t.id = p.target_id AND t.account_id = p.account_id
@@ -149,6 +169,12 @@ export async function setProspect(env, ctx, botId, pid, action) {
   const bot = await own(env, ctx, botId);
   const status = { stop: "removed", called: "called", resume: "active" }[action];
   if (!status) throw err(400, "Unknown action");
+  if (bot.kind === "sell") {
+    const r = await env.DB.prepare("UPDATE sell_prospects SET status = ?4, updated_at = ?5 WHERE id = ?1 AND bot_id = ?2 AND account_id = ?3 AND ?4 = 'removed' RETURNING fund_id").bind(+pid, bot.id, ctx.accountId, status, now()).first();
+    if (!r) throw err(404, "Buyer not found");
+    await log(env, bot, null, "skipped", "Stopped by hand");
+    return { ok: true, status };
+  }
   const r = await env.DB.prepare(`UPDATE bot_prospects SET status = ?4, next_at = CASE WHEN ?4 = 'active' THEN ?5 ELSE next_at END, updated_at = ?5 WHERE id = ?1 AND bot_id = ?2 AND account_id = ?3
     AND (?4 != 'active' OR (status IN ('removed', 'call', 'called') AND step < ?6)) RETURNING target_id`).bind(+pid, bot.id, ctx.accountId, status, now(), bot.touches).first();
   if (!r) throw err(404, "Prospect not found, or it can't be resumed");
@@ -221,7 +247,7 @@ export async function queueBots(env, exec, runNow) {
   const { results } = await env.DB.prepare("SELECT id, account_id, timezone, send_hour, last_run_on FROM bots WHERE status = 'active'").all();
   const due = results.filter((b) => { const l = localParts(b.timezone); return !l.weekend && l.hour >= b.send_hour && l.hour < 19 && b.last_run_on !== l.date; });
   if (!due.length) return 0;
-  if (env.WORK) for (let i = 0; i < due.length; i += 100) await env.WORK.sendBatch(due.slice(i, i + 100).map((b) => ({ body: { type: "bot", accountId: b.account_id, botId: b.id } })));
+  if (env.WORK) for (let i = 0; i < due.length; i += 100) await env.WORK.sendBatch(due.slice(i, i + 100).map((b) => ({ body: { type: "bot", accountId: b.account_id, botId: b.id }, delaySeconds: Math.floor(Math.random() * 3000) })));
   else for (const b of due) exec.waitUntil(runNow(b.account_id, b.id).catch((e) => console.error("bot", e)));
   return due.length;
 }
@@ -244,9 +270,12 @@ export async function runBot(env, accountId, botId, hooks, { manual = false } = 
     if (bot.mode === "autopilot" && !(await env.DB.prepare("SELECT 1 FROM mailboxes WHERE user_id = ?1").bind(ctx.user.id).first())) {
       await log(env, bot, null, "error", "No mailbox connected for the sender: connect one in Settings → Email"); return { ok: false, reason: "no mailbox" };
     }
-    await refresh(env, bot, sum);
-    const capped = await followUps(env, bot, ctx, hooks, sum);
-    if (!capped) await findNew(env, bot, ctx, hooks, sum);
+    if (bot.kind === "sell") await runSell(env, bot, ctx, hooks, sum, log);
+    else {
+      await refresh(env, bot, sum);
+      const capped = await followUps(env, bot, ctx, hooks, sum);
+      if (!capped) await findNew(env, bot, ctx, hooks, sum);
+    }
     const parts = [sum.first && `${sum.first} first email${sum.first === 1 ? "" : "s"}`, sum.followups && `${sum.followups} follow-up${sum.followups === 1 ? "" : "s"}`, sum.queued && `${sum.queued} queued for review`,
       sum.calls && `${sum.calls} to call`, sum.stopped && `${sum.stopped} stopped (replied or opted out)`, sum.no_email && `${sum.no_email} without an email (call list)`].filter(Boolean);
     await log(env, bot, null, "run", `${manual ? "Run now" : "Morning run"}: ${parts.join(" · ") || "nothing due"}${sum.notes.length ? `. ${sum.notes.join(" ")}` : ""}`);
@@ -264,8 +293,13 @@ export async function runBot(env, accountId, botId, hooks, { manual = false } = 
 // 1. Stop the ones that answered, opted out, were moved on by hand, or were removed from the pipeline.
 async function refresh(env, bot, sum) {
   const stamp = now();
+  // Out of office: pause a week instead of stopping.
+  const { results: away } = await env.DB.prepare(`UPDATE bot_prospects AS p SET next_at = ?3, updated_at = ?4 WHERE p.bot_id = ?1 AND p.account_id = ?2 AND p.status = 'active'
+    AND EXISTS (SELECT 1 FROM replies r WHERE r.account_id = p.account_id AND r.target_id = p.target_id AND r.category = 'ooo' AND r.created_at > p.updated_at) RETURNING target_id`)
+    .bind(bot.id, bot.account_id, new Date(Date.now() + 7 * 864e5).toISOString(), stamp).all();
+  for (const r of away) await log(env, bot, r.target_id, "skipped", "Out of office: paused for a week");
   const stops = [
-    ["replied", "Replied: the bot stopped emailing", `EXISTS (SELECT 1 FROM replies r WHERE r.account_id = p.account_id AND r.target_id = p.target_id AND r.created_at > p.created_at)`],
+    ["replied", "Replied: the bot stopped emailing", `EXISTS (SELECT 1 FROM replies r WHERE r.account_id = p.account_id AND r.target_id = p.target_id AND r.category != 'ooo' AND r.created_at > p.created_at)`],
     ["opted_out", "Opted out: never emailed again", `EXISTS (SELECT 1 FROM suppressions s WHERE s.account_id = p.account_id AND s.email = p.email)`],
     ["replied", "Moved on in the pipeline by hand: the bot stepped back", `EXISTS (SELECT 1 FROM targets t WHERE t.id = p.target_id AND t.stage NOT IN ('sourced', 'contacted'))`],
     ["removed", "Removed from the pipeline", `NOT EXISTS (SELECT 1 FROM targets t WHERE t.id = p.target_id AND t.account_id = p.account_id)`],
@@ -345,6 +379,12 @@ async function followUps(env, bot, ctx, hooks, sum) {
     }
     const r = await deliver(env, bot, ctx, hooks, p, t, p.step + 1, sum);
     if (r === "cap") return true;
+    // Every 7th email, a call task too: email alone isn't enough for owners who never read it.
+    if ((r === "sent" || r === "queued") && (p.step + 1) % 7 === 0 && p.t_phone) {
+      await updateTarget(env, ctx, t.id, { next_action: `Call ${p.owner_name || "the owner"}: email ${p.step + 1} of ${bot.touches}, no reply yet · ${p.t_phone}`, next_date: localParts(bot.timezone).date }, hooks).catch(() => {});
+      await log(env, bot, t.id, "call", `Call task: ring ${t.name} on ${p.t_phone} (email ${p.step + 1} of ${bot.touches}, no reply)`);
+      sum.calls++;
+    }
   }
   return false;
 }
@@ -423,12 +463,24 @@ async function findNew(env, bot, ctx, hooks, sum) {
   }
 }
 
+// The buyers directory: every workspace sees the same list, with which funds its own sell bots have contacted.
+export async function buyersDirectory(env, ctx, q) {
+  const seg = q.get("segment"), country = (q.get("country") || "").toUpperCase(), words = String(q.get("q") || "").toLowerCase().trim();
+  const { results } = await env.DB.prepare("SELECT fund_id, status, step FROM sell_prospects WHERE account_id = ?1").bind(ctx.accountId).all().catch(() => ({ results: [] }));
+  const touched = new Map(results.map((r) => [r.fund_id, r]));
+  const list = FUNDS.filter((f) => (!seg || f.segment === seg) && (!country || f.hq_country === country || (f.regions || []).includes(country))
+    && (!words || `${f.name} ${f.hq_city} ${(f.sectors || []).join(" ")}`.toLowerCase().includes(words)));
+  const countries = [...new Set(FUNDS.map((f) => f.hq_country).filter(Boolean))].sort();
+  return { total: FUNDS.length, countries, funds: list.map((f) => ({ ...f, contacted: touched.get(f.id) || null })) };
+}
+
 export async function botsRoute(request, env, ctx, url, body, hooks) {
   const p = url.pathname, m = request.method;
   let r;
   if (p === "/api/bots" && m === "GET") return listBots(env, ctx);
   if (p === "/api/bots" && m === "POST") return createBot(env, ctx, await body(request));
   if (p === "/api/bots/areas" && m === "GET") return siteAreas(env, ctx);
+  if (p === "/api/buyers" && m === "GET") return buyersDirectory(env, ctx, url.searchParams);
   if ((r = p.match(/^\/api\/bots\/(\d+)$/))) {
     if (m === "PATCH") return updateBot(env, ctx, +r[1], await body(request));
     if (m === "DELETE") return deleteBot(env, ctx, +r[1]);

@@ -9,7 +9,8 @@
     "test": "node --import ./test/text-loader.mjs --test test/*.test.js",
     "db:migrate": "wrangler d1 execute warplan --remote --file migrations/0001_link_expiry.sql",
     "db:migrate:territory": "wrangler d1 execute warplan --remote --file migrations/0002_territory.sql",
-    "db:migrate:bots": "wrangler d1 execute warplan --remote --file migrations/0003_bots.sql"
+    "db:migrate:bots": "wrangler d1 execute warplan --remote --file migrations/0003_bots.sql",
+    "db:migrate:sellbots": "wrangler d1 execute warplan --remote --file migrations/0004_sell_bots.sql"
   },
   "devDependencies": {
     "wrangler": "4.156.0"

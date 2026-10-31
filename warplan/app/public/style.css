@@ -1588,3 +1588,10 @@ table.grid input { width: 100%; min-width: 80px; }
 .chip.st-replied { border-color: var(--good); color: var(--good); }
 .chip.st-bounced, .chip.st-opted_out { color: var(--muted); }
 @media (max-width: 860px) { .bot-form { grid-template-columns: 1fr; } .bot-stats { grid-template-columns: 1fr 1fr; } .bot-stats div:nth-child(2) { border-right: 0; } }
+.bot-form .three { display: grid; grid-template-columns: 0.8fr 1fr 1fr; gap: 10px; }
+.country-picks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; }
+.bot-form details.step { border: 1px solid var(--line); background: var(--surface); }
+.bot-form details.step summary { cursor: pointer; padding: 8px 10px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bot-form details.step textarea { width: 100%; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+.bot-form #steps { display: grid; gap: 6px; max-height: 520px; overflow: auto; }
+.buyers-table td { vertical-align: top; }

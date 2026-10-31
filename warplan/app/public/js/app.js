@@ -21,8 +21,9 @@ import { renderRoom } from "./views/room.js";
 import { renderCrew, renderRun, renderActuals } from "./views/crew.js";
 import { renderTerritory } from "./views/territory.js";
 import { renderBots } from "./views/bots.js";
+import { renderBuyers } from "./views/buyers.js";
 
-const TITLES = { home: "Home", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Agents", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data", today: "Today", capital: "Board, bench & lenders", room: "Deal room", crew: "The crew", actuals: "Monthly actuals", territory: "Territory", bots: "Prospecting bots" };
+const TITLES = { home: "Home", pipeline: "Pipeline", targets: "Target", josh: "Ask Josh", simulator: "Simulator", builder: "Deal Builder", ladder: "Value Ladder", desk: "Desk", agents: "Agents", settings: "Settings", inbox: "Inbox", scout: "Scout", dialer: "Dialer", data: "Data", today: "Today", capital: "Board, bench & lenders", room: "Deal room", crew: "The crew", actuals: "Monthly actuals", territory: "Territory", bots: "Prospecting bots", buyers: "Buyers directory" };
 
 async function router() {
   const seq = ++session.seq;
@@ -48,6 +49,7 @@ async function router() {
     if (viewName === "scout") return await renderScout(seq, params);
     if (viewName === "territory") return await renderTerritory(seq, params);
     if (viewName === "bots") return await renderBots(seq, params, id ? Number(id) : null);
+    if (viewName === "buyers") return await renderBuyers(seq, params);
     if (viewName === "dialer") return await renderDialer(seq, params);
     if (viewName === "data") return await renderData(seq);
     if (viewName === "today") return await renderToday(seq);
@@ -73,7 +75,7 @@ $("#scrim").addEventListener("click", closeNav);
 // ------------------------------------------------------------------ command palette
 const COMMANDS = [
   ["Today: what to do now", "#/today"], ["Board, bench & lenders (C1/C2)", "#/capital"], ["Lender matrix", "#/capital?tab=lender"], ["Write the credibility packet", "#/capital?tab=scripts"],
-  ["Go home", "#/home"], ["Go to Pipeline", "#/pipeline"], ["Territory: where to do the next deal", "#/territory"], ["Prospecting bots: outbound on autopilot", "#/bots"], ["New prospecting bot", "#/bots"], ["Add a site to the territory map", "#/territory?tab=sites"], ["Ask Josh", "#/josh"], ["Start a practice call", "#/simulator"],
+  ["Go home", "#/home"], ["Go to Pipeline", "#/pipeline"], ["Territory: where to do the next deal", "#/territory"], ["Prospecting bots: outbound on autopilot", "#/bots"], ["New prospecting bot", "#/bots"], ["Buyers directory: private equity firms", "#/buyers"], ["Sell a business: shop it to buyers", "#/bots?new=sell"], ["Add a site to the territory map", "#/territory?tab=sites"], ["Ask Josh", "#/josh"], ["Start a practice call", "#/simulator"],
   ["Open the Deal Builder", "#/builder"], ["Open the Value Ladder", "#/ladder"], ["Open the Desk", "#/desk"], ["See every agent", "#/agents"],
   ["Add a target", () => addTarget()], ["Settings: profile", "#/settings/profile"], ["Settings: team & invites", "#/settings/team"],
   ["Settings: connect your AI keys", "#/settings/integrations"], ["Find companies to buy (Scout)", "#/scout"], ["Open the agent inbox", "#/inbox"], ["Power dialer: start calling", "#/dialer"], ["Open the phone (call or text)", () => openPhone()], ["Data: search 2,500+ data sources", "#/data"], ["Connect Instantly / Smartlead / EmailBison", "#/settings/integrations"], ["Connect your mailbox", "#/settings/email"], ["Connect AI apps: ChatGPT, Cursor, Zapier (MCP)", "#/settings/connect"], ["Settings: API tokens", "#/settings/api"], ["Settings: usage", "#/settings/usage"],

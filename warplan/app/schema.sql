@@ -773,6 +773,9 @@ CREATE TABLE IF NOT EXISTS bots (
   templates TEXT NOT NULL DEFAULT '{}',
   cursor TEXT NOT NULL DEFAULT '{}',    -- where the search left off, per area
   last_run_on TEXT,                     -- local date of the last daily run
+  kind TEXT NOT NULL DEFAULT 'buy',
+  sell TEXT NOT NULL DEFAULT '{}',
+  buyers TEXT NOT NULL DEFAULT '{}',
   lock_until TEXT,                      -- a run in progress (so two can't overlap)
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
@@ -808,3 +811,29 @@ CREATE TABLE IF NOT EXISTS bot_log (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS bot_log_bot ON bot_log (bot_id, id DESC);
+-- v22: sell-side bots (shop a business to the buyers directory) and 30/60-day flows.
+CREATE TABLE IF NOT EXISTS sell_prospects (
+  id INTEGER PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  bot_id INTEGER NOT NULL,
+  fund_id TEXT NOT NULL,                -- id in the buyers directory (src/data/funds.js)
+  email TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'active', -- active | replied | opted_out | bounced | no_email | removed | finished
+  step INTEGER NOT NULL DEFAULT 0,
+  next_at TEXT,
+  subject TEXT NOT NULL DEFAULT '',
+  action_id INTEGER,
+  score INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (bot_id, fund_id)
+);
+CREATE INDEX IF NOT EXISTS sell_prospects_due ON sell_prospects (bot_id, status, next_at);
+CREATE INDEX IF NOT EXISTS sell_prospects_account ON sell_prospects (account_id, fund_id);
+CREATE TABLE IF NOT EXISTS fund_contacts (  -- shared: what each fund's own website lists (public)
+  fund_id TEXT PRIMARY KEY,
+  emails TEXT NOT NULL DEFAULT '[]',
+  checked_at TEXT NOT NULL
+);
+-- Bots saved with the first, softer copy go back to the new direct defaults.
+

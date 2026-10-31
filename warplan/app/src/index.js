@@ -442,7 +442,7 @@ async function route(request, env, url, ctx, exec) {
   // Densification map: sites, service areas, where to buy next
   if (p.startsWith("/api/territory")) { const res = await territoryRoute(request, env, ctx, url, body); if (res) return res; }
   // Prospecting bots: find, email and follow up the businesses you'd buy, then hand you the ones to call
-  if (p.startsWith("/api/bots")) { const res = await botsRoute(request, env, ctx, url, body, hooks); if (res !== undefined) return json(res, m === "POST" && p === "/api/bots" ? 201 : 200); }
+  if (p.startsWith("/api/bots") || p === "/api/buyers") { const res = await botsRoute(request, env, ctx, url, body, hooks); if (res !== undefined) return json(res, m === "POST" && p === "/api/bots" ? 201 : 200); }
   // C1/C2: board, bench, lenders; lender fit and financing per deal
   if (p === "/api/relationships" && m === "GET") return json(await listRelationships(env, ctx, q.get("kind")));
   if (p === "/api/relationships" && m === "POST") return json(await createRelationship(env, ctx, await body(request)), 201);
