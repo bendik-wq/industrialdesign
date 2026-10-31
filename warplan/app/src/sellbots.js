@@ -40,6 +40,8 @@ export function matchFunds(sell, buyers, exclude = new Set()) {
 }
 
 // The best address a fund publishes for deals: deal/origination/investment inboxes first, then the general one.
+// Named people's addresses are never used (they may not handle new deals); without a shared inbox, the bot lists
+// the fund's contact page for you instead.
 async function fundEmail(env, f) {
   const hit = await env.DB.prepare("SELECT emails, checked_at FROM fund_contacts WHERE fund_id = ?1").bind(f.id).first();
   let emails = hit && Date.now() - Date.parse(hit.checked_at) < 90 * 864e5 ? json(hit.emails, []) : null;
@@ -50,7 +52,8 @@ async function fundEmail(env, f) {
     await env.DB.prepare("INSERT INTO fund_contacts (fund_id, emails, checked_at) VALUES (?1, ?2, ?3) ON CONFLICT (fund_id) DO UPDATE SET emails = excluded.emails, checked_at = excluded.checked_at").bind(f.id, JSON.stringify(emails.slice(0, 10)), now()).run();
   }
   const rank = (e) => (/^(deals?|dealflow|origination|opportunit|newdeals|investments?|bd|business|proposals?)@/.test(e) ? 0 : /^(info|enquir|inquir|contact|hello|office|mail|admin)@/.test(e) ? 1 : 2);
-  return [...emails].sort((a, b) => rank(a) - rank(b))[0] || "";
+  // Only the fund's own shared inboxes: a named person found on the site may not handle new deals.
+  return [...emails].filter((e) => rank(e) <= 1).sort((a, b) => rank(a) - rank(b))[0] || "";
 }
 
 function sellVars(bot, f) {

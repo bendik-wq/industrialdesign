@@ -93,7 +93,7 @@ const SELL_30 = [
   "Hi {first},\n\nIndicative offers are coming in. If you want a look at {business}, now is the time.\n\n{sender}",
   "Hi {first},\n\nWhat would {fund} need to see to put an indicative offer on {business}?\n\n{sender}",
   "Hi {first},\n\nIf the timing's wrong for your fund, tell me when to come back.\n\n{sender}",
-  "Hi {first},\n\n{Business} in {area}. {revenue} revenue. {ebitda} EBITDA. Selling this quarter.\n\nWant in?\n\n{sender}",
+  "Hi {first},\n\n{Business}. {revenue} revenue. {ebitda} EBITDA. Selling this quarter.\n\nWant in?\n\n{sender}",
   "Hi {first},\n\nWe can share the data room the day you sign the NDA.\n\nShall I send the NDA?\n\n{sender}",
   "Hi {first},\n\nI've written a few times about {business}. A call is easier: {phone}.\n\n{sender}",
   "Hi {first},\n\nThe business runs without the owner day to day. The team is in place.\n\nInterested in the detail?\n\n{sender}",
@@ -110,7 +110,7 @@ const SELL_60_EXTRA = [
   "Hi {first},\n\nWe're now in a second round with a few buyers. There's still room for {fund}.\n\nInterested?\n\n{sender}",
   "Hi {first},\n\nIs {sector} still a focus for {fund}? If so, {business} should be on your desk.\n\n{sender}",
   "Hi {first},\n\nThe owner wants a partner, not just a cheque. {fund}'s approach fits.\n\nShall we talk?\n\n{sender}",
-  "Hi {first},\n\n{Business}: {ebitda} EBITDA in {area}. Still available.\n\nWant the teaser?\n\n{sender}",
+  "Hi {first},\n\n{Business}: {ebitda} EBITDA. Still available.\n\nWant the teaser?\n\n{sender}",
   "Hi {first},\n\nCall me on {phone} and I'll give you the story in 10 minutes.\n\n{sender}",
   "Hi {first},\n\nWe can move quickly for the right buyer. Exclusivity is on the table.\n\nIs {fund} interested?\n\n{sender}",
   "Hi {first},\n\nThe quality of earnings work is done. Diligence will be fast.\n\nShall I send the pack?\n\n{sender}",
@@ -178,7 +178,7 @@ export function templateIndex(step, touches, n) {
   return n <= 2 ? n - 1 : 1 + ((step - 2) % (n - 2));
 }
 
-const money = (v, cur = "$") => (v == null || v === "" ? "" : +v >= 1e6 ? `${cur}${(+v / 1e6).toFixed(1).replace(/\.0$/, "")}M` : `${cur}${Math.round(+v / 1e3)}k`);
+const money = (v, cur = "$") => (!(+v > 0) ? "" : +v >= 1e6 ? `${cur}${(+v / 1e6).toFixed(1).replace(/\.0$/, "")}M` : `${cur}${Math.round(+v / 1e3)}k`);
 
 // step: 1-based. vars (buy): first, company, sender, group, buying, area, phone, signals, touches, gapDays, kind
 //                vars (sell): first, fund, sender, business, sector, area, revenue, ebitda, currency, phone, touches
@@ -187,7 +187,12 @@ export function renderEmail(templates, step, vars) {
   const base = defaultTemplates(kind, vars.touches || 30);
   const t = { ...base, ...(templates || {}) };
   const steps = Array.isArray(t.steps) && t.steps.length ? t.steps : base.steps;
-  const body = steps[templateIndex(step, vars.touches || steps.length, steps.length)];
+  let body = steps[templateIndex(step, vars.touches || steps.length, steps.length)];
+  // No figures given: drop them from the sentence instead of writing "solid EBITDA".
+  if (!(+vars.revenue > 0)) body = body.replace(/\. \{revenue\} revenue(?=\.)/, "");
+  if (!(+vars.ebitda > 0)) body = body.replace(/\. \{ebitda\} EBITDA(?=\.)/, "");
+  if (!(+vars.revenue > 0)) body = body.replace(/:? \{revenue\} revenue,? ?/, (m) => (m.startsWith(":") ? ": " : "")).replace(/\{revenue\} revenue\. /, "");
+  if (!(+vars.ebitda > 0)) body = body.replace(/: \{ebitda\} EBITDA\./, ".").replace(/ \{ebitda\} EBITDA\./, ".").replace(/: $/m, ".").replace(/It makes \{ebitda\} EBITDA from recurring customers, and/, "Customers are recurring, and").replace(/\{Business\}: \{ebitda\} EBITDA\./, "{Business} is").replace(/\{ebitda\} EBITDA\. /, "");
   const phone = String(vars.phone || "").trim();
   const v = {
     first: String(vars.first || "").trim() || "there", company: vars.company || "your business", sender: vars.sender || "", group: vars.group || "",

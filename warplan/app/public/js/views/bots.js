@@ -125,7 +125,7 @@ async function renderBot(seq, d, id, params) {
 
 const sample = (b) => (b.kind === "sell"
   ? { kind: "sell", first: "", fund: "Example Capital", sender: b.sender_name || "You", business: b.sell?.business, sector: b.sell?.sector, area: b.sell?.location, revenue: b.sell?.revenue, ebitda: b.sell?.ebitda, currency: b.sell?.currency, phone: b.phone, touches: b.touches, gapDays: b.gap_days }
-  : { first: "Sarah", company: "Westside Physio", sender: b.sender_name || "You", group: b.group_name, buying: b.buying, area: String((b.areas || [])[0] || "your area").split(",")[0], phone: b.phone, signals: { reviews: 180, rating: 4.8 }, touches: b.touches, gapDays: b.gap_days });
+  : { first: "Sarah", company: "Westside Co", sender: b.sender_name || "You", group: b.group_name, buying: b.buying, area: String((b.areas || [])[0] || "your area").split(",")[0], phone: b.phone, signals: { reviews: 180, rating: 4.8 }, touches: b.touches, gapDays: b.gap_days });
 function emailsPane(pane, b) {
   pane.innerHTML = `<p class="muted small">What ${b.kind === "sell" ? "each buyer" : "a prospect"} receives, in order (sample ${b.kind === "sell" ? "fund" : "business"}). Change the wording under Edit. Your signature and an opt-out line are added to each.</p>
     <ol class="bot-emails">${Array.from({ length: b.touches }, (_, i) => { const e = renderEmail(b.templates, i + 1, sample(b)); return `<li><p class="muted small">Day ${i + 1}${i + 1 === b.touches ? " · last email" : ""}</p><b>${esc(e.subject)}</b><pre>${esc(e.body)}</pre></li>`; }).join("")}</ol>`;
