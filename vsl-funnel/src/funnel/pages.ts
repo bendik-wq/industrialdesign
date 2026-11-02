@@ -66,7 +66,7 @@ function videoConfig(c: Context<AppEnv>, def: VideoDef) {
 
 function faqBlock(): Html {
   const videos = readyFaqVideos();
-  const video = (v: (typeof videos)[number]) => `<details class="faq faq-has-video" data-faq="${v.id}"><summary><span class="faq-q">${v.q}</span><span class="faq-tag">Video · ${v.length}</span></summary><div class="faq-a"><div class="faq-video"><video controls playsinline preload="none" poster="/assets/media/faq/${v.id}.jpg" data-src="/assets/media/faq/${v.id}/index.m3u8"></video></div><p>${v.a}</p></div></details>`;
+  const video = (v: (typeof videos)[number]) => `<details class="faq faq-has-video" data-faq="${v.id}"><summary><span class="faq-q">${v.q}</span><span class="faq-tag">Video · ${v.length}</span></summary><div class="faq-a"><div class="faq-video"><video controls playsinline preload="none" data-poster="/assets/media/faq/${v.id}.jpg" data-src="/assets/media/faq/${v.id}/index.m3u8"></video></div><p>${v.a}</p></div></details>`;
   const items = FAQS.map((f, i) => `<details class="faq" data-faq="${i}"><summary>${f.q}</summary><div class="faq-a"><p>${f.a}</p></div></details>` + videos.filter((v) => v.after === i).map(video).join(''));
   return items.join('') + (videos.length ? `<p class="faq-note">${FAQ_VIDEO_DISCLAIMER}</p>` : '');
 }
@@ -99,6 +99,16 @@ async function trackingHead(c: Context<AppEnv>, pageEventId: string, hasForm: bo
     parts.push('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>');
   }
   return parts.join('\n');
+}
+
+/**
+ * The VSL poster is the largest thing above the fold (the LCP element) but vsl.js creates the <video> only after
+ * the deferred scripts run, so the browser found the poster late. A high-priority preload starts it with the CSS.
+ */
+export function posterPreload(cfg: Record<string, unknown> | undefined): string {
+  const poster = (cfg?.video as { poster?: unknown } | undefined)?.poster;
+  if (typeof poster !== 'string' || !/^(\/assets\/|https:\/\/)[^"'<>\s]+$/.test(poster)) return '';
+  return `<link rel="preload" as="image" href="${esc(poster)}" fetchpriority="high">\n`;
 }
 
 /**
@@ -158,7 +168,7 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
     .on('html', { element: (el) => void el.setAttribute('data-palette', palette) })
     .on('title', { element: (el) => { if (view.seo) el.setInnerContent(view.seo.title); else if (view.title) el.setInnerContent(`${view.title} — ${config.siteName}`); } })
     .on('meta[name="description"]', { element: (el) => { if (view.seo) el.setAttribute('content', view.seo.description); } })
-    .on('head', { element: (el) => void el.append(`${seoTags}\n<script id="funnel-config">window.FUNNEL=${scriptJson(config)}</script>\n${head}`, { html: true }) })
+    .on('head', { element: (el) => void el.append(`${posterPreload(view.config)}${seoTags}\n<script id="funnel-config">window.FUNNEL=${scriptJson(config)}</script>\n${head}`, { html: true }) })
     .on('[data-slot]', { element: (el) => { const k = el.getAttribute('data-slot')!; const val = slots[k]; if (val != null) el.setInnerContent(val, { html: true }); } })
     .on('[data-list]', {
       element: (el) => {

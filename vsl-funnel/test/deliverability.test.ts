@@ -6,6 +6,8 @@ import {
 } from '../src/admin/deliverability';
 import { GEN_KEY, HQ_CACHE_TTL_MS, bumpGen, cacheKey, hqCache, isCachedPath, memoryClear, memoryGet, memoryPut, readGen } from '../src/lib/hq-cache';
 import { SETTINGS } from '../src/settings';
+import { posterPreload } from '../src/funnel/pages';
+import { VIDEOS } from '../src/config';
 
 // ───────────── A real SQLite database shaped like D1, every migration applied (same shim as dataq.test.ts) ─────────────
 interface Stmt { get(...a: unknown[]): unknown; all(...a: unknown[]): unknown[]; run(...a: unknown[]): { changes: number | bigint; lastInsertRowid: number | bigint } }
@@ -364,5 +366,37 @@ describe('hq cache middleware', () => {
     const r = await get('/admin/api/overview?z=1&fresh=1');
     expect(r.headers.get('x-hq-cache')).toBe('bypass');
     expect(calls).toBe(6);
+  });
+});
+
+// ───────────── Public page speed (round 2) ─────────────
+describe('public page speed', () => {
+  const read = (p: string) => fs.readFileSync(`${node.cwd()}/${p}`, 'utf8');
+  it('preloads the VSL poster with high priority, and only a safe URL', () => {
+    expect(posterPreload({ video: { poster: '/assets/media/main-poster.webp' } })).toBe('<link rel="preload" as="image" href="/assets/media/main-poster.webp" fetchpriority="high">\n');
+    expect(posterPreload({ video: { poster: 'https://cdn.example.com/p.jpg?x=1&y=2' } })).toContain('href="https://cdn.example.com/p.jpg?x=1&amp;y=2"');
+    expect(posterPreload({ video: { poster: 'javascript:alert(1)' } })).toBe('');
+    expect(posterPreload({ video: { poster: '/x" onload="y' } })).toBe('');
+    expect(posterPreload({ video: { poster: '' } })).toBe('');
+    expect(posterPreload(undefined)).toBe('');
+  });
+  it('serves the default posters as WebP files that exist', () => {
+    for (const v of [VIDEOS.main, VIDEOS.breakout, VIDEOS.precall]) {
+      expect(v.defaultPoster).toMatch(/\.webp$/);
+      expect(read(`public${v.defaultPoster}`).length).toBeGreaterThan(1000);
+    }
+  });
+  it('self-hosts Inter and Newsreader: no render-blocking Google Fonts on the four entry pages', () => {
+    const css = read('public/assets/site.css');
+    for (const f of ['inter-latin', 'inter-latin-ext', 'newsreader-latin', 'newsreader-latin-ext', 'newsreader-italic-latin', 'newsreader-italic-latin-ext']) {
+      expect(css).toContain(`url(/assets/fonts/${f}.woff2)`);
+      expect(read(`public/assets/fonts/${f}.woff2`).length).toBeGreaterThan(10_000);
+    }
+    expect(css).toMatch(/--font: "Inter", "Inter Fallback"/);
+    for (const page of ['index', 'apply', 'live', 'webinar']) {
+      const html = read(`public/${page}.html`);
+      expect(html).not.toContain('fonts.googleapis.com');
+      expect(html).toContain('/assets/site.css'); // the @font-face rules live there
+    }
   });
 });
