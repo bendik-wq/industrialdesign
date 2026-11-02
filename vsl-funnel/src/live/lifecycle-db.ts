@@ -220,6 +220,8 @@ export async function sendPost(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: L
     const x = {
       name: safeFirstName(lead.first_name) ?? 'there', title: ev.title, room: `${replayHref(rt, reg)}?via=e-${k}`, closes: w.open ? formatCallTime(w.closesAt, tz) : null,
       deposit: depositConfig(rt).label, onboarding: onboardingUrl(rt), highlights: await highlights(rt, ev), replayCloses: now < w.replayClosesAt ? formatCallTime(w.replayClosesAt, tz) : null,
+      // Payment links: the deposit button opens their own prefilled checkout while the offer is open.
+      pay: w.open ? await (await import('../sales/paylinks')).depositLinkFor(rt, { leadId: lead.id, source: 'live', ref: ev.id }).catch(() => null) : null,
     };
     if (await sendOnce(rt, lead, lcSeq(ev.id), reg.seq * 10 + POST_STEP[k], `lc_${k}`, postEmail(k, x), { unsubscribe: k !== 'buyer_docs' })) sent++;
   }

@@ -959,3 +959,11 @@ html.modal-open { overflow: hidden; }
   .ty-card { padding: 36px 20px 28px; border-radius: 22px; }
 }
 
+/* Payment links (src/sales/paylinks.ts): the real deadline, who is paying, Whop's own checkout. */
+.pay-head { margin: 0 0 16px; }
+.pay-head .pass-fine { margin-top: 8px; }
+.pay-timer { margin: 8px 0 0; font-size: 15px; color: #0f2c5c; font-variant-numeric: tabular-nums; }
+.pay-timer strong { font-weight: 600; }
+.pay-whop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 16px 0 0; }
+#whop-embedded-checkout { min-height: 420px; margin: 16px 0; }
+

@@ -901,6 +901,7 @@
       $$('[data-buy], [data-oc-confirm]', d).forEach(function (b) { b.disabled = true; });
       var body = { token: CFG.offer.token, one_click: Boolean(oneClick) };
       if (CFG.offer.day) body.day = CFG.offer.day;
+      if (S.payPush) body.push_id = S.payPush;
       var tab = payTab();
       fetch(CFG.offer.buy, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) }).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (r) {
         var next = r && (r.url || r.next);
@@ -1324,7 +1325,7 @@
     pushEv(x.id, 'opened');
     if (x.kind === 'application') return openApp(x);
     if (x.kind === 'sprint') return openSprint(x);
-    if (x.kind === 'deposit') { pushEv(x.id, 'started'); return openOffer(); }
+    if (x.kind === 'deposit') { pushEv(x.id, 'started'); S.payPush = x.id; return openOffer(); } // payment links: the card's push id rides with the checkout
     if (x.kind === 'vip') { var v = E.data && E.data.vip; if (v && v.url) { pushEv(x.id, 'started'); window.open(v.url, '_blank', 'noopener'); } else toast(C.genericError); return; }
     // A resource: granted by the room when it reached you; the signed link comes with your data.
     loadEngage().then(function () {

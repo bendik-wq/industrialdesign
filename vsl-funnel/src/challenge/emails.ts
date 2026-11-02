@@ -173,6 +173,8 @@ export function challengeSkip(template: string) {
 
 export interface ChallengeEmailCtx {
   hub: string; ics: string; vip: boolean; closes: string | null; deposit: string; credit: string | null;
+  /** The person's signed payment link (sales/paylinks.ts) while the deposit offer is open. */
+  pay?: string | null;
   days: { n: number; title: string; line: string; when: string; page: string; replay: string | null; attended: boolean; homework: boolean }[];
 }
 
@@ -191,7 +193,12 @@ export async function challengeEmailContext(rt: Runtime, lead: Lead, link: (path
   const { challengeTicketCredit } = await import('./payments');
   const { money } = await import('./cohorts');
   const credit = await challengeTicketCredit(rt, lead.id);
+  // Payment links: while the deposit offer is open, the offer emails' button is the person's own checkout.
+  const { cohortOffer } = await import('./offer');
+  const offerOpen = (await cohortOffer(rt, reg.cohort_id, now).catch(() => null))?.open;
+  const payUrl = offerOpen ? await (await import('../sales/paylinks')).depositLinkFor(rt, { leadId: lead.id, source: 'challenge', ref: reg.id }).catch(() => null) : null;
   return {
+    pay: payUrl ? link(payUrl) : null,
     hub: link(`${base}/hub/${reg.token}`),
     ics: link(`${base}/ics/${reg.token}`),
     vip: Boolean(reg.vip),
@@ -326,7 +333,7 @@ export const CHALLENGE_TEMPLATES: Record<string, T> = {
       'The engagement exists so the plan turns into owner conversations this week, with a team checking the structure and the 1.5x test as you go.',
       `Places for this intake close ${ch(c).closes ?? 'soon'}.`,
     ],
-    cta: { label: 'Reserve my place →', href: day(c, 5).page },
+    cta: { label: 'Reserve my place →', href: ch(c).pay ?? day(c, 5).page },
   }),
   ch_offer_3: (c) => ({
     subject: 'six hours left',

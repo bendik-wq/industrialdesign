@@ -158,6 +158,7 @@ ${cfg.studio ? '<link rel="stylesheet" href="/assets/room-studio.css">\n<script 
 <script defer src="/assets/room-lifecycle.js"></script>
 ${room.mode === 'webinar' ? '<link rel="stylesheet" href="/assets/room-audience.css">\n<script defer src="/assets/room-audience.js"></script>' : ''}
 <script defer src="/assets/room-intel.js"></script>
+${room.mode === 'webinar' ? '<script defer src="/assets/room-pay.js"></script>' : ''}
 </head>
 <body class="rm-body">
 <script type="application/json" id="room-config">${json}</script>
@@ -635,7 +636,7 @@ roomsAdmin.get('/:id/engage', async (c) => {
   if (c.env.ROOMS && room.mode === 'webinar') {
     questions = await stub(c, room.id).fetch(new Request('https://room/engage/report', { headers: headersFor(rt, room, { id: 'hq', name: 'HQ', role: 'host' }) })).then((r) => r.json() as Promise<{ questions: typeof questions }>).then((d) => d.questions ?? []).catch(() => []);
   }
-  return c.json({ ok: true, ...(await engageReport(rt, room, questions)), agendaText: roomEngageSettings(room).agendaRaw || agendaText(parseAgenda('')), autoPushText: roomEngageSettings(room).autoPushRaw, autoPushDefault: (rt.settings as unknown as Record<string, string | undefined>).ROOM_AUTO_PUSH || DEFAULT_AUTO_PUSH });
+  return c.json({ ok: true, ...(await engageReport(rt, room, questions)), agendaText: roomEngageSettings(room).agendaRaw || agendaText(parseAgenda('')), autoPushText: roomEngageSettings(room).autoPushRaw, priceHold: (await import('../sales/paylinks')).priceHoldMin(room.engage), autoPushDefault: (rt.settings as unknown as Record<string, string | undefined>).ROOM_AUTO_PUSH || DEFAULT_AUTO_PUSH });
 });
 roomsAdmin.get('/:id/engage/person/:who', async (c) => {
   const rt = runtimeFrom(c);
@@ -654,7 +655,10 @@ roomsAdmin.post('/:id/engage', async (c) => {
   const autoPush = typeof b.autoPush === 'string' ? b.autoPush.slice(0, 2000) : roomEngageSettings(room).autoPushRaw;
   let prev: Record<string, unknown> = {};
   try { prev = JSON.parse(room.engage ?? '{}') ?? {}; } catch { prev = {}; }
-  await rt.env.DB.prepare('UPDATE rooms SET engage = ?, updated_at = ? WHERE id = ?').bind(JSON.stringify({ ...prev, agenda, board, autoPush }), Date.now(), room.id).run();
+  // Payment links: the optional price hold per Sprint push (minutes; blank or 0 = off).
+  const { priceHoldMin } = await import('../sales/paylinks');
+  const priceHold = b.priceHold === undefined ? priceHoldMin(room.engage) : priceHoldMin(JSON.stringify({ priceHold: Number(String(b.priceHold).trim() || 0) }));
+  await rt.env.DB.prepare('UPDATE rooms SET engage = ?, updated_at = ? WHERE id = ?').bind(JSON.stringify({ ...prev, agenda, board, autoPush, priceHold }), Date.now(), room.id).run();
   return c.json({ ok: true, agenda: parseAgenda(agenda), board, autoPush: parseAutoPush(autoPush.trim() ? autoPush : ((rt.settings as unknown as Record<string, string | undefined>).ROOM_AUTO_PUSH || DEFAULT_AUTO_PUSH)) });
 });
 /** Sends the summary emails now (each person once; the cron does it 10 minutes after the end otherwise). */

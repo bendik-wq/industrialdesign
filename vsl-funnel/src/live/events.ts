@@ -729,7 +729,12 @@ export async function roomDeposit(rt: Runtime, reg: LiveReg, body: Record<string
   if (!w.open) return { error: depositCopy(depositConfig(rt)).closed };
   if (!isMillionPlus(reg.revenue_band)) return { error: depositCopy(depositConfig(rt)).underMillionBody };
   await rt.env.DB.prepare('UPDATE live_webinar_regs SET offer_clicked_at = COALESCE(offer_clicked_at, ?) WHERE id = ?').bind(now, reg.id).run();
-  return startDeposit(rt, { leadId: reg.lead_id, source: 'live', refId: ev.id, regToken: reg.token, oneClick: body.one_click === true, returnUrl: liveWelcomeUrl(rt, reg.token) });
+  // Payment links: the offer's real close is the pay page's timer and its limit; the room card's push id rides along.
+  const pushId = Number.isInteger(body.push_id) && (body.push_id as number) > 0 ? body.push_id as number : null;
+  return startDeposit(rt, {
+    leadId: reg.lead_id, source: 'live', refId: ev.id, regToken: reg.token, oneClick: body.one_click === true, returnUrl: liveWelcomeUrl(rt, reg.token),
+    deadline: { at: w.closesAt, reason: 'offer' }, pushId, via: body.via === 'link' ? 'link' : 'card',
+  });
 }
 
 // ───────────── Funnel HQ ─────────────

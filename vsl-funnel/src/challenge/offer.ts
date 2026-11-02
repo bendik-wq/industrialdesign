@@ -74,12 +74,13 @@ export async function offerView(rt: Runtime, reg: Registration) {
 }
 
 /** POST /api/challenge/deposit: start the deposit (one click on the saved card where builder B can, else checkout). */
-export async function startChallengeDeposit(rt: Runtime, reg: Registration, o: { oneClick?: boolean; day?: number } = {}, now = Date.now()) {
+export async function startChallengeDeposit(rt: Runtime, reg: Registration, o: { oneClick?: boolean; day?: number; pushId?: number | null; via?: string } = {}, now = Date.now()) {
   if (reg.status !== 'paid') return { ok: false as const, error: 'Pay your challenge ticket first.' };
   const s = await cohortOffer(rt, reg.cohort_id, now);
   if (!s.open) return { ok: false as const, error: s.expired ? 'This offer has closed.' : 'The offer isn’t open yet.' };
   await rt.env.DB.prepare('INSERT INTO challenge_deposits (reg_id, cohort_id, lead_id, started_at) VALUES (?, ?, ?, ?) ON CONFLICT(reg_id) DO NOTHING').bind(reg.id, reg.cohort_id, reg.lead_id, now).run();
-  const r = await startDeposit(rt, { leadId: reg.lead_id, source: 'challenge', refId: reg.id, regToken: reg.token, oneClick: o.oneClick !== false, returnUrl: `${dayUrl(rt, reg.token, o.day ?? 5)}?deposit=1` });
+  const r = await startDeposit(rt, { leadId: reg.lead_id, source: 'challenge', refId: reg.id, regToken: reg.token, oneClick: o.oneClick !== false, returnUrl: `${dayUrl(rt, reg.token, o.day ?? 5)}?deposit=1`,
+    deadline: s.closeAt ? { at: s.closeAt, reason: 'offer' } : null, pushId: o.pushId ?? null, via: o.via ?? 'card' });
   await track(rt, await identityFromLead(rt.env, reg.lead_id), { name: 'challenge_deposit_started', source: 'server', path: '/challenge', props: { cohort_id: reg.cohort_id, outcome: r.paid ? 'paid' : r.url ? 'checkout' : 'error' }, localOnly: true }).catch(() => null);
   if (r.paid) {
     await recordChallengeDeposit(rt, { refId: reg.id, amount: null, currency: null }, now);
