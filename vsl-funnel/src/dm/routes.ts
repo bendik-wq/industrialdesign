@@ -4,6 +4,7 @@ import { getLead } from '../funnel/leads';
 import { newId } from '../lib/ids';
 import { flag, saveSettings } from '../settings';
 import { logAction } from '../ops/actions';
+import { bodyId, enqueueEvent, runQueued } from '../lib/webhook-events';
 import { NO_KEY_NOTE, draftReply, precallSummary } from './ai';
 import { GraphError, igConfigured, refreshIgToken, subscribeWebhooks, verifyChallenge, verifyIgSignature, whoAmI } from './graph';
 import { DmError, type DmMessage, type DmThread, type IgWebhook, addNote, getThread, importRecent, ingestWebhook, parseTags, sendReply, syncWithLeads, updateThread } from './inbox';
@@ -41,8 +42,11 @@ export function mountDmHooks(hooks: Hono<AppEnv>) {
     if (!(await verifyIgSignature(rt.settings.IG_APP_SECRET, raw, c.req.header('x-hub-signature-256') ?? null))) return c.text('bad signature', 401);
     let payload: IgWebhook;
     try { payload = JSON.parse(raw); } catch { return c.text('bad json', 400); }
-    // Acknowledge fast (Meta retries slow or failed deliveries); duplicates are deduped by message / comment id.
-    rt.waitUntil(ingestWebhook(rt, payload));
+    // Store the delivery first (durable), acknowledge fast (Meta retries slow or failed deliveries), process in the
+    // background; if that fails or the isolate dies, the cron runs it again (retryQueued). A retry or replay of the
+    // same bytes is dropped here; messages and comments are also deduped by their own ids.
+    const q = await enqueueEvent(rt.env, 'instagram', await bodyId(raw), raw);
+    if (q.fresh) rt.waitUntil(runQueued(rt.env, q.key, () => ingestWebhook(rt, payload)));
     return c.text('ok');
   });
 }

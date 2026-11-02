@@ -133,11 +133,12 @@ export async function markCancelled(rt: Runtime, lead: Lead, provider: string, r
 }
 
 /** Calendly: `Calendly-Webhook-Signature: t=<ts>,v1=<hmac(t.body)>`. */
-export async function verifyCalendly(signingKey: string, rawBody: string, header: string | null) {
+export async function verifyCalendly(signingKey: string, rawBody: string, header: string | null, now = Date.now()) {
   if (!header) return false;
   const parts = Object.fromEntries(header.split(',').map((kv) => kv.split('=') as [string, string]));
   if (!parts.t || !parts.v1) return false;
-  if (Math.abs(Date.now() / 1000 - Number(parts.t)) > 5 * 60) return false; // replay protection
+  const t = Number(parts.t);
+  if (!Number.isFinite(t) || Math.abs(now / 1000 - t) > 5 * 60) return false; // replay protection (a non-numeric t never passes)
   return safeEqual(await hmacHex(signingKey, `${parts.t}.${rawBody}`), parts.v1);
 }
 

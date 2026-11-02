@@ -488,7 +488,8 @@ export async function verifyElevenSignature(secret: string, raw: string, header:
   if (!secret || !header) return false;
   const parts = Object.fromEntries(header.split(',').map((kv) => { const i = kv.indexOf('='); return [kv.slice(0, i).trim(), kv.slice(i + 1).trim()]; }));
   if (!parts.t || !parts.v0) return false;
-  if (Math.abs(now / 1000 - Number(parts.t)) > 30 * 60) return false;
+  const t = Number(parts.t);
+  if (!Number.isFinite(t) || Math.abs(now / 1000 - t) > 30 * 60) return false; // ElevenLabs' own tolerance; a non-numeric t never passes
   return safeEqual(await hmacHex(secret, `${parts.t}.${raw}`), parts.v0);
 }
 

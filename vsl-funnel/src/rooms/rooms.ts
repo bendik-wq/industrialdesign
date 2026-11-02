@@ -109,14 +109,15 @@ export interface PresenceMember { id: string; role: Role; name: string; leadId?:
  */
 export async function feedPresence(rt: Runtime, room: Pick<RoomRow, 'id' | 'ref_type' | 'ref_id' | 'starts_at' | 'duration_min' | 'status'>, members: PresenceMember[], now = Date.now(), o: { live?: boolean; offerOpen?: boolean } = {}) {
   const db = rt.env.DB;
-  for (const m of members) {
-    await db.prepare(
+  // One batch per 100 people (a big room fed this one statement at a time, every minute).
+  const upserts = members.map((m) =>
+    db.prepare(
       `INSERT INTO room_attendance (room_id, who, lead_id, reg_id, name, role, first_at, last_at, minutes, joins, on_stage_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?)
        ON CONFLICT(room_id, who) DO UPDATE SET last_at = excluded.last_at, role = excluded.role, name = excluded.name,
          minutes = room_attendance.minutes + CASE WHEN excluded.last_at - room_attendance.last_at >= 50000 THEN 1 ELSE 0 END,
          on_stage_at = COALESCE(room_attendance.on_stage_at, excluded.on_stage_at)`,
-    ).bind(room.id, m.id, m.leadId ?? null, m.regId ?? null, m.name.slice(0, 80), m.role, now, now, m.stage && m.role !== 'host' && m.role !== 'cohost' ? now : null).run();
-  }
+    ).bind(room.id, m.id, m.leadId ?? null, m.regId ?? null, m.name.slice(0, 80), m.role, now, now, m.stage && m.role !== 'host' && m.role !== 'cohost' ? now : null));
+  for (let i = 0; i < upserts.length; i += 100) await db.batch(upserts.slice(i, i + 100));
   const attendees = members.filter((m) => m.regId && m.leadId && (m.role === 'attendee' || m.role === 'guest'));
   if (!attendees.length || !room.ref_id) return;
   const H = await import('../attribution/hooks');
