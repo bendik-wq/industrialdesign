@@ -42,7 +42,11 @@ export interface Member extends Identity {
   /** Why MoQ didn't work for this viewer (no WebTransport, blocked network, stalled): they stay on the SFU. */
   moqFail?: string | null;
 }
-export interface ChatMsg { id: number; by: string; name: string; role: Role; text: string; at: number }
+export interface ChatMsg {
+  id: number; by: string; name: string; role: Role; text: string; at: number;
+  /** Area C (audience): a reply to message `re`; the team's answers carry a label and the question they answer. */
+  re?: number; label?: string; q?: string;
+}
 export interface Question { id: number; by: string; name: string; text: string; at: number; votes: string[]; answered: boolean }
 export interface Poll { id: number; question: string; options: string[]; votes: Record<string, number>; open: boolean; at: number }
 export interface OfferState { available: boolean; open: boolean; closesAt: number | null; label: string | null }
@@ -358,6 +362,7 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       const text = clean(msg.text, LIMITS.chatMax);
       if (!text) return fail('empty');
       const m: ChatMsg = { id: ++st.chat.seq, by: me.id, name: me.name, role: me.role, text, at: now };
+      if (typeof msg.re === 'number' && st.chat.msgs.some((x) => x.id === msg.re)) m.re = msg.re; // area C: threads
       st.chat.msgs.push(m);
       if (st.chat.msgs.length > LIMITS.chatKeep) st.chat.msgs.splice(0, st.chat.msgs.length - LIMITS.chatKeep);
       me.lastChatAt = now;
