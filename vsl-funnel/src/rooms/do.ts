@@ -9,7 +9,7 @@ import { type SfuOp, SFU_OPS, forceClose, sfuProxy } from './proxy';
 import { feedPresence, getRoom, markRoom, roomOffer, setRoomOffer } from './rooms';
 import { type StudioDefaults, canLoadSlide, configureStudio } from './studio'; // builder B (studio)
 import { AudienceHub } from './audience-do'; // area C: reactions, captions, the co-host, announcements, nudges
-import { MediaReports, heldIds, holdOnClose, isHeld, resume as resumeMedia, staffView, wantsQuality } from './media';
+import { MediaReports, heldIds, holdOnClose, isHeld, previewProxy, resume as resumeMedia, staffView, wantsQuality } from './media';
 import { boundRoomState, cleanupAt, keepDays } from './hygiene'; // reliability: bounded state, ended-room clean-up
 import { Engage2Hub } from './engage2-do'; // engage2: engagement score, hot list, live-only bonus
 
@@ -150,7 +150,7 @@ export class RoomDO {
     if (m && SFU_OPS.includes(m[1] as SfuOp) && req.method === 'POST') {
       const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
       const rt = await this.runtime();
-      const r = await sfuProxy(st, who.id, m[1] as SfuOp, body, rt.settings);
+      const r = body.preview === true ? await previewProxy(st, who.id, m[1] as SfuOp, body, rt.settings, Date.now()) : await sfuProxy(st, who.id, m[1] as SfuOp, body, rt.settings); // media: "How attendees see me"
       if (r.changed) { await this.save(); this.broadcast(Date.now()); }
       return Response.json(r.body, { status: r.status });
     }

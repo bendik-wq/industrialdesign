@@ -693,7 +693,7 @@
     if (!R || !S.joined || S.ended) return;
     tick++;
     var pc = S.pc;
-    if (!pc || pc.connectionState !== 'connected') { if (tick % 20 === 3) noPcQuality(); return; }
+    if (!pc || pc.connectionState !== 'connected') { if (tick % 20 === 3) noPcQuality(); if (tick % 2 === 0) hdTick(null); return; }
     pc.getStats().then(function (rep) {
       var list = [], byTrack = {};
       rep.forEach(function (s) { list.push(s); });
@@ -716,6 +716,7 @@
       if (g.changed) { M.tier = g.tier; R.syncPulls(); }
       if (g.notice) toast(MC[g.notice]);
       if (publishing && S.pubs.video && sm.availOut != null && sm.availOut < 300 && Date.now() - M.upWarnAt > 120000) { M.upWarnAt = Date.now(); toast(MC.uploadWeak); }
+      hdTick(list);
       renderChip(); sendReport(false);
     }).catch(function () {});
   }, 1000);
@@ -736,7 +737,7 @@
   function sendReport(force) {
     if (!M.q || !S.ws || S.ws.readyState !== 1) return;
     var sm = M.sample || {};
-    var key = M.q.level + M.tier + M.rc + path();
+    var key = M.q.level + M.tier + M.rc + path() + hdKey();
     var staffOrStage = R.isStaff || (S.view && S.view.me && S.view.me.canPublish);
     var every = staffOrStage ? 15000 : 30000;
     var now = Date.now();
@@ -747,6 +748,7 @@
       level: M.q.level, score: M.q.score, why: M.q.why, rtt: sm.rtt, loss: sm.loss, jitter: sm.jitter, inKbps: sm.inKbps, outKbps: sm.outKbps,
       tier: M.tier, rc: M.rc, path: path(), relay: Boolean(sm.relay), proto: sm.proto || null,
       os: PLAT.os, browser: PLAT.browser, mobile: PLAT.mobile, fx: S.local.cam ? (M.fx ? P.fx : 'off') : null, noise: S.local.mic ? (M.ns ? 'strong' : P.noise) : null, pub: Boolean(S.pubs && S.pubs.audio),
+      rx: HD.rx, pw: HD.pw,
     } });
   }
 
@@ -793,6 +795,7 @@
         '<label class="rm-field"><span>' + esc(MC.noise) + '</span><select data-s="noise">' + noiseOptions() + '</select></label>' +
         (fxSupported() && S.local.cam ? '<div class="rm-field"><span>' + esc(MC.background) + '</span><div class="rmq-fxbar" role="radiogroup" aria-label="' + esc(MC.background) + '">' + [['off', MC.fxOff], ['blur', MC.fxBlur], ['brand', MC.fxBrand]].map(function (x) { return '<button type="button" role="radio" class="rmq-chipbtn" data-sfx="' + x[0] + '" aria-checked="' + ((M.fx ? P.fx : 'off') === x[0]) + '">' + esc(x[1]) + '</button>'; }).join('') + '</div></div>' : '') +
         (R.isStaff ? '<label class="rmq-toggle"><input type="checkbox" data-s="ptt"' + (P.ptt ? ' checked' : '') + '> ' + esc(MC.ptt) + '</label>' : '') +
+        (canPreview() ? '<p><button type="button" class="rm-btn rmq-sm" data-rmq-preview>' + esc(HC.preview) + '</button></p>' : '') +
         '<p class="rmq-help">' + esc(MC.echoTip) + '</p></section>' : (hasSink ? '<section class="rm-fields"><label class="rm-field"><span>' + esc(R.C.speaker) + '</span><select data-s="spk"></select></label></section>' : '')) +
       '</div>';
     document.body.appendChild(d);
@@ -822,9 +825,10 @@
   }
   function personBadge(id) {
     if (!R || !R.isStaff) return '';
+    if (id === R.ME.id && canPreview()) return ' <button type="button" class="rm-mini rmq-pvbtn" data-rmq-preview>' + esc(HC.preview) + '</button>';
     var p = M.people[id]; if (!p) return '';
     var info = MC.quality[p.level] + (p.rtt != null ? ' · ' + p.rtt + ' ms' : '') + (p.loss ? ' · ' + (p.loss * 100).toFixed(1) + ' %' : '') + ' · ' + p.browser + ' / ' + p.os + (p.path === 'moq' ? ' · ' + MC.pathMoq : '') + (p.relay ? ' · ' + MC.relay : '') + (p.rc ? ' · ' + MC.reconnects + ' ' + p.rc : '');
-    return ' <span class="rmq-pdot rmq-' + esc(p.level) + '" title="' + esc(info) + '" role="img" aria-label="' + esc(info) + '"></span>';
+    return ' <span class="rmq-pdot rmq-' + esc(p.level) + '" title="' + esc(info) + '" role="img" aria-label="' + esc(info) + '"></span>' + rxBadgeHtml(p);
   }
   function decorateTiles() {
     if (!R) return;
@@ -840,6 +844,214 @@
   }
   var panelTimer = 0;
   function peopleChanged() { decorateTiles(); clearTimeout(panelTimer); panelTimer = setTimeout(function () { if (S.tab === 'people') R.renderPanel(); }, 400); }
+
+  // ───────────── host diagnostics: can attendees see and hear the host ─────────────
+  // Attendees: every 2 s, check the host's tracks really arrive (frames decoded, bytes growing, the pull's state,
+  // sound blocked by autoplay); the debounced result rides on the quality report as `rx`. The host: a banner when
+  // 10 % or more can't see or hear them, with the likely cause and the fix; badges in People; "How attendees see
+  // me" (a receive-only preview of their own video from the SFU); and a camera self-check that republishes once
+  // when the video stops reaching the SFU (`pw` on the host's report, counted in Funnel HQ).
+  var HC = MC.hd || {};
+  var HD = { watch: L.createReceiveWatch(), prev: null, rx: null, pullErr: {}, pub: L.createPublishWatch(), pw: null, republishes: 0, reach: null, hideUntil: 0, hideKey: '', preview: null };
+  function hdKey() { var r = HD.rx, w = HD.pw; return (r ? r.v + r.vr + r.a + r.ar : '') + (w ? w.st + w.rp : ''); }
+  function stageHost() {
+    var st = (S.view && S.view.stage) || [];
+    for (var i = 0; i < st.length; i++) if (st[i].role === 'host' && st[i].id !== R.ME.id) return st[i];
+    return null;
+  }
+  function inbound(list, track) {
+    if (!list || !track) return null;
+    for (var i = 0; i < list.length; i++) if (list[i].type === 'inbound-rtp' && list[i].trackIdentifier === track.id) return list[i];
+    return null;
+  }
+  function soundBlocked(trackName) {
+    if (document.querySelector('[data-tapsound]')) return true;
+    var a = S.audioEls && S.audioEls[trackName];
+    return Boolean(a && a.srcObject && a.paused);
+  }
+  function rxCheck(list, now) {
+    var host = stageHost();
+    if (!host) { HD.rx = null; HD.prev = null; return; }
+    var tracks = host.tracks || [];
+    var vt = tracks.filter(function (t) { return t.kind === 'video'; })[0], at = tracks.filter(function (t) { return t.kind === 'audio'; })[0];
+    var pv = vt && S.pulls[vt.trackName], pa = at && S.pulls[at.trackName];
+    var sv = pv && inbound(list, pv.track), sa = pa && inbound(list, pa.track);
+    // A pull error counts while the track is still not pulled (cleared once it arrives).
+    Object.keys(HD.pullErr).forEach(function (k) { if (S.pulls[k] || now - HD.pullErr[k].at > 120000) delete HD.pullErr[k]; });
+    var err = (vt && HD.pullErr[vt.trackName]) || (at && HD.pullErr[at.trackName]) || null;
+    var sm = L.receiveSample({
+      expectVideo: Boolean(vt && !host.videoOff), expectAudio: Boolean(at && !host.audioOff), path: path(), moqPlaying: R.moqPlaying(),
+      tier: M.tier, pc: S.pc ? S.pc.connectionState : null, pullErr: err ? err.code : null, retries: S.pullRetryN || 0,
+      video: vt ? { pulled: Boolean(pv && pv.track), live: pv && pv.track ? pv.track.readyState === 'live' : null, frames: sv ? sv.framesDecoded : null, bytes: sv ? sv.bytesReceived : null, height: sv ? sv.frameHeight : null, fps: sv ? sv.framesPerSecond : null } : null,
+      audio: at ? { pulled: Boolean(pa && pa.track), live: pa && pa.track ? pa.track.readyState === 'live' : null, bytes: sa ? sa.bytesReceived : null, blocked: soundBlocked(at.trackName) } : null,
+      prev: HD.prev, at: now,
+    });
+    HD.prev = list ? sm : null; // without stats, the next sample starts fresh
+    var w = HD.watch.feed(sm, now);
+    HD.rx = { v: w.v, vr: w.vr, a: w.a, ar: w.ar, kbps: sm.kbps, h: sm.height, fps: sm.fps, rt: S.pullRetryN || 0 };
+  }
+  function amHost() { return Boolean(R && R.ME && (S.view && S.view.me ? S.view.me.role : R.ME.role) === 'host'); }
+  function canPreview() { return Boolean(R && R.isStaff && S.pubs && S.pubs.video && S.sessionId && window.RTCPeerConnection); }
+  function selfState() {
+    var cam = M.rawCam || S.local.cam, mic = M.rawMic || S.local.mic;
+    return {
+      camOn: Boolean(S.camOn && S.local.cam), camLive: cam ? cam.readyState === 'live' && !cam.muted : null,
+      micOn: Boolean(S.micOn && S.local.mic), micLive: mic ? mic.readyState === 'live' : null,
+      availOut: M.sample ? M.sample.availOut : null, stalled: Boolean(HD.pw && HD.pw.st === 'stalled'), unsentMs: HD.unsentAt ? Date.now() - HD.unsentAt : 0,
+    };
+  }
+  function pubCheck(list, now) {
+    var p = S.pubs && S.pubs.video;
+    var self = selfState();
+    var bytes = 0, receipts = null, ids = {};
+    (list || []).forEach(function (s) { if (s.type === 'outbound-rtp' && s.kind === 'video' && p && (s.mid == null || s.mid === p.mid)) { bytes += s.bytesSent || 0; ids[s.id] = true; } });
+    (list || []).forEach(function (s) { if (s.type === 'remote-inbound-rtp' && ids[s.localId] && typeof s.roundTripTimeMeasurements === 'number') receipts = (receipts || 0) + s.roundTripTimeMeasurements; });
+    var people = Object.keys(M.people).map(function (k) { return M.people[k]; }).filter(function (x) { return x.rx && x.rx.v !== 'na' && x.role !== 'host' && x.role !== 'cohost' && now - (x.at || 0) < 90000; });
+    var missing = people.filter(function (x) { return x.rx.v === 'no' && (x.rx.vr === 'not_found' || x.rx.vr === 'stalled'); }).length;
+    var r = HD.pub.feed({ live: Boolean(self.camOn && self.camLive), published: Boolean(p && list && S.pc && S.pc.connectionState === 'connected'), bytes: bytes, receipts: receipts, viewers: people.length, missing: people.length ? missing / people.length : 0 }, now);
+    HD.pw = { st: r.state, why: r.reason, rp: HD.republishes };
+    if (r.action === 'republish') {
+      HD.republishes++; HD.pw.rp = HD.republishes;
+      console.warn('media self-check: republishing video', r.reason);
+      toast(HC.selfRepublished);
+      mediaRebuild('selfcheck');
+    } else if (r.action === 'warn') toast(HC.selfStill);
+  }
+  function hdTick(list) {
+    if (!R || !S.joined || S.ended) return;
+    var now = Date.now();
+    if (R.isStaff) {
+      if (S.pubs && S.pubs.video) pubCheck(list, now); else HD.pw = HD.republishes ? { st: 'idle', why: null, rp: HD.republishes } : null;
+      // Camera or mic on, but not published (the publish failed or never finished): counted for the banner.
+      var unsent = (S.camOn && S.local.cam && !(S.pubs && S.pubs.video)) || (S.micOn && S.local.mic && !(S.pubs && S.pubs.audio));
+      HD.unsentAt = unsent ? HD.unsentAt || now : 0;
+      renderReach();
+    }
+    else rxCheck(list, now);
+  }
+
+  // People: one badge per attendee who can't see or hear the host, with the reason.
+  function rxBadgeHtml(p) {
+    var b = L.rxBadge(p.rx); if (!b) return '';
+    var why = (HC.reason && HC.reason[b.reason]) || '';
+    return ' <span class="rmq-rxb" title="' + esc(why) + '">' + esc(HC[b.key]) + '</span>' + (why ? '<span class="rmq-rxr">' + esc(why) + '</span>' : '');
+  }
+  // The host's banner.
+  function renderReach() {
+    if (!R || !amHost() || S.ended) return;
+    var list = Object.keys(M.people).map(function (k) { return M.people[k]; });
+    var r = HD.reach = L.hostReach(list, { now: Date.now(), self: selfState() });
+    var el = $('[data-rmq-reach]');
+    var key = r.show ? r.cause + ':' + r.noVideo + ':' + r.noAudio : '';
+    if (!r.show || (Date.now() < HD.hideUntil && HD.hideKey === r.cause)) { if (el) el.remove(); return; }
+    if (!el) {
+      var anchor = $('[data-banner]'); if (!anchor || !anchor.parentNode) return;
+      el = h('div', { class: 'rmq-reach', 'data-rmq-reach': '', role: 'status' });
+      anchor.parentNode.insertBefore(el, anchor.nextSibling);
+    }
+    if (el.getAttribute('data-k') === key + r.total) return;
+    el.setAttribute('data-k', key + r.total);
+    var what = r.noVideo && r.noAudio ? HC.seeHear : r.noVideo ? HC.see : HC.hear;
+    var c = (HC.cause && HC.cause[r.cause]) || { why: '', fix: '' };
+    el.innerHTML = '<div class="rmq-reach-t"><strong>' + esc(r.cause === 'unsent' ? HC.unsentTitle : String(HC.banner || '').replace('{n}', r.affected).replace('{t}', r.total).replace('{w}', what)) + '</strong> ' +
+      '<span>' + esc(c.why) + ' ' + esc(c.fix) + '</span></div><div class="rmq-reach-a">' +
+      (r.cause === 'upload' || r.cause === 'unknown' || r.cause === 'unsent' ? '<button type="button" class="rm-btn rmq-sm" data-rmq-republish>' + esc(HC.republish) + '</button>' : '') +
+      (canPreview() ? '<button type="button" class="rm-btn rmq-sm" data-rmq-preview>' + esc(HC.preview) + '</button>' : '') +
+      '<button type="button" class="rm-link rmq-sm" data-rmq-hide>' + esc(HC.dismiss) + '</button></div>';
+    var rp = $('[data-rmq-republish]', el); if (rp) rp.onclick = function () { HD.republishes++; toast(HC.republishing); mediaRebuild('manual'); sendReport(true); };
+    $('[data-rmq-hide]', el).onclick = function () { HD.hideUntil = Date.now() + 120000; HD.hideKey = r.cause; el.remove(); };
+  }
+
+  // "How attendees see me": a second, receive-only session that pulls this host's own tracks back from the SFU.
+  function closePreview() {
+    var pv = HD.preview; if (!pv) return;
+    HD.preview = null;
+    clearInterval(pv.timer);
+    if (pv.sid) R.post('/sfu/close', { preview: true, sessionId: pv.sid, tracks: pv.mids.map(function (m) { return { mid: m }; }) }).catch(function () {});
+    try { if (pv.pc) pv.pc.close(); } catch (e) { /* closed */ }
+    if (pv.el) pv.el.remove();
+    document.removeEventListener('keydown', pv.onKey);
+  }
+  function openPreview() {
+    if (!R || HD.preview) return;
+    var me = ((S.view && S.view.stage) || []).filter(function (m) { return m.id === R.ME.id; })[0];
+    var tracks = (me && me.tracks) || [];
+    var vt = tracks.filter(function (t) { return t.kind === 'video'; })[0], at = tracks.filter(function (t) { return t.kind === 'audio'; })[0];
+    var d = h('div', { class: 'rm-sheet rmq-sheet rmq-pv', 'data-rmq-pv': '', role: 'dialog', 'aria-modal': 'true', 'aria-label': HC.preview });
+    d.innerHTML = '<div class="rm-sheet-in"><button type="button" class="rm-x" data-x aria-label="' + esc(MC.close) + '">×</button><h2>' + esc(HC.preview) + '</h2>' +
+      '<p class="rmq-help">' + esc(HC.previewBody) + '</p>' +
+      '<div class="rmq-pv-v"><video playsinline autoplay muted data-pv-video></video><p class="rmq-pv-w" data-pv-wait>' + esc(HC.previewWaiting) + '</p></div>' +
+      '<div class="rmq-fxbar" role="radiogroup" aria-label="' + esc(HC.previewLayer) + '">' + [['f', HC.layerF], ['h', HC.layerH], ['q', HC.layerQ]].map(function (x) { return '<button type="button" role="radio" class="rmq-chipbtn" data-pv-rid="' + x[0] + '" aria-checked="' + (x[0] === 'h') + '">' + esc(x[1]) + '</button>'; }).join('') + '</div>' +
+      '<dl class="rmq-dl" data-pv-stats></dl><p class="rmq-help" data-pv-note></p><p class="rmq-help" data-pv-cd></p></div>';
+    document.body.appendChild(d);
+    var pv = HD.preview = { el: d, pc: null, sid: null, mids: [], vmid: null, endAt: Date.now() + 60000, prev: null, rid: 'h', startedAt: Date.now(), aPrev: null, timer: 0, onKey: null };
+    pv.onKey = function (e) { if (e.key === 'Escape') closePreview(); };
+    document.addEventListener('keydown', pv.onKey);
+    $('[data-x]', d).onclick = closePreview; d.onclick = function (e) { if (e.target === d) closePreview(); };
+    var note = function (t, withRepublish) {
+      var n = $('[data-pv-note]', d); if (!n) return;
+      n.innerHTML = esc(t || '') + (withRepublish ? ' <button type="button" class="rm-btn rmq-sm" data-pv-rp>' + esc(HC.republish) + '</button>' : '');
+      var b = $('[data-pv-rp]', n); if (b) b.onclick = function () { HD.republishes++; closePreview(); toast(HC.republishing); mediaRebuild('manual'); };
+    };
+    var cell = function (k, v) { return '<div><dt>' + esc(k) + '</dt><dd>' + esc(v == null ? '–' : v) + '</dd></div>'; };
+    var mySession = me && me.sessionId;
+    if (!vt || !mySession) { note(HC.previewNoCam); $('[data-pv-wait]', d).hidden = true; return; }
+    var want = [vt].concat(at ? [at] : []);
+    pv.timer = setInterval(function () {
+      if (HD.preview !== pv) return;
+      var left = Math.max(0, Math.ceil((pv.endAt - Date.now()) / 1000));
+      var cd = $('[data-pv-cd]', d); if (cd) cd.textContent = String(HC.previewClosesIn || '').replace('{n}', left);
+      if (!left) { closePreview(); return; }
+      if (!pv.pc) return;
+      pv.pc.getStats().then(function (rep) {
+        var list = []; rep.forEach(function (s) { list.push(s); });
+        var now = Date.now(), st = L.previewStats(list, pv.prev, now); pv.prev = st;
+        var abytes = 0; list.forEach(function (s) { if (s.type === 'inbound-rtp' && s.kind === 'audio') abytes += s.bytesReceived || 0; });
+        var akbps = pv.aPrev && now > pv.aPrev.at ? Math.round((abytes - pv.aPrev.b) * 8 / ((now - pv.aPrev.at) / 1000) / 1000) : null; pv.aPrev = { at: now, b: abytes };
+        var box = $('[data-pv-stats]', d);
+        if (box) box.innerHTML = cell(HC.resolution, st.width && st.height ? st.width + ' × ' + st.height : null) + cell(HC.bitrate, st.kbps != null ? st.kbps + ' kbps' : null) + cell(HC.fps, st.fps) + (at ? cell(MC.rowMic, akbps != null ? akbps + ' kbps' : null) : '');
+        var w = $('[data-pv-wait]', d); if (w) w.hidden = st.frames > 0;
+        if (!st.frames && now - pv.startedAt > 12000) note(HC.previewFailed, true); else if (st.frames) note('');
+      }).catch(function () {});
+    }, 1000);
+    var servers = (S.ice && S.ice.servers) || [{ urls: ['stun:stun.cloudflare.com:3478'] }];
+    var pc;
+    try { pc = pv.pc = new RTCPeerConnection({ iceServers: servers, bundlePolicy: 'max-bundle', iceTransportPolicy: S.relayOnly ? 'relay' : 'all' }); } catch (e) { note(HC.previewFailed); return; }
+    R.post('/sfu/session', { preview: true }).then(function (r) {
+      if (HD.preview !== pv) return;
+      if (!r.ok) throw new Error(r.error || 'session');
+      pv.sid = r.sessionId;
+      return R.post('/sfu/tracks', { preview: true, sessionId: pv.sid, tracks: want.map(function (t) { return { location: 'remote', sessionId: mySession, trackName: t.trackName, simulcast: t.kind === 'video' && t.simulcast ? { preferredRid: pv.rid } : undefined }; }) });
+    }).then(function (r) {
+      if (!r || HD.preview !== pv) return;
+      if (!r.ok || !r.sessionDescription) throw new Error(r.error || 'tracks');
+      return pc.setRemoteDescription(r.sessionDescription).then(function () { return pc.createAnswer(); }).then(function (a) { return pc.setLocalDescription(a); })
+        .then(function () { return R.post('/sfu/renegotiate', { preview: true, sessionId: pv.sid, sessionDescription: { type: 'answer', sdp: pc.localDescription.sdp } }); })
+        .then(function () {
+          (r.tracks || []).forEach(function (t) {
+            if (t.errorCode || !t.mid) return;
+            pv.mids.push(t.mid);
+            var tr = pc.getTransceivers().filter(function (x) { return x.mid === t.mid; })[0];
+            if (tr && tr.receiver.track.kind === 'video') { pv.vmid = t.mid; var v = $('[data-pv-video]', d); v.srcObject = new MediaStream([tr.receiver.track]); v.play().catch(function () {}); }
+          });
+          if (!pv.vmid) note(HC.previewFailed, true);
+        });
+    }).catch(function (e) { console.warn('preview', e); if (HD.preview === pv) note(HC.previewFailed, true); });
+    $$('[data-pv-rid]', d).forEach(function (b) {
+      b.onclick = function () {
+        var rid = b.getAttribute('data-pv-rid'); if (!pv.vmid || !pv.sid || rid === pv.rid || !vt.simulcast) return;
+        $$('[data-pv-rid]', d).forEach(function (x) { x.setAttribute('aria-checked', String(x === b)); });
+        R.post('/sfu/update', { preview: true, sessionId: pv.sid, tracks: [{ location: 'remote', sessionId: mySession, trackName: vt.trackName, mid: pv.vmid, simulcast: { preferredRid: rid } }] })
+          .then(function (r) { if (r && r.ok) pv.rid = rid; }).catch(function () {});
+      };
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('[data-rmq-preview]');
+    if (!b) return;
+    var sheet = $('[data-rmq-sheet]'), x = sheet && sheet.contains(b) && $('[data-x]', sheet); if (x) x.click();
+    openPreview();
+  });
 
   // ───────────── wiring into room.js ─────────────
   var booted = false;
@@ -863,8 +1075,9 @@
       if (ok) R.syncMedia(); else mediaRebuild('resume');
     });
     R.on('mhold', function (m) { M.held = {}; (m.ids || []).forEach(function (id) { M.held[id] = true; }); decorateTiles(); });
-    R.on('mq_all', function (m) { M.people = {}; (m.people || []).forEach(function (p) { M.people[p.id] = p; }); peopleChanged(); });
-    R.on('mq', function (m) { if (m.p) { M.people[m.p.id] = m.p; peopleChanged(); } });
+    R.on('mq_all', function (m) { M.people = {}; (m.people || []).forEach(function (p) { M.people[p.id] = p; }); peopleChanged(); renderReach(); });
+    R.on('mq', function (m) { if (m.p) { M.people[m.p.id] = m.p; peopleChanged(); renderReach(); } });
+    R.on('pull_err', function (e) { if (e && e.trackName) HD.pullErr[e.trackName] = { code: String(e.code || 'error'), at: Date.now() }; });
     R.on('published', function (kinds) {
       kinds.forEach(function (k) {
         var p = S.pubs[k]; if (!p || !p.tr || !p.tr.sender || !p.tr.sender.getParameters) return;
@@ -888,6 +1101,7 @@
       clearInterval(bannerTimer); bannerTimer = 0;
       if (M.wake) { M.wake.release().catch(function () {}); M.wake = null; }
       if (M.fx) { try { M.fx.stop(); } catch (e) { /* stopped */ } M.fx = null; }
+      closePreview();
       sendReport(true);
     });
   }
@@ -939,6 +1153,6 @@
     },
     wrapCam: function (raw) { M.rawCam = raw; if ('contentHint' in raw) raw.contentHint = 'motion'; return P.fx && P.fx !== 'off' ? withFx(raw, P.fx, function (t) { if (t && t !== MC.fxLoading) toast(t); }) : raw; },
     // For the screenshots and support: the current state, read-only.
-    debug: function () { return { tier: M.tier, q: M.q, sample: M.sample, rc: M.rc, net: M.net, prefs: P, platform: PLAT, people: M.people, held: M.held, fx: Boolean(M.fx), camVerdict: M.camVerdict, frames: M.frameSamples }; },
+    debug: function () { return { hd: { rx: HD.rx, pw: HD.pw, reach: HD.reach, republishes: HD.republishes }, tier: M.tier, q: M.q, sample: M.sample, rc: M.rc, net: M.net, prefs: P, platform: PLAT, people: M.people, held: M.held, fx: Boolean(M.fx), camVerdict: M.camVerdict, frames: M.frameSamples }; },
   };
 })();

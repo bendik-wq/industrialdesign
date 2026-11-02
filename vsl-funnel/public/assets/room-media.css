@@ -71,6 +71,19 @@
 /* ── push to talk ── */
 body.rmq-talking::after { content: ""; position: fixed; left: 50%; top: 64px; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); transform: translateX(-50%); box-shadow: 0 0 0 6px rgba(29, 122, 79, .2); z-index: 70; }
 
+/* ── host diagnostics: who can see and hear the host, the preview ── */
+.rmq-reach { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; padding: 10px 16px; background: #fff5f4; border-bottom: 1px solid rgba(179, 38, 30, .15); font-size: 14px; color: var(--ink); }
+.rmq-reach-t { min-width: 0; flex: 1 1 320px; }
+.rmq-reach-t strong { color: var(--red); font-weight: 600; }
+.rmq-reach-a { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rmq-rxb { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fff5f4; color: var(--red); font-size: 12px; font-weight: 600; vertical-align: middle; white-space: nowrap; }
+.rmq-rxr { display: block; margin-top: 2px; color: var(--ink-2); font-size: 12px; }
+.rmq-pvbtn { margin-left: 8px; }
+.rmq-pv-v { position: relative; aspect-ratio: 16 / 9; margin: 12px 0; border-radius: var(--r2); overflow: hidden; background: var(--stage); }
+.rmq-pv-v video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.rmq-pv-w { position: absolute; inset: auto 0 12px; margin: 0; text-align: center; color: rgba(255, 255, 255, .8); font-size: 13px; }
+.rmq-pv-w[hidden] { display: none; }
+
 @media (max-width: 420px) {
   .rmq-dl { grid-template-columns: repeat(2, 1fr); }
 }

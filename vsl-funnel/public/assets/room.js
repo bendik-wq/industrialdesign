@@ -434,7 +434,7 @@
               (r.tracks || []).forEach(function (t) {
                 // The publisher's track isn't live at the SFU yet (they just went live or rebuilt their session):
                 // ask again shortly instead of waiting for the next room change, which may never come.
-                if (t.errorCode) { pullFailed = true; return; }
+                if (t.errorCode) { pullFailed = true; emit('pull_err', { trackName: t.trackName, code: t.errorCode }); return; }
                 var w = batch.filter(function (x) { return x.trackName === t.trackName; })[0]; if (!w) return;
                 var tr = pc.getTransceivers().filter(function (x) { return x.mid === t.mid; })[0];
                 S.pulls[w.trackName] = { mid: t.mid, track: tr ? tr.receiver.track : null, owner: w.owner, kind: w.kind, rid: w.rid, sessionId: w.sessionId };
