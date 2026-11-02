@@ -35,6 +35,19 @@
     return d > 0 ? d + 'd ' + hh + 'h ' + p(m) + 'm' : hh > 0 ? hh + ':' + p(m) + ':' + p(ss) : m + ':' + p(ss);
   }
   function localWhen(t) { try { return new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(new Date(t)); } catch (e) { return new Date(t).toString(); } }
+  /**
+   * The payment page opens in its own tab so the stage keeps playing here. The tab is opened during the click
+   * (popup blockers allow that) and pointed at the payment page once the server answers; with no tab (blocked),
+   * this page goes there instead. (window.open with "noopener" always returns null, so it can't be tested.)
+   */
+  function payTab() {
+    var w = null;
+    try { w = window.open('about:blank', '_blank'); if (w) w.opener = null; } catch (e) { w = null; }
+    return {
+      go: function (url) { if (w && !w.closed) w.location.href = url; else location.href = url; },
+      close: function () { try { if (w && !w.closed) w.close(); } catch (e) { /* gone */ } },
+    };
+  }
   var toastTimer;
   function toast(text) {
     var t = $('.rm-toast') || document.body.appendChild(h('div', { class: 'rm-toast', role: 'status' }));
@@ -848,9 +861,10 @@
       $$('[data-buy], [data-oc-confirm]', d).forEach(function (b) { b.disabled = true; });
       var body = { token: CFG.offer.token, one_click: Boolean(oneClick) };
       if (CFG.offer.day) body.day = CFG.offer.day;
+      var tab = payTab();
       fetch(CFG.offer.buy, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) }).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (r) {
         var next = r && (r.url || r.next);
-        if (next) { window.open(next, '_blank', 'noopener') || (location.href = next); }
+        if (next) tab.go(next); else tab.close();
         buying = false;
         $$('[data-buy], [data-oc-confirm]', d).forEach(function (b) { b.disabled = false; });
         if (dlg) dlg.hidden = true;
@@ -1383,11 +1397,13 @@
       function buy(oneClick) {
         if (sprintBusy) return; sprintBusy = true;
         $$('[data-sp-buy], [data-sp-confirm]', body).forEach(function (b) { b.disabled = true; });
+        var tab = payTab();
         post('/sprint', { one_click: Boolean(oneClick) }).then(function (r) {
           sprintBusy = false; dlg.hidden = true;
           $$('[data-sp-buy], [data-sp-confirm]', body).forEach(function (b) { b.disabled = false; });
+          if (!(r && r.next && !r.paid)) tab.close();
           if (r && r.paid) { body.innerHTML = '<h2 class="rm-offer-h">' + esc(EC.paidHeading) + '</h2><p>' + esc(EC.sprintPaidBody) + '</p>'; E.data.sprint.paid = true; return; }
-          if (r && r.next) { window.open(r.next, '_blank', 'noopener') || (location.href = r.next); return; }
+          if (r && r.next) { tab.go(r.next); return; }
           err.textContent = (r && r.error) || C.genericError; err.hidden = false;
         });
       }

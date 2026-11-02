@@ -63,6 +63,7 @@ import { processClientsSupport } from './ops/e-cron';
 import { syncAttribution } from './attribution/stages';
 import { hostRoomForKey, hostRoomPage, paidPage, planPage, publicRoomPage, replayRoute, roomsApi, unlockRoute } from './rooms/routes';
 import { processRoomSummaries } from './rooms/engage-db';
+import { joinPage } from './rooms/admission';
 export { RoomDO } from './rooms/do';
 
 const app = new Hono<AppEnv>();
@@ -176,6 +177,8 @@ app.get('/rooms/replay/:rid', replayRoute); // room recordings (R2)
 app.get('/rooms/a/:id/:who/:ref', unlockRoute); // an unlocked file (signed, only for the person who earned it)
 app.get('/rooms/plan/:id/:ref', planPage); // an attendee's Deal Plan (signed link from the summary email)
 app.get('/rooms/:id/done', paidPage); // where the payment page returns a buyer from the room
+app.get('/rooms/:id/join/:slug', withVisitor, joinPage); // a room's general admission link (UTMs on it become the lead's attribution)
+app.post('/rooms/:id/join/:slug', withVisitor, joinPage);
 app.get('/unlocks/*', (c) => c.notFound()); // the unlock files are only served through /rooms/a/...
 app.get('/rooms/:id', publicRoomPage); // our video rooms: co-hosts, meeting guests, challenge days
 app.get('/pay/:ref', withVisitor, payPage);

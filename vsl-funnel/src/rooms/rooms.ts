@@ -75,9 +75,11 @@ export async function readTicket(rt: Pick<Runtime, 'env'>, token: unknown, roomI
 export const ticketIdentity = (t: Ticket): Identity => ({ id: t.p, name: t.n, role: t.role, leadId: t.lead, regId: t.reg });
 
 /** Signed invite links: co-hosts (anyone holding the link joins backstage) and meeting guests (a named lead). */
-export interface Invite { r: string; role: 'cohost' | 'guest'; lead: string | null; exp: number }
-export async function makeInvite(rt: Pick<Runtime, 'env'>, roomId: string, role: Invite['role'], leadId: string | null, ttlMs = 30 * DAY, now = Date.now()) {
-  return signToken(await getSecret(rt.env), `ri.${b64(JSON.stringify({ r: roomId, role, lead: leadId, exp: now + ttlMs } satisfies Invite))}`);
+/** v: the room's co-host link version (rotating it stops older co-host links); n: the name a general admission joiner typed (admission.ts). */
+export interface Invite { r: string; role: 'cohost' | 'guest'; lead: string | null; exp: number; v?: number; n?: string }
+export async function makeInvite(rt: Pick<Runtime, 'env'>, roomId: string, role: Invite['role'], leadId: string | null, ttlMs = 30 * DAY, now = Date.now(), extra: { v?: number; n?: string } = {}) {
+  const inv: Invite = { r: roomId, role, lead: leadId, exp: now + ttlMs, ...(extra.v ? { v: extra.v } : {}), ...(extra.n ? { n: extra.n.slice(0, 60) } : {}) };
+  return signToken(await getSecret(rt.env), `ri.${b64(JSON.stringify(inv))}`);
 }
 export async function readInvite(rt: Pick<Runtime, 'env'>, token: unknown, roomId: string, now = Date.now()): Promise<Invite | null> {
   if (typeof token !== 'string' || token.length > 1000) return null;

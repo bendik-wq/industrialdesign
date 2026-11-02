@@ -249,15 +249,19 @@ export async function vote(rt: Runtime, reg: LiveReg, body: Record<string, unkno
 const token = () => Array.from(crypto.getRandomValues(new Uint8Array(18)), (b) => (b % 36).toString(36)).join('') + Date.now().toString(36).slice(-4);
 
 /** Registers someone for a live event (an existing lead keeps its details: anyone can type anyone's email). */
-export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<string, unknown>) {
+/**
+ * o.admission: a room's general admission link (src/rooms/admission.ts). The link is signed and limited per IP
+ * there, so it skips Turnstile here, and the revenue band is optional on its short join sheet.
+ */
+export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<string, unknown>, o: { admission?: boolean } = {}) {
   const firstName = cleanName(body.first_name);
   const emailCheck = validateEmail(body.email);
   if (!firstName) throw new ApplicationError('Please enter your first name', 'first_name');
   if (!emailCheck) throw new ApplicationError('Please enter a valid email address', 'email');
   if (emailCheck.disposable) throw new ApplicationError('Please use your real email address. Your room link goes there.', 'email');
   const band = APP_REVENUE_BAND[String(body.revenue ?? '')] ?? null;
-  if (!band) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
-  if (!(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed. Please refresh and try again.', undefined, 403);
+  if (!band && !o.admission) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
+  if (!o.admission && !(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed. Please refresh and try again.', undefined, 403);
   const wantsTexts = body.sms_consent === true || body.sms_consent === 'true' || body.sms_consent === 'on';
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number, including area code, or leave it blank', 'phone');

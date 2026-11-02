@@ -65,20 +65,7 @@
       req('GET', 'rooms/' + out.getAttribute('data-rmb-live') + '/live').then(function (d) { out.textContent = liveLine(d && d.broadcast); }).catch(function () { out.textContent = '–'; });
     });
     box.querySelectorAll('[data-rmb-links]').forEach(function (b) {
-      b.onclick = function () {
-        req('POST', 'rooms/' + b.getAttribute('data-rmb-links') + '/links').then(function (d) {
-          var out = '<div class="rmb-dlg" data-rmb-dlg><div class="rmb-dlg-in"><h2>Room links</h2>' +
-            '<p class="rmb-links"><strong>Host</strong> (you, signed in): <a href="' + esc(d.host) + '" target="_blank" rel="noopener">' + esc(d.host) + '</a></p>' +
-            '<p class="rmb-links"><strong>Co-host</strong> (valid 48 hours, anyone with it joins backstage): <span class="mono">' + esc(d.cohost) + '</span> <button class="btn-sm ghost" data-c="' + esc(d.cohost) + '">Copy</button></p>' +
-            (d.guest ? '<p class="rmb-links"><strong>Guest</strong> (personal to the client): <span class="mono">' + esc(d.guest) + '</span> <button class="btn-sm ghost" data-c="' + esc(d.guest) + '">Copy</button></p>' : '') +
-            '<button class="btn-sm" data-close>Done</button></div></div>';
-          document.body.insertAdjacentHTML('beforeend', out);
-          var dlg = document.querySelector('[data-rmb-dlg]');
-          dlg.querySelectorAll('[data-c]').forEach(function (c) { c.onclick = function () { copy(c.getAttribute('data-c'), ctx.toast); }; });
-          dlg.querySelector('[data-close]').onclick = function () { dlg.remove(); };
-          dlg.onclick = function (e) { if (e.target === dlg) dlg.remove(); };
-        });
-      };
+      b.onclick = function () { linksDialog(b.getAttribute('data-rmb-links'), ctx, 'day'); };
     });
     box.querySelectorAll('[data-rmb-email]').forEach(function (b) {
       b.onclick = function () { b.disabled = true; req('POST', 'rooms/' + b.getAttribute('data-rmb-email') + '/email').then(function (d) { ctx.toast(d.ok ? 'Invite sent' : (d.error || 'Not sent (no email address, or already sent)')); b.disabled = false; }); };
@@ -112,6 +99,41 @@
           row.insertAdjacentHTML('afterend', html);
         });
       };
+    });
+  }
+
+  // ── Links: host, co-host (validity, rotate), the general admission link (on/off, require email, rotate, tracked variants), guest ──
+  var VALIDITY = [['day', 'Event day'], ['7d', '7 days'], ['rotated', 'Until rotated']];
+  function linksDialog(id, ctx, validity) {
+    req('POST', 'rooms/' + id + '/links', { validity: validity }).then(function (d) {
+      var old = document.querySelector('[data-rmb-dlg]'); if (old) old.remove();
+      var a = d.admission || {};
+      var out = '<div class="rmb-dlg" data-rmb-dlg><div class="rmb-dlg-in" style="max-width:560px"><h2>Room links</h2>' +
+        '<p class="rmb-links"><strong>Host</strong> (you, signed in): <a href="' + esc(d.host) + '" target="_blank" rel="noopener">' + esc(d.host) + '</a></p>' +
+        '<div class="rmb-links"><strong>Co-host</strong> (anyone with it joins backstage) <select class="input" data-v style="font-size:13px;padding:2px 6px">' + VALIDITY.map(function (v) { return '<option value="' + v[0] + '"' + (d.validity === v[0] ? ' selected' : '') + '>' + v[1] + '</option>'; }).join('') + '</select><br><span class="mono">' + esc(d.cohost) + '</span> <button class="btn-sm ghost" data-c="' + esc(d.cohost) + '">Copy</button> <button class="btn-sm ghost" data-rot="cohost">Rotate (old co-host links stop)</button></div>' +
+        (d.guest ? '<p class="rmb-links"><strong>Guest</strong> (personal to the client): <span class="mono">' + esc(d.guest) + '</span> <button class="btn-sm ghost" data-c="' + esc(d.guest) + '">Copy</button></p>' : '') +
+        '<div class="rmb-links"><strong>General admission</strong> (anyone with it joins as ' + (d.mode === 'meeting' ? 'a guest' : 'an attendee: name and email, then the room') + ')<br>' +
+          '<label style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ga-on' + (a.on ? ' checked' : '') + '> On</label> ' +
+          '<label style="display:inline-flex;gap:6px;align-items:center;margin-left:10px"><input type="checkbox" data-ga-email' + (a.requireEmail ? ' checked' : '') + '> Require email</label><br>' +
+          (a.url ? '<span class="mono">' + esc(a.url) + '</span> <button class="btn-sm ghost" data-c="' + esc(a.url) + '">Copy</button> <button class="btn-sm ghost" data-rot="join">Rotate (the old link stops)</button>' +
+            '<div class="rmb-form" style="margin-top:8px"><label>utm_source<input class="input" data-utm="utm_source" placeholder="instagram"></label><label>utm_medium<input class="input" data-utm="utm_medium" placeholder="story"></label><label>utm_campaign<input class="input" data-utm="utm_campaign" placeholder="live-nov"></label><button class="btn-sm ghost" data-track>Make tracked link</button></div><div data-tracked></div>' : '<span class="muted">Off: nobody can join without a personal link.</span>') + '</div>' +
+        '<button class="btn-sm" data-close>Done</button></div></div>';
+      document.body.insertAdjacentHTML('beforeend', out);
+      var dlg = document.querySelector('[data-rmb-dlg]');
+      var wireCopy = function (root) { root.querySelectorAll('[data-c]').forEach(function (c) { c.onclick = function () { copy(c.getAttribute('data-c'), ctx.toast); }; }); };
+      wireCopy(dlg);
+      dlg.querySelector('[data-v]').onchange = function () { linksDialog(id, ctx, this.value); };
+      var save = function (body, msg) { req('POST', 'rooms/' + id + '/admission', body).then(function (r) { if (!r.ok) { ctx.toast(r.error || 'Not saved'); return; } ctx.toast(msg); linksDialog(id, ctx, dlg.querySelector('[data-v]').value); }); };
+      dlg.querySelector('[data-ga-on]').onchange = function () { save({ on: this.checked }, this.checked ? 'General admission is on' : 'General admission is off'); };
+      dlg.querySelector('[data-ga-email]').onchange = function () { save({ requireEmail: this.checked }, 'Saved'); };
+      dlg.querySelectorAll('[data-rot]').forEach(function (r) { r.onclick = function () { if (confirm('Rotate this link? The old one stops working at once.')) save({ rotate: r.getAttribute('data-rot') }, 'Rotated: copy the new link'); }; });
+      var tr = dlg.querySelector('[data-track]');
+      if (tr) tr.onclick = function () {
+        var utm = {}; dlg.querySelectorAll('[data-utm]').forEach(function (i) { utm[i.getAttribute('data-utm')] = i.value; });
+        req('POST', 'rooms/' + id + '/admission', { utm: utm }).then(function (r) { var o = dlg.querySelector('[data-tracked]'); if (r.tracked) { o.innerHTML = '<p class="rmb-links"><span class="mono">' + esc(r.tracked) + '</span> <button class="btn-sm ghost" data-c="' + esc(r.tracked) + '">Copy</button></p>'; wireCopy(o); } });
+      };
+      dlg.querySelector('[data-close]').onclick = function () { dlg.remove(); };
+      dlg.onclick = function (e) { if (e.target === dlg) dlg.remove(); };
     });
   }
 

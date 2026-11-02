@@ -11,8 +11,9 @@ import {
   assetUrl, attendeeEngage, awardPoints, checkAssetLink, checkPlanLink, engageAvail, engageConfig, engageReport, getPlan, grantUnlocks, leadEngagement, personTimeline, planUrl, pushStats,
   recordPushEvent, roomQuestions, savePlan, savePush, sendRoomSummaries, sprintCard, startRoomSprint, submitRoomApplication, thresholdUnlocks,
 } from '../src/rooms/engage-db';
-import { createRoom, ensureRoomFor, makeTicket } from '../src/rooms/rooms';
-import { roomsApi } from '../src/rooms/routes';
+import { createRoom, ensureRoomFor, getRoom, makeTicket } from '../src/rooms/rooms';
+import { JOINS_PER_IP_HOUR, JOIN_COPY, admissionOf, checkJoin, cohostTtl, cohostUrl, joinRoom, joinSheet, joinUrl, saveAdmission, trackedJoin } from '../src/rooms/admission';
+import { publicRoomPage, roomsApi } from '../src/rooms/routes';
 import { saveEvent } from '../src/live/events';
 import { scoreApplication } from '../src/funnel/scoring';
 import { STAGES } from '../src/attribution/stages';
@@ -566,5 +567,119 @@ describe('engagement copy', () => {
     const ratio = 900_000 / (pmt(0.09, 7, 1_800_000) + pmt(0.06, 5, 900_000));
     expect(ratio).toBeGreaterThan(1.5);
     expect(ratio).toBeLessThan(1.65);
+  });
+});
+
+// ───────────── general admission and co-host links ─────────────
+
+describe('general admission links', () => {
+  const visitor = (o: Record<string, unknown> = {}) => ({
+    visitorId: 'vga1', sessionId: 'sga1', leadId: null, isNewVisitor: true, isNewSession: true, isBot: false, botReason: null, variant: 'a',
+    ua: { device: 'desktop', browser: 'x', os: 'y' }, userAgent: 'test', geo: { country: 'US', city: null, timezone: 'America/New_York' }, ip: '1.2.3.4', touch: null, fbp: null, fbc: null, marketingConsent: false, consentRequired: false, ...o,
+  }) as never;
+  const page = new Hono<AppEnv>();
+  page.use('*', async (c, next) => { c.set('settings', { ...ALL(), ...SETTINGS } as never); c.set('visitor', visitor()); await next(); });
+  page.get('/rooms/:id', publicRoomPage);
+  const get = (path: string) => page.request(path, {}, { DB: d1(db), SESSION_SECRET: 'test-session-secret' } as never, { waitUntil: () => {}, passThroughOnException: () => {} } as never);
+  const roleIn = async (res: Response) => /"me":\{"id":"[^"]+","name":"([^"]*)","role":"(\w+)"/.exec(await res.text())?.slice(1);
+
+  it('one link per room: valid until rotated or switched off; meetings are off by default', async () => {
+    const room = await createRoom(rt, { mode: 'webinar', title: 'Open session', refType: 'none' });
+    const url = await joinUrl(rt, room);
+    expect(url).toMatch(new RegExp(`^https://apply\\.test/rooms/${room.id}/join/[0-9a-f]{16}$`));
+    const slug = url.split('/').pop()!;
+    expect(await checkJoin(rt, room, slug)).toMatchObject({ on: true, requireEmail: true });
+    expect(await checkJoin(rt, room, slug.replace(/^./, (c) => (c === 'a' ? 'b' : 'a')))).toBeNull();
+    await saveAdmission(rt, room, { v: 1 });
+    const rotated = (await getRoom(rt, room.id))!;
+    expect(await checkJoin(rt, rotated, slug)).toBeNull(); // the old link stops
+    expect(await checkJoin(rt, rotated, (await joinUrl(rt, rotated)).split('/').pop())).not.toBeNull();
+    await saveAdmission(rt, rotated, { on: false });
+    expect(await checkJoin(rt, (await getRoom(rt, room.id))!, (await joinUrl(rt, rotated)).split('/').pop())).toBeNull();
+    const meet = await createRoom(rt, { mode: 'meeting', title: 'Kickoff', refType: 'none' });
+    expect(admissionOf(meet).on).toBe(false);
+    expect(trackedJoin(url, { utm_source: 'instagram', utm_campaign: 'live <nov>', bogus: 'x' })).toBe(`${url}?utm_source=instagram&utm_campaign=live+nov`);
+  });
+
+  it('an event’s room registers the joiner for the event through the live funnel (lead, registration, UTMs), then their personal link', async () => {
+    const { room, eventId } = await liveRoom();
+    x(`INSERT INTO sessions (id, visitor_id, started_at, last_seen_at, channel, utm_source, utm_medium, utm_campaign) VALUES ('sga1', 'vga1', ?, ?, 'Paid Social', 'instagram', 'story', 'live-nov')`, T0, T0);
+    const r = await joinRoom(rt, room, visitor(), { first_name: 'Sam', email: 'sam@example.org', revenue: '3_10m', call_consent: 'on' }, admissionOf(room));
+    await flush();
+    expect(r).toMatchObject({ redirect: expect.stringMatching(/\/live\/room\/[A-Za-z0-9_-]+$/) });
+    const reg = q<{ token: string; lead_id: string; event_id: string }>('SELECT token, lead_id, event_id FROM live_webinar_regs')[0];
+    expect(reg.event_id).toBe(eventId);
+    expect((r as { redirect: string }).redirect).toContain(reg.token);
+    expect(q('SELECT first_name, email, utm_source, utm_campaign, revenue_band FROM leads WHERE id = ?', reg.lead_id)[0]).toEqual({ first_name: 'Sam', email: 'sam@example.org', utm_source: 'instagram', utm_campaign: 'live-nov', revenue_band: '3m-10m' });
+    expect(q("SELECT stage FROM attr_stages WHERE stage = 'registered'")).toHaveLength(1);
+    // No band given: still in (the band is optional on the join sheet).
+    const r2 = await joinRoom(rt, room, visitor({ visitorId: 'vga2', sessionId: 'sga2', ip: '5.6.7.8' }), { first_name: 'Lee', email: 'lee@example.org' }, admissionOf(room));
+    expect('redirect' in r2).toBe(true);
+  });
+
+  it('an address that belongs to someone else never logs this browser in: the personal link goes to their inbox', async () => {
+    const room = await createRoom(rt, { mode: 'webinar', title: 'Open session', refType: 'none' });
+    seedLead('l1');
+    expect(await joinRoom(rt, room, visitor(), { first_name: 'Mallory', email: 'l1@example.com' }, admissionOf(room))).toEqual({ checkEmail: true });
+    expect(q("SELECT template, to_email FROM emails WHERE template = 'room_join_link'")).toEqual([{ template: 'room_join_link', to_email: 'l1@example.com' }]);
+    // Their own browser (linked to the lead) goes straight in with their identity.
+    const own = await joinRoom(rt, room, visitor({ leadId: 'l1' }), { first_name: 'Dana', email: 'l1@example.com' }, admissionOf(room)) as { redirect: string };
+    expect(own.redirect).toContain(`/rooms/${room.id}?i=`);
+    const { room: live } = await liveRoom();
+    x(`INSERT INTO live_webinar_regs (id, token, event_id, lead_id, revenue_band, created_at) VALUES ('lrx', 'tokxaaaaaaaaaaaaaaaaaaa', ?, 'l1', '3m-10m', ?)`, live.ref_id, T0 - DAY);
+    expect(await joinRoom(rt, live, visitor({ ip: '9.9.9.9' }), { first_name: 'Mallory', email: 'l1@example.com' }, admissionOf(live))).toEqual({ checkEmail: true });
+  });
+
+  it('a new email in a non-event room becomes a lead with a personal invite; email is required unless switched off', async () => {
+    const room = await createRoom(rt, { mode: 'webinar', title: 'Open session', refType: 'none' });
+    expect(await joinRoom(rt, room, visitor(), { first_name: 'Sam' }, admissionOf(room))).toMatchObject({ field: 'email', status: 400 });
+    const r = await joinRoom(rt, room, visitor(), { first_name: 'Sam', email: 'sam@example.org' }, admissionOf(room)) as { redirect: string };
+    expect(r.redirect).toContain(`/rooms/${room.id}?i=`);
+    expect(q("SELECT first_name, landing_path FROM leads WHERE email = 'sam@example.org'")).toEqual([{ first_name: 'Sam', landing_path: `/rooms/${room.id}/join` }]);
+    const res = await get(new URL(r.redirect).pathname + new URL(r.redirect).search);
+    expect(await roleIn(res)).toEqual(['Sam', 'attendee']);
+  });
+
+  it('roles never come from the name: name-only joiners are attendees in a webinar and guests in a meeting', async () => {
+    const room = await createRoom(rt, { mode: 'webinar', title: 'Open session', refType: 'none' });
+    await saveAdmission(rt, room, { requireEmail: false });
+    const fresh = (await getRoom(rt, room.id))!;
+    const r = await joinRoom(rt, fresh, visitor(), { first_name: 'Host', role: 'host' }, admissionOf(fresh)) as { redirect: string };
+    expect(await roleIn(await get(new URL(r.redirect).pathname + new URL(r.redirect).search))).toEqual(['Host', 'attendee']);
+    const meet = await createRoom(rt, { mode: 'meeting', title: 'Kickoff', refType: 'none' });
+    const m = await joinRoom(rt, meet, visitor({ ip: '2.2.2.2' }), { name: 'Co-host' }, { ...admissionOf(meet), on: true }) as { redirect: string };
+    expect(await roleIn(await get(new URL(m.redirect).pathname + new URL(m.redirect).search))).toEqual(['Co-host', 'guest']);
+  });
+
+  it('joins are limited per IP', async () => {
+    const room = await createRoom(rt, { mode: 'webinar', title: 'Open session', refType: 'none' });
+    await saveAdmission(rt, room, { requireEmail: false });
+    const fresh = (await getRoom(rt, room.id))!;
+    for (let i = 0; i < JOINS_PER_IP_HOUR; i++) expect('redirect' in await joinRoom(rt, fresh, visitor(), { first_name: `P${i}` }, admissionOf(fresh))).toBe(true);
+    expect(await joinRoom(rt, fresh, visitor(), { first_name: 'One more' }, admissionOf(fresh))).toMatchObject({ status: 429 });
+    expect('redirect' in await joinRoom(rt, fresh, visitor({ ip: '7.7.7.7' }), { first_name: 'Elsewhere' }, admissionOf(fresh))).toBe(true);
+  });
+
+  it('co-host links: validity, and rotating stops every earlier one', async () => {
+    const room = await createRoom(rt, { mode: 'webinar', title: 'Live', refType: 'none', startsAt: T0 + HOUR, durationMin: 90 });
+    expect(cohostTtl(room, 'day', T0)).toBe(HOUR + 90 * MIN + 12 * HOUR);
+    expect(cohostTtl(room, '7d', T0)).toBe(7 * DAY);
+    const url = await cohostUrl(rt, room, '7d');
+    const path = new URL(url).pathname + new URL(url).search;
+    expect((await roleIn(await get(path)))?.[1]).toBe('cohost');
+    await saveAdmission(rt, room, { cohostV: 1 });
+    expect((await get(path)).status).toBe(403);
+    const next = await cohostUrl(rt, (await getRoom(rt, room.id))!, 'rotated');
+    expect((await roleIn(await get(new URL(next).pathname + new URL(next).search)))?.[1]).toBe('cohost');
+  });
+
+  it('the join sheet and its messages pass the copy rules; the consent boxes start unticked', async () => {
+    expect(auditFields(JOIN_COPY)).toEqual([]);
+    expect(JSON.stringify(JOIN_COPY)).not.toMatch(/[!—]/);
+    const room = await createRoom(rt, { mode: 'webinar', title: 'Open session', refType: 'none' });
+    const html = await joinSheet(rt, room, admissionOf(room), { action: '/x' });
+    expect(html).toContain('name="sms_consent"');
+    expect(html).toContain('name="call_consent"');
+    expect(html).not.toMatch(/checked/);
   });
 });

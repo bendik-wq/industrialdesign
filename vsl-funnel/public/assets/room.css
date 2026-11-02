@@ -297,3 +297,4 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   .rm-top-r .rm-count { display: none; }
   .rm-agenda-tease { display: none; }
 }
+@media (max-width: 899px) { .rm-toast { bottom: auto; top: 64px; transform: translate(-50%, -12px); } .rm-toast.is-on { transform: translate(-50%, 0); } }

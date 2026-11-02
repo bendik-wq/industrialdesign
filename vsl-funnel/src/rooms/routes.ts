@@ -174,6 +174,13 @@ export async function publicRoomPage(c: Context<AppEnv>) {
   if (i) {
     const inv = await readInvite(rt, i, room.id);
     if (!inv) return gatePage(c, ROOM_GATE.noAccess, ROOM_GATE.noAccessBody);
+    // A rotated co-host link stops working at once.
+    const { admissionOf } = await import('./admission');
+    if (inv.role === 'cohost' && (inv.v ?? 0) !== admissionOf(room).cohostV) return gatePage(c, ROOM_GATE.noAccess, ROOM_GATE.noAccessBody);
+    // A general admission joiner by name only: an attendee (webinar) or a guest (meeting), never staff, whatever the name.
+    if (inv.role === 'guest' && !inv.lead && inv.n) {
+      return renderRoomPage(c, room, { id: memberId('guest', newId('')), name: inv.n, role: room.mode === 'meeting' ? 'guest' : 'attendee', leadId: null, regId: null });
+    }
     if (inv.role === 'guest' && inv.lead) {
       const lead = await getLead(rt.env, inv.lead);
       const name = [lead?.first_name, lead?.last_name].filter(Boolean).join(' ').slice(0, 60) || 'Guest';
@@ -516,9 +523,32 @@ roomsAdmin.post('/:id/links', async (c) => {
   const rt = runtimeFrom(c);
   const room = await getRoom(rt, c.req.param('id'));
   if (!room) return c.json({ error: 'Room not found' }, 404);
-  const cohost = inviteUrl(rt, room.id, await makeInvite(rt, room.id, 'cohost', null, 2 * 86_400_000));
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const { admissionOf, cohostUrl, joinUrl } = await import('./admission');
+  const validity = b.validity === '7d' || b.validity === 'rotated' ? b.validity : 'day';
+  const cohost = await cohostUrl(rt, room, validity);
   const guest = room.lead_id ? inviteUrl(rt, room.id, await makeInvite(rt, room.id, 'guest', room.lead_id)) : null;
-  return c.json({ ok: true, cohost, guest, host: `${rt.origin}/admin/rooms/${room.id}` });
+  const a = admissionOf(room);
+  return c.json({ ok: true, cohost, validity, guest, host: `${rt.origin}/admin/rooms/${room.id}`, admission: { ...a, url: a.on ? await joinUrl(rt, room) : null }, mode: room.mode });
+});
+
+/** General admission: on/off, require email, rotate the join link or the co-host link, tracked variants of the join link. */
+roomsAdmin.post('/:id/admission', async (c) => {
+  const rt = runtimeFrom(c);
+  const room = await getRoom(rt, c.req.param('id'));
+  if (!room) return c.json({ ok: false, error: 'Room not found' }, 404);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const { admissionOf, saveAdmission, joinUrl, trackedJoin } = await import('./admission');
+  const a = admissionOf(room);
+  const patch: Record<string, unknown> = {};
+  if (typeof b.on === 'boolean') patch.on = b.on;
+  if (typeof b.requireEmail === 'boolean') patch.requireEmail = b.requireEmail;
+  if (b.rotate === 'join') patch.v = a.v + 1;
+  if (b.rotate === 'cohost') patch.cohostV = a.cohostV + 1;
+  const next = Object.keys(patch).length ? await saveAdmission(rt, room, patch) : a;
+  const fresh = (await getRoom(rt, room.id))!;
+  const url = next.on ? await joinUrl(rt, fresh) : null;
+  return c.json({ ok: true, admission: { ...next, url }, tracked: url && b.utm && typeof b.utm === 'object' ? trackedJoin(url, b.utm as Record<string, unknown>) : null });
 });
 
 roomsAdmin.post('/:id/email', async (c) => {
@@ -574,7 +604,9 @@ roomsAdmin.post('/:id/engage', async (c) => {
   const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
   const agenda = typeof b.agenda === 'string' ? b.agenda.slice(0, 4000) : roomEngageSettings(room).agendaRaw;
   const board = b.board === true;
-  await rt.env.DB.prepare('UPDATE rooms SET engage = ?, updated_at = ? WHERE id = ?').bind(JSON.stringify({ agenda, board }), Date.now(), room.id).run();
+  let prev: Record<string, unknown> = {};
+  try { prev = JSON.parse(room.engage ?? '{}') ?? {}; } catch { prev = {}; }
+  await rt.env.DB.prepare('UPDATE rooms SET engage = ?, updated_at = ? WHERE id = ?').bind(JSON.stringify({ ...prev, agenda, board }), Date.now(), room.id).run();
   return c.json({ ok: true, agenda: parseAgenda(agenda), board });
 });
 /** Sends the summary emails now (each person once; the cron does it 10 minutes after the end otherwise). */
