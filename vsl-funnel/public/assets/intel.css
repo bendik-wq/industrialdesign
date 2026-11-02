@@ -1,0 +1,52 @@
+/* Rooms intel (area D): the replay page. Builds on room.css (its tokens, buttons, offer sheet). Mobile first. */
+.ix-body { min-height: 100vh; }
+.ix-replay { max-width: 1240px; margin: 0 auto; padding: 16px 16px 48px; }
+.ix-head { padding: 8px 0 16px; }
+.ix-h1 { margin: 0 0 6px; font: 500 26px/1.15 var(--serif); letter-spacing: -.01em; }
+.ix-sub { margin: 0; color: var(--ink-2); font-size: 14px; max-width: 64ch; }
+.ix-grid { display: grid; gap: 20px; }
+.ix-main { min-width: 0; }
+.ix-player { position: relative; background: var(--stage); border-radius: var(--r2); overflow: hidden; aspect-ratio: 16 / 9; }
+.ix-player video { display: block; width: 100%; height: 100%; background: var(--stage); }
+.ix-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 13px; color: var(--ink-2); }
+.ix-bar .rm-btn[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.ix-pts { margin-left: auto; color: var(--navy); font-weight: 600; }
+.ix-chaps { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 2px; }
+.ix-chaps button { display: grid; grid-template-columns: 56px 1fr; gap: 8px; width: 100%; padding: 10px 8px; border: 0; border-radius: var(--r1); background: none; color: var(--ink); text-align: left; font: inherit; font-size: 14px; cursor: pointer; transition: background .15s var(--ease); }
+.ix-chaps button:hover { background: var(--fill); }
+.ix-chaps li[aria-current="true"] button { background: var(--fill); font-weight: 600; }
+.ix-chaps time, .ix-line time { color: var(--ink-3); font-variant-numeric: tabular-nums; font-size: 12px; }
+.ix-cards { display: grid; gap: 12px; margin: 16px 0 0; }
+.ix-card { padding: 18px 16px; background: var(--fill); border-radius: var(--r2); animation: rm-in .25s var(--ease); }
+.ix-card h3 { margin: 0 0 6px; font: 600 17px/1.3 var(--ui); }
+.ix-card p { margin: 0 0 12px; color: var(--ink-2); font-size: 14px; }
+.ix-card .rm-eyebrow { margin-bottom: 4px; }
+.ix-timer { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+.ix-tabs { display: flex; gap: 4px; margin: 20px 0 8px; border-bottom: 1px solid var(--hair); }
+.ix-tabs button { padding: 10px 12px; border: 0; background: none; font: 600 14px/1 var(--ui); color: var(--ink-2); border-bottom: 2px solid transparent; cursor: pointer; }
+.ix-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.ix-side { min-width: 0; }
+.ix-search { width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid var(--hair); border-radius: var(--r1); background: #fff; font-size: 15px; color: var(--ink); }
+.ix-search:focus-visible, .ix-chaps button:focus-visible, .ix-line:focus-visible, .ix-tabs button:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.ix-note { margin: 8px 0; color: var(--ink-3); font-size: 12px; }
+.ix-lines { position: relative; list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; }
+.ix-line { display: block; width: 100%; padding: 8px; border: 0; border-radius: var(--r1); background: none; text-align: left; font: inherit; font-size: 14px; line-height: 1.5; color: var(--ink); cursor: pointer; }
+.ix-line:hover { background: var(--fill); }
+.ix-line[aria-current="true"] { background: #eef2f8; }
+.ix-line b { font-weight: 600; color: var(--navy); font-size: 12px; margin-right: 6px; }
+.ix-line mark { background: #fde9b6; color: inherit; border-radius: 3px; }
+.ix-empty { color: var(--ink-2); font-size: 14px; padding: 8px 0; }
+.ix-back { display: inline-block; margin: 24px 0 0; }
+@media (min-width: 1000px) {
+  .ix-replay { padding: 24px 32px 64px; }
+  .ix-h1 { font-size: 34px; }
+  .ix-grid { grid-template-columns: minmax(0, 1fr) 380px; gap: 32px; align-items: start; }
+  .ix-side { position: sticky; top: 16px; }
+  .ix-side .ix-tabs { margin-top: 0; }
+  .ix-lines { max-height: calc(100vh - 320px); min-height: 320px; }
+}
+@media (max-width: 999px) {
+  .ix-player { border-radius: var(--r1); position: sticky; top: 0; z-index: 5; }
+  .ix-lines { max-height: 55vh; }
+}
+@media (prefers-reduced-motion: reduce) { .ix-card { animation: none; } }

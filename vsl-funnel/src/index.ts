@@ -63,6 +63,8 @@ import { processClientsSupport } from './ops/e-cron';
 import { syncAttribution } from './attribution/stages';
 import { hostRoomForKey, hostRoomPage, paidPage, planPage, publicRoomPage, replayRoute, roomsApi, unlockRoute } from './rooms/routes';
 import { processRoomSummaries } from './rooms/engage-db';
+import { adminReplayPage, captionsRoute, intelApi } from './rooms/intel-routes'; // rooms intel (area D)
+import { processIntel } from './rooms/intel-db';
 import { joinPage } from './rooms/admission';
 export { RoomDO } from './rooms/do';
 
@@ -174,6 +176,7 @@ app.get('/live/welcome/:token', withVisitor, liveWelcome);
 app.get('/live/worksheet/:token', withVisitor, liveWorksheet);
 app.get('/guarantee', withVisitor, guaranteePage);
 app.get('/rooms/replay/:rid', replayRoute); // room recordings (R2)
+app.get('/rooms/replay/:rid/captions.vtt', captionsRoute); // the transcript as captions (area D)
 app.get('/rooms/a/:id/:who/:ref', unlockRoute); // an unlocked file (signed, only for the person who earned it)
 app.get('/rooms/plan/:id/:ref', planPage); // an attendee's Deal Plan (signed link from the summary email)
 app.get('/rooms/:id/done', paidPage); // where the payment page returns a buyer from the room
@@ -201,6 +204,7 @@ app.get('/api/live/:key/offer', challengeOfferRoute); // challenge-offer state, 
 app.get('/api/live/:key/status', liveStatusRoute); // before /api: no visitor logging on each poll
 app.get('/camera-test', (c) => c.env.ASSETS.fetch(new Request(new URL('/camera-test.html', c.req.url)))); // camera check page (noindex)
 app.post('/api/camera-test', cameraTestPost); // camera check results (/camera-test), technical only
+app.route('/api/intel', intelApi); // the replay page's pings, cards and offer state (area D)
 app.route('/api/rooms', roomsApi); // our video rooms: WebSocket, ICE, SFU proxy, recordings (before /api: no visitor logging per call)
 app.route('/api', api);
 app.route('/hooks', opsHooks); // support email (Resend inbound / forwarders) and Zapier actions (builder E)
@@ -269,6 +273,7 @@ app.get('/oauth/google/callback', async (c) => {
 });
 app.route('/admin/api', admin);
 app.get('/admin/live/:key', requireAdmin, liveHostPage); // host console for one live event (Zoom)
+app.get('/admin/rooms/:id/replay', requireAdmin, adminReplayPage); // the team's view of a room's replay (area D)
 app.get('/admin/rooms/:id', requireAdmin, hostRoomPage); // the host in our own room
 app.get('/admin/live/:key/room', requireAdmin, hostRoomForKey); // host console → Open host room
 // Scripts and decks (public/materials/*.md) are admin-only: anyone else gets a plain 404, as if they didn't exist.
@@ -358,6 +363,7 @@ export default {
       quiet(syncAttribution(rt), 'webinar attribution'),
       quiet(planWebinarCalls(rt), 'webinar AI calls'),
       quiet(processRoomSummaries(rt), 'room summary emails'),
+      quiet(processIntel(rt), 'room transcripts and debriefs'),
       quiet(maybeSyncAudiences(rt), 'Meta audiences (approved only)'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);

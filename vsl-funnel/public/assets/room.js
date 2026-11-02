@@ -217,6 +217,7 @@
     ws.onopen = function () { S.wsTries = 0; banner(null); };
     ws.onmessage = function (e) {
       var m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (window.RoomCore && window.RoomCore._emit) window.RoomCore._emit(m);
       if (m.t === 'state') {
         if (m.chat) S.chat = m.chat;
         skew = m.now - Date.now();
@@ -1559,6 +1560,10 @@
     var b = $('[data-offer-open]'); if (b) b.onclick = openOffer;
     if (sh && !keepOffer) sh.remove();
   }
+
+  // Add-on modules (room-<area>.js) read the room through this one object: its state, send, toast, and the socket's messages.
+  var RC_L = {};
+  window.RoomCore = { S: S, CFG: CFG, ME: ME, isStaff: isStaff, send: send, toast: toast, on: function (t, fn) { (RC_L[t] = RC_L[t] || []).push(fn); }, _emit: function (m) { (RC_L[m.t] || []).concat(RC_L['*'] || []).forEach(function (fn) { try { fn(m); } catch (x) { /* an add-on never breaks the room */ } }); } };
 
   start();
 })();

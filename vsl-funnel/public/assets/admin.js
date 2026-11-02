@@ -3169,6 +3169,7 @@
       var b = this, m = view.querySelector('[data-ctmsg2]'); b.disabled = true; b.textContent = 'Thinking…'; if (m) m.textContent = conn.ai ? 'Claude is reading the numbers (up to a minute)…' : '';
       send('POST', 'content/suggest', {}).then(function (r) { if (r && r.ok) renderContent(); else { b.disabled = false; b.textContent = 'Try again'; if (m) m.textContent = (r && r.error) || 'Couldn’t generate ideas'; } });
     };
+    if (window.IntelBoard) window.IntelBoard.content({ view: view, toast: toast, esc: esc }); // highlight clips from the rooms (area D)
   }
 
   // ───────────── Email editor ─────────────
