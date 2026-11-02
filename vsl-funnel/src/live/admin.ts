@@ -111,6 +111,7 @@ export async function liveHostPage(c: Context<AppEnv>) {
   if (!isLiveKey(key)) return c.text('Unknown live event. Keys look like webinar:<session id> or challenge:<cohort id>:<day>.', 404);
   const view = await hostView(c, key);
   const json = JSON.stringify(view).replace(/</g, '\\u003c');
+  const inRoom = Boolean(await (await import('../rooms/routes')).roomForKey(runtimeFrom(c), key, true).catch(() => null));
   c.header('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
   c.header('cache-control', 'no-store');
   return c.html(`<!doctype html>
@@ -130,7 +131,8 @@ ${key.startsWith('challenge:') ? '<script defer src="/assets/challenge-host.js">
 </head>
 <body class="lh-body">
 <script type="application/json" id="live-host-data">${json}</script>
-<header class="lh-top"><a href="/admin#webinar" class="lh-back">Funnel HQ</a><span class="lh-crumb">Live</span><span class="lh-key mono">${esc(key)}</span></header>
+<header class="lh-top"><a href="/admin#webinar" class="lh-back">Funnel HQ</a><span class="lh-crumb">Live</span><span class="lh-key mono">${esc(key)}</span>${inRoom ? `<a class="btn-sm" href="/admin/live/${esc(encodeURIComponent(key))}/room" style="margin-left:auto">Open host room</a>` : ''}</header>
+${inRoom ? '<p class="lh lh-note">This session runs in our own room: you go live, share your screen, run polls, Q&amp;A and the offer from the host room. The controls below still work.</p>' : ''}
 <main class="lh" data-live-host aria-live="polite"></main>
 <!-- Live controls added by other parts of the app (offer, chat…) mount here: -->
 <section class="lh lh-controls" id="live-controls" data-live-key="${esc(key)}" aria-label="Live controls"></section>

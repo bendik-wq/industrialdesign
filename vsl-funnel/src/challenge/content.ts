@@ -267,3 +267,9 @@ export const OFFER = {
 
 /** Funnel HQ labels that also show on public pages (none of these are claims). */
 export const DAY_TITLES = DAYS.map((d) => d.title);
+
+/** Days that run in our own video room (Funnel HQ → Challenge → day → Platform: our room). */
+export const ROOM_DAY = {
+  join: 'Join the live session',
+  joinNote: 'Opens the live room in a new tab, right in your browser. Keep this page open for the worksheet.',
+};

@@ -3,6 +3,10 @@ export interface Env {
   ASSETS: Fetcher;
   /** Cloudflare Workers AI (speech-to-text for the application's microphone fallback). */
   AI?: Ai;
+  /** One Durable Object per video room (src/rooms/do.ts). */
+  ROOMS?: DurableObjectNamespace;
+  /** Optional R2 bucket for room recordings (the replay). Without it the host downloads the recording. */
+  RECORDINGS?: R2Bucket;
 
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.

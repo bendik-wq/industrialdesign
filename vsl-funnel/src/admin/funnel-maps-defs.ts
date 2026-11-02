@@ -358,13 +358,13 @@ const AUTO: FunnelMapDef = {
   ],
 };
 
-// ───────────────────────────── 3. Live webinar on Zoom ─────────────────────────────
+// ───────────────────────────── 3. Live webinar (Zoom or our own room) ─────────────────────────────
 
 const LIVE: FunnelMapDef = {
   id: 'live',
-  title: 'Live webinar on Zoom',
+  title: 'Live webinar (Zoom or our room)',
   short: 'Live webinar',
-  summary: 'A scheduled live session with Josh on Zoom: registration (no charge, or a ticket), the companion room, the host opens the deposit offer live, and deposit buyers go to onboarding and the engagement agreement.',
+  summary: 'A scheduled live session with Josh, on Zoom or in our own video room (chosen per event): registration (no charge, or a ticket), the room, the host opens the deposit offer live, and deposit buyers go to onboarding and the engagement agreement.',
   attribution: 'live',
   ladder: ['lreg', 'lticket', 'ljoin', 'loffer', 'ldeposit', 'lsigned'],
   stages: [
@@ -384,10 +384,10 @@ const LIVE: FunnelMapDef = {
       behind: 'Off by default (LIVE_TICKET_PRICE blank). Unpaid registrants get one nudge 30 minutes after registering. The ticket comes off the deposit price later.',
       autos: [{ type: 'charge', label: 'Ticket payment', timing: 'On the ticket page' }],
       settings: ['LIVE_TICKET_PRICE', 'WHOP_API_KEY'] }),
-    at(4, 0, { id: 'ljoin', kind: 'page', title: 'Room and Zoom', sub: 'Companion room opens Zoom', tab: 'liveevents', count: 'joined', from: 'lreg',
-      sees: 'Their room: Join on Zoom (new tab) from 15 minutes before, real presence and chat, the host’s polls and pinned message.',
-      behind: 'Every email link goes to the room, which opens Zoom. The Zoom meeting can be created from the host console with the Zoom keys, or pasted as a link. The count is registrants who opened their room.',
-      settings: ['ZOOM_ACCOUNT_ID', 'ZOOM_CLIENT_ID', 'ZOOM_CLIENT_SECRET', 'ZOOM_HOST_USER'] }),
+    at(4, 0, { id: 'ljoin', kind: 'page', title: 'The room', sub: 'Our room, or Zoom', tab: 'liveevents', count: 'joined', from: 'lreg',
+      sees: 'Zoom events: their companion room with Join on Zoom (new tab) from 15 minutes before, real presence and chat, the host’s polls and pinned message. Room events: the session itself in the browser, nothing to install: a lobby with the real start time, then the stage, chat, Q&A with upvotes, polls, raise hand to be invited on stage, and the offer panel when the host opens it.',
+      behind: 'Each event runs on Zoom or in our room (Live webinars → Where it runs). Every email link goes to the same room link. Zoom: the meeting is created from the host console with the Zoom keys, or pasted as a link. Our room: Cloudflare Realtime carries the video, a Durable Object per room keeps the stage, chat, Q&A, polls and the real count, and the room writes presence and minutes into the same tables as Zoom events, so attendance, attribution and the left-mid-session calls see exactly who watched and for how long. The count is registrants who opened their room.',
+      settings: ['REALTIME_APP_ID', 'REALTIME_APP_SECRET', 'REALTIME_TURN_KEY_ID', 'REALTIME_TURN_TOKEN', 'ZOOM_ACCOUNT_ID', 'ZOOM_CLIENT_ID', 'ZOOM_CLIENT_SECRET', 'ZOOM_HOST_USER'] }),
     at(5, 0, { id: 'loffer', kind: 'decision', title: 'Host opens the offer', sub: 'From the host console', tab: 'liveevents', count: 'offer_seen',
       sees: 'The deposit offer appearing in every room at once, with the guarantee, the 7-day money-back and the real deadline.',
       behind: 'The host presses Open the offer, and can show the timer, pin a message and close the offer. It closes LIVE_OFFER_HOURS after the event ends, or earlier if the host closes it; the replay closes with it. The count is registrants who saw the offer.',
@@ -442,7 +442,7 @@ const CHALLENGE: FunnelMapDef = {
   id: 'challenge',
   title: 'First Deal Challenge',
   short: 'Challenge',
-  summary: 'Five live days on Zoom: a paid ticket, a one-click VIP upgrade, a worksheet each day, a soft offer on Day 4 and the full pitch on Day 5, then the engagement deposit.',
+  summary: 'Five live days, each on Zoom or in our own video room: a paid ticket, a one-click VIP upgrade, a worksheet each day, a soft offer on Day 4 and the full pitch on Day 5, then the engagement deposit.',
   attribution: 'challenge',
   ladder: ['creg', 'cticket', 'cd1', 'cd3', 'cd5', 'cdeposit', 'csigned'],
   stages: [
@@ -463,8 +463,9 @@ const CHALLENGE: FunnelMapDef = {
       autos: [{ type: 'charge', label: 'One-click VIP charge', timing: 'Right after the ticket' }],
       settings: ['CHALLENGE_VIP_PRICE'] }),
     at(3, 1, { id: 'cd1', kind: 'page', title: 'Day 1', sub: 'Your acquisition capacity', tab: 'challenge', count: 'day1', from: 'cticket',
-      sees: 'Their day page with Join on Zoom, the worksheet, the poll and the cohort chat.',
-      behind: 'Join on Zoom or the companion page open from 15 minutes before the start to 15 after the end counts as live attendance. The count is people present live or on the replay.' }),
+      sees: 'Their day page with the join button (Zoom, or our own room in the browser), the worksheet, the poll and the cohort chat.',
+      behind: 'Each day runs on Zoom or in our room (Challenge → day → Where it runs). Join on Zoom or the companion page open from 15 minutes before the start to 15 after the end counts as live attendance; in our room, the room itself records presence and minutes per person. The count is people present live or on the replay.',
+      settings: ['REALTIME_APP_ID', 'REALTIME_TURN_KEY_ID'] }),
     at(4, 1, { id: 'cd2', kind: 'page', title: 'Day 2', sub: 'Your buy box', tab: 'challenge', count: 'day2',
       behind: 'Same day page. Worksheets are submitted on the page and VIP worksheets get written feedback.' }),
     at(5, 1, { id: 'cd3', kind: 'page', title: 'Day 3', sub: 'Owners and outreach', tab: 'challenge', count: 'day3',
@@ -635,7 +636,7 @@ const AFTER: FunnelMapDef = {
   ladder: ['aclient', 'asprint', 'acontract', 'apaid', 'ahealth'],
   stages: [
     at(0, 0, { id: 'aclient', kind: 'people', title: 'Becomes a client', sub: 'Sprint, deposit or agreement', tab: 'clients', count: 'clients',
-      behind: 'A client is anyone with a paid First Deal Sprint, a paid engagement deposit (live or challenge) or a signed engagement agreement. The count is people who became a client in the range.' }),
+      behind: 'A client is anyone with a paid First Deal Sprint, a paid engagement deposit (live or challenge) or a signed engagement agreement. The onboarding call, the kickoff and the weekly working sessions can run in our own meeting room: Meeting room in the client or lead drawer creates it and emails them a personal link, and Rooms shows who came and for how long. The count is people who became a client in the range.' }),
     at(1, 0, { id: 'asprint', kind: 'page', title: 'Sprint board', sub: '7 days, day by day', tab: 'dealsprint', count: 'sprints',
       sees: 'Sprint buyers see their Sprint page; the team sees each buyer’s day, intake, kickoff and deliverables.',
       behind: 'Marking a deliverable ready emails the buyer once. The outcome after the Deal Plan session starts the proposal follow-up.',

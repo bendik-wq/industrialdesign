@@ -34,6 +34,16 @@
     }
   ],
 
+  // Rooms (src/rooms): one Durable Object per video room for signalling and state over hibernating WebSockets.
+  // Media runs on Cloudflare Realtime (SFU + TURN); its keys are settings (REALTIME_*), never sent to browsers.
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "RoomDO" }] },
+  "migrations": [{ "tag": "rooms-v1", "new_sqlite_classes": ["RoomDO"] }],
+
+  // Optional: room recordings (the host's composited stage) are uploaded here in parts and become the replay.
+  // Create the bucket first (npx wrangler r2 bucket create gl-room-recordings), then remove the // below.
+  // Without it the host room offers the recording as a download instead.
+  // "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "gl-room-recordings" }],
+
   // Email queue, abandoned-application detection and call reminders.
   "triggers": { "crons": ["*/5 * * * *"] },
 

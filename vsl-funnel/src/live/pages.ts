@@ -158,6 +158,12 @@ export async function liveRoom(c: Context<AppEnv>) {
     const [h, b] = st.stage === 'closed' ? [C.closedHeading, C.closedBody] : [C.cancelledHeading, C.cancelledBody];
     return render(c, '/live.html', { title: h, blocks: { navmeta: '', main: `<section class="lv-room"><div class="wrap lv-rwrap">${head}<div class="lv-card"><h2 class="lv-offer-h">${esc(h)}</h2><p class="lv-offer-p">${esc(b)}</p></div></div></section>` } });
   }
+  // Events that run in our own video room: before and during the session this link opens the room itself
+  // (after it, this page shows the replay, which the room's recording fills in).
+  if (ev.platform === 'room' && (st.stage === 'waiting' || st.stage === 'live' || st.stage === 'replay')) {
+    const page = await (await import('../rooms/routes')).liveRoomPage(c, ev.id, reg, st.stage);
+    if (page) return page;
+  }
   const playback = await playbackFor(rt, streamKey(ev.id), ev.join_url, { startsAt: ev.starts_at, durationMin: Math.max(1, Math.round((st.endsAt - ev.starts_at) / 60_000)) });
   const offer = await offerBlock(rt, reg);
   const q = await depositQuote(rt, reg.lead_id);

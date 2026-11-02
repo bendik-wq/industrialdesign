@@ -4,7 +4,7 @@ import { formatMoney, fromMinor, toMinor } from '../webinar/pass';
 import { cleanJoinUrl, upsertLiveEvent } from '../live/stream';
 import { DAY_TITLES } from './content';
 import {
-  type CohortRow, type DayRow, DAYS_IN_CHALLENGE, MIN, dayEnds, eventKey, offerCloseAt, offerHours, registrationOpen, scheduleDays, validDate, validTime, validTimeZone,
+  type CohortRow, type DayRow, DAYS_IN_CHALLENGE, ROOM_JOIN, MIN, dayEnds, eventKey, offerCloseAt, offerHours, registrationOpen, scheduleDays, validDate, validTime, validTimeZone,
 } from './schedule';
 
 /** Prices and switches (Funnel HQ → Integrations → Webinar, "Challenge" settings). */
@@ -52,7 +52,8 @@ export async function getDays(rt: Runtime, cohortId: string) {
     db.prepare("SELECT key, join_url FROM live_events WHERE key LIKE ? AND join_url IS NOT NULL").bind(`challenge:${cohortId}:%`),
   ]);
   const links = new Map((live.results as { key: string; join_url: string }[]).map((r) => [r.key, cleanJoinUrl(r.join_url)]));
-  return (days.results as DayRow[]).map((d) => ({ ...d, join_url: links.get(eventKey(cohortId, d.day)) || d.join_url }));
+  // Days that run in our own room have no Zoom link: 'room' marks them (the join route sends people into the room).
+  return (days.results as DayRow[]).map((d) => ({ ...d, join_url: d.platform === 'room' ? ROOM_JOIN : links.get(eventKey(cohortId, d.day)) || d.join_url }));
 }
 
 /** Registers (or re-times) each day with the live engine, so the host console shows it and can create its Zoom meeting. */
@@ -173,8 +174,10 @@ export async function updateDay(rt: Runtime, cohortId: string, day: number, body
   const join = body.join_url !== undefined ? httpsOrNull(body.join_url) : cur.join_url;
   const replay = body.replay_url !== undefined ? httpsOrNull(body.replay_url) : cur.replay_url;
   const hot = body.hot_seat_url !== undefined ? httpsOrNull(body.hot_seat_url) : cur.hot_seat_url;
-  await rt.env.DB.prepare('UPDATE challenge_days SET starts_at = ?, duration_min = ?, join_url = ?, replay_url = ?, hot_seat_url = ?, edited = ?, updated_at = ? WHERE cohort_id = ? AND day = ?')
-    .bind(startsAt, duration, join, replay, hot, edited, now, cohortId, day).run();
+  const platform = body.platform === 'room' || body.platform === 'zoom' ? body.platform : cur.platform ?? 'zoom';
+  await rt.env.DB.prepare('UPDATE challenge_days SET starts_at = ?, duration_min = ?, join_url = ?, replay_url = ?, hot_seat_url = ?, edited = ?, platform = ?, updated_at = ? WHERE cohort_id = ? AND day = ?')
+    .bind(startsAt, duration, join, replay, hot, edited, platform, now, cohortId, day).run();
+  if (platform === 'room') await (await import('../rooms/rooms')).ensureRoomFor(rt, 'challenge', eventKey(cohortId, day), { title: `The First Deal Challenge, Day ${day} (${c.name})`.slice(0, 200), startsAt, durationMin: duration }).catch((e) => console.error('room', String(e).slice(0, 200)));
   // The live engine holds the link the room hands out: a link changed (or cleared) here changes it there too.
   await upsertLiveEvent(rt, eventKey(cohortId, day), { startsAt, durationMin: duration, ...(body.join_url !== undefined ? { joinUrl: join } : {}) }).catch((e) => console.error('live event', String(e).slice(0, 200)));
   return { moved: startsAt !== cur.starts_at || duration !== cur.duration_min, replayAdded: !cur.replay_url && Boolean(replay) };

@@ -36,6 +36,8 @@ export interface LiveEvent {
   id: string; title: string; starts_at: number; tz: string; duration_min: number; join_url: string | null; replay_url: string | null;
   status: 'scheduled' | 'cancelled'; ended_at: number | null; offer_opened_at: number | null; offer_closed_at: number | null; offer_hours: number | null;
   timer_on: number; pinned: string | null; pinned_at: number | null; created_at: number; updated_at: number;
+  /** 'zoom' (the join link) or 'room' (our own video room, src/rooms). Migration 0052. */
+  platform?: 'zoom' | 'room';
 }
 export interface LiveReg {
   id: string; token: string; event_id: string; lead_id: string; seq: number; new_lead: number; revenue_band: string | null; ticket_required: number; sms_ok: number;
@@ -134,19 +136,24 @@ export async function saveEvent(rt: Runtime, body: Record<string, unknown>, id?:
   const replayUrl = body.replay_url !== undefined ? https(body.replay_url) : prev?.replay_url ?? null;
   if (body.replay_url && !replayUrl) return { ok: false as const, error: 'The replay link must start with https://' };
   const status = body.status === 'cancelled' ? 'cancelled' : body.status === 'scheduled' ? 'scheduled' : prev?.status ?? 'scheduled';
+  const platform = body.platform === 'room' ? 'room' : body.platform === 'zoom' ? 'zoom' : prev?.platform ?? 'zoom';
   const now = Date.now();
+  // Our own room: created with the event and kept on its schedule (the attendee's room link opens it).
+  const room = async (eid: string) => { if (platform === 'room') await (await import('../rooms/rooms')).ensureRoomFor(rt, 'live', eid, { title, startsAt, durationMin: duration }).catch((e) => console.error('room sync', e)); };
   // The live engine (stream.ts, key webinar:<id>) keeps the schedule and the Zoom link for the host console.
   const sync = (eid: string) => upsertLiveEvent(rt, streamKey(eid), { title, startsAt, durationMin: duration, ...(body.join_url !== undefined || !prev ? { joinUrl } : {}) }).catch((e) => console.error('live engine sync', e));
   if (prev) {
-    await rt.env.DB.prepare('UPDATE live_webinars SET title = ?, starts_at = ?, tz = ?, duration_min = ?, join_url = ?, replay_url = ?, status = ?, updated_at = ? WHERE id = ?')
-      .bind(title, startsAt, tz, duration, joinUrl, replayUrl, status, now, prev.id).run();
+    await rt.env.DB.prepare('UPDATE live_webinars SET title = ?, starts_at = ?, tz = ?, duration_min = ?, join_url = ?, replay_url = ?, status = ?, platform = ?, updated_at = ? WHERE id = ?')
+      .bind(title, startsAt, tz, duration, joinUrl, replayUrl, status, platform, now, prev.id).run();
     await sync(prev.id);
+    await room(prev.id);
     return { ok: true as const, id: prev.id };
   }
   const nid = newId('le');
-  await rt.env.DB.prepare('INSERT INTO live_webinars (id, title, starts_at, tz, duration_min, join_url, replay_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(nid, title, startsAt, tz, duration, joinUrl, replayUrl, status, now, now).run();
+  await rt.env.DB.prepare('INSERT INTO live_webinars (id, title, starts_at, tz, duration_min, join_url, replay_url, status, platform, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(nid, title, startsAt, tz, duration, joinUrl, replayUrl, status, platform, now, now).run();
   await sync(nid);
+  await room(nid);
   return { ok: true as const, id: nid };
 }
 
@@ -379,13 +386,16 @@ export function dueLiveMessages(ev: Parameters<typeof offerWindow>[0] & Pick<Liv
 }
 export const liveStep = (reg: Pick<LiveReg, 'seq'>, k: LiveMessage) => reg.seq * STEP_BLOCK + LIVE_STEP[k];
 
-export interface LiveMailCtx { name: string; title: string; when: string; room: string; ticket: string | null; ticketLabel: string | null; attended: boolean; offerOpened: boolean; closes: string | null; replay: boolean; deposit: string }
+export interface LiveMailCtx { name: string; title: string; when: string; room: string; ticket: string | null; ticketLabel: string | null; attended: boolean; offerOpened: boolean; closes: string | null; replay: boolean; deposit: string; inRoom?: boolean }
 
 /** Every live email (plain text). Pure, so the tests audit each one. Every link is the room link. */
 export function liveEmail(kind: LiveMessage, x: LiveMailCtx) {
   const hi = `Hi ${x.name},`;
   const room = { label: 'Open my room', href: x.room };
-  const how = 'Open your room link first. It has the Join on Zoom button, the chat, the polls and everything from the session, so keep that tab open while you watch on Zoom.';
+  const how = x.inRoom
+    ? 'Open your room link. The session runs right there in your browser, with the chat, the questions and the polls, so there is nothing to install.'
+    : 'Open your room link first. It has the Join on Zoom button, the chat, the polls and everything from the session, so keep that tab open while you watch on Zoom.';
+  const joinLine = x.inRoom ? 'Open your room.' : 'Open your room, then join on Zoom.';
   switch (kind) {
     case 'confirm':
       return { subject: `You’re in: ${x.title}`, preheader: `${x.when}. Your room link is inside.`, heading: 'You’re registered', paras: [hi, `You’re registered for ${x.title}, live with Josh on ${x.when}.`, how, 'Josh teaches how owners buy a competitor with commercial debt, seller finance and seller rollover, then answers questions live. Bring yours.'], button: room };
@@ -396,9 +406,9 @@ export function liveEmail(kind: LiveMessage, x: LiveMailCtx) {
     case 'r1h':
       return { subject: `In one hour: ${x.title}`, preheader: 'Open your room a few minutes early.', heading: 'One hour to go', paras: [hi, `We start in one hour, at ${x.when}.`, how], button: room };
     case 'r10m':
-      return { subject: 'Starting in 10 minutes', preheader: 'Open your room, then join on Zoom.', heading: 'Starting in 10 minutes', paras: [hi, 'Josh goes live in 10 minutes.', how], button: room };
+      return { subject: 'Starting in 10 minutes', preheader: joinLine, heading: 'Starting in 10 minutes', paras: [hi, 'Josh goes live in 10 minutes.', how], button: room };
     case 'live':
-      return { subject: 'We’re live now', preheader: 'Open your room and join on Zoom.', heading: 'Josh is live now', paras: [hi, `${x.title} has started.`, how], button: room };
+      return { subject: 'We’re live now', preheader: joinLine, heading: 'Josh is live now', paras: [hi, `${x.title} has started.`, how], button: room };
     case 'replay':
       return {
         subject: x.attended ? 'Thank you for coming tonight' : `The replay of ${x.title}`,
@@ -414,11 +424,11 @@ export function liveEmail(kind: LiveMessage, x: LiveMailCtx) {
 }
 
 /** The text version (sender name first; the first text to anyone says how to opt out). */
-export function liveText(kind: LiveMessage, x: { title: string; when: string; site: string }) {
+export function liveText(kind: LiveMessage, x: { title: string; when: string; site: string; inRoom?: boolean }) {
   switch (kind) {
-    case 'confirm': return `${x.site}: you're registered for ${x.title}, ${x.when}. Open your room first, then join on Zoom:`;
-    case 'r1h': return `${x.site}: ${x.title} starts in 1 hour. Open your room first, then join on Zoom:`;
-    case 'r10m': return `${x.site}: Josh goes live in 10 minutes. Open your room, then join on Zoom:`;
+    case 'confirm': return `${x.site}: you're registered for ${x.title}, ${x.when}. ${x.inRoom ? 'Open your room:' : 'Open your room first, then join on Zoom:'}`;
+    case 'r1h': return `${x.site}: ${x.title} starts in 1 hour. ${x.inRoom ? 'Open your room:' : 'Open your room first, then join on Zoom:'}`;
+    case 'r10m': return `${x.site}: Josh goes live in 10 minutes. ${x.inRoom ? 'Open your room:' : 'Open your room, then join on Zoom:'}`;
     case 'live': return `${x.site}: Josh is live now. Your room:`;
     default: return null;
   }
@@ -433,7 +443,7 @@ async function mailCtx(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: Lead, now
   return {
     name: safeFirstName(lead.first_name) ?? 'there', title: ev.title, when: formatCallTime(ev.starts_at, tz), room: liveRoomUrl(rt, reg.token),
     ticket: `${liveBase(rt)}/live/ticket/${reg.token}`, ticketLabel: s.ticket?.label ?? null, attended: Boolean(reg.joined_at), offerOpened: w.opened,
-    closes: formatCallTime(w.replayClosesAt, tz), replay: Boolean(ev.replay_url), deposit: depositConfig(rt).label,
+    closes: formatCallTime(w.replayClosesAt, tz), replay: Boolean(ev.replay_url), deposit: depositConfig(rt).label, inRoom: ev.platform === 'room',
   };
 }
 
@@ -441,7 +451,7 @@ async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, e
   const { smsBlock, smsConfigured, inTextingHours, sendSmsNow } = await import('../integrations/sms');
   const { callingZones } = await import('../integrations/elevenlabs');
   const tz = lead.timezone || ev.tz;
-  const body0 = liveText(k, { title: ev.title, when: formatCallTime(ev.starts_at, tz), site: rt.settings.SITE_NAME || 'G&L' });
+  const body0 = liveText(k, { title: ev.title, when: formatCallTime(ev.starts_at, tz), site: rt.settings.SITE_NAME || 'G&L', inRoom: ev.platform === 'room' });
   if (!body0 || !reg.sms_ok || smsBlock(lead) || !lead.sms_consent_at) return false;
   if (rt.settings.SMS_ENABLED?.trim().toLowerCase() === 'false') return false;
   const zones = callingZones(lead.phone);
@@ -692,13 +702,14 @@ export async function listEvents(rt: Runtime) {
        (SELECT COUNT(*) FROM live_webinar_regs r WHERE r.event_id = e.id) AS registered,
        (SELECT COUNT(*) FROM live_webinar_regs r WHERE r.event_id = e.id AND r.joined_at IS NOT NULL) AS attended,
        (SELECT peak_viewers FROM webinar_live_peaks k WHERE k.session_id = e.id) AS peak,
+       (SELECT m.id FROM rooms m WHERE m.ref_type = 'live' AND m.ref_id = e.id) AS room_id,
        (SELECT COUNT(*) FROM webinar_passes p WHERE p.kind = 'deposit' AND p.source = 'live' AND p.ref_id = e.id AND p.status = 'paid') AS deposits,
        (SELECT COALESCE(SUM(p.amount - p.refunded_amount), 0) FROM webinar_passes p WHERE p.source = 'live' AND p.ref_id = e.id AND p.status IN ('paid', 'refunded') AND p.kind IN ('deposit', 'live_ticket')) AS revenue
      FROM live_webinars e ORDER BY e.starts_at DESC LIMIT 100`,
   ).all<LiveEvent & Record<string, number>>();
   const s = liveSettings(rt);
   const now = Date.now();
-  return results.map((e) => ({ ...e, stage: liveStage(e, now, s.offerHours), offer: offerWindow(e, now, s.offerHours), when: formatCallTime(e.starts_at, e.tz), consoleUrl: hostConsoleUrl(rt, e.id), streamKey: streamKey(e.id), showRate: e.registered ? e.attended / e.registered : null }));
+  return results.map((e) => ({ ...e, stage: liveStage(e, now, s.offerHours), offer: offerWindow(e, now, s.offerHours), when: formatCallTime(e.starts_at, e.tz), consoleUrl: hostConsoleUrl(rt, e.id), streamKey: streamKey(e.id), showRate: e.registered ? e.attended / e.registered : null, hostRoomUrl: e.platform === 'room' && e.room_id ? `${rt.origin}/admin/rooms/${e.room_id}` : null }));
 }
 
 /** One event: the report, registrants (with attendance and purchases) and deposit buyers. */

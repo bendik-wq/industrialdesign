@@ -5,12 +5,12 @@ import { getLead, linkVisitor } from '../funnel/leads';
 import { guaranteeHtml } from '../sales/deposit';
 import { playbackFor } from '../live/stream';
 import { buyerFeePercent } from '../webinar/one-click';
-import { CHALLENGE_NAME, CHECKOUT, DAY_PAGE, DAYS, HUB, LANDING, OFFER, dayContent } from './content';
+import { CHALLENGE_NAME, CHECKOUT, DAY_PAGE, DAYS, HUB, LANDING, OFFER, ROOM_DAY, dayContent } from './content';
 import { type LoadedCohort, type Registration, challengeConfig, getReg, loadCohort, money, nextCohort } from './cohorts';
 import { confirmOnReturn, hostedCheckout, nextStep, payFormConfig, payUrl, skipVip, vipOffer, welcomeUrl } from './payments';
 import { offerView } from './offer';
 import { type ParticipantView, homeworkFor, joinDay, myPoll, participantView, pollResults, replayDay } from './room';
-import { DAYS_IN_CHALLENGE, type DayRow, countdownText, dayEnds, eventKey, formatDate, formatWhen } from './schedule';
+import { DAYS_IN_CHALLENGE, type DayRow, ROOM_JOIN, countdownText, dayEnds, eventKey, formatDate, formatWhen } from './schedule';
 import { WEBINAR_CALL_CONSENT } from '../integrations/call-consent';
 
 /**
@@ -300,7 +300,8 @@ function sessionCard(v: ParticipantView, reg: Registration, d: ParticipantView['
   // On the day page the page header carries the day and title, so the card doesn't repeat them.
   const title = o.compact ? '' : `<p class="chx-eyebrow">Day ${d.day} of ${DAYS_IN_CHALLENGE}</p><h2 class="chx-h2 chx-sc-h">${esc(d.content.title)}</h2>`;
   const when = `<p class="chx-sc-when" data-local-when="${d.starts_at}">${esc(formatWhen(d.starts_at, v.cohort.timezone))}</p>`;
-  const joinBtn = join ? `<a class="chx-go" href="${esc(join)}" target="_blank" rel="noopener">${esc(HUB.join)} ${ICON.ext}</a><p class="chx-fine">${esc(HUB.joinNote)}</p>` : `<p class="chx-fine">${esc(HUB.noLink)}</p>`;
+  const inRoom = d.join_url === ROOM_JOIN;
+  const joinBtn = join ? `<a class="chx-go" href="${esc(join)}" target="_blank" rel="noopener">${esc(inRoom ? ROOM_DAY.join : HUB.join)} ${ICON.ext}</a><p class="chx-fine">${esc(inRoom ? ROOM_DAY.joinNote : HUB.joinNote)}</p>` : `<p class="chx-fine">${esc(HUB.noLink)}</p>`;
   let state = '';
   if (d.phase === 'live') state = `<p class="chx-live"><span class="chx-dot" aria-hidden="true"></span>${esc(HUB.todayLive)}</p>${title}${joinBtn}`;
   else if (d.phase === 'soon' || d.phase === 'upcoming') state = `${title}${when}<p class="chx-sc-cd">${esc(HUB.todayStarts)} ${cd(d.starts_at, v.now, 'chx-cd-l')}</p>${d.phase === 'soon' ? joinBtn : ''}`;
@@ -391,6 +392,11 @@ export async function joinRedirect(c: Context<AppEnv>) {
   const n = Number(c.req.param('n'));
   if (!reg) return notFound(c);
   const url = await joinDay(rt, reg, n);
+  // A day in our own room: into the room (it records attendance and minutes itself).
+  if (url === ROOM_JOIN) {
+    const room = await (await import('../rooms/routes')).challengeJoinRoom(rt, reg, n);
+    return c.redirect(room ?? `/challenge/day/${reg.token}/${n}`, 302);
+  }
   return url ? c.redirect(url, 302) : c.redirect(`/challenge/day/${reg.token}/${n}`, 302);
 }
 
@@ -478,7 +484,8 @@ export async function dayPage(c: Context<AppEnv>) {
   const key = eventKey(reg.cohort_id, n);
   // The live engine's Zoom card (live-player.js) mounts over our own session card until the session ends; without
   // the script our card stays (its Join button goes through /challenge/join, which counts attendance).
-  const playback = await playbackFor(rt, key, d.join_url, { startsAt: d.starts_at, durationMin: d.duration_min }).catch(() => null);
+  const roomDay = d.join_url === ROOM_JOIN;
+  const playback = roomDay ? null : await playbackFor(rt, key, d.join_url, { startsAt: d.starts_at, durationMin: d.duration_min }).catch(() => null);
   const offerDay = n >= 4;
   const locked = Date.now() < d.starts_at - 30 * 60_000;
   const offer = offerDay || v.offer.open ? offerBlockHtml({ view: ov, closeAt: v.closeAt, now: v.now, soft: v.offer.day === 4 || (!v.offer.open && n === 4), guarantee: guaranteeHtml(rt), open: v.offer.open || ov.paid, token: reg.token, day: n }) : '';
@@ -489,7 +496,7 @@ export async function dayPage(c: Context<AppEnv>) {
       <div class="chx-day-main">
         <p class="chx-eyebrow">Day ${n} of ${DAYS_IN_CHALLENGE}${v.vip ? ' · VIP' : ''}</p>
         <h1 class="chx-h1 chx-h1-s">${esc(d.content.title)}</h1>
-        <div class="chx-player" data-ch-player${d.phase === 'ended' ? '' : ' data-mount="1"'}>${sessionCard(v, reg, d, { compact: true })}</div>
+        <div class="chx-player" data-ch-player${d.phase === 'ended' || roomDay ? '' : ' data-mount="1"'}>${sessionCard(v, reg, d, { compact: true })}</div>
         ${notify}
         ${offer}
         <p class="chx-p chx-day-line">${esc(d.content.line)}</p>

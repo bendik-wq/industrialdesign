@@ -12,7 +12,9 @@ export const LIVE_GRACE_MS = 15 * MIN;
 /** The cohort chat opens 30 minutes before and closes 30 minutes after each session. */
 export const CHAT_WINDOW_MS = 30 * MIN;
 
-export interface DayRow { cohort_id: string; day: number; starts_at: number; duration_min: number; join_url: string | null; replay_url: string | null; hot_seat_url: string | null; edited?: number }
+export interface DayRow { cohort_id: string; day: number; starts_at: number; duration_min: number; join_url: string | null; replay_url: string | null; hot_seat_url: string | null; edited?: number; platform?: 'zoom' | 'room' }
+/** join_url of a day that runs in our own video room (not a link: /challenge/join sends people into the room). */
+export const ROOM_JOIN = 'room';
 export interface CohortRow { id: string; name: string; start_date: string; start_time: string; timezone: string; duration_min: number; status: string }
 
 export const validTimeZone = (tz: unknown): tz is string => {
