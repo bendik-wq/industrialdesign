@@ -126,6 +126,8 @@ export async function handleInbound(rt: Runtime, payload: WaWebhook) {
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
       for (const msg of change.value?.messages ?? []) {
+        // A message delivered twice (in different batches) is handled once.
+        if (msg.id && (await rt.env.DB.prepare("SELECT 1 FROM whatsapp_messages WHERE provider_id = ? AND direction = 'in' LIMIT 1").bind(msg.id).first())) continue;
         const body = msg.text?.body ?? `[${msg.type}]`;
         const ref = body.toUpperCase().match(REF_CODE_RE)?.[1];
         let lead = ref ? await getLeadByRef(rt.env, ref) : null;

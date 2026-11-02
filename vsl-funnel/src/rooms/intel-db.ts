@@ -38,9 +38,26 @@ export function intelConfig(rt: Pick<Runtime, 'settings'>) {
 // ───────────── what the room logs as it happens (called from the Durable Object) ─────────────
 
 export interface IntelEvent { at: number; kind: string; who?: string | null; name?: string | null; text?: string | null; data?: unknown }
+/**
+ * Per-room bound on the timeline (reliability): past INTEL_EVENT_CAP rows a room only logs its structural events
+ * (chapters, polls, the offer, the recording switch), so a very long or very chatty room can't grow without end.
+ */
+export const INTEL_EVENT_CAP = 25_000;
+const ALWAYS_LOG = new Set(['chapter', 'poll', 'offer', 'recording']);
+const loggedPerRoom = new Map<string, number>();
+export const resetIntelCounts = () => loggedPerRoom.clear();
+
 export async function logEvents(env: Pick<Env, 'DB'>, roomId: string, events: IntelEvent[]) {
   if (!events.length) return;
   const db = env.DB;
+  let n = loggedPerRoom.get(roomId);
+  if (n === undefined) {
+    if (loggedPerRoom.size > 200) loggedPerRoom.clear();
+    n = (await db.prepare('SELECT COUNT(*) AS n FROM room_intel_events WHERE room_id = ?').bind(roomId).first<{ n: number }>())?.n ?? 0;
+  }
+  if (n >= INTEL_EVENT_CAP) events = events.filter((e) => ALWAYS_LOG.has(e.kind));
+  loggedPerRoom.set(roomId, n + events.length);
+  if (!events.length) return;
   await db.batch(events.map((e) => db.prepare('INSERT INTO room_intel_events (room_id, at, kind, who, name, text, data) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .bind(roomId, e.at, e.kind, e.who ?? null, e.name?.slice(0, 80) ?? null, e.text?.slice(0, 600) ?? null, e.data === undefined ? null : JSON.stringify(e.data).slice(0, 2000))));
 }

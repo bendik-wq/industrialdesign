@@ -10,6 +10,7 @@ import { feedPresence, getRoom, markRoom, roomOffer, setRoomOffer } from './room
 import { type StudioDefaults, canLoadSlide, configureStudio } from './studio'; // builder B (studio)
 import { AudienceHub } from './audience-do'; // area C: reactions, captions, the co-host, announcements, nudges
 import { MediaReports, heldIds, holdOnClose, isHeld, resume as resumeMedia, staffView, wantsQuality } from './media';
+import { boundRoomState, cleanupAt, keepDays } from './hygiene'; // reliability: bounded state, ended-room clean-up
 
 /**
  * One Durable Object per room: signalling and state over WebSockets with hibernation (the object sleeps between
@@ -40,13 +41,18 @@ export class RoomDO {
   private aud: AudienceHub;
 
   constructor(private ctx: DurableObjectState, private env: Env) {
-    this.aud = new AudienceHub({
-      st: () => this.st, deliver: (to, msg) => this.deliver(to, msg), runtime: () => this.runtime(), storage: ctx.storage,
-      waitUntil: (p) => ctx.waitUntil(p.catch((e) => console.error('room audience', e))), commit: async (now) => { await this.save(); this.broadcast(now); },
-    });
+    this.aud = this.newHub();
     void ctx.blockConcurrencyWhile(async () => {
       this.st = (await ctx.storage.get<RoomState>('st')) ?? null;
       this.meta = (await ctx.storage.get<Meta>('meta')) ?? null;
+    });
+  }
+
+  private newHub() {
+    const ctx = this.ctx;
+    return new AudienceHub({
+      st: () => this.st, deliver: (to, msg) => this.deliver(to, msg), runtime: () => this.runtime(), storage: ctx.storage,
+      waitUntil: (p) => ctx.waitUntil(p.catch((e) => console.error('room audience', e))), commit: async (now) => { await this.save(); this.broadcast(now); },
     });
   }
 
@@ -86,6 +92,9 @@ export class RoomDO {
 
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
+    // Reliability: the daily sweep clears ended rooms past the keep period (only the Worker's cron calls this; it
+    // clears nothing unless the room ended long enough ago and nobody is connected).
+    if (url.pathname === '/gc' && req.method === 'POST' && req.headers.get('x-room-gc') === '1') return Response.json(await this.gc(Date.now(), true));
     let who: Identity, meta: Meta;
     try {
       who = JSON.parse(req.headers.get('x-room-who') ?? '') as Identity;
@@ -124,7 +133,7 @@ export class RoomDO {
       if (st.mode === 'webinar' && st.status === 'live' && !isStaff(r.member) && st.wentLiveAt && now - st.wentLiveAt <= ON_TIME_MS) await this.award([{ memberId: who.id, action: 'on_time', key: '1' }], now);
       // A meeting is live from its first join (webinars wait for the host's Go live).
       if (st.mode === 'meeting' && connectedCount(st) === 1) await markRoom(await this.runtime(), st.id, 'live', {}, now).catch(() => null);
-      if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(now + ALARM_MS);
+      await this.ensureMinuteAlarm(now);
       return new Response(null, { status: 101, webSocket: client });
     }
 
@@ -233,6 +242,7 @@ export class RoomDO {
     let msg: unknown;
     try { msg = JSON.parse(data); } catch { return; }
     const now = Date.now();
+    if (now - this.alarmCheckedAt > ALARM_MS) await this.ensureMinuteAlarm(now).catch(() => null); // self-heal a lost alarm
     if (AudienceHub.handles((msg as { t?: unknown })?.t)) {
       const err = await this.aud.onMessage(a.id, msg as Record<string, unknown>, now);
       if (err) this.send(ws, JSON.stringify({ t: 'error', error: err, for: (msg as { t?: unknown }).t }));
@@ -435,48 +445,109 @@ export class RoomDO {
     await feedPresence(rt, row, members.map((m) => ({ id: m.id, role: m.role, name: m.name, leadId: m.leadId, regId: m.regId, stage: m.stage })), now, { live: this.st.status === 'live', offerOpen: offerOpen || this.st.offer.open }).catch((e) => console.error('room presence', e));
   }
 
+  /**
+   * The minute loop runs while anyone is connected. A clean-up alarm (far in the future) may be pending for an
+   * ended room; someone joining brings the minute loop back. Also called on messages, so a lost alarm heals.
+   */
+  private alarmCheckedAt = 0;
+  private async ensureMinuteAlarm(now: number) {
+    this.alarmCheckedAt = now;
+    const at = await this.ctx.storage.getAlarm();
+    if (at == null || at > now + ALARM_MS) await this.ctx.storage.setAlarm(now + ALARM_MS);
+  }
+
   /** Every minute while anyone is connected: presence and minutes, the peak, the offer's real state. */
   async alarm() {
-    if (!this.st) return;
+    if (!this.st) {
+      // State already cleared (or never made): nothing to run; leftovers from a cleared room go on the sweep.
+      return;
+    }
     const heldBefore = heldIds(this.st, Date.now()).length;
     this.reconcile();
     const now = Date.now();
-    // media: holds that ran out are departures now; the call quality summaries go to D1.
-    if (heldBefore && heldIds(this.st, now).length !== heldBefore) { this.broadcast(now); this.deliver('all', { t: 'mhold', ids: heldIds(this.st, now) }); }
-    await this.media.flush(this.env.DB, this.st.id);
     const here = Object.values(this.st.members).filter((m) => m.connected > 0);
-    if (here.length) {
-      await this.feed(here, now);
-      const rt = await this.runtime();
-      await markRoom(rt, this.st.id, 'peak', { peak: this.st.peak }, now).catch(() => null);
-      if (this.st.offer.available) {
-        const row = await getRoom(rt, this.st.id);
-        if (row) {
-          const before = JSON.stringify(this.st.offer);
-          this.st.offer = await roomOffer(rt, row, now).catch(() => this.st!.offer);
-          if (JSON.stringify(this.st.offer) !== before) this.broadcast(now);
-        }
-      }
-      if (this.st.timer && this.st.timer.endsAt < now - 60_000) { this.st.timer = null; this.broadcast(now); }
-      // Engagement: ten-minute awards, and the retention curve (attendees here at this minute since Go live).
-      if (this.st.mode === 'webinar' && this.st.status === 'live') {
-        const ticks = tickMinutes(this.st);
-        if (ticks.length) await this.award(ticks, now);
-        // Automatic pushes that are due (the room's schedule, minutes after Go live).
-        const due = autoPushDue(this.st, now);
-        for (const e of due.effects) await this.effect(e, now);
-        if (due.changed) { await this.save(); this.broadcast(now); }
-        if (this.st.wentLiveAt) {
-          const { recordMinute } = await import('./engage-db');
-          await recordMinute(rt, this.st.id, Math.floor((now - this.st.wentLiveAt) / 60_000), audienceMembers(this.st).length).catch(() => null);
-        }
-      }
-      // The host's broadcast went quiet without a goodbye: viewers go back to the SFU.
-      if (this.sentLive && !broadcastLive(this.st, now)) this.broadcast(now);
-      await this.aud.tick(now).catch((e) => console.error('room audience tick', e));
-      await this.ctx.storage.setAlarm(now + ALARM_MS);
+    // The next minute is booked first: an error anywhere below can't end the room's minute loop.
+    if (here.length) await this.ctx.storage.setAlarm(now + ALARM_MS);
+    try {
+      await this.minute(now, heldBefore, here);
+    } catch (e) {
+      console.error('room alarm', String(e).slice(0, 300));
     }
     prune(this.st, now);
+    const trimmed = boundRoomState(this.st);
+    if (trimmed.members || trimmed.eng || trimmed.chat) console.log('room state trimmed', this.st.id, trimmed);
     await this.save();
+    // Nobody here: an ended room books its clean-up (or is cleared now when it's due).
+    if (!here.length) await this.gc(now, false).catch((e) => console.error('room gc', String(e).slice(0, 200)));
+  }
+
+  private async minute(now: number, heldBefore: number, here: Member[]) {
+    const st = this.st!;
+    // media: holds that ran out are departures now; the call quality summaries go to D1.
+    if (heldBefore && heldIds(st, now).length !== heldBefore) { this.broadcast(now); this.deliver('all', { t: 'mhold', ids: heldIds(st, now) }); }
+    await this.media.flush(this.env.DB, st.id);
+    if (!here.length) return;
+    await this.feed(here, now);
+    const rt = await this.runtime();
+    await markRoom(rt, st.id, 'peak', { peak: st.peak }, now).catch(() => null);
+    if (st.offer.available) {
+      const row = await getRoom(rt, st.id);
+      if (row) {
+        const before = JSON.stringify(st.offer);
+        st.offer = await roomOffer(rt, row, now).catch(() => st.offer);
+        if (JSON.stringify(st.offer) !== before) this.broadcast(now);
+      }
+    }
+    if (st.timer && st.timer.endsAt < now - 60_000) { st.timer = null; this.broadcast(now); }
+    // Engagement: ten-minute awards, and the retention curve (attendees here at this minute since Go live).
+    if (st.mode === 'webinar' && st.status === 'live') {
+      const ticks = tickMinutes(st);
+      if (ticks.length) await this.award(ticks, now);
+      // Automatic pushes that are due (the room's schedule, minutes after Go live).
+      const due = autoPushDue(st, now);
+      for (const e of due.effects) await this.effect(e, now);
+      if (due.changed) { await this.save(); this.broadcast(now); }
+      if (st.wentLiveAt) {
+        const { recordMinute } = await import('./engage-db');
+        await recordMinute(rt, st.id, Math.floor((now - st.wentLiveAt) / 60_000), audienceMembers(st).length).catch(() => null);
+      }
+    }
+    // The host's broadcast went quiet without a goodbye: viewers go back to the SFU.
+    if (this.sentLive && !broadcastLive(st, now)) this.broadcast(now);
+    await this.aud.tick(now).catch((e) => console.error('room audience tick', e));
+  }
+
+  /**
+   * Ended-room clean-up (ROOM_DO_KEEP_DAYS after the room ended and everyone left): clears this object's storage
+   * (state, meta, call quality reports, audience data) and its alarm. Not due yet: books an alarm for when it is.
+   * The database (attendance, the chat timeline, recordings, debriefs) is never touched.
+   */
+  private async gc(now: number, fromSweep: boolean) {
+    const connected = this.ctx.getWebSockets().filter((ws) => ws.readyState === 1).length;
+    if (connected) return { cleared: false, reason: 'connected' };
+    if (!this.st) {
+      const any = (await this.ctx.storage.list({ limit: 1 })).size;
+      if (!any) return { cleared: false, reason: 'empty' };
+      if (!fromSweep) return { cleared: false, reason: 'no_state' };
+    }
+    const rt = await this.runtime();
+    if (this.st && this.st.status !== 'ended') {
+      // Ended or cancelled from Funnel HQ without anyone in the room: the database knows.
+      const row = await getRoom(rt, this.st.id).catch(() => null);
+      if (row && (row.status === 'ended' || row.status === 'cancelled')) { this.st.status = 'ended'; this.st.endedAt = row.ended_at ?? now; await this.save(); }
+    }
+    const keep = keepDays(rt.settings as unknown as Record<string, string | undefined>);
+    const due = this.st ? cleanupAt(this.st, keep, 0) : now;
+    if (due == null) return { cleared: false, reason: 'not_ended' };
+    if (due > now) {
+      await this.ctx.storage.setAlarm(due);
+      return { cleared: false, reason: 'not_yet', at: due };
+    }
+    const roomId = this.st?.id ?? this.meta?.id ?? null;
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.st = null; this.meta = null; this.mediaReports = null; this.roomRow = null; this.aud = this.newHub();
+    if (roomId) await this.env.DB.prepare('INSERT INTO room_do_gc (room_id, cleaned_at, detail) VALUES (?, ?, ?) ON CONFLICT(room_id) DO NOTHING').bind(roomId, now, fromSweep ? 'sweep' : 'alarm').run().catch(() => null);
+    return { cleared: true, reason: fromSweep ? 'sweep' : 'alarm' };
   }
 }

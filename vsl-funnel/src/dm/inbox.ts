@@ -469,13 +469,16 @@ async function pushOutcomeToLead(rt: Runtime, t: DmThread, status: DmStatus) {
 export async function syncWithLeads(rt: Runtime) {
   const db = rt.env.DB;
   let linked = 0, moved = 0;
-  // Visits that came through a DM link (?dm=<thread>) by someone who became a lead.
+  // Visits that came through a DM link (?dm=<thread>) by someone who became a lead. Recent visits with a dm=
+  // parameter first (index on started_at), then the threads: matching every thread against every session was a
+  // full scan of sessions per thread every 5 minutes. A visit only counts after the link was sent.
   const viaLink = await db.prepare(
-    `SELECT t.id AS thread_id, v.lead_id FROM dm_threads t
-       JOIN sessions s ON s.landing_query LIKE '%dm=' || t.id || '%'
+    `SELECT DISTINCT t.id AS thread_id, v.lead_id FROM sessions s
+       CROSS JOIN dm_threads t
        JOIN visitors v ON v.id = s.visitor_id
-     WHERE t.lead_id IS NULL AND t.link_sent_at IS NOT NULL AND v.lead_id IS NOT NULL LIMIT 20`,
-  ).all<{ thread_id: string; lead_id: string }>().catch(() => ({ results: [] as { thread_id: string; lead_id: string }[] }));
+     WHERE s.started_at > ? AND s.landing_query LIKE '%dm=%' AND s.landing_query LIKE '%dm=' || t.id || '%' AND s.started_at >= t.link_sent_at - 60000
+       AND t.lead_id IS NULL AND t.link_sent_at IS NOT NULL AND v.lead_id IS NOT NULL LIMIT 20`,
+  ).bind(Date.now() - 60 * DAY).all<{ thread_id: string; lead_id: string }>().catch(() => ({ results: [] as { thread_id: string; lead_id: string }[] }));
   for (const r of viaLink.results) {
     const [t, lead] = await Promise.all([getThread(rt, r.thread_id), getLead(rt.env, r.lead_id)]);
     if (t && lead && !t.lead_id) { await linkLead(rt, t, lead, 'link'); linked++; }

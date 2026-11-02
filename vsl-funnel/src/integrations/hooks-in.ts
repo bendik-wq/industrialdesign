@@ -6,6 +6,7 @@ import { newId, newRefCode } from '../lib/ids';
 import { overLimit } from '../lib/ratelimit';
 import { logAction } from '../ops/actions';
 import { verifyResend } from './bounces';
+import { bodyId, onceOnly } from '../lib/webhook-events';
 import { draftForThread, fetchResendReceived, ingestEmail } from '../support/inbox';
 
 /**
@@ -53,22 +54,32 @@ opsHooks.post('/resend-inbound', async (c) => {
   const secret = rt.settings.SUPPORT_RESEND_WEBHOOK_SECRET;
   if (!secret) return c.json({ error: 'SUPPORT_RESEND_WEBHOOK_SECRET not configured' }, 501);
   const raw = await c.req.text();
-  const ok = await verifyResend(secret, raw, { id: c.req.header('svix-id'), timestamp: c.req.header('svix-timestamp'), signature: c.req.header('svix-signature') });
-  if (!ok) return c.json({ error: 'bad signature' }, 401);
+  const svixId = c.req.header('svix-id');
+  const ok = await verifyResend(secret, raw, { id: svixId, timestamp: c.req.header('svix-timestamp'), signature: c.req.header('svix-signature') });
+  if (!ok || !svixId) return c.json({ error: 'bad signature' }, 401);
   let ev: { type?: string; data?: { email_id?: string; from?: string; to?: string[]; subject?: string; message_id?: string } };
   try { ev = JSON.parse(raw); } catch { return c.json({ error: 'invalid json' }, 400); }
   if (ev.type !== 'email.received' || !ev.data?.email_id) return c.json({ ignored: ev.type ?? 'unknown' });
+  // One run per Resend event (svix-id is the same on every retry), so a retry can't file the message twice.
+  const once = await onceOnly(rt.env, 'resend-inbound', svixId, () => receiveResend(rt, ev as Parameters<typeof receiveResend>[1]), { kind: ev.type });
+  if (!once.ran) return once.inProgress ? c.json({ error: 'already processing' }, 409) : c.json({ ok: true, duplicate: true });
+  return c.json(once.result);
+});
+
+async function receiveResend(rt: Runtime, ev: { data: { email_id: string; from?: string; to?: string[]; subject?: string; message_id?: string } }) {
   let full = null;
   try { full = await fetchResendReceived(rt, ev.data.email_id); } catch (e) { console.error('resend received fetch', e); }
   // Without the body (no API key, or Resend down) we still record the message so it isn't lost; the subject is the body.
   const m = full ?? { from: ev.data.from ?? '', subject: ev.data.subject ?? '', text: `(Body not fetched: open it in Resend → Emails → Receiving, id ${ev.data.email_id}.) ${ev.data.subject ?? ''}`, messageId: ev.data.message_id ?? null, providerId: ev.data.email_id };
   const r = await ingestEmail(rt, m);
   if (r.ok && 'threadId' in r) draftLater(rt, r.threadId);
-  return c.json(r.ok ? r : { ok: false, error: r.error });
-});
+  return r.ok ? r : { ok: false, error: r.error };
+}
 
 // Zapier (or Make, n8n): actions into the funnel. POST /hooks/zapier/create-lead | add-note
 export const ZAPIER_ACTIONS = ['create-lead', 'add-note'] as const;
+export const ZAPIER_DEDUPE_MS = 15 * 60_000;
+class Rejected extends Error { constructor(readonly result: [Record<string, unknown>, 200 | 400]) { super('rejected'); } }
 opsHooks.post('/zapier/:action', async (c) => {
   const rt = runtimeFrom(c);
   const secret = rt.settings.ZAPIER_INBOUND_SECRET;
@@ -78,9 +89,26 @@ opsHooks.post('/zapier/:action', async (c) => {
   const action = c.req.param('action');
   const ct = c.req.header('content-type') ?? '';
   const b = (ct.includes('application/json') ? await c.req.json<Record<string, unknown>>().catch(() => ({})) : await c.req.parseBody().catch(() => ({}))) as Record<string, unknown>;
-  if (action === 'create-lead') return c.json(...(await zapierCreateLead(rt, b)));
-  if (action === 'add-note') return c.json(...(await zapierAddNote(rt, b)));
-  return c.json({ error: `unknown action; use one of ${ZAPIER_ACTIONS.join(', ')}` }, 404);
+  if (!(ZAPIER_ACTIONS as readonly string[]).includes(action)) return c.json({ error: `unknown action; use one of ${ZAPIER_ACTIONS.join(', ')}` }, 404);
+  // Zapier retries a step that timed out or failed: an Idempotency-Key header (or idempotency_key field) makes the
+  // retry a no-op; without one, the same action with the same fields within ZAPIER_DEDUPE_MS counts once (a note
+  // isn't added twice). Zapier signs nothing, so this window is also the replay protection for a leaked request.
+  const explicit = (c.req.header('idempotency-key') || (typeof b.idempotency_key === 'string' ? b.idempotency_key : '')).trim().slice(0, 120);
+  const id = explicit ? `key:${action}:${explicit}` : await bodyId(`${action}\n${JSON.stringify(b)}`);
+  // A rejected request (400) isn't recorded as handled: sending it again gets the same answer, not "duplicate".
+  const run = async () => {
+    const r = await (action === 'create-lead' ? zapierCreateLead(rt, b) : zapierAddNote(rt, b));
+    if (r[1] !== 200) throw new Rejected(r);
+    return r;
+  };
+  try {
+    const once = await onceOnly(rt.env, 'zapier', id, run, { kind: action, windowMs: explicit ? 0 : ZAPIER_DEDUPE_MS });
+    if (!once.ran) return once.inProgress ? c.json({ error: 'already processing' }, 409) : c.json({ ok: true, duplicate: true });
+    return c.json(...once.result);
+  } catch (e) {
+    if (e instanceof Rejected) return c.json(...e.result);
+    throw e;
+  }
 });
 
 const noteLine = (note: string, via: string) => `[${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC, ${via}] ${note.replace(/[<>]/g, '').trim().slice(0, 2000)}`;
