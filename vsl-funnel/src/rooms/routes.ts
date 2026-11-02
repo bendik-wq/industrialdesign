@@ -101,6 +101,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
     // MoQ (big webinars): only whether it's on. Relay URLs and tokens come from /api/rooms/:id/moq with the ticket.
     moq: moqOn,
     copy: ROOM_COPY,
+    // The waiting room (builder E, src/rooms/lifecycle.ts + room-lifecycle.js).
+    lc: await (await import('./lifecycle')).lifecycleRoomCfg(rt, room, who).catch(() => null),
     // Engagement (webinars): the copy, and for staff the ready-made knowledge checks and the resources they can push.
     engage: room.mode === 'webinar' ? {
       copy: ENGAGE_COPY,
@@ -135,6 +137,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
 <link rel="stylesheet" href="/assets/room.css">
 <script defer src="/assets/room.js"></script>
 ${cfg.studio ? '<link rel="stylesheet" href="/assets/room-studio.css">\n<script defer src="/assets/room-studio.js"></script>' : ''}
+<link rel="stylesheet" href="/assets/room-lifecycle.css">
+<script defer src="/assets/room-lifecycle.js"></script>
 </head>
 <body class="rm-body">
 <script type="application/json" id="room-config">${json}</script>

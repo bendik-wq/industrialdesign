@@ -12,6 +12,7 @@ import { playbackFor, upsertLiveEvent } from './stream';
 import { DEFAULT_POLLS } from '../webinar/content';
 import { EXPERIENCE_COPY } from '../webinar/experience';
 import { PRESENCE_MS, chatLabel, chatRate, countPresence, escapeHtml, presenceLine, sanitiseChat, viewerName } from '../webinar/live';
+import { type Cadence, type Quiet, DEFAULT_CADENCE, REMINDER_COPY, dueReminders } from './lifecycle';
 
 /**
  * The live webinar funnel: scheduled live events with Josh (on Zoom, with our own companion room), managed in
@@ -147,6 +148,8 @@ export async function saveEvent(rt: Runtime, body: Record<string, unknown>, id?:
       .bind(title, startsAt, tz, duration, joinUrl, replayUrl, status, platform, now, prev.id).run();
     await sync(prev.id);
     await room(prev.id);
+    // Lifecycle (builder E): calendar SEQUENCE, reminders for a new time, cancellation notices.
+    await (await import('./lifecycle-db')).onEventSaved(rt, prev, { ...prev, title, starts_at: startsAt, tz, duration_min: duration, status, platform }).catch((e) => console.error('lifecycle event save', e));
     return { ok: true as const, id: prev.id };
   }
   const nid = newId('le');
@@ -154,6 +157,7 @@ export async function saveEvent(rt: Runtime, body: Record<string, unknown>, id?:
     .bind(nid, title, startsAt, tz, duration, joinUrl, replayUrl, status, platform, now, now).run();
   await sync(nid);
   await room(nid);
+  await (await import('./lifecycle-db')).onEventSaved(rt, null, (await getEvent(rt, nid))!).catch((e) => console.error('lifecycle event save', e));
   return { ok: true as const, id: nid };
 }
 
@@ -316,6 +320,7 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
   if (phone && wantsTexts && !lead.phone && !newLead) await updateLead(rt.env, lead.id, { phone, sms_consent_at: now });
   await (await import('../integrations/call-consent')).recordCallConsent(rt, lead.id, phone, body, now); // optional AI-call consent box
+  await (await import('./lifecycle-db')).onRegistered(rt, v, reg, lead, body).catch((e) => console.error('lifecycle registration', e)); // zone, referral code and verdict (builder E)
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'live_registered', source: 'server', path: '/live', props: { event_id: ev.id, starts_at: ev.starts_at, band, ticket: Boolean(ticketRequired) }, eventId: typeof body.event_id_track === 'string' ? body.event_id_track : undefined });
   if (bandIsNew) await trackRevenueEvents(rt, who, band, 'webinar', '/live');
@@ -361,13 +366,12 @@ export async function liveTicketPaidEffects(rt: Runtime, pass: PassRow) {
 
 // ───────────── reminders (email + text) ─────────────
 
-export type LiveMessage = 'confirm' | 'ticket' | 'r24h' | 'r1h' | 'r10m' | 'live' | 'replay' | 'replay_last';
-export const LIVE_STEP: Record<LiveMessage, number> = { confirm: 0, r24h: 1, r1h: 2, r10m: 3, live: 4, replay: 5, replay_last: 6, ticket: 7 };
-const TEXTED: LiveMessage[] = ['confirm', 'r1h', 'r10m', 'live'];
+export type LiveMessage = 'confirm' | 'ticket' | 'r24h' | 'r3h' | 'r1h' | 'r10m' | 'live' | 'missing' | 'replay' | 'replay_last';
+export const LIVE_STEP: Record<LiveMessage, number> = { confirm: 0, r24h: 1, r1h: 2, r10m: 3, live: 4, replay: 5, replay_last: 6, ticket: 7, r3h: 8, missing: 9 };
 const STEP_BLOCK = 10;
 
 /** Which messages are due for one registration right now (pure, for the tests). */
-export function dueLiveMessages(ev: Parameters<typeof offerWindow>[0] & Pick<LiveEvent, 'starts_at'>, reg: Pick<LiveReg, 'created_at' | 'joined_at' | 'seq'>, o: { now: number; ticketUnpaid: boolean; deposit: boolean; offerHours?: number }) {
+export function dueLiveMessages(ev: Parameters<typeof offerWindow>[0] & Pick<LiveEvent, 'starts_at'>, reg: Pick<LiveReg, 'created_at' | 'joined_at' | 'seq'>, o: { now: number; ticketUnpaid: boolean; deposit: boolean; offerHours?: number; tz?: string; quiet?: Quiet | null; cadence?: Cadence }) {
   const { now } = o;
   if (ev.status !== 'scheduled') return [];
   const start = ev.starts_at;
@@ -380,17 +384,16 @@ export function dueLiveMessages(ev: Parameters<typeof offerWindow>[0] & Pick<Liv
     return out.map((k) => k);
   }
   if (now < w.end) out.push('confirm');
-  if (at(start - 24 * HOUR, start - 3 * HOUR) && before(start - 24 * HOUR)) out.push('r24h');
-  if (at(start - HOUR, start - 15 * MIN) && before(start - HOUR)) out.push('r1h');
-  if (at(start - 10 * MIN, start + 5 * MIN) && before(start - 10 * MIN)) out.push('r10m');
-  if (at(start, start + 20 * MIN) && !reg.joined_at) out.push('live');
+  // The timed reminders (24h, 3h, 1h, 10 min, live, "you're missing it"): lifecycle.ts, in the person's zone, outside their quiet hours.
+  out.push(...dueReminders(start, reg, { now, tz: o.tz ?? 'UTC', quiet: o.quiet ?? null, cadence: o.cadence }));
+  void before;
   if (!o.deposit && at(w.end + 30 * MIN, w.replayClosesAt - HOUR)) out.push('replay');
   if (!o.deposit && w.opened && at(w.replayClosesAt - 6 * HOUR, w.replayClosesAt - 30 * MIN)) out.push('replay_last');
   return out;
 }
 export const liveStep = (reg: Pick<LiveReg, 'seq'>, k: LiveMessage) => reg.seq * STEP_BLOCK + LIVE_STEP[k];
 
-export interface LiveMailCtx { name: string; title: string; when: string; room: string; ticket: string | null; ticketLabel: string | null; attended: boolean; offerOpened: boolean; closes: string | null; replay: boolean; deposit: string; inRoom?: boolean }
+export interface LiveMailCtx { name: string; title: string; when: string; room: string; ticket: string | null; ticketLabel: string | null; attended: boolean; offerOpened: boolean; closes: string | null; replay: boolean; deposit: string; inRoom?: boolean; rescheduled?: boolean; calendar?: { google: string; outlook: string; apple: string } | null }
 
 /** Every live email (plain text). Pure, so the tests audit each one. Every link is the room link. */
 export function liveEmail(kind: LiveMessage, x: LiveMailCtx) {
@@ -400,19 +403,25 @@ export function liveEmail(kind: LiveMessage, x: LiveMailCtx) {
     ? 'Open your room link. The session runs right there in your browser, with the chat, the questions and the polls, so there is nothing to install.'
     : 'Open your room link first. It has the Join on Zoom button, the chat, the polls and everything from the session, so keep that tab open while you watch on Zoom.';
   const joinLine = x.inRoom ? 'Open your room.' : 'Open your room, then join on Zoom.';
+  const cal = x.calendar ? { calendar: x.calendar } : {};
   switch (kind) {
     case 'confirm':
-      return { subject: `You’re in: ${x.title}`, preheader: `${x.when}. Your room link is inside.`, heading: 'You’re registered', paras: [hi, `You’re registered for ${x.title}, live with Josh on ${x.when}.`, how, 'Josh teaches how owners buy a competitor with commercial debt, seller finance and seller rollover, then answers questions live. Bring yours.'], button: room };
+      if (x.rescheduled) return { subject: `New time: ${x.title}`, preheader: `${x.when}. Same room link.`, heading: REMINDER_COPY.newTimeHeading, paras: [hi, REMINDER_COPY.newTime({ title: x.title, when: x.when }), how], button: room, ...cal };
+      return { ...cal, subject: `You’re in: ${x.title}`, preheader: `${x.when}. Your room link is inside.`, heading: 'You’re registered', paras: [hi, `You’re registered for ${x.title}, live with Josh on ${x.when}.`, how, 'Josh teaches how owners buy a competitor with commercial debt, seller finance and seller rollover, then answers questions live. Bring yours.'], button: room };
     case 'ticket':
       return { subject: `Finish your ticket for ${x.title}`, preheader: 'Your seat is held until the session starts.', heading: 'Your ticket isn’t paid yet', paras: [hi, `You registered for ${x.title} on ${x.when}, and your ticket${x.ticketLabel ? ` (${x.ticketLabel})` : ''} isn’t paid yet.`, 'Your room link and the reminders start as soon as it is.'], button: { label: 'Finish my ticket', href: x.ticket ?? x.room } };
     case 'r24h':
-      return { subject: `Tomorrow: ${x.title}`, preheader: `${x.when}, live with Josh.`, heading: 'Tomorrow, live with Josh', paras: [hi, `${x.title} is tomorrow: ${x.when}.`, how, 'Write down the one question you want answered about buying your first competitor. Josh takes questions live.'], button: room };
+      return { ...cal, subject: `Tomorrow: ${x.title}`, preheader: `${x.when}, live with Josh.`, heading: 'Tomorrow, live with Josh', paras: [hi, `${x.title} is tomorrow: ${x.when}.`, how, 'Write down the one question you want answered about buying your first competitor. Josh takes questions live.'], button: room };
+    case 'r3h':
+      return { ...REMINDER_COPY.r3h({ name: x.name, title: x.title, when: x.when }), button: room, ...cal };
     case 'r1h':
-      return { subject: `In one hour: ${x.title}`, preheader: 'Open your room a few minutes early.', heading: 'One hour to go', paras: [hi, `We start in one hour, at ${x.when}.`, how], button: room };
+      return { ...cal, subject: `In one hour: ${x.title}`, preheader: 'Open your room a few minutes early.', heading: 'One hour to go', paras: [hi, `We start in one hour, at ${x.when}.`, how], button: room };
     case 'r10m':
       return { subject: 'Starting in 10 minutes', preheader: joinLine, heading: 'Starting in 10 minutes', paras: [hi, 'Josh goes live in 10 minutes.', how], button: room };
     case 'live':
       return { subject: 'We’re live now', preheader: joinLine, heading: 'Josh is live now', paras: [hi, `${x.title} has started.`, how], button: room };
+    case 'missing':
+      return { ...REMINDER_COPY.missing({ name: x.name, title: x.title }), button: { label: x.inRoom ? 'Join now' : 'Open my room and join', href: x.room } };
     case 'replay':
       return {
         subject: x.attended ? 'Thank you for coming tonight' : `The replay of ${x.title}`,
@@ -434,12 +443,16 @@ export function liveText(kind: LiveMessage, x: { title: string; when: string; si
     case 'r1h': return `${x.site}: ${x.title} starts in 1 hour. ${x.inRoom ? 'Open your room:' : 'Open your room first, then join on Zoom:'}`;
     case 'r10m': return `${x.site}: Josh goes live in 10 minutes. ${x.inRoom ? 'Open your room:' : 'Open your room, then join on Zoom:'}`;
     case 'live': return `${x.site}: Josh is live now. Your room:`;
+    case 'r3h': return REMINDER_COPY.r3hText(x);
+    case 'missing': return REMINDER_COPY.missingText(x);
     default: return null;
   }
 }
 
-async function mailCtx(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: Lead, now: number): Promise<LiveMailCtx> {
-  const tz = lead.timezone || ev.tz;
+type ReminderCtx = Awaited<ReturnType<typeof import('./lifecycle-db').reminderCtx>>;
+
+async function mailCtx(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: Lead, now: number, lc?: ReminderCtx): Promise<LiveMailCtx> {
+  const tz = lc?.tz || lead.timezone || ev.tz;
   const w = offerWindow(ev, now, liveSettings(rt).offerHours);
   const s = liveSettings(rt);
   const { safeFirstName } = await import('../lib/text');
@@ -448,19 +461,29 @@ async function mailCtx(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: Lead, now
     name: safeFirstName(lead.first_name) ?? 'there', title: ev.title, when: formatCallTime(ev.starts_at, tz), room: liveRoomUrl(rt, reg.token),
     ticket: `${liveBase(rt)}/live/ticket/${reg.token}`, ticketLabel: s.ticket?.label ?? null, attended: Boolean(reg.joined_at), offerOpened: w.opened,
     closes: formatCallTime(w.replayClosesAt, tz), replay: Boolean(ev.replay_url), deposit: depositConfig(rt).label, inRoom: ev.platform === 'room',
+    rescheduled: lc?.rescheduled ?? false, calendar: lc?.calendar ?? null,
   };
 }
 
-async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, ev: LiveEvent, now: number) {
+async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, ev: LiveEvent, now: number, lc?: ReminderCtx) {
   const { smsBlock, smsConfigured, inTextingHours, sendSmsNow } = await import('../integrations/sms');
   const { callingZones } = await import('../integrations/elevenlabs');
-  const tz = lead.timezone || ev.tz;
+  const tz = lc?.tz || lead.timezone || ev.tz;
   const body0 = liveText(k, { title: ev.title, when: formatCallTime(ev.starts_at, tz), site: rt.settings.SITE_NAME || 'G&L', inRoom: ev.platform === 'room' });
   if (!body0 || !reg.sms_ok || smsBlock(lead) || !lead.sms_consent_at) return false;
   if (rt.settings.SMS_ENABLED?.trim().toLowerCase() === 'false') return false;
   const zones = callingZones(lead.phone);
   if (!zones || !inTextingHours(now, zones)) return false;
   const db = rt.env.DB;
+  const seq = lc?.seq ?? LIVE_SEQUENCE;
+  const room = `${liveRoomUrl(rt, reg.token)}?via=s-${k}`;
+  // One person, one moment, two channels at most: no text when an AI call to them is queued around now (builder E).
+  const clear = await (await import('./lifecycle-db')).textClear(rt, lead.id, now);
+  if (!clear.ok) {
+    await db.prepare(`INSERT INTO sms_messages (id, lead_id, direction, sequence, step, template, to_phone, send_at, status, attempts, link_target, error, created_at) VALUES (?, ?, 'out', ?, ?, ?, ?, ?, 'skipped', 0, ?, ?, ?)
+      ON CONFLICT(lead_id, sequence, step) WHERE direction = 'out' DO NOTHING`).bind(newId('sm'), lead.id, seq, liveStep(reg, k), `live:${k}`, lead.phone, now, room, clear.why, now).run();
+    return false;
+  }
   const today = await db.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ?").bind(lead.id, now - DAY).first<{ n: number }>();
   if ((today?.n ?? 0) >= 3) return false;
   const before = await db.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') LIMIT 1").bind(lead.id).first();
@@ -468,7 +491,7 @@ async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, e
   const claim = await db.prepare(
     `INSERT INTO sms_messages (id, lead_id, direction, sequence, step, template, to_phone, send_at, status, attempts, link_target, created_at) VALUES (?, ?, 'out', ?, ?, ?, ?, ?, 'sending', 1, ?, ?)
      ON CONFLICT(lead_id, sequence, step) WHERE direction = 'out' DO NOTHING`,
-  ).bind(id, lead.id, LIVE_SEQUENCE, liveStep(reg, k), `live:${k}`, lead.phone, now, liveRoomUrl(rt, reg.token), now).run();
+  ).bind(id, lead.id, seq, liveStep(reg, k), `live:${k}`, lead.phone, now, room, now).run();
   if (!claim.meta.changes) return false;
   const body = `${body0} ${rt.origin}/s/${id}${before ? '' : ' Reply STOP to opt out.'}`;
   try {
@@ -481,28 +504,39 @@ async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, e
   }
 }
 
-/** Sends what is due for one registration (each message once). */
+/** Sends what is due for one registration (each message once), then the post-event path (builder E). */
 export async function sendDueMessages(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: Lead, now = Date.now()) {
   const { paidDeposit } = await import('../sales/deposit');
-  const due = dueLiveMessages(ev, reg, { now, ticketUnpaid: await ticketGate(rt, reg), deposit: Boolean(await paidDeposit(rt, reg.lead_id)), offerHours: liveSettings(rt).offerHours });
-  if (!due.length) return 0;
-  const done = await rt.env.DB.prepare("SELECT step FROM emails WHERE lead_id = ? AND sequence = ? AND step >= ? AND step < ? AND status IN ('sent', 'simulated', 'sending', 'skipped', 'cancelled')")
-    .bind(lead.id, LIVE_SEQUENCE, reg.seq * STEP_BLOCK, (reg.seq + 1) * STEP_BLOCK).all<{ step: number }>();
-  const todo = due.filter((k) => !done.results.some((r) => r.step === liveStep(reg, k)));
-  if (!todo.length) return 0;
-  const { sendOnce } = await import('./mail');
-  const ctx = await mailCtx(rt, ev, reg, lead, now);
+  const L = await import('./lifecycle-db');
+  const lc = await L.reminderCtx(rt, ev, reg, lead);
+  const due = dueLiveMessages(ev, reg, { now, ticketUnpaid: await ticketGate(rt, reg), deposit: Boolean(await paidDeposit(rt, reg.lead_id)), offerHours: liveSettings(rt).offerHours, tz: lc.tz, quiet: lc.quiet, cadence: lc.cadence });
   let sent = 0;
-  for (const k of todo) {
-    const marketing = k === 'replay' || k === 'replay_last';
-    if (marketing && lead.unsubscribed_at) continue;
-    if (lead.email && (await sendOnce(rt, lead, LIVE_SEQUENCE, liveStep(reg, k), `live_${k}`, liveEmail(k, ctx), { unsubscribe: marketing }))) sent++;
-    if (TEXTED.includes(k)) await sendText(rt, lead, reg, k, ev, now).catch((e) => console.error('live text', e));
+  if (due.length) {
+    const done = await rt.env.DB.prepare("SELECT step FROM emails WHERE lead_id = ? AND sequence = ? AND step >= ? AND step < ? AND status IN ('sent', 'simulated', 'sending', 'skipped', 'cancelled')")
+      .bind(lead.id, lc.seq, reg.seq * STEP_BLOCK, (reg.seq + 1) * STEP_BLOCK).all<{ step: number }>();
+    const todo = due.filter((k) => !done.results.some((r) => r.step === liveStep(reg, k)));
+    const { sendOnce } = await import('./mail');
+    const ctx = await mailCtx(rt, ev, reg, lead, now, lc);
+    for (const k of todo) {
+      const marketing = k === 'replay' || k === 'replay_last';
+      if (marketing && lead.unsubscribed_at) continue;
+      const timed = k in DEFAULT_CADENCE.email ? (k as keyof Cadence['email']) : null;
+      const wantEmail = !timed || lc.cadence.email[timed];
+      const wantText = timed ? lc.cadence.sms[timed] : TEXTED_EXTRA.includes(k);
+      // Each email's room link says which reminder it was, so Funnel HQ sees who came back from which one.
+      const subjB = L.subjectFor(k, lc.variant, { title: ev.title, when: ctx.when });
+      const mail = liveEmail(k, { ...ctx, room: `${ctx.room}?via=e-${k}${subjB ? '~b' : ''}` });
+      if (wantEmail && lead.email && (await sendOnce(rt, lead, lc.seq, liveStep(reg, k), `live_${k}${subjB ? '~b' : ''}`, subjB ? { ...mail, subject: subjB } : mail, { unsubscribe: marketing }))) sent++;
+      if (wantText) await sendText(rt, lead, reg, k, ev, now, lc).catch((e) => console.error('live text', e));
+    }
   }
+  sent += await L.sendPost(rt, ev, reg, lead, now).catch((e) => { console.error('lifecycle post', e); return 0; });
   return sent;
 }
+/** Texts outside the timed cadence (none today: the confirmation is part of the cadence). */
+const TEXTED_EXTRA: LiveMessage[] = [];
 
-/** Cron (every 5 minutes): reminders and replay emails for events from 3 days ago to 2 days ahead. */
+/** Cron (every 5 minutes): reminders and replay emails for events from 3 days ago to 2 days ahead, then the lifecycle's own jobs. */
 export async function processLiveMessages(rt: Runtime, now = Date.now()) {
   const { results: events } = await rt.env.DB.prepare("SELECT * FROM live_webinars WHERE status = 'scheduled' AND starts_at BETWEEN ? AND ?").bind(now - 4 * DAY, now + 2 * DAY).all<LiveEvent>();
   let sent = 0;
@@ -514,6 +548,7 @@ export async function processLiveMessages(rt: Runtime, now = Date.now()) {
       sent += await sendDueMessages(rt, ev, reg, lead, now).catch((e) => { console.error('live messages', e); return 0; });
     }
   }
+  await (await import('./lifecycle-db')).lifecycleCron(rt, now).catch((e) => console.error('lifecycle cron', e));
   return { sent };
 }
 

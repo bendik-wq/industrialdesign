@@ -217,6 +217,7 @@
     ws.onopen = function () { S.wsTries = 0; banner(null); };
     ws.onmessage = function (e) {
       var m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      emitCore(m); // add-on scripts (room-lifecycle.js)
       if (m.t === 'state') {
         if (m.chat) S.chat = m.chat;
         skew = m.now - Date.now();
@@ -1567,9 +1568,12 @@
   // ───────────── add-on modules (builder B "studio" first; others add theirs the same way) ─────────────
   var coreHandlers = {};
   function coreEmit(type, data) { (coreHandlers[type] || []).concat(coreHandlers['*'] || []).forEach(function (fn) { try { fn(data, type); } catch (e) { console.warn('room add-on', e); } }); }
+  var rawHandlers = [];
+  // Whole-message listeners (builder E lifecycle uses core.on(fn) with one argument).
+  function emitCore(m) { rawHandlers.forEach(function (fn) { try { fn(m); } catch (e) { console.warn('room add-on', e); } }); }
   window.RoomCore = {
-    S: S, CFG: CFG, ME: ME, isStaff: isStaff, send: send, post: post, now: function () { return now(); }, toast: toast, esc: esc, h: h, $: $, $$: $$, clock: clock,
-    on: function (type, fn) { (coreHandlers[type] = coreHandlers[type] || []).push(fn); },
+    S: S, CFG: CFG, cfg: CFG, unlockAudio: function () { unlockAudio(); }, ME: ME, isStaff: isStaff, send: send, post: post, now: function () { return now(); }, toast: toast, esc: esc, h: h, $: $, $$: $$, clock: clock,
+    on: function (type, fn) { if (typeof type === 'function') { rawHandlers.push(type); return; } (coreHandlers[type] = coreHandlers[type] || []).push(fn); },
     renderStage: renderStage, renderTabs: renderTabs, renderPanel: renderPanel, setMic: setMic, toggleMic: toggleMic,
     compositor: function () { return COMP; }, moqPlaying: function () { return Boolean(MQ.view && MQ.view.playing && !canPublishNow()); },
   };
