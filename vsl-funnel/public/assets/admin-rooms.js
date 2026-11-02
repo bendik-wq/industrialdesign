@@ -36,6 +36,7 @@
           '<td><div class="rmb-act"><a class="btn-sm" href="' + esc(r.hostUrl) + '" target="_blank" rel="noopener">Open as host</a><button class="btn-sm ghost" data-rmb-links="' + esc(r.id) + '">Links</button><button class="btn-sm ghost" data-rmb-detail="' + esc(r.id) + '">Attendance</button>' +
           (r.mode === 'webinar' ? '<button class="btn-sm ghost" data-rmb-eng="' + esc(r.id) + '">Engagement</button>' : '') +
           (r.mode === 'webinar' ? '<button class="btn-sm ghost" data-rmb-studio="' + esc(r.id) + '">Studio</button>' : '') + // builder B: admin-studio.js
+          (r.mode === 'webinar' && root.IntelBoard ? root.IntelBoard.button(r) : '') +
           (r.lead_id && r.status !== 'cancelled' ? '<button class="btn-sm ghost" data-rmb-email="' + esc(r.id) + '">Email invite</button>' : '') + '</div></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
@@ -49,6 +50,7 @@
     return b.moq + ' on MoQ · ' + b.sfu + ' on SFU · ' + head + auto;
   }
   function wire(box, ctx, reload) {
+    if (root.IntelBoard) root.IntelBoard.wire(box, ctx); // Debrief, heatmap, transcript, simulive, clips (admin-intel.js, area D)
     box.querySelectorAll('[data-rmb-bc]').forEach(function (sel) {
       sel.onchange = function () {
         var id = sel.getAttribute('data-rmb-bc');

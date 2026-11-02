@@ -6,6 +6,7 @@ import { viewerName, pickHostName } from '../webinar/live';
 import { newId } from '../lib/ids';
 import { ROOM_COPY, ROOM_GATE, meetingInvite } from './copy';
 import { AUDIENCE_COPY, audienceConfig } from './audience';
+import { INTEL_COPY } from './intel';
 import { SfuError, mintIceServers, realtimeSetup } from './sfu';
 import { SFU_OPS } from './proxy';
 import { audienceThreshold, broadcastMode, moqSetup, parseMode } from './moq';
@@ -51,7 +52,7 @@ const gatePage = (c: Context<AppEnv>, h: string, b: string, status: 200 | 403 | 
   c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(h)}</title><link rel="stylesheet" href="/assets/room.css"></head><body class="rm-body"><main class="rm-gate"><h1>${esc(h)}</h1><p>${esc(b)}</p></main></body></html>`, status);
 
 /** The offer block attendees see when the host opens it (the live funnel's deposit, with the guarantee). */
-async function offerPanel(rt: Runtime, o: { leadId: string; band: string | null; buy: string; token: string; day?: number; welcome?: string }) {
+export async function offerPanel(rt: Runtime, o: { leadId: string; band: string | null; buy: string; token: string; day?: number; welcome?: string }) {
   const { depositQuote, depositCopy, guaranteeHtml } = await import('../sales/deposit');
   const { isMillionPlus } = await import('../sales/qualify');
   const q = await depositQuote(rt, o.leadId);
@@ -104,6 +105,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
     copy: ROOM_COPY,
     // The waiting room (builder E, src/rooms/lifecycle.ts + room-lifecycle.js).
     lc: await (await import('./lifecycle')).lifecycleRoomCfg(rt, room, who).catch(() => null),
+    // Intel (area D, room-intel.js): the notice shown while the session is recorded (the recording is transcribed).
+    intel: { notice: INTEL_COPY.roomNotice },
     // Engagement (webinars): the copy, and for staff the ready-made knowledge checks and the resources they can push.
     engage: room.mode === 'webinar' ? {
       copy: ENGAGE_COPY,
@@ -143,6 +146,7 @@ ${cfg.studio ? '<link rel="stylesheet" href="/assets/room-studio.css">\n<script 
 <link rel="stylesheet" href="/assets/room-lifecycle.css">
 <script defer src="/assets/room-lifecycle.js"></script>
 ${room.mode === 'webinar' ? '<link rel="stylesheet" href="/assets/room-audience.css">\n<script defer src="/assets/room-audience.js"></script>' : ''}
+<script defer src="/assets/room-intel.js"></script>
 </head>
 <body class="rm-body">
 <script type="application/json" id="room-config">${json}</script>
@@ -211,6 +215,8 @@ export async function publicRoomPage(c: Context<AppEnv>) {
   if (ct) {
     const x = await challengeIdentity(rt, room, ct);
     if (!x) return gatePage(c, ROOM_GATE.noAccess, ROOM_GATE.noAccessBody);
+    // Intel (area D): once the day has ended, the same link opens its replay (when there is a recording).
+    if (room.status === 'ended') { const r = await (await import('./intel-routes')).challengeReplayPage(c, room, x); if (r) return r; }
     return renderRoomPage(c, room, x.who, { offer: x.offer, back: x.back });
   }
   if (await isAdmin(c)) return c.redirect(`/admin/rooms/${room.id}`, 302);

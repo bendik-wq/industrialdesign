@@ -226,8 +226,18 @@ export class RoomDO {
       if (err) this.send(ws, JSON.stringify({ t: 'error', error: err, for: (msg as { t?: unknown }).t }));
       return;
     }
+    // Intel (area D): intel_* messages (the active speaker from the host's browser) never touch the state machine.
+    if (typeof (msg as { t?: unknown })?.t === 'string' && ((msg as { t: string }).t).startsWith('intel_')) {
+      const { onIntelMessage } = await import('./intel-db');
+      const x = await onIntelMessage(this.env, this.st, a.id, msg as Record<string, unknown>, now).catch(() => ({ ok: false as const, error: 'unavailable' }));
+      if (!x.ok) this.send(ws, JSON.stringify({ t: 'error', error: x.error, for: (msg as { t: string }).t }));
+      return;
+    }
     const r = apply(this.st, a.id, msg, now);
     if (!r.ok) { this.send(ws, JSON.stringify({ t: 'error', error: r.error, for: (msg as { t?: unknown })?.t ?? null })); return; }
+    // Intel (area D): chat, questions, chapters, polls, reactions and the recording switch go into the room's timeline.
+    const st0 = this.st, actor = a.id;
+    this.ctx.waitUntil(import('./intel-db').then((m) => m.onRoomMessage(this.env, st0, actor, msg as Record<string, unknown>, now)).catch(() => null));
     if ((msg as { t?: unknown }).t === 'push_close') {
       const rt = await this.runtime();
       const { closePushes } = await import('./engage-db');

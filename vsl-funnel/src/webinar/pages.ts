@@ -248,13 +248,15 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
     ? { key: liveKey, playback: await playbackFor(rt, liveKey, session.join_url) }
     : null;
   if (sprint && live) live.raise = false;
+  // Simulive (rooms intel, area D): a recorded live session playing in sync, labelled as a recording in every showing.
+  const simulive = session.mode === 'evergreen' && !session.video_src ? await (await import('../rooms/intel-simulive')).simuliveConfig(rt, session, replay, c.get('visitor')?.geo?.timezone ?? lead?.timezone ?? null) : null;
   return render(c, '/webinar-room.html', {
     title: session.title || w.title,
     slots: {
       webinar_title: esc(session.title || w.title),
       first_name_comma: lead?.first_name ? `, ${esc(lead.first_name)}` : '',
       when: esc(when(session.starts_at, c.get('visitor').geo.timezone ?? lead?.timezone ?? null)),
-      room_label: replay ? 'Replay' : session.mode === 'evergreen' ? 'Masterclass' : 'Live session',
+      room_label: simulive ? esc(simulive.label) : replay ? 'Replay' : session.mode === 'evergreen' ? 'Masterclass' : 'Live session',
       pass_badge: pass?.active && pass.badge ? esc(pass.badge) : null,
     },
     show: { replay, live: session.mode === 'live' && !replay, pass_active: Boolean(pass?.active) },
@@ -283,6 +285,7 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         livePlayback,
         pass,
         sprint,
+        simulive,
       },
     },
   });

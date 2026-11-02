@@ -167,6 +167,8 @@ export async function liveRoom(c: Context<AppEnv>) {
   if (ev.platform === 'room' && (st.stage === 'waiting' || st.stage === 'live' || st.stage === 'replay')) {
     const page = await (await import('../rooms/routes')).liveRoomPage(c, ev.id, reg, st.stage);
     if (page) return page;
+    // Intel (area D): after the session, the room's recording with chapters, transcript, captions and the live cards.
+    if (st.stage === 'replay') { const rp = await (await import('../rooms/intel-routes')).liveReplayPage(c, ev.id, reg); if (rp) return rp; }
   }
   const playback = await playbackFor(rt, streamKey(ev.id), ev.join_url, { startsAt: ev.starts_at, durationMin: Math.max(1, Math.round((st.endsAt - ev.starts_at) / 60_000)) });
   const offer = await offerBlock(rt, reg);

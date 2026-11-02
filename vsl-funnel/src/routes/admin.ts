@@ -59,6 +59,7 @@ import { researchAdmin } from '../research/admin';
 import { autopilotAdmin } from '../marketing/admin';
 import { clientsAdmin } from '../clients/admin';
 import { roomsAdmin } from '../rooms/routes';
+import { intelAdmin } from '../rooms/intel-routes';
 import { winbackAdmin } from '../winback/admin';
 import { audiencesAdmin } from '../audiences/admin';
 import { supportAdmin } from '../support/admin';
@@ -230,6 +231,7 @@ admin.route('/challenge', challengeAdmin); // Funnel HQ → Challenge (cohorts, 
 admin.route('/research', researchAdmin); // Funnel HQ → Research (themes, competitor ads, angle backlog)
 admin.route('/autopilot', autopilotAdmin); // Funnel HQ → Ads autopilot + Follow-up actions (Marketing and Sales departments)
 admin.route('/clients', clientsAdmin); // Funnel HQ → Clients (health, flags, check-ins, timeline)
+admin.route('/intel', intelAdmin); // Funnel HQ → Rooms → Debrief, Content → Clips (area D: transcripts, debriefs, heatmap, simulive, clips)
 admin.route('/rooms', roomsAdmin); // Funnel HQ → Live webinars → Rooms (our own video rooms: list, meetings, links, attendance, recordings)
 admin.route('/support', supportAdmin); // Funnel HQ → Support (threads, drafts, escalations)
 admin.route('/automations', automationsAdmin); // Integrations → Claude (MCP) and Zapier & webhooks

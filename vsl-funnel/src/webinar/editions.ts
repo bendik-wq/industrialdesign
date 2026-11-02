@@ -2,6 +2,7 @@ import type { Settings } from '../settings';
 import { CHAPTER_RECAP, BUILDER_STEPS, BUYIN_AT, TAKEAWAYS, type Takeaway } from './experience';
 import { DEFAULT_CHAPTERS, DEFAULT_POLLS, type Chapter, type Poll } from './content';
 import { AI_TIMELINE } from './edition-ai';
+import { parseRoomEdition } from '../rooms/intel';
 
 /**
  * Which recording the room plays, and the timeline that goes with it.
@@ -15,7 +16,7 @@ import { AI_TIMELINE } from './edition-ai';
  * WEBINAR_VIDEO_SRC override the edition when they are set.
  */
 
-export type EditionName = 'recorded' | 'ai';
+export type EditionName = 'recorded' | 'ai' | 'room';
 
 export interface EditionTimeline {
   durationMin: number;
@@ -57,7 +58,12 @@ export interface Edition {
 
 export const AI_VIDEO_SRC = '/assets/media/webinar/ai/index.m3u8';
 
-export const editionName = (s: Partial<Settings>): EditionName => (String(s.WEBINAR_EDITION ?? '').trim().toLowerCase() === 'ai' ? 'ai' : 'recorded');
+export const editionName = (s: Partial<Settings>): EditionName => {
+  const v = String(s.WEBINAR_EDITION ?? '').trim().toLowerCase();
+  // room: a recorded live session from our own room (rooms intel, area D); only while its edition is stored.
+  if (v === 'room') return parseRoomEdition(s.WEBINAR_ROOM_EDITION) ? 'room' : 'recorded';
+  return v === 'ai' ? 'ai' : 'recorded';
+};
 
 const recorded = (): Edition => ({
   name: 'recorded',
@@ -89,7 +95,29 @@ function fromTimeline(t: EditionTimeline): Edition {
 let cache: { recorded: Edition; ai: Edition } | null = null;
 const built = () => (cache ??= { recorded: recorded(), ai: fromTimeline(AI_TIMELINE) });
 
-export const edition = (s: Partial<Settings>): Edition => built()[editionName(s)];
+/**
+ * The room edition (simulive): a recorded live session plays in sync for everyone in a showing. Its chapters and
+ * the minute of its first offer come from the live session; it has no timed polls, calculator or key points (the
+ * live session's own polls were answered by other people at another time, so they are not replayed as new).
+ */
+let roomCache: { raw: string; e: Edition } | null = null;
+function roomEdition(raw: string): Edition | null {
+  if (roomCache?.raw === raw) return roomCache.e;
+  const r = parseRoomEdition(raw);
+  if (!r) return null;
+  const e: Edition = {
+    name: 'room', durationMin: r.durationMin, pitchAtMin: r.pitchAtMin, bonusAtMin: r.durationMin, buyinAt: r.pitchAtMin * 60, calcAt: null,
+    chapters: r.chapters.length ? r.chapters : [{ at: 0, title: r.title }],
+    recap: () => '', polls: [], steps: [], takeaways: [], videoSrc: r.src, ready: true,
+  };
+  roomCache = { raw, e };
+  return e;
+}
+
+export const edition = (s: Partial<Settings>): Edition => {
+  const name = editionName(s);
+  return name === 'room' ? roomEdition(String(s.WEBINAR_ROOM_EDITION ?? '')) ?? built().recorded : built()[name];
+};
 
 /** Every key point either edition can show (notes saved under one edition still resolve). */
 export const allTakeaways = (): Takeaway[] => [...TAKEAWAYS, ...AI_TIMELINE.takeaways.filter((t) => !TAKEAWAYS.some((x) => x.id === t.id))];
