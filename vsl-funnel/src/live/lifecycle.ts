@@ -185,6 +185,8 @@ export const VIA_LABEL: Record<string, string> = {
   cal: 'Calendar entry', 'e-confirm': 'Email: confirmation', 'e-r24h': 'Email: 24 hours', 'e-r3h': 'Email: 3 hours', 'e-r1h': 'Email: 1 hour', 'e-r10m': 'Email: 10 minutes', 'e-live': 'Email: we’re live',
   'e-missing': 'Email: you’re missing it', 's-confirm': 'Text: confirmation', 's-r1h': 'Text: 1 hour', 's-r10m': 'Text: 10 minutes', 's-live': 'Text: we’re live', 's-missing': 'Text: you’re missing it',
   'e-r3h~b': 'Email: 3 hours (B)', pre: 'Confirmation page', direct: 'No tracked click',
+  // Round 4 lifecycle2
+  'e-lw': 'Email: lead-in 1 (welcome)', 'e-lq': 'Email: lead-in 2 (question)', 'e-lp': 'Email: lead-in 3 (pre-work)', 'e-le': 'Email: late sign-up essentials', 'e-m1': 'Email: missed live', 'e-m2': 'Email: missed live (second)',
 };
 export const cleanVia = (v: unknown) => (typeof v === 'string' && /^[a-z0-9~_-]{2,24}$/i.test(v) ? v.toLowerCase() : null);
 /** The reminder that brought someone back: their last tracked click in the six hours before they joined. */

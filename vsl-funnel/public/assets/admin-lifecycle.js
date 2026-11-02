@@ -9,6 +9,7 @@
     '.lcb-n{font-variant-numeric:tabular-nums;white-space:nowrap}.lcb-muted{color:#86868b}.lcb-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:14px}' +
     '.lcb-list{margin:6px 0 0;padding-left:18px;font-size:13px}.lcb-list li{margin:4px 0}.lcb-form{display:grid;gap:10px}.lcb-form label{display:grid;gap:4px;font-size:13px}' +
     '.lcb-cad{display:grid;grid-template-columns:auto repeat(2,64px);gap:6px 10px;font-size:13px;align-items:center}.lcb-cad b{font-weight:600}.lcb-cad input{justify-self:center}' +
+    '.lcb-sw{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:14px;line-height:1.45}.lcb-sw input{margin-top:3px}' +
     '@media (max-width:640px){.lcb-bar{grid-template-columns:1fr auto}.lcb-bar .lcb-track{grid-column:1 / -1;order:3}}';
   function css() { if (!document.getElementById('lcb-css')) { var s = document.createElement('style'); s.id = 'lcb-css'; s.textContent = CSS; document.head.appendChild(s); } }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -68,6 +69,7 @@
         '</div><p style="margin-top:12px"><button class="btn-sm" type="button" data-save-lc>Save</button></p></div>' +
         '<div class="card" style="margin-top:14px"><h2>Move this event</h2><p class="sub">Registrants get the new time with an updated calendar entry (calendar version ' + ST.icsSeq + '), and the reminders run again for the new time. Cancelling sends a cancellation that removes the calendar entry.</p>' +
           '<div class="leb-form"><label>New date and time (' + esc(d.event.tz) + ')<input class="input" type="datetime-local" data-new value="' + esc(localInput(d.event.startsAt, d.event.tz)) + '"></label><button class="btn-sm" type="button" data-move>Move and notify</button></div></div>';
+      var box2 = document.createElement('div'); el.appendChild(box2); mount2(box2, id, toast);
       el.querySelector('[data-save-lc]').onclick = function () {
         var cadence = { email: {}, sms: {} };
         Array.prototype.forEach.call(el.querySelectorAll('[data-cad]'), function (i) { var p = i.getAttribute('data-cad').split('.'); cadence[p[0]][p[1]] = i.checked; });
@@ -80,6 +82,42 @@
         if (!v || !confirm('Move this event to ' + v.replace('T', ' ') + '? Every registrant gets the new time.')) return;
         req('PATCH', 'live-events/' + encodeURIComponent(id), { starts_at: v }).then(function (r) { toast(r.ok ? 'Moved. Registrants get the new time.' : r.error || 'Could not move it'); if (r.ok && ctx && ctx.reload) ctx.reload(); });
       };
+    });
+  }
+  // Round 4 "lifecycle2": the per-event switches (all off by default) and what each step did, in real numbers.
+  var PLAN = { full: 'All three lead-in parts', partial: 'The parts that still fit', compressed: 'One essentials email (late sign-up)', none: 'Reminders only (too late for more)', off: 'Switched off' };
+  function mount2(el, id, toast) {
+    req('GET', 'live-events/' + encodeURIComponent(id) + '/lifecycle2').then(function (d) {
+      if (!d || !d.toggles) { el.innerHTML = ''; return; }
+      var T = d.toggles;
+      var sw = function (k, label, help) {
+        return '<label class="lcb-sw"><input type="checkbox" data-lc2="' + k + '"' + (T[k] ? ' checked' : '') + '><span><b>' + esc(label) + '</b><br><span class="lcb-muted">' + esc(help) + '</span></span></label>';
+      };
+      var plans = Object.keys(d.plans).filter(function (k) { return k !== 'off'; }).map(function (k) { return '<li>' + esc(PLAN[k] || k) + ': <b>' + d.plans[k] + '</b></li>'; }).join('');
+      var rows = d.steps.filter(function (s) { return s.sent || s.skipped.length; }).map(function (s) {
+        return '<tr><td>' + esc(s.label) + '</td><td class="num">' + s.sent + '</td><td class="num">' + s.opened + ' <span class="lcb-muted">' + pct(s.openRate) + '</span></td><td class="num">' + s.clicked + ' <span class="lcb-muted">' + pct(s.clickRate) + '</span></td>' +
+          '<td class="num">' + s.outcome + ' <span class="lcb-muted">' + pct(s.outcomeRate) + ' ' + esc(s.outcomeLabel.toLowerCase()) + '</span></td><td class="num">' + s.bought + '</td>' +
+          '<td>' + (s.skipped.length ? s.skipped.map(function (x) { return esc(x.why) + ' ' + x.n; }).join(', ') : '<span class="lcb-muted">none</span>') + '</td></tr>';
+      }).join('');
+      var C = d.compare;
+      el.innerHTML = '<div class="card" style="margin-top:14px" data-lc2-card><h2>Lead-in, late sign-ups and missed live</h2>' +
+        '<p class="sub">Off until you switch them on, for this event only. Every email waits for 8:00 to 20:00 in the person’s zone, keeps six hours from any other email and two hours from an AI call, goes at most once a day per person, honours unsubscribe and the pre-session daily cap (now ' + d.dailyCap + ').</p>' +
+        '<div class="lcb-form">' +
+          sw('leadin', 'Bootcamp lead-in', 'Three short parts before the session, a day apart (4, 3 and 2 days before): the welcome with the “watch this before” video, the biggest-question prompt, the pre-work worksheet. On the confirmation page with their real dates, and by email. A part is not emailed once its step is done on the page.') +
+          sw('adaptive', 'Adaptive by sign-up date', 'People who register less than about three days before the start (too late for the series) get one essentials email six hours after signing up (why come live, the calendar, the worksheet), never within four hours of the start.') +
+          sw('missed', 'Missed-live path', 'People who didn’t come and haven’t bought get one short email 18 hours after the end, keyed to how much of the replay they watched, and a second only after they watch more. Only while the deposit offer is open (' + d.offerHours + ' hours after the end), with time to spare. It replaces the no-show highlights email for this event.') +
+        '</div>' +
+        (plans ? '<p class="sub" style="margin-top:12px">Registrants by plan</p><ul class="lcb-list">' + plans + '</ul>' : '') +
+        '<p class="sub" style="margin-top:12px">What each step did</p>' +
+        (rows ? '<div class="table-wrap"><table><thead><tr><th>Step</th><th class="num">Sent</th><th class="num">Opened</th><th class="num">Clicked</th><th class="num">Outcome</th><th class="num">Deposit after</th><th>Held back</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '<p class="lcb-muted">Nothing has gone out for this event yet.</p>') +
+        '<p class="lcb-muted" style="font-size:13px;margin-top:8px">Joined live: ' + C.got.joined + ' of ' + C.got.n + ' (' + pct(C.got.rate) + ') who got a lead-in or essentials email, against ' + C.didNot.joined + ' of ' + C.didNot.n + ' (' + pct(C.didNot.rate) + ') who didn’t. Not a controlled test: early sign-ups get more parts and show up more anyway.</p>' +
+        '</div>';
+      Array.prototype.forEach.call(el.querySelectorAll('[data-lc2]'), function (i) {
+        i.onchange = function () {
+          var b = {}; b[i.getAttribute('data-lc2')] = i.checked;
+          req('PATCH', 'live-events/' + encodeURIComponent(id) + '/lifecycle2', b).then(function (r) { toast(r.ok ? (i.checked ? 'Switched on for this event' : 'Switched off for this event') : r.error || 'Could not save'); mount2(el, id, toast); });
+        };
+      });
     });
   }
   root.LifecycleBoard = { mount: mount };

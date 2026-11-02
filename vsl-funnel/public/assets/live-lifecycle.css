@@ -31,3 +31,14 @@
 .lc-refrow .lv-btn-2 { justify-content: center; min-height: 44px; }
 .lc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (min-width: 900px) { .lc-pre { padding-top: 64px; } }
+/* Round 4 "lifecycle2": the lead-in parts on the confirmation page (numbered steps, real dates, done states). */
+.lc2-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.lc2-item { display: grid; grid-template-columns: 32px 1fr; gap: 14px; padding: 14px 0; border-top: 1px solid var(--a-hair); }
+.lc2-item:first-child { border-top: 0; padding-top: 4px; }
+.lc2-n { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--a-fill); color: var(--a-navy); font: 600 15px/1 var(--a-ui); font-variant-numeric: tabular-nums; }
+.lc2-item.is-done .lc2-n { background: #1d7a4f; color: #fff; }
+.lc2-t { margin: 4px 0 2px; font: 600 16px/1.35 var(--a-ui); color: var(--a-ink); }
+.lc2-p { margin: 0 0 6px; font: 400 15px/1.5 var(--a-ui); color: var(--a-ink-2); }
+.lc2-meta { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font: 500 14px/1.4 var(--a-ui); }
+.lc2-state { color: var(--a-ink-2); }
+.lc2-state[data-lc2-state="done"] { color: #1d7a4f; }

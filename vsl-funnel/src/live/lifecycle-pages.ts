@@ -53,6 +53,8 @@ export async function preShowPage(c: Context<AppEnv>, rt: Runtime, ev: LiveEvent
   try { ws = JSON.parse(row.worksheet ?? '{}') ?? {}; } catch { ws = {}; }
   const val = (k: string) => esc(String(ws[k] ?? ''));
   if (!row.preshow_at) await rt.env.DB.prepare('UPDATE lc_regs SET preshow_at = ? WHERE reg_id = ?').bind(Date.now(), reg.id).run();
+  // Round 4 lifecycle2: the lead-in parts with their real dates (empty unless switched on for this event).
+  const leadin = await (await import('./lifecycle2-db')).leadinBlock(rt, ev, reg, row, tz, { video: Boolean(lc.video_url) }).catch((e) => { console.error('lead-in block', e); return ''; });
   const field = (k: string, label: string, o: { mode?: string } = {}) => `<label class="lv-field"><span>${esc(label)}</span><input name="${k}" maxlength="${k === 'action_1' ? 200 : 120}" value="${val(k)}"${o.mode ? ` inputmode="${o.mode}"` : ''} autocomplete="off"></label>`;
   const main = `<section class="lc-pre"><div class="wrap narrow">
     <header class="lc-head">
@@ -65,6 +67,8 @@ export async function preShowPage(c: Context<AppEnv>, rt: Runtime, ev: LiveEvent
       <p class="lv-fine">${esc(C.opensAt)}</p>
       <p class="lc-lede">${esc(C.lede)}</p>
     </header>
+
+    ${leadin}
 
     <section class="lc-block lc-cal" aria-labelledby="lc-cal-h">
       <h2 class="lc-h" id="lc-cal-h">${ICON.cal} ${esc(C.calHeading)}</h2>
@@ -189,6 +193,8 @@ export function mountLifecycleApi(api: Hono<AppEnv>) {
 /** /admin/api/live-events/:id/lifecycle (mounted inside mountLiveAdmin: admin session required). */
 export function mountLifecycleAdmin(admin: Hono<AppEnv>) {
   admin.get('/live-events/:id/lifecycle', async (c) => { const r = await lifecycleReport(runtimeFrom(c), c.req.param('id')); return r ? c.json(r) : c.json({ error: 'Event not found' }, 404); });
+  admin.get('/live-events/:id/lifecycle2', async (c) => { const r = await (await import('./lifecycle2-db')).lc2Report(runtimeFrom(c), c.req.param('id')); return r ? c.json(r) : c.json({ error: 'Event not found' }, 404); });
+  admin.patch('/live-events/:id/lifecycle2', async (c) => { const r = await (await import('./lifecycle2-db')).saveLc2(runtimeFrom(c), c.req.param('id'), await body(c)); return c.json(r, r.ok ? 200 : 400); });
   admin.patch('/live-events/:id/lifecycle', async (c) => { const r = await saveLcEvent(runtimeFrom(c), c.req.param('id'), await body(c)); return c.json(r, r.ok ? 200 : 400); });
 }
 
