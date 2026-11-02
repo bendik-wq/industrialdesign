@@ -143,7 +143,7 @@
         err.hidden = true;
         video.srcObject = stream; meterFor(stream);
         return navigator.mediaDevices.enumerateDevices().then(fill);
-      }).catch(function () { showErr(C.permissionBlocked); addRetry(); });
+      }).catch(function (e) { showErr(mediaError(e)); addRetry(); var d = h('small', { class: 'rm-errcode' }, esc((e && e.name ? e.name : 'Error') + (e && e.message ? ': ' + e.message : ''))); err.appendChild(document.createElement('br')); err.appendChild(d); });
     }
     function addRetry() { var b = h('button', { type: 'button', class: 'rm-btn' }, esc(C.tryAgain)); b.onclick = open; err.appendChild(document.createTextNode(' ')); err.appendChild(b); }
     ['cam', 'mic'].forEach(function (k) { var s = $('[data-' + k + ']'); if (s) s.onchange = open; });
@@ -178,7 +178,9 @@
   }
 
   function camBusy(e) { return ['NotReadableError', 'TrackStartError', 'AbortError'].indexOf(e && e.name) >= 0; }
-  function mediaError(e) { return camBusy(e) ? C.cameraBusy : C.permissionBlocked; }
+  // Chrome and Edge say "Permission denied by system" when Windows or macOS privacy settings block the browser.
+  function sysBlocked(e) { return Boolean(e && e.name === 'NotAllowedError' && /system/i.test(String(e.message || ''))); }
+  function mediaError(e) { return camBusy(e) ? C.cameraBusy : sysBlocked(e) ? C.systemBlocked : C.permissionBlocked; }
 
   var audioUnlocked = false;
   function unlockAudio() { audioUnlocked = true; Object.keys(S.audioEls).forEach(function (k) { S.audioEls[k].play().catch(function () {}); }); if (MQ.view) MQ.view.muted.set(false); }

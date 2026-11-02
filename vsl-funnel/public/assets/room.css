@@ -208,3 +208,4 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   .rm-top-r .rm-rec { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+.rm-errcode{display:inline-block;margin-top:6px;color:var(--muted,#6e6e73);font-size:12px}
