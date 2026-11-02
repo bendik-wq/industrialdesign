@@ -276,20 +276,29 @@ export async function cohorts(rt: Pick<Runtime, 'env'>, f: FunnelSel, r: Range) 
 async function cohortLabels(rt: Pick<Runtime, 'env'>, keys: string[]) {
   const db = rt.env.DB;
   const out = new Map<string, { label: string; at: number }>();
+  // One IN query per funnel (in chunks), not one query per cohort: up to 300 round trips before.
+  const refs: Record<'auto' | 'live' | 'challenge', string[]> = { auto: [], live: [], challenge: [] };
   for (const k of keys.slice(0, 300)) {
     const [funnel, ref] = k.split('|');
     if (!ref || ref === 'null') continue;
-    if (funnel === 'auto') {
-      const s = await db.prepare('SELECT starts_at, auto FROM webinar_sessions WHERE id = ?').bind(ref).first<{ starts_at: number; auto: number }>();
-      if (s) out.set(k, { label: `Masterclass ${new Date(s.starts_at).toISOString().slice(0, 16).replace('T', ' ')} UTC${s.auto === 2 ? ' (just in time)' : ''}`, at: s.starts_at });
-    } else if (funnel === 'live') {
-      const e = await db.prepare('SELECT title, starts_at FROM live_webinars WHERE id = ?').bind(ref).first<{ title: string; starts_at: number }>();
-      if (e) out.set(k, { label: `${e.title} (${new Date(e.starts_at).toISOString().slice(0, 10)})`, at: e.starts_at });
-    } else {
-      const c = await db.prepare('SELECT name, start_date FROM challenge_cohorts WHERE id = ?').bind(ref).first<{ name: string; start_date: string }>();
-      if (c) out.set(k, { label: `${c.name} (Day 1 ${c.start_date})`, at: Date.parse(c.start_date) || 0 });
-    }
+    refs[funnel === 'auto' ? 'auto' : funnel === 'live' ? 'live' : 'challenge'].push(ref);
   }
+  const inChunks = async <T,>(ids: string[], sql: (ph: string) => string) => {
+    const rows: T[] = [];
+    for (let i = 0; i < ids.length; i += 90) {
+      const part = ids.slice(i, i + 90);
+      rows.push(...(await db.prepare(sql(part.map(() => '?').join(','))).bind(...part).all<T>()).results);
+    }
+    return rows;
+  };
+  const [sessions, events, cohorts] = await Promise.all([
+    inChunks<{ id: string; starts_at: number; auto: number }>(refs.auto, (ph) => `SELECT id, starts_at, auto FROM webinar_sessions WHERE id IN (${ph})`),
+    inChunks<{ id: string; title: string; starts_at: number }>(refs.live, (ph) => `SELECT id, title, starts_at FROM live_webinars WHERE id IN (${ph})`),
+    inChunks<{ id: string; name: string; start_date: string }>(refs.challenge, (ph) => `SELECT id, name, start_date FROM challenge_cohorts WHERE id IN (${ph})`),
+  ]);
+  for (const s of sessions) out.set(`auto|${s.id}`, { label: `Masterclass ${new Date(s.starts_at).toISOString().slice(0, 16).replace('T', ' ')} UTC${s.auto === 2 ? ' (just in time)' : ''}`, at: s.starts_at });
+  for (const e of events) out.set(`live|${e.id}`, { label: `${e.title} (${new Date(e.starts_at).toISOString().slice(0, 10)})`, at: e.starts_at });
+  for (const c of cohorts) out.set(`challenge|${c.id}`, { label: `${c.name} (Day 1 ${c.start_date})`, at: Date.parse(c.start_date) || 0 });
   return out;
 }
 

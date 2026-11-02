@@ -14,6 +14,8 @@ import { type Context, Hono } from 'hono';
 import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
+import { hqCache } from '../lib/hq-cache';
+import { deliverabilityAdmin } from '../admin/deliverability';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
 import { APPLICATION, BRAND, VIDEOS } from '../config';
 import { LEAD_STATUSES, type Lead, getLead, parseAnswers } from '../funnel/leads';
@@ -83,6 +85,7 @@ import { PLACEMENTS, PRESETS, type TrackedLink, linkFunnels, newLinkCode, slug, 
 
 export const admin = new Hono<AppEnv>();
 admin.use('*', requireAdmin);
+admin.use('*', hqCache); // 90 s cache of the heavy read views, cleared by any Funnel HQ write (src/lib/hq-cache.ts)
 mountLiveAdmin(admin); // Live webinars: events, host controls, the deposit offer (src/live/routes.ts)
 mountDmAdmin(admin); // Instagram DM inbox: /admin/api/dm/* (src/dm/routes.ts)
 mountFunnelMaps(admin); // Funnel maps: /admin/api/maps* (src/admin/funnel-maps.ts)
@@ -242,6 +245,7 @@ admin.route('/winback', winbackAdmin); // Funnel HQ → Win-back (cold leads int
 admin.route('/audiences', audiencesAdmin); // Funnel HQ → Meta audiences (planned audiences + custom conversions; created only on approval)
 admin.route('/webinar-calls', webinarCallsAdmin); // AI calls → Webinar calls (webinar, live Zoom, challenge flows)
 admin.route('/dataq', dataqAdmin); // Ad tracking → Data quality checks and CSV/JSON exports (src/dataq/*)
+admin.route('/deliverability', deliverabilityAdmin); // Emails → Deliverability: DNS health (DoH), bounce/complaint trend, per-sequence table (read-only)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {
   const b = await c.req.json<{ review_booked?: boolean }>().catch(() => ({ review_booked: true }));

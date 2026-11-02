@@ -77,19 +77,31 @@ export async function importZoomAttendance(rt: Runtime, eventId: string) {
   return { ok: true as const, participants: list.length, matched };
 }
 
+/**
+ * The 5-minute cron keeps attribution current (at most every 10 minutes). A report load only waits for the sync
+ * when the first full back-fill hasn't happened yet; otherwise the catch-up runs in the background, so the view
+ * doesn't stall for seconds once every 10 minutes (it was the slowest part of opening Attribution).
+ */
+async function syncBeforeRead(rt: Runtime) {
+  const full = await rt.env.DB.prepare("SELECT value FROM kv_state WHERE key = 'attr:full'").first<{ value: string }>().catch(() => null);
+  const run = syncAttribution(rt).catch((e) => console.error('attribution sync', e));
+  if (!full) { await run; return; }
+  try { rt.waitUntil(run); } catch { await run; } // no execution context (tests): just wait
+}
+
 export function mountAttributionAdmin(admin: Hono<AppEnv>) {
   const q = (c: Context<AppEnv>) => c.req.query() as Record<string, string | undefined>;
 
   // The contract the Funnel map reads: { stages: [{ id, label, count, revenue? }] }.
   admin.get('/attribution/stages', async (c) => {
     const rt = runtimeFrom(c);
-    await syncAttribution(rt).catch((e) => console.error('attribution sync', e));
+    await syncBeforeRead(rt);
     return c.json(await stagesContract(rt, parseFunnel(q(c).funnel), parseRange(q(c))));
   });
 
   admin.get('/attribution', async (c) => {
     const rt = runtimeFrom(c);
-    await syncAttribution(rt).catch((e) => console.error('attribution sync', e));
+    await syncBeforeRead(rt);
     const p = q(c);
     return c.json(await full(rt, parseFunnel(p.funnel), parseRange(p), parseModel(p.model), parseDim(p.dim)));
   });
