@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm run test",
-    "simulate": "node scripts/simulate-traffic.mjs"
+    "simulate": "node scripts/simulate-traffic.mjs",
+    "smoke:seed": "node scripts/smoke/seed.mjs",
+    "smoke:local": "node scripts/smoke/run.mjs --local",
+    "smoke:prod": "node scripts/smoke/run.mjs --prod"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
