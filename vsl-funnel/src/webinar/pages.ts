@@ -16,6 +16,8 @@ import {
 } from './webinar';
 import { PassError, activePass, confirmOnReturn, createCheckout, dealMaths, dealReviewPack, formatMoney, markPackViewed, passConfig, passCopy, passGate, registeredPassBlock, roomPassConfig, ticketFor } from './pass';
 import { sprintRoomConfig } from './sprint';
+import { sessionSlot } from '../audiences/enrich';
+import { editionName } from './editions';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -33,11 +35,13 @@ const when = (t: number, tz: string | null) => formatCallTime(t, tz);
 const inMinutes = (t: number) => { const m = Math.max(1, Math.round((t - Date.now()) / 60_000)); return `Starts in ${m} minute${m === 1 ? '' : 's'}`; };
 
 /** Registration options, in the visitor's own time zone; a just-in-time showing first when there is one. */
-function sessionOptions(sessions: Session[], tz: string | null, jit: number | null = null) {
-  const first = jit ? `<label class="opt opt-jit"><input type="radio" name="session_id" value="jit:${jit}" checked><span><strong data-starts-in="${jit}">${inMinutes(jit)}</strong> · next showing, ${esc(formatCallTime(jit, tz).replace(/^[A-Za-z]+,?\s*/, ''))}</span></label>` : '';
+function sessionOptions(sessions: Session[], tz: string | null, jit: number | null = null, slotTz: string | null = null) {
+  // data-slot: weekday + local hour in the schedule's zone, the same session_slot the server sends to Meta (src/audiences).
+  const slot = (t: number) => esc(sessionSlot(t, slotTz) ?? '');
+  const first = jit ? `<label class="opt opt-jit"><input type="radio" name="session_id" value="jit:${jit}" data-slot="${slot(jit)}" checked><span><strong data-starts-in="${jit}">${inMinutes(jit)}</strong> · next showing, ${esc(formatCallTime(jit, tz).replace(/^[A-Za-z]+,?\s*/, ''))}</span></label>` : '';
   return first + sessions.map((s, i) => {
     const soon = s.starts_at - Date.now() < 3_600_000;
-    return `<label class="opt"><input type="radio" name="session_id" value="${esc(s.id)}"${i === 0 && !jit ? ' checked' : ''}><span>${esc(when(s.starts_at, tz))}${s.mode !== 'evergreen' ? ' · live' : ''}${soon ? ' · starting soon' : ''}</span></label>`;
+    return `<label class="opt"><input type="radio" name="session_id" value="${esc(s.id)}" data-slot="${slot(s.starts_at)}"${i === 0 && !jit ? ' checked' : ''}><span>${esc(when(s.starts_at, tz))}${s.mode !== 'evergreen' ? ' · live' : ''}${soon ? ' · starting soon' : ''}</span></label>`;
   }).join('');
 }
 
@@ -62,11 +66,11 @@ export async function webinarLanding(c: Context<AppEnv>) {
       ...(ticket ? { form_heading: esc(ticket.copy.formHeading), register_cta: esc(ticket.copy.button), register_note: `${esc(ticket.copy.privacy)} <a href="/privacy">Privacy policy</a>.` } : {}),
     },
     blocks: {
-      sessions: sessions.length || jit ? sessionOptions(sessions, v.geo.timezone, jit) : '<p class="muted">No sessions are scheduled right now. Check back soon.</p>',
+      sessions: sessions.length || jit ? sessionOptions(sessions, v.geo.timezone, jit, rt.settings.SALES_TIMEZONE || 'Australia/Sydney') : '<p class="muted">No sessions are scheduled right now. Check back soon.</p>',
       ...(ticket ? { ticket_price: ticketPriceHtml(ticket.copy), ticket_block: ticketBlockHtml(ticket.copy), ticket_form_note: `<p class="ticket-form-note"><strong>${esc(ticket.copy.priceLine)}</strong></p>` } : {}),
     },
     show: { has_sessions: sessions.length > 0 || Boolean(jit), ticket: Boolean(ticket) },
-    config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt), headline: hl.id } },
+    config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt), headline: hl.id, edition: editionName(rt.settings) } },
     seo: {
       title: `${w.title} | Masterclass with Josh Li`,
       description: 'A one-hour masterclass with Josh Li on buying a competitor without your own cash: commercial debt, seller finance and seller rollover, and the path to a signed LOI.',
@@ -197,7 +201,7 @@ async function nextSessionsBlock(c: Context<AppEnv>, exclude?: string) {
   const jt = jitSettings(rt);
   const tz = c.get('visitor').geo.timezone ?? rt.settings.SALES_TIMEZONE ?? null;
   const jit = nextJitStart(Date.now(), jt.every, tz, jt);
-  return sessions.length || jit ? sessionOptions(sessions, c.get('visitor').geo.timezone, jit) : '';
+  return sessions.length || jit ? sessionOptions(sessions, c.get('visitor').geo.timezone, jit, rt.settings.SALES_TIMEZONE || 'Australia/Sydney') : '';
 }
 
 export async function roomPage(c: Context<AppEnv>, replay = false) {

@@ -59,6 +59,7 @@ import { autopilotAdmin } from '../marketing/admin';
 import { clientsAdmin } from '../clients/admin';
 import { roomsAdmin } from '../rooms/routes';
 import { winbackAdmin } from '../winback/admin';
+import { audiencesAdmin } from '../audiences/admin';
 import { supportAdmin } from '../support/admin';
 import { automationsAdmin } from '../integrations/automations-admin';
 import { webinarCallsAdmin } from '../admin/webinar-calls';
@@ -232,6 +233,7 @@ admin.route('/rooms', roomsAdmin); // Funnel HQ → Live webinars → Rooms (our
 admin.route('/support', supportAdmin); // Funnel HQ → Support (threads, drafts, escalations)
 admin.route('/automations', automationsAdmin); // Integrations → Claude (MCP) and Zapier & webhooks
 admin.route('/winback', winbackAdmin); // Funnel HQ → Win-back (cold leads into the masterclass, live webinar or challenge; starts only on approval)
+admin.route('/audiences', audiencesAdmin); // Funnel HQ → Meta audiences (planned audiences + custom conversions; created only on approval)
 admin.route('/webinar-calls', webinarCallsAdmin); // AI calls → Webinar calls (webinar, live Zoom, challenge flows)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {

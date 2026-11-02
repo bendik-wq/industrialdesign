@@ -214,6 +214,12 @@ export const SETTINGS = [
   // Sales follow-up actions (src/sales/followups.ts).
   { key: 'SALES_QUIET_DAYS', label: 'Lead counts as quiet after (days)', group: 'Booking', placeholder: '5', help: 'Sales follow-up: no reply, click or page visit in this many days.' },
   { key: 'META_STAGE_EVENTS', label: 'Send webinar stage events to Meta', group: 'Ads', placeholder: 'true', help: 'Lead on each webinar, live webinar and challenge registration, plus the custom events WebinarAttended and WebinarOfferSeen (once per registration). Set to false to stop them. Consent rules still apply.' },
+  // Meta audiences (src/audiences): created in Meta only after approval in Command, with the write token above.
+  { key: 'META_SCHEDULE_VALUE', label: 'Send a predicted value with booked calls', group: 'Ads', placeholder: 'off', help: 'on: each Schedule event carries the expected value of a booked call for its tier (fee × show rate × close rate, from your own outcomes or the financial model), so Meta can bid on value. It is an estimate, shown in Meta audiences. Default off.' },
+  { key: 'META_AUDIENCE_RETENTION_DAYS', label: 'Website audience retention (days)', group: 'Ads', placeholder: '180', help: 'How long someone stays in a Pixel-based audience after the event, 1 to 180.' },
+  { key: 'META_AUDIENCE_SYNC', label: 'Daily customer-list resync', group: 'Ads', placeholder: 'on', help: 'on (default): once a day each customer-list audience is replaced with who is in it now, so unsubscribes, suppressions and deletions leave Meta too. off: no uploads after creation.' },
+  { key: 'META_LOOKALIKE_COUNTRIES', label: 'Lookalike countries', group: 'Ads', placeholder: 'AU, US', help: 'Two-letter country codes, comma separated. Each buyer list gets a 1% and a 3% lookalike per country when you propose them.' },
+  { key: 'META_AUDIENCE_EXCLUDE', label: 'Never upload to Meta', group: 'Ads', placeholder: 'friend@example.com, @yourcompany.com', help: 'Emails, phone numbers or @domains left out of every customer-list audience (team, friends, partners).' },
   { key: 'META_TEST_EVENT_CODE', label: 'Meta test event code', group: 'Ads', help: 'Only while testing in Events Manager. Clear it before going live.' },
 
   { key: 'SLACK_WEBHOOK_URL', label: 'Slack webhook — team alerts', group: 'Alerts', secret: true, help: 'Hot leads, bookings, call-starting pings, no-shows, daily digest. Slack → Apps → Incoming Webhooks.' },

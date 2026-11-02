@@ -49,6 +49,7 @@ import { guaranteePage, liveLanding, liveRoom, liveTicketPage, liveWelcome, live
 import { processLiveMessages } from './live/events';
 import { payPage } from './sales/pay-page';
 import { runOps } from './ops/cron';
+import { maybeSyncAudiences } from './audiences/sync';
 import { maybeRunResearch } from './research/brief';
 import { maybeRunAutopilot } from './marketing/autopilot';
 import './marketing/angles'; // registers marketing.test_angle / marketing.launch_angle_ads
@@ -345,6 +346,7 @@ export default {
       quiet(processWinback(rt), 'win-back (approved campaigns only)'),
       quiet(syncAttribution(rt), 'webinar attribution'),
       quiet(planWebinarCalls(rt), 'webinar AI calls'),
+      quiet(maybeSyncAudiences(rt), 'Meta audiences (approved only)'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);
