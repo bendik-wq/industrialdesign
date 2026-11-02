@@ -69,7 +69,9 @@ export function variantFor(name: string, props: Record<string, unknown>): Varian
 }
 
 /** Webinar stage events (src/attribution) carry the funnel they happened in. */
-const STAGE_NAMES = new Set(['attr_lead', 'attr_attended', 'attr_offer_seen', 'attr_watched_50', 'attr_checkout_started']);
+const STAGE_NAMES = new Set(['attr_lead', 'attr_attended', 'attr_offer_seen', 'attr_watched_50', 'attr_checkout_started',
+  // Deep-funnel signals (src/tracking/signals.ts)
+  'signal_watched_30m', 'signal_stayed_for_pitch', 'signal_offer_opened', 'signal_checkout_started', 'signal_application_submitted', 'signal_contract_signed']);
 const ATTR_FUNNEL: Record<string, Funnel> = { auto: 'auto', live: 'live', challenge: 'challenge' };
 
 // ───────────── small pure helpers (shared with tests and the Pixel side) ─────────────

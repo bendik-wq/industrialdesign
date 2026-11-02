@@ -5,6 +5,7 @@ import { flag } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
 import { LEARNING_NOTE, LOOKALIKE_SOURCES, type PlanItem, RECOMMENDATIONS, buildPlan, conversionRule, lookalikeSpec, websiteRule } from './catalog';
 import { bookingValues, scheduleValueOn } from './enrich';
+import { signalsReport } from '../tracking/signals';
 import { MetaError, audienceSize, createCustomConversion, createListAudience, createLookalike, createWebsiteAudience, uploadUsers } from './meta';
 import { EXCLUDED_LABEL, LIST_SCHEMA, VALUE_SCHEMA, hashRow, membersHash, segmentMembers } from './segments';
 import { activeSlots } from './segments';
@@ -70,7 +71,7 @@ export async function setup(rt: Pick<Runtime, 'env' | 'settings'>) {
 // ───────────── report for Funnel HQ ─────────────
 
 export async function audiencesReport(rt: Pick<Runtime, 'env' | 'settings'>) {
-  const [plan, state, su, values] = await Promise.all([currentPlan(rt), allState(rt), setup(rt), bookingValues(rt).catch(() => [])]);
+  const [plan, state, su, values, signals] = await Promise.all([currentPlan(rt), allState(rt), setup(rt), bookingValues(rt).catch(() => []), signalsReport(rt).catch(() => null)]);
   const byKey = new Map(state.map((r) => [r.key, r]));
   // Live sizes from our own data: one count per segment (the list and website versions of a segment share it).
   const counts = new Map<string, { n: number; excluded: Record<string, number>; total: number }>();
@@ -99,6 +100,7 @@ export async function audiencesReport(rt: Pick<Runtime, 'env' | 'settings'>) {
   return {
     setup: su, items, pending, recommendations: RECOMMENDATIONS, learningNote: LEARNING_NOTE,
     bookingValues: values,
+    signals,
     summary: {
       conversions: items.filter((i) => i.kind === 'conversion').length, website: items.filter((i) => i.kind === 'website').length,
       lists: items.filter((i) => i.kind === 'list').length, lookalikes: items.filter((i) => i.kind === 'lookalike').length,
