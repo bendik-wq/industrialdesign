@@ -20,7 +20,8 @@
   </div>
   <script>
     var e = new URLSearchParams(location.search).get('error');
-    if (e) { var el = document.getElementById('err'); el.textContent = e; el.hidden = false; }
+    var msg = { wrong: 'Wrong password', tooMany: 'Too many attempts. Wait 15 minutes and try again.', tooManyAll: 'Sign-in is paused after many wrong passwords. Try again within the hour.', setup: 'Set the ADMIN_PASSWORD secret first: npx wrangler secret put ADMIN_PASSWORD' };
+    if (e) { var el = document.getElementById('err'); el.textContent = Object.prototype.hasOwnProperty.call(msg, e) ? msg[e] : 'Login failed'; el.hidden = false; }
   </script>
 </body>
 </html>

@@ -11,7 +11,7 @@
     '.er-st.ok .er-dot{background:var(--good,#16a34a)}.er-st.failed .er-dot{background:var(--critical,#d03b3b)}.er-st.slow .er-dot{background:var(--warning,#fab219)}' +
     '.er-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-start;justify-content:space-between}.er-head h2{margin:0}' +
     '.er-switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.er-switch input{width:18px;height:18px}.er-note{font-size:12px;color:var(--muted,#6e6e73);margin:8px 0 0}';
-  var KIND = { request: 'Page or API', webhook: 'Webhook', cron: 'Cron job', room: 'Room' };
+  var KIND = { request: 'Page or API', webhook: 'Webhook', cron: 'Cron job', room: 'Room', csp: 'Content policy (CSP)' };
   var ST = { ok: 'OK', failed: 'Failed', slow: 'Slow' };
 
   function ms(v) { if (v == null) return '–'; v = Number(v); return v >= 10000 ? (v / 1000).toFixed(0) + ' s' : v >= 1000 ? (v / 1000).toFixed(1) + ' s' : Math.round(v) + ' ms'; }

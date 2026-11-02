@@ -9,7 +9,8 @@ import type { Env } from '../env';
  *
  * recordError never throws and never blocks the caller for long: a broken error log must not break the app.
  */
-export type ErrorKind = 'request' | 'webhook' | 'cron' | 'room';
+/** csp: a Content-Security-Policy violation a browser reported (src/infra/csp.ts). */
+export type ErrorKind = 'request' | 'webhook' | 'cron' | 'room' | 'csp';
 
 export const ERROR_RETENTION_DAYS = 14;
 const DAY = 86_400_000;
@@ -22,8 +23,15 @@ export const SLACK_PINGS_PER_HOUR = 5;
 export function scrub(s: string): string {
   return s
     .replace(/\b(bearer|basic)\s+[\w.~+/=-]{8,}/gi, '$1 ***')
-    .replace(/([?&](?:key|token|secret|sig|signature|password|code|t)=)[^&\s"']+/gi, '$1***')
+    .replace(/([?&](?:\w*(?:key|token|secret)|sig|signature|password|code|t)=)[^&\s"']+/gi, '$1***')
     .replace(/\b(sk|pk|rk|whsec|apik|re|cfat|xox[abp])_[\w-]{6,}/gi, '$1_***')
+    // Anthropic, GitHub, Google, AWS and Meta key shapes, and JWTs (security round).
+    .replace(/\bsk-ant-[\w-]{6,}/g, 'sk-ant-***')
+    .replace(/\b(gh[pousr])_\w{6,}/g, '$1_***')
+    .replace(/\bAIza[\w-]{10,}/g, 'AIza***')
+    .replace(/\bAKIA[0-9A-Z]{12,}/g, 'AKIA***')
+    .replace(/\bEAA[A-Za-z0-9]{20,}/g, 'EAA***')
+    .replace(/\beyJ[\w-]{8,}\.eyJ[\w-]{8,}\.[\w-]+/g, '<jwt>')
     .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '<email>')
     .replace(/\+?\d[\d\s-]{8,}\d/g, '<number>');
 }
