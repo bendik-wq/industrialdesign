@@ -3,7 +3,7 @@ import { type AppEnv, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { googleReady } from '../content/video-pack';
 import { DEPTS, DEPT_LABEL, actorLabel, approveAction, autoKinds, editAction, handlerKinds, listActions, parsePayload, rejectAction } from './actions';
-import { briefMinute, buildBrief, composeBrief, sendBrief } from './brief';
+import { briefMinute, buildBrief, composeBrief, localWhen as briefWhen, sendBrief } from './brief';
 import { type ChatEvent, OPS_MODEL, runChat } from './chat';
 import { documentHtmlPage, documentToDrive, getDocument, listDocuments, saveDocument, summaryDocument } from './documents';
 import './handlers';
@@ -11,6 +11,7 @@ import { runMonitors, thresholds } from './monitors';
 import { ownerTz } from './range';
 import { RoutineError, createRoutine, describeSchedule, listRoutines, runRoutine, updateRoutine, type Routine } from './routines';
 import { opsSlackConfigured } from './slack';
+import { deployedBuild, listReleases, releaseLine } from './releases';
 
 const localWhen = (t: number, tz: string) => new Intl.DateTimeFormat('en-AU', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t).replace(',', '');
 
@@ -91,6 +92,14 @@ opsAdmin.get('/actions', async (c) => {
 opsAdmin.post('/actions/:id/approve', async (c) => { try { const r = await approveAction(runtimeFrom(c), c.req.param('id'), 'you'); return c.json(r, r.ok ? 200 : 400); } catch (e) { return fail(c, e); } });
 opsAdmin.post('/actions/:id/reject', async (c) => { const b = await body(c); const r = await rejectAction(runtimeFrom(c), c.req.param('id'), 'you', String(b.reason ?? '').slice(0, 300)); return c.json(r, r.ok ? 200 : 400); });
 opsAdmin.put('/actions/:id', async (c) => { const r = await editAction(runtimeFrom(c), c.req.param('id'), await body(c)); return c.json(r, r.ok ? 200 : 400); });
+
+// ── Deploys ("What changed"): release_notes written by npm run deploy; empty when the table or the notes are missing ──
+opsAdmin.get('/releases', async (c) => {
+  const rt = runtimeFrom(c);
+  const tz = ownerTz(rt);
+  const rows = await listReleases(rt, { limit: Math.min(20, Number(c.req.query('limit')) || 5) });
+  return c.json({ build: deployedBuild(rt.env), releases: rows.map((r) => ({ ...r, line: releaseLine(r, (t) => briefWhen(t, tz), 6) })) });
+});
 
 // ── Routines ──
 opsAdmin.get('/routines', async (c) => {

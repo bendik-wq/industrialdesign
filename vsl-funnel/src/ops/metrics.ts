@@ -24,6 +24,13 @@ export const SOURCES = {
   emails: { label: 'Emails', href: '/admin#emails' },
   live: { label: 'Live', href: '/admin#live' },
   command: { label: 'Command', href: '/admin#command' },
+  // Health views the brief and the chat's read tools link to (overnight round 2, "command").
+  errors: { label: 'Errors & cron', href: '/admin#errors' },
+  dataq: { label: 'Ad tracking → Data quality', href: '/admin#tracking' },
+  autopilot: { label: 'Ads autopilot', href: '/admin#autopilot' },
+  audiences: { label: 'Meta audiences', href: '/admin#audiences' },
+  rooms: { label: 'Rooms', href: '/admin#rooms' },
+  activity: { label: 'Command → Activity', href: '/admin#command/activity' },
 } satisfies Record<string, Source>;
 
 export const METRIC_KEYS = [

@@ -7,6 +7,7 @@ import { DEPTS, type Dept, type Risk, handlerKinds, listActions, proposeAction }
 import { saveDocument } from './documents';
 import { type Source, SOURCES, byCampaign, byContent, change, fmt, fmtChange, snapshot } from './metrics';
 import { RANGE_KEYS, type Range, dateRange, ownerTz, priorOf, resolveRange } from './range';
+import { HEALTH_TOOLS, isHealthTool, runHealthTool } from './tools-health';
 
 /**
  * The Chief of Staff's tools in the Command chat. Read tools return real rows and counts from the app with the
@@ -34,6 +35,7 @@ export const TOOLS: Anthropic.Tool[] = [
   { name: 'email_stats', description: 'Emails per sequence for a range: sent, opened, clicked, failed, skipped, and what is queued.', input_schema: { type: 'object', properties: { ...RANGE_PROPS } } },
   { name: 'live_visitors', description: 'Who is on the site right now (last 5 minutes) and the last hour: active visitors, pages, sign-ups, applications, bookings.', input_schema: { type: 'object', properties: {} } },
   { name: 'activity_log', description: 'Actions every department took or proposed (the Command activity log), newest first.', input_schema: { type: 'object', properties: { dept: { type: 'string', enum: [...DEPTS] }, status: { type: 'string', enum: ['done', 'proposed', 'approved', 'rejected', 'failed'] }, limit: { type: 'integer', minimum: 1, maximum: 50 } } } },
+  ...HEALTH_TOOLS,
   { name: 'propose_action', description: 'Queue an action for the owner to Approve, Edit or Reject in Command → Approvals. Use for anything that changes something: contacting leads or clients, emails or texts in bulk, ad changes, spending money, creating a routine (kind ops.routine_create, payload {name, instruction, cadence: daily|weekdays|weekly, weekday: 0-6 for weekly, time: "HH:MM"}), posting to the team Slack (kind ops.slack_message, payload {text}). Never claim the action is done: say it is waiting for approval.', input_schema: { type: 'object', properties: { dept: { type: 'string', enum: [...DEPTS] }, kind: { type: 'string', description: 'dept.verb, e.g. marketing.pause_ad, sales.follow_up_quiet_leads, ops.routine_create' }, summary: { type: 'string', description: 'One line the owner reads in the queue' }, detail: { type: 'string', description: 'Why, with the numbers and where they come from' }, payload: { type: 'object', description: 'Everything the handler needs to carry it out' }, risk: { type: 'string', enum: ['low', 'medium', 'high'] } }, required: ['dept', 'kind', 'summary', 'detail', 'payload', 'risk'] } },
   { name: 'create_document', description: 'Save a document (markdown) the owner can open and download from Command → Documents, e.g. a month-to-date summary. Only put numbers in it that came from the tools in this conversation, each with its source.', input_schema: { type: 'object', properties: { title: { type: 'string' }, markdown: { type: 'string' } }, required: ['title', 'markdown'] } },
 ];
@@ -192,6 +194,7 @@ export async function runTool(rt: Runtime, toolName: string, input: Record<strin
       return { result: { id, link: `/admin#command/docs`, download: `/admin/api/ops/documents/${id}.md` }, summary: `Saved document "${String(input.title ?? 'Document').slice(0, 60)}"`, sources: [{ label: 'Documents', href: '/admin#command/docs' }] };
     }
     default:
+      if (isHealthTool(toolName)) return runHealthTool(rt, toolName, input, { tz, now, range: (dflt) => rangeFrom(input, tz, now, dflt), iso: (t) => iso(t, tz) });
       return { result: { error: `Unknown tool ${toolName}` }, summary: 'Unknown tool', sources: [] };
   }
 }

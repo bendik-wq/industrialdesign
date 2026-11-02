@@ -210,8 +210,15 @@
         '<div class="cmd-filters"><select class="input" data-f="dept" aria-label="Department"><option value="">All departments</option>' + o.depts.map(function (d) { return '<option value="' + esc(d.id) + '">' + esc(d.label) + '</option>'; }).join('') + '</select>' +
         '<select class="input" data-f="actor" aria-label="Who"><option value="">Anyone</option><option value="auto">Auto</option><option value="you">You</option><option value="ai">AI</option><option value="slack">Slack</option></select>' +
         '<select class="input" data-f="status" aria-label="Status"><option value="">Any status</option><option value="done">Done</option><option value="proposed">Proposed</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="failed">Failed</option></select></div>' +
-        '<div data-rows></div><button class="btn-sm ghost" data-more hidden>Load older</button></div>';
+        '<div data-rows></div><button class="btn-sm ghost" data-more hidden>Load older</button></div><div data-deploys></div>';
       var rowsEl = body.querySelector('[data-rows]'), more = body.querySelector('[data-more]');
+      // What changed: deploy notes recorded by npm run deploy (hidden when there are none).
+      ctx.api('ops/releases', { limit: 5 }, { noRange: true }).then(function (d) {
+        var rel = (d && d.releases) || [], box = body.querySelector('[data-deploys]');
+        if (!box || (!rel.length && !d.build)) return;
+        box.innerHTML = '<div class="card" style="margin-top:14px"><h2>What changed</h2><p class="sub">' + (d.build ? 'Running build <code>' + esc(d.build) + '</code> (also on /health).' : '') + (rel.length ? ' The last deploys and the changes they carried, newest first.' : ' No deploy notes recorded yet: they appear after the next npm run deploy.') + '</p>' +
+          (rel.length ? '<div class="cmd-list">' + rel.map(function (r) { return '<div class="cmd-item"><div>' + esc(r.line) + '</div></div>'; }).join('') + '</div>' : '') + '</div>';
+      }).catch(function () { /* optional */ });
       body.querySelectorAll('[data-f]').forEach(function (s) { s.onchange = function () { f[s.getAttribute('data-f')] = s.value; before = null; all = []; load(); }; });
       more.onclick = load;
       function load() {

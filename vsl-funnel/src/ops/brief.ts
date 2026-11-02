@@ -2,6 +2,7 @@ import type { Runtime } from '../app';
 import { localParts } from '../challenge/schedule';
 import { newId } from '../lib/ids';
 import { type ActionRow, DEPT_LABEL, type Dept, listActions } from './actions';
+import { type BriefHealth, buildHealth, composeHealth } from './brief-health';
 import { type MetricKey, type Snapshot, change, fmt, fmtChange, snapshot } from './metrics';
 import { formatDay, localWeekday, ownerTz, priorOf, resolveRange } from './range';
 import { postOps } from './slack';
@@ -21,6 +22,10 @@ export interface BriefData {
   actions: Pick<ActionRow, 'dept' | 'summary' | 'status' | 'actor'>[];
   approvals: Pick<ActionRow, 'id' | 'dept' | 'summary' | 'risk'>[];
   alerts: { title: string }[];
+  /** Errors, cron, data quality, MER, Meta signals, rooms and deploys (src/ops/brief-health.ts); sections with nothing to say are left out. */
+  health?: BriefHealth;
+  /** Formats a time in the owner's time zone (deploy lines). */
+  when?: (t: number) => string;
 }
 
 /** Pure: the brief's text from data. Only formats numbers it is given. */
@@ -56,6 +61,7 @@ export function composeBrief(d: BriefData) {
     md.push('', '## Alerts in the last 24 hours');
     for (const a of d.alerts.slice(0, 6)) md.push(`- ${a.title}`);
   }
+  md.push(...composeHealth(d.health, d.when ?? ((t) => new Date(t).toISOString().slice(0, 16).replace('T', ' ') + ' UTC')));
   const markdown = md.join('\n');
   // Slack: headings become bold lines; the bullet list stays.
   const slackLines = md.slice(1).filter((l) => l !== '').map((l) => l.replace(/^## (.*)$/, '**$1**'));
@@ -73,20 +79,27 @@ export async function buildBrief(rt: Runtime, kind: 'daily' | 'weekend', now = D
     return r;
   };
   let since: number;
+  let healthSince: number, healthWindow: string;
   if (kind === 'weekend') {
     const w = await add('weekend', 'The weekend', 'the weekend before');
     await add('last_week', 'Last week (Monday to Sunday)', 'the week before');
     since = w.from;
+    healthSince = w.from; healthWindow = `since ${formatDay(w.from, tz)}`;
   } else {
     since = (await add('yesterday', `Yesterday, ${formatDay(now - 86_400_000, tz)}`, 'the day before')).from;
+    healthSince = now - 86_400_000; healthWindow = 'in the last 24 hours';
   }
-  const [actions, approvals, alerts] = await Promise.all([
+  const [actions, approvals, alerts, health] = await Promise.all([
     listActions(rt, { since, limit: 300 }),
     listActions(rt, { status: 'proposed', limit: 50 }),
     rt.env.DB.prepare('SELECT title FROM ops_alerts WHERE created_at >= ? ORDER BY created_at DESC LIMIT 10').bind(now - 86_400_000).all<{ title: string }>().then((r) => r.results).catch(() => []),
+    buildHealth(rt, healthSince, healthWindow, now).catch((e) => { console.error('brief health', e); return undefined; }),
   ]);
-  return { kind, dateLabel: formatDay(now, tz), periods, actions, approvals, alerts };
+  return { kind, dateLabel: formatDay(now, tz), periods, actions, approvals, alerts, health, when: (t: number) => localWhen(t, tz) };
 }
+
+/** "Mon 2 Nov 03:15" in the owner's time zone. */
+export const localWhen = (t: number, tz: string) => new Intl.DateTimeFormat('en-AU', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t).replace(/,/g, '');
 
 /** Parse "07:30" into minutes after midnight; null when the brief is off or the value is unreadable. */
 export function briefMinute(raw: string | undefined): number | null {
