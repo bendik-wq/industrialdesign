@@ -302,7 +302,8 @@
   }
 
   // ───────────── the AI co-host (staff) ─────────────
-  var CO = { queue: [], hot: [], ai: false, auto: false, proofOn: false, edits: {} };
+  var CO = { queue: [], hot: [], ai: false, auto: false, proofOn: false, edits: {}, obj: null };
+  var QA = T.qa || null; // qa-sells: objection types, counts, answer and reopen the offer
   if (STAFF) R.addTab({ id: 'cohost', label: T.cohostTab, at: 3, render: function (p) { drawCohost(p); } });
   function drawPulseBlock() {
     var el = $('[data-rx-pulse]'); if (!el) return;
@@ -319,6 +320,7 @@
     p.innerHTML = '<div class="rx-co">' +
       (capBtn ? '<section class="rx-co-sec"><h3>' + esc(T.cc) + '</h3>' + capBtn + '</section>' : '') +
       '<section class="rx-co-sec"><h3>' + esc(T.cohostHeading) + '</h3><p class="rm-note">' + esc(T.cohostIntro) + '</p>' + (CO.ai ? '' : '<p class="rm-note">' + esc(T.cohostNoKey) + '</p>') + (CO.auto ? '<p class="rm-note">' + esc(T.cohostAuto) + '</p>' : '') +
+      objCounts() +
       (CO.queue.length ? '<ul class="rx-q">' + CO.queue.map(qItem).join('') + '</ul>' : '<p class="rm-note">' + esc(T.cohostEmpty) + '</p>') + '</section>' +
       '<section class="rx-co-sec"><h3>' + esc(T.hotHeading) + '</h3><p class="rm-note">' + esc(T.hotIntro) + '</p>' +
       (CO.hot.length ? '<ul class="rx-hot">' + CO.hot.map(function (x) { return '<li><b>' + esc(x.first) + '</b><span>' + esc(x.signals.map(function (s) { return T.signals[s] || s; }).join(', ')) + ' · ' + esc(ago(x.at)) + '</span><span>“' + esc(x.text) + '”</span></li>'; }).join('') + '</ul>' : '<p class="rm-note">' + esc(T.hotEmpty) + '</p>') + '</section>' +
@@ -336,6 +338,13 @@
         R.send({ t: 'cohost_send', id: id, text: text, mode: b.getAttribute('data-mode') }); delete CO.edits[id];
       };
     });
+    $$('[data-co-reopen]', p).forEach(function (b) {
+      b.onclick = function () {
+        var id = Number(b.getAttribute('data-co-reopen')), ta = $('[data-co-edit="' + id + '"]', p), text = ta ? ta.value.trim() : '';
+        if (!text) { R.toast(T.errors.empty); return; }
+        R.send({ t: 'cohost_reopen', id: id, text: text, scope: b.getAttribute('data-scope') }); delete CO.edits[id];
+      };
+    });
     $$('[data-co-x]', p).forEach(function (b) { b.onclick = function () { R.send({ t: 'cohost_dismiss', id: Number(b.getAttribute('data-co-x')) }); }; });
     $$('[data-co-redraft]', p).forEach(function (b) { b.onclick = function () { var id = Number(b.getAttribute('data-co-redraft')); delete CO.edits[id]; R.send({ t: 'cohost_draft', id: id }); b.textContent = T.cohostDrafting; b.disabled = true; }; });
     if (focusId) { var t = $('[data-co-edit="' + focusId + '"]', p); if (t) { t.focus(); if (caret) try { t.setSelectionRange(caret[0], caret[1]); } catch (e) { /* fine */ } } }
@@ -343,14 +352,28 @@
   }
   function qItem(q) {
     var done = q.status !== 'open';
-    var tag = q.kind === 'prebuy' ? '<span class="rx-tag">' + esc(T.cohostPrebuy) + '</span>' : q.kind === 'mention' ? '<span class="rx-tag">' + esc(T.cohostMention) + '</span>' : '';
+    var tag = objTag(q) + (q.kind === 'prebuy' ? '<span class="rx-tag">' + esc(T.cohostPrebuy) + '</span>' : q.kind === 'mention' ? '<span class="rx-tag">' + esc(T.cohostMention) + '</span>' : '');
     var draft = CO.edits[q.id] != null ? CO.edits[q.id] : (q.draft ? q.draft.text : '');
     var src = q.draft && q.draft.sources && q.draft.sources.length ? '<p class="rx-src">' + esc(T.cohostSources + ': ' + q.draft.sources.join('; ') + ' · ' + (q.draft.by === 'ai' ? T.draftAi : T.draftKb)) + '</p>' : (!q.draft && q.kind !== 'mention' && !done ? '<p class="rx-src">' + esc(T.cohostNoDraft) + '</p>' : '');
     return '<li class="rx-qi' + (q.kind === 'prebuy' ? ' is-prebuy' : '') + (done ? ' is-done' : '') + '"><p class="rx-qi-t">' + tag + esc(q.text) + '</p>' +
       '<p class="rx-qi-m">' + esc(q.count === 1 ? T.cohostAskedOne : R.tpl(T.cohostAsked, q.count)) + ': ' + esc(q.names.join(', ')) + ' · ' + esc(ago(q.at)) + (done ? ' · ' + esc(q.status === 'sent' ? T.cohostSent : T.cohostDismiss) : '') + '</p>' +
       (done ? '' : '<textarea data-co-edit="' + q.id + '" aria-label="' + esc(T.cohostDraft) + '" maxlength="600">' + esc(draft) + '</textarea>' + src +
         '<div class="rx-acts"><button type="button" class="rm-primary" data-co-send="' + q.id + '" data-mode="room">' + esc(T.cohostSend) + '</button><button type="button" class="rm-btn" data-co-send="' + q.id + '" data-mode="private">' + esc(T.cohostSendPrivate) + '</button>' +
+        (QA && q.kind !== 'mention' ? '<button type="button" class="rm-btn rx-reopen" data-co-reopen="' + q.id + '" data-scope="askers">' + esc(QA.reopenThem) + '</button><button type="button" class="rm-btn" data-co-reopen="' + q.id + '" data-scope="all">' + esc(QA.reopenAll) + '</button>' : '') +
         '<button type="button" class="rm-btn" data-co-redraft="' + q.id + '">' + esc(T.cohostDraft) + '</button><button type="button" class="rm-btn" data-co-x="' + q.id + '">' + esc(T.cohostDismiss) + '</button></div>') + '</li>';
+  }
+
+  // qa-sells: the objection type on each question, and the live counts per type (people who asked).
+  function objTag(q) {
+    if (!QA || !q.qtype) return '';
+    return '<span class="rx-tag rx-obj-tag" data-obj="' + esc(q.qtype) + '" title="' + esc(q.qby === 'ai' ? QA.tagAi : QA.tagRules) + '">' + esc(QA.types[q.qtype] || q.qtype) + (q.qby === 'ai' ? ' · AI' : '') + '</span>';
+  }
+  function objCounts() {
+    if (!QA) return '';
+    var o = CO.obj || {}, keys = Object.keys(QA.types).filter(function (k) { return (o[k] || 0) > 0; }).sort(function (a, b) { return (o[b] || 0) - (o[a] || 0); });
+    return '<div class="rx-obj" data-rx-obj><p class="rx-obj-h">' + esc(QA.countsHeading) + '</p>' +
+      (keys.length ? '<ul class="rx-obj-list">' + keys.map(function (k) { return '<li data-obj="' + esc(k) + '"><span>' + esc(QA.types[k]) + '</span><b>' + (o[k] || 0) + '</b></li>'; }).join('') + '</ul>' : '<p class="rm-note">' + esc(QA.countsEmpty) + '</p>') +
+      '<p class="rm-note">' + esc(QA.countsIntro) + ' ' + esc(QA.reopenHint) + '</p></div>';
   }
 
   // ───────────── cards (the team's answer, the nudge, the away card) ─────────────
@@ -596,8 +619,12 @@
       case 'cap': onCaption(m); return;
       case 'cap_tr': onCaptionTr(m); return;
       case 'cap_state': setCapState(m); return;
-      case 'cohost': CO.queue = m.queue || []; CO.hot = m.hot || []; CO.ai = Boolean(m.ai); CO.auto = Boolean(m.auto); CO.proofOn = Boolean(m.proofOn); if (m.captions) CAP.on = m.captions.on; drawCohost(); return;
+      case 'cohost': CO.obj = m.obj || null; CO.queue = m.queue || []; CO.hot = m.hot || []; CO.ai = Boolean(m.ai); CO.auto = Boolean(m.auto); CO.proofOn = Boolean(m.proofOn); if (m.captions) CAP.on = m.captions.on; drawCohost(); return;
       case 'team_answer': onTeamAnswer(m); return;
+      // qa-sells: the team answered and reopened the offer: show its card again (attendees); the result (staff).
+      case 'qa_reopen': if (!STAFF && R.reopenPush) R.reopenPush(m.pid); return;
+      case 'qa_reopened': if (QA) R.toast(m.scope === 'all' ? QA.reopenDoneAll : QA.reopenDone); return;
+      case 'qa_err': if (QA) R.toast(QA.errors[m.error] || m.error); return;
       case 'nudge': onNudge(m); return;
       case 'proof': onProof(m); return;
       case 'error': if (m.for === 'react' && m.error === 'rx_limit') { /* the toast from room.js says it */ } return;

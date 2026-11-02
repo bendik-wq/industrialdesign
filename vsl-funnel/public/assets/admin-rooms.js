@@ -166,11 +166,14 @@
     var unlocks = (d.unlocks || []).map(function (u) { return esc(u.title) + ' at ' + (u.at === 'end' ? 'the end' : u.at + ' points'); }).join(' · ');
     return '<div class="rmb-eng">' +
       '<div><h3>Pushes: shown, opened, started, submitted, paid</h3>' + pushes + '</div>' +
+      '<div data-rmb-qa><p class="muted" style="font-size:12px">Loading push timing and objections…</p></div>' + // qa-sells
+
       '<div class="rmb-g2"><div><h3>Points distribution</h3>' + bars + '</div><div><h3>Retention</h3>' + curve(d.retention || []) + '</div></div>' +
       '<div class="rmb-g2"><div><h3>Top questions</h3>' + qs + '</div><div><h3>Knowledge checks</h3>' + quiz + '<h3 style="margin-top:12px">Applications (tier is team-only)</h3>' + apps + '</div></div>' +
       '<div><h3>People</h3>' + people + '<div data-rmb-tl></div></div>' +
       '<div class="rmb-g2"><div><h3>Agenda for this room</h3><p class="muted" style="font-size:12px">One chapter per line: Title | teaser shown as “Next up”. Blank lines are ignored; an empty box uses the default agenda.</p><textarea data-rmb-agenda>' + esc(d.agendaText || '') + '</textarea>' +
-        '<h3 style="margin-top:12px">Automatic pushes</h3><p class="muted" style="font-size:12px">One per line, minutes after Go live: <code>35 application</code>, <code>45 sprint</code>, <code>40 deposit</code> (sent once the offer is open), <code>20 resource scripts</code>. Empty uses the default (' + esc((d.autoPushDefault || '').replace(/\n/g, ', ')) + '); <code>off</code> turns them off. The host can skip one or push it early from the Push tab.</p><textarea data-rmb-auto rows="4" placeholder="' + esc(d.autoPushDefault || '') + '">' + esc(d.autoPushText || '') + '</textarea>' +
+        '<h3 style="margin-top:12px">Automatic pushes</h3><p class="muted" style="font-size:12px">One per line, minutes after Go live: <code>35 application</code>, <code>45 sprint</code>, <code>40 deposit</code> (sent once the offer is open), <code>20 resource scripts</code>. Empty uses the default (' + esc((d.autoPushDefault || '').replace(/\n/g, ', ')) + '); <code>off</code> turns them off. The host can skip one or push it early from the Push tab.</p><textarea data-rmb-auto rows="4" placeholder="' + esc(d.autoPushDefault || '') + '">' + esc(d.autoPushText || '') + '</textarea>' + '<div data-rmb-qa-rec class="rmb-qa-rec"></div>' + // qa-sells: the best minute per kind, a recommendation only
+        
         '<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0"><input type="checkbox" data-rmb-board' + (d.settings && d.settings.board ? ' checked' : '') + '> Leaderboard starts on (first names of people who opt in, never emails; the host can hide it)</label>' +
         // Payment links: an optional, real price hold per Sprint push (enforced by the server; off by default).
         '<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0">Price hold after each Sprint push <input type="number" min="1" max="240" step="1" style="width:72px" data-rmb-hold value="' + esc(d.priceHold ? String(d.priceHold) : '') + '" placeholder="off"> minutes</label><p class="muted" style="font-size:12px">Blank is off: the Sprint card has no timer. When set, the card shows a countdown and checkout from that push is refused once it ends.</p>' +
@@ -179,6 +182,7 @@
       '</div>';
   }
   function wireEngage(el, id, ctx) {
+    req('GET', 'rooms/' + id + '/qa').then(function (d) { qaFill(el, d); }).catch(function () { qaFill(el, null); }); // qa-sells
     var tl = el.querySelector('[data-rmb-tl]');
     el.querySelectorAll('[data-rmb-person]').forEach(function (b) {
       b.onclick = function () {
@@ -197,6 +201,43 @@
     };
   }
 
+  // ── qa-sells: push analytics (manual vs automatic, the minute it went out, shown to paid), the best minute per kind
+  // across rooms (a recommendation next to the schedule; it never changes it), and objection to purchase ──
+  var QK = { application: 'Application', sprint: 'Sprint card', deposit: 'Deposit card', vip: 'VIP card', resource: 'Resource' };
+  function pct(n, d) { return d ? Math.round(n / d * 100) + '%' : '–'; }
+  function qaObjections(o, scope) {
+    if (!o || !(o.types || []).length) return '<p class="muted" style="font-size:12px">No tagged questions ' + scope + ' yet. The co-host tags each audience question and chat question by objection type while the room is live.</p>';
+    return '<div class="table-wrap"><table><thead><tr><th>Objection</th><th class="num">People</th><th class="num">Bought after</th><th class="num">Didn’t buy</th><th class="num">Answered</th><th class="num">Reopened (bought)</th></tr></thead><tbody>' +
+      o.types.map(function (t) { return '<tr data-qa-type="' + esc(t.type) + '"><td>' + esc((o.labels || {})[t.type] || t.type) + '</td><td class="num">' + t.people + '</td><td class="num">' + t.bought + ' <span class="muted">' + pct(t.bought, t.people) + '</span></td><td class="num">' + t.notBought + '</td><td class="num">' + t.answered + '</td><td class="num">' + t.reopened + ' (' + t.boughtAfterReopen + ')</td></tr>'; }).join('') +
+      '</tbody></table></div><p class="muted" style="font-size:12px">' + o.people + (o.people === 1 ? ' person' : ' people') + ' raised an objection' + (o.rooms > 1 ? ' across ' + o.rooms + ' rooms' : '') + '; ' + o.bought + ' bought afterwards (a paid deposit or Sprint within 14 days). People who had already bought are left out.</p>';
+  }
+  function qaBest(p) {
+    if (!p || !(p.best || []).length) return '<p class="muted" style="font-size:12px">No pushes after Go live yet.</p>';
+    return '<ul class="rmb-qa-best" style="margin:0;padding-left:18px;font-size:12.5px">' + p.best.map(function (b) { return '<li data-qa-kind="' + esc(b.kind) + '" data-qa-verdict="' + esc(b.verdict) + '">' + esc(b.text) + '</li>'; }).join('') + '</ul>' +
+      '<p class="muted" style="font-size:11.5px;margin-top:4px">Five-minute windows after Go live, room-wide pushes only, a window needs ' + p.minShown + ' people shown. ' + esc(p.note) + '</p>';
+  }
+  function qaFill(el, d) {
+    var box = el.querySelector('[data-rmb-qa]'), rec = el.querySelector('[data-rmb-qa-rec]');
+    if (!d || !d.ok) { if (box) box.innerHTML = '<p class="muted" style="font-size:12px">' + esc((d && d.error) || 'Couldn’t load push timing and objections.') + '</p>'; return; }
+    var pushes = d.pushes.pushes || [];
+    var rows = pushes.length ? '<div class="table-wrap"><table><thead><tr><th>Push</th><th>How</th><th class="num">Minute</th><th class="num">Shown</th><th class="num">Opened</th><th class="num">Started</th><th class="num">Paid</th><th class="num">Shown to paid</th></tr></thead><tbody>' +
+      pushes.map(function (x) { var c = x.counts, goal = x.kind === 'application' ? c.submitted : x.kind === 'resource' ? c.opened : c.paid; return '<tr data-qa-push="' + x.id + '"><td>' + esc(QK[x.kind] || x.kind) + (x.targeted ? ' <span class="muted">(selected people)</span>' : '') + '</td><td>' + (x.mode === 'auto' ? 'Automatic' : 'Manual') + '</td><td class="num">' + (x.minute == null ? '–' : x.minute) + '</td><td class="num">' + c.shown + '</td><td class="num">' + c.opened + ' <span class="muted">' + pct(c.opened, c.shown) + '</span></td><td class="num">' + c.started + ' <span class="muted">' + pct(c.started, c.shown) + '</span></td><td class="num">' + c.paid + '</td><td class="num">' + pct(goal, c.shown) + (x.kind === 'application' ? ' <span class="muted">applied</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>'
+      : '<p class="muted" style="font-size:12px">No pushes in this room yet.</p>';
+    if (box) box.innerHTML = '<div style="display:grid;gap:18px"><div><h3>Push analytics: manual and automatic, by minute</h3>' + rows + '</div><div><h3>Objections before buying (this room)</h3>' + qaObjections(d.objections, 'in this room') + '</div></div>';
+    if (rec) rec.innerHTML = '<h3 style="margin-top:10px">Best minute per push, across rooms</h3>' + qaBest(d.pushes);
+  }
+  function qaCard(view) {
+    var card = document.createElement('div');
+    card.className = 'card'; card.style.marginTop = '14px'; card.setAttribute('data-rmb-qa-all', '');
+    card.innerHTML = '<div class="card-head"><div><h2>Q&amp;A that sells, across rooms</h2><p class="sub">Which objections came before buying and which didn’t, and when automatic and manual pushes convert best. Real counts from the rooms; the push schedule only changes when you edit it.</p></div></div><div data-rmb-qa-body><p class="muted">Loading…</p></div>';
+    view.appendChild(card);
+    req('GET', 'rooms/qa-report').then(function (d) {
+      var b = card.querySelector('[data-rmb-qa-body]');
+      if (!d || !d.ok) { b.innerHTML = '<p class="muted">' + esc((d && d.error) || 'Couldn’t load it.') + '</p>'; return; }
+      b.innerHTML = '<div style="display:grid;gap:18px"><div><h3>Objections before buying (last ' + d.days + ' days)</h3>' + qaObjections(d.objections, 'across rooms') + '</div><div><h3>Best minute per push (default schedule)</h3>' + qaBest(d.pushes) + '</div></div>';
+    }).catch(function () { card.querySelector('[data-rmb-qa-body]').innerHTML = '<p class="muted">Couldn’t load it.</p>'; });
+  }
+
   function render(ctx) {
     css();
     var view = ctx.view;
@@ -212,6 +253,7 @@
         '<div class="rmb-form"><label>Title<input class="input" data-n="title" placeholder="Team meeting"></label><label>When<input class="input" type="datetime-local" data-n="starts_at"></label><label>Length (minutes)<input class="input" type="number" min="15" max="240" value="60" data-n="duration_min"></label>' +
         '<label>Kind<select class="input" data-n="mode"><option value="meeting">Meeting (everyone on camera)</option><option value="webinar">Webinar (stage and audience)</option></select></label><button class="btn-sm" data-rmb-create>Create room</button></div></div>' +
         '<div class="card" style="margin-top:14px"><h2>Rooms</h2>' + table(d.rooms || []) + '</div>';
+      qaCard(view); // qa-sells
       wire(view, ctx);
       view.querySelector('[data-rmb-create]').onclick = function () {
         var b = {}; view.querySelectorAll('[data-n]').forEach(function (i) { b[i.getAttribute('data-n')] = i.value; });

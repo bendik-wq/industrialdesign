@@ -565,6 +565,9 @@ async function emailInvite(rt: Runtime, room: RoomRow, lead: NonNullable<Awaited
 }
 
 roomsAdmin.get('/:id/media', mediaReportRoute); // call quality per person (area A "media")
+// qa-sells: objection to purchase and push timing, across rooms and per room (src/rooms/qa-db.ts)
+roomsAdmin.get('/qa-report', async (c) => (await import('./qa-db')).qaReportRoute(c));
+roomsAdmin.get('/:id/qa', async (c) => (await import('./qa-db')).qaRoomRoute(c));
 roomsAdmin.get('/:id', async (c) => {
   const r = await roomReport(runtimeFrom(c), c.req.param('id'));
   return r ? c.json(r) : c.json({ error: 'Room not found' }, 404);

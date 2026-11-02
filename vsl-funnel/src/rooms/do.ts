@@ -263,8 +263,10 @@ export class RoomDO {
     }
     if (AudienceHub.handles((msg as { t?: unknown })?.t)) {
       const err = await this.aud.onMessage(a.id, msg as Record<string, unknown>, now);
-      if (err) this.send(ws, JSON.stringify({ t: 'error', error: err, for: (msg as { t?: unknown }).t }));
-      return;
+      if (err) { this.send(ws, JSON.stringify({ t: 'error', error: err, for: (msg as { t?: unknown }).t })); return; }
+      const next = this.aud.takePending(); // qa-sells: "answer and reopen the offer" runs the room's own push
+      if (!next) return;
+      msg = next;
     }
     // Intel (area D): intel_* messages (the active speaker from the host's browser) never touch the state machine.
     if (typeof (msg as { t?: unknown })?.t === 'string' && ((msg as { t: string }).t).startsWith('intel_')) {

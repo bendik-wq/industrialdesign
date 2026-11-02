@@ -451,7 +451,10 @@ export interface DebriefInput {
   messages: { ms: number; text: string }[];
   /** Reactions table present (area C); false = the reactions line is left out, never shown as zero. */
   reactionsKnown: boolean;
+  /** qa-sells (room_objections, migration 0074): per objection type, the people who raised it and how many bought after. */
+  qa?: QaOutcome[];
 }
+export interface QaOutcome { type: string; label: string; people: number; bought: number; notBought: number; reopened: number; boughtAfterReopen: number }
 export interface Debrief {
   version: 1;
   source: 'rules' | 'claude';
@@ -464,6 +467,8 @@ export interface Debrief {
   leaks: Leak[];
   improvements: string[];
   notes: string[];
+  /** qa-sells: objection to purchase for this room (only when the room's questions were tagged). */
+  objectionOutcomes?: QaOutcome[];
 }
 
 export function ruleDebrief(x: DebriefInput): Debrief {
@@ -497,7 +502,11 @@ export function ruleDebrief(x: DebriefInput): Debrief {
   if (x.transcriptSource === 'none') notes.push('No transcript yet: the leaks and spikes show times only. Transcribe the recording for the lines.');
   if (x.transcriptSource === 'captions') notes.push('Lines come from the live captions; the Whisper transcript replaces them when it finishes.');
   if (!x.curve.length) notes.push('No retention minutes were recorded (the curve starts when the host presses Go live).');
-  return { version: 1, source: 'rules', stats, summary, chapters, moments, objections: obj, spikes: sp, leaks, improvements, notes };
+  // qa-sells: the objection that most often came without a purchase after it (real counts from the room's questions).
+  const qa = (x.qa ?? []).filter((o) => o.people > 0);
+  const stuck = [...qa].sort((a, b) => b.notBought - a.notBought || b.people - a.people)[0];
+  if (stuck && stuck.notBought > 0) improvements.push(`${plural(stuck.people, 'person', 'people')} raised ${stuck.label.toLowerCase()}; ${stuck.bought} bought afterwards and ${stuck.notBought} didn't. Answer it inside the pitch and reopen the offer right after the answer.`);
+  return { version: 1, source: 'rules', stats, summary, chapters, moments, objections: obj, spikes: sp, leaks, improvements, notes, ...(qa.length ? { objectionOutcomes: qa } : {}) };
 }
 
 // ───────────── numbers: the guard that keeps AI text to the data ─────────────

@@ -346,12 +346,14 @@ export async function buildDebrief(rt: Runtime, room: RoomRow, o: { post?: boole
   const now = o.now ?? Date.now();
   const t = await timeline(rt, room);
   const input = debriefInput(t);
+  // qa-sells: which objection types came before buying and which didn't (room_objections; empty before migration 0074).
+  input.qa = await import('./qa-db').then((m) => m.objectionReport(rt, { roomId: room.id })).then((r) => r.types.map((o) => ({ type: o.type, label: r.labels[o.type], people: o.people, bought: o.bought, notBought: o.notBought, reopened: o.reopened, boughtAfterReopen: o.boughtAfterReopen }))).catch(() => []);
   const base = ruleDebrief(input);
   let debrief: Debrief = base;
   let note: string | null = null;
   const { askClaude, claudeReady, parseJsonReply, REASONING_MODEL, NO_KEY_NOTE } = await import('../ops/claude');
   if (claudeReady(rt) && (t.lines.length || t.events.length)) {
-    const facts = { stats: base.stats, leaks: base.leaks, spikes: base.spikes, objections: base.objections, moments: base.moments, chapters: base.chapters };
+    const facts = { stats: base.stats, leaks: base.leaks, spikes: base.spikes, objections: base.objections, moments: base.moments, chapters: base.chapters, objectionOutcomes: base.objectionOutcomes ?? [] };
     let transcript = t.lines.map((l) => `[${l.start_ms}ms ${stamp(l.start_ms)}]${l.speaker ? ` ${l.speaker}:` : ''} ${l.text}`).join('\n');
     if (transcript.length > 90_000) transcript = `${transcript.slice(0, 60_000)}\n…\n${transcript.slice(-30_000)}`;
     try {

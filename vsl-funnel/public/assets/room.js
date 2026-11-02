@@ -1643,6 +1643,8 @@
     showTab: function (id) { S.tab = id; renderTabs(); renderPanel(); },
     renderChat: function () { renderChat(true); },
     openOffer: function () { openOffer(); }, actPush: function (x) { actPush(x); }, loadEngage: function () { return loadEngage(); },
+    reopenPush: function (id) { delete E.dismissed[id]; saveDismissed(); var dk = $('[data-cards]'); if (dk) dk.setAttribute('data-key', ''); renderCards(); }, // qa-sells: the team reopened the offer
+
     chatExtra: null,
     // area A (media)
     C: C, MODE: MODE, banner: banner, emit: emit, renderBar: renderBar, syncPulls: syncPulls, syncMedia: syncMedia,

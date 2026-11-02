@@ -14,6 +14,7 @@
  */
 
 import { type PlanData, coverage, firstName } from './engage';
+import { type ObjectionType, type Tally, QA_COPY, classifyObjection, tallyAdd } from './qa'; // qa-sells: objection types
 
 // ───────────── reactions ─────────────
 
@@ -141,6 +142,9 @@ export interface QueueItem {
   status: 'open' | 'sent' | 'dismissed';
   draft: { text: string; sources: string[]; by: 'rules' | 'ai'; confidence: number | null; at: number } | null;
   terms: string[];
+  /** qa-sells: the objection type (keyword rules, re-tagged by the AI co-host) and who tagged it. */
+  qtype?: ObjectionType;
+  qby?: 'rules' | 'ai';
 }
 export interface HotEntry { who: string; first: string; signals: SignalKind[]; text: string; at: number; count: number }
 
@@ -154,7 +158,7 @@ export function similarity(a: string[], b: string[]) {
 export const CLUSTER_AT = 0.5;
 export const QUEUE_KEEP = 120;
 
-export interface CohostState { queue: QueueItem[]; seq: number; hot: HotEntry[] }
+export interface CohostState extends Tally { queue: QueueItem[]; seq: number; hot: HotEntry[] }
 export const newCohost = (): CohostState => ({ queue: [], seq: 0, hot: [] });
 
 /**
@@ -173,7 +177,7 @@ export function enqueue(c: CohostState, x: { kind: QueueItem['kind']; text: stri
     }
   }
   if (best && bestSim >= CLUSTER_AT) {
-    if (!best.askers.some((a) => a.who === x.who)) best.askers.push({ who: x.who, first });
+    if (!best.askers.some((a) => a.who === x.who)) { best.askers.push({ who: x.who, first }); tallyAdd(c, best.qtype ?? 'other'); }
     if (x.chatId) best.chatIds.push(x.chatId);
     if (x.qaId) best.qaIds.push(x.qaId);
     // A question asked before buying outranks the rest of its cluster.
@@ -185,6 +189,7 @@ export function enqueue(c: CohostState, x: { kind: QueueItem['kind']; text: stri
     id: ++c.seq, kind: x.kind, text: x.text.slice(0, 400), askers: [{ who: x.who, first }], chatIds: x.chatId ? [x.chatId] : [], qaIds: x.qaId ? [x.qaId] : [],
     at: now, lastAt: now, status: 'open', draft: null, terms,
   };
+  if (x.kind !== 'mention') { item.qtype = classifyObjection(x.text).type; item.qby = 'rules'; tallyAdd(c, item.qtype); }
   c.queue.push(item);
   if (c.queue.length > QUEUE_KEEP) {
     const drop = c.queue.findIndex((q) => q.status !== 'open');
@@ -209,7 +214,7 @@ export function flagHot(c: CohostState, x: { who: string; name: string; text: st
 export function queueView(c: CohostState) {
   const rank = (q: QueueItem) => (q.status === 'open' ? 0 : 1);
   return [...c.queue].sort((a, b) => rank(a) - rank(b) || Number(b.kind === 'prebuy') - Number(a.kind === 'prebuy') || b.askers.length - a.askers.length || a.at - b.at)
-    .slice(0, 60).map((q) => ({ id: q.id, kind: q.kind, text: q.text, count: q.askers.length, names: q.askers.slice(0, 6).map((a) => a.first), status: q.status, at: q.at, draft: q.draft }));
+    .slice(0, 60).map((q) => ({ id: q.id, kind: q.kind, text: q.text, count: q.askers.length, names: q.askers.slice(0, 6).map((a) => a.first), status: q.status, at: q.at, draft: q.draft, qtype: q.qtype ?? null, qby: q.qby ?? null }));
 }
 export const hotView = (c: CohostState) => [...c.hot].sort((a, b) => b.at - a.at).slice(0, 40).map((h) => ({ who: h.who, first: h.first, signals: h.signals, text: h.text, at: h.at, count: h.count }));
 
@@ -333,6 +338,8 @@ export function audienceConfig(s: S) {
 // ───────────── copy (checked by auditCopy in test/audience.test.ts) ─────────────
 
 export const AUDIENCE_COPY = {
+  // qa-sells: objection types, the counts and "answer and reopen the offer" (src/rooms/qa.ts)
+  qa: QA_COPY,
   reactions: { clap: 'Applause', heart: 'Love it', idea: 'Useful', yes: 'Agree', question: 'Question' } as Record<ReactionKind, string>,
   react: 'React',
   rxLimit: 'One moment. Your reactions are on their way.',
