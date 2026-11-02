@@ -543,6 +543,9 @@ One last question in the room tab before I show you the engagement. In one sente
 
 ## [47:00] The engagement is open
 
+[HOST: PRE-PITCH]
+[NOTE: The slides go away for a moment. Josh on camera, one line on screen in his own words, then the gap slide.]
+
 [SLIDE: The gap | What you know tonight, and a signed letter of intent]
 
 You now know more about buying a business than most owners ever learn. The vehicle, where the sellers are, how big a deal you can carry, the test, the stack and the order of the conversations.
@@ -892,6 +895,9 @@ Some of you could. You're capable people, and everything I taught tonight is rea
 
 ## [75:00] The price
 
+[HOST: SHOW COMPARISON]
+[NOTE: The comparison shows the honest alternatives, every figure labelled illustrative, next to the real fee. Then back to the price slide.]
+
 [SLIDE: The price | Set by the size of your business]
 
 The engagement fee depends on the size of your business, because a larger business means a larger deal, more complex structures and more of my team's time.
@@ -1014,6 +1020,9 @@ That's a guarantee that's bigger than the price. And it's only possible because 
 The button is in the room tab, the page you joined from, with the guarantee and every condition right underneath it.
 
 ## [84:00] Everything, one more time
+
+[HOST: SHOW STACK]
+[NOTE: Right arrow or space shows the next part of the stack, each with the objection it answers. The last step shows the deposit and the fee by size.]
 
 [SLIDE: What you get | And the reason for each part]
 

@@ -306,6 +306,8 @@ That's the end of the teaching. If you're here only for the plan, thank you for 
 For everyone else, let's talk about how you'd do this with my team in the room.
 ## [29:08] One decision
 
+[HOST: PRE-PITCH]
+
 [SLIDE: One decision]
 
 For the next part of this session, there's one decision on the table, and I'd like to name it clearly.
@@ -358,6 +360,8 @@ I'll also tell you why I'm comfortable making this offer at all, after four days
 You've seen how I think about deals. You've tested a business against the same rules I use. You know the method well enough now to judge whether it's sound, and whether my team is likely to be useful to you. That's why the offer comes on Day 5 and not Day 1. You're deciding with everything in front of you.
 
 ## [33:56] The engagement, piece by piece
+
+[HOST: SHOW STACK]
 
 [SLIDE: The engagement | 90 days · done with you · Capabilities, Capital, Closing]
 
@@ -578,6 +582,8 @@ Because you should sign an agreement that reflects your actual business, and you
 And why hold a place at all? Because my team works with a set number of owners at a time, and we plan each intake around the people who've committed to it. If there's a limit on places in this intake, you'll see it on the page, and it's enforced by the system. If you don't see a limit, there isn't one, and I won't pretend otherwise.
 
 ## [52:35] What waiting costs, and what a bad first deal costs
+
+[HOST: SHOW COMPARISON]
 
 [SLIDE: Forty to seventy thousand dollars, against what?]
 

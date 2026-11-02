@@ -16,7 +16,10 @@
   var COL = Object.assign({ bg: '#0f2c5c', accent: '#c9a227', text: '#ffffff' }, B.colors || {});
   var SERIF = '"Newsreader", Georgia, "Times New Roman", serif';
   var UI = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Inter, Arial, sans-serif';
-  var SCENES = ['intro', 'main', 'slides', 'brb', 'qa', 'offer', 'outro'];
+  var SCENES = ['intro', 'main', 'slides', 'brb', 'qa', 'offer', 'outro', 'bridge', 'stack', 'anchor'];
+  // Offer pack (round 4, src/rooms/studio-pack.ts): the pitch scenes' words and the real prices they show.
+  var PK = ST.pack || null, PC = (PK && PK.copy) || {};
+  function keyOf(i) { return i === 9 ? '0' : String(i + 1); }
   var LAYOUTS = ['solo', 'side', 'speaker_screen', 'screen', 'grid'];
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var isHost = ME.role === 'host';
@@ -245,6 +248,8 @@
         cy += 40; g.fillStyle = COL.accent; g.beginPath(); g.arc(x + 58, cy - 8, 5, 0, Math.PI * 2); g.fill();
         ls.forEach(function (l, i) { if (i) cy += 32; text(g, l, x + 78, cy, font(400, 24), '#1d1d1f'); });
       });
+      // Offer pack: why the terms are this generous, from the real terms (studio-pack-terms.ts).
+      if (PK && PK.why) { g.font = font(400, 18); cy += 22; wrap(g, PK.why.short, w - 96, 3).forEach(function (l) { cy += 26; text(g, l, x + 48, cy, font(400, 18), '#6e6e73'); }); }
       var by = y + hh - 56;
       text(g, SC.offerCta, x + 48, by, font(600, 22), '#1d1d1f');
       if (o.closesAt && o.closesAt > now) {
@@ -256,6 +261,98 @@
       g.font = font(500, 44, SERIF);
       wrap(g, SC.offerClosed, w - 96, 3).forEach(function (l) { cy += 58; text(g, l, x + 48, cy, font(500, 44, SERIF), '#1d1d1f'); });
     }
+  }
+
+  // ───────────── offer pack scenes: the transition, the stack, the comparison ─────────────
+  function packState(s) { return (s && s.pack) || { step: 0, steps: 1, line: '' }; }
+  /** Pre-pitch transition: Josh on camera, no slides, the host's own line under him. */
+  function sceneBridge(g, W, H, s, T) {
+    var ld = lead(T), line = packState(s).line;
+    if (!ld) { centered(g, W, H, '', line || (S.view && S.view.room.title) || CFG.room.title, null); return; }
+    tile(g, ld, 0, 0, W, H, { label: false, r: 0 });
+    if (!line) return;
+    var gr = g.createLinearGradient(0, H - 260, 0, H); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.78)');
+    g.fillStyle = gr; g.fillRect(0, H - 260, W, 260);
+    g.font = font(500, 44, SERIF);
+    var ls = wrap(g, line, W - 2 * P - 120, 2), y = H - 56 - (ls.length - 1) * 54;
+    g.fillStyle = COL.accent; g.fillRect(P + 20, y - 46, 4, 54 * ls.length - 6);
+    ls.forEach(function (l, i) { text(g, l, P + 44, y + i * 54, font(500, 44, SERIF), '#fff'); });
+  }
+  var stackSeen = { step: -1, at: 0 };
+  /** The stack: one part at a time, each with the objection it answers; the last step shows the real price. */
+  function sceneStack(g, W, H, s, T) {
+    if (!PK) { sceneMain(g, W, H, s, T); return; }
+    var st = packState(s), items = PK.stack.items || [], n = items.length, step = Math.max(0, Math.min(st.step, n + 1));
+    if (step !== stackSeen.step) { stackSeen = { step: step, at: performance.now() }; }
+    var fade = reduced ? 1 : Math.min(1, (performance.now() - stackSeen.at) / 240);
+    var ld = lead(T), cw = 300, chh = 169;
+    if (ld) tile(g, ld, P, P, cw, chh);
+    logoAt(g, P, P + chh + 24, cw, 56, 'left');
+    var x = P + cw + G + 8, y = P, w = W - x - P, hh = H - 2 * P;
+    card(g, x, y, w, hh);
+    var cy = y + 58;
+    if (step <= n) {
+      text(g, (PC.stackStep && step ? fmt(PC.stackStep, String(step), String(n)) : '').toUpperCase(), x + 44, cy - 14, font(600, 15), '#6e6e73');
+      g.font = font(500, 32, SERIF);
+      wrap(g, PK.stack.heading, w - 88, 2).forEach(function (l) { cy += 40; text(g, l, x + 44, cy, font(500, 32, SERIF), '#1d1d1f'); });
+      cy += 18;
+      var rowH = Math.min(96, Math.floor((y + hh - 24 - cy) / Math.max(1, n)));
+      items.slice(0, step).forEach(function (it, i) {
+        var newest = i === step - 1, a = newest ? fade : 1;
+        g.globalAlpha = a;
+        var ry = cy + i * rowH + (newest ? (1 - fade) * 10 : 0);
+        if (newest) { g.fillStyle = COL.accent; g.fillRect(x + 28, ry + 6, 4, rowH - 20); }
+        if (it.objection) text(g, '“' + it.objection.replace(/[.]$/, '') + '”', x + 44, ry + 20, 'italic ' + font(400, 17), '#6e6e73');
+        g.font = font(600, 22);
+        var pw = it.price ? (g.measureText(it.price).width + 32) : g.measureText(PC.included || '').width + 32;
+        wrap(g, it.title, w - 100 - Math.min(260, pw), 2).forEach(function (l, j) { text(g, l, x + 44, ry + 48 + j * 26, font(600, 22), '#1d1d1f'); });
+        if (it.price) text(g, it.price, x + w - 40, ry + 48, font(600, 20), '#0f2c5c', 'right');
+        else if (PC.included) text(g, PC.included, x + w - 40, ry + 48, font(500, 17), '#86868b', 'right');
+        g.globalAlpha = 1;
+      });
+      return;
+    }
+    // The reveal: the deposit today and the fee by size, all from settings; no total value anywhere.
+    var r = PK.stack.reveal || {};
+    g.globalAlpha = fade;
+    text(g, (PC.stackReveal || '').toUpperCase(), x + 44, cy - 14, font(600, 15), '#6e6e73');
+    cy += 44; text(g, r.today || '', x + 44, cy, font(500, 52, SERIF), '#1d1d1f');
+    cy += 40; text(g, r.credit || '', x + 44, cy, font(500, 22), '#1d1d1f');
+    if (r.ticket) { cy += 32; text(g, r.ticket, x + 44, cy, font(400, 20), '#1d1d1f'); }
+    cy += 46; text(g, PC.feesHeading || '', x + 44, cy, font(600, 18), '#0f2c5c');
+    (r.fees || []).forEach(function (f) { cy += 32; text(g, f.range, x + 44, cy, font(400, 20), '#1d1d1f'); text(g, f.label, x + 380, cy, font(600, 20), '#1d1d1f'); });
+    cy += 40; g.font = font(400, 19);
+    wrap(g, r.balance || '', w - 88, 2).forEach(function (l) { text(g, l, x + 44, cy, font(400, 19), '#424245'); cy += 26; });
+    if (PK.why) { g.font = font(400, 17); var wl = wrap(g, PK.why.short, w - 88, 3), wy = y + hh - 30 - (wl.length - 1) * 23; wl.forEach(function (l, i) { text(g, l, x + 44, wy + i * 23, font(400, 17), '#6e6e73'); }); }
+    g.globalAlpha = 1;
+  }
+  /** The comparison: honest alternatives, every figure labelled illustrative, next to our real price. */
+  function sceneAnchor(g, W, H, s, T) {
+    if (!PK) { sceneMain(g, W, H, s, T); return; }
+    var A = PK.anchor || {}, rows = (A.rows || []).map(function (r) { return { r: r, ours: false }; });
+    if (A.ours) rows.push({ r: A.ours, ours: true });
+    var ld = lead(T), cw = 256, chh = 144;
+    var x = P, y = P, w = W - 2 * P, hh = H - 2 * P;
+    card(g, x, y, w, hh);
+    if (ld) tile(g, ld, x + w - cw - 24, y + 24, cw, chh, { label: false, r: 12 });
+    var cy = y + 52;
+    text(g, (PC.illustrative || '').toUpperCase(), x + 44, cy, font(600, 15), '#6e6e73');
+    g.font = font(500, 38, SERIF);
+    wrap(g, A.heading || '', w - cw - 120, 2).forEach(function (l) { cy += 46; text(g, l, x + 44, cy, font(500, 38, SERIF), '#1d1d1f'); });
+    cy = Math.max(cy + 26, ld ? y + chh + 40 : 0);
+    var foot = 40, rowH = Math.min(104, Math.floor((y + hh - foot - cy) / Math.max(1, rows.length)));
+    rows.forEach(function (o, i) {
+      var ry = cy + i * rowH, r = o.r;
+      if (o.ours) { g.fillStyle = '#f5f5f7'; rr(g, x + 24, ry, w - 48, rowH - 8, 12); g.fill(); g.fillStyle = COL.accent; g.fillRect(x + 24, ry + 12, 4, rowH - 32); }
+      else { g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(x + 44, ry - 1, w - 88, 1); }
+      text(g, r.label, x + 44, ry + 34, font(600, 22), '#1d1d1f');
+      if (r.note) { g.font = font(400, 17); wrap(g, r.note, w - 520, 2).forEach(function (l, j) { text(g, l, x + 44, ry + 60 + j * 22, font(400, 17), '#6e6e73'); }); }
+      text(g, (o.ours ? PC.ourPrice : PC.illustrative || '').toUpperCase(), x + w - 44, ry + 26, font(600, 13), o.ours ? '#0f2c5c' : '#86868b', 'right');
+      g.font = font(600, 26); var fl = wrap(g, r.figure, 380, 2);
+      fl.forEach(function (l, j) { text(g, l, x + w - 44, ry + 58 + j * 30, font(600, 26), '#1d1d1f', 'right'); });
+    });
+    g.font = font(400, 15);
+    text(g, wrap(g, PC.anchorFoot || '', w - 88, 1)[0] || '', x + 44, y + hh - 18, font(400, 15), '#6e6e73');
   }
 
   // ───────────── overlays ─────────────
@@ -279,7 +376,7 @@
       g.fillStyle = 'rgba(10,14,24,.8)'; rr(g, 40, 34, w, 46, 23); g.fill();
       tabular(g, lab, 58, 65, font(600, 22), '#fff', 'left');
     }
-    if (s.lower && (scene === 'main' || scene === 'slides' || scene === 'qa')) {
+    if (s.lower && (scene === 'main' || scene === 'slides' || scene === 'qa' || (scene === 'bridge' && !packState(s).line))) {
       var lx = 48, ly = H - tickerH - 150;
       g.font = font(600, 30); var nw = g.measureText(s.lower.name).width; g.font = font(400, 20); var tw2 = g.measureText(s.lower.title || '').width;
       var bw = Math.max(nw, tw2) + 56;
@@ -319,6 +416,9 @@
     else if (scene === 'qa') sceneQa(g, W, H2, s, T);
     else if (scene === 'offer') sceneOffer(g, W, H2, s, T);
     else if (scene === 'outro') sceneOutro(g, W, H2, s);
+    else if (scene === 'bridge') sceneBridge(g, W, H2, s, T);
+    else if (scene === 'stack') sceneStack(g, W, H2, s, T);
+    else if (scene === 'anchor') sceneAnchor(g, W, H2, s, T);
     else sceneMain(g, W, H2, s, T);
     overlays(g, W, H, s, scene);
     // A short fade between scenes (none with reduced motion).
@@ -386,6 +486,9 @@
     if (s.lower && (scene === 'main' || scene === 'slides' || scene === 'qa')) bits.push(s.lower.name + (s.lower.title ? ', ' + s.lower.title : ''));
     if (s.highlight) bits.push((s.highlight.kind === 'question' ? SC.fromQa : SC.fromChat) + ': ' + s.highlight.text);
     if (s.ticker) bits.push(s.ticker);
+    if (PK && scene === 'bridge' && s.pack && s.pack.line) bits.push(s.pack.line);
+    if (PK && scene === 'stack' && s.pack) { var it = PK.stack.items[s.pack.step - 1]; if (s.pack.step > PK.stack.items.length) bits.push(PK.stack.reveal.today + '. ' + PK.stack.reveal.credit); else if (it) bits.push((it.objection ? it.objection + ' ' : '') + it.title + (it.price ? ', ' + it.price : '')); }
+    if (PK && scene === 'anchor') bits.push(PK.anchor.heading + '. ' + PC.anchorFoot);
     var line = bits.join('. ');
     if (line !== lastSpoken) { lastSpoken = line; live.textContent = line; }
   }
@@ -425,20 +528,26 @@
     var s = sv(), html = '<div class="rs-scenes">';
     SCENES.forEach(function (k, i) {
       var off = k === 'slides' && !s.deck;
-      html += '<button type="button" class="rs-scene' + (s.scene === k ? ' is-on' : '') + '" data-rs-scene="' + k + '" aria-pressed="' + (s.scene === k) + '"' + (off ? ' disabled' : '') + '><kbd>' + (i + 1) + '</kbd><span>' + esc(SC.scenes[k]) + '</span>' + (s.scene === k ? '<i class="rs-air">' + esc(SC.onAir) + '</i>' : '') + '</button>';
+      if (k === 'bridge') { if (!PK) return; html += '<span class="rs-pitchsep" aria-hidden="true">' + esc(PC.pitchGroup) + '</span>'; }
+      if (!PK && (k === 'stack' || k === 'anchor')) return;
+      html += '<button type="button" class="rs-scene' + (s.scene === k ? ' is-on' : '') + (i >= 7 ? ' rs-pitch' : '') + '" data-rs-scene="' + k + '" aria-pressed="' + (s.scene === k) + '"' + (off ? ' disabled' : '') + '><kbd>' + keyOf(i) + '</kbd><span>' + esc(SC.scenes[k]) + '</span>' + (s.scene === k ? '<i class="rs-air">' + esc(SC.onAir) + '</i>' : '') + '</button>';
     });
     html += '</div><div class="rs-sub">';
     if (s.scene === 'main') html += '<div class="rs-seg" role="group" aria-label="' + esc(SC.layoutHeading) + '">' + LAYOUTS.map(function (l, i) { return '<button type="button" data-rs-layout="' + l + '" aria-pressed="' + (s.layout === l) + '" title="Shift+' + (i + 1) + '">' + esc(SC.layouts[l]) + '</button>'; }).join('') + '</div>';
     if (s.scene === 'slides' && s.deck) html += '<div class="rs-seg"><button type="button" data-rs-page="-1" aria-label="' + esc(SC.prev) + '">‹</button><span class="rs-pg">' + (s.page + 1) + ' / ' + s.deck.pages + '</span><button type="button" data-rs-page="1" aria-label="' + esc(SC.nextBtn) + '">›</button></div><button type="button" class="rs-chip" data-rs-presenter>' + esc(SC.presenter) + '</button>';
+    if (PK && s.scene === 'stack' && s.pack) html += '<div class="rs-seg" role="group" aria-label="' + esc(PC.scenes.stack) + '"><button type="button" data-rs-pack="-1" aria-label="' + esc(PC.stackPrev) + '">‹</button><span class="rs-pg">' + esc(s.pack.step > PK.stack.items.length ? PC.stackReveal : fmt(PC.stackStep, String(s.pack.step), String(PK.stack.items.length))) + '</span><button type="button" data-rs-pack="1" aria-label="' + esc(PC.stackNext) + '">›</button></div>';
+    if (PK && s.pack && s.pack.pitchAt) html += '<span class="rs-chip rs-pclock" title="' + esc(PC.pitchClock) + '">' + esc(PC.pitchClock) + ' <b data-rs-pclock></b></span>';
     html += '<button type="button" class="rs-chip" data-rs-q="lower" aria-pressed="' + Boolean(s.lower) + '">' + esc(SC.lowerThird) + ' <kbd>L</kbd></button>' +
       '<button type="button" class="rs-chip" data-rs-q="ticker" aria-pressed="' + Boolean(s.ticker) + '"' + (s.tickerDraft ? '' : ' disabled') + '>' + esc(SC.ticker) + ' <kbd>T</kbd></button>' +
       (B.logo ? '<button type="button" class="rs-chip" data-rs-q="logo" aria-pressed="' + Boolean(s.logo) + '">' + esc(SC.logoBug) + '</button>' : '') +
       '<button type="button" class="rs-chip" data-rs-ros>' + esc(SC.rosHeading) + '</button></div>';
     if (bar.getAttribute('data-html') !== html) {
       bar.setAttribute('data-html', html); bar.innerHTML = html;
+      var pcl = $('[data-rs-pclock]', bar); if (pcl && s.pack && s.pack.pitchAt) pcl.textContent = clock(t() - s.pack.pitchAt); // offer pack: no blank second
       $$('[data-rs-scene]', bar).forEach(function (b) { b.onclick = function () { setScene(b.getAttribute('data-rs-scene')); }; });
       $$('[data-rs-layout]', bar).forEach(function (b) { b.onclick = function () { R.send({ t: 'studio_layout', layout: b.getAttribute('data-rs-layout') }); }; });
       $$('[data-rs-page]', bar).forEach(function (b) { b.onclick = function () { R.send({ t: 'studio_page', delta: Number(b.getAttribute('data-rs-page')) }); }; });
+      $$('[data-rs-pack]', bar).forEach(function (b) { b.onclick = function () { R.send({ t: 'studio_pack', op: 'step', delta: Number(b.getAttribute('data-rs-pack')) }); }; });
       var pr = $('[data-rs-presenter]', bar); if (pr) pr.onclick = openPresenter;
       $('[data-rs-ros]', bar).onclick = openRos;
       $$('[data-rs-q]', bar).forEach(function (b) { b.onclick = function () { quick(b.getAttribute('data-rs-q')); }; });
@@ -455,10 +564,15 @@
     if (!direct() || !on() || e.ctrlKey || e.metaKey || e.altKey) return;
     var a = document.activeElement, tag = a && a.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (a && a.isContentEditable)) return;
-    var digit = /^Digit([1-7])$/.exec(e.code || '');
+    var digit = /^Digit([0-9])$/.exec(e.code || '');
     if (digit && e.shiftKey) { var l = LAYOUTS[Number(digit[1]) - 1]; if (l) { R.send({ t: 'studio_layout', layout: l }); e.preventDefault(); } return; }
-    if (digit) { setScene(SCENES[Number(digit[1]) - 1]); e.preventDefault(); return; }
+    if (digit) { var di = digit[1] === '0' ? 9 : Number(digit[1]) - 1; if (di >= 7 && !PK) return; setScene(SCENES[di]); e.preventDefault(); return; }
     var s = sv();
+    // Offer pack: in the stack scene the arrows and the space bar move the stack one part at a time.
+    if (PK && s.scene === 'stack' && !presenterOpen()) {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { R.send({ t: 'studio_pack', op: 'step', delta: 1 }); e.preventDefault(); return; }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { R.send({ t: 'studio_pack', op: 'step', delta: -1 }); e.preventDefault(); return; }
+    }
     if ((e.key === 'ArrowRight' || e.key === 'PageDown') && s.deck && (s.scene === 'slides' || presenterOpen())) { R.send({ t: 'studio_page', delta: 1 }); e.preventDefault(); }
     else if ((e.key === 'ArrowLeft' || e.key === 'PageUp') && s.deck && (s.scene === 'slides' || presenterOpen())) { R.send({ t: 'studio_page', delta: -1 }); e.preventDefault(); }
     else if (e.key === 'l' || e.key === 'L') quick('lower');
@@ -480,7 +594,7 @@
     var p = $('[data-panel]'); if (!p || !S.view) return;
     var s = sv(); if (!s) { p.innerHTML = '<p class="rm-note">' + esc(SC.errors.not_applicable) + '</p>'; return; }
     // Redraw only when what the tab shows changed, so typing in its fields survives the room's updates.
-    var key = JSON.stringify([s.me, s.lowerDraft, s.tickerDraft, s.ticker, s.lower, s.logo, s.countdownKind, s.countdown, s.brbEndsAt, s.music, s.deck, s.page, s.slideCam, s.green, s.crew, (S.view.people || []).filter(function (x) { return x.role === 'cohost'; }).map(function (x) { return x.id + x.name; }), decks.list && decks.list.map(function (d) { return d.id + d.status; }), up.busy, up.msg, s.highlight, (s.back || []).length, S.view.room.offer && S.view.room.offer.open]);
+    var key = JSON.stringify([s.pack && [s.pack.step, s.pack.line, s.pack.offerCard, Boolean(s.pack.pitchAt)], S.view.eng && S.view.eng.avail, S.view.room.offer && S.view.room.offer.open, s.me, s.lowerDraft, s.tickerDraft, s.ticker, s.lower, s.logo, s.countdownKind, s.countdown, s.brbEndsAt, s.music, s.deck, s.page, s.slideCam, s.green, s.crew, (S.view.people || []).filter(function (x) { return x.role === 'cohost'; }).map(function (x) { return x.id + x.name; }), decks.list && decks.list.map(function (d) { return d.id + d.status; }), up.busy, up.msg, s.highlight, (s.back || []).length, S.view.room.offer && S.view.room.offer.open]);
     if (!force && key === tabKey && $('[data-rs-tab]', p)) { renderBack(); syncGreenMedia(); return; }
     tabKey = key;
     var saved = {}; $$('[data-rs-tab] input, [data-rs-tab] textarea', p).forEach(function (e) { if (e.name) saved[e.name] = e.value; });
@@ -519,6 +633,16 @@
     // Crew (host): producers
     var cohosts = (S.view.people || []).filter(function (x) { return x.role === 'cohost'; });
     if (isHost && cohosts.length) html += '<section class="rs-sec"><h3 class="rm-h3">' + esc(SC.producer) + '</h3><ul class="rs-people">' + cohosts.map(function (x) { var pr = (s.crew || []).indexOf(x.id) >= 0; return '<li><span>' + esc(x.name) + (pr ? ' <span class="rm-role">' + esc(SC.producer) + '</span>' : '') + '</span><button type="button" class="rm-mini" data-rs-crew="' + esc(x.id) + '" data-on="' + (!pr) + '">' + esc(pr ? SC.unmakeProducer : SC.makeProducer) + '</button></li>'; }).join('') + '</ul></section>';
+    if (PK && s.pack) {
+      // Offer pack: the transition line, both paths, the stack's step and the pitch clock.
+      var av = (S.view.eng && S.view.eng.avail) || {}, oo = S.view.room.offer || {};
+      html += '<section class="rs-sec"><h3 class="rm-h3">' + esc(PC.pitchGroup) + '</h3>' +
+        '<label class="rm-field"><span>' + esc(PC.bridgeHeading) + '</span><input name="packline" maxlength="140" value="' + esc(s.pack.line) + '"' + dis + '></label><p class="rm-fine">' + esc(PC.bridgeHelp) + '</p>' +
+        '<div class="rs-row"><button type="button" class="rm-btn" data-rs-packline' + dis + '>' + esc(PC.bridgeSave) + '</button>' + (s.pack.pitchAt ? '<button type="button" class="rm-btn" data-rs-pclockreset' + dis + '>' + esc(PC.pitchClockReset) + '</button>' : '') + '</div>' +
+        '<p class="rm-note">' + esc(s.pack.offerCard === 'paths' ? PC.offerCardPaths : PC.offerCardDeposit) + '</p>' +
+        (av.deposit && av.sprint ? '<div class="rs-row"><button type="button" class="rm-btn" data-rs-paths' + dis + (oo.open ? '' : ' disabled') + '>' + esc(PC.pushPaths) + '</button></div><p class="rm-fine">' + esc(PC.pushPathsHelp) + '</p>' : '') +
+        '<div class="rs-row"><button type="button" class="rm-btn" data-rs-packstep="-1"' + dis + '>' + esc(PC.stackPrev) + '</button><span class="rm-fine">' + esc(s.pack.step > PK.stack.items.length ? PC.stackReveal : fmt(PC.stackStep, String(s.pack.step), String(PK.stack.items.length))) + '</span><button type="button" class="rm-btn" data-rs-packstep="1"' + dis + '>' + esc(PC.stackNext) + '</button></div><p class="rm-fine">' + esc(PC.stackKeys) + '</p></section>';
+    }
     html += '<section class="rs-sec"><p class="rm-fine">' + esc(SC.shortcuts) + '</p></section></div>';
     p.innerHTML = html;
     $$('input, textarea', p).forEach(function (e) { if (e.name && saved[e.name] != null && e.type !== 'checkbox') e.value = saved[e.name]; if (focusName && e.name === focusName) e.focus(); });
@@ -535,6 +659,10 @@
     on2('[data-rs-brbclear]', function () { R.send({ t: 'studio_brb', sec: null }); });
     on2('[data-rs-music]', function () { R.send({ t: 'studio_music', on: !s.music }); });
     on2('[data-rs-presenter2]', openPresenter);
+    on2('[data-rs-packline]', function () { R.send({ t: 'studio_pack', op: 'line', text: val('packline') }); R.toast(PC.bridgeSaved); });
+    on2('[data-rs-pclockreset]', function () { R.send({ t: 'studio_pack', op: 'clock' }); });
+    on2('[data-rs-paths]', function () { R.send({ t: 'studio_cue', cue: 'push:paths' }); });
+    $$('[data-rs-packstep]', p).forEach(function (b) { b.onclick = function () { R.send({ t: 'studio_pack', op: 'step', delta: Number(b.getAttribute('data-rs-packstep')) }); }; });
     var sc2 = $('[data-rs-slidecam]', p); if (sc2) sc2.onchange = function () { R.send({ t: 'studio_slidecam', on: sc2.checked }); };
     var upl = $('[data-rs-upload]', p); if (upl) upl.onchange = function () { if (upl.files && upl.files.length) upload(Array.prototype.slice.call(upl.files)); upl.value = ''; };
     $$('[data-rs-deck]', p).forEach(function (b) { b.onclick = function () { var k = decks.list.filter(function (x) { return x.id === b.getAttribute('data-rs-deck'); })[0]; if (k) R.send({ t: 'studio_deck', deck: { id: k.id, title: k.title, pages: k.pages } }); }; });
@@ -756,6 +884,8 @@
     if (S.view && S.view.room.offer && S.view.room.offer.available) list.push({ label: S.view.room.offer.open ? SC.cueCloseOffer : SC.cueOpenOffer, cue: S.view.room.offer.open ? 'offer:close' : 'offer:open' });
     if (e.deposit) list.push({ label: SC.cueDeposit, cue: 'push:deposit' });
     if (e.sprint) list.push({ label: SC.cueSprint, cue: 'push:sprint' });
+    if (PK && e.deposit && e.sprint) list.push({ label: PC.cuePaths, cue: 'push:paths' });
+    if (PK) list.push({ label: PC.cueBridge, cue: 'scene:bridge' }, { label: PC.cueStack, cue: 'scene:stack' }, { label: PC.cueAnchor, cue: 'scene:anchor' });
     list.push({ label: SC.cueQa, cue: 'scene:qa' });
     return list;
   }
@@ -959,6 +1089,8 @@
   R.on('studio_on_stage', function () { R.toast(SC.onStageNow); });
   R.on('ended', function () { if (music) { try { music.pause(); } catch (e) { /* gone */ } music = null; } closeOverlays(); });
   setInterval(function () { if (ros) tickRos(); }, 1000);
+  // Offer pack: minutes since the pitch started (the server stamped the first pitch scene), for the directors.
+  setInterval(function () { var s = sv(), el = $('[data-rs-pclock]'); if (el && s && s.pack && s.pack.pitchAt) el.textContent = clock(t() - s.pack.pitchAt); }, 1000);
   // Run of show prefetch for directors, so the first click shows it at once.
   R.on('state', function () { if (direct() && !rosData && !rosLoading) loadRos(); });
 })();
