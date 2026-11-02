@@ -116,7 +116,9 @@ export async function landingPage(c: Context<AppEnv>) {
   return page(c, {
     title: CHALLENGE_NAME,
     seo: true,
-    main: landingHtml({ next, now, ticketLabel: cfg.ticketLabel, vipLabel: cfg.vipLabel, vipOn: cfg.vipOn, turnstile: rt.settings.TURNSTILE_SITE_KEY || null, free: cfg.free }),
+    // Prefill: a browser that came from our signed email link sees its details filled in (payment links).
+    main: (await import('../sales/paylinks')).prefillInputs(landingHtml({ next, now, ticketLabel: cfg.ticketLabel, vipLabel: cfg.vipLabel, vipOn: cfg.vipOn, turnstile: rt.settings.TURNSTILE_SITE_KEY || null, free: cfg.free }),
+      c.get('visitor').leadId && !c.get('visitor').isBot ? await (await import('../sales/paylinks')).prefillFor(rt, c.get('visitor').leadId) : null),
     config: { register: '/api/challenge/register', now },
   });
 }

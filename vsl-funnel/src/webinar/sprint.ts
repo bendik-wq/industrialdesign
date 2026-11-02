@@ -392,7 +392,7 @@ export async function createSprintCheckout(rt: Runtime, reg: RegLike, o: { plan?
     const { startWhopCheckout } = await import('./whop');
     const url = await startWhopCheckout(rt, {
       passId: id, kind: 'offer', reg: r, amount, currency: cfg.currency, title: cfg.offerName, description: sprintStripeDescription(cfg, creditLabel),
-      redirectUrl: sprintWelcomeUrl(rt, r.token), metadata: { fast_bonus: fast ? '1' : '0' },
+      redirectUrl: sprintWelcomeUrl(rt, r.token), metadata: { fast_bonus: fast ? '1' : '0', product: cfg.offerName.slice(0, 60), source: 'auto', ref_id: r.session_id ?? '' },
     });
     await started();
     return { url };

@@ -9,7 +9,8 @@ import { identityFromLead, track } from '../tracking/track';
 import { type PassKind, type PassRow, formatMoney, fromMinor, passPaidEffects } from '../webinar/pass';
 import { ELEMENTS_SRC, ticketPayHtml } from '../webinar/ticket-pay';
 import { markWhopPaymentPaid, settleOneClick } from '../webinar/one-click';
-import { CHECKOUT_UNAVAILABLE, WHOP_NATIVE_VERSION, WHOP_PRODUCT, WhopError, checkoutFailed, startWhopCheckout, whopApi, whopCompanyId, whopConfirm } from '../webinar/whop';
+import { CHECKOUT_UNAVAILABLE, WHOP_NATIVE_VERSION, WHOP_PRODUCT, WhopError, checkoutFailed, whopApi, whopCompanyId, whopConfirm } from '../webinar/whop';
+import { PAY_COPY, PayClosed, type DeadlineReason, payingAs, prefillFor, rowDeadline, timerHtml, whopEmbedHtml, whopSession } from './paylinks';
 
 /**
  * Our own Whop payment page for a purchase row that is already waiting (the engagement deposit, the live
@@ -23,7 +24,11 @@ import { CHECKOUT_UNAVAILABLE, WHOP_NATIVE_VERSION, WHOP_PRODUCT, WhopError, che
  *  - Paid (here, by the webhook, or back from 3D Secure / hosted checkout) → the row's return_url.
  */
 
-export type PayRow = PassRow & { source?: string | null; ref_id?: string | null; return_url?: string | null; embedded?: number; one_click?: number };
+export type PayRow = PassRow & {
+  source?: string | null; ref_id?: string | null; return_url?: string | null; embedded?: number; one_click?: number;
+  // Payment links (migration 0061): the real deadline, the room push, the cached Whop checkout session.
+  deadline_at?: number | null; deadline_reason?: string | null; push_id?: number | null; whop_plan_id?: string | null; checkout_expires_at?: number | null;
+};
 
 const MIN = 60_000;
 export const PAY_LIFE_MS = 24 * 60 * MIN;
@@ -76,6 +81,10 @@ export function payCopy(kind: PassKind, label: string, creditNote: string | null
 export interface PendingInput {
   kind: PassKind; regId: string; leadId: string; product: string; amount: number; currency: string;
   source?: string | null; refId?: string | null; returnUrl: string; ticketCredit?: number; listAmount?: number | null; embedded?: boolean; now?: number;
+  /** The real deadline this purchase is sold under (shown as a timer, enforced on the page). None = no timer. */
+  deadline?: { at: number; reason: DeadlineReason } | null;
+  /** The room push the buyer pressed. */
+  pushId?: number | null;
 }
 
 /** A waiting purchase row for the pay page (an unpaid, uncharged one for the same registration and product is reused). */
@@ -85,15 +94,18 @@ export async function pendingRow(rt: Runtime, o: PendingInput) {
   const embedded = o.embedded === false ? 0 : 1;
   const prev = await db.prepare("SELECT * FROM webinar_passes WHERE reg_id = ? AND kind = ? AND status = 'pending' AND embedded = 1 ORDER BY created_at DESC LIMIT 1").bind(o.regId, o.kind).first<PayRow>();
   if (prev && embedded && !prev.stripe_payment_intent && prev.amount === o.amount && (prev.expires_at ?? 0) > now) {
-    await db.prepare('UPDATE webinar_passes SET return_url = ?, updated_at = ? WHERE id = ?').bind(o.returnUrl, now, prev.id).run();
+    // Reused (with its cached Whop checkout session); the deadline follows the offer if the host moved it.
+    await db.prepare('UPDATE webinar_passes SET return_url = ?, deadline_at = ?, deadline_reason = ?, push_id = COALESCE(?, push_id), updated_at = ? WHERE id = ?')
+      .bind(o.returnUrl, o.deadline?.at ?? null, o.deadline?.reason ?? null, o.pushId ?? null, now, prev.id).run();
     return prev.id;
   }
   if (prev && embedded) await db.prepare("UPDATE webinar_passes SET status = 'expired', updated_at = ? WHERE id = ? AND status = 'pending'").bind(now, prev.id).run();
   const id = newId('wp');
   await db.prepare(
-    `INSERT INTO webinar_passes (id, reg_id, lead_id, kind, product, status, amount, currency, expires_at, list_amount, ticket_credit, provider, embedded, source, ref_id, return_url, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 'whop', ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, o.regId, o.leadId, o.kind, o.product, o.amount, o.currency.toLowerCase(), now + PAY_LIFE_MS, o.listAmount ?? null, o.ticketCredit ?? 0, embedded, o.source ?? null, o.refId ?? null, o.returnUrl, now, now).run();
+    `INSERT INTO webinar_passes (id, reg_id, lead_id, kind, product, status, amount, currency, expires_at, list_amount, ticket_credit, provider, embedded, source, ref_id, return_url, deadline_at, deadline_reason, push_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 'whop', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, o.regId, o.leadId, o.kind, o.product, o.amount, o.currency.toLowerCase(), now + PAY_LIFE_MS, o.listAmount ?? null, o.ticketCredit ?? 0, embedded, o.source ?? null, o.refId ?? null, o.returnUrl,
+    o.deadline?.at ?? null, o.deadline?.reason ?? null, o.pushId ?? null, now, now).run();
   return id;
 }
 
@@ -103,14 +115,27 @@ const variant = (row: PayRow) => ({
   visibility: 'hidden', product: { external_identifier: WHOP_PRODUCT[row.kind], title: row.product || KIND_TITLE[row.kind] || 'Payment', visibility: 'hidden' },
 });
 
-/** Opens Whop's hosted checkout for the row (the "Pay there instead" link). */
+/**
+ * The row's Whop checkout session (paylinks.ts): a checkout configuration with the inline plan and our attribution
+ * metadata, cached on the row until it expires. A refusal alerts the team and shows the buyer CHECKOUT_UNAVAILABLE;
+ * the row stays open, so the card fields on the pay page still work.
+ */
+export async function sessionFor(rt: Runtime, row: PayRow, now = Date.now()) {
+  try {
+    const s = await whopSession(rt, row, { redirectUrl: `${await payPageUrl(rt, row.id)}?return=1`, title: row.product || KIND_TITLE[row.kind] || 'Payment', description: variant(row).description, now });
+    if (!s.cached) await (await import('./paylinks')).checkoutStarted(rt, row, 'whop_checkout', now);
+    return s;
+  } catch (e) {
+    if (e instanceof PayClosed) throw e;
+    console.error('whop checkout session failed', String(e).slice(0, 300));
+    await checkoutFailed(rt, { kind: row.kind, amount: row.amount, currency: row.currency, title: row.product || 'Payment', error: e, leadId: row.lead_id }).catch(() => null);
+    throw new WhopError(503, CHECKOUT_UNAVAILABLE);
+  }
+}
+
+/** Opens Whop's hosted checkout for the row (the "Pay there instead" link): the cached session's link. */
 export async function hostedFor(rt: Runtime, row: PayRow) {
-  await rt.env.DB.prepare('UPDATE webinar_passes SET embedded = 0, updated_at = ? WHERE id = ?').bind(Date.now(), row.id).run();
-  const reg = { id: row.reg_id, token: row.ref_id ?? row.reg_id, lead_id: row.lead_id };
-  return startWhopCheckout(rt, {
-    passId: row.id, kind: row.kind, reg, amount: row.amount, currency: row.currency, title: row.product || KIND_TITLE[row.kind] || 'Payment', description: variant(row).description,
-    redirectUrl: `${await payPageUrl(rt, row.id)}?return=1`, metadata: { source: row.source ?? '', ref_id: row.ref_id ?? '' },
-  });
+  return (await sessionFor(rt, row)).url;
 }
 
 export type PayResult = { ok: true; next: string } | { ok: true; payment: string; client_secret: string | null; settle: string } | { ok: false; error: string; hosted: string; next?: string };
@@ -124,6 +149,8 @@ export async function payEmbedded(rt: Runtime, ref: string, confirmationToken: u
   const copy = payCopy(row.kind, formatMoney(fromMinor(row.amount, row.currency), row.currency.toUpperCase()));
   if (row.status === 'paid') return { ok: true, next: row.return_url || rt.origin };
   if (row.status !== 'pending') return { ok: false, error: copy.failed, hosted: `${page}?hosted=1` };
+  const dl = rowDeadline(row);
+  if (dl && dl.at <= Date.now()) return { ok: false, error: PAY_COPY.closed[dl.reason], hosted: '', next: row.return_url || rt.origin };
   if (row.stripe_payment_intent) {
     const s = await settleOneClick(rt, row, passPaidEffects);
     if (s === 'paid') return { ok: true, next: row.return_url || rt.origin };
@@ -150,13 +177,23 @@ export async function payEmbedded(rt: Runtime, ref: string, confirmationToken: u
     return { ok: false, error: declined ? copy.declined : copy.failed, hosted: `${await payPageUrl(rt, fresh)}?hosted=1`, next: `${await payPageUrl(rt, fresh)}?e=${declined ? 'declined' : 'failed'}` };
   }
   const payId = str(pay.id)!;
-  await rt.env.DB.prepare('UPDATE webinar_passes SET stripe_session_id = COALESCE(stripe_session_id, ?), stripe_payment_intent = ?, updated_at = ? WHERE id = ?').bind(`whop_${payId}`, payId, Date.now(), row.id).run();
+  // The card fields' payment now settles this row (a cached hosted session gives way; its payment would still match by pass_id).
+  await rt.env.DB.prepare("UPDATE webinar_passes SET stripe_session_id = CASE WHEN stripe_session_id IS NULL OR stripe_session_id LIKE 'ch_%' THEN ? ELSE stripe_session_id END, stripe_payment_intent = ?, checkout_expires_at = NULL, updated_at = ? WHERE id = ?").bind(`whop_${payId}`, payId, Date.now(), row.id).run();
   await track(rt, await identityFromLead(rt.env, row.lead_id), { name: 'webinar_checkout_started', source: 'server', props: { pass_id: row.id, kind: row.kind, from: 'pay_page', provider: 'whop', embedded: true }, localOnly: true }).catch(() => null);
+  await (await import('./paylinks')).checkoutStarted(rt, row, 'card_fields');
   if (pay.status === 'paid') {
     await markWhopPaymentPaid(rt, row, payId, passPaidEffects);
     return { ok: true, next: row.return_url || rt.origin };
   }
   return { ok: true, payment: payId, client_secret: str(pay.client_secret), settle };
+}
+
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** Above the form: the real timer (only with a real deadline) and who is paying (prefilled, nothing to retype). */
+export function payHead(copy: ReturnType<typeof payCopy>, pf: Awaited<ReturnType<typeof prefillFor>>, dl: ReturnType<typeof rowDeadline>, now: number, slim = false) {
+  const who = payingAs(pf);
+  return `<div class="pay-head">${slim ? '' : `<p class="pass-eyebrow">${esc(copy.eyebrow)}</p><h1 class="pass-h">${esc(copy.heading)}</h1>`}${timerHtml(dl, now)}${who ? `<p class="pass-fine" data-paying-as>${esc(who)}</p>` : ''}</div>`;
 }
 
 /** GET /pay/:ref */
@@ -175,16 +212,30 @@ export async function payPage(c: Context<AppEnv>) {
     if (r === 'paid' || r === 'pending') return c.redirect(back, 302);
     note = copy.failed;
   }
-  if (c.req.query('hosted') === '1' && row.status === 'pending') {
-    try { return c.redirect(await hostedFor(rt, row), 302); } catch { note = CHECKOUT_UNAVAILABLE; }
-  }
   if (row.status !== 'pending') return c.redirect(back, 302);
+  // The real deadline (offer close, replay close or the push's price hold): enforced here, not only shown.
+  const now = Date.now();
+  const dl = rowDeadline(row);
   const lead = await getLead(rt.env, row.lead_id);
+  const pf = await prefillFor(rt, row.lead_id);
   const page = await payPageUrl(rt, row.id);
+  if (dl && dl.at <= now) {
+    await rt.env.DB.prepare("UPDATE webinar_passes SET status = 'expired', updated_at = ? WHERE id = ? AND status = 'pending' AND stripe_payment_intent IS NULL").bind(now, row.id).run();
+    return render(c, '/webinar-pay.html', { title: copy.heading, blocks: { pay: `<div class="card pass-card"><p class="pass-eyebrow">${esc(copy.eyebrow)}</p><h1 class="pass-h">${esc(PAY_COPY.closed[dl.reason])}</h1><p class="pass-fine"><a href="${esc(back)}">${esc(PAY_COPY.back)}</a></p></div>` }, config: { webinar: {} } });
+  }
+  // Whop's own checkout: the cached session, embedded here with the buyer's email and name filled in (or its hosted link).
+  if ((c.req.query('hosted') === '1' || c.req.query('whop') === '1') && row.status === 'pending') {
+    try {
+      const s = await sessionFor(rt, row, now);
+      if (c.req.query('hosted') === '1' || !s.planId) return c.redirect(s.url, 302);
+      return render(c, '/webinar-pay.html', { title: copy.heading, blocks: { pay: `<div class="card pass-card">${payHead(copy, pf, dl, now)}${whopEmbedHtml({ planId: s.planId, id: s.id }, pf)}<p class="pass-fine"><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(PAY_COPY.newTab)}</a></p></div>` }, config: { webinar: {} } });
+    } catch (e) { note = e instanceof PayClosed ? e.message : CHECKOUT_UNAVAILABLE; }
+  }
   const cfg = {
     token: row.id, src: ELEMENTS_SRC, accountId: await whopCompanyId(rt).catch(() => ''), amount: row.amount, currency: row.currency,
-    email: lead?.email ?? null, name: [lead?.first_name, lead?.last_name].filter(Boolean).join(' ') || null,
+    email: pf?.email ?? lead?.email ?? null, name: pf?.name ?? null,
     returnUrl: `${page}?return=1`, hostedUrl: `${page}?hosted=1`, copy, endpoint: '/api/pay', extra: { ref: c.req.param('ref') },
   };
-  return render(c, '/webinar-pay.html', { title: copy.heading, blocks: { pay: ticketPayHtml({ copy, note, hostedUrl: cfg.hostedUrl }) }, config: { webinar: { ticketPay: cfg } } });
+  const whop = `<p class="pay-whop"><a class="btn btn-ghost" href="${esc(page)}?whop=1">${esc(PAY_COPY.whopButton)}</a> <span class="pass-fine">${esc(PAY_COPY.whopNote)}</span></p>`;
+  return render(c, '/webinar-pay.html', { title: copy.heading, blocks: { pay: payHead(copy, pf, dl, now, true) + ticketPayHtml({ copy, note, hostedUrl: cfg.hostedUrl }) + whop }, config: { webinar: { ticketPay: cfg } } });
 }

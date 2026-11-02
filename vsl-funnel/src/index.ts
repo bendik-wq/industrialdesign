@@ -188,6 +188,8 @@ app.get('/rooms/:id/join/:slug', withVisitor, joinPage); // a room's general adm
 app.post('/rooms/:id/join/:slug', withVisitor, joinPage);
 app.get('/unlocks/*', (c) => c.notFound()); // the unlock files are only served through /rooms/a/...
 app.get('/rooms/:id', publicRoomPage); // our video rooms: co-hosts, meeting guests, challenge days
+// Payment links (sales/paylinks.ts): a signed personal link from an email starts the checkout, then the pay page.
+app.get('/pay/go/:ref', withVisitor, async (c) => (await import('./sales/paylinks')).payLinkRoute(c));
 app.get('/pay/:ref', withVisitor, payPage);
 app.get('/guides', withVisitor, guidesHub);
 app.get('/guides/:file{[a-z0-9-]+\\.md}', guideMarkdownPage);

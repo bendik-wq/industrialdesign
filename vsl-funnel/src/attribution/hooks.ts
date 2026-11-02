@@ -16,7 +16,9 @@ const quiet = async <T>(label: string, p: () => Promise<T>) => { try { return aw
 // ───────────── Meta stage events (Conversions API) ─────────────
 
 /** Extra Meta events this module sends: Lead per registration, a custom event for attended and for offer seen. */
-export const STAGE_EVENTS = { lead: 'attr_lead', attended: 'attr_attended', offer_seen: 'attr_offer_seen', room_application: 'attr_room_application', room_purchase: 'attr_room_purchase' } as const;
+export const STAGE_EVENTS = { lead: 'attr_lead', attended: 'attr_attended', offer_seen: 'attr_offer_seen', room_application: 'attr_room_application', room_purchase: 'attr_room_purchase',
+  // Payment links (sales/paylinks.ts): sent at once; same key and event id as the stage sync (audiences/sync.ts), so one per registration.
+  checkout_started: 'attr_checkout_started' } as const;
 export const stageEventsOn = (rt: Pick<Runtime, 'settings'>) => flag((rt.settings as Partial<Record<string, string>>).META_STAGE_EVENTS, true);
 
 /**

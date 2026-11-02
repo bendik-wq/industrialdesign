@@ -89,7 +89,8 @@ export async function liveLanding(c: Context<AppEnv>) {
       </div></section>`;
   return render(c, '/live.html', {
     title: ev ? ev.title : 'Live with Josh',
-    blocks: { main, navmeta: '' },
+    // Payment links / prefill: a browser that came from our signed email link sees its details filled in.
+    blocks: { main: (await import('../sales/paylinks')).prefillInputs(main, v.leadId && !v.isBot ? await (await import('../sales/paylinks')).prefillFor(rt, v.leadId) : null), navmeta: '' },
     config: { webinar: {}, turnstileSiteKey: rt.settings.TURNSTILE_SITE_KEY || null, live: { page: 'landing', register: '/api/live/register', startsAt: ev?.starts_at ?? null, copy: { startsIn: L.startsIn, started: L.started } } },
     seo: { title: `${L.h1} | Live with Josh Li`, description: L.lede, path: '/live', index: Boolean(ev) },
   });

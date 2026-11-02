@@ -153,10 +153,14 @@ export async function checkPlanLink(rt: Rt, roomId: string, ref: string) {
 
 export async function savePush(rt: Rt, roomId: string, p: Push, targetCount: number) {
   const db = rt.env.DB;
+  // Payment links: the room's price hold (Funnel HQ → Rooms, default off) fixes this push's hold at push time.
+  const { holdUntilFor, priceHoldMin } = await import('../sales/paylinks');
+  const room = p.kind === 'sprint' ? await db.prepare('SELECT engage FROM rooms WHERE id = ?').bind(roomId).first<{ engage: string | null }>().catch(() => null) : null;
+  const hold = holdUntilFor(p.kind, p.at, priceHoldMin(room?.engage));
   await db.batch([
     db.prepare("UPDATE room_pushes SET closed_at = COALESCE(closed_at, ?) WHERE room_id = ? AND kind = ? AND COALESCE(ref, '') = ? AND closed_at IS NULL").bind(p.at, roomId, p.kind, p.ref ?? ''),
-    db.prepare('INSERT OR IGNORE INTO room_pushes (room_id, id, kind, ref, targets, target_count, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(roomId, p.id, p.kind, p.ref, p.to ? JSON.stringify(p.to) : null, targetCount, p.by, p.at),
+    db.prepare('INSERT OR IGNORE INTO room_pushes (room_id, id, kind, ref, targets, target_count, created_by, created_at, hold_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(roomId, p.id, p.kind, p.ref, p.to ? JSON.stringify(p.to) : null, targetCount, p.by, p.at, hold),
   ]);
 }
 export async function closePushes(rt: Rt, roomId: string, ids: number[] | 'all_but_deposit', now = Date.now()) {
@@ -168,7 +172,7 @@ export async function pushFor(rt: Rt, roomId: string, who: string, kind: Push['k
   return rt.env.DB.prepare(
     `SELECT * FROM room_pushes WHERE room_id = ? AND kind = ? ${o.open === false ? '' : 'AND closed_at IS NULL'}
        AND (targets IS NULL OR EXISTS (SELECT 1 FROM json_each(room_pushes.targets) WHERE json_each.value = ?)) ORDER BY id DESC LIMIT 1`,
-  ).bind(roomId, kind, who).first<{ id: number; kind: string; ref: string | null; created_at: number; closed_at: number | null }>();
+  ).bind(roomId, kind, who).first<{ id: number; kind: string; ref: string | null; created_at: number; closed_at: number | null; hold_until?: number | null }>();
 }
 export type PushEventKind = 'shown' | 'opened' | 'started' | 'submitted' | 'paid' | 'dismissed';
 export async function recordPushEvent(rt: Rt, room: RoomLike, pushId: number, who: Who, ev: PushEventKind, kind: string, now = Date.now()) {
@@ -295,7 +299,16 @@ export async function submitRoomApplication(rt: Runtime, room: RoomLike, who: Wh
 
 // ───────────── the First Deal Sprint from the room ─────────────
 
-export async function sprintCard(rt: Runtime, leadId: string | null | undefined) {
+export async function sprintCard(rt: Runtime, leadId: string | null | undefined, ctx: { roomId: string; who: string } | null = null) {
+  // Payment links: the push's price hold is the card's only real deadline (none = no timer); what we know prefills.
+  const push = ctx ? await pushFor(rt, ctx.roomId, ctx.who, 'sprint').catch(() => null) : null;
+  const { payingAs, prefillFor, PAY_COPY } = await import('../sales/paylinks');
+  const deadline = push?.hold_until ? { at: push.hold_until, reason: 'hold' as const, label: PAY_COPY.timer.hold, closed: PAY_COPY.closed.hold } : null;
+  const pay = { deadline, payingAs: payingAs(await prefillFor(rt, leadId)) };
+  return { ...(await sprintCardBase(rt, leadId)), ...pay };
+}
+
+async function sprintCardBase(rt: Runtime, leadId: string | null | undefined) {
   const { passConfig, activePass, formatMoney, fromMinor, paymentProvider } = await import('../webinar/pass');
   const { sprintCopy, sprintPrice, ticketCredit, mmss, pitchSec } = await import('../webinar/sprint');
   const { isMillionPlus } = await import('../sales/qualify');
@@ -328,6 +341,9 @@ export async function startRoomSprint(rt: Runtime, room: RoomLike, who: Who, o: 
   if (!who.leadId) return { error: ENGAGE_COPY.appNeedsLead };
   const push = await pushFor(rt, room.id, who.id, 'sprint');
   if (!push) return { error: ENGAGE_COPY.errors.not_targeted };
+  // The push's price hold (only when the owner switched it on for this room): refused after it, here on the server.
+  const { PAY_COPY, checkoutStarted } = await import('../sales/paylinks');
+  if (push.hold_until && now >= push.hold_until) return { error: PAY_COPY.closed.hold };
   const { passConfig, passCapacity, passCopy, fromMinor, paymentProvider, activePass } = await import('../webinar/pass');
   const { sprintPrice, ticketCredit } = await import('../webinar/sprint');
   const { isMillionPlus } = await import('../sales/qualify');
@@ -346,7 +362,10 @@ export async function startRoomSprint(rt: Runtime, room: RoomLike, who: Who, o: 
   const base = { kind: 'offer' as const, regId, leadId: lead.id, product: cfg.offerName, currency: cfg.currency, source: 'room', refId: room.id, returnUrl: o.returnUrl, ticketCredit: price.credit, listAmount: cfg.amount, now };
   const { payPageUrl, pendingRow } = await import('../sales/pay-page');
   const { identityFromLead, track } = await import('../tracking/track');
-  const log = (outcome: string, props: Record<string, unknown> = {}) => identityFromLead(rt.env, lead.id).then((i) => track(rt as Runtime, i, { name: 'webinar_checkout_started', source: 'server', props: { kind: 'offer', from: 'room', room_id: room.id, outcome, ...props }, localOnly: true })).catch(() => null);
+  const log = async (outcome: string, props: Record<string, unknown> = {}) => {
+    await checkoutStarted(rt, { id: (props.pass_id as string) ?? null, lead_id: lead.id, reg_id: regId, kind: 'offer', source: 'room', ref_id: room.id, push_id: push.id }, outcome, now);
+    return identityFromLead(rt.env, lead.id).then((i) => track(rt as Runtime, i, { name: 'webinar_checkout_started', source: 'server', props: { kind: 'offer', from: 'room', room_id: room.id, push_id: push.id, outcome, ...props }, localOnly: true })).catch(() => null);
+  };
   if (price.today <= 0) {
     const id = await pendingRow(rt, { ...base, amount: 0, embedded: false });
     const { markPassPaid } = await import('../webinar/pass');
@@ -360,7 +379,7 @@ export async function startRoomSprint(rt: Runtime, room: RoomLike, who: Who, o: 
     if (r && 'url' in r && r.url) { await log('one_click_action'); return { url: r.url }; }
     await log('one_click_fallback');
   }
-  const id = await pendingRow(rt, { ...base, amount: price.today });
+  const id = await pendingRow(rt, { ...base, amount: price.today, deadline: push.hold_until ? { at: push.hold_until, reason: 'hold' } : null, pushId: push.id });
   await log('page', { pass_id: id, value: fromMinor(price.today, cfg.currency) });
   return { url: await payPageUrl(rt, id) };
 }
@@ -370,7 +389,7 @@ export async function startRoomSprint(rt: Runtime, room: RoomLike, who: Who, o: 
  * our rooms, the push gets its paid event, the room's Sprint gets its delivery row, and Meta gets the room
  * purchase custom event once per registration.
  */
-export async function onRoomPurchase(rt: Runtime, pass: { id: string; kind: string; lead_id: string; paid_at?: number | null; source?: string | null; ref_id?: string | null; reg_id?: string | null }) {
+export async function onRoomPurchase(rt: Runtime, pass: { id: string; kind: string; lead_id: string; paid_at?: number | null; source?: string | null; ref_id?: string | null; reg_id?: string | null; push_id?: number | null }) {
   if (pass.kind !== 'offer' && pass.kind !== 'deposit') return;
   const db = rt.env.DB;
   const now = pass.paid_at ?? Date.now();
@@ -378,11 +397,13 @@ export async function onRoomPurchase(rt: Runtime, pass: { id: string; kind: stri
   // Area C: a buyer who ticked the announcement box in a live room is announced there (first name and city, once).
   await (await import('./audience-db')).announcePurchase(rt, pass, now).catch((e) => console.error('room proof', String(e).slice(0, 200)));
   // The push this purchase came from: the room's Sprint names its room; a deposit is matched to the buyer's latest push in the last two days.
+  // Payment links record the exact push on the purchase (push_id); older purchases fall back to the latest push.
+  const exact = pass.push_id != null && pass.source === 'room' && pass.ref_id;
   const ev = await db.prepare(
     `SELECT e.room_id, e.push_id, e.who FROM room_push_events e JOIN room_pushes p ON p.room_id = e.room_id AND p.id = e.push_id
-      WHERE e.lead_id = ? AND p.kind = ? AND e.event IN ('opened', 'started') AND e.at > ? ${pass.source === 'room' && pass.ref_id ? 'AND e.room_id = ?' : ''}
+      WHERE e.lead_id = ? AND p.kind = ? AND e.event IN ('opened', 'started') AND e.at > ? ${pass.source === 'room' && pass.ref_id ? 'AND e.room_id = ?' : ''} ${exact ? 'AND e.push_id = ?' : ''}
       ORDER BY e.at DESC LIMIT 1`,
-  ).bind(...[pass.lead_id, kind, now - 2 * 86_400_000, ...(pass.source === 'room' && pass.ref_id ? [pass.ref_id] : [])]).first<{ room_id: string; push_id: number; who: string }>();
+  ).bind(...[pass.lead_id, kind, now - 2 * 86_400_000, ...(pass.source === 'room' && pass.ref_id ? [pass.ref_id] : []), ...(exact ? [pass.push_id] : [])]).first<{ room_id: string; push_id: number; who: string }>();
   if (pass.kind === 'offer' && pass.source === 'room') {
     const { ensureDealSprint } = await import('../webinar/deal-sprint');
     await ensureDealSprint(rt, { id: pass.id, lead_id: pass.lead_id }).catch((e) => console.error('room sprint delivery row', e));
@@ -400,6 +421,17 @@ export async function onRoomPurchase(rt: Runtime, pass: { id: string; kind: stri
 }
 
 // ───────────── what the attendee's browser loads ─────────────
+
+const COUNTRY_NAMES: Record<string, string> = { US: 'United States', AU: 'Australia', NZ: 'New Zealand', GB: 'United Kingdom', CA: 'Canada', IE: 'Ireland', SG: 'Singapore' };
+/**
+ * A Deal Plan seeded from the application (pure): their own industry as the buy box's first guess (buying a
+ * competitor), and their country as the area. Only what they told us; the numbers stay theirs to type.
+ */
+export function seedPlan(answers: Record<string, unknown>, country: string | null) {
+  const business = typeof answers.business === 'string' ? answers.business : '';
+  const geo = country ? COUNTRY_NAMES[country.toUpperCase()] ?? '' : '';
+  return cleanPlan({ industry: business, geography: geo });
+}
 
 export async function attendeeEngage(rt: Runtime, room: RoomLike, who: Who) {
   const cfg = engageConfig(rt);
@@ -429,9 +461,12 @@ export async function attendeeEngage(rt: Runtime, room: RoomLike, who: Who) {
     rules: (Object.keys(cfg.rules) as PointAction[]).map((k) => ({ action: k, label: cfg.rules[k].label, points: cfg.rules[k].points, cap: cfg.rules[k].cap })).filter((r) => r.points > 0),
     next: nextUnlock(cfg.unlocks, pts),
     assets,
-    plan: plan ? { data: plan.data, steps: plan.steps } : null,
+    // Not saved yet: the Deal Plan starts from what the application already told us (nothing counts until they save).
+    plan: plan ? { data: plan.data, steps: plan.steps } : pre ? { data: seedPlan(pre.answers, pre.lead.country ?? null), steps: [], seeded: true } : null,
     app: pre ? { name: pre.name, email: pre.email, answers: pre.answers, submitted: pre.submitted, questions: await roomQuestions() } : null,
-    sprint: avail.sprint ? await sprintCard(rt, who.leadId) : null,
+    sprint: avail.sprint ? await sprintCard(rt, who.leadId, { roomId: room.id, who: who.id }) : null,
+    // Payment links: who pays (prefilled everywhere; shown so nobody retypes it).
+    pay: pre ? { payingAs: (await import('../sales/paylinks')).payingAs(await (await import('../sales/paylinks')).prefillFor(rt, who.leadId)) } : null,
     vip,
   };
 }
@@ -566,6 +601,11 @@ export async function sendRoomSummaries(rt: Runtime, roomId: string, now = Date.
     let url: string | null = null;
     if (room.ref_type === 'live' && p.reg_id) { const r = await db.prepare('SELECT token FROM live_webinar_regs WHERE id = ?').bind(p.reg_id).first<{ token: string }>(); if (r) url = `${rt.origin}/live/room/${r.token}`; }
     if (room.ref_type === 'challenge' && p.reg_id) { const r = await db.prepare('SELECT token FROM challenge_registrations WHERE id = ?').bind(p.reg_id).first<{ token: string }>(); if (r) url = `${rt.origin}/challenge/day/${r.token}/${dayOf(room)}`; }
+    // Payment links: the offer's button is the person's own signed payment link (prefilled, under the real close).
+    if (url && offer?.open && room.ref_id && (room.ref_type === 'live' || (room.ref_type === 'challenge' && p.reg_id))) {
+      const { depositLinkFor } = await import('../sales/paylinks');
+      url = (await depositLinkFor(rt, { leadId: lead.id, source: room.ref_type as 'live' | 'challenge', ref: room.ref_type === 'live' ? room.ref_id : p.reg_id! }).catch(() => null)) ?? url;
+    }
     const applied = Boolean(await db.prepare("SELECT 1 AS x FROM room_push_events WHERE room_id = ? AND who = ? AND event = 'submitted'").bind(roomId, p.who).first());
     const hasPlan = plan && PLAN_KEYS.some((k) => plan.data[k]);
     const mail = summaryEmail({

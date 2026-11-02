@@ -306,7 +306,11 @@ export function parseSlides(raw: string | null | undefined) {
 }
 
 /** The post-event emails (plain text paragraphs; links are buttons). Real deadlines only: `closes` is null when no offer is open. */
-export interface PostCtx { name: string; title: string; room: string; closes: string | null; deposit: string; onboarding: string | null; highlights: string[]; replayCloses: string | null }
+export interface PostCtx {
+  name: string; title: string; room: string; closes: string | null; deposit: string; onboarding: string | null; highlights: string[]; replayCloses: string | null;
+  /** The person's signed payment link (sales/paylinks.ts), only while the deposit offer is open. */
+  pay?: string | null;
+}
 export function postEmail(kind: PostKind, x: PostCtx) {
   const hi = `Hi ${x.name},`;
   const room = { label: 'Open my room', href: x.room };
@@ -322,7 +326,7 @@ export function postEmail(kind: PostKind, x: PostCtx) {
         subject: `Before ${x.title} closes: the three questions owners ask`, preheader: x.closes ? `The deposit offer closes ${x.closes}.` : 'Your room has the replay.', heading: 'The three questions owners ask before deciding',
         paras: [hi, 'Owners who came to the session ask three things before they decide.', 'Whether the business they want passes the 1.5x test: your Deal Plan runs it on your own numbers.', 'What happens if they don’t sign a letter of intent in 90 days: the guarantee and its conditions are in your room, in full.', 'Whether the deposit is lost if they change their mind: it is credited in full against the engagement fee, and the refund terms are next to the button.',
           ...(x.closes ? [`The ${x.deposit} deposit from the session closes ${x.closes}. The replay comes down at the same time.`] : [])],
-        button: room,
+        button: x.closes && x.pay ? { label: 'Secure my place', href: x.pay } : room,
       };
     case 'noshow_highlights':
       return {

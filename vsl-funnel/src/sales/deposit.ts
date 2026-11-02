@@ -157,7 +157,13 @@ type Obj = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === 'string' && v ? v : null);
 const obj = (v: unknown): Obj => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Obj) : {});
 
-export interface StartDepositInput { leadId: string; source: 'live' | 'challenge'; refId: string; regToken?: string | null; oneClick?: boolean; returnUrl: string }
+export interface StartDepositInput {
+  leadId: string; source: 'live' | 'challenge'; refId: string; regToken?: string | null; oneClick?: boolean; returnUrl: string;
+  /** The offer's real close (the pay page counts down to it and refuses after it). */
+  deadline?: { at: number; reason: 'offer' | 'replay' | 'hold' } | null;
+  /** The room card (push) the buyer pressed, when there was one; 'link' when they came from an email's payment link. */
+  pushId?: number | null; via?: string;
+}
 
 /**
  * Starts the deposit. Returns { paid: true, url } when it is already paid (or one click went through), { url } to
@@ -178,7 +184,9 @@ export async function startDeposit(rt: Runtime, o: StartDepositInput, x: { now?:
   const base = { kind: 'deposit' as const, regId, leadId: o.leadId, product: 'Engagement deposit', currency: q.cfg.currency, source: o.source, refId: o.refId, returnUrl: o.returnUrl, ticketCredit: q.credit, listAmount: q.full, now };
   const { payPageUrl, pendingRow } = await import('./pay-page');
   const who = await identityFromLead(rt.env, o.leadId);
-  const log = (outcome: string, props: Record<string, unknown> = {}) => track(rt, who, { name: 'engagement_deposit_checkout', source: 'server', props: { outcome, source: o.source, ref_id: o.refId, ...props }, localOnly: true }).catch(() => null);
+  const { checkoutStarted } = await import('./paylinks');
+  const started = (how: string, id?: string) => checkoutStarted(rt, { id: id ?? null, lead_id: o.leadId, reg_id: regId, kind: 'deposit', source: o.source, ref_id: o.refId, push_id: o.pushId ?? null }, `${o.via ?? 'card'}:${how}`, now);
+  const log = (outcome: string, props: Record<string, unknown> = {}) => track(rt, who, { name: 'engagement_deposit_checkout', source: 'server', props: { outcome, source: o.source, ref_id: o.refId, push_id: o.pushId ?? null, via: o.via ?? null, ...props }, localOnly: true }).catch(() => null);
 
   if (q.today <= 0) {
     // Fully covered by ticket credit (only with a tiny deposit setting): record it as paid, nothing to charge.
@@ -190,12 +198,13 @@ export async function startDeposit(rt: Runtime, o: StartDepositInput, x: { now?:
 
   if (o.oneClick && q.oneClick) {
     const r = await oneClickCharge(rt, { ...base, amount: q.today, description: DEPOSIT_DESCRIPTION }, x).catch((e) => { console.error('deposit one click', String(e).slice(0, 200)); return null; });
-    if (r?.paid) { await log('one_click_paid'); return { paid: true, url: o.returnUrl }; }
-    if (r?.url) { await log('one_click_action'); return { url: r.url }; }
+    if (r?.paid) { await started('one_click'); await log('one_click_paid'); return { paid: true, url: o.returnUrl }; }
+    if (r?.url) { await started('one_click'); await log('one_click_action'); return { url: r.url }; }
     await log('one_click_fallback', { reason: r?.reason ?? 'error' });
     // Declined or unavailable: on to the payment page, so the place isn't lost.
   }
-  const id = await pendingRow(rt, { ...base, amount: q.today });
+  const id = await pendingRow(rt, { ...base, amount: q.today, deadline: o.deadline ?? null, pushId: o.pushId ?? null });
+  await started('page', id);
   await log('page', { pass_id: id, value: fromMinor(q.today, q.cfg.currency) });
   return { url: await payPageUrl(rt, id) };
 }

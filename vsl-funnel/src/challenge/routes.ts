@@ -86,7 +86,7 @@ challengeApi.post('/worksheet', action(({ rt, reg, day, b }) => submitHomework(r
 challengeApi.post('/poll', action(({ rt, reg, day, b }) => answerPoll(rt, reg!, day, b.value)));
 challengeApi.post('/hot', action(({ rt, reg, day, b }) => askHotSeat(rt, reg!, day, b.question)));
 challengeApi.post('/joined', action(async ({ rt, reg, day }) => ({ ok: Boolean(await joinDay(rt, reg!, day)) })));
-challengeApi.post('/deposit', action(({ rt, reg, day, b }) => startChallengeDeposit(rt, reg!, { oneClick: b.one_click !== false, day: day >= 1 && day <= 5 ? day : 5 })));
+challengeApi.post('/deposit', action(({ rt, reg, day, b }) => startChallengeDeposit(rt, reg!, { oneClick: b.one_click !== false, day: day >= 1 && day <= 5 ? day : 5, pushId: Number.isInteger(b.push_id) && (b.push_id as number) > 0 ? b.push_id as number : null })));
 
 /**
  * GET /api/live/:key/offer for challenge keys (challenge-offer, polled by the day page). Other keys fall
