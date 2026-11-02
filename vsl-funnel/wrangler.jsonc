@@ -40,9 +40,8 @@
   "migrations": [{ "tag": "rooms-v1", "new_sqlite_classes": ["RoomDO"] }],
 
   // Optional: room recordings (the host's composited stage) are uploaded here in parts and become the replay.
-  // Create the bucket first (npx wrangler r2 bucket create gl-room-recordings), then remove the // below.
-  // Without it the host room offers the recording as a download instead.
-  // "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "gl-room-recordings" }],
+  // Without the binding the host room offers the recording as a download instead.
+  "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "gl-room-recordings" }],
 
   // Email queue, abandoned-application detection and call reminders.
   "triggers": { "crons": ["*/5 * * * *"] },
