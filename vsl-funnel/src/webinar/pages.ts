@@ -170,7 +170,7 @@ export async function registeredPage(c: Context<AppEnv>) {
   const soon = session.starts_at - Date.now() < 20 * 60_000;
   const committed = await rt.env.DB.prepare("SELECT value FROM webinar_interactions WHERE reg_id = ? AND kind = 'commit'").bind(reg.id).first<{ value: string }>();
   // Deal Room Pass: the offer (upsell), the payment step (required), or the holder's perks.
-  const pass = await registeredPassBlock(rt, reg, { pass: c.req.query('pass') ?? null });
+  const pass = await registeredPassBlock(rt, reg, { pass: c.req.query('pass') ?? null, addon: c.req.query('addon') ?? null });
   // The preview shows a paid ticket holder's page when tickets are on.
   const ticket = ticketFor(rt.settings);
   const ticketed = ('ticket' in pass && pass.ticket) || (reg.token === 'preview' && Boolean(ticket) && !pass.gate);

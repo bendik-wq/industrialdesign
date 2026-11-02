@@ -134,6 +134,21 @@
       });
       return;
     }
+    // The optional ticket add-on (ticket-addon.ts): one press charges the ticket's saved card; the button states what and how much.
+    var ad = e.target.closest && e.target.closest('[data-addon-buy]');
+    if (ad) {
+      e.preventDefault();
+      if (ad.disabled) return;
+      var adLabel = ad.textContent, msg = ad.closest('[data-addon]') && ad.closest('[data-addon]').querySelector('[data-addon-msg]');
+      ad.disabled = true; ad.textContent = ad.getAttribute('data-paying') || 'Taking your payment…';
+      F.track('cta_click', { id: 'ticket_addon_buy' });
+      post('/api/webinar/ticket/addon', { token: ad.getAttribute('data-addon-buy') }).then(function (r) {
+        if (r && r.ok && r.next) { location.href = r.next; return; }
+        ad.disabled = false; ad.textContent = adLabel;
+        if (msg) { msg.hidden = false; msg.setAttribute('role', 'alert'); msg.textContent = (r && r.error) || 'The add-on can’t be bought right now. Your ticket is unaffected.'; }
+      });
+      return;
+    }
     var rv = e.target.closest && e.target.closest('[data-pass-review]');
     if (rv) post('/api/webinar/pass/review', { token: cfg.token || cfg.ty });
   });

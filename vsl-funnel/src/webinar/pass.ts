@@ -25,7 +25,7 @@ import { type Registration, getRegistration, roomUrl, startTicketedMessages, sto
 
 export type PassMode = 'off' | 'upsell' | 'required';
 /** offer = First Deal Sprint · seat = Masterclass ticket · deposit = engagement deposit (sales/deposit.ts) · live_ticket = live webinar ticket (live/events.ts). */
-export type PassKind = 'offer' | 'seat' | 'deposit' | 'live_ticket';
+export type PassKind = 'offer' | 'seat' | 'deposit' | 'live_ticket' | 'addon';
 export type PaymentProvider = 'whop' | 'stripe';
 
 /** Whop takes the payments when its API key is set; otherwise Stripe, when its key is. Null = nothing can be sold. */
@@ -307,8 +307,9 @@ export interface PassRow {
 /** The lead's paid front-end offer, if any. */
 export const activePass = (rt: Runtime, leadId: string) =>
   rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE lead_id = ? AND kind = 'offer' AND status = 'paid' ORDER BY paid_at DESC LIMIT 1").bind(leadId).first<PassRow>();
+// The ticket add-on (ticket-addon.ts) never opens the room on its own: a refunded ticket closes it even when the add-on stays.
 const anyPaid = (rt: Runtime, leadId: string) =>
-  rt.env.DB.prepare("SELECT kind FROM webinar_passes WHERE lead_id = ? AND status = 'paid' LIMIT 1").bind(leadId).first<{ kind: PassKind }>();
+  rt.env.DB.prepare("SELECT kind FROM webinar_passes WHERE lead_id = ? AND status = 'paid' AND kind != 'addon' LIMIT 1").bind(leadId).first<{ kind: PassKind }>();
 
 /**
  * The credit to show on an agreement (smallest currency unit), or null: the paid First Deal Sprint and the
@@ -523,6 +524,7 @@ export async function passPaidEffects(rt: Runtime, pass: PassRow) {
   // The live funnels' purchases have their own effects (onboarding, live reminders).
   if (pass.kind === 'deposit') return (await import('../sales/deposit')).depositPaidEffects(rt, pass);
   if (pass.kind === 'live_ticket') return (await import('../live/events')).liveTicketPaidEffects(rt, pass);
+  if (pass.kind === 'addon') return (await import('./ticket-addon')).addonPaidEffects(rt, pass);
   const value = fromMinor(pass.amount, pass.currency);
   const who = await identityFromLead(rt.env, pass.lead_id);
   const lead = await getLead(rt.env, pass.lead_id);
@@ -625,7 +627,7 @@ export async function handleStripeEvent(rt: Runtime, ev: { id?: string; type?: s
 
 /** Back from Stripe with ?pass=success: ask Stripe directly, in case the webhook hasn't arrived yet. */
 export async function confirmOnReturn(rt: Runtime, reg: Registration) {
-  const row = await rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE reg_id = ? AND stripe_session_id IS NOT NULL ORDER BY created_at DESC LIMIT 1").bind(reg.id).first<PassRow>();
+  const row = await rt.env.DB.prepare("SELECT * FROM webinar_passes WHERE reg_id = ? AND stripe_session_id IS NOT NULL AND kind != 'addon' ORDER BY created_at DESC LIMIT 1").bind(reg.id).first<PassRow>();
   if (!row) return (await anyPaid(rt, reg.lead_id)) ? ('paid' as const) : ('unknown' as const);
   if (row.status === 'paid') return 'paid' as const;
   if (row.provider === 'whop') return (await import('./whop')).whopConfirm(rt, row);
@@ -716,9 +718,11 @@ export function holderCardHtml(rt: Runtime, cfg: PassConfig, pass: Pick<PassRow,
 }
 
 /** Everything the thank-you page needs: which card(s), and whether the rest of the page waits for a paid seat. */
-export async function registeredPassBlock(rt: Runtime, reg: Registration, query: { pass?: string | null }) {
+export async function registeredPassBlock(rt: Runtime, reg: Registration, query: { pass?: string | null; addon?: string | null }) {
   const cfg = passConfig(rt.settings);
   let note: string | null = null;
+  // Back from the add-on's 3D Secure step (or it was still settling): ask Whop rather than wait for the webhook.
+  if (query.addon === '1') await (await import('./ticket-addon')).settleAddon(rt, reg.lead_id).catch((e) => console.error('addon settle', String(e).slice(0, 200)));
   if (query.pass === 'success') {
     const r = await confirmOnReturn(rt, reg);
     if (r !== 'paid') note = passCopy(cfg).confirming;
@@ -727,14 +731,16 @@ export async function registeredPassBlock(rt: Runtime, reg: Registration, query:
   const replayHours = webinarSettings(rt).replayHours;
   // Ticket mode: a paid ticket gets its confirmation above whatever card follows.
   const ticket = cfg.mode === 'required' && cfg.seat && (await paidTicket(rt, reg.lead_id)) ? ticketConfirmedHtml(cfg, replayHours) : '';
+  // The optional one-click add-on (ticket-addon.ts), offered under the confirmed ticket; '' when it is off.
+  const addon = ticket ? await (await import('./ticket-addon')).addonCardHtml(rt, reg) : '';
   const holder = await activePass(rt, reg.lead_id);
-  if (holder) return { html: ticket + holderCardHtml(rt, cfg, holder, reg.token), rest: holderCardHtml(rt, cfg, holder, reg.token), gate: false, active: true, confirming: false, ticket: Boolean(ticket) };
+  if (holder) return { html: ticket + addon + holderCardHtml(rt, cfg, holder, reg.token), rest: addon + holderCardHtml(rt, cfg, holder, reg.token), gate: false, active: true, confirming: false, ticket: Boolean(ticket) };
   if (cfg.mode === 'off') return { html: '', rest: '', gate: false, active: false, confirming: false, ticket: false };
   const gate = await passGate(rt, reg);
   if (gate) return { html: seatCardHtml(cfg, note, replayHours), rest: seatCardHtml(cfg, note, replayHours), gate: true, active: false, confirming: note === passCopy(cfg).confirming, ticket: false };
   // The First Deal Sprint is not sold before the masterclass: it unlocks in the room at the pitch (sprint.ts).
   const n = note ? `<p class="pass-note" role="status">${esc(note)}</p>` : '';
-  return { html: ticket + n, rest: n, gate: false, active: false, confirming: note === passCopy(cfg).confirming, ticket: Boolean(ticket) };
+  return { html: ticket + addon + n, rest: addon + n, gate: false, active: false, confirming: note === passCopy(cfg).confirming, ticket: Boolean(ticket) };
 }
 
 /** Room config: the buyer's card, or the one-click offer for $1M+ viewers at the pitch. */

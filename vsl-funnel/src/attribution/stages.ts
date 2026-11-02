@@ -214,7 +214,7 @@ async function refunds(rt: Runtime) {
          FROM challenge_orders o WHERE o.refunded_amount > 0`),
     db.prepare(`UPDATE attr_stages SET value = (SELECT p.refunded_amount FROM webinar_passes p WHERE attr_stages.id LIKE '%:refund:'||p.id) WHERE stage = 'refund' AND EXISTS (SELECT 1 FROM webinar_passes p WHERE attr_stages.id LIKE '%:refund:'||p.id)`),
     db.prepare(`UPDATE attr_conversions SET refunded = (SELECT p.refunded_amount FROM webinar_passes p WHERE p.id = attr_conversions.ref_id), updated_at = ?1
-         WHERE kind IN ('ticket_paid', 'sprint_paid', 'deposit_paid') AND EXISTS (SELECT 1 FROM webinar_passes p WHERE p.id = attr_conversions.ref_id AND p.refunded_amount != attr_conversions.refunded)`).bind(Date.now()),
+         WHERE kind IN ('ticket_paid', 'sprint_paid', 'deposit_paid', 'addon_paid') AND EXISTS (SELECT 1 FROM webinar_passes p WHERE p.id = attr_conversions.ref_id AND p.refunded_amount != attr_conversions.refunded)`).bind(Date.now()),
     db.prepare(`UPDATE attr_conversions SET refunded = (SELECT o.refunded_amount FROM challenge_orders o WHERE o.id = attr_conversions.ref_id), updated_at = ?1
          WHERE kind IN ('ticket_paid', 'vip_paid') AND EXISTS (SELECT 1 FROM challenge_orders o WHERE o.id = attr_conversions.ref_id AND o.refunded_amount != attr_conversions.refunded)`).bind(Date.now()),
   ]);
