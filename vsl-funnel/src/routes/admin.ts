@@ -1,3 +1,4 @@
+import { cameraTestList } from '../rooms/camera-test';
 import { mountDmAdmin } from '../dm/routes';
 import { mountAttributionAdmin } from '../attribution/routes';
 import { mountLiveAdmin } from '../live/funnel-routes';
@@ -815,6 +816,7 @@ admin.get('/export/leads.csv', async (c) => {
 
 // ── Integrations ────────────────────────────────────────────────────
 
+admin.get('/camera-tests', cameraTestList); // results from /camera-test
 admin.get('/integrations', async (c) => {
   const rt = runtimeFrom(c);
   const s = rt.settings;

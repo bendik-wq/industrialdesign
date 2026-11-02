@@ -154,7 +154,7 @@
       }).catch(function (e) { showErr(mediaError(e)); addRetry(); errCode(e); });
     }
     function errCode(e) { if (!e) return; var d = h('small', { class: 'rm-errcode' }, esc((e.name || 'Error') + (e.message ? ': ' + e.message : ''))); err.appendChild(document.createElement('br')); err.appendChild(d); }
-    function addRetry() { var b = h('button', { type: 'button', class: 'rm-btn' }, esc(C.tryAgain)); b.onclick = open; err.appendChild(document.createTextNode(' ')); err.appendChild(b); }
+    function addRetry() { var b = h('button', { type: 'button', class: 'rm-btn' }, esc(C.tryAgain)); b.onclick = open; err.appendChild(document.createTextNode(' ')); err.appendChild(b); if (C.cameraCheck) { var a = h('a', { href: '/camera-test', target: '_blank', rel: 'noopener', class: 'rm-link' }, esc(C.cameraCheck)); err.appendChild(document.createTextNode(' ')); err.appendChild(a); } }
     ['cam', 'mic'].forEach(function (k) { var s = $('[data-' + k + ']'); if (s) s.onchange = open; });
     $('[data-test]').onclick = function () {
       try {

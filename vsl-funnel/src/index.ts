@@ -1,3 +1,4 @@
+import { cameraTestPost } from './rooms/camera-test';
 import { Hono, type MiddlewareHandler } from 'hono';
 import { maybeSyncMetaSpend } from './integrations/meta-ads';
 import { type AppEnv, type Runtime, publicOrigin, runtimeFrom } from './app';
@@ -190,6 +191,8 @@ app.get('/privacy', withVisitor, staticPage('/privacy.html', 'Privacy policy'));
 app.route('/sign', sign);
 app.get('/api/live/:key/offer', challengeOfferRoute); // challenge-offer state, polled by the challenge day page
 app.get('/api/live/:key/status', liveStatusRoute); // before /api: no visitor logging on each poll
+app.get('/camera-test', (c) => c.env.ASSETS.fetch(new Request(new URL('/camera-test.html', c.req.url)))); // camera check page (noindex)
+app.post('/api/camera-test', cameraTestPost); // camera check results (/camera-test), technical only
 app.route('/api/rooms', roomsApi); // our video rooms: WebSocket, ICE, SFU proxy, recordings (before /api: no visitor logging per call)
 app.route('/api', api);
 app.route('/hooks', opsHooks); // support email (Resend inbound / forwarders) and Zapier actions (builder E)

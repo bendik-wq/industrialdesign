@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Camera check</title>
+  <link rel="stylesheet" href="/assets/site.css">
+  <style>
+    .ct{max-width:720px;margin:0 auto;padding:32px 16px 64px}
+    .ct video{width:100%;max-width:480px;aspect-ratio:16/9;background:#1d1d1f;border-radius:12px;display:block;margin:16px 0;object-fit:cover}
+    .ct ol{padding-left:20px}.ct li{margin:6px 0;font-size:15px}
+    .ct .ok{color:#1f7a3a}.ct .bad{color:#b3261e}.ct .muted{color:#6e6e73}
+    .ct pre{white-space:pre-wrap;font-size:12px;background:#f5f5f7;padding:12px;border-radius:8px;max-height:260px;overflow:auto}
+    .ct .code{font:600 22px/1.2 ui-monospace,Menlo,monospace;letter-spacing:.06em}
+  </style>
+</head>
+<body>
+  <main class="ct">
+    <h1 class="h2">Camera check</h1>
+    <p class="muted">This page tries your camera and microphone in several ways and sends the technical results (no pictures or sound) to the G&amp;L team so they can fix any problem. It takes about 30 seconds.</p>
+    <button class="btn" id="go" type="button">Start the check</button>
+    <video id="v" playsinline autoplay muted></video>
+    <ol id="steps"></ol>
+    <div id="done" hidden>
+      <p><strong>Done.</strong> Your check code is <span class="code" id="code"></span>. Send that code to the team.</p>
+      <details><summary>Technical details</summary><pre id="raw"></pre></details>
+    </div>
+  </main>
+  <script src="/assets/camera-test.js"></script>
+</body>
+</html>
