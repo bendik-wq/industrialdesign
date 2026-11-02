@@ -256,6 +256,12 @@ admin.get('/finance', async (c) => {
   const [actuals, models] = await Promise.all([financeActuals(rt), listModels(rt)]);
   return c.json({ actuals, models });
 });
+// Front-end economics (Financial model tab): spend vs ticket, VIP and add-on revenue per funnel, event and week.
+admin.get('/economics', async (c) => c.json(await (await import('../admin/economics')).economicsReport(runtimeFrom(c), { days: Number(c.req.query('days')) })));
+admin.post('/economics/campaign', async (c) => {
+  const b = (await c.req.json().catch(() => ({}))) as { campaign_id?: unknown; funnel?: unknown };
+  return c.json(await (await import('../admin/economics')).setEconCampaign(runtimeFrom(c), b.campaign_id, b.funnel));
+});
 admin.post('/finance/models', async (c) => {
   const body = await c.req.json<{ id?: unknown; name?: unknown; data?: unknown }>().catch(() => ({}));
   return c.json({ ok: true, ...(await saveModel(runtimeFrom(c), body)) });

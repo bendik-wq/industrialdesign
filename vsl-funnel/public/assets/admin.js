@@ -532,6 +532,8 @@
       };
 
       view.innerHTML =
+        // Front-end economics from real sales and spend (public/assets/admin-economics.js), above the model.
+        '<div data-econ style="margin-bottom:14px"></div>' +
         '<div class="card"><div class="card-head"><div><h2>Scenario</h2><p class="sub">Every number below is an assumption you can change; results update as you type. Where the funnel has real data, it shows next to the input (last 90 days). Ad spend and cost per visitor aren’t tracked here yet, so set those from your ad account. Save a scenario to share it with the team.</p></div></div>' +
         '<div class="row fm-bar"><select class="input" data-fm-pick style="max-width:240px">' + (models.length ? models.map(function (m) { return '<option value="' + esc(m.id) + '">' + esc(m.name) + '</option>'; }).join('') : '<option value="">Base case (not saved)</option>') + '</select>' +
         '<input class="input" data-fm-name value="' + esc(cur.name) + '" maxlength="80" style="max-width:200px" aria-label="Scenario name">' +
@@ -667,6 +669,7 @@
         dirty = false; msg.textContent = ''; draw();
       };
       draw();
+      if (window.EconomicsBoard) window.EconomicsBoard.mount({ el: view.querySelector('[data-econ]'), send: send, toast: toast });
     });
   }
 

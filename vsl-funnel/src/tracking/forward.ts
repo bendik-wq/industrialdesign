@@ -76,7 +76,7 @@ function ga4EventName(name: string, props: Record<string, unknown>): string | un
 export function conversionValue(name: string, props: Record<string, unknown>, lead: Pick<LeadSnapshot, 'tier' | 'revenue'> | null): number | undefined {
   if (name === 'lead_qualified') return lead?.tier === 'A' ? ECONOMICS.programPrice * 0.1 : lead?.tier === 'B' ? ECONOMICS.programPrice * 0.03 : 0;
   if (name === 'booking_scheduled') return ECONOMICS.programPrice * 0.15;
-  if (name === 'webinar_offer_purchased' || name === 'webinar_seat_purchased' || name === 'engagement_deposit_purchased' || name === 'live_ticket_purchased' || name === 'challenge_ticket_paid' || name === 'challenge_vip_paid') return Number(props.value) > 0 ? Number(props.value) : undefined;
+  if (name === 'webinar_offer_purchased' || name === 'webinar_seat_purchased' || name === 'engagement_deposit_purchased' || name === 'live_ticket_purchased' || name === 'challenge_ticket_paid' || name === 'challenge_vip_paid' || name === 'ticket_addon_purchased') return Number(props.value) > 0 ? Number(props.value) : undefined;
   if (name === 'revenue_band' || name === 'qualified_1m_plus' || name === 'qualified_any_1m_plus' || name === 'qualified_10m_plus') return bandValue(props.band) || undefined;
   // Deep-funnel signals (src/tracking/signals.ts) carry a value only when one was attached: the contract fee, or an
   // estimate when META_SIGNAL_VALUES is on.
@@ -280,7 +280,7 @@ async function toMeta(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead:
   if (eventName === 'Purchase') {
     const content = ev.name === 'webinar_seat_purchased'
       ? { order_id: String(ev.props.pass_id ?? ev.id), content_name: 'Masterclass ticket' }
-      : ev.name === 'webinar_offer_purchased' || ev.name === 'engagement_deposit_purchased' || ev.name === 'live_ticket_purchased'
+      : ev.name === 'webinar_offer_purchased' || ev.name === 'engagement_deposit_purchased' || ev.name === 'live_ticket_purchased' || ev.name === 'ticket_addon_purchased'
         ? { order_id: String(ev.props.pass_id ?? ev.id), content_name: String(ev.props.product ?? 'First Deal Sprint') }
         : ev.name === 'challenge_ticket_paid' || ev.name === 'challenge_vip_paid'
           ? { order_id: String(ev.props.order_id ?? ev.id), content_name: ev.name === 'challenge_vip_paid' ? 'First Deal Challenge VIP' : 'First Deal Challenge ticket' }
@@ -330,7 +330,7 @@ async function toGA4(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead: 
     ...(value !== undefined ? { value, currency: currencyOf(ev) } : {}),
     ...(ev.name === 'vsl_50' ? { video_percent: 50 } : {}),
     // A ticket is its own transaction (its pass id), so it never de-duplicates against the won deal (the lead id).
-    ...(eventName === 'purchase' ? { transaction_id: ['webinar_seat_purchased', 'engagement_deposit_purchased', 'live_ticket_purchased'].includes(ev.name) ? String(ev.props.pass_id ?? ev.id) : lead?.id ?? ev.id } : {}),
+    ...(eventName === 'purchase' ? { transaction_id: ['webinar_seat_purchased', 'engagement_deposit_purchased', 'live_ticket_purchased', 'ticket_addon_purchased'].includes(ev.name) ? String(ev.props.pass_id ?? ev.id) : lead?.id ?? ev.id } : {}),
   };
   const body: Record<string, unknown> = {
     client_id: who.visitorId,

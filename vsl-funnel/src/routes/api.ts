@@ -308,6 +308,17 @@ api.post('/webinar/ticket/pay', async (c) => {
     return errorResponse(c, err);
   }
 });
+// The optional ticket add-on (ticket-addon.ts): one click on the ticket's saved card, from the thank-you page. Same-origin only.
+api.post('/webinar/ticket/addon', async (c) => {
+  if (!sameOriginWrite(c)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  try {
+    const { rt, reg } = await webinarReg(c);
+    if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+    return c.json(await (await import('../webinar/ticket-addon')).buyAddon(rt, reg));
+  } catch (err) {
+    return errorResponse(c, err);
+  }
+});
 // The buyer booked the kickoff in the calendar on their Sprint page (Calendly's own "scheduled" message).
 api.post('/webinar/sprint/kickoff', roomAction(async (rt, reg) => {
   const pass = await activePass(rt, reg.lead_id);

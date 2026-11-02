@@ -57,7 +57,7 @@ export function onPassPaid(rt: Runtime, pass: PassLike, metadata?: Record<string
   return quiet('pass paid', async () => {
     const at = pass.paid_at ?? Date.now();
     let funnel: Funnel = 'auto', regId: string | null = pass.reg_id, cohort: string | null = null;
-    const kind = pass.kind === 'seat' || pass.kind === 'live_ticket' ? 'ticket_paid' : pass.kind === 'deposit' ? 'deposit_paid' : pass.kind === 'offer' ? 'sprint_paid' : null;
+    const kind = pass.kind === 'seat' || pass.kind === 'live_ticket' ? 'ticket_paid' : pass.kind === 'deposit' ? 'deposit_paid' : pass.kind === 'offer' ? 'sprint_paid' : pass.kind === 'addon' ? 'addon_paid' : null;
     if (!kind) return;
     const db = rt.env.DB;
     if (pass.kind === 'live_ticket' || (pass.kind === 'deposit' && pass.source === 'live')) {
@@ -76,7 +76,8 @@ export function onPassPaid(rt: Runtime, pass: PassLike, metadata?: Record<string
       cohort = r?.session_id ?? null;
     }
     await captureConversion(rt, { kind, funnel, refId: pass.id, regId, leadId: pass.lead_id, at, amount: pass.amount, refunded: pass.refunded_amount ?? 0, currency: pass.currency, cohortRef: cohort, metadata });
-    if (regId) await recordStage(rt, { funnel, stage: kind, leadId: pass.lead_id, regId, ts: at, value: pass.amount, detail: pass.currency, cohortRef: cohort });
+    // The ticket add-on is its own conversion (its own product) but not a funnel stage.
+    if (regId && kind !== 'addon_paid') await recordStage(rt, { funnel, stage: kind, leadId: pass.lead_id, regId, ts: at, value: pass.amount, detail: pass.currency, cohortRef: cohort });
   });
 }
 

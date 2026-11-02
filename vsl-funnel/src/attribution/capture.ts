@@ -17,8 +17,8 @@ import { getSecret } from '../lib/secret';
 
 export type Funnel = 'auto' | 'live' | 'challenge';
 export const FUNNELS: Funnel[] = ['auto', 'live', 'challenge'];
-export type ConvKind = 'registered' | 'ticket_paid' | 'sprint_paid' | 'deposit_paid' | 'vip_paid' | 'engagement_signed';
-export const PAID_KINDS: ConvKind[] = ['ticket_paid', 'sprint_paid', 'deposit_paid', 'vip_paid', 'engagement_signed'];
+export type ConvKind = 'registered' | 'ticket_paid' | 'sprint_paid' | 'deposit_paid' | 'vip_paid' | 'engagement_signed' | 'addon_paid';
+export const PAID_KINDS: ConvKind[] = ['ticket_paid', 'sprint_paid', 'deposit_paid', 'vip_paid', 'engagement_signed', 'addon_paid'];
 
 export interface TouchRow {
   session_id: string; lead_id: string; visitor_id: string; ts: number; landing: string | null; channel: string | null; platform: string | null;
