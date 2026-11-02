@@ -126,25 +126,34 @@
       var cons = { video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
       if (camSel && camSel.value) cons.video.deviceId = { exact: camSel.value };
       if (micSel && micSel.value) cons.audio.deviceId = { exact: micSel.value };
-      var busy = false;
+      var busy = false, lastErr = null;
       return navigator.mediaDevices.getUserMedia(cons).catch(function (e) {
         // A camera that was picked before may be gone: try the default camera before giving up on video.
         if (e && e.name === 'OverconstrainedError' && cons.video.deviceId) { delete cons.video.deviceId; delete cons.audio.deviceId; return navigator.mediaDevices.getUserMedia(cons); }
         throw e;
       }).catch(function (e) {
+        // Some cameras (Qualcomm on Windows among them) can't start at the HD size or frame rate we ask for:
+        // try the camera's own default, then a small size, before calling it busy.
+        if (!camBusy(e)) throw e;
+        var dev = cons.video.deviceId ? { deviceId: cons.video.deviceId } : {};
+        return navigator.mediaDevices.getUserMedia({ video: Object.keys(dev).length ? dev : true, audio: cons.audio })
+          .catch(function () { return navigator.mediaDevices.getUserMedia({ video: Object.assign({ width: { ideal: 640 }, height: { ideal: 480 } }, dev), audio: cons.audio }); })
+          .catch(function (e2) { lastErr = e2 || e; throw e2 || e; });
+      }).catch(function (e) {
         if (e && e.name === 'NotFoundError') return navigator.mediaDevices.getUserMedia({ audio: true }).catch(function () { return null; });
         // Camera held by another app (Zoom, Teams, FaceTime) or failed to start: keep the mic, say why.
-        if (e && camBusy(e)) { busy = true; return navigator.mediaDevices.getUserMedia({ audio: cons.audio }).catch(function () { return null; }); }
+        if (e && camBusy(e)) { busy = true; lastErr = e; return navigator.mediaDevices.getUserMedia({ audio: cons.audio }).catch(function () { return null; }); }
         throw e;
       }).then(function (stream) {
         previewStream = stream;
-        if (busy) { showErr(C.cameraBusy); addRetry(); if (!stream) return; video.srcObject = stream; meterFor(stream); return navigator.mediaDevices.enumerateDevices().then(fill); }
+        if (busy) { showErr(C.cameraBusy); addRetry(); errCode(lastErr); if (!stream) return; video.srcObject = stream; meterFor(stream); return navigator.mediaDevices.enumerateDevices().then(fill); }
         if (!stream) { showErr(C.noDevices); return; }
         err.hidden = true;
         video.srcObject = stream; meterFor(stream);
         return navigator.mediaDevices.enumerateDevices().then(fill);
-      }).catch(function (e) { showErr(mediaError(e)); addRetry(); var d = h('small', { class: 'rm-errcode' }, esc((e && e.name ? e.name : 'Error') + (e && e.message ? ': ' + e.message : ''))); err.appendChild(document.createElement('br')); err.appendChild(d); });
+      }).catch(function (e) { showErr(mediaError(e)); addRetry(); errCode(e); });
     }
+    function errCode(e) { if (!e) return; var d = h('small', { class: 'rm-errcode' }, esc((e.name || 'Error') + (e.message ? ': ' + e.message : ''))); err.appendChild(document.createElement('br')); err.appendChild(d); }
     function addRetry() { var b = h('button', { type: 'button', class: 'rm-btn' }, esc(C.tryAgain)); b.onclick = open; err.appendChild(document.createTextNode(' ')); err.appendChild(b); }
     ['cam', 'mic'].forEach(function (k) { var s = $('[data-' + k + ']'); if (s) s.onchange = open; });
     $('[data-test]').onclick = function () {
@@ -419,7 +428,9 @@
   }
   function toggleCam() {
     if (!S.local.cam) {
-      navigator.mediaDevices.getUserMedia({ video: S.devices.cam ? { deviceId: { exact: S.devices.cam }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } } })
+      var dv = S.devices.cam ? { deviceId: { exact: S.devices.cam } } : {};
+      navigator.mediaDevices.getUserMedia({ video: Object.assign({ width: { ideal: 1280 }, height: { ideal: 720 } }, dv) })
+        .catch(function (e) { if (!camBusy(e)) throw e; return navigator.mediaDevices.getUserMedia({ video: Object.keys(dv).length ? dv : true }); })
         .then(function (s) { S.local.cam = s.getVideoTracks()[0]; S.camOn = true; return publish('video', S.local.cam); }).then(function () { send({ t: 'media', videoOff: false }); renderBar(); renderStage(); }).catch(function (e) { toast(mediaError(e)); });
       return;
     }
