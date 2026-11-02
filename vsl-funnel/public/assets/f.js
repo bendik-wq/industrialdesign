@@ -52,7 +52,22 @@
   /** Mirror a server/client conversion to the browser pixel with the same event id. */
   function pixel(eventName, eventId, data, custom) {
     if (!cfg.pixel || typeof window.fbq !== 'function') return;
-    window.fbq(custom ? 'trackCustom' : 'track', eventName, data || {}, eventId ? { eventID: eventId } : undefined);
+    window.fbq(custom ? 'trackCustom' : 'track', eventName, metaParams(eventName, data || {}), eventId ? { eventID: eventId } : undefined);
+  }
+
+  // The same variant params the server adds to its copy of the event (src/audiences/enrich.ts), so whichever
+  // copy Meta keeps after deduplication carries them: product, funnel, session slot, edition.
+  var REG = { '/webinar': ['masterclass', 'Masterclass registration', 'auto'], '/live': ['live_webinar', 'Live webinar registration', 'live'], '/challenge': ['challenge', 'First Deal Challenge registration', 'challenge'] };
+  function metaParams(eventName, data) {
+    var out = {}, k;
+    if (eventName === 'CompleteRegistration') {
+      var base = '/' + (String(path || location.pathname).split('/')[1] || '');
+      var r = REG[base];
+      if (r) { out.content_name = r[1]; out.content_category = r[0]; out.content_ids = [r[0]]; out.content_type = 'product'; out.product_id = r[0]; out.funnel = r[2]; }
+      if (out.funnel === 'auto' && cfg.webinar && cfg.webinar.edition) out.edition = cfg.webinar.edition;
+    }
+    for (k in data) if (Object.prototype.hasOwnProperty.call(data, k) && data[k] != null && data[k] !== '') out[k] = data[k];
+    return out;
   }
 
   // Webinar attribution: a link to our other domain (apply. ↔ live.) carries this browser's signed id, so the

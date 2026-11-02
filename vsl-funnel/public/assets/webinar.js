@@ -65,7 +65,7 @@
     post('/api/webinar/register', body).then(function (r) {
       btn.disabled = false;
       // Pixel copies of the server's CompleteRegistration and Lead, with the same event ids (Meta keeps one of each).
-      if (r && r.next) { F.track('webinar_register_click', {}); if (F.pixel) F.pixel('CompleteRegistration', body.event_id); if (F.pixel) F.pixel('Lead', body.pixel_eid); location.href = F.xdUrl ? F.xdUrl(r.next) : r.next; }
+      if (r && r.next) { F.track('webinar_register_click', {}); if (F.pixel) F.pixel('CompleteRegistration', body.event_id, { session_slot: picked && picked.getAttribute('data-slot') || '' }); if (F.pixel) F.pixel('Lead', body.pixel_eid); location.href = F.xdUrl ? F.xdUrl(r.next) : r.next; }
       else error(reg, (r && r.error) || 'Something went wrong — please try again.');
     });
   });

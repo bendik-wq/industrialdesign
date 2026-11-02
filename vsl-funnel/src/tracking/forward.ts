@@ -5,6 +5,7 @@ import type { EventSource } from './catalog';
 import { GA4_EVENTS, META_EVENTS } from './catalog';
 import { hashedMatchKeys } from './match';
 import { bandValue, revenueMetaName } from './revenue-events';
+import { bookingValues, enrichEvent, scheduleValueOn } from '../audiences/enrich';
 import type { TrackIdentity } from './track';
 
 export const META_API_VERSION = 'v24.0';
@@ -35,6 +36,8 @@ interface LeadSnapshot {
   utm_source: string | null;
   utm_campaign: string | null;
   channel: string | null;
+  revenue_band?: string | null;
+  click_type?: string | null;
 }
 
 type Dest = 'meta' | 'ga4' | 'posthog' | 'webhook';
@@ -54,6 +57,7 @@ export function metaEventName(name: string, props: Record<string, unknown>): str
   if (name === 'lead_status_changed') {
     if (props.to === 'showed') return 'CallShowed';
     if (props.to === 'won') return 'Purchase';
+    if (props.to === 'no_show') return 'CallNoShow'; // custom event: the no-show audience (src/audiences)
     return undefined;
   }
   return revenueMetaName(name, props) ?? META_EVENTS[name];
@@ -91,7 +95,7 @@ export async function forwardEvent(rt: Runtime, who: TrackIdentity, ev: Forwarde
   const needsLead = Boolean(who.leadId) && (LIFECYCLE.has(ev.name) || metaName || settings.POSTHOG_KEY || settings.GA4_MEASUREMENT_ID);
   const lead = needsLead
     ? await rt.env.DB.prepare(
-        'SELECT id, ref_code, email, phone, first_name, last_name, country, city, tier, score, status, closer_id, revenue, utm_source, utm_campaign, channel FROM leads WHERE id = ?',
+        'SELECT id, ref_code, email, phone, first_name, last_name, country, city, COALESCE(tier_override, tier) AS tier, score, status, closer_id, revenue, utm_source, utm_campaign, channel, revenue_band, click_type FROM leads WHERE id = ?',
       )
         .bind(who.leadId)
         .first<LeadSnapshot>()
@@ -279,6 +283,18 @@ async function toMeta(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead:
           ? { order_id: String(ev.props.order_id ?? ev.id), content_name: ev.name === 'challenge_vip_paid' ? 'First Deal Challenge VIP' : 'First Deal Challenge ticket' }
           : { order_id: lead?.id ?? ev.id, content_name: 'M&A advisory program' };
     Object.assign(custom_data, content);
+  }
+  // Variant params (content_name/category/ids, product_id, funnel, tier, revenue_band, session_slot, edition,
+  // source_platform) so Meta can optimise on, and build audiences from, each booking, registration and purchase type.
+  Object.assign(custom_data, await enrichEvent(rt, ev.name, ev.props, lead));
+  if (eventName === 'Schedule') {
+    // A booked call's value is an estimate (src/audiences/enrich.ts), sent only when the owner switches it on.
+    delete custom_data.value;
+    delete custom_data.currency;
+    if (scheduleValueOn(rt)) {
+      const tv = (await bookingValues(rt).catch(() => [])).find((t) => t.tier === String(lead?.tier ?? '').toUpperCase());
+      if (tv && tv.value > 0) Object.assign(custom_data, { value: tv.value, currency: tv.currency, predicted_value: true });
+    }
   }
 
   const event: Record<string, unknown> = {
