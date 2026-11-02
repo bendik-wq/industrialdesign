@@ -228,6 +228,8 @@ export async function joinPage(c: Context<AppEnv>) {
   const id = c.req.param('id') ?? '';
   const room = isRoomId(id) ? await getRoom(rt, id) : null;
   const a = room ? await checkJoin(rt, room, c.req.param('slug')) : null;
+  // The panic button: a moved room's join link opens the join sheet of the room it moved to (src/rooms/panic.ts).
+  if (room?.moved_to && a) { const to = await (await import('./panic')).movedJoinUrl(rt, room, c.req.url); if (to) return c.redirect(to, c.req.method === 'POST' ? 307 : 302); }
   if (!room || !a || room.status === 'ended') return page(c, JOIN_COPY.closed, `<h1 class="rm-h1">${esc(JOIN_COPY.closed)}</h1><p class="rm-lede">${esc(JOIN_COPY.closedBody)}</p>`, 404);
   const action = `/rooms/${room.id}/join/${c.req.param('slug')}`;
   if (c.req.method !== 'POST') return page(c, room.title, await joinSheet(rt, room, a, { action }));

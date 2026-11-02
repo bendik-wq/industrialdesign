@@ -21,6 +21,11 @@ export interface RoomRow {
   summary_at?: number | null;
   /** Studio settings (builder B, migration 0057): JSON, see src/rooms/studio.ts StudioSettings. */
   studio?: string | null;
+  /** The panic button (migration 0077, src/rooms/panic.ts): the room that replaced this one, the one it replaced, when, and its settings (JSON). */
+  moved_to?: string | null;
+  moved_from?: string | null;
+  moved_at?: number | null;
+  panic?: string | null;
 }
 
 const MIN = 60_000;
@@ -235,9 +240,10 @@ export async function listRooms(rt: Runtime, o: { limit?: number } = {}) {
     `SELECT r.*, (SELECT COUNT(*) FROM room_attendance a WHERE a.room_id = r.id) AS people,
             (SELECT COALESCE(SUM(a.minutes), 0) FROM room_attendance a WHERE a.room_id = r.id) AS minutes,
             (SELECT COUNT(*) FROM room_recordings k WHERE k.room_id = r.id AND k.status = 'ready') AS recordings,
+            (SELECT m.title FROM rooms m WHERE m.id = r.moved_to) AS moved_to_title, (SELECT m.title FROM rooms m WHERE m.id = r.moved_from) AS moved_from_title,
             l.first_name, l.last_name, l.email
        FROM rooms r LEFT JOIN leads l ON l.id = r.lead_id ORDER BY COALESCE(r.starts_at, r.created_at) DESC LIMIT ?`,
-  ).bind(Math.min(200, o.limit ?? 100)).all<RoomRow & { people: number; minutes: number; recordings: number; first_name: string | null; last_name: string | null; email: string | null }>();
+  ).bind(Math.min(200, o.limit ?? 100)).all<RoomRow & { people: number; minutes: number; recordings: number; moved_to_title: string | null; moved_from_title: string | null; first_name: string | null; last_name: string | null; email: string | null }>();
   return results.map((r) => ({ ...r, hostUrl: `${rt.origin}/admin/rooms/${r.id}`, guest: r.lead_id ? [r.first_name, r.last_name].filter(Boolean).join(' ') || r.email : null }));
 }
 
@@ -249,8 +255,11 @@ export async function roomReport(rt: Runtime, id: string) {
     db.prepare('SELECT a.*, l.email FROM room_attendance a LEFT JOIN leads l ON l.id = a.lead_id WHERE a.room_id = ? ORDER BY a.first_at LIMIT 2000').bind(id),
     db.prepare('SELECT * FROM room_recordings WHERE room_id = ? ORDER BY started_at DESC').bind(id),
   ]);
+  // The panic button: the rooms this session ran in, first to last (one entry when it never moved).
+  const chain = room.moved_to || room.moved_from ? await (await import('./panic')).roomChain(rt, room.id).catch(() => []) : [];
   return {
     room: { ...room, hostUrl: `${rt.origin}/admin/rooms/${room.id}` },
+    chain,
     attendance: att.results,
     recordings: (recs.results as { id: string; status: string }[]).map((r) => ({ ...r, url: r.status === 'ready' ? `${rt.origin}/rooms/replay/${r.id}` : null })),
   };

@@ -12,6 +12,7 @@ import { AudienceHub } from './audience-do'; // area C: reactions, captions, the
 import { MediaReports, heldIds, holdOnClose, isHeld, resume as resumeMedia, staffView, wantsQuality } from './media';
 import { boundRoomState, cleanupAt, keepDays } from './hygiene'; // reliability: bounded state, ended-room clean-up
 import { Engage2Hub } from './engage2-do'; // engage2: engagement score, hot list, live-only bonus
+import { PanicHub } from './panic'; // the panic button: hand the session to a fresh room, the Zoom card
 
 /**
  * One Durable Object per room: signalling and state over WebSockets with hibernation (the object sleeps between
@@ -42,10 +43,13 @@ export class RoomDO {
   private aud: AudienceHub;
   /** Engage2: the engagement score, the host's hot list, the live-only bonus. */
   private e2: Engage2Hub;
+  /** The panic button (src/rooms/panic.ts). */
+  private panic: PanicHub;
 
   constructor(private ctx: DurableObjectState, private env: Env) {
     this.aud = this.newHub();
     this.e2 = this.newE2();
+    this.panic = this.newPanic();
     void ctx.blockConcurrencyWhile(async () => {
       this.st = (await ctx.storage.get<RoomState>('st')) ?? null;
       this.meta = (await ctx.storage.get<Meta>('meta')) ?? null;
@@ -62,6 +66,10 @@ export class RoomDO {
 
   private newE2() {
     return new Engage2Hub({ st: () => this.st, deliver: (to, msg) => this.deliver(to, msg), runtime: () => this.runtime(), storage: this.ctx.storage, commit: async (now) => { await this.save(); this.broadcast(now); } });
+  }
+
+  private newPanic() {
+    return new PanicHub({ st: () => this.st, deliver: (to, msg) => this.deliver(to, msg), runtime: () => this.runtime(), storage: this.ctx.storage, commit: async (now) => { await this.save(); this.broadcast(now); } });
   }
 
   private async runtime(): Promise<Runtime> {
@@ -112,6 +120,8 @@ export class RoomDO {
     const now = Date.now();
     // MoQ config (settings and the Funnel HQ override) arrives with every request.
     const reconfigured = meta.moq ? configureMoq(st, meta.moq) : false;
+    // The panic button: the Worker's snapshot / seed / moved / zoom calls.
+    if (url.pathname.startsWith('/panic/')) { const pr = await this.panic.fetch(url.pathname, req, now); if (pr) return pr; }
 
     if (url.pathname === '/ws') {
       if (req.headers.get('upgrade') !== 'websocket') return new Response('expected websocket', { status: 426 });
@@ -131,6 +141,7 @@ export class RoomDO {
       server.send(JSON.stringify(view(st, r.member, now, { chat: true })));
       await this.aud.onJoin(r.member, now).catch(() => null);
       await this.e2.onJoin(r.member, now).catch(() => null); // engage2: the bonus, the hot list
+      await this.panic.onJoin(r.member).catch(() => null); // the panic button: the Zoom card while it is up
       // media: whether the room kept their media session through the reconnect, who else is reconnecting, and for staff everyone's connection.
       server.send(JSON.stringify({ t: 'resumed', sessionId: resumed?.sessionId ?? null, held: Boolean(resumed) }));
       if (resumed) this.deliver('all', { t: 'mhold', ids: heldIds(st, now) });
@@ -569,7 +580,7 @@ export class RoomDO {
     const roomId = this.st?.id ?? this.meta?.id ?? null;
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
-    this.st = null; this.meta = null; this.mediaReports = null; this.roomRow = null; this.aud = this.newHub(); this.e2 = this.newE2();
+    this.st = null; this.meta = null; this.mediaReports = null; this.roomRow = null; this.aud = this.newHub(); this.e2 = this.newE2(); this.panic = this.newPanic();
     if (roomId) await this.env.DB.prepare('INSERT INTO room_do_gc (room_id, cleaned_at, detail) VALUES (?, ?, ?) ON CONFLICT(room_id) DO NOTHING').bind(roomId, now, fromSweep ? 'sweep' : 'alarm').run().catch(() => null);
     return { cleared: true, reason: fromSweep ? 'sweep' : 'alarm' };
   }

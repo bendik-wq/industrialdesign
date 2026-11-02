@@ -156,6 +156,8 @@ export interface RoomState {
   studio?: StudioState;
   /** The waiting room (builder E, src/rooms/lifecycle.ts). */
   lc?: LcRoomState;
+  /** The panic button (src/rooms/panic.ts): this room took over the session of an earlier room. */
+  panic?: { from: string; at: number };
 }
 
 export const MOQ_HEALTH_MS = 20_000;
