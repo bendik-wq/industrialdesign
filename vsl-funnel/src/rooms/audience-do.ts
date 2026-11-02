@@ -214,9 +214,9 @@ export class AudienceHub {
     } else {
       const m = [...st.chat.msgs].reverse().find((x) => x.by === actorId);
       if (!m) return;
+      // The hot list is buying intent only; an @host mention goes to the queue instead.
       const sig: SignalKind[] = buyingSignals(m.text);
       const mention = mentionsHost(m.text);
-      if (mention) sig.push('mention');
       if (sig.length) { flagHot(d.cohost, { who: actorId, name: me.name, text: m.text, signals: sig }, now); changed = true; }
       if (isQuestion(m.text) || mention) {
         const { item, fresh } = enqueue(d.cohost, { kind: isQuestion(m.text) ? 'question' : 'mention', text: m.text.replace(/(^|\s)@\S+/g, ' ').trim() || m.text, who: actorId, name: me.name, chatId: m.id }, now);
@@ -236,7 +236,8 @@ export class AudienceHub {
     this.host.waitUntil((async () => {
       const rt = await this.host.runtime();
       const { knowledgeBase, retrieve } = await import('../support/kb');
-      const sources = retrieve(await knowledgeBase(rt).catch(() => []), it.text, 4);
+      // Public passages only: answers go to attendees, so the team's internal scripts and decks stay out.
+      const sources = retrieve((await knowledgeBase(rt).catch(() => [])).filter((p) => !p.internal), it.text, 4);
       const r = rulesDraft(it.text, sources);
       if (!it.draft || force) it.draft = r ? { text: r.text, sources: r.sources, by: 'rules', confidence: null, at: Date.now() } : null;
       this.sendStaffView();

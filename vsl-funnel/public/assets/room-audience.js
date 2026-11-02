@@ -181,7 +181,6 @@
   function onCaption(m) {
     CAP.lines.push({ id: m.id, text: m.text, at: R.now(), by: m.by });
     if (CAP.lines.length > 300) CAP.lines.splice(0, CAP.lines.length - 300);
-    if (!CAP.seen && P.cc) { CAP.seen = true; R.toast(T.ccMachine); }
     drawCaps();
   }
   function onCaptionTr(m) { CAP.lines.forEach(function (l) { if (l.id === m.id) l.tr = m.text; }); drawCaps(); }
@@ -249,7 +248,7 @@
     c.inflight++;
     fetch(CFG.api + '/captions?t=' + encodeURIComponent(CFG.ticket) + '&start=' + at + '&prev=' + encodeURIComponent(c.prev.slice(-160)), { method: 'POST', headers: { 'content-type': 'audio/wav' }, body: wav, credentials: 'same-origin' })
       .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
-      .then(function (d) { c.inflight--; if (d && d.ok && d.text) c.prev = d.text; else if (d && !d.ok && CAPT) { R.toast(T.ccHostError); } })
+      .then(function (d) { c.inflight--; if (d && d.ok && d.text) c.prev = d.text; else if (d && !d.ok && CAPT && Date.now() - (c.errAt || 0) > 60000) { c.errAt = Date.now(); R.toast(T.ccHostError); } })
       .catch(function () { c.inflight--; });
   }
   /** Float32 pieces at the context's rate → 16 kHz mono 16-bit WAV. */
@@ -415,7 +414,10 @@
   }
   function personalBlock(withDeadline) {
     var el = h('section', { class: 'rx-personal', 'aria-label': T.personal.heading, 'data-rx-personal': '' });
-    var d = ME_DATA, lines = (d && d.lines) || [], o = room() && room().offer;
+    // The four that matter most at the moment of decision, in this order.
+    var order = ['buybox', 'coverage', 'why', 'outreach', 'business', 'action'];
+    var d = ME_DATA, o = room() && room().offer;
+    var lines = ((d && d.lines) || []).slice().sort(function (a, b) { return order.indexOf(a.key) - order.indexOf(b.key); }).slice(0, 4);
     var html = '<h3>' + esc(T.personal.heading) + '</h3>';
     html += lines.length ? '<dl>' + lines.map(function (l) { return '<dt>' + esc(l.label) + '</dt><dd>' + esc(l.text) + '</dd>'; }).join('') + '</dl>' : '<p class="rm-note" style="margin:0">' + esc(T.personal.empty) + '</p>';
     if (withDeadline && o && o.open && o.closesAt) html += '<p class="rx-deadline">' + esc(T.personal.deadline) + ' <strong>' + esc(fmtWhen(o.closesAt)) + '</strong></p>';
@@ -428,7 +430,7 @@
     var c = d.consent || { on: false, showCity: true }, pv = c.showCity && d.preview.withCity ? d.preview.withCity : d.preview.withoutCity;
     var el = h('div', { class: 'rx-consent', 'data-rx-consent': '' });
     el.innerHTML = '<label><input type="checkbox" data-c-on' + (c.on ? ' checked' : '') + '><span>' + esc(T.consentLabel.replace('{a}', pv)) + '</span></label>' +
-      '<div class="rx-sub">' + (d.preview.hasCity ? '<label><input type="checkbox" data-c-city' + (c.showCity ? ' checked' : '') + '> ' + esc(T.consentCity) + '</label> · ' : '') + esc(T.consentHelp) + '</div>';
+      (d.preview.hasCity ? '<div class="rx-sub"><label><input type="checkbox" data-c-city' + (c.showCity ? ' checked' : '') + '> ' + esc(T.consentCity) + '</label></div>' : '') + '<p class="rx-sub">' + esc(T.consentHelp) + '</p>';
     function save() {
       var on = $('[data-c-on]', el).checked, city = $('[data-c-city]', el) ? $('[data-c-city]', el).checked : false;
       R.post('/audience/consent', { on: on, showCity: city }).then(function (r) {
@@ -446,7 +448,7 @@
     var off = $('[data-offer-sheet] [data-offer]');
     if (off && !off.hasAttribute('data-rx')) {
       off.setAttribute('data-rx', '1');
-      loadMe().then(function () {
+      loadMe(true).then(function () {
         var head = $('.rm-offer-h', off), buy = $('[data-buy]', off);
         if (head && ME_DATA) head.parentNode.insertBefore(personalBlock(true), head.nextSibling);
         if (buy) { var cb = consentBlock(); if (cb) buy.parentNode.insertBefore(cb, buy); buy.parentNode.insertBefore(askButton(), buy.nextSibling); }
@@ -455,7 +457,7 @@
     var sp = $('[data-esheet="sprint"] [data-sp-buy]');
     if (sp && !sp.hasAttribute('data-rx')) {
       sp.setAttribute('data-rx', '1');
-      loadMe().then(function () {
+      loadMe(true).then(function () {
         var body = sp.closest('.rm-offer'), head = body && $('.rm-offer-h', body);
         if (head && ME_DATA) head.parentNode.insertBefore(personalBlock(false), head.nextSibling ? head.nextSibling.nextSibling : null);
         var cb = consentBlock(); if (cb) sp.parentNode.insertBefore(cb, sp);
@@ -515,7 +517,8 @@
         w.document.documentElement.className = document.documentElement.className;
         w.document.body.className = 'rm-body rx-pip-body';
         var wrap = M.wrap, parent = wrap.parentNode, next = wrap.nextSibling;
-        var ph = h('div', { class: 'rm-stage rm-stage--lobby' }, '<p class="rm-note">' + esc(T.pip) + '</p>');
+        var ph = h('div', { class: 'rm-stage rm-stage--lobby' }, '<button type="button" class="rm-btn">' + esc(T.pipOff) + '</button>');
+        $('button', ph).onclick = function () { w.close(); };
         parent.insertBefore(ph, wrap);
         w.document.body.appendChild(wrap);
         $$('video', wrap).forEach(function (v) { v.play().catch(function () {}); });

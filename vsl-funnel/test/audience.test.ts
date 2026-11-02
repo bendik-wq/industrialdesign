@@ -268,6 +268,8 @@ describe('the AI co-host: buying signals, clusters, drafts a person sends', () =
     const r = rulesDraft('How long does the First Deal Sprint run?', [{ title: 'First Deal Sprint: what is delivered', text: 'The First Deal Sprint runs for 7 days. Day 1: your capacity. The weather is irrelevant here.' }]);
     expect(r).toEqual({ text: 'The First Deal Sprint runs for 7 days.', sources: ['First Deal Sprint: what is delivered'] });
     expect(rulesDraft('anything', [])).toBeNull();
+    // Never the team's internal scripts, and never a stage direction.
+    expect(rulesDraft('What does the deposit cost?', [{ title: 'Material deck', internal: true, text: 'The deposit costs [SLIDE: price] five thousand dollars tonight.' } as never, { title: 'Engagement deposit terms', text: 'The engagement deposit [ON SCREEN: terms] is credited in full against the engagement fee.' }])).toEqual({ text: 'The engagement deposit is credited in full against the engagement fee.', sources: ['Engagement deposit terms'] });
   });
   it('in the room: chat and Q&A feed the private queue and hot list; a person sends the answer, labelled', async () => {
     const st = webinar();

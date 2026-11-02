@@ -216,9 +216,10 @@ export const hotView = (c: CohostState) => [...c.hot].sort((a, b) => b.at - a.at
 /** A draft from the knowledge base without a model: the passage's sentences that share the most words with the question. */
 export function rulesDraft(question: string, passages: { title: string; text: string }[]) {
   const q = new Set(qTerms(question));
-  const top = passages[0];
+  // Only what an attendee may read: never the team's internal scripts and decks (their stage directions included).
+  const top = passages.find((p) => !(p as { internal?: boolean }).internal);
   if (!top || !q.size) return null;
-  const sentences = top.text.replace(/\s+/g, ' ').split(/(?<=[.?])\s+(?=[A-Z$0-9])/).map((s) => s.trim()).filter((s) => s.length > 20 && s.length < 400);
+  const sentences = top.text.replace(/\[[^\]]{0,120}\]/g, ' ').replace(/\s+/g, ' ').split(/(?<=[.?])\s+(?=[A-Z$0-9])/).map((s) => s.trim()).filter((s) => s.length > 20 && s.length < 400);
   const scored = sentences.map((s, i) => ({ s, i, n: qTerms(s).filter((w) => q.has(w)).length })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n || a.i - b.i).slice(0, 2).sort((a, b) => a.i - b.i);
   if (!scored.length) return null;
   return { text: scored.map((x) => x.s).join(' ').replace(/—/g, ', ').slice(0, 600), sources: [top.title] };
@@ -394,7 +395,7 @@ export const AUDIENCE_COPY = {
     sprint: '{a} just joined the First Deal Sprint.',
     application: '{a} just sent an application.',
   } as Record<ProofKind, string>,
-  consentLabel: 'Tell the room when I join, as {a}.',
+  consentLabel: 'When I go ahead, the room can see it, as {a}.',
   consentCity: 'Show my city',
   consentHelp: 'Optional. Only your first name and city, once. Untick it any time before you pay.',
   consentSaved: 'Saved.',
@@ -425,7 +426,7 @@ export const AUDIENCE_COPY = {
   nudgeFinish: 'Open the offer',
   // attention
   awayHeading: 'While you were away',
-  awayChapter: (t: string) => `Josh moved on to: ${t}`,
+  awayChapter: (t: string) => `Now on: ${t}`,
   awaySaid: 'What was said',
   awayOffer: 'The offer opened while you were away.',
   awayCards: (n: number) => `${n} new cards are waiting for you.`,
