@@ -38,12 +38,18 @@ const funnelOf = (room: Pick<RoomRow, 'ref_type'>) => (room.ref_type === 'live' 
 const cohortOf = (room: Pick<RoomRow, 'ref_type' | 'ref_id'>) => (room.ref_type === 'challenge' ? (/^challenge:([^:]+):/.exec(room.ref_id ?? '')?.[1] ?? room.ref_id) : room.ref_id);
 const dayOf = (room: Pick<RoomRow, 'ref_type' | 'ref_id'>) => (room.ref_type === 'challenge' ? Number(/:(\d)$/.exec(room.ref_id ?? '')?.[1]) || 0 : 0);
 
+/**
+ * The Sprint is sold in rooms whenever Whop is connected, unless WEBINAR_PASS is set to "off". The masterclass's own
+ * upsell/required modes don't gate it: the push button and the attendee's checkout follow this one rule.
+ */
+export const roomSprintOn = (s: Record<string, unknown>) => String(s.WEBINAR_PASS ?? '').trim().toLowerCase() !== 'off' && Boolean(String(s.WHOP_API_KEY ?? '').trim());
+
 /** What can be pushed in this room: the application (needs the lead), the Sprint (on sale, Whop), the deposit (the room's offer), VIP (challenge days). */
 export function engageAvail(rt: Pick<Runtime, 'settings'>, room: Pick<RoomRow, 'ref_type' | 'ref_id' | 'mode'>): EngageAvail {
   if (room.mode === 'meeting') return { application: false, sprint: false, deposit: false, vip: false, resources: [] };
   const s = rt.settings as S;
   const day = dayOf(room);
-  const sprintOn = String(s.WEBINAR_PASS ?? '').trim().toLowerCase() !== 'off' && Boolean(String(s.WHOP_API_KEY ?? '').trim());
+  const sprintOn = roomSprintOn(s);
   return {
     // Every webinar room can push the application and the Sprint, linked to an event or not (a room made on its
     // own in Funnel HQ is a webinar too). The deposit needs the event's or cohort's real offer window.
@@ -309,6 +315,21 @@ export async function sprintCard(rt: Runtime, leadId: string | null | undefined,
   return { ...(await sprintCardBase(rt, leadId)), ...pay };
 }
 
+/** The yearly revenue choices offered in the room (the same keys the application and scoring use). */
+export const ROOM_BANDS = ['<100k', '100k-1m', '1m-5m', '5m-20m', '20m+'] as const;
+const REVENUE_LABEL: Record<string, string> = { '<100k': 'Under $100K', '100k-1m': '$100K–$1M', '1m-5m': '$1M–$5M', '5m-20m': '$5M–$20M', '20m+': '$20M+' };
+
+/**
+ * Saves the attendee's yearly revenue from the room's checkout, only when their file has none yet (an answer the
+ * team already has is never overwritten from here). Returns false when there is nothing to save to.
+ */
+export async function saveRoomBand(rt: Runtime, who: Who, band: unknown, now = Date.now()): Promise<{ ok: boolean; error?: string }> {
+  if (!who.leadId) return { ok: false, error: ENGAGE_COPY.noLeadEmail };
+  if (typeof band !== 'string' || !(ROOM_BANDS as readonly string[]).includes(band)) return { ok: false, error: ENGAGE_COPY.bandSaveError };
+  await rt.env.DB.prepare('UPDATE leads SET revenue_band = ?, updated_at = ? WHERE id = ? AND (revenue_band IS NULL OR revenue_band = \'\')').bind(band, now, who.leadId).run();
+  return { ok: true };
+}
+
 async function sprintCardBase(rt: Runtime, leadId: string | null | undefined) {
   const { passConfig, activePass, formatMoney, fromMinor, paymentProvider } = await import('../webinar/pass');
   const { sprintCopy, sprintPrice, ticketCredit, mmss, pitchSec } = await import('../webinar/sprint');
@@ -325,8 +346,11 @@ async function sprintCardBase(rt: Runtime, leadId: string | null | undefined) {
     name: cfg.offerName, heading: t.heading, promise: t.promise, lede: t.lede, button: t.button, guarantee: t.guaranteeShort, creditNote: t.creditNote,
     priceLabel: cfg.priceLabel, todayLabel: price.todayLabel, line: price.line, list: fromMinor(cfg.amount, cfg.currency), currency: cfg.currency, formatted: formatMoney(fromMinor(price.today, cfg.currency), cfg.currency),
     perks: cfg.perks.map((p) => p.title).slice(0, 6),
-    available: cfg.mode !== 'off' && paymentProvider(rt.settings) === 'whop',
+    available: roomSprintOn(rt.settings as Record<string, unknown>) && paymentProvider(rt.settings) === 'whop',
     qualified: Boolean(lead && isMillionPlus(lead.revenue_band)),
+    hasLead: Boolean(lead),
+    // No revenue on file yet: the card asks for it in one tap (saveRoomBand) instead of turning the buyer away.
+    bands: lead && !lead.revenue_band ? ROOM_BANDS.map((v) => ({ value: v, label: REVENUE_LABEL[v] ?? v })) : null,
     paid: Boolean(lead && (await activePass(rt, lead.id))),
     oneClick: card ? { card: cardLabel(card.card_brand, card.card_last4) } : null,
   };
@@ -352,7 +376,7 @@ export async function startRoomSprint(rt: Runtime, room: RoomLike, who: Who, o: 
   if (!lead) return { error: ENGAGE_COPY.appNeedsLead };
   const cfg = passConfig(rt.settings);
   if (await activePass(rt, lead.id)) return { paid: true, url: o.returnUrl };
-  if (cfg.mode === 'off' || paymentProvider(rt.settings) !== 'whop') return { error: ENGAGE_COPY.sprintUnavailable };
+  if (!roomSprintOn(rt.settings as Record<string, unknown>) || paymentProvider(rt.settings) !== 'whop') return { error: ENGAGE_COPY.sprintUnavailable };
   if (!isMillionPlus(lead.revenue_band)) return { error: ENGAGE_COPY.sprintUnderMillion };
   const cap = await passCapacity(rt, cfg, now);
   if (cap.full) return { error: passCopy(cfg).soldOut };

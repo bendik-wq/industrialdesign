@@ -9,7 +9,7 @@ import {
 } from '../src/rooms/engage';
 import {
   assetUrl, attendeeEngage, awardPoints, checkAssetLink, checkPlanLink, engageAvail, engageConfig, engageReport, getPlan, grantUnlocks, leadEngagement, personTimeline, planUrl, pushStats,
-  recordPushEvent, roomQuestions, savePlan, savePush, sendRoomSummaries, sprintCard, startRoomSprint, submitRoomApplication, thresholdUnlocks,
+  recordPushEvent, roomQuestions, saveRoomBand, savePlan, savePush, sendRoomSummaries, sprintCard, startRoomSprint, submitRoomApplication, thresholdUnlocks,
 } from '../src/rooms/engage-db';
 import { createRoom, ensureRoomFor, getRoom, makeTicket } from '../src/rooms/rooms';
 import { JOINS_PER_IP_HOUR, JOIN_COPY, admissionOf, checkJoin, cohostTtl, cohostUrl, joinRoom, joinSheet, joinUrl, saveAdmission, trackedJoin } from '../src/rooms/admission';
@@ -448,6 +448,24 @@ describe('the Sprint payment card', () => {
     expect(r.url).toMatch(/^https:\/\/apply\.test\/pay\/wp[0-9a-z]+\.[0-9a-f]{24}$/);
     expect(q("SELECT kind, status, amount, source, ref_id, product FROM webinar_passes WHERE lead_id = 'l1'")).toEqual([{ kind: 'offer', status: 'pending', amount: 300000, source: 'room', ref_id: room.id, product: 'First Deal Sprint' }]);
     expect(q("SELECT event FROM room_push_events WHERE who = 'rlr1'")).toEqual([{ event: 'started' }]);
+  });
+  it('checkout in the room: no revenue on file asks it in one tap (never overwrites); no email on file says how to pay', async () => {
+    const { room, eventId } = await liveRoom();
+    seedLead('l1'); x("UPDATE leads SET revenue_band = NULL WHERE id = 'l1'");
+    const who = seedReg(eventId, 'lr1', 'l1', 'rlr1');
+    const card = await sprintCard(rt, 'l1');
+    expect(card).toMatchObject({ qualified: false, hasLead: true });
+    expect(card.bands!.map((b) => b.value)).toEqual(['<100k', '100k-1m', '1m-5m', '5m-20m', '20m+']);
+    expect(await saveRoomBand(rt, who, 'lots')).toEqual({ ok: false, error: ENGAGE_COPY.bandSaveError });
+    expect(await saveRoomBand(rt, who, '1m-5m')).toEqual({ ok: true });
+    expect(await sprintCard(rt, 'l1')).toMatchObject({ qualified: true, bands: null });
+    await saveRoomBand(rt, who, '<100k'); // an answer on file stays
+    expect(q("SELECT revenue_band FROM leads WHERE id = 'l1'")).toEqual([{ revenue_band: '1m-5m' }]);
+    await savePush(rt, room.id, { id: 1, kind: 'sprint', ref: null, to: null, at: T0, open: true, by: 'hadmin' }, 1);
+    expect((await startRoomSprint(rt, room, who, { returnUrl: 'https://apply.test/x' })).url).toMatch(/\/pay\//);
+    expect(await saveRoomBand(rt, { id: 'g1', leadId: null }, '1m-5m')).toEqual({ ok: false, error: ENGAGE_COPY.noLeadEmail });
+    expect(await sprintCard(rt, null)).toMatchObject({ hasLead: false, bands: null });
+    for (const k of ['checkout', 'bandHeading', 'bandFine', 'bandSaveError', 'underMillionNext', 'noLeadEmail'] as const) expect(auditCopy(ENGAGE_COPY[k])).toEqual([]);
   });
   it('one click on the saved ticket card: paid, the push counts it, the Sprint delivery row and the Meta room purchase event', async () => {
     const { room, eventId } = await liveRoom();

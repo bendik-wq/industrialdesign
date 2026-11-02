@@ -1279,7 +1279,11 @@
     var q = e.quiz, res = q && (E.quizRes[q.id] || (q.mine != null ? { qid: q.id, choice: q.mine, correct: q.mine === q.right, right: q.right, explain: q.explain } : null));
     var pend = (e.pushes || []).filter(function (x) { return !E.dismissed[x.id]; });
     var html = '', key = '';
-    if (q && !E.dismissed['q' + q.id] && (q.open || res)) {
+    var buyNow = pend.filter(function (x) { return x.kind === 'sprint' || x.kind === 'deposit' || x.kind === 'vip'; });
+    if (buyNow.length) {
+      key = 'p' + buyNow[buyNow.length - 1].id;
+      html = pushCard(buyNow[buyNow.length - 1]);
+    } else if (q && !E.dismissed['q' + q.id] && (q.open || res)) {
       key = 'q' + q.id + (res ? 'r' : '');
       html = '<p class="rm-eyebrow">' + esc(EC.quizEyebrow) + '</p><h3 class="rm-card-h">' + esc(q.question) + '</h3>';
       if (res) {
@@ -1336,18 +1340,22 @@
   }
   function updateTray() {
     var t = $('[data-tray]'); if (!t) return;
-    var e = ev(), open = e ? (e.pushes || []).filter(function (x) { return E.dismissed[x.id]; }) : [];
-    t.hidden = !open.length;
-    $('[data-tray-n]', t).textContent = String(open.length);
+    var e = ev(), all = e ? (e.pushes || []) : [], open = all.filter(function (x) { return E.dismissed[x.id]; });
+    var buy = all.some(function (x) { return x.kind === 'sprint' || x.kind === 'deposit' || x.kind === 'vip'; });
+    t.hidden = !open.length && !buy;
+    t.classList.toggle('is-buy', buy);
+    t.firstChild.nodeValue = (buy ? (EC.checkout || 'Checkout') : EC.tray) + ' ';
+    $('[data-tray-n]', t).textContent = String(buy ? all.length : open.length);
   }
   function openTray() {
     var e = ev(); if (!e) return;
-    var list = (e.pushes || []);
+    var list = (e.pushes || []).slice().sort(function (a, b) { var r = function (x) { return x.kind === 'sprint' || x.kind === 'deposit' || x.kind === 'vip' ? 0 : 1; }; return r(a) - r(b); });
     var d = sheet('tray');
-    d.body.innerHTML = '<h2>' + esc(EC.tray) + '</h2><ul class="rm-traylist">' + list.map(function (x) {
+    d.body.innerHTML = '<h2>' + esc(list.some(function (x) { return x.kind !== 'resource' && x.kind !== 'application'; }) ? (EC.checkout || 'Checkout') : EC.tray) + '</h2><ul class="rm-traylist">' + list.map(function (x) {
       var a = x.kind === 'resource' ? assetOf(x.ref) : null;
       var title = x.kind === 'application' ? EC.appHeading : x.kind === 'sprint' ? ((E.data && E.data.sprint && E.data.sprint.heading) || 'First Deal Sprint') : x.kind === 'deposit' ? EC.depositButton : x.kind === 'vip' ? EC.vipHeading : (a ? a.title : '');
-      return '<li><span>' + esc(title) + '</span><button type="button" class="rm-btn" data-tray-go="' + x.id + '">' + esc(EC.open) + '</button></li>';
+      var pay = x.kind === 'sprint' || x.kind === 'deposit' || x.kind === 'vip';
+      return '<li><span>' + esc(title) + '</span><button type="button" class="' + (pay ? 'rm-buy' : 'rm-btn') + '" data-tray-go="' + x.id + '">' + esc(pay ? (EC.checkout || 'Checkout') : EC.open) + '</button></li>';
     }).join('') + '</ul>';
     $$('[data-tray-go]', d.el).forEach(function (b) { b.onclick = function () { var id = Number(b.getAttribute('data-tray-go')); d.close(); var x = list.filter(function (z) { return z.id === id; })[0]; if (x) actPush(x); }; });
   }
@@ -1427,7 +1435,31 @@
       if (!sp) { d.body.innerHTML = '<p>' + esc(EC.sprintUnavailable) + '</p>'; return; }
       var body = h('div', { class: 'rm-offer' }); d.inner.appendChild(body);
       if (sp.paid) { body.innerHTML = '<h2 class="rm-offer-h">' + esc(EC.paidHeading) + '</h2><p>' + esc(EC.sprintPaidBody) + '</p>'; return; }
-      if (!sp.qualified) { body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(sp.heading) + '</h2><p>' + esc(EC.sprintUnderMillion) + '</p>'; return; }
+      if (!sp.hasLead) { body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(sp.heading) + '</h2><p>' + esc(EC.noLeadEmail) + '</p>'; return; }
+      if (!sp.qualified && sp.bands && sp.bands.length) {
+        // No revenue on file: ask it in one tap, then the checkout (or the application) follows.
+        body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(EC.bandHeading) + '</h2><p class="rm-fine">' + esc(EC.bandFine) + '</p>' +
+          '<div class="rm-choices" role="radiogroup" aria-label="' + esc(EC.bandHeading) + '">' + sp.bands.map(function (b) { return '<button type="button" class="rm-opt" role="radio" aria-checked="false" data-band="' + esc(b.value) + '">' + esc(b.label) + '</button>'; }).join('') + '</div>' +
+          '<p class="rm-err" role="alert" data-band-err hidden></p>';
+        $$('[data-band]', body).forEach(function (b) {
+          b.onclick = function () {
+            $$('[data-band]', body).forEach(function (z) { z.disabled = true; });
+            post('/band', { band: b.getAttribute('data-band') }).then(function (r) {
+              if (r && r.ok) { d.close(); return openSprint(push); }
+              $$('[data-band]', body).forEach(function (z) { z.disabled = false; });
+              var er = $('[data-band-err]', body); er.textContent = (r && r.error) || EC.bandSaveError; er.hidden = false;
+            });
+          };
+        });
+        return;
+      }
+      if (!sp.qualified) {
+        var appPush = (ev().pushes || []).filter(function (x) { return x.kind === 'application'; })[0];
+        body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(sp.heading) + '</h2><p>' + esc(EC.sprintUnderMillion) + '</p>' +
+          (appPush ? '<p>' + esc(EC.underMillionNext) + '</p><button type="button" class="rm-primary" data-sp-app>' + esc(EC.appButton) + '</button>' : '');
+        var ab = $('[data-sp-app]', body); if (ab) ab.onclick = function () { d.close(); actPush(appPush); };
+        return;
+      }
       if (!sp.available) { body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(sp.heading) + '</h2><p>' + esc(EC.sprintUnavailable) + '</p>'; return; }
       body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(sp.heading) + '</h2><p class="rm-lede">' + esc(sp.promise) + '</p><p>' + esc(sp.lede) + '</p>' +
         (sp.perks && sp.perks.length ? '<ul class="rm-secures">' + sp.perks.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '') +

@@ -218,6 +218,8 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .rm-ring-n { position: relative; font: 600 11px/1 var(--ui); font-variant-numeric: tabular-nums; }
 .rm-traybtn { border: 0; border-radius: 999px; padding: 6px 10px; background: var(--fill); color: var(--navy); font: 600 12px/1 var(--ui); }
 .rm-traybtn span { font-variant-numeric: tabular-nums; }
+.rm-traybtn.is-buy { background: var(--gold); color: var(--ink); padding: 8px 12px; min-height: 32px; }
+.rm-traylist .rm-buy { min-height: 40px; padding: 0 18px; font-size: 15px; }
 .rm-agenda { padding: 8px 16px 10px; background: #fff; border-bottom: 1px solid var(--hair); }
 .rm-agenda-bar { display: flex; gap: 3px; margin-bottom: 6px; }
 .rm-agenda-bar span { flex: 1; height: 3px; border-radius: 2px; background: var(--fill-2); transition: background .25s var(--ease); }

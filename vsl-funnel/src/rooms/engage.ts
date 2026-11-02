@@ -266,6 +266,13 @@ export const ENGAGE_COPY = {
   sprintPaidBody: 'Your First Deal Sprint has started. Josh’s team emails you the kickoff details, and your intake form is in the same email.',
   sprintUnavailable: 'The Sprint can’t be bought from this room right now. Email the team and they send you a payment link.',
   sprintUnderMillion: 'The First Deal Sprint is for owners doing $1M or more a year.',
+  // checkout in the room
+  checkout: 'Checkout',
+  bandHeading: 'What does your business turn over a year?',
+  bandFine: 'One tap. It decides which offer fits you, and it goes on your file with Josh’s team.',
+  bandSaveError: 'That didn’t save. Try again.',
+  underMillionNext: 'The application is the right next step for you. Josh’s team reads every answer.',
+  noLeadEmail: 'To pay here, open the room from the personal link in your email. Your details are already on it.',
   vipEyebrow: 'Challenge VIP',
   vipHeading: 'Upgrade to VIP',
   vipBody: 'A daily hot-seat Q&A after each session, the recordings kept, and a review of your worksheets by the team.',

@@ -20,7 +20,7 @@ import { mediaConfig, mediaCsp, mediaReportRoute, netTest } from './media';
 import { ASSETS, ENGAGE_COPY, PLAN_KEYS, QUIZ_PRESETS, agendaText, assetById, coverage, parseAgenda } from './engage';
 import {
   RoomError, attendeeEngage, checkAssetLink, checkPlanLink, engageAvail, engageReport, getPlan, personTimeline, pushStats, roomEngageSettings, savePlan, sendRoomSummaries,
-  startRoomSprint, submitRoomApplication,
+  startRoomSprint, submitRoomApplication, saveRoomBand,
 } from './engage-db';
 import {
   type RoomRow, createRoom, getRoom, inviteUrl, isRoomId, listRooms, makeInvite, makeTicket, memberId, readInvite, readTicket, roomOffer, roomReport, ticketIdentity,
@@ -404,6 +404,15 @@ roomsApi.post('/:id/sprint', async (c) => {
   if (!a || a.room.mode !== 'webinar' || a.t.role === 'host' || a.t.role === 'cohost') return c.json({ ok: false, error: 'forbidden' }, 403);
   const r = await startRoomSprint(a.rt, a.room, whoOf(a.t), { oneClick: b.one_click === true, returnUrl: `${a.rt.origin}/rooms/${a.room.id}/done?k=sprint` });
   return c.json({ ok: !r.error, ...r, next: r.url ?? null });
+});
+
+/** The attendee's yearly revenue, asked by the Sprint checkout when their file has none (never overwrites). */
+roomsApi.post('/:id/band', async (c) => {
+  if (!sameOrigin(c)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const a = await authed(c, b.t);
+  if (!a || a.room.mode !== 'webinar' || a.t.role === 'host' || a.t.role === 'cohost') return c.json({ ok: false, error: 'forbidden' }, 403);
+  return c.json(await saveRoomBand(a.rt, whoOf(a.t), b.band));
 });
 
 /** The host's live counts per push (staff tickets only): shown, opened, started, submitted, paid, and the applications with their tier. */
