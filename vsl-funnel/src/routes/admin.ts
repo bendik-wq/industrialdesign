@@ -65,6 +65,7 @@ import { audiencesAdmin } from '../audiences/admin';
 import { supportAdmin } from '../support/admin';
 import { automationsAdmin } from '../integrations/automations-admin';
 import { webinarCallsAdmin } from '../admin/webinar-calls';
+import { dataqAdmin } from '../dataq/routes';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -238,6 +239,7 @@ admin.route('/automations', automationsAdmin); // Integrations → Claude (MCP) 
 admin.route('/winback', winbackAdmin); // Funnel HQ → Win-back (cold leads into the masterclass, live webinar or challenge; starts only on approval)
 admin.route('/audiences', audiencesAdmin); // Funnel HQ → Meta audiences (planned audiences + custom conversions; created only on approval)
 admin.route('/webinar-calls', webinarCallsAdmin); // AI calls → Webinar calls (webinar, live Zoom, challenge flows)
+admin.route('/dataq', dataqAdmin); // Ad tracking → Data quality checks and CSV/JSON exports (src/dataq/*)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {
   const b = await c.req.json<{ review_booked?: boolean }>().catch(() => ({ review_booked: true }));

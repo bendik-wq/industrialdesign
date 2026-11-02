@@ -93,6 +93,8 @@ function seed(db: DatabaseSync) {
   ins(db, 'challenge_progress', { reg_id: 'cr1', day: 1, present_at: T });
   ins(db, 'challenge_homework', { reg_id: 'cr1', cohort_id: 'co1', day: 1, answers: '{}', created_at: T, updated_at: T });
   ins(db, 'challenge_deposits', { reg_id: 'cr1', cohort_id: 'co1', lead_id: ch, started_at: T, paid_at: T + HOUR, amount: 490000, currency: 'usd' });
+  // The deposit's payment row (startDeposit makes one for every challenge deposit); the map counts these, as Command does.
+  ins(db, 'webinar_passes', { id: 'p_cdep', reg_id: 'cr1', lead_id: ch, kind: 'deposit', source: 'challenge', ref_id: 'cr1', status: 'paid', amount: 490000, currency: 'usd', paid_at: T + HOUR, created_at: T, updated_at: T });
 
   // DMs: a comment thread that became Hot, was replied to and booked; a story reply.
   ins(db, 'dm_threads', { id: 'd1', ig_user_id: 'ig1', source: 'comment', band: 'hot', created_at: T, updated_at: T, replied_at: T, booked_at: T + HOUR });

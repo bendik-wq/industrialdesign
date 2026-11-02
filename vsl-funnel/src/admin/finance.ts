@@ -4,6 +4,7 @@ import { webinarReport } from './webinar';
 import { loadReps } from '../sales/reps';
 import { newId } from '../lib/ids';
 import { adsReport } from './ads';
+import { PAID_SALE } from '../lib/paid-sales';
 
 /** A live rate for one model input: value, how many people it's based on, and what it measures. */
 type Live = { value: number; n: number; note: string; trust?: boolean; unit?: string } | null;
@@ -30,8 +31,8 @@ export async function financeActuals(rt: Runtime) {
   ]);
   // The paid ladder: tickets (paid seats), First Deal Sprints and the engagements Sprint buyers signed.
   const ladder = await db.prepare(
-    `SELECT (SELECT COUNT(*) FROM webinar_passes WHERE kind = 'seat' AND status = 'paid' AND paid_at BETWEEN ?1 AND ?2) AS tickets,
-            (SELECT COUNT(*) FROM webinar_passes WHERE kind = 'offer' AND status = 'paid' AND paid_at BETWEEN ?1 AND ?2) AS sprints,
+    `SELECT (SELECT COUNT(*) FROM webinar_passes WHERE kind = 'seat' AND ${PAID_SALE} AND paid_at BETWEEN ?1 AND ?2) AS tickets,
+            (SELECT COUNT(*) FROM webinar_passes WHERE kind = 'offer' AND ${PAID_SALE} AND paid_at BETWEEN ?1 AND ?2) AS sprints,
             (SELECT COUNT(*) FROM contracts k WHERE k.status = 'signed' AND COALESCE(k.is_test, 0) = 0 AND k.signed_at BETWEEN ?1 AND ?2
                 AND EXISTS (SELECT 1 FROM webinar_passes p WHERE p.lead_id = k.lead_id AND p.kind = 'offer' AND p.status IN ('paid', 'refunded'))) AS engagements`,
   ).bind(from, to).first<{ tickets: number; sprints: number; engagements: number }>().catch(() => null);

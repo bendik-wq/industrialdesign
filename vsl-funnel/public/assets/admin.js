@@ -308,7 +308,7 @@
     voice: { group: 'Follow-up', title: 'AI calls', sub: 'Outbound confirmations and inbound calls: transcripts, recordings, outcomes.', more: 'AI calls: outbound confirmations (ElevenLabs) and inbound phone / browser calls (Vapi). Transcripts, recordings and outcomes.', render: renderVoice, filters: ['range'] },
     team: { group: 'Setup', title: 'Reps & routing', sub: 'Who takes calls, which tiers they get, and where the team gets pinged.', more: 'Who takes calls, which tiers they get, their calendar, commission and targets — and where the team gets pinged.', render: renderTeam, noFilters: true },
     integrations: { group: 'Setup', title: 'Integrations', sub: 'Connect email, WhatsApp, calendars, analytics and ad platforms.', render: renderIntegrations, noFilters: true },
-    tracking: { group: 'Setup', title: 'Ad tracking', sub: 'Every conversion sent from the server to Meta and GA4, and whether it arrived.', more: 'Every conversion sent to Meta (Conversions API) and GA4 from the server: delivery, retries and match quality.', render: renderTracking, filters: ['range'] },
+    tracking: { group: 'Setup', title: 'Ad tracking', sub: 'Every conversion sent from the server to Meta and GA4, and whether it arrived.', more: 'Every conversion sent to Meta (Conversions API) and GA4 from the server: delivery, retries and match quality. Below that, the daily data-quality checks with a link to the view that fixes each one, and CSV or JSON exports of the key tables.', render: renderTracking, filters: ['range'] },
   };
 
   var eyebrowEl = document.querySelector('[data-eyebrow]');
@@ -2680,6 +2680,8 @@
         out.textContent = 'Sending…';
         send('POST', 'tracking/test-meta', { code: view.querySelector('[data-code]').value }).then(function (r) { out.textContent = r.ok ? 'Meta received ' + r.events_received + ' event (trace ' + r.fbtrace_id + '). Check Test events.' : (r.error || 'Failed'); });
       };
+      // Data quality checks and exports (public/assets/admin-dataq.js).
+      if (window.DataQualityBoard && state.tab === 'tracking') return window.DataQualityBoard.section({ view: view, send: send, toast: toast });
     });
   }
 
