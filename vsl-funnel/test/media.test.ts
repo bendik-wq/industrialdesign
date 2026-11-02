@@ -188,6 +188,8 @@ describe('placeholder frames', () => {
   it('flags the same picture every time (the Windows privacy padlock image)', () => {
     const still = frame((i) => ((i % W) > 24 && (i % W) < 40 && Math.floor(i / W) > 10 && Math.floor(i / W) < 26 ? 200 : 40));
     expect(run(() => still)).toBe('frozen');
+    // The first frame painting in doesn't count as movement.
+    expect(L.classifyFrames([{ mean: 43, std: 5, diff: null }, { mean: 44, std: 7, diff: 0.9 }, ...Array(6).fill({ mean: 44, std: 7, diff: 0 })])).toBe('frozen');
   });
   it('needs frames before it judges', () => {
     expect(L.classifyFrames([])).toBe('noframes');

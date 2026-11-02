@@ -224,8 +224,9 @@
     var all = function (f) { return samples.every(f); };
     if (all(function (s) { return s.mean < 12 && s.std < 6; })) return 'black';
     if (all(function (s) { return s.std < 4; })) return 'flat';
-    var diffs = samples.filter(function (s) { return s.diff != null; });
-    if (diffs.length >= minSamples - 1 && diffs.every(function (s) { return s.diff < (o.still || 0.12); })) return 'frozen';
+    // The first change can include the camera warming up (exposure, the first paint): judge the rest.
+    var diffs = samples.filter(function (s) { return s.diff != null; }).slice(1);
+    if (diffs.length >= minSamples - 2 && diffs.every(function (s) { return s.diff < (o.still || 0.12); })) return 'frozen';
     return 'ok';
   }
 

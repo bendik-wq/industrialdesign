@@ -380,6 +380,8 @@ export class RoomDO {
       return;
     }
     const m = leave(this.st, a.id, now);
+    // media: the last person left, so the alarm stops: write the call quality summaries now.
+    if (connectedCount(this.st) === 0) await this.media.flush(this.env.DB, this.st.id);
     if (m && m.connected === 0) {
       await this.env.DB.prepare('UPDATE room_attendance SET last_at = ? WHERE room_id = ? AND who = ?').bind(now, this.st.id, a.id).run().catch(() => null);
       // Their tracks are gone with their connection.
