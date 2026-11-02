@@ -238,6 +238,7 @@
       else if (m.t === 'removed' || m.t === 'refused') { S.removed = true; endScreen(m.reason === 'ended' ? C.ended : C.removed); }
       else if (m.t === 'ended') { S.ended = true; if (S.rec) stopRecording(); endScreen(C.ended, C.endedBody); }
       else if (m.t === 'notice') { if (!m.staffOnly || isStaff) toast(m.text); }
+      coreEmit(m.t, m); // studio (builder B): add-on modules hear every room message after the room handled it
     };
     ws.onclose = function (e) {
       if (S.ws !== ws) return;
@@ -492,7 +493,7 @@
 
   // ───────────── layout ─────────────
   function layoutFor(v) {
-    var stage = v.stage || [];
+    var stage = (v.stage || []).filter(function (m) { return !m.green; }); // studio (builder B): the green room stays backstage
     var tiles = [];
     stage.forEach(function (m) {
       var hasScreen = (m.tracks || []).some(function (t) { return t.kind === 'screen'; });
@@ -537,6 +538,7 @@
     var rg = $('[data-ring]'); if (rg) rg.onclick = openMomentum;
     var tr = $('[data-tray]'); if (tr) tr.onclick = openTray;
     renderTabs();
+    coreEmit('shell'); // studio (builder B): add-on tabs and docks
   }
   function banner(text) { var b = $('[data-banner]'); if (!b) return; b.hidden = !text; b.textContent = text || ''; }
 
@@ -548,6 +550,7 @@
     $('[data-rec]').hidden = !r.recording;
     renderStage(); renderBar(); renderPanel(); renderTabs(); renderOffer(prev); renderPinned(); renderEngage();
     if (r.status === 'ended' && !S.ended) { S.ended = true; endScreen(C.ended, C.endedBody); }
+    coreEmit('render', prev); // studio (builder B)
   }
   function watching(n) { return n === 1 ? '1 person here' : n + ' people here'; }
 
@@ -990,6 +993,7 @@
     var n = 0;
     function draw() {
       if (++n % 25 === 1) syncAudio();
+      if (window.RoomStudio && window.RoomStudio.composite && window.RoomStudio.composite(g, 1280, 720)) return; // studio (builder B): the scene
       g.fillStyle = '#0b0b0c'; g.fillRect(0, 0, 1280, 720);
       var stage = $('[data-stage]'); if (!stage) return;
       var tiles = $$('.rm-tile', stage).filter(function (t) { var v = t.querySelector('video'); return v && v.srcObject && v.videoWidth; });
@@ -1559,6 +1563,16 @@
     var b = $('[data-offer-open]'); if (b) b.onclick = openOffer;
     if (sh && !keepOffer) sh.remove();
   }
+
+  // ───────────── add-on modules (builder B "studio" first; others add theirs the same way) ─────────────
+  var coreHandlers = {};
+  function coreEmit(type, data) { (coreHandlers[type] || []).concat(coreHandlers['*'] || []).forEach(function (fn) { try { fn(data, type); } catch (e) { console.warn('room add-on', e); } }); }
+  window.RoomCore = {
+    S: S, CFG: CFG, ME: ME, isStaff: isStaff, send: send, post: post, now: function () { return now(); }, toast: toast, esc: esc, h: h, $: $, $$: $$, clock: clock,
+    on: function (type, fn) { (coreHandlers[type] = coreHandlers[type] || []).push(fn); },
+    renderStage: renderStage, renderTabs: renderTabs, renderPanel: renderPanel, setMic: setMic, toggleMic: toggleMic,
+    compositor: function () { return COMP; }, moqPlaying: function () { return Boolean(MQ.view && MQ.view.playing && !canPublishNow()); },
+  };
 
   start();
 })();

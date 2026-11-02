@@ -9,6 +9,9 @@ import { SfuError, mintIceServers, realtimeSetup } from './sfu';
 import { SFU_OPS } from './proxy';
 import { audienceThreshold, broadcastMode, moqSetup, parseMode } from './moq';
 import type { Identity } from './state';
+import { parseStudioSettings, studioMeta } from './studio';
+import { PDFJS, mountStudio, studioPageConfig } from './studio-routes';
+import { flag } from '../settings';
 import { ASSETS, ENGAGE_COPY, PLAN_KEYS, QUIZ_PRESETS, agendaText, assetById, coverage, parseAgenda } from './engage';
 import {
   RoomError, attendeeEngage, checkAssetLink, checkPlanLink, engageAvail, engageReport, getPlan, personTimeline, pushStats, roomEngageSettings, savePlan, sendRoomSummaries,
@@ -38,7 +41,9 @@ export function roomMeta(rt: Pick<Runtime, 'origin' | 'settings'>, room: RoomRow
   const moq = { mode: broadcastMode(s, room.broadcast), ready: moqSetup(s).ready, minAudience: audienceThreshold(s) };
   const es = roomEngageSettings(room);
   const engage = room.mode === 'webinar' ? { avail: engageAvail(rt as Runtime, room), agenda: es.agenda, board: es.board } : undefined;
-  return { id: room.id, mode: room.mode, title: room.title, startsAt: room.starts_at, offerAvailable: room.ref_type === 'live' || day === 4 || day === 5, origin: rt.origin, moq, engage };
+  // Studio (builder B): the per-room defaults, and whether it's on (ROOM_STUDIO, default on).
+  const studio = room.mode === 'webinar' ? studioMeta(parseStudioSettings(room.studio), flag(s.ROOM_STUDIO, true), pickHostName(rt.settings as never, null)) : undefined;
+  return { id: room.id, mode: room.mode, title: room.title, startsAt: room.starts_at, offerAvailable: room.ref_type === 'live' || day === 4 || day === 5, origin: rt.origin, moq, engage, studio };
 }
 
 const gatePage = (c: Context<AppEnv>, h: string, b: string, status: 200 | 403 | 404 = 403) =>
@@ -103,6 +108,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
       presets: who.role === 'host' || who.role === 'cohost' ? QUIZ_PRESETS : [],
       assets: ASSETS.map((a) => ({ id: a.id, title: a.title })),
     } : null,
+    // Studio (builder B): scenes, slides, overlays, green room; room-studio.js draws them.
+    studio: studioPageConfig(room, who, flag((rt.settings as unknown as Record<string, string | undefined>).ROOM_STUDIO, true)),
   };
   // Copy functions become their plain templates for room.js (it fills {n}/{a}/{b}); everything else is data.
   const json = JSON.stringify(cfg, (_k, v) => (typeof v === 'function' ? fnTemplate(v) : v)).replace(/</g, '\\u003c');
@@ -110,8 +117,10 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
   // MoQ: WebTransport to the relay is governed by connect-src; the vendored client runs its encoder, decoder and
   // audio worklets from blob: and data: URLs.
   const relay = moqOn ? ` ${new URL(moq.relay).origin}` : '';
-  const scripts = moqOn ? `'self' blob:` : `'self'`;
-  c.header('content-security-policy', `default-src 'self'; script-src ${scripts}; worker-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' wss://${host} ws://${host}${relay}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`);
+  // Studio (builder B): staff pages load pdf.js (pinned, with integrity) from cdnjs to render uploaded PDFs.
+  const pdf = cfg.studio?.pdfjs ? ` ${new URL(PDFJS.src).origin}` : '';
+  const scripts = (moqOn ? `'self' blob:` : `'self'`) + pdf;
+  c.header('content-security-policy', `default-src 'self'; script-src ${scripts}; worker-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' wss://${host} ws://${host}${relay}${pdf}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`);
   c.header('cache-control', 'no-store');
   c.header('permissions-policy', 'camera=(self), microphone=(self), display-capture=(self), autoplay=(self)');
   return c.html(`<!doctype html>
@@ -125,6 +134,7 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
 <title>${esc(room.title)}</title>
 <link rel="stylesheet" href="/assets/room.css">
 <script defer src="/assets/room.js"></script>
+${cfg.studio ? '<link rel="stylesheet" href="/assets/room-studio.css">\n<script defer src="/assets/room-studio.js"></script>' : ''}
 </head>
 <body class="rm-body">
 <script type="application/json" id="room-config">${json}</script>
@@ -715,3 +725,6 @@ export async function challengeJoinRoom(rt: Runtime, reg: { token: string; cohor
   const room = await roomForKey(rt, `challenge:${reg.cohort_id}:${day}`, true);
   return room ? `/rooms/${room.id}?c=${encodeURIComponent(reg.token)}` : null;
 }
+
+// Studio (builder B): slides, run of show, branding assets, Funnel HQ settings and show templates (src/rooms/studio-routes.ts).
+mountStudio(roomsApi, roomsAdmin, { authed, stub, headersFor, sameOrigin });

@@ -19,6 +19,8 @@ export interface RoomRow {
   /** Engagement settings for this room (migration 0055, engage-db.ts): JSON { agenda, board }; and when the summary emails went out. */
   engage?: string | null;
   summary_at?: number | null;
+  /** Studio settings (builder B, migration 0057): JSON, see src/rooms/studio.ts StudioSettings. */
+  studio?: string | null;
 }
 
 const MIN = 60_000;

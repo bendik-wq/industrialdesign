@@ -12,6 +12,8 @@
  */
 
 import { type AgendaItem, type PointAction, DEFAULT_AGENDA, QUESTION_MIN_CHARS, cleanQuiz, leaderboard } from './engage';
+// Builder B (studio): scenes, slides, overlays, green room, producer, run of show (src/rooms/studio.ts).
+import { type StudioState, stageTiles, studioApply, studioArrive, studioCanPull, studioView } from './studio';
 
 export type RoomMode = 'webinar' | 'meeting';
 export type Role = 'host' | 'cohost' | 'guest' | 'attendee';
@@ -119,6 +121,8 @@ export interface RoomState {
   recording: boolean;
   moq?: MoqState;
   eng?: EngageState;
+  /** Builder B (studio): the production studio (webinars). */
+  studio?: StudioState;
 }
 
 export const MOQ_HEALTH_MS = 20_000;
@@ -220,6 +224,7 @@ export function join(st: RoomState, who: Identity, now: number): { ok: true; mem
       sessionId: null, tracks: [], audioOff: false, videoOff: false, lastChatAt: 0, lastReactAt: 0,
     };
   st.members[who.id] = m;
+  studioArrive(st, m, now); // studio: co-hosts wait in the green room
   st.peak = Math.max(st.peak, connectedCount(st));
   engage(st);
   return { ok: true, member: m };
@@ -277,6 +282,7 @@ export function canPull(st: RoomState, viewerId: string, remote: { sessionId?: u
   const pub = Object.values(st.members).find((m) => m.sessionId && m.sessionId === remote.sessionId);
   if (!pub || pub.id === viewerId || pub.connected === 0) return false;
   if (!(st.mode === 'meeting' || isStaff(pub) || pub.stage)) return false;
+  if (!studioCanPull(st, viewer, pub)) return false; // studio: the green room is backstage only
   return pub.tracks.some((t) => t.trackName === remote.trackName);
 }
 
@@ -453,6 +459,7 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       if (!me.invited) return fail('not_invited');
       if (stageMembers(st).length >= LIMITS.stageMax) return fail('stage_full');
       me.invited = null; me.hand = null; me.stage = true; me.stageAt ??= now; me.media = null;
+      studioArrive(st, me, now); // studio: invited guests wait in the green room
       return done({ effects: [{ type: 'on_stage', memberId: me.id }] });
     }
     case 'decline': me.invited = null; return done();
@@ -672,7 +679,9 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       return done();
     }
     case 'ping': return done({ changed: false, out: [{ to: me.id, msg: { t: 'pong', now } }] });
-    default: return fail('unknown_message');
+    default:
+      if (typeof msg.t === 'string' && msg.t.startsWith('studio_')) return studioApply(st, me, msg, now, apply); // studio
+      return fail('unknown_message');
   }
 }
 
@@ -710,7 +719,7 @@ export function view(st: RoomState, me: Member, now: number, o: { chat?: boolean
       id: me.id, name: me.name, role: me.role, stage: me.stage || st.mode === 'meeting' || staff, canPublish: canPublish(st, me), hand: me.hand, invited: me.invited, audioOff: me.audioOff, videoOff: me.videoOff,
       media: mediaPath(st, me, now), publishMoq: shouldPublishMoq(st, me),
     },
-    stage: seeStage ? stageMembers(st).map(tile) : [],
+    stage: seeStage ? stageTiles(st, me, stageMembers(st).map(tile)) : [],
     qa: [...st.qa].sort((a, b) => Number(a.answered) - Number(b.answered) || b.votes.length - a.votes.length || a.at - b.at)
       .map((q) => ({ id: q.id, name: q.name, text: q.text, votes: q.votes.length, mine: q.by === me.id, voted: q.votes.includes(me.id), answered: q.answered })),
     poll: poll ? pollView(poll) : null,
@@ -718,7 +727,7 @@ export function view(st: RoomState, me: Member, now: number, o: { chat?: boolean
       ? Object.values(st.members).filter((m) => m.connected > 0).map((m) => ({ id: m.id, name: m.name, role: m.role, stage: m.stage || isStaff(m), hand: m.hand, invited: m.invited, audioOff: m.audioOff, pts: st.eng?.pts[m.id] ?? 0 }))
         .sort((a, b) => (b.hand ? 1 : 0) - (a.hand ? 1 : 0) || (a.hand ?? 0) - (b.hand ?? 0) || a.name.localeCompare(b.name))
       : null,
-    ...(st.mode === 'webinar' ? { eng: engageView(st, me) } : {}),
+    ...(st.mode === 'webinar' ? { eng: engageView(st, me), studio: studioView(st, me) } : {}),
     ...(o.chat ? { chat: st.chat.msgs.slice(-100) } : {}),
   };
 }

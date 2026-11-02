@@ -7,6 +7,7 @@ import { broadcastName, connectUrl, relayUrl } from './moq';
 import { getSecret } from '../lib/secret';
 import { type SfuOp, SFU_OPS, forceClose, sfuProxy } from './proxy';
 import { feedPresence, getRoom, markRoom, roomOffer, setRoomOffer } from './rooms';
+import { type StudioDefaults, canLoadSlide, configureStudio } from './studio'; // builder B (studio)
 
 /**
  * One Durable Object per room: signalling and state over WebSockets with hibernation (the object sleeps between
@@ -20,6 +21,8 @@ interface Meta {
   id: string; mode: RoomMode; title: string; startsAt: number | null; offerAvailable: boolean; origin: string; moq?: { mode: MoqState['mode']; ready: boolean; minAudience: number };
   /** Engagement (webinars): what the host can push here, the agenda, whether the leaderboard starts on. */
   engage?: { avail: EngageAvail; agenda: AgendaItem[]; board: boolean };
+  /** Studio (builder B): Funnel HQ's per-room defaults and whether the studio is on. */
+  studio?: StudioDefaults;
 }
 
 export class RoomDO {
@@ -42,7 +45,7 @@ export class RoomDO {
   private async save() { if (this.st) await this.ctx.storage.put('st', this.st); }
 
   private async ensureState(meta: Meta) {
-    if (!this.meta || this.meta.origin !== meta.origin || this.meta.title !== meta.title || this.meta.startsAt !== meta.startsAt || JSON.stringify(this.meta.engage ?? null) !== JSON.stringify(meta.engage ?? null)) {
+    if (!this.meta || this.meta.origin !== meta.origin || this.meta.title !== meta.title || this.meta.startsAt !== meta.startsAt || JSON.stringify(this.meta.engage ?? null) !== JSON.stringify(meta.engage ?? null) || JSON.stringify(this.meta.studio ?? null) !== JSON.stringify(meta.studio ?? null)) {
       this.meta = meta;
       await this.ctx.storage.put('meta', meta);
     }
@@ -64,6 +67,7 @@ export class RoomDO {
       this.st.eng.agenda = meta.engage.agenda;
       if (this.st.eng.chapter >= this.st.eng.agenda.length) this.st.eng.chapter = this.st.eng.agenda.length - 1;
     }
+    if (meta.studio) configureStudio(this.st, meta.studio); // studio defaults (builder B)
     return this.st;
   }
 
@@ -129,6 +133,11 @@ export class RoomDO {
       return Response.json({ questions: top, chapter: st.eng?.chapter ?? -1, board: st.eng?.board ?? false });
     }
 
+    // Studio (builder B): may this person load this slide? (attendees: only pages the stage has shown)
+    if (url.pathname === '/studio/slide') {
+      const b = (await req.json().catch(() => ({}))) as { deck?: string; page?: number };
+      return Response.json({ ok: canLoadSlide(st, st.members[who.id] ?? who, String(b.deck ?? ''), Number(b.page)) });
+    }
     if (url.pathname === '/info' || url.pathname === '/config') {
       return Response.json({ status: st.status, count: connectedCount(st), peak: st.peak, stage: Object.values(st.members).filter((x) => x.connected && (x.stage || isStaff(x))).length, broadcast: st.mode === 'webinar' ? broadcastView(st, now) : null });
     }
