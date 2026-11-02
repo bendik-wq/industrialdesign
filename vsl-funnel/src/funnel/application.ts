@@ -191,8 +191,11 @@ export interface SubmitResult {
 /**
  * Final submit: score → tier → route/closer, then kick off the right follow-up
  * (sequence, Slack alert for hot leads).
+ * o.followups false (the live room, when ROOM_APP_FOLLOWUPS is off): the score, tier, lead and Slack alert as
+ * always, without the tier email/SMS sequences and the speed-to-lead call, which pitch a booked call.
  */
-export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, clientEventId?: string): Promise<SubmitResult> {
+export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, clientEventId?: string, o: { followups?: boolean; path?: string } = {}): Promise<SubmitResult> {
+  const follow = o.followups !== false;
   const answers = parseAnswers(lead);
   const missing = APPLICATION.find((q) => q.type !== 'contact' && answers[q.id] === undefined);
   if (missing) throw new ApplicationError('Please answer every question', missing.id);
@@ -222,18 +225,18 @@ export async function submitApplication(rt: Runtime, v: VisitorCtx, lead: Lead, 
   const fresh = (await getLead(rt.env, lead.id))!;
 
   const who = identityFromVisitor(v, null, lead.id);
-  const submitted = await track(rt, who, { name: 'app_submitted', source: 'server', path: '/apply', eventId: clientEventId, props: { score: result.score, tier: result.tier } });
-  const qualified = await track(rt, who, { name: 'lead_qualified', source: 'server', path: '/apply', props: { tier: result.tier, score: result.score, flags: result.flags, caps: result.caps } });
+  const submitted = await track(rt, who, { name: 'app_submitted', source: 'server', path: o.path ?? '/apply', eventId: clientEventId, props: { score: result.score, tier: result.tier } });
+  const qualified = await track(rt, who, { name: 'lead_qualified', source: 'server', path: o.path ?? '/apply', props: { tier: result.tier, score: result.score, flags: result.flags, caps: result.caps } });
   if (firstSubmit) await trackRevenueEvents(rt, who, fresh.revenue_band, 'application', '/apply');
-  await track(rt, who, { name: 'lead_routed', source: 'server', path: '/apply', props: { route: decision.route, closer: decision.closer?.id ?? null } });
+  await track(rt, who, { name: 'lead_routed', source: 'server', path: o.path ?? '/apply', props: { route: decision.route, closer: decision.closer?.id ?? null } });
 
   await cancelSequence(rt, lead.id, 'abandoned');
-  if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
-  if (firstSubmit && !fresh.booked_at) await startLongFlow(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
-  if (firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, 'nurture');
+  if (follow && firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
+  if (follow && firstSubmit && !fresh.booked_at) await startLongFlow(rt, fresh, SEQUENCE_FOR_TIER[result.tier]);
+  if (follow && firstSubmit && !fresh.booked_at) await enqueueSequence(rt, fresh, 'nurture');
   await stopSms(rt, lead.id, ['abandoned']);
-  if (firstSubmit && !fresh.booked_at) await startSms(rt, fresh, 'qualified');
-  if (firstSubmit && result.tier !== 'C' && !fresh.booked_at) await queueCall(rt, fresh, 'speed_to_lead', AI_CALLER.speedToLeadDelayMinutes);
+  if (follow && firstSubmit && !fresh.booked_at) await startSms(rt, fresh, 'qualified');
+  if (follow && firstSubmit && result.tier !== 'C' && !fresh.booked_at) await queueCall(rt, fresh, 'speed_to_lead', AI_CALLER.speedToLeadDelayMinutes);
   if (firstSubmit && result.tier !== 'C') {
     const rep = decision.closer ? ` → ${decision.closer.name}` : '';
     rt.waitUntil(notifySlack(rt, fresh, result.tier === 'A' ? `🔥 Hot lead (A-tier)${rep}` : `✅ Qualified lead (B-tier)${rep}`, result.caps.length ? [`Caps: ${result.caps.join(', ')}`] : [], result.tier === 'A' ? 'hot_lead' : 'qualified_lead'));

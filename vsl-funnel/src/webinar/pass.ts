@@ -518,6 +518,8 @@ export async function markPassPaid(rt: Runtime, p: PaidInput, effects: PaidEffec
 
 /** What a payment sets in motion. */
 export async function passPaidEffects(rt: Runtime, pass: PassRow) {
+  // Bought from a card pushed in one of our live rooms: the push's paid count, the room's Sprint delivery row, the Meta custom event.
+  if (pass.kind === 'offer' || pass.kind === 'deposit') await (await import('../rooms/engage-db')).onRoomPurchase(rt, pass).catch((e) => console.error('room purchase', String(e).slice(0, 200)));
   // The live funnels' purchases have their own effects (onboarding, live reminders).
   if (pass.kind === 'deposit') return (await import('../sales/deposit')).depositPaidEffects(rt, pass);
   if (pass.kind === 'live_ticket') return (await import('../live/events')).liveTicketPaidEffects(rt, pass);

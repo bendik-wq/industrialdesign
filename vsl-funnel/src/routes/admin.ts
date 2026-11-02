@@ -474,6 +474,8 @@ admin.get('/leads/:id', async (c) => {
     whatsapp: whatsapp.results,
     voice: voice.results,
     calendly: calendly.results,
+    // Our live rooms: Deal momentum points, the application from the room, their latest Deal Plan.
+    roomEngage: await (await import('../rooms/engage-db')).leadEngagement(runtimeFrom(c), lead.id).catch(() => null),
   });
 });
 

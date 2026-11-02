@@ -96,6 +96,8 @@ export const META_EVENTS: Partial<Record<string, string>> = {
   attr_lead: 'Lead',
   attr_attended: 'WebinarAttended',
   attr_offer_seen: 'WebinarOfferSeen',
+  attr_room_application: 'WebinarRoomApplication', // src/rooms: the application sent inside a live room (once per registration)
+  attr_room_purchase: 'WebinarRoomPurchase', // src/rooms: a Sprint or deposit bought from a card pushed in a live room (once per registration)
   attr_watched_50: 'WebinarWatched50', // src/audiences: once per registration, from the room's watch data
   attr_checkout_started: 'InitiateCheckout', // src/audiences: once per registration that opened a checkout
   app_submitted: 'SubmitApplication',

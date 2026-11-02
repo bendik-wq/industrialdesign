@@ -37,11 +37,25 @@ async function rowFromRef(rt: Runtime, ref: string | undefined) {
   return rt.env.DB.prepare('SELECT * FROM webinar_passes WHERE id = ?').bind(m[1]).first<PayRow>();
 }
 
-export const KIND_TITLE: Partial<Record<PassKind, string>> = { deposit: 'Engagement deposit', live_ticket: 'Live webinar ticket' };
+export const KIND_TITLE: Partial<Record<PassKind, string>> = { deposit: 'Engagement deposit', live_ticket: 'Live webinar ticket', offer: 'First Deal Sprint' };
 
 /** Every visible string on the pay page, per product (checked by auditCopy in the tests). Same keys as the ticket page. */
 export function payCopy(kind: PassKind, label: string, creditNote: string | null = null) {
   const deposit = kind === 'deposit';
+  // The First Deal Sprint bought from a live room (the room's payment card; src/rooms/engage-db.ts).
+  if (kind === 'offer') return {
+    eyebrow: KIND_TITLE.offer!,
+    heading: 'Start your First Deal Sprint',
+    lede: `One payment of ${label}${creditNote ? ` (${creditNote})` : ''}. Seven days with Josh’s team, and everything you pay comes off the advisory engagement if you continue.`,
+    saveNote: `Whop takes the payment and keeps your card on file securely. Today you pay ${label}.`,
+    button: `Pay ${label}`,
+    paying: 'Taking your payment…',
+    declined: 'Your card wasn’t charged. Check the details or use another card.',
+    failed: 'Payment couldn’t be taken just now. Try again, or pay on Whop’s checkout page.',
+    hosted: 'Prefer Whop’s own checkout page?',
+    hostedLink: 'Pay there instead',
+    loading: 'Loading the secure payment form…',
+  };
   return {
     eyebrow: KIND_TITLE[kind] ?? 'Payment',
     heading: deposit ? 'Secure your place in the engagement' : 'Get your live webinar ticket',
@@ -85,7 +99,7 @@ export async function pendingRow(rt: Runtime, o: PendingInput) {
 
 const variant = (row: PayRow) => ({
   currency: row.currency, billing_type: 'one_time', initial_price: fromMinor(row.amount, row.currency), title: row.product || KIND_TITLE[row.kind] || 'Payment',
-  description: row.kind === 'deposit' ? 'Engagement deposit with G&L M&A Advisory, credited in full against the advisory engagement fee.' : `${row.product || 'Live webinar ticket'} with G&L M&A Advisory.`,
+  description: row.kind === 'deposit' ? 'Engagement deposit with G&L M&A Advisory, credited in full against the advisory engagement fee.' : row.kind === 'offer' ? `${row.product || 'First Deal Sprint'} with G&L M&A Advisory: seven days with Josh’s team.` : `${row.product || 'Live webinar ticket'} with G&L M&A Advisory.`,
   visibility: 'hidden', product: { external_identifier: WHOP_PRODUCT[row.kind], title: row.product || KIND_TITLE[row.kind] || 'Payment', visibility: 'hidden' },
 });
 

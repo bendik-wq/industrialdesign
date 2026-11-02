@@ -189,7 +189,7 @@ export async function startDeposit(rt: Runtime, o: StartDepositInput, x: { now?:
   }
 
   if (o.oneClick && q.oneClick) {
-    const r = await oneClickDeposit(rt, { ...base, amount: q.today }, x).catch((e) => { console.error('deposit one click', String(e).slice(0, 200)); return null; });
+    const r = await oneClickCharge(rt, { ...base, amount: q.today, description: DEPOSIT_DESCRIPTION }, x).catch((e) => { console.error('deposit one click', String(e).slice(0, 200)); return null; });
     if (r?.paid) { await log('one_click_paid'); return { paid: true, url: o.returnUrl }; }
     if (r?.url) { await log('one_click_action'); return { url: r.url }; }
     await log('one_click_fallback', { reason: r?.reason ?? 'error' });
@@ -202,8 +202,10 @@ export async function startDeposit(rt: Runtime, o: StartDepositInput, x: { now?:
 
 const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** One click on the saved card (Whop Create Payment, customer-initiated so 3D Secure can run). */
-async function oneClickDeposit(rt: Runtime, o: { kind: 'deposit'; regId: string; leadId: string; product: string; amount: number; currency: string; source: string; refId: string; returnUrl: string; ticketCredit: number; listAmount: number; now: number }, x: { sleep?: (ms: number) => Promise<unknown>; tries?: number }) {
+export const DEPOSIT_DESCRIPTION = 'Engagement deposit with G&L M&A Advisory, credited in full against the advisory engagement fee.';
+
+/** One click on the saved card (Whop Create Payment, customer-initiated so 3D Secure can run): the deposit, and the First Deal Sprint bought in a live room. */
+export async function oneClickCharge(rt: Runtime, o: { kind: 'deposit' | 'offer'; regId: string; leadId: string; product: string; description: string; amount: number; currency: string; source: string; refId: string; returnUrl: string; ticketCredit: number; listAmount: number; now: number }, x: { sleep?: (ms: number) => Promise<unknown>; tries?: number }) {
   const card = await savedCard(rt, o.leadId);
   if (!card) return { reason: 'no_method' };
   const db = rt.env.DB;
@@ -211,8 +213,8 @@ async function oneClickDeposit(rt: Runtime, o: { kind: 'deposit'; regId: string;
   const ins = await db.prepare(
     `INSERT OR IGNORE INTO webinar_passes (id, reg_id, lead_id, kind, product, status, amount, currency, expires_at, list_amount, ticket_credit, provider, one_click,
        whop_member_id, whop_payment_method_id, card_brand, card_last4, source, ref_id, return_url, created_at, updated_at)
-     VALUES (?, ?, ?, 'deposit', ?, 'pending', ?, ?, ?, ?, ?, 'whop', 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(id, o.regId, o.leadId, o.product, o.amount, o.currency.toLowerCase(), o.now + 30 * MIN, o.listAmount, o.ticketCredit, card.member_id, card.payment_method_id, card.card_brand, card.card_last4, o.source, o.refId, o.returnUrl, o.now, o.now).run();
+     VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 'whop', 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, o.regId, o.leadId, o.kind, o.product, o.amount, o.currency.toLowerCase(), o.now + 30 * MIN, o.listAmount, o.ticketCredit, card.member_id, card.payment_method_id, card.card_brand, card.card_last4, o.source, o.refId, o.returnUrl, o.now, o.now).run();
   if ((ins.meta.changes ?? 0) === 0) return { reason: 'in_flight' }; // a second click: never a second charge
   const expire = () => db.prepare("UPDATE webinar_passes SET status = 'expired', updated_at = ? WHERE id = ? AND status = 'pending'").bind(Date.now(), id).run();
   const { WHOP_NATIVE_VERSION, WHOP_PRODUCT, whopApi, whopCompanyId } = await import('../webinar/whop');
@@ -220,10 +222,10 @@ async function oneClickDeposit(rt: Runtime, o: { kind: 'deposit'; regId: string;
   try {
     const pay = await whopApi<Obj>(rt, 'POST', 'payments', {
       account_id: await whopCompanyId(rt),
-      variant: { currency: o.currency.toLowerCase(), billing_type: 'one_time', initial_price: fromMinor(o.amount, o.currency), title: o.product, description: 'Engagement deposit with G&L M&A Advisory, credited in full against the advisory engagement fee.', visibility: 'hidden', product: { external_identifier: WHOP_PRODUCT.deposit, title: o.product, visibility: 'hidden' } },
+      variant: { currency: o.currency.toLowerCase(), billing_type: 'one_time', initial_price: fromMinor(o.amount, o.currency), title: o.product, description: o.description, visibility: 'hidden', product: { external_identifier: WHOP_PRODUCT[o.kind], title: o.product, visibility: 'hidden' } },
       member_id: card.member_id, payment_method_id: card.payment_method_id, off_session: false, return_url: o.returnUrl,
-      metadata: { pass_id: id, reg_id: o.regId, lead_id: o.leadId, kind: 'deposit', source: o.source, ref_id: o.refId, one_click: '1' },
-    }, { version: WHOP_NATIVE_VERSION, idempotencyKey: `deposit_one_click_${id}` });
+      metadata: { pass_id: id, reg_id: o.regId, lead_id: o.leadId, kind: o.kind, source: o.source, ref_id: o.refId, one_click: '1' },
+    }, { version: WHOP_NATIVE_VERSION, idempotencyKey: `${o.kind === 'deposit' ? 'deposit' : 'room_sprint'}_one_click_${id}` });
     payId = str(pay.id);
     if (!payId) throw new Error('Whop returned no payment id');
   } catch (e) {
@@ -238,7 +240,7 @@ async function oneClickDeposit(rt: Runtime, o: { kind: 'deposit'; regId: string;
     st = await whopApi<Obj>(rt, 'GET', `payments/${encodeURIComponent(payId)}/status`, undefined, { version: WHOP_NATIVE_VERSION }).catch(() => ({}));
     if (['succeeded', 'requires_action', 'canceled'].includes(String(st.status)) || (st.status === 'requires_confirmation' && st.last_payment_error)) break;
   }
-  const row = { id, reg_id: o.regId, amount: o.amount, currency: o.currency.toLowerCase(), kind: 'deposit' as const, whop_payment_method_id: card.payment_method_id };
+  const row = { id, reg_id: o.regId, amount: o.amount, currency: o.currency.toLowerCase(), kind: o.kind, whop_payment_method_id: card.payment_method_id };
   if (st.status === 'succeeded') {
     const { markWhopPaymentPaid } = await import('../webinar/one-click');
     const { passPaidEffects } = await import('../webinar/pass');

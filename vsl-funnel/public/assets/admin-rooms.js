@@ -8,7 +8,10 @@
   'use strict';
   var CSS = '.rmb-list td{vertical-align:top}.rmb-act{display:flex;flex-wrap:wrap;gap:6px}.rmb-form{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.rmb-form label{display:grid;gap:4px;font-size:13px;color:var(--ink-2)}' +
     '.rmb-dlg{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.35)}.rmb-dlg-in{background:#fff;border-radius:14px;padding:24px;max-width:460px;width:100%;display:grid;gap:12px}' +
-    '.rmb-dlg-in h2{margin:0}.rmb-dlg-in label{display:grid;gap:4px;font-size:13px;color:var(--ink-2)}.rmb-links{font-size:13px;overflow-wrap:anywhere}.rmb-todo li{margin:4px 0;font-size:13px}.rmb-bc{display:grid;gap:4px;font-size:13px}.rmb-bc select{font-size:13px;padding:4px 6px}';
+    '.rmb-dlg-in h2{margin:0}.rmb-dlg-in label{display:grid;gap:4px;font-size:13px;color:var(--ink-2)}.rmb-links{font-size:13px;overflow-wrap:anywhere}.rmb-todo li{margin:4px 0;font-size:13px}.rmb-bc{display:grid;gap:4px;font-size:13px}.rmb-bc select{font-size:13px;padding:4px 6px}' +
+    '.rmb-eng{display:grid;gap:18px;padding:8px 0}.rmb-eng h3{margin:0 0 6px;font-size:14px}.rmb-g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}.rmb-bars{display:grid;gap:4px;font-size:12px}.rmb-bar{display:grid;grid-template-columns:90px 1fr 40px;gap:8px;align-items:center}.rmb-bar i{display:block;height:8px;border-radius:4px;background:#0f2c5c}' +
+    '.rmb-curve{width:100%;height:120px;background:#f5f5f7;border-radius:10px}.rmb-curve polyline{fill:none;stroke:#0f2c5c;stroke-width:2;vector-effect:non-scaling-stroke}.rmb-tl{list-style:none;margin:0;padding:0;font-size:13px}.rmb-tl li{padding:4px 0;border-top:1px solid rgba(0,0,0,.08)}.rmb-tl time{color:var(--ink-2);margin-right:8px;font-variant-numeric:tabular-nums}' +
+    '.rmb-eng textarea{width:100%;min-height:120px;font:13px/1.4 ui-monospace,Menlo,monospace}.rmb-eng table td,.rmb-eng table th{font-size:12px}';
   var KIND = { live: 'Live webinar', challenge: 'Challenge day', lead: 'Meeting', none: 'Room' };
   var STATUS = { scheduled: 'Scheduled', live: 'Live', ended: 'Ended', cancelled: 'Cancelled' };
   var BCAST = [['', 'Default'], ['auto', 'Auto'], ['moq', 'MoQ'], ['sfu', 'SFU only']];
@@ -31,6 +34,7 @@
           '<td class="num">' + esc(r.people) + '</td><td class="num">' + esc(r.minutes) + '</td><td class="num">' + esc(r.peak) + '</td>' +
           '<td>' + (r.mode === 'webinar' ? '<div class="rmb-bc"><select data-rmb-bc="' + esc(r.id) + '" aria-label="How viewers watch">' + BCAST.map(function (b) { return '<option value="' + b[0] + '"' + ((r.broadcast || '') === b[0] ? ' selected' : '') + '>' + esc(b[1]) + '</option>'; }).join('') + '</select><span class="muted" data-rmb-live="' + esc(r.id) + '">' + (r.status === 'live' ? 'Checking…' : '–') + '</span></div>' : '<span class="muted">Meeting (SFU)</span>') + '</td>' +
           '<td><div class="rmb-act"><a class="btn-sm" href="' + esc(r.hostUrl) + '" target="_blank" rel="noopener">Open as host</a><button class="btn-sm ghost" data-rmb-links="' + esc(r.id) + '">Links</button><button class="btn-sm ghost" data-rmb-detail="' + esc(r.id) + '">Attendance</button>' +
+          (r.mode === 'webinar' ? '<button class="btn-sm ghost" data-rmb-eng="' + esc(r.id) + '">Engagement</button>' : '') +
           (r.lead_id && r.status !== 'cancelled' ? '<button class="btn-sm ghost" data-rmb-email="' + esc(r.id) + '">Email invite</button>' : '') + '</div></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
@@ -79,6 +83,19 @@
     box.querySelectorAll('[data-rmb-email]').forEach(function (b) {
       b.onclick = function () { b.disabled = true; req('POST', 'rooms/' + b.getAttribute('data-rmb-email') + '/email').then(function (d) { ctx.toast(d.ok ? 'Invite sent' : (d.error || 'Not sent (no email address, or already sent)')); b.disabled = false; }); };
     });
+    box.querySelectorAll('[data-rmb-eng]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-rmb-eng');
+        var row = box.querySelector('[data-rmb-row="' + id + '"]');
+        var next = row.nextElementSibling;
+        if (next && next.hasAttribute('data-rmb-engrow')) { next.remove(); return; }
+        req('GET', 'rooms/' + id + '/engage').then(function (d) {
+          row.insertAdjacentHTML('afterend', '<tr data-rmb-engrow><td colspan="9">' + engagePanel(d) + '</td></tr>');
+          var el = row.nextElementSibling;
+          wireEngage(el, id, ctx);
+        });
+      };
+    });
     box.querySelectorAll('[data-rmb-detail]').forEach(function (b) {
       b.onclick = function () {
         var id = b.getAttribute('data-rmb-detail');
@@ -96,6 +113,58 @@
         });
       };
     });
+  }
+
+  // ── Engagement per room: the push funnel, points, retention, top questions, people, one person's timeline ──
+  var KINDS = { application: 'Application', sprint: 'First Deal Sprint card', deposit: 'Deposit card', vip: 'Challenge VIP', resource: 'Resource' };
+  function curve(points) {
+    if (!points.length) return '<p class="muted">No minutes recorded yet (the curve starts when the host goes live).</p>';
+    var max = Math.max.apply(null, points.map(function (p) { return p.n; }).concat([1])), last = points[points.length - 1].minute || 1;
+    var pts = points.map(function (p) { return (p.minute / last * 100).toFixed(2) + ',' + (100 - p.n / max * 100).toFixed(2); }).join(' ');
+    return '<svg class="rmb-curve" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Attendees in the room by minute"><polyline points="' + pts + '"/></svg>' +
+      '<p class="muted" style="font-size:12px">Peak ' + max + ' attendees · ' + points.length + ' minutes recorded · ' + (points[points.length - 1].n) + ' at the last minute</p>';
+  }
+  function engagePanel(d) {
+    if (!d || !d.ok) return '<p class="muted">Couldn’t load the engagement for this room.</p>';
+    var F = ['shown', 'opened', 'started', 'submitted', 'paid'];
+    var pushes = (d.pushes || []).length ? '<table><thead><tr><th>Push</th><th class="num">Sent to</th>' + F.map(function (f) { return '<th class="num">' + f.charAt(0).toUpperCase() + f.slice(1) + '</th>'; }).join('') + '<th class="num">Dismissed</th></tr></thead><tbody>' +
+      d.pushes.map(function (p) { return '<tr><td>' + esc(p.title || KINDS[p.kind] || p.kind) + (p.open ? '' : ' <span class="muted">(down)</span>') + '</td><td class="num">' + esc(p.targets) + '</td>' + F.map(function (f) { return '<td class="num">' + esc(p.counts[f]) + '</td>'; }).join('') + '<td class="num">' + esc(p.counts.dismissed) + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">Nothing pushed in this room yet.</p>';
+    var maxB = Math.max.apply(null, (d.points.buckets || []).map(function (b) { return b.n; }).concat([1]));
+    var bars = '<div class="rmb-bars">' + (d.points.buckets || []).map(function (b) { return '<div class="rmb-bar"><span>' + b.from + (b.to ? '–' + (b.to - 1) : '+') + ' pts</span><i style="width:' + Math.round(b.n / maxB * 100) + '%"></i><span class="num">' + b.n + '</span></div>'; }).join('') + '</div>';
+    var qs = (d.questions || []).length ? '<ol style="margin:0;padding-left:18px;font-size:13px">' + d.questions.map(function (q) { return '<li>' + esc(q.text) + ' <span class="muted">· ' + q.votes + ' votes · ' + esc(q.name) + (q.answered ? ' · answered' : '') + '</span></li>'; }).join('') + '</ol>' : '<p class="muted">No questions yet.</p>';
+    var quiz = (d.quiz || []).length ? '<ul style="margin:0;padding-left:18px;font-size:13px">' + d.quiz.map(function (q) { return '<li>' + esc(q.question) + ' <span class="muted">· ' + q.right + ' of ' + q.answers + ' right</span></li>'; }).join('') + '</ul>' : '<p class="muted">No knowledge checks yet.</p>';
+    var apps = (d.applications || []).length ? '<ul style="margin:0;padding-left:18px;font-size:13px">' + d.applications.map(function (a) { return '<li>' + esc(a.name) + ' · tier ' + esc(a.tier || '–') + (a.score != null ? ' · score ' + a.score : '') + '</li>'; }).join('') + '</ul>' : '<p class="muted">No applications from this room yet.</p>';
+    var people = (d.people || []).length ? '<div class="table-wrap"><table><thead><tr><th>Who</th><th class="num">Points</th><th class="num">Minutes</th><th class="num">Unlocks</th><th class="num">Deal Plan steps</th><th>Applied</th><th>Tier</th><th></th></tr></thead><tbody>' +
+      d.people.map(function (p) { return '<tr><td>' + esc(p.name) + (p.email ? '<div class="muted">' + esc(p.email) + '</div>' : '') + '</td><td class="num">' + p.points + '</td><td class="num">' + p.minutes + '</td><td class="num">' + p.unlocks + '</td><td class="num">' + p.planSteps + ' of 4</td><td>' + (p.applied ? 'Yes' : '–') + '</td><td>' + esc(p.tier || '–') + '</td><td><button class="btn-sm ghost" data-rmb-person="' + esc(p.who) + '">Timeline</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="muted">Nobody in the audience yet.</p>';
+    var rules = Object.keys(d.rules || {}).map(function (k) { var r = d.rules[k]; return esc(r.label) + ' +' + r.points + (r.cap > 1 ? ' (up to ' + r.cap + ')' : ''); }).join(' · ');
+    var unlocks = (d.unlocks || []).map(function (u) { return esc(u.title) + ' at ' + (u.at === 'end' ? 'the end' : u.at + ' points'); }).join(' · ');
+    return '<div class="rmb-eng">' +
+      '<div><h3>Pushes: shown, opened, started, submitted, paid</h3>' + pushes + '</div>' +
+      '<div class="rmb-g2"><div><h3>Points distribution</h3>' + bars + '</div><div><h3>Retention</h3>' + curve(d.retention || []) + '</div></div>' +
+      '<div class="rmb-g2"><div><h3>Top questions</h3>' + qs + '</div><div><h3>Knowledge checks</h3>' + quiz + '<h3 style="margin-top:12px">Applications (tier is team-only)</h3>' + apps + '</div></div>' +
+      '<div><h3>People</h3>' + people + '<div data-rmb-tl></div></div>' +
+      '<div class="rmb-g2"><div><h3>Agenda for this room</h3><p class="muted" style="font-size:12px">One chapter per line: Title | teaser shown as “Next up”. Blank lines are ignored; an empty box uses the default agenda.</p><textarea data-rmb-agenda>' + esc(d.agendaText || '') + '</textarea>' +
+        '<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0"><input type="checkbox" data-rmb-board' + (d.settings && d.settings.board ? ' checked' : '') + '> Leaderboard starts on (first names of people who opt in, never emails; the host can hide it)</label><button class="btn-sm" data-rmb-save>Save</button></div>' +
+        '<div><h3>Rules (Settings → Live)</h3><p class="muted" style="font-size:12px">' + rules + '</p><p class="muted" style="font-size:12px">Unlocks: ' + unlocks + '</p><h3 style="margin-top:12px">Summary emails</h3><p class="muted" style="font-size:12px">Each attendee gets their points, unlocks, Deal Plan, application status and the offer’s real close time if they didn’t buy, 10 minutes after the session ends (once each, never to the unsubscribed).</p><button class="btn-sm ghost" data-rmb-sum>Send the summaries now</button></div></div>' +
+      '</div>';
+  }
+  function wireEngage(el, id, ctx) {
+    var tl = el.querySelector('[data-rmb-tl]');
+    el.querySelectorAll('[data-rmb-person]').forEach(function (b) {
+      b.onclick = function () {
+        req('GET', 'rooms/' + id + '/engage/person/' + encodeURIComponent(b.getAttribute('data-rmb-person'))).then(function (d) {
+          var plan = d.plan ? '<p style="font-size:13px"><strong>Deal Plan:</strong> ' + esc([d.plan.industry, d.plan.size, d.plan.geography].filter(Boolean).join(', ') || '–') + (d.plan.owners_per_week ? ' · ' + esc(d.plan.owners_per_week) + ' owners a week' : '') + (d.plan.coverage ? ' · ' + d.plan.coverage.ratio + 'x' + (d.plan.coverage.passes ? ' (passes 1.5x)' : ' (below 1.5x)') : '') + [d.plan.action_1, d.plan.action_2, d.plan.action_3].filter(Boolean).map(function (a, i) { return '<br>' + (i + 1) + '. ' + esc(a); }).join('') + '</p>' : '';
+          tl.innerHTML = '<h3 style="margin-top:12px">' + esc(d.name) + '</h3>' + plan + '<ul class="rmb-tl">' + (d.items || []).map(function (it) { return '<li><time>' + esc(fmt(it.at)) + '</time>' + esc(it.text) + '</li>'; }).join('') + '</ul>';
+        });
+      };
+    });
+    el.querySelector('[data-rmb-save]').onclick = function () {
+      req('POST', 'rooms/' + id + '/engage', { agenda: el.querySelector('[data-rmb-agenda]').value, board: el.querySelector('[data-rmb-board]').checked }).then(function (d) { ctx.toast(d.ok ? 'Saved: the room picks it up on the next join' : (d.error || 'Not saved')); });
+    };
+    el.querySelector('[data-rmb-sum]').onclick = function () {
+      var b = this; b.disabled = true;
+      req('POST', 'rooms/' + id + '/summaries').then(function (d) { b.disabled = false; ctx.toast(d.ok ? 'Summaries: ' + d.sent + ' sent, ' + d.skipped + ' skipped' : (d.error || 'Not sent')); });
+    };
   }
 
   function render(ctx) {

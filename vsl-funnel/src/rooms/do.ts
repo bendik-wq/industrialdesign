@@ -1,7 +1,8 @@
 import type { Env } from '../env';
 import type { Runtime } from '../app';
 import { loadSettings } from '../settings';
-import { type Effect, type Identity, type Member, type MoqState, type RoomMode, type RoomState, apply, broadcastLive, broadcastView, canSeeStage, configureMoq, connectedCount, isStaff, join, leave, mediaPath, newMoqState, newRoomState, prune, shouldPublishMoq, view } from './state';
+import { type Effect, type EngageAvail, type Identity, type Member, type MoqState, type PointAward, type RoomMode, type RoomState, apply, audienceMembers, onTimeAwards, broadcastLive, broadcastView, canSeeStage, configureMoq, connectedCount, engOf, isStaff, join, leave, mediaPath, newEngage, newMoqState, newRoomState, prune, pushFor, shouldPublishMoq, tickMinutes, view } from './state';
+import { type AgendaItem, ENGAGE_COPY, ON_TIME_MS, assetById } from './engage';
 import { broadcastName, connectUrl, relayUrl } from './moq';
 import { getSecret } from '../lib/secret';
 import { type SfuOp, SFU_OPS, forceClose, sfuProxy } from './proxy';
@@ -15,7 +16,11 @@ import { feedPresence, getRoom, markRoom, roomOffer, setRoomOffer } from './room
  */
 
 const ALARM_MS = 60_000;
-interface Meta { id: string; mode: RoomMode; title: string; startsAt: number | null; offerAvailable: boolean; origin: string; moq?: { mode: MoqState['mode']; ready: boolean; minAudience: number } }
+interface Meta {
+  id: string; mode: RoomMode; title: string; startsAt: number | null; offerAvailable: boolean; origin: string; moq?: { mode: MoqState['mode']; ready: boolean; minAudience: number };
+  /** Engagement (webinars): what the host can push here, the agenda, whether the leaderboard starts on. */
+  engage?: { avail: EngageAvail; agenda: AgendaItem[]; board: boolean };
+}
 
 export class RoomDO {
   private st: RoomState | null = null;
@@ -37,7 +42,7 @@ export class RoomDO {
   private async save() { if (this.st) await this.ctx.storage.put('st', this.st); }
 
   private async ensureState(meta: Meta) {
-    if (!this.meta || this.meta.origin !== meta.origin || this.meta.title !== meta.title || this.meta.startsAt !== meta.startsAt) {
+    if (!this.meta || this.meta.origin !== meta.origin || this.meta.title !== meta.title || this.meta.startsAt !== meta.startsAt || JSON.stringify(this.meta.engage ?? null) !== JSON.stringify(meta.engage ?? null)) {
       this.meta = meta;
       await this.ctx.storage.put('meta', meta);
     }
@@ -52,6 +57,13 @@ export class RoomDO {
     this.st.title = meta.title;
     this.st.startsAt = meta.startsAt;
     this.st.moq ??= newMoqState();
+    if (meta.engage) {
+      // The leaderboard default applies when the room's engagement state is first made; the host's switch wins after that.
+      this.st.eng ??= newEngage({ board: meta.engage.board });
+      this.st.eng.avail = meta.engage.avail;
+      this.st.eng.agenda = meta.engage.agenda;
+      if (this.st.eng.chapter >= this.st.eng.agenda.length) this.st.eng.chapter = this.st.eng.agenda.length - 1;
+    }
     return this.st;
   }
 
@@ -84,6 +96,8 @@ export class RoomDO {
       server.send(JSON.stringify(view(st, r.member, now, { chat: true })));
       this.broadcast(now, who.id);
       await this.feed([r.member], now);
+      // Joined within five minutes of Go live: on time.
+      if (st.mode === 'webinar' && st.status === 'live' && !isStaff(r.member) && st.wentLiveAt && now - st.wentLiveAt <= ON_TIME_MS) await this.award([{ memberId: who.id, action: 'on_time', key: '1' }], now);
       // A meeting is live from its first join (webinars wait for the host's Go live).
       if (st.mode === 'meeting' && connectedCount(st) === 1) await markRoom(await this.runtime(), st.id, 'live', {}, now).catch(() => null);
       if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(now + ALARM_MS);
@@ -102,6 +116,18 @@ export class RoomDO {
     if (reconfigured) { await this.save(); this.broadcast(now); }
 
     if (url.pathname === '/moq' && req.method === 'POST') return this.moqAccess(st, who, req.headers.get('x-room-admin') === '1', now);
+
+    // The room's HTTP calls (application, Deal Plan) report what happened: awards and push events.
+    if (url.pathname === '/engage' && req.method === 'POST') {
+      const b = (await req.json().catch(() => ({}))) as { awards?: PointAward[]; event?: { kind: 'application'; ev: 'submitted' } };
+      const awards = (b.awards ?? []).filter((a) => a && a.memberId === who.id);
+      if (awards.length) await this.award(awards, now);
+      return Response.json({ ok: true, points: st.eng?.pts[who.id] ?? 0 });
+    }
+    if (url.pathname === '/engage/report') {
+      const top = [...st.qa].sort((a, b) => b.votes.length - a.votes.length || a.at - b.at).slice(0, 10).map((q) => ({ text: q.text, votes: q.votes.length, name: q.name, answered: q.answered }));
+      return Response.json({ questions: top, chapter: st.eng?.chapter ?? -1, board: st.eng?.board ?? false });
+    }
 
     if (url.pathname === '/info' || url.pathname === '/config') {
       return Response.json({ status: st.status, count: connectedCount(st), peak: st.peak, stage: Object.values(st.members).filter((x) => x.connected && (x.stage || isStaff(x))).length, broadcast: st.mode === 'webinar' ? broadcastView(st, now) : null });
@@ -177,6 +203,11 @@ export class RoomDO {
     const now = Date.now();
     const r = apply(this.st, a.id, msg, now);
     if (!r.ok) { this.send(ws, JSON.stringify({ t: 'error', error: r.error, for: (msg as { t?: unknown })?.t ?? null })); return; }
+    if ((msg as { t?: unknown }).t === 'push_close') {
+      const rt = await this.runtime();
+      const { closePushes } = await import('./engage-db');
+      await closePushes(rt, this.st.id, [Number((msg as { pid?: unknown }).pid)], now).catch(() => null);
+    }
     for (const o of r.out) this.deliver(o.to, o.msg);
     for (const e of r.effects) await this.effect(e, now);
     if (r.changed || r.effects.length) { await this.save(); this.broadcast(now); }
@@ -190,10 +221,48 @@ export class RoomDO {
       case 'went_live':
         await markRoom(rt, st.id, 'live', {}, now).catch((x) => console.error('room live', x));
         await this.feed(Object.values(st.members).filter((m) => m.connected > 0), now);
+        await this.award(onTimeAwards(st), now);
         return;
-      case 'ended':
+      case 'ended': {
         await markRoom(rt, st.id, 'ended', {}, now).catch((x) => console.error('room end', x));
+        const { closePushes } = await import('./engage-db');
+        await closePushes(rt, st.id, 'all_but_deposit', now).catch(() => null);
         return;
+      }
+      case 'award':
+        await this.award(e.awards, now);
+        return;
+      case 'pushed': {
+        const { savePush } = await import('./engage-db');
+        const targets = audienceMembers(st).filter((m) => pushFor(e.push, m));
+        await savePush(rt, st.id, e.push, e.push.to ? e.push.to.length : targets.length).catch((x) => console.error('room push', x));
+        // A pushed resource is theirs: everyone it reaches now (and anyone who opens it later) can download it.
+        if (e.push.kind === 'resource' && e.push.ref) for (const m of targets) await this.grant(m, [e.push.ref], 'push', now, false);
+        return;
+      }
+      case 'push_ev': {
+        const m = st.members[e.memberId];
+        const p = engOf(st).pushes.find((x) => x.id === e.pushId);
+        if (!m || !p) return;
+        const { recordPushEvent } = await import('./engage-db');
+        await recordPushEvent(rt, await this.roomLike(), p.id, m, e.ev, p.kind, now).catch((x) => console.error('room push event', x));
+        if (p.kind === 'resource' && p.ref && (e.ev === 'shown' || e.ev === 'opened')) await this.grant(m, [p.ref], 'push', now);
+        return;
+      }
+      case 'quiz_answer': {
+        const m = st.members[e.memberId];
+        if (!m) return;
+        const { recordQuiz } = await import('./engage-db');
+        await recordQuiz(rt, await this.roomLike(), m, e.quizId, e.choice, e.correct, e.question, now).catch((x) => console.error('room quiz', x));
+        return;
+      }
+      case 'end_unlocks': {
+        const { endUnlocks, engageConfig } = await import('./engage-db');
+        const assets = endUnlocks(engageConfig(rt).unlocks);
+        if (!assets.length) return;
+        for (const id of e.memberIds) { const m = st.members[id]; if (m) await this.grant(m, assets, 'end', now, false); }
+        return;
+      }
       case 'offer': {
         const row = await getRoom(rt, st.id);
         if (!row) return;
@@ -216,6 +285,58 @@ export class RoomDO {
       case 'recording':
         return;
     }
+  }
+
+  private roomRow: { at: number; row: Awaited<ReturnType<typeof getRoom>> } | null = null;
+  /** The room's row (cached a minute) for the engagement writes. */
+  private async roomLike() {
+    const st = this.st!;
+    if (!this.roomRow || Date.now() - this.roomRow.at > 60_000) this.roomRow = { at: Date.now(), row: await getRoom(await this.runtime(), st.id) };
+    return this.roomRow.row ?? { id: st.id, ref_type: 'none' as const, ref_id: null, title: st.title };
+  }
+
+  /**
+   * Records point awards (the database enforces each action's cap and de-duplicates by key), updates the
+   * room's copy of each person's points, grants any threshold unlock they reached, and tells each person what
+   * they earned. One redraw for the whole batch.
+   */
+  private async award(awards: PointAward[], now: number) {
+    const st = this.st;
+    if (!st || st.mode !== 'webinar' || !awards.length) return;
+    const rt = await this.runtime();
+    const { awardPoints, engageConfig, thresholdUnlocks } = await import('./engage-db');
+    const cfg = engageConfig(rt);
+    const room = await this.roomLike();
+    const list = awards.map((a) => ({ a, m: st.members[a.memberId] })).filter((x) => x.m && !isStaff(x.m));
+    const done = await awardPoints(rt, room, list.map(({ a, m }) => ({ who: m, action: a.action, key: a.key })), cfg.rules, now).catch((e) => { console.error('room awards', String(e).slice(0, 200)); return []; });
+    if (!done.length) return;
+    const e = engOf(st);
+    for (const d of done) {
+      e.pts[d.who] = (e.pts[d.who] ?? 0) + d.points;
+      const m = st.members[d.who];
+      const fresh = thresholdUnlocks(cfg.unlocks, e.pts[d.who]).filter((x) => !(e.unlocks[d.who] ?? []).includes(x));
+      const unlocked = fresh.length && m ? await this.grant(m, fresh, 'points', now, false) : [];
+      this.deliver(d.who, { t: 'award', action: d.action, label: cfg.rules[d.action].label, points: d.points, total: e.pts[d.who], unlocked: unlocked.map((x) => assetById(x)?.title ?? x) });
+    }
+    await this.save();
+    this.broadcast(now);
+  }
+  /** Grants assets to one person (once each), and tells them unless the caller does. */
+  private async grant(m: Member, assets: string[], source: 'points' | 'end' | 'push', now: number, tell = true) {
+    const st = this.st!;
+    const rt = await this.runtime();
+    const { grantUnlocks } = await import('./engage-db');
+    const fresh = await grantUnlocks(rt, await this.roomLike(), m, assets, source, now).catch(() => [] as string[]);
+    const e = engOf(st);
+    // Granted now or before: either way the database has them.
+    const mine = new Set([...(e.unlocks[m.id] ?? []), ...assets.filter((a) => assetById(a))]);
+    e.unlocks[m.id] = [...mine];
+    if (tell && fresh.length) {
+      this.deliver(m.id, { t: 'unlocked', titles: fresh.map((x) => assetById(x)?.title ?? x), text: ENGAGE_COPY.unlocked(fresh.map((x) => assetById(x)?.title ?? x).join(', ')) });
+      await this.save();
+      this.broadcast(now);
+    }
+    return fresh;
   }
 
   async webSocketClose(ws: WebSocket) { await this.closed(ws); }
@@ -261,6 +382,15 @@ export class RoomDO {
         }
       }
       if (this.st.timer && this.st.timer.endsAt < now - 60_000) { this.st.timer = null; this.broadcast(now); }
+      // Engagement: ten-minute awards, and the retention curve (attendees here at this minute since Go live).
+      if (this.st.mode === 'webinar' && this.st.status === 'live') {
+        const ticks = tickMinutes(this.st);
+        if (ticks.length) await this.award(ticks, now);
+        if (this.st.wentLiveAt) {
+          const { recordMinute } = await import('./engage-db');
+          await recordMinute(rt, this.st.id, Math.floor((now - this.st.wentLiveAt) / 60_000), audienceMembers(this.st).length).catch(() => null);
+        }
+      }
       // The host's broadcast went quiet without a goodbye: viewers go back to the SFU.
       if (this.sentLive && !broadcastLive(this.st, now)) this.broadcast(now);
       await this.ctx.storage.setAlarm(now + ALARM_MS);

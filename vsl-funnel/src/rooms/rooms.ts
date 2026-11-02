@@ -16,6 +16,9 @@ export interface RoomRow {
   peak: number; replay_url: string | null; created_by: string | null; created_at: number; updated_at: number;
   /** Webinars: how the audience receives the stage (migration 0054); null follows ROOM_BROADCAST. */
   broadcast?: string | null;
+  /** Engagement settings for this room (migration 0055, engage-db.ts): JSON { agenda, board }; and when the summary emails went out. */
+  engage?: string | null;
+  summary_at?: number | null;
 }
 
 const MIN = 60_000;

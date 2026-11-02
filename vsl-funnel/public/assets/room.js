@@ -209,10 +209,16 @@
         skew = m.now - Date.now();
         var prev = S.view; S.view = m;
         render(prev);
-        if (first) { first = false; syncMoq(); buildMedia(); }
+        if (first) { first = false; syncMoq(); buildMedia(); loadEngage(); }
         else syncMedia();
       } else if (m.t === 'chat') { S.chat.push(m.m); if (S.chat.length > 200) S.chat.shift(); if (S.tab !== 'chat' && m.m.by !== ME.id) S.unread++; renderChat(); renderTabs(); }
-      else if (m.t === 'error') { toast((C.errors && C.errors[m.error]) || m.error); }
+      else if (m.t === 'error') { toast((C.errors && C.errors[m.error]) || (EC.errors && EC.errors[m.error]) || m.error); }
+      else if (m.t === 'award') {
+        toast(tpl(EC.award, m.label, m.points));
+        if (m.unlocked && m.unlocked.length) { setTimeout(function () { toast(tpl(EC.unlocked, m.unlocked.join(', '))); }, 1800); loadEngage(); }
+      }
+      else if (m.t === 'unlocked') { toast(m.text); E.data = E.data || null; E.loading = null; loadEngage(); }
+      else if (m.t === 'quiz_result') { E.quizRes[m.qid] = m; var dk = $('[data-cards]'); if (dk) dk.setAttribute('data-key', ''); renderCards(); }
       else if (m.t === 'invited') invited(m.by);
       else if (m.t === 'unstaged') { toast(C.backToAudience); stopLocal(); rebuildMedia(); }
       else if (m.t === 'muted') { setMic(false); toast(C.mutedByHost); }
@@ -497,17 +503,26 @@
   // ───────────── rendering ─────────────
   function shell() {
     var tabs = [['chat', C.chat], ['qa', C.qa], ['poll', C.poll]];
-    if (isStaff) tabs.push(['people', C.people], ['host', C.hostTab]);
+    if (engOn() && !isStaff) tabs.push(['plan', EC.planTab]);
+    if (isStaff) tabs.push(['people', C.people]);
+    if (isStaff && engOn()) tabs.push(['push', EC.pushTab]);
+    if (isStaff) tabs.push(['host', C.hostTab]);
     app.innerHTML = '<div class="rm-shell">' +
       '<header class="rm-top"><div class="rm-top-l"><span class="rm-live" data-live hidden>' + I.dot + esc(C.live) + '</span><h1 class="rm-title">' + esc(CFG.room.title) + '</h1></div>' +
-      '<div class="rm-top-r"><span class="rm-timer" data-timer hidden></span><span class="rm-rec" data-rec hidden>' + I.dot + esc(C.recording) + '</span><span class="rm-count" data-count></span></div></header>' +
+      '<div class="rm-top-r"><span class="rm-timer" data-timer hidden></span><span class="rm-rec" data-rec hidden>' + I.dot + esc(C.recording) + '</span><span class="rm-count" data-count></span>' +
+      (engOn() && !isStaff ? '<button type="button" class="rm-traybtn" data-tray hidden>' + esc(EC.tray) + ' <span data-tray-n>0</span></button>' +
+        '<button type="button" class="rm-ring" data-ring hidden><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="rm-ring-bg" cx="18" cy="18" r="15.5"></circle><circle class="rm-ring-fg" data-ring-fg cx="18" cy="18" r="15.5" pathLength="100" stroke-dasharray="0 100"></circle></svg><span class="rm-ring-n" data-ring-n>0</span></button>' : '') +
+      '</div></header>' +
       '<div class="rm-banner" data-banner hidden></div>' +
-      '<main class="rm-main"><section class="rm-stagewrap"><div class="rm-stage" data-stage></div><div class="rm-pinned" data-pinned hidden></div></section>' +
+      '<main class="rm-main"><section class="rm-stagewrap"><div class="rm-stage" data-stage></div><div class="rm-agenda" data-agenda hidden></div><div class="rm-pinned" data-pinned hidden></div></section>' +
       '<aside class="rm-side"><nav class="rm-tabs" role="tablist" data-tabs>' + tabs.map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '">' + esc(t[1]) + '<span class="rm-badge" data-badge="' + t[0] + '" hidden></span></button>'; }).join('') + '</nav>' +
       '<div class="rm-panel" data-panel></div></aside></main>' +
+      '<div class="rm-cards" data-cards hidden></div>' +
       '<div class="rm-offerbar" data-offerbar hidden></div>' +
       '<footer class="rm-bar" data-bar></footer></div>';
-    $$('[data-tab]').forEach(function (b) { b.onclick = function () { S.tab = b.getAttribute('data-tab'); if (S.tab === 'chat') S.unread = 0; renderTabs(); renderPanel(); }; });
+    $$('[data-tab]').forEach(function (b) { b.onclick = function () { S.tab = b.getAttribute('data-tab'); if (S.tab === 'chat') S.unread = 0; renderTabs(); renderPanel(); if (S.tab === 'push') refreshStats(true); }; });
+    var rg = $('[data-ring]'); if (rg) rg.onclick = openMomentum;
+    var tr = $('[data-tray]'); if (tr) tr.onclick = openTray;
     renderTabs();
   }
   function banner(text) { var b = $('[data-banner]'); if (!b) return; b.hidden = !text; b.textContent = text || ''; }
@@ -518,7 +533,7 @@
     $('[data-live]').hidden = !(r.status === 'live' && MODE === 'webinar');
     $('[data-count]').textContent = watching(r.count);
     $('[data-rec]').hidden = !r.recording;
-    renderStage(); renderBar(); renderPanel(); renderTabs(); renderOffer(prev); renderPinned();
+    renderStage(); renderBar(); renderPanel(); renderTabs(); renderOffer(prev); renderPinned(); renderEngage();
     if (r.status === 'ended' && !S.ended) { S.ended = true; endScreen(C.ended, C.endedBody); }
   }
   function watching(n) { return n === 1 ? '1 person here' : n + ' people here'; }
@@ -662,6 +677,7 @@
   function renderPanel() {
     var p = $('[data-panel]'); if (!p || !S.view) return;
     if (S.tab === 'chat') return renderChat(false);
+    if (S.tab === 'plan') return renderPlan(false);
     var key = function (e) { return (e.closest('form') ? (e.closest('form').getAttribute('data-ask') !== null ? 'ask' : e.closest('form').getAttribute('data-pnew') !== null ? 'pnew' : 'f') : 'x') + ':' + (e.name || e.getAttribute('data-h') || ''); };
     var saved = {}, focus = null, caret = null;
     $$('input:not([type="checkbox"]), textarea', p).forEach(function (e) { if (e.value) saved[key(e)] = e.value; });
@@ -670,6 +686,7 @@
     if (S.tab === 'qa') renderQa();
     else if (S.tab === 'poll') renderPoll();
     else if (S.tab === 'people') renderPeople();
+    else if (S.tab === 'push') renderPush();
     else if (S.tab === 'host') renderHost();
     $$('input:not([type="checkbox"]), textarea', p).forEach(function (e) {
       var k = key(e);
@@ -740,6 +757,9 @@
     var hands = list.filter(function (x) { return x.hand; });
     var row = function (x) {
       var staffRow = x.role === 'host' || x.role === 'cohost', mine = x.id === ME.id, acts = '';
+      // Webinars: tick people to push to them only; their real points beside the name.
+      var pick = engOn() && !staffRow ? '<input type="checkbox" class="rm-pick" data-sel="' + esc(x.id) + '"' + (E.sel[x.id] ? ' checked' : '') + ' aria-label="' + esc(x.name) + '"> ' : '';
+      var ptsTag = engOn() && !staffRow && x.pts ? ' <span class="rm-role">' + esc(ptsLabel(x.pts)) + '</span>' : '';
       if (!mine) {
         if (MODE === 'webinar' && !staffRow && !x.stage) acts += '<button class="rm-mini" data-act="invite" data-id="' + esc(x.id) + '">' + esc(x.invited ? C.invitedState : C.invite) + '</button>';
         if (MODE === 'webinar' && !staffRow && x.stage) acts += '<button class="rm-mini" data-act="unstage" data-id="' + esc(x.id) + '">' + esc(C.unstage) + '</button>';
@@ -747,10 +767,11 @@
         if (x.stage) acts += '<button class="rm-mini" data-act="spotlight" data-id="' + esc(x.id) + '">' + esc(S.view.room.spotlight === x.id ? C.unspotlight : C.spotlight) + '</button>';
         if (x.role !== 'host') acts += '<button class="rm-mini rm-danger" data-act="kick" data-id="' + esc(x.id) + '">' + esc(C.remove) + '</button>';
       }
-      return '<li class="rm-person"><span class="rm-pn">' + (x.hand ? '<span class="rm-hand">' + I.hand + '</span>' : '') + esc(x.name) + (mine ? ' (' + esc(C.you) + ')' : '') + ' <span class="rm-role">' + esc(x.role === 'attendee' ? (x.stage ? C.onStage : '') : x.role === 'guest' ? '' : x.role) + '</span></span><span class="rm-pa">' + acts + '</span></li>';
+      return '<li class="rm-person"><span class="rm-pn">' + pick + (x.hand ? '<span class="rm-hand">' + I.hand + '</span>' : '') + esc(x.name) + (mine ? ' (' + esc(C.you) + ')' : '') + ' <span class="rm-role">' + esc(x.role === 'attendee' ? (x.stage ? C.onStage : '') : x.role === 'guest' ? '' : x.role) + '</span>' + ptsTag + '</span><span class="rm-pa">' + acts + '</span></li>';
     };
     p.innerHTML = (MODE === 'webinar' ? '<h3 class="rm-h3">' + esc(C.hands) + '</h3>' + (hands.length ? '<ul class="rm-people">' + hands.map(row).join('') + '</ul>' : '<p class="rm-note">' + esc(C.noHands) + '</p>') : '') +
       '<h3 class="rm-h3">' + esc(C.people) + ' · ' + list.length + '</h3><ul class="rm-people">' + list.filter(function (x) { return !x.hand; }).map(row).join('') + '</ul>';
+    $$('[data-sel]', p).forEach(function (c) { c.onchange = function () { E.sel[c.getAttribute('data-sel')] = c.checked; if (!selected().length) E.to = 'all'; }; });
     $$('[data-act]', p).forEach(function (b) {
       b.onclick = function () {
         var act = b.getAttribute('data-act'), id = b.getAttribute('data-id');
@@ -1135,12 +1156,389 @@
     v.el.remove();
   }
 
+  // ───────────── engagement (webinars): Deal momentum, pushes, knowledge checks, the agenda, the Deal Plan ─────────────
+  // Every point, unlock and count comes from the room (server); the browser only draws them and reports what
+  // the person did with a card (shown, opened, started, dismissed).
+  var ENG = CFG.engage || null, EC = (ENG && ENG.copy) || {};
+  var E = { data: null, loading: null, dismissed: {}, shown: {}, sel: {}, stats: null, statsAt: 0, quizRes: {}, planTimer: 0, planSeq: 0, preset: '', resource: '', to: 'all', open: null };
+  try { E.dismissed = JSON.parse(sessionStorage.getItem('rm-dis-' + CFG.room.id) || '{}') || {}; } catch (e) { E.dismissed = {}; }
+  function saveDismissed() { try { sessionStorage.setItem('rm-dis-' + CFG.room.id, JSON.stringify(E.dismissed)); } catch (e) { /* private mode */ } }
+  function tpl(s, a, b) { return String(s == null ? '' : s).replace(/\{a\}/g, a == null ? '' : a).replace(/\{b\}/g, b == null ? '' : b); }
+  function ptsLabel(n) { return n === 1 ? '1 point' : n + ' points'; }
+  function engOn() { return Boolean(ENG && MODE === 'webinar'); }
+  function ev() { return (S.view && S.view.eng) || null; }
+  function loadEngage() {
+    if (!engOn() || isStaff) return Promise.resolve();
+    if (E.loading) return E.loading;
+    E.loading = post('/engage').then(function (d) { E.loading = null; if (d && d.ok) { E.data = d; renderEngage(); if (S.tab === 'plan') renderPlan(true); } }).catch(function () { E.loading = null; });
+    return E.loading;
+  }
+  function pushEv(id, what) { send({ t: 'push_ev', pid: id, ev: what }); }
+  function moneyNum(v) {
+    var s = String(v || '').toLowerCase().replace(/[$,\s]/g, ''), m = /^(\d+(?:\.\d+)?)(k|m)?$/.exec(s);
+    if (!m) return null; var n = Number(m[1]) * (m[2] === 'm' ? 1e6 : m[2] === 'k' ? 1e3 : 1); return n > 0 ? n : null;
+  }
+  function nextAsset(p) {
+    var list = (E.data && E.data.assets || []).filter(function (a) { return typeof a.at === 'number' && a.at > p; }).sort(function (a, b) { return a.at - b.at; });
+    return list[0] || null;
+  }
+
+  /** The ring, the agenda bar and the card dock (called on every room update). */
+  function renderEngage() {
+    if (!engOn() || !S.view) return;
+    var e = ev(); if (!e) return;
+    // Agenda: the host's chapter markers.
+    var ag = $('[data-agenda]');
+    if (ag) {
+      var items = e.agenda.items || [], ch = e.agenda.chapter;
+      ag.hidden = !(ch >= 0 && items.length);
+      if (!ag.hidden) {
+        var now = items[ch], nxt = items[ch + 1];
+        ag.innerHTML = '<div class="rm-agenda-bar" aria-hidden="true">' + items.map(function (_, i) { return '<span class="' + (i < ch ? 'is-done' : i === ch ? 'is-now' : '') + '"></span>'; }).join('') + '</div>' +
+          '<p class="rm-agenda-t"><span class="rm-agenda-l">' + esc(EC.agendaNow) + '</span> ' + esc(now.title) +
+          (nxt ? ' <span class="rm-agenda-sep">·</span> <span class="rm-agenda-l">' + esc(EC.agendaNext) + '</span> ' + esc(nxt.title) + '<span class="rm-agenda-tease">' + esc(nxt.teaser ? ' ' + nxt.teaser : '') + '</span>' : ' <span class="rm-agenda-sep">·</span> <span class="rm-agenda-l">' + esc(EC.agendaDone) + '</span>') + '</p>';
+      }
+    }
+    if (isStaff) return;
+    // The ring: points toward the next unlock.
+    var ring = $('[data-ring]');
+    if (ring) {
+      ring.hidden = false;
+      var p = e.pts || 0, n = nextAsset(p), prev = 0;
+      (E.data && E.data.assets || []).forEach(function (a) { if (typeof a.at === 'number' && a.at <= p && a.at > prev) prev = a.at; });
+      var pct = n ? Math.max(4, Math.min(100, Math.round((p - prev) / Math.max(1, n.at - prev) * 100))) : 100;
+      $('[data-ring-fg]', ring).setAttribute('stroke-dasharray', pct + ' 100');
+      $('[data-ring-n]', ring).textContent = String(p);
+      ring.setAttribute('aria-label', EC.momentum + ': ' + ptsLabel(p));
+    }
+    renderCards();
+  }
+
+  /** One card at a time above the controls: an open knowledge check first, then the newest push not dismissed. */
+  function renderCards() {
+    var dock = $('[data-cards]'); if (!dock) return;
+    var e = ev(); if (!e) { dock.hidden = true; return; }
+    var q = e.quiz, res = q && (E.quizRes[q.id] || (q.mine != null ? { qid: q.id, choice: q.mine, correct: q.mine === q.right, right: q.right, explain: q.explain } : null));
+    var pend = (e.pushes || []).filter(function (x) { return !E.dismissed[x.id]; });
+    var html = '', key = '';
+    if (q && !E.dismissed['q' + q.id] && (q.open || res)) {
+      key = 'q' + q.id + (res ? 'r' : '');
+      html = '<p class="rm-eyebrow">' + esc(EC.quizEyebrow) + '</p><h3 class="rm-card-h">' + esc(q.question) + '</h3>';
+      if (res) {
+        html += '<p class="rm-quiz-res ' + (res.correct ? 'is-right' : 'is-wrong') + '">' + esc(res.correct ? EC.quizRight : EC.quizWrong) + ' ' + esc(tpl(EC.quizAnswer, q.options[res.right])) + '</p>' + (res.explain ? '<p class="rm-card-b">' + esc(res.explain) + '</p>' : '') +
+          '<div class="rm-card-a"><button type="button" class="rm-btn" data-card-x>' + esc(EC.close) + '</button></div>';
+      } else if (!q.open) {
+        html += '<p class="rm-card-b">' + esc(EC.quizClosed) + '</p><div class="rm-card-a"><button type="button" class="rm-btn" data-card-x>' + esc(EC.close) + '</button></div>';
+      } else {
+        html += '<div class="rm-quiz-opts">' + q.options.map(function (o, i) { return '<button type="button" class="rm-opt" data-quiz="' + i + '">' + esc(o) + '</button>'; }).join('') + '</div>';
+      }
+    } else if (pend.length) {
+      var x = pend[pend.length - 1];
+      key = 'p' + x.id;
+      html = pushCard(x);
+    }
+    dock.hidden = !html;
+    if (dock.getAttribute('data-key') === key && html) { updateTray(); return; }
+    dock.setAttribute('data-key', key);
+    dock.innerHTML = html ? '<div class="rm-card" role="region" aria-live="polite"><button type="button" class="rm-card-close" data-card-x aria-label="' + esc(EC.dismiss) + '">×</button>' + html + '</div>' : '';
+    if (key && key.charAt(0) === 'p') { var pid = Number(key.slice(1)); if (!E.shown[pid]) { E.shown[pid] = 1; pushEv(pid, 'shown'); } }
+    $$('[data-quiz]', dock).forEach(function (b) { b.onclick = function () { $$('[data-quiz]', dock).forEach(function (z) { z.disabled = true; }); send({ t: 'quiz_answer', qid: q.id, choice: Number(b.getAttribute('data-quiz')) }); }; });
+    $$('[data-card-x]', dock).forEach(function (b) {
+      b.onclick = function () {
+        if (key.charAt(0) === 'p') { var id = Number(key.slice(1)); E.dismissed[id] = 1; pushEv(id, 'dismissed'); } else E.dismissed['q' + q.id] = 1;
+        saveDismissed(); dock.setAttribute('data-key', ''); renderCards();
+      };
+    });
+    var go = $('[data-card-go]', dock); if (go) go.onclick = function () { var id = Number(key.slice(1)); var px = (e.pushes || []).filter(function (z) { return z.id === id; })[0]; if (px) actPush(px); };
+    updateTray();
+  }
+  function assetOf(id) { return (E.data && E.data.assets || []).filter(function (a) { return a.id === id; })[0] || (ENG.assets || []).filter(function (a) { return a.id === id; })[0] || null; }
+  function pushCard(x) {
+    var d = E.data || {}, o = (S.view.room.offer || {});
+    var card = function (eyebrow, h, b, btn) { return '<p class="rm-eyebrow">' + esc(eyebrow) + '</p><h3 class="rm-card-h">' + esc(h) + '</h3>' + (b ? '<p class="rm-card-b">' + esc(b) + '</p>' : '') + '<div class="rm-card-a"><button type="button" class="' + (x.kind === 'sprint' || x.kind === 'deposit' ? 'rm-buy' : 'rm-primary') + '" data-card-go>' + esc(btn) + '</button></div>'; };
+    if (x.kind === 'application') return card(EC.appEyebrow, d.app && d.app.submitted ? EC.appDoneHeading : EC.appHeading, d.app && d.app.submitted ? EC.appDoneBody : EC.appBody, d.app && d.app.submitted ? EC.appDoneNext : EC.appButton);
+    if (x.kind === 'sprint') { var sp = d.sprint || {}; return card(EC.sprintEyebrow, sp.heading || 'First Deal Sprint', sp.promise || '', (sp.button || 'Start') + (sp.todayLabel ? ' · ' + sp.todayLabel : '')); }
+    if (x.kind === 'deposit') return card(EC.sprintEyebrow, (o.label ? o.label + ' deposit' : C.offerOpen), '', EC.depositButton);
+    if (x.kind === 'vip') return card(EC.vipEyebrow, EC.vipHeading, EC.vipBody, EC.vipButton);
+    var a = assetOf(x.ref) || { title: '', body: '' };
+    return card(EC.resourceEyebrow, a.title, a.body || '', EC.resourceButton);
+  }
+  /** The card's one action. */
+  function actPush(x) {
+    pushEv(x.id, 'opened');
+    if (x.kind === 'application') return openApp(x);
+    if (x.kind === 'sprint') return openSprint(x);
+    if (x.kind === 'deposit') { pushEv(x.id, 'started'); return openOffer(); }
+    if (x.kind === 'vip') { var v = E.data && E.data.vip; if (v && v.url) { pushEv(x.id, 'started'); window.open(v.url, '_blank', 'noopener'); } else toast(C.genericError); return; }
+    // A resource: granted by the room when it reached you; the signed link comes with your data.
+    loadEngage().then(function () {
+      var a = assetOf(x.ref);
+      if (a && a.url) window.open(a.url, '_blank', 'noopener'); else setTimeout(function () { loadEngage().then(function () { var b = assetOf(x.ref); if (b && b.url) window.open(b.url, '_blank', 'noopener'); }); }, 800);
+    });
+  }
+  function updateTray() {
+    var t = $('[data-tray]'); if (!t) return;
+    var e = ev(), open = e ? (e.pushes || []).filter(function (x) { return E.dismissed[x.id]; }) : [];
+    t.hidden = !open.length;
+    $('[data-tray-n]', t).textContent = String(open.length);
+  }
+  function openTray() {
+    var e = ev(); if (!e) return;
+    var list = (e.pushes || []);
+    var d = sheet('tray');
+    d.body.innerHTML = '<h2>' + esc(EC.tray) + '</h2><ul class="rm-traylist">' + list.map(function (x) {
+      var a = x.kind === 'resource' ? assetOf(x.ref) : null;
+      var title = x.kind === 'application' ? EC.appHeading : x.kind === 'sprint' ? ((E.data && E.data.sprint && E.data.sprint.heading) || 'First Deal Sprint') : x.kind === 'deposit' ? EC.depositButton : x.kind === 'vip' ? EC.vipHeading : (a ? a.title : '');
+      return '<li><span>' + esc(title) + '</span><button type="button" class="rm-btn" data-tray-go="' + x.id + '">' + esc(EC.open) + '</button></li>';
+    }).join('') + '</ul>';
+    $$('[data-tray-go]', d.el).forEach(function (b) { b.onclick = function () { var id = Number(b.getAttribute('data-tray-go')); d.close(); var x = list.filter(function (z) { return z.id === id; })[0]; if (x) actPush(x); }; });
+  }
+  /** A docked sheet: beside the stage on desktop, a bottom sheet on a phone. The stage keeps playing. */
+  function sheet(name) {
+    var old = $('[data-esheet]'); if (old) old.remove();
+    var el = h('div', { class: 'rm-sheet rm-sheet--dock', 'data-esheet': name, role: 'dialog', 'aria-modal': 'false' });
+    var inner = h('div', { class: 'rm-sheet-in' });
+    var x = h('button', { type: 'button', class: 'rm-x', 'aria-label': EC.close || 'Close' }, '×');
+    var body = h('div', { class: 'rm-sheet-body' });
+    inner.appendChild(x); inner.appendChild(body); el.appendChild(inner); document.body.appendChild(el);
+    var close = function () { el.remove(); };
+    x.onclick = close;
+    el.onclick = function (ev2) { if (ev2.target === el) close(); };
+    return { el: el, inner: body, body: body, close: close };
+  }
+
+  // ── the application, step by step ──
+  function openApp(push) {
+    loadEngage().then(function () {
+      var app = E.data && E.data.app;
+      if (!app) { toast(EC.appNeedsLead); return; }
+      var d = sheet('app'), qs = app.questions || [], ans = {}, i = 0, started = false;
+      Object.keys(app.answers || {}).forEach(function (k) { ans[k] = app.answers[k]; });
+      var body = h('div', { class: 'rm-app' }); d.inner.appendChild(body);
+      function done() {
+        var o = S.view.room.offer || {}, sprintOpen = (ev().pushes || []).some(function (x) { return x.kind === 'sprint'; });
+        body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.appEyebrow) + '</p><h2>' + esc(EC.appDoneHeading) + '</h2><p>' + esc(EC.appDoneBody) + '</p>' +
+          '<h3 class="rm-h3">' + esc(EC.appDoneNext) + '</h3>' + (o.open ? '<p>' + esc(EC.appDoneOffer) + '</p><button type="button" class="rm-buy" data-app-offer>' + esc(EC.depositButton) + '</button>' : '') +
+          (sprintOpen ? '<p>' + esc(EC.appDoneSprint) + '</p>' : '');
+        var b = $('[data-app-offer]', body); if (b) b.onclick = function () { d.close(); openOffer(); };
+      }
+      if (app.submitted) return done();
+      function val(q) { return ans[q.id]; }
+      function draw(err) {
+        var q = qs[i], v = val(q);
+        var input = '';
+        if (q.type === 'single') input = '<div class="rm-choices" role="radiogroup">' + q.options.map(function (o) { return '<button type="button" class="rm-opt' + (v === o.value ? ' is-on' : '') + '" role="radio" aria-checked="' + (v === o.value) + '" data-v="' + esc(o.value) + '">' + esc(o.label) + '</button>'; }).join('') + '</div>';
+        else if (q.type === 'multi') input = '<div class="rm-choices">' + q.options.map(function (o) { var on = Array.isArray(v) && v.indexOf(o.value) >= 0; return '<button type="button" class="rm-opt' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-m="' + esc(o.value) + '">' + esc(o.label) + '</button>'; }).join('') + '</div>';
+        else input = '<textarea class="rm-input rm-app-text" rows="4" maxlength="2000" placeholder="' + esc(q.placeholder || '') + '" aria-label="' + esc(q.title) + '">' + esc(v || '') + '</textarea>';
+        body.innerHTML = '<p class="rm-eyebrow">' + esc(tpl(EC.appStep, i + 1, qs.length)) + '</p>' + (i === 0 ? '<p class="rm-fine">' + esc(EC.appAbout) + ' ' + esc(app.name || '') + (app.email ? ' · ' + esc(app.email) : '') + '</p>' : '') +
+          '<h2 class="rm-app-q">' + esc(q.title) + '</h2>' + (q.help ? '<p class="rm-fine">' + esc(q.help) + '</p>' : '') + input +
+          '<p class="rm-err" role="alert"' + (err ? '' : ' hidden') + '>' + esc(err || '') + '</p>' +
+          '<div class="rm-app-nav">' + (i > 0 ? '<button type="button" class="rm-link" data-back>' + esc(EC.appBack) + '</button>' : '<span></span>') +
+          '<button type="button" class="rm-primary" data-next>' + esc(i === qs.length - 1 ? EC.appSubmit : EC.appContinue) + '</button></div>' +
+          '<div class="rm-app-prog" aria-hidden="true"><span style="width:' + Math.round((i + 1) / qs.length * 100) + '%"></span></div>';
+        $$('[data-v]', body).forEach(function (b) { b.onclick = function () { ans[q.id] = b.getAttribute('data-v'); draw(); setTimeout(next, 180); }; });
+        $$('[data-m]', body).forEach(function (b) { b.onclick = function () { var cur = Array.isArray(ans[q.id]) ? ans[q.id].slice() : [], k = b.getAttribute('data-m'), j = cur.indexOf(k); if (j >= 0) cur.splice(j, 1); else cur.push(k); ans[q.id] = cur; draw(); }; });
+        var ta = $('textarea', body); if (ta) { ta.oninput = function () { ans[q.id] = ta.value; }; ta.focus(); }
+        var bk = $('[data-back]', body); if (bk) bk.onclick = function () { i--; draw(); };
+        $('[data-next]', body).onclick = next;
+      }
+      function ok(q) { var v = val(q); if (q.type === 'text') return typeof v === 'string' && v.trim().length >= (q.minLength || 1); if (q.type === 'multi') return Array.isArray(v) && v.length > 0; return v != null && v !== ''; }
+      function next() {
+        var q = qs[i];
+        if (!ok(q)) { draw(EC.appMissing); return; }
+        if (!started) { started = true; pushEv(push.id, 'started'); }
+        if (i < qs.length - 1) { i++; draw(); return; }
+        var btn = $('[data-next]', body); btn.disabled = true;
+        post('/app', { answers: ans }).then(function (r) {
+          if (r && r.ok) { app.submitted = true; done(); renderCards(); return; }
+          btn.disabled = false;
+          var at = r && r.field ? qs.map(function (z) { return z.id; }).indexOf(r.field) : -1;
+          if (at >= 0) { i = at; draw(r.error); } else draw((r && r.error) || C.genericError);
+        });
+      }
+      draw();
+    });
+  }
+
+  // ── the First Deal Sprint card ──
+  var sprintBusy = false;
+  function openSprint(push) {
+    loadEngage().then(function () {
+      var sp = E.data && E.data.sprint;
+      var d = sheet('sprint');
+      if (!sp) { d.body.innerHTML = '<p>' + esc(EC.sprintUnavailable) + '</p>'; return; }
+      var body = h('div', { class: 'rm-offer' }); d.inner.appendChild(body);
+      if (sp.paid) { body.innerHTML = '<h2 class="rm-offer-h">' + esc(EC.paidHeading) + '</h2><p>' + esc(EC.sprintPaidBody) + '</p>'; return; }
+      if (!sp.qualified) { body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(sp.heading) + '</h2><p>' + esc(EC.sprintUnderMillion) + '</p>'; return; }
+      if (!sp.available) { body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(sp.heading) + '</h2><p>' + esc(EC.sprintUnavailable) + '</p>'; return; }
+      body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.sprintEyebrow) + '</p><h2 class="rm-offer-h">' + esc(sp.heading) + '</h2><p class="rm-lede">' + esc(sp.promise) + '</p><p>' + esc(sp.lede) + '</p>' +
+        (sp.perks && sp.perks.length ? '<ul class="rm-secures">' + sp.perks.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '') +
+        '<p class="rm-price">' + esc(sp.line) + '</p>' +
+        '<button type="button" class="rm-buy" data-sp-buy>' + esc(sp.button + ' · ' + sp.todayLabel) + '</button>' +
+        '<p class="rm-err" role="alert" data-sp-err hidden></p>' +
+        '<p class="rm-fine">' + esc(sp.guarantee) + '</p><p class="rm-fine">' + esc(sp.creditNote) + '</p>' +
+        '<div class="rm-dialog" data-sp-oc hidden role="dialog" aria-modal="true"><div class="rm-dialog-in"><h3>' + esc(EC.oneClickHeading) + '</h3><p>' + esc(sp.oneClick && sp.oneClick.card ? tpl(EC.oneClickCharged, sp.oneClick.card) : EC.oneClickChargedNoCard) + '</p>' +
+        '<button type="button" class="rm-buy" data-sp-confirm>' + esc(tpl(EC.oneClickConfirm, sp.todayLabel)) + '</button><button type="button" class="rm-btn" data-sp-other>' + esc(EC.otherCard) + '</button><button type="button" class="rm-x" data-sp-close aria-label="' + esc(EC.close) + '">×</button></div></div>';
+      var err = $('[data-sp-err]', body), dlg = $('[data-sp-oc]', body);
+      function buy(oneClick) {
+        if (sprintBusy) return; sprintBusy = true;
+        $$('[data-sp-buy], [data-sp-confirm]', body).forEach(function (b) { b.disabled = true; });
+        post('/sprint', { one_click: Boolean(oneClick) }).then(function (r) {
+          sprintBusy = false; dlg.hidden = true;
+          $$('[data-sp-buy], [data-sp-confirm]', body).forEach(function (b) { b.disabled = false; });
+          if (r && r.paid) { body.innerHTML = '<h2 class="rm-offer-h">' + esc(EC.paidHeading) + '</h2><p>' + esc(EC.sprintPaidBody) + '</p>'; E.data.sprint.paid = true; return; }
+          if (r && r.next) { window.open(r.next, '_blank', 'noopener') || (location.href = r.next); return; }
+          err.textContent = (r && r.error) || C.genericError; err.hidden = false;
+        });
+      }
+      $('[data-sp-buy]', body).onclick = function () { if (sp.oneClick) dlg.hidden = false; else buy(false); };
+      $('[data-sp-confirm]', body).onclick = function () { buy(true); };
+      $('[data-sp-other]', body).onclick = function () { buy(false); };
+      $('[data-sp-close]', body).onclick = function () { dlg.hidden = true; };
+    });
+  }
+
+  // ── your momentum: points, unlocks, how to earn, the leaderboard ──
+  function openMomentum() {
+    loadEngage().then(function () {
+      var e = ev() || { pts: 0, board: {} }, dd = E.data || { assets: [], rules: [] };
+      var d = sheet('momentum'), p = e.pts || 0, n = nextAsset(p);
+      var b = e.board || {};
+      d.body.innerHTML = '<p class="rm-eyebrow">' + esc(EC.momentum) + '</p><h2>' + esc(ptsLabel(p)) + '</h2>' +
+        '<p class="rm-fine">' + esc(n ? tpl(EC.nextAt, n.title, n.at) : EC.allUnlocked) + '</p>' +
+        '<h3 class="rm-h3">' + esc(EC.unlocksHeading) + '</h3><ul class="rm-unlocks">' + (dd.assets || []).map(function (a) {
+          return '<li class="' + (a.url ? 'is-on' : '') + '"><div><strong>' + esc(a.title) + '</strong><span class="rm-fine">' + esc(a.body) + '</span></div>' +
+            (a.url ? '<a class="rm-btn" href="' + esc(a.url) + '" target="_blank" rel="noopener">' + esc(EC.open) + '</a>' : '<span class="rm-lock">' + esc(a.at === 'end' ? EC.lockedEnd : typeof a.at === 'number' ? tpl(EC.locked, a.at) : '') + '</span>') + '</li>';
+        }).join('') + '</ul>' +
+        '<h3 class="rm-h3">' + esc(EC.earnHeading) + '</h3><ul class="rm-rules">' + (dd.rules || []).map(function (r) { return '<li><span>' + esc(r.label) + '</span><span>+' + r.points + (r.cap > 1 ? ' · ' + esc(tpl(EC.upTo, r.cap)) : '') + '</span></li>'; }).join('') + '</ul>' +
+        '<p class="rm-fine">' + esc(EC.earnNote) + '</p>' +
+        '<h3 class="rm-h3">' + esc(EC.boardHeading) + '</h3>' + (b.on
+          ? '<label class="rm-check"><input type="checkbox" data-board-opt' + (b.optedIn ? ' checked' : '') + '> ' + esc(EC.boardOptIn) + '</label>' +
+            ((b.top || []).length ? '<ol class="rm-board">' + b.top.map(function (x) { return '<li><span>' + esc(x.name) + '</span><span>' + x.points + '</span></li>'; }).join('') + '</ol>' : '<p class="rm-fine">' + esc(EC.boardEmpty) + '</p>')
+          : '<p class="rm-fine">' + esc(EC.boardOff) + '</p>');
+      var opt = $('[data-board-opt]', d.el); if (opt) opt.onchange = function () { send({ t: 'board_opt', on: opt.checked }); };
+    });
+  }
+
+  // ── the Deal Plan (a tab for attendees) ──
+  var PLAN = [
+    ['planBuyBox', [['industry', 'planIndustry', 'planIndustryHint'], ['size', 'planSize', 'planSizeHint'], ['geography', 'planGeography', 'planGeographyHint']]],
+    ['planOutreach', [['owners_per_week', 'planOwners', 'planOwnersHint', 'numeric']]],
+    ['planCoverage', [['cash_flow', 'planCashFlow', 'planCashFlowHint', 'decimal'], ['debt_service', 'planDebt', 'planDebtHint', 'decimal']]],
+    ['planActions', [['action_1', 'planAction', 0], ['action_2', 'planAction', 1], ['action_3', 'planAction', 2]]],
+  ];
+  function planData() { var o = {}; $$('[data-plan]').forEach(function (i) { o[i.getAttribute('data-plan')] = i.value; }); return o; }
+  function coverageLine(o) {
+    var cf = moneyNum(o.cash_flow), ds = moneyNum(o.debt_service);
+    if (cf == null || ds == null) return '';
+    var r = Math.round(cf / ds * 100) / 100, max = '$' + Math.round(cf / 1.5).toLocaleString('en-US');
+    return r >= 1.5 ? tpl(EC.planPasses, r.toFixed(2)) : tpl(EC.planFails, r.toFixed(2), max);
+  }
+  function renderPlan(force) {
+    var p = $('[data-panel]'); if (!p || S.tab !== 'plan') return;
+    if (!force && $('[data-planform]', p)) return;
+    if (!ENG.lead) { p.innerHTML = '<p class="rm-note">' + esc(EC.planNeedsLead) + '</p>'; return; }
+    var data = (E.data && E.data.plan && E.data.plan.data) || {}, steps = (E.data && E.data.plan && E.data.plan.steps) || [];
+    var cur = $('[data-planform]', p) ? planData() : null;
+    if (cur) data = cur;
+    p.innerHTML = '<form class="rm-plan" data-planform autocomplete="off"><h3 class="rm-h3">' + esc(EC.planHeading) + '</h3><p class="rm-fine">' + esc(EC.planIntro) + '</p>' +
+      PLAN.map(function (sec) {
+        return '<fieldset><legend>' + esc(EC[sec[0]]) + '</legend>' + sec[1].map(function (f) {
+          var label = typeof f[2] === 'number' ? tpl(EC.planAction, f[2] + 1) : EC[f[1]], hint = typeof f[2] === 'number' ? (EC.planActionHints || [])[f[2]] : EC[f[2]];
+          return '<label class="rm-field"><span>' + esc(label) + '</span><input name="' + f[0] + '" data-plan="' + f[0] + '" maxlength="200" placeholder="' + esc(hint || '') + '"' + (f[3] ? ' inputmode="' + f[3] + '"' : '') + ' value="' + esc(data[f[0]] || '') + '"></label>';
+        }).join('') + (sec[0] === 'planCoverage' ? '<p class="rm-cov" data-cov aria-live="polite"></p>' : '') + '</fieldset>';
+      }).join('') + '<p class="rm-fine" data-plan-state>' + esc(tpl(EC.planSteps, steps.length)) + '</p></form>';
+    var cov = $('[data-cov]', p); cov.textContent = coverageLine(data);
+    $$('[data-plan]', p).forEach(function (i) {
+      i.oninput = function () {
+        cov.textContent = coverageLine(planData());
+        var st = $('[data-plan-state]', p); st.textContent = EC.planSaving;
+        clearTimeout(E.planTimer); E.planTimer = setTimeout(savePlan, 900);
+      };
+    });
+    $('[data-planform]', p).onsubmit = function (e2) { e2.preventDefault(); savePlan(); };
+  }
+  function savePlan() {
+    var seq = ++E.planSeq, data = planData();
+    post('/plan', { data: data }).then(function (r) {
+      if (seq !== E.planSeq) return;
+      var st = $('[data-plan-state]'); if (!st) return;
+      if (!r || !r.ok) { st.textContent = (r && r.error) || C.genericError; return; }
+      st.textContent = EC.planSaved + ' · ' + tpl(EC.planSteps, (r.steps || []).length);
+      if (E.data) E.data.plan = { data: data, steps: r.steps || [] };
+    });
+  }
+
+  // ── the host: Push, knowledge checks, the agenda, the leaderboard ──
+  function kindTitle(x) {
+    if (x.kind === 'resource') { var a = assetOf(x.ref); return a ? a.title : EC.pushResource; }
+    return { application: EC.pushApplication, sprint: EC.pushSprint, deposit: EC.pushDeposit, vip: EC.pushVip }[x.kind] || x.kind;
+  }
+  function selected() { return Object.keys(E.sel).filter(function (k) { return E.sel[k]; }); }
+  function refreshStats(force) {
+    if (!isStaff || !engOn()) return;
+    if (!force && Date.now() - E.statsAt < 3500) return;
+    E.statsAt = Date.now();
+    post('/engage/stats').then(function (d) { if (d && d.ok) { E.stats = d; if (S.tab === 'push') renderPanel(); } });
+  }
+  setInterval(function () { if (S.tab === 'push') refreshStats(); }, 4000);
+  function renderPush() {
+    var p = $('[data-panel]'), e = ev(); if (!p || !e) return;
+    var av = e.avail || {}, o = S.view.room.offer || {}, sel = selected(), stats = E.stats || { pushes: [], applications: [] };
+    var F = EC.funnel || {};
+    var q = e.quiz, ag = e.agenda || { items: [], chapter: -1 }, presets = ENG.presets || [];
+    var btn = function (k, label, ok) { return '<button type="button" class="rm-btn" data-push="' + k + '"' + (ok ? '' : ' disabled') + '>' + esc(label) + '</button>'; };
+    p.innerHTML = '<div class="rm-host rm-push">' +
+      '<section><h3 class="rm-h3">' + esc(EC.pushHeading) + '</h3>' +
+      '<div class="rm-row rm-seg" role="radiogroup" aria-label="' + esc(EC.pushTo) + '"><span class="rm-note">' + esc(EC.pushTo) + '</span>' +
+      '<button type="button" class="rm-mini" role="radio" aria-checked="' + (E.to === 'all') + '" data-to="all">' + esc(EC.pushEveryone) + '</button>' +
+      '<button type="button" class="rm-mini" role="radio" aria-checked="' + (E.to === 'sel') + '" data-to="sel"' + (sel.length ? '' : ' disabled') + '>' + esc(tpl(EC.selectedCount, sel.length)) + '</button></div>' +
+      (sel.length ? '' : '<p class="rm-fine">' + esc(EC.selectHint) + '</p>') +
+      '<div class="rm-row">' + btn('application', EC.pushApplication, av.application) + btn('sprint', EC.pushSprint, av.sprint) + btn('deposit', EC.pushDeposit, av.deposit && o.open) + (av.vip ? btn('vip', EC.pushVip, true) : '') + '</div>' +
+      (av.deposit && !o.open ? '<p class="rm-fine">' + esc(EC.pushNeedsOffer) + '</p>' : '') +
+      '<div class="rm-row"><select class="rm-input rm-inline-sel" data-res aria-label="' + esc(EC.pushResource) + '">' + (ENG.assets || []).map(function (a) { return '<option value="' + esc(a.id) + '"' + (E.resource === a.id ? ' selected' : '') + '>' + esc(a.title) + '</option>'; }).join('') + '</select>' + btn('resource', EC.pushSend, (av.resources || []).length) + '</div></section>' +
+      '<section><h3 class="rm-h3">' + esc(EC.pushLive) + '</h3>' + (stats.pushes.length ? '<table class="rm-funnel"><thead><tr><th></th><th>' + esc(F.shown) + '</th><th>' + esc(F.opened) + '</th><th>' + esc(F.started) + '</th><th>' + esc(F.submitted) + '</th><th>' + esc(F.paid) + '</th><th></th></tr></thead><tbody>' +
+        stats.pushes.map(function (x) { return '<tr class="' + (x.open ? '' : 'is-closed') + '"><td>' + esc(kindTitle(x)) + '<span class="rm-fine"> · ' + (x.targets || 0) + '</span></td><td>' + x.counts.shown + '</td><td>' + x.counts.opened + '</td><td>' + x.counts.started + '</td><td>' + x.counts.submitted + '</td><td>' + x.counts.paid + '</td><td>' + (x.open ? '<button type="button" class="rm-mini" data-pclose-push="' + x.id + '">' + esc(EC.pushClose) + '</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="rm-note">' + esc(EC.pushNone) + '</p>') +
+      (stats.applications.length ? '<ul class="rm-apps">' + stats.applications.map(function (a) { return '<li><span>' + esc(a.name) + '</span><span class="rm-tier rm-tier-' + esc(a.tier || 'x') + '">' + esc(a.tier || '–') + (a.score != null ? ' · ' + a.score : '') + '</span></li>'; }).join('') + '</ul><p class="rm-fine">' + esc(EC.tierNote) + '</p>' : '') + '</section>' +
+      '<section><h3 class="rm-h3">' + esc(EC.quizHeading) + '</h3>' +
+      (q ? '<div class="rm-quizhost"><p><strong>' + esc(q.question) + '</strong></p>' + q.options.map(function (op, i) { var n = q.counts ? q.counts[i] : 0; return '<div class="rm-res' + (i === q.right ? ' is-mine' : '') + '"><div class="rm-res-l"><span>' + esc(op) + '</span><span>' + n + '</span></div></div>'; }).join('') +
+        '<p class="rm-fine">' + esc(tpl(EC.quizRightPct, q.counts ? q.counts[q.right] || 0 : 0, q.total)) + '</p>' + (q.open ? '<button type="button" class="rm-btn" data-qclose="' + q.id + '">' + esc(EC.quizClose) + '</button>' : '') + '</div>' : '') +
+      '<div class="rm-row"><select class="rm-input rm-inline-sel" data-preset aria-label="' + esc(EC.quizPreset) + '"><option value="">' + esc(EC.quizPreset) + '</option>' + presets.map(function (x) { return '<option value="' + esc(x.id) + '"' + (E.preset === x.id ? ' selected' : '') + '>' + esc(x.question.slice(0, 70)) + '</option>'; }).join('') + '</select><button type="button" class="rm-btn" data-qpreset>' + esc(EC.quizStart) + '</button></div>' +
+      '<details class="rm-own"><summary>' + esc(EC.quizOwn) + '</summary><form class="rm-pollform" data-qform><label class="rm-field"><span>' + esc(EC.quizQuestion) + '</span><input name="qq" maxlength="240"></label><label class="rm-field"><span>' + esc(EC.quizOptions) + '</span><textarea name="qo" rows="3"></textarea></label>' +
+        '<label class="rm-field"><span>' + esc(EC.quizCorrect) + '</span><input name="qc" inputmode="numeric" maxlength="1"></label><label class="rm-field"><span>' + esc(EC.quizExplain) + '</span><textarea name="qe" rows="2" maxlength="400"></textarea></label><button type="submit" class="rm-btn">' + esc(EC.quizStart) + '</button></form></details></section>' +
+      '<section><h3 class="rm-h3">' + esc(EC.agendaHeading) + '</h3><ol class="rm-aglist">' + ag.items.map(function (it, i) { return '<li class="' + (i === ag.chapter ? 'is-now' : i < ag.chapter ? 'is-done' : '') + '">' + esc(it.title) + '</li>'; }).join('') + '</ol>' +
+        '<div class="rm-row">' + (ag.chapter > 0 ? '<button type="button" class="rm-btn" data-ch="' + (ag.chapter - 1) + '">' + esc(EC.agendaBack) + '</button>' : '') + (ag.chapter < ag.items.length - 1 ? '<button type="button" class="rm-primary rm-small" data-ch="' + (ag.chapter + 1) + '">' + esc(ag.chapter < 0 ? EC.agendaStart : EC.agendaNextBtn) + '</button>' : '') + '</div></section>' +
+      '<section><h3 class="rm-h3">' + esc(EC.boardHeading) + '</h3><button type="button" class="rm-btn" data-board>' + esc(e.board.on ? EC.boardToggleOff : EC.boardToggleOn) + '</button>' +
+        ((e.board.top || []).length ? '<ol class="rm-board">' + e.board.top.map(function (x) { return '<li><span>' + esc(x.name) + '</span><span>' + x.points + '</span></li>'; }).join('') + '</ol>' : '<p class="rm-fine">' + esc(EC.boardEmpty) + '</p>') + '</section>' +
+      '</div>';
+    $$('[data-to]', p).forEach(function (b) { b.onclick = function () { E.to = b.getAttribute('data-to'); renderPanel(); }; });
+    $$('[data-push]', p).forEach(function (b) {
+      b.onclick = function () {
+        var k = b.getAttribute('data-push'), m = { t: 'push', kind: k };
+        if (k === 'resource') m.ref = $('[data-res]', p).value;
+        if (E.to === 'sel' && sel.length) m.to = sel;
+        send(m); setTimeout(function () { refreshStats(true); }, 600);
+      };
+    });
+    var rs = $('[data-res]', p); if (rs) rs.onchange = function () { E.resource = rs.value; };
+    var ps = $('[data-preset]', p); if (ps) ps.onchange = function () { E.preset = ps.value; };
+    $$('[data-pclose-push]', p).forEach(function (b) { b.onclick = function () { send({ t: 'push_close', pid: Number(b.getAttribute('data-pclose-push')) }); setTimeout(function () { refreshStats(true); }, 600); }; });
+    var qc = $('[data-qclose]', p); if (qc) qc.onclick = function () { send({ t: 'quiz_close', qid: Number(qc.getAttribute('data-qclose')) }); };
+    $('[data-qpreset]', p).onclick = function () { var x = presets.filter(function (z) { return z.id === E.preset; })[0]; if (x) send({ t: 'quiz_new', question: x.question, options: x.options, correct: x.correct, explain: x.explain }); };
+    $('[data-qform]', p).onsubmit = function (e2) { e2.preventDefault(); var f = this; send({ t: 'quiz_new', question: f.qq.value, options: f.qo.value.split('\n'), correct: Number(f.qc.value) - 1, explain: f.qe.value }); f.reset(); };
+    $$('[data-ch]', p).forEach(function (b) { b.onclick = function () { send({ t: 'chapter', n: Number(b.getAttribute('data-ch')) }); }; });
+    $('[data-board]', p).onclick = function () { send({ t: 'board', on: !e.board.on }); };
+    if (!E.stats) refreshStats(true);
+  }
+
   function endScreen(title, body) {
     S.wsClosedByUs = true;
     stopMoqPublish(); stopMoqView();
     stopLocal(); teardownMedia();
     var sh = $('[data-offer-sheet]');
     var keepOffer = S.view && S.view.room.offer && S.view.room.offer.open && document.getElementById('room-offer');
+    var es = $('[data-esheet]'); if (es && es.getAttribute('data-esheet') !== 'sprint') es.remove();
+    if (engOn() && !isStaff && ENG.lead && S.ended) body = (body ? body + ' ' : '') + EC.endNote;
     app.innerHTML = '<div class="rm-entry"><h1 class="rm-h1">' + esc(title) + '</h1>' + (body ? '<p class="rm-lede">' + esc(body) + '</p>' : '') + (keepOffer ? '<button type="button" class="rm-buy" data-offer-open>' + esc(C.secure) + '</button>' : '') + (CFG.back ? '<p><a class="rm-link" href="' + esc(CFG.back) + '">' + esc(C.back) + '</a></p>' : '') + '</div>';
     var b = $('[data-offer-open]'); if (b) b.onclick = openOffer;
     if (sh && !keepOffer) sh.remove();

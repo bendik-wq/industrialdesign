@@ -40,9 +40,12 @@ export const STAGES: StageDef[] = [
   { id: 'engagement_signed', label: 'Signed the engagement', funnels: ['auto', 'live', 'challenge'], money: true, contract: true },
   { id: 'replay_watched', label: 'Watched the replay', funnels: ['auto', 'live', 'challenge'] },
   { id: 'refund', label: 'Refunded', funnels: ['auto', 'live', 'challenge'], money: true },
+  // Our live rooms' engagement (src/rooms/engage-db.ts), appended: the contract above is unchanged.
+  { id: 'room_application', label: 'Applied inside the room', funnels: ['live', 'challenge'] },
+  { id: 'room_stayed_end', label: 'Stayed to the end of the room', funnels: ['live', 'challenge'] },
 ];
-/** Stages that hold several rows per person (one per chapter, poll, question, day). */
-export const DETAIL_STAGES = ['chapter', 'poll', 'question', 'attended_day', 'zoom_joined', 'ticket_checkout_started'];
+/** Stages that hold several rows per person (one per chapter, poll, question, day; in our rooms one per push event, award, unlock, knowledge check and Deal Plan step). */
+export const DETAIL_STAGES = ['chapter', 'poll', 'question', 'attended_day', 'zoom_joined', 'ticket_checkout_started', 'room_push', 'room_points', 'room_unlock', 'room_quiz', 'room_plan_step'];
 
 const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 const ABANDON_AFTER = HOUR;

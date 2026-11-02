@@ -819,7 +819,8 @@ export async function callVariables(rt: Runtime, kind: WKind, lead: Lead, ctx: W
     already_bought: boughtList.length ? boughtList.join(', ') : 'nothing yet',
     close_time: values.close_time,
     script: fill(cfg.steps[kind].script, values),
-    offer_facts: offerFacts(rt, ctx, closeTime),
+    // What they did in our live room (points, the application, their Deal Plan's buy box), when anything.
+    offer_facts: [offerFacts(rt, ctx, closeTime), await (await import('../rooms/engage-db')).callNote(rt, lead.id).catch(() => '')].filter(Boolean).join('\n'),
     voicemail_rule: attempt <= 1
       ? `If you reach voicemail or an automated system, leave ONE short message: "Hi ${firstName}, it's Sam, an AI assistant for Josh Li's team at G and L M&A Advisory, calling about ${voicemail}. Everything is in your email, or call us back on ${callback}." Then end the call.`
       : 'If you reach voicemail or an automated system, end the call straight away without leaving a message.',

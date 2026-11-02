@@ -61,7 +61,8 @@ import { opsHooks } from './integrations/hooks-in';
 import { mcpRoute } from './mcp/server';
 import { processClientsSupport } from './ops/e-cron';
 import { syncAttribution } from './attribution/stages';
-import { hostRoomForKey, hostRoomPage, publicRoomPage, replayRoute, roomsApi } from './rooms/routes';
+import { hostRoomForKey, hostRoomPage, paidPage, planPage, publicRoomPage, replayRoute, roomsApi, unlockRoute } from './rooms/routes';
+import { processRoomSummaries } from './rooms/engage-db';
 export { RoomDO } from './rooms/do';
 
 const app = new Hono<AppEnv>();
@@ -172,6 +173,10 @@ app.get('/live/welcome/:token', withVisitor, liveWelcome);
 app.get('/live/worksheet/:token', withVisitor, liveWorksheet);
 app.get('/guarantee', withVisitor, guaranteePage);
 app.get('/rooms/replay/:rid', replayRoute); // room recordings (R2)
+app.get('/rooms/a/:id/:who/:ref', unlockRoute); // an unlocked file (signed, only for the person who earned it)
+app.get('/rooms/plan/:id/:ref', planPage); // an attendee's Deal Plan (signed link from the summary email)
+app.get('/rooms/:id/done', paidPage); // where the payment page returns a buyer from the room
+app.get('/unlocks/*', (c) => c.notFound()); // the unlock files are only served through /rooms/a/...
 app.get('/rooms/:id', publicRoomPage); // our video rooms: co-hosts, meeting guests, challenge days
 app.get('/pay/:ref', withVisitor, payPage);
 app.get('/guides', withVisitor, guidesHub);
@@ -349,6 +354,7 @@ export default {
       quiet(processWinback(rt), 'win-back (approved campaigns only)'),
       quiet(syncAttribution(rt), 'webinar attribution'),
       quiet(planWebinarCalls(rt), 'webinar AI calls'),
+      quiet(processRoomSummaries(rt), 'room summary emails'),
       quiet(maybeSyncAudiences(rt), 'Meta audiences (approved only)'),
     ]);
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);

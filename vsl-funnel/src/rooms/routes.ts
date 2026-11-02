@@ -9,6 +9,11 @@ import { SfuError, mintIceServers, realtimeSetup } from './sfu';
 import { SFU_OPS } from './proxy';
 import { audienceThreshold, broadcastMode, moqSetup, parseMode } from './moq';
 import type { Identity } from './state';
+import { ASSETS, ENGAGE_COPY, PLAN_KEYS, QUIZ_PRESETS, agendaText, assetById, coverage, parseAgenda } from './engage';
+import {
+  RoomError, attendeeEngage, checkAssetLink, checkPlanLink, engageAvail, engageReport, getPlan, personTimeline, pushStats, roomEngageSettings, savePlan, sendRoomSummaries,
+  startRoomSprint, submitRoomApplication,
+} from './engage-db';
 import {
   type RoomRow, createRoom, getRoom, inviteUrl, isRoomId, listRooms, makeInvite, makeTicket, memberId, readInvite, readTicket, roomOffer, roomReport, ticketIdentity,
 } from './rooms';
@@ -31,7 +36,9 @@ export function roomMeta(rt: Pick<Runtime, 'origin' | 'settings'>, room: RoomRow
   const s = (rt.settings ?? {}) as unknown as Record<string, string | undefined>;
   // How the audience receives the stage (webinars): the room's override, else ROOM_BROADCAST; MoQ only when its tokens are set.
   const moq = { mode: broadcastMode(s, room.broadcast), ready: moqSetup(s).ready, minAudience: audienceThreshold(s) };
-  return { id: room.id, mode: room.mode, title: room.title, startsAt: room.starts_at, offerAvailable: room.ref_type === 'live' || day === 4 || day === 5, origin: rt.origin, moq };
+  const es = roomEngageSettings(room);
+  const engage = room.mode === 'webinar' ? { avail: engageAvail(rt as Runtime, room), agenda: es.agenda, board: es.board } : undefined;
+  return { id: room.id, mode: room.mode, title: room.title, startsAt: room.starts_at, offerAvailable: room.ref_type === 'live' || day === 4 || day === 5, origin: rt.origin, moq, engage };
 }
 
 const gatePage = (c: Context<AppEnv>, h: string, b: string, status: 200 | 403 | 404 = 403) =>
@@ -89,8 +96,16 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
     // MoQ (big webinars): only whether it's on. Relay URLs and tokens come from /api/rooms/:id/moq with the ticket.
     moq: moqOn,
     copy: ROOM_COPY,
+    // Engagement (webinars): the copy, and for staff the ready-made knowledge checks and the resources they can push.
+    engage: room.mode === 'webinar' ? {
+      copy: ENGAGE_COPY,
+      lead: Boolean(who.leadId),
+      presets: who.role === 'host' || who.role === 'cohost' ? QUIZ_PRESETS : [],
+      assets: ASSETS.map((a) => ({ id: a.id, title: a.title })),
+    } : null,
   };
-  const json = JSON.stringify(cfg, (_k, v) => (typeof v === 'function' ? undefined : v)).replace(/</g, '\\u003c');
+  // Copy functions become their plain templates for room.js (it fills {n}/{a}/{b}); everything else is data.
+  const json = JSON.stringify(cfg, (_k, v) => (typeof v === 'function' ? fnTemplate(v) : v)).replace(/</g, '\\u003c');
   const host = new URL(c.req.url).host;
   // MoQ: WebTransport to the relay is governed by connect-src; the vendored client runs its encoder, decoder and
   // audio worklets from blob: and data: URLs.
@@ -185,6 +200,14 @@ export async function hostRoomPage(c: Context<AppEnv>) {
   return renderRoomPage(c, room, { id: memberId('host', 'admin'), name: pickHostName(rt.settings, null), role: 'host', leadId: null, regId: null }, { back: '/admin#liveevents' });
 }
 
+/** A copy function, sampled into a template room.js can fill: "{a}" and "{b}" for its first two arguments. */
+function fnTemplate(fn: (...a: never[]) => unknown) {
+  try {
+    const out = (fn as unknown as (a: unknown, b: unknown) => unknown)('\u0001', '\u0002');
+    return typeof out === 'string' ? out.replace(/\u0001/g, '{a}').replace(/\u0002/g, '{b}') : undefined;
+  } catch { return undefined; }
+}
+
 // ───────────── /api/rooms ─────────────
 
 export const roomsApi = new Hono<AppEnv>();
@@ -267,6 +290,72 @@ roomsApi.post('/:id/moq', async (c) => {
   try {
     return await stub(c, a.room.id).fetch(new Request('https://room/moq', { method: 'POST', headers: { 'x-room-admin': admin ? '1' : '0', ...headersFor(a.rt, a.room, who) } }));
   } catch (e) { return c.json({ ok: false, error: e instanceof Error ? e.message : 'Unavailable' }, 503); }
+});
+
+// ── engagement (webinars): the attendee's own data, the application, the Deal Plan, the Sprint card; the host's counts ──
+
+const whoOf = (t: { p: string; n: string; lead: string | null; reg: string | null }) => ({ id: t.p, name: t.n, leadId: t.lead, regId: t.reg });
+/** Tell the room's Durable Object what an HTTP call did (point awards for that person). */
+async function tellRoom(c: Context<AppEnv>, a: NonNullable<Awaited<ReturnType<typeof authed>>>, awards: { action: string; key: string }[]) {
+  if (!awards.length || !c.env.ROOMS) return null;
+  const who = ticketIdentity(a.t);
+  try {
+    const r = await stub(c, a.room.id).fetch(new Request('https://room/engage', { method: 'POST', headers: { 'content-type': 'application/json', ...headersFor(a.rt, a.room, who) }, body: JSON.stringify({ awards: awards.map((x) => ({ memberId: who.id, ...x })) }) }));
+    return (await r.json()) as { points?: number };
+  } catch { return null; }
+}
+const roomErr = (c: Context<AppEnv>, e: unknown) => (e instanceof RoomError ? c.json({ ok: false, error: e.message, field: e.field ?? null }, e.status) : c.json({ ok: false, error: ROOM_COPY.genericError }, 500));
+
+roomsApi.post('/:id/engage', async (c) => {
+  if (!sameOrigin(c)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const a = await authed(c, b.t);
+  if (!a || a.room.mode !== 'webinar') return c.json({ ok: false, error: 'forbidden' }, 403);
+  c.header('cache-control', 'no-store');
+  return c.json({ ok: true, ...(await attendeeEngage(a.rt, a.room, whoOf(a.t))) });
+});
+
+roomsApi.post('/:id/app', async (c) => {
+  if (!sameOrigin(c)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const a = await authed(c, b.t);
+  if (!a || a.room.mode !== 'webinar' || a.t.role === 'host' || a.t.role === 'cohost') return c.json({ ok: false, error: 'forbidden' }, 403);
+  try {
+    const r = await submitRoomApplication(a.rt, a.room, whoOf(a.t), { answers: b.answers }, c.req.raw);
+    await tellRoom(c, a, [{ action: 'application', key: '1' }]);
+    // The tier is for the team: the attendee only learns that it arrived.
+    return c.json({ ok: true, received: Boolean(r) });
+  } catch (e) { return roomErr(c, e); }
+});
+
+roomsApi.post('/:id/plan', async (c) => {
+  if (!sameOrigin(c)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const a = await authed(c, b.t);
+  if (!a || a.room.mode !== 'webinar' || a.t.role === 'host' || a.t.role === 'cohost') return c.json({ ok: false, error: 'forbidden' }, 403);
+  if (!a.t.lead) return c.json({ ok: false, error: ENGAGE_COPY.planNeedsLead }, 403);
+  const r = await savePlan(a.rt, a.room, whoOf(a.t), b.data);
+  const told = await tellRoom(c, a, r.newly.map((s) => ({ action: 'plan_step', key: s })));
+  return c.json({ ok: true, steps: r.steps, coverage: coverage(r.data), points: told?.points ?? null });
+});
+
+roomsApi.post('/:id/sprint', async (c) => {
+  if (!sameOrigin(c)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const a = await authed(c, b.t);
+  if (!a || a.room.mode !== 'webinar' || a.t.role === 'host' || a.t.role === 'cohost') return c.json({ ok: false, error: 'forbidden' }, 403);
+  const r = await startRoomSprint(a.rt, a.room, whoOf(a.t), { oneClick: b.one_click === true, returnUrl: `${a.rt.origin}/rooms/${a.room.id}/done?k=sprint` });
+  return c.json({ ok: !r.error, ...r, next: r.url ?? null });
+});
+
+/** The host's live counts per push (staff tickets only): shown, opened, started, submitted, paid, and the applications with their tier. */
+roomsApi.post('/:id/engage/stats', async (c) => {
+  if (!sameOrigin(c)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const a = await authed(c, b.t);
+  if (!a || !staffTicket(a.t)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  c.header('cache-control', 'no-store');
+  return c.json({ ok: true, ...(await pushStats(a.rt, a.room.id)) });
 });
 
 // ── recordings (host and co-hosts): R2 multipart upload in parts of 5 MB or more ──
@@ -460,6 +549,44 @@ roomsAdmin.post('/:id/broadcast', async (c) => {
   return c.json({ ok: true, broadcast: mode, effective: broadcastMode(rt.settings as never, mode), live });
 });
 
+/** Funnel HQ → Rooms → Engagement: the push funnel, points, retention, questions and people; one person's timeline. */
+roomsAdmin.get('/:id/engage', async (c) => {
+  const rt = runtimeFrom(c);
+  const room = await getRoom(rt, c.req.param('id'));
+  if (!room) return c.json({ error: 'Room not found' }, 404);
+  let questions: { text: string; votes: number; name: string; answered: boolean }[] = [];
+  if (c.env.ROOMS && room.mode === 'webinar') {
+    questions = await stub(c, room.id).fetch(new Request('https://room/engage/report', { headers: headersFor(rt, room, { id: 'hq', name: 'HQ', role: 'host' }) })).then((r) => r.json() as Promise<{ questions: typeof questions }>).then((d) => d.questions ?? []).catch(() => []);
+  }
+  return c.json({ ok: true, ...(await engageReport(rt, room, questions)), agendaText: roomEngageSettings(room).agendaRaw || agendaText(parseAgenda('')) });
+});
+roomsAdmin.get('/:id/engage/person/:who', async (c) => {
+  const rt = runtimeFrom(c);
+  const room = await getRoom(rt, c.req.param('id'));
+  if (!room) return c.json({ error: 'Room not found' }, 404);
+  return c.json({ ok: true, ...(await personTimeline(rt, room.id, c.req.param('who'))) });
+});
+/** The room's agenda (one chapter per line, "Title | teaser") and whether the leaderboard starts on. */
+roomsAdmin.post('/:id/engage', async (c) => {
+  const rt = runtimeFrom(c);
+  const room = await getRoom(rt, c.req.param('id'));
+  if (!room) return c.json({ ok: false, error: 'Room not found' }, 404);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const agenda = typeof b.agenda === 'string' ? b.agenda.slice(0, 4000) : roomEngageSettings(room).agendaRaw;
+  const board = b.board === true;
+  await rt.env.DB.prepare('UPDATE rooms SET engage = ?, updated_at = ? WHERE id = ?').bind(JSON.stringify({ agenda, board }), Date.now(), room.id).run();
+  return c.json({ ok: true, agenda: parseAgenda(agenda), board });
+});
+/** Sends the summary emails now (each person once; the cron does it 10 minutes after the end otherwise). */
+roomsAdmin.post('/:id/summaries', async (c) => {
+  const rt = runtimeFrom(c);
+  const room = await getRoom(rt, c.req.param('id'));
+  if (!room) return c.json({ ok: false, error: 'Room not found' }, 404);
+  if (room.status !== 'ended') return c.json({ ok: false, error: 'Send the summaries once the session has ended.' }, 409);
+  await rt.env.DB.prepare('UPDATE rooms SET summary_at = COALESCE(summary_at, ?) WHERE id = ?').bind(Date.now(), room.id).run();
+  return c.json({ ok: true, ...(await sendRoomSummaries(rt, room.id)) });
+});
+
 roomsAdmin.post('/:id/cancel', async (c) => {
   const rt = runtimeFrom(c);
   await rt.env.DB.prepare("UPDATE rooms SET status = 'cancelled', updated_at = ? WHERE id = ? AND ref_type IN ('lead', 'none')").bind(Date.now(), c.req.param('id')).run();
@@ -476,6 +603,55 @@ roomsAdmin.get('/:id/live', async (c) => {
 });
 
 export { roomOffer };
+
+// ───────────── engagement pages: an unlocked file, a Deal Plan, after paying ─────────────
+
+/** GET /rooms/a/:id/:who/:ref: an unlocked file, only for the person who earned it (signed link, checked against room_unlocks). */
+export async function unlockRoute(c: Context<AppEnv>) {
+  const rt = runtimeFrom(c);
+  const id = c.req.param('id') ?? '';
+  const who = decodeURIComponent(c.req.param('who') ?? '');
+  if (!isRoomId(id)) return c.notFound();
+  const asset = await checkAssetLink(rt, id, who, c.req.param('ref') ?? '');
+  if (!asset) return gatePage(c, ROOM_GATE.noAccess, 'This file unlocks in the room. Open it from the room, or from the link in your summary email.', 403);
+  const res = await c.env.ASSETS.fetch(new Request(new URL(asset.file, c.req.url)));
+  if (!res.ok) return c.notFound();
+  const headers: Record<string, string> = { 'content-type': asset.type, 'cache-control': 'private, no-store', 'x-robots-tag': 'noindex', 'x-frame-options': 'DENY' };
+  if (asset.download) headers['content-disposition'] = `attachment; filename="${asset.download}"`;
+  return new Response(res.body, { headers });
+}
+
+/** GET /rooms/plan/:id/:ref: the attendee's Deal Plan (signed link from the summary email). */
+export async function planPage(c: Context<AppEnv>) {
+  const rt = runtimeFrom(c);
+  const id = c.req.param('id') ?? '';
+  if (!isRoomId(id)) return c.notFound();
+  const who = await checkPlanLink(rt, id, decodeURIComponent(c.req.param('ref') ?? ''));
+  const room = who ? await getRoom(rt, id) : null;
+  const plan = who && room ? await getPlan(rt, id, who) : null;
+  if (!plan || !room) return gatePage(c, ROOM_GATE.noAccess, ROOM_GATE.noAccessBody, 404);
+  const C = ENGAGE_COPY;
+  const d = plan.data;
+  const cov = coverage(d);
+  const row = (k: string, v: string) => (v ? `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>` : '');
+  const box = row(C.planIndustry, d.industry) + row(C.planSize, d.size) + row(C.planGeography, d.geography);
+  const acts = [d.action_1, d.action_2, d.action_3].filter(Boolean);
+  c.header('cache-control', 'private, no-store');
+  return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(C.planHeading)}</title><link rel="stylesheet" href="/assets/room.css"></head>
+<body class="rm-body"><main class="rm-entry rm-planpage"><p class="rm-eyebrow">${esc(room.title)}</p><h1 class="rm-h1">${esc(C.planHeading)}</h1>
+${box ? `<h2 class="rm-h3">${esc(C.planBuyBox)}</h2><table class="rm-plantable">${box}</table>` : ''}
+${d.owners_per_week ? `<h2 class="rm-h3">${esc(C.planOutreach)}</h2><p>${esc(C.planOwners)}: <strong>${esc(d.owners_per_week)}</strong></p>` : ''}
+${cov ? `<h2 class="rm-h3">${esc(C.planCoverage)}</h2><table class="rm-plantable">${row(C.planCashFlow, d.cash_flow)}${row(C.planDebt, d.debt_service)}</table><p class="${cov.passes ? 'rm-ok' : 'rm-err'}">${esc(cov.passes ? C.planPasses(cov.ratio.toFixed(2)) : C.planFails(cov.ratio.toFixed(2), `$${cov.maxDebtService.toLocaleString('en-US')}`))}</p>` : ''}
+${acts.length ? `<h2 class="rm-h3">${esc(C.planActions)}</h2><ol>${acts.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+<p class="rm-fine">Education only, not legal, tax or financial advice.</p></main></body></html>`);
+}
+
+/** GET /rooms/:id/done: where the payment page returns a buyer from the room (the room itself stays open in its own tab). */
+export async function paidPage(c: Context<AppEnv>) {
+  const k = c.req.query('k');
+  return gatePage(c, ENGAGE_COPY.paidHeading, k === 'sprint' ? ENGAGE_COPY.sprintPaidBody : ENGAGE_COPY.paidBody, 200);
+}
+void PLAN_KEYS; void assetById;
 
 /** Which room (if any) a host-console key runs in: live events and challenge days set to platform 'room'. */
 export async function roomForKey(rt: Runtime, key: string, create = false) {

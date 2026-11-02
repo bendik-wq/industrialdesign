@@ -11,6 +11,8 @@
  * Every count is the number of sockets actually connected; nothing is padded.
  */
 
+import { type AgendaItem, type PointAction, DEFAULT_AGENDA, QUESTION_MIN_CHARS, cleanQuiz, leaderboard } from './engage';
+
 export type RoomMode = 'webinar' | 'meeting';
 export type Role = 'host' | 'cohost' | 'guest' | 'attendee';
 export type TrackKind = 'audio' | 'video' | 'screen' | 'screenaudio';
@@ -59,6 +61,39 @@ export interface MoqState {
   error: string | null;
 }
 
+/** Engagement (webinars): host pushes, knowledge checks, the agenda, the leaderboard, points and unlocks per person. */
+export type PushKind = 'application' | 'sprint' | 'deposit' | 'vip' | 'resource';
+export const PUSH_KINDS: PushKind[] = ['application', 'sprint', 'deposit', 'vip', 'resource'];
+export type PushEvent = 'shown' | 'opened' | 'started' | 'dismissed';
+export const PUSH_CLIENT_EVENTS: PushEvent[] = ['shown', 'opened', 'started', 'dismissed'];
+export interface Push { id: number; kind: PushKind; ref: string | null; to: string[] | null; at: number; open: boolean; by: string }
+export interface Quiz { id: number; question: string; options: string[]; correct: number; explain: string; answers: Record<string, number>; open: boolean; at: number }
+export interface EngageAvail { application: boolean; sprint: boolean; deposit: boolean; vip: boolean; resources: string[] }
+export interface EngageState {
+  avail: EngageAvail;
+  agenda: AgendaItem[];
+  /** The chapter the host marked (-1 = not started). */
+  chapter: number;
+  pushes: Push[];
+  pushSeq: number;
+  quizzes: Quiz[];
+  quizSeq: number;
+  /** The leaderboard is shown (host's switch; off by default); only people who opted in appear on it. */
+  board: boolean;
+  optIn: string[];
+  /** Points and unlocks per member, as confirmed by the database (the DO updates them after each award). */
+  pts: Record<string, number>;
+  unlocks: Record<string, string[]>;
+  /** Minutes each attendee has been connected while live (for the per-10-minute award). */
+  mins: Record<string, number>;
+}
+export interface PointAward { memberId: string; action: PointAction; key: string }
+export const newEngage = (o: Partial<Pick<EngageState, 'avail' | 'agenda' | 'board'>> = {}): EngageState => ({
+  avail: o.avail ?? { application: false, sprint: false, deposit: false, vip: false, resources: [] },
+  agenda: o.agenda ?? DEFAULT_AGENDA.map((a) => ({ ...a })), chapter: -1, pushes: [], pushSeq: 0, quizzes: [], quizSeq: 0,
+  board: o.board ?? false, optIn: [], pts: {}, unlocks: {}, mins: {},
+});
+
 export interface RoomState {
   v: 1;
   id: string;
@@ -83,6 +118,7 @@ export interface RoomState {
   peak: number;
   recording: boolean;
   moq?: MoqState;
+  eng?: EngageState;
 }
 
 export const MOQ_HEALTH_MS = 20_000;
@@ -99,6 +135,7 @@ export function newRoomState(o: { id: string; mode: RoomMode; title: string; sta
     chat: { locked: false, slowSec: 0, pinned: null, msgs: [], seq: 0 }, qa: [], qaSeq: 0, polls: [], pollSeq: 0,
     offer: { available: Boolean(o.offerAvailable), open: false, closesAt: null, label: null }, timer: null, peak: 0, recording: false,
     moq: newMoqState(),
+    eng: newEngage(),
   };
 }
 
@@ -253,11 +290,43 @@ export type Effect =
   | { type: 'close_tracks'; memberId: string; sessionId: string | null; mids: string[] }
   | { type: 'kick'; memberId: string }
   | { type: 'on_stage'; memberId: string }
-  | { type: 'recording'; on: boolean };
+  | { type: 'recording'; on: boolean }
+  | { type: 'award'; awards: PointAward[] }
+  | { type: 'pushed'; push: Push }
+  | { type: 'push_ev'; memberId: string; pushId: number; ev: PushEvent }
+  | { type: 'quiz_answer'; memberId: string; quizId: number; choice: number; correct: boolean; question: string }
+  | { type: 'end_unlocks'; memberIds: string[] };
 export interface ApplyResult { ok: boolean; error?: string; out: Out[]; effects: Effect[]; changed: boolean }
 
 const fail = (error: string): ApplyResult => ({ ok: false, error, out: [], effects: [], changed: false });
 const done = (o: Partial<ApplyResult> = {}): ApplyResult => ({ ok: true, out: [], effects: [], changed: true, ...o });
+
+export const engOf = (st: RoomState) => (st.eng ??= newEngage());
+/** The audience members connected now (who can earn points). */
+export const audienceMembers = (st: RoomState) => Object.values(st.members).filter((m) => m.connected > 0 && !isStaff(m));
+const awardAll = (st: RoomState, action: PointAction, key: string): Effect[] => {
+  if (st.mode !== 'webinar') return [];
+  const awards = audienceMembers(st).map((m) => ({ memberId: m.id, action, key }));
+  return awards.length ? [{ type: 'award', awards }] : [];
+};
+/** On time: everyone in the audience when the host goes live (later joiners within ON_TIME_MS are awarded on join). */
+export const onTimeAwards = (st: RoomState): PointAward[] => (st.mode === 'webinar' ? audienceMembers(st).map((m) => ({ memberId: m.id, action: 'on_time' as const, key: '1' })) : []);
+/** Whether a push is meant for this member (staff see every push but receive none). */
+export const pushFor = (p: Push, m: Pick<Member, 'id' | 'role'>) => !isStaff(m) && (!p.to || p.to.includes(m.id));
+/**
+ * Once a minute while live: each attendee's minutes, and a present_10 award at every ten minutes in the room.
+ * Returns the awards for the Durable Object to record.
+ */
+export function tickMinutes(st: RoomState): PointAward[] {
+  if (st.mode !== 'webinar' || st.status !== 'live') return [];
+  const e = engOf(st);
+  const out: PointAward[] = [];
+  for (const m of audienceMembers(st)) {
+    const n = (e.mins[m.id] = (e.mins[m.id] ?? 0) + 1);
+    if (n % 10 === 0) out.push({ memberId: m.id, action: 'present_10', key: String(n / 10) });
+  }
+  return out;
+}
 
 /** Every client message, with its permission rule. Mutates `st`. */
 export function apply(st: RoomState, actorId: string, raw: unknown, now: number): ApplyResult {
@@ -315,7 +384,9 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       if (st.qa.filter((q) => q.by === me.id && !q.answered).length >= LIMITS.openQuestionsPerPerson) return fail('too_many_questions');
       st.qa.push({ id: ++st.qaSeq, by: me.id, name: me.name, text, at: now, votes: [], answered: false });
       if (st.qa.length > LIMITS.qaKeep) st.qa.splice(0, st.qa.length - LIMITS.qaKeep);
-      return done();
+      // Points only for a real question (long enough); the per-action cap is enforced where the award is recorded.
+      const earn = st.mode === 'webinar' && !staff && text.length >= QUESTION_MIN_CHARS;
+      return done({ effects: earn ? [{ type: 'award', awards: [{ memberId: me.id, action: 'question', key: String(st.qaSeq) }] }] : [] });
     }
     case 'upvote': {
       const q = st.qa.find((x) => x.id === msg.qid);
@@ -355,7 +426,7 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       if (!Number.isInteger(c) || c < 0 || c >= p.options.length) return fail('bad_value');
       if (me.id in p.votes) return fail('already_voted');
       p.votes[me.id] = c;
-      return done();
+      return done({ effects: st.mode === 'webinar' && !staff ? [{ type: 'award', awards: [{ memberId: me.id, action: 'poll', key: String(p.id) }] }] : [] });
     }
     case 'poll_close': {
       if (!staff) return fail('forbidden');
@@ -440,15 +511,23 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       if (st.status === 'live') return done({ changed: false });
       if (st.status === 'ended') return fail('ended');
       st.status = 'live'; st.wentLiveAt ??= now;
+      // Everyone already waiting in the room is on time (the Durable Object awards onTimeAwards() on went_live).
       return done({ effects: [{ type: 'went_live' }] });
     }
     case 'end': {
       if (!host) return fail('forbidden');
       if (st.status === 'ended') return done({ changed: false });
+      // Staying to the end: the attendees connected when the host ends a live session.
+      const stayed = st.status === 'live' && st.mode === 'webinar' ? audienceMembers(st).map((m) => m.id) : [];
+      const reward = stayed.length ? awardAll(st, 'stayed_end', '1') : [];
       st.status = 'ended'; st.endedAt = now; st.timer = null;
       if (st.moq) st.moq.publishing = false;
       for (const p of st.polls) p.open = false;
-      return done({ out: [{ to: 'all', msg: { t: 'ended' } }], effects: [{ type: 'ended' }] });
+      const e = engOf(st);
+      for (const q of e.quizzes) q.open = false;
+      for (const p of e.pushes) if (p.kind !== 'deposit') p.open = false;
+      const end: Effect[] = stayed.length ? [{ type: 'end_unlocks', memberIds: stayed }] : [];
+      return done({ out: [{ to: 'all', msg: { t: 'ended' } }], effects: [...reward, ...end, { type: 'ended' }] });
     }
     case 'offer': {
       if (!staff) return fail('forbidden');
@@ -501,6 +580,97 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       else return fail('bad_value');
       return done({ changed: before !== `${me.media}${me.moqFail}` });
     }
+    // ── engagement (webinars) ──
+    case 'push': {
+      if (!staff) return fail('forbidden');
+      if (st.mode !== 'webinar' || st.status === 'ended') return fail('not_applicable');
+      const e = engOf(st);
+      const kind = msg.kind as PushKind;
+      if (!PUSH_KINDS.includes(kind) || !(kind === 'resource' ? e.avail.resources.length : e.avail[kind])) return fail('push_kind');
+      const ref = kind === 'resource' ? (typeof msg.ref === 'string' && e.avail.resources.includes(msg.ref) ? msg.ref : null) : null;
+      if (kind === 'resource' && !ref) return fail('push_kind');
+      if (kind === 'deposit' && !st.offer.open) return fail('offer_closed');
+      let to: string[] | null = null;
+      if (Array.isArray(msg.to)) {
+        to = [...new Set(msg.to.filter((x): x is string => typeof x === 'string'))].filter((id) => st.members[id] && !isStaff(st.members[id])).slice(0, 500);
+        if (!to.length) return fail('push_targets');
+      }
+      // One live card per kind (and resource): a new push of the same thing replaces the old one.
+      for (const p of e.pushes) if (p.open && p.kind === kind && p.ref === ref) p.open = false;
+      const push: Push = { id: ++e.pushSeq, kind, ref, to, at: now, open: true, by: me.id };
+      e.pushes.push(push);
+      if (e.pushes.length > 40) e.pushes.splice(0, e.pushes.length - 40);
+      return done({ effects: [{ type: 'pushed', push }] });
+    }
+    case 'push_close': {
+      if (!staff) return fail('forbidden');
+      const p = engOf(st).pushes.find((x) => x.id === msg.pid);
+      if (!p) return fail('not_found');
+      p.open = false;
+      return done();
+    }
+    case 'push_ev': {
+      const p = engOf(st).pushes.find((x) => x.id === msg.pid);
+      const ev = msg.ev as PushEvent;
+      if (!p || !pushFor(p, me)) return fail('not_targeted');
+      if (!PUSH_CLIENT_EVENTS.includes(ev)) return fail('bad_value');
+      return done({ changed: false, effects: [{ type: 'push_ev', memberId: me.id, pushId: p.id, ev }] });
+    }
+    case 'quiz_new': {
+      if (!staff) return fail('forbidden');
+      if (st.mode !== 'webinar' || st.status === 'ended') return fail('not_applicable');
+      const q = cleanQuiz(msg);
+      if (!q) return fail('quiz_incomplete');
+      const e = engOf(st);
+      for (const x of e.quizzes) x.open = false;
+      e.quizzes.push({ id: ++e.quizSeq, ...q, answers: {}, open: true, at: now });
+      if (e.quizzes.length > 20) e.quizzes.splice(0, e.quizzes.length - 20);
+      return done();
+    }
+    case 'quiz_answer': {
+      if (staff) return fail('not_applicable');
+      const q = engOf(st).quizzes.find((x) => x.id === msg.qid);
+      if (!q || !q.open) return fail('quiz_closed');
+      const c = num(msg.choice);
+      if (!Number.isInteger(c) || c < 0 || c >= q.options.length) return fail('bad_value');
+      if (me.id in q.answers) return fail('already_answered');
+      q.answers[me.id] = c;
+      const correct = c === q.correct;
+      const awards: PointAward[] = [{ memberId: me.id, action: 'quiz', key: String(q.id) }];
+      if (correct) awards.push({ memberId: me.id, action: 'quiz_correct', key: String(q.id) });
+      return done({
+        out: [{ to: me.id, msg: { t: 'quiz_result', qid: q.id, choice: c, correct, right: q.correct, explain: q.explain } }],
+        effects: [{ type: 'quiz_answer', memberId: me.id, quizId: q.id, choice: c, correct, question: q.question }, { type: 'award', awards }],
+      });
+    }
+    case 'quiz_close': {
+      if (!staff) return fail('forbidden');
+      const q = engOf(st).quizzes.find((x) => x.id === msg.qid);
+      if (!q) return fail('not_found');
+      q.open = false;
+      return done();
+    }
+    case 'chapter': {
+      if (!staff) return fail('forbidden');
+      const e = engOf(st);
+      const n = num(msg.n);
+      if (!Number.isInteger(n) || n < -1 || n >= e.agenda.length) return fail('bad_value');
+      e.chapter = n;
+      // Everyone in the room when a chapter starts has reached it (once per chapter, whatever the host clicks).
+      return done({ effects: n >= 0 && st.status === 'live' ? awardAll(st, 'chapter', String(n)) : [] });
+    }
+    case 'board': {
+      if (!staff) return fail('forbidden');
+      engOf(st).board = msg.on === true;
+      return done();
+    }
+    case 'board_opt': {
+      if (staff) return fail('not_applicable');
+      const e = engOf(st);
+      e.optIn = e.optIn.filter((x) => x !== me.id);
+      if (msg.on === true) e.optIn.push(me.id);
+      return done();
+    }
     case 'ping': return done({ changed: false, out: [{ to: me.id, msg: { t: 'pong', now } }] });
     default: return fail('unknown_message');
   }
@@ -545,9 +715,40 @@ export function view(st: RoomState, me: Member, now: number, o: { chat?: boolean
       .map((q) => ({ id: q.id, name: q.name, text: q.text, votes: q.votes.length, mine: q.by === me.id, voted: q.votes.includes(me.id), answered: q.answered })),
     poll: poll ? pollView(poll) : null,
     people: staff
-      ? Object.values(st.members).filter((m) => m.connected > 0).map((m) => ({ id: m.id, name: m.name, role: m.role, stage: m.stage || isStaff(m), hand: m.hand, invited: m.invited, audioOff: m.audioOff }))
+      ? Object.values(st.members).filter((m) => m.connected > 0).map((m) => ({ id: m.id, name: m.name, role: m.role, stage: m.stage || isStaff(m), hand: m.hand, invited: m.invited, audioOff: m.audioOff, pts: st.eng?.pts[m.id] ?? 0 }))
         .sort((a, b) => (b.hand ? 1 : 0) - (a.hand ? 1 : 0) || (a.hand ?? 0) - (b.hand ?? 0) || a.name.localeCompare(b.name))
       : null,
+    ...(st.mode === 'webinar' ? { eng: engageView(st, me) } : {}),
     ...(o.chat ? { chat: st.chat.msgs.slice(-100) } : {}),
+  };
+}
+
+/** What one person sees of the engagement: their points, unlocks and cards; staff see every push and the live counts. */
+export function engageView(st: RoomState, me: Member) {
+  const e = engOf(st);
+  const staff = isStaff(me);
+  const names: Record<string, string> = {};
+  if (e.board || staff) for (const m of Object.values(st.members)) names[m.id] = m.name;
+  const quiz = [...e.quizzes].reverse().find((q) => q.open || staff || me.id in q.answers) ?? null;
+  const quizView = (q: Quiz) => {
+    const mine = me.id in q.answers ? q.answers[me.id] : null;
+    const reveal = staff || mine !== null || !q.open;
+    const counts = q.options.map((_, i) => Object.values(q.answers).filter((v) => v === i).length);
+    return {
+      id: q.id, question: q.question, options: q.options, open: q.open, mine,
+      right: reveal ? q.correct : null, explain: reveal ? q.explain : null,
+      counts: staff || !q.open ? counts : null, total: Object.keys(q.answers).length,
+    };
+  };
+  return {
+    pts: e.pts[me.id] ?? 0,
+    unlocks: e.unlocks[me.id] ?? [],
+    agenda: { items: e.agenda, chapter: e.chapter },
+    pushes: staff
+      ? e.pushes.slice(-12).map((p) => ({ id: p.id, kind: p.kind, ref: p.ref, open: p.open, at: p.at, to: p.to ? p.to.length : null }))
+      : e.pushes.filter((p) => p.open && pushFor(p, me)).map((p) => ({ id: p.id, kind: p.kind, ref: p.ref, at: p.at })),
+    quiz: quiz ? quizView(quiz) : null,
+    board: { on: e.board, optedIn: e.optIn.includes(me.id), top: e.board || staff ? leaderboard(e.pts, names, e.optIn) : [] },
+    ...(staff ? { avail: e.avail } : {}),
   };
 }
