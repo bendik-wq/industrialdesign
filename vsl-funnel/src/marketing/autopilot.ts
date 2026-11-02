@@ -21,6 +21,8 @@ import { isMillionPlus } from '../sales/qualify';
 import { type Risk, logAction, proposeAction, registerActionHandler } from '../ops/actions';
 import { duplicateMetaAd, metaAdsConfigured, metaWriteConfigured, pauseMetaAd, setMetaDailyBudget, syncAdLevel } from '../integrations/meta-ads';
 import { newId } from '../lib/ids';
+import { currentMerGuard } from './mer';
+import { maybeDraftWinnerHooks } from './concepts';
 
 const DAY = 86_400_000;
 const ymd = (t: number) => new Date(t).toISOString().slice(0, 10);
@@ -248,7 +250,10 @@ export async function runAutopilot(rt: Runtime, now = Date.now()) {
   const t = adsTargets(rt.settings as unknown as Record<string, string>);
   const stats = await loadAdStats(rt, 14, now);
   const write = metaWriteConfigured(rt);
-  const out = { ads: stats.length, proposed: [] as string[], skipped: 0 };
+  // Blended MER floor (ADS_MER_FLOOR): under it, no scaling proposals (duplicates of winners, budget moved to them).
+  const guard = await currentMerGuard(rt, now).catch(() => null);
+  const hold = Boolean(guard?.holdScaling);
+  const out = { ads: stats.length, proposed: [] as string[], skipped: 0, held: hold ? guard!.reason : null as string | null };
   const active = (a: AdStat) => !a.status || /ACTIVE/i.test(a.status);
   const winners: AdStat[] = [], losers: AdStat[] = [];
 
@@ -256,6 +261,7 @@ export async function runAutopilot(rt: Runtime, now = Date.now()) {
     for (const v of verdicts(a, t)) {
       if (v.rule === 'winner') winners.push(a); else if (v.rule === 'loser') losers.push(a);
       if (!active(a)) continue;
+      if (v.rule === 'winner' && hold) { out.skipped++; continue; }
       const kind = v.rule === 'winner' ? 'marketing.duplicate_ad' : 'marketing.pause_ad';
       const key = `${v.rule}:${a.ad_id}`;
       if (await seen(rt, key, now)) { out.skipped++; continue; }
@@ -270,7 +276,11 @@ export async function runAutopilot(rt: Runtime, now = Date.now()) {
   }
 
   // Budget: from the ad set with the most loser spend to the ad set of the best winner (ad-set budgets only, not CBO).
-  if (winners.length && losers.length) {
+  if (hold && winners.length && !(await seen(rt, `mer_hold:${ymd(now)}`, now))) {
+    const id = await logAction(rt, { dept: 'marketing', kind: 'marketing.mer_hold', actor: 'auto', status: 'done', summary: 'Scaling held: blended MER is under the floor', detail: guard!.reason, payload: { floor: guard!.floor, mer: guard!.mer } });
+    await remember(rt, `mer_hold:${ymd(now)}`, 'mer_hold', 'account', id, guard!.reason, now);
+  }
+  if (!hold && winners.length && losers.length) {
     const { results: adsets } = await rt.env.DB.prepare("SELECT id, name, daily_budget, effective_status FROM ad_entities WHERE level = 'adset'").all<AdsetRow>();
     const sets = new Map(adsets.map((s) => [s.id, s]));
     const loserSpend = new Map<string, number>();
@@ -300,6 +310,9 @@ export async function runAutopilot(rt: Runtime, now = Date.now()) {
       }
     }
   }
+  // Concept testing: a concept that wins on our own results gets hook-only variant drafts (queued for approval).
+  const hooks = await maybeDraftWinnerHooks(rt, now).catch(() => null);
+  if (hooks?.actionId) out.proposed.push(hooks.actionId);
   return out;
 }
 

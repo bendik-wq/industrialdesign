@@ -1255,7 +1255,7 @@
       var maxQ = Math.min(1, Math.max.apply(null, rows.map(function (r) { return r.qualified_rate || 0; }).concat([0.0001])));
       view.innerHTML =
         '<div class="row" style="margin-bottom:12px"><label class="muted" for="dim">Break down by</label><select id="dim" class="input" data-dim>' + dims.map(function (x) { return '<option value="' + esc(x.key) + '"' + (x.key === dim ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('') + '</select><span class="spacer"></span><span class="muted">Leads are attributed to their last non-direct touch before applying.</span></div>' +
-        adSpendHtml(ads) +
+        '<div data-mer-tile></div>' + adSpendHtml(ads) +
         '<div class="card" style="margin-top:14px"><h2>Every source</h2><p class="sub">All traffic, paid and free, followed to qualified leads and cash.</p>' + table([
           { label: d.label, html: function (r) { return '<strong>' + esc(r.key) + '</strong>'; } },
           { label: 'Visitors', key: 'visitors', num: true, fmt: n },
@@ -1282,6 +1282,8 @@
         '<p class="muted" style="margin-top:10px">Tip: tag ads with <span class="mono">utm_source</span>, <span class="mono">utm_campaign</span>, <span class="mono">utm_content={{ad.name}}</span> and <span class="mono">ad_id={{ad.id}}</span> to see quality per ad.</p>';
       view.querySelector('[data-dim]').onchange = function (e) { state.dim = e.target.value; load(); };
       wireAdSpend(ads);
+      // Blended MER (admin-autopilot.js): revenue net of refunds ÷ ad spend, 7 and 30 days.
+      if (window.AdsAutopilot && window.AdsAutopilot.merTile) window.AdsAutopilot.merTile({ api: api, esc: esc, tile: tile, toast: toast }, view.querySelector('[data-mer-tile]'));
     });
   }
 
