@@ -740,6 +740,7 @@
     else if (S.tab === 'people') renderPeople();
     else if (S.tab === 'push') renderPush();
     else if (S.tab === 'host') renderHost();
+    hook('panel', S.tab); // add-ons draw into the built-in panels (engage2: the hot list and the bonus in the Push tab)
     $$('input:not([type="checkbox"]), textarea', p).forEach(function (e) {
       var k = key(e);
       if (saved[k] != null) e.value = saved[k];

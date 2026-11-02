@@ -9,6 +9,7 @@ import {
   ASSETS, ENGAGE_COPY, PLAN_KEYS, type PlanData, type PointAction, type PointRules, ROOM_QUESTION_TITLES, type UnlockRule,
   assetById, cleanPlan, coverage, earnedAt, nextUnlock, parseAgenda, parseRules, parseUnlocks, planSteps, summaryEmail,
 } from './engage';
+import './engage2-db'; // engage2: registers the hot-list follow-up proposal's handler (Command)
 
 /**
  * Engagement in the database (migration 0055). The room's Durable Object and the room's HTTP calls write here;
@@ -394,6 +395,8 @@ export async function onRoomPurchase(rt: Runtime, pass: { id: string; kind: stri
   const db = rt.env.DB;
   const now = pass.paid_at ?? Date.now();
   const kind = pass.kind === 'offer' ? 'sprint' : 'deposit';
+  // Engage2: bought while a room's live-only bonus was live: the bonus is recorded on the purchase (and its file unlocked).
+  await (await import('./engage2-db')).grantLiveBonus(rt, pass, now).catch((e) => console.error('room live bonus', String(e).slice(0, 200)));
   // Area C: a buyer who ticked the announcement box in a live room is announced there (first name and city, once).
   await (await import('./audience-db')).announcePurchase(rt, pass, now).catch((e) => console.error('room proof', String(e).slice(0, 200)));
   // The push this purchase came from: the room's Sprint names its room; a deposit is matched to the buyer's latest push in the last two days.
@@ -555,13 +558,16 @@ export async function leadEngagement(rt: Pick<Runtime, 'env'>, leadId: string) {
   ]);
   let data: PlanData | null = null;
   try { data = plan ? cleanPlan(JSON.parse(plan.data)) : null; } catch { data = null; }
-  return { points: pts?.n ?? 0, rooms: pts?.rooms ?? 0, applied: Boolean(applied), plan: data, planRoom: plan?.room_id ?? null };
+  const score = await (await import('./engage2-db')).leadScore(rt, leadId).catch(() => null); // engage2
+  return { points: pts?.n ?? 0, rooms: pts?.rooms ?? 0, applied: Boolean(applied), plan: data, planRoom: plan?.room_id ?? null, score: score ? { score: score.score, best: score.best, why: score.why } : null };
 }
 /** One line for the AI call's facts (empty when the person did nothing in a room). */
 export async function callNote(rt: Pick<Runtime, 'env'>, leadId: string) {
   const e = await leadEngagement(rt, leadId).catch(() => null);
-  if (!e || (!e.points && !e.plan)) return '';
+  if (!e || (!e.points && !e.plan && !e.score)) return '';
   const parts = [`- In the live room they earned ${e.points} Deal momentum points${e.applied ? ' and sent the application' : ''}.`];
+  // Engage2: the engagement score (0 to 100) and its reasons, for context only; never read the number out.
+  if (e.score) parts.push(`- Their engagement score in the live room was ${e.score.score} of 100${e.score.why.length ? ` (${e.score.why.join('; ')})` : ''}. Use it as context only; never mention a score to them.`);
   if (e.plan) {
     const box = [e.plan.industry, e.plan.size, e.plan.geography].filter(Boolean).join(', ');
     if (box) parts.push(`- Their Deal Plan buy box: ${box}. Refer to it if it helps; never read out their numbers unless they bring them up.`);
@@ -630,6 +636,8 @@ export async function processRoomSummaries(rt: Runtime, now = Date.now()) {
     const claim = await rt.env.DB.prepare('UPDATE rooms SET summary_at = ? WHERE id = ? AND summary_at IS NULL').bind(now, r.id).run();
     if (!(claim.meta.changes ?? 0)) continue;
     sent += (await sendRoomSummaries(rt, r.id, now)).sent;
+    // Engage2: the hottest attendees who didn't buy, as one Command proposal (approval required; nothing is sent).
+    await (await import('./engage2-db')).proposeHotFollowup(rt, r.id, now).catch((e) => console.error('room hot follow-up', String(e).slice(0, 200)));
   }
   return { rooms: results.length, sent };
 }

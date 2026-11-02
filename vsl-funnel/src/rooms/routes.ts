@@ -8,6 +8,7 @@ import { newId } from '../lib/ids';
 import { ROOM_COPY, ROOM_GATE, meetingInvite } from './copy';
 import { AUDIENCE_COPY, audienceConfig } from './audience';
 import { INTEL_COPY } from './intel';
+import { E2_COPY } from './engage2'; // engage2: the hot list and the live-only bonus
 import { SfuError, mintIceServers, realtimeSetup } from './sfu';
 import { SFU_OPS } from './proxy';
 import { audienceThreshold, broadcastMode, moqSetup, parseMode } from './moq';
@@ -124,6 +125,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
     studio: studioPageConfig(room, who, flag((rt.settings as unknown as Record<string, string | undefined>).ROOM_STUDIO, true)),
     // Area C (audience): reactions, captions, the co-host, personal offer moments, view settings.
     audience: room.mode === 'webinar' ? audienceCfg(rt, who) : null,
+    // Engage2 (room-engage2.js): the hot list, the live-only bonus and the tab beacons; the copy only.
+    engage2: room.mode === 'webinar' ? { copy: E2_COPY } : null,
   };
   // Copy functions become their plain templates for room.js (it fills {n}/{a}/{b}); everything else is data.
   const json = JSON.stringify(cfg, (_k, v) => (typeof v === 'function' ? fnTemplate(v) : v)).replace(/</g, '\\u003c');
@@ -159,6 +162,7 @@ ${cfg.studio ? '<link rel="stylesheet" href="/assets/room-studio.css">\n<script 
 ${room.mode === 'webinar' ? '<link rel="stylesheet" href="/assets/room-audience.css">\n<script defer src="/assets/room-audience.js"></script>' : ''}
 <script defer src="/assets/room-intel.js"></script>
 ${room.mode === 'webinar' ? '<script defer src="/assets/room-pay.js"></script>' : ''}
+${room.mode === 'webinar' ? '<link rel="stylesheet" href="/assets/room-engage2.css">\n<script defer src="/assets/room-engage2.js"></script>' : ''}
 </head>
 <body class="rm-body">
 <script type="application/json" id="room-config">${json}</script>
