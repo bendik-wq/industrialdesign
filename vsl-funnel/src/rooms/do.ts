@@ -11,6 +11,7 @@ import { type StudioDefaults, canLoadSlide, configureStudio } from './studio'; /
 import { AudienceHub } from './audience-do'; // area C: reactions, captions, the co-host, announcements, nudges
 import { MediaReports, heldIds, holdOnClose, isHeld, resume as resumeMedia, staffView, wantsQuality } from './media';
 import { boundRoomState, cleanupAt, keepDays } from './hygiene'; // reliability: bounded state, ended-room clean-up
+import { Engage2Hub } from './engage2-do'; // engage2: engagement score, hot list, live-only bonus
 
 /**
  * One Durable Object per room: signalling and state over WebSockets with hibernation (the object sleeps between
@@ -39,9 +40,12 @@ export class RoomDO {
 
   /** Area C (audience): reactions, captions, the AI co-host, purchase announcements, the checkout nudge. */
   private aud: AudienceHub;
+  /** Engage2: the engagement score, the host's hot list, the live-only bonus. */
+  private e2: Engage2Hub;
 
   constructor(private ctx: DurableObjectState, private env: Env) {
     this.aud = this.newHub();
+    this.e2 = this.newE2();
     void ctx.blockConcurrencyWhile(async () => {
       this.st = (await ctx.storage.get<RoomState>('st')) ?? null;
       this.meta = (await ctx.storage.get<Meta>('meta')) ?? null;
@@ -54,6 +58,10 @@ export class RoomDO {
       st: () => this.st, deliver: (to, msg) => this.deliver(to, msg), runtime: () => this.runtime(), storage: ctx.storage,
       waitUntil: (p) => ctx.waitUntil(p.catch((e) => console.error('room audience', e))), commit: async (now) => { await this.save(); this.broadcast(now); },
     });
+  }
+
+  private newE2() {
+    return new Engage2Hub({ st: () => this.st, deliver: (to, msg) => this.deliver(to, msg), runtime: () => this.runtime(), storage: this.ctx.storage, commit: async (now) => { await this.save(); this.broadcast(now); } });
   }
 
   private async runtime(): Promise<Runtime> {
@@ -122,6 +130,7 @@ export class RoomDO {
       await this.save();
       server.send(JSON.stringify(view(st, r.member, now, { chat: true })));
       await this.aud.onJoin(r.member, now).catch(() => null);
+      await this.e2.onJoin(r.member, now).catch(() => null); // engage2: the bonus, the hot list
       // media: whether the room kept their media session through the reconnect, who else is reconnecting, and for staff everyone's connection.
       server.send(JSON.stringify({ t: 'resumed', sessionId: resumed?.sessionId ?? null, held: Boolean(resumed) }));
       if (resumed) this.deliver('all', { t: 'mhold', ids: heldIds(st, now) });
@@ -243,6 +252,15 @@ export class RoomDO {
     try { msg = JSON.parse(data); } catch { return; }
     const now = Date.now();
     if (now - this.alarmCheckedAt > ALARM_MS) await this.ensureMinuteAlarm(now).catch(() => null); // self-heal a lost alarm
+    // engage2: counts reactions and price questions (never changes the message); owns e2_* messages.
+    if (msg && typeof msg === 'object') await this.e2.observe(a.id, msg as Record<string, unknown>, now).catch(() => null);
+    if (Engage2Hub.handles((msg as { t?: unknown })?.t)) {
+      const err = await this.e2.onMessage(a.id, msg as Record<string, unknown>, now).catch(() => 'unavailable');
+      if (err) { this.send(ws, JSON.stringify({ t: 'error', error: err, for: (msg as { t?: unknown }).t })); return; }
+      const next = this.e2.takePending(); // a hot-list push runs as the room's own push to that person
+      if (!next) return;
+      msg = next;
+    }
     if (AudienceHub.handles((msg as { t?: unknown })?.t)) {
       const err = await this.aud.onMessage(a.id, msg as Record<string, unknown>, now);
       if (err) this.send(ws, JSON.stringify({ t: 'error', error: err, for: (msg as { t?: unknown }).t }));
@@ -288,6 +306,7 @@ export class RoomDO {
         await markRoom(rt, st.id, 'ended', {}, now).catch((x) => console.error('room end', x));
         const { closePushes } = await import('./engage-db');
         await closePushes(rt, st.id, 'all_but_deposit', now).catch(() => null);
+        await this.e2.onEnded(now).catch((x) => console.error('room engage2 end', x)); // engage2: final scores, the bonus
         return;
       }
       case 'award':
@@ -331,6 +350,7 @@ export class RoomDO {
         if (!r.ok) { this.deliver('all', { t: 'notice', staffOnly: true, text: r.error }); return; }
         st.offer = await roomOffer(rt, row, now);
         if (st.offer.open) await this.feed(Object.values(st.members).filter((m) => m.connected > 0), now, true);
+        await this.e2.onOffer(now).catch(() => null); // engage2: an offer-mode bonus follows the real window
         return;
       }
       case 'close_tracks':
@@ -515,6 +535,7 @@ export class RoomDO {
     // The host's broadcast went quiet without a goodbye: viewers go back to the SFU.
     if (this.sentLive && !broadcastLive(st, now)) this.broadcast(now);
     await this.aud.tick(now).catch((e) => console.error('room audience tick', e));
+    await this.e2.tick(now).catch((e) => console.error('room engage2 tick', e));
   }
 
   /**
@@ -546,7 +567,7 @@ export class RoomDO {
     const roomId = this.st?.id ?? this.meta?.id ?? null;
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
-    this.st = null; this.meta = null; this.mediaReports = null; this.roomRow = null; this.aud = this.newHub();
+    this.st = null; this.meta = null; this.mediaReports = null; this.roomRow = null; this.aud = this.newHub(); this.e2 = this.newE2();
     if (roomId) await this.env.DB.prepare('INSERT INTO room_do_gc (room_id, cleaned_at, detail) VALUES (?, ?, ?) ON CONFLICT(room_id) DO NOTHING').bind(roomId, now, fromSweep ? 'sweep' : 'alarm').run().catch(() => null);
     return { cleared: true, reason: fromSweep ? 'sweep' : 'alarm' };
   }
