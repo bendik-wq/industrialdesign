@@ -508,3 +508,18 @@ All five recordings stay on your day page for you as a VIP: {day_url}
 If you've submitted your deal plan, my team's review covers it alongside your other worksheets. If you haven't yet, submit it this weekend so the review can include it.
 
 Josh
+
+## Homework reminder (optional)
+
+[SEND: Off unless the owner turns it on in Funnel HQ, Challenge. One per day, only to people who attended that day live and have not sent its worksheet. At least 4 hours after the session, inside sending hours in their own time zone, at least 2 hours before the worksheet is due.]
+
+Subject: Your Day {n} worksheet is still open
+Preheader: Finish it before Day {next} starts.
+
+{name},
+
+You were on Day {n} live: {day_title}. Your worksheet for it isn't in yet.
+
+It takes about ten minutes, and Day {next} builds on it. Your answers stay private to you and my team.
+
+Josh
