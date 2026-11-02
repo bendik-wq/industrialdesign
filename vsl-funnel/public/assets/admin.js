@@ -3435,6 +3435,8 @@
       box.innerHTML = '<p class="loading-note">Loading the pre-call flow…</p>';
       view.insertBefore(box, view.firstChild);
       loadPrecallFlow(box);
+      // Deliverability: DNS health, bounce/complaint trend, per-sequence table (public/assets/admin-deliv.js).
+      if (window.DeliverabilityBoard && state.tab === 'emails') window.DeliverabilityBoard.section({ view: view, api: api });
     });
   }
   function loadPrecallFlow(box) {

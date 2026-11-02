@@ -40,7 +40,7 @@ export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
   // Final cuts (Oct 2026), streamed as HLS (1080p + 540p, 4-second segments) from public/assets/media/hls.
   // Chapter times come from the transcripts; CTA reveals at 60% (main) and the spoken call to action (part 2).
   // The button under the main VSL stays locked until 60% of the video (3:45 of 6:16), then unlocks.
-  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 225, lockCta: true, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/main/index.m3u8', defaultPoster: '/assets/media/main-poster.jpg',
+  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 225, lockCta: true, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/main/index.m3u8', defaultPoster: '/assets/media/main-poster.webp',
     chapters: [
       { at: 0, title: 'the hook: doubling or tripling the business by buying a competitor' },
       { at: 20, title: 'Josh’s background and his two 100% seller-financed acquisitions' },
@@ -56,7 +56,7 @@ export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
       { at: 320, title: 'the cost of waiting' },
       { at: 344, title: 'the next step and the 7-day guarantee' },
     ] },
-  breakout: { id: 'vsl-breakout', srcSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 340, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/breakout/index.m3u8', defaultPoster: '/assets/media/breakout-poster.jpg',
+  breakout: { id: 'vsl-breakout', srcSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 340, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/breakout/index.m3u8', defaultPoster: '/assets/media/breakout-poster.webp',
     chapters: [
       { at: 0, title: 'what part two covers' },
       { at: 28, title: 'the target: a competitor making $500k profit' },
@@ -70,7 +70,7 @@ export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
       { at: 312, title: 'where deals go wrong' },
       { at: 345, title: 'booking the call and the 7-day guarantee' },
     ] },
-  precall: { id: 'vsl-precall', srcSetting: 'VSL_PRECALL_SRC', fallbackSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 0, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/precall/index.m3u8', defaultPoster: '/assets/media/precall-poster.jpg',
+  precall: { id: 'vsl-precall', srcSetting: 'VSL_PRECALL_SRC', fallbackSetting: 'VSL_BREAKOUT_SRC', posterSetting: 'VSL_BREAKOUT_POSTER', ctaRevealAt: 0, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/precall/index.m3u8', defaultPoster: '/assets/media/precall-poster.webp',
     chapters: [
       { at: 0, title: 'welcome' },
       { at: 16, title: 'what the call is' },

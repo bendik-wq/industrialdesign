@@ -1,3 +1,18 @@
+// FAQ video posters load only as the FAQ section comes near the screen (they used to download with the page
+// and compete with the VSL poster, the largest thing above the fold). Opening a question also sets it.
+(function () {
+  var vids = document.querySelectorAll('video[data-poster]');
+  if (!vids.length) return;
+  function set(v) { if (v && v.getAttribute('data-poster')) { v.poster = v.getAttribute('data-poster'); v.removeAttribute('data-poster'); } }
+  function inside(el) { var list = el.querySelectorAll('video[data-poster]'); for (var i = 0; i < list.length; i++) set(list[i]); }
+  document.addEventListener('toggle', function (e) { if (e.target && e.target.querySelectorAll) inside(e.target); }, true);
+  if (!('IntersectionObserver' in window)) { for (var i = 0; i < vids.length; i++) set(vids[i]); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { if (en.isIntersecting) { inside(en.target); io.unobserve(en.target); } });
+  }, { rootMargin: '800px 0px' });
+  for (var j = 0; j < vids.length; j++) io.observe(vids[j].closest('details') || vids[j]);
+})();
+
 /* VSL player.
  * - Muted autoplay with a "click to listen" overlay that restarts from 0 with sound
  * - No scrubbing; progress bar runs fast early so the video feels short
