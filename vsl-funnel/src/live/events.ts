@@ -1,6 +1,7 @@
 import type { Runtime } from '../app';
 import type { VisitorCtx } from '../lib/identity';
 import { newId, newRefCode } from '../lib/ids';
+import { isPaidSale, paidSaleOn } from '../lib/paid-sales';
 import { type Lead, cleanName, getLead, getLeadByEmail, linkVisitor, normalisePhone, updateLead, validateEmail } from '../funnel/leads';
 import { ApplicationError, attributionFor, verifyTurnstile } from '../funnel/application';
 import { formatCallTime, zonedTime } from '../integrations/email';
@@ -747,8 +748,8 @@ export async function listEvents(rt: Runtime) {
        (SELECT COUNT(*) FROM live_webinar_regs r WHERE r.event_id = e.id AND r.joined_at IS NOT NULL) AS attended,
        (SELECT peak_viewers FROM webinar_live_peaks k WHERE k.session_id = e.id) AS peak,
        (SELECT m.id FROM rooms m WHERE m.ref_type = 'live' AND m.ref_id = e.id) AS room_id,
-       (SELECT COUNT(*) FROM webinar_passes p WHERE p.kind = 'deposit' AND p.source = 'live' AND p.ref_id = e.id AND p.status = 'paid') AS deposits,
-       (SELECT COALESCE(SUM(p.amount - p.refunded_amount), 0) FROM webinar_passes p WHERE p.source = 'live' AND p.ref_id = e.id AND p.status IN ('paid', 'refunded') AND p.kind IN ('deposit', 'live_ticket')) AS revenue
+       (SELECT COUNT(*) FROM webinar_passes p WHERE p.kind = 'deposit' AND p.source = 'live' AND p.ref_id = e.id AND ${paidSaleOn('p')}) AS deposits,
+       (SELECT COALESCE(SUM(p.amount - p.refunded_amount), 0) FROM webinar_passes p WHERE p.source = 'live' AND p.ref_id = e.id AND ${paidSaleOn('p')} AND p.kind IN ('deposit', 'live_ticket')) AS revenue
      FROM live_webinars e ORDER BY e.starts_at DESC LIMIT 100`,
   ).all<LiveEvent & Record<string, number>>();
   const s = liveSettings(rt);
@@ -772,9 +773,10 @@ export async function eventReport(rt: Runtime, id: string) {
   ]);
   const rs = regs.results as (LiveReg & { first_name: string | null; last_name: string | null; email: string | null; phone: string | null })[];
   const ps = passes.results as { id: string; lead_id: string; kind: string; status: string; amount: number; currency: string; ticket_credit: number; refunded_amount: number; one_click: number; paid_at: number | null }[];
-  const paidDeposits = ps.filter((p) => p.kind === 'deposit' && p.status === 'paid');
+  // Sales use the shared definition (src/lib/paid-sales.ts): a refunded deposit still counts as a sale; the refund shows in the revenue.
+  const paidDeposits = ps.filter((p) => p.kind === 'deposit' && isPaidSale(p.status));
   const cur = (ps[0]?.currency ?? s.currency).toUpperCase();
-  const revenue = ps.filter((p) => p.status === 'paid' || p.status === 'refunded').reduce((a, p) => a + p.amount - p.refunded_amount, 0);
+  const revenue = ps.filter((p) => isPaidSale(p.status)).reduce((a, p) => a + p.amount - p.refunded_amount, 0);
   const w = offerWindow(ev, now, s.offerHours);
   const attended = rs.filter((r) => r.joined_at).length;
   const name = (r: { first_name: string | null; last_name: string | null; email: string | null }) => [r.first_name, r.last_name].filter(Boolean).join(' ') || r.email || 'Someone';
@@ -788,7 +790,7 @@ export async function eventReport(rt: Runtime, id: string) {
     event: { ...ev, when: formatCallTime(ev.starts_at, ev.tz), stage: liveStage(ev, now, s.offerHours), consoleUrl: hostConsoleUrl(rt, ev.id), streamKey: streamKey(ev.id), landing: `${liveBase(rt)}/live` },
     offer: { ...w, openedAt: ev.offer_opened_at, closedAt: ev.offer_closed_at, hours: ev.offer_hours ?? s.offerHours, timerOn: Boolean(ev.timer_on), pinned: ev.pinned },
     report: {
-      registered: rs.length, ticketsPaid: ps.filter((p) => p.kind === 'live_ticket' && p.status === 'paid').length, attended, showRate: rs.length ? attended / rs.length : null,
+      registered: rs.length, ticketsPaid: ps.filter((p) => p.kind === 'live_ticket' && isPaidSale(p.status)).length, attended, showRate: rs.length ? attended / rs.length : null,
       peak: (peak.results[0] as { peak_viewers?: number } | undefined)?.peak_viewers ?? 0, inRoomNow: (presence.results[0] as { n?: number } | undefined)?.n ?? 0,
       offerSeen: rs.filter((r) => r.offer_seen_at).length, offerClicked: rs.filter((r) => r.offer_clicked_at).length,
       deposits: paidDeposits.length, revenue: formatMoney(fromMinor(revenue, cur), cur), revenueMinor: revenue, currency: cur,
@@ -798,7 +800,7 @@ export async function eventReport(rt: Runtime, id: string) {
       const bought = ps.find((p) => p.lead_id === r.lead_id && p.kind === 'deposit' && p.status === 'paid');
       return { id: r.id, lead_id: r.lead_id, name: name(r), email: r.email, band: REVENUE_LABEL[r.revenue_band ?? ''] ?? r.revenue_band, qualified: isMillionPlus(r.revenue_band), registered: r.created_at, joined: r.joined_at, zoom: r.zoom_clicked_at, offerSeen: r.offer_seen_at, offerClicked: r.offer_clicked_at, replay: r.replay_at, deposit: bought ? bought.paid_at : null, ticket: r.ticket_required ? ps.some((p) => p.lead_id === r.lead_id && p.kind === 'live_ticket' && p.status === 'paid') : null, texts: Boolean(r.sms_ok) };
     }),
-    buyers: paidDeposits.map((p) => { const r = rs.find((x) => x.lead_id === p.lead_id); return { lead_id: p.lead_id, name: r ? name(r) : p.lead_id, band: r ? REVENUE_LABEL[r.revenue_band ?? ''] ?? r.revenue_band : null, paid: formatMoney(fromMinor(p.amount, p.currency), p.currency.toUpperCase()), credit: formatMoney(fromMinor(p.amount + p.ticket_credit, p.currency), p.currency.toUpperCase()), oneClick: Boolean(p.one_click), at: p.paid_at }; }),
+    buyers: paidDeposits.map((p) => { const r = rs.find((x) => x.lead_id === p.lead_id); return { lead_id: p.lead_id, name: r ? name(r) : p.lead_id, band: r ? REVENUE_LABEL[r.revenue_band ?? ''] ?? r.revenue_band : null, paid: formatMoney(fromMinor(p.amount, p.currency), p.currency.toUpperCase()), refunded: p.status === 'refunded' || p.refunded_amount > 0, credit: formatMoney(fromMinor(p.amount + p.ticket_credit, p.currency), p.currency.toUpperCase()), oneClick: Boolean(p.one_click), at: p.paid_at }; }),
     polls: pollRows,
   };
 }
@@ -811,8 +813,8 @@ export async function liveLadder(rt: Runtime, range: { from: number; to: number 
        FROM live_webinar_regs r JOIN live_webinars e ON e.id = r.event_id WHERE e.starts_at BETWEEN ? AND ?`,
   ).bind(range.from, range.to).first<Record<string, number | null>>();
   const p = await db.prepare(
-    `SELECT SUM(p.kind = 'live_ticket' AND p.status = 'paid') AS tickets, SUM(p.kind = 'deposit' AND p.status = 'paid') AS deposits,
-            COALESCE(SUM(CASE WHEN p.status IN ('paid', 'refunded') THEN p.amount - p.refunded_amount ELSE 0 END), 0) AS revenue, MAX(p.currency) AS currency,
+    `SELECT SUM(p.kind = 'live_ticket' AND ${paidSaleOn('p')}) AS tickets, SUM(p.kind = 'deposit' AND ${paidSaleOn('p')}) AS deposits,
+            COALESCE(SUM(CASE WHEN ${paidSaleOn('p')} THEN p.amount - p.refunded_amount ELSE 0 END), 0) AS revenue, MAX(p.currency) AS currency,
             COUNT(DISTINCT CASE WHEN p.kind = 'deposit' AND p.status = 'paid' AND EXISTS (SELECT 1 FROM contracts k WHERE k.lead_id = p.lead_id AND k.status = 'signed' AND COALESCE(k.is_test, 0) = 0) THEN p.lead_id END) AS signed
        FROM webinar_passes p JOIN live_webinars e ON e.id = p.ref_id WHERE p.source = 'live' AND e.starts_at BETWEEN ? AND ?`,
   ).bind(range.from, range.to).first<Record<string, number | string | null>>();

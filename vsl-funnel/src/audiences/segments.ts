@@ -57,6 +57,11 @@ export async function segmentIds(rt: Pick<Runtime, 'env' | 'settings'>, seg: Seg
     case 'no_show': return { ids: await ids(db, "SELECT id AS lead_id FROM leads WHERE status = 'no_show'") };
     case 'all_buyers': return { ids: await ids(db, ALL_BUYERS_SQL) };
     case 'clients': return { ids: await ids(db, CLIENTS_SQL) };
+    case 'signal': {
+      // Deep-funnel signals (src/tracking/signals.ts): everyone recorded for the signal, minus buyers when asked.
+      const base = 'SELECT lead_id FROM meta_signals WHERE signal = ?';
+      return { ids: await ids(db, seg.noPurchase ? `SELECT lead_id FROM (${base}) WHERE lead_id NOT IN (${ALL_BUYERS_SQL})` : base, seg.signal) };
+    }
     case 'buyers_value': {
       const { results } = await db.prepare(
         `SELECT lead_id, SUM(v) AS v FROM (

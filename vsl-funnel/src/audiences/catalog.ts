@@ -24,7 +24,8 @@ export type Segment =
   | { type: 'no_show' }
   | { type: 'all_buyers' }
   | { type: 'clients' }
-  | { type: 'buyers_value' };
+  | { type: 'buyers_value' }
+  | { type: 'signal'; signal: string; noPurchase?: boolean };
 
 export interface Filter { field: string; operator: string; value: string | number | string[] }
 export interface PlanItem {
@@ -42,6 +43,16 @@ export interface PlanItem {
   exclusion?: boolean;
 }
 
+/** The deep-funnel signals' Meta custom events (the same names as src/tracking/signals.ts SIGNALS; a test keeps them in step). */
+export const SIGNAL_PLAN = [
+  { id: 'watched_30m', meta: 'Watched30Min', label: 'Watched 30+ minutes', description: 'Watched at least 30 minutes of one session.' },
+  { id: 'stayed_for_pitch', meta: 'StayedForPitch', label: 'Stayed for the pitch', description: 'Was in the session when the offer opened.' },
+  { id: 'offer_opened', meta: 'OfferCardOpened', label: 'Opened an offer card', description: 'Opened the Sprint, deposit or VIP offer.' },
+  { id: 'checkout_started', meta: 'OfferCheckoutStarted', label: 'Started offer checkout', description: 'Started checkout for the deposit, the Sprint or VIP.' },
+  { id: 'application_submitted', meta: 'RoomApplicationSubmitted', label: 'Applied in the room', description: 'Sent the application inside a live room.' },
+  { id: 'contract_signed', meta: 'EngagementSigned', label: 'Signed the engagement', description: 'Signed the advisory engagement (offline conversion, value = the contract fee).' },
+] as const;
+
 const eq = (field: string, value: string): Filter => ({ field, operator: '=', value });
 const PREFIX = 'G&L';
 const WEB_FUNNELS: Funnel[] = ['auto', 'live', 'challenge'];
@@ -55,6 +66,7 @@ function conversions(): PlanItem[] {
   for (const t of TIERS) out.push({ key: `conv_booked_tier_${t.toLowerCase()}`, kind: 'conversion', group: 'Booked calls', name: `${PREFIX} Booked call, tier ${t}`, description: `Schedule with tier = ${t}.`, event: 'Schedule', filters: [eq('tier', t)], customEventType: 'SCHEDULE' });
   for (const f of WEB_FUNNELS) out.push({ key: `conv_reg_${f}`, kind: 'conversion', group: 'Registrations', name: `${PREFIX} Registration, ${FUNNEL_SHORT[f].toLowerCase()}`, description: `CompleteRegistration with funnel = ${f}.`, event: 'CompleteRegistration', filters: [eq('funnel', f)], customEventType: 'COMPLETE_REGISTRATION' });
   for (const p of PURCHASE_PRODUCTS) out.push({ key: `conv_buy_${p}`, kind: 'conversion', group: 'Purchases', name: `${PREFIX} ${PRODUCTS[p].content_name}`, description: `Purchase with product_id = ${p}.`, event: 'Purchase', filters: [eq('product_id', p)], customEventType: 'PURCHASE' });
+  for (const g of SIGNAL_PLAN) out.push({ key: `conv_signal_${g.id}`, kind: 'conversion', group: 'Deep-funnel signals', name: `${PREFIX} Signal: ${g.label}`, description: `${g.meta} (custom event, once per person per session). ${g.description}`, event: g.meta, customEventType: 'OTHER' });
   for (const f of ['live', 'challenge'] as const) out.push({ key: `conv_buy_deposit_${f}`, kind: 'conversion', group: 'Purchases', name: `${PREFIX} Engagement deposit, ${FUNNEL_SHORT[f].toLowerCase()}`, description: `Purchase with product_id = engagement_deposit and funnel = ${f}.`, event: 'Purchase', filters: [eq('product_id', 'engagement_deposit'), eq('funnel', f)], customEventType: 'PURCHASE' });
   return out;
 }
@@ -71,6 +83,11 @@ function segments(slots: { funnel: Funnel; slot: string }[]): Seg[] {
   for (const f of ['auto', 'live'] as const) s.push({ id: `watched50_${f}`, group: 'Attended', label: `Watched 50%+, ${FUNNEL_SHORT[f].toLowerCase()}`, description: `Watched at least half of the ${FUNNEL_LABEL[f].toLowerCase()}.`, segment: { type: 'watched_50', funnel: f }, event: 'WebinarWatched50', filters: [eq('funnel', f)] });
   for (const f of WEB_FUNNELS) s.push({ id: `offer_nobuy_${f}`, group: 'Warm, not bought', label: `Saw the offer, didn’t buy, ${FUNNEL_SHORT[f].toLowerCase()}`, description: `Saw the ${FUNNEL_LABEL[f].toLowerCase()} offer and bought nothing since.`, segment: { type: 'offer_seen_no_purchase', funnel: f }, event: 'WebinarOfferSeen', filters: [eq('funnel', f)], exclude: { event: 'Purchase' } });
   s.push({ id: 'checkout_nobuy', group: 'Warm, not bought', label: 'Started checkout, didn’t buy', description: 'Opened a checkout (ticket, Sprint, deposit or VIP) and bought nothing since.', segment: { type: 'checkout_no_purchase' }, event: 'InitiateCheckout', exclude: { event: 'Purchase' } });
+  // Deep-funnel signals (src/tracking/signals.ts): warm audiences that exclude buyers, and signed clients for exclusion.
+  for (const g of SIGNAL_PLAN) {
+    if (g.id === 'contract_signed') s.push({ id: 'sig_signed', group: 'Exclusions', label: 'Signed the engagement (signal)', description: 'Signed the engagement after a webinar, live webinar or challenge. Exclude from acquisition campaigns.', segment: { type: 'signal', signal: g.id }, event: g.meta, exclusion: true });
+    else s.push({ id: `sig_${g.id}_nobuy`, group: 'Deep-funnel signals', label: `${g.label}, didn’t buy`, description: `${g.description} Bought nothing since.`, segment: { type: 'signal', signal: g.id, noPurchase: true }, event: g.meta, exclude: { event: 'Purchase' } });
+  }
   for (const p of PURCHASE_PRODUCTS) s.push({ id: `buyer_${p}`, group: 'Buyers', label: `Bought: ${PRODUCTS[p].content_name}`, description: `Paid for the ${PRODUCTS[p].content_name.toLowerCase()} (refunds left out of the list).`, segment: { type: 'buyer', product: p }, event: 'Purchase', filters: [eq('product_id', p)] });
   for (const t of TIERS) s.push({ id: `booked_tier_${t.toLowerCase()}`, group: 'Booked calls', label: `Booked a call, tier ${t}`, description: `Booked a strategy call with an application scored ${t}.`, segment: { type: 'booked', tier: t }, event: 'Schedule', filters: [eq('tier', t)] });
   s.push({ id: 'no_show', group: 'Booked calls', label: 'Missed their call', description: 'Marked no-show on a booked call.', segment: { type: 'no_show' }, event: 'CallNoShow' });
@@ -123,6 +140,7 @@ export const RECOMMENDATIONS = [
   { campaign: 'Live webinar registration campaigns', optimise: 'Registration, live webinar', then: 'Engagement deposit, live webinar once it reaches about 50 a week (rare at this price, so stay on registrations)' },
   { campaign: 'Challenge ticket campaigns', optimise: 'First Deal Challenge ticket', then: 'Keep it; Challenge VIP has too few purchases to optimise on alone' },
   { campaign: 'VSL and application campaigns', optimise: 'Booked call, tier A (or Schedule if tier A is under 50 a week)', then: 'Value optimisation on Schedule once the predicted booking value is switched on and there are enough bookings' },
+  { campaign: 'Live webinar, challenge and masterclass campaigns (deep funnel)', optimise: 'Signal: Stayed for the pitch, or Signal: Watched 30+ minutes, when registrations are plentiful but buyers are few', then: 'Signal: Started offer checkout once it reaches about 50 a week; the engagement deposit or Sprint after that' },
   { campaign: 'Retargeting', optimise: 'The purchase that follows: Sprint for masterclass attendees, deposit for live and challenge attendees', then: 'Target the warm audiences (offer seen, checkout started) and exclude All buyers and Clients' },
 ];
 export const LEARNING_NOTE = 'Meta’s delivery leaves the learning phase after about 50 optimisation events per ad set in a week. Below that, optimise on the higher-volume event (registration, Schedule or a ticket) and use the specific custom conversions for reporting and retargeting until volume allows. Lookalikes need at least 100 matched people from one country in the source audience; value-based lookalikes work best from a few hundred buyers.';

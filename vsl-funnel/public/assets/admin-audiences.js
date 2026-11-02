@@ -57,6 +57,20 @@
             '<td class="num" data-l="Value"><b>' + esc(t.currency) + ' ' + n(t.value) + '</b></td><td class="wide" data-l="Based on">' + esc(t.basis) + '</td></tr>';
         }).join('') + '</tbody></table></div>';
 
+      // Deep-funnel signals (src/tracking/signals.ts): what was sent in the last 30 days and the value each carries.
+      var sg = d.signals;
+      var signals = !sg ? '' : '<div class="card mau-card"><h2>Deep-funnel signals <span class="mau-est">Values are estimates</span></h2>' +
+        '<p class="sub">Custom events sent to Meta once per person per session, for the live rooms, the automated webinar and the challenge. ' +
+        (sg.on ? 'Sending is on (setting Send deep-funnel signals to Meta).' : 'Sending is off: switch on Send deep-funnel signals to Meta under Integrations, Ads.') + ' ' +
+        (sg.valuesOn ? 'Estimated values are sent with the room signals.' : 'No value is sent with the room signals: switch on Send estimated values with deep-funnel signals to send the estimates below.') +
+        ' A signed engagement always carries its real contract fee.</p>' +
+        '<table class="mau-t"><thead><tr><th>Signal</th><th>Meta event</th><th class="num">Sent, 30 days</th><th class="num">Value</th><th>Based on</th></tr></thead><tbody>' +
+        sg.signals.map(function (x) {
+          var v = x.value && x.value.value != null ? esc(x.value.currency) + ' ' + n(x.value.value) : x.id === 'contract_signed' ? 'Contract fee' : 'None';
+          return '<tr><td data-l="Signal">' + esc(x.label) + '</td><td data-l="Meta event"><code>' + esc(x.meta) + '</code></td><td class="num" data-l="Sent">' + n(x.sent) + (x.noConsent ? ' <span class="sub">(' + n(x.noConsent) + ' kept first-party, no consent)</span>' : '') + '</td>' +
+            '<td class="num" data-l="Value">' + v + '</td><td class="wide" data-l="Based on">' + esc(x.value ? x.value.basis : '') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+
       var rec = '<div class="card mau-card"><h2>Which conversion each campaign should optimise on</h2><p class="sub">' + esc(d.learningNote) + '</p><ul class="mau-rec">' +
         d.recommendations.map(function (r) { return '<li><b>' + esc(r.campaign) + '</b>: ' + esc(r.optimise) + '<span>Then: ' + esc(r.then) + '</span></li>'; }).join('') + '</ul></div>';
 
@@ -83,7 +97,7 @@
         '<div class="mau-filter">' + kinds.map(function (k) { return '<button data-mau-f="' + k[0] + '" aria-pressed="' + (filter === k[0]) + '">' + esc(k[1]) + '</button>'; }).join('') + '</div>' +
         '<div class="table-wrap"><table class="mau-t"><thead><tr><th>Name</th><th>Type</th><th class="num">Our data</th><th>Status</th><th class="num">Size in Meta</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
 
-      view.innerHTML = head + steps + rec + value + table;
+      view.innerHTML = head + steps + rec + value + signals + table;
 
       var create = view.querySelector('[data-mau-create]');
       if (create) create.addEventListener('click', function () {

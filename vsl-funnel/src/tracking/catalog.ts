@@ -100,6 +100,13 @@ export const META_EVENTS: Partial<Record<string, string>> = {
   attr_room_purchase: 'WebinarRoomPurchase', // src/rooms: a Sprint or deposit bought from a card pushed in a live room (once per registration)
   attr_watched_50: 'WebinarWatched50', // src/audiences: once per registration, from the room's watch data
   attr_checkout_started: 'InitiateCheckout', // src/audiences: once per registration that opened a checkout
+  // Deep-funnel signals (src/tracking/signals.ts): custom events, once per person per session.
+  signal_watched_30m: 'Watched30Min',
+  signal_stayed_for_pitch: 'StayedForPitch',
+  signal_offer_opened: 'OfferCardOpened',
+  signal_checkout_started: 'OfferCheckoutStarted',
+  signal_application_submitted: 'RoomApplicationSubmitted',
+  signal_contract_signed: 'EngagementSigned', // offline conversion (system_generated); value = the contract fee
   app_submitted: 'SubmitApplication',
   lead_qualified: 'QualifiedLead',
   booking_scheduled: 'Schedule',

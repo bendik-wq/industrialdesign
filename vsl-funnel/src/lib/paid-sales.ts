@@ -16,6 +16,8 @@ import { fromMinor } from '../webinar/pass';
 export const PAID_SALE = "status IN ('paid', 'refunded')";
 /** The same condition on an aliased table (p.status ...). */
 export const paidSaleOn = (alias: string) => `${alias}.${PAID_SALE}`;
+/** The same rule for a row already in memory. */
+export const isPaidSale = (status: string | null | undefined) => status === 'paid' || status === 'refunded';
 
 export interface SaleQuery {
   table: 'webinar_passes' | 'challenge_orders';

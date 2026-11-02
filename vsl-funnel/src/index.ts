@@ -72,6 +72,7 @@ import { RoomDO as RoomDOBase } from './rooms/do';
 import { buildId, versionAssets } from './infra/build';
 import { normalisePath, purgeErrors, recordError } from './infra/errors';
 import { runJobs } from './infra/cron';
+import { sendSignals } from './tracking/signals';
 
 /**
  * The room Durable Object, with its uncaught errors written to the error log (kind "room") before they surface as
@@ -422,6 +423,7 @@ export default {
       { name: 'room summary emails', run: () => processRoomSummaries(rt) },
       { name: 'room transcripts and debriefs', run: () => processIntel(rt) },
       { name: 'Meta audiences (approved only)', run: () => maybeSyncAudiences(rt) },
+      { name: 'Meta deep-funnel signals', run: () => sendSignals(rt) },
       { name: 'error log retention', run: () => purgeErrors(rt) },
     ]);
     type R<F extends (...a: never[]) => unknown> = Awaited<ReturnType<F>> | null;

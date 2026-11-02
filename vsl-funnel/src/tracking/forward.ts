@@ -78,6 +78,9 @@ export function conversionValue(name: string, props: Record<string, unknown>, le
   if (name === 'booking_scheduled') return ECONOMICS.programPrice * 0.15;
   if (name === 'webinar_offer_purchased' || name === 'webinar_seat_purchased' || name === 'engagement_deposit_purchased' || name === 'live_ticket_purchased' || name === 'challenge_ticket_paid' || name === 'challenge_vip_paid') return Number(props.value) > 0 ? Number(props.value) : undefined;
   if (name === 'revenue_band' || name === 'qualified_1m_plus' || name === 'qualified_any_1m_plus' || name === 'qualified_10m_plus') return bandValue(props.band) || undefined;
+  // Deep-funnel signals (src/tracking/signals.ts) carry a value only when one was attached: the contract fee, or an
+  // estimate when META_SIGNAL_VALUES is on.
+  if (name.startsWith('signal_')) return Number(props.value) > 0 ? Number(props.value) : undefined;
   if (name === 'lead_status_changed' && props.to === 'showed') return ECONOMICS.programPrice * 0.3;
   if (name === 'lead_status_changed' && props.to === 'won') {
     const revenue = Number(props.revenue ?? lead?.revenue ?? 0);
@@ -287,6 +290,11 @@ async function toMeta(rt: Runtime, who: TrackIdentity, ev: ForwardedEvent, lead:
   // Variant params (content_name/category/ids, product_id, funnel, tier, revenue_band, session_slot, edition,
   // source_platform) so Meta can optimise on, and build audiences from, each booking, registration and purchase type.
   Object.assign(custom_data, await enrichEvent(rt, ev.name, ev.props, lead));
+  if (ev.name.startsWith('signal_')) {
+    // Signal params: which signal, which offer (deposit | sprint | vip), the challenge day; estimates are flagged.
+    for (const k of ['signal', 'product', 'day'] as const) if (ev.props[k] != null) custom_data[k === 'product' ? 'offer' : k] = ev.props[k];
+    if (custom_data.value !== undefined && ev.props.estimate === true) custom_data.predicted_value = true;
+  }
   if (eventName === 'Schedule') {
     // A booked call's value is an estimate (src/audiences/enrich.ts), sent only when the owner switches it on.
     delete custom_data.value;
