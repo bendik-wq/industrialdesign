@@ -707,7 +707,9 @@
       var q = L.scoreQuality({ rtt: sm.rtt, loss: sm.loss, jitter: sm.jitter, availOut: sm.availOut, availIn: sm.availIn, publishing: publishing });
       M.sample = sm; M.q = q;
       // Tiers follow what this person receives: a weak upload lowers what others get from them, not what they get.
-      var qDown = L.scoreQuality({ rtt: sm.rtt, loss: sm.loss, jitter: sm.jitter, availIn: sm.availIn });
+      // availableIncomingBitrate only grows while video flows, so it can't drive tiers (it would spiral down to
+      // audio only and stay there): tiers follow real loss, delay and jitter.
+      var qDown = L.scoreQuality({ rtt: sm.rtt, loss: sm.loss, jitter: sm.jitter });
       var g = M.gov.feed(qDown.level, Date.now());
       if (g.changed) { M.tier = g.tier; R.syncPulls(); }
       if (g.notice) toast(MC[g.notice]);

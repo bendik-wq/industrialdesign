@@ -1,3 +1,4 @@
+import { DEFAULT_AUTO_PUSH, parseAutoPush } from './state';
 import { type Context, Hono } from 'hono';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { isAdmin, requireAdmin } from '../admin/auth';
@@ -43,7 +44,9 @@ export function roomMeta(rt: Pick<Runtime, 'origin' | 'settings'>, room: RoomRow
   // How the audience receives the stage (webinars): the room's override, else ROOM_BROADCAST; MoQ only when its tokens are set.
   const moq = { mode: broadcastMode(s, room.broadcast), ready: moqSetup(s).ready, minAudience: audienceThreshold(s) };
   const es = roomEngageSettings(room);
-  const engage = room.mode === 'webinar' ? { avail: engageAvail(rt as Runtime, room), agenda: es.agenda, board: es.board } : undefined;
+  // Automatic pushes: the room's own schedule, else ROOM_AUTO_PUSH (default: the application at 35 minutes, the Sprint at 45).
+  const auto = parseAutoPush(es.autoPushRaw.trim() ? es.autoPushRaw : (s.ROOM_AUTO_PUSH ?? DEFAULT_AUTO_PUSH));
+  const engage = room.mode === 'webinar' ? { avail: engageAvail(rt as Runtime, room), agenda: es.agenda, board: es.board, auto } : undefined;
   // Studio (builder B): the per-room defaults, and whether it's on (ROOM_STUDIO, default on).
   const studio = room.mode === 'webinar' ? studioMeta(parseStudioSettings(room.studio), flag(s.ROOM_STUDIO, true), pickHostName(rt.settings as never, null)) : undefined;
   return { id: room.id, mode: room.mode, title: room.title, startsAt: room.starts_at, offerAvailable: room.ref_type === 'live' || day === 4 || day === 5, origin: rt.origin, moq, engage, studio };
@@ -632,7 +635,7 @@ roomsAdmin.get('/:id/engage', async (c) => {
   if (c.env.ROOMS && room.mode === 'webinar') {
     questions = await stub(c, room.id).fetch(new Request('https://room/engage/report', { headers: headersFor(rt, room, { id: 'hq', name: 'HQ', role: 'host' }) })).then((r) => r.json() as Promise<{ questions: typeof questions }>).then((d) => d.questions ?? []).catch(() => []);
   }
-  return c.json({ ok: true, ...(await engageReport(rt, room, questions)), agendaText: roomEngageSettings(room).agendaRaw || agendaText(parseAgenda('')) });
+  return c.json({ ok: true, ...(await engageReport(rt, room, questions)), agendaText: roomEngageSettings(room).agendaRaw || agendaText(parseAgenda('')), autoPushText: roomEngageSettings(room).autoPushRaw, autoPushDefault: (rt.settings as unknown as Record<string, string | undefined>).ROOM_AUTO_PUSH ?? DEFAULT_AUTO_PUSH });
 });
 roomsAdmin.get('/:id/engage/person/:who', async (c) => {
   const rt = runtimeFrom(c);
@@ -648,10 +651,11 @@ roomsAdmin.post('/:id/engage', async (c) => {
   const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
   const agenda = typeof b.agenda === 'string' ? b.agenda.slice(0, 4000) : roomEngageSettings(room).agendaRaw;
   const board = b.board === true;
+  const autoPush = typeof b.autoPush === 'string' ? b.autoPush.slice(0, 2000) : roomEngageSettings(room).autoPushRaw;
   let prev: Record<string, unknown> = {};
   try { prev = JSON.parse(room.engage ?? '{}') ?? {}; } catch { prev = {}; }
-  await rt.env.DB.prepare('UPDATE rooms SET engage = ?, updated_at = ? WHERE id = ?').bind(JSON.stringify({ ...prev, agenda, board }), Date.now(), room.id).run();
-  return c.json({ ok: true, agenda: parseAgenda(agenda), board });
+  await rt.env.DB.prepare('UPDATE rooms SET engage = ?, updated_at = ? WHERE id = ?').bind(JSON.stringify({ ...prev, agenda, board, autoPush }), Date.now(), room.id).run();
+  return c.json({ ok: true, agenda: parseAgenda(agenda), board, autoPush: parseAutoPush(autoPush.trim() ? autoPush : ((rt.settings as unknown as Record<string, string | undefined>).ROOM_AUTO_PUSH ?? DEFAULT_AUTO_PUSH)) });
 });
 /** Sends the summary emails now (each person once; the cron does it 10 minutes after the end otherwise). */
 roomsAdmin.post('/:id/summaries', async (c) => {

@@ -93,8 +93,34 @@ export interface EngageState {
   unlocks: Record<string, string[]>;
   /** Minutes each attendee has been connected while live (for the per-10-minute award). */
   mins: Record<string, number>;
+  /** Automatic pushes for this room and what happened to each in this session. */
+  auto?: AutoPush[];
+  autoDone?: AutoPushDone[];
 }
 export interface PointAward { memberId: string; action: PointAction; key: string }
+
+/**
+ * Automatic pushes: cards the room sends on its own at a set minute after Go live (Funnel HQ → Rooms, or the
+ * ROOM_AUTO_PUSH default). One line per push: "35 application", "45 sprint", "20 resource scripts". The host
+ * can skip one or send it early from the Push tab; a fired or skipped line never fires again in that session.
+ */
+export interface AutoPush { id: string; at: number; kind: PushKind; ref: string | null }
+export interface AutoPushDone { id: string; how: 'auto' | 'host' | 'skipped' | 'unavailable'; at: number }
+export const DEFAULT_AUTO_PUSH = '35 application\n45 sprint';
+export function parseAutoPush(text: string | null | undefined): AutoPush[] {
+  const raw = String(text ?? '').trim();
+  if (!raw || /^(off|none|no|false|0)$/i.test(raw)) return [];
+  const out: AutoPush[] = [];
+  for (const line of raw.split(/[\n;,]+/)) {
+    const m = /^\s*(\d{1,3})\s*(?:min(?:ute)?s?)?\s*[:\-]?\s*(application|sprint|deposit|vip|resource)\b\s*([a-z0-9_-]+)?\s*$/i.exec(line);
+    if (!m) continue;
+    const at = Math.min(600, Number(m[1])), kind = m[2].toLowerCase() as PushKind, ref = kind === 'resource' ? (m[3] ?? '').toLowerCase() || null : null;
+    if (kind === 'resource' && !ref) continue;
+    const id = `${at}:${kind}${ref ? ':' + ref : ''}`;
+    if (!out.some((x) => x.id === id)) out.push({ id, at, kind, ref });
+  }
+  return out.sort((a, b) => a.at - b.at).slice(0, 20);
+}
 export const newEngage = (o: Partial<Pick<EngageState, 'avail' | 'agenda' | 'board'>> = {}): EngageState => ({
   avail: o.avail ?? { application: false, sprint: false, deposit: false, vip: false, resources: [] },
   agenda: o.agenda ?? DEFAULT_AGENDA.map((a) => ({ ...a })), chapter: -1, pushes: [], pushSeq: 0, quizzes: [], quizSeq: 0,
@@ -313,6 +339,44 @@ export interface ApplyResult { ok: boolean; error?: string; out: Out[]; effects:
 
 const fail = (error: string): ApplyResult => ({ ok: false, error, out: [], effects: [], changed: false });
 const done = (o: Partial<ApplyResult> = {}): ApplyResult => ({ ok: true, out: [], effects: [], changed: true, ...o });
+
+/** One push card (the host's Push tab and the automatic schedule share it). One live card per kind and resource. */
+function makePush(st: RoomState, kind: PushKind, refIn: string | null, to: string[] | null, by: string, now: number): { push: Push } | { error: string } {
+  const e = engOf(st);
+  if (!PUSH_KINDS.includes(kind) || !(kind === 'resource' ? e.avail.resources.length : e.avail[kind])) return { error: 'push_kind' };
+  const ref = kind === 'resource' ? (refIn && e.avail.resources.includes(refIn) ? refIn : null) : null;
+  if (kind === 'resource' && !ref) return { error: 'push_kind' };
+  if (kind === 'deposit' && !st.offer.open) return { error: 'offer_closed' };
+  for (const p of e.pushes) if (p.open && p.kind === kind && p.ref === ref) p.open = false;
+  const push: Push = { id: ++e.pushSeq, kind, ref, to, at: now, open: true, by };
+  e.pushes.push(push);
+  if (e.pushes.length > 40) e.pushes.splice(0, e.pushes.length - 40);
+  return { push };
+}
+
+/**
+ * The automatic pushes that are due (called by the room's minute alarm while live). Each line fires once per
+ * session; a line that can't be pushed (the deposit while the offer is closed, a resource that isn't offered)
+ * is recorded as unavailable rather than retried forever, except the deposit, which waits for the offer to open.
+ */
+export function autoPushDue(st: RoomState, now: number): { changed: boolean; effects: Effect[] } {
+  const e = st.eng;
+  if (!e || st.mode !== 'webinar' || st.status !== 'live' || !st.wentLiveAt || !e.auto?.length) return { changed: false, effects: [] };
+  const doneIds = new Set((e.autoDone ?? []).map((d) => d.id));
+  const effects: Effect[] = [];
+  let changed = false;
+  for (const item of e.auto) {
+    if (doneIds.has(item.id) || now < st.wentLiveAt + item.at * 60_000) continue;
+    const r = makePush(st, item.kind, item.ref, null, 'auto', now);
+    if ('error' in r) {
+      if (r.error === 'offer_closed') continue; // the deposit goes out once the host opens the offer
+      (e.autoDone ??= []).push({ id: item.id, how: 'unavailable', at: now }); changed = true; continue;
+    }
+    (e.autoDone ??= []).push({ id: item.id, how: 'auto', at: now });
+    effects.push({ type: 'pushed', push: r.push }); changed = true;
+  }
+  return { changed, effects };
+}
 
 export const engOf = (st: RoomState) => (st.eng ??= newEngage());
 /** The audience members connected now (who can earn points). */
@@ -599,23 +663,27 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
     case 'push': {
       if (!staff) return fail('forbidden');
       if (st.mode !== 'webinar' || st.status === 'ended') return fail('not_applicable');
-      const e = engOf(st);
       const kind = msg.kind as PushKind;
-      if (!PUSH_KINDS.includes(kind) || !(kind === 'resource' ? e.avail.resources.length : e.avail[kind])) return fail('push_kind');
-      const ref = kind === 'resource' ? (typeof msg.ref === 'string' && e.avail.resources.includes(msg.ref) ? msg.ref : null) : null;
-      if (kind === 'resource' && !ref) return fail('push_kind');
-      if (kind === 'deposit' && !st.offer.open) return fail('offer_closed');
       let to: string[] | null = null;
       if (Array.isArray(msg.to)) {
         to = [...new Set(msg.to.filter((x): x is string => typeof x === 'string'))].filter((id) => st.members[id] && !isStaff(st.members[id])).slice(0, 500);
         if (!to.length) return fail('push_targets');
       }
-      // One live card per kind (and resource): a new push of the same thing replaces the old one.
-      for (const p of e.pushes) if (p.open && p.kind === kind && p.ref === ref) p.open = false;
-      const push: Push = { id: ++e.pushSeq, kind, ref, to, at: now, open: true, by: me.id };
-      e.pushes.push(push);
-      if (e.pushes.length > 40) e.pushes.splice(0, e.pushes.length - 40);
-      return done({ effects: [{ type: 'pushed', push }] });
+      const r = makePush(st, kind, typeof msg.ref === 'string' ? msg.ref : null, to, me.id, now);
+      return 'error' in r ? fail(r.error) : done({ effects: [{ type: 'pushed', push: r.push }] });
+    }
+    // Automatic pushes: the host skips one, or sends it now instead of at its minute.
+    case 'autopush_skip': case 'autopush_now': {
+      if (!staff) return fail('forbidden');
+      const e = engOf(st), item = (e.auto ?? []).find((x) => x.id === msg.id);
+      if (!item) return fail('not_found');
+      if ((e.autoDone ?? []).some((d) => d.id === item.id)) return fail('autopush_done');
+      if (msg.t === 'autopush_skip') { (e.autoDone ??= []).push({ id: item.id, how: 'skipped', at: now }); return done(); }
+      if (st.status !== 'live') return fail('autopush_not_live');
+      const r = makePush(st, item.kind, item.ref, null, me.id, now);
+      if ('error' in r) return fail(r.error);
+      (e.autoDone ??= []).push({ id: item.id, how: 'host', at: now });
+      return done({ effects: [{ type: 'pushed', push: r.push }] });
     }
     case 'push_close': {
       if (!staff) return fail('forbidden');
@@ -768,6 +836,6 @@ export function engageView(st: RoomState, me: Member) {
       : e.pushes.filter((p) => p.open && pushFor(p, me)).map((p) => ({ id: p.id, kind: p.kind, ref: p.ref, at: p.at })),
     quiz: quiz ? quizView(quiz) : null,
     board: { on: e.board, optedIn: e.optIn.includes(me.id), top: e.board || staff ? leaderboard(e.pts, names, e.optIn) : [] },
-    ...(staff ? { avail: e.avail } : {}),
+    ...(staff ? { avail: e.avail, auto: (e.auto ?? []).map((x) => ({ ...x, done: (e.autoDone ?? []).find((d) => d.id === x.id) ?? null })) } : {}),
   };
 }

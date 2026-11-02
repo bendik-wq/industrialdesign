@@ -298,3 +298,8 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   .rm-agenda-tease { display: none; }
 }
 @media (max-width: 899px) { .rm-toast { bottom: auto; top: 64px; transform: translate(-50%, -12px); } .rm-toast.is-on { transform: translate(-50%, 0); } }
+
+/* Automatic pushes (host Push tab) */
+.rm-auto{list-style:none;margin:8px 0 0;padding:0}
+.rm-auto li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--rm-line,rgba(0,0,0,.08))}
+.rm-auto li .rm-row{margin:0;flex:none}

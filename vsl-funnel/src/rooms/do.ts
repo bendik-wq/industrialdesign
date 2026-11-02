@@ -1,7 +1,7 @@
 import type { Env } from '../env';
 import type { Runtime } from '../app';
 import { loadSettings } from '../settings';
-import { type Effect, type EngageAvail, type Identity, type Member, type MoqState, type PointAward, type RoomMode, type RoomState, apply, audienceMembers, onTimeAwards, broadcastLive, broadcastView, canSeeStage, configureMoq, connectedCount, engOf, isStaff, join, leave, mediaPath, newEngage, newMoqState, newRoomState, prune, pushFor, shouldPublishMoq, tickMinutes, view } from './state';
+import { type Effect, type EngageAvail, type Identity, type Member, type MoqState, type PointAward, type RoomMode, type RoomState, apply, audienceMembers, onTimeAwards, broadcastLive, broadcastView, canSeeStage, configureMoq, connectedCount, engOf, isStaff, join, leave, mediaPath, newEngage, newMoqState, newRoomState, prune, pushFor, shouldPublishMoq, tickMinutes, view, autoPushDue, type AutoPush } from './state';
 import { type AgendaItem, ENGAGE_COPY, ON_TIME_MS, assetById } from './engage';
 import { broadcastName, connectUrl, relayUrl } from './moq';
 import { getSecret } from '../lib/secret';
@@ -22,7 +22,7 @@ const ALARM_MS = 60_000;
 interface Meta {
   id: string; mode: RoomMode; title: string; startsAt: number | null; offerAvailable: boolean; origin: string; moq?: { mode: MoqState['mode']; ready: boolean; minAudience: number };
   /** Engagement (webinars): what the host can push here, the agenda, whether the leaderboard starts on. */
-  engage?: { avail: EngageAvail; agenda: AgendaItem[]; board: boolean };
+  engage?: { avail: EngageAvail; agenda: AgendaItem[]; board: boolean; auto?: AutoPush[] };
   /** Studio (builder B): Funnel HQ's per-room defaults and whether the studio is on. */
   studio?: StudioDefaults;
 }
@@ -77,6 +77,7 @@ export class RoomDO {
       this.st.eng ??= newEngage({ board: meta.engage.board });
       this.st.eng.avail = meta.engage.avail;
       this.st.eng.agenda = meta.engage.agenda;
+      this.st.eng.auto = meta.engage.auto ?? [];
       if (this.st.eng.chapter >= this.st.eng.agenda.length) this.st.eng.chapter = this.st.eng.agenda.length - 1;
     }
     if (meta.studio) configureStudio(this.st, meta.studio); // studio defaults (builder B)
@@ -461,6 +462,10 @@ export class RoomDO {
       if (this.st.mode === 'webinar' && this.st.status === 'live') {
         const ticks = tickMinutes(this.st);
         if (ticks.length) await this.award(ticks, now);
+        // Automatic pushes that are due (the room's schedule, minutes after Go live).
+        const due = autoPushDue(this.st, now);
+        for (const e of due.effects) await this.effect(e, now);
+        if (due.changed) { await this.save(); this.broadcast(now); }
         if (this.st.wentLiveAt) {
           const { recordMinute } = await import('./engage-db');
           await recordMinute(rt, this.st.id, Math.floor((now - this.st.wentLiveAt) / 60_000), audienceMembers(this.st).length).catch(() => null);

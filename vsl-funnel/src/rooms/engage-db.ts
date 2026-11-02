@@ -28,9 +28,9 @@ export function engageConfig(rt: Pick<Runtime, 'settings'>) {
 }
 /** The room's own engagement settings (Funnel HQ → Rooms): the agenda and whether the leaderboard starts on. */
 export function roomEngageSettings(room: Pick<RoomRow, 'engage'> | null | undefined) {
-  let o: { agenda?: string; board?: boolean } = {};
+  let o: { agenda?: string; board?: boolean; autoPush?: string } = {};
   try { o = JSON.parse(room?.engage ?? '{}') ?? {}; } catch { o = {}; }
-  return { agenda: parseAgenda(o.agenda), agendaRaw: typeof o.agenda === 'string' ? o.agenda : '', board: o.board === true };
+  return { agenda: parseAgenda(o.agenda), agendaRaw: typeof o.agenda === 'string' ? o.agenda : '', board: o.board === true, autoPushRaw: typeof o.autoPush === 'string' ? o.autoPush : '' };
 }
 
 const funnelOf = (room: Pick<RoomRow, 'ref_type'>) => (room.ref_type === 'live' ? 'live' as const : room.ref_type === 'challenge' ? 'challenge' as const : null);

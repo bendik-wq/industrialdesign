@@ -170,6 +170,7 @@
       '<div class="rmb-g2"><div><h3>Top questions</h3>' + qs + '</div><div><h3>Knowledge checks</h3>' + quiz + '<h3 style="margin-top:12px">Applications (tier is team-only)</h3>' + apps + '</div></div>' +
       '<div><h3>People</h3>' + people + '<div data-rmb-tl></div></div>' +
       '<div class="rmb-g2"><div><h3>Agenda for this room</h3><p class="muted" style="font-size:12px">One chapter per line: Title | teaser shown as “Next up”. Blank lines are ignored; an empty box uses the default agenda.</p><textarea data-rmb-agenda>' + esc(d.agendaText || '') + '</textarea>' +
+        '<h3 style="margin-top:12px">Automatic pushes</h3><p class="muted" style="font-size:12px">One per line, minutes after Go live: <code>35 application</code>, <code>45 sprint</code>, <code>40 deposit</code> (sent once the offer is open), <code>20 resource scripts</code>. Empty uses the default (' + esc((d.autoPushDefault || '').replace(/\n/g, ', ')) + '); <code>off</code> turns them off. The host can skip one or push it early from the Push tab.</p><textarea data-rmb-auto rows="4" placeholder="' + esc(d.autoPushDefault || '') + '">' + esc(d.autoPushText || '') + '</textarea>' +
         '<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:8px 0"><input type="checkbox" data-rmb-board' + (d.settings && d.settings.board ? ' checked' : '') + '> Leaderboard starts on (first names of people who opt in, never emails; the host can hide it)</label><button class="btn-sm" data-rmb-save>Save</button></div>' +
         '<div><h3>Rules (Settings → Live)</h3><p class="muted" style="font-size:12px">' + rules + '</p><p class="muted" style="font-size:12px">Unlocks: ' + unlocks + '</p><h3 style="margin-top:12px">Summary emails</h3><p class="muted" style="font-size:12px">Each attendee gets their points, unlocks, Deal Plan, application status and the offer’s real close time if they didn’t buy, 10 minutes after the session ends (once each, never to the unsubscribed).</p><button class="btn-sm ghost" data-rmb-sum>Send the summaries now</button></div></div>' +
       '</div>';
@@ -185,7 +186,7 @@
       };
     });
     el.querySelector('[data-rmb-save]').onclick = function () {
-      req('POST', 'rooms/' + id + '/engage', { agenda: el.querySelector('[data-rmb-agenda]').value, board: el.querySelector('[data-rmb-board]').checked }).then(function (d) { ctx.toast(d.ok ? 'Saved: the room picks it up on the next join' : (d.error || 'Not saved')); });
+      req('POST', 'rooms/' + id + '/engage', { agenda: el.querySelector('[data-rmb-agenda]').value, board: el.querySelector('[data-rmb-board]').checked, autoPush: el.querySelector('[data-rmb-auto]').value }).then(function (d) { ctx.toast(d.ok ? 'Saved: the room picks it up on the next join' : (d.error || 'Not saved')); });
     };
     el.querySelector('[data-rmb-sum]').onclick = function () {
       var b = this; b.disabled = true;

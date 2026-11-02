@@ -403,7 +403,7 @@
   function syncPulls() {
     return serial(function () {
       var pc = S.pc; if (!pc || !S.sessionId) return;
-      var want = wanted(), add = [], drop = [], relayer = [];
+      var want = wanted(), add = [], drop = [], relayer = [], pullFailed = false;
       Object.keys(want).forEach(function (k) {
         if (S.pulls[k] && S.pulls[k].sessionId !== want[k].sessionId) { drop.push(k); add.push(want[k]); return; } // they reconnected with a new media session
         if (!S.pulls[k]) add.push(want[k]); else if (want[k].rid && S.pulls[k].rid !== want[k].rid) relayer.push(want[k]);
@@ -432,7 +432,9 @@
             }
             return neg.then(function () {
               (r.tracks || []).forEach(function (t) {
-                if (t.errorCode) return;
+                // The publisher's track isn't live at the SFU yet (they just went live or rebuilt their session):
+                // ask again shortly instead of waiting for the next room change, which may never come.
+                if (t.errorCode) { pullFailed = true; return; }
                 var w = batch.filter(function (x) { return x.trackName === t.trackName; })[0]; if (!w) return;
                 var tr = pc.getTransceivers().filter(function (x) { return x.mid === t.mid; })[0];
                 S.pulls[w.trackName] = { mid: t.mid, track: tr ? tr.receiver.track : null, owner: w.owner, kind: w.kind, rid: w.rid, sessionId: w.sessionId };
@@ -441,8 +443,16 @@
           });
         });
       })(add.slice(i, i + 8));
-      return p.then(function () { renderStage(); }).catch(function (e) { console.warn('pull', e); });
+      return p.then(function () { retryPulls(pullFailed); renderStage(); }).catch(function (e) { console.warn('pull', e); retryPulls(true); });
     });
+  }
+  // Retry pulls that the SFU couldn't find yet: 1, 2, 4, 8 s, then every 10 s while they're still wanted.
+  function retryPulls(failed) {
+    if (!failed) { S.pullRetryN = 0; return; }
+    if (S.pullRetryT) return;
+    var n = S.pullRetryN || 0, wait = Math.min(1000 * Math.pow(2, n), 10000);
+    S.pullRetryN = n + 1;
+    S.pullRetryT = setTimeout(function () { S.pullRetryT = null; if (!S.ended && !S.removed) syncPulls(); }, wait);
   }
   function detach(trackName) {
     var a = S.audioEls[trackName]; if (a) { a.srcObject = null; a.remove(); delete S.audioEls[trackName]; }
@@ -1523,6 +1533,22 @@
     return { application: EC.pushApplication, sprint: EC.pushSprint, deposit: EC.pushDeposit, vip: EC.pushVip }[x.kind] || x.kind;
   }
   function selected() { return Object.keys(E.sel).filter(function (k) { return E.sel[k]; }); }
+  /** The room's automatic pushes (staff): when each goes, what happened, Skip and Push now. */
+  function autoSection(e) {
+    var list = e.auto || [], r = S.view.room, live = r.status === 'live' && S.view.room.wentLiveAt;
+    if (!list.length) return '<section><h3 class="rm-h3">' + esc(EC.autoHeading) + '</h3><p class="rm-fine">' + esc(EC.autoNone) + '</p></section>';
+    return '<section><h3 class="rm-h3">' + esc(EC.autoHeading) + '</h3><p class="rm-fine">' + esc(EC.autoNote) + '</p><ul class="rm-auto">' + list.map(function (x) {
+      var st, btns = '';
+      if (x.done) st = x.done.how === 'auto' ? EC.autoSent : x.done.how === 'host' ? EC.autoSentByHost : x.done.how === 'skipped' ? EC.autoSkipped : EC.autoUnavailable;
+      else if (!live) st = EC.autoBeforeLive;
+      else {
+        var left = S.view.room.wentLiveAt + x.at * 60000 - now();
+        st = left > 0 ? tpl(EC.autoIn, clock(left)) : (x.kind === 'deposit' ? EC.autoWaitsOffer : EC.autoDue);
+      }
+      if (!x.done) btns = '<button type="button" class="rm-mini" data-auto-skip="' + esc(x.id) + '">' + esc(EC.autoSkip) + '</button>' + (live ? '<button type="button" class="rm-mini" data-auto-now="' + esc(x.id) + '">' + esc(EC.autoNow) + '</button>' : '');
+      return '<li><span><strong>' + esc(kindTitle(x)) + '</strong> <span class="rm-fine">' + esc(tpl(EC.autoMin, x.at)) + ' · ' + esc(st) + '</span></span><span class="rm-row">' + btns + '</span></li>';
+    }).join('') + '</ul></section>';
+  }
   function refreshStats(force) {
     if (!isStaff || !engOn()) return;
     if (!force && Date.now() - E.statsAt < 3500) return;
@@ -1545,6 +1571,7 @@
       '<div class="rm-row">' + btn('application', EC.pushApplication, av.application) + btn('sprint', EC.pushSprint, av.sprint) + btn('deposit', EC.pushDeposit, av.deposit && o.open) + (av.vip ? btn('vip', EC.pushVip, true) : '') + '</div>' +
       (av.deposit && !o.open ? '<p class="rm-fine">' + esc(EC.pushNeedsOffer) + '</p>' : '') +
       '<div class="rm-row"><select class="rm-input rm-inline-sel" data-res aria-label="' + esc(EC.pushResource) + '">' + (ENG.assets || []).map(function (a) { return '<option value="' + esc(a.id) + '"' + (E.resource === a.id ? ' selected' : '') + '>' + esc(a.title) + '</option>'; }).join('') + '</select>' + btn('resource', EC.pushSend, (av.resources || []).length) + '</div></section>' +
+      autoSection(e) +
       '<section><h3 class="rm-h3">' + esc(EC.pushLive) + '</h3>' + (stats.pushes.length ? '<table class="rm-funnel"><thead><tr><th></th><th>' + esc(F.shown) + '</th><th>' + esc(F.opened) + '</th><th>' + esc(F.started) + '</th><th>' + esc(F.submitted) + '</th><th>' + esc(F.paid) + '</th><th></th></tr></thead><tbody>' +
         stats.pushes.map(function (x) { return '<tr class="' + (x.open ? '' : 'is-closed') + '"><td>' + esc(kindTitle(x)) + '<span class="rm-fine"> · ' + (x.targets || 0) + '</span></td><td>' + x.counts.shown + '</td><td>' + x.counts.opened + '</td><td>' + x.counts.started + '</td><td>' + x.counts.submitted + '</td><td>' + x.counts.paid + '</td><td>' + (x.open ? '<button type="button" class="rm-mini" data-pclose-push="' + x.id + '">' + esc(EC.pushClose) + '</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="rm-note">' + esc(EC.pushNone) + '</p>') +
       (stats.applications.length ? '<ul class="rm-apps">' + stats.applications.map(function (a) { return '<li><span>' + esc(a.name) + '</span><span class="rm-tier rm-tier-' + esc(a.tier || 'x') + '">' + esc(a.tier || '–') + (a.score != null ? ' · ' + a.score : '') + '</span></li>'; }).join('') + '</ul><p class="rm-fine">' + esc(EC.tierNote) + '</p>' : '') + '</section>' +
@@ -1560,6 +1587,8 @@
         ((e.board.top || []).length ? '<ol class="rm-board">' + e.board.top.map(function (x) { return '<li><span>' + esc(x.name) + '</span><span>' + x.points + '</span></li>'; }).join('') + '</ol>' : '<p class="rm-fine">' + esc(EC.boardEmpty) + '</p>') + '</section>' +
       '</div>';
     $$('[data-to]', p).forEach(function (b) { b.onclick = function () { E.to = b.getAttribute('data-to'); renderPanel(); }; });
+    $$('[data-auto-skip]', p).forEach(function (b) { b.onclick = function () { send({ t: 'autopush_skip', id: b.getAttribute('data-auto-skip') }); }; });
+    $$('[data-auto-now]', p).forEach(function (b) { b.onclick = function () { send({ t: 'autopush_now', id: b.getAttribute('data-auto-now') }); setTimeout(function () { refreshStats(true); }, 600); }; });
     $$('[data-push]', p).forEach(function (b) {
       b.onclick = function () {
         var k = b.getAttribute('data-push'), m = { t: 'push', kind: k };
