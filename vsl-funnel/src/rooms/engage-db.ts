@@ -41,12 +41,13 @@ const dayOf = (room: Pick<RoomRow, 'ref_type' | 'ref_id'>) => (room.ref_type ===
 export function engageAvail(rt: Pick<Runtime, 'settings'>, room: Pick<RoomRow, 'ref_type' | 'ref_id' | 'mode'>): EngageAvail {
   if (room.mode === 'meeting') return { application: false, sprint: false, deposit: false, vip: false, resources: [] };
   const s = rt.settings as S;
-  const funnel = funnelOf(room);
   const day = dayOf(room);
   const sprintOn = String(s.WEBINAR_PASS ?? '').trim().toLowerCase() !== 'off' && Boolean(String(s.WHOP_API_KEY ?? '').trim());
   return {
-    application: Boolean(funnel),
-    sprint: Boolean(funnel) && sprintOn,
+    // Every webinar room can push the application and the Sprint, linked to an event or not (a room made on its
+    // own in Funnel HQ is a webinar too). The deposit needs the event's or cohort's real offer window.
+    application: true,
+    sprint: sprintOn,
     deposit: room.ref_type === 'live' || day === 4 || day === 5,
     vip: room.ref_type === 'challenge',
     resources: ASSETS.map((a) => a.id),
