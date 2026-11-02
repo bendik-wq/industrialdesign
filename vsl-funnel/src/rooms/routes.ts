@@ -5,6 +5,7 @@ import { getLead } from '../funnel/leads';
 import { viewerName, pickHostName } from '../webinar/live';
 import { newId } from '../lib/ids';
 import { ROOM_COPY, ROOM_GATE, meetingInvite } from './copy';
+import { AUDIENCE_COPY, audienceConfig } from './audience';
 import { SfuError, mintIceServers, realtimeSetup } from './sfu';
 import { SFU_OPS } from './proxy';
 import { audienceThreshold, broadcastMode, moqSetup, parseMode } from './moq';
@@ -103,6 +104,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
       presets: who.role === 'host' || who.role === 'cohost' ? QUIZ_PRESETS : [],
       assets: ASSETS.map((a) => ({ id: a.id, title: a.title })),
     } : null,
+    // Area C (audience): reactions, captions, the co-host, personal offer moments, view settings.
+    audience: room.mode === 'webinar' ? audienceCfg(rt, who) : null,
   };
   // Copy functions become their plain templates for room.js (it fills {n}/{a}/{b}); everything else is data.
   const json = JSON.stringify(cfg, (_k, v) => (typeof v === 'function' ? fnTemplate(v) : v)).replace(/</g, '\\u003c');
@@ -125,6 +128,7 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
 <title>${esc(room.title)}</title>
 <link rel="stylesheet" href="/assets/room.css">
 <script defer src="/assets/room.js"></script>
+${room.mode === 'webinar' ? '<link rel="stylesheet" href="/assets/room-audience.css">\n<script defer src="/assets/room-audience.js"></script>' : ''}
 </head>
 <body class="rm-body">
 <script type="application/json" id="room-config">${json}</script>
@@ -205,6 +209,13 @@ export async function hostRoomPage(c: Context<AppEnv>) {
   const room = await getRoom(rt, c.req.param('id') ?? '');
   if (!room) return gatePage(c, ROOM_GATE.notFound, ROOM_GATE.noAccessBody, 404);
   return renderRoomPage(c, room, { id: memberId('host', 'admin'), name: pickHostName(rt.settings, null), role: 'host', leadId: null, regId: null }, { back: '/admin#liveevents' });
+}
+
+/** Area C: what room-audience.js needs (copy, the switches, the caption languages). */
+function audienceCfg(rt: Runtime, who: Identity) {
+  const a = audienceConfig(rt.settings as never);
+  const staff = who.role === 'host' || who.role === 'cohost';
+  return { copy: AUDIENCE_COPY, reactions: a.reactions, captions: a.captions, langs: a.langs, nudgeMin: a.nudgeMin, staff, ai: staff ? Boolean((rt.settings as unknown as Record<string, string>).ANTHROPIC_API_KEY) : null, lead: Boolean(who.leadId) };
 }
 
 /** A copy function, sampled into a template room.js can fill: "{a}" and "{b}" for its first two arguments. */

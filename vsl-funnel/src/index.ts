@@ -61,6 +61,7 @@ import { opsHooks } from './integrations/hooks-in';
 import { mcpRoute } from './mcp/server';
 import { processClientsSupport } from './ops/e-cron';
 import { syncAttribution } from './attribution/stages';
+import { audienceApi } from './rooms/audience-routes';
 import { hostRoomForKey, hostRoomPage, paidPage, planPage, publicRoomPage, replayRoute, roomsApi, unlockRoute } from './rooms/routes';
 import { processRoomSummaries } from './rooms/engage-db';
 import { joinPage } from './rooms/admission';
@@ -201,7 +202,8 @@ app.get('/api/live/:key/offer', challengeOfferRoute); // challenge-offer state, 
 app.get('/api/live/:key/status', liveStatusRoute); // before /api: no visitor logging on each poll
 app.get('/camera-test', (c) => c.env.ASSETS.fetch(new Request(new URL('/camera-test.html', c.req.url)))); // camera check page (noindex)
 app.post('/api/camera-test', cameraTestPost); // camera check results (/camera-test), technical only
-app.route('/api/rooms', roomsApi); // our video rooms: WebSocket, ICE, SFU proxy, recordings (before /api: no visitor logging per call)
+app.route('/api/rooms', roomsApi);
+app.route('/api/rooms', audienceApi); // area C: captions, the personal offer card, announcement consent // our video rooms: WebSocket, ICE, SFU proxy, recordings (before /api: no visitor logging per call)
 app.route('/api', api);
 app.route('/hooks', opsHooks); // support email (Resend inbound / forwarders) and Zapier actions (builder E)
 app.route('/hooks', hooks);

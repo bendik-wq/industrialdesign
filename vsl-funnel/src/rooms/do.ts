@@ -7,6 +7,7 @@ import { broadcastName, connectUrl, relayUrl } from './moq';
 import { getSecret } from '../lib/secret';
 import { type SfuOp, SFU_OPS, forceClose, sfuProxy } from './proxy';
 import { feedPresence, getRoom, markRoom, roomOffer, setRoomOffer } from './rooms';
+import { AudienceHub } from './audience-do'; // area C: reactions, captions, the co-host, announcements, nudges
 
 /**
  * One Durable Object per room: signalling and state over WebSockets with hibernation (the object sleeps between
@@ -28,7 +29,14 @@ export class RoomDO {
   /** Whether the last state everyone received had the MoQ broadcast live (the alarm re-sends when it lapses). */
   private sentLive = false;
 
+  /** Area C (audience): reactions, captions, the AI co-host, purchase announcements, the checkout nudge. */
+  private aud: AudienceHub;
+
   constructor(private ctx: DurableObjectState, private env: Env) {
+    this.aud = new AudienceHub({
+      st: () => this.st, deliver: (to, msg) => this.deliver(to, msg), runtime: () => this.runtime(), storage: ctx.storage,
+      waitUntil: (p) => ctx.waitUntil(p.catch((e) => console.error('room audience', e))), commit: async (now) => { await this.save(); this.broadcast(now); },
+    });
     void ctx.blockConcurrencyWhile(async () => {
       this.st = (await ctx.storage.get<RoomState>('st')) ?? null;
       this.meta = (await ctx.storage.get<Meta>('meta')) ?? null;
@@ -94,6 +102,7 @@ export class RoomDO {
       this.reconcile();
       await this.save();
       server.send(JSON.stringify(view(st, r.member, now, { chat: true })));
+      await this.aud.onJoin(r.member, now).catch(() => null);
       this.broadcast(now, who.id);
       await this.feed([r.member], now);
       // Joined within five minutes of Go live: on time.
@@ -114,6 +123,8 @@ export class RoomDO {
     }
 
     if (reconfigured) { await this.save(); this.broadcast(now); }
+
+    if (url.pathname.startsWith('/audience/')) { const ar = await this.aud.fetch(url.pathname, req, now); if (ar) return ar; }
 
     if (url.pathname === '/moq' && req.method === 'POST') return this.moqAccess(st, who, req.headers.get('x-room-admin') === '1', now);
 
@@ -201,6 +212,11 @@ export class RoomDO {
     let msg: unknown;
     try { msg = JSON.parse(data); } catch { return; }
     const now = Date.now();
+    if (AudienceHub.handles((msg as { t?: unknown })?.t)) {
+      const err = await this.aud.onMessage(a.id, msg as Record<string, unknown>, now);
+      if (err) this.send(ws, JSON.stringify({ t: 'error', error: err, for: (msg as { t?: unknown }).t }));
+      return;
+    }
     const r = apply(this.st, a.id, msg, now);
     if (!r.ok) { this.send(ws, JSON.stringify({ t: 'error', error: r.error, for: (msg as { t?: unknown })?.t ?? null })); return; }
     if ((msg as { t?: unknown }).t === 'push_close') {
@@ -212,6 +228,7 @@ export class RoomDO {
     for (const e of r.effects) await this.effect(e, now);
     if (r.changed || r.effects.length) { await this.save(); this.broadcast(now); }
     else if (r.out.some((o) => (o.msg as { t?: string }).t === 'chat')) await this.save();
+    await this.aud.afterApply(a.id, msg as Record<string, unknown>, now).catch((e) => console.error('room audience', e));
   }
 
   private async effect(e: Effect, now: number) {
@@ -393,6 +410,7 @@ export class RoomDO {
       }
       // The host's broadcast went quiet without a goodbye: viewers go back to the SFU.
       if (this.sentLive && !broadcastLive(this.st, now)) this.broadcast(now);
+      await this.aud.tick(now).catch((e) => console.error('room audience tick', e));
       await this.ctx.storage.setAlarm(now + ALARM_MS);
     }
     prune(this.st, now);

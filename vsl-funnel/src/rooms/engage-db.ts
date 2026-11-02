@@ -284,6 +284,7 @@ export async function submitRoomApplication(rt: Runtime, room: RoomLike, who: Wh
   }
   await recordPushEvent(rt, room, push.id, who, 'submitted', 'application', now);
   await stage(rt, room, who, 'room_application', null, now, result.score, result.tier);
+  await (await import('./audience-db')).announceApplication(rt, room.id, who.leadId, now).catch(() => null); // area C (consent only)
   if (funnelOf(room) && who.regId) {
     const { sendStageEvent } = await import('../attribution/hooks');
     await sendStageEvent(rt, { kind: 'room_application', funnel: funnelOf(room)!, regId: who.regId, leadId: who.leadId }).catch(() => null);
@@ -373,6 +374,8 @@ export async function onRoomPurchase(rt: Runtime, pass: { id: string; kind: stri
   const db = rt.env.DB;
   const now = pass.paid_at ?? Date.now();
   const kind = pass.kind === 'offer' ? 'sprint' : 'deposit';
+  // Area C: a buyer who ticked the announcement box in a live room is announced there (first name and city, once).
+  await (await import('./audience-db')).announcePurchase(rt, pass, now).catch((e) => console.error('room proof', String(e).slice(0, 200)));
   // The push this purchase came from: the room's Sprint names its room; a deposit is matched to the buyer's latest push in the last two days.
   const ev = await db.prepare(
     `SELECT e.room_id, e.push_id, e.who FROM room_push_events e JOIN room_pushes p ON p.room_id = e.room_id AND p.id = e.push_id

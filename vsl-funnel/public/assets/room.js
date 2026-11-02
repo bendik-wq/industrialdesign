@@ -217,6 +217,7 @@
     ws.onopen = function () { S.wsTries = 0; banner(null); };
     ws.onmessage = function (e) {
       var m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      hook('msg', m); // extensions (window.RoomCore.on)
       if (m.t === 'state') {
         if (m.chat) S.chat = m.chat;
         skew = m.now - Date.now();
@@ -520,6 +521,7 @@
     if (isStaff) tabs.push(['people', C.people]);
     if (isStaff && engOn()) tabs.push(['push', EC.pushTab]);
     if (isStaff) tabs.push(['host', C.hostTab]);
+    XTABS.forEach(function (t) { if (!t.show || t.show()) tabs.splice(t.at != null ? Math.min(t.at, tabs.length) : tabs.length, 0, [t.id, t.label]); });
     app.innerHTML = '<div class="rm-shell">' +
       '<header class="rm-top"><div class="rm-top-l"><span class="rm-live" data-live hidden>' + I.dot + esc(C.live) + '</span><h1 class="rm-title">' + esc(CFG.room.title) + '</h1></div>' +
       '<div class="rm-top-r"><span class="rm-timer" data-timer hidden></span><span class="rm-rec" data-rec hidden>' + I.dot + esc(C.recording) + '</span><span class="rm-count" data-count></span>' +
@@ -547,6 +549,7 @@
     $('[data-count]').textContent = watching(r.count);
     $('[data-rec]').hidden = !r.recording;
     renderStage(); renderBar(); renderPanel(); renderTabs(); renderOffer(prev); renderPinned(); renderEngage();
+    hook('state', prev);
     if (r.status === 'ended' && !S.ended) { S.ended = true; endScreen(C.ended, C.endedBody); }
   }
   function watching(n) { return n === 1 ? '1 person here' : n + ' people here'; }
@@ -691,6 +694,7 @@
     var p = $('[data-panel]'); if (!p || !S.view) return;
     if (S.tab === 'chat') return renderChat(false);
     if (S.tab === 'plan') return renderPlan(false);
+    for (var xi = 0; xi < XTABS.length; xi++) if (XTABS[xi].id === S.tab) return XTABS[xi].render(p);
     var key = function (e) { return (e.closest('form') ? (e.closest('form').getAttribute('data-ask') !== null ? 'ask' : e.closest('form').getAttribute('data-pnew') !== null ? 'pnew' : 'f') : 'x') + ':' + (e.name || e.getAttribute('data-h') || ''); };
     var saved = {}, focus = null, caret = null;
     $$('input:not([type="checkbox"]), textarea', p).forEach(function (e) { if (e.value) saved[key(e)] = e.value; });
@@ -715,7 +719,7 @@
       p.innerHTML = '<ol class="rm-msgs" data-msgs></ol>' +
         '<p class="rm-note" data-chat-note hidden></p>' +
         '<form class="rm-form" data-chat-form><input name="text" maxlength="400" autocomplete="off" placeholder="' + esc(C.chatPlaceholder) + '" aria-label="' + esc(C.chatPlaceholder) + '"><button type="submit" class="rm-send">' + esc(C.send) + '</button></form>';
-      $('[data-chat-form]', p).onsubmit = function (e) { e.preventDefault(); var i = this.text; var t = i.value.trim(); if (!t) return; send({ t: 'chat', text: t }); i.value = ''; };
+      $('[data-chat-form]', p).onsubmit = function (e) { e.preventDefault(); var i = this.text; var t = i.value.trim(); if (!t) return; send(Object.assign({ t: 'chat', text: t }, CORE.chatExtra ? CORE.chatExtra() : {})); i.value = ''; };
     }
     var note = $('[data-chat-note]', p);
     var locked = r.chat.locked && !isStaff;
@@ -726,10 +730,11 @@
     var atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
     list.innerHTML = S.chat.map(function (m) {
       var staff = m.role === 'host' || m.role === 'cohost';
-      return '<li class="rm-msg' + (staff ? ' is-team' : '') + (m.by === ME.id ? ' is-mine' : '') + '"><span class="rm-msg-n">' + esc(m.name) + (staff ? ' <span class="rm-team">' + esc(C.team) + '</span>' : '') + '</span> <span class="rm-msg-t">' + esc(m.text) + '</span>' +
+      return '<li class="rm-msg' + (staff ? ' is-team' : '') + (m.by === ME.id ? ' is-mine' : '') + '" data-mid="' + m.id + '"><span class="rm-msg-n">' + esc(m.name) + (staff ? ' <span class="rm-team">' + esc(C.team) + '</span>' : '') + '</span> <span class="rm-msg-t">' + esc(m.text) + '</span>' +
         (isStaff ? ' <button type="button" class="rm-mini" data-pin="' + m.id + '">' + esc(r.chat.pinned && r.chat.pinned.id === m.id ? C.unpin : C.pin) + '</button>' : '') + '</li>';
     }).join('');
     $$('[data-pin]', list).forEach(function (b) { b.onclick = function () { var id = Number(b.getAttribute('data-pin')); send({ t: 'pin', mid: r.chat.pinned && r.chat.pinned.id === id ? null : id }); }; });
+    hook('chat', list);
     if (atBottom || full) list.scrollTop = list.scrollHeight;
   }
 
@@ -1559,6 +1564,21 @@
     var b = $('[data-offer-open]'); if (b) b.onclick = openOffer;
     if (sh && !keepOffer) sh.remove();
   }
+
+  // ───────────── extension hooks (window.RoomCore) ─────────────
+  // Small API for the room's add-on scripts (room-<area>.js). Area C (audience) uses msg/state/chat, the tab list
+  // and chatExtra; other areas add what they need the same way.
+  var HOOKS = {}, XTABS = [];
+  function hook(type, data) { (HOOKS[type] || []).forEach(function (fn) { try { fn(data); } catch (e) { if (window.console) console.error(e); } }); }
+  var CORE = window.RoomCore = {
+    CFG: CFG, S: S, E: E, ME: ME, isStaff: isStaff, send: send, post: post, toast: toast, esc: esc, h: h, $: $, $$: $$, now: now, tpl: tpl, sheet: sheet,
+    on: function (type, fn) { (HOOKS[type] = HOOKS[type] || []).push(fn); },
+    addTab: function (t) { XTABS.push(t); },
+    showTab: function (id) { S.tab = id; renderTabs(); renderPanel(); },
+    renderPanel: function () { renderPanel(); }, renderChat: function () { renderChat(true); },
+    openOffer: function () { openOffer(); }, actPush: function (x) { actPush(x); }, loadEngage: function () { return loadEngage(); },
+    chatExtra: null,
+  };
 
   start();
 })();
