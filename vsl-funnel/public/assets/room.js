@@ -217,6 +217,7 @@
     ws.onopen = function () { S.wsTries = 0; banner(null); };
     ws.onmessage = function (e) {
       var m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      emitCore(m); // add-on scripts (room-lifecycle.js)
       if (m.t === 'state') {
         if (m.chat) S.chat = m.chat;
         skew = m.now - Date.now();
@@ -1559,6 +1560,11 @@
     var b = $('[data-offer-open]'); if (b) b.onclick = openOffer;
     if (sh && !keepOffer) sh.remove();
   }
+
+  // ───────────── add-on hook (builder E lifecycle: room-lifecycle.js reads state and socket messages, sends its own) ─────────────
+  var coreHandlers = [];
+  function emitCore(m) { coreHandlers.forEach(function (fn) { try { fn(m); } catch (e) { /* an add-on's error stays there */ } }); }
+  window.RoomCore = Object.assign(window.RoomCore || {}, { cfg: CFG, S: S, send: send, toast: toast, now: now, isStaff: isStaff, unlockAudio: function () { unlockAudio(); }, on: function (fn) { coreHandlers.push(fn); } });
 
   start();
 })();

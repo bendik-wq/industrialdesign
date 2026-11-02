@@ -48,6 +48,7 @@ import { processSmsQueue } from './integrations/sms';
 import { alertUnconfirmedBookings } from './integrations/booking';
 import { guaranteePage, liveLanding, liveRoom, liveTicketPage, liveWelcome, liveWorksheet } from './live/pages';
 import { processLiveMessages } from './live/events';
+import { calRoute as lcCalRoute, referralRoute as lcReferralRoute } from './live/lifecycle-pages';
 import { payPage } from './sales/pay-page';
 import { runOps } from './ops/cron';
 import { maybeSyncAudiences } from './audiences/sync';
@@ -172,6 +173,8 @@ app.get('/live/room/:token', withVisitor, liveRoom);
 app.get('/live/ticket/:token', withVisitor, liveTicketPage);
 app.get('/live/welcome/:token', withVisitor, liveWelcome);
 app.get('/live/worksheet/:token', withVisitor, liveWorksheet);
+app.get('/live/cal/:token/:kind', lcCalRoute); // builder E: calendar entries (Google, Outlook, Apple, .ics)
+app.get('/live/i/:code', lcReferralRoute); // builder E: a registrant's referral link
 app.get('/guarantee', withVisitor, guaranteePage);
 app.get('/rooms/replay/:rid', replayRoute); // room recordings (R2)
 app.get('/rooms/a/:id/:who/:ref', unlockRoute); // an unlocked file (signed, only for the person who earned it)

@@ -13,7 +13,7 @@
  *    test, the first three actions). Four steps, each counted once when it is really filled in.
  */
 
-export type PointAction = 'on_time' | 'present_10' | 'chapter' | 'poll' | 'question' | 'quiz' | 'quiz_correct' | 'plan_step' | 'application' | 'stayed_end';
+export type PointAction = 'on_time' | 'present_10' | 'chapter' | 'poll' | 'question' | 'quiz' | 'quiz_correct' | 'plan_step' | 'application' | 'stayed_end' | 'early' | 'referral';
 export interface PointRule { points: number; cap: number; label: string }
 export type PointRules = Record<PointAction, PointRule>;
 
@@ -28,6 +28,9 @@ export const DEFAULT_RULES: PointRules = {
   plan_step: { points: 10, cap: 4, label: 'Completed a Deal Plan step' },
   application: { points: 30, cap: 1, label: 'Sent the application' },
   stayed_end: { points: 20, cap: 1, label: 'Stayed to the end' },
+  // Lifecycle (builder E): in the waiting room before the start (server clock), and an owner you brought who attended.
+  early: { points: 10, cap: 1, label: 'In the waiting room before the start' },
+  referral: { points: 25, cap: 5, label: 'An owner you brought attended' },
 };
 export const POINT_ACTIONS = Object.keys(DEFAULT_RULES) as PointAction[];
 /** Questions shorter than this earn no points (no farming with "hi"). */

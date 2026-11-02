@@ -1,0 +1,33 @@
+/* Builder E "lifecycle": the confirmation / pre-show page. live.css tokens; one column, hairlines between steps,
+   the calendar as the one dominant action. Mobile first (390 px, one-handed), 1366 px centred at 720 px. */
+.lc-pre { padding: 40px 0 72px; }
+.lc-head { text-align: center; padding-bottom: 24px; }
+.lc-title { margin: 0 0 4px; font: 500 17px/1.4 var(--a-ui); color: var(--a-ink-2); }
+.lc-count { margin: 20px 0 8px; }
+.lc-enter { max-width: 420px; margin: 16px auto 0; }
+.lc-enter[hidden] { display: none; }
+.lc-lede { margin: 24px auto 0; max-width: 560px; font: 400 17px/1.55 var(--a-ui); color: var(--a-ink-2); }
+.lc-block { padding: 28px 0; border-top: 1px solid var(--a-hair); }
+.lc-h { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font: 500 22px/1.25 var(--serif); letter-spacing: -.01em; color: var(--a-ink); }
+.lc-h svg { width: 22px; height: 22px; color: var(--a-navy); flex: none; }
+.lc-p { margin: 0 0 16px; font: 400 15px/1.55 var(--a-ui); color: var(--a-ink-2); }
+.lc-calbtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.lc-calbtn { display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 12px; background: var(--a-navy); color: #fff; font: 600 16px/1 var(--a-ui); text-decoration: none; transition: opacity .15s var(--a-ease); }
+.lc-calbtn:hover { opacity: .9; }
+.lc-calbtn:focus-visible, .lc-pre .lv-btn-2:focus-visible, .lc-pre textarea:focus-visible { outline: 3px solid rgba(15, 44, 92, .35); outline-offset: 2px; }
+.lc-ok { margin: 12px 0 0; font: 500 14px/1.45 var(--a-ui); color: #1d7a4f; }
+.lc-ok[hidden] { display: none; }
+.lc-wide { width: 100%; justify-content: center; min-height: 48px; margin-top: 4px; }
+.lc-pre form { display: grid; gap: 12px; }
+.lc-pre form .lv-btn-2 { justify-self: start; }
+.lc-pre textarea { width: 100%; box-sizing: border-box; border: 0; border-radius: var(--a-r1); background: var(--a-fill); padding: 14px 16px; font: 400 16px/1.45 var(--a-ui); color: var(--a-ink); resize: vertical; }
+.lc-sms .lv-field { margin-bottom: 12px; }
+.lc-sms [hidden] { display: none; }
+.lc-video { position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #000; }
+.lc-video iframe, .lc-video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.lc-refrow { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 640px) { .lc-refrow { grid-template-columns: 1fr auto auto; align-items: center; } }
+.lc-reflink { min-width: 0; border: 0; border-radius: var(--a-r1); background: var(--a-fill); padding: 13px 14px; font: 500 15px/1.2 var(--a-ui); color: var(--a-navy); }
+.lc-refrow .lv-btn-2 { justify-content: center; min-height: 44px; }
+.lc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (min-width: 900px) { .lc-pre { padding-top: 64px; } }

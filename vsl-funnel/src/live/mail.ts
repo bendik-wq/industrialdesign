@@ -12,7 +12,17 @@ import { newId } from '../lib/ids';
  * triggers never send twice. A failed send is retried on a later run, up to three attempts in all.
  */
 
-export interface Mail { subject: string; preheader: string; heading: string; paras: string[]; button?: { label: string; href: string } }
+export interface Mail {
+  subject: string; preheader: string; heading: string; paras: string[]; button?: { label: string; href: string };
+  /** Calendar links (lifecycle, builder E): a row of Google, Outlook and Apple links under the paragraphs. */
+  calendar?: { google: string; outlook: string; apple: string } | null;
+}
+
+/** The calendar row (HTML paragraph; tracked links that open the provider with the person's own room link). */
+export function calendarPara(c: NonNullable<Mail['calendar']>) {
+  const a = (href: string, label: string) => `<a href="${escHtml(href)}" style="color:#0f2c5c;font-weight:600">${label}</a>`;
+  return `Add it to your calendar: ${a(c.google, 'Google')} &middot; ${a(c.outlook, 'Outlook')} &middot; ${a(c.apple, 'Apple')}`;
+}
 
 /** Plain text to HTML: escaped, with bare https links made clickable. */
 const toHtml = (p: string) => escHtml(p).replace(/(https:\/\/[^\s<]+[^\s<.,;:)])/g, '<a href="$1" style="color:#0f2c5c">$1</a>');
@@ -28,7 +38,7 @@ export async function sendOnce(rt: Runtime, lead: Pick<Lead, 'id' | 'email'>, se
   ).bind(newId('m'), lead.id, sequence, step, template, lead.email, now, now).run();
   if (!claim.meta.changes) return false;
   const co = company(rt);
-  const m = contractEmail({ preheader: mail.preheader, heading: mail.heading, paras: mail.paras.map(toHtml), button: mail.button, sender: co.signer, company: co.name, address: co.address });
+  const m = contractEmail({ preheader: mail.preheader, heading: mail.heading, paras: [...mail.paras.map(toHtml), ...(mail.calendar ? [calendarPara(mail.calendar)] : [])], button: mail.button, sender: co.signer, company: co.name, address: co.address });
   const where = 'WHERE lead_id = ? AND sequence = ? AND step = ?';
   try {
     let status = 'simulated';

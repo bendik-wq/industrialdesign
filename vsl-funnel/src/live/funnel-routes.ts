@@ -6,6 +6,7 @@ import {
   registerLive, roomDeposit, roomState, saveEvent, startLiveTicket, streamKey, teamLiveChat, ticketGate, vote,
 } from './events';
 import { playbackFor, streamSetup } from './stream';
+import { mountLifecycleAdmin, mountLifecycleApi } from './lifecycle-pages';
 
 /**
  * The live funnel's routes, mounted on the existing routers so they inherit their guards:
@@ -25,6 +26,7 @@ const fail = (c: Context<AppEnv>, err: unknown) => {
 };
 
 export function mountLiveApi(api: Hono<AppEnv>) {
+  mountLifecycleApi(api); // builder E: /api/live/lc/*
   api.post('/live/register', async (c) => {
     try {
       const rt = runtimeFrom(c);
@@ -67,6 +69,7 @@ export function mountLiveApi(api: Hono<AppEnv>) {
 }
 
 export function mountLiveAdmin(admin: Hono<AppEnv>) {
+  mountLifecycleAdmin(admin); // builder E: /admin/api/live-events/:id/lifecycle
   admin.get('/live-events', async (c) => {
     const rt = runtimeFrom(c);
     const q = c.req.query();

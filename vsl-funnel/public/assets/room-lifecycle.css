@@ -1,0 +1,40 @@
+/* The waiting room (builder E, room-lifecycle.js). Same tokens as room.css: calm fills, hairlines, navy labels. */
+.rm-stage--lobby { overflow: auto; }
+.lcw { display: grid; gap: 12px; width: 100%; max-width: 520px; margin: 20px auto 0; text-align: left; }
+.lcw-note { margin: 0; padding: 10px 14px; border-radius: var(--r1, 10px); background: #fff; font: 500 14px/1.45 var(--ui); color: var(--navy, #0f2c5c); }
+.lcw-note[hidden] { display: none; }
+.lcw-card { padding: 16px; border-radius: var(--r2, 14px); background: #fff; box-shadow: 0 0 0 1px var(--hair, rgba(0,0,0,.1)); }
+.lcw-h { margin: 0 0 6px; font: 600 13px/1.3 var(--ui); color: var(--navy, #0f2c5c); letter-spacing: .01em; }
+.lcw-p { margin: 0 0 10px; font: 400 14px/1.5 var(--ui); color: var(--ink-2, #6e6e73); }
+.lcw-p[hidden], .lcw-ask[hidden] { display: none; }
+.lcw-muted { color: var(--ink-3, #86868b); font-size: 13px; }
+.lcw-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--fill, #f5f5f7); color: var(--navy, #0f2c5c); font: 500 14px/1 var(--ui); cursor: pointer; transition: background .15s var(--ease, ease); }
+.lcw-btn:hover { background: var(--fill-2, #e8e8ed); }
+.lcw-btn:focus-visible, .lcw-from input:focus-visible { outline: 3px solid rgba(15, 44, 92, .35); outline-offset: 2px; }
+.lcw-btn[disabled] { opacity: .55; cursor: default; }
+.lcw-sm { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.lcw-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font: 500 14px/1.3 var(--ui); color: var(--ink, #1d1d1f); }
+.lcw-slides { position: relative; min-height: 96px; }
+.lcw-slide[hidden] { display: none; }
+.lcw-slide.is-on { animation: lcw-in .25s var(--ease, ease); }
+@keyframes lcw-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .lcw-slide.is-on { animation: none; } }
+.lcw-sh { margin: 0 0 4px; font: 500 20px/1.25 var(--serif, Georgia, serif); color: var(--ink, #1d1d1f); }
+.lcw-sb { margin: 0; font: 400 15px/1.5 var(--ui); color: var(--ink-2, #6e6e73); }
+.lcw-dots { display: flex; justify-content: flex-end; margin-top: 8px; }
+.lcw-next { border: 0; background: none; color: var(--navy, #0f2c5c); font: 500 13px/1 var(--ui); cursor: pointer; padding: 8px 0; }
+.lcw-video video { width: 100%; border-radius: var(--r1, 10px); background: #000; aspect-ratio: 16 / 9; }
+.lcw-from { display: flex; gap: 8px; margin-bottom: 8px; }
+.lcw-from input { flex: 1; min-width: 0; border: 0; border-radius: var(--r1, 10px); background: var(--fill, #f5f5f7); padding: 11px 12px; font: 400 16px/1.2 var(--ui); color: var(--ink, #1d1d1f); }
+.lcw-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; max-height: 148px; overflow: auto; }
+.lcw-list li { padding: 6px 10px; border-radius: 999px; background: var(--fill, #f5f5f7); font: 400 13px/1.2 var(--ui); color: var(--ink-2, #6e6e73); }
+.lcw-list strong { color: var(--ink, #1d1d1f); font-weight: 600; }
+.lcw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.lcw-preqbtn { position: fixed; left: 16px; bottom: 88px; z-index: 30; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--navy, #0f2c5c); color: #fff; font: 500 14px/1 var(--ui); box-shadow: 0 6px 20px rgba(0, 0, 0, .18); cursor: pointer; }
+.lcw-dialog { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .35); }
+.lcw-dialog-in { width: 100%; max-width: 560px; max-height: 80vh; overflow: auto; padding: 20px; border-radius: var(--r3, 22px); background: #fff; }
+.lcw-preq { margin: 8px 0 16px; padding-left: 20px; display: grid; gap: 12px; font: 400 15px/1.5 var(--ui); color: var(--ink, #1d1d1f); }
+.lcw-preq p { margin: 0 0 6px; }
+.rm-stage--lobby .rm-lobby { box-sizing: border-box; width: 100%; max-width: 560px; overflow-wrap: anywhere; }
+.lcw, .lcw * { box-sizing: border-box; }
+.rm-stage--lobby { padding-bottom: 24px; }

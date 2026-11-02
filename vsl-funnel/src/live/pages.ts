@@ -53,6 +53,7 @@ export async function liveLanding(c: Context<AppEnv>) {
   const tz = v.geo.timezone ?? ev?.tz ?? null;
   const ticket = s.ticket && (await import('../webinar/pass')).paymentProvider(rt.settings) === 'whop' ? s.ticket : null;
   const btn = ticket ? L.ticketButton(ticket.label) : L.button;
+  const referral = ev ? await (await import('./lifecycle-pages')).landingReferral(rt, c.req.query('ref')).catch(() => null) : null; // builder E
   const main = !ev
     ? `<section class="lv-hero"><div class="wrap narrow"><p class="lv-eyebrow">${esc(L.eyebrow)}</p><h1 class="lv-h1">${esc(L.h1)}</h1><p class="lv-lede">${esc(L.none)} ${esc(L.noneBody)}</p><p><a class="lv-link" href="${esc((rt.settings.WEBINAR_URL || `${rt.origin}/webinar`).replace(/\/+$/, ''))}">${esc(L.noneLink)}</a></p></div></section>`
     : `<section class="lv-hero"><div class="wrap narrow">
@@ -70,7 +71,7 @@ export async function liveLanding(c: Context<AppEnv>) {
         <h2 class="lv-h2">${esc(L.formHeading)}</h2>
         <p class="lv-sub">${esc(ev.title)} · <span data-local-time="${ev.starts_at}">${esc(when(ev.starts_at, tz))}</span></p>
         <form class="lv-form" data-live-register novalidate autocomplete="on">
-          <input type="hidden" name="event_id" value="${esc(ev.id)}">
+          <input type="hidden" name="event_id" value="${esc(ev.id)}">${referral ? `<input type="hidden" name="ref" value="${esc(referral.code)}"><p class="lv-sub">${esc(referral.line)}</p>` : ''}<input type="hidden" name="tz" data-lc-tz>
           <div class="lv-row">
             <label class="lv-field"><span>First name</span><input name="first_name" autocomplete="given-name" required></label>
             <label class="lv-field"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
@@ -158,6 +159,9 @@ export async function liveRoom(c: Context<AppEnv>) {
     const [h, b] = st.stage === 'closed' ? [C.closedHeading, C.closedBody] : [C.cancelledHeading, C.cancelledBody];
     return render(c, '/live.html', { title: h, blocks: { navmeta: '', main: `<section class="lv-room"><div class="wrap lv-rwrap">${head}<div class="lv-card"><h2 class="lv-offer-h">${esc(h)}</h2><p class="lv-offer-p">${esc(b)}</p></div></div></section>` } });
   }
+  // Lifecycle (builder E): tracked returns from reminders, and the confirmation / pre-show page until the waiting room opens.
+  const pre = await (await import('./lifecycle-pages')).beforeRoom(c, rt, ev, reg, st.stage);
+  if (pre) return pre;
   // Events that run in our own video room: before and during the session this link opens the room itself
   // (after it, this page shows the replay, which the room's recording fills in).
   if (ev.platform === 'room' && (st.stage === 'waiting' || st.stage === 'live' || st.stage === 'replay')) {

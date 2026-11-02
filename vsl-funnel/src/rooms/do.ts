@@ -211,7 +211,7 @@ export class RoomDO {
     for (const o of r.out) this.deliver(o.to, o.msg);
     for (const e of r.effects) await this.effect(e, now);
     if (r.changed || r.effects.length) { await this.save(); this.broadcast(now); }
-    else if (r.out.some((o) => (o.msg as { t?: string }).t === 'chat')) await this.save();
+    else if (r.out.some((o) => (o.msg as { t?: string }).t === 'chat' || (o.msg as { t?: string }).t === 'lc_from')) await this.save(); // lc_from: the waiting room's list (builder E)
   }
 
   private async effect(e: Effect, now: number) {

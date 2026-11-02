@@ -12,6 +12,7 @@
  */
 
 import { type AgendaItem, type PointAction, DEFAULT_AGENDA, QUESTION_MIN_CHARS, cleanQuiz, leaderboard } from './engage';
+import { type LcRoomState, lcApply } from './lifecycle';
 
 export type RoomMode = 'webinar' | 'meeting';
 export type Role = 'host' | 'cohost' | 'guest' | 'attendee';
@@ -119,6 +120,8 @@ export interface RoomState {
   recording: boolean;
   moq?: MoqState;
   eng?: EngageState;
+  /** The waiting room (builder E, src/rooms/lifecycle.ts). */
+  lc?: LcRoomState;
 }
 
 export const MOQ_HEALTH_MS = 20_000;
@@ -672,6 +675,8 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       return done();
     }
     case 'ping': return done({ changed: false, out: [{ to: me.id, msg: { t: 'pong', now } }] });
+    // Waiting room (builder E): early points, "say where you're from", pre-session questions into the Q&A.
+    case 'lc_early': case 'lc_from': case 'lc_from_get': case 'lc_preq': return lcApply(st, me, msg, now);
     default: return fail('unknown_message');
   }
 }

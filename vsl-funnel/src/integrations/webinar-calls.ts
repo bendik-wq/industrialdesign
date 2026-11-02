@@ -543,6 +543,13 @@ export async function queueWebinarCall(rt: Runtime, c: Candidate, now = Date.now
     if (!next) return null;
     runAt = next;
   }
+  // One person, one moment, two channels at most (builder E): a call that would land on a reminder text already sent is skipped (exact-time) or moved after it.
+  if (c.ref.startsWith('live:')) {
+    const L = await import('../live/lifecycle');
+    const slot = L.callSlot(runAt, await (await import('../live/lifecycle-db')).textsNear(rt, lead.id, runAt), Boolean(c.exactTime));
+    if (slot.skip) return null;
+    if (slot.runAt !== runAt) { const next = nextCallingTime(slot.runAt, zones); if (!next) return null; runAt = next; }
+  }
   if (runAt > want.until) return null;
   const id = newId('oc');
   await db.prepare(`INSERT INTO outbound_calls (id, lead_id, kind, status, run_at, attempts, created_at, updated_at, wc_ref, wc_meta) VALUES (?, ?, ?, 'queued', ?, 0, ?, ?, ?, ?)`)
