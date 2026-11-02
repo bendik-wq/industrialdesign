@@ -73,6 +73,8 @@ import { buildId, versionAssets } from './infra/build';
 import { normalisePath, purgeErrors, recordError } from './infra/errors';
 import { runJobs } from './infra/cron';
 import { sendSignals } from './tracking/signals';
+import { CSP_REPORT_PATH, cspReportRoute, reportingEndpoints, withReporting } from './infra/csp';
+import { PUBLIC_RATE_LIMITS, purgeRateLimits, rateLimit } from './lib/ratelimit';
 
 /**
  * The room Durable Object, with its uncaught errors written to the error log (kind "room") before they surface as
@@ -125,11 +127,26 @@ app.use('*', async (c, next) => {
   // directives cost nothing and block the worst primitives (<base> hijack, <object>/<embed> injection)
   // if a slot ever regresses. Only set when the page didn't already send its own CSP.
   if (!c.res.headers.has('content-security-policy')) c.header('content-security-policy', "object-src 'none'; base-uri 'none'; frame-ancestors 'self'");
+  // Every page's CSP (main pages, rooms, admin, whichever module set it) reports violations to /csp-report → error log.
+  // Only report directives are appended; no policy is loosened.
+  const csp = c.res.headers.get('content-security-policy');
+  if (csp && /^text\/html/i.test(c.res.headers.get('content-type') ?? '')) {
+    const reporting = withReporting(csp);
+    if (reporting !== csp) {
+      c.header('content-security-policy', reporting);
+      if (!c.res.headers.has('reporting-endpoints')) c.header('reporting-endpoints', reportingEndpoints(new URL(c.req.url).origin));
+    }
+  }
   // Versioned asset URLs: every page's /assets/*.js and *.css become ?v=<build id>, so a deploy can't serve stale files.
   if (/^text\/html/i.test(c.res.headers.get('content-type') ?? '')) c.res = versionAssets(c.res, buildId(c.env));
 });
 
 app.get('/health', (c) => c.json({ ok: true, build: buildId(c.env) }));
+// Per-connection limits on public endpoints that write, send, charge or spend AI/TURN (src/lib/ratelimit.ts has the
+// list and the audit). Registered before the routes they guard, so each runs first.
+for (const l of PUBLIC_RATE_LIMITS) app.on(l.method, l.path, rateLimit(l));
+// Browsers post CSP violations here (every CSP carries report-uri/report-to); they go to the error log as kind "csp".
+app.post(CSP_REPORT_PATH, cspReportRoute);
 // Video files with HTTP Range support (static assets answer every request with the
 // whole file, and Safari/iOS won't play an MP4 without 206 partial responses).
 app.on(['GET', 'HEAD'], '/media/:file{[\\w.-]+\\.(mp4|webm|jpg)}', async (c) => {
@@ -297,7 +314,8 @@ app.post('/admin/login', async (c) => {
     await markInternal(c.env, getCookie(c, COOKIE.visitor)).catch(() => null);
     return c.redirect('/admin', 302);
   }
-  return c.redirect(`/admin/login?error=${encodeURIComponent(res.error ?? 'Login failed')}`, 302);
+  // A short code, not the message: the login page shows only its own copy for it (no text injected through the URL).
+  return c.redirect(`/admin/login?error=${res.code ?? 'failed'}`, 302);
 });
 app.post('/admin/logout', async (c) => {
   if (!sameOriginWrite(c)) return c.text('Forbidden', 403);
@@ -425,6 +443,7 @@ export default {
       { name: 'Meta audiences (approved only)', run: () => maybeSyncAudiences(rt) },
       { name: 'Meta deep-funnel signals', run: () => sendSignals(rt) },
       { name: 'error log retention', run: () => purgeErrors(rt) },
+      { name: 'rate-limit counters', run: () => purgeRateLimits(env) },
     ]);
     type R<F extends (...a: never[]) => unknown> = Awaited<ReturnType<F>> | null;
     const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = outcomes.map((o) => o.result) as [
@@ -444,3 +463,5 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 export { runtimeFrom };
+/** Every registered route (method + path), for the security tests that check each admin write route rejects cross-site calls. */
+export const routeTable = () => app.routes.map((r) => ({ method: r.method, path: r.path }));

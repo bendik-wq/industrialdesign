@@ -3,11 +3,22 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { AppEnv } from '../app';
 import { safeEqual, signToken, verifyToken } from '../lib/crypto';
 import { getSecret } from '../lib/secret';
+import { hit } from '../lib/ratelimit';
 
 export const ADMIN_COOKIE = '_fa';
 const TTL_S = 3 * 24 * 3600;
 const MAX_FAILS = 10;
 const FAIL_WINDOW_MS = 15 * 60_000;
+/** Failed logins from all IPs together per hour before sign-in pauses for the rest of that hour. */
+export const MAX_GLOBAL_FAILS = 300;
+const GLOBAL_FAIL_WINDOW_MS = 3_600_000;
+const GLOBAL_FAIL_KEY = 'rl:login-fail:all';
+export const LOGIN_COPY = {
+  wrong: 'Wrong password',
+  tooMany: 'Too many attempts. Wait 15 minutes and try again.',
+  tooManyAll: 'Sign-in is paused after many wrong passwords. Try again within the hour.',
+  setup: 'Set the ADMIN_PASSWORD secret first: npx wrangler secret put ADMIN_PASSWORD',
+};
 
 /** Short fingerprint of the current password: changing ADMIN_PASSWORD signs every existing session out. */
 async function passwordPrint(pw: string) {
@@ -27,25 +38,34 @@ const isLocal = (c: Context<AppEnv>) => /^(localhost|127\.0\.0\.1)$/.test(new UR
  */
 export async function login(c: Context<AppEnv>, password: unknown) {
   const expected = c.env.ADMIN_PASSWORD;
-  if (!expected) return { ok: false, error: 'Set the ADMIN_PASSWORD secret first: npx wrangler secret put ADMIN_PASSWORD' };
-  // Lockout per IP: 10 wrong passwords in 15 minutes, then wait. (Cloudflare Access on /admin* is still the real fix.)
+  if (!expected) return { ok: false, error: LOGIN_COPY.setup, code: 'setup' as const };
+  // Lockout per IP: 10 attempts in 15 minutes, then wait. Counted atomically before the password is checked, so a
+  // burst of parallel guesses can't all slip in under the limit (the old read-then-write counter let them). Plus a
+  // ceiling on failed attempts from all IPs together (a guesser spread over many IPs). Cloudflare Access on /admin*
+  // is still the real fix.
   const ip = c.req.header('cf-connecting-ip') ?? 'unknown';
-  const key = `login:${ip}`;
-  const row = await c.env.DB.prepare('SELECT value FROM kv_state WHERE key = ?').bind(key).first<{ value: string }>();
-  const fails = (() => { try { const v = JSON.parse(row?.value ?? '{}') as { n?: number; t?: number }; return v.t && Date.now() - v.t < FAIL_WINDOW_MS ? v : { n: 0, t: Date.now() }; } catch { return { n: 0, t: Date.now() }; } })();
-  if ((fails.n ?? 0) >= MAX_FAILS) return { ok: false, error: 'Too many attempts. Wait 15 minutes and try again.' };
+  const key = `rl:login:${ip}`;
+  if ((await hit(c.env, key, FAIL_WINDOW_MS)) > MAX_FAILS) return { ok: false, error: LOGIN_COPY.tooMany, code: 'tooMany' as const };
+  if ((await peek(c, GLOBAL_FAIL_KEY, GLOBAL_FAIL_WINDOW_MS)) >= MAX_GLOBAL_FAILS) return { ok: false, error: LOGIN_COPY.tooManyAll, code: 'tooManyAll' as const };
   if (typeof password !== 'string' || !safeEqual(password, expected)) {
-    await c.env.DB.prepare('INSERT INTO kv_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-      .bind(key, JSON.stringify({ n: (fails.n ?? 0) + 1, t: fails.t ?? Date.now() })).run();
+    await hit(c.env, GLOBAL_FAIL_KEY, GLOBAL_FAIL_WINDOW_MS);
     console.warn('admin login failed', ip);
     await new Promise((r) => setTimeout(r, 750)); // slow down guessing
-    return { ok: false, error: 'Wrong password' };
+    return { ok: false, error: LOGIN_COPY.wrong, code: 'wrong' as const };
   }
   await c.env.DB.prepare('DELETE FROM kv_state WHERE key = ?').bind(key).run();
   const exp = Math.floor(Date.now() / 1000) + TTL_S;
-  const token = await signToken(await getSecret(c.env), `admin.${exp}.${await passwordPrint(expected)}.${await sessionEpoch(c)}`);
+  // A fresh random id per sign-in: every login gets a token never handed out before (rotation on login).
+  const sid = [...crypto.getRandomValues(new Uint8Array(9))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const token = await signToken(await getSecret(c.env), `admin.${exp}.${await passwordPrint(expected)}.${await sessionEpoch(c)}.${sid}`);
   setCookie(c, ADMIN_COOKIE, token, { path: '/', httpOnly: true, secure: !isLocal(c), sameSite: 'Strict', maxAge: TTL_S });
-  return { ok: true };
+  return { ok: true, error: null, code: null };
+}
+
+/** Hits on a counter in its current window, without counting one. */
+async function peek(c: Context<AppEnv>, key: string, windowMs: number) {
+  const row = await c.env.DB.prepare('SELECT value FROM kv_state WHERE key = ?').bind(key).first<{ value: string }>();
+  try { const v = JSON.parse(row?.value ?? '{}') as { n?: number; t?: number }; return v.t && Date.now() - v.t < windowMs ? v.n ?? 0 : 0; } catch { return 0; }
 }
 
 /** Logging out ends every admin session (the token can't be revoked any other way). */

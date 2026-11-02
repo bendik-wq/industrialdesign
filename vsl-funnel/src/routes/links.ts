@@ -12,8 +12,12 @@ import { parseUA } from '../lib/ua';
 import { geoFromRequest, isDatacenter, isLinkChecker } from '../lib/geo';
 import { safeEqual } from '../lib/crypto';
 import { smsLinkTarget } from '../integrations/sms';
+import { clientIp, overLimit } from '../lib/ratelimit';
 
 export const links = new Hono<AppEnv>();
+
+/** Tracked short links: clicks one connection can add to a link's count per hour. */
+export const CLICKS_PER_IP_HOUR = 5;
 
 const GIF = Uint8Array.from(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), (ch) => ch.charCodeAt(0));
 
@@ -125,7 +129,11 @@ links.get('/l/:code{[a-z0-9-]{3,40}}', async (c) => {
   // Link-preview bots (YouTube, iMessage, Slack…) don't count as clicks.
   const geo = geoFromRequest(c.req.raw);
   if (!parseUA(c.req.header('user-agent')).isBot && !isLinkChecker(geo) && !isDatacenter(geo)) {
-    rt.waitUntil(c.env.DB.prepare('UPDATE tracked_links SET clicks = clicks + 1, last_click_at = ? WHERE code = ?').bind(Date.now(), link.code).run());
+    // One connection counts at most CLICKS_PER_IP_HOUR times per link per hour (a refresh loop can't inflate the count).
+    rt.waitUntil((async () => {
+      if (await overLimit(c.env, `lclick:${link.code}:${clientIp(c)}`, CLICKS_PER_IP_HOUR)) return;
+      await c.env.DB.prepare('UPDATE tracked_links SET clicks = clicks + 1, last_click_at = ? WHERE code = ?').bind(Date.now(), link.code).run();
+    })());
   }
   c.header('cache-control', 'no-store');
   return c.redirect(linkTarget(rt.origin, link, new URL(c.req.url).searchParams), 302);
