@@ -3,6 +3,7 @@ import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { requireAdmin } from './auth';
 import { parseFilters } from './stats';
 import { fromMinor, passConfig } from '../webinar/pass';
+import { PAID_SALE, netMinor, paidSales } from '../lib/paid-sales';
 import { dealSprintBoard, draftEngagement, payPlanOf, updateDealSprint, updateDeliverable } from '../webinar/deal-sprint';
 
 /** Funnel HQ → Sprint board and the ladder report. Mounted at /admin/api/deal-sprint (admin-only). */
@@ -35,12 +36,13 @@ export async function ladderReport(rt: Runtime, range: { from: number; to: numbe
   type Money = { n: number | null; revenue: number | null };
   const [regs, tickets, watched, unlocked, sprints, sprintRows, plans, engagements] = await Promise.all([
     db.prepare('SELECT COUNT(*) AS n, COUNT(DISTINCT lead_id) AS people FROM webinar_registrations WHERE created_at BETWEEN ? AND ?').bind(range.from, range.to).first<{ n: number; people: number }>(),
-    db.prepare("SELECT COUNT(*) AS n, SUM(amount - refunded_amount) AS revenue FROM webinar_passes WHERE kind = 'seat' AND status = 'paid' AND paid_at BETWEEN ? AND ?").bind(range.from, range.to).first<Money>(),
+    // Tickets and Sprints: the shared sale definition (src/lib/paid-sales.ts), the same count Command and Funnel maps show.
+    paidSales(db, { table: 'webinar_passes', kinds: ['seat'] }, range).then((x): Money => ({ n: x.n, revenue: netMinor(x) })),
     db.prepare('SELECT COUNT(DISTINCT lead_id) AS n FROM webinar_registrations WHERE (joined_at IS NOT NULL OR replay_at IS NOT NULL) AND created_at BETWEEN ? AND ?').bind(range.from, range.to).first<{ n: number }>(),
     // Part 2 logs webinar_offer_unlocked when the offer opens in the room. Null until it exists.
     safe(db.prepare("SELECT COUNT(DISTINCT COALESCE(lead_id, visitor_id)) AS n FROM events WHERE name = 'webinar_offer_unlocked' AND is_bot = 0 AND ts BETWEEN ? AND ?").bind(range.from, range.to).first<{ n: number }>(), null),
-    db.prepare("SELECT COUNT(*) AS n, SUM(amount - refunded_amount) AS revenue FROM webinar_passes WHERE kind = 'offer' AND status = 'paid' AND paid_at BETWEEN ? AND ?").bind(range.from, range.to).first<Money>(),
-    db.prepare("SELECT * FROM webinar_passes WHERE kind = 'offer' AND status = 'paid' AND paid_at BETWEEN ? AND ? LIMIT 2000").bind(range.from, range.to).all<Record<string, unknown>>(),
+    paidSales(db, { table: 'webinar_passes', kinds: ['offer'] }, range).then((x): Money => ({ n: x.n, revenue: netMinor(x) })),
+    db.prepare(`SELECT * FROM webinar_passes WHERE kind = 'offer' AND ${PAID_SALE} AND paid_at BETWEEN ? AND ? LIMIT 2000`).bind(range.from, range.to).all<Record<string, unknown>>(),
     db.prepare('SELECT COUNT(*) AS n FROM deal_sprints WHERE plan_held_at BETWEEN ? AND ?').bind(range.from, range.to).first<{ n: number }>(),
     // Engagements signed by Sprint buyers. Revenue is net of the Sprint credit (the credit was already counted as Sprint revenue).
     db.prepare(

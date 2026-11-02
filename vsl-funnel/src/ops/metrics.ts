@@ -1,6 +1,6 @@
 import type { Runtime } from '../app';
 import { ECONOMICS } from '../config';
-import { fromMinor } from '../webinar/pass';
+import { type SaleQuery, type Sales, netMajor, paidSales } from '../lib/paid-sales';
 
 /**
  * Key business numbers for any time range, each with the Funnel HQ view it comes from.
@@ -61,32 +61,32 @@ export async function rawCounts(rt: Runtime, r: { from: number; to: number }): P
   const one = async (sql: string, args: (string | number)[]) => {
     try { return (await db.prepare(sql).bind(...args).first<Record<string, unknown>>()) ?? {}; } catch (e) { console.error('ops metric', e); return {}; }
   };
-  const many = async (sql: string, args: (string | number)[]) => {
-    try { return (await db.prepare(sql).bind(...args).all<Record<string, unknown>>()).results; } catch (e) { console.error('ops metric', e); return []; }
+  const sales = async (q: SaleQuery): Promise<Sales> => {
+    try { return await paidSales(db, q, r); } catch (e) { console.error('ops metric', e); return { n: 0, byCurrency: [], currency: null }; }
   };
   const F = r.from, T = r.to;
-  const [vis, leads, apps, wreg, lreg, creg, seat, cticket, book, calls, deals, passes, spend] = await Promise.all([
+  const [vis, leads, apps, wreg, lreg, creg, seat, cticket, book, calls, deals, offer, dep, spend] = await Promise.all([
     one('SELECT COUNT(DISTINCT visitor_id) AS n FROM sessions WHERE started_at BETWEEN ? AND ? AND is_bot = 0', [F, T]),
     one('SELECT COUNT(*) AS n FROM leads WHERE created_at BETWEEN ? AND ?', [F, T]),
     one('SELECT COUNT(*) AS n FROM leads WHERE app_completed_at BETWEEN ? AND ?', [F, T]),
     one('SELECT COUNT(*) AS n FROM webinar_registrations WHERE created_at BETWEEN ? AND ?', [F, T]),
     one('SELECT COUNT(*) AS n FROM live_webinar_regs WHERE created_at BETWEEN ? AND ?', [F, T]),
     one("SELECT COUNT(*) AS n FROM challenge_registrations WHERE paid_at BETWEEN ? AND ? AND status IN ('paid', 'refunded')", [F, T]),
-    one("SELECT COUNT(*) AS n FROM webinar_passes WHERE kind IN ('seat', 'live_ticket') AND status IN ('paid', 'refunded') AND paid_at BETWEEN ? AND ?", [F, T]),
-    one("SELECT COUNT(*) AS n FROM challenge_orders WHERE kind = 'ticket' AND status IN ('paid', 'refunded') AND paid_at BETWEEN ? AND ?", [F, T]),
+    // Sales (tickets, Sprints, deposits): one shared definition, src/lib/paid-sales.ts.
+    sales({ table: 'webinar_passes', kinds: ['seat', 'live_ticket'] }),
+    sales({ table: 'challenge_orders', kinds: ['ticket'] }),
     one('SELECT COUNT(*) AS n FROM leads WHERE booked_at BETWEEN ? AND ? AND booking_cancelled_at IS NULL', [F, T]),
     one("SELECT SUM(status IN ('showed', 'won', 'lost')) AS held, SUM(status = 'no_show') AS no_show FROM leads WHERE booked_at IS NOT NULL AND booking_cancelled_at IS NULL AND call_at BETWEEN ? AND ?", [F, T]),
     one("SELECT COUNT(*) AS n, COALESCE(SUM(revenue), 0) AS revenue FROM leads WHERE status = 'won' AND closed_at BETWEEN ? AND ?", [F, T]),
-    many("SELECT kind, currency, COUNT(*) AS n, COALESCE(SUM(amount - refunded_amount), 0) AS amount FROM webinar_passes WHERE kind IN ('offer', 'deposit') AND status IN ('paid', 'refunded') AND paid_at BETWEEN ? AND ? GROUP BY 1, 2", [F, T]),
+    sales({ table: 'webinar_passes', kinds: ['offer'] }),
+    sales({ table: 'webinar_passes', kinds: ['deposit'] }),
     one('SELECT COALESCE(SUM(spend), 0) AS spend, MAX(currency) AS currency FROM ad_spend WHERE day BETWEEN ? AND ?', spendDays(F, T)),
   ]);
-  const sumKind = (k: string) => passes.filter((p) => p.kind === k).reduce<{ n: number; amount: number }>((a, p) => ({ n: a.n + num(p.n), amount: a.amount + fromMinor(num(p.amount), String(p.currency || 'usd')) }), { n: 0, amount: 0 });
-  const offer = sumKind('offer'), dep = sumKind('deposit');
-  const cur = String(passes.find((p) => p.currency)?.currency ?? 'usd').toUpperCase();
+  const cur = offer.currency ?? dep.currency ?? 'USD';
   return {
     visitors: num(vis.n), leads: num(leads.n), applications: num(apps.n), webinar_regs: num(wreg.n), live_regs: num(lreg.n), challenge_regs: num(creg.n),
-    tickets: num(seat.n) + num(cticket.n), bookings: num(book.n), calls_held: num(calls.held), no_shows: num(calls.no_show), deals: num(deals.n), revenue: num(deals.revenue),
-    sprint_sales: offer.n, sprint_revenue: offer.amount, deposits: dep.n, deposit_revenue: dep.amount, ad_spend: num(spend.spend),
+    tickets: seat.n + cticket.n, bookings: num(book.n), calls_held: num(calls.held), no_shows: num(calls.no_show), deals: num(deals.n), revenue: num(deals.revenue),
+    sprint_sales: offer.n, sprint_revenue: netMajor(offer), deposits: dep.n, deposit_revenue: netMajor(dep), ad_spend: num(spend.spend),
     pass_currency: cur, ad_currency: spend.currency ? String(spend.currency).toUpperCase() : null,
   };
 }

@@ -5,7 +5,7 @@ import { SEQUENCES } from '../integrations/sequences';
 import { LONG_FLOWS } from '../longflow';
 import { LONG_STEP } from '../longflow/engine';
 import { LIVE_STEP } from '../live/events';
-import { fromMinor } from '../webinar/pass';
+import { type SaleQuery, netMajor, paidSales } from '../lib/paid-sales';
 import { overview, parseFilters } from './stats';
 import { type Automation, FUNNEL_MAPS, type FunnelMapDef, type Stage, mapById } from './funnel-maps-defs';
 
@@ -27,7 +27,6 @@ type Counts = Record<string, Count>;
 interface Range { from: number; to: number }
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0);
-const PAID = "status IN ('paid', 'refunded')";
 const SENT = "status IN ('sent', 'simulated')";
 
 function counter(rt: Runtime, r: Range) {
@@ -36,18 +35,13 @@ function counter(rt: Runtime, r: Range) {
   const one = async (sql: string, args: (string | number)[] = [r.from, r.to]): Promise<number | null> => {
     try { const row = await db.prepare(sql).bind(...args).first<{ n: unknown }>(); return num(row?.n); } catch { return null; }
   };
-  const money = async (sql: string, args: (string | number)[] = [r.from, r.to]) => {
-    try {
-      const { results } = await db.prepare(sql).bind(...args).all<{ n: unknown; amount: unknown; currency: string | null }>();
-      if (!results.length) return { n: 0, revenue: 0, currency: undefined as string | undefined };
-      let n = 0, revenue = 0, currency: string | undefined;
-      for (const x of results) { n += num(x.n); const cur = String(x.currency || 'usd'); revenue += fromMinor(num(x.amount), cur); currency ??= cur.toUpperCase(); }
-      return { n, revenue, currency };
-    } catch { return null; }
+  /** Tickets, Sprints, deposits and challenge orders: the shared sale definition (src/lib/paid-sales.ts). */
+  const sale = async (q: SaleQuery) => {
+    try { const x = await paidSales(db, q, r); return { n: x.n, revenue: netMajor(x), currency: x.currency ?? undefined }; } catch { return null; }
   };
   const c = (n: number | null, unit: string): Count => ({ n, unit });
-  const m = (x: Awaited<ReturnType<typeof money>>, unit: string): Count => (x ? { n: x.n, unit, revenue: x.revenue, currency: x.currency } : { n: null, unit });
-  return { one, money, c, m };
+  const m = (x: Awaited<ReturnType<typeof sale>>, unit: string): Count => (x ? { n: x.n, unit, revenue: x.revenue, currency: x.currency } : { n: null, unit });
+  return { one, sale, c, m };
 }
 
 const visitorsWhere = (where: string) => `SELECT COUNT(DISTINCT visitor_id) AS n FROM sessions WHERE started_at BETWEEN ? AND ? AND is_bot = 0 AND ${where}`;
@@ -81,15 +75,15 @@ async function vslCounts(rt: Runtime, r: Range, query: Record<string, string>): 
 }
 
 async function autoCounts(rt: Runtime, r: Range): Promise<Counts> {
-  const { one, money, c, m } = counter(rt, r);
+  const { one, sale, c, m } = counter(rt, r);
   const offerIds = "SELECT id FROM webinar_passes WHERE kind = 'offer'";
   const [landing, reg, ticket, attended, unlocked, sprint, plan, proposal, signed, missed, replay] = await Promise.all([
     one("SELECT COUNT(DISTINCT visitor_id) AS n FROM events WHERE ts BETWEEN ? AND ? AND is_bot = 0 AND name = 'webinar_headline_view'"),
     one('SELECT COUNT(*) AS n FROM webinar_registrations WHERE created_at BETWEEN ? AND ?'),
-    money(`SELECT COUNT(*) AS n, SUM(amount - COALESCE(refunded_amount, 0)) AS amount, currency FROM webinar_passes WHERE kind = 'seat' AND ${PAID} AND paid_at BETWEEN ? AND ? GROUP BY currency`),
+    sale({ table: 'webinar_passes', kinds: ['seat'] }),
     one('SELECT COUNT(*) AS n FROM webinar_registrations WHERE joined_at BETWEEN ?1 AND ?2 OR replay_at BETWEEN ?1 AND ?2'),
     one('SELECT COUNT(*) AS n FROM webinar_registrations WHERE offer_unlocked_at BETWEEN ? AND ?'),
-    money(`SELECT COUNT(*) AS n, SUM(amount - COALESCE(refunded_amount, 0)) AS amount, currency FROM webinar_passes WHERE kind = 'offer' AND ${PAID} AND paid_at BETWEEN ? AND ? GROUP BY currency`),
+    sale({ table: 'webinar_passes', kinds: ['offer'] }),
     one('SELECT COUNT(*) AS n FROM deal_sprints WHERE plan_held_at BETWEEN ? AND ?'),
     one('SELECT COUNT(*) AS n FROM deal_sprints WHERE proposal_sent_at BETWEEN ? AND ?'),
     one(`SELECT COUNT(*) AS n FROM contracts WHERE signed_at BETWEEN ? AND ? AND COALESCE(is_test, 0) = 0 AND voided_at IS NULL AND credit_pass_id IN (${offerIds})`),
@@ -104,14 +98,14 @@ async function autoCounts(rt: Runtime, r: Range): Promise<Counts> {
 }
 
 async function liveCounts(rt: Runtime, r: Range): Promise<Counts> {
-  const { one, money, c, m } = counter(rt, r);
+  const { one, sale, c, m } = counter(rt, r);
   const [landing, reg, ticket, joined, seen, deposit, signed, replay] = await Promise.all([
     one(pageVisitors('/live')),
     one('SELECT COUNT(*) AS n FROM live_webinar_regs WHERE created_at BETWEEN ? AND ?'),
-    money(`SELECT COUNT(*) AS n, SUM(amount - COALESCE(refunded_amount, 0)) AS amount, currency FROM webinar_passes WHERE kind = 'live_ticket' AND ${PAID} AND paid_at BETWEEN ? AND ? GROUP BY currency`),
+    sale({ table: 'webinar_passes', kinds: ['live_ticket'] }),
     one('SELECT COUNT(*) AS n FROM live_webinar_regs WHERE joined_at BETWEEN ? AND ?'),
     one('SELECT COUNT(*) AS n FROM live_webinar_regs WHERE offer_seen_at BETWEEN ? AND ?'),
-    money(`SELECT COUNT(*) AS n, SUM(amount - COALESCE(refunded_amount, 0)) AS amount, currency FROM webinar_passes WHERE kind = 'deposit' AND source = 'live' AND ${PAID} AND paid_at BETWEEN ? AND ? GROUP BY currency`),
+    sale({ table: 'webinar_passes', kinds: ['deposit'], source: 'live' }),
     one(signedWhere("SELECT lead_id FROM webinar_passes WHERE kind = 'deposit' AND source = 'live' AND status = 'paid'")),
     one('SELECT COUNT(*) AS n FROM live_webinar_regs WHERE replay_at BETWEEN ? AND ?'),
   ]);
@@ -122,18 +116,20 @@ async function liveCounts(rt: Runtime, r: Range): Promise<Counts> {
 }
 
 async function challengeCounts(rt: Runtime, r: Range): Promise<Counts> {
-  const { one, money, c, m } = counter(rt, r);
+  const { one, sale, c, m } = counter(rt, r);
   const day = (n: number) => one(`SELECT COUNT(*) AS n FROM challenge_progress WHERE day = ${n} AND (present_at BETWEEN ?1 AND ?2 OR replay_at BETWEEN ?1 AND ?2)`);
   const [landing, reg, ticket, vip, d1, d2, d3, d4, d5, homework, hotseat, deposit, signed] = await Promise.all([
     one(pageVisitors('/challenge')),
     one('SELECT COUNT(*) AS n FROM challenge_registrations WHERE created_at BETWEEN ? AND ?'),
-    money(`SELECT COUNT(*) AS n, SUM(amount - COALESCE(refunded_amount, 0)) AS amount, currency FROM challenge_orders WHERE kind = 'ticket' AND ${PAID} AND paid_at BETWEEN ? AND ? GROUP BY currency`),
-    money(`SELECT COUNT(*) AS n, SUM(amount - COALESCE(refunded_amount, 0)) AS amount, currency FROM challenge_orders WHERE kind = 'vip' AND ${PAID} AND paid_at BETWEEN ? AND ? GROUP BY currency`),
+    sale({ table: 'challenge_orders', kinds: ['ticket'] }),
+    sale({ table: 'challenge_orders', kinds: ['vip'] }),
     day(1), day(2), day(3), day(4), day(5),
     one('SELECT COUNT(*) AS n FROM challenge_homework WHERE created_at BETWEEN ? AND ?'),
     one('SELECT COUNT(*) AS n FROM challenge_hot_seats WHERE created_at BETWEEN ? AND ?'),
-    money('SELECT COUNT(*) AS n, SUM(amount) AS amount, currency FROM challenge_deposits WHERE paid_at BETWEEN ? AND ? GROUP BY currency'),
-    one(signedWhere('SELECT lead_id FROM challenge_deposits WHERE paid_at IS NOT NULL')),
+    // The deposit payment rows themselves (net of refunds), as Command and the live map count them; the
+    // challenge_deposits table only mirrors them for the offer emails and never records a refund.
+    sale({ table: 'webinar_passes', kinds: ['deposit'], source: 'challenge' }),
+    one(signedWhere("SELECT lead_id FROM webinar_passes WHERE kind = 'deposit' AND source = 'challenge' AND status = 'paid'")),
   ]);
   return {
     landing: c(landing, 'visitors'), registered: c(reg, 'signed up'), ticket: m(ticket, 'tickets paid'), vip: m(vip, 'VIP upgrades'),
