@@ -5,7 +5,8 @@ import { getLead, linkVisitor } from '../funnel/leads';
 import { guaranteeHtml } from '../sales/deposit';
 import { playbackFor } from '../live/stream';
 import { buyerFeePercent } from '../webinar/one-click';
-import { CHALLENGE_NAME, CHECKOUT, DAY_PAGE, DAYS, HUB, LANDING, OFFER, ROOM_DAY, dayContent } from './content';
+import { CHALLENGE_NAME, CHECKOUT, DAY_PAGE, DAYS, HUB, LANDING, OFFER, ROOM_DAY, TRACKER, dayContent } from './content';
+import { attendanceStreak, dayComplete, participantUnlocks, todaysHomework } from './progress';
 import { type LoadedCohort, type Registration, challengeConfig, getReg, loadCohort, money, nextCohort } from './cohorts';
 import { confirmOnReturn, hostedCheckout, nextStep, payFormConfig, payUrl, skipVip, vipOffer, welcomeUrl } from './payments';
 import { offerView } from './offer';
@@ -314,13 +315,46 @@ function sessionCard(v: ParticipantView, reg: Registration, d: ParticipantView['
   return `<div class="chx-sc${d.phase === 'live' ? ' is-live' : ''}${o.compact ? ' is-compact' : ''}" data-ch-session data-day="${d.day}" data-starts="${d.starts_at}" data-ends="${dayEnds(d)}">${state}</div>`;
 }
 
-export function progressHtml(v: Pick<ParticipantView, 'days' | 'progress'>) {
+export interface TrackerExtra {
+  token: string; tz: string; now: number; streak: number;
+  today: { day: number; title: string; due: number | null; done: boolean } | null;
+  unlocks: Awaited<ReturnType<typeof participantUnlocks>>;
+  dueOffer?: boolean;
+}
+
+/** The 5-day tracker: real completion (there + worksheet), the streak, today's worksheet with its due time, room unlocks. */
+export function progressHtml(v: Pick<ParticipantView, 'days' | 'progress'>, x?: TrackerExtra) {
+  const complete = v.days.filter((d) => dayComplete(d.progress)).length;
   const items = v.days.map((d) => {
     const p = d.progress;
-    const state = p.live ? HUB.attended : p.replay ? HUB.watched : d.phase === 'ended' ? HUB.notYet : HUB.upcoming;
-    return `<li class="chx-pg-i${p.live || p.replay ? ' att' : ''}${p.homework ? ' hw' : ''}"><span class="chx-pg-ring" aria-hidden="true">${p.homework ? ICON.check : d.day}</span><span class="chx-pg-l">Day ${d.day}</span><span class="chx-pg-s">${esc(state)}${p.homework ? ` · ${esc(HUB.homework)}` : ''}</span></li>`;
+    const came = p.live || p.replay;
+    const done = dayComplete(p);
+    const state = done ? TRACKER.complete : came ? TRACKER.attendedOpen : d.phase === 'live' ? TRACKER.live : d.phase === 'ended' ? (p.homework ? HUB.homework : TRACKER.missed) : TRACKER.upcoming;
+    const cls = `${came ? ' att' : ''}${p.homework ? ' hw' : ''}${done ? ' done' : ''}${d.phase === 'live' ? ' now' : ''}${!came && d.phase === 'ended' ? ' miss' : ''}`;
+    return `<li class="chx-pg-i${cls}"><span class="chx-pg-ring" aria-hidden="true">${p.homework ? ICON.check : d.day}</span><span class="chx-pg-l">Day ${d.day}</span><span class="chx-pg-s">${esc(state)}</span></li>`;
   }).join('');
-  return `<div class="chx-pg"><div class="chx-pg-head"><h2 class="chx-h3">${esc(HUB.progressHeading)}</h2><p class="chx-pg-sum">${v.progress.attended} of 5 sessions · ${v.progress.homework} of 5 worksheets</p></div><ol class="chx-pg-list">${items}</ol></div>`;
+  const streak = x && x.streak > 0 ? `<p class="chx-pg-streak"><strong>${x.streak}</strong> ${esc(x.streak === 1 ? TRACKER.streakOne : TRACKER.streakMany)}</p>` : '';
+  const bar = `<div class="chx-pg-bar" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="${complete}" aria-label="${complete} of 5 ${esc(TRACKER.completeSum)}"><span style="width:${complete * 20}%"></span></div>`;
+  let today = '';
+  if (x?.today) {
+    const t = x.today;
+    const next = v.days.find((d) => d.day === t.day + 1);
+    const dueLine = next ? `${TRACKER.dueBefore} ${t.day + 1} ${TRACKER.dueBeforeStarts}: ` : x.dueOffer ? `${TRACKER.dueOffer}: ` : `${TRACKER.due}: `;
+    const body = t.done
+      ? `<p class="chx-ok">${ICON.check} ${esc(TRACKER.done)}</p>`
+      : `${t.due != null ? `<p class="chx-fine">${esc(dueLine)}<span data-local-when="${t.due}">${esc(formatWhen(t.due, x.tz))}</span> · ${cd(t.due, x.now)}</p>` : ''}<a class="chx-go" href="/challenge/day/${esc(x.token)}/${t.day}#worksheet">${esc(TRACKER.finish)} ${ICON.arrow}</a>`;
+    today = `<div class="chx-pg-today${t.done ? ' is-done' : ''}"><p class="chx-eyebrow">${esc(TRACKER.todayHeading)}</p><p class="chx-pg-today-t"><strong>Day ${t.day}: ${esc(t.title)}</strong></p>${body}</div>`;
+  }
+  let unl = '';
+  const u = x?.unlocks;
+  if (u) {
+    const have = u.have.length ? `<ul class="chx-pg-unl">${u.have.map((a) => `<li>${ICON.check}<a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}</a></li>`).join('')}</ul>` : '';
+    const nx = u.next ? `<p class="chx-pg-next">${esc(u.next.title)} ${esc(TRACKER.nextAt)} ${u.next.at} ${esc(TRACKER.points)} ${esc(TRACKER.inRoom)} ${u.next.day} ${esc(TRACKER.roomSuffix)}. ${esc(TRACKER.youHave)} ${u.next.points}.</p>` : '';
+    const end = u.atEnd.length ? `<p class="chx-fine">${esc(TRACKER.atEnd)}: ${esc(u.atEnd.join(', '))}.</p>` : '';
+    const total = u.total ? `<p class="chx-fine">${u.total} ${esc(TRACKER.pointsTotal)}</p>` : '';
+    if (have || nx || end) unl = `<div class="chx-pg-room"><p class="chx-eyebrow">${esc(TRACKER.unlockHeading)}</p>${have ? `<p class="chx-fine">${esc(TRACKER.unlocked)}</p>${have}` : ''}${nx}${end}${total}</div>`;
+  }
+  return `<div class="chx-pg"><div class="chx-pg-head"><h2 class="chx-h3">${esc(HUB.progressHeading)}</h2><p class="chx-pg-sum">${v.progress.attended} of 5 sessions · ${v.progress.homework} of 5 worksheets</p></div>${bar}${streak}<ol class="chx-pg-list">${items}</ol>${today}${unl}</div>`;
 }
 
 export function offerBlockHtml(o: { view: Awaited<ReturnType<typeof offerView>>; closeAt: number | null; now: number; soft: boolean; guarantee: string; open: boolean; token: string; day: number }) {
@@ -365,7 +399,7 @@ export async function hubPage(c: Context<AppEnv>) {
     <div class="chx-hub-head"><p class="chx-eyebrow">${esc(HUB.eyebrow)}${v.vip ? ` <span class="chx-vip">${esc(HUB.vipBadge)}</span>` : ''}</p><h1 class="chx-h1 chx-h1-s">${esc(lead?.first_name ? `${lead.first_name}, your five days` : CHALLENGE_NAME)}</h1><p class="chx-sub">${esc(v.cohort.name)} · ${esc(summaryLine({ cohort: v.cohort, days: v.days, closeAt: v.closeAt } as LoadedCohort))}</p></div>
     ${sessionCard(v, reg, focus)}
     ${offer}
-    ${progressHtml(v)}
+    ${progressHtml(v, await trackerExtra(rt, reg, v))}
     <h2 class="chx-h3 chx-mt">All five days</h2>
     <ol class="chx-days">${rows}</ol>
     <p class="chx-fine">${esc(replays)}</p>
@@ -378,6 +412,12 @@ export async function hubPage(c: Context<AppEnv>) {
     navright: v.vip ? `<span class="chx-vip">${esc(HUB.vipBadge)}</span>` : '',
     config: { token: reg.token, now: v.now, deposit: '/api/challenge/deposit' },
   });
+}
+
+async function trackerExtra(rt: Runtime, reg: Registration, v: ParticipantView): Promise<TrackerExtra> {
+  const prog = v.days.map((d) => d.progress);
+  const unlocks = v.days.some((d) => d.join_url === ROOM_JOIN) ? await participantUnlocks(rt, reg, v.days.find((d) => d.phase !== 'ended')?.day ?? null).catch(() => null) : null;
+  return { token: reg.token, tz: v.cohort.timezone, now: v.now, streak: attendanceStreak(v.days, prog, v.now), today: todaysHomework(v.days, prog, v.closeAt, v.now), unlocks, dueOffer: v.closeAt != null };
 }
 
 /** /challenge/today/:token (texts): the day page of the session that matters now. */
@@ -415,7 +455,7 @@ export async function replayRedirect(c: Context<AppEnv>) {
 function worksheetHtml(day: number, saved: Awaited<ReturnType<typeof homeworkFor>>, locked: boolean) {
   const c = dayContent(day)!;
   const val = (k: string) => esc(saved?.answers[k] ?? '');
-  return `<section class="chx-ws" aria-labelledby="chx-ws-h">
+  return `<section class="chx-ws" id="worksheet" aria-labelledby="chx-ws-h">
     <h2 class="chx-h3" id="chx-ws-h">${esc(c.worksheet.heading)}</h2>
     <p class="chx-p">${esc(c.worksheet.intro)}</p>
     ${locked ? `<p class="chx-fine">${esc(DAY_PAGE.locked)}</p>` : `<form data-ch-ws data-day="${day}">

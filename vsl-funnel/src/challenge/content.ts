@@ -202,6 +202,35 @@ export const HUB = {
   allDone: 'All five sessions are done.',
 };
 
+/** The hub's progress tracker (round 2): real completion, the streak, today's worksheet and the room unlocks. */
+export const TRACKER = {
+  complete: 'Complete',
+  attendedOpen: 'Attended, worksheet open',
+  missed: 'Missed',
+  live: 'Live now',
+  upcoming: 'Coming up',
+  completeSum: 'days complete',
+  streakOne: 'day in a row attended',
+  streakMany: 'days in a row attended',
+  todayHeading: 'Today’s worksheet',
+  dueBefore: 'Due before Day',
+  dueBeforeStarts: 'starts',
+  dueOffer: 'Due before the offer closes',
+  due: 'Due',
+  done: 'In. The team can see it.',
+  finish: 'Finish the worksheet',
+  open: 'Open the worksheet',
+  unlockHeading: 'In the live room',
+  unlocked: 'Unlocked',
+  nextAt: 'unlocks at',
+  points: 'points',
+  inRoom: 'in the Day',
+  roomSuffix: 'room',
+  youHave: 'You have',
+  atEnd: 'Stay to the end of a session to unlock',
+  pointsTotal: 'points across the challenge so far',
+};
+
 export const DAY_PAGE = {
   back: 'Your challenge',
   worksheetSave: 'Submit worksheet',

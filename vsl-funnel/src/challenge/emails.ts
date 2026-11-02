@@ -24,6 +24,8 @@ export const CH_STEPS: string[] = [
   ...DAYS.flatMap((d) => PHASES.map((p) => `ch_d${d.n}_${p}`)),
   'ch_offer_1', 'ch_offer_2', 'ch_offer_3', 'ch_offer_4',
   'ch_vip_welcome',
+  // The homework reminder (progress.ts): off unless the owner turns it on in Funnel HQ → Challenge.
+  ...DAYS.map((d) => `ch_d${d.n}_hw`),
 ];
 
 /** The send time of every step for a cohort (null = not sent). Pure, for the tests. */
@@ -84,6 +86,14 @@ export async function startChallengeMessages(rt: Runtime, regId: string, now = D
   await rt.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE lead_id = ? AND sequence = 'challenge' AND status = 'pending' AND (step < ? OR step >= ?)")
     .bind(lead.id, reg.seq * CH_CYCLE, (reg.seq + 1) * CH_CYCLE).run();
   const plan = planChallengeEmails({ days: L.days, tz: L.cohort.timezone, hours: offerHours(rt.settings), now });
+  // Homework reminders: scheduled only while the switch is on, inside sending hours in the person's own time zone.
+  const P = await import('./progress');
+  const prefs = await P.getPrefs(rt);
+  const close = offerCloseAt(L.days, offerHours(rt.settings));
+  for (const d of L.days) {
+    const at = prefs.hwReminders ? P.hwReminderAt(L.days, d.day, close, lead.timezone || L.cohort.timezone, prefs.hwHours) : null;
+    plan.set(`ch_d${d.day}_hw`, at != null && at >= now - 5 * MIN ? at : null);
+  }
   const db = rt.env.DB;
   const stmts = CH_STEPS.flatMap((template, j) => {
     const at = plan.get(template);
@@ -155,6 +165,7 @@ export function challengeSkip(template: string) {
     if (!reg) return true;
     const m = /^ch_d(\d)_(\w+)$/.exec(template);
     if (m && m[2] === 'vip') return !reg.vip;
+    if (m && m[2] === 'hw') return hwSkip(rt, lead, reg, Number(m[1]));
     if (m && m[2] === 'after') {
       const p = await rt.env.DB.prepare('SELECT joined_at, present_at, replay_at, homework_at FROM challenge_progress WHERE reg_id = ? AND day = ?').bind(reg.id, Number(m[1])).first<{ joined_at: number | null; present_at: number | null; replay_at: number | null; homework_at: number | null }>();
       return Boolean(p && (p.joined_at || p.present_at || p.replay_at) && p.homework_at);
@@ -167,6 +178,57 @@ export function challengeSkip(template: string) {
     }
     return false;
   };
+}
+
+/**
+ * The homework reminder goes only while the switch is on, to someone who attended that day live and hasn't
+ * submitted the worksheet, inside sending hours in their time zone (a late cron run never sends at night).
+ */
+async function hwSkip(rt: Runtime, lead: Lead, reg: RegRow, day: number) {
+  const P = await import('./progress');
+  const prefs = await P.getPrefs(rt);
+  if (!prefs.hwReminders) return true;
+  const p = await rt.env.DB.prepare('SELECT joined_at, present_at, homework_at FROM challenge_progress WHERE reg_id = ? AND day = ?').bind(reg.id, day).first<{ joined_at: number | null; present_at: number | null; homework_at: number | null }>();
+  if (!p || !(p.joined_at || p.present_at) || p.homework_at) return true;
+  const c = await rt.env.DB.prepare('SELECT timezone FROM challenge_cohorts WHERE id = ?').bind(reg.cohort_id).first<{ timezone: string }>();
+  return !P.inSendingHours(Date.now(), lead.timezone || c?.timezone || 'UTC', prefs.hwHours);
+}
+
+/** Switching the reminder on schedules it for every cohort still running; switching it off cancels the unsent ones. */
+export async function resyncHomeworkReminders(rt: Runtime, on: boolean, now = Date.now()) {
+  if (!on) {
+    const r = await rt.env.DB.prepare("UPDATE emails SET status = 'cancelled' WHERE sequence = 'challenge' AND status = 'pending' AND template LIKE 'ch_d%_hw'").run();
+    return r.meta.changes ?? 0;
+  }
+  const { results } = await rt.env.DB.prepare(
+    "SELECT c.id FROM challenge_cohorts c JOIN challenge_days d ON d.cohort_id = c.id AND d.day = 5 WHERE c.status = 'scheduled' AND d.starts_at + d.duration_min * 60000 > ?",
+  ).bind(now - 48 * HOUR).all<{ id: string }>();
+  let n = 0;
+  for (const c of results) {
+    const regs = await rt.env.DB.prepare("SELECT id FROM challenge_registrations WHERE cohort_id = ? AND status = 'paid'").bind(c.id).all<{ id: string }>();
+    for (const r of regs.results) n += await scheduleHomeworkReminders(rt, r.id, now);
+  }
+  return n;
+}
+
+/** Only the homework reminder rows for one registration (nothing else in the run is touched). */
+export async function scheduleHomeworkReminders(rt: Runtime, regId: string, now = Date.now()) {
+  const L = await loadFor(rt, regId);
+  if (!L || L.reg.status !== 'paid' || L.cohort.status !== 'scheduled' || !L.lead.email || L.lead.unsubscribed_at) return 0;
+  const P = await import('./progress');
+  const prefs = await P.getPrefs(rt);
+  if (!prefs.hwReminders) return 0;
+  const close = offerCloseAt(L.days, offerHours(rt.settings));
+  const db = rt.env.DB;
+  const stmts = L.days.flatMap((d) => {
+    const at = P.hwReminderAt(L.days, d.day, close, L.lead.timezone || L.cohort.timezone, prefs.hwHours);
+    if (at == null || at < now - 5 * MIN) return [];
+    const template = `ch_d${d.day}_hw`;
+    return [db.prepare(`INSERT INTO emails (id, lead_id, sequence, step, template, to_email, send_at, status, created_at) VALUES (?, ?, 'challenge', ?, ?, ?, ?, 'pending', ?) ON CONFLICT(lead_id, sequence, step) DO UPDATE SET send_at = excluded.send_at, status = 'pending', to_email = excluded.to_email, attempts = 0 WHERE emails.status IN ('pending', 'cancelled')`)
+      .bind(newId('m'), L.lead.id, L.reg.seq * CH_CYCLE + CH_STEPS.indexOf(template), template, L.lead.email, at, now)];
+  });
+  if (stmts.length) await db.batch(stmts);
+  return stmts.length;
 }
 
 // ───────────── template context ─────────────
@@ -275,6 +337,17 @@ function dayTemplates(n: number): Record<string, T> {
         cta: { label: d.attended ? 'Finish my worksheet →' : 'Watch and catch up →', href: d.page },
       };
     },
+    [`ch_d${n}_hw`]: (c) => ({
+      subject: `your Day ${n} worksheet is still open`,
+      preheader: n < 5 ? `Finish it before Day ${n + 1} starts.` : 'It turns your five days into one plan.',
+      body: [
+        `${c.name},`,
+        `You were on Day ${n} live: ${lower(day(c, n).title)}. Your worksheet for it isn’t in yet.`,
+        n < 5 ? `It takes about ten minutes, and Day ${n + 1} at ${day(c, n + 1).when} builds on it.` : 'It takes about ten minutes and pulls your four worksheets into one page.',
+        'Your answers stay private to you and Josh’s team.',
+      ],
+      cta: { label: 'Finish my worksheet →', href: `${day(c, n).page}#worksheet` },
+    }),
     [`ch_d${n}_vip`]: (c) => ({
       subject: `VIP: the Day ${n} hot seat`,
       preheader: 'Straight after the session.',

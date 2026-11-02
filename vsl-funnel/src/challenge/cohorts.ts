@@ -175,9 +175,17 @@ export async function updateDay(rt: Runtime, cohortId: string, day: number, body
   const replay = body.replay_url !== undefined ? httpsOrNull(body.replay_url) : cur.replay_url;
   const hot = body.hot_seat_url !== undefined ? httpsOrNull(body.hot_seat_url) : cur.hot_seat_url;
   const platform = body.platform === 'room' || body.platform === 'zoom' ? body.platform : cur.platform ?? 'zoom';
-  await rt.env.DB.prepare('UPDATE challenge_days SET starts_at = ?, duration_min = ?, join_url = ?, replay_url = ?, hot_seat_url = ?, edited = ?, platform = ?, updated_at = ? WHERE cohort_id = ? AND day = ?')
-    .bind(startsAt, duration, join, replay, hot, edited, platform, now, cohortId, day).run();
-  if (platform === 'room') await (await import('../rooms/rooms')).ensureRoomFor(rt, 'challenge', eventKey(cohortId, day), { title: `The First Deal Challenge, Day ${day} (${c.name})`.slice(0, 200), startsAt, durationMin: duration }).catch((e) => console.error('room', String(e).slice(0, 200)));
+  // The day's automatic push schedule for our room (blank = the day's default; progress.ts).
+  const P = await import('./progress');
+  const autoPush = body.auto_push !== undefined ? P.cleanDayAutoPush(day, body.auto_push) : cur.auto_push ?? null;
+  await rt.env.DB.prepare('UPDATE challenge_days SET starts_at = ?, duration_min = ?, join_url = ?, replay_url = ?, hot_seat_url = ?, edited = ?, platform = ?, auto_push = ?, updated_at = ? WHERE cohort_id = ? AND day = ?')
+    .bind(startsAt, duration, join, replay, hot, edited, platform, autoPush, now, cohortId, day).run();
+  if (platform === 'room') {
+    await (await import('../rooms/rooms')).ensureRoomFor(rt, 'challenge', eventKey(cohortId, day), { title: `The First Deal Challenge, Day ${day} (${c.name})`.slice(0, 200), startsAt, durationMin: duration }).catch((e) => console.error('room', String(e).slice(0, 200)));
+    // A new room gets the day's schedule; an edit made here replaces the room's (an edit on the room itself stays until then).
+    const changed = body.auto_push !== undefined && autoPush !== (cur.auto_push ?? null);
+    await P.applyDayAutoPush(rt, cohortId, day, P.effectiveAutoPush(day, autoPush), { force: changed }).catch((e) => console.error('room auto push', String(e).slice(0, 200)));
+  }
   // The live engine holds the link the room hands out: a link changed (or cleared) here changes it there too.
   await upsertLiveEvent(rt, eventKey(cohortId, day), { startsAt, durationMin: duration, ...(body.join_url !== undefined ? { joinUrl: join } : {}) }).catch((e) => console.error('live event', String(e).slice(0, 200)));
   return { moved: startsAt !== cur.starts_at || duration !== cur.duration_min, replayAdded: !cur.replay_url && Boolean(replay) };

@@ -4,9 +4,10 @@ import { REVENUE_LABEL } from '../sales/qualify';
 import { fromMinor } from '../webinar/pass';
 import { DAY_TITLES, dayContent } from './content';
 import { CohortError, challengeConfig, createCohort, getDays, loadCohort, syncLiveEvents, updateCohort, updateDay } from './cohorts';
-import { retimeCohort } from './emails';
+import { resyncHomeworkReminders, retimeCohort } from './emails';
 import { cohortOffer, setOffer } from './offer';
 import { teamDayChat } from './room';
+import { cohortProgress, dayAutoPushes, getPrefs, savePrefs } from './progress';
 import { type DayRow, DAYS_IN_CHALLENGE, dayEnds, dayPhase, eventKey, localParts, offerCloseAt } from './schedule';
 
 /**
@@ -95,10 +96,11 @@ challengeAdmin.get('/', async (c) => {
   for (const co of results) {
     const days = await getDays(rt, co.id);
     const closeAt = offerCloseAt(days, cfg.offerHours);
-    cohorts.push({ ...co, days: days.map((d) => dayOut(d, co.timezone, now)), closeAt, offer: await cohortOffer(rt, co.id, now), stats: await statsFor(rt, co.id) });
+    const pushes = await dayAutoPushes(rt, co.id, days);
+    cohorts.push({ ...co, days: days.map((d) => ({ ...dayOut(d, co.timezone, now), autoPush: pushes.find((p) => p.day === d.day) ?? null })), closeAt, offer: await cohortOffer(rt, co.id, now), stats: await statsFor(rt, co.id) });
   }
   return c.json({
-    now, cohorts, notes: notes(rt),
+    now, cohorts, notes: notes(rt), prefs: await getPrefs(rt),
     config: { ticket: cfg.ticketLabel, vip: cfg.vipOn ? cfg.vipLabel : null, currency: cfg.currency, offerHours: cfg.offerHours, durationMin: cfg.durationMin, defaultTz: cfg.defaultTz, provider: cfg.provider },
     landing: `${rt.origin}/challenge`,
   });
@@ -129,6 +131,28 @@ challengeAdmin.patch('/cohorts/:id/days/:n', async (c) => {
     const r = await updateDay(rt, id, Number(c.req.param('n')), await json(c));
     if (r.moved) await retimeCohort(rt, id);
     return c.json({ ok: true, ...r });
+  } catch (e) { return err(c, e); }
+});
+
+/** The progress dashboard: per day registered, live, replay, worksheets, VIP, points, applications, deposits; drop-off; at risk. */
+challengeAdmin.get('/cohorts/:id/progress', async (c) => {
+  const rt = runtimeFrom(c);
+  const L = await loadCohort(rt, c.req.param('id'));
+  if (!L) return c.json({ error: 'not found' }, 404);
+  return c.json({ cohort: { id: L.cohort.id, name: L.cohort.name, timezone: L.cohort.timezone }, ...(await cohortProgress(rt, L.cohort.id, L.days, L.closeAt)) });
+});
+
+/** The challenge's own switches: the homework reminder (off by default) and its sending hours. */
+challengeAdmin.get('/prefs', async (c) => c.json(await getPrefs(runtimeFrom(c))));
+challengeAdmin.put('/prefs', async (c) => {
+  try {
+    const rt = runtimeFrom(c);
+    const before = await getPrefs(rt);
+    const prefs = await savePrefs(rt, await json(c));
+    // Switched on, or its hours changed while on: schedule; switched off: cancel the unsent reminders.
+    const changed = prefs.hwReminders !== before.hwReminders || (prefs.hwReminders && (prefs.hwHours.from !== before.hwHours.from || prefs.hwHours.to !== before.hwHours.to));
+    const n = changed ? await resyncHomeworkReminders(rt, prefs.hwReminders) : 0;
+    return c.json({ ok: true, prefs, changed: n });
   } catch (e) { return err(c, e); }
 });
 
