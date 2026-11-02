@@ -12,6 +12,26 @@
     return '<span style="display:inline-flex;width:120px;height:8px;border-radius:4px;overflow:hidden;background:#e8e8ed;vertical-align:middle" title="' + esc(r.n_good + ' good, ' + r.n_fair + ' fair, ' + r.n_poor + ' weak, ' + r.n_bad + ' very weak samples') + '">' +
       [['n_good', '#1d7a4f'], ['n_fair', '#b26a00'], ['n_poor', '#e0645c'], ['n_bad', '#b3261e']].map(function (x) { return '<span style="width:' + (r[x[0]] / n * 100) + '%;background:' + x[1] + '"></span>'; }).join('') + '</span>';
   }
+  // Host diagnostics (0075): who could not see or hear the host, for how long, and why (each attendee's own browser checked).
+  var WHY = { not_found: 'host track not at the video server', retrying: 'still connecting', pending: 'waiting for the video', stalled: 'stopped arriving', audio_only: 'their connection too weak for video', no_connection: 'their media connection down', moq_wait: 'broadcast not playing', autoplay: 'sound blocked until they tapped' };
+  function dur(ms) { ms = Math.round((ms || 0) / 1000); if (!ms) return '–'; var m = Math.floor(ms / 60), s = ms % 60; return m ? m + ' min ' + s + ' s' : s + ' s'; }
+  function reasons(list) { return (list || []).map(function (x) { return (WHY[x.reason] || x.reason) + ' ' + x.n; }).join(', '); }
+  function rxHtml(rx) {
+    if (!rx) return '';
+    var s = rx.summary || {}, rows = (rx.rows || []).filter(function (r) { return r.no_video_ms > 0 || r.no_audio_ms > 0; });
+    var head = '<p style="margin-top:16px"><strong>Could attendees see and hear the host</strong> ';
+    if (rx.note) return head + '<span class="muted">' + esc(rx.note) + '</span></p>';
+    if (!s.attendees) return head + '<span class="muted">No receive checks yet. Each attendee’s browser checks the host’s video and sound arrive.</span></p>';
+    return head + esc(s.cantSee) + ' of ' + esc(s.attendees) + ' could not see the host at some point (' + esc(dur(s.cantSeeMs)) + ' in total, longest ' + esc(dur(s.longestNoVideoMs)) + ')' +
+      ' · ' + esc(s.cantHear) + ' could not hear the host (' + esc(dur(s.cantHearMs)) + ' in total, longest ' + esc(dur(s.longestNoAudioMs)) + ')' +
+      ' · camera self-check republished ' + esc(s.republishes || 0) + ' times' +
+      (s.videoReasons && s.videoReasons.length ? '<br><span class="muted">Video: ' + esc(reasons(s.videoReasons)) + '</span>' : '') +
+      (s.audioReasons && s.audioReasons.length ? '<br><span class="muted">Sound: ' + esc(reasons(s.audioReasons)) + '</span>' : '') + '</p>' +
+      (rows.length ? '<table><thead><tr><th>Who</th><th class="num">No video</th><th>Why</th><th class="num">No sound</th><th>Why</th></tr></thead><tbody>' + rows.map(function (r) {
+        return '<tr><td>' + esc(r.name) + '<div class="muted">' + esc(r.role) + '</div></td><td class="num">' + esc(dur(r.no_video_ms)) + (r.video_episodes > 1 ? ' <span class="muted">(' + esc(r.video_episodes) + ' times)</span>' : '') + '</td><td>' + esc(WHY[r.video_reason] || r.video_reason || '–') + '</td>' +
+          '<td class="num">' + esc(dur(r.no_audio_ms)) + (r.audio_episodes > 1 ? ' <span class="muted">(' + esc(r.audio_episodes) + ' times)</span>' : '') + '</td><td>' + esc(WHY[r.audio_reason] || r.audio_reason || '–') + '</td></tr>';
+      }).join('') + '</tbody></table>' : '');
+  }
   function fill(cell, id) {
     if (!cell) return;
     var box = document.createElement('div');
@@ -35,7 +55,7 @@
             '<td class="num">' + esc(r.rtt_avg != null ? r.rtt_avg + ' ms' : '–') + '</td><td class="num">' + esc(r.loss_avg != null ? (r.loss_avg * 100).toFixed(1) + '%' : '–') + '</td><td class="num">' + esc(r.jitter_avg != null ? r.jitter_avg + ' ms' : '–') + '</td>' +
             '<td class="num">' + esc((r.kbps_in_avg != null ? r.kbps_in_avg : '–') + ' / ' + (r.kbps_out_avg != null ? r.kbps_out_avg : '–')) + '</td><td class="num">' + esc(r.reconnects) + '</td>' +
             '<td>' + esc([r.fx && r.fx !== 'off' ? (r.fx === 'brand' ? 'backdrop' : r.fx) : '', r.noise === 'strong' ? 'strong noise reduction' : r.noise === 'off' ? 'noise reduction off' : ''].filter(Boolean).join(', ') || '–') + '</td></tr>';
-        }).join('') + '</tbody></table>';
+        }).join('') + '</tbody></table>' + rxHtml(d.rx);
     }).catch(function () { box.innerHTML = '<p><strong>Call quality</strong> <span class="muted">Could not load.</span></p>'; });
   }
   window.RoomMediaAdmin = { fill: fill };

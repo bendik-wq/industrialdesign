@@ -8,7 +8,10 @@
    - frameStats / classifyFrames: flat, black or frozen placeholder frames (privacy shutters, the Windows padlock);
    - classifyError / detectPlatform: why getUserMedia failed, and on which system, for the right steps;
    - createSpeaker: active speaker with smoothing, a hold and a minimum dwell;
-   - netVerdict: the pre-join network test's verdict; tuneOpus: Opus DTX, FEC and stereo in an SDP. */
+   - netVerdict: the pre-join network test's verdict; tuneOpus: Opus DTX, FEC and stereo in an SDP;
+   - host diagnostics: receiveSample / createReceiveWatch (can this attendee see and hear the host), hostReach
+     (the host's banner and its likely cause), rxBadge, createPublishWatch (the host's camera self-check),
+     previewStats ("How attendees see me"). */
 (function (root) {
   'use strict';
 
@@ -340,12 +343,181 @@
     return parts.join(nl + 'm=');
   }
 
+  // ───────────── host diagnostics: can this attendee see and hear the host? ─────────────
+  /**
+   * One receive check for the host's tracks, from this attendee's own state. o: {
+   *   expectVideo, expectAudio (the host publishes it and has it on), path ('sfu'|'moq'|'none'), moqPlaying,
+   *   tier (0..3), pc (connectionState or null), pullErr (an SFU errorCode for a host track, or null), retries,
+   *   video: null | { pulled, live, frames (framesDecoded), bytes, height, fps },
+   *   audio: null | { pulled, live, bytes, blocked (autoplay keeps the sound off) },
+   *   prev: the previous result (null on the first call), at: now }.
+   * → { v, vr, a, ar, kbps, height, fps, counters }: v / a are 'ok' | 'no' | 'na' (nothing to receive), vr / ar
+   * the reason when 'no': not_found (the host's track is not at the video server), retrying, pending, stalled
+   * (pulled but nothing arrives), audio_only (their own connection is too weak for video), no_connection,
+   * moq_wait (the broadcast is not playing), autoplay (the browser keeps the sound off until they tap).
+   */
+  function receiveSample(o) {
+    var prev = o.prev && o.prev.counters ? o.prev.counters : null;
+    var dt = prev && o.at > prev.at ? (o.at - prev.at) / 1000 : 0;
+    var vid = o.video, aud = o.audio;
+    var out = { v: 'na', vr: null, a: 'na', ar: null, kbps: null, height: null, fps: null, counters: {
+      at: o.at, vFrames: vid && vid.frames != null ? vid.frames : null, vBytes: vid && vid.bytes != null ? vid.bytes : null, aBytes: aud && aud.bytes != null ? aud.bytes : null,
+    } };
+    var c = out.counters;
+    var known = function (k) { return Boolean(prev && prev[k] != null && c[k] != null); };
+    var grew = function (k) { return known(k) && c[k] > prev[k]; };
+    var pcDown = o.path === 'sfu' && (!o.pc || o.pc === 'failed' || o.pc === 'disconnected' || o.pc === 'closed');
+    var notPulled = function () { return o.pullErr ? 'not_found' : (o.retries || 0) > 0 ? 'retrying' : 'pending'; };
+    if (o.expectVideo) {
+      if (o.path === 'moq') { out.v = o.moqPlaying ? 'ok' : 'no'; out.vr = o.moqPlaying ? null : 'moq_wait'; }
+      else if (o.path === 'none' || pcDown) { out.v = 'no'; out.vr = 'no_connection'; }
+      else if ((o.tier || 0) >= 3) { out.v = 'no'; out.vr = 'audio_only'; }
+      else if (!vid || !vid.pulled) { out.v = 'no'; out.vr = notPulled(); }
+      else if (vid.live === false) { out.v = 'no'; out.vr = 'stalled'; }
+      else if (known('vFrames') || known('vBytes')) {
+        var moving = c.vFrames != null && prev.vFrames != null ? grew('vFrames') : grew('vBytes');
+        out.v = moving ? 'ok' : 'no'; out.vr = moving ? null : 'stalled';
+      } else out.v = 'ok'; // the first sample: the next one tells
+      if (vid) { out.height = vid.height || null; out.fps = vid.fps != null ? Math.round(vid.fps) : null; }
+      if (dt && known('vBytes') && c.vBytes >= prev.vBytes) out.kbps = Math.round((c.vBytes - prev.vBytes) * 8 / dt / 1000);
+    }
+    if (o.expectAudio) {
+      if (aud && aud.blocked) { out.a = 'no'; out.ar = 'autoplay'; }
+      else if (o.path === 'moq') { out.a = o.moqPlaying ? 'ok' : 'no'; out.ar = o.moqPlaying ? null : 'moq_wait'; }
+      else if (o.path === 'none' || pcDown) { out.a = 'no'; out.ar = 'no_connection'; }
+      else if (!aud || !aud.pulled) { out.a = 'no'; out.ar = notPulled(); }
+      else if (aud.live === false) { out.a = 'no'; out.ar = 'stalled'; }
+      else if (known('aBytes')) { out.a = grew('aBytes') ? 'ok' : 'no'; out.ar = out.a === 'ok' ? null : 'stalled'; }
+      else out.a = 'ok';
+    }
+    return out;
+  }
+
+  /**
+   * Debounces receiveSample results so a blip (a layer switch, a renegotiation) flags nobody: a 'no' counts once
+   * it has lasted `graceMs` (6 s), anything else counts at once. feed(sample, now) → { v, vr, a, ar, vSince,
+   * aSince, changed }.
+   */
+  function createReceiveWatch(o) {
+    o = o || {};
+    var grace = o.graceMs || 6000;
+    var st = { v: 'na', vr: null, a: 'na', ar: null, vBad: 0, aBad: 0, vSince: 0, aSince: 0 };
+    function step(k, val, why, now) {
+      if (val !== 'no') {
+        st[k + 'Bad'] = 0;
+        if (st[k] !== val) { st[k] = val; st[k + 'r'] = null; st[k + 'Since'] = now; return true; }
+        return false;
+      }
+      if (!st[k + 'Bad']) st[k + 'Bad'] = now;
+      if (now - st[k + 'Bad'] < grace) return false;
+      if (st[k] === 'no' && st[k + 'r'] === why) return false;
+      if (st[k] !== 'no') st[k + 'Since'] = st[k + 'Bad'];
+      st[k] = 'no'; st[k + 'r'] = why;
+      return true;
+    }
+    function feed(s, now) {
+      var c1 = step('v', s.v, s.vr, now), c2 = step('a', s.a, s.ar, now);
+      return { v: st.v, vr: st.vr, a: st.a, ar: st.ar, vSince: st.vSince, aSince: st.aSince, changed: c1 || c2 };
+    }
+    return { feed: feed };
+  }
+
+  /**
+   * The host's banner: how many attendees can't see or hear them, and the likely cause. people: staff view
+   * entries { id, role, level, at, rx: { v, vr, a, ar } }. o: { now, maxAgeMs (90 s), minShare (0.1), self: {
+   * camOn, camLive, micOn, micLive, availOut (kbps), stalled (the publisher self-check), unsentMs (how long the
+   * camera or mic has been on without being published) } }. unsent (15 s or more) wins over everything else.
+   * → { total, noVideo, noAudio, affected, share, show, cause, ids }. cause, first match: camera (the host's
+   * camera stopped), mic, upload (the host's video is not reaching the video server, or their upload is weak),
+   * autoplay (most of them have the sound off until they tap), network (their own connections), unknown.
+   */
+  function hostReach(people, o) {
+    o = o || {};
+    var now = o.now || 0, maxAge = o.maxAgeMs || 90000, minShare = o.minShare != null ? o.minShare : 0.1, self = o.self || {};
+    var list = (people || []).filter(function (p) {
+      return p && p.rx && p.role !== 'host' && p.role !== 'cohost' && (!now || !p.at || now - p.at <= maxAge) && (p.rx.v !== 'na' || p.rx.a !== 'na');
+    });
+    var nv = list.filter(function (p) { return p.rx.v === 'no'; }), na = list.filter(function (p) { return p.rx.a === 'no'; });
+    var hit = list.filter(function (p) { return p.rx.v === 'no' || p.rx.a === 'no'; });
+    var share = list.length ? hit.length / list.length : 0;
+    var count = function (arr, f) { return arr.filter(f).length; };
+    var has = function (p, rs) { return (p.rx.v === 'no' && rs.indexOf(p.rx.vr) >= 0) || (p.rx.a === 'no' && rs.indexOf(p.rx.ar) >= 0); };
+    var half = hit.length / 2, cause = null;
+    if (hit.length) {
+      if (nv.length && self.camOn && self.camLive === false) cause = 'camera';
+      else if (na.length && self.micOn && self.micLive === false) cause = 'mic';
+      else if (self.stalled || count(hit, function (p) { return has(p, ['not_found', 'retrying']); }) > half) cause = 'upload';
+      else if (count(na, function (p) { return p.rx.ar === 'autoplay'; }) > na.length / 2 && na.length >= nv.length) cause = 'autoplay';
+      else if (count(hit, function (p) { return has(p, ['audio_only', 'no_connection', 'moq_wait']) || p.level === 'poor' || p.level === 'bad'; }) > half) cause = 'network';
+      else if (self.availOut != null && self.availOut < 600 && count(hit, function (p) { return has(p, ['stalled', 'pending']); }) > half) cause = 'upload';
+      else if (count(hit, function (p) { return has(p, ['stalled']); }) > half) cause = 'network';
+      else cause = 'unknown';
+    }
+    // The host's camera or mic is on but nothing was published for 15 s: nobody can receive it, whatever they report.
+    var unsent = (self.unsentMs || 0) >= (o.unsentMs || 15000);
+    if (unsent) cause = 'unsent';
+    return {
+      total: list.length, noVideo: nv.length, noAudio: na.length, affected: hit.length, share: Math.round(share * 1000) / 1000,
+      show: unsent || (hit.length > 0 && share >= minShare), cause: cause, ids: hit.map(function (p) { return p.id; }),
+    };
+  }
+  /** One attendee's badge for the host: null when they receive everything, else { key, reason }. */
+  function rxBadge(rx) {
+    if (!rx) return null;
+    var v = rx.v === 'no', a = rx.a === 'no';
+    if (!v && !a) return null;
+    return { key: v && a ? 'cantBoth' : v ? 'cantSee' : 'cantHear', reason: v ? rx.vr : rx.ar };
+  }
+
+  /**
+   * The host's camera self-check. feed({ live (camera track live, enabled and on), published (video published,
+   * connection up), bytes (outbound-rtp bytesSent over all layers), receipts (receiver reports from the video
+   * server so far, null when the browser doesn't say), missing (share of attendees reporting the host's video
+   * not_found or stalled), viewers }, now).
+   * Stalled: bytes not increasing, no new receiver reports, or most viewers missing the video, for `stallMs` (10 s).
+   * Then republish (at most `maxAuto` times, `cooldownMs` apart), else warn once per stall.
+   * → { state: 'idle'|'ok'|'stalled', action: null|'republish'|'warn', reason, autos }.
+   */
+  function createPublishWatch(o) {
+    o = o || {};
+    var stallMs = o.stallMs || 10000, maxAuto = o.maxAuto != null ? o.maxAuto : 1, cooldown = o.cooldownMs || 300000;
+    var st = { bytes: null, receipts: null, bytesAt: 0, receiptsAt: 0, viewersAt: 0, autos: 0, lastAuto: -Infinity, warned: false };
+    function res(state, action, reason) { return { state: state, action: action, reason: reason, autos: st.autos }; }
+    function clear() { st.bytes = null; st.receipts = null; st.viewersAt = 0; }
+    function feed(x, now) {
+      if (!x.live || !x.published) { clear(); st.warned = false; return res('idle', null, null); }
+      if (st.bytes == null) { st.bytes = x.bytes || 0; st.receipts = x.receipts; st.bytesAt = now; st.receiptsAt = now; return res('ok', null, null); }
+      if ((x.bytes || 0) > st.bytes) st.bytesAt = now;
+      if (x.receipts != null && (st.receipts == null || x.receipts > st.receipts)) st.receiptsAt = now;
+      st.bytes = x.bytes || 0; if (x.receipts != null) st.receipts = x.receipts;
+      if ((x.viewers || 0) >= 2 && (x.missing || 0) >= 0.5) { if (!st.viewersAt) st.viewersAt = now; } else st.viewersAt = 0;
+      var reason = now - st.bytesAt >= stallMs ? 'no_bytes' : x.receipts != null && now - st.receiptsAt >= stallMs ? 'no_receipts' : st.viewersAt && now - st.viewersAt >= stallMs ? 'viewers' : null;
+      if (!reason) { st.warned = false; return res('ok', null, null); }
+      if (st.autos < maxAuto && now - st.lastAuto >= cooldown) { st.autos++; st.lastAuto = now; clear(); st.warned = false; return res('stalled', 'republish', reason); }
+      if (!st.warned) { st.warned = true; return res('stalled', 'warn', reason); }
+      return res('stalled', null, reason);
+    }
+    return { feed: feed, get autos() { return st.autos; } };
+  }
+
+  /** The "How attendees see me" preview's numbers, from its own inbound-rtp video stats. */
+  function previewStats(list, prev, now) {
+    var v = null;
+    (list || []).forEach(function (s) { if (s.type === 'inbound-rtp' && s.kind === 'video') v = s; });
+    var out = { at: now, bytes: v ? v.bytesReceived || 0 : 0, kbps: null, width: v ? v.frameWidth || null : null, height: v ? v.frameHeight || null : null,
+      fps: v && typeof v.framesPerSecond === 'number' ? Math.round(v.framesPerSecond) : null, frames: v ? v.framesDecoded || 0 : 0 };
+    if (prev && now > prev.at && out.bytes >= prev.bytes) out.kbps = Math.round((out.bytes - prev.bytes) * 8 / ((now - prev.at) / 1000) / 1000);
+    return out;
+  }
+
   var api = {
     pickLayer: pickLayer, summarizeStats: summarizeStats, scoreQuality: scoreQuality, createGovernor: createGovernor,
     backoff: backoff, createRetry: createRetry, connectionPhase: connectionPhase,
     pickDevice: pickDevice, deviceChange: deviceChange, frameStats: frameStats, classifyFrames: classifyFrames,
     classifyError: classifyError, detectPlatform: detectPlatform, stepsFor: stepsFor,
     createSpeaker: createSpeaker, netVerdict: netVerdict, tuneOpus: tuneOpus,
+    receiveSample: receiveSample, createReceiveWatch: createReceiveWatch, hostReach: hostReach, rxBadge: rxBadge,
+    createPublishWatch: createPublishWatch, previewStats: previewStats,
   };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.RoomMediaLogic = api;
