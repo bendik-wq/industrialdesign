@@ -244,6 +244,7 @@ export const SETTINGS = [
   { key: 'ADS_FATIGUE_FREQUENCY', label: 'Fatigue: frequency above', group: 'Ads', placeholder: '2.5' },
   { key: 'ADS_FATIGUE_CTR_DROP_PCT', label: 'Fatigue: link CTR down by (%)', group: 'Ads', placeholder: '30', help: 'Compared with the ad’s first three days with spend.' },
   { key: 'ADS_WINNER_MIN_RESULTS', label: 'Winner: results needed', group: 'Ads', placeholder: '3', help: 'Tickets, deposits or bookings before an ad counts as a winner.' },
+  { key: 'ADS_MER_FLOOR', label: 'Blended MER floor', group: 'Ads', placeholder: '1.5', help: 'Total revenue net of refunds ÷ total ad spend over the last 7 days. Under this, the autopilot does not propose duplicating winners or moving budget toward them, and says why. Blank: off.' },
   { key: 'ADS_PAGE_ID', label: 'Facebook Page ID for new ads', group: 'Ads', help: 'Needed to create ads from an angle with the write token.' },
   { key: 'ADS_LANDING_URL', label: 'Landing page for new ads', group: 'Ads', placeholder: 'https://live.example.com/live', help: 'Where ads made from an angle send people. Blank: the public URL.' },
   { key: 'ADS_AI_MODEL', label: 'Ad copy model', group: 'Ads', placeholder: 'claude-sonnet-5-5', help: 'Writes ad drafts from research angles (needs the Anthropic API key under Email). Blank uses a planning model.' },

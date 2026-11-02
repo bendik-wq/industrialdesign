@@ -8,7 +8,16 @@
  *   POST   /actions/:id/reject
  *   PUT    /actions/:id           Edit before approving: { amount } (budget shift, currency units) or { drafts, adset_id, creative_id }
  *   POST   /angle                 { angle, evidence?, adset_id?, creative_id? } draft three ads and queue the launch
- *   PUT    /settings              the ADS_* thresholds and targets
+ *   PUT    /settings              the ADS_* thresholds and targets (ADS_MER_FLOOR included)
+ *   GET    /mer                   blended MER 7/30 days with the trend and the floor's verdict
+ *   GET    /concepts              concept rounds, ads, results by concept and by variable
+ *   GET    /concepts/plan         the next round's four concepts (not stored), to edit before drafting
+ *   POST   /concepts/round        { concepts?, adset_id?, creative_id? } draft 4 x 3 ads and queue the launch
+ *   PUT    /concepts/ads/:id      { hook?, body?, headline?, description? } edit a draft (audited)
+ *   POST   /concepts/:id/verdict  { verdict: winner | loser | null }
+ *   POST   /concepts/:id/hooks    hook-only variants of the concept's best ad, queued for approval
+ *   GET    /scripts               video scripts and hook packs;  POST /scripts { format, angle_ref }
+ *   PUT    /scripts/:id           { hooks?, status? };  POST /scripts/hooks { angle_ref } a hook pack
  *   GET    /followups             the plays, recent batches
  *   POST   /followups             { play, days?, stages?, channels? } draft and queue one bulk proposal
  *   GET    /followups/:batch      every drafted message in a batch
@@ -24,11 +33,14 @@ import { adsTargets, autopilotOn, boundShift, loadAdStats, logSync, runAutopilot
 import { type AdDraft, auditDraft, draftAndPropose } from './angles';
 import { type Channel, type Play, MAX_PER_BATCH, QUIET_STAGES, SALES_PLAYS, emailPreviewText, proposeFollowups } from '../sales/followups';
 import type { EmailContent } from '../integrations/templates';
+import { merGuard, merFloor, merSummary } from './mer';
+import { type ConceptSpec, conceptsView, draftHookVariants, draftRound, editConceptAd, loadAngles, previewPlan, setVerdict, specFrom } from './concepts';
+import { draftHookPack, draftScript, editScript, scriptsView } from './scripts';
 
 export const autopilotAdmin = new Hono<AppEnv>();
 
 const fail = (c: { json: (b: unknown, s?: number) => Response }, e: unknown) => c.json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 400);
-const SETTING_KEYS = ['ADS_AUTOPILOT', 'ADS_TARGET_CPL', 'ADS_TARGET_CPA_TICKET', 'ADS_TARGET_CPA_DEPOSIT', 'ADS_TARGET_CPA_BOOKING', 'ADS_LOSER_SPEND', 'ADS_MAX_DAILY_SHIFT_PCT', 'ADS_MAX_DAILY_BUDGET', 'ADS_FATIGUE_FREQUENCY', 'ADS_FATIGUE_CTR_DROP_PCT', 'ADS_WINNER_MIN_RESULTS', 'ADS_PAGE_ID', 'ADS_LANDING_URL', 'SALES_QUIET_DAYS'] as const;
+const SETTING_KEYS = ['ADS_AUTOPILOT', 'ADS_TARGET_CPL', 'ADS_TARGET_CPA_TICKET', 'ADS_TARGET_CPA_DEPOSIT', 'ADS_TARGET_CPA_BOOKING', 'ADS_LOSER_SPEND', 'ADS_MAX_DAILY_SHIFT_PCT', 'ADS_MAX_DAILY_BUDGET', 'ADS_FATIGUE_FREQUENCY', 'ADS_FATIGUE_CTR_DROP_PCT', 'ADS_WINNER_MIN_RESULTS', 'ADS_MER_FLOOR', 'ADS_PAGE_ID', 'ADS_LANDING_URL', 'SALES_QUIET_DAYS'] as const;
 const parse = (s: string | null) => { try { return s ? JSON.parse(s) : null; } catch { return null; } };
 
 autopilotAdmin.get('/', async (c) => {
@@ -36,7 +48,7 @@ autopilotAdmin.get('/', async (c) => {
   const s = rt.settings as unknown as Record<string, string>;
   const t = adsTargets(s);
   const db = rt.env.DB;
-  const [stats, adsets, proposals, history, drafts, synced, shifts] = await Promise.all([
+  const [stats, adsets, proposals, history, drafts, synced, shifts, mer] = await Promise.all([
     loadAdStats(rt, 14),
     db.prepare("SELECT id, name, daily_budget, effective_status, campaign_id FROM ad_entities WHERE level = 'adset' ORDER BY name").all<{ id: string; name: string | null; daily_budget: number | null; effective_status: string | null; campaign_id: string | null }>(),
     listActions(rt, { dept: 'marketing', status: 'proposed', limit: 100 }),
@@ -44,7 +56,9 @@ autopilotAdmin.get('/', async (c) => {
     db.prepare('SELECT id, angle, drafts, adset_id, creative_id, status, ad_ids, spec, action_id, error, created_at FROM ads_angle_drafts ORDER BY created_at DESC LIMIT 20').all<Record<string, unknown>>(),
     db.prepare("SELECT value FROM settings WHERE key = '_meta_ads_level_synced_at'").first<{ value: string }>().catch(() => null),
     db.prepare('SELECT day, adset_id, delta, before_amt, after_amt, applied, created_at FROM ads_budget_shifts ORDER BY created_at DESC LIMIT 20').all(),
+    merSummary(rt).catch(() => null),
   ]);
+  const guard = merGuard(merFloor(s), mer?.w7 ?? null, mer?.comparable ?? true, mer?.currency ?? mer?.spendCurrency ?? null);
   const ads = stats.map((a) => {
     const v = verdicts(a, t);
     return {
@@ -63,7 +77,8 @@ autopilotAdmin.get('/', async (c) => {
   if (!metaWriteConfigured(rt)) notes.push('No write token yet: proposals come with apply-manually steps. Add a Meta system-user token with ads_management under Keys & settings → Ads (META_ADS_WRITE_TOKEN) so approved changes reach Meta.');
   if (!t.ticket && !t.deposit && !t.booking) notes.push('Set at least one target cost (ticket, deposit or booked call) below so the autopilot can call winners.');
   if (stats.length && !stats.some((a) => a.results.leads)) notes.push('No leads matched to an ad yet. Add utm_content={{ad.id}} to every ad\'s URL parameters so results are counted per ad.');
-  if (!rt.settings.ANTHROPIC_API_KEY) notes.push('Ad drafts from angles need the Anthropic API key (Keys & settings → Email).');
+  if (!rt.settings.ANTHROPIC_API_KEY) notes.push('Without the Anthropic API key (Keys & settings → Email), angle drafts are off and concept rounds and scripts are written from the house templates.');
+  if (guard.holdScaling) notes.push(guard.reason);
   return c.json({
     configured: metaAdsConfigured(rt), write: metaWriteConfigured(rt), on: autopilotOn(s), syncedAt: synced ? Number(synced.value) : null,
     targets: t, settings: Object.fromEntries(SETTING_KEYS.map((k) => [k, s[k] ?? ''])),
@@ -71,8 +86,73 @@ autopilotAdmin.get('/', async (c) => {
     proposals: proposals.map((p) => ({ ...p, payload: parse(p.payload) })),
     history: history.map((p) => ({ ...p, payload: parse(p.payload) })),
     drafts: drafts.results.map((d) => ({ ...d, drafts: parse(d.drafts as string), ad_ids: parse(d.ad_ids as string) })),
+    mer: mer ? { ...mer, guard } : null,
     notes,
   });
+});
+
+// ───────────── Blended MER ─────────────
+
+autopilotAdmin.get('/mer', async (c) => {
+  const rt = runtimeFrom(c);
+  try {
+    const mer = await merSummary(rt);
+    return c.json({ ...mer, guard: merGuard(merFloor(rt.settings as unknown as Record<string, string>), mer.w7, mer.comparable, mer.currency ?? mer.spendCurrency) });
+  } catch (e) { return fail(c, e); }
+});
+
+// ───────────── Concept testing ─────────────
+
+autopilotAdmin.get('/concepts', async (c) => { try { return c.json(await conceptsView(runtimeFrom(c))); } catch (e) { return fail(c, e); } });
+autopilotAdmin.get('/concepts/plan', async (c) => { try { return c.json({ plan: await previewPlan(runtimeFrom(c)) }); } catch (e) { return fail(c, e); } });
+autopilotAdmin.post('/concepts/round', async (c) => {
+  const rt = runtimeFrom(c);
+  const b = (await c.req.json().catch(() => ({}))) as { concepts?: Record<string, unknown>[]; adset_id?: string; creative_id?: string };
+  try {
+    let specs: ConceptSpec[] | undefined;
+    if (Array.isArray(b.concepts) && b.concepts.length) {
+      const angles = await loadAngles(rt);
+      const parsed = b.concepts.slice(0, 4).map((x) => specFrom(x ?? {}, angles));
+      if (parsed.some((x) => !x)) return c.json({ ok: false, error: 'Each concept needs a desire, awareness level, format, audience, angle and framework from the lists.' }, 400);
+      specs = parsed as ConceptSpec[];
+    }
+    const r = await draftRound(rt, { specs, adset_id: b.adset_id, creative_id: b.creative_id });
+    return c.json({ ok: true, ...r });
+  } catch (e) { return fail(c, e); }
+});
+autopilotAdmin.put('/concepts/ads/:id', async (c) => {
+  const b = (await c.req.json().catch(() => ({}))) as Record<string, string>;
+  try { return c.json({ ok: true, ad: await editConceptAd(runtimeFrom(c), c.req.param('id'), b) }); } catch (e) { return fail(c, e); }
+});
+autopilotAdmin.post('/concepts/:id/verdict', async (c) => {
+  const b = (await c.req.json().catch(() => ({}))) as { verdict?: string | null };
+  const v = b.verdict === 'winner' || b.verdict === 'loser' ? b.verdict : null;
+  try { await setVerdict(runtimeFrom(c), c.req.param('id'), v); return c.json({ ok: true, verdict: v }); } catch (e) { return fail(c, e); }
+});
+autopilotAdmin.post('/concepts/:id/hooks', async (c) => {
+  try { return c.json({ ok: true, ...(await draftHookVariants(runtimeFrom(c), c.req.param('id'))) }); } catch (e) { return fail(c, e); }
+});
+
+// ───────────── Video scripts and hook packs ─────────────
+
+autopilotAdmin.get('/scripts', async (c) => {
+  const rt = runtimeFrom(c);
+  try {
+    const [v, angles] = await Promise.all([scriptsView(rt), loadAngles(rt)]);
+    return c.json({ ...v, angles: angles.map((a) => ({ ref: a.id ? `r:${a.id}` : `k:${a.key}`, hook: a.hook, source: a.id ? 'research' : 'built-in' })) });
+  } catch (e) { return fail(c, e); }
+});
+autopilotAdmin.post('/scripts', async (c) => {
+  const b = (await c.req.json().catch(() => ({}))) as { format?: string; angle_ref?: string };
+  try { return c.json({ ok: true, script: await draftScript(runtimeFrom(c), { format: String(b.format ?? ''), angle_ref: b.angle_ref ? String(b.angle_ref) : undefined }) }); } catch (e) { return fail(c, e); }
+});
+autopilotAdmin.put('/scripts/:id', async (c) => {
+  const b = (await c.req.json().catch(() => ({}))) as { hooks?: unknown; status?: unknown };
+  try { await editScript(runtimeFrom(c), c.req.param('id'), b); return c.json({ ok: true }); } catch (e) { return fail(c, e); }
+});
+autopilotAdmin.post('/scripts/hooks', async (c) => {
+  const b = (await c.req.json().catch(() => ({}))) as { angle_ref?: string };
+  try { return c.json({ ok: true, ...(await draftHookPack(runtimeFrom(c), { angle_ref: b.angle_ref ? String(b.angle_ref) : undefined })) }); } catch (e) { return fail(c, e); }
 });
 
 autopilotAdmin.post('/sync', async (c) => {
@@ -124,6 +204,13 @@ autopilotAdmin.put('/actions/:id', async (c) => {
       if (issues.length) return c.json({ ok: false, error: issues.slice(0, 5).join(' · ') }, 400);
       payload.drafts = drafts;
     }
+    if (b.adset_id !== undefined) payload.adset_id = /^\d{1,30}$/.test(String(b.adset_id)) ? String(b.adset_id) : null;
+    if (b.creative_id !== undefined) payload.creative_id = /^\d{1,30}$/.test(String(b.creative_id)) ? String(b.creative_id) : null;
+    await editAction(rt, id, { payload });
+    return c.json({ ok: true });
+  }
+  if (row.kind === 'marketing.launch_concepts') {
+    // The copy is edited per ad (PUT /concepts/ads/:id); here only where the paused ads go.
     if (b.adset_id !== undefined) payload.adset_id = /^\d{1,30}$/.test(String(b.adset_id)) ? String(b.adset_id) : null;
     if (b.creative_id !== undefined) payload.creative_id = /^\d{1,30}$/.test(String(b.creative_id)) ? String(b.creative_id) : null;
     await editAction(rt, id, { payload });
