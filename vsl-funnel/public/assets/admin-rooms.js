@@ -2,14 +2,16 @@
    meeting rooms for clients and leads (onboarding, kickoff, weekly working sessions). Attendance per person and
    recordings come from the rooms themselves. Loaded before admin.js, which calls RoomsBoard.render(ctx) for the
    Rooms tab and RoomsBoard.section(ctx) under Live webinars. The "Meeting room" buttons in the lead and client
-   drawers are handled here too (data-room-new). */
+   drawers are handled here too (data-room-new). Webinars show how their audience watches (MoQ or the SFU), the
+   host's MoQ broadcast health, and a per-room choice of auto, SFU only or MoQ. */
 (function (root) {
   'use strict';
   var CSS = '.rmb-list td{vertical-align:top}.rmb-act{display:flex;flex-wrap:wrap;gap:6px}.rmb-form{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.rmb-form label{display:grid;gap:4px;font-size:13px;color:var(--ink-2)}' +
     '.rmb-dlg{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.35)}.rmb-dlg-in{background:#fff;border-radius:14px;padding:24px;max-width:460px;width:100%;display:grid;gap:12px}' +
-    '.rmb-dlg-in h2{margin:0}.rmb-dlg-in label{display:grid;gap:4px;font-size:13px;color:var(--ink-2)}.rmb-links{font-size:13px;overflow-wrap:anywhere}.rmb-todo li{margin:4px 0;font-size:13px}';
+    '.rmb-dlg-in h2{margin:0}.rmb-dlg-in label{display:grid;gap:4px;font-size:13px;color:var(--ink-2)}.rmb-links{font-size:13px;overflow-wrap:anywhere}.rmb-todo li{margin:4px 0;font-size:13px}.rmb-bc{display:grid;gap:4px;font-size:13px}.rmb-bc select{font-size:13px;padding:4px 6px}';
   var KIND = { live: 'Live webinar', challenge: 'Challenge day', lead: 'Meeting', none: 'Room' };
   var STATUS = { scheduled: 'Scheduled', live: 'Live', ended: 'Ended', cancelled: 'Cancelled' };
+  var BCAST = [['', 'Default'], ['auto', 'Auto'], ['moq', 'MoQ'], ['sfu', 'SFU only']];
   var MEETINGS = [['onboarding', 'Onboarding call'], ['kickoff', 'Kickoff'], ['weekly', 'Weekly working session'], ['other', 'Other meeting']];
   function css() { if (!document.getElementById('rmb-css')) { var s = document.createElement('style'); s.id = 'rmb-css'; s.textContent = CSS; document.head.appendChild(s); } }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -23,16 +25,41 @@
 
   function table(rooms, o) {
     if (!rooms.length) return '<p class="muted">No rooms yet. Set a live webinar or challenge day to run in our room, or create a meeting room below.</p>';
-    return '<div class="table-wrap"><table class="rmb-list"><thead><tr><th>When</th><th>Room</th><th>Kind</th><th>Status</th><th class="num">People</th><th class="num">Minutes</th><th class="num">Peak</th><th></th></tr></thead><tbody>' +
+    return '<div class="table-wrap"><table class="rmb-list"><thead><tr><th>When</th><th>Room</th><th>Kind</th><th>Status</th><th class="num">People</th><th class="num">Minutes</th><th class="num">Peak</th><th>Viewers and broadcast</th><th></th></tr></thead><tbody>' +
       rooms.slice(0, o && o.limit || 200).map(function (r) {
         return '<tr data-rmb-row="' + esc(r.id) + '"><td>' + esc(fmt(r.starts_at)) + '</td><td><strong>' + esc(r.title) + '</strong>' + (r.guest ? '<div class="muted">' + esc(r.guest) + '</div>' : '') + '</td><td>' + esc((r.mode === 'meeting' ? 'Meeting' : KIND[r.ref_type] || 'Room')) + '</td><td>' + esc(STATUS[r.status] || r.status) + '</td>' +
           '<td class="num">' + esc(r.people) + '</td><td class="num">' + esc(r.minutes) + '</td><td class="num">' + esc(r.peak) + '</td>' +
+          '<td>' + (r.mode === 'webinar' ? '<div class="rmb-bc"><select data-rmb-bc="' + esc(r.id) + '" aria-label="How viewers watch">' + BCAST.map(function (b) { return '<option value="' + b[0] + '"' + ((r.broadcast || '') === b[0] ? ' selected' : '') + '>' + esc(b[1]) + '</option>'; }).join('') + '</select><span class="muted" data-rmb-live="' + esc(r.id) + '">' + (r.status === 'live' ? 'Checking…' : '–') + '</span></div>' : '<span class="muted">Meeting (SFU)</span>') + '</td>' +
           '<td><div class="rmb-act"><a class="btn-sm" href="' + esc(r.hostUrl) + '" target="_blank" rel="noopener">Open as host</a><button class="btn-sm ghost" data-rmb-links="' + esc(r.id) + '">Links</button><button class="btn-sm ghost" data-rmb-detail="' + esc(r.id) + '">Attendance</button>' +
           (r.lead_id && r.status !== 'cancelled' ? '<button class="btn-sm ghost" data-rmb-email="' + esc(r.id) + '">Email invite</button>' : '') + '</div></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
 
+  function rate(k) { return k == null ? '' : k >= 1000 ? (k / 1000).toFixed(1) + ' Mbps' : k + ' kbps'; }
+  /** One line per live webinar from its Durable Object: real viewers on each path and the host's MoQ broadcast. */
+  function liveLine(b) {
+    if (!b) return '–';
+    var head = b.mode === 'sfu' ? 'SFU only' : !b.ready ? 'MoQ not set up' : b.live ? 'Broadcasting ' + rate(b.kbps) + (b.fps != null ? ', ' + b.fps + ' fps' : '') : 'Not broadcasting' + (b.error ? ' (' + b.error + ')' : '');
+    var auto = b.mode === 'auto' && !b.engaged && b.ready ? ' · MoQ from ' + b.minAudience + ' viewers' : '';
+    return b.moq + ' on MoQ · ' + b.sfu + ' on SFU · ' + head + auto;
+  }
   function wire(box, ctx, reload) {
+    box.querySelectorAll('[data-rmb-bc]').forEach(function (sel) {
+      sel.onchange = function () {
+        var id = sel.getAttribute('data-rmb-bc');
+        sel.disabled = true;
+        req('POST', 'rooms/' + id + '/broadcast', { mode: sel.value || null }).then(function (d) {
+          sel.disabled = false;
+          if (!d.ok) { ctx.toast(d.error || 'Not saved'); return; }
+          ctx.toast('Saved: viewers use ' + (d.effective === 'sfu' ? 'the SFU only' : d.effective === 'moq' ? 'MoQ' : 'auto'));
+          var out = box.querySelector('[data-rmb-live="' + id + '"]'); if (out && d.live && d.live.broadcast) out.textContent = liveLine(d.live.broadcast);
+        });
+      };
+    });
+    box.querySelectorAll('[data-rmb-live]').forEach(function (out) {
+      if (out.textContent === '–') return;
+      req('GET', 'rooms/' + out.getAttribute('data-rmb-live') + '/live').then(function (d) { out.textContent = liveLine(d && d.broadcast); }).catch(function () { out.textContent = '–'; });
+    });
     box.querySelectorAll('[data-rmb-links]').forEach(function (b) {
       b.onclick = function () {
         req('POST', 'rooms/' + b.getAttribute('data-rmb-links') + '/links').then(function (d) {
@@ -60,7 +87,7 @@
         if (next && next.hasAttribute('data-rmb-att')) { next.remove(); return; }
         req('GET', 'rooms/' + id).then(function (d) {
           var att = d.attendance || [], recs = d.recordings || [];
-          var html = '<tr data-rmb-att><td colspan="8">' +
+          var html = '<tr data-rmb-att><td colspan="9">' +
             (att.length ? '<table><thead><tr><th>Who</th><th>Role</th><th>First joined</th><th>Last seen</th><th class="num">Minutes</th><th class="num">Joins</th><th>On stage</th></tr></thead><tbody>' + att.map(function (a) {
               return '<tr><td>' + esc(a.name) + (a.email ? '<div class="muted">' + esc(a.email) + '</div>' : '') + '</td><td>' + esc(a.role) + '</td><td>' + esc(fmt(a.first_at)) + '</td><td>' + esc(fmt(a.last_at)) + '</td><td class="num">' + esc(a.minutes) + '</td><td class="num">' + esc(a.joins) + '</td><td>' + (a.on_stage_at ? esc(fmt(a.on_stage_at)) : '–') + '</td></tr>';
             }).join('') + '</tbody></table>' : '<p class="muted">Nobody has joined this room yet.</p>') +
@@ -79,7 +106,9 @@
       var s = d.setup || {};
       view.innerHTML = '<div class="grid g-4 tiles">' +
         ctx.tile('Video (SFU)', s.sfu ? 'Connected' : 'Not set', 'Cloudflare Realtime app') + ctx.tile('TURN', s.turn ? 'Connected' : 'Not set', 'for strict office and hotel networks') +
-        ctx.tile('Recordings', s.r2 ? 'R2 bucket' : 'Download', s.r2 ? 'uploaded and used as the replay' : 'no RECORDINGS bucket bound yet') + ctx.tile('Rooms', ctx.n((d.rooms || []).length), 'live, challenge and meetings') + '</div>' + todo +
+        ctx.tile('Recordings', s.r2 ? 'R2 bucket' : 'Download', s.r2 ? 'uploaded and used as the replay' : 'no RECORDINGS bucket bound yet') + ctx.tile('Rooms', ctx.n((d.rooms || []).length), 'live, challenge and meetings') + '</div>' +
+        '<div class="grid g-4 tiles" style="margin-top:14px">' + ctx.tile('Big webinars (MoQ)', s.moq ? 'Connected' : 'Not set', s.moq ? 'Cloudflare MoQ relay, tokens valid until ' + (s.moqExpires ? new Date(s.moqExpires).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '–') : 'every viewer watches over the SFU') +
+        ctx.tile('Default for webinars', s.broadcast === 'sfu' ? 'SFU only' : s.broadcast === 'moq' ? 'MoQ' : 'Auto', s.broadcast === 'auto' ? 'MoQ from ' + s.moqAudience + ' viewers at once' : 'ROOM_BROADCAST; change per room below') + '</div>' + todo +
         '<div class="card" style="margin-top:14px"><h2>New meeting room</h2><p class="sub">For a client or lead, use Meeting room in their lead or client drawer: the invite goes to their email. Rooms made here are for the team (share the co-host link).</p>' +
         '<div class="rmb-form"><label>Title<input class="input" data-n="title" placeholder="Team meeting"></label><label>When<input class="input" type="datetime-local" data-n="starts_at"></label><label>Length (minutes)<input class="input" type="number" min="15" max="240" value="60" data-n="duration_min"></label>' +
         '<label>Kind<select class="input" data-n="mode"><option value="meeting">Meeting (everyone on camera)</option><option value="webinar">Webinar (stage and audience)</option></select></label><button class="btn-sm" data-rmb-create>Create room</button></div></div>' +

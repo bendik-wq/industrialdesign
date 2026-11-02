@@ -1,7 +1,10 @@
 /* Our video room (src/rooms): Cloudflare Realtime SFU for media (one RTCPeerConnection per person: publish local
    tracks, pull remote ones, all through the Worker's SFU proxy, which holds the secret), TURN credentials minted per
    person, and a WebSocket to the room's Durable Object for everything else (stage, chat, Q&A, polls, hands, offer,
-   timer). Webinar audience members never get a camera or mic prompt. Every count shown comes from the server. */
+   timer). Webinar audience members never get a camera or mic prompt. Every count shown comes from the server.
+   Big webinars (src/rooms/moq.ts): the host's browser also publishes the composited stage to Cloudflare's MoQ
+   relay, and viewers the room routes to MoQ play that instead of pulling from the SFU (WebCodecs, vendored
+   client in /assets/vendor/moq). Any viewer whose browser or network can't play it falls back to the SFU. */
 (function () {
   'use strict';
   var cfgEl = document.getElementById('room-config');
@@ -178,7 +181,7 @@
   function mediaError(e) { return camBusy(e) ? C.cameraBusy : C.permissionBlocked; }
 
   var audioUnlocked = false;
-  function unlockAudio() { audioUnlocked = true; Object.keys(S.audioEls).forEach(function (k) { S.audioEls[k].play().catch(function () {}); }); }
+  function unlockAudio() { audioUnlocked = true; Object.keys(S.audioEls).forEach(function (k) { S.audioEls[k].play().catch(function () {}); }); if (MQ.view) MQ.view.muted.set(false); }
 
   // ───────────── the room's WebSocket ─────────────
   function connect() {
@@ -195,7 +198,7 @@
         skew = m.now - Date.now();
         var prev = S.view; S.view = m;
         render(prev);
-        if (first) { first = false; buildMedia(); }
+        if (first) { first = false; syncMoq(); buildMedia(); }
         else syncMedia();
       } else if (m.t === 'chat') { S.chat.push(m.m); if (S.chat.length > 200) S.chat.shift(); if (S.tab !== 'chat' && m.m.by !== ME.id) S.unread++; renderChat(); renderTabs(); }
       else if (m.t === 'error') { toast((C.errors && C.errors[m.error]) || m.error); }
@@ -219,6 +222,8 @@
 
   // ───────────── media (Cloudflare Realtime SFU through our proxy) ─────────────
   function canPublishNow() { return S.view && S.view.me.canPublish; }
+  /** The room routes this viewer to MoQ (and they don't publish): no SFU session unless MoQ fails. */
+  function onMoqPath() { return Boolean(CFG.moq && S.view && S.view.me.media === 'moq' && !canPublishNow()); }
   function canSee() { var v = S.view; return v && (MODE === 'meeting' || v.room.status === 'live' || isStaff || v.me.stage); }
 
   function getIce() {
@@ -228,6 +233,7 @@
 
   function buildMedia() {
     if (!CFG.ready || S.building || S.ended || S.removed) return S.building;
+    if (onMoqPath() && !S.pc) return null; // the stage arrives over MoQ
     S.building = getIce().then(function (iceServers) {
       var pc = new RTCPeerConnection({ iceServers: iceServers, bundlePolicy: 'max-bundle', iceTransportPolicy: S.relayOnly ? 'relay' : 'all' });
       S.pc = pc; S.pubs = {}; S.pulls = {};
@@ -329,6 +335,7 @@
   function wanted() {
     var out = {};
     if (!S.view || !canSee()) return out;
+    if (MQ.view && MQ.view.playing && !canPublishNow()) return out; // MoQ carries the stage now
     var lay = layoutFor(S.view);
     S.view.stage.forEach(function (m) {
       if (m.id === ME.id || !m.sessionId) return;
@@ -341,6 +348,7 @@
     return out;
   }
   function syncMedia() {
+    syncMoq();
     if (!S.pc || !S.sessionId) { if (!S.building && S.joined && S.view && !S.ended) buildMedia(); return; }
     // Publishing permission can change (accepted an invite, sent back to the audience).
     if (canPublishNow()) publishAll().then(syncPulls); else syncPulls();
@@ -434,6 +442,7 @@
   function leaveRoom() {
     S.wsClosedByUs = true;
     if (S.rec) stopRecording();
+    stopMoqPublish(); stopMoqView();
     stopLocal(); teardownMedia();
     if (S.ws) S.ws.close();
     location.href = CFG.back || '/';
@@ -533,7 +542,7 @@
       if (S.devices.speaker && a.setSinkId) a.setSinkId(S.devices.speaker).catch(function () {});
     }
     if (!a.srcObject || a.srcObject.getAudioTracks()[0] !== track) { a.srcObject = new MediaStream([track]); a.play().catch(function () { showTapForSound(); }); }
-    if (S.rec) S.rec.addAudio(track);
+    if (COMP) COMP.addAudio(track);
   }
   function showTapForSound() {
     if ($('[data-tapsound]')) return;
@@ -557,6 +566,18 @@
       return;
     }
     if (stageEl.querySelector('[data-lobby]')) stageEl.innerHTML = '';
+    // MoQ viewers: one canvas with the composited stage (the host's layout). While switching, the SFU tiles stay until it plays.
+    if (MQ.view && !canPublishNow() && (MQ.view.playing || !S.pc)) {
+      stageEl.className = 'rm-stage rm-stage--moq';
+      Object.keys(S.tiles).forEach(function (id) { var el = S.tiles[id], vid = el.querySelector('video'); if (vid) vid.srcObject = null; el.remove(); });
+      S.tiles = {};
+      $$('.rm-empty', stageEl).forEach(function (e) { e.remove(); });
+      if (MQ.view.el.parentNode !== stageEl) stageEl.appendChild(MQ.view.el);
+      MQ.view.el.classList.toggle('is-waiting', !MQ.view.playing);
+      return;
+    }
+    var moqEl = stageEl.querySelector('.rm-moq'); if (moqEl) moqEl.remove();
+    if (onMoqPath() && !S.pc) { stageEl.className = 'rm-stage'; stageEl.innerHTML = '<p class="rm-empty">' + esc(C.moq.connecting) + '</p>'; S.tiles = {}; return; }
     var lay = layoutFor(v);
     stageEl.className = 'rm-stage rm-stage--' + lay.mode + ' n' + Math.min(lay.count, 12);
     if (!lay.tiles.length) { stageEl.innerHTML = '<p class="rm-empty">' + esc(C.emptyStage) + '</p>'; S.tiles = {}; return; }
@@ -738,6 +759,7 @@
       '<label class="rm-field rm-inline"><span>' + esc(C.slowMode) + '</span><select data-h="slow">' + [0, 5, 10, 30, 60].map(function (s) { return '<option value="' + s + '"' + (r.chat.slowSec === s ? ' selected' : '') + '>' + (s ? s + ' s' : esc(C.slowOff)) + '</option>'; }).join('') + '</select></label></div>' +
       (o.available ? '<div class="rm-row"><button class="' + (o.open ? 'rm-btn' : 'rm-buy') + '" data-h="offer">' + esc(o.open ? C.closeOffer : C.openOffer) + '</button>' + (o.open ? '<span class="rm-note">' + esc(C.offerOpen) + (o.closesAt ? ' · ' + esc(C.offerClosesIn) + ' <span data-offer-timer></span>' : '') + '</span>' : '') + '</div>' : '') +
       '<div class="rm-row"><label class="rm-field rm-inline"><span>' + esc(C.timer) + '</span><select data-h="tmin">' + [1, 2, 3, 5, 10, 15, 20, 30].map(function (m) { return '<option value="' + m + '">' + m + ' min</option>'; }).join('') + '</select></label><input class="rm-input" data-h="tlabel" maxlength="60" placeholder="' + esc(C.timerLabel) + '"><button class="rm-btn" data-h="tstart">' + esc(C.startTimer) + '</button>' + (r.timer ? '<button class="rm-btn" data-h="tclear">' + esc(C.clearTimer) + '</button>' : '') + '</div>' +
+      (MODE === 'webinar' && r.broadcast && CFG.moq ? '<div class="rm-row rm-bcast"><p class="rm-note"><strong>' + esc(C.moq.hostHeading) + '</strong> ' + esc(broadcastLine(r)) + '</p></div>' : '') +
       '<div class="rm-row"><button class="rm-btn" data-h="rec">' + esc(S.rec ? C.stopRecord : C.record) + '</button>' + (CFG.r2 ? '' : '<p class="rm-note">' + esc(C.recordLocal) + '</p>') + '</div>' +
       (ME.role === 'host' ? '<div class="rm-row"><button class="rm-btn" data-h="cohost">' + esc(C.coHostLink) + '</button></div>' : '') +
       '</div>';
@@ -845,41 +867,11 @@
   // ───────────── recording (host): the composited stage plus mixed audio, uploaded in parts ─────────────
   function startRecording() {
     if (!window.MediaRecorder) { toast(C.noWebrtc); return; }
-    var canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720;
-    var g = canvas.getContext('2d');
-    var actx = new (window.AudioContext || window.webkitAudioContext)();
-    var dest = actx.createMediaStreamDestination();
-    var mixed = {};
-    function addAudio(track) { if (!track || mixed[track.id] || track.readyState === 'ended') return; try { actx.createMediaStreamSource(new MediaStream([track])).connect(dest); mixed[track.id] = true; } catch (e) { /* skip */ } }
-    if (S.local.mic) addAudio(S.local.mic);
-    if (S.local.screenAudio) addAudio(S.local.screenAudio);
-    Object.keys(S.pulls).forEach(function (k) { var p = S.pulls[k]; if (p.track && (p.kind === 'audio' || p.kind === 'screenaudio')) addAudio(p.track); });
-    function draw() {
-      g.fillStyle = '#0b0b0c'; g.fillRect(0, 0, 1280, 720);
-      var stage = $('[data-stage]'); if (!stage) return;
-      var tiles = $$('.rm-tile', stage).filter(function (t) { var v = t.querySelector('video'); return v && v.srcObject && v.videoWidth; });
-      if (!tiles.length) return;
-      var focus = tiles.filter(function (t) { return t.classList.contains('is-focus'); })[0];
-      var rects = [];
-      if (focus && tiles.length > 1) {
-        rects.push([focus, 0, 0, 1280, 720]);
-        var others = tiles.filter(function (t) { return t !== focus; }).slice(0, 4);
-        others.forEach(function (t, i) { rects.push([t, 1280 - 16 - 256, 16 + i * (144 + 12), 256, 144]); });
-      } else {
-        var n = tiles.length, cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols), w = 1280 / cols, hh = 720 / rows;
-        tiles.forEach(function (t, i) { rects.push([t, (i % cols) * w, Math.floor(i / cols) * hh, w, hh]); });
-      }
-      rects.forEach(function (r) {
-        var v = r[0].querySelector('video'), vw = v.videoWidth, vh = v.videoHeight, s = Math.min(r[3] / vw, r[4] / vh), dw = vw * s, dh = vh * s;
-        try { g.drawImage(v, r[1] + (r[3] - dw) / 2, r[2] + (r[4] - dh) / 2, dw, dh); } catch (e) { /* not ready */ }
-      });
-    }
-    var drawTimer = setInterval(draw, 1000 / 25);
-    var stream = canvas.captureStream(25);
-    dest.stream.getAudioTracks().forEach(function (t) { stream.addTrack(t); });
+    var comp = acquireCompositor();
+    var stream = new MediaStream([comp.videoTrack, comp.audioTrack]);
     var mime = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'].filter(function (m) { return MediaRecorder.isTypeSupported(m); })[0] || '';
     var rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 2500000 } : {});
-    var R = { rec: rec, chunks: [], buffered: [], size: 0, parts: [], part: 0, id: null, partSize: 5 * 1024 * 1024, local: !CFG.r2, uploading: Promise.resolve(), failed: false, addAudio: addAudio, mime: rec.mimeType || mime || 'video/webm' };
+    var R = { rec: rec, chunks: [], buffered: [], size: 0, parts: [], part: 0, id: null, partSize: 5 * 1024 * 1024, local: !CFG.r2, uploading: Promise.resolve(), failed: false, mime: rec.mimeType || mime || 'video/webm' };
     S.rec = R;
     function upload(blob) {
       R.part++; var n = R.part;
@@ -899,8 +891,7 @@
       if (R.size >= R.partSize) { upload(new Blob(R.buffered, { type: R.mime })); R.buffered = []; R.size = 0; }
     };
     rec.onstop = function () {
-      clearInterval(drawTimer);
-      actx.close().catch(function () {});
+      releaseCompositor();
       var finish = function () {
         var file = new Blob(R.chunks, { type: R.mime });
         var a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = (CFG.room.title || 'recording').replace(/[^\w -]/g, '').slice(0, 60) + (R.mime.indexOf('mp4') >= 0 ? '.mp4' : '.webm'); a.click();
@@ -925,8 +916,215 @@
   }
   window.addEventListener('beforeunload', function (e) { if (S.rec) { e.preventDefault(); e.returnValue = ''; } });
 
+
+  // ───────────── the composited stage (recording and the MoQ broadcast share one) ─────────────
+  /** A 1280x720 canvas drawn from the stage's tiles (focus big, others inset, a name on each) plus every voice mixed. */
+  var COMP = null;
+  function acquireCompositor() {
+    if (COMP) { COMP.users++; return COMP; }
+    var canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720;
+    var g = canvas.getContext('2d');
+    var actx = new (window.AudioContext || window.webkitAudioContext)();
+    var dest = actx.createMediaStreamDestination();
+    var mixed = {};
+    function addAudio(track) { if (!track || mixed[track.id] || track.readyState === 'ended') return; try { actx.createMediaStreamSource(new MediaStream([track])).connect(dest); mixed[track.id] = true; } catch (e) { /* skip */ } }
+    function syncAudio() {
+      if (actx.state === 'suspended') actx.resume().catch(function () {});
+      if (S.local.mic) addAudio(S.local.mic);
+      if (S.local.screenAudio) addAudio(S.local.screenAudio);
+      Object.keys(S.pulls).forEach(function (k) { var p = S.pulls[k]; if (p.track && (p.kind === 'audio' || p.kind === 'screenaudio')) addAudio(p.track); });
+    }
+    function nameFor(tileId) {
+      var id = String(tileId || '').split(':')[0], screen = /:screen$/.test(tileId || '');
+      var m = S.view && (S.view.stage || []).filter(function (x) { return x.id === id; })[0];
+      return m ? (screen ? m.name + ' · ' + C.screen : m.name) : '';
+    }
+    var n = 0;
+    function draw() {
+      if (++n % 25 === 1) syncAudio();
+      g.fillStyle = '#0b0b0c'; g.fillRect(0, 0, 1280, 720);
+      var stage = $('[data-stage]'); if (!stage) return;
+      var tiles = $$('.rm-tile', stage).filter(function (t) { var v = t.querySelector('video'); return v && v.srcObject && v.videoWidth; });
+      if (!tiles.length) return;
+      var focus = tiles.filter(function (t) { return t.classList.contains('is-focus'); })[0];
+      var rects = [];
+      if (focus && tiles.length > 1) {
+        rects.push([focus, 0, 0, 1280, 720]);
+        var others = tiles.filter(function (t) { return t !== focus; }).slice(0, 4);
+        others.forEach(function (t, i) { rects.push([t, 1280 - 16 - 256, 16 + i * (144 + 12), 256, 144]); });
+      } else {
+        var k = tiles.length, cols = Math.ceil(Math.sqrt(k)), rows = Math.ceil(k / cols), w = 1280 / cols, hh = 720 / rows;
+        tiles.forEach(function (t, i) { rects.push([t, (i % cols) * w, Math.floor(i / cols) * hh, w, hh]); });
+      }
+      rects.forEach(function (r) {
+        var v = r[0].querySelector('video'), vw = v.videoWidth, vh = v.videoHeight, sc = Math.min(r[3] / vw, r[4] / vh), dw = vw * sc, dh = vh * sc;
+        try { g.drawImage(v, r[1] + (r[3] - dw) / 2, r[2] + (r[4] - dh) / 2, dw, dh); } catch (e) { /* not ready */ }
+        var label = nameFor(r[0].getAttribute('data-tile'));
+        if (label) {
+          var fs = r[3] > 600 ? 22 : 14; g.font = '600 ' + fs + 'px -apple-system, system-ui, sans-serif';
+          var tw = g.measureText(label).width, x = r[1] + 12, y = r[2] + r[4] - 12;
+          g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(x - 8, y - fs - 6, tw + 16, fs + 14);
+          g.fillStyle = '#fff'; g.fillText(label, x, y);
+        }
+      });
+    }
+    var drawTimer = setInterval(draw, 1000 / 25);
+    syncAudio();
+    COMP = {
+      users: 1, canvas: canvas, videoTrack: canvas.captureStream(25).getVideoTracks()[0], audioTrack: dest.stream.getAudioTracks()[0], addAudio: addAudio,
+      stop: function () { clearInterval(drawTimer); try { COMP.videoTrack.stop(); } catch (e) { /* stopped */ } actx.close().catch(function () {}); },
+    };
+    return COMP;
+  }
+  function releaseCompositor() { if (!COMP) return; if (--COMP.users <= 0) { COMP.stop(); COMP = null; } }
+
+  // ───────────── MoQ: the host publishes the stage, viewers play it ─────────────
+  var MQ = { pub: null, pubStarting: false, pubRetry: 0, view: null, viewStarting: false };
+  function moqLib(which) { return import('/assets/vendor/moq/' + which + '.js'); }
+  function syncMoq() {
+    if (!CFG.moq || !S.view || S.ended || S.removed) return;
+    var me = S.view.me;
+    if (me.publishMoq && !MQ.pub && !MQ.pubStarting && Date.now() > MQ.pubRetry) startMoqPublish();
+    if (!me.publishMoq && (MQ.pub || MQ.pubStarting)) stopMoqPublish();
+    var watch = me.media === 'moq' && !canPublishNow();
+    if (watch && !MQ.view && !MQ.viewStarting) startMoqView();
+    if (!watch && (MQ.view || MQ.viewStarting)) { stopMoqView(); send({ t: 'moq_view', state: 'sfu' }); renderStage(); }
+  }
+  function rate(kbps) { return kbps >= 1000 ? (kbps / 1000).toFixed(1) + ' Mbps' : kbps + ' kbps'; }
+  function broadcastLine(r) {
+    var b = r.broadcast, parts = [];
+    if (b.mode === 'sfu') return C.moq.off;
+    if (r.status !== 'live') return C.moq.backstage;
+    if (!b.live) parts.push(MQ.pubStarting ? C.moq.starting : C.moq.down + (b.error ? ' (' + b.error + ')' : ''));
+    else parts.push(C.moq.live + (b.kbps != null ? ' ' + rate(b.kbps) : '') + (b.fps != null ? ', ' + b.fps + ' fps.' : '.'));
+    if (b.mode === 'auto' && !b.engaged) parts.push(C.moq.autoAt + ' ' + b.minAudience + ' ' + C.moq.viewers + '.');
+    parts.push(b.moq + ' ' + C.moq.onMoq + ', ' + b.sfu + ' ' + C.moq.onSfu + '.');
+    return parts.join(' ');
+  }
+
+  function startMoqPublish() {
+    MQ.pubStarting = true;
+    var comp = null;
+    Promise.all([post('/moq'), moqLib('publish')]).then(function (r) {
+      var acc = r[0], P = r[1].Publish;
+      if (!acc || !acc.ok) throw new Error((acc && acc.error) || 'moq');
+      if (!MQ.pubStarting) return; // stopped meanwhile
+      comp = acquireCompositor();
+      var conn = new P.Net.Connection({ url: new URL(acc.url), websocket: { enabled: false } });
+      var bc = new P.Broadcast({ origin: conn.origin, enabled: true, announce: true, name: P.Net.Path.from(acc.name) });
+      var vcap = new P.Video.Capture({ source: comp.videoTrack });
+      // Two renditions (each viewer's player picks by its bandwidth); each encodes only while someone watches it.
+      var hd = new P.Video.Encoder('video/hd', { broadcast: bc, capture: vcap, enabled: true, config: { maxBitrate: 2500000, frameRate: 25, keyframeInterval: 2000 } });
+      var sd = new P.Video.Encoder('video/sd', { broadcast: bc, capture: vcap, enabled: true, config: { maxScale: 0.5, maxBitrate: 700000, frameRate: 25, keyframeInterval: 2000 } });
+      var acap = new P.Audio.Capture({ source: { track: comp.audioTrack, kind: 'voice' }, enabled: true });
+      var aenc = new P.Audio.Encoder('audio', { broadcast: bc, capture: acap, enabled: true });
+      var last = { t: Date.now(), bytes: 0, frames: 0 };
+      var pub = MQ.pub = { conn: conn, bc: bc, parts: [hd, sd, aenc, vcap, acap], timer: 0 };
+      MQ.pubStarting = false;
+      var report = function () {
+        if (MQ.pub !== pub) return;
+        var st = conn.status.peek(), err = conn.error.peek();
+        var bytes = hd.out.stats.peek().bytes + sd.out.stats.peek().bytes + aenc.out.stats.peek().bytes;
+        var frames = Math.max(hd.out.stats.peek().frames, sd.out.stats.peek().frames);
+        var dt = Math.max(1, Date.now() - last.t) / 1000;
+        var kbps = Math.round((bytes - last.bytes) * 8 / dt / 1000), fps = Math.round((frames - last.frames) / dt);
+        last = { t: Date.now(), bytes: bytes, frames: frames };
+        var msg = err ? String(err.message || err).slice(0, 150) : null;
+        window.__roomMoq = { role: 'publish', status: st, kbps: kbps, fps: fps, bytes: bytes, frames: frames, error: msg };
+        send({ t: 'moq_pub', on: st === 'connected', kbps: kbps, fps: fps, error: msg || (st === 'connected' ? null : C.moq.relayUnreachable) });
+      };
+      pub.timer = setInterval(report, 5000);
+      setTimeout(report, 1500);
+    }).catch(function (e) {
+      MQ.pubStarting = false;
+      if (comp) releaseCompositor();
+      MQ.pubRetry = Date.now() + 30000;
+      window.__roomMoq = { role: 'publish', status: 'error', error: String(e && e.message || e) };
+      send({ t: 'moq_pub', on: false, error: String(e && e.message || e).slice(0, 150) });
+      console.warn('moq publish', e);
+    });
+  }
+  function stopMoqPublish() {
+    MQ.pubStarting = false;
+    var p = MQ.pub; if (!p) return;
+    MQ.pub = null;
+    clearInterval(p.timer);
+    p.parts.forEach(function (x) { try { x.close(); } catch (e) { /* closed */ } });
+    try { p.bc.close(); } catch (e) { /* closed */ }
+    try { p.conn.close(); } catch (e) { /* closed */ }
+    releaseCompositor();
+    send({ t: 'moq_pub', on: false });
+  }
+
+  /** Can this browser play MoQ at all? (WebTransport, WebCodecs, Opus and one video codec.) '' = yes, else why not. */
+  function moqCapable(W) {
+    if (!window.WebTransport || !window.VideoDecoder || !window.AudioDecoder || !window.isSecureContext) return Promise.resolve('no_webtransport');
+    return W.isSupported().then(function (s) {
+      if (!s || s.webtransport === 'none') return 'no_webtransport';
+      if (!s.audio || !s.audio.decoding || s.audio.decoding.opus !== 'full') return 'no_opus';
+      var v = s.video && s.video.decoding;
+      var any = v && ['h264', 'vp8', 'vp9', 'av1'].some(function (k) { return v[k] && (v[k].hardware || v[k].software); });
+      return any ? '' : 'no_video_decoder';
+    }).catch(function () { return 'no_support_check'; });
+  }
+  function moqFail(state, reason) {
+    stopMoqView();
+    window.__roomMoq = { role: 'watch', status: state, reason: reason, frames: 0 };
+    send({ t: 'moq_view', state: state, reason: reason });
+    renderStage();
+  }
+  function startMoqView() {
+    MQ.viewStarting = true;
+    if (!window.WebTransport) { MQ.viewStarting = false; moqFail('unsupported', 'no_webtransport'); return; }
+    var W;
+    moqLib('watch').then(function (lib) { W = lib; return moqCapable(W); }).then(function (why) {
+      if (why) { MQ.viewStarting = false; moqFail('unsupported', why); return null; }
+      return post('/moq');
+    }).then(function (acc) {
+      if (!acc || !MQ.viewStarting) return;
+      MQ.viewStarting = false;
+      if (!acc.ok) { send({ t: 'moq_view', state: 'sfu' }); return; } // the room isn't routing us to MoQ (any more)
+      var el = h('div', { class: 'rm-moq' });
+      var canvas = h('canvas', { 'aria-label': CFG.room.title }); el.appendChild(canvas); el.appendChild(h('p', { class: 'rm-moq-wait' }, esc(C.moq.connecting)));
+      var Sig = W.Watch.Signals;
+      // Sound needs a tap unless this page already had one (the Enter button counts).
+      var muted = new Sig.Signal(!(navigator.userActivation ? navigator.userActivation.hasBeenActive : audioUnlocked));
+      var conn = new W.Watch.Net.Connection({ url: new URL(acc.url), websocket: { enabled: false } });
+      var player = new W.Watch.Player({ origin: conn.origin, probe: conn.probe, name: W.Watch.Net.Path.from(acc.name), canvas: canvas, enabled: true, muted: muted, visible: 'always', announced: false, catalogFormat: 'hang', delay: 'auto' });
+      var v = MQ.view = { el: el, conn: conn, player: player, muted: muted, playing: false, frames: 0, lastFrameAt: Date.now(), startedAt: Date.now(), connected: false, timer: 0 };
+      if (muted.peek()) showTapForSound();
+      v.timer = setInterval(function () {
+        if (MQ.view !== v) return;
+        var st = player.video.out.stats.peek(), n = st ? st.frameCount : 0, t = Date.now(), err = conn.error.peek();
+        if (conn.status.peek() === 'connected') v.connected = true;
+        if (n > v.frames) { v.frames = n; v.lastFrameAt = t; }
+        if (document.hidden) { v.lastFrameAt = t; v.startedAt = Math.max(v.startedAt, t - 6000); return; } // a background tab is not a stall
+        window.__roomMoq = { role: 'watch', status: conn.status.peek(), frames: n, playing: v.playing, error: err ? String(err.message || err) : null };
+        if (!v.playing && n > 0) {
+          v.playing = true; send({ t: 'moq_view', state: 'playing' });
+          if (S.pc && !canPublishNow()) teardownMedia(); // the SFU copy isn't needed any more
+          renderStage();
+        }
+        // No picture: a blocked network (never connected in 12 s), or a broadcast that stopped arriving for 10 s.
+        if (!v.playing && t - v.startedAt > 12000) moqFail('failed', v.connected ? 'stalled' : (err ? 'relay_error' : 'network'));
+        else if (v.playing && t - v.lastFrameAt > 10000) moqFail('failed', 'stalled');
+      }, 1000);
+      renderStage();
+    }).catch(function (e) { MQ.viewStarting = false; console.warn('moq watch', e); moqFail('failed', 'client_error'); });
+  }
+  function stopMoqView() {
+    MQ.viewStarting = false;
+    var v = MQ.view; if (!v) return;
+    MQ.view = null;
+    clearInterval(v.timer);
+    try { v.player.close(); } catch (e) { /* closed */ }
+    try { v.conn.close(); } catch (e) { /* closed */ }
+    v.el.remove();
+  }
+
   function endScreen(title, body) {
     S.wsClosedByUs = true;
+    stopMoqPublish(); stopMoqView();
     stopLocal(); teardownMedia();
     var sh = $('[data-offer-sheet]');
     var keepOffer = S.view && S.view.room.offer && S.view.room.offer.open && document.getElementById('room-offer');

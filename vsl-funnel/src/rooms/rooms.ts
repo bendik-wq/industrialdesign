@@ -14,6 +14,8 @@ export interface RoomRow {
   id: string; mode: RoomMode; title: string; ref_type: 'live' | 'challenge' | 'lead' | 'none'; ref_id: string | null; lead_id: string | null;
   starts_at: number | null; duration_min: number; status: 'scheduled' | 'live' | 'ended' | 'cancelled'; went_live_at: number | null; ended_at: number | null;
   peak: number; replay_url: string | null; created_by: string | null; created_at: number; updated_at: number;
+  /** Webinars: how the audience receives the stage (migration 0054); null follows ROOM_BROADCAST. */
+  broadcast?: string | null;
 }
 
 const MIN = 60_000;
