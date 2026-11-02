@@ -1,0 +1,77 @@
+/* Rooms, call quality and reliability (area A "media", room-media.js). Same language as room.css: white and
+   #f5f5f7, hairlines, navy labels, green/amber/red only as small status marks, 8px spacing, calm motion. */
+
+/* ── pre-join check ── */
+/* room.css also uses .rm-check for the Deal Plan checkbox rows (display:flex), which squeezed the check screen into one row. */
+.rm-entry.rm-check { display: block; font-size: inherit; margin: 0 auto; }
+.rmq-check .rm-preview { position: relative; }
+.rmq-placeholder { position: absolute; inset: 0; display: grid; place-items: center; background: var(--stage); }
+.rmq-placeholder::after { content: ""; width: 56px; height: 56px; border-radius: 50%; background: rgba(255, 255, 255, .12); }
+.rmq-fxbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; justify-content: center; }
+.rmq-chipbtn { min-height: 36px; padding: 0 16px; border: 1px solid var(--hair); border-radius: 999px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 500; transition: background .15s var(--ease), border-color .15s var(--ease); }
+.rmq-chipbtn[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.rmq-chipbtn:focus-visible, .rmq-chip:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.rmq-fxnote { margin: 0 0 12px; text-align: center; color: var(--ink-2); font-size: 13px; }
+.rmq-problem { margin: 0 0 16px; padding: 16px; border-radius: var(--r2); background: #fff5f4; }
+.rmq-problem .rmq-ph { margin: 0 0 6px; font: 600 16px/1.35 var(--ui); color: var(--red); }
+.rmq-problem p { margin: 0 0 8px; color: var(--ink); font-size: 14px; }
+.rmq-steps { margin: 8px 0 0; padding-left: 20px; font-size: 14px; }
+.rmq-steps li { margin: 0 0 6px; }
+.rmq-problem .rm-actions { margin-top: 12px; }
+.rmq-checks { list-style: none; margin: 0 0 20px; padding: 0; border-top: 1px solid var(--hair); }
+.rmq-row { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 4px 10px; padding: 12px 0; border-bottom: 1px solid var(--hair); font-size: 14px; }
+.rmq-rl { font-weight: 500; }
+.rmq-rs { color: var(--ink-2); text-align: right; }
+.rmq-rx { grid-column: 2 / -1; }
+.rmq-rx:empty { display: none; }
+.rmq-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fill-2); }
+.rmq-row[data-state="ok"] .rmq-dot { background: var(--ok); }
+.rmq-row[data-state="fair"] .rmq-dot { background: #b26a00; }
+.rmq-row[data-state="bad"] .rmq-dot { background: var(--red); }
+.rmq-row[data-state="wait"] .rmq-dot { background: var(--ink-3); animation: rm-pulse 1.6s var(--ease) infinite; }
+.rmq-row[data-state="ok"] .rmq-rs { color: var(--ok); }
+.rmq-row[data-state="bad"] .rmq-rs { color: var(--red); }
+.rmq-help { margin: 4px 0; color: var(--ink-2); font-size: 13px; }
+.rm-btn.rmq-sm, .rm-link.rmq-sm { min-height: 32px; font-size: 13px; padding-top: 0; padding-bottom: 0; }
+
+/* ── the banner while reconnecting ── */
+.rm-banner[data-rmq] { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.rmq-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--fill-2); border-top-color: var(--navy); animation: rmq-rot .9s linear infinite; }
+@keyframes rmq-rot { to { transform: rotate(360deg); } }
+
+/* ── quality: the header chip, staff dots, tile marks ── */
+.rmq-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 32px; padding: 0 8px; border: 0; border-radius: 999px; background: var(--fill); }
+.rmq-bars { width: 18px; height: 14px; stroke: none; }
+.rmq-bars rect { fill: var(--fill-2); }
+.rmq-chip .rmq-bars rect { fill: #d2d2d7; }
+.rmq-good rect.on { fill: var(--ok); }
+.rmq-fair rect.on { fill: #b26a00; }
+.rmq-poor rect.on, .rmq-bad rect.on { fill: var(--red); }
+.rmq-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rmq-pdot { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; vertical-align: middle; background: var(--fill-2); }
+.rmq-pdot.rmq-good { background: var(--ok); }
+.rmq-pdot.rmq-fair { background: #b26a00; }
+.rmq-pdot.rmq-poor, .rmq-pdot.rmq-bad { background: var(--red); }
+.rmq-tq { position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 28px; height: 22px; border-radius: 6px; background: rgba(0, 0, 0, .55); }
+.rmq-tq .rmq-bars rect:not(.on) { fill: rgba(255, 255, 255, .3); }
+.rmq-tiletag { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 6px 12px; border-radius: 999px; background: rgba(0, 0, 0, .6); color: #fff; font-size: 13px; }
+.rm-tile.rmq-held video { opacity: .45; transition: opacity .2s var(--ease); }
+.rm-tile.rmq-held .rm-avatar { opacity: 0; }
+
+/* ── Call settings ── */
+.rmq-sheet section { margin: 16px 0 0; }
+.rmq-conn-h { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 15px; }
+.rmq-dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 8px; padding: 12px; border-radius: var(--r1); background: var(--fill); }
+.rmq-dl div { min-width: 0; }
+.rmq-dl dt { color: var(--ink-2); font-size: 12px; }
+.rmq-dl dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 14px; }
+.rmq-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 40px; }
+.rmq-toggle input { width: 18px; height: 18px; }
+
+/* ── push to talk ── */
+body.rmq-talking::after { content: ""; position: fixed; left: 50%; top: 64px; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); transform: translateX(-50%); box-shadow: 0 0 0 6px rgba(29, 122, 79, .2); z-index: 70; }
+
+@media (max-width: 420px) {
+  .rmq-dl { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .rmq-spin, .rmq-row[data-state="wait"] .rmq-dot { animation: none; } }

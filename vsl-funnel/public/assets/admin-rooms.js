@@ -97,6 +97,7 @@
             }).join('') + '</tbody></table>' : '<p class="muted">Nobody has joined this room yet.</p>') +
             '<p style="margin-top:10px"><strong>Recordings</strong> ' + (recs.length ? recs.map(function (r) { return r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(fmt(r.started_at)) + '</a> (' + ((r.bytes || 0) / 1048576).toFixed(1) + ' MB)' : esc(fmt(r.started_at)) + ' (' + esc(r.status) + ')'; }).join(' · ') : '<span class="muted">none yet</span>') + '</p></td></tr>';
           row.insertAdjacentHTML('afterend', html);
+          if (window.RoomMediaAdmin) window.RoomMediaAdmin.fill(row.nextElementSibling.firstChild, id); // call quality (area A "media")
         });
       };
     });

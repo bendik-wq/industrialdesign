@@ -7,6 +7,7 @@ import { broadcastName, connectUrl, relayUrl } from './moq';
 import { getSecret } from '../lib/secret';
 import { type SfuOp, SFU_OPS, forceClose, sfuProxy } from './proxy';
 import { feedPresence, getRoom, markRoom, roomOffer, setRoomOffer } from './rooms';
+import { MediaReports, heldIds, holdOnClose, isHeld, resume as resumeMedia, staffView, wantsQuality } from './media';
 
 /**
  * One Durable Object per room: signalling and state over WebSockets with hibernation (the object sleeps between
@@ -27,6 +28,9 @@ export class RoomDO {
   private meta: Meta | null = null;
   /** Whether the last state everyone received had the MoQ broadcast live (the alarm re-sends when it lapses). */
   private sentLive = false;
+  /** Call quality reports (area A "media", src/rooms/media.ts). */
+  private mediaReports: MediaReports | null = null;
+  private get media() { return (this.mediaReports ??= new MediaReports(this.ctx.storage)); }
 
   constructor(private ctx: DurableObjectState, private env: Env) {
     void ctx.blockConcurrencyWhile(async () => {
@@ -83,6 +87,7 @@ export class RoomDO {
       if (req.headers.get('upgrade') !== 'websocket') return new Response('expected websocket', { status: 426 });
       const pair = new WebSocketPair();
       const [client, server] = [pair[0], pair[1]];
+      const resumed = resumeMedia(st, who.id, now); // media: back within the reconnect hold
       const r = join(st, who, now);
       this.ctx.acceptWebSocket(server, [who.id]);
       server.serializeAttachment({ id: who.id });
@@ -94,6 +99,11 @@ export class RoomDO {
       this.reconcile();
       await this.save();
       server.send(JSON.stringify(view(st, r.member, now, { chat: true })));
+      // media: whether the room kept their media session through the reconnect, who else is reconnecting, and for staff everyone's connection.
+      server.send(JSON.stringify({ t: 'resumed', sessionId: resumed?.sessionId ?? null, held: Boolean(resumed) }));
+      if (resumed) this.deliver('all', { t: 'mhold', ids: heldIds(st, now) });
+      else if (heldIds(st, now).length) server.send(JSON.stringify({ t: 'mhold', ids: heldIds(st, now) }));
+      if (wantsQuality(r.member)) server.send(JSON.stringify({ t: 'mq_all', people: await this.media.snapshot(st) }));
       this.broadcast(now, who.id);
       await this.feed([r.member], now);
       // Joined within five minutes of Go live: on time.
@@ -171,6 +181,7 @@ export class RoomDO {
     for (const mem of Object.values(this.st.members)) {
       const n = counts.get(mem.id) ?? 0;
       if (mem.connected === n) continue;
+      if (n === 0 && isHeld(this.st, mem.id, Date.now())) continue; // media: reconnecting within the hold
       if (n === 0) { mem.connected = 1; leave(this.st, mem.id, Date.now()); } else mem.connected = n;
     }
   }
@@ -201,6 +212,9 @@ export class RoomDO {
     let msg: unknown;
     try { msg = JSON.parse(data); } catch { return; }
     const now = Date.now();
+    // media: a browser's own connection report (staff hear about changes); staff asking for everyone's.
+    const mt = (msg as { t?: unknown })?.t;
+    if (mt === 'mq' || mt === 'mq_all') { await this.mediaMessage(ws, a.id, msg as Record<string, unknown>, now); return; }
     const r = apply(this.st, a.id, msg, now);
     if (!r.ok) { this.send(ws, JSON.stringify({ t: 'error', error: r.error, for: (msg as { t?: unknown })?.t ?? null })); return; }
     if ((msg as { t?: unknown }).t === 'push_close') {
@@ -339,13 +353,32 @@ export class RoomDO {
     return fresh;
   }
 
-  async webSocketClose(ws: WebSocket) { await this.closed(ws); }
+  private async mediaMessage(ws: WebSocket, id: string, msg: Record<string, unknown>, now: number) {
+    const st = this.st!;
+    const me = st.members[id];
+    if (msg.t === 'mq_all') { if (wantsQuality(me)) this.send(ws, JSON.stringify({ t: 'mq_all', people: await this.media.snapshot(st) })); return; }
+    const r = await this.media.ingest(st, id, msg.q, now);
+    if (!r?.changed) return;
+    const data = JSON.stringify({ t: 'mq', p: staffView(r.rec) });
+    for (const s of this.ctx.getWebSockets()) {
+      const att = s.deserializeAttachment() as { id?: string } | null;
+      if (att?.id && att.id !== id && wantsQuality(st.members[att.id])) this.send(s, data);
+    }
+  }
+
+  async webSocketClose(ws: WebSocket, code?: number) { await this.closed(ws, code); }
   async webSocketError(ws: WebSocket) { await this.closed(ws); }
-  private async closed(ws: WebSocket) {
+  private async closed(ws: WebSocket, code?: number) {
     if (!this.st) return;
     const a = ws.deserializeAttachment() as { id?: string } | null;
     if (!a?.id) return;
     const now = Date.now();
+    // media: a drop without a goodbye keeps their place (stage, hand, media session) for a short while.
+    if (holdOnClose(this.st, a.id, code, now)) {
+      await this.save();
+      this.deliver('all', { t: 'mhold', ids: heldIds(this.st, now) });
+      return;
+    }
     const m = leave(this.st, a.id, now);
     if (m && m.connected === 0) {
       await this.env.DB.prepare('UPDATE room_attendance SET last_at = ? WHERE room_id = ? AND who = ?').bind(now, this.st.id, a.id).run().catch(() => null);
@@ -366,8 +399,12 @@ export class RoomDO {
   /** Every minute while anyone is connected: presence and minutes, the peak, the offer's real state. */
   async alarm() {
     if (!this.st) return;
+    const heldBefore = heldIds(this.st, Date.now()).length;
     this.reconcile();
     const now = Date.now();
+    // media: holds that ran out are departures now; the call quality summaries go to D1.
+    if (heldBefore && heldIds(this.st, now).length !== heldBefore) { this.broadcast(now); this.deliver('all', { t: 'mhold', ids: heldIds(this.st, now) }); }
+    await this.media.flush(this.env.DB, this.st.id);
     const here = Object.values(this.st.members).filter((m) => m.connected > 0);
     if (here.length) {
       await this.feed(here, now);
