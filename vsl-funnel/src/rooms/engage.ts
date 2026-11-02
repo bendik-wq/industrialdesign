@@ -313,7 +313,7 @@ export const ENGAGE_COPY = {
   autoHeading: 'Automatic pushes',
   autoNote: 'Sent on their own at these minutes after Go live. Change them in Funnel HQ, Rooms, Engagement.',
   autoNone: 'No automatic pushes for this room. Add them in Funnel HQ, Rooms, Engagement.',
-  autoMin: 'at {n} min',
+  autoMin: 'at {a} min',
   autoIn: 'in {a}',
   autoDue: 'due now',
   autoSent: 'Sent',
