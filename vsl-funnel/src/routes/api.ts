@@ -295,6 +295,34 @@ for (const [path, run] of [
     }
   });
 }
+// The masterclass room's application sheet and the Sprint's in-room payment sheet (webinar/room-convert.ts).
+api.post('/webinar/app/event', roomAction(async (rt, reg, body) => (await import('../webinar/room-convert')).applicationEvent(rt, reg, body)));
+api.post('/webinar/app', async (c) => {
+  try {
+    const { rt, body, reg } = await webinarReg(c);
+    if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+    const m = await import('../webinar/room-convert');
+    try {
+      return c.json(await m.submitMasterclassApplication(rt, reg, body, c.req.raw));
+    } catch (e) {
+      if (e instanceof m.AppSubmitError) return c.json({ ok: false, error: e.message, field: e.field ?? null }, e.status);
+      throw e;
+    }
+  } catch (err) {
+    return errorResponse(c, err);
+  }
+});
+api.post('/webinar/sprint/pay', async (c) => {
+  if (!sameOriginWrite(c)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  try {
+    const { rt, reg } = await webinarReg(c);
+    if (!reg) return c.json({ ok: false, error: 'Link not found' }, 404);
+    return c.json(await (await import('../webinar/room-convert')).sprintPaySheet(rt, reg));
+  } catch (err) {
+    if (err instanceof PassError) return c.json({ ok: false, error: err.message }, err.status as 400);
+    return errorResponse(c, err);
+  }
+});
 // The ticket paid on our own page: the confirmation token from Whop's payment elements becomes the payment,
 // with the card saved for the one-click Sprint (ticket-pay.ts). Same-origin only.
 api.post('/webinar/ticket/pay', async (c) => {

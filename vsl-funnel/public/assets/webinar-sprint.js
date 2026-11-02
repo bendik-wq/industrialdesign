@@ -80,6 +80,8 @@
     var where = b.getAttribute('data-where') || 'hero';
     closeModal();
     if (S.oneClick && !plan) { oneClick(b, where); return; }
+    // In the room with Whop: the payment sheet (webinar-convert.js), Whop's checkout embedded and prefilled.
+    if (W.sprint && S.paySheet && window.WEBINAR_PAY) { window.WEBINAR_PAY.open(b, where); return; }
     if (S.preview) { notice(C.preview); return; }
     var label = b.innerHTML;
     b.disabled = true; b.querySelector('[data-label]') ? b.querySelector('[data-label]').textContent = 'Opening…' : (b.textContent = 'Opening…');
@@ -167,6 +169,8 @@
       '<p class="bh-g">' + shield + '<span>' + esc(C.guaranteeShort) + '</span></p>' +
       '<p class="buy-modal-alt"><a href="' + esc(S.startUrl) + '" data-oc-other>' + esc(q.copy.otherCard) + '</a></p>' +
       (S.preview ? '<p class="bh-preview">' + esc(C.preview) + '</p>' : ''), q.copy.confirmHeading, 'buy-confirm');
+    var other = box.querySelector('[data-oc-other]');
+    if (other && W.sprint && S.paySheet && window.WEBINAR_PAY) other.addEventListener('click', function (e) { e.preventDefault(); closeModal(); window.WEBINAR_PAY.open(null, 'other_card'); });
     var pay = box.querySelector('[data-oc-pay]');
     pay.addEventListener('click', function () {
       if (pay.disabled || S.preview) return;
@@ -205,6 +209,7 @@
   function coreHtml(where) {
     return '<div class="bh-buy" data-sprint-buybox>' + priceHtml() + buttonHtml(where) +
       '<p class="bh-micro">' + esc(microHtml()) + '</p>' +
+      (S.payingAs ? '<p class="bh-micro bh-payas" data-paying-as>' + esc(S.payingAs) + '</p>' : '') +
       '<p class="bh-g">' + shield + '<span>' + esc(C.guaranteeShort) + '</span></p>' +
       payHtml() + bonusHtml() +
       (S.started ? '<p class="bh-proof">' + esc(fill(C.started, { n: S.started })) + '</p>' : '') +

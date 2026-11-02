@@ -85,6 +85,7 @@ export const PUBLIC_RATE_LIMITS: PublicLimit[] = [
   // Checkouts (an API call to Whop or Stripe per hit)
   { method: 'POST', path: '/api/webinar/checkout', scope: 'checkout', max: 30, windowMs: HOUR, why: checkoutWhy },
   { method: 'POST', path: '/api/webinar/sprint/checkout', scope: 'checkout', max: 30, windowMs: HOUR, why: checkoutWhy },
+  { method: 'POST', path: '/api/webinar/sprint/pay', scope: 'checkout', max: 30, windowMs: HOUR, why: checkoutWhy },
   { method: 'POST', path: '/api/live/deposit', scope: 'checkout', max: 30, windowMs: HOUR, why: checkoutWhy },
   { method: 'POST', path: '/api/challenge/deposit', scope: 'checkout', max: 30, windowMs: HOUR, why: checkoutWhy },
   { method: 'POST', path: '/api/rooms/:id/sprint', scope: 'checkout', max: 30, windowMs: HOUR, why: checkoutWhy },
@@ -101,6 +102,7 @@ export const PUBLIC_RATE_LIMITS: PublicLimit[] = [
   { method: 'POST', path: '/api/rooms/:id/net/:kind', scope: 'room-net', max: 120, windowMs: 10 * MIN, why: 'reads an upload for the upload test', skip: (c) => c.req.param('kind') === 'ping' },
   { method: 'POST', path: '/api/rooms/:id/captions', scope: 'room-captions', max: 400, windowMs: 10 * MIN, why: 'Workers AI speech-to-text per audio piece (host and co-hosts only)' },
   { method: 'POST', path: '/api/rooms/:id/app', scope: 'room-app', max: 10, windowMs: HOUR, why: 'files an application from the room (scoring, team pings)' },
+  { method: 'POST', path: '/api/webinar/app', scope: 'room-app', max: 10, windowMs: HOUR, why: 'files an application from the masterclass room (scoring, team pings)' },
   // Token forms on the webinar pages
   ...['', '/webinar'].flatMap((p): PublicLimit[] => [
     { method: 'POST', path: `${p}/pack/:token`, scope: 'token-form', max: 30, windowMs: HOUR, why: 'saves a form and can email the team' },
