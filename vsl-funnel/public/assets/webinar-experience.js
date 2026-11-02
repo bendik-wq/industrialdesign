@@ -222,6 +222,7 @@
     var el = notesEl;
     if (!el) return;
     var saved = (X.takeaways || []).filter(function (t) { return notes[t.id]; });
+    document.dispatchEvent(new CustomEvent('webinar:notes', { detail: { count: saved.length } })); // the progress line (webinar-convert.js)
     el.innerHTML = '<p class="wx-eyebrow">' + esc(C.savedHeading) + (saved.length ? ' <span class="wx-count">' + saved.length + '</span>' : '') + '</p>' +
       (saved.length ? '<ol class="wx-notes-mini">' + saved.map(function (t) { return '<li><span>' + mmss(t.at) + '</span>' + esc(t.text) + '</li>'; }).join('') + '</ol><a class="wx-link" href="' + esc(X.notesUrl) + '" target="_blank" rel="noopener">' + esc(C.savedLink) + ' →</a>'
         : '<p class="wx-sub">' + esc(C.savedEmpty) + '</p>');

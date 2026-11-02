@@ -236,7 +236,12 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
   // Preview past the pitch: shown as a viewer for whom the Sprint unlocked at the pitch minute (bonus clock running from then).
   const pitchAt = session.starts_at + w.pitchAtMin * 60_000;
   const sprintReg = preview && Date.now() >= pitchAt ? { ...reg, offer_unlocked_at: pitchAt } : reg;
-  const sprint = holderPass?.active ? null : await sprintRoomConfig(rt, sprintReg, session, extras.qualified, { preview });
+  const sprintBase = holderPass?.active ? null : await sprintRoomConfig(rt, sprintReg, session, extras.qualified, { preview });
+  // The live room's conversion pieces (room-convert.ts): the Sprint's in-room payment sheet ("paying as", Whop's
+  // embedded checkout) and the application sheet, offered at the edition's pitch minute.
+  const convert = await import('./room-convert');
+  const sprint = sprintBase ? { ...sprintBase, ...(await convert.sprintPayExtras(rt, reg, { preview })) } : null;
+  const application = holderPass?.active ? null : await convert.applicationConfig(rt, reg, extras.qualified, { preview }).catch((e) => { console.error('masterclass application config', e); return null; });
   const pass = sprint ? null : holderPass;
   // The Sprint is the one decision in this room: no call booking beside it.
   const live = await liveRoomConfig(rt, reg, replay);
@@ -286,6 +291,10 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
         pass,
         sprint,
         simulive,
+        application,
+        convertCopy: convert.CONVERT_COPY,
+        // The progress line: how far this registration has watched (saved by the heartbeats).
+        maxPos: reg.max_position ?? 0,
       },
     },
   });
