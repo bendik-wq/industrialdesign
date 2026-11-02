@@ -16,9 +16,11 @@
 import type { Material } from '../admin/materials';
 import { QUIZ_PRESETS } from './engage';
 import type { ApplyResult, Member, RoomState } from './state';
+// Round 4 "offer pack": the pitch scenes (transition, stack, comparison) and the two-paths push (studio-pack.ts).
+import { DEFAULT_PACK, PACK_COPY, type PackDefaults, type PackSettings, type PackState, classifyPackCue, cleanPack, configurePack, newPack, packApply, packDefaults, packOnScene, packView, pathsSteps } from './studio-pack';
 
-export type Scene = 'intro' | 'main' | 'slides' | 'brb' | 'qa' | 'offer' | 'outro';
-export const SCENES: Scene[] = ['intro', 'main', 'slides', 'brb', 'qa', 'offer', 'outro'];
+export type Scene = 'intro' | 'main' | 'slides' | 'brb' | 'qa' | 'offer' | 'outro' | 'bridge' | 'stack' | 'anchor';
+export const SCENES: Scene[] = ['intro', 'main', 'slides', 'brb', 'qa', 'offer', 'outro', 'bridge', 'stack', 'anchor'];
 export type MainLayout = 'solo' | 'side' | 'speaker_screen' | 'screen' | 'grid';
 export const MAIN_LAYOUTS: MainLayout[] = ['solo', 'side', 'speaker_screen', 'screen', 'grid'];
 
@@ -57,10 +59,12 @@ export interface StudioState {
   backSeq: number;
   /** Run of show: the section running now and when each section started (server time). */
   ros: { section: number; at: Record<string, number> };
+  /** Offer pack: the stack's step, the transition line, the pitch clock, the room's offer card (studio-pack.ts). */
+  pack?: PackState;
 }
 
 /** Per-room defaults from Funnel HQ (rooms.studio, migration 0057). */
-export interface StudioDefaults { on: boolean; scene: Scene; layout: MainLayout; greenRoom: boolean; lowerName: string; lowerTitle: string; ticker: string; music: boolean }
+export interface StudioDefaults { on: boolean; scene: Scene; layout: MainLayout; greenRoom: boolean; lowerName: string; lowerTitle: string; ticker: string; music: boolean; pack?: PackDefaults }
 
 export function newStudio(d: Partial<StudioDefaults> = {}): StudioState {
   return {
@@ -69,6 +73,7 @@ export function newStudio(d: Partial<StudioDefaults> = {}): StudioState {
     lower: { on: false, name: d.lowerName ?? '', title: d.lowerTitle ?? '' }, logo: true, ticker: { on: false, text: d.ticker ?? '' },
     highlight: null, countdown: null, brbEndsAt: null, music: d.music ?? false,
     crew: {}, green: {}, staged: {}, greenDefault: d.greenRoom ?? false, back: [], backSeq: 0, ros: { section: -1, at: {} },
+    pack: newPack(d.pack),
   };
 }
 
@@ -89,6 +94,7 @@ export function configureStudio(st: RoomState, d: Partial<StudioDefaults>) {
   if (!s) { (st as RoomState & { studio?: StudioState }).studio = newStudio(d); return; }
   if (typeof d.on === 'boolean') s.on = d.on;
   if (typeof d.greenRoom === 'boolean') s.greenDefault = d.greenRoom;
+  configurePack(s, d.pack); // offer pack: stack length, offer card, transition line
 }
 
 // ───────────── permissions ─────────────
@@ -133,7 +139,7 @@ const merge = (list: ApplyResult[]): ApplyResult => ({
 });
 export type ApplyFn = (st: RoomState, actorId: string, raw: unknown, now: number) => ApplyResult;
 
-export const CUES = ['push:application', 'push:deposit', 'push:sprint', 'push:vip', 'offer:open', 'offer:close', 'countdown:offer', 'poll', 'pin'] as const;
+export const CUES = ['push:application', 'push:deposit', 'push:sprint', 'push:vip', 'push:paths', 'pack:next', 'pack:prev', 'offer:open', 'offer:close', 'countdown:offer', 'poll', 'pin'] as const;
 
 /** Every studio_* message. `apply` is state.ts's own (cues call the room's real engagement actions through it). */
 export function studioApply(st: RoomState, me: Member, msg: Record<string, unknown>, now: number, apply: ApplyFn): ApplyResult {
@@ -154,6 +160,7 @@ export function studioApply(st: RoomState, me: Member, msg: Record<string, unkno
       if (s.scene === 'slides' && s.deck) s.revealed[s.deck.id] = Math.max(s.revealed[s.deck.id] ?? -1, s.page);
       // The offer scene follows the real offer: its countdown appears with it when the offer has a close time.
       if (s.scene === 'offer' && st.offer.open && !s.countdown) s.countdown = { kind: 'offer' };
+      packOnScene(s, s.scene, now); // offer pack: the first pitch scene starts the pitch clock
       return done();
     }
     case 'studio_layout': {
@@ -285,6 +292,7 @@ export function studioApply(st: RoomState, me: Member, msg: Record<string, unkno
       return done();
     }
     case 'studio_cue': return cue(st, me, msg, now, apply);
+    case 'studio_pack': return packApply(s, direct, msg, now); // offer pack: the stack's step, the transition line
     default: return fail('unknown_message');
   }
 }
@@ -302,7 +310,10 @@ function cue(st: RoomState, me: Member, msg: Record<string, unknown>, now: numbe
   const quiz = /^quiz:([a-z0-9_]{1,40})$/.exec(c);
   const scene = /^scene:([a-z]+)$/.exec(c);
   const chapter = /^chapter:(\d{1,2})$/.exec(c);
-  if (push) steps.push({ t: 'push', kind: push[1] });
+  const paths = studioOf(st) ? pathsSteps(studioOf(st)!, c) : null; // offer pack: both paths as the room's offer
+  if (paths) steps.push(...paths);
+  else if (c === 'pack:next' || c === 'pack:prev') return packApply(studioOf(st)!, true, { op: 'step', delta: c === 'pack:next' ? 1 : -1 }, now);
+  else if (push) steps.push({ t: 'push', kind: push[1] });
   else if (c === 'offer:open') steps.push({ t: 'offer', open: true }, { t: 'studio_scene', scene: 'offer' });
   else if (c === 'offer:close') steps.push({ t: 'offer', open: false });
   else if (c === 'countdown:offer') steps.push({ t: 'studio_countdown', kind: 'offer' });
@@ -354,6 +365,7 @@ export function studioView(st: RoomState, me: Member) {
     highlight: s.highlight ? { kind: s.highlight.kind, name: s.highlight.name, text: s.highlight.text } : null,
     countdown: countdownView(st, s), brbEndsAt: s.brbEndsAt, music: s.music,
     me: { direct, producer: isProducer(st, me), green: inGreen(st, me.id), ready: s.green[me.id]?.ready ?? false },
+    pack: packView(s, back),
   };
   if (!back) return base;
   return {
@@ -389,6 +401,8 @@ export interface RosSection { index: number; title: string; at: number; planned:
 /** A script's [HOST: …] line, as a one-click cue in our room (null cue: a reminder only). */
 export function classifyHostCue(action: string): RosCue {
   const a = action.trim();
+  const pk = classifyPackCue(a); // offer pack: PRE-PITCH, SHOW STACK, STACK NEXT, SHOW COMPARISON, PUSH PATHS
+  if (pk) return pk;
   if (/^OPEN OFFER$/i.test(a)) return { label: STUDIO_COPY.cueOpenOffer, cue: 'offer:open' };
   if (/^CLOSE OFFER$/i.test(a)) return { label: STUDIO_COPY.cueCloseOffer, cue: 'offer:close' };
   if (/^SHOW TIMER$/i.test(a)) return { label: STUDIO_COPY.cueCountdown, cue: 'countdown:offer' };
@@ -440,6 +454,8 @@ export interface StudioSettings {
   lowerName: string; lowerTitle: string; ticker: string;
   offerHeading: string; offerPoints: string[];
   script: string | null;
+  /** Offer pack: the two-paths choice, the transition line, the stack and the comparison (studio-pack.ts). */
+  pack: PackSettings;
 }
 export const DEFAULT_STUDIO: StudioSettings = {
   on: true, scene: 'intro', layout: 'solo', greenRoom: true,
@@ -449,6 +465,7 @@ export const DEFAULT_STUDIO: StudioSettings = {
   lowerName: '', lowerTitle: 'Founder, G&L M&A Advisory', ticker: '',
   offerHeading: '', offerPoints: [],
   script: null,
+  pack: DEFAULT_PACK,
 };
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const ASSET = /^sa[a-z0-9]{6,40}$/;
@@ -474,26 +491,27 @@ export function cleanStudioSettings(raw: unknown, base: StudioSettings = DEFAULT
     offerHeading: str('offerHeading', 120),
     offerPoints: Array.isArray(r.offerPoints) ? r.offerPoints.map((x) => clean(x, 120)).filter(Boolean).slice(0, 5) : typeof r.offerPoints === 'string' ? r.offerPoints.split('\n').map((x) => clean(x, 120)).filter(Boolean).slice(0, 5) : base.offerPoints,
     script: r.script === null || r.script === '' ? null : typeof r.script === 'string' && /^[a-z0-9][a-z0-9-]{0,60}$/.test(r.script) ? r.script : base.script,
+    pack: cleanPack(r.pack, base.pack ?? DEFAULT_PACK),
   };
 }
 export function parseStudioSettings(json: string | null | undefined): StudioSettings {
-  if (!json) return { ...DEFAULT_STUDIO, colors: { ...DEFAULT_STUDIO.colors } };
-  try { return cleanStudioSettings(JSON.parse(json)); } catch { return { ...DEFAULT_STUDIO, colors: { ...DEFAULT_STUDIO.colors } }; }
+  if (!json) return { ...DEFAULT_STUDIO, colors: { ...DEFAULT_STUDIO.colors }, pack: cleanPack({}) };
+  try { return cleanStudioSettings(JSON.parse(json)); } catch { return { ...DEFAULT_STUDIO, colors: { ...DEFAULT_STUDIO.colors }, pack: cleanPack({}) }; }
 }
 /** What the Durable Object needs (sent with every request, like the MoQ config). */
 export function studioMeta(s: StudioSettings, enabled: boolean, hostName = ''): StudioDefaults {
-  return { on: enabled && s.on, scene: s.scene, layout: s.layout, greenRoom: s.greenRoom, lowerName: s.lowerName || hostName, lowerTitle: s.lowerTitle, ticker: s.ticker, music: s.musicOn && Boolean(s.music) };
+  return { on: enabled && s.on, scene: s.scene, layout: s.layout, greenRoom: s.greenRoom, lowerName: s.lowerName || hostName, lowerTitle: s.lowerTitle, ticker: s.ticker, music: s.musicOn && Boolean(s.music), pack: packDefaults(s.pack ?? DEFAULT_PACK) };
 }
 
 // ───────────── copy (checked by auditCopy in test/studio.test.ts) ─────────────
 
 export const STUDIO_COPY = {
   tab: 'Studio',
-  scenes: { intro: 'Intro', main: 'Main', slides: 'Slides', brb: 'Break', qa: 'Q&A', offer: 'Offer', outro: 'Outro' } as Record<Scene, string>,
+  scenes: { intro: 'Intro', main: 'Main', slides: 'Slides', brb: 'Break', qa: 'Q&A', offer: 'Offer', outro: 'Outro', ...PACK_COPY.scenes } as Record<Scene, string>,
   layouts: { solo: 'Solo', side: 'Side by side', speaker_screen: 'Speaker and screen', screen: 'Screen only', grid: 'Grid' } as Record<MainLayout, string>,
   scenesHeading: 'Scenes',
   layoutHeading: 'Layout',
-  shortcuts: 'Keys 1 to 7 switch scenes. Shift with 1 to 5 picks the layout. Arrow keys move the slides. L shows the lower third, T the ticker.',
+  shortcuts: 'Keys 1 to 9 and 0 switch scenes. Shift with 1 to 5 picks the layout. Arrow keys move the slides and the stack. L shows the lower third, T the ticker.',
   onAir: 'On air',
   // the scenes, as the audience sees them
   introEyebrow: 'Starting soon',

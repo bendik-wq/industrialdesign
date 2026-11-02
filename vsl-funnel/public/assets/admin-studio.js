@@ -34,6 +34,20 @@
     dlg.addEventListener('click', function (e) { if (e.target === dlg) close(); });
     var data = null;
     function load() { return req('GET', roomId + '/studio').then(function (d) { if (!d.ok) { dlg.firstChild.innerHTML = '<p>' + esc(d.error || 'Not found') + '</p>'; return; } data = d; draw(); }); }
+    /** Offer pack (round 4, src/rooms/studio-pack.ts): the pitch scenes and the room's offer card. */
+    function packSection(p) {
+      var pr = data.pack || {}, keys = [['none', 'no price'], ['engagement', 'the engagement fee by size: ' + (pr.engagement || '')], ['deposit', 'the deposit: ' + (pr.deposit || '')], ['sprint', pr.sprint ? 'the Sprint: ' + pr.sprint.label : 'the Sprint (not on sale now, shows nothing)'], ['ticket', pr.ticket ? 'the ticket: ' + pr.ticket : 'the ticket (no ticket price for this room, shows nothing)']];
+      var issues = data.packIssues || [];
+      return '<h3>Pitch: transition, stack, comparison and the offer card</h3>' +
+        '<p class="sts-note">Prices on screen come from settings only. Each stack line picks one real price by its key, or none; a line with a typed money figure or a value claim is left out. Comparison figures always show as illustrative.</p>' +
+        '<div class="sts-g"><label>Offer card pushed in this room<select name="packCard">' + opts([['deposit', 'The deposit card'], ['paths', 'Two paths: the deposit and the First Deal Sprint side by side']], p.offerCard || 'deposit') + '</select></label>' +
+        '<label>Transition line (Josh on camera, no slides)<input type="text" name="packLine" maxlength="140" value="' + esc(p.bridgeLine || '') + '" placeholder="Blank shows Josh with no words on screen"></label></div>' +
+        '<div class="sts-g"><label>Stack heading<input type="text" name="packStackH" maxlength="90" value="' + esc(p.stackHeading || '') + '"></label><label>Comparison heading<input type="text" name="packAnchorH" maxlength="90" value="' + esc(p.anchorHeading || '') + '"></label></div>' +
+        '<label>Stack, one part per line: objection | part | price key (' + keys.map(function (k) { return k[0]; }).join(', ') + ')<textarea name="packStack" rows="6">' + esc((p.stack || []).map(function (x) { return [x.objection, x.title, x.price].join(' | '); }).join('\n')) + '</textarea></label>' +
+        '<ul class="sts-list">' + keys.map(function (k) { return '<li><span><b>' + esc(k[0]) + '</b></span><span>' + esc(k[1]) + '</span></li>'; }).join('') + '</ul>' +
+        '<label>Comparison, one alternative per line: label | illustrative figure | note (our real price is added as the last row)<textarea name="packAnchor" rows="4">' + esc((p.anchor || []).map(function (x) { return [x.label, x.figure, x.note].join(' | '); }).join('\n')) + '</textarea></label>' +
+        (issues.length ? '<ul class="sts-list" role="status">' + issues.map(function (i) { return '<li><span>' + esc(i) + '</span></li>'; }).join('') + '</ul>' : '');
+    }
     function assetName(id) { var a = (data.assets || []).filter(function (x) { return x.id === id; })[0]; return a ? (a.name || a.kind) : null; }
     function draw() {
       var s = data.settings, box = dlg.firstChild;
@@ -54,6 +68,7 @@
         '<label>Outro note<input type="text" name="outroNote" maxlength="240" value="' + esc(s.outroNote) + '"></label></div>' +
         '<div class="sts-g"><label>Lower third name<input type="text" name="lowerName" maxlength="60" value="' + esc(s.lowerName) + '" placeholder="The host’s name"></label><label>Lower third title<input type="text" name="lowerTitle" maxlength="60" value="' + esc(s.lowerTitle) + '"></label><label>Ticker message<input type="text" name="ticker" maxlength="160" value="' + esc(s.ticker) + '"></label></div>' +
         '<div class="sts-g"><label>Offer scene heading<input type="text" name="offerHeading" maxlength="120" value="' + esc(s.offerHeading) + '" placeholder="The engagement is open"></label><label>Offer scene points (one per line, up to 5)<textarea name="offerPoints">' + esc((s.offerPoints || []).join('\n')) + '</textarea></label></div>' +
+        packSection(s.pack || {}) +
         '<div class="sts-row"><button class="btn-sm" type="submit">Save</button><span class="sts-note">The room picks the changes up on its next update; scene words show after a page refresh.</span></div></form>' +
         '<section class="sts-sec"><h3>Slides in this room</h3>' + ((data.decks || []).length ? '<ul class="sts-list">' + data.decks.map(function (d) { return '<li><span>' + esc(d.title) + ' · ' + d.pages + ' pages' + (d.status !== 'ready' ? ' (upload not finished)' : '') + '</span><button class="btn-sm ghost" data-deck-del="' + esc(d.id) + '">Delete</button></li>'; }).join('') + '</ul>' : '<p class="sts-note">None yet. The host uploads a PDF or images from the Studio tab in the room.</p>') + '</section>' +
         '<section class="sts-sec"><h3>Show templates</h3><p class="sts-note">A template carries this room’s studio settings (branding, music, scenes, words) to another event. Slides stay with their room.</p>' +
@@ -74,9 +89,10 @@
           colors: { bg: f.bg.value, accent: f.accent.value, text: f.text.value }, musicOn: f.musicOn.checked,
           introTitle: f.introTitle.value, introNote: f.introNote.value, brbText: f.brbText.value, outroTitle: f.outroTitle.value, outroNote: f.outroNote.value,
           lowerName: f.lowerName.value, lowerTitle: f.lowerTitle.value, ticker: f.ticker.value, offerHeading: f.offerHeading.value, offerPoints: f.offerPoints.value,
+          pack: { offerCard: f.packCard.value, bridgeLine: f.packLine.value, stackHeading: f.packStackH.value, stack: f.packStack.value, anchorHeading: f.packAnchorH.value, anchor: f.packAnchor.value },
         };
       }
-      f.onsubmit = function (e) { e.preventDefault(); req('POST', roomId + '/studio', payload()).then(function (d) { if (!d.ok) { toast(d.error || 'Not saved'); return; } data.settings = d.settings; toast('Studio saved'); draw(); }); };
+      f.onsubmit = function (e) { e.preventDefault(); req('POST', roomId + '/studio', payload()).then(function (d) { if (!d.ok) { toast(d.error || 'Not saved'); return; } data.settings = d.settings; data.packIssues = d.packIssues || []; toast(data.packIssues.length ? 'Saved. Check the pitch notes.' : 'Studio saved'); draw(); }); };
       box.querySelectorAll('[data-up]').forEach(function (inp) {
         inp.onchange = function () {
           var file = inp.files && inp.files[0]; if (!file) return;

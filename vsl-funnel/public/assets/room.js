@@ -1308,11 +1308,13 @@
       };
     });
     var go = $('[data-card-go]', dock); if (go) go.onclick = function () { var id = Number(key.slice(1)); var px = (e.pushes || []).filter(function (z) { return z.id === id; })[0]; if (px) actPush(px); };
+    if (window.RoomOffer) window.RoomOffer.bind(dock, actPush); // offer pack (room-offer.js): the two paths card's buttons
     updateTray();
   }
   function assetOf(id) { return (E.data && E.data.assets || []).filter(function (a) { return a.id === id; })[0] || (ENG.assets || []).filter(function (a) { return a.id === id; })[0] || null; }
   function pushCard(x) {
     var d = E.data || {}, o = (S.view.room.offer || {});
+    var paths = window.RoomOffer && window.RoomOffer.card(x); if (paths) return paths; // offer pack (room-offer.js): deposit and Sprint side by side
     var card = function (eyebrow, h, b, btn) { return '<p class="rm-eyebrow">' + esc(eyebrow) + '</p><h3 class="rm-card-h">' + esc(h) + '</h3>' + (b ? '<p class="rm-card-b">' + esc(b) + '</p>' : '') + '<div class="rm-card-a"><button type="button" class="' + (x.kind === 'sprint' || x.kind === 'deposit' ? 'rm-buy' : 'rm-primary') + '" data-card-go>' + esc(btn) + '</button></div>'; };
     if (x.kind === 'application') return card(EC.appEyebrow, d.app && d.app.submitted ? EC.appDoneHeading : EC.appHeading, d.app && d.app.submitted ? EC.appDoneBody : EC.appBody, d.app && d.app.submitted ? EC.appDoneNext : EC.appButton);
     if (x.kind === 'sprint') { var sp = d.sprint || {}; return card(EC.sprintEyebrow, sp.heading || 'First Deal Sprint', sp.promise || '', (sp.button || 'Start') + (sp.todayLabel ? ' · ' + sp.todayLabel : '')); }

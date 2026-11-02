@@ -4,6 +4,8 @@ import { newId } from '../lib/ids';
 import { MATERIAL_IDS, isMaterialId, parseMaterial } from '../admin/materials';
 import type { Identity } from './state';
 import { type RoomRow, type Ticket, getRoom } from './rooms';
+import { DEFAULT_PACK, cleanPack, packIssues } from './studio-pack';
+import { packConfig } from './studio-pack-terms';
 import { type RosSection, DEFAULT_STUDIO, STUDIO_COPY, type StudioSettings, cleanStudioSettings, parseStudioSettings, runOfShow, scriptFor } from './studio';
 
 /**
@@ -198,6 +200,17 @@ export function mountStudio(api: Hono<AppEnv>, admin: Hono<AppEnv>, h: StudioHel
     const ros = await roomRunOfShow(c, a.room);
     return c.json(ros ? { ok: true, ...ros } : { ok: false, error: STUDIO_COPY.rosNoScript });
   });
+  /**
+   * Offer pack: the two paths with this attendee's real prices (their ticket credit), whether each is theirs
+   * already, and whether they qualify. Deadlines come from the room (the offer's close) and the Sprint push's hold.
+   */
+  api.post('/:id/studio/paths', async (c) => {
+    if (!h.sameOrigin(c)) return forbid(c);
+    const a = await h.authed(c, (await body(c)).t);
+    if (!a || a.room.mode !== 'webinar') return forbid(c);
+    c.header('cache-control', 'no-store');
+    return c.json({ ok: true, ...(await pathsFor(a.rt, a.room, { id: a.t.p, leadId: a.t.lead ?? null })) });
+  });
   /** The room's logo or intro music: branding, public like the page around it. */
   api.get('/:id/studio/asset/:kind{logo|music}', async (c) => {
     const room = await getRoom(runtimeFrom(c), c.req.param('id'));
@@ -258,6 +271,8 @@ export function mountStudio(api: Hono<AppEnv>, admin: Hono<AppEnv>, h: StudioHel
       ok: true, room: { id: room.id, title: room.title, mode: room.mode, ref_type: room.ref_type }, settings: s, assets,
       decks: (await listDecks(rt, room.id)).map(deckView), templates: await listTemplates(rt),
       scripts: MATERIAL_IDS, script: scriptFor(room, s.script), storage: Boolean(c.env.RECORDINGS), enabled: true,
+      // Offer pack: the real prices the stack and comparison can show, and copy-rule issues in the owner's lines.
+      pack: packConfig(rt, room, s.pack ?? DEFAULT_PACK).prices, packIssues: packIssues(s.pack ?? DEFAULT_PACK),
     });
   });
   admin.post('/:id/studio', async (c) => {
@@ -265,7 +280,12 @@ export function mountStudio(api: Hono<AppEnv>, admin: Hono<AppEnv>, h: StudioHel
     const room = await getRoom(rt, c.req.param('id'));
     if (!room) return c.json({ ok: false, error: 'Room not found' }, 404);
     if (room.mode !== 'webinar') return c.json({ ok: false, error: 'The studio is for webinars.' }, 400);
-    return c.json({ ok: true, settings: await saveRoomStudio(rt, room, await body(c)) });
+    const b = await body(c);
+    // Offer pack: stack lines with a typed money figure are left out; the owner sees why, and any copy-rule issues.
+    const dropped: string[] = [];
+    if (b.pack !== undefined) cleanPack(b.pack, DEFAULT_PACK, dropped);
+    const settings = await saveRoomStudio(rt, room, b);
+    return c.json({ ok: true, settings, packIssues: [...dropped, ...packIssues(settings.pack)] });
   });
   admin.post('/:id/studio/deck/:deck/delete', async (c) => {
     const rt = runtimeFrom(c);
@@ -277,8 +297,28 @@ export function mountStudio(api: Hono<AppEnv>, admin: Hono<AppEnv>, h: StudioHel
   });
 }
 
+/** The two paths for one attendee: real prices after their own credits, from the deposit quote and the room's Sprint card. */
+export async function pathsFor(rt: Runtime, room: RoomRow, who: { id: string; leadId: string | null }) {
+  const { packPrices } = await import('./studio-pack-terms');
+  const prices = packPrices(rt, room.ref_type);
+  if (!who.leadId) return { lead: false, prices, deposit: null, sprint: null };
+  const { getLead } = await import('../funnel/leads');
+  const { isMillionPlus } = await import('../sales/qualify');
+  const { depositQuote } = await import('../sales/deposit');
+  const { sprintCard } = await import('./engage-db');
+  const lead = await getLead(rt.env, who.leadId);
+  const qualified = Boolean(lead && isMillionPlus(lead.revenue_band));
+  const q = await depositQuote(rt, who.leadId).catch(() => null);
+  const sp = prices.sprint ? await sprintCard(rt, who.leadId, { roomId: room.id, who: who.id }).catch(() => null) : null;
+  return {
+    lead: true, prices, qualified,
+    deposit: q ? { label: q.cfg.label, today: q.todayLabel, credit: q.creditLabel, paid: q.paid, guarantee: q.cfg.guarantee.headline, url: q.cfg.guarantee.url, full: q.cap.full } : null,
+    sprint: sp ? { name: sp.name, label: sp.priceLabel, today: sp.todayLabel, line: sp.line, paid: sp.paid, available: sp.available, qualified: sp.qualified, deadline: sp.deadline ? { at: sp.deadline.at, label: sp.deadline.label } : null } : null,
+  };
+}
+
 /** What room.js and room-studio.js need in the page config. */
-export function studioPageConfig(room: RoomRow, who: Identity, enabled: boolean) {
+export function studioPageConfig(room: RoomRow, who: Identity, enabled: boolean, rt?: Pick<Runtime, 'settings' | 'origin'>) {
   if (room.mode !== 'webinar') return null;
   const s = roomStudio(room);
   const isStaff = who.role === 'host' || who.role === 'cohost';
@@ -294,6 +334,8 @@ export function studioPageConfig(room: RoomRow, who: Identity, enabled: boolean)
     },
     // pdf.js (pinned, with integrity) renders an uploaded PDF in the host's browser; only staff pages allow the CDN.
     pdfjs: isStaff ? PDFJS : null,
+    // Offer pack (round 4): the pitch scenes' words and the real prices and terms they show (studio-pack-terms.ts).
+    pack: rt ? packConfig(rt, room, s.pack ?? DEFAULT_PACK) : null,
   };
 }
 export const PDFJS = {

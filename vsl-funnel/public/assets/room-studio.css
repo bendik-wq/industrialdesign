@@ -125,6 +125,11 @@
 .rs-bad { color: var(--red); }
 .rs-mutewarn { position: fixed; z-index: 130; left: 50%; bottom: 96px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; max-width: calc(100vw - 32px); padding: 10px 14px; border-radius: var(--r2); background: #1d1d1f; color: #fff; font: 500 14px/1.35 var(--ui); box-shadow: 0 10px 30px rgba(0, 0, 0, .3); }
 .rs-mutewarn .rm-btn { background: #fff; color: #1d1d1f; white-space: nowrap; }
+/* Offer pack (round 4): the pitch scenes in the scene bar and the pitch clock. */
+.rs-pitchsep { align-self: center; flex: 0 0 auto; padding: 0 4px 0 10px; margin-left: 4px; border-left: 1px solid var(--hair); font: 600 11px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.rs-scenes .rs-scene { min-width: 60px; padding: 8px 6px 6px; }
+.rs-pclock { cursor: default; font-variant-numeric: tabular-nums; }
+.rs-pclock b { font-weight: 600; color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .rs-scene, .rs-prompt { transition: none; scroll-behavior: auto; }

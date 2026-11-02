@@ -122,7 +122,7 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
       assets: ASSETS.map((a) => ({ id: a.id, title: a.title })),
     } : null,
     // Studio (builder B): scenes, slides, overlays, green room; room-studio.js draws them.
-    studio: studioPageConfig(room, who, flag((rt.settings as unknown as Record<string, string | undefined>).ROOM_STUDIO, true)),
+    studio: studioPageConfig(room, who, flag((rt.settings as unknown as Record<string, string | undefined>).ROOM_STUDIO, true), rt),
     // Area C (audience): reactions, captions, the co-host, personal offer moments, view settings.
     audience: room.mode === 'webinar' ? audienceCfg(rt, who) : null,
     // Engage2 (room-engage2.js): the hot list, the live-only bonus and the tab beacons; the copy only.
@@ -157,6 +157,7 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
 <script defer src="/assets/room-media.js"></script>
 <script defer src="/assets/room.js"></script>
 ${cfg.studio ? '<link rel="stylesheet" href="/assets/room-studio.css">\n<script defer src="/assets/room-studio.js"></script>' : ''}
+${cfg.studio?.pack ? '<link rel="stylesheet" href="/assets/room-offer.css">\n<script defer src="/assets/room-offer.js"></script>' : ''}
 <link rel="stylesheet" href="/assets/room-lifecycle.css">
 <script defer src="/assets/room-lifecycle.js"></script>
 ${room.mode === 'webinar' ? '<link rel="stylesheet" href="/assets/room-audience.css">\n<script defer src="/assets/room-audience.js"></script>' : ''}

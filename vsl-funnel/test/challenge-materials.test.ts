@@ -78,7 +78,7 @@ describe('challenge session scripts', () => {
   it('use only known cue kinds and host actions', () => {
     for (const { d, s } of days) for (const c of cues(s)) {
       expect(c, `day ${d}`).toMatch(/^\[(SLIDE|ON SCREEN|HOST|NOTE): .+\]$/);
-      if (c.startsWith('[HOST:')) expect(c, `day ${d}`).toMatch(/^\[HOST: (OPEN OFFER|CLOSE OFFER|POLL [a-z0-9_]+|PIN .+|SHOW TIMER|TAKE QUESTIONS)\]$/);
+      if (c.startsWith('[HOST:')) expect(c, `day ${d}`).toMatch(/^\[HOST: (OPEN OFFER|CLOSE OFFER|POLL [a-z0-9_]+|PIN .+|SHOW TIMER|TAKE QUESTIONS|PRE-PITCH|SHOW STACK|STACK NEXT|SHOW COMPARISON|PUSH PATHS)\]$/); // the last five: offer pack studio cues
     }
   });
 
