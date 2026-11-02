@@ -296,7 +296,7 @@ admin.delete('/webinar/sessions/:id', async (c) => c.json({ ok: true, ...(await 
 
 admin.get('/insights', async (c) => c.json(await insights(c.env, c.get('settings').SALES_TIMEZONE || 'Australia/Sydney')));
 admin.get('/vsl', async (c) => c.json(await vslStats(c.env, filters(c), c.req.query('video') || VIDEOS.main.id)));
-admin.get('/attribution', async (c) => c.json(await attribution(c.env, filters(c), c.req.query('dim') || 'channel')));
+admin.get('/traffic-attribution', async (c) => c.json(await attribution(c.env, filters(c), c.req.query('dim') || 'channel')));
 admin.get('/application', async (c) => c.json(await applicationStats(c.env, filters(c))));
 admin.get('/experiments', async (c) => c.json(await experiments(c.env, filters(c))));
 admin.get('/emails', async (c) => c.json(await emailStats(c.env, filters(c))));

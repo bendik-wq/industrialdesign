@@ -1249,7 +1249,7 @@
   function renderTraffic() {
     var dims = (state.meta && state.meta.dimensions) || [{ key: 'channel', label: 'Channel' }];
     var dim = state.dim || 'platform';
-    return Promise.all([api('attribution', { dim: dim }), api('ads').catch(function () { return null; })]).then(function (both) {
+    return Promise.all([api('traffic-attribution', { dim: dim }), api('ads').catch(function () { return null; })]).then(function (both) {
       var d = both[0], ads = both[1];
       var rows = d.rows;
       var maxQ = Math.min(1, Math.max.apply(null, rows.map(function (r) { return r.qualified_rate || 0; }).concat([0.0001])));
