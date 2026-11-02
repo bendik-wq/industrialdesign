@@ -154,8 +154,15 @@
       var refresh = function () {
         clearTimeout(timer);
         timer = setTimeout(function () {
+          if (!view.querySelector('[data-wbk-people]')) return; // left the tab before the count ran
           var p = cur && cur.status !== 'draft' ? ctx.api('winback/' + encodeURIComponent(cur.id) + '/audience', {}, { noRange: true }) : ctx.send('POST', 'winback/audience', formBody(c));
-          p.then(function (a) { if (a && a.ok !== false) showAudience(a); else toast((a && a.error) || 'Could not count'); });
+          p.then(function (a) { if (a && a.ok !== false) showAudience(a); else toast((a && a.error) || 'Could not count'); }, function (e) {
+            // Network blip: say so where the list goes, with a retry, instead of an uncaught error.
+            var box = view.querySelector('[data-wbk-people]');
+            if (!box) return;
+            box.innerHTML = window.HQUX ? window.HQUX.errorState(e && e.message, { what: 'who would receive it', tab: 'winback' }) : '<p class="wbk-nodata">Couldn’t count who would receive it.</p>';
+            var r = box.querySelector('[data-hq-retry]'); if (r) r.onclick = refresh;
+          });
         }, 250);
       };
       var f = view.querySelector('[data-wbk-form]');

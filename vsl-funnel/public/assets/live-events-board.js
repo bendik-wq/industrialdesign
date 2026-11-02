@@ -58,10 +58,18 @@
       });
     }
     function stop() { clearInterval(timer); clearInterval(ping); }
-    load();
+    load().catch(offline);
     timer = setInterval(function () { if (!document.body.contains(el)) return stop(); var l = el.querySelector('[data-leb-left]'); if (l && data) l.textContent = left(data.offer.closesAt - Date.now()); }, 1000);
-    ping = setInterval(function () { if (!document.body.contains(el)) return stop(); req('POST', 'live-events/' + encodeURIComponent(id) + '/ping', { host: hostId }); load(); }, 8000);
-    req('POST', 'live-events/' + encodeURIComponent(id) + '/ping', { host: hostId });
+    // The ping and refresh retry every 8 s on their own; a failed one shows a quiet line instead of an uncaught error.
+    function offline(e) {
+      var note = el.querySelector('[data-leb-offline]');
+      if (!note) { note = document.createElement('p'); note.setAttribute('data-leb-offline', ''); note.setAttribute('role', 'status'); note.className = 'muted'; el.insertBefore(note, el.firstChild); }
+      note.textContent = 'Connection lost (' + ((e && e.message) || 'no answer') + '). Retrying every 8 seconds.';
+    }
+    function online() { var note = el.querySelector('[data-leb-offline]'); if (note) note.remove(); }
+    function beat() { return req('POST', 'live-events/' + encodeURIComponent(id) + '/ping', { host: hostId }).then(online, offline); }
+    ping = setInterval(function () { if (!document.body.contains(el)) return stop(); beat(); load().catch(offline); }, 8000);
+    beat();
     return { stop: stop };
   }
 

@@ -9,6 +9,7 @@
   var filtersEl = document.querySelector('[data-filters]');
   var state = { tab: 'overview', days: 30, filters: {}, meta: null, leadsQuery: { q: '', tier: '', status: '', page: 0, sort: 'created' } };
   var liveTimer = null;
+  var lastApiError = null; // the most recent failed /admin/api request, shown if the tab then fails to render
   var routing = false; // true while route() drives go(), so Back never pushes a new entry
   var lastHash = location.hash;
 
@@ -39,11 +40,12 @@
     return p + (CHANNEL_WORD[channel] ? ' · ' + CHANNEL_WORD[channel] : '');
   }
 
-  var nf = new Intl.NumberFormat();
-  function n(v) { return nf.format(Math.round(v || 0)); }
-  function pct(v, d) { return (v == null || !isFinite(v)) ? '–' : (v * 100).toFixed(d == null ? (v < 0.1 && v > 0 ? 1 : 0) : d) + '%'; }
-  function money(v) { return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(v || 0); }
-  function secs(v) { v = Math.round(v || 0); return v >= 60 ? Math.floor(v / 60) + 'm ' + (v % 60) + 's' : v + 's'; }
+  // Number formatting lives in admin-ux.js (HQFmt), shared with the other Funnel HQ boards and covered by test/hq-ux.test.ts.
+  var F = window.HQFmt;
+  function n(v) { return F.num(v || 0); }
+  function pct(v, d) { return F.pct(v, d); }
+  function money(v) { return F.money(v || 0, 'AUD'); }
+  function secs(v) { return F.secs(v); }
   function when(ms) { if (!ms) return '–'; var d = new Date(ms); return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); }
   function ago(ms) { var s = Math.round((Date.now() - ms) / 1000); if (s < 60) return s + 's ago'; if (s < 3600) return Math.round(s / 60) + 'm ago'; if (s < 86400) return Math.round(s / 3600) + 'h ago'; return Math.round(s / 86400) + 'd ago'; }
   function toast(msg) { var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600); }
@@ -73,7 +75,15 @@
     Object.keys(params || {}).forEach(function (k) { if (params[k] !== '' && params[k] != null) q.set(k, params[k]); });
     return fetch('/admin/api/' + path + '?' + q.toString(), { credentials: 'same-origin' }).then(function (res) {
       if (res.status === 401) { location.href = '/admin/login'; throw new Error('unauthorised'); }
-      return res.json();
+      if (res.ok) return res.json();
+      // A failed request: JSON error bodies still reach the caller (tabs show their own message), and the
+      // server's words are kept so a tab that then breaks shows the real error, not "cannot read property".
+      return res.text().then(function (t) {
+        var body = null; try { body = JSON.parse(t); } catch (e) { /* not JSON */ }
+        lastApiError = F.errorMessage(res.status, body || t, path);
+        if (body) return body;
+        throw new Error(lastApiError);
+      });
     });
   }
   function send(method, path, body) {
@@ -366,6 +376,7 @@
     state.commandSub = cmdSub;
     if (!TABS[tab]) tab = 'overview';
     var T = TABS[tab];
+    if (state.tab !== tab || !view.firstChild) view.innerHTML = F.skeleton(T.title); // a new tab never shows the last tab's numbers under its title
     state.tab = tab;
     state.leadsQuery._focus = false; // a fresh visit never grabs the keyboard
     clearInterval(liveTimer);
@@ -433,10 +444,31 @@
     if (clearBtn) clearBtn.textContent = count ? 'Clear filters (' + count + ')' : 'Reset';
   }
 
+  // Loading: a fresh tab shows placeholder shapes (go), a reload of the same tab dims it. Error: the real message and Retry.
+  // Empty: the first empty panel says what fills the tab and links to where it is set up (HQUX.decorateEmpty).
+  var loadSeq = 0;
   function load() {
+    var seq = ++loadSeq, tab = state.tab;
     document.body.classList.add('loading');
-    Promise.resolve(TABS[state.tab].render()).catch(function (e) { console.error(e); view.innerHTML = '<div class="empty">Couldn’t load this view. ' + esc(e.message) + '</div>'; })
-      .then(function () { document.body.classList.remove('loading'); });
+    view.setAttribute('aria-busy', 'true');
+    lastApiError = null;
+    var p;
+    try { p = Promise.resolve(TABS[tab].render()); } catch (e) { p = Promise.reject(e); }
+    p.then(function () {
+      if (seq !== loadSeq) return;
+      if (view.querySelector('.hq-skel')) view.innerHTML = emptyState('Nothing to show here yet.');
+      F.decorateEmpty(view, tab);
+    }, function (e) {
+      console.error(e);
+      if (seq !== loadSeq) return;
+      var msg = e && e.message === 'unauthorised' ? 'Your session ended. Log in again.' : (lastApiError && !F.isNetworkError(e) ? lastApiError : (e && e.message) || String(e));
+      view.innerHTML = F.errorState(msg, { what: TABS[tab].title, tab: tab });
+      var r = view.querySelector('[data-hq-retry]'); if (r) r.onclick = function () { view.innerHTML = F.skeleton(TABS[tab].title); load(); };
+    }).then(function () {
+      if (seq !== loadSeq) return;
+      document.body.classList.remove('loading');
+      view.removeAttribute('aria-busy');
+    });
   }
 
   function renderMap() {
@@ -1783,6 +1815,7 @@
       var drawLog = function () {
         var box = view.querySelector('[data-calllog]');
         api('sales/calls', { tier: view.querySelector('[data-cl-tier]').value, unlogged: view.querySelector('[data-cl-unlogged]').checked ? 1 : '' }, { noRange: true }).then(function (r) {
+          if (!document.body.contains(box)) return; // left the tab while the log loaded
           var m = state.meta || {};
           var sel = function (f, list, cur, blank) { return '<select class="input" data-cf="' + f + '">' + opts(list, cur, blank) + '</select>'; };
           box.innerHTML = r.calls.length ? '<div class="table-wrap"><table class="calllog"><thead><tr><th>Call</th><th>Lead</th><th>Tier</th><th>Revenue</th><th>Outcome</th><th>Temp</th><th>Objection</th><th class="num">Deal $</th><th class="num">Cash $</th><th></th></tr></thead><tbody>' +
@@ -3251,6 +3284,11 @@
             if (p.error) { if (err) err.textContent = p.error; return; }
             if (err) err.textContent = '';
             frame.srcdoc = p.html;
+          }).catch(function (e) {
+            // Network blip or a non-JSON answer: say so where the preview goes, with a retry.
+            if (!document.body.contains(frame)) return;
+            frame.srcdoc = '<p style="font:14px system-ui;color:#52514e;padding:16px">Couldn’t load the preview: ' + esc(e && e.message || 'unknown error') + '. It retries when you edit, or reopen the email.</p>';
+            var err = main.querySelector('[data-ederr]'); if (err) err.textContent = 'Preview failed: ' + (e && e.message || 'unknown error');
           });
       };
       preview();
@@ -3879,6 +3917,40 @@
   try { savedTheme = localStorage.getItem('admin_theme') || 'auto'; } catch (e) { /* ignore */ }
   applyTheme(savedTheme);
   themeBtn.onclick = function () { applyTheme(themes[(themes.indexOf(themeBtn.textContent.replace('Theme: ', '')) + 1) % 3]); if (state.tab !== 'integrations') load(); };
+
+  // Jump to (Ctrl/Cmd + K, or the Jump button): every tab in nav order, plus common actions. The palette itself is in admin-ux.js.
+  F.palette({
+    items: function () {
+      var tabs = [];
+      document.querySelectorAll('[data-nav] .nav-group').forEach(function (g) {
+        var h = g.querySelector('.nav-h'), grp = h ? h.textContent.trim() : '';
+        g.querySelectorAll('button[data-tab]').forEach(function (b) {
+          var id = b.getAttribute('data-tab'), T = TABS[id];
+          if (T) tabs.push({ id: 'tab:' + id, label: T.title, group: grp, hint: id === state.tab ? 'You are here' : '', keywords: id + ' ' + (T.sub || ''), run: function () { go(id); } });
+        });
+      });
+      var click = function (sel) { return function () { var el = document.querySelector(sel); if (el) el.click(); }; };
+      var acts = [
+        { id: 'act:approvals', label: 'Approvals waiting', keywords: 'command approve proposals', run: function () { go('command/approvals'); } },
+        { id: 'act:findlead', label: 'Find a lead…', keywords: 'search lead name email phone', run: function () { if (navToggleEl && getComputedStyle(navToggleEl).display !== 'none') setNavOpen(true); var i = document.querySelector('[data-nav-search] input'); if (i) i.focus(); } },
+        { id: 'act:reload', label: 'Reload this view', keywords: 'refresh', run: load },
+        { id: 'act:clear', label: 'Reset filters', keywords: 'clear filters channel campaign', run: click('[data-clear]') },
+      ];
+      [['1', 'Today'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['90', 'Last 90 days'], ['3650', 'All time']].forEach(function (r) {
+        acts.push({ id: 'act:range' + r[0], label: 'Date range: ' + r[1], keywords: 'range days period', hint: TABS[state.tab].noFilters ? 'Not used on this tab' : '', run: click('[data-range] button[data-days="' + r[0] + '"]') });
+      });
+      acts.push(
+        { id: 'act:theme', label: 'Switch theme (auto, light, dark)', keywords: 'dark mode light', hint: themeBtn ? themeBtn.textContent : '', run: function () { themeBtn.click(); } },
+        { id: 'act:funnel', label: 'Open the funnel in a new tab', keywords: 'site home landing', run: function () { window.open('/', '_blank', 'noopener'); } },
+        { id: 'act:logout', label: 'Log out', keywords: 'sign out', run: function () { var f = document.querySelector('form[action="/admin/logout"]'); if (f) f.submit(); } }
+      );
+      return tabs.concat(acts.map(function (a) { a.group = 'Actions'; return a; }));
+    },
+    // Anything typed can also be a lead search.
+    query: function (q) {
+      return [{ id: 'act:lead-q', label: 'Search leads for “' + q + '”', group: 'Leads', run: function () { var f = document.querySelector('[data-nav-search]'); if (!f) return; f.querySelector('input').value = q; f.requestSubmit ? f.requestSubmit() : f.dispatchEvent(new Event('submit', { cancelable: true })); } }];
+    },
+  });
 
   var navEl = document.querySelector('[data-nav]');
   if (navEl) navEl.addEventListener('scroll', updateNavFade, { passive: true });

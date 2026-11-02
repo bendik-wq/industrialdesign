@@ -32,7 +32,7 @@
     return ctx.api('attribution', { funnel: st.funnel, model: st.model, dim: st.dim }).then(function (d) {
       var cur = (d.revenue && d.revenue.currency) || (d.stages && d.stages.currency) || 'USD';
       var money = function (v, dp) { if (v == null) return '–'; try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, maximumFractionDigits: dp == null ? 0 : dp }).format(v); } catch (e) { return cur + ' ' + n(v); } };
-      var ratio = function (v) { return v == null ? '–' : (Math.round(v * 100) / 100).toFixed(2) + 'x'; };
+      var ratio = function (v) { return window.HQFmt ? window.HQFmt.ratio(v) : v == null ? '–' : (Math.round(v * 100) / 100).toFixed(2) + '×'; };
       var seg = function (name, opts, val) { return '<div class="seg" role="group" aria-label="' + esc(name) + '">' + opts.map(function (o) { return '<button type="button" data-wa-' + esc(name) + '="' + esc(o[0]) + '" aria-pressed="' + (o[0] === val) + '">' + esc(o[1]) + '</button>'; }).join('') + '</div>'; };
       var q = new URLSearchParams({ funnel: st.funnel, model: st.model, dim: st.dim, from: String(d.range.from), to: String(d.range.to) });
       var csv = function (type, label) { q.set('type', type); return '<a class="btn-sm ghost" href="/admin/api/attribution/export.csv?' + esc(q.toString()) + '">' + esc(label) + '</a>'; };

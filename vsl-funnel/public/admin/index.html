@@ -7,6 +7,7 @@
   <meta name="robots" content="noindex">
   <title>Funnel dashboard</title>
   <link rel="stylesheet" href="/assets/admin.css">
+  <script defer src="/assets/admin-ux.js"></script>
   <script defer src="/assets/funnel-map.js"></script>
   <script defer src="/assets/finance-model.js"></script>
   <script defer src="/assets/deal-sprint-board.js"></script>
@@ -37,6 +38,7 @@
   <div class="shell">
     <aside class="side">
       <div class="logo"><i></i>Funnel HQ</div>
+      <button type="button" class="jump-btn" data-jump aria-label="Jump to a tab or action" aria-keyshortcuts="Control+K Meta+K"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="jump-label">Jump to…</span><kbd>Ctrl K</kbd></button>
       <button type="button" class="nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="side-menu"><span aria-hidden="true">☰</span> <span data-nav-current>Overview</span></button>
       <div class="side-menu" id="side-menu">
         <form class="nav-search" data-nav-search role="search"><input type="search" name="q" placeholder="Find a lead…  /" aria-label="Find a lead by name, email, phone or ref" autocomplete="off"></form>
