@@ -7,6 +7,7 @@ import { newId } from '../lib/ids';
 import { ROOM_COPY, ROOM_GATE, meetingInvite } from './copy';
 import { SfuError, mintIceServers, realtimeSetup } from './sfu';
 import { SFU_OPS } from './proxy';
+import { audienceThreshold, broadcastMode, moqSetup, parseMode } from './moq';
 import type { Identity } from './state';
 import {
   type RoomRow, createRoom, getRoom, inviteUrl, isRoomId, listRooms, makeInvite, makeTicket, memberId, readInvite, readTicket, roomOffer, roomReport, ticketIdentity,
@@ -25,9 +26,12 @@ import {
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
 
-export function roomMeta(rt: Pick<Runtime, 'origin'>, room: RoomRow) {
+export function roomMeta(rt: Pick<Runtime, 'origin' | 'settings'>, room: RoomRow) {
   const day = room.ref_type === 'challenge' ? Number(/:(\d)$/.exec(room.ref_id ?? '')?.[1]) : 0;
-  return { id: room.id, mode: room.mode, title: room.title, startsAt: room.starts_at, offerAvailable: room.ref_type === 'live' || day === 4 || day === 5, origin: rt.origin };
+  const s = (rt.settings ?? {}) as unknown as Record<string, string | undefined>;
+  // How the audience receives the stage (webinars): the room's override, else ROOM_BROADCAST; MoQ only when its tokens are set.
+  const moq = { mode: broadcastMode(s, room.broadcast), ready: moqSetup(s).ready, minAudience: audienceThreshold(s) };
+  return { id: room.id, mode: room.mode, title: room.title, startsAt: room.starts_at, offerAvailable: room.ref_type === 'live' || day === 4 || day === 5, origin: rt.origin, moq };
 }
 
 const gatePage = (c: Context<AppEnv>, h: string, b: string, status: 200 | 403 | 404 = 403) =>
@@ -74,17 +78,25 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
   const ticket = await makeTicket(rt, room.id, who);
   const offer = extras.offer ? await offerPanel(rt, extras.offer) : null;
   const setup = realtimeSetup(rt.settings as never);
+  const moq = moqSetup(rt.settings as never);
+  const moqOn = moq.ready && room.mode === 'webinar';
   const cfg = {
     room: { id: room.id, mode: room.mode, title: room.title, startsAt: room.starts_at, kind: room.ref_type },
     me: { id: who.id, name: who.name, role: who.role, nameEditable: who.role === 'host' || who.role === 'cohost' },
     ticket, api: `/api/rooms/${room.id}`, ready: setup.ready, serverNow: Date.now(),
     offer: offer ? { buy: extras.offer!.buy, token: extras.offer!.token, day: extras.offer!.day ?? null, oneClick: offer.oneClick } : null,
     r2: Boolean(c.env.RECORDINGS), back: extras.back ?? null,
+    // MoQ (big webinars): only whether it's on. Relay URLs and tokens come from /api/rooms/:id/moq with the ticket.
+    moq: moqOn,
     copy: ROOM_COPY,
   };
   const json = JSON.stringify(cfg, (_k, v) => (typeof v === 'function' ? undefined : v)).replace(/</g, '\\u003c');
   const host = new URL(c.req.url).host;
-  c.header('content-security-policy', `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' wss://${host} ws://${host}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`);
+  // MoQ: WebTransport to the relay is governed by connect-src; the vendored client runs its encoder, decoder and
+  // audio worklets from blob: and data: URLs.
+  const relay = moqOn ? ` ${new URL(moq.relay).origin}` : '';
+  const scripts = moqOn ? `'self' blob:` : `'self'`;
+  c.header('content-security-policy', `default-src 'self'; script-src ${scripts}; worker-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' wss://${host} ws://${host}${relay}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`);
   c.header('cache-control', 'no-store');
   c.header('permissions-policy', 'camera=(self), microphone=(self), display-capture=(self), autoplay=(self)');
   return c.html(`<!doctype html>
@@ -239,6 +251,24 @@ roomsApi.post('/:id/sfu/:op', async (c) => {
   } catch (e) { return c.json({ ok: false, error: e instanceof Error ? e.message : 'Unavailable' }, 503); }
 });
 
+/**
+ * MoQ access for this browser (POST {t}): the relay URL with its token, and the room's broadcast name. The room
+ * decides: the publish token only for the host on a signed-in admin session, the subscribe token only for a
+ * viewer it is routing to MoQ. Nothing here is cached or put in a page.
+ */
+roomsApi.post('/:id/moq', async (c) => {
+  if (!sameOrigin(c)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const a = await authed(c, b.t);
+  if (!a) return c.json({ ok: false, error: 'forbidden' }, 403);
+  const who = ticketIdentity(a.t);
+  const admin = who.role === 'host' && (await isAdmin(c));
+  c.header('cache-control', 'no-store');
+  try {
+    return await stub(c, a.room.id).fetch(new Request('https://room/moq', { method: 'POST', headers: { 'x-room-admin': admin ? '1' : '0', ...headersFor(a.rt, a.room, who) } }));
+  } catch (e) { return c.json({ ok: false, error: e instanceof Error ? e.message : 'Unavailable' }, 503); }
+});
+
 // ── recordings (host and co-hosts): R2 multipart upload in parts of 5 MB or more ──
 
 const staffTicket = (t: { role: string }) => t.role === 'host' || t.role === 'cohost';
@@ -340,10 +370,14 @@ roomsAdmin.use('*', requireAdmin);
 roomsAdmin.get('/', async (c) => {
   const rt = runtimeFrom(c);
   const setup = realtimeSetup(rt.settings as never);
-  const todo = [...setup.todo];
+  const moq = moqSetup(rt.settings as never);
+  const todo = [...setup.todo, ...moq.todo];
   if (!c.env.ROOMS) todo.push('The ROOMS Durable Object binding is missing from this deployment. Deploy with the current wrangler.jsonc.');
   if (!c.env.RECORDINGS) todo.push('Optional: create the R2 bucket gl-room-recordings and bind it as RECORDINGS (wrangler.jsonc) so host recordings upload and become the replay. Until then they download to the host’s computer.');
-  return c.json({ rooms: await listRooms(rt), setup: { ...setup, durableObject: Boolean(c.env.ROOMS), r2: Boolean(c.env.RECORDINGS) }, todo });
+  return c.json({
+    rooms: await listRooms(rt), todo,
+    setup: { ...setup, durableObject: Boolean(c.env.ROOMS), r2: Boolean(c.env.RECORDINGS), moq: moq.ready, moqExpires: moq.expires, broadcast: broadcastMode(rt.settings as never), moqAudience: audienceThreshold(rt.settings as never) },
+  });
 });
 
 roomsAdmin.post('/', async (c) => {
@@ -406,6 +440,24 @@ roomsAdmin.post('/:id/email', async (c) => {
   if (!lead) return c.json({ ok: false, error: 'Lead not found' }, 404);
   const url = inviteUrl(rt, room.id, await makeInvite(rt, room.id, 'guest', lead.id));
   return c.json({ ok: await emailInvite(rt, { ...room, created_at: Date.now() }, lead, url) });
+});
+
+/** How this webinar's audience watches: auto, sfu or moq (null follows the ROOM_BROADCAST setting). The room picks it up at once. */
+roomsAdmin.post('/:id/broadcast', async (c) => {
+  const rt = runtimeFrom(c);
+  const room = await getRoom(rt, c.req.param('id'));
+  if (!room) return c.json({ ok: false, error: 'Room not found' }, 404);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const mode = b.mode === null || b.mode === '' || b.mode === 'default' ? null : parseMode(b.mode);
+  if (mode === null && !(b.mode === null || b.mode === '' || b.mode === 'default')) return c.json({ ok: false, error: 'Pick auto, sfu or moq' }, 400);
+  if (room.mode !== 'webinar') return c.json({ ok: false, error: 'Only webinars have an audience to broadcast to' }, 400);
+  await rt.env.DB.prepare('UPDATE rooms SET broadcast = ?, updated_at = ? WHERE id = ?').bind(mode, Date.now(), room.id).run();
+  let live: unknown = null;
+  if (c.env.ROOMS) {
+    const fresh = (await getRoom(rt, room.id))!;
+    live = await stub(c, room.id).fetch(new Request('https://room/config', { headers: headersFor(rt, fresh, { id: 'hq', name: 'HQ', role: 'host' }) })).then((r) => r.json()).catch(() => null);
+  }
+  return c.json({ ok: true, broadcast: mode, effective: broadcastMode(rt.settings as never, mode), live });
 });
 
 roomsAdmin.post('/:id/cancel', async (c) => {

@@ -32,11 +32,32 @@ export interface Member extends Identity {
   videoOff: boolean;
   lastChatAt: number;
   lastReactAt: number;
+  /** How this viewer's media actually arrives (self-reported by their browser): MoQ playback or the SFU. */
+  media?: 'moq' | 'sfu' | null;
+  /** Why MoQ didn't work for this viewer (no WebTransport, blocked network, stalled): they stay on the SFU. */
+  moqFail?: string | null;
 }
 export interface ChatMsg { id: number; by: string; name: string; role: Role; text: string; at: number }
 export interface Question { id: number; by: string; name: string; text: string; at: number; votes: string[]; answered: boolean }
 export interface Poll { id: number; question: string; options: string[]; votes: Record<string, number>; open: boolean; at: number }
 export interface OfferState { available: boolean; open: boolean; closesAt: number | null; label: string | null }
+/**
+ * The room's MoQ broadcast (webinars). Config comes from settings and the room's override on every request;
+ * health comes from the host's browser, which publishes the composited stage and reports every few seconds.
+ */
+export interface MoqState {
+  mode: 'auto' | 'sfu' | 'moq';
+  ready: boolean;
+  minAudience: number;
+  /** Auto mode switched the audience to MoQ (sticky for the session, so nobody flips back and forth). */
+  engaged: boolean;
+  publishing: boolean;
+  at: number | null;
+  by: string | null;
+  kbps: number | null;
+  fps: number | null;
+  error: string | null;
+}
 
 export interface RoomState {
   v: 1;
@@ -61,8 +82,11 @@ export interface RoomState {
   timer: { endsAt: number; label: string } | null;
   peak: number;
   recording: boolean;
+  moq?: MoqState;
 }
 
+export const MOQ_HEALTH_MS = 20_000;
+export const newMoqState = (): MoqState => ({ mode: 'auto', ready: false, minAudience: 25, engaged: false, publishing: false, at: null, by: null, kbps: null, fps: null, error: null });
 export const LIMITS = { chatKeep: 200, chatMax: 400, qaKeep: 150, qaMax: 300, openQuestionsPerPerson: 5, pollOptions: 5, meetingOnCamera: 12, stageMax: 6, timerMaxSec: 4 * 3600 };
 export const SLOW_STEPS = [0, 5, 10, 30, 60] as const;
 export const REACTIONS = ['clap', 'heart', 'idea', 'yes', 'question'] as const;
@@ -74,6 +98,7 @@ export function newRoomState(o: { id: string; mode: RoomMode; title: string; sta
     members: {}, banned: [], layout: 'auto', spotlight: null,
     chat: { locked: false, slowSec: 0, pinned: null, msgs: [], seq: 0 }, qa: [], qaSeq: 0, polls: [], pollSeq: 0,
     offer: { available: Boolean(o.offerAvailable), open: false, closesAt: null, label: null }, timer: null, peak: 0, recording: false,
+    moq: newMoqState(),
   };
 }
 
@@ -85,6 +110,57 @@ export const canSeeStage = (st: RoomState, m: Member | null | undefined) => Bool
 /** Members whose tracks are visible to the room (connected, publishing, on stage or in a meeting). */
 export const stageMembers = (st: RoomState) => Object.values(st.members).filter((m) => m.connected > 0 && (st.mode === 'meeting' || isStaff(m) || m.stage));
 export const connectedCount = (st: RoomState) => Object.values(st.members).filter((m) => m.connected > 0).length;
+
+// ───────────── MoQ: which way each viewer's media arrives ─────────────
+
+const moqOf = (st: RoomState) => (st.moq ??= newMoqState());
+/** Viewers: connected, in a webinar, not staff and not on stage (they are the only ones MoQ can serve). */
+export const audience = (st: RoomState) => Object.values(st.members).filter((m) => m.connected > 0 && !isStaff(m) && !m.stage).length;
+/** The host's broadcast is up: it reported publishing within the last 20 seconds. */
+export const broadcastLive = (st: RoomState, now: number) => {
+  const q = st.moq;
+  return Boolean(q && q.ready && q.publishing && q.at !== null && now - q.at < MOQ_HEALTH_MS);
+};
+/** Whether the host's browser should publish to the relay now (webinar, MoQ set up and allowed, live). */
+export const shouldPublishMoq = (st: RoomState, m: Member | null | undefined) =>
+  Boolean(m && m.role === 'host' && st.mode === 'webinar' && st.status === 'live' && st.moq?.ready && st.moq.mode !== 'sfu');
+/** Applies the room's config (settings and the Funnel HQ override); returns whether anything changed. */
+export function configureMoq(st: RoomState, c: { mode: MoqState['mode']; ready: boolean; minAudience: number }) {
+  const q = moqOf(st);
+  const before = `${q.mode}${q.ready}${q.minAudience}${q.engaged}`;
+  q.mode = c.mode; q.ready = c.ready; q.minAudience = Math.max(1, Math.round(c.minAudience));
+  if (q.mode === 'sfu') q.engaged = false;
+  engage(st);
+  return before !== `${q.mode}${q.ready}${q.minAudience}${q.engaged}`;
+}
+/** Auto mode moves the audience to MoQ once it reaches the threshold, and keeps it there for the session. */
+export function engage(st: RoomState) {
+  const q = moqOf(st);
+  if (st.mode !== 'webinar' || q.mode === 'sfu') return false;
+  const was = q.engaged;
+  if (q.mode === 'moq' || audience(st) >= q.minAudience) q.engaged = true;
+  return q.engaged !== was;
+}
+/**
+ * The media path for one person. The SFU for meetings, staff, people on stage, while MoQ isn't set up, allowed
+ * or engaged, while the host's broadcast isn't live, and for anyone whose browser or network couldn't play it.
+ */
+export function mediaPath(st: RoomState, m: Member, now: number): 'moq' | 'sfu' {
+  const q = st.moq;
+  if (!q || st.mode !== 'webinar' || st.status !== 'live' || isStaff(m) || m.stage) return 'sfu';
+  if (!q.ready || q.mode === 'sfu' || !q.engaged || m.moqFail) return 'sfu';
+  return broadcastLive(st, now) ? 'moq' : 'sfu';
+}
+/** Viewer counts by how their media really arrives (what their browser reported, else what they were sent). */
+export function mediaCounts(st: RoomState, now: number) {
+  let moq = 0, sfu = 0;
+  for (const m of Object.values(st.members)) {
+    if (m.connected === 0 || isStaff(m) || m.stage) continue;
+    const path = m.media ?? mediaPath(st, m, now);
+    if (path === 'moq') moq++; else sfu++;
+  }
+  return { moq, sfu };
+}
 
 /** Track names are always prefixed with the publisher's id, so nobody can publish under someone else's name. */
 export const trackPrefix = (memberId: string) => `${memberId.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40)}-`;
@@ -108,6 +184,7 @@ export function join(st: RoomState, who: Identity, now: number): { ok: true; mem
     };
   st.members[who.id] = m;
   st.peak = Math.max(st.peak, connectedCount(st));
+  engage(st);
   return { ok: true, member: m };
 }
 
@@ -118,9 +195,11 @@ export function leave(st: RoomState, id: string, now: number) {
   m.connected = Math.max(0, m.connected - 1);
   m.lastAt = now;
   if (m.connected === 0) {
-    m.hand = null; m.invited = null; m.sessionId = null; m.tracks = [];
+    m.hand = null; m.invited = null; m.sessionId = null; m.tracks = []; m.media = null;
     if (!isStaff(m) && st.mode === 'webinar') m.stage = false;
     if (st.spotlight === id) st.spotlight = null;
+    // The host's broadcast ends with the host's last connection.
+    if (st.moq && st.moq.by === id) { st.moq.publishing = false; st.moq.kbps = null; st.moq.fps = null; }
   }
   return m;
 }
@@ -302,7 +381,7 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
     case 'accept': {
       if (!me.invited) return fail('not_invited');
       if (stageMembers(st).length >= LIMITS.stageMax) return fail('stage_full');
-      me.invited = null; me.hand = null; me.stage = true; me.stageAt ??= now;
+      me.invited = null; me.hand = null; me.stage = true; me.stageAt ??= now; me.media = null;
       return done({ effects: [{ type: 'on_stage', memberId: me.id }] });
     }
     case 'decline': me.invited = null; return done();
@@ -312,7 +391,7 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       if (!who || st.mode !== 'webinar' || isStaff(who) || !who.stage) return fail('not_applicable');
       if (who.id !== me.id && !staff) return fail('forbidden');
       const mids = who.tracks.map((t) => t.mid).filter((x): x is string => Boolean(x));
-      who.stage = false; who.tracks = [];
+      who.stage = false; who.tracks = []; who.media = null;
       if (st.spotlight === who.id) st.spotlight = null;
       return done({ out: [{ to: who.id, msg: { t: 'unstaged' } }], effects: [{ type: 'close_tracks', memberId: who.id, sessionId: who.sessionId, mids }] });
     }
@@ -367,6 +446,7 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       if (!host) return fail('forbidden');
       if (st.status === 'ended') return done({ changed: false });
       st.status = 'ended'; st.endedAt = now; st.timer = null;
+      if (st.moq) st.moq.publishing = false;
       for (const p of st.polls) p.open = false;
       return done({ out: [{ to: 'all', msg: { t: 'ended' } }], effects: [{ type: 'ended' }] });
     }
@@ -394,12 +474,45 @@ export function apply(st: RoomState, actorId: string, raw: unknown, now: number)
       me.lastReactAt = now;
       return done({ out: [{ to: 'all', msg: { t: 'react', kind: msg.kind } }], changed: false });
     }
+    // ── MoQ ──
+    case 'moq_pub': {
+      // The host's browser reports its broadcast every few seconds. Only a state change redraws everyone.
+      if (me.role !== 'host') return fail('forbidden');
+      const q = moqOf(st);
+      const on = msg.on === true && shouldPublishMoq(st, me);
+      const before = broadcastLive(st, now);
+      q.publishing = on; q.at = now; q.by = me.id;
+      q.kbps = on && Number.isFinite(num(msg.kbps)) ? Math.max(0, Math.round(num(msg.kbps))) : null;
+      q.fps = on && Number.isFinite(num(msg.fps)) ? Math.max(0, Math.round(num(msg.fps))) : null;
+      q.error = on ? null : clean(msg.error, 160) || null;
+      const after = broadcastLive(st, now);
+      // A fresh broadcast gives viewers whose playback stalled on the last one another try (not those whose browser can't).
+      if (after && !before) for (const m of Object.values(st.members)) if (m.moqFail === 'stalled') m.moqFail = null;
+      return done({ changed: before !== after });
+    }
+    case 'moq_view': {
+      // A viewer's browser says how its media is arriving. A failure sends them to the SFU for the session.
+      if (isStaff(me) || me.stage) return done({ changed: false });
+      const state = msg.state;
+      const before = `${me.media}${me.moqFail}`;
+      if (state === 'playing') me.media = 'moq';
+      else if (state === 'sfu') me.media = 'sfu';
+      else if (state === 'failed' || state === 'unsupported') { me.media = 'sfu'; me.moqFail = clean(msg.reason, 80) || String(state); }
+      else return fail('bad_value');
+      return done({ changed: before !== `${me.media}${me.moqFail}` });
+    }
     case 'ping': return done({ changed: false, out: [{ to: me.id, msg: { t: 'pong', now } }] });
     default: return fail('unknown_message');
   }
 }
 
 // ───────────── what each person sees ─────────────
+
+/** The broadcast panel for staff (and Funnel HQ): mode, health, and viewers on each path. */
+export function broadcastView(st: RoomState, now: number) {
+  const q = st.moq ?? newMoqState();
+  return { mode: q.mode, ready: q.ready, engaged: q.engaged, minAudience: q.minAudience, live: broadcastLive(st, now), kbps: q.kbps, fps: q.fps, error: q.error, audience: audience(st), ...mediaCounts(st, now) };
+}
 
 const tile = (m: Member) => ({ id: m.id, name: m.name, role: m.role, sessionId: m.sessionId, tracks: m.tracks, audioOff: m.audioOff, videoOff: m.videoOff });
 
@@ -420,9 +533,13 @@ export function view(st: RoomState, me: Member, now: number, o: { chat?: boolean
       id: st.id, mode: st.mode, title: st.title, startsAt: st.startsAt, status: st.status, wentLiveAt: st.wentLiveAt, endedAt: st.endedAt,
       layout: st.layout, spotlight: st.spotlight, count: connectedCount(st), recording: st.recording,
       timer: st.timer, offer: st.offer,
+      ...(staff && st.mode === 'webinar' ? { broadcast: broadcastView(st, now) } : {}),
       chat: { locked: st.chat.locked, slowSec: st.chat.slowSec, pinned: st.chat.msgs.find((m) => m.id === st.chat.pinned) ?? null },
     },
-    me: { id: me.id, name: me.name, role: me.role, stage: me.stage || st.mode === 'meeting' || staff, canPublish: canPublish(st, me), hand: me.hand, invited: me.invited, audioOff: me.audioOff, videoOff: me.videoOff },
+    me: {
+      id: me.id, name: me.name, role: me.role, stage: me.stage || st.mode === 'meeting' || staff, canPublish: canPublish(st, me), hand: me.hand, invited: me.invited, audioOff: me.audioOff, videoOff: me.videoOff,
+      media: mediaPath(st, me, now), publishMoq: shouldPublishMoq(st, me),
+    },
     stage: seeStage ? stageMembers(st).map(tile) : [],
     qa: [...st.qa].sort((a, b) => Number(a.answered) - Number(b.answered) || b.votes.length - a.votes.length || a.at - b.at)
       .map((q) => ({ id: q.id, name: q.name, text: q.text, votes: q.votes.length, mine: q.by === me.id, voted: q.votes.includes(me.id), answered: q.answered })),

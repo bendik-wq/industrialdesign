@@ -127,6 +127,21 @@ export const ROOM_COPY = {
   mediaFailed: 'The video connection dropped. Reconnecting…',
   notConnected: 'Rooms aren’t connected yet. Add the Cloudflare Realtime keys in Funnel HQ → Integrations → Live.',
   tapForSound: 'Tap for sound',
+  // MoQ (big webinars): the viewer's stage, and the host's broadcast line in the Host tab
+  moq: {
+    connecting: 'Connecting to the stage…',
+    hostHeading: 'Broadcast to viewers:',
+    live: 'Live over MoQ,',
+    starting: 'Starting the MoQ broadcast.',
+    down: 'The MoQ broadcast isn’t running, so viewers watch over the SFU.',
+    backstage: 'The MoQ broadcast starts when you go live.',
+    off: 'MoQ is off for this room. Viewers watch over the SFU.',
+    autoAt: 'Viewers move to MoQ at',
+    viewers: 'people',
+    onMoq: 'on MoQ',
+    onSfu: 'on the SFU',
+    relayUnreachable: 'The MoQ relay isn’t reachable from this network.',
+  },
   errors: {
     chat_locked: 'The host locked the chat.',
     slow_mode: 'Slow mode is on. Wait a few seconds.',
