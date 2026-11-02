@@ -6,7 +6,7 @@
   "description": "VSL funnel on Cloudflare Workers: landing VSL, multi-step application, lead scoring & routing, breakout VSL, server-side tracking, email/WhatsApp flows and an analytics dashboard.",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "node scripts/deploy.mjs",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "typecheck": "tsc --noEmit",

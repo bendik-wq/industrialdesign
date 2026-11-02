@@ -15,6 +15,8 @@
      optional RNNoise worklet, push to talk for staff. */
 (function () {
   'use strict';
+  // The page's build version (?v=, set by the Worker) so the lazily loaded effects file is cache-busted with it.
+  var ASSET_V = (function () { var m = document.currentScript && /[?&]v=([^&#]+)/.exec(document.currentScript.src); return m ? '?v=' + m[1] : ''; })();
   var L = window.RoomMediaLogic;
   var cfgEl = document.getElementById('room-config');
   if (!L || !cfgEl) return;
@@ -88,7 +90,7 @@
     if (window.RoomFx) return Promise.resolve(window.RoomFx);
     if (fxLib) return fxLib;
     fxLib = new Promise(function (res, rej) {
-      var s = document.createElement('script'); s.src = '/assets/room-media-fx.js'; s.async = true;
+      var s = document.createElement('script'); s.src = '/assets/room-media-fx.js' + ASSET_V; s.async = true;
       s.onload = function () { window.RoomFx ? res(window.RoomFx) : rej(new Error('fx')); };
       s.onerror = function () { fxLib = null; rej(new Error('fx')); };
       document.head.appendChild(s);

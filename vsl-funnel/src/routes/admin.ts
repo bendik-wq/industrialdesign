@@ -1,3 +1,4 @@
+import { errorsAdmin } from '../infra/admin'; // Funnel HQ → Errors & cron
 import { cameraTestList } from '../rooms/camera-test';
 import { mountDmAdmin } from '../dm/routes';
 import { mountAttributionAdmin } from '../attribution/routes';
@@ -231,6 +232,7 @@ admin.route('/challenge', challengeAdmin); // Funnel HQ → Challenge (cohorts, 
 admin.route('/research', researchAdmin); // Funnel HQ → Research (themes, competitor ads, angle backlog)
 admin.route('/autopilot', autopilotAdmin); // Funnel HQ → Ads autopilot + Follow-up actions (Marketing and Sales departments)
 admin.route('/clients', clientsAdmin); // Funnel HQ → Clients (health, flags, check-ins, timeline)
+admin.route('/errors', errorsAdmin); // Funnel HQ → Errors & cron (src/infra: error log, cron timings)
 admin.route('/intel', intelAdmin); // Funnel HQ → Rooms → Debrief, Content → Clips (area D: transcripts, debriefs, heatmap, simulive, clips)
 admin.route('/rooms', roomsAdmin); // Funnel HQ → Live webinars → Rooms (our own video rooms: list, meetings, links, attendance, recordings)
 admin.route('/support', supportAdmin); // Funnel HQ → Support (threads, drafts, escalations)

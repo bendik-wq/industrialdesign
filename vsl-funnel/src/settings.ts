@@ -335,6 +335,8 @@ export const SETTINGS = [
   { key: 'MCP_TOKEN', label: 'Claude connector (MCP) token', group: 'Clients & support', secret: true, help: 'Bearer token for the MCP server at /mcp. Use “Generate new token” under Integrations → Claude (MCP); generating a new one stops the old one at once.' },
   { key: 'MCP_ALLOWED_ORIGINS', label: 'MCP: extra allowed browser origins', group: 'Clients & support', placeholder: 'https://claude.ai', help: 'Requests that carry an Origin header must come from this site, claude.ai or claude.com, or one listed here (comma separated). Requests without an Origin (Claude Code, Claude Desktop, claude.ai connectors) only need the token.' },
   { key: 'ZAPIER_INBOUND_SECRET', label: 'Zapier: inbound action secret', group: 'Clients & support', secret: true, help: 'Shared secret for POST /hooks/zapier/create-lead and /hooks/zapier/add-note (header X-Zapier-Secret).' },
+  // ───────────── infra (overnight round 1): the internal error log ─────────────
+  { key: 'ERRORS_SLACK', label: 'Errors: ping Slack on a new kind of error', group: 'Alerts', placeholder: 'off', help: 'on = the first time a new error shows up (Funnel HQ → Errors & cron) the Command Slack channel gets one message, at most 5 an hour. Blank or off = no pings; errors are still logged.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

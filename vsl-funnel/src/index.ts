@@ -68,7 +68,38 @@ import { processRoomSummaries } from './rooms/engage-db';
 import { adminReplayPage, captionsRoute, intelApi } from './rooms/intel-routes'; // rooms intel (area D)
 import { processIntel } from './rooms/intel-db';
 import { joinPage } from './rooms/admission';
-export { RoomDO } from './rooms/do';
+import { RoomDO as RoomDOBase } from './rooms/do';
+import { buildId, versionAssets } from './infra/build';
+import { normalisePath, purgeErrors, recordError } from './infra/errors';
+import { runJobs } from './infra/cron';
+
+/**
+ * The room Durable Object, with its uncaught errors written to the error log (kind "room") before they surface as
+ * before. Everything else is the room as written in rooms/do.ts.
+ */
+export class RoomDO extends RoomDOBase {
+  private readonly logEnv: Env;
+  private readonly logCtx: DurableObjectState;
+  constructor(ctx: DurableObjectState, env: Env) { super(ctx, env); this.logEnv = env; this.logCtx = ctx; }
+  private logged(where: string, e: unknown): never {
+    this.logCtx.waitUntil(recordError(this.logEnv, e, { kind: 'room', source: where }));
+    throw e;
+  }
+  override async fetch(req: Request) { try { return await super.fetch(req); } catch (e) { return this.logged(`room fetch ${normalisePath(new URL(req.url).pathname)}`, e); } }
+  override async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) { try { return await super.webSocketMessage(ws, data); } catch (e) { return this.logged('room message', e); } }
+  override async webSocketClose(ws: WebSocket, code?: number) { try { return await super.webSocketClose(ws, code); } catch (e) { return this.logged('room close', e); } }
+  override async alarm() { try { return await super.alarm(); } catch (e) { return this.logged('room alarm', e); } }
+}
+
+/** Requests whose error app.onError already logged (so the webhook check below doesn't log it twice). */
+const loggedErrors = new WeakSet<Request>();
+const errorKindFor = (path: string) => (path.startsWith('/hooks/') ? 'webhook' as const : 'request' as const);
+/** The matched route pattern when there is one, else the path with its ids blanked. */
+function errorSource(c: { req: { method: string; path: string; routePath?: string } }) {
+  const rp = c.req.routePath;
+  const route = rp && rp !== '*' && rp !== '/*' ? rp : normalisePath(c.req.path);
+  return `${c.req.method} ${route}`;
+}
 
 const app = new Hono<AppEnv>();
 
@@ -93,9 +124,11 @@ app.use('*', async (c, next) => {
   // directives cost nothing and block the worst primitives (<base> hijack, <object>/<embed> injection)
   // if a slot ever regresses. Only set when the page didn't already send its own CSP.
   if (!c.res.headers.has('content-security-policy')) c.header('content-security-policy', "object-src 'none'; base-uri 'none'; frame-ancestors 'self'");
+  // Versioned asset URLs: every page's /assets/*.js and *.css become ?v=<build id>, so a deploy can't serve stale files.
+  if (/^text\/html/i.test(c.res.headers.get('content-type') ?? '')) c.res = versionAssets(c.res, buildId(c.env));
 });
 
-app.get('/health', (c) => c.json({ ok: true }));
+app.get('/health', (c) => c.json({ ok: true, build: buildId(c.env) }));
 // Video files with HTTP Range support (static assets answer every request with the
 // whole file, and Safari/iOS won't play an MP4 without 206 partial responses).
 app.on(['GET', 'HEAD'], '/media/:file{[\\w.-]+\\.(mp4|webm|jpg)}', async (c) => {
@@ -212,6 +245,15 @@ app.route('/api/intel', intelApi); // the replay page's pings, cards and offer s
 app.route('/api/rooms', roomsApi);
 app.route('/api/rooms', audienceApi); // area C: captions, the personal offer card, announcement consent // our video rooms: WebSocket, ICE, SFU proxy, recordings (before /api: no visitor logging per call)
 app.route('/api', api);
+// Webhook failures: a 5xx answer from any /hooks handler goes to the error log (thrown errors are logged by onError;
+// 501 means "not configured here" and is not an error).
+app.use('/hooks/*', async (c, next) => {
+  await next();
+  if (c.res.status >= 500 && c.res.status !== 501 && !loggedErrors.has(c.req.raw)) {
+    const settings = c.get('settings');
+    c.executionCtx.waitUntil(recordError(c.env, new Error(`HTTP ${c.res.status} from webhook handler`), { kind: 'webhook', source: errorSource(c), rt: settings ? runtimeFrom(c) : null }));
+  }
+});
 app.route('/hooks', opsHooks); // support email (Resend inbound / forwarders) and Zapier actions (builder E)
 app.route('/hooks', hooks);
 // Remote MCP server for Claude (Streamable HTTP). Bearer token, or the secret connector URL /mcp/k/<token>.
@@ -321,6 +363,10 @@ app.get('/:industry{[a-z][a-z0-9-]{1,30}}/:angle{[a-z]{2,20}}', knownShort, with
 app.notFound((c) => c.text('Not found', 404));
 app.onError((err, c) => {
   console.error('unhandled', err);
+  loggedErrors.add(c.req.raw);
+  const settings = c.get('settings');
+  const write = recordError(c.env, err, { kind: errorKindFor(c.req.path), source: errorSource(c), rt: settings ? runtimeFrom(c) : null });
+  try { c.executionCtx.waitUntil(write); } catch { /* no execution context (tests): the write runs on its own */ }
   return c.text('Something went wrong', 500);
 });
 
@@ -329,7 +375,10 @@ export default {
 
   /** Every 5 minutes: send due emails, retry tracking, ping reps before calls, post the daily sales digest, place AI calls. */
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
-    const [settings, reps] = await Promise.all([loadSettings(env), loadReps(env)]);
+    const [settings, reps] = await Promise.all([loadSettings(env), loadReps(env)]).catch(async (e) => {
+      await recordError(env, e, { kind: 'cron', source: 'cron start (settings and reps)' });
+      throw e;
+    });
     const rt: Runtime = {
       env,
       settings,
@@ -338,39 +387,46 @@ export default {
       waitUntil: (p) => ctx.waitUntil(p.catch((e) => console.error('background task failed', e))),
     };
     if (!settings.PUBLIC_URL) console.warn('PUBLIC_URL is not set — email links will point at example.com');
-    const quiet = <T,>(p: Promise<T>, label: string) => p.catch((e) => { console.error(`${label} failed`, e); return null; });
-    const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = await Promise.all([
-      processEmailQueue(rt),
-      retryForwards(rt),
-      quiet(pingUpcomingCalls(rt), 'call pings'),
-      quiet(maybeSendDigest(rt), 'daily digest'),
-      quiet(processCallQueue(rt), 'AI calls'),
-      quiet(syncInbound(rt), 'AI callbacks'),
-      quiet(syncCalendly(rt), 'Calendly sync'),
-      quiet(processTriggers(rt), 'behaviour triggers'),
-      quiet(purgeOld(rt), 'retention purge'),
-      quiet(alertUnconfirmedBookings(rt), 'unconfirmed bookings'),
-      quiet(ensureSessions(rt), 'webinar sessions'),
-      quiet(maybeSyncContent(rt), 'content sync'),
-      quiet(processSmsQueue(rt), 'SMS'),
-      quiet(sweepBots(rt), 'bot sweep'),
-      quiet(processContractReminders(rt), 'contract reminders'),
-      quiet(processDealSprintEmails(rt), 'deal sprint emails'),
-      quiet(maybeSyncMetaSpend(rt), 'Meta ad spend'),
-      quiet(processLiveMessages(rt), 'live webinar messages'),
-      quiet(runOps(rt), 'Command (routines, alerts, brief)'),
-      quiet(maybeRunResearch(rt), 'research'),
-      quiet(maybeRunAutopilot(rt), 'ads autopilot'),
-      quiet(processFollowupQueue(rt), 'sales follow-ups'),
-      quiet(processDm(rt), 'Instagram DM inbox'),
-      quiet(processClientsSupport(rt), 'clients, support and webhooks'),
-      quiet(processWinback(rt), 'win-back (approved campaigns only)'),
-      quiet(syncAttribution(rt), 'webinar attribution'),
-      quiet(planWebinarCalls(rt), 'webinar AI calls'),
-      quiet(processRoomSummaries(rt), 'room summary emails'),
-      quiet(processIntel(rt), 'room transcripts and debriefs'),
-      quiet(maybeSyncAudiences(rt), 'Meta audiences (approved only)'),
+    // Every job runs on its own with a time budget (src/infra/cron.ts): one failing or slow job can't hold up the others,
+    // and each run's duration and status is kept for Funnel HQ → Errors & cron. What each job does is unchanged.
+    const outcomes = await runJobs(rt, [
+      { name: 'email queue', run: () => processEmailQueue(rt) },
+      { name: 'tracking retries', run: () => retryForwards(rt) },
+      { name: 'call pings', run: () => pingUpcomingCalls(rt) },
+      { name: 'daily digest', run: () => maybeSendDigest(rt) },
+      { name: 'AI calls', run: () => processCallQueue(rt) },
+      { name: 'AI callbacks', run: () => syncInbound(rt) },
+      { name: 'Calendly sync', run: () => syncCalendly(rt) },
+      { name: 'behaviour triggers', run: () => processTriggers(rt) },
+      { name: 'retention purge', run: () => purgeOld(rt) },
+      { name: 'unconfirmed bookings', run: () => alertUnconfirmedBookings(rt) },
+      { name: 'webinar sessions', run: () => ensureSessions(rt) },
+      { name: 'content sync', run: () => maybeSyncContent(rt) },
+      { name: 'SMS', run: () => processSmsQueue(rt) },
+      { name: 'bot sweep', run: () => sweepBots(rt) },
+      { name: 'contract reminders', run: () => processContractReminders(rt) },
+      { name: 'deal sprint emails', run: () => processDealSprintEmails(rt) },
+      { name: 'Meta ad spend', run: () => maybeSyncMetaSpend(rt) },
+      { name: 'live webinar messages', run: () => processLiveMessages(rt) },
+      { name: 'Command (routines, alerts, brief)', run: () => runOps(rt) },
+      { name: 'research', run: () => maybeRunResearch(rt) },
+      { name: 'ads autopilot', run: () => maybeRunAutopilot(rt) },
+      { name: 'sales follow-ups', run: () => processFollowupQueue(rt) },
+      { name: 'Instagram DM inbox', run: () => processDm(rt) },
+      { name: 'clients, support and webhooks', run: () => processClientsSupport(rt) },
+      { name: 'win-back (approved campaigns only)', run: () => processWinback(rt) },
+      { name: 'webinar attribution', run: () => syncAttribution(rt) },
+      { name: 'webinar AI calls', run: () => planWebinarCalls(rt) },
+      { name: 'room summary emails', run: () => processRoomSummaries(rt) },
+      { name: 'room transcripts and debriefs', run: () => processIntel(rt) },
+      { name: 'Meta audiences (approved only)', run: () => maybeSyncAudiences(rt) },
+      { name: 'error log retention', run: () => purgeErrors(rt) },
     ]);
+    type R<F extends (...a: never[]) => unknown> = Awaited<ReturnType<F>> | null;
+    const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = outcomes.map((o) => o.result) as [
+      R<typeof processEmailQueue>, R<typeof retryForwards>, R<typeof pingUpcomingCalls>, R<typeof maybeSendDigest>, R<typeof processCallQueue>,
+      R<typeof syncInbound>, R<typeof syncCalendly>, R<typeof processTriggers>, R<typeof purgeOld>,
+    ];
     if (calls && (calls.dialed || calls.synced)) console.log('AI calls', calls);
     if (callbacks) console.log('AI callbacks processed', callbacks);
     if (calSync) console.log('Calendly sync', calSync);
@@ -378,8 +434,8 @@ export default {
     if (pinged) console.log('call pings', pinged);
     if (digest) console.log('daily digest sent');
     if (purged && (purged.events || purged.sessions)) console.log('retention purge', purged);
-    if (result.due) console.log('email queue', result);
-    if (retried.due) console.log('tracking retries', retried);
+    if (result?.due) console.log('email queue', result);
+    if (retried?.due) console.log('tracking retries', retried);
   },
 } satisfies ExportedHandler<Env>;
 

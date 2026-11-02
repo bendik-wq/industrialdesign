@@ -69,4 +69,6 @@ export interface Env {
   VOICE_MODEL?: string;
   VOICE_VOICE?: string;
   VOICE_WEB_ENABLED?: string;
+  /** The deployed Worker version (wrangler.jsonc version_metadata): a fallback build id for versioned asset URLs (src/infra/build.ts). */
+  CF_VERSION_METADATA?: { id?: string; tag?: string; timestamp?: string };
 }
