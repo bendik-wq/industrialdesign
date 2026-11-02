@@ -24,7 +24,7 @@ export type RoomLike = Pick<RoomRow, 'id' | 'ref_type' | 'ref_id' | 'title'> & P
 
 export function engageConfig(rt: Pick<Runtime, 'settings'>) {
   const s = rt.settings as S;
-  return { rules: parseRules(s.ENGAGE_POINTS), unlocks: parseUnlocks(s.ENGAGE_UNLOCKS), followups: !/^(off|no|false|0)$/i.test(String(s.ROOM_APP_FOLLOWUPS ?? '').trim()) };
+  return { rules: parseRules(s.ENGAGE_POINTS), unlocks: parseUnlocks(s.ENGAGE_UNLOCKS), followups: /^(on|yes|true|1)$/i.test(String(s.ROOM_APP_FOLLOWUPS ?? '').trim()) };
 }
 /** The room's own engagement settings (Funnel HQ → Rooms): the agenda and whether the leaderboard starts on. */
 export function roomEngageSettings(room: Pick<RoomRow, 'engage'> | null | undefined) {

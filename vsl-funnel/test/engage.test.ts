@@ -357,12 +357,12 @@ describe('the application in the room', () => {
     expect(q("SELECT event FROM room_push_events WHERE who = 'rlr1'")).toEqual([{ event: 'submitted' }]);
     expect(q("SELECT stage, funnel FROM attr_stages WHERE reg_id = 'lr1' AND stage LIKE 'room_%' ORDER BY stage")).toEqual([{ stage: 'room_application', funnel: 'live' }, { stage: 'room_push', funnel: 'live' }]);
     expect(q("SELECT name FROM attr_capi WHERE lead_id = 'l1'")).toEqual([{ name: 'attr_room_application' }]);
-    // Default follow-ups: the same tier emails as /apply.
-    expect(q<{ n: number }>("SELECT COUNT(*) AS n FROM emails WHERE lead_id = 'l1' AND sequence LIKE 'tier_%'")[0].n).toBeGreaterThan(0);
+    // Default (off): no booked-call tier emails from a room application.
+    expect(q<{ n: number }>("SELECT COUNT(*) AS n FROM emails WHERE lead_id = 'l1' AND sequence LIKE 'tier_%'")[0].n).toBe(0);
     expect((await attendeeEngage(rt, room, who)).app!.submitted).toBe(true);
   });
   it('ROOM_APP_FOLLOWUPS off: scored and tiered the same, without the booked-call follow-ups', async () => {
-    rt = makeRt({ ...SETTINGS, ROOM_APP_FOLLOWUPS: 'off' });
+    rt = makeRt({ ...SETTINGS, ROOM_APP_FOLLOWUPS: 'off' }); // explicit off behaves like the default
     const { room, eventId } = await liveRoom();
     seedLead('l1');
     const who = seedReg(eventId, 'lr1', 'l1', 'rlr1');
