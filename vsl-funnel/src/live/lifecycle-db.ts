@@ -215,8 +215,11 @@ export async function sendPost(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: L
   const row = await lcReg(rt, reg.id);
   const tz = row?.tz || lead.timezone || ev.tz;
   let sent = 0;
+  // Round 4 lifecycle2: when the event's missed-live path is on, it replaces the no-show highlights email.
+  const missedOn = due.includes('noshow_highlights') && (await (await import('./lifecycle2-db')).lc2Toggles(rt, ev.id)).missed;
   for (const k of due) {
     if (k !== 'buyer_docs' && lead.unsubscribed_at) continue;
+    if (k === 'noshow_highlights' && missedOn) continue;
     const x = {
       name: safeFirstName(lead.first_name) ?? 'there', title: ev.title, room: `${replayHref(rt, reg)}?via=e-${k}`, closes: w.open ? formatCallTime(w.closesAt, tz) : null,
       deposit: depositConfig(rt).label, onboarding: onboardingUrl(rt), highlights: await highlights(rt, ev), replayCloses: now < w.replayClosesAt ? formatCallTime(w.replayClosesAt, tz) : null,
@@ -503,6 +506,9 @@ export async function saveLcEvent(rt: Runtime, eventId: string, body: Record<str
 
 /** The cron (every 5 minutes, from processLiveMessages): referral rewards. */
 export async function lifecycleCron(rt: Runtime, now = Date.now()) {
-  return { referralsRewarded: await rewardReferrals(rt, now).catch((e) => { console.error('referral rewards', e); return 0; }) };
+  const referralsRewarded = await rewardReferrals(rt, now).catch((e) => { console.error('referral rewards', e); return 0; });
+  // Round 4 lifecycle2: the lead-in, late sign-up and missed-live emails (only for events with a switch on).
+  const lifecycle2 = await (await import('./lifecycle2-db')).lc2Cron(rt, now).catch((e) => { console.error('lifecycle2 cron', e); return 0; });
+  return { referralsRewarded, lifecycle2 };
 }
 void DAY;

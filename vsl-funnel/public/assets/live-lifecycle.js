@@ -42,6 +42,15 @@
     });
   };
 
+  // Round 4 lifecycle2: a saved question or worksheet marks its lead-in part done (no email for it goes later).
+  function lc2Done(path) {
+    var steps = path === '/question' ? ['question'] : path === '/worksheet' ? ['prework', 'essentials'] : [];
+    steps.forEach(function (k) {
+      var li = $('[data-lc2-step="' + k + '"]'); if (!li) return;
+      li.classList.add('is-done');
+      var st = $('[data-lc2-state]', li); if (st) { st.setAttribute('data-lc2-state', 'done'); st.textContent = st.getAttribute('data-lc2-done') || st.textContent; }
+    });
+  }
   function wire(form, path, collect) {
     if (!form) return;
     form.addEventListener('submit', function (e) {
@@ -50,7 +59,7 @@
       err.hidden = true; ok.hidden = true; btn.disabled = true;
       post(path, collect(form)).then(function (r) {
         btn.disabled = false;
-        if (r && r.ok) ok.hidden = false; else { err.textContent = (r && r.error) || C.failed; err.hidden = false; }
+        if (r && r.ok) { ok.hidden = false; lc2Done(path); } else { err.textContent = (r && r.error) || C.failed; err.hidden = false; }
       });
     });
   }

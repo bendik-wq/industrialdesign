@@ -16,6 +16,8 @@ export interface Mail {
   subject: string; preheader: string; heading: string; paras: string[]; button?: { label: string; href: string };
   /** Calendar links (lifecycle, builder E): a row of Google, Outlook and Apple links under the paragraphs. */
   calendar?: { google: string; outlook: string; apple: string } | null;
+  /** Lines after the calendar row (round 4 lifecycle2: the visible unsubscribe line stays last). */
+  after?: string[];
 }
 
 /** The calendar row (HTML paragraph; tracked links that open the provider with the person's own room link). */
@@ -38,7 +40,7 @@ export async function sendOnce(rt: Runtime, lead: Pick<Lead, 'id' | 'email'>, se
   ).bind(newId('m'), lead.id, sequence, step, template, lead.email, now, now).run();
   if (!claim.meta.changes) return false;
   const co = company(rt);
-  const m = contractEmail({ preheader: mail.preheader, heading: mail.heading, paras: [...mail.paras.map(toHtml), ...(mail.calendar ? [calendarPara(mail.calendar)] : [])], button: mail.button, sender: co.signer, company: co.name, address: co.address });
+  const m = contractEmail({ preheader: mail.preheader, heading: mail.heading, paras: [...mail.paras.map(toHtml), ...(mail.calendar ? [calendarPara(mail.calendar)] : []), ...(mail.after ?? []).map(toHtml)], button: mail.button, sender: co.signer, company: co.name, address: co.address });
   const where = 'WHERE lead_id = ? AND sequence = ? AND step = ?';
   try {
     let status = 'simulated';
