@@ -12,6 +12,7 @@ export const ROOM_COPY = {
   joinNoCamera: 'Join without camera',
   permissionBlocked: 'Your browser blocked the camera or mic. Allow them in the address bar, then press Try again. You can also join without them.',
   tryAgain: 'Try again',
+  cameraBusy: 'Your camera is in use by another app, such as Zoom, Teams or FaceTime. Close that app, then press Try again. You can join with your mic in the meantime.',
   noDevices: 'No camera or microphone found. You can still join and watch.',
   // audience entry
   enterHeading: 'Welcome',

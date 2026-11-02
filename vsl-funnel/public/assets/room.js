@@ -123,17 +123,26 @@
       var cons = { video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
       if (camSel && camSel.value) cons.video.deviceId = { exact: camSel.value };
       if (micSel && micSel.value) cons.audio.deviceId = { exact: micSel.value };
+      var busy = false;
       return navigator.mediaDevices.getUserMedia(cons).catch(function (e) {
-        if (e && (e.name === 'NotFoundError' || e.name === 'OverconstrainedError')) return navigator.mediaDevices.getUserMedia({ audio: true }).catch(function () { return null; });
+        // A camera that was picked before may be gone: try the default camera before giving up on video.
+        if (e && e.name === 'OverconstrainedError' && cons.video.deviceId) { delete cons.video.deviceId; delete cons.audio.deviceId; return navigator.mediaDevices.getUserMedia(cons); }
+        throw e;
+      }).catch(function (e) {
+        if (e && e.name === 'NotFoundError') return navigator.mediaDevices.getUserMedia({ audio: true }).catch(function () { return null; });
+        // Camera held by another app (Zoom, Teams, FaceTime) or failed to start: keep the mic, say why.
+        if (e && camBusy(e)) { busy = true; return navigator.mediaDevices.getUserMedia({ audio: cons.audio }).catch(function () { return null; }); }
         throw e;
       }).then(function (stream) {
         previewStream = stream;
+        if (busy) { showErr(C.cameraBusy); addRetry(); if (!stream) return; video.srcObject = stream; meterFor(stream); return navigator.mediaDevices.enumerateDevices().then(fill); }
         if (!stream) { showErr(C.noDevices); return; }
         err.hidden = true;
         video.srcObject = stream; meterFor(stream);
         return navigator.mediaDevices.enumerateDevices().then(fill);
-      }).catch(function () { showErr(C.permissionBlocked); var b = h('button', { type: 'button', class: 'rm-btn' }, esc(C.tryAgain)); b.onclick = open; err.appendChild(document.createTextNode(' ')); err.appendChild(b); });
+      }).catch(function () { showErr(C.permissionBlocked); addRetry(); });
     }
+    function addRetry() { var b = h('button', { type: 'button', class: 'rm-btn' }, esc(C.tryAgain)); b.onclick = open; err.appendChild(document.createTextNode(' ')); err.appendChild(b); }
     ['cam', 'mic'].forEach(function (k) { var s = $('[data-' + k + ']'); if (s) s.onchange = open; });
     $('[data-test]').onclick = function () {
       try {
@@ -164,6 +173,9 @@
     $('[data-join-none]').onclick = function () { go(false); };
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) open(); else showErr(C.noDevices);
   }
+
+  function camBusy(e) { return ['NotReadableError', 'TrackStartError', 'AbortError'].indexOf(e && e.name) >= 0; }
+  function mediaError(e) { return camBusy(e) ? C.cameraBusy : C.permissionBlocked; }
 
   var audioUnlocked = false;
   function unlockAudio() { audioUnlocked = true; Object.keys(S.audioEls).forEach(function (k) { S.audioEls[k].play().catch(function () {}); }); }
@@ -398,7 +410,7 @@
   function toggleCam() {
     if (!S.local.cam) {
       navigator.mediaDevices.getUserMedia({ video: S.devices.cam ? { deviceId: { exact: S.devices.cam }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } } })
-        .then(function (s) { S.local.cam = s.getVideoTracks()[0]; S.camOn = true; return publish('video', S.local.cam); }).then(function () { send({ t: 'media', videoOff: false }); renderBar(); renderStage(); }).catch(function () { toast(C.permissionBlocked); });
+        .then(function (s) { S.local.cam = s.getVideoTracks()[0]; S.camOn = true; return publish('video', S.local.cam); }).then(function () { send({ t: 'media', videoOff: false }); renderBar(); renderStage(); }).catch(function (e) { toast(mediaError(e)); });
       return;
     }
     S.camOn = !S.camOn; S.local.cam.enabled = S.camOn;
