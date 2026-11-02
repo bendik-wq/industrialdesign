@@ -14,6 +14,7 @@ import type { Identity } from './state';
 import { parseStudioSettings, studioMeta } from './studio';
 import { PDFJS, mountStudio, studioPageConfig } from './studio-routes';
 import { flag } from '../settings';
+import { mediaConfig, mediaCsp, mediaReportRoute, netTest } from './media';
 import { ASSETS, ENGAGE_COPY, PLAN_KEYS, QUIZ_PRESETS, agendaText, assetById, coverage, parseAgenda } from './engage';
 import {
   RoomError, attendeeEngage, checkAssetLink, checkPlanLink, engageAvail, engageReport, getPlan, personTimeline, pushStats, roomEngageSettings, savePlan, sendRoomSummaries,
@@ -107,6 +108,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
     lc: await (await import('./lifecycle')).lifecycleRoomCfg(rt, room, who).catch(() => null),
     // Intel (area D, room-intel.js): the notice shown while the session is recorded (the recording is transcribed).
     intel: { notice: INTEL_COPY.roomNotice },
+    // Call quality and reliability (area A "media", room-media.js): copy, pinned CDN builds, feature switches.
+    media: mediaConfig(rt.settings as never),
     // Engagement (webinars): the copy, and for staff the ready-made knowledge checks and the resources they can push.
     engage: room.mode === 'webinar' ? {
       copy: ENGAGE_COPY,
@@ -128,7 +131,9 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
   // Studio (builder B): staff pages load pdf.js (pinned, with integrity) from cdnjs to render uploaded PDFs.
   const pdf = cfg.studio?.pdfjs ? ` ${new URL(PDFJS.src).origin}` : '';
   const scripts = (moqOn ? `'self' blob:` : `'self'`) + pdf;
-  c.header('content-security-policy', `default-src 'self'; script-src ${scripts}; worker-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' wss://${host} ws://${host}${relay}${pdf}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`);
+  // Background effects and strong noise reduction load pinned builds from jsDelivr (media.ts), only when switched on.
+  const mcsp = mediaCsp(rt.settings as never);
+  c.header('content-security-policy', `default-src 'self'; script-src ${scripts}${mcsp.script}; worker-src 'self' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' wss://${host} ws://${host}${relay}${pdf}${mcsp.connect}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`);
   c.header('cache-control', 'no-store');
   c.header('permissions-policy', 'camera=(self), microphone=(self), display-capture=(self), autoplay=(self)');
   return c.html(`<!doctype html>
@@ -141,6 +146,9 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <title>${esc(room.title)}</title>
 <link rel="stylesheet" href="/assets/room.css">
+<link rel="stylesheet" href="/assets/room-media.css">
+<script defer src="/assets/room-media-logic.js"></script>
+<script defer src="/assets/room-media.js"></script>
 <script defer src="/assets/room.js"></script>
 ${cfg.studio ? '<link rel="stylesheet" href="/assets/room-studio.css">\n<script defer src="/assets/room-studio.js"></script>' : ''}
 <link rel="stylesheet" href="/assets/room-lifecycle.css">
@@ -283,6 +291,10 @@ roomsApi.get('/:id/ws', async (c) => {
     return await stub(c, a.room.id).fetch(new Request('https://room/ws', { headers: { upgrade: 'websocket', ...headersFor(a.rt, a.room, who) } }));
   } catch (e) { return c.text(e instanceof Error ? e.message : 'Unavailable', 503); }
 });
+
+// The pre-join network test (area A "media"): round trip, download and upload against this Worker.
+roomsApi.get('/:id/net/:kind', netTest);
+roomsApi.post('/:id/net/:kind', netTest);
 
 roomsApi.post('/:id/ice', async (c) => {
   if (!sameOrigin(c)) return c.json({ ok: false }, 403);
@@ -544,6 +556,7 @@ async function emailInvite(rt: Runtime, room: RoomRow, lead: NonNullable<Awaited
   return (await sendOnce(rt, lead, 'room', step, 'room_invite', mail)) && emailConfigured(rt);
 }
 
+roomsAdmin.get('/:id/media', mediaReportRoute); // call quality per person (area A "media")
 roomsAdmin.get('/:id', async (c) => {
   const r = await roomReport(runtimeFrom(c), c.req.param('id'));
   return r ? c.json(r) : c.json({ error: 'Room not found' }, 404);

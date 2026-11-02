@@ -80,6 +80,10 @@
   };
   var negotiation = Promise.resolve();
   function serial(fn) { var p = negotiation.then(fn, fn); negotiation = p.catch(function () { /* next */ }); return p; }
+  // Area A "media" (room-media.js): MH calls an optional hook, emit tells listeners (see window.RoomCore at the end).
+  function MH(name) { var M = window.RoomMedia; if (!M || typeof M[name] !== 'function') return undefined; try { return M[name].apply(M, Array.prototype.slice.call(arguments, 1)); } catch (e) { console.warn('media hook', name, e); return undefined; } }
+  var LISTEN = {};
+  function emit(t, m) { (LISTEN[t] || []).concat(LISTEN['*'] || []).forEach(function (fn) { try { fn(m, t); } catch (e) { console.warn('room listener', t, e); } }); }
 
   // ───────────── entry: device check or enter ─────────────
   function start() {
@@ -100,6 +104,7 @@
   function stopPreview() { if (previewStream) previewStream.getTracks().forEach(function (t) { t.stop(); }); previewStream = null; }
   function deviceCheck(done, o) {
     o = o || {};
+    if (MH('deviceCheck', done, o) === true) return; // media: the full pre-join check
     app.innerHTML = '<div class="rm-entry rm-check"><p class="rm-eyebrow">' + esc(CFG.room.title) + '</p><h1 class="rm-h1">' + esc(C.checkHeading) + '</h1><p class="rm-lede">' + esc(C.checkBody) + '</p>' +
       '<div class="rm-preview"><video playsinline autoplay muted data-preview></video><div class="rm-meter" aria-hidden="true"><span data-meter></span></div></div>' +
       '<div class="rm-fields">' +
@@ -214,7 +219,7 @@
     var ws = new WebSocket(url);
     S.ws = ws;
     var first = true;
-    ws.onopen = function () { S.wsTries = 0; banner(null); };
+    ws.onopen = function () { S.wsTries = 0; banner(null); emit('ws_open', ws); };
     ws.onmessage = function (e) {
       var m; try { m = JSON.parse(e.data); } catch (x) { return; }
       emitCore(m); // add-on scripts (room-lifecycle.js)
@@ -224,7 +229,7 @@
         skew = m.now - Date.now();
         var prev = S.view; S.view = m;
         render(prev);
-        if (first) { first = false; syncMoq(); buildMedia(); loadEngage(); }
+        if (first) { first = false; syncMoq(); if (!(S.pc && MH('resumeMedia'))) buildMedia(); loadEngage(); }
         else syncMedia();
       } else if (m.t === 'chat') { S.chat.push(m.m); if (S.chat.length > 200) S.chat.shift(); if (S.tab !== 'chat' && m.m.by !== ME.id) S.unread++; renderChat(); renderTabs(); }
       else if (m.t === 'error') { toast((C.errors && C.errors[m.error]) || (EC.errors && EC.errors[m.error]) || m.error); }
@@ -247,8 +252,12 @@
       if (S.removed || S.ended || e.code === 4003 || S.wsClosedByUs) return;
       banner(C.reconnecting);
       var wait = Math.min(10000, 800 * Math.pow(1.7, S.wsTries++));
-      setTimeout(function () { connect(); }, wait);
-      teardownMedia(); // the room forgets our media session when we drop; we rebuild it on the next state
+      clearTimeout(S.wsTimer);
+      S.wsTimer = setTimeout(function () { S.wsTimer = null; connect(); }, wait);
+      emit('ws_close', { code: e.code, wait: wait, attempt: S.wsTries });
+      // The room holds our place (and media session) for a short while after a drop: room-media.js keeps the
+      // connection and checks on the next state. Without it, rebuild from scratch.
+      if (!MH('keepMediaOnDrop')) teardownMedia();
     };
   }
   function send(msg) { if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify(msg)); }
@@ -270,6 +279,7 @@
     S.building = getIce().then(function (iceServers) {
       var pc = new RTCPeerConnection({ iceServers: iceServers, bundlePolicy: 'max-bundle', iceTransportPolicy: S.relayOnly ? 'relay' : 'all' });
       S.pc = pc; S.pubs = {}; S.pulls = {};
+      emit('pc', pc);
       pc.ontrack = function () { /* tracks are picked up by mid after each negotiation */ };
       var failTimer = null;
       pc.onconnectionstatechange = function () {
@@ -340,6 +350,7 @@
           var kind = x[0], track = x[1], init = { direction: 'sendonly' };
           if (kind === 'video') init.sendEncodings = [{ rid: 'f', maxBitrate: 1500000 }, { rid: 'h', scaleResolutionDownBy: 2, maxBitrate: 500000 }, { rid: 'q', scaleResolutionDownBy: 4, maxBitrate: 150000 }];
           if (kind === 'screen' && track.contentHint !== undefined) track.contentHint = 'detail';
+          init = MH('sendInit', kind, track, init) || init;
           return pc.addTransceiver(track, init);
         });
         return pc.createOffer().then(function (offer) { return pc.setLocalDescription(offer); }).then(function () {
@@ -348,7 +359,8 @@
           if (!r.ok || !r.sessionDescription) { trs.forEach(function (tr) { try { tr.stop(); } catch (e) { /* stopped */ } }); throw new Error(r.error || 'publish'); }
           list.forEach(function (x, i) { S.pubs[x[0]] = { tr: trs[i], mid: trs[i].mid, trackName: prefix + x[0] }; });
           S.negotiated = true;
-          return pc.setRemoteDescription(r.sessionDescription);
+          var answer = MH('tuneRemote', r.sessionDescription, list.map(function (x, i) { return { kind: x[0], mid: trs[i].mid }; })) || r.sessionDescription;
+          return pc.setRemoteDescription(answer).then(function () { emit('published', list.map(function (x) { return x[0]; })); });
         });
       }).catch(function (e) { toast(e.message || C.mediaFailed); });
     });
@@ -375,6 +387,8 @@
       (m.tracks || []).forEach(function (t) {
         var rid = null;
         if (t.kind === 'video') rid = lay.focus === m.id + ':cam' ? (window.innerWidth > 900 && bw.level === 0 ? 'f' : bw.level >= 2 ? 'q' : 'h') : lay.count > 2 ? 'q' : (bw.level >= 1 ? 'q' : 'h');
+        var hr = MH('pickRid', m, t, lay); if (hr !== undefined) rid = hr; // media: by tile size, bandwidth tier and visibility
+        if (rid === 'off') return; // audio only for now
         out[t.trackName] = { sessionId: m.sessionId, trackName: t.trackName, kind: t.kind, owner: m.id, rid: t.simulcast ? rid : null };
       });
     });
@@ -390,7 +404,10 @@
     return serial(function () {
       var pc = S.pc; if (!pc || !S.sessionId) return;
       var want = wanted(), add = [], drop = [], relayer = [];
-      Object.keys(want).forEach(function (k) { if (!S.pulls[k]) add.push(want[k]); else if (want[k].rid && S.pulls[k].rid !== want[k].rid) relayer.push(want[k]); });
+      Object.keys(want).forEach(function (k) {
+        if (S.pulls[k] && S.pulls[k].sessionId !== want[k].sessionId) { drop.push(k); add.push(want[k]); return; } // they reconnected with a new media session
+        if (!S.pulls[k]) add.push(want[k]); else if (want[k].rid && S.pulls[k].rid !== want[k].rid) relayer.push(want[k]);
+      });
       Object.keys(S.pulls).forEach(function (k) { if (!want[k]) drop.push(k); });
       if (!add.length && !drop.length && !relayer.length) { renderStage(); return; }
       var p = ready(pc);
@@ -410,7 +427,7 @@
             S.negotiated = true;
             var neg = Promise.resolve();
             if (r.requiresImmediateRenegotiation && r.sessionDescription) {
-              neg = pc.setRemoteDescription(r.sessionDescription).then(function () { return pc.createAnswer(); }).then(function (a) { return pc.setLocalDescription(a); })
+              neg = pc.setRemoteDescription(r.sessionDescription).then(function () { return pc.createAnswer(); }).then(function (a) { return pc.setLocalDescription(MH('tuneLocal', a, r.tracks || [], batch) || a); })
                 .then(function () { return post('/sfu/renegotiate', { sessionId: S.sessionId, sessionDescription: { type: 'answer', sdp: pc.localDescription.sdp } }); });
             }
             return neg.then(function () {
@@ -440,10 +457,11 @@
     if (S.local.mic) S.local.mic.enabled = S.micOn;
     send({ t: 'media', audioOff: !S.micOn });
     renderBar();
+    emit('mic', S.micOn);
   }
   function toggleMic() {
     if (!S.local.mic) {
-      navigator.mediaDevices.getUserMedia({ audio: S.devices.mic ? { deviceId: { exact: S.devices.mic } } : true }).then(function (s) { S.local.mic = s.getAudioTracks()[0]; S.micOn = true; publish('audio', S.local.mic).then(function () { setMic(true); }); }).catch(function () { toast(C.permissionBlocked); });
+      navigator.mediaDevices.getUserMedia({ audio: MH('audioConstraints') || (S.devices.mic ? { deviceId: { exact: S.devices.mic } } : true) }).then(function (s) { S.local.mic = s.getAudioTracks()[0]; S.micOn = true; emit('local', 'mic'); publish('audio', S.local.mic).then(function () { setMic(true); }); }).catch(function () { toast(C.permissionBlocked); });
       return;
     }
     setMic(!S.micOn);
@@ -453,16 +471,17 @@
       var dv = S.devices.cam ? { deviceId: { exact: S.devices.cam } } : {};
       navigator.mediaDevices.getUserMedia({ video: Object.assign({ width: { ideal: 1280 }, height: { ideal: 720 } }, dv) })
         .catch(function (e) { if (!camBusy(e)) throw e; return navigator.mediaDevices.getUserMedia({ video: Object.keys(dv).length ? dv : true }); })
-        .then(function (s) { S.local.cam = s.getVideoTracks()[0]; S.camOn = true; return publish('video', S.local.cam); }).then(function () { send({ t: 'media', videoOff: false }); renderBar(); renderStage(); }).catch(function (e) { toast(mediaError(e)); });
+        .then(function (s) { S.local.cam = s.getVideoTracks()[0]; S.camOn = true; return Promise.resolve(MH('wrapCam', S.local.cam)).then(function (t) { if (t) S.local.cam = t; emit('local', 'cam'); return publish('video', S.local.cam); }); }).then(function () { send({ t: 'media', videoOff: false }); renderBar(); renderStage(); }).catch(function (e) { toast(mediaError(e)); });
       return;
     }
     S.camOn = !S.camOn; S.local.cam.enabled = S.camOn;
     send({ t: 'media', videoOff: !S.camOn }); renderBar(); renderStage();
+    emit('cam', S.camOn);
   }
   function toggleShare() {
     if (S.local.screen) { stopShare(); return; }
     if (!navigator.mediaDevices.getDisplayMedia) { toast(C.noWebrtc); return; }
-    navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: true }).then(function (s) {
+    navigator.mediaDevices.getDisplayMedia(MH('displayConstraints') || { video: { frameRate: { ideal: 15 } }, audio: true }).then(function (s) {
       S.local.screen = s.getVideoTracks()[0]; S.local.screenAudio = s.getAudioTracks()[0] || null;
       S.local.screen.onended = stopShare;
       var p = publish('screen', S.local.screen);
@@ -476,6 +495,7 @@
   }
   function leaveRoom() {
     S.wsClosedByUs = true;
+    emit('leave');
     if (S.rec) stopRecording();
     stopMoqPublish(); stopMoqView();
     stopLocal(); teardownMedia();
@@ -658,6 +678,7 @@
     // Focus first, so the CSS can make it the big one.
     var f = lay.focus && S.tiles[lay.focus]; if (f && stageEl.firstChild !== f) stageEl.insertBefore(f, stageEl.firstChild);
     Object.keys(S.tiles).forEach(function (id) { if (!keep[id]) { var el = S.tiles[id]; var vid = el.querySelector('video'); if (vid) vid.srcObject = null; el.remove(); delete S.tiles[id]; } });
+    emit('stage', lay);
   }
 
   function btn(attr, label, icon, on, cls) { return '<button type="button" class="rm-cbtn' + (on === false ? ' is-off' : '') + (cls ? ' ' + cls : '') + '" ' + attr + ' aria-pressed="' + (on === true) + '"><span class="rm-ic">' + (icon || '') + '</span><span class="rm-cl">' + esc(label) + '</span></button>'; }
@@ -789,7 +810,7 @@
         if (x.stage) acts += '<button class="rm-mini" data-act="spotlight" data-id="' + esc(x.id) + '">' + esc(S.view.room.spotlight === x.id ? C.unspotlight : C.spotlight) + '</button>';
         if (x.role !== 'host') acts += '<button class="rm-mini rm-danger" data-act="kick" data-id="' + esc(x.id) + '">' + esc(C.remove) + '</button>';
       }
-      return '<li class="rm-person"><span class="rm-pn">' + pick + (x.hand ? '<span class="rm-hand">' + I.hand + '</span>' : '') + esc(x.name) + (mine ? ' (' + esc(C.you) + ')' : '') + ' <span class="rm-role">' + esc(x.role === 'attendee' ? (x.stage ? C.onStage : '') : x.role === 'guest' ? '' : x.role) + '</span>' + ptsTag + '</span><span class="rm-pa">' + acts + '</span></li>';
+      return '<li class="rm-person"><span class="rm-pn">' + pick + (x.hand ? '<span class="rm-hand">' + I.hand + '</span>' : '') + esc(x.name) + (mine ? ' (' + esc(C.you) + ')' : '') + (MH('personBadge', x.id) || '') + ' <span class="rm-role">' + esc(x.role === 'attendee' ? (x.stage ? C.onStage : '') : x.role === 'guest' ? '' : x.role) + '</span>' + ptsTag + '</span><span class="rm-pa">' + acts + '</span></li>';
     };
     p.innerHTML = (MODE === 'webinar' ? '<h3 class="rm-h3">' + esc(C.hands) + '</h3>' + (hands.length ? '<ul class="rm-people">' + hands.map(row).join('') + '</ul>' : '<p class="rm-note">' + esc(C.noHands) + '</p>') : '') +
       '<h3 class="rm-h3">' + esc(C.people) + ' · ' + list.length + '</h3><ul class="rm-people">' + list.filter(function (x) { return !x.hand; }).map(row).join('') + '</ul>';
@@ -902,6 +923,7 @@
   setInterval(function () { send({ t: 'ping' }); }, 25000);
   var bw = { level: 0 };
   setInterval(function () {
+    if (MH('ownsStats')) return; // media: speaker, quality and bandwidth tiers from room-media.js
     var pc = S.pc; if (!pc || pc.connectionState !== 'connected') return;
     pc.getStats().then(function (stats) {
       var best = null, bestLevel = 0.02, inBitrate = null;
@@ -1559,6 +1581,7 @@
 
   function endScreen(title, body) {
     S.wsClosedByUs = true;
+    emit('leave');
     stopMoqPublish(); stopMoqView();
     stopLocal(); teardownMedia();
     var sh = $('[data-offer-sheet]');
@@ -1571,8 +1594,9 @@
   }
 
   // ───────────── add-on modules (builder B "studio" first; others add theirs the same way) ─────────────
-  var coreHandlers = {};
-  function coreEmit(type, data) { (coreHandlers[type] || []).concat(coreHandlers['*'] || []).forEach(function (fn) { try { fn(data, type); } catch (e) { console.warn('room add-on', e); } }); }
+  // One listener registry for every add-on: LISTEN/emit are declared at the top (area A media uses them early).
+  var coreHandlers = LISTEN;
+  function coreEmit(type, data) { emit(type, data); }
   var rawHandlers = [];
   // Whole-message listeners (builder E lifecycle uses core.on(fn) with one argument).
   function emitCore(m) { rawHandlers.forEach(function (fn) { try { fn(m); } catch (e) { console.warn('room add-on', e); } }); }
@@ -1589,6 +1613,11 @@
     renderChat: function () { renderChat(true); },
     openOffer: function () { openOffer(); }, actPush: function (x) { actPush(x); }, loadEngage: function () { return loadEngage(); },
     chatExtra: null,
+    // area A (media)
+    C: C, MODE: MODE, banner: banner, emit: emit, renderBar: renderBar, syncPulls: syncPulls, syncMedia: syncMedia,
+    buildMedia: buildMedia, rebuildMedia: rebuildMedia, teardownMedia: teardownMedia, layoutFor: layoutFor,
+    canPublishNow: canPublishNow, mediaError: mediaError,
+    reconnectNow: function () { if (S.ws && S.ws.readyState <= 1) return; clearTimeout(S.wsTimer); S.wsTimer = null; if (!S.removed && !S.ended && !S.wsClosedByUs) connect(); },
     compositor: function () { return COMP; }, moqPlaying: function () { return Boolean(MQ.view && MQ.view.playing && !canPublishNow()); },
   };
 
