@@ -15,6 +15,7 @@ import { audienceThreshold, broadcastMode, moqSetup, parseMode } from './moq';
 import type { Identity } from './state';
 import { parseStudioSettings, studioMeta } from './studio';
 import { PDFJS, mountStudio, studioPageConfig } from './studio-routes';
+import { mountPanic } from './panic'; // the panic button: move everyone to a fresh room, or the Zoom fallback
 import { flag } from '../settings';
 import { mediaConfig, mediaCsp, mediaReportRoute, netTest } from './media';
 import { ASSETS, ENGAGE_COPY, PLAN_KEYS, QUIZ_PRESETS, agendaText, assetById, coverage, parseAgenda } from './engage';
@@ -127,6 +128,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
     audience: room.mode === 'webinar' ? audienceCfg(rt, who) : null,
     // Engage2 (room-engage2.js): the hot list, the live-only bonus and the tab beacons; the copy only.
     engage2: room.mode === 'webinar' ? { copy: E2_COPY } : null,
+    // The panic button (room-panic.js, src/rooms/panic.ts): the copy for everyone; for staff who may use it, the options.
+    panic: await (await import('./panic')).panicPageCfg(rt, room, who).catch(() => null),
   };
   // Copy functions become their plain templates for room.js (it fills {n}/{a}/{b}); everything else is data.
   const json = JSON.stringify(cfg, (_k, v) => (typeof v === 'function' ? fnTemplate(v) : v)).replace(/</g, '\\u003c');
@@ -162,6 +165,7 @@ ${cfg.studio?.pack ? '<link rel="stylesheet" href="/assets/room-offer.css">\n<sc
 <script defer src="/assets/room-lifecycle.js"></script>
 ${room.mode === 'webinar' ? '<link rel="stylesheet" href="/assets/room-audience.css">\n<script defer src="/assets/room-audience.js"></script>' : ''}
 <script defer src="/assets/room-intel.js"></script>
+<script defer src="/assets/room-panic.js"></script>
 ${room.mode === 'webinar' ? '<script defer src="/assets/room-pay.js"></script>' : ''}
 ${room.mode === 'webinar' ? '<link rel="stylesheet" href="/assets/room-engage2.css">\n<script defer src="/assets/room-engage2.js"></script>' : ''}
 </head>
@@ -209,6 +213,18 @@ export async function publicRoomPage(c: Context<AppEnv>) {
   const rt = runtimeFrom(c);
   const room = await getRoom(rt, c.req.param('id') ?? '');
   if (!room) return gatePage(c, ROOM_GATE.notFound, ROOM_GATE.noAccessBody, 404);
+  // The panic button: a moved room's links (invite, challenge token, pass, admin) open the room it moved to.
+  const P = await import('./panic');
+  if (room.moved_to) {
+    const to = await P.movedRedirect(rt, room, { i: c.req.query('i'), c: c.req.query('c'), mv: c.req.query('mv'), admin: await isAdmin(c) });
+    if (to) return c.redirect(to, 302);
+  }
+  const mv = c.req.query('mv');
+  if (mv) {
+    const x = await P.passIdentity(rt, room, mv);
+    if (!x) return gatePage(c, ROOM_GATE.noAccess, ROOM_GATE.noAccessBody);
+    return renderRoomPage(c, room, x.who, { offer: x.offer, back: x.back });
+  }
   const i = c.req.query('i');
   if (i) {
     const inv = await readInvite(rt, i, room.id);
@@ -245,6 +261,8 @@ export async function hostRoomPage(c: Context<AppEnv>) {
   const rt = runtimeFrom(c);
   const room = await getRoom(rt, c.req.param('id') ?? '');
   if (!room) return gatePage(c, ROOM_GATE.notFound, ROOM_GATE.noAccessBody, 404);
+  // The panic button: the host of a moved room goes to the room it moved to (?stay=1 opens the old one).
+  if (room.moved_to && c.req.query('stay') !== '1') { const to = await (await import('./panic')).latestOf(rt, room); if (to.id !== room.id) return c.redirect(`/admin/rooms/${to.id}`, 302); }
   return renderRoomPage(c, room, { id: memberId('host', 'admin'), name: pickHostName(rt.settings, null), role: 'host', leadId: null, regId: null }, { back: '/admin#liveevents' });
 }
 
@@ -296,6 +314,8 @@ roomsApi.get('/:id/ws', async (c) => {
   // Hosts, co-hosts and nameless guests may set the name they show as on the check screen.
   const name = cleanName(c.req.query('name'));
   if (name && (who.role === 'host' || who.role === 'cohost' || (!who.leadId && who.role === 'guest'))) who.name = name;
+  // The panic button: a stale page of a moved room hears where to go (even when the old room's object is broken).
+  if (a.room.moved_to) return (await import('./panic')).movedSocket(a.rt, a.room, who);
   try {
     return await stub(c, a.room.id).fetch(new Request('https://room/ws', { headers: { upgrade: 'websocket', ...headersFor(a.rt, a.room, who) } }));
   } catch (e) { return c.text(e instanceof Error ? e.message : 'Unavailable', 503); }
@@ -787,3 +807,5 @@ export async function challengeJoinRoom(rt: Runtime, reg: { token: string; cohor
 
 // Studio (builder B): slides, run of show, branding assets, Funnel HQ settings and show templates (src/rooms/studio-routes.ts).
 mountStudio(roomsApi, roomsAdmin, { authed, stub, headersFor, sameOrigin });
+// The panic button (src/rooms/panic.ts): POST /api/rooms/:id/panic, GET /admin/api/rooms/:id/chain.
+mountPanic(roomsApi, roomsAdmin, { authed, stub, headersFor, sameOrigin });

@@ -30,7 +30,7 @@
     if (!rooms.length) return '<p class="muted">No rooms yet. Set a live webinar or challenge day to run in our room, or create a meeting room below.</p>';
     return '<div class="table-wrap"><table class="rmb-list"><thead><tr><th>When</th><th>Room</th><th>Kind</th><th>Status</th><th class="num">People</th><th class="num">Minutes</th><th class="num">Peak</th><th>Viewers and broadcast</th><th></th></tr></thead><tbody>' +
       rooms.slice(0, o && o.limit || 200).map(function (r) {
-        return '<tr data-rmb-row="' + esc(r.id) + '"><td>' + esc(fmt(r.starts_at)) + '</td><td><strong>' + esc(r.title) + '</strong>' + (r.guest ? '<div class="muted">' + esc(r.guest) + '</div>' : '') + '</td><td>' + esc((r.mode === 'meeting' ? 'Meeting' : KIND[r.ref_type] || 'Room')) + '</td><td>' + esc(STATUS[r.status] || r.status) + '</td>' +
+        return '<tr data-rmb-row="' + esc(r.id) + '"><td>' + esc(fmt(r.starts_at)) + '</td><td><strong>' + esc(r.title) + '</strong>' + (r.guest ? '<div class="muted">' + esc(r.guest) + '</div>' : '') + '</td><td>' + esc((r.mode === 'meeting' ? 'Meeting' : KIND[r.ref_type] || 'Room')) + '</td><td>' + esc(r.moved_to ? 'Moved' : STATUS[r.status] || r.status) + panicMoved(r) + '</td>' +
           '<td class="num">' + esc(r.people) + '</td><td class="num">' + esc(r.minutes) + '</td><td class="num">' + esc(r.peak) + '</td>' +
           '<td>' + (r.mode === 'webinar' ? '<div class="rmb-bc"><select data-rmb-bc="' + esc(r.id) + '" aria-label="How viewers watch">' + BCAST.map(function (b) { return '<option value="' + b[0] + '"' + ((r.broadcast || '') === b[0] ? ' selected' : '') + '>' + esc(b[1]) + '</option>'; }).join('') + '</select><span class="muted" data-rmb-live="' + esc(r.id) + '">' + (r.status === 'live' ? 'Checking…' : '–') + '</span></div>' : '<span class="muted">Meeting (SFU)</span>') + '</td>' +
           '<td><div class="rmb-act"><a class="btn-sm" href="' + esc(r.hostUrl) + '" target="_blank" rel="noopener">Open as host</a><button class="btn-sm ghost" data-rmb-links="' + esc(r.id) + '">Links</button><button class="btn-sm ghost" data-rmb-detail="' + esc(r.id) + '">Attendance</button>' +
@@ -94,7 +94,7 @@
         if (next && next.hasAttribute('data-rmb-att')) { next.remove(); return; }
         req('GET', 'rooms/' + id).then(function (d) {
           var att = d.attendance || [], recs = d.recordings || [];
-          var html = '<tr data-rmb-att><td colspan="9">' +
+          var html = '<tr data-rmb-att><td colspan="9">' + panicChain(d.chain) +
             (att.length ? '<table><thead><tr><th>Who</th><th>Role</th><th>First joined</th><th>Last seen</th><th class="num">Minutes</th><th class="num">Joins</th><th>On stage</th></tr></thead><tbody>' + att.map(function (a) {
               return '<tr><td>' + esc(a.name) + (a.email ? '<div class="muted">' + esc(a.email) + '</div>' : '') + '</td><td>' + esc(a.role) + '</td><td>' + esc(fmt(a.first_at)) + '</td><td>' + esc(fmt(a.last_at)) + '</td><td class="num">' + esc(a.minutes) + '</td><td class="num">' + esc(a.joins) + '</td><td>' + (a.on_stage_at ? esc(fmt(a.on_stage_at)) : '–') + '</td></tr>';
             }).join('') + '</tbody></table>' : '<p class="muted">Nobody has joined this room yet.</p>') +
@@ -310,6 +310,19 @@
       });
     };
   });
+
+  // The panic button (src/rooms/panic.ts): where a moved room went, where a room came from, and the whole chain.
+  function panicMoved(r) {
+    if (r.moved_to) return '<div class="muted">to <a href="/admin/rooms/' + esc(r.moved_to) + '" target="_blank" rel="noopener">' + esc(r.moved_to_title || 'the new room') + '</a>' + (r.moved_at ? ' at ' + esc(fmt(r.moved_at)) : '') + '</div>';
+    if (r.moved_from) return '<div class="muted">continues <a href="/admin/rooms/' + esc(r.moved_from) + '?stay=1" target="_blank" rel="noopener">' + esc(r.moved_from_title || 'an earlier room') + '</a></div>';
+    return '';
+  }
+  function panicChain(chain) {
+    if (!chain || chain.length < 2) return '';
+    return '<p style="margin:0 0 10px"><strong>Moved during the session</strong> ' + chain.map(function (c, i) {
+      return '<a href="/admin/rooms/' + esc(c.id) + (c.moved_to ? '?stay=1' : '') + '" target="_blank" rel="noopener">Room ' + (i + 1) + '</a> <span class="muted">(' + esc(c.people) + ' people, ' + esc(c.minutes) + ' min' + (c.moved_at ? ', moved ' + esc(fmt(c.moved_at)) : '') + ')</span>';
+    }).join(' → ') + ' <a class="muted" href="/admin/api/rooms/' + esc(chain[0].id) + '/chain" target="_blank" rel="noopener">attendance across the chain</a></p>';
+  }
 
   root.RoomsBoard = { render: render, section: section };
 })(window);
