@@ -11,6 +11,10 @@ export interface Env {
   EVENTS?: AnalyticsEngineDataset;
   /** Cloudflare round, builder C: the Vectorize index gl-knowledge (768 dims, cosine). Missing in tests and `wrangler dev --local`; every caller copes. */
   VECTORS?: Vectorize;
+  /** Platform round A: the send queue `gl-send` (src/infra/queue.ts). Used only with SEND_VIA_QUEUE on; without it everything sends inline. */
+  SEND_QUEUE?: Queue<unknown>;
+  /** Platform round A: the LiveReminderWorkflow (src/live/reminder-flow.ts). Used only with LIVE_REMINDERS_VIA_WORKFLOW on. */
+  LIVE_REMINDER_FLOW?: Workflow<{ regId: string }>;
 
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.

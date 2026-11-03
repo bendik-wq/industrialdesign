@@ -5,6 +5,7 @@ import { newId } from '../lib/ids';
 import type { EventSource, ServerEvent } from './catalog';
 import { forwardEvent } from './forward';
 import { aeOn, eventMeasures, writeAe } from '../infra/analytics-engine';
+import { enqueue, queueOn } from '../infra/queue';
 import type { MatchGeo } from './match';
 
 /** Who an event belongs to, plus what ad platforms need to match it. */
@@ -115,6 +116,11 @@ export async function track(rt: Runtime, who: TrackIdentity, input: TrackInput):
       variant: who.variant ?? null, roomId: m.roomId, visitorId: who.visitorId, bot: Boolean(who.isBot), value: m.value, durationMs: m.durationMs });
   }
 
-  if (!who.isBot && !input.localOnly && !MICRO_EVENTS.has(input.name)) rt.waitUntil(forwardEvent(rt, who, { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null, source: input.source }));
+  if (!who.isBot && !input.localOnly && !MICRO_EVENTS.has(input.name)) {
+    const ev = { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null, source: input.source };
+    // SEND_VIA_QUEUE on: the forward goes through the send queue (src/infra/queue.ts), once per event id; off: inline, as before.
+    if (queueOn(rt)) rt.waitUntil(enqueue(rt, { kind: 'track', id, who, ev, origin: rt.origin }, { once: true }).then((r) => (r === 'unavailable' ? forwardEvent(rt, who, ev) : undefined)));
+    else rt.waitUntil(forwardEvent(rt, who, ev));
+  }
   return id;
 }

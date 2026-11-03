@@ -76,6 +76,7 @@ import { indexTick } from './vectors/indexer';
 import { sendSignals } from './tracking/signals';
 import { CSP_REPORT_PATH, cspReportRoute, reportingEndpoints, withReporting } from './infra/csp';
 import { PUBLIC_RATE_LIMITS, purgeRateLimits, rateLimit } from './lib/ratelimit';
+import { DLQ_NAME, consumeDeadLetters, consumeSendBatch, purgeSendJobs, queueOn } from './infra/queue';
 
 /**
  * The room Durable Object, with its uncaught errors written to the error log (kind "room") before they surface as
@@ -447,6 +448,8 @@ export default {
       { name: 'rate-limit counters', run: () => purgeRateLimits(env) },
       // Cloudflare round, builder C: AI search (Vectorize). Does nothing unless VECTOR_SEARCH is on and the bindings exist.
       { name: 'AI search index', run: () => indexTick(rt) },
+      // Platform round A: old send-queue job rows (only while SEND_VIA_QUEUE is on).
+      ...(queueOn(rt) ? [{ name: 'send queue upkeep', run: () => purgeSendJobs(env) }] : []),
     ]);
     type R<F extends (...a: never[]) => unknown> = Awaited<ReturnType<F>> | null;
     const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = outcomes.map((o) => o.result) as [
@@ -463,7 +466,29 @@ export default {
     if (result?.due) console.log('email queue', result);
     if (retried?.due) console.log('tracking retries', retried);
   },
+
+  /**
+   * The send queue (platform round A, src/infra/queue.ts): `gl-send` runs each job with the cron's own send
+   * functions; `gl-send-dlq` keeps what gave up for Funnel HQ → Errors & cron. Only fed while SEND_VIA_QUEUE is on.
+   */
+  async queue(batch: MessageBatch<unknown>, env: Env, ctx: ExecutionContext) {
+    const [settings, reps] = await Promise.all([loadSettings(env), loadReps(env)]).catch(async (e) => {
+      await recordError(env, e, { kind: 'queue', source: 'send queue start (settings and reps)' });
+      throw e;
+    });
+    const rt: Runtime = {
+      env,
+      settings,
+      reps,
+      origin: publicOrigin(settings, 'https://example.com'),
+      waitUntil: (p) => ctx.waitUntil(p.catch((e) => console.error('background task failed', e))),
+    };
+    if (batch.queue === DLQ_NAME || batch.queue.endsWith('-dlq')) await consumeDeadLetters(rt, batch);
+    else await consumeSendBatch(rt, batch);
+  },
 } satisfies ExportedHandler<Env>;
+
+export { LiveReminderWorkflow } from './workflows';
 
 export { runtimeFrom };
 /** Every registered route (method + path), for the security tests that check each admin write route rejects cross-site calls. */

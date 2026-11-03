@@ -312,48 +312,74 @@ export async function dial(rt: Runtime, lead: Lead, kind: CallKind, provider?: s
   return { conversationId: res.conversation_id, callSid: res.callSid ?? res.sip_call_id ?? null };
 }
 
+/**
+ * Dials one queued call: claimed atomically (queued → dialing) so overlapping cron runs or a redelivered queue
+ * message can't double-dial, then re-checked (consent, calling hours, the webinar flows' own rules). A failed dial
+ * becomes a new queued row (retryOrFail), never a second dial of the same row. Shared by the cron and the send queue.
+ */
+export async function dialQueuedCall(rt: Runtime, call: OutboundCall, providerOnce: () => Promise<string | undefined>, now = Date.now()): Promise<'dialed' | 'skipped' | 'busy' | 'later' | 'failed'> {
+  const db = rt.env.DB;
+  // Claim it so overlapping cron runs can't double-dial.
+  const claim = await db.prepare(`UPDATE outbound_calls SET status = 'dialing', attempts = attempts + 1, updated_at = ? WHERE id = ? AND status = 'queued'`).bind(now, call.id).run();
+  if (!claim.meta.changes) return 'busy';
+  const lead = await getLead(rt.env, call.lead_id);
+  const why = lead ? blockReason(lead, call.kind) : 'lead deleted';
+  const tz = callingZones(lead?.phone) ?? [];
+  if (why || !lead) {
+    await db.prepare(`UPDATE outbound_calls SET status = 'skipped', error = ?, updated_at = ? WHERE id = ?`).bind(why, now, call.id).run();
+    return 'skipped';
+  }
+  // Webinar flows: their own goal, hours, per-person caps and agent (the row is moved or skipped when not now).
+  let override: { agentId: string; vars: Record<string, string> } | undefined;
+  if (call.kind.startsWith('w_')) {
+    const r = await (await import('./webinar-calls')).webinarPreDial(rt, call, lead, now);
+    if (!r) return 'skipped';
+    override = r;
+  }
+  if (!inCallingHours(now, tz)) {
+    const next = nextCallingTime(now, tz);
+    await db.prepare(`UPDATE outbound_calls SET status = ?, attempts = attempts - 1, run_at = ?, updated_at = ? WHERE id = ?`).bind(next ? 'queued' : 'skipped', next ?? now, now, call.id).run();
+    return next ? 'later' : 'skipped';
+  }
+  try {
+    const provider = await providerOnce();
+    const { conversationId, callSid } = await dial(rt, lead, call.kind, provider, undefined, override);
+    await db.prepare(`UPDATE outbound_calls SET conversation_id = ?, call_sid = ?, error = NULL, wc_dialed_at = ?, updated_at = ? WHERE id = ?`).bind(conversationId, callSid, Date.now(), Date.now(), call.id).run();
+    await track(rt, await identityFromLead(rt.env, lead.id), { name: 'ai_call_started', source: 'server', props: { kind: call.kind, attempt: call.attempts + 1, conversation_id: conversationId } });
+    return 'dialed';
+  } catch (e) {
+    const msg = String(e instanceof Error ? e.message : e).slice(0, 500);
+    await retryOrFail(rt, { ...call, attempts: call.attempts + 1 }, lead, 'failed', msg);
+    return 'failed';
+  }
+}
+
+/** The send queue's consumer (src/infra/queue.ts): one queued call by id, only while it is still queued and due. */
+export async function dialCallById(rt: Runtime, id: string) {
+  if (!elevenConfigured(rt.settings)) return 'gone' as const;
+  const call = await rt.env.DB.prepare(`SELECT * FROM outbound_calls WHERE id = ? AND status = 'queued'`).bind(id).first<OutboundCall>();
+  if (!call) return 'gone' as const;
+  if (call.run_at > Date.now() + 60_000) return 'later' as const; // moved since it was queued: the cron queues it again when due
+  return dialQueuedCall(rt, call, () => phoneProvider(rt));
+}
+
 /** Cron: dial due calls, then collect results for calls that have finished. */
 export async function processCallQueue(rt: Runtime) {
   const s = rt.settings;
   if (!elevenConfigured(s)) return { dialed: 0, synced: 0 };
   const db = rt.env.DB;
   const now = Date.now();
-  const due = await db.prepare(`SELECT * FROM outbound_calls WHERE status = 'queued' AND run_at <= ? ORDER BY run_at LIMIT 10`).bind(now).all<OutboundCall>();
+  const Q = await import('../infra/queue');
+  const viaQueue = Q.queueOn(rt);
+  const due = await db.prepare(`SELECT * FROM outbound_calls WHERE status = 'queued' AND run_at <= ?${viaQueue ? Q.NOT_QUEUED_SQL('call') : ''} ORDER BY run_at LIMIT 10`).bind(...(viaQueue ? [now, now - Q.JOB_STALE_MS] : [now])).all<OutboundCall>();
   let dialed = 0;
-  let provider: string | undefined;
+  let provider: Promise<string | undefined> | undefined;
+  const providerOnce = () => (provider ??= phoneProvider(rt));
+  // With SEND_VIA_QUEUE on, the dials go through the send queue (src/infra/queue.ts); any it refused are dialled here.
+  const left = viaQueue && due.results.length ? await Q.enqueueRows(rt, 'call', due.results.map((c) => c.id)) : null;
   for (const call of due.results) {
-    // Claim it so overlapping cron runs can't double-dial.
-    const claim = await db.prepare(`UPDATE outbound_calls SET status = 'dialing', attempts = attempts + 1, updated_at = ? WHERE id = ? AND status = 'queued'`).bind(now, call.id).run();
-    if (!claim.meta.changes) continue;
-    const lead = await getLead(rt.env, call.lead_id);
-    const why = lead ? blockReason(lead, call.kind) : 'lead deleted';
-    const tz = callingZones(lead?.phone) ?? [];
-    if (why || !lead) {
-      await db.prepare(`UPDATE outbound_calls SET status = 'skipped', error = ?, updated_at = ? WHERE id = ?`).bind(why, now, call.id).run();
-      continue;
-    }
-    // Webinar flows: their own goal, hours, per-person caps and agent (the row is moved or skipped when not now).
-    let override: { agentId: string; vars: Record<string, string> } | undefined;
-    if (call.kind.startsWith('w_')) {
-      const r = await (await import('./webinar-calls')).webinarPreDial(rt, call, lead, now);
-      if (!r) continue;
-      override = r;
-    }
-    if (!inCallingHours(now, tz)) {
-      const next = nextCallingTime(now, tz);
-      await db.prepare(`UPDATE outbound_calls SET status = ?, attempts = attempts - 1, run_at = ?, updated_at = ? WHERE id = ?`).bind(next ? 'queued' : 'skipped', next ?? now, now, call.id).run();
-      continue;
-    }
-    try {
-      provider ??= await phoneProvider(rt);
-      const { conversationId, callSid } = await dial(rt, lead, call.kind, provider, undefined, override);
-      await db.prepare(`UPDATE outbound_calls SET conversation_id = ?, call_sid = ?, error = NULL, wc_dialed_at = ?, updated_at = ? WHERE id = ?`).bind(conversationId, callSid, Date.now(), Date.now(), call.id).run();
-      await track(rt, await identityFromLead(rt.env, lead.id), { name: 'ai_call_started', source: 'server', props: { kind: call.kind, attempt: call.attempts + 1, conversation_id: conversationId } });
-      dialed++;
-    } catch (e) {
-      const msg = String(e instanceof Error ? e.message : e).slice(0, 500);
-      await retryOrFail(rt, { ...call, attempts: call.attempts + 1 }, lead, 'failed', msg);
-    }
+    if (left && !left.includes(call.id)) continue;
+    if ((await dialQueuedCall(rt, call, providerOnce, now)) === 'dialed') dialed++;
   }
 
   // Calls that should have finished: fetch their results (the webhook may already have done this).

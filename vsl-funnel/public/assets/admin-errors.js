@@ -10,8 +10,10 @@
     '.er-st{display:inline-flex;align-items:center;gap:5px}.er-dot{width:8px;height:8px;border-radius:50%;background:var(--muted,#6e6e73)}' +
     '.er-st.ok .er-dot{background:var(--good,#16a34a)}.er-st.failed .er-dot{background:var(--critical,#d03b3b)}.er-st.slow .er-dot{background:var(--warning,#fab219)}' +
     '.er-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-start;justify-content:space-between}.er-head h2{margin:0}' +
-    '.er-switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.er-switch input{width:18px;height:18px}.er-note{font-size:12px;color:var(--muted,#6e6e73);margin:8px 0 0}';
-  var KIND = { request: 'Page or API', webhook: 'Webhook', cron: 'Cron job', room: 'Room', csp: 'Content policy (CSP)' };
+    '.er-sub{font-size:14px;margin:14px 0 6px}.er-switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.er-switch input{width:18px;height:18px}.er-note{font-size:12px;color:var(--muted,#6e6e73);margin:8px 0 0}';
+  var KIND = { request: 'Page or API', webhook: 'Webhook', cron: 'Cron job', room: 'Room', csp: 'Content policy (CSP)', queue: 'Queue or workflow' };
+  var JOB = { email: 'Emails', sms: 'Texts', call: 'AI calls', track: 'Tracking forwards' };
+  var FLOW = { running: 'running', done: 'finished', stopped: 'handed back to the cron', failed: 'failed' };
   var ST = { ok: 'OK', failed: 'Failed', slow: 'Slow' };
 
   function ms(v) { if (v == null) return '–'; v = Number(v); return v >= 10000 ? (v / 1000).toFixed(0) + ' s' : v >= 1000 ? (v / 1000).toFixed(1) + ' s' : Math.round(v) + ' ms'; }
@@ -67,14 +69,47 @@
           { label: 'Last error', html: function (r) { return r.last_status === 'ok' || !r.last_error ? '–' : '<span class="er-msg">' + esc(r.last_error) + '</span>'; } },
         ], c.jobs || [], { cards: 3, empty: 'No cron runs recorded yet.', emptyHint: 'The first run after this deploy fills this in (every 5 minutes).' }) + '</div>';
 
+      var qd = d.queue || {}, qt = qd.totals || {};
+      var qState = !qd.on ? 'Off. Emails, texts, AI call dials and tracking forwards send inline from the cron and the pages, as before. Setting SEND_VIA_QUEUE.'
+        : !qd.bound ? 'On, but the queue isn’t bound to this Worker, so everything still sends inline. Setting SEND_VIA_QUEUE.'
+        : 'On. The cron and the pages hand each message to the gl-send queue, which sends it with retries and backoff. Messages that keep failing move to gl-send-dlq and show below.';
+      var queue = '<div class="card"><h2>Send queue</h2><p class="sub">' + esc(qState) + ' Counts are the last ' + n(qd.days || 7) + ' days.</p>' +
+        '<div class="grid g-4 tiles">' + ctx.tile('Sent', n(qt.sent)) + ctx.tile('Failed after retries', n(qt.failed)) + ctx.tile('Retried', n(qt.retried)) + ctx.tile('Dead letters', n(qt.dlq)) + '</div>' +
+        ((qd.byKind || []).length ? ctx.table([
+          { label: 'Kind', key: 'kind', fmt: function (v) { return JOB[v] || v; } },
+          { label: 'Sent', key: 'sent', num: true, zeroOk: true, fmt: n },
+          { label: 'Waiting', key: 'queued', num: true, zeroOk: true, fmt: n },
+          { label: 'Retried', key: 'retried', num: true, zeroOk: true, fmt: n },
+          { label: 'Failed', key: 'failed', num: true, zeroOk: true, fmt: n },
+          { label: 'Dead letters', key: 'dlq', num: true, zeroOk: true, fmt: n },
+        ], qd.byKind, { cards: 3 }) : '') +
+        ((qd.dead || []).length ? '<h3 class="er-sub">Dead letters</h3>' + ctx.table([
+          { label: 'Kind', key: 'kind', fmt: function (v) { return JOB[v] || v; } },
+          { label: 'Message', key: 'ref', fmt: function (v) { return v; } },
+          { label: 'Last error', html: function (r) { return r.last_error ? '<span class="er-msg">' + esc(r.last_error) + '</span>' : '–'; } },
+          { label: 'When', key: 'updated_at', nw: true, fmt: when },
+          { label: '', html: function (r) { return '<button type="button" class="btn-sm ghost" data-q-retry="' + esc(r.key) + '">Retry</button>'; } },
+        ], qd.dead, { cards: 3 }) : '<p class="er-note">No dead letters.</p>');
+      var fl = d.flows || {}, fb = fl.byStatus || {};
+      var fParts = Object.keys(fb).map(function (k) { return n(fb[k]) + ' ' + esc(FLOW[k] || k); });
+      queue += '<p class="er-note">Live reminder workflows: ' + (!fl.on ? 'off (setting LIVE_REMINDERS_VIA_WORKFLOW), the cron sends every reminder.' : !fl.bound ? 'on, but the workflow isn’t bound to this Worker, so the cron sends every reminder.' : (fParts.length ? fParts.join(', ') : 'none started yet') + (fl.late ? ', ' + n(fl.late) + ' late (the cron covers those)' : '') + '.') + '</p></div>';
+
       var slack = d.slack && d.slack.on;
       var head = '<div class="card"><div class="er-head"><div><h2>Error log</h2><p class="sub">Build <span class="mono">' + esc(d.build || '–') + '</span>. Kept ' + n(d.retentionDays) + ' days.</p></div>' +
         '<label class="er-switch"><input type="checkbox" data-er-slack' + (slack ? ' checked' : '') + '> Ping Slack on a new error</label></div>' +
         '<p class="er-note">Off by default. When on, the first time a new error shows up the Command Slack channel gets one message (at most 5 an hour). Setting ERRORS_SLACK.</p></div>';
 
-      view.innerHTML = '<div class="er-wrap">' + head + tiles + perDay + fps + cron + '</div>';
+      view.innerHTML = '<div class="er-wrap">' + head + tiles + perDay + fps + cron + queue + '</div>';
       // Cloudflare platform cards (public/assets/admin-edge.js): Bot protection and Events (Analytics Engine).
       if (root.EdgeCards) root.EdgeCards.render(ctx, view.querySelector('.er-wrap'));
+            Array.prototype.forEach.call(view.querySelectorAll('[data-q-retry]'), function (b) {
+        b.onclick = function () {
+          b.disabled = true;
+          ctx.send('POST', 'errors/queue/retry', { key: b.getAttribute('data-q-retry') }).then(function (r) {
+            if (r && r.ok) { ctx.toast('Back on the queue.'); ctx.reload(); } else { ctx.toast((r && r.error) || 'Couldn’t retry it.'); b.disabled = false; }
+          }).catch(function () { ctx.toast('Couldn’t retry it. Try again.'); b.disabled = false; });
+        };
+      });
       var box = view.querySelector('[data-er-slack]');
       if (box) box.onchange = function () {
         box.disabled = true;
