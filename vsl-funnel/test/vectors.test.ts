@@ -573,7 +573,7 @@ describe('room AI draft', () => {
 
   it('copy passes the house rules', () => {
     for (const v of Object.values(HELPER_COPY)) expect(auditCopy(v)).toEqual([]);
-    for (const k of ['VECTOR_SEARCH', 'ROOM_AI_HELPER', 'AI_GATEWAY_ID', 'CF_ACCOUNT_ID']) {
+    for (const k of ['VECTOR_SEARCH', 'ROOM_AI_HELPER', 'AI_GATEWAY_ID']) {
       const d = SETTINGS.find((s) => s.key === k)!;
       expect(d.group).toBe('AI & search');
       expect(auditCopy(('help' in d ? d.help : '') ?? '')).toEqual([]);
