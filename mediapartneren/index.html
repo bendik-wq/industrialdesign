@@ -3,342 +3,403 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mediapartneren – Flere kunder, ikke bare flere klikk</title>
-<meta name="description" content="Mediapartneren kobler markedsføring og salg i én motor: vi skaffer de riktige henvendelsene og trener teamet ditt til å gjøre dem om til kunder. Første resultater på 90 dager.">
+<title>Mediapartneren – Mer ny omsetning enn vi koster deg</title>
+<meta name="description" content="Vi tar de første salgsmøtene dine selv, bygger markedsføringen som fyller kalenderen og trener teamet ditt til å ta over. Mer ny omsetning enn honoraret på 90 dager, ellers jobber vi gratis til du har det.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800;900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: én lang, rolig salgsside. Mørk hero med video, deretter lyse seksjoner som bygger argumentet steg for steg. */
+/* Layout: VSL-trakt. Overskrift → stor video → én CTA. Deretter glasskort på et mørkt, dempet fargefelt: kalkulator, metode, tilbud, garanti, gründerne. */
 :root {
-  --ink:#0E1116; --ink2:#4A5260; --ink3:#7B8494; --line:#E3E6EB;
-  --paper:#FFFFFF; --soft:#F3F5F8; --night:#0E1116; --night2:#171C24;
-  --accent:#FF5A1F; --accent-ink:#D6400B; --ok:#1F8A4C;
-  --display:"Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
-  --body:"Source Sans 3", -apple-system, "Segoe UI", Arial, sans-serif;
-  --r:20px;
+  --bg:#070A10; --ink:#F4F6FA; --ink2:rgba(244,246,250,.72); --ink3:rgba(244,246,250,.5);
+  --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.1); --edge:rgba(255,255,255,.14); --edge2:rgba(255,255,255,.22);
+  --accent:#7CF3C4; --accent2:#6AA8FF; --warn:#FF8A6B; --cta:#F4F6FA; --cta-ink:#070A10;
+  --display:"Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body:"Geist", -apple-system, "Segoe UI", Arial, sans-serif;
+  --mono:"Geist Mono", ui-monospace, Menlo, monospace;
+  --r:24px;
 }
 * { box-sizing:border-box; }
-html { scroll-behavior:smooth; }
-body { margin:0; font-family:var(--body); font-size:18px; line-height:1.6; color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased; }
-h1,h2,h3 { font-family:var(--display); margin:0; letter-spacing:-.02em; line-height:1.08; text-wrap:balance; }
+html { scroll-behavior:smooth; background:var(--bg); overflow-x:clip; }
+body { margin:0; font-family:var(--body); font-size:17px; line-height:1.6; color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; }
+/* Kun to dempede lysfelt bak glasset, ikke en regnbue */
+body::before { content:""; position:fixed; inset:-20vh -20vw; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(40vw 32vw at 18% 12%, rgba(106,168,255,.20), transparent 70%),
+    radial-gradient(36vw 30vw at 86% 30%, rgba(124,243,196,.13), transparent 70%),
+    radial-gradient(50vw 40vw at 50% 110%, rgba(106,168,255,.12), transparent 70%); }
+body::after { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:64px 64px; mask-image:radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%); -webkit-mask-image:radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%); }
+h1,h2,h3 { font-family:var(--display); margin:0; letter-spacing:-.025em; line-height:1.04; text-wrap:balance; }
 p { margin:0; }
 a { color:inherit; }
-.wrap { max-width:1120px; margin:0 auto; padding-inline:22px; }
-.narrow { max-width:760px; }
-.eyebrow { font-size:14px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-ink); }
-.btn { display:inline-flex; align-items:center; gap:10px; background:var(--accent); color:#fff; font-weight:700; font-size:17px; padding:16px 26px; border-radius:999px; text-decoration:none; border:0; cursor:pointer; transition:transform .15s, background .15s; }
-.btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
-.btn.ghost { background:transparent; color:inherit; box-shadow:inset 0 0 0 1.5px currentColor; }
-.btn.ghost:hover { background:rgba(255,255,255,.08); }
-:focus-visible { outline:3px solid var(--accent); outline-offset:3px; border-radius:8px; }
+.wrap { max-width:1160px; margin:0 auto; padding-inline:22px; }
+.center { text-align:center; display:grid; justify-items:center; }
+.mono { font-family:var(--mono); font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink3); }
+.glass { background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.035)); border:1px solid var(--edge); border-radius:var(--r);
+  backdrop-filter:blur(22px) saturate(140%); -webkit-backdrop-filter:blur(22px) saturate(140%);
+  box-shadow:0 1px 0 rgba(255,255,255,.12) inset, 0 30px 80px -40px rgba(0,0,0,.8); }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; background:var(--cta); color:var(--cta-ink); font-weight:600; font-size:16.5px; padding:17px 30px; border-radius:999px; text-decoration:none; border:0; cursor:pointer; transition:transform .15s, box-shadow .2s; box-shadow:0 0 0 6px rgba(244,246,250,.08), 0 20px 50px -18px rgba(124,243,196,.55); font-family:var(--body); }
+.btn:hover { transform:translateY(-1px); box-shadow:0 0 0 8px rgba(244,246,250,.1), 0 24px 60px -18px rgba(124,243,196,.7); }
+.btn .arr { transition:transform .15s; } .btn:hover .arr { transform:translateX(3px); }
+.pill { display:inline-flex; align-items:center; gap:8px; padding:7px 14px 7px 8px; border-radius:999px; font-size:14px; color:var(--ink2); }
+.pill b { background:var(--accent); color:var(--cta-ink); font-family:var(--mono); font-size:11px; font-weight:500; padding:3px 8px; border-radius:99px; letter-spacing:.04em; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:3px; border-radius:10px; }
 
-/* nav */
-.nav { position:sticky; top:0; z-index:20; background:rgba(14,17,22,.86); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); color:#fff; border-bottom:1px solid rgba(255,255,255,.08); }
-.nav .wrap { display:flex; align-items:center; gap:24px; height:68px; }
-.logo { font-family:var(--display); font-weight:800; font-size:21px; letter-spacing:-.02em; text-decoration:none; }
-.logo span { color:var(--accent); }
-.nav nav { display:flex; gap:22px; margin-left:auto; font-size:15px; }
-.nav nav a { text-decoration:none; color:rgba(255,255,255,.75); }
-.nav nav a:hover { color:#fff; }
-.nav .btn { padding:10px 18px; font-size:15px; }
-@media (max-width:820px) { .nav nav { display:none; } .nav .btn { margin-left:auto; } }
+/* topbar */
+.top { position:sticky; top:0; z-index:30; }
+.top .in { max-width:1160px; margin:12px auto 0; padding:0 22px; }
+.top .bar { display:flex; align-items:center; gap:18px; padding:10px 10px 10px 20px; border-radius:999px; }
+.logo { font-family:var(--display); font-weight:800; font-size:19px; letter-spacing:-.02em; text-decoration:none; display:flex; align-items:center; gap:10px; }
+.logo i { width:22px; height:22px; border-radius:7px; background:conic-gradient(from 200deg, var(--accent), var(--accent2), var(--accent)); display:inline-block; }
+.top nav { margin-left:auto; display:flex; gap:22px; font-size:14.5px; }
+.top nav a { text-decoration:none; color:var(--ink2); } .top nav a:hover { color:var(--ink); }
+.top .btn { padding:10px 18px; font-size:14.5px; box-shadow:none; }
+@media (max-width:860px) { .top nav { display:none; } .top .btn { margin-left:auto; } }
 
 /* hero */
-.hero { background:radial-gradient(900px 500px at 85% -10%, rgba(255,90,31,.22), transparent 60%), var(--night); color:#fff; padding:72px 0 88px; }
-.hero .grid { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:56px; align-items:center; }
-@media (max-width:920px) { .hero .grid { grid-template-columns:1fr; gap:36px; } }
-.hero h1 { font-size:clamp(40px,6vw,68px); font-weight:800; margin:16px 0 22px; }
-.hero h1 em { font-style:normal; color:var(--accent); }
-.hero .sub { font-size:clamp(18px,2vw,21px); color:rgba(255,255,255,.78); max-width:34em; }
-.hero .ctas { display:flex; flex-wrap:wrap; gap:14px; margin-top:32px; align-items:center; }
-.hero .note { font-size:14px; color:rgba(255,255,255,.55); margin-top:14px; }
-.video { position:relative; aspect-ratio:16/9; width:100%; border-radius:22px; overflow:hidden; background:linear-gradient(135deg,#1E2530,#0B0E13); box-shadow:0 40px 90px -30px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.08); display:grid; place-items:center; text-decoration:none; color:#fff; }
-.video .play { width:84px; height:84px; border-radius:50%; background:var(--accent); display:grid; place-items:center; box-shadow:0 0 0 12px rgba(255,90,31,.18); transition:transform .2s; }
-.video:hover .play { transform:scale(1.06); }
-.video .play::after { content:""; border-left:24px solid #fff; border-top:15px solid transparent; border-bottom:15px solid transparent; margin-left:6px; }
-.video .cap { position:absolute; left:20px; right:20px; bottom:18px; display:flex; justify-content:space-between; gap:12px; font-size:14px; color:rgba(255,255,255,.8); }
-.video .cap b { color:#fff; }
+.hero { padding:64px 0 40px; }
+.hero h1 { font-size:clamp(40px,6.6vw,82px); font-weight:800; margin:22px 0 20px; max-width:15em; }
+.hero h1 .g { background:linear-gradient(92deg, var(--accent), var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.hero .sub { font-size:clamp(17px,1.9vw,20px); color:var(--ink2); max-width:40em; }
+.vsl { width:100%; max-width:980px; margin:40px auto 0; padding:10px; border-radius:30px; }
+.vsl .frame { position:relative; aspect-ratio:16/9; border-radius:22px; overflow:hidden; display:grid; place-items:center; text-decoration:none;
+  background:radial-gradient(60% 80% at 30% 20%, rgba(106,168,255,.35), transparent 70%), radial-gradient(50% 70% at 80% 90%, rgba(124,243,196,.22), transparent 70%), #0B1018; }
+.vsl .frame::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55)); }
+.vsl .play { position:relative; z-index:1; width:104px; height:104px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.14); border:1px solid var(--edge2); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); transition:transform .2s; }
+.vsl .play::before { content:""; position:absolute; inset:-14px; border-radius:50%; border:1px solid rgba(255,255,255,.12); animation:ring 2.4s ease-out infinite; }
+@keyframes ring { from { transform:scale(.85); opacity:1; } to { transform:scale(1.25); opacity:0; } }
+.vsl .play::after { content:""; border-left:26px solid #fff; border-top:16px solid transparent; border-bottom:16px solid transparent; margin-left:7px; }
+.vsl .frame:hover .play { transform:scale(1.06); }
+.vsl .meta { position:absolute; z-index:1; left:24px; right:24px; bottom:20px; display:flex; justify-content:space-between; align-items:end; gap:12px; text-align:left; }
+.vsl .meta b { font-family:var(--display); font-size:clamp(15px,1.8vw,20px); font-weight:700; color:#fff; display:block; }
+.vsl .meta span { font-family:var(--mono); font-size:12px; color:rgba(255,255,255,.7); }
+.vsl .sound { position:absolute; z-index:1; top:18px; left:18px; font-family:var(--mono); font-size:11.5px; padding:6px 10px; border-radius:99px; background:rgba(0,0,0,.35); border:1px solid var(--edge); color:#fff; }
+.under { margin-top:30px; display:grid; justify-items:center; gap:14px; }
+.under small { color:var(--ink3); font-size:13.5px; }
+.chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:6px; }
+.chips span { font-size:13.5px; color:var(--ink2); padding:7px 12px; border-radius:99px; }
 
 /* sections */
 section { padding:96px 0; }
-.soft { background:var(--soft); }
-.dark { background:var(--night); color:#fff; }
-.h2 { font-size:clamp(32px,4.4vw,50px); font-weight:800; margin:12px 0 18px; }
-.lead { font-size:clamp(18px,2vw,21px); color:var(--ink2); max-width:40em; }
-.dark .lead { color:rgba(255,255,255,.72); }
+.h2 { font-size:clamp(32px,4.6vw,56px); font-weight:800; margin:14px 0 16px; }
+.lead { font-size:clamp(17px,1.8vw,19.5px); color:var(--ink2); max-width:42em; }
 
-.pains { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:40px; }
-@media (max-width:760px) { .pains { grid-template-columns:1fr; } }
-.pain { background:var(--paper); border-radius:16px; padding:20px 22px; display:grid; grid-template-columns:28px 1fr; gap:12px; align-items:start; box-shadow:0 1px 0 var(--line); }
-.pain i { width:24px; height:24px; border-radius:50%; background:#FFE7DD; display:grid; place-items:center; font-style:normal; font-weight:800; color:var(--accent-ink); font-size:14px; margin-top:2px; }
+/* proof */
+.proof { padding:20px 0 0; }
+.proof .row { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+@media (max-width:820px) { .proof .row { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.stat { padding:20px 22px; display:grid; gap:4px; }
+.stat b { font-family:var(--display); font-size:34px; font-weight:800; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.stat span { font-size:14px; color:var(--ink2); }
 
-.bucket { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:56px; align-items:center; }
-@media (max-width:860px) { .bucket { grid-template-columns:1fr; } }
-.leak { display:grid; gap:10px; }
-.leak div { display:grid; grid-template-columns:minmax(0,1fr) 90px; align-items:center; gap:14px; }
-.leak span { display:block; height:46px; border-radius:12px; background:rgba(255,255,255,.08); position:relative; overflow:hidden; }
-.leak span::after { content:""; position:absolute; inset:0; width:var(--w); background:linear-gradient(90deg, var(--accent), #FF8A5C); border-radius:12px; }
-.leak span em { position:absolute; left:14px; top:50%; transform:translateY(-50%); z-index:1; font-style:normal; font-weight:700; font-size:15px; }
-.leak b { font-family:var(--display); font-size:22px; text-align:right; }
-.leak small { grid-column:1/-1; color:rgba(255,255,255,.55); font-size:14px; margin-top:6px; }
+/* calculator */
+.calc { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr); gap:16px; margin-top:44px; }
+@media (max-width:900px) { .calc { grid-template-columns:1fr; } }
+.inputs { padding:28px; display:grid; gap:22px; align-content:start; }
+.in1 { display:grid; gap:8px; }
+.in1 .t { display:flex; justify-content:space-between; font-size:15px; color:var(--ink2); }
+.in1 .t b { font-family:var(--mono); font-weight:500; color:var(--ink); font-size:15px; }
+input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:99px; background:rgba(255,255,255,.12); outline-offset:6px; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 0 0 6px rgba(124,243,196,.25); cursor:pointer; }
+input[type=range]::-moz-range-thumb { width:22px; height:22px; border:0; border-radius:50%; background:#fff; box-shadow:0 0 0 6px rgba(124,243,196,.25); cursor:pointer; }
+.outputs { padding:28px; display:grid; gap:18px; }
+.big { display:grid; gap:4px; }
+.big b { font-family:var(--display); font-size:clamp(40px,5.4vw,64px); font-weight:800; letter-spacing:-.035em; line-height:1; font-variant-numeric:tabular-nums; color:var(--warn); }
+.big span { color:var(--ink2); font-size:15px; }
+.chart { width:100%; height:auto; display:block; }
+.chart text { font-family:var(--mono); font-size:11px; fill:var(--ink3); }
+.legend { display:flex; gap:18px; font-size:13.5px; color:var(--ink2); flex-wrap:wrap; }
+.legend i { width:14px; height:3px; display:inline-block; border-radius:2px; margin-right:7px; vertical-align:middle; }
+.calc-note { font-size:13px; color:var(--ink3); }
+.mini { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.mini div { border-radius:16px; padding:14px; background:rgba(255,138,107,.08); border:1px solid rgba(255,138,107,.22); display:grid; gap:2px; }
+.mini b { font-family:var(--display); font-size:24px; font-weight:800; color:var(--warn); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.mini span { font-size:13px; color:var(--ink2); line-height:1.35; }
 
-.steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:44px; }
-@media (max-width:900px) { .steps { grid-template-columns:1fr; } }
-.step { background:var(--paper); border-radius:var(--r); padding:30px; display:grid; gap:12px; align-content:start; box-shadow:0 1px 0 var(--line), 0 20px 40px -30px rgba(14,17,22,.25); }
-.step .n { font-family:var(--display); font-size:15px; font-weight:800; color:var(--accent-ink); }
-.step h3 { font-size:28px; }
-.step ul { margin:4px 0 0; padding-left:20px; display:grid; gap:6px; color:var(--ink2); }
+/* method */
+.method { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:44px; position:relative; }
+@media (max-width:900px) { .method { grid-template-columns:1fr; } }
+.ph { padding:28px; display:grid; gap:12px; align-content:start; }
+.ph .wk { font-family:var(--mono); font-size:12.5px; color:var(--accent); letter-spacing:.05em; }
+.ph h3 { font-size:26px; font-weight:700; }
+.ph p { color:var(--ink2); }
+.ph .who { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+.ph .who span { font-family:var(--mono); font-size:11.5px; padding:4px 9px; border-radius:99px; border:1px solid var(--edge); color:var(--ink2); }
+.bar3 { height:8px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; display:flex; margin-top:6px; }
+.bar3 i { display:block; height:100%; }
 
-.timeline { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin-top:44px; border-top:2px solid var(--ink); }
-@media (max-width:820px) { .timeline { grid-template-columns:1fr; } }
-.tl { padding:24px 24px 0 0; display:grid; gap:8px; }
-.tl .d { font-weight:700; font-size:15px; color:var(--accent-ink); }
-.tl h3 { font-size:24px; }
-.tl p { color:var(--ink2); }
+/* offer stack */
+.offer { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:16px; margin-top:44px; }
+@media (max-width:900px) { .offer { grid-template-columns:1fr; } }
+.stack { padding:12px; }
+.item { display:grid; grid-template-columns:44px minmax(0,1fr); gap:16px; padding:18px 16px; border-radius:18px; }
+.item + .item { border-top:1px solid rgba(255,255,255,.07); border-radius:0; }
+.item .ic { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:rgba(124,243,196,.12); color:var(--accent); font-family:var(--mono); font-size:14px; }
+.item b { font-family:var(--display); font-size:19px; font-weight:700; display:block; }
+.item p { color:var(--ink2); font-size:15.5px; margin-top:2px; }
+.guar { padding:30px; display:grid; gap:16px; align-content:start; background:linear-gradient(180deg, rgba(124,243,196,.14), rgba(124,243,196,.03)); border-color:rgba(124,243,196,.35); }
+.guar .seal { width:84px; height:84px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(124,243,196,.5); font-family:var(--mono); font-size:11px; text-align:center; color:var(--accent); line-height:1.3; }
+.guar h3 { font-size:30px; font-weight:800; }
+.guar p { color:var(--ink2); }
 
-.fit { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-top:40px; }
+/* founders */
+.founders { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:44px; align-items:center; }
+@media (max-width:900px) { .founders { grid-template-columns:1fr; } }
+.ppl { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.pp { padding:14px; display:grid; gap:10px; }
+.pp .img { aspect-ratio:4/5; border-radius:16px; background:linear-gradient(160deg, rgba(106,168,255,.3), rgba(7,10,16,.6)); display:grid; place-items:center; color:var(--ink3); font-size:13px; text-align:center; padding:10px; }
+.pp b { font-family:var(--display); font-size:19px; padding:0 4px; }
+.pp span { font-size:14px; color:var(--ink2); padding:0 4px 6px; }
+
+/* fit + faq */
+.fit { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:40px; }
 @media (max-width:760px) { .fit { grid-template-columns:1fr; } }
-.fit > div { border-radius:var(--r); padding:30px; background:var(--soft); }
-.fit h3 { font-size:24px; margin-bottom:14px; }
-.fit ul { margin:0; padding-left:0; list-style:none; display:grid; gap:10px; }
-.fit li { display:grid; grid-template-columns:24px 1fr; gap:10px; }
-.fit .yes li::before { content:"✓"; color:var(--ok); font-weight:800; }
-.fit .no li::before { content:"✕"; color:var(--ink3); font-weight:800; }
-
-.team { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:56px; align-items:center; }
-@media (max-width:860px) { .team { grid-template-columns:1fr; } }
-.people { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.person { background:var(--night2); border-radius:var(--r); padding:22px; display:grid; gap:10px; }
-.person .ph { aspect-ratio:4/5; border-radius:14px; background:linear-gradient(160deg,#2A3240,#151A21); display:grid; place-items:center; color:rgba(255,255,255,.35); font-size:14px; text-align:center; padding:12px; }
-.person b { font-family:var(--display); font-size:20px; }
-.person span { color:rgba(255,255,255,.6); font-size:15px; }
-
-.guar { background:var(--paper); border-radius:28px; padding:44px; display:grid; grid-template-columns:auto 1fr; gap:32px; align-items:center; box-shadow:0 30px 70px -40px rgba(14,17,22,.35); }
-@media (max-width:760px) { .guar { grid-template-columns:1fr; padding:30px; } }
-.seal { width:120px; height:120px; border-radius:50%; border:3px solid var(--accent); display:grid; place-items:center; text-align:center; font-family:var(--display); font-weight:800; font-size:15px; line-height:1.15; color:var(--accent-ink); }
-
-.faq { margin-top:36px; display:grid; gap:10px; }
-.faq details { background:var(--paper); border-radius:16px; padding:20px 24px; box-shadow:0 1px 0 var(--line); }
-.faq summary { cursor:pointer; font-weight:700; font-size:19px; list-style:none; display:flex; justify-content:space-between; gap:16px; }
+.fit > div { padding:28px; }
+.fit h3 { font-size:22px; margin-bottom:14px; }
+.fit ul { list-style:none; margin:0; padding:0; display:grid; gap:10px; color:var(--ink2); }
+.fit li { display:grid; grid-template-columns:22px 1fr; gap:10px; }
+.fit .y li::before { content:"✓"; color:var(--accent); }
+.fit .n li::before { content:"✕"; color:var(--ink3); }
+.faq { display:grid; gap:10px; margin-top:36px; max-width:820px; width:100%; text-align:left; }
+.faq details { padding:20px 24px; border-radius:18px; }
+.faq summary { cursor:pointer; font-weight:600; font-size:18px; list-style:none; display:flex; justify-content:space-between; gap:16px; }
 .faq summary::-webkit-details-marker { display:none; }
-.faq summary::after { content:"+"; font-size:24px; line-height:1; color:var(--accent-ink); }
+.faq summary::after { content:"+"; font-family:var(--mono); color:var(--accent); }
 .faq details[open] summary::after { content:"–"; }
-.faq details p { margin-top:12px; color:var(--ink2); }
+.faq p { margin-top:12px; color:var(--ink2); }
 
-.final { text-align:center; display:grid; justify-items:center; gap:20px; }
-.form { width:100%; max-width:620px; display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px; text-align:left; }
-.form label { display:grid; gap:6px; font-size:14px; font-weight:600; color:rgba(255,255,255,.75); }
+/* final */
+.final .card { padding:clamp(28px,5vw,56px); display:grid; gap:18px; justify-items:center; text-align:center; }
+.form { width:100%; max-width:640px; display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; text-align:left; }
+.form label { display:grid; gap:6px; font-size:13px; color:var(--ink2); font-family:var(--mono); letter-spacing:.03em; }
 .form .full { grid-column:1/-1; }
-.form input, .form select { width:100%; border:0; border-radius:12px; padding:14px 16px; font:inherit; font-size:16px; background:#fff; color:var(--ink); }
-.form button { grid-column:1/-1; justify-content:center; }
+.form input, .form select { width:100%; border:1px solid var(--edge); border-radius:14px; padding:14px 16px; font:inherit; font-family:var(--body); font-size:16px; background:rgba(255,255,255,.06); color:var(--ink); }
+.form select option { color:#000; }
+.form input:focus, .form select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 4px rgba(124,243,196,.15); }
+.form .btn { grid-column:1/-1; margin-top:6px; }
+.ok { display:none; grid-column:1/-1; padding:14px 16px; border-radius:14px; background:rgba(124,243,196,.12); color:var(--accent); }
 @media (max-width:600px) { .form { grid-template-columns:1fr; } }
-.form-ok { display:none; background:rgba(31,138,76,.18); color:#BFF0D2; border-radius:14px; padding:16px; }
+footer { padding:40px 0 56px; color:var(--ink3); font-size:14px; }
+footer .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px 24px; }
+.fill { color:var(--warn); }
 
-footer { background:#090B0F; color:rgba(255,255,255,.55); font-size:14px; padding:36px 0; }
-footer .wrap { display:flex; flex-wrap:wrap; gap:12px 28px; justify-content:space-between; }
-@media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .btn, .video .play { transition:none; } }
+.btn { white-space:nowrap; }
+@media (max-width:600px) {
+  .logo { font-size:17px; }
+  .top .bar { padding:8px 8px 8px 14px; }
+  .pill { font-size:12.5px; }
+  .vsl { padding:6px; border-radius:22px; margin-top:28px; }
+  .vsl .frame { border-radius:17px; }
+  .vsl .play { width:68px; height:68px; }
+  .vsl .play::after { border-left-width:18px; border-top-width:11px; border-bottom-width:11px; margin-left:5px; }
+  .vsl .sound { display:none; }
+  .vsl .meta { left:14px; right:14px; bottom:12px; }
+  .vsl .meta b { font-size:13.5px; }
+  .hero { padding-top:40px; }
+  .stat b { font-size:26px; }
+  .stat { padding:16px; }
+}
+@media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .vsl .play::before { animation:none; } .btn, .vsl .play { transition:none; } }
 </style>
 </head>
 <body>
 
-<header class="nav">
-  <div class="wrap">
-    <a class="logo" href="#">Mediapartneren<span>.</span></a>
-    <nav aria-label="Hovedmeny">
-      <a href="#problemet">Problemet</a>
-      <a href="#metoden">Salgsmotoren</a>
-      <a href="#hvem">Hvem vi er</a>
-      <a href="#sporsmal">Spørsmål</a>
-    </nav>
-    <a class="btn" href="#book">Book salgsanalyse</a>
+<div class="top"><div class="in"><div class="bar glass">
+  <a class="logo" href="#"><i aria-hidden="true"></i>Mediapartneren</a>
+  <nav aria-label="Hovedmeny"><a href="#kalkulator">Kalkulator</a><a href="#metoden">Metoden</a><a href="#tilbudet">Tilbudet</a><a href="#hvem">Hvem vi er</a></nav>
+  <a class="btn" href="#book">Book samtale</a>
+</div></div></div>
+
+<!-- // BIG OFFER HEADLINE → VSL → ONE CTA -->
+<header class="hero">
+  <div class="wrap center">
+    <span class="pill glass"><b>NYTT</b>For bedrifter med 5–100 MNOK i omsetning</span>
+    <h1>Vi selger for deg i 30 dager. <span class="g">Så lærer vi teamet ditt å gjøre det samme.</span></h1>
+    <p class="sub">To erfarne selgere tar de første salgsmøtene dine selv, bygger markedsføringen som fyller kalenderen og trener teamet ditt til å ta over. Mer ny omsetning enn du betaler oss på 90 dager, ellers jobber vi gratis til du har det.</p>
+    <div class="vsl glass">
+      <a class="frame" href="vsl-manus.html" aria-label="Spill av videoen: Hvorfor flere annonser ikke gir flere kunder">
+        <span class="sound">▶ Spill av med lyd</span>
+        <span class="play" aria-hidden="true"></span>
+        <span class="meta"><span><b>Hvorfor flere annonser ikke gir flere kunder</b></span><span>04:30</span></span>
+      </a>
+    </div>
+    <div class="under">
+      <a class="btn" href="#book">Book en gratis salgsanalyse <span class="arr">→</span></a>
+      <small>30 minutter. Du får en oversikt over hvor du mister kunder, og den er din uansett.</small>
+    </div>
   </div>
 </header>
 
-<!-- // FROM-TO OPENER: fra «flere klikk» til «flere kunder» -->
-<section class="hero">
-  <div class="wrap grid">
-    <div>
-      <div class="eyebrow" style="color:#FF8A5C">For norske bedrifter som vil vokse</div>
-      <h1>Flere <em>kunder</em>.<br>Ikke bare flere klikk.</h1>
-      <p class="sub">Vi kobler markedsføring og salg i én motor. Vi skaffer de riktige henvendelsene, og vi trener teamet ditt til å gjøre dem om til kunder. Etter 90 dager vet du nøyaktig hva hver krone i markedsføring gir tilbake.</p>
-      <div class="ctas">
-        <a class="btn" href="#book">Book gratis salgsanalyse →</a>
-        <a class="btn ghost" href="#video">Se videoen (4 min)</a>
+<!-- // PROOF BAR (fyll med ekte tall) -->
+<div class="proof"><div class="wrap row">
+  <div class="stat glass"><b class="fill">[X] år</b><span>samlet erfaring i salg og salgsledelse</span></div>
+  <div class="stat glass"><b class="fill">[X] MNOK</b><span>solgt personlig av gründerne</span></div>
+  <div class="stat glass"><b class="fill">[X]</b><span>selgere trent og ledet</span></div>
+  <div class="stat glass"><b>90 dager</b><span>til tallene skal være på plass</span></div>
+</div></div>
+
+<!-- // UNIQUE MECHANISM PART 1: show them the leak in their own numbers -->
+<section id="kalkulator">
+  <div class="wrap">
+    <div class="mono">Salgslekkasje-kalkulatoren</div>
+    <h2 class="h2">Hvor mye omsetning lekker ut av bedriften din?</h2>
+    <p class="lead">Dra i tallene. Det du ser i rødt er penger du allerede har betalt for å få inn, men som ender hos en konkurrent.</p>
+    <div class="calc">
+      <div class="inputs glass">
+        <div class="in1"><div class="t"><label for="c_leads">Henvendelser i måneden</label><b id="o_leads"></b></div><input type="range" id="c_leads" min="5" max="300" step="5" value="40"></div>
+        <div class="in1"><div class="t"><label for="c_close">Andel som blir kunder i dag</label><b id="o_close"></b></div><input type="range" id="c_close" min="2" max="50" step="1" value="12"></div>
+        <div class="in1"><div class="t"><label for="c_value">Verdi per ny kunde (kr)</label><b id="o_value"></b></div><input type="range" id="c_value" min="5000" max="500000" step="5000" value="60000"></div>
+        <div class="in1"><div class="t"><label for="c_target">Andel som kan bli kunder med en god salgsprosess</label><b id="o_target"></b></div><input type="range" id="c_target" min="5" max="60" step="1" value="25"></div>
+        <div class="mini"><div><b id="o_cust">0</b><span>kunder i året du allerede har betalt for å få inn</span></div><div><b id="o_month">0 kr</b><span>i tapt omsetning hver måned</span></div></div>
+        <p class="calc-note">Eksempeltall. I salgsanalysen regner vi på dine faktiske tall.</p>
       </div>
-      <p class="note">30 minutter. Vi viser deg hvor du mister kunder i dag. Du beholder analysen uansett.</p>
+      <div class="outputs glass">
+        <div class="big"><b id="o_lost">0 kr</b><span>i tapt omsetning de neste 12 månedene</span></div>
+        <svg class="chart" id="chart" viewBox="0 0 640 260" role="img" aria-label="Omsetning over 12 måneder i dag og med en god salgsprosess"></svg>
+        <div class="legend"><span><i style="background:var(--ink3)"></i>Slik det går i dag</span><span><i style="background:var(--accent)"></i>Med en salgsprosess som lukker</span></div>
+      </div>
     </div>
-    <a class="video" id="video" href="vsl-manus.html" aria-label="Se videoen: Hvorfor markedsføring alene ikke gir flere kunder">
-      <span class="play" aria-hidden="true"></span>
-      <span class="cap"><span><b>Hvorfor markedsføring alene ikke gir flere kunder</b></span><span>4:10</span></span>
-    </a>
   </div>
 </section>
 
-<!-- // HOW COME OPENER + PAIN STACK -->
-<section class="soft" id="problemet">
+<!-- // NOT-YOUR-FAULT + THIRD WAY: the unique approach -->
+<section id="metoden">
   <div class="wrap">
-    <div class="narrow">
-      <div class="eyebrow">Kjenner du deg igjen?</div>
-      <h2 class="h2">Du betaler for synlighet. Men det er kunder du trenger.</h2>
-      <p class="lead">De fleste bedrifter vi møter har ikke et markedsføringsproblem. De har et problem i overgangen mellom markedsføring og salg. Det er der pengene forsvinner.</p>
-    </div>
-    <div class="pains">
-      <div class="pain"><i>1</i><p>Du bruker penger på annonser, men vet ikke hvor mange kunder de faktisk har gitt deg.</p></div>
-      <div class="pain"><i>2</i><p>Henvendelsene kommer inn, men blir liggende i innboksen i timer eller dager før noen svarer.</p></div>
-      <div class="pain"><i>3</i><p>Selgerne gjør det på hver sin måte. Den beste selger mye, resten varierer fra måned til måned.</p></div>
-      <div class="pain"><i>4</i><p>Tilbud blir sendt, men ingen følger opp. «Vi tenker på det» blir aldri til et ja.</p></div>
-      <div class="pain"><i>5</i><p>Byrået sender rapporter om klikk og visninger. Ingen snakker om omsetning.</p></div>
-      <div class="pain"><i>6</i><p>Det er du selv som må lukke de store avtalene, og derfor kan du ikke vokse forbi deg selv.</p></div>
+    <div class="mono">Metoden</div>
+    <h2 class="h2">Vi viser det før vi lærer det bort.</h2>
+    <p class="lead">Det er ikke selgerne dine sin feil, og det er ikke budsjettet. De fleste har aldri sett hvordan en salgsprosess som lukker faktisk høres ut. Kurs og teori endrer lite. Å se det skje i egne møter, med egne kunder, endrer alt. Derfor gjør vi det i denne rekkefølgen:</p>
+    <div class="method">
+      <div class="ph glass"><span class="wk">UKE 1–2 · DIAGNOSE</span><h3>Vi finner lekkasjene</h3><p>Vi går gjennom hele løpet fra første klikk til signert avtale. Svartid, møter, tilbud og oppfølging. Du får tallene svart på hvitt.</p><div class="bar3"><i style="width:100%;background:var(--accent2)"></i></div><div class="who"><span>Vi leder</span></div></div>
+      <div class="ph glass"><span class="wk">UKE 3–6 · VI SELGER</span><h3>Vi tar møtene selv</h3><p>Vi tar dine salgsmøter mens teamet ditt sitter med og lytter. Samtidig bygger vi markedsføringen som fyller kalenderen. Du ser resultatet før du betaler for teorien.</p><div class="bar3"><i style="width:75%;background:var(--accent2)"></i><i style="width:25%;background:var(--accent)"></i></div><div class="who"><span>Vi selger</span><span>Teamet lytter</span></div></div>
+      <div class="ph glass"><span class="wk">UKE 7–12 · DERE SELGER</span><h3>Teamet tar over</h3><p>Teamet ditt tar møtene med samtaleguidene våre. Vi lytter, coacher og leder et ukentlig pipeline-møte. Når tallene holder, skrur vi opp annonsebudsjettet.</p><div class="bar3"><i style="width:15%;background:var(--accent2)"></i><i style="width:85%;background:var(--accent)"></i></div><div class="who"><span>Teamet selger</span><span>Vi coacher</span></div></div>
     </div>
   </div>
 </section>
 
-<!-- // NOT-YOUR-FAULT FRAME + SATURATED MECHANISM -->
-<section class="dark">
-  <div class="wrap bucket">
+<!-- // OFFER STACK + RISK REVERSAL -->
+<section id="tilbudet">
+  <div class="wrap">
+    <div class="mono">Tilbudet</div>
+    <h2 class="h2">Salgsmotoren. Alt du trenger for å vokse, i én leveranse.</h2>
+    <p class="lead">Du slipper å koordinere et byrå, en salgstrener og en konsulent. Én partner har ansvar for hele veien, fra annonsekrone til signert kontrakt.</p>
+    <div class="offer">
+      <div class="stack glass">
+        <div class="item"><span class="ic">01</span><div><b>Innleid salgsdirektør i 90 dager</b><p>En av oss leder salgsarbeidet ditt med ukentlig pipeline-møte, prognoser og prioriteringer.</p></div></div>
+        <div class="item"><span class="ic">02</span><div><b>Vi tar dine første salgsmøter selv</b><p>Teamet ditt ser og hører nøyaktig hvordan et møte som lukker gjennomføres, med dine egne kunder.</p></div></div>
+        <div class="item"><span class="ic">03</span><div><b>Markedsføring som fyller kalenderen</b><p>Google Ads, SEO, sosiale medier og landingssider, rettet mot kundene du vil ha.</p></div></div>
+        <div class="item"><span class="ic">04</span><div><b>Salgsprosess, samtaleguider og tilbudsmaler</b><p>Skrevet for ditt marked, testet i ekte møter før teamet tar dem i bruk.</p></div></div>
+        <div class="item"><span class="ic">05</span><div><b>Salgstrening og ukentlig coaching</b><p>På teamets egne opptak og samtaler, ikke på generell teori.</p></div></div>
+        <div class="item"><span class="ic">06</span><div><b>CRM og dashbord du faktisk bruker</b><p>Du ser hva hver krone i markedsføring gir tilbake, i kunder og i kroner.</p></div></div>
+      </div>
+      <div class="guar glass">
+        <div class="seal">GARANTI<br>90 DAGER</div>
+        <h3>Mer ny omsetning enn du betaler oss. Ellers jobber vi gratis.</h3>
+        <p>Hvis Salgsmotoren ikke har skapt mer ny omsetning enn honoraret innen 90 dager, og du har gjort din del, fortsetter vi uten betaling til den har det.</p>
+        <p>Vi kan gi denne garantien fordi vi tar de første møtene selv. Vi vet hva vi får til.</p>
+        <a class="btn" href="#book" style="justify-self:start">Se om du kvalifiserer <span class="arr">→</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- // CREDIBILITY -->
+<section id="hvem">
+  <div class="wrap founders">
     <div>
-      <div class="eyebrow" style="color:#FF8A5C">Det er ikke din feil</div>
-      <h2 class="h2">Markedsføring uten salg er en bøtte med hull i.</h2>
-      <p class="lead">Det handler ikke om at du har valgt feil kanal, feil budsjett eller feil byrå. Det handler om at markedsføring og salg er satt opp som to forskjellige verdener. Byrået måles på klikk. Selgerne måles på avtaler. Og ingen har ansvar for det som skjer i midten.</p>
-      <p class="lead" style="margin-top:16px">Derfor hjelper det sjelden å øke annonsebudsjettet. Du heller bare mer vann i den samme bøtta.</p>
+      <div class="mono">Hvem vi er</div>
+      <h2 class="h2">Selgere først. Byrå etterpå.</h2>
+      <p class="lead">De fleste byråer kan markedsføring, men har aldri lukket en avtale. Vi har brukt <span class="fill">[X]</span> år på å selge, bygge salgsteam og lede selgere i <span class="fill">[bransjer / selskaper]</span>. Derfor starter vi der andre slutter: i salgsmøtet.</p>
+      <p class="lead" style="margin-top:14px">Vi holder til i Bergen og jobber med bedrifter i hele Norge. Vi tar bare inn noen få nye kunder av gangen, fordi vi selv sitter i møtene.</p>
     </div>
-    <div class="leak" aria-label="Eksempel på en salgstrakt med lekkasje">
-      <div><span style="--w:100%"><em>Henvendelser</em></span><b>100</b></div>
-      <div><span style="--w:55%"><em>Får svar samme dag</em></span><b>55</b></div>
-      <div><span style="--w:30%"><em>Får et godt salgsmøte</em></span><b>30</b></div>
-      <div><span style="--w:14%"><em>Blir fulgt opp</em></span><b>14</b></div>
-      <div><span style="--w:7%"><em>Blir kunder</em></span><b>7</b></div>
-      <small>Illustrasjon. I salgsanalysen regner vi ut dine egne tall.</small>
+    <div class="ppl">
+      <div class="pp glass"><div class="img">[Portrett, gründer 1]</div><b class="fill">[Navn Etternavn]</b><span>Daglig leder · <span class="fill">[X]</span> år i salg og salgsledelse</span></div>
+      <div class="pp glass"><div class="img">[Portrett, gründer 2]</div><b class="fill">[Navn Etternavn]</b><span>Partner · <span class="fill">[X]</span> år i salg og salgstrening</span></div>
     </div>
   </div>
 </section>
 
-<!-- // THIRD WAY REVEAL: the mechanism -->
-<section class="soft" id="metoden">
-  <div class="wrap">
-    <div class="narrow">
-      <div class="eyebrow">Den tredje veien</div>
-      <h2 class="h2">Salgsmotoren: markedsføring og salg i én leveranse.</h2>
-      <p class="lead">Du kan kjøpe mer markedsføring. Du kan ansette flere selgere. Eller du kan få de to til å henge sammen, slik at hver henvendelse har en plan fra første klikk til signert avtale. Det er det vi gjør.</p>
-    </div>
-    <div class="steps">
-      <div class="step"><span class="n">01 · Tiltrekk</span><h3>De riktige henvendelsene</h3><p>Vi skaffer kundene du faktisk vil ha, ikke bare trafikk.</p><ul><li>Google Ads, SEO og Google Bedriftsprofil</li><li>Annonsering i sosiale medier</li><li>Nettside og landingssider som konverterer</li></ul></div>
-      <div class="step"><span class="n">02 · Konverter</span><h3>Et salgsløp som lukker</h3><p>Hver henvendelse får svar raskt, et godt møte og en oppfølging som ikke slipper.</p><ul><li>Salgsprosess og samtaleguider</li><li>Oppfølging og tilbudsmaler</li><li>CRM satt opp slik at ingen faller mellom stolene</li></ul></div>
-      <div class="step"><span class="n">03 · Led</span><h3>Et team som selger bedre hver uke</h3><p>Salgstrening og salgsledelse fra folk som har gjort jobben selv.</p><ul><li>Salgstrening for hele teamet</li><li>Ukentlig pipeline-møte og coaching</li><li>Nøkkeltall fra annonsekrone til kontrakt</li></ul></div>
-    </div>
-  </div>
-</section>
-
-<!-- // TIMELINE LANGUAGE -->
+<!-- // IDENTITY CLOSE -->
 <section>
   <div class="wrap">
-    <div class="narrow">
-      <div class="eyebrow">De første 90 dagene</div>
-      <h2 class="h2">Først tetter vi hullene. Så skrur vi opp volumet.</h2>
-      <p class="lead">Rekkefølgen er hele poenget. Det lønner seg ikke å kjøpe flere henvendelser før de du allerede har blir til kunder.</p>
-    </div>
-    <div class="timeline">
-      <div class="tl"><span class="d">Dag 1–30</span><h3>Kartlegg og tett</h3><p>Vi går gjennom hele salgsløpet ditt, finner lekkasjene og setter opp svartid, oppfølging og CRM. Teamet får første runde med salgstrening.</p></div>
-      <div class="tl"><span class="d">Dag 31–60</span><h3>Bygg motoren</h3><p>Kampanjer og landingssider rettet mot kundene du vil ha. Samtaleguider og tilbudsmaler i bruk. Ukentlig coaching på ekte samtaler.</p></div>
-      <div class="tl"><span class="d">Dag 61–90</span><h3>Skru opp</h3><p>Nå vet vi hva som gir kunder. Vi øker budsjettet der tallene er best og kutter resten. Du får et dashbord du forstår.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- // IDENTITY CLOSE: who it's for / not for -->
-<section class="soft">
-  <div class="wrap">
-    <div class="narrow">
-      <div class="eyebrow">Passer dette for deg?</div>
-      <h2 class="h2">Vi sier nei til flere enn vi sier ja til.</h2>
-      <p class="lead">Fordi vi jobber tett med både markedsføringen og salgsteamet, tar vi bare inn noen få nye bedrifter av gangen.</p>
-    </div>
+    <div class="mono">Passer dette for deg?</div>
+    <h2 class="h2">Vi sier nei til flere enn vi sier ja til.</h2>
     <div class="fit">
-      <div class="yes"><h3>Det passer hvis du</h3><ul><li>driver en etablert bedrift som vil vokse, gjerne innen tjenester, B2B eller håndverk</li><li>har minst én person som selger, eller selger selv</li><li>vil måle markedsføring i kunder og kroner, ikke klikk</li><li>er klar til å la teamet bli trent og fulgt opp</li></ul></div>
-      <div class="no"><h3>Det passer ikke hvis du</h3><ul><li>bare vil ha noen innlegg i sosiale medier</li><li>ser etter billigste byrå</li><li>ikke har kapasitet til å ta imot flere kunder</li><li>ikke vil endre måten dere selger på</li></ul></div>
+      <div class="y glass"><h3>Det passer hvis du</h3><ul><li>har en etablert bedrift med 5–100 MNOK i omsetning</li><li>allerede får henvendelser, men vet at flere burde bli kunder</li><li>har minst én som selger, eller selger selv</li><li>vil måle markedsføring i kroner, ikke klikk</li></ul></div>
+      <div class="n glass"><h3>Det passer ikke hvis du</h3><ul><li>bare vil ha innlegg i sosiale medier</li><li>ser etter billigste byrå</li><li>ikke har kapasitet til flere kunder</li><li>ikke vil endre måten dere selger på</li></ul></div>
     </div>
   </div>
 </section>
 
-<!-- // CREDIBILITY: who is behind it -->
-<section class="dark" id="hvem">
-  <div class="wrap team">
-    <div>
-      <div class="eyebrow" style="color:#FF8A5C">Hvem vi er</div>
-      <h2 class="h2">Vi kommer fra salg. Ikke fra et designbyrå.</h2>
-      <p class="lead">Mediapartneren er startet av to som har brukt karrieren på å selge, bygge salgsteam og lede selgere. Vi har stått i de samme samtalene som teamet ditt står i hver dag. Derfor starter vi alltid med spørsmålet ingen andre byråer stiller: Hva skjer etter at kunden tar kontakt?</p>
-      <p class="lead" style="margin-top:16px">Vi holder til i Bergen og jobber med bedrifter i hele Norge.</p>
-    </div>
-    <div class="people">
-      <div class="person"><div class="ph">[Foto av gründer 1]</div><b>[Navn Etternavn]</b><span>Daglig leder · [X] år i salg og salgsledelse, blant annet [tidligere rolle/selskap]</span></div>
-      <div class="person"><div class="ph">[Foto av gründer 2]</div><b>[Navn Etternavn]</b><span>Partner · [X] år i salg, [salgstrening / key account / ledelse]</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- // RISK REVERSAL (forslag – må godkjennes) -->
-<section class="soft">
-  <div class="wrap">
-    <div class="guar">
-      <div class="seal">90 dager<br>eller vi<br>jobber gratis</div>
-      <div>
-        <div class="eyebrow">Garanti</div>
-        <h2 class="h2" style="font-size:clamp(28px,3.4vw,40px)">Vi tar risikoen, ikke du.</h2>
-        <p class="lead">Sammen setter vi et konkret mål for antall kvalifiserte salgsmøter de første 90 dagene. Når du har gjort din del, og vi ikke har nådd målet, jobber vi videre uten honorar til vi er der.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- // COMPLAINTS / DOUBTS AS FAQ -->
-<section id="sporsmal">
-  <div class="wrap narrow">
-    <div class="eyebrow">Spørsmål vi ofte får</div>
+<section>
+  <div class="wrap center">
+    <div class="mono">Spørsmål</div>
     <h2 class="h2">Det du lurer på.</h2>
     <div class="faq">
-      <details><summary>Vi har allerede et byrå. Hvorfor bytte?</summary><p>Du trenger ikke nødvendigvis bytte. Mange starter med salgsanalysen og salgstreningen, og lar oss ta over markedsføringen når tallene viser hvor gevinsten er. Det viktigste er at noen har ansvar for hele løpet.</p></details>
-      <details><summary>Hva koster det?</summary><p>Det avhenger av hvor mye vi tar ansvar for, og hvor stort teamet ditt er. Du får en fast pris etter salgsanalysen, før du forplikter deg til noe. Ingen overraskelser og ingen bindingstid utover programmet.</p></details>
-      <details><summary>Hvor raskt ser vi resultater?</summary><p>Ofte allerede de første ukene, fordi vi tetter lekkasjene før vi bruker mer penger på annonser. Raskere svartid og bedre oppfølging gir flere kunder av henvendelsene du allerede får.</p></details>
-      <details><summary>Selgerne våre er erfarne. Trenger de trening?</summary><p>Erfarne selgere er de som får mest ut av det. Vi trener på deres egne samtaler og kunder, ikke på teori. Målet er at hele teamet selger like godt som den beste.</p></details>
-      <details><summary>Hva skjer i salgsanalysen?</summary><p>På 30 minutter går vi gjennom hvordan kundene finner dere, hva som skjer når de tar kontakt, og hvor dere mister dem. Du får en konkret oversikt over de tre største lekkasjene. Den er din å beholde, uansett om vi jobber sammen eller ikke.</p></details>
+      <details class="glass"><summary>Tar dere virkelig salgsmøtene våre selv?</summary><p>Ja. I uke 3–6 tar vi de viktigste møtene dine, med teamet ditt til stede. Det er den raskeste måten å vise hva som virker, og grunnen til at vi tør å gi garantien.</p></details>
+      <details class="glass"><summary>Vi har allerede et byrå. Må vi bytte?</summary><p>Nei. Mange starter med salgsdelen og lar oss ta markedsføringen når tallene viser hvor gevinsten er. Det viktigste er at én har ansvar for hele løpet.</p></details>
+      <details class="glass"><summary>Hva koster det?</summary><p>Du får en fast pris etter salgsanalysen, før du forplikter deg. Garantien gjør at prisen er lavere enn den nye omsetningen, ellers jobber vi gratis til den er det.</p></details>
+      <details class="glass"><summary>Hva er «din del» i garantien?</summary><p>At teamet ditt deltar i møtene og treningen, at henvendelser blir fulgt opp innen avtalt tid, og at vi får tilgang til tallene vi trenger. Alt står skriftlig i avtalen.</p></details>
+      <details class="glass"><summary>Hva skjer i salgsanalysen?</summary><p>På 30 minutter går vi gjennom hvordan kundene finner dere, hva som skjer når de tar kontakt, og hvor dere mister dem. Du får de tre største lekkasjene, og analysen er din uansett.</p></details>
     </div>
   </div>
 </section>
 
-<!-- // AFTER CLOSE + NO-CHOICE CLOSE -->
-<section class="dark" id="book">
-  <div class="wrap final">
-    <div class="eyebrow" style="color:#FF8A5C">Neste steg</div>
-    <h2 class="h2" style="max-width:16em">Om 90 dager er du uansett 90 dager eldre. Spørsmålet er om du har flere kunder.</h2>
-    <p class="lead">Book en gratis salgsanalyse. Vi viser deg nøyaktig hvor du mister kunder i dag, og hva det koster deg hver måned.</p>
-    <form class="form" id="bookForm" novalidate>
-      <label>Navn<input id="f_name" name="navn" autocomplete="name" required></label>
-      <label>Bedrift<input id="f_company" name="bedrift" autocomplete="organization" required></label>
-      <label>E-post<input id="f_email" name="epost" type="email" autocomplete="email" required></label>
-      <label>Telefon<input id="f_phone" name="telefon" type="tel" autocomplete="tel"></label>
-      <label class="full">Omsetning i fjor
-        <select id="f_rev" name="omsetning"><option value="">Velg</option><option>Under 5 MNOK</option><option>5–20 MNOK</option><option>20–100 MNOK</option><option>Over 100 MNOK</option></select>
-      </label>
-      <button class="btn" type="submit">Book gratis salgsanalyse →</button>
-      <p class="form-ok full" id="formOk">Takk! Vi tar kontakt innen én arbeidsdag for å finne et tidspunkt.</p>
-    </form>
+<!-- // AFTER CLOSE -->
+<section class="final" id="book">
+  <div class="wrap">
+    <div class="card glass">
+      <div class="mono">Neste steg</div>
+      <h2 class="h2" style="max-width:15em">Om 90 dager er du 90 dager eldre uansett. Spørsmålet er om du har flere kunder.</h2>
+      <p class="lead">Book en gratis salgsanalyse. Vi ser på tallene dine sammen og viser deg nøyaktig hva lekkasjen koster deg.</p>
+      <form class="form" id="bookForm" novalidate>
+        <label>NAVN<input id="f_name" autocomplete="name" required></label>
+        <label>BEDRIFT<input id="f_co" autocomplete="organization" required></label>
+        <label>E-POST<input id="f_mail" type="email" autocomplete="email" required></label>
+        <label>TELEFON<input id="f_tel" type="tel" autocomplete="tel"></label>
+        <label class="full">OMSETNING I FJOR<select id="f_rev"><option value="">Velg</option><option>Under 5 MNOK</option><option>5–20 MNOK</option><option>20–100 MNOK</option><option>Over 100 MNOK</option></select></label>
+        <button class="btn" type="submit">Book gratis salgsanalyse <span class="arr">→</span></button>
+        <p class="ok" id="ok">Takk! Vi tar kontakt innen én arbeidsdag for å finne et tidspunkt.</p>
+      </form>
+    </div>
   </div>
 </section>
 
-<footer>
-  <div class="wrap">
-    <span>© 2026 Mediapartneren AS · Org.nr. 936 084 893 · Bergen</span>
-    <span><a href="mailto:kundeservice@mediapartneren.no">kundeservice@mediapartneren.no</a> · [telefonnummer]</span>
-  </div>
-</footer>
+<footer><div class="wrap">
+  <span>© 2026 Mediapartneren AS · Org.nr. 936 084 893 · Bergen</span>
+  <span><a href="mailto:kundeservice@mediapartneren.no">kundeservice@mediapartneren.no</a></span>
+</div></footer>
 
 <script>
-document.getElementById('bookForm').addEventListener('submit', e => {
-  e.preventDefault();
-  // Koble til CRM / skjemaverktøy her før lansering.
-  document.getElementById('formOk').style.display = 'block';
-});
+const $ = id => document.getElementById(id);
+const kr = n => new Intl.NumberFormat('nb-NO', { maximumFractionDigits:0 }).format(Math.round(n)) + ' kr';
+const short = n => n >= 1e6 ? (n / 1e6).toLocaleString('nb-NO', { maximumFractionDigits:1 }) + ' M' : Math.round(n / 1e3) + ' k';
+function calc() {
+  const leads = +$('c_leads').value, close = +$('c_close').value / 100, value = +$('c_value').value;
+  let target = +$('c_target').value / 100; if (target < close) target = close;
+  $('o_leads').textContent = leads; $('o_close').textContent = Math.round(close * 100) + ' %';
+  $('o_value').textContent = kr(value); $('o_target').textContent = Math.round(target * 100) + ' %';
+  const today = leads * close * value, better = leads * target * value;
+  $('o_lost').textContent = kr((better - today) * 12);
+  $('o_cust').textContent = Math.round(leads * (target - close) * 12); $('o_month').textContent = kr(better - today);
+  // kumulativ omsetning over 12 måneder
+  const W = 640, H = 260, L = 46, R = 26, T = 14, B = 30, max = better * 12 || 1;
+  const x = m => L + (W - L - R) * m / 12, y = v => T + (H - T - B) * (1 - v / max);
+  const pts = f => Array.from({ length:13 }, (_, m) => `${x(m).toFixed(1)},${y(f * m).toFixed(1)}`);
+  const a = pts(today), b = pts(better);
+  let g = '';
+  [0, .25, .5, .75, 1].forEach(t => { const yy = y(max * t); g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="rgba(255,255,255,.07)"/><text x="${L - 8}" y="${yy + 4}" text-anchor="end">${short(max * t)}</text>`; });
+  [0, 3, 6, 9, 12].forEach(m => g += `<text x="${x(m)}" y="${H - 8}" text-anchor="${m === 12 ? 'end' : m === 0 ? 'start' : 'middle'}">${m === 0 ? 'nå' : 'mnd ' + m}</text>`);
+  g += `<polygon points="${b.join(' ')} ${a.slice().reverse().join(' ')}" fill="rgba(255,138,107,.18)"/>`;
+  g += `<polyline points="${a.join(' ')}" fill="none" stroke="rgba(244,246,250,.5)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  g += `<polyline points="${b.join(' ')}" fill="none" stroke="#7CF3C4" stroke-width="3" stroke-linejoin="round"/>`;
+  g += `<circle cx="${x(12)}" cy="${y(better * 12)}" r="5" fill="#7CF3C4"/><circle cx="${x(12)}" cy="${y(today * 12)}" r="4.5" fill="rgba(244,246,250,.7)"/>`;
+  $('chart').innerHTML = g;
+}
+['c_leads', 'c_close', 'c_value', 'c_target'].forEach(id => $(id).addEventListener('input', calc));
+calc();
+$('bookForm').addEventListener('submit', e => { e.preventDefault(); /* koble til CRM før lansering */ $('ok').style.display = 'block'; });
 </script>
 </body>
 </html>
