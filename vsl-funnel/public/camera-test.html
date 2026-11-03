@@ -6,22 +6,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>Camera check</title>
-  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/glass.css">
+  <link rel="stylesheet" href="/assets/room.css">
   <style>
-    .ct{max-width:720px;margin:0 auto;padding:32px 16px 64px}
-    .ct video{width:100%;max-width:480px;aspect-ratio:16/9;background:#1d1d1f;border-radius:12px;display:block;margin:16px 0;object-fit:cover}
-    .ct ol{padding-left:20px}.ct li{margin:6px 0;font-size:15px}
-    .ct .ok{color:#1f7a3a}.ct .bad{color:#b3261e}.ct .muted{color:#6e6e73}
-    .ct pre{white-space:pre-wrap;font-size:12px;background:#f5f5f7;padding:12px;border-radius:8px;max-height:260px;overflow:auto}
-    .ct .code{font:600 22px/1.2 ui-monospace,Menlo,monospace;letter-spacing:.06em}
+    /* The camera check in the room's glass: one card on the quiet canvas, the picture as a dark card, the steps
+       as an inset grouped list. Each step says its result in words; the dot only repeats it. */
+    .ct .ct-v{width:100%;aspect-ratio:16/9;background:var(--stage);border-radius:var(--r2);display:block;margin:20px 0 16px;object-fit:cover;box-shadow:0 1px 2px rgba(0,0,0,.1),0 12px 32px rgba(0,0,0,.16)}
+    .ct ol{list-style:none;margin:0;padding:0 16px;border-radius:var(--r2);background:var(--fill)}
+    .ct ol:empty{display:none}
+    .ct li{position:relative;padding:12px 0 12px 20px;border-top:1px solid var(--hair);font-size:15px;color:var(--ink)}
+    .ct li:first-child{border-top:0}
+    .ct li::before{content:"";position:absolute;left:0;top:19px;width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+    .ct li.ok{color:var(--ok)}.ct li.ok::before{background:var(--ok)}
+    .ct li.bad{color:var(--red)}.ct li.bad::before{background:var(--red)}
+    .ct li.muted{color:var(--ink-2)}
+    .ct li.muted::before{animation:rm-pulse 1.6s var(--ease) infinite}
+    .ct #done{margin-top:20px;padding:16px 18px;border-radius:var(--r2);background:rgba(29,122,79,.08);box-shadow:inset 0 0 0 1px rgba(29,122,79,.14)}
+    .ct #done p{margin:0 0 8px}
+    .ct summary{cursor:pointer;color:var(--navy);font-weight:500}
+    .ct pre{white-space:pre-wrap;font-size:12px;background:rgba(255,255,255,.7);padding:12px;border-radius:var(--r1);max-height:260px;overflow:auto}
+    .ct .code{font:600 22px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em}
   </style>
 </head>
-<body>
-  <main class="ct">
-    <h1 class="h2">Camera check</h1>
-    <p class="muted">This page tries your camera and microphone in several ways and sends the technical results (no pictures or sound) to the G&amp;L team so they can fix any problem. It takes about 30 seconds.</p>
-    <button class="btn" id="go" type="button">Start the check</button>
-    <video id="v" playsinline autoplay muted></video>
+<body class="rm-body">
+  <main class="rm-entry ct">
+    <h1 class="rm-h1">Camera check</h1>
+    <p class="rm-lede">This page tries your camera and microphone in several ways and sends the technical results (no pictures or sound) to the G&amp;L team so they can fix any problem. It takes about 30 seconds.</p>
+    <button class="rm-primary" id="go" type="button">Start the check</button>
+    <video id="v" class="ct-v" playsinline autoplay muted></video>
     <ol id="steps"></ol>
     <div id="done" hidden>
       <p><strong>Done.</strong> Your check code is <span class="code" id="code"></span>. Send that code to the team.</p>

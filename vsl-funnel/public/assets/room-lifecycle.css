@@ -38,3 +38,17 @@
 .rm-stage--lobby .rm-lobby { box-sizing: border-box; width: 100%; max-width: 560px; overflow-wrap: anywhere; }
 .lcw, .lcw * { box-sizing: border-box; }
 .rm-stage--lobby { padding-bottom: 24px; }
+
+/* ── Glass (Liquid Glass pass): the waiting room's cards as glass on the canvas ── */
+.lcw-note, .lcw-card { background: var(--rm-bar-bg, #fff); border: 1px solid var(--rm-edge, transparent); box-shadow: var(--rm-spec, none), var(--rm-shadow, 0 0 0 1px var(--hair, rgba(0,0,0,.1))); }
+.lcw-note { border-radius: var(--r2, 14px); }
+.lcw-card { border-radius: 22px; padding: 18px; }
+.lcw-btn { min-height: 44px; transition: background .15s var(--ease, ease), transform .2s var(--spring, ease); }
+.lcw-btn:active:not([disabled]) { transform: scale(.96); }
+.lcw-sh { font: 700 20px/1.25 var(--ui); letter-spacing: -.02em; }
+.lcw-from input { min-height: 44px; }
+.lcw-preqbtn { min-height: 44px; background: rgba(15, 44, 92, .9); -webkit-backdrop-filter: var(--rm-blur, none); backdrop-filter: var(--rm-blur, none); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 10px 28px rgba(15, 44, 92, .3); }
+.lcw-dialog { background: rgba(0, 0, 0, .28); }
+.lcw-dialog-in { padding: 28px 24px; border-radius: var(--r3, 28px); background: var(--rm-sheet-bg, #fff); -webkit-backdrop-filter: var(--rm-blur, none); backdrop-filter: var(--rm-blur, none); border: 1px solid var(--rm-edge, transparent); box-shadow: var(--rm-spec, none), var(--rm-lift, 0 16px 40px rgba(0,0,0,.12)); }
+@media (min-width: 900px) { .lcw-preqbtn { left: 28px; bottom: calc(var(--rm-barh, 60px) + 2 * var(--rm-gap, 12px) + 8px); } }
+@media (prefers-reduced-transparency: reduce) { .lcw-preqbtn, .lcw-dialog-in { -webkit-backdrop-filter: none; backdrop-filter: none; } }

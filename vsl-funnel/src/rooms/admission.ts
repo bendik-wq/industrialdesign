@@ -199,7 +199,7 @@ const REVENUE = [['lt1m', 'Under $1M'], ['1_3m', '$1M – $3M'], ['3_10m', '$3M 
 const page = (c: Context<AppEnv>, title: string, inner: string, status: 200 | 400 | 403 | 404 | 409 | 429 = 200) => {
   c.header('cache-control', 'no-store');
   c.header('content-security-policy', "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
-  return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)}</title><link rel="stylesheet" href="/assets/room.css"></head><body class="rm-body"><main class="rm-entry rm-join">${inner}</main></body></html>`, status);
+  return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)}</title><link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/room.css"></head><body class="rm-body"><main class="rm-entry rm-join">${inner}</main></body></html>`, status);
 };
 
 export async function joinSheet(_rt: Runtime, room: RoomRow, a: Admission, o: { error?: string; values?: Record<string, unknown>; action: string }) {
