@@ -5,17 +5,19 @@
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>Dashboard login</title>
+  <title>Funnel HQ · Sign in</title>
+  <link rel="stylesheet" href="/assets/glass.css">
   <link rel="stylesheet" href="/assets/admin.css">
 </head>
-<body>
+<body class="login-body">
   <div class="login">
     <form method="post" action="/admin/login">
-      <h1>Funnel dashboard</h1>
-      <p class="muted" style="margin:0">Enter the admin password to continue.</p>
+      <span class="login-mark" aria-hidden="true"></span>
+      <h1>Funnel HQ</h1>
+      <p class="muted">Enter the admin password to continue.</p>
       <p class="err" id="err" hidden></p>
       <input type="password" name="password" placeholder="Password" autocomplete="current-password" required autofocus aria-label="Password">
-      <button class="btn-sm" type="submit">Log in</button>
+      <button class="btn-sm" type="submit">Sign in</button>
     </form>
   </div>
   <script>

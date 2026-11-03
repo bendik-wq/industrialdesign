@@ -282,6 +282,23 @@
     });
   }
 
+  // The glass toolbar (presentation only): once the large page title scrolls under it, the toolbar shows the title small.
+  function toolbarTitle() {
+    var big = document.querySelector('[data-title]'), small = document.querySelector('[data-bar-title]'), head = document.querySelector('.page-head');
+    if (!big || !small || !head) return;
+    var sync = function () { small.textContent = big.textContent; };
+    sync();
+    if (typeof MutationObserver !== 'undefined') new MutationObserver(sync).observe(big, { childList: true, characterData: true, subtree: true });
+    if (typeof IntersectionObserver === 'undefined') return;
+    new IntersectionObserver(function (es) {
+      var e = es[es.length - 1];
+      document.body.classList.toggle('hq-scrolled', !e.isIntersecting && e.boundingClientRect.top < 0);
+    }, { rootMargin: '-72px 0px 0px 0px' }).observe(head.querySelector('h1') || head);
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', toolbarTitle); else toolbarTitle();
+  }
+
   var api = {
     num: num, pct: pct, money: money, ratio: ratio, secs: secs, compact: compact,
     errorMessage: errorMessage, isNetworkError: isNetworkError, score: score, rank: rank,
