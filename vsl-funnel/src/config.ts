@@ -302,7 +302,7 @@ const voiceFaqText = (faqs: { q: string; a: string }[]) => voiceFaqs(faqs).map((
 
 /** The offer as the voice agents may say it: aims, not promises. */
 const VOICE_OFFER_AIMS = `- Aim: a 90-day plan built to get them to a signed LOI on an acquisition about as big as their business or bigger. That is the plan's aim, not a promise or a typical result: it depends on the business they find, the seller and the lenders.
-- Funding: deals are structured with commercial debt, seller finance (the seller is paid over time from the business's cash flow) and seller rollover (the seller keeps a stake in the new company). Where the numbers allow, together they cover the price so the buyer puts little or no cash in, but that depends on the deal and is never guaranteed. Always name all three when you describe funding.`;
+- Funding: deals are structured with commercial debt, seller finance (the seller is paid over time from the business's cash flow) and seller rollover (the seller keeps a stake in the new company). Where the numbers allow, together they cover the price so the buyer puts little or no cash in, but that depends on the deal and is never guaranteed. Only talk about funding or cash if they ask, and then name all three in the same answer and add that it depends on the deal. Never say "often" or "little to no cash" on its own.`;
 
 /** Rules every voice agent follows on claims and follow-ups. */
 const VOICE_CLAIM_RULES = `- Never promise results. Never say they WILL double or triple their business, close within 90 days, or put no money down. Describe these only as what the plan and the structure aim for, and say every deal is different. Don't say "usually" or quote typical timeframes or outcomes.
