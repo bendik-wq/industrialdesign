@@ -1,5 +1,5 @@
 import { mountDmHooks } from '../dm/routes';
-import { handleInboundSms, verifyTwilio } from '../integrations/sms';
+import { handleInboundSms, sendSmsNow, verifyTelnyx, verifyTwilio } from '../integrations/sms';
 import { type Context, Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { handleCalendly, handleGenericBooking, verifyCalendly } from '../integrations/booking';
@@ -56,6 +56,25 @@ hooks.post('/twilio/sms', async (c) => {
   const { reply } = await handleInboundSms(rt, params);
   const xml = reply ? `<Response><Message>${reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Message></Response>` : '<Response/>';
   return c.body(`<?xml version="1.0" encoding="UTF-8"?>${xml}`, 200, { 'content-type': 'text/xml' });
+});
+
+// Telnyx: replies and STOP to our texts (Ed25519-signed; fails closed without the key). Telnyx doesn't take an inline
+// reply, so a "C" confirmation answer is sent as a new text. STOP/START are also handled by Telnyx itself.
+hooks.post('/telnyx/sms', async (c) => {
+  const rt = runtimeFrom(c);
+  if (!String(rt.settings.TELNYX_API_KEY ?? '').trim()) return c.text('not configured', 501);
+  const raw = await c.req.text();
+  if (!(await verifyTelnyx(rt, raw, c.req.header('telnyx-signature-ed25519') ?? null, c.req.header('telnyx-timestamp') ?? null))) return c.text('bad signature', 401);
+  let body: { data?: { id?: string; event_type?: string; payload?: { id?: string; direction?: string; text?: string; from?: { phone_number?: string } } } };
+  try { body = JSON.parse(raw); } catch { return c.json({ error: 'invalid json' }, 400); }
+  const ev = body.data;
+  if (!ev?.id || ev.event_type !== 'message.received' || !ev.payload?.from?.phone_number) return c.json({ ok: true, ignored: ev?.event_type ?? null });
+  const p = ev.payload;
+  return once(c, await onceOnly(rt.env, 'telnyx', ev.id, async () => {
+    const r = await handleInboundSms(rt, { From: p.from!.phone_number!, Body: p.text ?? '', MessageSid: p.id ?? ev.id! });
+    if (r.reply) await sendSmsNow(rt, p.from!.phone_number!, r.reply).catch((e) => console.error('telnyx reply', String(e).slice(0, 200)));
+    return { ok: true, kind: r.kind };
+  }, { kind: 'message.received' }));
 });
 
 // Resend: hard bounces and spam complaints block the address everywhere (Svix-signed; fails closed).

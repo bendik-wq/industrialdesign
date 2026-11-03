@@ -10,7 +10,7 @@ import { sha256 } from './crypto';
  * queued (stored for background processing; the cron retries it until done, see retryQueued).
  */
 
-export type WebhookProvider = 'resend' | 'resend-inbound' | 'calendly' | 'elevenlabs' | 'instagram' | 'whatsapp' | 'zapier';
+export type WebhookProvider = 'resend' | 'resend-inbound' | 'calendly' | 'elevenlabs' | 'instagram' | 'whatsapp' | 'zapier' | 'telnyx';
 type Db = Pick<Env, 'DB'>;
 
 /** A run that started this long ago and never finished (the isolate died) may be claimed again. */

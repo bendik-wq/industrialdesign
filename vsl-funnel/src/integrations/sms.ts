@@ -90,7 +90,16 @@ export function cleanSequences(raw: unknown): SmsSequenceDef[] {
   return out;
 }
 
-export const smsConfigured = (rt: Runtime) => Boolean(rt.settings.TWILIO_ACCOUNT_SID && rt.settings.TWILIO_AUTH_TOKEN && rt.settings.SMS_FROM);
+/** Which company sends our texts: SMS_PROVIDER if set, else Twilio when its keys are in, else Telnyx when its key is in. */
+export function smsProvider(rt: Pick<Runtime, 'settings'>): 'twilio' | 'telnyx' | null {
+  const s = rt.settings;
+  const want = String(s.SMS_PROVIDER ?? '').trim().toLowerCase();
+  const twilio = Boolean(s.TWILIO_ACCOUNT_SID && s.TWILIO_AUTH_TOKEN), telnyx = Boolean(String(s.TELNYX_API_KEY ?? '').trim());
+  if (want === 'telnyx') return telnyx ? 'telnyx' : null;
+  if (want === 'twilio') return twilio ? 'twilio' : null;
+  return twilio ? 'twilio' : telnyx ? 'telnyx' : null;
+}
+export const smsConfigured = (rt: Runtime) => Boolean(smsProvider(rt) && rt.settings.SMS_FROM);
 const smsOn = (rt: Runtime) => rt.settings.SMS_ENABLED.trim().toLowerCase() !== 'false';
 
 /** Agreed to texts (SMS). */
@@ -239,7 +248,25 @@ async function sendTwilio(rt: Runtime, to: string, body: string) {
   if (!res.ok) throw new Error(`Twilio ${res.status}: ${data.message ?? ''} (${data.code ?? ''})`.slice(0, 300));
   return data.sid ?? null;
 }
-export { sendTwilio as sendSmsNow };
+/** Telnyx Messaging API: one text from our number (SMS_FROM) on the messaging profile (TELNYX_MESSAGING_PROFILE_ID, optional). */
+async function sendTelnyx(rt: Runtime, to: string, body: string) {
+  const s = rt.settings;
+  const payload: Record<string, string> = { from: s.SMS_FROM, to, text: body };
+  if (String(s.TELNYX_MESSAGING_PROFILE_ID ?? '').trim()) payload.messaging_profile_id = String(s.TELNYX_MESSAGING_PROFILE_ID).trim();
+  const res = await fetch('https://api.telnyx.com/v2/messages', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${String(s.TELNYX_API_KEY).trim()}`, 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = (await res.json().catch(() => ({}))) as { data?: { id?: string }; errors?: { title?: string; detail?: string; code?: string }[] };
+  if (!res.ok) { const e = data.errors?.[0]; throw new Error(`Telnyx ${res.status}: ${e?.title ?? ''} ${e?.detail ?? ''} (${e?.code ?? ''})`.slice(0, 300)); }
+  return data.data?.id ?? null;
+}
+
+/** Sends one text now through whichever provider is connected. */
+export async function sendSmsNow(rt: Runtime, to: string, body: string) {
+  return smsProvider(rt) === 'telnyx' ? sendTelnyx(rt, to, body) : sendTwilio(rt, to, body);
+}
 
 interface SmsRow { id: string; lead_id: string; sequence: SmsTrigger; step: number; to_phone: string; attempts: number }
 
@@ -364,6 +391,33 @@ export async function verifyTwilio(authToken: string, url: string, params: Recor
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(authToken), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
   const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data)));
   return safeEqual(btoa(String.fromCharCode(...sig)), signature);
+}
+
+/**
+ * Telnyx webhook signature: Ed25519 over `${telnyx-timestamp}|${raw body}`, checked with the account's public key
+ * (fetched once with TELNYX_API_KEY and kept for a day). Fails closed; refuses timestamps more than 5 minutes off.
+ */
+export async function verifyTelnyx(rt: Runtime, raw: string, signature: string | null, timestamp: string | null, now = Date.now(), fetchKey = telnyxPublicKey) {
+  if (!signature || !timestamp || !/^\d+$/.test(timestamp)) return false;
+  if (Math.abs(now / 1000 - Number(timestamp)) > 300) return false;
+  const pub = await fetchKey(rt).catch(() => null);
+  if (!pub) return false;
+  try {
+    const b64 = (v: string) => Uint8Array.from(atob(v), (ch) => ch.charCodeAt(0));
+    const key = await crypto.subtle.importKey('raw', b64(pub), { name: 'Ed25519' }, false, ['verify']);
+    return await crypto.subtle.verify({ name: 'Ed25519' }, key, b64(signature), new TextEncoder().encode(`${timestamp}|${raw}`));
+  } catch { return false; }
+}
+async function telnyxPublicKey(rt: Runtime): Promise<string | null> {
+  const key = String(rt.settings.TELNYX_API_KEY ?? '').trim();
+  if (!key) return null;
+  const row = await rt.env.DB.prepare("SELECT value FROM kv_state WHERE key = 'telnyx:public_key'").first<{ value: string }>().catch(() => null);
+  try { const c = JSON.parse(row?.value ?? '{}') as { k?: string; t?: number }; if (c.k && c.t && Date.now() - c.t < 86_400_000) return c.k; } catch { /* refetch */ }
+  const res = await fetch('https://api.telnyx.com/v2/public_key', { headers: { authorization: `Bearer ${key}` } });
+  const d = (await res.json().catch(() => ({}))) as { data?: { public?: string } };
+  const k = res.ok ? d.data?.public ?? null : null;
+  if (k) await rt.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('telnyx:public_key', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify({ k, t: Date.now() })).run().catch(() => null);
+  return k;
 }
 
 const STOP_WORDS = /^\s*(stop|stopall|unsubscribe|cancel|end|quit|opt ?out)\s*[.!]?\s*$/i;

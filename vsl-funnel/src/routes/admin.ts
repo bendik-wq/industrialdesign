@@ -359,7 +359,7 @@ admin.post('/sms/test-step', async (c) => {
   const number = String(b.to ?? '').replace(/[^\d+]/g, '');
   if (!/^\+\d{8,15}$/.test(number)) return c.json({ ok: false, error: 'Enter your number in international format, e.g. +61412345678' }, 400);
   const viaWa = b.channel === 'whatsapp' && cloudApiConfigured(rt.settings);
-  if (!viaWa && !smsConfigured(rt)) return c.json({ ok: false, error: 'Connect Twilio first (Integrations → SMS).' }, 400);
+  if (!viaWa && !smsConfigured(rt)) return c.json({ ok: false, error: 'Connect Twilio or Telnyx first (Integrations → SMS).' }, 400);
   const [seq] = cleanSequences([{ id: 'booked', steps: [{ ...(b.step as object), n: 1 }] }]);
   if (!seq?.steps[0]) return c.json({ ok: false, error: 'That text is empty.' }, 400);
   const sample = { id: 'test', first_name: 'Dana', phone: number, call_at: Date.now() + 86_400_000, webinar_at: Date.now() + 2 * 86_400_000, webinar_token: null, timezone: rt.settings.SALES_TIMEZONE || 'Australia/Sydney', closer_id: null, tier: 'A', tier_override: null, booking_join_url: null, booking_reschedule_url: null } as unknown as Lead;
