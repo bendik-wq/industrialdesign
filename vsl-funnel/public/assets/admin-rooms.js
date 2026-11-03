@@ -101,8 +101,36 @@
             '<p style="margin-top:10px"><strong>Recordings</strong> ' + (recs.length ? recs.map(function (r) { return r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(fmt(r.started_at)) + '</a> (' + ((r.bytes || 0) / 1048576).toFixed(1) + ' MB)' : esc(fmt(r.started_at)) + ' (' + esc(r.status) + ')'; }).join(' · ') : '<span class="muted">none yet</span>') + '</p></td></tr>';
           row.insertAdjacentHTML('afterend', html);
           if (window.RoomMediaAdmin) window.RoomMediaAdmin.fill(row.nextElementSibling.firstChild, id); // call quality (area A "media")
+          streamRow(row.nextElementSibling.firstChild, id, recs, ctx);
         });
       };
+    });
+  }
+
+  // ── Send recording to Stream (Cloudflare round, builder D; only with STREAM_ACCOUNT_TOKEN) ──
+  function streamRow(cell, id, recs, ctx) {
+    var ready = (recs || []).filter(function (r) { return r.url; });
+    if (!cell || !ready.length) return;
+    req('GET', 'cf/stream/room/' + id).then(function (d) {
+      if (!d || !d.on) return;
+      var items = d.items || {};
+      var label = function (v) { return !v ? '' : v.ready ? 'In Stream: the replay link plays through Stream' : v.state === 'error' ? 'Stream failed: ' + (v.error || 'unknown error') : 'Stream is processing'; };
+      var html = '<p style="margin-top:6px"><strong>Stream</strong> ' + ready.map(function (r) {
+        var v = items[r.id];
+        var act = !v || v.state === 'error' ? '<button class="btn-sm ghost" data-st-send="' + esc(r.id) + '">' + (v ? 'Try again' : 'Send recording to Stream') + '</button>' : !v.ready ? '<button class="btn-sm ghost" data-st-check="' + esc(r.id) + '">Check</button>' : '';
+        return esc(fmt(r.started_at)) + ' ' + (v ? '<span class="muted">' + esc(label(v)) + '</span> ' : '') + act;
+      }).join(' · ') + '</p>';
+      cell.insertAdjacentHTML('beforeend', html);
+      cell.querySelectorAll('[data-st-send],[data-st-check]').forEach(function (b) {
+        b.onclick = function () {
+          var rec = b.getAttribute('data-st-send') || b.getAttribute('data-st-check');
+          b.disabled = true;
+          req('POST', 'cf/stream/' + rec + (b.hasAttribute('data-st-check') ? '/refresh' : ''), {}).then(function (r) {
+            ctx.toast(r && r.ok ? label(r.video) || 'Sent to Stream' : (r && r.error) || 'Stream didn’t answer');
+            b.disabled = false;
+          });
+        };
+      });
     });
   }
 

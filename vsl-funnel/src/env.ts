@@ -15,6 +15,10 @@ export interface Env {
   SEND_QUEUE?: Queue<unknown>;
   /** Platform round A: the LiveReminderWorkflow (src/live/reminder-flow.ts). Used only with LIVE_REMINDERS_VIA_WORKFLOW on. */
   LIVE_REMINDER_FLOW?: Workflow<{ regId: string }>;
+  /** Cloudflare round, builder D. Workers KV: the settings cache (setting KV_CACHE, src/settings.ts). Optional. */
+  CACHE?: KVNamespace;
+  /** Cloudflare round, builder D. Browser Rendering (@cloudflare/puppeteer): PDFs and the funnel watchdog. Not available in local dev. */
+  BROWSER?: Fetcher;
 
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.

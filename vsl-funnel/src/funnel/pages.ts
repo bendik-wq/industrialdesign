@@ -1,5 +1,7 @@
 import type { Context } from 'hono';
 import { turnstileSiteKey } from '../infra/turnstile';
+import { streamVideoSrc } from '../infra/cf-stream';
+import type { Settings } from '../settings';
 import { FAQ_VIDEO_DISCLAIMER, readyFaqVideos } from '../content/faq-videos';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
@@ -47,9 +49,13 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 /** JSON safe to embed inside a <script> tag. */
 const scriptJson = (v: unknown) => JSON.stringify(v).replace(/[<\u2028\u2029]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`);
 
+/** The connected video for a VSL slot. A Stream video ID or Stream link becomes its HLS manifest (builder D); any other value is used as it is. */
+export const connectedVideoSrc = (s: Pick<Settings, VideoDef['srcSetting'] | 'STREAM_CUSTOMER_CODE'>, def: Pick<VideoDef, 'srcSetting' | 'fallbackSetting'>) =>
+  streamVideoSrc(s[def.srcSetting] || (def.fallbackSetting ? s[def.fallbackSetting] : ''), s.STREAM_CUSTOMER_CODE);
+
 function videoConfig(c: Context<AppEnv>, def: VideoDef) {
   const s = c.get('settings');
-  const connected = s[def.srcSetting] || (def.fallbackSetting ? s[def.fallbackSetting] : '');
+  const connected = connectedVideoSrc(s, def);
   const src = connected || def.defaultSrc || '';
   return {
     id: def.id,

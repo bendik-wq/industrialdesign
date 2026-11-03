@@ -56,6 +56,12 @@
   // quality report (src/infra/analytics-engine.ts), written only when the ANALYTICS_ENGINE setting is on. The dataset is
   // created on first write. Turnstile needs no binding (its keys and TURNSTILE_MODE are settings).
   "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "gl_events" }],
+  // ── Cloudflare round, builder D: Workers KV + Browser Rendering ──
+  // KV namespace GL_CACHE: the settings cache (setting KV_CACHE, off by default; src/settings.ts). Works locally (Miniflare).
+  "kv_namespaces": [{ "binding": "CACHE", "id": "8f0bcd150bf740a1b71a17c66eca88a8" }],
+  // Browser Rendering: Download PDF (setting PDF_RENDER) and the hourly funnel watchdog (setting WATCHDOG), both off by default.
+  // The code checks for the binding and falls back (print to PDF stays; the watchdog records "no browser") when it is missing.
+  "browser": { "binding": "BROWSER" },
 
   // Email queue, abandoned-application detection and call reminders.
   "triggers": { "crons": ["*/5 * * * *"] },

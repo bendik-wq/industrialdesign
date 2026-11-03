@@ -73,6 +73,10 @@ import { buildId, versionAssets } from './infra/build';
 import { normalisePath, purgeErrors, recordError } from './infra/errors';
 import { runJobs } from './infra/cron';
 import { indexTick } from './vectors/indexer';
+import { planPdfRoute } from './infra/pdf'; // Cloudflare round, builder D
+import { signedFileRoute } from './infra/signed-files';
+import { maybeRunWatchdog } from './infra/watchdog';
+import { syncStreamCopies } from './infra/cf-stream';
 import { sendSignals } from './tracking/signals';
 import { CSP_REPORT_PATH, cspReportRoute, reportingEndpoints, withReporting } from './infra/csp';
 import { PUBLIC_RATE_LIMITS, purgeRateLimits, rateLimit } from './lib/ratelimit';
@@ -236,6 +240,8 @@ app.get('/rooms/replay/:rid', replayRoute); // room recordings (R2)
 app.get('/rooms/replay/:rid/captions.vtt', captionsRoute); // the transcript as captions (area D)
 app.get('/rooms/a/:id/:who/:ref', unlockRoute); // an unlocked file (signed, only for the person who earned it)
 app.get('/rooms/plan/:id/:ref', planPage); // an attendee's Deal Plan (signed link from the summary email)
+app.get('/rooms/plan/:id/:ref/pdf', planPdfRoute); // builder D: the Deal Plan as a PDF (Browser Rendering; setting PDF_RENDER)
+app.get('/files/s/:k', signedFileRoute); // builder D: short-lived signed links to R2 files (PDFs, recordings for Stream)
 app.get('/rooms/:id/done', paidPage); // where the payment page returns a buyer from the room
 app.get('/rooms/:id/join/:slug', withVisitor, joinPage); // a room's general admission link (UTMs on it become the lead's attribution)
 app.post('/rooms/:id/join/:slug', withVisitor, joinPage);
@@ -450,6 +456,9 @@ export default {
       { name: 'AI search index', run: () => indexTick(rt) },
       // Platform round A: old send-queue job rows (only while SEND_VIA_QUEUE is on).
       ...(queueOn(rt) ? [{ name: 'send queue upkeep', run: () => purgeSendJobs(env) }] : []),
+      // Cloudflare round, builder D: the hourly funnel watchdog (setting WATCHDOG, off by default) and Stream copies in progress.
+      { name: 'funnel watchdog', run: () => maybeRunWatchdog(rt), budgetMs: 170_000 },
+      { name: 'Stream copies', run: () => syncStreamCopies(rt) },
     ]);
     type R<F extends (...a: never[]) => unknown> = Awaited<ReturnType<F>> | null;
     const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = outcomes.map((o) => o.result) as [

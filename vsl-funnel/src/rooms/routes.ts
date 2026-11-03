@@ -540,6 +540,10 @@ export async function replayRoute(c: Context<AppEnv>) {
   if (!/^rec[a-z0-9]{8,40}$/.test(rid) || !c.env.RECORDINGS) return c.notFound();
   const rec = await c.env.DB.prepare("SELECT r2_key, mime FROM room_recordings WHERE id = ? AND status = 'ready'").bind(rid).first<{ r2_key: string; mime: string }>();
   if (!rec) return c.notFound();
+  // Cloudflare Stream (builder D; only with STREAM_ACCOUNT_TOKEN): opened as a page, a recording copied to Stream
+  // plays in Stream's adaptive player. Video tags, fetches and range reads still get the file below.
+  const streamPage = await (await import('../infra/cf-stream')).streamReplayPage(c, rid).catch(() => null);
+  if (streamPage) return streamPage;
   const range = c.req.header('range');
   const m = range ? /^bytes=(\d*)-(\d*)$/.exec(range) : null;
   const obj = m && (m[1] || m[2])
@@ -776,6 +780,9 @@ export async function planPage(c: Context<AppEnv>) {
   const row = (k: string, v: string) => (v ? `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>` : '');
   const box = row(C.planIndustry, d.industry) + row(C.planSize, d.size) + row(C.planGeography, d.geography);
   const acts = [d.action_1, d.action_2, d.action_3].filter(Boolean);
+  // Download PDF (Cloudflare round, builder D; setting PDF_RENDER, off by default). Not shown to our own renderer.
+  const { isPdfRender, pdfEnabled } = await import('../infra/pdf');
+  const pdfLinkHtml = pdfEnabled(rt) && !(await isPdfRender(c)) ? `<p class="rm-fine"><a href="/rooms/plan/${esc(id)}/${esc(encodeURIComponent(c.req.param('ref') ?? ''))}/pdf" rel="nofollow">Download PDF</a></p>` : '';
   c.header('cache-control', 'private, no-store');
   return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(C.planHeading)}</title><link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/room.css"></head>
 <body class="rm-body"><main class="rm-entry rm-planpage"><p class="rm-eyebrow">${esc(room.title)}</p><h1 class="rm-h1">${esc(C.planHeading)}</h1>
@@ -784,7 +791,7 @@ ${d.owners_per_week ? `<h2 class="rm-h3">${esc(C.planOutreach)}</h2><p>${esc(C.p
 ${cov ? `<h2 class="rm-h3">${esc(C.planCoverage)}</h2><table class="rm-plantable">${row(C.planCashFlow, d.cash_flow)}${row(C.planDebt, d.debt_service)}</table><p class="${cov.passes ? 'rm-ok' : 'rm-err'}">${esc(cov.passes ? C.planPasses(cov.ratio.toFixed(2)) : C.planFails(cov.ratio.toFixed(2), `$${cov.maxDebtService.toLocaleString('en-US')}`))}</p>` : ''}
 ${acts.length ? `<h2 class="rm-h3">${esc(C.planActions)}</h2><ol>${acts.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
 ${twoPathsHtml(money(d.cash_flow), money(d.debt_service))}
-<p class="rm-fine">Education only, not legal, tax or financial advice.</p></main></body></html>`);
+<p class="rm-fine">Education only, not legal, tax or financial advice.</p>${pdfLinkHtml}</main></body></html>`);
 }
 
 /** GET /rooms/:id/done: where the payment page returns a buyer from the room (the room itself stays open in its own tab). */
