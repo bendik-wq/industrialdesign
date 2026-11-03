@@ -14,8 +14,6 @@
   var CFG = R.CFG, ST = CFG.studio, SC = ST.copy, B = ST.brand || {}, S = R.S, ME = R.ME;
   var esc = R.esc, h = R.h, $ = R.$, $$ = R.$$;
   var COL = Object.assign({ bg: '#0f2c5c', accent: '#c9a227', text: '#ffffff' }, B.colors || {});
-  var SERIF = '"Newsreader", Georgia, "Times New Roman", serif';
-  var UI = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Inter, Arial, sans-serif';
   var SCENES = ['intro', 'main', 'slides', 'brb', 'qa', 'offer', 'outro', 'bridge', 'stack', 'anchor'];
   // Offer pack (round 4, src/rooms/studio-pack.ts): the pitch scenes' words and the real prices they show.
   var PK = ST.pack || null, PC = (PK && PK.copy) || {};
@@ -52,8 +50,44 @@
     return e;
   }
 
+  // ───────────── the look: Apple keynote backdrops, Liquid Glass panels, one system type ─────────────
+  // Themes (Funnel HQ → Rooms → Studio → Look): Graphite (default), Midnight (the brand navy as the room), Light.
+  // Gold is kept for price and buy moments; the brand navy tints the backdrop's light and the eyebrows.
+  var THEME = B.theme === 'midnight' || B.theme === 'light' ? B.theme : 'graphite';
+  var DARK = THEME !== 'light';
+  // Ink and material. Every ink is ≥ 4.5:1 on its glass (the live glass is dense enough to hold that over bright video).
+  var K = DARK ? {
+    ink: COL.text || '#ffffff', ink2: 'rgba(235,235,245,.80)', ink3: 'rgba(235,235,245,.64)', eyebrow: '#a8bfeb',
+    hair: 'rgba(255,255,255,.12)', inset: 'rgba(255,255,255,.07)', price: COL.accent,
+    glassTop: 'rgba(255,255,255,.13)', glassBot: 'rgba(255,255,255,.055)', live: 'rgba(22,22,28,.72)', liveTop: 'rgba(255,255,255,.10)', eyebrowLive: '#cfdcf5',
+    rimTop: 'rgba(255,255,255,.42)', rimBot: 'rgba(255,255,255,.07)', shadow: 'rgba(0,0,0,.5)', tile: '#17171c', tileRim: 'rgba(255,255,255,.10)',
+    base: THEME === 'midnight' ? shade(COL.bg, -0.7) : '#09090c',
+  } : {
+    ink: '#1d1d1f', ink2: '#3a3a3c', ink3: '#5e5e63', eyebrow: COL.bg,
+    hair: 'rgba(0,0,0,.08)', inset: 'rgba(0,0,0,.035)', price: '#1d1d1f',
+    glassTop: 'rgba(255,255,255,.86)', glassBot: 'rgba(255,255,255,.62)', live: 'rgba(250,250,252,.76)', liveTop: 'rgba(255,255,255,.35)', eyebrowLive: COL.bg,
+    rimTop: 'rgba(255,255,255,1)', rimBot: 'rgba(255,255,255,.45)', shadow: 'rgba(20,30,60,.20)', tile: '#dedee4', tileRim: 'rgba(0,0,0,.06)',
+    base: '#eeeef2',
+  };
+  // SF on Apple devices; Inter (self-hosted, loaded below) everywhere else. Canvas can't wait for CSS fonts, so we load it ourselves.
+  var UI = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "RS Inter", "Helvetica Neue", Arial, sans-serif';
+  var fontsReady = false;
+  (function loadFonts() {
+    var done = function () { fontsReady = true; };
+    try {
+      if (!window.FontFace || !document.fonts) { done(); return; }
+      var a = new FontFace('RS Inter', 'url(/assets/fonts/inter-latin.woff2) format("woff2")', { weight: '400 700', unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+FEFF' });
+      var b = new FontFace('RS Inter', 'url(/assets/fonts/inter-latin-ext.woff2) format("woff2")', { weight: '400 700', unicodeRange: 'U+0100-02AF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C4, U+2C60-2C7F, U+A720-A7FF' });
+      document.fonts.add(a); document.fonts.add(b);
+      // Draw the backdrop alone until the face is in (at most 1.5 s), so titles never flash in a fallback face.
+      Promise.race([a.load(), new Promise(function (r) { setTimeout(r, 1500); })]).then(done, done);
+      b.load().catch(function () { /* only for accented names */ });
+    } catch (e) { done(); }
+  })();
+
   // ───────────── drawing helpers ─────────────
-  function rr(g, x, y, w, hh, r) { r = Math.min(r, w / 2, hh / 2); g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + hh, r); g.arcTo(x + w, y + hh, x, y + hh, r); g.arcTo(x, y + hh, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  function rrPath(g, x, y, w, hh, r) { r = Math.max(0, Math.min(r, w / 2, hh / 2)); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + hh, r); g.arcTo(x + w, y + hh, x, y + hh, r); g.arcTo(x, y + hh, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  function rr(g, x, y, w, hh, r) { g.beginPath(); rrPath(g, x, y, w, hh, r); }
   function media(g, src, sw, sh, x, y, w, hh, cover, r, bg) {
     g.save(); rr(g, x, y, w, hh, r || 0); g.clip();
     g.fillStyle = bg || '#000'; g.fillRect(x, y, w, hh);
@@ -64,6 +98,14 @@
     g.restore();
   }
   function font(weight, size, fam) { return weight + ' ' + size + 'px ' + (fam || UI); }
+  // Display sizes track tighter, as SF does (about -0.02em at headline sizes); body sizes stay at 0.
+  var hasLS = (function () { try { return 'letterSpacing' in CanvasRenderingContext2D.prototype; } catch (e) { return false; } })();
+  function setFont(g, f) {
+    g.font = f;
+    if (!hasLS) return;
+    var m = /(\d+)px/.exec(f), n = m ? Number(m[1]) : 16, k = n >= 40 ? -0.022 : n >= 28 ? -0.016 : n >= 20 ? -0.008 : 0;
+    g.letterSpacing = (k * n).toFixed(2) + 'px';
+  }
   function wrap(g, text, maxW, maxLines) {
     var words = String(text || '').split(/\s+/), lines = [], cur = '';
     for (var i = 0; i < words.length; i++) {
@@ -74,23 +116,116 @@
     if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) { var l = lines[maxLines - 1]; while (l && g.measureText(l + '…').width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l + '…'; }
     return lines;
   }
-  function text(g, s, x, y, f, color, align) { g.font = f; g.fillStyle = color; g.textAlign = align || 'left'; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); }
-  /** Digits at a fixed advance so a ticking countdown doesn't shimmer. */
+  function wrapF(g, s, f, maxW, maxLines) { setFont(g, f); return wrap(g, s, maxW, maxLines); }
+  function measure(g, s, f) { setFont(g, f); return g.measureText(s).width; }
+  function text(g, s, x, y, f, color, align) { setFont(g, f); g.fillStyle = color; g.textAlign = align || 'left'; g.textBaseline = 'alphabetic'; g.fillText(s, x, y); }
+  /** Digits at a fixed advance so a ticking countdown doesn't shimmer (tabular figures). */
   function tabular(g, s, x, y, f, color, align) {
-    g.font = f; g.fillStyle = color; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
-    var dw = g.measureText('0').width, total = 0, i;
-    for (i = 0; i < s.length; i++) total += /\d/.test(s[i]) ? dw : g.measureText(s[i]).width;
+    setFont(g, f); g.fillStyle = color; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    var total = tabW(g, s), dw = g.measureText('0').width, i;
     var cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
     for (i = 0; i < s.length; i++) { var w = /\d/.test(s[i]) ? dw : g.measureText(s[i]).width; g.fillText(s[i], cx + (w - g.measureText(s[i]).width) / 2, y); cx += w; }
   }
+  function tabW(g, s) { var dw = g.measureText('0').width, total = 0; for (var i = 0; i < s.length; i++) total += /\d/.test(s[i]) ? dw : g.measureText(s[i]).width; return total; }
   function shade(hex, f) {
     var n = parseInt(String(hex).slice(1), 16), r = n >> 16 & 255, gg = n >> 8 & 255, b = n & 255;
     var m = function (c) { return Math.max(0, Math.min(255, Math.round(f < 0 ? c * (1 + f) : c + (255 - c) * f))); };
     return 'rgb(' + m(r) + ',' + m(gg) + ',' + m(b) + ')';
   }
+  function rgba(c, a) {
+    var m = /^#([0-9a-f]{6})$/i.exec(c); if (m) { var n = parseInt(m[1], 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+    m = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(c); return m ? 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + a + ')' : c;
+  }
+  /** The same hue, brighter: lets a deep brand navy glow as light. */
+  function boost(hex, f) { var n = parseInt(String(hex).slice(1), 16); return 'rgb(' + [n >> 16 & 255, n >> 8 & 255, n & 255].map(function (c) { return Math.min(255, Math.round(c * f)); }).join(',') + ')'; }
+  function ease(k) { return 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3); }
+
+  // The backdrop: a deep base with soft pools of light, like a keynote stage. Painted once per size into a cached
+  // canvas (with a faint grain so the gradients don't band in the encoded video), then copied each frame.
+  var bd = { key: '', c: null };
+  function paintBackdrop(g, W, H) {
+    var base = g.createLinearGradient(0, 0, 0, H);
+    if (THEME === 'light') { base.addColorStop(0, '#f8f8fa'); base.addColorStop(1, '#e8e8ed'); }
+    else if (THEME === 'midnight') { base.addColorStop(0, shade(COL.bg, -0.38)); base.addColorStop(1, shade(COL.bg, -0.8)); }
+    else { base.addColorStop(0, '#141418'); base.addColorStop(1, '#060608'); }
+    g.fillStyle = base; g.fillRect(0, 0, W, H);
+    function glow(cx, cy, rx, ry, color, a) {
+      g.save(); g.translate(cx, cy); g.scale(1, ry / rx);
+      var gr = g.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, rgba(color, a)); gr.addColorStop(0.55, rgba(color, a * 0.35)); gr.addColorStop(1, rgba(color, 0));
+      g.fillStyle = gr; g.fillRect(-rx, -rx, rx * 2, rx * 2); g.restore();
+    }
+    if (THEME === 'light') {
+      glow(W * 0.1, -H * 0.1, W * 0.75, H * 0.8, COL.bg, 0.12);
+      glow(W * 0.98, H * 0.15, W * 0.45, H * 0.55, '#7aa7e0', 0.12);
+      glow(W * 0.8, H * 1.1, W * 0.55, H * 0.6, COL.accent, 0.10);
+    } else if (THEME === 'midnight') {
+      glow(W * 0.12, -H * 0.15, W * 0.8, H * 0.85, boost(COL.bg, 2.2), 0.5);
+      glow(W * 0.95, H * 1.05, W * 0.6, H * 0.6, '#5f86d8', 0.20);
+      glow(W * 0.62, H * 1.15, W * 0.4, H * 0.4, COL.accent, 0.06);
+    } else {
+      glow(W * 0.1, -H * 0.2, W * 0.85, H * 0.95, boost(COL.bg, 2.3), 0.46);
+      glow(W * 1.02, H * 1.1, W * 0.7, H * 0.7, boost(COL.bg, 1.9), 0.36);
+      glow(W * 0.66, H * 1.16, W * 0.4, H * 0.36, COL.accent, 0.08);
+    }
+    if (DARK) { var v = g.createRadialGradient(W / 2, H * 0.45, H * 0.35, W / 2, H * 0.45, W * 0.75); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.32)'); g.fillStyle = v; g.fillRect(0, 0, W, H); }
+    try {
+      var n = document.createElement('canvas'); n.width = n.height = 96; var ng = n.getContext('2d'), id = ng.createImageData(96, 96);
+      for (var i = 0; i < id.data.length; i += 4) { var c = Math.random() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = c; id.data[i + 3] = DARK ? 7 : 5; }
+      ng.putImageData(id, 0, 0); g.fillStyle = g.createPattern(n, 'repeat'); g.fillRect(0, 0, W, H);
+    } catch (e) { /* no grain */ }
+  }
+  function devScale(g) { var m = g.getTransform ? g.getTransform() : null; return m ? Math.max(1, Math.min(2, Math.hypot(m.a, m.b))) : 1; }
   function backdrop(g, W, H) {
-    var gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, COL.bg); gr.addColorStop(1, shade(COL.bg, -0.45));
-    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    var k = devScale(g), key = W + 'x' + H + '@' + k.toFixed(2);
+    if (bd.key !== key) {
+      try { var c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k); var cg = c.getContext('2d'); cg.scale(k, k); paintBackdrop(cg, W, H); bd = { key: key, c: c }; }
+      catch (e) { paintBackdrop(g, W, H); return; }
+    }
+    g.drawImage(bd.c, 0, 0, W, H);
+  }
+  /** A soft shadow cast outside a rounded shape only, so translucent glass above it stays clear. */
+  function lift(g, x, y, w, hh, r, blur, color) {
+    g.save();
+    g.beginPath(); g.rect(x - blur * 3, y - blur * 3, w + blur * 6, hh + blur * 6); rrPath(g, x, y, w, hh, r); g.clip('evenodd');
+    g.shadowColor = color || K.shadow; g.shadowBlur = blur; g.shadowOffsetY = Math.round(blur * 0.3);
+    g.fillStyle = '#000'; rr(g, x, y, w, hh, r); g.fill();
+    g.restore();
+  }
+  // Frosted glass over live video: a small, padded copy of what's under the panel, blurred and laid back inside it.
+  // The copy is a few dozen pixels wide, so this costs far less than blurring at full size (no ctx.filter: plain down-sampling).
+  var fz = null;
+  function frost(g, x, y, w, hh, r) {
+    if (!g.getTransform) return;
+    try {
+      if (!fz) { var a = document.createElement('canvas'), b2 = document.createElement('canvas'); fz = { a: a, ag: a.getContext('2d'), b: b2, bg: b2.getContext('2d') }; }
+      var m = g.getTransform(), pad = 28, sx = (x - pad) * m.a + m.e, sy = (y - pad) * m.d + m.f, sw = (w + 2 * pad) * m.a, sh = (hh + 2 * pad) * m.d;
+      var cv = g.canvas, x0 = Math.max(0, sx), y0 = Math.max(0, sy), x1 = Math.min(cv.width, sx + sw), y1 = Math.min(cv.height, sy + sh);
+      if (x1 - x0 < 4 || y1 - y0 < 4) return;
+      var q = 10, tw = Math.max(2, Math.round((x1 - x0) / q)), th = Math.max(2, Math.round((y1 - y0) / q));
+      if (fz.a.width < tw || fz.a.height < th) { fz.a.width = fz.b.width = tw + 16; fz.a.height = fz.b.height = th + 16; }
+      fz.ag.clearRect(0, 0, tw, th); fz.ag.drawImage(cv, x0, y0, x1 - x0, y1 - y0, 0, 0, tw, th);
+      fz.bg.clearRect(0, 0, tw, th); if ('filter' in fz.bg) fz.bg.filter = 'blur(1.5px)'; fz.bg.drawImage(fz.a, 0, 0, tw, th, 0, 0, tw, th); if ('filter' in fz.bg) fz.bg.filter = 'none';
+      // map the clamped device rect back to stage units
+      var lx = (x0 - m.e) / m.a, ly = (y0 - m.f) / m.d, lw = (x1 - x0) / m.a, lh = (y1 - y0) / m.d;
+      g.save(); rr(g, x, y, w, hh, r); g.clip(); g.imageSmoothingEnabled = true; g.drawImage(fz.b, 0, 0, tw, th, lx, ly, lw, lh); g.restore();
+    } catch (e) { /* the tinted fill alone still reads */ }
+  }
+  /** One glass panel: depth, (frosted video under it), the tinted material with a soft top sheen, and the lit 1px rim. */
+  function glass(g, x, y, w, hh, r, o) {
+    o = o || {};
+    if (o.lift !== 0) lift(g, x, y, w, hh, r, o.lift || 44);
+    g.save(); rr(g, x, y, w, hh, r); g.clip();
+    if (o.live) { frost(g, x, y, w, hh, r); g.fillStyle = K.live; g.fillRect(x, y, w, hh); }
+    var gr = g.createLinearGradient(0, y, 0, y + hh);
+    if (o.live) { gr.addColorStop(0, K.liveTop); gr.addColorStop(0.5, 'rgba(255,255,255,0)'); }
+    else { gr.addColorStop(0, K.glassTop); gr.addColorStop(1, K.glassBot); }
+    g.fillStyle = gr; g.fillRect(x, y, w, hh);
+    g.restore();
+    rim(g, x, y, w, hh, r);
+  }
+  function rim(g, x, y, w, hh, r, top, bot) {
+    var gr = g.createLinearGradient(0, y, 0, y + hh); gr.addColorStop(0, top || K.rimTop); gr.addColorStop(0.45, bot || K.rimBot); gr.addColorStop(1, bot || K.rimBot);
+    g.save(); g.lineWidth = 1; g.strokeStyle = gr; rr(g, x + 0.5, y + 0.5, w - 1, hh - 1, Math.max(0, r - 0.5)); g.stroke(); g.restore();
   }
   function logoAt(g, x, y, maxW, maxH, align) {
     if (!logo || !logo.complete || !logo.naturalWidth) return false;
@@ -116,36 +251,42 @@
     var c = cams(T), sp = S.view && S.view.room.spotlight;
     return c.filter(function (x) { return x.m.id === sp; })[0] || c.filter(function (x) { return x.m.role === 'host'; })[0] || c[0] || null;
   }
+  /** A camera or screen: rounded, lifted off the backdrop, a hairline rim, and its name on a small glass pill. */
   function tile(g, x, X, Y, W, H, o) {
     o = o || {};
     if (!x) return;
-    var v = x.video;
-    media(g, v, v && v.videoWidth, v && v.videoHeight, X, Y, W, H, !x.screen, o.r == null ? 14 : o.r, x.screen ? '#000' : shade(COL.bg, -0.6));
+    var v = x.video, r = o.r == null ? 24 : o.r;
+    if (r && o.lift !== 0) lift(g, X, Y, W, H, r, o.lift || 36);
+    media(g, v, v && v.videoWidth, v && v.videoHeight, X, Y, W, H, !x.screen, r, x.screen ? '#000' : K.tile);
     if (!v) {
-      var rad = Math.min(W, H) * 0.16;
-      g.fillStyle = shade(COL.bg, 0.15); g.beginPath(); g.arc(X + W / 2, Y + H / 2, rad, 0, Math.PI * 2); g.fill();
-      text(g, (x.m.name || '?').trim().charAt(0).toUpperCase(), X + W / 2, Y + H / 2 + rad * 0.36, font(600, Math.round(rad), UI), COL.text, 'center');
+      var rad = Math.min(W, H) * 0.15;
+      g.save(); g.beginPath(); g.arc(X + W / 2, Y + H / 2, rad, 0, Math.PI * 2);
+      var ag = g.createLinearGradient(0, Y + H / 2 - rad, 0, Y + H / 2 + rad); ag.addColorStop(0, DARK ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.9)'); ag.addColorStop(1, DARK ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.5)');
+      g.fillStyle = ag; g.fill(); g.lineWidth = 1; g.strokeStyle = K.rimBot; g.stroke(); g.restore();
+      text(g, (x.m.name || '?').trim().charAt(0).toUpperCase(), X + W / 2, Y + H / 2 + rad * 0.36, font(600, Math.round(rad)), K.ink2, 'center');
     }
-    if (o.label !== false) {
-      var lab = x.screen ? x.m.name + ' · ' + (CFG.copy.screen || 'Screen') : x.m.name, fs = W > 600 ? 18 : 13;
-      g.font = font(600, fs); var tw = g.measureText(lab).width;
-      g.fillStyle = 'rgba(0,0,0,.55)'; rr(g, X + 12, Y + H - fs - 26, tw + 20, fs + 14, 8); g.fill();
-      text(g, lab, X + 22, Y + H - 21, font(600, fs), '#fff');
-      if (x.m.audioOff && !x.screen) { g.fillStyle = '#ff453a'; g.beginPath(); g.arc(X + tw + 44, Y + H - 19 - fs / 2 + 2, 5, 0, Math.PI * 2); g.fill(); }
+    if (r) rim(g, X, Y, W, H, r, K.tileRim, K.tileRim);
+    if (o.label !== false && !(o.hideLabelFor && o.hideLabelFor === x.m.name)) {
+      var lab = x.screen ? x.m.name + ' · ' + (CFG.copy.screen || 'Screen') : x.m.name, fs = W > 600 ? 16 : 13, f = font(600, fs);
+      var tw = measure(g, lab, f), ph = fs + 16, mute = x.m.audioOff && !x.screen, pw = tw + 28 + (mute ? 16 : 0), px = X + 14, py = Y + H - 14 - ph;
+      glass(g, px, py, pw, ph, ph / 2, { live: true, lift: 0 });
+      text(g, lab, px + 14, py + ph / 2 + fs * 0.36, f, K.ink, 'left');
+      if (mute) { g.fillStyle = '#ff453a'; g.beginPath(); g.arc(px + tw + 30, py + ph / 2, 4.5, 0, Math.PI * 2); g.fill(); }
     }
-    if (o.shadow) { g.save(); g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 2; rr(g, X, Y, W, H, o.r == null ? 14 : o.r); g.stroke(); g.restore(); }
   }
 
   // ───────────── scenes ─────────────
-  var P = 28, G = 16;
+  // Generous margins at 1280×720. Scenes may move the countdown and the lower third off their cards (slots).
+  var P = 40, G = 20, slots = {};
   function sceneMain(g, W, H, s, T) {
     var screen = T.filter(function (x) { return x.screen; })[0], c = cams(T), lay = s.layout, ld = lead(T);
+    var tl = { hideLabelFor: s.lower && s.lower.name };
     if (!T.length) { centered(g, W, H, SC.introWelcome, (S.view && S.view.room.title) || CFG.room.title, null); return; }
     if ((lay === 'screen' || lay === 'speaker_screen') && screen) {
       if (lay === 'screen') { tile(g, screen, P, P, W - 2 * P, H - 2 * P); return; }
       var sw = Math.round((W - 2 * P - G) * 0.74), cw = W - 2 * P - G - sw, ch = Math.round(cw * 9 / 16);
       tile(g, screen, P, P, sw, H - 2 * P);
-      [ld].concat(c.filter(function (x) { return x !== ld; })).filter(Boolean).slice(0, 3).forEach(function (x, i) { tile(g, x, P + sw + G, P + i * (ch + G), cw, ch); });
+      [ld].concat(c.filter(function (x) { return x !== ld; })).filter(Boolean).slice(0, 3).forEach(function (x, i) { tile(g, x, P + sw + G, P + i * (ch + G), cw, ch, { r: 18 }); });
       return;
     }
     if (lay === 'side' && c.length >= 2) {
@@ -160,38 +301,48 @@
       list.forEach(function (x, i) { tile(g, x, ox + (i % cols) * (tw2 + G), oy + Math.floor(i / cols) * (th + G), tw2, th); });
       return;
     }
-    tile(g, ld || screen, P, P, W - 2 * P, H - 2 * P);
+    tile(g, ld || screen, P, P, W - 2 * P, H - 2 * P, ld ? tl : null);
   }
   function sceneSlides(g, W, H, s, T) {
     var e = s.deck ? slide(s.deck, s.page) : null;
-    if (e && e.ok) media(g, e.img, e.img.naturalWidth, e.img.naturalHeight, P, P, W - 2 * P, H - 2 * P, false, 10, 'rgba(0,0,0,0)');
-    else text(g, SC.slidesLoading, W / 2, H / 2, font(500, 26), 'rgba(255,255,255,.75)', 'center');
-    if (s.slideCam) { var ld = lead(T); if (ld && ld.video) tile(g, ld, W - P - 288, H - P - 162, 288, 162, { label: false, shadow: true, r: 12 }); }
+    if (e && e.ok) {
+      // Letterboxed on the backdrop: the slide itself rounded and lifted, not a black box around it.
+      var iw = e.img.naturalWidth, ih = e.img.naturalHeight, sc = Math.min((W - 2 * P) / iw, (H - 2 * P) / ih), dw = iw * sc, dh = ih * sc, dx = (W - dw) / 2, dy = (H - dh) / 2;
+      lift(g, dx, dy, dw, dh, 20, 56);
+      media(g, e.img, iw, ih, dx, dy, dw, dh, false, 20, '#fff');
+      rim(g, dx, dy, dw, dh, 20, K.tileRim, K.tileRim);
+    } else text(g, SC.slidesLoading, W / 2, H / 2, font(500, 24), K.ink3, 'center');
+    if (s.slideCam) { var ld = lead(T); if (ld && ld.video) tile(g, ld, W - P - 288, H - P - 162, 288, 162, { label: false, r: 18 }); }
     // The next page loads in the background for the people who may see it (staff).
     if (R.isStaff && s.deck) slide(s.deck, s.page + 1);
   }
   /** A centred title card (intro, break, outro): laid out first, then drawn in the vertical middle. */
   function centered(g, W, H, eyebrow, head, lines) {
     var items = [], hasLogo = logo && logo.complete && logo.naturalWidth;
-    if (hasLogo) items.push({ k: 'logo', h: 72, gap: 28 });
-    if (eyebrow) items.push({ k: 'eyebrow', s: eyebrow.toUpperCase(), h: 20, gap: 22 });
-    g.font = font(500, 60, SERIF);
-    wrap(g, head, W - 240, 2).forEach(function (l) { items.push({ k: 'head', s: l, h: 66, gap: 6 }); });
+    var HF = font(700, 76), BF = font(600, 104);
+    if (hasLogo) items.push({ k: 'logo', h: 64, gap: 36 });
+    if (eyebrow) items.push({ k: 'eyebrow', s: eyebrow, h: 22, gap: 20 });
+    wrapF(g, head, HF, W - 260, 2).forEach(function (l) { items.push({ k: 'head', s: l, h: 80, gap: 4 }); });
     (lines || []).forEach(function (l) {
       if (!l) return;
-      if (typeof l === 'object') { if (l.label) items.push({ k: 'label', s: l.label, h: 20, gap: 14, top: 30 }); items.push({ k: 'big', s: l.big, h: 86, gap: 10 }); return; }
-      g.font = font(400, 24); wrap(g, l, W - 320, 3).forEach(function (x, i) { items.push({ k: 'note', s: x, h: 26, gap: 10, top: i ? 0 : 22 }); });
+      if (typeof l === 'object') { items.push({ k: 'clock', label: l.label, big: l.big, h: 196, gap: 12, top: 32 }); return; }
+      wrapF(g, l, font(400, 24), W - 360, 3).forEach(function (x, i) { items.push({ k: 'note', s: x, h: 28, gap: 8, top: i ? 0 : 24 }); });
     });
     var total = items.reduce(function (a, it, i) { return a + (it.top || 0) + it.h + (i < items.length - 1 ? it.gap : 0); }, 0);
     var y = Math.max(32, (H - total) / 2);
     items.forEach(function (it) {
       y += it.top || 0;
-      if (it.k === 'logo') logoAt(g, W / 2, y, 260, 72, 'center');
-      else if (it.k === 'eyebrow') text(g, it.s, W / 2, y + it.h, font(600, 20), 'rgba(255,255,255,.78)', 'center');
-      else if (it.k === 'head') text(g, it.s, W / 2, y + it.h - 12, font(500, 60, SERIF), COL.text, 'center');
-      else if (it.k === 'label') text(g, it.s, W / 2, y + it.h, font(500, 20), 'rgba(255,255,255,.7)', 'center');
-      else if (it.k === 'big') tabular(g, it.s, W / 2, y + it.h, font(600, 92), COL.text, 'center');
-      else text(g, it.s, W / 2, y + it.h - 4, font(400, 24), 'rgba(255,255,255,.82)', 'center');
+      if (it.k === 'logo') logoAt(g, W / 2, y, 260, 64, 'center');
+      else if (it.k === 'eyebrow') text(g, it.s, W / 2, y + it.h - 2, font(600, 22), K.eyebrow, 'center');
+      else if (it.k === 'head') text(g, it.s, W / 2, y + it.h - 14, HF, K.ink, 'center');
+      else if (it.k === 'clock') {
+        // The countdown on a glass plate: the label above, the time in tabular figures.
+        setFont(g, BF); var bw = tabW(g, it.big), lw = it.label ? measure(g, it.label, font(500, 20)) : 0, pw = Math.max(bw, lw) + 112;
+        glass(g, (W - pw) / 2, y, pw, it.h, 36);
+        if (it.label) text(g, it.label, W / 2, y + 50, font(500, 20), K.ink2, 'center');
+        tabular(g, it.big, W / 2, y + (it.label ? 158 : 136), BF, K.ink, 'center');
+      }
+      else text(g, it.s, W / 2, y + it.h - 6, font(400, 24), K.ink2, 'center');
       y += it.h + it.gap;
     });
   }
@@ -213,70 +364,73 @@
     if (o.open && o.closesAt && o.closesAt > now) lines.push({ big: clock(o.closesAt - now), label: SC.offerCloses });
     centered(g, W, H, (S.view && S.view.room.title) || '', B.outroTitle || SC.outroHeading, lines);
   }
-  function card(g, x, y, w, hh) { g.save(); g.shadowColor = 'rgba(0,0,0,.25)'; g.shadowBlur = 30; g.shadowOffsetY = 10; g.fillStyle = '#fff'; rr(g, x, y, w, hh, 22); g.fill(); g.restore(); }
+  function card(g, x, y, w, hh) { glass(g, x, y, w, hh, 34, { lift: 56 }); }
   function sceneQa(g, W, H, s, T) {
     var ld = lead(T), cw = 400, chh = 225;
-    if (ld) tile(g, ld, W - P - cw, P, cw, chh);
-    var x = P, y = P, w = W - 3 * P - cw + P - G, hh = H - 2 * P;
+    if (ld) tile(g, ld, W - P - cw, P, cw, chh, { r: 22 });
+    // The countdown and the lower third sit in the right column, under the camera, never on the card.
+    slots.cd = { x: W - P - cw, y: P + chh + G }; slots.lt = { x: W - P - cw, w: cw };
+    var x = P, y = P, w = W - 2 * P - cw - G, hh = H - 2 * P;
     card(g, x, y, w, hh);
-    var hl = s.highlight, cy = y + 74;
-    text(g, hl ? (hl.kind === 'question' ? SC.fromQa : SC.fromChat) : SC.qaHeading, x + 48, cy, font(600, 22), '#0f2c5c');
+    var hl = s.highlight, cy = y + 80, QF = font(600, 42);
+    text(g, hl ? (hl.kind === 'question' ? SC.fromQa : SC.fromChat) : SC.qaHeading, x + 56, cy, font(600, 22), K.eyebrow);
     if (hl) {
-      g.font = font(500, 44, SERIF);
-      wrap(g, hl.text, w - 96, 7).forEach(function (l) { cy += 58; text(g, l, x + 48, cy, font(500, 44, SERIF), '#1d1d1f'); });
-      if (hl.name) text(g, hl.name, x + 48, cy + 56, font(600, 22), '#6e6e73');
+      cy += 14;
+      wrapF(g, hl.text, QF, w - 112, 7).forEach(function (l) { cy += 54; text(g, l, x + 56, cy, QF, K.ink); });
+      if (hl.name) text(g, hl.name, x + 56, cy + 52, font(500, 22), K.ink3);
     } else {
-      g.font = font(500, 40, SERIF);
-      wrap(g, SC.qaEmpty, w - 96, 4).forEach(function (l) { cy += 56; text(g, l, x + 48, cy, font(500, 40, SERIF), '#1d1d1f'); });
+      cy += 14;
+      wrapF(g, SC.qaEmpty, font(600, 40), w - 112, 4).forEach(function (l) { cy += 52; text(g, l, x + 56, cy, font(600, 40), K.ink); });
     }
   }
   function sceneOffer(g, W, H, s, T) {
     var ld = lead(T), o = (S.view && S.view.room.offer) || {}, now = t();
     var cw = 384, chh = 216;
-    if (ld) tile(g, ld, P, P, cw, chh);
-    logoAt(g, P, P + chh + 28, cw, 64, 'left');
+    if (ld) tile(g, ld, P, P, cw, chh, { r: 22 });
+    logoAt(g, P, P + chh + 32, cw, 64, 'left');
     var x = P + cw + G + 8, y = P, w = W - x - P, hh = H - 2 * P;
     card(g, x, y, w, hh);
-    var cy = y + 72;
+    var cy = y + 76, HF = font(700, 48);
     if (o.open) {
-      if (o.label) text(g, o.label, x + 48, cy, font(600, 22), '#0f2c5c');
-      g.font = font(500, 50, SERIF);
-      wrap(g, B.offerHeading || SC.offerHeadingDefault, w - 96, 2).forEach(function (l) { cy += 62; text(g, l, x + 48, cy, font(500, 50, SERIF), '#1d1d1f'); });
-      cy += 18;
+      if (o.label) text(g, o.label, x + 52, cy, font(600, 22), K.eyebrow);
+      wrapF(g, B.offerHeading || SC.offerHeadingDefault, HF, w - 104, 2).forEach(function (l) { cy += 58; text(g, l, x + 52, cy, HF, K.ink); });
+      cy += 14;
       (B.offerPoints || []).slice(0, 5).forEach(function (p) {
-        g.font = font(400, 24); var ls = wrap(g, p, w - 130, 2);
-        cy += 40; g.fillStyle = COL.accent; g.beginPath(); g.arc(x + 58, cy - 8, 5, 0, Math.PI * 2); g.fill();
-        ls.forEach(function (l, i) { if (i) cy += 32; text(g, l, x + 78, cy, font(400, 24), '#1d1d1f'); });
+        var ls = wrapF(g, p, font(400, 23), w - 136, 2);
+        cy += 40; g.fillStyle = K.ink3; g.beginPath(); g.arc(x + 60, cy - 8, 3.5, 0, Math.PI * 2); g.fill();
+        ls.forEach(function (l, i) { if (i) cy += 30; text(g, l, x + 80, cy, font(400, 23), K.ink2); });
       });
       // Offer pack: why the terms are this generous, from the real terms (studio-pack-terms.ts).
-      if (PK && PK.why) { g.font = font(400, 18); cy += 22; wrap(g, PK.why.short, w - 96, 3).forEach(function (l) { cy += 26; text(g, l, x + 48, cy, font(400, 18), '#6e6e73'); }); }
-      var by = y + hh - 56;
-      text(g, SC.offerCta, x + 48, by, font(600, 22), '#1d1d1f');
+      if (PK && PK.why) { cy += 20; wrapF(g, PK.why.short, font(400, 17), w - 104, 3).forEach(function (l) { cy += 25; text(g, l, x + 52, cy, font(400, 17), K.ink3); }); }
+      var by = y + hh - 52;
+      // The buy moment: a hairline, then the real close time in gold and the action under it.
+      g.fillStyle = K.hair; g.fillRect(x + 52, by - 136, w - 104, 1);
       if (o.closesAt && o.closesAt > now) {
-        text(g, SC.offerCloses, x + 48, by - 92, font(500, 20), '#6e6e73');
-        tabular(g, clock(o.closesAt - now), x + 48, by - 34, font(600, 54), '#1d1d1f', 'left');
+        text(g, SC.offerCloses, x + 52, by - 98, font(500, 19), K.ink3);
+        tabular(g, clock(o.closesAt - now), x + 52, by - 36, font(700, 58), K.price, 'left');
       }
-      g.fillStyle = COL.accent; g.fillRect(x + 48, by + 14, 120, 4);
+      text(g, SC.offerCta, x + 52, by, font(600, 21), K.ink);
     } else {
-      g.font = font(500, 44, SERIF);
-      wrap(g, SC.offerClosed, w - 96, 3).forEach(function (l) { cy += 58; text(g, l, x + 48, cy, font(500, 44, SERIF), '#1d1d1f'); });
+      cy += 4;
+      wrapF(g, SC.offerClosed, font(600, 42), w - 104, 3).forEach(function (l) { cy += 54; text(g, l, x + 52, cy, font(600, 42), K.ink); });
     }
   }
 
   // ───────────── offer pack scenes: the transition, the stack, the comparison ─────────────
   function packState(s) { return (s && s.pack) || { step: 0, steps: 1, line: '' }; }
-  /** Pre-pitch transition: Josh on camera, no slides, the host's own line under him. */
+  /** Pre-pitch transition: Josh on camera, no slides, the host's own line under him on glass. */
   function sceneBridge(g, W, H, s, T) {
     var ld = lead(T), line = packState(s).line;
     if (!ld) { centered(g, W, H, '', line || (S.view && S.view.room.title) || CFG.room.title, null); return; }
-    tile(g, ld, 0, 0, W, H, { label: false, r: 0 });
+    tile(g, ld, 0, 0, W, H, { label: false, r: 0, lift: 0 });
     if (!line) return;
-    var gr = g.createLinearGradient(0, H - 260, 0, H); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.78)');
-    g.fillStyle = gr; g.fillRect(0, H - 260, W, 260);
-    g.font = font(500, 44, SERIF);
-    var ls = wrap(g, line, W - 2 * P - 120, 2), y = H - 56 - (ls.length - 1) * 54;
-    g.fillStyle = COL.accent; g.fillRect(P + 20, y - 46, 4, 54 * ls.length - 6);
-    ls.forEach(function (l, i) { text(g, l, P + 44, y + i * 54, font(500, 44, SERIF), '#fff'); });
+    var gr = g.createLinearGradient(0, H - 300, 0, H); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.5)');
+    g.fillStyle = gr; g.fillRect(0, H - 300, W, 300);
+    var LF = font(600, 38), ls = wrapF(g, line, LF, W - 2 * P - 160, 2), lw = 0;
+    ls.forEach(function (l) { lw = Math.max(lw, measure(g, l, LF)); });
+    var ph = 52 + ls.length * 46, pw = lw + 88, px = P + 8, py = H - P - ph;
+    glass(g, px, py, pw, ph, 28, { live: true });
+    ls.forEach(function (l, i) { text(g, l, px + 44, py + 62 + i * 46, LF, K.ink); });
   }
   var stackSeen = { step: -1, at: 0 };
   /** The stack: one part at a time, each with the objection it answers; the last step shows the real price. */
@@ -284,30 +438,29 @@
     if (!PK) { sceneMain(g, W, H, s, T); return; }
     var st = packState(s), items = PK.stack.items || [], n = items.length, step = Math.max(0, Math.min(st.step, n + 1));
     if (step !== stackSeen.step) { stackSeen = { step: step, at: performance.now() }; }
-    var fade = reduced ? 1 : Math.min(1, (performance.now() - stackSeen.at) / 240);
+    var fade = reduced ? 1 : ease((performance.now() - stackSeen.at) / 320);
     var ld = lead(T), cw = 300, chh = 169;
-    if (ld) tile(g, ld, P, P, cw, chh);
-    logoAt(g, P, P + chh + 24, cw, 56, 'left');
+    if (ld) tile(g, ld, P, P, cw, chh, { r: 20 });
+    logoAt(g, P, P + chh + 28, cw, 56, 'left');
+    slots.cd = { x: P, y: H - P - 46 }; slots.lt = { x: P, w: cw, y: H - P - 46 - G };
     var x = P + cw + G + 8, y = P, w = W - x - P, hh = H - 2 * P;
     card(g, x, y, w, hh);
-    var cy = y + 58;
+    var cy = y + 62, HF = font(700, 32);
     if (step <= n) {
-      text(g, (PC.stackStep && step ? fmt(PC.stackStep, String(step), String(n)) : '').toUpperCase(), x + 44, cy - 14, font(600, 15), '#6e6e73');
-      g.font = font(500, 32, SERIF);
-      wrap(g, PK.stack.heading, w - 88, 2).forEach(function (l) { cy += 40; text(g, l, x + 44, cy, font(500, 32, SERIF), '#1d1d1f'); });
-      cy += 18;
+      text(g, PC.stackStep && step ? fmt(PC.stackStep, String(step), String(n)) : '', x + 48, cy - 10, font(600, 17), K.eyebrow);
+      wrapF(g, PK.stack.heading, HF, w - 96, 2).forEach(function (l) { cy += 40; text(g, l, x + 48, cy, HF, K.ink); });
+      cy += 22;
       var rowH = Math.min(96, Math.floor((y + hh - 24 - cy) / Math.max(1, n)));
       items.slice(0, step).forEach(function (it, i) {
         var newest = i === step - 1, a = newest ? fade : 1;
         g.globalAlpha = a;
-        var ry = cy + i * rowH + (newest ? (1 - fade) * 10 : 0);
-        if (newest) { g.fillStyle = COL.accent; g.fillRect(x + 28, ry + 6, 4, rowH - 20); }
-        if (it.objection) text(g, '“' + it.objection.replace(/[.]$/, '') + '”', x + 44, ry + 20, 'italic ' + font(400, 17), '#6e6e73');
-        g.font = font(600, 22);
-        var pw = it.price ? (g.measureText(it.price).width + 32) : g.measureText(PC.included || '').width + 32;
-        wrap(g, it.title, w - 100 - Math.min(260, pw), 2).forEach(function (l, j) { text(g, l, x + 44, ry + 48 + j * 26, font(600, 22), '#1d1d1f'); });
-        if (it.price) text(g, it.price, x + w - 40, ry + 48, font(600, 20), '#0f2c5c', 'right');
-        else if (PC.included) text(g, PC.included, x + w - 40, ry + 48, font(500, 17), '#86868b', 'right');
+        var ry = cy + i * rowH + (newest ? (1 - fade) * 14 : 0);
+        if (newest) { g.fillStyle = K.inset; rr(g, x + 24, ry - 4, w - 48, rowH - 8, 18); g.fill(); }
+        if (it.objection) text(g, '“' + it.objection.replace(/[.]$/, '') + '”', x + 48, ry + 22, 'italic ' + font(400, 17), K.ink3);
+        var TF = font(600, 21), pw = it.price ? measure(g, it.price, font(600, 21)) + 36 : measure(g, PC.included || '', font(500, 17)) + 36;
+        wrapF(g, it.title, TF, w - 104 - Math.min(260, pw), 2).forEach(function (l, j) { text(g, l, x + 48, ry + 50 + j * 26, TF, K.ink); });
+        if (it.price) text(g, it.price, x + w - 48, ry + 50, font(600, 21), K.price, 'right');
+        else if (PC.included) text(g, PC.included, x + w - 48, ry + 50, font(500, 17), K.ink3, 'right');
         g.globalAlpha = 1;
       });
       return;
@@ -315,15 +468,17 @@
     // The reveal: the deposit today and the fee by size, all from settings; no total value anywhere.
     var r = PK.stack.reveal || {};
     g.globalAlpha = fade;
-    text(g, (PC.stackReveal || '').toUpperCase(), x + 44, cy - 14, font(600, 15), '#6e6e73');
-    cy += 44; text(g, r.today || '', x + 44, cy, font(500, 52, SERIF), '#1d1d1f');
-    cy += 40; text(g, r.credit || '', x + 44, cy, font(500, 22), '#1d1d1f');
-    if (r.ticket) { cy += 32; text(g, r.ticket, x + 44, cy, font(400, 20), '#1d1d1f'); }
-    cy += 46; text(g, PC.feesHeading || '', x + 44, cy, font(600, 18), '#0f2c5c');
-    (r.fees || []).forEach(function (f) { cy += 32; text(g, f.range, x + 44, cy, font(400, 20), '#1d1d1f'); text(g, f.label, x + 380, cy, font(600, 20), '#1d1d1f'); });
-    cy += 40; g.font = font(400, 19);
-    wrap(g, r.balance || '', w - 88, 2).forEach(function (l) { text(g, l, x + 44, cy, font(400, 19), '#424245'); cy += 26; });
-    if (PK.why) { g.font = font(400, 17); var wl = wrap(g, PK.why.short, w - 88, 3), wy = y + hh - 30 - (wl.length - 1) * 23; wl.forEach(function (l, i) { text(g, l, x + 44, wy + i * 23, font(400, 17), '#6e6e73'); }); }
+    var dy = (1 - fade) * 12;
+    text(g, PC.stackReveal || '', x + 48, cy - 10 + dy, font(600, 17), K.eyebrow);
+    cy += 52; text(g, r.today || '', x + 48, cy + dy, font(700, 54), K.ink);
+    cy += 40; text(g, r.credit || '', x + 48, cy + dy, font(500, 22), K.ink2);
+    if (r.ticket) { cy += 32; text(g, r.ticket, x + 48, cy + dy, font(400, 20), K.ink2); }
+    cy += 50; text(g, PC.feesHeading || '', x + 48, cy + dy, font(600, 18), K.eyebrow);
+    cy += 12;
+    (r.fees || []).forEach(function (f) { cy += 34; g.fillStyle = K.hair; g.fillRect(x + 48, cy - 24 + dy, 420, 1); text(g, f.range, x + 48, cy + dy, font(400, 20), K.ink2); text(g, f.label, x + 468, cy + dy, font(600, 20), K.price, 'right'); });
+    cy += 44;
+    wrapF(g, r.balance || '', font(400, 19), w - 96, 2).forEach(function (l) { text(g, l, x + 48, cy + dy, font(400, 19), K.ink2); cy += 26; });
+    if (PK.why) { var wl = wrapF(g, PK.why.short, font(400, 17), w - 96, 3), wy = y + hh - 34 - (wl.length - 1) * 23; wl.forEach(function (l, i) { text(g, l, x + 48, wy + i * 23, font(400, 17), K.ink3); }); }
     g.globalAlpha = 1;
   }
   /** The comparison: honest alternatives, every figure labelled illustrative, next to our real price. */
@@ -331,67 +486,70 @@
     if (!PK) { sceneMain(g, W, H, s, T); return; }
     var A = PK.anchor || {}, rows = (A.rows || []).map(function (r) { return { r: r, ours: false }; });
     if (A.ours) rows.push({ r: A.ours, ours: true });
-    var ld = lead(T), cw = 256, chh = 144;
+    var ld = lead(T), cw = 240, chh = 135;
     var x = P, y = P, w = W - 2 * P, hh = H - 2 * P;
     card(g, x, y, w, hh);
-    if (ld) tile(g, ld, x + w - cw - 24, y + 24, cw, chh, { label: false, r: 12 });
-    var cy = y + 52;
-    text(g, (PC.illustrative || '').toUpperCase(), x + 44, cy, font(600, 15), '#6e6e73');
-    g.font = font(500, 38, SERIF);
-    wrap(g, A.heading || '', w - cw - 120, 2).forEach(function (l) { cy += 46; text(g, l, x + 44, cy, font(500, 38, SERIF), '#1d1d1f'); });
-    cy = Math.max(cy + 26, ld ? y + chh + 40 : 0);
-    var foot = 40, rowH = Math.min(104, Math.floor((y + hh - foot - cy) / Math.max(1, rows.length)));
+    if (ld) tile(g, ld, x + w - cw - 28, y + 28, cw, chh, { label: false, r: 18, lift: 20 });
+    var cdOn = Boolean(s.countdown && s.countdown.endsAt > t());
+    if (ld) slots.cd = { x: x + w - cw - 28, y: y + 28 + chh + 12 };
+    var cy = y + 58, HF = font(700, 38);
+    text(g, PC.illustrative || '', x + 48, cy, font(600, 17), K.eyebrow);
+    wrapF(g, A.heading || '', HF, w - cw - 140, 2).forEach(function (l) { cy += 46; text(g, l, x + 48, cy, HF, K.ink); });
+    cy = Math.max(cy + 28, ld ? y + 28 + chh + (cdOn ? 74 : 20) : 0);
+    var foot = 44, rowH = Math.min(100, Math.floor((y + hh - foot - cy) / Math.max(1, rows.length)));
     rows.forEach(function (o, i) {
       var ry = cy + i * rowH, r = o.r;
-      if (o.ours) { g.fillStyle = '#f5f5f7'; rr(g, x + 24, ry, w - 48, rowH - 8, 12); g.fill(); g.fillStyle = COL.accent; g.fillRect(x + 24, ry + 12, 4, rowH - 32); }
-      else { g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(x + 44, ry - 1, w - 88, 1); }
-      text(g, r.label, x + 44, ry + 34, font(600, 22), '#1d1d1f');
-      if (r.note) { g.font = font(400, 17); wrap(g, r.note, w - 520, 2).forEach(function (l, j) { text(g, l, x + 44, ry + 60 + j * 22, font(400, 17), '#6e6e73'); }); }
-      text(g, (o.ours ? PC.ourPrice : PC.illustrative || '').toUpperCase(), x + w - 44, ry + 26, font(600, 13), o.ours ? '#0f2c5c' : '#86868b', 'right');
-      g.font = font(600, 26); var fl = wrap(g, r.figure, 380, 2);
-      fl.forEach(function (l, j) { text(g, l, x + w - 44, ry + 58 + j * 30, font(600, 26), '#1d1d1f', 'right'); });
+      if (o.ours) { g.fillStyle = K.inset; rr(g, x + 24, ry, w - 48, rowH - 8, 20); g.fill(); g.fillStyle = COL.accent; rr(g, x + 24, ry + 16, 4, rowH - 40, 2); g.fill(); }
+      else if (i) { g.fillStyle = K.hair; g.fillRect(x + 48, ry - 1, w - 96, 1); }
+      text(g, r.label, x + 48, ry + 34, font(600, 21), K.ink);
+      if (r.note) wrapF(g, r.note, font(400, 16), w - 540, 2).forEach(function (l, j) { text(g, l, x + 48, ry + 58 + j * 21, font(400, 16), K.ink3); });
+      text(g, o.ours ? PC.ourPrice || '' : PC.illustrative || '', x + w - 48, ry + 28, font(600, 13), o.ours ? (DARK ? COL.accent : K.eyebrow) : K.ink3, 'right');
+      wrapF(g, r.figure, font(600, 25), 380, 2).forEach(function (l, j) { text(g, l, x + w - 48, ry + 58 + j * 29, font(600, 25), o.ours ? K.price : K.ink, 'right'); });
     });
-    g.font = font(400, 15);
-    text(g, wrap(g, PC.anchorFoot || '', w - 88, 1)[0] || '', x + 44, y + hh - 18, font(400, 15), '#6e6e73');
+    text(g, wrapF(g, PC.anchorFoot || '', font(400, 14), w - 96, 1)[0] || '', x + 48, y + hh - 22, font(400, 14), K.ink3);
   }
 
-  // ───────────── overlays ─────────────
+  // ───────────── overlays: all on glass ─────────────
   function overlays(g, W, H, s, scene) {
     var now = t(), tickerH = 0;
     if (s.ticker && scene !== 'intro') {
+      // A floating glass bar in the band the scenes leave free.
       tickerH = 52;
-      g.fillStyle = 'rgba(10,14,24,.86)'; g.fillRect(0, H - tickerH, W, tickerH);
-      g.fillStyle = COL.accent; g.fillRect(0, H - tickerH, 6, tickerH);
-      g.font = font(500, 22); var tw = g.measureText(s.ticker).width;
-      g.save(); g.beginPath(); g.rect(24, H - tickerH, W - 24, tickerH); g.clip();
-      if (reduced || tw < W - 60) text(g, s.ticker, 32, H - 18, font(500, 22), '#fff');
-      else { var off = (performance.now() / 1000 * 110) % (tw + 160); text(g, s.ticker, W - off, H - 18, font(500, 22), '#fff'); text(g, s.ticker, W - off + tw + 160, H - 18, font(500, 22), '#fff'); }
+      var tx = 24, th = 38, ty = H - th - 8, tw0 = W - 48, TF = font(500, 19);
+      glass(g, tx, ty, tw0, th, th / 2, { live: true, lift: 18 });
+      var tw = measure(g, s.ticker, TF);
+      g.save(); rr(g, tx + 1, ty, tw0 - 2, th, th / 2); g.clip();
+      if (reduced || tw < tw0 - 48) text(g, s.ticker, tx + 22, ty + 25, TF, K.ink);
+      else { var off = (performance.now() / 1000 * 90) % (tw + 160); text(g, s.ticker, tx + tw0 - off, ty + 25, TF, K.ink); text(g, s.ticker, tx + tw0 - off + tw + 160, ty + 25, TF, K.ink); }
       g.restore();
     }
-    if (s.logo && scene !== 'intro' && scene !== 'brb' && scene !== 'outro' && scene !== 'offer') logoAt(g, W - 40, 34, 150, 56, 'right');
+    if (s.logo && scene !== 'intro' && scene !== 'brb' && scene !== 'outro' && scene !== 'offer') logoAt(g, W - 52, 44, 150, 52, 'right');
     var cd = s.countdown;
     if (cd && cd.endsAt > now && scene !== 'offer' && scene !== 'outro' && scene !== 'intro') {
-      var lab = (cd.label ? cd.label + ' ' : '') + clock(cd.endsAt - now);
-      g.font = font(600, 22); var w = g.measureText(lab).width + 36;
-      g.fillStyle = 'rgba(10,14,24,.8)'; rr(g, 40, 34, w, 46, 23); g.fill();
-      tabular(g, lab, 58, 65, font(600, 22), '#fff', 'left');
+      var CF = font(600, 21), lab = cd.label || '', tm = clock(cd.endsAt - now);
+      var lw = lab ? measure(g, lab + ' ', CF) : 0; setFont(g, CF); var cw = lw + tabW(g, tm) + 40, sl = slots.cd || { x: 52, y: 44 };
+      glass(g, sl.x, sl.y, cw, 46, 23, { live: true, lift: 24 });
+      if (lab) text(g, lab, sl.x + 20, sl.y + 30, CF, K.ink2);
+      tabular(g, tm, sl.x + 20 + lw, sl.y + 30, CF, K.ink, 'left');
     }
     if (s.lower && (scene === 'main' || scene === 'slides' || scene === 'qa' || (scene === 'bridge' && !packState(s).line))) {
-      var lx = 48, ly = H - tickerH - 150;
-      g.font = font(600, 30); var nw = g.measureText(s.lower.name).width; g.font = font(400, 20); var tw2 = g.measureText(s.lower.title || '').width;
-      var bw = Math.max(nw, tw2) + 56;
-      g.fillStyle = 'rgba(10,14,24,.82)'; rr(g, lx, ly, bw, s.lower.title ? 96 : 66, 12); g.fill();
-      g.fillStyle = COL.accent; g.fillRect(lx, ly + 14, 5, (s.lower.title ? 96 : 66) - 28);
-      text(g, s.lower.name, lx + 28, ly + 44, font(600, 30), '#fff');
-      if (s.lower.title) text(g, s.lower.title, lx + 28, ly + 76, font(400, 20), 'rgba(255,255,255,.8)');
+      var NF = font(700, 28), TF2 = font(400, 19), lsl = slots.lt || {};
+      var nw = measure(g, s.lower.name, NF), tw2 = s.lower.title ? measure(g, s.lower.title, TF2) : 0;
+      var bw = Math.min(lsl.w || 640, Math.max(nw, tw2) + 64), bh = s.lower.title ? 94 : 66;
+      var lx = lsl.x != null ? lsl.x : P + 24, ly = (lsl.y != null ? lsl.y : H - tickerH - P - 24) - bh;
+      glass(g, lx, ly, bw, bh, 24, { live: true, lift: 32 });
+      g.save(); rr(g, lx, ly, bw, bh, 24); g.clip();
+      text(g, s.lower.name, lx + 32, ly + 42, NF, K.ink);
+      if (s.lower.title) text(g, s.lower.title, lx + 32, ly + 72, TF2, K.ink2);
+      g.restore();
     }
     if (s.highlight && (scene === 'main' || scene === 'slides')) {
-      var hw = Math.min(820, W - 160), hx = (W - hw) / 2;
-      g.font = font(500, 26); var hl = wrap(g, s.highlight.text, hw - 64, 3);
-      var hh2 = 84 + hl.length * 34, hy = H - tickerH - hh2 - (s.lower ? 170 : 36);
-      card(g, hx, hy, hw, hh2);
-      text(g, (s.highlight.kind === 'question' ? SC.fromQa : SC.fromChat) + (s.highlight.name ? ' · ' + s.highlight.name : ''), hx + 32, hy + 42, font(600, 18), '#0f2c5c');
-      hl.forEach(function (l, i) { text(g, l, hx + 32, hy + 82 + i * 34, font(500, 26), '#1d1d1f'); });
+      var hw = Math.min(860, W - 200), hx = (W - hw) / 2, HF = font(500, 26);
+      var hl = wrapF(g, s.highlight.text, HF, hw - 72, 3);
+      var hh2 = 88 + hl.length * 34, hy = H - tickerH - hh2 - (s.lower ? 176 : 48);
+      glass(g, hx, hy, hw, hh2, 28, { live: true, lift: 48 });
+      text(g, (s.highlight.kind === 'question' ? SC.fromQa : SC.fromChat) + (s.highlight.name ? ' · ' + s.highlight.name : ''), hx + 36, hy + 44, font(600, 17), K.eyebrowLive);
+      hl.forEach(function (l, i) { text(g, l, hx + 36, hy + 84 + i * 34, HF, K.ink); });
     }
   }
 
@@ -405,9 +563,14 @@
   }
   function frame(g, W, H) {
     var s = sv(); if (!s) return;
+    backdrop(g, W, H);
+    if (!fontsReady) return;
     var scene = effectiveScene(s), T = sources();
     if (scene !== lastScene) { lastScene = scene; sceneChangedAt = performance.now(); }
-    backdrop(g, W, H);
+    slots = {};
+    // A soft cross-fade between scenes: the new scene rises a few pixels out of the backdrop (none with reduced motion).
+    var k = reduced ? 1 : ease((performance.now() - sceneChangedAt) / 300);
+    g.save(); if (k < 1) g.translate(0, (1 - k) * 10);
     // The ticker takes the bottom band: scenes lay out above it.
     var H2 = s.ticker && scene !== 'intro' ? H - 52 : H;
     if (scene === 'intro') sceneIntro(g, W, H, s);
@@ -420,10 +583,9 @@
     else if (scene === 'stack') sceneStack(g, W, H2, s, T);
     else if (scene === 'anchor') sceneAnchor(g, W, H2, s, T);
     else sceneMain(g, W, H2, s, T);
+    g.restore();
     overlays(g, W, H, s, scene);
-    // A short fade between scenes (none with reduced motion).
-    var k = reduced ? 1 : Math.min(1, (performance.now() - sceneChangedAt) / 220);
-    if (k < 1) { g.globalAlpha = 1 - k; g.fillStyle = COL.bg; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+    if (k < 1 && bd.c) { g.globalAlpha = 1 - k; g.drawImage(bd.c, 0, 0, W, H); g.globalAlpha = 1; }
   }
 
   /** room.js's compositor (MoQ broadcast and recording) asks for each frame here while the studio is on. */
@@ -470,7 +632,7 @@
     var dpr = Math.min(2, window.devicePixelRatio || 1), cw = Math.max(2, Math.round(w * dpr)), ch = Math.max(2, Math.round(hh * dpr));
     if (p.canvas.width !== cw || p.canvas.height !== ch) { p.canvas.width = cw; p.canvas.height = ch; }
     var g = p.g, sc = Math.min(cw / 1280, ch / 720);
-    g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = COL.bg; g.fillRect(0, 0, cw, ch);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = K.base; g.fillRect(0, 0, cw, ch); if (bd.c) g.drawImage(bd.c, 0, 0, cw, ch);
     g.setTransform(sc, 0, 0, sc, (cw - 1280 * sc) / 2, (ch - 720 * sc) / 2);
     frame(g, 1280, 720);
   }

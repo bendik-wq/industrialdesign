@@ -327,6 +327,7 @@ export function studioPageConfig(room: RoomRow, who: Identity, enabled: boolean,
     copy: STUDIO_COPY,
     brand: {
       colors: s.colors,
+      theme: s.theme ?? 'graphite',
       logo: s.logo ? `/api/rooms/${room.id}/studio/asset/logo` : null,
       music: s.music ? `/api/rooms/${room.id}/studio/asset/music` : null,
       introTitle: s.introTitle, introNote: s.introNote, brbText: s.brbText, outroTitle: s.outroTitle, outroNote: s.outroNote,
