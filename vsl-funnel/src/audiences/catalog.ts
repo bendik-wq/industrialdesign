@@ -12,7 +12,7 @@ import { FUNNEL_LABEL, type Funnel, PRODUCTS, PURCHASE_PRODUCTS, type ProductId,
  *    event_source_id = the Pixel and custom_event_type. At most 100 custom conversions per ad account.
  */
 
-export type Kind = 'conversion' | 'website' | 'list' | 'lookalike';
+export type Kind = 'conversion' | 'website' | 'list' | 'lookalike' | 'video';
 export type Segment =
   | { type: 'registered'; funnel: Funnel; slot?: string }
   | { type: 'attended'; funnel: Funnel }
@@ -25,7 +25,11 @@ export type Segment =
   | { type: 'all_buyers' }
   | { type: 'clients' }
   | { type: 'buyers_value' }
-  | { type: 'signal'; signal: string; noPurchase?: boolean };
+  | { type: 'signal'; signal: string; noPurchase?: boolean }
+  // Halo retargeting (src/audiences/halo.ts): engaged states each with its own next-step creative.
+  | { type: 'registered_not_attended'; funnel: Funnel }
+  | { type: 'attended_no_offer'; funnel: Funnel }
+  | { type: 'challenge_day'; day: number };
 
 export interface Filter { field: string; operator: string; value: string | number | string[] }
 export interface PlanItem {
@@ -41,6 +45,8 @@ export interface PlanItem {
   source?: string; ratio?: number; country?: string;
   /** used for exclusions rather than targeting */
   exclusion?: boolean;
+  /** video engagement audience: the ad videos and the Meta engagement event */
+  videoIds?: string[]; videoEvent?: string;
 }
 
 /** The deep-funnel signals' Meta custom events (the same names as src/tracking/signals.ts SIGNALS; a test keeps them in step). */
@@ -93,6 +99,11 @@ function segments(slots: { funnel: Funnel; slot: string }[]): Seg[] {
   s.push({ id: 'no_show', group: 'Booked calls', label: 'Missed their call', description: 'Marked no-show on a booked call.', segment: { type: 'no_show' }, event: 'CallNoShow' });
   s.push({ id: 'all_buyers', group: 'Exclusions', label: 'All buyers', description: 'Anyone who bought anything. Exclude from cold and registration campaigns.', segment: { type: 'all_buyers' }, event: 'Purchase', exclusion: true });
   s.push({ id: 'clients', group: 'Exclusions', label: 'Clients', description: 'First Deal Sprint, engagement deposit or signed engagement. Exclude from every acquisition campaign.', segment: { type: 'clients' }, event: 'Purchase', filters: [{ field: 'content_category', operator: 'is_any', value: ['sprint', 'deposit', 'engagement'] }], exclusion: true });
+  // Halo retargeting: registered and didn't come, came and didn't buy the offer, each challenge day (Day 1 to 4).
+  const OFFER_BUY = { event: 'Purchase', filters: [{ field: 'content_category', operator: 'is_any', value: ['sprint', 'deposit', 'engagement'] }] as Filter[] };
+  for (const f of WEB_FUNNELS) s.push({ id: `reg_noshow_${f}`, group: 'Halo retargeting', label: `Registered, didn’t attend, ${FUNNEL_SHORT[f].toLowerCase()}`, description: `Registered for a ${FUNNEL_LABEL[f].toLowerCase()} session that has started and never came in. Clients left out.`, segment: { type: 'registered_not_attended', funnel: f }, event: 'CompleteRegistration', filters: [eq('funnel', f)], exclude: { event: 'WebinarAttended', filters: [eq('funnel', f)] } });
+  for (const f of WEB_FUNNELS) s.push({ id: `attended_nobuy_${f}`, group: 'Halo retargeting', label: `Attended, didn’t buy the offer, ${FUNNEL_SHORT[f].toLowerCase()}`, description: `Came into the ${FUNNEL_LABEL[f].toLowerCase()} and hasn’t bought the Sprint, the deposit or the engagement since.`, segment: { type: 'attended_no_offer', funnel: f }, event: 'WebinarAttended', filters: [eq('funnel', f)], exclude: OFFER_BUY });
+  for (let d = 1; d <= 4; d++) s.push({ id: `challenge_day${d}`, group: 'Halo retargeting', label: `Came to challenge Day ${d}`, description: `Joined or followed challenge Day ${d} live. Clients left out.`, segment: { type: 'challenge_day', day: d }, listOnly: true });
   s.push({ id: 'buyers_value', group: 'Lookalike seeds', label: 'Buyers by value (LTV)', description: 'Every buyer with what they have paid in all, so value-based lookalikes favour the biggest buyers.', segment: { type: 'buyers_value' }, listOnly: true });
   return s;
 }
@@ -101,8 +112,11 @@ export const LOOKALIKE_SOURCES = ['list_buyers_value', 'list_all_buyers', 'list_
 export const LOOKALIKE_RATIOS = [0.01, 0.03];
 
 /** The whole plan for the given session slots (from our own sessions) and lookalike countries. */
-export function buildPlan(o: { slots?: { funnel: Funnel; slot: string }[]; countries?: string[] } = {}): PlanItem[] {
+export function buildPlan(o: { slots?: { funnel: Funnel; slot: string }[]; countries?: string[]; videoIds?: string[] } = {}): PlanItem[] {
   const items: PlanItem[] = [...conversions()];
+  // Video engagement audience: people who watched at least half of one of our ad videos (Meta counts the views).
+  const vids = [...new Set((o.videoIds ?? []).filter((v) => /^\d{1,30}$/.test(v)))].slice(0, 20);
+  if (vids.length) items.push({ key: 'video_ads_watched50', kind: 'video', group: 'Halo retargeting', name: `${PREFIX} Video: watched 50% of an ad video`, description: `People who watched at least half of one of our ${vids.length} most recent ad videos on Facebook or Instagram. Built by Meta from its own video views.`, videoIds: vids, videoEvent: 'video_view_50_percent' });
   for (const s of segments(o.slots ?? [])) {
     if (!s.listOnly && s.event) items.push({ key: `web_${s.id}`, kind: 'website', group: s.group, name: `${PREFIX} Web: ${s.label}`, description: `${s.description} From the Pixel and Conversions API.`, segment: s.segment, event: s.event, filters: s.filters, exclude: s.exclude, exclusion: s.exclusion });
     items.push({ key: `list_${s.id}`, kind: 'list', group: s.group, name: `${PREFIX} List: ${s.label}`, description: `${s.description} From our database, synced daily.`, segment: s.segment, valueBased: s.segment.type === 'buyers_value', exclusion: s.exclusion });
@@ -130,6 +144,9 @@ export function websiteRule(item: PlanItem, pixelId: string, retentionDays: numb
 export function conversionRule(item: PlanItem) {
   return { and: [{ event: { eq: item.event } }, ...(item.filters ?? []).map((f) => ({ [f.field]: f.operator === 'is_any' ? { is_any: f.value } : { eq: f.value } }))] };
 }
+
+/** Video engagement audience rule (Marketing API, subtype ENGAGEMENT): one rule per video. */
+export const videoRule = (item: PlanItem) => (item.videoIds ?? []).map((id) => ({ object_id: id, event_name: item.videoEvent ?? 'video_view_50_percent' }));
 
 /** Lookalike spec (ratio 0.01 to 0.20, one country). */
 export const lookalikeSpec = (item: PlanItem) => ({ type: 'similarity', ratio: item.ratio, country: item.country });

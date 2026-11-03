@@ -16,6 +16,8 @@
  *   PUT    /concepts/ads/:id      { hook?, body?, headline?, description? } edit a draft (audited)
  *   POST   /concepts/:id/verdict  { verdict: winner | loser | null }
  *   POST   /concepts/:id/hooks    hook-only variants of the concept's best ad, queued for approval
+ *   GET    /value-equation        offer copy check: dream outcome, likelihood, time, effort per offer surface (suggestions only)
+ *   POST   /value-equation/check  { text, product? } check pasted copy
  *   GET    /scripts               video scripts and hook packs;  POST /scripts { format, angle_ref }
  *   PUT    /scripts/:id           { hooks?, status? };  POST /scripts/hooks { angle_ref } a hook pack
  *   GET    /followups             the plays, recent batches
@@ -29,7 +31,8 @@ import { type AppEnv, runtimeFrom } from '../app';
 import { saveSettings } from '../settings';
 import { approveAction, editAction, getAction, listActions, rejectAction } from '../ops/actions';
 import { metaAdsConfigured, metaWriteConfigured, syncAdLevel } from '../integrations/meta-ads';
-import { adsTargets, autopilotOn, boundShift, loadAdStats, logSync, runAutopilot, verdicts } from './autopilot';
+import { adsTargets, autopilotOn, boundShift, loadAdStats, logSync, runAutopilot, verdicts, weakHook } from './autopilot';
+import { checkPasted, valueEquationReport } from './value-equation';
 import { type AdDraft, auditDraft, draftAndPropose } from './angles';
 import { type Channel, type Play, MAX_PER_BATCH, QUIET_STAGES, SALES_PLAYS, emailPreviewText, proposeFollowups } from '../sales/followups';
 import type { EmailContent } from '../integrations/templates';
@@ -40,7 +43,7 @@ import { draftHookPack, draftScript, editScript, scriptsView } from './scripts';
 export const autopilotAdmin = new Hono<AppEnv>();
 
 const fail = (c: { json: (b: unknown, s?: number) => Response }, e: unknown) => c.json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 400);
-const SETTING_KEYS = ['ADS_AUTOPILOT', 'ADS_TARGET_CPL', 'ADS_TARGET_CPA_TICKET', 'ADS_TARGET_CPA_DEPOSIT', 'ADS_TARGET_CPA_BOOKING', 'ADS_LOSER_SPEND', 'ADS_MAX_DAILY_SHIFT_PCT', 'ADS_MAX_DAILY_BUDGET', 'ADS_FATIGUE_FREQUENCY', 'ADS_FATIGUE_CTR_DROP_PCT', 'ADS_WINNER_MIN_RESULTS', 'ADS_MER_FLOOR', 'ADS_PAGE_ID', 'ADS_LANDING_URL', 'SALES_QUIET_DAYS'] as const;
+const SETTING_KEYS = ['ADS_AUTOPILOT', 'ADS_TARGET_CPL', 'ADS_TARGET_CPA_TICKET', 'ADS_TARGET_CPA_DEPOSIT', 'ADS_TARGET_CPA_BOOKING', 'ADS_LOSER_SPEND', 'ADS_MAX_DAILY_SHIFT_PCT', 'ADS_MAX_DAILY_BUDGET', 'ADS_FATIGUE_FREQUENCY', 'ADS_FATIGUE_CTR_DROP_PCT', 'ADS_WINNER_MIN_RESULTS', 'ADS_MER_FLOOR', 'ADS_HOOK_RATE_FLOOR', 'ADS_HOLD_RATE_GOOD', 'ADS_HOOK_MIN_IMPRESSIONS', 'ADS_PAGE_ID', 'ADS_LANDING_URL', 'SALES_QUIET_DAYS'] as const;
 const parse = (s: string | null) => { try { return s ? JSON.parse(s) : null; } catch { return null; } };
 
 autopilotAdmin.get('/', async (c) => {
@@ -61,9 +64,12 @@ autopilotAdmin.get('/', async (c) => {
   const guard = merGuard(merFloor(s), mer?.w7 ?? null, mer?.comparable ?? true, mer?.currency ?? mer?.spendCurrency ?? null);
   const ads = stats.map((a) => {
     const v = verdicts(a, t);
+    const wh = weakHook(a, t);
+    if (wh) v.push(wh);
     return {
       ad_id: a.ad_id, name: a.name, adset_id: a.adset_id, status: a.status, currency: a.currency,
       spend: a.spend, impressions: a.impressions, link_clicks: a.link_clicks, ctr: a.ctr, cpc: a.cpc, frequency: a.frequency,
+      video3s: a.video3s ?? null, thruplays: a.thruplays ?? null, hookRate: a.hookRate ?? null, holdRate: a.holdRate ?? null,
       results: { ...a.results, leadDays: undefined },
       cpl: a.results.leads ? a.spend / a.results.leads : null,
       cpaTicket: a.results.tickets ? a.spend / a.results.tickets : null,
@@ -107,7 +113,7 @@ autopilotAdmin.get('/concepts', async (c) => { try { return c.json(await concept
 autopilotAdmin.get('/concepts/plan', async (c) => { try { return c.json({ plan: await previewPlan(runtimeFrom(c)) }); } catch (e) { return fail(c, e); } });
 autopilotAdmin.post('/concepts/round', async (c) => {
   const rt = runtimeFrom(c);
-  const b = (await c.req.json().catch(() => ({}))) as { concepts?: Record<string, unknown>[]; adset_id?: string; creative_id?: string };
+  const b = (await c.req.json().catch(() => ({}))) as { concepts?: Record<string, unknown>[]; adset_id?: string; creative_id?: string; industry?: string };
   try {
     let specs: ConceptSpec[] | undefined;
     if (Array.isArray(b.concepts) && b.concepts.length) {
@@ -116,7 +122,7 @@ autopilotAdmin.post('/concepts/round', async (c) => {
       if (parsed.some((x) => !x)) return c.json({ ok: false, error: 'Each concept needs a desire, awareness level, format, audience, angle and framework from the lists.' }, 400);
       specs = parsed as ConceptSpec[];
     }
-    const r = await draftRound(rt, { specs, adset_id: b.adset_id, creative_id: b.creative_id });
+    const r = await draftRound(rt, { specs, adset_id: b.adset_id, creative_id: b.creative_id, industry: b.industry || null });
     return c.json({ ok: true, ...r });
   } catch (e) { return fail(c, e); }
 });
@@ -131,6 +137,15 @@ autopilotAdmin.post('/concepts/:id/verdict', async (c) => {
 });
 autopilotAdmin.post('/concepts/:id/hooks', async (c) => {
   try { return c.json({ ok: true, ...(await draftHookVariants(runtimeFrom(c), c.req.param('id'))) }); } catch (e) { return fail(c, e); }
+});
+
+// ───────────── Offer copy check (value equation): suggestions only, never edits ─────────────
+
+autopilotAdmin.get('/value-equation', async (c) => { try { return c.json(await valueEquationReport(runtimeFrom(c))); } catch (e) { return fail(c, e); } });
+autopilotAdmin.post('/value-equation/check', async (c) => {
+  const b = (await c.req.json().catch(() => ({}))) as { text?: string; product?: string };
+  if (!String(b.text ?? '').trim()) return c.json({ ok: false, error: 'Paste some copy to check.' }, 400);
+  return c.json({ ok: true, ...checkPasted(String(b.text), b.product === 'sprint' ? 'sprint' : 'engagement') });
 });
 
 // ───────────── Video scripts and hook packs ─────────────

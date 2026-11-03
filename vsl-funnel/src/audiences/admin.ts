@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { AudienceError, audiencesReport, proposeCreateAll, proposeLookalikes, setTerms, syncNow } from './sync';
+import { draftHalo, haloReport } from './halo';
 
 /** Funnel HQ → Meta audiences. Mounted at /admin/api/audiences (admin-only). */
 export const audiencesAdmin = new Hono<AppEnv>();
@@ -19,4 +20,7 @@ audiencesAdmin.get('/', async (c) => { try { return c.json(await audiencesReport
 audiencesAdmin.post('/create', async (c) => { try { return c.json({ ok: true, ...(await proposeCreateAll(runtimeFrom(c))) }); } catch (e) { return fail(c, e); } });
 audiencesAdmin.post('/lookalikes', async (c) => { try { return c.json({ ok: true, ...(await proposeLookalikes(runtimeFrom(c), String((await body(c)).source ?? ''))) }); } catch (e) { return fail(c, e); } });
 audiencesAdmin.post('/terms', async (c) => { try { await setTerms(runtimeFrom(c), (await body(c)).accepted ? 'accepted' : 'unknown'); return c.json({ ok: true }); } catch (e) { return fail(c, e); } });
+// Halo retargeting map: each engaged state, its audiences and the next-step concept; "Draft 3 ads" queues a launch for approval.
+audiencesAdmin.get('/halo', async (c) => { try { return c.json(await haloReport(runtimeFrom(c))); } catch (e) { return fail(c, e); } });
+audiencesAdmin.post('/halo/:id/draft', async (c) => { try { return c.json({ ok: true, ...(await draftHalo(runtimeFrom(c), c.req.param('id'), { adset_id: String((await body(c)).adset_id ?? '') || undefined })) }); } catch (e) { return fail(c, e instanceof Error && /Unknown/.test(e.message) ? new AudienceError(e.message, 404) : e); } });
 audiencesAdmin.post('/sync/:key', async (c) => { try { return c.json(await syncNow(runtimeFrom(c), c.req.param('key'))); } catch (e) { return fail(c, e); } });

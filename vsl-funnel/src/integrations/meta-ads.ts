@@ -93,8 +93,28 @@ export interface AdInsightRow {
   ad_id: string; ad_name?: string; adset_id?: string; adset_name?: string; campaign_id?: string; campaign_name?: string;
   spend?: string; impressions?: string; reach?: string; frequency?: string; clicks?: string; inline_link_clicks?: string;
   inline_link_click_ctr?: string; cost_per_inline_link_click?: string; account_currency?: string; date_start: string;
+  /** Video ads: actions[action_type = video_view] is the 3-second view count. */
+  actions?: { action_type: string; value: string }[];
+  video_thruplay_watched_actions?: { action_type?: string; value: string }[];
+  video_p50_watched_actions?: { action_type?: string; value: string }[];
 }
-export interface EntityRow { id: string; name?: string; status?: string; effective_status?: string; campaign_id?: string; adset_id?: string; daily_budget?: string; creative?: { id?: string }; created_time?: string }
+export interface EntityRow { id: string; name?: string; status?: string; effective_status?: string; campaign_id?: string; adset_id?: string; daily_budget?: string; creative?: { id?: string; video_id?: string; object_story_spec?: { video_data?: { video_id?: string } } }; created_time?: string }
+
+/**
+ * Video numbers of one insights row (null when the ad has no video): 3-second views, ThruPlays (15 seconds or the
+ * whole video when shorter) and plays to 50%. Hook rate = 3-second views / impressions; hold rate = ThruPlays /
+ * 3-second views.
+ */
+export function videoNumbers(r: Pick<AdInsightRow, 'actions' | 'video_thruplay_watched_actions' | 'video_p50_watched_actions'>) {
+  const sum = (list?: { value: string }[]) => (list?.length ? list.reduce((a, x) => a + (Number(x.value) || 0), 0) : null);
+  const v3 = r.actions?.find((a) => a.action_type === 'video_view');
+  const views = v3 ? Number(v3.value) || 0 : null;
+  const thru = sum(r.video_thruplay_watched_actions);
+  const p50 = sum(r.video_p50_watched_actions);
+  if (views == null && thru == null && p50 == null) return null;
+  return { video3s: views ?? 0, thruplays: thru ?? 0, p50: p50 ?? 0 };
+}
+const videoIdOf = (e: EntityRow) => e.creative?.video_id || e.creative?.object_story_spec?.video_data?.video_id || null;
 
 const num = (v: unknown) => (v == null || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 const ms = (v: string | undefined) => { const t = v ? Date.parse(v) : NaN; return Number.isFinite(t) ? t : null; };
@@ -110,10 +130,10 @@ export async function syncAdLevel(rt: Runtime, days = 7) {
   const token = encodeURIComponent(metaAdsToken(rt));
   const act = adAccountPath(rt);
   const range = JSON.stringify({ since: ymd(Date.now() - (days - 1) * 86400_000), until: ymd(Date.now()) });
-  const fields = 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,spend,impressions,reach,frequency,clicks,inline_link_clicks,inline_link_click_ctr,cost_per_inline_link_click,account_currency';
+  const fields = 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,spend,impressions,reach,frequency,clicks,inline_link_clicks,inline_link_click_ctr,cost_per_inline_link_click,account_currency,actions,video_thruplay_watched_actions,video_p50_watched_actions';
   const rows = await graphAll<AdInsightRow>(`${GRAPH}/${act}/insights?level=ad&time_increment=1&limit=500&fields=${fields}&time_range=${encodeURIComponent(range)}&access_token=${token}`);
   const [ads, adsets, campaigns] = await Promise.all([
-    graphAll<EntityRow>(`${GRAPH}/${act}/ads?fields=id,name,status,effective_status,adset_id,campaign_id,creative{id},created_time&limit=500&access_token=${token}`),
+    graphAll<EntityRow>(`${GRAPH}/${act}/ads?fields=id,name,status,effective_status,adset_id,campaign_id,creative{id,video_id,object_story_spec{video_data{video_id}}},created_time&limit=500&access_token=${token}`),
     graphAll<EntityRow>(`${GRAPH}/${act}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,created_time&limit=500&access_token=${token}`),
     graphAll<EntityRow>(`${GRAPH}/${act}/campaigns?fields=id,name,status,effective_status,daily_budget,created_time&limit=500&access_token=${token}`),
   ]);
@@ -124,21 +144,23 @@ export async function syncAdLevel(rt: Runtime, days = 7) {
 export async function storeAdLevel(rt: Runtime, rows: AdInsightRow[], ents: { ads: EntityRow[]; adsets: EntityRow[]; campaigns: EntityRow[] }) {
   const now = Date.now();
   const db = rt.env.DB;
-  const ins = rows.map((r) => db.prepare(
-    `INSERT INTO ad_insights (ad_id, day, adset_id, campaign_id, ad_name, spend, impressions, reach, frequency, clicks, link_clicks, ctr, cpc, currency, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  const ins = rows.map((r) => { const v = videoNumbers(r); return db.prepare(
+    `INSERT INTO ad_insights (ad_id, day, adset_id, campaign_id, ad_name, spend, impressions, reach, frequency, clicks, link_clicks, ctr, cpc, currency, video_3s, thruplays, video_p50, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(ad_id, day) DO UPDATE SET adset_id = excluded.adset_id, campaign_id = excluded.campaign_id, ad_name = excluded.ad_name, spend = excluded.spend,
        impressions = excluded.impressions, reach = excluded.reach, frequency = excluded.frequency, clicks = excluded.clicks, link_clicks = excluded.link_clicks,
-       ctr = excluded.ctr, cpc = excluded.cpc, currency = excluded.currency, updated_at = excluded.updated_at`,
+       ctr = excluded.ctr, cpc = excluded.cpc, currency = excluded.currency, video_3s = excluded.video_3s, thruplays = excluded.thruplays, video_p50 = excluded.video_p50, updated_at = excluded.updated_at`,
   ).bind(r.ad_id, r.date_start, r.adset_id ?? null, r.campaign_id ?? null, r.ad_name ?? null, num(r.spend) ?? 0, num(r.impressions) ?? 0, num(r.reach) ?? 0,
-    num(r.frequency), num(r.clicks) ?? 0, num(r.inline_link_clicks) ?? 0, num(r.inline_link_click_ctr), num(r.cost_per_inline_link_click), r.account_currency ?? null, now));
+    num(r.frequency), num(r.clicks) ?? 0, num(r.inline_link_clicks) ?? 0, num(r.inline_link_click_ctr), num(r.cost_per_inline_link_click), r.account_currency ?? null,
+    v?.video3s ?? null, v?.thruplays ?? null, v?.p50 ?? null, now); });
   const ent = (level: string, e: EntityRow) => db.prepare(
-    `INSERT INTO ad_entities (id, level, name, status, effective_status, campaign_id, adset_id, daily_budget, creative_id, created_time, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO ad_entities (id, level, name, status, effective_status, campaign_id, adset_id, daily_budget, creative_id, created_time, video_id, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET name = excluded.name, status = excluded.status, effective_status = excluded.effective_status, campaign_id = excluded.campaign_id,
-       adset_id = excluded.adset_id, daily_budget = excluded.daily_budget, creative_id = excluded.creative_id, created_time = COALESCE(excluded.created_time, ad_entities.created_time), updated_at = excluded.updated_at`,
+       adset_id = excluded.adset_id, daily_budget = excluded.daily_budget, creative_id = excluded.creative_id, created_time = COALESCE(excluded.created_time, ad_entities.created_time),
+       video_id = COALESCE(excluded.video_id, ad_entities.video_id), updated_at = excluded.updated_at`,
   ).bind(e.id, level, e.name ?? null, e.status ?? null, e.effective_status ?? null, level === 'campaign' ? e.id : e.campaign_id ?? null, level === 'ad' ? e.adset_id ?? null : level === 'adset' ? e.id : null,
-    num(e.daily_budget), e.creative?.id ?? null, ms(e.created_time), now);
+    num(e.daily_budget), e.creative?.id ?? null, ms(e.created_time), level === 'ad' ? videoIdOf(e) : null, now);
   const stmts = [...ins, ...ents.ads.map((e) => ent('ad', e)), ...ents.adsets.map((e) => ent('adset', e)), ...ents.campaigns.map((e) => ent('campaign', e))];
   for (let i = 0; i < stmts.length; i += 50) await db.batch(stmts.slice(i, i + 50));
   await db.prepare("INSERT INTO settings (key, value, updated_at) VALUES ('_meta_ads_level_synced_at', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at").bind(String(now), now).run().catch(() => null);

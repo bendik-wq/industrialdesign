@@ -9,7 +9,7 @@
     '.ap-prop{border-top:1px solid var(--border,#e5e5ea);padding:14px 0}.ap-prop:first-of-type{border-top:0}.ap-prop h3{margin:0 0 4px;font-size:15px}' +
     '.ap-detail{white-space:pre-wrap;font-size:13px;color:var(--ink-2,#3a3a3c);margin:6px 0 10px;line-height:1.5}' +
     '.ap-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.ap-edit{display:grid;gap:8px;margin:8px 0}.ap-edit textarea{width:100%;min-height:90px;box-sizing:border-box}.ap-edit[hidden]{display:none}' +
-    '.ap-b{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:650;margin:0 4px 2px 0}.ap-b.fatigue{background:#fff4e0;color:#8a5a00}.ap-b.loser{background:#f5f5f7;color:#6e6e73;border:1px solid #d2d2d7}.ap-b.winner{background:#e6f4ea;color:#1d6b3a}' +
+    '.ap-b{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:650;margin:0 4px 2px 0}.ap-b.fatigue{background:#fff4e0;color:#8a5a00}.ap-b.loser{background:#f5f5f7;color:#6e6e73;border:1px solid #d2d2d7}.ap-b.winner{background:#e6f4ea;color:#1d6b3a}.ap-b.weak_hook{background:#eef2f8;color:#0f2c5c}' +
     '.ap-table{width:100%;border-collapse:collapse;font-size:13px}.ap-table th,.ap-table td{padding:8px 6px;border-top:1px solid var(--border,#e5e5ea);text-align:left;vertical-align:top}.ap-table .num{text-align:right;white-space:nowrap}.ap-why{font-size:12px;color:#6e6e73;margin-top:2px}' +
     '.ap-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}.ap-form label{display:grid;gap:4px;font-size:13px}.ap-form .wide{grid-column:1/-1}' +
     '.ap-msg{border-top:1px solid var(--border,#e5e5ea);padding:10px 0}.ap-msg pre{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.5;margin:6px 0}.ap-note{color:#8a5a00;font-size:13px;margin:4px 0}' +
@@ -22,7 +22,8 @@
     '@media (max-width:900px){.ap-table thead{display:none}.ap-table tr{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;padding:8px 0;border-top:1px solid var(--border,#e5e5ea)}.ap-table td{border:0;padding:2px 0}.ap-table td:first-child{grid-column:1/-1}.ap-table td[data-l]::before{content:attr(data-l) " ";color:#6e6e73;font-size:12px}}';
   function css() { if (!document.getElementById('ap-css')) { var st = document.createElement('style'); st.id = 'ap-css'; st.textContent = CSS; document.head.appendChild(st); } }
 
-  var BADGE = { fatigue: 'Fatigued', loser: 'Losing', winner: 'Winner' };
+  var BADGE = { fatigue: 'Fatigued', loser: 'Losing', winner: 'Winner', weak_hook: 'Weak hook, good body' };
+  function rate(v) { return v == null || !isFinite(v) ? '–' : Number(v).toFixed(1) + '%'; }
   var KIND = { 'marketing.launch_concepts': 'Launch concept test', 'marketing.mer_hold': 'Scaling held (MER)', 'marketing.pause_ad': 'Pause ad', 'marketing.duplicate_ad': 'Duplicate ad', 'marketing.shift_budget': 'Move budget', 'marketing.launch_angle_ads': 'New ads from an angle', 'marketing.test_angle': 'Test an angle', 'marketing.sync': 'Read Meta' };
 
   function money(v, cur) { if (v == null || !isFinite(v)) return '–'; try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur || 'USD', maximumFractionDigits: v >= 100 ? 0 : 2 }).format(v); } catch (e) { return (cur || '') + ' ' + v.toFixed(2); } }
@@ -87,11 +88,12 @@
         return '<tr><td><strong>' + esc(a.name) + '</strong><div class="muted small">' + esc(a.ad_id) + ' · ' + esc((a.status || '').toLowerCase()) + '</div>' + badges +
           (a.reasons && a.reasons.length ? '<div class="ap-why">' + esc(a.reasons.join(' ')) + '</div>' : '') + '</td>' +
           '<td class="num" data-l="Spend">' + money(a.spend, cur) + '</td><td class="num" data-l="CTR">' + num(a.ctr, 2) + '%</td><td class="num" data-l="Freq.">' + num(a.frequency, 2) + '</td><td class="num" data-l="CPC">' + money(a.cpc, cur) + '</td>' +
+          '<td class="num" data-l="Hook">' + rate(a.hookRate) + '</td><td class="num" data-l="Hold">' + rate(a.holdRate) + '</td>' +
           '<td class="num" data-l="Leads">' + n(r.leads) + '</td><td class="num" data-l="$1M+">' + n(r.qualified) + '</td><td class="num" data-l="Tickets">' + n(r.tickets) + '</td><td class="num" data-l="Booked">' + n(r.bookings) + '</td><td class="num" data-l="Deposits">' + n(r.deposits) + '</td>' +
           '<td class="num" data-l="Per lead">' + money(a.cpl, cur) + '</td><td class="num" data-l="Per ticket">' + money(a.cpaTicket, cur) + '</td></tr>';
       }).join('');
-      var adsCard = '<div class="card ap-card"><div class="ap-head"><h2>Ads, last 14 days</h2><span class="muted">Results are our own: leads, revenue band, tickets, bookings and deposits matched by utm_content</span></div>' +
-        (rows ? '<div class="table-wrap"><table class="ap-table"><thead><tr><th>Ad</th><th class="num">Spend</th><th class="num">Link CTR</th><th class="num">Freq.</th><th class="num">CPC</th><th class="num">Leads</th><th class="num">$1M+</th><th class="num">Tickets</th><th class="num">Booked</th><th class="num">Deposits</th><th class="num">Per lead</th><th class="num">Per ticket</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+      var adsCard = '<div class="card ap-card"><div class="ap-head"><h2>Ads, last 14 days</h2><span class="muted">Results are our own: leads, revenue band, tickets, bookings and deposits matched by utm_content. Hook = 3-second views ÷ impressions, hold = ThruPlays ÷ 3-second views (video ads)</span></div>' +
+        (rows ? '<div class="table-wrap"><table class="ap-table"><thead><tr><th>Ad</th><th class="num">Spend</th><th class="num">Link CTR</th><th class="num">Freq.</th><th class="num">CPC</th><th class="num" title="3-second video views ÷ impressions">Hook</th><th class="num" title="ThruPlays ÷ 3-second views">Hold</th><th class="num">Leads</th><th class="num">$1M+</th><th class="num">Tickets</th><th class="num">Booked</th><th class="num">Deposits</th><th class="num">Per lead</th><th class="num">Per ticket</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
           : '<p class="muted">No ad spend read yet.</p>') + '</div>';
 
       var adsetOpts = '<option value="">Choose later</option>' + (d.adsets || []).map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.name || s.id) + (s.effective_status ? ' (' + esc(s.effective_status.toLowerCase()) + ')' : '') + '</option>'; }).join('');
@@ -120,13 +122,15 @@
         field('ADS_TARGET_CPL', 'Target cost per lead', '60') + field('ADS_TARGET_CPA_TICKET', 'Target cost per ticket', '150') + field('ADS_TARGET_CPA_DEPOSIT', 'Target cost per deposit', '1500') + field('ADS_TARGET_CPA_BOOKING', 'Target cost per booked call', '250') +
         field('ADS_LOSER_SPEND', 'Spend before judging an ad', String(d.targets.loserSpend)) + field('ADS_MAX_DAILY_SHIFT_PCT', 'Most budget moved per ad set per day (%)', '20') + field('ADS_MAX_DAILY_BUDGET', 'Highest daily budget per ad set', 'no cap') +
         field('ADS_FATIGUE_FREQUENCY', 'Fatigue: frequency above', '2.5') + field('ADS_FATIGUE_CTR_DROP_PCT', 'Fatigue: link CTR down by (%)', '30') + field('ADS_WINNER_MIN_RESULTS', 'Winner: results needed', '3') + field('ADS_MER_FLOOR', 'Blended MER floor (blank = off)', '1.5') +
+        field('ADS_HOOK_RATE_FLOOR', 'Video: weak hook under (%)', '25') + field('ADS_HOLD_RATE_GOOD', 'Video: good hold from (%)', '30') + field('ADS_HOOK_MIN_IMPRESSIONS', 'Video: impressions before judging the hook', '2000') +
         field('ADS_PAGE_ID', 'Facebook Page ID for new ads', '') + field('ADS_LANDING_URL', 'Landing page for new ads', '') + field('ADS_AUTOPILOT', 'Autopilot (on or off)', 'on') +
         '<button class="btn-sm" type="submit">Save</button></form></div>';
 
-      view.innerHTML = head + merHtml(ctx, d.mer) + propCard + adsCard + '<div data-ap-concepts></div><div data-ap-scripts></div>' + angleCard + histCard + setCard;
+      view.innerHTML = head + merHtml(ctx, d.mer) + propCard + adsCard + '<div data-ap-concepts></div><div data-ap-scripts></div><div data-ap-offercheck></div>' + angleCard + histCard + setCard;
       wireAds(d, cur);
       Concepts.render(ctx, view.querySelector('[data-ap-concepts]'), d);
       Scripts.render(ctx, view.querySelector('[data-ap-scripts]'));
+      if (root.Ads2 && root.Ads2.offerCheck) root.Ads2.offerCheck(ctx, view.querySelector('[data-ap-offercheck]'));
     });
 
     function proposal(p, d, cur) {
@@ -283,7 +287,8 @@
         var metricCells = function (x) {
           x = x || {};
           return '<td class="num" data-l="Spend">' + m(x.spend) + '</td><td class="num" data-l="Registrants">' + n(x.registrants || 0) + '</td><td class="num" data-l="Buyers">' + n(x.buyers || 0) + '</td>' +
-            '<td class="num" data-l="Revenue">' + m(x.revenue) + '</td><td class="num" data-l="Per registrant">' + m(x.costPerRegistrant) + '</td><td class="num" data-l="Per buyer">' + m(x.costPerBuyer) + '</td><td class="num" data-l="ROAS">' + ratio(x.roas) + '</td>';
+            '<td class="num" data-l="Revenue">' + m(x.revenue) + '</td><td class="num" data-l="Per registrant">' + m(x.costPerRegistrant) + '</td><td class="num" data-l="Per buyer">' + m(x.costPerBuyer) + '</td><td class="num" data-l="ROAS">' + ratio(x.roas) + '</td>' +
+            '<td class="num" data-l="Hook">' + rate(x.hookRate) + '</td><td class="num" data-l="Hold">' + rate(x.holdRate) + '</td>';
         };
         var chips = function (c) {
           return '<div class="ap-chips">' + VARS.filter(function (v) { return v[0] !== 'angle'; }).map(function (v) { return '<span class="ap-chip">' + esc(v[1]) + ': <b>' + esc(c.labels[v[0]]) + '</b></span>'; }).join('') + '</div>';
@@ -292,7 +297,7 @@
           var r = a.results || {};
           var editable = a.status === 'draft' || a.status === 'proposed';
           return '<div class="ap-ad" data-cx-ad="' + esc(a.id) + '"><span class="pill">' + esc(a.kind === 'hook_variant' ? 'hook variant' : 'ad ' + a.idx) + '</span> <span class="muted small mono">utm_content=' + esc(a.utm_content) + '</span> <span class="muted small">' + esc(a.status) + (a.meta_ad_id ? ' · Meta ' + esc(a.meta_ad_id) : '') +
-            (r.spend || r.registrants ? ' · ' + m(r.spend) + ' spent, ' + n(r.registrants) + ' registrants, ' + n(r.buyers) + ' buyers' : '') + '</span>' +
+            (r.spend || r.registrants ? ' · ' + m(r.spend) + ' spent, ' + n(r.registrants) + ' registrants, ' + n(r.buyers) + ' buyers' : '') + (r.hookRate != null ? ' · hook ' + rate(r.hookRate) + ', hold ' + rate(r.holdRate) : '') + '</span>' +
             '<div class="hook">' + esc(a.hook) + '</div><pre>' + esc(a.body) + '</pre><div class="muted small">Headline: ' + esc(a.headline) + (a.description ? ' · ' + esc(a.description) : '') + '</div>' +
             '<div class="ap-actions" style="margin-top:6px"><button class="btn-sm ghost" data-cx-copy>Copy</button><button class="btn-sm ghost" data-cx-copyhook>Copy hook</button>' + (editable ? '<button class="btn-sm ghost" data-cx-edit>Edit</button>' : '') + '</div>' +
             (editable ? '<div class="ap-edit" data-cx-editbox hidden><label>Hook<textarea class="input" data-f="hook" rows="2">' + esc(a.hook) + '</textarea></label>' + (a.kind === 'hook_variant' ? '' : '<label>Body<textarea class="input" data-f="body" rows="5">' + esc(a.body) + '</textarea></label>') +
@@ -308,9 +313,9 @@
             return '<tr><td><strong>' + (r.kind === 'hooks' ? 'Winner, new hooks' : 'Concept ' + c.idx) + '</strong> ' + badge + '<div class="ap-why">' + esc(c.angle) + '</div>' + chips(c) + (c.verdict_reason ? '<div class="ap-why">' + esc(c.verdict_reason) + '</div>' : '') +
               '<div class="ap-actions" style="margin-top:4px">' + actions + '</div><details><summary class="muted small">' + n(c.ads.length) + ' ads</summary>' + c.ads.map(adHtml).join('') + '</details></td>' + metricCells(c.metrics) + '</tr>';
           }).join('');
-          return '<div class="ap-msg"><div class="ap-head"><div><strong>' + esc(r.label) + '</strong> <span class="pill">' + esc(r.status) + '</span> <span class="muted small">' + esc(r.origin === 'ai' ? 'written by Claude' : 'house templates') + ' · ' + esc(when(r.created_at)) + '</span></div></div>' +
+          return '<div class="ap-msg"><div class="ap-head"><div><strong>' + esc(r.label) + '</strong> <span class="pill">' + esc(r.status) + '</span>' + (r.link ? ' <span class="muted small mono">' + esc(r.link.replace(/^https?:\/\/[^/]+/, '')) + '</span>' : '') + ' <span class="muted small">' + esc(r.origin === 'ai' ? 'written by Claude' : 'house templates') + ' · ' + esc(when(r.created_at)) + '</span></div></div>' +
             (r.error ? '<p class="ap-note">' + esc(r.error) + '</p>' : '') + (r.spec ? '<details><summary>Paste-ready spec</summary><div class="ap-actions"><button class="btn-sm ghost" data-cx-spec="' + esc(r.id) + '">Copy spec</button></div><pre>' + esc(r.spec) + '</pre></details>' : '') +
-            '<div class="table-wrap"><table class="ap-table"><thead><tr><th>Concept</th><th class="num">Spend</th><th class="num">Registrants</th><th class="num">Buyers</th><th class="num">Revenue</th><th class="num">Per registrant</th><th class="num">Per buyer</th><th class="num">ROAS</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+            '<div class="table-wrap"><table class="ap-table"><thead><tr><th>Concept</th><th class="num">Spend</th><th class="num">Registrants</th><th class="num">Buyers</th><th class="num">Revenue</th><th class="num">Per registrant</th><th class="num">Per buyer</th><th class="num">ROAS</th><th class="num" title="3-second video views ÷ impressions">Hook</th><th class="num" title="ThruPlays ÷ 3-second views">Hold</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
         }).join('');
         var vrows = ((d.byVariable || {})[self.variable] || []).map(function (x) { return '<tr><td>' + esc(x.label) + '<div class="ap-why">' + n(x.concepts) + ' concept' + (x.concepts === 1 ? '' : 's') + ', ' + n(x.ads) + ' ads</div></td>' + metricCells(x) + '</tr>'; }).join('');
         var vsel = '<select class="input" data-cx-var style="max-width:200px">' + VARS.map(function (v) { return '<option value="' + v[0] + '"' + (v[0] === self.variable ? ' selected' : '') + '>' + v[1] + '</option>'; }).join('') + '</select>';
@@ -318,8 +323,9 @@
           '<p class="muted small">A concept fixes the desire, awareness level, format, audience, angle and framework; its three ads differ in the hook. Drafts only: launching goes through Proposed changes and needs the write token (else a spec to paste). Winners get hook-only variants: the same body under new hooks.</p>' +
           '<div class="ap-actions"><button class="btn-sm" data-cx-plan>Plan the next round</button></div><div data-cx-planbox></div>' +
           (rounds || '<p class="muted">No rounds yet.</p>') +
+          (root.Ads2 && root.Ads2.industryTable ? root.Ads2.industryTable(ctx, d, metricCells) : '') +
           '<div class="ap-head" style="margin-top:16px"><h3 style="margin:0;font-size:15px">Results by variable</h3>' + vsel + '</div>' +
-          (vrows ? '<div class="table-wrap"><table class="ap-table"><thead><tr><th>Value</th><th class="num">Spend</th><th class="num">Registrants</th><th class="num">Buyers</th><th class="num">Revenue</th><th class="num">Per registrant</th><th class="num">Per buyer</th><th class="num">ROAS</th></tr></thead><tbody>' + vrows + '</tbody></table></div>' : '<p class="muted">Results show once a round has spend.</p>') + '</div>';
+          (vrows ? '<div class="table-wrap"><table class="ap-table"><thead><tr><th>Value</th><th class="num">Spend</th><th class="num">Registrants</th><th class="num">Buyers</th><th class="num">Revenue</th><th class="num">Per registrant</th><th class="num">Per buyer</th><th class="num">ROAS</th><th class="num" title="3-second video views ÷ impressions">Hook</th><th class="num" title="ThruPlays ÷ 3-second views">Hold</th></tr></thead><tbody>' + vrows + '</tbody></table></div>' : '<p class="muted">Results show once a round has spend.</p>') + '</div>';
         self.wire(ctx, box, d, parent);
       }).catch(function () { box.innerHTML = '<div class="card ap-card"><p class="ap-note">Concept testing could not load. Refresh the page.</p></div>'; });
     },
@@ -357,13 +363,13 @@
           }).join('');
           var adsets = '<option value="">Choose later</option>' + ((parent && parent.adsets) || []).map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.name || s.id) + '</option>'; }).join('');
           box.querySelector('[data-cx-planbox]').innerHTML = '<form class="ap-plan card" data-cx-planform style="margin-top:10px"><p class="muted small" style="margin:0">Four concepts that differ on purpose; combinations an earlier round tested are skipped. Change anything, then draft.</p>' + rowsHtml +
-            '<div class="ap-form"><label>Ad set for the paused ads<select class="input" name="adset_id">' + adsets + '</select></label><label>Reuse the image of creative (id, optional)<input class="input" name="creative_id" placeholder="Text only if blank"></label><button class="btn-sm" type="submit">Draft 12 ads</button></div></form>';
+            '<div class="ap-form"><label>Industry (optional)<select class="input" name="industry"><option value="">All industries (default landing page)</option>' + ((o.industries || []).map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.label) + '</option>'; }).join('')) + '</select><span class="muted small">Ads speak to that industry and point at its lander (/m?ind=…), where the bandit picks the headline.</span></label><label>Ad set for the paused ads<select class="input" name="adset_id">' + adsets + '</select></label><label>Reuse the image of creative (id, optional)<input class="input" name="creative_id" placeholder="Text only if blank"></label><button class="btn-sm" type="submit">Draft 12 ads</button></div></form>';
           var f = box.querySelector('[data-cx-planform]');
           f.onsubmit = function (e) {
             e.preventDefault();
             var concepts = Array.prototype.map.call(f.querySelectorAll('[data-cx-row]'), function (row) { var x = {}; row.querySelectorAll('[data-p]').forEach(function (s) { x[s.getAttribute('data-p')] = s.value; }); return x; });
             var btn = f.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Drafting…';
-            ctx.send('POST', 'autopilot/concepts/round', { concepts: concepts, adset_id: f.adset_id.value, creative_id: f.creative_id.value }).then(function (r) {
+            ctx.send('POST', 'autopilot/concepts/round', { concepts: concepts, adset_id: f.adset_id.value, creative_id: f.creative_id.value, industry: f.industry.value }).then(function (r) {
               if (!r.ok) { toast(r.error); btn.disabled = false; btn.textContent = 'Draft 12 ads'; return; }
               toast(r.ads + ' ads drafted (' + (r.origin === 'ai' ? 'Claude' : 'house templates') + '). The launch waits in Proposed changes.');
               renderAds(ctx);
