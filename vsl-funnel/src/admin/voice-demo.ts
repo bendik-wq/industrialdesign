@@ -4,7 +4,7 @@
  * (see isDemoConversation). Admin only; the API key never reaches the browser (we hand it a short-lived signed URL).
  */
 import { Hono } from 'hono';
-import { type AppEnv, runtimeFrom } from '../app';
+import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { el } from '../integrations/elevenlabs';
 import type { Settings } from '../settings';
 
@@ -12,9 +12,28 @@ export interface DemoScenario {
   id: string;
   label: string;
   blurb: string;
-  agent: 'outbound' | 'inbound';
+  agent: 'outbound' | 'inbound' | 'webinar';
   you: string;
-  vars: (s: Settings) => Record<string, string>;
+  vars: (s: Settings, rt?: Runtime) => Record<string, string> | Promise<Record<string, string>>;
+}
+
+const HOUR = 3_600_000;
+/** A sample live event and lead, run through the real webinar-call builder so the demo hears exactly what a real call gets. */
+async function webinarVars(rt: Runtime, kind: 'w_pre_day' | 'w_post_nobuy') {
+  const W = await import('../integrations/webinar-calls');
+  const now = Date.now(), after = kind === 'w_post_nobuy';
+  const startsAt = after ? now - 20 * HOUR : now + 24 * HOUR;
+  const ctx = {
+    funnel: 'live', regId: 'demo', leadId: 'demo', token: 'demo', day: null, title: 'Buy your first competitor',
+    startsAt, endsAt: startsAt + 2 * HOUR, cancelled: false, regCreatedAt: now - 3 * 24 * HOUR, ticketPending: false,
+    joinedAt: after ? startsAt + 5 * 60_000 : null, lastSeenAt: after ? startsAt + 110 * 60_000 : null, replayWatchedAt: null, replayClosesAt: after ? now + 28 * HOUR : null,
+    offer: { name: 'Engagement deposit', relevant: true, opened: after, open: after, closesAt: after ? now + 28 * HOUR : null, openedAt: after ? startsAt + 80 * 60_000 : null },
+    bought: { sprint: false, deposit: false, vip: false },
+    links: { join: 'https://live.grosfjeld-li.com', replay: null, offer: null }, host: 'live.grosfjeld-li.com',
+    prep: 'a pen and paper, and last year’s revenue and profit to hand',
+  } as unknown as Parameters<typeof W.callVariables>[3];
+  const lead = { id: 'demo', first_name: 'Dana', phone: '+61412345678', timezone: 'Australia/Brisbane', country: 'AU' } as unknown as Parameters<typeof W.callVariables>[2];
+  return { ...(await W.callVariables(rt, kind, lead, ctx, null, {}, 1, now)), demo: 'yes' };
 }
 
 const base = (s: Settings) => ({
@@ -44,6 +63,18 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     vars: (s) => ({ ...base(s), first_name: 'Priya', business: 'dental clinic group in Melbourne', tier: 'A', email: 'priya@example.com', call_kind: 'rebook', call_time: 'yesterday at 2:00 PM', voicemail_reason: 'finding you a new time for your strategy call', opening: 'We missed you on your strategy call, so I’m calling to see if you’d like a new time. Have you got thirty seconds?' }),
   },
   {
+    id: 'webinar_pre', label: 'Webinar: day-before reminder', agent: 'webinar',
+    blurb: 'Sam calls someone registered for tomorrow’s live session, “Buy your first competitor”.',
+    you: 'You are Dana from Brisbane. Try: “I can’t make it after all”, “What should I have ready?” or “Can you send me the link?”',
+    vars: (_s, rt) => webinarVars(rt!, 'w_pre_day'),
+  },
+  {
+    id: 'webinar_nobuy', label: 'Webinar: attended, didn’t buy', agent: 'webinar',
+    blurb: 'Sam calls the day after the live session. The engagement deposit offer is still open (a sample close time).',
+    you: 'You are Dana. Try: “What does the deposit get me?”, “Is it refundable?”, “Do I need my own money?” or “I need to think about it.”',
+    vars: (_s, rt) => webinarVars(rt!, 'w_post_nobuy'),
+  },
+  {
     id: 'callback', label: 'Someone rings us back', agent: 'inbound',
     blurb: 'You ring the number back after a missed call. Sam doesn’t know who you are.',
     you: 'Try: “Who is this?”, “What do you do?”, “Can I speak to Josh?” or “How does the funding work?”',
@@ -68,18 +99,25 @@ voiceDemoApi.post('/session', async (c) => {
   const sc = DEMO_SCENARIOS.find((x) => x.id === b.scenario);
   if (!sc) return c.json({ ok: false, error: 'Pick a scenario.' }, 400);
   if (!s.ELEVENLABS_API_KEY) return c.json({ ok: false, error: 'Add the ElevenLabs API key under Integrations → Voice first.' }, 400);
-  const agentId = sc.agent === 'inbound' ? s.ELEVENLABS_INBOUND_AGENT_ID : s.ELEVENLABS_AGENT_ID;
-  if (!agentId) return c.json({ ok: false, error: 'That agent hasn’t been created yet (AI phone calls → Create / update agent).' }, 400);
   try {
+    const agentId = sc.agent === 'inbound' ? s.ELEVENLABS_INBOUND_AGENT_ID : sc.agent === 'webinar' ? await webinarAgentId(s) : s.ELEVENLABS_AGENT_ID;
+    if (!agentId) return c.json({ ok: false, error: 'That agent hasn’t been created yet (AI phone calls → Create / update agent).' }, 400);
     const r = await el<{ signed_url: string }>(s, `/v1/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(agentId)}`);
     c.header('cache-control', 'no-store');
-    return c.json({ ok: true, signedUrl: r.signed_url, dynamicVariables: sc.vars(s), label: sc.label });
+    return c.json({ ok: true, signedUrl: r.signed_url, dynamicVariables: await sc.vars(s, rt), label: sc.label });
   } catch (e) {
     console.error('voice demo session', e instanceof Error ? e.message.slice(0, 200) : e);
     const auth = e instanceof Error && /\b40[13]\b/.test(e.message);
     return c.json({ ok: false, error: auth ? 'ElevenLabs refused the API key. Check it under Integrations → Voice.' : 'ElevenLabs didn’t start the session. Try again in a moment.' }, 502);
   }
 });
+
+/** The webinar agent: the saved ID, else the agent ElevenLabs has under our name (it exists before the ID is saved). */
+async function webinarAgentId(s: Settings) {
+  if (String(s.ELEVENLABS_WEBINAR_AGENT_ID ?? '').trim()) return String(s.ELEVENLABS_WEBINAR_AGENT_ID).trim();
+  const r = await el<{ agents?: { agent_id: string; name: string }[] }>(s, `/v1/convai/agents?page_size=30&search=${encodeURIComponent('webinar calls')}`);
+  return r.agents?.find((a) => /webinar calls/i.test(a.name))?.agent_id ?? '';
+}
 
 /** The page itself (admin only). Its own CSP: our scripts, the microphone, and the ElevenLabs connection; nothing else. */
 export const VOICE_DEMO_CSP = "default-src 'self'; script-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' wss://api.elevenlabs.io https://api.elevenlabs.io wss://livekit.rtc.elevenlabs.io https://livekit.rtc.elevenlabs.io; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
