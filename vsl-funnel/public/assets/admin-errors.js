@@ -72,7 +72,8 @@
         '<label class="er-switch"><input type="checkbox" data-er-slack' + (slack ? ' checked' : '') + '> Ping Slack on a new error</label></div>' +
         '<p class="er-note">Off by default. When on, the first time a new error shows up the Command Slack channel gets one message (at most 5 an hour). Setting ERRORS_SLACK.</p></div>';
 
-      view.innerHTML = '<div class="er-wrap">' + head + tiles + perDay + fps + cron + '</div>';
+      view.innerHTML = '<div class="er-wrap">' + head + tiles + perDay + fps + cron + '<div data-er-watchdog></div></div>';
+      watchdog(ctx, view.querySelector('[data-er-watchdog]'));
       var box = view.querySelector('[data-er-slack]');
       if (box) box.onchange = function () {
         box.disabled = true;
@@ -81,6 +82,38 @@
         }).catch(function () { box.checked = !box.checked; ctx.toast('Couldn’t save. Try again.'); }).then(function () { box.disabled = false; });
       };
     });
+  }
+
+  // Funnel watchdog (Cloudflare round, builder D; setting WATCHDOG): the last 24 hourly browser checks of the key pages.
+  function watchdog(ctx, box) {
+    if (!box) return;
+    var esc = ctx.esc, when = ctx.when;
+    ctx.api('cf/watchdog', {}, { noRange: true }).then(function (d) {
+      if (!d || !d.runs) { box.innerHTML = ''; return; }
+      var state = d.on ? 'On: every ' + d.everyMinutes + ' minutes the cron opens the key public pages in a real browser.' : 'Off (setting WATCHDOG). Turn it on under Integrations → Alerts.';
+      if (!d.browser) state += ' Browser Rendering isn’t available in this environment, so runs record every page as skipped.';
+      var dots = d.runs.slice().reverse().map(function (r) {
+        var cls = r.checked === 0 ? '' : r.ok ? 'ok' : 'failed';
+        return '<span class="er-st ' + cls + '" title="' + esc(when(r.at) + ': ' + (r.checked === 0 ? 'skipped' : r.ok ? 'all passed' : r.failed + ' failed')) + '"><span class="er-dot" aria-hidden="true"></span></span>';
+      }).join(' ');
+      var last = d.runs[0];
+      var rows = last ? last.checks.map(function (x) {
+        return '<tr><td>' + esc(x.name) + '<div class="muted mono">' + esc(x.path) + '</div></td><td class="nw"><span class="er-st ' + esc(x.status) + '"><span class="er-dot" aria-hidden="true"></span>' + esc(x.status === 'ok' ? 'OK' : x.status === 'failed' ? 'Failed' : 'Skipped') + '</span></td><td class="num">' + (x.ms ? esc(ms(x.ms)) : '–') + '</td><td><span class="er-msg">' + esc(x.error || x.note || '') + '</span></td></tr>';
+      }).join('') : '';
+      box.innerHTML = '<div class="card"><div class="er-head"><div><h2>Funnel watchdog</h2><p class="sub">' + esc(state) + '</p></div><button type="button" class="btn-sm ghost" data-wd-run>Run now</button></div>' +
+        (d.runs.length ? '<p class="er-kinds">' + (d.runs.length === 1 ? 'Last run: ' : 'Last ' + d.runs.length + ' runs, oldest first: ') + dots + '</p><p class="sub">Latest run ' + esc(when(last.at)) + ' (' + esc(last.trigger) + ', ' + esc(ms(last.ms)) + ').</p>' +
+          '<div class="table-wrap"><table><thead><tr><th>Page</th><th>Status</th><th class="num">Time</th><th>Detail</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+          : '<p class="muted">No runs yet.</p>') + '</div>';
+      var btn = box.querySelector('[data-wd-run]');
+      btn.onclick = function () {
+        btn.disabled = true; btn.textContent = 'Running…';
+        ctx.send('POST', 'cf/watchdog/run', {}).then(function (r) {
+          var x = r && r.run;
+          ctx.toast(!x ? 'Couldn’t run the checks.' : x.checked === 0 ? 'Every page was skipped (no browser here).' : x.ok ? 'Every page passed.' : x.failed + ' page(s) failed.');
+          watchdog(ctx, box);
+        }).catch(function () { ctx.toast('Couldn’t run the checks.'); btn.disabled = false; btn.textContent = 'Run now'; });
+      };
+    }).catch(function () { box.innerHTML = ''; });
   }
 
   root.ErrorsBoard = { render: render };

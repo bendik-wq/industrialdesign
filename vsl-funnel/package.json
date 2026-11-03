@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
+    "@cloudflare/puppeteer": "^1.4.0",
     "hono": "^4.10.0"
   },
   "devDependencies": {

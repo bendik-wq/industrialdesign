@@ -1,4 +1,5 @@
 import type { Runtime } from '../app';
+import { streamVideoSrc } from '../infra/cf-stream';
 import { edition } from './editions';
 import { VIDEOS } from '../config';
 import { newId } from '../lib/ids';
@@ -69,7 +70,7 @@ export function webinarSettings(rt: Runtime) {
     durationMin: num(s.WEBINAR_DURATION_MIN, edition(s).durationMin),
     pitchAtMin: num(s.WEBINAR_PITCH_AT, edition(s).pitchAtMin),
     replayHours: num(s.WEBINAR_REPLAY_HOURS, 48),
-    videoSrc: s.WEBINAR_VIDEO_SRC || edition(s).videoSrc || s.VSL_MAIN_SRC || VIDEOS.main.defaultSrc || '',
+    videoSrc: s.WEBINAR_VIDEO_SRC || edition(s).videoSrc || streamVideoSrc(s.VSL_MAIN_SRC, s.STREAM_CUSTOMER_CODE) || VIDEOS.main.defaultSrc || '', // a Stream id/link → its HLS manifest (builder D)
     placeholderVideo: !s.WEBINAR_VIDEO_SRC && !edition(s).videoSrc,
     streamHls: s.WEBINAR_STREAM_HLS || '',
   };

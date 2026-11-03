@@ -5,6 +5,7 @@ import { escHtml } from '../followup/dossier';
 import { geoFromRequest } from '../lib/geo';
 import { overLimit } from '../lib/ratelimit';
 import { parseUA } from '../lib/ua';
+import { contractPdfRoute, isPdfRender, pdfEnabled } from '../infra/pdf';
 import { type Contract, company, contractByToken, documentHtml, isExpired, markViewed, money, payLinkFor, paymentDetails, paymentHtml, signContract } from '../sales/contracts';
 
 /** /sign/<token>: read and e-sign an engagement letter; /sign/<token>/copy: the signed copy with its signing record. */
@@ -110,9 +111,16 @@ sign.get('/:token{[0-9a-f]{40}}/copy', async (c) => {
   const k = await contractByToken(rt, c.req.param('token'));
   if (!k || k.status !== 'signed' || !k.body_html) return c.redirect(k ? `/sign/${k.token}` : '/', 302);
   const tz = 'America/Denver';
+  // Download PDF (Cloudflare round, builder D; setting PDF_RENDER, off by default): Browser Rendering makes the PDF.
+  // Our renderer opens this page with a signed ?pdf= token, and then neither button is shown.
+  const rendering = await isPdfRender(c);
+  const pdfBtn = !rendering && pdfEnabled(rt) ? ` <a class="btn-sm ghost" href="/sign/${escHtml(k.token)}/pdf" rel="nofollow">Download PDF</a>` : '';
   return c.html(page(`Signed: ${k.title}`, `
-    <p class="signed-banner">${k.is_test ? 'Test agreement. ' : ''}Signed by both parties, ${escHtml(when(k.signed_at, tz))}. <button type="button" class="btn-sm ghost" data-print>Save as PDF / print</button></p>
+    <p class="signed-banner">${k.is_test ? 'Test agreement. ' : ''}Signed by both parties, ${escHtml(when(k.signed_at, tz))}.${rendering ? '' : ' <button type="button" class="btn-sm ghost" data-print>Save as PDF / print</button>'}${pdfBtn}</p>
     ${!k.paid_at && payLinkFor(rt, k) ? `<p class="pay-banner">The ${escHtml(money(k.fee, k.currency))} fee is due. <a class="btn-sm" href="${escHtml(payLinkFor(rt, k)!)}" rel="noopener">Pay now</a></p>` : k.paid_at ? '<p class="paid-banner">Paid. Thank you.</p>' : ''}
     <article class="letter">${documentHtml(rt, k)}</article>${auditTrail(k, tz)}
     <p class="muted small" style="text-align:center;margin-top:14px">${escHtml(company(rt).name)}</p>`));
 });
+
+/** GET /sign/<token>/pdf: the signed copy as a PDF (Browser Rendering; setting PDF_RENDER). Off: back to the copy page. */
+sign.get('/:token{[0-9a-f]{40}}/pdf', contractPdfRoute);

@@ -46,6 +46,13 @@
   // Without the binding the host room offers the recording as a download instead.
   "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "gl-room-recordings" }],
 
+  // ── Cloudflare round, builder D: Workers KV + Browser Rendering ──
+  // KV namespace GL_CACHE: the settings cache (setting KV_CACHE, off by default; src/settings.ts). Works locally (Miniflare).
+  "kv_namespaces": [{ "binding": "CACHE", "id": "8f0bcd150bf740a1b71a17c66eca88a8" }],
+  // Browser Rendering: Download PDF (setting PDF_RENDER) and the hourly funnel watchdog (setting WATCHDOG), both off by default.
+  // The code checks for the binding and falls back (print to PDF stays; the watchdog records "no browser") when it is missing.
+  "browser": { "binding": "BROWSER" },
+
   // Email queue, abandoned-application detection and call reminders.
   "triggers": { "crons": ["*/5 * * * *"] },
 

@@ -363,6 +363,13 @@ export const SETTINGS = [
   { key: 'ZAPIER_INBOUND_SECRET', label: 'Zapier: inbound action secret', group: 'Clients & support', secret: true, help: 'Shared secret for POST /hooks/zapier/create-lead and /hooks/zapier/add-note (header X-Zapier-Secret).' },
   // ───────────── infra (overnight round 1): the internal error log ─────────────
   { key: 'ERRORS_SLACK', label: 'Errors: ping Slack on a new kind of error', group: 'Alerts', placeholder: 'off', help: 'on = the first time a new error shows up (Funnel HQ → Errors & cron) the Command Slack channel gets one message, at most 5 an hour. Blank or off = no pings; errors are still logged.' },
+  // ── Cloudflare round, builder D: Workers KV settings cache, Browser Rendering (PDFs, funnel watchdog), Stream ──
+  { key: 'KV_CACHE', label: 'Settings cache in Workers KV', group: 'Site', placeholder: 'off', help: 'on = every request reads these settings from Workers KV (binding CACHE, kept 60 seconds) instead of the database; every save here clears it at once. off (default) = read from the database as before.' },
+  { key: 'PDF_RENDER', label: 'Download PDF (Deal Plan and signed agreements)', group: 'Contracts', placeholder: 'off', help: 'on = the Deal Plan page and the signed agreement get a Download PDF link, rendered by Cloudflare Browser Rendering and kept in R2 under pdf/. off (default) = the page’s own print / save as PDF stays the only way.' },
+  { key: 'WATCHDOG', label: 'Funnel watchdog (hourly browser check)', group: 'Alerts', placeholder: 'off', help: 'on = once an hour a real browser opens the home page, the application, the live landing page, the masterclass and a room’s join page, and checks each renders with no page errors and its main button. Results show in Funnel HQ → Errors & cron; failures go to the error log, and to the Command Slack channel when one is connected. Needs the Public URL under Site. off (default) = no checks.' },
+  { key: 'STREAM_ACCOUNT_TOKEN', label: 'Cloudflare Stream API token', group: 'Video', secret: true, help: 'A Cloudflare API token with Stream: Edit. With it, Funnel HQ → Rooms can send a finished recording to Stream, and that replay then plays through Stream (adaptive quality, better on phones). Blank = off: replays play the recording file as before.' },
+  { key: 'STREAM_ACCOUNT_ID', label: 'Cloudflare account ID (for Stream)', group: 'Video', placeholder: '50e9fc42a7947d3f932cd1ed0bf95c03', help: 'Blank uses the account shown.' },
+  { key: 'STREAM_CUSTOMER_CODE', label: 'Stream customer subdomain code', group: 'Video', placeholder: 'abc123xyz', help: 'Optional: the code in customer-<code>.cloudflarestream.com (Stream → any video → Embed). Used when a video setting holds only a Stream video ID. Blank = videodelivery.net links.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];
@@ -374,13 +381,50 @@ export const isSettingKey = (k: string): k is SettingKey => KEYS.has(k);
 let cache: { at: number; db: Record<string, string> } | null = null;
 const TTL_MS = 15_000;
 
+/**
+ * Workers KV tier (setting KV_CACHE, off by default; binding CACHE). Behind this isolate's 15-second memory cache,
+ * the dashboard settings are read from one KV key (kept KV_SETTINGS_TTL_S) instead of D1. Every saveSettings deletes
+ * the key, so a change shows on the next request in this location and everywhere within the TTL.
+ * KV is only touched once this isolate has seen the setting on (from D1, KV or a Worker var): with it off or the
+ * binding missing, reads are exactly what they were. Only SETTINGS keys are cached; values are never logged.
+ */
+export const KV_SETTINGS_KEY = 'settings:v1';
+export const KV_SETTINGS_TTL_S = 60;
+let kvKnownOn = false;
+const kvFlag = (env: Env, db: Record<string, string> | null) => {
+  const fromEnv = (env as unknown as Record<string, string | undefined>).KV_CACHE?.trim();
+  return flag(fromEnv || db?.KV_CACHE);
+};
+type KvBlob = { on: true; at: number; db: Record<string, string> };
+
 async function dbSettings(env: Env): Promise<Record<string, string>> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.db;
+  const kv = env.CACHE;
+  if (kv && (kvKnownOn || kvFlag(env, null))) {
+    const hit = await kv.get<KvBlob>(KV_SETTINGS_KEY, 'json').catch(() => null);
+    if (hit && hit.on === true && hit.db && typeof hit.db === 'object') {
+      cache = { at: Date.now(), db: hit.db };
+      return hit.db;
+    }
+  }
   const { results } = await env.DB.prepare('SELECT key, value FROM settings').all<{ key: string; value: string }>();
   const db = Object.fromEntries(results.map((r) => [r.key, r.value]));
   cache = { at: Date.now(), db };
+  kvKnownOn = kvFlag(env, db);
+  if (kv && kvKnownOn) {
+    const only = Object.fromEntries(Object.entries(db).filter(([k]) => KEYS.has(k)));
+    await kv.put(KV_SETTINGS_KEY, JSON.stringify({ on: true, at: Date.now(), db: only } satisfies KvBlob), { expirationTtl: KV_SETTINGS_TTL_S }).catch((e) => console.error('settings KV write failed', e instanceof Error ? e.name : 'error'));
+  }
   return db;
 }
+
+/** Drops this isolate's copy and the KV copy (every location sees the delete within the TTL). */
+export async function invalidateSettingsCache(env: Pick<Env, 'CACHE'>) {
+  cache = null;
+  if (env.CACHE) await env.CACHE.delete(KV_SETTINGS_KEY).catch((e) => console.error('settings KV delete failed', e instanceof Error ? e.name : 'error'));
+}
+/** Tests only. */
+export function resetSettingsCache() { cache = null; kvKnownOn = false; }
 
 export async function loadSettings(env: Env): Promise<Settings> {
   const db = await dbSettings(env);
@@ -419,7 +463,7 @@ export async function saveSettings(env: Env, values: Record<string, string>) {
         : env.DB.prepare('DELETE FROM settings WHERE key = ?').bind(k),
     );
   if (stmts.length) await env.DB.batch(stmts);
-  cache = null;
+  await invalidateSettingsCache(env);
 }
 
 function mask(v: string) {
