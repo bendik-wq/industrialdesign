@@ -9,8 +9,8 @@ import type { Env } from '../env';
  *
  * recordError never throws and never blocks the caller for long: a broken error log must not break the app.
  */
-/** csp: a Content-Security-Policy violation a browser reported (src/infra/csp.ts). */
-export type ErrorKind = 'request' | 'webhook' | 'cron' | 'room' | 'csp';
+/** csp: a Content-Security-Policy violation a browser reported (src/infra/csp.ts). queue: the send queue (src/infra/queue.ts) and the live reminder workflow. */
+export type ErrorKind = 'request' | 'webhook' | 'cron' | 'room' | 'csp' | 'queue';
 
 export const ERROR_RETENTION_DAYS = 14;
 const DAY = 86_400_000;

@@ -49,6 +49,21 @@
   // Email queue, abandoned-application detection and call reminders.
   "triggers": { "crons": ["*/5 * * * *"] },
 
+  // ── Platform round, builder A: Queues and Workflows (both used only when their setting is on) ──
+  // Send queue (src/infra/queue.ts, setting SEND_VIA_QUEUE): the cron and the pages hand emails, texts, AI call dials
+  // and tracking forwards to gl-send; the consumer sends each with the cron's own functions. Messages that fail
+  // max_retries times move to gl-send-dlq, whose consumer keeps them for Funnel HQ → Errors & cron (Retry button).
+  "queues": {
+    "producers": [{ "binding": "SEND_QUEUE", "queue": "gl-send" }],
+    "consumers": [
+      { "queue": "gl-send", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 5, "max_concurrency": 5, "dead_letter_queue": "gl-send-dlq" },
+      { "queue": "gl-send-dlq", "max_batch_size": 10, "max_batch_timeout": 30, "max_retries": 3 }
+    ]
+  },
+  // Live reminder workflow (src/live/reminder-flow.ts, setting LIVE_REMINDERS_VIA_WORKFLOW): one durable instance per
+  // live registration (instance id = registration id) that sends its reminders at their moments.
+  "workflows": [{ "name": "gl-live-reminders", "binding": "LIVE_REMINDER_FLOW", "class_name": "LiveReminderWorkflow" }],
+
   // Non-secret config. Secrets (API keys, passwords) go in `wrangler secret put`
   // or can be connected from the dashboard's Integrations tab.
   "vars": {

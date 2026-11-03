@@ -363,6 +363,9 @@ export const SETTINGS = [
   { key: 'ZAPIER_INBOUND_SECRET', label: 'Zapier: inbound action secret', group: 'Clients & support', secret: true, help: 'Shared secret for POST /hooks/zapier/create-lead and /hooks/zapier/add-note (header X-Zapier-Secret).' },
   // ───────────── infra (overnight round 1): the internal error log ─────────────
   { key: 'ERRORS_SLACK', label: 'Errors: ping Slack on a new kind of error', group: 'Alerts', placeholder: 'off', help: 'on = the first time a new error shows up (Funnel HQ → Errors & cron) the Command Slack channel gets one message, at most 5 an hour. Blank or off = no pings; errors are still logged.' },
+  // ───────────── Cloudflare platform round, builder A: Queues and Workflows (both off by default) ─────────────
+  { key: 'SEND_VIA_QUEUE', label: 'Send queue: send emails, texts, AI calls and tracking through Cloudflare Queues', group: 'Alerts', placeholder: 'off', help: 'on = the cron and the pages hand due emails, texts, AI call dials and Meta/GA4/PostHog forwards to the gl-send queue, which sends each one with retries and backoff; messages that keep failing land in the dead-letter queue and show in Funnel HQ → Errors & cron with a Retry button. The same rules decide who gets what and when. Blank or off = everything sends inline, as before.' },
+  { key: 'LIVE_REMINDERS_VIA_WORKFLOW', label: 'Live reminders: drive each registration with a durable workflow', group: 'Alerts', placeholder: 'off', help: 'on = each new live webinar registration starts a Cloudflare Workflow that sends its reminders (24h, 3h, 1h, 10 min, live, missed, replay) at their moments, with the same quiet hours, cadence, caps, consent and stop rules; the 5-minute cron skips registrations whose workflow is running and picks them up again if one stops. Blank or off = the cron sends them, as before.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

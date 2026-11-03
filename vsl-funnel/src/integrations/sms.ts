@@ -243,79 +243,104 @@ export { sendTwilio as sendSmsNow };
 
 interface SmsRow { id: string; lead_id: string; sequence: SmsTrigger; step: number; to_phone: string; attempts: number }
 
-/** Cron: send what's due (claimed atomically, re-checked against fresh lead data and the current sequence). */
+/** What happened to one text (the send queue maps a retryable error to a retry with backoff). */
+export type SmsOutcome = 'sent' | 'skipped' | 'busy' | 'later' | { error: string; final: boolean; attempts: number };
+
+/** One due text: claimed atomically (pending → sending), re-checked against fresh lead data and the current sequence. Shared by the cron and the send queue. */
+export async function sendSmsRow(rt: Runtime, row: SmsRow, sequences: SmsSequenceDef[], now = Date.now()): Promise<SmsOutcome> {
+  const claim = await rt.env.DB.prepare("UPDATE sms_messages SET status = 'sending', attempts = attempts + 1 WHERE id = ? AND status = 'pending'").bind(row.id).run();
+  if (!claim.meta.changes) return 'busy';
+  const skip = (why: string) => rt.env.DB.prepare("UPDATE sms_messages SET status = 'skipped', error = ? WHERE id = ?").bind(why, row.id).run();
+  const lead = await getLead(rt.env, row.lead_id);
+  // Challenge texts link to the person's own day page (and stop after a refund): look up their registration.
+  if (lead && row.sequence === 'challenge') lead.challenge_token = await (await import('../challenge/emails')).currentChallengeToken(rt, lead.id);
+  const seq = sequences.find((s) => s.id === row.sequence);
+  const step = seq?.steps.find((s) => s.n === row.step);
+  if (!lead) { await skip('lead deleted'); return 'skipped'; }
+  if (!seq || !seq.enabled) { await skip('sequence turned off'); return 'skipped'; }
+  if (!step) { await skip('text removed from the sequence'); return 'skipped'; }
+  const clicked = Boolean(await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND sequence = ? AND clicked_at IS NOT NULL LIMIT 1").bind(lead.id, row.sequence).first());
+  const why = smsBlock(lead)
+    ?? (STOP[row.sequence]?.(lead) ? 'sequence goal reached' : null)
+    ?? (step.skip.find((k) => SKIP[k](lead, clicked)) ? `skip: ${step.skip.find((k) => SKIP[k](lead, clicked))}` : null)
+    ?? (lead.phone !== row.to_phone ? 'number changed' : null);
+  if (why) { await skip(why); return 'skipped'; }
+  // Paid-ticket mode: no webinar texts until their ticket is paid (and none after a refund).
+  if (row.sequence === 'webinar' && (await (await import('../webinar/pass')).ticketUnpaid(rt, lead))) { await skip('ticket not paid'); return 'skipped'; }
+  const zones = callingZones(lead.phone)!;
+  if (!inTextingHours(now, zones)) {
+    const next = nextTextingTime(now, zones);
+    const anchor = step.anchor === 'call' ? lead.call_at : step.anchor === 'webinar' ? lead.webinar_at : null;
+    // A "before the call" text that can only go after the call has started is pointless.
+    // A challenge day text ("starts in an hour", "we're live") is only right at its moment.
+    const stale = !next || (anchor != null && step.offsetMin < 0 && next > anchor) || /^day\d$/.test(step.anchor);
+    await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, attempts = attempts - 1, send_at = ?, error = ? WHERE id = ?').bind(stale ? 'skipped' : 'pending', next ?? now, stale ? 'outside texting hours' : null, row.id).run();
+    return stale ? 'skipped' : 'later';
+  }
+  const today = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ?").bind(lead.id, now - DAY).first<{ n: number }>();
+  if ((today?.n ?? 0) >= 3) { await skip('daily cap (3)'); return 'skipped'; }
+  const before = await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') LIMIT 1").bind(lead.id).first();
+  try {
+    const { body, target, values } = renderSms(rt, lead, step, row.id, !before);
+    let providerId: string | null = null;
+    let status = 'simulated';
+    let channel: 'sms' | 'whatsapp' = 'sms';
+    let note: string | null = null;
+    // WhatsApp first when the sequence says so and we can reach them there; otherwise the same message by SMS.
+    if (seq.channel === 'whatsapp' && waOk(lead) && cloudApiConfigured(rt.settings)) {
+      try {
+        if (await inWhatsAppWindow(rt, lead.id)) { providerId = await sendWhatsAppText(rt, lead, body); channel = 'whatsapp'; status = 'sent'; }
+        else if (step.wa) { providerId = await sendWhatsAppTemplate(rt, lead, step.wa, waTemplateParams(step, values)); channel = 'whatsapp'; status = 'sent'; }
+        else note = 'WhatsApp: no approved template for this text, sent by SMS';
+      } catch (err) {
+        note = `WhatsApp failed, sent by SMS: ${String(err instanceof Error ? err.message : err)}`.slice(0, 300);
+      }
+    }
+    if (channel === 'sms') {
+      if (!smsOk(lead)) { await skip(note ?? 'no consent to SMS (WhatsApp only)'); return 'skipped'; }
+      if (smsConfigured(rt)) { providerId = await sendTwilio(rt, lead.phone!, body); status = 'sent'; }
+    }
+    await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, sent_at = ?, provider_id = ?, body = ?, link_target = ?, channel = ?, error = ? WHERE id = ?')
+      .bind(status, Date.now(), providerId, body, target, channel, note, row.id).run();
+    await track(rt, await identityFromLead(rt.env, lead.id), { name: channel === 'whatsapp' ? 'whatsapp_sent' : 'sms_sent', source: 'cron', props: { sequence: row.sequence, step: row.step, simulated: status === 'simulated' }, localOnly: true });
+    return 'sent';
+  } catch (err) {
+    const message = String(err instanceof Error ? err.message : err).slice(0, 300);
+    const retry = row.attempts + 1 < 3;
+    await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, error = ?, send_at = ? WHERE id = ?').bind(retry ? 'pending' : 'failed', message, Date.now() + 10 * MIN * (row.attempts + 1), row.id).run();
+    return { error: message, final: !retry, attempts: row.attempts + 1 };
+  }
+}
+
+/** The send queue's consumer (src/infra/queue.ts): one text by id, only while it is still pending and due. */
+export async function sendSmsById(rt: Runtime, id: string): Promise<SmsOutcome | 'gone'> {
+  if (!smsOn(rt)) return 'gone';
+  const now = Date.now();
+  const row = await rt.env.DB.prepare("SELECT id, lead_id, sequence, step, to_phone, attempts, send_at FROM sms_messages WHERE id = ? AND direction = 'out' AND status = 'pending'").bind(id).first<SmsRow & { send_at: number }>();
+  if (!row) return 'gone';
+  if (row.send_at > now + 60_000) return 'later'; // moved since it was queued: the cron queues it again when due
+  return sendSmsRow(rt, row, await loadSmsSequences(rt), now);
+}
+
+/** Cron: send what's due (claimed atomically, re-checked against fresh lead data and the current sequence). With SEND_VIA_QUEUE on, handed to the send queue instead. */
 export async function processSmsQueue(rt: Runtime, limit = 40) {
   if (!smsOn(rt)) return { due: 0, sent: 0 };
   const now = Date.now();
-  const { results } = await rt.env.DB.prepare("SELECT id, lead_id, sequence, step, to_phone, attempts FROM sms_messages WHERE direction = 'out' AND status = 'pending' AND send_at <= ? ORDER BY send_at LIMIT ?")
-    .bind(now, limit).all<SmsRow>();
+  const Q = await import('../infra/queue');
+  const viaQueue = Q.queueOn(rt);
+  const { results } = await rt.env.DB.prepare(`SELECT id, lead_id, sequence, step, to_phone, attempts FROM sms_messages WHERE direction = 'out' AND status = 'pending' AND send_at <= ?${viaQueue ? Q.NOT_QUEUED_SQL('sms') : ''} ORDER BY send_at LIMIT ?`)
+    .bind(...(viaQueue ? [now, now - Q.JOB_STALE_MS, limit] : [now, limit])).all<SmsRow>();
   if (!results.length) return { due: 0, sent: 0 };
+  const due = results.length;
+  if (viaQueue) {
+    const left = await Q.enqueueRows(rt, 'sms', results.map((r) => r.id));
+    if (!left.length) return { due, sent: 0, queued: due };
+    results.splice(0, results.length, ...results.filter((r) => left.includes(r.id)));
+  }
   const sequences = await loadSmsSequences(rt);
   let sent = 0;
-  for (const row of results) {
-    const claim = await rt.env.DB.prepare("UPDATE sms_messages SET status = 'sending', attempts = attempts + 1 WHERE id = ? AND status = 'pending'").bind(row.id).run();
-    if (!claim.meta.changes) continue;
-    const skip = (why: string) => rt.env.DB.prepare("UPDATE sms_messages SET status = 'skipped', error = ? WHERE id = ?").bind(why, row.id).run();
-    const lead = await getLead(rt.env, row.lead_id);
-    // Challenge texts link to the person's own day page (and stop after a refund): look up their registration.
-    if (lead && row.sequence === 'challenge') lead.challenge_token = await (await import('../challenge/emails')).currentChallengeToken(rt, lead.id);
-    const seq = sequences.find((s) => s.id === row.sequence);
-    const step = seq?.steps.find((s) => s.n === row.step);
-    if (!lead) { await skip('lead deleted'); continue; }
-    if (!seq || !seq.enabled) { await skip('sequence turned off'); continue; }
-    if (!step) { await skip('text removed from the sequence'); continue; }
-    const clicked = Boolean(await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND sequence = ? AND clicked_at IS NOT NULL LIMIT 1").bind(lead.id, row.sequence).first());
-    const why = smsBlock(lead)
-      ?? (STOP[row.sequence]?.(lead) ? 'sequence goal reached' : null)
-      ?? (step.skip.find((k) => SKIP[k](lead, clicked)) ? `skip: ${step.skip.find((k) => SKIP[k](lead, clicked))}` : null)
-      ?? (lead.phone !== row.to_phone ? 'number changed' : null);
-    if (why) { await skip(why); continue; }
-    // Paid-ticket mode: no webinar texts until their ticket is paid (and none after a refund).
-    if (row.sequence === 'webinar' && (await (await import('../webinar/pass')).ticketUnpaid(rt, lead))) { await skip('ticket not paid'); continue; }
-    const zones = callingZones(lead.phone)!;
-    if (!inTextingHours(now, zones)) {
-      const next = nextTextingTime(now, zones);
-      const anchor = step.anchor === 'call' ? lead.call_at : step.anchor === 'webinar' ? lead.webinar_at : null;
-      // A "before the call" text that can only go after the call has started is pointless.
-      // A challenge day text ("starts in an hour", "we're live") is only right at its moment.
-      const stale = !next || (anchor != null && step.offsetMin < 0 && next > anchor) || /^day\d$/.test(step.anchor);
-      await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, attempts = attempts - 1, send_at = ?, error = ? WHERE id = ?').bind(stale ? 'skipped' : 'pending', next ?? now, stale ? 'outside texting hours' : null, row.id).run();
-      continue;
-    }
-    const today = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ?").bind(lead.id, now - DAY).first<{ n: number }>();
-    if ((today?.n ?? 0) >= 3) { await skip('daily cap (3)'); continue; }
-    const before = await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') LIMIT 1").bind(lead.id).first();
-    try {
-      const { body, target, values } = renderSms(rt, lead, step, row.id, !before);
-      let providerId: string | null = null;
-      let status = 'simulated';
-      let channel: 'sms' | 'whatsapp' = 'sms';
-      let note: string | null = null;
-      // WhatsApp first when the sequence says so and we can reach them there; otherwise the same message by SMS.
-      if (seq.channel === 'whatsapp' && waOk(lead) && cloudApiConfigured(rt.settings)) {
-        try {
-          if (await inWhatsAppWindow(rt, lead.id)) { providerId = await sendWhatsAppText(rt, lead, body); channel = 'whatsapp'; status = 'sent'; }
-          else if (step.wa) { providerId = await sendWhatsAppTemplate(rt, lead, step.wa, waTemplateParams(step, values)); channel = 'whatsapp'; status = 'sent'; }
-          else note = 'WhatsApp: no approved template for this text, sent by SMS';
-        } catch (err) {
-          note = `WhatsApp failed, sent by SMS: ${String(err instanceof Error ? err.message : err)}`.slice(0, 300);
-        }
-      }
-      if (channel === 'sms') {
-        if (!smsOk(lead)) { await skip(note ?? 'no consent to SMS (WhatsApp only)'); continue; }
-        if (smsConfigured(rt)) { providerId = await sendTwilio(rt, lead.phone!, body); status = 'sent'; }
-      }
-      await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, sent_at = ?, provider_id = ?, body = ?, link_target = ?, channel = ?, error = ? WHERE id = ?')
-        .bind(status, Date.now(), providerId, body, target, channel, note, row.id).run();
-      await track(rt, await identityFromLead(rt.env, lead.id), { name: channel === 'whatsapp' ? 'whatsapp_sent' : 'sms_sent', source: 'cron', props: { sequence: row.sequence, step: row.step, simulated: status === 'simulated' }, localOnly: true });
-      sent++;
-    } catch (err) {
-      const message = String(err instanceof Error ? err.message : err).slice(0, 300);
-      const retry = row.attempts + 1 < 3;
-      await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, error = ?, send_at = ? WHERE id = ?').bind(retry ? 'pending' : 'failed', message, Date.now() + 10 * MIN * (row.attempts + 1), row.id).run();
-    }
-  }
-  return { due: results.length, sent };
+  for (const row of results) if ((await sendSmsRow(rt, row, sequences, now)) === 'sent') sent++;
+  return { due, sent };
 }
 
 /** /s/:id → the link inside a text (target stored server-side, so it can't be pointed anywhere else). */

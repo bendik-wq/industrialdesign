@@ -7,6 +7,10 @@ export interface Env {
   ROOMS?: DurableObjectNamespace;
   /** Optional R2 bucket for room recordings (the replay). Without it the host downloads the recording. */
   RECORDINGS?: R2Bucket;
+  /** Platform round A: the send queue `gl-send` (src/infra/queue.ts). Used only with SEND_VIA_QUEUE on; without it everything sends inline. */
+  SEND_QUEUE?: Queue<unknown>;
+  /** Platform round A: the LiveReminderWorkflow (src/live/reminder-flow.ts). Used only with LIVE_REMINDERS_VIA_WORKFLOW on. */
+  LIVE_REMINDER_FLOW?: Workflow<{ regId: string }>;
 
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.

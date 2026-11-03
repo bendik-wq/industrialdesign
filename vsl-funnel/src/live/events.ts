@@ -328,6 +328,8 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   await (await import('../attribution/hooks')).onRegistered(rt, v, { funnel: 'live', regId: reg.id, leadId: lead.id, at: now, cohortRef: ev.id, pixelEid: body.pixel_eid }); // first/last touch + Lead (attribution)
   // The confirmation goes out now (the cron is the backup).
   rt.waitUntil(sendDueMessages(rt, ev, reg, (await getLead(rt.env, lead.id))!, now).then(() => undefined));
+  // LIVE_REMINDERS_VIA_WORKFLOW on: a durable workflow drives the rest of this registration's reminders (src/live/reminder-flow.ts).
+  if (rt.env.LIVE_REMINDER_FLOW) rt.waitUntil(import('./reminder-flow').then((m) => m.startLiveReminderFlow(rt, reg, now)).then(() => undefined));
   if (['10m-25m', '25m-50m', '50m-100m', '100m+'].includes(band)) {
     const { notifySlack } = await import('../integrations/notify');
     rt.waitUntil(notifySlack(rt, lead, '💎 $10M+ owner registered for the live webinar', [`${ev.title} · ${formatCallTime(ev.starts_at, ev.tz)}`], 'hot_lead').catch(() => undefined));
@@ -543,7 +545,10 @@ export async function processLiveMessages(rt: Runtime, now = Date.now()) {
   let sent = 0;
   for (const ev of events) {
     const { results: regs } = await rt.env.DB.prepare('SELECT * FROM live_webinar_regs WHERE event_id = ? LIMIT 2000').bind(ev.id).all<LiveReg>();
+    // Registrations a running workflow drives are skipped (LIVE_REMINDERS_VIA_WORKFLOW on; empty when off).
+    const skip = rt.env.LIVE_REMINDER_FLOW ? await (await import('./reminder-flow')).flowSkipSet(rt, ev.id, now) : null;
     for (const reg of regs) {
+      if (skip?.has(reg.id)) continue;
       const lead = await getLead(rt.env, reg.lead_id);
       if (!lead) continue;
       sent += await sendDueMessages(rt, ev, reg, lead, now).catch((e) => { console.error('live messages', e); return 0; });
@@ -786,7 +791,12 @@ export async function eventReport(rt: Runtime, id: string) {
     const sentences = (p as { preset?: string | null }).preset === 'buy_in' ? (await db.prepare('SELECT text FROM live_webinar_poll_votes WHERE poll_id = ? AND text IS NOT NULL ORDER BY created_at DESC LIMIT 50').bind(p.id).all<{ text: string }>()).results.map((x) => x.text) : null;
     pollRows.push({ id: p.id, question: p.question, options, open: !p.closed_at, sentences, ...(await pollResults(rt, p.id, options.length)) });
   }
+  // Platform round A: which registrations a reminder workflow drives (empty unless LIVE_REMINDERS_VIA_WORKFLOW was used).
+  const RF = await import('./reminder-flow');
+  const flows = await RF.flowsFor(rt, id);
+  const flowSummary = flows.size ? await RF.flowReport(rt, id, now) : null;
   return {
+    reminderFlows: flowSummary,
     event: { ...ev, when: formatCallTime(ev.starts_at, ev.tz), stage: liveStage(ev, now, s.offerHours), consoleUrl: hostConsoleUrl(rt, ev.id), streamKey: streamKey(ev.id), landing: `${liveBase(rt)}/live` },
     offer: { ...w, openedAt: ev.offer_opened_at, closedAt: ev.offer_closed_at, hours: ev.offer_hours ?? s.offerHours, timerOn: Boolean(ev.timer_on), pinned: ev.pinned },
     report: {
@@ -798,7 +808,7 @@ export async function eventReport(rt: Runtime, id: string) {
     },
     registrants: rs.map((r) => {
       const bought = ps.find((p) => p.lead_id === r.lead_id && p.kind === 'deposit' && p.status === 'paid');
-      return { id: r.id, lead_id: r.lead_id, name: name(r), email: r.email, band: REVENUE_LABEL[r.revenue_band ?? ''] ?? r.revenue_band, qualified: isMillionPlus(r.revenue_band), registered: r.created_at, joined: r.joined_at, zoom: r.zoom_clicked_at, offerSeen: r.offer_seen_at, offerClicked: r.offer_clicked_at, replay: r.replay_at, deposit: bought ? bought.paid_at : null, ticket: r.ticket_required ? ps.some((p) => p.lead_id === r.lead_id && p.kind === 'live_ticket' && p.status === 'paid') : null, texts: Boolean(r.sms_ok) };
+      return { id: r.id, lead_id: r.lead_id, name: name(r), email: r.email, band: REVENUE_LABEL[r.revenue_band ?? ''] ?? r.revenue_band, qualified: isMillionPlus(r.revenue_band), registered: r.created_at, joined: r.joined_at, zoom: r.zoom_clicked_at, offerSeen: r.offer_seen_at, offerClicked: r.offer_clicked_at, replay: r.replay_at, deposit: bought ? bought.paid_at : null, ticket: r.ticket_required ? ps.some((p) => p.lead_id === r.lead_id && p.kind === 'live_ticket' && p.status === 'paid') : null, texts: Boolean(r.sms_ok), flow: flows.get(r.id)?.status ?? null };
     }),
     buyers: paidDeposits.map((p) => { const r = rs.find((x) => x.lead_id === p.lead_id); return { lead_id: p.lead_id, name: r ? name(r) : p.lead_id, band: r ? REVENUE_LABEL[r.revenue_band ?? ''] ?? r.revenue_band : null, paid: formatMoney(fromMinor(p.amount, p.currency), p.currency.toUpperCase()), refunded: p.status === 'refunded' || p.refunded_amount > 0, credit: formatMoney(fromMinor(p.amount + p.ticket_credit, p.currency), p.currency.toUpperCase()), oneClick: Boolean(p.one_click), at: p.paid_at }; }),
     polls: pollRows,

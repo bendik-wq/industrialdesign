@@ -479,87 +479,117 @@ interface QueueRow {
   attempts: number;
 }
 
+/** What happened to one queued row (the send queue maps a retryable error to a retry with backoff). */
+export type RowOutcome = 'sent' | 'skipped' | 'busy' | { error: string; final: boolean; attempts: number };
+
+/**
+ * Sends one due row: claimed atomically (pending → sending) so overlapping cron runs or a redelivered queue
+ * message never double-send, then re-checked against fresh lead data. Shared by the cron and the send queue.
+ */
+export async function sendEmailRow(rt: Runtime, row: QueueRow): Promise<RowOutcome> {
+  const claim = await rt.env.DB.prepare("UPDATE emails SET status = 'sending', attempts = attempts + 1 WHERE id = ? AND status = 'pending'").bind(row.id).run();
+  if (!claim.meta.changes) return 'busy';
+
+  const lead = await getLead(rt.env, row.lead_id);
+  // Reactivation's stop rule needs when they were reactivated (kept in its own table).
+  if (lead && row.sequence.startsWith('reactivation')) {
+    const r = await rt.env.DB.prepare('SELECT reactivated_at, segment FROM lead_reactivation WHERE lead_id = ?').bind(lead.id).first<{ reactivated_at: number; segment: string | null }>();
+    lead.reactivated_at = r?.reactivated_at ?? null;
+    lead.reactivation_segment = r?.segment ?? null;
+  }
+  const seq = SEQUENCES[row.sequence];
+  // Sequences that repeat per event (webinar: one block of steps per registration) map back with `cycle`.
+  // Reactivation is matched by template so an edited plan never applies one email's rules to another.
+  // Six-month rows (step ≥ LONG_STEP): a library slot gets its email now, from what they've read so far.
+  if (lead && row.step >= LONG_STEP && row.template === LIB_SLOT) {
+    const picked = await pickLibraryFor(rt, lead);
+    if (!picked) { await rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = 'library exhausted' WHERE id = ?").bind(row.id).run(); return 'skipped'; }
+    await rt.env.DB.prepare('UPDATE emails SET template = ? WHERE id = ?').bind(picked, row.id).run();
+    row.template = picked;
+  }
+  const step = row.step >= LONG_STEP
+    ? { template: row.template, offsetMs: 0 }
+    : row.sequence === 'reactivation' || row.sequence === 'prewebinar' || row.sequence === 'webinar'
+    ? seq?.steps.find((st) => st.template === row.template)
+    : seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];
+  const skip = (reason: string) => rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = ? WHERE id = ?").bind(reason, row.id).run();
+
+  if (!lead || !seq || !step) { await skip('missing lead or step'); return 'skipped'; }
+  if (lead.unsubscribed_at) { await skip('unsubscribed'); return 'skipped'; }
+  const blocked = await isSuppressed(rt, row.to_email);
+  if (blocked) { await skip(blocked); return 'skipped'; }
+  if ('stopIf' in seq && seq.stopIf?.(lead)) { await skip('sequence goal reached'); return 'skipped'; }
+  if ('stopIfAsync' in seq && typeof seq.stopIfAsync === 'function' && (await seq.stopIfAsync(rt, lead))) { await skip(row.sequence === 'ticket' ? 'ticket paid' : 'ticket not paid'); return 'skipped'; }
+  if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); return 'skipped'; }
+  if ('skipIfAsync' in step && typeof step.skipIfAsync === 'function' && (await step.skipIfAsync(rt, lead))) { await skip('step condition'); return 'skipped'; }
+
+  try {
+    const trigger = row.sequence === 'behaviour' ? [...RULES, ...PAGE_RULES].find((r) => r.template === row.template) : undefined;
+    const purpose = trigger ? `Triggered by what they just did: ${trigger.label}. Speak to exactly that.` : `${seq.description} (email ${row.step + 1})`;
+    // Six-month emails are chosen from behaviour already; only the original steps are rewritten by the model.
+    const email = await buildEmail(rt, lead, row.id, row.template, `seq-${row.sequence}`, { personalize: row.step >= LONG_STEP ? undefined : { purpose }, ask: askFor(row.sequence, lead) });
+    let providerId: string | null = null;
+    let status = 'simulated';
+    if (emailConfigured(rt)) {
+      providerId = await sendViaResend(rt, { to: row.to_email, ...email, tags: { sequence: row.sequence, template: row.template } });
+      status = 'sent';
+    }
+    await rt.env.DB.prepare('UPDATE emails SET status = ?, sent_at = ?, provider_id = ?, subject = ?, error = NULL, personalized = ?, facts_used = ?, personalize_error = ? WHERE id = ?')
+      .bind(status, Date.now(), providerId, email.subject, email.personal?.mode ?? null, email.personal ? JSON.stringify(email.personal.factsUsed) : null, email.personal?.error ?? null, row.id)
+      .run();
+    await track(rt, await identityFromLead(rt.env, lead.id), {
+      name: 'email_sent',
+      source: 'cron',
+      props: { email_id: row.id, sequence: row.sequence, template: row.template, simulated: status === 'simulated', personalized: email.personal?.mode ?? 'off' },
+    });
+    return 'sent';
+  } catch (err) {
+    const message = String(err instanceof Error ? err.message : err).slice(0, 500);
+    const retry = row.attempts + 1 < MAX_ATTEMPTS;
+    await rt.env.DB.prepare('UPDATE emails SET status = ?, error = ?, send_at = ? WHERE id = ?')
+      .bind(retry ? 'pending' : 'failed', message, Date.now() + 10 * 60_000 * (row.attempts + 1), row.id)
+      .run();
+    console.error(`email ${row.id} failed`, message);
+    return { error: message, final: !retry, attempts: row.attempts + 1 };
+  }
+}
+
+/** The send queue's consumer (src/infra/queue.ts): one row by id, only while it is still pending and due. */
+export async function sendEmailById(rt: Runtime, id: string): Promise<RowOutcome | 'gone' | 'later'> {
+  const row = await rt.env.DB.prepare("SELECT id, lead_id, sequence, step, template, to_email, attempts, send_at FROM emails WHERE id = ? AND status = 'pending'").bind(id).first<QueueRow & { send_at: number }>();
+  if (!row) return 'gone';
+  if (row.send_at > Date.now() + 60_000) return 'later'; // moved later since it was queued: the cron queues it again when due
+  return sendEmailRow(rt, row);
+}
+
 /**
  * Sends everything that is due. Each row is claimed atomically (pending →
  * sending) so overlapping cron runs never double-send. Without an email
  * provider connected, messages are marked "simulated" so the whole flow can be
  * tested end to end from the dashboard.
+ *
+ * With SEND_VIA_QUEUE on (and the queue bound), due rows are handed to the send queue instead, which calls
+ * sendEmailRow per message with retries and a dead-letter queue (src/infra/queue.ts).
  */
 export async function processEmailQueue(rt: Runtime, limit = 50) {
   const now = Date.now();
+  const Q = await import('../infra/queue');
+  const viaQueue = Q.queueOn(rt);
   const { results } = await rt.env.DB.prepare(
-    "SELECT id, lead_id, sequence, step, template, to_email, attempts FROM emails WHERE status = 'pending' AND send_at <= ? ORDER BY send_at LIMIT ?",
+    `SELECT id, lead_id, sequence, step, template, to_email, attempts FROM emails WHERE status = 'pending' AND send_at <= ?${viaQueue ? Q.NOT_QUEUED_SQL('email') : ''} ORDER BY send_at LIMIT ?`,
   )
-    .bind(now, limit)
+    .bind(...(viaQueue ? [now, now - Q.JOB_STALE_MS, limit] : [now, limit]))
     .all<QueueRow>();
+  const due = results.length;
+  if (viaQueue && due) {
+    // Handed to the queue; any the queue refused are sent here as before.
+    const left = await Q.enqueueRows(rt, 'email', results.map((r) => r.id));
+    if (!left.length) return { due, sent: 0, queued: due };
+    results.splice(0, results.length, ...results.filter((r) => left.includes(r.id)));
+  }
 
   let sent = 0;
-  const one = async (row: QueueRow) => {
-    const claim = await rt.env.DB.prepare("UPDATE emails SET status = 'sending', attempts = attempts + 1 WHERE id = ? AND status = 'pending'").bind(row.id).run();
-    if (!claim.meta.changes) return;
-
-    const lead = await getLead(rt.env, row.lead_id);
-    // Reactivation's stop rule needs when they were reactivated (kept in its own table).
-    if (lead && row.sequence.startsWith('reactivation')) {
-      const r = await rt.env.DB.prepare('SELECT reactivated_at, segment FROM lead_reactivation WHERE lead_id = ?').bind(lead.id).first<{ reactivated_at: number; segment: string | null }>();
-      lead.reactivated_at = r?.reactivated_at ?? null;
-      lead.reactivation_segment = r?.segment ?? null;
-    }
-    const seq = SEQUENCES[row.sequence];
-    // Sequences that repeat per event (webinar: one block of steps per registration) map back with `cycle`.
-    // Reactivation is matched by template so an edited plan never applies one email's rules to another.
-    // Six-month rows (step ≥ LONG_STEP): a library slot gets its email now, from what they've read so far.
-    if (lead && row.step >= LONG_STEP && row.template === LIB_SLOT) {
-      const picked = await pickLibraryFor(rt, lead);
-      if (!picked) { await rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = 'library exhausted' WHERE id = ?").bind(row.id).run(); return; }
-      await rt.env.DB.prepare('UPDATE emails SET template = ? WHERE id = ?').bind(picked, row.id).run();
-      row.template = picked;
-    }
-    const step = row.step >= LONG_STEP
-      ? { template: row.template, offsetMs: 0 }
-      : row.sequence === 'reactivation' || row.sequence === 'prewebinar' || row.sequence === 'webinar'
-      ? seq?.steps.find((st) => st.template === row.template)
-      : seq?.steps[seq && 'cycle' in seq && seq.cycle ? row.step % seq.cycle : row.step];
-    const skip = (reason: string) => rt.env.DB.prepare("UPDATE emails SET status = 'skipped', error = ? WHERE id = ?").bind(reason, row.id).run();
-
-    if (!lead || !seq || !step) { await skip('missing lead or step'); return; }
-    if (lead.unsubscribed_at) { await skip('unsubscribed'); return; }
-    const blocked = await isSuppressed(rt, row.to_email);
-    if (blocked) { await skip(blocked); return; }
-    if ('stopIf' in seq && seq.stopIf?.(lead)) { await skip('sequence goal reached'); return; }
-    if ('stopIfAsync' in seq && typeof seq.stopIfAsync === 'function' && (await seq.stopIfAsync(rt, lead))) { await skip(row.sequence === 'ticket' ? 'ticket paid' : 'ticket not paid'); return; }
-    if ('skipIf' in step && typeof step.skipIf === 'function' && step.skipIf(lead)) { await skip('step condition'); return; }
-    if ('skipIfAsync' in step && typeof step.skipIfAsync === 'function' && (await step.skipIfAsync(rt, lead))) { await skip('step condition'); return; }
-
-    try {
-      const trigger = row.sequence === 'behaviour' ? [...RULES, ...PAGE_RULES].find((r) => r.template === row.template) : undefined;
-      const purpose = trigger ? `Triggered by what they just did: ${trigger.label}. Speak to exactly that.` : `${seq.description} (email ${row.step + 1})`;
-      // Six-month emails are chosen from behaviour already; only the original steps are rewritten by the model.
-      const email = await buildEmail(rt, lead, row.id, row.template, `seq-${row.sequence}`, { personalize: row.step >= LONG_STEP ? undefined : { purpose }, ask: askFor(row.sequence, lead) });
-      let providerId: string | null = null;
-      let status = 'simulated';
-      if (emailConfigured(rt)) {
-        providerId = await sendViaResend(rt, { to: row.to_email, ...email, tags: { sequence: row.sequence, template: row.template } });
-        status = 'sent';
-      }
-      await rt.env.DB.prepare('UPDATE emails SET status = ?, sent_at = ?, provider_id = ?, subject = ?, error = NULL, personalized = ?, facts_used = ?, personalize_error = ? WHERE id = ?')
-        .bind(status, Date.now(), providerId, email.subject, email.personal?.mode ?? null, email.personal ? JSON.stringify(email.personal.factsUsed) : null, email.personal?.error ?? null, row.id)
-        .run();
-      await track(rt, await identityFromLead(rt.env, lead.id), {
-        name: 'email_sent',
-        source: 'cron',
-        props: { email_id: row.id, sequence: row.sequence, template: row.template, simulated: status === 'simulated', personalized: email.personal?.mode ?? 'off' },
-      });
-      sent++;
-    } catch (err) {
-      const message = String(err instanceof Error ? err.message : err).slice(0, 500);
-      const retry = row.attempts + 1 < MAX_ATTEMPTS;
-      await rt.env.DB.prepare('UPDATE emails SET status = ?, error = ?, send_at = ? WHERE id = ?')
-        .bind(retry ? 'pending' : 'failed', message, Date.now() + 10 * 60_000 * (row.attempts + 1), row.id)
-        .run();
-      console.error(`email ${row.id} failed`, message);
-    }
-  };
+  const one = async (row: QueueRow) => { if ((await sendEmailRow(rt, row)) === 'sent') sent++; };
   // Personalisation calls the model, so send a few at a time. Same lead never twice in one batch (facts must not repeat).
   const queue = [...results];
   while (queue.length) {
@@ -570,5 +600,5 @@ export async function processEmailQueue(rt: Runtime, limit = 50) {
     }
     await Promise.all(batch.map(one));
   }
-  return { due: results.length, sent };
+  return { due, sent };
 }

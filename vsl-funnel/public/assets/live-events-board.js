@@ -6,6 +6,13 @@
        #live-controls by itself when the key belongs to a live webinar event. */
 (function (root) {
   'use strict';
+  // Platform round A: the live reminder workflow per registration (LIVE_REMINDERS_VIA_WORKFLOW), else the cron.
+  var FLOW = { running: 'running', done: 'finished', stopped: 'handed back to the cron', failed: 'failed, the cron took over' };
+  function flowLine(f) {
+    if (!f || !f.byStatus) return '';
+    var parts = Object.keys(f.byStatus).map(function (k) { return f.byStatus[k] + ' ' + (FLOW[k] || k); });
+    return parts.length ? '<p class="sub">Reminder workflows: ' + parts.join(', ') + (f.late ? ', ' + f.late + ' late (the cron covers those)' : '') + '.</p>' : '';
+  }
   var CSS = '.leb-controls{display:grid;gap:12px}.leb-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.leb-state{font-size:14px}.leb-state b{font-variant-numeric:tabular-nums}' +
     '.leb-big{min-height:44px;padding:0 18px;border-radius:999px;border:0;font:600 15px/1 system-ui,-apple-system,sans-serif;cursor:pointer}.leb-open{background:#f5b82e;color:#1d1d1f}.leb-close{background:#1d1d1f;color:#fff}' +
     '.leb-form{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));align-items:end}.leb-form label{display:grid;gap:4px;font-size:13px}.leb-legal{border-left:3px solid #b45309;padding:8px 12px;background:#fffbeb;font-size:13px}' +
@@ -142,7 +149,7 @@
         '<div data-leb-controls style="margin-top:14px"></div>' +
         '<div data-lc-board></div>' + // builder E: show-up funnel and pre-show settings (admin-lifecycle.js)
         '<div class="card" style="margin-top:14px"><h2>Deposit buyers</h2>' + (d.buyers.length ? ctx.table([{ label: 'Who', key: 'name' }, { label: 'Revenue', key: 'band' }, { label: 'Paid', key: 'paid' }, { label: 'Credited', key: 'credit' }, { label: 'One click', fmt: function (_v, r) { return r.oneClick ? 'Yes' : 'No'; } }, { label: 'When', fmt: function (_v, r) { return when(r.at); } }], d.buyers) : ctx.emptyState('No deposits yet.', 'Buyers appear here the moment Whop confirms the payment.')) + '</div>' +
-        '<div class="card" style="margin-top:14px"><h2>Registrants</h2>' + ctx.table([{ label: 'Who', key: 'name' }, { label: 'Email', key: 'email' }, { label: 'Revenue', key: 'band' }, { label: 'Registered', fmt: function (_v, r) { return when(r.registered); } }, { label: 'Came live', fmt: function (_v, r) { return r.joined ? when(r.joined) : '–'; } }, { label: 'Saw offer', fmt: function (_v, r) { return r.offerSeen ? 'Yes' : '–'; } }, { label: 'Deposit', fmt: function (_v, r) { return r.deposit ? when(r.deposit) : '–'; } }, { label: 'Ticket', fmt: function (_v, r) { return r.ticket == null ? '–' : r.ticket ? 'Paid' : 'Unpaid'; } }], d.registrants, { cards: true, empty: 'Nobody has registered yet.' }) + '</div>';
+        '<div class="card" style="margin-top:14px"><h2>Registrants</h2>' + flowLine(d.reminderFlows) + ctx.table([{ label: 'Who', key: 'name' }, { label: 'Email', key: 'email' }, { label: 'Revenue', key: 'band' }, { label: 'Registered', fmt: function (_v, r) { return when(r.registered); } }, { label: 'Came live', fmt: function (_v, r) { return r.joined ? when(r.joined) : '–'; } }, { label: 'Saw offer', fmt: function (_v, r) { return r.offerSeen ? 'Yes' : '–'; } }, { label: 'Deposit', fmt: function (_v, r) { return r.deposit ? when(r.deposit) : '–'; } }, { label: 'Ticket', fmt: function (_v, r) { return r.ticket == null ? '–' : r.ticket ? 'Paid' : 'Unpaid'; } }].concat(d.reminderFlows ? [{ label: 'Reminders', fmt: function (_v, r) { return r.flow ? 'Workflow, ' + (FLOW[r.flow] || r.flow) : 'Cron'; } }] : []), d.registrants, { cards: true, empty: 'Nobody has registered yet.' }) + '</div>';
       controls(box.querySelector('[data-leb-controls]'), ev.id, ctx.toast);
       if (root.LifecycleBoard) root.LifecycleBoard.mount(box.querySelector('[data-lc-board]'), ev.id, ctx);
       box.querySelector('[data-save]').onclick = function () { req('PATCH', 'live-events/' + encodeURIComponent(ev.id), { platform: box.querySelector('[data-e=platform]').value, join_url: box.querySelector('[data-e=join_url]').value, replay_url: box.querySelector('[data-e=replay_url]').value }).then(function (r) { ctx.toast(r.ok ? 'Saved' : r.error); if (r.ok) detail(ctx); }); };
