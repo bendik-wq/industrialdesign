@@ -56,7 +56,7 @@ export function roomMeta(rt: Pick<Runtime, 'origin' | 'settings'>, room: RoomRow
 }
 
 const gatePage = (c: Context<AppEnv>, h: string, b: string, status: 200 | 403 | 404 = 403) =>
-  c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(h)}</title><link rel="stylesheet" href="/assets/room.css"></head><body class="rm-body"><main class="rm-gate"><h1>${esc(h)}</h1><p>${esc(b)}</p></main></body></html>`, status);
+  c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(h)}</title><link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/room.css"></head><body class="rm-body"><main class="rm-gate"><h1>${esc(h)}</h1><p>${esc(b)}</p></main></body></html>`, status);
 
 /** The offer block attendees see when the host opens it (the live funnel's deposit, with the guarantee). */
 export async function offerPanel(rt: Runtime, o: { leadId: string; band: string | null; buy: string; token: string; day?: number; welcome?: string }) {
@@ -152,9 +152,10 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f6f6f8">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <title>${esc(room.title)}</title>
+<link rel="stylesheet" href="/assets/glass.css">
 <link rel="stylesheet" href="/assets/room.css">
 <link rel="stylesheet" href="/assets/room-media.css">
 <script defer src="/assets/room-media-logic.js"></script>
@@ -759,7 +760,7 @@ export async function planPage(c: Context<AppEnv>) {
   const box = row(C.planIndustry, d.industry) + row(C.planSize, d.size) + row(C.planGeography, d.geography);
   const acts = [d.action_1, d.action_2, d.action_3].filter(Boolean);
   c.header('cache-control', 'private, no-store');
-  return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(C.planHeading)}</title><link rel="stylesheet" href="/assets/room.css"></head>
+  return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(C.planHeading)}</title><link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/room.css"></head>
 <body class="rm-body"><main class="rm-entry rm-planpage"><p class="rm-eyebrow">${esc(room.title)}</p><h1 class="rm-h1">${esc(C.planHeading)}</h1>
 ${box ? `<h2 class="rm-h3">${esc(C.planBuyBox)}</h2><table class="rm-plantable">${box}</table>` : ''}
 ${d.owners_per_week ? `<h2 class="rm-h3">${esc(C.planOutreach)}</h2><p>${esc(C.planOwners)}: <strong>${esc(d.owners_per_week)}</strong></p>` : ''}

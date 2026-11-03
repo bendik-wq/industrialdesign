@@ -50,3 +50,17 @@
   .ix-lines { max-height: 55vh; }
 }
 @media (prefers-reduced-motion: reduce) { .ix-card { animation: none; } }
+
+/* ── Glass (Liquid Glass pass): the replay page on the quiet canvas; the player as the hero card, the tabs as a
+   segmented control, cards and the side as glass ── */
+.ix-h1 { font: 700 28px/1.12 var(--ui); letter-spacing: -.025em; }
+.ix-player { border-radius: var(--r3); box-shadow: 0 0 0 1px rgba(0, 0, 0, .06), 0 2px 4px rgba(0, 0, 0, .06), 0 24px 56px -16px rgba(0, 0, 0, .32); }
+.ix-card { background: var(--rm-bar-bg, #fff); border: 1px solid var(--rm-edge, transparent); border-radius: 22px; box-shadow: var(--rm-spec, none), var(--rm-shadow, none); }
+.ix-tabs { display: inline-flex; gap: 0; padding: 3px; border: 0; border-radius: 999px; background: var(--fill); }
+.ix-tabs button { min-height: 36px; padding: 0 16px; border: 0; border-radius: 999px; font-weight: 500; }
+.ix-tabs button[aria-selected="true"] { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 3px 8px rgba(0, 0, 0, .08); }
+.ix-search { min-height: 44px; border: 1px solid transparent; border-radius: 999px; background: var(--fill); padding: 8px 16px; }
+.ix-search:focus { outline: none; background: #fff; border-color: rgba(10, 132, 255, .6); box-shadow: var(--rm-focus); }
+.ix-line[aria-current="true"] { background: rgba(15, 44, 92, .08); }
+@media (min-width: 1000px) { .ix-h1 { font-size: 36px; } .ix-side { padding: 16px; border-radius: var(--r3); background: var(--rm-bar-bg, #fff); border: 1px solid var(--rm-edge, transparent); box-shadow: var(--rm-spec, none), var(--rm-shadow, none); } }
+@media (max-width: 999px) { .ix-player { border-radius: var(--r2); } }

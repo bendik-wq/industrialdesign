@@ -26,3 +26,8 @@
 /* The Push tab on a phone: one column that never grows past the panel (the resource picker used to widen it). */
 .rm-push { grid-template-columns: minmax(0, 1fr); }
 .rm-push .rm-inline-sel { min-width: 0; max-width: 100%; }
+
+/* ── Glass (Liquid Glass pass): the bonus as a quiet tinted card in the panel ── */
+.e2-bonus { margin: 4px 12px 4px; padding: 14px 16px; border-radius: var(--r2, 14px); background: rgba(15, 44, 92, .06); box-shadow: inset 0 0 0 1px rgba(15, 44, 92, .08); }
+.e2-eyebrow { font-size: 11px; letter-spacing: .06em; }
+.e2-score { background: var(--fill-2); }

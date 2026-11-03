@@ -139,3 +139,33 @@
   .rs-green li { grid-template-columns: 72px 1fr; }
   .rs-green li .rm-mini { grid-column: 1 / -1; justify-self: start; }
 }
+
+/* ── Glass (Liquid Glass pass, glass.css + room.css tokens): the program as the stage card, the scene bar and the
+   health strip as quiet glass on the canvas, the floating warnings as dark glass. ── */
+.rs-bar { border-top: 0; background: var(--rm-bar-bg, #fff); }
+.rs-scene { border: 1px solid transparent; border-radius: 14px; background: var(--fill); transition: background .18s var(--ease), transform .2s var(--spring, var(--ease)); }
+.rs-scene:active:not(:disabled) { transform: scale(.96); }
+.rs-scene.is-on, .rs-scene.is-on:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(15, 44, 92, .28); }
+.rs-scene:focus-visible, .rs-chip:focus-visible, .rs-seg button:focus-visible, .rs-cue:focus-visible { outline-color: #0a84ff; }
+.rs-chip { border-color: transparent; background: var(--fill); min-height: 32px; }
+.rs-chip[aria-pressed="true"] { background: rgba(15, 44, 92, .1); border-color: transparent; color: var(--navy); }
+.rs-seg { border: 0; border-radius: 999px; padding: 2px; background: var(--fill); }
+.rs-seg button { border-radius: 999px; background: transparent; }
+.rs-seg button + button { border-left: 0; }
+.rs-seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); font-weight: 600; }
+.rs-hud { gap: 4px 16px; padding: 0 20px; background: transparent; border-bottom: 0; color: var(--ink-2); }
+.rs-greencard { background: var(--rm-sheet-bg, #fff); -webkit-backdrop-filter: var(--rm-blur, none); backdrop-filter: var(--rm-blur, none); border: 1px solid var(--rm-edge, transparent); border-radius: 24px; box-shadow: var(--rm-spec, none), var(--rm-lift, 0 8px 30px rgba(0, 0, 0, .18)); }
+.rs-greencard h2 { font: 700 22px/1.2 var(--ui); letter-spacing: -.02em; }
+.rs-mutewarn { border-radius: 999px; padding: 8px 8px 8px 18px; background: rgba(28, 28, 30, .82); -webkit-backdrop-filter: var(--rm-blur, none); backdrop-filter: var(--rm-blur, none); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16), 0 12px 32px rgba(0, 0, 0, .3); }
+.rs-ros { border-radius: 24px; background: rgba(17, 18, 20, .9); -webkit-backdrop-filter: var(--rm-blur, none); backdrop-filter: var(--rm-blur, none); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .14), 0 24px 60px rgba(0, 0, 0, .4); }
+.rs-ros h2 { font: 700 22px/1.2 var(--ui); letter-spacing: -.02em; }
+.rs-music { min-height: 32px; background: rgba(22, 22, 24, .55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16); }
+@media (min-width: 900px) {
+  .rs-program { border-radius: var(--r3, 28px); box-shadow: 0 0 0 1px rgba(0, 0, 0, .06), 0 2px 4px rgba(0, 0, 0, .06), 0 24px 56px -16px rgba(0, 0, 0, .32); }
+  .rs-bar { border: 1px solid var(--rm-edge, transparent); border-radius: var(--r2, 18px); box-shadow: var(--rm-spec, none), var(--rm-shadow, none); }
+  .rm-stagewrap.rs-on > .rm-stage:not(.rm-stage--lobby) { width: min(100%, calc((100vh - 300px) * 16 / 9)); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .rs-greencard, .rs-mutewarn, .rs-ros, .rs-music { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .rs-mutewarn { background: #1c1c1e; }
+}

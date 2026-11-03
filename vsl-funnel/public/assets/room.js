@@ -571,6 +571,7 @@
     var rg = $('[data-ring]'); if (rg) rg.onclick = openMomentum;
     var tr = $('[data-tray]'); if (tr) tr.onclick = openTray;
     renderTabs();
+    segWatch(); // glass: the tabs' sliding selection pill
     coreEmit('shell'); // studio (builder B): add-on tabs and docks
   }
   function banner(text) { var b = $('[data-banner]'); if (!b) return; b.hidden = !text; b.textContent = text || ''; }
@@ -722,6 +723,29 @@
       badge('poll', S.view.poll && S.view.poll.open && S.view.poll.mine == null && !isStaff ? 1 : 0);
       badge('people', (S.view.people || []).filter(function (p) { return p.hand; }).length);
     }
+  }
+
+  // Glass: the tabs are a segmented control whose selection pill slides to the selected tab (room.css .rm-tabs.is-seg).
+  // Presentation only: it reads the selected tab's box, whoever selected it (room.js or an add-on tab).
+  function segPill() {
+    var nav = $('[data-tabs]'), sel = nav && $('[aria-selected="true"]', nav);
+    if (!nav) return;
+    if (!sel || !sel.offsetWidth) { nav.classList.remove('is-seg'); return; }
+    var first = !nav.classList.contains('is-seg');
+    if (first) nav.classList.add('is-instant');
+    nav.style.setProperty('--seg-x', sel.offsetLeft + 'px');
+    nav.style.setProperty('--seg-w', sel.offsetWidth + 'px');
+    nav.classList.add('is-seg');
+    if (sel.offsetLeft < nav.scrollLeft || sel.offsetLeft + sel.offsetWidth > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = Math.max(0, sel.offsetLeft - 24);
+    if (first) requestAnimationFrame(function () { requestAnimationFrame(function () { nav.classList.remove('is-instant'); }); });
+  }
+  var segQueued = false;
+  function segSoon() { if (segQueued) return; segQueued = true; requestAnimationFrame(function () { segQueued = false; segPill(); }); }
+  function segWatch() {
+    var nav = $('[data-tabs]'); if (!nav) return;
+    segSoon();
+    if (window.MutationObserver) new MutationObserver(segSoon).observe(nav, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-selected', 'hidden'] });
+    if (!segWatch.on) { segWatch.on = true; window.addEventListener('resize', segSoon); }
   }
 
   /** Panels redraw on every room update: what someone is typing (and where the cursor is) survives the redraw. */

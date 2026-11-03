@@ -88,3 +88,19 @@ body.rmq-talking::after { content: ""; position: fixed; left: 50%; top: 64px; wi
   .rmq-dl { grid-template-columns: repeat(2, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .rmq-spin, .rmq-row[data-state="wait"] .rmq-dot { animation: none; } }
+
+/* ── Glass (Liquid Glass pass, glass.css + room.css tokens) ── */
+.rmq-chipbtn { min-height: 40px; border-color: transparent; background: var(--fill); transition: background .15s var(--ease), transform .2s var(--spring, var(--ease)); }
+.rmq-chipbtn:active { transform: scale(.96); }
+.rmq-chipbtn[aria-checked="true"] { background: var(--ink); border-color: var(--ink); }
+.rmq-chip { min-width: 36px; min-height: 36px; background: var(--fill); }
+.rmq-problem { border-radius: var(--r2); background: rgba(255, 59, 48, .08); box-shadow: inset 0 0 0 1px rgba(196, 22, 28, .12); }
+.rmq-checks { border-top: 0; border-radius: var(--r2); background: var(--fill); padding: 0 16px; }
+.rmq-row:last-child { border-bottom: 0; }
+.rmq-dl { border-radius: var(--r2); }
+.rmq-reach { margin: 8px 12px 0; border: 0; border-radius: var(--r2); background: rgba(255, 241, 240, .92); box-shadow: inset 0 0 0 1px rgba(196, 22, 28, .14), var(--rm-shadow, none); }
+.rmq-tq { border-radius: 999px; background: rgba(22, 22, 24, .58); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.rmq-tiletag { background: rgba(22, 22, 24, .62); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16); }
+.rmq-pv-v { border-radius: var(--r2); }
+@media (min-width: 900px) { .rmq-reach { margin: 0; } }
+@media (prefers-reduced-transparency: reduce) { .rmq-tq, .rmq-tiletag { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(0, 0, 0, .78); } }

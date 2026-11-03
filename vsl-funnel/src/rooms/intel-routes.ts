@@ -24,7 +24,7 @@ import {
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
 const gate = (c: Context<AppEnv>, h: string, b: string, status: 200 | 403 | 404 = 404) =>
-  c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(h)}</title><link rel="stylesheet" href="/assets/room.css"></head><body class="rm-body"><main class="rm-gate"><h1>${esc(h)}</h1><p>${esc(b)}</p></main></body></html>`, status);
+  c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(h)}</title><link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/room.css"></head><body class="rm-body"><main class="rm-gate"><h1>${esc(h)}</h1><p>${esc(b)}</p></main></body></html>`, status);
 
 // ───────────── the replay page ─────────────
 
@@ -80,7 +80,7 @@ export async function renderReplayPage(c: Context<AppEnv>, room: RoomRow, who: I
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <title>${esc(`${INTEL_COPY.replayEyebrow}: ${room.title}`)}</title>
-<link rel="stylesheet" href="/assets/room.css">
+<link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/room.css">
 <link rel="stylesheet" href="/assets/intel.css">
 <script defer src="/assets/intel-replay.js"></script>
 </head>

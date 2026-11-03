@@ -18,13 +18,14 @@
 .rx-tools { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; align-items: center; gap: 6px; z-index: 8; pointer-events: none; }
 .rx-tools > * { pointer-events: auto; }
 .rx-tools .rx-sp { flex: 1; }
-.rx-ib { display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 10px; border: 0; border-radius: 999px; background: rgba(0, 0, 0, .5); color: #fff; font: 600 13px/1 var(--ui); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transition: background .15s var(--ease), transform .15s var(--ease); }
-.rx-ib:hover { background: rgba(0, 0, 0, .7); }
+/* stage tools: dark glass capsules over the video (glass.css --g-bg-dark), light glass on the canvas on desktop */
+.rx-ib { display: inline-grid; place-items: center; min-width: 44px; height: 44px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(22, 22, 24, .56); box-shadow: var(--g-spec-dark, none), inset 0 0 0 .5px rgba(255, 255, 255, .16); color: #fff; font: 600 13px/1 var(--ui); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); transition: background .15s var(--ease), transform .2s var(--spring, var(--ease)); }
+.rx-ib:hover { background: rgba(22, 22, 24, .68); }
 .rx-ib:active { transform: scale(.94); }
 .rx-ib[aria-pressed="true"] { background: #fff; color: var(--ink); }
 .rx-ib svg { width: 20px; height: 20px; }
-.rx-ib:focus-visible, .rx-react button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.rx-react { display: inline-flex; gap: 2px; padding: 2px; border-radius: 999px; background: rgba(0, 0, 0, .5); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.rx-ib:focus-visible, .rx-react button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(10, 132, 255, .6); }
+.rx-react { display: inline-flex; gap: 2px; padding: 2px; border-radius: 999px; background: rgba(22, 22, 24, .56); box-shadow: var(--g-spec-dark, none), inset 0 0 0 .5px rgba(255, 255, 255, .16); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
 .rx-react button { width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: #fff; display: grid; place-items: center; transition: background .15s var(--ease), transform .12s var(--ease); }
 .rx-react button:hover { background: rgba(255, 255, 255, .16); }
 .rx-react button:active { transform: scale(.88); }
@@ -42,7 +43,7 @@
 @keyframes rx-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 
 /* ── cards: the away card, the team's answer, the nudge ── */
-.rx-card { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(calc(100% - 32px), 440px); z-index: 58; padding: 18px 18px 16px; background: #fff; color: var(--ink); border-radius: var(--r2); box-shadow: 0 10px 34px rgba(0, 0, 0, .18), 0 0 0 1px var(--hair); animation: rx-in .22s var(--ease); }
+.rx-card { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(calc(100% - 32px), 440px); z-index: 58; padding: 18px 18px 16px; background: var(--rm-sheet-bg, #fff); -webkit-backdrop-filter: var(--rm-blur, none); backdrop-filter: var(--rm-blur, none); border: 1px solid var(--rm-edge, transparent); color: var(--ink); border-radius: 24px; box-shadow: var(--rm-spec, none), var(--rm-lift, 0 10px 34px rgba(0, 0, 0, .18)); animation: rx-in var(--g-slow, 420ms) var(--spring, var(--ease)); }
 .rx-card h3 { margin: 0 32px 6px 0; font: 600 16px/1.3 var(--ui); }
 .rx-card p { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
 .rx-card .rx-q { color: var(--ink); font-style: italic; }
@@ -101,14 +102,16 @@
 /* ── floating window and the mini player ── */
 .rx-pip-body { margin: 0; background: var(--stage, #0b0b0c); height: 100vh; display: grid; }
 .rx-pip-body .rm-stage { max-height: none; height: 100vh; aspect-ratio: auto; }
-.rx-mini .rm-stagewrap { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: 8px; width: min(46vw, 260px); z-index: 56; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
+.rx-mini .rm-stagewrap { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: 8px; width: min(46vw, 260px); z-index: 56; border-radius: 16px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, .18), 0 12px 32px rgba(0, 0, 0, .35); }
+/* while the mini player floats in the corner, a sheet never rises under it: its close button stays visible and tappable */
+.rx-mini .rm-sheet .rm-sheet-in { max-height: calc(100dvh - min(46vw, 260px) * 9 / 16 - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
 .rx-mini .rm-stagewrap .rm-stage { max-height: none; padding: 0; }
 .rx-mini .rm-stagewrap .rx-tools, .rx-mini .rm-stagewrap .rx-capnote, .rx-mini .rm-stagewrap .rx-pulse, .rx-mini .rm-stagewrap .rx-tally, .rx-mini .rm-stagewrap .rm-agenda, .rx-mini .rm-stagewrap .rm-pinned { display: none; }
 .rx-mini .rm-stagewrap .rx-caps { bottom: 4px; width: 96%; }
 .rx-mini .rm-stagewrap .rx-caps p { font-size: 11px; padding: 2px 6px; }
 .rx-mini .rm-stagewrap .rx-proof { top: 4px; left: 4px; font-size: 11px; padding: 4px 8px; }
 .rx-mini-x { display: none; }
-.rx-mini .rx-mini-x { display: grid; position: absolute; right: 4px; top: 4px; z-index: 12; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .6); color: #fff; font-size: 14px; }
+.rx-mini .rx-mini-x { display: grid; position: absolute; right: 6px; top: 6px; z-index: 12; width: 32px; height: 32px; place-items: center; border: 0; border-radius: 50%; background: rgba(22, 22, 24, .6); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .2); color: #fff; font-size: 16px; }
 .rx-mini-ph { display: none; }
 .rx-mini .rx-mini-ph { display: block; height: 0; }
 
@@ -151,7 +154,18 @@ html.rx-contrast :focus-visible { outline: 3px solid #000 !important; outline-of
   .rx-capnote { font-size: 11px; }
 }
 @media (min-width: 900px) {
-  .rx-card { left: auto; right: 392px; top: 72px; bottom: auto; transform: none; }
+  .rx-card { left: auto; right: calc(var(--rm-side-w, 380px) + 2 * var(--rm-gap, 12px) + 16px); top: 88px; bottom: auto; transform: none; }
+  /* on desktop the tools sit on the canvas under the stage card: light glass, like the toolbar */
+  .rx-tools { left: 0; right: 0; bottom: 4px; }
+  .rx-ib, .rx-react { background: var(--rm-bar-bg, #fff); color: var(--ink); border: 1px solid var(--rm-edge, transparent); box-shadow: var(--rm-spec, none), var(--rm-shadow, 0 2px 8px rgba(0, 0, 0, .08)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .rx-ib:hover, .rx-react button:hover { background: var(--fill-2); }
+  .rx-ib[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .rx-ib:focus-visible, .rx-react button:focus-visible { outline-color: #0a84ff; }
+  .rx-react button { color: var(--ink); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .rx-ib, .rx-react, .rx-card, .rx-mini .rx-mini-x { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .rx-ib, .rx-react { background: #1c1c1e; }
 }
 
 /* qa-sells: objection counts and tags in the co-host tab */
@@ -162,3 +176,9 @@ html.rx-contrast :focus-visible { outline: 3px solid #000 !important; outline-of
 .rx-obj-list b { font-variant-numeric: tabular-nums; color: var(--ink); }
 .rx-obj-tag { background: #eef2f8; }
 .rx-qi .rx-reopen { color: var(--navy); box-shadow: inset 0 0 0 1px var(--navy); }
+/* on a phone, under the director's scene bar the tools sit on the canvas too: light glass there */
+@media (max-width: 899px) {
+  .rm-stagewrap:has(> .rs-bar) .rx-ib, .rm-stagewrap:has(> .rs-bar) .rx-react { background: var(--rm-bar-bg, #fff); color: var(--ink); box-shadow: var(--rm-spec, none), var(--rm-shadow, 0 2px 8px rgba(0, 0, 0, .08)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .rm-stagewrap:has(> .rs-bar) .rx-react button { color: var(--ink); }
+  .rm-stagewrap:has(> .rs-bar) .rx-ib[aria-pressed="true"] { background: var(--ink); color: #fff; }
+}

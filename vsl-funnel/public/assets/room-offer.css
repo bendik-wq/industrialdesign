@@ -23,3 +23,10 @@
   .ro-price { font-size: 19px; }
 }
 @media (prefers-reduced-motion: reduce) { .ro-path { transition: none; } }
+
+/* ── Glass (Liquid Glass pass): the two paths as one inset group, system type for the prices ── */
+.ro-grid { gap: 1px; border-radius: var(--r2, 18px); background: var(--hair, rgba(0, 0, 0, .1)); }
+.ro-path { padding: 14px; background: rgba(255, 255, 255, .9); }
+.ro-path:first-child { background: rgba(245, 245, 247, .94); }
+.ro-price { font: 700 22px/1.15 var(--ui, system-ui); letter-spacing: -.02em; }
+@media (max-width: 480px) { .ro-price { font-size: 19px; } }
