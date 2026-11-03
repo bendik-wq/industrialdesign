@@ -15,7 +15,8 @@
     "simulate": "node scripts/simulate-traffic.mjs",
     "smoke:seed": "node scripts/smoke/seed.mjs",
     "smoke:local": "node scripts/smoke/run.mjs --local",
-    "smoke:prod": "node scripts/smoke/run.mjs --prod"
+    "smoke:prod": "node scripts/smoke/run.mjs --prod",
+    "build:voice-demo": "esbuild scripts/voice-demo/entry.js --bundle --minify --format=iife --target=es2020 --outfile=public/assets/voice-demo.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261006.1",
+    "@elevenlabs/client": "1.29.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0",
     "wrangler": "^4.148.0"

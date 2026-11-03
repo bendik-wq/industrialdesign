@@ -106,6 +106,7 @@
         ['contracts', 'sign', 'New agreement', 'Auto-quoted from the application'],
         ['testemail', 'mail', 'Send a test email', 'Check that email delivers'],
         ['command', 'sparkle', 'Ask the assistant', 'Questions about your numbers'],
+        ['voicedemo', 'phone', 'Talk to an AI agent', 'Live demo in your browser'],
       ];
       var quick = '<div class="home-quick">' + acts.map(function (a) {
         return '<button type="button" class="home-q" data-home-act="' + a[0] + '"><span class="home-ic tone-navy">' + icon(a[1]) + '</span><span><b>' + esc(a[2]) + '</b><small>' + esc(a[3]) + '</small></span></button>';
@@ -123,6 +124,7 @@
         b.onclick = function () {
           var k = b.getAttribute('data-home-act'), N = window.HQNav;
           if (k === 'find') { if (window.HQUX && window.HQUX.openPalette) window.HQUX.openPalette('lead'); else { var j = document.querySelector('[data-jump]'); if (j) j.click(); } return; }
+          if (k === 'voicedemo') { location.href = '/admin/voice-demo'; return; }
           if (k === 'testemail') { if (N) N.runAction('integrations', { label: 'Send a test email', focus: '[data-test-to]' }); return; }
           if (N) N.runAction(k); else ctx.go(k);
         };

@@ -203,6 +203,8 @@ hooks.post('/elevenlabs', async (c) => {
   const conv = typeof body.data?.conversation_id === 'string' ? body.data.conversation_id : null;
   // One post-call event per conversation and type; ElevenLabs retries the same one.
   const id = conv ? `${body.type ?? 'event'}:${conv}` : await bodyId(raw);
+  // Conversations from Funnel HQ → Talk to an agent are demos: no call records, emails or pings.
+  if ((await import('../admin/voice-demo')).isDemoConversation(body.data)) return c.text('ok');
   return once(c, await onceOnly(rt.env, 'elevenlabs', id, async () => {
     if (inboundAgent && body.type === 'post_call_transcription' && body.data?.agent_id === inboundAgent) await finishInbound(rt, { ...(body.data as unknown as Conversation), status: 'done' });
     else await handleElevenWebhook(rt, body);

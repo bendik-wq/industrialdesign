@@ -348,6 +348,13 @@ app.get('/oauth/google/callback', async (c) => {
   }
 });
 app.route('/admin/api', admin);
+app.get('/admin/voice-demo', requireAdmin, async (c) => { // Funnel HQ → Talk to an agent (live, in the browser; nobody is called)
+  const { voiceDemoPage, VOICE_DEMO_CSP } = await import('./admin/voice-demo');
+  c.header('content-security-policy', VOICE_DEMO_CSP);
+  c.header('permissions-policy', 'microphone=(self), camera=(), geolocation=()');
+  c.header('cache-control', 'no-store');
+  return c.html(voiceDemoPage());
+});
 app.get('/admin/live/:key', requireAdmin, liveHostPage); // host console for one live event (Zoom)
 app.get('/admin/rooms/:id/replay', requireAdmin, adminReplayPage); // the team's view of a room's replay (area D)
 app.get('/admin/rooms/:id', requireAdmin, hostRoomPage); // the host in our own room
