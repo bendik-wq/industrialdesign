@@ -295,17 +295,18 @@ export const VOICE_AGENT = {
  * promises, and funding always named in full (commercial debt, seller finance, seller rollover). The site FAQ is unchanged.
  */
 const VOICE_FAQ_OVERRIDES: Record<string, string> = {
+  'How does one acquisition double or triple my business?': 'The idea is that buying a business brings its customers, team and profit into yours in one move, instead of growing one sale at a time. How much difference it makes depends entirely on the target, which is chosen with the team in the first two weeks and sized to what the numbers support. Every deal is different, so there’s no typical result to quote.',
   'Do I really put no money down?': 'That’s what the structure aims for. Commercial debt, seller finance (the seller is paid over time from the business’s own cash flow) and seller rollover (the seller keeps a stake in the new company) together can cover the purchase price, so the buyer often puts little or no cash in. Whether that works for a particular deal depends on the business and the lenders, and the team goes through it on the strategy call.',
 };
 export const voiceFaqs = (faqs: { q: string; a: string }[]) => faqs.map((f) => (VOICE_FAQ_OVERRIDES[f.q] ? { q: f.q, a: VOICE_FAQ_OVERRIDES[f.q] } : f));
 const voiceFaqText = (faqs: { q: string; a: string }[]) => voiceFaqs(faqs).map((f) => `Q: ${f.q}\nA: ${f.a.replace(/<[^>]+>/g, '')}`).join('\n\n');
 
 /** The offer as the voice agents may say it: aims, not promises. */
-const VOICE_OFFER_AIMS = `- Aim: a 90-day plan built to get them to a signed LOI on an acquisition about as big as their business or bigger. That is the plan's aim, not a promise or a typical result: it depends on the business they find, the seller and the lenders.
+const VOICE_OFFER_AIMS = `- Aim: a 90-day plan built to get them to a signed LOI on an acquisition they choose with the team, sized so the business can carry its loan payments (about 1.5x debt cover). That is the plan's aim, not a promise or a typical result: it depends on the business they find, the seller and the lenders.
 - Funding: deals are structured with commercial debt, seller finance (the seller is paid over time from the business's cash flow) and seller rollover (the seller keeps a stake in the new company). Where the numbers allow, together they cover the price so the buyer puts little or no cash in, but that depends on the deal and is never guaranteed. Only talk about funding or cash if they ask, and then name all three in the same answer and add that it depends on the deal. Never say "often" or "little to no cash" on its own.`;
 
 /** Rules every voice agent follows on claims and follow-ups. */
-const VOICE_CLAIM_RULES = `- Never promise results. Never say they WILL double or triple their business, close within 90 days, or put no money down. Describe these only as what the plan and the structure aim for, and say every deal is different. Don't say "usually" or quote typical timeframes or outcomes.
+const VOICE_CLAIM_RULES = `- Never promise results. Never say they WILL double or triple their business, close within 90 days, or put no money down. Describe these only as what the plan and the structure aim for, and say every deal is different. Don't say "usually" or "often" about results, and don't quote typical timeframes, outcomes or deal sizes (no "as big as yours or bigger"). If asked how big, say the target is chosen with them and sized to what the numbers support.
 - Never say a deal is "over-financed" or that they'll get extra cash or working capital out of it.
 - Only promise what really happens: when they ask for it, the booking link is emailed after the call. A request to speak to a person is passed to Josh's team, who get in touch. Never promise a specific callback day or time.`;
 

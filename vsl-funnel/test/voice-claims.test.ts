@@ -10,6 +10,7 @@ describe('voice agents: aims, never promises', () => {
       expect(p).toMatch(/seller rollover/);
       expect(p).toMatch(/Never promise results/);
       expect(p).toMatch(/Never promise a specific callback day or time/);
+      expect(p).not.toMatch(/(about )?as big as their business or bigger|as big as yours, or bigger/);
     });
   }
   it('the voice FAQ softens "no money down" and keeps the rest of the site FAQ', () => {
