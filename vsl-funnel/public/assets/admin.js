@@ -1651,7 +1651,7 @@
       var jumps = [['ld-pipeline', 'Pipeline'], ['ld-deal', 'Deal'], ['ld-contract', 'Contract'], ['ld-app', 'Application'], ['ld-video', 'Video'], ['ld-emails', 'Emails']]
         .concat(d.calendly && d.calendly.length ? [['ld-calendly', 'Bookings']] : [])
         .concat(d.voice && d.voice.length ? [['ld-calls', 'AI calls']] : [])
-        .concat([['ld-journey', 'Journey']]);
+        .concat([['ld-buyer', 'Path to buy'], ['ld-journey', 'Journey']]);
 
       dr.innerHTML =
         '<div class="drawer-head"><div class="row" style="flex:1;min-width:0"><h2 class="lead-name">' + esc([l.first_name, l.last_name].filter(Boolean).join(' ') || l.email) + '</h2>' + (tier ? '<span class="tier ' + esc(tier) + '">' + esc(tier) + '</span>' : '') + (l.status ? statusPill(l.status) : '') + '<span class="pill" title="Lead score out of 100 (A ≥ 70, B ≥ 40)">score ' + esc(l.score == null ? '–' : l.score + '/100') + '</span><span class="pill">ref ' + esc(l.ref_code) + '</span></div><button class="close" type="button" aria-label="Close">Close ✕</button>' +
@@ -1700,6 +1700,7 @@
           { label: 'Host', key: 'host_email' },
         ], d.calendly) + '</div>' : '') +
         (d.voice && d.voice.length ? '<div class="card" id="ld-calls" style="margin-top:14px"><h2>AI calls</h2>' + d.voice.map(voiceCall).join('') + '</div>' : '') +
+        '<div class="card" id="ld-buyer" style="margin-top:14px" data-buyerpath><h2>Where they came from</h2><p class="muted">Loading…</p></div>' +
         '<div class="card" id="ld-journey" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action, server-side.</p></div><label class="muted"><input type="checkbox" data-all> show all events</label></div><ul class="timeline" data-tl>' + timeline() + '</ul></div>';
 
       dr.querySelector('.close').onclick = close;
@@ -1713,6 +1714,7 @@
         };
       });
       loadBehaviour(dr, id);
+      if (window.BuyerPath) window.BuyerPath.lead(dr.querySelector('[data-buyerpath]'), id, { esc: esc, when: when }); // admin-journey.js
       loadPayments(dr, id);
       loadContracts(dr.querySelector('[data-contracts]'), l);
       dr.querySelector('[data-all]').onchange = function (e) { showAll = e.target.checked; dr.querySelector('[data-tl]').innerHTML = timeline(); };
