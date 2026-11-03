@@ -11,7 +11,8 @@ import { getLink, linkTarget } from '../funnel/tracked-links';
 import { parseUA } from '../lib/ua';
 import { geoFromRequest, isDatacenter, isLinkChecker } from '../lib/geo';
 import { safeEqual } from '../lib/crypto';
-import { smsLinkTarget } from '../integrations/sms';
+import { handleReplyWords, smsLinkTarget, smsOptOutSig } from '../integrations/sms';
+import { leadByPhone } from '../integrations/voice';
 import { clientIp, overLimit } from '../lib/ratelimit';
 
 export const links = new Hono<AppEnv>();
@@ -86,6 +87,26 @@ links.post('/u/:lead/:sig', async (c) => {
     await track(rt, await identityFromLead(c.env, lead.id), { name: 'unsubscribe', source: 'email' });
   }
   return c.html(unsubPage('You’re unsubscribed', '<p>You won’t receive any more emails from us.</p>'));
+});
+
+// Text opt-out link (texts sent under a sender name, which can't take a STOP reply). GET asks, POST opts out: the same
+// as replying STOP (the lead's texts stop and pending ones are cancelled).
+async function smsOptOutLead(c: Context<AppEnv>) {
+  const d = (c.req.param('p') ?? '').replace(/\D/g, '').slice(0, 16);
+  if (!d || !safeEqual(c.req.param('sig') ?? '', await smsOptOutSig(runtimeFrom(c), d))) return { ok: false as const, lead: null };
+  return { ok: true as const, lead: await leadByPhone(runtimeFrom(c), `+${d}`).catch(() => null) };
+}
+links.get('/so/:p/:sig', async (c) => {
+  const r = await smsOptOutLead(c);
+  if (!r.ok) return c.html(unsubPage('Link expired', '<p>This opt-out link is invalid.</p>'), 404);
+  if (r.lead?.sms_opt_out_at) return c.html(unsubPage('You’re opted out', '<p>You won’t receive any more texts from us.</p>'));
+  return c.html(unsubPage('Stop texts?', '<p>Stop all text messages from G&amp;L M&amp;A Advisory to this number?</p><form method="post"><button class="btn" type="submit">Yes, stop texts</button></form>'));
+});
+links.post('/so/:p/:sig', async (c) => {
+  const r = await smsOptOutLead(c);
+  if (!r.ok) return c.html(unsubPage('Link expired', '<p>This opt-out link is invalid.</p>'), 404);
+  if (r.lead) await handleReplyWords(runtimeFrom(c), r.lead, 'STOP', 'sms');
+  return c.html(unsubPage('You’re opted out', '<p>You won’t receive any more texts from us.</p>'));
 });
 
 // Short link inside a text message (target stored with the message, never taken from the URL).

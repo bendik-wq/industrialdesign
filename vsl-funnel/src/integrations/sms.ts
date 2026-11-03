@@ -2,7 +2,8 @@ import { safeFirstName } from '../lib/text';
 import type { Runtime } from '../app';
 import { type Lead, effectiveTier, getLead, updateLead } from '../funnel/leads';
 import { newId } from '../lib/ids';
-import { safeEqual } from '../lib/crypto';
+import { hmacHex, safeEqual } from '../lib/crypto';
+import { getSecret } from '../lib/secret';
 import { identityFromLead, track } from '../tracking/track';
 import { bookingUrlFor } from '../funnel/routing';
 import { callingZones } from './elevenlabs';
@@ -251,7 +252,11 @@ async function sendTwilio(rt: Runtime, to: string, body: string) {
 /** Telnyx Messaging API: one text from our number (SMS_FROM) on the messaging profile (TELNYX_MESSAGING_PROFILE_ID, optional). */
 async function sendTelnyx(rt: Runtime, to: string, body: string) {
   const s = rt.settings;
-  const payload: Record<string, string> = { from: s.SMS_FROM, to, text: body };
+  // Australian mobiles get the sender name (SMS_SENDER_AU, e.g. "GL Advisory"). Replies can't reach a sender name, so the
+  // opt-out becomes a link that works exactly like replying STOP (Spam Act: a working opt-out in every message).
+  const alpha = sendsAsName(rt, to);
+  if (alpha) body = withOptOutLink(body, await smsOptOutUrl(rt, to));
+  const payload: Record<string, string> = { from: alpha ?? s.SMS_FROM, to, text: body };
   if (String(s.TELNYX_MESSAGING_PROFILE_ID ?? '').trim()) payload.messaging_profile_id = String(s.TELNYX_MESSAGING_PROFILE_ID).trim();
   const res = await fetch('https://api.telnyx.com/v2/messages', {
     method: 'POST',
@@ -261,6 +266,26 @@ async function sendTelnyx(rt: Runtime, to: string, body: string) {
   const data = (await res.json().catch(() => ({}))) as { data?: { id?: string }; errors?: { title?: string; detail?: string; code?: string }[] };
   if (!res.ok) { const e = data.errors?.[0]; throw new Error(`Telnyx ${res.status}: ${e?.title ?? ''} ${e?.detail ?? ''} (${e?.code ?? ''})`.slice(0, 300)); }
   return data.data?.id ?? null;
+}
+
+/** The sender name for this number (Australian mobiles, when SMS_SENDER_AU is set and Telnyx sends), else null. */
+export function sendsAsName(rt: Pick<Runtime, 'settings'>, to: string) {
+  const name = String(rt.settings.SMS_SENDER_AU ?? '').trim();
+  return name && /^\+61/.test(to) ? name.slice(0, 11) : null;
+}
+/** Swap "Reply STOP to opt out" for the opt-out link; add the link when the text has no opt-out line. */
+export function withOptOutLink(body: string, url: string) {
+  const line = `Opt out: ${url}`;
+  const swapped = body.replace(/Reply STOP[^\n.]*\.?/i, line);
+  return swapped === body ? `${body}\n${line}` : swapped;
+}
+const phoneDigits = (phone: string) => phone.replace(/\D/g, '');
+export async function smsOptOutSig(rt: Pick<Runtime, 'env'>, digits: string) {
+  return (await hmacHex(await getSecret(rt.env), `smsout|${digits}`)).slice(0, 16);
+}
+export async function smsOptOutUrl(rt: Runtime, phone: string) {
+  const d = phoneDigits(phone);
+  return `${rt.origin}/so/${d}/${await smsOptOutSig(rt, d)}`;
 }
 
 /** Sends one text now through whichever provider is connected. */

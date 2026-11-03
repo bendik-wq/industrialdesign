@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Runtime } from '../src/app';
-import { smsConfigured, smsProvider, verifyTelnyx } from '../src/integrations/sms';
+import { sendsAsName, smsConfigured, smsProvider, verifyTelnyx, withOptOutLink } from '../src/integrations/sms';
+import { auditCopy } from '../src/content/copy-rules';
 
 const rt = (s: Record<string, string>) => ({ settings: s }) as unknown as Runtime;
 const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
@@ -28,5 +29,16 @@ describe('Telnyx texting', () => {
     expect(await verifyTelnyx(r, raw, null, ts, now, key)).toBe(false);
     expect(await verifyTelnyx(r, raw, sig, ts, now + 10 * 60_000, key)).toBe(false);
     expect(await verifyTelnyx(r, raw, sig, ts, now, async () => null)).toBe(false);
+  });
+
+  it('Australian mobiles get the sender name and an opt-out link instead of "Reply STOP"', () => {
+    const r = rt({ TELNYX_API_KEY: 'KEY1', SMS_SENDER_AU: 'GL Advisory' });
+    expect(sendsAsName(r, '+61412345678')).toBe('GL Advisory');
+    expect(sendsAsName(r, '+15125550100')).toBeNull();
+    expect(sendsAsName(rt({ TELNYX_API_KEY: 'KEY1' }), '+61412345678')).toBeNull();
+    const url = 'https://apply.test/so/61412345678/abc';
+    expect(withOptOutLink('Hi Dana, see you at 3pm.\nReply STOP to opt out.', url)).toBe(`Hi Dana, see you at 3pm.\nOpt out: ${url}`);
+    expect(withOptOutLink('Hi Dana, see you at 3pm.', url)).toBe(`Hi Dana, see you at 3pm.\nOpt out: ${url}`);
+    expect(auditCopy('Opt out: ' + url)).toEqual([]);
   });
 });
