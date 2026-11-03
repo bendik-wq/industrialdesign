@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { turnstileSiteKey } from '../infra/turnstile';
 import { FAQ_VIDEO_DISCLAIMER, readyFaqVideos } from '../content/faq-videos';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
@@ -95,7 +96,7 @@ async function trackingHead(c: Context<AppEnv>, pageEventId: string, hasForm: bo
   if (s.CLARITY_ID && v.marketingConsent && /^[a-z0-9]{4,20}$/i.test(s.CLARITY_ID)) {
     parts.push(`<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script",${scriptJson(s.CLARITY_ID)});clarity("identify",${scriptJson(v.visitorId)});</script>`);
   }
-  if (s.TURNSTILE_SITE_KEY && hasForm) {
+  if (turnstileSiteKey(s) && hasForm) {
     parts.push('<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>');
   }
   return parts.join('\n');
@@ -248,7 +249,7 @@ function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
   const s = c.get('settings');
   return {
     questions: clientQuestions(),
-    turnstileSiteKey: s.TURNSTILE_SITE_KEY || null,
+    turnstileSiteKey: turnstileSiteKey(s),
     callConsent: CALL_CONSENT.text,
     country: c.get('visitor').geo.country,
     // Talk instead of type: on unless turned off; the server fallback needs an ElevenLabs key.

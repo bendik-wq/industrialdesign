@@ -115,15 +115,25 @@
     });
   }
 
+  var turnstileSlot = null, turnstileId = null;
   function mountTurnstile() {
     if (!cfg.turnstileSiteKey) return;
     var slot = document.querySelector('[data-turnstile]');
+    if (!slot) return;
+    var tries = 0;
     (function wait() {
-      if (!window.turnstile) return setTimeout(wait, 200);
+      if (!window.turnstile) { if (tries++ < 50) setTimeout(wait, 200); return; }
       if (slot.dataset.mounted) return;
       slot.dataset.mounted = '1';
-      window.turnstile.render(slot, { sitekey: cfg.turnstileSiteKey, size: 'flexible', appearance: 'interaction-only', callback: function (t) { turnstileToken = t; } });
+      turnstileSlot = slot;
+      turnstileId = window.turnstile.render(slot, { sitekey: cfg.turnstileSiteKey, size: 'flexible', appearance: 'interaction-only', callback: function (t) { turnstileToken = t; }, 'expired-callback': function () { turnstileToken = null; } });
     })();
+  }
+  // Tokens are single use: after every contact save the check runs again, so a retry (or going back) has a fresh one.
+  function refreshTurnstile() {
+    if (!turnstileSlot || !window.turnstile) return;
+    turnstileToken = null;
+    try { window.turnstile.reset(turnstileId != null ? turnstileId : turnstileSlot); } catch (e) { /* the next render gets a new token */ }
   }
 
   function next() {
@@ -143,7 +153,8 @@
     };
     contact = data;
     return api('contact', data).then(function (r) {
-      if (r.error) return showError(r.error, r.field);
+      refreshTurnstile();
+      if (r.error) return showError(r.error, r.field === 'turnstile' ? null : r.field);
       if (r.leadEventId) F.pixel('Lead', r.leadEventId);
       next();
     });

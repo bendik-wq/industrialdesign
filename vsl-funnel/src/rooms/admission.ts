@@ -4,6 +4,8 @@ import { hmacHex, safeEqual } from '../lib/crypto';
 import { getSecret } from '../lib/secret';
 import { newId, newRefCode } from '../lib/ids';
 import { type RoomRow, getRoom, inviteUrl, isRoomId, makeInvite } from './rooms';
+import { withTurnstile } from '../infra/csp';
+import { TURNSTILE_COPY, TURNSTILE_SCRIPT, checkTurnstile, turnstileSiteKey } from '../infra/turnstile';
 
 /**
  * General admission and co-host links per room (Funnel HQ → Rooms → Links).
@@ -124,6 +126,8 @@ export async function joinRoom(rt: Runtime, room: RoomRow, v: import('../lib/ide
   const email = rawEmail ? validateEmail(rawEmail) : null;
   if (rawEmail && (!email || email.disposable)) return { error: JOIN_COPY.missingEmail, field: 'email', status: 400 };
   if (room.mode === 'webinar' && a.requireEmail && !email) return { error: JOIN_COPY.missingEmail, field: 'email', status: 400 };
+  // Bot protection on the general admission sheet only (personal room links never pass through here).
+  if (!(await checkTurnstile(rt, 'room_join', body['cf-turnstile-response'], v, now)).ok) return { error: TURNSTILE_COPY.failed, field: 'turnstile', status: 403 };
   if (await overLimit(rt, v.ip, now)) return { error: JOIN_COPY.tooMany, status: 429 };
 
   // An event's room: the live funnel's own registration (lead, registration, attribution, emails, consent).
@@ -198,12 +202,16 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '
 const REVENUE = [['lt1m', 'Under $1M'], ['1_3m', '$1M – $3M'], ['3_10m', '$3M – $10M'], ['10_25m', '$10M – $25M'], ['25_50m', '$25M – $50M'], ['50_100m', '$50M – $100M'], ['gt100m', '$100M+']];
 const page = (c: Context<AppEnv>, title: string, inner: string, status: 200 | 400 | 403 | 404 | 409 | 429 = 200) => {
   c.header('cache-control', 'no-store');
-  c.header('content-security-policy', "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+  // Bot protection on (TURNSTILE_MODE log or enforce): Turnstile's script and frame are allowed; off, the policy is as before.
+  c.header('content-security-policy', withTurnstile("default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'", Boolean(turnstileSiteKey(c.get('settings')))));
   return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)}</title><link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/room.css"></head><body class="rm-body"><main class="rm-entry rm-join">${inner}</main></body></html>`, status);
 };
 
-export async function joinSheet(_rt: Runtime, room: RoomRow, a: Admission, o: { error?: string; values?: Record<string, unknown>; action: string }) {
+export async function joinSheet(rt: Runtime, room: RoomRow, a: Admission, o: { error?: string; values?: Record<string, unknown>; action: string }) {
   const J = JOIN_COPY;
+  // Turnstile's own script renders the widget into the form and adds its token as a hidden field (no script of ours on this page).
+  const tsKey = turnstileSiteKey(rt.settings);
+  const ts = tsKey ? `<div class="cf-turnstile" data-sitekey="${esc(tsKey)}" data-size="flexible" data-appearance="interaction-only"></div><script src="${TURNSTILE_SCRIPT}" async defer></script>` : '';
   const val = (k: string) => esc(typeof o.values?.[k] === 'string' ? (o.values[k] as string).slice(0, 200) : '');
   const webinar = room.mode === 'webinar';
   const { LANDING_COPY } = await import('../live/pages');
@@ -216,6 +224,7 @@ export async function joinSheet(_rt: Runtime, room: RoomRow, a: Admission, o: { 
   <label class="rm-field"><span>${esc(J.phone)}</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" value="${val('phone')}"></label>
   <label class="rm-check"><input type="checkbox" name="sms_consent"> <span>${esc(LANDING_COPY.sms)}</span></label>
   <label class="rm-check"><input type="checkbox" name="call_consent"> <span>${esc(WEBINAR_CALL_CONSENT.text)}</span></label>` : ''}
+  ${ts}
   ${o.error ? `<p class="rm-err" role="alert">${esc(o.error)}</p>` : ''}
   <div class="rm-actions"><button type="submit" class="rm-primary">${esc(J.button)}</button></div>
   ${webinar ? `<p class="rm-fine">${esc(J.privacy)} <a class="rm-link" href="/privacy">Privacy policy</a>.</p>` : ''}

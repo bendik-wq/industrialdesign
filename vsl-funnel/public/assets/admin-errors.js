@@ -73,6 +73,8 @@
         '<p class="er-note">Off by default. When on, the first time a new error shows up the Command Slack channel gets one message (at most 5 an hour). Setting ERRORS_SLACK.</p></div>';
 
       view.innerHTML = '<div class="er-wrap">' + head + tiles + perDay + fps + cron + '</div>';
+      // Cloudflare platform cards (public/assets/admin-edge.js): Bot protection and Events (Analytics Engine).
+      if (root.EdgeCards) root.EdgeCards.render(ctx, view.querySelector('.er-wrap'));
       var box = view.querySelector('[data-er-slack]');
       if (box) box.onchange = function () {
         box.disabled = true;

@@ -4,6 +4,7 @@ import type { VisitorCtx } from '../lib/identity';
 import { newId } from '../lib/ids';
 import type { EventSource, ServerEvent } from './catalog';
 import { forwardEvent } from './forward';
+import { aeOn, eventMeasures, writeAe } from '../infra/analytics-engine';
 import type { MatchGeo } from './match';
 
 /** Who an event belongs to, plus what ad platforms need to match it. */
@@ -22,6 +23,9 @@ export interface TrackIdentity {
   pageUrl?: string | null;
   /** IP geolocation of the visitor's session, used for Meta match keys. */
   geo?: MatchGeo | null;
+  /** For the Analytics Engine copy only (src/infra/analytics-engine.ts): device class and this session's first-touch channel. */
+  device?: string | null;
+  channel?: string | null;
 }
 
 export interface TrackInput {
@@ -49,6 +53,8 @@ export const identityFromVisitor = (v: VisitorCtx, pageUrl?: string | null, lead
   marketingConsent: v.marketingConsent,
   pageUrl: pageUrl ?? null,
   geo: { country: v.geo.country, region: v.geo.region, regionCode: v.geo.regionCode, city: v.geo.city, postalCode: v.geo.postalCode },
+  device: v.ua?.device ?? null,
+  channel: v.touch?.channel ?? null,
 });
 
 /**
@@ -102,6 +108,12 @@ export async function track(rt: Runtime, who: TrackIdentity, input: TrackInput):
   ];
   if (who.sessionId) stmts.push(rt.env.DB.prepare('UPDATE sessions SET event_count = event_count + 1, last_seen_at = ? WHERE id = ?').bind(ts, who.sessionId));
   await rt.env.DB.batch(stmts);
+  // The Analytics Engine copy (off by default; D1 above is unchanged and stays the source of truth).
+  if (aeOn(rt)) {
+    const m = eventMeasures(input.props);
+    writeAe(rt, { name: input.name, path: input.path ?? null, channel: who.channel ?? null, source: input.source, country: who.geo?.country ?? null, device: who.device ?? null,
+      variant: who.variant ?? null, roomId: m.roomId, visitorId: who.visitorId, bot: Boolean(who.isBot), value: m.value, durationMs: m.durationMs });
+  }
 
   if (!who.isBot && !input.localOnly && !MICRO_EVENTS.has(input.name)) rt.waitUntil(forwardEvent(rt, who, { id, ts, name: input.name, props: input.props ?? {}, path: input.path ?? null, source: input.source }));
   return id;

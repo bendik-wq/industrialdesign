@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { turnstileSiteKey } from '../infra/turnstile';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { render } from '../funnel/pages';
 import { getLead, linkVisitor } from '../funnel/leads';
@@ -75,7 +76,7 @@ export function landingHtml(o: { next: LoadedCohort | null; now: number; ticketL
         <label class="chx-check chx-f-wide"><input type="checkbox" name="sms_consent"> <span>${esc(LANDING.smsConsent)}</span></label>
         <label class="chx-check chx-f-wide"><input type="checkbox" name="call_consent"> <span>${esc(WEBINAR_CALL_CONSENT.text)}</span></label>
       </div>
-      ${o.turnstile ? `<div class="cf-turnstile" data-sitekey="${esc(o.turnstile)}" data-size="flexible"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : ''}
+      ${o.turnstile ? `<div class="cf-turnstile" data-sitekey="${esc(o.turnstile)}" data-size="flexible" data-appearance="interaction-only"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : ''}
       <button class="chx-buy" type="submit">${esc(cta)} ${ICON.arrow}</button>
       <p class="chx-err" role="alert" data-ch-err hidden></p>
       <p class="chx-fine">${esc(o.free ? LANDING.privacy : `${LANDING.formNote} ${LANDING.privacy}`)} <a href="/privacy">Privacy policy</a>.</p>
@@ -118,7 +119,7 @@ export async function landingPage(c: Context<AppEnv>) {
     title: CHALLENGE_NAME,
     seo: true,
     // Prefill: a browser that came from our signed email link sees its details filled in (payment links).
-    main: (await import('../sales/paylinks')).prefillInputs(landingHtml({ next, now, ticketLabel: cfg.ticketLabel, vipLabel: cfg.vipLabel, vipOn: cfg.vipOn, turnstile: rt.settings.TURNSTILE_SITE_KEY || null, free: cfg.free }),
+    main: (await import('../sales/paylinks')).prefillInputs(landingHtml({ next, now, ticketLabel: cfg.ticketLabel, vipLabel: cfg.vipLabel, vipOn: cfg.vipOn, turnstile: turnstileSiteKey(rt.settings), free: cfg.free }),
       c.get('visitor').leadId && !c.get('visitor').isBot ? await (await import('../sales/paylinks')).prefillFor(rt, c.get('visitor').leadId) : null),
     config: { register: '/api/challenge/register', now },
   });

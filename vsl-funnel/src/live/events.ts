@@ -266,7 +266,7 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   if (emailCheck.disposable) throw new ApplicationError('Please use your real email address. Your room link goes there.', 'email');
   const band = APP_REVENUE_BAND[String(body.revenue ?? '')] ?? null;
   if (!band && !o.admission) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
-  if (!o.admission && !(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed. Please refresh and try again.', undefined, 403);
+  if (!o.admission && !(await verifyTurnstile(rt, body.turnstile, v, 'live'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
   const wantsTexts = body.sms_consent === true || body.sms_consent === 'true' || body.sms_consent === 'on';
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number, including area code, or leave it blank', 'phone');

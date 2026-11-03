@@ -113,7 +113,7 @@ const VSL: FunnelMapDef = {
     xy(900, 260, { id: 'apply', kind: 'page', title: 'Application', sub: '10 steps, one at a time', tab: 'application', count: 'lead',
       sees: 'Contact details first (name, email, phone and an optional box to agree to calls), then nine questions one at a time: the business, role, revenue, profit, goal, timeline, blockers, readiness and why now.',
       behind: 'Each answer is saved as they go, so an abandoned application can still be followed up. The microphone button and the invisible bot check are both settings.',
-      settings: ['VOICE_INPUT', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'BLOCKLIST'], page: { path: '/apply', preview: '/apply' } }),
+      settings: ['VOICE_INPUT', 'TURNSTILE_MODE', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'BLOCKLIST'], page: { path: '/apply', preview: '/apply' } }),
     xy(1180, 260, { id: 'score', kind: 'decision', title: 'Score and tier', sub: 'A, B or C', tab: 'application', count: 'applied',
       sees: 'Nothing changes on screen: the next page depends on the tier.',
       behind: 'Answers earn points; 70 or more is A, 40 or more is B, anything lower is C. Hard rules cap the tier (for example under $1M revenue, an industry lenders won’t fund, or the blocklist). A smooth round-robin then picks the closer.',

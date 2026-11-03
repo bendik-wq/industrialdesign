@@ -4,6 +4,7 @@ import { runtimeFrom } from '../app';
 import { type Member, type RoomState, isStaff } from './state';
 import { getRoom, isRoomId, readTicket } from './rooms';
 import type { ProxyResult, SfuOp } from './proxy';
+import type { AePoint } from '../infra/analytics-engine';
 import { SfuError, sfuCall } from './sfu';
 
 /**
@@ -172,6 +173,19 @@ export const staffView = (rec: MediaRec) => ({
   rx: rec.last.rx ? { v: rec.last.rx.v, vr: rec.last.rx.vr, a: rec.last.rx.a, ar: rec.last.rx.ar } : null,
   pw: rec.last.pw ?? null,
 });
+
+/**
+ * One quality report as an Analytics Engine point (src/infra/analytics-engine.ts has the layout): name room_quality,
+ * device os/browser, variant the level, value the score, duration the round trip, then loss, jitter, kbps in/out, tier.
+ */
+export function roomQualityPoint(roomId: string, rec: MediaRec): AePoint {
+  const r = rec.last;
+  return {
+    name: 'room_quality', path: `/rooms/${roomId}`, source: 'room', device: `${r.mobile ? 'mobile' : 'desktop'} ${r.os}/${r.browser}`.slice(0, 80),
+    variant: r.level, roomId, visitorId: rec.who, channel: rec.role, value: r.score, durationMs: r.rtt,
+    extra: [r.loss, r.jitter, r.inKbps, r.outKbps, r.tier],
+  };
+}
 
 /** Writes the dirty summaries to D1 (from the room's alarm). Returns how many rows it wrote. */
 export async function flushReports(db: D1Database, roomId: string, recs: MediaRec[]) {

@@ -7,6 +7,8 @@ export interface Env {
   ROOMS?: DurableObjectNamespace;
   /** Optional R2 bucket for room recordings (the replay). Without it the host downloads the recording. */
   RECORDINGS?: R2Bucket;
+  /** Cloudflare platform round, builder B: Analytics Engine dataset gl_events (src/infra/analytics-engine.ts). Optional; used only when ANALYTICS_ENGINE is on. */
+  EVENTS?: AnalyticsEngineDataset;
 
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.

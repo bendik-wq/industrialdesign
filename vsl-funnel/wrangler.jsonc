@@ -46,6 +46,11 @@
   // Without the binding the host room offers the recording as a download instead.
   "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "gl-room-recordings" }],
 
+  // Cloudflare platform round, builder B: Analytics Engine. A second copy of every first-party tracking event and room
+  // quality report (src/infra/analytics-engine.ts), written only when the ANALYTICS_ENGINE setting is on. The dataset is
+  // created on first write. Turnstile needs no binding (its keys and TURNSTILE_MODE are settings).
+  "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "gl_events" }],
+
   // Email queue, abandoned-application detection and call reminders.
   "triggers": { "crons": ["*/5 * * * *"] },
 

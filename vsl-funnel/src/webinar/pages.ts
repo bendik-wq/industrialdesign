@@ -1,4 +1,5 @@
 import { playbackFor } from '../live/stream';
+import { turnstileSiteKey } from '../infra/turnstile';
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { render } from '../funnel/pages';
@@ -70,7 +71,7 @@ export async function webinarLanding(c: Context<AppEnv>) {
       ...(ticket ? { ticket_price: ticketPriceHtml(ticket.copy), ticket_block: ticketBlockHtml(ticket.copy), ticket_form_note: `<p class="ticket-form-note"><strong>${esc(ticket.copy.priceLine)}</strong></p>` } : {}),
     },
     show: { has_sessions: sessions.length > 0 || Boolean(jit), ticket: Boolean(ticket) },
-    config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt), headline: hl.id, edition: editionName(rt.settings) } },
+    config: { webinar: { register: '/api/webinar/register', base: webinarBase(rt), headline: hl.id, edition: editionName(rt.settings) }, turnstileSiteKey: turnstileSiteKey(rt.settings) },
     seo: {
       title: `${w.title} | Masterclass with Josh Li`,
       description: 'A one-hour masterclass with Josh Li on buying a competitor without your own cash: commercial debt, seller finance and seller rollover, and the path to a signed LOI.',

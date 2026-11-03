@@ -48,6 +48,14 @@
 
   // ── Registration ──
   var reg = document.querySelector('[data-webinar-register]');
+  // Bot protection (Turnstile), only when the server sent a site key (TURNSTILE_MODE log or enforce): invisible unless
+  // Cloudflare asks for a click. The token is single use, so a failed try runs the check again.
+  var tsKey = (window.FUNNEL || {}).turnstileSiteKey, tsSlot = reg && (reg.querySelector('[data-turnstile]') || document.querySelector('[data-turnstile]')), tsToken = null, tsId = null;
+  if (reg && tsKey && tsSlot) {
+    var tsTries = 0;
+    (function wait() { if (window.turnstile) tsId = window.turnstile.render(tsSlot, { sitekey: tsKey, size: 'flexible', appearance: 'interaction-only', callback: function (t) { tsToken = t; }, 'expired-callback': function () { tsToken = null; } }); else if (tsTries++ < 40) setTimeout(wait, 250); })();
+  }
+  function tsReset() { if (tsId != null && window.turnstile) { tsToken = null; try { window.turnstile.reset(tsId); } catch (x) { /* fresh token on next render */ } } }
   if (reg) reg.addEventListener('submit', function (e) {
     e.preventDefault();
     var btn = reg.querySelector('button[type=submit]');
@@ -57,7 +65,7 @@
     body.revenue = rev ? rev.value : '';
     body.headline = (window.FUNNEL && window.FUNNEL.webinar && window.FUNNEL.webinar.headline) || '';
     var ts = document.querySelector('[name="cf-turnstile-response"]');
-    if (ts) body.turnstile = ts.value;
+    if (tsToken) body.turnstile = tsToken; else if (ts) body.turnstile = ts.value;
     if (!body.first_name) return error(reg, 'Please enter your first name');
     if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(body.email)) return error(reg, 'Please enter a valid email address');
     if (!body.revenue) return error(reg, 'Please pick your business’s annual revenue');
@@ -66,7 +74,7 @@
       btn.disabled = false;
       // Pixel copies of the server's CompleteRegistration and Lead, with the same event ids (Meta keeps one of each).
       if (r && r.next) { F.track('webinar_register_click', {}); if (F.pixel) F.pixel('CompleteRegistration', body.event_id, { session_slot: picked && picked.getAttribute('data-slot') || '' }); if (F.pixel) F.pixel('Lead', body.pixel_eid); location.href = F.xdUrl ? F.xdUrl(r.next) : r.next; }
-      else error(reg, (r && r.error) || 'Something went wrong — please try again.');
+      else { tsReset(); error(reg, (r && r.error) || 'Something went wrong — please try again.'); }
     });
   });
 

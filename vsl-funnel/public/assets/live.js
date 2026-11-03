@@ -44,11 +44,11 @@
     if (!form) return;
     var err = $('[data-err]', form);
     var slot = $('[data-turnstile]', form);
-    var tsToken = null;
+    var tsToken = null, tsId = null;
     var cfg = window.FUNNEL || {};
     if (slot && cfg.turnstileSiteKey) {
       var tries = 0;
-      (function wait() { if (window.turnstile) window.turnstile.render(slot, { sitekey: cfg.turnstileSiteKey, size: 'flexible', appearance: 'interaction-only', callback: function (t) { tsToken = t; } }); else if (tries++ < 40) setTimeout(wait, 250); })();
+      (function wait() { if (window.turnstile) tsId = window.turnstile.render(slot, { sitekey: cfg.turnstileSiteKey, size: 'flexible', appearance: 'interaction-only', callback: function (t) { tsToken = t; }, 'expired-callback': function () { tsToken = null; } }); else if (tries++ < 40) setTimeout(wait, 250); })();
     }
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -64,6 +64,8 @@
       post(CFG.register, body).then(function (r) {
         if (r && r.next) { F.track('live_register_submit', {}); if (F.pixel) F.pixel('Lead', body.pixel_eid); location.href = F.xdUrl ? F.xdUrl(r.next) : r.next; return; }
         btn.disabled = false;
+        // Turnstile tokens are single use: run the check again so the next try has a fresh one (the form keeps its values).
+        if (tsId != null && window.turnstile) { tsToken = null; try { window.turnstile.reset(tsId); } catch (x) { /* fresh token on next render */ } }
         err.textContent = (r && r.error) || 'Something went wrong. Please try again.';
         err.hidden = false;
         var f = r && r.field && form.querySelector('[name="' + r.field + '"]');

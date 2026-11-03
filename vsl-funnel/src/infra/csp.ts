@@ -25,6 +25,29 @@ export function withReporting(policy: string): string {
 /** The Reporting-Endpoints header that names the `report-to` group (absolute URL, as the Reporting API wants). */
 export const reportingEndpoints = (origin: string) => `${CSP_GROUP}="${origin}${CSP_REPORT_PATH}"`;
 
+/**
+ * Cloudflare Turnstile (src/infra/turnstile.ts) needs its script and its iframe from challenges.cloudflare.com.
+ * Only when bot protection is on: the origin is added to script-src and frame-src (each is created when the policy
+ * has a default-src but not that directive). Off, the policy comes back unchanged.
+ */
+export const TURNSTILE_CSP_ORIGIN = 'https://challenges.cloudflare.com';
+export function withTurnstile(policy: string, on: boolean): string {
+  if (!on) return policy;
+  const origin = TURNSTILE_CSP_ORIGIN;
+  const parts = policy.split(';').map((p) => p.trim()).filter(Boolean);
+  const def = parts.find((p) => p.toLowerCase().split(/\s+/)[0] === 'default-src');
+  for (const name of ['script-src', 'frame-src']) {
+    const i = parts.findIndex((p) => p.toLowerCase().split(/\s+/)[0] === name);
+    // No such directive: it falls back to default-src, so start from default-src's sources (none, no restriction).
+    if (i < 0) { if (def) parts.push([name, ...def.split(/\s+/).slice(1).filter((t) => t !== "'none'"), origin].join(' ')); continue; }
+    const tokens = parts[i].split(/\s+/);
+    if (tokens.includes(origin)) continue;
+    // 'none' can't be combined with a source, so it gives way to the origin.
+    parts[i] = [tokens[0], ...tokens.slice(1).filter((t) => t !== "'none'"), origin].join(' ');
+  }
+  return parts.join('; ');
+}
+
 /** Adds reporting to a response's CSP (pages only; other responses don't run a policy). */
 export function addCspReporting(headers: Headers, origin: string) {
   const csp = headers.get('content-security-policy');

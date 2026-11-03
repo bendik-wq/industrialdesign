@@ -221,7 +221,7 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   const band = APP_REVENUE_BAND[String(body.revenue ?? '')] ?? null;
   if (!band) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
   const headline = WEBINAR_HEADLINES.some((h) => h.id === body.headline) ? String(body.headline) : null;
-  if (!(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed — please refresh and try again', undefined, 403);
+  if (!(await verifyTurnstile(rt, body.turnstile, v, 'webinar'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
 
   // Abuse limit: a handful of sign-ups per IP per hour (each one sends email).
   const ipKey = `wreg:${v.ip ?? 'unknown'}`;

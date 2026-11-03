@@ -9,7 +9,8 @@ import { type SfuOp, SFU_OPS, forceClose, sfuProxy } from './proxy';
 import { feedPresence, getRoom, markRoom, roomOffer, setRoomOffer } from './rooms';
 import { type StudioDefaults, canLoadSlide, configureStudio } from './studio'; // builder B (studio)
 import { AudienceHub } from './audience-do'; // area C: reactions, captions, the co-host, announcements, nudges
-import { MediaReports, heldIds, holdOnClose, isHeld, previewProxy, resume as resumeMedia, staffView, wantsQuality } from './media';
+import { MediaReports, heldIds, holdOnClose, isHeld, previewProxy, resume as resumeMedia, roomQualityPoint, staffView, wantsQuality } from './media';
+import { writeAe } from '../infra/analytics-engine'; // Cloudflare round B: quality reports to Analytics Engine (off by default)
 import { boundRoomState, cleanupAt, keepDays } from './hygiene'; // reliability: bounded state, ended-room clean-up
 import { Engage2Hub } from './engage2-do'; // engage2: engagement score, hot list, live-only bonus
 import { PanicHub } from './panic'; // the panic button: hand the session to a fresh room, the Zoom card
@@ -438,6 +439,8 @@ export class RoomDO {
     const me = st.members[id];
     if (msg.t === 'mq_all') { if (wantsQuality(me)) this.send(ws, JSON.stringify({ t: 'mq_all', people: await this.media.snapshot(st) })); return; }
     const r = await this.media.ingest(st, id, msg.q, now);
+    // Each accepted quality report (at most one per person per 2 s) also goes to Analytics Engine when that's on.
+    if (r && this.env.EVENTS) { const rt = await this.runtime().catch(() => null); if (rt) writeAe(rt, roomQualityPoint(st.id, r.rec)); }
     if (!r?.changed) return;
     const data = JSON.stringify({ t: 'mq', p: staffView(r.rec) });
     for (const s of this.ctx.getWebSockets()) {

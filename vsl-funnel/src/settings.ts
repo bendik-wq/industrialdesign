@@ -330,7 +330,7 @@ export const SETTINGS = [
 
   { key: 'BLOCKLIST', label: 'Lead blocklist', group: 'Security', placeholder: 'tyrekicker@example.com, +61400000000, @competitor.com', help: 'Emails, phone numbers or @domains that always go to the free resources page instead of a call.' },
   { key: 'CLARITY_ID', label: 'Microsoft Clarity project ID', group: 'Analytics', help: 'Free session recordings and heatmaps.' },
-  { key: 'TURNSTILE_SITE_KEY', label: 'Turnstile site key', group: 'Security', help: 'Invisible bot check on the application.' },
+  { key: 'TURNSTILE_SITE_KEY', label: 'Turnstile site key', group: 'Security', help: 'Invisible bot check on the public forms (application, masterclass, live and challenge registration, room join link). Works only with Bot protection mode set to log or enforce.' },
   { key: 'TURNSTILE_SECRET_KEY', label: 'Turnstile secret key', group: 'Security', secret: true },
   { key: 'CONSENT_REQUIRED_EU', label: 'Cookie consent for EU visitors', group: 'Security', placeholder: 'true' },
   { key: 'IP_ANONYMIZE', label: 'Store hashed IPs only', group: 'Security', placeholder: 'false' },
@@ -363,6 +363,11 @@ export const SETTINGS = [
   { key: 'ZAPIER_INBOUND_SECRET', label: 'Zapier: inbound action secret', group: 'Clients & support', secret: true, help: 'Shared secret for POST /hooks/zapier/create-lead and /hooks/zapier/add-note (header X-Zapier-Secret).' },
   // ───────────── infra (overnight round 1): the internal error log ─────────────
   { key: 'ERRORS_SLACK', label: 'Errors: ping Slack on a new kind of error', group: 'Alerts', placeholder: 'off', help: 'on = the first time a new error shows up (Funnel HQ → Errors & cron) the Command Slack channel gets one message, at most 5 an hour. Blank or off = no pings; errors are still logged.' },
+  // ───────────── Cloudflare platform round, builder B: Turnstile (src/infra/turnstile.ts) and Analytics Engine (src/infra/analytics-engine.ts) ─────────────
+  { key: 'TURNSTILE_MODE', label: 'Bot protection mode (Turnstile)', group: 'Security', placeholder: 'off', help: 'off (default) = nothing loads. log = the invisible check runs on the public forms and results are counted (Errors & cron → Bot protection), nothing is refused. enforce = a failed check is refused with a calm message and the form keeps what was typed. If Cloudflare can’t be reached, forms always go through. Needs both Turnstile keys.' },
+  { key: 'ANALYTICS_ENGINE', label: 'Analytics Engine: copy events', group: 'Analytics', placeholder: 'off', help: 'on = every first-party tracking event and room quality report is also written to Cloudflare Analytics Engine (dataset gl_events), next to the database. off (default) = database only.' },
+  { key: 'CF_ACCOUNT_ID', label: 'Cloudflare account ID', group: 'Analytics', placeholder: '0123456789abcdef0123456789abcdef', help: 'For reading Analytics Engine back into Funnel HQ (Errors & cron → Events). dash.cloudflare.com → your account → the ID on the right of the overview.' },
+  { key: 'CF_ANALYTICS_TOKEN', label: 'Cloudflare API token (Analytics read)', group: 'Analytics', secret: true, help: 'A token with Account → Account Analytics → Read. Used only to read the Analytics Engine events back.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

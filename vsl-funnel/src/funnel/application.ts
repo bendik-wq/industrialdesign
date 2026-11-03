@@ -14,6 +14,7 @@ import { routeLead } from './routing';
 import { APP_REVENUE_BAND } from '../sales/qualify';
 import { normaliseAnswer, parseBlocklist, scoreApplication } from './scoring';
 import { trackRevenueEvents } from '../tracking/revenue-events';
+import { TURNSTILE_COPY, type TurnstileForm, type TurnstileVisitor, checkTurnstile } from '../infra/turnstile';
 
 export class ApplicationError extends Error {
   constructor(message: string, readonly field?: string, readonly status: 400 | 403 | 404 | 409 | 429 = 400) {
@@ -32,17 +33,12 @@ async function sendResumeLink(rt: Runtime, lead: Lead) {
 
 const SEQUENCE_FOR_TIER = { A: 'tier_a', B: 'tier_b', C: 'tier_c' } as const;
 
-/** Cloudflare Turnstile (invisible) — only enforced when a secret key is connected. */
-export async function verifyTurnstile(rt: Runtime, token: unknown, ip: string | null) {
-  if (!rt.settings.TURNSTILE_SECRET_KEY) return true;
-  if (typeof token !== 'string' || !token) return false;
-  const form = new FormData();
-  form.append('secret', rt.settings.TURNSTILE_SECRET_KEY);
-  form.append('response', token);
-  if (ip) form.append('remoteip', ip);
-  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: form });
-  const data = (await res.json().catch(() => ({}))) as { success?: boolean };
-  return Boolean(data.success);
+/**
+ * Cloudflare Turnstile (src/infra/turnstile.ts): false only in enforce mode for a missing or failed token.
+ * Off unless TURNSTILE_MODE is log or enforce and both keys are set; siteverify problems fail open.
+ */
+export async function verifyTurnstile(rt: Runtime, token: unknown, v: TurnstileVisitor, form: TurnstileForm) {
+  return (await checkTurnstile(rt, form, token, v)).ok;
 }
 
 interface AttributionRow {
@@ -83,7 +79,7 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   if (!emailCheck) throw new ApplicationError('Please enter a valid email address', 'email');
   if (emailCheck.disposable) throw new ApplicationError('Please use your real email address — we’ll send your results there', 'email');
   if (!phone) throw new ApplicationError('Please enter a valid mobile number, including area code', 'phone');
-  if (!(await verifyTurnstile(rt, body.turnstile, v.ip))) throw new ApplicationError('Security check failed — please refresh and try again', undefined, 403);
+  if (!(await verifyTurnstile(rt, body.turnstile, v, 'apply'))) throw new ApplicationError(TURNSTILE_COPY.failed, 'turnstile', 403);
   // Each new contact can enqueue an email + SMS drip to the address/number given. Throttle per IP so a
   // script can't enrol a victim's details into our sender (the other public forms throttle the same way).
   if (!(v.leadId) && (await overLimit(rt.env, `contact:${v.ip ?? 'unknown'}`, 10))) {

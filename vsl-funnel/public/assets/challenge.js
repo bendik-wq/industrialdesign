@@ -56,6 +56,8 @@
       post(CFG.register || '/api/challenge/register', data).then(function (r) {
         if (r && r.next) { if (F.pixel) F.pixel('CompleteRegistration', data.event_id); if (F.pixel) F.pixel('Lead', data.pixel_eid); location.href = F.xdUrl ? F.xdUrl(r.next) : r.next; return; }
         btn.disabled = false; btn.innerHTML = label;
+        // Turnstile tokens are single use: run the check again so the next try has a fresh one (the form keeps its values).
+        if (ts && window.turnstile) { try { window.turnstile.reset(); } catch (x) { /* fresh token on next render */ } }
         err.hidden = false; err.textContent = (r && r.error) || 'Something went wrong. Try again.';
         if (r && r.field && form[r.field]) form[r.field].focus();
       });
