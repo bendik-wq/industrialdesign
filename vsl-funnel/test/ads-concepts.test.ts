@@ -45,7 +45,7 @@ const BASE: Record<string, string> = { META_ADS_TOKEN: 'read_tok', META_AD_ACCOU
 const makeRt = (db: DatabaseSync, s: Record<string, string> = {}) =>
   ({ env: { DB: d1(db) }, settings: { ...BASE, ...s }, reps: [], origin: 'https://apply.test', waitUntil: () => undefined }) as unknown as Runtime;
 const json = (status: number, b: unknown) => new Response(JSON.stringify(b), { status, headers: { 'content-type': 'application/json' } });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 const DAY = 86_400_000;
 const ymd = (t: number) => new Date(t).toISOString().slice(0, 10);
@@ -318,7 +318,9 @@ describe('blended MER', () => {
         db.prepare("INSERT INTO attr_conversions (id, kind, funnel, ref_id, lead_id, occurred_at, amount, refunded, currency, created_at, updated_at) VALUES (?, 'ticket_paid', 'auto', ?, ?, ?, 10000, 0, 'usd', 1, 1)").run(`c${i}`, `p${i}`, `lw${i}`, now - i * DAY);
       }
     };
-    const now = Math.floor(Date.now() / DAY) * DAY + 12 * 3600_000 - DAY; // midday UTC yesterday: "+1 hour" below stays on the same day
+    // A fixed midday UTC clock: the hold is keyed by UTC day, so "+1 hour" below must stay on the same day (it didn't between 23:00 and 24:00 UTC).
+    const now = Date.parse('2026-11-02T12:00:00Z');
+    vi.useFakeTimers({ now, toFake: ['Date'] });
     const held = freshDb(); seed(held, now);
     const rtHeld = makeRt(held, { ADS_MER_FLOOR: '1.5' }); // MER = 300 / 735 = 0.41
     const r = await runAutopilot(rtHeld, now);
