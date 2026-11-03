@@ -301,11 +301,11 @@ export const voiceFaqs = (faqs: { q: string; a: string }[]) => faqs.map((f) => (
 const voiceFaqText = (faqs: { q: string; a: string }[]) => voiceFaqs(faqs).map((f) => `Q: ${f.q}\nA: ${f.a.replace(/<[^>]+>/g, '')}`).join('\n\n');
 
 /** The offer as the voice agents may say it: aims, not promises. */
-const VOICE_OFFER_AIMS = `- Aim: help them sign an LOI on an acquisition about as big as their business or bigger, usually within about 90 days of starting. That is the aim, not a promise: it depends on the business they find, the seller and the lenders.
+const VOICE_OFFER_AIMS = `- Aim: a 90-day plan built to get them to a signed LOI on an acquisition about as big as their business or bigger. That is the plan's aim, not a promise or a typical result: it depends on the business they find, the seller and the lenders.
 - Funding: deals are structured with commercial debt, seller finance (the seller is paid over time from the business's cash flow) and seller rollover (the seller keeps a stake in the new company). Where the numbers allow, together they cover the price so the buyer puts little or no cash in, but that depends on the deal and is never guaranteed. Always name all three when you describe funding.`;
 
 /** Rules every voice agent follows on claims and follow-ups. */
-const VOICE_CLAIM_RULES = `- Never promise results. Never say they WILL double or triple their business, close within 90 days, or put no money down. Describe these only as what the structure aims for, and say every deal is different.
+const VOICE_CLAIM_RULES = `- Never promise results. Never say they WILL double or triple their business, close within 90 days, or put no money down. Describe these only as what the plan and the structure aim for, and say every deal is different. Don't say "usually" or quote typical timeframes or outcomes.
 - Never say a deal is "over-financed" or that they'll get extra cash or working capital out of it.
 - Only promise what really happens: when they ask for it, the booking link is emailed after the call. A request to speak to a person is passed to Josh's team, who get in touch. Never promise a specific callback day or time.`;
 
