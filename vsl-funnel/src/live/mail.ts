@@ -29,6 +29,12 @@ export function calendarPara(c: NonNullable<Mail['calendar']>) {
 /** Plain text to HTML: escaped, with bare https links made clickable. */
 const toHtml = (p: string) => escHtml(p).replace(/(https:\/\/[^\s<]+[^\s<.,;:)])/g, '<a href="$1" style="color:#0f2c5c">$1</a>');
 
+/** The email exactly as sendOnce sends it (Funnel HQ → Sandbox previews it with this). */
+export function renderMail(rt: Runtime, mail: Mail) {
+  const co = company(rt);
+  return contractEmail({ preheader: mail.preheader, heading: mail.heading, paras: [...mail.paras.map(toHtml), ...(mail.calendar ? [calendarPara(mail.calendar)] : []), ...(mail.after ?? []).map(toHtml)], button: mail.button, sender: co.signer, company: co.name, address: co.address });
+}
+
 export async function sendOnce(rt: Runtime, lead: Pick<Lead, 'id' | 'email'>, sequence: string, step: number, template: string, mail: Mail, o: { unsubscribe?: boolean } = {}) {
   if (!lead.email) return false;
   const db = rt.env.DB;
@@ -40,7 +46,7 @@ export async function sendOnce(rt: Runtime, lead: Pick<Lead, 'id' | 'email'>, se
   ).bind(newId('m'), lead.id, sequence, step, template, lead.email, now, now).run();
   if (!claim.meta.changes) return false;
   const co = company(rt);
-  const m = contractEmail({ preheader: mail.preheader, heading: mail.heading, paras: [...mail.paras.map(toHtml), ...(mail.calendar ? [calendarPara(mail.calendar)] : []), ...(mail.after ?? []).map(toHtml)], button: mail.button, sender: co.signer, company: co.name, address: co.address });
+  const m = renderMail(rt, mail);
   const where = 'WHERE lead_id = ? AND sequence = ? AND step = ?';
   try {
     let status = 'simulated';

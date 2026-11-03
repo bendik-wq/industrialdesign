@@ -338,7 +338,8 @@ export async function usedFacts(rt: Runtime, leadId: string) {
 export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, template: string, utmCampaign: string, opts: BuildOptions = {}) {
   const tpl = TEMPLATES[template];
   if (!tpl) throw new Error(`unknown template ${template}`);
-  const tz = lead.call_at ? await leadTimezone(rt, lead) : null;
+  // Their browser's zone from the visit, else the zone saved on the lead (a lead with no visit on record).
+  const tz = lead.call_at ? (await leadTimezone(rt, lead)) ?? lead.timezone ?? null : null;
 
   const tracked = new Map<string, string>();
   const link = (path: string) => {

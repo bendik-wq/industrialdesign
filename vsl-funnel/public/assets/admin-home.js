@@ -106,6 +106,7 @@
         ['contracts', 'sign', 'New agreement', 'Auto-quoted from the application'],
         ['testemail', 'mail', 'Send a test email', 'Check that email delivers'],
         ['command', 'sparkle', 'Ask the assistant', 'Questions about your numbers'],
+        ['sandbox', 'playc', 'Open the sandbox', 'Watch the automation run, nothing sent'],
         ['voicedemo', 'phone', 'Talk to an AI agent', 'Live demo in your browser'],
       ];
       var quick = '<div class="home-quick">' + acts.map(function (a) {
@@ -125,6 +126,7 @@
           var k = b.getAttribute('data-home-act'), N = window.HQNav;
           if (k === 'find') { if (window.HQUX && window.HQUX.openPalette) window.HQUX.openPalette('lead'); else { var j = document.querySelector('[data-jump]'); if (j) j.click(); } return; }
           if (k === 'voicedemo') { location.href = '/admin/voice-demo'; return; }
+          if (k === 'sandbox') { location.href = '/admin/sandbox'; return; }
           if (k === 'testemail') { if (N) N.runAction('integrations', { label: 'Send a test email', focus: '[data-test-to]' }); return; }
           if (N) N.runAction(k); else ctx.go(k);
         };

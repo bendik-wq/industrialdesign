@@ -114,6 +114,11 @@
     btn.addEventListener('click', function () { setMore(sec, btn.getAttribute('aria-expanded') !== 'true', true); });
   });
 
+  // Sidebar links to pages outside the tabs (Sandbox): a plain navigation.
+  document.querySelectorAll('[data-nav] button[data-href]').forEach(function (b) {
+    b.addEventListener('click', function () { var h = b.getAttribute('data-href'); if (/^\/admin\/[a-z-]+$/.test(h)) root.location.href = h; });
+  });
+
   // A quiet description card beside the sidebar on hover (computers only); screen readers get it as the description.
   var tip = null, tipT = null;
   document.querySelectorAll('[data-nav] button[data-tab]').forEach(function (b) {

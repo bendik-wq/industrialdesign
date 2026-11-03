@@ -95,8 +95,14 @@ voiceDemoApi.get('/scenarios', (c) => c.json({ scenarios: DEMO_SCENARIOS.map(({ 
 voiceDemoApi.post('/session', async (c) => {
   const rt = runtimeFrom(c);
   const s = rt.settings;
-  const b = await c.req.json<{ scenario?: string }>().catch(() => ({} as { scenario?: string }));
-  const sc = DEMO_SCENARIOS.find((x) => x.id === b.scenario);
+  const b = await c.req.json<{ scenario?: string; sandbox?: { q?: unknown; id?: unknown } }>().catch(() => ({} as { scenario?: string; sandbox?: { q?: unknown; id?: unknown } }));
+  // From Funnel HQ → Sandbox: one call of the simulation, its variables rebuilt here on the server from the spec.
+  let sc: Pick<DemoScenario, 'agent' | 'label' | 'vars'> | undefined = DEMO_SCENARIOS.find((x) => x.id === b.scenario);
+  if (!sc && b.sandbox && typeof b.sandbox === 'object') {
+    const S = await import('./sandbox');
+    const call = await S.sandboxCallSession(rt, S.cleanInput(b.sandbox.q), String(b.sandbox.id ?? '').slice(0, 80)).catch(() => null);
+    if (call) sc = { agent: call.agent, label: call.label, vars: () => ({ ...call.vars, demo: 'yes' }) };
+  }
   if (!sc) return c.json({ ok: false, error: 'Pick a scenario.' }, 400);
   if (!s.ELEVENLABS_API_KEY) return c.json({ ok: false, error: 'Add the ElevenLabs API key under Integrations → Voice first.' }, 400);
   try {

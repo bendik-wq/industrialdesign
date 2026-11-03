@@ -355,6 +355,13 @@ app.get('/admin/voice-demo', requireAdmin, async (c) => { // Funnel HQ → Talk 
   c.header('cache-control', 'no-store');
   return c.html(voiceDemoPage());
 });
+app.get('/admin/sandbox', requireAdmin, async (c) => { // Funnel HQ → Sandbox (simulation: nothing is sent)
+  const { sandboxPage, SANDBOX_CSP } = await import('./admin/sandbox');
+  c.header('content-security-policy', SANDBOX_CSP);
+  c.header('permissions-policy', 'microphone=(), camera=(), geolocation=()');
+  c.header('cache-control', 'no-store');
+  return c.html(sandboxPage());
+});
 app.get('/admin/live/:key', requireAdmin, liveHostPage); // host console for one live event (Zoom)
 app.get('/admin/rooms/:id/replay', requireAdmin, adminReplayPage); // the team's view of a room's replay (area D)
 app.get('/admin/rooms/:id', requireAdmin, hostRoomPage); // the host in our own room

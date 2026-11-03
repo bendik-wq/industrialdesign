@@ -28,7 +28,7 @@ const booked = (l: Lead) => Boolean(l.booked_at) && !l.booking_cancelled_at;
 const cameToWebinar = (l: Lead) => Boolean(l.webinar_attended_at && l.webinar_at && l.webinar_attended_at >= l.webinar_at - 30 * MIN);
 
 /** When a whole sequence has done its job (built in, per trigger). */
-const STOP: Record<SmsTrigger, (l: Lead) => boolean> = {
+export const SMS_GOAL: Record<SmsTrigger, (l: Lead) => boolean> = {
   booked: (l) => !booked(l) || ['showed', 'won', 'lost', 'no_show'].includes(l.status),
   no_show: (l) => l.status !== 'no_show',
   abandoned: (l) => Boolean(l.app_completed_at),
@@ -41,7 +41,7 @@ const STOP: Record<SmsTrigger, (l: Lead) => boolean> = {
   challenge: (l) => !l.challenge_token, // refunded (the token is cleared)
 };
 
-const SKIP: Record<(typeof SMS_SKIPS)[number], (l: Lead, clicked: boolean) => boolean> = {
+export const SMS_SKIP: Record<(typeof SMS_SKIPS)[number], (l: Lead, clicked: boolean) => boolean> = {
   applied: (l) => Boolean(l.app_completed_at),
   booked: (l) => booked(l),
   confirmed: (l) => Boolean(l.sms_confirmed_at && l.booked_at && l.sms_confirmed_at >= l.booked_at),
@@ -104,7 +104,7 @@ export const smsConfigured = (rt: Runtime) => Boolean(smsProvider(rt) && rt.sett
 const smsOn = (rt: Runtime) => rt.settings.SMS_ENABLED.trim().toLowerCase() !== 'false';
 
 /** Agreed to texts (SMS). */
-const smsOk = (l: Lead) => Boolean(l.call_consent_at || l.sms_consent_at);
+export const smsOk = (l: Lead) => Boolean(l.call_consent_at || l.sms_consent_at);
 /** Agreed to WhatsApp (consent wording that names it), or started a WhatsApp chat with us themselves. */
 export const waOk = (l: Lead) => Boolean(l.wa_consent_at || l.whatsapp_connected_at);
 
@@ -313,8 +313,8 @@ export async function sendSmsRow(rt: Runtime, row: SmsRow, sequences: SmsSequenc
   if (!step) { await skip('text removed from the sequence'); return 'skipped'; }
   const clicked = Boolean(await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND sequence = ? AND clicked_at IS NOT NULL LIMIT 1").bind(lead.id, row.sequence).first());
   const why = smsBlock(lead)
-    ?? (STOP[row.sequence]?.(lead) ? 'sequence goal reached' : null)
-    ?? (step.skip.find((k) => SKIP[k](lead, clicked)) ? `skip: ${step.skip.find((k) => SKIP[k](lead, clicked))}` : null)
+    ?? (SMS_GOAL[row.sequence]?.(lead) ? 'sequence goal reached' : null)
+    ?? (step.skip.find((k) => SMS_SKIP[k](lead, clicked)) ? `skip: ${step.skip.find((k) => SMS_SKIP[k](lead, clicked))}` : null)
     ?? (lead.phone !== row.to_phone ? 'number changed' : null);
   if (why) { await skip(why); return 'skipped'; }
   // Paid-ticket mode: no webinar texts until their ticket is paid (and none after a refund).

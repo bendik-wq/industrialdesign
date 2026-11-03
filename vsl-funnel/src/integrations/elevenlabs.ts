@@ -45,7 +45,7 @@ export interface OutboundCall {
 }
 
 export const elevenConfigured = (s: Settings) => Boolean(s.ELEVENLABS_API_KEY && s.ELEVENLABS_AGENT_ID && s.ELEVENLABS_PHONE_NUMBER_ID);
-const enabled = (v: string) => v.trim().toLowerCase() !== 'false';
+export const enabled = (v: string) => v.trim().toLowerCase() !== 'false';
 
 export async function el<T>(s: Settings, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const res = await fetch(`${API}${path}`, {
@@ -256,7 +256,8 @@ export async function cancelCalls(rt: Runtime, leadId: string, kinds: CallKind[]
     .bind(Date.now(), leadId, ...kinds).run();
 }
 
-function variables(rt: Runtime, lead: Lead, kind: CallKind) {
+/** What the outbound agent is told for one call (exported for Funnel HQ → Sandbox, which shows it). */
+export function variables(rt: Runtime, lead: Lead, kind: CallKind) {
   const rep = rt.reps.find((r) => r.id === lead.closer_id);
   const tz = leadTimezone(lead, rt.settings.SALES_TIMEZONE);
   const callTime = lead.call_at ? formatCallTime(lead.call_at, tz).replace(/ [A-Z]{2,5}$/, '') : '';

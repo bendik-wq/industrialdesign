@@ -73,6 +73,7 @@ import { webinarCallsAdmin } from '../admin/webinar-calls';
 import { dataqAdmin } from '../dataq/routes';
 import { vectorsAdmin } from '../vectors/admin';
 import { voiceDemoApi } from '../admin/voice-demo';
+import { sandboxApi } from '../admin/sandbox';
 import { salesStats } from '../admin/sales';
 import { insights } from '../admin/insights';
 import { landerReport } from '../admin/landers';
@@ -252,6 +253,7 @@ admin.route('/audiences', audiencesAdmin); // Funnel HQ → Meta audiences (plan
 admin.route('/webinar-calls', webinarCallsAdmin); // AI calls → Webinar calls (webinar, live Zoom, challenge flows)
 admin.route('/dataq', dataqAdmin); // Ad tracking → Data quality checks and CSV/JSON exports (src/dataq/*)
 admin.route('/voice/demo', voiceDemoApi); // Funnel HQ → Talk to an agent (signed ElevenLabs sessions, demo-tagged)
+admin.route('/sandbox', sandboxApi); // Funnel HQ → Sandbox (a sample lead through the real rules on a simulated clock; GET only, nothing written or sent)
 admin.route('/vectors', vectorsAdmin); // Cloudflare round, builder C: AI search (Vectorize): similar leads, leads like my buyers, search, index status
 admin.route('/deliverability', deliverabilityAdmin); // Emails → Deliverability: DNS health (DoH), bounce/complaint trend, per-sequence table (read-only)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
