@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { el } from '../integrations/elevenlabs';
 import type { Settings } from '../settings';
+import { nextActionVars } from '../integrations/sales-playbook';
 
 export interface DemoScenario {
   id: string;
@@ -19,10 +20,10 @@ export interface DemoScenario {
 
 const HOUR = 3_600_000;
 /** A sample live event and lead, run through the real webinar-call builder so the demo hears exactly what a real call gets. */
-async function webinarVars(rt: Runtime, kind: 'w_pre_day' | 'w_post_nobuy') {
+async function webinarVars(rt: Runtime, kind: 'w_pre_welcome' | 'w_pre_day' | 'w_post_nobuy') {
   const W = await import('../integrations/webinar-calls');
   const now = Date.now(), after = kind === 'w_post_nobuy';
-  const startsAt = after ? now - 20 * HOUR : now + 24 * HOUR;
+  const startsAt = after ? now - 20 * HOUR : kind === 'w_pre_welcome' ? now + 3 * 24 * HOUR : now + 24 * HOUR;
   const ctx = {
     funnel: 'live', regId: 'demo', leadId: 'demo', token: 'demo', day: null, title: 'Buy your first competitor',
     startsAt, endsAt: startsAt + 2 * HOUR, cancelled: false, regCreatedAt: now - 3 * 24 * HOUR, ticketPending: false,
@@ -41,44 +42,51 @@ const base = (s: Settings) => ({
   callback_number: s.AI_CALL_CALLBACK_NUMBER || 'the number that called you',
   lead_ref: 'DEMO',
   demo: 'yes',
+  known_pain: 'not known yet: ask.',
 });
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
   {
     id: 'confirm', label: 'Appointment confirmation', agent: 'outbound',
     blurb: 'Sam calls a lead who just booked a strategy call for Thursday at 10:00 AM.',
-    you: 'You are Dana, who owns an HVAC business in Brisbane. Try: “Do I need my own money to buy a business?” or “Can we move it to Friday?”',
-    vars: (s) => ({ ...base(s), first_name: 'Dana', business: 'HVAC services company in Brisbane', tier: 'A', email: 'dana@example.com', call_kind: 'confirm', call_time: 'Thursday at 10:00 AM', voicemail_reason: 'your strategy call', opening: 'I’m calling about the strategy call you just booked for Thursday at 10:00 AM. Have you got thirty seconds?' }),
+    you: 'You are Dana, who owns an HVAC business in Brisbane. Try: “I can’t find any deals worth buying”, “Do I need my own money to buy a business?”, “My partner handles the money” or “Can we move it to Friday?” Listen for Sam selling you on showing up prepared, and offering one guide.',
+    vars: (s) => ({ ...base(s), ...nextActionVars('confirm'), first_name: 'Dana', business: 'HVAC services company in Brisbane', tier: 'A', email: 'dana@example.com', call_kind: 'confirm', call_time: 'Thursday at 10:00 AM', voicemail_reason: 'your strategy call', opening: 'I’m calling about the strategy call you just booked for Thursday at 10:00 AM. Have you got thirty seconds?' }),
   },
   {
     id: 'speed', label: 'Speed to lead', agent: 'outbound',
     blurb: 'Sam calls minutes after someone applied, before they have booked.',
-    you: 'You are Mark, who owns a plumbing business in Austin. Try: “Is this a robot?”, “How much does it cost?” or “Just email me.”',
-    vars: (s) => ({ ...base(s), first_name: 'Mark', business: 'plumbing business in Austin', tier: 'B', email: 'mark@example.com', call_kind: 'speed_to_lead', call_time: 'the time you picked', voicemail_reason: 'your application', opening: 'I saw your application come through a few minutes ago. Have you got a minute?' }),
+    you: 'You are Mark, who owns a plumbing business in Austin. Try: “Banks won’t lend to me”, “I’m scared of overpaying”, “Is this a robot?”, “How much does it cost?” or “Just email me.” Sam should ask about your challenge, offer one guide, and ask you to book.',
+    vars: (s) => ({ ...base(s), ...nextActionVars('speed_to_lead'), first_name: 'Mark', business: 'plumbing business in Austin', tier: 'B', email: 'mark@example.com', call_kind: 'speed_to_lead', call_time: 'the time you picked', voicemail_reason: 'your application', opening: 'I saw your application come through a few minutes ago. Have you got a minute?' }),
   },
   {
     id: 'rebook', label: 'Missed call, rebook', agent: 'outbound',
     blurb: 'Sam calls someone who missed their strategy call to offer a new time.',
-    you: 'You are Priya, who owns a dental clinic group in Melbourne. Try: “Sorry, something came up” or “I’m not interested any more.”',
-    vars: (s) => ({ ...base(s), first_name: 'Priya', business: 'dental clinic group in Melbourne', tier: 'A', email: 'priya@example.com', call_kind: 'rebook', call_time: 'yesterday at 2:00 PM', voicemail_reason: 'finding you a new time for your strategy call', opening: 'We missed you on your strategy call, so I’m calling to see if you’d like a new time. Have you got thirty seconds?' }),
+    you: 'You are Priya, who owns a dental clinic group in Melbourne. Try: “Sorry, something came up”, “I’m already flat out running one business” or “I’m not interested any more.” Sam should rebook warmly and respect a clear no after one check.',
+    vars: (s) => ({ ...base(s), ...nextActionVars('rebook'), first_name: 'Priya', business: 'dental clinic group in Melbourne', tier: 'A', email: 'priya@example.com', call_kind: 'rebook', call_time: 'yesterday at 2:00 PM', voicemail_reason: 'finding you a new time for your strategy call', opening: 'We missed you on your strategy call, so I’m calling to see if you’d like a new time. Have you got thirty seconds?' }),
+  },
+  {
+    id: 'webinar_welcome', label: 'Webinar: welcome after registering', agent: 'webinar',
+    blurb: 'Sam calls someone who just registered for a live session in three days.',
+    you: 'You are Dana from Brisbane. Try: “What should I bring?”, “My question is how sellers get paid” or “We’re stuck at five million and need more locations.” Sam should get your yes to attend, ask you to add the invite and ask for your question.',
+    vars: (_s, rt) => webinarVars(rt!, 'w_pre_welcome'),
   },
   {
     id: 'webinar_pre', label: 'Webinar: day-before reminder', agent: 'webinar',
     blurb: 'Sam calls someone registered for tomorrow’s live session, “Buy your first competitor”.',
-    you: 'You are Dana from Brisbane. Try: “I can’t make it after all”, “What should I have ready?” or “Can you send me the link?”',
+    you: 'You are Dana from Brisbane. Try: “I can’t make it after all”, “I don’t want to put my house on the line”, “What should I have ready?” or “Can you send me the link?”',
     vars: (_s, rt) => webinarVars(rt!, 'w_pre_day'),
   },
   {
     id: 'webinar_nobuy', label: 'Webinar: attended, didn’t buy', agent: 'webinar',
     blurb: 'Sam calls the day after the live session. The engagement deposit offer is still open (a sample close time).',
-    you: 'You are Dana. Try: “What does the deposit get me?”, “Is it refundable?”, “Do I need my own money?” or “I need to think about it.”',
+    you: 'You are Dana. Try: “What does the deposit get me?”, “Is it refundable?”, “I need to think about it”, “I don’t have time to run two businesses” or “No, not for me.” Sam should find the real objection, answer from the facts, offer the offer link once, and accept a clear no.',
     vars: (_s, rt) => webinarVars(rt!, 'w_post_nobuy'),
   },
   {
     id: 'callback', label: 'Someone rings us back', agent: 'inbound',
     blurb: 'You ring the number back after a missed call. Sam doesn’t know who you are.',
-    you: 'Try: “Who is this?”, “What do you do?”, “Can I speak to Josh?” or “How does the funding work?”',
-    vars: () => ({ first_name: '', greeting_name: '', known: 'no', status: '', tier: '', call_time: '', closer_name: 'Josh’s team', opening: 'How can I help today?', demo: 'yes' }),
+    you: 'Try: “Who is this?”, “What do you do?”, “Can I speak to Josh?”, “How does the funding work?” or “I own a $2M physio clinic and can’t find anything to buy.” Sam should qualify you lightly and point you to the application.',
+    vars: () => ({ first_name: '', greeting_name: '', known: 'no', status: '', tier: '', call_time: '', closer_name: 'Josh’s team', business: '', email: '', opening: 'How can I help today?', ...nextActionVars('inbound_unknown'), known_pain: 'not known yet: ask.', demo: 'yes' }),
   },
 ];
 

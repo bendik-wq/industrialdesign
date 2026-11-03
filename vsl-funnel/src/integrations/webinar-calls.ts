@@ -20,6 +20,7 @@ import { dayUrl, hubUrl } from '../challenge/payments';
 import { DEPOSIT_REFUND_TERMS, depositConfig, onboardingUrl } from '../sales/deposit';
 import { guarantee } from '../sales/guarantee';
 import { isMillionPlus } from '../sales/qualify';
+import { GUARDRAILS_CRITERION, NEXT_ACTION_CRITERION, OBJECTIVE_SECTION, SALES_DATA_COLLECTION, nextActionVars, salesBlock } from './sales-playbook';
 
 /**
  * AI phone calls for the three webinar funnels (automated webinar, live Zoom webinar, 5-day challenge), on top
@@ -76,18 +77,20 @@ export const DEFAULT_STEPS: Record<WKind, StepConfig> = {
     attempts: 1, spacingMin: 120,
     script: [
       '1. Thank them for registering for {{event_title}} and confirm the time: {{event_time}}, their time. Ask if that still works.',
-      '2. Tell them what to have ready: {{prep}}',
-      '3. Their join link is in the confirmation email. If they want it again, say you will text and email it as soon as you hang up.',
-      '4. Ask if they have a quick question and answer only from the facts below. Then thank them and end the call.',
+      '2. Ask what made them sign up, and what they want to walk away with. Label what you hear.',
+      '3. Sell attending live: get a clear yes that they will be there. Ask them to add the calendar invite from their confirmation email now, while you are on the phone.',
+      '4. Tell them what to have ready: {{prep}}',
+      '5. Ask for the one question they most want answered by the end, and say you will pass it to the team running the session.',
+      '6. Their join link is in the confirmation email. If they want it again, say you will text and email it as soon as you hang up. Recap in one sentence, thank them and end the call.',
     ].join('\n'),
   },
   w_pre_day: {
     attempts: 2, spacingMin: 90,
     script: [
-      '1. Remind them {{event_title}} is tomorrow at {{event_time}}, their time, and ask if they can still make it.',
-      '2. If they can, remind them what to have ready: {{prep}}',
-      '3. If they can’t, say the replay link comes by email after the session, and that you can text and email the join link if they want it.',
-      '4. Answer any question from the facts below, then end the call.',
+      '1. Remind them {{event_title}} is tomorrow at {{event_time}}, their time, and ask if they can still make it live.',
+      '2. If they can, future-pace it in one line (what they will know by the end), remind them what to have ready: {{prep}}, and ask for the one question they want answered.',
+      '3. If they can’t, say the replay link comes by email after the session, and that you can text and email the join link if they want it. Do not push.',
+      '4. Answer any question from the facts below, recap, then end the call.',
     ].join('\n'),
   },
   w_pre_start: {
@@ -103,27 +106,30 @@ export const DEFAULT_STEPS: Record<WKind, StepConfig> = {
     attempts: 2, spacingMin: 60,
     script: [
       '1. Say you noticed they dropped off {{event_title}} around minute {{minute}}, and ask if everything is all right.',
-      '2. Offer to text and email a link that picks up at minute {{minute}}. If they want it, say it goes out as soon as you hang up.',
-      '3. {{offer_note}}',
-      '4. Answer questions only from the facts below. If they are back in the session or busy, thank them and end the call.',
+      '2. Tell them what comes next in the session: {{missed_part}}. Ask if that matters for their business.',
+      '3. Offer to text and email a link that gets them back in at minute {{minute}}. If they want it, say it goes out as soon as you hang up.',
+      '4. {{offer_note}}',
+      '5. Answer questions only from the facts below. If they are back in the session or busy, thank them and end the call.',
     ].join('\n'),
   },
   w_post_nobuy: {
     attempts: 3, spacingMin: 20 * 60,
     script: [
       '1. Thank them for attending {{event_title}} and ask what stood out for them.',
-      '2. Ask if they have questions about the {{offer_name}}. Answer briefly and honestly, using the offer facts below and nothing else.',
-      '3. The offer closes at {{close_time}}. Say this once, as a fact, and never invent any other deadline or limit.',
-      '4. If they want to go ahead, say you will text and email the link to the offer page. Never take card details on the call.',
-      '5. If they say no, thank them and end the call.',
+      '2. Ask what held them back from the {{offer_name}}, with a calibrated question such as "What would have to be true for this to be a clear yes?" Label the answer and find the real objection.',
+      '3. Answer it briefly and honestly, using the offer facts below and nothing else.',
+      '4. The offer closes at {{close_time}}. Say this once, as a fact, and never invent any other deadline or limit.',
+      '5. Ask for the next step: shall you text and email the link to the offer page? Never take card details on the call.',
+      '6. If they say no, one gentle check, then thank them and end the call.',
     ].join('\n'),
   },
   w_post_missed: {
     attempts: 2, spacingMin: 20 * 60,
     script: [
       '1. Say they registered for {{event_title}} and it looks like they couldn’t make it, which is completely fine.',
-      '2. Offer to text and email the replay link. The replay is available until {{replay_close}}.',
-      '3. Answer questions only from the facts below, then thank them and end the call.',
+      '2. Ask what they wanted to get from it, and tell them in one line the replay covers that.',
+      '3. Offer to text and email the replay link. The replay is available until {{replay_close}}. Ask when they will block out the time to watch it.',
+      '4. Answer questions only from the facts below, recap, then thank them and end the call.',
     ].join('\n'),
   },
   w_post_bought: {
@@ -131,7 +137,7 @@ export const DEFAULT_STEPS: Record<WKind, StepConfig> = {
     script: [
       '1. Thank them for joining the {{purchase}}.',
       '2. Tell them what happens next: {{next_steps}}',
-      '3. Ask if they received the welcome email. If not, offer to text and email the link again.',
+      '3. Ask if they received the welcome email and get a yes to the first step, with when they will do it. If they need the link, offer to text and email it again.',
       '4. {{soft_offer}}',
       '5. Never offer anything they already bought. Answer questions from the facts below, then end the call.',
     ].join('\n'),
@@ -204,6 +210,8 @@ export const W_DATA_COLLECTION = {
   wants_human: { type: 'boolean', description: 'True if the person asked for a person from Josh’s team to contact them.' },
   questions: { type: 'string', description: 'Any questions or concerns the person raised, in one short sentence. Empty if none.' },
   notes_for_team: { type: 'string', description: 'Anything useful for Josh’s team (goals, business type, timeline, objections). One or two sentences. Empty if nothing.' },
+  top_question: { type: 'string', description: 'The one question the person most wants answered in the session, in their words. Empty if none.' },
+  ...SALES_DATA_COLLECTION,
 } as const;
 export type WFacts = { [K in keyof typeof W_DATA_COLLECTION]?: (typeof W_DATA_COLLECTION)[K]['type'] extends 'boolean' ? boolean : string };
 
@@ -222,6 +230,8 @@ Name: {{first_name}}
 Session: {{event_title}} at {{event_time}} (their time)
 Already bought: {{already_bought}}
 Offer close time: {{close_time}}
+
+${OBJECTIVE_SECTION}
 
 # Your script for this call
 {{script}}
@@ -242,10 +252,13 @@ Offer close time: {{close_time}}
 - If they object to the recording, apologise and end the call.
 - {{voicemail_rule}}
 - If the person is abusive, a minor, or clearly in distress, end the call politely.
-- Keep the whole call under 4 minutes.`;
+- Keep the whole call under 4 minutes.
+- A guide offer never replaces this call's objective: the next action comes first.
+
+${salesBlock()}`;
 }
 
-const W_VARS = ['first_name', 'opening', 'flow_label', 'attempt', 'event_title', 'event_time', 'already_bought', 'close_time', 'script', 'offer_facts', 'voicemail_rule', 'callback_number'] as const;
+const W_VARS = ['first_name', 'opening', 'flow_label', 'attempt', 'event_title', 'event_time', 'already_bought', 'close_time', 'script', 'offer_facts', 'voicemail_rule', 'callback_number', 'next_action', 'objective_success', 'next_action_label', 'known_pain'] as const;
 
 export function buildWebinarAgent(s: S) {
   return {
@@ -264,7 +277,7 @@ export function buildWebinarAgent(s: S) {
     },
     platform_settings: {
       data_collection: W_DATA_COLLECTION,
-      evaluation: { criteria: [{ id: 'goal', name: 'Goal reached', type: 'prompt', conversation_goal_prompt: 'Successful if the person was reached and either got what they needed (time confirmed, link wanted, questions answered) or clearly declined. Unsuccessful if nobody was reached or the call broke down.' }] },
+      evaluation: { criteria: [{ id: 'goal', name: 'Goal reached', type: 'prompt', conversation_goal_prompt: 'Successful if the person was reached and either got what they needed (time confirmed, link wanted, questions answered) or clearly declined. Unsuccessful if nobody was reached or the call broke down.' }, NEXT_ACTION_CRITERION, GUARDRAILS_CRITERION] },
     },
   };
 }
@@ -813,6 +826,7 @@ export async function callVariables(rt: Runtime, kind: WKind, lead: Lead, ctx: W
     purchase: purchase ? PURCHASE_NAME[purchase.kind] : '',
     next_steps: nextSteps,
     soft_offer: softOffer,
+    missed_part: kind === 'w_left' ? await missedPart(rt, ctx, meta.minute ?? 0) : '',
   };
   const callback = s.AI_CALL_CALLBACK_NUMBER || 'the number that called you';
   const voicemail = fill(STEP_META[kind].voicemail, values);
@@ -832,7 +846,27 @@ export async function callVariables(rt: Runtime, kind: WKind, lead: Lead, ctx: W
       ? `If you reach voicemail or an automated system, leave ONE short message: "Hi ${firstName}, it's Sam, an AI assistant for Josh Li's team at G and L M&A Advisory, calling about ${voicemail}. Everything is in your email, or call us back on ${callback}." Then end the call.`
       : 'If you reach voicemail or an automated system, end the call straight away without leaving a message.',
     callback_number: callback,
+    // The call's one objective, and the pain point an earlier call recorded (src/integrations/sales-playbook.ts).
+    ...nextActionVars(kind),
+    known_pain: await (await import('./voice-resources')).knownPainLine(rt, lead.id).catch(() => 'not known yet: ask.'),
   };
+}
+
+/**
+ * What comes after the minute they left, from the session agenda (the live room's own agenda, else the default
+ * one), placed in proportion to the session length. Other sessions: the rest of the session, said plainly.
+ */
+export async function missedPart(rt: Runtime, ctx: WCtx | null, minute: number): Promise<string> {
+  const plain = 'the rest of the session, which they can pick up from the minute they left';
+  if (!ctx || ctx.funnel !== 'live' || !(ctx.endsAt > ctx.startsAt)) return plain;
+  const { DEFAULT_AGENDA } = await import('../rooms/engage');
+  let agenda = DEFAULT_AGENDA;
+  const room = await rt.env.DB.prepare("SELECT r.engage FROM rooms r JOIN live_webinar_regs g ON g.event_id = r.ref_id WHERE g.id = ? AND r.ref_type = 'live' LIMIT 1").bind(ctx.regId).first<{ engage: string | null }>().catch(() => null);
+  if (room) agenda = (await import('../rooms/engage-db')).roomEngageSettings(room as never).agenda;
+  if (!agenda.length) return plain;
+  const frac = Math.min(0.999, Math.max(0, (minute * MIN) / (ctx.endsAt - ctx.startsAt)));
+  const next = agenda[Math.min(agenda.length - 1, Math.floor(frac * agenda.length) + 1)];
+  return `roughly where they left, the session moves on to "${next.title}"${next.teaser ? ` (${next.teaser.replace(/\.$/, '')})` : ''}. Say it as "coming up after where you left", never as a promise of exact timing`;
 }
 
 // ───────────── results ─────────────
@@ -931,6 +965,14 @@ export async function finishWebinarCall(rt: Runtime, call: OutboundCall & { wc_r
       said.push(sent.length ? `Wanted the link: sent by ${sent.join(' and ')}.` : 'Wanted the link, but there was no way to send it. Follow up by hand.');
     }
     if (facts.will_attend) said.push('Said they will be there.');
+    // Their #1 question goes on the host's pre-session list (live sessions), so the session can answer it.
+    const q = typeof facts.top_question === 'string' ? facts.top_question.replace(/https?:\/\/\S+|www\.\S+/gi, '').replace(/\s+/g, ' ').trim().slice(0, 300) : '';
+    if (q.length >= 8) {
+      said.push(`Their question for the session: ${q}`);
+      const { ctx } = await ctxForRef(rt, call.wc_ref ?? '').catch(() => ({ ctx: null }));
+      if (ctx?.funnel === 'live') await db.prepare('UPDATE lc_regs SET question = ?, question_at = ? WHERE reg_id = ? AND question IS NULL').bind(q, now, ctx.regId).run().catch(() => null);
+    }
+    said.push(...(await (await import('./voice-resources')).afterSalesCall(rt, lead, facts as Record<string, unknown>, `ai_${kind}`).catch(() => [] as string[])));
     if (facts.wants_human) said.push('Asked for a person from the team to get in touch.');
     if (facts.bad_time) said.push('Bad time to talk.');
   }

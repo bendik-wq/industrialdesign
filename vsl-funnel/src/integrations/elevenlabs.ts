@@ -9,6 +9,7 @@ import { hasContactBait } from '../lib/text';
 import { formatCallTime } from './email';
 import { notify, leadLines, leadName } from './notify';
 import { optOut, sendLinkEmail } from './voice';
+import { GUARDRAILS_CRITERION, NEXT_ACTION_CRITERION, SALES_DATA_COLLECTION, nextActionVars } from './sales-playbook';
 
 /**
  * Outbound AI calls on ElevenLabs Agents (https://elevenlabs.io/docs/agents-platform).
@@ -76,6 +77,8 @@ export const DATA_COLLECTION = {
   bad_time: { type: 'boolean', description: 'True if the person said it was a bad time to talk.' },
   questions: { type: 'string', description: 'Any questions or concerns the person raised, in one short sentence. Empty if none.' },
   notes_for_closer: { type: 'string', description: 'Anything useful for the closer before the strategy call (goals, target business type, timeline, partner joining). One or two sentences. Empty if nothing.' },
+  // The sales fields every agent records: main pain point, the guide they said yes to, and whether they committed to the next action.
+  ...SALES_DATA_COLLECTION,
 } as const;
 
 export function buildAgent(s: Settings) {
@@ -98,14 +101,19 @@ export function buildAgent(s: Settings) {
     platform_settings: {
       data_collection: DATA_COLLECTION,
       evaluation: {
-        criteria: [{ id: 'goal', name: 'Goal reached', type: 'prompt', conversation_goal_prompt: 'The call is successful if the person confirmed their appointment, asked for a new time or the booking link, or clearly declined. Unsuccessful if nobody was reached or the call broke down.' }],
+        criteria: [
+          { id: 'goal', name: 'Goal reached', type: 'prompt', conversation_goal_prompt: 'The call is successful if the person confirmed their appointment, asked for a new time or the booking link, or clearly declined. Unsuccessful if nobody was reached or the call broke down.' },
+          NEXT_ACTION_CRITERION,
+          GUARDRAILS_CRITERION,
+        ],
       },
     },
   };
 }
 
-const VAR_KEYS = ['first_name', 'opening', 'call_kind', 'call_time', 'closer_name', 'business', 'tier', 'email', 'lead_ref', 'callback_number', 'voicemail_reason'] as const;
-const placeholderVars = () => Object.fromEntries(VAR_KEYS.map((k) => [k, k === 'opening' ? 'Have you got a minute?' : ''])) as Record<(typeof VAR_KEYS)[number], string>;
+const VAR_KEYS = ['first_name', 'opening', 'call_kind', 'call_time', 'closer_name', 'business', 'tier', 'email', 'lead_ref', 'callback_number', 'voicemail_reason', 'next_action', 'objective_success', 'next_action_label', 'known_pain'] as const;
+const placeholderVars = () => ({ ...Object.fromEntries(VAR_KEYS.map((k) => [k, k === 'opening' ? 'Have you got a minute?' : ''])), ...nextActionVars('confirm'), known_pain: NO_PAIN }) as Record<(typeof VAR_KEYS)[number], string>;
+export const NO_PAIN = 'not known yet: ask.';
 
 /** Creates an agent in ElevenLabs, or updates the one already saved under `existingId`. */
 export async function upsertAgent(s: Settings, body: Record<string, unknown>, existingId: string): Promise<{ id: string; created: boolean }> {
@@ -113,6 +121,8 @@ export async function upsertAgent(s: Settings, body: Record<string, unknown>, ex
   const lean = (b: Record<string, unknown>) => {
     const c = structuredClone(b) as { conversation_config: { agent: { prompt: Record<string, unknown> } & Record<string, unknown> }; platform_settings: Record<string, unknown> };
     delete c.conversation_config.agent.prompt.built_in_tools;
+    const dc = c.platform_settings.data_collection as Record<string, Record<string, unknown>> | undefined;
+    for (const f of Object.values(dc ?? {})) delete f.enum; // the allowed values are in each description too
     delete c.conversation_config.agent.dynamic_variables;
     delete c.platform_settings.evaluation;
     delete c.platform_settings.overrides;
@@ -285,6 +295,9 @@ export function variables(rt: Runtime, lead: Lead, kind: CallKind) {
     tier: effectiveTier(lead) ?? '',
     email: lead.email ?? '',
     lead_ref: lead.ref_code,
+    // The call's one objective (src/integrations/sales-playbook.ts NEXT_ACTIONS); dial() adds what earlier calls learned.
+    ...nextActionVars(kind === 'speed_to_lead' || kind === 'rebook' ? kind : 'confirm'),
+    known_pain: NO_PAIN,
   };
 }
 
@@ -307,7 +320,7 @@ export async function dial(rt: Runtime, lead: Lead, kind: CallKind, provider?: s
       agent_id: override?.agentId ?? s.ELEVENLABS_AGENT_ID,
       agent_phone_number_id: s.ELEVENLABS_PHONE_NUMBER_ID,
       to_number: toNumber ?? lead.phone,
-      conversation_initiation_client_data: { dynamic_variables: override?.vars ?? variables(rt, lead, kind) },
+      conversation_initiation_client_data: { dynamic_variables: override?.vars ?? { ...variables(rt, lead, kind), known_pain: await (await import('./voice-resources')).knownPainLine(rt, lead.id).catch(() => NO_PAIN) } },
     },
   });
   if (!res.success || !res.conversation_id) throw new Error(res.message || 'call not started');
@@ -499,6 +512,8 @@ export async function finishCall(rt: Runtime, conv: Conversation, failureReason?
     const notes = [lead.notes, `[AI call ${new Date(now).toISOString().slice(0, 10)}] ${facts.notes_for_closer}`].filter(Boolean).join('\n');
     await updateLead(rt.env, lead.id, { notes: notes.slice(-4000) });
   }
+  // Pain point → the lead's record; the one guide they said yes to → one email (gated, once per guide).
+  said.push(...(await (await import('./voice-resources')).afterSalesCall(rt, lead, facts, `ai_${call.kind}`).catch((e) => { console.error('after sales call', e); return [] as string[]; })));
   rt.waitUntil(notify(rt, {
     kind: 'voice',
     title: `🤖 AI ${call.kind === 'speed_to_lead' ? 'speed-to-lead' : call.kind === 'rebook' ? 'rebook (no-show)' : 'confirmation'} call — ${leadName(lead)}`,

@@ -8,6 +8,7 @@ import type { Settings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
 import { buildEmail, emailConfigured, sendViaResend } from './email';
 import { notifySlack } from './notify';
+import { PAIN_POINTS, SALES_DATA_COLLECTION } from './sales-playbook';
 
 /**
  * Inbound AI voice assistant on Vapi (https://docs.vapi.ai).
@@ -62,6 +63,10 @@ export const STRUCTURED_SCHEMA = {
     wants_human_callback: { type: 'boolean', description: 'Caller asked for a person from the team to call them back.' },
     do_not_contact: { type: 'boolean', description: 'Caller asked not to be contacted again.' },
     objections: { type: 'array', items: { type: 'string' } },
+    // The shared sales fields (src/integrations/sales-playbook.ts).
+    pain_point: { type: 'string', enum: [...PAIN_POINTS, 'none'], description: SALES_DATA_COLLECTION.pain_point.description },
+    resource_wanted: { type: 'boolean', description: SALES_DATA_COLLECTION.resource_wanted.description },
+    next_action_committed: { type: 'boolean', description: SALES_DATA_COLLECTION.next_action_committed.description },
   },
 } as const;
 
@@ -443,6 +448,7 @@ async function endOfCall(rt: Runtime, m: VapiMessage) {
     if (!lead.first_name && cleanName(structured.first_name)) fill.first_name = cleanName(structured.first_name);
     if (!lead.last_name && cleanName(structured.last_name)) fill.last_name = cleanName(structured.last_name);
     if (Object.keys(fill).length) await updateLead(rt.env, lead.id, fill);
+    await (await import('./voice-resources')).afterSalesCall(rt, (await getLead(rt.env, lead.id)) ?? lead, structured, 'vapi').catch((e) => console.error('after sales call', e));
   }
 
   const props = {

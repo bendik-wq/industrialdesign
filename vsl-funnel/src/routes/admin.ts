@@ -502,6 +502,8 @@ admin.get('/leads/:id', async (c) => {
     calendly: calendly.results,
     // Our live rooms: Deal momentum points, the application from the room, their latest Deal Plan.
     roomEngage: await (await import('../rooms/engage-db')).leadEngagement(runtimeFrom(c), lead.id).catch(() => null),
+    // AI calls: the main challenge they named and the guides emailed (src/integrations/voice-resources.ts).
+    sales: await (await import('../integrations/voice-resources')).leadSales(runtimeFrom(c), lead.id).catch(() => null),
   });
 });
 

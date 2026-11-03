@@ -18,7 +18,7 @@
     oneBox: 'On the application one box covers calls and texts.',
     registers: 'Registers', startsAt: 'Session starts', joins: 'Joins live', joinMin: 'Arrives', leaves: 'Leaves', buys: 'Pays the deposit',
     applies: 'Applies', books: 'Books a call', callIn: 'Call booked for', shows: 'Shows up to the call', rebooks: 'Rebooks after missing it',
-    answers: 'Picks up AI calls', optOut: 'Opts out',
+    answers: 'Picks up AI calls', optOut: 'Opts out', pain: 'Main challenge on a call',
     play: 'Play', pause: 'Pause', step: 'Next step', reset: 'Back to the start', speed: 'Speed',
     upNext: 'Up next:', done: 'The simulation has finished.', fired: 'fired', held: 'held back',
     assume: 'What this sample assumes',
@@ -29,6 +29,7 @@
     textFirst: 'First text to this number, so it carries the opt-out line.',
     auVariant: 'Australian mobiles get the sender name, with an opt-out link instead of “Reply STOP”',
     agent: 'Agent', opening: 'What Sam says first', script: 'The script for this call', facts: 'Offer facts and rules Sam is given', allVars: 'Everything Sam receives',
+    objective: 'The next action Sam drives to', success: 'Counts as a yes', sayLike: 'Lines like', painH: 'Their challenge, and the one guide Sam offers', painSays: 'They say', painOffer: 'Sam offers', noPain: 'No challenge named, so no guide offered.',
     talk: 'Talk to Sam now', talkFine: 'Opens the live voice demo with this exact call. You play the sample lead through your microphone. Nobody is called.',
     agentLive: 'Live in this account', agentOff: 'Not live in this account yet',
     loadErr: 'Couldn’t load that step. Run the simulation again.', runErr: 'The simulation didn’t run. Try again.',
@@ -173,7 +174,8 @@
           sw('choices.noShow', COPY.shows, !C.noShow) + (C.noShow ? sw('choices.rebooks', COPY.rebooks, C.rebooks) : '') : '');
     }
     h += sw('choices.answers', COPY.answers, C.answers) +
-      sel('choices.optOut', COPY.optOut, [['none', 'No'], ['text', 'Replies STOP to the first text'], ['call', 'Tells Sam to stop on a call']], C.optOut);
+      sel('choices.optOut', COPY.optOut, [['none', 'No'], ['text', 'Replies STOP to the first text'], ['call', 'Tells Sam to stop on a call']], C.optOut) +
+      sel('choices.pain', COPY.pain, [['none', 'Doesn’t name one']].concat((o.pains || []).map(function (p) { return [p.id, p.label]; })), C.pain || 'none');
     var tierNote = st.sim.tier ? '<p class="sb-note">The real scoring puts this sample at <b>tier ' + esc(st.sim.tier) + '</b>. Number used: ' + esc(st.sim.phone.replace(/(\+\d{1,2})(\d{3})(\d+)/, '$1 $2 $3')) + ' (sample).</p>'
       : '<p class="sb-note">Number used: ' + esc(st.sim.phone.replace(/(\+\d{1,2})(\d{3})(\d+)/, '$1 $2 $3')) + ' (sample).</p>';
     return h + tierNote;
@@ -434,6 +436,13 @@
         (v.flow_label ? '<dt>Step</dt><dd>' + esc(v.flow_label) + (v.attempt ? ', attempt ' + esc(v.attempt) : '') + '</dd>' : '') +
         (v.close_time && v.close_time !== 'not set' ? '<dt>Offer closes</dt><dd>' + esc(v.close_time) + '</dd>' : '') + '</dl>' +
         '<div class="sb-sec"><h3>' + esc(COPY.opening) + '</h3><p class="sb-quote">' + esc(c.firstMessage) + '</p></div>' +
+        (c.sales ? '<div class="sb-sec sb-goal" data-objective><h3>' + esc(COPY.objective) + '</h3><p><b>' + esc(c.sales.label) + '.</b> ' + esc(c.sales.objective) + '</p>' +
+          '<p class="sb-meta"><b>' + esc(COPY.success) + ':</b> ' + esc(c.sales.success) + '</p>' +
+          (c.sales.examples && c.sales.examples.length ? '<p class="sb-meta"><b>' + esc(COPY.sayLike) + ':</b></p><ul class="sb-lines">' + c.sales.examples.map(function (x) { return '<li>“' + esc(x) + '”</li>'; }).join('') + '</ul>' : '') + '</div>' +
+          '<div class="sb-sec sb-res" data-resource><h3>' + esc(COPY.painH) + '</h3>' +
+          (c.sales.pain ? '<dl class="sb-kv"><dt>' + esc(COPY.painSays) + '</dt><dd>“' + esc(c.sales.pain.says) + '” <span class="sb-meta">(' + esc(c.sales.pain.label) + ')</span></dd>' +
+            '<dt>' + esc(COPY.painOffer) + '</dt><dd><b>' + esc(c.sales.pain.title) + '</b>: ' + esc(c.sales.pain.why) + '<br><span class="sb-meta">' + esc(c.sales.pain.url) + '</span></dd></dl>' : '<p>' + esc(COPY.noPain) + '</p>') +
+          '<p class="sb-meta">' + esc(c.sales.email) + '</p></div>' : '') +
         (v.script ? '<div class="sb-sec"><h3>' + esc(COPY.script) + '</h3><pre class="sb-pre">' + esc(v.script) + '</pre></div>' : '') +
         (v.offer_facts ? '<details class="sb-more-d"><summary>' + esc(COPY.facts) + '</summary><pre class="sb-pre">' + esc(v.offer_facts) + (v.voicemail_rule ? '\n\n' + esc(v.voicemail_rule) : '') + '</pre></details>' : '') +
         '<details class="sb-more-d"><summary>' + esc(COPY.allVars) + '</summary><pre class="sb-pre">' + esc(Object.keys(v).filter(function (k) { return k !== 'script' && k !== 'offer_facts'; }).map(function (k) { return k + ': ' + v[k]; }).join('\n')) + '</pre></details>';

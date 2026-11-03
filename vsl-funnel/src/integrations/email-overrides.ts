@@ -30,7 +30,7 @@ export const MERGE_TAGS = {
 } as const;
 
 /** Written from each lead's own answers, or changes with the lead's progress: shown, not editable. */
-const NOT_EDITABLE = new Set(['resume_link', 'voice_link', ...Object.keys(FOLLOWUP_TEMPLATES)]);
+const NOT_EDITABLE = new Set(['resume_link', 'voice_link', 'voice_resource', ...Object.keys(FOLLOWUP_TEMPLATES)]);
 // The six-month emails are data files (thousands of them), reviewed in code rather than the editor.
 export const isEditable = (t: string) => Boolean(TEMPLATES[t]) && !NOT_EDITABLE.has(t) && !/^(lib|lf|tb)_/.test(t);
 

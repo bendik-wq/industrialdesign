@@ -1672,6 +1672,8 @@
         (d.roomEngage && (d.roomEngage.points || d.roomEngage.plan) ? '<div class="note" style="margin:-4px 0 14px;font-size:13px"><strong>Live room:</strong> ' + esc(d.roomEngage.points) + ' Deal momentum points' + (d.roomEngage.score ? ' · engagement score ' + esc(d.roomEngage.score.score) + ' of 100' : '') + (d.roomEngage.applied ? ' · applied in the room' : '') +
           (d.roomEngage.plan ? ' · Deal Plan: ' + esc([d.roomEngage.plan.industry, d.roomEngage.plan.size, d.roomEngage.plan.geography].filter(Boolean).join(', ') || 'started') + (d.roomEngage.plan.owners_per_week ? ', ' + esc(d.roomEngage.plan.owners_per_week) + ' owners a week' : '') +
             [d.roomEngage.plan.action_1, d.roomEngage.plan.action_2, d.roomEngage.plan.action_3].filter(Boolean).map(function (a, i) { return '<br>' + (i + 1) + '. ' + esc(a); }).join('') : '') + '</div>' : '') +
+        (d.sales ? '<div class="note" style="margin:-4px 0 14px;font-size:13px" data-sales><strong>From AI calls:</strong> ' + (d.sales.pain ? 'main challenge: ' + esc(d.sales.pain.label) : 'no challenge recorded') +
+          (d.sales.guides && d.sales.guides.length ? ' · guides emailed: ' + d.sales.guides.map(function (g) { return esc(g.title) + (g.status === 'simulated' ? ' (simulated)' : g.status === 'failed' ? ' (failed)' : ''); }).join(', ') : '') + '</div>' : '') +
         '<div class="grid g-2">' +
         '<div class="card" id="ld-pipeline"><h2>Pipeline</h2><div class="pipe-grid">' +
         '<label>Status <select class="input" data-f="status">' + ((state.meta && state.meta.statuses) || []).map(function (s) { return '<option' + (s === l.status ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></label>' +

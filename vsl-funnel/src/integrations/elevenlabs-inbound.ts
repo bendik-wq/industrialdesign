@@ -9,6 +9,7 @@ import { formatCallTime } from './email';
 import { type Conversation, DATA_COLLECTION, ElevenError, el, factsFrom, leadTimezone, transcriptText, upsertAgent } from './elevenlabs';
 import { leadLines, leadName, notify } from './notify';
 import { leadByPhone, optOut, sendLinkEmail } from './voice';
+import { GUARDRAILS_CRITERION, NEXT_ACTION_CRITERION, nextActionVars } from './sales-playbook';
 
 /**
  * Callback agent: answers people who ring our ElevenLabs/Twilio number back
@@ -28,11 +29,12 @@ export const INBOUND_DATA = {
   caller_email: { type: 'string', description: 'The caller’s email address, exactly as confirmed on the call. Empty if not given.' },
 } as const;
 
-const VARS = ['greeting_name', 'opening', 'known', 'first_name', 'business', 'tier', 'status', 'call_time', 'closer_name', 'email'] as const;
+const VARS = ['greeting_name', 'opening', 'known', 'first_name', 'business', 'tier', 'status', 'call_time', 'closer_name', 'email', 'next_action', 'objective_success', 'next_action_label', 'known_pain'] as const;
 type Vars = Record<(typeof VARS)[number], string>;
 
-const UNKNOWN: Vars = {
+export const UNKNOWN: Vars = {
   greeting_name: '', opening: 'How can I help today?', known: 'no', first_name: '', business: '', tier: '', status: '', call_time: '', closer_name: 'Josh’s team', email: '',
+  ...nextActionVars('inbound_unknown'), known_pain: 'not known yet: ask.',
 };
 
 export function buildInboundAgent(s: Settings) {
@@ -56,6 +58,7 @@ export function buildInboundAgent(s: Settings) {
     platform_settings: {
       data_collection: INBOUND_DATA,
       overrides: { enable_conversation_initiation_client_data_from_webhook: true },
+      evaluation: { criteria: [NEXT_ACTION_CRITERION, GUARDRAILS_CRITERION] },
     },
   };
 }
@@ -91,7 +94,7 @@ export async function provisionInbound(rt: Runtime) {
   return { ...out };
 }
 
-function varsFor(rt: Runtime, lead: Lead | null): Vars {
+export async function varsFor(rt: Runtime, lead: Lead | null): Promise<Vars> {
   if (!lead) return UNKNOWN;
   const rep = rt.reps.find((r) => r.id === lead.closer_id);
   const booked = Boolean(lead.booked_at && !lead.booking_cancelled_at && lead.status === 'booked');
@@ -109,6 +112,8 @@ function varsFor(rt: Runtime, lead: Lead | null): Vars {
     call_time: booked ? callTime || 'booked (time in their confirmation email)' : 'not booked',
     closer_name: rep?.name ?? 'Josh’s team',
     email: '',
+    ...nextActionVars(booked ? 'inbound_booked' : lead.app_completed_at ? 'inbound_applied' : 'inbound_unknown'),
+    known_pain: await (await import('./voice-resources')).knownPainLine(rt, lead.id).catch(() => 'not known yet: ask.'),
   };
 }
 
@@ -116,7 +121,7 @@ function varsFor(rt: Runtime, lead: Lead | null): Vars {
 export async function initiationData(rt: Runtime, header: string | undefined, body: { caller_id?: string; agent_id?: string }) {
   if (!header || !safeEqual(header, await initSecret(rt))) return null;
   const lead = await leadByPhone(rt, body.caller_id ?? null).catch(() => null);
-  return { type: 'conversation_initiation_client_data', dynamic_variables: varsFor(rt, lead) };
+  return { type: 'conversation_initiation_client_data', dynamic_variables: await varsFor(rt, lead) };
 }
 
 const callerNumber = (c: Conversation) =>
@@ -171,8 +176,12 @@ export async function finishInbound(rt: Runtime, conv: Conversation) {
       const notes = [lead.notes, `[AI callback ${new Date(now).toISOString().slice(0, 10)}] ${facts.notes_for_closer}`].filter(Boolean).join('\n');
       await updateLead(rt.env, lead.id, { notes: notes.slice(-4000) });
     }
+    // Matched by caller ID only (never by a spoken email): pain point → the lead, the guide they asked for → one email.
+    said.push(...(await (await import('./voice-resources')).afterSalesCall(rt, lead, facts, 'ai_callback').catch(() => [] as string[])));
   } else {
     said.push(`Unknown caller${facts.caller_name ? ` — ${facts.caller_name}` : ''}. Number and details are in Funnel HQ → Voice.`);
+    if (facts.wants_booking_link) said.push('Asked for the application link: email it from Funnel HQ once the address checks out.');
+    if (typeof facts.pain_point === 'string' && facts.pain_point !== 'none') said.push(`Main challenge: ${facts.pain_point}.`);
   }
   if (facts.wants_human_callback) said.push(`☎️ Wants a person to call back${facts.callback_time ? ` (${facts.callback_time})` : ''}.`);
   if (facts.questions) said.push(`Questions: ${facts.questions}`);

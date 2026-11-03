@@ -325,6 +325,8 @@ export interface BuildOptions {
   override?: Pick<Override, 'subject' | 'preheader' | 'body' | 'cta_label' | 'cta_href' | 'ps'> | null;
   /** Long-flow emails: the flow's main ask (otherwise worked out from where the lead is). */
   ask?: Ask;
+  /** voice_resource: the guide to send. */
+  resource?: { title: string; why: string; path: string };
 }
 
 /** Fact keys earlier emails to this lead already used. */
@@ -373,6 +375,7 @@ export async function buildEmail(rt: Runtime, lead: Lead, emailId: string, templ
     webinarUrl: `${webinarBase(rt)}`,
     ...(webinar ? { applyUrl: webinar.apply } : {}),
     challenge: /^ch_/.test(template) ? await (await import('../challenge/emails')).challengeEmailContext(rt, lead, link) : null,
+    resource: opts.resource ?? null,
   };
   // An edit made in Funnel HQ → Email editor replaces the built-in wording.
   const override = opts.override !== undefined ? opts.override : isEditable(template) ? (await loadOverrides(rt)).get(template) : undefined;

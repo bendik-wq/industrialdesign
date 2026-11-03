@@ -33,6 +33,8 @@ export interface TemplateCtx {
   webinarUrl?: string;
   /** The First Deal Challenge registration (ch_ emails): personal hub and day page links, days, VIP, offer deadline. */
   challenge?: ChallengeEmailCtx | null;
+  /** voice_resource: the one guide the person said yes to on an AI call (src/integrations/sales-playbook.ts RESOURCES). */
+  resource?: { title: string; why: string; path: string } | null;
 }
 
 /** The First Deal Sprint in the closing emails (webinar/sprint.ts sprintEmailContext). */
@@ -1288,6 +1290,22 @@ export const TEMPLATES: Record<string, Template> = {
     cta: c.bookingUrl && c.lead.app_completed_at ? { label: 'Pick a time →', href: c.link('/book') } : { label: 'Start my application →', href: c.link('/apply') },
     ps: waLine(c),
   }),
+
+  // ── Voice agents: the one guide the person asked for on a call (once per lead per guide) ──
+  voice_resource: (c) => {
+    const r = c.resource ?? { title: 'our guides on buying a business', why: 'how owners buy with commercial debt, seller finance and seller rollover', path: '/guides' };
+    return {
+      subject: 'the guide we spoke about',
+      preheader: r.title,
+      body: [
+        `Hey ${c.name},`,
+        `As promised on the call, here’s the guide: ${r.title}.`,
+        `It covers ${r.why}.`,
+      ],
+      cta: { label: 'Read the guide →', href: c.link(r.path) },
+      ps: 'Questions after reading it? Reply to this email. Josh’s team reads every reply.',
+    };
+  },
 
   // Someone applied again with this email from a browser not linked to the lead: the link proves it's them.
   resume_link: (c) => ({

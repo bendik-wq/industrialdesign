@@ -31,6 +31,7 @@ import { type Mail, renderMail } from '../live/mail';
 import { depositConfig, depositWelcomeEmail, onboardingUrl } from '../sales/deposit';
 import { guarantee } from '../sales/guarantee';
 import { APP_REVENUE_BAND, REVENUE_LABEL, isMillionPlus } from '../sales/qualify';
+import { type CallContext, NEXT_ACTIONS, PAIN_POINTS, type Pain, RESOURCES } from '../integrations/sales-playbook';
 import { formatCallTime } from '../integrations/email';
 
 const MIN = 60_000;
@@ -82,6 +83,8 @@ export interface SbChoices {
   /** Both: picks up the AI calls, and how they opt out (none, STOP to the first text, "stop calling" on the first call). */
   answers: boolean;
   optOut: 'none' | 'text' | 'call';
+  /** Both: the main challenge they name on a call (the guide Sam offers; shown in the call sheet). */
+  pain: Pain | 'none';
 }
 export interface SbInput { journey: Journey; lead: SbLead; choices: SbChoices; anchor: number }
 
@@ -89,7 +92,7 @@ export const DEFAULT_LEAD: SbLead = { name: 'Dana', country: 'AU', tz: 'Australi
 export const DEFAULT_CHOICES: SbChoices = {
   registerBefore: 3 * 24 * 60, startHour: 19, joins: true, joinMin: 0, leaveMin: null, buys: 'no',
   appliesAt: 'weekday_morning', booksAfter: 120, callInDays: 2, noShow: false, rebooks: false,
-  answers: true, optOut: 'none',
+  answers: true, optOut: 'none', pain: 'finding_deals',
 };
 
 const validTz = (tz: unknown) => { try { if (typeof tz !== 'string' || !tz || tz.length > 40) return null; new Intl.DateTimeFormat('en-US', { timeZone: tz }); return tz; } catch { return null; } };
@@ -121,6 +124,7 @@ export function cleanInput(raw: unknown, now = Date.now()): SbInput {
       rebooks: c.rebooks === true,
       answers: c.answers !== false,
       optOut: pick(c.optOut, ['none', 'text', 'call'] as const, 'none'),
+      pain: pick(c.pain, [...PAIN_POINTS, 'none'] as const, DEFAULT_CHOICES.pain),
     },
     // The simulated clock is anchored near today so dates read naturally (within a month either way).
     anchor: Number.isFinite(anchor) && Math.abs(anchor - now) < 31 * DAY ? Math.floor(anchor / MIN) * MIN : Math.floor(now / HOUR) * HOUR,
@@ -786,7 +790,7 @@ export interface Detail {
   at: number;
   email?: { subject: string; preheader: string; html: string; from: string };
   text?: SimEvent['text'];
-  call?: { agent: string; firstMessage: string; vars: Record<string, string>; talk: { kind: string; label: string } | null; live: boolean };
+  call?: { agent: string; firstMessage: string; vars: Record<string, string>; talk: { kind: string; label: string } | null; live: boolean; sales: CallSales };
   lines?: string[];
 }
 
@@ -863,17 +867,38 @@ export async function detail(rt0: Runtime, inp: SbInput, id: string): Promise<De
   return out;
 }
 
+/** The call sheet's sales view: this call's one objective, and the guide Sam offers for the sample's challenge. */
+export interface CallSales {
+  label: string; objective: string; success: string; examples: string[];
+  pain: { id: Pain; label: string; says: string; title: string; why: string; url: string } | null;
+  email: string;
+}
+export function callSales(rt: Pick<Runtime, 'origin'>, inp: SbInput, context: CallContext): CallSales {
+  const a = NEXT_ACTIONS[context];
+  const p = inp.choices.pain === 'none' ? null : inp.choices.pain;
+  const r = p ? RESOURCES[p] : null;
+  const stopped = inp.choices.optOut !== 'none';
+  return {
+    label: a.label, objective: a.objective, success: a.success, examples: a.examples,
+    pain: p && r ? { id: p, label: r.pain, says: r.cues.split(', ')[0].replace(/^"|"$/g, ''), title: r.title, why: r.why, url: `${rt.origin}${r.path}` } : null,
+    email: !p ? 'They name no challenge, so Sam offers no guide.'
+      : stopped ? 'This sample opts out, so no guide is emailed: nothing goes to anyone who unsubscribed, replied STOP or asked not to be called.'
+      : !inp.lead.callOk ? 'They didn’t tick “call me”, so there is no call and no guide.'
+      : 'If they say yes, one short email with the guide goes out after the call: once per guide per lead, never to anyone who unsubscribed, replied STOP or asked not to be called.',
+  };
+}
+
 /** What Sam is told for this call: built by the real builders from the simulated moment. */
 export async function callDetail(rt: Runtime, inp: SbInput, ev: SimEvent): Promise<NonNullable<Detail['call']>> {
   const fill = (tpl: string, v: Record<string, string>) => tpl.replace(/\{\{(\w+)\}\}/g, (_, k: string) => v[k] ?? '');
   if (ev.ref.kind === 'wcall') {
     const kind = ev.ref.key as WKind;
     const vars = await webinarCallVars(rt, inp, kind, ev.at, ev.ref.attempt ?? 1);
-    return { agent: 'Webinar calls agent', firstMessage: fill(W_FIRST_MESSAGE, vars), vars, talk: { kind, label: STEP_META[kind].label }, live: webinarAgentReady(rt.settings as unknown as Partial<Record<string, string>>) };
+    return { agent: 'Webinar calls agent', firstMessage: fill(W_FIRST_MESSAGE, vars), vars, talk: { kind, label: STEP_META[kind].label }, live: webinarAgentReady(rt.settings as unknown as Partial<Record<string, string>>), sales: callSales(rt, inp, kind) };
   }
   const kind = ev.ref.key as 'speed_to_lead' | 'confirm' | 'rebook';
   const vars = strategyCallVars(rt, inp, kind, ev.at);
-  return { agent: 'Outbound calls agent', firstMessage: fill(AI_CALLER.firstMessage, vars), vars, talk: { kind, label: CALL_LABEL[kind] }, live: elevenConfigured(rt.settings) };
+  return { agent: 'Outbound calls agent', firstMessage: fill(AI_CALLER.firstMessage, vars), vars, talk: { kind, label: CALL_LABEL[kind] }, live: elevenConfigured(rt.settings), sales: callSales(rt, inp, kind) };
 }
 
 export function strategyCallVars(rt: Runtime, inp: SbInput, kind: 'speed_to_lead' | 'confirm' | 'rebook', t: number) {
@@ -938,6 +963,7 @@ sandboxApi.get('/options', (c) => c.json({
   countries: Object.entries(COUNTRIES).map(([id, v]) => ({ id, label: v.label, phone: v.phone, zones: v.zones, called: Boolean(callingZones(v.phone)) })),
   revenues: REVENUES.map((r) => ({ id: r, label: REVENUE_LABEL[APP_REVENUE_BAND[r] ?? ''] ?? r })),
   applyTimes: Object.entries(APPLY_TIMES).map(([id, label]) => ({ id, label })),
+  pains: PAIN_POINTS.map((id) => ({ id, label: RESOURCES[id].pain })),
   defaults: { lead: DEFAULT_LEAD, choices: DEFAULT_CHOICES },
 }));
 sandboxApi.get('/run', async (c) => {

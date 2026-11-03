@@ -71,6 +71,7 @@ export type ServerEvent =
   | 'voice_call_started'
   | 'voice_call_completed'
   | 'voice_link_sent'
+  | 'voice_resource_sent'
   | 'voice_opt_out';
 
 export type EventSource = 'server' | 'client' | 'webhook' | 'email' | 'cron' | 'admin';
