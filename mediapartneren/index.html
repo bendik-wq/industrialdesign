@@ -3,303 +3,362 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mediapartneren – Mer ny omsetning enn vi koster deg</title>
-<meta name="description" content="Vi tar de første salgsmøtene dine selv, bygger markedsføringen som fyller kalenderen og trener teamet ditt til å ta over. Mer ny omsetning enn honoraret på 90 dager, ellers jobber vi gratis til du har det.">
+<title>Mediapartneren – Vi selger for deg først</title>
+<meta name="description" content="Vi tar de første salgsmøtene dine selv, bygger markedsføringen som fyller kalenderen og trener teamet ditt til å ta over. Mer ny omsetning enn du betaler oss på 90 dager, ellers jobber vi gratis til du har det.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%232F6BFF'/%3E%3Cstop offset='.5' stop-color='%238B5CF6'/%3E%3Cstop offset='1' stop-color='%23FF6A3D'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%23000'/%3E%3Cpath d='M15 45V24l11 13 11-13v11l12-15' fill='none' stroke='url(%23g)' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800;900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: VSL-trakt. Overskrift → stor video → én CTA. Deretter glasskort på et mørkt, dempet fargefelt: kalkulator, metode, tilbud, garanti, gründerne. */
+/* Layout: Apple-rytme. Svart hero med én glødende VSL, deretter lyse, rolige seksjoner (hvit / #F5F5F7) med presise kort, og mørke «øyeblikk» for garanti og avslutning.
+   Palett: monokrom grunn + ett lys-spekter (blå → fiolett → rosa → korall → amber) som bare brukes på glød, logo og nøkkeltall. */
+@property --a { syntax:'<angle>'; initial-value:0deg; inherits:false; }
 :root {
-  --bg:#070A10; --ink:#F4F6FA; --ink2:rgba(244,246,250,.72); --ink3:rgba(244,246,250,.5);
-  --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.1); --edge:rgba(255,255,255,.14); --edge2:rgba(255,255,255,.22);
-  --accent:#7CF3C4; --accent2:#6AA8FF; --warn:#FF8A6B; --cta:#F4F6FA; --cta-ink:#070A10;
+  --black:#000; --ink:#1D1D1F; --ink2:#6E6E73; --ink3:#86868B; --line:#E5E5EA;
+  --paper:#FFFFFF; --gray:#F5F5F7;
+  --blue:#2F6BFF; --violet:#8B5CF6; --pink:#FF4FA3; --amber:#FFB020; --coral:#FF6A3D;
+  --spectrum:conic-gradient(from var(--a), #2F6BFF, #8B5CF6, #FF4FA3, #FF6A3D, #FFB020, #2F6BFF);
+  --line-grad:linear-gradient(90deg, #2F6BFF, #8B5CF6);
+  --text-grad:linear-gradient(100deg, #5B8CFF 0%, #8F6BFF 55%, #B36BFF 100%);
   --display:"Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
-  --body:"Geist", -apple-system, "Segoe UI", Arial, sans-serif;
+  --body:"Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
   --mono:"Geist Mono", ui-monospace, Menlo, monospace;
-  --r:24px;
 }
 * { box-sizing:border-box; }
-html { scroll-behavior:smooth; background:var(--bg); overflow-x:clip; }
-body { margin:0; font-family:var(--body); font-size:17px; line-height:1.6; color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; }
-/* Kun to dempede lysfelt bak glasset, ikke en regnbue */
-body::before { content:""; position:fixed; inset:-20vh -20vw; z-index:-1; pointer-events:none;
-  background:
-    radial-gradient(40vw 32vw at 18% 12%, rgba(106,168,255,.20), transparent 70%),
-    radial-gradient(36vw 30vw at 86% 30%, rgba(124,243,196,.13), transparent 70%),
-    radial-gradient(50vw 40vw at 50% 110%, rgba(106,168,255,.12), transparent 70%); }
-body::after { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.35;
-  background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
-  background-size:64px 64px; mask-image:radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%); -webkit-mask-image:radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%); }
-h1,h2,h3 { font-family:var(--display); margin:0; letter-spacing:-.025em; line-height:1.04; text-wrap:balance; }
+html { scroll-behavior:smooth; overflow-x:clip; background:var(--paper); }
+body { margin:0; font-family:var(--body); font-size:17px; line-height:1.55; color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+h1,h2,h3 { font-family:var(--display); margin:0; letter-spacing:-.03em; line-height:1.03; text-wrap:balance; }
 p { margin:0; }
-a { color:inherit; }
-.wrap { max-width:1160px; margin:0 auto; padding-inline:22px; }
+a { color:inherit; text-decoration:none; }
+.wrap { max-width:1120px; margin:0 auto; padding-inline:22px; }
 .center { text-align:center; display:grid; justify-items:center; }
-.mono { font-family:var(--mono); font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink3); }
-.glass { background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.035)); border:1px solid var(--edge); border-radius:var(--r);
-  backdrop-filter:blur(22px) saturate(140%); -webkit-backdrop-filter:blur(22px) saturate(140%);
-  box-shadow:0 1px 0 rgba(255,255,255,.12) inset, 0 30px 80px -40px rgba(0,0,0,.8); }
-.btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; background:var(--cta); color:var(--cta-ink); font-weight:600; font-size:16.5px; padding:17px 30px; border-radius:999px; text-decoration:none; border:0; cursor:pointer; transition:transform .15s, box-shadow .2s; box-shadow:0 0 0 6px rgba(244,246,250,.08), 0 20px 50px -18px rgba(124,243,196,.55); font-family:var(--body); }
-.btn:hover { transform:translateY(-1px); box-shadow:0 0 0 8px rgba(244,246,250,.1), 0 24px 60px -18px rgba(124,243,196,.7); }
+.eyebrow { font-family:var(--mono); font-size:12.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink2); }
+.dark .eyebrow { color:rgba(255,255,255,.55); }
+.h2 { font-size:clamp(34px,5vw,60px); font-weight:800; margin:14px 0 16px; }
+.lead { font-size:clamp(18px,2vw,21px); color:var(--ink2); max-width:38em; line-height:1.5; }
+.dark .lead { color:rgba(255,255,255,.66); }
+.spec-text { background:var(--text-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+section { padding:110px 0; }
+.dark { background:var(--black); color:#fff; }
+.gray { background:var(--gray); }
+:focus-visible { outline:3px solid var(--blue); outline-offset:3px; border-radius:10px; }
+
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; white-space:nowrap; font-family:var(--body); font-weight:600; font-size:16.5px; padding:16px 28px; border-radius:999px; border:0; cursor:pointer; transition:transform .15s, background .2s; }
+.btn.light { background:#fff; color:#000; }
+.btn.light:hover { background:#E8E8ED; }
+.btn.link { background:none; color:inherit; padding-inline:6px; }
+.btn.link:hover { text-decoration:underline; }
 .btn .arr { transition:transform .15s; } .btn:hover .arr { transform:translateX(3px); }
-.pill { display:inline-flex; align-items:center; gap:8px; padding:7px 14px 7px 8px; border-radius:999px; font-size:14px; color:var(--ink2); }
-.pill b { background:var(--accent); color:var(--cta-ink); font-family:var(--mono); font-size:11px; font-weight:500; padding:3px 8px; border-radius:99px; letter-spacing:.04em; }
-:focus-visible { outline:2px solid var(--accent); outline-offset:3px; border-radius:10px; }
 
-/* topbar */
-.top { position:sticky; top:0; z-index:30; }
-.top .in { max-width:1160px; margin:12px auto 0; padding:0 22px; }
-.top .bar { display:flex; align-items:center; gap:18px; padding:10px 10px 10px 20px; border-radius:999px; }
-.logo { font-family:var(--display); font-weight:800; font-size:19px; letter-spacing:-.02em; text-decoration:none; display:flex; align-items:center; gap:10px; }
-.logo i { width:22px; height:22px; border-radius:7px; background:conic-gradient(from 200deg, var(--accent), var(--accent2), var(--accent)); display:inline-block; }
-.top nav { margin-left:auto; display:flex; gap:22px; font-size:14.5px; }
-.top nav a { text-decoration:none; color:var(--ink2); } .top nav a:hover { color:var(--ink); }
-.top .btn { padding:10px 18px; font-size:14.5px; box-shadow:none; }
-@media (max-width:860px) { .top nav { display:none; } .top .btn { margin-left:auto; } }
+.logo { display:inline-flex; align-items:center; gap:10px; font-family:var(--display); font-weight:600; font-size:19px; letter-spacing:-.035em; }
+.logo svg { width:30px; height:30px; flex:none; }
+.logo b { font-weight:800; }
 
-/* hero */
-.hero { padding:64px 0 40px; }
-.hero h1 { font-size:clamp(40px,6.6vw,82px); font-weight:800; margin:22px 0 20px; max-width:15em; }
-.hero h1 .g { background:linear-gradient(92deg, var(--accent), var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.hero .sub { font-size:clamp(17px,1.9vw,20px); color:var(--ink2); max-width:40em; }
-.vsl { width:100%; max-width:980px; margin:40px auto 0; padding:10px; border-radius:30px; }
-.vsl .frame { position:relative; aspect-ratio:16/9; border-radius:22px; overflow:hidden; display:grid; place-items:center; text-decoration:none;
-  background:radial-gradient(60% 80% at 30% 20%, rgba(106,168,255,.35), transparent 70%), radial-gradient(50% 70% at 80% 90%, rgba(124,243,196,.22), transparent 70%), #0B1018; }
-.vsl .frame::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55)); }
-.vsl .play { position:relative; z-index:1; width:104px; height:104px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.14); border:1px solid var(--edge2); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); transition:transform .2s; }
-.vsl .play::before { content:""; position:absolute; inset:-14px; border-radius:50%; border:1px solid rgba(255,255,255,.12); animation:ring 2.4s ease-out infinite; }
-@keyframes ring { from { transform:scale(.85); opacity:1; } to { transform:scale(1.25); opacity:0; } }
-.vsl .play::after { content:""; border-left:26px solid #fff; border-top:16px solid transparent; border-bottom:16px solid transparent; margin-left:7px; }
-.vsl .frame:hover .play { transform:scale(1.06); }
-.vsl .meta { position:absolute; z-index:1; left:24px; right:24px; bottom:20px; display:flex; justify-content:space-between; align-items:end; gap:12px; text-align:left; }
-.vsl .meta b { font-family:var(--display); font-size:clamp(15px,1.8vw,20px); font-weight:700; color:#fff; display:block; }
-.vsl .meta span { font-family:var(--mono); font-size:12px; color:rgba(255,255,255,.7); }
-.vsl .sound { position:absolute; z-index:1; top:18px; left:18px; font-family:var(--mono); font-size:11.5px; padding:6px 10px; border-radius:99px; background:rgba(0,0,0,.35); border:1px solid var(--edge); color:#fff; }
-.under { margin-top:30px; display:grid; justify-items:center; gap:14px; }
-.under small { color:var(--ink3); font-size:13.5px; }
-.chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:6px; }
-.chips span { font-size:13.5px; color:var(--ink2); padding:7px 12px; border-radius:99px; }
+.nav { position:sticky; top:0; z-index:40; background:rgba(0,0,0,.72); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); color:#fff; border-bottom:1px solid rgba(255,255,255,.08); }
+.nav .wrap { height:60px; display:flex; align-items:center; gap:26px; }
+.nav nav { display:flex; gap:24px; margin-left:auto; font-size:14px; }
+.nav nav a { color:rgba(255,255,255,.72); } .nav nav a:hover { color:#fff; }
+.nav .btn { padding:9px 16px; font-size:14px; }
+@media (max-width:860px) { .nav nav { display:none; } .nav .btn { margin-left:auto; } }
 
-/* sections */
-section { padding:96px 0; }
-.h2 { font-size:clamp(32px,4.6vw,56px); font-weight:800; margin:14px 0 16px; }
-.lead { font-size:clamp(17px,1.8vw,19.5px); color:var(--ink2); max-width:42em; }
+.hero { background:var(--black); color:#fff; padding:86px 0 90px; position:relative; overflow:hidden; }
+.hero::before { content:""; position:absolute; left:50%; top:52%; width:min(1100px,120vw); height:620px; transform:translate(-50%,-10%); background:radial-gradient(closest-side, rgba(139,92,246,.28), rgba(47,107,255,.14) 50%, transparent 75%); filter:blur(20px); pointer-events:none; }
+.pill { display:inline-flex; align-items:center; gap:10px; padding:6px 14px 6px 6px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); font-size:14px; color:rgba(255,255,255,.8); position:relative; }
+.pill b { font-family:var(--mono); font-weight:500; font-size:11px; letter-spacing:.06em; color:#000; background:#fff; padding:3px 9px; border-radius:99px; }
+.hero h1 { font-size:clamp(42px,7.2vw,92px); font-weight:800; margin:24px 0 22px; max-width:13.5em; position:relative; }
+.hero .sub { font-size:clamp(18px,2vw,21px); color:rgba(255,255,255,.7); max-width:36em; position:relative; }
+.vsl { position:relative; width:100%; max-width:960px; margin:52px auto 0; border-radius:28px; isolation:isolate; }
+.vsl::before, .vsl::after { content:""; position:absolute; inset:-1.5px; border-radius:29.5px; background:var(--spectrum); animation:spin 9s linear infinite; z-index:0; }
+.vsl::after { inset:6%; filter:blur(60px); opacity:.65; z-index:-1; }
+@keyframes spin { to { --a:360deg; } }
+.vsl .frame { position:relative; z-index:1; display:grid; place-items:center; aspect-ratio:16/9; border-radius:27px; overflow:hidden; background:radial-gradient(120% 90% at 20% 0%, #1A1D2B, #07080C 60%); }
+.vsl .play { position:relative; width:96px; height:96px; border-radius:50%; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); display:grid; place-items:center; transition:transform .25s cubic-bezier(.2,.8,.2,1), background .2s; }
+.vsl .play::after { content:""; border-left:24px solid #fff; border-top:15px solid transparent; border-bottom:15px solid transparent; margin-left:7px; }
+.vsl .frame:hover .play { transform:scale(1.07); background:rgba(255,255,255,.2); }
+.vsl .orb { position:absolute; width:46%; aspect-ratio:1; left:50%; top:46%; transform:translate(-50%,-50%); border-radius:50%; background:var(--spectrum); filter:blur(80px); opacity:.28; animation:spin 9s linear infinite; }
+.vsl .chap { position:absolute; left:26px; right:26px; bottom:64px; display:flex; gap:4px; }
+.vsl .chap i { flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,.18); }
+.vsl .chap i:first-child { background:rgba(255,255,255,.75); }
+.vsl .chapl { position:absolute; left:26px; right:26px; bottom:74px; display:flex; font-family:var(--mono); font-size:11px; color:rgba(255,255,255,.5); }
+.vsl .chapl span { flex:1; }
+.vsl .meta { position:absolute; left:26px; right:26px; bottom:22px; display:flex; justify-content:space-between; align-items:end; gap:12px; text-align:left; }
+.vsl .meta b { font-family:var(--display); font-size:clamp(14px,1.8vw,19px); font-weight:700; }
+.vsl .meta span { font-family:var(--mono); font-size:12px; color:rgba(255,255,255,.6); }
+.hero .ctas { margin-top:40px; display:flex; flex-wrap:wrap; gap:14px; justify-content:center; align-items:center; position:relative; }
+.hero small { display:block; margin-top:14px; font-size:13.5px; color:rgba(255,255,255,.5); position:relative; }
+.trust { margin-top:64px; display:flex; flex-wrap:wrap; justify-content:center; gap:14px 44px; color:rgba(255,255,255,.38); font-family:var(--display); font-weight:700; font-size:18px; letter-spacing:-.02em; position:relative; }
 
-/* proof */
-.proof { padding:20px 0 0; }
-.proof .row { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-@media (max-width:820px) { .proof .row { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-.stat { padding:20px 22px; display:grid; gap:4px; }
-.stat b { font-family:var(--display); font-size:34px; font-weight:800; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
-.stat span { font-size:14px; color:var(--ink2); }
+.statement { font-family:var(--display); font-weight:800; font-size:clamp(32px,5vw,62px); line-height:1.08; letter-spacing:-.035em; max-width:17em; }
+.statement .mute { color:#C7C7CC; }
+.stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:56px; }
+@media (max-width:820px) { .stats { grid-template-columns:1fr; } }
+.stat { background:var(--gray); border-radius:24px; padding:28px; display:grid; gap:6px; }
+.stat b { font-family:var(--display); font-size:46px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+.stat span { color:var(--ink2); }
 
-/* calculator */
-.calc { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr); gap:16px; margin-top:44px; }
+.calc { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.35fr); gap:14px; margin-top:48px; }
 @media (max-width:900px) { .calc { grid-template-columns:1fr; } }
+.card { background:var(--paper); border-radius:26px; box-shadow:0 1px 2px rgba(0,0,0,.04), 0 12px 40px -20px rgba(0,0,0,.12); }
 .inputs { padding:28px; display:grid; gap:22px; align-content:start; }
-.in1 { display:grid; gap:8px; }
-.in1 .t { display:flex; justify-content:space-between; font-size:15px; color:var(--ink2); }
-.in1 .t b { font-family:var(--mono); font-weight:500; color:var(--ink); font-size:15px; }
-input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:99px; background:rgba(255,255,255,.12); outline-offset:6px; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 0 0 6px rgba(124,243,196,.25); cursor:pointer; }
-input[type=range]::-moz-range-thumb { width:22px; height:22px; border:0; border-radius:50%; background:#fff; box-shadow:0 0 0 6px rgba(124,243,196,.25); cursor:pointer; }
-.outputs { padding:28px; display:grid; gap:18px; }
-.big { display:grid; gap:4px; }
-.big b { font-family:var(--display); font-size:clamp(40px,5.4vw,64px); font-weight:800; letter-spacing:-.035em; line-height:1; font-variant-numeric:tabular-nums; color:var(--warn); }
-.big span { color:var(--ink2); font-size:15px; }
+.rng { display:grid; gap:10px; }
+.rng .t { display:flex; justify-content:space-between; gap:12px; font-size:15px; color:var(--ink2); }
+.rng .t b { font-family:var(--mono); font-weight:500; color:var(--ink); white-space:nowrap; }
+input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:99px; background:linear-gradient(90deg, var(--ink) var(--p,50%), #E5E5EA var(--p,50%)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:#fff; box-shadow:0 0 0 .5px rgba(0,0,0,.12), 0 3px 8px rgba(0,0,0,.18); cursor:pointer; }
+input[type=range]::-moz-range-thumb { width:26px; height:26px; border:0; border-radius:50%; background:#fff; box-shadow:0 0 0 .5px rgba(0,0,0,.12), 0 3px 8px rgba(0,0,0,.18); cursor:pointer; }
+.mini { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.mini div { background:var(--gray); border-radius:18px; padding:16px; display:grid; gap:2px; }
+.mini b { font-family:var(--display); font-weight:800; font-size:26px; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.mini span { font-size:13px; color:var(--ink2); line-height:1.35; }
+.note { font-size:13px; color:var(--ink3); }
+.outputs { padding:30px; display:grid; gap:18px; }
+.loss b { font-family:var(--display); font-weight:900; font-size:clamp(44px,6vw,72px); letter-spacing:-.045em; line-height:1; font-variant-numeric:tabular-nums; color:var(--coral); }
+.loss span { display:block; margin-top:6px; color:var(--ink2); }
 .chart { width:100%; height:auto; display:block; }
 .chart text { font-family:var(--mono); font-size:11px; fill:var(--ink3); }
-.legend { display:flex; gap:18px; font-size:13.5px; color:var(--ink2); flex-wrap:wrap; }
-.legend i { width:14px; height:3px; display:inline-block; border-radius:2px; margin-right:7px; vertical-align:middle; }
-.calc-note { font-size:13px; color:var(--ink3); }
-.mini { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.mini div { border-radius:16px; padding:14px; background:rgba(255,138,107,.08); border:1px solid rgba(255,138,107,.22); display:grid; gap:2px; }
-.mini b { font-family:var(--display); font-size:24px; font-weight:800; color:var(--warn); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
-.mini span { font-size:13px; color:var(--ink2); line-height:1.35; }
+.legend { display:flex; flex-wrap:wrap; gap:18px; font-size:14px; color:var(--ink2); }
+.legend i { width:18px; height:4px; border-radius:2px; display:inline-block; margin-right:8px; vertical-align:middle; }
 
-/* method */
-.method { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:44px; position:relative; }
-@media (max-width:900px) { .method { grid-template-columns:1fr; } }
-.ph { padding:28px; display:grid; gap:12px; align-content:start; }
-.ph .wk { font-family:var(--mono); font-size:12.5px; color:var(--accent); letter-spacing:.05em; }
-.ph h3 { font-size:26px; font-weight:700; }
-.ph p { color:var(--ink2); }
-.ph .who { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
-.ph .who span { font-family:var(--mono); font-size:11.5px; padding:4px 9px; border-radius:99px; border:1px solid var(--edge); color:var(--ink2); }
-.bar3 { height:8px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; display:flex; margin-top:6px; }
-.bar3 i { display:block; height:100%; }
+.track { position:relative; margin-top:56px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+.track::before { content:""; position:absolute; left:28px; right:28px; top:27px; height:2px; background:var(--line-grad); border-radius:2px; }
+@media (max-width:900px) { .track { grid-template-columns:1fr; } .track::before { display:none; } }
+.phase { position:relative; display:grid; gap:12px; align-content:start; }
+.phase .dot { width:56px; height:56px; border-radius:50%; background:#fff; display:grid; place-items:center; font-family:var(--mono); font-size:13px; box-shadow:0 0 0 1px var(--line), 0 6px 20px -8px rgba(0,0,0,.2); }
+.phase .wk { font-family:var(--mono); font-size:12.5px; color:var(--ink2); letter-spacing:.04em; margin-top:8px; }
+.phase h3 { font-size:28px; font-weight:800; }
+.phase p { color:var(--ink2); }
+.who { display:flex; gap:8px; flex-wrap:wrap; }
+.who span { font-size:12.5px; font-weight:600; padding:5px 11px; border-radius:99px; background:var(--gray); }
+.who span.you { background:#EEF2FF; color:var(--blue); }
 
-/* offer stack */
-.offer { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:16px; margin-top:44px; }
-@media (max-width:900px) { .offer { grid-template-columns:1fr; } }
-.stack { padding:12px; }
-.item { display:grid; grid-template-columns:44px minmax(0,1fr); gap:16px; padding:18px 16px; border-radius:18px; }
-.item + .item { border-top:1px solid rgba(255,255,255,.07); border-radius:0; }
-.item .ic { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:rgba(124,243,196,.12); color:var(--accent); font-family:var(--mono); font-size:14px; }
-.item b { font-family:var(--display); font-size:19px; font-weight:700; display:block; }
-.item p { color:var(--ink2); font-size:15.5px; margin-top:2px; }
-.guar { padding:30px; display:grid; gap:16px; align-content:start; background:linear-gradient(180deg, rgba(124,243,196,.14), rgba(124,243,196,.03)); border-color:rgba(124,243,196,.35); }
-.guar .seal { width:84px; height:84px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(124,243,196,.5); font-family:var(--mono); font-size:11px; text-align:center; color:var(--accent); line-height:1.3; }
-.guar h3 { font-size:30px; font-weight:800; }
-.guar p { color:var(--ink2); }
+.bento { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:14px; margin-top:48px; }
+.tile { border-radius:28px; padding:30px; background:var(--paper); display:grid; gap:10px; align-content:start; min-height:220px; position:relative; overflow:hidden; isolation:isolate; }
+.tile.s2 { grid-column:span 2; } .tile.s3 { grid-column:span 3; } .tile.s4 { grid-column:span 4; }
+@media (max-width:900px) { .bento { grid-template-columns:1fr; } .tile.s2, .tile.s3, .tile.s4 { grid-column:auto; } }
+.tile .k { font-family:var(--mono); font-size:12.5px; color:var(--ink2); }
+.tile h3 { font-size:26px; font-weight:800; }
+.tile p { color:var(--ink2); }
+.tile.black { background:var(--black); color:#fff; } .tile.black p, .tile.black .k { color:rgba(255,255,255,.6); }
+.tile.black::after { content:""; position:absolute; right:-80px; bottom:-120px; width:320px; height:320px; border-radius:50%; background:var(--spectrum); filter:blur(70px); opacity:.55; animation:spin 12s linear infinite; z-index:-1; }
+.tile .big { font-family:var(--display); font-size:64px; font-weight:900; letter-spacing:-.05em; line-height:1; }
+.spark { width:100%; height:70px; margin-top:auto; }
 
-/* founders */
-.founders { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:44px; align-items:center; }
+.compare { margin-top:48px; border-radius:28px; overflow:hidden; background:var(--paper); box-shadow:0 1px 2px rgba(0,0,0,.04), 0 12px 40px -20px rgba(0,0,0,.14); }
+.cmp-wrap { overflow-x:auto; }
+.compare table { width:100%; border-collapse:collapse; font-size:16px; min-width:560px; }
+.compare th, .compare td { padding:18px 24px; text-align:left; border-top:1px solid var(--line); }
+.compare thead th { border-top:0; font-family:var(--display); font-size:18px; }
+.compare thead th:last-child { background:var(--black); color:#fff; }
+.compare td:last-child { background:#FAFAFC; font-weight:600; }
+.compare td:nth-child(2) { color:var(--ink2); }
+.compare .y { color:var(--blue); font-weight:800; margin-right:8px; } .compare .n { color:#C7C7CC; font-weight:800; margin-right:8px; }
+
+.guar { display:grid; grid-template-columns:auto minmax(0,1fr); gap:64px; align-items:center; }
+@media (max-width:860px) { .guar { grid-template-columns:1fr; gap:40px; justify-items:center; text-align:center; } }
+.seal { position:relative; width:220px; height:220px; border-radius:50%; display:grid; place-items:center; isolation:isolate; }
+.seal::before { content:""; position:absolute; inset:0; border-radius:50%; background:var(--spectrum); animation:spin 9s linear infinite; -webkit-mask:radial-gradient(circle, transparent 66%, #000 67%); mask:radial-gradient(circle, transparent 66%, #000 67%); }
+.seal::after { content:""; position:absolute; inset:10%; border-radius:50%; background:var(--spectrum); filter:blur(40px); opacity:.45; animation:spin 9s linear infinite; z-index:-1; }
+.seal div { text-align:center; font-family:var(--display); }
+.seal b { display:block; font-size:58px; font-weight:900; letter-spacing:-.05em; line-height:1; }
+.seal span { font-family:var(--mono); font-size:12px; letter-spacing:.1em; color:rgba(255,255,255,.65); }
+
+.founders { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:56px; align-items:center; }
 @media (max-width:900px) { .founders { grid-template-columns:1fr; } }
 .ppl { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.pp { padding:14px; display:grid; gap:10px; }
-.pp .img { aspect-ratio:4/5; border-radius:16px; background:linear-gradient(160deg, rgba(106,168,255,.3), rgba(7,10,16,.6)); display:grid; place-items:center; color:var(--ink3); font-size:13px; text-align:center; padding:10px; }
-.pp b { font-family:var(--display); font-size:19px; padding:0 4px; }
-.pp span { font-size:14px; color:var(--ink2); padding:0 4px 6px; }
+.pp { display:grid; gap:10px; align-content:start; }
+.pp .img { aspect-ratio:4/5; border-radius:24px; background:linear-gradient(180deg, #F5F5F7, #E5E5EA); display:grid; place-items:center; color:var(--ink3); font-size:13px; text-align:center; padding:12px; }
+.pp b { font-family:var(--display); font-size:20px; letter-spacing:-.02em; }
+.pp span { font-size:14.5px; color:var(--ink2); }
+.quote { margin-top:28px; padding-left:20px; border-left:3px solid var(--violet); font-family:var(--display); font-size:22px; font-weight:600; letter-spacing:-.02em; line-height:1.3; }
 
-/* fit + faq */
-.fit { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:40px; }
+.fit { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:44px; }
 @media (max-width:760px) { .fit { grid-template-columns:1fr; } }
-.fit > div { padding:28px; }
+.fit > div { border-radius:26px; padding:30px; background:var(--paper); }
 .fit h3 { font-size:22px; margin-bottom:14px; }
-.fit ul { list-style:none; margin:0; padding:0; display:grid; gap:10px; color:var(--ink2); }
-.fit li { display:grid; grid-template-columns:22px 1fr; gap:10px; }
-.fit .y li::before { content:"✓"; color:var(--accent); }
-.fit .n li::before { content:"✕"; color:var(--ink3); }
-.faq { display:grid; gap:10px; margin-top:36px; max-width:820px; width:100%; text-align:left; }
-.faq details { padding:20px 24px; border-radius:18px; }
-.faq summary { cursor:pointer; font-weight:600; font-size:18px; list-style:none; display:flex; justify-content:space-between; gap:16px; }
+.fit ul { list-style:none; margin:0; padding:0; display:grid; gap:11px; color:var(--ink2); }
+.fit li { display:grid; grid-template-columns:24px 1fr; gap:10px; }
+.fit .y li::before { content:"✓"; color:var(--blue); font-weight:800; }
+.fit .n li::before { content:"✕"; color:#C7C7CC; font-weight:800; }
+.faq { margin-top:40px; max-width:820px; width:100%; border-top:1px solid var(--line); text-align:left; }
+.faq details { border-bottom:1px solid var(--line); padding:22px 4px; }
+.faq summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; gap:16px; font-family:var(--display); font-size:20px; font-weight:700; letter-spacing:-.02em; }
 .faq summary::-webkit-details-marker { display:none; }
-.faq summary::after { content:"+"; font-family:var(--mono); color:var(--accent); }
-.faq details[open] summary::after { content:"–"; }
-.faq p { margin-top:12px; color:var(--ink2); }
+.faq summary::after { content:"+"; font-weight:400; font-size:26px; line-height:1; color:var(--ink2); transition:transform .2s; }
+.faq details[open] summary::after { transform:rotate(45deg); }
+.faq p { margin-top:12px; color:var(--ink2); max-width:40em; }
 
-/* final */
-.final .card { padding:clamp(28px,5vw,56px); display:grid; gap:18px; justify-items:center; text-align:center; }
-.form { width:100%; max-width:640px; display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; text-align:left; }
-.form label { display:grid; gap:6px; font-size:13px; color:var(--ink2); font-family:var(--mono); letter-spacing:.03em; }
+.final { position:relative; overflow:hidden; isolation:isolate; }
+.final::before { content:""; position:absolute; left:50%; bottom:-360px; width:900px; height:600px; transform:translateX(-50%); border-radius:50%; background:var(--spectrum); filter:blur(110px); opacity:.35; animation:spin 14s linear infinite; z-index:-1; }
+.form { width:100%; max-width:640px; display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; text-align:left; }
+.form label { display:grid; gap:6px; font-size:13px; font-weight:500; color:rgba(255,255,255,.6); }
 .form .full { grid-column:1/-1; }
-.form input, .form select { width:100%; border:1px solid var(--edge); border-radius:14px; padding:14px 16px; font:inherit; font-family:var(--body); font-size:16px; background:rgba(255,255,255,.06); color:var(--ink); }
+.form input, .form select { width:100%; border:1px solid rgba(255,255,255,.14); border-radius:14px; padding:15px 16px; font:inherit; font-size:16px; background:rgba(255,255,255,.07); color:#fff; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
 .form select option { color:#000; }
-.form input:focus, .form select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 4px rgba(124,243,196,.15); }
+.form input:focus, .form select:focus { outline:none; border-color:#fff; }
 .form .btn { grid-column:1/-1; margin-top:6px; }
-.ok { display:none; grid-column:1/-1; padding:14px 16px; border-radius:14px; background:rgba(124,243,196,.12); color:var(--accent); }
+.ok { display:none; grid-column:1/-1; padding:14px 16px; border-radius:14px; background:rgba(255,255,255,.1); }
 @media (max-width:600px) { .form { grid-template-columns:1fr; } }
-footer { padding:40px 0 56px; color:var(--ink3); font-size:14px; }
-footer .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px 24px; }
-.fill { color:var(--warn); }
+footer { background:var(--black); color:rgba(255,255,255,.5); font-size:13.5px; padding:30px 0 40px; border-top:1px solid rgba(255,255,255,.08); }
+footer .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px 28px; }
+footer .logo { color:#fff; }
+.fill { color:var(--coral); }
 
-.btn { white-space:nowrap; }
-@media (max-width:600px) {
-  .logo { font-size:17px; }
-  .top .bar { padding:8px 8px 8px 14px; }
+.mcta { display:none; }
+@media (max-width:700px) {
+  .mcta { display:flex; position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom,0px)); z-index:50; padding:8px 8px 8px 18px; align-items:center; justify-content:space-between; gap:10px; border-radius:999px; background:rgba(0,0,0,.78); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); color:#fff; font-size:14px; transform:translateY(160%); transition:transform .3s cubic-bezier(.2,.8,.2,1); }
+  .mcta.on { transform:none; }
+  .mcta .btn { padding:11px 16px; font-size:14px; }
+  .vsl .play { width:66px; height:66px; } .vsl .play::after { border-left-width:17px; border-top-width:11px; border-bottom-width:11px; margin-left:5px; }
+  .vsl .meta { left:14px; right:14px; bottom:12px; } .vsl .meta b { font-size:13px; }
+  .vsl .chapl, .vsl .chap { display:none; }
+  .mini b { font-size:20px; white-space:nowrap; }
+  .hero { padding-top:56px; }
   .pill { font-size:12.5px; }
-  .vsl { padding:6px; border-radius:22px; margin-top:28px; }
-  .vsl .frame { border-radius:17px; }
-  .vsl .play { width:68px; height:68px; }
-  .vsl .play::after { border-left-width:18px; border-top-width:11px; border-bottom-width:11px; margin-left:5px; }
-  .vsl .sound { display:none; }
-  .vsl .meta { left:14px; right:14px; bottom:12px; }
-  .vsl .meta b { font-size:13.5px; }
-  .hero { padding-top:40px; }
-  .stat b { font-size:26px; }
-  .stat { padding:16px; }
+  section { padding:84px 0; }
+  .logo span { font-size:17px; }
 }
-@media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .vsl .play::before { animation:none; } .btn, .vsl .play { transition:none; } }
+@media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .vsl::before, .vsl::after, .seal::before, .seal::after, .tile.black::after, .final::before { animation:none; } }
 </style>
 </head>
 <body>
 
-<div class="top"><div class="in"><div class="bar glass">
-  <a class="logo" href="#"><i aria-hidden="true"></i>Mediapartneren</a>
-  <nav aria-label="Hovedmeny"><a href="#kalkulator">Kalkulator</a><a href="#metoden">Metoden</a><a href="#tilbudet">Tilbudet</a><a href="#hvem">Hvem vi er</a></nav>
-  <a class="btn" href="#book">Book samtale</a>
-</div></div></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="lg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2F6BFF"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#FF6A3D"/></linearGradient>
+    <symbol id="mark" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#000"/><rect x=".5" y=".5" width="63" height="63" rx="15.5" fill="none" stroke="rgba(255,255,255,.16)"/><path d="M15 45V24l11 13 11-13v11l12-15" fill="none" stroke="url(#lg)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="49" cy="20" r="3.6" fill="#FFB020"/></symbol>
+  </defs>
+</svg>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="#" aria-label="Mediapartneren"><svg><use href="#mark"/></svg><span><b>media</b>partneren</span></a>
+    <nav aria-label="Hovedmeny"><a href="#kalkulator">Kalkulator</a><a href="#metoden">Metoden</a><a href="#tilbudet">Tilbudet</a><a href="#garanti">Garanti</a><a href="#hvem">Hvem vi er</a></nav>
+    <a class="btn light" href="#book">Book samtale</a>
+  </div>
+</header>
 
 <!-- // BIG OFFER HEADLINE → VSL → ONE CTA -->
 <header class="hero">
   <div class="wrap center">
-    <span class="pill glass"><b>NYTT</b>For bedrifter med 5–100 MNOK i omsetning</span>
-    <h1>Vi selger for deg i 30 dager. <span class="g">Så lærer vi teamet ditt å gjøre det samme.</span></h1>
+    <span class="pill"><b>NY</b>For bedrifter med 5–100 MNOK i omsetning</span>
+    <h1>Vi selger for deg i 30 dager. <span class="spec-text">Så lærer vi teamet ditt å gjøre det samme.</span></h1>
     <p class="sub">To erfarne selgere tar de første salgsmøtene dine selv, bygger markedsføringen som fyller kalenderen og trener teamet ditt til å ta over. Mer ny omsetning enn du betaler oss på 90 dager, ellers jobber vi gratis til du har det.</p>
-    <div class="vsl glass">
+    <div class="vsl">
       <a class="frame" href="vsl-manus.html" aria-label="Spill av videoen: Hvorfor flere annonser ikke gir flere kunder">
-        <span class="sound">▶ Spill av med lyd</span>
+        <span class="orb" aria-hidden="true"></span>
         <span class="play" aria-hidden="true"></span>
-        <span class="meta"><span><b>Hvorfor flere annonser ikke gir flere kunder</b></span><span>04:30</span></span>
+        <span class="chapl" aria-hidden="true"><span>Problemet</span><span>Ikke din feil</span><span>Metoden</span><span>Garantien</span><span>Neste steg</span></span>
+        <span class="chap" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="meta"><b>Hvorfor flere annonser ikke gir flere kunder</b><span>04:30</span></span>
       </a>
     </div>
-    <div class="under">
-      <a class="btn" href="#book">Book en gratis salgsanalyse <span class="arr">→</span></a>
-      <small>30 minutter. Du får en oversikt over hvor du mister kunder, og den er din uansett.</small>
+    <div class="ctas">
+      <a class="btn light" href="#book">Book en gratis salgsanalyse <span class="arr">→</span></a>
+      <a class="btn link" href="#kalkulator">Regn ut lekkasjen din</a>
     </div>
+    <small>30 minutter. Du får en oversikt over hvor du mister kunder, og den er din uansett.</small>
+    <div class="trust" aria-label="Kunder"><span>[Kunde]</span><span>[Kunde]</span><span>[Kunde]</span><span>[Kunde]</span><span>[Kunde]</span></div>
   </div>
 </header>
 
-<!-- // PROOF BAR (fyll med ekte tall) -->
-<div class="proof"><div class="wrap row">
-  <div class="stat glass"><b class="fill">[X] år</b><span>samlet erfaring i salg og salgsledelse</span></div>
-  <div class="stat glass"><b class="fill">[X] MNOK</b><span>solgt personlig av gründerne</span></div>
-  <div class="stat glass"><b class="fill">[X]</b><span>selgere trent og ledet</span></div>
-  <div class="stat glass"><b>90 dager</b><span>til tallene skal være på plass</span></div>
-</div></div>
-
-<!-- // UNIQUE MECHANISM PART 1: show them the leak in their own numbers -->
-<section id="kalkulator">
+<!-- // PROBLEM STATEMENT -->
+<section>
   <div class="wrap">
-    <div class="mono">Salgslekkasje-kalkulatoren</div>
+    <div class="eyebrow">Problemet</div>
+    <p class="statement" style="margin-top:16px">Du betaler for synlighet. <span class="mute">Men henvendelser blir liggende, tilbud blir ikke fulgt opp, og selgerne gjør det på hver sin måte.</span> Det er der omsetningen forsvinner.</p>
+    <div class="stats">
+      <div class="stat"><b class="spec-text">Klikk</b><span>er det byrået måles på. Ikke omsetning.</span></div>
+      <div class="stat"><b>Timer</b><span>går ofte før en ny henvendelse får svar. Kunden har ringt en konkurrent i mellomtiden.</span></div>
+      <div class="stat"><b>Én</b><span>selger lukker de fleste avtalene. Resten varierer fra måned til måned.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- // UNIQUE ELEMENT: revenue leak calculator -->
+<section class="gray" id="kalkulator">
+  <div class="wrap">
+    <div class="eyebrow">Salgslekkasje-kalkulatoren</div>
     <h2 class="h2">Hvor mye omsetning lekker ut av bedriften din?</h2>
-    <p class="lead">Dra i tallene. Det du ser i rødt er penger du allerede har betalt for å få inn, men som ender hos en konkurrent.</p>
+    <p class="lead">Dra i tallene. Det oransje tallet er penger du allerede har betalt for å få inn, men som ender hos en konkurrent.</p>
     <div class="calc">
-      <div class="inputs glass">
-        <div class="in1"><div class="t"><label for="c_leads">Henvendelser i måneden</label><b id="o_leads"></b></div><input type="range" id="c_leads" min="5" max="300" step="5" value="40"></div>
-        <div class="in1"><div class="t"><label for="c_close">Andel som blir kunder i dag</label><b id="o_close"></b></div><input type="range" id="c_close" min="2" max="50" step="1" value="12"></div>
-        <div class="in1"><div class="t"><label for="c_value">Verdi per ny kunde (kr)</label><b id="o_value"></b></div><input type="range" id="c_value" min="5000" max="500000" step="5000" value="60000"></div>
-        <div class="in1"><div class="t"><label for="c_target">Andel som kan bli kunder med en god salgsprosess</label><b id="o_target"></b></div><input type="range" id="c_target" min="5" max="60" step="1" value="25"></div>
-        <div class="mini"><div><b id="o_cust">0</b><span>kunder i året du allerede har betalt for å få inn</span></div><div><b id="o_month">0 kr</b><span>i tapt omsetning hver måned</span></div></div>
-        <p class="calc-note">Eksempeltall. I salgsanalysen regner vi på dine faktiske tall.</p>
+      <div class="inputs card">
+        <div class="rng"><div class="t"><label for="c_leads">Henvendelser i måneden</label><b id="o_leads"></b></div><input type="range" id="c_leads" min="5" max="300" step="5" value="40"></div>
+        <div class="rng"><div class="t"><label for="c_close">Blir kunder i dag</label><b id="o_close"></b></div><input type="range" id="c_close" min="2" max="50" step="1" value="12"></div>
+        <div class="rng"><div class="t"><label for="c_value">Verdi per ny kunde</label><b id="o_value"></b></div><input type="range" id="c_value" min="5000" max="500000" step="5000" value="60000"></div>
+        <div class="rng"><div class="t"><label for="c_target">Kan bli kunder med en god salgsprosess</label><b id="o_target"></b></div><input type="range" id="c_target" min="5" max="60" step="1" value="25"></div>
+        <div class="mini"><div><b id="o_cust">0</b><span>kunder i året du allerede har betalt for</span></div><div><b id="o_month">0 kr</b><span>tapt omsetning hver måned</span></div></div>
+        <p class="note">Eksempeltall. I salgsanalysen regner vi på dine faktiske tall.</p>
       </div>
-      <div class="outputs glass">
-        <div class="big"><b id="o_lost">0 kr</b><span>i tapt omsetning de neste 12 månedene</span></div>
-        <svg class="chart" id="chart" viewBox="0 0 640 260" role="img" aria-label="Omsetning over 12 måneder i dag og med en god salgsprosess"></svg>
-        <div class="legend"><span><i style="background:var(--ink3)"></i>Slik det går i dag</span><span><i style="background:var(--accent)"></i>Med en salgsprosess som lukker</span></div>
+      <div class="outputs card">
+        <div class="loss"><b id="o_lost">0 kr</b><span>i tapt omsetning de neste 12 månedene</span></div>
+        <svg class="chart" id="chart" viewBox="0 0 640 270" role="img" aria-label="Omsetning over 12 måneder i dag og med en god salgsprosess"></svg>
+        <div class="legend"><span><i style="background:#C7C7CC"></i>Slik det går i dag</span><span><i style="background:var(--line-grad)"></i>Med en salgsprosess som lukker</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- // NOT-YOUR-FAULT + THIRD WAY: the unique approach -->
+<!-- // UNIQUE MECHANISM: sell first, then teach -->
 <section id="metoden">
   <div class="wrap">
-    <div class="mono">Metoden</div>
+    <div class="eyebrow">Metoden</div>
     <h2 class="h2">Vi viser det før vi lærer det bort.</h2>
-    <p class="lead">Det er ikke selgerne dine sin feil, og det er ikke budsjettet. De fleste har aldri sett hvordan en salgsprosess som lukker faktisk høres ut. Kurs og teori endrer lite. Å se det skje i egne møter, med egne kunder, endrer alt. Derfor gjør vi det i denne rekkefølgen:</p>
-    <div class="method">
-      <div class="ph glass"><span class="wk">UKE 1–2 · DIAGNOSE</span><h3>Vi finner lekkasjene</h3><p>Vi går gjennom hele løpet fra første klikk til signert avtale. Svartid, møter, tilbud og oppfølging. Du får tallene svart på hvitt.</p><div class="bar3"><i style="width:100%;background:var(--accent2)"></i></div><div class="who"><span>Vi leder</span></div></div>
-      <div class="ph glass"><span class="wk">UKE 3–6 · VI SELGER</span><h3>Vi tar møtene selv</h3><p>Vi tar dine salgsmøter mens teamet ditt sitter med og lytter. Samtidig bygger vi markedsføringen som fyller kalenderen. Du ser resultatet før du betaler for teorien.</p><div class="bar3"><i style="width:75%;background:var(--accent2)"></i><i style="width:25%;background:var(--accent)"></i></div><div class="who"><span>Vi selger</span><span>Teamet lytter</span></div></div>
-      <div class="ph glass"><span class="wk">UKE 7–12 · DERE SELGER</span><h3>Teamet tar over</h3><p>Teamet ditt tar møtene med samtaleguidene våre. Vi lytter, coacher og leder et ukentlig pipeline-møte. Når tallene holder, skrur vi opp annonsebudsjettet.</p><div class="bar3"><i style="width:15%;background:var(--accent2)"></i><i style="width:85%;background:var(--accent)"></i></div><div class="who"><span>Teamet selger</span><span>Vi coacher</span></div></div>
+    <p class="lead">Det er ikke selgerne dine sin feil. De fleste har aldri sett hvordan et møte som lukker faktisk høres ut. Kurs endrer lite. Å se det skje med egne kunder endrer alt.</p>
+    <div class="track">
+      <div class="phase"><span class="dot">01</span><span class="wk">UKE 1–2</span><h3>Vi finner lekkasjene</h3><p>Hele løpet fra første klikk til signert avtale: svartid, møter, tilbud og oppfølging. Svart på hvitt.</p><div class="who"><span>Vi leder</span></div></div>
+      <div class="phase"><span class="dot">02</span><span class="wk">UKE 3–6</span><h3>Vi tar møtene selv</h3><p>Vi selger til dine kunder mens teamet lytter. Samtidig bygger vi markedsføringen som fyller kalenderen.</p><div class="who"><span>Vi selger</span><span class="you">Teamet lytter</span></div></div>
+      <div class="phase"><span class="dot">03</span><span class="wk">UKE 7–12</span><h3>Teamet tar over</h3><p>Teamet selger med samtaleguidene våre. Vi coacher hver uke, og når tallene holder, skrur vi opp budsjettet.</p><div class="who"><span class="you">Teamet selger</span><span>Vi coacher</span></div></div>
     </div>
   </div>
 </section>
 
-<!-- // OFFER STACK + RISK REVERSAL -->
-<section id="tilbudet">
+<!-- // OFFER STACK as bento -->
+<section class="gray" id="tilbudet">
   <div class="wrap">
-    <div class="mono">Tilbudet</div>
-    <h2 class="h2">Salgsmotoren. Alt du trenger for å vokse, i én leveranse.</h2>
-    <p class="lead">Du slipper å koordinere et byrå, en salgstrener og en konsulent. Én partner har ansvar for hele veien, fra annonsekrone til signert kontrakt.</p>
-    <div class="offer">
-      <div class="stack glass">
-        <div class="item"><span class="ic">01</span><div><b>Innleid salgsdirektør i 90 dager</b><p>En av oss leder salgsarbeidet ditt med ukentlig pipeline-møte, prognoser og prioriteringer.</p></div></div>
-        <div class="item"><span class="ic">02</span><div><b>Vi tar dine første salgsmøter selv</b><p>Teamet ditt ser og hører nøyaktig hvordan et møte som lukker gjennomføres, med dine egne kunder.</p></div></div>
-        <div class="item"><span class="ic">03</span><div><b>Markedsføring som fyller kalenderen</b><p>Google Ads, SEO, sosiale medier og landingssider, rettet mot kundene du vil ha.</p></div></div>
-        <div class="item"><span class="ic">04</span><div><b>Salgsprosess, samtaleguider og tilbudsmaler</b><p>Skrevet for ditt marked, testet i ekte møter før teamet tar dem i bruk.</p></div></div>
-        <div class="item"><span class="ic">05</span><div><b>Salgstrening og ukentlig coaching</b><p>På teamets egne opptak og samtaler, ikke på generell teori.</p></div></div>
-        <div class="item"><span class="ic">06</span><div><b>CRM og dashbord du faktisk bruker</b><p>Du ser hva hver krone i markedsføring gir tilbake, i kunder og i kroner.</p></div></div>
-      </div>
-      <div class="guar glass">
-        <div class="seal">GARANTI<br>90 DAGER</div>
-        <h3>Mer ny omsetning enn du betaler oss. Ellers jobber vi gratis.</h3>
-        <p>Hvis Salgsmotoren ikke har skapt mer ny omsetning enn honoraret innen 90 dager, og du har gjort din del, fortsetter vi uten betaling til den har det.</p>
-        <p>Vi kan gi denne garantien fordi vi tar de første møtene selv. Vi vet hva vi får til.</p>
-        <a class="btn" href="#book" style="justify-self:start">Se om du kvalifiserer <span class="arr">→</span></a>
-      </div>
+    <div class="eyebrow">Salgsmotoren</div>
+    <h2 class="h2">Alt du trenger for å vokse. Én partner.</h2>
+    <p class="lead">Du slipper å koordinere et byrå, en salgstrener og en konsulent. Vi har ansvar for hele veien, fra annonsekrone til signert kontrakt.</p>
+    <div class="bento">
+      <div class="tile s4 black"><span class="k">01</span><h3>Innleid salgsdirektør i 90 dager</h3><p>En av oss leder salgsarbeidet ditt: ukentlig pipeline-møte, prognoser og prioriteringer.</p><span class="big spec-text" style="margin-top:12px">90 dager</span></div>
+      <div class="tile s2"><span class="k">02</span><h3>Vi tar møtene selv</h3><p>Teamet ser hvordan et møte som lukker gjennomføres, med dine egne kunder.</p></div>
+      <div class="tile s2"><span class="k">03</span><h3>Markedsføring</h3><p>Google Ads, SEO, sosiale medier og landingssider rettet mot kundene du vil ha.</p></div>
+      <div class="tile s2"><span class="k">04</span><h3>Salgsprosess</h3><p>Samtaleguider og tilbudsmaler, testet i ekte møter før teamet bruker dem.</p></div>
+      <div class="tile s2"><span class="k">05</span><h3>Trening og coaching</h3><p>På teamets egne opptak og samtaler, hver uke.</p></div>
+      <div class="tile s3"><span class="k">06</span><h3>Dashbord i kroner</h3><p>Se hva hver krone i markedsføring gir tilbake, i kunder og omsetning.</p>
+        <svg class="spark" viewBox="0 0 300 70" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sg" x1="0" x2="1"><stop offset="0" stop-color="#2F6BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient><linearGradient id="sf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8B5CF6" stop-opacity=".22"/><stop offset="1" stop-color="#8B5CF6" stop-opacity="0"/></linearGradient></defs><path d="M0,58 C40,56 60,50 90,48 S140,40 170,32 S230,22 260,14 L300,8 L300,70 L0,70 Z" fill="url(#sf)"/><path d="M0,58 C40,56 60,50 90,48 S140,40 170,32 S230,22 260,14 L300,8" fill="none" stroke="url(#sg)" stroke-width="3" stroke-linecap="round"/></svg></div>
+      <div class="tile s3"><span class="k">07</span><h3>CRM som faktisk blir brukt</h3><p>Satt opp slik at ingen henvendelse faller mellom stolene, med påminnelser og faste oppfølgingsløp.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- // CONTRAST: agency vs us -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Forskjellen</div>
+    <h2 class="h2">Et byrå gir deg klikk. Vi gir deg kunder.</h2>
+    <div class="compare"><div class="cmp-wrap"><table>
+      <thead><tr><th></th><th>Vanlig byrå</th><th>Mediapartneren</th></tr></thead>
+      <tbody>
+        <tr><td>Måles på</td><td>Klikk og visninger</td><td>Ny omsetning</td></tr>
+        <tr><td>Hvem selger</td><td><span class="n">✕</span>Ikke deres ansvar</td><td><span class="y">✓</span>Vi tar de første møtene selv</td></tr>
+        <tr><td>Salgstrening</td><td><span class="n">✕</span>Ikke inkludert</td><td><span class="y">✓</span>Ukentlig, på ekte samtaler</td></tr>
+        <tr><td>Salgsledelse</td><td><span class="n">✕</span>Ikke inkludert</td><td><span class="y">✓</span>Innleid salgsdirektør i 90 dager</td></tr>
+        <tr><td>Risiko</td><td>Du betaler uansett</td><td><span class="y">✓</span>Mer omsetning enn honoraret, ellers gratis</td></tr>
+      </tbody>
+    </table></div></div>
+  </div>
+</section>
+
+<!-- // RISK REVERSAL -->
+<section class="dark" id="garanti">
+  <div class="wrap guar">
+    <div class="seal" aria-hidden="true"><div><b>90</b><span>DAGER GARANTI</span></div></div>
+    <div>
+      <div class="eyebrow">Garantien</div>
+      <h2 class="h2">Mer ny omsetning enn du betaler oss. <span class="spec-text">Ellers jobber vi gratis.</span></h2>
+      <p class="lead">Hvis Salgsmotoren ikke har skapt mer ny omsetning enn honoraret innen 90 dager, og du har gjort din del, fortsetter vi uten betaling til den har det. Vi kan love dette fordi vi tar de første møtene selv. Vi vet hva vi får til.</p>
+      <div style="margin-top:28px"><a class="btn light" href="#book">Se om du kvalifiserer <span class="arr">→</span></a></div>
     </div>
   </div>
 </section>
@@ -308,98 +367,104 @@ footer .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; gap:
 <section id="hvem">
   <div class="wrap founders">
     <div>
-      <div class="mono">Hvem vi er</div>
+      <div class="eyebrow">Hvem vi er</div>
       <h2 class="h2">Selgere først. Byrå etterpå.</h2>
       <p class="lead">De fleste byråer kan markedsføring, men har aldri lukket en avtale. Vi har brukt <span class="fill">[X]</span> år på å selge, bygge salgsteam og lede selgere i <span class="fill">[bransjer / selskaper]</span>. Derfor starter vi der andre slutter: i salgsmøtet.</p>
-      <p class="lead" style="margin-top:14px">Vi holder til i Bergen og jobber med bedrifter i hele Norge. Vi tar bare inn noen få nye kunder av gangen, fordi vi selv sitter i møtene.</p>
+      <p class="quote">«Vi tar bare inn noen få nye kunder av gangen. Vi sitter i møtene selv.»</p>
     </div>
     <div class="ppl">
-      <div class="pp glass"><div class="img">[Portrett, gründer 1]</div><b class="fill">[Navn Etternavn]</b><span>Daglig leder · <span class="fill">[X]</span> år i salg og salgsledelse</span></div>
-      <div class="pp glass"><div class="img">[Portrett, gründer 2]</div><b class="fill">[Navn Etternavn]</b><span>Partner · <span class="fill">[X]</span> år i salg og salgstrening</span></div>
+      <div class="pp"><div class="img">[Portrett, gründer 1]</div><b class="fill">[Navn Etternavn]</b><span>Daglig leder · <span class="fill">[X]</span> år i salg og salgsledelse</span></div>
+      <div class="pp"><div class="img">[Portrett, gründer 2]</div><b class="fill">[Navn Etternavn]</b><span>Partner · <span class="fill">[X]</span> år i salg og salgstrening</span></div>
     </div>
   </div>
 </section>
 
-<!-- // IDENTITY CLOSE -->
-<section>
+<!-- // FIT -->
+<section class="gray">
   <div class="wrap">
-    <div class="mono">Passer dette for deg?</div>
+    <div class="eyebrow">Passer dette for deg?</div>
     <h2 class="h2">Vi sier nei til flere enn vi sier ja til.</h2>
     <div class="fit">
-      <div class="y glass"><h3>Det passer hvis du</h3><ul><li>har en etablert bedrift med 5–100 MNOK i omsetning</li><li>allerede får henvendelser, men vet at flere burde bli kunder</li><li>har minst én som selger, eller selger selv</li><li>vil måle markedsføring i kroner, ikke klikk</li></ul></div>
-      <div class="n glass"><h3>Det passer ikke hvis du</h3><ul><li>bare vil ha innlegg i sosiale medier</li><li>ser etter billigste byrå</li><li>ikke har kapasitet til flere kunder</li><li>ikke vil endre måten dere selger på</li></ul></div>
+      <div class="y"><h3>Det passer hvis du</h3><ul><li>har en etablert bedrift med 5–100 MNOK i omsetning</li><li>allerede får henvendelser, men vet at flere burde bli kunder</li><li>har minst én som selger, eller selger selv</li><li>vil måle markedsføring i kroner, ikke klikk</li></ul></div>
+      <div class="n"><h3>Det passer ikke hvis du</h3><ul><li>bare vil ha innlegg i sosiale medier</li><li>ser etter billigste byrå</li><li>ikke har kapasitet til flere kunder</li><li>ikke vil endre måten dere selger på</li></ul></div>
     </div>
   </div>
 </section>
 
+<!-- // FAQ -->
 <section>
   <div class="wrap center">
-    <div class="mono">Spørsmål</div>
+    <div class="eyebrow">Spørsmål</div>
     <h2 class="h2">Det du lurer på.</h2>
     <div class="faq">
-      <details class="glass"><summary>Tar dere virkelig salgsmøtene våre selv?</summary><p>Ja. I uke 3–6 tar vi de viktigste møtene dine, med teamet ditt til stede. Det er den raskeste måten å vise hva som virker, og grunnen til at vi tør å gi garantien.</p></details>
-      <details class="glass"><summary>Vi har allerede et byrå. Må vi bytte?</summary><p>Nei. Mange starter med salgsdelen og lar oss ta markedsføringen når tallene viser hvor gevinsten er. Det viktigste er at én har ansvar for hele løpet.</p></details>
-      <details class="glass"><summary>Hva koster det?</summary><p>Du får en fast pris etter salgsanalysen, før du forplikter deg. Garantien gjør at prisen er lavere enn den nye omsetningen, ellers jobber vi gratis til den er det.</p></details>
-      <details class="glass"><summary>Hva er «din del» i garantien?</summary><p>At teamet ditt deltar i møtene og treningen, at henvendelser blir fulgt opp innen avtalt tid, og at vi får tilgang til tallene vi trenger. Alt står skriftlig i avtalen.</p></details>
-      <details class="glass"><summary>Hva skjer i salgsanalysen?</summary><p>På 30 minutter går vi gjennom hvordan kundene finner dere, hva som skjer når de tar kontakt, og hvor dere mister dem. Du får de tre største lekkasjene, og analysen er din uansett.</p></details>
+      <details><summary>Tar dere virkelig salgsmøtene våre selv?</summary><p>Ja. I uke 3–6 tar vi de viktigste møtene dine, med teamet ditt til stede. Det er den raskeste måten å vise hva som virker, og grunnen til at vi tør å gi garantien.</p></details>
+      <details><summary>Vi har allerede et byrå. Må vi bytte?</summary><p>Nei. Mange starter med salgsdelen og lar oss ta markedsføringen når tallene viser hvor gevinsten er. Det viktigste er at én har ansvar for hele løpet.</p></details>
+      <details><summary>Hva koster det?</summary><p>Du får en fast pris etter salgsanalysen, før du forplikter deg. Garantien gjør at prisen er lavere enn den nye omsetningen, ellers jobber vi gratis til den er det.</p></details>
+      <details><summary>Hva er «din del» i garantien?</summary><p>At teamet deltar i møtene og treningen, at henvendelser blir fulgt opp innen avtalt tid, og at vi får tilgang til tallene vi trenger. Alt står skriftlig i avtalen.</p></details>
+      <details><summary>Hva skjer i salgsanalysen?</summary><p>På 30 minutter går vi gjennom hvordan kundene finner dere, hva som skjer når de tar kontakt, og hvor dere mister dem. Du får de tre største lekkasjene, og analysen er din uansett.</p></details>
     </div>
   </div>
 </section>
 
 <!-- // AFTER CLOSE -->
-<section class="final" id="book">
-  <div class="wrap">
-    <div class="card glass">
-      <div class="mono">Neste steg</div>
-      <h2 class="h2" style="max-width:15em">Om 90 dager er du 90 dager eldre uansett. Spørsmålet er om du har flere kunder.</h2>
-      <p class="lead">Book en gratis salgsanalyse. Vi ser på tallene dine sammen og viser deg nøyaktig hva lekkasjen koster deg.</p>
-      <form class="form" id="bookForm" novalidate>
-        <label>NAVN<input id="f_name" autocomplete="name" required></label>
-        <label>BEDRIFT<input id="f_co" autocomplete="organization" required></label>
-        <label>E-POST<input id="f_mail" type="email" autocomplete="email" required></label>
-        <label>TELEFON<input id="f_tel" type="tel" autocomplete="tel"></label>
-        <label class="full">OMSETNING I FJOR<select id="f_rev"><option value="">Velg</option><option>Under 5 MNOK</option><option>5–20 MNOK</option><option>20–100 MNOK</option><option>Over 100 MNOK</option></select></label>
-        <button class="btn" type="submit">Book gratis salgsanalyse <span class="arr">→</span></button>
-        <p class="ok" id="ok">Takk! Vi tar kontakt innen én arbeidsdag for å finne et tidspunkt.</p>
-      </form>
-    </div>
+<section class="dark final" id="book">
+  <div class="wrap center">
+    <div class="eyebrow">Neste steg</div>
+    <h2 class="h2" style="max-width:14em">Om 90 dager er du 90 dager eldre uansett. Spørsmålet er om du har flere kunder.</h2>
+    <p class="lead">Book en gratis salgsanalyse. Vi ser på tallene dine sammen og viser deg nøyaktig hva lekkasjen koster deg.</p>
+    <form class="form" id="bookForm" novalidate>
+      <label>Navn<input id="f_name" autocomplete="name" required></label>
+      <label>Bedrift<input id="f_co" autocomplete="organization" required></label>
+      <label>E-post<input id="f_mail" type="email" autocomplete="email" required></label>
+      <label>Telefon<input id="f_tel" type="tel" autocomplete="tel"></label>
+      <label class="full">Omsetning i fjor<select id="f_rev"><option value="">Velg</option><option>Under 5 MNOK</option><option>5–20 MNOK</option><option>20–100 MNOK</option><option>Over 100 MNOK</option></select></label>
+      <button class="btn light" type="submit">Book gratis salgsanalyse <span class="arr">→</span></button>
+      <p class="ok" id="ok">Takk! Vi tar kontakt innen én arbeidsdag for å finne et tidspunkt.</p>
+    </form>
   </div>
 </section>
 
 <footer><div class="wrap">
-  <span>© 2026 Mediapartneren AS · Org.nr. 936 084 893 · Bergen</span>
-  <span><a href="mailto:kundeservice@mediapartneren.no">kundeservice@mediapartneren.no</a></span>
+  <a class="logo" href="#"><svg><use href="#mark"/></svg><span><b>media</b>partneren</span></a>
+  <span>© 2026 Mediapartneren AS · Org.nr. 936 084 893 · Bergen · <a href="mailto:kundeservice@mediapartneren.no">kundeservice@mediapartneren.no</a></span>
 </div></footer>
+
+<div class="mcta" id="mcta"><span>Gratis salgsanalyse</span><a class="btn light" href="#book">Book nå →</a></div>
 
 <script>
 const $ = id => document.getElementById(id);
 const kr = n => new Intl.NumberFormat('nb-NO', { maximumFractionDigits:0 }).format(Math.round(n)) + ' kr';
 const short = n => n >= 1e6 ? (n / 1e6).toLocaleString('nb-NO', { maximumFractionDigits:1 }) + ' M' : Math.round(n / 1e3) + ' k';
+function fillRange(el) { el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%'); }
 function calc() {
   const leads = +$('c_leads').value, close = +$('c_close').value / 100, value = +$('c_value').value;
-  let target = +$('c_target').value / 100; if (target < close) target = close;
+  const target = Math.max(+$('c_target').value / 100, close);
+  ['c_leads','c_close','c_value','c_target'].forEach(id => fillRange($(id)));
   $('o_leads').textContent = leads; $('o_close').textContent = Math.round(close * 100) + ' %';
   $('o_value').textContent = kr(value); $('o_target').textContent = Math.round(target * 100) + ' %';
   const today = leads * close * value, better = leads * target * value;
   $('o_lost').textContent = kr((better - today) * 12);
-  $('o_cust').textContent = Math.round(leads * (target - close) * 12); $('o_month').textContent = kr(better - today);
-  // kumulativ omsetning over 12 måneder
-  const W = 640, H = 260, L = 46, R = 26, T = 14, B = 30, max = better * 12 || 1;
+  $('o_cust').textContent = Math.round(leads * (target - close) * 12);
+  $('o_month').textContent = kr(better - today);
+  const W = 640, H = 270, L = 48, R = 28, T = 16, B = 32, max = better * 12 || 1;
   const x = m => L + (W - L - R) * m / 12, y = v => T + (H - T - B) * (1 - v / max);
-  const pts = f => Array.from({ length:13 }, (_, m) => `${x(m).toFixed(1)},${y(f * m).toFixed(1)}`);
-  const a = pts(today), b = pts(better);
-  let g = '';
-  [0, .25, .5, .75, 1].forEach(t => { const yy = y(max * t); g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="rgba(255,255,255,.07)"/><text x="${L - 8}" y="${yy + 4}" text-anchor="end">${short(max * t)}</text>`; });
+  const line = f => Array.from({ length:13 }, (_, m) => `${x(m).toFixed(1)},${y(f * m).toFixed(1)}`);
+  const a = line(today), b = line(better);
+  let g = `<defs><linearGradient id="cg" x1="0" x2="1"><stop offset="0" stop-color="#2F6BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient><linearGradient id="cf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6A3D" stop-opacity=".16"/><stop offset="1" stop-color="#FF6A3D" stop-opacity=".02"/></linearGradient></defs>`;
+  [0, .25, .5, .75, 1].forEach(t => { const yy = y(max * t); g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="#ECECF0"/><text x="${L - 10}" y="${yy + 4}" text-anchor="end">${short(max * t)}</text>`; });
   [0, 3, 6, 9, 12].forEach(m => g += `<text x="${x(m)}" y="${H - 8}" text-anchor="${m === 12 ? 'end' : m === 0 ? 'start' : 'middle'}">${m === 0 ? 'nå' : 'mnd ' + m}</text>`);
-  g += `<polygon points="${b.join(' ')} ${a.slice().reverse().join(' ')}" fill="rgba(255,138,107,.18)"/>`;
-  g += `<polyline points="${a.join(' ')}" fill="none" stroke="rgba(244,246,250,.5)" stroke-width="2.5" stroke-linejoin="round"/>`;
-  g += `<polyline points="${b.join(' ')}" fill="none" stroke="#7CF3C4" stroke-width="3" stroke-linejoin="round"/>`;
-  g += `<circle cx="${x(12)}" cy="${y(better * 12)}" r="5" fill="#7CF3C4"/><circle cx="${x(12)}" cy="${y(today * 12)}" r="4.5" fill="rgba(244,246,250,.7)"/>`;
+  g += `<polygon points="${b.join(' ')} ${a.slice().reverse().join(' ')}" fill="url(#cf)"/>`;
+  g += `<polyline points="${a.join(' ')}" fill="none" stroke="#C7C7CC" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += `<polyline points="${b.join(' ')}" fill="none" stroke="url(#cg)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += `<circle cx="${x(12)}" cy="${y(better * 12)}" r="6" fill="#FF6A3D" stroke="#fff" stroke-width="3"/><circle cx="${x(12)}" cy="${y(today * 12)}" r="5" fill="#C7C7CC" stroke="#fff" stroke-width="3"/>`;
   $('chart').innerHTML = g;
 }
-['c_leads', 'c_close', 'c_value', 'c_target'].forEach(id => $(id).addEventListener('input', calc));
+['c_leads','c_close','c_value','c_target'].forEach(id => $(id).addEventListener('input', calc));
 calc();
 $('bookForm').addEventListener('submit', e => { e.preventDefault(); /* koble til CRM før lansering */ $('ok').style.display = 'block'; });
+const mcta = $('mcta'), hero = document.querySelector('.hero'), book = $('book');
+const upd = () => { const y = window.scrollY, past = y > hero.offsetTop + hero.offsetHeight - 80, atBook = y + innerHeight > book.offsetTop + 120; mcta.classList.toggle('on', past && !atBook); };
+addEventListener('scroll', upd, { passive:true }); addEventListener('resize', upd); upd();
 </script>
 </body>
 </html>
