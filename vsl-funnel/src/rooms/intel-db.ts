@@ -357,7 +357,7 @@ export async function buildDebrief(rt: Runtime, room: RoomRow, o: { post?: boole
     let transcript = t.lines.map((l) => `[${l.start_ms}ms ${stamp(l.start_ms)}]${l.speaker ? ` ${l.speaker}:` : ''} ${l.text}`).join('\n');
     if (transcript.length > 90_000) transcript = `${transcript.slice(0, 60_000)}\n…\n${transcript.slice(-30_000)}`;
     try {
-      const reply = await askClaude(rt, { model: ((rt.settings as unknown as S).INTEL_MODEL ?? '').trim() || REASONING_MODEL, system: DEBRIEF_SYSTEM, user: `TITLE: ${room.title}\n\nFACTS:\n${JSON.stringify(facts)}\n\nTRANSCRIPT:\n${transcript || '(no transcript yet)'}`, maxTokens: 2000 });
+      const reply = await askClaude(rt, { feature: 'room-debrief', model: ((rt.settings as unknown as S).INTEL_MODEL ?? '').trim() || REASONING_MODEL, system: DEBRIEF_SYSTEM, user: `TITLE: ${room.title}\n\nFACTS:\n${JSON.stringify(facts)}\n\nTRANSCRIPT:\n${transcript || '(no transcript yet)'}`, maxTokens: 2000 });
       const parsed = parseJsonReply<{ summary?: string; chapters?: unknown[]; improvements?: string[] }>(reply);
       debrief = mergeAi(base, parsed, allowedNumbers(facts, t.lines.map((l) => l.text), t.messages.map((m) => m.text), t.lines.map((l) => [l.start_ms, stamp(l.start_ms)])));
       if (!parsed) note = 'Claude did not return a usable debrief, so this one is built from the numbers alone.';

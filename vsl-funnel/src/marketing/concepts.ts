@@ -29,6 +29,7 @@ import { ADS_AI_MODEL, type Complete } from './angles';
 import { type Issue, auditHonest } from './honest';
 import { adsTargets, type Targets } from './autopilot';
 import { INDUSTRIES, type Industry } from '../landers/catalog';
+import { anthropicClient } from '../infra/ai-gateway';
 
 const DAY = 86_400_000;
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -305,7 +306,7 @@ export function claudeJson(rt: Runtime, schema: Record<string, unknown>): Comple
   const key = rt.settings.ANTHROPIC_API_KEY;
   if (!key) return null;
   return async (system, user) => {
-    const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 90_000 });
+    const client = anthropicClient(rt.settings, 'ads-concepts', { apiKey: key, maxRetries: 1, timeout: 90_000 });
     const res = await client.messages.create({
       model: (rt.settings as Partial<Record<string, string>>).ADS_AI_MODEL || ADS_AI_MODEL, max_tokens: 8000,
       output_config: { format: { type: 'json_schema', schema } },

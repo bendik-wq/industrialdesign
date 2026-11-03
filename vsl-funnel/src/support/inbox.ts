@@ -197,7 +197,7 @@ export async function draftForThread(rt: Runtime, threadId: string, now = Date.n
   ].filter(Boolean).join('\n\n');
   const model = rt.settings.SUPPORT_AI_MODEL || REASONING_MODEL;
   let reply: string | null = null;
-  try { reply = await askClaude(rt, { model, system: SUPPORT_SYSTEM, user, maxTokens: 900 }); } catch (e) { reply = null; console.error('support draft failed', e); }
+  try { reply = await askClaude(rt, { feature: 'support', model, system: SUPPORT_SYSTEM, user, maxTokens: 900 }); } catch (e) { reply = null; console.error('support draft failed', e); }
   const j = parseJsonReply<{ answer?: unknown; citations?: unknown; confidence?: unknown; needs_human?: unknown; reason?: unknown }>(reply);
   const answer = typeof j?.answer === 'string' ? j.answer.trim().slice(0, 4000) : '';
   const cited = (Array.isArray(j?.citations) ? j!.citations : []).map((x) => /^S(\d+)$/.exec(String(x))?.[1]).filter(Boolean).map((n) => sources[Number(n) - 1]).filter((p): p is Passage & { score: number } => Boolean(p));

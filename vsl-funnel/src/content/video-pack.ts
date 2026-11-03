@@ -5,6 +5,7 @@ import type { Sprint, Topic } from './ideas';
 import { type Block, type Para, type Run, type Table, toHtml, toRtf } from './doc-model';
 import { auditFields, copyBrief } from './copy-rules';
 import { BELIEF, STAGE, YELLOW, e, ordered, unquote } from './sprint-export';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * Video packs: everything Josh needs to film and present ONE video from a sprint.
@@ -143,7 +144,7 @@ const NOT_COPY = /^(video_id|tags|chapters|filming|compliance)\b|\.visual$|\.emo
 export const packIssues = (pack: VideoPack) => auditFields(pack, { kind: 'video', skip: (p) => NOT_COPY.test(p) });
 
 async function aiPack(rt: Runtime, topic: Topic, next: Topic | null): Promise<VideoPack> {
-  const client = new Anthropic({ apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
+  const client = anthropicClient(rt.settings, 'video-pack', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
   const system = PACK_SYSTEM + (rt.settings.YT_BRAND_STORY ? `\n\nMore true facts about Josh (use only these):\n${rt.settings.YT_BRAND_STORY}` : '') + (rt.settings.YT_PROOF ? `\n\nReal proof you may show:\n${rt.settings.YT_PROOF}` : '') + (rt.settings.YT_NOTES ? `\n\nStanding rules:\n${rt.settings.YT_NOTES}` : '');
   const ask = async (messages: Anthropic.Beta.BetaMessageParam[]) => {
     const stream = client.beta.messages.stream({

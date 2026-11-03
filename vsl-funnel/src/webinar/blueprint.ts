@@ -12,6 +12,7 @@ import { APP_REVENUE_BAND, isMillionPlus, REVENUE_LABEL } from '../sales/qualify
 import { answerProblems, WEBINAR_AI_MODEL } from './assistant';
 import { DEFAULT_POLLS, THANK_YOU } from './content';
 import { type Registration, type Session, getRegistration, getSession, roomUrl, webinarBase, webinarSettings } from './webinar';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * "Your Acquisition Blueprint": a one-page, printable plan written about one owner, from everything they told us
@@ -442,7 +443,7 @@ Hard rules:
 ${copyBrief('email')}`;
 
 export async function polishProse(rt: Runtime, bp: Blueprint): Promise<Prose> {
-  const client = new Anthropic({ apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 25_000 });
+  const client = anthropicClient(rt.settings, 'blueprint', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 25_000 });
   const facts = [
     bp.firstName ? `First name: ${bp.firstName}` : '',
     bp.bandLabel ? `Revenue: ${bp.bandLabel} a year` : '',

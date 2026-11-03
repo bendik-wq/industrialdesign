@@ -803,11 +803,55 @@
       (v.qa.length ? '<ol class="rm-qa">' + v.qa.map(function (q) {
         return '<li class="rm-q' + (q.answered ? ' is-answered' : '') + '"><button type="button" class="rm-vote" data-up="' + q.id + '" aria-pressed="' + q.voted + '"' + (q.mine ? ' disabled' : '') + ' aria-label="' + esc(C.upvote) + '">' + I.up + '<span>' + q.votes + '</span></button>' +
           '<div class="rm-q-b"><p>' + esc(q.text) + '</p><p class="rm-q-m">' + esc(q.name) + (q.answered ? ' · ' + esc(C.answered) : '') + '</p>' +
-          (isStaff ? '<button type="button" class="rm-mini" data-ans="' + q.id + '" data-on="' + (!q.answered) + '">' + esc(q.answered ? C.reopen : C.markAnswered) + '</button>' : '') + '</div></li>';
+          (isStaff ? '<button type="button" class="rm-mini" data-ans="' + q.id + '" data-on="' + (!q.answered) + '">' + esc(q.answered ? C.reopen : C.markAnswered) + '</button>' : '') +
+          (AIC ? '<button type="button" class="rm-mini" data-aid-go="' + q.id + '"' + (AID[q.id] && AID[q.id].busy ? ' disabled' : '') + '>' + esc(AID[q.id] && AID[q.id].busy ? AIC.working : AIC.button) + '</button>' + aidBox(q.id) : '') + '</div></li>';
       }).join('') + '</ol>' : '<p class="rm-note">' + esc(C.noQuestions) + '</p>');
     $('[data-ask]', p).onsubmit = function (e) { e.preventDefault(); var t = this.text.value.trim(); if (t) send({ t: 'ask', text: t }); this.text.value = ''; };
     $$('[data-up]', p).forEach(function (b) { b.onclick = function () { send({ t: 'upvote', qid: Number(b.getAttribute('data-up')) }); }; });
     $$('[data-ans]', p).forEach(function (b) { b.onclick = function () { send({ t: 'answer', qid: Number(b.getAttribute('data-ans')), on: b.getAttribute('data-on') === 'true' }); }; });
+    if (AIC) wireAid(p);
+  }
+
+  // Q&A "AI draft" (staff only, setting ROOM_AI_HELPER; src/vectors/room-helper.ts). The draft is shown only to
+  // this staff member, labelled as AI-drafted, in an editable box. Nothing is posted until they press Send, which
+  // sends it to the chat as their own message. There is no automatic send anywhere.
+  var AIC = isStaff && CFG.aiDraft ? CFG.aiDraft : null;
+  var AID = {}; // question id -> { busy, draft, note, problems, sources }
+  function aidBox(qid) {
+    var a = AID[qid];
+    if (!a || a.busy) return '';
+    if (!a.draft) return '<p class="rm-note rm-aid-note" role="status">' + esc(a.note || AIC.failed) + ' <button type="button" class="rm-mini" data-aid-x="' + qid + '">' + esc(AIC.discard) + '</button></p>';
+    return '<div class="rm-aid" data-aid-box="' + qid + '"><p class="rm-aid-l">' + esc(AIC.label) + '</p>' +
+      '<textarea class="rm-aid-t" rows="4" maxlength="400" data-h="aid-' + qid + '" aria-label="' + esc(AIC.label) + '">' + esc(a.draft) + '</textarea>' +
+      (a.problems && a.problems.length ? '<p class="rm-aid-p">' + esc(AIC.checks + ' ' + a.problems.join(', ')) + '</p>' : '') +
+      (a.sources && a.sources.length ? '<p class="rm-aid-s">' + a.sources.map(function (s) { return esc(s.title); }).join(' · ') + '</p>' : '') +
+      '<div class="rm-aid-b"><button type="button" class="rm-btn" data-aid-send="' + qid + '">' + esc(AIC.send) + '</button><button type="button" class="rm-mini" data-aid-x="' + qid + '">' + esc(AIC.discard) + '</button></div></div>';
+  }
+  function aidRedraw() { if (S.tab === 'qa') renderPanel(); }
+  function wireAid(p) {
+    $$('[data-aid-go]', p).forEach(function (b) {
+      b.onclick = function () {
+        var qid = Number(b.getAttribute('data-aid-go'));
+        var q = (S.view.qa || []).filter(function (x) { return x.id === qid; })[0];
+        if (!q) return;
+        AID[qid] = { busy: true }; aidRedraw();
+        post('/ai-draft', { text: q.text }).then(function (d) {
+          AID[qid] = d && d.ok && d.draft ? { draft: d.draft, problems: d.problems || [], sources: d.sources || [] } : { note: (d && (d.note || d.error)) || AIC.failed };
+        }, function () { AID[qid] = { note: AIC.failed }; }).then(aidRedraw);
+      };
+    });
+    $$('[data-h^="aid-"]', p).forEach(function (ta) { ta.oninput = function () { var a = AID[Number(ta.getAttribute('data-h').slice(4))]; if (a) a.draft = ta.value; }; });
+    $$('[data-aid-x]', p).forEach(function (b) { b.onclick = function () { delete AID[Number(b.getAttribute('data-aid-x'))]; aidRedraw(); }; });
+    $$('[data-aid-send]', p).forEach(function (b) {
+      b.onclick = function () {
+        var qid = Number(b.getAttribute('data-aid-send'));
+        var ta = $('[data-h="aid-' + qid + '"]', p);
+        var text = ta ? ta.value.trim() : '';
+        if (!text) return;
+        send({ t: 'chat', text: text.slice(0, 400) }); // a person pressed Send: posted as their own message
+        delete AID[qid]; aidRedraw();
+      };
+    });
   }
 
   function renderPoll() {

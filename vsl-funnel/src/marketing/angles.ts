@@ -15,6 +15,7 @@ import { AUDIENCE, BANNED_PATTERNS, HOUSE_RULES, MECHANISM, VOICE, type CopyIssu
 import { newId } from '../lib/ids';
 import { proposeAction, registerActionHandler } from '../ops/actions';
 import { createPausedMetaAd, creativeImageHash, metaWriteConfigured } from '../integrations/meta-ads';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /** Planning / writing model for ad copy (setting ADS_AI_MODEL overrides). */
 export const ADS_AI_MODEL = 'claude-sonnet-5-5';
@@ -55,7 +56,7 @@ export function claudeComplete(rt: Runtime): Complete | null {
   const key = rt.settings.ANTHROPIC_API_KEY;
   if (!key) return null;
   return async (system, user) => {
-    const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 60_000 });
+    const client = anthropicClient(rt.settings, 'ads-angles', { apiKey: key, maxRetries: 1, timeout: 60_000 });
     const params = {
       model: (rt.settings as Partial<Record<string, string>>).ADS_AI_MODEL || ADS_AI_MODEL,
       max_tokens: 4000,

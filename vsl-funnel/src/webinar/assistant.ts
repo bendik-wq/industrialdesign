@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Runtime } from '../app';
 import { FAQS } from '../config';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * The masterclass room's question box. An AI assistant answers straight away from Josh's playbook
@@ -39,7 +40,7 @@ export function answerProblems(text: string) {
 export async function answerQuestion(rt: Runtime, question: string, o: { priority?: boolean } = {}): Promise<string | null> {
   const key = rt.settings.ANTHROPIC_API_KEY;
   if (!key) return null;
-  const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: o.priority ? 45_000 : 20_000 });
+  const client = anthropicClient(rt.settings, 'webinar-assistant', { apiKey: key, maxRetries: 1, timeout: o.priority ? 45_000 : 20_000 });
   const res = await client.messages.create({
     model: o.priority ? WEBINAR_PRIORITY_MODEL : rt.settings.WEBINAR_AI_MODEL || WEBINAR_AI_MODEL,
     max_tokens: o.priority ? 900 : 400,

@@ -71,7 +71,7 @@ export async function draftCheckin(rt: Runtime, ctx: { name: string; type: Clien
   ].join('\n');
   let text: string | null = null;
   try {
-    text = await askClaude(rt, { model: rt.settings.CS_AI_MODEL || REASONING_MODEL, system: CHECKIN_SYSTEM, user, maxTokens: 700 });
+    text = await askClaude(rt, { feature: 'client-checkin', model: rt.settings.CS_AI_MODEL || REASONING_MODEL, system: CHECKIN_SYSTEM, user, maxTokens: 700 });
   } catch (e) {
     return { ...fallback, note: `Claude error, used the template: ${e instanceof Error ? e.message : 'unknown'}` };
   }

@@ -1476,6 +1476,12 @@
         row.onclick = function () { openLead(row.getAttribute('data-lead')); };
         row.onkeydown = function (e) { if (e.key === 'Enter') openLead(row.getAttribute('data-lead')); };
       });
+      // AI search (admin-vectors.js): search by meaning and "Leads like my buyers"; stays hidden with VECTOR_SEARCH off.
+      if (window.HQVectors) {
+        var vx = document.createElement('div'); vx.style.marginTop = '14px'; vx.hidden = true; vx.setAttribute('data-vx-leads', '');
+        view.appendChild(vx);
+        window.HQVectors.leads(vx, { esc: esc, when: when, openLead: function (x) { openLead(x); } });
+      }
       updateFilterCue();
     });
   }
@@ -1701,6 +1707,7 @@
         ], d.calendly) + '</div>' : '') +
         (d.voice && d.voice.length ? '<div class="card" id="ld-calls" style="margin-top:14px"><h2>AI calls</h2>' + d.voice.map(voiceCall).join('') + '</div>' : '') +
         '<div class="card" id="ld-buyer" style="margin-top:14px" data-buyerpath><h2>Where they came from</h2><p class="muted">Loading…</p></div>' +
+        '<div class="card" id="ld-similar" style="margin-top:14px" data-vx-similar hidden></div>' + // AI search (admin-vectors.js); stays hidden with VECTOR_SEARCH off
         '<div class="card" id="ld-journey" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action, server-side.</p></div><label class="muted"><input type="checkbox" data-all> show all events</label></div><ul class="timeline" data-tl>' + timeline() + '</ul></div>';
 
       dr.querySelector('.close').onclick = close;
@@ -1715,6 +1722,7 @@
       });
       loadBehaviour(dr, id);
       if (window.BuyerPath) window.BuyerPath.lead(dr.querySelector('[data-buyerpath]'), id, { esc: esc, when: when }); // admin-journey.js
+      if (window.HQVectors) window.HQVectors.lead(dr.querySelector('[data-vx-similar]'), id, { esc: esc, when: when, openLead: function (x) { openLead(x); } }); // admin-vectors.js
       loadPayments(dr, id);
       loadContracts(dr.querySelector('[data-contracts]'), l);
       dr.querySelector('[data-all]').onchange = function (e) { showAll = e.target.checked; dr.querySelector('[data-tl]').innerHTML = timeline(); };
@@ -3690,6 +3698,13 @@
         }).join('') + '<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn-sm" type="submit">Save changes</button></div></form>';
       openSettings = null;
       // Claude (MCP) and Zapier & webhooks panels (public/assets/ops-e.js), above Keys & settings.
+      // AI search and AI Gateway status (admin-vectors.js), above Keys & settings.
+      if (window.HQVectors) {
+        var vxBox = document.createElement('div');
+        var vxForm = view.querySelector('[data-settings]');
+        vxForm.parentNode.insertBefore(vxBox, vxForm);
+        window.HQVectors.integrations(vxBox, { esc: esc, when: when });
+      }
       if (window.AutomationsPanel) {
         var autoBox = document.createElement('div');
         var settingsForm = view.querySelector('[data-settings]');
