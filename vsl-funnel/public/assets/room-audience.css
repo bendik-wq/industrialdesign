@@ -106,6 +106,11 @@
 /* while the mini player floats in the corner, a sheet never rises under it: its close button stays visible and tappable */
 .rx-mini .rm-sheet .rm-sheet-in { max-height: calc(100dvh - min(46vw, 260px) * 9 / 16 - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
 .rx-mini .rm-stagewrap .rm-stage { max-height: none; padding: 0; }
+/* the mini player is exactly the 16:9 stage box, the height the sheet makes room for above: panels that live in the stage
+   area (the director's scene bar, the green room card) never stretch it down over the sheet's close button */
+body.rx-mini .rm-stagewrap { height: calc(min(46vw, 260px) * 9 / 16); padding: 0; }
+body.rx-mini .rm-stagewrap > .rm-stage[data-stage] { height: 100%; min-height: 0; aspect-ratio: auto; }
+.rx-mini .rm-stagewrap .rs-bar, .rx-mini .rm-stagewrap .rs-greencard { display: none; }
 .rx-mini .rm-stagewrap .rx-tools, .rx-mini .rm-stagewrap .rx-capnote, .rx-mini .rm-stagewrap .rx-pulse, .rx-mini .rm-stagewrap .rx-tally, .rx-mini .rm-stagewrap .rm-agenda, .rx-mini .rm-stagewrap .rm-pinned { display: none; }
 .rx-mini .rm-stagewrap .rx-caps { bottom: 4px; width: 96%; }
 .rx-mini .rm-stagewrap .rx-caps p { font-size: 11px; padding: 2px 6px; }
