@@ -43,7 +43,8 @@ export const SMS_GOAL: Record<SmsTrigger, (l: Lead) => boolean> = {
 
 export const SMS_SKIP: Record<(typeof SMS_SKIPS)[number], (l: Lead, clicked: boolean) => boolean> = {
   applied: (l) => Boolean(l.app_completed_at),
-  booked: (l) => booked(l),
+  // A missed (no-show) booking doesn't count: the no-show texts skip only once they've booked again.
+  booked: (l) => booked(l) && l.status !== 'no_show',
   confirmed: (l) => Boolean(l.sms_confirmed_at && l.booked_at && l.sms_confirmed_at >= l.booked_at),
   attended: (l) => cameToWebinar(l),
   missed: (l) => !cameToWebinar(l),
@@ -119,6 +120,16 @@ export function smsBlock(lead: Lead) {
 }
 
 /** 8am–8pm in every zone of the number's country (TCPA allows 8am–9pm; we stay inside it). */
+/** The zones whose texting hours apply: the person's own zone when we know it (and it fits their number), else every zone of their number. */
+export function textingZones(lead: Pick<Lead, 'phone' | 'timezone'>): string[] | null {
+  const zones = callingZones(lead.phone);
+  if (!zones) return null;
+  return lead.timezone && zones.includes(lead.timezone) ? [lead.timezone] : zones;
+}
+/** A "before the call/session" text pushed by texting hours is stale once it would land less than half its lead time before the moment. */
+export const staleBeforeAnchor = (next: number | null, anchor: number | null, offsetMin: number) =>
+  !next || (anchor != null && offsetMin < 0 && next > anchor + (offsetMin * MIN) / 2);
+
 export function inTextingHours(t: number, zones: string[]) {
   return zones.length > 0 && zones.every((tz) => {
     try {
@@ -288,8 +299,12 @@ export async function smsOptOutUrl(rt: Runtime, phone: string) {
   return `${rt.origin}/so/${d}/${await smsOptOutSig(rt, d)}`;
 }
 
+/** Curly quotes, long dashes and the ellipsis force Unicode (70-character segments, about 2x the cost): send the plain ones. */
+export const plainSms = (body: string) => body.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
+
 /** Sends one text now through whichever provider is connected. */
-export async function sendSmsNow(rt: Runtime, to: string, body: string) {
+export async function sendSmsNow(rt: Runtime, to: string, body0: string) {
+  const body = plainSms(body0);
   return smsProvider(rt) === 'telnyx' ? sendTelnyx(rt, to, body) : sendTwilio(rt, to, body);
 }
 
@@ -319,13 +334,13 @@ export async function sendSmsRow(rt: Runtime, row: SmsRow, sequences: SmsSequenc
   if (why) { await skip(why); return 'skipped'; }
   // Paid-ticket mode: no webinar texts until their ticket is paid (and none after a refund).
   if (row.sequence === 'webinar' && (await (await import('../webinar/pass')).ticketUnpaid(rt, lead))) { await skip('ticket not paid'); return 'skipped'; }
-  const zones = callingZones(lead.phone)!;
+  const zones = textingZones(lead)!;
   if (!inTextingHours(now, zones)) {
     const next = nextTextingTime(now, zones);
     const anchor = step.anchor === 'call' ? lead.call_at : step.anchor === 'webinar' ? lead.webinar_at : null;
     // A "before the call" text that can only go after the call has started is pointless.
     // A challenge day text ("starts in an hour", "we're live") is only right at its moment.
-    const stale = !next || (anchor != null && step.offsetMin < 0 && next > anchor) || /^day\d$/.test(step.anchor);
+    const stale = staleBeforeAnchor(next, anchor, step.offsetMin) || /^day\d$/.test(step.anchor);
     await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, attempts = attempts - 1, send_at = ?, error = ? WHERE id = ?').bind(stale ? 'skipped' : 'pending', next ?? now, stale ? 'outside texting hours' : null, row.id).run();
     return stale ? 'skipped' : 'later';
   }
@@ -350,7 +365,7 @@ export async function sendSmsRow(rt: Runtime, row: SmsRow, sequences: SmsSequenc
     }
     if (channel === 'sms') {
       if (!smsOk(lead)) { await skip(note ?? 'no consent to SMS (WhatsApp only)'); return 'skipped'; }
-      if (smsConfigured(rt)) { providerId = await sendTwilio(rt, lead.phone!, body); status = 'sent'; }
+      if (smsConfigured(rt)) { providerId = await sendSmsNow(rt, lead.phone!, body); status = 'sent'; }
     }
     await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, sent_at = ?, provider_id = ?, body = ?, link_target = ?, channel = ?, error = ? WHERE id = ?')
       .bind(status, Date.now(), providerId, body, target, channel, note, row.id).run();
@@ -465,8 +480,13 @@ export async function handleReplyWords(rt: Runtime, lead: Lead | null, body: str
   const now = Date.now();
   if (STOP_WORDS.test(body)) {
     if (lead) {
-      await updateLead(rt.env, lead.id, { sms_opt_out_at: now });
+      // STOP means stop: texts, every AI call and marketing emails (a later START only turns texts back on).
+      await updateLead(rt.env, lead.id, { sms_opt_out_at: now, do_not_call_at: lead.do_not_call_at ?? now, unsubscribed_at: lead.unsubscribed_at ?? now });
       await stopSms(rt, lead.id);
+      await rt.env.DB.prepare("UPDATE outbound_calls SET status = 'cancelled', error = 'replied STOP', updated_at = ? WHERE lead_id = ? AND status = 'queued'").bind(now, lead.id).run();
+      const { cancelSequence } = await import('./email');
+      const { SEQUENCES } = await import('./sequences');
+      await Promise.all(Object.keys(SEQUENCES).map((sq) => cancelSequence(rt, lead.id, sq as keyof typeof SEQUENCES)));
       await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_opt_out', source: 'webhook', localOnly: true });
     }
     // Carriers / Twilio confirm SMS opt-outs; on WhatsApp we say it ourselves.

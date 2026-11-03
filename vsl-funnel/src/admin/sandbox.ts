@@ -19,7 +19,7 @@ import { scoreApplication } from '../funnel/scoring';
 import { type CallKind, blockReason, callingZones, enabled, inCallingHours, nextCallingTime, variables, elevenConfigured } from '../integrations/elevenlabs';
 import { SEQUENCES, precallPlan } from '../integrations/sequences';
 import { precallLimits, precallTimes, zonedTime } from '../integrations/email';
-import { SMS_GOAL, SMS_SKIP, inTextingHours, nextTextingTime, renderSms, sendsAsName, smsBlock, smsOk, smsSegments, withOptOutLink } from '../integrations/sms';
+import { SMS_GOAL, SMS_SKIP, inTextingHours, nextTextingTime, renderSms, sendsAsName, smsBlock, smsOk, smsSegments, staleBeforeAnchor, textingZones, withOptOutLink } from '../integrations/sms';
 import { DEFAULT_SMS_SEQUENCES, type SmsStepDef, type SmsTrigger } from '../integrations/sms-defaults';
 import {
   PER_DAY_PER_PERSON, STEP_META, W_FIRST_MESSAGE, type WCtx, type WKind, type WMeta, callVariables, cleanConfig, flowEnabled, flowOf, leftWaitMin, personBlock, stillWanted, webinarAgentReady, weeklyCap,
@@ -284,8 +284,9 @@ function simulateLive(rt: Runtime, inp: SbInput): SimResult {
   const leadAt = (t: number): Lead => ({
     ...lead0,
     sms_opt_out_at: (smsOutAt != null && smsOutAt <= t) || (dncAt != null && dncAt <= t) ? (smsOutAt ?? dncAt) : null,
-    do_not_call_at: dncAt != null && dncAt <= t ? dncAt : null,
-    unsubscribed_at: dncAt != null && dncAt <= t ? dncAt : null,
+    // STOP to a text and "stop calling" on a call both stop everything: texts, AI calls and marketing emails.
+    do_not_call_at: (dncAt != null && dncAt <= t) || (smsOutAt != null && smsOutAt <= t) ? (dncAt ?? smsOutAt) : null,
+    unsubscribed_at: (dncAt != null && dncAt <= t) || (smsOutAt != null && smsOutAt <= t) ? (dncAt ?? smsOutAt) : null,
   });
   const evAt = (t: number) => ({ starts_at: start, duration_min: SAMPLE_DURATION_MIN, ended_at: null, offer_opened_at: t >= openAt ? openAt : null, offer_closed_at: null, offer_hours: ls.offerHours, status: 'scheduled' as const });
   const joinedBy = (t: number) => (joinAt != null && joinAt <= t ? joinAt : null);
@@ -405,7 +406,7 @@ function simulateLive(rt: Runtime, inp: SbInput): SimResult {
       const wantEmail = !timed || cadence.email[timed];
       const wantText = timed ? cadence.sms[timed] : false;
       if (wantEmail) {
-        if (marketing && lead.unsubscribed_at) add({ id: `e:${k}`, at: t, ch: 'email', status: 'skipped', title: LIVE_LABEL[k], reason: 'Unsubscribed.', phase: phaseOf(t), ref: { kind: 'live', key: k } });
+        if (lead.unsubscribed_at && (marketing || k !== 'confirm')) add({ id: `e:${k}`, at: t, ch: 'email', status: 'skipped', title: LIVE_LABEL[k], reason: 'Unsubscribed.', phase: phaseOf(t), ref: { kind: 'live', key: k } });
         else add({ id: `e:${k}`, at: t, ch: 'email', status: 'sent', title: LIVE_LABEL[k], phase: phaseOf(t), ref: { kind: 'live', key: k } });
       }
       if (wantText) liveTextAt(k, t);
@@ -445,8 +446,8 @@ function simulateLive(rt: Runtime, inp: SbInput): SimResult {
     const block = smsBlock(lead);
     if (block) return skip(why(block));
     if (!lead.sms_consent_at) return skip('No consent to text.');
-    const zones = callingZones(lead.phone);
-    if (!zones || !inTextingHours(t, zones)) return skip('Outside texting hours (8 am to 8 pm in every zone of their number), and a live reminder is only right at its moment.');
+    const zones = textingZones(lead);
+    if (!zones || !inTextingHours(t, zones)) return skip('Outside texting hours (8 am to 8 pm their time), and a live reminder is only right at its moment.');
     const clear = textAllowed(t, calls.filter((c) => c.status !== 'skipped' && c.status !== 'cancelled').map((c) => ({ run_at: c.runAt, status: c.status, kind: c.kind, wc_dialed_at: c.dialedAt })));
     if (!clear.ok) return skip(`An AI call to them is within ${CHANNEL_GAP_MIN} minutes: one moment, two channels at most.`);
     if (textsSent.filter((x) => x > t - DAY).length >= 3) return skip('Three texts in the last 24 hours (the daily cap).');
@@ -457,7 +458,7 @@ function simulateLive(rt: Runtime, inp: SbInput): SimResult {
     if (first && inp.choices.optOut === 'text' && smsOutAt == null) {
       smsOutAt = t + 2 * MIN;
       add({ id: 'x:stop', at: t + 2 * MIN, ch: 'step', status: 'done', title: 'Replies STOP', phase: phaseOf(t), ref: { kind: 'info', key: 'stop' },
-        lines: ['Every text to them stops, and the webinar AI calls stop too.', 'Emails keep coming: STOP is the text opt-out. The unsubscribe link in any email stops those.'] });
+        lines: ['Everything to them stops: texts, every AI call and the reminder and marketing emails.', 'A later START reply turns texts back on only.'] });
     }
   }
 
@@ -681,12 +682,11 @@ function simulateStrategy(rt: Runtime, inp: SbInput): SimResult {
     const skipKey = i.step.skip.find((k) => SMS_SKIP[k](lead, false));
     const w = smsBlock(lead) ?? (SMS_GOAL[i.trigger]?.(lead) ? 'sequence goal reached' : null) ?? (skipKey ? `skip: ${skipKey}` : null);
     if (w) return add({ ...base, status: 'skipped', reason: w === 'skip: booked' && lead.status === 'no_show' ? 'Skip rule "booked": the missed booking still counts as booked, so this text doesn’t go after a no-show.' : w.startsWith('skip: ') ? `Skip rule: ${w.slice(6)}.` : why(w) });
-    const zones = callingZones(lead.phone)!;
+    const zones = textingZones(lead)!;
     if (!inTextingHours(t, zones)) {
       const next = nextTextingTime(t, zones);
       const anchor = i.step.anchor === 'call' ? lead.call_at : null;
-      const stale = !next || (anchor != null && i.step.offsetMin < 0 && next > anchor);
-      if (stale) return add({ ...base, status: 'skipped', reason: 'Outside texting hours, and by 8 am their time the call would have started.' });
+      if (staleBeforeAnchor(next, anchor, i.step.offsetMin)) return add({ ...base, status: 'skipped', reason: 'Outside texting hours (8 am to 8 pm their time), and by then it would be too close to the call to help.' });
       push({ ...i, at: next! });
       return;
     }
@@ -696,10 +696,10 @@ function simulateStrategy(rt: Runtime, inp: SbInput): SimResult {
     textsSent.push(t);
     add({ ...base, status: 'sent', sub: body, ref: { ...base.ref, firstText: first }, text: textPayload(rt, body, lead.phone!, first) });
     if (first && inp.choices.optOut === 'text' && !lead.sms_opt_out_at) {
-      lead = { ...lead, sms_opt_out_at: t + 2 * MIN };
+      lead = { ...lead, sms_opt_out_at: t + 2 * MIN, do_not_call_at: lead.do_not_call_at ?? t + 2 * MIN, unsubscribed_at: lead.unsubscribed_at ?? t + 2 * MIN };
       add({ id: 'x:stop', at: t + 2 * MIN, ch: 'step', status: 'done', title: 'Replies STOP', phase: phaseFor(t), ref: { kind: 'info', key: 'stop' },
-        lines: ['Every pending text is cancelled and no text goes again.', 'Emails keep coming, and the speed-to-lead, confirmation and rebook calls still check only the call opt-out.'] });
-      pending((x) => x.type === 'sms' && x.at > t, 'They replied STOP.', t);
+        lines: ['Everything to them stops: every pending text, AI call and email is cancelled.', 'A later START reply turns texts back on only.'] });
+      pending((x) => x.at > t && (x.type === 'sms' || x.type === 'email' || x.type === 'call'), 'They replied STOP.', t);
     }
   };
 

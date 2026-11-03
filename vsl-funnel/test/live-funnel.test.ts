@@ -246,6 +246,18 @@ describe('registration and reminders', () => {
     vi.useRealTimers();
     expect(emails().map((e) => e.template)).toEqual(['live_confirm', 'live_r24h']);
   });
+  it('an unsubscribed registrant gets no reminder emails (the registration confirmation still went)', async () => {
+    vi.useFakeTimers({ now: Date.parse('2026-11-03T15:00:00Z'), toFake: ['Date'] });
+    const id = await seedEvent(db, rt, 2 * 24 * HOUR);
+    const reg = await seedReg(db, rt, id);
+    db.prepare('UPDATE leads SET unsubscribed_at = ? WHERE id = ?').run(Date.now(), reg.lead_id);
+    const start = (db.prepare('SELECT starts_at FROM live_webinars WHERE id = ?').get(id) as { starts_at: number }).starts_at;
+    vi.setSystemTime(start - 24 * HOUR + MIN);
+    await processLiveMessages(rt, Date.now());
+    vi.useRealTimers();
+    const sent = db.prepare("SELECT template FROM emails WHERE sequence = 'live' AND status IN ('sent', 'simulated') ORDER BY step").all() as { template: string }[];
+    expect(sent.map((e) => e.template)).toEqual(['live_confirm']);
+  });
   it('the room link is the only key: unknown tokens find nothing, and a required ticket gates the room', async () => {
     expect(await getLiveReg(rt, 'not-a-token')).toBeNull();
     expect(await getLiveReg(rt, 'abcdefghijklmnopqrstu')).toBeNull();

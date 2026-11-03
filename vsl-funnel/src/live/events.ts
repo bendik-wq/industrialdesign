@@ -469,13 +469,12 @@ async function mailCtx(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: Lead, now
 }
 
 async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, ev: LiveEvent, now: number, lc?: ReminderCtx) {
-  const { smsBlock, smsConfigured, inTextingHours, sendSmsNow } = await import('../integrations/sms');
-  const { callingZones } = await import('../integrations/elevenlabs');
+  const { smsBlock, smsConfigured, inTextingHours, sendSmsNow, textingZones } = await import('../integrations/sms');
   const tz = lc?.tz || lead.timezone || ev.tz;
   const body0 = liveText(k, { title: ev.title, when: formatCallTime(ev.starts_at, tz), site: rt.settings.SITE_NAME || 'G&L', inRoom: ev.platform === 'room' });
   if (!body0 || !reg.sms_ok || smsBlock(lead) || !lead.sms_consent_at) return false;
   if (rt.settings.SMS_ENABLED?.trim().toLowerCase() === 'false') return false;
-  const zones = callingZones(lead.phone);
+  const zones = textingZones(lead);
   if (!zones || !inTextingHours(now, zones)) return false;
   const db = rt.env.DB;
   const seq = lc?.seq ?? LIVE_SEQUENCE;
@@ -523,13 +522,15 @@ export async function sendDueMessages(rt: Runtime, ev: LiveEvent, reg: LiveReg, 
     for (const k of todo) {
       const marketing = k === 'replay' || k === 'replay_last';
       if (marketing && lead.unsubscribed_at) continue;
+      // Unsubscribed: no reminder emails either (only the registration confirmation itself still goes).
+      const emailOk = !lead.unsubscribed_at || k === 'confirm';
       const timed = k in DEFAULT_CADENCE.email ? (k as keyof Cadence['email']) : null;
       const wantEmail = !timed || lc.cadence.email[timed];
       const wantText = timed ? lc.cadence.sms[timed] : TEXTED_EXTRA.includes(k);
       // Each email's room link says which reminder it was, so Funnel HQ sees who came back from which one.
       const subjB = L.subjectFor(k, lc.variant, { title: ev.title, when: ctx.when });
       const mail = liveEmail(k, { ...ctx, room: `${ctx.room}?via=e-${k}${subjB ? '~b' : ''}` });
-      if (wantEmail && lead.email && (await sendOnce(rt, lead, lc.seq, liveStep(reg, k), `live_${k}${subjB ? '~b' : ''}`, subjB ? { ...mail, subject: subjB } : mail, { unsubscribe: marketing }))) sent++;
+      if (emailOk && wantEmail && lead.email && (await sendOnce(rt, lead, lc.seq, liveStep(reg, k), `live_${k}${subjB ? '~b' : ''}`, subjB ? { ...mail, subject: subjB } : mail, { unsubscribe: marketing }))) sent++;
       if (wantText) await sendText(rt, lead, reg, k, ev, now, lc).catch((e) => console.error('live text', e));
     }
   }

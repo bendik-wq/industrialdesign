@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PLAN, SANDBOX_CSP, cleanInput, detail, liveTimes, readOnlyRuntime, sandboxCallSession, sandboxPage, simulate, strategyTimes } from '../src/admin/sandbox';
 import { auditCopy } from '../src/content/copy-rules';
 import { inCallingHours, callingZones } from '../src/integrations/elevenlabs';
-import { inTextingHours } from '../src/integrations/sms';
+import { inTextingHours, textingZones } from '../src/integrations/sms';
 import { inQuiet, reminderTimes } from '../src/live/lifecycle';
 import { SETTINGS } from '../src/settings';
 
@@ -51,8 +51,8 @@ describe('Sandbox simulation follows the real rules', () => {
     for (const country of ['AU', 'US', 'GB', 'NZ'] as const) {
       for (const j of ['live', 'strategy'] as const) {
         const { sim } = run(j, { country, tz: undefined }, { appliesAt: 'weekday_night' });
-        const zones = callingZones(sim.phone)!;
-        for (const e of sent(sim, 'sms')) expect(inTextingHours(e.at, zones), `${country} ${j} ${e.title}`).toBe(true);
+        const zones = callingZones(sim.phone)!, smsZones = textingZones({ phone: sim.phone, timezone: sim.tz })!;
+        for (const e of sent(sim, 'sms')) expect(inTextingHours(e.at, smsZones), `${country} ${j} ${e.title}`).toBe(true);
         for (const e of sent(sim, 'call')) expect(inCallingHours(e.at, zones), `${country} ${j} ${e.title}`).toBe(true);
       }
     }
@@ -94,16 +94,19 @@ describe('Sandbox simulation follows the real rules', () => {
     expect(sent(sim).some((e) => e.ch === 'purchase')).toBe(false);
   });
 
-  it('STOP to the first text stops every text and the webinar calls; emails keep coming (the real rule)', () => {
+  it('STOP to the first text stops everything after it: texts, AI calls and emails', () => {
     const { sim } = run('live', {}, { optOut: 'text' });
     const stop = sim.events.find((e) => e.id === 'x:stop')!;
     expect(stop).toBeTruthy();
     expect(sent(sim, 'sms').filter((e) => e.at > stop.at)).toEqual([]);
     expect(sent(sim, 'call').filter((e) => e.at > stop.at)).toEqual([]);
-    expect(sent(sim, 'email').filter((e) => e.at > stop.at).length).toBeGreaterThan(0);
+    expect(sent(sim, 'email').filter((e) => e.at > stop.at)).toEqual([]);
+    const st = run('strategy', {}, { optOut: 'text' }).sim;
+    const stop2 = st.events.find((e) => e.id === 'x:stop')!;
+    expect(sent(st).filter((e) => e.at > stop2.at && ['email', 'sms', 'call'].includes(e.ch))).toEqual([]);
   });
 
-  it('"stop calling" on a call stops calls, texts and marketing emails (the live reminders still go: the real rule)', () => {
+  it('"stop calling" on a call stops calls, texts and emails, the live reminders included', () => {
     const st = run('strategy', {}, { optOut: 'call' }).sim;
     const first = sent(st, 'call')[0];
     expect(first.sub).toMatch(/asked not to be called/);
@@ -111,9 +114,7 @@ describe('Sandbox simulation follows the real rules', () => {
     const lv = run('live', {}, { optOut: 'call' }).sim;
     const f2 = sent(lv, 'call')[0];
     const after = sent(lv).filter((e) => e.at > f2.at && ['email', 'sms', 'call'].includes(e.ch));
-    expect(after.filter((e) => e.ch !== 'email')).toEqual([]);
-    // sendDueMessages skips only the replay emails for an unsubscribed lead; the session reminders are not marketing.
-    expect(after.every((e) => !['e:replay', 'e:replay_last'].includes(e.id) && !e.id.startsWith('e:post:'))).toBe(true);
+    expect(after).toEqual([]);
     expect(lv.events.find((e) => e.id === 'e:replay')?.reason).toMatch(/Unsubscribed/);
   });
 

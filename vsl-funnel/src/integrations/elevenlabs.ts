@@ -213,6 +213,7 @@ export function blockReason(lead: Lead, kind: CallKind): string | null {
   if (!lead.phone) return 'no phone number';
   if (kind !== 'test' && !callingZones(lead.phone)) return 'number outside the countries we call';
   if (lead.do_not_call_at) return 'asked not to be called';
+  if (kind !== 'test' && lead.sms_opt_out_at) return 'replied STOP to a text';
   if (kind !== 'test' && !lead.call_consent_at) return 'no call consent';
   if (kind === 'confirm' && (lead.status !== 'booked' || !lead.booked_at || lead.booking_cancelled_at)) return 'no longer booked';
   if (kind === 'confirm' && lead.call_at && lead.call_at < Date.now() + 30 * 60_000) return 'call is too soon';
