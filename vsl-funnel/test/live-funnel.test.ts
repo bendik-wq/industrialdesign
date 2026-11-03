@@ -72,7 +72,7 @@ function stubWhop(o: { create?: { status: number; message: string }; status?: st
   }));
   return calls;
 }
-afterEach(() => { vi.unstubAllGlobals(); pending.length = 0; });
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); pending.length = 0; });
 
 async function seedEvent(_db: DatabaseSync, rt: Runtime, startsIn = -20 * MIN) {
   const r = await saveEvent(rt, { title: 'Buy your first competitor', starts_at: Date.now() + startsIn, tz: 'America/New_York', duration_min: 120, join_url: 'https://zoom.us/j/123' });
@@ -216,6 +216,8 @@ describe('registration and reminders', () => {
   let db: DatabaseSync; let rt: Runtime;
   beforeEach(() => { db = freshDb(); rt = makeRt(db); });
   it('registers once per event, sends the confirmation at once, and the 24h / 1h / 10 min / live reminders at their moments', async () => {
+    // A fixed daytime clock: reminders wait out quiet hours (22-7 in the event's zone), so the real clock made this fail at night.
+    vi.useFakeTimers({ now: Date.parse('2026-11-03T15:00:00Z'), toFake: ['Date'] });
     const id = await seedEvent(db, rt, 2 * 24 * HOUR);
     const reg = await seedReg(db, rt, id);
     const emails = () => db.prepare("SELECT step, template, status FROM emails WHERE sequence = 'live' ORDER BY step").all() as { step: number; template: string; status: string }[];
@@ -238,7 +240,7 @@ describe('registration and reminders', () => {
     expect(dueLiveMessages(evRow, r, { now: start + 150 * MIN, ticketUnpaid: false, deposit: true })).not.toContain('replay');
     expect(dueLiveMessages(evRow, r, { now: start - 23 * HOUR, ticketUnpaid: true, deposit: false })).toEqual(['ticket']);
     // The cron sends each once.
-    vi.useFakeTimers({ now: start - 24 * HOUR + MIN, toFake: ['Date'] });
+    vi.setSystemTime(start - 24 * HOUR + MIN);
     await processLiveMessages(rt, Date.now());
     await processLiveMessages(rt, Date.now());
     vi.useRealTimers();
