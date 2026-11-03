@@ -3,10 +3,10 @@ import { metaWriteConfigured, metaWriteToken } from '../integrations/meta-ads';
 import { proposeAction, registerActionHandler } from '../ops/actions';
 import { flag } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
-import { LEARNING_NOTE, LOOKALIKE_SOURCES, type PlanItem, RECOMMENDATIONS, buildPlan, conversionRule, lookalikeSpec, websiteRule } from './catalog';
+import { LEARNING_NOTE, LOOKALIKE_SOURCES, type PlanItem, RECOMMENDATIONS, buildPlan, conversionRule, lookalikeSpec, videoRule, websiteRule } from './catalog';
 import { bookingValues, scheduleValueOn } from './enrich';
 import { signalsReport } from '../tracking/signals';
-import { MetaError, audienceSize, createCustomConversion, createListAudience, createLookalike, createWebsiteAudience, uploadUsers } from './meta';
+import { MetaError, audienceSize, createCustomConversion, createListAudience, createLookalike, createVideoAudience, createWebsiteAudience, uploadUsers } from './meta';
 import { EXCLUDED_LABEL, LIST_SCHEMA, VALUE_SCHEMA, hashRow, membersHash, segmentMembers } from './segments';
 import { activeSlots } from './segments';
 
@@ -33,7 +33,15 @@ export const syncOn = (rt: Pick<Runtime, 'settings'>) => flag(s(rt).META_AUDIENC
 
 export async function currentPlan(rt: Pick<Runtime, 'env' | 'settings'>) {
   const slots = await activeSlots(rt).catch(() => []);
-  return buildPlan({ slots, countries: lookalikeCountries(rt) });
+  return buildPlan({ slots, countries: lookalikeCountries(rt), videoIds: await adVideoIds(rt) });
+}
+
+/** Our ad videos (ad_entities.video_id from the hourly ad sync), the ones with the most spend in 30 days first. */
+export async function adVideoIds(rt: Pick<Runtime, 'env'>, max = 20) {
+  const since = new Date(Date.now() - 30 * DAY).toISOString().slice(0, 10);
+  const { results } = await rt.env.DB.prepare(`SELECT e.video_id, COALESCE(SUM(i.spend), 0) AS spend FROM ad_entities e LEFT JOIN ad_insights i ON i.ad_id = e.id AND i.day >= ?
+    WHERE e.level = 'ad' AND e.video_id IS NOT NULL GROUP BY e.video_id ORDER BY spend DESC, MAX(e.updated_at) DESC LIMIT ?`).bind(since, max).all<{ video_id: string }>().catch(() => ({ results: [] as { video_id: string }[] }));
+  return results.map((r) => r.video_id);
 }
 
 export interface StateRow {
@@ -92,7 +100,7 @@ export async function audiencesReport(rt: Pick<Runtime, 'env' | 'settings'>) {
       status: r?.status ?? 'not_created', metaId: r?.meta_id ?? null, error: r?.error ?? null,
       size: r && (r.size_lower != null || r.size_upper != null) ? { lower: r.size_lower, upper: r.size_upper, at: r.size_checked_at } : null,
       metaStatus: r?.meta_status ?? null, lastSynced: r?.last_synced_at ?? null, created: r?.meta_created_at ?? null,
-      rule: it.kind === 'website' ? websiteRule(it, String(s(rt).META_PIXEL_ID || '<pixel id>'), retentionDays(rt)) : it.kind === 'conversion' ? conversionRule(it) : it.kind === 'lookalike' ? lookalikeSpec(it) : null,
+      rule: it.kind === 'website' ? websiteRule(it, String(s(rt).META_PIXEL_ID || '<pixel id>'), retentionDays(rt)) : it.kind === 'conversion' ? conversionRule(it) : it.kind === 'lookalike' ? lookalikeSpec(it) : it.kind === 'video' ? videoRule(it) : null,
       source: it.source ?? null, sourceReady: it.source ? src?.status === 'created' : null,
     };
   });
@@ -126,7 +134,7 @@ export async function proposeCreateAll(rt: Runtime) {
   const id = await proposeAction(rt, {
     dept: 'marketing', kind: CREATE_KIND, risk: 'medium', source: 'audiences',
     summary: `Create ${keys.length} Meta audiences and custom conversions`,
-    detail: `${n('conversion')} custom conversions, ${n('website')} website audiences (Pixel rules, ${su.retentionDays} days) and ${n('list')} customer-list audiences (hashed email, phone, name and country of people with marketing consent; synced daily) in ad account act_${s(rt).META_AD_ACCOUNT_ID}. Nothing is spent and no ad changes; campaigns use them only once you pick them in Ads Manager.`,
+    detail: `${n('conversion')} custom conversions, ${n('website')} website audiences (Pixel rules, ${su.retentionDays} days)${n('video') ? `, ${n('video')} video engagement audience (people who watched half of an ad video)` : ''} and ${n('list')} customer-list audiences (hashed email, phone, name and country of people with marketing consent; synced daily) in ad account act_${s(rt).META_AD_ACCOUNT_ID}. Nothing is spent and no ad changes; campaigns use them only once you pick them in Ads Manager.`,
     payload: { keys },
   });
   return { id, keys: keys.length };
@@ -170,12 +178,12 @@ async function queueApproved(rt: Runtime, raw: unknown, kinds: string[]) {
   return { ok: r.errors === 0 || r.created > 0, summary: `Queued ${items.length}. Created ${r.created} now${r.errors ? `, ${r.errors} failed (see Meta audiences)` : ''}; the rest continue every 5 minutes.` };
 }
 
-registerActionHandler(CREATE_KIND, (rt, raw) => queueApproved(rt, raw, ['conversion', 'website', 'list']), { label: 'Create Meta audiences and custom conversions' });
+registerActionHandler(CREATE_KIND, (rt, raw) => queueApproved(rt, raw, ['conversion', 'website', 'list', 'video']), { label: 'Create Meta audiences and custom conversions' });
 registerActionHandler(LOOKALIKE_KIND, (rt, raw) => queueApproved(rt, raw, ['lookalike']), { label: 'Create Meta lookalike audiences' });
 
 // ───────────── doing the work ─────────────
 
-const ORDER: Record<string, number> = { conversion: 0, website: 1, list: 2, lookalike: 3 };
+const ORDER: Record<string, number> = { conversion: 0, website: 1, video: 1, list: 2, lookalike: 3 };
 
 /** Creates queued items in Meta, at most `budget` Graph calls per run. */
 export async function processQueue(rt: Runtime, budget = 20) {
@@ -220,6 +228,13 @@ async function createOne(rt: Runtime, it: PlanItem): Promise<number> {
   if (it.kind === 'website') {
     const rule = websiteRule(it, pixel, retentionDays(rt));
     const r = await createWebsiteAudience(rt, { name: it.name, description: it.description, rule, retentionDays: retentionDays(rt) });
+    await mark(rt, it.key, { status: 'created', meta_id: r.id, spec: JSON.stringify(rule), meta_created_at: now, error: null });
+    return 1;
+  }
+  if (it.kind === 'video') {
+    const rule = videoRule(it);
+    if (!rule.length) throw new Error('No ad videos found yet: the hourly ad sync records them.');
+    const r = await createVideoAudience(rt, { name: it.name, description: it.description, rule });
     await mark(rt, it.key, { status: 'created', meta_id: r.id, spec: JSON.stringify(rule), meta_created_at: now, error: null });
     return 1;
   }

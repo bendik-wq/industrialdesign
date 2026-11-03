@@ -318,7 +318,7 @@ describe('blended MER', () => {
         db.prepare("INSERT INTO attr_conversions (id, kind, funnel, ref_id, lead_id, occurred_at, amount, refunded, currency, created_at, updated_at) VALUES (?, 'ticket_paid', 'auto', ?, ?, ?, 10000, 0, 'usd', 1, 1)").run(`c${i}`, `p${i}`, `lw${i}`, now - i * DAY);
       }
     };
-    const now = Date.now();
+    const now = Math.floor(Date.now() / DAY) * DAY + 12 * 3600_000 - DAY; // midday UTC yesterday: "+1 hour" below stays on the same day
     const held = freshDb(); seed(held, now);
     const rtHeld = makeRt(held, { ADS_MER_FLOOR: '1.5' }); // MER = 300 / 735 = 0.41
     const r = await runAutopilot(rtHeld, now);

@@ -62,6 +62,27 @@ export async function segmentIds(rt: Pick<Runtime, 'env' | 'settings'>, seg: Seg
       const base = 'SELECT lead_id FROM meta_signals WHERE signal = ?';
       return { ids: await ids(db, seg.noPurchase ? `SELECT lead_id FROM (${base}) WHERE lead_id NOT IN (${ALL_BUYERS_SQL})` : base, seg.signal) };
     }
+    case 'registered_not_attended': {
+      // Registrations whose session has started, with no sign of attending (room, Zoom or a challenge day), minus clients.
+      const now = Date.now();
+      const sql = seg.funnel === 'auto'
+        ? `SELECT r.lead_id FROM webinar_registrations r JOIN webinar_sessions s ON s.id = r.session_id WHERE s.starts_at < ${now} AND r.joined_at IS NULL`
+        : seg.funnel === 'live'
+          ? `SELECT r.lead_id FROM live_webinar_regs r JOIN live_webinars w ON w.id = r.event_id WHERE w.starts_at < ${now} AND r.joined_at IS NULL`
+          : `SELECT r.lead_id FROM challenge_registrations r JOIN challenge_cohorts c ON c.id = r.cohort_id WHERE c.start_date <= '${new Date(now).toISOString().slice(0, 10)}'
+               AND NOT EXISTS (SELECT 1 FROM challenge_progress p WHERE p.reg_id = r.id AND (p.joined_at IS NOT NULL OR p.present_at IS NOT NULL))`;
+      return { ids: await ids(db, `SELECT lead_id FROM (${sql}) WHERE lead_id NOT IN (${stage('attended', seg.funnel)}) AND lead_id NOT IN (${CLIENTS_SQL})`) };
+    }
+    case 'attended_no_offer': {
+      const raw = seg.funnel === 'auto' ? ' UNION SELECT lead_id FROM webinar_registrations WHERE joined_at IS NOT NULL'
+        : seg.funnel === 'live' ? ' UNION SELECT lead_id FROM live_webinar_regs WHERE joined_at IS NOT NULL'
+          : ' UNION SELECT r.lead_id FROM challenge_registrations r JOIN challenge_progress p ON p.reg_id = r.id WHERE p.joined_at IS NOT NULL OR p.present_at IS NOT NULL';
+      return { ids: await ids(db, `SELECT lead_id FROM (${stage('attended', seg.funnel)}${raw}) WHERE lead_id NOT IN (${CLIENTS_SQL})`) };
+    }
+    case 'challenge_day': {
+      const d = Math.max(1, Math.min(5, Math.round(seg.day)));
+      return { ids: await ids(db, `SELECT r.lead_id FROM challenge_registrations r JOIN challenge_progress p ON p.reg_id = r.id WHERE p.day = ${d} AND (p.joined_at IS NOT NULL OR p.present_at IS NOT NULL) AND r.lead_id NOT IN (${CLIENTS_SQL})`) };
+    }
     case 'buyers_value': {
       const { results } = await db.prepare(
         `SELECT lead_id, SUM(v) AS v FROM (

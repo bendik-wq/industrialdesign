@@ -22,7 +22,7 @@ import { type Risk, logAction, proposeAction, registerActionHandler } from '../o
 import { duplicateMetaAd, metaAdsConfigured, metaWriteConfigured, pauseMetaAd, setMetaDailyBudget, syncAdLevel } from '../integrations/meta-ads';
 import { newId } from '../lib/ids';
 import { currentMerGuard } from './mer';
-import { maybeDraftWinnerHooks } from './concepts';
+import { draftWeakHookVariants, maybeDraftWinnerHooks } from './concepts';
 
 const DAY = 86_400_000;
 const ymd = (t: number) => new Date(t).toISOString().slice(0, 10);
@@ -35,6 +35,8 @@ export interface Targets {
   cpl: number | null; ticket: number | null; deposit: number | null; booking: number | null;
   loserSpend: number; maxShiftPct: number; maxDailyBudget: number | null;
   fatigueFreq: number; fatigueCtrDrop: number; winnerMin: number;
+  /** Weak hook, good body: hook rate under hookFloor (%) with hold rate at or above holdGood (%), on at least hookMinImpressions. */
+  hookFloor: number; holdGood: number; hookMinImpressions: number;
 }
 const pos = (v: string | undefined) => { const n = Number(String(v ?? '').replace(/[^\d.]/g, '')); return String(v ?? '').trim() && Number.isFinite(n) && n > 0 ? n : null; };
 
@@ -51,18 +53,23 @@ export function adsTargets(s: Partial<Record<string, string>>): Targets {
     fatigueFreq: pos(s.ADS_FATIGUE_FREQUENCY) ?? 2.5,
     fatigueCtrDrop: Math.min(95, pos(s.ADS_FATIGUE_CTR_DROP_PCT) ?? 30),
     winnerMin: Math.max(1, Math.round(pos(s.ADS_WINNER_MIN_RESULTS) ?? 3)),
+    hookFloor: Math.min(100, pos(s.ADS_HOOK_RATE_FLOOR) ?? 25),
+    holdGood: Math.min(100, pos(s.ADS_HOLD_RATE_GOOD) ?? 30),
+    hookMinImpressions: Math.round(pos(s.ADS_HOOK_MIN_IMPRESSIONS) ?? 2000),
   };
 }
 export const autopilotOn = (s: Partial<Record<string, string>>) => flag(s.ADS_AUTOPILOT, true);
 
 // ───────────── the data per ad ─────────────
 
-export interface DayRow { day: string; spend: number; impressions: number; reach: number; frequency: number | null; link_clicks: number }
+export interface DayRow { day: string; spend: number; impressions: number; reach: number; frequency: number | null; link_clicks: number; video3s?: number | null; thruplays?: number | null }
 export interface Results { leads: number; qualified: number; under1m: number; tickets: number; deposits: number; bookings: number; deals: number; revenue: number; leadDays: string[] }
 export interface AdStat {
   ad_id: string; name: string; adset_id: string | null; campaign_id: string | null; status: string | null; created_time: number | null; currency: string | null;
   days: DayRow[];              // every stored day, oldest first
   spend: number; impressions: number; link_clicks: number; ctr: number | null; cpc: number | null; frequency: number | null; // the window
+  /** Video ads (null otherwise), the window: 3-second views, ThruPlays, hook rate % and hold rate %. */
+  video3s?: number | null; thruplays?: number | null; hookRate?: number | null; holdRate?: number | null;
   results: Results;
 }
 const emptyResults = (): Results => ({ leads: 0, qualified: 0, under1m: 0, tickets: 0, deposits: 0, bookings: 0, deals: 0, revenue: 0, leadDays: [] });
@@ -82,9 +89,9 @@ export async function loadAdStats(rt: Runtime, windowDays = 14, now = Date.now()
   const histFrom = ymd(now - 90 * DAY);
   const leadFrom = now - 90 * DAY;
   const [ins, ents, leads, bandEvents, passes, orders] = await Promise.all([
-    db.prepare(`SELECT ad_id, day, adset_id, campaign_id, ad_name, spend, impressions, reach, frequency, link_clicks, currency FROM ad_insights
+    db.prepare(`SELECT ad_id, day, adset_id, campaign_id, ad_name, spend, impressions, reach, frequency, link_clicks, currency, video_3s, thruplays FROM ad_insights
                  WHERE day >= ? AND ad_id IN (SELECT DISTINCT ad_id FROM ad_insights WHERE day >= ? AND spend > 0) ORDER BY ad_id, day`).bind(histFrom, since)
-      .all<{ ad_id: string; day: string; adset_id: string | null; campaign_id: string | null; ad_name: string | null; spend: number; impressions: number; reach: number; frequency: number | null; link_clicks: number; currency: string | null }>(),
+      .all<{ ad_id: string; day: string; adset_id: string | null; campaign_id: string | null; ad_name: string | null; spend: number; impressions: number; reach: number; frequency: number | null; link_clicks: number; currency: string | null; video_3s: number | null; thruplays: number | null }>(),
     db.prepare("SELECT id, name, status, effective_status, adset_id, campaign_id, created_time FROM ad_entities WHERE level = 'ad'")
       .all<{ id: string; name: string | null; status: string | null; effective_status: string | null; adset_id: string | null; campaign_id: string | null; created_time: number | null }>(),
     db.prepare(`SELECT id, lower(ft_content) AS ft, lower(utm_content) AS utm, created_at, revenue_band, booked_at, status, revenue FROM leads
@@ -111,7 +118,7 @@ export async function loadAdStats(rt: Runtime, windowDays = 14, now = Date.now()
         created_time: e?.created_time ?? null, currency: r.currency, days: [], spend: 0, impressions: 0, link_clicks: 0, ctr: null, cpc: null, frequency: null, results: emptyResults() };
       byAd.set(r.ad_id, a);
     }
-    a.days.push({ day: r.day, spend: r.spend ?? 0, impressions: r.impressions ?? 0, reach: r.reach ?? 0, frequency: r.frequency, link_clicks: r.link_clicks ?? 0 });
+    a.days.push({ day: r.day, spend: r.spend ?? 0, impressions: r.impressions ?? 0, reach: r.reach ?? 0, frequency: r.frequency, link_clicks: r.link_clicks ?? 0, video3s: r.video_3s, thruplays: r.thruplays });
   }
   // Our results per ad: a lead belongs to the ad its first touch came from (else its latest touch), matched on id or name.
   const keyToAd = new Map<string, string>();
@@ -142,13 +149,46 @@ export async function loadAdStats(rt: Runtime, windowDays = 14, now = Date.now()
     a.ctr = ctrOf(win);
     a.cpc = div(a.spend, a.link_clicks);
     a.frequency = freqOf(win.slice(-3));
+    Object.assign(a, hookHold(win));
   }
   return [...byAd.values()].sort((x, y) => y.spend - x.spend);
 }
 
 // ───────────── the rules (pure, so they're tested on fixtures) ─────────────
 
-export interface Verdict { rule: 'fatigue' | 'loser' | 'winner'; reasons: string[]; numbers: Record<string, number | null> }
+/**
+ * Hook rate and hold rate of some days (video ads only; null when Meta reported no video numbers):
+ * hook rate = 3-second views / impressions, hold rate = ThruPlays / 3-second views, both in percent.
+ */
+export function hookHold(days: Pick<DayRow, 'impressions' | 'video3s' | 'thruplays'>[]) {
+  const vid = days.filter((d) => d.video3s != null || d.thruplays != null);
+  if (!vid.length) return { video3s: null, thruplays: null, hookRate: null, holdRate: null };
+  const impressions = vid.reduce((s, d) => s + (d.impressions || 0), 0);
+  const video3s = vid.reduce((s, d) => s + (d.video3s || 0), 0);
+  const thruplays = vid.reduce((s, d) => s + (d.thruplays || 0), 0);
+  const r = (n: number | null) => (n == null ? null : round2(n));
+  return { video3s, thruplays, hookRate: r(div(video3s * 100, impressions)), holdRate: r(div(thruplays * 100, video3s)) };
+}
+
+/**
+ * Weak hook, good body: people who stay past the first 3 seconds watch on (hold rate at or above the line), but too
+ * few stop scrolling (hook rate under the floor). The cheapest fix is a new opening: hook-only variants with the
+ * same body. Needs enough impressions to judge. Thresholds are settings, not facts about the market.
+ */
+export function weakHook(a: Pick<AdStat, 'impressions' | 'hookRate' | 'holdRate' | 'video3s' | 'thruplays'>, t: Pick<Targets, 'hookFloor' | 'holdGood' | 'hookMinImpressions'>): Verdict | null {
+  if (a.hookRate == null || a.holdRate == null || a.impressions < t.hookMinImpressions) return null;
+  if (a.hookRate >= t.hookFloor || a.holdRate < t.holdGood) return null;
+  return {
+    rule: 'weak_hook',
+    reasons: [
+      `Hook rate ${a.hookRate.toFixed(1)}% (3-second views ${a.video3s} of ${a.impressions} impressions), under the ${t.hookFloor}% line.`,
+      `Hold rate ${a.holdRate.toFixed(1)}% (ThruPlays ${a.thruplays} of ${a.video3s} 3-second views), at or above the ${t.holdGood}% line: the body keeps people once they stop.`,
+    ],
+    numbers: { hookRate: a.hookRate, holdRate: a.holdRate, impressions: a.impressions, video3s: a.video3s ?? null, thruplays: a.thruplays ?? null },
+  };
+}
+
+export interface Verdict { rule: 'fatigue' | 'loser' | 'winner' | 'weak_hook'; reasons: string[]; numbers: Record<string, number | null> }
 const money = (n: number | null, cur: string | null) => (n == null ? 'n/a' : `${cur ? `${cur} ` : ''}${n.toFixed(n >= 100 ? 0 : 2)}`);
 const pct = (n: number | null) => (n == null ? 'n/a' : `${n.toFixed(2)}%`);
 
@@ -309,6 +349,15 @@ export async function runAutopilot(rt: Runtime, now = Date.now()) {
         out.proposed.push(id);
       }
     }
+  }
+  // Weak hook, good body: hook-only variants of that ad (concept ads only: the body is ours), queued for approval.
+  for (const a of stats) {
+    const v = weakHook(a, t);
+    if (!v || !active(a)) continue;
+    const key = `weak_hook:${a.ad_id}`;
+    if (await seen(rt, key, now)) { out.skipped++; continue; }
+    const r = await draftWeakHookVariants(rt, a.ad_id, a.name, v.reasons, now).catch(() => null);
+    if (r?.actionId) { await remember(rt, key, 'weak_hook', a.ad_id, r.actionId, v.reasons[0], now); out.proposed.push(r.actionId); }
   }
   // Concept testing: a concept that wins on our own results gets hook-only variant drafts (queued for approval).
   const hooks = await maybeDraftWinnerHooks(rt, now).catch(() => null);

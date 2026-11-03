@@ -51,6 +51,10 @@ export const createListAudience = (rt: Pick<Runtime, 'settings'>, o: { name: str
     name: o.name, description: o.description, subtype: 'CUSTOM', customer_file_source: 'USER_PROVIDED_ONLY', ...(o.valueBased ? { is_value_based: true } : {}),
   });
 
+/** Video engagement audience (subtype ENGAGEMENT): rule = [{ object_id: video id, event_name }], prefilled with past viewers. */
+export const createVideoAudience = (rt: Pick<Runtime, 'settings'>, o: { name: string; description: string; rule: unknown }) =>
+  call<{ id: string }>(rt, 'POST', `${act(rt)}/customaudiences`, { name: o.name, description: o.description, subtype: 'ENGAGEMENT', prefill: 1, rule: o.rule });
+
 export const createLookalike = (rt: Pick<Runtime, 'settings'>, o: { name: string; originId: string; spec: unknown }) =>
   call<{ id: string }>(rt, 'POST', `${act(rt)}/customaudiences`, { name: o.name, subtype: 'LOOKALIKE', origin_audience_id: o.originId, lookalike_spec: o.spec });
 

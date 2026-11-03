@@ -97,7 +97,9 @@
         '<div class="mau-filter">' + kinds.map(function (k) { return '<button data-mau-f="' + k[0] + '" aria-pressed="' + (filter === k[0]) + '">' + esc(k[1]) + '</button>'; }).join('') + '</div>' +
         '<div class="table-wrap"><table class="mau-t"><thead><tr><th>Name</th><th>Type</th><th class="num">Our data</th><th>Status</th><th class="num">Size in Meta</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
 
-      view.innerHTML = head + steps + rec + value + signals + table;
+      view.innerHTML = head + steps + '<div data-mau-halo></div>' + rec + value + signals + table;
+      // Halo retargeting map (admin-ads2.js): each engaged state, its audiences and the next-step concept.
+      if (root.Ads2 && root.Ads2.halo) root.Ads2.halo(ctx, view.querySelector('[data-mau-halo]'));
 
       var create = view.querySelector('[data-mau-create]');
       if (create) create.addEventListener('click', function () {
