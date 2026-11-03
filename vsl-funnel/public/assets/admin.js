@@ -7,7 +7,7 @@
   var titleEl = document.querySelector('[data-title]');
   var subtitleEl = document.querySelector('[data-subtitle]');
   var filtersEl = document.querySelector('[data-filters]');
-  var state = { tab: 'overview', days: 30, filters: {}, meta: null, leadsQuery: { q: '', tier: '', status: '', page: 0, sort: 'created' } };
+  var state = { tab: 'home', days: 30, filters: {}, meta: null, leadsQuery: { q: '', tier: '', status: '', page: 0, sort: 'created' } };
   var liveTimer = null;
   var lastApiError = null; // the most recent failed /admin/api request, shown if the tab then fails to render
   var routing = false; // true while route() drives go(), so Back never pushes a new entry
@@ -277,6 +277,7 @@
 
   // ───────────── tabs ─────────────
   var TABS = {
+    home: { group: 'Home', title: 'Home', sub: 'What needs you today, the key numbers and what is coming up.', render: renderHome, noFilters: true },
     command: { group: 'Command', title: 'Command', sub: 'Your Chief of Staff: ask about the numbers, give instructions, approve what the departments propose.', more: 'Chat answers from live Funnel HQ data and links each number to the view it comes from. Anything that changes something (contacting leads or clients, ad changes, spending money) waits in Approvals until you approve it, unless you switched that kind of action to auto in Integrations (Command). The activity log shows every action across departments. Routines run saved instructions on a schedule; the hourly check raises alerts; the morning brief goes to Slack and lands here.', render: renderCommand, noFilters: true },
     overview: { group: 'Today', title: 'Overview', sub: 'Every step from ad click to closed deal.', render: renderOverview },
     live: { group: 'Today', title: 'Live', sub: 'Who’s on the site now, and everything people did — from the last hour back to all time.', render: renderLive, noFilters: true },
@@ -374,18 +375,19 @@
     var cmdSub = '';
     if (typeof tab === 'string' && tab.indexOf('command/') === 0) { cmdSub = tab.slice(8); tab = 'command'; }
     state.commandSub = cmdSub;
-    if (!TABS[tab]) tab = 'overview';
+    if (!TABS[tab]) tab = 'home';
     var T = TABS[tab];
     if (state.tab !== tab || !view.firstChild) view.innerHTML = F.skeleton(T.title); // a new tab never shows the last tab's numbers under its title
     state.tab = tab;
     state.leadsQuery._focus = false; // a fresh visit never grabs the keyboard
     clearInterval(liveTimer);
-    document.querySelectorAll('[data-nav] button').forEach(function (b) { b.setAttribute('aria-current', b.getAttribute('data-tab') === tab ? 'page' : 'false'); });
+    document.querySelectorAll('[data-nav] button[data-tab]').forEach(function (b) { b.setAttribute('aria-current', b.getAttribute('data-tab') === tab ? 'page' : 'false'); });
     titleEl.textContent = T.title;
     subtitleEl.textContent = T.sub;
     if (eyebrowEl) eyebrowEl.textContent = T.group || '';
     if (moreEl) { moreTextEl.textContent = T.more || ''; moreEl.hidden = !T.more; moreEl.open = false; }
     if (navCurrentEl) navCurrentEl.textContent = T.title;
+    if (window.HQNav) window.HQNav.onTab(tab, T); // admin-nav.js: plain-words title, section, page actions
     setNavOpen(false);
     filtersEl.style.display = T.noFilters ? 'none' : '';
     var f = T.filters;
@@ -424,8 +426,8 @@
       return;
     }
     closeDrawers();
-    if ((h || 'overview') !== state.tab + (state.tab === 'command' && state.commandSub ? '/' + state.commandSub : '')) {
-      routing = true; go(h || 'overview'); routing = false;
+    if ((h || 'home') !== state.tab + (state.tab === 'command' && state.commandSub ? '/' + state.commandSub : '')) {
+      routing = true; go(h || 'home'); routing = false;
       if (typed) window.scrollTo(0, 0); // a typed hash is a fresh visit: start at the top
     }
   }
@@ -458,6 +460,7 @@
       if (seq !== loadSeq) return;
       if (view.querySelector('.hq-skel')) view.innerHTML = emptyState('Nothing to show here yet.');
       F.decorateEmpty(view, tab);
+      if (window.HQNav) window.HQNav.afterRender(tab, view);
     }, function (e) {
       console.error(e);
       if (seq !== loadSeq) return;
@@ -1447,6 +1450,8 @@
           { label: 'WhatsApp', nw: true, html: function (l) { return l.whatsapp_connected_at ? '<span class="pill st-won" title="Connected">connected</span>' : l.whatsapp_clicked_at ? '<span class="pill" title="Clicked">clicked</span>' : ''; } },
           { label: 'Country', key: 'country', nw: true },
           { label: 'Created', nw: true, html: function (l) { return '<span title="' + esc(when(l.created_at)) + '">' + esc(ago(l.created_at)) + '</span>'; } },
+          { label: 'Value', key: 'revenue', num: true, nw: true, fmt: function (v) { return v ? money(v) : '–'; } },
+          { label: 'Last activity', nw: true, html: function (l) { var t = l.updated_at || l.created_at; return '<span title="' + esc(when(t)) + '">' + esc(ago(t)) + '</span>'; } },
         ], d.rows, { rowAttr: function (l) { return 'class="click" data-lead="' + esc(l.id) + '" tabindex="0"'; }, empty: 'No leads match.', emptyHint: q.q || q.tier || q.status ? 'Try clearing the search or filters.' : '' }) + '</div>' +
         '<div class="row" style="margin-top:12px"><button class="btn-sm ghost" data-prev ' + (q.page ? '' : 'disabled') + '>← Prev</button><span class="muted">Page ' + (q.page + 1) + ' of ' + Math.max(1, Math.ceil(d.total / d.pageSize)) + '</span><button class="btn-sm ghost" data-next ' + ((q.page + 1) * d.pageSize < d.total ? '' : 'disabled') + '>Next →</button></div>';
       view.querySelector('[data-tier]').value = q.tier;
@@ -2481,6 +2486,11 @@
     if (!window.LiveEventsBoard) { view.innerHTML = '<div class="card">The live webinars script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return Promise.resolve(window.LiveEventsBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, table: table, emptyState: emptyState, reload: load }))
       .then(function () { if (window.RoomsBoard && state.tab === 'liveevents') return window.RoomsBoard.section(roomsCtx()); });
+  }
+  /** Funnel HQ → Home (public/assets/admin-home.js): what needs you now, today's numbers, what's next, quick actions. */
+  function renderHome() {
+    if (!window.HomeBoard) { view.innerHTML = '<div class="card">The Home script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.HomeBoard.render({ view: view, api: api, send: send, esc: esc, n: n, pct: pct, money: money, when: when, ago: ago, tile: tile, toast: toast, emptyState: emptyState, statusPill: statusPill, tierCell: tierCell, fetchLeads: fetchLeads, personName: personName, reps: reps, setNavBadge: setNavBadge, go: go, openLead: openLead, reload: load });
   }
   function roomsCtx() { return { view: view, api: api, send: send, esc: esc, n: n, pct: pct, when: when, tile: tile, toast: toast, table: table, emptyState: emptyState, reload: load }; }
   /** Funnel HQ → Rooms (public/assets/admin-rooms.js): our own video rooms. */
@@ -3851,7 +3861,7 @@
     updateFilterCue();
     load();
   };
-  document.querySelectorAll('[data-nav] button').forEach(function (b) { b.onclick = function () { go(b.getAttribute('data-tab')); }; });
+  document.querySelectorAll('[data-nav] button[data-tab]').forEach(function (b) { b.onclick = function () { go(b.getAttribute('data-tab')); }; });
 
   // Phone: the ☰ button opens the grouped nav as a sheet; picking a tab (go) or Escape closes it.
   if (navToggleEl) navToggleEl.onclick = function () { setNavOpen(!document.body.classList.contains('nav-open')); };
@@ -3935,6 +3945,9 @@
   applyTheme(savedTheme);
   themeBtn.onclick = function () { applyTheme(themes[(themes.indexOf(themeBtn.textContent.replace('Theme: ', '')) + 1) % 3]); if (state.tab !== 'integrations') load(); };
 
+  // For admin-nav.js / admin-home.js / the palette: switch tab or open a lead from outside this closure.
+  window.HQApp = { go: function (t) { go(t); }, openLead: function (id) { openLead(id); }, reload: function () { load(); }, tab: function () { return state.tab; } };
+
   // Jump to (Ctrl/Cmd + K, or the Jump button): every tab in nav order, plus common actions. The palette itself is in admin-ux.js.
   F.palette({
     items: function () {
@@ -3981,10 +3994,10 @@
     populateFilters();
     var h = location.hash.slice(1);
     if (h.indexOf('lead=') === 0) { routing = true; go('leads'); routing = false; openLead(decodeURIComponent(h.slice(5)), { fromRoute: true }); }
-    else go(h || 'overview', { replace: true });
+    else go(h || 'home', { replace: true });
     lastHash = location.hash;
     markEntry();
     if (state.tab !== 'command') api('ops', {}, { noRange: true }).then(function (d) { var el = document.querySelector('[data-nav-badge="command"]'); if (el && d && d.pending) { el.textContent = d.pending > 99 ? '99+' : String(d.pending); el.hidden = false; el.title = d.pending + ' waiting for your decision'; } }).catch(function () {});
-    if (state.tab !== 'overview' && state.tab !== 'sales') api('sales').then(function (d) { setNavBadge('sales', d && d.needsOutcome ? d.needsOutcome.length : 0); }).catch(function () {});
+    if (['overview', 'sales', 'home'].indexOf(state.tab) === -1) api('sales').then(function (d) { setNavBadge('sales', d && d.needsOutcome ? d.needsOutcome.length : 0); }).catch(function () {});
   });
 })();

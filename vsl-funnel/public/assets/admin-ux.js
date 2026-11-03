@@ -96,7 +96,7 @@
     // Letters in order ("emed" → "Email editor").
     var j = 0;
     for (var k = 0; k < label.length && j < q.length; k++) if (label[k] === q[j]) j++;
-    return j === q.length ? 5 : 0;
+    return j === q.length && q.length >= 4 ? 5 : 0; // short queries only match real words, not scattered letters
   }
   function rank(items, q) {
     return items.map(function (it, i) { return { it: it, s: score(it, q), i: i }; })
@@ -108,6 +108,7 @@
   // ───────────── what fills each tab, and where to set it up ─────────────
   // Shown under a tab's first empty state, so an empty panel says what will appear and where to start.
   var TAB_HELP = {
+    home: ['What needs you, today’s numbers and what is coming up, from every part of Funnel HQ.', 'integrations', 'Open Integrations'],
     command: ['Approvals, activity and routines appear as the departments work. Chat needs the Anthropic API key.', 'integrations', 'Open Integrations'],
     overview: ['Visits, leads and calls from the funnel pages.', 'screens', 'Preview the funnel pages'],
     live: ['People on the site right now and what they did.', 'screens', 'Preview the funnel pages'],
@@ -195,9 +196,45 @@
   function remember(id) { try { var r = recent().filter(function (x) { return x !== id; }); r.unshift(id); localStorage.setItem(RECENT_KEY, JSON.stringify(r.slice(0, 5))); } catch (e) { /* ignore */ } }
   var isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 
+  // Leads opened from the palette, newest first (name and a short line, so Recent can show them without a request).
+  var RECENT_LEADS = 'hq_recent_leads';
+  function recentLeads() { try { return JSON.parse(localStorage.getItem(RECENT_LEADS) || '[]'); } catch (e) { return []; } }
+  function rememberLead(it) { try { var r = recentLeads().filter(function (x) { return x.id !== it.leadId; }); r.unshift({ id: it.leadId, label: it.label, desc: it.desc }); localStorage.setItem(RECENT_LEADS, JSON.stringify(r.slice(0, 4))); } catch (e) { /* ignore */ } }
+  function leadItem(id, label, desc) {
+    return { id: 'lead:' + id, leadId: id, label: label, desc: desc, group: 'Leads', icon: 'people', run: function () { if (root.HQApp) root.HQApp.openLead(id); else location.hash = '#lead=' + encodeURIComponent(id); } };
+  }
+  /** Tabs read their plain-words name, description and icon from admin-nav.js when it is loaded. */
+  function withNav(it) {
+    var N = root.HQNav;
+    if (!N || !it || String(it.id).indexOf('tab:') !== 0) return it;
+    var t = it.id.slice(4), m = N.meta(t);
+    if (!m) return it;
+    return Object.assign({}, it, { label: m.label, desc: m.desc, icon: N.iconOf ? N.iconOf(t) : '', keywords: (it.keywords || '') + ' ' + it.label + ' ' + m.desc });
+  }
+  var lastPalette = null;
+
   /** opts: { items: () => [{id, label, group, hint, keywords, run}], query: q => [extra items for a typed query] } */
   function palette(opts) {
-    var box = null, input, list, shown = [], active = 0, returnFocus = null;
+    var box = null, input, list, shown = [], active = 0, returnFocus = null, mode = '';
+    var leadCache = {}, leadT = null;
+    function findLeads(q) {
+      if (q.length < 2 || leadCache[q] || typeof fetch === 'undefined') return;
+      leadCache[q] = 'loading';
+      var words = q.toLowerCase().split(/\s+/).filter(Boolean);
+      fetch('/admin/api/leads?' + new URLSearchParams({ q: words[0], page: '0', sort: 'updated' }), { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : { rows: [] }; })
+        .then(function (d) {
+          leadCache[q] = (d.rows || []).filter(function (l) {
+            var hay = [l.first_name, l.last_name, l.email, l.phone, l.ref_code].join(' ').toLowerCase();
+            return words.every(function (w) { return hay.indexOf(w) > -1; });
+          }).slice(0, 6).map(function (l) {
+            var name = [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email || l.id;
+            return leadItem(l.id, name, [l.email, String(l.status || '').replace(/_/g, ' '), l.tier ? 'Tier ' + l.tier : ''].filter(Boolean).join(' · '));
+          });
+          if (box && input.value.trim() === q) draw();
+        })
+        .catch(function () { leadCache[q] = []; });
+    }
 
     function close() {
       if (!box) return;
@@ -207,46 +244,64 @@
     }
     function run(it) {
       if (!it) return;
-      remember(it.id);
+      if (it.leadId) rememberLead(it); else remember(it.id);
       returnFocus = null;
       close();
       it.run();
     }
     function draw() {
-      var q = input.value;
-      var all = opts.items();
-      if (q.trim()) shown = rank(all, q).slice(0, 12).concat(opts.query ? opts.query(q.trim()) : []);
-      else {
+      var q = input.value, qt = q.trim();
+      var all = opts.items().map(withNav).map(function (x) {
+        if (x.id === 'act:findlead') return Object.assign({}, x, { icon: 'search', run: function () { open('lead'); } });
+        if (!x.icon && x.group === 'Actions') { var k = String(x.id); return Object.assign({}, x, { icon: /range/.test(k) ? 'calendar' : /approv/.test(k) ? 'sparkle' : /theme/.test(k) ? 'eye' : /funnel/.test(k) ? 'window' : /reload/.test(k) ? 'refresh' : 'back' }); }
+        return x;
+      });
+      if (qt) {
+        var hits = rank(all, q);
+        var leads = Array.isArray(leadCache[qt]) ? leadCache[qt] : [];
+        var strong = hits.filter(function (x) { return score(x, q) >= 60; });
+        // Pages and actions that clearly match come first, then matching leads, then everything else that matches.
+        var allLeads = opts.query ? opts.query(qt).map(function (x) { return Object.assign({ icon: 'search' }, x, { group: 'Leads' }); }) : [];
+        shown = (mode === 'lead' ? [] : strong.slice(0, 6)).concat(leads, allLeads, mode === 'lead' ? [] : hits.filter(function (x) { return strong.indexOf(x) === -1; }).slice(0, 8));
+        clearTimeout(leadT);
+        if (!leadCache[qt]) leadT = setTimeout(function () { findLeads(qt); }, 160);
+      } else {
         var rec = recent(), byId = {};
         all.forEach(function (x) { byId[x.id] = x; });
-        var r = rec.map(function (id) { return byId[id]; }).filter(Boolean).map(function (x) { return Object.assign({}, x, { group: 'Recent' }); });
-        shown = r.concat(all.filter(function (x) { return rec.indexOf(x.id) === -1; }));
+        var r = recentLeads().map(function (l) { return Object.assign(leadItem(l.id, l.label, l.desc), { group: 'Recent' }); })
+          .concat(rec.map(function (id) { return byId[id]; }).filter(Boolean).map(function (x) { return Object.assign({}, x, { group: 'Recent' }); })).slice(0, 6);
+        shown = mode === 'lead' ? r.filter(function (x) { return x.leadId; }) : r.concat(all.filter(function (x) { return rec.indexOf(x.id) === -1; }));
       }
       active = Math.min(active, Math.max(0, shown.length - 1));
       var lastGroup = null;
+      var loading = qt && leadCache[qt] === 'loading';
       list.innerHTML = shown.length ? shown.map(function (it, i) {
         var g = it.group !== lastGroup ? '<li class="hq-k-g" role="presentation">' + esc(it.group) + '</li>' : '';
         lastGroup = it.group;
-        return g + '<li role="option" id="hq-k-' + i + '" data-i="' + i + '" aria-selected="' + (i === active) + '"><span>' + esc(it.label) + '</span>' + (it.hint ? '<small>' + esc(it.hint) + '</small>' : '') + '</li>';
-      }).join('') : '<li class="hq-k-none" role="presentation">Nothing matches “' + esc(q) + '”.</li>';
+        return g + '<li role="option" id="hq-k-' + i + '" data-i="' + i + '" aria-selected="' + (i === active) + '">' +
+          (it.icon ? '<svg class="hq-k-ic" aria-hidden="true"><use href="#i-' + esc(it.icon) + '"/></svg>' : '<span class="hq-k-ic hq-k-dot" aria-hidden="true"></span>') +
+          '<span class="hq-k-t"><span>' + esc(it.label) + '</span>' + (it.desc ? '<em>' + esc(it.desc) + '</em>' : '') + '</span>' + (it.hint ? '<small>' + esc(it.hint) + '</small>' : '') + '</li>';
+      }).join('') : '<li class="hq-k-none" role="presentation">' + (mode === 'lead' && !qt ? 'Type a name, email, phone number or ref.' : loading ? 'Looking for leads…' : 'Nothing matches “' + esc(q) + '”.') + '</li>';
       input.setAttribute('aria-activedescendant', shown.length ? 'hq-k-' + active : '');
       var a = list.querySelector('[aria-selected="true"]');
       if (a && a.scrollIntoView) a.scrollIntoView({ block: 'nearest' });
     }
     function move(d) { if (!shown.length) return; active = (active + d + shown.length) % shown.length; draw(); }
-    function open() {
-      if (box) { input.focus(); input.select(); return; }
+    function open(m) {
+      mode = m === 'lead' ? 'lead' : '';
+      if (box) { input.placeholder = mode === 'lead' ? 'Find a lead by name, email or phone…' : 'Search pages, leads and actions…'; input.focus(); input.select(); draw(); return; }
       returnFocus = document.activeElement;
       active = 0;
       box = document.createElement('div');
       box.className = 'hq-k';
-      box.innerHTML = '<div class="hq-k-bg" data-k-close></div><div class="hq-k-dlg" role="dialog" aria-modal="true" aria-label="Jump to">' +
-        '<div class="hq-k-in"><input type="text" role="combobox" aria-expanded="true" aria-controls="hq-k-list" aria-autocomplete="list" placeholder="Jump to a tab or action…" autocomplete="off" spellcheck="false"><kbd>Esc</kbd></div>' +
+      box.innerHTML = '<div class="hq-k-bg" data-k-close></div><div class="hq-k-dlg" role="dialog" aria-modal="true" aria-label="Search">' +
+        '<div class="hq-k-in"><input type="text" role="combobox" aria-expanded="true" aria-controls="hq-k-list" aria-autocomplete="list" placeholder="Search pages, leads and actions…" autocomplete="off" spellcheck="false"><kbd>Esc</kbd></div>' +
         '<ul id="hq-k-list" role="listbox" aria-label="Tabs and actions"></ul>' +
         '<p class="hq-k-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>' + (isMac ? '⌘' : 'Ctrl') + '</kbd><kbd>K</kbd> toggle</span></p></div>';
       document.body.appendChild(box);
       document.body.classList.add('hq-k-open');
       input = box.querySelector('input'); list = box.querySelector('ul');
+      if (mode === 'lead') input.placeholder = 'Find a lead by name, email or phone…';
       input.addEventListener('input', function () { active = 0; draw(); });
       input.addEventListener('keydown', function (e) {
         if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
@@ -267,11 +322,14 @@
       if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (box) close(); else open(); }
     });
     document.querySelectorAll('[data-jump]').forEach(function (b) {
-      b.addEventListener('click', open);
+      b.addEventListener('click', function () { open(); });
       var k = b.querySelector('kbd'); if (k) k.textContent = isMac ? '⌘K' : 'Ctrl K';
     });
-    return { open: open, close: close };
+    lastPalette = { open: open, close: close };
+    return lastPalette;
   }
+  /** Open the palette from anywhere (Home's Find a lead uses mode 'lead'). */
+  function openPalette(m) { if (lastPalette) lastPalette.open(m); }
 
   // A request that fails with nobody waiting for it (a button's fetch on a network blip) says so, instead of failing silently.
   if (typeof window !== 'undefined' && window.addEventListener) {
@@ -302,7 +360,7 @@
   var api = {
     num: num, pct: pct, money: money, ratio: ratio, secs: secs, compact: compact,
     errorMessage: errorMessage, isNetworkError: isNetworkError, score: score, rank: rank,
-    TAB_HELP: TAB_HELP, skeleton: skeleton, errorState: errorState, decorateEmpty: decorateEmpty, palette: palette, toast: toast,
+    TAB_HELP: TAB_HELP, skeleton: skeleton, errorState: errorState, decorateEmpty: decorateEmpty, palette: palette, toast: toast, openPalette: openPalette,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.HQUX = api; root.HQFmt = api; }

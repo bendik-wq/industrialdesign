@@ -453,7 +453,7 @@ admin.get('/leads', async (c) => {
   const order = sortable[q.sort ?? 'created'] ?? 'l.created_at';
   const [rows, total] = await Promise.all([
     c.env.DB.prepare(
-      `SELECT l.id, l.ref_code, l.created_at, l.first_name, l.last_name, l.email, l.phone, l.score, COALESCE(l.tier_override, l.tier) AS tier, l.status,
+      `SELECT l.id, l.ref_code, l.created_at, l.updated_at, l.first_name, l.last_name, l.email, l.phone, l.score, COALESCE(l.tier_override, l.tier) AS tier, l.status,
               l.step_reached, l.app_completed_at, l.booked_at, l.call_at, l.channel, l.utm_source, l.utm_campaign, l.utm_content, l.country, l.device,
               l.closer_id, l.revenue, l.whatsapp_clicked_at, l.whatsapp_connected_at, l.unsubscribed_at,
               (SELECT MAX(max_position / NULLIF(duration, 0)) FROM vsl_views v WHERE v.lead_id = l.id AND v.video_id = '${VIDEOS.main.id}') AS vsl_pct
