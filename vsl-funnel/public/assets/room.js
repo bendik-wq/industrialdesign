@@ -563,9 +563,8 @@
       '<div class="rm-banner" data-banner hidden></div>' +
       '<main class="rm-main"><section class="rm-stagewrap"><div class="rm-stage" data-stage></div><div class="rm-agenda" data-agenda hidden></div><div class="rm-pinned" data-pinned hidden></div></section>' +
       '<aside class="rm-side"><nav class="rm-tabs" role="tablist" data-tabs>' + tabs.map(function (t) { return '<button type="button" role="tab" data-tab="' + t[0] + '">' + esc(t[1]) + '<span class="rm-badge" data-badge="' + t[0] + '" hidden></span></button>'; }).join('') + '</nav>' +
-      '<div class="rm-panel" data-panel></div></aside></main>' +
-      '<div class="rm-cards" data-cards hidden></div>' +
-      '<div class="rm-offerbar" data-offerbar hidden></div>' +
+      // the live offer and pushed cards sit at the foot of the side panel, never over the picture
+      '<div class="rm-panel" data-panel></div><div class="rm-offerbar" data-offerbar hidden></div><div class="rm-cards" data-cards hidden></div></aside></main>' +
       '<footer class="rm-bar" data-bar></footer></div>';
     $$('[data-tab]').forEach(function (b) { b.onclick = function () { S.tab = b.getAttribute('data-tab'); if (S.tab === 'chat') S.unread = 0; renderTabs(); renderPanel(); if (S.tab === 'push') refreshStats(true); }; });
     var rg = $('[data-ring]'); if (rg) rg.onclick = openMomentum;

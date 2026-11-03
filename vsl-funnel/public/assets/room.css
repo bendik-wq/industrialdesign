@@ -471,3 +471,40 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   .rm-tabs button[aria-selected="true"] { text-decoration: underline; text-underline-offset: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ── no overlaps (owner: "elements overlaying each other") ── */
+/* Checkout in the top bar: solid gold, the one warm action */
+.rm-traybtn.is-buy { background: var(--g-tint-buy, var(--gold)); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .08), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.rm-traybtn.is-buy:hover { background: var(--gold-2); }
+.rm-traybtn.is-buy::before { display: none; }
+.rm-traybtn.is-buy span { background: var(--ink); color: #fff; }
+/* the offer and pushed cards are part of the side panel's column (room.js puts them there), in the flow */
+.rm-side > .rm-cards, .rm-side > .rm-offerbar { flex: none; position: static; width: auto; max-width: none; transform: none; }
+.rm-side > .rm-cards { padding: 8px 12px 12px; }
+.rm-side > .rm-offerbar { margin: 8px 12px 0; }
+/* many tabs (host, co-host, meetings): they wrap onto a second row instead of scrolling out of sight */
+.rm-tabs:has(> button:nth-child(6)) { flex-wrap: wrap; overflow: visible; border-radius: 20px; row-gap: 2px; }
+.rm-tabs:has(> button:nth-child(6))::before { display: none; }
+.rm-tabs:has(> button:nth-child(6)) button { flex: 1 0 auto; padding: 0 10px; }
+.rm-tabs:has(> button:nth-child(6)) button[aria-selected="true"] { background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 3px 8px rgba(0, 0, 0, .08); }
+/* meetings: people fill the picture as a grid, not one thin strip */
+.rm-stage--grid.n3, .rm-stage--grid.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rm-stage--grid.n5, .rm-stage--grid.n6, .rm-stage--grid.n7, .rm-stage--grid.n8, .rm-stage--grid.n9 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.rm-stage--grid.n10, .rm-stage--grid.n11, .rm-stage--grid.n12 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.rm-stage--grid { align-content: center; justify-content: center; }
+@media (min-width: 900px) {
+  /* in the grid, tiles shrink to fit the stage's height instead of spilling past it */
+  .rm-stage--grid.n3, .rm-stage--grid.n4 { grid-template-columns: repeat(2, minmax(0, calc((100vh - 290px) / 2 * 16 / 9))); }
+  .rm-stage--grid.n5, .rm-stage--grid.n6, .rm-stage--grid.n7, .rm-stage--grid.n8, .rm-stage--grid.n9 { grid-template-columns: repeat(3, minmax(0, calc((100vh - 300px) / 3 * 16 / 9))); }
+  .rm-side > .rm-cards .rm-card { margin: 0; }
+  /* notices drop in under the top bar, over the stage column, clear of every button */
+  .rm-toast { bottom: auto; top: calc(136px + env(safe-area-inset-top)); left: calc((100% - var(--rm-side-w) - var(--rm-gap)) / 2); transform: translate(-50%, -12px) scale(.96); }
+  .rm-toast.is-on { transform: translate(-50%, 0) scale(1); }
+}
+/* the message box stays pinned at the foot of the panel instead of being cut off when the panel is short */
+.rm-panel > .rm-form { position: sticky; bottom: 0; z-index: 2; flex: none; }
+.rm-panel > .rm-form:first-child { position: static; }
+@media (min-width: 900px) {
+  /* the docked sheet takes exactly the side panel's column: it never reaches over the picture */
+  .rm-sheet--dock .rm-sheet-in { max-width: var(--rm-side-w); width: var(--rm-side-w); }
+}

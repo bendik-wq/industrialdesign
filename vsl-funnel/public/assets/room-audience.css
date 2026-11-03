@@ -182,3 +182,17 @@ html.rx-contrast :focus-visible { outline: 3px solid #000 !important; outline-of
   .rm-stagewrap:has(> .rs-bar) .rx-react button { color: var(--ink); }
   .rm-stagewrap:has(> .rs-bar) .rx-ib[aria-pressed="true"] { background: var(--ink); color: #fff; }
 }
+
+/* ── no overlaps: on a phone the reactions and stage buttons get their own row under the picture ── */
+@media (max-width: 899px) {
+  .rm-stagewrap { padding-bottom: 52px; background: transparent; }
+  .rm-stagewrap > .rm-stage { background: var(--stage); }
+  .rx-tools { left: 8px; right: 8px; bottom: 6px; }
+  .rx-ib, .rx-react { background: var(--rm-bar-bg, #fff); color: var(--ink); border: 1px solid var(--rm-edge, transparent); box-shadow: var(--rm-spec, none), var(--rm-shadow, 0 2px 8px rgba(0, 0, 0, .08)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .rx-react button { color: var(--ink); }
+  .rx-ib[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .rx-caps { bottom: 60px; }
+  /* the mini player sits under the top bar, so Checkout and your points stay visible */
+  .rx-mini .rm-stagewrap { padding-bottom: 0; top: calc(64px + env(safe-area-inset-top)); }
+  .rx-mini .rm-sheet .rm-sheet-in { max-height: calc(100dvh - min(46vw, 260px) * 9 / 16 - 84px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+}

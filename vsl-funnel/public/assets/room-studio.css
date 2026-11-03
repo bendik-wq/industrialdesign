@@ -169,3 +169,8 @@
   .rs-greencard, .rs-mutewarn, .rs-ros, .rs-music { -webkit-backdrop-filter: none; backdrop-filter: none; }
   .rs-mutewarn { background: #1c1c1e; }
 }
+
+/* ── no overlaps: the ON AIR badge sits inside its scene button, not over its edge ── */
+.rs-scene { position: relative; }
+.rs-scene.is-on kbd { visibility: hidden; }
+.rs-air { top: 6px; right: auto; left: 50%; transform: translateX(-50%); font-size: 8px; line-height: 14px; padding: 0 6px; white-space: nowrap; }
