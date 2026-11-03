@@ -1,0 +1,67 @@
+/* Glass: one shared material for the room and Funnel HQ, after Apple's Liquid Glass (2025).
+   Rules: glass is for the layer that floats above content (bars, toolbars, sheets, menus, cards over video),
+   never for body text blocks. Content scrolls under it. One accent tint per screen (the primary action).
+   Accessibility: solid fallbacks under prefers-reduced-transparency and when backdrop-filter isn't supported,
+   stronger edges under prefers-contrast: more, no specular motion under prefers-reduced-motion. */
+:root {
+  /* the material */
+  --g-blur: 24px; --g-sat: 180%;
+  --g-bg: rgba(255, 255, 255, .62);            /* regular glass on light content */
+  --g-bg-strong: rgba(255, 255, 255, .78);     /* sheets, menus: more legible */
+  --g-bg-clear: rgba(255, 255, 255, .22);      /* clear glass over video / media */
+  --g-bg-dark: rgba(22, 22, 24, .48);          /* glass controls over the dark stage */
+  --g-edge: rgba(255, 255, 255, .55);          /* the lit rim */
+  --g-edge-dark: rgba(255, 255, 255, .16);
+  --g-hair: rgba(0, 0, 0, .06);
+  --g-spec: inset 0 1px 0 rgba(255, 255, 255, .75), inset 0 -1px 0 rgba(255, 255, 255, .12);
+  --g-spec-dark: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(0, 0, 0, .2);
+  --g-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 8px 24px rgba(0, 0, 0, .08), 0 24px 48px -12px rgba(0, 0, 0, .10);
+  --g-shadow-lift: 0 2px 4px rgba(0, 0, 0, .05), 0 16px 40px rgba(0, 0, 0, .12), 0 40px 80px -20px rgba(0, 0, 0, .16);
+  /* the canvas behind the glass: soft, quiet colour so the material reads */
+  --g-canvas: radial-gradient(1200px 700px at 8% -10%, #e9eefb 0%, transparent 60%),
+              radial-gradient(900px 600px at 105% 10%, #fbf1df 0%, transparent 55%),
+              radial-gradient(1000px 800px at 50% 120%, #eef3f1 0%, transparent 60%), #f6f6f8;
+  /* shape and motion */
+  --g-r-pill: 999px; --g-r-xl: 28px; --g-r-l: 22px; --g-r-m: 16px; --g-r-s: 12px;
+  --g-spring: cubic-bezier(.32, .72, 0, 1); --g-ease: cubic-bezier(.25, .1, .25, 1);
+  --g-fast: 160ms; --g-mid: 260ms; --g-slow: 420ms;
+  /* tints */
+  --g-tint-accent: rgba(15, 44, 92, .88);      /* navy */
+  --g-tint-buy: linear-gradient(180deg, #ffd05a 0%, #f5b82e 100%);
+  --g-focus: 0 0 0 3px rgba(10, 132, 255, .45);
+}
+
+/* The building blocks (opt-in classes; surfaces may also use the tokens directly). */
+.glass, .glass-strong, .glass-clear, .glass-dark {
+  -webkit-backdrop-filter: blur(var(--g-blur)) saturate(var(--g-sat));
+  backdrop-filter: blur(var(--g-blur)) saturate(var(--g-sat));
+  border: 1px solid var(--g-edge);
+  box-shadow: var(--g-spec), var(--g-shadow);
+}
+.glass { background: var(--g-bg); }
+.glass-strong { background: var(--g-bg-strong); }
+.glass-clear { background: var(--g-bg-clear); }
+.glass-dark { background: var(--g-bg-dark); border-color: var(--g-edge-dark); box-shadow: var(--g-spec-dark), 0 8px 24px rgba(0, 0, 0, .25); color: #fff; }
+.glass-pill { border-radius: var(--g-r-pill); }
+
+/* A pressable glass control: lifts a little under the finger, like the system's. */
+.glass-btn { transition: transform var(--g-fast) var(--g-spring), background var(--g-fast) var(--g-ease), box-shadow var(--g-mid) var(--g-ease); }
+.glass-btn:hover { box-shadow: var(--g-spec), var(--g-shadow-lift); }
+.glass-btn:active { transform: scale(.96); }
+:where(.glass, .glass-strong, .glass-clear, .glass-dark, .glass-btn):focus-visible { outline: none; box-shadow: var(--g-focus), var(--g-spec), var(--g-shadow); }
+
+/* Fallbacks */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --g-bg: rgba(255, 255, 255, .96); --g-bg-strong: #fff; --g-bg-clear: rgba(255, 255, 255, .9); --g-bg-dark: rgba(22, 22, 24, .92); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --g-bg: #fbfbfd; --g-bg-strong: #fff; --g-bg-clear: rgba(255, 255, 255, .94); --g-bg-dark: #1c1c1e; --g-canvas: #f6f6f8; }
+  .glass, .glass-strong, .glass-clear, .glass-dark { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  :root { --g-edge: rgba(0, 0, 0, .35); --g-edge-dark: rgba(255, 255, 255, .6); --g-bg: rgba(255, 255, 255, .92); --g-bg-strong: #fff; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-btn { transition: none; }
+  .glass-btn:active { transform: none; }
+}
