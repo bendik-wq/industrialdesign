@@ -2,6 +2,7 @@ import type { Context, Hono } from 'hono';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { zoomApi, zoomConfigured } from '../live/zoom';
 import { recordMinute, recordStage, syncAttribution } from './stages';
+import { buyerJourney, commonPaths, parseBuyerKind, syncBuyerPaths } from './buyer-path';
 import { DIMS, MODELS, type FunnelSel, type Range, cohorts, journey, parseDim, parseFunnel, parseModel, people, revenueBy, roomAnalytics, setupChecks, stageCounts, stagesContract, timeToPurchase } from './report';
 
 /**
@@ -114,6 +115,19 @@ export function mountAttributionAdmin(admin: Hono<AppEnv>) {
   admin.get('/attribution/journey/:lead', async (c) => {
     const j = await journey(runtimeFrom(c), c.req.param('lead'));
     return j ? c.json(j) : c.json({ error: 'No such lead' }, 404);
+  });
+
+  // Where each buyer came from (round 4 "journey"): one person's timeline, and the common paths to a purchase.
+  admin.get('/attribution/buyer/:lead', async (c) => {
+    const j = await buyerJourney(runtimeFrom(c), c.req.param('lead'));
+    return j ? c.json(j) : c.json({ error: 'No such lead' }, 404);
+  });
+
+  admin.get('/attribution/paths', async (c) => {
+    const rt = runtimeFrom(c);
+    const p = q(c);
+    await syncBuyerPaths(rt, { limit: 25 }).catch((e) => console.error('buyer paths', String(e).slice(0, 200)));
+    return c.json(await commonPaths(rt, parseFunnel(p.funnel), parseRange(p), parseBuyerKind(p.kind)));
   });
 
   admin.post('/attribution/sync', async (c) => c.json(await syncAttribution(runtimeFrom(c), { full: true })));

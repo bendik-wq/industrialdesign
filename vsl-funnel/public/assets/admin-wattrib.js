@@ -116,8 +116,9 @@
           { label: 'Paid (net)', key: 'revenue', num: true, fmt: function (v) { return money(v); } }],
         d.people || [], { cards: true, empty: 'No data yet', rowAttr: function (r) { return 'class="click" tabindex="0" data-wa-lead="' + esc(r.lead_id) + '"'; } }) + '<div data-wa-journey></div></div>';
 
-      view.innerHTML = bar + setup + tiles + funnel + revenue + ttp + room + cohort + peopleHtml;
+      view.innerHTML = bar + setup + tiles + funnel + revenue + '<div data-wa-paths></div>' + ttp + room + cohort + peopleHtml;
       drawCharts(view, d.room);
+      if (root.BuyerPath) root.BuyerPath.common(view.querySelector('[data-wa-paths]'), ctx, st.funnel); // round 4: common paths to a purchase (admin-journey.js)
 
       view.querySelectorAll('[data-wa-funnel]').forEach(function (b) { b.onclick = function () { st.funnel = b.getAttribute('data-wa-funnel'); remember(); render(ctx); }; });
       view.querySelectorAll('[data-wa-model]').forEach(function (b) { b.onclick = function () { st.model = b.getAttribute('data-wa-model'); remember(); render(ctx); }; });

@@ -307,6 +307,8 @@ export async function syncAttribution(rt: Runtime, o: { full?: boolean; force?: 
   await liveWatchStages(rt, since);
   await refunds(rt);
   const conv = await backfillConversions(rt, since, full ? 1000 : 150);
+  // Each buyer's path (round 4 "journey"): bounded per run, never blocks the rest of the sync.
+  await (await import('./buyer-path')).syncBuyerPaths(rt, { limit: full ? 200 : 40, now }).catch((e) => console.error('buyer paths', String(e).slice(0, 200)));
   if (full) await db.prepare("INSERT INTO kv_state (key, value) VALUES ('attr:full', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(String(now)).run();
   return { skipped: false, conversions: conv, full };
 }

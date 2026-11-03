@@ -268,12 +268,17 @@ export async function liveWelcome(c: Context<AppEnv>) {
   const k = await rt.env.DB.prepare("SELECT token, status FROM contracts WHERE lead_id = ? AND status IN ('draft', 'sent', 'viewed') AND COALESCE(is_test, 0) = 0 ORDER BY created_at DESC LIMIT 1").bind(reg.lead_id).first<{ token: string; status: string }>();
   const ob = onboardingUrl(rt);
   const { safeFirstName } = await import('../lib/text');
+  // Round 4: the optional one-click add-on on the deposit's card (off unless set; offered once; sales/deposit-addon.ts).
+  const da = await import('../sales/deposit-addon');
+  if (c.req.query('addon')) await da.settleDepositAddon(rt, reg.lead_id).catch(() => null);
+  const addon = await da.depositAddonCardHtml(rt, reg.lead_id, reg.token).catch(() => '');
   const main = `<section class="lv-welcome"><div class="wrap narrow">
     <p class="lv-eyebrow">${esc(W.eyebrow)}</p>
     <h1 class="lv-h1 lv-h1-s">${esc(W.heading(safeFirstName(lead?.first_name) ?? ''))}</h1>
     ${pass ? `<p class="lv-fine">${esc(W.receipt(m(pass.amount), m(pass.amount + pass.ticket_credit)))}</p>` : ''}
     <div class="lv-card lv-step1"><p class="lv-step-n">1</p><h2 class="lv-offer-h">${esc(W.step1)}</h2><p class="lv-offer-p">${esc(W.step1Body)}</p>
       ${ob ? `<a class="buy-btn" href="${esc(ob)}" target="_blank" rel="noopener" data-track="cta_click" data-track-id="deposit_onboarding_book">${esc(W.step1Button)} ${ARROW}</a>` : `<p class="lv-offer-p"><strong>${esc(W.step1None)}</strong></p>`}</div>
+    ${addon}
     <h2 class="lv-h2">${esc(W.nextHeading)}</h2>
     <ol class="lv-next">${W.next.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
     ${guaranteeHtml(rt)}

@@ -347,6 +347,21 @@ api.post('/webinar/ticket/addon', async (c) => {
     return errorResponse(c, err);
   }
 });
+// The optional deposit add-on (sales/deposit-addon.ts): one click on the deposit's card from the welcome page, or "No thanks". Same-origin only.
+api.post('/deposit/addon', async (c) => {
+  if (!sameOriginWrite(c)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  try {
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    return c.json(await (await import('../sales/deposit-addon')).buyDepositAddon(runtimeFrom(c), body.t));
+  } catch (err) {
+    return errorResponse(c, err);
+  }
+});
+api.post('/deposit/addon/decline', async (c) => {
+  if (!sameOriginWrite(c)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  return c.json(await (await import('../sales/deposit-addon')).declineDepositAddon(runtimeFrom(c), body.t));
+});
 // The buyer booked the kickoff in the calendar on their Sprint page (Calendly's own "scheduled" message).
 api.post('/webinar/sprint/kickoff', roomAction(async (rt, reg) => {
   const pass = await activePass(rt, reg.lead_id);

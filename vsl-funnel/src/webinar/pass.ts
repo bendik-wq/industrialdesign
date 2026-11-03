@@ -25,7 +25,7 @@ import { type Registration, getRegistration, roomUrl, startTicketedMessages, sto
 
 export type PassMode = 'off' | 'upsell' | 'required';
 /** offer = First Deal Sprint · seat = Masterclass ticket · deposit = engagement deposit (sales/deposit.ts) · live_ticket = live webinar ticket (live/events.ts). */
-export type PassKind = 'offer' | 'seat' | 'deposit' | 'live_ticket' | 'addon';
+export type PassKind = 'offer' | 'seat' | 'deposit' | 'live_ticket' | 'addon' | 'deposit_addon';
 export type PaymentProvider = 'whop' | 'stripe';
 
 /** Whop takes the payments when its API key is set; otherwise Stripe, when its key is. Null = nothing can be sold. */
@@ -525,6 +525,7 @@ export async function passPaidEffects(rt: Runtime, pass: PassRow) {
   if (pass.kind === 'deposit') return (await import('../sales/deposit')).depositPaidEffects(rt, pass);
   if (pass.kind === 'live_ticket') return (await import('../live/events')).liveTicketPaidEffects(rt, pass);
   if (pass.kind === 'addon') return (await import('./ticket-addon')).addonPaidEffects(rt, pass);
+  if (pass.kind === 'deposit_addon') return (await import('../sales/deposit-addon')).depositAddonPaidEffects(rt, pass);
   const value = fromMinor(pass.amount, pass.currency);
   const who = await identityFromLead(rt.env, pass.lead_id);
   const lead = await getLead(rt.env, pass.lead_id);

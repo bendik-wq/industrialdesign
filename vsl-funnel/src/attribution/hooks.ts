@@ -57,7 +57,7 @@ export function onPassPaid(rt: Runtime, pass: PassLike, metadata?: Record<string
   return quiet('pass paid', async () => {
     const at = pass.paid_at ?? Date.now();
     let funnel: Funnel = 'auto', regId: string | null = pass.reg_id, cohort: string | null = null;
-    const kind = pass.kind === 'seat' || pass.kind === 'live_ticket' ? 'ticket_paid' : pass.kind === 'deposit' ? 'deposit_paid' : pass.kind === 'offer' ? 'sprint_paid' : pass.kind === 'addon' ? 'addon_paid' : null;
+    const kind = pass.kind === 'seat' || pass.kind === 'live_ticket' ? 'ticket_paid' : pass.kind === 'deposit' ? 'deposit_paid' : pass.kind === 'offer' ? 'sprint_paid' : pass.kind === 'addon' || pass.kind === 'deposit_addon' ? 'addon_paid' : null;
     if (!kind) return;
     const db = rt.env.DB;
     if (pass.kind === 'live_ticket' || (pass.kind === 'deposit' && pass.source === 'live')) {
@@ -68,7 +68,7 @@ export function onPassPaid(rt: Runtime, pass: PassLike, metadata?: Record<string
       funnel = 'challenge';
       const r = await db.prepare('SELECT id, cohort_id FROM challenge_registrations WHERE id = ?').bind(pass.ref_id ?? '').first<{ id: string; cohort_id: string }>();
       regId = r?.id ?? null; cohort = r?.cohort_id ?? null;
-    } else if (pass.kind === 'deposit') {
+    } else if (pass.kind === 'deposit' || pass.kind === 'deposit_addon') {
       const r = await latestReg(rt, pass.lead_id, at);
       if (r) { funnel = r.funnel; regId = r.id; cohort = r.cohort; }
     } else {

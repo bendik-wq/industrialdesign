@@ -93,7 +93,7 @@ export function normaliseEmail(raw: string | null | undefined): string | null {
 export const validPhone = (p: string) => /^\+[1-9]\d{7,14}$/.test(p);
 
 const META_KEYS = ['em', 'ph', 'fbp', 'fbc', 'external_id'] as const;
-const PURCHASE_EVENTS = ['webinar_seat_purchased', 'ticket_addon_purchased', 'webinar_offer_purchased', 'engagement_deposit_purchased', 'live_ticket_purchased', 'challenge_ticket_paid', 'challenge_vip_paid'];
+const PURCHASE_EVENTS = ['webinar_seat_purchased', 'ticket_addon_purchased', 'deposit_addon_purchased', 'webinar_offer_purchased', 'engagement_deposit_purchased', 'live_ticket_purchased', 'challenge_ticket_paid', 'challenge_vip_paid'];
 const PAY_LABEL: Record<string, string> = { seat: 'Masterclass ticket', offer: 'First Deal Sprint', deposit: 'Engagement deposit', live_ticket: 'Live webinar ticket', addon: 'Ticket add-on', ticket: 'Challenge ticket', vip: 'Challenge VIP' };
 
 export function metaConfigured(rt: Pick<Runtime, 'settings'>) {

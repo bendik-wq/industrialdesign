@@ -18,7 +18,8 @@ import { PDFJS, mountStudio, studioPageConfig } from './studio-routes';
 import { mountPanic } from './panic'; // the panic button: move everyone to a fresh room, or the Zoom fallback
 import { flag } from '../settings';
 import { mediaConfig, mediaCsp, mediaReportRoute, netTest } from './media';
-import { ASSETS, ENGAGE_COPY, PLAN_KEYS, QUIZ_PRESETS, agendaText, assetById, coverage, parseAgenda } from './engage';
+import { ASSETS, ENGAGE_COPY, PLAN_KEYS, QUIZ_PRESETS, agendaText, assetById, coverage, money, parseAgenda } from './engage';
+import { twoPathsHtml } from './plan-paths';
 import {
   RoomError, attendeeEngage, checkAssetLink, checkPlanLink, engageAvail, engageReport, getPlan, personTimeline, pushStats, roomEngageSettings, savePlan, sendRoomSummaries,
   startRoomSprint, submitRoomApplication, saveRoomBand,
@@ -764,6 +765,7 @@ ${box ? `<h2 class="rm-h3">${esc(C.planBuyBox)}</h2><table class="rm-plantable">
 ${d.owners_per_week ? `<h2 class="rm-h3">${esc(C.planOutreach)}</h2><p>${esc(C.planOwners)}: <strong>${esc(d.owners_per_week)}</strong></p>` : ''}
 ${cov ? `<h2 class="rm-h3">${esc(C.planCoverage)}</h2><table class="rm-plantable">${row(C.planCashFlow, d.cash_flow)}${row(C.planDebt, d.debt_service)}</table><p class="${cov.passes ? 'rm-ok' : 'rm-err'}">${esc(cov.passes ? C.planPasses(cov.ratio.toFixed(2)) : C.planFails(cov.ratio.toFixed(2), `$${cov.maxDebtService.toLocaleString('en-US')}`))}</p>` : ''}
 ${acts.length ? `<h2 class="rm-h3">${esc(C.planActions)}</h2><ol>${acts.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+${twoPathsHtml(money(d.cash_flow), money(d.debt_service))}
 <p class="rm-fine">Education only, not legal, tax or financial advice.</p></main></body></html>`);
 }
 

@@ -12,6 +12,7 @@
  *  - The Deal Plan: the worksheet each attendee fills while Josh teaches (buy box, owners per week, the 1.5x
  *    test, the first three actions). Four steps, each counted once when it is really filled in.
  */
+import { twoPathsText } from './plan-paths';
 
 export type PointAction = 'on_time' | 'present_10' | 'chapter' | 'poll' | 'question' | 'quiz' | 'quiz_correct' | 'plan_step' | 'application' | 'stayed_end' | 'early' | 'referral';
 export interface PointRule { points: number; cap: number; label: string }
@@ -406,6 +407,7 @@ export function summaryEmail(x: SummaryInput) {
     if (box) paras.push(`Buy box: ${box}.`);
     if (x.plan.owners_per_week) paras.push(`Owner outreach: ${x.plan.owners_per_week} owners a week.`);
     if (c) paras.push(`The 1.5x test on your numbers: ${c.ratio}x, ${c.passes ? 'which passes' : 'below 1.5x, so the structure changes before the lender sees it'}.`);
+    paras.push(...twoPathsText(money(x.plan.cash_flow), money(x.plan.debt_service))); // round 4: conservative vs ambitious (plan-paths.ts)
     const acts = [x.plan.action_1, x.plan.action_2, x.plan.action_3].filter(Boolean);
     if (acts.length) paras.push(`First three actions: ${acts.map((a) => a.replace(/[.;]+$/, '')).join('; ')}.`);
   }
