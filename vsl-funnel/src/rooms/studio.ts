@@ -446,9 +446,13 @@ export function scriptFor(room: { ref_type: string; ref_id: string | null }, cho
 
 // ───────────── Funnel HQ settings (rooms.studio JSON) ─────────────
 
+export const STUDIO_THEMES = ['graphite', 'midnight', 'light'] as const;
+export type StudioTheme = (typeof STUDIO_THEMES)[number];
 export interface StudioSettings {
   on: boolean; scene: Scene; layout: MainLayout; greenRoom: boolean;
   colors: { bg: string; accent: string; text: string };
+  /** The stage's look: Graphite (near-black with soft navy light, the default), Midnight (the brand navy), Light. */
+  theme: StudioTheme;
   logo: string | null; music: string | null; musicOn: boolean;
   introTitle: string; introNote: string; brbText: string; outroTitle: string; outroNote: string;
   lowerName: string; lowerTitle: string; ticker: string;
@@ -460,6 +464,7 @@ export interface StudioSettings {
 export const DEFAULT_STUDIO: StudioSettings = {
   on: true, scene: 'intro', layout: 'solo', greenRoom: true,
   colors: { bg: '#0f2c5c', accent: '#c9a227', text: '#ffffff' },
+  theme: 'graphite',
   logo: null, music: null, musicOn: false,
   introTitle: '', introNote: '', brbText: '', outroTitle: '', outroNote: '',
   lowerName: '', lowerTitle: 'Founder, G&L M&A Advisory', ticker: '',
@@ -485,6 +490,7 @@ export function cleanStudioSettings(raw: unknown, base: StudioSettings = DEFAULT
       accent: typeof col.accent === 'string' && HEX.test(col.accent) ? col.accent : base.colors.accent,
       text: typeof col.text === 'string' && HEX.test(col.text) ? col.text : base.colors.text,
     },
+    theme: STUDIO_THEMES.includes(r.theme as StudioTheme) ? (r.theme as StudioTheme) : base.theme ?? 'graphite',
     logo: asset('logo'), music: asset('music'), musicOn: typeof r.musicOn === 'boolean' ? r.musicOn : base.musicOn,
     introTitle: str('introTitle', 120), introNote: str('introNote', 200), brbText: str('brbText', 120), outroTitle: str('outroTitle', 120), outroNote: str('outroNote', 240),
     lowerName: str('lowerName', 60), lowerTitle: str('lowerTitle', 60), ticker: str('ticker', 160),

@@ -10,7 +10,7 @@
     '.sts-in h2{margin:0;font-size:20px}.sts-in h3{margin:0 0 6px;font-size:14px}.sts-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}' +
     '.sts-in label{display:grid;gap:4px;font-size:13px;color:var(--ink-2,#52514e)}.sts-in input[type=text],.sts-in textarea,.sts-in select{font:inherit;padding:6px 8px;border:1px solid rgba(127,127,127,.35);border-radius:8px;background:transparent;color:inherit}' +
     '.sts-in textarea{min-height:84px}.sts-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sts-sec{display:grid;gap:10px;padding-top:12px;border-top:1px solid rgba(127,127,127,.25)}' +
-    '.sts-prev{aspect-ratio:16/9;border-radius:12px;display:grid;place-items:center;text-align:center;padding:16px;gap:6px;max-width:420px}.sts-prev img{max-height:36px;max-width:160px}.sts-prev strong{font:500 22px/1.2 Newsreader,Georgia,serif}' +
+    '.sts-prev{aspect-ratio:16/9;border-radius:16px;display:grid;place-items:center;text-align:center;padding:16px;gap:6px;max-width:420px}.sts-prev img{max-height:36px;max-width:160px}.sts-prev strong{font:700 22px/1.15 -apple-system,BlinkMacSystemFont,Inter,Arial,sans-serif;letter-spacing:-.02em}' +
     '.sts-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}.sts-list li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-top:1px solid rgba(127,127,127,.2)}' +
     '.sts-chk{display:flex!important;grid-template-columns:none;align-items:center;gap:8px}.sts-note{font-size:12px;color:var(--muted,#6e6e73);margin:0}';
   var SCENES = [['intro', 'Intro'], ['main', 'Main'], ['slides', 'Slides'], ['brb', 'Break'], ['qa', 'Q&A'], ['offer', 'Offer'], ['outro', 'Outro']];
@@ -57,9 +57,10 @@
         '<div class="sts-g"><label class="sts-chk"><input type="checkbox" name="on"' + (s.on ? ' checked' : '') + '> Studio on for this room</label><label class="sts-chk"><input type="checkbox" name="greenRoom"' + (s.greenRoom ? ' checked' : '') + '> Co-hosts and guests wait in the green room</label></div>' +
         '<div class="sts-g"><label>First scene<select name="scene">' + opts(SCENES, s.scene) + '</select></label><label>Main layout<select name="layout">' + opts(LAYOUTS, s.layout) + '</select></label>' +
         '<label>Run of show script<select name="script"><option value="">Automatic (' + esc(data.script) + ')</option>' + (data.scripts || []).map(function (id) { return '<option value="' + esc(id) + '"' + (s.script === id ? ' selected' : '') + '>' + esc(id) + '</option>'; }).join('') + '</select></label></div>' +
-        '<h3>Branding</h3><div class="sts-g"><label>Background<input type="color" name="bg" value="' + esc(s.colors.bg) + '"></label><label>Accent<input type="color" name="accent" value="' + esc(s.colors.accent) + '"></label><label>Text<input type="color" name="text" value="' + esc(s.colors.text) + '"></label>' +
+        '<h3>Branding</h3><div class="sts-g"><label>Stage look<select name="theme">' + [['graphite', 'Graphite (default)'], ['midnight', 'Midnight navy'], ['light', 'Light']].map(function (o) { return '<option value="' + o[0] + '"' + ((s.theme || 'graphite') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label><label>Brand colour<input type="color" name="bg" value="' + esc(s.colors.bg) + '"></label><label>Price and buy colour<input type="color" name="accent" value="' + esc(s.colors.accent) + '"></label><label>Text<input type="color" name="text" value="' + esc(s.colors.text) + '"></label>' +
         '<div class="sts-prev" data-prev></div></div>' +
-        '<div class="sts-g"><label>Logo (PNG, SVG, WebP or JPEG, up to 2 MB)<input type="file" accept="image/png,image/svg+xml,image/webp,image/jpeg" data-up="logo"' + (data.storage ? '' : ' disabled') + '><span class="sts-note">' + esc(s.logo ? 'Current: ' + (assetName(s.logo) || 'uploaded') : 'None') + '</span>' + (s.logo ? '<button type="button" class="btn-sm ghost" data-clear="logo">Remove logo</button>' : '') + '</label>' +
+        '<p class="sts-note">Graphite is near-black with soft light in the brand colour; Midnight uses the brand colour as the room; Light is white glass. Gold (the price and buy colour) only shows on prices and the offer countdown.</p>' +
+                '<div class="sts-g"><label>Logo (PNG, SVG, WebP or JPEG, up to 2 MB)<input type="file" accept="image/png,image/svg+xml,image/webp,image/jpeg" data-up="logo"' + (data.storage ? '' : ' disabled') + '><span class="sts-note">' + esc(s.logo ? 'Current: ' + (assetName(s.logo) || 'uploaded') : 'None') + '</span>' + (s.logo ? '<button type="button" class="btn-sm ghost" data-clear="logo">Remove logo</button>' : '') + '</label>' +
         '<label>Intro music (MP3, M4A, OGG or WAV, up to 15 MB)<input type="file" accept="audio/*" data-up="music"' + (data.storage ? '' : ' disabled') + '><span class="sts-note">' + esc(s.music ? 'Current: ' + (assetName(s.music) || 'uploaded') : 'None. Use music you hold the rights to.') + '</span>' + (s.music ? '<button type="button" class="btn-sm ghost" data-clear="music">Remove music</button>' : '') + '</label>' +
         '<label class="sts-chk"><input type="checkbox" name="musicOn"' + (s.musicOn ? ' checked' : '') + '> Play the music on the intro scene</label></div>' +
         '<h3>Words on the scenes</h3><p class="sts-note">Blank uses the room’s defaults. Every line here shows on screen and in the recording, so keep it true: no invented numbers, deadlines or claims.</p>' +
@@ -77,16 +78,18 @@
       var f = box.querySelector('[data-f]');
       function preview() {
         var p = box.querySelector('[data-prev]');
-        p.style.background = 'linear-gradient(135deg,' + f.bg.value + ',#000 160%)'; p.style.color = f.text.value;
+        var th = f.theme.value, light = th === 'light';
+        p.style.background = light ? 'radial-gradient(120% 90% at 10% -10%,' + f.bg.value + '22,transparent 60%),linear-gradient(#f8f8fa,#e8e8ed)' : th === 'midnight' ? 'radial-gradient(120% 90% at 10% -10%,' + f.bg.value + ',transparent 70%),linear-gradient(' + f.bg.value + ',#000 170%)' : 'radial-gradient(120% 90% at 8% -15%,' + f.bg.value + ',transparent 65%),linear-gradient(#141418,#060608)';
+        p.style.color = light ? '#1d1d1f' : f.text.value; p.style.fontFamily = '-apple-system,BlinkMacSystemFont,Inter,Arial,sans-serif';
         p.innerHTML = (s.logo ? '<img alt="" src="/api/rooms/' + esc(roomId) + '/studio/asset/logo?v=' + esc(s.logo) + '">' : '') + '<span style="font-size:12px;opacity:.8">Starting soon</span><strong>' + esc(f.introTitle.value || data.room.title) + '</strong><span style="width:60px;height:3px;background:' + esc(f.accent.value) + '"></span>';
       }
-      ['bg', 'accent', 'text', 'introTitle'].forEach(function (n) { f[n].oninput = preview; });
+      ['bg', 'accent', 'text', 'introTitle', 'theme'].forEach(function (n) { f[n].oninput = preview; });
       preview();
       box.querySelector('[data-x]').onclick = close;
       function payload() {
         return {
           on: f.on.checked, greenRoom: f.greenRoom.checked, scene: f.scene.value, layout: f.layout.value, script: f.script.value || null,
-          colors: { bg: f.bg.value, accent: f.accent.value, text: f.text.value }, musicOn: f.musicOn.checked,
+          colors: { bg: f.bg.value, accent: f.accent.value, text: f.text.value }, theme: f.theme.value, musicOn: f.musicOn.checked,
           introTitle: f.introTitle.value, introNote: f.introNote.value, brbText: f.brbText.value, outroTitle: f.outroTitle.value, outroNote: f.outroNote.value,
           lowerName: f.lowerName.value, lowerTitle: f.lowerTitle.value, ticker: f.ticker.value, offerHeading: f.offerHeading.value, offerPoints: f.offerPoints.value,
           pack: { offerCard: f.packCard.value, bridgeLine: f.packLine.value, stackHeading: f.packStackH.value, stack: f.packStack.value, anchorHeading: f.packAnchorH.value, anchor: f.packAnchor.value },
