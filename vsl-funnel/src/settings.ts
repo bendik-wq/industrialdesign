@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support' | 'AI & search';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -363,6 +363,11 @@ export const SETTINGS = [
   { key: 'ZAPIER_INBOUND_SECRET', label: 'Zapier: inbound action secret', group: 'Clients & support', secret: true, help: 'Shared secret for POST /hooks/zapier/create-lead and /hooks/zapier/add-note (header X-Zapier-Secret).' },
   // ───────────── infra (overnight round 1): the internal error log ─────────────
   { key: 'ERRORS_SLACK', label: 'Errors: ping Slack on a new kind of error', group: 'Alerts', placeholder: 'off', help: 'on = the first time a new error shows up (Funnel HQ → Errors & cron) the Command Slack channel gets one message, at most 5 an hour. Blank or off = no pings; errors are still logged.' },
+  // ───────────── Cloudflare round, builder C: Vectorize (AI search) and AI Gateway ─────────────
+  { key: 'VECTOR_SEARCH', label: 'AI search (Vectorize)', group: 'AI & search', placeholder: 'off', help: 'on = every few minutes, in small batches, lead answers, room questions and objections, call notes and Josh’s approved material are turned into embeddings (Workers AI) and kept in the Vectorize index gl-knowledge. Turns on “Similar leads” in the lead drawer, “Leads like my buyers” and the search box on Leads. Off (default) = nothing is indexed and those panels say so.' },
+  { key: 'ROOM_AI_HELPER', label: 'Room Q&A: AI draft button for staff', group: 'AI & search', placeholder: 'off', help: 'on = hosts and co-hosts see “AI draft” on each question in a room’s Q&A. It drafts an answer from Josh’s approved material only (scripts, guides, the guarantee, offer terms), labelled as AI-drafted. Nothing is posted until a person edits it and presses Send. Needs the Anthropic API key (Email).' },
+  { key: 'AI_GATEWAY_ID', label: 'Cloudflare AI Gateway id', group: 'AI & search', placeholder: 'default', help: 'Blank = Claude is called directly, as before. Set (e.g. default) = every Claude call goes through your Cloudflare AI Gateway, tagged by feature, so cost, speed and errors per feature show in the Cloudflare dashboard. If the gateway fails, the call goes direct.' },
+  { key: 'CF_ACCOUNT_ID', label: 'Cloudflare account id (for the gateway)', group: 'AI & search', placeholder: '50e9fc42a7947d3f932cd1ed0bf95c03', help: 'Blank = the account this funnel runs in.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

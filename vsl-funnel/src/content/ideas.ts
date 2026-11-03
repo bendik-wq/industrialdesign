@@ -4,6 +4,7 @@ import { GUIDES } from '../seo/guides';
 import { newId } from '../lib/ids';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
 import { copyBrief } from './copy-rules';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * YouTube idea generator: the "12 inputs in, 5–10 topics out, every two weeks" loop.
@@ -283,7 +284,7 @@ export async function generateSprint(rt: Runtime, opts: { focus?: string } = {})
   let sprint: Sprint;
   let source: 'ai' | 'rules';
   if (rt.settings.ANTHROPIC_API_KEY) {
-    const client = new Anthropic({ apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
+    const client = anthropicClient(rt.settings, 'content-ideas', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
     // Long structured output: stream it and take the final message.
     const stream = client.beta.messages.stream({
       model: rt.settings.EMAIL_AI_MODEL || DEFAULT_EMAIL_MODEL,

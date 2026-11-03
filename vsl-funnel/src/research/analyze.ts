@@ -6,6 +6,7 @@ import { answerProblems } from '../webinar/assistant';
 import { researchConfig } from './config';
 import { daysRunning } from './sources';
 import { vocCounts } from './voc';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * Research analysis: themes (market complaints and desires, our own voice of customer, competitor offers)
@@ -195,7 +196,7 @@ export async function analyzeRules(rt: Runtime | null, inputs: AnalysisInputs): 
 export interface ResearchClaude { create(params: Record<string, unknown>): Promise<{ stop_reason?: string | null; content: { type: string; text?: string }[] }> }
 
 export function defaultClaude(rt: Runtime): ResearchClaude {
-  const client = new Anthropic({ apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
+  const client = anthropicClient(rt.settings, 'research', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
   return { create: (p) => client.beta.messages.create(p as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming) as unknown as ReturnType<ResearchClaude['create']> };
 }
 

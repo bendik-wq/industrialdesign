@@ -7,6 +7,8 @@ export interface Env {
   ROOMS?: DurableObjectNamespace;
   /** Optional R2 bucket for room recordings (the replay). Without it the host downloads the recording. */
   RECORDINGS?: R2Bucket;
+  /** Cloudflare round, builder C: the Vectorize index gl-knowledge (768 dims, cosine). Missing in tests and `wrangler dev --local`; every caller copes. */
+  VECTORS?: Vectorize;
 
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.

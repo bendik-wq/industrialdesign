@@ -72,6 +72,7 @@ import { RoomDO as RoomDOBase } from './rooms/do';
 import { buildId, versionAssets } from './infra/build';
 import { normalisePath, purgeErrors, recordError } from './infra/errors';
 import { runJobs } from './infra/cron';
+import { indexTick } from './vectors/indexer';
 import { sendSignals } from './tracking/signals';
 import { CSP_REPORT_PATH, cspReportRoute, reportingEndpoints, withReporting } from './infra/csp';
 import { PUBLIC_RATE_LIMITS, purgeRateLimits, rateLimit } from './lib/ratelimit';
@@ -444,6 +445,8 @@ export default {
       { name: 'Meta deep-funnel signals', run: () => sendSignals(rt) },
       { name: 'error log retention', run: () => purgeErrors(rt) },
       { name: 'rate-limit counters', run: () => purgeRateLimits(env) },
+      // Cloudflare round, builder C: AI search (Vectorize). Does nothing unless VECTOR_SEARCH is on and the bindings exist.
+      { name: 'AI search index', run: () => indexTick(rt) },
     ]);
     type R<F extends (...a: never[]) => unknown> = Awaited<ReturnType<F>> | null;
     const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = outcomes.map((o) => o.result) as [

@@ -190,6 +190,15 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .rm-q.is-answered { opacity: .6; }
 .rm-q-b p { margin: 0 0 4px; overflow-wrap: anywhere; }
 .rm-q-m { font-size: 12px; color: var(--ink-3); }
+/* Q&A "AI draft" (staff only, ROOM_AI_HELPER): a labelled, editable draft; nothing posts until a person presses Send. */
+.rm-q-b:has(.rm-aid) { flex: 1; min-width: 0; }
+.rm-aid { margin: 8px 0 2px; padding-top: 10px; border-top: 1px solid var(--hair); }
+.rm-aid-l { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.rm-aid-t { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; line-height: 1.4; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--hair); background: transparent; color: var(--ink); resize: vertical; }
+.rm-aid-p { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); font-weight: 600; }
+.rm-aid-s { margin: 6px 0 0; font-size: 12px; color: var(--ink-3); }
+.rm-aid-b { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.rm-aid-note { margin: 6px 0 0; }
 .rm-vote { display: grid; justify-items: center; align-content: center; gap: 2px; min-width: 48px; min-height: 48px; padding: 6px 4px; border: 0; border-radius: var(--r1); background: var(--fill); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .rm-vote[aria-pressed="true"] { background: var(--navy); color: #fff; }
 .rm-vote svg { width: 16px; height: 16px; }

@@ -5,6 +5,7 @@ import { DEPT_LABEL, handlerKinds } from './actions';
 import type { Source } from './metrics';
 import { formatDay, ownerTz } from './range';
 import { TOOLS, runTool } from './tools';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * The Command chat: the owner asks or instructs, the Chief of Staff answers from real data through the tools
@@ -36,7 +37,7 @@ export function claudeModel(rt: Runtime): ChatModel | null {
   const key = rt.settings.ANTHROPIC_API_KEY;
   if (!key) return null;
   const model = (rt.settings as Partial<Record<string, string>>).OPS_MODEL || OPS_MODEL;
-  const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 180_000 });
+  const client = anthropicClient(rt.settings, 'ops-chat', { apiKey: key, maxRetries: 1, timeout: 180_000 });
   return {
     async turn(req, onText) {
       const stream = client.beta.messages.stream({

@@ -27,6 +27,8 @@ import {
 import {
   type RoomRow, createRoom, getRoom, inviteUrl, isRoomId, listRooms, makeInvite, makeTicket, memberId, readInvite, readTicket, roomOffer, roomReport, ticketIdentity,
 } from './rooms';
+import { roomHelperOn } from '../vectors/core';
+import { HELPER_COPY, draftRoomAnswer } from '../vectors/room-helper';
 
 /**
  * Rooms on the web:
@@ -131,6 +133,8 @@ export async function renderRoomPage(c: Context<AppEnv>, room: RoomRow, who: Ide
     engage2: room.mode === 'webinar' ? { copy: E2_COPY } : null,
     // The panic button (room-panic.js, src/rooms/panic.ts): the copy for everyone; for staff who may use it, the options.
     panic: await (await import('./panic')).panicPageCfg(rt, room, who).catch(() => null),
+    // Cloudflare round, builder C: the Q&A "AI draft" button, for staff only and only with ROOM_AI_HELPER on.
+    aiDraft: (who.role === 'host' || who.role === 'cohost') && roomHelperOn(rt) ? HELPER_COPY : null,
   };
   // Copy functions become their plain templates for room.js (it fills {n}/{a}/{b}); everything else is data.
   const json = JSON.stringify(cfg, (_k, v) => (typeof v === 'function' ? fnTemplate(v) : v)).replace(/</g, '\\u003c');
@@ -446,6 +450,19 @@ roomsApi.post('/:id/engage/stats', async (c) => {
   if (!a || !staffTicket(a.t)) return c.json({ ok: false, error: 'forbidden' }, 403);
   c.header('cache-control', 'no-store');
   return c.json({ ok: true, ...(await pushStats(a.rt, a.room.id)) });
+});
+
+/**
+ * Cloudflare round, builder C: the Q&A "AI draft" button (staff tickets only, setting ROOM_AI_HELPER). Returns a
+ * draft to this staff member and nothing else: it is never posted to the room from here (src/vectors/room-helper.ts).
+ */
+roomsApi.post('/:id/ai-draft', async (c) => {
+  if (!sameOrigin(c)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const a = await authed(c, b.t);
+  if (!a || !staffTicket(a.t)) return c.json({ ok: false, error: 'forbidden' }, 403);
+  c.header('cache-control', 'no-store');
+  return c.json(await draftRoomAnswer(a.rt, typeof b.text === 'string' ? b.text : ''));
 });
 
 // ── recordings (host and co-hosts): R2 multipart upload in parts of 5 MB or more ──

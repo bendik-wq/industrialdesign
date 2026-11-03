@@ -28,6 +28,12 @@
   // Workers AI: Whisper speech-to-text for "talk instead of type" in in-app browsers.
   "ai": { "binding": "AI" },
 
+  // ── Cloudflare round, builder C: AI search (src/vectors). Vectorize index gl-knowledge (768 dims, cosine), filled with
+  // Workers AI bge-base-en-v1.5 embeddings through the AI binding above. Nothing is indexed or queried unless the
+  // VECTOR_SEARCH setting is on (ROOM_AI_HELPER for the room's AI draft). Vectorize doesn't run in `wrangler dev --local`:
+  // every caller checks the binding and Funnel HQ says "not available here". AI Gateway needs no binding (setting AI_GATEWAY_ID).
+  "vectorize": [{ "binding": "VECTORS", "index_name": "gl-knowledge" }],
+
   "d1_databases": [
     {
       "binding": "DB",

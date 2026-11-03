@@ -5,6 +5,7 @@ import { auditEmail, copyBrief } from '../content/copy-rules';
 import type { Settings } from '../settings';
 import type { EmailContent } from '../integrations/templates';
 import { type Fact, type Profile, TEMPLATE_TOPICS } from './profile';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * Personalises each email to what this lead actually did: the part of the video
@@ -133,7 +134,7 @@ export function validateAi(o: AiOut, factKeys: Set<string>): string | null {
 export async function aiPersonalize(s: Settings, content: EmailContent, template: string, profile: Profile, used: Set<string>, ctx: { purpose: string; callTime: string | null }): Promise<Personalized> {
   const facts = pickFacts(profile.facts, template, used, 8);
   if (!facts.length) return rulesPersonalize(content, template, profile, used);
-  const client = new Anthropic({ apiKey: s.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 45_000 });
+  const client = anthropicClient(s, 'email-personalize', { apiKey: s.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 45_000 });
   const draft = {
     job: ctx.purpose,
     topic: TEMPLATE_TOPICS[template] ?? [],

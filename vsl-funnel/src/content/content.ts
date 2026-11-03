@@ -4,6 +4,7 @@ import { linkFunnels } from '../funnel/tracked-links';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
 import { copyBrief } from './copy-rules';
 import { META_API_VERSION } from '../tracking/forward';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * Content analytics (Funnel HQ → Content): Josh's YouTube and Instagram, which videos travel, and which
@@ -270,7 +271,7 @@ export async function suggestNextVideos(rt: Runtime) {
     await kv.set(rt, 'content:suggestions', JSON.stringify(out));
     return out;
   }
-  const client = new Anthropic({ apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 90_000 });
+  const client = anthropicClient(rt.settings, 'content', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 90_000 });
   const user = [
     r.channel ? `YouTube channel: ${r.channel.title}${r.channel.subscribers ? `, ${r.channel.subscribers} subscribers` : ''}` : '',
     r.instagram ? `Instagram: @${r.instagram.username}, ${r.instagram.followers ?? '?'} followers` : '',

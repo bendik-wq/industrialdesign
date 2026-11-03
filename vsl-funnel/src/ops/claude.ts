@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Runtime } from '../app';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * One small door to Claude for Client Success and Support. Returns null when there is no API key (every
@@ -9,7 +10,7 @@ import type { Runtime } from '../app';
 export const REASONING_MODEL = 'claude-sonnet-5-5';
 export const NO_KEY_NOTE = 'Add the Anthropic API key (Integrations → Email) to have Claude draft these.';
 
-export interface ClaudeAsk { model: string; system: string; user: string; maxTokens?: number }
+export interface ClaudeAsk { model: string; system: string; user: string; maxTokens?: number; /** AI Gateway cost tag (src/infra/ai-gateway.ts). */ feature?: string }
 type Transport = (rt: Runtime, ask: ClaudeAsk) => Promise<string | null>;
 
 let transport: Transport | null = null;
@@ -21,7 +22,7 @@ export async function askClaude(rt: Runtime, ask: ClaudeAsk): Promise<string | n
   if (transport) return transport(rt, ask);
   const key = rt.settings.ANTHROPIC_API_KEY;
   if (!key) return null;
-  const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 60_000 });
+  const client = anthropicClient(rt.settings, ask.feature || 'claude', { apiKey: key, maxRetries: 1, timeout: 60_000 });
   const res = await client.messages.create({
     model: ask.model,
     max_tokens: ask.maxTokens ?? 1200,

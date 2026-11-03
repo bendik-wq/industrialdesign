@@ -8,6 +8,7 @@ import { logAction } from '../ops/actions';
 import { sendText } from './graph';
 import { type DmMessage, type DmThread, addMessage, addNote, getThread } from './inbox';
 import { HOUR, awaitingReply, fillTemplate, statedRevenue, revenueBandOf, windowState } from './rules';
+import { anthropicClient } from '../infra/ai-gateway';
 
 /**
  * Claude in the DM inbox (setting DM_MODEL, Anthropic key under Email). Every feature has a rules fallback,
@@ -22,7 +23,7 @@ export const DM_MODEL_DEFAULT = 'claude-haiku-5-5';
 export const ASSISTANT_PREFIX = 'Automated assistant: ';
 export const NO_KEY_NOTE = 'Add the Anthropic API key under Integrations → Email to turn on AI drafts and summaries. Showing the best matching script for now.';
 
-const client = (rt: Runtime) => (rt.settings.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 25_000 }) : null);
+const client = (rt: Runtime) => (rt.settings.ANTHROPIC_API_KEY ? anthropicClient(rt.settings, 'dm', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 25_000 }) : null);
 const model = (rt: Runtime) => rt.settings.DM_MODEL || DM_MODEL_DEFAULT;
 
 async function askJson<T>(rt: Runtime, system: string, user: string, maxTokens = 700): Promise<T | null> {
