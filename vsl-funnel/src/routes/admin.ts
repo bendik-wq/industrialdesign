@@ -16,6 +16,7 @@ import { type Context, Hono } from 'hono';
 import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
+import { mountGuestAdmin } from '../admin/guest';
 import { hqCache } from '../lib/hq-cache';
 import { deliverabilityAdmin } from '../admin/deliverability';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
@@ -93,6 +94,7 @@ export const admin = new Hono<AppEnv>();
 admin.use('*', requireAdmin);
 admin.use('*', hqCache); // 90 s cache of the heavy read views, cleared by any Funnel HQ write (src/lib/hq-cache.ts)
 mountLiveAdmin(admin); // Live webinars: events, host controls, the deposit offer (src/live/routes.ts)
+mountGuestAdmin(admin); // guest links: /admin/api/whoami, /admin/api/guest-access* (owner only; src/admin/guest.ts)
 mountDmAdmin(admin); // Instagram DM inbox: /admin/api/dm/* (src/dm/routes.ts)
 mountFunnelMaps(admin); // Funnel maps: /admin/api/maps* (src/admin/funnel-maps.ts)
 mountAttributionAdmin(admin); // Webinar attribution: /admin/api/attribution* (src/attribution/routes.ts)

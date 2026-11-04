@@ -2,7 +2,8 @@ import { cameraTestPost } from './rooms/camera-test';
 import { Hono, type MiddlewareHandler } from 'hono';
 import { maybeSyncMetaSpend } from './integrations/meta-ads';
 import { type AppEnv, type Runtime, publicOrigin, runtimeFrom } from './app';
-import { isAdmin, login, logout, requireAdmin, sameOriginWrite } from './admin/auth';
+import { canView, isAdmin, login, logout, requireAdmin, sameOriginWrite } from './admin/auth';
+import { guestSession, logGuestView, mountGuestPublic } from './admin/guest';
 import type { Env } from './env';
 import { indexNowKeyFile, logCrawler } from './seo/tracking';
 import { aboutPage, guideMarkdownPage, guidePage, guidesHub, llmsFullRoute, llmsRoute, robotsRoute, sitemapRoute } from './seo/pages';
@@ -347,6 +348,7 @@ app.get('/oauth/google/callback', async (c) => {
     return c.text(`Google didn't connect: ${e instanceof Error ? e.message : 'unknown error'}. Check the client ID, secret and redirect URI, then try again.`, 400);
   }
 });
+mountGuestPublic(app, sameOriginWrite); // guest links: /admin/invite/<token>, POST /admin/guest/leave (src/admin/guest.ts)
 app.route('/admin/api', admin);
 app.get('/admin/voice-demo', requireAdmin, async (c) => { // Funnel HQ → Talk to an agent (live, in the browser; nobody is called)
   const { voiceDemoPage, VOICE_DEMO_CSP } = await import('./admin/voice-demo');
@@ -368,7 +370,8 @@ app.get('/admin/rooms/:id', requireAdmin, hostRoomPage); // the host in our own 
 app.get('/admin/live/:key/room', requireAdmin, hostRoomForKey); // host console → Open host room
 // Scripts and decks (public/materials/*.md) are admin-only: anyone else gets a plain 404, as if they didn't exist.
 app.get('/materials/:file{[a-z0-9][a-z0-9-]{0,60}\\.md}', async (c) => {
-  if (!(await isAdmin(c))) return c.notFound();
+  if (!(await canView(c))) return c.notFound();
+  if (!(await isAdmin(c))) { const g = await guestSession(c); if (g) logGuestView(c, g, 200); } // guests read the scripts too (logged)
   const res = await c.env.ASSETS.fetch(new Request(new URL(`/materials/${c.req.param('file')}`, c.req.url)));
   if (!res.ok) return c.notFound();
   const headers: Record<string, string> = { 'content-type': 'text/markdown; charset=utf-8', 'cache-control': 'no-store', 'x-frame-options': 'DENY' };

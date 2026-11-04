@@ -4,6 +4,7 @@ import type { AppEnv } from '../app';
 import { safeEqual, signToken, verifyToken } from '../lib/crypto';
 import { getSecret } from '../lib/secret';
 import { hit } from '../lib/ratelimit';
+import { guestGate, guestSession } from './guest';
 
 export const ADMIN_COOKIE = '_fa';
 const TTL_S = 3 * 24 * 3600;
@@ -76,6 +77,7 @@ export async function logout(c: Context<AppEnv>) {
   if (wasAdmin) await c.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('admin:epoch', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(String(Date.now())).run();
 }
 
+/** The owner (password session) only. Guests are never admins: see canView for read-only pages outside requireAdmin. */
 export async function isAdmin(c: Context<AppEnv>) {
   const token = getCookie(c, ADMIN_COOKIE);
   if (!token || !c.env.ADMIN_PASSWORD) return false;
@@ -103,6 +105,14 @@ export async function requireAdmin(c: Context<AppEnv>, next: Next) {
     c.header('cache-control', 'no-store'); // lead data must not sit in the browser cache
     return;
   }
+  // A guest link (src/admin/guest.ts): read-only, secrets out, personal details hidden when the invite says so.
+  const guest = await guestSession(c);
+  if (guest) return guestGate(c, next, guest);
   if (c.req.path.startsWith('/admin/api/')) return c.json({ error: 'unauthorised' }, 401);
   return c.redirect('/admin/login', 302);
+}
+
+/** The owner, or a guest with a live link: for read-only pages that check the session themselves (/materials). */
+export async function canView(c: Context<AppEnv>) {
+  return (await isAdmin(c)) || Boolean(await guestSession(c));
 }
