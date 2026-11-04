@@ -33,9 +33,11 @@
   // Remind me by text: one tap, the consent wording sits under the button.
   var smsBtn = $('[data-lc-sms]');
   if (smsBtn) smsBtn.onclick = function () {
-    var phone = $('[data-lc-phone]'), err = $('[data-lc-sms-err]');
-    smsBtn.disabled = true; err.hidden = true;
-    post('/sms', { phone: phone ? phone.value : '' }).then(function (r) {
+    var phone = $('[data-lc-phone]'), err = $('[data-lc-sms-err]'), box = $('[data-lc-sms-consent]');
+    err.hidden = true;
+    if (!box || !box.checked) { err.textContent = C.smsConsent; err.hidden = false; return; }
+    smsBtn.disabled = true;
+    post('/sms', { phone: phone ? phone.value : '', sms_consent: true, consent_page: location.pathname }).then(function (r) {
       smsBtn.disabled = false;
       if (r && r.ok) { $('[data-lc-sms-form]').hidden = true; $('[data-lc-sms-on]').hidden = false; return; }
       err.textContent = r && r.error === 'stopped' ? C.smsStopped : (r && r.error) || C.failed; err.hidden = false;

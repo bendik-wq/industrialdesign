@@ -267,7 +267,6 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   const band = APP_REVENUE_BAND[String(body.revenue ?? '')] ?? null;
   if (!band && !o.admission) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
   if (!o.admission && !(await verifyTurnstile(rt, body.turnstile, v, 'live'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
-  const wantsTexts = body.sms_consent === true || body.sms_consent === 'true' || body.sms_consent === 'on';
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number, including area code, or leave it blank', 'phone');
   const ev = typeof body.event_id === 'string' && body.event_id ? await getEvent(rt, body.event_id) : await nextEvent(rt);
@@ -286,12 +285,12 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
     const { last, first } = await attributionFor(rt, v);
     const id = newId('l');
     await rt.env.DB.prepare(
-      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, email, phone, sms_consent_at, wa_consent_at, whatsapp_opt_in, step_reached, status,
+      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, email, phone, whatsapp_opt_in, step_reached, status,
          channel, utm_source, utm_medium, utm_campaign, utm_content, utm_term, click_id, click_type, ft_channel, ft_source, ft_campaign, ft_content,
          landing_path, variant, country, city, device, fbp, fbc, timezone, revenue_band)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     ).bind(
-      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, emailCheck.email, phone, phone && wantsTexts ? now : null, phone && wantsTexts ? now : null,
+      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, emailCheck.email, phone,
       last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_medium ?? null, last?.utm_campaign ?? null, last?.utm_content ?? null, last?.utm_term ?? null,
       last?.click_id ?? null, last?.click_type ?? null, first?.ft_channel ?? null, first?.ft_source ?? null, first?.ft_campaign ?? null, first?.ft_content ?? null,
       last?.landing_path ?? '/live', v.variant, v.geo.country, v.geo.city, v.ua.device, v.fbp, v.fbc, v.geo.timezone, band,
@@ -309,8 +308,8 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   const prior = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM live_webinar_regs WHERE lead_id = ?').bind(lead.id).first<{ n: number }>();
   const s = liveSettings(rt);
   const ticketRequired = s.ticket && paymentProvider(rt.settings) === 'whop' ? 1 : 0;
-  // Texts only to a number given with the box ticked (here, or on an earlier form).
-  const smsOk = phone && wantsTexts ? 1 : lead.sms_consent_at && lead.phone ? 1 : 0;
+  // Texts only to a number given with the box ticked (here, or on an earlier form); the contact gate checks again at send time.
+  let smsOk = lead.sms_consent_at && lead.phone ? 1 : 0;
   const reg: LiveReg = {
     id: newId('lr'), token: token(), event_id: ev.id, lead_id: lead.id, seq: prior?.n ?? 0, new_lead: newLead ? 1 : 0, revenue_band: band, ticket_required: ticketRequired, sms_ok: smsOk,
     joined_at: null, zoom_clicked_at: null, last_seen_at: null, offer_seen_at: null, offer_clicked_at: null, replay_at: null, created_at: now,
@@ -319,8 +318,9 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
     .bind(reg.id, reg.token, reg.event_id, reg.lead_id, reg.seq, reg.new_lead, band, ticketRequired, smsOk, now).run();
   const bandIsNew = !lead.revenue_band;
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
-  if (phone && wantsTexts && !lead.phone && !newLead) await updateLead(rt.env, lead.id, { phone, sms_consent_at: now });
-  await (await import('../integrations/call-consent')).recordCallConsent(rt, lead.id, phone, body, now); // optional AI-call consent box
+  // The two optional boxes (calls, texts), recorded with proof for this number (consent-gate.ts).
+  const consent = await (await import('../integrations/consent-gate')).captureConsent(rt, lead.id, body, { phone, source: o.admission ? 'room-join' : 'live', page: o.admission ? '/rooms/join' : '/live', ip: v.ip, userAgent: v.userAgent }, now);
+  if (consent.texts && !smsOk) { smsOk = 1; reg.sms_ok = 1; await rt.env.DB.prepare('UPDATE live_webinar_regs SET sms_ok = 1 WHERE id = ?').bind(reg.id).run(); }
   await (await import('./lifecycle-db')).onRegistered(rt, v, reg, lead, body).catch((e) => console.error('lifecycle registration', e)); // zone, referral code and verdict (builder E)
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'live_registered', source: 'server', path: '/live', props: { event_id: ev.id, starts_at: ev.starts_at, band, ticket: Boolean(ticketRequired) }, eventId: typeof body.event_id_track === 'string' ? body.event_id_track : undefined });
@@ -469,11 +469,14 @@ async function mailCtx(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: Lead, now
 }
 
 async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, ev: LiveEvent, now: number, lc?: ReminderCtx) {
-  const { smsBlock, smsConfigured, inTextingHours, sendSmsNow, textingZones } = await import('../integrations/sms');
+  const { smsConfigured, inTextingHours, sendSmsNow, textingZones } = await import('../integrations/sms');
   const tz = lc?.tz || lead.timezone || ev.tz;
   const body0 = liveText(k, { title: ev.title, when: formatCallTime(ev.starts_at, tz), site: rt.settings.SITE_NAME || 'G&L', inRoom: ev.platform === 'room' });
-  if (!body0 || !reg.sms_ok || smsBlock(lead) || !lead.sms_consent_at) return false;
+  if (!body0 || !reg.sms_ok) return false;
   if (rt.settings.SMS_ENABLED?.trim().toLowerCase() === 'false') return false;
+  // The contact gate: consent to texts for the number on file now, no STOP, a country we text.
+  const gate = await (await import('../integrations/consent-gate')).canText(rt, lead, `live_text:${k}`);
+  if (!gate.ok) return false;
   const zones = textingZones(lead);
   if (!zones || !inTextingHours(now, zones)) return false;
   const db = rt.env.DB;
@@ -497,7 +500,7 @@ async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, e
   if (!claim.meta.changes) return false;
   const body = `${body0} ${rt.origin}/s/${id}${before ? '' : ' Reply STOP to opt out.'}`;
   try {
-    const providerId = smsConfigured(rt) ? await sendSmsNow(rt, lead.phone!, body) : null;
+    const providerId = smsConfigured(rt) ? await sendSmsNow(rt, gate.pass, body) : null;
     await db.prepare("UPDATE sms_messages SET status = ?, sent_at = ?, provider_id = ?, body = ?, channel = 'sms' WHERE id = ?").bind(providerId ? 'sent' : 'simulated', Date.now(), providerId, body, id).run();
     return true;
   } catch (e) {

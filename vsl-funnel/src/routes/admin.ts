@@ -41,6 +41,7 @@ import { REACTIVATION_PLAN, RX_SKIP } from '../integrations/sequences';
 import { buildDossier } from '../followup/dossier';
 import { INDUSTRIES } from '../landers/catalog';
 import { cloudApiConfigured, sendWhatsAppTemplate, sendWhatsAppText, whatsappLink } from '../integrations/whatsapp';
+import { consentSummary, gateReport, testPass } from '../integrations/consent-gate';
 import { provisionInbound } from '../integrations/elevenlabs-inbound';
 import { calendlyConnected, connectCalendly, importCalendlyHistory, requalifyCalendlyLeads, syncCalendly } from '../integrations/calendly';
 import { type OutboundCall, dial, elevenConfigured, listPhoneNumbers, provisionAgent } from '../integrations/elevenlabs';
@@ -368,15 +369,17 @@ admin.post('/sms/test-step', async (c) => {
   if (!seq?.steps[0]) return c.json({ ok: false, error: 'That text is empty.' }, 400);
   const sample = { id: 'test', first_name: 'Dana', phone: number, call_at: Date.now() + 86_400_000, webinar_at: Date.now() + 2 * 86_400_000, webinar_token: null, timezone: rt.settings.SALES_TIMEZONE || 'Australia/Sydney', closer_id: null, tier: 'A', tier_override: null, booking_join_url: null, booking_reschedule_url: null } as unknown as Lead;
   const { body, values } = renderSms(rt, sample, seq.steps[0], 'test000000', false);
+  // The owner's test send: logged by the contact gate, refused for a lead's number without consent.
+  const gate = await testPass(rt, viaWa ? 'whatsapp' : 'sms', number, 'sms_step');
+  if (!gate.ok) return c.json({ ok: false, error: gate.reason }, 400);
   try {
     if (viaWa) {
-      const who = { phone: number, whatsapp_wa_id: null };
       // A template if this text has one; otherwise free text (only arrives if you've messaged the number in the last 24h).
-      if (seq.steps[0].wa) await sendWhatsAppTemplate(rt, who, seq.steps[0].wa, waTemplateParams(seq.steps[0], values));
-      else await sendWhatsAppText(rt, who, `[TEST] ${body}`);
+      if (seq.steps[0].wa) await sendWhatsAppTemplate(rt, gate.pass, seq.steps[0].wa, waTemplateParams(seq.steps[0], values));
+      else await sendWhatsAppText(rt, gate.pass, `[TEST] ${body}`);
       return c.json({ ok: true, channel: 'whatsapp' });
     }
-    await sendSmsNow(rt, number, `[TEST] ${body}`); return c.json({ ok: true });
+    await sendSmsNow(rt, gate.pass, `[TEST] ${body}`); return c.json({ ok: true });
   } catch (e) { return c.json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 400); }
 });
 
@@ -386,12 +389,12 @@ admin.post('/sms/test', async (c) => {
   const number = String(to ?? '').replace(/[^\d+]/g, '');
   if (!/^\+\d{8,15}$/.test(number)) return c.json({ ok: false, error: 'Enter your number in international format, e.g. +61412345678' }, 400);
   if (!smsConfigured(rt)) return c.json({ ok: false, error: 'Add the Twilio Account SID, Auth Token and “Send texts from” first.' }, 400);
-  const s = rt.settings;
-  const form = new URLSearchParams({ To: number, Body: `Test text from ${s.SITE_NAME || 'Funnel HQ'}: SMS follow-up is connected.` });
-  if (/^MG[0-9a-f]{32}$/i.test(s.SMS_FROM)) form.set('MessagingServiceSid', s.SMS_FROM); else form.set('From', s.SMS_FROM);
-  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(s.TWILIO_ACCOUNT_SID)}/Messages.json`, { method: 'POST', headers: { authorization: `Basic ${btoa(`${s.TWILIO_ACCOUNT_SID}:${s.TWILIO_AUTH_TOKEN}`)}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form });
-  const data = (await res.json().catch(() => ({}))) as { message?: string };
-  return c.json(res.ok ? { ok: true } : { ok: false, error: `Twilio: ${data.message ?? res.status}` }, res.ok ? 200 : 400);
+  const gate = await testPass(rt, 'sms', number, 'sms_connection');
+  if (!gate.ok) return c.json({ ok: false, error: gate.reason }, 400);
+  try {
+    await sendSmsNow(rt, gate.pass, `Test text from ${rt.settings.SITE_NAME || 'Funnel HQ'}: SMS follow-up is connected.`);
+    return c.json({ ok: true });
+  } catch (e) { return c.json({ ok: false, error: String(e instanceof Error ? e.message : e).slice(0, 300) }, 400); }
 });
 // Funnel HQ → All pages: every page in funnel order, previewed live (previews never count; see identity.ts).
 admin.get('/pages', (c) => {
@@ -504,8 +507,13 @@ admin.get('/leads/:id', async (c) => {
     roomEngage: await (await import('../rooms/engage-db')).leadEngagement(runtimeFrom(c), lead.id).catch(() => null),
     // AI calls: the main challenge they named and the guides emailed (src/integrations/voice-resources.ts).
     sales: await (await import('../integrations/voice-resources')).leadSales(runtimeFrom(c), lead.id).catch(() => null),
+    // Consent per channel with its proof, opt-outs and recent blocked attempts (src/integrations/consent-gate.ts).
+    consent: await consentSummary(c.env, lead).catch(() => null),
   });
 });
+
+// Settings → Errors & jobs → Consent: blocked contact attempts by reason (7 days) and the owner's test sends.
+admin.get('/consent/report', async (c) => c.json(await gateReport(c.env)));
 
 // Payments ledger (cash collected, instalments, refunds).
 admin.get('/leads/:id/payments', async (c) => {
@@ -1311,8 +1319,10 @@ admin.post('/voice/elevenlabs/test-call', async (c) => {
     call_at: Date.now() + 2 * 86_400_000, closer_id: rt.reps.find((r) => r.active && r.role !== 'setter')?.id ?? null, answers: JSON.stringify({ business: 'Commercial HVAC, 25 staff' }),
     country: null, timezone: null,
   } as unknown as Lead);
+  const gate = await testPass(rt, 'call', number, `ai_call:${kind === 'speed_to_lead' ? 'speed_to_lead' : 'confirm'}`);
+  if (!gate.ok) return c.json({ ok: false, error: gate.reason }, 400);
   try {
-    const r = await dial(rt, lead, kind === 'speed_to_lead' ? 'speed_to_lead' : 'confirm', undefined, number);
+    const r = await dial(rt, lead, kind === 'speed_to_lead' ? 'speed_to_lead' : 'confirm', undefined, gate.pass);
     return c.json({ ok: true, conversationId: r.conversationId });
   } catch (err) {
     return c.json({ ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 600) }, 400);

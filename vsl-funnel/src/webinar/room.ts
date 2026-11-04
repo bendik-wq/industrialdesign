@@ -157,15 +157,21 @@ export async function selfServeAgreement(rt: Runtime, reg: Registration) {
 }
 
 /** Thank-you page: a mobile for "it's starting" texts (with the consent the form shows). $1M+ only get the text sequence. */
-export async function addPhone(rt: Runtime, reg: Registration, body: { phone?: unknown }, country: string | null) {
-  const { normalisePhone, updateLead } = await import('../funnel/leads');
+export async function addPhone(rt: Runtime, reg: Registration, body: { phone?: unknown; sms_consent?: unknown; consent_page?: unknown }, country: string | null) {
+  const { normalisePhone } = await import('../funnel/leads');
+  const G = await import('../integrations/consent-gate');
   const { startSms } = await import('../integrations/sms');
   const phone = typeof body.phone === 'string' ? normalisePhone(body.phone, country) : null;
   if (!phone) return { ok: false as const, error: 'Please enter a valid mobile number, including area code' };
+  // Its own unticked box (consent-gate.ts): no tick, no texts. Consent is only ever for the number on the lead.
+  if (!G.tickedTexts(body)) return { ok: false as const, error: 'Tick the box to agree to texts first. It’s optional.' };
   const lead = await getLead(rt.env, reg.lead_id);
   if (!lead) return { ok: false as const };
+  if (lead.phone && lead.phone !== phone) return { ok: false as const, error: 'This registration has a different number on file. Reply to any of our emails to change it.' };
+  if (lead.sms_opt_out_at) return { ok: false as const, error: 'You replied STOP to our texts earlier. Text START to our number to turn them back on.' };
   const now = Date.now();
-  await updateLead(rt.env, lead.id, { phone: lead.phone ?? phone, sms_consent_at: now, wa_consent_at: now });
+  const got = await G.captureConsent(rt, lead.id, body as Record<string, unknown>, { phone, source: 'webinar-thanks', page: '/webinar/registered' }, now);
+  if (!got.texts) return { ok: false as const, error: 'Please check the number' };
   const fresh = (await getLead(rt.env, lead.id))!;
   if (!fresh.revenue_band || isMillionPlus(fresh.revenue_band)) await startSms(rt, fresh, 'webinar');
   return { ok: true as const };

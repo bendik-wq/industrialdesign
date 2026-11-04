@@ -49,6 +49,8 @@
       err.hidden = true;
       var data = {}; new FormData(form).forEach(function (v, k) { data[k] = v; });
       data.sms_consent = Boolean(form.sms_consent && form.sms_consent.checked);
+      data.call_consent = Boolean(form.call_consent && form.call_consent.checked);
+      data.consent_page = location.pathname;
       var ts = $('[name="cf-turnstile-response"]', form); if (ts) data.turnstile = ts.value;
       data.event_id = 'cr' + Date.now().toString(36); data.pixel_eid = F.uid ? F.uid() : '';
       var label = btn.innerHTML; btn.disabled = true; btn.textContent = 'One moment…';

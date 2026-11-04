@@ -1,3 +1,4 @@
+import { testPass } from '../integrations/consent-gate';
 import { type Context, Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { saveSettings } from '../settings';
@@ -74,9 +75,12 @@ webinarCallsAdmin.post('/test', async (c) => {
   const kind = (W_KINDS as readonly string[]).includes(String(b.kind)) ? (b.kind as WKind) : 'w_pre_welcome';
   const lead = { id: 'test', ref_code: 'TEST01', first_name: 'there', email: null, phone: number, timezone: null, country: null } as unknown as Lead;
   const sample = sampleCtx(rt, kind);
+  // The owner's test call: logged by the contact gate, refused for a lead's number without consent.
+  const gate = await testPass(rt, 'call', number, `webinar_call:${kind}`);
+  if (!gate.ok) return fail(c, gate.reason);
   try {
     const vars = await callVariables(rt, kind, lead, sample.ctx, sample.purchase, sample.meta, 1);
-    const r = await dial(rt, lead, 'test', undefined, number, { agentId: String(s.ELEVENLABS_WEBINAR_AGENT_ID), vars });
+    const r = await dial(rt, lead, 'test', undefined, gate.pass, { agentId: String(s.ELEVENLABS_WEBINAR_AGENT_ID), vars });
     return c.json({ ok: true, conversationId: r.conversationId });
   } catch (e) { return fail(c, e); }
 });

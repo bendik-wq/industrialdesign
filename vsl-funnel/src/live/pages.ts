@@ -9,7 +9,7 @@ import { type LiveEvent, type LiveReg, ROOM_COPY, getEvent, getLiveReg, liveBase
 import { depositConfig, depositCopy, depositQuote, depositStatus, guaranteeHtml, onboardingUrl } from '../sales/deposit';
 import { guarantee } from '../sales/guarantee';
 import { playbackFor } from './stream';
-import { WEBINAR_CALL_CONSENT } from '../integrations/call-consent';
+import { CONSENT_LEGEND, consentBoxes } from '../integrations/consent-gate';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
@@ -33,7 +33,6 @@ export const LANDING_COPY = {
   ticketButton: (label: string) => `Get my ticket, ${label}`,
   ticketLine: (label: string) => `Ticket: ${label}, paid securely through Whop. It comes off the engagement deposit if you take it.`,
   privacy: 'We email you your room link, reminders before the session and the replay. Unsubscribe any time.',
-  sms: 'Text me the room link and a reminder before the session. Msg & data rates may apply. Reply STOP to opt out.',
   startsIn: 'Starts in',
   none: 'The next live session isn’t scheduled yet.',
   noneBody: 'In the meantime, the recorded masterclass covers the same method.',
@@ -78,9 +77,8 @@ export async function liveLanding(c: Context<AppEnv>) {
             <label class="lv-field"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
           </div>
           <fieldset class="lv-field"><legend>Your business’s annual revenue</legend><div class="lv-opts">${REVENUE.map(([k, l]) => `<label class="lv-opt"><input type="radio" name="revenue" value="${k}"><span>${esc(l)}</span></label>`).join('')}</div></fieldset>
-          <label class="lv-field"><span>Mobile <span class="lv-muted">(optional, for a text reminder)</span></span><input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
-          <label class="lv-check"><input type="checkbox" name="sms_consent"><span>${esc(L.sms)}</span></label>
-          <label class="lv-check"><input type="checkbox" name="call_consent"><span>${esc(WEBINAR_CALL_CONSENT.text)}</span></label>
+          <label class="lv-field"><span>Mobile <span class="lv-muted">(optional)</span></span><input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
+          <fieldset class="lv-consent"><legend>${esc(CONSENT_LEGEND)}</legend>${consentBoxes('lv-check', { space: '' })}</fieldset>
           <div data-turnstile></div>
           <button class="buy-btn" type="submit" data-track="cta_click" data-track-id="live_register">${esc(btn)} ${ARROW}</button>
           <p class="lv-err" role="alert" data-err hidden></p>

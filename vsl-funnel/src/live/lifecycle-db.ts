@@ -1,6 +1,6 @@
 import type { Runtime } from '../app';
 import type { VisitorCtx } from '../lib/identity';
-import { type Lead, getLead, normalisePhone, updateLead } from '../funnel/leads';
+import { type Lead, getLead, normalisePhone } from '../funnel/leads';
 import { hmacHex, unitHash } from '../lib/crypto';
 import { getSecret } from '../lib/secret';
 import { formatCallTime } from '../integrations/email';
@@ -361,8 +361,12 @@ export async function smsOptIn(rt: Runtime, reg: LiveReg, body: Record<string, u
   const phone = typed ?? lead.phone;
   if (!phone) return { ok: false as const, error: 'Please enter your mobile number.' };
   if (lead.phone && typed && typed !== lead.phone) return { ok: false as const, error: 'This registration has a different number on file. Reply to any of our emails to change it.' };
+  // Its own unticked box (consent-gate.ts): no tick, no texts.
+  const G = await import('../integrations/consent-gate');
+  if (!G.tickedTexts(body)) return { ok: false as const, error: 'Tick the box to agree to texts first. It’s optional.' };
   const now = Date.now();
-  await updateLead(rt.env, lead.id, { ...(lead.phone ? {} : { phone }), ...(lead.sms_consent_at ? {} : { sms_consent_at: now }) });
+  const got = await G.captureConsent(rt, lead.id, body, { phone, source: 'live-texts', page: '/live/confirmed' }, now);
+  if (!got.texts) return { ok: false as const, error: 'stopped' };
   await rt.env.DB.prepare('UPDATE live_webinar_regs SET sms_ok = 1 WHERE id = ?').bind(reg.id).run();
   await ensureLcReg(rt, reg);
   await rt.env.DB.prepare('UPDATE lc_regs SET sms_optin_at = COALESCE(sms_optin_at, ?) WHERE reg_id = ?').bind(now, reg.id).run();

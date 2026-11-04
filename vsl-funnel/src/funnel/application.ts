@@ -1,5 +1,5 @@
 import type { Runtime } from '../app';
-import { AI_CALLER, APPLICATION, CALL_CONSENT, type Route, type Tier } from '../config';
+import { AI_CALLER, APPLICATION, type Route, type Tier } from '../config';
 import { newId, newRefCode } from '../lib/ids';
 import { overLimit } from '../lib/ratelimit';
 import type { VisitorCtx } from '../lib/identity';
@@ -132,8 +132,6 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
     lead = (await getLead(rt.env, id))!;
   }
 
-  // Call consent (optional checkbox) — record the wording version they agreed to; unticking withdraws it.
-  const consent = body.call_consent === true || body.call_consent === 'true' || body.call_consent === 'on';
   // Which industry lander(s) this visitor saw: first (for the test) and latest.
   const seen = await rt.env.DB.prepare(
     `SELECT (SELECT lander FROM sessions WHERE visitor_id = ?1 AND lander IS NOT NULL ORDER BY started_at LIMIT 1) AS ft,
@@ -142,13 +140,11 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   await updateLead(rt.env, lead.id, {
     lander: seen?.lt ?? lead.lander,
     ft_lander: lead.ft_lander ?? seen?.ft ?? null,
-    // Consent is to calls on a specific number: a new number needs fresh consent.
-    call_consent_at: consent ? (phoneChanged ? now : lead.call_consent_at ?? now) : null,
-    call_consent_text: consent ? (phoneChanged ? CALL_CONSENT.version : lead.call_consent_text ?? CALL_CONSENT.version) : null,
-    // The wording names WhatsApp from v2 on; earlier consents stay calls + texts only.
-    wa_consent_at: consent ? (phoneChanged || !lead.wa_consent_at ? now : lead.wa_consent_at) : null,
     timezone: v.geo.timezone ?? lead.timezone,
   });
+  // Consent: two optional, unticked boxes (calls, texts), recorded with proof for this number (consent-gate.ts).
+  // A changed number already voided the old consent (updateLead); unticking a box here withdraws that channel.
+  await applyConsent(rt, v, lead, phone, body, phoneChanged, now);
   lead = (await getLead(rt.env, lead.id))!;
 
   await linkVisitor(rt.env, v.visitorId, lead.id);
@@ -160,6 +156,22 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
   if (!lead.app_completed_at) await startSms(rt, lead, 'abandoned');
 
   return { lead, eventId, isNew };
+}
+
+/** The application's boxes on step 1 (shown again ticked when they come back): record what's ticked, withdraw what was unticked. */
+async function applyConsent(rt: Runtime, v: VisitorCtx, lead: Lead, phone: string, body: Record<string, unknown>, phoneChanged: boolean, now: number) {
+  const G = await import('../integrations/consent-gate');
+  const call = G.tickedCall(body), texts = G.tickedTexts(body);
+  await G.recordConsent(rt, lead.id, { phone, call, texts, source: 'apply', page: G.consentPage(body, '/apply'), ip: v.ip, userAgent: v.userAgent }, now);
+  if (phoneChanged) return; // nothing left to withdraw: the new number has only what was just ticked
+  const hadTexts = Boolean(lead.sms_consent_at || lead.call_consent_at);
+  const drop: ('call' | 'sms' | 'whatsapp')[] = [];
+  const clear: Partial<Record<keyof Lead, null>> = {};
+  if (!call && lead.call_consent_at) { drop.push('call'); clear.call_consent_at = null; clear.call_consent_text = null; }
+  if (!texts && hadTexts && body.sms_consent !== undefined) { drop.push('sms', 'whatsapp'); clear.sms_consent_at = null; clear.wa_consent_at = null; }
+  if (!drop.length) return;
+  await G.recordWithdrawal(rt, lead.id, drop, 'unticked', phone, now);
+  await updateLead(rt.env, lead.id, clear);
 }
 
 /** Steps 2..n: one answer per call, validated against the question config. */

@@ -9,6 +9,7 @@ import { hasContactBait } from '../lib/text';
 import { formatCallTime } from './email';
 import { notify, leadLines, leadName } from './notify';
 import { optOut, sendLinkEmail } from './voice';
+import { type ContactPass, canCall, passTo } from './consent-gate';
 import { GUARDRAILS_CRITERION, NEXT_ACTION_CRITERION, SALES_DATA_COLLECTION, nextActionVars } from './sales-playbook';
 
 /**
@@ -241,6 +242,7 @@ export async function queueCall(rt: Runtime, lead: Lead, kind: CallKind, delayMi
   if (kind === 'speed_to_lead' && !enabled(s.AI_CALL_SPEED_TO_LEAD)) return null;
   if (kind === 'rebook' && !enabled(s.AI_CALL_REBOOK)) return null;
   if (blockReason(lead, kind)) return null;
+  if (!(await canCall(rt, lead, `ai_call:${kind}`)).ok) return null; // the contact gate (consent for this number)
   const done = await rt.env.DB.prepare(`SELECT id FROM outbound_calls WHERE lead_id = ? AND kind = ? AND status IN ('queued', 'dialing', 'done') LIMIT 1`).bind(lead.id, kind).first();
   if (done) return null;
   // Abuse limits: one number can't be rung for several "leads", and there's a daily ceiling for the whole account.
@@ -310,8 +312,9 @@ async function phoneProvider(rt: Runtime) {
   }
 }
 
-/** Places one call now. Returns the conversation id. */
-export async function dial(rt: Runtime, lead: Lead, kind: CallKind, provider?: string, toNumber?: string, override?: { agentId: string; vars: Record<string, string> }) {
+/** Places one call now, to the number on the contact-gate pass (canCall, or testPass for the owner's test). Returns the conversation id. */
+export async function dial(rt: Runtime, lead: Lead, kind: CallKind, provider: string | undefined, pass: ContactPass, override?: { agentId: string; vars: Record<string, string> }) {
+  const toNumber = passTo(pass, 'call');
   const s = rt.settings;
   const path = (provider ?? (await phoneProvider(rt))) === 'sip_trunk' ? '/v1/convai/sip-trunk/outbound-call' : '/v1/convai/twilio/outbound-call';
   const res = await el<{ success: boolean; message: string; conversation_id: string | null; callSid?: string | null; sip_call_id?: string | null }>(s, path, {
@@ -319,7 +322,7 @@ export async function dial(rt: Runtime, lead: Lead, kind: CallKind, provider?: s
     body: {
       agent_id: override?.agentId ?? s.ELEVENLABS_AGENT_ID,
       agent_phone_number_id: s.ELEVENLABS_PHONE_NUMBER_ID,
-      to_number: toNumber ?? lead.phone,
+      to_number: toNumber,
       conversation_initiation_client_data: { dynamic_variables: override?.vars ?? { ...variables(rt, lead, kind), known_pain: await (await import('./voice-resources')).knownPainLine(rt, lead.id).catch(() => NO_PAIN) } },
     },
   });
@@ -356,9 +359,15 @@ export async function dialQueuedCall(rt: Runtime, call: OutboundCall, providerOn
     await db.prepare(`UPDATE outbound_calls SET status = ?, attempts = attempts - 1, run_at = ?, updated_at = ? WHERE id = ?`).bind(next ? 'queued' : 'skipped', next ?? now, now, call.id).run();
     return next ? 'later' : 'skipped';
   }
+  // The contact gate, at the moment of dialling: consent to calls for the number on file now.
+  const gate = await canCall(rt, lead, `ai_call:${call.kind}`);
+  if (!gate.ok) {
+    await db.prepare(`UPDATE outbound_calls SET status = 'skipped', error = ?, updated_at = ? WHERE id = ?`).bind(gate.reason, now, call.id).run();
+    return 'skipped';
+  }
   try {
     const provider = await providerOnce();
-    const { conversationId, callSid } = await dial(rt, lead, call.kind, provider, undefined, override);
+    const { conversationId, callSid } = await dial(rt, lead, call.kind, provider, gate.pass, override);
     await db.prepare(`UPDATE outbound_calls SET conversation_id = ?, call_sid = ?, error = NULL, wc_dialed_at = ?, updated_at = ? WHERE id = ?`).bind(conversationId, callSid, Date.now(), Date.now(), call.id).run();
     await track(rt, await identityFromLead(rt.env, lead.id), { name: 'ai_call_started', source: 'server', props: { kind: call.kind, attempt: call.attempts + 1, conversation_id: conversationId } });
     return 'dialed';

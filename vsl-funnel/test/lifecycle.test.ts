@@ -392,10 +392,15 @@ describe('pre-show saves and the show-up funnel', () => {
     const plan = q<{ data: string; steps: string }>('SELECT data, steps FROM room_plans WHERE who = ?', memberId('reg', reg.id))[0];
     expect(JSON.parse(plan.data)).toMatchObject({ industry: 'HVAC', owners_per_week: '25', action_1: 'List ten owners' });
     expect(plan.steps).toBe('[]'); // the steps (and their points) count in the room
-    expect(await smsOptIn(rt, reg, {}, 'US')).toEqual({ ok: true });
+    // Its own unticked box: no tick, no texts; ticked, consent is recorded with proof for the number on file.
+    expect((await smsOptIn(rt, reg, {}, 'US')).ok).toBe(false);
+    expect(q('SELECT sms_ok FROM live_webinar_regs WHERE id = ?', reg.id)).toEqual([{ sms_ok: 0 }]);
+    expect(await smsOptIn(rt, reg, { sms_consent: true }, 'US')).toEqual({ ok: true });
     expect(q('SELECT sms_ok FROM live_webinar_regs WHERE id = ?', reg.id)).toEqual([{ sms_ok: 1 }]);
+    expect(q("SELECT channel, phone, source FROM consent_events WHERE lead_id = ? AND action = 'granted' ORDER BY channel", reg.lead_id)).toEqual([
+      { channel: 'sms', phone: '+12125550100', source: 'live-texts' }, { channel: 'whatsapp', phone: '+12125550100', source: 'live-texts' }]);
     x("UPDATE leads SET sms_opt_out_at = 1 WHERE id = ?", reg.lead_id);
-    expect(await smsOptIn(rt, reg, {}, 'US')).toEqual({ ok: false, error: 'stopped' });
+    expect(await smsOptIn(rt, reg, { sms_consent: true }, 'US')).toEqual({ ok: false, error: 'stopped' });
     expect(await preShowContext(rt, id)).toContain('Dana asked: How does seller finance work');
     // Tracked return from the 10-minute email, then joined.
     at(START - 9 * MIN);

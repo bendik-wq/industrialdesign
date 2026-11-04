@@ -1,4 +1,5 @@
 import type { Context, Hono } from 'hono';
+import { CONSENT_COPY } from '../integrations/consent-gate';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { render } from '../funnel/pages';
 import { getLead } from '../funnel/leads';
@@ -86,9 +87,9 @@ export async function preShowPage(c: Context<AppEnv>, rt: Runtime, ev: LiveEvent
       <h2 class="lc-h" id="lc-sms-h">${ICON.msg} ${esc(C.smsHeading)}</h2>
       <div data-lc-sms-form${smsOn ? ' hidden' : ''}>
         <p class="lc-p">${esc(C.smsBody)}</p>
-        ${lead?.phone ? '' : `<label class="lv-field"><span>${esc(C.smsPhone)}</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" data-lc-phone></label>`}
+        ${lead?.phone ? `<p class="lv-fine">${esc(C.smsOnFile)} ${esc(lead.phone.slice(-3))}</p>` : `<label class="lv-field"><span>${esc(C.smsPhone)}</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" data-lc-phone></label>`}
+        <label class="lv-check consent-box"><input type="checkbox" name="sms_consent" data-lc-sms-consent><span>${esc(CONSENT_COPY.sms)}</span></label>
         <button type="button" class="lv-btn-2 lc-wide" data-lc-sms>${esc(C.smsButton)}</button>
-        <p class="lv-fine">${esc(C.smsConsent)}</p>
         <p class="lv-err" role="alert" data-lc-sms-err hidden></p>
       </div>
       <p class="lc-ok" data-lc-sms-on${smsOn ? '' : ' hidden'}>${esc(C.smsOn)}</p>

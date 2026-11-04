@@ -173,7 +173,7 @@ export async function joinRoom(rt: Runtime, room: RoomRow, v: import('../lib/ide
       await track(rt, identityFromVisitor(v, null, id), { name: 'lead_captured', source: 'server', path: `/rooms/${room.id}/join`, props: { room_id: room.id, via: 'room_join' } }).catch(() => null);
     }
     const phone = typeof body.phone === 'string' && body.phone.trim() ? (await import('../funnel/leads')).normalisePhone(body.phone, v.geo.country) : null;
-    await (await import('../integrations/call-consent')).recordCallConsent(rt, lead.id, phone, body, now).catch(() => null);
+    await (await import('../integrations/consent-gate')).captureConsent(rt, lead.id, body, { phone, source: 'room-join', page: `/rooms/${room.id}/join`, ip: v.ip, userAgent: v.userAgent }, now).catch(() => null);
     return { redirect: inviteUrl(rt, room.id, await makeInvite(rt, room.id, 'guest', lead.id, 12 * HOUR, now)) };
   }
   // Name only (meetings, or webinars with "require email" off): a pass for this name, never staff.
@@ -214,16 +214,15 @@ export async function joinSheet(rt: Runtime, room: RoomRow, a: Admission, o: { e
   const ts = tsKey ? `<div class="cf-turnstile" data-sitekey="${esc(tsKey)}" data-size="flexible" data-appearance="interaction-only"></div><script src="${TURNSTILE_SCRIPT}" async defer></script>` : '';
   const val = (k: string) => esc(typeof o.values?.[k] === 'string' ? (o.values[k] as string).slice(0, 200) : '');
   const webinar = room.mode === 'webinar';
-  const { LANDING_COPY } = await import('../live/pages');
-  const { WEBINAR_CALL_CONSENT } = await import('../integrations/call-consent');
+  const { consentBoxes, CONSENT_LEGEND } = await import('../integrations/consent-gate');
   return `<p class="rm-eyebrow">${esc(room.title)}</p><h1 class="rm-h1">${esc(webinar ? J.webinarHeading : J.meetingHeading)}</h1><p class="rm-lede">${esc(webinar ? J.webinarBody : J.meetingBody)}</p>
 <form method="post" action="${esc(o.action)}" class="rm-fields" novalidate>
   <label class="rm-field"><span>${esc(webinar ? J.firstName : J.name)}</span><input name="first_name" autocomplete="${webinar ? 'given-name' : 'name'}" maxlength="60" required value="${val('first_name')}"></label>
   <label class="rm-field"><span>${esc(webinar && a.requireEmail ? J.email : J.emailOptional)}</span><input name="email" type="email" autocomplete="email" maxlength="200"${webinar && a.requireEmail ? ' required' : ''} value="${val('email')}"></label>
   ${webinar ? `<label class="rm-field"><span>${esc(J.revenue)}</span><select name="revenue"><option value="">${esc(J.revenueNone)}</option>${REVENUE.map(([k, l]) => `<option value="${k}"${o.values?.revenue === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
   <label class="rm-field"><span>${esc(J.phone)}</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" value="${val('phone')}"></label>
-  <label class="rm-check"><input type="checkbox" name="sms_consent"> <span>${esc(LANDING_COPY.sms)}</span></label>
-  <label class="rm-check"><input type="checkbox" name="call_consent"> <span>${esc(WEBINAR_CALL_CONSENT.text)}</span></label>` : ''}
+  <p class="rm-fine consent-legend">${esc(CONSENT_LEGEND)}</p>
+  ${consentBoxes('rm-check')}` : ''}
   ${ts}
   ${o.error ? `<p class="rm-err" role="alert">${esc(o.error)}</p>` : ''}
   <div class="rm-actions"><button type="submit" class="rm-primary">${esc(J.button)}</button></div>

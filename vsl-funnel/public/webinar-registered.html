@@ -44,8 +44,9 @@
           </div>
           <div class="ty-phone" data-if="ask_phone">
             <p class="ty-q-h"><span class="ty-opt">Optional</span> Get a text when it starts</p>
-            <form data-ty-phone class="ty-phone-f"><label class="wx-sr" for="ty-tel">Mobile number</label><input id="ty-tel" type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="Mobile number" required><button class="btn btn-sm" type="submit">Text me</button></form>
-            <p class="muted small">One text before the session and one when it starts. Msg &amp; data rates may apply. Reply STOP to opt out.</p>
+            <form data-ty-phone class="ty-phone-f"><label class="wx-sr" for="ty-tel">Mobile number</label><input id="ty-tel" type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="Mobile number" required><button class="btn btn-sm" type="submit">Text me</button>
+              <label class="check call-consent ty-consent"><input type="checkbox" name="sms_consent"><span data-slot="consent_sms"></span></label></form>
+            <p class="muted small">One text before the session and one when it starts.</p>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { playbackFor } from '../live/stream';
+import { CONSENT_COPY, CONSENT_LEGEND } from '../integrations/consent-gate';
 import { turnstileSiteKey } from '../infra/turnstile';
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
@@ -64,6 +65,8 @@ export async function webinarLanding(c: Context<AppEnv>) {
     slots: {
       webinar_title: esc(w.title), duration: String(Math.round(w.durationMin)), hl_h1: hl.h1, hl_lede: esc(fitLength(hl.lede, w.durationMin)),
       hero_cta: esc(ticket ? ticket.copy.button : 'Save my seat'),
+      // The two consent boxes: the exact wording the server stores with each consent (consent-gate.ts).
+      consent_legend: esc(CONSENT_LEGEND), consent_call: esc(CONSENT_COPY.call), consent_sms: esc(CONSENT_COPY.sms),
       ...(ticket ? { form_heading: esc(ticket.copy.formHeading), register_cta: esc(ticket.copy.button), register_note: `${esc(ticket.copy.privacy)} <a href="/privacy">Privacy policy</a>.` } : {}),
     },
     blocks: {
@@ -184,6 +187,7 @@ export async function registeredPage(c: Context<AppEnv>) {
       ty_heading: esc(pass.gate ? `Almost there${name}. Your seat in the room is confirmed once your ticket is paid.` : soon ? `You’re in${name}. It starts in a few minutes.` : ticketed ? `You’re in${name}. Your seat is confirmed.` : THANK_YOU.heading),
       ty_sub: esc(ticketed && ticket ? `Your personal link is on its way to your inbox. ${ticket.copy.credit}` : 'Your personal link is on its way to your inbox.'),
       ty_question: esc(THANK_YOU.question),
+      consent_sms: esc(CONSENT_COPY.sms),
     },
     blocks: {
       ty_options: THANK_YOU.options.map((o) => `<button type="button" class="btn-opt${committed?.value === o.value ? ' picked' : ''}" data-ty="${esc(o.value)}">${esc(o.label)}</button>`).join(''),

@@ -19,6 +19,7 @@ import { scoreApplication } from '../funnel/scoring';
 import { type CallKind, blockReason, callingZones, enabled, inCallingHours, nextCallingTime, variables, elevenConfigured } from '../integrations/elevenlabs';
 import { SEQUENCES, precallPlan } from '../integrations/sequences';
 import { precallLimits, precallTimes, zonedTime } from '../integrations/email';
+import { CONSENT_COPY, type ConsentRow, consentBlock } from '../integrations/consent-gate';
 import { SMS_GOAL, SMS_SKIP, inTextingHours, nextTextingTime, renderSms, sendsAsName, smsBlock, smsOk, smsSegments, staleBeforeAnchor, textingZones, withOptOutLink } from '../integrations/sms';
 import { DEFAULT_SMS_SEQUENCES, type SmsStepDef, type SmsTrigger } from '../integrations/sms-defaults';
 import {
@@ -61,7 +62,7 @@ export type Revenue = (typeof REVENUES)[number];
 export const APPLY_TIMES = { weekday_morning: 'A weekday, 10:30 am', weekday_night: 'A weekday, 10:30 pm', saturday: 'Saturday, 4:00 pm', sunday: 'Sunday, 11:00 am' } as const;
 export type ApplyTime = keyof typeof APPLY_TIMES;
 
-export interface SbLead { name: string; country: Country; tz: string; callOk: boolean; textOk: boolean; revenue: Revenue }
+export interface SbLead { name: string; country: Country; tz: string; callOk: boolean; textOk: boolean; revenue: Revenue; /** They gave consent for a number, then the number on file changed (the gate voids that consent). */ numberChanged?: boolean }
 export interface SbChoices {
   /** Live: minutes before the start that they register. */
   registerBefore: number;
@@ -109,7 +110,7 @@ export function cleanInput(raw: unknown, now = Date.now()): SbInput {
   const anchor = Number(r.anchor);
   return {
     journey: pick(r.journey, ['live', 'strategy'] as const, 'live'),
-    lead: { name, country, tz: validTz(l.tz) ?? COUNTRIES[country].zones[0], callOk: l.callOk !== false, textOk: l.textOk !== false, revenue: pick(l.revenue, REVENUES, DEFAULT_LEAD.revenue) },
+    lead: { name, country, tz: validTz(l.tz) ?? COUNTRIES[country].zones[0], callOk: l.callOk !== false, textOk: l.textOk !== false, revenue: pick(l.revenue, REVENUES, DEFAULT_LEAD.revenue), numberChanged: l.numberChanged === true },
     choices: {
       registerBefore: num(c.registerBefore, 10, 14 * 24 * 60, DEFAULT_CHOICES.registerBefore),
       startHour: num(c.startHour, 6, 22, DEFAULT_CHOICES.startHour),
@@ -186,13 +187,26 @@ function baseLead(inp: SbInput, t: number): Lead {
     whatsapp_opt_in: 0, answers: JSON.stringify(sampleAnswers(inp.lead.revenue)), step_reached: 0, app_started_at: null, app_completed_at: null, score: null, score_breakdown: null,
     tier: null, tier_override: null, route: null, closer_id: null, status: 'partial', booked_at: null, call_at: null, booking_provider: null, booking_ref: null, booking_cancelled_at: null,
     whatsapp_clicked_at: null, whatsapp_connected_at: null, whatsapp_wa_id: null, unsubscribed_at: null, do_not_call_at: null, revenue: 0, cash_collected: 0, closed_at: null, showed_at: null,
-    lost_reason: null, setter_id: null, call_consent_at: inp.lead.callOk ? t : null, call_consent_text: inp.lead.callOk ? 'sample' : null, timezone: inp.lead.tz, booking_join_url: null,
+    lost_reason: null, setter_id: null, call_consent_at: inp.lead.callOk ? t : null, call_consent_text: inp.lead.callOk ? CONSENT_COPY.version : null, timezone: inp.lead.tz, booking_join_url: null,
     booking_reschedule_url: null, booking_cancel_url: null, booking_host_email: null, booking_answers: null, booking_source: 'funnel', webinar_at: null, webinar_registered_at: null,
     webinar_attended_at: null, webinar_watch_pct: null, webinar_cta_at: null, webinar_replay_at: null, webinar_token: null, sms_opt_out_at: null, sms_confirmed_at: null,
     sms_consent_at: inp.lead.textOk ? t : null, wa_consent_at: null, industry: 'Commercial HVAC services (sample)', revenue_band: APP_REVENUE_BAND[inp.lead.revenue] ?? null, budget_band: null,
     willing_to_invest: null, qual_source: null, qual_flags: null, temperature: null, country: inp.lead.country,
   } as unknown as Lead;
 }
+/**
+ * The sample's consent proof, as the forms record it (consent_events): one row per ticked box, for the number it was
+ * typed with. With numberChanged the boxes were ticked for an earlier number, so the real gate blocks every channel.
+ */
+export function sandboxConsentRows(inp: SbInput, t: number): ConsentRow[] {
+  const phone = COUNTRIES[inp.lead.country].phone;
+  const given = inp.lead.numberChanged ? `${phone.slice(0, -1)}${(Number(phone.slice(-1)) + 1) % 10}` : phone;
+  const row = (channel: ConsentRow['channel']): ConsentRow => ({ channel, action: 'granted', phone: given, source: 'sandbox', page_url: null, text_version: CONSENT_COPY.version, created_at: t });
+  return [...(inp.lead.callOk ? [row('call')] : []), ...(inp.lead.textOk ? [row('sms'), row('whatsapp')] : [])];
+}
+/** The contact gate (consent-gate.ts consentBlock) on the sample: the same rule the live system runs before every call and text. */
+const gateOn = (inp: SbInput, lead: Lead, channel: 'call' | 'sms') => consentBlock(lead, channel, sandboxConsentRows(inp, lead.created_at));
+
 /**
  * Two real checks compare the call time with Date.now() (blockReason's "call is too soon", the pre-call stop rule).
  * They are asked about simulated time `t` by shifting the call time by the same distance.
@@ -343,7 +357,7 @@ function simulateLive(rt: Runtime, inp: SbInput): SimResult {
     const skip = (why: string, at = runAt0) => { add({ id, at, ch: 'call', status: 'skipped', title: STEP_META[kind].label, reason: why, phase: phaseOf(at), ref: { kind: 'wcall', key: kind, attempt } }); };
     if (!flowEnabled(S, flowOf(kind).id)) return skip('This call flow is turned off in Funnel HQ → AI calls.');
     const lead = leadAt(t);
-    const pb = personBlock(lead);
+    const pb = personBlock(lead) ?? gateOn(inp, lead, 'call');
     if (pb) return skip(why(pb));
     const want = stillWanted(kind, ctxAt(t), purchase, o.meta ?? {}, t);
     if (want.why) return skip(why(want.why));
@@ -365,7 +379,7 @@ function simulateLive(rt: Runtime, inp: SbInput): SimResult {
   const dial = (c: LiveCall, t: number) => {
     const lead = leadAt(t);
     const skip = (w: string) => { c.status = 'skipped'; add({ id: c.id, at: t, ch: 'call', status: 'skipped', title: STEP_META[c.kind].label, reason: w, phase: phaseOf(t), ref: { kind: 'wcall', key: c.kind, attempt: c.attempt } }); };
-    const pb = personBlock(lead);
+    const pb = personBlock(lead) ?? gateOn(inp, lead, 'call');
     if (pb) return skip(why(pb));
     const want = stillWanted(c.kind, ctxAt(t), purchase, c.meta, t);
     if (want.why) return skip(why(want.why));
@@ -447,7 +461,7 @@ function simulateLive(rt: Runtime, inp: SbInput): SimResult {
     const body0 = liveText(k, { title, when: formatCallTime(start, tz), site: SITE(rt), inRoom: true });
     if (!body0) return;
     if (!inp.lead.textOk) return skip('They didn’t tick the text box, so this reminder goes by email only.');
-    const block = smsBlock(lead);
+    const block = smsBlock(lead) ?? gateOn(inp, lead, 'sms');
     if (block) return skip(why(block));
     if (!lead.sms_consent_at) return skip('No consent to text.');
     const zones = textingZones(lead);
@@ -507,6 +521,9 @@ function why(r: string) {
   const map: Record<string, string> = {
     'no phone number': 'No phone number.', 'number outside the countries we call': 'Their number is in a country we don’t call or text.', 'number outside the countries we text': 'Their number is in a country we don’t call or text.',
     'asked not to be called': 'They asked not to be called.', 'no call consent': 'They didn’t tick the call box.', 'no consent to text': 'They didn’t agree to texts.', 'replied STOP': 'They replied STOP.',
+    'no consent to call': 'They didn’t tick the call box.', 'consent was for a different number': 'Their consent was given for a different number, so it doesn’t count for this one.',
+    'number changed since consent': 'Their number changed after they agreed, so the old consent doesn’t count.', 'consent withdrawn': 'They withdrew their consent.',
+    'imported contact without consent': 'An imported contact who never agreed to calls or texts.', 'number outside the countries we contact': 'Their number is in a country we don’t call or text.',
     'replied STOP to texts': 'They replied STOP, which stops the webinar calls too.', 'unsubscribed from emails': 'Unsubscribed.', 'already in the room': 'Already in the room.', rejoined: 'They came back to the session.',
     bought: 'Already bought.', 'did not attend': 'Didn’t attend.', attended: 'Attended.', 'offer closed': 'The offer has closed.', 'no offer for this session': 'No offer was opened.', 'no replay': 'No replay.',
     'watched the replay': 'Watched the replay.', 'no longer booked': 'No longer booked.', 'call is too soon': 'The call is less than 30 minutes away.', 'already booked': 'Already booked.', 'not qualified': 'Not an A or B application.',
@@ -598,7 +615,7 @@ function simulateStrategy(rt: Runtime, inp: SbInput): SimResult {
   };
   const startSmsSeq = (trigger: SmsTrigger, now: number) => {
     if (S.SMS_ENABLED?.trim().toLowerCase() === 'false') return;
-    if (smsBlock(lead) || !smsOk(lead)) return;
+    if (smsBlock(lead) || !smsOk(lead) || gateOn(inp, lead, 'sms')) return;
     const seq = DEFAULT_SMS_SEQUENCES.find((s) => s.id === trigger);
     if (!seq?.enabled) return;
     for (const step of seq.steps) {
@@ -613,7 +630,7 @@ function simulateStrategy(rt: Runtime, inp: SbInput): SimResult {
     const id = `k:${kind}:${now}`;
     const skip = (r: string, at = now + delayMin * MIN) => add({ id, at, ch: 'call', status: 'skipped', title: CALL_LABEL[kind], reason: r, phase: phaseFor(at), ref: { kind: 'call', key: kind, attempt: 1 } });
     if (!enabled(callFlow(kind) ?? '')) return skip('This call is turned off in settings.');
-    const b = blockReason(asOf(lead, now), kind);
+    const b = blockReason(asOf(lead, now), kind) ?? gateOn(inp, lead, 'call');
     if (b) return skip(why(b));
     if (callsDone.has(kind)) return skip('One call of this kind per lead.');
     const runAt = nextCallingTime(now + delayMin * MIN, callingZones(lead.phone) ?? []);
@@ -650,7 +667,7 @@ function simulateStrategy(rt: Runtime, inp: SbInput): SimResult {
   };
 
   const dialCall = (i: Extract<Item, { type: 'call' }>, t: number) => {
-    const b = blockReason(asOf(lead, t), i.kind);
+    const b = blockReason(asOf(lead, t), i.kind) ?? gateOn(inp, lead, 'call');
     const base = { id: i.id, at: t, ch: 'call' as const, title: CALL_LABEL[i.kind], phase: phaseFor(t), ref: { kind: 'call' as const, key: i.kind, attempt: i.attempt } };
     if (b) return add({ ...base, status: 'skipped', reason: why(b) });
     const zones = callingZones(lead.phone) ?? [];
@@ -684,7 +701,7 @@ function simulateStrategy(rt: Runtime, inp: SbInput): SimResult {
   const sendText = (i: Extract<Item, { type: 'sms' }>, t: number) => {
     const base = { id: i.id, at: t, ch: 'sms' as const, title: `Text: ${SMS_LABEL[i.trigger] ?? i.trigger} ${i.step.n}`, phase: phaseFor(t), ref: { kind: 'sms' as const, key: `${i.trigger}:${i.step.n}`, trigger: i.trigger, step: i.step.n } };
     const skipKey = i.step.skip.find((k) => SMS_SKIP[k](lead, false));
-    const w = smsBlock(lead) ?? (SMS_GOAL[i.trigger]?.(lead) ? 'sequence goal reached' : null) ?? (skipKey ? `skip: ${skipKey}` : null);
+    const w = smsBlock(lead) ?? gateOn(inp, lead, 'sms') ?? (SMS_GOAL[i.trigger]?.(lead) ? 'sequence goal reached' : null) ?? (skipKey ? `skip: ${skipKey}` : null);
     if (w) return add({ ...base, status: 'skipped', reason: w === 'skip: booked' && lead.status === 'no_show' ? 'Skip rule "booked": the missed booking still counts as booked, so this text doesn’t go after a no-show.' : w.startsWith('skip: ') ? `Skip rule: ${w.slice(6)}.` : why(w) });
     const zones = textingZones(lead)!;
     if (!inTextingHours(t, zones)) {

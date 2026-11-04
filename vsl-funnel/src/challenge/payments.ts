@@ -61,7 +61,6 @@ export async function registerChallenge(rt: Runtime, v: VisitorCtx, body: Record
   const band = APP_REVENUE_BAND[String(body.revenue ?? '')] ?? null;
   if (!band) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
   if (!(await verifyTurnstile(rt, body.turnstile, v, 'challenge'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
-  const wantsTexts = body.sms_consent === true || body.sms_consent === 'true' || body.sms_consent === 'on';
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number with its area code, or leave it blank', 'phone');
 
@@ -82,12 +81,12 @@ export async function registerChallenge(rt: Runtime, v: VisitorCtx, body: Record
     const { last, first } = await attributionFor(rt, v);
     const id = newId('l');
     await rt.env.DB.prepare(
-      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, last_name, email, phone, sms_consent_at, wa_consent_at, whatsapp_opt_in, step_reached, status,
+      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, last_name, email, phone, whatsapp_opt_in, step_reached, status,
          channel, utm_source, utm_medium, utm_campaign, utm_content, utm_term, click_id, click_type, ft_channel, ft_source, ft_campaign, ft_content,
          landing_path, variant, country, city, device, fbp, fbc, timezone)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     ).bind(
-      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, cleanName(body.last_name), emailCheck.email, phone, phone && wantsTexts ? now : null, phone && wantsTexts ? now : null,
+      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, cleanName(body.last_name), emailCheck.email, phone,
       last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_medium ?? null, last?.utm_campaign ?? null, last?.utm_content ?? null, last?.utm_term ?? null,
       last?.click_id ?? null, last?.click_type ?? null, first?.ft_channel ?? null, first?.ft_source ?? null, first?.ft_campaign ?? null, first?.ft_content ?? null,
       last?.landing_path ?? '/challenge', v.variant, v.geo.country, v.geo.city, v.ua.device, v.fbp, v.fbc, v.geo.timezone,
@@ -112,8 +111,8 @@ export async function registerChallenge(rt: Runtime, v: VisitorCtx, body: Record
     .bind(reg.id, reg.token, reg.cohort_id, reg.lead_id, reg.seq, band, now).run();
   const bandIsNew = !lead.revenue_band;
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
-  if (phone && wantsTexts && !lead.phone) await updateLead(rt.env, lead.id, { phone, sms_consent_at: now });
-  await (await import('../integrations/call-consent')).recordCallConsent(rt, lead.id, phone, body, now); // optional AI-call consent box
+  // The two optional boxes (calls, texts), recorded with proof for this number (consent-gate.ts).
+  await (await import('../integrations/consent-gate')).captureConsent(rt, lead.id, body, { phone, source: 'challenge', page: '/challenge', ip: v.ip, userAgent: v.userAgent }, now);
 
   const who = newLead ? identityFromVisitor(v, null, lead.id) : await identityFromLead(rt.env, lead.id);
   await track(rt, who, { name: 'challenge_registered', source: 'server', path: '/challenge', props: { cohort_id: cohort.id, band }, eventId: typeof body.event_id === 'string' ? body.event_id : undefined });

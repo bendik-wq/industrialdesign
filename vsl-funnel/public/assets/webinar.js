@@ -60,7 +60,7 @@
     e.preventDefault();
     var btn = reg.querySelector('button[type=submit]');
     var picked = reg.querySelector('input[name=session_id]:checked');
-    var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', sms_consent: Boolean(reg.sms_consent && reg.sms_consent.checked), call_consent: Boolean(reg.call_consent && reg.call_consent.checked), session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36), pixel_eid: F.uid ? F.uid() : '' };
+    var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', sms_consent: Boolean(reg.sms_consent && reg.sms_consent.checked), call_consent: Boolean(reg.call_consent && reg.call_consent.checked), consent_page: location.pathname, session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36), pixel_eid: F.uid ? F.uid() : '' };
     var rev = reg.querySelector('input[name=revenue]:checked');
     body.revenue = rev ? rev.value : '';
     body.headline = (window.FUNNEL && window.FUNNEL.webinar && window.FUNNEL.webinar.headline) || '';
@@ -101,8 +101,9 @@
     if (pf) pf.addEventListener('submit', function (e) {
       e.preventDefault();
       var btn = pf.querySelector('button');
+      if (!pf.sms_consent || !pf.sms_consent.checked) { error(pf, 'Tick the box to agree to texts first. It’s optional.'); return; }
       btn.disabled = true;
-      post('/api/webinar/phone', { token: cfg.ty, phone: pf.phone.value.trim() }).then(function (r) {
+      post('/api/webinar/phone', { token: cfg.ty, phone: pf.phone.value.trim(), sms_consent: true, consent_page: location.pathname }).then(function (r) {
         btn.disabled = false;
         if (r && r.ok) pf.outerHTML = '<p class="small"><strong>Done.</strong> We’ll text you before it starts.</p>';
         else error(pf, (r && r.error) || 'Please check the number');

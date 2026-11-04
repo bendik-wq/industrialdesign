@@ -99,7 +99,8 @@
         '<label class="er-switch"><input type="checkbox" data-er-slack' + (slack ? ' checked' : '') + '> Ping Slack on a new error</label></div>' +
         '<p class="er-note">Off by default. When on, the first time a new error shows up the Command Slack channel gets one message (at most 5 an hour). Setting ERRORS_SLACK.</p></div>';
 
-      view.innerHTML = '<div class="er-wrap">' + head + tiles + perDay + fps + cron + queue + '<div data-er-watchdog></div></div>';
+      view.innerHTML = '<div class="er-wrap">' + head + tiles + perDay + fps + cron + queue + '<div data-er-consent></div><div data-er-watchdog></div></div>';
+      consent(ctx, view.querySelector('[data-er-consent]'));
       watchdog(ctx, view.querySelector('[data-er-watchdog]'));
       // Cloudflare platform cards (public/assets/admin-edge.js): Bot protection and Events (Analytics Engine).
       if (root.EdgeCards) root.EdgeCards.render(ctx, view.querySelector('.er-wrap'));
@@ -119,6 +120,26 @@
         }).catch(function () { box.checked = !box.checked; ctx.toast('Couldn’t save. Try again.'); }).then(function () { box.disabled = false; });
       };
     });
+  }
+
+  // Consent: every automated call or text the contact gate refused in the last 7 days, by reason, and the owner's test sends
+  // (src/integrations/consent-gate.ts). Nobody is called or texted without consent for that channel on the number on file.
+  function consent(ctx, box) {
+    if (!box) return;
+    var esc = ctx.esc, when = ctx.when, n = ctx.n;
+    var CH = { call: 'AI call', sms: 'Text', whatsapp: 'WhatsApp' };
+    ctx.api('consent/report', {}, { noRange: true }).then(function (d) {
+      if (!d || !d.blocked) { box.innerHTML = ''; return; }
+      var granted = (d.granted || []).map(function (g) { return n(g.n) + ' ' + esc((CH[g.channel] || g.channel).toLowerCase()) + (g.channel === 'call' ? 's' : g.channel === 'sms' ? 's' : ''); }).join(', ');
+      var rows = d.blocked.map(function (b) {
+        return '<tr><td>' + esc(CH[b.channel] || b.channel) + '</td><td>' + esc(b.reason) + '</td><td class="num">' + n(b.n) + '</td><td class="num">' + n(b.people) + '</td><td class="nw">' + esc(when(b.last)) + '</td></tr>';
+      }).join('');
+      var tests = (d.tests || []).map(function (t) { return '<li>' + esc(when(t.created_at)) + ': ' + esc(CH[t.channel] || t.channel) + ' test to ' + esc(t.phone || '') + ' <span class="muted mono">' + esc(t.purpose) + '</span></li>'; }).join('');
+      box.innerHTML = '<div class="card"><div class="er-head"><div><h2>Consent</h2><p class="sub">Every AI call, text and WhatsApp message goes through one check: consent for that channel, for the number on file now, no STOP or do-not-call, a country we contact. These are the attempts it stopped in the last 7 days.</p></div></div>' +
+        (rows ? '<div class="table-wrap"><table><thead><tr><th>Channel</th><th>Reason</th><th class="num">Attempts</th><th class="num">People</th><th>Last</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '<p class="muted">Nothing blocked in the last 7 days.</p>') +
+        '<p class="er-note">New consents with proof this week: ' + (granted || 'none') + '. Each lead’s consent, with when, where and the wording shown, is on the lead under Consent.</p>' +
+        (tests ? '<h3 class="er-sub">Owner test sends</h3><ul class="er-list">' + tests + '</ul>' : '') + '</div>';
+    }).catch(function () { box.innerHTML = ''; });
   }
 
   // Funnel watchdog (Cloudflare round, builder D; setting WATCHDOG): the last 24 hourly browser checks of the key pages.

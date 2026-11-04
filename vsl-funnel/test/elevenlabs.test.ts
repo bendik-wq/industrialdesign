@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Runtime } from '../src/app';
 import { blockReason, buildAgent, dial, factsFrom, inCallingHours, nextCallingTime, provisionAgent, verifyElevenSignature } from '../src/integrations/elevenlabs';
 import { hmacHex } from '../src/lib/crypto';
+import { canCall } from '../src/integrations/consent-gate';
 import type { Lead } from '../src/funnel/leads';
 import type { Settings } from '../src/settings';
 
@@ -76,7 +77,13 @@ describe('AI outbound calls', () => {
   it('dials with the lead’s details as dynamic variables', async () => {
     let sent: any;
     vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit) => { sent = { url, body: JSON.parse(String(init.body)) }; return new Response('{"success":true,"message":"ok","conversation_id":"conv_1","callSid":"CA1"}'); }));
-    const r = await dial(rt({ ELEVENLABS_AGENT_ID: 'agent_1' }), lead(), 'confirm', 'twilio');
+    // The contact gate's pass (no consent_events rows: the lead's legacy call_consent_at is the proof).
+    const db = { prepare: () => { const st = { bind: () => st, all: async () => ({ results: [] }), first: async () => null, run: async () => ({ meta: { changes: 0 } }) }; return st; } };
+    const r0 = { ...rt({ ELEVENLABS_AGENT_ID: 'agent_1' }), env: { DB: db } } as unknown as Runtime;
+    const gate = await canCall(r0, lead(), 'ai_call:confirm');
+    if (!gate.ok) throw new Error(gate.reason);
+    await expect(dial(r0, lead(), 'confirm', 'twilio', { channel: 'call', to: '+61400000000' } as never)).rejects.toThrow(/contact gate/);
+    const r = await dial(r0, lead(), 'confirm', 'twilio', gate.pass);
     expect(r).toEqual({ conversationId: 'conv_1', callSid: 'CA1' });
     expect(sent.url).toMatch(/\/v1\/convai\/twilio\/outbound-call$/);
     expect(sent.body).toMatchObject({ agent_id: 'agent_1', agent_phone_number_id: 'ph_1', to_number: '+61412345678' });

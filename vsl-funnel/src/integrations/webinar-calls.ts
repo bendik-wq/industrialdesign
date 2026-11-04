@@ -541,6 +541,7 @@ export async function queueWebinarCall(rt: Runtime, c: Candidate, now = Date.now
   }
   const lead = await getLead(rt.env, c.leadId);
   if (!lead || personBlock(lead)) return null;
+  if (!(await (await import('./consent-gate')).canCall(rt, lead, `ai_call:${c.kind}`)).ok) return null; // the contact gate (consent for this number)
   const { ctx, purchase } = await ctxForRef(rt, c.ref);
   const want = stillWanted(c.kind, ctx, purchase, c.meta ?? {}, now);
   if (want.why) return null;
@@ -904,8 +905,10 @@ async function sendLink(rt: Runtime, lead: Lead, link: { url: string; label: str
   if (lead.email && (await sendOnce(rt, lead, 'wcall', step, 'wcall_link', linkMail(firstName, link)).catch(() => false))) sent.push('email');
   try {
     const sms = await import('./sms');
-    if (sms.smsConfigured(rt) && !sms.smsBlock(lead) && sms.inTextingHours(Date.now(), callingZones(lead.phone) ?? [])) {
-      await sms.sendSmsNow(rt, lead.phone!, `G&L: here is the link from our call: ${link.url} Reply STOP to opt out.`);
+    // The contact gate: consent to texts for this number (a call consent alone isn't enough under the c3 wording).
+    const gate = sms.smsConfigured(rt) && sms.inTextingHours(Date.now(), callingZones(lead.phone) ?? []) ? await (await import('./consent-gate')).canText(rt, lead, 'call_link_text') : null;
+    if (gate?.ok) {
+      await sms.sendSmsNow(rt, gate.pass, `G&L: here is the link from our call: ${link.url} Reply STOP to opt out.`);
       sent.push('text');
     }
   } catch (e) { console.error('webinar call link text failed', e); }

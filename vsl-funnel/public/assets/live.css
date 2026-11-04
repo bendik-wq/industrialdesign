@@ -169,3 +169,6 @@
 .lv-ta:focus { outline: none; box-shadow: 0 0 0 3px rgba(15, 44, 92, .2); }
 .lv-poll-opts .lv-btn-2 { justify-self: start; }
 @media (max-width: 480px) { .lv-bar-t strong { font-size: 14px; } .lv-bar-t { font-size: 13px; } .lv-bar-btn { padding: 0 18px; font-size: 15px; } }
+/* The two consent boxes (calls, texts): separate, unticked, under the mobile field. */
+.lv-consent { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 10px; }
+.lv-consent legend { font: 600 14px/1.4 var(--a-ui); color: var(--a-ink); margin: 0 0 8px; padding: 0; }

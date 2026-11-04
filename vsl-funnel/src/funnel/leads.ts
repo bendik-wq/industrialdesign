@@ -146,7 +146,14 @@ export async function updateLead(env: Env, id: string, fields: Partial<Record<ke
   if (keys.length !== Object.keys(fields).length) console.error('updateLead: dropped unknown column(s)', Object.keys(fields).filter((k) => !LEAD_COLUMNS.has(k)));
   if (!keys.length) return;
   const sets = keys.map((k) => `${k} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE leads SET ${sets}, updated_at = ? WHERE id = ?`).bind(...keys.map((k) => fields[k as keyof Lead] ?? null), Date.now(), id).run();
+  const update = env.DB.prepare(`UPDATE leads SET ${sets}, updated_at = ? WHERE id = ?`).bind(...keys.map((k) => fields[k as keyof Lead] ?? null), Date.now(), id);
+  // A new number voids consent given for the old one (src/integrations/consent-gate.ts): no path can change a number and keep it.
+  if (keys.includes('phone')) {
+    const { phoneChangeStatements } = await import('../integrations/consent-gate');
+    await env.DB.batch([...phoneChangeStatements(env, id, (fields.phone as string | null) ?? null), update]);
+    return;
+  }
+  await update.run();
 }
 
 const DISPOSABLE = /@(mailinator|guerrillamail|10minutemail|tempmail|temp-mail|yopmail|trashmail|sharklasers|getnada|maildrop|dispostable|fakeinbox|throwawaymail)\./i;

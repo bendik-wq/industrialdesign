@@ -1697,7 +1697,7 @@
         '<details class="more-rows"><summary>Tracking details</summary><dl class="kv">' +
         kv('Route', l.route) + kv('Last touch', [where(l.channel, l.utm_source, null, l.utm_medium), l.utm_campaign, l.utm_content].filter(Boolean).join(' / ')) + kv('First touch', [where(l.ft_channel, l.ft_source), l.ft_campaign, l.ft_content].filter(Boolean).join(' / ')) +
         kv('Click id', l.click_type ? l.click_type + ' ' + String(l.click_id).slice(0, 18) + '…' : '') + kv('Headline version', l.variant) + kv('Ref code', l.ref_code) + '</dl></details></div></div>' +
-        dealCard(l) +
+        dealCard(l) + consentCard(d.consent) +
         '<div class="card" style="margin-top:14px" id="ld-contract" data-contracts><h2>Agreement</h2><p class="muted">Loading…</p></div>' +
         '<div class="grid g-2" style="margin-top:14px"><div class="card" id="ld-app"><h2>Application</h2><dl class="kv" style="margin-top:10px">' + d.answers.map(function (a) { return kv(a.question, a.answer); }).join('') + '</dl>' +
         (sc.breakdown ? '<p class="sub" style="margin-top:12px">Scoring: ' + esc(sc.breakdown.map(function (b) { return b.question + ' +' + b.points; }).join(', ')) + (sc.caps && sc.caps.length ? ' · capped: ' + esc(sc.caps.join(', ')) : '') + '</p>' : '') + '</div>' +
@@ -2146,6 +2146,26 @@
 
   function ymd(ms) { if (!ms) return ''; var d = new Date(ms); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function opts(list, cur, blank) { return (blank ? '<option value="">' + esc(blank) + '</option>' : '') + (list || []).map(function (x) { return '<option' + (x === cur ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); }
+  /** The lead's consent per channel, with proof (src/integrations/consent-gate.ts), any opt-outs and recent blocked attempts. */
+  function consentCard(c) {
+    if (!c) return '';
+    var CH = { call: 'AI and automated calls', sms: 'Texts (SMS)', whatsapp: 'WhatsApp' };
+    var rows = c.channels.map(function (x) {
+      var p = x.proof;
+      var proof = !p ? 'never given' : (p.action === 'granted' ? 'given ' : 'withdrawn ') + when(p.at) + (p.source ? ', ' + p.source : '') + (p.page ? ' (' + p.page + ')' : '') + (p.version ? ', wording ' + p.version : '') + (p.phone ? ', for ' + p.phone : '');
+      return '<dt>' + esc(CH[x.channel] || x.channel) + '</dt><dd><strong>' + esc(x.allowed ? 'Allowed' : 'Blocked') + '</strong>' + (x.reason ? ' · ' + esc(x.reason) : '') + '<div class="muted">' + esc(proof) + '</div>' +
+        (p && p.text ? '<details class="more-rows"><summary>Wording shown</summary><p class="sub">' + esc(p.text) + '</p>' + (p.ip_hash ? '<p class="muted mono">IP hash ' + esc(p.ip_hash) + '</p>' : '') + (p.user_agent ? '<p class="muted">' + esc(p.user_agent) + '</p>' : '') + '</details>' : '') + '</dd>';
+    }).join('');
+    var o = c.opt_outs || {};
+    var outs = [o.sms_stop_at ? 'replied STOP ' + when(o.sms_stop_at) : '', o.do_not_call_at ? 'do not call since ' + when(o.do_not_call_at) : '', o.email_unsubscribed_at ? 'unsubscribed from email ' + when(o.email_unsubscribed_at) : ''].filter(Boolean);
+    var hist = (c.history || []).slice(-8).reverse().map(function (h) { return '<li>' + esc(when(h.at)) + ': ' + esc((CH[h.channel] || h.channel) + ' ' + h.action + ', ' + h.source + (h.phone ? ', ' + h.phone : '') + (h.version ? ', ' + h.version : '')) + '</li>'; }).join('');
+    var blocked = (c.blocked || []).map(function (b) { return '<li>' + esc(when(b.created_at)) + ': ' + esc((CH[b.channel] || b.channel) + ' blocked (' + b.reason + '), ' + b.purpose) + '</li>'; }).join('');
+    return '<div class="card" style="margin-top:14px" id="ld-consent"><h2>Consent</h2><p class="sub">Calls and texts only go out when the channel shows Allowed. Consent counts for the number it was given for.</p><dl class="kv" style="margin-top:10px">' + rows +
+      '<dt>Opt-outs</dt><dd>' + esc(outs.length ? outs.join(', ') : 'none') + '</dd></dl>' +
+      (hist ? '<details class="more-rows"><summary>Consent history</summary><ul class="sub">' + hist + '</ul></details>' : '') +
+      (blocked ? '<details class="more-rows"><summary>Blocked attempts</summary><ul class="sub">' + blocked + '</ul></details>' : '') + '</div>';
+  }
+
   function dealCard(l) {
     var m = state.meta || {};
     var flags = []; try { flags = JSON.parse(l.qual_flags || '[]'); } catch (e) { /* ignore */ }

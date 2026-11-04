@@ -266,3 +266,6 @@ body.chx { margin: 0; background: #fff; color: var(--c-ink); font: 400 17px/1.55
 .chx-bar-t { margin: 0; font-size: 14px; line-height: 1.35; color: var(--c-ink-2); }
 .chx-bar-t strong { display: block; color: var(--c-ink); font-weight: 600; }
 @media (min-width: 768px) { .chx-bar-t strong { display: inline; margin-right: 8px; } }
+/* The two consent boxes (calls, texts): separate, unticked, under the mobile field. */
+.chx-consent { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 10px; }
+.chx-consent legend { font-size: 14px; font-weight: 600; color: var(--c-ink); margin: 0 0 8px; padding: 0; }

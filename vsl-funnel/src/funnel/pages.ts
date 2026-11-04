@@ -1,11 +1,12 @@
 import type { Context } from 'hono';
+import { CONSENT_COPY, CONSENT_LEGEND } from '../integrations/consent-gate';
 import { turnstileSiteKey } from '../infra/turnstile';
 import { streamVideoSrc } from '../infra/cf-stream';
 import type { Settings } from '../settings';
 import { FAQ_VIDEO_DISCLAIMER, readyFaqVideos } from '../content/faq-videos';
 import { type AppEnv, runtimeFrom } from '../app';
 import {
-  APPLICATION, BRAND, CALL_CONSENT, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, PALETTES, type VideoDef, VIDEOS, VOICE_AGENT,
+  APPLICATION, BRAND, BREAKOUT, DISCLAIMER, FAQS, FOUNDER_SOCIALS, HEADLINE_EXPERIMENT, LANDING, LEGAL_CONSENT, RESOURCES, TIER_ROUTES, PALETTES, type VideoDef, VIDEOS, VOICE_AGENT,
 } from '../config';
 import { whatsappLink } from '../integrations/whatsapp';
 import { getCookie, setCookie } from 'hono/cookie';
@@ -256,12 +257,13 @@ function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
   return {
     questions: clientQuestions(),
     turnstileSiteKey: turnstileSiteKey(s),
-    callConsent: CALL_CONSENT.text,
+    // Two separate, unticked boxes (consent-gate.ts): the server stores this exact wording and its version with each consent.
+    consent: { call: CONSENT_COPY.call, sms: CONSENT_COPY.sms, legend: CONSENT_LEGEND },
     country: c.get('visitor').geo.country,
     // Talk instead of type: on unless turned off; the server fallback needs an ElevenLabs key.
     voiceInput: s.VOICE_INPUT.trim().toLowerCase() !== 'off',
     resume: lead && !lead.app_completed_at
-      ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone, call_consent: Boolean(lead.call_consent_at) } }
+      ? { step: lead.step_reached, answers: parseAnswers(lead), contact: { first_name: lead.first_name, last_name: lead.last_name, email: lead.email, phone: lead.phone, call_consent: Boolean(lead.call_consent_at), sms_consent: Boolean(lead.sms_consent_at) } }
       : null,
   };
 }

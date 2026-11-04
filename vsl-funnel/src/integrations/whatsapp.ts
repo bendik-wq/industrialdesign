@@ -4,6 +4,7 @@ import { REF_CODE_RE, newId } from '../lib/ids';
 import type { Lead } from '../funnel/leads';
 import { effectiveTier, getLead, getLeadByRef, updateLead } from '../funnel/leads';
 import { handleReplyWords } from './sms';
+import { type ContactPass, passTo, replyPass } from './consent-gate';
 import type { Settings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
 import { META_API_VERSION } from '../tracking/forward';
@@ -48,39 +49,6 @@ export function whatsappLink(settings: Settings, lead: Pick<Lead, 'first_name' |
 
 export const cloudApiConfigured = (s: Settings) => Boolean(s.WHATSAPP_TOKEN && s.WHATSAPP_PHONE_NUMBER_ID);
 
-/**
- * Sends the approved "resources" template via the WhatsApp Cloud API to a
- * lead who opted in. Business-initiated messages must use a pre-approved
- * template; the template gets the lead's first name and resources link.
- */
-export async function sendResourcesTemplate(rt: Runtime, lead: Lead) {
-  const s = rt.settings;
-  if (!cloudApiConfigured(s) || !s.WHATSAPP_RESOURCES_TEMPLATE || !lead.phone || !lead.whatsapp_opt_in || !whatsappEligible(lead)) return false;
-  const to = lead.phone.replace(/\D/g, '');
-  const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${s.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${s.WHATSAPP_TOKEN}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to,
-      type: 'template',
-      template: {
-        name: s.WHATSAPP_RESOURCES_TEMPLATE,
-        language: { code: 'en' },
-        components: [{ type: 'body', parameters: [{ type: 'text', text: lead.first_name || 'there' }, { type: 'text', text: `${rt.origin}/resources?l=${lead.ref_code}` }] }],
-      },
-    }),
-  });
-  const body = (await res.json().catch(() => ({}))) as { messages?: { id: string }[]; error?: { message: string } };
-  await rt.env.DB.prepare('INSERT INTO whatsapp_messages (id, ts, lead_id, direction, wa_id, template, status, provider_id, body) VALUES (?,?,?,?,?,?,?,?,?)')
-    .bind(newId('w'), Date.now(), lead.id, 'out', to, s.WHATSAPP_RESOURCES_TEMPLATE, res.ok ? 'sent' : 'failed', body.messages?.[0]?.id ?? null, res.ok ? null : body.error?.message ?? `HTTP ${res.status}`)
-    .run();
-  if (res.ok) await track(rt, await identityFromLead(rt.env, lead.id), { name: 'whatsapp_sent', source: 'server', props: { template: s.WHATSAPP_RESOURCES_TEMPLATE } });
-  return res.ok;
-}
-
-const waTo = (lead: Pick<Lead, 'phone' | 'whatsapp_wa_id'>) => lead.whatsapp_wa_id || (lead.phone ?? '').replace(/\D/g, '');
-
 async function waPost(rt: Runtime, payload: Record<string, unknown>) {
   const s = rt.settings;
   const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${s.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
@@ -93,14 +61,14 @@ async function waPost(rt: Runtime, payload: Record<string, unknown>) {
   return body.messages?.[0]?.id ?? null;
 }
 
-/** Free-form message: only allowed within 24 hours of the person's last message to us. */
-export const sendWhatsAppText = (rt: Runtime, lead: Pick<Lead, 'phone' | 'whatsapp_wa_id'>, text: string) =>
-  waPost(rt, { to: waTo(lead), type: 'text', text: { body: text, preview_url: true } });
+/** Free-form message: only allowed within 24 hours of the person's last message to us. Only with a contact-gate pass. */
+export const sendWhatsAppText = async (rt: Runtime, pass: ContactPass, text: string) =>
+  waPost(rt, { to: passTo(pass, 'whatsapp'), type: 'text', text: { body: text, preview_url: true } });
 
-/** Approved template, positional body parameters ({{1}}, {{2}}, …). */
-export const sendWhatsAppTemplate = (rt: Runtime, lead: Pick<Lead, 'phone' | 'whatsapp_wa_id'>, name: string, params: string[]) =>
+/** Approved template, positional body parameters ({{1}}, {{2}}, …). Only with a contact-gate pass. */
+export const sendWhatsAppTemplate = async (rt: Runtime, pass: ContactPass, name: string, params: string[]) =>
   waPost(rt, {
-    to: waTo(lead),
+    to: passTo(pass, 'whatsapp'),
     type: 'template',
     template: { name, language: { code: rt.settings.WHATSAPP_TEMPLATE_LANG || 'en' }, components: params.length ? [{ type: 'body', parameters: params.map((text) => ({ type: 'text', text })) }] : [] },
   });
@@ -152,7 +120,8 @@ export async function handleInbound(rt: Runtime, payload: WaWebhook) {
         if (msg.type === 'text') {
           const fresh = (await getLead(rt.env, lead.id))!;
           const { reply } = await handleReplyWords(rt, fresh, body, 'whatsapp');
-          if (reply && cloudApiConfigured(rt.settings)) await sendWhatsAppText(rt, fresh, reply).catch(() => null);
+          // A reply to the message they just sent (STOP confirmation, "C" to confirm).
+          if (reply && cloudApiConfigured(rt.settings)) await sendWhatsAppText(rt, replyPass('whatsapp', msg.from, 'whatsapp-inbound'), reply).catch(() => null);
         }
       }
     }

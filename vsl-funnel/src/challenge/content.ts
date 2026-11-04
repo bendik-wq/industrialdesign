@@ -131,7 +131,6 @@ export const LANDING = {
   formNote: 'Next: pay your $100 ticket on a secure card form. Your dates and links arrive by email.',
   under1m: 'An honest note: the challenge is built for owners doing $1M+ a year. The deal maths on Day 4 assume a business that size. You are welcome to join, and most of it applies once you pass $1M.',
   privacy: 'We use your details to run the challenge and send your session links. Unsubscribe any time.',
-  smsConsent: 'Text me a reminder before each session (optional).',
   faq: [
     { q: 'Where does it happen?', a: 'On Zoom. Your challenge page holds the Zoom link for each day, the worksheet, the chat and your progress.' },
     { q: 'What if I miss a session?', a: 'Each replay goes up on your challenge page after the session. Replays stay open until the offer closes after Day 5, and VIP members keep them.' },

@@ -230,8 +230,7 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   const rate = (() => { try { const r = JSON.parse(row?.value ?? '{}') as { n?: number; t?: number }; return r.t && Date.now() - r.t < 3_600_000 ? { n: r.n ?? 0, t: r.t } : { n: 0, t: Date.now() }; } catch { return { n: 0, t: Date.now() }; } })();
   if (rate.n >= 8) throw new ApplicationError('Too many sign-ups from this connection. Please try again in an hour.', undefined, 429);
 
-  // Optional mobile for text reminders (only with the unticked "text me" box ticked).
-  const wantsTexts = body.sms_consent === true || body.sms_consent === 'true' || body.sms_consent === 'on';
+  // Optional mobile, used only with one of the two unticked boxes (calls, texts) ticked.
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number, including area code — or leave it blank', 'phone');
   const sessionId = typeof body.session_id === 'string' ? body.session_id : '';
@@ -245,12 +244,12 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
     const { last, first } = await attributionFor(rt, v);
     const id = newId('l');
     await rt.env.DB.prepare(
-      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, email, phone, sms_consent_at, wa_consent_at, whatsapp_opt_in, step_reached, status,
+      `INSERT INTO leads (id, ref_code, created_at, updated_at, visitor_id, session_id, first_name, email, phone, whatsapp_opt_in, step_reached, status,
          channel, utm_source, utm_medium, utm_campaign, utm_content, utm_term, click_id, click_type, ft_channel, ft_source, ft_campaign, ft_content,
          landing_path, variant, country, city, device, fbp, fbc, timezone)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,0,0,'partial',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     ).bind(
-      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, emailCheck.email, phone, phone && wantsTexts ? now : null, phone && wantsTexts ? now : null,
+      id, newRefCode(), now, now, v.visitorId, v.sessionId, firstName, emailCheck.email, phone,
       last?.channel ?? 'Direct', last?.utm_source ?? null, last?.utm_medium ?? null, last?.utm_campaign ?? null, last?.utm_content ?? null, last?.utm_term ?? null,
       last?.click_id ?? null, last?.click_type ?? null, first?.ft_channel ?? null, first?.ft_source ?? null, first?.ft_campaign ?? null, first?.ft_content ?? null,
       last?.landing_path ?? '/webinar', v.variant, v.geo.country, v.geo.city, v.ua.device, v.fbp, v.fbc, v.geo.timezone,
@@ -283,7 +282,9 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   const bandIsNew = !lead.revenue_band;
   if (bandIsNew) await updateLead(rt.env, lead.id, { revenue_band: band });
   lead = (await getLead(rt.env, lead.id))!;
-  if (await (await import('../integrations/call-consent')).recordCallConsent(rt, lead.id, phone, body)) lead = (await getLead(rt.env, lead.id))!; // optional AI-call consent box
+  // The two optional boxes (calls, texts), recorded with proof for this number (consent-gate.ts).
+  const consent = await (await import('../integrations/consent-gate')).captureConsent(rt, lead.id, body, { phone, source: 'webinar', page: '/webinar', ip: v.ip, userAgent: v.userAgent }, now);
+  if (consent.call || consent.texts) lead = (await getLead(rt.env, lead.id))!;
   const ticketed = await scheduleEmails(rt, lead, session, reg);
   if (ticketed && !underMillion(lead.revenue_band)) await startSms(rt, lead, 'webinar');
 

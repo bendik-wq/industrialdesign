@@ -1,5 +1,6 @@
 import { mountDmHooks } from '../dm/routes';
 import { handleInboundSms, sendSmsNow, verifyTelnyx, verifyTwilio } from '../integrations/sms';
+import { replyPass } from '../integrations/consent-gate';
 import { type Context, Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { handleCalendly, handleGenericBooking, verifyCalendly } from '../integrations/booking';
@@ -72,7 +73,7 @@ hooks.post('/telnyx/sms', async (c) => {
   const p = ev.payload;
   return once(c, await onceOnly(rt.env, 'telnyx', ev.id, async () => {
     const r = await handleInboundSms(rt, { From: p.from!.phone_number!, Body: p.text ?? '', MessageSid: p.id ?? ev.id! });
-    if (r.reply) await sendSmsNow(rt, p.from!.phone_number!, r.reply).catch((e) => console.error('telnyx reply', String(e).slice(0, 200)));
+    if (r.reply) await sendSmsNow(rt, replyPass('sms', p.from!.phone_number!, 'telnyx-inbound'), r.reply).catch((e) => console.error('telnyx reply', String(e).slice(0, 200)));
     return { ok: true, kind: r.kind };
   }, { kind: 'message.received' }));
 });

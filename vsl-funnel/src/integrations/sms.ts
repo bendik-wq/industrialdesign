@@ -11,12 +11,14 @@ import { formatCallTime } from './email';
 import { notifySlack, plain } from './notify';
 import { leadByPhone } from './voice';
 import { cloudApiConfigured, inWhatsAppWindow, sendWhatsAppTemplate, sendWhatsAppText } from './whatsapp';
+import { type ContactPass, type Gate, canText, passTo, recordConsent, recordWithdrawal } from './consent-gate';
 import { DEFAULT_SMS_SEQUENCES, SMS_ANCHORS, SMS_CHANNELS, SMS_LINKS, SMS_SKIPS, SMS_TRIGGERS, type SmsSequenceDef, type SmsStepDef, type SmsTrigger } from './sms-defaults';
 
 /**
  * SMS follow-up through Twilio, driven by sequences you edit in Funnel HQ → SMS (stored in kv_state
  * `sms:sequences`, defaults in sms-defaults.ts). Rules that can't be edited away:
- *  - only to people who ticked "Call or text me at this number", never after STOP, never imported contacts;
+ *  - only through the contact gate (consent-gate.ts): consent to texts for the number on file now, never after
+ *    STOP, never imported contacts without consent;
  *  - only 8am–8pm in every time zone of the number's country, max 3 texts per person per day;
  *  - the first text to anyone says who it's from and "Reply STOP to opt out";
  *  - links are short /s/<id> redirects whose target is stored server-side.
@@ -104,12 +106,19 @@ export function smsProvider(rt: Pick<Runtime, 'settings'>): 'twilio' | 'telnyx' 
 export const smsConfigured = (rt: Runtime) => Boolean(smsProvider(rt) && rt.settings.SMS_FROM);
 const smsOn = (rt: Runtime) => rt.settings.SMS_ENABLED.trim().toLowerCase() !== 'false';
 
-/** Agreed to texts (SMS). */
+/** Agreed to texts (SMS), from the leads.* timestamps only: a quick hint. The contact gate (canText) decides. */
 export const smsOk = (l: Lead) => Boolean(l.call_consent_at || l.sms_consent_at);
-/** Agreed to WhatsApp (consent wording that names it), or started a WhatsApp chat with us themselves. */
+/** Agreed to WhatsApp (consent wording that names it), or started a WhatsApp chat with us themselves. Hint only, like smsOk. */
 export const waOk = (l: Lead) => Boolean(l.wa_consent_at || l.whatsapp_connected_at);
 
-/** Why this lead can't be messaged at all (null = OK on at least one channel). */
+/** Can this lead get a text on either channel the sequence may use? The gate's answer, SMS first. */
+async function textGate(rt: Runtime, lead: Lead, purpose: string, whatsapp: boolean): Promise<{ sms: Gate; wa: Gate | null }> {
+  const wa = whatsapp ? await canText(rt, lead, purpose, 'whatsapp', { log: false }) : null;
+  const sms = await canText(rt, lead, purpose, 'sms', { log: !wa?.ok });
+  return { sms, wa };
+}
+
+/** Why this lead can't be messaged at all (null = OK on at least one channel). A quick pre-check: the contact gate decides at send time. */
 export function smsBlock(lead: Lead) {
   if (!lead.phone) return 'no phone';
   if (!smsOk(lead) && !waOk(lead)) return 'no consent to text';
@@ -152,10 +161,11 @@ function anchorTime(step: SmsStepDef, lead: Lead, now: number, anchors: Record<s
 
 /** Starts a trigger's sequence for this lead (re-starting reschedules texts that haven't gone yet). */
 export async function startSms(rt: Runtime, lead: Lead, trigger: SmsTrigger, anchors: Record<string, number> = {}) {
-  if (!smsOn(rt) || smsBlock(lead)) return 0;
-  if (!smsOk(lead) && !(waOk(lead) && cloudApiConfigured(rt.settings))) return 0;
+  if (!smsOn(rt)) return 0;
   const seq = (await loadSmsSequences(rt)).find((s) => s.id === trigger);
   if (!seq?.enabled) return 0;
+  const g = await textGate(rt, lead, `sms:${trigger}`, seq.channel === 'whatsapp' && cloudApiConfigured(rt.settings));
+  if (!g.sms.ok && !g.wa?.ok) return 0;
   const now = Date.now();
   const stmts = seq.steps.flatMap((step) => {
     const anchor = anchorTime(step, lead, now, anchors);
@@ -302,8 +312,9 @@ export async function smsOptOutUrl(rt: Runtime, phone: string) {
 /** Curly quotes, long dashes and the ellipsis force Unicode (70-character segments, about 2x the cost): send the plain ones. */
 export const plainSms = (body: string) => body.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...');
 
-/** Sends one text now through whichever provider is connected. */
-export async function sendSmsNow(rt: Runtime, to: string, body0: string) {
+/** Sends one text now through whichever provider is connected. Only with a pass from the contact gate (canText, testPass or replyPass). */
+export async function sendSmsNow(rt: Runtime, pass: ContactPass, body0: string) {
+  const to = passTo(pass, 'sms');
   const body = plainSms(body0);
   return smsProvider(rt) === 'telnyx' ? sendTelnyx(rt, to, body) : sendTwilio(rt, to, body);
 }
@@ -327,11 +338,14 @@ export async function sendSmsRow(rt: Runtime, row: SmsRow, sequences: SmsSequenc
   if (!seq || !seq.enabled) { await skip('sequence turned off'); return 'skipped'; }
   if (!step) { await skip('text removed from the sequence'); return 'skipped'; }
   const clicked = Boolean(await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND sequence = ? AND clicked_at IS NOT NULL LIMIT 1").bind(lead.id, row.sequence).first());
-  const why = smsBlock(lead)
+  const why = (lead.phone !== row.to_phone ? 'number changed' : null)
     ?? (SMS_GOAL[row.sequence]?.(lead) ? 'sequence goal reached' : null)
     ?? (step.skip.find((k) => SMS_SKIP[k](lead, clicked)) ? `skip: ${step.skip.find((k) => SMS_SKIP[k](lead, clicked))}` : null)
-    ?? (lead.phone !== row.to_phone ? 'number changed' : null);
+    ?? null;
   if (why) { await skip(why); return 'skipped'; }
+  // The contact gate: consent to texts (or WhatsApp) for this number, no STOP, a country we text.
+  const gate = await textGate(rt, lead, `sms:${row.sequence}`, seq.channel === 'whatsapp' && cloudApiConfigured(rt.settings));
+  if (!gate.sms.ok && !gate.wa?.ok) { await skip(gate.sms.reason); return 'skipped'; }
   // Paid-ticket mode: no webinar texts until their ticket is paid (and none after a refund).
   if (row.sequence === 'webinar' && (await (await import('../webinar/pass')).ticketUnpaid(rt, lead))) { await skip('ticket not paid'); return 'skipped'; }
   const zones = textingZones(lead)!;
@@ -354,18 +368,18 @@ export async function sendSmsRow(rt: Runtime, row: SmsRow, sequences: SmsSequenc
     let channel: 'sms' | 'whatsapp' = 'sms';
     let note: string | null = null;
     // WhatsApp first when the sequence says so and we can reach them there; otherwise the same message by SMS.
-    if (seq.channel === 'whatsapp' && waOk(lead) && cloudApiConfigured(rt.settings)) {
+    if (gate.wa?.ok) {
       try {
-        if (await inWhatsAppWindow(rt, lead.id)) { providerId = await sendWhatsAppText(rt, lead, body); channel = 'whatsapp'; status = 'sent'; }
-        else if (step.wa) { providerId = await sendWhatsAppTemplate(rt, lead, step.wa, waTemplateParams(step, values)); channel = 'whatsapp'; status = 'sent'; }
+        if (await inWhatsAppWindow(rt, lead.id)) { providerId = await sendWhatsAppText(rt, gate.wa.pass, body); channel = 'whatsapp'; status = 'sent'; }
+        else if (step.wa) { providerId = await sendWhatsAppTemplate(rt, gate.wa.pass, step.wa, waTemplateParams(step, values)); channel = 'whatsapp'; status = 'sent'; }
         else note = 'WhatsApp: no approved template for this text, sent by SMS';
       } catch (err) {
         note = `WhatsApp failed, sent by SMS: ${String(err instanceof Error ? err.message : err)}`.slice(0, 300);
       }
     }
     if (channel === 'sms') {
-      if (!smsOk(lead)) { await skip(note ?? 'no consent to SMS (WhatsApp only)'); return 'skipped'; }
-      if (smsConfigured(rt)) { providerId = await sendSmsNow(rt, lead.phone!, body); status = 'sent'; }
+      if (!gate.sms.ok) { await skip(note ?? `SMS: ${gate.sms.reason}`); return 'skipped'; }
+      if (smsConfigured(rt)) { providerId = await sendSmsNow(rt, gate.sms.pass, body); status = 'sent'; }
     }
     await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, sent_at = ?, provider_id = ?, body = ?, link_target = ?, channel = ?, error = ? WHERE id = ?')
       .bind(status, Date.now(), providerId, body, target, channel, note, row.id).run();
@@ -482,6 +496,7 @@ export async function handleReplyWords(rt: Runtime, lead: Lead | null, body: str
     if (lead) {
       // STOP means stop: texts, every AI call and marketing emails (a later START only turns texts back on).
       await updateLead(rt.env, lead.id, { sms_opt_out_at: now, do_not_call_at: lead.do_not_call_at ?? now, unsubscribed_at: lead.unsubscribed_at ?? now });
+      await recordWithdrawal(rt, lead.id, ['sms', 'whatsapp', 'call'], channel === 'whatsapp' ? 'stop-whatsapp' : 'stop-reply', lead.phone, now);
       await stopSms(rt, lead.id);
       await rt.env.DB.prepare("UPDATE outbound_calls SET status = 'cancelled', error = 'replied STOP', updated_at = ? WHERE lead_id = ? AND status = 'queued'").bind(now, lead.id).run();
       const { cancelSequence } = await import('./email');
@@ -492,7 +507,12 @@ export async function handleReplyWords(rt: Runtime, lead: Lead | null, body: str
     // Carriers / Twilio confirm SMS opt-outs; on WhatsApp we say it ourselves.
     return { kind: 'stop', reply: channel === 'whatsapp' ? "You're unsubscribed. We won't message you again." : null };
   }
-  if (START_WORDS.test(body) && lead?.sms_opt_out_at) { await updateLead(rt.env, lead.id, { sms_opt_out_at: null }); return { kind: 'start', reply: null }; }
+  if (START_WORDS.test(body) && lead?.sms_opt_out_at) {
+    // START is their own opt-in back to texts (calls stay off: "do not call" stands until the team changes it).
+    await updateLead(rt.env, lead.id, { sms_opt_out_at: null });
+    await recordConsent(rt, lead.id, { phone: lead.phone, call: false, texts: true, source: channel === 'whatsapp' ? 'start-whatsapp' : 'start-reply', copy: { version: 'reply-start', sms: `Replied "${body.trim().slice(0, 20)}" to our ${channel === 'whatsapp' ? 'WhatsApp message' : 'text'}` } }, now);
+    return { kind: 'start', reply: null };
+  }
   if (lead && CONFIRM_WORDS.test(body) && booked(lead) && lead.status === 'booked') {
     await updateLead(rt.env, lead.id, { sms_confirmed_at: now });
     await track(rt, await identityFromLead(rt.env, lead.id), { name: 'sms_confirmed', source: 'webhook', localOnly: true });

@@ -21,6 +21,7 @@ import { isSuppressed } from '../integrations/bounces';
 import { emailConfigured, sendViaResend, unsubscribeSig } from '../integrations/email';
 import { callingZones } from '../integrations/elevenlabs';
 import { inTextingHours, nextTextingTime, sendSmsNow, smsBlock, smsConfigured } from '../integrations/sms';
+import { canText } from '../integrations/consent-gate';
 import { type EmailContent, renderEmail } from '../integrations/templates';
 import { newId } from '../lib/ids';
 import { safeFirstName } from '../lib/text';
@@ -308,7 +309,7 @@ async function stillOk(rt: Runtime, m: MsgRow, lead: Lead | null) {
   if (!lead) return 'lead deleted';
   if (NEVER.includes(lead.status)) return lead.status;
   if (m.channel === 'email') { if (lead.email !== m.to_addr) return 'email changed'; const b = await emailBlock(rt, lead); if (b) return b; }
-  else { if (lead.phone !== m.to_addr) return 'number changed'; const b = textBlock(lead); if (b) return b; }
+  else { if (lead.phone !== m.to_addr) return 'number changed'; const b = textBlock(lead); if (b) return b; const g = await canText(rt, lead, `followup_text:${m.play}`); if (!g.ok) return g.reason; }
   if (m.play === 'no_show' && lead.status !== 'no_show') return 'rebooked or moved on';
   if (m.play === 'quiet') {
     const act = await rt.env.DB.prepare("SELECT 1 FROM events WHERE lead_id = ? AND ts > ? AND source NOT IN ('cron', 'admin') AND name NOT IN ('email_sent', 'sms_sent', 'whatsapp_sent') LIMIT 1").bind(lead.id, m.created_at).first();
@@ -379,7 +380,10 @@ async function sendEmail(rt: Runtime, m: MsgRow, lead: Lead, now: number) {
 /** Through Twilio (recorded in sms_messages, so replies and STOP thread with it); simulated without Twilio. */
 async function sendText(rt: Runtime, m: MsgRow, lead: Lead, now: number) {
   let status = 'simulated', providerId: string | null = null;
-  if (smsConfigured(rt)) { providerId = await sendSmsNow(rt, m.to_addr, m.body); status = 'sent'; }
+  // The contact gate, at the moment of sending (a team-approved batch is still an automated text).
+  const gate = await canText(rt, lead, `followup_text:${m.play}`);
+  if (!gate.ok) throw new Error(`Blocked by the contact gate: ${gate.reason}`);
+  if (smsConfigured(rt)) { providerId = await sendSmsNow(rt, gate.pass, m.body); status = 'sent'; }
   const step = Math.floor(now / 1000) % 2_000_000_000;
   await rt.env.DB.prepare("INSERT INTO sms_messages (id, lead_id, direction, sequence, step, template, to_phone, body, send_at, status, sent_at, provider_id, channel, created_at) VALUES (?, ?, 'out', 'ops_followup', ?, ?, ?, ?, ?, ?, ?, ?, 'sms', ?)")
     .bind(newId('sm'), lead.id, step, `ops_${m.play}`, m.to_addr, m.body, now, status, Date.now(), providerId, now).run();
