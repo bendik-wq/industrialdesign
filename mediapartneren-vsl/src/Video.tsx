@@ -1,6 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, Series, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
-import { C, F, Mark, Shot } from './ui';
+import { C, F, Mark, Shot, THEME } from './ui';
 import { EndCard, Gap, Guarantee, Leak, Lines, NextStep, Objections, Options, Stack, Track, TwoTypes } from './scenes';
 
 const S = 30; // fps
@@ -48,6 +48,20 @@ export const TOTAL = TIMELINE.reduce((a, t) => a + Math.round(t.sec * S), 0);
 const Background: React.FC = () => {
   const f = useCurrentFrame();
   const drift = Math.sin(f / 90) * 40;
+  if (THEME === 'blue') {
+    return (
+      <AbsoluteFill style={{ background: `radial-gradient(1400px 900px at 50% -10%, #2D5BFF, ${C.bg} 55%, #061F5C)` }}>
+        {/* dotted map texture */}
+        <AbsoluteFill style={{
+          backgroundImage: 'radial-gradient(rgba(255,255,255,.28) 1.4px, transparent 1.6px)', backgroundSize: '22px 22px',
+          backgroundPosition: `${drift}px 0`, opacity: 0.55,
+          WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 40%, transparent 30%, #000 80%)',
+          maskImage: 'radial-gradient(ellipse 70% 60% at 50% 40%, transparent 30%, #000 80%)',
+        }} />
+        <AbsoluteFill style={{ background: `radial-gradient(900px 500px at 50% 115%, ${C.orange}40, transparent 70%)` }} />
+      </AbsoluteFill>
+    );
+  }
   return (
     <AbsoluteFill style={{ background: C.bg }}>
       {/* vertical light beam: stripes fading blue to orange */}

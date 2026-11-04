@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%232F6BFF'/%3E%3Cstop offset='.5' stop-color='%238B5CF6'/%3E%3Cstop offset='1' stop-color='%23FF6A3D'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%23000'/%3E%3Cpath d='M15 45V24l11 13 11-13v11l12-15' fill='none' stroke='url(%23g)' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800;900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Schibsted+Grotesk:wght@500;600;700;800;900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: Apple-rytme. Svart hero med én glødende VSL, deretter lyse, rolige seksjoner (hvit / #F5F5F7) med presise kort, og mørke «øyeblikk» for garanti og avslutning.
    Palett: monokrom grunn + ett lys-spekter (blå → fiolett → rosa → korall → amber) som bare brukes på glød, logo og nøkkeltall. */
@@ -220,6 +220,92 @@ footer .logo { color:#fff; }
   .logo span { font-size:17px; }
 }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .vsl::before, .vsl::after, .seal::before, .seal::after, .tile.black::after, .final::before { animation:none; } }
+/* ===== Stil A: Deep Blue · Pure White · Bubblegum Pink ===== */
+:root {
+  --blue:#2D5BFF; --violet:#FD91CC; --coral:#E8509A; --pink:#FD91CC; --deep:#09318D;
+  --text-grad:linear-gradient(90deg, #09318D, #E8509A);
+  --line-grad:linear-gradient(90deg, #2D5BFF, #FD91CC);
+  --spectrum:conic-gradient(from var(--a), #09318D, #2D5BFF, #FD91CC, #FFFFFF, #2D5BFF, #09318D);
+  --display:"Manrope", "Helvetica Neue", Arial, sans-serif;
+}
+h1,h2,h3, .h2, .statement { font-weight:700; }
+.h2 { font-weight:700; letter-spacing:-.035em; }
+.btn.pink { background:var(--pink); color:#09318D; font-weight:700; box-shadow:0 10px 30px -10px rgba(253,145,204,.7); }
+.btn.pink:hover { background:#FFA9D8; }
+.btn.ghostw { background:rgba(255,255,255,.08); color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,.4); }
+.btn.ghostw:hover { background:rgba(255,255,255,.16); }
+.nav { background:rgba(9,49,141,.72); border-bottom-color:rgba(255,255,255,.12); }
+.nav nav { background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18); border-radius:99px; padding:5px 6px; gap:2px; margin-left:auto; margin-right:auto; }
+.nav nav a { padding:6px 14px; border-radius:99px; color:rgba(255,255,255,.82); }
+.nav nav a:first-child { background:rgba(255,255,255,.16); color:#fff; }
+.nav .btn { background:transparent; color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); margin-left:0; }
+.nav .btn:hover { background:rgba(255,255,255,.12); }
+@media (max-width:860px) { .nav .btn { margin-left:auto; } }
+.heroA { background:radial-gradient(120% 80% at 50% 110%, #3D6BFF 0%, #1A47C9 35%, #09318D 70%); padding:84px 0 0; overflow:hidden; }
+.heroA::before { display:none; }
+.heroA .dots { position:absolute; inset:0; background-image:radial-gradient(rgba(255,255,255,.55) 1px, transparent 1.4px); background-size:11px 11px; -webkit-mask:radial-gradient(60% 45% at 22% 40%, #000 0%, transparent 70%), radial-gradient(55% 45% at 80% 38%, #000 0%, transparent 70%); mask:radial-gradient(60% 45% at 22% 40%, #000 0%, transparent 70%), radial-gradient(55% 45% at 80% 38%, #000 0%, transparent 70%); opacity:.55; pointer-events:none; }
+.crumbs { display:flex; flex-wrap:wrap; gap:8px 26px; justify-content:center; font-size:13.5px; color:rgba(255,255,255,.75); position:relative; }
+.heroA h1 { font-weight:500; letter-spacing:-.045em; font-size:clamp(40px,6.6vw,84px); line-height:1.02; max-width:none; margin:20px 0 22px; background:linear-gradient(180deg, #FFFFFF 30%, #C9D6FF); -webkit-background-clip:text; background-clip:text; color:transparent; position:relative; }
+.bdg { -webkit-text-fill-color:initial; display:inline-grid; place-items:center; width:.62em; height:.62em; border-radius:50%; font-size:.42em; vertical-align:middle; margin:0 .18em; font-weight:700; letter-spacing:0; color:#fff; position:relative; top:-.25em; }
+.bdg.b1 { background:linear-gradient(140deg, #7FA1FF, #2D5BFF); box-shadow:0 6px 20px rgba(45,91,255,.6), inset 0 1px 0 rgba(255,255,255,.5); }
+.bdg.b2 { margin-left:.3em; background:linear-gradient(140deg, #FFC1E3, #F06AB1); box-shadow:0 6px 20px rgba(253,145,204,.6), inset 0 1px 0 rgba(255,255,255,.6); font-size:.3em; width:.86em; height:.86em; }
+.heroA .sub { color:rgba(255,255,255,.82); }
+.heroA .ctas { margin-top:30px; display:flex; gap:12px; flex-wrap:wrap; justify-content:center; position:relative; }
+.vsl.vA { margin-top:48px; max-width:900px; }
+.vsl.vA .meta { bottom:58px; }
+.vsl.vA::before { background:linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.15)); animation:none; }
+.vsl.vA::after { background:radial-gradient(closest-side, rgba(253,145,204,.55), rgba(45,91,255,.3), transparent); animation:none; opacity:.8; }
+.vsl.vA .frame { background:radial-gradient(90% 90% at 50% 0%, #2A57D6, #0A2A7A 70%); }
+.floatA { position:relative; display:grid; grid-template-columns:1fr 1.05fr 1fr; gap:16px; width:100%; max-width:1040px; margin:-36px auto 0; z-index:2; perspective:1200px; text-align:left; }
+.fa { border-radius:22px; padding:18px; background:rgba(255,255,255,.95); color:#0B1B4A; box-shadow:0 30px 60px -24px rgba(9,49,141,.55); min-height:200px; }
+.fa1 { transform:rotateY(10deg) rotateZ(-2deg) translateY(36px); }
+.fa3 { transform:rotateY(-10deg) rotateZ(2deg) translateY(36px); }
+.fa2 { background:linear-gradient(180deg, #FFB3DC, #F06AB1); color:#fff; display:grid; justify-items:center; align-content:start; text-align:center; }
+.fh { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; width:100%; }
+.ico { width:22px; height:22px; border-radius:7px; display:grid; place-items:center; font-style:normal; font-size:11px; background:#EAF0FF; color:#2D5BFF; }
+.fa2 .ico { background:rgba(255,255,255,.25); color:#fff; }
+.arr2 { margin-left:auto; }
+.hb { display:grid; grid-template-columns:76px 1fr 30px; align-items:center; gap:8px; font-size:12px; color:#5A6684; margin-top:12px; }
+.hb i { height:8px; border-radius:99px; background:#EEF1F8; position:relative; overflow:hidden; }
+.hb i::after { content:""; position:absolute; inset:0; width:var(--w); border-radius:99px; background:linear-gradient(90deg, #2D5BFF, #FD91CC); }
+.hb b { text-align:right; color:#0B1B4A; }
+.gauge { width:88%; margin-top:8px; }
+.gv { font-family:var(--display); font-size:44px; font-weight:600; line-height:1; margin-top:6px; }
+.gl { font-size:12.5px; opacity:.85; }
+.ln { width:100%; margin-top:16px; }
+.lx { display:flex; justify-content:space-between; font-size:11px; color:#8A93AE; }
+@media (max-width:860px) { .floatA { grid-template-columns:1fr; margin-top:28px; perspective:none; } .fa1, .fa3 { transform:none; } .heroA { padding-bottom:60px; } }
+.heroA + section { padding-top:150px; }
+@media (max-width:860px) { .heroA + section { padding-top:84px; } }
+.dark { background:radial-gradient(100% 120% at 50% 0%, #1A47C9, #09318D 60%); }
+.dark .eyebrow { color:rgba(255,255,255,.65); }
+.dark .spec-text { background:linear-gradient(90deg, #FFFFFF, #FD91CC); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.compare thead th:last-child { background:#09318D; }
+.who span.you { background:#FFE6F3; color:#C2357F; }
+.tile.black { background:#09318D; }
+.stat b.spec-text { background:var(--text-grad); -webkit-background-clip:text; background-clip:text; }
+.quote { border-left-color:var(--pink); }
+footer, .mcta { background:#061F5C; }
+
+.logo { font-family:"Manrope", sans-serif; }
+
+/* headline: X result in X days, with the customer's own words above it */
+.heroA { padding-top:44px; }
+.eyeq { position:relative; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:baseline; font-size:15px; color:rgba(255,255,255,.78); margin:0; }
+.eyeq q { quotes:none; font-weight:700; color:#fff; padding:4px 13px; border-radius:99px; background:rgba(253,145,204,.18); border:1px solid rgba(253,145,204,.55); display:inline-block; transition:opacity .28s, transform .28s, filter .28s; }
+.eyeq q.out { opacity:0; transform:translateY(.3em); filter:blur(6px); }
+.heroA h1 { font-weight:800; letter-spacing:-.045em; font-size:clamp(36px,5vw,70px); line-height:1.04; margin:16px 0 14px; }
+.heroA h1 .num { color:#FD91CC; -webkit-text-fill-color:#FD91CC; }
+.heroA h1 .l2 { display:inline-block; margin-top:8px; font-size:.6em; font-weight:600; letter-spacing:-.03em; }
+@media (min-width:861px) { .heroA h1 .l1 { white-space:nowrap; } }
+.heroA .sub { margin:0 auto; }
+.vsl.vA { margin-top:28px; }
+.vsl.vA .frame { padding:0; }
+.vsl.vA video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; background:#09318D; }
+.heroA .ctas { margin-top:26px; }
+.floatA { margin-top:40px; }
+.vsl.vA { max-width:780px; }
+@media (max-width:700px) { .heroA { padding-top:80px; } }
 
 .styleSw { position:fixed; left:16px; bottom:16px; z-index:60; display:flex; align-items:center; gap:4px; padding:5px; border-radius:99px; background:rgba(20,20,24,.82); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 10px 30px -10px rgba(0,0,0,.5); font:500 12.5px/1 "Geist", -apple-system, sans-serif; }
 .styleSw span { color:rgba(255,255,255,.5); padding:0 8px; }
@@ -229,11 +315,11 @@ footer .logo { color:#fff; }
 </style>
 </head>
 <body>
-<nav class="styleSw" aria-label="Velg stil"><span>Stil</span><a href="./" aria-current="page">Apple</a><a href="stil-a.html">Deep Blue</a><a href="stil-b.html">Midnight</a></nav>
+<nav class="styleSw" aria-label="Velg stil"><span>Stil</span><a href="./" aria-current="page">Deep Blue</a><a href="stil-b.html">Midnight</a><a href="apple.html">Apple</a></nav>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <linearGradient id="lg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2F6BFF"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#FF6A3D"/></linearGradient>
+    <linearGradient id="lg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2D5BFF"/><stop offset="1" stop-color="#FD91CC"/></linearGradient>
     <symbol id="mark" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#000"/><rect x=".5" y=".5" width="63" height="63" rx="15.5" fill="none" stroke="rgba(255,255,255,.16)"/><path d="M15 45V24l11 13 11-13v11l12-15" fill="none" stroke="url(#lg)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="49" cy="20" r="3.6" fill="#FFB020"/></symbol>
   </defs>
 </svg>
@@ -246,29 +332,47 @@ footer .logo { color:#fff; }
   </div>
 </header>
 
-<!-- // BIG OFFER HEADLINE → VSL → ONE CTA -->
-<header class="hero">
+<!-- // HERO -->
+<header class="hero heroA">
+  <div class="dots" aria-hidden="true"></div>
   <div class="wrap center">
-    <span class="pill"><b>NY</b>For bedrifter med 5–100 MNOK i omsetning</span>
-    <h1>Vi selger for deg i 30 dager. <span class="spec-text">Så lærer vi teamet ditt å gjøre det samme.</span></h1>
-    <p class="sub">To erfarne selgere tar de første salgsmøtene dine selv, bygger markedsføringen som fyller kalenderen og trener teamet ditt til å ta over. Mer ny omsetning enn du betaler oss på 90 dager, ellers jobber vi gratis til du har det.</p>
-    <div class="vsl">
-      <a class="frame" href="vsl-manus.html" aria-label="Spill av videoen: Hvorfor flere annonser ikke gir flere kunder">
-        <span class="orb" aria-hidden="true"></span>
-        <span class="play" aria-hidden="true"></span>
-        <span class="chapl" aria-hidden="true"><span>Problemet</span><span>Ikke din feil</span><span>Metoden</span><span>Garantien</span><span>Neste steg</span></span>
-        <span class="chap" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-        <span class="meta"><b>Hvorfor flere annonser ikke gir flere kunder</b><span>04:30</span></span>
-      </a>
+    <p class="eyeq">Kunden sier <q class="obj" id="obj">«Vi tenker på det.»</q> Og så blir det stille.</p>
+    <h1><span class="l1"><span class="num">10 nye kunder</span> på 90 dager.</span><br><span class="l2">Uten en krone mer i annonser.</span></h1>
+    <p class="sub">Vi selger for deg først, så trener vi teamet til å gjøre det selv.<br>Får du ikke mer ny omsetning enn du betaler oss, jobber vi gratis til du har det.</p>
+    <div class="vsl vA" id="video">
+      <div class="frame">
+        <video src="media/vsl-blue.mp4" poster="media/vsl-blue-poster.jpg" controls playsinline preload="metadata" aria-label="Video: 10 nye kunder på 90 dager"></video>
+      </div>
     </div>
-    <div class="ctas">
-      <a class="btn light" href="#book">Book en gratis salgsanalyse <span class="arr">→</span></a>
-      <a class="btn link" href="#kalkulator">Regn ut lekkasjen din</a>
+    <div class="ctas"><a class="btn pink" href="#book">Book gratis salgsanalyse</a><a class="btn ghostw" href="#kalkulator">Regn ut lekkasjen</a></div>
+    <div class="floatA" aria-hidden="true">
+      <div class="fa fa1"><div class="fh"><i class="ico">◉</i>Henvendelser per kanal</div>
+        <div class="hb"><span>Google</span><i style="--w:86%"></i><b>124</b></div>
+        <div class="hb"><span>Meta</span><i style="--w:62%"></i><b>89</b></div>
+        <div class="hb"><span>SEO</span><i style="--w:48%"></i><b>67</b></div>
+        <div class="hb"><span>Henvisning</span><i style="--w:30%"></i><b>41</b></div>
+      </div>
+      <div class="fa fa2"><div class="fh"><i class="ico">⚙</i>Lekkasje-score<span class="arr2">↗</span></div>
+        <svg viewBox="0 0 220 120" class="gauge"><defs><linearGradient id="gA" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>
+          <path d="M20 110 A90 90 0 0 1 200 110" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="14" stroke-dasharray="2 4"/>
+          <path d="M20 110 A90 90 0 0 1 166 46" fill="none" stroke="url(#gA)" stroke-width="14" stroke-dasharray="2 4"/>
+          <line x1="110" y1="108" x2="150" y2="42" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><circle cx="110" cy="108" r="6" fill="#fff"/></svg>
+        <b class="gv">65</b><span class="gl">Middels lekkasje</span>
+      </div>
+      <div class="fa fa3"><div class="fh"><i class="ico">↻</i>Lukket vs. tapt</div>
+        <svg viewBox="0 0 220 90" class="ln"><path d="M0 70 C30 64 50 52 80 50 S130 30 160 34 S200 20 220 16" fill="none" stroke="#2D5BFF" stroke-width="2.5"/><path d="M0 40 C30 46 60 54 90 58 S150 66 220 72" fill="none" stroke="#FD91CC" stroke-width="2.5"/><circle cx="160" cy="34" r="5" fill="#2D5BFF" stroke="#fff" stroke-width="2"/></svg>
+        <div class="lx"><span>Aug</span><span>Sep</span><span>Okt</span><span>Nov</span></div>
+      </div>
     </div>
-    <small>30 minutter. Du får en oversikt over hvor du mister kunder, og den er din uansett.</small>
-    <div class="trust" aria-label="Kunder"><span>[Kunde]</span><span>[Kunde]</span><span>[Kunde]</span><span>[Kunde]</span><span>[Kunde]</span></div>
   </div>
 </header>
+<script>
+// Rotate the customer objections above the headline.
+(function(){ var q=document.getElementById('obj'); if(!q||matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var L=['«Vi tenker på det.»','«Send meg et tilbud.»','«Det var litt dyrt.»','«Ring meg etter sommeren.»'], i=0;
+  setInterval(function(){ q.classList.add('out'); setTimeout(function(){ i=(i+1)%L.length; q.textContent=L[i]; q.classList.remove('out'); },280); },2600); })();
+</script>
+
 
 <!-- // PROBLEM STATEMENT -->
 <section>

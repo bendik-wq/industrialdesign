@@ -1,19 +1,30 @@
 import React, { CSSProperties } from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { continueRender, delayRender, staticFile } from 'remotion';
+import { continueRender, delayRender, getInputProps, staticFile } from 'remotion';
+
+// Pick a look with --props='{"theme":"blue"}'. Default is Midnight.
+export const THEME: 'midnight' | 'blue' = (getInputProps() as { theme?: string }).theme === 'blue' ? 'blue' : 'midnight';
 
 // Fonts ship with the project so rendering works offline.
 const faces = [
   new FontFace('Archivo', `url(${staticFile('fonts/archivo.woff2')}) format('woff2')`, { weight: '100 900', unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215' }),
   new FontFace('Archivo', `url(${staticFile('fonts/archivo-ext.woff2')}) format('woff2')`, { weight: '100 900', unicodeRange: 'U+0100-024F, U+1E00-1EFF' }),
+  new FontFace('Manrope', `url(${staticFile('fonts/manrope.woff2')}) format('woff2')`, { weight: '200 800', unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215' }),
+  new FontFace('Manrope', `url(${staticFile('fonts/manrope-ext.woff2')}) format('woff2')`, { weight: '200 800', unicodeRange: 'U+0100-024F, U+1E00-1EFF' }),
   new FontFace('Geist Mono', `url(${staticFile('fonts/geistmono.woff2')}) format('woff2')`, { weight: '100 900' }),
 ];
 const handle = delayRender('fonts');
 Promise.all(faces.map((f) => f.load().then((l) => document.fonts.add(l)))).then(() => continueRender(handle));
 
-export const F = { display: '"Archivo", sans-serif', mono: '"Geist Mono", monospace' };
-export const C = {
-  bg: '#02070A', blue: '#0297DE', orange: '#FC734D', ink: '#F2F5F7',
+export const F = { display: THEME === 'blue' ? '"Manrope", sans-serif' : '"Archivo", sans-serif', mono: '"Geist Mono", monospace' };
+// orange = accent, blue = secondary (names kept from the Midnight palette).
+export const C = THEME === 'blue' ? {
+  bg: '#09318D', blue: '#A9BEFF', orange: '#FD91CC', ink: '#FFFFFF', onAccent: '#0A1F5C', accentDeep: '#E25BA4', markBg: '#061F5C',
+  card: 'linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06))',
+  dim: 'rgba(255,255,255,.66)', faint: 'rgba(255,255,255,.42)', line: 'rgba(255,255,255,.16)',
+} : {
+  bg: '#02070A', blue: '#0297DE', orange: '#FC734D', ink: '#F2F5F7', onAccent: '#1a0b05', accentDeep: '#b8401f', markBg: '#0B1216',
+  card: 'linear-gradient(180deg, rgba(20,28,34,.92), rgba(10,16,21,.92))',
   dim: 'rgba(242,245,247,.55)', faint: 'rgba(242,245,247,.28)', line: 'rgba(255,255,255,.10)',
 };
 
@@ -76,7 +87,7 @@ export const Shot: React.FC<{ dur: number; children: React.ReactNode; style?: CS
 
 export const Glass: React.FC<{ children: React.ReactNode; style?: CSSProperties; glow?: string }> = ({ children, style, glow }) => (
   <div style={{
-    background: 'linear-gradient(180deg, rgba(20,28,34,.92), rgba(10,16,21,.92))',
+    background: C.card,
     border: `1px solid ${glow ? glow : C.line}`, borderRadius: 28, padding: '30px 34px',
     boxShadow: glow ? `0 0 0 1px ${glow}55, 0 30px 90px -20px ${glow}88` : '0 30px 80px -30px rgba(0,0,0,.8)',
     ...style,
@@ -86,7 +97,7 @@ export const Glass: React.FC<{ children: React.ReactNode; style?: CSSProperties;
 export const Mark: React.FC<{ size?: number }> = ({ size = 56 }) => (
   <svg width={size} height={size} viewBox="0 0 64 64">
     <defs><linearGradient id="mg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stopColor={C.blue} /><stop offset="1" stopColor={C.orange} /></linearGradient></defs>
-    <rect width="64" height="64" rx="16" fill="#0B1216" stroke="rgba(255,255,255,.14)" />
+    <rect width="64" height="64" rx="16" fill={C.markBg} stroke="rgba(255,255,255,.14)" />
     <path d="M15 45V24l11 13 11-13v11l12-15" fill="none" stroke="url(#mg)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
     <circle cx="49" cy="20" r="4" fill={C.orange} />
   </svg>

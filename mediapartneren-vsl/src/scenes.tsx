@@ -182,8 +182,8 @@ export const Track: React.FC = () => {
   const f = useCurrentFrame();
   const phases = [
     { from: 0, to: 2, t: 'Diagnose', s: 'Vi finner lekkasjene.', c: 'rgba(255,255,255,.14)', ink: C.ink },
-    { from: 2, to: 6, t: 'Vi tar møtene', s: 'Teamet ditt sitter med og lytter.', c: C.orange, ink: '#1a0b05' },
-    { from: 6, to: 12, t: 'Teamet tar over', s: 'Vi coacher hver uke til de lukker like godt.', c: C.blue, ink: '#02121c' },
+    { from: 2, to: 6, t: 'Vi tar møtene', s: 'Teamet ditt sitter med og lytter.', c: C.orange, ink: C.onAccent },
+    { from: 6, to: 12, t: 'Teamet tar over', s: 'Vi coacher hver uke til de lukker like godt.', c: C.blue, ink: C.onAccent },
   ];
   const W = 1600;
   const head = ease(f, 20, 260);
@@ -235,7 +235,7 @@ export const Stack: React.FC = () => {
           const p = useIn(30 + i * 16);
           return (
             <Glass key={t} style={{ display: 'flex', gap: 24, alignItems: 'center', padding: '22px 30px', opacity: p, transform: `translateX(${(1 - p) * 60}px)` }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange, display: 'grid', placeItems: 'center', color: '#1a0b05', fontWeight: 800, fontSize: 26, fontFamily: F.display, flex: 'none' }}>✓</div>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange, display: 'grid', placeItems: 'center', color: C.onAccent, fontWeight: 800, fontSize: 26, fontFamily: F.display, flex: 'none' }}>✓</div>
               <div>
                 <div style={{ fontFamily: F.display, fontWeight: 700, fontSize: 34, color: C.ink, letterSpacing: '-0.02em' }}>{t}</div>
                 <div style={{ fontFamily: F.mono, fontSize: 20, color: C.dim, marginTop: 4 }}>{s}</div>
@@ -260,9 +260,9 @@ export const Guarantee: React.FC = () => {
           <defs><path id="rp" d="M230 230 m-185 0 a185 185 0 1 1 370 0 a185 185 0 1 1 -370 0" /></defs>
           <text style={{ fontFamily: F.mono, fontSize: 25, letterSpacing: 5.4, fill: C.dim }}><textPath href="#rp">{ring}</textPath></text>
         </svg>
-        <div style={{ position: 'absolute', inset: 80, borderRadius: '50%', background: `radial-gradient(circle at 30% 25%, ${C.orange}, #b8401f)`, display: 'grid', placeItems: 'center', boxShadow: `0 40px 120px -20px ${C.orange}` }}>
-          <div style={{ textAlign: 'center', color: '#1a0b05' }}>
-            <div style={{ ...H(130), color: '#1a0b05', letterSpacing: '-0.06em' }}>90</div>
+        <div style={{ position: 'absolute', inset: 80, borderRadius: '50%', background: `radial-gradient(circle at 30% 25%, ${C.orange}, ${C.accentDeep})`, display: 'grid', placeItems: 'center', boxShadow: `0 40px 120px -20px ${C.orange}` }}>
+          <div style={{ textAlign: 'center', color: C.onAccent }}>
+            <div style={{ ...H(130), color: C.onAccent, letterSpacing: '-0.06em' }}>90</div>
             <div style={{ fontFamily: F.mono, fontSize: 24, letterSpacing: '.18em', marginTop: -6 }}>DAGER</div>
           </div>
         </div>
