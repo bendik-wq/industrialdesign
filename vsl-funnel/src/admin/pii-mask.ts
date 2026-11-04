@@ -92,7 +92,7 @@ const FREE = new Set([
   'body', 'text', 'message', 'messages', 'snippet', 'html', 'body_html', 'last_preview', 'first_message', 'last_message',
   'comment', 'comments', 'reply', 'public_reply', 'draft', 'drafts', 'question', 'structured', 'address', 'postal_code',
   'signature', 'user_agent', 'content', 'why', 'worst', 'desire', 'belief', 'evidence', 'quote', 'website', 'company',
-  'client_company', 'financials_url', 'recording_url', 'audio_url', 'transcript_url', 'analysis', 'data_collection',
+  'client_company', 'detail', 'financials_url', 'recording_url', 'audio_url', 'transcript_url', 'analysis', 'data_collection',
 ]);
 /** A record is personal when it carries one of these (a lead, a message, a call, an attendee, a signer…). */
 const PERSONAL_MARKERS = [
@@ -139,6 +139,17 @@ function hideDeep(v: unknown, depth = 0): unknown {
   return v;
 }
 
+/** A free-text field: a plain string is hidden whole; a JSON document (answers, structured call data) keeps its shape. */
+function hideFree(v: unknown): unknown {
+  if (typeof v !== 'string') return hideDeep(v);
+  if (!v.trim()) return v;
+  const t = v.trim();
+  if (t.startsWith('{') || t.startsWith('[')) {
+    try { const p = JSON.parse(t); if (p && typeof p === 'object') return JSON.stringify(hideDeep(p)); } catch { /* plain text */ }
+  }
+  return HIDDEN;
+}
+
 /** Strings that are JSON documents (answers, structured call data) are masked as JSON, then put back as strings. */
 function maskJsonString(s: string, names: MaskNames, personal: boolean, depth: number): string | null {
   const t = s.trim();
@@ -150,7 +161,7 @@ function maskValue(key: string, v: unknown, names: MaskNames, personal: boolean,
   const k = key.toLowerCase();
   if (v == null || typeof v === 'number' || typeof v === 'boolean') return IP.test(k) && v != null ? HIDDEN : v;
   if (IP.test(k)) return HIDDEN;
-  if (personal && FREE.has(k)) return hideDeep(typeof v === 'string' ? (() => { try { const p = JSON.parse(v); return p && typeof p === 'object' ? JSON.stringify(hideDeep(p)) : v; } catch { return v; } })() : v);
+  if (personal && FREE.has(k)) return hideFree(v);
   if (typeof v === 'string') {
     if (FIRST.has(k)) return v;
     if (LAST.has(k)) return v.trim() ? initial(v.trim().split(/\s+/).pop() ?? '') : v;
