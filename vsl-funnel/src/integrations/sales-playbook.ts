@@ -134,6 +134,8 @@ export function resourceMenu() {
 After one or two discovery questions, name their main challenge to yourself. If it matches one below, offer ONE guide in plain words: "Want me to email you our guide on how to find off-market businesses? It covers how to build a target list and start conversations with owners." Rules:
 - The next action comes first. The guide is an add-on, offered once, never instead of the objective and never as a reason to end the call early.
 - One guide per call. Never read out a web address; say it comes by email straight after the call.
+- No guide on time-critical calls (the session is starting now, or they left mid-session): there the only job is getting them into the room.
+- When they name a challenge that matches a guide, offer that guide in the SAME turn as your label ("It sounds like finding the right business is the hard part. Want me to email you our guide on finding off-market businesses?"), then carry on with the next action. Don't wait for a later moment: it rarely comes.
 - If they say no, drop it.
 ${PAIN_POINTS.map((p) => `- ${p} (${RESOURCES[p].pain}; they say things like ${RESOURCES[p].cues}): "${RESOURCES[p].title}", ${RESOURCES[p].why}.`).join('\n')}`;
 }
@@ -210,13 +212,13 @@ export const NEXT_ACTIONS: Record<CallContext, NextAction> = {
   },
   w_pre_start: {
     label: 'Get in the room now',
-    objective: 'Get them in the room NOW. It starts in about ten minutes: the join link is texted and emailed. Keep it under a minute.',
+    objective: 'Get them in the room NOW. It starts in about ten minutes: the join link is texted and emailed. Keep it under a minute. Do NOT offer any guide or resource on this call, even if they mention a challenge: say the session covers it.',
     success: 'They said they are joining now.',
     examples: ['Can you jump on now? The link is in the text and email from us.'],
   },
   w_left: {
     label: 'Come back to the session',
-    objective: 'Bring them BACK. Check they’re all right, then tell them the part they missed is the part that matters for them (the next section of the session: where the deals are, how they’re funded, the 1.5x test or the offer). Offer the link that picks up where they left off.',
+    objective: 'Bring them BACK. Check they’re all right, then tell them the part they missed is the part that matters for them (the next section of the session: where the deals are, how they’re funded, the 1.5x test or the offer). Offer the link that picks up where they left off. Do NOT offer any guide or resource on this call: getting them back in the room is the only job.',
     success: 'They said they will go back into the session or watch from where they left off.',
     examples: ['The part right after you dropped off is how the deal gets paid for. Want the link that picks up at that minute?'],
   },
@@ -234,7 +236,7 @@ export const NEXT_ACTIONS: Record<CallContext, NextAction> = {
   },
   w_post_bought: {
     label: 'Complete the first onboarding step',
-    objective: 'They bought. Congratulate them, confirm what happens next, and get a yes to the first onboarding step (start the Sprint intake, book the onboarding call, or open the hub). Offer the link again if they need it. Never sell anything they already bought.',
+    objective: 'They bought. Open by congratulating them warmly in your first sentence after the disclosure ("Congratulations on joining, that’s a big step"), then confirm what happens next, and get a yes to the first onboarding step (start the Sprint intake, book the onboarding call, or open the hub). Offer the link again if they need it. Never sell anything they already bought.',
     success: 'They agreed to take the first onboarding step (or confirmed they already have).',
     examples: ['The first step is the intake form; it takes about ten minutes. Shall I resend the link so you can do it tonight?'],
   },
