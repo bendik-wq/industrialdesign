@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Takk · Mediapartneren</title>
+<meta name="theme-color" content="#09318D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root { --blue:#09318D; --navy:#061F5C; --pink:#FD91CC; --pink2:#F06AB1; --ink:#0A1633; --ink2:#46506A; --line:#E4E8F2; --paper:#F5F7FC; --mono:"Geist Mono", ui-monospace, monospace; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:"Manrope", -apple-system, sans-serif; color:#fff; background:radial-gradient(120% 80% at 50% 0%, #2D5BFF, var(--blue) 45%, var(--navy)); min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.6; }
+a { color:inherit; }
+.wrap { width:min(760px, 100% - 40px); margin:0 auto; padding:48px 0 80px; }
+.logo { display:inline-flex; align-items:center; gap:10px; font-weight:600; font-size:19px; letter-spacing:-.03em; text-decoration:none; }
+.logo b { font-weight:800; } .logo svg { width:32px; height:32px; }
+.eyebrow { font-family:var(--mono); font-size:12.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--pink); display:block; margin-top:48px; }
+h1 { font-size:clamp(34px, 5vw, 56px); letter-spacing:-.045em; line-height:1.05; margin:14px 0 0; }
+.lead { font-size:18px; color:rgba(255,255,255,.82); margin-top:16px; }
+.card { background:#fff; color:var(--ink); border-radius:28px; padding:30px; margin-top:34px; box-shadow:0 40px 90px -40px rgba(0,0,0,.6); }
+.cal { border:2px dashed var(--line); border-radius:20px; min-height:260px; display:grid; place-items:center; text-align:center; color:var(--ink2); background:var(--paper); padding:24px; }
+.cal b { color:var(--ink); }
+ol { margin:0; padding:0; list-style:none; counter-reset:s; display:grid; gap:16px; }
+ol li { counter-increment:s; display:grid; grid-template-columns:44px 1fr; gap:14px; align-items:start; }
+ol li::before { content:counter(s); width:44px; height:44px; border-radius:14px; background:#EEF2FF; color:#2D5BFF; display:grid; place-items:center; font-weight:800; }
+ol li b { display:block; }
+ol li span { color:var(--ink2); font-size:15.5px; }
+.btn { display:inline-flex; align-items:center; gap:10px; border-radius:999px; padding:16px 28px; font-weight:800; text-decoration:none; background:linear-gradient(180deg, #FFB3DC, var(--pink)); color:var(--navy); margin-top:22px; }
+.hide { display:none; }
+.fill { background:rgba(253,145,204,.25); border-radius:6px; padding:0 4px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><linearGradient id="lg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2D5BFF"/><stop offset="1" stop-color="#FD91CC"/></linearGradient></defs>
+  <symbol id="mark" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#061F5C"/><rect x=".5" y=".5" width="63" height="63" rx="15.5" fill="none" stroke="rgba(255,255,255,.2)"/><path d="M15 45V24l11 13 11-13v11l12-15" fill="none" stroke="url(#lg)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="49" cy="20" r="3.6" fill="#FD91CC"/></symbol>
+</svg>
+<div class="wrap">
+  <a class="logo" href="./"><svg><use href="#mark"/></svg><span><b>media</b>partneren</span></a>
+
+  <!-- qualified: book the call now -->
+  <div id="tA">
+    <span class="eyebrow">Steg 5 av 5 · Book samtalen</span>
+    <h1><span class="nm">Takk</span>, du kvalifiserer. Velg et tidspunkt.</h1>
+    <p class="lead">Samtalen tar 30 minutter med en av gründerne. Du får salgsanalysen av <span class="bd">bedriften din</span> uansett om du blir kunde.</p>
+    <div class="card">
+      <div class="cal"><div><b>Kalender kommer her</b><br>Lim inn bookinglenken (Calendly, Cal.com eller HubSpot) <span class="fill" style="background:#FFE3F2;color:#B0306F">[bookinglenke]</span></div></div>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 18px;font-size:24px;letter-spacing:-.03em">Tre ting før vi snakkes</h2>
+      <ol>
+        <li><div><b>Legg samtalen i kalenderen nå.</b><span>Vi tar bare fire nye bedrifter i kvartalet. Møter du ikke, går plassen videre.</span></div></li>
+        <li><div><b>Ha tallene klare.</b><span>Hvor mange henvendelser fikk dere forrige måned, og hvor mange ble kunder? Da regner vi på hva 30 møter er verdt for akkurat dere.</span></div></li>
+        <li><div><b>Ta med den som selger mest i dag.</b><span>Det er den personen vi skal gjøre bedre. Det tar fem minutter av samtalen.</span></div></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- not a fit yet: free analysis instead of a call -->
+  <div id="tB" class="hide">
+    <span class="eyebrow">Takk for søknaden</span>
+    <h1><span class="nm">Takk</span>, vi sender deg salgsanalysen.</h1>
+    <p class="lead">Ut fra svarene dine er det for tidlig for Salgsmotoren akkurat nå. Det betyr ikke nei for alltid. Vi tar bare kunder der regnestykket viser minst fem ganger investeringen.</p>
+    <div class="card">
+      <ol>
+        <li><div><b>Innen to virkedager</b><span>får du en kort analyse av hvor salget lekker mest, basert på svarene dine.</span></div></li>
+        <li><div><b>Bruk kalkulatoren</b><span>for å se hvor mye en bedre lukkerate er verdt for dere i dag.</span></div></li>
+        <li><div><b>Når dere er klare</b><span>kan du søke igjen. Svarene dine er lagret.</span></div></li>
+      </ol>
+      <a class="btn" href="./#kalkulator">Til kalkulatoren →</a>
+    </div>
+  </div>
+</div>
+<script>
+(function(){ var p=new URLSearchParams(location.search), t=p.get('t')==='b'?'B':'A', n=p.get('n'), b=p.get('b');
+  document.getElementById('tA').classList.toggle('hide', t!=='A'); document.getElementById('tB').classList.toggle('hide', t!=='B');
+  if(n) document.querySelectorAll('.nm').forEach(function(e){ e.textContent='Takk, '+n; });
+  if(b) document.querySelectorAll('.bd').forEach(function(e){ e.textContent=b; }); })();
+</script>
+</body>
+</html>

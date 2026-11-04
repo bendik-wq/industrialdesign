@@ -252,7 +252,7 @@ export const Stack: React.FC = () => {
 export const Guarantee: React.FC = () => {
   const f = useCurrentFrame();
   const p = useIn(4, 30);
-  const ring = 'MER NY OMSETNING ENN HONORARET · 90-DAGERS GARANTI · ';
+  const ring = 'SKRIFTLIG GARANTI · VILKÅR PÅ SIDEN · SKRIFTLIG GARANTI · ';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 110 }}>
       <div style={{ width: 460, height: 460, position: 'relative', flex: 'none', opacity: p, transform: `scale(${0.8 + p * 0.2})` }}>
@@ -269,8 +269,8 @@ export const Guarantee: React.FC = () => {
       </div>
       <div style={{ flex: 1 }}>
         <Kicker>Garantien</Kicker>
-        <div style={{ ...H(84), marginTop: 22 }}><Words text="Mer ny omsetning enn du *betaler* *oss.*" delay={14} /></div>
-        <div style={{ ...H(84), marginTop: 10, color: C.dim }}><Words text="Ellers jobber vi gratis til du har det." delay={60} /></div>
+        <div style={{ ...H(84), marginTop: 22 }}><Words text="*30* *kvalifiserte* *møter* på 90 dager." delay={14} /></div>
+        <div style={{ ...H(84), marginTop: 10, color: C.dim }}><Words text="Ellers jobber vi gratis til du har dem." delay={60} /></div>
       </div>
     </div>
   );
@@ -280,7 +280,7 @@ export const Guarantee: React.FC = () => {
 export const NextStep: React.FC = () => {
   const steps = [
     ['Regn ut lekkasjen', 'Kalkulatoren rett under videoen'],
-    ['Book gratis salgsanalyse', '30 minutter med en av oss'],
+    ['Se om du kvalifiserer', '4 spørsmål, så 30 min med en av oss'],
     ['Få de tre største lekkasjene', 'Oversikten er din, uansett'],
   ];
   return (
@@ -314,9 +314,9 @@ export const EndCard: React.FC<{ Mark: React.FC<{ size?: number }> }> = ({ Mark 
         <div style={{ fontFamily: F.display, fontSize: 86, fontWeight: 600, color: C.ink, letterSpacing: '-0.04em' }}>media<b style={{ fontWeight: 800 }}>partneren</b></div>
       </div>
       <div style={{ opacity: b, transform: `translateY(${(1 - b) * 20}px)`, background: C.ink, color: C.bg, fontFamily: F.display, fontWeight: 800, fontSize: 44, padding: '26px 52px', borderRadius: 999, display: 'flex', gap: 20, alignItems: 'center', letterSpacing: '-0.02em' }}>
-        Book gratis salgsanalyse <span style={{ display: 'inline-block', transform: `translateY(${arrow}px)` }}>↓</span>
+        Se om du kvalifiserer <span style={{ display: 'inline-block', transform: `translateY(${arrow}px)` }}>↓</span>
       </div>
-      <div style={{ fontFamily: F.mono, fontSize: 22, color: C.faint, letterSpacing: '.12em', opacity: b }}>MER NY OMSETNING ENN HONORARET PÅ 90 DAGER, ELLERS GRATIS</div>
+      <div style={{ fontFamily: F.mono, fontSize: 22, color: C.faint, letterSpacing: '.12em', opacity: b }}>30 SALGSMØTER PÅ 90 DAGER · SKRIFTLIG GARANTERT</div>
     </div>
   );
 };
