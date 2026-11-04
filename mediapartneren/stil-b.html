@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%232F6BFF'/%3E%3Cstop offset='.5' stop-color='%238B5CF6'/%3E%3Cstop offset='1' stop-color='%23FF6A3D'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%23000'/%3E%3Cpath d='M15 45V24l11 13 11-13v11l12-15' fill='none' stroke='url(%23g)' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@500;600;700;800;900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500..800&family=Schibsted+Grotesk:wght@500;600;700;800;900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: Apple-rytme. Svart hero med én glødende VSL, deretter lyse, rolige seksjoner (hvit / #F5F5F7) med presise kort, og mørke «øyeblikk» for garanti og avslutning.
    Palett: monokrom grunn + ett lys-spekter (blå → fiolett → rosa → korall → amber) som bare brukes på glød, logo og nøkkeltall. */
@@ -228,12 +228,12 @@ footer .logo { color:#fff; }
   --text-grad:linear-gradient(90deg, #0297DE, #FC734D);
   --line-grad:linear-gradient(90deg, #0297DE, #FC734D);
   --spectrum:conic-gradient(from var(--a), #0297DE, #02070A, #FC734D, #02070A, #0297DE);
-  --display:"Instrument Serif", Georgia, serif;
+  --display:"Archivo", "Geist", -apple-system, sans-serif;
 }
 html, body { background:var(--black); color:var(--ink); }
-h1,h2,h3, .h2, .statement, .phase h3, .tile h3, .fit h3, .faq summary, .stat b, .mini b, .loss b, .tile .big, .seal b, .pp b, .quote { font-weight:400; letter-spacing:-.01em; }
+h1,h2,h3, .h2, .statement, .phase h3, .tile h3, .fit h3, .faq summary, .stat b, .mini b, .loss b, .tile .big, .seal b, .pp b, .quote { font-weight:800; letter-spacing:-.035em; }
 .h2 { font-size:clamp(38px,5.4vw,68px); line-height:1.02; }
-.h2 em, h1 em { font-style:italic; }
+.h2 em, h1 em { font-style:normal; color:var(--coral); }
 .statement { font-size:clamp(34px,5vw,64px); line-height:1.06; }
 .statement .mute { color:rgba(255,255,255,.3); }
 .eyebrow, .phase .wk, .tile .k { color:var(--blue); }
@@ -260,7 +260,7 @@ input[type=range] { background:linear-gradient(90deg, var(--blue) var(--p,50%), 
 .form input, .form select { background:rgba(255,255,255,.05); }
 footer { background:var(--black); }
 
-.heroB { background:var(--black); padding:70px 0 40px; min-height:640px; overflow:hidden; }
+.heroB { background:var(--black); padding:34px 0 40px; min-height:640px; overflow:hidden; }
 .heroB::before { display:none; }
 .heroB .beam { position:absolute; left:50%; top:0; bottom:0; width:min(1100px,140vw); transform:translateX(-50%); pointer-events:none;
   background:
@@ -268,13 +268,14 @@ footer { background:var(--black); }
     radial-gradient(40% 70% at 50% 100%, rgba(252,115,77,.95), rgba(252,115,77,.35) 40%, transparent 70%),
     radial-gradient(55% 90% at 50% 70%, rgba(2,151,222,.85), rgba(2,151,222,.25) 45%, transparent 75%);
   -webkit-mask:radial-gradient(60% 100% at 50% 100%, #000 30%, transparent 85%); mask:radial-gradient(60% 100% at 50% 100%, #000 30%, transparent 85%); }
-.heroB .wrap { position:relative; display:grid; grid-template-columns:150px 1fr 150px; grid-template-areas:"l m r" "c c c"; gap:20px; align-items:center; }
+.heroB .wrap { position:relative; display:grid; grid-template-columns:150px 1fr 150px; grid-template-areas:"l m r" "c c c"; gap:20px; align-items:start; }
+.sideL, .sideR { padding-top:40px; }
 .sideL { grid-area:l; } .sideR { grid-area:r; text-align:right; } .mid { grid-area:m; text-align:center; display:grid; justify-items:center; } .cardsB { grid-area:c; }
 .sideL, .sideR { display:grid; gap:28px; }
-.sideL b, .sideR b { display:block; font-family:var(--display); font-size:34px; line-height:1; color:#fff; }
+.sideL b, .sideR b { display:block; font-family:var(--display); font-weight:800; letter-spacing:-.04em; font-size:34px; line-height:1; color:#fff; }
 .sideL span, .sideR span { font-family:"Geist Mono", monospace; font-size:10.5px; letter-spacing:.08em; color:var(--ink3); }
-.heroB h1 { font-family:var(--display); font-weight:400; font-size:clamp(46px,7.4vw,96px); line-height:.98; letter-spacing:-.015em; color:#fff; margin:30px 0 20px; text-shadow:0 10px 60px rgba(0,0,0,.6); }
-.heroB h1 em { font-style:italic; }
+.heroB h1 { font-family:var(--display); font-weight:800; font-size:clamp(34px,4.3vw,58px); line-height:1.04; letter-spacing:-.035em; color:#fff; margin:30px 0 20px; text-shadow:0 10px 60px rgba(0,0,0,.6); }
+
 .subm { font-family:"Geist Mono", monospace; font-size:13.5px; line-height:1.7; color:rgba(255,255,255,.75); max-width:42em; }
 .orbBtn { margin-top:34px; width:132px; height:132px; border-radius:50%; display:grid; place-items:center; align-content:center; gap:6px; font-family:"Geist Mono", monospace; font-size:12.5px; color:#fff; background:radial-gradient(circle at 50% 35%, rgba(255,255,255,.35), rgba(252,115,77,.25) 60%, rgba(252,115,77,.1)); border:1px solid rgba(255,255,255,.55); box-shadow:0 0 0 10px rgba(255,255,255,.06), 0 0 60px rgba(252,115,77,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:transform .2s; }
 .orbBtn:hover { transform:scale(1.05); }
@@ -308,6 +309,24 @@ footer { background:var(--black); }
 
 .logo { font-family:"Geist", -apple-system, sans-serif; font-weight:500; letter-spacing:-.02em; } .logo b { font-weight:700; }
 
+/* headline built on what customers actually say */
+.objs { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+.objs span { font-family:"Geist Mono", monospace; font-size:12px; color:var(--ink3); padding:6px 12px; border-radius:99px; border:1px solid var(--line); text-decoration:line-through; text-decoration-color:var(--coral); }
+.heroB h1 { margin:6px 0 14px; }
+.heroB h1 .l2 { display:inline-block; margin-top:4px; }
+.heroB h1 .say { color:rgba(255,255,255,.5); }
+.heroB h1 q { quotes:none; color:var(--coral); display:inline-block; transition:opacity .28s, transform .28s, filter .28s; }
+.heroB h1 q.out { opacity:0; transform:translateY(.25em); filter:blur(6px); }
+.heroB h1 .hot { background:linear-gradient(90deg, #fff, #9FD8F5); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.heroB .vsl.vB { margin:24px auto 0; max-width:900px; }
+.vsl.vB .frame { padding:0; background:#02070A; }
+.vsl.vB video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; background:#02070A; }
+.heroB .ctas { margin-top:28px; display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+.heroB .subm { margin:0 auto; }
+.logo { font-family:"Archivo", "Geist", sans-serif; }
+@media (max-width:860px) { .sideL, .sideR { padding-top:0; } .objs { display:none; } }
+@media (max-width:700px) { .heroB { padding-top:78px; } }
+
 .styleSw { position:fixed; left:16px; bottom:16px; z-index:60; display:flex; align-items:center; gap:4px; padding:5px; border-radius:99px; background:rgba(20,20,24,.82); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 10px 30px -10px rgba(0,0,0,.5); font:500 12.5px/1 "Geist", -apple-system, sans-serif; }
 .styleSw span { color:rgba(255,255,255,.5); padding:0 8px; }
 .styleSw a { color:rgba(255,255,255,.8); padding:7px 12px; border-radius:99px; }
@@ -340,9 +359,14 @@ footer { background:var(--black); }
     <div class="sideL"><div><b>30</b><span>DAGER VI SELGER SELV</span></div><div><b>90</b><span>DAGER GARANTI</span></div></div>
     <div class="sideR"><div><b class="fill">[X] MNOK</b><span>SOLGT AV GRÜNDERNE</span></div><div><b class="fill">[X] år</b><span>I SALG OG LEDELSE</span></div></div>
     <div class="mid">
-      <h1>Vi selger for deg.<br><em>Så tar teamet over.</em></h1>
-      <p class="subm">Vi tar de første salgsmøtene dine selv, bygger markedsføringen som fyller kalenderen og trener teamet til å ta over. Mer omsetning enn honoraret på 90 dager, ellers gratis.</p>
-      <a class="orbBtn" href="#video"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>Se videoen</a>
+      <h1><span class="say">Kundene sier</span> <q class="obj" id="obj">«Vi tenker på det.»</q><br><span class="l2">Vi gjør det om til <span class="hot">signerte avtaler.</span></span></h1>
+      <p class="subm">Vi tar de første salgsmøtene dine selv og trener teamet til å ta over.<br>Mer ny omsetning enn honoraret på 90 dager, ellers jobber vi gratis.</p>
+      <div class="vsl vB" id="video">
+        <div class="frame">
+          <video id="vslVideo" src="media/vsl.mp4" poster="media/vsl-poster.jpg" controls playsinline preload="metadata" aria-label="Video: Hvorfor flere annonser ikke gir flere kunder"></video>
+        </div>
+      </div>
+      <div class="ctas"><a class="btn light" href="#book">Book en gratis salgsanalyse <span class="arr">→</span></a><a class="btn link" href="#kalkulator">Regn ut lekkasjen din</a></div>
     </div>
     <div class="cardsB" aria-hidden="true">
       <div class="cb"><div class="ct">• Salgsmøter denne uken</div>
@@ -356,17 +380,12 @@ footer { background:var(--black); }
     </div>
   </div>
 </header>
-<section class="vslSec" id="video">
-  <div class="wrap center">
-    <div class="vsl vB">
-      <a class="frame" href="vsl-manus.html" aria-label="Spill av videoen: Hvorfor flere annonser ikke gir flere kunder">
-        <span class="play" aria-hidden="true"></span>
-        <span class="meta"><b>Hvorfor flere annonser ikke gir flere kunder</b><span>04:30</span></span>
-      </a>
-    </div>
-    <div class="ctas" style="margin-top:34px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center"><a class="btn light" href="#book">Book en gratis salgsanalyse <span class="arr">→</span></a><a class="btn link" href="#kalkulator">Regn ut lekkasjen din</a></div>
-  </div>
-</section>
+<script>
+// Rotate the customer objections in the headline.
+(function(){ var q=document.getElementById('obj'); if(!q||matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var L=['«Vi tenker på det.»','«Send meg et tilbud.»','«Det var litt dyrt.»','«Ring meg etter sommeren.»'], i=0;
+  setInterval(function(){ q.classList.add('out'); setTimeout(function(){ i=(i+1)%L.length; q.textContent=L[i]; q.classList.remove('out'); },280); },2600); })();
+</script>
 
 
 <!-- // PROBLEM STATEMENT -->
