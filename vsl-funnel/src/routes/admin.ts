@@ -17,6 +17,7 @@ import { articleReport, searchReport, submitIndexNow } from '../seo/tracking';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { mountGuestAdmin } from '../admin/guest';
+import { studioScriptsAdmin } from '../studio/scripts';
 import { hqCache } from '../lib/hq-cache';
 import { deliverabilityAdmin } from '../admin/deliverability';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
@@ -258,6 +259,7 @@ admin.route('/dataq', dataqAdmin); // Ad tracking → Data quality checks and CS
 admin.route('/voice/demo', voiceDemoApi); // Funnel HQ → Talk to an agent (signed ElevenLabs sessions, demo-tagged)
 admin.route('/sandbox', sandboxApi); // Funnel HQ → Sandbox (a sample lead through the real rules on a simulated clock; GET only, nothing written or sent)
 admin.route('/vectors', vectorsAdmin); // Cloudflare round, builder C: AI search (Vectorize): similar leads, leads like my buyers, search, index status
+admin.route('/studio/scripts', studioScriptsAdmin); // Studio → Scripts: one-click face-cam scripts (G&L Studio, builder C; src/studio/scripts.ts)
 admin.route('/deliverability', deliverabilityAdmin); // Emails → Deliverability: DNS health (DoH), bounce/complaint trend, per-sequence table (read-only)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {

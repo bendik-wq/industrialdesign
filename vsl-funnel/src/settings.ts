@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support' | 'AI & search';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support' | 'AI & search' | 'Studio';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -387,6 +387,9 @@ export const SETTINGS = [
   { key: 'STREAM_ACCOUNT_TOKEN', label: 'Cloudflare Stream API token', group: 'Video', secret: true, help: 'A Cloudflare API token with Stream: Edit. With it, Funnel HQ → Rooms can send a finished recording to Stream, and that replay then plays through Stream (adaptive quality, better on phones). Blank = off: replays play the recording file as before.' },
   { key: 'STREAM_ACCOUNT_ID', label: 'Cloudflare account ID (for Stream)', group: 'Video', placeholder: '50e9fc42a7947d3f932cd1ed0bf95c03', help: 'Blank uses the account shown.' },
   { key: 'STREAM_CUSTOMER_CODE', label: 'Stream customer subdomain code', group: 'Video', placeholder: 'abc123xyz', help: 'Optional: the code in customer-<code>.cloudflarestream.com (Stream → any video → Embed). Used when a video setting holds only a Stream video ID. Blank = videodelivery.net links.' },
+  // ── Studio, builder C: Scripts (src/studio/scripts.ts, src/studio/copy-brain.ts) ──
+  { key: 'STUDIO_SCRIPT_CTA', label: 'Scripts: the call to action', group: 'Studio', placeholder: 'Apply through the link below. If it’s a fit, the team books a strategy call to look at your numbers.', help: 'The last line of every generated face-cam script. Blank = the line shown (webinar teasers ask to register for the live session). Never call the call “free”.' },
+  { key: 'STUDIO_SCRIPT_NOTES', label: 'Scripts: standing notes for the writer', group: 'Studio', help: 'Anything every script should follow, in plain words (a phrase you always use, a topic to avoid). Only true facts: the writer may use nothing as proof beyond the facts it already has.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];
