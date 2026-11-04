@@ -816,7 +816,7 @@ export async function callVariables(rt: Runtime, kind: WKind, lead: Lead, ctx: W
     event_title: ctx?.title ?? 'your session',
     event_time: ctx ? speakTime(ctx.startsAt, zone) : '',
     prep: ctx?.prep ?? '',
-    join_route: ctx ? `the link in the email and text from us, or the page at ${ctx.host}` : 'the link in your email',
+    join_route: 'the link in the email and text from us', // never a spoken web address: the agent reads it out badly and the link is personal
     link_line: sentRecently ? 'Their join link is in the reminder email we sent a few minutes ago.' : 'Say you will text and email their join link as soon as you hang up.',
     minute: String(meta.minute ?? ''),
     offer_note: meta.offerUnlocked && ctx?.offer.open ? `They left after the offer opened. If they ask about it, explain the ${offerName} briefly and honestly from the offer facts, including the real close time. Do not push.` : 'Do not bring up the offer.',
