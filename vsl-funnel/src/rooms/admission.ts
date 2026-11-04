@@ -150,7 +150,7 @@ export async function joinRoom(rt: Runtime, room: RoomRow, v: import('../lib/ide
     const { getLeadByEmail, getLead, linkVisitor } = await import('../funnel/leads');
     let lead = await getLeadByEmail(rt.env, email.email);
     if (lead && v.leadId !== lead.id) {
-      await emailPersonalLink(rt, room, lead);
+      await emailPersonalLink(rt, room, lead, now);
       return { checkEmail: true };
     }
     if (!lead) {
@@ -174,6 +174,8 @@ export async function joinRoom(rt: Runtime, room: RoomRow, v: import('../lib/ide
     }
     const phone = typeof body.phone === 'string' && body.phone.trim() ? (await import('../funnel/leads')).normalisePhone(body.phone, v.geo.country) : null;
     await (await import('../integrations/consent-gate')).captureConsent(rt, lead.id, body, { phone, source: 'room-join', page: `/rooms/${room.id}/join`, ip: v.ip, userAgent: v.userAgent }, now).catch(() => null);
+    // Webinars: the personal link always goes to the inbox too, so they can come back to it.
+    if (room.mode === 'webinar') await emailPersonalLink(rt, room, lead, now);
     return { redirect: inviteUrl(rt, room.id, await makeInvite(rt, room.id, 'guest', lead.id, 12 * HOUR, now)) };
   }
   // Name only (meetings, or webinars with "require email" off): a pass for this name, never staff.
@@ -181,12 +183,14 @@ export async function joinRoom(rt: Runtime, room: RoomRow, v: import('../lib/ide
 }
 
 /** The personal room link, to the inbox that owns the address (once per room and lead). */
-async function emailPersonalLink(rt: Runtime, room: RoomRow, lead: { id: string; email: string | null; first_name: string | null }) {
+async function emailPersonalLink(rt: Runtime, room: RoomRow, lead: { id: string; email: string | null; first_name: string | null }, now = Date.now()) {
   if (!lead.email) return;
+  if (!(await (await import('../live/events')).linkEmailsAllowed(rt, lead.id, now))) return;
   const { sendOnce } = await import('../live/mail');
   const { safeFirstName } = await import('../lib/text');
   const url = inviteUrl(rt, room.id, await makeInvite(rt, room.id, 'guest', lead.id));
-  const step = 200_000 + (Math.floor(room.created_at / 1000) % 1_000_000_000);
+  // A new step per send: every request gets a fresh email (capped per hour above).
+  const step = 200_000_000 + (Math.floor(now / 1000) % 1_000_000_000);
   await sendOnce(rt, lead, 'room', step, 'room_join_link', {
     subject: `Your link for ${room.title}`,
     preheader: 'Your personal room link is inside.',

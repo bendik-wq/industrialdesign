@@ -223,6 +223,12 @@ describe('registration and reminders', () => {
     const emails = () => db.prepare("SELECT step, template, status FROM emails WHERE sequence = 'live' ORDER BY step").all() as { step: number; template: string; status: string }[];
     expect(emails()).toEqual([{ step: LIVE_STEP.confirm, template: 'live_confirm', status: 'simulated' }]);
     await expect(registerLive(rt, visitor({ leadId: null, visitorId: 'v2' }), { first_name: 'X', email: 'dana@example.com', revenue: '3_10m', event_id: id })).rejects.toThrow(/already registered/);
+    // Registering again always emails the room link again, capped at LINK_EMAILS_PER_HOUR an hour.
+    const links = () => (db.prepare("SELECT COUNT(*) AS n FROM emails WHERE template = 'live_link'").get() as { n: number }).n;
+    expect(links()).toBe(1);
+    for (let i = 0; i < 4; i++) { vi.setSystemTime(Date.now() + 2000); await registerLive(rt, visitor({ leadId: null, visitorId: 'v3' }), { first_name: 'X', email: 'dana@example.com', revenue: '3_10m', event_id: id }).catch(() => null); }
+    expect(links()).toBe(3);
+    vi.setSystemTime(Date.parse('2026-11-03T15:00:00Z'));
     const ev = db.prepare('SELECT * FROM live_webinars WHERE id = ?').get(id) as { starts_at: number };
     const start = ev.starts_at;
     const evRow = { starts_at: start, duration_min: 120, ended_at: null, offer_opened_at: null, offer_closed_at: null, offer_hours: null, status: 'scheduled' as const };

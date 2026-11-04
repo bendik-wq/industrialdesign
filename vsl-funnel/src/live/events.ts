@@ -301,8 +301,10 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   }
   const existing = await rt.env.DB.prepare('SELECT * FROM live_webinar_regs WHERE event_id = ? AND lead_id = ?').bind(ev.id, lead.id).first<LiveReg>();
   if (existing) {
+    // Registering again always sends the room link to the inbox again (a fresh email each time, capped per hour).
+    await emailLiveLink(rt, ev, existing, lead, now).catch((e) => console.error('live link resend', e));
     if (v.leadId === lead.id) return { reg: existing, event: ev, lead, created: false };
-    throw new ApplicationError('You’re already registered for this session. Your room link is in the confirmation email (check spam too).', 'email', 409);
+    throw new ApplicationError('You’re already registered for this session. We’ve just emailed your room link again (check spam too).', 'email', 409);
   }
   await rt.env.DB.prepare('INSERT INTO kv_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(ipKey, JSON.stringify({ n: rate.n + 1, t: rate.t })).run();
   const prior = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM live_webinar_regs WHERE lead_id = ?').bind(lead.id).first<{ n: number }>();
@@ -335,6 +337,29 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
     rt.waitUntil(notifySlack(rt, lead, '💎 $10M+ owner registered for the live webinar', [`${ev.title} · ${formatCallTime(ev.starts_at, ev.tz)}`], 'hot_lead').catch(() => undefined));
   }
   return { reg, event: ev, lead: (await getLead(rt.env, lead.id))!, created: true };
+}
+
+/** At most this many room-link emails per lead per hour, so a form can't be used to flood someone's inbox. */
+export const LINK_EMAILS_PER_HOUR = 3;
+export async function linkEmailsAllowed(rt: Pick<Runtime, 'env'>, leadId: string, now: number) {
+  const r = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM emails WHERE lead_id = ? AND template IN ('live_link', 'room_join_link') AND created_at > ?").bind(leadId, now - 3_600_000).first<{ n: number }>();
+  return (r?.n ?? 0) < LINK_EMAILS_PER_HOUR;
+}
+/** The personal room link for this registration, by email, every time someone registers again with the address. */
+export async function emailLiveLink(rt: Runtime, ev: LiveEvent, reg: LiveReg, lead: Lead, now = Date.now()) {
+  if (!lead.email || !(await linkEmailsAllowed(rt, lead.id, now))) return false;
+  const { sendOnce } = await import('./mail');
+  const { safeFirstName } = await import('../lib/text');
+  const tz = lead.timezone || ev.tz;
+  // A new step per send, so it is never skipped as a duplicate.
+  const step = 300_000_000 + (Math.floor(now / 1000) % 1_000_000_000);
+  return sendOnce(rt, lead, 'live_link', step, 'live_link', {
+    subject: `Your room link for ${ev.title}`,
+    preheader: `${formatCallTime(ev.starts_at, tz)}. Your personal link is inside.`,
+    heading: ev.title,
+    paras: [`Hi ${safeFirstName(lead.first_name) ?? 'there'},`, `You’re registered for ${formatCallTime(ev.starts_at, tz)}. Here is your personal room link. If you didn’t ask for it, ignore this email.`, 'This link is personal to you. Please don’t forward it.'],
+    button: { label: 'Open my room', href: liveRoomUrl(rt, reg.token) },
+  });
 }
 
 // ───────────── the live ticket (LIVE_TICKET_PRICE) ─────────────
