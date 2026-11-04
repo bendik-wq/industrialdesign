@@ -321,6 +321,7 @@
     integrations: { group: 'Setup', title: 'Integrations', sub: 'Connect email, WhatsApp, calendars, analytics and ad platforms.', render: renderIntegrations, noFilters: true },
     tracking: { group: 'Setup', title: 'Ad tracking', sub: 'Every conversion sent from the server to Meta and GA4, and whether it arrived.', more: 'Every conversion sent to Meta (Conversions API) and GA4 from the server: delivery, retries and match quality. Below that, the daily data-quality checks with a link to the view that fixes each one, and CSV or JSON exports of the key tables.', render: renderTracking, filters: ['range'] },
     errors: { group: 'Setup', title: 'Errors & cron', sub: 'Errors from pages, webhooks, cron jobs and rooms, and how each cron job ran.', more: 'Unhandled errors are grouped by fingerprint (where it happened and the message with ids blanked out), counted per day and kept 14 days. Every job of the 5-minute cron runs on its own with a time budget, so one failing or slow job can’t hold up the others; its last run, duration and status show here. Slack pings on new errors are off unless you switch them on.', render: renderErrors, noFilters: true },
+    guests: { group: 'Setup', title: 'Guest access', sub: 'Links that let someone look around Funnel HQ without your password or the power to change anything.', more: 'A guest link opens Funnel HQ for one person, view only: every change, send, call, export and key is refused on the server. Hide personal details to shorten names and mask emails and phones. Links last up to 90 days, a session up to 12 hours since the last click, and revoking ends access on the next click. Every page a guest opens is logged here.', render: renderGuests, noFilters: true },
   };
 
   var eyebrowEl = document.querySelector('[data-eyebrow]');
@@ -2540,6 +2541,11 @@
   function renderErrors() {
     if (!window.ErrorsBoard) { view.innerHTML = '<div class="card">The Errors script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return window.ErrorsBoard.render({ view: view, api: api, send: send, esc: esc, n: n, when: when, tile: tile, toast: toast, table: table, emptyState: emptyState, reload: load });
+  }
+
+  function renderGuests() {
+    if (!window.GuestAccess) { view.innerHTML = '<div class="card">The Guest access script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
+    return window.GuestAccess.render({ view: view, api: api, send: send, esc: esc, n: n, when: when, ago: ago, toast: toast, table: table, emptyState: emptyState, reload: load });
   }
 
   function renderCommand() {

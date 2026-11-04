@@ -72,6 +72,7 @@
     team: ['settings', 'Team & routing', 'Who takes calls, which leads they get and where alerts go.'],
     tracking: ['settings', 'Conversion tracking', 'Conversions sent to Meta and GA4, and the daily data checks.', { label: 'Run checks', click: '[data-dq-run]' }],
     errors: ['settings', 'Errors & jobs', 'Errors from pages and webhooks, and how scheduled jobs ran.'],
+    guests: ['settings', 'Guest access', 'Links that let someone look around Funnel HQ without changing anything.', { label: 'New guest link', focus: '[data-gu-label]' }],
   };
 
   function meta(tab) {

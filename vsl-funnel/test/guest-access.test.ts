@@ -392,6 +392,19 @@ describe('guest links: secrets and personal details', () => {
   });
 });
 
+describe('guest links: copy', () => {
+  it('every message a guest or the owner reads passes the copy rules', async () => {
+    const { auditCopy } = await import('../src/content/copy-rules');
+    const { GUEST_COPY } = await import('../src/admin/guest');
+    for (const [k, v] of Object.entries(GUEST_COPY)) expect(auditCopy(v), k).toEqual([]);
+    const js = nfs.readFileSync(`${nodeP.cwd()}/public/assets/admin-guests.js`, 'utf8');
+    for (const s of ['Guest view: changes are switched off.', 'This is the only time the link is shown.', 'Revoking takes effect on the person’s next click.']) {
+      expect(js).toContain(s);
+      expect(auditCopy(s), s).toEqual([]);
+    }
+  });
+});
+
 describe('masking helpers', () => {
   it('names, emails and phones', () => {
     expect(maskName('Dana Quixley')).toBe('Dana Q.');

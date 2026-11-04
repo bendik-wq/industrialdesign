@@ -147,6 +147,7 @@
     team: ['Reps you add here.', 'integrations', 'Open Integrations'],
     tracking: ['Conversions sent to Meta and GA4 from the server.', 'integrations', 'Connect Meta and GA4'],
     errors: ['Errors from pages, webhooks, cron jobs and rooms.', '', ''],
+    guests: ['Guest links you make, who used them and when.', '', ''],
   };
 
   // ───────────── states (HTML) ─────────────
