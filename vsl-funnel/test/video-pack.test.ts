@@ -97,9 +97,9 @@ describe('video pack: Miro board', () => {
 });
 
 describe('Google Drive', () => {
-  it('asks only for drive.file and offline access', () => {
+  it('asks for full Drive (Studio lists the folder) and offline access', () => {
     const u = new URL(googleAuthUrl('cid', 'https://apply.example.com', 'st'));
-    expect(u.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/drive.file');
+    expect(u.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/drive');
     expect(u.searchParams.get('access_type')).toBe('offline');
     expect(u.searchParams.get('redirect_uri')).toBe('https://apply.example.com/oauth/google/callback');
   });

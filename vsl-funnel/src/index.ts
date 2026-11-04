@@ -76,6 +76,8 @@ import { runJobs } from './infra/cron';
 import { indexTick } from './vectors/indexer';
 import { planPdfRoute } from './infra/pdf'; // Cloudflare round, builder D
 import { signedFileRoute } from './infra/signed-files';
+import { mountStudioBlob } from './studio/routes'; // G&L Studio: the editor container's signed links
+import { studioTick } from './studio/pipeline';
 import { maybeRunWatchdog } from './infra/watchdog';
 import { syncStreamCopies } from './infra/cf-stream';
 import { sendSignals } from './tracking/signals';
@@ -243,6 +245,7 @@ app.get('/rooms/a/:id/:who/:ref', unlockRoute); // an unlocked file (signed, onl
 app.get('/rooms/plan/:id/:ref', planPage); // an attendee's Deal Plan (signed link from the summary email)
 app.get('/rooms/plan/:id/:ref/pdf', planPdfRoute); // builder D: the Deal Plan as a PDF (Browser Rendering; setting PDF_RENDER)
 app.get('/files/s/:k', signedFileRoute); // builder D: short-lived signed links to R2 files (PDFs, recordings for Stream)
+mountStudioBlob(app); // G&L Studio: /studio/blob/:id/:kind, the editor container's signed links to Studio storage (src/studio/editor.ts)
 app.get('/rooms/:id/done', paidPage); // where the payment page returns a buyer from the room
 app.get('/rooms/:id/join/:slug', withVisitor, joinPage); // a room's general admission link (UTMs on it become the lead's attribution)
 app.post('/rooms/:id/join/:slug', withVisitor, joinPage);
@@ -343,7 +346,7 @@ app.get('/oauth/google/callback', async (c) => {
   try {
     const refresh = await googleExchange(rt.settings.GOOGLE_CLIENT_ID, rt.settings.GOOGLE_CLIENT_SECRET, rt.origin, code);
     await saveSettings(c.env, { GOOGLE_REFRESH_TOKEN: refresh });
-    return c.redirect('/admin#ytideas', 302);
+    return c.redirect(state.split('.')[2] === 'studio' ? '/admin/studio' : '/admin#ytideas', 302);
   } catch (e) {
     return c.text(`Google didn't connect: ${e instanceof Error ? e.message : 'unknown error'}. Check the client ID, secret and redirect URI, then try again.`, 400);
   }
@@ -476,6 +479,8 @@ export default {
       // Cloudflare round, builder D: the hourly funnel watchdog (setting WATCHDOG, off by default) and Stream copies in progress.
       { name: 'funnel watchdog', run: () => maybeRunWatchdog(rt), budgetMs: 170_000 },
       { name: 'Stream copies', run: () => syncStreamCopies(rt) },
+      // G&L Studio: the Drive folder scan (every STUDIO_SCAN_HOURS, due check in studio_state) and any video not moving.
+      { name: 'Studio (Drive scan and edits)', run: () => studioTick(rt), budgetMs: 170_000 },
     ]);
     type R<F extends (...a: never[]) => unknown> = Awaited<ReturnType<F>> | null;
     const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = outcomes.map((o) => o.result) as [
@@ -515,6 +520,8 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 export { LiveReminderWorkflow } from './workflows';
+export { StudioPipelineWorkflow } from './studio/workflow'; // G&L Studio: Workflow gl-studio-pipeline
+export { StudioEditor } from './studio/container'; // G&L Studio: the editor container (Cloudflare Containers)
 
 export { runtimeFrom };
 /** Every registered route (method + path), for the security tests that check each admin write route rejects cross-site calls. */

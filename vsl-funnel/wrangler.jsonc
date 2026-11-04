@@ -45,12 +45,25 @@
 
   // Rooms (src/rooms): one Durable Object per video room for signalling and state over hibernating WebSockets.
   // Media runs on Cloudflare Realtime (SFU + TURN); its keys are settings (REALTIME_*), never sent to browsers.
-  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "RoomDO" }] },
-  "migrations": [{ "tag": "rooms-v1", "new_sqlite_classes": ["RoomDO"] }],
+  // G&L Studio adds STUDIO_EDITOR (the editor container's Durable Object, see the Studio block below).
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOMS", "class_name": "RoomDO" },
+      { "name": "STUDIO_EDITOR", "class_name": "StudioEditor" }
+    ]
+  },
+  "migrations": [
+    { "tag": "rooms-v1", "new_sqlite_classes": ["RoomDO"] },
+    { "tag": "studio-v1", "new_sqlite_classes": ["StudioEditor"] }
+  ],
 
   // Optional: room recordings (the host's composited stage) are uploaded here in parts and become the replay.
   // Without the binding the host room offers the recording as a download instead.
-  "r2_buckets": [{ "binding": "RECORDINGS", "bucket_name": "gl-room-recordings" }],
+  // G&L Studio adds STUDIO → bucket gl-studio (see the Studio block below).
+  "r2_buckets": [
+    { "binding": "RECORDINGS", "bucket_name": "gl-room-recordings" },
+    { "binding": "STUDIO", "bucket_name": "gl-studio" }
+  ],
 
   // Cloudflare platform round, builder B: Analytics Engine. A second copy of every first-party tracking event and room
   // quality report (src/infra/analytics-engine.ts), written only when the ANALYTICS_ENGINE setting is on. The dataset is
@@ -79,7 +92,25 @@
   },
   // Live reminder workflow (src/live/reminder-flow.ts, setting LIVE_REMINDERS_VIA_WORKFLOW): one durable instance per
   // live registration (instance id = registration id) that sends its reminders at their moments.
-  "workflows": [{ "name": "gl-live-reminders", "binding": "LIVE_REMINDER_FLOW", "class_name": "LiveReminderWorkflow" }],
+  "workflows": [
+    { "name": "gl-live-reminders", "binding": "LIVE_REMINDER_FLOW", "class_name": "LiveReminderWorkflow" },
+    { "name": "gl-studio-pipeline", "binding": "STUDIO_FLOW", "class_name": "StudioPipelineWorkflow" }
+  ],
+
+  // ── G&L Studio (src/studio): screen recordings with the face cam → Drive folder → automatic edit → back to Drive ──
+  // R2 bucket gl-studio (binding STUDIO, in r2_buckets above): raw/<id>.<ext> (multipart while recording), edited/<id>.mp4,
+  //   shorts/<id>-<n>.mp4, thumbs/, transcripts/, analysis/. Create it before the first deploy: npx wrangler r2 bucket create gl-studio
+  // Workflow gl-studio-pipeline (binding STUDIO_FLOW, above): one durable run per video; the 5-minute cron covers anything not moving.
+  // Container StudioEditor (Durable Object binding STUDIO_EDITOR and migration studio-v1, above): node + ffmpeg built from
+  //   containers/studio-editor/Dockerfile; standard-4 = 4 vCPU, 12 GiB, 20 GB disk (the largest named type). One instance
+  //   per video. `wrangler deploy` builds and pushes the image, so Docker must be running on the machine that deploys.
+  //   Every caller checks the bindings: without them (tests, `wrangler dev` with containers off) Studio reports
+  //   engine.ready=false with the reason, and recordings still save when STUDIO exists.
+  "containers": [
+    { "class_name": "StudioEditor", "image": "./containers/studio-editor/Dockerfile", "instance_type": "standard-4", "max_instances": 3 }
+  ],
+  // Local dev does not build the editor image (it is large); Studio says "Not available here" for the editor.
+  "dev": { "enable_containers": false },
 
   // Non-secret config. Secrets (API keys, passwords) go in `wrangler secret put`
   // or can be connected from the dashboard's Integrations tab.

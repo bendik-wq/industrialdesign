@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support' | 'AI & search';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support' | 'AI & search' | 'Studio';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -387,6 +387,14 @@ export const SETTINGS = [
   { key: 'STREAM_ACCOUNT_TOKEN', label: 'Cloudflare Stream API token', group: 'Video', secret: true, help: 'A Cloudflare API token with Stream: Edit. With it, Funnel HQ → Rooms can send a finished recording to Stream, and that replay then plays through Stream (adaptive quality, better on phones). Blank = off: replays play the recording file as before.' },
   { key: 'STREAM_ACCOUNT_ID', label: 'Cloudflare account ID (for Stream)', group: 'Video', placeholder: '50e9fc42a7947d3f932cd1ed0bf95c03', help: 'Blank uses the account shown.' },
   { key: 'STREAM_CUSTOMER_CODE', label: 'Stream customer subdomain code', group: 'Video', placeholder: 'abc123xyz', help: 'Optional: the code in customer-<code>.cloudflarestream.com (Stream → any video → Embed). Used when a video setting holds only a Stream video ID. Blank = videodelivery.net links.' },
+  // ───────────── G&L Studio (src/studio): screen recordings, the Drive folder, the 6-hour loop and the automatic editor ─────────────
+  { key: 'STUDIO_DRIVE_FOLDER_ID', label: 'Studio: Google Drive folder', group: 'Studio', placeholder: '1b7U_deRnqGYy-suFJJDcmNANmnG8Xf4p', help: 'The folder recordings go to and are picked up from (the id at the end of the folder link). Blank = the YOUFUCK folder. Needs Google connected with full Drive access (press Connect Google Drive again after this update).' },
+  { key: 'STUDIO_AUTO_EDIT', label: 'Studio: edit new recordings automatically', group: 'Studio', placeholder: 'on', help: 'on (default) = every new recording, and every new video found in the Drive folder, is transcribed, planned, rendered at the source resolution and put back in the folder. off = they wait in Studio until you press Edit.' },
+  { key: 'STUDIO_SCAN_HOURS', label: 'Studio: check the Drive folder every (hours)', group: 'Studio', placeholder: '6', help: 'How often the folder is checked for videos added by hand. 1 to 48. Check now is on the Studio page.' },
+  { key: 'STUDIO_CAPTIONS', label: 'Studio: burned-in captions', group: 'Studio', placeholder: 'on', help: 'on (default) = the edit carries captions from the transcript (white with a navy edge). off = no captions.' },
+  { key: 'STUDIO_SHORTS', label: 'Studio: vertical shorts', group: 'Studio', placeholder: 'on', help: 'on (default) = up to 3 vertical clips (9:16, up to 1080x1920) are cut from each edit, highlight markers first, and saved next to it.' },
+  { key: 'STUDIO_PRESET', label: 'Studio: encoder speed', group: 'Studio', placeholder: 'medium', help: 'x264 preset for the edit: veryfast, faster, fast, medium (default) or slow. Faster presets finish 4K sooner with bigger files; quality is held by CRF 18 either way.' },
+  { key: 'STUDIO_AI_MODEL', label: 'Studio: edit planner model', group: 'Studio', placeholder: 'claude-sonnet-5-5', help: 'The Claude model that plans each edit (needs the Anthropic API key). Blank = Claude Sonnet. Without a key the plan comes from Workers AI.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];
