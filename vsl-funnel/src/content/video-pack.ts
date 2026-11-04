@@ -529,9 +529,15 @@ export async function buildPackBoard(token: string, pack: VideoPack, topic: Topi
   return String(board.viewLink ?? `https://miro.com/app/board/${String(board.id)}/`);
 }
 
-// ───────────── Google Drive (OAuth, drive.file scope) ─────────────
+// ───────────── Google Drive (OAuth) ─────────────
 
-export const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+/**
+ * Full Drive access (one scope). It used to be drive.file, which only sees files this app created; G&L Studio needs to
+ * list and copy videos the owner drops into the folder by hand, and to put edits back. Docs export works the same.
+ * A token granted before this change still has drive.file only: Studio checks the granted scopes (src/studio/drive.ts
+ * scopeOk) and asks to connect again.
+ */
+export const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/drive';
 export const googleRedirect = (origin: string) => `${origin}/oauth/google/callback`;
 
 export function googleAuthUrl(clientId: string, origin: string, state: string) {

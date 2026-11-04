@@ -390,6 +390,14 @@ export const SETTINGS = [
   // ── Studio, builder C: Scripts (src/studio/scripts.ts, src/studio/copy-brain.ts) ──
   { key: 'STUDIO_SCRIPT_CTA', label: 'Scripts: the call to action', group: 'Studio', placeholder: 'Apply through the link below. If it’s a fit, the team books a strategy call to look at your numbers.', help: 'The last line of every generated face-cam script. Blank = the line shown (webinar teasers ask to register for the live session). Never call the call “free”.' },
   { key: 'STUDIO_SCRIPT_NOTES', label: 'Scripts: standing notes for the writer', group: 'Studio', help: 'Anything every script should follow, in plain words (a phrase you always use, a topic to avoid). Only true facts: the writer may use nothing as proof beyond the facts it already has.' },
+  // ───────────── G&L Studio (src/studio): screen recordings, the Drive folder, the 6-hour loop and the automatic editor ─────────────
+  { key: 'STUDIO_DRIVE_FOLDER_ID', label: 'Studio: Google Drive folder', group: 'Studio', placeholder: '1b7U_deRnqGYy-suFJJDcmNANmnG8Xf4p', help: 'The folder recordings go to and are picked up from (the id at the end of the folder link). Blank = the YOUFUCK folder. Needs Google connected with full Drive access (press Connect Google Drive again after this update).' },
+  { key: 'STUDIO_AUTO_EDIT', label: 'Studio: edit new recordings automatically', group: 'Studio', placeholder: 'on', help: 'on (default) = every new recording, and every new video found in the Drive folder, is transcribed, planned, rendered at the source resolution and put back in the folder. off = they wait in Studio until you press Edit.' },
+  { key: 'STUDIO_SCAN_HOURS', label: 'Studio: check the Drive folder every (hours)', group: 'Studio', placeholder: '6', help: 'How often the folder is checked for videos added by hand. 1 to 48. Check now is on the Studio page.' },
+  { key: 'STUDIO_CAPTIONS', label: 'Studio: burned-in captions', group: 'Studio', placeholder: 'on', help: 'on (default) = the edit carries captions from the transcript (white with a navy edge). off = no captions.' },
+  { key: 'STUDIO_SHORTS', label: 'Studio: vertical shorts', group: 'Studio', placeholder: 'on', help: 'on (default) = up to 3 vertical clips (9:16, up to 1080x1920) are cut from each edit, highlight markers first, and saved next to it.' },
+  { key: 'STUDIO_PRESET', label: 'Studio: encoder speed', group: 'Studio', placeholder: 'medium', help: 'x264 preset for the edit: veryfast, faster, fast, medium (default) or slow. Faster presets finish 4K sooner with bigger files; quality is held by CRF 18 either way.' },
+  { key: 'STUDIO_AI_MODEL', label: 'Studio: edit planner model', group: 'Studio', placeholder: 'blank = default', help: 'The Claude model that plans each edit (needs the Anthropic API key). Blank = Claude Sonnet. Without a key the plan comes from Workers AI.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

@@ -263,6 +263,9 @@ const toRow = (r: DbRow): ScriptRow => ({
 export async function saveScript(rt: Runtime, x: { topic: string; source: string; source_ref: string | null; format: FormatId; icp: IcpId; framework: FrameworkId; brain: Brain } & Written): Promise<ScriptRow> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  // The writer leaves {APPLY_LINK} where the link goes; fill in the real one.
+  const link = (rt.settings.PUBLIC_URL || rt.origin || '').replace(/\/+$/, '');
+  if (link) x = { ...x, script: { ...x.script, description: x.script.description.replaceAll('{APPLY_LINK}', link) } };
   await rt.env.DB.prepare('INSERT INTO studio_scripts (id, created_at, updated_at, topic, source, source_ref, format, icp, framework, brain, title, est_seconds, data, flags, attempts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .bind(id, now, now, x.topic, x.source, x.source_ref, x.format, x.icp, x.framework, x.brain, x.script.titles[0] ?? x.topic.slice(0, 100), x.script.est_seconds, JSON.stringify(x.script), JSON.stringify(x.flags), x.attempts).run();
   return { id, created_at: now, updated_at: now, topic: x.topic, source: x.source, source_ref: x.source_ref, format: x.format, icp: x.icp, framework: x.framework, brain: x.brain, title: x.script.titles[0] ?? x.topic.slice(0, 100), est_seconds: x.script.est_seconds, script: x.script, flags: x.flags, attempts: x.attempts };

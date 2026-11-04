@@ -1,6 +1,7 @@
 import { errorsAdmin } from '../infra/admin'; // Funnel HQ → Errors & cron
 import { edgeAdmin } from '../infra/edge-admin'; // Funnel HQ → Errors & cron: Bot protection + Analytics Engine
 import { cfAdmin } from '../infra/cf-admin'; // Cloudflare round, builder D
+import { studioAdmin } from '../studio/routes'; // G&L Studio
 import { cameraTestList } from '../rooms/camera-test';
 import { mountDmAdmin } from '../dm/routes';
 import { mountAttributionAdmin } from '../attribution/routes';
@@ -261,6 +262,7 @@ admin.route('/sandbox', sandboxApi); // Funnel HQ → Sandbox (a sample lead thr
 admin.route('/vectors', vectorsAdmin); // Cloudflare round, builder C: AI search (Vectorize): similar leads, leads like my buyers, search, index status
 admin.route('/studio/scripts', studioScriptsAdmin); // Studio → Scripts: one-click face-cam scripts (G&L Studio, builder C; src/studio/scripts.ts)
 admin.route('/deliverability', deliverabilityAdmin); // Emails → Deliverability: DNS health (DoH), bounce/complaint trend, per-sequence table (read-only)
+admin.route('/studio', studioAdmin); // G&L Studio: recordings, Drive folder, the automatic editor (src/studio/routes.ts)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {
   const b = await c.req.json<{ review_booked?: boolean }>().catch(() => ({ review_booked: true }));
@@ -1051,7 +1053,8 @@ admin.post('/yt/sprints/:sid/videos/:tid/rewrite', async (c) => {
 admin.get('/google/connect', async (c) => {
   const rt = runtimeFrom(c);
   if (!rt.settings.GOOGLE_CLIENT_ID || !rt.settings.GOOGLE_CLIENT_SECRET) return c.redirect('/admin#integrations', 302);
-  const state = await signToken(await getSecret(c.env), `google.${Date.now()}`);
+  // ?to=studio brings the owner back to G&L Studio after Google's consent screen (src/studio).
+  const state = await signToken(await getSecret(c.env), `google.${Date.now()}${c.req.query('to') === 'studio' ? '.studio' : ''}`);
   return c.redirect(googleAuthUrl(rt.settings.GOOGLE_CLIENT_ID, rt.origin, state), 302);
 });
 admin.delete('/yt/sprints/:id', async (c) => {

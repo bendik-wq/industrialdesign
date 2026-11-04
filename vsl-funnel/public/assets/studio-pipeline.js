@@ -119,8 +119,8 @@ function headHtml(d) {
   const driveOk = drive.connected && drive.scopeOk !== false;
   const folder = drive.folderLink ? `<a class="sb-link" href="${esc(drive.folderLink)}" target="_blank" rel="noopener">Open the folder</a>` : '';
   const notes = [];
-  if (!drive.connected) notes.push(`<div class="sb-note"><span>Google Drive is not connected. Connect it so recordings land in the folder and new files there get edited.</span>${guest ? '<span>The owner can connect it.</span>' : '<a class="sb-btn sb-btn-primary sb-btn-sm" href="/admin/api/google/connect">Connect Google Drive</a>'}</div>`);
-  else if (drive.scopeOk === false) notes.push(`<div class="sb-note"><span>Drive is connected for documents only. Reconnect once so the editor can see every file in the folder, including ones you drop in by hand.</span>${guest ? '<span>The owner can reconnect it.</span>' : '<a class="sb-btn sb-btn-primary sb-btn-sm" href="/admin/api/google/connect">Reconnect for folder access</a>'}</div>`);
+  if (!drive.connected) notes.push(`<div class="sb-note"><span>Google Drive is not connected. Connect it so recordings land in the folder and new files there get edited.</span>${guest ? '<span>The owner can connect it.</span>' : '<a class="sb-btn sb-btn-primary sb-btn-sm" href="' + esc(drive.connectUrl || '/admin/api/google/connect?to=studio') + '">Connect Google Drive</a>'}</div>`);
+  else if (drive.scopeOk === false) notes.push(`<div class="sb-note"><span>Drive is connected for documents only. Reconnect once so the editor can see every file in the folder, including ones you drop in by hand.</span>${guest ? '<span>The owner can reconnect it.</span>' : '<a class="sb-btn sb-btn-primary sb-btn-sm" href="' + esc(drive.connectUrl || '/admin/api/google/connect?to=studio') + '">Reconnect for folder access</a>'}</div>`);
   if (state.error) notes.push(`<div class="sb-note warn"><span>${esc(state.error)}</span></div>`);
   return `<div class="sb-head-top">
       <div><p class="sb-eyebrow">Pipeline</p><h1 class="sb-h1">Every recording, edited and back in Drive.</h1>

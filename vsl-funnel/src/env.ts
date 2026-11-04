@@ -19,6 +19,12 @@ export interface Env {
   CACHE?: KVNamespace;
   /** Cloudflare round, builder D. Browser Rendering (@cloudflare/puppeteer): PDFs and the funnel watchdog. Not available in local dev. */
   BROWSER?: Fetcher;
+  /** G&L Studio (src/studio): R2 bucket gl-studio for raw recordings, edits, shorts, transcripts. Optional; without it Studio says "not available here". */
+  STUDIO?: R2Bucket;
+  /** G&L Studio: the editor container's Durable Object namespace (class StudioEditor, Cloudflare Containers). Optional. */
+  STUDIO_EDITOR?: DurableObjectNamespace;
+  /** G&L Studio: the pipeline Workflow gl-studio-pipeline (one instance per video run). Optional; the 5-minute cron advances videos without it. */
+  STUDIO_FLOW?: Workflow<{ id: string }>;
 
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.
