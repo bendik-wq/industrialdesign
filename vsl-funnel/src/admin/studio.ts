@@ -3,6 +3,7 @@
  * - Record (builder A, public/assets/studio.js + studio-core.js + studio.css): a screen recorder that composes the
  *   screen and the face cam on a canvas in the browser, records it at the source's resolution and uploads 10 MiB
  *   parts to /admin/api/studio/uploads while recording.
+ * - Radar (src/radar, /assets/studio-radar.js) mounts into #studio-radar: top performers through Monid, analysed for G&L.
  * - Pipeline and Scripts (builder C, /assets/studio-pipeline.js and /assets/studio-scripts.js) mount into
  *   #studio-pipeline and #studio-scripts.
  * Guests see the page read-only: the Record view says recording is for the owner, and every write is refused on the
@@ -19,10 +20,12 @@ export const STUDIO_CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
-  "media-src 'self' blob: mediastream:",
+  // Radar: ad creatives play from the ad's own Meta CDN URL (never re-hosted).
+  "media-src 'self' blob: mediastream: https://*.fbcdn.net",
   "connect-src 'self'",
   "worker-src 'self' blob:",
-  "frame-src 'self'",
+  // Radar: the platform's own players (YouTube without cookies, TikTok's embed).
+  "frame-src 'self' https://www.youtube-nocookie.com https://www.tiktok.com",
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",
@@ -36,6 +39,7 @@ export const STUDIO_COPY = {
   unsupported: 'Recording works in desktop Chrome, Edge or Safari. On this device you can follow the pipeline and read the scripts.',
   noPipeline: 'The pipeline board is not in this build yet.',
   noScripts: 'The scripts view is not in this build yet.',
+  noRadar: 'Radar is not in this build yet.',
 };
 
 const ICON = (body: string) => `<svg viewBox="0 0 20 20" aria-hidden="true">${body}</svg>`;
@@ -58,7 +62,7 @@ export function studioPage(opts: { guest: boolean }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Studio · Funnel HQ</title><meta name="robots" content="noindex"><meta name="color-scheme" content="light">
 <link rel="icon" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/studio.css"><link rel="stylesheet" href="/assets/studio-board.css">
+<link rel="stylesheet" href="/assets/glass.css"><link rel="stylesheet" href="/assets/studio.css"><link rel="stylesheet" href="/assets/studio-board.css"><link rel="stylesheet" href="/assets/studio-radar.css">
 </head>
 <body class="st"${opts.guest ? ' data-guest="1"' : ''}>
 <header class="st-top glass-strong">
@@ -68,6 +72,7 @@ export function studioPage(opts: { guest: boolean }) {
     <button type="button" role="tab" data-view="record" aria-selected="true" aria-controls="studio-record">Record</button>
     <button type="button" role="tab" data-view="pipeline" aria-selected="false" aria-controls="studio-pipeline">Pipeline</button>
     <button type="button" role="tab" data-view="scripts" aria-selected="false" aria-controls="studio-scripts">Scripts</button>
+    <button type="button" role="tab" data-view="radar" aria-selected="false" aria-controls="studio-radar">Radar</button>
     <i class="st-seg-thumb" aria-hidden="true"></i>
   </nav>
   <p class="st-status" data-status role="status" aria-live="polite"><i aria-hidden="true"></i><span>Ready</span></p>
@@ -168,6 +173,7 @@ export function studioPage(opts: { guest: boolean }) {
 </section>
 <section id="studio-pipeline" class="st-view" data-viewpane="pipeline" role="tabpanel" aria-label="Pipeline" hidden><p class="st-placeholder" data-placeholder="${STUDIO_COPY.noPipeline}">Loading the pipeline</p></section>
 <section id="studio-scripts" class="st-view" data-viewpane="scripts" role="tabpanel" aria-label="Scripts" hidden><p class="st-placeholder" data-placeholder="${STUDIO_COPY.noScripts}">Loading the scripts</p></section>
+<section id="studio-radar" class="st-view" data-viewpane="radar" role="tabpanel" aria-label="Radar" hidden><p class="st-placeholder" data-placeholder="${STUDIO_COPY.noRadar}">Loading Radar</p></section>
 </main>
 <div class="st-sheet-scrim" data-scrim hidden></div>
 <div class="st-sheet glass-strong" data-sheet role="dialog" aria-modal="true" aria-labelledby="st-sheet-h" hidden></div>
@@ -175,6 +181,7 @@ export function studioPage(opts: { guest: boolean }) {
 <script src="/assets/studio.js"></script>
 <script type="module" src="/assets/studio-pipeline.js"></script>
 <script type="module" src="/assets/studio-scripts.js"></script>
+<script type="module" src="/assets/studio-radar.js"></script>
 </body></html>`;
 }
 

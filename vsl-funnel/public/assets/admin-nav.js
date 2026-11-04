@@ -52,6 +52,7 @@
     links: ['marketing', 'Tracked links', 'Links for your bio, DMs and videos, followed to closed deals.', { label: 'New link', focus: '[data-create]' }],
     content: ['marketing', 'Videos', 'Josh’s YouTube and Instagram: what works and what to make next.', { label: 'Suggest next videos', click: '[data-ctsuggest]' }],
     studio: ['marketing', 'Studio', 'Record your screen with a face cam, edited for you and sent to Drive.', { label: 'Open Studio', click: '[data-studio-open]' }],
+    radar: ['marketing', 'Radar', 'Top videos and Meta ads, why they work and how we would use them.', null],
     editor: ['marketing', 'Email editor', 'Read and change the wording of every email the funnel sends.', null, 1],
     sms: ['marketing', 'Texts & WhatsApp', 'Text and WhatsApp sequences: wording, timing and links.', { label: 'Send a test text', click: '[data-smstest]' }, 1],
     voice: ['marketing', 'AI phone calls', 'AI confirmation calls and inbound calls, with transcripts.', null, 1],

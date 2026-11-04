@@ -10,7 +10,7 @@ import type { Env } from './env';
 export interface SettingDef {
   key: string;
   label: string;
-  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support' | 'AI & search' | 'Studio';
+  group: 'Site' | 'Video' | 'Booking' | 'Email' | 'WhatsApp' | 'Voice' | 'Analytics' | 'Ads' | 'Alerts' | 'Security' | 'Webinar' | 'SMS' | 'Data' | 'Content' | 'Search' | 'Contracts' | 'Live' | 'Live funnel' | 'Command' | 'Research' | 'Instagram DMs' | 'Clients & support' | 'AI & search' | 'Studio' | 'Radar';
   secret?: boolean;
   placeholder?: string;
   help?: string;
@@ -398,6 +398,12 @@ export const SETTINGS = [
   { key: 'STUDIO_SHORTS', label: 'Studio: vertical shorts', group: 'Studio', placeholder: 'on', help: 'on (default) = up to 3 vertical clips (9:16, up to 1080x1920) are cut from each edit, highlight markers first, and saved next to it.' },
   { key: 'STUDIO_PRESET', label: 'Studio: encoder speed', group: 'Studio', placeholder: 'medium', help: 'x264 preset for the edit: veryfast, faster, fast, medium (default) or slow. Faster presets finish 4K sooner with bigger files; quality is held by CRF 18 either way.' },
   { key: 'STUDIO_AI_MODEL', label: 'Studio: edit planner model', group: 'Studio', placeholder: 'blank = default', help: 'The Claude model that plans each edit (needs the Anthropic API key). Blank = Claude Sonnet. Without a key the plan comes from Workers AI.' },
+  // ───────────── Radar (src/radar): top performing videos and Meta ads through Monid, analysed for G&L ─────────────
+  { key: 'MONID_API_KEY', label: 'Radar: Monid API key', group: 'Radar', secret: true, placeholder: 'monid_…', help: 'monid.ai → API keys. Radar uses Monid to search YouTube, TikTok and the Meta Ad Library and to fetch transcripts. Every run is paid from the Monid account, so the monthly budget below is a hard stop.' },
+  { key: 'RADAR_BUDGET_USD_MONTH', label: 'Radar: monthly budget (USD)', group: 'Radar', placeholder: '20', help: 'Radar stops starting runs once this month’s Monid spend (billed, plus the estimate of runs still going) reaches this. Blank = 20.' },
+  { key: 'RADAR_MAX_ITEMS', label: 'Radar: results per search', group: 'Radar', placeholder: '15', help: 'How many videos or ads each search asks for. Most tools charge per result. 1 to 100, blank = 15.' },
+  { key: 'RADAR_INSTAGRAM', label: 'Radar: Instagram', group: 'Radar', placeholder: 'off', help: 'off (default). The standing rule is never to scrape Instagram, so Instagram sources stay switched off and no Instagram run starts. on = only if you have decided to change that rule.' },
+  { key: 'RADAR_SCHEDULE_HOURS', label: 'Radar: run every (hours)', group: 'Radar', placeholder: '24', help: 'Hours between the automatic runs of each radar. 0 = only when you press Run. Blank = 24.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

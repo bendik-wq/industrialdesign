@@ -230,4 +230,6 @@ async function start() {
   else if (saved[0]) await openScript(saved[0].id);
   else render();
 }
+// Radar's "Make it a script" opens the new script here.
+window.addEventListener('studio:open-script', async (e) => { const id = e.detail?.id; if (!id) return; await loadList(); await openScript(id); });
 if (root) start();

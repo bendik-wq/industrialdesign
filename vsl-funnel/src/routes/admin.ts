@@ -19,6 +19,7 @@ import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { mountGuestAdmin } from '../admin/guest';
 import { studioScriptsAdmin } from '../studio/scripts';
+import { radarAdmin } from '../radar/routes'; // Studio → Radar (src/radar)
 import { hqCache } from '../lib/hq-cache';
 import { deliverabilityAdmin } from '../admin/deliverability';
 import { applicationStats, attribution, dimensionList, emailStats, experiments, live, overview, parseFilters, vslStats } from '../admin/stats';
@@ -262,6 +263,7 @@ admin.route('/sandbox', sandboxApi); // Funnel HQ → Sandbox (a sample lead thr
 admin.route('/vectors', vectorsAdmin); // Cloudflare round, builder C: AI search (Vectorize): similar leads, leads like my buyers, search, index status
 admin.route('/studio/scripts', studioScriptsAdmin); // Studio → Scripts: one-click face-cam scripts (G&L Studio, builder C; src/studio/scripts.ts)
 admin.route('/deliverability', deliverabilityAdmin); // Emails → Deliverability: DNS health (DoH), bounce/complaint trend, per-sequence table (read-only)
+admin.route('/radar', radarAdmin); // Studio → Radar: top performers through Monid, scored and analysed for G&L (src/radar/routes.ts)
 admin.route('/studio', studioAdmin); // G&L Studio: recordings, Drive folder, the automatic editor (src/studio/routes.ts)
 admin.get('/webinar/pass', async (c) => { const f = filters(c); return c.json(await (await import('../webinar/pass')).passReport(runtimeFrom(c), { from: f.from, to: f.to })); });
 admin.put('/webinar/pass/:id', async (c) => {

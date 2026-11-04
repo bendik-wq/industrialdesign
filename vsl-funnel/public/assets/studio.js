@@ -14,7 +14,7 @@
   var GUEST = body.getAttribute('data-guest') === '1';
 
   // ───────────── views ─────────────
-  var VIEWS = ['record', 'pipeline', 'scripts'];
+  var VIEWS = ['record', 'pipeline', 'scripts', 'radar'];
   var current = 'record';
   function show(view) {
     if (VIEWS.indexOf(view) < 0) view = 'record';
