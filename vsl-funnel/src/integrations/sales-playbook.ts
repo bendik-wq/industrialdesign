@@ -159,6 +159,8 @@ export interface NextAction {
   success: string;
   /** Example lines in the house voice (Sandbox + the simulation file). */
   examples: string[];
+  /** When Sam can book live in Calendly on this call (AI_CALL_BOOKING_TOOLS and a lead token): the objective with real times. */
+  live?: { objective: string; success: string; examples: string[] };
 }
 
 export const NEXT_ACTIONS: Record<CallContext, NextAction> = {
@@ -167,30 +169,55 @@ export const NEXT_ACTIONS: Record<CallContext, NextAction> = {
     objective: 'Sell SHOWING UP prepared. Get a clear yes that they will be on the video call at the booked time, at a computer, with anyone who would be part of an acquisition decision, having watched the short video on the confirmation page. Ask what would make the 30 minutes a great use of their time, so the team can focus on it. If the time no longer works, the link to pick a new time is emailed after the call.',
     success: 'They said they will be on the strategy call at the booked time (or asked for the link to pick a new time), and ideally agreed to watch the short video or bring a partner.',
     examples: ['What would make those 30 minutes a great use of your time?', 'Would it be a bad idea to have your business partner join, since it affects them too?'],
+    live: {
+      objective: 'Sell SHOWING UP prepared. Get a clear yes that they will be on the video call at the booked time, at a computer, with anyone who would be part of an acquisition decision, having watched the short video on the confirmation page. Ask what would make the 30 minutes a great use of their time, so the team can focus on it. If the time no longer works, offer two or three real open times from check_availability, book the one they pick with book_strategy_call (the old time is cancelled automatically), and confirm it in one sentence: the calendar invite comes from Calendly by email. If that fails, the link to pick a new time is emailed.',
+      success: 'They said they will be on the strategy call at the booked time, or moved it to a new time booked on the call (or asked for the link to pick one), and ideally agreed to watch the short video or bring a partner.',
+      examples: ['No problem. I can see a couple of open times: Thursday at 10 am or Friday at 2 pm, your time. Which works better?', 'Done, you’re booked for Thursday at 10 am, and the calendar invite comes from Calendly by email.'],
+    },
   },
   speed_to_lead: {
     label: 'Book the strategy call',
     objective: 'Get agreement to book the strategy call with Josh’s team. Uncover what they want to buy and what is in the way, then position the call as the place to map the target, the structure and the next moves. The booking link is emailed straight after the call; never book a time yourself.',
     success: 'They agreed to book the strategy call and asked for the booking link.',
     examples: ['What made you apply this week rather than next year?', 'Shall I email you the booking link now so it’s sitting in your inbox when we hang up?'],
+    live: {
+      objective: 'Get the strategy call with Josh’s team booked on this call. Uncover what they want to buy and what is in the way, then position the call as the place to map the target, the structure and the next moves. Offer two or three real open times from check_availability, book the one they pick with book_strategy_call, and confirm it in one sentence: the calendar invite comes from Calendly by email. Never invent a time. If booking fails or no time suits, the booking link is emailed.',
+      success: 'They booked the strategy call on the call (or asked for the booking link).',
+      examples: ['Would it be a bad idea to find a time now while we’re talking?', 'I’ve got Wednesday at 11 am or Thursday at 3 pm, your time. Which suits you?'],
+    },
   },
   rebook: {
     label: 'Rebook the missed strategy call',
     objective: 'Warmly rebook the missed strategy call. No blame. Find out what got in the way, remind them in one line what the call was for in their own words, and get agreement to pick a new time from the link emailed after the call.',
     success: 'They agreed to pick a new time and asked for the link.',
     examples: ['Things come up. What got in the way, so we pick a time that works better?', 'Is it a bad idea to grab a new time while it’s fresh?'],
+    live: {
+      objective: 'Warmly rebook the missed strategy call on this call. No blame. Find out what got in the way, remind them in one line what the call was for in their own words, then offer two or three real open times from check_availability, book the one they pick with book_strategy_call, and confirm it in one sentence: the calendar invite comes from Calendly by email. If booking fails or no time suits, the link to pick a new time is emailed.',
+      success: 'They booked a new time on the call (or asked for the link to pick one).',
+      examples: ['Things come up. What got in the way, so we pick a time that works better?', 'I can see Tuesday at 9 am or Wednesday at 1 pm, your time. Would either of those work?'],
+    },
   },
   inbound_booked: {
     label: 'Confirm and show up',
     objective: 'They are booked. Confirm the time still works and sell showing up prepared: at a computer, with any partner, with last year’s revenue and profit to hand. If the time doesn’t work, the link to pick a new time is emailed after the call.',
     success: 'They confirmed they will attend the booked strategy call (or asked for the link to pick a new time).',
     examples: ['When you sit down for the call, have last year’s revenue and profit to hand.'],
+    live: {
+      objective: 'They are booked. Confirm the time still works and sell showing up prepared: at a computer, with any partner, with last year’s revenue and profit to hand. If the time doesn’t work, offer two or three real open times from check_availability and move the call to the one they pick with book_strategy_call (the old time is cancelled automatically); the calendar invite comes from Calendly by email. If that fails, the link to pick a new time is emailed.',
+      success: 'They confirmed they will attend the booked strategy call, or moved it to a new time on the call (or asked for the link to pick one).',
+      examples: ['When you sit down for the call, have last year’s revenue and profit to hand.', 'I can move it for you. Would Thursday at 10 am or Friday at 2 pm, your time, work better?'],
+    },
   },
   inbound_applied: {
     label: 'Book the strategy call',
     objective: 'They applied but haven’t booked. Answer their question, find their main challenge, and get agreement to book the strategy call from the link emailed after the call.',
     success: 'They agreed to book the strategy call and asked for the booking link.',
     examples: ['Want me to email the booking link so you can pick a time tonight?'],
+    live: {
+      objective: 'They applied but haven’t booked. Answer their question, find their main challenge, and book the strategy call on this call: offer two or three real open times from check_availability and book the one they pick with book_strategy_call; the calendar invite comes from Calendly by email. If booking fails or no time suits, the booking link is emailed.',
+      success: 'They booked the strategy call on the call (or asked for the booking link).',
+      examples: ['Would it be a bad idea to grab a time now? I can see a few open this week.'],
+    },
   },
   inbound_unknown: {
     label: 'Qualify lightly, then the right next step',
@@ -243,9 +270,10 @@ export const NEXT_ACTIONS: Record<CallContext, NextAction> = {
 };
 
 /** The values every call gets for its objective. */
-export function nextActionVars(ctx: CallContext) {
+export function nextActionVars(ctx: CallContext, liveBooking = false) {
   const a = NEXT_ACTIONS[ctx];
-  return { next_action: a.objective, objective_success: a.success, next_action_label: a.label };
+  const o = liveBooking && a.live ? a.live : a;
+  return { next_action: o.objective, objective_success: o.success, next_action_label: a.label };
 }
 
 /** The prompt section that carries the objective (filled per call). */
@@ -269,7 +297,7 @@ export const SALES_DATA_COLLECTION = {
 
 export const NEXT_ACTION_CRITERION = {
   id: 'next_action', name: 'Committed to the next action', type: 'prompt',
-  conversation_goal_prompt: 'Successful if the person clearly committed to the next action named in the agent’s objective for this call (attend, book, rebook, watch the replay, join now, go back in, take the onboarding step, or ask for the link to do so). Unsuccessful if nobody was reached, they declined, or the call ended without a clear commitment.',
+  conversation_goal_prompt: 'Successful if the person clearly committed to the next action named in the agent’s objective for this call (attend, book, rebook, a time booked or moved on the call, watch the replay, join now, go back in, take the onboarding step, or ask for the link to do so). Unsuccessful if nobody was reached, they declined, or the call ended without a clear commitment.',
 } as const;
 
 export const GUARDRAILS_CRITERION = {

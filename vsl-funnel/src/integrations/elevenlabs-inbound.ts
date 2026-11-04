@@ -6,7 +6,8 @@ import { type Lead, effectiveTier, updateLead } from '../funnel/leads';
 import type { Settings } from '../settings';
 import { identityFromLead, track } from '../tracking/track';
 import { formatCallTime } from './email';
-import { type Conversation, DATA_COLLECTION, ElevenError, el, factsFrom, leadTimezone, transcriptText, upsertAgent } from './elevenlabs';
+import { type Conversation, DATA_COLLECTION, ElevenError, el, factsFrom, leadTimezone, promptTools, transcriptText, upsertAgent } from './elevenlabs';
+import { type AgentTools, agentTools, bookingToolsOn, leadToken, toolOutcome } from './calendly-tools';
 import { leadLines, leadName, notify } from './notify';
 import { leadByPhone, optOut, sendLinkEmail } from './voice';
 import { GUARDRAILS_CRITERION, NEXT_ACTION_CRITERION, nextActionVars } from './sales-playbook';
@@ -29,15 +30,15 @@ export const INBOUND_DATA = {
   caller_email: { type: 'string', description: 'The caller’s email address, exactly as confirmed on the call. Empty if not given.' },
 } as const;
 
-const VARS = ['greeting_name', 'opening', 'known', 'first_name', 'business', 'tier', 'status', 'call_time', 'closer_name', 'email', 'next_action', 'objective_success', 'next_action_label', 'known_pain'] as const;
+const VARS = ['greeting_name', 'opening', 'known', 'first_name', 'business', 'tier', 'status', 'call_time', 'closer_name', 'email', 'next_action', 'objective_success', 'next_action_label', 'known_pain', 'live_booking', 'lead_token'] as const;
 type Vars = Record<(typeof VARS)[number], string>;
 
 export const UNKNOWN: Vars = {
   greeting_name: '', opening: 'How can I help today?', known: 'no', first_name: '', business: '', tier: '', status: '', call_time: '', closer_name: 'Josh’s team', email: '',
-  ...nextActionVars('inbound_unknown'), known_pain: 'not known yet: ask.',
+  ...nextActionVars('inbound_unknown'), known_pain: 'not known yet: ask.', live_booking: 'no', lead_token: '',
 };
 
-export function buildInboundAgent(s: Settings) {
+export function buildInboundAgent(s: Settings, tools: AgentTools = null) {
   return {
     name: `${BRAND.name} — callbacks (inbound)`,
     tags: ['funnel', 'inbound'],
@@ -46,9 +47,10 @@ export function buildInboundAgent(s: Settings) {
         first_message: AI_CALLBACK.firstMessage,
         language: 'en',
         prompt: {
-          prompt: inboundCallbackPrompt(FAQS),
+          prompt: inboundCallbackPrompt(FAQS, { liveBooking: Boolean(tools) }),
           ...(s.ELEVENLABS_LLM ? { llm: s.ELEVENLABS_LLM } : {}),
           built_in_tools: { end_call: { name: 'end_call', description: 'End the call when the conversation is finished or the caller asks to stop.', params: { system_tool_type: 'end_call' } } },
+          ...promptTools(tools),
         },
         dynamic_variables: { dynamic_variable_placeholders: UNKNOWN },
       },
@@ -72,7 +74,7 @@ export const initSecret = async (rt: Runtime) => (await hmacHex(await getSecret(
  */
 export async function provisionInbound(rt: Runtime) {
   const s = rt.settings;
-  const { id, created } = await upsertAgent(s, buildInboundAgent(s) as unknown as Record<string, unknown>, s.ELEVENLABS_INBOUND_AGENT_ID);
+  const { id, created } = await upsertAgent(s, buildInboundAgent(s, await agentTools(rt)) as unknown as Record<string, unknown>, s.ELEVENLABS_INBOUND_AGENT_ID);
   const out = { id, created, assigned: false, initWebhook: false, notes: [] as string[] };
   if (s.ELEVENLABS_PHONE_NUMBER_ID) {
     try {
@@ -100,6 +102,8 @@ export async function varsFor(rt: Runtime, lead: Lead | null): Promise<Vars> {
   const booked = Boolean(lead.booked_at && !lead.booking_cancelled_at && lead.status === 'booked');
   const callTime = booked && lead.call_at ? formatCallTime(lead.call_at, leadTimezone(lead, rt.settings.SALES_TIMEZONE)).replace(/ [A-Z]{2,5}$/, '') : '';
   const name = lead.first_name ?? '';
+  // Live booking for known callers only, signed to this lead (the tools never take a lead from what's said).
+  const live = bookingToolsOn(rt.settings) && Boolean(lead.email) && !lead.do_not_call_at;
   return {
     greeting_name: name ? ` ${name}` : '',
     opening: booked ? 'Are you calling about your strategy call?' : 'How can I help today?',
@@ -112,8 +116,10 @@ export async function varsFor(rt: Runtime, lead: Lead | null): Promise<Vars> {
     call_time: booked ? callTime || 'booked (time in their confirmation email)' : 'not booked',
     closer_name: rep?.name ?? 'Josh’s team',
     email: '',
-    ...nextActionVars(booked ? 'inbound_booked' : lead.app_completed_at ? 'inbound_applied' : 'inbound_unknown'),
+    ...nextActionVars(booked ? 'inbound_booked' : lead.app_completed_at ? 'inbound_applied' : 'inbound_unknown', live),
     known_pain: await (await import('./voice-resources')).knownPainLine(rt, lead.id).catch(() => 'not known yet: ask.'),
+    live_booking: live ? 'yes' : 'no',
+    lead_token: live ? await leadToken(rt, lead.id, 'in') : '',
   };
 }
 
@@ -169,8 +175,13 @@ export async function finishInbound(rt: Runtime, conv: Conversation) {
       said.push('🛑 Asked not to be contacted again — calls and emails stopped.');
     } else {
       if (facts.appointment_confirmed) said.push('✅ Confirmed the appointment.');
-      if (facts.wants_reschedule) { await sendLinkEmail(rt, lead); said.push('📆 Needs a new time — rebooking link emailed.'); }
-      if (facts.wants_booking_link && !facts.wants_reschedule) { await sendLinkEmail(rt, lead); said.push('🔗 Wants a call — booking link emailed.'); }
+      const tools = await toolOutcome(rt, conv.conversation_id).catch(() => ({ booked: false, linkEmailed: false }));
+      if (tools.booked) said.push('📅 Booked (or moved) the strategy call on the call. Calendly sent the invite.');
+      else if (tools.linkEmailed && (facts.wants_reschedule || facts.wants_booking_link)) said.push('🔗 Live booking didn’t go through: booking link emailed during the call.');
+      else {
+        if (facts.wants_reschedule) { await sendLinkEmail(rt, lead); said.push('📆 Needs a new time — rebooking link emailed.'); }
+        if (facts.wants_booking_link && !facts.wants_reschedule) { await sendLinkEmail(rt, lead); said.push('🔗 Wants a call — booking link emailed.'); }
+      }
     }
     if (facts.notes_for_closer) {
       const notes = [lead.notes, `[AI callback ${new Date(now).toISOString().slice(0, 10)}] ${facts.notes_for_closer}`].filter(Boolean).join('\n');

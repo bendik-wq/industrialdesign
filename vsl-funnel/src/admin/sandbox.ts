@@ -34,6 +34,7 @@ import { guarantee } from '../sales/guarantee';
 import { APP_REVENUE_BAND, REVENUE_LABEL, isMillionPlus } from '../sales/qualify';
 import { type CallContext, NEXT_ACTIONS, PAIN_POINTS, type Pain, RESOURCES } from '../integrations/sales-playbook';
 import { formatCallTime } from '../integrations/email';
+import { bookingToolsOn, sampleSlots, tzLabel } from '../integrations/calendly-tools';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -807,7 +808,7 @@ export interface Detail {
   at: number;
   email?: { subject: string; preheader: string; html: string; from: string };
   text?: SimEvent['text'];
-  call?: { agent: string; firstMessage: string; vars: Record<string, string>; talk: { kind: string; label: string } | null; live: boolean; sales: CallSales };
+  call?: { agent: string; firstMessage: string; vars: Record<string, string>; talk: { kind: string; label: string } | null; live: boolean; sales: CallSales; booking?: CallBooking };
   lines?: string[];
 }
 
@@ -890,8 +891,10 @@ export interface CallSales {
   pain: { id: Pain; label: string; says: string; title: string; why: string; url: string } | null;
   email: string;
 }
-export function callSales(rt: Pick<Runtime, 'origin'>, inp: SbInput, context: CallContext): CallSales {
-  const a = NEXT_ACTIONS[context];
+export function callSales(rt: Pick<Runtime, 'origin'> & { settings?: Runtime['settings'] }, inp: SbInput, context: CallContext): CallSales {
+  const base = NEXT_ACTIONS[context];
+  // With live booking on, the strategy calls carry the objective with real times (what variables() sends).
+  const a = rt.settings && bookingToolsOn(rt.settings) && base.live ? { ...base, ...base.live } : base;
   const p = inp.choices.pain === 'none' ? null : inp.choices.pain;
   const r = p ? RESOURCES[p] : null;
   const stopped = inp.choices.optOut !== 'none';
@@ -915,7 +918,27 @@ export async function callDetail(rt: Runtime, inp: SbInput, ev: SimEvent): Promi
   }
   const kind = ev.ref.key as 'speed_to_lead' | 'confirm' | 'rebook';
   const vars = strategyCallVars(rt, inp, kind, ev.at);
-  return { agent: 'Outbound calls agent', firstMessage: fill(AI_CALLER.firstMessage, vars), vars, talk: { kind, label: CALL_LABEL[kind] }, live: elevenConfigured(rt.settings), sales: callSales(rt, inp, kind) };
+  return { agent: 'Outbound calls agent', firstMessage: fill(AI_CALLER.firstMessage, vars), vars, talk: { kind, label: CALL_LABEL[kind] }, live: elevenConfigured(rt.settings), sales: callSales(rt, inp, kind), booking: callBooking(rt, inp, kind, ev.at) };
+}
+
+export interface CallBooking { on: boolean; title: string; lines: string[]; sample: string[]; sampleNote: string }
+
+/** Sam's live calendar tools on this call (src/integrations/calendly-tools.ts), with sample times (nothing is looked up). */
+export function callBooking(rt: Runtime, inp: SbInput, kind: 'speed_to_lead' | 'confirm' | 'rebook', t: number): CallBooking {
+  const on = bookingToolsOn(rt.settings);
+  const tz = inp.lead.tz || rt.settings.SALES_TIMEZONE || 'Australia/Sydney';
+  const what = kind === 'confirm' ? 'If the booked time no longer works, Sam moves it on the call: the new time is booked first, then the old one is cancelled.'
+    : kind === 'speed_to_lead' ? 'When they want the strategy call, Sam books it on the call.'
+    : 'When they want a new time, Sam books it on the call.';
+  return {
+    on,
+    title: on ? 'Sam can book and move the call live' : 'Live booking is off',
+    lines: on
+      ? [what, 'Sam offers two or three real open times from Calendly (not within two hours, next 7 days) in their own time zone, books the one they pick and confirms it in one sentence. Calendly emails the invite.', 'If the time is taken, Sam offers others. If booking fails, the booking link is emailed instead, once.']
+      : [rt.settings.CALENDLY_API_TOKEN ? 'AI_CALL_BOOKING_TOOLS is set to false, so Sam emails the link to pick a time instead.' : 'Add the Calendly token (Integrations → Booking) to let Sam book and move calls live. Until then the link to pick a time is emailed.'],
+    sample: on ? sampleSlots(t, tz).map((x) => `${x}, ${tzLabel(tz)}`) : [],
+    sampleNote: 'Sample times for illustration. On a real call they come from Calendly.',
+  };
 }
 
 export function strategyCallVars(rt: Runtime, inp: SbInput, kind: 'speed_to_lead' | 'confirm' | 'rebook', t: number) {
@@ -948,7 +971,8 @@ export async function sandboxCallSession(rt0: Runtime, inp: SbInput, id: string)
   const ev = simulate(rt, inp).events.find((e) => e.id === id);
   if (!ev || ev.ch !== 'call' || (ev.ref.kind !== 'wcall' && ev.ref.kind !== 'call')) return null;
   if (ev.ref.kind === 'wcall') return { agent: 'webinar', vars: { ...(await webinarCallVars(rt, inp, ev.ref.key as WKind, ev.at, ev.ref.attempt ?? 1)), demo: 'yes' }, label: STEP_META[ev.ref.key as WKind].label };
-  return { agent: 'outbound', vars: { ...strategyCallVars(rt, inp, ev.ref.key as 'confirm', ev.at), demo: 'yes' }, label: CALL_LABEL[ev.ref.key] };
+  // A sample lead can't be booked in the real calendar: the demo call runs with live booking off.
+  return { agent: 'outbound', vars: { ...strategyCallVars(rt, inp, ev.ref.key as 'confirm', ev.at), live_booking: 'no', lead_token: '', demo: 'yes' }, label: CALL_LABEL[ev.ref.key] };
 }
 
 /** Subjects for the timeline rows (each email's real subject line). */

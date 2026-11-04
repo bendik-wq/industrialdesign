@@ -212,6 +212,15 @@ hooks.post('/elevenlabs', async (c) => {
   }, { kind: body.type }), () => c.text('ok'));
 });
 
+// Sam's live calendar tools (ElevenLabs webhook tools): secret header + a signed lead token bound to the call.
+hooks.post('/elevenlabs/tools/:action', async (c) => {
+  const raw: unknown = await c.req.json().catch(() => null);
+  const body = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const { handleBookingTool, TOOL_HEADER } = await import('../integrations/calendly-tools');
+  const r = await handleBookingTool(runtimeFrom(c), c.req.param('action'), c.req.header(TOOL_HEADER), body);
+  return c.json(r.body, r.status as 200);
+});
+
 // ElevenLabs asks who's calling as an inbound call rings (caller ID → lead), to personalise the callback agent.
 hooks.post('/elevenlabs/init', async (c) => {
   const body = await c.req.json<{ caller_id?: string; agent_id?: string }>().catch(() => ({}));

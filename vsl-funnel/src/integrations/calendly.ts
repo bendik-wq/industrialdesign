@@ -51,6 +51,56 @@ export interface CalInvitee {
   created_at?: string;
 }
 
+// ───────────── Scheduling API (Sam's booking tools, ./calendly-tools.ts) ─────────────
+
+export interface CalEventType {
+  uri: string; name: string; active: boolean; kind?: string; duration?: number; scheduling_url?: string;
+  locations?: { kind: string; location?: string | null; phone_number?: string | null; additional_info?: string | null }[] | null;
+  custom_questions?: { name: string; type: string; position: number; enabled: boolean; required: boolean; answer_choices?: string[] | null }[] | null;
+}
+export interface CalSlot { start_time: string; status: string; invitees_remaining?: number; scheduling_url?: string }
+export interface CreatedInvitee { uri: string; event: string; cancel_url?: string; reschedule_url?: string; status?: string; timezone?: string }
+
+/**
+ * The event type Sam books: the active one whose booking page is the A-tier calendar (BOOKING_URL_A), else the
+ * first active one. Cached in kv_state for six hours per token.
+ */
+export async function bookingEventType(rt: Runtime): Promise<CalEventType | null> {
+  const tokenTail = rt.settings.CALENDLY_API_TOKEN.slice(-12);
+  const cached = await rt.env.DB.prepare("SELECT value FROM kv_state WHERE key = 'calendly:event_type'").first<{ value: string }>();
+  if (cached) {
+    try {
+      const v = JSON.parse(cached.value) as { token: string; at: number; et: CalEventType | null };
+      if (v.token === tokenTail && Date.now() - v.at < 6 * 3600_000) return v.et;
+    } catch { /* refetch */ }
+  }
+  const me = await account(rt);
+  const list = (await cal<{ collection: CalEventType[] }>(rt.settings, `/event_types?user=${encodeURIComponent(me.uri)}&active=true&count=50`)).collection.filter((e) => e.active !== false);
+  const want = (rt.settings.BOOKING_URL_A || '').replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase();
+  const et = list.find((e) => want && (e.scheduling_url ?? '').replace(/\/$/, '').toLowerCase() === want) ?? list[0] ?? null;
+  await rt.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('calendly:event_type', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+    .bind(JSON.stringify({ token: tokenTail, at: Date.now(), et })).run();
+  return et;
+}
+
+/** Open start times for an event type (Calendly allows at most a 7-day window, starting in the future). */
+export async function availableTimes(s: Settings, eventTypeUri: string, start: number, end: number): Promise<CalSlot[]> {
+  const q = `event_type=${encodeURIComponent(eventTypeUri)}&start_time=${encodeURIComponent(new Date(start).toISOString())}&end_time=${encodeURIComponent(new Date(end).toISOString())}`;
+  return (await cal<{ collection: CalSlot[] }>(s, `/event_type_available_times?${q}`)).collection ?? [];
+}
+
+/** Books a time (Scheduling API: POST /invitees). Calendly then sends the invite email and fires invitee.created. */
+export async function createInvitee(s: Settings, body: Record<string, unknown>): Promise<CreatedInvitee> {
+  return (await cal<{ resource: CreatedInvitee }>(s, '/invitees', { method: 'POST', body })).resource;
+}
+
+/** Cancels a scheduled event (Calendly emails the invitee and fires invitee.canceled). */
+export async function cancelScheduledEvent(s: Settings, eventUri: string, reason: string) {
+  const uuid = /\/scheduled_events\/([\w-]+)$/.exec(eventUri)?.[1];
+  if (!uuid) throw new CalendlyError(400, 'not a scheduled event uri');
+  await cal(s, `/scheduled_events/${uuid}/cancellation`, { method: 'POST', body: { reason } });
+}
+
 /** Who the token belongs to; cached in kv_state. */
 export async function account(rt: Runtime): Promise<Me['resource']> {
   const cached = await rt.env.DB.prepare("SELECT value FROM kv_state WHERE key = 'calendly:me'").first<{ value: string }>();

@@ -11,6 +11,7 @@ import { notify, leadLines, leadName } from './notify';
 import { optOut, sendLinkEmail } from './voice';
 import { type ContactPass, canCall, passTo } from './consent-gate';
 import { GUARDRAILS_CRITERION, NEXT_ACTION_CRITERION, SALES_DATA_COLLECTION, nextActionVars } from './sales-playbook';
+import { type AgentTools, agentTools, bookedByPhoneRecently, bookingToolsOn, leadToken, toolOutcome } from './calendly-tools';
 
 /**
  * Outbound AI calls on ElevenLabs Agents (https://elevenlabs.io/docs/agents-platform).
@@ -82,7 +83,10 @@ export const DATA_COLLECTION = {
   ...SALES_DATA_COLLECTION,
 } as const;
 
-export function buildAgent(s: Settings) {
+/** Sam's live calendar tools on an agent's prompt: workspace tool ids, or the configs inline (src/integrations/calendly-tools.ts). */
+export const promptTools = (tools: AgentTools) => (!tools ? {} : 'ids' in tools ? { tool_ids: tools.ids } : { tools: tools.inline });
+
+export function buildAgent(s: Settings, tools: AgentTools = null) {
   const builtIns = {
     end_call: { name: 'end_call', description: 'End the call when the conversation is finished, the person asks to stop, or after leaving a voicemail.', params: { system_tool_type: 'end_call' } },
   };
@@ -93,7 +97,7 @@ export function buildAgent(s: Settings) {
       agent: {
         first_message: AI_CALLER.firstMessage,
         language: 'en',
-        prompt: { prompt: outboundSystemPrompt(FAQS), ...(s.ELEVENLABS_LLM ? { llm: s.ELEVENLABS_LLM } : {}), built_in_tools: builtIns },
+        prompt: { prompt: outboundSystemPrompt(FAQS, { liveBooking: Boolean(tools) }), ...(s.ELEVENLABS_LLM ? { llm: s.ELEVENLABS_LLM } : {}), built_in_tools: builtIns, ...promptTools(tools) },
         dynamic_variables: { dynamic_variable_placeholders: placeholderVars() },
       },
       ...(s.ELEVENLABS_VOICE_ID ? { tts: { voice_id: s.ELEVENLABS_VOICE_ID } } : {}),
@@ -112,8 +116,8 @@ export function buildAgent(s: Settings) {
   };
 }
 
-const VAR_KEYS = ['first_name', 'opening', 'call_kind', 'call_time', 'closer_name', 'business', 'tier', 'email', 'lead_ref', 'callback_number', 'voicemail_reason', 'next_action', 'objective_success', 'next_action_label', 'known_pain'] as const;
-const placeholderVars = () => ({ ...Object.fromEntries(VAR_KEYS.map((k) => [k, k === 'opening' ? 'Have you got a minute?' : ''])), ...nextActionVars('confirm'), known_pain: NO_PAIN }) as Record<(typeof VAR_KEYS)[number], string>;
+const VAR_KEYS = ['first_name', 'opening', 'call_kind', 'call_time', 'closer_name', 'business', 'tier', 'email', 'lead_ref', 'callback_number', 'voicemail_reason', 'next_action', 'objective_success', 'next_action_label', 'known_pain', 'live_booking', 'lead_token'] as const;
+const placeholderVars = () => ({ ...Object.fromEntries(VAR_KEYS.map((k) => [k, k === 'opening' ? 'Have you got a minute?' : ''])), ...nextActionVars('confirm'), known_pain: NO_PAIN, live_booking: 'no' }) as Record<(typeof VAR_KEYS)[number], string>;
 export const NO_PAIN = 'not known yet: ask.';
 
 /** Creates an agent in ElevenLabs, or updates the one already saved under `existingId`. */
@@ -122,6 +126,7 @@ export async function upsertAgent(s: Settings, body: Record<string, unknown>, ex
   const lean = (b: Record<string, unknown>) => {
     const c = structuredClone(b) as { conversation_config: { agent: { prompt: Record<string, unknown> } & Record<string, unknown> }; platform_settings: Record<string, unknown> };
     delete c.conversation_config.agent.prompt.built_in_tools;
+    delete c.conversation_config.agent.prompt.tools; // inline tools (older API); tool_ids stay
     const dc = c.platform_settings.data_collection as Record<string, Record<string, unknown>> | undefined;
     for (const f of Object.values(dc ?? {})) delete f.enum; // the allowed values are in each description too
     delete c.conversation_config.agent.dynamic_variables;
@@ -145,7 +150,7 @@ export async function upsertAgent(s: Settings, body: Record<string, unknown>, ex
 export async function provisionAgent(rt: Runtime): Promise<{ id: string; created: boolean }> {
   const s = rt.settings;
   if (!s.ELEVENLABS_API_KEY) throw new Error('Add your ElevenLabs API key under Integrations → Voice first.');
-  return upsertAgent(s, buildAgent(s) as unknown as Record<string, unknown>, s.ELEVENLABS_AGENT_ID);
+  return upsertAgent(s, buildAgent(s, await agentTools(rt)) as unknown as Record<string, unknown>, s.ELEVENLABS_AGENT_ID);
 }
 
 export interface PhoneNumber { phone_number: string; label: string | null; phone_number_id: string; provider: string }
@@ -242,6 +247,8 @@ export async function queueCall(rt: Runtime, lead: Lead, kind: CallKind, delayMi
   if (kind === 'speed_to_lead' && !enabled(s.AI_CALL_SPEED_TO_LEAD)) return null;
   if (kind === 'rebook' && !enabled(s.AI_CALL_REBOOK)) return null;
   if (blockReason(lead, kind)) return null;
+  // Sam just booked or moved this call by phone: no confirmation call straight after it.
+  if (kind === 'confirm' && (await bookedByPhoneRecently(rt, lead.id).catch(() => false))) return null;
   if (!(await canCall(rt, lead, `ai_call:${kind}`)).ok) return null; // the contact gate (consent for this number)
   const done = await rt.env.DB.prepare(`SELECT id FROM outbound_calls WHERE lead_id = ? AND kind = ? AND status IN ('queued', 'dialing', 'done') LIMIT 1`).bind(lead.id, kind).first();
   if (done) return null;
@@ -284,6 +291,7 @@ export function variables(rt: Runtime, lead: Lead, kind: CallKind) {
   const answers = parseAnswers(lead);
   // Typed by whoever filled in the form: keep it to something that is plausibly a name / a short business description.
   const firstName = /^[\p{L}][\p{L}' .-]{0,29}$/u.test((lead.first_name ?? '').trim()) ? lead.first_name!.trim() : 'there';
+  const live = kind !== 'test' && bookingToolsOn(rt.settings) && Boolean(lead.email);
   const business = typeof answers.business === 'string' ? answers.business.replace(/[^\p{L}\p{N} ,&'./()-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : '';
   return {
     first_name: firstName,
@@ -298,8 +306,11 @@ export function variables(rt: Runtime, lead: Lead, kind: CallKind) {
     email: lead.email ?? '',
     lead_ref: lead.ref_code,
     // The call's one objective (src/integrations/sales-playbook.ts NEXT_ACTIONS); dial() adds what earlier calls learned.
-    ...nextActionVars(kind === 'speed_to_lead' || kind === 'rebook' ? kind : 'confirm'),
+    ...nextActionVars(kind === 'speed_to_lead' || kind === 'rebook' ? kind : 'confirm', live),
     known_pain: NO_PAIN,
+    // Sam's live calendar tools: on for this call when the setting is on and we hold an email to send the invite to.
+    live_booking: live ? 'yes' : 'no',
+    lead_token: '', // signed by dial() (callLeadToken), never built here
   };
 }
 
@@ -310,6 +321,13 @@ async function phoneProvider(rt: Runtime) {
   } catch {
     return 'twilio';
   }
+}
+
+/** The variables for a real call: variables() plus what earlier calls learned and, with live booking on, the signed lead token. */
+async function outboundVars(rt: Runtime, lead: Lead, kind: CallKind) {
+  const v = { ...variables(rt, lead, kind), known_pain: await (await import('./voice-resources')).knownPainLine(rt, lead.id).catch(() => NO_PAIN) };
+  if (v.live_booking === 'yes') v.lead_token = await leadToken(rt, lead.id, 'out');
+  return v;
 }
 
 /** Places one call now, to the number on the contact-gate pass (canCall, or testPass for the owner's test). Returns the conversation id. */
@@ -323,7 +341,7 @@ export async function dial(rt: Runtime, lead: Lead, kind: CallKind, provider: st
       agent_id: override?.agentId ?? s.ELEVENLABS_AGENT_ID,
       agent_phone_number_id: s.ELEVENLABS_PHONE_NUMBER_ID,
       to_number: toNumber,
-      conversation_initiation_client_data: { dynamic_variables: override?.vars ?? { ...variables(rt, lead, kind), known_pain: await (await import('./voice-resources')).knownPainLine(rt, lead.id).catch(() => NO_PAIN) } },
+      conversation_initiation_client_data: { dynamic_variables: override?.vars ?? (await outboundVars(rt, lead, kind)) },
     },
   });
   if (!res.success || !res.conversation_id) throw new Error(res.message || 'call not started');
@@ -511,8 +529,14 @@ export async function finishCall(rt: Runtime, conv: Conversation, failureReason?
     said.push('🛑 Asked not to be called again — calls and emails stopped.');
   } else {
     if (facts.appointment_confirmed) said.push('✅ Confirmed the appointment.');
-    if (facts.wants_reschedule) { await sendLinkEmail(rt, lead); said.push('📆 Needs a new time — rebooking link emailed.'); }
-    if (facts.wants_booking_link && !facts.wants_reschedule) { await sendLinkEmail(rt, lead); said.push('🔗 Wants a call — booking link emailed.'); }
+    // Sam's calendar tools may already have booked it on the call, or emailed the link as their fallback: no second email.
+    const tools = await toolOutcome(rt, conv.conversation_id).catch(() => ({ booked: false, linkEmailed: false }));
+    if (tools.booked) said.push('📅 Booked (or moved) the strategy call on the call. Calendly sent the invite.');
+    else if (tools.linkEmailed && (facts.wants_reschedule || facts.wants_booking_link)) said.push('🔗 Live booking didn’t go through: booking link emailed during the call.');
+    else {
+      if (facts.wants_reschedule) { await sendLinkEmail(rt, lead); said.push('📆 Needs a new time — rebooking link emailed.'); }
+      if (facts.wants_booking_link && !facts.wants_reschedule) { await sendLinkEmail(rt, lead); said.push('🔗 Wants a call — booking link emailed.'); }
+    }
     if (facts.bad_time) said.push('Bad time to talk.');
   }
   if (facts.questions) said.push(`Questions: ${facts.questions}`);

@@ -29,7 +29,7 @@
     textFirst: 'First text to this number, so it carries the opt-out line.',
     auVariant: 'Australian mobiles get the sender name, with an opt-out link instead of “Reply STOP”',
     agent: 'Agent', opening: 'What Sam says first', script: 'The script for this call', facts: 'Offer facts and rules Sam is given', allVars: 'Everything Sam receives',
-    objective: 'The next action Sam drives to', success: 'Counts as a yes', sayLike: 'Lines like', painH: 'Their challenge, and the one guide Sam offers', painSays: 'They say', painOffer: 'Sam offers', noPain: 'No challenge named, so no guide offered.',
+    objective: 'The next action Sam drives to', sampleTimes: 'Times Sam might offer (sample)', success: 'Counts as a yes', sayLike: 'Lines like', painH: 'Their challenge, and the one guide Sam offers', painSays: 'They say', painOffer: 'Sam offers', noPain: 'No challenge named, so no guide offered.',
     talk: 'Talk to Sam now', talkFine: 'Opens the live voice demo with this exact call. You play the sample lead through your microphone. Nobody is called.',
     agentLive: 'Live in this account', agentOff: 'Not live in this account yet',
     loadErr: 'Couldn’t load that step. Run the simulation again.', runErr: 'The simulation didn’t run. Try again.',
@@ -443,6 +443,8 @@
           (c.sales.pain ? '<dl class="sb-kv"><dt>' + esc(COPY.painSays) + '</dt><dd>“' + esc(c.sales.pain.says) + '” <span class="sb-meta">(' + esc(c.sales.pain.label) + ')</span></dd>' +
             '<dt>' + esc(COPY.painOffer) + '</dt><dd><b>' + esc(c.sales.pain.title) + '</b>: ' + esc(c.sales.pain.why) + '<br><span class="sb-meta">' + esc(c.sales.pain.url) + '</span></dd></dl>' : '<p>' + esc(COPY.noPain) + '</p>') +
           '<p class="sb-meta">' + esc(c.sales.email) + '</p></div>' : '') +
+        (c.booking ? '<div class="sb-sec" data-booking><h3>' + esc(c.booking.title) + '</h3>' + c.booking.lines.map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('') +
+          (c.booking.sample && c.booking.sample.length ? '<p class="sb-meta"><b>' + esc(COPY.sampleTimes) + ':</b></p><ul class="sb-lines">' + c.booking.sample.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="sb-meta">' + esc(c.booking.sampleNote) + '</p>' : '') + '</div>' : '') +
         (v.script ? '<div class="sb-sec"><h3>' + esc(COPY.script) + '</h3><pre class="sb-pre">' + esc(v.script) + '</pre></div>' : '') +
         (v.offer_facts ? '<details class="sb-more-d"><summary>' + esc(COPY.facts) + '</summary><pre class="sb-pre">' + esc(v.offer_facts) + (v.voicemail_rule ? '\n\n' + esc(v.voicemail_rule) : '') + '</pre></details>' : '') +
         '<details class="sb-more-d"><summary>' + esc(COPY.allVars) + '</summary><pre class="sb-pre">' + esc(Object.keys(v).filter(function (k) { return k !== 'script' && k !== 'offer_facts'; }).map(function (k) { return k + ': ' + v[k]; }).join('\n')) + '</pre></details>';

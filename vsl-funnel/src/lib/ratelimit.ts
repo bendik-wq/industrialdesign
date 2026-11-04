@@ -126,6 +126,7 @@ export const HANDLER_LIMITS: { method: string; path: string; limit: string; wher
   { method: 'POST', path: '/sign/:token', limit: '20 per IP per hour', where: 'src/routes/sign.ts' },
   { method: 'POST', path: '/hooks/support-email', limit: '300 per IP per hour (shared secret first)', where: 'src/integrations/hooks-in.ts' },
   { method: 'POST', path: '/hooks/zapier/:action', limit: '600 per IP per hour (shared secret first)', where: 'src/integrations/hooks-in.ts' },
+  { method: 'POST', path: '/hooks/elevenlabs/tools/:action', limit: 'per lead: 12 availability look-ups and 4 booking attempts an hour, 2 bookings a day, one at a time (secret header and signed lead token first)', where: 'src/integrations/calendly-tools.ts' },
   { method: 'POST', path: '/mcp', limit: '3000 per hour in all (bearer token first)', where: 'src/mcp/server.ts' },
   { method: 'GET', path: '/l/:code', limit: 'a click counts at most 5 times per IP per link per hour (the redirect always works)', where: 'src/routes/links.ts' },
   { method: 'POST', path: '/admin/login', limit: '10 attempts per IP per 15 minutes, 300 failed attempts per hour in all', where: 'src/admin/auth.ts login' },
