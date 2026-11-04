@@ -219,7 +219,7 @@ studioAdmin.get('/videos', async (c) => {
     ok: true,
     videos: results.map((v) => ({ ...publicRow(v), events: events.get(v.id) ?? [] })),
     scan: { last, next, error: scanError, everyHours: flags.scanHours },
-    drive: { connected: drive.connected, folderId: drive.folderId, folderLink: drive.folderLink, scopeOk: drive.scopeOk, connectUrl: '/admin/api/google/connect?to=studio' },
+    drive: { connected: drive.connected, folderId: drive.folderId, folderLink: drive.folderLink, scopeOk: drive.scopeOk, connectUrl: '/admin/api/google/connect?to=studio', configured: Boolean(rt.settings.GOOGLE_CLIENT_ID && rt.settings.GOOGLE_CLIENT_SECRET), redirectUri: `${(rt.settings.PUBLIC_URL || rt.origin).replace(/\/+$/, '')}/oauth/google/callback` },
     brain: brainName(rt),
     engine: engineStatus(rt),
     settings: { autoEdit: flags.autoEdit, captions: flags.captions, shorts: flags.shorts, preset: flags.preset },

@@ -77,7 +77,14 @@ export function snapToFrames(keep: Range[], fps: number, duration: number): Rang
 /** The select expression: frames whose time falls in a kept piece (half-frame tolerance, end exclusive). */
 export function selectExpr(keep: Range[], fps: number): string {
   const h = 0.5 / exactFps(fps);
-  return keep.map((r) => `between(t,${t(r.in - h)},${t(r.out - h)})`).join('+');
+  return groupSum(keep.map((r) => `between(t,${t(r.in - h)},${t(r.out - h)})`));
+}
+/** The container's ffmpeg (5.1) refuses a flat sum of more than about 100 terms, so long edits are summed in nested groups of 40. */
+export function groupSum(terms: string[], size = 40): string {
+  if (terms.length <= size) return terms.join('+');
+  const groups: string[] = [];
+  for (let i = 0; i < terms.length; i += size) groups.push(`(${terms.slice(i, i + size).join('+')})`);
+  return groupSum(groups, size);
 }
 
 /** Audio for the kept pieces: 2-frame overlaps joined by crossfades, cleaned and loudness-normalised. */

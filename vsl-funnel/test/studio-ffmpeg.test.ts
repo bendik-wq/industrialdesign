@@ -28,6 +28,12 @@ describe('frame rate and the frame grid', () => {
   });
   it('select keeps frames by time with a half-frame tolerance (end exclusive)', () => {
     expect(selectExpr([{ in: 0, out: 1 }, { in: 2, out: 3 }], 25)).toBe('between(t,-0.02,0.98)+between(t,1.98,2.98)');
+    // Long edits: ffmpeg 5.1 refuses a flat sum of more than ~100 terms, so the terms are nested in groups of 40.
+    const many = Array.from({ length: 400 }, (_, i) => ({ in: i * 3, out: i * 3 + 2 }));
+    const e = selectExpr(many, 25);
+    expect(e.match(/between\(/g)?.length).toBe(400);
+    expect(e.startsWith('(between(')).toBe(true);
+    for (const g of e.slice(1, -1).split(')+(')) expect(g.split('+').length).toBeLessThanOrEqual(40);
   });
 });
 
