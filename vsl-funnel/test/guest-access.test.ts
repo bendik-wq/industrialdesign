@@ -424,6 +424,8 @@ describe('masking helpers', () => {
     const out = maskPii({ rows: [{ lead_id: 'L1', name: 'Dana Quixley', notes: 'private', answers: '{"why":"because I want out","revenue_band":"3m-10m"}', ip: '1.2.3.4', score: 80 }], title: 'Leads for Dana Quixley' }) as any;
     expect(out.rows[0]).toEqual({ lead_id: 'L1', name: 'Dana Q.', notes: HIDDEN, answers: JSON.stringify({ why: HIDDEN, revenue_band: '3m-10m' }), ip: HIDDEN, score: 80 });
     expect(out.title).toBe('Leads for Dana Q.');
+    // A section named "email" is not a person (Integrations status cards keep their wording).
+    expect(maskPii({ status: { email: { label: 'Email', detail: 'Sending as hello@brand.com' } } })).toEqual({ status: { email: { label: 'Email', detail: 'Sending as h***@brand.com' } } });
     // Template text outside a personal record is left alone.
     expect(maskPii({ template: 'welcome', html: '<p>Hello {first_name}</p>' })).toEqual({ template: 'welcome', html: '<p>Hello {first_name}</p>' });
   });

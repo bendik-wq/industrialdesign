@@ -10,7 +10,7 @@
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function day(ms) { var d = new Date(ms); return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); }
-  function toast(msg) { var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2800); }
+  function toast(msg, mine) { var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; if (mine) t.setAttribute('data-guest-toast', ''); document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2800); return t; }
 
   // ───────────── the guest's chrome ─────────────
   function guestChrome(w) {
@@ -28,16 +28,27 @@
       var b = f.querySelector('button'); if (b) b.textContent = 'Leave guest view';
     });
     if (location.hash === '#guests' && root.HQApp) root.HQApp.go('home');
-    // Explain refused changes once in a while (the server refuses them; tabs show their own error as well).
-    var last = 0;
+    // Explain refused changes (the server refuses them). Some screens toast "Saved" without reading the answer, so
+    // for a moment after a refusal any other toast is replaced by this one: a guest is never told a change was made.
+    var refusedAt = 0, shownAt = 0;
     var f0 = root.fetch;
     root.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      var m = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
       return f0.apply(this, arguments).then(function (res) {
-        var m = (init && init.method || 'GET').toUpperCase();
-        if (res.status === 403 && m !== 'GET' && Date.now() - last > 4000) { last = Date.now(); toast('Guest view: changes are switched off.'); }
+        if (res.status === 403 && m !== 'GET' && !/\/ping(\?|$)/.test(url)) {
+          refusedAt = Date.now();
+          if (refusedAt - shownAt > 2500) { shownAt = refusedAt; toast('Guest view: changes are switched off.', true); }
+        }
         return res;
       });
     };
+    if (root.MutationObserver) {
+      new MutationObserver(function (list) {
+        if (Date.now() - refusedAt > 3000) return;
+        list.forEach(function (r) { r.addedNodes.forEach(function (el) { if (el.classList && el.classList.contains('toast') && !el.hasAttribute('data-guest-toast')) el.remove(); }); });
+      }).observe(document.body, { childList: true });
+    }
   }
 
   function whoami() {

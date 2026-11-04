@@ -101,7 +101,8 @@ const PERSONAL_MARKERS = [
 ];
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-const personalObj = (o: Record<string, unknown>) => PERSONAL_MARKERS.some((k) => k in o && o[k] != null && o[k] !== '');
+// Only a value marks a record ({ email: 'x@y' }), not a section named after it ({ email: { label, detail } }).
+const personalObj = (o: Record<string, unknown>) => PERSONAL_MARKERS.some((k) => (typeof o[k] === 'string' && o[k] !== '') || typeof o[k] === 'number');
 
 /** Collects the full names in a response (pass one), so free text elsewhere in it can be masked too. */
 export function collectNames(v: unknown, names: MaskNames, depth = 0) {
