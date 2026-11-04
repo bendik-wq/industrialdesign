@@ -314,10 +314,9 @@ footer { background:var(--black); }
 .objs span { font-family:"Geist Mono", monospace; font-size:12px; color:var(--ink3); padding:6px 12px; border-radius:99px; border:1px solid var(--line); text-decoration:line-through; text-decoration-color:var(--coral); }
 .heroB h1 { margin:6px 0 14px; }
 .heroB h1 .l2 { display:inline-block; margin-top:4px; }
-.heroB h1 .say { color:rgba(255,255,255,.5); }
-.heroB h1 q { quotes:none; color:var(--coral); display:inline-block; transition:opacity .28s, transform .28s, filter .28s; }
-.heroB h1 q.out { opacity:0; transform:translateY(.25em); filter:blur(6px); }
-.heroB h1 .hot { background:linear-gradient(90deg, #fff, #9FD8F5); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.eyeq q { quotes:none; color:var(--coral); display:inline-block; transition:opacity .28s, transform .28s, filter .28s; }
+.eyeq q.out { opacity:0; transform:translateY(.25em); filter:blur(6px); }
+.heroB h1 .l2 { background:linear-gradient(90deg, #fff, #9FD8F5); -webkit-background-clip:text; background-clip:text; color:transparent; }
 .heroB .vsl.vB { margin:24px auto 0; max-width:900px; }
 .vsl.vB .frame { padding:0; background:#02070A; }
 .vsl.vB video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; background:#02070A; }
@@ -326,6 +325,18 @@ footer { background:var(--black); }
 .logo { font-family:"Archivo", "Geist", sans-serif; }
 @media (max-width:860px) { .sideL, .sideR { padding-top:0; } .objs { display:none; } }
 @media (max-width:700px) { .heroB { padding-top:78px; } }
+
+.eyeq { font-family:"Geist Mono", monospace; font-size:14px; color:var(--ink2); margin:6px 0 0; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:baseline; }
+.eyeq q { font-family:var(--display); font-weight:700; font-size:17px; letter-spacing:-.01em; padding:3px 12px; border-radius:99px; background:rgba(252,115,77,.12); border:1px solid rgba(252,115,77,.35); }
+.heroB h1 { font-size:clamp(38px,5.2vw,72px); margin:14px 0 14px; }
+.heroB h1 .num { color:var(--coral); }
+.heroB h1 { font-size:clamp(36px,4.9vw,68px); }
+.heroB h1 .l2 { font-size:.62em; letter-spacing:-.03em; margin-top:8px; }
+@media (min-width:861px) { .heroB h1 .num, .heroB h1 .l2 { white-space:nowrap; } }
+.heroB h1 { font-size:clamp(36px,4.6vw,64px); }
+@media (min-width:861px) { .heroB h1 .l1 { white-space:nowrap; } }
+@media (min-width:861px) { .heroB .wrap { grid-template-columns:150px minmax(0,1fr) 150px; } }
+.heroB h1 { font-size:clamp(34px,4.1vw,60px); }
 
 .styleSw { position:fixed; left:16px; bottom:16px; z-index:60; display:flex; align-items:center; gap:4px; padding:5px; border-radius:99px; background:rgba(20,20,24,.82); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 10px 30px -10px rgba(0,0,0,.5); font:500 12.5px/1 "Geist", -apple-system, sans-serif; }
 .styleSw span { color:rgba(255,255,255,.5); padding:0 8px; }
@@ -359,8 +370,9 @@ footer { background:var(--black); }
     <div class="sideL"><div><b>30</b><span>DAGER VI SELGER SELV</span></div><div><b>90</b><span>DAGER GARANTI</span></div></div>
     <div class="sideR"><div><b class="fill">[X] MNOK</b><span>SOLGT AV GRÜNDERNE</span></div><div><b class="fill">[X] år</b><span>I SALG OG LEDELSE</span></div></div>
     <div class="mid">
-      <h1><span class="say">Kundene sier</span> <q class="obj" id="obj">«Vi tenker på det.»</q><br><span class="l2">Vi gjør det om til <span class="hot">signerte avtaler.</span></span></h1>
-      <p class="subm">Vi tar de første salgsmøtene dine selv og trener teamet til å ta over.<br>Mer ny omsetning enn honoraret på 90 dager, ellers jobber vi gratis.</p>
+      <p class="eyeq">Kunden sier <q class="obj" id="obj">«Vi tenker på det.»</q> Og så blir det stille.</p>
+      <h1><span class="l1"><span class="num">10 nye kunder</span> på 90 dager.</span><br><span class="l2">Uten en krone mer i annonser.</span></h1>
+      <p class="subm">Vi selger for deg først, så trener vi teamet til å gjøre det selv.<br>Får du ikke mer ny omsetning enn du betaler oss, jobber vi gratis til du har det.</p>
       <div class="vsl vB" id="video">
         <div class="frame">
           <video id="vslVideo" src="media/vsl.mp4" poster="media/vsl-poster.jpg" controls playsinline preload="metadata" aria-label="Video: Hvorfor flere annonser ikke gir flere kunder"></video>

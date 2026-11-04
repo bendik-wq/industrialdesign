@@ -76,10 +76,10 @@ export const Shot: React.FC<{ dur: number; children: React.ReactNode; style?: CS
 
 export const Glass: React.FC<{ children: React.ReactNode; style?: CSSProperties; glow?: string }> = ({ children, style, glow }) => (
   <div style={{
-    background: 'linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.025))',
+    background: 'linear-gradient(180deg, rgba(20,28,34,.92), rgba(10,16,21,.92))',
     border: `1px solid ${glow ? glow : C.line}`, borderRadius: 28, padding: '30px 34px',
     boxShadow: glow ? `0 0 0 1px ${glow}55, 0 30px 90px -20px ${glow}88` : '0 30px 80px -30px rgba(0,0,0,.8)',
-    backdropFilter: 'blur(20px)', ...style,
+    ...style,
   }}>{children}</div>
 );
 

@@ -15,6 +15,7 @@ export const TIMELINE: Item[] = [
   { ch: 0, sec: 4.5, el: <Lines lines={[{ t: 'Hører du dette oftere enn', size: 92, dim: true }, { t: '*«Vi* *kjører»?*', size: 150, at: 16 }]} /> },
   { ch: 0, sec: 5, el: <Lines lines={[{ t: 'Da er det ikke markedsføringen', size: 96 }, { t: 'som er problemet.', size: 96, at: 18 }]} /> },
   { ch: 0, sec: 5, el: <Lines lines={[{ t: 'Det er det som skjer', size: 96 }, { t: '*etter* at kunden tar kontakt.', size: 96, at: 16 }]} /> },
+  { ch: 0, sec: 5.5, el: <Lines kicker="Det vi lover" lines={[{ t: '*10* *nye* *kunder* på 90 dager.', size: 108, at: 8 }, { t: 'Uten en krone mer i annonser.', size: 78, at: 36, dim: true }]} /> },
   // 2 two types + who we are
   { ch: 1, sec: 8, el: <TwoTypes /> },
   { ch: 1, sec: 4.5, el: <Lines lines={[{ t: 'Forskjellen har nesten ingenting', size: 88 }, { t: 'med *budsjettet* å gjøre.', size: 88, at: 16 }]} /> },
