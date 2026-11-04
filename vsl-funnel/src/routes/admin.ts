@@ -507,6 +507,8 @@ admin.get('/leads/:id', async (c) => {
     roomEngage: await (await import('../rooms/engage-db')).leadEngagement(runtimeFrom(c), lead.id).catch(() => null),
     // AI calls: the main challenge they named and the guides emailed (src/integrations/voice-resources.ts).
     sales: await (await import('../integrations/voice-resources')).leadSales(runtimeFrom(c), lead.id).catch(() => null),
+    // Calendar actions Sam took on AI calls: times offered, bookings, reschedules, fallbacks (src/integrations/calendly-tools.ts).
+    bookingTools: await (await import('../integrations/calendly-tools')).leadBookingActions(runtimeFrom(c), lead.id).catch(() => []),
     // Consent per channel with its proof, opt-outs and recent blocked attempts (src/integrations/consent-gate.ts).
     consent: await consentSummary(c.env, lead).catch(() => null),
   });

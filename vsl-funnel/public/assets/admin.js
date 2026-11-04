@@ -1661,7 +1661,7 @@
       // Section chips under the name: only for sections this lead has.
       var jumps = [['ld-pipeline', 'Pipeline'], ['ld-deal', 'Deal'], ['ld-contract', 'Contract'], ['ld-app', 'Application'], ['ld-video', 'Video'], ['ld-emails', 'Emails']]
         .concat(d.calendly && d.calendly.length ? [['ld-calendly', 'Bookings']] : [])
-        .concat(d.voice && d.voice.length ? [['ld-calls', 'AI calls']] : [])
+        .concat((d.voice && d.voice.length) || (d.bookingTools && d.bookingTools.length) ? [['ld-calls', 'AI calls']] : [])
         .concat([['ld-buyer', 'Path to buy'], ['ld-journey', 'Journey']]);
 
       dr.innerHTML =
@@ -1712,7 +1712,7 @@
           { label: 'Status', html: function (b) { return '<span class="pill">' + esc(b.rescheduled ? 'rescheduled' : b.status) + '</span>' + (b.cancel_reason ? ' <span class="muted">' + esc(b.cancel_reason) + '</span>' : ''); } },
           { label: 'Host', key: 'host_email' },
         ], d.calendly) + '</div>' : '') +
-        (d.voice && d.voice.length ? '<div class="card" id="ld-calls" style="margin-top:14px"><h2>AI calls</h2>' + d.voice.map(voiceCall).join('') + '</div>' : '') +
+        ((d.voice && d.voice.length) || (d.bookingTools && d.bookingTools.length) ? '<div class="card" id="ld-calls" style="margin-top:14px"><h2>AI calls</h2>' + (d.voice || []).map(voiceCall).join('') + bookingToolsHtml(d.bookingTools) + '</div>' : '') +
         '<div class="card" id="ld-buyer" style="margin-top:14px" data-buyerpath><h2>Where they came from</h2><p class="muted">Loading…</p></div>' +
         '<div class="card" id="ld-similar" style="margin-top:14px" data-vx-similar hidden></div>' + // AI search (admin-vectors.js); stays hidden with VECTOR_SEARCH off
         '<div class="card" id="ld-journey" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action, server-side.</p></div><label class="muted"><input type="checkbox" data-all> show all events</label></div><ul class="timeline" data-tl>' + timeline() + '</ul></div>';
@@ -2212,6 +2212,21 @@
       send('POST', 'leads/' + encodeURIComponent(id) + '/payments', { amount: dr.querySelector('[data-pay-amt]').value, paid_at: dr.querySelector('[data-pay-date]').value, method: dr.querySelector('[data-pay-method]').value, note: dr.querySelector('[data-pay-note]').value })
         .then(function (r) { if (r.error) { toast(r.error); return; } toast('Payment saved'); dr.querySelector('[data-pay-amt]').value = ''; dr.querySelector('[data-pay-note]').value = ''; draw(); var c = dr.querySelector('[data-f=cash_collected]'); if (c) c.value = r.cash_collected; });
     };
+  }
+
+  // Calendar actions Sam took during AI calls (live booking tools): one line each, newest first.
+  var BT_ACTION = { availability: 'Looked up open times', book: 'Booked the strategy call', reschedule: 'Moved the strategy call', cancel_old: 'Cancelled the old booking' };
+  var BT_RESULT = { offered: 'offered', none_open: 'nothing open', booked: 'booked', rescheduled: 'moved', slot_taken: 'time taken, offered others', cancelled: 'cancelled', cancel_failed: 'could not cancel (team pinged)', error: 'error', fallback_link: 'booking link emailed instead', not_available: 'not possible by phone', rate_limited: 'too many tries', invalid: 'unknown time' };
+  function bookingToolsHtml(rows) {
+    if (!rows || !rows.length) return '';
+    return '<h3 style="margin-top:14px">Calendar actions by Sam</h3><ul class="plain" style="margin:6px 0 0;padding-left:18px">' + rows.map(function (r) {
+      var dt = {};
+      try { dt = JSON.parse(r.detail || '{}') || {}; } catch (x) { /* ignore */ }
+      var extra = r.slot_at ? ' · ' + esc(when(r.slot_at)) : dt.times && dt.times.length ? ' · ' + dt.times.length + ' times' : '';
+      var why = dt.why || dt.error ? ' <span class="muted">(' + esc(String(dt.why || dt.error).slice(0, 140)) + ')</span>' : '';
+      return '<li><strong>' + esc(when(r.created_at)) + '</strong> ' + esc(BT_ACTION[r.action] || r.action) + ': ' + esc(BT_RESULT[r.result] || r.result) + extra + why +
+        (r.conversation_id ? ' <span class="muted">call ' + esc(String(r.conversation_id).slice(-8)) + '</span>' : '') + '</li>';
+    }).join('') + '</ul>';
   }
 
   function voiceCall(v) {

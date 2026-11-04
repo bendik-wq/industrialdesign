@@ -29,7 +29,7 @@
     textFirst: 'First text to this number, so it carries the opt-out line.',
     auVariant: 'Australian mobiles get the sender name, with an opt-out link instead of “Reply STOP”',
     agent: 'Agent', opening: 'What Sam says first', script: 'The script for this call', facts: 'Offer facts and rules Sam is given', allVars: 'Everything Sam receives',
-    objective: 'The next action Sam drives to', sampleTimes: 'Times Sam might offer (sample)', success: 'Counts as a yes', sayLike: 'Lines like', painH: 'Their challenge, and the one guide Sam offers', painSays: 'They say', painOffer: 'Sam offers', noPain: 'No challenge named, so no guide offered.',
+    objective: 'The next action Sam drives to', sampleTimes: 'Sample times Sam offers', success: 'Counts as a yes', sayLike: 'Lines like', painH: 'Their challenge, and the one guide Sam offers', painSays: 'They say', painOffer: 'Sam offers', noPain: 'No challenge named, so no guide offered.',
     talk: 'Talk to Sam now', talkFine: 'Opens the live voice demo with this exact call. You play the sample lead through your microphone. Nobody is called.',
     agentLive: 'Live in this account', agentOff: 'Not live in this account yet',
     loadErr: 'Couldn’t load that step. Run the simulation again.', runErr: 'The simulation didn’t run. Try again.',

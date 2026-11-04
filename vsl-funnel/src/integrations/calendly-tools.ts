@@ -19,7 +19,7 @@ import { leadTimezone } from './elevenlabs';
  * Security, in this order:
  *  1. x-funnel-tool-secret: a secret derived from the app secret (like the initiation webhook's), set on the tool
  *     in ElevenLabs by "Create / update agent". Missing or wrong → 401.
- *  2. lead_token: an HMAC of the lead id, an expiry and a scope, minted by us when the call starts (outbound: dial();
+ *  2. lead_token: an HMAC of the lead id, an expiry and a scope, minted by us when the call starts (outbound: outboundVars in elevenlabs.ts;
  *     callbacks: the initiation webhook, known callers only) and passed as a dynamic variable. The tool body takes it
  *     from the variable (dynamic_variable binding), never from the model. Forged, expired or for a deleted lead → 403.
  *     The model never supplies a lead id, a name or an email: the booking uses the lead's own record.

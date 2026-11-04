@@ -310,7 +310,7 @@ export function variables(rt: Runtime, lead: Lead, kind: CallKind) {
     known_pain: NO_PAIN,
     // Sam's live calendar tools: on for this call when the setting is on and we hold an email to send the invite to.
     live_booking: live ? 'yes' : 'no',
-    lead_token: '', // signed by dial() (callLeadToken), never built here
+    lead_token: '', // signed in outboundVars when the call is placed, never built here
   };
 }
 
