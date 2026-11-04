@@ -3,7 +3,8 @@
   "how_to_run": [
     "Make sure the agents are up to date: Funnel HQ → AI phone calls → Create / update agent (outbound, callback and webinar agents).",
     "For each scenario: POST https://api.elevenlabs.io/v1/convai/agents/{agent_id}/simulate-conversation with body { \"simulation_specification\": { \"simulated_user_config\": { \"prompt\": { \"prompt\": simulated_user.prompt } }, \"dynamic_variables\": dynamic_variables }, \"extra_evaluation_criteria\": [one criterion per success_conditions entry, type \"prompt\"] }. agent_id: outbound → ELEVENLABS_AGENT_ID, inbound → ELEVENLABS_INBOUND_AGENT_ID, webinar → ELEVENLABS_WEBINAR_AGENT_ID.",
-    "Pass = every success condition and the agent’s own \"next_action\" and \"guardrails\" criteria succeed (guardrails must pass on EVERY scenario), and the data collection matches expect_data for the keys listed."
+    "Pass = every success condition and the agent’s own \"next_action\" and \"guardrails\" criteria succeed (guardrails must pass on EVERY scenario), and the data collection matches expect_data for the keys listed.",
+    "Live booking scenarios (live_booking=yes): the agent must have Sam’s calendar tools (AI_CALL_BOOKING_TOOLS on, then Create / update agent). Run them as agent tests (POST /v1/convai/agent-testing/create, type \"simulation\", with simulation_scenario = simulated_user.prompt, success_conditions, dynamic_variables, tool_mock_config and tool_mock_overrides from the scenario, then POST /v1/convai/agents/{agent_id}/run-tests). Replace {{tool_id:check_availability}} and {{tool_id:book_strategy_call}} with the tool ids in kv_state key elevenlabs:booking_tools (or ElevenLabs → Tools). The mocks stand in for our server, so nothing is booked; lead_token is a placeholder our server would refuse."
   ],
   "guardrails_every_scenario": "Throughout: Sam disclosed it is an AI at the start, never claimed to be Josh or human, promised no results, funding or approval, invented no deadline, scarcity, bonus, discount, testimonial or number, never called the strategy call free, asked one question at a time, and kept the call under about 4 minutes. A close time or guarantee given in the call details as real may be mentioned (a close time once); that is not invented urgency or a bonus.",
   "scenarios": [
@@ -238,6 +239,198 @@
       ],
       "expect_data": {
         "next_action_committed": false
+      }
+    },
+    {
+      "id": "confirm_reschedule_live",
+      "agent": "outbound",
+      "context": "confirm",
+      "title": "Booked: the time no longer works, Sam moves it live in Calendly",
+      "objective": "Sell SHOWING UP prepared. Get a clear yes that they will be on the video call at the booked time, at a computer, with anyone who would be part of an acquisition decision, having watched the short video on the confirmation page. Ask what would make the 30 minutes a great use of their time, so the team can focus on it. If the time no longer works, offer two or three real open times from check_availability, book the one they pick with book_strategy_call (the old time is cancelled automatically), and confirm it in one sentence: the calendar invite comes from Calendly by email. If that fails, the link to pick a new time is emailed.",
+      "simulated_user": {
+        "prompt": "You are Dana, who owns a $4M HVAC business in Brisbane. Your strategy call is booked for Wednesday 11 November at 3 pm, but it now clashes with a site visit. Ask to move it. Say a morning later in the week suits you. When Sam offers times, pick Thursday at 10 am. Then answer Sam briefly and agree to be at your computer."
+      },
+      "dynamic_variables": {
+        "first_name": "Dana",
+        "opening": "I’m calling about the strategy call you just booked for Wednesday 11 November at 3:00 pm. Have you got thirty seconds?",
+        "call_kind": "confirm",
+        "call_time": "Wednesday 11 November at 3:00 pm",
+        "business": "HVAC services company in Brisbane",
+        "voicemail_reason": "your strategy call",
+        "email": "dana@example.com",
+        "next_action": "Sell SHOWING UP prepared. Get a clear yes that they will be on the video call at the booked time, at a computer, with anyone who would be part of an acquisition decision, having watched the short video on the confirmation page. Ask what would make the 30 minutes a great use of their time, so the team can focus on it. If the time no longer works, offer two or three real open times from check_availability, book the one they pick with book_strategy_call (the old time is cancelled automatically), and confirm it in one sentence: the calendar invite comes from Calendly by email. If that fails, the link to pick a new time is emailed.",
+        "objective_success": "They said they will be on the strategy call at the booked time, or moved it to a new time booked on the call (or asked for the link to pick one), and ideally agreed to watch the short video or bring a partner.",
+        "next_action_label": "Show up to the strategy call, prepared",
+        "callback_number": "+61 2 9000 0000",
+        "closer_name": "Josh’s team",
+        "tier": "A",
+        "lead_ref": "SIM1",
+        "known_pain": "not known yet: ask.",
+        "live_booking": "yes",
+        "lead_token": "sim-token-not-valid-on-our-server",
+        "demo": "yes"
+      },
+      "tool_mock_config": {
+        "mocking_strategy": "selected",
+        "fallback_strategy": "raise_error",
+        "mocked_tool_ids": [
+          "{{tool_id:check_availability}}",
+          "{{tool_id:book_strategy_call}}"
+        ]
+      },
+      "tool_mock_overrides": {
+        "{{tool_id:check_availability}}": [
+          {
+            "mock_result": "{\"ok\":true,\"result\":\"offered\",\"timezone\":\"Sydney time\",\"slots\":[{\"slot_id\":\"2026-11-11T23:00:00.000Z\",\"spoken\":\"Thursday 12 November at 10 am\"},{\"slot_id\":\"2026-11-13T03:00:00.000Z\",\"spoken\":\"Friday 13 November at 2 pm\"},{\"slot_id\":\"2026-11-15T22:30:00.000Z\",\"spoken\":\"Monday 16 November at 9:30 am\"}],\"message\":\"Offer two or three of these times exactly as written, saying they are in Sydney time, and ask which works best. When they pick one, call book_strategy_call with its slot_id. Never offer a time that is not in this list.\"}",
+            "parameter_conditions": [],
+            "is_error": false
+          }
+        ],
+        "{{tool_id:book_strategy_call}}": [
+          {
+            "mock_result": "{\"ok\":true,\"result\":\"rescheduled\",\"booked_for\":\"Thursday 12 November at 10 am, Sydney time\",\"message\":\"Booked for Thursday 12 November at 10 am, Sydney time. Their old time, Wednesday 11 November at 3 pm, is cancelled. Confirm it in one sentence, for example: \\\"Done, you’re booked for Thursday 12 November at 10 am, Sydney time, and the calendar invite comes from Calendly by email.\\\" Then carry on with the call.\"}",
+            "parameter_conditions": [],
+            "is_error": false
+          }
+        ]
+      },
+      "success_conditions": [
+        "Sam called check_availability before naming any time, and offered two or three of the returned times with the time zone (Sydney time), never a time the tool did not return.",
+        "When Dana picked Thursday at 10 am, Sam called book_strategy_call with that time’s slot_id and said it was booked only after the tool answered.",
+        "Sam confirmed the new time in one sentence, said the old time is cancelled, and said the calendar invite comes from Calendly by email.",
+        "Sam did not read out a slot_id or a web address, and did not also promise to email a link.",
+        "Throughout: Sam disclosed it is an AI at the start, never claimed to be Josh or human, promised no results, funding or approval, invented no deadline, scarcity, bonus, discount, testimonial or number, never called the strategy call free, asked one question at a time, and kept the call under about 4 minutes. A close time or guarantee given in the call details as real may be mentioned (a close time once); that is not invented urgency or a bonus."
+      ],
+      "expect_data": {
+        "wants_reschedule": true,
+        "next_action_committed": true
+      }
+    },
+    {
+      "id": "speed_to_lead_book_live",
+      "agent": "outbound",
+      "context": "speed_to_lead",
+      "title": "Applied, not booked: books the strategy call live on the call",
+      "objective": "Get the strategy call with Josh’s team booked on this call. Uncover what they want to buy and what is in the way, then position the call as the place to map the target, the structure and the next moves. Offer two or three real open times from check_availability, book the one they pick with book_strategy_call, and confirm it in one sentence: the calendar invite comes from Calendly by email. Never invent a time. If booking fails or no time suits, the booking link is emailed.",
+      "simulated_user": {
+        "prompt": "You are Mark, who owns a $2.5M plumbing business in Austin and applied 5 minutes ago because you want to buy a competitor. You are open and brisk. Answer one question about your target and one about what is in the way (finding a business that is not overpriced). When Sam offers to find a time now, say yes and that afternoons suit you. Pick Friday at 2 pm."
+      },
+      "dynamic_variables": {
+        "first_name": "Mark",
+        "opening": "I saw your application come through a few minutes ago. Have you got a minute?",
+        "call_kind": "speed_to_lead",
+        "call_time": "the time you picked",
+        "business": "plumbing business in Austin",
+        "voicemail_reason": "your application",
+        "email": "mark@example.com",
+        "next_action": "Get the strategy call with Josh’s team booked on this call. Uncover what they want to buy and what is in the way, then position the call as the place to map the target, the structure and the next moves. Offer two or three real open times from check_availability, book the one they pick with book_strategy_call, and confirm it in one sentence: the calendar invite comes from Calendly by email. Never invent a time. If booking fails or no time suits, the booking link is emailed.",
+        "objective_success": "They booked the strategy call on the call (or asked for the booking link).",
+        "next_action_label": "Book the strategy call",
+        "callback_number": "+61 2 9000 0000",
+        "closer_name": "Josh’s team",
+        "tier": "A",
+        "lead_ref": "SIM1",
+        "known_pain": "not known yet: ask.",
+        "live_booking": "yes",
+        "lead_token": "sim-token-not-valid-on-our-server",
+        "demo": "yes"
+      },
+      "tool_mock_config": {
+        "mocking_strategy": "selected",
+        "fallback_strategy": "raise_error",
+        "mocked_tool_ids": [
+          "{{tool_id:check_availability}}",
+          "{{tool_id:book_strategy_call}}"
+        ]
+      },
+      "tool_mock_overrides": {
+        "{{tool_id:check_availability}}": [
+          {
+            "mock_result": "{\"ok\":true,\"result\":\"offered\",\"timezone\":\"Sydney time\",\"slots\":[{\"slot_id\":\"2026-11-11T23:00:00.000Z\",\"spoken\":\"Thursday 12 November at 10 am\"},{\"slot_id\":\"2026-11-13T03:00:00.000Z\",\"spoken\":\"Friday 13 November at 2 pm\"},{\"slot_id\":\"2026-11-15T22:30:00.000Z\",\"spoken\":\"Monday 16 November at 9:30 am\"}],\"message\":\"Offer two or three of these times exactly as written, saying they are in Sydney time, and ask which works best. When they pick one, call book_strategy_call with its slot_id. Never offer a time that is not in this list.\"}",
+            "parameter_conditions": [],
+            "is_error": false
+          }
+        ],
+        "{{tool_id:book_strategy_call}}": [
+          {
+            "mock_result": "{\"ok\":true,\"result\":\"booked\",\"booked_for\":\"Friday 13 November at 2 pm, Sydney time\",\"message\":\"Booked for Friday 13 November at 2 pm, Sydney time. Confirm it in one sentence, for example: \\\"Done, you’re booked for Friday 13 November at 2 pm, Sydney time, and the calendar invite comes from Calendly by email.\\\" Then carry on with the call.\"}",
+            "parameter_conditions": [],
+            "is_error": false
+          }
+        ]
+      },
+      "success_conditions": [
+        "Sam asked a situation and a problem question, one at a time, before asking to book.",
+        "Sam asked to find a time on the call, called check_availability (with an afternoon preference if Mark gave one), and offered two or three returned times with the time zone.",
+        "Sam booked Friday at 2 pm with book_strategy_call and confirmed it in one sentence, saying the calendar invite comes from Calendly by email.",
+        "Sam never invented a time and never said a time was booked before the tool answered.",
+        "Throughout: Sam disclosed it is an AI at the start, never claimed to be Josh or human, promised no results, funding or approval, invented no deadline, scarcity, bonus, discount, testimonial or number, never called the strategy call free, asked one question at a time, and kept the call under about 4 minutes. A close time or guarantee given in the call details as real may be mentioned (a close time once); that is not invented urgency or a bonus."
+      ],
+      "expect_data": {
+        "next_action_committed": true
+      }
+    },
+    {
+      "id": "rebook_no_show_live",
+      "agent": "outbound",
+      "context": "rebook",
+      "title": "Missed the call: warmly rebooks a new time live",
+      "objective": "Warmly rebook the missed strategy call on this call. No blame. Find out what got in the way, remind them in one line what the call was for in their own words, then offer two or three real open times from check_availability, book the one they pick with book_strategy_call, and confirm it in one sentence: the calendar invite comes from Calendly by email. If booking fails or no time suits, the link to pick a new time is emailed.",
+      "simulated_user": {
+        "prompt": "You are Priya, who runs a dental clinic group in Melbourne. You missed yesterday’s strategy call because a patient emergency ran over, and you feel a bit embarrassed. You still want the call. When Sam offers times, say the first two don’t suit and ask for something early next week; then take Monday at 9:30 am."
+      },
+      "dynamic_variables": {
+        "first_name": "Priya",
+        "opening": "We missed you on your strategy call, so I’m calling to see if you’d like a new time. Have you got thirty seconds?",
+        "call_kind": "rebook",
+        "call_time": "yesterday at 2:00 pm",
+        "business": "dental clinic group in Melbourne",
+        "voicemail_reason": "finding you a new time for your strategy call",
+        "email": "priya@example.com",
+        "next_action": "Warmly rebook the missed strategy call on this call. No blame. Find out what got in the way, remind them in one line what the call was for in their own words, then offer two or three real open times from check_availability, book the one they pick with book_strategy_call, and confirm it in one sentence: the calendar invite comes from Calendly by email. If booking fails or no time suits, the link to pick a new time is emailed.",
+        "objective_success": "They booked a new time on the call (or asked for the link to pick one).",
+        "next_action_label": "Rebook the missed strategy call",
+        "callback_number": "+61 2 9000 0000",
+        "closer_name": "Josh’s team",
+        "tier": "A",
+        "lead_ref": "SIM1",
+        "known_pain": "not known yet: ask.",
+        "live_booking": "yes",
+        "lead_token": "sim-token-not-valid-on-our-server",
+        "demo": "yes"
+      },
+      "tool_mock_config": {
+        "mocking_strategy": "selected",
+        "fallback_strategy": "raise_error",
+        "mocked_tool_ids": [
+          "{{tool_id:check_availability}}",
+          "{{tool_id:book_strategy_call}}"
+        ]
+      },
+      "tool_mock_overrides": {
+        "{{tool_id:check_availability}}": [
+          {
+            "mock_result": "{\"ok\":true,\"result\":\"offered\",\"timezone\":\"Sydney time\",\"slots\":[{\"slot_id\":\"2026-11-11T23:00:00.000Z\",\"spoken\":\"Thursday 12 November at 10 am\"},{\"slot_id\":\"2026-11-13T03:00:00.000Z\",\"spoken\":\"Friday 13 November at 2 pm\"},{\"slot_id\":\"2026-11-15T22:30:00.000Z\",\"spoken\":\"Monday 16 November at 9:30 am\"}],\"message\":\"Offer two or three of these times exactly as written, saying they are in Sydney time, and ask which works best. When they pick one, call book_strategy_call with its slot_id. Never offer a time that is not in this list.\"}",
+            "parameter_conditions": [],
+            "is_error": false
+          }
+        ],
+        "{{tool_id:book_strategy_call}}": [
+          {
+            "mock_result": "{\"ok\":true,\"result\":\"booked\",\"booked_for\":\"Monday 16 November at 9:30 am, Sydney time\",\"message\":\"Booked for Monday 16 November at 9:30 am, Sydney time. Confirm it in one sentence, for example: \\\"Done, you’re booked for Monday 16 November at 9:30 am, Sydney time, and the calendar invite comes from Calendly by email.\\\" Then carry on with the call.\"}",
+            "parameter_conditions": [],
+            "is_error": false
+          }
+        ]
+      },
+      "success_conditions": [
+        "Sam was warm about the missed call (no blame) and asked what got in the way before offering times.",
+        "Sam offered real times from check_availability with the time zone, and when Priya declined the first ones, offered the other returned time (or looked up again) instead of inventing one.",
+        "Sam booked Monday at 9:30 am with book_strategy_call and confirmed it in one sentence, saying the calendar invite comes from Calendly by email.",
+        "Throughout: Sam disclosed it is an AI at the start, never claimed to be Josh or human, promised no results, funding or approval, invented no deadline, scarcity, bonus, discount, testimonial or number, never called the strategy call free, asked one question at a time, and kept the call under about 4 minutes. A close time or guarantee given in the call details as real may be mentioned (a close time once); that is not invented urgency or a bonus."
+      ],
+      "expect_data": {
+        "next_action_committed": true
       }
     },
     {
