@@ -203,7 +203,8 @@ describe('list view', () => {
     expect(v).not.toHaveProperty('plan_json');
     expect(v).not.toHaveProperty('parts_json');
     expect(v).toMatchObject({ id, status: 'recording', title: 'Seller finance, explained', raw_url: null, markers: [], shorts: [] });
-    expect(d.drive).toEqual({ connected: false, folderId: '1b7U_deRnqGYy-suFJJDcmNANmnG8Xf4p', folderLink: 'https://drive.google.com/drive/folders/1b7U_deRnqGYy-suFJJDcmNANmnG8Xf4p', scopeOk: false, connectUrl: '/admin/api/google/connect?to=studio' });
+    expect(d.drive).toEqual({ connected: false, folderId: '1b7U_deRnqGYy-suFJJDcmNANmnG8Xf4p', folderLink: 'https://drive.google.com/drive/folders/1b7U_deRnqGYy-suFJJDcmNANmnG8Xf4p', scopeOk: false, connectUrl: '/admin/api/google/connect?to=studio', configured: false, redirectUri: expect.stringMatching(/oauth\/google\/callback$/) });
+    expect(d.drive.redirectUri).toMatch(/\/oauth\/google\/callback$/);
     expect(d.brain).toBe('workers-ai');
     expect(d.engine.ready).toBe(false);
     expect(d.engine.detail).toMatch(/^Not available here: /);
