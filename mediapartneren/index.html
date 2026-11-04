@@ -220,9 +220,16 @@ footer .logo { color:#fff; }
   .logo span { font-size:17px; }
 }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .vsl::before, .vsl::after, .seal::before, .seal::after, .tile.black::after, .final::before { animation:none; } }
+
+.styleSw { position:fixed; left:16px; bottom:16px; z-index:60; display:flex; align-items:center; gap:4px; padding:5px; border-radius:99px; background:rgba(20,20,24,.82); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 10px 30px -10px rgba(0,0,0,.5); font:500 12.5px/1 "Geist", -apple-system, sans-serif; }
+.styleSw span { color:rgba(255,255,255,.5); padding:0 8px; }
+.styleSw a { color:rgba(255,255,255,.8); padding:7px 12px; border-radius:99px; }
+.styleSw a[aria-current] { background:#fff; color:#000; }
+@media (max-width:700px) { .styleSw { bottom:auto; top:70px; left:50%; transform:translateX(-50%); } }
 </style>
 </head>
 <body>
+<nav class="styleSw" aria-label="Velg stil"><span>Stil</span><a href="./" aria-current="page">Apple</a><a href="stil-a.html">Deep Blue</a><a href="stil-b.html">Midnight</a></nav>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
