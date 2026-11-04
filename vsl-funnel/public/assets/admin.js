@@ -312,6 +312,7 @@
     search: { group: 'Traffic', title: 'Search & AI', sub: 'Who finds you through Google, Bing, ChatGPT, Claude, Perplexity, Gemini and Grok, and which AI crawlers are reading your pages.', more: 'The landing pages, 20 industry pages and the guides are open to search engines and AI assistants; the application, booking and personal pages never are. Crawler visits show the AI companies reading your pages (search bots and live answers lead to citations; training bots feed future models). Visitors and leads from AI Search are people who clicked through from an AI answer. New pages usually take days to weeks to show up in search.', render: renderSearch, filters: ['range'] },
     content: { group: 'Traffic', title: 'Content', sub: 'Josh’s YouTube and Instagram: what travels, what brings leads, and what to make next.', more: 'Videos refresh every 6 hours (or press Refresh). Views come from YouTube and Instagram; leads, calls and revenue per video come from the tracked links in Links & videos, so add a tracked link to each video’s description to see which ones actually sell.', render: renderContent, noFilters: true },
     contracts: { group: 'Contracts', title: 'Agreements', sub: 'One-page advisory agreements: draft, preview, sign, send from Josh, and track their signature.', more: 'Make a new agreement for any lead (fee auto-quoted from their application) or anyone else, preview the exact document, sign it for the company, and it’s emailed from Josh for their e-signature. Every signature is recorded with time, IP and a fingerprint of the exact terms. Send yourself a test first.', render: renderContracts, noFilters: true },
+    studio: { group: 'Traffic', title: 'Studio', sub: 'Record your screen with a face cam. It uploads while you record, is edited for you and lands in the Drive folder.', render: renderStudio, noFilters: true },
     ytideas: { group: 'Traffic', title: 'YouTube ideas', sub: 'The next two weeks of videos, planned from what your applicants actually say, what’s winning on YouTube and what already made you money.', more: 'Twelve inputs in, 5–10 topics out, every two weeks. Each topic comes with the demand behind it, the belief it installs, two titles, two thumbnails, the hook, a mini-VSL outline and the CTA, in binge order. Export to Google Docs or Miro, or press “Explore” on any new angle to plan a sprint around it.', render: renderYtIdeas, noFilters: true },
     reactivation: { group: 'Follow-up', title: 'Reactivation', sub: 'Bring back people already in the database: past calls, no-shows, unfinished applications.', more: 'Pick the groups, untick anyone who shouldn’t get it (existing clients, friends), preview the 6 emails and launch. Sending is spread out over days to protect your email reputation. It stops for anyone who books or applies again, unsubscribes or becomes a client.', render: renderReactivation, noFilters: true },
     winback: { group: 'Follow-up', title: 'Win-back', sub: 'Invite cold leads into the Masterclass, the next live webinar or the next challenge cohort.', more: 'Build a group (lost, no-show, cancelled, applied and never booked, registered and never bought, ticket and no Sprint), see exactly who would receive it, pick the destination and preview every email. Nothing sends until you press Start and approve it in Command. Each person stops getting emails the moment they register, buy, book or reply.', render: renderWinback, noFilters: true },
@@ -2619,6 +2620,21 @@
   function renderSupportTab() {
     if (!window.SupportBoard) { view.innerHTML = '<div class="card">The Support script didn’t load. Refresh the page.</div>'; return Promise.resolve(); }
     return window.SupportBoard.render({ view: view, esc: esc, n: n, when: when, tile: tile, toast: toast, emptyState: emptyState, reload: load });
+  }
+
+  // Funnel HQ → Studio: the recorder, the edit pipeline and the scripts live on their own page (/admin/studio),
+  // which needs camera, microphone and screen capture permissions this dashboard does not ask for.
+  function renderStudio() {
+    var tiles = [
+      ['record', 'Record', 'Screen and face cam in six layouts, a teleprompter and markers. Uploads while you record.'],
+      ['pipeline', 'Pipeline', 'Every recording from upload to the edited video in the Drive folder.'],
+      ['scripts', 'Scripts', 'Video scripts written in the face-cam format, ready for the prompter.'],
+    ];
+    view.innerHTML = '<div class="card studio-launch"><p class="muted" style="margin:0">Studio opens on its own page so the browser can ask for the camera, microphone and screen.</p>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px">' + tiles.map(function (t, i) {
+        return '<a href="/admin/studio#' + t[0] + '"' + (i ? '' : ' data-studio-open') + ' style="display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;color:inherit;text-decoration:none"><b>' + esc(t[1]) + '</b><div class="muted" style="font-size:13px;margin-top:4px">' + esc(t[2]) + '</div></a>';
+      }).join('') + '</div></div>';
+    return Promise.resolve();
   }
 
   function renderMaterials() {

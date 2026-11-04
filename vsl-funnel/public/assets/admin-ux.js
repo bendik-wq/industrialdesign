@@ -126,6 +126,7 @@
     behaviour: ['Clicks, scrolls and form timing from the funnel pages.', 'screens', 'Preview the pages'],
     search: ['Visits from search engines and AI answers, and crawler hits on the public pages.', 'pages', 'Open Landing pages'],
     content: ['Josh’s YouTube and Instagram videos.', 'integrations', 'Open Integrations'],
+    studio: ['Recordings, their edits and the scripts live on the Studio page.', null, null],
     ytideas: ['Topics planned from applicant answers and video results.', 'content', 'Open Content'],
     traffic: ['Visits with UTM tags and click ids.', 'links', 'Make tracked links'],
     autopilot: ['Meta ad results, read every hour once Meta is connected.', 'integrations', 'Connect Meta'],
