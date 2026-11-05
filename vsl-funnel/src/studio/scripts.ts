@@ -7,6 +7,7 @@ import { listSprints, type Topic } from '../content/ideas';
 import { getPack, loadSprintTopic } from '../content/video-pack';
 import { anthropicClient, runWorkersAi } from '../infra/ai-gateway';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
+import { BRAIN_NOTES_HELP, brainSection } from '../brain/prompt';
 import {
   type BrainInput, FORMATS, FORMAT_IDS, FRAMEWORKS, FRAMEWORK_IDS, type FormatId, type FrameworkChoice, type FrameworkId, ICPS, ICP_IDS, type IcpId, LAYOUTS, type Layout,
   ctaFor, pickFramework, scriptSystemPrompt, scriptUserPrompt,
@@ -33,6 +34,8 @@ export interface StudioScript {
   beats: ScriptBeat[];
   titles: string[]; thumbnail: string; description: string; cta: string;
   words: number; est_seconds: number;
+  /** Internal: the brain pages the writer drew on, by title (only when the prompt had a Brain section). Never spoken. */
+  notes?: string;
 }
 export interface ScriptFlag { path: string; rule: string; excerpt: string }
 export interface ScriptRow {
@@ -54,6 +57,11 @@ export const SCRIPT_SCHEMA = obj({
   description: str,
   cta: str,
 });
+/** The same schema plus the notes field, used only when the prompt carries a Brain section (src/brain/prompt.ts). */
+export const withNotes = <T extends { properties: Record<string, object>; required: string[] }>(schema: T): T => ({
+  ...schema, properties: { ...schema.properties, notes: { type: 'string', description: BRAIN_NOTES_HELP } }, required: [...schema.required, 'notes'],
+});
+export const SCRIPT_SCHEMA_NOTES = withNotes(SCRIPT_SCHEMA);
 
 // ───────────── validation: the model's JSON becomes a safe script ─────────────
 
@@ -93,6 +101,7 @@ export function cleanScript(raw: unknown, format: FormatId, cta: string): Studio
     words,
     // Spoken at about 150 words a minute.
     est_seconds: Math.round((words / 150) * 60),
+    ...(typeof r.notes === 'string' && r.notes.trim() ? { notes: clip(r.notes, 2000) } : {}),
   };
 }
 
@@ -148,7 +157,7 @@ export function parseJsonReply(text: unknown): unknown {
   throw new Error('The writer returned something that was not a script. Try again.');
 }
 
-function claudeAsk(rt: Runtime): Ask {
+function claudeAsk(rt: Runtime, schema: object = SCRIPT_SCHEMA): Ask {
   const client = anthropicClient(rt.settings, 'studio-script', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 240_000 });
   return async (system, messages) => {
     const stream = client.beta.messages.stream({
@@ -156,7 +165,7 @@ function claudeAsk(rt: Runtime): Ask {
       max_tokens: 16000,
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
-      output_config: { effort: 'high', format: { type: 'json_schema', schema: SCRIPT_SCHEMA } },
+      output_config: { effort: 'high', format: { type: 'json_schema', schema } },
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages,
     } as unknown as Anthropic.Beta.MessageCreateParamsStreaming);
@@ -167,20 +176,24 @@ function claudeAsk(rt: Runtime): Ask {
   };
 }
 
-function workersAsk(rt: Runtime): Ask {
+function workersAsk(rt: Runtime, schema: object = SCRIPT_SCHEMA): Ask {
   return async (system, messages) => {
     const out = await runWorkersAi<{ response?: unknown }>(rt.env.AI as never, rt.settings, 'studio-script', WORKERS_AI_TEXT_MODEL, {
       messages: [{ role: 'system', content: system }, ...messages],
       max_tokens: 6000,
       temperature: 0.6,
-      response_format: { type: 'json_schema', json_schema: SCRIPT_SCHEMA },
+      response_format: { type: 'json_schema', json_schema: schema },
     });
     const r = out?.response;
     return typeof r === 'string' ? r : JSON.stringify(r ?? {});
   };
 }
 
-export function askFor(rt: Runtime, brain: Brain): Ask { return brain === 'claude' ? claudeAsk(rt) : workersAsk(rt); }
+/** The writer; with notes: true the schema gains the internal notes field (only when a Brain section is in the prompt). */
+export function askFor(rt: Runtime, brain: Brain, o: { notes?: boolean } = {}): Ask {
+  const schema = o.notes ? SCRIPT_SCHEMA_NOTES : SCRIPT_SCHEMA;
+  return brain === 'claude' ? claudeAsk(rt, schema) : workersAsk(rt, schema);
+}
 
 export interface Written { script: StudioScript; flags: ScriptFlag[]; attempts: number }
 
@@ -188,8 +201,8 @@ export interface Written { script: StudioScript; flags: ScriptFlag[]; attempts: 
  * Write one script: draft, audit, and when the draft trips the copy rules, one rewrite with every failure listed.
  * Keeps whichever version has fewer flags; the flags that remain are returned for the owner to see.
  */
-export async function writeScript(ask: Ask, input: BrainInput): Promise<Written> {
-  const system = scriptSystemPrompt(input);
+export async function writeScript(ask: Ask, input: BrainInput & { brain?: string }): Promise<Written> {
+  const system = input.brain ? `${scriptSystemPrompt(input)}\n\n${input.brain}` : scriptSystemPrompt(input);
   const first = { role: 'user' as const, content: scriptUserPrompt(input) };
   const text = await ask(system, [first]);
   const draft = cleanScript(parseJsonReply(text), input.format, input.cta);
@@ -209,6 +222,15 @@ export async function writeScript(ask: Ask, input: BrainInput): Promise<Written>
     console.error('studio script rewrite failed', e instanceof Error ? e.message : e);
   }
   return { script: draft, flags: issues, attempts: 2 };
+}
+
+/**
+ * writeScript with the brain: the legend cards, notes and verified G&L facts that fit the topic go into the system
+ * prompt and the writer cites the pages it used in notes. With no brain loaded this is exactly writeScript.
+ */
+export async function writeStudioScript(rt: Runtime, brain: Brain, input: BrainInput): Promise<Written> {
+  const section = await brainSection(rt, `${FORMATS[input.format].label} ${input.topic} ${input.context ?? ''}`.slice(0, 800), { scope: 'copy' });
+  return writeScript(askFor(rt, brain, { notes: Boolean(section) }), section ? { ...input, brain: section } : input);
 }
 
 // ───────────── sources: YouTube ideas and their packs ─────────────
@@ -341,7 +363,7 @@ studioScriptsAdmin.post('/', async (c) => {
   if (!topic) return c.json({ ok: false, error: STUDIO_SCRIPT_COPY.noTopic }, 400);
   const input: BrainInput = { topic, context, format, icp, framework, cta: ctaFor(format, rt.settings.STUDIO_SCRIPT_CTA), notes: rt.settings.STUDIO_SCRIPT_NOTES || undefined };
   try {
-    const written = await writeScript(askFor(rt, brain), input);
+    const written = await writeStudioScript(rt, brain, input);
     const row = await saveScript(rt, { topic, source, source_ref: sourceRef, format, icp, framework, brain, ...written });
     return c.json({ ok: true, script: row });
   } catch (e) {

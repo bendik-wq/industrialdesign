@@ -6,8 +6,8 @@ import { Hono } from 'hono';
 import { type AppEnv, type Runtime, runtimeFrom } from '../app';
 import { requireAdmin } from '../admin/auth';
 import { ctaFor, pickFramework } from '../studio/copy-brain';
-import { askFor, brainOf, saveScript, writeScript } from '../studio/scripts';
-import { AD_SCHEMA, type Analysis, type AnalyseInput, VIDEO_SCHEMA, analyse, askJson, scriptContext } from './analyse';
+import { brainOf, saveScript, writeStudioScript } from '../studio/scripts';
+import { type Analysis, type AnalyseInput, analyseWithBrain, scriptContext } from './analyse';
 import {
   RADAR_COPY, type ToolRow, cleanWatchlist, digest, ensureSeeded, getItem, getWatchlist, listItems, listWatchlists, monthSpend, previewFor,
   queueTranscript, queueWatchlist, radarConfig, radarStep, recentRuns,
@@ -264,7 +264,7 @@ radarAdmin.post('/items/:id/analyse', async (c) => {
   const brain = brainOf(rt);
   if (!brain) return c.json({ ok: false, error: RADAR_UI_COPY.noBrain }, 400);
   try {
-    const out = await analyse(askJson(rt, brain, item.platform === 'meta_ads' ? AD_SCHEMA : VIDEO_SCHEMA), item);
+    const out = await analyseWithBrain(rt, brain, item);
     const now = new Date().toISOString();
     await rt.env.DB.prepare('UPDATE radar_items SET analysis_json = ?, analysis_brain = ?, analysis_flags = ?, analyzed_at = ? WHERE id = ?')
       .bind(JSON.stringify(out.analysis), brain, JSON.stringify(out.flags), now, item.id).run();
@@ -291,7 +291,7 @@ radarAdmin.post('/items/:id/script', async (c) => {
   const framework = pickFramework(format, icp);
   const topic = (a.for_gl.angles[0] || a.topic || a.for_gl.hook).slice(0, 600);
   try {
-    const written = await writeScript(askFor(rt, brain), { topic, context: scriptContext(a, item), format, icp, framework, cta: ctaFor(format, rt.settings.STUDIO_SCRIPT_CTA), notes: rt.settings.STUDIO_SCRIPT_NOTES || undefined });
+    const written = await writeStudioScript(rt, brain, { topic, context: scriptContext(a, item), format, icp, framework, cta: ctaFor(format, rt.settings.STUDIO_SCRIPT_CTA), notes: rt.settings.STUDIO_SCRIPT_NOTES || undefined });
     const row = await saveScript(rt, { topic, source: 'radar', source_ref: item.id, format, icp, framework, brain, ...written });
     await rt.env.DB.prepare('UPDATE radar_items SET script_id = ? WHERE id = ?').bind(row.id, item.id).run();
     return c.json({ ok: true, script: { id: row.id, title: row.title, beats: row.script.beats.length, flags: row.flags.length } });

@@ -79,6 +79,7 @@ import { signedFileRoute } from './infra/signed-files';
 import { mountStudioBlob } from './studio/routes'; // G&L Studio: the editor container's signed links
 import { studioTick } from './studio/pipeline';
 import { radarTick } from './radar/engine'; // Studio → Radar: due radars and Monid run polling
+import { brainTick } from './brain/embed'; // Radar v2, builder B: the brain's leftover embeddings
 import { maybeRunWatchdog } from './infra/watchdog';
 import { syncStreamCopies } from './infra/cf-stream';
 import { sendSignals } from './tracking/signals';
@@ -485,6 +486,8 @@ export default {
       { name: 'Studio (Drive scan and edits)', run: () => studioTick(rt), budgetMs: 170_000 },
       // Radar: radars due by RADAR_SCHEDULE_HOURS are queued, Monid runs are started and polled (nothing runs without MONID_API_KEY).
       { name: 'Radar (Monid runs)', run: () => radarTick(rt), budgetMs: 90_000 },
+      // The brain: once the owner started embedding (POST /admin/api/brain/embed), chunks still left are embedded here.
+      { name: 'Brain embeddings', run: () => brainTick(rt), budgetMs: 60_000 },
     ]);
     type R<F extends (...a: never[]) => unknown> = Awaited<ReturnType<F>> | null;
     const [result, retried, pinged, digest, calls, callbacks, calSync, triggers, purged] = outcomes.map((o) => o.result) as [
