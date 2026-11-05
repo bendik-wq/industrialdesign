@@ -55,3 +55,9 @@ export async function brainSection(rt: Pick<Runtime, 'env' | 'settings'>, task: 
     return '';
   }
 }
+
+/** The Brain section for prompts whose output has no notes field (video planning, YouTube packs and ideas): same content, no citation request. */
+export async function brainContext(rt: Pick<Runtime, 'env' | 'settings'>, task: string, o: BrainSectionOptions = {}): Promise<string> {
+  const s = await brainSection(rt, task, o);
+  return s ? s.replace(' In the notes field, cite the page titles you drew on and what each gave you.', ' Apply it; there is no notes field here.') : '';
+}

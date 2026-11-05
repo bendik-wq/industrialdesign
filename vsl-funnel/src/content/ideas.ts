@@ -284,6 +284,8 @@ export async function generateSprint(rt: Runtime, opts: { focus?: string } = {})
   let sprint: Sprint;
   let source: 'ai' | 'rules';
   if (rt.settings.ANTHROPIC_API_KEY) {
+    // The brain (copy legends, persuasion, G&L notes) shapes the hooks, titles and angles of the ideas.
+    const brain = await (await import('../brain/prompt')).brainContext(rt, `YouTube video ideas, hooks and titles for $1M+ business owners buying competitors ${focus ?? ''}`, { scope: 'all', legends: 4, hits: 6 }).catch(() => '');
     const client = anthropicClient(rt.settings, 'content-ideas', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
     // Long structured output: stream it and take the final message.
     const stream = client.beta.messages.stream({
@@ -292,7 +294,7 @@ export async function generateSprint(rt: Runtime, opts: { focus?: string } = {})
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       output_config: { effort: 'high', format: { type: 'json_schema', schema: SCHEMA } },
-      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }, ...(brain ? [{ type: 'text', text: brain }] : [])],
       messages: [{ role: 'user', content: inputsText(inputs, outliers, focus) }],
     } as unknown as Anthropic.Beta.MessageCreateParamsStreaming);
     const res = await stream.finalMessage();

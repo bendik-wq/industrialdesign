@@ -145,7 +145,8 @@ export const packIssues = (pack: VideoPack) => auditFields(pack, { kind: 'video'
 
 async function aiPack(rt: Runtime, topic: Topic, next: Topic | null): Promise<VideoPack> {
   const client = anthropicClient(rt.settings, 'video-pack', { apiKey: rt.settings.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 280_000 });
-  const system = PACK_SYSTEM + (rt.settings.YT_BRAND_STORY ? `\n\nMore true facts about Josh (use only these):\n${rt.settings.YT_BRAND_STORY}` : '') + (rt.settings.YT_PROOF ? `\n\nReal proof you may show:\n${rt.settings.YT_PROOF}` : '') + (rt.settings.YT_NOTES ? `\n\nStanding rules:\n${rt.settings.YT_NOTES}` : '');
+  const brain = await (await import('../brain/prompt')).brainContext(rt, `YouTube video pack (script, hooks, titles, thumbnail, description) for: ${JSON.stringify(topic).slice(0, 600)}`, { scope: 'copy', legends: 4, hits: 6 }).catch(() => '');
+  const system = PACK_SYSTEM + (brain ? `\n\n${brain}` : '') + (rt.settings.YT_BRAND_STORY ? `\n\nMore true facts about Josh (use only these):\n${rt.settings.YT_BRAND_STORY}` : '') + (rt.settings.YT_PROOF ? `\n\nReal proof you may show:\n${rt.settings.YT_PROOF}` : '') + (rt.settings.YT_NOTES ? `\n\nStanding rules:\n${rt.settings.YT_NOTES}` : '');
   const ask = async (messages: Anthropic.Beta.BetaMessageParam[]) => {
     const stream = client.beta.messages.stream({
       model: rt.settings.EMAIL_AI_MODEL || DEFAULT_EMAIL_MODEL,

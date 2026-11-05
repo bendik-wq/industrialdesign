@@ -6,6 +6,7 @@ import { googleAccess, googleReady } from '../content/video-pack';
 import { DriveError, driveImportStep, driveName, driveStatus, driveUploadStep, listFolderVideos, pickNewFiles } from './drive';
 import { type EditorJob, blobUrl, editorFetch, editorJson, engineStatus } from './editor';
 import { type Probe, buildRenderJob, resolutionLabel } from './ffmpeg';
+import { brainContext } from '../brain/prompt';
 import { type EditPlan, type PlanInput, type Silence, type Transcript, cleanMarkers, fmtDuration, planPrompt, rulesPlan, validatePlan, whisperChunk } from './plan';
 import { type Status, type VideoRow, addEvent, claim, delState, delStatePrefix, getState, getVideo, isActive, iso, moveTo, parseJson, patchVideo, release, setState } from './store';
 
@@ -290,9 +291,10 @@ async function claudePlan(rt: Runtime, system: string, user: string, model: stri
   return msg.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join('\n').trim() || null;
 }
 
-async function workersAiPlan(rt: Runtime, input: PlanInput): Promise<string | null> {
+async function workersAiPlan(rt: Runtime, input: PlanInput, brain = ''): Promise<string | null> {
   if (!rt.env.AI) return null;
-  const { system, user } = planPrompt(input, 40_000);
+  const { system: base, user } = planPrompt(input, 40_000);
+  const system = brain ? `${base}\n\n${brain}` : base;
   const r = await runWorkersAi<{ response?: unknown }>(rt.env.AI as never, rt.settings, 'studio-plan', LLAMA_MODEL, { messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: 4096, temperature: 0.2 });
   const out = r?.response;
   return typeof out === 'string' ? out : out ? JSON.stringify(out) : null;
@@ -301,10 +303,14 @@ async function workersAiPlan(rt: Runtime, input: PlanInput): Promise<string | nu
 /** The plan for a video: Claude, else Workers AI, else the rules; always validated. */
 export async function makePlan(rt: Runtime, input: PlanInput): Promise<{ plan: EditPlan; brain: 'claude' | 'workers-ai' | 'rules'; issues: string[]; note?: string }> {
   const flags = studioFlags(rt);
-  const { system, user } = planPrompt(input);
+  const { system: base, user } = planPrompt(input);
+  // The brain (copy legends, persuasion, G&L notes) shapes the title, description, chapter names and short-clip titles.
+  const said = input.transcript.segments.map((x) => x.text).join(' ').slice(0, 600);
+  const brain = await brainContext(rt, `YouTube title, description, chapter titles and short clip hooks for a video: ${input.title} ${said}`, { scope: 'copy', legends: 3, hits: 4, maxChars: 2500 }).catch(() => '');
+  const system = brain ? `${base}\n\n${brain}` : base;
   const tries: { brain: 'claude' | 'workers-ai'; run: () => Promise<string | null> }[] = [
     { brain: 'claude', run: () => claudePlan(rt, system, user, flags.model) },
-    { brain: 'workers-ai', run: () => workersAiPlan(rt, input) },
+    { brain: 'workers-ai', run: () => workersAiPlan(rt, input, brain) },
   ];
   const notes: string[] = [];
   for (const t of tries) {
