@@ -387,6 +387,9 @@ async function stepRendering(rt: Runtime, v: VideoRow): Promise<Advance> {
   await moveTo(rt.env, v, 'delivering', { edited_key: `edited/${v.id}.mp4`, edited_size: head.size, edited_width: w, edited_height: h, shorts_json: JSON.stringify(shorts), stage_detail: 'Delivering' });
   await delState(rt.env, `render:${v.id}`);
   await addEvent(rt.env, v.id, 'rendering', `Rendered the edit at ${w}x${h} (${resolutionLabel(w ?? 0, h ?? 0)}), ${gb(head.size)}${render?.speed ? `, ${render.speed}x real time` : ''}${shorts.length ? `, and ${shorts.length} short${shorts.length === 1 ? '' : 's'}` : ''}`);
+  // Smooth playback anywhere: a copy goes to Cloudflare Stream when a Stream token is set (never blocks delivery).
+  const fresh = await getVideo(rt.env, v.id);
+  if (fresh) await import('./routes').then((m) => m.sendEditToStream(rt, fresh, true)).then((r) => r?.ok ? addEvent(rt.env, v.id, 'rendering', 'Sent to Cloudflare Stream for playback') : r ? addEvent(rt.env, v.id, 'rendering', `Stream copy skipped: ${r.error}`) : null).catch(() => null);
   return later(0, 'delivering');
 }
 

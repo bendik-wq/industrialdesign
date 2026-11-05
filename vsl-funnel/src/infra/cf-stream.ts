@@ -125,6 +125,27 @@ export async function sendToStream(rt: Runtime, recId: string, o: { fetcher?: Fe
   }
 }
 
+/** Copies any file at a (signed, short-lived) URL into Stream under a key of our own (e.g. "studio:<video id>"). Re-sending a key that is not failed returns the copy. */
+export async function copyUrlToStream(rt: Runtime, key: string, url: string, name: string, o: { fetcher?: Fetcher; now?: number; force?: boolean } = {}) {
+  const cfg = streamConfig(rt.settings);
+  if (!cfg.on) return { ok: false as const, error: 'Stream isn’t connected. Paste a Stream API token under Integrations → Video.' };
+  const prev = await getStreamRow(rt, key);
+  if (!o.force && prev && prev.uid && prev.state !== 'error') return { ok: true as const, video: prev, already: true };
+  const now = o.now ?? Date.now();
+  try {
+    const v = await api<StreamVideo>(cfg, '/copy', { method: 'POST', body: JSON.stringify({ url, meta: { name: name.slice(0, 200), rec_id: key } }) }, o.fetcher ?? fetch);
+    if (!v || !UID.test(String(v.uid))) throw new Error('Stream returned no video id.');
+    return { ok: true as const, video: await saveVideo(rt, key, v, now), already: false };
+  } catch (e) {
+    const error = e instanceof Error ? e.message : 'Stream copy failed';
+    await rt.env.DB.prepare(
+      `INSERT INTO stream_videos (rec_id, uid, state, ready, error, created_at, updated_at) VALUES (?, NULL, 'error', 0, ?, ?, ?)
+       ON CONFLICT(rec_id) DO UPDATE SET state = 'error', ready = 0, error = excluded.error, updated_at = excluded.updated_at`,
+    ).bind(key, error.slice(0, 300), now, now).run();
+    return { ok: false as const, error };
+  }
+}
+
 /** Asks Stream for a copy's current state and stores it. */
 export async function refreshStream(rt: Runtime, recId: string, o: { fetcher?: Fetcher; now?: number } = {}) {
   const cfg = streamConfig(rt.settings);

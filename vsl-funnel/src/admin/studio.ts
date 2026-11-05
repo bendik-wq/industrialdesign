@@ -25,7 +25,7 @@ export const STUDIO_CSP = [
   "connect-src 'self'",
   "worker-src 'self' blob:",
   // Radar: the platform's own players (YouTube without cookies, TikTok's embed).
-  "frame-src 'self' https://www.youtube-nocookie.com https://www.tiktok.com",
+  "frame-src 'self' https://www.youtube-nocookie.com https://www.tiktok.com https://iframe.videodelivery.net https://*.cloudflarestream.com",
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",

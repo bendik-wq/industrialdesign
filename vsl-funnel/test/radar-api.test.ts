@@ -451,7 +451,7 @@ describe('routes: /admin/api/radar*', () => {
     expect(html).toContain('data-view="radar"');
     expect(html).toContain('/assets/studio-radar.js');
     const csp = res.headers.get('content-security-policy') ?? '';
-    expect(csp).toContain("frame-src 'self' https://www.youtube-nocookie.com https://www.tiktok.com;");
+    expect(csp).toContain("frame-src 'self' https://www.youtube-nocookie.com https://www.tiktok.com https://iframe.videodelivery.net https://*.cloudflarestream.com;");
     expect(csp).toContain("media-src 'self' blob: mediastream: https://*.fbcdn.net;");
   });
 

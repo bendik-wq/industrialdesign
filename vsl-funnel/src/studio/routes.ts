@@ -2,6 +2,8 @@ import { type Context, Hono } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { BLOB_KINDS, ID_RE, engineStatus, outputKey, verifyBlob } from './editor';
 import { driveStatus } from './drive';
+import { copyUrlToStream, iframeSrc, refreshStream, streamConfig, type StreamRow } from '../infra/cf-stream';
+import { blobUrl } from './editor';
 import { brainName, kick, scanDrive, studioFlags } from './pipeline';
 import { type EditPlan, cleanMarkers, fmtDuration } from './plan';
 import { type EventRow, type VideoRow, addEvent, delState, getState, getVideo, isActive, iso, moveTo, parseJson, patchVideo, retryTarget, setState } from './store';
@@ -68,7 +70,7 @@ export function checkParts(parts: Record<string, { e: string; s: number }>, part
 // ───────────── shaping rows for the browser ─────────────
 
 const LIST_OMIT = new Set(['plan_json', 'parts_json', 'probe_json', 'upload_id', 'lease_until', 'next_at', 'flow_id', 'analysis_key']);
-export function publicRow(v: VideoRow, full = false) {
+export function publicRow(v: VideoRow, full = false, stream: { ready: boolean; state: string; iframe: string | null; error: string | null } | null = null) {
   const out: Record<string, unknown> = {};
   for (const [k, val] of Object.entries(v)) if (full ? !['parts_json', 'lease_until', 'upload_id'].includes(k) : !LIST_OMIT.has(k)) out[k] = val;
   const plan = parseJson<EditPlan | null>(v.plan_json, null);
@@ -81,6 +83,7 @@ export function publicRow(v: VideoRow, full = false) {
   out.edited_url = v.edited_key ? `/admin/api/studio/videos/${v.id}/edited` : null;
   out.thumb_url = v.thumb_key ? `/admin/api/studio/videos/${v.id}/thumb` : null;
   out.active = isActive(v.status);
+  if (stream) out.stream = stream;
   if (full) { out.plan = plan; out.probe = parseJson(v.probe_json, null); }
   return out;
 }
@@ -202,6 +205,22 @@ studioAdmin.post('/uploads/:id/abort', async (c) => {
   return c.json({ ok: true });
 });
 
+/** Stream copies of edits (keyed "studio:<id>"), for the players. */
+async function streamRows(c: Context<AppEnv>, ids: string[]) {
+  const m = new Map<string, { ready: boolean; state: string; iframe: string | null; error: string | null }>();
+  if (!ids.length) return m;
+  const { results } = await c.env.DB.prepare(`SELECT * FROM stream_videos WHERE rec_id IN (${ids.map(() => '?').join(',')})`).bind(...ids.map((i) => `studio:${i}`)).all<StreamRow>();
+  const code = runtimeFrom(c).settings.STREAM_CUSTOMER_CODE || undefined;
+  for (const r of results) m.set(r.rec_id.slice(7), { ready: Boolean(r.ready), state: r.state, iframe: r.ready ? iframeSrc(r, code) : null, error: r.error });
+  return m;
+}
+/** Sends a finished edit to Cloudflare Stream for smooth playback anywhere (no-op without a Stream token). */
+export async function sendEditToStream(rt: import('../app').Runtime, v: VideoRow, force = false) {
+  if (!v.edited_key || !streamConfig(rt.settings).on) return null;
+  const url = await blobUrl(rt, v.id, 'edited', 6 * 3_600_000);
+  return copyUrlToStream(rt, `studio:${v.id}`, url, `${v.title || 'Studio edit'} (edited)`, { force });
+}
+
 studioAdmin.get('/videos', async (c) => {
   const rt = runtimeFrom(c);
   const { results } = await c.env.DB.prepare('SELECT * FROM studio_videos WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 100').all<VideoRow>();
@@ -215,9 +234,11 @@ studioAdmin.get('/videos', async (c) => {
   }
   const [last, next, scanError, drive] = await Promise.all([getState(c.env, 'scan_last'), getState(c.env, 'scan_next'), getState(c.env, 'scan_error'), driveStatus(rt)]);
   const flags = studioFlags(rt);
+  const streams = await streamRows(c, ids).catch(() => new Map());
   return c.json({
     ok: true,
-    videos: results.map((v) => ({ ...publicRow(v), events: events.get(v.id) ?? [] })),
+    stream: { on: streamConfig(rt.settings).on },
+    videos: results.map((v) => ({ ...publicRow(v, false, streams.get(v.id) ?? null), events: events.get(v.id) ?? [] })),
     scan: { last, next, error: scanError, everyHours: flags.scanHours },
     drive: { connected: drive.connected, folderId: drive.folderId, folderLink: drive.folderLink, scopeOk: drive.scopeOk, connectUrl: '/admin/api/google/connect?to=studio', configured: Boolean(rt.settings.GOOGLE_CLIENT_ID && rt.settings.GOOGLE_CLIENT_SECRET), redirectUri: `${(rt.settings.PUBLIC_URL || rt.origin).replace(/\/+$/, '')}/oauth/google/callback` },
     brain: brainName(rt),
@@ -230,7 +251,20 @@ studioAdmin.get('/videos/:id', async (c) => {
   const v = await recording(c);
   if (!v) return bad(c, STUDIO_COPY.notFound, 404);
   const { results } = await c.env.DB.prepare('SELECT * FROM studio_events WHERE video_id = ? ORDER BY id').bind(v.id).all<EventRow>();
-  return c.json({ ok: true, video: publicRow(v, true), events: results });
+  const rt = runtimeFrom(c);
+  // Copies Stream is still processing are refreshed when the sheet is opened.
+  await refreshStream(rt, `studio:${v.id}`).catch(() => null);
+  const streams = await streamRows(c, [v.id]).catch(() => new Map());
+  return c.json({ ok: true, video: publicRow(v, true, streams.get(v.id) ?? null), events: results });
+});
+
+// Send (or re-send) an edit to Cloudflare Stream.
+studioAdmin.post('/videos/:id/stream', async (c) => {
+  const v = await recording(c);
+  if (!v || !v.edited_key) return bad(c, STUDIO_COPY.notFound, 404);
+  const r = await sendEditToStream(runtimeFrom(c), v, true);
+  if (!r) return c.json({ ok: false, error: 'Stream isn’t connected. Add a Stream API token under Integrations → Video.' }, 400);
+  return c.json(r.ok ? { ok: true, state: r.video?.state } : { ok: false, error: r.error }, r.ok ? 200 : 502);
 });
 
 studioAdmin.get('/videos/:id/raw', async (c) => {
@@ -336,6 +370,11 @@ export function mountStudioBlob(app: Hono<AppEnv>) {
     if (!key) return c.json({ error: 'not found' }, 404);
     const op = c.req.query('op');
     const ct = kind === 'thumb' ? 'image/jpeg' : 'video/mp4';
+    // Reading a finished output (Cloudflare Stream copies the edit from this signed link).
+    if (!op && (m === 'GET' || m === 'HEAD') && (kind === 'edited' || kind === 'preview')) {
+      if (!(await bucket.head(key))) return c.json({ error: 'not found' }, 404);
+      return streamObject(c, bucket, key, ct);
+    }
     if (op === 'put' && m === 'PUT') {
       const declared = Number(c.req.header('content-length'));
       if (Number.isFinite(declared) && declared > 95 * 1024 * 1024) return c.json({ error: 'too large' }, 413);
