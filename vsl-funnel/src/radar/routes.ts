@@ -14,6 +14,8 @@ import {
 } from './engine';
 import { MonidError, monidClient, parsePrice } from './monid';
 import { type RadarQuery, SLOTS, type Slot, builtinFor, isRecommended, isSlot, knownRank, slotDef } from './sources';
+import { radarData } from './data-routes';
+import { advanceSweeps } from './sweep';
 
 export const RADAR_UI_COPY = {
   notFound: 'That item is not there any more.',
@@ -26,6 +28,8 @@ export const RADAR_UI_COPY = {
 
 export const radarAdmin = new Hono<AppEnv>();
 radarAdmin.use('*', requireAdmin);
+// Radar v2: keyword universe, subreddits, publications, platform switches, sweeps (Studio → Radar → Sources and sweeps).
+radarAdmin.route('/data', radarData);
 
 const parse = <T>(s: string | null | undefined, d: T): T => { try { return s ? (JSON.parse(s) as T) : d; } catch { return d; } };
 const body = async (c: { req: { json: <T>() => Promise<T> } }) => c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
@@ -41,8 +45,10 @@ async function sampleQuery(rt: Runtime, slot: Slot): Promise<RadarQuery> {
   const def = slotDef(slot)!;
   const cfg = radarConfig(rt);
   if (def.kind === 'transcript') return { keywords: [], max: 1, urls: [def.platform === 'youtube' ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : def.platform === 'instagram' ? 'https://www.instagram.com/reel/C0000000000/' : 'https://www.tiktok.com/@creator/video/7300000000000000000'], durationS: 60 };
+  if (def.slot === 'reddit:subreddit') return { keywords: [], max: cfg.maxItems, subreddit: 'smallbusiness', sinceDays: 31 };
+  if (def.slot === 'substack:posts') return { keywords: [], max: cfg.maxItems, publication: 'https://www.notboring.co' };
   const wl = (await listWatchlists(rt)).find((w) => w.platforms.includes(def.platform));
-  return { keywords: wl?.keywords ?? ['business acquisition'], max: cfg.maxItems, sinceDays: wl?.since_days ?? null, country: wl?.country ?? null };
+  return { keywords: wl?.keywords ?? ['business acquisition'], max: cfg.maxItems, sinceDays: wl?.since_days ?? null, country: wl?.country ?? null, maxKeywords: wl?.theme ? 60 : undefined, minFaves: wl?.min_faves ?? (wl?.niche === 'out' ? 1000 : 200) };
 }
 
 radarAdmin.get('/state', async (c) => {
@@ -86,7 +92,7 @@ radarAdmin.get('/sources', async (c) => {
       tools: tools.filter((t) => t.slot === d.slot).map((t) => ({
         provider: t.provider, endpoint: t.endpoint, name: t.name, description: t.description, doc_url: t.doc_url,
         price: parsePrice(parse(t.price_json, null)), recommended: Boolean(t.recommended), selected: Boolean(t.selected), confirmed: Boolean(t.confirmed_at),
-        template: parse(t.template_json, null), has_schema: Boolean(t.schema_json), builtin: Boolean(builtinFor(t.provider, t.endpoint)),
+        template: parse(t.template_json, null), has_schema: Boolean(t.schema_json), builtin: Boolean(builtinFor(t.provider, t.endpoint, t.slot)),
       })),
     })),
   });
@@ -195,8 +201,8 @@ radarAdmin.post('/watchlists', async (c) => {
   if (typeof w === 'string') return c.json({ ok: false, error: w }, 400);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  await rt.env.DB.prepare('INSERT INTO radar_watchlists (id, name, keywords_json, platforms_json, niche, country, since_days, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(id, w.name, JSON.stringify(w.keywords), JSON.stringify(w.platforms), w.niche, w.country, w.since_days, w.enabled ? 1 : 0, now, now).run();
+  await rt.env.DB.prepare('INSERT INTO radar_watchlists (id, name, keywords_json, platforms_json, niche, country, since_days, enabled, created_at, updated_at, theme, min_faves, pages) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, w.name, JSON.stringify(w.keywords), JSON.stringify(w.platforms), w.niche, w.country, w.since_days, w.enabled ? 1 : 0, now, now, w.theme ?? null, w.min_faves ?? null, w.pages ?? null).run();
   return c.json({ ok: true, watchlist: await getWatchlist(rt, id) });
 });
 
@@ -204,8 +210,9 @@ radarAdmin.put('/watchlists/:id', async (c) => {
   const rt = runtimeFrom(c);
   const w = cleanWatchlist(await body(c));
   if (typeof w === 'string') return c.json({ ok: false, error: w }, 400);
-  const r = await rt.env.DB.prepare('UPDATE radar_watchlists SET name = ?, keywords_json = ?, platforms_json = ?, niche = ?, country = ?, since_days = ?, enabled = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL')
-    .bind(w.name, JSON.stringify(w.keywords), JSON.stringify(w.platforms), w.niche, w.country, w.since_days, w.enabled ? 1 : 0, new Date().toISOString(), c.req.param('id')).run();
+  // A themed radar keeps its theme (and its keywords come from the universe) unless the body names another.
+  const r = await rt.env.DB.prepare('UPDATE radar_watchlists SET name = ?, keywords_json = CASE WHEN ? IS NOT NULL OR theme IS NULL THEN ? ELSE keywords_json END, platforms_json = ?, niche = ?, country = ?, since_days = ?, enabled = ?, theme = COALESCE(?, theme), min_faves = ?, pages = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL')
+    .bind(w.name, w.keywords.length ? 1 : null, JSON.stringify(w.keywords), JSON.stringify(w.platforms), w.niche, w.country, w.since_days, w.enabled ? 1 : 0, w.theme ?? null, w.min_faves ?? null, w.pages ?? null, new Date().toISOString(), c.req.param('id')).run();
   return (r.meta?.changes ?? 0) ? c.json({ ok: true, watchlist: await getWatchlist(rt, c.req.param('id')) }) : c.json({ ok: false, error: RADAR_UI_COPY.noWatchlist }, 404);
 });
 
@@ -229,7 +236,9 @@ radarAdmin.post('/watchlists/:id/run', async (c) => {
 radarAdmin.post('/step', async (c) => {
   const rt = runtimeFrom(c);
   if (!radarConfig(rt).key) return c.json({ ok: false, error: RADAR_COPY.noKey }, 400);
-  return c.json({ ok: true, ...(await radarStep(rt, { budgetMs: 20_000 })) });
+  const out = await radarStep(rt, { budgetMs: 20_000 });
+  await advanceSweeps(rt);
+  return c.json({ ok: true, ...out });
 });
 
 radarAdmin.get('/runs', async (c) => c.json({ runs: await recentRuns(runtimeFrom(c)) }));

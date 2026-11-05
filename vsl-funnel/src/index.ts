@@ -78,7 +78,7 @@ import { planPdfRoute } from './infra/pdf'; // Cloudflare round, builder D
 import { signedFileRoute } from './infra/signed-files';
 import { mountStudioBlob } from './studio/routes'; // G&L Studio: the editor container's signed links
 import { studioTick } from './studio/pipeline';
-import { radarTick } from './radar/engine'; // Studio → Radar: due radars and Monid run polling
+import { radarTick } from './radar/sweep'; // Studio → Radar: due radars, subreddits and publications as a sweep, Monid run polling, automatic transcripts
 import { maybeRunWatchdog } from './infra/watchdog';
 import { syncStreamCopies } from './infra/cf-stream';
 import { sendSignals } from './tracking/signals';

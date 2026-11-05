@@ -1,0 +1,174 @@
+{
+ "runId": "01M6P1YWNA9E7K029FAB6DF2WE",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "anyapi",
+ "providerName": "AnyAPI",
+ "endpoint": "/reddit.search",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "query": "bought a business seller financing",
+   "sort": "top",
+   "timeframe": "year"
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "PER_UNIT_MATRIX",
+  "amount": {
+   "value": 0.00035,
+   "currency": "USD"
+  },
+  "selectors": [
+   {
+    "label": "Route",
+    "key": "route",
+    "in": "body"
+   }
+  ],
+  "variants": [
+   {
+    "when": {
+     "route": "bison"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.00035,
+      "currency": "USD"
+     }
+    },
+    "label": "bison · 98.1% uptime · 1 s median"
+   },
+   {
+    "when": {
+     "route": "octopus"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.00038,
+      "currency": "USD"
+     }
+    },
+    "label": "octopus · 97.6% uptime · 3.2 s median"
+   },
+   {
+    "when": {
+     "route": "badger"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0008,
+      "currency": "USD"
+     }
+    },
+    "label": "badger · 96.7% uptime · 2.2 s median"
+   },
+   {
+    "when": {
+     "route": "giraffe"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0012,
+      "currency": "USD"
+     }
+    },
+    "label": "giraffe · 99.4% uptime · 5.3 s median"
+   }
+  ]
+ },
+ "cost": {
+  "value": 0.00035,
+  "currency": "USD"
+ },
+ "resultCount": 1,
+ "billedUnits": 1,
+ "createdAt": "2026-11-05T14:31:44.931Z",
+ "startedAt": "2026-11-05T14:31:45.112Z",
+ "completedAt": "2026-11-05T14:31:49.130Z",
+ "output": {
+  "data": {
+   "nextCursor": "cur_CwWYOep1ZFije8zcDGwlkw",
+   "posts": [
+    {
+     "author": "Wander_tea",
+     "authorId": "1zvw043dhx",
+     "createdUtc": 1765820638,
+     "id": "1pnds4s",
+     "nsfw": false,
+     "numComments": 4623,
+     "permalink": "/r/mildlyinfuriating/comments/1pnds4s/manager_took_us_out_for_treat_and_just_bought/",
+     "score": 86851,
+     "selftext": "This man omg. We've had a very busy week working around a new database system lanceDB and we all have been putting extra hours to get used to it and set it up. It has been really difficult and time consuming because it's really really complex and unclear in a lot of aspects but it was finally done. We were all happy and manager decided he wanna treat us. He brought us all to a nearby café and ordered this. Just one dessert for 5 people. Please don't come at me for being greedy or something. This man earns double triple than us and then acts like this.",
+     "subreddit": "mildlyinfuriating",
+     "title": "Manager took us out for treat and just bought this. We were 5 people",
+     "url": "https://www.reddit.com/r/mildlyinfuriating/comments/1pnds4s/manager_took_us_out_for_treat_and_just_bought/"
+    },
+    {
+     "author": "NeFa_NO",
+     "authorId": "4p3nciy5",
+     "createdUtc": 1776803366,
+     "id": "1srzrat",
+     "nsfw": false,
+     "numComments": 3797,
+     "permalink": "/r/malelivingspace/comments/1srzrat/27_male_sucks_at_taking_photos_living_alone_with/",
+     "score": 66345,
+     "selftext": "This is where i live, with a dog. Oceanic and mountainous view.\n\nConstructive criticism on everything but the dog is more than welcome, only positive comments about the dog please and thank you. Im not 100% finished with everything but its certainly getting there. My dog loves to photobomb.\n\nEDIT: The amount of comments here are quite overwhelming. I would like to answer all of you individually, but im afraid it would take way too long. Thank you all, truly, for your kind words, condolences, constructive feedback and uplifting comments. I never expected this type of response on this post. Almost makes a grown man want to cry. (he did, a tiny bit)\n\nThe dog loves all the attention!\n\nTo clarify the story: my grandfather build this house in the late 60’s, then my father inherited it in the late 90’s (he was as young as i am now, funny how that works) and i was born shortly after. Through the years he has totally renovated the place, inside and out. Sadly in the start of march my father passed away peacefully in this very home. Im sure he would have loved to read all the kind comments about our house.\n\nMostly to keep busy i redid the living room as pictured, moved most of my things out of my bedroom, and bought some new furniture. and did some other smaller things around the house. The kitchen is untouched. I have lived in this house all my life, and i plan to do so with the rest of it, too.\n\nAgain; thank you all, and Fuck cancer.",
+     "subreddit": "malelivingspace",
+     "title": "27 (Male) sucks at taking photos. Living alone with dog.",
+     "url": "https://www.reddit.com/gallery/1srzrat"
+    },
+    {
+     "author": "PrettyOrk",
+     "authorId": "mkii626y",
+     "createdUtc": 1779750243,
+     "id": "1tnouzy",
+     "nsfw": false,
+     "numComments": 965,
+     "permalink": "/r/blunderyears/comments/1tnouzy/for_my_16th_birthday_i_had_a_giant_cheeseburger/",
+     "score": 37451,
+     "selftext": "we cut it like a cake though. 2008.\n\nedit: jesus, I'm floored and slightly concerned at the amount of attention this post got.  \n   \nsorry for dropping out suddenly. I was temp banned for a few days by the ~~fun police~~ automoderator for not referring to myself in a pc enough manner. so gg reddit, I sure feel protected!  \n   \nI'll address some common questions:  \n   \n**q. how did it taste?**\n\na. it was pretty good, I think it could have been better if we changed something with the cooking. meat was a bit dry, forgot how the bun was, probably tasted like a bun. ultimately it was tasty and made for some bomb leftovers that lasted for like a week.  \n   \n**q. have you ballooned in weight/got absolutely shredded since the photo?**\n\na. not particularly. I did change my lifestyle, learned my macros, bought a bike, and switched out lexapro for vyvanse. ultimately wound up going down from 330\\~ lbs to 205-215 (it fluctuates). so I'm healthy now - not all the way where I want to be as far as goal physique, but I'm planning on getting more serious about it when there's enough capacity in my life to reliably fit going to the gym on the daily. for now I lift dumbells at home.  \n   \nfor those curious about what I look like now, [here's a link to my comment that has a recent selfie.](https://www.reddit.com/r/blunderyears/s/FNAmEjCnXz) reception appears to be mixed, but I'm happier with how I look and I feel it's a glow up (the volume of gorgeous twinks I've bagged over the years seems to b",
+     "subreddit": "blunderyears",
+     "title": "for my 16th birthday i had a giant cheeseburger instead of a cake",
+     "url": "https://www.reddit.com/r/blunderyears/comments/1tnouzy/for_my_16th_birthday_i_had_a_giant_cheeseburger/"
+    },
+    {
+     "author": "derricksolis",
+     "authorId": "3k6jwdoc",
+     "createdUtc": 1783302736,
+     "id": "1uok0hs",
+     "nsfw": false,
+     "numComments": 689,
+     "permalink": "/r/malelivingspace/comments/1uok0hs/update_lived_in_warehouse_without_corporate/",
+     "score": 34392,
+     "selftext": "Hello everyone! I wanted to make an update post to thank each and every one of you for the kind words you shared with me about my living situation last year.\n\nTL;DR for those who didn't see the previous post here [https://www.reddit.com/r/malelivingspace/comments/1ul7wcj/lived\\_in\\_a\\_warehouse\\_without\\_corporate\\_finding/](https://www.reddit.com/r/malelivingspace/comments/1ul7wcj/lived_in_a_warehouse_without_corporate_finding/)\n\nMy ex of 3 years suddenly left me to be with two other guys, leaving me to pay for our $2,500-a-month apartment by myself for four months. She also left her cats behind for me to take care of until one day she took them back after threatening to call the police on me. By the end of the lease, I was completely broke, had nowhere to go, and came very close to selling everything I owned. I told my boss about my situation, and he offered to let me live in our warehouse for however long I needed until I got back on my feet. I lived there for half a year through blazing summer temperatures of 85–95 degrees and freezing winter temperatures of 15–25.\n\nNow I wanted to make this update to show more pictures of how the room changed over time and to answer some of the questions people had. It became difficult to reply to every comment after the original post blew up.\n\nI began living in the warehouse on May 27, 2025. After I told my boss I had nowhere else to go and was on the brink of selling everything I owned just to get by, he agreed to let me stay there. He",
+     "subreddit": "malelivingspace",
+     "title": "UPDATE: Lived in warehouse without Corporate finding out for half a year",
+     "url": "https://www.reddit.com/gallery/1uok0hs"
+    },
+    {
+     "author": "GnarDead",
+     "authorId": "8ddtcsmx",
+     "createdUtc": 1767114001,
+     "id": "1pznc8u",
+     "nsfw": false,
+     "numComments": 2040,
+     "permalink": "/r/pcmasterrace/comments/1pznc8u/update_received_rocks_in_place_of_asus_tuf_5080/",
+     "score": 32380,
+     "selftext": "Just wanted to post an update regarding the rocks I received in place of the ASUS TUF 5080 that I ordered through Best Buy. It’s been almost a month since I made the original post seeking help and advice from Reddit and I’ve had quite a few people reach out asking for updates.\n\nFirst off, I didn’t expect that post to blow up the way it did. I greatly appreciate everyone’s advice and literally did everything you guys recommended. I had no idea things at Best Buy had gotten this bad until I read through all the similar horror stories people shared in the comments, I feel for you guys, this was a nightmare to deal with. It became even more apparent with how many people just straight up told me I deserved it for not having a film crew record me opening it and shopping at Best Buy to begin with. That’s my bad for ordering tech from the tech store and not having James Cameron and his film crew on standby.\n\nI called Best Buy customer service every single day since 12/2, when they initially and abruptly denied the refund/replacement after telling me they’d be replacing it on 11/28. I brought up the fact that an investigation was never done. I received an email asking for photos of the packaging to “aid them” and literally 7 minutes later before I could even reply received an email saying their investigation was complete and would be unable to provide a replacement/refund. I went to the store in person where I was told all they could do was “expedite my ticket” after scribbling my inf",
+     "subreddit": "pcmasterrace",
+     "title": "**UPDATE** Received Rocks In Place Of ASUS TUF 5080",
+     "url": "https://www.reddit.com/gallery/1pznc8u"
+    }
+   ]
+  },
+  "found": true
+ }
+}

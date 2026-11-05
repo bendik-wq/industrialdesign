@@ -20,6 +20,17 @@ export const IG_SEARCH_RUN = load<{ output: { data: { reels: Record<string, unkn
 /** GET /v1/runs/:id, anyapi /instagram.reel_transcript {url}: TIERED price, billed 65 units ($0.008), 6 segments. */
 export const IG_TRANSCRIPT_RUN = load<{ output: { data: { items: Record<string, unknown>[] } }; price: unknown } & Record<string, unknown>>('instagram-transcript.json');
 
+// Radar v2 (real runs of 2026-11-05, trimmed): the text platforms.
+type DataRun<K extends string> = { output: { data: Record<K, Record<string, unknown>[]> & { nextCursor?: string } }; price: unknown; cost: { value: number }; input: { body: Record<string, unknown> } } & Record<string, unknown>;
+/** anyapi /twitter.search {query: '("buy a business" OR "private equity" OR acquisition) min_faves:500 lang:en', queryType: 'Top', limit: 20}: 5 posts (2 with video). */
+export const X_SEARCH_RUN = load<DataRun<'items'>>('x-search.json');
+/** anyapi /linkedin.search_posts {query: 'acquired a business', datePosted: 'last-month'}: 5 posts (the 3 most engaged, 2 with none). */
+export const LINKEDIN_SEARCH_RUN = load<DataRun<'posts'>>('linkedin-search.json');
+/** anyapi /reddit.search {query: 'bought a business seller financing', sort: 'top', timeframe: 'year'}: 5 posts, global search, off topic. */
+export const REDDIT_SEARCH_RUN = load<DataRun<'posts'>>('reddit-search.json');
+/** anyapi /substack.posts {url: 'https://www.notboring.co', limit: 8, includeContent: true}: 1 post (text trimmed). */
+export const SUBSTACK_POSTS_RUN = load<DataRun<'items'>>('substack-posts.json');
+
 /** POST /v1/inspect in Monid's documented shape: the body schema under input.body, a route-priced matrix. */
 export const INSPECT_ANYAPI_YT = {
   provider: 'anyapi', providerName: 'AnyAPI', endpoint: '/youtube.search', description: 'Search YouTube videos by keyword.', summary: 'YouTube search',
