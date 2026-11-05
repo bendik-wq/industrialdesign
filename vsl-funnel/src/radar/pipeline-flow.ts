@@ -6,7 +6,8 @@ import { type Ask, askFor, brainOf, writeStudioScript } from '../studio/scripts'
 import { ADAPT_SCHEMA, type AdaptDeps, JUDGE_SCHEMA, MAX_JUDGE_ROUNDS, adaptSourceForFormat, adaptStep, getAdaptation, judgeStep, rewriteStep, storeStep } from './adapt';
 import { askJson } from './analyse';
 import { getBrain } from './brain-provider';
-import { queueTranscript, radarStep } from './engine';
+import { radarStep } from './engine';
+import { advanceSweeps } from './sweep';
 import {
   EXTRACT_SCHEMA, type Extraction, type ExtractInput, NAME_SCHEMA, clusterAndStore, extractBatch, getFormat, hash, itemsToExtract, radarFormatConfig,
 } from './formats';
@@ -80,23 +81,28 @@ export function modelsFor(rt: Runtime): Models | null {
   };
 }
 
-/** The fallback transcribe node (builder A's auto-transcribe replaces it at merge): queue the top items' transcripts. */
-async function queueTopTranscripts(rt: Runtime, o: { limit: number; now: number }) {
-  const { results } = await rt.env.DB.prepare(
-    `SELECT id FROM radar_items WHERE platform IN ('youtube','tiktok','instagram') AND transcript_source IS NOT 'pending' AND transcript_source IS NOT 'monid'
-       AND id NOT IN (SELECT item_id FROM radar_item_formats WHERE error IS NULL) ORDER BY score DESC LIMIT ?`,
-  ).bind(o.limit).all<{ id: string }>();
-  let queued = 0;
-  for (const r of results) { const q = await queueTranscript(rt, r.id, o.now); if (q.ok) queued++; else if (/budget|key/i.test(q.note ?? '')) break; }
-  return { queued };
+/**
+ * The transcribe node uses builder A's sweep (src/radar/sweep.ts): advanceSweeps moves a sweep whose searches are done
+ * to its automatic transcripts (autoTranscribe: the best new videos, budget-checked). Idempotent: a sweep already
+ * transcribing is not queued again. Returns how many transcript runs are going.
+ */
+async function sweepTranscripts(rt: Runtime, o: { now: number }) {
+  await advanceSweeps(rt, o.now);
+  return { queued: await transcriptRuns(rt) };
 }
+const transcriptRuns = async (rt: Runtime) => Number((await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM radar_runs WHERE status IN ('pending','running') AND item_id IS NOT NULL").first<{ n: number }>())?.n ?? 0);
 
 export const defaultDeps: PipelineDeps = {
   models: modelsFor,
-  sweepActive: async (rt) => Number((await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM radar_runs WHERE status IN ('pending','running') AND item_id IS NULL").first<{ n: number }>())?.n ?? 0),
-  stepRuns: (rt) => radarStep(rt, { budgetMs: 20_000 }),
-  transcribe: queueTopTranscripts,
-  transcriptsActive: async (rt) => Number((await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM radar_runs WHERE status IN ('pending','running') AND item_id IS NOT NULL").first<{ n: number }>())?.n ?? 0),
+  // A sweep is done when no search run is going and no radar_sweeps row is still at its searches.
+  sweepActive: async (rt) => {
+    const runs = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM radar_runs WHERE status IN ('pending','running') AND item_id IS NULL").first<{ n: number }>();
+    const sweeps = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM radar_sweeps WHERE status = 'running' AND started_at > ?").bind(new Date(Date.now() - 2 * 86400_000).toISOString()).first<{ n: number }>().catch(() => null);
+    return Number(runs?.n ?? 0) + Number(sweeps?.n ?? 0);
+  },
+  stepRuns: async (rt) => { const r = await radarStep(rt, { budgetMs: 20_000 }); await advanceSweeps(rt); return r; },
+  transcribe: sweepTranscripts,
+  transcriptsActive: transcriptRuns,
 };
 
 // ───────────── run records ─────────────
