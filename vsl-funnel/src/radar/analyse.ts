@@ -4,7 +4,8 @@ import { copyBrief } from '../content/copy-rules';
 import { anthropicClient, runWorkersAi } from '../infra/ai-gateway';
 import { DEFAULT_EMAIL_MODEL } from '../personalize/personalize';
 import { FACTS, LAYOUTS, LAYOUT_GUIDE, type Layout } from '../studio/copy-brain';
-import { type Ask, type Brain, type ScriptFlag, type StudioScript, WORKERS_AI_TEXT_MODEL, parseJsonReply, scriptIssues } from '../studio/scripts';
+import { type Ask, type Brain, type ScriptFlag, type StudioScript, WORKERS_AI_TEXT_MODEL, parseJsonReply, scriptIssues, withNotes } from '../studio/scripts';
+import { brainSection } from '../brain/prompt';
 
 /**
  * Radar: the analysis of one top performer, as STRICT JSON. For a video: the hook (exact opening words, why it
@@ -56,6 +57,8 @@ export interface Analysis {
   cta: string; pattern: string; format: string; topic: string;
   offer: string; angle: string; landing_promise: string;
   for_gl: { apply: string; hook: string; angles: string[]; layouts: { beat: string; layout: Layout }[]; how_we_run: string };
+  /** Internal: the brain pages the analyst drew on, by title (only when the prompt had a Brain section). */
+  notes?: string;
 }
 
 const clip = (v: unknown, n: number) => (typeof v === 'string' ? v : v == null ? '' : String(v)).replace(/\r/g, '').trim().slice(0, n);
@@ -84,6 +87,7 @@ export function cleanAnalysis(raw: unknown, kind: 'video' | 'ad'): Analysis {
       layouts: arr(g.layouts).filter(isObj).slice(0, 20).map((l) => ({ beat: clip(l.beat, 80), layout: ((LAYOUTS as readonly string[]).includes(String(l.layout)) ? l.layout : 'spotlight') as Layout })).filter((l) => l.beat),
     },
   };
+  if (typeof r.notes === 'string' && r.notes.trim()) out.notes = clip(r.notes, 2000);
   if (!out.hook.text || !out.for_gl.hook) throw new Error('The analysis came back without a hook. Try again.');
   return out;
 }
@@ -177,9 +181,9 @@ export function askJson(rt: Runtime, brain: Brain, schema: object, feature = 'ra
 export interface Analysed { analysis: Analysis; flags: ScriptFlag[]; attempts: number }
 
 /** Analyse, gate the G&L part, and when it trips the copy rules, one rewrite with every failure listed. */
-export async function analyse(ask: Ask, input: AnalyseInput): Promise<Analysed> {
+export async function analyse(ask: Ask, input: AnalyseInput, brain = ''): Promise<Analysed> {
   const kind = input.platform === 'meta_ads' ? 'ad' : 'video';
-  const system = analysisSystemPrompt(kind);
+  const system = brain ? `${analysisSystemPrompt(kind)}\n\n${brain}` : analysisSystemPrompt(kind);
   const first = { role: 'user' as const, content: analysisUserPrompt(input) };
   const text = await ask(system, [first]);
   const draft = cleanAnalysis(parseJsonReply(text), kind);
@@ -198,6 +202,20 @@ export async function analyse(ask: Ask, input: AnalyseInput): Promise<Analysed> 
     console.error('radar analysis rewrite failed', e instanceof Error ? e.message : e);
   }
   return { analysis: draft, flags: issues, attempts: 2 };
+}
+
+/** What the brain is asked for an item: hooks and structure first, then the item's own words. */
+export const brainTaskFor = (i: Pick<AnalyseInput, 'platform' | 'title' | 'caption' | 'transcript'>) =>
+  `${i.platform === 'meta_ads' ? 'ad hook offer angle' : 'video hook structure retention'} ${i.title ?? ''} ${(i.caption ?? '').slice(0, 300)} ${(i.transcript ?? '').slice(0, 300)}`.slice(0, 800);
+
+/**
+ * analyse with the brain: legend cards, notes and verified G&L facts for this item go into the system prompt, and
+ * the analyst cites the pages it used in notes. With no brain loaded this is exactly analyse with the plain schema.
+ */
+export async function analyseWithBrain(rt: Runtime, brain: Brain, input: AnalyseInput): Promise<Analysed> {
+  const section = await brainSection(rt, brainTaskFor(input), { scope: 'copy' });
+  const schema = input.platform === 'meta_ads' ? AD_SCHEMA : VIDEO_SCHEMA;
+  return analyse(askJson(rt, brain, section ? withNotes(schema) : schema), input, section);
 }
 
 /** The context a Studio script gets from an analysis ("Make it a script"). */
