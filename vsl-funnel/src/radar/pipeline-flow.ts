@@ -2,8 +2,8 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloud
 import { publicOrigin, type Runtime } from '../app';
 import type { Env } from '../env';
 import { loadSettings } from '../settings';
-import { type Ask, askFor, brainOf } from '../studio/scripts';
-import { ADAPT_SCHEMA, type AdaptDeps, JUDGE_SCHEMA, MAX_JUDGE_ROUNDS, adaptSourceForFormat, adaptStep, judgeStep, rewriteStep, storeStep } from './adapt';
+import { type Ask, askFor, brainOf, writeStudioScript } from '../studio/scripts';
+import { ADAPT_SCHEMA, type AdaptDeps, JUDGE_SCHEMA, MAX_JUDGE_ROUNDS, adaptSourceForFormat, adaptStep, getAdaptation, judgeStep, rewriteStep, storeStep } from './adapt';
 import { askJson } from './analyse';
 import { getBrain } from './brain-provider';
 import { queueTranscript, radarStep } from './engine';
@@ -12,31 +12,38 @@ import {
 } from './formats';
 
 /**
- * The Radar v2 analysis pipeline as a graph (node names match docs/radar.graph.yaml):
+ * The Radar v2 analysis pipeline as a graph; node ids are the ones in docs/radar.graph.yaml (builder B's spec):
  *
- *   sweep → transcribe → extract (map, batches) → cluster (reduce) → adapt (map, top formats)
- *         → judge (blind) ⇄ rewrite (loop, max 2 rounds, while any score < 7) → store
+ *   sweep_runs → transcribe → brain_context → extract_formats (map, batches) → cluster_formats (reduce)
+ *     → adapt (map, top formats) → copy_gate → judge (blind) ⇄ rewrite (loop, max 2 rounds, while any score < 7)
+ *     → store_formats
  *
  * It runs as the Workflow gl-radar-pipeline (binding RADAR_FLOW, class RadarPipelineWorkflow) when the binding
  * exists, and otherwise inline: the same function with a step runner that records each step's output in
  * radar_pipeline_runs.steps_json, yields when its time is up or a node waits, and is resumed by the 5-minute cron.
  * Every step is idempotent (extract skips items that have a format, adapt reuses an adaptation whose format members
  * have not changed, judge never re-judges a judged round), so a retried or resumed step does no double work.
+ * The spec's sweep segment (load_radars, budget_check, normalise) is the existing engine (radarTick); sweep_runs here
+ * waits for its runs to finish. Studio scripts are written in adapt (writeStudioScript), so store_scripts_queue is
+ * already satisfied when store_formats runs.
  */
 
 export const RADAR_GRAPH = {
   name: 'radar',
+  spec: 'docs/radar.graph.yaml',
   nodes: [
-    { id: 'sweep', kind: 'check', label: 'Sweep done' },
+    { id: 'sweep_runs', kind: 'map', label: 'Sweep done' },
     { id: 'transcribe', kind: 'map', label: 'Transcribe' },
-    { id: 'extract', kind: 'map', label: 'Extract formats' },
-    { id: 'cluster', kind: 'reduce', label: 'Cluster' },
+    { id: 'brain_context', kind: 'memory_read', label: 'Brain' },
+    { id: 'extract_formats', kind: 'map', label: 'Extract formats' },
+    { id: 'cluster_formats', kind: 'reduce', label: 'Cluster' },
     { id: 'adapt', kind: 'map', label: 'Adapt for G&L' },
+    { id: 'copy_gate', kind: 'check', label: 'Copy gate' },
     { id: 'judge', kind: 'judge', label: 'Blind judge', blind: true },
-    { id: 'rewrite', kind: 'loop', label: 'Rewrite', max_rounds: MAX_JUDGE_ROUNDS },
-    { id: 'store', kind: 'side_effect', label: 'Store' },
+    { id: 'rewrite', kind: 'llm', label: 'Rewrite', max_rounds: MAX_JUDGE_ROUNDS },
+    { id: 'store_formats', kind: 'side_effect', label: 'Store' },
   ],
-  edges: [['sweep', 'transcribe'], ['transcribe', 'extract'], ['extract', 'cluster'], ['cluster', 'adapt'], ['adapt', 'judge'], ['judge', 'rewrite'], ['rewrite', 'judge'], ['judge', 'store']],
+  edges: [['sweep_runs', 'transcribe'], ['transcribe', 'brain_context'], ['brain_context', 'extract_formats'], ['extract_formats', 'cluster_formats'], ['cluster_formats', 'adapt'], ['adapt', 'copy_gate'], ['copy_gate', 'judge'], ['judge', 'rewrite'], ['rewrite', 'copy_gate'], ['judge', 'store_formats']],
 } as const;
 export type NodeId = (typeof RADAR_GRAPH.nodes)[number]['id'];
 
@@ -69,6 +76,7 @@ export function modelsFor(rt: Runtime): Models | null {
     model, brain: getBrain(rt),
     ask: askJson(rt, model, ADAPT_SCHEMA, 'radar-adapt'), scriptAsk: askFor(rt, model), judgeAsk: askJson(rt, model, JUDGE_SCHEMA, 'radar-judge'),
     extractAsk: askJson(rt, model, EXTRACT_SCHEMA, 'radar-extract'), nameAsk: askJson(rt, model, NAME_SCHEMA, 'radar-name'),
+    write: (r, input) => writeStudioScript(r, model, input),
   };
 }
 
@@ -142,29 +150,37 @@ export async function runRadarPipeline(rtOf: () => Promise<Runtime>, runId: stri
 
   // sweep: wait until the sweep's search runs have finished (pushing them along meanwhile).
   for (let i = 0; i < WAIT_ROUNDS; i++) {
-    const s = await node(`sweep ${i}`, 'sweep', async (rt) => { let active = await deps.sweepActive(rt); if (active) { await deps.stepRuns(rt); active = await deps.sweepActive(rt); } return { active }; });
+    const s = await node(`sweep_runs ${i}`, 'sweep_runs', async (rt) => { let active = await deps.sweepActive(rt); if (active) { await deps.stepRuns(rt); active = await deps.sweepActive(rt); } return { active }; });
     if (!s.active) break;
-    await step.sleep(`sweep wait ${i}`, 60_000);
+    await step.sleep(`sweep_runs wait ${i}`, 60_000);
   }
 
   // transcribe: the top items without a transcript, then wait for those runs (text posts carry their own text).
   const t = await node('transcribe', 'transcribe', async (rt) => deps.transcribe(rt, { limit: Math.min(40, radarFormatConfig(rt).perSweep), now: Date.now() }));
   if (t.queued) {
     for (let i = 0; i < WAIT_ROUNDS; i++) {
-      const w = await node(`transcribe wait ${i}`, 'transcribe', async (rt) => { let active = await deps.transcriptsActive(rt); if (active) { await deps.stepRuns(rt); active = await deps.transcriptsActive(rt); } return { active }; });
+      const w = await node(`transcribe poll ${i}`, 'transcribe', async (rt) => { let active = await deps.transcriptsActive(rt); if (active) { await deps.stepRuns(rt); active = await deps.transcriptsActive(rt); } return { active }; });
       if (!w.active) break;
-      await step.sleep(`transcribe sleep ${i}`, 60_000);
+      await step.sleep(`transcribe wait ${i}`, 60_000);
     }
   }
 
+  // brain_context (memory_read): what the brain holds for this run (legend cards, verified facts); empty is fine.
+  await node('brain_context', 'brain_context', async (rt) => {
+    const m = deps.models(rt);
+    if (!m) return { cards: 0, facts: false };
+    const [cards, facts] = await Promise.all([m.brain.legendCards('viral format hook structure mechanism proof cta', 5), m.brain.glFacts()]);
+    return { cards: cards.length, legends: cards.map((c) => c.legend), facts: Boolean(facts) };
+  });
+
   // extract (map): plan the batch once, then extract in small steps; each step re-checks what still lacks a format.
-  const plan = await node('extract plan', 'extract', async (rt) => {
+  const plan = await node('extract_formats plan', 'extract_formats', async (rt) => {
     const has = deps.models(rt);
     if (!has) return { ids: [] as string[], note: 'No analyst is available, so formats were not read.' };
     return { ids: (await itemsToExtract(rt, radarFormatConfig(rt).perSweep)).map((i) => i.id), note: null };
   });
   for (let b = 0; b * EXTRACT_BATCH < plan.ids.length; b++) {
-    await node(`extract ${b}`, 'extract', async (rt) => {
+    await node(`extract_formats ${b}`, 'extract_formats', async (rt) => {
       const m = deps.models(rt);
       if (!m) return { done: 0, failed: 0, skipped: true };
       const ids = plan.ids.slice(b * EXTRACT_BATCH, (b + 1) * EXTRACT_BATCH);
@@ -175,7 +191,7 @@ export async function runRadarPipeline(rtOf: () => Promise<Runtime>, runId: stri
   }
 
   // cluster (reduce): deterministic clusters, named by one model call each when their members changed.
-  const c = await node('cluster', 'cluster', async (rt) => { const m = deps.models(rt); return clusterAndStore(rt, { ask: m?.nameAsk ?? null, brain: m?.model ?? null, runId }); });
+  const c = await node('cluster_formats', 'cluster_formats', async (rt) => { const m = deps.models(rt); return clusterAndStore(rt, { ask: m?.nameAsk ?? null, brain: m?.model ?? null, runId }); });
 
   // adapt (map) → judge ⇄ rewrite → store, for the top formats (one white-space format always makes the list).
   const pick = await node('adapt plan', 'adapt', async (rt) => {
@@ -197,6 +213,8 @@ export async function runRadarPipeline(rtOf: () => Promise<Runtime>, runId: stri
     });
     if (!a.id) continue;
     for (let round = 0; round <= MAX_JUDGE_ROUNDS; round++) {
+      // copy_gate (check): auditCopy + scriptIssues ran inside adapt and rewrite (one fix each); record what is left.
+      await node(`copy_gate ${fid} ${round}`, 'copy_gate', async (rt) => ({ flags: (await getAdaptation(rt, a.id!))?.flags.length ?? 0 }));
       const j = await node(`judge ${fid} ${round}`, 'judge', async (rt) => {
         const m = deps.models(rt);
         const r = m ? await judgeStep(rt, m, a.id!) : null;
@@ -212,7 +230,7 @@ export async function runRadarPipeline(rtOf: () => Promise<Runtime>, runId: stri
     }
     stored.push(a.id);
   }
-  const out = await node('store', 'store', async (rt) => { for (const id of stored) await storeStep(rt, id); return { adaptations: stored.length, formats: c.formats, white_space: c.white_space }; });
+  const out = await node('store_formats', 'store_formats', async (rt) => { for (const id of stored) await storeStep(rt, id); return { adaptations: stored.length, formats: c.formats, white_space: c.white_space }; });
   await finish(await rtOf(), runId, 'done');
   return out;
 }
@@ -255,7 +273,7 @@ export function inlineStep(rt: Runtime, runId: string, deadline: number): StepLi
       if (run?.steps[name]) return;
       const ts = new Date().toISOString();
       if (run) {
-        run.steps[name] = { node: run.node ?? 'sweep', at: ts, out: { slept: duration } };
+        run.steps[name] = { node: run.node ?? 'sweep_runs', at: ts, out: { slept: duration } };
         await rt.env.DB.prepare('UPDATE radar_pipeline_runs SET steps_json = ?, lease_until = ?, updated_at = ? WHERE id = ?').bind(JSON.stringify(run.steps), new Date(Date.now() + duration).toISOString(), ts, runId).run();
       }
       throw new Yield();

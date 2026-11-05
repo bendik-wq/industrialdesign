@@ -1,0 +1,133 @@
+# radar — Radar v2: find what performs (in and outside the niche), learn its format, and say how the script changes
+# for G&L. Spec format v0.1 (the brain's programs/graphs/README.md; lint: python3 tools/graph/lint_graphs.py <spec>).
+# Owner of this file: Radar v2 builder B. Builder C implements the pipeline in the app; node names here are the names
+# the app uses (stage ids in the Workflow, rows in radar_runs/radar_formats, labels in Studio → Radar).
+#
+# Runs in the Worker, not as agents: "agents" in budgets means model calls (Claude, or Workers AI when no key).
+# check nodes are deterministic code (Monid tool runs, normalising, scoring, the copy gate): JSON in, JSON out.
+# Money: every paid Monid run passes budget_check first (month spend + reserved + estimate <= RADAR_BUDGET_USD),
+# enforced server-side. Nothing is posted, sent or published by this graph; the only writes outside its own state
+# are the stored formats and adaptations at the end (side effects last).
+graph: radar
+version: 0.1
+intent: "Sweep top performers across video and text platforms, transcribe them, extract and cluster their formats, and adapt each format into a G&L script direction that passes the copy rules and a blind judge"
+params: {radar_ids: list, since_days: int, max_items: int}
+sources:
+  - src/radar/engine.ts           # radars, runs, polling, money
+  - src/radar/sources.ts          # slots per platform (search, transcript)
+  - src/radar/normalise.ts        # one item shape for every platform
+  - src/radar/analyse.ts          # the analyst prompt and the copy gate
+  - src/brain/retrieve.ts         # brainSearch, legendCards, glFacts
+  - src/content/copy-rules.ts     # copyBrief + auditCopy (house rules)
+
+platforms: [youtube, tiktok, instagram, meta_ads, x, linkedin, reddit, substack]
+text_platforms: [x, linkedin, reddit, substack]   # body_text is the transcript; no transcript run
+
+state:                                     # durable state = D1 rows; one writer per field
+  watchlists:   {table: radar_watchlists, writer: load_radars}           # read here; the owner edits them in Studio
+  runs:         {table: radar_runs, writer: sweep_runs}
+  items:        {table: radar_items, writer: normalise}
+  transcripts:  {table: "radar_items.transcript", writer: transcribe}
+  formats_raw:  {table: "radar_items.format_json", writer: extract_formats}
+  clusters:     {table: radar_formats, writer: cluster_formats}
+  brain:        {table: "brain_* (read only)", writer: brain_context}
+  adaptations:  {table: "radar_formats.adaptation_json", writer: adapt}
+  gate_flags:   {table: "radar_formats.flags_json", writer: copy_gate}
+  verdicts:     {table: "radar_formats.judge_json", writer: judge}
+  rewrites:     {table: "radar_formats.adaptation_json#rewrite", writer: rewrite}
+
+budgets:
+  sweep:      {max_agents: 0, max_usd: "RADAR_BUDGET_USD per month (month spend + reserved + estimate)", max_runs_per_tick: 6}
+  transcribe: {max_agents: 0, max_usd: "same monthly budget", max_items: 40}
+  formats:    {max_agents: 120, max_tokens: 2_000_000, size: large}   # extract ≤60 items + adapt ≤12 clusters × (1 + 2 rewrites) + judge ≤12 × 3
+  store:      {max_agents: 0, max_tokens: 0}
+
+segments:
+  - {id: sweep, nodes: [load_radars, budget_check, within_budget, sweep_runs, over_budget, normalise]}
+  - {id: transcribe, nodes: [pick_items, transcribe]}
+  - {gate: G1, kind: human, ask: "Analyse the new items now? (Studio → Radar shows what was found and what it cost)",
+     default_when_unattended: continue, on_default: "continue within the monthly budget; the owner sees the result in the digest"}
+  - {id: formats, nodes: [brain_context, extract_formats, cluster_formats, adapt, copy_gate, judge, rewrite]}
+  - {id: store, nodes: [store_formats, store_scripts_queue]}
+
+nodes:
+  # ---- sweep: one Monid run per radar × platform slot, polled across cron ticks (no long waits) ----
+  load_radars:   {kind: memory_read, paths: ["radar_watchlists (enabled, due by RADAR_SCHEDULE_HOURS)", "radar_tools (selected, confirmed)"]}
+  budget_check:  {kind: check, run: "monthSpend(rt) + estimate(slot, max_items) <= budget", returns: {ok: bool, est_micros: int, left_micros: int}}
+  within_budget: {kind: router, on: "budget_check.ok", then: sweep_runs, else: over_budget}
+  sweep_runs:
+    kind: map
+    over: "radars × platforms × keywords (confirmed slots only)"
+    node: {kind: check, run: "monid run {provider, endpoint, input:{body}} → poll /v1/runs/:id", returns: {rows: list, cost_micros: int}}
+  over_budget:   {kind: check, run: "record the skip on radar_runs (status skipped, reason budget)", returns: {skipped: int}}
+  normalise:     {kind: check, run: "normalise(platform, rows) → score (outlier ratio, engagement, recency) → relevantTo(keywords)",
+                  writes: radar_items, returns: {saved: int, on_topic: int}}
+
+  # ---- transcribe: the top items without words; text posts already carry body_text ----
+  pick_items:    {kind: check, run: "top items by score with no transcript and platform not in text_platforms, max_items", returns: {ids: list}}
+  transcribe:
+    kind: map
+    over: pick_items.ids
+    node: {kind: check, run: "monid transcript slot for the platform (captions first, then speech-to-text)", writes: "radar_items.transcript"}
+
+  # ---- formats: what the format is, which formats repeat, how G&L would use each ----
+  brain_context: {kind: memory_read, paths: ["brainSearch(scope: copy)", "legendCards(task, 3)", "glFacts()"],
+                  note: "empty brain → empty context; the pipeline behaves as without it"}
+  extract_formats:
+    kind: map
+    over: "items analysed this run (video transcripts and text bodies)"
+    node: {kind: llm, effort: medium, reads: [item, transcript_or_body_text],
+           schema: {format: string, hook: {text: string, type: string}, beats: list, cta: string, why_it_works: string, length_s: int},
+           rule: "quote the creator's own hook words; drop-offs are estimates, never measured retention"}
+  cluster_formats: {kind: reduce, reads: [formats_raw], writes: radar_formats,
+                    rule: "group by format signature (hook type + beat shape + length band); keep counts, median outlier score and the 3 best examples per cluster"}
+  adapt:
+    kind: map
+    over: "clusters with at least 2 items, best first, max 12"
+    node: {kind: llm, effort: high, reads: [cluster, brain_context, "src/studio/copy-brain.ts#FACTS", "copyBrief(video)"],
+           writes: "radar_formats.adaptation_json",
+           schema: {how_script_changes: string, hook: string, beats: list, angles: list, layouts: list, notes: string},
+           rule: "only true facts as proof; illustrative numbers labelled; seller rollover named when funding is described; brain pages cited in notes, never in spoken copy"}
+  copy_gate:     {kind: check, run: "auditCopy + scriptIssues over the adaptation's spoken and on-screen fields", returns: {flags: list, pass: bool}}
+  judge:
+    kind: judge
+    blind: true
+    reads: ["radar_formats.adaptation_json (spoken fields only)", "copyBrief(video) and the house rules", "legend rubric: legendCards(format, 3) principles"]
+    must_not_read: ["adapter reasoning", "earlier verdicts", "rewrites history"]
+    lenses: [hook-strength, format-fidelity, niche-fit-1m-owners, proof-ceiling, copy-rules]
+    schema: {score: int, must_fix: list, pass: bool}
+  rewrite:       {kind: llm, effort: medium, reads: [judge.must_fix, copy_gate.flags, "radar_formats.adaptation_json"],
+                  writes: "radar_formats.adaptation_json#rewrite", rule: "rewrite only the flagged lines; keep every fact true"}
+
+  # ---- store: the only writes outside the graph's own state, last ----
+  store_formats:       {kind: side_effect, action: "mark radar_formats rows ready (with flags still open) for Studio → Radar → Formats", idempotent: "upsert by cluster signature"}
+  store_scripts_queue: {kind: side_effect, action: "offer 'Make it a script' per ready format (Studio script written only when the owner clicks)", idempotent: "one offer per format"}
+
+edges:
+  - [load_radars, budget_check]
+  - [budget_check, within_budget]
+  - {from: within_budget, to: sweep_runs, when: "ok"}
+  - {from: within_budget, to: over_budget, when: "!ok"}
+  - [sweep_runs, normalise]
+  - [normalise, pick_items]
+  - [pick_items, transcribe]
+  - [transcribe, brain_context]
+  - [brain_context, extract_formats]
+  - [extract_formats, cluster_formats]
+  - [cluster_formats, adapt]
+  - [adapt, copy_gate]
+  - [copy_gate, judge]
+  - {from: judge, to: rewrite, kind: loop, when: "!pass", until: "pass.judge", max_rounds: 2,
+     on_exhaust: "store with the remaining flags and the judge's must_fix list shown to the owner"}
+  - [rewrite, copy_gate]
+  - {from: judge, to: store_formats, when: pass}
+  - [store_formats, store_scripts_queue]
+
+pass:
+  judge: "judge.pass && copy_gate.flags == []"
+
+side_effects:   # nothing is posted, sent or published; Monid spend is budget-gated in sweep (budget_check)
+  - {node: store_formats, after: judge}
+  - {node: store_scripts_queue, after: store_formats}
+
+trace: {table: radar_runs, per_node: [inputs_ref, output_ref, tokens, cost_micros, verdict]}

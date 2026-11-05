@@ -1,11 +1,11 @@
 import type { Runtime } from '../app';
+import { brainSearch as bSearch, glFacts as bFacts, legendCards as bCards } from '../brain/retrieve';
 import { FACTS, FRAMEWORKS, HOOKS_BANK } from '../studio/copy-brain';
 
 /**
  * The brain Radar's format analysis and adaptation read from (contract in the Radar v2 brief): `brainSearch`,
  * `legendCards` and `glFacts`. Builder B's module (src/brain/*) loads the private brain repo into D1/Vectorize at
- * deploy time; at merge the lead points `getBrain` at it. Until then (and whenever it has no data) this fallback
- * is built from what is already public in this repo: the copy brain (src/studio/copy-brain.ts) and short, generic
+ * deploy time; `getBrain` uses it, and whenever it has no data this fallback is built from what is already public in this repo: the copy brain (src/studio/copy-brain.ts) and short, generic
  * statements of each copy legend's best-known principles. No private brain text lives here.
  */
 
@@ -78,9 +78,26 @@ export const fallbackBrain: Brain = {
   async glFacts() { return FACTS; },
 };
 
-/** The brain for this runtime. The lead swaps this to builder B's `src/brain/retrieve` at merge. */
-export function getBrain(_rt: Runtime): Brain {
-  return fallbackBrain;
+/**
+ * The brain for this runtime: builder B's retrieval over the private brain loaded at deploy time (src/brain/retrieve).
+ * Each call falls back to the public copy brain above when the brain has no data or fails, so the pipeline behaves
+ * the same with an empty brain.
+ */
+export function getBrain(rt: Runtime): Brain {
+  return {
+    async brainSearch(query, o = {}) {
+      try { const hits = await bSearch(rt, query, o); if (hits.length) return hits; } catch (e) { console.error('radar: brainSearch failed', e instanceof Error ? e.message : e); }
+      return fallbackBrain.brainSearch(query, o);
+    },
+    async legendCards(task, n = 4) {
+      try { const cards = await bCards(rt, task, n); if (cards.length) return cards.map((c) => ({ legend: c.legend, page: c.page, principles: c.principles, techniques: c.techniques })); } catch (e) { console.error('radar: legendCards failed', e instanceof Error ? e.message : e); }
+      return fallbackBrain.legendCards(task, n);
+    },
+    async glFacts() {
+      try { const f = await bFacts(rt); if (f) return f; } catch (e) { console.error('radar: glFacts failed', e instanceof Error ? e.message : e); }
+      return fallbackBrain.glFacts();
+    },
+  };
 }
 
 /** A legend card as prompt text (≤ 900 chars each, as the contract promises). */

@@ -1,7 +1,8 @@
 import type { Runtime } from '../app';
 import { copyBrief } from '../content/copy-rules';
 import { type FormatId, ICP_IDS, type IcpId, ctaFor, pickFramework } from '../studio/copy-brain';
-import { type Ask, type Brain as ModelBrain, type ScriptFlag, type StudioScript, parseJsonReply, saveScript, scriptIssues, writeScript } from '../studio/scripts';
+import { type Ask, type Brain as ModelBrain, type ScriptFlag, type StudioScript, type Written, parseJsonReply, saveScript, scriptIssues, writeScript } from '../studio/scripts';
+import type { BrainInput } from '../studio/copy-brain';
 import { type Brain, type BrainHit, type LegendCard, cardText } from './brain-provider';
 import { type Extraction, type FormatRow, ROLES, type Role } from './formats';
 
@@ -220,7 +221,11 @@ export function adaptScriptContext(src: AdaptSource, a: Adaptation): string {
   ].filter(Boolean).join('\n').slice(0, 3000);
 }
 
-export interface AdaptDeps { ask: Ask; scriptAsk: Ask; judgeAsk: Ask; brain: Brain; model: ModelBrain }
+export interface AdaptDeps {
+  ask: Ask; scriptAsk: Ask; judgeAsk: Ask; brain: Brain; model: ModelBrain;
+  /** The Studio writer with the brain (writeStudioScript); without it, writeScript with scriptAsk (tests). */
+  write?: (rt: Runtime, input: BrainInput) => Promise<Written>;
+}
 
 async function promptsFor(deps: AdaptDeps, src: AdaptSource) {
   const task = `${src.name} ${src.definition} hook mechanism proof cta structure`;
@@ -234,7 +239,8 @@ async function scriptFor(rt: Runtime, deps: AdaptDeps, src: AdaptSource, a: Adap
   const format = a.studio_format;
   const framework = pickFramework(format, a.icp);
   const extra = [rt.settings.STUDIO_SCRIPT_NOTES, notes.length ? `A reviewer asked for: ${notes.join('; ')}` : ''].filter(Boolean).join('\n');
-  const written = await writeScript(deps.scriptAsk, { topic: a.topic || src.name, context: adaptScriptContext(src, a), format, icp: a.icp, framework, cta: ctaFor(format, rt.settings.STUDIO_SCRIPT_CTA), notes: extra || undefined });
+  const input: BrainInput = { topic: a.topic || src.name, context: adaptScriptContext(src, a), format, icp: a.icp, framework, cta: ctaFor(format, rt.settings.STUDIO_SCRIPT_CTA), notes: extra || undefined };
+  const written = deps.write ? await deps.write(rt, input) : await writeScript(deps.scriptAsk, input);
   const row = await saveScript(rt, { topic: (a.topic || src.name).slice(0, 600), source: 'radar', source_ref: src.kind === 'format' ? `format:${src.id}` : src.id, format, icp: a.icp, framework, brain: deps.model, ...written });
   return row;
 }

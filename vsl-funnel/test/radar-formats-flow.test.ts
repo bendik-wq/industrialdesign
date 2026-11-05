@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Runtime } from '../src/app';
 import { getBrain } from '../src/radar/brain-provider';
@@ -53,13 +54,16 @@ describe('the pipeline graph', () => {
     const { step, ran } = memoStep();
     const out = await runRadarPipeline(async () => rt, id, step, depsWith(m));
     expect(out).toMatchObject({ adaptations: 2, formats: 4, white_space: 1 });
-    expect(ran[0]).toBe('sweep 0');
-    expect(ran).toEqual(expect.arrayContaining(['transcribe', 'extract plan', 'extract 0', 'cluster', 'adapt plan', 'store']));
+    expect(ran[0]).toBe('sweep_runs 0');
+    expect(ran).toEqual(expect.arrayContaining(['transcribe', 'brain_context', 'extract_formats plan', 'extract_formats 0', 'cluster_formats', 'adapt plan', 'store_formats']));
+    expect(ran.filter((x) => x.startsWith('copy_gate '))).toHaveLength(2);
     expect(m.calls.extract).toBe(6);
     const run = (await getRun(rt, id))!;
     expect(run.status).toBe('done');
-    expect(nodeStates(run).map((n) => `${n.id}:${n.state}`)).toEqual(['sweep:done', 'transcribe:done', 'extract:done', 'cluster:done', 'adapt:done', 'judge:done', 'rewrite:skipped', 'store:done']);
-    expect(RADAR_GRAPH.nodes.map((n) => n.id)).toEqual(['sweep', 'transcribe', 'extract', 'cluster', 'adapt', 'judge', 'rewrite', 'store']);
+    expect(nodeStates(run).map((n) => `${n.id}:${n.state}`)).toEqual(['sweep_runs:done', 'transcribe:done', 'brain_context:done', 'extract_formats:done', 'cluster_formats:done', 'adapt:done', 'copy_gate:done', 'judge:done', 'rewrite:skipped', 'store_formats:done']);
+    // The node ids are the ones in builder B's spec, docs/radar.graph.yaml.
+    const spec = readFileSync('docs/radar.graph.yaml', 'utf8');
+    for (const nd of RADAR_GRAPH.nodes) expect(spec, nd.id).toMatch(new RegExp(`^  ${nd.id}:`, 'm'));
     const ad = db.prepare("SELECT format_id, status, script_id FROM radar_adaptations ORDER BY created_at").all() as { format_id: string; status: string; script_id: string }[];
     expect(ad).toHaveLength(2);
     expect(ad.every((a) => a.status === 'stored' && a.script_id)).toBe(true);
@@ -91,13 +95,13 @@ describe('the pipeline graph', () => {
     const s = memoStep();
     // Naming failure is caught inside cluster (rule names), so make the cluster step itself fail once instead.
     let clusterFails = true;
-    const step: StepLike = { do: (name, c, fn) => (name === 'cluster' && clusterFails ? (clusterFails = false, Promise.reject(new Error('crash'))) : s.step.do(name, c, fn)), sleep: s.step.sleep };
+    const step: StepLike = { do: (name, c, fn) => (name === 'cluster_formats' && clusterFails ? (clusterFails = false, Promise.reject(new Error('crash'))) : s.step.do(name, c, fn)), sleep: s.step.sleep };
     await expect(runRadarPipeline(async () => rt, id, step, deps)).rejects.toThrow('crash');
     const extracted = m.calls.extract;
     expect(extracted).toBe(6);
     await runRadarPipeline(async () => rt, id, step, deps);
     expect(m.calls.extract).toBe(extracted);
-    expect(s.ran.filter((n) => n === 'extract 0')).toHaveLength(1);
+    expect(s.ran.filter((n) => n === 'extract_formats 0')).toHaveLength(1);
     expect(s.ran.filter((n) => n.startsWith('judge '))).toHaveLength(3);
     expect(s.ran.filter((n) => n.startsWith('rewrite '))).toHaveLength(2);
     expect(db.prepare('SELECT rounds, status, judge_score FROM radar_adaptations').get()).toMatchObject({ rounds: 2, status: 'stored', judge_score: 4 });
@@ -115,14 +119,14 @@ describe('the pipeline graph', () => {
     // The sweep is still running: the step records it and the runner sleeps (lease = wake time).
     expect(await runInline(rt, id, 30_000, deps)).toMatchObject({ ran: true, done: false });
     const r1 = (await getRun(rt, id))!;
-    expect(Object.keys(r1.steps)).toEqual(['sweep 0', 'sweep wait 0']);
+    expect(Object.keys(r1.steps)).toEqual(['sweep_runs 0', 'sweep_runs wait 0']);
     expect(Date.parse(r1.lease_until!)).toBeGreaterThan(Date.now() + 30_000);
     expect(await radarPipelineTick(rt, Date.now(), deps)).toMatchObject({ resumed: 0 }); // not due yet
     active = 0;
     expect(await radarPipelineTick(rt, Date.now() + 61_000, deps)).toMatchObject({ resumed: 1 });
     const r2 = (await getRun(rt, id))!;
     expect(r2.status).toBe('done');
-    expect(Object.keys(r2.steps)).toEqual(expect.arrayContaining(['sweep 1', 'cluster', 'store']));
+    expect(Object.keys(r2.steps)).toEqual(expect.arrayContaining(['sweep_runs 1', 'cluster_formats', 'store_formats']));
   });
 
   it('start: one run at a time, the Workflow when bound, and the cron starts only after a finished sweep', async () => {
