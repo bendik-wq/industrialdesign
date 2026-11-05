@@ -1,0 +1,115 @@
+{
+ "runId": "01M6MQZR19S9YPY6Z1CKSB5GTV",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "apify",
+ "providerName": "Apify",
+ "endpoint": "/starvibe/youtube-video-transcript",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "youtube_url": "https://www.youtube.com/watch?v=_qrVANZNXNg"
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "PER_RESULT",
+  "amount": {
+   "value": 0.005,
+   "currency": "USD"
+  },
+  "notes": [
+   "One result is returned per input query. Total results and cost scale with the number of queries provided."
+  ]
+ },
+ "cost": {
+  "value": 0.005,
+  "currency": "USD"
+ },
+ "resultCount": 1,
+ "billedUnits": 1,
+ "createdAt": "2026-11-05T02:18:12.643Z",
+ "startedAt": "2026-11-05T02:18:12.801Z",
+ "completedAt": "2026-11-05T02:18:18.410Z",
+ "output": [
+  {
+   "available_languages": [
+    "English (auto-generated)"
+   ],
+   "channel_id": "UCsOSIcfV0QMTyS0iAC5BZXg",
+   "channel_name": "Mat Sorensen | Retirement Planning & Tax Strategy",
+   "channel_thumbnail": "https://yt3.ggpht.com/0iObwlkgfoO3_IljTGjcVdz_rm4Cfbc4bj7sj0lXEd2yew1iFATbszzhVGMjBLvTt7s7aTcLvA=s800-c-k-c0x00ffffff-no-rj",
+   "channel_username": "matsorensen",
+   "comment_count": 24,
+   "description": "BOOK A FREE NEW ACCOUNT CALL! https://directedira.com/appointment/?utm_source=youtube&utm_medium=description-link&utm_campaign=youtube-scripted-longform&utm_content=buy-small-business-with-no-money\n\nJ",
+   "duration_seconds": 1041,
+   "geo_restrict": null,
+   "is_auto_generated": true,
+   "language": "en",
+   "like_count": 464,
+   "message": "Successfully fetched the transcript for the video with ID '_qrVANZNXNg'",
+   "published_at": "2024-03-15T15:00:28Z",
+   "selected_language": "English (auto-generated)",
+   "status": "success",
+   "subscriber_count": 125000,
+   "thumbnail": "https://i.ytimg.com/vi/_qrVANZNXNg/hqdefault.jpg",
+   "timestamp": 1710514828,
+   "title": "How to buy a Small Business with NO MONEY [the actual way]",
+   "transcript": [
+    {
+     "duration": 2.32,
+     "end": 2.36,
+     "start": 0.04,
+     "text": "have you ever wanted to buy a small"
+    },
+    {
+     "duration": 2.92,
+     "end": 4.16,
+     "start": 1.24,
+     "text": "business but didn't think you had the"
+    },
+    {
+     "duration": 2.959,
+     "end": 5.319,
+     "start": 2.36,
+     "text": "money to do it well you might be closer"
+    },
+    {
+     "duration": 2.88,
+     "end": 7.04,
+     "start": 4.16,
+     "text": "than you think and I'm going to go over"
+    },
+    {
+     "duration": 3.481,
+     "end": 8.8,
+     "start": 5.319,
+     "text": "the top two strategies real"
+    },
+    {
+     "duration": 3.88,
+     "end": 10.92,
+     "start": 7.04,
+     "text": "entrepreneurs are using every day right"
+    },
+    {
+     "duration": 3.36,
+     "end": 12.16,
+     "start": 8.8,
+     "text": "now to buy small businesses now as a"
+    },
+    {
+     "duration": 3.52,
+     "end": 14.44,
+     "start": 10.92,
+     "text": "business and tax lawyer I've been"
+    }
+   ],
+   "url": "https://www.youtube.com/watch?v=_qrVANZNXNg",
+   "video_id": "_qrVANZNXNg",
+   "view_count": 18524
+  }
+ ]
+}

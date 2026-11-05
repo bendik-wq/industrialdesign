@@ -1,7 +1,11 @@
 /**
  * Radar: what each tool returns, normalised into one item shape, and the outlier score.
- * Field names follow the usual Apify actors (YouTube scraper, TikTok scraper, Instagram reel scraper, the Meta Ad
- * Library scrapers) with the common variants of each; anything unknown is ignored, never trusted.
+ * Field names follow what Monid's tools return: AnyAPI /youtube.search ({data: {videos: [{id, title, url, channel,
+ * authorId, createdUtc, image, lengthText, views}]}}), AnyAPI /tiktok.search_keyword ({data: {videos: [{id, author,
+ * authorFollowers, caption, views, likes, comments, shares, createdUtc, durationSeconds, image}]}}), Apify
+ * starvibe/youtube-video-transcript ([{video_id, view_count, like_count, comment_count, subscriber_count, transcript}]),
+ * Apify curious_coder/facebook-ads-library-scraper ([{ad_archive_id, collation_count, start_date, snapshot}]), plus the
+ * usual Apify actors' variants; anything unknown is ignored, never trusted.
  * Platform video files are never downloaded or re-hosted: we keep the platform's own URL, embed URL and thumbnail.
  */
 import type { Platform } from './sources';
@@ -87,21 +91,21 @@ function base(platform: Platform, id: string, raw: Record<string, unknown>): Rad
 
 export function normaliseYouTube(r: Record<string, unknown>): RadarItem | null {
   const url = safeUrl(first(r.url, r.videoUrl, r.link));
-  const id = s(first(r.id, r.videoId), 40) ?? youtubeId(url);
+  const id = s(first(r.id, r.videoId, r.video_id), 40) ?? youtubeId(url);
   if (!id || !/^[A-Za-z0-9_-]{6,20}$/.test(id)) return null;
   const it = base('youtube', id, r);
   it.url = url ?? `https://www.youtube.com/watch?v=${id}`;
   it.title = s(r.title, 300);
   it.caption = s(first(r.text, r.description), 4000);
-  it.author = s(first(r.channelName, r.channelTitle, get(r, 'channel.name'), r.author), 200);
-  it.author_id = s(first(r.channelId, r.channelUrl, get(r, 'channel.id')), 200);
-  it.published_at = isoTime(first(r.date, r.uploadDate, r.publishedAt, r.publishDate));
-  it.duration_s = seconds(first(r.duration, r.lengthSeconds, r.durationSeconds));
+  it.author = s(first(r.channelName, r.channelTitle, r.channel_name, typeof r.channel === 'string' ? r.channel : get(r, 'channel.name'), typeof r.author === 'string' ? r.author : null), 200);
+  it.author_id = s(first(r.channelId, r.channel_id, r.authorId, r.channelUrl, get(r, 'channel.id')), 200);
+  it.published_at = isoTime(first(r.createdUtc, r.date, r.uploadDate, r.publishedAt, r.published_at, r.publishDate, r.timestamp));
+  it.duration_s = seconds(first(r.duration, r.lengthSeconds, r.durationSeconds, r.duration_seconds, r.lengthText));
   it.views = count(first(r.viewCount, r.views, r.view_count));
-  it.likes = count(first(r.likes, r.likeCount));
-  it.comments = count(first(r.commentsCount, r.commentCount, r.comments));
-  it.followers = count(first(r.numberOfSubscribers, r.subscriberCount, r.channelSubscribers, get(r, 'channel.subscribers')));
-  it.thumbnail_url = safeUrl(first(r.thumbnailUrl, r.thumbnail, get(r, 'thumbnails.0.url'))) ?? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  it.likes = count(first(r.likes, r.likeCount, r.like_count));
+  it.comments = count(first(r.commentsCount, r.commentCount, r.comment_count, r.comments));
+  it.followers = count(first(r.numberOfSubscribers, r.subscriberCount, r.subscriber_count, r.channelSubscribers, get(r, 'channel.subscribers')));
+  it.thumbnail_url = safeUrl(first(r.thumbnailUrl, r.thumbnail, r.image, get(r, 'thumbnails.0.url'))) ?? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
   it.embed_url = youtubeEmbed(id);
   it.captions = captionsFrom(r);
   return it;
@@ -114,20 +118,22 @@ export function normaliseTikTok(r: Record<string, unknown>): RadarItem | null {
   const author = isObj(r.authorMeta) ? r.authorMeta : isObj(r.author) ? r.author : {};
   const video = isObj(r.videoMeta) ? r.videoMeta : isObj(r.video) ? r.video : {};
   const stats = isObj(r.stats) ? r.stats : {};
-  const handle = s(first(author.name, author.uniqueId, author.username), 100);
+  // AnyAPI: author is the handle (the one in the URL) and authorName the display name.
+  const handle = s(first(typeof r.author === 'string' ? r.author : null, author.name, author.uniqueId, author.username), 100);
   it.url = safeUrl(first(r.webVideoUrl, r.url, r.shareUrl)) ?? (handle ? `https://www.tiktok.com/@${handle}/video/${id}` : null);
-  it.caption = s(first(r.text, r.desc, r.description), 4000);
+  it.caption = s(first(r.text, r.caption, r.desc, r.description), 4000);
   it.title = it.caption ? it.caption.split('\n')[0].slice(0, 200) : null;
-  it.author = handle ?? s(author.nickName, 100);
-  it.author_id = s(first(author.id, author.secUid), 100);
-  it.published_at = isoTime(first(r.createTimeISO, r.createTime, r.create_time));
-  it.duration_s = seconds(first(video.duration, r.duration));
-  it.views = count(first(r.playCount, stats.playCount, r.views));
+  it.author = handle ?? s(first(author.nickName, r.authorName), 100);
+  it.author_id = s(first(author.id, author.secUid, r.authorUserId), 100);
+  it.published_at = isoTime(first(r.createTimeISO, r.createdUtc, r.createTime, r.create_time));
+  it.duration_s = seconds(first(video.duration, r.durationSeconds, r.duration));
+  it.views = count(first(r.playCount, stats.playCount, r.plays, r.views));
   it.likes = count(first(r.diggCount, stats.diggCount, r.likes));
-  it.comments = count(first(r.commentCount, stats.commentCount));
-  it.shares = count(first(r.shareCount, stats.shareCount));
-  it.followers = count(first(author.fans, author.followerCount, get(r, 'authorStats.followerCount')));
-  it.thumbnail_url = safeUrl(first(video.coverUrl, video.originalCoverUrl, video.cover, r.cover));
+  it.comments = count(first(r.commentCount, stats.commentCount, r.comments));
+  it.shares = count(first(r.shareCount, stats.shareCount, r.shares));
+  it.followers = count(first(author.fans, author.followerCount, get(r, 'authorStats.followerCount'), r.authorFollowers));
+  // Never the video file itself (videoUrl): only the cover.
+  it.thumbnail_url = safeUrl(first(video.coverUrl, video.originalCoverUrl, video.cover, r.cover, r.image));
   it.embed_url = tiktokEmbed(id);
   it.captions = captionsFrom(r);
   return it;
@@ -141,15 +147,17 @@ export function normaliseInstagram(r: Record<string, unknown>): RadarItem | null
   it.url = safeUrl(r.url) ?? (code ? `https://www.instagram.com/reel/${code}/` : null);
   it.caption = s(r.caption, 4000);
   it.title = it.caption ? it.caption.split('\n')[0].slice(0, 200) : null;
-  it.author = s(first(r.ownerUsername, get(r, 'owner.username')), 100);
-  it.author_id = s(first(r.ownerId, get(r, 'owner.id')), 100);
-  it.published_at = isoTime(first(r.timestamp, r.takenAt, r.taken_at));
-  it.duration_s = seconds(r.videoDuration);
-  it.views = count(first(r.videoPlayCount, r.videoViewCount, r.playCount));
-  it.likes = count(first(r.likesCount, r.likeCount));
-  it.comments = count(r.commentsCount);
-  it.followers = count(first(r.ownerFollowersCount, get(r, 'owner.followersCount')));
-  it.thumbnail_url = safeUrl(first(r.displayUrl, r.thumbnailUrl));
+  // AnyAPI reels: username, userId, views, likes, comments, reshares, createdUtc, durationSeconds, thumbnail (never videoUrl).
+  it.author = s(first(r.ownerUsername, r.username, get(r, 'owner.username')), 100);
+  it.author_id = s(first(r.ownerId, r.userId, get(r, 'owner.id')), 100);
+  it.published_at = isoTime(first(r.timestamp, r.createdUtc, r.takenAt, r.taken_at));
+  it.duration_s = seconds(first(r.videoDuration, r.durationSeconds));
+  it.views = count(first(r.videoPlayCount, r.videoViewCount, r.playCount, r.plays, r.views));
+  it.likes = count(first(r.likesCount, r.likeCount, r.likes));
+  it.comments = count(first(r.commentsCount, r.comments));
+  it.shares = count(first(r.reshares, r.sharesCount, r.shares));
+  it.followers = count(first(r.ownerFollowersCount, get(r, 'owner.followersCount'), r.followers));
+  it.thumbnail_url = safeUrl(first(r.displayUrl, r.thumbnailUrl, r.thumbnail));
   it.captions = captionsFrom(r);
   return it;
 }
@@ -160,16 +168,18 @@ export function normaliseMetaAd(r: Record<string, unknown>, now = Date.now()): R
   if (!id || !/^\d{5,25}$/.test(id)) return null;
   const it = base('meta_ads', id, r);
   const snap = isObj(r.snapshot) ? r.snapshot : {};
-  const body = isObj(snap.body) ? s(snap.body.text, 4000) : s(first(snap.body, r.adText, r.body), 4000);
+  // Dynamic (catalogue) ads carry placeholders like {{product.name}}: those are no copy, so the cards' text is used.
+  const real = (v: string | null) => (v && !/\{\{[^}]+\}\}/.test(v) ? v : null);
+  const body = real(isObj(snap.body) ? s(snap.body.text, 4000) : s(first(snap.body, r.adText, r.body), 4000));
   const cards = Array.isArray(snap.cards) ? snap.cards.filter(isObj) : [];
   const videos = Array.isArray(snap.videos) ? snap.videos.filter(isObj) : [];
   const images = Array.isArray(snap.images) ? snap.images.filter(isObj) : [];
   const c0 = cards[0] ?? {};
-  it.url = `https://www.facebook.com/ads/library/?id=${id}`;
+  it.url = safeUrl(r.ad_library_url) ?? `https://www.facebook.com/ads/library/?id=${id}`;
   it.author = s(first(r.page_name, r.pageName, snap.page_name, get(r, 'pageInfo.name')), 200);
   it.author_id = s(first(r.page_id, r.pageId, snap.page_id), 60);
-  it.caption = body ?? s(c0.body, 4000);
-  it.title = s(first(snap.title, c0.title, snap.link_description), 300) ?? (it.caption ? it.caption.split('\n')[0].slice(0, 200) : null);
+  it.caption = body ?? real(cards.map((c) => s(c.body, 4000)).find((x) => real(x)) ?? null) ?? real(s(snap.link_description, 4000));
+  it.title = [snap.title, c0.title, snap.link_description].map((x) => real(s(x, 300))).find(Boolean) ?? (it.caption ? it.caption.split('\n')[0].slice(0, 200) : null);
   const vid = videos[0] ?? (cards.find((c) => c.video_hd_url || c.video_sd_url) as Record<string, unknown> | undefined);
   const img = images[0] ?? (cards.find((c) => c.original_image_url || c.resized_image_url) as Record<string, unknown> | undefined);
   if (vid) {
@@ -183,6 +193,7 @@ export function normaliseMetaAd(r: Record<string, unknown>, now = Date.now()): R
   }
   it.thumbnail_url = it.thumbnail_url ?? (it.media_kind === 'image' ? it.media_url : null) ?? safeUrl(first(snap.page_profile_picture_url, r.pageProfilePictureUrl));
   it.ad_start = isoTime(first(r.start_date, r.startDate, r.startDateFormatted, r.ad_delivery_start_time));
+  // For an ad still running, end_date is the last day Meta saw it deliver (about yesterday), not a stop.
   it.ad_end = isoTime(first(r.end_date, r.endDate, r.endDateFormatted, r.ad_delivery_stop_time));
   const active = first(r.is_active, r.isActive);
   it.ad_active = active == null ? null : active ? 1 : 0;
@@ -204,7 +215,7 @@ export function normaliseMetaAd(r: Record<string, unknown>, now = Date.now()): R
 export function outputRows(output: unknown): Record<string, unknown>[] {
   if (Array.isArray(output)) return output.filter(isObj);
   if (isObj(output)) {
-    for (const k of ['items', 'results', 'data', 'output', 'dataset', 'ads', 'videos']) {
+    for (const k of ['items', 'results', 'data', 'output', 'dataset', 'ads', 'videos', 'reels', 'posts']) {
       const v = output[k];
       if (Array.isArray(v)) return v.filter(isObj);
       if (isObj(v)) { const inner = outputRows(v); if (inner.length) return inner; }
@@ -221,6 +232,13 @@ export function normalise(platform: Platform, output: unknown, now = Date.now())
     try { const it = fn(r); if (it && !out.has(it.id)) out.set(it.id, it); } catch { /* one bad row never stops the rest */ }
   }
   return [...out.values()];
+}
+
+/** WebVTT or SRT subtitles as plain text (cue numbers, timings and the header dropped); other text unchanged. */
+export function subtitleText(t: string): string {
+  if (!/-->/.test(t)) return t.trim();
+  return t.replace(/^WEBVTT.*$/m, '').replace(/^(NOTE|STYLE|Kind:|Language:).*$/gm, '').replace(/^\d+\s*$/gm, '')
+    .replace(/^[\d:.,]+ --> .*$/gm, '').replace(/<[^>]+>/g, '').replace(/\n{2,}/g, '\n').trim();
 }
 
 /** A transcript run's output as text, with [m:ss] marks when the tool gave timings. */
@@ -240,7 +258,7 @@ export function transcriptText(output: unknown): string | null {
   for (const r of rows) {
     const arr = first(r.transcript, r.segments, r.captions, r.data, r.subtitles);
     if (Array.isArray(arr)) segs(arr);
-    else if (typeof arr === 'string') lines.push(arr);
+    else if (typeof arr === 'string') lines.push(subtitleText(arr));
     else if ('text' in r && 'start' in r) segs([r]);
     else { const c = captionsFrom(r); if (c) lines.push(c); else if (typeof r.text === 'string') lines.push(r.text); }
   }
@@ -259,7 +277,8 @@ const median = (xs: number[]) => { if (!xs.length) return 0; const a = [...xs].s
 
 /**
  * Outlier-ness of a video: views against the author's followers (or their typical views here, or the platform's
- * typical views here), views per day since publishing, and engagement (likes + comments + shares per view).
+ * typical views here), views per day since publishing, and engagement (likes + comments + shares per view) when the
+ * source gives any of those counts.
  * Ads: days active and the number of variants Meta groups together (spend is not public for commercial ads).
  */
 export function scoreItem(it: Pick<RadarItem, 'platform' | 'views' | 'likes' | 'comments' | 'shares' | 'followers' | 'published_at' | 'author' | 'ad_active_days' | 'ad_variants'>, ctx: { authorViews?: number[]; platformViews?: number[]; now?: number } = {}): ScoreParts {
@@ -277,10 +296,12 @@ export function scoreItem(it: Pick<RadarItem, 'platform' | 'views' | 'likes' | '
   else if ((ctx.platformViews?.length ?? 0) >= 3 && median(ctx.platformViews!) > 0) { ratio = views / median(ctx.platformViews!); basis = 'platform'; }
   const ageDays = it.published_at ? Math.max(1, (now - Date.parse(it.published_at)) / DAY) : null;
   const velocity = ageDays && views ? views / ageDays : null;
-  const engagement = views > 0 ? ((it.likes ?? 0) + (it.comments ?? 0) + (it.shares ?? 0)) / views : null;
-  const score = 50 * clamp01(Math.log10((ratio ?? 0) + 1) / Math.log10(11))
-    + 30 * clamp01(Math.log10((velocity ?? 0) + 1) / 6)
-    + 20 * clamp01((engagement ?? 0) / 0.1);
+  // A search that gives no likes, comments or shares (YouTube search) has no engagement: it is left out, not zero,
+  // and the score is views against the baseline plus views per day, scaled back to 100.
+  const known = it.likes != null || it.comments != null || it.shares != null;
+  const engagement = views > 0 && known ? ((it.likes ?? 0) + (it.comments ?? 0) + (it.shares ?? 0)) / views : null;
+  const reach = 50 * clamp01(Math.log10((ratio ?? 0) + 1) / Math.log10(11)) + 30 * clamp01(Math.log10((velocity ?? 0) + 1) / 6);
+  const score = known ? reach + 20 * clamp01((engagement ?? 0) / 0.1) : reach / 0.8;
   const r2 = (x: number | null) => (x == null ? null : Math.round(x * 1000) / 1000);
   return { ratio: r2(ratio), ratio_basis: basis, velocity: velocity == null ? null : Math.round(velocity), engagement: r2(engagement), days_active: null, variants: null, score: Math.round(score * 10) / 10 };
 }

@@ -1,0 +1,198 @@
+{
+ "runId": "01M6MRJCZEK7B8CJ97SGPNQV8S",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "anyapi",
+ "providerName": "AnyAPI",
+ "endpoint": "/instagram.reels_search",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "query": "buy a business"
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "PER_UNIT_MATRIX",
+  "amount": {
+   "value": 0.0011,
+   "currency": "USD"
+  },
+  "selectors": [
+   {
+    "label": "Route",
+    "key": "route",
+    "in": "body"
+   }
+  ],
+  "variants": [
+   {
+    "when": {
+     "route": "chameleon"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0011,
+      "currency": "USD"
+     }
+    },
+    "label": "chameleon · 96.2% uptime · 4.9 s median"
+   },
+   {
+    "when": {
+     "route": "lynx"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.00188,
+      "currency": "USD"
+     }
+    },
+    "label": "lynx · 93.8% uptime · 3.6 s median"
+   },
+   {
+    "when": {
+     "route": "tiger"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0024,
+      "currency": "USD"
+     }
+    },
+    "label": "tiger · 88.2% uptime · 3.5 s median"
+   }
+  ]
+ },
+ "cost": {
+  "value": 0.0011,
+  "currency": "USD"
+ },
+ "resultCount": 1,
+ "billedUnits": 1,
+ "createdAt": "2026-11-05T02:28:23.967Z",
+ "startedAt": "2026-11-05T02:28:24.153Z",
+ "completedAt": "2026-11-05T02:28:30.839Z",
+ "output": {
+  "data": {
+   "nextCursor": "cur_TN-s2z8BEIwxWe1yDD88UA",
+   "reels": [
+    {
+     "audioId": "26651858004465915",
+     "avatarUrl": "https://scontent-ord5-2.cdninstagram.com/v/t51.82787-19/618872500_18553339243035226_5846383977960604516_n.jpg",
+     "caption": "I Found a HVAC Company That's Almost Impossible to Lose Money On\nThis hvac business scored 96 out of 100.\n\nAsking: $550,000\nCash Flow: $225,000/yr\nRevenue: $1,100,000\nScore: 96/100 - BULLETPROOF\n\nAll five Bulletproof criteria pass. This is what a safe deal looks like.\n\nHere's what my Bulletproof sco",
+     "comments": 13,
+     "countsHidden": false,
+     "createdUtc": 1778691135,
+     "displayName": "Mike Warren Buy A Business Mentor",
+     "durationSeconds": 64.76000213623047,
+     "hasAudio": true,
+     "hashtags": [
+      "#businessacquisition",
+      "#buyabusiness",
+      "#sbaloans",
+      "#hvac",
+      "#dealbreakdown"
+     ],
+     "id": "3896074262511776667",
+     "likes": 34,
+     "locationId": null,
+     "locationLat": null,
+     "locationLng": null,
+     "locationName": null,
+     "mentions": [],
+     "paidPartnership": false,
+     "productType": "clips",
+     "reshares": 20,
+     "shortcode": "DYRouZDjnOb",
+     "soundAuthor": "themikewarren",
+     "soundTitle": "Original audio",
+     "thumbnail": "https://scontent-ord5-1.cdninstagram.com/v/t51.71878-15/687852854_1509640690559914_6776098488416112383_n.jpg",
+     "url": "https://www.instagram.com/reel/DYRouZDjnOb/",
+     "userId": "37347225",
+     "username": "themikewarren",
+     "verified": true,
+     "views": 1394
+    },
+    {
+     "audioId": "29650074884592939",
+     "avatarUrl": "https://scontent-ord5-1.cdninstagram.com/v/t51.82787-19/673839406_18582105364016066_6877644189929453246_n.jpg",
+     "caption": "Buying a business does not always mean having the full purchase price sitting in your bank account.\n\nBusiness acquisition financing can allow qualified buyers to use a combination of financing and buyer or seller contributions.\n\nThe bigger question is whether the buyer can demonstrate the experience",
+     "comments": 16,
+     "countsHidden": false,
+     "createdUtc": 1790520934,
+     "displayName": "Henry Galasso",
+     "durationSeconds": 50.986000061035156,
+     "hasAudio": true,
+     "hashtags": [
+      "#BusinessAcquisition",
+      "#SBALoan",
+      "#BuyABusiness",
+      "#BusinessBroker",
+      "#Entrepreneurship"
+     ],
+     "id": "3995501103185471535",
+     "likes": 392,
+     "locationId": null,
+     "locationLat": null,
+     "locationLng": null,
+     "locationName": null,
+     "mentions": [],
+     "paidPartnership": false,
+     "productType": "clips",
+     "reshares": 147,
+     "shortcode": "Ddy3xWTDSgv",
+     "soundAuthor": "sold_by_henrygalasso",
+     "soundTitle": "Original audio",
+     "thumbnail": "https://scontent-ord5-2.cdninstagram.com/v/t51.82787-15/825269643_18632767444016066_3643357035191230452_n.jpg",
+     "url": "https://www.instagram.com/reel/Ddy3xWTDSgv/",
+     "userId": "520016065",
+     "username": "sold_by_henrygalasso",
+     "verified": true,
+     "views": 22647
+    },
+    {
+     "audioId": "695967494094187",
+     "avatarUrl": "https://scontent-ord5-2.cdninstagram.com/v/t51.2885-19/458201256_1571694213426125_520287188901477429_n.jpg",
+     "caption": "The difference between making $300K and keeping $300K can come down to knowing the tax code.\n\nMost business owners work incredibly hard to increase their income.\n\nVery few put that same effort into legally reducing their taxes.\n\nThe wealthy don’t necessarily have different tax laws. They often just ",
+     "comments": 83,
+     "countsHidden": false,
+     "createdUtc": 1793110191,
+     "displayName": "Paul Olsen, CPA",
+     "durationSeconds": 13.866000175476074,
+     "hasAudio": true,
+     "hashtags": [
+      "#taxstrategy",
+      "#businessowners",
+      "#taxplanning"
+     ],
+     "id": "4016816474940930633",
+     "likes": 5259,
+     "locationId": null,
+     "locationLat": null,
+     "locationLng": null,
+     "locationName": null,
+     "mentions": [],
+     "paidPartnership": false,
+     "productType": "clips",
+     "reshares": 2060,
+     "shortcode": "De-mU1MynpJ",
+     "soundAuthor": "Linkin Park",
+     "soundTitle": "Somewhere I Belong",
+     "thumbnail": "https://scontent-ord5-2.cdninstagram.com/v/t51.71878-15/866580222_979281151311284_1086144525745910883_n.jpg",
+     "url": "https://www.instagram.com/reel/De-mU1MynpJ/",
+     "userId": "34618706005",
+     "username": "paul.olsen.cpa",
+     "verified": false,
+     "views": 1234704
+    }
+   ]
+  },
+  "found": true
+ }
+}

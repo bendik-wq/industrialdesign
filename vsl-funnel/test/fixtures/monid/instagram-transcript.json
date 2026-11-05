@@ -1,0 +1,117 @@
+{
+ "runId": "01M6MRJTHZ566N8VJ72RTR4WMT",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "anyapi",
+ "providerName": "AnyAPI",
+ "endpoint": "/instagram.reel_transcript",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "url": "https://www.instagram.com/reel/DYRouZDjnOb/"
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "TIERED",
+  "amount": {
+   "value": 0.0001,
+   "currency": "USD"
+  },
+  "default": {
+   "type": "PER_RESULT",
+   "amount": {
+    "value": 0.0001,
+    "currency": "USD"
+   },
+   "flatFee": {
+    "value": 0.0015,
+    "currency": "USD"
+   }
+  },
+  "tiers": [
+   {
+    "label": "hostVideo",
+    "when": {
+     "hostVideo": true
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0045,
+      "currency": "USD"
+     }
+    }
+   }
+  ]
+ },
+ "cost": {
+  "value": 0.008,
+  "currency": "USD"
+ },
+ "resultCount": 65,
+ "billedUnits": 65,
+ "createdAt": "2026-11-05T02:28:38.098Z",
+ "startedAt": "2026-11-05T02:28:38.340Z",
+ "completedAt": "2026-11-05T02:28:49.163Z",
+ "output": {
+  "found": true,
+  "data": {
+   "items": [
+    {
+     "id": "3896074262511776667",
+     "shortcode": "DYRouZDjnOb",
+     "url": "https://www.instagram.com/reel/DYRouZDjnOb/",
+     "text": "I found a small HVAC company making $225,000 a year in profit. Let's break it down in 60 seconds. Here's the HVAC company, asking price is $550,000, makes $225,000 a year in profit on $1.1 million in revenue. We're looking at a standard 80-10-10 breakdown on the deal. Based on those numbers, it come",
+     "source": "audio_asr",
+     "language": "en",
+     "mediaType": "XDTGraphVideo",
+     "ownerUsername": "themikewarren",
+     "likeCount": 34,
+     "durationSeconds": 64.76,
+     "thumbnailUrl": "https://scontent-lga3-3.cdninstagram.com/v/t51.71878-15/687852854_1509640690559914_6776098488416112383_n.jpg",
+     "segments": [
+      {
+       "text": "I found a small HVAC company making $225,000 a year in profit.",
+       "start": 0.08,
+       "end": 4.48,
+       "speaker": "0"
+      },
+      {
+       "text": "Let's break it down in 60 seconds.",
+       "start": 4.6,
+       "end": 6.32,
+       "speaker": "0"
+      },
+      {
+       "text": "Here's the HVAC company, asking price is $550,000, makes $225,000 a year in profit on $1.1 million in revenue.",
+       "start": 7.16,
+       "end": 15.48,
+       "speaker": "0"
+      },
+      {
+       "text": "We're looking at a standard 80-10-10 breakdown on the deal.",
+       "start": 15.84,
+       "end": 20.1,
+       "speaker": "0"
+      },
+      {
+       "text": "Based on those numbers, it comes in as a 96% type of deal, which means this is excellent.",
+       "start": 20.72,
+       "end": 26.499,
+       "speaker": "0"
+      },
+      {
+       "text": "You should definitely pursue it.",
+       "start": 26.56,
+       "end": 27.72,
+       "speaker": "0"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

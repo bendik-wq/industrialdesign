@@ -17,11 +17,25 @@ const GLYPH = {
   meta_ads: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 12.5c0-4 2-7 3.8-7 2.6 0 4.6 9 7.2 9 1.4 0 2-1.4 2-3 0-3-1.6-6-3.4-6-2.4 0-4.2 7-6.8 7C4 12.5 3 12.5 3 12.5z"/></svg>',
 };
 const n = (v) => { if (v == null || !isFinite(v)) return '·'; const a = Math.abs(v); if (a >= 1e9) return (v / 1e9).toFixed(1).replace(/\.0$/, '') + 'B'; if (a >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'; if (a >= 1e4) return Math.round(v / 1e3) + 'K'; if (a >= 1e3) return (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'K'; return String(Math.round(v)); };
-const usd = (micros) => '$' + ((micros || 0) / 1e6).toFixed((micros || 0) >= 1e8 ? 0 : 2);
+// Monid calls cost fractions of a cent: below a cent, show four places rather than $0.00.
+const usd = (micros) => { const m = micros || 0; return '$' + (m / 1e6).toFixed(m >= 1e8 ? 0 : m > 0 && m < 10_000 ? 4 : 2); };
 const pct = (x) => (x == null ? '·' : (x * 100).toFixed(x >= 0.1 ? 0 : 1) + '%');
 const ago = (t) => { const s = (Date.now() - Date.parse(t)) / 1000; if (!isFinite(s)) return ''; if (s < 3600) return 'just now'; if (s < 86400) return Math.floor(s / 3600) + ' h ago'; const d = Math.floor(s / 86400); if (d < 45) return d === 1 ? 'yesterday' : d + ' days ago'; const m = Math.round(d / 30.4); return m < 12 ? m + ' months ago' : Math.round(d / 365) + ' years ago'; };
 const dur = (s) => (!s ? '' : s < 60 ? Math.round(s) + ' s' : Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0'));
-const priceText = (p) => { if (!p) return 'Price not listed'; const amt = /micro/i.test(p.currency || '') ? p.amount / 1e6 : p.amount; const per = p.type === 'PER_RESULT' ? 'per result' : 'per run'; const fee = p.flatFee ? ` + $${(/micro/i.test(p.currency || '') ? p.flatFee / 1e6 : p.flatFee).toFixed(2)} a run` : ''; return `$${amt < 0.01 ? amt.toFixed(4) : amt.toFixed(amt < 1 ? 3 : 2)} ${per}${fee}`; };
+const dollars = (n, cur) => (/micro/i.test(cur || '') ? n / 1e6 : n);
+const money = (n) => `$${n < 0.01 ? n.toFixed(4) : n.toFixed(n < 1 ? 3 : 2)}`;
+// A matrix price (by route) shows its range; the preview's estimate uses the route the input picks.
+const priceText = (p) => {
+  if (!p) return 'Price not listed';
+  const fee = p.flatFee ? ` + $${dollars(p.flatFee, p.currency).toFixed(2)} a run` : '';
+  if (p.variants && p.variants.length) {
+    const xs = p.variants.map((v) => dollars(v.amount, v.currency)).concat(dollars(p.amount, p.currency)).filter((x) => x > 0);
+    const lo = Math.min(...xs), hi = Math.max(...xs);
+    const per = p.variants.every((v) => v.type === 'PER_RESULT') ? 'per result' : 'per run';
+    return `${lo === hi ? money(lo) : `${money(lo)} to ${money(hi)}`} ${per} by route${fee}`;
+  }
+  return `${money(dollars(p.amount, p.currency))} ${p.type === 'PER_RESULT' ? 'per result' : 'per run'}${fee}`;
+};
 
 let S = { tab: 'videos', state: null, items: [], guest: false, filters: { niche: 'all', platform: 'all', sort: 'score', radar: '' }, adSort: 'longevity', open: null, busy: {}, sources: null, preview: {}, runs: null, digest: null, edit: null, poll: null, loaded: false };
 try { const t = localStorage.getItem('radar:tab'); if (t) S.tab = t; } catch { /* private mode */ }
@@ -174,7 +188,7 @@ function metrics(it) {
 function transcriptBlock(it) {
   if (it.platform === 'meta_ads') return it.caption ? `<section class="rd-sec"><h3>Ad copy</h3><p class="rd-copy">${esc(it.caption)}</p>${it.ad_link ? `<p class="rd-fine">Links to <a href="${esc(it.ad_link)}" target="_blank" rel="noopener noreferrer">${esc(it.ad_link.replace(/^https:\/\//, '').slice(0, 60))}</a></p>` : ''}</section>` : '';
   const src = { monid: 'Transcript from Monid', captions: 'From the platform captions', pending: 'Fetching the transcript', missing: 'No transcript yet' }[it.transcript_source] || 'No transcript yet';
-  const canGet = !S.guest && S.state?.key && (it.platform === 'youtube' || it.platform === 'tiktok') && it.transcript_source !== 'pending' && it.transcript_source !== 'monid';
+  const canGet = !S.guest && S.state?.key && (it.platform === 'youtube' || it.platform === 'tiktok' || (it.platform === 'instagram' && S.state?.config?.instagram)) && it.transcript_source !== 'pending' && it.transcript_source !== 'monid';
   const body = it.transcript
     ? `<div class="rd-transcript">${esc(it.transcript).split('\n').map((l) => `<p>${l.replace(/^\[(\d+:\d\d)\]/, '<time>$1</time>')}</p>`).join('')}</div>`
     : `<p class="rd-muted">${it.caption ? 'Caption: ' + esc(it.caption.slice(0, 600)) : 'Nothing to read yet.'}</p>`;
@@ -240,14 +254,14 @@ function sources() {
     const state = info.off ? '<span class="rd-chip">Off</span>' : !sel ? '<span class="rd-chip">Not picked</span>' : sel.confirmed ? '<span class="rd-chip ok">Confirmed</span>' : '<span class="rd-chip warn">Confirm the input</span>';
     if (info.off) return `<li class="rd-src off"><div class="rd-src-h"><span class="rd-g">${GLYPH[s.platform]}</span><h3>${esc(s.label)}</h3>${state}</div><p class="rd-fine">${esc(st.copy.instagramOff)}</p></li>`;
     const tools = s.tools.map((t) => `<li><label class="rd-tool"><input type="radio" name="tool-${esc(s.slot)}" data-pick="${esc(s.slot)}" data-provider="${esc(t.provider)}" data-endpoint="${esc(t.endpoint)}"${t.selected ? ' checked' : ''}${S.guest ? ' disabled' : ''}>
-      <span><b>${esc(t.provider)} ${esc(t.endpoint)}</b>${t.recommended ? ' <span class="rd-chip in">Known actor</span>' : ''}<span class="rd-fine">${esc(priceText(t.price))}${t.description ? ' · ' + esc(t.description.slice(0, 140)) : ''}</span></span></label></li>`).join('');
+      <span><b>${esc(t.provider)} ${esc(t.endpoint)}</b>${t.recommended ? ' <span class="rd-chip in">Known actor</span>' : ''}${t.builtin ? ' <span class="rd-chip ok">Built-in input</span>' : ''}<span class="rd-fine">${esc(priceText(t.price))}${t.description ? ' · ' + esc(t.description.slice(0, 140)) : ''}</span></span></label></li>`).join('');
     const preview = pv ? `<div class="rd-preview"><p class="rd-lbl">The exact input for ${esc(pv.query.keywords?.length ? pv.query.keywords.length + ' keywords' : 'one video')}${pv.inputs.length > 1 ? `, ${pv.inputs.length} runs` : ''}</p><pre>${esc(JSON.stringify(pv.inputs.length === 1 ? pv.inputs[0] : pv.inputs, null, 2))}</pre>
         <ul class="rd-notes">${pv.notes.map((x) => `<li>${esc(x)}</li>`).join('')}${pv.missing.length ? `<li class="warn">Required and not filled: ${esc(pv.missing.join(', '))}. Add them in the input template.</li>` : ''}</ul>
         <p class="rd-fine">Estimated cost: ${pv.est_micros ? usd(pv.est_micros) : 'not listed by Monid'} per radar run.</p>
         ${S.guest ? '' : `<div class="rd-row"><button type="button" class="rd-btn rd-btn-primary" data-confirm="${esc(s.slot)}"${pv.missing.length || sel?.confirmed ? ' disabled' : ''}>${sel?.confirmed ? 'Confirmed' : 'Confirm this input'}</button></div>`}</div>` : '';
     const custom = S.guest ? '' : `<details class="rd-custom"><summary>Use another tool or change the input</summary>
         <div class="rd-two"><label class="rd-field"><span>Provider</span><input data-cprov="${esc(s.slot)}" value="${esc(sel?.provider || 'apify')}"></label><label class="rd-field"><span>Endpoint</span><input data-cend="${esc(s.slot)}" value="${esc(sel?.endpoint || '')}" placeholder="/owner/actor"></label></div>
-        <label class="rd-field"><span>Input template (JSON, merged over the mapped input; {{keywords}}, {{keyword}}, {{max}}, {{country}}, {{url}} fill in)</span><textarea rows="4" data-ctpl="${esc(s.slot)}">${esc(sel?.template ? JSON.stringify(sel.template, null, 2) : '')}</textarea></label>
+        <label class="rd-field"><span>Input template (JSON, merged over the mapped or built-in input; {{keywords}}, {{keyword}}, {{max}}, {{country}}, {{url}} fill in)</span><textarea rows="4" data-ctpl="${esc(s.slot)}">${esc(sel?.template ? JSON.stringify(sel.template, null, 2) : '')}</textarea></label>
         <button type="button" class="rd-btn rd-btn-quiet rd-btn-sm" data-custom="${esc(s.slot)}">Use this</button></details>`;
     return `<li class="rd-src"><div class="rd-src-h"><span class="rd-g">${GLYPH[s.platform]}</span><h3>${esc(s.label)}</h3>${state}
         <span class="rd-src-act">${S.guest ? '' : `<button type="button" class="rd-btn rd-btn-quiet rd-btn-sm" data-find="${esc(s.slot)}"${!st.key || S.busy['find' + s.slot] ? ' disabled' : ''}>${S.busy['find' + s.slot] ? 'Asking Monid' : s.tools.length ? 'Find again' : 'Find sources'}</button>`}${sel ? `<button type="button" class="rd-btn rd-btn-quiet rd-btn-sm" data-preview="${esc(s.slot)}">${pv ? 'Hide input' : 'Show input'}</button>` : ''}</span></div>

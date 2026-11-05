@@ -2,13 +2,13 @@
  * Radar: the engine. Watchlists queue Monid runs (budget checked before anything starts), the cron and the
  * "Run now" button advance them in short steps (start what is pending, poll what is running, never a long wait),
  * results are normalised into radar_items and scored, transcripts are fetched per item, and the weekly digest is
- * built from what was analysed. Instagram never runs unless RADAR_INSTAGRAM is on.
+ * built from what was analysed. Instagram (public reels only, owner-approved) runs unless RADAR_INSTAGRAM is off.
  */
 import type { Runtime } from '../app';
 import { flag } from '../settings';
 import { type MonidClient, MonidError, type MonidRun, RUN_DONE, estimateMicros, monidClient, parsePrice } from './monid';
 import { type RadarItem, normalise, scoreItem, transcriptText } from './normalise';
-import { PLATFORMS, type Platform, type RadarQuery, type Slot, mapInput, searchSlot, slotDef, transcriptSlot } from './sources';
+import { DEFAULT_TOOLS, PLATFORMS, type Platform, type RadarQuery, type Slot, builtinFor, mapInput, searchSlot, slotDef, transcriptSlot } from './sources';
 
 // ───────────── settings ─────────────
 
@@ -22,14 +22,14 @@ export function radarConfig(rt: Pick<Runtime, 'settings'>): RadarConfig {
     budgetUsd,
     budgetMicros: Math.round(budgetUsd * 1_000_000),
     maxItems: Math.max(1, Math.min(100, Math.round(num(s.RADAR_MAX_ITEMS, 15)))),
-    instagram: flag(s.RADAR_INSTAGRAM, false),
+    instagram: flag(s.RADAR_INSTAGRAM, true),
     scheduleHours: Math.max(0, Math.min(24 * 14, num(s.RADAR_SCHEDULE_HOURS, 24))),
   };
 }
 
 export const RADAR_COPY = {
   noKey: 'Radar needs a Monid API key. Add it in Integrations under Radar.',
-  instagramOff: 'Instagram stays off: the standing rule is never to scrape Instagram. Turn on RADAR_INSTAGRAM in Integrations only if that rule changes.',
+  instagramOff: 'Instagram is switched off in Integrations (RADAR_INSTAGRAM), so no Instagram run starts. Turn it back on there to research public reels.',
   budget: 'This month\'s Radar budget is used up, so nothing new starts until next month or until the budget is raised in Integrations.',
   budgetWouldPass: 'This run would take the month past the Radar budget, so it did not start.',
   noSource: (label: string) => `Pick a source for ${label} first (Sources, Find sources).`,
@@ -69,9 +69,15 @@ export async function selectedTool(rt: Runtime, slot: Slot): Promise<ToolRow | n
 
 /** The exact input(s) a tool would get for a query, with what each field means and the cost estimate. */
 export function previewFor(tool: ToolRow, q: RadarQuery) {
-  const m = mapInput(tool.slot, parse(tool.schema_json, null), q, parse<Record<string, unknown> | null>(tool.template_json, null));
+  const m = mapInput(tool.slot, parse(tool.schema_json, null), q, parse<Record<string, unknown> | null>(tool.template_json, null), tool);
   const price = parsePrice(parse(tool.price_json, null));
-  return { ...m, price, est_micros: m.inputs.length * estimateMicros(price, q.max) };
+  // Per input: a matrix price follows the route the input picks; a per-result price counts what the input asks for.
+  const units = builtinFor(tool.provider, tool.endpoint)?.units?.(q);
+  const est_each = m.inputs.map((input) => {
+    const asked = units ?? Number(input.count ?? input.limit ?? input.maxResults ?? input.maxItems);
+    return estimateMicros(price, isFinite(asked) && asked > 0 ? asked : q.max, input);
+  });
+  return { ...m, price, est_each, est_micros: est_each.reduce((a, b) => a + b, 0) };
 }
 
 // ───────────── watchlists ─────────────
@@ -84,14 +90,40 @@ const toWl = (r: WlRow): Watchlist => ({
 });
 
 export const DEFAULT_WATCHLISTS: Omit<Watchlist, 'id' | 'last_run_at' | 'created_at' | 'updated_at' | 'enabled'>[] = [
-  { name: 'Acquisitions (our niche)', niche: 'in', country: null, since_days: 90, platforms: ['youtube', 'tiktok'], keywords: ['business acquisition', 'buy a business no money down', 'seller financing', 'roll up strategy', 'private equity small business', 'ETA search fund', 'M&A for business owners'] },
-  { name: 'Formats that travel (outside the niche)', niche: 'out', country: null, since_days: 60, platforms: ['youtube', 'tiktok'], keywords: ['founder story', 'business breakdown', 'how I made', 'finance explained', 'Alex Hormozi'] },
+  { name: 'Acquisitions (our niche)', niche: 'in', country: null, since_days: 90, platforms: ['youtube', 'tiktok', 'instagram'], keywords: ['business acquisition', 'buy a business no money down', 'seller financing', 'roll up strategy', 'private equity small business', 'ETA search fund', 'M&A for business owners'] },
+  { name: 'Formats that travel (outside the niche)', niche: 'out', country: null, since_days: 60, platforms: ['youtube', 'tiktok', 'instagram'], keywords: ['founder story', 'business breakdown', 'how I made', 'finance explained', 'Alex Hormozi'] },
   { name: 'Meta ads: buying a business', niche: 'in', country: 'US', since_days: null, platforms: ['meta_ads'], keywords: ['buy a business', 'business acquisition', 'seller financing'] },
   { name: 'Meta ads: high-ticket education', niche: 'out', country: 'US', since_days: null, platforms: ['meta_ads'], keywords: ['masterclass for business owners', 'scale your business', 'free training'] },
 ];
 
-/** Seeds the default watchlists once (never again after the owner deletes them). */
+/**
+ * Seeds the default tool of every slot that has no pick yet (selected, and confirmed: their built-in inputs are the
+ * ones verified against Monid in production, so the owner can press Run; the Sources tab still shows each exact input
+ * and its cost), then the default watchlists once (never again after the owner deletes them).
+ */
 export async function ensureSeeded(rt: Runtime) {
+  const { results: rows } = await rt.env.DB.prepare('SELECT slot, provider, endpoint, selected, confirmed_at, template_json, price_json FROM radar_tools').all<{ slot: string; provider: string; endpoint: string; selected: number; confirmed_at: string | null; template_json: string | null; price_json: string | null }>();
+  const ts = new Date().toISOString();
+  const seed = DEFAULT_TOOLS.flatMap((t) => {
+    const row = rows.find((r) => r.slot === t.slot && r.provider === t.provider && r.endpoint === t.endpoint);
+    const slotPicked = rows.some((r) => r.slot === t.slot && r.selected);
+    const price = t.price ? JSON.stringify(t.price) : null;
+    // A slot with no pick gets its default, ready to run.
+    if (!row && !slotPicked) {
+      return [rt.env.DB.prepare('INSERT INTO radar_tools (slot, provider, endpoint, name, price_json, recommended, selected, confirmed_at, found_at) VALUES (?, ?, ?, ?, ?, 1, 1, ?, ?)').bind(t.slot, t.provider, t.endpoint, t.name, price, ts, ts)];
+    }
+    if (!row) return [];
+    // The default already listed: picked when its slot has no pick; confirmed when picked with the built-in input
+    // (no template of the owner's); the listed price when it has none.
+    const pick = !slotPicked || row.selected;
+    const confirm = pick && !row.confirmed_at && !row.template_json;
+    if ((pick && !row.selected) || confirm || (!row.price_json && price)) {
+      return [rt.env.DB.prepare('UPDATE radar_tools SET selected = ?, recommended = 1, confirmed_at = COALESCE(confirmed_at, ?), price_json = COALESCE(price_json, ?) WHERE slot = ? AND provider = ? AND endpoint = ?')
+        .bind(pick ? 1 : 0, confirm ? ts : null, price, t.slot, t.provider, t.endpoint)];
+    }
+    return [];
+  });
+  if (seed.length) await rt.env.DB.batch(seed);
   const n = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM radar_watchlists').first<{ n: number }>();
   if (Number(n?.n ?? 0) > 0) return;
   const now = new Date().toISOString();
@@ -156,8 +188,8 @@ export async function queueWatchlist(rt: Runtime, wl: Watchlist, now = Date.now(
     if (!tool) { out.notes.push(RADAR_COPY.noSource(label)); continue; }
     if (!tool.confirmed_at) { out.notes.push(RADAR_COPY.notConfirmed(label)); continue; }
     const pv = previewFor(tool, { keywords: wl.keywords, max: cfg.maxItems, sinceDays: wl.since_days, country: wl.country });
-    const per = pv.inputs.length ? Math.round(pv.est_micros / pv.inputs.length) : 0;
-    for (const input of pv.inputs) {
+    for (const [i, input] of pv.inputs.entries()) {
+      const per = pv.est_each[i] ?? 0;
       if (committed + per > cfg.budgetMicros) { out.notes.push(RADAR_COPY.budgetWouldPass); break; }
       await insertRun(rt, { watchlist_id: wl.id, slot, tool, input, est: per });
       committed += per; out.est_micros += per; out.queued++;
@@ -170,14 +202,15 @@ export async function queueWatchlist(rt: Runtime, wl: Watchlist, now = Date.now(
 /** Queue a transcript run for one item (YouTube and TikTok). */
 export async function queueTranscript(rt: Runtime, itemId: string, now = Date.now()): Promise<{ ok: boolean; note?: string }> {
   const cfg = radarConfig(rt);
-  const item = await rt.env.DB.prepare('SELECT id, platform, url FROM radar_items WHERE id = ?').bind(itemId).first<{ id: string; platform: Platform; url: string | null }>();
+  const item = await rt.env.DB.prepare('SELECT id, platform, url, duration_s FROM radar_items WHERE id = ?').bind(itemId).first<{ id: string; platform: Platform; url: string | null; duration_s: number | null }>();
   if (!item) return { ok: false, note: 'That item is not there any more.' };
   if (!cfg.key) return { ok: false, note: RADAR_COPY.noKey };
   const slot = transcriptSlot(item.platform);
   const tool = slot ? await selectedTool(rt, slot) : null;
   if (!slot || !tool || !item.url) return { ok: false, note: RADAR_COPY.noTranscriptSource };
   if (!tool.confirmed_at) return { ok: false, note: RADAR_COPY.notConfirmed(slotDef(slot)!.label) };
-  const pv = previewFor(tool, { keywords: [], max: 1, urls: [item.url] });
+  if (item.platform === 'instagram' && !cfg.instagram) return { ok: false, note: RADAR_COPY.instagramOff };
+  const pv = previewFor(tool, { keywords: [], max: 1, urls: [item.url], durationS: item.duration_s });
   const { committed } = await monthSpend(rt, now);
   if (committed + pv.est_micros > cfg.budgetMicros) return { ok: false, note: committed >= cfg.budgetMicros ? RADAR_COPY.budget : RADAR_COPY.budgetWouldPass };
   await insertRun(rt, { item_id: item.id, slot, tool, input: pv.inputs[0], est: pv.est_micros });
@@ -204,6 +237,15 @@ async function finishRun(rt: Runtime, run: RunRow, r: MonidRun, now: number) {
     await rt.env.DB.prepare('UPDATE radar_items SET transcript = COALESCE(?, transcript), transcript_source = CASE WHEN ? IS NOT NULL THEN \'monid\' WHEN transcript IS NULL THEN \'missing\' ELSE transcript_source END WHERE id = ?')
       .bind(text, text, run.item_id).run();
     saved = text ? 1 : 0;
+    // A transcript tool that also returns the video's numbers (the YouTube one gives likes, comments and subscribers,
+    // which YouTube search does not) fills them in, and the platform is re-scored.
+    const item = await rt.env.DB.prepare('SELECT external_id FROM radar_items WHERE id = ?').bind(run.item_id).first<{ external_id: string }>();
+    const stats = item ? normalise(def.platform, r.output, now).find((x) => x.external_id === item.external_id) : undefined;
+    if (stats && (stats.likes != null || stats.comments != null || stats.followers != null)) {
+      await rt.env.DB.prepare('UPDATE radar_items SET views = COALESCE(?, views), likes = COALESCE(?, likes), comments = COALESCE(?, comments), followers = COALESCE(?, followers), duration_s = COALESCE(duration_s, ?) WHERE id = ?')
+        .bind(stats.views, stats.likes, stats.comments, stats.followers, stats.duration_s, run.item_id).run();
+      await rescore(rt, def.platform, now);
+    }
   } else {
     const wl = run.watchlist_id ? await getWatchlist(rt, run.watchlist_id) : null;
     const items = normalise(def.platform, r.output, now);

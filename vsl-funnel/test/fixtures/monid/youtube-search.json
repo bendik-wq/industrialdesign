@@ -1,0 +1,143 @@
+{
+ "runId": "01M6MQYZ3M68MZ9R7BSXK6ZWJW",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "anyapi",
+ "providerName": "AnyAPI",
+ "endpoint": "/youtube.search",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "query": "buy a business no money down",
+   "sortBy": "popular",
+   "route": "giraffe"
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "PER_UNIT_MATRIX",
+  "amount": {
+   "value": 0.0005,
+   "currency": "USD"
+  },
+  "selectors": [
+   {
+    "label": "Route",
+    "key": "route",
+    "in": "body"
+   }
+  ],
+  "variants": [
+   {
+    "when": {
+     "route": "lynx"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0005,
+      "currency": "USD"
+     }
+    },
+    "label": "lynx · 99.6% uptime · 1.9 s median"
+   },
+   {
+    "when": {
+     "route": "badger"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0012,
+      "currency": "USD"
+     }
+    },
+    "label": "badger · 99.5% uptime · 1.8 s median"
+   },
+   {
+    "when": {
+     "route": "giraffe"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0012,
+      "currency": "USD"
+     }
+    },
+    "label": "giraffe · 99.9% uptime · 1.5 s median"
+   }
+  ]
+ },
+ "cost": {
+  "value": 0.0012,
+  "currency": "USD"
+ },
+ "resultCount": 1,
+ "billedUnits": 1,
+ "createdAt": "2026-11-05T02:17:47.161Z",
+ "startedAt": "2026-11-05T02:17:47.326Z",
+ "completedAt": "2026-11-05T02:17:49.681Z",
+ "output": {
+  "data": {
+   "nextCursor": "cur_meuShPSS7kw7FVcKIJBxTw",
+   "videos": [
+    {
+     "authorAvatarUrl": "https://yt3.ggpht.com/-pYJqq3w0pP2VjrRpbIVAIopNzt8Of85u3IUP-hAZWPPwfZdjpE4qVAEWMqChMuZZmvFDRvA=s68-c-k-c0x00ffffff-no-rj",
+     "authorId": "UCCU8OcQzN6X00j-CXvWnAog",
+     "channel": "Marvin Francois",
+     "createdUtc": 1792030668,
+     "id": "j39pFtLyFSU",
+     "image": "https://i.ytimg.com/vi/j39pFtLyFSU/hq720.jpg",
+     "lengthText": "1:10:50",
+     "publishedTime": "3 weeks ago",
+     "title": "How to Buy a Business With No Money Down",
+     "url": "https://www.youtube.com/watch?v=j39pFtLyFSU",
+     "views": 11206
+    },
+    {
+     "authorAvatarUrl": "https://yt3.ggpht.com/uVOveUR5v5Z8ZlIwNj3z4DWdIIa76OTs4e-ihimPZ1IZ9ey5x9hiPiTvp_AQLrIgO3WV0lcg52Y=s68-c-k-c0x00ffffff-no-rj",
+     "authorId": "UCodFV43mCggDyZSWLrUD4Jg",
+     "channel": "Nate Jones",
+     "createdUtc": 1730773068,
+     "id": "-DAzLPJQRaQ",
+     "image": "https://i.ytimg.com/vi/-DAzLPJQRaQ/hq720.jpg",
+     "lengthText": "6:51",
+     "publishedTime": "2 years ago",
+     "title": "Buy a Business Locally (With $0 - NO MONEY)",
+     "url": "https://www.youtube.com/watch?v=-DAzLPJQRaQ",
+     "views": 2073
+    },
+    {
+     "authorAvatarUrl": "https://yt3.ggpht.com/0iObwlkgfoO3_IljTGjcVdz_rm4Cfbc4bj7sj0lXEd2yew1iFATbszzhVGMjBLvTt7s7aTcLvA=s68-c-k-c0x00ffffff-no-rj",
+     "authorId": "UCsOSIcfV0QMTyS0iAC5BZXg",
+     "channel": "Mat Sorensen | Retirement Planning & Tax Strategy",
+     "createdUtc": 1730773068,
+     "id": "_qrVANZNXNg",
+     "image": "https://i.ytimg.com/vi/_qrVANZNXNg/hq720.jpg",
+     "lengthText": "17:21",
+     "publishedTime": "2 years ago",
+     "title": "How to buy a Small Business with NO MONEY [the actual way]",
+     "url": "https://www.youtube.com/watch?v=_qrVANZNXNg",
+     "views": 18523
+    },
+    {
+     "authorAvatarUrl": "https://yt3.ggpht.com/C5R5rYSqQ6cKd6b1DcMUzEIhBRDhiw4s3Gyb1lP9a2O-hX9JF0bXFKtxt2n5PBnnHUMbtCWyyzY=s68-c-k-c0x00ffffff-no-rj",
+     "authorId": "UCUnUUQSxxJqr10vio4fpOXA",
+     "channel": "Dee Ludlow",
+     "createdUtc": 1762309068,
+     "id": "oQa1uRzj_q0",
+     "image": "https://i.ytimg.com/vi/oQa1uRzj_q0/hq720.jpg",
+     "lengthText": "57:09",
+     "publishedTime": "1 year ago",
+     "title": "How to Buy a Business No Money Down (2026 version)",
+     "url": "https://www.youtube.com/watch?v=oQa1uRzj_q0",
+     "views": 5607
+    }
+   ]
+  },
+  "found": true
+ }
+}

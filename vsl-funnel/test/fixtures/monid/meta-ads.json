@@ -1,0 +1,378 @@
+{
+ "runId": "01M6MQZZ97KCMPG0RXHWWPZE8Y",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "apify",
+ "providerName": "Apify",
+ "endpoint": "/curious_coder/facebook-ads-library-scraper",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "urls": [
+    {
+     "url": "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&q=buy%20a%20business&search_type=keyword_unordered&media_type=all"
+    }
+   ],
+   "count": 10,
+   "limitPerSource": 10
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "PER_RESULT",
+  "amount": {
+   "value": 0.00075,
+   "currency": "USD"
+  },
+  "notes": [
+   "Per-result price applies per query in the input. Total results ≈ number of input queries × per-query limit. Pass a single query to maintain predictable cost."
+  ]
+ },
+ "cost": {
+  "value": 0.0075,
+  "currency": "USD"
+ },
+ "resultCount": 3,
+ "billedUnits": 3,
+ "createdAt": "2026-11-05T02:18:20.062Z",
+ "startedAt": "2026-11-05T02:18:20.217Z",
+ "completedAt": "2026-11-05T02:18:33.501Z",
+ "output": [
+  {
+   "ad_archive_id": "2043835713041207",
+   "collation_count": 1,
+   "collation_id": "1437207188067897",
+   "is_active": true,
+   "page_id": "1582973568662187",
+   "page_is_deleted": false,
+   "snapshot": {
+    "branded_content": null,
+    "page_id": "1582973568662187",
+    "page_is_deleted": false,
+    "page_profile_uri": "https://www.facebook.com/NextInsuranceUSA/",
+    "root_reshared_post": null,
+    "byline": null,
+    "disclaimer_label": null,
+    "page_name": "Next Insurance",
+    "page_profile_picture_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/622805451_900711879595621_3373899057420372456_n.jpg",
+    "event": null,
+    "caption": "track.nextinsurance.com",
+    "cta_text": "Get quote",
+    "cards": [],
+    "body": {
+     "text": "Trusted By Over 750,000 Customers. Buy Your Insurance Easily Online in 5 Minutes!"
+    },
+    "cta_type": "GET_QUOTE",
+    "display_format": "VIDEO",
+    "link_description": null,
+    "link_url": "https://track.nextinsurance.com/links?serial=992857229",
+    "images": [],
+    "page_categories": [
+     "Insurance company"
+    ],
+    "page_like_count": 106718,
+    "title": "Get a Free Quote Online in 5min",
+    "videos": [
+     {
+      "video_hd_url": "https://video.fssz1-1.fna.fbcdn.net/o1/v/t2/f2/m366/AQMJY8he1BG4V9OqEBjnOIBC9xJhHlztd4M6vRoBqlowPPgTn0kEpvwJOtze7e2O-9WDIEPvYkKY5ro9qRCzxV4M8ytf_29CDpU96Qn-JcY5HQ.mp4",
+      "video_preview_image_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/622795074_1934606397488959_2245017565210561297_n.jpg",
+      "video_sd_url": "https://video.fssz1-1.fna.fbcdn.net/o1/v/t2/f2/m412/AQPLWggI4b7lNO_cC1slnxGxkDu7T-XRoL-QMdGL3Od8FPCS54GOJhXKFnW6wdPEcCNmTPt8SbPfMYjXO9VTfiPsuj0A5XnL4VBq3IVerg.mp4",
+      "watermarked_video_hd_url": null,
+      "watermarked_video_sd_url": null
+     }
+    ],
+    "is_reshared": false,
+    "extra_links": [],
+    "extra_texts": [],
+    "extra_images": [],
+    "extra_videos": [],
+    "country_iso_code": null,
+    "brazil_tax_id": null,
+    "additional_info": null,
+    "ec_certificates": []
+   },
+   "has_user_reported": false,
+   "report_count": null,
+   "menu_items": [],
+   "state_media_run_label": null,
+   "page_name": "Next Insurance",
+   "impressions_with_index": {
+    "impressions_text": null,
+    "impressions_index": -1
+   },
+   "gated_type": "ELIGIBLE",
+   "categories": [
+    "CREDIT"
+   ],
+   "is_aaa_eligible": false,
+   "contains_digital_created_media": false,
+   "reach_estimate": null,
+   "currency": "",
+   "spend": null,
+   "end_date": 1793779200,
+   "publisher_platform": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "start_date": 1769673600,
+   "contains_sensitive_content": false,
+   "total_active_time": null,
+   "regional_regulation_data": {
+    "finserv": {
+     "is_deemed_finserv": false,
+     "is_limited_delivery": false
+    },
+    "tw_anti_scam": {
+     "is_limited_delivery": false
+    }
+   },
+   "hide_data_status": "NONE",
+   "fev_info": null,
+   "ad_id": null,
+   "targeted_or_reached_countries": [],
+   "url": "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&q=buy%20a%20business&search_type=keyword_unordered&media_type=all",
+   "total": 50001,
+   "position": 5,
+   "ads_count": 1,
+   "start_date_formatted": "2026-01-29 08:00:00",
+   "end_date_formatted": "2026-11-04 08:00:00",
+   "ad_library_url": "https://www.facebook.com/ads/library/?id=2043835713041207"
+  },
+  {
+   "ad_archive_id": "2092222814666607",
+   "collation_count": 4,
+   "collation_id": "1403533191599401",
+   "is_active": true,
+   "page_id": "53146310429",
+   "page_is_deleted": false,
+   "snapshot": {
+    "branded_content": null,
+    "page_id": "53146310429",
+    "page_is_deleted": false,
+    "page_profile_uri": "https://www.facebook.com/ConsumerReports/",
+    "root_reshared_post": null,
+    "byline": null,
+    "disclaimer_label": null,
+    "page_name": "Consumer Reports",
+    "page_profile_picture_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/717810777_961245333415404_5932048165398440469_n.jpg",
+    "event": null,
+    "caption": "consumerreports.org",
+    "cta_text": "Subscribe",
+    "cards": [
+     {
+      "body": "No freebies. No funny business. We buy everything we rate, so our reviews stay unbiased.",
+      "cta_type": "SUBSCRIBE",
+      "caption": "consumerreports.org",
+      "link_description": "Join for just $3.25/month.",
+      "link_url": "https://www.consumerreports.org/join/?EXTKEY=LP66MCP2GS",
+      "title": "Honest ratings & reviews",
+      "cta_text": "Subscribe",
+      "video_hd_url": null,
+      "video_preview_image_url": null,
+      "video_sd_url": null,
+      "watermarked_video_hd_url": null,
+      "watermarked_video_sd_url": null,
+      "image_crops": [],
+      "original_image_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/720814410_1535976171509509_5025056428105228359_n.jpg",
+      "resized_image_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/717516047_1564687981933214_636863969241154811_n.jpg",
+      "watermarked_resized_image_url": ""
+     },
+     {
+      "body": "No freebies. No funny business. We buy everything we rate, so our reviews stay unbiased.",
+      "cta_type": "SUBSCRIBE",
+      "caption": "consumerreports.org",
+      "link_description": "Join for just $3.25/month.",
+      "link_url": "https://www.consumerreports.org/join/?EXTKEY=LP66MCP2GS",
+      "title": "Honest ratings & reviews",
+      "cta_text": "Subscribe",
+      "video_hd_url": null,
+      "video_preview_image_url": null,
+      "video_sd_url": null,
+      "watermarked_video_hd_url": null,
+      "watermarked_video_sd_url": null,
+      "image_crops": [],
+      "original_image_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/717930112_1750374589281688_750793633935975959_n.jpg",
+      "resized_image_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/718687293_1929722557711608_6038438928037342409_n.jpg",
+      "watermarked_resized_image_url": ""
+     }
+    ],
+    "body": {
+     "text": "{{product.brand}}"
+    },
+    "cta_type": "SUBSCRIBE",
+    "display_format": "DCO",
+    "link_description": "{{product.description}}",
+    "link_url": "https://www.consumerreports.org/join/?EXTKEY=LP66MCP2GS",
+    "images": [],
+    "page_categories": [
+     "Nonprofit organization"
+    ],
+    "page_like_count": 1098522,
+    "title": "{{product.name}}",
+    "videos": [],
+    "is_reshared": false,
+    "extra_links": [],
+    "extra_texts": [],
+    "extra_images": [],
+    "extra_videos": [],
+    "country_iso_code": null,
+    "brazil_tax_id": null,
+    "additional_info": null,
+    "ec_certificates": []
+   },
+   "has_user_reported": false,
+   "report_count": null,
+   "menu_items": [],
+   "state_media_run_label": null,
+   "page_name": "Consumer Reports",
+   "impressions_with_index": {
+    "impressions_text": null,
+    "impressions_index": -1
+   },
+   "gated_type": "ELIGIBLE",
+   "categories": [
+    "UNKNOWN"
+   ],
+   "is_aaa_eligible": false,
+   "contains_digital_created_media": false,
+   "reach_estimate": null,
+   "currency": "",
+   "spend": null,
+   "end_date": 1793779200,
+   "publisher_platform": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "AUDIENCE_NETWORK",
+    "MESSENGER",
+    "THREADS"
+   ],
+   "start_date": 1780988400,
+   "contains_sensitive_content": false,
+   "total_active_time": null,
+   "regional_regulation_data": {
+    "finserv": {
+     "is_deemed_finserv": false,
+     "is_limited_delivery": false
+    },
+    "tw_anti_scam": {
+     "is_limited_delivery": false
+    }
+   },
+   "hide_data_status": "NONE",
+   "fev_info": null,
+   "ad_id": null,
+   "targeted_or_reached_countries": [],
+   "url": "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&q=buy%20a%20business&search_type=keyword_unordered&media_type=all",
+   "total": 50001,
+   "position": 9,
+   "ads_count": 1,
+   "start_date_formatted": "2026-06-09 07:00:00",
+   "end_date_formatted": "2026-11-04 08:00:00",
+   "ad_library_url": "https://www.facebook.com/ads/library/?id=2092222814666607"
+  },
+  {
+   "ad_archive_id": "2006807903279406",
+   "collation_count": 1,
+   "collation_id": "1537692291702770",
+   "is_active": true,
+   "page_id": "866655706540346",
+   "page_is_deleted": false,
+   "snapshot": {
+    "branded_content": null,
+    "page_id": "866655706540346",
+    "page_is_deleted": false,
+    "page_profile_uri": "https://www.facebook.com/61585235895092/",
+    "root_reshared_post": null,
+    "byline": null,
+    "disclaimer_label": null,
+    "page_name": "Cholesterol Relief Community",
+    "page_profile_picture_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/705745221_3051884241688142_5897237959372273076_n.jpg",
+    "event": null,
+    "caption": "shop.pipitea.com",
+    "cta_text": "Learn more",
+    "cards": [],
+    "body": {
+     "text": "I found a wallet in a shopping cart at Walmart last Tuesday. Brown leather. Worn soft at the edges. Tucked under one of those reusable bags someone had left behind.\n\nI almost didn't see it. I was returning my cart because that's what I do — I'm the person who walks it back to the corral instead of l"
+    },
+    "cta_type": "LEARN_MORE",
+    "display_format": "IMAGE",
+    "link_description": "\"My LDL went from 189 to 142 in three months. My doctor asked what medication I started. I told him it was tea - he didn't believe me. I feel better than I have in five years.\"",
+    "link_url": "https://shop.pipitea.com/ppch/sp",
+    "images": [
+     {
+      "image_crops": [],
+      "original_image_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/707617892_1948406532467794_9155177261002994342_n.jpg",
+      "resized_image_url": "https://scontent.fssz1-1.fna.fbcdn.net/v/t39.35426-6/705808378_1515388033458333_4745399378237277479_n.jpg",
+      "watermarked_resized_image_url": ""
+     }
+    ],
+    "page_categories": [
+     "Community Center"
+    ],
+    "page_like_count": 3342,
+    "title": "Natural Relief in Weeks",
+    "videos": [],
+    "is_reshared": false,
+    "extra_links": [],
+    "extra_texts": [],
+    "extra_images": [],
+    "extra_videos": [],
+    "country_iso_code": null,
+    "brazil_tax_id": null,
+    "additional_info": null,
+    "ec_certificates": []
+   },
+   "has_user_reported": false,
+   "report_count": null,
+   "menu_items": [],
+   "state_media_run_label": null,
+   "page_name": "Cholesterol Relief Community",
+   "impressions_with_index": {
+    "impressions_text": null,
+    "impressions_index": -1
+   },
+   "gated_type": "ELIGIBLE",
+   "categories": [
+    "UNKNOWN"
+   ],
+   "is_aaa_eligible": true,
+   "contains_digital_created_media": false,
+   "reach_estimate": null,
+   "currency": "",
+   "spend": null,
+   "end_date": 1793779200,
+   "publisher_platform": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "AUDIENCE_NETWORK",
+    "WHATSAPP",
+    "THREADS"
+   ],
+   "start_date": 1779778800,
+   "contains_sensitive_content": false,
+   "total_active_time": null,
+   "regional_regulation_data": {
+    "finserv": {
+     "is_deemed_finserv": false,
+     "is_limited_delivery": false
+    },
+    "tw_anti_scam": {
+     "is_limited_delivery": false
+    }
+   },
+   "hide_data_status": "NONE",
+   "fev_info": null,
+   "ad_id": null,
+   "targeted_or_reached_countries": [],
+   "url": "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&q=buy%20a%20business&search_type=keyword_unordered&media_type=all",
+   "total": 50001,
+   "position": 1,
+   "ads_count": 1,
+   "start_date_formatted": "2026-05-26 07:00:00",
+   "end_date_formatted": "2026-11-04 08:00:00",
+   "ad_library_url": "https://www.facebook.com/ads/library/?id=2006807903279406"
+  }
+ ]
+}

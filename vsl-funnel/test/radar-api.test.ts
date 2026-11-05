@@ -9,6 +9,7 @@ import { auditCopy } from '../src/content/copy-rules';
 import { RADAR_UI_COPY } from '../src/radar/routes';
 import { ANALYSIS_AD, ANALYSIS_BAD, ANALYSIS_VIDEO, DISCOVER_A, INSPECT_ADS, INSPECT_YT, META_AD_ROWS, NOW, TIKTOK_ROWS, TRANSCRIPT_OUTPUT, YOUTUBE_ROWS } from './radar-fixtures';
 import { type SqlDb, d1, freshDb } from './studio-fakes';
+import { IG_SEARCH_RUN, IG_TRANSCRIPT_RUN, INSPECT_ANYAPI_YT, RUN_STARTED, TT_SEARCH_RUN, YT_SEARCH_RUN, YT_TRANSCRIPT_RUN } from './monid-live';
 
 // Radar on the whole worker (in-memory SQLite D1 with every migration, a fake Monid behind global fetch, a stubbed
 // Workers AI) and the engine on its own with a fake Monid client: sources, the exact input before the first paid
@@ -108,7 +109,7 @@ describe('engine: runs, polling, money', () => {
   });
 
   it('Instagram gate: no Instagram run while RADAR_INSTAGRAM is off, even one already queued', async () => {
-    const rt = rtFor(db);
+    const rt = rtFor(db, { RADAR_INSTAGRAM: 'off' });
     await addTool(rt, 'instagram:search', '/apify/instagram-reel-scraper', {});
     const q = await queueWatchlist(rt, wl({ platforms: ['instagram'] }));
     expect(q.queued).toBe(0);
@@ -117,8 +118,9 @@ describe('engine: runs, polling, money', () => {
     const { client, calls } = fakeClient({ run: async () => { throw new Error('must not run'); } });
     expect(await radarStep(rt, { client })).toMatchObject({ skipped: 1 });
     expect(calls.run).toHaveLength(0);
-    // Switched on by the owner: it queues.
-    expect((await queueWatchlist(rtFor(db, { RADAR_INSTAGRAM: 'on' }), wl({ platforms: ['instagram'] }))).queued).toBe(1);
+    // On (the default since the owner approved public reels research): it queues.
+    expect((await queueWatchlist(rtFor(db), wl({ platforms: ['instagram'] }))).queued).toBe(1);
+    expect(radarConfig(rtFor(db)).instagram).toBe(true);
   });
 
   it('refuses unpicked and unconfirmed sources, and does nothing without a key', async () => {
@@ -180,7 +182,7 @@ describe('copy shown in Radar', () => {
       expect(def?.group).toBe('Radar');
       expect(auditCopy(def?.help ?? ''), k).toEqual([]);
     }
-    expect((SETTINGS.find((s) => s.key === 'RADAR_INSTAGRAM') as { help: string }).help).toMatch(/never to scrape Instagram/);
+    expect((SETTINGS.find((s) => s.key === 'RADAR_INSTAGRAM') as { help: string }).help).toMatch(/Owner-approved on 2026-11-05 for research on public reels only.*no logins and no DMs/);
   });
 });
 
@@ -192,7 +194,8 @@ let pending: Promise<unknown>[] = [];
 const exCtx = { waitUntil: (p: Promise<unknown>) => { pending.push(p.catch(() => null)); }, passThroughOnException: () => {} };
 let envOver: Record<string, string> = {};
 const monidCalls: { path: string; body: unknown }[] = [];
-let runReply: () => { status?: number; json: unknown } = () => ({ json: { runId: 'r', status: 'COMPLETED', output: YOUTUBE_ROWS, resultCount: 3, billing: { actualCost: { value: 50_000 } } } });
+let runReply: (body: { endpoint: string }) => { status?: number; json: unknown } = () => ({ json: { runId: 'r', status: 'COMPLETED', output: YOUTUBE_ROWS, resultCount: 3, billing: { actualCost: { value: 50_000 } } } });
+let runsReply: (id: string) => unknown = () => ({ status: 'COMPLETED', output: TRANSCRIPT_OUTPUT, billing: { actualCost: { value: 1000 } } });
 let aiAnalysis: unknown = ANALYSIS_VIDEO;
 const SCRIPT_REPLY = {
   hooks: ['Banks don\'t reject buyers. They reject structures.', 'I bought my clinics in two acquisitions. Both sellers financed 100% of the price.', 'The reason your offer went nowhere had nothing to do with price.'],
@@ -240,9 +243,9 @@ beforeAll(async () => {
     monidCalls.push({ path, body });
     const reply = (j: unknown, status = 200) => new Response(JSON.stringify(j), { status, headers: { 'content-type': 'application/json' } });
     if (path === '/discover') return reply(body.query.includes('youtube search') ? DISCOVER_A : body.query.includes('ad library') ? { results: [{ provider: 'apify', endpoint: '/curious_coder/facebook-ads-library-scraper' }] } : { results: [] });
-    if (path === '/inspect') return reply(body.endpoint === '/streamers/youtube-scraper' ? INSPECT_YT : body.endpoint.includes('facebook') ? INSPECT_ADS : { provider: body.provider, endpoint: body.endpoint });
-    if (path === '/run') { const r = runReply(); return reply(r.json, r.status); }
-    if (path.startsWith('/runs/')) return reply({ status: 'COMPLETED', output: TRANSCRIPT_OUTPUT, billing: { actualCost: { value: 1000 } } });
+    if (path === '/inspect') return reply(body.endpoint === '/youtube.search' ? INSPECT_ANYAPI_YT : body.endpoint === '/streamers/youtube-scraper' ? INSPECT_YT : body.endpoint.includes('facebook') ? INSPECT_ADS : { provider: body.provider, endpoint: body.endpoint });
+    if (path === '/run') { const r = runReply(body); return reply(r.json, r.status); }
+    if (path.startsWith('/runs/')) return reply(runsReply(decodeURIComponent(path.slice('/runs/'.length))));
     return reply({ error: 'unknown' }, 404);
   }));
   app = (await import('../src/index')).default as unknown as App;
@@ -253,6 +256,7 @@ beforeEach(async () => {
   monidCalls.length = 0; aiCalls.length = 0; pending = [];
   aiAnalysis = ANALYSIS_VIDEO;
   runReply = () => ({ json: { runId: 'r', status: 'COMPLETED', output: YOUTUBE_ROWS, resultCount: 3, billing: { actualCost: { value: 50_000 } } } });
+  runsReply = () => ({ status: 'COMPLETED', output: TRANSCRIPT_OUTPUT, billing: { actualCost: { value: 1000 } } });
   (await import('../src/settings')).resetSettingsCache();
   (await import('../src/lib/hq-cache')).memoryClear();
   (await import('../src/admin/guest')).resetGuestCaches();
@@ -269,79 +273,132 @@ describe('routes: /admin/api/radar*', () => {
     const st = await get<{ key: boolean; watchlists: { id: string; name: string; niche: string; keywords: string[]; platforms: string[] }[]; spend: { budget_micros: number }; config: { instagram: boolean } }>('/state', owner);
     expect(st.key).toBe(true);
     expect(st.spend.budget_micros).toBe(20_000_000);
-    expect(st.config.instagram).toBe(false);
+    expect(st.config.instagram).toBe(true);
     expect(st.watchlists.map((w) => w.niche)).toEqual(['in', 'out', 'in', 'out']);
     expect(st.watchlists[0].keywords).toEqual(expect.arrayContaining(['business acquisition', 'buy a business no money down', 'seller financing', 'roll up strategy', 'private equity small business', 'ETA search fund', 'M&A for business owners']));
     expect(st.watchlists[1].keywords).toEqual(expect.arrayContaining(['founder story', 'business breakdown', 'how I made', 'finance explained', 'Alex Hormozi']));
 
-    // Find sources: discover, inspect, and the known actor pre-selected (not yet confirmed).
-    const found = (await (await post('/sources/find', owner, { slot: 'youtube:search' })).json()) as { ok: boolean; found: number; preselected: string };
-    expect(found).toMatchObject({ ok: true, found: 2, preselected: 'apify /streamers/youtube-scraper' });
-    expect(monidCalls.map((c) => c.path)).toEqual(['/discover', '/inspect', '/inspect']);
-    // Running before confirming the input is refused, and nothing is paid.
-    const ytId = st.watchlists[0].id;
-    const early = await post(`/watchlists/${ytId}/run`, owner);
-    expect(early.status).toBe(400);
-    expect(((await early.json()) as { notes: string[] }).notes).toContain(RADAR_COPY.notConfirmed('YouTube search'));
-    expect(monidCalls.some((c) => c.path === '/run')).toBe(false);
-    // The exact input, then confirm.
-    const pv = await get<{ inputs: Record<string, unknown>[]; est_micros: number; missing: string[] }>('/sources/preview?slot=youtube:search', owner);
-    expect(pv.inputs[0]).toMatchObject({ searchQueries: st.watchlists[0].keywords, maxResults: 15, dateFilter: 'year', sortingOrder: 'views' });
-    expect(pv.est_micros).toBe(75_000);
-    expect(pv.missing).toEqual([]);
-    expect((await post('/sources/confirm', owner, { slot: 'youtube:search' })).status).toBe(200);
+    // The default tools are seeded, picked and ready: AnyAPI YouTube search with its built-in input and route price.
+    const src = await get<{ slots: { slot: string; tools: { provider: string; endpoint: string; builtin: boolean; recommended: boolean; selected: boolean; confirmed: boolean; price: { type: string; variants: unknown[] } }[] }[] }>('/sources', owner);
+    const picked = Object.fromEntries(src.slots.map((x) => { const t = x.tools.find((y) => y.selected); return [x.slot, t ? `${t.provider} ${t.endpoint}` : null]; }));
+    expect(picked).toEqual({
+      'youtube:search': 'anyapi /youtube.search', 'youtube:transcript': 'apify /starvibe/youtube-video-transcript', 'tiktok:search': 'anyapi /tiktok.search_keyword',
+      'tiktok:transcript': 'anyapi /tiktok.video_transcript_full', 'instagram:search': 'anyapi /instagram.reels_search', 'instagram:transcript': 'anyapi /instagram.reel_transcript',
+      'meta_ads:ads': 'apify /curious_coder/facebook-ads-library-scraper',
+    });
+    const yt = src.slots.find((x) => x.slot === 'youtube:search')!.tools.find((t) => t.selected)!;
+    expect(yt).toMatchObject({ builtin: true, recommended: true, confirmed: true, price: { type: 'PER_UNIT_MATRIX' } });
+    expect(yt.price.variants).toHaveLength(3);
+    // Seeding again changes nothing; Find sources lists more tools and keeps the pick.
+    await get('/state', owner);
+    expect(sdb.prepare('SELECT COUNT(*) AS n FROM radar_tools').get()).toMatchObject({ n: 7 });
+    const found = (await (await post('/sources/find', owner, { slot: 'youtube:search' })).json()) as { ok: boolean; found: number; preselected: string | null };
+    expect(found).toMatchObject({ ok: true, found: 3, preselected: null });
+    expect(monidCalls.map((c) => c.path)).toEqual(['/discover', '/inspect', '/inspect', '/inspect']);
+    expect(sdb.prepare("SELECT provider, endpoint, confirmed_at IS NOT NULL AS ok FROM radar_tools WHERE slot = 'youtube:search' AND selected = 1").get()).toMatchObject({ provider: 'anyapi', endpoint: '/youtube.search', ok: 1 });
+    // The exact input (built in: one run per keyword, the first 5, popular on the giraffe route), priced by that route.
+    const pv = await get<{ inputs: Record<string, unknown>[]; est_micros: number; missing: string[]; confirmed: boolean }>('/sources/preview?slot=youtube:search', owner);
+    expect(pv.inputs).toHaveLength(5);
+    expect(pv.inputs[0]).toEqual({ query: st.watchlists[0].keywords[0], sortBy: 'popular', route: 'giraffe', uploadDate: 'this_year' });
+    expect(pv).toMatchObject({ est_micros: 5 * 1200, missing: [], confirmed: true });
 
-    // Run: queued, then started in the background (sync 200), items saved and scored, cost recorded.
-    const run = (await (await post(`/watchlists/${ytId}/run`, owner)).json()) as { ok: boolean; queued: number; notes: string[] };
-    expect(run).toMatchObject({ ok: true, queued: 1 });
-    expect(run.notes).toContain(RADAR_COPY.noSource('TikTok search')); // TikTok has no source yet
-    expect(monidCalls.filter((c) => c.path === '/run')).toHaveLength(1);
-    const items = (await get<{ items: { id: string; score: number; niche: string; score_parts: { ratio: number } }[] }>('/items?sort=score', owner)).items;
-    expect(items.map((i) => i.id)).toEqual(['youtube:aBcDeFgHiJ1', 'youtube:ZyXwVuTsRq2']);
-    expect(items[0].score_parts.ratio).toBeGreaterThan(10);
+    // Run: YouTube, TikTok and Instagram, 5 keywords each. Every run answers RUNNING (Monid's real reply) and is polled
+    // to COMPLETED: items saved once each and scored, the billed cost (dollars) recorded.
+    const ytId = st.watchlists[0].id;
+    expect(st.watchlists[0].platforms).toEqual(['youtube', 'tiktok', 'instagram']);
+    runReply = (b) => ({ json: { ...RUN_STARTED, runId: `run${b.endpoint}`, endpoint: b.endpoint } });
+    runsReply = (id) => (id.includes('youtube') ? YT_SEARCH_RUN : id.includes('tiktok') ? TT_SEARCH_RUN : IG_SEARCH_RUN);
+    const run = (await (await post(`/watchlists/${ytId}/run`, owner)).json()) as { ok: boolean; queued: number; est_micros: number; notes: string[] };
+    expect(run).toMatchObject({ ok: true, queued: 15, est_micros: 5 * 1200 + 5 * 1200 + 5 * 1100, notes: [] });
+    const sent = monidCalls.filter((c) => c.path === '/run');
+    expect(sent[0].body).toEqual({ provider: 'anyapi', endpoint: '/youtube.search', input: { body: pv.inputs[0] } });
+    for (let i = 0; i < 4; i++) {
+      sdb.prepare("UPDATE radar_runs SET next_poll_at = '2000-01-01T00:00:00Z'").run();
+      expect((await post('/step', owner)).status).toBe(200);
+    }
+    expect(monidCalls.filter((c) => c.path === '/run')).toHaveLength(15);
+    expect(sdb.prepare("SELECT COUNT(*) AS n FROM radar_runs WHERE status = 'completed'").get()).toMatchObject({ n: 15 });
+    expect(sdb.prepare("SELECT slot, cost_micros, items_saved FROM radar_runs WHERE slot = 'instagram:search' LIMIT 1").get()).toMatchObject({ cost_micros: 1100, items_saved: 3 });
+    const items = (await get<{ items: { id: string; score: number; score_parts: { ratio_basis: string; engagement: number | null } }[] }>('/items?platform=youtube&sort=score', owner)).items;
+    expect(items.map((i) => i.id).sort()).toEqual(['youtube:-DAzLPJQRaQ', 'youtube:_qrVANZNXNg', 'youtube:j39pFtLyFSU', 'youtube:oQa1uRzj_q0']);
+    expect(items[0].score_parts).toMatchObject({ ratio_basis: 'platform', engagement: null });
+    expect(items[0].score).toBeGreaterThan(items[3].score);
+    expect(((await get<{ items: unknown[] }>('/items?platform=tiktok', owner)).items)).toHaveLength(3);
+    expect(((await get<{ items: unknown[] }>('/items?platform=instagram', owner)).items)).toHaveLength(3);
     expect(((await get<{ items: unknown[] }>('/items?niche=out', owner)).items)).toHaveLength(0);
-    expect(((await get<{ items: unknown[] }>(`/items?radar=${ytId}`, owner)).items)).toHaveLength(2);
+    expect(((await get<{ items: unknown[] }>(`/items?radar=${ytId}`, owner)).items)).toHaveLength(10);
     const st2 = await get<{ spend: { spent_micros: number } }>('/state', owner);
-    expect(st2.spend.spent_micros).toBe(50_000);
+    expect(st2.spend.spent_micros).toBe(5 * 1200 + 5 * 1200 + 5 * 1100);
 
     // Analyse (Workers AI, the video schema), cached on the item.
-    const an = (await (await post('/items/youtube:aBcDeFgHiJ1/analyse', owner)).json()) as { ok: boolean; brain: string; flags: unknown[]; analysis: { hook: { text: string } } };
+    const top = 'youtube:j39pFtLyFSU';
+    const an = (await (await post(`/items/${top}/analyse`, owner)).json()) as { ok: boolean; brain: string; flags: unknown[]; analysis: { hook: { text: string } } };
     expect(an).toMatchObject({ ok: true, brain: 'workers-ai', flags: [] });
     expect(an.analysis.hook.text).toBe('I bought this company without a dollar of my own.');
     expect(aiCalls[0].schema).toHaveProperty('drop_offs');
-    const one = await get<{ item: { analysis: { for_gl: { hook: string } }; transcript: string; raw_json?: unknown } }>('/items/youtube:aBcDeFgHiJ1', owner);
+    const one = await get<{ item: { analysis: { for_gl: { hook: string } }; transcript: string; raw_json?: unknown } }>(`/items/${top}`, owner);
     expect(one.item.analysis.for_gl.hook).toMatch(/two acquisitions/);
     expect(one.item.raw_json).toBeUndefined();
 
-    // Make it a script: a Studio script from the analysis, listed in Studio → Scripts.
-    const sc = (await (await post('/items/youtube:aBcDeFgHiJ1/script', owner)).json()) as { ok: boolean; script: { id: string; beats: number } };
+    // Make it a script: a Studio script from the analysis, listed in Studio → Scripts (a 70-minute video: long form).
+    const sc = (await (await post(`/items/${top}/script`, owner)).json()) as { ok: boolean; script: { id: string; beats: number } };
     expect(sc).toMatchObject({ ok: true, script: { beats: 2 } });
     const scripts = (await (await call('/admin/api/studio/scripts', { headers: { cookie: owner } })).json()) as { scripts: { id: string; source: string; format: string }[] };
     expect(scripts.scripts[0]).toMatchObject({ id: sc.script.id, source: 'radar', format: 'long' });
-    expect(sdb.prepare('SELECT script_id FROM radar_items WHERE id = ?').get('youtube:aBcDeFgHiJ1')).toMatchObject({ script_id: sc.script.id });
+    expect(sdb.prepare('SELECT script_id FROM radar_items WHERE id = ?').get(top)).toMatchObject({ script_id: sc.script.id });
 
     // The digest groups the analysed items by hook type and format.
     const dg = await get<{ items: number; analysed: number; hooks: { label: string; examples: { id: string }[] }[] }>('/digest', owner);
-    expect(dg).toMatchObject({ items: 2, analysed: 1 });
-    expect(dg.hooks[0]).toMatchObject({ label: 'result', examples: [{ id: 'youtube:aBcDeFgHiJ1' }] });
+    expect(dg).toMatchObject({ items: 10, analysed: 1 });
+    expect(dg.hooks[0]).toMatchObject({ label: 'result', examples: [{ id: top }] });
   });
 
-  it('transcripts come from the Monid transcript source (202, then polled)', async () => {
+  it('a run the provider refused shows its message and costs nothing', async () => {
+    const owner = await ownerCookie();
+    const st = await get<{ watchlists: { id: string }[] }>('/state', owner);
+    runReply = () => ({ json: { runId: 'bad', status: 'COMPLETED', providerResponse: { httpStatus: 400, error: { error: 'source_unknown: no such route', code: 'invalid_input' } }, cost: { value: 0, currency: 'USD' }, output: null } });
+    expect((await post(`/watchlists/${st.watchlists[0].id}/run`, owner)).status).toBe(200);
+    const runs = (await get<{ runs: { status: string; cost_micros: number; error: string }[] }>('/runs', owner)).runs;
+    expect(runs.length).toBeGreaterThan(0);
+    for (const r of runs.filter((x) => x.status !== 'pending')) expect(r).toMatchObject({ status: 'failed', cost_micros: 0, error: 'Monid: FAILED, source_unknown: no such route' });
+    expect((await get<{ spend: { spent_micros: number } }>('/state', owner)).spend.spent_micros).toBe(0);
+  });
+
+  it('transcripts come from the default transcript tools (202, then polled), with the numbers they add', async () => {
     const owner = await ownerCookie();
     await get('/state', owner);
-    sdb.prepare("INSERT INTO radar_tools (slot, provider, endpoint, schema_json, selected, confirmed_at, found_at) VALUES ('youtube:transcript', 'apify', '/x/youtube-transcript', ?, 1, 'now', 'now')").run(JSON.stringify({ properties: { startUrls: { type: 'array', items: { type: 'object' } } } }));
     const rt = rtFor(sdb);
-    const [it] = normalise('youtube', YOUTUBE_ROWS.slice(1, 2), NOW);
+    // A video from YouTube search: views, but no likes, comments or subscribers.
+    const it = normalise('youtube', YT_SEARCH_RUN.output, NOW).find((x) => x.external_id === '_qrVANZNXNg')!;
     await upsertItem(rt, it, null, NOW);
-    runReply = () => ({ status: 202, json: { runId: 'tr-1', status: 'RUNNING' } });
+    runReply = (b) => ({ status: 202, json: { ...RUN_STARTED, runId: `tr${b.endpoint}`, endpoint: b.endpoint } });
+    runsReply = (id) => (id.includes('youtube') ? YT_TRANSCRIPT_RUN : IG_TRANSCRIPT_RUN);
     expect((await post(`/items/${it.id}/transcript`, owner)).status).toBe(200);
-    expect(monidCalls.find((c) => c.path === '/run')?.body).toMatchObject({ endpoint: '/x/youtube-transcript', input: { startUrls: [{ url: 'https://www.youtube.com/watch?v=ZyXwVuTsRq2' }] } });
+    expect(monidCalls.find((c) => c.path === '/run')?.body).toEqual({ provider: 'apify', endpoint: '/starvibe/youtube-video-transcript', input: { body: { youtube_url: 'https://www.youtube.com/watch?v=_qrVANZNXNg' } } });
+    expect(sdb.prepare('SELECT est_micros FROM radar_runs').get()).toMatchObject({ est_micros: 5000 });
     sdb.prepare("UPDATE radar_runs SET next_poll_at = '2000-01-01T00:00:00Z'").run();
     expect((await post('/step', owner)).status).toBe(200);
-    expect(sdb.prepare('SELECT transcript, transcript_source FROM radar_items WHERE id = ?').get(it.id)).toMatchObject({ transcript_source: 'monid', transcript: expect.stringMatching(/^\[0:00\] I bought/) });
+    expect(sdb.prepare('SELECT transcript, transcript_source, likes, comments, followers, views FROM radar_items WHERE id = ?').get(it.id)).toMatchObject({
+      transcript_source: 'monid', transcript: expect.stringMatching(/^\[0:00\] have you ever wanted to buy a small/), likes: 464, comments: 24, followers: 125_000, views: 18_524,
+    });
+    expect(JSON.parse((sdb.prepare('SELECT score_json FROM radar_items WHERE id = ?').get(it.id) as { score_json: string }).score_json)).toMatchObject({ ratio_basis: 'followers' });
+    expect(sdb.prepare('SELECT status, cost_micros FROM radar_runs').get()).toMatchObject({ status: 'completed', cost_micros: 5000 });
+
+    // An Instagram reel: the transcript tool takes the link; the estimate counts the reel's seconds plus the flat fee.
+    const [reel] = normalise('instagram', IG_SEARCH_RUN.output, NOW);
+    await upsertItem(rt, reel, null, NOW);
+    monidCalls.length = 0;
+    expect((await post(`/items/${reel.id}/transcript`, owner)).status).toBe(200);
+    expect(monidCalls.find((c) => c.path === '/run')?.body).toEqual({ provider: 'anyapi', endpoint: '/instagram.reel_transcript', input: { body: { url: 'https://www.instagram.com/reel/DYRouZDjnOb/' } } });
+    expect(sdb.prepare("SELECT est_micros FROM radar_runs WHERE slot = 'instagram:transcript'").get()).toMatchObject({ est_micros: 8000 });
+    sdb.prepare("UPDATE radar_runs SET next_poll_at = '2000-01-01T00:00:00Z'").run();
+    expect((await post('/step', owner)).status).toBe(200);
+    expect(sdb.prepare('SELECT transcript, transcript_source FROM radar_items WHERE id = ?').get(reel.id)).toMatchObject({ transcript_source: 'monid', transcript: expect.stringMatching(/^\[0:00\] I found a small HVAC company/) });
+    expect(sdb.prepare("SELECT cost_micros FROM radar_runs WHERE slot = 'instagram:transcript'").get()).toMatchObject({ cost_micros: 8000 });
   });
 
-  it('Instagram stays off: no find, no run; the state says so', async () => {
+  it('Instagram switched off in Integrations: no find, no run; the state says so', async () => {
+    envOver = { MONID_API_KEY: 'mk_test', RADAR_INSTAGRAM: 'off' };
     const owner = await ownerCookie();
     const st = await get<{ slots: { slot: string; off: boolean }[] }>('/state', owner);
     expect(st.slots.find((s) => s.slot === 'instagram:search')?.off).toBe(true);

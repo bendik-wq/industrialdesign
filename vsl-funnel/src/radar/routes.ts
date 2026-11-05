@@ -13,7 +13,7 @@ import {
   queueTranscript, queueWatchlist, radarConfig, radarStep, recentRuns,
 } from './engine';
 import { MonidError, monidClient, parsePrice } from './monid';
-import { type RadarQuery, SLOTS, type Slot, isRecommended, isSlot, slotDef } from './sources';
+import { type RadarQuery, SLOTS, type Slot, builtinFor, isRecommended, isSlot, knownRank, slotDef } from './sources';
 
 export const RADAR_UI_COPY = {
   notFound: 'That item is not there any more.',
@@ -40,7 +40,7 @@ async function toolsBySlot(rt: Runtime) {
 async function sampleQuery(rt: Runtime, slot: Slot): Promise<RadarQuery> {
   const def = slotDef(slot)!;
   const cfg = radarConfig(rt);
-  if (def.kind === 'transcript') return { keywords: [], max: 1, urls: [def.platform === 'youtube' ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : 'https://www.tiktok.com/@creator/video/7300000000000000000'] };
+  if (def.kind === 'transcript') return { keywords: [], max: 1, urls: [def.platform === 'youtube' ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : def.platform === 'instagram' ? 'https://www.instagram.com/reel/C0000000000/' : 'https://www.tiktok.com/@creator/video/7300000000000000000'], durationS: 60 };
   const wl = (await listWatchlists(rt)).find((w) => w.platforms.includes(def.platform));
   return { keywords: wl?.keywords ?? ['business acquisition'], max: cfg.maxItems, sinceDays: wl?.since_days ?? null, country: wl?.country ?? null };
 }
@@ -86,7 +86,7 @@ radarAdmin.get('/sources', async (c) => {
       tools: tools.filter((t) => t.slot === d.slot).map((t) => ({
         provider: t.provider, endpoint: t.endpoint, name: t.name, description: t.description, doc_url: t.doc_url,
         price: parsePrice(parse(t.price_json, null)), recommended: Boolean(t.recommended), selected: Boolean(t.selected), confirmed: Boolean(t.confirmed_at),
-        template: parse(t.template_json, null), has_schema: Boolean(t.schema_json),
+        template: parse(t.template_json, null), has_schema: Boolean(t.schema_json), builtin: Boolean(builtinFor(t.provider, t.endpoint)),
       })),
     })),
   });
@@ -104,9 +104,13 @@ radarAdmin.post('/sources/find', async (c) => {
   try {
     const client = monidClient(rt.settings.MONID_API_KEY);
     const found = await client.discover(def.query, 10);
+    // The slot's default tool is always a candidate, even when discover did not list it this time.
+    const [dp, de] = def.known[0]?.includes(' ') ? def.known[0].split(' ') : [];
+    if (dp && de && !found.some((t) => knownRank(def.slot, t.provider, t.endpoint) === 0)) found.unshift({ provider: dp, endpoint: de });
+    const rank = (r: number) => (r < 0 ? 99 : r);
     const ranked = found
-      .map((t) => ({ t, rec: isRecommended(def.slot, t.provider, t.endpoint), fit: def.match(t.endpoint) || def.match(`${t.name ?? ''} ${t.description ?? ''}`) }))
-      .sort((a, b2) => Number(b2.rec) - Number(a.rec) || Number(b2.fit) - Number(a.fit))
+      .map((t) => ({ t, rec: isRecommended(def.slot, t.provider, t.endpoint), known: rank(knownRank(def.slot, t.provider, t.endpoint)), fit: def.match(t.endpoint) || def.match(`${t.name ?? ''} ${t.description ?? ''}`) }))
+      .sort((a, b2) => Number(b2.rec) - Number(a.rec) || a.known - b2.known || Number(b2.fit) - Number(a.fit))
       .slice(0, 6);
     const now = new Date().toISOString();
     let inspected = 0;

@@ -28,7 +28,7 @@ describe('Monid client', () => {
     const f = fakeMonid({ 'POST /run': () => ({ json: { runId: 'run_1', status: 'COMPLETED', output: [{ a: 1 }, { a: 2 }], resultCount: 2, billing: { actualCost: { value: 12_500, unit: 'MICRO_DOLLAR' } } } }) });
     const c = monidClient('mk_test', f.fetchFn);
     const r = await c.run('apify', '/streamers/youtube-scraper', { searchQueries: ['x'] });
-    expect(f.calls[0]).toMatchObject({ url: 'https://api.monid.ai/v1/run', method: 'POST', auth: 'Bearer mk_test', body: { provider: 'apify', endpoint: '/streamers/youtube-scraper', input: { searchQueries: ['x'] } } });
+    expect(f.calls[0]).toMatchObject({ url: 'https://api.monid.ai/v1/run', method: 'POST', auth: 'Bearer mk_test', body: { provider: 'apify', endpoint: '/streamers/youtube-scraper', input: { body: { searchQueries: ['x'] } } } });
     expect(r).toMatchObject({ runId: 'run_1', status: 'COMPLETED', resultCount: 2, costMicros: 12_500 });
     expect(r.output).toHaveLength(2);
   });

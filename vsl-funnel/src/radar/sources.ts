@@ -8,37 +8,131 @@
 export const PLATFORMS = ['youtube', 'tiktok', 'instagram', 'meta_ads'] as const;
 export type Platform = (typeof PLATFORMS)[number];
 export type Kind = 'search' | 'transcript' | 'ads';
-export type Slot = 'youtube:search' | 'youtube:transcript' | 'tiktok:search' | 'tiktok:transcript' | 'instagram:search' | 'meta_ads:ads';
+export type Slot = 'youtube:search' | 'youtube:transcript' | 'tiktok:search' | 'tiktok:transcript' | 'instagram:search' | 'instagram:transcript' | 'meta_ads:ads';
 
 export interface SlotDef { slot: Slot; platform: Platform; kind: Kind; label: string; query: string; known: string[]; match: (endpoint: string) => boolean }
 
 const has = (...words: string[]) => (e: string) => words.every((w) => e.toLowerCase().includes(w));
+/** `known` entries are endpoints ("/a/b", any provider) or "provider /endpoint"; the first one is the default pick. */
 export const SLOTS: SlotDef[] = [
-  { slot: 'youtube:search', platform: 'youtube', kind: 'search', label: 'YouTube search', query: 'youtube search videos by keyword with views', known: ['/streamers/youtube-scraper'], match: has('youtube') },
-  { slot: 'youtube:transcript', platform: 'youtube', kind: 'transcript', label: 'YouTube transcripts', query: 'youtube video transcript', known: [], match: has('youtube', 'transcript') },
-  { slot: 'tiktok:search', platform: 'tiktok', kind: 'search', label: 'TikTok search', query: 'tiktok search videos by keyword', known: ['/clockworks/tiktok-scraper', '/clockworks/free-tiktok-scraper'], match: has('tiktok') },
-  { slot: 'tiktok:transcript', platform: 'tiktok', kind: 'transcript', label: 'TikTok transcripts', query: 'tiktok video transcript', known: [], match: has('tiktok', 'transcript') },
-  { slot: 'instagram:search', platform: 'instagram', kind: 'search', label: 'Instagram reels', query: 'instagram reels scraper', known: ['/apify/instagram-reel-scraper'], match: has('instagram') },
+  { slot: 'youtube:search', platform: 'youtube', kind: 'search', label: 'YouTube search', query: 'youtube search videos by keyword with views', known: ['anyapi /youtube.search', '/streamers/youtube-scraper'], match: has('youtube') },
+  { slot: 'youtube:transcript', platform: 'youtube', kind: 'transcript', label: 'YouTube transcripts', query: 'youtube video transcript', known: ['apify /starvibe/youtube-video-transcript'], match: has('youtube', 'transcript') },
+  { slot: 'tiktok:search', platform: 'tiktok', kind: 'search', label: 'TikTok search', query: 'tiktok search videos by keyword', known: ['anyapi /tiktok.search_keyword', '/clockworks/tiktok-scraper', '/clockworks/free-tiktok-scraper'], match: has('tiktok') },
+  { slot: 'tiktok:transcript', platform: 'tiktok', kind: 'transcript', label: 'TikTok transcripts', query: 'tiktok video transcript', known: ['anyapi /tiktok.video_transcript_full'], match: has('tiktok', 'transcript') },
+  { slot: 'instagram:search', platform: 'instagram', kind: 'search', label: 'Instagram reels', query: 'instagram reels scraper', known: ['anyapi /instagram.reels_search', '/apify/instagram-reel-scraper'], match: has('instagram') },
+  { slot: 'instagram:transcript', platform: 'instagram', kind: 'transcript', label: 'Instagram transcripts', query: 'instagram reel transcript', known: ['anyapi /instagram.reel_transcript'], match: has('instagram', 'transcript') },
   { slot: 'meta_ads:ads', platform: 'meta_ads', kind: 'ads', label: 'Meta Ad Library', query: 'facebook meta ad library ads search', known: ['/curious_coder/facebook-ads-library-scraper', '/apify/facebook-ads-scraper'], match: (e) => /facebook|meta/i.test(e) && /ad/i.test(e) },
 ];
 export const slotDef = (slot: string) => SLOTS.find((s) => s.slot === slot);
 export const isSlot = (s: unknown): s is Slot => typeof s === 'string' && SLOTS.some((d) => d.slot === s);
 export const searchSlot = (p: Platform): Slot => (p === 'meta_ads' ? 'meta_ads:ads' : `${p}:search` as Slot);
-export const transcriptSlot = (p: Platform): Slot | null => (p === 'youtube' || p === 'tiktok' ? `${p}:transcript` : null);
+export const transcriptSlot = (p: Platform): Slot | null => (p === 'meta_ads' ? null : `${p}:transcript` as Slot);
 
 /** A known actor for this slot (pre-selected when discover offers it). */
 export function isRecommended(slot: Slot, provider: string, endpoint: string): boolean {
   const d = slotDef(slot);
   if (!d) return false;
-  const e = endpoint.toLowerCase().replace(/~/g, '/');
-  if (d.known.some((k) => e === k || e.endsWith(k))) return true;
-  // Transcript slots have no fixed actor: a transcript tool for the right platform counts.
-  return d.kind === 'transcript' && provider.length > 0 && d.match(e);
+  if (knownRank(slot, provider, endpoint) >= 0) return true;
+  // Transcript slots: any transcript tool for the right platform counts.
+  return d.kind === 'transcript' && provider.length > 0 && d.match(endpoint.toLowerCase());
 }
+
+/** Where a tool sits in its slot's known list (0 = the default pick), or -1. */
+export function knownRank(slot: Slot, provider: string, endpoint: string): number {
+  const d = slotDef(slot);
+  if (!d) return -1;
+  const e = endpoint.toLowerCase().replace(/~/g, '/');
+  const p = provider.toLowerCase();
+  return d.known.findIndex((k) => {
+    const [kp, ke] = k.includes(' ') ? k.toLowerCase().split(' ') : ['', k.toLowerCase()];
+    return (!kp || kp === p) && (e === ke || e.endsWith(ke));
+  });
+}
+
+// ───────────── built-in inputs for the known tools ─────────────
+
+/** The smallest of today / this_week / this_month / this_year that covers `days` (none past a year). */
+function uploadDate(days?: number | null): string | undefined {
+  if (!days || days <= 0) return undefined;
+  if (days <= 1) return 'today';
+  if (days <= 7) return 'this_week';
+  if (days <= 31) return 'this_month';
+  if (days <= 366) return 'this_year';
+  return undefined;
+}
+
+/**
+ * The tools Radar knows the input of, so they work without a template: the exact request bodies that Monid's
+ * production tools accept. Each returns one body per run.
+ */
+export interface Builtin {
+  slot: Slot; note: string; inputs: (q: RadarQuery) => Record<string, unknown>[];
+  /** What a per-result price counts for one input, when it is not the number of items (seconds of audio, say). */
+  units?: (q: RadarQuery) => number;
+}
+export const BUILTIN: Record<string, Builtin> = {
+  'anyapi /instagram.reels_search': {
+    slot: 'instagram:search', note: 'query: one run per keyword, about 12 public reels each',
+    inputs: (q) => q.keywords.slice(0, 5).map((k) => ({ query: k })),
+  },
+  // Billed per second of audio plus a flat fee: a one-minute reel cost $0.008 in production.
+  'anyapi /instagram.reel_transcript': {
+    slot: 'instagram:transcript', note: 'url: the reel link',
+    inputs: (q) => [{ url: q.urls?.[0] ?? '' }],
+    units: (q) => Math.max(1, Math.ceil(q.durationS || 90)),
+  },
+  // Same AnyAPI shape as the Instagram transcript ({url}); the schema inspect gives can override it with a template.
+  'anyapi /tiktok.video_transcript_full': {
+    slot: 'tiktok:transcript', note: 'url: the video link',
+    inputs: (q) => [{ url: q.urls?.[0] ?? '' }],
+  },
+  // sortBy 'popular' needs the giraffe or badger route (the default lynx route refuses it).
+  'anyapi /youtube.search': {
+    slot: 'youtube:search', note: 'query: one run per keyword, sorted by popularity (route giraffe), about 20 videos each',
+    inputs: (q) => q.keywords.slice(0, 5).map((k) => { const d = uploadDate(q.sinceDays); return { query: k, sortBy: 'popular', route: 'giraffe', ...(d ? { uploadDate: d } : {}) }; }),
+  },
+  'anyapi /tiktok.search_keyword': {
+    slot: 'tiktok:search', note: 'query: one run per keyword, about 25 videos each',
+    inputs: (q) => q.keywords.slice(0, 5).map((k) => ({ query: k })),
+  },
+  'apify /starvibe/youtube-video-transcript': {
+    slot: 'youtube:transcript', note: 'youtube_url: the video link',
+    inputs: (q) => [{ youtube_url: q.urls?.[0] ?? '' }],
+  },
+  // Every keyword's Ad Library search page in one run; count caps the whole run, limitPerSource each search.
+  'apify /curious_coder/facebook-ads-library-scraper': {
+    slot: 'meta_ads:ads', note: 'urls: an Ad Library search page per keyword (active ads), limitPerSource and count: the most ads to take',
+    inputs: (q) => {
+      const urls = q.keywords.slice(0, 5).map((k) => ({ url: adLibraryUrl(k, q.country) }));
+      return [{ urls, count: q.max * Math.max(1, urls.length), limitPerSource: q.max }];
+    },
+  },
+};
+export const builtinFor = (provider: string, endpoint: string): Builtin | null => BUILTIN[`${provider.toLowerCase()} ${endpoint.toLowerCase().replace(/~/g, '/')}`] ?? null;
+
+const usd = (value: number) => ({ value, currency: 'USD' });
+const matrix = (base: number, routes: Record<string, number>) => ({
+  type: 'PER_UNIT_MATRIX', amount: usd(base), selectors: [{ key: 'route', in: 'body' }],
+  variants: Object.entries(routes).map(([route, v]) => ({ when: { route }, price: { type: 'PER_CALL', amount: usd(v) } })),
+});
+/**
+ * The default tool of each slot (chosen for the owner, 2026-11-05), seeded selected and ready to run, with the price
+ * Monid listed for it. "Find sources" refreshes the price from Monid; the owner can still pick another tool.
+ */
+export const DEFAULT_TOOLS: { slot: Slot; provider: string; endpoint: string; name: string; price: unknown }[] = [
+  { slot: 'youtube:search', provider: 'anyapi', endpoint: '/youtube.search', name: 'AnyAPI', price: matrix(0.0005, { lynx: 0.0005, badger: 0.0012, giraffe: 0.0012 }) },
+  { slot: 'youtube:transcript', provider: 'apify', endpoint: '/starvibe/youtube-video-transcript', name: 'Apify', price: { type: 'PER_RESULT', amount: usd(0.005) } },
+  // Billed $0.0012 a call in production with no route given, so the estimate uses that rather than the base.
+  { slot: 'tiktok:search', provider: 'anyapi', endpoint: '/tiktok.search_keyword', name: 'AnyAPI', price: matrix(0.0012, { bison: 0.0006, quokka: 0.0008, giraffe: 0.0012, fox: 0.0036 }) },
+  { slot: 'tiktok:transcript', provider: 'anyapi', endpoint: '/tiktok.video_transcript_full', name: 'AnyAPI', price: null },
+  { slot: 'instagram:search', provider: 'anyapi', endpoint: '/instagram.reels_search', name: 'AnyAPI', price: matrix(0.0011, { chameleon: 0.0011, lynx: 0.00188, tiger: 0.0024 }) },
+  { slot: 'instagram:transcript', provider: 'anyapi', endpoint: '/instagram.reel_transcript', name: 'AnyAPI', price: { type: 'TIERED', amount: usd(0.0001), default: { type: 'PER_RESULT', amount: usd(0.0001), flatFee: usd(0.0015) } } },
+  { slot: 'meta_ads:ads', provider: 'apify', endpoint: '/curious_coder/facebook-ads-library-scraper', name: 'Apify', price: { type: 'PER_RESULT', amount: usd(0.00075) } },
+];
 
 // ───────────── the input mapper ─────────────
 
-export interface RadarQuery { keywords: string[]; max: number; sinceDays?: number | null; country?: string | null; urls?: string[] }
+export interface RadarQuery { keywords: string[]; max: number; sinceDays?: number | null; country?: string | null; urls?: string[]; durationS?: number | null }
 interface Field { name: string; type: string; enum?: unknown[]; default?: unknown; itemsType?: string; required: boolean }
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -95,7 +189,8 @@ const KNOWN_FIELDS: Record<Slot, Field[]> = {
   'youtube:search': [{ name: 'searchQueries', type: 'array', itemsType: 'string', required: true }, { name: 'maxResults', type: 'integer', required: false }, { name: 'dateFilter', type: 'string', enum: ['hour', 'today', 'week', 'month', 'year'], required: false }],
   'youtube:transcript': [{ name: 'startUrls', type: 'array', itemsType: 'string', required: true }],
   'tiktok:search': [{ name: 'searchQueries', type: 'array', itemsType: 'string', required: true }, { name: 'resultsPerPage', type: 'integer', required: false }],
-  'tiktok:transcript': [{ name: 'postURLs', type: 'array', itemsType: 'string', required: true }],
+  'tiktok:transcript': [{ name: 'url', type: 'string', required: true }],
+  'instagram:transcript': [{ name: 'url', type: 'string', required: true }],
   'instagram:search': [{ name: 'username', type: 'array', itemsType: 'string', required: true }, { name: 'resultsLimit', type: 'integer', required: false }],
   'meta_ads:ads': [{ name: 'urls', type: 'array', itemsType: 'object', required: true }, { name: 'count', type: 'integer', required: false }],
 };
@@ -117,8 +212,19 @@ function fill(v: unknown, q: RadarQuery, keyword: string): unknown {
 /**
  * Map a query into a tool's input. One input when the tool takes a list of searches, one per keyword (up to 5)
  * when it takes a single search string. The owner's template (JSON) is merged on top and may use placeholders.
+ * A known tool (BUILTIN) gets its built-in input instead of the guess from the schema.
  */
-export function mapInput(slot: Slot, schema: unknown, q: RadarQuery, template?: Record<string, unknown> | null): Mapped {
+export function mapInput(slot: Slot, schema: unknown, q: RadarQuery, template?: Record<string, unknown> | null, tool?: { provider: string; endpoint: string } | null): Mapped {
+  const bi = tool ? builtinFor(tool.provider, tool.endpoint) : null;
+  if (bi && bi.slot === slot) {
+    const kw = q.keywords.map((k) => k.trim()).filter(Boolean);
+    const qq = { ...q, keywords: kw, urls: (q.urls ?? []).filter(Boolean) };
+    const raw = bi.inputs(qq);
+    const inputs = raw.map((b, i) => (template ? { ...b, ...(fill(template, qq, kw[i] ?? kw[0] ?? '') as Record<string, unknown>) } : b));
+    const notes = [`Built-in input for ${tool!.provider} ${tool!.endpoint}. ${bi.note}.`];
+    if (kw.length > 5) notes.push('Only the first 5 keywords run.');
+    return { inputs, notes, missing: [] };
+  }
   let fields = schemaFields(schema);
   const notes: string[] = [];
   if (!fields.length) { fields = KNOWN_FIELDS[slot]; notes.push('This tool gave no input schema, so the usual field names are used.'); }

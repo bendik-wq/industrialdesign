@@ -402,7 +402,7 @@ export const SETTINGS = [
   { key: 'MONID_API_KEY', label: 'Radar: Monid API key', group: 'Radar', secret: true, placeholder: 'monid_…', help: 'monid.ai → API keys. Radar uses Monid to search YouTube, TikTok and the Meta Ad Library and to fetch transcripts. Every run is paid from the Monid account, so the monthly budget below is a hard stop.' },
   { key: 'RADAR_BUDGET_USD_MONTH', label: 'Radar: monthly budget (USD)', group: 'Radar', placeholder: '20', help: 'Radar stops starting runs once this month’s Monid spend (billed, plus the estimate of runs still going) reaches this. Blank = 20.' },
   { key: 'RADAR_MAX_ITEMS', label: 'Radar: results per search', group: 'Radar', placeholder: '15', help: 'How many videos or ads each search asks for. Most tools charge per result. 1 to 100, blank = 15.' },
-  { key: 'RADAR_INSTAGRAM', label: 'Radar: Instagram', group: 'Radar', placeholder: 'off', help: 'off (default). The standing rule is never to scrape Instagram, so Instagram sources stay switched off and no Instagram run starts. on = only if you have decided to change that rule.' },
+  { key: 'RADAR_INSTAGRAM', label: 'Radar: Instagram', group: 'Radar', placeholder: 'on', help: 'on (default). Owner-approved on 2026-11-05 for research on public reels only: keyword search and transcripts of public reels through Monid, with no logins and no DMs. off = no Instagram source and no Instagram run starts.' },
   { key: 'RADAR_SCHEDULE_HOURS', label: 'Radar: run every (hours)', group: 'Radar', placeholder: '24', help: 'Hours between the automatic runs of each radar. 0 = only when you press Run. Blank = 24.' },
 ] as const;
 

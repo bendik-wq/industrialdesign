@@ -1,0 +1,62 @@
+{
+ "runId": "01M6MQYCTPFCMYR2XEW04EQF8C",
+ "provider": "anyapi",
+ "endpoint": "/youtube.search",
+ "status": "RUNNING",
+ "price": {
+  "type": "PER_UNIT_MATRIX",
+  "amount": {
+   "value": 0.0005,
+   "currency": "USD"
+  },
+  "selectors": [
+   {
+    "label": "Route",
+    "key": "route",
+    "in": "body"
+   }
+  ],
+  "variants": [
+   {
+    "when": {
+     "route": "lynx"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0005,
+      "currency": "USD"
+     }
+    },
+    "label": "lynx · 99.6% uptime · 1.9 s median"
+   },
+   {
+    "when": {
+     "route": "badger"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0012,
+      "currency": "USD"
+     }
+    },
+    "label": "badger · 99.5% uptime · 1.8 s median"
+   },
+   {
+    "when": {
+     "route": "giraffe"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0012,
+      "currency": "USD"
+     }
+    },
+    "label": "giraffe · 99.9% uptime · 1.5 s median"
+   }
+  ]
+ },
+ "createdAt": "2026-11-05T02:17:28.443Z"
+}

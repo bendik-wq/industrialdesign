@@ -1,0 +1,184 @@
+{
+ "runId": "01M6MQZGCCTMM49HNPZNZV09SV",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "anyapi",
+ "providerName": "AnyAPI",
+ "endpoint": "/tiktok.search_keyword",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "query": "buy a business no money down"
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "PER_UNIT_MATRIX",
+  "amount": {
+   "value": 0.0006,
+   "currency": "USD"
+  },
+  "selectors": [
+   {
+    "label": "Route",
+    "key": "route",
+    "in": "body"
+   }
+  ],
+  "variants": [
+   {
+    "when": {
+     "route": "bison"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0006,
+      "currency": "USD"
+     }
+    },
+    "label": "bison · 94.3% uptime · 1.6 s median"
+   },
+   {
+    "when": {
+     "route": "quokka"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0008,
+      "currency": "USD"
+     }
+    },
+    "label": "quokka · 58.6% uptime · 2.5 s median"
+   },
+   {
+    "when": {
+     "route": "giraffe"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0012,
+      "currency": "USD"
+     }
+    },
+    "label": "giraffe · 99.1% uptime · 6 s median"
+   },
+   {
+    "when": {
+     "route": "fox"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0036,
+      "currency": "USD"
+     }
+    },
+    "label": "fox · 99.9% uptime · 3.1 s median"
+   }
+  ]
+ },
+ "cost": {
+  "value": 0.0012,
+  "currency": "USD"
+ },
+ "resultCount": 1,
+ "billedUnits": 1,
+ "createdAt": "2026-11-05T02:18:04.838Z",
+ "startedAt": "2026-11-05T02:18:05.017Z",
+ "completedAt": "2026-11-05T02:18:11.733Z",
+ "output": {
+  "data": {
+   "nextCursor": "cur_EJdPHOoaWRN-nPnbX22Gmg",
+   "videos": [
+    {
+     "author": "brian_luebben",
+     "authorFollowers": 191598,
+     "authorImage": "https://p19-common-sign.tiktokcdn-us.com/tos-useast8-avt-0068-tx2/ef62ebcffdff4ff289daa70e99ae7a57~tplv-tiktokx-cropcenter:1080:1080.webp",
+     "authorName": "brianluebben",
+     "authorUserId": "6812256086281651206",
+     "authorVerified": false,
+     "caption": "How to buy a business for no money down",
+     "comments": 51,
+     "createdUtc": 1777828421,
+     "durationSeconds": 66.067,
+     "hashtags": [],
+     "id": "7635714843097517342",
+     "image": "https://p16-common-sign.tiktokcdn-us.com/tos-useast8-p-0068-tx2/oUX3E7fBVE3vRBpEhgJmbej83BkAliEFiDOSIA~tplv-tiktokx-cropcenter:500:800.jpeg",
+     "likes": 4663,
+     "paidPartnership": false,
+     "region": "US",
+     "saves": 1962,
+     "shares": 601,
+     "soundAuthor": "brianluebben",
+     "soundClipId": "7635720018831559455",
+     "soundTitle": "original sound - brian_luebben",
+     "url": "https://www.tiktok.com/@brian_luebben/video/7635714843097517342",
+     "views": 59481
+    },
+    {
+     "author": "motionandsuccess",
+     "authorFollowers": 64185,
+     "authorImage": "https://p16-common-sign.tiktokcdn-us.com/tos-useast8-avt-0068-tx2/b9a169a33d34570914ff3587688cbfd3~tplv-tiktokx-cropcenter:1080:1080.webp",
+     "authorName": "Motion and Success",
+     "authorUserId": "7189644642587001902",
+     "authorVerified": false,
+     "caption": "How to buy businesses that are already making money for FREE 😳💰",
+     "comments": 13,
+     "createdUtc": 1784991560,
+     "durationSeconds": 105,
+     "hashtags": [],
+     "id": "7666480197809589518",
+     "image": "https://p19-common-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/oEIB1MCxp8vmCAIZw8bBECxAiZp0kgYItwfiIz~tplv-tiktokx-cropcenter:500:800.jpeg",
+     "likes": 1920,
+     "locationName": "Atlanta",
+     "paidPartnership": false,
+     "region": "US",
+     "saves": 1417,
+     "shares": 590,
+     "soundAuthor": "Motion and Success",
+     "soundClipId": "7666480382744791822",
+     "soundTitle": "original sound - motionandsuccess",
+     "url": "https://www.tiktok.com/@motionandsuccess/video/7666480197809589518",
+     "views": 23773
+    },
+    {
+     "author": "stevestrauss_mrallbiz",
+     "authorFollowers": 5643,
+     "authorImage": "https://p19-common-sign.tiktokcdn-us.com/tos-useast8-avt-0068-tx2/4fb9a77f297225c7fc9d024b2f2c0d4b~tplv-tiktokx-cropcenter:1080:1080.webp",
+     "authorName": "Steve Strauss/Small Business",
+     "authorUserId": "6999886794406052870",
+     "authorVerified": false,
+     "caption": "Buy a business with no money. No money down! Yes you can do it. I did it. Here’s how! #shoestringstartup #nomoneydown #startup #SmallBusiness #yougotthis ",
+     "comments": 6,
+     "createdUtc": 1745699050,
+     "durationSeconds": 279.7,
+     "hashtags": [
+      "shoestringstartup",
+      "nomoneydown",
+      "startup",
+      "SmallBusiness",
+      "yougotthis"
+     ],
+     "id": "7497720205305597214",
+     "image": "https://p19-common-sign.tiktokcdn-us.com/tos-useast8-p-0068-tx2/oo791MVJBQriai2E0jAAJRIDNIkB389RAhEOv~tplv-tiktokx-cropcenter:500:800.jpeg",
+     "likes": 175,
+     "paidPartnership": false,
+     "region": "US",
+     "saves": 99,
+     "shares": 14,
+     "soundAuthor": "Steve Strauss/Small Business",
+     "soundClipId": "7497720189534931742",
+     "soundTitle": "original sound - stevestrauss_mrallbiz",
+     "url": "https://www.tiktok.com/@stevestrauss_mrallbiz/video/7497720205305597214",
+     "views": 4621
+    }
+   ]
+  },
+  "found": true
+ }
+}
