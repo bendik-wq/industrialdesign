@@ -239,7 +239,7 @@ radarAdmin.get('/runs', async (c) => c.json({ runs: await recentRuns(runtimeFrom
 radarAdmin.get('/items', async (c) => {
   const rt = runtimeFrom(c);
   const q = c.req.query();
-  return c.json({ items: await listItems(rt, { platform: q.platform, niche: q.niche, radar: q.radar, sort: q.sort, limit: Number(q.limit) || undefined }) });
+  return c.json({ items: await listItems(rt, { platform: q.platform, niche: q.niche, radar: q.radar, sort: q.sort, limit: Number(q.limit) || undefined, all: q.all === '1' }) });
 });
 
 radarAdmin.get('/items/:id', async (c) => {

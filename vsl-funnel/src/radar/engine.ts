@@ -398,7 +398,23 @@ interface ItemListRow {
   transcript_source: string | null; analyzed_at: string | null; script_id: string | null; first_seen: string; last_seen: string; hook: string | null;
 }
 
-export async function listItems(rt: Runtime, f: { platform?: string; niche?: string; radar?: string; sort?: string; limit?: number }) {
+// ───────────── relevance ─────────────
+// Platform search (Instagram above all) also returns viral posts that have nothing to do with the query. An item ranks only when
+// its title, caption or author mentions a word from the radar's keywords or the business vocabulary below.
+const REL_STOP = new Set(["the", "and", "for", "with", "your", "you", "how", "what", "why", "that", "this", "from", "into", "about", "when", "make", "does", "much"]);
+export const BUSINESS_WORDS = ['business', 'businesses', 'acquisition', 'acquisitions', 'acquire', 'acquiring', 'seller', 'sellers', 'financing', 'finance', 'financed', 'private equity',
+  'roll up', 'roll-up', 'rollup', 'ebitda', 'revenue', 'profit', 'cash flow', 'cashflow', 'loan', 'sba', 'lender', 'bank', 'deal', 'deals', 'owner', 'owners', 'company', 'companies',
+  'entrepreneur', 'founder', 'ceo', 'franchise', 'merger', 'invest', 'investor', 'investing', 'valuation', 'buyout', 'equity', 'startup', 'small biz', 'smallbusiness', 'laundromat', 'hvac', 'plumbing'];
+const words = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9#&\s-]/g, ' ');
+export function relevantTo(text: string, keywords: string[]): boolean {
+  const t = ` ${words(text).replace(/#/g, ' ')} `;
+  if (!t.trim()) return false;
+  const kw = keywords.flatMap((k) => words(k).split(/\s+/)).filter((w) => w.length >= 4 && !REL_STOP.has(w));
+  if (kw.some((w) => t.includes(` ${w}`))) return true;
+  return BUSINESS_WORDS.some((w) => t.includes(` ${w}`));
+}
+
+export async function listItems(rt: Runtime, f: { platform?: string; niche?: string; radar?: string; sort?: string; limit?: number; all?: boolean }) {
   const where: string[] = []; const args: unknown[] = [];
   if (f.platform && (PLATFORMS as readonly string[]).includes(f.platform)) { where.push('platform = ?'); args.push(f.platform); }
   else if (f.platform === 'videos') where.push("platform != 'meta_ads'");
@@ -416,7 +432,14 @@ export async function listItems(rt: Runtime, f: { platform?: string; niche?: str
     score: (r) => r.score, views: (r) => r.views ?? -1, engagement: (r) => parts(r).engagement ?? -1, velocity: (r) => parts(r).velocity ?? -1,
     longevity: (r) => r.ad_active_days ?? -1, variants: (r) => r.ad_variants ?? -1, recent: (r) => Date.parse(r.published_at ?? r.first_seen) || 0,
   };
-  return results.sort((a, b) => key[sort](b) - key[sort](a)).slice(0, Math.min(200, f.limit ?? 120)).map((r) => ({ ...r, radar_ids: parse<string[]>(r.radar_ids, []), score_parts: parse(r.score_json, null), score_json: undefined }));
+  // Off-topic items are left out unless asked for (all=1).
+  let kept = results;
+  if (!f.all) {
+    const { results: wl } = await rt.env.DB.prepare('SELECT id, keywords_json FROM radar_watchlists').all<{ id: string; keywords_json: string }>();
+    const kwOf = new Map(wl.map((w) => [w.id, parse<string[]>(w.keywords_json, [])]));
+    kept = results.filter((r) => relevantTo(`${r.title ?? ''} ${r.caption ?? ''} ${r.author ?? ''}`, parse<string[]>(r.radar_ids, []).flatMap((id) => kwOf.get(id) ?? [])));
+  }
+  return kept.sort((a, b) => key[sort](b) - key[sort](a)).slice(0, Math.min(200, f.limit ?? 120)).map((r) => ({ ...r, radar_ids: parse<string[]>(r.radar_ids, []), score_parts: parse(r.score_json, null), score_json: undefined }));
 }
 
 export async function getItem(rt: Runtime, id: string) {
