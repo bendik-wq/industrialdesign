@@ -1,0 +1,248 @@
+{
+ "runId": "01M6P1Y8FYPH2J09N775SVKJ95",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "anyapi",
+ "providerName": "AnyAPI",
+ "endpoint": "/twitter.search",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "query": "(\"buy a business\" OR \"private equity\" OR acquisition) min_faves:500 lang:en",
+   "queryType": "Top",
+   "limit": 20
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "PER_UNIT_MATRIX",
+  "amount": {
+   "value": 0.0001,
+   "currency": "USD"
+  },
+  "selectors": [
+   {
+    "label": "Route",
+    "key": "route",
+    "in": "body"
+   }
+  ],
+  "variants": [
+   {
+    "when": {
+     "route": "lynx"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.00054,
+      "currency": "USD"
+     }
+    },
+    "label": "lynx · 100% uptime · 1.4 s median"
+   },
+   {
+    "when": {
+     "route": "capybara"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0006,
+      "currency": "USD"
+     }
+    },
+    "label": "capybara · 99% uptime · 1.9 s median"
+   },
+   {
+    "when": {
+     "route": "badger"
+    },
+    "price": {
+     "type": "PER_RESULT",
+     "amount": {
+      "value": 0.0001,
+      "currency": "USD"
+     },
+     "flatFee": {
+      "value": 0.0001,
+      "currency": "USD"
+     }
+    },
+    "label": "badger · 95.9% uptime · 1.1 s median"
+   },
+   {
+    "when": {
+     "route": "octopus"
+    },
+    "price": {
+     "type": "PER_RESULT",
+     "amount": {
+      "value": 0.00022,
+      "currency": "USD"
+     },
+     "flatFee": {
+      "value": 0.0044,
+      "currency": "USD"
+     }
+    },
+    "label": "octopus · 84.4% uptime · 13.3 s median"
+   }
+  ]
+ },
+ "cost": {
+  "value": 0.0021,
+  "currency": "USD"
+ },
+ "resultCount": 20,
+ "billedUnits": 20,
+ "createdAt": "2026-11-05T14:31:24.267Z",
+ "startedAt": "2026-11-05T14:31:24.472Z",
+ "completedAt": "2026-11-05T14:31:26.930Z",
+ "output": {
+  "data": {
+   "items": [
+    {
+     "authorFollowers": 18525,
+     "authorId": "243415763",
+     "authorImage": "https://pbs.twimg.com/profile_images/2111823242478370816/0os4qGt4_normal.jpg",
+     "authorName": "DeFi Dave",
+     "authorUsername": "defidave",
+     "authorVerified": true,
+     "bookmarkCount": 1020,
+     "conversationId": "2115071995368906798",
+     "createdUtc": 1793107434,
+     "id": "2115071995368906798",
+     "inReplyToId": null,
+     "isReply": false,
+     "lang": "en",
+     "likeCount": 1352,
+     "media": [
+      {
+       "height": 1550,
+       "type": "photo",
+       "url": "https://pbs.twimg.com/media/HVo9qmqXoAAwDO6.jpg",
+       "width": 2292
+      }
+     ],
+     "quoteCount": 35,
+     "replyCount": 74,
+     "retweetCount": 221,
+     "text": "Want to know if a spot is owned by private equity?\n\nI made this to help you find out.\n\nhttps://t.co/2Xa0wmo1uo https://t.co/7LvCsTHqS9",
+     "url": "https://x.com/i/web/status/2115071995368906798",
+     "viewCount": 199062
+    },
+    {
+     "authorFollowers": 19956,
+     "authorId": "1886164741355139072",
+     "authorImage": "https://pbs.twimg.com/profile_images/2100901873062404096/ZRjI8m4o_normal.jpg",
+     "authorName": "skumm🧊",
+     "authorUsername": "skumWgmi",
+     "authorVerified": true,
+     "bookmarkCount": 135,
+     "conversationId": "2108923139380125797",
+     "createdUtc": 1791641432,
+     "id": "2108923139380125797",
+     "inReplyToId": null,
+     "isReply": false,
+     "lang": "en",
+     "likeCount": 3470,
+     "media": [],
+     "quoteCount": 34,
+     "replyCount": 146,
+     "retweetCount": 858,
+     "text": "My friend’s dad built a business from nothing. 30 years. Blood and sweat. Turned it into something worth $2,000,000.\n\nSold it in 2019 to a private equity firm.\n\nThey gutted it in 18 months. Cut 40 jobs. Raised prices 35%. Eliminated the pension plan he’d built for his employees. Squeezed every dollar out and sold the carcass.\n\nHe calls it the worst decision he ever made. Said he thought they’d protect what he built.\n\nPrivate equity doesn’t buy businesses to run them. They buy them to harvest them. And they’re doing it to every industry you depend on daily.",
+     "url": "https://x.com/i/web/status/2108923139380125797",
+     "viewCount": 54255
+    },
+    {
+     "authorFollowers": 1120671,
+     "authorId": "150078976",
+     "authorImage": "https://pbs.twimg.com/profile_images/1410747515511660547/BuMyJGhl_normal.jpg",
+     "authorName": "Chris Murphy 🟧",
+     "authorUsername": "ChrisMurphyCT",
+     "authorVerified": true,
+     "bookmarkCount": 365,
+     "conversationId": "1899977043774763411",
+     "createdUtc": 1741824801,
+     "id": "1899977043774763411",
+     "inReplyToId": null,
+     "isReply": false,
+     "lang": "en",
+     "likeCount": 12883,
+     "media": [
+      {
+       "height": 720,
+       "type": "video",
+       "url": "https://pbs.twimg.com/amplify_video_thumb/1899844240902934528/img/BZxYJJ9hRntGSes9.jpg",
+       "width": 1280
+      }
+     ],
+     "quoteCount": 376,
+     "replyCount": 4409,
+     "retweetCount": 4679,
+     "text": "What's the attack on the Department of Education really about?\n\nIt's about selling off our public schools to corporations and private equity companies so schools can be run to make a profit instead of to educate our kids.\n\nIt's about the destruction of our public schools. https://t.co/eRY1XD0w72",
+     "url": "https://x.com/i/web/status/1899977043774763411",
+     "viewCount": 514766
+    },
+    {
+     "authorFollowers": 17697,
+     "authorId": "1879146497440419840",
+     "authorImage": "https://pbs.twimg.com/profile_images/2104106147242516480/VYeoYpWD_normal.jpg",
+     "authorName": "Leo",
+     "authorUsername": "Leonajardinho",
+     "authorVerified": true,
+     "bookmarkCount": 145,
+     "conversationId": "2111141220580036992",
+     "createdUtc": 1792170264,
+     "id": "2111141220580036992",
+     "inReplyToId": null,
+     "isReply": false,
+     "lang": "en",
+     "likeCount": 2376,
+     "media": [],
+     "quoteCount": 73,
+     "replyCount": 197,
+     "retweetCount": 937,
+     "text": "Called an emergency vet clinic to treat a standard ear infection on my dog.\n\nQuote came back at $940.\n\nI asked the receptionist how long the procedure takes.\n\nShe goes: \"about 10 minutes.\"\n\nI said: \"so I'm paying $5,600 an hour for labor?\"\n\nShe looked around and whispered:\n\n\"I make $18 an hour. The private equity health conglomerate that bought out our local vet clinic last year sets mandatory revenue quotas on every single exam room.\"\n\nThen she showed me her tablet.\n\nIf she doesn't hit $2,500 a day in diagnostic upsells, her clinic manager writes her up.\n\nThe original family vet ran that practice for 25 years charging $75 a visit and knew every animal by name.\n\nNow Wall Street private equity owns veterinary clinics, dental chains, and optical stores across the country….. jacked up prices by 400%, and put animal caretakers on corporate sales commissions.\n\nYou aren't paying for veterinary care anymore.\n\nYou're funding a private equity fund's debt service on a basic ear drop that costs $4 to manufacture.",
+     "url": "https://x.com/i/web/status/2111141220580036992",
+     "viewCount": 40116
+    },
+    {
+     "authorFollowers": 1432340,
+     "authorId": "1099579684981944320",
+     "authorImage": "https://pbs.twimg.com/profile_images/1593753619148382208/YYzzCs6C_normal.jpg",
+     "authorName": "Wall Street Apes",
+     "authorUsername": "WallStreetApes",
+     "authorVerified": true,
+     "bookmarkCount": 1219,
+     "conversationId": "1997412336861417872",
+     "createdUtc": 1765055185,
+     "id": "1997412336861417872",
+     "inReplyToId": null,
+     "isReply": false,
+     "lang": "en",
+     "likeCount": 19790,
+     "media": [
+      {
+       "height": 1920,
+       "type": "video",
+       "url": "https://pbs.twimg.com/amplify_video_thumb/1997412249686978560/img/7IfwU2nyoqOEklRL.jpg",
+       "width": 1080
+      }
+     ],
+     "quoteCount": 750,
+     "replyCount": 5126,
+     "retweetCount": 3933,
+     "text": "American went to Panera Bread and he can’t believe the prices\n\nHe ordered 2 soups, 2 grilled cheese sandwiches and 1 other sandwich\n\nThe total was $71\n\nPanera Bread is owned by a private equity firm https://t.co/W4BC7QcAW7",
+     "url": "https://x.com/i/web/status/1997412336861417872",
+     "viewCount": 1859909
+    }
+   ],
+   "nextCursor": "cur_7zQWTdBUL5plu9G8r56GDg"
+  },
+  "found": true
+ }
+}

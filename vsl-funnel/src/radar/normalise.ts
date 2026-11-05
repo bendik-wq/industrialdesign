@@ -18,6 +18,11 @@ export interface RadarItem {
   ad_start: string | null; ad_end: string | null; ad_active: number | null; ad_active_days: number | null; ad_variants: number | null;
   ad_cta: string | null; ad_link: string | null; ad_platforms: string | null;
   captions: string | null; // a transcript or subtitles found in the scraper output
+  /** Radar v2. Text posts (X, LinkedIn, Reddit, Substack): the full text, which is also their transcript. */
+  body_text: string | null;
+  bookmarks: number | null; saves: number | null; reposts: number | null;
+  /** Reddit: the subreddit. Substack: the publication host. */
+  source_ref: string | null;
   raw: Record<string, unknown>;
 }
 
@@ -85,8 +90,136 @@ function base(platform: Platform, id: string, raw: Record<string, unknown>): Rad
     id: `${platform}:${id}`, platform, external_id: id, url: null, author: null, author_id: null, title: null, caption: null, published_at: null,
     duration_s: null, views: null, likes: null, comments: null, shares: null, followers: null, thumbnail_url: null, embed_url: null,
     media_url: null, media_kind: null, ad_start: null, ad_end: null, ad_active: null, ad_active_days: null, ad_variants: null,
-    ad_cta: null, ad_link: null, ad_platforms: null, captions: null, raw,
+    ad_cta: null, ad_link: null, ad_platforms: null, captions: null, body_text: null, bookmarks: null, saves: null, reposts: null, source_ref: null, raw,
   };
+}
+
+/** The longest body_text kept (a long Substack essay fits; D1 rows stay well under their limit). */
+export const BODY_MAX = 200_000;
+const body = (v: unknown): string | null => {
+  if (typeof v !== 'string') return null;
+  const t = v.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
+  return t ? t.slice(0, BODY_MAX) : null;
+};
+const firstLine = (t: string | null, n = 200) => (t ? t.split('\n').map((x) => x.trim()).find(Boolean)?.slice(0, n) ?? null : null);
+
+/**
+ * X (AnyAPI /twitter.search): {id, url, text, likeCount, retweetCount, replyCount, quoteCount, bookmarkCount, viewCount,
+ * authorUsername, authorName, authorId, authorFollowers, createdUtc, isReply, media: [{type, url}]}. Replies are left
+ * out (the search asks for top posts; a reply is no format). Reposts count retweets and quotes.
+ */
+export function normaliseX(r: Record<string, unknown>): RadarItem | null {
+  const id = s(first(r.id, r.tweetId, r.rest_id), 30);
+  if (!id || !/^\d{5,25}$/.test(id)) return null;
+  if (r.isReply === true || r.isRetweet === true) return null;
+  const it = base('x', id, r);
+  const user = s(first(r.authorUsername, r.username, get(r, 'author.username')), 60);
+  it.url = safeUrl(r.url) ?? (user ? `https://x.com/${user}/status/${id}` : `https://x.com/i/web/status/${id}`);
+  it.body_text = body(first(r.text, r.fullText, r.full_text));
+  it.caption = it.body_text ? it.body_text.slice(0, 4000) : null;
+  it.title = firstLine(it.body_text);
+  it.author = user ?? s(r.authorName, 100);
+  it.author_id = s(first(r.authorId, get(r, 'author.id')), 40);
+  it.published_at = isoTime(first(r.createdUtc, r.createdAt, r.created_at));
+  it.views = count(first(r.viewCount, r.views));
+  it.likes = count(first(r.likeCount, r.favoriteCount, r.likes));
+  it.comments = count(first(r.replyCount, r.replies));
+  const rt = count(first(r.retweetCount, r.retweets)); const qt = count(first(r.quoteCount, r.quotes));
+  it.reposts = rt == null && qt == null ? null : (rt ?? 0) + (qt ?? 0);
+  it.bookmarks = count(first(r.bookmarkCount, r.bookmarks));
+  it.followers = count(first(r.authorFollowers, get(r, 'author.followers')));
+  const media = Array.isArray(r.media) ? r.media.filter(isObj) : [];
+  const m0 = media[0];
+  if (m0) {
+    const video = /video|gif/i.test(String(m0.type ?? ''));
+    // The image (or a video's preview image) only; never the video file.
+    const image = (v: unknown) => { const u = safeUrl(v); return u && (/\.(jpe?g|png|webp)(\?|$)/i.test(u) || /thumb/i.test(u)) ? u : null; };
+    it.thumbnail_url = video ? image(first(m0.previewUrl, m0.thumbnailUrl, m0.preview_image_url)) ?? image(m0.url) : safeUrl(first(m0.url, m0.mediaUrl));
+    it.media_kind = video ? 'video' : 'image';
+    it.media_url = video ? null : it.thumbnail_url;
+    it.duration_s = video ? seconds(first(m0.durationSeconds, m0.duration_ms != null ? Number(m0.duration_ms) / 1000 : null)) : null;
+  }
+  return it;
+}
+
+/** LinkedIn (AnyAPI /linkedin.search_posts): {id, url, text, authorName, authorUrl, reactionCount, commentCount, createdUtc}. */
+export function normaliseLinkedIn(r: Record<string, unknown>): RadarItem | null {
+  const id = s(first(r.id, r.urn, r.activityId), 60)?.replace(/^urn:li:activity:/, '') ?? null;
+  if (!id || !/^[\w:-]{5,60}$/.test(id)) return null;
+  const it = base('linkedin', id, r);
+  it.url = safeUrl(first(r.url, r.postUrl)) ?? `https://www.linkedin.com/feed/update/urn:li:activity:${id}/`;
+  it.body_text = body(first(r.text, r.commentary, r.content));
+  it.caption = it.body_text ? it.body_text.slice(0, 4000) : null;
+  it.title = firstLine(it.body_text);
+  it.author = s(first(r.authorName, get(r, 'author.name')), 200);
+  it.author_id = s(first(r.authorUrl, get(r, 'author.url'), r.authorId), 300);
+  it.published_at = isoTime(first(r.createdUtc, r.postedAt, r.createdAt));
+  it.likes = count(first(r.reactionCount, r.reactions, r.likeCount));
+  it.comments = count(first(r.commentCount, r.comments));
+  it.reposts = count(first(r.repostCount, r.shareCount, r.reposts));
+  it.followers = count(first(r.authorFollowers, get(r, 'author.followers')));
+  return it;
+}
+
+/**
+ * Reddit (AnyAPI /reddit.search and subreddit posts): {id, title, selftext, author, authorId, subreddit, score,
+ * numComments, permalink, url, createdUtc, nsfw}. NSFW posts are left out. The score (upvotes) counts as likes.
+ */
+export function normaliseReddit(r: Record<string, unknown>): RadarItem | null {
+  const id = s(first(r.id, r.name), 20)?.replace(/^t3_/, '') ?? null;
+  if (!id || !/^[a-z0-9]{4,12}$/i.test(id)) return null;
+  if (r.nsfw === true || r.over_18 === true) return null;
+  const it = base('reddit', id, r);
+  const perma = s(r.permalink, 600);
+  it.url = perma && perma.startsWith('/r/') ? `https://www.reddit.com${perma}` : safeUrl(r.url);
+  it.title = s(r.title, 300);
+  const self = body(first(r.selftext, r.body, r.text));
+  it.body_text = body([it.title, self].filter(Boolean).join('\n\n'));
+  it.caption = self ? self.slice(0, 4000) : null;
+  it.author = s(r.author, 100);
+  it.author_id = s(first(r.authorId, r.author_fullname), 60);
+  it.source_ref = s(first(r.subreddit, r.subredditName), 40);
+  it.published_at = isoTime(first(r.createdUtc, r.created_utc, r.created));
+  it.likes = count(first(r.score, r.ups, r.upvotes));
+  it.comments = count(first(r.numComments, r.num_comments, r.comments));
+  it.followers = count(first(r.subredditSubscribers, r.subreddit_subscribers));
+  const thumb = safeUrl(first(r.thumbnail, r.previewImage));
+  it.thumbnail_url = thumb;
+  return it;
+}
+
+/**
+ * Substack (AnyAPI /substack.posts): {postId, title, subtitle, description, text, markdown, url, reactionCount,
+ * commentCount, restackCount, wordcount, createdUtc, image, isPaid, contentStatus, publication: {name, subdomain,
+ * customDomain, url}, authorName}. The author is the publication (posts rank against their publication's median).
+ */
+export function normaliseSubstack(r: Record<string, unknown>): RadarItem | null {
+  const id = s(first(r.postId, r.id), 30);
+  if (!id || !/^[\w-]{2,30}$/.test(id)) return null;
+  const it = base('substack', id, r);
+  const pub = isObj(r.publication) ? r.publication : {};
+  it.url = safeUrl(r.url);
+  it.title = s(r.title, 300);
+  it.caption = s(first(r.subtitle, r.description), 1000);
+  it.body_text = body(first(r.text, r.markdown, r.bodyText));
+  const pubUrl = safeUrl(first(pub.url, pub.customDomain ? `https://${String(pub.customDomain)}` : null, pub.subdomain ? `https://${String(pub.subdomain)}.substack.com` : null, it.url));
+  it.source_ref = pubUrl ? new URL(pubUrl).hostname.toLowerCase() : null;
+  it.author = s(first(pub.name, r.authorName), 200);
+  it.author_id = it.source_ref ?? s(first(pub.subdomain, r.authorHandle), 100);
+  it.published_at = isoTime(first(r.createdUtc, r.postDate, r.post_date));
+  it.likes = count(first(r.reactionCount, r.reactions, r.likes));
+  it.comments = count(first(r.commentCount, r.comments));
+  it.reposts = count(first(r.restackCount, r.restacks));
+  it.thumbnail_url = safeUrl(first(r.image, r.coverImage, r.cover_image));
+  return it;
+}
+
+/** The next page's cursor in a run's output (AnyAPI: data.nextCursor), or null on the last page. */
+export function nextCursorOf(output: unknown): string | null {
+  const o = isObj(output) ? output : null;
+  if (!o) return null;
+  const c = first(get(o, 'data.nextCursor'), o.nextCursor, get(o, 'data.next_cursor'), o.next_cursor);
+  return typeof c === 'string' && c.trim() ? c.trim().slice(0, 400) : null;
 }
 
 export function normaliseYouTube(r: Record<string, unknown>): RadarItem | null {
@@ -226,7 +359,10 @@ export function outputRows(output: unknown): Record<string, unknown>[] {
 }
 
 export function normalise(platform: Platform, output: unknown, now = Date.now()): RadarItem[] {
-  const fn = { youtube: normaliseYouTube, tiktok: normaliseTikTok, instagram: normaliseInstagram, meta_ads: (r: Record<string, unknown>) => normaliseMetaAd(r, now) }[platform];
+  const fn = {
+    youtube: normaliseYouTube, tiktok: normaliseTikTok, instagram: normaliseInstagram, meta_ads: (r: Record<string, unknown>) => normaliseMetaAd(r, now),
+    x: normaliseX, linkedin: normaliseLinkedIn, reddit: normaliseReddit, substack: normaliseSubstack,
+  }[platform];
   const out = new Map<string, RadarItem>();
   for (const r of outputRows(output)) {
     try { const it = fn(r); if (it && !out.has(it.id)) out.set(it.id, it); } catch { /* one bad row never stops the rest */ }
@@ -239,6 +375,29 @@ export function subtitleText(t: string): string {
   if (!/-->/.test(t)) return t.trim();
   return t.replace(/^WEBVTT.*$/m, '').replace(/^(NOTE|STYLE|Kind:|Language:).*$/gm, '').replace(/^\d+\s*$/gm, '')
     .replace(/^[\d:.,]+ --> .*$/gm, '').replace(/<[^>]+>/g, '').replace(/\n{2,}/g, '\n').trim();
+}
+
+/** The longest transcript kept (the full text of a long video). */
+export const TRANSCRIPT_MAX = 400_000;
+export interface Segment { start: number; end: number | null; text: string }
+/** A transcript run's timed segments ({start, end, text}), when the tool gave timings; [] otherwise. */
+export function transcriptSegments(output: unknown): Segment[] {
+  const out: Segment[] = [];
+  for (const r of outputRows(output)) {
+    const arr = first(r.transcript, r.segments, r.captions, r.subtitles);
+    const list = Array.isArray(arr) ? arr : 'text' in r && 'start' in r ? [r] : [];
+    for (const x of list) {
+      if (!isObj(x)) continue;
+      const text = s(first(x.text, x.snippet, x.caption), 2000);
+      const st = seconds(first(x.start, x.offset, x.startTime, x.start_time, x.startMs != null ? Number(x.startMs) / 1000 : null));
+      if (!text || st == null) continue;
+      const dur = seconds(first(x.duration, x.dur));
+      const en = seconds(first(x.end, x.endTime, x.end_time, x.endMs != null ? Number(x.endMs) / 1000 : null)) ?? (dur != null ? st + dur : null);
+      out.push({ start: Math.round(st * 100) / 100, end: en == null ? null : Math.round(en * 100) / 100, text });
+      if (out.length >= 5000) return out;
+    }
+  }
+  return out;
 }
 
 /** A transcript run's output as text, with [m:ss] marks when the tool gave timings. */
@@ -263,25 +422,67 @@ export function transcriptText(output: unknown): string | null {
     else { const c = captionsFrom(r); if (c) lines.push(c); else if (typeof r.text === 'string') lines.push(r.text); }
   }
   const txt = lines.join('\n').trim();
-  return txt ? txt.slice(0, 60_000) : null;
+  return txt ? txt.slice(0, TRANSCRIPT_MAX) : null;
 }
 
 // ───────────── scoring ─────────────
 
 export interface ScoreParts {
-  ratio: number | null; ratio_basis: 'followers' | 'author' | 'platform' | null; velocity: number | null; engagement: number | null;
+  ratio: number | null; ratio_basis: 'followers' | 'source' | 'author' | 'platform' | null; velocity: number | null; engagement: number | null;
   days_active: number | null; variants: number | null; score: number;
+  /** Radar v2: what the ratio and velocity count (views on video platforms, weighted interactions on text ones). */
+  metric?: 'views' | 'interactions'; interactions?: number | null;
 }
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
-const median = (xs: number[]) => { if (!xs.length) return 0; const a = [...xs].sort((x, y) => x - y); const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+export const median = (xs: number[]) => { if (!xs.length) return 0; const a = [...xs].sort((x, y) => x - y); const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+
+/** Platforms whose ratio is on interactions: their reach is not public (or, on X, the feed follows followers). */
+export const INTERACTION_PLATFORMS = new Set(['x', 'linkedin', 'reddit', 'substack']);
+/** Platforms ranked against their source (the subreddit, the publication) before anything else. */
+export const SOURCE_PLATFORMS = new Set(['reddit', 'substack']);
+/** X: the share of followers a typical post engages (1%), so a ratio of 1 is an ordinary post. */
+export const X_ENGAGEMENT_RATE = 0.01;
+
+type Scorable = Pick<RadarItem, 'platform' | 'views' | 'likes' | 'comments' | 'shares' | 'followers' | 'published_at' | 'author' | 'ad_active_days' | 'ad_variants'>
+  & Partial<Pick<RadarItem, 'bookmarks' | 'saves' | 'reposts'>>;
 
 /**
- * Outlier-ness of a video: views against the author's followers (or their typical views here, or the platform's
- * typical views here), views per day since publishing, and engagement (likes + comments + shares per view) when the
- * source gives any of those counts.
- * Ads: days active and the number of variants Meta groups together (spend is not public for commercial ads).
+ * Weighted interactions: likes + 2 comments + 3 (shares + reposts) + 3 bookmarks + 2 saves. A comment, a share or a
+ * save costs the viewer more than a like, so it says more about the post. Null when the source gives no counts.
  */
-export function scoreItem(it: Pick<RadarItem, 'platform' | 'views' | 'likes' | 'comments' | 'shares' | 'followers' | 'published_at' | 'author' | 'ad_active_days' | 'ad_variants'>, ctx: { authorViews?: number[]; platformViews?: number[]; now?: number } = {}): ScoreParts {
+export function interactions(it: Partial<Pick<RadarItem, 'likes' | 'comments' | 'shares' | 'reposts' | 'bookmarks' | 'saves'>>): number | null {
+  const parts = [it.likes, it.comments, it.shares, it.reposts, it.bookmarks, it.saves];
+  if (parts.every((x) => x == null)) return null;
+  return (it.likes ?? 0) + 2 * (it.comments ?? 0) + 3 * ((it.shares ?? 0) + (it.reposts ?? 0)) + 3 * (it.bookmarks ?? 0) + 2 * (it.saves ?? 0);
+}
+
+/** The number an item's ratio and velocity count: views on video platforms, weighted interactions on text ones. */
+export function metricOf(it: Scorable): number | null {
+  return INTERACTION_PLATFORMS.has(it.platform) ? interactions(it) : it.views;
+}
+
+/**
+ * The outlier score, 0 to 100, on one scale for every platform so formats can be compared across platforms.
+ *
+ *   I (interactions) = likes + 2·comments + 3·(shares + reposts) + 3·bookmarks + 2·saves
+ *   M (metric)       = views on YouTube, TikTok and Instagram; I on X, LinkedIn, Reddit and Substack (their reach is
+ *                      not public; X gives views, but its feed follows followers, so X is judged on I against followers)
+ *   R (ratio)        = M against a baseline, the first that exists:
+ *                        Reddit and Substack: the median M of the same subreddit or publication (2+ other posts);
+ *                        followers (videos: views / followers; X: I / (1% of followers), so R = 1 is an ordinary post);
+ *                        the author's median M here (2+ other items); the platform's median M here (3+ items)
+ *   V (velocity)     = M per day since publishing (at least one day)
+ *   E (engagement)   = I / views, when both are known
+ *
+ *   score = 50·clamp(log10(R + 1) / log10(11))     ten times the baseline gives the full 50
+ *         + 30·clamp(log10(V + 1) / vmax)          vmax = 6 for views (1M a day), 4 for interactions (10k a day)
+ *         + 20·clamp(E / 0.1)                      10% engagement gives the full 20
+ *   With no E (no views, or a search that gives no likes, comments or shares) the first two parts are scaled to 100.
+ *
+ * Meta ads: 70·clamp(days active / 90) + 30·clamp(log2(variants) / 4) (Meta shows no spend for commercial ads).
+ * `authorViews`, `platformViews` and `sourceValues` hold the M of the other items (views or interactions).
+ */
+export function scoreItem(it: Scorable, ctx: { authorViews?: number[]; platformViews?: number[]; sourceValues?: number[]; now?: number } = {}): ScoreParts {
   const now = ctx.now ?? Date.now();
   if (it.platform === 'meta_ads') {
     const days = it.ad_active_days ?? 0;
@@ -289,19 +490,28 @@ export function scoreItem(it: Pick<RadarItem, 'platform' | 'views' | 'likes' | '
     const score = 70 * clamp01(days / 90) + 30 * clamp01(Math.log2(variants) / 4);
     return { ratio: null, ratio_basis: null, velocity: null, engagement: null, days_active: it.ad_active_days, variants, score: Math.round(score * 10) / 10 };
   }
-  const views = it.views ?? 0;
+  const byInteractions = INTERACTION_PLATFORMS.has(it.platform);
+  const inter = interactions(it);
+  const m = (byInteractions ? inter : it.views) ?? 0;
   let ratio: number | null = null; let basis: ScoreParts['ratio_basis'] = null;
-  if (it.followers && it.followers > 0) { ratio = views / it.followers; basis = 'followers'; }
-  else if ((ctx.authorViews?.length ?? 0) >= 2 && median(ctx.authorViews!) > 0) { ratio = views / median(ctx.authorViews!); basis = 'author'; }
-  else if ((ctx.platformViews?.length ?? 0) >= 3 && median(ctx.platformViews!) > 0) { ratio = views / median(ctx.platformViews!); basis = 'platform'; }
+  const med = (xs: number[] | undefined, n: number) => ((xs?.length ?? 0) >= n && median(xs!) > 0 ? median(xs!) : null);
+  const src = SOURCE_PLATFORMS.has(it.platform) ? med(ctx.sourceValues, 2) : null;
+  const auth = med(ctx.authorViews, 2);
+  const plat = med(ctx.platformViews, 3);
+  if (src) { ratio = m / src; basis = 'source'; }
+  else if (it.followers && it.followers > 0 && (it.platform === 'x' || !byInteractions)) { ratio = m / (it.platform === 'x' ? Math.max(1, it.followers * X_ENGAGEMENT_RATE) : it.followers); basis = 'followers'; }
+  else if (auth) { ratio = m / auth; basis = 'author'; }
+  else if (plat) { ratio = m / plat; basis = 'platform'; }
   const ageDays = it.published_at ? Math.max(1, (now - Date.parse(it.published_at)) / DAY) : null;
-  const velocity = ageDays && views ? views / ageDays : null;
-  // A search that gives no likes, comments or shares (YouTube search) has no engagement: it is left out, not zero,
-  // and the score is views against the baseline plus views per day, scaled back to 100.
-  const known = it.likes != null || it.comments != null || it.shares != null;
-  const engagement = views > 0 && known ? ((it.likes ?? 0) + (it.comments ?? 0) + (it.shares ?? 0)) / views : null;
-  const reach = 50 * clamp01(Math.log10((ratio ?? 0) + 1) / Math.log10(11)) + 30 * clamp01(Math.log10((velocity ?? 0) + 1) / 6);
-  const score = known ? reach + 20 * clamp01((engagement ?? 0) / 0.1) : reach / 0.8;
-  const r2 = (x: number | null) => (x == null ? null : Math.round(x * 1000) / 1000);
-  return { ratio: r2(ratio), ratio_basis: basis, velocity: velocity == null ? null : Math.round(velocity), engagement: r2(engagement), days_active: null, variants: null, score: Math.round(score * 10) / 10 };
+  const velocity = ageDays && m ? m / ageDays : null;
+  const views = it.views ?? 0;
+  const engagement = views > 0 && inter != null ? inter / views : null;
+  const reach = 50 * clamp01(Math.log10((ratio ?? 0) + 1) / Math.log10(11)) + 30 * clamp01(Math.log10((velocity ?? 0) + 1) / (byInteractions ? 4 : 6));
+  const score = engagement != null ? reach + 20 * clamp01(engagement / 0.1) : reach / 0.8;
+  const r3 = (x: number | null) => (x == null ? null : Math.round(x * 1000) / 1000);
+  return {
+    ratio: r3(ratio), ratio_basis: basis, velocity: velocity == null ? null : Math.round(velocity), engagement: r3(engagement), days_active: null, variants: null,
+    score: Math.round(Math.min(100, score) * 10) / 10, metric: byInteractions ? 'interactions' : 'views', interactions: inter,
+  };
 }
+

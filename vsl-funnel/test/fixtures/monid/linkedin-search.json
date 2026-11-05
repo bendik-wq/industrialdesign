@@ -1,0 +1,145 @@
+{
+ "runId": "01M6P1YNXZ3EMD894PHGHY3H0G",
+ "caller": "API_KEY#fixture",
+ "owner": "user_fixture",
+ "provider": "anyapi",
+ "providerName": "AnyAPI",
+ "endpoint": "/linkedin.search_posts",
+ "status": "COMPLETED",
+ "input": {
+  "body": {
+   "query": "acquired a business",
+   "datePosted": "last-month"
+  }
+ },
+ "providerResponse": {
+  "httpStatus": 200
+ },
+ "price": {
+  "type": "PER_UNIT_MATRIX",
+  "amount": {
+   "value": 0.0012,
+   "currency": "USD"
+  },
+  "selectors": [
+   {
+    "label": "Route",
+    "key": "route",
+    "in": "body"
+   }
+  ],
+  "variants": [
+   {
+    "when": {
+     "route": "giraffe"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.0012,
+      "currency": "USD"
+     }
+    },
+    "label": "giraffe · 92% uptime · 5.7 s median"
+   },
+   {
+    "when": {
+     "route": "hedgehog"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.00242,
+      "currency": "USD"
+     }
+    },
+    "label": "hedgehog · 99.1% uptime · 1.9 s median"
+   },
+   {
+    "when": {
+     "route": "fox"
+    },
+    "price": {
+     "type": "PER_CALL",
+     "amount": {
+      "value": 0.018,
+      "currency": "USD"
+     }
+    },
+    "label": "fox · 99.7% uptime · 4.7 s median"
+   }
+  ]
+ },
+ "cost": {
+  "value": 0.00242,
+  "currency": "USD"
+ },
+ "resultCount": 1,
+ "billedUnits": 1,
+ "createdAt": "2026-11-05T14:31:38.062Z",
+ "startedAt": "2026-11-05T14:31:38.240Z",
+ "completedAt": "2026-11-05T14:31:41.279Z",
+ "output": {
+  "data": {
+   "nextCursor": "cur_X8defws5fFVoB-WgqHOKHg",
+   "posts": [
+    {
+     "authorName": "Yousuf Imran",
+     "authorUrl": "https://www.linkedin.com/in/yousufimran",
+     "avatarUrl": "https://media.licdn.com/dms/image/v2/D5603AQF_VS5Em_PLDw/profile-displayphoto-crop_800_800/B56Z81HV9AHYAI-/0/1783302546192",
+     "commentCount": 91,
+     "createdUtc": 1793806458,
+     "id": "7523769603370700800",
+     "reactionCount": 142,
+     "text": "Today we're launching DeadAccount for AEs\n\n20 years carrying a bag... this is the tool I always wanted\n\nEvery territory I ever got had dead accounts in it\n\nEven at giants like Salesforce and Google\n\nCompanies that went bankrupt, got acquired, or quietly stopped existing, and I'd find out the hard way, usually after a few weeks of chasing them\n\nThe most limited thing an AE has is time\n\nSo we built an agent that prioritizes your entire book of business\n\nIt researches every account and manages your tiering week after week\n\nNo endless prompting maze\n\nHand off the research and let it run\n\nEvery Monday you get a game plan in your inbox, with tier suggestions and the reason behind each one\n\nYou accept or pass... you stay in control\n\nYour first five accounts are free\n\nLink in the comments",
+     "url": "https://www.linkedin.com/posts/yousufimran_today-were-launching-deadaccount-for-aes-activity-7523769603370700800-4-Cd"
+    },
+    {
+     "authorName": "Jari Salomaa",
+     "authorUrl": "https://www.linkedin.com/in/salomaa",
+     "avatarUrl": "https://media.licdn.com/dms/image/v2/D5603AQG8LJwXt_7WoA/profile-displayphoto-crop_800_800/B56ZrDRJp3KsAI-/0/1764212646147",
+     "commentCount": 26,
+     "createdUtc": 1793855772,
+     "id": "7523976442800418816",
+     "reactionCount": 140,
+     "text": "Valo has been acquired by Copado. 🚀 \n\nFrom many late nights white-boarding to build the next generation solution to secure business systems like Salesforce, this startup journey has been a lot of hard work but also amazing and unforgettable servicing some of the most interesting and complex customers around the world like Elisa, Georg Fischer, Resonate, Kekkila-BVB, NoRedInk, Huhtamaki and many more. Valo team, advisors and investors who’ve given so much of their time and energy, all deserve a big thank you! 🙏🙌\n\nThe next era for DevSecOps begins now! Thank you Ted Elliott and Copado leadership welcoming us aboard.\n\n📸Some photos from our Wall Street Journal featured company launch sauna event at Dreamforce and our early days at Espoo office in Finland. Thank you for supporting our journey and stay tuned for what’s next!",
+     "url": "https://www.linkedin.com/posts/salomaa_valo-has-been-acquired-by-copado-from-activity-7523976442800418816-vwnO"
+    },
+    {
+     "authorName": "Jason Fackler",
+     "authorUrl": "https://www.linkedin.com/in/jason-fackler",
+     "avatarUrl": "https://media.licdn.com/dms/image/v2/D4E03AQGvd8fVgqBs2Q/profile-displayphoto-crop_800_800/B4EZzY45.UJUAQ-/0/1773165322449",
+     "commentCount": 1,
+     "createdUtc": 1793724747,
+     "id": "7523426885272506368",
+     "reactionCount": 47,
+     "text": "Two weeks since Avicado was acquired by Accenture Construct.\n\nIt's business as usual while we work through the integration, but it's hard not to want to do everything at once.\n\nI'm excited about all the new connections from Groundbreak and last week's post. Big things are coming, but the change will take time.\n\nFor anyone who's been through an integration: how did you balance pushing the envelope with patience?\n\n#AccentureConstruct #ConstructionTechnology #Groundbreak #ConTech #Leadership",
+     "url": "https://www.linkedin.com/posts/jason-fackler_accentureconstruct-constructiontechnology-activity-7523426885272506368-Wx_x"
+    },
+    {
+     "authorName": "Justin Isaac Montgomery",
+     "authorUrl": "https://www.linkedin.com/in/justin-isaac-montgomery-9a15b63a7",
+     "avatarUrl": "https://media.licdn.com/dms/image/v2/D4E35AQGf538YJJsJlg/profile-framedphoto-shrink_800_800/B4EZvhxkyUIEAg-/0/1769019428300",
+     "commentCount": 0,
+     "createdUtc": 1793811001,
+     "id": "7523788657615417344",
+     "reactionCount": 0,
+     "text": "📈 $0 to 7-figures: The acquisition path most people ignore completely:\n\nSeller financing.\n\nA buyer recently acquired a $2.1M business — $0 bank loans, $0 venture capital.\n\nThe seller accepted 20% down, financed the rest over 5 years from business cash flow.\n\nWhy do sellers agree? They want a clean exit, tax advantages, and steady income post-sale.\n\nWhy do buyers win? No bank gatekeepers. No equity dilution. Just a deal between two aligned humans.\n\nThe deal structure most people overlook is sitting right inside the listing.\n\nBusi Bee connects buyers and sellers who are ready to have THIS conversation. Explore verified listings today. 🐝",
+     "url": "https://www.linkedin.com/posts/justin-isaac-montgomery-9a15b63a7_0-to-7-figures-the-acquisition-path-activity-7523788657615417344-Yl2Z"
+    },
+    {
+     "authorName": "Packaging News",
+     "authorUrl": "https://www.linkedin.com/company/packaging-news-uk/posts",
+     "avatarUrl": "https://media.licdn.com/dms/image/v2/D4E0BAQE18ETSxL6GtA/company-logo_400_400/company-logo_400_400/0/1735810938173/packaging_news_uk_logo",
+     "commentCount": 0,
+     "createdUtc": 1793716639,
+     "id": "7523392875347320832",
+     "reactionCount": 0,
+     "text": "Logson Group hits acquisition trail with acquisition of Playford Packaging\nhttps://ow.ly/8Vy35103lMF",
+     "url": "https://www.linkedin.com/posts/packaging-news-uk_logson-group-hits-acquisition-trail-with-activity-7523392875347320832-LHcz"
+    }
+   ]
+  },
+  "found": true
+ }
+}

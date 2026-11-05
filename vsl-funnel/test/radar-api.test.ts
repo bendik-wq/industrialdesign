@@ -9,7 +9,7 @@ import { auditCopy } from '../src/content/copy-rules';
 import { RADAR_UI_COPY } from '../src/radar/routes';
 import { ANALYSIS_AD, ANALYSIS_BAD, ANALYSIS_VIDEO, DISCOVER_A, INSPECT_ADS, INSPECT_YT, META_AD_ROWS, NOW, TIKTOK_ROWS, TRANSCRIPT_OUTPUT, YOUTUBE_ROWS } from './radar-fixtures';
 import { type SqlDb, d1, freshDb } from './studio-fakes';
-import { IG_SEARCH_RUN, IG_TRANSCRIPT_RUN, INSPECT_ANYAPI_YT, RUN_STARTED, TT_SEARCH_RUN, YT_SEARCH_RUN, YT_TRANSCRIPT_RUN } from './monid-live';
+import { IG_SEARCH_RUN, IG_TRANSCRIPT_RUN, INSPECT_ANYAPI_YT, RUN_STARTED, TT_SEARCH_RUN, X_SEARCH_RUN, YT_SEARCH_RUN, YT_TRANSCRIPT_RUN } from './monid-live';
 
 // Radar on the whole worker (in-memory SQLite D1 with every migration, a fake Monid behind global fetch, a stubbed
 // Workers AI) and the engine on its own with a fake Monid client: sources, the exact input before the first paid
@@ -269,14 +269,26 @@ describe('routes: /admin/api/radar*', () => {
   });
 
   it('the full path: seeded radars, find sources, the exact input, confirm, run, items, analyse, script, digest', async () => {
+    envOver = { MONID_API_KEY: 'mk_test', RADAR_PAGES: '1' };
     const owner = await ownerCookie();
-    const st = await get<{ key: boolean; watchlists: { id: string; name: string; niche: string; keywords: string[]; platforms: string[] }[]; spend: { budget_micros: number }; config: { instagram: boolean } }>('/state', owner);
+    let st = await get<{ key: boolean; watchlists: { id: string; name: string; niche: string; keywords: string[]; platforms: string[]; theme: string | null }[]; spend: { budget_micros: number }; config: { instagram: boolean } }>('/state', owner);
     expect(st.key).toBe(true);
-    expect(st.spend.budget_micros).toBe(20_000_000);
+    expect(st.spend.budget_micros).toBe(60_000_000);
     expect(st.config.instagram).toBe(true);
-    expect(st.watchlists.map((w) => w.niche)).toEqual(['in', 'out', 'in', 'out']);
-    expect(st.watchlists[0].keywords).toEqual(expect.arrayContaining(['business acquisition', 'buy a business no money down', 'seller financing', 'roll up strategy', 'private equity small business', 'ETA search fund', 'M&A for business owners']));
-    expect(st.watchlists[1].keywords).toEqual(expect.arrayContaining(['founder story', 'business breakdown', 'how I made', 'finance explained', 'Alex Hormozi']));
+    // Radar v2: one radar per theme of the keyword universe, plus the Meta ads radar.
+    expect(st.watchlists.map((w) => w.niche)).toEqual(['in', 'in', 'in', 'out', 'out', 'out', 'in']);
+    expect(st.watchlists.map((w) => w.theme)).toEqual(['pe_ma', 'smb_acquisition', 'owner_exits', 'breakdowns', 'wealth', 'operators', null]);
+    expect(st.watchlists[1].keywords).toEqual(expect.arrayContaining(['business acquisition', 'buy a business no money down', 'seller financing', 'search fund', 'SBA 7a loan']));
+    expect(st.watchlists[3].keywords).toEqual(expect.arrayContaining(['founder story', 'business breakdown']));
+    expect(st.watchlists[0].platforms).toEqual(['youtube', 'tiktok', 'instagram', 'x', 'linkedin', 'reddit']);
+    // Narrow the first radar to five keywords and the three video platforms for this walk-through.
+    const data = await get<{ themes: { id: string; keywords: { id: string; keyword: string }[] }[] }>('/data/state', owner);
+    for (const k of data.themes.find((t) => t.id === 'pe_ma')!.keywords.slice(5)) {
+      expect((await call(`/admin/api/radar/data/keywords/${k.id}`, { method: 'PUT', headers: { ...json, cookie: owner }, body: JSON.stringify({ enabled: false }) })).status).toBe(200);
+    }
+    expect((await call(`/admin/api/radar/data/radars/${st.watchlists[0].id}`, { method: 'PATCH', headers: { ...json, cookie: owner }, body: JSON.stringify({ platforms: ['youtube', 'tiktok', 'instagram'] }) })).status).toBe(200);
+    st = await get('/state', owner);
+    expect(st.watchlists[0].keywords).toEqual(['private equity small business', 'lower middle market', 'leveraged buyout', 'LBO', 'EBITDA multiple']);
 
     // The default tools are seeded, picked and ready: AnyAPI YouTube search with its built-in input and route price.
     const src = await get<{ slots: { slot: string; tools: { provider: string; endpoint: string; builtin: boolean; recommended: boolean; selected: boolean; confirmed: boolean; price: { type: string; variants: unknown[] } }[] }[] }>('/sources', owner);
@@ -285,13 +297,14 @@ describe('routes: /admin/api/radar*', () => {
       'youtube:search': 'anyapi /youtube.search', 'youtube:transcript': 'apify /starvibe/youtube-video-transcript', 'tiktok:search': 'anyapi /tiktok.search_keyword',
       'tiktok:transcript': 'anyapi /tiktok.video_transcript_full', 'instagram:search': 'anyapi /instagram.reels_search', 'instagram:transcript': 'anyapi /instagram.reel_transcript',
       'meta_ads:ads': 'apify /curious_coder/facebook-ads-library-scraper',
+      'x:search': 'anyapi /twitter.search', 'linkedin:search': 'anyapi /linkedin.search_posts', 'reddit:search': 'anyapi /reddit.search', 'reddit:subreddit': 'anyapi /reddit.search', 'substack:posts': 'anyapi /substack.posts',
     });
     const yt = src.slots.find((x) => x.slot === 'youtube:search')!.tools.find((t) => t.selected)!;
     expect(yt).toMatchObject({ builtin: true, recommended: true, confirmed: true, price: { type: 'PER_UNIT_MATRIX' } });
     expect(yt.price.variants).toHaveLength(3);
     // Seeding again changes nothing; Find sources lists more tools and keeps the pick.
     await get('/state', owner);
-    expect(sdb.prepare('SELECT COUNT(*) AS n FROM radar_tools').get()).toMatchObject({ n: 7 });
+    expect(sdb.prepare('SELECT COUNT(*) AS n FROM radar_tools').get()).toMatchObject({ n: 12 });
     const found = (await (await post('/sources/find', owner, { slot: 'youtube:search' })).json()) as { ok: boolean; found: number; preselected: string | null };
     expect(found).toMatchObject({ ok: true, found: 3, preselected: null });
     expect(monidCalls.map((c) => c.path)).toEqual(['/discover', '/inspect', '/inspect', '/inspect']);
@@ -326,6 +339,8 @@ describe('routes: /admin/api/radar*', () => {
     expect(((await get<{ items: unknown[] }>('/items?platform=tiktok', owner)).items)).toHaveLength(3);
     expect(((await get<{ items: unknown[] }>('/items?platform=instagram', owner)).items)).toHaveLength(3);
     expect(((await get<{ items: unknown[] }>('/items?niche=out', owner)).items)).toHaveLength(0);
+    // Every item keeps the search that found it.
+    expect(sdb.prepare("SELECT query FROM radar_items WHERE id = 'youtube:j39pFtLyFSU'").get()).toMatchObject({ query: expect.any(String) });
     expect(((await get<{ items: unknown[] }>(`/items?radar=${ytId}`, owner)).items)).toHaveLength(10);
     const st2 = await get<{ spend: { spent_micros: number } }>('/state', owner);
     expect(st2.spend.spent_micros).toBe(5 * 1200 + 5 * 1200 + 5 * 1100);
@@ -440,7 +455,58 @@ describe('routes: /admin/api/radar*', () => {
       expect((await post(path, g, body)).status, path).toBe(403);
     }
     expect((await call(`/admin/api/radar/watchlists/${st.watchlists[0].id}`, { method: 'DELETE', headers: { ...same, cookie: g } })).status).toBe(403);
+    // Radar v2: Sources and sweeps reads for guests, never changes or spends.
+    expect((await call('/admin/api/radar/data/state', { headers: { cookie: g } })).status).toBe(200);
+    expect((await call('/admin/api/radar/data/estimate', { headers: { cookie: g } })).status).toBe(200);
+    for (const [path, body] of [['/data/sweep', {}], ['/data/step', {}], ['/data/platforms', { platform: 'x', on: false }], ['/data/keywords', { theme: 'pe_ma', keywords: ['x'] }], ['/data/subreddits', { name: 'r/x' }], ['/data/publications', { url: 'x.substack.com' }]] as const) {
+      expect((await post(path, g, body)).status, path).toBe(403);
+    }
+    expect((await call(`/admin/api/radar/data/radars/${st.watchlists[0].id}`, { method: 'PATCH', headers: { ...json, cookie: g }, body: '{"enabled":false}' })).status).toBe(403);
     expect(monidCalls).toHaveLength(0);
+  });
+
+  it('Sources and sweeps: the universe, lists and switches, the estimate, then a full sweep stepped to the end', async () => {
+    envOver = { MONID_API_KEY: 'mk_test', RADAR_PAGES: '1', RADAR_AUTO_TRANSCRIBE: '0' };
+    const owner = await ownerCookie();
+    type DataState = { config: { pages: number; auto_transcribe: number; budget_usd: number }; platforms: { platform: string; on: boolean; source: string | null }[]; themes: { id: string; tier: string; keywords: { id: string; keyword: string }[] }[]; radars: { id: string; theme: string | null; enabled: boolean }[]; subreddits: { name: string }[]; publications: { id: string; verified: number }[]; sweeps: unknown[] };
+    let ds = await get<DataState>('/data/state', owner);
+    expect(ds.config).toMatchObject({ pages: 1, auto_transcribe: 0, budget_usd: 60 });
+    expect(ds.platforms.map((p) => p.platform)).toEqual(['youtube', 'tiktok', 'instagram', 'meta_ads', 'x', 'linkedin', 'reddit', 'substack']);
+    expect(ds.platforms.find((p) => p.platform === 'x')).toMatchObject({ on: true, source: 'anyapi /twitter.search' });
+    expect(ds.themes.map((t) => t.id)).toEqual(['pe_ma', 'smb_acquisition', 'owner_exits', 'breakdowns', 'wealth', 'operators']);
+    expect(ds.subreddits).toHaveLength(11);
+    expect(ds.publications).toHaveLength(30);
+    // A new theme from the keyword editor gets its own radar.
+    const add = (await (await post('/data/keywords', owner, { theme: 'home_services', theme_name: 'Home services', tier: 'adjacent', keywords: 'HVAC business\nplumbing business' })).json()) as { ok: boolean; added: number; radar: string };
+    expect(add).toMatchObject({ ok: true, added: 2, radar: expect.stringMatching(/^theme-home_services/) });
+    expect((await post('/data/subreddits', owner, { name: 'https://www.reddit.com/r/HVAC/', niche: 'out' })).status).toBe(200);
+    expect((await post('/data/publications', owner, { url: 'notboring', niche: 'out' })).status).toBe(200);
+    expect((await post('/data/publications', owner, { url: 'not a url' })).status).toBe(400);
+    expect((await post('/data/platforms', owner, { platform: 'nope' })).status).toBe(400);
+    // Only X, and only the SMB radar, for the run below.
+    for (const p of ['youtube', 'tiktok', 'instagram', 'meta_ads', 'linkedin', 'reddit', 'substack']) expect((await post('/data/platforms', owner, { platform: p, on: false })).status).toBe(200);
+    ds = await get<DataState>('/data/state', owner);
+    for (const r of ds.radars.filter((x) => x.theme !== 'smb_acquisition')) {
+      expect((await call(`/admin/api/radar/data/radars/${r.id}`, { method: 'PATCH', headers: { ...json, cookie: owner }, body: '{"enabled":false}' })).status).toBe(200);
+    }
+    const est = await get<{ total_micros: number; runs: number; fits: boolean; lines: { platform: string; calls: number }[] }>('/data/estimate', owner);
+    const smb = ds.themes.find((t) => t.id === 'smb_acquisition')!.keywords.length;
+    expect(est).toMatchObject({ runs: Math.ceil(smb / 5), total_micros: Math.ceil(smb / 5) * 5100, fits: true });
+    runReply = () => ({ json: { runId: 'x1', status: 'COMPLETED', output: X_SEARCH_RUN.output, cost: { value: 0.0021, currency: 'USD' } } });
+    const sw = (await (await post('/data/sweep', owner)).json()) as { ok: boolean; queued: number; sweep_id: string };
+    expect(sw).toMatchObject({ ok: true, queued: Math.ceil(smb / 5) });
+    for (let i = 0; i < 3; i++) await post('/data/step', owner);
+    const sweeps = (await get<{ sweeps: { id: string; status: string; completed: number; cost_micros: number; new_items: number }[] }>('/data/sweeps', owner)).sweeps;
+    expect(sweeps[0]).toMatchObject({ id: sw.sweep_id, status: 'done', completed: Math.ceil(smb / 5), cost_micros: Math.ceil(smb / 5) * 2100, new_items: 5 });
+    const xi = (await get<{ items: { platform: string; reposts: number; bookmarks: number; query: string }[] }>('/items?platform=x', owner)).items;
+    expect(xi.length).toBeGreaterThan(0);
+    expect(xi[0]).toMatchObject({ platform: 'x', query: expect.stringContaining('min_faves:200') });
+    // Over budget: refused with the estimate, nothing queued.
+    envOver = { MONID_API_KEY: 'mk_test', RADAR_PAGES: '1', RADAR_BUDGET_USD_MONTH: '0.001' };
+    (await import('../src/settings')).resetSettingsCache();
+    const over = await post('/data/sweep', owner);
+    expect(over.status).toBe(400);
+    expect(((await over.json()) as { error: string }).error).toMatch(/past the Radar budget/);
   });
 
   it('the Studio page carries the Radar view and a CSP for exactly the players and the ad media', async () => {

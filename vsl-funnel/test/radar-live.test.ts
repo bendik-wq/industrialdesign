@@ -94,7 +94,7 @@ describe('the known tools and their built-in inputs', () => {
     expect(knownRank('instagram:search', 'anyapi', '/instagram.reels_search')).toBe(0);
     expect(knownRank('instagram:transcript', 'anyapi', '/instagram.reel_transcript')).toBe(0);
     // Every default tool has a built-in input.
-    for (const t of DEFAULT_TOOLS) expect(builtinFor(t.provider, t.endpoint)?.slot, t.slot).toBe(t.slot);
+    for (const t of DEFAULT_TOOLS) expect(builtinFor(t.provider, t.endpoint, t.slot)?.slot, t.slot).toBe(t.slot);
     expect(DEFAULT_TOOLS.map((t) => t.slot).sort()).toEqual(SLOTS.map((s) => s.slot).sort());
   });
   it('YouTube search: one run per keyword, popular on the giraffe route, upload date from the radar\'s window', () => {
@@ -214,7 +214,8 @@ describe('scoring on real output', () => {
     const items = normalise('tiktok', TT_SEARCH_RUN.output, NOW);
     const s = items.map((i) => scoreItem(i, { now: NOW }));
     for (const p of s) expect(p.ratio_basis).toBe('followers');
-    expect(s[0].engagement).toBe(Math.round(((4663 + 51 + 601) / 59_481) * 1000) / 1000);
+    // Weighted interactions: likes + 2 comments + 3 shares.
+    expect(s[0].engagement).toBe(Math.round(((4663 + 2 * 51 + 3 * 601) / 59_481) * 1000) / 1000);
     expect(s[0].ratio).toBe(Math.round((59_481 / 191_598) * 1000) / 1000);
     for (const p of s) expect(p.score).toBeGreaterThan(0);
   });

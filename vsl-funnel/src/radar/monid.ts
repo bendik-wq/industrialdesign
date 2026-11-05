@@ -19,7 +19,7 @@
 export const MONID_BASE = 'https://api.monid.ai/v1';
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
-export interface PriceVariant { when: Record<string, string>; type: string; amount: number; currency: string; label?: string }
+export interface PriceVariant { when: Record<string, string>; type: string; amount: number; currency: string; label?: string; flatFee?: number }
 export interface MonidPrice {
   type: 'PER_CALL' | 'PER_RESULT' | 'PER_UNIT_MATRIX' | string; amount: number; flatFee: number; currency: string; notes?: string;
   /** PER_UNIT_MATRIX: which input fields pick the variant (`in` is 'body' for every known tool). */
@@ -75,9 +75,9 @@ export function parsePrice(v: unknown): MonidPrice | null {
   if (Array.isArray(v.variants)) {
     for (const x of v.variants) {
       if (!isObj(x) || !isObj(x.when)) continue;
-      // Monid's {when, price: {type, amount}}, or a variant already parsed and stored ({when, type, amount, currency}).
-      const p = parsePrice(x.price ?? { type: x.type, amount: x.amount, currency: x.currency });
-      if (p) variants.push({ when: Object.fromEntries(Object.entries(x.when).map(([k, w]) => [k, str(w)])), type: p.type, amount: p.amount, currency: p.currency, label: str(x.label) || undefined });
+      // Monid's {when, price: {type, amount, flatFee?}}, or a variant already parsed and stored ({when, type, amount, currency, flatFee?}).
+      const p = parsePrice(x.price ?? { type: x.type, amount: x.amount, currency: x.currency, flatFee: x.flatFee });
+      if (p) variants.push({ when: Object.fromEntries(Object.entries(x.when).map(([k, w]) => [k, str(w)])), type: p.type, amount: p.amount, currency: p.currency, ...(p.flatFee ? { flatFee: p.flatFee } : {}), label: str(x.label) || undefined });
     }
   }
   if (a.n == null && fee.n == null && !variants.length) return null;
@@ -105,7 +105,7 @@ export function priceFor(price: MonidPrice | null | undefined, input?: unknown):
   if (!price.variants?.length) return price;
   const b = isObj(input) && isObj(input.body) ? input.body : isObj(input) ? input : {};
   const hit = price.variants.find((v) => Object.entries(v.when).every(([k, w]) => str(b[k]) === w));
-  if (hit) return { type: hit.type, amount: hit.amount, flatFee: 0, currency: hit.currency };
+  if (hit) return { type: hit.type, amount: hit.amount, flatFee: hit.flatFee ?? 0, currency: hit.currency };
   return { type: 'PER_CALL', amount: price.amount, flatFee: price.flatFee, currency: price.currency };
 }
 

@@ -7,16 +7,17 @@
 import type { Runtime } from '../app';
 import { flag } from '../settings';
 import { type MonidClient, MonidError, type MonidRun, RUN_DONE, estimateMicros, monidClient, parsePrice } from './monid';
-import { type RadarItem, normalise, scoreItem, transcriptText } from './normalise';
-import { DEFAULT_TOOLS, PLATFORMS, type Platform, type RadarQuery, type Slot, builtinFor, mapInput, searchSlot, slotDef, transcriptSlot } from './sources';
+import { type RadarItem, SOURCE_PLATFORMS, median, metricOf, nextCursorOf, normalise, scoreItem, transcriptSegments, transcriptText } from './normalise';
+import { DEFAULT_TOOLS, KEYWORD_PLATFORMS, PLATFORMS, type Platform, type RadarQuery, type Slot, builtinFor, isTextPlatform, mapInput, searchSlot, slotDef, transcriptSlot } from './sources';
+import { defaultMinFaves, platformsOff, seedV2, themeKeywords } from './universe';
 
 // ───────────── settings ─────────────
 
-export interface RadarConfig { key: boolean; budgetMicros: number; budgetUsd: number; maxItems: number; instagram: boolean; scheduleHours: number }
+export interface RadarConfig { key: boolean; budgetMicros: number; budgetUsd: number; maxItems: number; instagram: boolean; scheduleHours: number; pages: number; autoTranscribe: number }
 export function radarConfig(rt: Pick<Runtime, 'settings'>): RadarConfig {
   const s = rt.settings;
   const num = (v: string | undefined, d: number) => (v != null && v.trim() !== '' && isFinite(Number(v)) ? Number(v) : d);
-  const budgetUsd = Math.max(0, num(s.RADAR_BUDGET_USD_MONTH, 20));
+  const budgetUsd = Math.max(0, num(s.RADAR_BUDGET_USD_MONTH, 60));
   return {
     key: Boolean(s.MONID_API_KEY),
     budgetUsd,
@@ -24,6 +25,9 @@ export function radarConfig(rt: Pick<Runtime, 'settings'>): RadarConfig {
     maxItems: Math.max(1, Math.min(100, Math.round(num(s.RADAR_MAX_ITEMS, 15)))),
     instagram: flag(s.RADAR_INSTAGRAM, true),
     scheduleHours: Math.max(0, Math.min(24 * 14, num(s.RADAR_SCHEDULE_HOURS, 24))),
+    // Radar v2: pages per search (following nextCursor) and how many new videos a sweep transcribes (0 = off).
+    pages: Math.max(1, Math.min(10, Math.round(num(s.RADAR_PAGES, 2)))),
+    autoTranscribe: Math.max(0, Math.min(300, Math.round(num(s.RADAR_AUTO_TRANSCRIBE, 30)))),
   };
 }
 
@@ -35,6 +39,9 @@ export const RADAR_COPY = {
   noSource: (label: string) => `Pick a source for ${label} first (Sources, Find sources).`,
   notConfirmed: (label: string) => `Confirm the input for ${label} before its first paid run (Sources).`,
   noTranscriptSource: 'There is no transcript source for this platform. The captions from the scraper are used when there are any.',
+  noKeywords: (name: string) => `${name} has no keywords switched on, so it has nothing to search.`,
+  textPost: 'This is a text post: its full text is its transcript, so there is nothing to transcribe.',
+  platformOff: (label: string) => `${label} is switched off in Sources and sweeps, so no run starts for it.`,
   retention: 'Drop-off points are estimates from the structure and the engagement numbers. No service gives another creator\'s real retention curve.',
   adSpend: 'Meta shows no spend for commercial ads, so days active and the number of variants stand in for performance.',
 };
@@ -71,31 +78,30 @@ export async function selectedTool(rt: Runtime, slot: Slot): Promise<ToolRow | n
 export function previewFor(tool: ToolRow, q: RadarQuery) {
   const m = mapInput(tool.slot, parse(tool.schema_json, null), q, parse<Record<string, unknown> | null>(tool.template_json, null), tool);
   const price = parsePrice(parse(tool.price_json, null));
-  // Per input: a matrix price follows the route the input picks; a per-result price counts what the input asks for.
-  const units = builtinFor(tool.provider, tool.endpoint)?.units?.(q);
+  // Per input: a matrix price follows the route the input picks (or the route Monid picked on real runs when the
+  // input names none); a per-result price counts what the input asks for.
+  const bi = builtinFor(tool.provider, tool.endpoint, tool.slot);
+  const units = bi?.units?.(q);
   const est_each = m.inputs.map((input) => {
     const asked = units ?? Number(input.count ?? input.limit ?? input.maxResults ?? input.maxItems);
-    return estimateMicros(price, isFinite(asked) && asked > 0 ? asked : q.max, input);
+    return estimateMicros(price, isFinite(asked) && asked > 0 ? asked : q.max, input.route == null && bi?.route ? { ...input, route: bi.route } : input);
   });
   return { ...m, price, est_each, est_micros: est_each.reduce((a, b) => a + b, 0) };
 }
 
 // ───────────── watchlists ─────────────
 
-export interface Watchlist { id: string; name: string; keywords: string[]; platforms: Platform[]; niche: 'in' | 'out'; country: string | null; since_days: number | null; enabled: boolean; last_run_at: string | null; created_at: string; updated_at: string }
-interface WlRow { id: string; name: string; keywords_json: string; platforms_json: string; niche: string; country: string | null; since_days: number | null; enabled: number; last_run_at: string | null; created_at: string; updated_at: string }
-const toWl = (r: WlRow): Watchlist => ({
+export interface Watchlist {
+  id: string; name: string; keywords: string[]; platforms: Platform[]; niche: 'in' | 'out'; country: string | null; since_days: number | null; enabled: boolean; last_run_at: string | null; created_at: string; updated_at: string;
+  /** Radar v2: the theme whose keywords it searches (null = its own keywords), X's min_faves floor and a pages override. */
+  theme?: string | null; min_faves?: number | null; pages?: number | null;
+}
+export interface WlRow { id: string; name: string; keywords_json: string; platforms_json: string; niche: string; country: string | null; since_days: number | null; enabled: number; last_run_at: string | null; created_at: string; updated_at: string; theme?: string | null; min_faves?: number | null; pages?: number | null }
+export const toWl = (r: WlRow): Watchlist => ({
   id: r.id, name: r.name, keywords: parse<string[]>(r.keywords_json, []), platforms: parse<string[]>(r.platforms_json, []).filter((p): p is Platform => (PLATFORMS as readonly string[]).includes(p)),
   niche: r.niche === 'out' ? 'out' : 'in', country: r.country, since_days: r.since_days, enabled: Boolean(r.enabled), last_run_at: r.last_run_at, created_at: r.created_at, updated_at: r.updated_at,
+  theme: r.theme ?? null, min_faves: r.min_faves ?? null, pages: r.pages ?? null,
 });
-
-export const DEFAULT_WATCHLISTS: Omit<Watchlist, 'id' | 'last_run_at' | 'created_at' | 'updated_at' | 'enabled'>[] = [
-  { name: 'Acquisitions (our niche)', niche: 'in', country: null, since_days: 90, platforms: ['youtube', 'tiktok', 'instagram'], keywords: ['business acquisition', 'buy a business no money down', 'seller financing', 'roll up strategy', 'private equity small business', 'ETA search fund', 'M&A for business owners'] },
-  { name: 'Formats that travel (outside the niche)', niche: 'out', country: null, since_days: 60, platforms: ['youtube', 'tiktok', 'instagram'], keywords: ['founder story', 'business breakdown', 'how I made', 'finance explained', 'Alex Hormozi'] },
-  { name: 'Meta ads: buying a business', niche: 'in', country: 'US', since_days: null, platforms: ['meta_ads'], keywords: ['buy a business', 'business acquisition', 'seller financing'] },
-  { name: 'Meta ads: high-ticket education', niche: 'out', country: 'US', since_days: null, platforms: ['meta_ads'], keywords: ['masterclass for business owners', 'scale your business', 'free training'] },
-];
-
 /**
  * Seeds the default tool of every slot that has no pick yet (selected, and confirmed: their built-in inputs are the
  * ones verified against Monid in production, so the owner can press Run; the Sources tab still shows each exact input
@@ -124,12 +130,8 @@ export async function ensureSeeded(rt: Runtime) {
     return [];
   });
   if (seed.length) await rt.env.DB.batch(seed);
-  const n = await rt.env.DB.prepare('SELECT COUNT(*) AS n FROM radar_watchlists').first<{ n: number }>();
-  if (Number(n?.n ?? 0) > 0) return;
-  const now = new Date().toISOString();
-  await rt.env.DB.batch(DEFAULT_WATCHLISTS.map((w, i) => rt.env.DB.prepare(
-    'INSERT INTO radar_watchlists (id, name, keywords_json, platforms_json, niche, country, since_days, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)',
-  ).bind(`wl-${i + 1}-${crypto.randomUUID().slice(0, 8)}`, w.name, JSON.stringify(w.keywords), JSON.stringify(w.platforms), w.niche, w.country, w.since_days, now, now)));
+  // Radar v2: the keyword universe, the themed radars, subreddits and publications, once (the v1 radars retire).
+  await seedV2(rt);
 }
 
 export async function listWatchlists(rt: Runtime): Promise<Watchlist[]> {
@@ -141,22 +143,29 @@ export async function getWatchlist(rt: Runtime, id: string): Promise<Watchlist |
   return r ? toWl(r) : null;
 }
 
-/** Clean a watchlist from the browser. */
+/** Clean a watchlist from the browser. A themed radar's keywords come from the keyword universe. */
 export function cleanWatchlist(b: Record<string, unknown>): Omit<Watchlist, 'id' | 'last_run_at' | 'created_at' | 'updated_at'> | string {
   const name = String(b.name ?? '').trim().slice(0, 80);
   const kwIn = Array.isArray(b.keywords) ? b.keywords : String(b.keywords ?? '').split(/[\n,]+/);
-  const keywords = [...new Set(kwIn.map((k) => String(k).trim().slice(0, 80)).filter(Boolean))].slice(0, 20);
-  const platforms = (Array.isArray(b.platforms) ? b.platforms : []).map(String).filter((p): p is Platform => (PLATFORMS as readonly string[]).includes(p));
+  const keywords = [...new Set(kwIn.map((k) => String(k).trim().slice(0, 80)).filter(Boolean))].slice(0, 60);
+  // Substack is read from the publication list, never searched by keyword.
+  const platforms = [...new Set((Array.isArray(b.platforms) ? b.platforms : []).map(String))].filter((p): p is Platform => (KEYWORD_PLATFORMS as readonly string[]).includes(p));
+  const theme = typeof b.theme === 'string' && /^[a-z0-9_]{1,40}$/.test(b.theme) ? b.theme : null;
   if (!name) return 'Give the radar a name.';
-  if (!keywords.length) return 'Add at least one keyword.';
+  if (!keywords.length && !theme) return 'Add at least one keyword.';
   if (!platforms.length) return 'Pick at least one platform.';
   const country = String(b.country ?? '').trim().toUpperCase();
   const since = Number(b.since_days);
+  const faves = Number(b.min_faves);
+  const pages = Number(b.pages);
   return {
     name, keywords, platforms, niche: b.niche === 'out' ? 'out' : 'in',
     country: /^[A-Z]{2}$/.test(country) ? country : null,
     since_days: isFinite(since) && since > 0 ? Math.min(3650, Math.round(since)) : null,
     enabled: b.enabled !== false,
+    theme,
+    min_faves: b.min_faves !== '' && b.min_faves != null && isFinite(faves) && faves >= 0 ? Math.min(1_000_000, Math.round(faves)) : null,
+    pages: b.pages !== '' && b.pages != null && isFinite(pages) && pages >= 1 ? Math.min(10, Math.round(pages)) : null,
   };
 }
 
@@ -164,34 +173,53 @@ export function cleanWatchlist(b: Record<string, unknown>): Omit<Watchlist, 'id'
 
 export interface QueueResult { queued: number; est_micros: number; notes: string[] }
 
-async function insertRun(rt: Runtime, x: { watchlist_id?: string | null; item_id?: string | null; slot: Slot; tool: ToolRow; input: unknown; est: number; status?: string; error?: string }) {
+export interface RunMeta { sweep_id?: string | null; page?: number; query?: string | null; source_ref?: string | null }
+export async function insertRun(rt: Runtime, x: { watchlist_id?: string | null; item_id?: string | null; slot: Slot; tool: Pick<ToolRow, 'provider' | 'endpoint'>; input: unknown; est: number; status?: string; error?: string } & RunMeta) {
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   await rt.env.DB.prepare(
-    'INSERT INTO radar_runs (id, watchlist_id, item_id, slot, provider, endpoint, input_json, status, est_micros, error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-  ).bind(id, x.watchlist_id ?? null, x.item_id ?? null, x.slot, x.tool.provider, x.tool.endpoint, JSON.stringify(x.input), x.status ?? 'pending', x.est, x.error ?? null, now, now).run();
+    'INSERT INTO radar_runs (id, watchlist_id, item_id, slot, provider, endpoint, input_json, status, est_micros, error, created_at, updated_at, sweep_id, page, query, source_ref) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+  ).bind(id, x.watchlist_id ?? null, x.item_id ?? null, x.slot, x.tool.provider, x.tool.endpoint, JSON.stringify(x.input), x.status ?? 'pending', x.est, x.error ?? null, now, now,
+    x.sweep_id ?? null, x.page ?? 1, x.query?.slice(0, 600) ?? null, x.source_ref ?? null).run();
   return id;
 }
 
+/** The text an input searches for (shown on the run and kept on the items it finds). */
+export function queryOf(input: Record<string, unknown>): string | null {
+  const v = input.query ?? input.searchQueries ?? input.subreddit ?? input.url ?? input.keyword;
+  return Array.isArray(v) ? v.map(String).join(', ').slice(0, 600) : v == null ? null : String(v).slice(0, 600);
+}
+
+/** A watchlist's query for the platform: all of its keywords (themed radars read the universe), X's min_faves floor. */
+export async function queryFor(rt: Runtime, wl: Watchlist, cfg: RadarConfig): Promise<RadarQuery> {
+  const keywords = wl.theme ? (await themeKeywords(rt)).get(wl.theme) ?? wl.keywords : wl.keywords;
+  return { keywords, max: cfg.maxItems, sinceDays: wl.since_days, country: wl.country, maxKeywords: 60, minFaves: wl.min_faves ?? defaultMinFaves(wl.niche) };
+}
+
 /** Queue one watchlist's runs: one per platform (or per keyword when a tool takes one search at a time). */
-export async function queueWatchlist(rt: Runtime, wl: Watchlist, now = Date.now()): Promise<QueueResult> {
+export async function queueWatchlist(rt: Runtime, wl: Watchlist, now = Date.now(), meta: RunMeta = {}): Promise<QueueResult> {
   const cfg = radarConfig(rt);
   const out: QueueResult = { queued: 0, est_micros: 0, notes: [] };
   if (!cfg.key) { out.notes.push(RADAR_COPY.noKey); return out; }
   let { committed } = await monthSpend(rt, now);
   if (committed >= cfg.budgetMicros) { out.notes.push(RADAR_COPY.budget); return out; }
+  const off = await platformsOff(rt);
+  const q = await queryFor(rt, wl, cfg);
+  if (!q.keywords.length) { out.notes.push(RADAR_COPY.noKeywords(wl.name)); return out; }
   for (const p of wl.platforms) {
     if (p === 'instagram' && !cfg.instagram) { out.notes.push(RADAR_COPY.instagramOff); continue; }
     const slot = searchSlot(p);
     const label = slotDef(slot)!.label;
+    if (off.has(p)) { out.notes.push(RADAR_COPY.platformOff(label)); continue; }
+    if (p === 'substack') continue;
     const tool = await selectedTool(rt, slot);
     if (!tool) { out.notes.push(RADAR_COPY.noSource(label)); continue; }
     if (!tool.confirmed_at) { out.notes.push(RADAR_COPY.notConfirmed(label)); continue; }
-    const pv = previewFor(tool, { keywords: wl.keywords, max: cfg.maxItems, sinceDays: wl.since_days, country: wl.country });
+    const pv = previewFor(tool, q);
     for (const [i, input] of pv.inputs.entries()) {
       const per = pv.est_each[i] ?? 0;
       if (committed + per > cfg.budgetMicros) { out.notes.push(RADAR_COPY.budgetWouldPass); break; }
-      await insertRun(rt, { watchlist_id: wl.id, slot, tool, input, est: per });
+      await insertRun(rt, { watchlist_id: wl.id, slot, tool, input, est: per, sweep_id: meta.sweep_id, page: 1, query: queryOf(input) });
       committed += per; out.est_micros += per; out.queued++;
     }
   }
@@ -200,10 +228,11 @@ export async function queueWatchlist(rt: Runtime, wl: Watchlist, now = Date.now(
 }
 
 /** Queue a transcript run for one item (YouTube and TikTok). */
-export async function queueTranscript(rt: Runtime, itemId: string, now = Date.now()): Promise<{ ok: boolean; note?: string }> {
+export async function queueTranscript(rt: Runtime, itemId: string, now = Date.now(), meta: RunMeta = {}): Promise<{ ok: boolean; note?: string; est_micros?: number }> {
   const cfg = radarConfig(rt);
   const item = await rt.env.DB.prepare('SELECT id, platform, url, duration_s FROM radar_items WHERE id = ?').bind(itemId).first<{ id: string; platform: Platform; url: string | null; duration_s: number | null }>();
   if (!item) return { ok: false, note: 'That item is not there any more.' };
+  if (isTextPlatform(item.platform)) return { ok: false, note: RADAR_COPY.textPost };
   if (!cfg.key) return { ok: false, note: RADAR_COPY.noKey };
   const slot = transcriptSlot(item.platform);
   const tool = slot ? await selectedTool(rt, slot) : null;
@@ -213,29 +242,62 @@ export async function queueTranscript(rt: Runtime, itemId: string, now = Date.no
   const pv = previewFor(tool, { keywords: [], max: 1, urls: [item.url], durationS: item.duration_s });
   const { committed } = await monthSpend(rt, now);
   if (committed + pv.est_micros > cfg.budgetMicros) return { ok: false, note: committed >= cfg.budgetMicros ? RADAR_COPY.budget : RADAR_COPY.budgetWouldPass };
-  await insertRun(rt, { item_id: item.id, slot, tool, input: pv.inputs[0], est: pv.est_micros });
+  await insertRun(rt, { item_id: item.id, slot, tool, input: pv.inputs[0], est: pv.est_micros, sweep_id: meta.sweep_id, query: item.url });
   await rt.env.DB.prepare('UPDATE radar_items SET transcript_source = ? WHERE id = ?').bind('pending', item.id).run();
-  return { ok: true };
+  return { ok: true, est_micros: pv.est_micros };
 }
 
-interface RunRow { id: string; watchlist_id: string | null; item_id: string | null; slot: Slot; provider: string; endpoint: string; input_json: string; monid_run_id: string | null; status: string; est_micros: number; polls: number; created_at: string }
+interface RunRow {
+  id: string; watchlist_id: string | null; item_id: string | null; slot: Slot; provider: string; endpoint: string; input_json: string; monid_run_id: string | null; status: string; est_micros: number; polls: number; created_at: string;
+  sweep_id?: string | null; page?: number | null; query?: string | null; source_ref?: string | null;
+}
 
-async function finishRun(rt: Runtime, run: RunRow, r: MonidRun, now: number) {
+/** The subreddit or publication a source run read: disabled with the provider's message when the fetch failed. */
+async function sourceFailed(rt: Runtime, run: RunRow, message: string) {
+  if (!run.source_ref) return;
+  const msg = message.slice(0, 300);
+  if (run.slot === 'substack:posts') await rt.env.DB.prepare('UPDATE radar_publications SET enabled = 0, disabled_reason = ? WHERE id = ?').bind(msg, run.source_ref).run();
+  // A subreddit is only switched off when the provider refused it (a 4xx), never for a passing outage.
+  if (run.slot === 'reddit:subreddit' && /\b4\d\d\b|not found|private|banned|invalid/i.test(message)) await rt.env.DB.prepare('UPDATE radar_subreddits SET enabled = 0, disabled_reason = ? WHERE name = ?').bind(msg, run.source_ref).run();
+}
+
+/** Queue the next page of a search that has one (nextCursor), up to the radar's or RADAR_PAGES pages, within budget. */
+async function queueNextPage(rt: Runtime, run: RunRow, output: unknown, saved: number, now: number): Promise<boolean> {
+  const cursor = nextCursorOf(output);
+  const page = run.page ?? 1;
+  if (!cursor || saved === 0 || run.item_id) return false;
+  const bi = builtinFor(run.provider, run.endpoint, run.slot);
+  if (!bi?.pages) return false;
+  const cfg = radarConfig(rt);
+  const wl = run.watchlist_id ? await getWatchlist(rt, run.watchlist_id) : null;
+  const max = wl?.pages ?? cfg.pages;
+  if (page >= max) return false;
+  const { committed } = await monthSpend(rt, now);
+  if (committed + run.est_micros > cfg.budgetMicros) return false;
+  const input = { ...parse<Record<string, unknown>>(run.input_json, {}), cursor };
+  await insertRun(rt, { watchlist_id: run.watchlist_id, slot: run.slot, tool: run, input, est: run.est_micros, sweep_id: run.sweep_id, page: page + 1, query: run.query, source_ref: run.source_ref });
+  return true;
+}
+
+async function finishRun(rt: Runtime, run: RunRow, r: MonidRun, now: number, touched?: Set<Platform>) {
   const cost = r.costMicros ?? run.est_micros;
   const estimated = r.costMicros == null ? 1 : 0;
   const ts = new Date(now).toISOString();
   if (r.status !== 'COMPLETED') {
+    const err = `Monid: ${r.status}${r.error ? `, ${r.error.slice(0, 300)}` : ''}`;
     await rt.env.DB.prepare('UPDATE radar_runs SET status = ?, cost_micros = ?, cost_estimated = ?, error = ?, updated_at = ? WHERE id = ?')
-      .bind('failed', r.costMicros ?? 0, 0, `Monid: ${r.status}${r.error ? `, ${r.error.slice(0, 300)}` : ''}`, ts, run.id).run();
+      .bind('failed', r.costMicros ?? 0, 0, err, ts, run.id).run();
     if (run.item_id) await rt.env.DB.prepare("UPDATE radar_items SET transcript_source = CASE WHEN transcript IS NULL THEN 'missing' ELSE transcript_source END WHERE id = ?").bind(run.item_id).run();
+    if ((run.page ?? 1) === 1) await sourceFailed(rt, run, r.error || err);
     return;
   }
   const def = slotDef(run.slot)!;
   let saved = 0;
   if (def.kind === 'transcript' && run.item_id) {
     const text = transcriptText(r.output);
-    await rt.env.DB.prepare('UPDATE radar_items SET transcript = COALESCE(?, transcript), transcript_source = CASE WHEN ? IS NOT NULL THEN \'monid\' WHEN transcript IS NULL THEN \'missing\' ELSE transcript_source END WHERE id = ?')
-      .bind(text, text, run.item_id).run();
+    const segs = transcriptSegments(r.output);
+    await rt.env.DB.prepare('UPDATE radar_items SET transcript = COALESCE(?, transcript), transcript_segments = COALESCE(?, transcript_segments), transcribed_at = CASE WHEN ? IS NOT NULL THEN ? ELSE transcribed_at END, transcript_source = CASE WHEN ? IS NOT NULL THEN \'monid\' WHEN transcript IS NULL THEN \'missing\' ELSE transcript_source END WHERE id = ?')
+      .bind(text, segs.length ? JSON.stringify(segs) : null, text, ts, text, run.item_id).run();
     saved = text ? 1 : 0;
     // A transcript tool that also returns the video's numbers (the YouTube one gives likes, comments and subscribers,
     // which YouTube search does not) fills them in, and the platform is re-scored.
@@ -244,14 +306,18 @@ async function finishRun(rt: Runtime, run: RunRow, r: MonidRun, now: number) {
     if (stats && (stats.likes != null || stats.comments != null || stats.followers != null)) {
       await rt.env.DB.prepare('UPDATE radar_items SET views = COALESCE(?, views), likes = COALESCE(?, likes), comments = COALESCE(?, comments), followers = COALESCE(?, followers), duration_s = COALESCE(duration_s, ?) WHERE id = ?')
         .bind(stats.views, stats.likes, stats.comments, stats.followers, stats.duration_s, run.item_id).run();
-      await rescore(rt, def.platform, now);
+      if (touched) touched.add(def.platform); else await rescore(rt, def.platform, now);
     }
   } else {
     const wl = run.watchlist_id ? await getWatchlist(rt, run.watchlist_id) : null;
     const items = normalise(def.platform, r.output, now);
-    for (const it of items) await upsertItem(rt, it, wl, now);
-    if (items.length) await rescore(rt, def.platform, now);
+    // Items from the subreddit or publication lists take that source's niche.
+    const srcNiche = run.source_ref && !wl ? await sourceNiche(rt, run) : null;
+    for (const it of items) await upsertItem(rt, it, wl, now, { query: run.query ?? null, niche: srcNiche });
+    if (items.length) { if (touched) touched.add(def.platform); else await rescore(rt, def.platform, now); }
     saved = items.length;
+    if (run.slot === 'substack:posts' && run.source_ref && items.length) await rt.env.DB.prepare('UPDATE radar_publications SET verified = 1, disabled_reason = NULL WHERE id = ?').bind(run.source_ref).run();
+    await queueNextPage(rt, run, r.output, saved, now);
   }
   await rt.env.DB.prepare('UPDATE radar_runs SET status = ?, cost_micros = ?, cost_estimated = ?, result_count = ?, items_saved = ?, error = NULL, updated_at = ? WHERE id = ?')
     .bind('completed', cost, estimated, r.resultCount, saved, ts, run.id).run();
@@ -261,7 +327,26 @@ async function finishRun(rt: Runtime, run: RunRow, r: MonidRun, now: number) {
  * One short step of the engine: start pending runs (budget re-checked), then poll the running ones that are due.
  * Stops when `budgetMs` is used, so a request or a cron job stays short.
  */
-export async function radarStep(rt: Runtime, opts: { client?: MonidClient; now?: number; budgetMs?: number } = {}) {
+async function sourceNiche(rt: Runtime, run: RunRow): Promise<'in' | 'out' | null> {
+  const r = run.slot === 'substack:posts'
+    ? await rt.env.DB.prepare('SELECT niche FROM radar_publications WHERE id = ?').bind(run.source_ref).first<{ niche: string }>()
+    : await rt.env.DB.prepare('SELECT niche FROM radar_subreddits WHERE name = ?').bind(run.source_ref).first<{ niche: string }>();
+  return r ? (r.niche === 'out' ? 'out' : 'in') : null;
+}
+
+/**
+ * One short step of the engine: start pending runs (budget re-checked), then poll the running ones that are due.
+ * Stops when `budgetMs` is used, so a request or a cron job stays short. Platforms are re-scored once at the end of the
+ * step, not after every run (a sweep finishes hundreds of runs).
+ */
+export async function radarStep(rt: Runtime, opts: { client?: MonidClient; now?: number; budgetMs?: number; maxStart?: number } = {}) {
+  const touched = new Set<Platform>();
+  const out = await stepRuns(rt, opts, touched);
+  for (const p of touched) await rescore(rt, p, opts.now ?? Date.now());
+  return out;
+}
+
+async function stepRuns(rt: Runtime, opts: { client?: MonidClient; now?: number; budgetMs?: number; maxStart?: number }, touched: Set<Platform>) {
   const cfg = radarConfig(rt);
   const out = { started: 0, completed: 0, failed: 0, polled: 0, skipped: 0 };
   if (!cfg.key && !opts.client) return out;
@@ -269,14 +354,19 @@ export async function radarStep(rt: Runtime, opts: { client?: MonidClient; now?:
   const t0 = Date.now();
   const left = () => Date.now() - t0 < (opts.budgetMs ?? 20_000);
   const now = () => opts.now ?? Date.now();
+  const off = await platformsOff(rt);
 
-  const { results: pending } = await rt.env.DB.prepare("SELECT * FROM radar_runs WHERE status = 'pending' ORDER BY created_at LIMIT 8").all<RunRow>();
+  const { results: pending } = await rt.env.DB.prepare("SELECT * FROM radar_runs WHERE status = 'pending' ORDER BY created_at LIMIT ?").bind(Math.max(1, Math.min(200, opts.maxStart ?? 8))).all<RunRow>();
   for (const run of pending) {
     if (!left()) break;
     const slot = slotDef(run.slot);
     const ts = new Date(now()).toISOString();
     if (slot?.platform === 'instagram' && !cfg.instagram) {
       await rt.env.DB.prepare("UPDATE radar_runs SET status = 'skipped', est_micros = 0, error = ?, updated_at = ? WHERE id = ?").bind(RADAR_COPY.instagramOff, ts, run.id).run();
+      out.skipped++; continue;
+    }
+    if (slot && off.has(slot.platform)) {
+      await rt.env.DB.prepare("UPDATE radar_runs SET status = 'skipped', est_micros = 0, error = ?, updated_at = ? WHERE id = ?").bind(RADAR_COPY.platformOff(slot.label), ts, run.id).run();
       out.skipped++; continue;
     }
     const { committed } = await monthSpend(rt, now());
@@ -290,25 +380,27 @@ export async function radarStep(rt: Runtime, opts: { client?: MonidClient; now?:
     try {
       const r = await client.run(run.provider, run.endpoint, JSON.parse(run.input_json));
       out.started++;
-      if (RUN_DONE.has(r.status)) { await finishRun(rt, run, r, now()); if (r.status === 'COMPLETED') out.completed++; else out.failed++; }
+      if (RUN_DONE.has(r.status)) { await finishRun(rt, run, r, now(), touched); if (r.status === 'COMPLETED') out.completed++; else out.failed++; }
       else await rt.env.DB.prepare('UPDATE radar_runs SET monid_run_id = ?, next_poll_at = ?, updated_at = ? WHERE id = ?').bind(r.runId, new Date(now() + 30_000).toISOString(), ts, run.id).run();
     } catch (e) {
       const msg = e instanceof MonidError ? e.message : `The run could not start: ${String((e as Error)?.message ?? e).slice(0, 200)}`;
       // A timeout may still have started the run on Monid's side; keep its estimate as the cost so the budget stays safe.
       const timedOut = (e as Error)?.name === 'TimeoutError' || (e as Error)?.name === 'AbortError';
       await rt.env.DB.prepare("UPDATE radar_runs SET status = 'failed', cost_micros = ?, cost_estimated = ?, error = ?, updated_at = ? WHERE id = ?").bind(timedOut ? run.est_micros : 0, timedOut ? 1 : 0, msg, ts, run.id).run();
+      // The provider refusing a subreddit or a publication switches that source off with its message.
+      if (e instanceof MonidError && e.status >= 400 && e.status < 500 && ![401, 402, 403, 429].includes(e.status)) await sourceFailed(rt, run, msg);
       out.failed++;
     }
   }
 
-  const { results: running } = await rt.env.DB.prepare("SELECT * FROM radar_runs WHERE status = 'running' AND monid_run_id IS NOT NULL AND (next_poll_at IS NULL OR next_poll_at <= ?) ORDER BY next_poll_at LIMIT 12").bind(new Date(now()).toISOString()).all<RunRow>();
+  const { results: running } = await rt.env.DB.prepare("SELECT * FROM radar_runs WHERE status = 'running' AND monid_run_id IS NOT NULL AND (next_poll_at IS NULL OR next_poll_at <= ?) ORDER BY next_poll_at LIMIT ?").bind(new Date(now()).toISOString(), Math.max(12, Math.min(200, (opts.maxStart ?? 8) * 2))).all<RunRow>();
   for (const run of running) {
     if (!left()) break;
     const ts = new Date(now()).toISOString();
     try {
       const r = await client.getRun(run.monid_run_id!);
       out.polled++;
-      if (RUN_DONE.has(r.status)) { await finishRun(rt, run, r, now()); if (r.status === 'COMPLETED') out.completed++; else out.failed++; continue; }
+      if (RUN_DONE.has(r.status)) { await finishRun(rt, run, r, now(), touched); if (r.status === 'COMPLETED') out.completed++; else out.failed++; continue; }
       const age = now() - Date.parse(run.created_at);
       if (age > 24 * 3600_000) {
         await rt.env.DB.prepare("UPDATE radar_runs SET status = 'failed', cost_micros = est_micros, cost_estimated = 1, error = ?, updated_at = ? WHERE id = ?").bind('Still running after a day, so Radar stopped waiting for it.', ts, run.id).run();
@@ -324,29 +416,19 @@ export async function radarStep(rt: Runtime, opts: { client?: MonidClient; now?:
   return out;
 }
 
-/** The cron job: queue the watchlists that are due (RADAR_SCHEDULE_HOURS, 0 = manual only), then one step. */
-export async function radarTick(rt: Runtime, now = Date.now()) {
-  const cfg = radarConfig(rt);
-  if (!cfg.key) return { queued: 0, step: null };
-  let queued = 0;
-  if (cfg.scheduleHours > 0) {
-    await ensureSeeded(rt);
-    const cutoff = new Date(now - cfg.scheduleHours * 3600_000).toISOString();
-    const { results } = await rt.env.DB.prepare('SELECT * FROM radar_watchlists WHERE deleted_at IS NULL AND enabled = 1 AND (last_run_at IS NULL OR last_run_at <= ?) ORDER BY last_run_at LIMIT 4').bind(cutoff).all<WlRow>();
-    for (const r of results) queued += (await queueWatchlist(rt, toWl(r), now)).queued;
-  }
-  return { queued, step: await radarStep(rt, { budgetMs: 60_000 }) };
-}
-
 // ───────────── items ─────────────
 
-export async function upsertItem(rt: Runtime, it: RadarItem, wl: Watchlist | null, now = Date.now()) {
+export async function upsertItem(rt: Runtime, it: RadarItem, wl: Watchlist | null, now = Date.now(), extra: { query?: string | null; niche?: 'in' | 'out' | null } = {}) {
   const ts = new Date(now).toISOString();
   const old = await rt.env.DB.prepare('SELECT radar_ids, niche, transcript FROM radar_items WHERE id = ?').bind(it.id).first<{ radar_ids: string; niche: string | null; transcript: string | null }>();
   const ids = new Set(parse<string[]>(old?.radar_ids, []));
   if (wl) ids.add(wl.id);
-  const niche = !wl ? old?.niche ?? null : !old?.niche || old.niche === wl.niche ? wl.niche : 'both';
+  const found = wl?.niche ?? extra.niche ?? null;
+  const niche = !found ? old?.niche ?? null : !old?.niche || old.niche === found ? found : 'both';
   const raw = JSON.stringify(it.raw).slice(0, 60_000);
+  // A text post's body is its transcript: nothing to fetch.
+  const text = isTextPlatform(it.platform);
+  const query = extra.query ?? null;
   if (old) {
     await rt.env.DB.prepare(
       `UPDATE radar_items SET url = COALESCE(?, url), author = COALESCE(?, author), title = COALESCE(?, title), caption = COALESCE(?, caption),
@@ -355,37 +437,63 @@ export async function upsertItem(rt: Runtime, it: RadarItem, wl: Watchlist | nul
          ad_end = COALESCE(?, ad_end), ad_active = COALESCE(?, ad_active), ad_active_days = COALESCE(?, ad_active_days), ad_variants = COALESCE(?, ad_variants),
          transcript = CASE WHEN transcript IS NULL AND ? IS NOT NULL THEN ? ELSE transcript END,
          transcript_source = CASE WHEN transcript IS NULL AND ? IS NOT NULL THEN 'captions' ELSE transcript_source END,
+         body_text = COALESCE(?, body_text), bookmarks = COALESCE(?, bookmarks), saves = COALESCE(?, saves), reposts = COALESCE(?, reposts),
+         source_ref = COALESCE(?, source_ref), query = COALESCE(?, query),
          niche = ?, radar_ids = ?, raw_json = ?, last_seen = ? WHERE id = ?`,
     ).bind(it.url, it.author, it.title, it.caption, it.views, it.likes, it.comments, it.shares, it.followers, it.thumbnail_url, it.media_url, it.media_kind,
-      it.ad_end, it.ad_active, it.ad_active_days, it.ad_variants, it.captions, it.captions, it.captions, niche, JSON.stringify([...ids]), raw, ts, it.id).run();
+      it.ad_end, it.ad_active, it.ad_active_days, it.ad_variants, it.captions, it.captions, it.captions,
+      it.body_text, it.bookmarks, it.saves, it.reposts, it.source_ref, query,
+      niche, JSON.stringify([...ids]), raw, ts, it.id).run();
     return 'updated' as const;
   }
   await rt.env.DB.prepare(
     `INSERT INTO radar_items (id, platform, external_id, url, author, author_id, title, caption, published_at, duration_s, views, likes, comments, shares, followers,
        thumbnail_url, embed_url, media_url, media_kind, ad_start, ad_end, ad_active, ad_active_days, ad_variants, ad_cta, ad_link, ad_platforms, niche, radar_ids,
-       transcript, transcript_source, raw_json, first_seen, last_seen)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       transcript, transcript_source, raw_json, first_seen, last_seen, body_text, bookmarks, saves, reposts, source_ref, query)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(it.id, it.platform, it.external_id, it.url, it.author, it.author_id, it.title, it.caption, it.published_at, it.duration_s, it.views, it.likes, it.comments, it.shares, it.followers,
     it.thumbnail_url, it.embed_url, it.media_url, it.media_kind, it.ad_start, it.ad_end, it.ad_active, it.ad_active_days, it.ad_variants, it.ad_cta, it.ad_link, it.ad_platforms,
-    niche, JSON.stringify([...ids]), it.captions, it.captions ? 'captions' : it.platform === 'meta_ads' ? null : 'missing', raw, ts, ts).run();
+    niche, JSON.stringify([...ids]), it.captions, it.captions ? 'captions' : text ? 'text' : it.platform === 'meta_ads' ? null : 'missing', raw, ts, ts,
+    it.body_text, it.bookmarks, it.saves, it.reposts, it.source_ref, query).run();
   return 'inserted' as const;
 }
 
-/** Re-score every item of a platform (author and platform medians come from what Radar has seen). */
+/**
+ * Re-score the items of a platform. The baselines come from what Radar has seen: each author's and the platform's
+ * median metric (views on video platforms, weighted interactions on text ones; see scoreItem), and for Reddit and
+ * Substack each subreddit's or publication's median. Only rows whose score moved are written.
+ */
 export async function rescore(rt: Runtime, platform: Platform, now = Date.now()) {
-  const { results } = await rt.env.DB.prepare('SELECT id, platform, views, likes, comments, shares, followers, published_at, author, ad_active_days, ad_variants, ad_start, ad_end, ad_active FROM radar_items WHERE platform = ? ORDER BY last_seen DESC LIMIT 2000')
-    .bind(platform).all<RadarItem & { id: string }>();
+  const { results } = await rt.env.DB.prepare('SELECT id, platform, views, likes, comments, shares, bookmarks, saves, reposts, followers, published_at, author, source_ref, ad_active_days, ad_variants, ad_start, ad_end, ad_active, score, score_json FROM radar_items WHERE platform = ? ORDER BY last_seen DESC LIMIT 4000')
+    .bind(platform).all<RadarItem & { id: string; score: number; score_json: string | null }>();
   const byAuthor = new Map<string, number[]>();
+  const bySource = new Map<string, number[]>();
   const all: number[] = [];
-  for (const r of results) if (r.views != null) { all.push(r.views); if (r.author) byAuthor.set(r.author, [...(byAuthor.get(r.author) ?? []), r.views]); }
-  const stmts = results.map((r) => {
+  const mOf = new Map<string, number | null>();
+  for (const r of results) {
+    const m = metricOf(r);
+    mOf.set(r.id, m);
+    if (m == null) continue;
+    all.push(m);
+    if (r.author) byAuthor.set(r.author, [...(byAuthor.get(r.author) ?? []), m]);
+    if (r.source_ref) bySource.set(r.source_ref, [...(bySource.get(r.source_ref) ?? []), m]);
+  }
+  // The other items' values (this item's own value taken out once).
+  const others = (list: number[] | undefined, m: number | null | undefined) => { const a = [...(list ?? [])]; const i = m == null ? -1 : a.indexOf(m); if (i >= 0) a.splice(i, 1); return a; };
+  const stmts: D1PreparedStatement[] = [];
+  for (const r of results) {
     // Ads still running gain a day every day: refresh days active before scoring.
+    const daysBefore = r.ad_active_days;
     if (platform === 'meta_ads' && r.ad_start && r.ad_active !== 0) r.ad_active_days = Math.max(0, Math.round((now - Date.parse(r.ad_start)) / 86400_000));
-    const others = (byAuthor.get(r.author ?? '') ?? []).filter((v, i, a) => !(v === r.views && a.indexOf(v) === i));
-    const p = scoreItem(r, { authorViews: others, platformViews: all, now });
-    return rt.env.DB.prepare('UPDATE radar_items SET score = ?, score_json = ?, ad_active_days = ? WHERE id = ?').bind(p.score, JSON.stringify(p), r.ad_active_days, r.id);
-  });
+    const m = mOf.get(r.id);
+    const p = scoreItem(r, { authorViews: others(byAuthor.get(r.author ?? ''), m), platformViews: all, sourceValues: SOURCE_PLATFORMS.has(platform) ? others(bySource.get(r.source_ref ?? ''), m) : undefined, now });
+    if (r.score_json && Math.abs(p.score - (r.score ?? 0)) < 0.1 && daysBefore === r.ad_active_days) continue;
+    stmts.push(rt.env.DB.prepare('UPDATE radar_items SET score = ?, score_json = ?, ad_active_days = ? WHERE id = ?').bind(p.score, JSON.stringify(p), r.ad_active_days, r.id));
+  }
   for (let i = 0; i < stmts.length; i += 50) await rt.env.DB.batch(stmts.slice(i, i + 50));
+  if (platform === 'substack' && bySource.size) {
+    await rt.env.DB.batch([...bySource.entries()].map(([host, xs]) => rt.env.DB.prepare('UPDATE radar_publications SET median_interactions = ? WHERE id = ?').bind(median(xs), host)));
+  }
 }
 
 export const SORTS = ['score', 'views', 'engagement', 'velocity', 'longevity', 'variants', 'recent'] as const;
@@ -413,19 +521,39 @@ export function relevantTo(text: string, keywords: string[]): boolean {
   if (kw.some((w) => t.includes(` ${w}`))) return true;
   return BUSINESS_WORDS.some((w) => t.includes(` ${w}`));
 }
+/**
+ * Relevance for text posts (X, LinkedIn, Reddit, Substack). A long post mentions "business" or "company" in passing
+ * far more often than a caption does, so one stray word is not enough: it ranks when the title or opening carries a
+ * radar keyword phrase or a word of one, when the whole text carries a full keyword phrase, or when it uses at least
+ * two different business words. A Substack post from the owner's own list passes on its publication's word.
+ */
+export function relevantText(title: string, body: string, keywords: string[], o: { listed?: boolean } = {}): boolean {
+  if (o.listed) return true;
+  const norm = (s: string) => ` ${words(s).replace(/#/g, ' ').replace(/\s+/g, ' ').trim()} `;
+  const t = norm(`${title} ${body.slice(0, 6000)}`);
+  if (!t.trim()) return false;
+  const phrases = keywords.map((k) => words(k).replace(/\s+/g, ' ').trim()).filter((k) => k.length >= 3);
+  if (phrases.some((p) => t.includes(` ${p} `) || t.includes(` ${p}s `))) return true;
+  const head = norm(`${title} ${body.slice(0, 280)}`);
+  const kwWords = keywords.flatMap((k) => words(k).split(/\s+/)).filter((w) => w.length >= 4 && !REL_STOP.has(w));
+  if (kwWords.some((w) => head.includes(` ${w}`))) return true;
+  return new Set(BUSINESS_WORDS.filter((w) => t.includes(` ${w} `) || t.includes(` ${w}s `))).size >= 2;
+}
 
 export async function listItems(rt: Runtime, f: { platform?: string; niche?: string; radar?: string; sort?: string; limit?: number; all?: boolean }) {
   const where: string[] = []; const args: unknown[] = [];
   if (f.platform && (PLATFORMS as readonly string[]).includes(f.platform)) { where.push('platform = ?'); args.push(f.platform); }
-  else if (f.platform === 'videos') where.push("platform != 'meta_ads'");
+  else if (f.platform === 'videos') where.push("platform IN ('youtube','tiktok','instagram')");
+  else if (f.platform === 'text') where.push("platform IN ('x','linkedin','reddit','substack')");
   if (f.niche === 'in' || f.niche === 'out') { where.push("(niche = ? OR niche = 'both')"); args.push(f.niche); }
-  if (f.radar) { where.push('radar_ids LIKE ?'); args.push(`%"${f.radar.replace(/[%_"]/g, '')}"%`); }
+  if (f.radar) { where.push("radar_ids LIKE ? ESCAPE '\\'"); args.push(`%"${f.radar.replace(/"/g, '').replace(/[\\%_]/g, (ch) => `\\${ch}`)}"%`); }
   const { results } = await rt.env.DB.prepare(
     `SELECT id, platform, url, author, title, substr(caption, 1, 400) AS caption, published_at, duration_s, views, likes, comments, shares, followers, thumbnail_url, media_url, media_kind,
             ad_active_days, ad_variants, ad_active, ad_cta, niche, radar_ids, score, score_json, transcript_source, analyzed_at, script_id, first_seen, last_seen,
-            json_extract(analysis_json, '$.for_gl.hook') AS hook
-       FROM radar_items ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY score DESC LIMIT 600`,
-  ).bind(...args).all<ItemListRow>();
+            json_extract(analysis_json, '$.for_gl.hook') AS hook,
+            bookmarks, saves, reposts, source_ref, query, substr(body_text, 1, 1200) AS body_head
+       FROM radar_items ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY score DESC LIMIT 1500`,
+  ).bind(...args).all<ItemListRow & { bookmarks: number | null; saves: number | null; reposts: number | null; source_ref: string | null; query: string | null; body_head: string | null }>();
   const sort: Sort = (SORTS as readonly string[]).includes(f.sort ?? '') ? (f.sort as Sort) : 'score';
   const parts = (r: ItemListRow) => parse<Partial<{ ratio: number; velocity: number; engagement: number }>>(r.score_json, {});
   const key: Record<Sort, (r: ItemListRow) => number> = {
@@ -437,9 +565,14 @@ export async function listItems(rt: Runtime, f: { platform?: string; niche?: str
   if (!f.all) {
     const { results: wl } = await rt.env.DB.prepare('SELECT id, keywords_json FROM radar_watchlists').all<{ id: string; keywords_json: string }>();
     const kwOf = new Map(wl.map((w) => [w.id, parse<string[]>(w.keywords_json, [])]));
-    kept = results.filter((r) => relevantTo(`${r.title ?? ''} ${r.caption ?? ''} ${r.author ?? ''}`, parse<string[]>(r.radar_ids, []).flatMap((id) => kwOf.get(id) ?? [])));
+    kept = results.filter((r) => {
+      const kws = parse<string[]>(r.radar_ids, []).flatMap((id) => kwOf.get(id) ?? []);
+      // Text posts: the stricter check on their full opening; a Substack post comes from the owner's own list.
+      if (isTextPlatform(r.platform)) return relevantText(r.title ?? '', r.body_head ?? r.caption ?? '', kws, { listed: r.platform === 'substack' });
+      return relevantTo(`${r.title ?? ''} ${r.caption ?? ''} ${r.author ?? ''}`, kws);
+    });
   }
-  return kept.sort((a, b) => key[sort](b) - key[sort](a)).slice(0, Math.min(200, f.limit ?? 120)).map((r) => ({ ...r, radar_ids: parse<string[]>(r.radar_ids, []), score_parts: parse(r.score_json, null), score_json: undefined }));
+  return kept.sort((a, b) => key[sort](b) - key[sort](a)).slice(0, Math.min(200, f.limit ?? 120)).map(({ body_head: _b, ...r }) => ({ ...r, radar_ids: parse<string[]>(r.radar_ids, []), score_parts: parse(r.score_json, null), score_json: undefined }));
 }
 
 export async function getItem(rt: Runtime, id: string) {
