@@ -237,7 +237,7 @@ describe('the pipeline', () => {
     const jobs = editor.seen.filter((s) => s.path === '/jobs').map((s) => s.body!);
     expect(jobs.map((j) => j.kind)).toEqual(['analyze', 'render']);
     expect(String(jobs[1].rawUrl)).toMatch(new RegExp(`^${ORIGIN}/studio/blob/${id}/raw\\?e=\\d+&s=[0-9a-f]{40}$`));
-    expect((jobs[1].uploads as { kind: string }[]).map((u) => u.kind)).toEqual(['edited', 'short-1']);
+    expect((jobs[1].uploads as { kind: string }[]).map((u) => u.kind)).toEqual(['edited', 'preview', 'short-1']);
     const msgs = events(id);
     expect(msgs).toEqual(expect.arrayContaining([
       'Read the recording: 3840x2160, 30 fps, 1 m 0 s, 10 s of silence',

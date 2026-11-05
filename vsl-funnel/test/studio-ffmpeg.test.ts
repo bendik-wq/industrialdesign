@@ -65,14 +65,17 @@ describe('video graph', () => {
 describe('the render job', () => {
   it('4K stays 4K: no scale in the main graph, H.264 high CRF 18, AAC 192k, faststart, two loudness passes', () => {
     const job = buildRenderJob(plan, probe4k, { captions: true, shorts: false, words });
-    expect(job.steps.map((s) => s.name)).toEqual(['measure', 'render']);
+    // A 4K master also gets a 1080p preview for the browser player (optional upload; the master is untouched).
+    expect(job.steps.map((s) => s.name)).toEqual(['measure', 'render', 'preview']);
+    expect(job.steps[2].args.join(' ')).toContain('force_original_aspect_ratio=decrease');
+    expect(job.steps[2].args).toContain('{dir}/edited.mp4');
     expect(job.steps[0].measureLoudnorm).toBe(true);
     const graph = job.files['graph.txt'];
     expect(graph.split(';\n')[0]).not.toMatch(/scale=|crop=/);
     const args = job.steps[1].args.join(' ');
     for (const a of ['-c:v libx264', '-profile:v high', '-crf 18', '-preset medium', '-pix_fmt yuv420p', '-c:a aac', '-b:a 192k', '-movflags +faststart', '-r 30', '{dir}/edited.mp4'])
       expect(args).toContain(a);
-    expect(job.uploads).toEqual([{ file: 'edited.mp4', kind: 'edited', contentType: 'video/mp4', label: 'Saving the edit' }]);
+    expect(job.uploads).toEqual([{ file: 'edited.mp4', kind: 'edited', contentType: 'video/mp4', label: 'Saving the edit' }, { file: 'preview.mp4', kind: 'preview', contentType: 'video/mp4', label: 'Saving the preview', optional: true }]);
     // Length: the frame-snapped keep.
     expect(job.keptS).toBeCloseTo(305 / 30 + (468 - 386) / 30 + 5 + 34, 4); // 10.155 → frame 305, 12.863 → 386, 15.6 → 468
     expect(job.files['captions.ass']).toContain('PlayResX: 3840');
@@ -82,7 +85,7 @@ describe('the render job', () => {
     expect(buildRenderJob(plan, probe4k, { captions: false, shorts: false, words }).files['captions.ass']).toBeUndefined();
     expect(buildRenderJob({ ...plan, captions: { style: 'none' } }, probe4k, { captions: true, shorts: false, words }).files['captions.ass']).toBeUndefined();
     const silent = buildRenderJob(plan, { ...probe4k, hasAudio: false }, { captions: false, shorts: false });
-    expect(silent.steps.map((s) => s.name)).toEqual(['render']);
+    expect(silent.steps.map((s) => s.name)).toEqual(['render', 'preview']);
     expect(silent.steps[0].args).toContain('-an');
   });
   it('odd sizes are cropped by one pixel (yuv420p), never scaled', () => {
@@ -98,7 +101,7 @@ describe('the render job', () => {
     expect(s.args.slice(0, 6)).toEqual(['-ss', '30', '-t', '30', '-i', '{raw}']);
     expect(job.files['short-1.txt']).toContain('crop=1214:2160:1312:0,scale=1080:1920:flags=lanczos');
     expect(job.files['short-1.ass']).toContain('PlayResX: 1080');
-    expect(job.uploads.map((u) => u.kind)).toEqual(['edited', 'short-1']);
+    expect(job.uploads.map((u) => u.kind)).toEqual(['edited', 'preview', 'short-1']);
   });
   it('a plan that keeps nothing is refused', () => {
     expect(() => buildRenderJob({ ...plan, keep: [] }, probe4k, { captions: false, shorts: false })).toThrow(/keeps nothing/);

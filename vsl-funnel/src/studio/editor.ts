@@ -16,7 +16,7 @@ import { getSecret } from '../lib/secret';
  */
 
 export const BLOB_PATH = '/studio/blob/';
-export const BLOB_KINDS = /^(raw|progress|thumb|edited|short-[1-3])$/;
+export const BLOB_KINDS = /^(raw|progress|thumb|edited|preview|short-[1-3])$/;
 export const ID_RE = /^[a-z0-9][a-z0-9-]{7,63}$/;
 
 async function sig(env: Env, id: string, kind: string, exp: number) {
@@ -37,6 +37,7 @@ export async function verifyBlob(env: Env, id: string, kind: string, e: string |
 /** R2 keys for each output kind. */
 export function outputKey(id: string, kind: string): string | null {
   if (kind === 'edited') return `edited/${id}.mp4`;
+  if (kind === 'preview') return `previews/${id}.mp4`;
   if (kind === 'thumb') return `thumbs/${id}.jpg`;
   const m = /^short-([1-3])$/.exec(kind);
   return m ? `shorts/${id}-${m[1]}.mp4` : null;

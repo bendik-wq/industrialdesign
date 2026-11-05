@@ -199,6 +199,10 @@ export function buildAss(cues: Cue[], width: number, height: number, o: { sizeRa
 
 // ───────────── the whole render job ─────────────
 
+/** Fits inside 1920x1080, keeps the shape, even sides. */
+export const PREVIEW_SCALE = 'scale=w=1920:h=1080:force_original_aspect_ratio=decrease:force_divisible_by=2';
+export const needsPreview = (w: number, h: number) => w > 1920 || h > 1080;
+
 /** Steps, files and uploads for one render. Paths use the container's placeholders {raw} and {dir}. */
 export function buildRenderJob(plan: Pick<EditPlan, 'keep' | 'clips' | 'captions' | 'title'>, probe: Probe, o: RenderOptions): RenderJob {
   const fps = pickFps(probe);
@@ -229,6 +233,11 @@ export function buildRenderJob(plan: Pick<EditPlan, 'keep' | 'clips' | 'captions
     steps.push({ name: 'render', label: 'Rendering the edit', args: ['-i', '{raw}', '-filter_complex_script', '{dir}/graph.txt', '-map', '[vout]', '-an', ...encode, ...mux, '{dir}/edited.mp4'], weight: 1, durationS: keptS });
   }
   uploads.push({ file: 'edited.mp4', kind: 'edited', contentType: 'video/mp4', label: 'Saving the edit' });
+  // A 1080p copy for watching in the browser: very wide or 4K masters (e.g. 3682x1810) don't play in every browser.
+  if (needsPreview(probe.width, probe.height)) {
+    steps.push({ name: 'preview', label: 'Making the preview', args: ['-i', '{dir}/edited.mp4', '-vf', PREVIEW_SCALE, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-profile:v', 'high', '-level:v', '4.1', '-pix_fmt', 'yuv420p', ...(probe.hasAudio ? ['-c:a', 'copy'] : ['-an']), ...mux, '{dir}/preview.mp4'], weight: 0.15, durationS: keptS });
+    uploads.push({ file: 'preview.mp4', kind: 'preview', contentType: 'video/mp4', label: 'Saving the preview', optional: true });
+  }
 
   const shorts: RenderJob['shorts'] = [];
   if (o.shorts) {

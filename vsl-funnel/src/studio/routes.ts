@@ -243,6 +243,14 @@ studioAdmin.get('/videos/:id/edited', async (c) => {
   if (!v || !v.edited_key || !c.env.STUDIO) return bad(c, STUDIO_COPY.notFound, 404);
   return streamObject(c, c.env.STUDIO, v.edited_key, 'video/mp4', c.req.query('download') ? `${(v.title || 'edit').slice(0, 80)} (edited).mp4` : undefined);
 });
+// The player's copy: the 1080p preview when the master is larger, else the master itself.
+studioAdmin.get('/videos/:id/preview', async (c) => {
+  const v = await recording(c);
+  if (!v || !v.edited_key || !c.env.STUDIO) return bad(c, STUDIO_COPY.notFound, 404);
+  const key = `previews/${v.id}.mp4`;
+  return streamObject(c, c.env.STUDIO, (await c.env.STUDIO.head(key)) ? key : v.edited_key, 'video/mp4');
+});
+
 studioAdmin.get('/videos/:id/thumb', async (c) => {
   const v = await recording(c);
   if (!v || !v.thumb_key || !c.env.STUDIO) return bad(c, STUDIO_COPY.notFound, 404);

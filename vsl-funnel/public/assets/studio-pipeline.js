@@ -355,7 +355,7 @@ function sheetHtml(v, events, plan) {
         <div class="sb-player"><div class="sb-player-k"><span>Before</span><span>${esc([clock(total), res(v.width, v.height)].filter(Boolean).join(' · '))}</span></div>
           ${v.raw_key || v.status !== 'recording' ? `<video controls preload="metadata" playsinline src="${API}/videos/${id}/raw" poster="${API}/videos/${id}/thumb" data-raw></video>` : '<div class="sb-ph">The recording appears here once it is uploaded.</div>'}</div>
         <div class="sb-player"><div class="sb-player-k"><span>After</span><span>${esc(res(v.edited_width, v.edited_height))}</span></div>
-          ${hasEdited ? `<video controls preload="metadata" playsinline src="${API}/videos/${id}/edited"></video>` : '<div class="sb-ph">The edited version appears here when it is rendered.</div>'}</div>
+          ${hasEdited ? `<video controls preload="metadata" playsinline src="${API}/videos/${id}/preview"></video><a class="sb-link" style="display:inline-block;margin-top:6px" href="${API}/videos/${id}/edited?download=1">Download full quality</a>` : '<div class="sb-ph">The edited version appears here when it is rendered.</div>'}</div>
       </div></section>
       <section><p class="sb-sec-k"><span>The edit plan</span></p>${stripHtml(segs, chapters, total)}</section>
       <section class="sb-two">
