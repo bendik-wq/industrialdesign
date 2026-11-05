@@ -79,6 +79,7 @@ import { signedFileRoute } from './infra/signed-files';
 import { mountStudioBlob } from './studio/routes'; // G&L Studio: the editor container's signed links
 import { studioTick } from './studio/pipeline';
 import { radarTick } from './radar/sweep'; // Studio → Radar: due radars, subreddits and publications as a sweep, Monid run polling, automatic transcripts
+import { radarPipelineTick } from './radar/pipeline-flow'; // Radar v2: the analysis pipeline (formats, adaptations)
 import { brainTick } from './brain/embed'; // Radar v2, builder B: the brain's leftover embeddings
 import { maybeRunWatchdog } from './infra/watchdog';
 import { syncStreamCopies } from './infra/cf-stream';
@@ -486,6 +487,8 @@ export default {
       { name: 'Studio (Drive scan and edits)', run: () => studioTick(rt), budgetMs: 170_000 },
       // Radar: radars due by RADAR_SCHEDULE_HOURS are queued, Monid runs are started and polled (nothing runs without MONID_API_KEY).
       { name: 'Radar (Monid runs)', run: () => radarTick(rt), budgetMs: 90_000 },
+      // Radar v2: resume the inline analysis pipeline and start one after a finished sweep (RADAR_PIPELINE_HOURS).
+      { name: 'Radar analysis pipeline', run: () => radarPipelineTick(rt), budgetMs: 170_000 },
       // The brain: once the owner started embedding (POST /admin/api/brain/embed), chunks still left are embedded here.
       { name: 'Brain embeddings', run: () => brainTick(rt), budgetMs: 60_000 },
     ]);
@@ -528,6 +531,7 @@ export default {
 
 export { LiveReminderWorkflow } from './workflows';
 export { StudioPipelineWorkflow } from './studio/workflow'; // G&L Studio: Workflow gl-studio-pipeline
+export { RadarPipelineWorkflow } from './radar/pipeline-flow'; // Radar v2: Workflow gl-radar-pipeline (commented out in wrangler.jsonc until enabled)
 export { StudioEditor } from './studio/container'; // G&L Studio: the editor container (Cloudflare Containers)
 
 export { runtimeFrom };

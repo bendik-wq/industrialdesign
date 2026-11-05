@@ -25,6 +25,8 @@ export interface Env {
   STUDIO_EDITOR?: DurableObjectNamespace;
   /** G&L Studio: the pipeline Workflow gl-studio-pipeline (one instance per video run). Optional; the 5-minute cron advances videos without it. */
   STUDIO_FLOW?: Workflow<{ id: string }>;
+  /** Radar v2: the analysis pipeline Workflow gl-radar-pipeline (src/radar/pipeline-flow.ts). Without it the pipeline runs inline and the cron resumes it. */
+  RADAR_FLOW?: Workflow<{ runId: string }>;
 
   // Plain vars (wrangler.jsonc) — every one of these can also be connected from
   // the dashboard's Integrations tab; see SETTINGS in settings.ts.

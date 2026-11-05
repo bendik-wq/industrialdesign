@@ -406,6 +406,9 @@ export const SETTINGS = [
   { key: 'RADAR_SCHEDULE_HOURS', label: 'Radar: run every (hours)', group: 'Radar', placeholder: '24', help: 'Hours between the automatic runs of each radar, subreddit and publication. 0 = only when you press Run or Full sweep. Blank = 24.' },
   { key: 'RADAR_PAGES', label: 'Radar: pages per search', group: 'Radar', placeholder: '2', help: 'How many result pages each search reads (the next page is fetched only when the first one found something). 1 to 10, blank = 2. Each page is billed like the first.' },
   { key: 'RADAR_AUTO_TRANSCRIBE', label: 'Radar: videos transcribed after each sweep', group: 'Radar', placeholder: '30', help: 'After a sweep, the best new videos by score are transcribed automatically, taking turns across YouTube, TikTok and Instagram, within the budget. 0 = off. Blank = 30. Text posts need no transcript: their full text is kept.' },
+  { key: 'RADAR_EXTRACT_PER_SWEEP', label: 'Radar: formats read per analysis run', group: 'Radar', placeholder: '60', help: 'How many top performers without a format the analysis reads in one run (best scores first). Each is one model call. 0 to 400, blank = 60.' },
+  { key: 'RADAR_ADAPT_TOP', label: 'Radar: formats adapted per run', group: 'Radar', placeholder: '5', help: 'How many of the top viral formats each analysis run adapts for G&L (beat by beat, hooks and a Studio script, checked by a blind judge). 0 to 12, blank = 5.' },
+  { key: 'RADAR_PIPELINE_HOURS', label: 'Radar: run the analysis every (hours)', group: 'Radar', placeholder: '24', help: 'The cron starts the analysis (transcripts, formats, clusters, adaptations) after a sweep has finished, with at least this many hours between runs. 0 = only when you press Run analysis. Blank = 24.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];
