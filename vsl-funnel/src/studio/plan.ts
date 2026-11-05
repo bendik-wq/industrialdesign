@@ -292,7 +292,6 @@ export function validatePlan(raw: unknown, input: PlanInput): Validated {
     .filter((x) => x.out > x.in);
 
   let base = proposedKeep.length ? normalise(proposedKeep, D) : [{ in: 0, out: D }];
-  if (!proposedKeep.length) issues.push('no keep ranges: started from the whole recording');
   // Pieces the brain dropped without saying why count as "other" removals.
   const implicit = subtract([{ in: 0, out: D }], base).filter((x) => x.out - x.in >= MIN_SEGMENT_S)
     .filter((x) => !brainRemoved.some((b) => b.in <= x.in + 0.05 && b.out >= x.out - 0.05))
@@ -350,14 +349,14 @@ You get the transcript with word times in seconds, the silences, the recorder's 
 Reply with ONE JSON object and nothing else:
 {"title": string (under 70 characters, plain, no emojis, no exclamation marks),
  "description": string (exactly 2 short lines separated by \\n, plain, no hype, no promises of results),
- "keep": [{"in": seconds, "out": seconds}] (sorted, not overlapping, inside the duration),
- "removed": [{"in": seconds, "out": seconds, "reason": "silence" | "filler" | "false start" | "retake" | "repeat" | "off topic"}],
+ "removed": [{"in": seconds, "out": seconds, "reason": "false start" | "repeat" | "off topic" | "retake"}] (sorted; ONLY these judgement cuts:
+   silences, filler words and retake markers are already cut in code, so never list them; list nothing you would keep),
  "chapters": [{"t": seconds in the source, "title": string under 40 characters}] (first at 0, at least 30 s apart),
  "captions": {"style": "clean" | "none"},
  "clips": [{"in": seconds, "out": seconds, "title": string}] (up to 3, each 30 to 60 s, self-contained, strongest first; highlight markers first)}
-Rules: cut silences longer than 0.6 s (leave 0.15 s either side), filler words (um, uh, er), false starts (a phrase begun and then restarted:
-cut the abandoned attempt, keep the clean one), and for every retake marker everything from the start of the interrupted sentence up to the marker.
-Never cut inside a word. Keep everything else, in order. Keep at least half of the recording unless retakes explain more.
+Rules: cut false starts (a phrase begun and then restarted: cut the abandoned attempt, keep the clean one), repeated sentences (keep the
+last clean take) and clearly off-topic asides; for a retake marker you may extend the cut back to the start of the interrupted sentence.
+Never cut inside a word. Everything you don't list is kept, in order. Keep the answer short: a long recording still gets one compact JSON object.
 If the owner left notes, follow them.`;
 
 export function planPrompt(input: PlanInput, maxChars = 120_000): { system: string; user: string } {
