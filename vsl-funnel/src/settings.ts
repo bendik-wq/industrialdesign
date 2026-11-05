@@ -404,6 +404,9 @@ export const SETTINGS = [
   { key: 'RADAR_MAX_ITEMS', label: 'Radar: results per search', group: 'Radar', placeholder: '15', help: 'How many videos or ads each search asks for. Most tools charge per result. 1 to 100, blank = 15.' },
   { key: 'RADAR_INSTAGRAM', label: 'Radar: Instagram', group: 'Radar', placeholder: 'on', help: 'on (default). Owner-approved on 2026-11-05 for research on public reels only: keyword search and transcripts of public reels through Monid, with no logins and no DMs. off = no Instagram source and no Instagram run starts.' },
   { key: 'RADAR_SCHEDULE_HOURS', label: 'Radar: run every (hours)', group: 'Radar', placeholder: '24', help: 'Hours between the automatic runs of each radar. 0 = only when you press Run. Blank = 24.' },
+  { key: 'RADAR_EXTRACT_PER_SWEEP', label: 'Radar: formats read per analysis run', group: 'Radar', placeholder: '60', help: 'How many top performers without a format the analysis reads in one run (best scores first). Each is one model call. 0 to 400, blank = 60.' },
+  { key: 'RADAR_ADAPT_TOP', label: 'Radar: formats adapted per run', group: 'Radar', placeholder: '5', help: 'How many of the top viral formats each analysis run adapts for G&L (beat by beat, hooks and a Studio script, checked by a blind judge). 0 to 12, blank = 5.' },
+  { key: 'RADAR_PIPELINE_HOURS', label: 'Radar: run the analysis every (hours)', group: 'Radar', placeholder: '24', help: 'The cron starts the analysis (transcripts, formats, clusters, adaptations) after a sweep has finished, with at least this many hours between runs. 0 = only when you press Run analysis. Blank = 24.' },
 ] as const;
 
 export type SettingKey = (typeof SETTINGS)[number]['key'];

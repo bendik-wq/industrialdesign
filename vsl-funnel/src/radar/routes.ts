@@ -12,6 +12,7 @@ import {
   RADAR_COPY, type ToolRow, cleanWatchlist, digest, ensureSeeded, getItem, getWatchlist, listItems, listWatchlists, monthSpend, previewFor,
   queueTranscript, queueWatchlist, radarConfig, radarStep, recentRuns,
 } from './engine';
+import { radarFormatsAdmin } from './formats-routes';
 import { MonidError, monidClient, parsePrice } from './monid';
 import { type RadarQuery, SLOTS, type Slot, builtinFor, isRecommended, isSlot, knownRank, slotDef } from './sources';
 
@@ -26,6 +27,8 @@ export const RADAR_UI_COPY = {
 
 export const radarAdmin = new Hono<AppEnv>();
 radarAdmin.use('*', requireAdmin);
+// Radar v2 (builder C): viral formats, adaptations and the analysis pipeline (src/radar/formats-routes.ts).
+radarAdmin.route('/formats', radarFormatsAdmin);
 
 const parse = <T>(s: string | null | undefined, d: T): T => { try { return s ? (JSON.parse(s) as T) : d; } catch { return d; } };
 const body = async (c: { req: { json: <T>() => Promise<T> } }) => c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));

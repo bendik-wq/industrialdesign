@@ -95,6 +95,10 @@
   "workflows": [
     { "name": "gl-live-reminders", "binding": "LIVE_REMINDER_FLOW", "class_name": "LiveReminderWorkflow" },
     { "name": "gl-studio-pipeline", "binding": "STUDIO_FLOW", "class_name": "StudioPipelineWorkflow" }
+    // Radar v2 analysis pipeline (src/radar/pipeline-flow.ts): sweep → transcribe → extract → cluster → adapt → judge ⇄ rewrite → store,
+    // one durable instance per run (instance id = radar_pipeline_runs.id). Uncomment to run it as a Workflow; without the
+    // binding the same graph runs inline and the 5-minute cron resumes it, so nothing breaks while it stays commented.
+    // ,{ "name": "gl-radar-pipeline", "binding": "RADAR_FLOW", "class_name": "RadarPipelineWorkflow" }
   ],
 
   // ── G&L Studio (src/studio): screen recordings with the face cam → Drive folder → automatic edit → back to Drive ──
