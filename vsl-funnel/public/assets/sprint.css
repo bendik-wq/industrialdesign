@@ -35,6 +35,11 @@
 .buy-btn:hover svg { transform: translateX(3px); }
 .buy-timer { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--a-ink); letter-spacing: .01em; }
 
+/* Room buttons: flat navy, no gradient, sheen or glow (the site-wide .btn has all three). */
+.rm-body .btn:not(.secondary):not(.wa):not(.locked) { background: var(--a-navy); border-color: var(--a-navy); color: #fff; box-shadow: none; }
+.rm-body .btn:not(.secondary):not(.wa):not(.locked):hover { background: #0a2149; transform: none; box-shadow: none; }
+.rm-body .btn::after { display: none; }
+
 /* ───────────── Room layout ───────────── */
 .rm-body { background: #fff; }
 .rm-nav { position: static; border-bottom: 0; }
