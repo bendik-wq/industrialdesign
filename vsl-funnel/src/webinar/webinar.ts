@@ -213,7 +213,8 @@ const token = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =
  * changing any of its details (anyone can type anyone's address); only a registration that created the
  * lead may link this browser to it.
  */
-export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, unknown>) {
+/** o.verified: the caller already ran Turnstile on its own form (the quiz gate), so this one-click registration skips it. */
+export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, unknown>, o: { verified?: boolean } = {}) {
   const firstName = cleanName(body.first_name);
   const emailCheck = validateEmail(body.email);
   if (!firstName) throw new ApplicationError('Please enter your first name', 'first_name');
@@ -222,7 +223,7 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   const band = APP_REVENUE_BAND[String(body.revenue ?? '')] ?? null;
   if (!band) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
   const headline = WEBINAR_HEADLINES.some((h) => h.id === body.headline) ? String(body.headline) : null;
-  if (!(await verifyTurnstile(rt, body.turnstile, v, 'webinar'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
+  if (!o.verified && !(await verifyTurnstile(rt, body.turnstile, v, 'webinar'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
 
   // Abuse limit: a handful of sign-ups per IP per hour (each one sends email).
   const ipKey = `wreg:${v.ip ?? 'unknown'}`;
@@ -300,6 +301,23 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   }
   else if (reg.seq === 0 && isMillionPlus(lead.revenue_band)) await track(rt, who, { name: 'qualified_1m_plus', source: 'server', path: '/webinar', props: { band: lead.revenue_band, funnel: 'webinar' } });
   return { registration: reg, session, lead: (await getLead(rt.env, lead.id))!, created: true };
+}
+
+/**
+ * Where a new registration goes next: the thank-you page, or with a paid ticket required, straight to the ticket
+ * (Whop's embedded form, or Stripe Checkout). Shared by the registration form and the quiz's one-click seat.
+ */
+export async function registrationNext(rt: Runtime, registration: Registration, created: boolean) {
+  const { syncPassReplay, passGate, createCheckout } = await import('./pass');
+  if (created) await syncPassReplay(rt, registration.lead_id);
+  const thanks = `${webinarBase(rt)}/registered/${registration.token}`;
+  if (await passGate(rt, registration)) {
+    const tp = await import('./ticket-pay');
+    if (tp.embeddedTicketOn(rt.settings)) return tp.ticketPayUrl(rt, registration.token);
+    const r = await createCheckout(rt, registration, { kind: 'seat', from: 'ty' }).catch((e) => { console.error('ticket checkout', String(e).slice(0, 200)); return null; });
+    if (r && 'url' in r && r.url) return r.url;
+  }
+  return thanks;
 }
 
 export const TICKET_CYCLE = 10; // "finish your ticket" steps per registration block (see SEQUENCES.ticket)

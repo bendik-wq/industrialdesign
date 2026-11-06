@@ -168,7 +168,7 @@ export async function render(c: Context<AppEnv>, assetPath: string, view: View) 
   // Search engines + AI crawlers: only pages that opt in (view.seo.index) can be indexed.
   const indexable = Boolean(view.seo?.index && indexingOn(c) && v.botReason !== 'admin-preview' && !url.searchParams.has('hq_preview'));
   const seoTags = view.seo ? seoHead(c, { ...view.seo, index: indexable }) : '<meta name="robots" content="noindex, nofollow">';
-  const head = await trackingHead(c, pageEventId, ['questions', 'data', 'webinar'].some((k) => view.config && k in view.config));
+  const head = await trackingHead(c, pageEventId, ['questions', 'data', 'webinar', 'quiz'].some((k) => view.config && k in view.config));
   const asked = url.searchParams.get('palette') ?? '';
   const palette = PALETTES.includes(asked) ? asked : PALETTES.includes(s.SITE_PALETTE) ? s.SITE_PALETTE : PALETTES[0];
 

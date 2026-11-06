@@ -109,6 +109,12 @@ export const PUBLIC_RATE_LIMITS: PublicLimit[] = [
     { method: 'POST', path: `${p}/sprint/:token`, scope: 'token-form', max: 30, windowMs: HOUR, why: 'saves a form and can email the team' },
     { method: 'POST', path: `${p}/sprint-start/:token`, scope: 'token-form', max: 30, windowMs: HOUR, why: 'saves a form, then starts a checkout' },
   ]),
+  // The acquisition readiness quiz (src/quiz)
+  { method: 'POST', path: '/api/quiz/start', scope: 'quiz-start', max: 40, windowMs: HOUR, why: 'creates a quiz row and an event per hit' },
+  { method: 'POST', path: '/api/quiz/answer', scope: 'quiz-answer', max: 400, windowMs: HOUR, why: 'writes an answer and an event per hit' },
+  { method: 'POST', path: '/api/quiz/gate', scope: 'quiz-answer', max: 400, windowMs: HOUR, why: 'writes an event per hit' },
+  { method: 'POST', path: '/api/quiz/lead', scope: 'quiz-lead', max: 20, windowMs: HOUR, why: 'creates or matches a lead, records consent and sends the result email' },
+  { method: 'POST', path: '/api/quiz/register', scope: 'quiz-register', max: 20, windowMs: HOUR, why: 'registers for the masterclass or a live event (emails, texts, conversions)' },
   // Browser reports
   { method: 'POST', path: '/csp-report', scope: 'csp-report', max: 60, windowMs: 10 * MIN, why: 'writes to the error log' },
 ];
@@ -121,6 +127,8 @@ export const HANDLER_LIMITS: { method: string; path: string; limit: string; wher
   { method: 'POST', path: '/api/webinar/register', limit: '8 sign-ups per IP per hour', where: 'src/webinar/webinar.ts register' },
   { method: 'POST', path: '/api/live/register', limit: '8 sign-ups per IP per hour', where: 'src/live/events.ts registerLive' },
   { method: 'POST', path: '/api/challenge/register', limit: '8 sign-ups per IP per hour', where: 'src/challenge/payments.ts registerChallenge' },
+  { method: 'POST', path: '/api/quiz/lead', limit: '8 new quiz leads per IP per hour (plus Turnstile), 3 result emails per lead per hour', where: 'src/quiz/quiz.ts submitQuizLead' },
+  { method: 'POST', path: '/api/quiz/register', limit: '8 sign-ups per IP per hour (the masterclass or live registration it calls)', where: 'src/webinar/webinar.ts register, src/live/events.ts registerLive' },
   { method: 'POST', path: '/rooms/:id/join/:slug', limit: 'JOINS_PER_IP_HOUR joins per IP per hour', where: 'src/rooms/admission.ts' },
   { method: 'POST', path: '/api/camera-test', limit: '20 per IP per hour, body 60 KB', where: 'src/rooms/camera-test.ts' },
   { method: 'POST', path: '/sign/:token', limit: '20 per IP per hour', where: 'src/routes/sign.ts' },

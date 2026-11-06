@@ -210,10 +210,26 @@ async function opsCounts(rt: Runtime, r: Range): Promise<Counts> {
   };
 }
 
+async function quizMapCounts(rt: Runtime, r: Range): Promise<Counts> {
+  try {
+    const { quizCounts } = await import('../quiz/report');
+    const { landing, row } = await quizCounts(rt, r);
+    const v = (k: string) => num(row[k]);
+    return {
+      landing: { n: landing, unit: 'saw the quiz' }, started: { n: v('started'), unit: 'started' }, gate: { n: v('gate'), unit: 'saw the gate' }, lead: { n: v('leads'), unit: 'gave an email' },
+      result: { n: v('result'), unit: 'saw the result' }, registered: { n: v('registered'), unit: 'saved a seat' }, attended: { n: v('attended'), unit: 'attended' }, bought: { n: v('bought'), unit: 'bought' },
+    };
+  } catch {
+    const none = (unit: string): Count => ({ n: null, unit });
+    return { landing: none('saw the quiz'), started: none('started'), gate: none('saw the gate'), lead: none('gave an email'), result: none('saw the result'), registered: none('saved a seat'), attended: none('attended'), bought: none('bought') };
+  }
+}
+
 export async function mapCounts(rt: Runtime, id: string, r: Range, query: Record<string, string> = {}): Promise<Counts> {
   switch (id) {
     case 'vsl': return vslCounts(rt, r, query);
     case 'auto': return autoCounts(rt, r);
+    case 'quiz': return quizMapCounts(rt, r);
     case 'live': return liveCounts(rt, r);
     case 'challenge': return challengeCounts(rt, r);
     case 'dm': return dmCounts(rt, r);

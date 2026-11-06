@@ -729,5 +729,54 @@ const OPS: FunnelMapDef = {
   ],
 };
 
-export const FUNNEL_MAPS: FunnelMapDef[] = [VSL, AUTO, LIVE, CHALLENGE, DM, NURTURE, AFTER, OPS];
+
+// ───────────────────────────── The acquisition readiness quiz (feeds the webinar) ─────────────────────────────
+
+const QUIZ: FunnelMapDef = {
+  id: 'quiz',
+  title: 'Readiness quiz',
+  short: 'Quiz',
+  summary: 'Ten questions at /quiz, an email gate, then a readiness score, a buyer type and the two gaps to close first, ending in one click to a seat in the masterclass or the next live event.',
+  ladder: ['qzstart', 'qzgate', 'qzlead', 'qzresult', 'qzseat', 'qzattend', 'qzbought'],
+  stages: [
+    at(0, 0, { id: 'qzads', kind: 'traffic', title: 'Ads and links', sub: 'Meta, YouTube, email', tab: 'traffic',
+      sees: 'An ad or link pointing to /quiz on either domain.',
+      behind: 'UTMs, click ids and the landing page are kept on the quiz row and on the lead, the same way as the other funnels, so Traffic & ads can judge each ad on quiz leads and seats.' }),
+    at(1, 0, { id: 'qzland', kind: 'page', title: 'Quiz intro', sub: 'Ten questions, two minutes', tab: 'quiz', count: 'landing',
+      sees: 'The question “How ready is your business to buy the next one?”, what they get at the end and a Start button.',
+      behind: 'A server-side page view, like every funnel page. Start creates the quiz row and the quiz_start event.',
+      page: { path: '/quiz', preview: '/quiz' } }),
+    at(2, 0, { id: 'qzstart', kind: 'page', title: 'Questions', sub: 'One per screen, with Back', tab: 'quiz', count: 'started',
+      sees: 'Revenue, industry, what they want next, margin, debt, funding, deals done, timeline, blocker and team, one tap each.',
+      behind: 'Each answer is saved as it is given (quiz_answer with the step number), so drop-off per question is real. Answers are kept in the browser too, so a reload picks up where they left off.',
+      page: { path: '/quiz', preview: '/quiz?hq_step=3', label: 'Question 3' } }),
+    at(3, 0, { id: 'qzgate', kind: 'decision', title: 'Email gate', sub: 'Before the result', tab: 'quiz', count: 'gate',
+      sees: 'First name, email, an optional mobile and the two unticked boxes for calls and texts.',
+      behind: 'Turnstile like the other forms and a limit per connection. Consent is recorded with proof exactly as on the live funnel (captureConsent).',
+      page: { path: '/quiz', preview: '/quiz?hq_step=gate', label: 'The gate' } }),
+    at(4, 0, { id: 'qzlead', kind: 'people', title: 'Quiz lead', sub: 'Scored and tagged', tab: 'quiz', count: 'lead',
+      behind: 'The lead is created or matched by email. The score, buyer type and two gaps are stored on the quiz row, the revenue band and industry fill empty lead fields, and the lead is tagged quiz:<type> and quiz:gap:<gap> for email segments.',
+      autos: [{ type: 'email', label: 'Result email', timing: 'Straight after the gate' }] }),
+    at(5, 0, { id: 'qzresult', kind: 'page', title: 'Result page', sub: 'Score, type, gaps, 1.5x', tab: 'quiz', count: 'result',
+      sees: 'Their buyer type, the score on a meter, what it means, two gaps with the fix the masterclass teaches and the 1.5x test on numbers like theirs, labelled illustrative.',
+      behind: 'The first view is the quiz_result event. The page ends in one action, Save my seat.',
+      page: { path: '/quiz', preview: '/quiz/r/preview', label: 'A made-up result' } }),
+    at(6, 0, { id: 'qzseat', kind: 'people', title: 'Saved a seat', sub: 'One click', tab: 'quiz', count: 'registered',
+      behind: 'QUIZ_TARGET picks the automated masterclass (the showing they choose) or the next live event. The registration is the normal one, with its emails, texts and conversions, and carries the revenue band the room’s deal panel reads.',
+      settings: ['QUIZ_TARGET'] }),
+    at(7, 0, { id: 'qzattend', kind: 'people', title: 'Attended', sub: 'Live or replay', tab: 'webinar', count: 'attended',
+      behind: 'Quiz leads who joined the masterclass room or its replay, or the live room.' }),
+    at(8, 0, { id: 'qzbought', kind: 'people', title: 'Bought', sub: 'Sprint, deposit or won deal', tab: 'quiz', count: 'bought',
+      behind: 'Quiz leads with a paid First Deal Sprint or deposit, or a won deal, after the quiz.' }),
+    at(4, 1, { id: 'qztrack', kind: 'data', title: 'Tracking', sub: 'First-party, then Meta, GA4, PostHog', tab: 'tracking',
+      behind: 'quiz_start, quiz_answer, quiz_gate_view, quiz_lead, quiz_result and quiz_register go through the same tracker as every other event. Meta gets QuizStart, QuizLead and QuizResult as custom events; the seat is the registration’s own CompleteRegistration.',
+      settings: ['META_ACCESS_TOKEN', 'META_PIXEL_ID'] }),
+  ],
+  edges: [
+    ['qzads', 'qzland'], ['qzland', 'qzstart', 'started'], ['qzstart', 'qzgate', 'answered all ten'], ['qzgate', 'qzlead', 'gave an email'], ['qzlead', 'qzresult'],
+    ['qzresult', 'qzseat', 'Save my seat'], ['qzseat', 'qzattend'], ['qzattend', 'qzbought'], ['qzlead', 'qztrack', '', 'data'],
+  ],
+};
+
+export const FUNNEL_MAPS: FunnelMapDef[] = [VSL, AUTO, QUIZ, LIVE, CHALLENGE, DM, NURTURE, AFTER, OPS];
 export const mapById = (id: string) => FUNNEL_MAPS.find((m) => m.id === id) ?? null;

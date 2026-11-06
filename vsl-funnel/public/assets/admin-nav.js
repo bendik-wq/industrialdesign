@@ -43,6 +43,7 @@
     challenge: ['live', 'Challenge', 'The 5-day First Deal Challenge: cohorts, attendance and deposits.', { label: 'New cohort', focus: 'button', text: /^Create cohort/i }],
     rooms: ['live', 'Video rooms', 'Our own rooms for webinars, challenge days and client meetings.', { label: 'New room', focus: '[data-rmb-create]' }],
     webinar: ['live', 'Masterclass', 'The automated masterclass: sessions, sign-ups and watch time.', { label: 'Add a session', focus: 'button', text: /^Add session$/i }],
+    quiz: ['live', 'Quiz', 'The readiness quiz: each step, buyer types and who saved a seat.', { label: 'Open the quiz', click: '[data-qzb-open]' }],
     materials: ['live', 'Scripts & slides', 'Scripts, slide decks and run sheets for every session.', { label: 'Present slides', click: 'button, a', text: /^Present slides$/i }],
     wattrib: ['live', 'Webinar sources', 'Which ads and links brought each webinar buyer.', null, 1],
 

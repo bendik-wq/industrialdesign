@@ -15,13 +15,14 @@ import { react, refreshScoreFor, saveBuyIn, saveNote } from '../webinar/experien
 import { addPhone, answerPoll, chapters, askQuestion, logCalc, offerClick, selfServeAgreement, thankYouAnswer, unlockBonus } from '../webinar/room';
 import { liveFeed, postChat, raiseHand } from '../webinar/live';
 import { blueprintAction } from '../webinar/blueprint';
-import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, webinarBase } from '../webinar/webinar';
-import { PassError, activePass, createCheckout, markReviewClicked, passGate, syncPassReplay } from '../webinar/pass';
+import { getRegistration, getSession, heartbeat, markCta, markJoinedLive, moveRegistration, phase, register, registrationNext, webinarBase } from '../webinar/webinar';
+import { PassError, activePass, createCheckout, markReviewClicked, passGate } from '../webinar/pass';
 import { ensureDealSprint } from '../webinar/deal-sprint';
 import { sameOriginWrite } from '../admin/auth';
 import { createSprintCheckout, unlockSprint } from '../webinar/sprint';
 import { mountLiveApi } from '../live/funnel-routes';
 import { challengeApi } from '../challenge/routes';
+import { mountQuizApi } from '../quiz/routes';
 
 export const api = new Hono<AppEnv>();
 
@@ -173,18 +174,11 @@ api.post('/webinar/register', async (c) => {
     const body = (await readJson<Record<string, unknown>>(c.req.raw)) ?? {};
     const rt = runtimeFrom(c);
     const { registration, created } = await register(rt, c.get('visitor'), body);
-    if (created) await syncPassReplay(rt, registration.lead_id);
-    const thanks = `${webinarBase(rt)}/registered/${registration.token}`;
-    // Paid ticket (required mode with a seat price; register() marked it): straight on to Stripe Checkout.
+    // The thank-you page, or with a paid ticket required (register() marked it) straight on to the ticket's payment.
     // If Checkout can't start, the thank-you page shows the ticket card with its own button.
-    if (await passGate(rt, registration)) {
-      // Whop: the ticket page with the embedded form (card saved for a one-click Sprint).
-      const tp = await import('../webinar/ticket-pay');
-      if (tp.embeddedTicketOn(rt.settings)) return c.json({ ok: true, next: tp.ticketPayUrl(rt, registration.token), checkout: true });
-      const r = await createCheckout(rt, registration, { kind: 'seat', from: 'ty' }).catch((e) => { console.error('ticket checkout', String(e).slice(0, 200)); return null; });
-      if (r && 'url' in r && r.url) return c.json({ ok: true, next: r.url, checkout: true });
-    }
-    return c.json({ ok: true, next: thanks });
+    const next = await registrationNext(rt, registration, created);
+    const thanks = `${webinarBase(rt)}/registered/${registration.token}`;
+    return c.json(next === thanks ? { ok: true, next } : { ok: true, next, checkout: true });
   } catch (err) {
     return errorResponse(c, err);
   }
@@ -404,3 +398,4 @@ api.post('/voice/start', async (c) => {
 
 // ── Live webinar funnel and the engagement deposit (src/live/routes.ts) ──
 mountLiveApi(api);
+mountQuizApi(api); // the acquisition readiness quiz: /api/quiz/* (src/quiz)

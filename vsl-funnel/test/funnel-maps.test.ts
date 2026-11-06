@@ -132,8 +132,8 @@ function strings(): { where: string; text: string }[] {
 }
 
 describe('funnel map definitions', () => {
-  it('has the eight funnels from the brief', () => {
-    expect(FUNNEL_MAPS.map((m) => m.id)).toEqual(['vsl', 'auto', 'live', 'challenge', 'dm', 'nurture', 'after', 'ops']);
+  it('has the eight funnels from the brief, plus the readiness quiz that feeds the webinar', () => {
+    expect(FUNNEL_MAPS.map((m) => m.id)).toEqual(['vsl', 'auto', 'quiz', 'live', 'challenge', 'dm', 'nurture', 'after', 'ops']);
   });
 
   it('every stage explanation passes the copy rules (no hedges, emojis, em dashes, "free" calls)', () => {
@@ -276,7 +276,7 @@ describe('funnel map counts', () => {
     const db = freshDb();
     seed(db);
     const all = await mapsOverview(makeRt(db), range);
-    expect(all).toHaveLength(8);
+    expect(all).toHaveLength(9);
     const auto = all.find((m) => m.id === 'auto')!;
     expect(auto.strip.map((s) => s.id)).toEqual(mapById('auto')!.ladder);
     expect(auto.strip[0].n?.n).toBe(3);
@@ -304,7 +304,7 @@ describe('funnel map routes', () => {
     const old = await (await a.request(`/maps/live?from=${NOW - 200 * DAY}&to=${NOW - 100 * DAY}`, {}, env)).json() as typeof body;
     expect(old.stages.find((s) => s.id === 'ldeposit')!.n!.n).toBe(0);
     expect((await a.request('/maps/nope', {}, env)).status).toBe(404);
-    expect(((await (await a.request('/maps', {}, env)).json()) as { maps: unknown[] }).maps).toHaveLength(8);
+    expect(((await (await a.request('/maps', {}, env)).json()) as { maps: unknown[] }).maps).toHaveLength(9);
   });
 
   it('the VSL map reads and writes the layout saved by the old single map; other maps have their own', async () => {
