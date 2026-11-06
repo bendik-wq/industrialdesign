@@ -126,6 +126,20 @@ export async function buildProfile(env: Env, lead: Lead, now = Date.now()): Prom
   else if (lead.ft_channel && lead.ft_channel !== 'Direct') add('src', `First came from ${lead.ft_channel}${lead.ft_campaign ? ` (campaign “${lead.ft_campaign}”)` : ''}.`, 2);
   data.source = { first: [lead.ft_channel, lead.ft_campaign, lead.ft_content].filter(Boolean).join(' / '), last: [lead.channel, lead.utm_campaign, lead.utm_content].filter(Boolean).join(' / '), video: link?.video_title ?? null };
 
+  // ── The acquisition readiness quiz (src/quiz): their buyer type and two gaps, for the email that follows ──
+  const quiz = [...ev].reverse().find((e) => e.name === 'quiz_lead');
+  if (quiz) {
+    const p = props(quiz);
+    const { ARCHETYPES, GAPS } = await import('../quiz/content');
+    const a = ARCHETYPES[String(p.archetype) as keyof typeof ARCHETYPES];
+    const gaps = String(p.gaps ?? '').split(',').map((g) => GAPS[g as keyof typeof GAPS]?.title.toLowerCase()).filter(Boolean) as string[];
+    if (a) {
+      add('quiz', `Took the acquisition readiness quiz: ${a.name}, a score of ${Number(p.score) || 0} out of 100${gaps.length ? `, with ${gaps.join(' and ')} as the gaps to close first` : ''}.`, 6, ['readiness', 'funding'],
+        `Your quiz result was ${a.name}${gaps.length ? `, and the first gap to close was ${gaps[0]}` : ''}.`);
+      data.quiz = { archetype: p.archetype, score: p.score, gaps: p.gaps };
+    }
+  }
+
   // ── Visits ──
   const ss = sessions.results;
   if (ss.length) {

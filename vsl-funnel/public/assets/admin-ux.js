@@ -134,6 +134,7 @@
     audiences: ['Bookings, registrations and purchases sent to Meta.', 'integrations', 'Connect Meta'],
     links: ['Tracked links you make here.', '', ''],
     webinar: ['Masterclass registrations, sessions and watch time.', 'integrations', 'Open Integrations'],
+    quiz: ['People who take the readiness quiz at /quiz, from the first answer to a saved seat.', 'screens', 'Preview the quiz pages'],
     liveevents: ['Live webinars you schedule here.', '', ''],
     rooms: ['Rooms for live events, challenge days and meetings.', 'integrations', 'Open Integrations'],
     dealsprint: ['First Deal Sprint buyers.', 'liveevents', 'Open Live webinars'],

@@ -21,11 +21,11 @@ import { recordError } from './errors';
  * a later pass in the same session clears it. Visitors linked to a lead are never marked.
  *
  * Covered: the application (contact step), masterclass (auto webinar) registration, live registration, challenge
- * registration and the room general-admission join sheet. Never on staff/admin routes, webhooks or personal room links.
+ * registration, the room general-admission join sheet and the quiz's email gate. Never on staff/admin routes, webhooks or personal room links.
  */
 
 export type TurnstileMode = 'off' | 'log' | 'enforce';
-export const TURNSTILE_FORMS = ['apply', 'webinar', 'live', 'challenge', 'room_join'] as const;
+export const TURNSTILE_FORMS = ['apply', 'webinar', 'live', 'challenge', 'room_join', 'quiz'] as const;
 export type TurnstileForm = (typeof TURNSTILE_FORMS)[number];
 export type TurnstileOutcome = 'pass' | 'fail' | 'missing' | 'unreachable';
 export const TURNSTILE_OUTCOMES: TurnstileOutcome[] = ['pass', 'fail', 'missing', 'unreachable'];

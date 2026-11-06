@@ -51,6 +51,7 @@ import { guaranteePage, liveLanding, liveRoom, liveTicketPage, liveWelcome, live
 import { processLiveMessages } from './live/events';
 import { calRoute as lcCalRoute, referralRoute as lcReferralRoute } from './live/lifecycle-pages';
 import { payPage } from './sales/pay-page';
+import { quizPage, resultPage as quizResultPage } from './quiz/pages';
 import { runOps } from './ops/cron';
 import { maybeSyncAudiences } from './audiences/sync';
 import { maybeRunResearch } from './research/brief';
@@ -242,6 +243,9 @@ app.get('/live/worksheet/:token', withVisitor, liveWorksheet);
 app.get('/live/cal/:token/:kind', lcCalRoute); // builder E: calendar entries (Google, Outlook, Apple, .ics)
 app.get('/live/i/:code', lcReferralRoute); // builder E: a registrant's referral link
 app.get('/guarantee', withVisitor, guaranteePage);
+// ── The acquisition readiness quiz (src/quiz): on the main domain and the webinar host alike ──
+app.get('/quiz', withVisitor, quizPage);
+app.get('/quiz/r/:token{[a-z0-9]{6,40}}', withVisitor, quizResultPage);
 app.get('/rooms/replay/:rid', replayRoute); // room recordings (R2)
 app.get('/rooms/replay/:rid/captions.vtt', captionsRoute); // the transcript as captions (area D)
 app.get('/rooms/a/:id/:who/:ref', unlockRoute); // an unlocked file (signed, only for the person who earned it)

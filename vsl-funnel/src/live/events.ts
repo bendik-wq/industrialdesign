@@ -256,9 +256,10 @@ const token = () => Array.from(crypto.getRandomValues(new Uint8Array(18)), (b) =
 /** Registers someone for a live event (an existing lead keeps its details: anyone can type anyone's email). */
 /**
  * o.admission: a room's general admission link (src/rooms/admission.ts). The link is signed and limited per IP
- * there, so it skips Turnstile here, and the revenue band is optional on its short join sheet.
+ * there, so it skips Turnstile here, and the revenue band is optional on its short join sheet. o.verified: the quiz
+ * gate already ran Turnstile (its one-click seat), so this skips it too.
  */
-export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<string, unknown>, o: { admission?: boolean } = {}) {
+export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<string, unknown>, o: { admission?: boolean; verified?: boolean } = {}) {
   const firstName = cleanName(body.first_name);
   const emailCheck = validateEmail(body.email);
   if (!firstName) throw new ApplicationError('Please enter your first name', 'first_name');
@@ -266,7 +267,7 @@ export async function registerLive(rt: Runtime, v: VisitorCtx, body: Record<stri
   if (emailCheck.disposable) throw new ApplicationError('Please use your real email address. Your room link goes there.', 'email');
   const band = APP_REVENUE_BAND[String(body.revenue ?? '')] ?? null;
   if (!band && !o.admission) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
-  if (!o.admission && !(await verifyTurnstile(rt, body.turnstile, v, 'live'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
+  if (!o.admission && !o.verified && !(await verifyTurnstile(rt, body.turnstile, v, 'live'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
   if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number, including area code, or leave it blank', 'phone');
   const ev = typeof body.event_id === 'string' && body.event_id ? await getEvent(rt, body.event_id) : await nextEvent(rt);

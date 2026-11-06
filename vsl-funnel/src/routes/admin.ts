@@ -7,6 +7,7 @@ import { mountDmAdmin } from '../dm/routes';
 import { mountAttributionAdmin } from '../attribution/routes';
 import { mountLiveAdmin } from '../live/funnel-routes';
 import { mountFunnelMaps } from '../admin/funnel-maps';
+import { mountQuizAdmin } from '../quiz/routes';
 import type { Env } from '../env';
 import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown, type Sprint } from '../content/ideas';
 import { buildMiroBoard, docShell, sprintPage } from '../content/sprint-export';
@@ -102,6 +103,7 @@ mountGuestAdmin(admin); // guest links: /admin/api/whoami, /admin/api/guest-acce
 mountDmAdmin(admin); // Instagram DM inbox: /admin/api/dm/* (src/dm/routes.ts)
 mountFunnelMaps(admin); // Funnel maps: /admin/api/maps* (src/admin/funnel-maps.ts)
 mountAttributionAdmin(admin); // Webinar attribution: /admin/api/attribution* (src/attribution/routes.ts)
+mountQuizAdmin(admin); // Funnel HQ → Quiz: /admin/api/quiz (src/quiz/report.ts)
 
 const filters = (c: { req: { query: () => Record<string, string> } }) => parseFilters(c.req.query());
 
@@ -430,6 +432,10 @@ admin.get('/pages', (c) => {
     { group: 'Webinar', title: 'Replay', desc: 'The replay page after the showing ends (open for 48 hours).', path: '/replay/preview?hq_at=replay' },
     { group: 'Webinar', title: 'Sprint page (First Deal Sprint buyers)', desc: 'The buyer’s Day 1 to Day 7 tracker, intake form, booking links and guarantee. Shown with a made-up buyer.', path: '/sprint/preview' },
     { group: 'Webinar', title: 'Deal pack (Assessment buyers)', desc: 'What a paid Assessment buyer gets straight away. Shown with a made-up buyer and illustrative numbers.', path: '/pack/preview' },
+    { group: 'Quiz', title: 'Quiz: intro', desc: 'The acquisition readiness quiz (/quiz, on either domain): what they get and Start.', path: '/quiz' },
+    { group: 'Quiz', title: 'Quiz: a question', desc: 'One question per screen with the progress line and Back. Shown at question 3 with an answer picked.', path: '/quiz?hq_step=3' },
+    { group: 'Quiz', title: 'Quiz: the email gate', desc: 'First name, email, optional mobile and the two unticked consent boxes, before the result.', path: '/quiz?hq_step=gate' },
+    { group: 'Quiz', title: 'Quiz: the result', desc: 'Buyer type, score, two gaps, the illustrative 1.5x test and Save my seat. Shown with a made-up result.', path: '/quiz/r/preview' },
     { group: 'Other', title: 'Privacy policy', desc: 'Linked from every page and every email.', path: '/privacy' },
   ];
   return c.json({ pages: pages.map((p, i) => ({ ...p, n: i + 1, src: `${p.path}${p.path.includes('?') ? '&' : '?'}hq_preview=1` })) });
