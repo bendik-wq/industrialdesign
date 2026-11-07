@@ -850,9 +850,9 @@ But the numbers aren't the story. The story is what happened between call one an
 
 [S82: "Christian Dawes. $2.4m deal, no money down, over financed, unemployed, crime record, tattoos, no higher education. The winning factor: action."]
 
-And this is Christian Dawes. [VERIFY: S82, and Christian's explicit consent to mention his criminal record on a live webinar. If there's any doubt, drop "crime record" from the spoken line.]
+And this is Christian Dawes. [VERIFY: S82, his deal result only; personal background stays out.]
 
-A two point four million dollar deal. No money down. Over-financed. He was unemployed, he had a criminal record, tattoos, and no higher education. Every reason a banker would give you for saying no, he had.
+A two point four million dollar deal. No money down. Over-financed. He didn't have the background a banker looks for. The structure carried it anyway.
 
 And the winning factor, in one word: action.
 
@@ -978,7 +978,7 @@ So let's start with the big domino.
 19. S79: the BDC case, and whether it's the same client as "Cam, 2 deals, 23 days".
 20. S80: the source of the Brendon Burchard quote.
 21. S81: every line of "My first deal".
-22. S82: Christian Dawes, and explicit consent to mention his criminal record live.
+22. S82: Christian Dawes, his deal result only (no personal background).
 
 **What to cut if you're running long** (roughly 6 minutes in total, in this order):
 1. S18 listings: say one line, "nine thousand food businesses for sale on one site alone", and move on (about 40 seconds).
