@@ -41,7 +41,8 @@ VOICE = os.environ.get('VOICE_ID', 'G17SuINrv2H9FC6nvetn')  # Christopher: gentl
 MODEL = 'eleven_multilingual_v2'
 WPM = 183  # dry-run estimate: measured on the last voiced render (3,705 words in 20.3 min at speed 0.92, breaks included)
 # The disclosure on every slide: the AI narrator, or Josh's own voice recreated by AI (script-ai-josh.md).
-FOOTER = 'The Acquisition Masterclass · ' + ('Josh Li, in an AI version of his voice' if 'josh' in os.path.basename(SCRIPT) else 'Narrated by an AI voice · Method by Josh Li')
+# PRESENT=1: a deck for a person to present live (no narration line in the footer).
+FOOTER = 'The Acquisition Masterclass · ' + ('G&L M&A Advisory · Josh Li' if os.environ.get('PRESENT') == '1' else 'Josh Li, in an AI version of his voice' if 'josh' in os.path.basename(SCRIPT) else 'Narrated by an AI voice · Method by Josh Li')
 
 # Key points shown in the room: (id, text, phrase in the script it lands on). Texts follow the room's copy rules.
 TAKEAWAYS = [
