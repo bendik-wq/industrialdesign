@@ -80,6 +80,8 @@ export const PUBLIC_RATE_LIMITS: PublicLimit[] = [
   { method: 'POST', path: '/api/apply/submit', scope: 'apply-submit', max: 20, windowMs: HOUR, why: 'scores the lead, queues emails, sends server-side conversions' },
   { method: 'POST', path: '/api/apply/transcribe', scope: 'stt', max: 60, windowMs: HOUR, why: 'Workers AI speech-to-text (the 40-per-hour limit was per lead only)' },
   { method: 'POST', path: '/api/booking/client', scope: 'booking-client', max: 20, windowMs: HOUR, why: 'marks a lead booked and can queue the pre-call emails' },
+  { method: 'POST', path: '/api/book/times', scope: 'book-times', max: 60, windowMs: HOUR, why: 'looks up open times in Calendly (cached 60 seconds; per lead: 30 an hour)' },
+  { method: 'POST', path: '/api/book/confirm', scope: 'book-confirm', max: 20, windowMs: HOUR, why: 'books a call through the Calendly Scheduling API and queues the pre-call emails (per lead: 6 an hour, one at a time)' },
   { method: 'POST', path: '/api/voice/start', scope: 'voice-web', max: 10, windowMs: HOUR, why: 'starts an ElevenLabs browser call (the daily limit was per lead only)' },
   { method: 'POST', path: '/api/webinar/phone', scope: 'webinar-phone', max: 10, windowMs: HOUR, why: 'adds a phone number that SMS and AI calls can use' },
   // Checkouts (an API call to Whop or Stripe per hit)

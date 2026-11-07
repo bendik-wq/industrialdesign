@@ -51,6 +51,15 @@ export interface EmailContent {
 type Template = (ctx: TemplateCtx) => EmailContent;
 
 const bookOrBreakout = (c: TemplateCtx) => c.link(c.bookingUrl ? '/book' : '/breakout');
+/**
+ * Reactivation "pick a time" links: qualified applicants go to /book (the one-tap times, signed link → their own
+ * browser); everyone else (imported Calendly contacts, unfinished applications) to the closer's calendar as before.
+ */
+const reBook = (c: TemplateCtx) => {
+  if (!c.bookingUrl) return c.link('/apply');
+  const tier = c.lead?.tier_override ?? c.lead?.tier;
+  return c.lead?.app_completed_at && (tier === 'A' || tier === 'B') ? c.link('/book') : c.link(c.bookingUrl);
+};
 const waLine = (c: TemplateCtx, text = 'Or message me directly on WhatsApp') => (c.whatsappUrl ? `<a href="${c.whatsappUrl}">${text}</a> — I read every one.` : '');
 
 /** Deal structures we see close, with illustrative numbers on a $1.5M price (used by pre-call and reactivation emails). */
@@ -915,7 +924,7 @@ export const TEMPLATES: Record<string, Template> = {
       '• We now map the first deal with you over 90 days, from target list to a signed letter of intent.<br>• The financing is stacked so it covers more than the price (senior debt, a seller note and seller rollover), tested at about 1.5x debt cover.<br>• It comes with a 7-day money-back guarantee if you decide it isn’t for you.',
       'If buying a competitor or a business next door is still on your mind, it’s worth another 30 minutes.',
     ],
-    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Pick a time →', href: reBook(c) },
   }),
   re_3: (c) => ({
     subject: 'the structure most owners miss',
@@ -927,7 +936,7 @@ export const TEMPLATES: Record<string, Template> = {
       'The test is simple: the business has to make enough to cover every repayment about 1.5 times over. If it can’t, we don’t do the deal.',
       'Want us to run that sketch on your business?',
     ],
-    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Book a strategy call →', href: reBook(c) },
     ps: 'Illustrative example only. Every deal is different and nothing here is financial advice.',
   }),
   re_4: (c) => ({
@@ -939,7 +948,7 @@ export const TEMPLATES: Record<string, Template> = {
       'Time: you’re buying a team, not a job. Money: the structure is built so it doesn’t come from you. Industry: we check the numbers before anything else, and tell you straight if it doesn’t fit.',
       'And if you go ahead and change your mind in the first 7 days, you get your money back.',
     ],
-    cta: { label: 'Talk it through →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Talk it through →', href: reBook(c) },
   }),
   re_5: (c) => ({
     subject: 'a free masterclass on how owners buy competitors',
@@ -959,7 +968,7 @@ export const TEMPLATES: Record<string, Template> = {
       'I haven’t heard back, so I’m guessing buying a business isn’t a priority right now. That’s completely fine.',
       'I’ll stop emailing about it after this. If it ever comes back on the radar, reply to this email or grab a time below and we’ll pick it up.',
     ],
-    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Pick a time →', href: reBook(c) },
     ps: 'Just reply “not now” and I’ll close it today.',
   }),
 
@@ -967,7 +976,7 @@ export const TEMPLATES: Record<string, Template> = {
     subject: 'the 70/20/10 deal structure',
     preheader: 'How retiring owners sell without you putting cash in.',
     body: [`${c.name}, here’s a structure that keeps closing:`, ...DEAL.s702010],
-    cta: { label: 'Talk it through on a call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Talk it through on a call →', href: reBook(c) },
     ps: dealFact,
   }),
   re_rollover: (c) => ({
@@ -978,7 +987,7 @@ export const TEMPLATES: Record<string, Template> = {
       'One idea that changes how owners see selling: seller rollover. Instead of taking every dollar in cash, the owner keeps a slice of the business and gets paid again when it grows.',
       'For them it’s upside and a reason to help you succeed. For you, every dollar they roll is one you don’t have to raise.',
     ],
-    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Book a strategy call →', href: reBook(c) },
   }),
   re_assets: (c) => ({
     subject: 'the 3 videos that explain it all',
@@ -988,13 +997,13 @@ export const TEMPLATES: Record<string, Template> = {
       `1. <a href="${c.link('/')}">The main video</a>: the whole model.<br>2. <a href="${c.link('/breakout')}">Part 2</a>: how a deal is funded, start to finish.<br>3. <a href="${c.link('/webinar')}">The masterclass</a>: where the off-market deals are.`,
       'Then, if it still makes sense, grab a time and we’ll run it on your numbers.',
     ],
-    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Pick a time →', href: reBook(c) },
   }),
   re_6040: (c) => ({
     subject: '60/40: no personal guarantee',
     preheader: '60% commercial debt, 40% seller rollover.',
     body: [`${c.name}, another structure we see work:`, ...DEAL.s6040],
-    cta: { label: 'See if it fits your market →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'See if it fits your market →', href: reBook(c) },
     ps: dealFact,
   }),
   re_no_pg: (c) => ({
@@ -1004,14 +1013,14 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name}, if the thing that stopped you last time was the risk, this is for you.`,
       'In structures like the 60/40 there’s no personal guarantee: the lender’s security is over 100% of the business’s assets. The deal has to stand on its own cash flow, about 1.5 times its repayments, or we don’t do it.',
     ],
-    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Book a strategy call →', href: reBook(c) },
     ps: 'Every lender and deal is different. We’ll tell you straight what’s realistic for yours.',
   }),
   re_100vf: (c) => ({
     subject: '100% vendor finance (how I bought my clinics)',
     preheader: 'No bank, and no equity partner taking a slice.',
     body: [`${c.name},`, ...DEAL.vf100],
-    cta: { label: 'Talk it through on a call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Talk it through on a call →', href: reBook(c) },
   }),
   re_others: (c) => ({
     subject: 'it isn’t just my deals',
@@ -1020,7 +1029,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name}, the usual doubt: “that works for you, not for me.”`,
       'I closed my clinics with 100% vendor finance, and others we work with have closed 100% seller-finance deals in their own industries. What they had in common wasn’t money. It was a clear target list, the right first conversation, and the right structure.',
     ],
-    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Book a strategy call →', href: reBook(c) },
   }),
   re_which: (c) => ({
     subject: 'match the structure to the seller',
@@ -1030,7 +1039,7 @@ export const TEMPLATES: Record<string, Template> = {
       '• <b>Owner wants most of the cash now:</b> 70/20/10 (commercial debt, seller finance, seller rollover).<br>• <b>Owner wants to stay invested:</b> 60/40 (commercial debt and seller rollover, no personal guarantee).<br>• <b>Owner wants the right successor and a steady income:</b> 100% vendor finance.',
       'Want us to work out which one your likely targets would go for?',
     ],
-    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Pick a time →', href: reBook(c) },
   }),
   re_dscr_test: (c) => ({
     subject: 'the one number that decides a deal',
@@ -1040,7 +1049,7 @@ export const TEMPLATES: Record<string, Template> = {
       'Around 1.5 or better and the deal is fundable. Under that, you add rollover or stretch the seller note until it works, or you walk away.',
       'On a call we can run it on a business you have in mind.',
     ],
-    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Book a strategy call →', href: reBook(c) },
   }),
   re_competitors: (c) => ({
     subject: 'someone will buy your competitors',
@@ -1049,7 +1058,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name}, in most industries the owners who started in the 80s and 90s are looking for a way out.`,
       'Their businesses will be bought by someone. Plenty of them would rather sell to the owner down the road who knows the market and keeps the team, if that person asks.',
     ],
-    cta: { label: 'Talk about your market →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Talk about your market →', href: reBook(c) },
   }),
   re_90days: (c) => ({
     subject: '90 days to a signed LOI',
@@ -1059,7 +1068,7 @@ export const TEMPLATES: Record<string, Template> = {
       '<b>Weeks 1–2:</b> criteria and target list.<br><b>Then, weeks 3–6:</b> outreach and owner conversations.<br><b>In weeks 7–10:</b> the numbers and the structure (70/20/10, 60/40 or vendor finance).<br><b>By week 13:</b> the offer and a signed letter of intent.',
       'You keep running your business throughout. We do it with you.',
     ],
-    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Book a strategy call →', href: reBook(c) },
   }),
   re_time: (c) => ({
     subject: '“I don’t have time for this”',
@@ -1068,7 +1077,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name}, if time was the reason, fair enough. Here’s the reality: a few focused hours a week for 90 days.`,
       'You make the decisions and take the key owner conversations. The modelling, structuring and lender introductions are done with you. And the business you buy comes with its own team.',
     ],
-    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Pick a time →', href: reBook(c) },
   }),
   re_myths: (c) => ({
     subject: 'what most owners get wrong about buying',
@@ -1077,7 +1086,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name},`,
       '1. “You need millions.” Commercial debt, seller finance and seller rollover do the heavy lifting.<br>2. “Good businesses aren’t for sale.” Most are never listed.<br>3. “It takes over your life.” You’re buying a team.<br>4. “You have to risk your house.” Not with security over the business’s assets.<br>5. “It’s for private equity.” An owner who already knows the industry is a strong buyer.',
     ],
-    cta: { label: 'Book a strategy call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Book a strategy call →', href: reBook(c) },
   }),
   re_cost_wait: (c) => ({
     subject: 'what another year of waiting costs',
@@ -1086,7 +1095,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name}, every year of growing only organically has a cost: the profit you’d have added, the competitor someone else bought, the year you don’t get back.`,
       'There’s no rush to do a bad deal, but not looking has a real cost.',
     ],
-    cta: { label: 'Pick a time →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Pick a time →', href: reBook(c) },
   }),
   re_one_call: (c) => ({
     subject: 'one call, then decide',
@@ -1095,7 +1104,7 @@ export const TEMPLATES: Record<string, Template> = {
       `${c.name}, here’s all I’m suggesting: one 30-minute call.`,
       'We look at your business, sketch what a first acquisition could look like and which structure fits, and you decide. If it isn’t a fit, we’ll say so.',
     ],
-    cta: { label: 'Book the call →', href: c.bookingUrl ? c.link(c.bookingUrl) : c.link('/apply') },
+    cta: { label: 'Book the call →', href: reBook(c) },
   }),
   re_reply: (c) => ({
     subject: `${c.name}, still there?`,

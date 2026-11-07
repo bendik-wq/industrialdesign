@@ -129,6 +129,10 @@ admin.get('/overview', async (c) => {
     const r = await c.env.DB.prepare(`SELECT SUM(status = 'simulated') AS simulated, SUM(status = 'sent') AS real FROM emails WHERE sent_at BETWEEN ? AND ?`).bind(f.from, f.to).first<any>();
     if (out && out.kpis) { out.kpis.emails_simulated = Number(r?.simulated) || 0; out.kpis.emails_real = Number(r?.real) || 0; }
   } catch { /* leave the fields absent */ }
+  // One-tap booking against the Calendly embed (funnel/one-tap.ts): who saw which /book and how they booked.
+  try {
+    if (out) out.booking_methods = await (await import('../funnel/one-tap')).bookingMethodStats(c.env, f.from, f.to);
+  } catch { /* leave it absent */ }
   return c.json(out);
 });
 // Past calls for quick outcome logging (Sales → Call log).
@@ -525,6 +529,8 @@ admin.get('/leads/:id', async (c) => {
     sales: await (await import('../integrations/voice-resources')).leadSales(runtimeFrom(c), lead.id).catch(() => null),
     // Calendar actions Sam took on AI calls: times offered, bookings, reschedules, fallbacks (src/integrations/calendly-tools.ts).
     bookingTools: await (await import('../integrations/calendly-tools')).leadBookingActions(runtimeFrom(c), lead.id).catch(() => []),
+    // How their current booking was made: one tap on /book, the Calendly calendar, or by phone (booking_methods).
+    bookingMethod: lead.booked_at ? await (await import('../integrations/booking')).bookingMethodOf(runtimeFrom(c), lead) : null,
     // Consent per channel with its proof, opt-outs and recent blocked attempts (src/integrations/consent-gate.ts).
     consent: await consentSummary(c.env, lead).catch(() => null),
   });

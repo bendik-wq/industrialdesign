@@ -32,6 +32,7 @@ export const SETTINGS = [
   { key: 'CALENDLY_API_TOKEN', label: 'Calendly personal access token', group: 'Booking', secret: true, help: 'calendly.com → Integrations → API & webhooks. Gives exact call times, meeting links and answers, and sets up the webhook for you.' },
   { key: 'CALENDLY_SIGNING_KEY', label: 'Calendly webhook signing key', group: 'Booking', secret: true, help: 'Confirms bookings server-side via /hooks/calendly.' },
   { key: 'BOOKING_WEBHOOK_SECRET', label: 'Generic booking webhook secret', group: 'Booking', secret: true, help: 'For Cal.com / GHL / Zapier: POST to /hooks/booking?secret=…' },
+  { key: 'BOOK_ONE_TAP', label: 'One-tap booking on /book', group: 'Booking', placeholder: 'true', help: 'On when the Calendly token is set: qualified applicants see the next open times on /book and book with one tap, using the details from their application (Calendly sends the invite). If Calendly can’t take the booking, or the booking form has a required choice question their application can’t answer, they get the Calendly calendar with their details filled in instead. The closer’s calendar link must be the event type’s Calendly link. Set to false to show only the Calendly calendar. Funnel HQ → Overview compares the two.' },
 
   { key: 'RESEND_API_KEY', label: 'Resend API key', group: 'Email', secret: true, placeholder: 're_…', help: 'Create at resend.com → API Keys. Verify your sending domain first.' },
   { key: 'EMAIL_FROM', label: 'From address', group: 'Email', placeholder: 'Josh Li <josh@mail.example.com>' },

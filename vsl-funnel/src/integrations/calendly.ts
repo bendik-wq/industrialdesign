@@ -83,6 +83,23 @@ export async function bookingEventType(rt: Runtime): Promise<CalEventType | null
   return et;
 }
 
+/** Every active event type of the token's user, cached in kv_state for 30 minutes per token (one-tap booking matches a closer's calendar in it). */
+export async function listEventTypes(rt: Runtime): Promise<CalEventType[]> {
+  const tokenTail = rt.settings.CALENDLY_API_TOKEN.slice(-12);
+  const cached = await rt.env.DB.prepare("SELECT value FROM kv_state WHERE key = 'calendly:event_types'").first<{ value: string }>();
+  if (cached) {
+    try {
+      const v = JSON.parse(cached.value) as { token: string; at: number; list: CalEventType[] };
+      if (v.token === tokenTail && Date.now() - v.at < 30 * 60_000) return v.list;
+    } catch { /* refetch */ }
+  }
+  const me = await account(rt);
+  const list = (await cal<{ collection: CalEventType[] }>(rt.settings, `/event_types?user=${encodeURIComponent(me.uri)}&active=true&count=50`)).collection.filter((e) => e.active !== false);
+  await rt.env.DB.prepare("INSERT INTO kv_state (key, value) VALUES ('calendly:event_types', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+    .bind(JSON.stringify({ token: tokenTail, at: Date.now(), list })).run();
+  return list;
+}
+
 /** Open start times for an event type (Calendly allows at most a 7-day window, starting in the future). */
 export async function availableTimes(s: Settings, eventTypeUri: string, start: number, end: number): Promise<CalSlot[]> {
   const q = `event_type=${encodeURIComponent(eventTypeUri)}&start_time=${encodeURIComponent(new Date(start).toISOString())}&end_time=${encodeURIComponent(new Date(end).toISOString())}`;

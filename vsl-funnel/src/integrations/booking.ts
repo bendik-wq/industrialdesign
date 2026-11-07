@@ -20,6 +20,29 @@ export interface BookingInfo {
   rescheduled?: boolean;
   /** Extra lead fields from the provider (meeting link, host, answers…). */
   fields?: Partial<Record<keyof Lead, string | number | null>>;
+  /** How it was booked, when we made the booking ourselves: one-tap on /book, or by phone with Sam. Anything else counts as the embed. */
+  method?: 'one_tap' | 'phone';
+}
+
+export const BOOKING_METHOD_LABELS: Record<string, string> = { one_tap: 'One tap on /book', embed: 'Calendly calendar (embed or link)', phone: 'By phone with Sam (AI)' };
+
+/**
+ * Remembers how a booking was made (booking_methods, one row per booking ref). One-tap and phone bookings are ours,
+ * so they win; the webhook or the embed's browser report for the same booking only fills a gap (INSERT OR IGNORE).
+ */
+export async function recordBookingMethod(rt: Pick<Runtime, 'env'>, leadId: string, ref: string | null, method: string | undefined) {
+  if (!ref) return;
+  const sql = method
+    ? 'INSERT INTO booking_methods (ref, lead_id, method, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(ref) DO UPDATE SET method = excluded.method, lead_id = excluded.lead_id'
+    : 'INSERT OR IGNORE INTO booking_methods (ref, lead_id, method, created_at) VALUES (?, ?, ?, ?)';
+  await rt.env.DB.prepare(sql).bind(ref.slice(0, 300), leadId, method ?? 'embed', Date.now()).run().catch((e: unknown) => console.error('booking method', String(e).slice(0, 200)));
+}
+
+/** How the lead's current booking was made ('one_tap' | 'embed' | 'phone'), or null. */
+export async function bookingMethodOf(rt: Pick<Runtime, 'env'>, lead: Pick<Lead, 'id' | 'booking_ref'>) {
+  if (!lead.booking_ref) return null;
+  const row = await rt.env.DB.prepare('SELECT method FROM booking_methods WHERE ref = ? AND lead_id = ?').bind(lead.booking_ref, lead.id).first<{ method: string }>().catch(() => null);
+  return row?.method ?? null;
 }
 
 /**
@@ -44,6 +67,7 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
       });
       await track(rt, await identityFromLead(rt.env, lead.id), { name: 'booking_reported_client', source: 'client', props: { provider: info.provider }, localOnly: true });
     }
+    await recordBookingMethod(rt, lead.id, info.ref, info.method);
     return (await getLead(rt.env, lead.id))!;
   }
   // The provider's confirmation of a booking the browser already reported counts as the new booking.
@@ -62,12 +86,13 @@ export async function markBooked(rt: Runtime, lead: Lead, info: BookingInfo) {
     ...(info.fields ?? {}),
   });
   const fresh = (await getLead(rt.env, lead.id))!;
+  await recordBookingMethod(rt, lead.id, info.ref, info.method);
 
   if (!sameBooking) {
     await track(rt, await identityFromLead(rt.env, lead.id), {
       name: 'booking_scheduled',
       source: info.verified ? 'webhook' : 'client',
-      props: { provider: info.provider, call_at: info.callAt, booking_ref: info.ref },
+      props: { provider: info.provider, call_at: info.callAt, booking_ref: info.ref, method: info.method ?? 'embed' },
     });
     await Promise.all(['tier_a', 'tier_b', 'tier_c', 'abandoned', 'no_show', 'cancelled', 'nurture', 'lost'].map((sq) => cancelSequence(rt, lead.id, sq as 'tier_a')));
     await cancelCalls(rt, lead.id, ['speed_to_lead', 'rebook']);

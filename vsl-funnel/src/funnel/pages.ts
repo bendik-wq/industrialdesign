@@ -432,8 +432,14 @@ export async function bookPage(c: Context<AppEnv>) {
   if (lead.booked_at && !lead.booking_cancelled_at && !c.req.query('reschedule')) return c.redirect('/breakout', 302);
 
   const voice = voiceView(c, lead);
+  // One-tap booking (funnel/one-tap.ts): the open times as buttons, the embed only as the fallback.
+  const { oneTapOn, sampleTimes } = await import('./one-tap');
+  const oneTap = oneTapOn(c.get('settings')) && /^https:\/\/calendly\.com\//.test(bookingUrl);
+  const preview = c.get('visitor').botReason === 'admin-preview';
+  const rep = rt.reps.find((r) => r.id === lead.closer_id);
   return render(c, '/book.html', {
     title: 'Book your call',
+    trackProps: { booking_mode: oneTap ? 'one_tap' : 'embed' },
     show: voice.show,
     hrefs: voice.hrefs,
     slots: {
@@ -448,6 +454,13 @@ export async function bookPage(c: Context<AppEnv>) {
         url: bookingUrl,
         provider: /calendly\.com/.test(bookingUrl) ? 'calendly' : 'iframe',
         prefill: { name: [lead.first_name, lead.last_name].filter(Boolean).join(' '), email: lead.email, leadId: lead.id, ref: lead.ref_code },
+        oneTap: oneTap
+          ? {
+              reschedule: Boolean(c.req.query('reschedule')),
+              details: { name: [lead.first_name, lead.last_name].filter(Boolean).join(' '), email: lead.email ?? '', phone: lead.phone ?? '' },
+              ...(preview ? { sample: sampleTimes(Date.now(), lead.timezone || c.get('visitor').geo.timezone || 'Australia/Sydney', rep?.name ?? 'Josh') } : {}),
+            }
+          : null,
       },
     },
   });

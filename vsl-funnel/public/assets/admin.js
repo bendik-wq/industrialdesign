@@ -1251,6 +1251,7 @@
           : '<div class="card"><h2>Email</h2><p class="sub">' + n(k.emails_sent) + ' sent in range</p><div class="grid g-2 tiles">' +
           tile('Open rate', pct(k.email_open_rate), 'iPhones auto-open some emails, so this runs high', 'emails') + tile('Click rate', pct(k.email_click_rate), null, 'emails') + '</div></div></div>') +
         '</div>' +
+        bookingMethodsCard(d.booking_methods) +
         '<h3 class="section-title">Daily trend</h3><div class="grid g-2" data-daily></div>';
       var dailyEl = view.querySelector('[data-daily]');
       [['visitors', 'Landing visitors'], ['plays', 'VSL plays'], ['applications', 'Applications'], ['booked', 'Calls booked']].forEach(function (m) {
@@ -1262,6 +1263,22 @@
         lineChart(card.querySelector('.chart'), pts, { series: m[1], label: m[1] + ' per day', height: 150 });
       });
     });
+  }
+
+  // Overview: one-tap booking on /book against the Calendly embed (src/funnel/one-tap.ts bookingMethodStats).
+  function bookingMethodsCard(bm) {
+    if (!bm || !bm.pages) return '';
+    var seen = bm.pages.some(function (p) { return p.viewers; }) || Object.keys(bm.booked || {}).length;
+    if (!seen) return '';
+    var label = { one_tap: 'One-tap times shown', embed: 'Calendly calendar only' };
+    var rows = bm.pages.filter(function (p) { return p.viewers; }).map(function (p) {
+      return '<tr><td>' + esc(label[p.mode] || p.mode) + '</td><td class="num">' + esc(n(p.viewers)) + '</td><td class="num">' + esc(n(p.booked)) + '</td><td class="num"><strong>' + esc(pct(p.rate)) + '</strong></td>' +
+        '<td class="muted">' + esc([p.by.one_tap ? n(p.by.one_tap) + ' by one tap' : '', p.by.embed ? n(p.by.embed) + ' in the calendar' : '', p.by.phone ? n(p.by.phone) + ' by phone' : ''].filter(Boolean).join(' · ') || '–') + '</td></tr>';
+    }).join('');
+    var b = bm.booked || {};
+    return '<div class="card" style="margin-top:14px" data-booking-methods><div class="card-head"><div><h2>How people book</h2><p class="sub">Qualified leads who opened /book in this range, by what they were shown, and how many of them booked a call.</p></div></div>' +
+      (rows ? '<div class="table-wrap"><table class="t"><thead><tr><th>/book showed</th><th class="num">Leads</th><th class="num">Booked</th><th class="num">Booking rate</th><th>Booked via</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '') +
+      '<p class="sub" style="margin-top:10px">All bookings in range: ' + esc(n(b.one_tap || 0)) + ' by one tap · ' + esc(n(b.embed || 0)) + ' in the Calendly calendar (embed or link) · ' + esc(n(b.phone || 0)) + ' by phone with Sam.</p></div>';
   }
 
   function renderVsl() {
@@ -1691,7 +1708,7 @@
         '<button class="btn-sm" data-save type="button">Save</button></div></div>' +
         '<div class="card"><h2>Profile</h2><dl class="kv" style="margin-top:10px">' +
         kv('Closer', repName(l.closer_id)) + kv('Call', l.call_at ? when(l.call_at) : l.booked_at ? 'booked (time pending)' : '–') +
-        (l.booking_source === 'calendly-direct' ? kv('Booked via', 'Calendly link directly (not the funnel)') : '') +
+        (l.booking_source === 'calendly-direct' ? kv('Booked via', 'Calendly link directly (not the funnel)') : d.bookingMethod ? kv('Booked via', { one_tap: 'One tap on /book', embed: 'Calendly calendar (embed or link)', phone: 'By phone with Sam (AI)' }[d.bookingMethod] || d.bookingMethod) : '') +
         (l.booking_host_email ? kv('Calendly host', l.booking_host_email) : '') +
         (l.booking_answers ? (function () { try { return JSON.parse(l.booking_answers).map(function (x) { return kv(x.q, x.a); }).join(''); } catch (e) { return ''; } })() : '') +
         kv('Location', [l.city, l.country].filter(Boolean).join(', ')) + kv('Device', l.device) +

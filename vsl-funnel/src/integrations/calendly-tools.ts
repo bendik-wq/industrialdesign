@@ -3,9 +3,10 @@ import { type Lead, getLead } from '../funnel/leads';
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { newId } from '../lib/ids';
 import { getSecret } from '../lib/secret';
-import { hit, overLimit } from '../lib/ratelimit';
+import { overLimit } from '../lib/ratelimit';
 import type { Settings } from '../settings';
-import { type CalEventType, type CalSlot, CalendlyError, availableTimes, bookingEventType, calendlyConnected, cancelScheduledEvent, createInvitee } from './calendly';
+import { type CalEventType, type CalSlot, availableTimes, bookingEventType, calendlyConnected } from './calendly';
+import { MIN_LEAD_MS, WINDOW_MS, activeBooking, bookLeadSlot, formAnswers, partsIn } from './calendly-book';
 import { leadTimezone } from './elevenlabs';
 
 /**
@@ -39,9 +40,7 @@ export const TOOL_NAMES = { availability: 'check_availability', book: 'book_stra
 export const RESCHEDULE_REASON = 'Rescheduled by phone with Sam (AI assistant)';
 const HOUR = 3600_000;
 const DAY = 86_400_000;
-/** No time inside the next two hours is offered or booked. */
-export const MIN_LEAD_MS = 2 * HOUR;
-const WINDOW_MS = 7 * DAY - 60_000;
+export { MIN_LEAD_MS };
 const TOKEN_TTL_MS = 3 * HOUR;
 
 export const bookingToolsOn = (s: Pick<Settings, 'CALENDLY_API_TOKEN' | 'AI_CALL_BOOKING_TOOLS'>) =>
@@ -78,12 +77,6 @@ export async function verifyLeadToken(rt: Runtime, token: unknown, now = Date.no
 export function tzLabel(tz: string) {
   if (!tz || tz === 'UTC') return 'UTC';
   return `${tz.split('/').pop()!.replace(/_/g, ' ')} time`;
-}
-
-function partsIn(ms: number, tz: string) {
-  const p = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit', hour: 'numeric', minute: '2-digit', hourCycle: 'h23' }).formatToParts(ms);
-  const get = (k: string) => p.find((x) => x.type === k)?.value ?? '';
-  return { weekday: get('weekday'), date: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')), minute: Number(get('minute')) };
 }
 
 /** "Thursday 12 November at 10 am" / "at 10:30 am", in `tz`. */
@@ -180,31 +173,9 @@ export function formBlocker(et: CalEventType): string | null {
   return q ? `The Calendly booking form has a required choice question ("${q.name.slice(0, 80)}") that can’t be answered for the person.` : null;
 }
 
-function answersFor(et: CalEventType, lead: Lead) {
-  const out: { question: string; answer: string; position: number }[] = [];
-  for (const q of et.custom_questions ?? []) {
-    if (!q.enabled || !q.required) continue;
-    if (q.type === 'phone_number') { if (lead.phone) out.push({ question: q.name, answer: lead.phone, position: q.position }); continue; }
-    out.push({ question: q.name, answer: 'Booked by phone with Sam (AI assistant). Their answers are in their application.', position: q.position });
-  }
-  return out;
-}
-
-function locationFor(et: CalEventType, lead: Lead): Record<string, string> | undefined {
-  const loc = et.locations?.[0];
-  if (!loc?.kind) return undefined;
-  if (loc.kind === 'outbound_call') return lead.phone ? { kind: loc.kind, location: lead.phone } : { kind: loc.kind };
-  if (loc.kind === 'ask_invitee') return { kind: loc.kind, location: 'Video call' };
-  return loc.location ? { kind: loc.kind, location: loc.location } : { kind: loc.kind };
-}
-
-const CAL_EVENT = /^https:\/\/api\.calendly\.com\/scheduled_events\/[\w-]+$/;
-
-/** The lead's current, upcoming booking (a reschedule replaces it), or 'unknown' when it isn't a Calendly event we can move. */
-function activeBooking(lead: Lead, now: number): { uri: string; at: number } | 'unknown' | null {
-  if (!lead.booked_at || lead.booking_cancelled_at || lead.status !== 'booked' || !lead.call_at || lead.call_at <= now) return null;
-  return lead.booking_ref && CAL_EVENT.test(lead.booking_ref) ? { uri: lead.booking_ref, at: lead.call_at } : 'unknown';
-}
+/** Sam answers only the phone question; any other required text question says the answers are in the application. */
+const answersFor = (et: CalEventType, lead: Lead) =>
+  formAnswers({ ...et, custom_questions: (et.custom_questions ?? []).filter((q) => q.required) }, (q) => (q.type === 'phone_number' ? lead.phone : null), 'Booked by phone with Sam (AI assistant). Their answers are in their application.');
 
 // ───────────── the tools ─────────────
 
@@ -299,80 +270,43 @@ async function book(rt: Runtime, lead: Lead, conv: string | null, body: Record<s
   const { results: recent } = await rt.env.DB.prepare(`SELECT COUNT(*) AS n FROM ai_booking_actions WHERE lead_id = ? AND result IN ('booked', 'rescheduled') AND created_at > ?`).bind(lead.id, now - DAY).all<{ n: number }>();
   if ((recent[0]?.n ?? 0) >= 2) return fallback(rt, lead, conv, action, 'already booked twice by phone today');
 
-  // One booking at a time per lead (the model can fire a tool twice).
-  const lockKey = `caltool-lock:${lead.id}`;
-  if ((await hit(rt.env, lockKey, 60_000, now)) > 1) return reply({ ok: false, result: 'busy', message: 'A booking for this person is already going through. Wait a moment, then tell them what the first booking result said.' });
-  try {
-    let et: CalEventType | null;
-    let open: CalSlot[];
-    try {
-      et = await bookingEventType(rt);
-      if (!et) return await fallback(rt, lead, conv, action, 'no active Calendly event type');
-      const blocker = formBlocker(et);
-      if (blocker) return await fallback(rt, lead, conv, action, blocker);
-      open = (await availableTimes(rt.settings, et.uri, now + MIN_LEAD_MS, now + WINDOW_MS)).filter((s) => s.status === 'available');
-    } catch (e) {
-      return await fallback(rt, lead, conv, action, String(e instanceof Error ? e.message : e).slice(0, 300));
-    }
-    const slotTaken = async (detail: unknown) => {
-      const alt = pickSlots(open.filter((s) => Date.parse(s.start_time) !== slot), tz, now, { day: partsIn(slot, tz).date });
-      await logAction(rt, { leadId: lead.id, conv, action, result: 'slot_taken', slotAt: slot, detail: { detail, offered: alt.times.map((t) => new Date(t).toISOString()) } });
-      if (!alt.times.length) return fallback(rt, lead, conv, action, 'slot taken and nothing else open', { result: 'slot_taken' });
-      return reply({ ok: false, result: 'slot_taken', timezone: tzLabel(tz), slots: slotsOut(alt.times, tz), message: `That time was just taken. Say so briefly and offer two or three of these instead, in ${tzLabel(tz)}. Nothing is booked yet.` });
-    };
-    if (!open.some((s) => Date.parse(s.start_time) === slot)) return await slotTaken('not in the open times');
-
-    const name = [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim() || lead.email.split('@')[0];
-    const location = locationFor(et, lead);
-    const qa = answersFor(et, lead);
-    const req: Record<string, unknown> = {
-      event_type: et.uri,
-      start_time: new Date(slot).toISOString(),
-      invitee: { name, ...(lead.first_name ? { first_name: lead.first_name } : {}), ...(lead.last_name ? { last_name: lead.last_name } : {}), email: lead.email, timezone: tz },
-      ...(location ? { location } : {}),
-      ...(qa.length ? { questions_and_answers: qa } : {}),
-      // Our lead id rides in salesforce_uuid (as with the embed), so the webhook matches this lead by id, not by email.
-      tracking: { utm_source: 'ai_call', utm_medium: 'phone', salesforce_uuid: lead.id },
-    };
-    let created;
-    try {
-      created = await createInvitee(rt.settings, req);
-    } catch (e) {
-      if (e instanceof CalendlyError && (e.status === 404 || e.status === 409 || (e.status === 400 && /unavailable|not available|no longer|already|taken|start_time/i.test(e.body)))) return await slotTaken(e.body.slice(0, 300));
-      return await fallback(rt, lead, conv, action, String(e instanceof Error ? e.message : e).slice(0, 300));
-    }
-    const eventUri = created.event;
+  // One booking at a time per lead (the model can fire a tool twice): the lock lives in bookLeadSlot, shared with one-tap booking.
+  const out = await bookLeadSlot(rt, lead, {
+    slot, tz, now, method: 'phone',
+    eventType: () => bookingEventType(rt),
+    blocker: formBlocker,
+    answers: (et) => answersFor(et, lead),
+    tracking: { utm_source: 'ai_call', utm_medium: 'phone' },
+    cancelReason: RESCHEDULE_REASON,
     // Logged before the lead is updated: markBooked's confirmation call checks it (no "confirm" call right after Sam booked it).
-    await logAction(rt, { leadId: lead.id, conv, action, result: existing ? 'rescheduled' : 'booked', slotAt: slot, eventUri, detail: existing ? { old_event: existing.uri, old_at: existing.at } : undefined });
-    const { markBooked } = await import('./booking');
-    await markBooked(rt, lead, {
-      callAt: slot, provider: 'calendly', ref: eventUri, verified: true, rescheduled: Boolean(existing),
-      fields: { booking_reschedule_url: created.reschedule_url ?? null, booking_cancel_url: created.cancel_url ?? null },
-    });
-    const when = `${spokenTime(slot, tz)}, ${tzLabel(tz)}`;
-    const { notifySlack } = await import('./notify');
-    let oldNote = '';
-    if (existing) {
-      try {
-        await cancelScheduledEvent(rt.settings, existing.uri, RESCHEDULE_REASON);
-        await logAction(rt, { leadId: lead.id, conv, action: 'cancel_old', result: 'cancelled', slotAt: existing.at, eventUri: existing.uri });
-        oldNote = ` Their old time, ${spokenTime(existing.at, tz)}, is cancelled.`;
-      } catch (e) {
-        await logAction(rt, { leadId: lead.id, conv, action: 'cancel_old', result: 'cancel_failed', slotAt: existing.at, eventUri: existing.uri, detail: { error: String(e instanceof Error ? e.message : e).slice(0, 300) } });
-        rt.waitUntil(notifySlack(rt, lead, '⚠️ Old booking not cancelled', [`Sam moved the call to ${when}, but the old booking couldn’t be cancelled automatically. Cancel it in Calendly.`], 'booked'));
-        oldNote = ' The team will remove their old booking.';
-      }
-    }
-    rt.waitUntil(notifySlack(rt, lead, existing ? '📅 Call moved by phone (Sam)' : '📅 Call booked by phone (Sam)', [`New time: ${when}`], 'booked'));
-    return reply({
-      ok: true,
-      result: existing ? 'rescheduled' : 'booked',
-      booked_for: when,
-      message: `Booked for ${when}.${oldNote} Confirm it in one sentence, for example: "Done, you’re booked for ${when}, and the calendar invite comes from Calendly by email." Then carry on with the call.`,
-    });
-  } finally {
-    await rt.env.DB.prepare('DELETE FROM kv_state WHERE key = ?').bind(lockKey).run().catch(() => null);
+    onCreated: (eventUri, old) => logAction(rt, { leadId: lead.id, conv, action, result: old ? 'rescheduled' : 'booked', slotAt: slot, eventUri, detail: old ? { old_event: old.uri, old_at: old.at } : undefined }),
+    onCancelOld: (result, old, error) => logAction(rt, { leadId: lead.id, conv, action: 'cancel_old', result, slotAt: old.at, eventUri: old.uri, detail: error ? { error } : undefined }),
+  });
+  if (out.kind === 'busy') return reply({ ok: false, result: 'busy', message: 'A booking for this person is already going through. Wait a moment, then tell them what the first booking result said.' });
+  if (out.kind === 'unavailable') return fallback(rt, lead, conv, action, out.why);
+  if (out.kind === 'slot_taken') {
+    const alt = pickSlots(out.open.filter((s) => Date.parse(s.start_time) !== slot), tz, now, { day: partsIn(slot, tz).date });
+    await logAction(rt, { leadId: lead.id, conv, action, result: 'slot_taken', slotAt: slot, detail: { detail: out.detail, offered: alt.times.map((t) => new Date(t).toISOString()) } });
+    if (!alt.times.length) return fallback(rt, lead, conv, action, 'slot taken and nothing else open', { result: 'slot_taken' });
+    return reply({ ok: false, result: 'slot_taken', timezone: tzLabel(tz), slots: slotsOut(alt.times, tz), message: `That time was just taken. Say so briefly and offer two or three of these instead, in ${tzLabel(tz)}. Nothing is booked yet.` });
   }
+  const when = `${spokenTime(slot, tz)}, ${tzLabel(tz)}`;
+  const { notifySlack } = await import('./notify');
+  let oldNote = '';
+  if (out.existing) {
+    if (out.oldCancelled) oldNote = ` Their old time, ${spokenTime(out.existing.at, tz)}, is cancelled.`;
+    else {
+      rt.waitUntil(notifySlack(rt, lead, '⚠️ Old booking not cancelled', [`Sam moved the call to ${when}, but the old booking couldn’t be cancelled automatically. Cancel it in Calendly.`], 'booked'));
+      oldNote = ' The team will remove their old booking.';
+    }
+  }
+  rt.waitUntil(notifySlack(rt, lead, out.existing ? '📅 Call moved by phone (Sam)' : '📅 Call booked by phone (Sam)', [`New time: ${when}`], 'booked'));
+  return reply({
+    ok: true,
+    result: out.existing ? 'rescheduled' : 'booked',
+    booked_for: when,
+    message: `Booked for ${when}.${oldNote} Confirm it in one sentence, for example: "Done, you’re booked for ${when}, and the calendar invite comes from Calendly by email." Then carry on with the call.`,
+  });
 }
 
 // ───────────── the ElevenLabs tool definitions ─────────────

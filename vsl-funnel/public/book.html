@@ -26,6 +26,42 @@
       <p class="lede">Choose a time for your acquisition strategy call. You’ll get a confirmation by email straight away.</p>
     </div></header>
     <div class="wrap">
+      <section class="ot" data-onetap hidden aria-label="Open times">
+        <p class="ot-meta" data-ot-meta>Finding open times…</p>
+        <p class="ot-note" data-ot-note role="status" aria-live="polite" hidden></p>
+        <div class="ot-days" data-ot-days aria-busy="true">
+          <div class="ot-day ot-skel" aria-hidden="true"><span></span><i></i><i></i><i></i><i></i></div>
+          <div class="ot-day ot-skel" aria-hidden="true"><span></span><i></i><i></i><i></i><i></i></div>
+          <div class="ot-day ot-skel" aria-hidden="true"><span></span><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="ot-foot">
+          <button class="ot-link" type="button" data-ot-more hidden>More times</button>
+          <button class="ot-link ot-quiet" type="button" data-ot-cal>Open the full calendar</button>
+        </div>
+      </section>
+      <div class="ot-sheet" data-ot-sheet hidden>
+        <div class="ot-scrim" data-ot-close></div>
+        <div class="ot-panel" role="dialog" aria-modal="true" aria-labelledby="ot-title">
+          <h2 class="ot-title" id="ot-title">Confirm your call</h2>
+          <p class="ot-when" data-ot-when></p>
+          <div class="ot-details" data-ot-view>
+            <div class="ot-row"><span>Name</span><strong data-ot-v="name"></strong></div>
+            <div class="ot-row"><span>Email</span><strong data-ot-v="email"></strong></div>
+            <div class="ot-row"><span>Phone</span><strong data-ot-v="phone"></strong></div>
+            <button class="ot-link ot-edit" type="button" data-ot-edit>Edit details</button>
+          </div>
+          <div class="ot-form" data-ot-form hidden>
+            <div class="field"><label for="ot-name">Name</label><input id="ot-name" name="name" autocomplete="name" maxlength="120"></div>
+            <div class="field"><label for="ot-email">Email</label><input id="ot-email" name="email" type="email" autocomplete="email" maxlength="254"></div>
+            <div class="field"><label for="ot-phone">Mobile</label><input id="ot-phone" name="phone" type="tel" autocomplete="tel" maxlength="30"></div>
+            <p class="ot-hint">Used for this booking only.</p>
+          </div>
+          <p class="ot-err" data-ot-err role="alert" hidden></p>
+          <button class="ot-confirm" type="button" data-ot-confirm>Confirm my call</button>
+          <button class="ot-link ot-back" type="button" data-ot-close>Pick another time</button>
+          <p class="ot-fine">Calendly emails you the calendar invite with the meeting link.</p>
+        </div>
+      </div>
       <div class="cal-wrap" data-calendar><div class="analyzing"><div class="spinner"></div>Loading the calendar…</div></div>
       <p class="consent-note">Your reference: <strong data-slot="ref_code"></strong></p>
     </div>

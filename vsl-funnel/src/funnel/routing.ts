@@ -49,10 +49,13 @@ export async function routeLead(rt: Runtime, tier: Tier): Promise<RoutingDecisio
 
 /** The booking calendar for a lead's assigned closer (used by /book and /breakout). */
 export function bookingUrlFor(rt: Runtime, closerId: string | null, tier: Tier | null): string | null {
+  const rep = bookingRepFor(rt, closerId, tier);
+  return rep ? calendarFor(rt.settings, rep) : null;
+}
+
+/** The closer whose calendar /book shows: the lead's assigned closer, else the first for their tier, else anyone with a calendar. */
+export function bookingRepFor(rt: Runtime, closerId: string | null, tier: Tier | null): Rep | null {
   const assigned = rt.reps.find((r) => r.id === closerId && r.active);
-  if (assigned && calendarFor(rt.settings, assigned)) return calendarFor(rt.settings, assigned);
-  const byTier = closersFor(rt, tier)[0];
-  if (byTier) return calendarFor(rt.settings, byTier);
-  const any = closersFor(rt, null)[0];
-  return any ? calendarFor(rt.settings, any) : null;
+  if (assigned && calendarFor(rt.settings, assigned)) return assigned;
+  return closersFor(rt, tier)[0] ?? closersFor(rt, null)[0] ?? null;
 }

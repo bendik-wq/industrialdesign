@@ -165,6 +165,21 @@ api.post('/booking/client', async (c) => {
   return c.json({ ok: true, next: '/breakout' });
 });
 
+// One-tap booking on /book (funnel/one-tap.ts): the open times, then the booking itself. Only the lead's own linked
+// browser (same-origin, guarded above); rate limited per connection (PUBLIC_RATE_LIMITS) and per lead (in the handlers).
+const oneTap = (fn: 'times' | 'confirm') => async (c: Context<AppEnv>) => {
+  const rt = runtimeFrom(c);
+  const { oneTapLead, oneTapTimes, oneTapConfirm } = await import('../funnel/one-tap');
+  const lead = await oneTapLead(rt, c.get('visitor').leadId);
+  if (!lead) return c.json({ ok: false, error: 'forbidden' }, 403);
+  const body = (await readJson<Record<string, unknown>>(c.req.raw)) ?? {};
+  const r = fn === 'times' ? await oneTapTimes(rt, lead, body) : await oneTapConfirm(rt, lead, body);
+  c.header('cache-control', 'no-store');
+  return c.json(r.body, r.status as 200);
+};
+api.post('/book/times', oneTap('times'));
+api.post('/book/confirm', oneTap('confirm'));
+
 // ── The First Deal Challenge (challenge/routes.ts) ──
 api.route('/challenge', challengeApi);
 
