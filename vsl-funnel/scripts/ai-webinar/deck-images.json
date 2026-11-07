@@ -469,7 +469,7 @@
       "source": "embedded",
       "pick": "largest",
       "fit": "cover",
-      "what": "Josh with a client in the street (the case study names him and lists a criminal record)",
+      "what": "Josh with a client in the street (client case study; needs the client's written consent before use)",
       "consent": "verify",
       "confirmed": false,
       "used_on": []
