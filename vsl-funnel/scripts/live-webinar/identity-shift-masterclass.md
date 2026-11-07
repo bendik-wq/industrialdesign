@@ -1452,7 +1452,7 @@ That's who this is for. Not only you.
 
 So you're standing where this picture shows. There are two paths from here. And I want to be fair to both of them, because some of you will take the first one, and that's allowed.
 
-The first path is the one I took. You take everything from tonight, and you do it alone. And I'll be honest, it can work. I did it. Christian did it [VERIFY: S82]: two point four million dollar deal, no money down, over financed, and he was unemployed, with a criminal record, tattoos and no higher education. The winning factor was action.
+The first path is the one I took. You take everything from tonight, and you do it alone. And I'll be honest, it can work. I did it. Christian did it [VERIFY: S82]: two point four million dollar deal, no money down, over financed. The winning factor was action.
 
 The second path is the one I wish I'd had. You take everything from tonight, and you do it with a team that's done it, sitting beside you every week for ninety days.
 
