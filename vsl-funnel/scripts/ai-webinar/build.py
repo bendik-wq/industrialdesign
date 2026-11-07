@@ -92,7 +92,7 @@ def parse():
     for ln in body.split('\n'):
         s = ln.strip()
         if not s: continue
-        m = re.match(r'## \[\d\d:\d\d\] (.*)', s)
+        m = re.match(r'## \[\d+:\d\d\] (.*)', s)
         if m:
             flush(); text.clear(); cues.clear(); chapter = m.group(1); continue
         m = re.match(r'\[SLIDE: (.*)\]$', s)

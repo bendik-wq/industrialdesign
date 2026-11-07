@@ -19,10 +19,10 @@ const shotsAt = process.argv.indexOf('--shots');
 const SHOTS = shotsAt > 0 ? path.resolve(process.argv[shotsAt + 1]) : null;
 // Fifteen builds worth a close look (slide title, build; -1 = the last build).
 const KEY = [
-  ['The Acquisition Masterclass', 0], ['Owners build. Buyers compound.', -1], ['Tuesday, 9:40 at night', -1], ['More revenue, more hours', -1],
-  ['Three places pay the price', -1], ['The test every deal has to pass', -1], ["Dan's numbers on Graham's business", -1], ['The prize is bigger than the profit', -1],
-  ['What 90 owners told us', -1], ["Graham's kitchen table", -1], ['The big domino', 1], ['Everything in one place', -1], ['The conditions', -1],
-  ['Two paths from here', -1], ['Apply and book', -1],
+  ['The Acquisition Masterclass', 0], ['Twice, the sellers financed the whole price', -1], ['What the ceiling costs', -1], ['Seventy-eight Saturdays', -1],
+  ['The answer to the first question', -1], ['The drive past the yard', -1], ["The table he'd rather sit at", -1], ['The button is under the video', -1],
+  ['The big domino', 1], ['Everything in one place', -1], ['One Tuesday, a year later', -1], ['The conversation at home', -1],
+  ['The same Tuesday, two ways', -1], ['What one more year of waiting costs', -1], ["I'm a buyer.", -1],
 ];
 
 const b = await chromium.launch();

@@ -15,12 +15,14 @@ disclosed in the opening and on every slide). The script (v3, see WEBINAR-NOTES.
    Slides 55, 62 and 81 are excluded and never extracted.
 3. `python3 build.py --slides` renders only the slide PNGs into `out-dry/slides` (seconds, no audio). `python3 build.py --dry` builds
    everything with silent placeholder audio into `out-dry/` (no credit used, live files untouched). Missing images show as placeholders.
-4. `VOICE_SPEED=0.92 python3 build.py` renders the voice (about 103,000 characters for the v3 script; cached by text, so re-runs only pay for changed slides),
+4. `VOICE_SPEED=0.92 python3 build.py` renders the voice (about 110,000 characters for the v3 script after the November 2026 desire pass; cached by text, so re-runs only pay for changed slides),
    the slides, the video and the HLS files in `public/assets/media/webinar/ai/`, and rewrites `src/webinar/edition-ai.ts`
    with the timeline measured from the real audio. It stops before spending anything if a mapped image is missing or unconfirmed.
 5. `npx vitest run test/webinar-editions.test.ts`, deploy, then set `WEBINAR_EDITION=ai` in Funnel HQ → Settings → Webinar.
 
-Edit the words in `script-ai.md` and `script-ai-josh.md` (keep them the same apart from the person), then run the copy audit:
+Edit the words in `script-ai-josh.md` only, then `python3 sync_scripts.py` regenerates `script-ai.md` from it (Josh's own facts
+in the third person, "Josh's team", the narrator's disclosure) and rewrites the chapter times in both (`--check` only checks).
+Why each beat feels the way it does, and the ethics line: `docs/desire-doctrine.md`. Then run the copy audit:
 `npx vite-node scripts/ai-webinar/audit-script.ts` (every spoken and on-screen line through auditCopy, plus no dashes, no "free",
 no fake liveness, illustrative labels on example numbers, seller rollover named with funding; it must print 0 flags). Never edit the
 generated timeline. `<!-- ... -->` margin notes (the NLP levers) and other bracketed lines are never spoken or shown.
@@ -44,10 +46,16 @@ which are never spoken (the audio cache doesn't change when they do):
 
 ## The presented deck (Josh presents and records it himself)
 The same script as a keynote-style deck: one idea per click, numbers that count up, bars that grow, the 1.5x needle that
-moves, and 35 scenes the script calls for with `[SCENE: id]`: the price stack, the 1.5x gauge, Dan's numbers sliding past
-the test, the 3 to 5x against 8 to 12x chart, the group value bars, the 90-owner dot grid, the kitchen table from the
-seller's chair, the big domino, Dan's ninety days and his year, two paths, the cost of waiting, the six levels, the offer
-ledger, the guarantee receipt and the apply slides with a QR code to /apply. Research behind it: `docs/webinar-research.md`.
+moves, and 60 scene slides (31 scene types) the script calls for with `[SCENE: id]`: the price stack, the 1.5x gauge, Dan's
+numbers sliding past the test, the 3 to 5x against 8 to 12x chart, the group value bars, the 90-owner dot grid, the kitchen
+table from the seller's chair, the big domino, Dan's ninety days and his year, two paths, the cost of waiting, the six levels,
+the offer ledger, the guarantee receipt and the apply slides with a QR code to /apply. The desire layer (`docs/desire-doctrine.md`)
+adds `film` (a story beat as a film still: a time and place slug, one sensory line per click, earlier lines dimming; near-black
+for pain, warm white for the wanted future; a photo slot beside it when the slide has `[IMAGE]`), `tally` (the cost made
+countable, one square per Saturday), `day` (the felt future hour by hour), `split` (the same Tuesday two ways, one matched
+pair per click), `identity` ("I'm an owner." struck through, then "I'm a buyer.") and `proof` (the checkable facts as a
+ledger, beside the signing photo when there is one). The owners' questions show the first line of the answer on the next
+click. Research behind it: `docs/webinar-research.md`.
 
 - **Open it:** Funnel HQ → Studio → Record → Deck → "Open the masterclass deck" (or `/admin/deck`, admins only). It opens
   in its own window: choose that window as Studio's screen. Press **P** there for the presenter view (the words for each

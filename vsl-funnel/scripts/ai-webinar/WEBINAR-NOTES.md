@@ -14,38 +14,66 @@ covered on the call; the masterclass sells the call, not a price.
 
 | Part | Chapter | Starts | Cues |
 |---|---|---|---|
-| Intro (hook, pain, gain, position) | Owners build. Buyers compound. | 00:00 | POLL target_type 09:04 |
-| Content | The ceiling | 09:37 | |
-| | The owner down the road | 15:15 | POLL blocker 20:09 |
-| | How a business pays for itself | 20:28 | CALCULATOR 25:25, POLL own_cash 26:39 |
-| | What a group is worth | 27:00 | BUY-IN 30:00, **APPLY OPENS 30:19** |
-| | What 90 owners told us | 30:57 | POLL timeline 34:32, CTA 34:44 |
-| | The seller's side of the table | 35:02 | CTA 39:03 |
-| | The first conversation | 39:22 | CTA 42:24 |
-| Transition (double tie-down, big domino) | Two yeses and the big domino | 42:44 | CTA 46:13 |
-| Offer | What happens when you apply | 46:21 | CTA ~53, POLL soft_close ~57, CTA ~57 |
-| Pitch | Twelve months from now | 57:38 | CTA ~66 |
-| | Who you're becoming | 66:01 | CTA ~70:40 |
-| | The questions owners ask us (the second pitch) | 70:50 | CTA ~74, ~78, ~80, ~82, ~87 |
-| | Three owners, three situations (scripted interventions) | 87:39 | CTA ~93:40 |
-| | Your decision | 93:44 | CTA ~95:45, WORKSHEET ~96:40 |
+| Intro (hook, proof, pain, gain, position) | Owners build. Buyers compound. | 00:00 | POLL target_type ~10:10 |
+| Content | The ceiling | 10:41 | |
+| | The owner down the road | 17:39 | POLL blocker ~22:40 |
+| | How a business pays for itself | 23:02 | CALCULATOR ~28:15, POLL own_cash ~29:35 |
+| | What a group is worth | 29:55 | BUY-IN ~33:00, **APPLY OPENS ~33:23** |
+| | What 90 owners told us | 34:13 | POLL timeline ~37:50, CTA ~38:00 |
+| | The seller's side of the table | 38:18 | CTA ~42:15 |
+| | The first conversation | 42:38 | CTA ~45:55 |
+| Transition (double tie-down, big domino) | Two yeses and the big domino | 46:17 | CTA ~49:45 |
+| Offer | What happens when you apply | 49:56 | CTA ~58:20, POLL soft_close ~60:40, CTA ~60:55 |
+| Pitch | Twelve months from now | 61:13 | CTA ~67:30 (after "We're going"), CTA ~72:00 |
+| | Who you're becoming | 72:14 | CTA ~77:00 |
+| | The questions owners ask us (the second pitch) | 77:12 | CTA ~80:45, ~84:15, ~86:00, ~88:05, ~93:05 |
+| | Three owners, three situations (scripted interventions) | 93:25 | CTA ~99:20 |
+| | Your decision | 99:30 | CTA ~102:00, WORKSHEET ~103:00 |
 
-About 17,900 spoken words: **about 98 minutes of speech; the dry build (silent audio at the same rate, with the breaths between slides) times it at 99.8 minutes**, with the button at 30:41, the pitch poll at 57:54 and the worksheet at 97:56. The real chapter, poll, CTA and pitch times are measured from the audio at the
-render and written to `src/webinar/edition-ai.ts`; never edit that file by hand. If the owner wants it closer to 105 minutes,
-render at `VOICE_SPEED=0.86` instead of 0.92 (slower, same words).
+About 19,180 spoken words (the November 2026 desire rewrite added about 1,200, +7%, inside the agreed ±10%): **about 105 minutes
+of speech** at 183 words a minute. The real chapter, poll, CTA and pitch times are measured from the audio at the render and
+written to `src/webinar/edition-ai.ts`; never edit that file by hand. Rerender with `VOICE_SPEED=0.92` as before; at 0.86 it runs
+nearer 112 minutes. The dry build times it with the breaths between slides.
 
-Word counts per section: intro 1,760 (9.6 min) · content 6,060 (33.1 min) · transition 662 (3.6 min) · offer 2,067 (11.3 min) · pitch 7,375 (40.3 min).
+Word counts per section: intro 1,950 (10.7 min) · content 6,520 (35.6 min) · transition 670 (3.6 min) · offer 2,070 (11.3 min) · pitch 7,980 (43.6 min).
+
+**One source:** edit `script-ai-josh.md` only, then `python3 scripts/ai-webinar/sync_scripts.py` regenerates `script-ai.md`
+(Josh's own facts move to the third person, "my team" becomes "Josh's team", the disclosure swaps) and rewrites the chapter
+times in both. A new sentence where Josh speaks about himself needs a line in its `PERSON` list, or the run stops and names it.
 
 ## Where the booking calls to action land
-- **The button appears at `[APPLY OPENS]` (about 30:19)**, the content's midpoint, right after the viewer writes what their first
+- **The button appears at `[APPLY OPENS]` (about 33:23)**, the content's midpoint, right after the viewer writes what their first
   acquisition would change for them. That is the edition's pitch minute (`pitchAtMin`): the room shows the Apply button and the
   in-room application card from there to the end. A timeline with `cta: 'apply'` never unlocks the First Deal Sprint in the room.
-- **Each `[CTA]` (15, all after the pitch)** is a spoken ask that the room marks: the Apply button and the application card pulse for a
+- **Each `[CTA]` (16, all after the pitch, each placed right after an emotional peak: the 90 owners, the seller's chair, the
+  coffee, the big domino, the guarantee, "We're going", the two Tuesdays, the identity reveal, the owners' questions, the close)** is a spoken ask that the room marks: the Apply button and the application card pulse for a
   few seconds (`ctaAt` in the timeline, `webinar-room.js`), respecting reduced motion.
 - After an in-room application, A and B tiers get **"Book my strategy call"** straight away (`/w/<token>?to=book` → one-tap `/book`);
   C tier sees "the team replies by email". The room's own button switches to booking too.
 - The pitch poll (`soft_close`) asks "Is a strategy call with Josh's team right for you?" for this recording; same answer values,
   so the hot-lead ping and Funnel HQ read it as before.
+
+## The desire layer (November 2026, docs/desire-doctrine.md)
+- **Proof in the first two minutes:** right after the anchor, "Twice, the sellers financed the whole price" as an IF...THEN
+  (if you run a profitable business and an owner near you has no successor, the price can be paid from its own profit; Josh
+  has done it twice), beside the signing photo. It opens one more loop ("it wasn't luck, and it wasn't money") that the
+  seller's question closes. The title slide's subtitle carries the same fact.
+- **Scenes instead of statements:** 17 story beats are now film scenes in the deck (a time and place slug, one sensory line
+  per click): the ceiling at home, breakfast at 7:10, the industry dinner (his phone stayed in his pocket; Dan's buzzed four
+  times before the entrée), Graham's call, the drive past the yard, the group's table, the first ten minutes of the call, the
+  middle weeks, the letter, Graham's workshop, "We're going", the other Tuesday, the end of the call, and the last line.
+  Pain scenes are near-black, the wanted future warm white.
+- **Motifs:** the phone, the kitchen table at 9:40 (cold tea, then hot tea), the sign over Graham's gate, Easter ("I'll see",
+  then "We're going"). Each returns in the felt future and again in the first path, so the two futures compare object for object.
+- **The cost made physical:** 78 Saturdays (eighteen months of "just for a while") and one more year as 52 squares, 12 month-end
+  reports and one more year on every owner with no successor; both labelled illustrative.
+- **The felt future as a day:** one Tuesday a year after the first deal, hour by hour (7:50 am to 9:40 pm), ending on the call
+  Dan is looking forward to making (the reach, not only the arrival); a Thursday in week six built the same way for the engagement.
+- **The two-state cut:** "The same Tuesday, two ways", split down the middle, one matched pair per click.
+- **The identity reveal:** "I'm an owner." struck through, then "I'm a buyer.", said once by the viewer, tied to a behaviour.
+- **The close:** the three reasons (why this path, the reason to believe it, why now) as a proof ledger, the guarantee restated
+  beside the last ask, and Josh's last line joined to his proof.
+- **Softened absolutes:** "the question every seller asks" is now "the question sellers ask"; "never list" is "rarely list".
 
 ## The levers, section by section (also marked in the scripts as `<!-- ... -->` margin notes, never spoken or shown)
 - **Intro:** pace before lead (four true statements for the $1M+ owner) · negative command ("don't answer it yet") · the anchor
@@ -113,4 +141,4 @@ its devices: `docs/webinar-research.md`.
 - Copy audit: `npx vite-node scripts/ai-webinar/audit-script.ts` → 0 flags on both scripts (auditCopy on every spoken segment and
   every on-screen line, plus: no em or en dashes, no exclamation marks, no "free", no liveness or invented scarcity words, no
   promised results, example numbers labelled illustrative on the same slide, seller rollover named wherever funding is described).
-- `python3 build.py --slides` and `--dry` into `out-dry/` (no voice credit, live files untouched).
+- `python3 build.py --slides` and `--dry` into `out-dry/` (no voice credit, live files untouched): not rerun in the November 2026 desire pass.

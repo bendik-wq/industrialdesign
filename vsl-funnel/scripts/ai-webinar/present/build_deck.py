@@ -42,7 +42,7 @@ CUE_LABEL = {'CALCULATOR': 'Calculator opens under the video', 'BUY-IN': 'Buy-in
 # Face-cam layout for Studio's auto layout (public/assets/studio-core.js LAYOUTS): data on screen -> the screen big.
 SCREEN_SCENES = {'revenue-hours', 'price-stack', 'dscr-meter', 'deal-math', 'dscr-pass', 'multiple-arbitrage', 'group-value', 'owners-90', 'owners-63',
                  'paid-twice', 'offer-stack', 'guarantee', 'guarantee-conditions', 'guarantee-seven', 'apply-qr', 'two-paths', 'cost-of-waiting',
-                 'dan-timeline', 'dan-year', 'big-domino', 'seller-chair', 'one-shape', 'levels', 'three-c'}
+                 'dan-timeline', 'dan-year', 'big-domino', 'seller-chair', 'one-shape', 'levels', 'three-c', 'tally', 'day', 'split', 'proof'}
 
 
 def cam_for(layout, scene):

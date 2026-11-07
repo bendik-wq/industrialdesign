@@ -114,9 +114,19 @@
       return '<div class="col"' + B(i + 1) + '><div class="sc">' + esc(r[0]) + '</div><div class="v num' + txt + '">' + (txt ? typo(r[1]) : cnt(r[1])) + '</div><p class="b">' + typo(r[2] || '') + '</p></div>';
     }).join('') + '</div>' + (s.caption ? '<p class="note foot-note">' + typo(s.caption) + '</p>' : '') + '</div>';
   };
+  // The owners' questions (the second pitch): each question, then on the next click the first line of the straight
+  // answer, so a run of thirty questions plays as question and answer instead of thirty identical cards.
+  var FAQ = SL.filter(function (s) { return s.layout === 'quote' && !s.caption && !s.sub && /^["“]/.test(s.title); });
+  function faqAnswer(s) {
+    var p = s.notes[1] && s.notes[1].text, ss = p ? p.match(/[^.?]+[.?](\s|$)/g) || [] : [], a = (ss[0] || '').trim();
+    if (a.length < 40 && ss[1]) a = (a + ' ' + ss[1].trim()); // "Yes." alone says little: take the reason with it
+    return a.length >= 12 && a.length <= 150 ? a : '';
+  }
   L.quote = function (s) {
-    var q = s.title.replace(/^["“]|["”]$/g, '');
-    return '<div class="c"><div class="qm"' + E(0) + '>“</div><blockquote class="bal"' + E(1) + ' data-fit="540">' + typo(q) + '”</blockquote><div class="by sc"' + E(2) + '>' + esc(s.caption || s.sub || 'What owners ask') + '</div></div>';
+    var q = s.title.replace(/^["“]|["”]$/g, ''), i = FAQ.indexOf(s), ans = i >= 0 ? faqAnswer(s) : '';
+    var by = i >= 0 ? 'Question ' + (i + 1) + ' of ' + FAQ.length : (s.caption || s.sub || 'What owners ask');
+    return '<div class="c' + (ans ? ' faq' : '') + '"><div class="qm"' + E(0) + '>“</div><blockquote class="bal"' + E(1) + ' data-fit="' + (ans ? 380 : 540) + '">' + typo(q) + '”</blockquote><div class="by sc"' + E(2) + '>' + esc(by) + '</div>' +
+      (ans ? '<p class="ans"' + B(1) + '>' + typo(ans) + '</p>' : '') + '</div>';
   };
   L.table = function (s) {
     var hdr = s.data[0], rows = s.data.slice(1);
@@ -465,6 +475,89 @@
     return svg(g) + inner + panes;
   };
 
+  // ───────────── desire scenes (docs/desire-doctrine.md) ─────────────
+  // Pain in near-black, the wanted future in warm white: brightness carries the feeling, never a gradient or a glow.
+
+  /** A scene told as a film still: a slug (time, place), the title, then one sensory line per click. Each earlier
+      line dims as the next arrives, so the eye stays on the newest detail; the take line lands last. */
+  SC.film = function (s) {
+    var lines = s.data.map(function (r) { return r.join(' '); }), n = lines.length, img = s.image;
+    var slug = s.kicker || (isLabel(s.sub) ? s.sub : '');
+    var h = (img ? photo(img, 'film-img') : '') + '<div class="c film' + (img ? ' with-img' : '') + '">' +
+      '<div class="sc slug"' + E(0) + '>' + esc(slug) + '</div>' +
+      '<h1 class="ft bal"' + E(1) + '>' + typo(s.title) + '</h1>' +
+      '<div class="fls" data-fit="' + (s.onscreen.length ? 520 : 640) + '">' + lines.map(function (t, i) {
+        return '<p class="fl' + (i === n - 1 && !s.onscreen.length ? ' last' : '') + '"' + B(i + 1) + (i < n - 1 ? ' data-dim="' + (i + 2) + '"' : '') + '>' + typo(t) + '</p>';
+      }).join('') + '</div>' +
+      (s.onscreen.length ? '<p class="ftake"' + B(n + 1) + '>' + s.onscreen.map(typo).join(' ') + '</p>' : '') + '</div>';
+    return h;
+  };
+
+  /** The cost made physical: one square per unit (Saturdays, reports), popping in one after another. */
+  SC.tally = function (s) {
+    var d = s.data, n = Math.max(1, parseInt(d[0][0], 10) || 1), cols = n > 60 ? 13 : 13, size = 52, gap = 12;
+    var rows = Math.ceil(n / cols), W = cols * size + (cols - 1) * gap, x0 = 1792 - W, y0 = Math.max(250, 560 - (rows * (size + gap)) / 2), g = '';
+    for (var i = 0; i < n; i++) {
+      g += '<rect x="' + (x0 + (i % cols) * (size + gap)) + '" y="' + (y0 + Math.floor(i / cols) * (size + gap)) + '" width="' + size + '" height="' + size + '" fill="var(--accent)"' +
+        B(1, 'pop', 'transition-delay:' + Math.round(i * Math.min(28, 1800 / n)) + 'ms') + '/>';
+    }
+    var left = '<div class="sc slug"' + E(0) + '>' + esc(s.kicker || (isLabel(s.sub) ? s.sub : '')) + '</div>' +
+      '<h1 class="bal tl-h"' + E(1) + ' data-fit="250">' + typo(s.title) + '</h1>' +
+      '<div class="tl-n"' + B(1) + '><span class="v num">' + cnt(d[0][0]) + '</span><span class="l">' + typo(d[0][1] || '') + '</span></div>' +
+      d.slice(1).map(function (r, j) { return '<div class="tl-r"' + B(j + 2) + '><span class="v num">' + typo(r[0]) + '</span><span class="l">' + typo(r[1] || '') + '</span></div>'; }).join('') +
+      (s.onscreen.length ? '<p class="tl-take"' + B(d.length + 1) + '>' + s.onscreen.map(typo).join(' ') + '</p>' : '');
+    return svg(g) + '<div class="c tally" style="right:' + (1920 - x0 + 72) + 'px">' + left + '</div>';
+  };
+
+  /** The felt future as a day: one moment per click, hour by hour, on a hairline timeline. */
+  SC.day = function (s) {
+    var d = s.data, n = d.length, top = 236, bottom = 940, step = (bottom - top) / n, g = '', panes = '';
+    g += '<line x1="760" y1="' + (top + 26) + '" x2="760" y2="' + (top + step * (n - 1) + 26) + '" stroke="var(--hair)" stroke-width="2"/>';
+    d.forEach(function (r, i) {
+      var y = top + i * step, last = i === n - 1;
+      g += '<circle cx="760" cy="' + (y + 26) + '" r="' + (last ? 13 : 9) + '" fill="' + (last ? NAVY : 'var(--ink)') + '"' + B(i + 1, 'pop') + '/>';
+      panes += pane(800, y, 992, '<div class="dy-row' + (last ? ' last' : '') + '"><span class="t num">' + esc(r[0]) + '</span><span class="x">' + typo(r[1] || '') + '</span></div>').replace('<div class="pane"', '<div class="pane"' + B(i + 1) + (last ? '' : ' data-dim="' + (i + 2) + '"'));
+    });
+    return svg(g) + '<div class="c" style="right:1240px;justify-content:center"><div class="sc slug"' + E(0) + '>' + esc(isLabel(s.sub) ? s.sub : s.kicker || '') + '</div><h1 class="bal"' + E(1) + ' data-fit="420" style="font-size:96px;line-height:1.02">' + typo(s.title) + '</h1></div>' + panes;
+  };
+
+  /** Two futures edge to edge: the first path in near-black on the left, the second in warm white on the right,
+      one matched pair per click, so the gap argues by itself. */
+  SC.split = function (s) {
+    var hdr = s.data[0] || ['', ''], rows = s.data.slice(1), top = 400, bottom = 940, step = (bottom - top) / Math.max(1, rows.length), h = '';
+    h += '<div class="sp-l"></div>';
+    h += pane(128, 156, 800, '<div class="sc"' + E(0) + ' style="color:#7d7b76">' + esc(isLabel(s.sub) ? s.sub : '') + '</div><h1 class="bal sp-h"' + E(1) + '>' + typo(s.title) + '</h1>');
+    h += pane(128, top - 64, 700, '<div class="sc" style="color:#b3b1ab"' + E(2) + '>' + esc(hdr[0]) + '</div>') + pane(1088, top - 64, 704, '<div class="sc" style="color:var(--accent)"' + E(2) + '>' + esc(hdr[1]) + '</div>');
+    rows.forEach(function (r, i) {
+      var y = top + i * step;
+      h += pane(128, y, 704, '<p class="sp-x dk">' + typo(r[0]) + '</p>').replace('<div class="pane"', '<div class="pane"' + B(i + 1));
+      h += pane(1088, y, 704, '<p class="sp-x">' + typo(r[1] || '') + '</p>').replace('<div class="pane"', '<div class="pane"' + B(i + 1));
+      h += '<div class="sp-rule"' + B(i + 1, 'fade') + ' style="top:' + (y - 22) + 'px"></div>';
+    });
+    return h;
+  };
+
+  /** The identity reveal: the old sentence, struck through with a hairline, then the new one, large. */
+  SC.identity = function (s) {
+    var r = s.data[0] || ['', s.title];
+    return '<div class="c idn"><div class="sc"' + E(0) + '>' + esc(s.kicker || '') + '</div>' +
+      '<div class="old"' + E(1) + '><span>' + typo(r[0]) + '</span><i class="strike"' + B(1, 'grow-x') + '></i></div>' +
+      '<div class="new"' + B(2) + '>' + typo(r[1]) + '</div>' +
+      (s.sub && !isLabel(s.sub) ? '<p class="sub"' + B(2) + '>' + typo(s.sub) + '</p>' : '') + '</div>';
+  };
+
+  /** Proof joined to the claim: the checkable facts as a ledger, one per click, beside the photograph when there is one. */
+  SC.proof = function (s) {
+    var img = s.image, rows = s.data;
+    var ledger = '<div class="pf' + (img ? ' narrow' : '') + '">' + rows.map(function (r, i) {
+      return '<div class="pf-row"' + B(i + 1) + '><div class="v num">' + typo(r[0]) + '</div><div class="d">' + typo(r[1] || '') + '</div></div>';
+    }).join('') + '</div>';
+    var head1 = '<div class="sc slug"' + E(0) + ' style="color:var(--accent)">' + esc(s.kicker || 'What is true') + '</div><h1 class="bal pf-h"' + E(1) + ' data-fit="' + (img ? 300 : 230) + '">' + typo(s.title) + '</h1>' +
+      (s.sub && !isLabel(s.sub) && !img ? '<p class="hdsub bal"' + E(2) + '>' + typo(s.sub) + '</p>' : '');
+    if (img) return photo(img, 'pf-img') + '<div class="c pf-c" style="right:1000px">' + head1 + ledger + '</div>' + '<div class="pic pf-pic">' + typo(img.credit) + '</div>';
+    return '<div class="c top-al">' + head1 + ledger + '</div>';
+  };
+
   // ───────────── a slide element ─────────────
   function build(s) {
     var el = document.createElement('div');
@@ -473,7 +566,7 @@
     var layout = L[s.layout] ? s.layout : 'statement';
     // A scene replaces an image layout's picture with its own visual, so it takes the plain grid.
     var cls = scene && /^image-/.test(layout) ? 'statement' : layout;
-    el.className = 'slide L-' + cls + (dark ? ' dark' : '') + (s.image && !scene ? ' has-img' : '') + (scene ? ' scene sc-' + scene + (scene === 'anchor' ? ' anchor' : '') : '');
+    el.className = 'slide L-' + cls + (dark ? ' dark' : '') + (s.image && (!scene || scene === 'proof' || scene === 'film') ? ' has-img' : '') + (scene ? ' scene sc-' + scene + (scene === 'anchor' ? ' anchor' : '') : '');
     el.setAttribute('data-n', s.n);
     var body = scene ? SC[scene](s) : L[layout](s);
     el.innerHTML = (layout === 'image-full' ? '' : chrome(s)) + body + foot(s);
@@ -522,6 +615,7 @@
       Array.prototype.forEach.call(cs, function (c) { if (on) countUp(c, animate); });
     });
     el.querySelectorAll('[data-until]').forEach(function (x) { x.classList.toggle('gone', k >= Number(x.getAttribute('data-until'))); });
+    el.querySelectorAll('[data-dim]').forEach(function (x) { x.classList.toggle('dim', k >= Number(x.getAttribute('data-dim'))); });
     el.querySelectorAll('[data-steps]').forEach(function (x) {
       var val = null;
       x.getAttribute('data-steps').split('|').forEach(function (p) { var i = p.indexOf(':'), at = Number(p.slice(0, i)); if (at <= k) val = p.slice(i + 1); });

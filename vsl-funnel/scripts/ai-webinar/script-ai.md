@@ -2,14 +2,15 @@
 
 **Presenter:** an AI narrator voice (disclosed at the start and on every slide), presenting Josh Li's method in the third person.
 **What it sells:** the application and the strategy call with Josh's team (the button under the video: /apply, then one-tap booking on /book). The call is never called free. The call can lead to the 90-day "Done with you" advisory engagement (the 3C model), with the LOI guarantee and the 7-day money-back read in full. Fees exist and are covered on the call, not here.
-**How it sells:** story first, desire over teaching. One protagonist (Dan, an illustrative composite owner) goes from the ceiling to the buyer's path to becoming the buyer. Josh's own story uses only approved facts. Identity is walked up Dilts' logical levels. One anchor ("Owners build. Buyers compound."), three nested loops closed in reverse, one big domino, a double tie-down, double binds toward apply and book, always with a visible no. Run of show, levers and the verify list: WEBINAR-NOTES.md.
+**How it sells:** story first, desire over teaching (docs/desire-doctrine.md). One protagonist (Dan, an illustrative composite owner) goes from the ceiling to the buyer's path to becoming the buyer. Josh's own story uses only approved facts. Identity is walked up Dilts' logical levels. One anchor ("Owners build. Buyers compound."), three nested loops closed in reverse, one big domino, a double tie-down, double binds toward apply and book, always with a visible no. Run of show, levers and the verify list: WEBINAR-NOTES.md.
 **Format rules for the build script:** `## [mm:ss] Title` starts a chapter (times estimated at 183 words a minute; the real timeline comes from the render). `[SLIDE: …]` starts a new slide; `[LAYOUT]`, `[DATA]`, `[IMAGE]`, `[CAPTION]`, `[KICKER]` style it. `[ON SCREEN: …]` adds a line to the current slide. `[POLL: id]`, `[CALCULATOR]`, `[BUY-IN]`, `[APPLY OPENS]`, `[CTA]` and `[WORKSHEET]` are room cues, timed from the rendered audio: `[APPLY OPENS]` is the pitch, where the Apply and book button appears; each `[CTA]` nudges it. `<!-- … -->` are margin notes for the owner (the NLP levers and proof sources): never spoken, never shown. Any other line in square brackets is an owner note the build skips. Plain paragraphs are spoken.
+**Generated:** from script-ai-josh.md by `python3 scripts/ai-webinar/sync_scripts.py`. Edit the Josh script, then rerun.
 
 ---
 
 ## [00:00] Owners build. Buyers compound.
 
-[SLIDE: The Acquisition Masterclass | How owners doing $1M+ stop building one customer at a time, and start buying businesses that are already built]
+[SLIDE: The Acquisition Masterclass | How owners doing $1M+ buy businesses that are already built, with the price paid from their own profit. From Josh Li, whose two acquisitions were both 100% seller financed.]
 [LAYOUT: title]
 [IMAGE: josh-portrait]
 [KICKER: A masterclass from G&L M&A Advisory]
@@ -25,7 +26,7 @@ I'm going to start with a question, and I don't want you to answer it yet. Let i
 
 How come the owner who works hardest in a market is almost never the one who ends up owning that market?
 
-Think about your own industry for a second. The group with ten locations. The name on half the vans you pass on the way to work. The firm that seems to open a new site every year. Were they the best operator in town? The hardest worker? Or did they know something about how businesses change hands that nobody ever told the rest of us?
+Think about your own industry for a second. The group with ten locations. The name on half the vans you pass on the way to work. The owner you sat near at the last industry dinner, the one whose phone stayed in his jacket pocket all night, while yours buzzed on the tablecloth every twenty minutes. Was he the best operator in town? The hardest worker? Or did he know something about how businesses change hands that nobody ever told the rest of us?
 
 [SLIDE: Owners build. Buyers compound.]
 [LAYOUT: section]
@@ -45,6 +46,20 @@ It can be the same industry and the same city, with a completely different life 
 
 <!-- NLP: presupposition ("which of those two you've been") + embedded command, spoken plainly ("become the other one"). -->
 By the end of this masterclass you'll know which of those two you've been, and what it takes to become the other one, if you choose to.
+
+[SLIDE: Twice, the sellers financed the whole price | Two acquisitions. In both, the sellers financed 100% of the price.]
+[LAYOUT: list]
+[SCENE: proof]
+[IMAGE: josh-handshake]
+[KICKER: What's behind this masterclass]
+[DATA: Two acquisitions | Josh's clinics, bought for JC Health Group, his own healthcare holding company]
+[DATA: 100% seller financed | In both deals, the seller financed the whole price]
+[DATA: The reason | It wasn't money. You'll see exactly what it was.]
+
+<!-- BENCIVENGA: the strongest proof element in the first minutes (D3, D13), joined to the promise as IF...THEN (B7): an easy condition the viewer already meets, then the proof. Opens a loop ("what it was") that the seller's question closes. Approved facts only. -->
+And this doesn't come from the outside. If you run a profitable business, and there's an owner near you with no one to hand his business to, the price of that business can be paid out of its own profit. Josh has done it twice. Two acquisitions, and in both of them the seller financed one hundred percent of the price.
+
+That wasn't luck, and it wasn't money. It was one thing, and by the end of today you'll be able to name it.
 
 [SLIDE: You built something real | More than $1M a year. A team. Customers who come back. A name in your market.]
 [LAYOUT: statement]
@@ -74,12 +89,18 @@ And here's the part nobody says out loud. None of this is your fault.
 It has nothing to do with how hard you work or how smart you are. It has everything to do with what you were taught. Owners are taught to build. How a deal gets paid for, why a seller would let you pay them over time, what a lender actually looks at: nobody sits an owner down and shows them that. So owners do the only thing they know. They build harder.
 
 [SLIDE: What the ceiling costs | Not on the report. At home.]
-[LAYOUT: statement]
+[LAYOUT: section]
+[SCENE: film]
+[KICKER: Not on the report · At home]
+[DATA: The phone face up on the dinner table.]
+[DATA: The holiday booked for March, moved to May, then quietly cancelled.]
+[DATA: Sunday evening, and the week is already full.]
+[DATA: Needed by everyone. Replaceable by no one.]
 
-<!-- PAIN #1, personal level (Robbins: leverage). True and common for the avatar, never catastrophic. Followed within two slides by the gain. -->
+<!-- PAIN #1, personal level (Robbins: leverage). PSYWAR: the loss shown as witnessed micro-moments (one object per line, built one click at a time on a dark scene), never adjectives. True and common for the avatar, never catastrophic. Followed within two slides by the gain. -->
 And it costs more than the report shows.
 
-It's the phone face up on the dinner table, because a job could go wrong at any minute. The holiday you booked for March, moved to May, and then quietly cancelled. And the Sunday evening feeling, when the week ahead is already full before it starts. It's being the person everyone in the business needs, and the person nobody in the business can replace.
+It's the phone face up on the dinner table, because a job could go wrong at any minute, and everyone at the table knows which way your eyes go when it lights up. The holiday you booked for March, moved to May, and then quietly cancelled. The Sunday evening feeling, when the week ahead is already full before it starts. And being the person everyone in the business needs, and the person nobody in the business can replace.
 
 You know the strangest part? Most owners at this point are doing well. The business is profitable. The bank is happy. From the outside it looks like the dream. From the inside it feels like a very well paid job that you can never resign from.
 
@@ -89,7 +110,7 @@ You know the strangest part? Most owners at this point are doing well. The busin
 <!-- GAIN: desire stacking, surface to identity (Sultanic): the deal, the cash flow, the time back, becoming an owner of companies. Nominalisation ("freedom") paired with one concrete image. -->
 Here's what changes when you see the buyer's path.
 
-The growth stops coming only from your hours. A business that someone else spent twenty years building joins yours, with its customers, its people and its profit, and the price is paid out of that profit, through a lender, the seller's note and the seller's rollover. Your business becomes part of a group, and a group is valued differently from a single business, which you'll see in numbers later. And somewhere in there, you stop being the person holding one business up, and start being the person who decides what the group buys next.
+The growth stops coming only from your hours. A business that someone else spent twenty years building joins yours, with its customers, its people and its profit, and the price is paid out of that profit, through a lender, the seller's note and the seller's rollover. Your business becomes part of a group, and a group is valued differently from a single business, which you'll see in numbers later. And somewhere in there, you stop being the person holding one business up, and start being the person who decides what the group buys next. The phone goes back in your jacket pocket at dinner, because there's a manager at each site whose job is to answer it.
 
 That's the shift this masterclass is about. Not a new skill. A new position at the table.
 
@@ -143,23 +164,23 @@ If you're looking for a way to get rich without risk, this isn't it, and nothing
 [IMAGE: josh-handshake]
 [CAPTION: Josh Li with a seller at signing.]
 
-<!-- POSITION: only the approved facts. Josh founded JC Health Group; two acquisitions; sellers financed 100% in both. -->
+<!-- POSITION: only the approved facts. Josh founded JC Health Group; two acquisitions; sellers financed 100% in both. Second firing of the proof, now with the photo of a signing (proof adjacency: the claim and the picture in one breath). -->
 The method comes from Josh Li. Josh founded JC Health Group, his own healthcare holding company. He bought his clinics in two acquisitions, and in both of them the sellers financed one hundred percent of the price.
 
-Hold on to that fact, because you'll hear what made it possible, and it isn't what most people expect.
+Hold on to that fact, because you'll hear what made it possible, and it isn't what most people expect. It's a question. Sellers ask it whether they say it out loud or not.
 
 [ON SCREEN: Two acquisitions. In both, the sellers financed 100% of the price.]
 
 [SLIDE: What you'll see by the end]
 [LAYOUT: list]
-[DATA: Where the deals are | Why the best businesses in your market will never appear on a listing]
+[DATA: Where the deals are | Why the best businesses in your market rarely appear on a listing]
 [DATA: How the price gets paid | From the business itself, and the one test every deal has to pass]
 [DATA: Who you'd need to be | And why it's closer to who you already are than you think]
 
 <!-- BIG PROMISE (playbook 3-8 min): three outcomes of watching, none of them a result claim. Presupposition: "by the end" (watching is in their control). -->
 So here's what you'll see by the end of this masterclass.
 
-Where the deals are, and why the best businesses in your market will never appear on a listing. How the price of a business gets paid from the business itself, through debt, the seller's note and the seller's rollover, and the one test every deal has to pass before anyone signs. And who you'd need to be to do it, which turns out to be a lot closer to who you already are than most owners expect.
+Where the deals are, and why the best businesses in your market rarely appear on a listing. How the price of a business gets paid from the business itself, through debt, the seller's note and the seller's rollover, and the one test every deal has to pass before anyone signs. And who you'd need to be to do it, which turns out to be a lot closer to who you already are than most owners expect.
 
 None of it needs a finance degree. All of it is easier to see through someone else's story first.
 
@@ -178,14 +199,14 @@ And on a Tuesday night, a little after nine, Dan did one small thing that change
 [SLIDE: Two more things, held to the end]
 [LAYOUT: list]
 [DATA: The big domino | The one belief that, once it falls, takes every other reason with it]
-[DATA: The question every seller asks | Answer it and sellers do things for you they'd do for nobody else]
+[DATA: The question sellers ask | Answer it and sellers do things for you they'd do for nobody else]
 
 <!-- NLP: nested loops. Opened A (Dan's Tuesday night), then C (the big domino), then B (the seller's question). Closed in reverse: B, then C in the transition, A in the offer. -->
 There are two more things I'm going to hold until later.
 
 The first is the big domino. It's one belief. Most owners spend years pushing on the small dominoes: the money, the time, the feeling that their industry is different. When the big one falls, it takes the small ones with it. You'll see it near the end of the teaching, and you'll know it when you hear it.
 
-And the second is a question. There's one question every seller asks. Some ask it out loud. Most never say it. It sits under every conversation about price and terms. If you can't answer it, nothing else matters. If you can, a seller will do things for you they'd do for nobody else, including financing the sale of their own business. Write two words at the top of a page now: the question. By the time you hear it, you'll already have seen the answer being built.
+And the second is a question. There's one question sellers ask. Some ask it out loud. Most never say it. It sits under every conversation about price and terms. If you can't answer it, nothing else matters. If you can, a seller will do things for you they'd do for nobody else, including financing the sale of their own business. Write two words at the top of a page now: the question. By the time you hear it, you'll already have seen the answer being built.
 
 [POLL: target_type]
 
@@ -197,7 +218,7 @@ A question has just appeared under the video. If the money were sorted, what kin
 
 Notice that you already had an answer. Most owners do. They've been carrying a business around in their head for years, the one down the road, the one they'd fix. Keep it in mind. We're going to come back to it.
 
-## [09:37] The ceiling
+## [10:40] The ceiling
 
 [SLIDE: Tuesday, 9:40 at night | Dan, an illustrative owner, at the kitchen table.]
 [LAYOUT: section]
@@ -206,9 +227,9 @@ Notice that you already had an answer. Most owners do. They've been carrying a b
 <!-- STORY: Dan's ceiling, told in close-up, present tense, with objects and sound (sensory density, L6). Pain amplification #1: the status quo. -->
 Let's go back to Dan.
 
-It's a Tuesday, about twenty to ten at night. Dan is at the kitchen table with the laptop open and a cold cup of tea next to it. The house is quiet. His phone buzzes face down on the bench, and he already knows it's a technician asking about tomorrow's job, because it's always a technician asking about tomorrow's job.
+It's a Tuesday, about twenty to ten at night. Dan is at the kitchen table with the laptop open and a cup of tea he made at eight, gone cold with the tea bag still in it. The house is quiet apart from the dishwasher ticking as it cools. His phone buzzes face down on the bench, and he already knows it's a technician asking about tomorrow's job, because it's always a technician asking about tomorrow's job.
 
-On the screen is the month's report. Revenue is up a little on last year. Wages are up more. Two of his best people have told him they want more money, and he can't blame them, because a competitor across town is hiring and paying well.
+On the screen is the month's report, and his eyes keep going back to two lines of it. Revenue is up a little on last year. Wages are up more. Two of his best people have told him they want more money, and he can't blame them, because a competitor across town is hiring and paying well. He rubs his eyes, reads the two lines again, and they say the same thing they said the first time.
 
 [SLIDE: More revenue, more hours | The pattern every owner past a million knows.]
 [LAYOUT: comparison]
@@ -220,12 +241,17 @@ On the screen is the month's report. Revenue is up a little on last year. Wages 
 Here's what Dan has noticed, and maybe you've noticed it too. Every extra dollar of growth costs more than the one before it. To add another million in revenue, he needs another crew, another van, another supervisor to run them, and another few hours of his own week to hold it all together. The business grows. The space in his life for anything else gets smaller.
 
 [SLIDE: The question at breakfast | Illustrative.]
-[LAYOUT: statement]
+[LAYOUT: section]
+[SCENE: film]
+[KICKER: Illustrative · Wednesday, 7:10 am · The kitchen]
+[DATA: "Are we still going to the coast at Easter?"]
+[DATA: "I'll see."]
+[DATA: She has heard "I'll see" before.]
 
-<!-- STORY: sensory, personal stakes (contribution, connection). Pain made specific and true, never shaming. -->
-The next morning, his daughter asks him a question over breakfast. She's twelve. She asks whether they're still going away at Easter, because her friend is going to the coast and she wants to know if she can tell her they're going too.
+<!-- STORY: sensory, personal stakes (contribution, connection). PSYWAR confession recipe: a specific, slightly uncomfortable admission (the protagonist's "I'll see"), set up here and paid off in the felt future ("Easter is on"). Pain made specific and true, never shaming. -->
+The next morning, his daughter asks him a question over breakfast. She's twelve, still in her school jumper, with the cereal going soft while she waits for the answer. She asks whether they're still going away at Easter, because her friend is going to the coast and she wants to know if she can tell her they're going too.
 
-Dan says he'll see. She's heard "I'll see" before. She goes back to her cereal, and Dan goes to his van, and for the whole drive to the first site he thinks about the fact that his business has twenty-five people in it and he still can't promise his own family a week at the beach.
+Dan says he'll see. She's heard "I'll see" before. Last year it meant no, and the year before that it meant a long weekend that ended with him on the phone in the car park of the motel. She goes back to her cereal without saying anything, which is worse than if she'd argued. Dan goes to his van, and for the whole drive to the first site he thinks about the fact that his business has twenty-five people in it and he still can't promise his own family a week at the beach.
 
 He's not failing. That's the strange part. By any normal measure, Dan is a success. He just can't see how the next ten years look any different from the last ten, except with more people asking him questions.
 
@@ -245,6 +271,17 @@ Then he put more money into marketing. It worked, in the sense that more enquiri
 So he started working Saturdays, just for a while, to catch up. That was eighteen months ago. Now Saturday is simply part of the week.
 
 None of those were bad decisions. Every one of them is what a good owner does. And every one of them is a way of building harder inside the same shape.
+
+[SLIDE: Seventy-eight Saturdays | Illustrative: eighteen months of Saturdays, one square each.]
+[LAYOUT: statement]
+[SCENE: tally]
+[DATA: 78 | Saturdays since "just for a while, to catch up"]
+[ON SCREEN: Nobody sends an invoice for these.]
+
+<!-- PSYWAR: the cost made physical. An abstract ("I work weekends") turned into a countable picture (Bencivenga D11: numbers as pictures), one square per Saturday, built on screen. Illustrative, labelled. -->
+Put a number on that last one, because Dan never did. Eighteen months of Saturdays is seventy-eight of them. Seventy-eight mornings he meant to spend at his daughter's netball, or in the garden, or doing nothing at all, spent at a desk catching up on a business that never quite lets him catch up.
+
+That's what "just for a while" cost. It never shows up on the monthly report, and nobody sends an invoice for it.
 
 [SLIDE: The point every owner reaches]
 [LAYOUT: statement]
@@ -282,14 +319,23 @@ And there's a third way. It's the way the group with ten locations got there, an
 
 [SLIDE: The answer to the first question | Why the hardest worker rarely ends up owning the market.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: Illustrative · The industry dinner]
+[DATA: Dan's phone: four buzzes before the entrée.]
+[DATA: His: in his jacket pocket all night.]
+[DATA: "I didn't grow it. I bought most of it."]
 [ON SCREEN: The owners who end up owning a market stopped building one customer at a time. They bought what was already built.]
 
-<!-- CLOSES THE OPENING QUESTION (the hook), early, so the viewer gets a payoff before the bigger loops. Story proof: the group owner at the industry dinner (illustrative). -->
+<!-- CLOSES THE OPENING QUESTION (the hook), early, so the viewer gets a payoff before the bigger loops. Story proof: the group owner at the industry dinner (illustrative). PSYWAR: aspiration and envy through one witnessed contrast (his phone in his pocket, Dan's buzzing on the tablecloth), the phone motif that returns in the year after and in the two Tuesdays. -->
 Remember the question from the very beginning? How come the owner who works hardest in a market is almost never the one who ends up owning it?
 
 Dan found the answer at an industry dinner, the kind with name tags and a bad microphone. He was seated next to the owner of the biggest group in his trade, the one with branches across three cities. Dan had always assumed the man must have started with family money, or a huge loan, or some advantage Dan didn't have.
 
+What Dan noticed first was the phone. His own buzzed against the tablecloth four times before the entrée. The other man's stayed in his jacket pocket the whole night. He talked about his boat, and about the week he'd just had away with his grandkids, and not once did he step outside to take a call.
+
 Over dessert, Dan asked him how he'd grown so fast. The man laughed and said, "I didn't grow it. I bought most of it. Every one of those branches was somebody's business, and most of them were owners who didn't have anyone to hand it to."
+
+Dan drove home that night with the radio off.
 
 That's the answer. The owners who end up owning a market aren't the ones who worked hardest at building. Somewhere along the way, they stopped building one customer at a time and started buying what was already built.
 
@@ -316,10 +362,15 @@ Owners build. Buyers compound.
 
 Dan has been building for twenty years. He's about to find out what it looks like to compound.
 
-## [15:15] The owner down the road
+## [17:38] The owner down the road
 
 [SLIDE: The phone call | Graham, an illustrative seller: 64, thirty years in the trade, no successor.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: Illustrative · A few weeks earlier · A call about a job]
+[DATA: "I don't know how much longer I'll keep doing this."]
+[DATA: "The kids don't want it."]
+[DATA: "I lie awake wondering what happens to them."]
 
 <!-- STORY: the inciting incident. Graham is a composite seller, labelled. Dan's first reaction is the owner's belief ("I can't afford that"), which the next chapters break. -->
 A few weeks before that Tuesday night, Dan had a phone call he couldn't stop thinking about.
@@ -339,7 +390,7 @@ Dan put the phone down and did what nearly every owner does. He did the maths in
 
 If that's what went through your head just now, about your own Graham, hold on to it. Because Dan was about to learn that he'd done the wrong maths.
 
-[SLIDE: Why owners like Graham never list | Illustrative.]
+[SLIDE: Why owners like Graham rarely list | Illustrative.]
 [LAYOUT: list]
 [DATA: Privacy | He doesn't want staff, customers or competitors to know he's thinking about it]
 [DATA: Pride | A listing feels like a for-sale sign on his life's work]
@@ -359,7 +410,7 @@ Which means the best businesses in your market aren't for sale. Not officially. 
 <!-- PARADIGM SHIFT 1 (external belief): the good deals are gone. Reframe: listings are auctions; the real deals are off market with owners like Graham. -->
 Most owners who think about buying open a business for sale website, scroll the listings, and decide the good deals are gone. About the listings, they're right. A listed business is an auction. A broker has been paid to get the highest price, and every buyer in the market can see it.
 
-The best businesses never reach a listing. They sit with owners like Graham. Owners who've run the business for twenty or thirty years, whose kids have their own careers, whose senior staff can run the floor but can't buy the company.
+The best businesses rarely reach a listing. They sit with owners like Graham. Owners who've run the business for twenty or thirty years, whose kids have their own careers, whose senior staff can run the floor but can't buy the company.
 
 [ON SCREEN: The best deals are off market, with owners who have no successor.]
 
@@ -374,13 +425,19 @@ And that owner has two problems. Someone has to pay him for what he built. And s
 
 [SLIDE: The drive past the yard | Illustrative.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: Illustrative · Thursday, 7:45 am · Graham's yard]
+[DATA: Eight vans in a row, older than his, well kept.]
+[DATA: A sign over the gate, faded where the afternoon sun hits it.]
+[DATA: Thirty years of customers who see no reason to leave.]
+[ON SCREEN: For the first time, he doesn't see a competitor.]
 
-<!-- STORY: sensory, the desire object made visible (the vans, the sign). Submodalities: close and bright. -->
-The next week, Dan drives past Graham's yard on the way to a job. He's driven past it a thousand times. This time he slows down.
+<!-- STORY: sensory, the desire object made visible (the vans, the sign). Submodalities: close and bright (a light scene: brightness for the desire object, darkness for the pain). PSYWAR: SEEKING, the reach toward something wanted, not yet owned. The sign returns in the other Tuesday (loss) and Graham's workshop (gain). -->
+The next week, Dan drives past Graham's yard on the way to a job. He's driven past it a thousand times. This time he slows down, and the car behind him toots.
 
-Eight vans in a row, older than his, but well kept. The sign over the gate with Graham's surname on it, faded where the sun hits it every afternoon. A technician he recognises loading a ladder onto a roof rack. Customers Dan has never been able to win, because they've been with Graham for twenty years and see no reason to leave.
+Eight vans in a row, older than his, but well kept, washed on a Friday by the look of them. The sign over the gate with Graham's surname on it, faded where the sun hits it every afternoon. A technician he recognises loading a ladder onto a roof rack, whistling. Customers Dan has never been able to win, because they've been with Graham for twenty years and see no reason to leave.
 
-And for the first time, Dan doesn't see a competitor. He sees thirty years of work, a team that knows what it's doing, a list of customers who stay, and an owner who doesn't know what to do with any of it.
+And for the first time, Dan doesn't see a competitor. He sees thirty years of work, a team that knows what it's doing, a list of customers who stay, and an owner who doesn't know what to do with any of it. He catches himself wondering what that sign would look like with a second name under it.
 
 [SLIDE: What happens when nobody asks | Illustrative.]
 [LAYOUT: statement]
@@ -414,7 +471,7 @@ You're not the only one who has noticed. Private equity funds buy businesses lik
 <!-- ROBBINS: questions control focus. The viewer names their own blocker, and the rest of the content answers each one by name. -->
 There's a question under the video now. What's the biggest thing stopping you from doing a deal this year? Finding deals, financing, structuring, time, or confidence. Tap the honest one. Whatever you pick, it gets answered in the next part, because for Dan it was the money, and the money turned out to be the wrong question.
 
-## [20:28] How a business pays for itself
+## [23:01] How a business pays for itself
 
 [SLIDE: The wrong maths]
 [LAYOUT: section]
@@ -499,9 +556,9 @@ So the question Dan should have asked was never "do I have one and a half millio
 [SCENE: dscr-pass]
 
 <!-- STORY BEAT: the felt shift (Before I knew / After I knew). The belief changes in a moment the viewer can picture. -->
-Dan remembers the night he first did that sum, on the back of the monthly report, with a pencil. He'd assumed for years that a business like Graham's was out of reach. And there it was, in his own handwriting: a structure where Graham's business paid for itself, with a buffer left over.
+Dan remembers the night he first did that sum, on the back of the monthly report, with a carpenter's pencil from the van. He'd assumed for years that a business like Graham's was out of reach. And there it was, in his own handwriting, with the answer circled twice: a structure where Graham's business paid for itself, with a buffer left over.
 
-He didn't feel rich. He felt something closer to embarrassed, that he'd spent so long believing the wrong thing. And then, underneath that, something he hadn't felt about his business in a long time. Curiosity.
+He didn't feel rich. He felt something closer to embarrassed, that he'd spent so long believing the wrong thing. And then, underneath that, something he hadn't felt about his business in a long time. He wanted to know what came next. He sat there past eleven, running the sum again with a worse year in it, and it still passed.
 
 [ON SCREEN: Illustrative: at 1.67x it passes, and at 1.43x it fails.]
 
@@ -526,7 +583,7 @@ Dan had spent years assuming he wasn't the kind of person a bank would lend to f
 <!-- NLP: future pace by doing. The viewer puts their own target into the calculator, so the structure stops being Dan's and becomes theirs. -->
 A calculator has just appeared under the video. Think of your own Graham, the business you thought of at the start. Put in its yearly profit and its asking price, or your best guess. It splits the price across commercial debt, seller finance and seller rollover, and runs the test. It takes thirty seconds, and your numbers carry straight into your deal beside the video.
 
-Notice what happens when you do it. The business stops being a fantasy and becomes a number that either passes or doesn't. That's the first moment of thinking like a buyer.
+Notice what happens when you do it. The business stops being a fantasy and becomes a number that either passes or doesn't. That's the first moment of thinking like a buyer. And if yours passes, notice that too: the small jolt of a business down your road that you'd filed under "one day" turning into a number on a screen.
 
 [SLIDE: Banks don't reject buyers. They reject structures.]
 [LAYOUT: statement]
@@ -551,7 +608,7 @@ Here's an example of how much the structure decides. One five and a half million
 
 There's a question under the video about how much of your own cash you'd want in a deal. Tap the one that's true for you. Some of you could write a cheque tomorrow. You can keep it working where it is. A deal should stand on its own cash flow, and if it can't, your cash won't fix it. It'll only hide the problem.
 
-## [27:00] What a group is worth
+## [29:54] What a group is worth
 
 [SLIDE: The prize is bigger than the profit | A business is worth its profit multiplied by a number.]
 [LAYOUT: comparison]
@@ -611,9 +668,14 @@ That's what's really on the table. The first deal is the hard one. It's also the
 
 [SLIDE: The table he'd rather sit at | Illustrative.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: Illustrative · Years out · The group's monthly meeting]
+[DATA: A manager from each business around one table.]
+[DATA: One report, with several names on it.]
+[DATA: One question: which owner gets the next phone call.]
 
-<!-- DESIRE: significance and growth needs. The picture is a place and a role, never a number or a forecast. -->
-And picture where that leads, years out, as an illustration. A table with the managers of each business around it. A report with several names on it instead of one. The owner at the head of it isn't the person who knows how to fix every unit on every roof anymore. He's the person who decides where the group goes next, and which owner down which road gets the next phone call.
+<!-- DESIRE: significance and growth needs (aspiration peak before the button). PSYWAR: SEEKING, the scene sells the reach (choosing the next deal), not a finished arrival. The picture is a place and a role, never a number or a forecast. -->
+And picture where that leads, years out, as an illustration. A Monday morning. A table with the managers of each business around it, coffee in paper cups, someone's laptop plugged into the screen at the end of the room. A report with several names on it instead of one. The owner at the head of that table isn't the person who knows how to fix every unit on every roof anymore. He listens more than he talks. And when the numbers are done, there's one question left that only he gets to answer: which owner, down which road, gets the next phone call.
 
 That's a different job. Most owners who've hit the ceiling find out it's the job they wanted all along.
 
@@ -649,9 +711,11 @@ And while that sentence is fresh, something has just appeared under the video. I
 
 Here's how it works. The application takes a few minutes. Josh's team reads every answer. If your business fits, you pick a time for your call straight away, in one tap.
 
+If writing that sentence made something tighten a little in your chest, pay attention to it. That's the part of you that's already thinking like a buyer, and it's worth a few minutes of your evening.
+
 Some owners apply right now, in the middle of the masterclass, while what they just wrote is still in front of them. Others watch to the end and apply then. Either way works. The button stays under the video for the rest of the masterclass, and you'll hear everything that happens on the call before we finish.
 
-## [30:57] What 90 owners told us
+## [34:13] What 90 owners told us
 
 [SLIDE: What 90 owners told us | From the forms owners filled in when they booked a call with Josh's team.]
 [LAYOUT: stat]
@@ -730,7 +794,7 @@ There's a question under the video now. When would you want your first deal done
 
 If you're over a million a year and you saw yourself in one of those rows, the button under the video is for you. Apply now, and if it fits, you pick your call time as soon as you're through. Or keep watching and do it at the end. It'll still be there.
 
-## [35:02] The seller's side of the table
+## [38:18] The seller's side of the table
 
 [SLIDE: Graham's kitchen table | The same structure, seen from the seller's chair.]
 [LAYOUT: section]
@@ -816,7 +880,7 @@ Buyers do it the other way round. They agree the shape with the seller first: th
 [CAPTION: The board of JC Health Group, Josh Li's healthcare holding company.]
 
 <!-- LOOP B touched, not closed: the seller's question. The board image plants the answer (credibility) before the question is said. -->
-Remember the two words you wrote at the top of your page. The question. Every seller asks it, and you've just watched Graham ask it without saying a word. It was there in the photo on the fridge, and in the worry about his people.
+Remember the two words you wrote at the top of your page. The question. Sellers ask it, and you've just watched Graham ask it without saying a word. It was there in the photo on the fridge, and in the worry about his people.
 
 This picture is part of the answer. It's the board of JC Health Group, Josh's healthcare holding company. Sellers look at who stands behind a buyer long before they look at the price. You'll hear the question itself in a few minutes.
 
@@ -828,7 +892,7 @@ This picture is part of the answer. It's the board of JC Health Group, Josh's he
 <!-- CTA with presupposition about an action in the viewer's control ("bring the business you have in mind"). -->
 And if you've got a Graham in mind already, that's the best thing you can bring to a strategy call. Apply under the video, name the business in your application, and the call starts with it. If you don't have one yet, that's fine too. Finding the right one is part of what the call maps out.
 
-## [39:22] The first conversation
+## [42:38] The first conversation
 
 [SLIDE: The first conversation | What it sounds like when a buyer calls a seller. Illustrative.]
 [LAYOUT: section]
@@ -843,7 +907,7 @@ Here's how it goes for Dan, in this illustrative version. He doesn't open with a
 [ON SCREEN: Ask about his life a year after the sale before anything about price.]
 
 <!-- NLP: rapport through pacing (match the seller's concerns before leading), and the meta model used as discovery ("what, specifically, would you want?"). -->
-At the coffee, Dan asks one question and then mostly listens. "What do you want your life to look like a year after you stop?"
+They meet at the café by the industrial estate, the one with the laminated menus, at seven in the morning before either of them has a site to be at. Dan asks one question and then mostly listens. "What do you want your life to look like a year after you stop?"
 
 And Graham talks. About the caravan he's never had time to use, and the two technicians he trained himself. About the customer who has been with him since the first year, and how he'd hate for her to get a call from a stranger. His wife comes up too, and how she wants him home. Not one word about the multiple.
 
@@ -854,7 +918,7 @@ Dan writes almost none of it down. He doesn't need to. He's hearing the real ter
 [CAPTION: The question in the second conversation]
 
 <!-- PRE-HANDLE: the internal fear ("I'd freeze when he asks how I'd pay"). The answer is told from the seller's side, with rollover named. -->
-A week later, the second conversation. And this is where most first time buyers lose the seller, because Graham asks the question every seller asks once they're interested. "So how would you pay me?"
+A week later, the second conversation. And this is where most first time buyers lose the seller, because Graham asks the question sellers ask once they're interested. "So how would you pay me?"
 
 The first time buyer panics here. He either names a number that's too low, or he promises cash he doesn't have, or he goes vague, and the seller hears the vagueness.
 
@@ -868,7 +932,7 @@ Dan does something different. He explains it from Graham's side. A large part at
 
 And watch what Graham hears. Not a lowball, and not someone who can't afford him. He hears someone who understood what he was actually selling, and built the deal around it.
 
-Graham doesn't say yes on the spot. Sellers rarely do. He says, "Put something on paper and let me show my accountant." In the language of deals, that's a very good sign.
+Graham doesn't say yes on the spot. Sellers rarely do. He turns his cup around on the saucer for a while, and then he says, "Put something on paper and let me show my accountant." In the language of deals, that's a very good sign. Dan sits in the van afterwards for ten minutes before he starts the engine.
 
 [SLIDE: What Dan didn't say | Illustrative.]
 [LAYOUT: list]
@@ -902,7 +966,7 @@ He wasn't a different person. He was seen differently.
 <!-- CTA: presupposes the owner's own first conversation; the call is preparation, an action in their control. -->
 If there's a conversation like that you've been putting off, with your own Graham, the strategy call is where it starts to get ready. What your business can carry, what to offer, and how the debt, the seller's note and the rollover could fit together, before you ever pick up the phone. Apply under the video when you're ready.
 
-## [42:44] Two yeses and the big domino
+## [46:17] Two yeses and the big domino
 
 [SLIDE: Two questions | Answer them to yourself, honestly.]
 [LAYOUT: statement]
@@ -930,12 +994,12 @@ If you felt a yes to both, here's the honest question. Why haven't you done it y
 
 And notice who was asking those two questions a few chapters ago. Dan, at the kitchen table, would have said yes to the first and no to the second. The vehicle works, he'd have said, for other people. People with more money, more experience, more time. The rest of this masterclass has been about why the second answer was wrong.
 
-[SLIDE: "Why should I trust you with my life's work?" | The question every seller asks.]
+[SLIDE: "Why should I trust you with my life's work?" | The question sellers ask.]
 [LAYOUT: quote]
-[CAPTION: The question every seller asks]
+[CAPTION: The question sellers ask]
 
 <!-- LOOP B CLOSED (opened third, closed first). -->
-Here's the question every seller asks. Graham asked it. Every seller in your market will ask it.
+Here's the question sellers ask. Graham asked it without saying a word. The owners in your market are asking it too.
 
 "Why should I trust you with my life's work?"
 
@@ -991,7 +1055,7 @@ And think about what that means for the second question you answered a few minut
 
 That's what the strategy call is for. The button is under the video. Next, you'll see exactly what happens when you press it.
 
-## [46:21] What happens when you apply
+## [49:55] What happens when you apply
 
 [SLIDE: What Dan did on that Tuesday night]
 [LAYOUT: section]
@@ -1059,6 +1123,11 @@ And then an honest answer. Whether working with Josh's team makes sense for you,
 
 [SLIDE: The first ten minutes of the call | What it's like to be on it.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: The strategy call · The first ten minutes]
+[DATA: You join from the office, the car or the kitchen table.]
+[DATA: Your application has already been read.]
+[DATA: No slide deck. Your business, your numbers, the business you have in mind.]
 
 <!-- FUTURE PACE of the call itself (lowers booking anxiety, raises show rate). Process picture, nothing promised. -->
 And here's what the first ten minutes of that call are like, because owners worry about them more than they admit.
@@ -1102,7 +1171,7 @@ And here's why the call comes before the price. The first number that matters is
 [DATA: The answer to the question | How you're seen by the seller, before price comes up]
 
 <!-- Each deliverable gets: what it is, why it matters, what life is like with it (Fladlien, 3 beats per deliverable). -->
-Credibility first, because it answers the question every seller asks. On your first deal, you borrow it. A team that has done this stands behind you, so when an owner like Graham looks across the table, he sees a buyer with people behind him, not one person with an idea.
+Credibility first, because it answers the question sellers ask. On your first deal, you borrow it. A team that has done this stands behind you, so when an owner like Graham looks across the table, he sees a buyer with people behind him, not one person with an idea.
 
 What that feels like is the difference between asking a seller for a favour and offering him a way out.
 
@@ -1145,6 +1214,11 @@ And every target that gets serious goes through the same test. One and a half ti
 
 [SLIDE: A Thursday in week six | Illustrative: a picture, not a forecast.]
 [LAYOUT: statement]
+[SCENE: day]
+[DATA: 8:30 am | Two owners replied to this week's outreach. One wants to meet.]
+[DATA: 9:15 am | The owner's rough numbers, run through the test before the session. Close.]
+[DATA: 11:00 am | The working session: what to ask at the coffee, and what not to say.]
+[DATA: 12:00 pm | Back on the floor of your own business.]
 
 <!-- SUBMODALITIES: close, present tense, ordinary detail, so the engagement feels like a normal week, not a leap. No outcome promised. -->
 Picture a Thursday somewhere around week six. It's an illustration, not a promise. You've got the working session at eleven. Two owners replied to this week's outreach, and one of them wants to meet. Before the session, you've already run his rough numbers through the test, and they're close. In the session, the team helps you plan the coffee: what to ask, what not to say, and what the shape of an offer could look like if it gets that far.
@@ -1277,7 +1351,7 @@ So here's a question only you can answer. Will you send your application before 
 
 If the answer is yes, press the button under the video now. Apply, and if it fits, pick your time. The masterclass keeps playing while you do it.
 
-## [57:39] Twelve months from now
+## [61:13] Twelve months from now
 
 [SLIDE: Dan's ninety days | Illustrative: one way the first ninety days can go. A picture, not a forecast.]
 [LAYOUT: section]
@@ -1301,12 +1375,17 @@ The kickoff is the following week. His accountant sends the last two years of fi
 [CAPTION: An owner outreach message template.]
 
 <!-- The weekly behaviour (25 owner contacts, scripts provided) shown as something an ordinary owner does, so the condition reads as doable. -->
-Then the outreach starts. Twenty-five owner contacts a week, using the scripts the team provides. Dan is nervous about the first few. By the end of the second week, they're just part of Monday morning.
+Then the outreach starts. Twenty-five owner contacts a week, using the scripts the team provides. Dan is nervous about the first few. On the very first one, his thumb hovers over send for most of a minute. By the end of the second week, they're just part of Monday morning, done before his first coffee.
 
 Most owners don't reply. A few do. One tells him politely that he's not interested. Another says, "Funny you should ask," and wants to talk. And Graham, when Dan calls him back, says yes to a coffee.
 
 [SLIDE: The middle weeks | Illustrative.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: Illustrative · The middle weeks]
+[DATA: The owner who wants to meet. The numbers that need a second look.]
+[DATA: A business that looked perfect fails the test.]
+[DATA: He walks away, because the numbers told him to.]
 
 The working sessions every week become the anchor of Dan's week. He brings whatever came back: the owner who wants to meet, the numbers that need a second look, the question he didn't know how to answer. One business that looked perfect on the outside fails the test badly. Dan walks away from it, and feels, for the first time, what it's like to say no to a deal because the numbers told him to.
 
@@ -1314,9 +1393,14 @@ The coffee with Graham turns into a second conversation, the one where Graham as
 
 [SLIDE: The letter | Illustrative.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: Illustrative · One evening · The same kitchen table]
+[DATA: An email from Graham's accountant, a few changes marked in red.]
+[DATA: The shape holds.]
+[DATA: A signed letter of intent. He reads it twice, standing up.]
 
 <!-- The emotional peak of the protagonist arc: the identity has shifted before the paperwork is final. -->
-And then one evening, at the same kitchen table, there's an email from Graham's accountant with a few changes marked up. The shape holds. A few days later, there's a signed letter of intent.
+And then one evening, at the same kitchen table, at about the same time of night, there's an email from Graham's accountant with a few changes marked up in red. Dan reads it twice. The shape holds. A few days later, there's a signed letter of intent, and Dan reads that twice as well, standing up, because he can't sit still.
 
 It isn't the end of the deal. There's checking still to do, and contracts. But it's the moment Dan stops being an owner who'd like to buy something one day. He's a buyer with a deal on paper.
 
@@ -1330,46 +1414,74 @@ Remember, that's one illustrative path. Some deals take longer, and some fall ov
 <!-- FUTURE PACE (L5, E4): a process picture in close-up, present tense, sensory, with no earnings, no timing promise and no result claim. Labelled illustrative on screen and in the words. -->
 I want to show you one way a year can look. It's Dan's, it's illustrative, and it's a picture, not a forecast. Every deal is different, and nobody can promise you a deal. But I want you to see it clearly, because the picture is what pulls an owner through the hard weeks.
 
-It's a Tuesday morning, a year after Dan's first deal settled.
+So come with Dan through one ordinary day, a Tuesday, a year after his first deal settled. It's the same man, and it ends at the same kitchen table.
 
-He's in the office before eight, but not because he has to be. There are two logos on the monthly report now, his and the one Graham built. Graham comes in on Thursdays. He's been helping with the handover, introducing Dan to the customers he's looked after for twenty years, and he seems lighter than he has in a long time. His note gets paid every month, out of the business he built, and he can see his people are looked after.
+[SLIDE: One Tuesday, a year later | Illustrative: a picture, not a forecast.]
+[LAYOUT: statement]
+[SCENE: day]
+[DATA: 7:50 am | In the office before eight, because he wants to be. Two logos on the monthly report.]
+[DATA: 9:30 am | Graham drops in, as he does on Tuesdays, with a box of pastries and a customer to introduce.]
+[DATA: 11:00 am | Dan makes a call. This time he is the one ringing an owner.]
+[DATA: 3:15 pm | He leaves the yard. The phone stays in his pocket.]
+[DATA: 9:40 pm | The kitchen table. The laptop is shut, and the tea is still hot.]
 
-[SLIDE: What's different | Illustrative.]
-[LAYOUT: list]
-[DATA: The report | Two businesses on one page, read as a group]
-[DATA: The managers | One running each site, so Dan isn't the bottleneck in either]
-[DATA: The calls | Dan is the one ringing owners now, not the one waiting for the phone]
+<!-- PSYWAR: the felt future as an immersive build, one moment per click (a day, hour by hour), so the viewer walks through it rather than being told about it. SEEKING: the 11:00 call sells the reach toward the next deal, not only the arrival. Two-state callback: 9:40 pm at the same kitchen table, cold tea then, hot tea now. Built only from what the structure and the engagement involve: managers in each site, the seller's handover, the note and the rollover. -->
+It's ten to eight, and Dan is already in the office. Not because he has to be. Because he likes the hour before anyone else arrives. There are two logos on the monthly report now, his and the one Graham built, and the report reads like a group instead of a list of fires.
 
-The manager at Graham's old site runs the floor there. Dan's own operations lead runs his. For the first time in years, Dan is reading the numbers of a group instead of running around inside one business.
+At half past nine, Graham drops in. He comes by on Tuesdays during the handover, with a box of pastries from the bakery near his old yard and a customer he wants Dan to meet. He seems lighter than he has in years. His note gets paid every month, out of the business he built, his rollover means he still owns a slice of what it becomes, and he can see his people are looked after.
 
-And here's the part he didn't expect. He's on the phone again, but the calls are different. He's ringing owners now. The plumber two suburbs over. The refrigeration business whose owner keeps talking about the coast. The calls are easier than the first one was, because he isn't asking anyone to take a chance on him anymore. He's done it once.
+At eleven, Dan makes a call, and this is the part he didn't expect. He's the one ringing an owner now. The refrigeration business two suburbs over, whose owner keeps talking about the coast. Dan isn't asking anyone to take a chance on him this time. He's done it once. And he notices he's looking forward to the call, the way he used to look forward to quoting big jobs when the business was young.
+
+At a quarter past three, he leaves the yard. The manager at Graham's old site runs the floor there, and Dan's own operations lead runs his. His phone is in his pocket, and it stays there.
+
+And at twenty to ten that night, he's at the kitchen table again. Same table, same time as the night this story started. The laptop is shut. The tea is still hot.
 
 [SLIDE: The morning he met Graham's team | Illustrative.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: Illustrative · The week the deal settled · Graham's workshop]
+[DATA: The whole crew in early, the radio still going.]
+[DATA: Graham, between the vans, telling them himself.]
+[DATA: "Graham says you're all right. That's good enough for me."]
 
-<!-- FUTURE PACE, emotional peak: contribution and significance needs (Robbins), told as a scene with sound and objects. Still no numbers or forecast. -->
-Dan remembers one morning from that year more than any other. It was the week the deal settled. Graham asked his whole crew to come in early, and he stood in the workshop between the vans, with the radio still going in the background, and told them himself: he was stepping back, Dan was taking over, nothing was changing for them, and he'd be around for the handover.
+<!-- FUTURE PACE, emotional peak: contribution and significance needs (Robbins), told as a scene with sound and objects. Closes the seller's question as a felt moment. Still no numbers or forecast. -->
+Dan remembers one morning from that year more than any other. It was the week the deal settled. Graham asked his whole crew to come in early, and he stood in the workshop between the vans, with the radio still going in the background and the roller door half up, and told them himself: he was stepping back, Dan was taking over, nothing was changing for them, and he'd be around for the handover.
 
-One of the older technicians shook Dan's hand afterwards and said, "Graham says you're all right. That's good enough for me."
+One of the older technicians, a man who'd been with Graham for twenty-two years, wiped his hand on his overalls, shook Dan's and said, "Graham says you're all right. That's good enough for me."
 
 That's the moment the question got answered. Not in a contract. In a workshop, in front of twenty people who trusted the man who built it.
 
 [SLIDE: The conversation at home | Illustrative.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: Illustrative · That night · The kitchen]
+[DATA: "Are we still going to the coast at Easter?"]
+[DATA: "We're going."]
+[ON SCREEN: Not "I'll see". Going.]
 
-And then there's the conversation at home that night. Dan tells his daughter that Easter is on. Not "I'll see". On. Because for the first time in years, the business doesn't fall over if he isn't there for a week. There's a manager at each site, and a structure that pays for itself, Graham's note and rollover included.
+<!-- PEAK (peak-end rule): the confession from chapter 2 paid off, word for word, in a light scene. The deal's real purpose in the owner's own terms. A calm call to action follows at the same temperature. -->
+And then there's the conversation at home that night. His daughter, thirteen now, asks the same question she asked a year ago, half expecting the same answer. Are they going to the coast at Easter?
+
+And this time Dan says, "We're going." Not "I'll see". He says it without looking at his phone first, because for the first time in years, the business doesn't fall over if he isn't there for a week. There's a manager at each site, and a structure that pays for itself, Graham's note and rollover included. She doesn't say anything for a second. Then she goes to tell her friend.
 
 That's what the deal was really for. Not the second logo on the report. The week at the beach.
+
+[CTA]
+
+[SLIDE: Your version of that night | It starts the way Dan's did. Apply under the video.]
+[LAYOUT: statement]
+[SCENE: apply-qr]
+
+<!-- CTA at the emotional peak, quiet and certain (PSYWAR: temperature match). Presupposes only the first step, in the viewer's control. -->
+If there's a question at your own kitchen table that you keep answering with "I'll see", this is how Dan's version of that night started. Not with a deal. With an application, and a call about his own numbers. The button is under the video.
 
 [SLIDE: Notice how that feels | Not as an if. As a picture.]
 [LAYOUT: statement]
 
 <!-- NLP: submodalities, close and bright for the future, then a look-back from a year ahead (time line). Embedded command spoken plainly: "notice". -->
-Now put yourself in that chair. Your business on the report, and one next to it. Your manager running the floor. The phone in your hand, and you're the one making the call.
+Now put yourself in that chair. Your business on the report, and one next to it. Your manager running the floor. The phone in your hand, and you're the one making the call to the next owner.
 
-Notice how that feels, not as an "if", just as a picture.
-
-And then look back from there, to today. To this masterclass, and the button under the video. From a year out, today looks small. It's a few minutes. It's the night you stopped trying to work out the buyer's path at the kitchen table on your own.
+Notice how that feels, not as an "if", just as a picture. Then look back from there, to today. From a year out, today looks small. It's a few minutes. It's the night you stopped trying to work out the buyer's path at the kitchen table on your own.
 
 [SLIDE: Two paths from here]
 [LAYOUT: comparison]
@@ -1389,18 +1501,47 @@ Five years down. The ceiling hasn't moved much, and the thought of starting now 
 None of that is a disaster. That's what makes it dangerous. Nothing goes wrong, and nothing changes either.
 
 [SLIDE: The other Tuesday | Illustrative: the first path, as a scene.]
-[LAYOUT: statement]
+[LAYOUT: section]
+[SCENE: film]
+[KICKER: Illustrative · A year from now · The first path]
+[DATA: A new sign over Graham's gate. Not Dan's name.]
+[DATA: Two of the vans already in someone else's colours.]
+[DATA: "Are we going to the coast at Easter?" "I'll see."]
 
-<!-- ROBBINS: Dickens, in miniature and true. The painful future is ordinary, specific and plausible, never catastrophic (E4, E2). -->
+<!-- ROBBINS: Dickens, in miniature and true. PSYWAR: loss made present with the same objects the desire scenes used (the sign, the vans, Easter), so the two futures can be compared object for object. Ordinary, specific and plausible, never catastrophic (E4, E2). -->
 Let me show you that first path as a scene, because it's easy to wave away as a list.
 
 It's a Tuesday, a year from now. Dan never rang Graham back. He meant to. Then there was the busy season, and a technician quit, and the moment passed.
 
-On the way to a job, he drives past Graham's yard. The sign over the gate is new. It's the name of a group from interstate, the kind backed by a fund. Two of Graham's vans are already in the new colours. And the customer Dan has been trying to win for ten years got a call last week from the new owners, offering a service contract at a price Dan can't match.
+On the way to a job, he stops at the lights outside Graham's yard. The sign over the gate is new. It's the name of a group from interstate, the kind backed by a fund. Two of Graham's vans are already in the new colours, and one of them pulls out in front of him while he waits. The customer Dan has been trying to win for ten years got a call last week from the new owners, offering a service contract at a price Dan can't match.
+
+That night his daughter asks about Easter. He hears himself say "I'll see".
 
 Dan's business is still fine. That's the thing. It's still a good business. It's just that the owner down the road sold, and Dan wasn't the one who bought.
 
 And here's the uncomfortable part of that scene. Dan didn't make a bad decision. He didn't make a decision at all. He let the busy season make it for him. That's how most owners stay on the first path: not by choosing it, but by never choosing the other one.
+
+[SLIDE: The same Tuesday, two ways | Illustrative: a year from now.]
+[LAYOUT: statement]
+[SCENE: split]
+[DATA: Close the tab | Apply this week]
+[DATA: A stranger's name over Graham's gate | A second name under Graham's, on the sign Dan slowed down for]
+[DATA: The phone face up on the dinner table | The phone in his pocket, and he's the one making the calls]
+[DATA: Easter: "I'll see" | Easter: "We're going"]
+[DATA: Still meaning to buy something one day | Already wondering about the second one]
+
+<!-- PSYWAR: the two-state cut. Both futures edge to edge, object for object, built one row at a time and shortening, so the gap argues by itself and no sentence has to explain it. Illustrative, labelled. -->
+Put the two Tuesdays side by side, because the difference between them is easier to see than to describe.
+
+One has a stranger's name over Graham's gate. The other has a second name under Graham's, on the sign Dan slowed down for.
+
+On one, the phone is face up on the dinner table. On the other, it's in his pocket, and he's the one making the calls.
+
+Easter. "I'll see", or "We're going".
+
+And one owner is still meaning to buy something one day, while the other is already wondering about the second one.
+
+Same man, same business, same market. The only thing that differs is one decision, made or not made, a year earlier.
 
 [SLIDE: The other path | Illustrative: a picture, not a forecast.]
 [LAYOUT: statement]
@@ -1410,6 +1551,19 @@ On the second path, you apply this week. You book a call. You find out what your
 
 The only difference between those two paths today is a few minutes and one tap.
 
+[SLIDE: What one more year of waiting costs | Illustrative: one square for each Saturday.]
+[LAYOUT: section]
+[SCENE: tally]
+[KICKER: Illustrative · One more year]
+[DATA: 52 | more Saturdays, if the year looks like the last one]
+[DATA: 12 | more month-end reports, read at the kitchen table]
+[DATA: One | more year on every owner in your market with no successor]
+
+<!-- PSYWAR: the cost of waiting made physical and countable (a year as 52 squares), true for the avatar and never catastrophic. The third row is the real urgency: the market moves whether the viewer does or not. No deadline is invented. -->
+And here's what one more year of waiting costs, counted the way Dan never counted it.
+
+Fifty-two more Saturdays, if the year looks like the last one. Twelve more month-end reports, read at the kitchen table after everyone's gone to bed. And one more year on every owner in your market who has no one to hand his business to. Some of them will decide this year. Somebody will be the one who called them.
+
 [SLIDE: Waiting has a cost | Illustrative: $500,000 more profit a year, at a 15% margin.]
 [LAYOUT: comparison]
 [SCENE: cost-of-waiting]
@@ -1417,7 +1571,7 @@ The only difference between those two paths today is a few minutes and one tap.
 [DATA: By acquisition | One deal | A business that already makes it joins yours the day the deal settles]
 
 <!-- COST INVERSION (Sultanic). Numbers labelled illustrative on the slide and in the words. -->
-And waiting has a cost most owners never count.
+And there's a cost in money most owners never count, either.
 
 Say you want another five hundred thousand a year in profit, as an illustration. At a fifteen percent margin, growing there by hand takes about three point three million dollars of new revenue. That's years of hiring, marketing and evenings.
 
@@ -1427,11 +1581,12 @@ Or you buy a business that already makes it. Its customers, its team and its pro
 
 [SLIDE: Pick the path | Apply under the video, or close the tab. Both are your call.]
 [LAYOUT: statement]
+[SCENE: apply-qr]
 
 <!-- L11: choice close with a visible no. -->
 Both paths are open to you, and both are your call. If you want the second one, the button is under the video. Apply, and if it fits, pick a time this week.
 
-## [66:02] Who you're becoming
+## [72:14] Who you're becoming
 
 [SLIDE: Who you're becoming | Six levels, from where you spend your days to why it matters.]
 [LAYOUT: section]
@@ -1502,7 +1657,16 @@ But he's been holding one business up on his own. Part of you has known that for
 
 So here's who's sitting in your chair now. Someone who sees the business down the road and thinks about a structure instead of a price. A buyer.
 
-Say it to yourself, quietly. I'm a buyer. Notice what happens when you say it. For some owners it feels like a jolt. For others it settles, like something that was always true and is only now being said out loud. Both are fine.
+[SLIDE: I'm a buyer. | Say it once, to yourself.]
+[LAYOUT: section]
+[SCENE: identity]
+[KICKER: Level 5 · Who you are]
+[DATA: I'm an owner. | I'm a buyer.]
+
+<!-- PRIDE / IDENTITY REVEAL (Dilts level 5): the old sentence set in grey and struck through with a hairline, the new one set large in white, one click each. Said by the viewer, to themselves, never chanted (nlp-evidence-and-ethics: no affirmation chanting); tied in the next slides to a behaviour (noticing, then applying). -->
+Say it to yourself, quietly. I'm a buyer.
+
+Notice what happens when you say it. For some owners it feels like a jolt. For others it settles, like something that was always true and is only now being said out loud. Both are fine. You've spent years being the person who holds one business up, and you were good at it. This is the person who decides what the group buys next.
 
 [SLIDE: Owners build. Buyers compound.]
 [LAYOUT: section]
@@ -1533,7 +1697,7 @@ That's the purpose under all of this. You're not only buying a business. You're 
 <!-- NLP: complex equivalence, applying = the first behaviour of the new identity (L20: tied to behaviour). -->
 And the first thing a buyer does is small. A buyer finds out what their business can carry and what to go after first. That's the call. The button is under the video, whenever you're ready.
 
-## [70:50] The questions owners ask us
+## [77:12] The questions owners ask us
 
 [SLIDE: The questions owners ask Josh's team | The real ones, answered straight.]
 [LAYOUT: section]
@@ -1557,7 +1721,7 @@ And notice the shift in the question itself. An owner asks "how much do I need".
 <!-- Fact first. Reframe: redefine, "no to me" → "no to that structure". -->
 What if the bank says no?
 
-Then the bank said no to a structure, not to you. The usual reason is that someone walked in first, with no seller terms, asking to borrow the whole price. Agree the shape with the seller, run it through the one and a half times test, and then go to the lender. A lender reading a deal that already clears the test, with a note and a rollover inside it, is having a very different conversation.
+Then the bank said no to a structure, not to you. The usual reason is that someone walked in first, with no seller terms, asking to borrow the whole price. Agree the shape with the seller, run it through the one and a half times test, and then go to the lender. A lender reading a deal that already clears the test, with a note and a rollover inside it, is having a very different conversation. Walking in with the seller's terms already agreed feels different too. You aren't asking for a favour. You're bringing them a deal.
 
 [SLIDE: "Do I have to sign a personal guarantee?"]
 [LAYOUT: quote]
@@ -1617,7 +1781,7 @@ Because the lender isn't mainly backing your history as a buyer. It's backing th
 
 What is a letter of intent?
 
-It's the document where buyer and seller put the agreed shape of the deal on paper: the price, how it's paid, the note, the rollover, the handover, and what has to be checked before anyone commits for good. It isn't the final contract. It's the point where a conversation becomes a deal both sides are working toward. That's why the engagement guarantee is tied to it.
+It's the document where buyer and seller put the agreed shape of the deal on paper: the price, how it's paid, the note, the rollover, the handover, and what has to be checked before anyone commits for good. It isn't the final contract. It's the point where a conversation becomes a deal both sides are working toward, the piece of paper Dan read twice, standing up. That's why the engagement guarantee is tied to it.
 
 [SLIDE: "How long does a deal take?"]
 [LAYOUT: quote]
@@ -1643,7 +1807,7 @@ I don't have the time.
 
 Here's the honest version. The call takes one conversation. The engagement, if you go ahead, takes real hours: weekly working sessions, twenty-five owner contacts a week, replies within two business days. That's the work, and the team does the heavy lifting around it.
 
-So the real question is what you're spending those hours on now. If they're going into growing by hand, a few of them each week pointed at a business that's already built is a different use of the same time.
+So the real question is what you're spending those hours on now. Dan had seventy-eight Saturdays going into growing by hand. A few hours a week, pointed at a business that's already built, is a different use of the same time.
 
 [SLIDE: "My industry is different."]
 [LAYOUT: quote]
@@ -1756,7 +1920,12 @@ Look at it from the seller's chair. A retiring owner isn't looking for a twenty-
 Whatever your question is, rates, risk, your team, your industry or your age, it's a better question on a call with your numbers in front of both of you. The button is under the video.
 
 [SLIDE: "How do I know the team knows what it's doing?"]
-[LAYOUT: quote]
+[LAYOUT: list]
+[SCENE: proof]
+[KICKER: What's true, and checkable on the call]
+[DATA: Two acquisitions | Josh's clinics, bought for JC Health Group, his own healthcare holding company]
+[DATA: 100% seller financed | In both deals, the seller financed the whole price]
+[DATA: $5.5M, no personal guarantee | One radiology deal: over $5M, the equipment secured the loan]
 
 <!-- Proof, approved facts only: Josh's two seller-financed acquisitions, JC Health Group, the $5.5M radiology deal, the 90 booking forms. Invites checking (legitimacy objection). -->
 How do I know the team knows what it's doing?
@@ -1790,13 +1959,6 @@ You get a confirmation by email with the time of your call in your own time zone
 My books are a mess. Can I still apply?
 
 Yes. The application only needs what you know about your business today. If you go ahead with the engagement, your last two years of financials come in at the kickoff, and if they need tidying first, that's better found out now than in front of a lender. Plenty of profitable owners keep their books in a shoebox until there's a reason not to. A deal is a very good reason.
-
-[SLIDE: "Does the business have to be in my city?"]
-[LAYOUT: quote]
-
-Does the business have to be in my city?
-
-It doesn't have to be, but the first one is easier close by. You can visit, you know the market, and the seller is more likely to know your name. Close to you on the map and close to what you already run is where most first deals make the most sense. The buy box decides it with you.
 
 [SLIDE: "Is the call a sales call?"]
 [LAYOUT: quote]
@@ -1843,13 +2005,6 @@ What if I apply and I'm not a fit?
 
 Then you'll be told, and nothing is lost. You'll still have the worksheet, the test and the structure, and you'll know exactly what would need to change for it to fit. Owners come back when they cross the line. The application is a few minutes either way.
 
-[SLIDE: "What do I need ready?"]
-[LAYOUT: quote]
-
-What do I need ready?
-
-For the application, only what you know about your business today: roughly what it turns over and makes, and what you'd want to buy. For the call, a target if you have one. If you go ahead with the engagement, your last two years of financials come in within seven days of signing, at the kickoff. You don't need them to apply.
-
 [SLIDE: "Why now, and not next year?"]
 [LAYOUT: quote]
 
@@ -1874,7 +2029,7 @@ That's why the handover matters as much as the price. A seller who carries a not
 <!-- Re-stack in one breath (the call), then the double bind again: apply now, or at the end. -->
 Every one of those answers ends in the same place. The call, on your numbers. Your capacity at one and a half times. Your first target or your buy box. An honest answer on fit. The button is under the video, now or at the end, whichever suits you.
 
-## [87:40] Three owners, three situations
+## [93:28] Three owners, three situations
 
 [SLIDE: Three owners, three situations | Illustrative composites, built from situations owners describe. Not real clients, and not testimonials.]
 [LAYOUT: section]
@@ -1979,7 +2134,7 @@ For each of them, the next step is the same, and it's small. Put your situation 
 
 The button is under the video. Tell Josh's team which of the three you are, in your own words, and the call starts there.
 
-## [93:45] Your decision
+## [99:33] Your decision
 
 [SLIDE: Two ways to leave this masterclass]
 [LAYOUT: comparison]
@@ -2003,6 +2158,11 @@ That sentence is the real reason to apply. Not the structure, not the test, not 
 
 [SLIDE: The end of the call | What you'll walk away with.]
 [LAYOUT: statement]
+[SCENE: film]
+[KICKER: The end of the strategy call · You close the laptop]
+[DATA: Roughly what your business can carry.]
+[DATA: What a first target looks like, or which business is worth a coffee.]
+[DATA: Whether working with Josh's team makes sense for you.]
 
 <!-- FUTURE PACE (call), the final picture before the ask: a small, certain, controllable win. -->
 Picture the end of that call. You put the phone down, or close the laptop, and you know three things you didn't know this morning. Roughly what your business can carry. What a first target looks like for you, or which business down which road is worth a coffee. And whether working with Josh's team makes sense for you.
@@ -2018,12 +2178,19 @@ Think about the next thirty days. They're going to pass either way. Thirty days 
 The only difference between those two versions of next month is what you do in the next few minutes. One version has a call in it, on your own numbers. The other has the same thought you've had for years, that one day you'll look into buying something.
 
 [SLIDE: Permission to decide]
-[LAYOUT: statement]
+[LAYOUT: list]
+[SCENE: proof]
+[KICKER: Three reasons, in one breath]
+[DATA: Why this path | The price is paid from the business's own profit: a lender, the seller's note and the seller's rollover]
+[DATA: Why it's true | The test on the numbers, and two acquisitions where the sellers financed 100% of the price]
+[DATA: Why now | The owners in your market with no successor are deciding anyway, one at a time]
 
-<!-- SULTANIC: the permission slip. Presupposition about the next step only (L3), never the outcome. -->
+<!-- SULTANIC: the permission slip. Presupposition about the next step only (L3), never the outcome. BENCIVENGA: the three reasons why (why you, why true, why now) restated at the close, the promise joined to its proof (I1, I2). -->
 You don't need more information to make this decision. You've seen the structure, the test, the seller's side, the call, the engagement it can lead to, its guarantee, and who it isn't for. The call itself decides nothing for you. It gives you the facts to decide with.
 
-So if you're doing over a million a year, and that sentence matters to you, give yourself permission to take the next step now.
+So here are the three reasons in one breath. Why this path: because the price of a business that's already built can be paid out of its own profit, through a lender, the seller's note and the seller's rollover, instead of out of your savings or your Saturdays. The reason to believe it: you've watched the test work on the numbers, and two sellers financed one hundred percent of the price when Josh bought his clinics. And why now: because the owners in your market with no successor are deciding anyway, one at a time, with or without you.
+
+So if you're doing over a million a year, and that sentence you wrote matters to you, give yourself permission to take the next step now.
 
 [CTA]
 
@@ -2048,6 +2215,8 @@ If none of that is you, that's completely fine. Keep the worksheet, keep the ide
 
 Press the button under the video. The application opens, with what you told us when you registered already filled in. Answer a few questions, which takes a few minutes. If your business fits, the open times appear, and one tap books your call.
 
+And remember what stands behind the step after that, if you take it. A full refund in the first seven days of the engagement, no conditions. After that, the LOI guarantee, with the conditions you heard. The call itself is a conversation about your numbers.
+
 If you have a question first, type it in the question box beside the video, and the button stays right there.
 
 [WORKSHEET]
@@ -2059,7 +2228,11 @@ If you have a question first, type it in the question box beside the video, and 
 One more thing, and it's for everyone, whether you apply or not. The deal structure worksheet has just unlocked under the video. It walks you through one real target: the numbers, the test and the stack. If you apply, bring it to your call. If you don't, fill it in for one business this week anyway. It's yours either way.
 
 [SLIDE: Dan, one more time | Illustrative.]
-[LAYOUT: statement]
+[LAYOUT: section]
+[SCENE: film]
+[KICKER: Illustrative · Same man · Same kitchen table]
+[DATA: Not "Can I afford Graham's business?"]
+[DATA: "Does it pass the test?"]
 
 <!-- STORY CLOSE: the protagonist's identity line, and the anchor. -->
 One last thing about Dan. When people ask him now what changed, he doesn't talk about the deal, or the bank, or the structure. He says it was the night he stopped asking whether he could afford Graham's business, and started asking whether it passed the test. Same man, same kitchen table. A different question.
@@ -2081,7 +2254,9 @@ You've been building for years, and you're good at it. If you're ready to compou
 
 A year from now, you'll either be running the same business under the same ceiling, or you'll be a year into building a group, starting with a business that passed the test and pays its own way. The difference between those two years starts with a few minutes and one tap.
 
-Thank you for staying to the end. Now go and find the business you'd buy first.
+Twice, a seller trusted Josh with his life's work and financed the whole price. Sellers look at who stands behind a buyer, and this is who stands behind JC Health Group. On your first deal, Josh's team can stand behind you.
+
+Thank you for staying to the end. Now go and find the business you'd buy first, and when you have, the button is under the video.
 
 [SLIDE: Education only | Not financial, legal or tax advice. Every number shown is illustrative unless it is stated as a fact. Lending decisions and results depend on the business, the lender and the deal. The strategy call and the engagement do not promise financing, a closed acquisition or any return.]
 [LAYOUT: statement]

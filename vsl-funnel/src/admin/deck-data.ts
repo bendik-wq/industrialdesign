@@ -17,85 +17,85 @@ export const DECK_DATA: DeckData = {
 "n": 2,
 "title": "The ceiling",
 "part": "Content",
-"at": 738
+"at": 800
 },
 {
 "n": 3,
 "title": "The owner down the road",
 "part": "Content",
-"at": 1165
+"at": 1322
 },
 {
 "n": 4,
 "title": "How a business pays for itself",
 "part": "Content",
-"at": 1563
+"at": 1731
 },
 {
 "n": 5,
 "title": "What a group is worth",
 "part": "Content",
-"at": 2059
+"at": 2251
 },
 {
 "n": 6,
 "title": "What 90 owners told us",
 "part": "Content",
-"at": 2366
+"at": 2583
 },
 {
 "n": 7,
 "title": "The seller's side of the table",
 "part": "Content",
-"at": 2674
+"at": 2891
 },
 {
 "n": 8,
 "title": "The first conversation",
 "part": "Content",
-"at": 3007
+"at": 3224
 },
 {
 "n": 9,
 "title": "Two yeses and the big domino",
 "part": "Transition",
-"at": 3266
+"at": 3503
 },
 {
 "n": 10,
 "title": "What happens when you apply",
 "part": "Offer",
-"at": 3543
+"at": 3781
 },
 {
 "n": 11,
 "title": "Twelve months from now",
 "part": "Pitch",
-"at": 4414
+"at": 4652
 },
 {
 "n": 12,
 "title": "Who you're becoming",
 "part": "Pitch",
-"at": 5049
+"at": 5480
 },
 {
 "n": 13,
 "title": "The questions owners ask us",
 "part": "Pitch",
-"at": 5415
+"at": 5860
 },
 {
 "n": 14,
 "title": "Three owners, three situations",
 "part": "Pitch",
-"at": 6750
+"at": 7149
 },
 {
 "n": 15,
 "title": "Your decision",
 "part": "Pitch",
-"at": 7211
+"at": 7610
 }
 ],
 "slides": [
@@ -103,7 +103,7 @@ export const DECK_DATA: DeckData = {
 "n": 1,
 "chapter": 1,
 "title": "The Acquisition Masterclass",
-"sub": "How owners doing $1M+ stop building one customer at a time, and start buying businesses that are already built",
+"sub": "How owners doing $1M+ buy businesses that are already built, with the price paid from their own profit. From Josh Li, whose two acquisitions were both 100% seller financed.",
 "layout": "title",
 "scene": null,
 "onscreen": [],
@@ -116,7 +116,7 @@ export const DECK_DATA: DeckData = {
 "slide": 10,
 "fit": "cover",
 "credit": "From Josh Li's masterclass deck, March 2026 · slide 10",
-"needsConsent": true,
+"needsConsent": false,
 "src": null
 },
 "notes": [
@@ -156,7 +156,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "Think about your own industry for a second. The group with ten locations. The name on half the vans you pass on the way to work. The firm that seems to open a new site every year. Were they the best operator in town? The hardest worker? Or did they know something about how businesses change hands that nobody ever told the rest of us?",
+"text": "Think about your own industry for a second. The group with ten locations. The name on half the vans you pass on the way to work. The owner you sat near at the last industry dinner, the one whose phone stayed in his jacket pocket all night, while yours buzzed on the tablecloth every twenty minutes. Was he the best operator in town? The hardest worker? Or did he know something about how businesses change hands that nobody ever told the rest of us?",
 "aiOnly": false
 }
 ],
@@ -166,7 +166,7 @@ export const DECK_DATA: DeckData = {
 "cues": [],
 "poll": null,
 "at": 26,
-"words": 115,
+"words": 134,
 "cam": "spotlight"
 },
 {
@@ -213,12 +213,64 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 73,
+"at": 80,
 "words": 153,
 "cam": "spotlight"
 },
 {
 "n": 4,
+"chapter": 1,
+"title": "Twice, the sellers financed the whole price",
+"sub": "Two acquisitions. In both, the sellers financed 100% of the price.",
+"layout": "list",
+"scene": "proof",
+"onscreen": [],
+"data": [
+[
+"Two acquisitions",
+"My clinics, bought for JC Health Group, my own healthcare holding company"
+],
+[
+"100% seller financed",
+"In both deals, the seller financed the whole price"
+],
+[
+"The reason",
+"It wasn't money. You'll see exactly what it was."
+]
+],
+"caption": null,
+"kicker": "What's behind this masterclass",
+"image": {
+"id": "josh-handshake",
+"what": "Josh shaking hands with a seller at signing",
+"slide": 8,
+"fit": "cover",
+"credit": "From Josh Li's masterclass deck, March 2026 · slide 8",
+"needsConsent": false,
+"src": null
+},
+"notes": [
+{
+"text": "And I'm not telling you this from the outside. If you run a profitable business, and there's an owner near you with no one to hand his business to, the price of that business can be paid out of its own profit. I've done it twice. Two acquisitions, and in both of them the seller financed one hundred percent of the price.",
+"aiOnly": false
+},
+{
+"text": "That wasn't luck, and it wasn't money. It was one thing, and by the end of today you'll be able to name it.",
+"aiOnly": false
+}
+],
+"levers": [
+"BENCIVENGA: the strongest proof element in the first minutes (D3, D13), joined to the promise as IF...THEN (B7): an easy condition the viewer already meets, then the proof. Opens a loop (\"what it was\") that the seller's question closes. Approved facts only."
+],
+"cues": [],
+"poll": null,
+"at": 141,
+"words": 85,
+"cam": "stage"
+},
+{
+"n": 5,
 "chapter": 1,
 "title": "You built something real",
 "sub": "More than $1M a year. A team. Customers who come back. A name in your market.",
@@ -248,12 +300,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 134,
+"at": 177,
 "words": 102,
 "cam": "spotlight"
 },
 {
-"n": 5,
+"n": 6,
 "chapter": 1,
 "title": "\"Stuck at the 5-6m range, need more locations.\"",
 "sub": "Written by an owner on the form when they booked a call with my team.",
@@ -279,12 +331,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 176,
+"at": 220,
 "words": 65,
 "cam": "spotlight"
 },
 {
-"n": 6,
+"n": 7,
 "chapter": 1,
 "title": "None of this is your fault",
 "sub": "Nobody teaches owners how businesses change hands.",
@@ -310,21 +362,34 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 205,
+"at": 248,
 "words": 86,
 "cam": "spotlight"
 },
 {
-"n": 7,
+"n": 8,
 "chapter": 1,
 "title": "What the ceiling costs",
 "sub": "Not on the report. At home.",
-"layout": "statement",
-"scene": null,
+"layout": "section",
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"The phone face up on the dinner table."
+],
+[
+"The holiday booked for March, moved to May, then quietly cancelled."
+],
+[
+"Sunday evening, and the week is already full."
+],
+[
+"Needed by everyone. Replaceable by no one."
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Not on the report · At home",
 "image": null,
 "notes": [
 {
@@ -332,7 +397,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "It's the phone face up on the dinner table, because a job could go wrong at any minute. The holiday you booked for March, moved to May, and then quietly cancelled. And the Sunday evening feeling, when the week ahead is already full before it starts. It's being the person everyone in the business needs, and the person nobody in the business can replace.",
+"text": "It's the phone face up on the dinner table, because a job could go wrong at any minute, and everyone at the table knows which way your eyes go when it lights up. The holiday you booked for March, moved to May, and then quietly cancelled. The Sunday evening feeling, when the week ahead is already full before it starts. And being the person everyone in the business needs, and the person nobody in the business can replace.",
 "aiOnly": false
 },
 {
@@ -341,16 +406,16 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "levers": [
-"PAIN #1, personal level (Robbins: leverage). True and common for the avatar, never catastrophic. Followed within two slides by the gain."
+"PAIN #1, personal level (Robbins: leverage). PSYWAR: the loss shown as witnessed micro-moments (one object per line, built one click at a time on a dark scene), never adjectives. True and common for the avatar, never catastrophic. Followed within two slides by the gain."
 ],
 "cues": [],
 "poll": null,
-"at": 241,
-"words": 118,
+"at": 284,
+"words": 132,
 "cam": "spotlight"
 },
 {
-"n": 8,
+"n": 9,
 "chapter": 1,
 "title": "What changes when you see the buyer's path",
 "sub": "Same business. A different way of growing it.",
@@ -367,7 +432,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "The growth stops coming only from your hours. A business that someone else spent twenty years building joins yours, with its customers, its people and its profit, and the price is paid out of that profit, through a lender, the seller's note and the seller's rollover. Your business becomes part of a group, and a group is valued differently from a single business, which you'll see in numbers later. And somewhere in there, you stop being the person holding one business up, and start being the person who decides what the group buys next.",
+"text": "The growth stops coming only from your hours. A business that someone else spent twenty years building joins yours, with its customers, its people and its profit, and the price is paid out of that profit, through a lender, the seller's note and the seller's rollover. Your business becomes part of a group, and a group is valued differently from a single business, which you'll see in numbers later. And somewhere in there, you stop being the person holding one business up, and start being the person who decides what the group buys next. The phone goes back in your jacket pocket at dinner, because there's a manager at each site whose job is to answer it.",
 "aiOnly": false
 },
 {
@@ -380,12 +445,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 289,
-"words": 120,
+"at": 338,
+"words": 143,
 "cam": "spotlight"
 },
 {
-"n": 9,
+"n": 10,
 "chapter": 1,
 "title": "This masterclass has two jobs",
 "sub": "",
@@ -431,12 +496,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 338,
+"at": 395,
 "words": 169,
 "cam": "split"
 },
 {
-"n": 10,
+"n": 11,
 "chapter": 1,
 "title": "Three things before we start",
 "sub": "",
@@ -483,12 +548,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 406,
+"at": 463,
 "words": 96,
 "cam": "split"
 },
 {
-"n": 11,
+"n": 12,
 "chapter": 1,
 "title": "Who this is for",
 "sub": "",
@@ -531,12 +596,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 446,
+"at": 503,
 "words": 111,
 "cam": "split"
 },
 {
-"n": 12,
+"n": 13,
 "chapter": 1,
 "title": "Who's behind the method",
 "sub": "",
@@ -554,7 +619,7 @@ export const DECK_DATA: DeckData = {
 "slide": 8,
 "fit": "cover",
 "credit": "From Josh Li's masterclass deck, March 2026 · slide 8",
-"needsConsent": true,
+"needsConsent": false,
 "src": null
 },
 "notes": [
@@ -563,21 +628,21 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "Hold on to that, because I'll tell you what made it possible, and it isn't what most people expect.",
+"text": "Hold on to that, because I'll tell you what made it possible, and it isn't what most people expect. It's a question. Sellers ask it whether they say it out loud or not.",
 "aiOnly": false
 }
 ],
 "levers": [
-"POSITION: only the approved facts. Josh founded JC Health Group; two acquisitions; sellers financed 100% in both."
+"POSITION: only the approved facts. Josh founded JC Health Group; two acquisitions; sellers financed 100% in both. Second firing of the proof, now with the photo of a signing (proof adjacency: the claim and the picture in one breath)."
 ],
 "cues": [],
 "poll": null,
-"at": 491,
-"words": 55,
+"at": 548,
+"words": 69,
 "cam": "split"
 },
 {
-"n": 13,
+"n": 14,
 "chapter": 1,
 "title": "What you'll see by the end",
 "sub": "",
@@ -587,7 +652,7 @@ export const DECK_DATA: DeckData = {
 "data": [
 [
 "Where the deals are",
-"Why the best businesses in your market will never appear on a listing"
+"Why the best businesses in your market rarely appear on a listing"
 ],
 [
 "How the price gets paid",
@@ -607,7 +672,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "Where the deals are, and why the best businesses in your market will never appear on a listing. How the price of a business gets paid from the business itself, through debt, the seller's note and the seller's rollover, and the one test every deal has to pass before anyone signs. And who you'd need to be to do it, which turns out to be a lot closer to who you already are than most owners expect.",
+"text": "Where the deals are, and why the best businesses in your market rarely appear on a listing. How the price of a business gets paid from the business itself, through debt, the seller's note and the seller's rollover, and the one test every deal has to pass before anyone signs. And who you'd need to be to do it, which turns out to be a lot closer to who you already are than most owners expect.",
 "aiOnly": false
 },
 {
@@ -620,12 +685,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 516,
-"words": 107,
+"at": 578,
+"words": 106,
 "cam": "split"
 },
 {
-"n": 14,
+"n": 15,
 "chapter": 1,
 "title": "Meet Dan",
 "sub": "An illustrative owner, built from situations owners describe to my team. His name and numbers are examples.",
@@ -659,12 +724,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 560,
+"at": 622,
 "words": 188,
 "cam": "spotlight"
 },
 {
-"n": 15,
+"n": 16,
 "chapter": 1,
 "title": "Two more things, held to the end",
 "sub": "",
@@ -677,7 +742,7 @@ export const DECK_DATA: DeckData = {
 "The one belief that, once it falls, takes every other reason with it"
 ],
 [
-"The question every seller asks",
+"The question sellers ask",
 "Answer it and sellers do things for you they'd do for nobody else"
 ]
 ],
@@ -694,7 +759,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "And the second is a question. There's one question every seller asks. Some ask it out loud. Most never say it. It sits under every conversation about price and terms. If you can't answer it, nothing else matters. If you can, a seller will do things for you they'd do for nobody else, including financing the sale of their own business. Write two words at the top of a page now: the question. By the time you hear it, you'll already have seen the answer being built.",
+"text": "And the second is a question. There's one question sellers ask. Some ask it out loud. Most never say it. It sits under every conversation about price and terms. If you can't answer it, nothing else matters. If you can, a seller will do things for you they'd do for nobody else, including financing the sale of their own business. Write two words at the top of a page now: the question. By the time you hear it, you'll already have seen the answer being built.",
 "aiOnly": false
 }
 ],
@@ -703,12 +768,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 635,
-"words": 156,
+"at": 696,
+"words": 155,
 "cam": "split"
 },
 {
-"n": 16,
+"n": 17,
 "chapter": 1,
 "title": "First question",
 "sub": "If the money were sorted, what would you buy first? Tap your answer under the video.",
@@ -749,12 +814,12 @@ export const DECK_DATA: DeckData = {
 "Not sure yet"
 ]
 },
-"at": 697,
+"at": 758,
 "words": 99,
 "cam": "spotlight"
 },
 {
-"n": 17,
+"n": 18,
 "chapter": 2,
 "title": "Tuesday, 9:40 at night",
 "sub": "Dan, an illustrative owner, at the kitchen table.",
@@ -771,11 +836,11 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "It's a Tuesday, about twenty to ten at night. Dan is at the kitchen table with the laptop open and a cold cup of tea next to it. The house is quiet. His phone buzzes face down on the bench, and he already knows it's a technician asking about tomorrow's job, because it's always a technician asking about tomorrow's job.",
+"text": "It's a Tuesday, about twenty to ten at night. Dan is at the kitchen table with the laptop open and a cup of tea he made at eight, gone cold with the tea bag still in it. The house is quiet apart from the dishwasher ticking as it cools. His phone buzzes face down on the bench, and he already knows it's a technician asking about tomorrow's job, because it's always a technician asking about tomorrow's job.",
 "aiOnly": false
 },
 {
-"text": "On the screen is the month's report. Revenue is up a little on last year. Wages are up more. Two of his best people have told him they want more money, and he can't blame them, because a competitor across town is hiring and paying well.",
+"text": "On the screen is the month's report, and his eyes keep going back to two lines of it. Revenue is up a little on last year. Wages are up more. Two of his best people have told him they want more money, and he can't blame them, because a competitor across town is hiring and paying well. He rubs his eyes, reads the two lines again, and they say the same thing they said the first time.",
 "aiOnly": false
 }
 ],
@@ -784,12 +849,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 738,
-"words": 111,
+"at": 800,
+"words": 159,
 "cam": "spotlight"
 },
 {
-"n": 18,
+"n": 19,
 "chapter": 2,
 "title": "More revenue, more hours",
 "sub": "The pattern every owner past a million knows.",
@@ -820,29 +885,39 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 784,
+"at": 863,
 "words": 66,
 "cam": "stage"
 },
 {
-"n": 19,
+"n": 20,
 "chapter": 2,
 "title": "The question at breakfast",
 "sub": "Illustrative.",
-"layout": "statement",
-"scene": null,
+"layout": "section",
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"\"Are we still going to the coast at Easter?\""
+],
+[
+"\"I'll see.\""
+],
+[
+"She has heard \"I'll see\" before."
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · Wednesday, 7:10 am · The kitchen",
 "image": null,
 "notes": [
 {
-"text": "The next morning, his daughter asks him a question over breakfast. She's twelve. She asks whether they're still going away at Easter, because her friend is going to the coast and she wants to know if she can tell her they're going too.",
+"text": "The next morning, his daughter asks him a question over breakfast. She's twelve, still in her school jumper, with the cereal going soft while she waits for the answer. She asks whether they're still going away at Easter, because her friend is going to the coast and she wants to know if she can tell her they're going too.",
 "aiOnly": false
 },
 {
-"text": "Dan says he'll see. She's heard \"I'll see\" before. She goes back to her cereal, and Dan goes to his van, and for the whole drive to the first site he thinks about the fact that his business has twenty-five people in it and he still can't promise his own family a week at the beach.",
+"text": "Dan says he'll see. She's heard \"I'll see\" before. Last year it meant no, and the year before that it meant a long weekend that ended with him on the phone in the car park of the motel. She goes back to her cereal without saying anything, which is worse than if she'd argued. Dan goes to his van, and for the whole drive to the first site he thinks about the fact that his business has twenty-five people in it and he still can't promise his own family a week at the beach.",
 "aiOnly": false
 },
 {
@@ -851,16 +926,16 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "levers": [
-"STORY: sensory, personal stakes (contribution, connection). Pain made specific and true, never shaming."
+"STORY: sensory, personal stakes (contribution, connection). PSYWAR confession recipe: a specific, slightly uncomfortable admission (the protagonist's \"I'll see\"), set up here and paid off in the felt future (\"Easter is on\"). Pain made specific and true, never shaming."
 ],
 "cues": [],
 "poll": null,
-"at": 813,
-"words": 137,
+"at": 892,
+"words": 191,
 "cam": "spotlight"
 },
 {
-"n": 20,
+"n": 21,
 "chapter": 2,
 "title": "The three fixes Dan tried",
 "sub": "Illustrative.",
@@ -911,12 +986,50 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 868,
+"at": 968,
 "words": 129,
 "cam": "split"
 },
 {
-"n": 21,
+"n": 22,
+"chapter": 2,
+"title": "Seventy-eight Saturdays",
+"sub": "Illustrative: eighteen months of Saturdays, one square each.",
+"layout": "statement",
+"scene": "tally",
+"onscreen": [
+"Nobody sends an invoice for these."
+],
+"data": [
+[
+"78",
+"Saturdays since \"just for a while, to catch up\""
+]
+],
+"caption": null,
+"kicker": null,
+"image": null,
+"notes": [
+{
+"text": "Put a number on that last one, because Dan never did. Eighteen months of Saturdays is seventy-eight of them. Seventy-eight mornings he meant to spend at his daughter's netball, or in the garden, or doing nothing at all, spent at a desk catching up on a business that never quite lets him catch up.",
+"aiOnly": false
+},
+{
+"text": "That's what \"just for a while\" cost. It never shows up on the monthly report, and nobody sends an invoice for it.",
+"aiOnly": false
+}
+],
+"levers": [
+"PSYWAR: the cost made physical. An abstract (\"I work weekends\") turned into a countable picture (Bencivenga D11: numbers as pictures), one square per Saturday, built on screen. Illustrative, labelled."
+],
+"cues": [],
+"poll": null,
+"at": 1020,
+"words": 76,
+"cam": "stage"
+},
+{
+"n": 23,
 "chapter": 2,
 "title": "The point every owner reaches",
 "sub": "",
@@ -940,12 +1053,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 920,
+"at": 1052,
 "words": 73,
 "cam": "spotlight"
 },
 {
-"n": 22,
+"n": 24,
 "chapter": 2,
 "title": "The shape of the problem",
 "sub": "One business, held up by one person.",
@@ -977,12 +1090,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 952,
+"at": 1084,
 "words": 76,
 "cam": "stage"
 },
 {
-"n": 23,
+"n": 25,
 "chapter": 2,
 "title": "The two ways everyone tries",
 "sub": "",
@@ -1029,23 +1142,33 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 984,
+"at": 1116,
 "words": 129,
 "cam": "split"
 },
 {
-"n": 24,
+"n": 26,
 "chapter": 2,
 "title": "The answer to the first question",
 "sub": "Why the hardest worker rarely ends up owning the market.",
 "layout": "statement",
-"scene": null,
+"scene": "film",
 "onscreen": [
 "The owners who end up owning a market stopped building one customer at a time. They bought what was already built."
 ],
-"data": [],
+"data": [
+[
+"Dan's phone: four buzzes before the entrée."
+],
+[
+"His: in his jacket pocket all night."
+],
+[
+"\"I didn't grow it. I bought most of it.\""
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · The industry dinner",
 "image": null,
 "notes": [
 {
@@ -1057,7 +1180,15 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
+"text": "What Dan noticed first was the phone. His own buzzed against the tablecloth four times before the entrée. The other man's stayed in his jacket pocket the whole night. He talked about his boat, and about the week he'd just had away with his grandkids, and not once did he step outside to take a call.",
+"aiOnly": false
+},
+{
 "text": "Over dessert, Dan asked him how he'd grown so fast. The man laughed and said, \"I didn't grow it. I bought most of it. Every one of those branches was somebody's business, and most of them were owners who didn't have anyone to hand it to.\"",
+"aiOnly": false
+},
+{
+"text": "Dan drove home that night with the radio off.",
 "aiOnly": false
 },
 {
@@ -1066,16 +1197,16 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "levers": [
-"CLOSES THE OPENING QUESTION (the hook), early, so the viewer gets a payoff before the bigger loops. Story proof: the group owner at the industry dinner (illustrative)."
+"CLOSES THE OPENING QUESTION (the hook), early, so the viewer gets a payoff before the bigger loops. Story proof: the group owner at the industry dinner (illustrative). PSYWAR: aspiration and envy through one witnessed contrast (his phone in his pocket, Dan's buzzing on the tablecloth), the phone motif that returns in the year after and in the two Tuesdays."
 ],
 "cues": [],
 "poll": null,
-"at": 1037,
-"words": 171,
+"at": 1169,
+"words": 236,
 "cam": "spotlight"
 },
 {
-"n": 25,
+"n": 27,
 "chapter": 2,
 "title": "The cost nobody puts on a spreadsheet",
 "sub": "",
@@ -1111,12 +1242,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1105,
+"at": 1261,
 "words": 118,
 "cam": "spotlight"
 },
 {
-"n": 26,
+"n": 28,
 "chapter": 2,
 "title": "Owners build. Buyers compound.",
 "sub": "",
@@ -1142,21 +1273,31 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1153,
+"at": 1310,
 "words": 22,
 "cam": "spotlight"
 },
 {
-"n": 27,
+"n": 29,
 "chapter": 3,
 "title": "The phone call",
 "sub": "Graham, an illustrative seller: 64, thirty years in the trade, no successor.",
 "layout": "statement",
-"scene": null,
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"\"I don't know how much longer I'll keep doing this.\""
+],
+[
+"\"The kids don't want it.\""
+],
+[
+"\"I lie awake wondering what happens to them.\""
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · A few weeks earlier · A call about a job",
 "image": null,
 "notes": [
 {
@@ -1177,12 +1318,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1165,
+"at": 1322,
 "words": 118,
 "cam": "spotlight"
 },
 {
-"n": 28,
+"n": 30,
 "chapter": 3,
 "title": "What Dan heard",
 "sub": "And what he told himself.",
@@ -1219,14 +1360,14 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1214,
+"at": 1370,
 "words": 95,
 "cam": "stage"
 },
 {
-"n": 29,
+"n": 31,
 "chapter": 3,
-"title": "Why owners like Graham never list",
+"title": "Why owners like Graham rarely list",
 "sub": "Illustrative.",
 "layout": "list",
 "scene": null,
@@ -1267,12 +1408,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1253,
+"at": 1410,
 "words": 108,
 "cam": "split"
 },
 {
-"n": 30,
+"n": 32,
 "chapter": 3,
 "title": "Where the deals are",
 "sub": "A listed business is an auction.",
@@ -1299,7 +1440,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "The best businesses never reach a listing. They sit with owners like Graham. Owners who've run the business for twenty or thirty years, whose kids have their own careers, whose senior staff can run the floor but can't buy the company.",
+"text": "The best businesses rarely reach a listing. They sit with owners like Graham. Owners who've run the business for twenty or thirty years, whose kids have their own careers, whose senior staff can run the floor but can't buy the company.",
 "aiOnly": false
 }
 ],
@@ -1308,12 +1449,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1298,
+"at": 1454,
 "words": 93,
 "cam": "split"
 },
 {
-"n": 31,
+"n": 33,
 "chapter": 3,
 "title": "The owner with no successor",
 "sub": "",
@@ -1345,47 +1486,59 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 1336,
+"at": 1493,
 "words": 97,
 "cam": "split"
 },
 {
-"n": 32,
+"n": 34,
 "chapter": 3,
 "title": "The drive past the yard",
 "sub": "Illustrative.",
 "layout": "statement",
-"scene": null,
-"onscreen": [],
-"data": [],
+"scene": "film",
+"onscreen": [
+"For the first time, he doesn't see a competitor."
+],
+"data": [
+[
+"Eight vans in a row, older than his, well kept."
+],
+[
+"A sign over the gate, faded where the afternoon sun hits it."
+],
+[
+"Thirty years of customers who see no reason to leave."
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · Thursday, 7:45 am · Graham's yard",
 "image": null,
 "notes": [
 {
-"text": "The next week, Dan drives past Graham's yard on the way to a job. He's driven past it a thousand times. This time he slows down.",
+"text": "The next week, Dan drives past Graham's yard on the way to a job. He's driven past it a thousand times. This time he slows down, and the car behind him toots.",
 "aiOnly": false
 },
 {
-"text": "Eight vans in a row, older than his, but well kept. The sign over the gate with Graham's surname on it, faded where the sun hits it every afternoon. A technician he recognises loading a ladder onto a roof rack. Customers Dan has never been able to win, because they've been with Graham for twenty years and see no reason to leave.",
+"text": "Eight vans in a row, older than his, but well kept, washed on a Friday by the look of them. The sign over the gate with Graham's surname on it, faded where the sun hits it every afternoon. A technician he recognises loading a ladder onto a roof rack, whistling. Customers Dan has never been able to win, because they've been with Graham for twenty years and see no reason to leave.",
 "aiOnly": false
 },
 {
-"text": "And for the first time, Dan doesn't see a competitor. He sees thirty years of work, a team that knows what it's doing, a list of customers who stay, and an owner who doesn't know what to do with any of it.",
+"text": "And for the first time, Dan doesn't see a competitor. He sees thirty years of work, a team that knows what it's doing, a list of customers who stay, and an owner who doesn't know what to do with any of it. He catches himself wondering what that sign would look like with a second name under it.",
 "aiOnly": false
 }
 ],
 "levers": [
-"STORY: sensory, the desire object made visible (the vans, the sign). Submodalities: close and bright."
+"STORY: sensory, the desire object made visible (the vans, the sign). Submodalities: close and bright (a light scene: brightness for the desire object, darkness for the pain). PSYWAR: SEEKING, the reach toward something wanted, not yet owned. The sign returns in the other Tuesday (loss) and Graham's workshop (gain)."
 ],
 "cues": [],
 "poll": null,
-"at": 1377,
-"words": 130,
+"at": 1533,
+"words": 162,
 "cam": "spotlight"
 },
 {
-"n": 33,
+"n": 35,
 "chapter": 3,
 "title": "What happens when nobody asks",
 "sub": "Illustrative.",
@@ -1411,12 +1564,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1430,
+"at": 1598,
 "words": 93,
 "cam": "spotlight"
 },
 {
-"n": 34,
+"n": 36,
 "chapter": 3,
 "title": "To Graham, Dan is the obvious successor",
 "sub": "",
@@ -1444,12 +1597,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1468,
+"at": 1637,
 "words": 104,
 "cam": "spotlight"
 },
 {
-"n": 35,
+"n": 37,
 "chapter": 3,
 "title": "You can reach them first",
 "sub": "",
@@ -1477,12 +1630,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 1512,
+"at": 1680,
 "words": 58,
 "cam": "split"
 },
 {
-"n": 36,
+"n": 38,
 "chapter": 3,
 "title": "Your biggest blocker",
 "sub": "Finding deals, financing, structuring, time or confidence. Tap the honest answer under the video.",
@@ -1519,12 +1672,12 @@ export const DECK_DATA: DeckData = {
 "Confidence"
 ]
 },
-"at": 1537,
+"at": 1706,
 "words": 57,
 "cam": "spotlight"
 },
 {
-"n": 37,
+"n": 39,
 "chapter": 4,
 "title": "The wrong maths",
 "sub": "",
@@ -1556,12 +1709,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1563,
+"at": 1731,
 "words": 58,
 "cam": "spotlight"
 },
 {
-"n": 38,
+"n": 40,
 "chapter": 4,
 "title": "Two acquisitions, both seller financed",
 "sub": "In both, the sellers financed 100% of the price.",
@@ -1577,7 +1730,7 @@ export const DECK_DATA: DeckData = {
 "slide": 8,
 "fit": "cover",
 "credit": "From Josh Li's masterclass deck, March 2026 · slide 8",
-"needsConsent": true,
+"needsConsent": false,
 "src": null
 },
 "notes": [
@@ -1599,12 +1752,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1588,
+"at": 1757,
 "words": 134,
 "cam": "split"
 },
 {
-"n": 39,
+"n": 41,
 "chapter": 4,
 "title": "Three places pay the price",
 "sub": "",
@@ -1651,12 +1804,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 1643,
+"at": 1811,
 "words": 93,
 "cam": "stage"
 },
 {
-"n": 40,
+"n": 42,
 "chapter": 4,
 "title": "Seller finance isn't a favour",
 "sub": "And it isn't a sign of a bad business.",
@@ -1684,12 +1837,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1682,
+"at": 1850,
 "words": 102,
 "cam": "spotlight"
 },
 {
-"n": 41,
+"n": 43,
 "chapter": 4,
 "title": "The test every deal has to pass",
 "sub": "Lenders call it debt service coverage.",
@@ -1725,12 +1878,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1724,
+"at": 1892,
 "words": 129,
 "cam": "stage"
 },
 {
-"n": 42,
+"n": 44,
 "chapter": 4,
 "title": "Dan's numbers on Graham's business",
 "sub": "Illustrative: $500,000 a year in profit, priced at $1.5M.",
@@ -1779,12 +1932,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 1776,
+"at": 1945,
 "words": 157,
 "cam": "stage"
 },
 {
-"n": 43,
+"n": 45,
 "chapter": 4,
 "title": "The night the number passed",
 "sub": "Illustrative.",
@@ -1799,11 +1952,11 @@ export const DECK_DATA: DeckData = {
 "image": null,
 "notes": [
 {
-"text": "Dan remembers the night he first did that sum, on the back of the monthly report, with a pencil. He'd assumed for years that a business like Graham's was out of reach. And there it was, in his own handwriting: a structure where Graham's business paid for itself, with a buffer left over.",
+"text": "Dan remembers the night he first did that sum, on the back of the monthly report, with a carpenter's pencil from the van. He'd assumed for years that a business like Graham's was out of reach. And there it was, in his own handwriting, with the answer circled twice: a structure where Graham's business paid for itself, with a buffer left over.",
 "aiOnly": false
 },
 {
-"text": "He didn't feel rich. He felt something closer to embarrassed, that he'd spent so long believing the wrong thing. And then, underneath that, something he hadn't felt about his business in a long time. Curiosity.",
+"text": "He didn't feel rich. He felt something closer to embarrassed, that he'd spent so long believing the wrong thing. And then, underneath that, something he hadn't felt about his business in a long time. He wanted to know what came next. He sat there past eleven, running the sum again with a worse year in it, and it still passed.",
 "aiOnly": false
 }
 ],
@@ -1812,12 +1965,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1839,
-"words": 88,
+"at": 2008,
+"words": 122,
 "cam": "stage"
 },
 {
-"n": 44,
+"n": 46,
 "chapter": 4,
 "title": "What a lender reads",
 "sub": "And your savings isn't on the list.",
@@ -1860,12 +2013,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1876,
+"at": 2057,
 "words": 146,
 "cam": "split"
 },
 {
-"n": 45,
+"n": 47,
 "chapter": 4,
 "title": "Run your own Graham",
 "sub": "The calculator is under the video: a business you'd like to own, its yearly profit and its asking price.",
@@ -1882,7 +2035,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "Notice what happens when you do it. The business stops being a fantasy and becomes a number that either passes or doesn't. That's the first moment of thinking like a buyer.",
+"text": "Notice what happens when you do it. The business stops being a fantasy and becomes a number that either passes or doesn't. That's the first moment of thinking like a buyer. And if yours passes, notice that too: the small jolt of a business down your road that you'd filed under \"one day\" turning into a number on a screen.",
 "aiOnly": false
 }
 ],
@@ -1896,12 +2049,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 1935,
-"words": 96,
+"at": 2116,
+"words": 125,
 "cam": "spotlight"
 },
 {
-"n": 46,
+"n": 48,
 "chapter": 4,
 "title": "Banks don't reject buyers. They reject structures.",
 "sub": "",
@@ -1927,12 +2080,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1975,
+"at": 2167,
 "words": 69,
 "cam": "spotlight"
 },
 {
-"n": 47,
+"n": 49,
 "chapter": 4,
 "title": "One deal, over five million, no personal guarantee",
 "sub": "A $5.5M radiology deal: the equipment secured the loan.",
@@ -1959,12 +2112,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2005,
+"at": 2197,
 "words": 60,
 "cam": "stage"
 },
 {
-"n": 48,
+"n": 50,
 "chapter": 4,
 "title": "Your own cash",
 "sub": "A deal should stand on its own cash flow. If it can't, your cash won't fix it.",
@@ -1997,12 +2150,12 @@ export const DECK_DATA: DeckData = {
 "Happy to put cash in if it helps"
 ]
 },
-"at": 2031,
+"at": 2223,
 "words": 64,
 "cam": "spotlight"
 },
 {
-"n": 49,
+"n": 51,
 "chapter": 5,
 "title": "The prize is bigger than the profit",
 "sub": "A business is worth its profit multiplied by a number.",
@@ -2041,12 +2194,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2059,
+"at": 2251,
 "words": 60,
 "cam": "stage"
 },
 {
-"n": 50,
+"n": 52,
 "chapter": 5,
 "title": "Dan's business and Graham's, apart and together",
 "sub": "",
@@ -2091,12 +2244,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 2086,
+"at": 2278,
 "words": 93,
 "cam": "stage"
 },
 {
-"n": 51,
+"n": 53,
 "chapter": 5,
 "title": "What a group changes",
 "sub": "Illustrative.",
@@ -2139,12 +2292,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2124,
+"at": 2317,
 "words": 117,
 "cam": "split"
 },
 {
-"n": 52,
+"n": 54,
 "chapter": 5,
 "title": "What a holding company is for",
 "sub": "One company that owns the businesses.",
@@ -2170,12 +2323,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2172,
+"at": 2364,
 "words": 87,
 "cam": "spotlight"
 },
 {
-"n": 53,
+"n": 55,
 "chapter": 5,
 "title": "Why the first deal matters most",
 "sub": "",
@@ -2199,25 +2352,35 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2209,
+"at": 2401,
 "words": 67,
 "cam": "spotlight"
 },
 {
-"n": 54,
+"n": 56,
 "chapter": 5,
 "title": "The table he'd rather sit at",
 "sub": "Illustrative.",
 "layout": "statement",
-"scene": null,
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"A manager from each business around one table."
+],
+[
+"One report, with several names on it."
+],
+[
+"One question: which owner gets the next phone call."
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · Years out · The group's monthly meeting",
 "image": null,
 "notes": [
 {
-"text": "And picture where that leads, years out, as an illustration. A table with the managers of each business around it. A report with several names on it instead of one. The owner at the head of it isn't the person who knows how to fix every unit on every roof anymore. He's the person who decides where the group goes next, and which owner down which road gets the next phone call.",
+"text": "And picture where that leads, years out, as an illustration. A Monday morning. A table with the managers of each business around it, coffee in paper cups, someone's laptop plugged into the screen at the end of the room. A report with several names on it instead of one. The owner at the head of that table isn't the person who knows how to fix every unit on every roof anymore. He listens more than he talks. And when the numbers are done, there's one question left that only he gets to answer: which owner, down which road, gets the next phone call.",
 "aiOnly": false
 },
 {
@@ -2226,16 +2389,16 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "levers": [
-"DESIRE: significance and growth needs. The picture is a place and a role, never a number or a forecast."
+"DESIRE: significance and growth needs (aspiration peak before the button). PSYWAR: SEEKING, the scene sells the reach (choosing the next deal), not a finished arrival. The picture is a place and a role, never a number or a forecast."
 ],
 "cues": [],
 "poll": null,
-"at": 2238,
-"words": 91,
+"at": 2430,
+"words": 122,
 "cam": "spotlight"
 },
 {
-"n": 55,
+"n": 57,
 "chapter": 5,
 "title": "Owners build. Buyers compound.",
 "sub": "",
@@ -2265,12 +2428,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2276,
+"at": 2480,
 "words": 36,
 "cam": "spotlight"
 },
 {
-"n": 56,
+"n": 58,
 "chapter": 5,
 "title": "Your turn",
 "sub": "In one sentence: what would your first acquisition change for you? Write it beside the video.",
@@ -2297,12 +2460,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 2294,
+"at": 2498,
 "words": 57,
 "cam": "spotlight"
 },
 {
-"n": 57,
+"n": 59,
 "chapter": 5,
 "title": "The button is under the video",
 "sub": "Apply for a strategy call with my team. If it fits, book your call in one tap.",
@@ -2325,6 +2488,10 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
+"text": "If writing that sentence made something tighten a little in your chest, pay attention to it. That's the part of you that's already thinking like a buyer, and it's worth a few minutes of your evening.",
+"aiOnly": false
+},
+{
 "text": "Some owners apply right now, in the middle of the masterclass, while what they just wrote is still in front of them. Others watch to the end and apply then. Either way works. The button stays under the video for the rest of the masterclass, and you'll hear everything that happens on the call before we finish.",
 "aiOnly": false
 }
@@ -2339,12 +2506,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 2319,
-"words": 113,
+"at": 2523,
+"words": 149,
 "cam": "stage"
 },
 {
-"n": 58,
+"n": 60,
 "chapter": 6,
 "title": "What 90 owners told us",
 "sub": "From the forms owners filled in when they booked a call with my team.",
@@ -2393,12 +2560,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2366,
+"at": 2583,
 "words": 118,
 "cam": "stage"
 },
 {
-"n": 59,
+"n": 61,
 "chapter": 6,
 "title": "Underneath those rows",
 "sub": "Twenty-four owners who want to buy and never have.",
@@ -2432,12 +2599,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2414,
+"at": 2631,
 "words": 233,
 "cam": "spotlight"
 },
 {
-"n": 60,
+"n": 62,
 "chapter": 6,
 "title": "\"I've struggled to find a way to do this in aus with no money down.\"",
 "sub": "Another owner, on the same form.",
@@ -2463,12 +2630,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2505,
+"at": 2722,
 "words": 61,
 "cam": "spotlight"
 },
 {
-"n": 61,
+"n": 63,
 "chapter": 6,
 "title": "\"I've acquired 10 clinics but some haven't made money.\"",
 "sub": "And one more, from an owner who had already bought.",
@@ -2502,12 +2669,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2532,
+"at": 2749,
 "words": 130,
 "cam": "spotlight"
 },
 {
-"n": 62,
+"n": 64,
 "chapter": 6,
 "title": "63 of the 90 were under $1M a year",
 "sub": "Which is why the application asks about your revenue first.",
@@ -2538,12 +2705,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2585,
+"at": 2802,
 "words": 116,
 "cam": "stage"
 },
 {
-"n": 63,
+"n": 65,
 "chapter": 6,
 "title": "When would you want your first deal done?",
 "sub": "Tap your answer under the video.",
@@ -2579,12 +2746,12 @@ export const DECK_DATA: DeckData = {
 "Just learning"
 ]
 },
-"at": 2632,
+"at": 2850,
 "words": 36,
 "cam": "spotlight"
 },
 {
-"n": 64,
+"n": 66,
 "chapter": 6,
 "title": "If you're over $1M and you picked a row",
 "sub": "Apply under the video. It takes a few minutes, and my team reads every answer.",
@@ -2609,12 +2776,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 2650,
+"at": 2867,
 "words": 53,
 "cam": "spotlight"
 },
 {
-"n": 65,
+"n": 67,
 "chapter": 7,
 "title": "Graham's kitchen table",
 "sub": "The same structure, seen from the seller's chair.",
@@ -2640,12 +2807,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2674,
+"at": 2891,
 "words": 79,
 "cam": "stage"
 },
 {
-"n": 66,
+"n": 68,
 "chapter": 7,
 "title": "The three exits Graham can see",
 "sub": "",
@@ -2682,12 +2849,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 2707,
+"at": 2924,
 "words": 59,
 "cam": "split"
 },
 {
-"n": 67,
+"n": 69,
 "chapter": 7,
 "title": "What keeps Graham awake",
 "sub": "Illustrative.",
@@ -2738,12 +2905,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2733,
+"at": 2951,
 "words": 100,
 "cam": "split"
 },
 {
-"n": 68,
+"n": 70,
 "chapter": 7,
 "title": "Then Dan calls",
 "sub": "",
@@ -2771,12 +2938,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2775,
+"at": 2992,
 "words": 78,
 "cam": "spotlight"
 },
 {
-"n": 69,
+"n": 71,
 "chapter": 7,
 "title": "Why a seller says yes to a note",
 "sub": "Seller finance and seller rollover, from the seller's side.",
@@ -2816,12 +2983,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2808,
+"at": 3025,
 "words": 124,
 "cam": "stage"
 },
 {
-"n": 70,
+"n": 72,
 "chapter": 7,
 "title": "Why the rollover matters to Graham",
 "sub": "It's not only money. It's still belonging to something.",
@@ -2847,12 +3014,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2859,
+"at": 3076,
 "words": 96,
 "cam": "spotlight"
 },
 {
-"n": 71,
+"n": 73,
 "chapter": 7,
 "title": "The order that decides it",
 "sub": "Agree the shape with the seller first. Then take it to the lender.",
@@ -2891,12 +3058,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2899,
+"at": 3116,
 "words": 114,
 "cam": "split"
 },
 {
-"n": 72,
+"n": 74,
 "chapter": 7,
 "title": "Back to the question",
 "sub": "Write it under the two words at the top of your page.",
@@ -2912,12 +3079,12 @@ export const DECK_DATA: DeckData = {
 "slide": 36,
 "fit": "contain",
 "credit": "From Josh Li's masterclass deck, March 2026 · slide 36",
-"needsConsent": true,
+"needsConsent": false,
 "src": null
 },
 "notes": [
 {
-"text": "Remember the two words you wrote at the top of your page. The question. Every seller asks it, and you've just watched Graham ask it without saying a word. It was there in the photo on the fridge, and in the worry about his people.",
+"text": "Remember the two words you wrote at the top of your page. The question. Sellers ask it, and you've just watched Graham ask it without saying a word. It was there in the photo on the fridge, and in the worry about his people.",
 "aiOnly": false
 },
 {
@@ -2930,12 +3097,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2945,
-"words": 87,
+"at": 3163,
+"words": 86,
 "cam": "split"
 },
 {
-"n": 73,
+"n": 75,
 "chapter": 7,
 "title": "Your Graham is out there",
 "sub": "Apply under the video, and the call starts with the business you have in mind.",
@@ -2962,12 +3129,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 2982,
+"at": 3199,
 "words": 57,
 "cam": "spotlight"
 },
 {
-"n": 74,
+"n": 76,
 "chapter": 8,
 "title": "The first conversation",
 "sub": "What it sounds like when a buyer calls a seller. Illustrative.",
@@ -2993,12 +3160,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3007,
+"at": 3224,
 "words": 102,
 "cam": "spotlight"
 },
 {
-"n": 75,
+"n": 77,
 "chapter": 8,
 "title": "The coffee",
 "sub": "No price on the table. Only the question under the question.",
@@ -3013,7 +3180,7 @@ export const DECK_DATA: DeckData = {
 "image": null,
 "notes": [
 {
-"text": "At the coffee, Dan asks one question and then mostly listens. \"What do you want your life to look like a year after you stop?\"",
+"text": "They meet at the café by the industrial estate, the one with the laminated menus, at seven in the morning before either of them has a site to be at. Dan asks one question and then mostly listens. \"What do you want your life to look like a year after you stop?\"",
 "aiOnly": false
 },
 {
@@ -3030,12 +3197,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3050,
-"words": 113,
+"at": 3266,
+"words": 140,
 "cam": "spotlight"
 },
 {
-"n": 76,
+"n": 78,
 "chapter": 8,
 "title": "\"How would you pay me?\"",
 "sub": "The second conversation, where first-time buyers lose the seller.",
@@ -3048,7 +3215,7 @@ export const DECK_DATA: DeckData = {
 "image": null,
 "notes": [
 {
-"text": "A week later, the second conversation. And this is where most first time buyers lose the seller, because Graham asks the question every seller asks once they're interested. \"So how would you pay me?\"",
+"text": "A week later, the second conversation. And this is where most first time buyers lose the seller, because Graham asks the question sellers ask once they're interested. \"So how would you pay me?\"",
 "aiOnly": false
 },
 {
@@ -3065,12 +3232,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3096,
-"words": 145,
+"at": 3323,
+"words": 144,
 "cam": "spotlight"
 },
 {
-"n": 77,
+"n": 79,
 "chapter": 8,
 "title": "What Graham hears",
 "sub": "Not a lowball. A way out that looks like the life he wanted.",
@@ -3098,19 +3265,19 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "Graham doesn't say yes on the spot. Sellers rarely do. He says, \"Put something on paper and let me show my accountant.\" In the language of deals, that's a very good sign.",
+"text": "Graham doesn't say yes on the spot. Sellers rarely do. He turns his cup around on the saucer for a while, and then he says, \"Put something on paper and let me show my accountant.\" In the language of deals, that's a very good sign. Dan sits in the van afterwards for ten minutes before he starts the engine.",
 "aiOnly": false
 }
 ],
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 3154,
-"words": 63,
+"at": 3381,
+"words": 90,
 "cam": "stage"
 },
 {
-"n": 78,
+"n": 80,
 "chapter": 8,
 "title": "What Dan didn't say",
 "sub": "Illustrative.",
@@ -3157,12 +3324,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3182,
+"at": 3419,
 "words": 69,
 "cam": "split"
 },
 {
-"n": 79,
+"n": 81,
 "chapter": 8,
 "title": "What made the difference",
 "sub": "It wasn't the script.",
@@ -3190,12 +3357,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3212,
+"at": 3449,
 "words": 65,
 "cam": "spotlight"
 },
 {
-"n": 80,
+"n": 82,
 "chapter": 8,
 "title": "The conversation you've been putting off",
 "sub": "The call is where you prepare for it.",
@@ -3222,12 +3389,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 3240,
+"at": 3477,
 "words": 59,
 "cam": "spotlight"
 },
 {
-"n": 81,
+"n": 83,
 "chapter": 9,
 "title": "Two questions",
 "sub": "Answer them to yourself, honestly.",
@@ -3261,12 +3428,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3266,
+"at": 3503,
 "words": 107,
 "cam": "spotlight"
 },
 {
-"n": 82,
+"n": 84,
 "chapter": 9,
 "title": "The second question",
 "sub": "Could you do it?",
@@ -3304,25 +3471,25 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3310,
+"at": 3547,
 "words": 161,
 "cam": "spotlight"
 },
 {
-"n": 83,
+"n": 85,
 "chapter": 9,
 "title": "\"Why should I trust you with my life's work?\"",
-"sub": "The question every seller asks.",
+"sub": "The question sellers ask.",
 "layout": "quote",
 "scene": null,
 "onscreen": [],
 "data": [],
-"caption": "The question every seller asks",
+"caption": "The question sellers ask",
 "kicker": null,
 "image": null,
 "notes": [
 {
-"text": "Here's the question every seller asks. Graham asked it. Every seller in your market will ask it.",
+"text": "Here's the question sellers ask. Graham asked it without saying a word. The owners in your market are asking it too.",
 "aiOnly": false
 },
 {
@@ -3343,12 +3510,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3375,
-"words": 110,
+"at": 3612,
+"words": 114,
 "cam": "spotlight"
 },
 {
-"n": 84,
+"n": 86,
 "chapter": 9,
 "title": "The big domino",
 "sub": "",
@@ -3376,12 +3543,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3420,
+"at": 3658,
 "words": 72,
 "cam": "stage"
 },
 {
-"n": 85,
+"n": 87,
 "chapter": 9,
 "title": "Watch what falls with it",
 "sub": "",
@@ -3432,12 +3599,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3451,
+"at": 3689,
 "words": 89,
 "cam": "split"
 },
 {
-"n": 86,
+"n": 88,
 "chapter": 9,
 "title": "Owners build. Buyers compound.",
 "sub": "",
@@ -3467,12 +3634,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3488,
+"at": 3727,
 "words": 100,
 "cam": "spotlight"
 },
 {
-"n": 87,
+"n": 89,
 "chapter": 9,
 "title": "Who you do it with",
 "sub": "That's what the strategy call is for.",
@@ -3497,12 +3664,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 3530,
+"at": 3768,
 "words": 23,
 "cam": "spotlight"
 },
 {
-"n": 88,
+"n": 90,
 "chapter": 10,
 "title": "What Dan did on that Tuesday night",
 "sub": "",
@@ -3540,12 +3707,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3543,
+"at": 3781,
 "words": 137,
 "cam": "spotlight"
 },
 {
-"n": 89,
+"n": 91,
 "chapter": 10,
 "title": "Step 1",
 "sub": "Apply in a few minutes",
@@ -3584,12 +3751,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3598,
+"at": 3836,
 "words": 58,
 "cam": "split"
 },
 {
-"n": 90,
+"n": 92,
 "chapter": 10,
 "title": "Step 2",
 "sub": "Book in one tap",
@@ -3622,12 +3789,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 3624,
+"at": 3862,
 "words": 37,
 "cam": "split"
 },
 {
-"n": 91,
+"n": 93,
 "chapter": 10,
 "title": "Step 3",
 "sub": "The strategy call",
@@ -3660,12 +3827,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 3642,
+"at": 3880,
 "words": 22,
 "cam": "split"
 },
 {
-"n": 92,
+"n": 94,
 "chapter": 10,
 "title": "Here is what happens on the call",
 "sub": "",
@@ -3714,21 +3881,31 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3654,
+"at": 3892,
 "words": 161,
 "cam": "split"
 },
 {
-"n": 93,
+"n": 95,
 "chapter": 10,
 "title": "The first ten minutes of the call",
 "sub": "What it's like to be on it.",
 "layout": "statement",
-"scene": null,
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"You join from the office, the car or the kitchen table."
+],
+[
+"Your application has already been read."
+],
+[
+"No slide deck. Your business, your numbers, the business you have in mind."
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "The strategy call · The first ten minutes",
 "image": null,
 "notes": [
 {
@@ -3749,12 +3926,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3718,
+"at": 3956,
 "words": 128,
 "cam": "spotlight"
 },
 {
-"n": 94,
+"n": 96,
 "chapter": 10,
 "title": "What the call can lead to",
 "sub": "The 90-day \"Done with you\" advisory engagement.",
@@ -3792,12 +3969,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3770,
+"at": 4008,
 "words": 99,
 "cam": "split"
 },
 {
-"n": 95,
+"n": 97,
 "chapter": 10,
 "title": "Why a team, and not a course",
 "sub": "Information isn't the gap. Doing it alone is.",
@@ -3829,12 +4006,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3811,
+"at": 4050,
 "words": 113,
 "cam": "spotlight"
 },
 {
-"n": 96,
+"n": 98,
 "chapter": 10,
 "title": "Why the call comes before the price",
 "sub": "The right number to look at first is yours.",
@@ -3856,12 +4033,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3858,
+"at": 4096,
 "words": 72,
 "cam": "spotlight"
 },
 {
-"n": 97,
+"n": 99,
 "chapter": 10,
 "title": "Credibility",
 "sub": "The first C.",
@@ -3883,7 +4060,7 @@ export const DECK_DATA: DeckData = {
 "image": null,
 "notes": [
 {
-"text": "Credibility first, because it answers the question every seller asks. On your first deal, you borrow it. A team that has done this stands behind you, so when an owner like Graham looks across the table, he sees a buyer with people behind him, not one person with an idea.",
+"text": "Credibility first, because it answers the question sellers ask. On your first deal, you borrow it. A team that has done this stands behind you, so when an owner like Graham looks across the table, he sees a buyer with people behind him, not one person with an idea.",
 "aiOnly": false
 },
 {
@@ -3896,12 +4073,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3889,
-"words": 70,
+"at": 4127,
+"words": 69,
 "cam": "stage"
 },
 {
-"n": 98,
+"n": 100,
 "chapter": 10,
 "title": "Capital",
 "sub": "The second C.",
@@ -3938,12 +4115,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 3919,
+"at": 4157,
 "words": 63,
 "cam": "stage"
 },
 {
-"n": 99,
+"n": 101,
 "chapter": 10,
 "title": "Closing",
 "sub": "The third C.",
@@ -3980,12 +4157,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 3947,
+"at": 4184,
 "words": 68,
 "cam": "stage"
 },
 {
-"n": 100,
+"n": 102,
 "chapter": 10,
 "title": "The shape of the ninety days",
 "sub": "What a week looks like, from the conditions you're about to hear.",
@@ -4032,19 +4209,36 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3976,
+"at": 4214,
 "words": 165,
 "cam": "split"
 },
 {
-"n": 101,
+"n": 103,
 "chapter": 10,
 "title": "A Thursday in week six",
 "sub": "Illustrative: a picture, not a forecast.",
 "layout": "statement",
-"scene": null,
+"scene": "day",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"8:30 am",
+"Two owners replied to this week's outreach. One wants to meet."
+],
+[
+"9:15 am",
+"The owner's rough numbers, run through the test before the session. Close."
+],
+[
+"11:00 am",
+"The working session: what to ask at the coffee, and what not to say."
+],
+[
+"12:00 pm",
+"Back on the floor of your own business."
+]
+],
 "caption": null,
 "kicker": null,
 "image": null,
@@ -4063,12 +4257,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4042,
+"at": 4280,
 "words": 123,
-"cam": "spotlight"
+"cam": "stage"
 },
 {
-"n": 102,
+"n": 104,
 "chapter": 10,
 "title": "The engagement guarantee",
 "sub": "Read in full, conditions included.",
@@ -4096,12 +4290,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4092,
+"at": 4330,
 "words": 52,
 "cam": "stage"
 },
 {
-"n": 103,
+"n": 105,
 "chapter": 10,
 "title": "The conditions",
 "sub": "Each one is something you control.",
@@ -4144,12 +4338,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4116,
+"at": 4354,
 "words": 130,
 "cam": "stage"
 },
 {
-"n": 104,
+"n": 106,
 "chapter": 10,
 "title": "And the first seven days",
 "sub": "No conditions.",
@@ -4175,12 +4369,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4168,
+"at": 4406,
 "words": 48,
 "cam": "stage"
 },
 {
-"n": 105,
+"n": 107,
 "chapter": 10,
 "title": "What to bring to the call",
 "sub": "",
@@ -4232,12 +4426,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 4190,
+"at": 4428,
 "words": 104,
 "cam": "split"
 },
 {
-"n": 106,
+"n": 108,
 "chapter": 10,
 "title": "What the team won't do",
 "sub": "",
@@ -4284,12 +4478,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4233,
+"at": 4471,
 "words": 80,
 "cam": "split"
 },
 {
-"n": 107,
+"n": 109,
 "chapter": 10,
 "title": "Who this is not for",
 "sub": "",
@@ -4340,12 +4534,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4267,
+"at": 4505,
 "words": 118,
 "cam": "split"
 },
 {
-"n": 108,
+"n": 110,
 "chapter": 10,
 "title": "Everything in one place",
 "sub": "",
@@ -4392,12 +4586,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4316,
+"at": 4554,
 "words": 93,
 "cam": "stage"
 },
 {
-"n": 109,
+"n": 111,
 "chapter": 10,
 "title": "Why there's an application",
 "sub": "My team takes a limited number of engagements in each intake.",
@@ -4419,12 +4613,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4354,
+"at": 4592,
 "words": 43,
 "cam": "spotlight"
 },
 {
-"n": 110,
+"n": 112,
 "chapter": 10,
 "title": "Is a strategy call right for you?",
 "sub": "Answer honestly under the video. A question first? Type it in the question box.",
@@ -4457,12 +4651,12 @@ export const DECK_DATA: DeckData = {
 "Not yet"
 ]
 },
-"at": 4375,
+"at": 4612,
 "words": 38,
 "cam": "spotlight"
 },
 {
-"n": 111,
+"n": 113,
 "chapter": 10,
 "title": "Apply and book",
 "sub": "The button is under the video. A few minutes to apply. One tap to book.",
@@ -4495,12 +4689,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 4393,
+"at": 4631,
 "words": 45,
 "cam": "stage"
 },
 {
-"n": 112,
+"n": 114,
 "chapter": 11,
 "title": "Dan's ninety days",
 "sub": "Illustrative: one way the first ninety days can go. A picture, not a forecast.",
@@ -4522,12 +4716,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4414,
+"at": 4652,
 "words": 58,
 "cam": "stage"
 },
 {
-"n": 113,
+"n": 115,
 "chapter": 11,
 "title": "The first week",
 "sub": "Illustrative.",
@@ -4559,12 +4753,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4440,
+"at": 4677,
 "words": 111,
 "cam": "split"
 },
 {
-"n": 114,
+"n": 116,
 "chapter": 11,
 "title": "The first outreach",
 "sub": "Illustrative.",
@@ -4580,12 +4774,12 @@ export const DECK_DATA: DeckData = {
 "slide": 40,
 "fit": "contain",
 "credit": "From Josh Li's masterclass deck, March 2026 · slide 40",
-"needsConsent": true,
+"needsConsent": false,
 "src": null
 },
 "notes": [
 {
-"text": "Then the outreach starts. Twenty-five owner contacts a week, using the scripts the team provides. Dan is nervous about the first few. By the end of the second week, they're just part of Monday morning.",
+"text": "Then the outreach starts. Twenty-five owner contacts a week, using the scripts the team provides. Dan is nervous about the first few. On the very first one, his thumb hovers over send for most of a minute. By the end of the second week, they're just part of Monday morning, done before his first coffee.",
 "aiOnly": false
 },
 {
@@ -4598,21 +4792,31 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4485,
-"words": 72,
+"at": 4723,
+"words": 92,
 "cam": "split"
 },
 {
-"n": 115,
+"n": 117,
 "chapter": 11,
 "title": "The middle weeks",
 "sub": "Illustrative.",
 "layout": "statement",
-"scene": null,
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"The owner who wants to meet. The numbers that need a second look."
+],
+[
+"A business that looked perfect fails the test."
+],
+[
+"He walks away, because the numbers told him to."
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · The middle weeks",
 "image": null,
 "notes": [
 {
@@ -4627,25 +4831,35 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4516,
+"at": 4762,
 "words": 125,
 "cam": "spotlight"
 },
 {
-"n": 116,
+"n": 118,
 "chapter": 11,
 "title": "The letter",
 "sub": "Illustrative.",
 "layout": "statement",
-"scene": null,
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"An email from Graham's accountant, a few changes marked in red."
+],
+[
+"The shape holds."
+],
+[
+"A signed letter of intent. He reads it twice, standing up."
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · One evening · The same kitchen table",
 "image": null,
 "notes": [
 {
-"text": "And then one evening, at the same kitchen table, there's an email from Graham's accountant with a few changes marked up. The shape holds. A few days later, there's a signed letter of intent.",
+"text": "And then one evening, at the same kitchen table, at about the same time of night, there's an email from Graham's accountant with a few changes marked up in red. Dan reads it twice. The shape holds. A few days later, there's a signed letter of intent, and Dan reads that twice as well, standing up, because he can't sit still.",
 "aiOnly": false
 },
 {
@@ -4662,12 +4876,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4567,
-"words": 124,
+"at": 4812,
+"words": 151,
 "cam": "spotlight"
 },
 {
-"n": 117,
+"n": 119,
 "chapter": 11,
 "title": "Dan, a year after his first deal",
 "sub": "Illustrative: one way the year can look. A picture, not a forecast.",
@@ -4684,11 +4898,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "It's a Tuesday morning, a year after Dan's first deal settled.",
-"aiOnly": false
-},
-{
-"text": "He's in the office before eight, but not because he has to be. There are two logos on the monthly report now, his and the one Graham built. Graham comes in on Thursdays. He's been helping with the handover, introducing Dan to the customers he's looked after for twenty years, and he seems lighter than he has in a long time. His note gets paid every month, out of the business he built, and he can see his people are looked after.",
+"text": "So come with Dan through one ordinary day, a Tuesday, a year after his first deal settled. It's the same man, and it ends at the same kitchen table.",
 "aiOnly": false
 }
 ],
@@ -4697,30 +4907,38 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4618,
-"words": 146,
+"at": 4873,
+"words": 82,
 "cam": "stage"
 },
 {
-"n": 118,
+"n": 120,
 "chapter": 11,
-"title": "What's different",
-"sub": "Illustrative.",
-"layout": "list",
-"scene": null,
+"title": "One Tuesday, a year later",
+"sub": "Illustrative: a picture, not a forecast.",
+"layout": "statement",
+"scene": "day",
 "onscreen": [],
 "data": [
 [
-"The report",
-"Two businesses on one page, read as a group"
+"7:50 am",
+"In the office before eight, because he wants to be. Two logos on the monthly report."
 ],
 [
-"The managers",
-"One running each site, so Dan isn't the bottleneck in either"
+"9:30 am",
+"Graham drops in, as he does on Tuesdays, with a box of pastries and a customer to introduce."
 ],
 [
-"The calls",
-"Dan is the one ringing owners now, not the one waiting for the phone"
+"11:00 am",
+"Dan makes a call. This time he is the one ringing an owner."
+],
+[
+"3:15 pm",
+"He leaves the yard. The phone stays in his pocket."
+],
+[
+"9:40 pm",
+"The kitchen table. The laptop is shut, and the tea is still hot."
 ]
 ],
 "caption": null,
@@ -4728,40 +4946,64 @@ export const DECK_DATA: DeckData = {
 "image": null,
 "notes": [
 {
-"text": "The manager at Graham's old site runs the floor there. Dan's own operations lead runs his. For the first time in years, Dan is reading the numbers of a group instead of running around inside one business.",
+"text": "It's ten to eight, and Dan is already in the office. Not because he has to be. Because he likes the hour before anyone else arrives. There are two logos on the monthly report now, his and the one Graham built, and the report reads like a group instead of a list of fires.",
 "aiOnly": false
 },
 {
-"text": "And here's the part he didn't expect. He's on the phone again, but the calls are different. He's ringing owners now. The plumber two suburbs over. The refrigeration business whose owner keeps talking about the coast. The calls are easier than the first one was, because he isn't asking anyone to take a chance on him anymore. He's done it once.",
+"text": "At half past nine, Graham drops in. He comes by on Tuesdays during the handover, with a box of pastries from the bakery near his old yard and a customer he wants Dan to meet. He seems lighter than he has in years. His note gets paid every month, out of the business he built, his rollover means he still owns a slice of what it becomes, and he can see his people are looked after.",
+"aiOnly": false
+},
+{
+"text": "At eleven, Dan makes a call, and this is the part he didn't expect. He's the one ringing an owner now. The refrigeration business two suburbs over, whose owner keeps talking about the coast. Dan isn't asking anyone to take a chance on him this time. He's done it once. And he notices he's looking forward to the call, the way he used to look forward to quoting big jobs when the business was young.",
+"aiOnly": false
+},
+{
+"text": "At a quarter past three, he leaves the yard. The manager at Graham's old site runs the floor there, and Dan's own operations lead runs his. His phone is in his pocket, and it stays there.",
+"aiOnly": false
+},
+{
+"text": "And at twenty to ten that night, he's at the kitchen table again. Same table, same time as the night this story started. The laptop is shut. The tea is still hot.",
 "aiOnly": false
 }
 ],
-"levers": [],
+"levers": [
+"PSYWAR: the felt future as an immersive build, one moment per click (a day, hour by hour), so the viewer walks through it rather than being told about it. SEEKING: the 11:00 call sells the reach toward the next deal, not only the arrival. Two-state callback: 9:40 pm at the same kitchen table, cold tea then, hot tea now. Built only from what the structure and the engagement involve: managers in each site, the seller's handover, the note and the rollover."
+],
 "cues": [],
 "poll": null,
-"at": 4676,
-"words": 98,
-"cam": "split"
+"at": 4908,
+"words": 273,
+"cam": "stage"
 },
 {
-"n": 119,
+"n": 121,
 "chapter": 11,
 "title": "The morning he met Graham's team",
 "sub": "Illustrative.",
 "layout": "statement",
-"scene": null,
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"The whole crew in early, the radio still going."
+],
+[
+"Graham, between the vans, telling them himself."
+],
+[
+"\"Graham says you're all right. That's good enough for me.\""
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · The week the deal settled · Graham's workshop",
 "image": null,
 "notes": [
 {
-"text": "Dan remembers one morning from that year more than any other. It was the week the deal settled. Graham asked his whole crew to come in early, and he stood in the workshop between the vans, with the radio still going in the background, and told them himself: he was stepping back, Dan was taking over, nothing was changing for them, and he'd be around for the handover.",
+"text": "Dan remembers one morning from that year more than any other. It was the week the deal settled. Graham asked his whole crew to come in early, and he stood in the workshop between the vans, with the radio still going in the background and the roller door half up, and told them himself: he was stepping back, Dan was taking over, nothing was changing for them, and he'd be around for the handover.",
 "aiOnly": false
 },
 {
-"text": "One of the older technicians shook Dan's hand afterwards and said, \"Graham says you're all right. That's good enough for me.\"",
+"text": "One of the older technicians, a man who'd been with Graham for twenty-two years, wiped his hand on his overalls, shook Dan's and said, \"Graham says you're all right. That's good enough for me.\"",
 "aiOnly": false
 },
 {
@@ -4770,29 +5012,42 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "levers": [
-"FUTURE PACE, emotional peak: contribution and significance needs (Robbins), told as a scene with sound and objects. Still no numbers or forecast."
+"FUTURE PACE, emotional peak: contribution and significance needs (Robbins), told as a scene with sound and objects. Closes the seller's question as a felt moment. Still no numbers or forecast."
 ],
 "cues": [],
 "poll": null,
-"at": 4717,
-"words": 115,
+"at": 5014,
+"words": 134,
 "cam": "spotlight"
 },
 {
-"n": 120,
+"n": 122,
 "chapter": 11,
 "title": "The conversation at home",
 "sub": "Illustrative.",
 "layout": "statement",
-"scene": null,
-"onscreen": [],
-"data": [],
+"scene": "film",
+"onscreen": [
+"Not \"I'll see\". Going."
+],
+"data": [
+[
+"\"Are we still going to the coast at Easter?\""
+],
+[
+"\"We're going.\""
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · That night · The kitchen",
 "image": null,
 "notes": [
 {
-"text": "And then there's the conversation at home that night. Dan tells his daughter that Easter is on. Not \"I'll see\". On. Because for the first time in years, the business doesn't fall over if he isn't there for a week. There's a manager at each site, and a structure that pays for itself, Graham's note and rollover included.",
+"text": "And then there's the conversation at home that night. His daughter, thirteen now, asks the same question she asked a year ago, half expecting the same answer. Are they going to the coast at Easter?",
+"aiOnly": false
+},
+{
+"text": "And this time Dan says, \"We're going.\" Not \"I'll see\". He says it without looking at his phone first, because for the first time in years, the business doesn't fall over if he isn't there for a week. There's a manager at each site, and a structure that pays for itself, Graham's note and rollover included. She doesn't say anything for a second. Then she goes to tell her friend.",
 "aiOnly": false
 },
 {
@@ -4800,15 +5055,49 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 }
 ],
-"levers": [],
+"levers": [
+"PEAK (peak-end rule): the confession from chapter 2 paid off, word for word, in a light scene. The deal's real purpose in the owner's own terms. A calm call to action follows at the same temperature."
+],
 "cues": [],
 "poll": null,
-"at": 4764,
-"words": 77,
+"at": 5068,
+"words": 124,
 "cam": "spotlight"
 },
 {
-"n": 121,
+"n": 123,
+"chapter": 11,
+"title": "Your version of that night",
+"sub": "It starts the way Dan's did. Apply under the video.",
+"layout": "statement",
+"scene": "apply-qr",
+"onscreen": [],
+"data": [],
+"caption": null,
+"kicker": null,
+"image": null,
+"notes": [
+{
+"text": "If there's a question at your own kitchen table that you keep answering with \"I'll see\", this is how Dan's version of that night started. Not with a deal. With an application, and a call about his own numbers. The button is under the video.",
+"aiOnly": false
+}
+],
+"levers": [
+"CTA at the emotional peak, quiet and certain (PSYWAR: temperature match). Presupposes only the first step, in the viewer's control."
+],
+"cues": [
+{
+"id": "CTA",
+"label": "Call to action: apply and book"
+}
+],
+"poll": null,
+"at": 5119,
+"words": 45,
+"cam": "stage"
+},
+{
+"n": 124,
 "chapter": 11,
 "title": "Notice how that feels",
 "sub": "Not as an if. As a picture.",
@@ -4821,15 +5110,11 @@ export const DECK_DATA: DeckData = {
 "image": null,
 "notes": [
 {
-"text": "Now put yourself in that chair. Your business on the report, and one next to it. Your manager running the floor. The phone in your hand, and you're the one making the call.",
+"text": "Now put yourself in that chair. Your business on the report, and one next to it. Your manager running the floor. The phone in your hand, and you're the one making the call to the next owner.",
 "aiOnly": false
 },
 {
-"text": "Notice how that feels, not as an \"if\", just as a picture.",
-"aiOnly": false
-},
-{
-"text": "And then look back from there, to today. To this masterclass, and the button under the video. From a year out, today looks small. It's a few minutes. It's the night you stopped trying to work out the buyer's path at the kitchen table on your own.",
+"text": "Notice how that feels, not as an \"if\", just as a picture. Then look back from there, to today. From a year out, today looks small. It's a few minutes. It's the night you stopped trying to work out the buyer's path at the kitchen table on your own.",
 "aiOnly": false
 }
 ],
@@ -4838,12 +5123,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4797,
-"words": 92,
+"at": 5140,
+"words": 86,
 "cam": "spotlight"
 },
 {
-"n": 122,
+"n": 125,
 "chapter": 11,
 "title": "Two paths from here",
 "sub": "",
@@ -4892,21 +5177,31 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4836,
+"at": 5176,
 "words": 128,
 "cam": "stage"
 },
 {
-"n": 123,
+"n": 126,
 "chapter": 11,
 "title": "The other Tuesday",
 "sub": "Illustrative: the first path, as a scene.",
-"layout": "statement",
-"scene": null,
+"layout": "section",
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"A new sign over Graham's gate. Not Dan's name."
+],
+[
+"Two of the vans already in someone else's colours."
+],
+[
+"\"Are we going to the coast at Easter?\" \"I'll see.\""
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · A year from now · The first path",
 "image": null,
 "notes": [
 {
@@ -4918,7 +5213,11 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "On the way to a job, he drives past Graham's yard. The sign over the gate is new. It's the name of a group from interstate, the kind backed by a fund. Two of Graham's vans are already in the new colours. And the customer Dan has been trying to win for ten years got a call last week from the new owners, offering a service contract at a price Dan can't match.",
+"text": "On the way to a job, he stops at the lights outside Graham's yard. The sign over the gate is new. It's the name of a group from interstate, the kind backed by a fund. Two of Graham's vans are already in the new colours, and one of them pulls out in front of him while he waits. The customer Dan has been trying to win for ten years got a call last week from the new owners, offering a service contract at a price Dan can't match.",
+"aiOnly": false
+},
+{
+"text": "That night his daughter asks about Easter. He hears himself say \"I'll see\".",
 "aiOnly": false
 },
 {
@@ -4931,16 +5230,84 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "levers": [
-"ROBBINS: Dickens, in miniature and true. The painful future is ordinary, specific and plausible, never catastrophic (E4, E2)."
+"ROBBINS: Dickens, in miniature and true. PSYWAR: loss made present with the same objects the desire scenes used (the sign, the vans, Easter), so the two futures can be compared object for object. Ordinary, specific and plausible, never catastrophic (E4, E2)."
 ],
 "cues": [],
 "poll": null,
-"at": 4888,
-"words": 200,
+"at": 5228,
+"words": 228,
 "cam": "spotlight"
 },
 {
-"n": 124,
+"n": 127,
+"chapter": 11,
+"title": "The same Tuesday, two ways",
+"sub": "Illustrative: a year from now.",
+"layout": "statement",
+"scene": "split",
+"onscreen": [],
+"data": [
+[
+"Close the tab",
+"Apply this week"
+],
+[
+"A stranger's name over Graham's gate",
+"A second name under Graham's, on the sign Dan slowed down for"
+],
+[
+"The phone face up on the dinner table",
+"The phone in his pocket, and he's the one making the calls"
+],
+[
+"Easter: \"I'll see\"",
+"Easter: \"We're going\""
+],
+[
+"Still meaning to buy something one day",
+"Already wondering about the second one"
+]
+],
+"caption": null,
+"kicker": null,
+"image": null,
+"notes": [
+{
+"text": "Put the two Tuesdays side by side, because the difference between them is easier to see than to describe.",
+"aiOnly": false
+},
+{
+"text": "One has a stranger's name over Graham's gate. The other has a second name under Graham's, on the sign Dan slowed down for.",
+"aiOnly": false
+},
+{
+"text": "On one, the phone is face up on the dinner table. On the other, it's in his pocket, and he's the one making the calls.",
+"aiOnly": false
+},
+{
+"text": "Easter. \"I'll see\", or \"We're going\".",
+"aiOnly": false
+},
+{
+"text": "And one owner is still meaning to buy something one day, while the other is already wondering about the second one.",
+"aiOnly": false
+},
+{
+"text": "Same man, same business, same market. The only thing that differs is one decision, made or not made, a year earlier.",
+"aiOnly": false
+}
+],
+"levers": [
+"PSYWAR: the two-state cut. Both futures edge to edge, object for object, built one row at a time and shortening, so the gap argues by itself and no sentence has to explain it. Illustrative, labelled."
+],
+"cues": [],
+"poll": null,
+"at": 5318,
+"words": 115,
+"cam": "stage"
+},
+{
+"n": 128,
 "chapter": 11,
 "title": "The other path",
 "sub": "Illustrative: a picture, not a forecast.",
@@ -4966,12 +5333,56 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4966,
+"at": 5365,
 "words": 65,
 "cam": "spotlight"
 },
 {
-"n": 125,
+"n": 129,
+"chapter": 11,
+"title": "What one more year of waiting costs",
+"sub": "Illustrative: one square for each Saturday.",
+"layout": "section",
+"scene": "tally",
+"onscreen": [],
+"data": [
+[
+"52",
+"more Saturdays, if the year looks like the last one"
+],
+[
+"12",
+"more month-end reports, read at the kitchen table"
+],
+[
+"One",
+"more year on every owner in your market with no successor"
+]
+],
+"caption": null,
+"kicker": "Illustrative · One more year",
+"image": null,
+"notes": [
+{
+"text": "And here's what one more year of waiting costs, counted the way Dan never counted it.",
+"aiOnly": false
+},
+{
+"text": "Fifty-two more Saturdays, if the year looks like the last one. Twelve more month-end reports, read at the kitchen table after everyone's gone to bed. And one more year on every owner in your market who has no one to hand his business to. Some of them will decide this year. Somebody will be the one who called them.",
+"aiOnly": false
+}
+],
+"levers": [
+"PSYWAR: the cost of waiting made physical and countable (a year as 52 squares), true for the avatar and never catastrophic. The third row is the real urgency: the market moves whether the viewer does or not. No deadline is invented."
+],
+"cues": [],
+"poll": null,
+"at": 5393,
+"words": 75,
+"cam": "stage"
+},
+{
+"n": 130,
 "chapter": 11,
 "title": "Waiting has a cost",
 "sub": "Illustrative: $500,000 more profit a year, at a 15% margin.",
@@ -4995,7 +5406,7 @@ export const DECK_DATA: DeckData = {
 "image": null,
 "notes": [
 {
-"text": "And waiting has a cost most owners never count.",
+"text": "And there's a cost in money most owners never count, either.",
 "aiOnly": false
 },
 {
@@ -5012,17 +5423,17 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4995,
-"words": 90,
+"at": 5425,
+"words": 92,
 "cam": "stage"
 },
 {
-"n": 126,
+"n": 131,
 "chapter": 11,
 "title": "Pick the path",
 "sub": "Apply under the video, or close the tab. Both are your call.",
 "layout": "statement",
-"scene": null,
+"scene": "apply-qr",
 "onscreen": [],
 "data": [],
 "caption": null,
@@ -5044,12 +5455,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 5033,
+"at": 5464,
 "words": 33,
-"cam": "spotlight"
+"cam": "stage"
 },
 {
-"n": 127,
+"n": 132,
 "chapter": 12,
 "title": "Who you're becoming",
 "sub": "Six levels, from where you spend your days to why it matters.",
@@ -5071,12 +5482,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5049,
+"at": 5480,
 "words": 42,
 "cam": "stage"
 },
 {
-"n": 128,
+"n": 133,
 "chapter": 12,
 "title": "Where you spend your days",
 "sub": "Level 1",
@@ -5106,12 +5517,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5069,
+"at": 5500,
 "words": 118,
 "cam": "stage"
 },
 {
-"n": 129,
+"n": 134,
 "chapter": 12,
 "title": "What you do",
 "sub": "Level 2",
@@ -5141,12 +5552,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5117,
+"at": 5548,
 "words": 111,
 "cam": "stage"
 },
 {
-"n": 130,
+"n": 135,
 "chapter": 12,
 "title": "What you can do",
 "sub": "Level 3",
@@ -5176,12 +5587,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5163,
+"at": 5594,
 "words": 156,
 "cam": "stage"
 },
 {
-"n": 131,
+"n": 136,
 "chapter": 12,
 "title": "What you believe",
 "sub": "Level 4",
@@ -5221,12 +5632,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5225,
+"at": 5656,
 "words": 108,
 "cam": "stage"
 },
 {
-"n": 132,
+"n": 137,
 "chapter": 12,
 "title": "Who you are",
 "sub": "Level 5",
@@ -5253,10 +5664,6 @@ export const DECK_DATA: DeckData = {
 {
 "text": "So here's who's sitting in your chair now. Someone who sees the business down the road and thinks about a structure instead of a price. A buyer.",
 "aiOnly": false
-},
-{
-"text": "Say it to yourself, quietly. I'm a buyer. Notice what happens when you say it. For some owners it feels like a jolt. For others it settles, like something that was always true and is only now being said out loud. Both are fine.",
-"aiOnly": false
 }
 ],
 "levers": [
@@ -5264,12 +5671,48 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5270,
-"words": 140,
+"at": 5701,
+"words": 96,
 "cam": "stage"
 },
 {
-"n": 133,
+"n": 138,
+"chapter": 12,
+"title": "I'm a buyer.",
+"sub": "Say it once, to yourself.",
+"layout": "section",
+"scene": "identity",
+"onscreen": [],
+"data": [
+[
+"I'm an owner.",
+"I'm a buyer."
+]
+],
+"caption": null,
+"kicker": "Level 5 · Who you are",
+"image": null,
+"notes": [
+{
+"text": "Say it to yourself, quietly. I'm a buyer.",
+"aiOnly": false
+},
+{
+"text": "Notice what happens when you say it. For some owners it feels like a jolt. For others it settles, like something that was always true and is only now being said out loud. Both are fine. You've spent years being the person who holds one business up, and you were good at it. This is the person who decides what the group buys next.",
+"aiOnly": false
+}
+],
+"levers": [
+"PRIDE / IDENTITY REVEAL (Dilts level 5): the old sentence set in grey and struck through with a hairline, the new one set large in white, one click each. Said by the viewer, to themselves, never chanted (nlp-evidence-and-ethics: no affirmation chanting); tied in the next slides to a behaviour (noticing, then applying)."
+],
+"cues": [],
+"poll": null,
+"at": 5741,
+"words": 72,
+"cam": "spotlight"
+},
+{
+"n": 139,
 "chapter": 12,
 "title": "Owners build. Buyers compound.",
 "sub": "",
@@ -5295,12 +5738,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5326,
+"at": 5772,
 "words": 74,
 "cam": "spotlight"
 },
 {
-"n": 134,
+"n": 140,
 "chapter": 12,
 "title": "Why it matters",
 "sub": "Level 6",
@@ -5330,12 +5773,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5358,
+"at": 5803,
 "words": 95,
 "cam": "stage"
 },
 {
-"n": 135,
+"n": 141,
 "chapter": 12,
 "title": "The first thing a buyer does",
 "sub": "Apply under the video.",
@@ -5362,12 +5805,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 5398,
+"at": 5843,
 "words": 36,
 "cam": "spotlight"
 },
 {
-"n": 136,
+"n": 142,
 "chapter": 13,
 "title": "The questions owners ask my team",
 "sub": "The real ones, answered straight.",
@@ -5389,12 +5832,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5415,
+"at": 5860,
 "words": 49,
 "cam": "spotlight"
 },
 {
-"n": 137,
+"n": 143,
 "chapter": 13,
 "title": "\"How much of my own money do I need?\"",
 "sub": "",
@@ -5424,12 +5867,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5437,
+"at": 5883,
 "words": 117,
 "cam": "spotlight"
 },
 {
-"n": 138,
+"n": 144,
 "chapter": 13,
 "title": "\"What if the bank says no?\"",
 "sub": "",
@@ -5446,7 +5889,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "Then the bank said no to a structure, not to you. The usual reason is that someone walked in first, with no seller terms, asking to borrow the whole price. Agree the shape with the seller, run it through the one and a half times test, and then go to the lender. A lender reading a deal that already clears the test, with a note and a rollover inside it, is having a very different conversation.",
+"text": "Then the bank said no to a structure, not to you. The usual reason is that someone walked in first, with no seller terms, asking to borrow the whole price. Agree the shape with the seller, run it through the one and a half times test, and then go to the lender. A lender reading a deal that already clears the test, with a note and a rollover inside it, is having a very different conversation. Walking in with the seller's terms already agreed feels different too. You aren't asking for a favour. You're bringing them a deal.",
 "aiOnly": false
 }
 ],
@@ -5455,12 +5898,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5485,
-"words": 82,
+"at": 5931,
+"words": 104,
 "cam": "spotlight"
 },
 {
-"n": 139,
+"n": 145,
 "chapter": 13,
 "title": "\"Do I have to sign a personal guarantee?\"",
 "sub": "",
@@ -5486,12 +5929,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5520,
+"at": 5974,
 "words": 86,
 "cam": "spotlight"
 },
 {
-"n": 140,
+"n": 146,
 "chapter": 13,
 "title": "\"What if the seller wants all cash?\"",
 "sub": "",
@@ -5517,12 +5960,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5556,
+"at": 6010,
 "words": 79,
 "cam": "spotlight"
 },
 {
-"n": 141,
+"n": 147,
 "chapter": 13,
 "title": "\"Doesn't seller finance mean something's wrong with the business?\"",
 "sub": "",
@@ -5546,12 +5989,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 5590,
+"at": 6044,
 "words": 76,
 "cam": "spotlight"
 },
 {
-"n": 142,
+"n": 148,
 "chapter": 13,
 "title": "\"What is seller rollover, exactly?\"",
 "sub": "",
@@ -5575,12 +6018,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 5622,
+"at": 6076,
 "words": 64,
 "cam": "spotlight"
 },
 {
-"n": 143,
+"n": 149,
 "chapter": 13,
 "title": "\"Does it work where I am?\"",
 "sub": "",
@@ -5606,12 +6049,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5650,
+"at": 6104,
 "words": 76,
 "cam": "spotlight"
 },
 {
-"n": 144,
+"n": 150,
 "chapter": 13,
 "title": "Bring the question to the call",
 "sub": "Apply under the video.",
@@ -5636,12 +6079,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 5683,
+"at": 6137,
 "words": 32,
 "cam": "spotlight"
 },
 {
-"n": 145,
+"n": 151,
 "chapter": 13,
 "title": "\"Why would a lender back me if I've never bought a business?\"",
 "sub": "",
@@ -5667,12 +6110,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5699,
+"at": 6153,
 "words": 78,
 "cam": "spotlight"
 },
 {
-"n": 146,
+"n": 152,
 "chapter": 13,
 "title": "\"What is a letter of intent?\"",
 "sub": "",
@@ -5689,19 +6132,19 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "It's the document where buyer and seller put the agreed shape of the deal on paper: the price, how it's paid, the note, the rollover, the handover, and what has to be checked before anyone commits for good. It isn't the final contract. It's the point where a conversation becomes a deal both sides are working toward. That's why the engagement guarantee is tied to it.",
+"text": "It's the document where buyer and seller put the agreed shape of the deal on paper: the price, how it's paid, the note, the rollover, the handover, and what has to be checked before anyone commits for good. It isn't the final contract. It's the point where a conversation becomes a deal both sides are working toward, the piece of paper Dan read twice, standing up. That's why the engagement guarantee is tied to it.",
 "aiOnly": false
 }
 ],
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 5732,
-"words": 72,
+"at": 6186,
+"words": 81,
 "cam": "spotlight"
 },
 {
-"n": 147,
+"n": 153,
 "chapter": 13,
 "title": "\"How long does a deal take?\"",
 "sub": "",
@@ -5727,12 +6170,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5763,
+"at": 6220,
 "words": 80,
 "cam": "spotlight"
 },
 {
-"n": 148,
+"n": 154,
 "chapter": 13,
 "title": "\"I've bought before. Some of them haven't made money.\"",
 "sub": "",
@@ -5758,12 +6201,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5797,
+"at": 6254,
 "words": 89,
 "cam": "spotlight"
 },
 {
-"n": 149,
+"n": 155,
 "chapter": 13,
 "title": "\"I don't have the time.\"",
 "sub": "",
@@ -5784,7 +6227,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "So the real question is what you're spending those hours on now. If they're going into growing by hand, a few of them each week pointed at a business that's already built is a different use of the same time.",
+"text": "So the real question is what you're spending those hours on now. Dan had seventy-eight Saturdays going into growing by hand. A few hours a week, pointed at a business that's already built, is a different use of the same time.",
 "aiOnly": false
 }
 ],
@@ -5793,12 +6236,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5834,
-"words": 88,
+"at": 6292,
+"words": 89,
 "cam": "spotlight"
 },
 {
-"n": 150,
+"n": 156,
 "chapter": 13,
 "title": "\"My industry is different.\"",
 "sub": "",
@@ -5824,12 +6267,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5872,
+"at": 6329,
 "words": 62,
 "cam": "spotlight"
 },
 {
-"n": 151,
+"n": 157,
 "chapter": 13,
 "title": "\"My business is under a million.\"",
 "sub": "",
@@ -5855,12 +6298,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5899,
+"at": 6356,
 "words": 75,
 "cam": "spotlight"
 },
 {
-"n": 152,
+"n": 158,
 "chapter": 13,
 "title": "\"I'm already talking to a seller.\"",
 "sub": "",
@@ -5884,12 +6327,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 5931,
+"at": 6388,
 "words": 66,
 "cam": "spotlight"
 },
 {
-"n": 153,
+"n": 159,
 "chapter": 13,
 "title": "Already have a target?",
 "sub": "Name it in your application. The call starts there.",
@@ -5914,12 +6357,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 5960,
+"at": 6417,
 "words": 25,
 "cam": "spotlight"
 },
 {
-"n": 154,
+"n": 160,
 "chapter": 13,
 "title": "\"What size business should I buy first?\"",
 "sub": "",
@@ -5945,12 +6388,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5973,
+"at": 6430,
 "words": 81,
 "cam": "spotlight"
 },
 {
-"n": 155,
+"n": 161,
 "chapter": 13,
 "title": "\"Can I run two businesses?\"",
 "sub": "",
@@ -5974,12 +6417,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6007,
+"at": 6465,
 "words": 81,
 "cam": "spotlight"
 },
 {
-"n": 156,
+"n": 162,
 "chapter": 13,
 "title": "\"What if the seller's numbers aren't what they say?\"",
 "sub": "",
@@ -6003,12 +6446,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6042,
+"at": 6499,
 "words": 76,
 "cam": "spotlight"
 },
 {
-"n": 157,
+"n": 163,
 "chapter": 13,
 "title": "\"Is this only for healthcare?\"",
 "sub": "",
@@ -6032,12 +6475,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6074,
+"at": 6532,
 "words": 56,
 "cam": "spotlight"
 },
 {
-"n": 158,
+"n": 164,
 "chapter": 13,
 "title": "Your question, on your numbers",
 "sub": "Apply under the video.",
@@ -6062,12 +6505,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 6099,
+"at": 6557,
 "words": 33,
 "cam": "spotlight"
 },
 {
-"n": 159,
+"n": 165,
 "chapter": 13,
 "title": "\"Should I wait until rates come down?\"",
 "sub": "",
@@ -6093,12 +6536,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6116,
+"at": 6573,
 "words": 84,
 "cam": "spotlight"
 },
 {
-"n": 160,
+"n": 166,
 "chapter": 13,
 "title": "\"What if I lose the deal at the last minute?\"",
 "sub": "",
@@ -6122,12 +6565,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6151,
+"at": 6609,
 "words": 66,
 "cam": "spotlight"
 },
 {
-"n": 161,
+"n": 167,
 "chapter": 13,
 "title": "\"What if my team finds out I'm looking?\"",
 "sub": "",
@@ -6151,12 +6594,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6180,
+"at": 6637,
 "words": 59,
 "cam": "spotlight"
 },
 {
-"n": 162,
+"n": 168,
 "chapter": 13,
 "title": "\"Can I buy outside my industry?\"",
 "sub": "",
@@ -6180,12 +6623,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6206,
+"at": 6664,
 "words": 79,
 "cam": "spotlight"
 },
 {
-"n": 163,
+"n": 169,
 "chapter": 13,
 "title": "\"Am I too old to start this?\"",
 "sub": "",
@@ -6211,12 +6654,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6240,
+"at": 6697,
 "words": 67,
 "cam": "spotlight"
 },
 {
-"n": 164,
+"n": 170,
 "chapter": 13,
 "title": "Whatever your question",
 "sub": "Bring it to the call. Apply under the video.",
@@ -6241,21 +6684,34 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 6269,
+"at": 6726,
 "words": 35,
 "cam": "spotlight"
 },
 {
-"n": 165,
+"n": 171,
 "chapter": 13,
 "title": "\"How do I know the team knows what it's doing?\"",
 "sub": "",
-"layout": "quote",
-"scene": null,
+"layout": "list",
+"scene": "proof",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"Two acquisitions",
+"My clinics, bought for JC Health Group, my own healthcare holding company"
+],
+[
+"100% seller financed",
+"In both deals, the seller financed the whole price"
+],
+[
+"$5.5M, no personal guarantee",
+"One radiology deal: over $5M, the equipment secured the loan"
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "What's true, and checkable on the call",
 "image": null,
 "notes": [
 {
@@ -6272,12 +6728,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6286,
+"at": 6743,
 "words": 95,
-"cam": "spotlight"
+"cam": "stage"
 },
 {
-"n": 166,
+"n": 172,
 "chapter": 13,
 "title": "\"I've bought courses before, and they went nowhere.\"",
 "sub": "",
@@ -6301,12 +6757,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6326,
+"at": 6783,
 "words": 71,
 "cam": "spotlight"
 },
 {
-"n": 167,
+"n": 173,
 "chapter": 13,
 "title": "\"Can I bring my accountant or my business partner?\"",
 "sub": "",
@@ -6330,12 +6786,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6356,
+"at": 6814,
 "words": 46,
 "cam": "spotlight"
 },
 {
-"n": 168,
+"n": 174,
 "chapter": 13,
 "title": "\"What happens after I book?\"",
 "sub": "",
@@ -6359,12 +6815,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6377,
+"at": 6835,
 "words": 55,
 "cam": "spotlight"
 },
 {
-"n": 169,
+"n": 175,
 "chapter": 13,
 "title": "\"My books are a mess. Can I still apply?\"",
 "sub": "",
@@ -6388,41 +6844,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6402,
+"at": 6860,
 "words": 79,
 "cam": "spotlight"
 },
 {
-"n": 170,
-"chapter": 13,
-"title": "\"Does the business have to be in my city?\"",
-"sub": "",
-"layout": "quote",
-"scene": null,
-"onscreen": [],
-"data": [],
-"caption": null,
-"kicker": null,
-"image": null,
-"notes": [
-{
-"text": "Does the business have to be in my city?",
-"aiOnly": false
-},
-{
-"text": "It doesn't have to be, but the first one is easier close by. You can visit, you know the market, and the seller is more likely to know your name. Close to you on the map and close to what you already run is where most first deals make the most sense. The buy box decides it with you.",
-"aiOnly": false
-}
-],
-"levers": [],
-"cues": [],
-"poll": null,
-"at": 6436,
-"words": 68,
-"cam": "spotlight"
-},
-{
-"n": 171,
+"n": 176,
 "chapter": 13,
 "title": "\"Is the call a sales call?\"",
 "sub": "",
@@ -6448,12 +6875,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6465,
+"at": 6893,
 "words": 64,
 "cam": "spotlight"
 },
 {
-"n": 172,
+"n": 177,
 "chapter": 13,
 "title": "\"What does it cost?\"",
 "sub": "",
@@ -6477,12 +6904,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6493,
+"at": 6921,
 "words": 67,
 "cam": "spotlight"
 },
 {
-"n": 173,
+"n": 178,
 "chapter": 13,
 "title": "\"Why an application, and not just a booking link?\"",
 "sub": "",
@@ -6506,12 +6933,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6522,
+"at": 6950,
 "words": 72,
 "cam": "spotlight"
 },
 {
-"n": 174,
+"n": 179,
 "chapter": 13,
 "title": "\"I need to talk to my partner first.\"",
 "sub": "",
@@ -6537,12 +6964,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6553,
+"at": 6981,
 "words": 57,
 "cam": "spotlight"
 },
 {
-"n": 175,
+"n": 180,
 "chapter": 13,
 "title": "\"What if I'm not ready to decide on the call?\"",
 "sub": "",
@@ -6568,12 +6995,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6579,
+"at": 7007,
 "words": 70,
 "cam": "spotlight"
 },
 {
-"n": 176,
+"n": 181,
 "chapter": 13,
 "title": "\"What if I apply and I'm not a fit?\"",
 "sub": "",
@@ -6597,41 +7024,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6609,
+"at": 7037,
 "words": 56,
 "cam": "spotlight"
 },
 {
-"n": 177,
-"chapter": 13,
-"title": "\"What do I need ready?\"",
-"sub": "",
-"layout": "quote",
-"scene": null,
-"onscreen": [],
-"data": [],
-"caption": null,
-"kicker": null,
-"image": null,
-"notes": [
-{
-"text": "What do I need ready?",
-"aiOnly": false
-},
-{
-"text": "For the application, only what you know about your business today: roughly what it turns over and makes, and what you'd want to buy. For the call, a target if you have one. If you go ahead with the engagement, your last two years of financials come in within seven days of signing, at the kickoff. You don't need them to apply.",
-"aiOnly": false
-}
-],
-"levers": [],
-"cues": [],
-"poll": null,
-"at": 6634,
-"words": 67,
-"cam": "spotlight"
-},
-{
-"n": 178,
+"n": 182,
 "chapter": 13,
 "title": "\"Why now, and not next year?\"",
 "sub": "",
@@ -6657,12 +7055,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6663,
+"at": 7062,
 "words": 77,
 "cam": "spotlight"
 },
 {
-"n": 179,
+"n": 183,
 "chapter": 13,
 "title": "\"What if the business I buy needs me more than I expect?\"",
 "sub": "",
@@ -6686,12 +7084,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6696,
+"at": 7095,
 "words": 74,
 "cam": "spotlight"
 },
 {
-"n": 180,
+"n": 184,
 "chapter": 13,
 "title": "Every answer ends in the same place",
 "sub": "The call, on your numbers. Apply under the video.",
@@ -6720,12 +7118,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 6728,
+"at": 7126,
 "words": 49,
 "cam": "spotlight"
 },
 {
-"n": 181,
+"n": 185,
 "chapter": 14,
 "title": "Three owners, three situations",
 "sub": "Illustrative composites, built from situations owners describe. Not real clients, and not testimonials.",
@@ -6747,12 +7145,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6750,
+"at": 7149,
 "words": 58,
 "cam": "spotlight"
 },
 {
-"n": 182,
+"n": 186,
 "chapter": 14,
 "title": "Priya: \"I've never bought anything.\"",
 "sub": "Illustrative composite: a dental practice, about $2.4M a year, fourteen staff.",
@@ -6778,12 +7176,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6776,
+"at": 7175,
 "words": 75,
 "cam": "spotlight"
 },
 {
-"n": 183,
+"n": 187,
 "chapter": 14,
 "title": "What changes Priya's story",
 "sub": "Illustrative.",
@@ -6824,12 +7222,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6808,
+"at": 7207,
 "words": 162,
 "cam": "split"
 },
 {
-"n": 184,
+"n": 188,
 "chapter": 14,
 "title": "Tom: \"Stuck at five or six million, need more locations.\"",
 "sub": "Illustrative composite: three physiotherapy clinics.",
@@ -6855,12 +7253,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6873,
+"at": 7272,
 "words": 84,
 "cam": "spotlight"
 },
 {
-"n": 185,
+"n": 189,
 "chapter": 14,
 "title": "What changes Tom's plan",
 "sub": "Illustrative.",
@@ -6899,12 +7297,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6908,
+"at": 7307,
 "words": 147,
 "cam": "stage"
 },
 {
-"n": 186,
+"n": 190,
 "chapter": 14,
 "title": "Leah: \"Some of my deals haven't made money.\"",
 "sub": "Illustrative composite: an accounting firm that has bought four smaller practices.",
@@ -6926,12 +7324,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6967,
+"at": 7366,
 "words": 54,
 "cam": "spotlight"
 },
 {
-"n": 187,
+"n": 191,
 "chapter": 14,
 "title": "What changes Leah's next deal",
 "sub": "Illustrative.",
@@ -6972,12 +7370,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6992,
+"at": 7390,
 "words": 149,
 "cam": "split"
 },
 {
-"n": 188,
+"n": 192,
 "chapter": 14,
 "title": "And Mark: \"Why not just pay cash?\"",
 "sub": "Illustrative composite: a logistics business, with money sitting in the bank.",
@@ -7007,12 +7405,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7051,
+"at": 7450,
 "words": 170,
 "cam": "spotlight"
 },
 {
-"n": 189,
+"n": 193,
 "chapter": 14,
 "title": "What the three have in common",
 "sub": "Illustrative.",
@@ -7059,12 +7457,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7119,
+"at": 7518,
 "words": 115,
 "cam": "split"
 },
 {
-"n": 190,
+"n": 194,
 "chapter": 14,
 "title": "Which one are you?",
 "sub": "Or a bit of all three.",
@@ -7090,12 +7488,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7166,
+"at": 7565,
 "words": 75,
 "cam": "spotlight"
 },
 {
-"n": 191,
+"n": 195,
 "chapter": 14,
 "title": "Your situation, on your numbers",
 "sub": "Apply under the video.",
@@ -7120,12 +7518,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 7198,
+"at": 7597,
 "words": 24,
 "cam": "spotlight"
 },
 {
-"n": 192,
+"n": 196,
 "chapter": 15,
 "title": "Two ways to leave this masterclass",
 "sub": "",
@@ -7166,12 +7564,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7211,
+"at": 7610,
 "words": 76,
 "cam": "stage"
 },
 {
-"n": 193,
+"n": 197,
 "chapter": 15,
 "title": "What you wrote earlier",
 "sub": "It's beside the video. Read it once more.",
@@ -7197,21 +7595,31 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7244,
+"at": 7643,
 "words": 45,
 "cam": "spotlight"
 },
 {
-"n": 194,
+"n": 198,
 "chapter": 15,
 "title": "The end of the call",
 "sub": "What you'll walk away with.",
 "layout": "statement",
-"scene": null,
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"Roughly what your business can carry."
+],
+[
+"What a first target looks like, or which business is worth a coffee."
+],
+[
+"Whether working with my team makes sense for you."
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "The end of the strategy call · You close the laptop",
 "image": null,
 "notes": [
 {
@@ -7228,12 +7636,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7265,
+"at": 7664,
 "words": 85,
 "cam": "spotlight"
 },
 {
-"n": 195,
+"n": 199,
 "chapter": 15,
 "title": "Thirty days from now",
 "sub": "You'll be thirty days older either way.",
@@ -7259,21 +7667,34 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7301,
+"at": 7700,
 "words": 87,
 "cam": "spotlight"
 },
 {
-"n": 196,
+"n": 200,
 "chapter": 15,
 "title": "Permission to decide",
 "sub": "",
-"layout": "statement",
-"scene": null,
+"layout": "list",
+"scene": "proof",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"Why this path",
+"The price is paid from the business's own profit: a lender, the seller's note and the seller's rollover"
+],
+[
+"Why it's true",
+"The test on the numbers, and two acquisitions where the sellers financed 100% of the price"
+],
+[
+"Why now",
+"The owners in your market with no successor are deciding anyway, one at a time"
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Three reasons, in one breath",
 "image": null,
 "notes": [
 {
@@ -7281,21 +7702,25 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "So if you're doing over a million a year, and that sentence matters to you, give yourself permission to take the next step now.",
+"text": "So here are the three reasons in one breath. Why this path: because the price of a business that's already built can be paid out of its own profit, through a lender, the seller's note and the seller's rollover, instead of out of your savings or your Saturdays. The reason to believe it: you've watched the test work on the numbers, and two sellers financed one hundred percent of the price when I bought my clinics. And why now: because the owners in your market with no successor are deciding anyway, one at a time, with or without you.",
+"aiOnly": false
+},
+{
+"text": "So if you're doing over a million a year, and that sentence you wrote matters to you, give yourself permission to take the next step now.",
 "aiOnly": false
 }
 ],
 "levers": [
-"SULTANIC: the permission slip. Presupposition about the next step only (L3), never the outcome."
+"SULTANIC: the permission slip. Presupposition about the next step only (L3), never the outcome. BENCIVENGA: the three reasons why (why you, why true, why now) restated at the close, the promise joined to its proof (I1, I2)."
 ],
 "cues": [],
 "poll": null,
-"at": 7337,
-"words": 72,
-"cam": "spotlight"
+"at": 7736,
+"words": 173,
+"cam": "stage"
 },
 {
-"n": 197,
+"n": 201,
 "chapter": 15,
 "title": "If you're someone who",
 "sub": "The identity close.",
@@ -7334,12 +7759,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 7368,
+"at": 7805,
 "words": 100,
 "cam": "spotlight"
 },
 {
-"n": 198,
+"n": 202,
 "chapter": 15,
 "title": "How to take the next step",
 "sub": "",
@@ -7369,6 +7794,10 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
+"text": "And remember what stands behind the step after that, if you take it. A full refund in the first seven days of the engagement, no conditions. After that, the LOI guarantee, with the conditions you heard. The call itself is a conversation about your numbers.",
+"aiOnly": false
+},
+{
 "text": "If you have a question first, type it in the question box beside the video, and the button stays right there.",
 "aiOnly": false
 }
@@ -7376,12 +7805,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7410,
-"words": 64,
+"at": 7846,
+"words": 109,
 "cam": "stage"
 },
 {
-"n": 199,
+"n": 203,
 "chapter": 15,
 "title": "Your worksheet",
 "sub": "The deal structure worksheet is unlocked under the video: one real target, the numbers, the test and the stack.",
@@ -7408,21 +7837,28 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 7438,
+"at": 7891,
 "words": 60,
 "cam": "spotlight"
 },
 {
-"n": 200,
+"n": 204,
 "chapter": 15,
 "title": "Dan, one more time",
 "sub": "Illustrative.",
-"layout": "statement",
-"scene": null,
+"layout": "section",
+"scene": "film",
 "onscreen": [],
-"data": [],
+"data": [
+[
+"Not \"Can I afford Graham's business?\""
+],
+[
+"\"Does it pass the test?\""
+]
+],
 "caption": null,
-"kicker": null,
+"kicker": "Illustrative · Same man · Same kitchen table",
 "image": null,
 "notes": [
 {
@@ -7435,12 +7871,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7464,
+"at": 7918,
 "words": 55,
 "cam": "spotlight"
 },
 {
-"n": 201,
+"n": 205,
 "chapter": 15,
 "title": "Owners build. Buyers compound.",
 "sub": "",
@@ -7466,12 +7902,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7489,
+"at": 7942,
 "words": 25,
 "cam": "spotlight"
 },
 {
-"n": 202,
+"n": 206,
 "chapter": 15,
 "title": "A year from now",
 "sub": "The same business under the same ceiling, or a year into building a group.",
@@ -7487,7 +7923,7 @@ export const DECK_DATA: DeckData = {
 "slide": 36,
 "fit": "contain",
 "credit": "From Josh Li's masterclass deck, March 2026 · slide 36",
-"needsConsent": true,
+"needsConsent": false,
 "src": null
 },
 "notes": [
@@ -7496,19 +7932,23 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "Thank you for staying to the end. Now go and find the business you'd buy first.",
+"text": "Twice, a seller trusted me with his life's work and financed the whole price. Sellers look at who stands behind a buyer, and this is who stands behind JC Health Group. On your first deal, my team can stand behind you.",
+"aiOnly": false
+},
+{
+"text": "Thank you for staying to the end. Now go and find the business you'd buy first, and when you have, the button is under the video.",
 "aiOnly": false
 }
 ],
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7502,
-"words": 67,
+"at": 7956,
+"words": 118,
 "cam": "split"
 },
 {
-"n": 203,
+"n": 207,
 "chapter": 15,
 "title": "Education only",
 "sub": "Not financial, legal or tax advice. Every number shown is illustrative unless it is stated as a fact. Lending decisions and results depend on the business, the lender and the deal. The strategy call and the engagement do not promise financing, a closed acquisition or any return.",
@@ -7528,12 +7968,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7531,
+"at": 8004,
 "words": 36,
 "cam": "spotlight"
 }
 ],
-"plannedSec": 7549,
+"plannedSec": 8022,
 "wpm": 160,
 "applyPath": "/apply",
 "script": "scripts/ai-webinar/script-ai-josh.md"
