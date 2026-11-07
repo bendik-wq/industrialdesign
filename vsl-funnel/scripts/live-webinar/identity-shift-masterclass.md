@@ -848,7 +848,7 @@ Remember your guess in the chat? There's the number. About a thousand.
 
 But the numbers aren't the story. The story is what happened between call one and call one thousand, and what was different on the deal that finally said yes. And I'm going to tell it to you in a few minutes, because it's the bridge to everything that comes next. [nested loop A, held open for writer 2] Hold your questions about it until then.
 
-[S82: "Christian Dawes. $2.4m deal, no money down, over financed, unemployed, crime record, tattoos, no higher education. The winning factor: action."]
+[S82: "Christian Dawes. $2.4m deal, no money down, over financed. The winning factor: action."]
 
 And this is Christian Dawes. [VERIFY: S82, his deal result only; personal background stays out.]
 
