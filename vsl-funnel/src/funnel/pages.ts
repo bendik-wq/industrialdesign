@@ -476,7 +476,7 @@ export async function breakoutPage(c: Context<AppEnv>) {
   const wa = whatsappLink(c.get('settings'), lead, booked ? 'booked' : 'question');
 
   let callTime: string | null = null;
-  if (booked && lead?.call_at) callTime = formatCallTime(lead.call_at, c.get('visitor').geo.timezone);
+  if (booked && lead?.call_at) callTime = formatCallTime(lead.call_at, lead.timezone || c.get('visitor').geo.timezone);
 
   const voice = voiceView(c, lead);
   return render(c, '/breakout.html', {
