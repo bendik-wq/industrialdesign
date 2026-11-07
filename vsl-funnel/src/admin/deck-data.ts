@@ -17,85 +17,85 @@ export const DECK_DATA: DeckData = {
 "n": 2,
 "title": "The ceiling",
 "part": "Content",
-"at": 800
+"at": 846
 },
 {
 "n": 3,
 "title": "The owner down the road",
 "part": "Content",
-"at": 1322
+"at": 1369
 },
 {
 "n": 4,
 "title": "How a business pays for itself",
 "part": "Content",
-"at": 1731
+"at": 1778
 },
 {
 "n": 5,
 "title": "What a group is worth",
 "part": "Content",
-"at": 2251
+"at": 2338
 },
 {
 "n": 6,
 "title": "What 90 owners told us",
 "part": "Content",
-"at": 2583
+"at": 2669
 },
 {
 "n": 7,
 "title": "The seller's side of the table",
 "part": "Content",
-"at": 2891
+"at": 2977
 },
 {
 "n": 8,
 "title": "The first conversation",
 "part": "Content",
-"at": 3224
+"at": 3310
 },
 {
 "n": 9,
 "title": "Two yeses and the big domino",
 "part": "Transition",
-"at": 3503
+"at": 3589
 },
 {
 "n": 10,
 "title": "What happens when you apply",
 "part": "Offer",
-"at": 3781
+"at": 3992
 },
 {
 "n": 11,
 "title": "Twelve months from now",
 "part": "Pitch",
-"at": 4652
+"at": 4972
 },
 {
 "n": 12,
 "title": "Who you're becoming",
 "part": "Pitch",
-"at": 5480
+"at": 5800
 },
 {
 "n": 13,
 "title": "The questions owners ask us",
 "part": "Pitch",
-"at": 5860
+"at": 6181
 },
 {
 "n": 14,
 "title": "Three owners, three situations",
 "part": "Pitch",
-"at": 7149
+"at": 7474
 },
 {
 "n": 15,
 "title": "Your decision",
 "part": "Pitch",
-"at": 7610
+"at": 7935
 }
 ],
 "slides": [
@@ -609,14 +609,25 @@ export const DECK_DATA: DeckData = {
 "chapter": 1,
 "title": "Who's behind the method",
 "sub": "",
-"layout": "image-left",
-"scene": null,
-"onscreen": [
-"Two acquisitions. In both, the sellers financed 100% of the price."
+"layout": "list",
+"scene": "proof",
+"onscreen": [],
+"data": [
+[
+"First deal at 25",
+"100% seller financed, after about 1,000 cold calls and four dead deals"
 ],
-"data": [],
-"caption": "Josh Li with a seller at signing.",
-"kicker": null,
+[
+"$100M+",
+"In transactions advised on and closed, by Josh's own count"
+],
+[
+"Multi 7-figure",
+"JC Health Group today, all of it seller financed"
+]
+],
+"caption": null,
+"kicker": "Josh Li, in his own words",
 "image": {
 "id": "josh-handshake",
 "what": "Josh shaking hands with the seller of his first clinic",
@@ -634,18 +645,26 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
+"text": "By twenty-one I was in banking, working on more than thirty million dollars of deals, and I've since advised on and closed more than a hundred million dollars in transactions. I did my first deal at twenty-five, one hundred percent seller financed, which made me the youngest in Australian history to do a fully seller financed healthcare deal. Today JC Health Group is a multi seven-figure portfolio, all of it seller financed. I'm building KingLi into an eight-figure group now, and my goal for JC Health Group is a nine-figure exit.",
+"aiOnly": false
+},
+{
+"text": "But it didn't start there. When I did that first deal, I was unemployed, with zero experience. I'd made about a thousand cold calls, and four deals had died on me before one didn't.",
+"aiOnly": false
+},
+{
 "text": "Hold on to that, because I'll tell you what made it possible, and it isn't what most people expect. It's a question. Sellers ask it whether they say it out loud or not.",
 "aiOnly": false
 }
 ],
 "levers": [
-"POSITION: only the approved facts. Josh founded JC Health Group; two acquisitions; sellers financed 100% in both. Second firing of the proof, now with the photo of a signing (proof adjacency: the claim and the picture in one breath)."
+"POSITION + ORIGIN (owner decision 2026-11-07: Josh's bigger claims from his Dealmaker deck, slides 11 and 12, approved as his own statements, always attributed to him, never as independent facts). Bencivenga proof adjacency: the claim, the numbers and the signing photo in one breath. The origin (unemployed, a thousand calls, four dead deals) is the bridge: the viewer can't dismiss him as born on third base."
 ],
 "cues": [],
 "poll": null,
 "at": 548,
-"words": 69,
-"cam": "split"
+"words": 194,
+"cam": "stage"
 },
 {
 "n": 14,
@@ -691,7 +710,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 578,
+"at": 625,
 "words": 106,
 "cam": "split"
 },
@@ -730,7 +749,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 622,
+"at": 669,
 "words": 188,
 "cam": "spotlight"
 },
@@ -774,7 +793,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 696,
+"at": 743,
 "words": 155,
 "cam": "split"
 },
@@ -820,7 +839,7 @@ export const DECK_DATA: DeckData = {
 "Not sure yet"
 ]
 },
-"at": 758,
+"at": 805,
 "words": 99,
 "cam": "spotlight"
 },
@@ -855,7 +874,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 800,
+"at": 846,
 "words": 159,
 "cam": "spotlight"
 },
@@ -891,7 +910,7 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 863,
+"at": 910,
 "words": 66,
 "cam": "stage"
 },
@@ -936,7 +955,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 892,
+"at": 939,
 "words": 191,
 "cam": "spotlight"
 },
@@ -992,7 +1011,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 968,
+"at": 1014,
 "words": 129,
 "cam": "split"
 },
@@ -1030,7 +1049,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1020,
+"at": 1067,
 "words": 76,
 "cam": "stage"
 },
@@ -1059,7 +1078,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1052,
+"at": 1099,
 "words": 73,
 "cam": "spotlight"
 },
@@ -1096,7 +1115,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1084,
+"at": 1131,
 "words": 76,
 "cam": "stage"
 },
@@ -1148,7 +1167,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1116,
+"at": 1163,
 "words": 129,
 "cam": "split"
 },
@@ -1207,7 +1226,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1169,
+"at": 1216,
 "words": 236,
 "cam": "spotlight"
 },
@@ -1248,7 +1267,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1261,
+"at": 1308,
 "words": 118,
 "cam": "spotlight"
 },
@@ -1279,7 +1298,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1310,
+"at": 1356,
 "words": 22,
 "cam": "spotlight"
 },
@@ -1324,7 +1343,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1322,
+"at": 1369,
 "words": 118,
 "cam": "spotlight"
 },
@@ -1366,7 +1385,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1370,
+"at": 1417,
 "words": 95,
 "cam": "stage"
 },
@@ -1414,7 +1433,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1410,
+"at": 1456,
 "words": 108,
 "cam": "split"
 },
@@ -1447,7 +1466,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1454,
+"at": 1501,
 "words": 93,
 "cam": "spotlight"
 },
@@ -1487,7 +1506,7 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 1493,
+"at": 1540,
 "words": 97,
 "cam": "split"
 },
@@ -1534,7 +1553,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1533,
+"at": 1580,
 "words": 162,
 "cam": "spotlight"
 },
@@ -1565,7 +1584,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1598,
+"at": 1645,
 "words": 93,
 "cam": "spotlight"
 },
@@ -1598,7 +1617,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1637,
+"at": 1684,
 "words": 104,
 "cam": "spotlight"
 },
@@ -1633,7 +1652,7 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 1680,
+"at": 1727,
 "words": 58,
 "cam": "split"
 },
@@ -1675,7 +1694,7 @@ export const DECK_DATA: DeckData = {
 "Confidence"
 ]
 },
-"at": 1706,
+"at": 1753,
 "words": 57,
 "cam": "spotlight"
 },
@@ -1712,7 +1731,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1731,
+"at": 1778,
 "words": 58,
 "cam": "spotlight"
 },
@@ -1723,7 +1742,9 @@ export const DECK_DATA: DeckData = {
 "sub": "In both, the sellers financed 100% of the price.",
 "layout": "image-left",
 "scene": null,
-"onscreen": [],
+"onscreen": [
+"Josh's first deal, in his words: 100% seller finance over 7 years at 4%. $0 of his own money in. About $150K out in year one."
+],
 "data": [],
 "caption": "One of Josh Li's clinics in JC Health Group. The seller financed 100% of the price.",
 "kicker": null,
@@ -1744,6 +1765,10 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
+"text": "Here's what the first one looked like. The seller financed the whole price over seven years, at four percent, paid monthly. None of my own money went in, and I took about a hundred and fifty thousand dollars out of it in the first year. And I didn't start from zero. On day one I had a trained team, the fit-out, revenue from the first week and about thirteen thousand customers on the books.",
+"aiOnly": false
+},
+{
 "text": "That second part matters more than people think, and we'll come back to it. For now, look at the structure.",
 "aiOnly": false
 },
@@ -1753,12 +1778,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "levers": [
-"PROOF: Josh's own story, approved facts only. It is told as \"what made it possible\", which plants the seller's question (loop B) without closing it."
+"PROOF: Josh's own story. The first-deal terms are from his Dealmaker deck (slides 12 and 37), approved 2026-11-07 as his own statements: said as \"I\", never as an independent fact. Told as \"what made it possible\", which plants the seller's question (loop B) without closing it."
 ],
 "cues": [],
 "poll": null,
-"at": 1757,
-"words": 134,
+"at": 1804,
+"words": 208,
 "cam": "split"
 },
 {
@@ -1809,7 +1834,7 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 1811,
+"at": 1886,
 "words": 93,
 "cam": "stage"
 },
@@ -1842,7 +1867,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1850,
+"at": 1925,
 "words": 102,
 "cam": "spotlight"
 },
@@ -1885,7 +1910,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 1892,
+"at": 1967,
 "words": 129,
 "cam": "stage"
 },
@@ -1939,7 +1964,7 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 1945,
+"at": 2019,
 "words": 157,
 "cam": "stage"
 },
@@ -1972,7 +1997,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2008,
+"at": 2082,
 "words": 122,
 "cam": "stage"
 },
@@ -2020,7 +2045,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2057,
+"at": 2132,
 "words": 146,
 "cam": "split"
 },
@@ -2056,7 +2081,7 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 2116,
+"at": 2191,
 "words": 125,
 "cam": "spotlight"
 },
@@ -2087,7 +2112,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2167,
+"at": 2242,
 "words": 69,
 "cam": "spotlight"
 },
@@ -2095,33 +2120,51 @@ export const DECK_DATA: DeckData = {
 "n": 49,
 "chapter": 4,
 "title": "One deal, over five million, no personal guarantee",
-"sub": "A $5.5M radiology deal: the equipment secured the loan.",
-"layout": "stat",
+"sub": "Jason's $5.5M radiology deal: the equipment secured the loan.",
+"layout": "receipt",
 "scene": null,
 "onscreen": [],
 "data": [
 [
-"$5.5M",
-"radiology deal that needed no personal guarantee"
+"His first deal",
+"$5.5M, nothing down, and no personal guarantee"
+],
+[
+"Why",
+"Over $5M, the equipment secured the loan"
+],
+[
+"Seven years later",
+"The $200M radiology network exit in the press"
 ]
 ],
-"caption": "Over $5M, the equipment secured the loan. Every lender and deal decides this for itself.",
-"kicker": null,
-"image": null,
+"caption": "These are their results, not a promise of yours. Every lender and deal decides a personal guarantee for itself.",
+"kicker": "Jason · Radiology · As Josh's deck tells it",
+"image": {
+"id": "quadrant-article",
+"what": "News: Quadrant clinches $200m radiology clinics network Carlisle Health",
+"slide": 87,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 87",
+"needsConsent": false,
+"src": "/admin/deck/img/quadrant-article.jpg",
+"w": 955,
+"h": 374
+},
 "notes": [
 {
-"text": "Here's an example of how much the structure decides. One five and a half million dollar radiology deal needed no personal guarantee. Over five million, the equipment secured the loan. That's one deal, and every lender decides this for each deal. But it shows you what changes when the structure is built around the business instead of around your house.",
+"text": "Here's an example of how much the structure decides. Jason, in radiology: his first deal was five and a half million dollars, with nothing down, and it needed no personal guarantee. Over five million, the equipment secured the loan. Seven years later came the two hundred million dollar exit you can see in the press. That's his result, not a promise of yours, and every lender decides a guarantee deal by deal. But it shows you what changes when the structure is built around the business instead of around your house.",
 "aiOnly": false
 }
 ],
 "levers": [
-"PROOF: approved fact. Framed as one deal, not a promise (E7: no reframe hides the personal-guarantee risk)."
+"PROOF: approved fact, now with the attribution Josh's Dealmaker deck gives it (slide 87: Jason, radiology, first deal $5.5M zero down, the $200M exit seven years later, beside the Quadrant/Carlisle Health article). Owner decision 2026-11-07: use the deck's attribution exactly, never as Josh's own deal. Framed as one deal, not a promise (E7: no reframe hides the personal-guarantee risk)."
 ],
 "cues": [],
 "poll": null,
-"at": 2197,
-"words": 60,
-"cam": "stage"
+"at": 2271,
+"words": 91,
+"cam": "spotlight"
 },
 {
 "n": 50,
@@ -2157,7 +2200,7 @@ export const DECK_DATA: DeckData = {
 "Happy to put cash in if it helps"
 ]
 },
-"at": 2223,
+"at": 2310,
 "words": 64,
 "cam": "spotlight"
 },
@@ -2201,7 +2244,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2251,
+"at": 2338,
 "words": 60,
 "cam": "stage"
 },
@@ -2251,7 +2294,7 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 2278,
+"at": 2364,
 "words": 93,
 "cam": "stage"
 },
@@ -2299,7 +2342,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2317,
+"at": 2403,
 "words": 117,
 "cam": "split"
 },
@@ -2340,7 +2383,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2364,
+"at": 2451,
 "words": 87,
 "cam": "split"
 },
@@ -2369,7 +2412,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2401,
+"at": 2487,
 "words": 67,
 "cam": "spotlight"
 },
@@ -2410,7 +2453,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2430,
+"at": 2516,
 "words": 122,
 "cam": "spotlight"
 },
@@ -2445,7 +2488,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2480,
+"at": 2566,
 "words": 36,
 "cam": "spotlight"
 },
@@ -2477,7 +2520,7 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 2498,
+"at": 2584,
 "words": 57,
 "cam": "spotlight"
 },
@@ -2523,7 +2566,7 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 2523,
+"at": 2609,
 "words": 149,
 "cam": "stage"
 },
@@ -2577,7 +2620,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2583,
+"at": 2669,
 "words": 118,
 "cam": "stage"
 },
@@ -2616,7 +2659,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2631,
+"at": 2717,
 "words": 233,
 "cam": "spotlight"
 },
@@ -2647,7 +2690,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2722,
+"at": 2809,
 "words": 61,
 "cam": "spotlight"
 },
@@ -2686,7 +2729,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2749,
+"at": 2836,
 "words": 130,
 "cam": "spotlight"
 },
@@ -2722,7 +2765,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2802,
+"at": 2888,
 "words": 116,
 "cam": "stage"
 },
@@ -2763,7 +2806,7 @@ export const DECK_DATA: DeckData = {
 "Just learning"
 ]
 },
-"at": 2850,
+"at": 2936,
 "words": 36,
 "cam": "spotlight"
 },
@@ -2793,7 +2836,7 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 2867,
+"at": 2953,
 "words": 53,
 "cam": "spotlight"
 },
@@ -2824,7 +2867,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2891,
+"at": 2977,
 "words": 79,
 "cam": "stage"
 },
@@ -2866,7 +2909,7 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 2924,
+"at": 3011,
 "words": 59,
 "cam": "split"
 },
@@ -2922,7 +2965,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2951,
+"at": 3037,
 "words": 100,
 "cam": "split"
 },
@@ -2955,7 +2998,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 2992,
+"at": 3078,
 "words": 78,
 "cam": "spotlight"
 },
@@ -3002,7 +3045,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3025,
+"at": 3112,
 "words": 124,
 "cam": "stage"
 },
@@ -3033,7 +3076,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3076,
+"at": 3162,
 "words": 96,
 "cam": "spotlight"
 },
@@ -3077,7 +3120,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3116,
+"at": 3202,
 "words": 114,
 "cam": "split"
 },
@@ -3118,7 +3161,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3163,
+"at": 3249,
 "words": 86,
 "cam": "split"
 },
@@ -3150,7 +3193,7 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 3199,
+"at": 3285,
 "words": 57,
 "cam": "spotlight"
 },
@@ -3181,7 +3224,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3224,
+"at": 3310,
 "words": 102,
 "cam": "spotlight"
 },
@@ -3218,7 +3261,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3266,
+"at": 3353,
 "words": 140,
 "cam": "spotlight"
 },
@@ -3253,7 +3296,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3323,
+"at": 3409,
 "words": 144,
 "cam": "spotlight"
 },
@@ -3293,7 +3336,7 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 3381,
+"at": 3467,
 "words": 90,
 "cam": "stage"
 },
@@ -3345,7 +3388,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3419,
+"at": 3505,
 "words": 69,
 "cam": "split"
 },
@@ -3378,7 +3421,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3449,
+"at": 3535,
 "words": 65,
 "cam": "spotlight"
 },
@@ -3410,7 +3453,7 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 3477,
+"at": 3563,
 "words": 59,
 "cam": "spotlight"
 },
@@ -3449,7 +3492,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3503,
+"at": 3589,
 "words": 107,
 "cam": "spotlight"
 },
@@ -3492,7 +3535,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3547,
+"at": 3634,
 "words": 161,
 "cam": "spotlight"
 },
@@ -3531,7 +3574,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3612,
+"at": 3698,
 "words": 114,
 "cam": "spotlight"
 },
@@ -3564,7 +3607,7 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3658,
+"at": 3745,
 "words": 72,
 "cam": "stage"
 },
@@ -3620,12 +3663,271 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3689,
+"at": 3776,
 "words": 89,
 "cam": "split"
 },
 {
 "n": 88,
+"chapter": 9,
+"title": "The credibility you borrow",
+"sub": "Over 200 years of combined experience on Josh's board. A former federal minister in the chair.",
+"layout": "photo",
+"scene": null,
+"onscreen": [],
+"data": [
+[
+"With Queen Elizabeth II",
+"From the opening slide of Josh's deck"
+],
+[
+"With a former prime minister",
+"At a Centre for Independent Studies event, from the same slide"
+],
+[
+"Behind the deals",
+"Josh with one of the advisers and partners beside his group"
+]
+],
+"caption": null,
+"kicker": "The company Josh's board keeps",
+"image": {
+"id": "board-at-palace",
+"what": "An older man in a suit with Queen Elizabeth II, from the opening slide of Josh's deck",
+"slide": 1,
+"fit": "cover",
+"credit": "From Josh Li's deck, The Dealmaker · slide 1",
+"needsConsent": false,
+"src": "/admin/deck/img/board-at-palace.jpg",
+"w": 1076,
+"h": 1440
+},
+"images": [
+{
+"id": "board-at-palace",
+"what": "An older man in a suit with Queen Elizabeth II, from the opening slide of Josh's deck",
+"slide": 1,
+"fit": "cover",
+"credit": "From Josh Li's deck, The Dealmaker · slide 1",
+"needsConsent": false,
+"src": "/admin/deck/img/board-at-palace.jpg",
+"w": 1076,
+"h": 1440
+},
+{
+"id": "board-with-former-pm",
+"what": "Two men at a Centre for Independent Studies event, one of them a former prime minister, from the opening slide of Josh's deck",
+"slide": 1,
+"fit": "cover",
+"credit": "From Josh Li's deck, The Dealmaker · slide 1",
+"needsConsent": false,
+"src": "/admin/deck/img/board-with-former-pm.jpg",
+"w": 640,
+"h": 360
+},
+{
+"id": "josh-with-director",
+"what": "Josh with an older man in a dark blazer, from the deck's slide of operators, advisers and partners",
+"slide": 90,
+"fit": "cover",
+"credit": "From Josh Li's deck, The Dealmaker · slide 90",
+"needsConsent": false,
+"src": "/admin/deck/img/josh-with-director.jpg",
+"w": 500,
+"h": 375
+}
+],
+"notes": [
+{
+"text": "Here's what borrowed credibility looks like in my own business. A few years ago I was cold-calling from my bedroom. Today JC Health Group has a board with over two hundred years of combined experience across healthcare, law, finance and M&A, and a former federal minister in the chair. These photos are from my own deck: the company my board keeps. When a seller looks across the table at me now, that's who he sees behind me. On your first deal, you borrow the same thing, from a team that has done it.",
+"aiOnly": false
+}
+],
+"levers": [
+"BORROWED CREDIBILITY, shown (owner decision 2026-11-07: the board photos from the Dealmaker deck, slides 1 and 90, and the board facts from slide 62, as Josh states them). Proof adjacency: the big domino says credibility can be borrowed; this is what it looks like. The bedroom line keeps it reachable."
+],
+"cues": [],
+"poll": null,
+"at": 3813,
+"words": 93,
+"cam": "spotlight"
+},
+{
+"n": 89,
+"chapter": 9,
+"title": "In their own messages",
+"sub": "Clients' messages from the days their deals moved.",
+"layout": "wall",
+"scene": null,
+"onscreen": [],
+"data": [
+[
+"Cam",
+"Two deals in 23 days, 100% seller finance. This LOI: a $7M revenue business"
+],
+[
+"Cam, again",
+"Another LOI signed: 100% seller finance on an $850K purchase"
+],
+[
+"Saul",
+"First NDA signed: electrical and aircon, about $3.8M turnover, the owner retiring"
+],
+[
+"Two deals, one morning",
+"$508K combined EBITDA, financed above the price"
+]
+],
+"caption": "These are their results, not a promise of yours.",
+"kicker": "Borrowed credibility, in practice",
+"image": {
+"id": "client-loi-chats",
+"what": "Cam's chat: new LOI signed, with the deal terms (two lines of banter masked)",
+"slide": 86,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 86",
+"needsConsent": false,
+"src": "/admin/deck/img/client-loi-chats.jpg",
+"w": 443,
+"h": 411
+},
+"images": [
+{
+"id": "client-loi-chats",
+"what": "Cam's chat: new LOI signed, with the deal terms (two lines of banter masked)",
+"slide": 86,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 86",
+"needsConsent": false,
+"src": "/admin/deck/img/client-loi-chats.jpg",
+"w": 443,
+"h": 411
+},
+{
+"id": "chat-850k-loi",
+"what": "Cam's chat: new LOI signed, 100% seller finance, $850k price (cropped above the reply)",
+"slide": 91,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 91",
+"needsConsent": false,
+"src": "/admin/deck/img/chat-850k-loi.jpg",
+"w": 604,
+"h": 176
+},
+{
+"id": "saul-nda",
+"what": "Saul's chat: first NDA signed on an electrical and aircon business",
+"slide": 85,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 85",
+"needsConsent": false,
+"src": "/admin/deck/img/saul-nda.jpg",
+"w": 837,
+"h": 244
+},
+{
+"id": "members-two-deals",
+"what": "A members' group chat: two deals closed, combined terms (cropped to the result)",
+"slide": 13,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 13",
+"needsConsent": false,
+"src": "/admin/deck/img/members-two-deals.jpg",
+"w": 497,
+"h": 324
+}
+],
+"notes": [
+{
+"text": "And it isn't only my story. These are messages from my clients, from the days their deals moved. Cam signed two deals in twenty-three days, with one hundred percent seller finance, and later another letter of intent at eight hundred and fifty thousand dollars, again with the seller financing all of it. Saul signed his first NDA, on an electrical and air conditioning business turning over about three point eight million, with an owner who wants to retire in two years. Another closed two deals in one morning, about half a million a year in combined profit, with the financing coming in above the price.",
+"aiOnly": false
+},
+{
+"text": "These are their results, not a promise of yours. Every deal is different. But notice who's in those messages. Not bankers. Owners and operators who borrowed the credibility until it was theirs.",
+"aiOnly": false
+}
+],
+"levers": [
+"PROOF WALL 1 (owner decision 2026-11-07: client chats from the Dealmaker deck, slides 13, 85, 86 and 91; crude lines cropped or masked, names struck out as in the original). Right after the big domino (Bencivenga: proof adjacent to the claim it carries): the domino says the credibility can be borrowed, the wall shows people who borrowed it. Typicality line once for this block."
+],
+"cues": [],
+"poll": null,
+"at": 3852,
+"words": 137,
+"cam": "spotlight"
+},
+{
+"n": 90,
+"chapter": 9,
+"title": "Two more who moved",
+"sub": "Two clients, two very different starting points.",
+"layout": "photo",
+"scene": null,
+"onscreen": [],
+"data": [
+[
+"Jy · CEO of KingVets",
+"Came from IT, no finance background. A board in 29 days, 12+ active deals, the first close underway"
+],
+[
+"Christian, with Josh",
+"A $2.4M deal, financed above the price, nothing of his own down"
+]
+],
+"caption": "These are their results, not a promise of yours.",
+"kicker": "Case studies from Josh's deck",
+"image": {
+"id": "kingvets-case",
+"what": "Jy, CEO of KingVets: his LinkedIn card",
+"slide": 88,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 88",
+"needsConsent": false,
+"src": "/admin/deck/img/kingvets-case.jpg",
+"w": 700,
+"h": 299
+},
+"images": [
+{
+"id": "kingvets-case",
+"what": "Jy, CEO of KingVets: his LinkedIn card",
+"slide": 88,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 88",
+"needsConsent": false,
+"src": "/admin/deck/img/kingvets-case.jpg",
+"w": 700,
+"h": 299
+},
+{
+"id": "christian-case",
+"what": "Josh with Christian, a client, in the street",
+"slide": 89,
+"fit": "cover",
+"credit": "From Josh Li's deck, The Dealmaker · slide 89",
+"needsConsent": false,
+"src": "/admin/deck/img/christian-case.jpg",
+"w": 600,
+"h": 800
+}
+],
+"notes": [
+{
+"text": "Two more. Jy came from IT, with no finance background. He had a board in place in twenty-nine days, and today he's the CEO of KingVets, a veterinary group with more than twelve deals active and the first close underway. And Christian: a two point four million dollar deal, financed above the price, with nothing of his own down. The one thing they had in common is that they moved.",
+"aiOnly": false
+}
+],
+"levers": [
+"PROOF, same block (Dealmaker deck slides 88 and 89, approved 2026-11-07). Christian: the deal result and the photo only; nothing personal about him is ever mentioned."
+],
+"cues": [],
+"poll": null,
+"at": 3907,
+"words": 70,
+"cam": "spotlight"
+},
+{
+"n": 91,
 "chapter": 9,
 "title": "Owners build. Buyers compound.",
 "sub": "",
@@ -3655,12 +3957,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3727,
+"at": 3938,
 "words": 100,
 "cam": "spotlight"
 },
 {
-"n": 89,
+"n": 92,
 "chapter": 9,
 "title": "Who you do it with",
 "sub": "That's what the strategy call is for.",
@@ -3685,12 +3987,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 3768,
+"at": 3979,
 "words": 23,
 "cam": "spotlight"
 },
 {
-"n": 90,
+"n": 93,
 "chapter": 10,
 "title": "What Dan did on that Tuesday night",
 "sub": "",
@@ -3728,12 +4030,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3781,
+"at": 3992,
 "words": 137,
 "cam": "spotlight"
 },
 {
-"n": 91,
+"n": 94,
 "chapter": 10,
 "title": "Step 1",
 "sub": "Apply in a few minutes",
@@ -3772,12 +4074,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3836,
+"at": 4047,
 "words": 58,
 "cam": "split"
 },
 {
-"n": 92,
+"n": 95,
 "chapter": 10,
 "title": "Step 2",
 "sub": "Book in one tap",
@@ -3810,12 +4112,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 3862,
+"at": 4073,
 "words": 37,
 "cam": "split"
 },
 {
-"n": 93,
+"n": 96,
 "chapter": 10,
 "title": "Step 3",
 "sub": "The strategy call",
@@ -3848,12 +4150,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 3880,
+"at": 4091,
 "words": 22,
 "cam": "split"
 },
 {
-"n": 94,
+"n": 97,
 "chapter": 10,
 "title": "Here is what happens on the call",
 "sub": "",
@@ -3902,12 +4204,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3892,
+"at": 4103,
 "words": 161,
 "cam": "split"
 },
 {
-"n": 95,
+"n": 98,
 "chapter": 10,
 "title": "The first ten minutes of the call",
 "sub": "What it's like to be on it.",
@@ -3947,12 +4249,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 3956,
+"at": 4167,
 "words": 128,
 "cam": "spotlight"
 },
 {
-"n": 96,
+"n": 99,
 "chapter": 10,
 "title": "What the call can lead to",
 "sub": "The 90-day \"Done with you\" advisory engagement.",
@@ -3992,24 +4294,37 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4008,
+"at": 4219,
 "words": 99,
 "cam": "split"
 },
 {
-"n": 97,
+"n": 100,
 "chapter": 10,
 "title": "Why a team, and not a course",
-"sub": "Information isn't the gap. Doing it alone is.",
-"layout": "statement",
+"sub": "Owners don't lack information about acquisitions. They lack people beside them on the first one.",
+"layout": "photo",
 "scene": null,
-"onscreen": [
-"Owners don't lack information about acquisitions. They lack people beside them on the first one."
+"onscreen": [],
+"data": [
+[
+"The people beside the deals",
+"Operators, advisers and partners, in real rooms, from Josh's deck"
+]
 ],
-"data": [],
 "caption": null,
-"kicker": null,
-"image": null,
+"kicker": "Information isn't the gap. Doing it alone is.",
+"image": {
+"id": "josh-deal-team",
+"what": "Four photos of Josh with operators, advisers and partners",
+"slide": 90,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 90",
+"needsConsent": false,
+"src": "/admin/deck/img/josh-deal-team.jpg",
+"w": 2520,
+"h": 335
+},
 "notes": [
 {
 "text": "Here's why the engagement is built this way, with a team working beside you instead of a course you watch.",
@@ -4029,12 +4344,101 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4050,
+"at": 4260,
 "words": 113,
 "cam": "spotlight"
 },
 {
-"n": 98,
+"n": 101,
+"chapter": 10,
+"title": "The receipts",
+"sub": "Three clients' messages, from the weeks their deals moved.",
+"layout": "wall",
+"scene": null,
+"onscreen": [],
+"data": [
+[
+"A $4.4M acquisition",
+"Underwriting approved, the package on its way to the SBA lender"
+],
+[
+"Four LOIs in a day",
+"One of them on a $23M business"
+],
+[
+"Seller financed",
+"Contract signed: 700K over 7 years, buying out a competitor"
+]
+],
+"caption": "These are their results, not a promise of yours.",
+"kicker": "What a team beside you looks like from the inside",
+"image": {
+"id": "chat-sba-approval",
+"what": "A member's chat: underwriting approves a $4.4m acquisition (cropped above the replies)",
+"slide": 91,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 91",
+"needsConsent": false,
+"src": "/admin/deck/img/chat-sba-approval.jpg",
+"w": 604,
+"h": 258
+},
+"images": [
+{
+"id": "chat-sba-approval",
+"what": "A member's chat: underwriting approves a $4.4m acquisition (cropped above the replies)",
+"slide": 91,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 91",
+"needsConsent": false,
+"src": "/admin/deck/img/chat-sba-approval.jpg",
+"w": 604,
+"h": 258
+},
+{
+"id": "chat-23m-lois",
+"what": "A member's chat: four LOIs sent in a day, one on a $23m business (names struck out)",
+"slide": 91,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 91",
+"needsConsent": false,
+"src": "/admin/deck/img/chat-23m-lois.jpg",
+"w": 602,
+"h": 510
+},
+{
+"id": "chat-700k-sf",
+"what": "A member's chat: seller-financed contract signed, 700k over 7 years (name struck out)",
+"slide": 91,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 91",
+"needsConsent": false,
+"src": "/admin/deck/img/chat-700k-sf.jpg",
+"w": 602,
+"h": 574
+}
+],
+"notes": [
+{
+"text": "Here's what that looks like from the inside. Three messages from clients, in the weeks their deals moved. Underwriting approved on a four point four million dollar acquisition, with the package on its way to the lender. Four letters of intent sent in one day, one of them on a twenty-three million dollar business. And a seller financed contract signed, seven hundred thousand over seven years, buying out a competitor.",
+"aiOnly": false
+},
+{
+"text": "These are their results, not a promise of yours. What they had that most owners don't is people beside them on the first one.",
+"aiOnly": false
+}
+],
+"levers": [
+"PROOF WALL 2, in the pitch (owner decision 2026-11-07: members' chats from the Dealmaker deck, slide 91, crude replies cropped off). Proof adjacency: the claim \"a team, not a course\" next to what the team's clients post. Typicality line once for this block. None of the deck's own offer, urgency or value stack is used."
+],
+"cues": [],
+"poll": null,
+"at": 4307,
+"words": 94,
+"cam": "spotlight"
+},
+{
+"n": 102,
 "chapter": 10,
 "title": "Why the call comes before the price",
 "sub": "The right number to look at first is yours.",
@@ -4056,12 +4460,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4096,
+"at": 4346,
 "words": 72,
 "cam": "spotlight"
 },
 {
-"n": 99,
+"n": 103,
 "chapter": 10,
 "title": "Credibility",
 "sub": "The first C.",
@@ -4096,12 +4500,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4127,
+"at": 4377,
 "words": 69,
 "cam": "stage"
 },
 {
-"n": 100,
+"n": 104,
 "chapter": 10,
 "title": "Capital",
 "sub": "The second C.",
@@ -4138,12 +4542,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4157,
+"at": 4407,
 "words": 63,
 "cam": "stage"
 },
 {
-"n": 101,
+"n": 105,
 "chapter": 10,
 "title": "Closing",
 "sub": "The third C.",
@@ -4180,12 +4584,106 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4184,
+"at": 4434,
 "words": 68,
 "cam": "stage"
 },
 {
-"n": 102,
+"n": 106,
+"chapter": 10,
+"title": "What closing looks like on paper",
+"sub": "Before an offer, three documents. Then the digging.",
+"layout": "receipt",
+"scene": null,
+"onscreen": [],
+"data": [
+[
+"Before an offer",
+"Three years of financial statements, the matching tax returns, revenue by year"
+],
+[
+"Then the digging",
+"Quality of earnings: is the profit real, and will it stay when the owner leaves?"
+]
+],
+"caption": "Five years of P&L on a real target, under review. The target's name is struck out.",
+"kicker": "Closing · The numbers arrive",
+"image": {
+"id": "qoe-pnl",
+"what": "Five years of P&L on a real target, under review (the target's name struck out, the webcam cropped off)",
+"slide": 82,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 82",
+"needsConsent": false,
+"src": "/admin/deck/img/qoe-pnl.jpg",
+"w": 783,
+"h": 367
+},
+"notes": [
+{
+"text": "Here's what that looks like on paper. Before you ever make an offer, you get three things: three years of financial statements, the tax returns that match them, and revenue broken down by year. Then you dig for what's underneath, what lenders call quality of earnings. Is the profit real, and will it still be there after the owner leaves? This is a real target's profit and loss, under review, with the name struck out.",
+"aiOnly": false
+}
+],
+"levers": [
+"DOCUMENT AS RECEIPT (owner decision 2026-11-07: the P&L and the NBIO from the Dealmaker deck, slides 82 and 83). Where the closing process is described, the paper itself: proof that the process is real, not a diagram."
+],
+"cues": [],
+"poll": null,
+"at": 4464,
+"words": 75,
+"cam": "spotlight"
+},
+{
+"n": 107,
+"chapter": 10,
+"title": "A real offer, redacted",
+"sub": "A non-binding indicative offer from JC Health Group. The seller's name is blacked out.",
+"layout": "receipt",
+"scene": null,
+"onscreen": [],
+"data": [
+[
+"The price",
+"Four times EBITDA, on the profit the books support"
+],
+[
+"The shape",
+"Paid over three years: interest only at first, then monthly payments and set lump sums"
+],
+[
+"The rollover",
+"The seller keeps a 5% stake in the new company"
+]
+],
+"caption": null,
+"kicker": "Closing · The offer goes out",
+"image": {
+"id": "nbio-redacted",
+"what": "A real non-binding indicative offer from Josh's group, the seller redacted",
+"slide": 83,
+"fit": "contain",
+"credit": "From Josh Li's deck, The Dealmaker · slide 83",
+"needsConsent": false,
+"src": "/admin/deck/img/nbio-redacted.jpg",
+"w": 705,
+"h": 685
+},
+"notes": [
+{
+"text": "And this is what an offer looks like when it goes out. It's a real non-binding offer from JC Health Group, my own group, with the seller's name blacked out. Four times EBITDA. The seller is paid over three years, interest only for the first six months, then monthly payments and set lump sums along the way. And the seller keeps five percent of the new company, which is the rollover you heard about. Every term on that page answers the same test: can the business carry it, with a buffer.",
+"aiOnly": false
+}
+],
+"levers": [],
+"cues": [],
+"poll": null,
+"at": 4496,
+"words": 91,
+"cam": "spotlight"
+},
+{
+"n": 108,
 "chapter": 10,
 "title": "The shape of the ninety days",
 "sub": "What a week looks like, from the conditions you're about to hear.",
@@ -4232,12 +4730,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4214,
+"at": 4534,
 "words": 165,
 "cam": "split"
 },
 {
-"n": 103,
+"n": 109,
 "chapter": 10,
 "title": "A Thursday in week six",
 "sub": "Illustrative: a picture, not a forecast.",
@@ -4280,12 +4778,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4280,
+"at": 4600,
 "words": 123,
 "cam": "stage"
 },
 {
-"n": 104,
+"n": 110,
 "chapter": 10,
 "title": "The engagement guarantee",
 "sub": "Read in full, conditions included.",
@@ -4313,12 +4811,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4330,
+"at": 4650,
 "words": 52,
 "cam": "stage"
 },
 {
-"n": 105,
+"n": 111,
 "chapter": 10,
 "title": "The conditions",
 "sub": "Each one is something you control.",
@@ -4361,12 +4859,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4354,
+"at": 4674,
 "words": 130,
 "cam": "stage"
 },
 {
-"n": 106,
+"n": 112,
 "chapter": 10,
 "title": "And the first seven days",
 "sub": "No conditions.",
@@ -4392,12 +4890,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4406,
+"at": 4726,
 "words": 48,
 "cam": "stage"
 },
 {
-"n": 107,
+"n": 113,
 "chapter": 10,
 "title": "What to bring to the call",
 "sub": "",
@@ -4449,12 +4947,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 4428,
+"at": 4748,
 "words": 104,
 "cam": "split"
 },
 {
-"n": 108,
+"n": 114,
 "chapter": 10,
 "title": "What the team won't do",
 "sub": "",
@@ -4501,12 +4999,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4471,
+"at": 4792,
 "words": 80,
 "cam": "split"
 },
 {
-"n": 109,
+"n": 115,
 "chapter": 10,
 "title": "Who this is not for",
 "sub": "",
@@ -4557,12 +5055,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4505,
+"at": 4826,
 "words": 118,
 "cam": "split"
 },
 {
-"n": 110,
+"n": 116,
 "chapter": 10,
 "title": "Everything in one place",
 "sub": "",
@@ -4609,12 +5107,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4554,
+"at": 4874,
 "words": 93,
 "cam": "stage"
 },
 {
-"n": 111,
+"n": 117,
 "chapter": 10,
 "title": "Why there's an application",
 "sub": "My team takes a limited number of engagements in each intake.",
@@ -4636,12 +5134,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4592,
+"at": 4913,
 "words": 43,
 "cam": "spotlight"
 },
 {
-"n": 112,
+"n": 118,
 "chapter": 10,
 "title": "Is a strategy call right for you?",
 "sub": "Answer honestly under the video. A question first? Type it in the question box.",
@@ -4674,12 +5172,12 @@ export const DECK_DATA: DeckData = {
 "Not yet"
 ]
 },
-"at": 4612,
+"at": 4933,
 "words": 38,
 "cam": "spotlight"
 },
 {
-"n": 113,
+"n": 119,
 "chapter": 10,
 "title": "Apply and book",
 "sub": "The button is under the video. A few minutes to apply. One tap to book.",
@@ -4712,12 +5210,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 4631,
+"at": 4951,
 "words": 45,
 "cam": "stage"
 },
 {
-"n": 114,
+"n": 120,
 "chapter": 11,
 "title": "Dan's ninety days",
 "sub": "Illustrative: one way the first ninety days can go. A picture, not a forecast.",
@@ -4739,12 +5237,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4652,
+"at": 4972,
 "words": 58,
 "cam": "stage"
 },
 {
-"n": 115,
+"n": 121,
 "chapter": 11,
 "title": "The first week",
 "sub": "Illustrative.",
@@ -4778,12 +5276,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4677,
+"at": 4998,
 "words": 111,
 "cam": "split"
 },
 {
-"n": 116,
+"n": 122,
 "chapter": 11,
 "title": "The first outreach",
 "sub": "Illustrative.",
@@ -4819,12 +5317,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4723,
+"at": 5043,
 "words": 92,
 "cam": "split"
 },
 {
-"n": 117,
+"n": 123,
 "chapter": 11,
 "title": "The middle weeks",
 "sub": "Illustrative.",
@@ -4858,12 +5356,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 4762,
+"at": 5082,
 "words": 125,
 "cam": "spotlight"
 },
 {
-"n": 118,
+"n": 124,
 "chapter": 11,
 "title": "The letter",
 "sub": "Illustrative.",
@@ -4903,12 +5401,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4812,
+"at": 5133,
 "words": 151,
 "cam": "spotlight"
 },
 {
-"n": 119,
+"n": 125,
 "chapter": 11,
 "title": "Dan, a year after his first deal",
 "sub": "Illustrative: one way the year can look. A picture, not a forecast.",
@@ -4934,12 +5432,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4873,
+"at": 5193,
 "words": 82,
 "cam": "stage"
 },
 {
-"n": 120,
+"n": 126,
 "chapter": 11,
 "title": "One Tuesday, a year later",
 "sub": "Illustrative: a picture, not a forecast.",
@@ -4998,12 +5496,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 4908,
+"at": 5228,
 "words": 273,
 "cam": "stage"
 },
 {
-"n": 121,
+"n": 127,
 "chapter": 11,
 "title": "The morning he met Graham's team",
 "sub": "Illustrative.",
@@ -5043,12 +5541,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5014,
+"at": 5334,
 "words": 134,
 "cam": "spotlight"
 },
 {
-"n": 122,
+"n": 128,
 "chapter": 11,
 "title": "The conversation at home",
 "sub": "Illustrative.",
@@ -5087,12 +5585,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5068,
+"at": 5389,
 "words": 124,
 "cam": "spotlight"
 },
 {
-"n": 123,
+"n": 129,
 "chapter": 11,
 "title": "Your version of that night",
 "sub": "It starts the way Dan's did. Apply under the video.",
@@ -5119,12 +5617,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 5119,
+"at": 5439,
 "words": 45,
 "cam": "stage"
 },
 {
-"n": 124,
+"n": 130,
 "chapter": 11,
 "title": "Notice how that feels",
 "sub": "Not as an if. As a picture.",
@@ -5150,12 +5648,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5140,
+"at": 5460,
 "words": 86,
 "cam": "spotlight"
 },
 {
-"n": 125,
+"n": 131,
 "chapter": 11,
 "title": "Two paths from here",
 "sub": "",
@@ -5204,12 +5702,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5176,
+"at": 5496,
 "words": 128,
 "cam": "stage"
 },
 {
-"n": 126,
+"n": 132,
 "chapter": 11,
 "title": "The other Tuesday",
 "sub": "Illustrative: the first path, as a scene.",
@@ -5261,12 +5759,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5228,
+"at": 5548,
 "words": 228,
 "cam": "spotlight"
 },
 {
-"n": 127,
+"n": 133,
 "chapter": 11,
 "title": "The same Tuesday, two ways",
 "sub": "Illustrative: a year from now.",
@@ -5329,12 +5827,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5318,
+"at": 5638,
 "words": 115,
 "cam": "stage"
 },
 {
-"n": 128,
+"n": 134,
 "chapter": 11,
 "title": "The other path",
 "sub": "Illustrative: a picture, not a forecast.",
@@ -5360,12 +5858,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 5365,
+"at": 5685,
 "words": 65,
 "cam": "spotlight"
 },
 {
-"n": 129,
+"n": 135,
 "chapter": 11,
 "title": "What one more year of waiting costs",
 "sub": "Illustrative: one square for each Saturday.",
@@ -5404,12 +5902,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5393,
+"at": 5713,
 "words": 75,
 "cam": "stage"
 },
 {
-"n": 130,
+"n": 136,
 "chapter": 11,
 "title": "Waiting has a cost",
 "sub": "Illustrative: $500,000 more profit a year, at a 15% margin.",
@@ -5450,12 +5948,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5425,
+"at": 5745,
 "words": 92,
 "cam": "stage"
 },
 {
-"n": 131,
+"n": 137,
 "chapter": 11,
 "title": "Pick the path",
 "sub": "Apply under the video, or close the tab. Both are your call.",
@@ -5482,12 +5980,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 5464,
+"at": 5784,
 "words": 33,
 "cam": "stage"
 },
 {
-"n": 132,
+"n": 138,
 "chapter": 12,
 "title": "Who you're becoming",
 "sub": "Six levels, from where you spend your days to why it matters.",
@@ -5509,12 +6007,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5480,
+"at": 5800,
 "words": 42,
 "cam": "stage"
 },
 {
-"n": 133,
+"n": 139,
 "chapter": 12,
 "title": "Where you spend your days",
 "sub": "Level 1",
@@ -5544,12 +6042,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5500,
+"at": 5820,
 "words": 118,
 "cam": "stage"
 },
 {
-"n": 134,
+"n": 140,
 "chapter": 12,
 "title": "What you do",
 "sub": "Level 2",
@@ -5579,12 +6077,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5548,
+"at": 5868,
 "words": 111,
 "cam": "stage"
 },
 {
-"n": 135,
+"n": 141,
 "chapter": 12,
 "title": "What you can do",
 "sub": "Level 3",
@@ -5614,12 +6112,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5594,
+"at": 5914,
 "words": 156,
 "cam": "stage"
 },
 {
-"n": 136,
+"n": 142,
 "chapter": 12,
 "title": "What you believe",
 "sub": "Level 4",
@@ -5659,12 +6157,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5656,
+"at": 5976,
 "words": 108,
 "cam": "stage"
 },
 {
-"n": 137,
+"n": 143,
 "chapter": 12,
 "title": "Who you are",
 "sub": "Level 5",
@@ -5698,12 +6196,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5701,
+"at": 6021,
 "words": 96,
 "cam": "stage"
 },
 {
-"n": 138,
+"n": 144,
 "chapter": 12,
 "title": "I'm a buyer.",
 "sub": "Say it once, to yourself.",
@@ -5734,12 +6232,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5741,
+"at": 6061,
 "words": 72,
 "cam": "spotlight"
 },
 {
-"n": 139,
+"n": 145,
 "chapter": 12,
 "title": "Owners build. Buyers compound.",
 "sub": "",
@@ -5765,12 +6263,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5772,
+"at": 6092,
 "words": 74,
 "cam": "spotlight"
 },
 {
-"n": 140,
+"n": 146,
 "chapter": 12,
 "title": "Why it matters",
 "sub": "Level 6",
@@ -5800,12 +6298,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5803,
+"at": 6124,
 "words": 95,
 "cam": "stage"
 },
 {
-"n": 141,
+"n": 147,
 "chapter": 12,
 "title": "The first thing a buyer does",
 "sub": "Apply under the video.",
@@ -5832,12 +6330,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 5843,
+"at": 6163,
 "words": 36,
 "cam": "spotlight"
 },
 {
-"n": 142,
+"n": 148,
 "chapter": 13,
 "title": "The questions owners ask my team",
 "sub": "The real ones, answered straight.",
@@ -5859,12 +6357,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5860,
+"at": 6181,
 "words": 49,
 "cam": "spotlight"
 },
 {
-"n": 143,
+"n": 149,
 "chapter": 13,
 "title": "\"How much of my own money do I need?\"",
 "sub": "",
@@ -5894,12 +6392,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5883,
+"at": 6203,
 "words": 117,
 "cam": "spotlight"
 },
 {
-"n": 144,
+"n": 150,
 "chapter": 13,
 "title": "\"What if the bank says no?\"",
 "sub": "",
@@ -5925,12 +6423,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5931,
+"at": 6251,
 "words": 104,
 "cam": "spotlight"
 },
 {
-"n": 145,
+"n": 151,
 "chapter": 13,
 "title": "\"Do I have to sign a personal guarantee?\"",
 "sub": "",
@@ -5947,7 +6445,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "It depends on the lender and the deal, and you should go in knowing that lenders ask for one on plenty of deals. What the structure changes is how much rests on you. One five and a half million dollar radiology deal needed no personal guarantee, because over five million, the equipment secured the loan. That's one deal, not a rule. On the call, the team talks through what's realistic for the size of deal your business supports.",
+"text": "It depends on the lender and the deal, and you should go in knowing that lenders ask for one on plenty of deals. What the structure changes is how much rests on you. Jason's five and a half million dollar radiology deal needed no personal guarantee, because over five million, the equipment secured the loan. That's one deal, not a rule. On the call, the team talks through what's realistic for the size of deal your business supports.",
 "aiOnly": false
 }
 ],
@@ -5956,12 +6454,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 5974,
+"at": 6294,
 "words": 86,
 "cam": "spotlight"
 },
 {
-"n": 146,
+"n": 152,
 "chapter": 13,
 "title": "\"What if the seller wants all cash?\"",
 "sub": "",
@@ -5987,12 +6485,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6010,
+"at": 6330,
 "words": 79,
 "cam": "spotlight"
 },
 {
-"n": 147,
+"n": 153,
 "chapter": 13,
 "title": "\"Doesn't seller finance mean something's wrong with the business?\"",
 "sub": "",
@@ -6016,12 +6514,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6044,
+"at": 6364,
 "words": 76,
 "cam": "spotlight"
 },
 {
-"n": 148,
+"n": 154,
 "chapter": 13,
 "title": "\"What is seller rollover, exactly?\"",
 "sub": "",
@@ -6045,12 +6543,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6076,
+"at": 6396,
 "words": 64,
 "cam": "spotlight"
 },
 {
-"n": 149,
+"n": 155,
 "chapter": 13,
 "title": "\"Does it work where I am?\"",
 "sub": "",
@@ -6076,12 +6574,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6104,
+"at": 6424,
 "words": 76,
 "cam": "spotlight"
 },
 {
-"n": 150,
+"n": 156,
 "chapter": 13,
 "title": "Bring the question to the call",
 "sub": "Apply under the video.",
@@ -6106,12 +6604,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 6137,
+"at": 6457,
 "words": 32,
 "cam": "spotlight"
 },
 {
-"n": 151,
+"n": 157,
 "chapter": 13,
 "title": "\"Why would a lender back me if I've never bought a business?\"",
 "sub": "",
@@ -6137,12 +6635,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6153,
+"at": 6473,
 "words": 78,
 "cam": "spotlight"
 },
 {
-"n": 152,
+"n": 158,
 "chapter": 13,
 "title": "\"What is a letter of intent?\"",
 "sub": "",
@@ -6166,12 +6664,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6186,
+"at": 6506,
 "words": 81,
 "cam": "spotlight"
 },
 {
-"n": 153,
+"n": 159,
 "chapter": 13,
 "title": "\"How long does a deal take?\"",
 "sub": "",
@@ -6197,12 +6695,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6220,
+"at": 6540,
 "words": 80,
 "cam": "spotlight"
 },
 {
-"n": 154,
+"n": 160,
 "chapter": 13,
 "title": "\"I've bought before. Some of them haven't made money.\"",
 "sub": "",
@@ -6228,12 +6726,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6254,
+"at": 6574,
 "words": 89,
 "cam": "spotlight"
 },
 {
-"n": 155,
+"n": 161,
 "chapter": 13,
 "title": "\"I don't have the time.\"",
 "sub": "",
@@ -6263,12 +6761,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6292,
+"at": 6612,
 "words": 89,
 "cam": "spotlight"
 },
 {
-"n": 156,
+"n": 162,
 "chapter": 13,
 "title": "\"My industry is different.\"",
 "sub": "",
@@ -6294,12 +6792,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6329,
+"at": 6649,
 "words": 62,
 "cam": "spotlight"
 },
 {
-"n": 157,
+"n": 163,
 "chapter": 13,
 "title": "\"My business is under a million.\"",
 "sub": "",
@@ -6325,12 +6823,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6356,
+"at": 6676,
 "words": 75,
 "cam": "spotlight"
 },
 {
-"n": 158,
+"n": 164,
 "chapter": 13,
 "title": "\"I'm already talking to a seller.\"",
 "sub": "",
@@ -6354,12 +6852,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6388,
+"at": 6709,
 "words": 66,
 "cam": "spotlight"
 },
 {
-"n": 159,
+"n": 165,
 "chapter": 13,
 "title": "Already have a target?",
 "sub": "Name it in your application. The call starts there.",
@@ -6384,12 +6882,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 6417,
+"at": 6737,
 "words": 25,
 "cam": "spotlight"
 },
 {
-"n": 160,
+"n": 166,
 "chapter": 13,
 "title": "\"What size business should I buy first?\"",
 "sub": "",
@@ -6415,12 +6913,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6430,
+"at": 6751,
 "words": 81,
 "cam": "spotlight"
 },
 {
-"n": 161,
+"n": 167,
 "chapter": 13,
 "title": "\"Can I run two businesses?\"",
 "sub": "",
@@ -6444,12 +6942,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6465,
+"at": 6785,
 "words": 81,
 "cam": "spotlight"
 },
 {
-"n": 162,
+"n": 168,
 "chapter": 13,
 "title": "\"What if the seller's numbers aren't what they say?\"",
 "sub": "",
@@ -6473,12 +6971,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6499,
+"at": 6820,
 "words": 76,
 "cam": "spotlight"
 },
 {
-"n": 163,
+"n": 169,
 "chapter": 13,
 "title": "\"Is this only for healthcare?\"",
 "sub": "",
@@ -6502,12 +7000,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6532,
+"at": 6852,
 "words": 56,
 "cam": "spotlight"
 },
 {
-"n": 164,
+"n": 170,
 "chapter": 13,
 "title": "Your question, on your numbers",
 "sub": "Apply under the video.",
@@ -6532,12 +7030,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 6557,
+"at": 6877,
 "words": 33,
 "cam": "spotlight"
 },
 {
-"n": 165,
+"n": 171,
 "chapter": 13,
 "title": "\"Should I wait until rates come down?\"",
 "sub": "",
@@ -6563,12 +7061,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6573,
+"at": 6893,
 "words": 84,
 "cam": "spotlight"
 },
 {
-"n": 166,
+"n": 172,
 "chapter": 13,
 "title": "\"What if I lose the deal at the last minute?\"",
 "sub": "",
@@ -6592,12 +7090,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6609,
+"at": 6929,
 "words": 66,
 "cam": "spotlight"
 },
 {
-"n": 167,
+"n": 173,
 "chapter": 13,
 "title": "\"What if my team finds out I'm looking?\"",
 "sub": "",
@@ -6621,12 +7119,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6637,
+"at": 6958,
 "words": 59,
 "cam": "spotlight"
 },
 {
-"n": 168,
+"n": 174,
 "chapter": 13,
 "title": "\"Can I buy outside my industry?\"",
 "sub": "",
@@ -6650,12 +7148,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6664,
+"at": 6984,
 "words": 79,
 "cam": "spotlight"
 },
 {
-"n": 169,
+"n": 175,
 "chapter": 13,
 "title": "\"Am I too old to start this?\"",
 "sub": "",
@@ -6681,12 +7179,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6697,
+"at": 7017,
 "words": 67,
 "cam": "spotlight"
 },
 {
-"n": 170,
+"n": 176,
 "chapter": 13,
 "title": "Whatever your question",
 "sub": "Bring it to the call. Apply under the video.",
@@ -6711,12 +7209,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 6726,
+"at": 7046,
 "words": 35,
 "cam": "spotlight"
 },
 {
-"n": 171,
+"n": 177,
 "chapter": 13,
 "title": "\"How do I know the team knows what it's doing?\"",
 "sub": "",
@@ -6734,7 +7232,7 @@ export const DECK_DATA: DeckData = {
 ],
 [
 "$5.5M, no personal guarantee",
-"One radiology deal: over $5M, the equipment secured the loan"
+"Jason's radiology deal: over $5M, the equipment secured the loan"
 ]
 ],
 "caption": null,
@@ -6746,21 +7244,21 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "Start with the facts you've heard today. I founded JC Health Group, my own healthcare holding company, and bought my clinics in two acquisitions where the sellers financed one hundred percent of the price. You've heard about a five and a half million dollar radiology deal that needed no personal guarantee. And ninety owners told the team what they wanted before their calls. Then use the call to check for yourself. Ask anything. A team that knows what it's doing is happy to be tested.",
+"text": "Start with the facts you've heard today. I founded JC Health Group, my own healthcare holding company, and bought my clinics in two acquisitions where the sellers financed one hundred percent of the price. You've heard about Jason's five and a half million dollar radiology deal that needed no personal guarantee, and you've seen members' own messages from the days their deals moved. And ninety owners told the team what they wanted before their calls. Then use the call to check for yourself. Ask anything. A team that knows what it's doing is happy to be tested.",
 "aiOnly": false
 }
 ],
 "levers": [
-"Proof, approved facts only: Josh's two seller-financed acquisitions, JC Health Group, the $5.5M radiology deal, the 90 booking forms. Invites checking (legitimacy objection)."
+"Proof, approved facts only: Josh's two seller-financed acquisitions, JC Health Group, Jason's $5.5M radiology deal, the members' messages (owner decision 2026-11-07), the 90 booking forms. Invites checking (legitimacy objection)."
 ],
 "cues": [],
 "poll": null,
-"at": 6743,
-"words": 95,
+"at": 7064,
+"words": 107,
 "cam": "stage"
 },
 {
-"n": 172,
+"n": 178,
 "chapter": 13,
 "title": "\"I've bought courses before, and they went nowhere.\"",
 "sub": "",
@@ -6784,12 +7282,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6783,
+"at": 7108,
 "words": 71,
 "cam": "spotlight"
 },
 {
-"n": 173,
+"n": 179,
 "chapter": 13,
 "title": "\"Can I bring my accountant or my business partner?\"",
 "sub": "",
@@ -6813,12 +7311,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6814,
+"at": 7138,
 "words": 46,
 "cam": "spotlight"
 },
 {
-"n": 174,
+"n": 180,
 "chapter": 13,
 "title": "\"What happens after I book?\"",
 "sub": "",
@@ -6842,12 +7340,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6835,
+"at": 7160,
 "words": 55,
 "cam": "spotlight"
 },
 {
-"n": 175,
+"n": 181,
 "chapter": 13,
 "title": "\"My books are a mess. Can I still apply?\"",
 "sub": "",
@@ -6871,12 +7369,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6860,
+"at": 7184,
 "words": 79,
 "cam": "spotlight"
 },
 {
-"n": 176,
+"n": 182,
 "chapter": 13,
 "title": "\"Is the call a sales call?\"",
 "sub": "",
@@ -6902,12 +7400,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6893,
+"at": 7218,
 "words": 64,
 "cam": "spotlight"
 },
 {
-"n": 177,
+"n": 183,
 "chapter": 13,
 "title": "\"What does it cost?\"",
 "sub": "",
@@ -6931,12 +7429,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6921,
+"at": 7246,
 "words": 67,
 "cam": "spotlight"
 },
 {
-"n": 178,
+"n": 184,
 "chapter": 13,
 "title": "\"Why an application, and not just a booking link?\"",
 "sub": "",
@@ -6960,12 +7458,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 6950,
+"at": 7275,
 "words": 72,
 "cam": "spotlight"
 },
 {
-"n": 179,
+"n": 185,
 "chapter": 13,
 "title": "\"I need to talk to my partner first.\"",
 "sub": "",
@@ -6991,12 +7489,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 6981,
+"at": 7306,
 "words": 57,
 "cam": "spotlight"
 },
 {
-"n": 180,
+"n": 186,
 "chapter": 13,
 "title": "\"What if I'm not ready to decide on the call?\"",
 "sub": "",
@@ -7022,12 +7520,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7007,
+"at": 7331,
 "words": 70,
 "cam": "spotlight"
 },
 {
-"n": 181,
+"n": 187,
 "chapter": 13,
 "title": "\"What if I apply and I'm not a fit?\"",
 "sub": "",
@@ -7051,12 +7549,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7037,
+"at": 7362,
 "words": 56,
 "cam": "spotlight"
 },
 {
-"n": 182,
+"n": 188,
 "chapter": 13,
 "title": "\"Why now, and not next year?\"",
 "sub": "",
@@ -7082,12 +7580,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7062,
+"at": 7387,
 "words": 77,
 "cam": "spotlight"
 },
 {
-"n": 183,
+"n": 189,
 "chapter": 13,
 "title": "\"What if the business I buy needs me more than I expect?\"",
 "sub": "",
@@ -7111,12 +7609,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7095,
+"at": 7420,
 "words": 74,
 "cam": "spotlight"
 },
 {
-"n": 184,
+"n": 190,
 "chapter": 13,
 "title": "Every answer ends in the same place",
 "sub": "The call, on your numbers. Apply under the video.",
@@ -7145,12 +7643,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 7126,
+"at": 7451,
 "words": 49,
 "cam": "spotlight"
 },
 {
-"n": 185,
+"n": 191,
 "chapter": 14,
 "title": "Three owners, three situations",
 "sub": "Illustrative composites, built from situations owners describe. Not real clients, and not testimonials.",
@@ -7172,12 +7670,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7149,
+"at": 7474,
 "words": 58,
 "cam": "spotlight"
 },
 {
-"n": 186,
+"n": 192,
 "chapter": 14,
 "title": "Priya: \"I've never bought anything.\"",
 "sub": "Illustrative composite: a dental practice, about $2.4M a year, fourteen staff.",
@@ -7203,12 +7701,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7175,
+"at": 7499,
 "words": 75,
 "cam": "spotlight"
 },
 {
-"n": 187,
+"n": 193,
 "chapter": 14,
 "title": "What changes Priya's story",
 "sub": "Illustrative.",
@@ -7249,12 +7747,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7207,
+"at": 7532,
 "words": 162,
 "cam": "split"
 },
 {
-"n": 188,
+"n": 194,
 "chapter": 14,
 "title": "Tom: \"Stuck at five or six million, need more locations.\"",
 "sub": "Illustrative composite: three physiotherapy clinics.",
@@ -7280,12 +7778,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7272,
+"at": 7596,
 "words": 84,
 "cam": "spotlight"
 },
 {
-"n": 189,
+"n": 195,
 "chapter": 14,
 "title": "What changes Tom's plan",
 "sub": "Illustrative.",
@@ -7324,12 +7822,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7307,
+"at": 7632,
 "words": 147,
 "cam": "stage"
 },
 {
-"n": 190,
+"n": 196,
 "chapter": 14,
 "title": "Leah: \"Some of my deals haven't made money.\"",
 "sub": "Illustrative composite: an accounting firm that has bought four smaller practices.",
@@ -7351,12 +7849,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7366,
+"at": 7691,
 "words": 54,
 "cam": "spotlight"
 },
 {
-"n": 191,
+"n": 197,
 "chapter": 14,
 "title": "What changes Leah's next deal",
 "sub": "Illustrative.",
@@ -7397,12 +7895,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7390,
+"at": 7715,
 "words": 149,
 "cam": "split"
 },
 {
-"n": 192,
+"n": 198,
 "chapter": 14,
 "title": "And Mark: \"Why not just pay cash?\"",
 "sub": "Illustrative composite: a logistics business, with money sitting in the bank.",
@@ -7432,12 +7930,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7450,
+"at": 7775,
 "words": 170,
 "cam": "spotlight"
 },
 {
-"n": 193,
+"n": 199,
 "chapter": 14,
 "title": "What the three have in common",
 "sub": "Illustrative.",
@@ -7484,12 +7982,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7518,
+"at": 7843,
 "words": 115,
 "cam": "split"
 },
 {
-"n": 194,
+"n": 200,
 "chapter": 14,
 "title": "Which one are you?",
 "sub": "Or a bit of all three.",
@@ -7515,12 +8013,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7565,
+"at": 7890,
 "words": 75,
 "cam": "spotlight"
 },
 {
-"n": 195,
+"n": 201,
 "chapter": 14,
 "title": "Your situation, on your numbers",
 "sub": "Apply under the video.",
@@ -7545,12 +8043,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 7597,
+"at": 7922,
 "words": 24,
 "cam": "spotlight"
 },
 {
-"n": 196,
+"n": 202,
 "chapter": 15,
 "title": "Two ways to leave this masterclass",
 "sub": "",
@@ -7591,12 +8089,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7610,
+"at": 7935,
 "words": 76,
 "cam": "stage"
 },
 {
-"n": 197,
+"n": 203,
 "chapter": 15,
 "title": "What you wrote earlier",
 "sub": "It's beside the video. Read it once more.",
@@ -7622,12 +8120,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7643,
+"at": 7968,
 "words": 45,
 "cam": "spotlight"
 },
 {
-"n": 198,
+"n": 204,
 "chapter": 15,
 "title": "The end of the call",
 "sub": "What you'll walk away with.",
@@ -7663,12 +8161,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7664,
+"at": 7988,
 "words": 85,
 "cam": "spotlight"
 },
 {
-"n": 199,
+"n": 205,
 "chapter": 15,
 "title": "Thirty days from now",
 "sub": "You'll be thirty days older either way.",
@@ -7694,12 +8192,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7700,
+"at": 8024,
 "words": 87,
 "cam": "spotlight"
 },
 {
-"n": 200,
+"n": 206,
 "chapter": 15,
 "title": "Permission to decide",
 "sub": "",
@@ -7729,7 +8227,7 @@ export const DECK_DATA: DeckData = {
 "aiOnly": false
 },
 {
-"text": "So here are the three reasons in one breath. Why this path: because the price of a business that's already built can be paid out of its own profit, through a lender, the seller's note and the seller's rollover, instead of out of your savings or your Saturdays. The reason to believe it: you've watched the test work on the numbers, and two sellers financed one hundred percent of the price when I bought my clinics. And why now: because the owners in your market with no successor are deciding anyway, one at a time, with or without you.",
+"text": "So here are the three reasons in one breath. Why this path: because the price of a business that's already built can be paid out of its own profit, through a lender, the seller's note and the seller's rollover, instead of out of your savings or your Saturdays. The reason to believe it: you've watched the test work on the numbers, two sellers financed one hundred percent of the price when I bought my clinics, and you've seen clients' own messages from the weeks their deals moved. And why now: because the owners in your market with no successor are deciding anyway, one at a time, with or without you.",
 "aiOnly": false
 },
 {
@@ -7742,12 +8240,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7736,
-"words": 173,
+"at": 8061,
+"words": 184,
 "cam": "stage"
 },
 {
-"n": 201,
+"n": 207,
 "chapter": 15,
 "title": "If you're someone who",
 "sub": "The identity close.",
@@ -7786,12 +8284,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 7805,
+"at": 8134,
 "words": 100,
 "cam": "spotlight"
 },
 {
-"n": 202,
+"n": 208,
 "chapter": 15,
 "title": "How to take the next step",
 "sub": "",
@@ -7832,12 +8330,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7846,
+"at": 8175,
 "words": 109,
 "cam": "stage"
 },
 {
-"n": 203,
+"n": 209,
 "chapter": 15,
 "title": "Your worksheet",
 "sub": "The deal structure worksheet is unlocked under the video: one real target, the numbers, the test and the stack.",
@@ -7864,12 +8362,12 @@ export const DECK_DATA: DeckData = {
 }
 ],
 "poll": null,
-"at": 7891,
+"at": 8220,
 "words": 60,
 "cam": "spotlight"
 },
 {
-"n": 204,
+"n": 210,
 "chapter": 15,
 "title": "Dan, one more time",
 "sub": "Illustrative.",
@@ -7898,12 +8396,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7918,
+"at": 8247,
 "words": 55,
 "cam": "spotlight"
 },
 {
-"n": 205,
+"n": 211,
 "chapter": 15,
 "title": "Owners build. Buyers compound.",
 "sub": "",
@@ -7929,12 +8427,12 @@ export const DECK_DATA: DeckData = {
 ],
 "cues": [],
 "poll": null,
-"at": 7942,
+"at": 8271,
 "words": 25,
 "cam": "spotlight"
 },
 {
-"n": 206,
+"n": 212,
 "chapter": 15,
 "title": "A year from now",
 "sub": "The same business under the same ceiling, or a year into building a group.",
@@ -7972,12 +8470,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 7956,
+"at": 8285,
 "words": 118,
 "cam": "split"
 },
 {
-"n": 207,
+"n": 213,
 "chapter": 15,
 "title": "Education only",
 "sub": "Not financial, legal or tax advice. Every number shown is illustrative unless it is stated as a fact. Lending decisions and results depend on the business, the lender and the deal. The strategy call and the engagement do not promise financing, a closed acquisition or any return.",
@@ -7997,12 +8495,12 @@ export const DECK_DATA: DeckData = {
 "levers": [],
 "cues": [],
 "poll": null,
-"at": 8004,
+"at": 8333,
 "words": 36,
 "cam": "spotlight"
 }
 ],
-"plannedSec": 8022,
+"plannedSec": 8350,
 "wpm": 160,
 "applyPath": "/apply",
 "script": "scripts/ai-webinar/script-ai-josh.md"

@@ -63,11 +63,25 @@ PERSON = [
     ('the board behind me', 'the board behind Josh'),
     ('who stood behind me', 'who stood behind Josh'),
     ('I started where you are', 'Josh started where you are'),
+    # Josh's own claims from his Dealmaker deck (owner decision 2026-11-07): the narrator always attributes them to him.
+    ("By twenty-one I was in banking, working on more than thirty million dollars of deals, and I've since advised on and closed more than a hundred million dollars in transactions. I did my first deal at twenty-five, one hundred percent seller financed, which made me the youngest in Australian history to do a fully seller financed healthcare deal. Today JC Health Group is a multi seven-figure portfolio, all of it seller financed. I'm building KingLi into an eight-figure group now, and my goal for JC Health Group is a nine-figure exit.",
+     "In Josh's own words: he was in banking by twenty-one, working on more than thirty million dollars of deals, and he has since advised on and closed more than a hundred million dollars in transactions. He did his first deal at twenty-five, one hundred percent seller financed, which he says made him the youngest in Australian history to do a fully seller financed healthcare deal. Today, he says, JC Health Group is a multi seven-figure portfolio, all of it seller financed. He's building KingLi into an eight-figure group now, and his goal for JC Health Group is a nine-figure exit."),
+    ("But it didn't start there. When I did that first deal, I was unemployed, with zero experience. I'd made about a thousand cold calls, and four deals had died on me before one didn't.",
+     "But it didn't start there. When Josh did that first deal, he says, he was unemployed, with zero experience. He'd made about a thousand cold calls, and four deals had died on him before one didn't."),
+    ("Here's what the first one looked like. The seller financed the whole price over seven years, at four percent, paid monthly. None of my own money went in, and I took about a hundred and fifty thousand dollars out of it in the first year. And I didn't start from zero. On day one I had a trained team,",
+     "Here's what the first one looked like, as Josh tells it. The seller financed the whole price over seven years, at four percent, paid monthly. None of Josh's own money went in, and he took about a hundred and fifty thousand dollars out of it in the first year. And he didn't start from zero. On day one he had a trained team,"),
+    ("Here's what borrowed credibility looks like in my own business. A few years ago I was cold-calling from my bedroom. Today JC Health Group has a board",
+     "Here's what borrowed credibility looks like in Josh's own business. A few years ago, he says, he was cold-calling from his bedroom. Today JC Health Group has a board"),
+    ("These photos are from my own deck: the company my board keeps. When a seller looks across the table at me now, that's who he sees behind me.",
+     "These photos are from Josh's own deck: the company his board keeps. When a seller looks across the table at Josh now, that's who he sees behind him."),
+    ("And it isn't only my story. These are messages from my clients,", "And it isn't only Josh's story. These are messages from his clients,"),
+    ("a real non-binding offer from JC Health Group, my own group,", "a real non-binding offer from JC Health Group, Josh's own group,"),
 ]
 # An owner's own words, where "my team" means the owner's staff.
 KEEP = ['What if my team finds out']
 # Phrases that mean Josh is speaking about himself. Left in the narrator script, they fail the run.
-LEFTOVER = re.compile(r"\bmy (team|clinics|acquisitions|healthcare|sellers|two)\b|\bmy own (healthcare|clinics|businesses|two)\b|\bI (founded|bought my|didn't walk)\b|\bmine and my\b|\bhold me to\b|\bMy name is\b|\btrusted me\b|\bI've done it twice\b", re.I)
+LEFTOVER = re.compile(r"\bmy (team|clinics|acquisitions|healthcare|sellers|two)\b|\bmy own (healthcare|clinics|businesses|two)\b|\bI (founded|bought my|didn't walk)\b|\bmine and my\b|\bhold me to\b|\bMy name is\b|\btrusted me\b|\bI've done it twice\b"
+                      r"|\bmy (first deal|board|bedroom|clients|own (deck|group|business))\b|\bI (was in banking|did my first|took about|was unemployed|was cold-calling)\b|\bmy goal\b", re.I)
 
 
 def to_narrator(src):

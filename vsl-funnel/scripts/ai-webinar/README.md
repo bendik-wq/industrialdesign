@@ -11,13 +11,13 @@ disclosed in the opening and on every slide). The script (v3, see WEBINAR-NOTES.
 2. Drop Josh's deck, "The Dealmaker" (127-slide PDF, November 2026, from the owner's Drive), anywhere outside the repo and run
    `python3 deck_images.py /path/to/deck.pdf` (about two minutes). It extracts the original images into `deck/` (gitignored: the
    repo is public, so neither the PDF nor anything from it is ever committed), resolves the ones mapped in `deck-images.json` and
-   prints what's left: open `deck/contact.html` to check, fix `deck_slide` / `pick` / `crop` / `tiles` in the mapping, then
+   prints what's left: open `deck/contact.html` to check, fix `deck_slide` / `pick` / `crop` / `tiles` / `masks` (solid boxes in the background colour over lines that must not show, such as crude chat lines; check each masked image by eye) in the mapping, then
    `python3 deck_images.py --resolve`. Images marked `"consent": "verify"` (people other than Josh, clients, names, private chats)
    need the owner's OK, then `"confirmed": true`. Slide 81 is excluded and never extracted. What the deck adds beyond the script,
    and the approval list: `docs/dealmaker-deck-notes.md`.
 3. `python3 build.py --slides` renders only the slide PNGs into `out-dry/slides` (seconds, no audio). `python3 build.py --dry` builds
    everything with silent placeholder audio into `out-dry/` (no credit used, live files untouched). Missing images show as placeholders.
-4. `VOICE_SPEED=0.92 python3 build.py` renders the voice (about 110,000 characters for the v3 script after the November 2026 desire pass; cached by text, so re-runs only pay for changed slides),
+4. `VOICE_SPEED=0.92 python3 build.py` renders the voice (about 115,000 characters for the v3 script after the November 2026 proof pass; cached by text, so re-runs only pay for changed slides),
    the slides, the video and the HLS files in `public/assets/media/webinar/ai/`, and rewrites `src/webinar/edition-ai.ts`
    with the timeline measured from the real audio. It stops before spending anything if a mapped image is missing or unconfirmed.
 5. `npx vitest run test/webinar-editions.test.ts`, deploy, then set `WEBINAR_EDITION=ai` in Funnel HQ → Settings → Webinar.
@@ -35,10 +35,10 @@ as the only accent, Newsreader headlines, Inter small text, 128px margins, hairl
 No gradients, glows, translucent overlays or bordered boxes. Each slide's look is set by lines under its `[SLIDE: title | sub]` line,
 which are never spoken (the audio cache doesn't change when they do):
 
-- `[LAYOUT: …]` one of `title`, `statement` (default), `section`, `stat`, `list`, `comparison`, `quote`, `table`, `offer`, `step`, `image-full`, `image-left`
+- `[LAYOUT: …]` one of `title`, `statement` (default), `section`, `stat`, `list`, `comparison`, `quote`, `table`, `offer`, `step`, `image-full`, `image-left`, and the proof layouts `wall` (several screenshots in a row), `photo` (photographs) and `receipt` (a document beside what to read in it)
 - `[DATA: a | b | c]` repeatable rows: `stat` number | label (first row big, up to 3 more small); `list` head | description (max 3);
   `comparison` label | value | text (2 rows); `table` header row first, last row is the result; `offer` label | amount, last row is the total
-- `[IMAGE: id]` an image from `deck-images.json` (`title`, `step`, `image-full`, `image-left`)
+- `[IMAGE: id]` an image from `deck-images.json` (`title`, `step`, `image-full`, `image-left`, `receipt`); repeatable on `wall` and `photo`, each original captioned below by the `[DATA: name | line]` row in the same place, and every print stays at or under 1.35x its own pixels
 - `[CAPTION: …]` a footnote, the image caption, the quote's attribution or the step's line
 - `[KICKER: …]` the small label: on `title` and `step` slides, and on a `section` slide inside a chapter (no big chapter number then)
 - `step` slides take their track from `[DATA: label | name]` rows (else the Sprint's seven days)

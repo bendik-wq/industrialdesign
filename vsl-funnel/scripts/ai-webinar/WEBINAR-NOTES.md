@@ -111,13 +111,36 @@ equipment secured the loan), told as one deal, not a rule · the method (commerc
 test; off-market owners with no successor; group multiples as illustrative ranges; seller first, lender second) · the guarantee
 and the 7-day refund, exact wording and conditions. Every other number is labelled illustrative on its slide.
 
+**Added 2026-11-07, the owner's decision ("bring the proof in"), from Josh's Dealmaker deck:**
+- *Josh's own statements, always as "I" (Josh script) or attributed to him (narrator):* in banking by 21 with $30M+ in deals;
+  $100M+ in transactions advised on and closed; first deal at 25, 100% seller financed, youngest in Australian history to do so in
+  healthcare; before it, unemployed, no experience, about 1,000 cold calls and four dead deals; first deal over 7 years at 4%,
+  none of his own money, about $150K out in year one, about 13,000 customers on day one; JC Health Group a multi 7-figure
+  portfolio, KingLi an 8-figure group being built, a 9-figure exit as his goal; a board with 200+ years of experience, a former
+  federal minister in the chair, cold-calling from his bedroom a few years before. (Who's behind the method; Two acquisitions,
+  both seller financed; The credibility you borrow.)
+- *Clients' results, each block with "These are their results, not a promise of yours.":* Jason (radiology): first deal $5.5M,
+  nothing down, no personal guarantee, the $200M exit seven years later, as the deck attributes it (One deal, over five million,
+  no personal guarantee; the two answers that mention it now say Jason's). Cam: two deals in 23 days, 100% seller finance; an
+  $850K 100% seller-financed LOI. Saul: first NDA. A member: two deals in a morning, $508K combined EBITDA. Jy: a board in 29 days,
+  CEO of KingVets. Christian: a $2.4M deal, financed above the price (his result and photo only; nothing personal about him,
+  anywhere). Members: a $4.4M SBA approval, four LOIs in a day incl. one on a $23M business, a 700K over 7 years seller-financed
+  contract. (In their own messages; Two more who moved; The receipts.)
+- *Documents:* a real target's P&L under review, JC Health Group's redacted NBIO (What closing looks like on paper; A real offer,
+  redacted).
+- *Left out on purpose:* the deck's own offer, value stack, "live only", "limited spots" and 48-hour lines (the masterclass sells
+  apply and book); the market numbers ($10T, ~75% without a succession plan, 60 cents on the dollar), because the deck gives no
+  source; the coach quoting billionaires; crude chat lines (cropped or masked in `deck-images.json`).
+- The copy audit allows these numbers only in their exact wording, and a client's only beside the typicality line (`PROOF` in
+  `copy-house.ts`).
+
 ## The owner must verify or approve before the render
 1. **Deck images with people or private material** (`"consent": "verify"` in `deck-images.json`; the voiced build refuses until
    `"confirmed": true`): `josh-portrait` (title slide), `josh-handshake` (Josh with a seller; captioned "Josh Li with a seller at
    signing"), `jc-health-board` (captioned "The board of JC Health Group, Josh Li's healthcare holding company"; no board members
-   are named), `outreach-dm` (the owner outreach template; check it has no real names). The client LOI chats and student result
-   chats were left out on purpose: they carry claims outside the approved proof list.
-2. Extract the deck images (`python3 deck_images.py <deck.pdf>`): all 11 used images are placeholders until then.
+   are named), `outreach-dm` (the owner outreach template; check it has no real names). The client chats, case
+   studies, board photos and documents were approved on 2026-11-07 (see "Added 2026-11-07" above) and are `"confirmed": true`.
+2. Extract the deck images (`python3 deck_images.py <deck.pdf>`): every used image is a placeholder until then.
 3. **Engagement facts the script states:** 90-day "Done with you" engagement on the 3C model; weekly working sessions; outreach
    scripts provided; the engagement has a fee covered on the call; calls run on video. Confirm each is how the team runs it.
 4. **Guarantee wording and conditions** (read verbatim on screen and in the voice): confirm they match the signed terms and have

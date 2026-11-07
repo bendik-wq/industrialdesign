@@ -165,6 +165,52 @@
   };
   L.offer = L.statement;
 
+  // ───────────── proof layouts: several originals on one slide ─────────────
+  // Each original is shown as a print, never past 1.35x its own pixels; its caption sits below it, never over it.
+  function credits(ims) {
+    var sl = [];
+    ims.forEach(function (im) { if (sl.indexOf(im.slide) < 0) sl.push(im.slide); });
+    return 'From Josh Li’s deck, The Dealmaker · ' + (sl.length > 1 ? 'slides ' : 'slide ') + sl.join(', ');
+  }
+  function shown(im, w, h) { return im && im.src && im.w && im.h ? Math.round(im.h * Math.min(SHARP, w / im.w, h / im.h)) : Math.round(Math.min(h, w * 0.75)); }
+  function figure(im, w, h, cap, b, cls, frameH) {
+    var inner;
+    if (im && im.src && im.w && im.h) {
+      var k = Math.min(SHARP, w / im.w, h / im.h);
+      inner = '<img src="' + esc(im.src) + '" alt="' + esc(im.what) + '" style="width:' + Math.round(im.w * k) + 'px;height:' + Math.round(im.h * k) + 'px">';
+    } else {
+      inner = '<div class="slot" style="width:' + w + 'px;height:' + Math.round(Math.min(h, w * 0.75)) + 'px"><div class="sc">Deck slide ' + esc(im ? im.slide : '') + '</div><p>' +
+        typo(im ? im.what : '') + '</p><div class="note">' + (im && im.needsConsent ? 'Shows once the deck is extracted and Josh approves it' : 'Shows once the deck is extracted') + '</div></div>';
+    }
+    if (frameH) inner = '<div class="fr" style="height:' + frameH + 'px">' + inner + '</div>';
+    return '<figure class="fig ' + (cls || '') + '"' + (b != null ? B(b) : '') + ' style="width:' + w + 'px">' + inner + (cap ? '<figcaption>' + cap + '</figcaption>' : '') + '</figure>';
+  }
+  function capOf(r) { return r ? (r[1] ? '<b>' + typo(r[0]) + '</b> ' + typo(r[1]) : typo(r[0])) : ''; }
+  /** A row of originals with a caption under each: 'wall' (screenshots, one per click) and 'photo' (photographs). */
+  function gallery(s, kind) {
+    var ims = s.images || (s.image ? [s.image] : []), n = Math.max(1, ims.length), gap = n > 3 ? 40 : 56;
+    var lab = isLabel(s.sub), hasSub = s.sub && !lab;
+    var w = Math.floor((1664 - gap * (n - 1)) / n), h = (hasSub ? 400 : 460) - (s.caption ? 30 : 0) - (n > 3 ? 60 : 0);
+    // One frame height for the row (the tallest print), each print centred in it, so the captions start on one line.
+    var frameH = Math.max.apply(null, ims.map(function (im) { return shown(im, w, h); }).concat([1]));
+    var head1 = '<div class="sc kick"' + E(0) + '>' + esc(s.kicker || (lab ? s.sub : '')) + '</div><h1 class="bal"' + E(1) + ' data-fit="90">' + typo(s.title) + '</h1>' +
+      (hasSub ? '<p class="hdsub bal"' + E(2) + '>' + typo(s.sub) + '</p>' : '');
+    var row = '<div class="gal ' + kind + '" style="gap:' + gap + 'px">' + ims.map(function (im, i) { return figure(im, w, h, capOf(s.data[i]), i + 1, '', frameH); }).join('') + '</div>';
+    return '<div class="c gal-c">' + head1 + row + '<p class="gal-note"' + B(n) + '>' + (s.caption ? typo(s.caption) + ' ' : '') + '<span>' + typo(credits(ims)) + '</span></p></div>';
+  }
+  var GALLERY = { wall: 1, photo: 1, receipt: 1 };
+  L.wall = function (s) { return gallery(s, 'wall'); };
+  L.photo = function (s) { return gallery(s, 'photo'); };
+  /** A document as a receipt: the paper on the right with its caption under it, what to read in it on the left, one line per click. */
+  L.receipt = function (s) {
+    var im = s.image, lab = isLabel(s.sub);
+    var left = '<div class="rc-l"><div class="sc kick"' + E(0) + '>' + esc(s.kicker || (lab ? s.sub : '')) + '</div><h1 class="bal"' + E(1) + ' data-fit="330">' + typo(s.title) + '</h1>' +
+      (s.sub && !lab ? '<p class="hdsub"' + E(2) + '>' + typo(s.sub) + '</p>' : '') +
+      '<div class="rc-rows">' + s.data.map(function (r, i) { return '<div class="rc-row"' + B(i + 1) + '><div class="sc">' + typo(r[0]) + '</div><p>' + typo(r[1] || '') + '</p></div>'; }).join('') + '</div></div>';
+    var cap = (s.caption ? typo(s.caption) + '<br>' : '') + '<span>' + typo(im ? credits([im]) : '') + '</span>';
+    return '<div class="c rc">' + left + '<div class="rc-r">' + figure(im, 880, 660, cap, null, 'doc') + '</div></div>';
+  };
+
   // ───────────── scenes ─────────────
   // Each returns the slide's inner HTML; builds use data-b, stepped values data-steps ("build:value|build:value").
   var SC = {};
@@ -578,7 +624,7 @@
     var layout = L[s.layout] ? s.layout : 'statement';
     // A scene replaces an image layout's picture with its own visual, so it takes the plain grid.
     var cls = scene && /^image-/.test(layout) ? 'statement' : layout;
-    el.className = 'slide L-' + cls + (dark ? ' dark' : '') + (s.image && (!scene || scene === 'proof' || scene === 'film') ? ' has-img' : '') + (scene ? ' scene sc-' + scene + (scene === 'anchor' ? ' anchor' : '') : '');
+    el.className = 'slide L-' + cls + (dark ? ' dark' : '') + (s.image && !GALLERY[layout] && (!scene || scene === 'proof' || scene === 'film') ? ' has-img' : '') + (scene ? ' scene sc-' + scene + (scene === 'anchor' ? ' anchor' : '') : '');
     el.setAttribute('data-n', s.n);
     var body = scene ? SC[scene](s) : L[layout](s);
     el.innerHTML = (layout === 'image-full' ? '' : chrome(s)) + body + foot(s);
@@ -588,6 +634,14 @@
         var d = i.parentNode, ph = document.createElement('div');
         ph.innerHTML = photo({ id: s.image.id, what: s.image.what, slide: s.image.slide, needsConsent: s.image.needsConsent, src: null });
         d.className = d.className.replace(/\b(print|cut|contain)\b/g, ''); d.removeAttribute('style'); d.innerHTML = ph.firstChild.innerHTML;
+      });
+    });
+    Array.prototype.forEach.call(el.querySelectorAll('.fig > img'), function (i, k) {
+      i.addEventListener('error', function () {
+        var ims = s.images || [s.image], im = ims.filter(function (x) { return x.src && i.getAttribute('src') === x.src; })[0] || ims[k] || s.image;
+        var tmp = document.createElement('div');
+        tmp.innerHTML = figure({ id: im.id, what: im.what, slide: im.slide, needsConsent: im.needsConsent, src: null }, parseInt(i.parentNode.style.width, 10) || 400, parseInt(i.style.height, 10) || 300);
+        i.parentNode.replaceChild(tmp.firstChild.firstChild, i);
       });
     });
     var max = 0;

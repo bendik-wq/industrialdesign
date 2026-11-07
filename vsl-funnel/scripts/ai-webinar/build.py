@@ -16,7 +16,8 @@ Usage:
                               #  ever written by a real render without --out)
 
 Slide metadata in script-ai.md (not spoken; lines after a [SLIDE: ...] line, see README.md):
-  [LAYOUT: name]  [DATA: a | b | c] (repeatable)  [IMAGE: id from deck-images.json]  [CAPTION: text]  [KICKER: text]
+  [LAYOUT: name]  [DATA: a | b | c] (repeatable)  [IMAGE: id from deck-images.json] (repeatable on wall and photo
+                  slides: one original per [IMAGE], captioned by the [DATA] row in the same place)  [CAPTION: text]  [KICKER: text]
   [SCENE: id]     the presented deck's animated scene for this slide (present/, public/assets/deck/); the video slides ignore it
 Margin notes: <!-- ... --> anywhere (one line or several) are stripped before parsing: never spoken, never on a slide.
 Any other line that starts with "[" is a note for the owner and is skipped (e.g. a bracketed conditional line).
@@ -37,7 +38,7 @@ SLIDES = os.path.join(WORKDIR, 'slides'); SEGS = os.path.join(WORKDIR, 'segs')
 OUT_MEDIA = os.path.join(OUT, 'media') if OUT else os.path.join(REPO, 'public/assets/media/webinar/ai')
 OUT_TS = os.path.join(OUT, 'edition-ai.ts') if OUT else os.path.join(REPO, 'src/webinar/edition-ai.ts')
 DECK_MAP = os.path.join(HERE, 'deck-images.json'); DECK_RES = os.path.join(HERE, 'deck', 'resolved')
-LAYOUTS = {'title', 'statement', 'section', 'stat', 'list', 'comparison', 'quote', 'table', 'offer', 'step', 'image-full', 'image-left'}
+LAYOUTS = {'title', 'statement', 'section', 'stat', 'list', 'comparison', 'quote', 'table', 'offer', 'step', 'image-full', 'image-left', 'wall', 'photo', 'receipt'}
 VOICE = os.environ.get('VOICE_ID', 'G17SuINrv2H9FC6nvetn')  # Christopher: gentle, trustworthy British narrator (library voice, AI narration disclosed)
 MODEL = 'eleven_multilingual_v2'
 WPM = 183  # dry-run estimate: measured on the last voiced render (3,705 words in 20.3 min at speed 0.92, breaks included)
@@ -87,8 +88,8 @@ def parse():
     def flush():
         if slide is not None and (text or cues):
             segs.append({'chapter': chapter, 'slide': slide, 'onscreen': list(onscreen), 'text': ' <break time="0.6s" /> '.join(text), 'cues': list(cues),
-                         'layout': meta.get('layout', 'statement'), 'data': list(meta.get('data', [])), 'image': meta.get('image'), 'caption': meta.get('caption'),
-                         'kicker': meta.get('kicker'), 'scene': meta.get('scene')})
+                         'layout': meta.get('layout', 'statement'), 'data': list(meta.get('data', [])), 'image': (meta.get('images') or [None])[0], 'images': list(meta.get('images', [])),
+                         'caption': meta.get('caption'), 'kicker': meta.get('kicker'), 'scene': meta.get('scene')})
     for ln in body.split('\n'):
         s = ln.strip()
         if not s: continue
@@ -104,6 +105,7 @@ def parse():
             k, v = m.group(1).lower(), m.group(2).strip()
             if k == 'layout' and v not in LAYOUTS: raise SystemExit(f'unknown layout {v!r} on slide {slide!r}')
             if k == 'data': meta.setdefault('data', []).append(v)
+            elif k == 'image': meta.setdefault('images', []).append(v)
             else: meta[k] = v
             continue
         m = re.match(r'\[ON SCREEN: (.*)\]$', s)
@@ -156,13 +158,17 @@ def deck_images(segs):
     by_id = {i['id']: i for i in m['images']}
     out, unconfirmed = {}, []
     for sg in segs:
-        iid = sg['image']
-        if not iid or iid in out: continue
+      for iid in sg.get('images') or ([sg['image']] if sg['image'] else []):
+        if iid in out: continue
         if iid not in by_id: raise SystemExit(f'[IMAGE: {iid}] on slide {sg["slide"]!r} is not in deck-images.json')
         e = by_id[iid]
         f = os.path.join(DECK_RES, f'{iid}.png')
+        wh = None
+        if os.path.exists(f):
+            from PIL import Image
+            with Image.open(f) as im: wh = list(im.size)
         out[iid] = {'id': iid, 'deck_slide': e['deck_slide'], 'what': e['what'], 'fit': e.get('fit', 'cover'), 'position': e.get('position'),
-                    'src': f if os.path.exists(f) else None, 'credit': m['credit'].format(slide=e['deck_slide'])}
+                    'src': f if os.path.exists(f) else None, 'credit': m['credit'].format(slide=e['deck_slide']), 'w': wh and wh[0], 'h': wh and wh[1]}
         if e.get('consent') == 'verify' and not e.get('confirmed'): unconfirmed.append(iid)
     missing = [k for k, v in out.items() if not v['src']]
     if missing: print(f'{len(missing)} deck images not extracted yet, shown as placeholders: {", ".join(missing)}')
@@ -184,7 +190,8 @@ def render_slides(segs):
         im = images.get(sg['image'])
         jobs.append({'file': os.path.join(SLIDES, f'{i:03d}.png'), 'title': title, 'sub': sub, 'onscreen': sg['onscreen'], 'chapter': sg['chapter'] or '',
                      'chapterNo': f'{chapters.index(sg["chapter"]) + 1:02d}', 'n': n, 'footer': FOOTER, 'layout': sg['layout'], 'data': sg['data'],
-                     'caption': sg['caption'], 'kicker': sg.get('kicker'), 'image': im, 'credit': im['credit'] if im else None})
+                     'caption': sg['caption'], 'kicker': sg.get('kicker'), 'image': im, 'credit': im['credit'] if im else None,
+                     'images': [images[k] for k in sg.get('images') or []]})
     json.dump(jobs, open(os.path.join(WORKDIR, 'slides.json'), 'w'), indent=1)
     subprocess.run(['node', os.path.join(HERE, 'slides.js'), os.path.join(WORKDIR, 'slides.json')], check=True)
 
@@ -192,7 +199,7 @@ def render_slides(segs):
 def main():
     segs = parse()
     if '--dump' in sys.argv:  # for the copy audit (audit-script.ts): what is spoken and what is on screen, nothing else
-        print(json.dumps([{k: sg[k] for k in ('chapter', 'slide', 'onscreen', 'text', 'cues', 'layout', 'data', 'image', 'caption', 'kicker', 'scene')} for sg in segs])); return
+        print(json.dumps([{k: sg[k] for k in ('chapter', 'slide', 'onscreen', 'text', 'cues', 'layout', 'data', 'image', 'images', 'caption', 'kicker', 'scene')} for sg in segs])); return
     chars = sum(len(s['text']) for s in segs)
     print(f'{len(segs)} segments, {chars} characters to voice' + (f', writing to {OUT}' if OUT else ', writing the LIVE media and timeline'))
     if OUT: os.makedirs(OUT, exist_ok=True)

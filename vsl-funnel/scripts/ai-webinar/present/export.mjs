@@ -17,8 +17,12 @@ const OUT = path.join(HERE, 'out');
 const FILE = pathToFileURL(path.join(OUT, 'deck.html')).href;
 const shotsAt = process.argv.indexOf('--shots');
 const SHOTS = shotsAt > 0 ? path.resolve(process.argv[shotsAt + 1]) : null;
-// Fifteen builds worth a close look (slide title, build; -1 = the last build): the slides with deck originals first.
+// Builds worth a close look (slide title, build; -1 = the last build): the proof from Josh's deck first (walls,
+// receipts, photos with captions), then the other slides with deck originals.
 const KEY = [
+  ["Who's behind the method", 1], ['Two acquisitions, both seller financed', -1], ['One deal, over five million, no personal guarantee', -1],
+  ['The credibility you borrow', -1], ['In their own messages', 2], ['In their own messages', -1], ['Two more who moved', -1],
+  ['Why a team, and not a course', -1], ['The receipts', -1], ['What closing looks like on paper', -1], ['A real offer, redacted', -1],
   ['The Acquisition Masterclass', 0], ['Twice, the sellers financed the whole price', -1], ["Who's behind the method", -1], ['The owner with no successor', -1],
   ['You can reach them first', -1], ['Two acquisitions, both seller financed', -1], ['What a holding company is for', -1], ['Back to the question', -1],
   ['What the call can lead to', -1], ['The first week', -1], ['The first outreach', -1], ['A year from now', -1],

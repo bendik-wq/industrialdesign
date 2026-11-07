@@ -2,7 +2,8 @@
 // One restrained system: solid warm white (#f7f6f3) or near-black (#111) for section breaks, one navy accent,
 // Newsreader for headlines, Inter for small text, a 12-column grid with 128px margins, hairline rules,
 // small-caps labels and big tabular numbers. No gradients, glows, translucent overlays or bordered boxes.
-// Layouts: title, statement, section, stat, list, comparison, quote, table, offer, step, image-full, image-left.
+// Layouts: title, statement, section, stat, list, comparison, quote, table, offer, step, image-full, image-left, and the
+// proof layouts wall, photo (several originals, a caption under each) and receipt (a document with what to read in it).
 // Every slide carries the AI-narration disclosure in its footer.
 // An ES module (the package is "type": "module"); Playwright comes from the global install (NODE_PATH) or the repo.
 import fs from 'node:fs';
@@ -179,7 +180,70 @@ h1,.h{font-family:Newsreader,Georgia,serif;font-weight:400;letter-spacing:-.022e
 .L-image-left .pic b{font-weight:500;color:var(--ink2)}
 .L-title .img{left:1000px;top:0;width:920px;height:1080px}
 .L-step .img{left:1000px;top:0;width:920px;height:1080px}
+/* Proof layouts (wall, photo, receipt): originals as prints, never past 1.35x; captions below, never over. */
+.gal-c .kick{margin-bottom:20px;color:var(--accent)}
+.gal-c h1{font:400 72px/1.06 Newsreader,Georgia,serif;letter-spacing:-.025em}
+.gal-c .hdsub{margin-top:14px;font:400 28px/1.4 Inter;color:var(--ink2)}
+.gal{display:flex;align-items:flex-start;margin-top:40px}
+.fig{margin:0;display:flex;flex-direction:column;align-items:flex-start}
+.fig img{display:block}
+.fig .fr{width:100%;display:flex;align-items:center;justify-content:flex-start}
+.gal.wall .fig img,.fig.doc img{outline:1px solid var(--hair)}
+.fig figcaption{margin-top:16px;padding-top:12px;border-top:1px solid var(--hair);width:100%;font:400 22px/1.4 Inter;color:var(--ink2)}
+.fig figcaption b{display:block;font-weight:600;color:var(--ink);margin-bottom:2px}
+.fig figcaption span,.gal-note span{color:var(--ink3)}
+.gal-note{margin-top:auto;font:400 20px/1.45 Inter;color:var(--ink2)}
+.fig .slot{display:flex;flex-direction:column;justify-content:center;padding:28px;background:var(--panel)}
+.fig .slot p{margin-top:14px;font:italic 400 28px/1.3 Newsreader,Georgia,serif;color:var(--ink2)}
+.rc{flex-direction:row;gap:72px;align-items:flex-start}
+.rc-l{flex:1;min-width:0;display:flex;flex-direction:column}
+.rc-l .kick{margin-bottom:24px;color:var(--accent)}
+.rc-l h1{font:400 76px/1.05 Newsreader,Georgia,serif;letter-spacing:-.025em}
+.rc-l .hdsub{margin-top:14px;font:400 28px/1.4 Inter;color:var(--ink2)}
+.rc-rows{margin-top:40px}
+.rc-row{padding:18px 0;border-top:1px solid var(--hair)}
+.rc-row .sc{font-size:17px;color:var(--accent)}
+.rc-row p{margin-top:8px;font:400 27px/1.38 Inter;color:var(--ink)}
+.rc-r{width:880px;flex:none}
 `;
+
+// The proof layouts (wall, photo, receipt): the same as the presented deck (public/assets/deck/deck.js), without builds.
+const SHARP = 1.35;
+const credits = (ims) => {
+  const sl = [...new Set(ims.map((im) => im.deck_slide))];
+  return `From Josh Li’s deck, The Dealmaker · ${sl.length > 1 ? 'slides' : 'slide'} ${sl.join(', ')}`;
+};
+const shown = (im, w, h) => (im && im.src && im.w && im.h ? Math.round(im.h * Math.min(SHARP, w / im.w, h / im.h)) : Math.round(Math.min(h, w * 0.75)));
+function figure(im, w, h, cap, cls = '', frameH = 0) {
+  let inner;
+  if (im && im.src && im.w && im.h) {
+    const k = Math.min(SHARP, w / im.w, h / im.h);
+    const mime = im.src.endsWith('.jpg') ? 'image/jpeg' : 'image/png';
+    inner = `<img src="data:${mime};base64,${fs.readFileSync(im.src).toString('base64')}" alt="" style="width:${Math.round(im.w * k)}px;height:${Math.round(im.h * k)}px">`;
+  } else {
+    inner = `<div class="slot" style="width:${w}px;height:${Math.round(Math.min(h, w * 0.75))}px"><div class="sc">Deck slide ${esc(im?.deck_slide ?? '?')}</div><p>${typo(im?.what || '')}</p></div>`;
+  }
+  if (frameH) inner = `<div class="fr" style="height:${frameH}px">${inner}</div>`;
+  return `<figure class="fig ${cls}" style="width:${w}px">${inner}${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
+}
+const capOf = (r) => (r ? (r[1] ? `<b>${typo(r[0])}</b> ${typo(r[1])}` : typo(r[0])) : '');
+const isLabel = (sub) => !!sub && /^Illustrative\b/.test(sub) && sub.length < 72;
+function gallery(j, d, kind) {
+  const ims = j.images.length ? j.images : j.image ? [j.image] : [];
+  const n = Math.max(1, ims.length), gap = n > 3 ? 40 : 56, lab = isLabel(j.sub), hasSub = j.sub && !lab;
+  const w = Math.floor((1664 - gap * (n - 1)) / n), h = (hasSub ? 400 : 460) - (j.caption ? 30 : 0) - (n > 3 ? 60 : 0);
+  const frameH = Math.max(1, ...ims.map((im) => shown(im, w, h)));
+  return `<div class="c gal-c"><div class="sc kick">${esc(j.kicker || (lab ? j.sub : ''))}</div><h1 class="bal" data-fit="90">${typo(j.title)}</h1>${hasSub ? `<p class="hdsub bal">${typo(j.sub)}</p>` : ''}` +
+    `<div class="gal ${kind}" style="gap:${gap}px">${ims.map((im, i) => figure(im, w, h, capOf(d[i]), '', frameH)).join('')}</div>` +
+    `<p class="gal-note">${j.caption ? typo(j.caption) + ' ' : ''}<span>${typo(credits(ims))}</span></p></div>`;
+}
+function receipt(j, d) {
+  const im = j.image, lab = isLabel(j.sub);
+  const cap = `${j.caption ? typo(j.caption) + '<br>' : ''}<span>${im ? typo(credits([im])) : ''}</span>`;
+  return `<div class="c rc"><div class="rc-l"><div class="sc kick">${esc(j.kicker || (lab ? j.sub : ''))}</div><h1 class="bal" data-fit="330">${typo(j.title)}</h1>${j.sub && !lab ? `<p class="hdsub">${typo(j.sub)}</p>` : ''}` +
+    `<div class="rc-rows">${d.map((r) => `<div class="rc-row"><div class="sc">${typo(r[0])}</div><p>${typo(r[1] || '')}</p></div>`).join('')}</div></div>` +
+    `<div class="rc-r">${figure(im, 880, 660, cap, 'doc')}</div></div>`;
+}
 
 const DAYS = ['Kickoff', 'Capacity', 'Buy box', 'Shortlist', 'Memo', 'Script', 'Deal Plan'];
 
@@ -242,6 +306,11 @@ function body(j) {
       const kick = j.kicker || (d.length ? `Step ${n} of ${steps.length}` : `Day ${n} of 7 · The First Deal Sprint`);
       return `${imageBlock(j)}<div class="c"><div></div><div class="mid"><div class="dn num">${n}</div><div class="tx"><div class="sc">${esc(kick)}</div><h1 class="bal" data-fit="300">${typo(j.sub || j.title)}</h1>${j.caption ? `<p class="sub">${typo(j.caption)}</p>` : ''}</div></div><div class="track" style="grid-template-columns:repeat(${steps.length},1fr)">${track}</div></div>`;
     }
+    case 'wall':
+    case 'photo':
+      return gallery(j, d, L);
+    case 'receipt':
+      return receipt(j, d);
     case 'image-full':
       return `${imageBlock(j)}<div class="cap"><div><div class="sc">${esc(j.chapter)}</div><h1 class="bal" data-fit="130">${typo(j.caption || j.onscreen[0] || j.title)}</h1></div><div class="cr">${typo(j.credit || '')}</div></div>`;
     case 'image-left':
@@ -257,7 +326,7 @@ function page(j) {
   const dark = L === 'section';
   const chrome = L === 'image-full' ? '' : `<div class="top"><span class="sc">${L === 'title' || L === 'section' ? '' : `${esc(j.chapterNo)} · ${esc(j.chapter)}`}</span><span class="brand">G&amp;L M&amp;A Advisory</span></div><div class="toprule"></div>`;
   return `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style></head><body>
-    <div class="slide L-${L}${dark ? ' dark' : ''}${j.image ? ' has-img' : ''}">${chrome}${body({ ...j, layout: L })}
+    <div class="slide L-${L}${dark ? ' dark' : ''}${j.image && !['wall', 'photo', 'receipt'].includes(L) ? ' has-img' : ''}">${chrome}${body({ ...j, layout: L })}
     <div class="foot"><span>The Acquisition Masterclass</span><span>${esc(String(j.footer || '').split(' · ').slice(1).join(' · ') || 'Narrated by an AI voice · Method by Josh Li')}<span class="n">${String(j.n).padStart(2, '0')}</span></span></div></div></body></html>`;
 }
 

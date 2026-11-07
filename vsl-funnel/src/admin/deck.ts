@@ -12,11 +12,14 @@ import type { AppEnv } from '../app';
 import { publicOrigin } from '../app';
 import { buildId } from '../infra/build';
 
+export interface DeckImage { id: string; what: string; slide: number; fit: string; credit: string; needsConsent: boolean; src: string | null; w?: number; h?: number; zoom?: number }
 export interface DeckSlide {
   n: number; chapter: number; title: string; sub: string; layout: string; scene: string | null;
   onscreen: string[]; data: string[][]; caption: string | null; kicker: string | null;
   /** src: /admin/deck/img/<id>.jpg (admin-only, deckImageRoute) or null for a labelled slot; w, h: the picture's own pixels. */
-  image: { id: string; what: string; slide: number; fit: string; credit: string; needsConsent: boolean; src: string | null; w?: number; h?: number; zoom?: number } | null;
+  image: DeckImage | null;
+  /** Wall and photo slides: every original on the slide, in order (image is the first); each captioned by data[i]. */
+  images?: DeckImage[];
   notes: { text: string; aiOnly: boolean }[]; levers: string[]; cues: { id: string; label: string }[];
   poll: { id: string; q: string; options: string[] } | null;
   at: number; words: number; cam: 'orbit' | 'split' | 'spotlight' | 'stage' | 'vertical' | 'cinema';

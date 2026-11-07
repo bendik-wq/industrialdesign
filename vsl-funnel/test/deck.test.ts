@@ -105,7 +105,16 @@ describe('the deck data (generated from script-ai-josh.md)', () => {
     expect(slides.filter((x) => x.poll).map((x) => x.poll!.id).sort()).toEqual(['blocker', 'own_cash', 'soft_close', 'target_type', 'timeline']);
   });
   it('no deck original that needs consent is shown before it is confirmed', () => {
-    for (const s of slides) if (s.image?.needsConsent) expect(s.image.src, s.image.id).toBeNull();
+    for (const s of slides) for (const im of [s.image, ...(s.images ?? [])]) if (im?.needsConsent) expect(im.src, im.id).toBeNull();
+  });
+  it('proof slides with several originals caption each one and carry the typicality line on client results', () => {
+    const multi = slides.filter((s) => (s.images?.length ?? 0) > 1);
+    expect(multi.length).toBeGreaterThanOrEqual(3);
+    for (const s of multi) {
+      expect(s.images![0].id, s.title).toBe(s.image!.id);
+      expect(s.data.length, s.title).toBe(s.images!.length);
+      if (s.layout === 'wall') expect(s.caption, s.title).toMatch(/not a promise of yours/);
+    }
   });
   it('the fixed words the deck adds pass the copy rules', () => {
     const fixed = [...(deckJs as string).matchAll(/'((?:[A-Z][a-z]+)(?: [a-zA-Z0-9.,’]+){2,})'/g)].map((m) => m[1]).filter((t) => !/[{}()=;]/.test(t));
@@ -223,6 +232,6 @@ describe('/admin/deck', () => {
     expect(r.headers.get('content-type')).toBe('image/jpeg');
     expect(r.headers.get('cache-control') ?? '').toMatch(/no-store|private/); // never a shared cache
     for (const bad of ['..%2Fadmin%2Findex.html', 'x.png', 'Josh.jpg', '.jpg']) expect((await call(`/admin/deck/img/${bad}`, { headers: { cookie: owner } })).status, bad).toBe(404);
-    for (const s of DECK_DATA.slides) if (s.image?.src) expect(s.image.src).toMatch(/^\/admin\/deck\/img\/[a-z0-9-]+\.jpg$/);
+    for (const s of DECK_DATA.slides) for (const im of [s.image, ...(s.images ?? [])]) if (im?.src) expect(im.src).toMatch(/^\/admin\/deck\/img\/[a-z0-9-]+\.jpg$/);
   });
 });

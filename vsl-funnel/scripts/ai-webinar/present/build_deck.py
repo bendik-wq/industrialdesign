@@ -84,6 +84,12 @@ def images():
     return out
 
 
+def slide_image(im):
+    """What a slide carries for one deck original: a labelled slot (src None) until it is extracted and may be shown."""
+    return {k: im[k] for k in ('id', 'what', 'slide', 'fit', 'credit', 'needsConsent')} | (
+        ({'src': f"/admin/deck/img/{im['id']}.jpg", 'w': im['size'][0], 'h': im['size'][1]} | ({'zoom': im['zoom']} if im['zoom'] else {})) if im['file'] else {'src': None})
+
+
 def size(f):
     from PIL import Image
     with Image.open(f) as im: return list(im.size)
@@ -115,11 +121,14 @@ def build():
         scene = sg.get('scene') or ('poll' if polls else None)
         if title == 'Owners build. Buyers compound.' and sg['layout'] == 'section': scene = 'anchor'
         im = imgs.get(sg['image']) if sg['image'] else None
+        for iid in sg.get('images') or []:
+            if iid not in imgs: raise SystemExit(f'[IMAGE: {iid}] on slide {title!r} is not in deck-images.json')
         d = {
             'n': i + 1, 'chapter': ch, 'title': title, 'sub': sub, 'layout': sg['layout'], 'scene': scene,
             'onscreen': sg['onscreen'], 'data': [[c.strip() for c in row.split('|')] for row in sg['data']],
             'caption': sg['caption'], 'kicker': sg['kicker'],
-            'image': ({k: im[k] for k in ('id', 'what', 'slide', 'fit', 'credit', 'needsConsent')} | (({'src': f"/admin/deck/img/{im['id']}.jpg", 'w': im['size'][0], 'h': im['size'][1]} | ({'zoom': im['zoom']} if im['zoom'] else {})) if im['file'] else {'src': None})) if im else None,
+            'image': slide_image(im) if im else None,
+            **({'images': [slide_image(imgs[k]) for k in sg['images']]} if len(sg.get('images') or []) > 1 else {}),
             'notes': [{'text': p, 'aiOnly': bool(re.search(r'AI version of my voice', p))} for p in paras],
             'levers': n['levers'], 'cues': [{'id': c, 'label': (f"Poll: {POLLS[c[6:]][0]}" if c.startswith('POLL: ') and c[6:] in POLLS else CUE_LABEL.get(c, c))} for c in s['cues']],
             'poll': {'id': polls[0], 'q': POLLS[polls[0]][0], 'options': POLLS[polls[0]][1]} if polls and polls[0] in POLLS else None,
@@ -151,7 +160,7 @@ def main():
     open(OUT_TS, 'w').write(src)
     # Deck originals that may be shown, as JPEGs next to the deck app (none until deck_images.py has run and consent is given).
     # Only the images the slides use; anything else in the folder (no longer used, or consent taken back) is removed.
-    used = {s['image']['id'] for s in deck['slides'] if s['image']}
+    used = {i['id'] for s in deck['slides'] for i in ([s['image']] if s['image'] else []) + s.get('images', [])}
     shown = [i for i in imgs.values() if i['file'] and i['id'] in used]
     os.makedirs(IMG_OUT, exist_ok=True)
     for f in os.listdir(IMG_OUT):
@@ -166,12 +175,12 @@ def main():
     js = open(os.path.join(ASSETS, 'qr.js')).read() + '\n' + open(os.path.join(ASSETS, 'deck.js')).read()
     data = json.loads(json.dumps(deck))
     for s in data['slides']:
-        if s['image'] and s['image']['src']:
-            s['image']['src'] = 'data:image/jpeg;base64,' + base64.b64encode(open(os.path.join(IMG_OUT, f"{s['image']['id']}.jpg"), 'rb').read()).decode()
+        for i in ([s['image']] if s['image'] else []) + s.get('images', []):
+            if i['src']: i['src'] = 'data:image/jpeg;base64,' + base64.b64encode(open(os.path.join(IMG_OUT, f"{i['id']}.jpg"), 'rb').read()).decode()
     html = page_html(json.dumps(data, ensure_ascii=False).replace('</', '<\\/'), f'<style>{css}</style>', f'<script>{js}</script>', apply_origin='https://apply.grosfjeld-li.com')
     open(os.path.join(OUT_DIR, 'deck.html'), 'w').write(html)
     print(f"{len(deck['slides'])} slides, {len(deck['chapters'])} chapters, planned {deck['plannedSec'] // 60} min at {WPM} wpm; "
-          f"{len(shown)} deck originals shown, {sum(1 for s in deck['slides'] if s['image'] and not s['image']['src'])} photo slots waiting (extraction or consent)")
+          f"{len(shown)} deck originals shown, {sum(1 for s in deck['slides'] for i in ([s['image']] if s['image'] else []) + s.get('images', []) if not i['src'])} photo slots waiting (extraction or consent)")
     print('wrote', os.path.relpath(OUT_TS, REPO), 'and', os.path.relpath(os.path.join(OUT_DIR, 'deck.html'), REPO))
 
 

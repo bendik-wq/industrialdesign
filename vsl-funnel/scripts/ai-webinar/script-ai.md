@@ -160,16 +160,22 @@ It's for owners doing more than a million dollars a year, with real profit behin
 If you're looking for a way to get rich without risk, this isn't it, and nothing honest is. If your business is under a million a year, stay anyway. You'll see the path, and there's a worksheet at the end that's built for you.
 
 [SLIDE: Who's behind the method]
-[LAYOUT: image-left]
+[LAYOUT: list]
+[SCENE: proof]
 [IMAGE: josh-handshake]
-[CAPTION: Josh Li with a seller at signing.]
+[KICKER: Josh Li, in his own words]
+[DATA: First deal at 25 | 100% seller financed, after about 1,000 cold calls and four dead deals]
+[DATA: $100M+ | In transactions advised on and closed, by Josh's own count]
+[DATA: Multi 7-figure | JC Health Group today, all of it seller financed]
 
-<!-- POSITION: only the approved facts. Josh founded JC Health Group; two acquisitions; sellers financed 100% in both. Second firing of the proof, now with the photo of a signing (proof adjacency: the claim and the picture in one breath). -->
+<!-- POSITION + ORIGIN (owner decision 2026-11-07: Josh's bigger claims from his Dealmaker deck, slides 11 and 12, approved as his own statements, always attributed to him, never as independent facts). Bencivenga proof adjacency: the claim, the numbers and the signing photo in one breath. The origin (unemployed, a thousand calls, four dead deals) is the bridge: the viewer can't dismiss him as born on third base. -->
 The method comes from Josh Li. Josh founded JC Health Group, his own healthcare holding company. He bought his clinics in two acquisitions, and in both of them the sellers financed one hundred percent of the price.
 
-Hold on to that fact, because you'll hear what made it possible, and it isn't what most people expect. It's a question. Sellers ask it whether they say it out loud or not.
+In Josh's own words: he was in banking by twenty-one, working on more than thirty million dollars of deals, and he has since advised on and closed more than a hundred million dollars in transactions. He did his first deal at twenty-five, one hundred percent seller financed, which he says made him the youngest in Australian history to do a fully seller financed healthcare deal. Today, he says, JC Health Group is a multi seven-figure portfolio, all of it seller financed. He's building KingLi into an eight-figure group now, and his goal for JC Health Group is a nine-figure exit.
 
-[ON SCREEN: Two acquisitions. In both, the sellers financed 100% of the price.]
+But it didn't start there. When Josh did that first deal, he says, he was unemployed, with zero experience. He'd made about a thousand cold calls, and four deals had died on him before one didn't.
+
+Hold on to that fact, because you'll hear what made it possible, and it isn't what most people expect. It's a question. Sellers ask it whether they say it out loud or not.
 
 [SLIDE: What you'll see by the end]
 [LAYOUT: list]
@@ -218,7 +224,7 @@ A question has just appeared under the video. If the money were sorted, what kin
 
 Notice that you already had an answer. Most owners do. They've been carrying a business around in their head for years, the one down the road, the one they'd fix. Keep it in mind. We're going to come back to it.
 
-## [10:40] The ceiling
+## [11:25] The ceiling
 
 [SLIDE: Tuesday, 9:40 at night | Dan, an illustrative owner, at the kitchen table.]
 [LAYOUT: section]
@@ -362,7 +368,7 @@ Owners build. Buyers compound.
 
 Dan has been building for twenty years. He's about to find out what it looks like to compound.
 
-## [17:38] The owner down the road
+## [18:23] The owner down the road
 
 [SLIDE: The phone call | Graham, an illustrative seller: 64, thirty years in the trade, no successor.]
 [LAYOUT: statement]
@@ -470,7 +476,7 @@ You're not the only one who has noticed. Private equity funds buy businesses lik
 <!-- ROBBINS: questions control focus. The viewer names their own blocker, and the rest of the content answers each one by name. -->
 There's a question under the video now. What's the biggest thing stopping you from doing a deal this year? Finding deals, financing, structuring, time, or confidence. Tap the honest one. Whatever you pick, it gets answered in the next part, because for Dan it was the money, and the money turned out to be the wrong question.
 
-## [23:01] How a business pays for itself
+## [23:46] How a business pays for itself
 
 [SLIDE: The wrong maths]
 [LAYOUT: section]
@@ -488,9 +494,12 @@ Your first acquisition is a structure problem, not a money problem.
 [LAYOUT: image-left]
 [IMAGE: jc-clinic]
 [CAPTION: One of Josh Li's clinics in JC Health Group. The seller financed 100% of the price.]
+[ON SCREEN: Josh's first deal, in his words: 100% seller finance over 7 years at 4%. $0 of his own money in. About $150K out in year one.]
 
-<!-- PROOF: Josh's own story, approved facts only. It is told as "what made it possible", which plants the seller's question (loop B) without closing it. -->
+<!-- PROOF: Josh's own story. The first-deal terms are from his Dealmaker deck (slides 12 and 37), approved 2026-11-07 as his own statements: said as "I", never as an independent fact. Told as "what made it possible", which plants the seller's question (loop B) without closing it. -->
 Remember Josh's two acquisitions. In both of them, the sellers financed one hundred percent of the price. Josh didn't walk in with a pile of cash. What made it possible was a structure the sellers could say yes to, and a buyer they were willing to trust with the business they'd built.
+
+Here's what the first one looked like, as Josh tells it. The seller financed the whole price over seven years, at four percent, paid monthly. None of Josh's own money went in, and he took about a hundred and fifty thousand dollars out of it in the first year. And he didn't start from zero. On day one he had a trained team, the fit-out, revenue from the first week and about thirteen thousand customers on the books.
 
 That second part matters more than people think, and we'll come back to it. For now, look at the structure.
 
@@ -592,13 +601,17 @@ So when owners say banks won't lend to them for an acquisition, here's what's re
 
 Bring a lender a business that clears one and a half times, financials that match the tax returns, a seller carrying a note and keeping a rollover, and a buyer who already runs the same kind of business, and you're in a very different conversation.
 
-[SLIDE: One deal, over five million, no personal guarantee | A $5.5M radiology deal: the equipment secured the loan.]
-[LAYOUT: stat]
-[DATA: $5.5M | radiology deal that needed no personal guarantee]
-[CAPTION: Over $5M, the equipment secured the loan. Every lender and deal decides this for itself.]
+[SLIDE: One deal, over five million, no personal guarantee | Jason's $5.5M radiology deal: the equipment secured the loan.]
+[LAYOUT: receipt]
+[IMAGE: quadrant-article]
+[KICKER: Jason · Radiology · As Josh's deck tells it]
+[DATA: His first deal | $5.5M, nothing down, and no personal guarantee]
+[DATA: Why | Over $5M, the equipment secured the loan]
+[DATA: Seven years later | The $200M radiology network exit in the press]
+[CAPTION: These are their results, not a promise of yours. Every lender and deal decides a personal guarantee for itself.]
 
-<!-- PROOF: approved fact. Framed as one deal, not a promise (E7: no reframe hides the personal-guarantee risk). -->
-Here's an example of how much the structure decides. One five and a half million dollar radiology deal needed no personal guarantee. Over five million, the equipment secured the loan. That's one deal, and every lender decides this for each deal. But it shows you what changes when the structure is built around the business instead of around your house.
+<!-- PROOF: approved fact, now with the attribution Josh's Dealmaker deck gives it (slide 87: Jason, radiology, first deal $5.5M zero down, the $200M exit seven years later, beside the Quadrant/Carlisle Health article). Owner decision 2026-11-07: use the deck's attribution exactly, never as Josh's own deal. Framed as one deal, not a promise (E7: no reframe hides the personal-guarantee risk). -->
+Here's an example of how much the structure decides. Jason, in radiology: his first deal was five and a half million dollars, with nothing down, and it needed no personal guarantee. Over five million, the equipment secured the loan. Seven years later came the two hundred million dollar exit you can see in the press. That's his result, not a promise of yours, and every lender decides a guarantee deal by deal. But it shows you what changes when the structure is built around the business instead of around your house.
 
 [POLL: own_cash]
 
@@ -607,7 +620,7 @@ Here's an example of how much the structure decides. One five and a half million
 
 There's a question under the video about how much of your own cash you'd want in a deal. Tap the one that's true for you. Some of you could write a cheque tomorrow. You can keep it working where it is. A deal should stand on its own cash flow, and if it can't, your cash won't fix it. It'll only hide the problem.
 
-## [29:54] What a group is worth
+## [31:15] What a group is worth
 
 [SLIDE: The prize is bigger than the profit | A business is worth its profit multiplied by a number.]
 [LAYOUT: comparison]
@@ -716,7 +729,7 @@ If writing that sentence made something tighten a little in your chest, pay atte
 
 Some owners apply right now, in the middle of the masterclass, while what they just wrote is still in front of them. Others watch to the end and apply then. Either way works. The button stays under the video for the rest of the masterclass, and you'll hear everything that happens on the call before we finish.
 
-## [34:13] What 90 owners told us
+## [35:33] What 90 owners told us
 
 [SLIDE: What 90 owners told us | From the forms owners filled in when they booked a call with Josh's team.]
 [LAYOUT: stat]
@@ -795,7 +808,7 @@ There's a question under the video now. When would you want your first deal done
 
 If you're over a million a year and you saw yourself in one of those rows, the button under the video is for you. Apply now, and if it fits, you pick your call time as soon as you're through. Or keep watching and do it at the end. It'll still be there.
 
-## [38:18] The seller's side of the table
+## [39:38] The seller's side of the table
 
 [SLIDE: Graham's kitchen table | The same structure, seen from the seller's chair.]
 [LAYOUT: section]
@@ -893,7 +906,7 @@ This picture is part of the answer. It's the board of JC Health Group, Josh's he
 <!-- CTA with presupposition about an action in the viewer's control ("bring the business you have in mind"). -->
 And if you've got a Graham in mind already, that's the best thing you can bring to a strategy call. Apply under the video, name the business in your application, and the call starts with it. If you don't have one yet, that's fine too. Finding the right one is part of what the call maps out.
 
-## [42:38] The first conversation
+## [43:58] The first conversation
 
 [SLIDE: The first conversation | What it sounds like when a buyer calls a seller. Illustrative.]
 [LAYOUT: section]
@@ -967,7 +980,7 @@ He wasn't a different person. He was seen differently.
 <!-- CTA: presupposes the owner's own first conversation; the call is preparation, an action in their control. -->
 If there's a conversation like that you've been putting off, with your own Graham, the strategy call is where it starts to get ready. What your business can carry, what to offer, and how the debt, the seller's note and the rollover could fit together, before you ever pick up the phone. Apply under the video when you're ready.
 
-## [46:17] Two yeses and the big domino
+## [47:37] Two yeses and the big domino
 
 [SLIDE: Two questions | Answer them to yourself, honestly.]
 [LAYOUT: statement]
@@ -1037,6 +1050,49 @@ Watch what falls with it.
 
 They're all the same domino. And you can let it fall now.
 
+[SLIDE: The credibility you borrow | Over 200 years of combined experience on Josh's board. A former federal minister in the chair.]
+[LAYOUT: photo]
+[IMAGE: board-at-palace]
+[IMAGE: board-with-former-pm]
+[IMAGE: josh-with-director]
+[KICKER: The company Josh's board keeps]
+[DATA: With Queen Elizabeth II | From the opening slide of Josh's deck]
+[DATA: With a former prime minister | At a Centre for Independent Studies event, from the same slide]
+[DATA: Behind the deals | Josh with one of the advisers and partners beside his group]
+
+<!-- BORROWED CREDIBILITY, shown (owner decision 2026-11-07: the board photos from the Dealmaker deck, slides 1 and 90, and the board facts from slide 62, as Josh states them). Proof adjacency: the big domino says credibility can be borrowed; this is what it looks like. The bedroom line keeps it reachable. -->
+Here's what borrowed credibility looks like in Josh's own business. A few years ago, he says, he was cold-calling from his bedroom. Today JC Health Group has a board with over two hundred years of combined experience across healthcare, law, finance and M&A, and a former federal minister in the chair. These photos are from Josh's own deck: the company his board keeps. When a seller looks across the table at Josh now, that's who he sees behind him. On your first deal, you borrow the same thing, from a team that has done it.
+
+[SLIDE: In their own messages | Clients' messages from the days their deals moved.]
+[LAYOUT: wall]
+[IMAGE: client-loi-chats]
+[IMAGE: chat-850k-loi]
+[IMAGE: saul-nda]
+[IMAGE: members-two-deals]
+[KICKER: Borrowed credibility, in practice]
+[DATA: Cam | Two deals in 23 days, 100% seller finance. This LOI: a $7M revenue business]
+[DATA: Cam, again | Another LOI signed: 100% seller finance on an $850K purchase]
+[DATA: Saul | First NDA signed: electrical and aircon, about $3.8M turnover, the owner retiring]
+[DATA: Two deals, one morning | $508K combined EBITDA, financed above the price]
+[CAPTION: These are their results, not a promise of yours.]
+
+<!-- PROOF WALL 1 (owner decision 2026-11-07: client chats from the Dealmaker deck, slides 13, 85, 86 and 91; crude lines cropped or masked, names struck out as in the original). Right after the big domino (Bencivenga: proof adjacent to the claim it carries): the domino says the credibility can be borrowed, the wall shows people who borrowed it. Typicality line once for this block. -->
+And it isn't only Josh's story. These are messages from his clients, from the days their deals moved. Cam signed two deals in twenty-three days, with one hundred percent seller finance, and later another letter of intent at eight hundred and fifty thousand dollars, again with the seller financing all of it. Saul signed his first NDA, on an electrical and air conditioning business turning over about three point eight million, with an owner who wants to retire in two years. Another closed two deals in one morning, about half a million a year in combined profit, with the financing coming in above the price.
+
+These are their results, not a promise of yours. Every deal is different. But notice who's in those messages. Not bankers. Owners and operators who borrowed the credibility until it was theirs.
+
+[SLIDE: Two more who moved | Two clients, two very different starting points.]
+[LAYOUT: photo]
+[IMAGE: kingvets-case]
+[IMAGE: christian-case]
+[KICKER: Case studies from Josh's deck]
+[DATA: Jy · CEO of KingVets | Came from IT, no finance background. A board in 29 days, 12+ active deals, the first close underway]
+[DATA: Christian, with Josh | A $2.4M deal, financed above the price, nothing of his own down]
+[CAPTION: These are their results, not a promise of yours.]
+
+<!-- PROOF, same block (Dealmaker deck slides 88 and 89, approved 2026-11-07). Christian: the deal result and the photo only; nothing personal about him is ever mentioned. -->
+Two more. Jy came from IT, with no finance background. He had a board in place in twenty-nine days, and today he's the CEO of KingVets, a veterinary group with more than twelve deals active and the first close underway. And Christian: a two point four million dollar deal, financed above the price, with nothing of his own down. The one thing they had in common is that they moved.
+
 [SLIDE: Owners build. Buyers compound.]
 [LAYOUT: section]
 [KICKER: The line to remember]
@@ -1056,7 +1112,7 @@ And think about what that means for the second question you answered a few minut
 
 That's what the strategy call is for. The button is under the video. Next, you'll see exactly what happens when you press it.
 
-## [49:55] What happens when you apply
+## [52:55] What happens when you apply
 
 [SLIDE: What Dan did on that Tuesday night]
 [LAYOUT: section]
@@ -1148,9 +1204,11 @@ It isn't a course. Josh's team works on your deal with you, every week, until th
 
 There's a fee for the engagement, and you'll go through it on the call, once you both know whether it fits. This masterclass is here to help you decide whether to have that conversation, not to sell you a price.
 
-[SLIDE: Why a team, and not a course | Information isn't the gap. Doing it alone is.]
-[LAYOUT: statement]
-[ON SCREEN: Owners don't lack information about acquisitions. They lack people beside them on the first one.]
+[SLIDE: Why a team, and not a course | Owners don't lack information about acquisitions. They lack people beside them on the first one.]
+[LAYOUT: photo]
+[IMAGE: josh-deal-team]
+[KICKER: Information isn't the gap. Doing it alone is.]
+[DATA: The people beside the deals | Operators, advisers and partners, in real rooms, from Josh's deck]
 
 <!-- BRUNSON: information isn't implementation. Hierarchy of criteria: what matters more, knowing or doing. -->
 Here's why the engagement is built this way, with a team working beside you instead of a course you watch.
@@ -1158,6 +1216,22 @@ Here's why the engagement is built this way, with a team working beside you inst
 Owners don't lack information about acquisitions. There are books and videos and podcasts about all of it. What stops owners is the moment the information has to turn into a phone call, a coffee, a set of numbers on the table and an offer on paper. That's the moment people freeze, put it off, or get it wrong, because it's the first time and they're doing it alone.
 
 The first deal is the one where you need someone in the room who has done it before. After that, you're the one who has.
+
+[SLIDE: The receipts | Three clients' messages, from the weeks their deals moved.]
+[LAYOUT: wall]
+[IMAGE: chat-sba-approval]
+[IMAGE: chat-23m-lois]
+[IMAGE: chat-700k-sf]
+[KICKER: What a team beside you looks like from the inside]
+[DATA: A $4.4M acquisition | Underwriting approved, the package on its way to the SBA lender]
+[DATA: Four LOIs in a day | One of them on a $23M business]
+[DATA: Seller financed | Contract signed: 700K over 7 years, buying out a competitor]
+[CAPTION: These are their results, not a promise of yours.]
+
+<!-- PROOF WALL 2, in the pitch (owner decision 2026-11-07: members' chats from the Dealmaker deck, slide 91, crude replies cropped off). Proof adjacency: the claim "a team, not a course" next to what the team's clients post. Typicality line once for this block. None of the deck's own offer, urgency or value stack is used. -->
+Here's what that looks like from the inside. Three messages from clients, in the weeks their deals moved. Underwriting approved on a four point four million dollar acquisition, with the package on its way to the lender. Four letters of intent sent in one day, one of them on a twenty-three million dollar business. And a seller financed contract signed, seven hundred thousand over seven years, buying out a competitor.
+
+These are their results, not a promise of yours. What they had that most owners don't is people beside them on the first one.
 
 [SLIDE: Why the call comes before the price | The right number to look at first is yours.]
 [LAYOUT: statement]
@@ -1197,6 +1271,27 @@ What that feels like is walking into a lender's office with a deal that already 
 And Closing third. Your buy box. Weekly outreach to owners who haven't listed, using scripts Josh's team provides. Weekly working sessions on every conversation that comes back. All of it aimed at one thing: a signed letter of intent.
 
 What that feels like is having somebody in your corner on the day a seller finally says "tell me more", which is the day most first time buyers freeze.
+
+[SLIDE: What closing looks like on paper | Before an offer, three documents. Then the digging.]
+[LAYOUT: receipt]
+[IMAGE: qoe-pnl]
+[KICKER: Closing · The numbers arrive]
+[DATA: Before an offer | Three years of financial statements, the matching tax returns, revenue by year]
+[DATA: Then the digging | Quality of earnings: is the profit real, and will it stay when the owner leaves?]
+[CAPTION: Five years of P&L on a real target, under review. The target's name is struck out.]
+
+<!-- DOCUMENT AS RECEIPT (owner decision 2026-11-07: the P&L and the NBIO from the Dealmaker deck, slides 82 and 83). Where the closing process is described, the paper itself: proof that the process is real, not a diagram. -->
+Here's what that looks like on paper. Before you ever make an offer, you get three things: three years of financial statements, the tax returns that match them, and revenue broken down by year. Then you dig for what's underneath, what lenders call quality of earnings. Is the profit real, and will it still be there after the owner leaves? This is a real target's profit and loss, under review, with the name struck out.
+
+[SLIDE: A real offer, redacted | A non-binding indicative offer from JC Health Group. The seller's name is blacked out.]
+[LAYOUT: receipt]
+[IMAGE: nbio-redacted]
+[KICKER: Closing · The offer goes out]
+[DATA: The price | Four times EBITDA, on the profit the books support]
+[DATA: The shape | Paid over three years: interest only at first, then monthly payments and set lump sums]
+[DATA: The rollover | The seller keeps a 5% stake in the new company]
+
+And this is what an offer looks like when it goes out. It's a real non-binding offer from JC Health Group, Josh's own group, with the seller's name blacked out. Four times EBITDA. The seller is paid over three years, interest only for the first six months, then monthly payments and set lump sums along the way. And the seller keeps five percent of the new company, which is the rollover you heard about. Every term on that page answers the same test: can the business carry it, with a buffer.
 
 [SLIDE: The shape of the ninety days | What a week looks like, from the conditions you're about to hear.]
 [LAYOUT: list]
@@ -1352,7 +1447,7 @@ So here's a question only you can answer. Will you send your application before 
 
 If the answer is yes, press the button under the video now. Apply, and if it fits, pick your time. The masterclass keeps playing while you do it.
 
-## [61:13] Twelve months from now
+## [65:37] Twelve months from now
 
 [SLIDE: Dan's ninety days | Illustrative: one way the first ninety days can go. A picture, not a forecast.]
 [LAYOUT: section]
@@ -1587,7 +1682,7 @@ Or you buy a business that already makes it. Its customers, its team and its pro
 <!-- L11: choice close with a visible no. -->
 Both paths are open to you, and both are your call. If you want the second one, the button is under the video. Apply, and if it fits, pick a time this week.
 
-## [72:14] Who you're becoming
+## [76:39] Who you're becoming
 
 [SLIDE: Who you're becoming | Six levels, from where you spend your days to why it matters.]
 [LAYOUT: section]
@@ -1698,7 +1793,7 @@ That's the purpose under all of this. You're not only buying a business. You're 
 <!-- NLP: complex equivalence, applying = the first behaviour of the new identity (L20: tied to behaviour). -->
 And the first thing a buyer does is small. A buyer finds out what their business can carry and what to go after first. That's the call. The button is under the video, whenever you're ready.
 
-## [77:12] The questions owners ask us
+## [81:36] The questions owners ask us
 
 [SLIDE: The questions owners ask Josh's team | The real ones, answered straight.]
 [LAYOUT: section]
@@ -1730,7 +1825,7 @@ Then the bank said no to a structure, not to you. The usual reason is that someo
 <!-- E7: the risk is named, not minimised. Approved fact: the $5.5M radiology deal. -->
 Do I have to sign a personal guarantee?
 
-It depends on the lender and the deal, and you should go in knowing that lenders ask for one on plenty of deals. What the structure changes is how much rests on you. One five and a half million dollar radiology deal needed no personal guarantee, because over five million, the equipment secured the loan. That's one deal, not a rule. On the call, the team talks through what's realistic for the size of deal your business supports.
+It depends on the lender and the deal, and you should go in knowing that lenders ask for one on plenty of deals. What the structure changes is how much rests on you. Jason's five and a half million dollar radiology deal needed no personal guarantee, because over five million, the equipment secured the loan. That's one deal, not a rule. On the call, the team talks through what's realistic for the size of deal your business supports.
 
 [SLIDE: "What if the seller wants all cash?"]
 [LAYOUT: quote]
@@ -1926,12 +2021,12 @@ Whatever your question is, rates, risk, your team, your industry or your age, it
 [KICKER: What's true, and checkable on the call]
 [DATA: Two acquisitions | Josh's clinics, bought for JC Health Group, his own healthcare holding company]
 [DATA: 100% seller financed | In both deals, the seller financed the whole price]
-[DATA: $5.5M, no personal guarantee | One radiology deal: over $5M, the equipment secured the loan]
+[DATA: $5.5M, no personal guarantee | Jason's radiology deal: over $5M, the equipment secured the loan]
 
-<!-- Proof, approved facts only: Josh's two seller-financed acquisitions, JC Health Group, the $5.5M radiology deal, the 90 booking forms. Invites checking (legitimacy objection). -->
+<!-- Proof, approved facts only: Josh's two seller-financed acquisitions, JC Health Group, Jason's $5.5M radiology deal, the members' messages (owner decision 2026-11-07), the 90 booking forms. Invites checking (legitimacy objection). -->
 How do I know the team knows what it's doing?
 
-Start with the facts you've heard today. Josh founded JC Health Group, his own healthcare holding company, and bought his clinics in two acquisitions where the sellers financed one hundred percent of the price. You've heard about a five and a half million dollar radiology deal that needed no personal guarantee. And ninety owners told the team what they wanted before their calls. Then use the call to check for yourself. Ask anything. A team that knows what it's doing is happy to be tested.
+Start with the facts you've heard today. Josh founded JC Health Group, his own healthcare holding company, and bought his clinics in two acquisitions where the sellers financed one hundred percent of the price. You've heard about Jason's five and a half million dollar radiology deal that needed no personal guarantee, and you've seen members' own messages from the days their deals moved. And ninety owners told the team what they wanted before their calls. Then use the call to check for yourself. Ask anything. A team that knows what it's doing is happy to be tested.
 
 [SLIDE: "I've bought courses before, and they went nowhere."]
 [LAYOUT: quote]
@@ -2030,7 +2125,7 @@ That's why the handover matters as much as the price. A seller who carries a not
 <!-- Re-stack in one breath (the call), then the double bind again: apply now, or at the end. -->
 Every one of those answers ends in the same place. The call, on your numbers. Your capacity at one and a half times. Your first target or your buy box. An honest answer on fit. The button is under the video, now or at the end, whichever suits you.
 
-## [93:28] Three owners, three situations
+## [97:56] Three owners, three situations
 
 [SLIDE: Three owners, three situations | Illustrative composites, built from situations owners describe. Not real clients, and not testimonials.]
 [LAYOUT: section]
@@ -2135,7 +2230,7 @@ For each of them, the next step is the same, and it's small. Put your situation 
 
 The button is under the video. Tell Josh's team which of the three you are, in your own words, and the call starts there.
 
-## [99:33] Your decision
+## [104:01] Your decision
 
 [SLIDE: Two ways to leave this masterclass]
 [LAYOUT: comparison]
@@ -2189,7 +2284,7 @@ The only difference between those two versions of next month is what you do in t
 <!-- SULTANIC: the permission slip. Presupposition about the next step only (L3), never the outcome. BENCIVENGA: the three reasons why (why you, why true, why now) restated at the close, the promise joined to its proof (I1, I2). -->
 You don't need more information to make this decision. You've seen the structure, the test, the seller's side, the call, the engagement it can lead to, its guarantee, and who it isn't for. The call itself decides nothing for you. It gives you the facts to decide with.
 
-So here are the three reasons in one breath. Why this path: because the price of a business that's already built can be paid out of its own profit, through a lender, the seller's note and the seller's rollover, instead of out of your savings or your Saturdays. The reason to believe it: you've watched the test work on the numbers, and two sellers financed one hundred percent of the price when Josh bought his clinics. And why now: because the owners in your market with no successor are deciding anyway, one at a time, with or without you.
+So here are the three reasons in one breath. Why this path: because the price of a business that's already built can be paid out of its own profit, through a lender, the seller's note and the seller's rollover, instead of out of your savings or your Saturdays. The reason to believe it: you've watched the test work on the numbers, two sellers financed one hundred percent of the price when Josh bought his clinics, and you've seen clients' own messages from the weeks their deals moved. And why now: because the owners in your market with no successor are deciding anyway, one at a time, with or without you.
 
 So if you're doing over a million a year, and that sentence you wrote matters to you, give yourself permission to take the next step now.
 

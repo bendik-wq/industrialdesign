@@ -381,3 +381,32 @@ html:has(body.print){height:auto}
 .faq.c{justify-content:flex-start;padding-top:40px}
 .L-quote .faq blockquote{font-size:96px}
 .L-quote .faq .ans{margin-top:auto;padding-top:28px;border-top:2px solid var(--accent);max-width:1400px;font:400 46px/1.22 Newsreader,Georgia,serif;letter-spacing:-.012em;color:var(--ink)}
+
+/* proof layouts (wall, photo, receipt): originals as prints, never past 1.35x; captions below, never over */
+.gal-c{justify-content:flex-start}
+.gal-c .kick{margin-bottom:20px;color:var(--accent)}
+.gal-c h1{font-size:72px;line-height:1.06;letter-spacing:-.025em;max-width:1600px}
+.gal-c .hdsub{margin-top:14px;font-size:28px}
+.gal{display:flex;align-items:flex-start;margin-top:40px}
+.fig{margin:0;display:flex;flex-direction:column;align-items:flex-start}
+.fig img{display:block;max-width:100%}
+.fig .fr{width:100%;display:flex;align-items:center;justify-content:flex-start}
+.gal.wall .fig img,.fig.doc img{outline:1px solid var(--hair);outline-offset:0}
+.fig figcaption{margin-top:16px;padding-top:12px;border-top:1px solid var(--hair);width:100%;font:400 22px/1.4 Inter,Arial,sans-serif;color:var(--ink2)}
+.fig figcaption b{display:block;font-weight:600;color:var(--ink);margin-bottom:2px}
+.gal-note{margin-top:auto;font:400 20px/1.45 Inter,Arial,sans-serif;color:var(--ink2)}
+.fig figcaption span,.gal-note span{color:var(--ink3)}
+.fig .slot{display:flex;flex-direction:column;justify-content:center;padding:28px;background:var(--panel)}
+.fig .slot p{margin-top:14px;font:italic 400 28px/1.3 Newsreader,Georgia,serif;color:var(--ink2)}
+.fig .slot .note{margin-top:14px;font-size:18px}
+.rc{flex-direction:row;gap:72px;align-items:flex-start}
+.rc-l{flex:1;min-width:0;display:flex;flex-direction:column}
+.rc-l .kick{margin-bottom:24px;color:var(--accent)}
+.rc-l h1{font-size:76px;line-height:1.05;letter-spacing:-.025em}
+.rc-l .hdsub{font-size:28px}
+.rc-rows{margin-top:40px}
+.rc-row{padding:18px 0;border-top:1px solid var(--hair)}
+.rc-row .sc{font-size:17px;color:var(--accent)}
+.rc-row p{margin-top:8px;font:400 27px/1.38 Inter,Arial,sans-serif;color:var(--ink)}
+.rc-r{width:880px;flex:none}
+.fig.doc figcaption{font-size:20px}

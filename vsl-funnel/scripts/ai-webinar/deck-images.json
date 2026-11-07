@@ -2,7 +2,7 @@
   "deck": "Josh Li, The Dealmaker: Acquisition Masterclass, November 2026 (127 slides, PDF)",
   "pages": 127,
   "credit": "From Josh Li's deck, The Dealmaker · slide {slide}",
-  "how": "deck_images.py extracts every embedded image (pdfimages -png, soft masks kept for cutouts) and a 2x render of every page (pdftoppm -r 144, 2880x1620) into deck/ (gitignored: the repo is public, nothing from the PDF is committed), then resolves each entry below to deck/resolved/<id>.png. source 'embedded' takes the largest picture on that slide (or 'pick': its index on the slide, 0 = first, as listed in deck/contact.html); source 'page' takes the whole slide render. 'crop': [left, top, width, height] as fractions of the source; 'tiles': several such crops laid out in a grid of 'cols' columns (a wide row made to fit a tall slot); 'matte': the colour a cutout (an image with a soft mask) is laid on, the colour of the slot it stands in. 'fit': 'cover' fills the slot when the source is big enough, else the deck shows it as a print at a size that stays sharp; 'contain' always shows the whole image; 'cutout' stands it on the slot's bottom edge; 'zoom' below 1 shows a print smaller (a headline taken from the deck). 'consent': 'verify' = shows a person other than Josh, a client, a name or a private conversation: the owner confirms, then set 'confirmed': true (the voiced build refuses unconfirmed ones, and the presented deck shows a labelled slot instead). 'used_on' lists the webinar slides ([SLIDE: ...] titles in script-ai.md) that show it. 'retired' lists ids from the March 2026 deck that this deck has no source for.",
+  "how": "deck_images.py extracts every embedded image (pdfimages -png, soft masks kept for cutouts) and a 2x render of every page (pdftoppm -r 144, 2880x1620) into deck/ (gitignored: the repo is public, nothing from the PDF is committed), then resolves each entry below to deck/resolved/<id>.png. source 'embedded' takes the largest picture on that slide (or 'pick': its index on the slide, 0 = first, as listed in deck/contact.html); source 'page' takes the whole slide render. 'crop': [left, top, width, height] as fractions of the source; 'tiles': several such crops laid out in a grid of 'cols' columns (a wide row made to fit a tall slot); 'matte': the colour a cutout (an image with a soft mask) is laid on, the colour of the slot it stands in. 'fit': 'cover' fills the slot when the source is big enough, else the deck shows it as a print at a size that stays sharp; 'contain' always shows the whole image; 'cutout' stands it on the slot's bottom edge; 'zoom' below 1 shows a print smaller (a headline taken from the deck). 'consent': 'verify' = shows a person other than Josh, a client, a name or a private conversation: the owner confirms, then set 'confirmed': true (the voiced build refuses unconfirmed ones, and the presented deck shows a labelled slot instead). 'used_on' lists the webinar slides ([SLIDE: ...] titles in script-ai.md) that show it. 'retired' lists ids from the March 2026 deck that this deck has no source for. 'masks': solid boxes [left, top, width, height] (fractions of the image after crop or tiles, optional fill colour as a fifth item; default the background colour around the box) over lines that must not be shown, such as crude wording in a client's chat; every masked image is checked by eye after --resolve.",
   "excluded": [
     {
       "deck_slide": 81,
@@ -92,7 +92,8 @@
       "consent": "ok",
       "confirmed": true,
       "used_on": [
-        "You can reach them first"
+        "You can reach them first",
+        "One deal, over five million, no personal guarantee"
       ]
     },
     {
@@ -328,41 +329,53 @@
       "pick": "largest",
       "crop": [
         0.13,
-        0.0,
+        0.025,
         0.87,
-        1.0
+        0.765
       ],
       "fit": "contain",
-      "what": "Five years of P&L on a real target, under review (the target's name is struck out)",
+      "what": "Five years of P&L on a real target, under review (the target's name struck out, the webcam cropped off)",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "What closing looks like on paper"
+      ]
     },
     {
       "id": "nbio-redacted",
       "deck_slide": 83,
       "source": "embedded",
       "pick": "largest",
+      "crop": [
+        0.009,
+        0.11,
+        0.982,
+        0.89
+      ],
       "fit": "contain",
       "what": "A real non-binding indicative offer from Josh's group, the seller redacted",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "A real offer, redacted"
+      ]
     },
     {
       "id": "saul-nda",
       "deck_slide": 85,
       "source": "page",
       "fit": "contain",
-      "what": "A client's chat: first NDA signed on an electrical and aircon business",
+      "what": "Saul's chat: first NDA signed on an electrical and aircon business",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": [],
+      "confirmed": true,
+      "used_on": [
+        "In their own messages"
+      ],
       "crop": [
-        0.62,
-        0.42,
-        0.33,
-        0.17
+        0.6465,
+        0.4195,
+        0.2905,
+        0.151
       ]
     },
     {
@@ -371,10 +384,20 @@
       "source": "embedded",
       "pick": "largest",
       "fit": "contain",
-      "what": "A client's chat: new LOI signed, with the deal terms",
+      "what": "Cam's chat: new LOI signed, with the deal terms (two lines of banter masked)",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "In their own messages"
+      ],
+      "masks": [
+        [
+          0.6,
+          0.555,
+          0.39,
+          0.275
+        ]
+      ]
     },
     {
       "id": "kingvets-case",
@@ -382,10 +405,12 @@
       "source": "embedded",
       "pick": "largest",
       "fit": "contain",
-      "what": "Jy and KingVets: his LinkedIn card",
+      "what": "Jy, CEO of KingVets: his LinkedIn card",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "Two more who moved"
+      ]
     },
     {
       "id": "student-results",
@@ -398,10 +423,97 @@
         0.37
       ],
       "fit": "contain",
-      "what": "Four members' chats: deals signing (names partly struck out)",
+      "what": "Four members' chats: deals signing (names struck out in the original; crude lines masked)",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [],
+      "masks": [
+        [
+          0.2597,
+          0.4725,
+          0.231,
+          0.334
+        ],
+        [
+          0.9,
+          0.335,
+          0.0895,
+          0.094,
+          "#09090c"
+        ]
+      ]
+    },
+    {
+      "id": "chat-700k-sf",
+      "deck_slide": 91,
+      "source": "page",
+      "crop": [
+        0.0625,
+        0.4494,
+        0.209,
+        0.3543
+      ],
+      "fit": "contain",
+      "what": "A member's chat: seller-financed contract signed, 700k over 7 years (name struck out)",
+      "consent": "verify",
+      "confirmed": true,
+      "used_on": [
+        "The receipts"
+      ]
+    },
+    {
+      "id": "chat-sba-approval",
+      "deck_slide": 91,
+      "source": "page",
+      "crop": [
+        0.284,
+        0.4494,
+        0.2097,
+        0.1593
+      ],
+      "fit": "contain",
+      "what": "A member's chat: underwriting approves a $4.4m acquisition (cropped above the replies)",
+      "consent": "verify",
+      "confirmed": true,
+      "used_on": [
+        "The receipts"
+      ]
+    },
+    {
+      "id": "chat-23m-lois",
+      "deck_slide": 91,
+      "source": "page",
+      "crop": [
+        0.5062,
+        0.4494,
+        0.209,
+        0.3148
+      ],
+      "fit": "contain",
+      "what": "A member's chat: four LOIs sent in a day, one on a $23m business (names struck out)",
+      "consent": "verify",
+      "confirmed": true,
+      "used_on": [
+        "The receipts"
+      ]
+    },
+    {
+      "id": "chat-850k-loi",
+      "deck_slide": 91,
+      "source": "page",
+      "crop": [
+        0.7278,
+        0.4494,
+        0.2097,
+        0.1085
+      ],
+      "fit": "contain",
+      "what": "Cam's chat: new LOI signed, 100% seller finance, $850k price (cropped above the reply)",
+      "consent": "verify",
+      "confirmed": true,
+      "used_on": [
+        "In their own messages"
+      ]
     },
     {
       "id": "members-two-deals",
@@ -409,10 +521,18 @@
       "source": "embedded",
       "pick": "largest",
       "fit": "contain",
-      "what": "A members' group chat: two deals closed the same day",
+      "what": "A members' group chat: two deals closed, combined terms (cropped to the result)",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "In their own messages"
+      ],
+      "crop": [
+        0.0,
+        0.455,
+        1.0,
+        0.545
+      ]
     },
     {
       "id": "josh-with-director",
@@ -420,26 +540,30 @@
       "source": "embedded",
       "pick": 2,
       "fit": "cover",
-      "what": "Josh with an older man in a dark blazer (a partner or adviser; who he is needs checking)",
+      "what": "Josh with an older man in a dark blazer, from the deck's slide of operators, advisers and partners",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "The credibility you borrow"
+      ]
     },
     {
       "id": "josh-deal-team",
       "deck_slide": 90,
       "source": "page",
       "crop": [
-        0.05,
-        0.62,
-        0.9,
-        0.27
+        0.0625,
+        0.7025,
+        0.875,
+        0.207
       ],
       "fit": "contain",
       "what": "Four photos of Josh with operators, advisers and partners",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "Why a team, and not a course"
+      ]
     },
     {
       "id": "board-at-palace",
@@ -447,10 +571,12 @@
       "source": "embedded",
       "pick": 3,
       "fit": "cover",
-      "what": "An older man in a suit with Queen Elizabeth II (likely a JC Health director; check who)",
+      "what": "An older man in a suit with Queen Elizabeth II, from the opening slide of Josh's deck",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "The credibility you borrow"
+      ]
     },
     {
       "id": "board-with-former-pm",
@@ -458,10 +584,12 @@
       "source": "embedded",
       "pick": 4,
       "fit": "cover",
-      "what": "Three men at a Centre for Independent Studies event, one of them a former prime minister",
+      "what": "Two men at a Centre for Independent Studies event, one of them a former prime minister, from the opening slide of Josh's deck",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "The credibility you borrow"
+      ]
     },
     {
       "id": "christian-case",
@@ -469,10 +597,13 @@
       "source": "embedded",
       "pick": "largest",
       "fit": "cover",
-      "what": "Josh with a client in the street (client case study; needs the client's written consent before use)",
+      "what": "Josh with Christian, a client, in the street",
       "consent": "verify",
-      "confirmed": false,
-      "used_on": []
+      "confirmed": true,
+      "used_on": [
+        "Two more who moved"
+      ]
     }
-  ]
+  ],
+  "approved": "2026-11-07: the owner approved the client results, people and documents from the deck for the masterclass, with limits (no sensitive personal details about any client, crude chat lines cropped or masked, the deck's own offer, urgency and unsourced market numbers left out, a typicality line on every block of client results, Josh's own claims attributed to him)."
 }

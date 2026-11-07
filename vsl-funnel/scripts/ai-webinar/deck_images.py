@@ -148,8 +148,32 @@ def resolve():
             im = grid
         elif i.get('crop'):
             im = im.crop(box(*i['crop']))
+        if i.get('masks'): im = cover(im, i['masks'])
         im.save(out, optimize=True)
         print(f'{i["id"]}: slide {p} ({os.path.basename(src)}) -> {os.path.relpath(out, HERE)} {im.size[0]}x{im.size[1]}')
+
+
+def cover(im, boxes):
+    """Cover lines that must not be shown (crude wording in a client's chat) with solid boxes in the background colour
+    around them. Each box is [left, top, width, height] as fractions of the image after crop or tiles, optionally with
+    a fill colour ("#rrggbb") as a fifth item; without one it takes the median colour of a thin ring just outside the
+    box (the chat or slide background there), so the box reads as empty background, not as a redaction bar."""
+    from PIL import ImageDraw
+    W, H = im.size
+    d = ImageDraw.Draw(im)
+    for b in boxes:
+        x0, y0 = round(b[0] * W), round(b[1] * H)
+        x1, y1 = min(W, round((b[0] + b[2]) * W)), min(H, round((b[1] + b[3]) * H))
+        fill = b[4] if len(b) > 4 else None
+        if not fill:
+            ring = []
+            for x in range(max(0, x0 - 4), min(W, x1 + 4), 2):
+                for y in (max(0, y0 - 3), min(H - 1, y1 + 2)): ring.append(im.getpixel((x, y)))
+            for y in range(max(0, y0 - 4), min(H, y1 + 4), 2):
+                for x in (max(0, x0 - 3), min(W - 1, x1 + 2)): ring.append(im.getpixel((x, y)))
+            fill = tuple(sorted(c[k] for c in ring)[len(ring) // 2] for k in range(3))
+        d.rectangle([x0, y0, x1 - 1, y1 - 1], fill=fill)
+    return im
 
 
 def status():
