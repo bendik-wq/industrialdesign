@@ -40,3 +40,27 @@ which are never spoken (the audio cache doesn't change when they do):
 - `step` slides take their track from `[DATA: label | name]` rows (else the Sprint's seven days)
 
 `[ON SCREEN: …]` lines show as the takeaway on `statement`, `section` and `image-left` slides; data layouts carry the same facts in `[DATA]`.
+`[SCENE: id]` is for the presented deck below (the video slides ignore it).
+
+## The presented deck (Josh presents and records it himself)
+The same script as a keynote-style deck: one idea per click, numbers that count up, bars that grow, the 1.5x needle that
+moves, and 35 scenes the script calls for with `[SCENE: id]`: the price stack, the 1.5x gauge, Dan's numbers sliding past
+the test, the 3 to 5x against 8 to 12x chart, the group value bars, the 90-owner dot grid, the kitchen table from the
+seller's chair, the big domino, Dan's ninety days and his year, two paths, the cost of waiting, the six levels, the offer
+ledger, the guarantee receipt and the apply slides with a QR code to /apply. Research behind it: `docs/webinar-research.md`.
+
+- **Open it:** Funnel HQ → Studio → Record → Deck → "Open the masterclass deck" (or `/admin/deck`, admins only). It opens
+  in its own window: choose that window as Studio's screen. Press **P** there for the presenter view (the words for each
+  slide, the NLP levers, the room cues, what the next click shows, a timer paced against the plan). With Auto layout on,
+  Studio switches the face-cam layout per slide (story beats: Josh big; data: the screen big).
+- **Keys:** Right, Down, Page Down or Space = next build · Left, Up, Page Up = back · a number then Enter = go to slide ·
+  B = black · W = white · F = full screen · O = overview · ? = keys. A clicker works as it is.
+- **After editing the script:** `python3 present/build_deck.py` (writes `src/admin/deck-data.ts`, which only `/admin/deck`
+  serves, and `present/out/deck.html`, a self-contained copy that works offline; gitignored), then deploy as usual.
+- **PDF for the room's slide upload, and the on-screen copy audit:** `node present/export.mjs` (one page per slide at its
+  final build: `present/out/masterclass-deck.pdf`), then `npx vite-node scripts/ai-webinar/present/audit-deck.ts` (0 flags).
+  `node present/export.mjs --shots DIR` also steps through every build at 1920x1080, checks the layout and writes
+  screenshots and contact sheets.
+- **Photos:** each slot says which original goes there until `deck_images.py` has run; an original with
+  `"consent": "verify"` stays a slot until it is `"confirmed": true`. Then rerun `build_deck.py`.
+- **Presenting live:** the AI-voice disclosure paragraph is struck through in the presenter notes ("AI voice only, skip live").

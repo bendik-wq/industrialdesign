@@ -105,6 +105,9 @@ The first is to show you the buyer's path. How an owner like you buys a competit
 
 The second is an invitation. At a point in this masterclass, a button appears under the video. It lets you apply for a strategy call with my team, and if your application fits, you book your call in one tap. It isn't for everyone, and you'll hear exactly who it's for and who it isn't for. The application is how both sides find out.
 
+<!-- FLADLIEN: the conditional promise on the first agenda (research: docs/webinar-research.md, pattern 2). A bold, checkable condition turns the viewer's yes or no into "I'll judge it on this". -->
+And for the first job, a condition you can hold me to. If by the end you can't name one business you'd want to own, and see how its numbers could work, close the tab and don't give us another thought.
+
 [ON SCREEN: See the buyer's path. Then decide whether to apply for a strategy call.]
 
 [SLIDE: Three things before we start]
@@ -198,6 +201,7 @@ Notice that you already had an answer. Most owners do. They've been carrying a b
 
 [SLIDE: Tuesday, 9:40 at night | Dan, an illustrative owner, at the kitchen table.]
 [LAYOUT: section]
+[SCENE: clock]
 
 <!-- STORY: Dan's ceiling, told in close-up, present tense, with objects and sound (sensory density, L6). Pain amplification #1: the status quo. -->
 Let's go back to Dan.
@@ -208,6 +212,7 @@ On the screen is the month's report. Revenue is up a little on last year. Wages 
 
 [SLIDE: More revenue, more hours | The pattern every owner past a million knows.]
 [LAYOUT: comparison]
+[SCENE: revenue-hours]
 [DATA: What moved | A little | Revenue, a few points up on last year]
 [DATA: What it cost | A lot | Wages, a manager, his evenings and most of his Saturdays]
 [CAPTION: Illustrative: Dan is a composite owner.]
@@ -250,6 +255,7 @@ There's a point every owner reaches. Before it, the business is a joy. You touch
 
 [SLIDE: The shape of the problem | One business, held up by one person.]
 [LAYOUT: statement]
+[SCENE: one-shape]
 [ON SCREEN: The problem isn't effort. It's the shape: one business, held up by one person, growing one customer at a time.]
 
 <!-- NLP: meta model in reverse. Name the structure of the problem precisely so the third way can fix the structure, not the effort. -->
@@ -436,6 +442,7 @@ Think about what that means for a moment. A seller handed over a business he'd b
 
 [SLIDE: Three places pay the price]
 [LAYOUT: list]
+[SCENE: price-stack]
 [DATA: Commercial debt | A lender, lending against the profit of the business you buy]
 [DATA: Seller finance | The seller carries part of the price as a note, paid from that profit]
 [DATA: Seller rollover | The seller keeps a slice of equity in the new company]
@@ -462,6 +469,7 @@ It's neither. A seller who carries a note is saying something very simple: I bel
 
 [SLIDE: The test every deal has to pass | Lenders call it debt service coverage.]
 [LAYOUT: image-left]
+[SCENE: dscr-meter]
 [IMAGE: dscr]
 
 <!-- DEMONSTRATION: the one piece of "teaching", carried by Dan's illustrative numbers, then handed to the viewer in the calculator (Robbins: proof by experience, in miniature). -->
@@ -473,6 +481,7 @@ There's one number that stops that from happening. Lenders call it debt service 
 
 [SLIDE: Dan's numbers on Graham's business | Illustrative: $500,000 a year in profit, priced at $1.5M.]
 [LAYOUT: table]
+[SCENE: deal-math]
 [DATA: | Passes | Fails]
 [DATA: Yearly profit | $500,000 | $500,000]
 [DATA: Yearly debt payments | $300,000 | $350,000]
@@ -487,6 +496,7 @@ So the question Dan should have asked was never "do I have one and a half millio
 
 [SLIDE: The night the number passed | Illustrative.]
 [LAYOUT: statement]
+[SCENE: dscr-pass]
 
 <!-- STORY BEAT: the felt shift (Before I knew / After I knew). The belief changes in a moment the viewer can picture. -->
 Dan remembers the night he first did that sum, on the back of the monthly report, with a pencil. He'd assumed for years that a business like Graham's was out of reach. And there it was, in his own handwriting: a structure where Graham's business paid for itself, with a buffer left over.
@@ -545,6 +555,7 @@ There's a question under the video about how much of your own cash you'd want in
 
 [SLIDE: The prize is bigger than the profit | A business is worth its profit multiplied by a number.]
 [LAYOUT: comparison]
+[SCENE: multiple-arbitrage]
 [DATA: One owner-run business | 3 to 5x | profit]
 [DATA: A group, with a manager in each | 8 to 12x | profit]
 [CAPTION: Illustrative ranges.]
@@ -558,6 +569,7 @@ A business is worth its profit multiplied by a number. As an illustration, one s
 
 [SLIDE: Dan's business and Graham's, apart and together]
 [LAYOUT: table]
+[SCENE: group-value]
 [DATA: | Profit | Multiple | Value]
 [DATA: Two businesses, apart | $1M | 4x | $4M]
 [DATA: One group, together | $1M | 8x | $8M]
@@ -629,6 +641,7 @@ So here's the most useful question of the day. It's just appeared beside the vid
 
 [SLIDE: The button is under the video | Apply for a strategy call with my team. If it fits, book your call in one tap.]
 [LAYOUT: statement]
+[SCENE: apply-qr]
 [ON SCREEN: Apply now, or watch to the end and apply then. The button stays.]
 
 <!-- PITCH MARKER: the room shows Apply and book from here (pitchAtMin). NLP: double bind toward the same action (apply now or apply at the end), with the visible no kept for the close. -->
@@ -642,6 +655,7 @@ Some owners apply right now, in the middle of the masterclass, while what they j
 
 [SLIDE: What 90 owners told us | From the forms owners filled in when they booked a call with my team.]
 [LAYOUT: stat]
+[SCENE: owners-90]
 [DATA: 39 of 90 | said they want to buy companies]
 [DATA: 24 | had never bought one]
 [DATA: 24 | wanted help getting a deal funded]
@@ -692,6 +706,7 @@ And that's what the call is for, if you're one of those owners. Not to teach you
 
 [SLIDE: 63 of the 90 were under $1M a year | Which is why the application asks about your revenue first.]
 [LAYOUT: stat]
+[SCENE: owners-63]
 [DATA: 63 of 90 | owners who booked a call were under $1M a year in revenue]
 [CAPTION: The strategy call is built for owners doing $1M or more a year.]
 
@@ -719,6 +734,7 @@ If you're over a million a year and you saw yourself in one of those rows, the b
 
 [SLIDE: Graham's kitchen table | The same structure, seen from the seller's chair.]
 [LAYOUT: section]
+[SCENE: seller-chair]
 
 <!-- NLP: perceptual positions. The viewer steps into the seller's chair (second position), which is where the belief "sellers won't finance a stranger" breaks. -->
 Now I want you to sit in a different chair for a few minutes. Graham's.
@@ -763,6 +779,7 @@ To Graham, that isn't a lowball. It's the first exit that looks like the life he
 
 [SLIDE: Why a seller says yes to a note | Seller finance and seller rollover, from the seller's side.]
 [LAYOUT: image-left]
+[SCENE: paid-twice]
 [IMAGE: vendor-finance]
 
 <!-- MECHANISM from the seller's view. Rollover named alongside the note and the lender every time funding comes up (house rule). -->
@@ -928,6 +945,7 @@ The person who answers that question gets the business. Not the highest bidder, 
 
 [SLIDE: The big domino]
 [LAYOUT: section]
+[SCENE: big-domino]
 [KICKER: The one belief that takes the others with it]
 
 <!-- LOOP C CLOSED: THE BIG DOMINO, word for word. Slow delivery. Every later section leans on it. -->
@@ -1079,6 +1097,7 @@ And here's why the call comes before the price. The first number that matters is
 
 [SLIDE: Credibility | The first C.]
 [LAYOUT: list]
+[SCENE: three-c]
 [DATA: Borrowed credibility | A team that has done this stands behind you on your first deal]
 [DATA: The answer to the question | How you're seen by the seller, before price comes up]
 
@@ -1089,6 +1108,7 @@ What that feels like is the difference between asking a seller for a favour and 
 
 [SLIDE: Capital | The second C.]
 [LAYOUT: list]
+[SCENE: three-c]
 [DATA: Your capacity | What your profit can carry, worked out on your real numbers]
 [DATA: The structure | Commercial debt, seller finance and seller rollover, shaped with the seller first]
 [DATA: The test | Every target run at 1.5x before anyone signs]
@@ -1099,6 +1119,7 @@ What that feels like is walking into a lender's office with a deal that already 
 
 [SLIDE: Closing | The third C.]
 [LAYOUT: list]
+[SCENE: three-c]
 [DATA: Your buy box | The business to buy first, defined so clearly an owner recognises it]
 [DATA: Owner outreach | The scripts to contact owners who have no successor, every week]
 [DATA: To a letter of intent | Working sessions every week, aimed at a signed LOI]
@@ -1132,6 +1153,7 @@ You're back on the floor of your own business by twelve. That's what a week look
 
 [SLIDE: The engagement guarantee | Read in full, conditions included.]
 [LAYOUT: statement]
+[SCENE: guarantee]
 [ON SCREEN: If you don't have a signed letter of intent within 90 days, Josh's team keeps working with you at no extra cost until you do. Or, if you prefer, take a full refund of everything you paid.]
 
 <!-- RISK REVERSAL: the conditional guarantee, exact wording, conditions read slowly (Fladlien: better than money back; claims ladder: conditions stated, limits stated). -->
@@ -1141,6 +1163,7 @@ If you don't have a signed letter of intent within ninety days, my team keeps wo
 
 [SLIDE: The conditions | Each one is something you control.]
 [LAYOUT: list]
+[SCENE: guarantee-conditions]
 [DATA: Within 7 days of signing | The kickoff, and your last two years of financials]
 [DATA: Every week | Attend the working sessions (miss no more than two), and send the agreed owner outreach: 25 owner contacts a week by default, using the scripts provided]
 [DATA: Throughout | Reply to the team within 2 business days, and follow the agreed buy box and the 1.5x test]
@@ -1155,6 +1178,7 @@ Every one of those is something you control. Notice too what the guarantee doesn
 
 [SLIDE: And the first seven days | No conditions.]
 [LAYOUT: statement]
+[SCENE: guarantee-seven]
 [ON SCREEN: If the engagement isn't right for you, tell the team within 7 days of signing and you get a full refund of everything you paid. No conditions apply in those first 7 days. After that, the LOI guarantee covers you.]
 
 There's one more protection, and it's simpler still.
@@ -1212,6 +1236,7 @@ If you read that and thought "that's fine, I can do that", then it's probably fo
 
 [SLIDE: Everything in one place]
 [LAYOUT: list]
+[SCENE: offer-stack]
 [DATA: The call | Your numbers at 1.5x, your first target or buy box, and an honest answer on fit]
 [DATA: The engagement | Ninety days, done with you, on the 3C model, aimed at a signed LOI]
 [DATA: The protection | A full refund in the first 7 days, then the LOI guarantee, with its conditions]
@@ -1244,6 +1269,7 @@ There's a question under the video now. Is a strategy call with my team right fo
 
 [SLIDE: Apply and book | The button is under the video. A few minutes to apply. One tap to book.]
 [LAYOUT: statement]
+[SCENE: apply-qr]
 [ON SCREEN: Apply under the video. If it fits, book your call in one tap.]
 
 <!-- NLP: self-prediction question before the CTA (L13), then a plain imperative (L4). -->
@@ -1255,6 +1281,7 @@ If the answer is yes, press the button under the video now. Apply, and if it fit
 
 [SLIDE: Dan's ninety days | Illustrative: one way the first ninety days can go. A picture, not a forecast.]
 [LAYOUT: section]
+[SCENE: dan-timeline]
 
 <!-- FUTURE PACE, part 1 (process picture, L5): the protagonist inside the engagement, week by week, built only from what the engagement involves. Labelled illustrative; no timing is promised (E4). -->
 Before we jump a year ahead, let's go back to the night Dan applied, and follow the next ninety days. It's illustrative, one way it can go, and every deal moves at its own speed. But it's worth seeing, because the first ninety days are the part owners can't picture, and what you can't picture you don't start.
@@ -1297,6 +1324,7 @@ Remember, that's one illustrative path. Some deals take longer, and some fall ov
 
 [SLIDE: Dan, a year after his first deal | Illustrative: one way the year can look. A picture, not a forecast.]
 [LAYOUT: section]
+[SCENE: dan-year]
 [KICKER: Illustrative · A year later]
 
 <!-- FUTURE PACE (L5, E4): a process picture in close-up, present tense, sensory, with no earnings, no timing promise and no result claim. Labelled illustrative on screen and in the words. -->
@@ -1345,6 +1373,7 @@ And then look back from there, to today. To this masterclass, and the button und
 
 [SLIDE: Two paths from here]
 [LAYOUT: comparison]
+[SCENE: two-paths]
 [DATA: Close the tab | Next year | The same good business, under the same ceiling]
 [DATA: Apply and book | This week | A call on your numbers, your capacity and your first target]
 
@@ -1383,6 +1412,7 @@ The only difference between those two paths today is a few minutes and one tap.
 
 [SLIDE: Waiting has a cost | Illustrative: $500,000 more profit a year, at a 15% margin.]
 [LAYOUT: comparison]
+[SCENE: cost-of-waiting]
 [DATA: By hand | $3.3M | of new revenue to win, through years of hiring, marketing and evenings]
 [DATA: By acquisition | One deal | A business that already makes it joins yours the day the deal settles]
 
@@ -1405,12 +1435,14 @@ Both paths are open to you, and both are your call. If you want the second one, 
 
 [SLIDE: Who you're becoming | Six levels, from where you spend your days to why it matters.]
 [LAYOUT: section]
+[SCENE: levels]
 
 <!-- DILTS' LOGICAL LEVELS, outside in: environment, behaviour, capability, beliefs, identity, purpose. One slide per level. Delivery: slower, lower. -->
 Most owners think buying a company is a financial decision. It's really an identity decision, wearing a financial suit. And identity doesn't change from the top. It changes from the ground up, one level at a time. So let's walk up together.
 
 [SLIDE: Where you spend your days | Level 1]
 [LAYOUT: statement]
+[SCENE: levels]
 
 <!-- Level 1, environment. -->
 Start with where you spend your days.
@@ -1421,6 +1453,7 @@ Same week, different rooms. And you don't have to leave your business to get to 
 
 [SLIDE: What you do | Level 2]
 [LAYOUT: statement]
+[SCENE: levels]
 
 <!-- Level 2, behaviour. Mirrors the guarantee conditions, so the conditions read as identity, not as homework. -->
 Then what you do.
@@ -1431,6 +1464,7 @@ None of those things is hard. They're just different. And you've learned differe
 
 [SLIDE: What you can do | Level 3]
 [LAYOUT: statement]
+[SCENE: levels]
 
 <!-- Level 3, capability. Presupposition: "you already have the hardest skill". -->
 Then what you can do.
@@ -1441,6 +1475,7 @@ And notice something about every one of those capabilities. You've already used 
 
 [SLIDE: What you believe | Level 4]
 [LAYOUT: statement]
+[SCENE: levels]
 [ON SCREEN: Capital follows credibility. Experience can be borrowed. Sellers sell to the one they trust.]
 
 <!-- Level 4, beliefs. One belief swapped at a time, in the past tense for the old one (time line: put it behind you). -->
@@ -1456,6 +1491,7 @@ And notice that every one of those beliefs was about you, not about the world. T
 
 [SLIDE: Who you are | Level 5]
 [LAYOUT: statement]
+[SCENE: levels]
 
 <!-- Level 5, identity. Slowest. "The old you was doing the best you could" (Sultanic identity shift), then the new identity statement in the present tense. -->
 And then who you are.
@@ -1480,6 +1516,7 @@ And here's how you'll know the shift has happened. Not by a feeling, but by what
 
 [SLIDE: Why it matters | Level 6]
 [LAYOUT: statement]
+[SCENE: levels]
 
 <!-- Level 6, purpose (contribution, Robbins' sixth need). -->
 And above all of it, why it matters.
@@ -2004,6 +2041,7 @@ If none of that is you, that's completely fine. Keep the worksheet, keep the ide
 
 [SLIDE: How to take the next step]
 [LAYOUT: list]
+[SCENE: apply-qr]
 [DATA: Press the button under the video | The application opens, with what you told us already filled in]
 [DATA: Answer a few questions | A few minutes. My team reads every answer.]
 [DATA: Pick your time | If it fits, the open times appear. One tap and your call is booked.]
@@ -2017,8 +2055,8 @@ If you have a question first, type it in the question box beside the video, and 
 [SLIDE: Your worksheet | The deal structure worksheet is unlocked under the video: one real target, the numbers, the test and the stack.]
 [LAYOUT: statement]
 
-<!-- The stay-to-the-end gift (Brunson), and the visible no: useful whether or not they apply. -->
-And for everyone who stayed to the end, the deal structure worksheet has just unlocked under the video. It walks you through one real target: the numbers, the test and the stack. If you apply, bring it to your call. If you don't, fill it in for one business this week anyway. It's yours either way.
+<!-- The stay-to-the-end gift (Brunson), and the visible no: useful whether or not they apply. "One more thing" (Jobs' keynote reveal, research pattern 9): the last reveal is a gift, not an ask. -->
+One more thing, and it's for everyone, whether you apply or not. The deal structure worksheet has just unlocked under the video. It walks you through one real target: the numbers, the test and the stack. If you apply, bring it to your call. If you don't, fill it in for one business this week anyway. It's yours either way.
 
 [SLIDE: Dan, one more time | Illustrative.]
 [LAYOUT: statement]

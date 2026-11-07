@@ -7,35 +7,12 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { auditCopy } from '../../src/content/copy-rules';
+import { extra } from './copy-house';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 type Seg = { chapter: string; slide: string; onscreen: string[]; text: string; cues: string[]; layout: string; data: string[]; image: string | null; caption: string | null; kicker: string | null };
 
 const spoken = (t: string) => t.replace(/<break[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-// Facts from the approved list that carry a number without being an example (see WEBINAR-NOTES.md).
-const FACTS = [
-  /\b(a|one) million (dollars )?a year( in revenue)?/gi, /\bunder a million\b/gi, /\$1M\+?( a year)?/g, /\bmore than a million\b/gi, /\bover a million\b/gi,
-  /five (to|or) six million/gi, /5-6m/gi, /five and a half million dollar radiology deal/gi, /\$5\.5M( radiology)?/g, /over five million/gi, /over \$5M/gi, /\bmillion or more\b/gi, /\b(a|one) million (dollars )?(or more )?a year/gi,
-  /\bninety owners\b/gi, /\b90 owners\b/gi,
-];
-const MONEY = /\$\s?\d|\b\d[\d,.]*\s?(k|m|million|thousand)\b|\b(million|thousand)\b/i;
-const FUNDING = /\b(seller finance|seller's note|commercial debt|a lender|the lender)\b[^.]*\b(pa(y|id|ys)|fund|price)\b|\bfunded\b|\bfunding\b|\bpays? (for itself|the price)\b|\bthe price (is|gets) paid\b/i;
-const extra = (t: string, where: string, ctx: string): string[] => {
-  const out: string[] = [];
-  if (/[—–]/.test(t)) out.push(`${where}: em or en dash`);
-  if (/!/.test(t)) out.push(`${where}: exclamation mark`);
-  if (/\bfree\b/i.test(t)) out.push(`${where}: "free"`);
-  if (/\b(live|attendees right now|people watching|spots? left|seats? left|only \d+ left|today only|expires? (tonight|today))\b/i.test(t)) out.push(`${where}: liveness or scarcity word`);
-  if (/\b(guaranteed|you will (close|own|sign|get funded|buy))\b/i.test(t)) out.push(`${where}: promised result`);
-  if (/\btestimonial\b/i.test(t)) out.push(`${where}: testimonial`);
-  // An example number needs "illustrative" on the same slide (spoken or on screen), unless it's an approved fact.
-  let bare = t; for (const re of FACTS) bare = bare.replace(re, '');
-  if (MONEY.test(bare) && !/illustrat/i.test(ctx)) out.push(`${where}: number without "illustrative" on the slide: ${bare.match(MONEY)?.[0]}`);
-  // Whenever funding is described, seller rollover is named on the same slide.
-  if (FUNDING.test(t) && !/rollover/i.test(ctx)) out.push(`${where}: funding described without seller rollover on the slide`);
-  return out;
-};
-
 let flags = 0;
 for (const file of ['script-ai.md', 'script-ai-josh.md']) {
   const segs: Seg[] = JSON.parse(execFileSync('python3', [path.join(HERE, 'build.py'), '--dump', '--script', file], { encoding: 'utf8', maxBuffer: 64 << 20 }));

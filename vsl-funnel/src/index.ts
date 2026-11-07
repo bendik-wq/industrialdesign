@@ -375,6 +375,7 @@ app.get('/admin/sandbox', requireAdmin, async (c) => { // Funnel HQ → Sandbox 
   return c.html(sandboxPage());
 });
 app.get('/admin/studio', requireAdmin, async (c) => (await import('./admin/studio')).studioRoute(c)); // Funnel HQ → Studio (record, pipeline, scripts)
+app.get('/admin/deck', requireAdmin, async (c) => (await import('./admin/deck')).deckRoute(c)); // Studio → Deck: the masterclass deck to present and record (public/assets/deck, src/admin/deck.ts)
 app.get('/admin/live/:key', requireAdmin, liveHostPage); // host console for one live event (Zoom)
 app.get('/admin/rooms/:id/replay', requireAdmin, adminReplayPage); // the team's view of a room's replay (area D)
 app.get('/admin/rooms/:id', requireAdmin, hostRoomPage); // the host in our own room

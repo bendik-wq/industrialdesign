@@ -6,6 +6,8 @@
  * - Radar (src/radar, /assets/studio-radar.js) mounts into #studio-radar: top performers through Monid, analysed for G&L.
  * - Pipeline and Scripts (builder C, /assets/studio-pipeline.js and /assets/studio-scripts.js) mount into
  *   #studio-pipeline and #studio-scripts.
+ * - Deck (/admin/deck, src/admin/deck.ts) opens from the Record view's Deck panel; while it runs, its slides drive the
+ *   face-cam layout over BroadcastChannel "gl-deck" when Auto layout is on (public/assets/studio.js).
  * Guests see the page read-only: the Record view says recording is for the owner, and every write is refused on the
  * server anyway (src/admin/guest.ts).
  */
@@ -40,6 +42,7 @@ export const STUDIO_COPY = {
   noPipeline: 'The pipeline board is not in this build yet.',
   noScripts: 'The scripts view is not in this build yet.',
   noRadar: 'Radar is not in this build yet.',
+  deck: 'Opens in its own window: choose that window as the screen, press P there for the presenter view (notes, next build, timer). With Auto layout on, the face-cam layout follows the slides.',
 };
 
 const ICON = (body: string) => `<svg viewBox="0 0 20 20" aria-hidden="true">${body}</svg>`;
@@ -137,6 +140,11 @@ export function studioPage(opts: { guest: boolean }) {
         <label class="st-field"><span>Microphone</span><select data-mic></select></label>
         <div class="st-meter" aria-label="Microphone level" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-meter-wrap><i data-meter></i></div>
         <label class="st-switch"><input type="checkbox" data-sysaudio checked><span>Include system audio</span></label>
+      </section>
+      <section class="st-panel">
+        <h2>Deck</h2>
+        <a class="st-btn" href="/admin/deck" target="gl-deck-audience" data-open-deck rel="noopener"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="10" rx="1.5"/><path d="M7 17h6M10 14v3M6 8h5M6 10.5h8"/></svg><span>Open the masterclass deck</span></a>
+        <p class="st-sub">${STUDIO_COPY.deck}</p>
       </section>
       <section class="st-panel">
         <h2>Look</h2>

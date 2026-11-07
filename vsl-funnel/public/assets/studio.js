@@ -677,6 +677,24 @@
     var r = map.getBoundingClientRect(), z = C.zoomRegion((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, 2);
     S.zoomAt = { x: z.x + z.w / 2, y: z.y + z.h / 2 }; syncMap(); savePrefs();
   });
+  // ───────────── the masterclass deck (/admin/deck) ─────────────
+  // Opens in its own window (choose it as the screen). Each slide carries the face-cam layout it wants (a data slide:
+  // the screen big; a story beat: the face big), sent over BroadcastChannel "gl-deck"; Auto layout follows it.
+  var deckLink = $('[data-open-deck]');
+  if (deckLink) deckLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    var w = window.open('/admin/deck', 'gl-deck-audience', 'popup,width=1920,height=1080');
+    if (!w) location.href = '/admin/deck';
+    else toast('Deck opened: choose its window as the screen, press P there for your notes');
+  });
+  var deckBus = null; try { deckBus = new BroadcastChannel('gl-deck'); } catch (e) { deckBus = null; }
+  if (deckBus) deckBus.onmessage = function (ev) {
+    var m = ev.data || {};
+    if (m.type !== 'state' || !S.autoLayout || !m.cam) return;
+    var want = C.layoutForBeat({ layout: m.cam }, S.layout);
+    if (want !== S.layout) setLayout(want, 'auto');
+  };
+
   function toggleZoom() {
     S.zoomOn = !S.zoomOn;
     $('[data-zoom]').setAttribute('aria-pressed', String(S.zoomOn));

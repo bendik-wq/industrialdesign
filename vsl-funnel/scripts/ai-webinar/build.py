@@ -17,6 +17,7 @@ Usage:
 
 Slide metadata in script-ai.md (not spoken; lines after a [SLIDE: ...] line, see README.md):
   [LAYOUT: name]  [DATA: a | b | c] (repeatable)  [IMAGE: id from deck-images.json]  [CAPTION: text]  [KICKER: text]
+  [SCENE: id]     the presented deck's animated scene for this slide (present/, public/assets/deck/); the video slides ignore it
 Margin notes: <!-- ... --> anywhere (one line or several) are stripped before parsing: never spoken, never on a slide.
 Any other line that starts with "[" is a note for the owner and is skipped (e.g. a bracketed conditional line).
 Room cues: [POLL: id] [CALCULATOR] [BUY-IN] [APPLY OPENS] (or the older [SPRINT UNLOCKS]) [CTA] (repeatable) [WORKSHEET]
@@ -87,7 +88,7 @@ def parse():
         if slide is not None and (text or cues):
             segs.append({'chapter': chapter, 'slide': slide, 'onscreen': list(onscreen), 'text': ' <break time="0.6s" /> '.join(text), 'cues': list(cues),
                          'layout': meta.get('layout', 'statement'), 'data': list(meta.get('data', [])), 'image': meta.get('image'), 'caption': meta.get('caption'),
-                         'kicker': meta.get('kicker')})
+                         'kicker': meta.get('kicker'), 'scene': meta.get('scene')})
     for ln in body.split('\n'):
         s = ln.strip()
         if not s: continue
@@ -98,7 +99,7 @@ def parse():
         if m:
             flush(); text.clear(); cues.clear(); onscreen.clear(); meta = {}; slide = m.group(1); continue
         # Slide metadata: how the slide looks. Never spoken, so the audio cache is untouched by it.
-        m = re.match(r'\[(LAYOUT|DATA|IMAGE|CAPTION|KICKER): (.*)\]$', s)
+        m = re.match(r'\[(LAYOUT|DATA|IMAGE|CAPTION|KICKER|SCENE): (.*)\]$', s)
         if m:
             k, v = m.group(1).lower(), m.group(2).strip()
             if k == 'layout' and v not in LAYOUTS: raise SystemExit(f'unknown layout {v!r} on slide {slide!r}')
@@ -191,7 +192,7 @@ def render_slides(segs):
 def main():
     segs = parse()
     if '--dump' in sys.argv:  # for the copy audit (audit-script.ts): what is spoken and what is on screen, nothing else
-        print(json.dumps([{k: sg[k] for k in ('chapter', 'slide', 'onscreen', 'text', 'cues', 'layout', 'data', 'image', 'caption', 'kicker')} for sg in segs])); return
+        print(json.dumps([{k: sg[k] for k in ('chapter', 'slide', 'onscreen', 'text', 'cues', 'layout', 'data', 'image', 'caption', 'kicker', 'scene')} for sg in segs])); return
     chars = sum(len(s['text']) for s in segs)
     print(f'{len(segs)} segments, {chars} characters to voice' + (f', writing to {OUT}' if OUT else ', writing the LIVE media and timeline'))
     if OUT: os.makedirs(OUT, exist_ok=True)

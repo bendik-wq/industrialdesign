@@ -51,7 +51,7 @@ Word counts per section: intro 1,760 (9.6 min) · content 6,060 (33.1 min) · tr
 - **Intro:** pace before lead (four true statements for the $1M+ owner) · negative command ("don't answer it yet") · the anchor
   "Owners build. Buyers compound." (a dark slide labelled "The line to remember", same words every time; six firings: hook, end of
   the ceiling, the desire peak before the button, the big domino, the identity statement, the close) · not-your-fault frame ·
-  two-agenda open (Fladlien): the ask is named in minute 4 · the protagonist Dan (an illustrative composite) and the **three
+  two-agenda open (Fladlien): the ask is named in minute 4, with a checkable condition on the first agenda (research pattern P2) · the protagonist Dan (an illustrative composite) and the **three
   nested loops**: A Dan's Tuesday night, C the big domino, B the question every seller asks · qualification up front.
 - **Content:** story-led desire, not teaching. Dan's ceiling in close-up (sensory density) → Graham, the owner with no successor
   (the inciting incident) → the wrong maths and the right one (structure, the 1.5x test, the calculator as proof by experience)
@@ -70,7 +70,7 @@ Word counts per section: intro 1,760 (9.6 min) · content 6,060 (33.1 min) · tr
   levels**, one slide per level, ending on "I'm a buyer" and the anchor · 39 owner questions, facts first then one varied
   Sleight-of-Mouth reframe each, bridging to the button · four scripted case walkthroughs (Priya, Tom, Leah, Mark), illustrative
   composites, never presented as clients or testimonials · the After Close (thirty days), identity close, choice close with a
-  visible no, the worksheet for everyone either way.
+  visible no, the worksheet for everyone either way, opened as "one more thing" (Jobs' last reveal, research pattern P9).
 - **Big domino, word for word:** "You don't have to become a different person to buy a company, and you don't have to do it alone.
   You have to be seen as the buyer. And the credibility that makes you the buyer can be borrowed, from a team that has done it,
   until it's yours."
@@ -103,6 +103,11 @@ and the 7-day refund, exact wording and conditions. Every other number is labell
    version of his voice").
 8. Room settings after the render: `WEBINAR_EDITION=ai`. Clear any `WEBINAR_PITCH_AT` override, or the button appears at the
    override instead of 30:19.
+
+## The presented deck
+Josh can also present this script himself from Funnel HQ → Studio → Deck (`/admin/deck`): builds, scenes, presenter
+view with these levers per slide, and the PDF export. How it works: README.md, "The presented deck". The research behind
+its devices: `docs/webinar-research.md`.
 
 ## Checks run
 - Copy audit: `npx vite-node scripts/ai-webinar/audit-script.ts` → 0 flags on both scripts (auditCopy on every spoken segment and
