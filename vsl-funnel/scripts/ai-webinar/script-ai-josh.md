@@ -2,7 +2,7 @@
 
 **Presenter:** Josh Li, in an AI version of his voice (disclosed at the start and on every slide), first person. Render with `VOICE_ID=<Josh's clone> python3 build.py --script script-ai-josh.md` once his professional clone is approved.
 **What it sells:** the application and the strategy call with my team (the button under the video: /apply, then one-tap booking on /book). The call is never called free. The call can lead to the 90-day "Done with you" advisory engagement (the 3C model), with the LOI guarantee and the 7-day money-back read in full. Fees exist and are covered on the call, not here.
-**How it sells:** the same script as script-ai.md, word for word apart from the person: story first, desire over teaching, Sam (an illustrative composite owner) as the protagonist, Dilts' logical levels, one anchor, three nested loops, one big domino. Run of show, levers and the verify list: WEBINAR-NOTES.md.
+**How it sells:** the same script as script-ai.md, word for word apart from the person: story first, desire over teaching, Dan (an illustrative composite owner) as the protagonist, Dilts' logical levels, one anchor, three nested loops, one big domino. Run of show, levers and the verify list: WEBINAR-NOTES.md.
 **Format rules for the build script:** as in script-ai.md. `<!-- … -->` are margin notes, never spoken or shown.
 
 ---
@@ -160,24 +160,24 @@ Where the deals are, and why the best businesses in your market will never appea
 
 None of it needs a finance degree. All of it is easier to see through someone else's story first.
 
-[SLIDE: Meet Sam | An illustrative owner, built from situations owners describe to my team. His name and numbers are examples.]
+[SLIDE: Meet Dan | An illustrative owner, built from situations owners describe to my team. His name and numbers are examples.]
 [LAYOUT: statement]
 
-<!-- STORY: the protagonist. Composite, labelled as illustrative here and on his slides every time numbers appear. Open loop A: "what Sam did on a Tuesday night" (closed in the offer chapter). -->
-Now I want you to meet someone. His name is Sam, and I'll be straight with you about him: Sam is a composite. He's built from the situations owners describe to my team on their calls, so his name and his numbers are illustrative. But you'll recognise him, because you've been him.
+<!-- STORY: the protagonist. Composite, labelled as illustrative here and on his slides every time numbers appear. Open loop A: "what Dan did on a Tuesday night" (closed in the offer chapter). -->
+Now I want you to meet someone. His name is Dan, and I'll be straight with you about him: Dan is a composite. He's built from the situations owners describe to my team on their calls, so his name and his numbers are illustrative. But you'll recognise him, because you've been him.
 
-Sam runs a commercial heating and air conditioning business. Twenty-five staff, about five and a half million a year in revenue in his illustrative numbers, a good margin and a good name. He started it with one van and a second-hand ladder, eighteen years ago.
+Dan runs a commercial heating and air conditioning business. Twenty-five staff, about five and a half million a year in revenue in his illustrative numbers, a good margin and a good name. He started it with one van and a second-hand ladder, eighteen years ago.
 
 He's good at what he does, and he's good at hiring. His customers stay. And for the last two years, every time he's tried to grow, it has felt like pushing a van uphill with the handbrake on.
 
-And on a Tuesday night, a little after nine, Sam did one small thing that changed which of those two kinds of owner he was. It took him a few minutes. I'm going to tell you exactly what it was, but not yet. It won't mean much until you've seen what he saw.
+And on a Tuesday night, a little after nine, Dan did one small thing that changed which of those two kinds of owner he was. It took him a few minutes. I'm going to tell you exactly what it was, but not yet. It won't mean much until you've seen what he saw.
 
 [SLIDE: Two more things, held to the end]
 [LAYOUT: list]
 [DATA: The big domino | The one belief that, once it falls, takes every other reason with it]
 [DATA: The question every seller asks | Answer it and sellers do things for you they'd do for nobody else]
 
-<!-- NLP: nested loops. Opened A (Sam's Tuesday night), then C (the big domino), then B (the seller's question). Closed in reverse: B, then C in the transition, A in the offer. -->
+<!-- NLP: nested loops. Opened A (Dan's Tuesday night), then C (the big domino), then B (the seller's question). Closed in reverse: B, then C in the transition, A in the offer. -->
 There are two more things I'm going to hold until later.
 
 The first is the big domino. It's one belief. Most owners spend years pushing on the small dominoes: the money, the time, the feeling that their industry is different. When the big one falls, it takes the small ones with it. You'll see it near the end of the teaching, and you'll know it when you hear it.
@@ -196,13 +196,13 @@ Notice that you already had an answer. Most owners do. They've been carrying a b
 
 ## [09:36] The ceiling
 
-[SLIDE: Tuesday, 9:40 at night | Sam, an illustrative owner, at the kitchen table.]
+[SLIDE: Tuesday, 9:40 at night | Dan, an illustrative owner, at the kitchen table.]
 [LAYOUT: section]
 
-<!-- STORY: Sam's ceiling, told in close-up, present tense, with objects and sound (sensory density, L6). Pain amplification #1: the status quo. -->
-Let's go back to Sam.
+<!-- STORY: Dan's ceiling, told in close-up, present tense, with objects and sound (sensory density, L6). Pain amplification #1: the status quo. -->
+Let's go back to Dan.
 
-It's a Tuesday, about twenty to ten at night. Sam is at the kitchen table with the laptop open and a cold cup of tea next to it. The house is quiet. His phone buzzes face down on the bench, and he already knows it's a technician asking about tomorrow's job, because it's always a technician asking about tomorrow's job.
+It's a Tuesday, about twenty to ten at night. Dan is at the kitchen table with the laptop open and a cold cup of tea next to it. The house is quiet. His phone buzzes face down on the bench, and he already knows it's a technician asking about tomorrow's job, because it's always a technician asking about tomorrow's job.
 
 On the screen is the month's report. Revenue is up a little on last year. Wages are up more. Two of his best people have told him they want more money, and he can't blame them, because a competitor across town is hiring and paying well.
 
@@ -210,9 +210,9 @@ On the screen is the month's report. Revenue is up a little on last year. Wages 
 [LAYOUT: comparison]
 [DATA: What moved | A little | Revenue, a few points up on last year]
 [DATA: What it cost | A lot | Wages, a manager, his evenings and most of his Saturdays]
-[CAPTION: Illustrative: Sam is a composite owner.]
+[CAPTION: Illustrative: Dan is a composite owner.]
 
-Here's what Sam has noticed, and maybe you've noticed it too. Every extra dollar of growth costs more than the one before it. To add another million in revenue, he needs another crew, another van, another supervisor to run them, and another few hours of his own week to hold it all together. The business grows. The space in his life for anything else gets smaller.
+Here's what Dan has noticed, and maybe you've noticed it too. Every extra dollar of growth costs more than the one before it. To add another million in revenue, he needs another crew, another van, another supervisor to run them, and another few hours of his own week to hold it all together. The business grows. The space in his life for anything else gets smaller.
 
 [SLIDE: The question at breakfast | Illustrative.]
 [LAYOUT: statement]
@@ -220,20 +220,20 @@ Here's what Sam has noticed, and maybe you've noticed it too. Every extra dollar
 <!-- STORY: sensory, personal stakes (contribution, connection). Pain made specific and true, never shaming. -->
 The next morning, his daughter asks him a question over breakfast. She's twelve. She asks whether they're still going away at Easter, because her friend is going to the coast and she wants to know if she can tell her they're going too.
 
-Sam says he'll see. She's heard "I'll see" before. She goes back to her cereal, and Sam goes to his van, and for the whole drive to the first site he thinks about the fact that his business has twenty-five people in it and he still can't promise his own family a week at the beach.
+Dan says he'll see. She's heard "I'll see" before. She goes back to her cereal, and Dan goes to his van, and for the whole drive to the first site he thinks about the fact that his business has twenty-five people in it and he still can't promise his own family a week at the beach.
 
-He's not failing. That's the strange part. By any normal measure, Sam is a success. He just can't see how the next ten years look any different from the last ten, except with more people asking him questions.
+He's not failing. That's the strange part. By any normal measure, Dan is a success. He just can't see how the next ten years look any different from the last ten, except with more people asking him questions.
 
-[SLIDE: The three fixes Sam tried | Illustrative.]
+[SLIDE: The three fixes Dan tried | Illustrative.]
 [LAYOUT: list]
 [DATA: A general manager | Hired to take the weight. Left after eleven months.]
 [DATA: More marketing | More enquiries, and more of them landing on his desk]
 [DATA: Working Saturdays | It helped for a while. Then it was just how the week worked.]
 
 <!-- NLP: yes-set by recognition. The viewer has tried at least one of these; each one is "building harder", which sets up the third way. -->
-And it isn't as if Sam hasn't tried.
+And it isn't as if Dan hasn't tried.
 
-Two years ago he hired a general manager to take some of the weight. She was good. She left after eleven months for a bigger company, and Sam spent the next three months doing her job and his.
+Two years ago he hired a general manager to take some of the weight. She was good. She left after eleven months for a bigger company, and Dan spent the next three months doing her job and his.
 
 Then he put more money into marketing. It worked, in the sense that more enquiries came in. And every one of them landed, eventually, on his desk.
 
@@ -255,7 +255,7 @@ There's a point every owner reaches. Before it, the business is a joy. You touch
 <!-- NLP: meta model in reverse. Name the structure of the problem precisely so the third way can fix the structure, not the effort. -->
 Look at the shape of that problem, because the shape is the whole thing.
 
-It isn't effort. Sam works harder than anyone he employs. It isn't skill either. He knows his trade and his market better than his competitors do. The problem is the shape: one business, held up by one person, growing one customer at a time. And no amount of effort changes a shape.
+It isn't effort. Dan works harder than anyone he employs. It isn't skill either. He knows his trade and his market better than his competitors do. The problem is the shape: one business, held up by one person, growing one customer at a time. And no amount of effort changes a shape.
 
 When owners hit that point, they see two ways forward.
 
@@ -281,9 +281,9 @@ And there's a third way. It's the way the group with ten locations got there, an
 <!-- CLOSES THE OPENING QUESTION (the hook), early, so the viewer gets a payoff before the bigger loops. Story proof: the group owner at the industry dinner (illustrative). -->
 Remember the question from the very beginning? How come the owner who works hardest in a market is almost never the one who ends up owning it?
 
-Sam found the answer at an industry dinner, the kind with name tags and a bad microphone. He was seated next to the owner of the biggest group in his trade, the one with branches across three cities. Sam had always assumed the man must have started with family money, or a huge loan, or some advantage Sam didn't have.
+Dan found the answer at an industry dinner, the kind with name tags and a bad microphone. He was seated next to the owner of the biggest group in his trade, the one with branches across three cities. Dan had always assumed the man must have started with family money, or a huge loan, or some advantage Dan didn't have.
 
-Over dessert, Sam asked him how he'd grown so fast. The man laughed and said, "I didn't grow it. I bought most of it. Every one of those branches was somebody's business, and most of them were owners who didn't have anyone to hand it to."
+Over dessert, Dan asked him how he'd grown so fast. The man laughed and said, "I didn't grow it. I bought most of it. Every one of those branches was somebody's business, and most of them were owners who didn't have anyone to hand it to."
 
 That's the answer. The owners who end up owning a market aren't the ones who worked hardest at building. Somewhere along the way, they stopped building one customer at a time and started buying what was already built.
 
@@ -292,7 +292,7 @@ That's the answer. The owners who end up owning a market aren't the ones who wor
 [ON SCREEN: Every owner in your market with no successor sells to somebody. If it isn't you, it's a competitor or a fund.]
 
 <!-- NLP: paradigm seed, standing still is the risky position. Cost of inaction, true and specific, followed within one slide by hope (playbook rule). -->
-Before we go there, one more thing about where Sam is sitting, because it's true for you as well.
+Before we go there, one more thing about where Dan is sitting, because it's true for you as well.
 
 In every market, there are owners in their sixties with no one to hand the business to. Each of them is going to sell to somebody, or close the doors. If it isn't you, it's a competitor or a fund. And when it's a competitor, that business, its customers, its people and its name get used against you.
 
@@ -308,30 +308,30 @@ The good news is that the owner who's going to sell is also the best opportunity
 Owners build. Buyers compound.
 
 
-Sam has been building for twenty years. He's about to find out what it looks like to compound.
+Dan has been building for twenty years. He's about to find out what it looks like to compound.
 
 ## [15:14] The owner down the road
 
 [SLIDE: The phone call | Graham, an illustrative seller: 64, thirty years in the trade, no successor.]
 [LAYOUT: statement]
 
-<!-- STORY: the inciting incident. Graham is a composite seller, labelled. Sam's first reaction is the owner's belief ("I can't afford that"), which the next chapters break. -->
-A few weeks before that Tuesday night, Sam had a phone call he couldn't stop thinking about.
+<!-- STORY: the inciting incident. Graham is a composite seller, labelled. Dan's first reaction is the owner's belief ("I can't afford that"), which the next chapters break. -->
+A few weeks before that Tuesday night, Dan had a phone call he couldn't stop thinking about.
 
-It was from Graham. Graham runs the other commercial heating business in Sam's part of the city. He's sixty-four, and he's been in the trade for thirty years. Like Sam, Graham is a composite, an illustrative seller, but every owner watching this knows a Graham.
+It was from Graham. Graham runs the other commercial heating business in Dan's part of the city. He's sixty-four, and he's been in the trade for thirty years. Like Dan, Graham is a composite, an illustrative seller, but every owner watching this knows a Graham.
 
 Graham rang about a job they'd both quoted on. And at the end of the call, almost as an afterthought, he said this. "I don't know how much longer I'll keep doing this. The kids don't want it. I've got people who've been with me twenty years, and I lie awake wondering what happens to them."
 
-[SLIDE: What Sam heard | And what he told himself.]
+[SLIDE: What Dan heard | And what he told himself.]
 [LAYOUT: comparison]
 [DATA: What Graham said | A seller | An owner with no successor, worried about his people]
-[DATA: What Sam thought | Too big | A business like that costs millions, and I don't have millions]
-[CAPTION: Illustrative: Sam and Graham are composites.]
+[DATA: What Dan thought | Too big | A business like that costs millions, and I don't have millions]
+[CAPTION: Illustrative: Dan and Graham are composites.]
 
 <!-- NLP: mind reading (fair, L19). Naming the belief the viewer holds, in the protagonist's mouth, so it can be broken without arguing with the viewer. -->
-Sam put the phone down and did what nearly every owner does. He did the maths in his head. Graham's business is about the size of his. It would cost millions. Sam doesn't have millions sitting in an account, and even if he did, he wouldn't put all of it on one deal. So he filed it under "one day" and went back to his inbox.
+Dan put the phone down and did what nearly every owner does. He did the maths in his head. Graham's business is about the size of his. It would cost millions. Dan doesn't have millions sitting in an account, and even if he did, he wouldn't put all of it on one deal. So he filed it under "one day" and went back to his inbox.
 
-If that's what went through your head just now, about your own Graham, hold on to it. Because Sam was about to learn that he'd done the wrong maths.
+If that's what went through your head just now, about your own Graham, hold on to it. Because Dan was about to learn that he'd done the wrong maths.
 
 [SLIDE: Why owners like Graham never list | Illustrative.]
 [LAYOUT: list]
@@ -340,7 +340,7 @@ If that's what went through your head just now, about your own Graham, hold on t
 [DATA: Doubt | He isn't sure anyone would buy it, so he never asks]
 
 <!-- PARADIGM SHIFT setup: why off-market owners exist. Mind reading on the seller's side (second position). -->
-And here's what Sam didn't know about Graham, and what most owners don't know about their own Graham.
+And here's what Dan didn't know about Graham, and what most owners don't know about their own Graham.
 
 Owners like him almost never list. They don't want their staff to find out, or their customers, or their competitors. A listing feels like a for-sale sign hammered into the lawn of their life's work. And deep down, a lot of them aren't sure anyone would want to buy it, so they never ask. They just keep going, a little more tired every year, until something forces the decision.
 
@@ -370,11 +370,11 @@ And that owner has two problems. Someone has to pay him for what he built. And s
 [LAYOUT: statement]
 
 <!-- STORY: sensory, the desire object made visible (the vans, the sign). Submodalities: close and bright. -->
-The next week, Sam drives past Graham's yard on the way to a job. He's driven past it a thousand times. This time he slows down.
+The next week, Dan drives past Graham's yard on the way to a job. He's driven past it a thousand times. This time he slows down.
 
-Eight vans in a row, older than his, but well kept. The sign over the gate with Graham's surname on it, faded where the sun hits it every afternoon. A technician he recognises loading a ladder onto a roof rack. Customers Sam has never been able to win, because they've been with Graham for twenty years and see no reason to leave.
+Eight vans in a row, older than his, but well kept. The sign over the gate with Graham's surname on it, faded where the sun hits it every afternoon. A technician he recognises loading a ladder onto a roof rack. Customers Dan has never been able to win, because they've been with Graham for twenty years and see no reason to leave.
 
-And for the first time, Sam doesn't see a competitor. He sees thirty years of work, a team that knows what it's doing, a list of customers who stay, and an owner who doesn't know what to do with any of it.
+And for the first time, Dan doesn't see a competitor. He sees thirty years of work, a team that knows what it's doing, a list of customers who stay, and an owner who doesn't know what to do with any of it.
 
 [SLIDE: What happens when nobody asks | Illustrative.]
 [LAYOUT: statement]
@@ -384,14 +384,14 @@ And think about what happens to an owner like Graham if nobody asks. He keeps go
 
 Nobody wins in that version. Not Graham, not his people, and not the owner across town who could have been the one to keep it all together.
 
-[SLIDE: To Graham, Sam is the obvious successor]
+[SLIDE: To Graham, Dan is the obvious successor]
 [LAYOUT: statement]
 [ON SCREEN: You already run a profitable business in the same industry. To a retiring owner, that makes you the obvious successor.]
 
 <!-- NLP: identity seed (capability level): "you already have what a seller wants". Reframe of "I'm just an owner" into "I'm the successor". -->
 Think about it from Graham's side. A stranger with a chequebook is a risk to everything he cares about. A fund will send an analyst with a spreadsheet. But a buyer who already runs a profitable business in the same trade, in the same city, who knows what a good technician is worth and will still be around in ten years? To Graham, that person looks like the answer to the thing keeping him awake.
 
-That person is Sam. And if you run a business doing more than a million a year, in a market with owners heading toward retirement, that person is you.
+That person is Dan. And if you run a business doing more than a million a year, in a market with owners heading toward retirement, that person is you.
 
 [SLIDE: You can reach them first]
 [LAYOUT: image-full]
@@ -406,7 +406,7 @@ You're not the only one who has noticed. Private equity funds buy businesses lik
 [LAYOUT: statement]
 
 <!-- ROBBINS: questions control focus. The viewer names their own blocker, and the rest of the content answers each one by name. -->
-There's a question under the video now. What's the biggest thing stopping you from doing a deal this year? Finding deals, financing, structuring, time, or confidence. Tap the honest one. Whatever you pick, it gets answered in the next part, because for Sam it was the money, and the money turned out to be the wrong question.
+There's a question under the video now. What's the biggest thing stopping you from doing a deal this year? Finding deals, financing, structuring, time, or confidence. Tap the honest one. Whatever you pick, it gets answered in the next part, because for Dan it was the money, and the money turned out to be the wrong question.
 
 ## [20:27] How a business pays for itself
 
@@ -414,9 +414,9 @@ There's a question under the video now. What's the biggest thing stopping you fr
 [LAYOUT: section]
 
 <!-- BELIEF SHIFT (vehicle): "I need millions" → "the business pays for itself". Fladlien: the real objection is belief, not money. -->
-So here's the maths Sam should have done.
+So here's the maths Dan should have done.
 
-Sam asked himself one question: do I have the money to buy Graham's business? It's the question almost every owner asks, and it's the wrong one. Because nobody who buys businesses for a living pays for them that way.
+Dan asked himself one question: do I have the money to buy Graham's business? It's the question almost every owner asks, and it's the wrong one. Because nobody who buys businesses for a living pays for them that way.
 
 Your first acquisition is a structure problem, not a money problem.
 
@@ -464,14 +464,14 @@ It's neither. A seller who carries a note is saying something very simple: I bel
 [LAYOUT: image-left]
 [IMAGE: dscr]
 
-<!-- DEMONSTRATION: the one piece of "teaching", carried by Sam's illustrative numbers, then handed to the viewer in the calculator (Robbins: proof by experience, in miniature). -->
+<!-- DEMONSTRATION: the one piece of "teaching", carried by Dan's illustrative numbers, then handed to the viewer in the calculator (Robbins: proof by experience, in miniature). -->
 Now, if you've been in business longer than five minutes, the words "no money of your own" set off an alarm. Good. Keep that alarm on. Because most of those pitches fail for one reason: someone piles debt onto a business that can't carry it, the payments come due, and the buyer ends up feeding it from their own pocket.
 
 There's one number that stops that from happening. Lenders call it debt service coverage. You take the yearly profit of the business you're buying and divide it by the yearly payments on all the debt used to buy it. At about one and a half times, the business earns a dollar fifty for every dollar it owes. It pays its own debt, with a buffer for a bad month.
 
 [ON SCREEN: Yearly profit ÷ yearly debt payments. The test: about 1.5x.]
 
-[SLIDE: Sam's numbers on Graham's business | Illustrative: $500,000 a year in profit, priced at $1.5M.]
+[SLIDE: Dan's numbers on Graham's business | Illustrative: $500,000 a year in profit, priced at $1.5M.]
 [LAYOUT: table]
 [DATA: | Passes | Fails]
 [DATA: Yearly profit | $500,000 | $500,000]
@@ -479,17 +479,17 @@ There's one number that stops that from happening. Lenders call it debt service 
 [DATA: Profit ÷ payments | 1.67x | 1.43x]
 [CAPTION: Illustrative only. Education, not financial, legal or tax advice.]
 
-Here's what that looks like on Sam's illustrative numbers. It's an example, and it's education, not financial, legal or tax advice. Say Graham's business makes five hundred thousand a year in profit, and the price is one and a half million. The bank loan and Graham's note together cost three hundred thousand a year in payments, with the rollover paid nothing until later. Five hundred divided by three hundred is about one point six seven. It passes, with two hundred thousand a year to spare.
+Here's what that looks like on Dan's illustrative numbers. It's an example, and it's education, not financial, legal or tax advice. Say Graham's business makes five hundred thousand a year in profit, and the price is one and a half million. The bank loan and Graham's note together cost three hundred thousand a year in payments, with the rollover paid nothing until later. Five hundred divided by three hundred is about one point six seven. It passes, with two hundred thousand a year to spare.
 
 Push the payments to three hundred and fifty thousand and it drops to one point four three. That fails, and a lender sees it in ten seconds.
 
-So the question Sam should have asked was never "do I have one and a half million". It was "does Graham's business clear one and a half times". One of those questions keeps you stuck for years. The other one you can answer this week.
+So the question Dan should have asked was never "do I have one and a half million". It was "does Graham's business clear one and a half times". One of those questions keeps you stuck for years. The other one you can answer this week.
 
 [SLIDE: The night the number passed | Illustrative.]
 [LAYOUT: statement]
 
 <!-- STORY BEAT: the felt shift (Before I knew / After I knew). The belief changes in a moment the viewer can picture. -->
-Sam remembers the night he first did that sum, on the back of the monthly report, with a pencil. He'd assumed for years that a business like Graham's was out of reach. And there it was, in his own handwriting: a structure where Graham's business paid for itself, with a buffer left over.
+Dan remembers the night he first did that sum, on the back of the monthly report, with a pencil. He'd assumed for years that a business like Graham's was out of reach. And there it was, in his own handwriting: a structure where Graham's business paid for itself, with a buffer left over.
 
 He didn't feel rich. He felt something closer to embarrassed, that he'd spent so long believing the wrong thing. And then, underneath that, something he hadn't felt about his business in a long time. Curiosity.
 
@@ -502,18 +502,18 @@ He didn't feel rich. He felt something closer to embarrassed, that he'd spent so
 [DATA: The buyer and the seller | Does the buyer run the same kind of business, and is the seller staying invested through a note and a rollover?]
 
 <!-- BELIEF SHIFT: lenders lend against cash flow and structure. Told as what the lender sees, not as a lending lesson. -->
-And here's what changed in Sam's head when he saw it that way.
+And here's what changed in Dan's head when he saw it that way.
 
-A lender reading a deal like this doesn't start with Sam's savings. The lender starts with Graham's profit. Does the business clear about one and a half times on its own? Do the books match the tax returns? Is the buyer someone who already runs the same kind of business, so it doesn't fall over in the first month? And is the seller still invested, through a note and a rollover, so he wants it to work as much as the buyer does?
+A lender reading a deal like this doesn't start with Dan's savings. The lender starts with Graham's profit. Does the business clear about one and a half times on its own? Do the books match the tax returns? Is the buyer someone who already runs the same kind of business, so it doesn't fall over in the first month? And is the seller still invested, through a note and a rollover, so he wants it to work as much as the buyer does?
 
-Sam had spent years assuming he wasn't the kind of person a bank would lend to for a deal like that. He'd been asking the wrong question about the wrong person. The lender was never going to be lending against Sam. It was going to be lending against Graham's business.
+Dan had spent years assuming he wasn't the kind of person a bank would lend to for a deal like that. He'd been asking the wrong question about the wrong person. The lender was never going to be lending against Dan. It was going to be lending against Graham's business.
 
 [CALCULATOR]
 
 [SLIDE: Run your own Graham | The calculator is under the video: a business you'd like to own, its yearly profit and its asking price.]
 [LAYOUT: statement]
 
-<!-- NLP: future pace by doing. The viewer puts their own target into the calculator, so the structure stops being Sam's and becomes theirs. -->
+<!-- NLP: future pace by doing. The viewer puts their own target into the calculator, so the structure stops being Dan's and becomes theirs. -->
 A calculator has just appeared under the video. Think of your own Graham, the business you thought of at the start. Put in its yearly profit and its asking price, or your best guess. It splits the price across commercial debt, seller finance and seller rollover, and runs the test. It takes thirty seconds, and your numbers carry straight into your deal beside the video.
 
 Notice what happens when you do it. The business stops being a fantasy and becomes a number that either passes or doesn't. That's the first moment of thinking like a buyer.
@@ -549,23 +549,23 @@ There's a question under the video about how much of your own cash you'd want in
 [DATA: A group, with a manager in each | 8 to 12x | profit]
 [CAPTION: Illustrative ranges.]
 
-<!-- DESIRE: the prize. Sold as what Sam sees, not as a lesson. Every range labelled illustrative. -->
-Now the part that changed how Sam saw his own business.
+<!-- DESIRE: the prize. Sold as what Dan sees, not as a lesson. Every range labelled illustrative. -->
+Now the part that changed how Dan saw his own business.
 
 A business is worth its profit multiplied by a number. As an illustration, one small owner run business can trade at three to five times its profit. A group of them, with a manager in each and no single owner holding it together, can trade at eight to twelve.
 
 [ON SCREEN: Illustrative ranges. One business: 3 to 5x profit. A group: 8 to 12x.]
 
-[SLIDE: Sam's business and Graham's, apart and together]
+[SLIDE: Dan's business and Graham's, apart and together]
 [LAYOUT: table]
 [DATA: | Profit | Multiple | Value]
 [DATA: Two businesses, apart | $1M | 4x | $4M]
 [DATA: One group, together | $1M | 8x | $8M]
 [CAPTION: Illustrative only. Same profit, valued as a group.]
 
-Take Sam's illustrative numbers. Say his business and Graham's each make five hundred thousand a year. Apart, at four times, they're worth about four million between them. Together, as a group making a million, at eight times, that's about eight million. The profit hasn't changed, and neither have the vans, the people or the customers.
+Take Dan's illustrative numbers. Say his business and Graham's each make five hundred thousand a year. Apart, at four times, they're worth about four million between them. Together, as a group making a million, at eight times, that's about eight million. The profit hasn't changed, and neither have the vans, the people or the customers.
 
-And look at what paid for the second business: a lender, Graham's note and Graham's rollover, all out of Graham's own profit. Sam's first business went up in value on the day it became part of a group.
+And look at what paid for the second business: a lender, Graham's note and Graham's rollover, all out of Graham's own profit. Dan's first business went up in value on the day it became part of a group.
 
 [ON SCREEN: Illustrative: about $4M apart, and about $8M together as a group.]
 
@@ -578,15 +578,15 @@ And look at what paid for the second business: a lender, Graham's note and Graha
 <!-- DESIRE STACKING (Sultanic): profit → time → exit → identity, each rung a different shape (no parallel repetition). -->
 And the numbers are only the first part of it.
 
-With two businesses, some of the costs overlap: the software, the accounts, the vehicles, the buying power with suppliers. With a manager running each site, Sam stops being the bottleneck in either one. And when he looks further out, at the day he chooses to sell, he isn't selling one owner run business at an owner run multiple anymore. He's selling a group.
+With two businesses, some of the costs overlap: the software, the accounts, the vehicles, the buying power with suppliers. With a manager running each site, Dan stops being the bottleneck in either one. And when he looks further out, at the day he chooses to sell, he isn't selling one owner run business at an owner run multiple anymore. He's selling a group.
 
-But the part that got to Sam wasn't any of that. It was the picture of himself at the head of a table, deciding what the group buys next, instead of at the kitchen table at twenty to ten, answering a technician about tomorrow.
+But the part that got to Dan wasn't any of that. It was the picture of himself at the head of a table, deciding what the group buys next, instead of at the kitchen table at twenty to ten, answering a technician about tomorrow.
 
 [SLIDE: What a holding company is for | One company that owns the businesses.]
 [LAYOUT: statement]
 
 <!-- PROOF by framing (approved fact: JC Health Group is Josh's own healthcare holding company). Identity: the viewer's business as the first piece of a group. -->
-It's worth noticing what kind of business JC Health Group is. It's a holding company: a company whose job is to own businesses, in my case clinics. That's the shape Sam is starting to picture. Not one heating business that gets bigger. A company that owns heating businesses, with a manager in each.
+It's worth noticing what kind of business JC Health Group is. It's a holding company: a company whose job is to own businesses, in my case clinics. That's the shape Dan is starting to picture. Not one heating business that gets bigger. A company that owns heating businesses, with a manager in each.
 
 And the moment an owner starts to see their own business as the first piece of a group instead of the whole thing, the way they look at every owner down every road changes.
 
@@ -648,7 +648,7 @@ Some owners apply right now, in the middle of the masterclass, while what they j
 [DATA: 23 | wanted help structuring the debt]
 
 <!-- PROOF: booking-form facts (approved list). NLP: social proof as "people like you" (External meta program), and pacing: the viewer finds themselves in one of the rows. -->
-Let me show you something that makes Sam less unusual than he feels.
+Let me show you something that makes Dan less unusual than he feels.
 
 Ninety owners booked a call with my team and filled in a form first. Thirty-nine of them said they want to buy companies. Twenty-four had never bought one, and twenty-four wanted help getting a deal funded. And twenty-three wanted help structuring the debt.
 
@@ -752,7 +752,7 @@ And third, his money. Being paid properly for a life's work, and being paid on t
 
 Most first time buyers think the conversation is about the third one. The buyers who get the deal know it starts with the first two.
 
-[SLIDE: Then Sam calls]
+[SLIDE: Then Dan calls]
 [LAYOUT: statement]
 [ON SCREEN: A buyer from the trade, who keeps the team, keeps the name, and pays him from the business he built.]
 
@@ -766,11 +766,11 @@ To Graham, that isn't a lowball. It's the first exit that looks like the life he
 [IMAGE: vendor-finance]
 
 <!-- MECHANISM from the seller's view. Rollover named alongside the note and the lender every time funding comes up (house rule). -->
-Here's why the structure works for him, not just for Sam.
+Here's why the structure works for him, not just for Dan.
 
-The lender pays Graham a large part of the price at settlement. His note pays him the next part, monthly, out of profit he knows is real, because he made it. And his rollover means he keeps a slice of the company, so if Sam grows it, Graham gets paid twice: once when he sells, and again later.
+The lender pays Graham a large part of the price at settlement. His note pays him the next part, monthly, out of profit he knows is real, because he made it. And his rollover means he keeps a slice of the company, so if Dan grows it, Graham gets paid twice: once when he sells, and again later.
 
-For an owner who's worried about his people, there's one more thing. A seller who carries a note and keeps a rollover wants the buyer to succeed. So Graham stays on for the handover. He introduces Sam to the big customers himself. He tells the crew it's going to be fine, and he means it.
+For an owner who's worried about his people, there's one more thing. A seller who carries a note and keeps a rollover wants the buyer to succeed. So Graham stays on for the handover. He introduces Dan to the big customers himself. He tells the crew it's going to be fine, and he means it.
 
 [ON SCREEN: The lender pays at settlement, the note over time and the rollover later: Graham gets paid twice.]
 
@@ -819,18 +819,18 @@ And if you've got a Graham in mind already, that's the best thing you can bring 
 <!-- STORY: the demonstration, done as a scene instead of a lesson (desire, not teaching). The second conversation ("how would you pay me?") is where first-time buyers lose the seller; the scene shows the buyer's frame without handing over a script. -->
 Let me take you into the conversation itself, because this is the moment most owners are quietly afraid of. Picking up the phone to another owner and saying the words "I'd like to talk about buying your business".
 
-Here's how it goes for Sam, in this illustrative version. He doesn't open with a price, or a pitch, or anything about himself. He rings Graham back about the job they'd both quoted, and at the end he says: "You mentioned the other week you'd been thinking about what happens to your people. I've been thinking about it too. Could we have a coffee?"
+Here's how it goes for Dan, in this illustrative version. He doesn't open with a price, or a pitch, or anything about himself. He rings Graham back about the job they'd both quoted, and at the end he says: "You mentioned the other week you'd been thinking about what happens to your people. I've been thinking about it too. Could we have a coffee?"
 
 [SLIDE: The coffee | No price on the table. Only the question under the question.]
 [LAYOUT: statement]
 [ON SCREEN: Ask about his life a year after the sale before anything about price.]
 
 <!-- NLP: rapport through pacing (match the seller's concerns before leading), and the meta model used as discovery ("what, specifically, would you want?"). -->
-At the coffee, Sam asks one question and then mostly listens. "What do you want your life to look like a year after you stop?"
+At the coffee, Dan asks one question and then mostly listens. "What do you want your life to look like a year after you stop?"
 
 And Graham talks. About the caravan he's never had time to use, and the two technicians he trained himself. About the customer who has been with him since the first year, and how he'd hate for her to get a call from a stranger. His wife comes up too, and how she wants him home. Not one word about the multiple.
 
-Sam writes almost none of it down. He doesn't need to. He's hearing the real terms of the deal, and none of them is a number yet.
+Dan writes almost none of it down. He doesn't need to. He's hearing the real terms of the deal, and none of them is a number yet.
 
 [SLIDE: "How would you pay me?" | The second conversation, where first-time buyers lose the seller.]
 [LAYOUT: quote]
@@ -841,26 +841,26 @@ A week later, the second conversation. And this is where most first time buyers 
 
 The first time buyer panics here. He either names a number that's too low, or he promises cash he doesn't have, or he goes vague, and the seller hears the vagueness.
 
-Sam does something different. He explains it from Graham's side. A large part at settlement from the lender. A note that pays Graham every month out of the profit he knows is real, because he made it. And a slice of the new company that Graham keeps, so that when the business grows, Graham gets paid again. "You'd still have skin in it. And you'd be the one introducing me to your customers, so they'd know it's in good hands."
+Dan does something different. He explains it from Graham's side. A large part at settlement from the lender. A note that pays Graham every month out of the profit he knows is real, because he made it. And a slice of the new company that Graham keeps, so that when the business grows, Graham gets paid again. "You'd still have skin in it. And you'd be the one introducing me to your customers, so they'd know it's in good hands."
 
 [SLIDE: What Graham hears | Not a lowball. A way out that looks like the life he wanted.]
 [LAYOUT: comparison]
 [DATA: A stranger's offer | Cash and a handshake | His name off the vans, his people with a new boss he's never met]
-[DATA: Sam's offer | A note and a rollover | Paid over time, paid again later, and his people with someone from the trade]
-[CAPTION: Illustrative: Sam and Graham are composites.]
+[DATA: Dan's offer | A note and a rollover | Paid over time, paid again later, and his people with someone from the trade]
+[CAPTION: Illustrative: Dan and Graham are composites.]
 
 And watch what Graham hears. Not a lowball, and not someone who can't afford him. He hears someone who understood what he was actually selling, and built the deal around it.
 
 Graham doesn't say yes on the spot. Sellers rarely do. He says, "Put something on paper and let me show my accountant." In the language of deals, that's a very good sign.
 
-[SLIDE: What Sam didn't say | Illustrative.]
+[SLIDE: What Dan didn't say | Illustrative.]
 [LAYOUT: list]
 [DATA: No number first | Price came after Graham had said what he wanted]
 [DATA: No promises he couldn't keep | No cash he didn't have, no terms he hadn't tested]
 [DATA: No pressure | Graham decided when to take the next step]
 
 <!-- Ethics in the story (E6/E8): the buyer's frame is honest and pressure-free, which is also what wins sellers. -->
-And notice what Sam didn't say.
+And notice what Dan didn't say.
 
 He didn't name a number first. Price only came up after Graham had told him what he wanted his life to look like.
 
@@ -870,10 +870,10 @@ And he didn't push. Graham decided when to take the next step, which is exactly 
 
 [SLIDE: What made the difference | It wasn't the script.]
 [LAYOUT: statement]
-[ON SCREEN: Sam wasn't a different person. He was seen differently, because he had a structure and people behind him.]
+[ON SCREEN: Dan wasn't a different person. He was seen differently, because he had a structure and people behind him.]
 
 <!-- LOOP B, last touch before closing. The difference is "how he was seen", the seed of the big domino. -->
-Now here's the part worth noticing. Sam didn't suddenly become a smooth negotiator. He's the same man who was sitting at the kitchen table at twenty to ten. What changed is that he walked into that coffee with a structure he understood, a test he'd already run, and people behind him who had done this before.
+Now here's the part worth noticing. Dan didn't suddenly become a smooth negotiator. He's the same man who was sitting at the kitchen table at twenty to ten. What changed is that he walked into that coffee with a structure he understood, a test he'd already run, and people behind him who had done this before.
 
 He wasn't a different person. He was seen differently.
 
@@ -911,7 +911,7 @@ Not someone with a finance degree, or with millions sitting idle. You. With the 
 <!-- NLP: agreement frame, "and if both are true..." sets up the domino as the only remaining question. -->
 If you felt a yes to both, here's the honest question. Why haven't you done it yet? It isn't the money, because you've seen the money come from the business itself. And it isn't the knowledge, because you've followed every step so far.
 
-And notice who was asking those two questions a few chapters ago. Sam, at the kitchen table, would have said yes to the first and no to the second. The vehicle works, he'd have said, for other people. People with more money, more experience, more time. The rest of this masterclass has been about why the second answer was wrong.
+And notice who was asking those two questions a few chapters ago. Dan, at the kitchen table, would have said yes to the first and no to the second. The vehicle works, he'd have said, for other people. People with more money, more experience, more time. The rest of this masterclass has been about why the second answer was wrong.
 
 [SLIDE: "Why should I trust you with my life's work?" | The question every seller asks.]
 [LAYOUT: quote]
@@ -975,11 +975,11 @@ That's what the strategy call is for. The button is under the video. Next, you'l
 
 ## [46:20] What happens when you apply
 
-[SLIDE: What Sam did on that Tuesday night]
+[SLIDE: What Dan did on that Tuesday night]
 [LAYOUT: section]
 
 <!-- LOOP A CLOSED (opened first, closed last). The protagonist's decisive act is the viewer's CTA, so the story itself presupposes the next step (L3). -->
-So now you can hear what Sam did on that Tuesday night, a little after nine, with the cold tea and the month's report.
+So now you can hear what Dan did on that Tuesday night, a little after nine, with the cold tea and the month's report.
 
 He didn't buy a business that night, and he didn't ring Graham back or walk into a bank.
 
@@ -1253,20 +1253,20 @@ If the answer is yes, press the button under the video now. Apply, and if it fit
 
 ## [57:37] Twelve months from now
 
-[SLIDE: Sam's ninety days | Illustrative: one way the first ninety days can go. A picture, not a forecast.]
+[SLIDE: Dan's ninety days | Illustrative: one way the first ninety days can go. A picture, not a forecast.]
 [LAYOUT: section]
 
 <!-- FUTURE PACE, part 1 (process picture, L5): the protagonist inside the engagement, week by week, built only from what the engagement involves. Labelled illustrative; no timing is promised (E4). -->
-Before we jump a year ahead, let's go back to the night Sam applied, and follow the next ninety days. It's illustrative, one way it can go, and every deal moves at its own speed. But it's worth seeing, because the first ninety days are the part owners can't picture, and what you can't picture you don't start.
+Before we jump a year ahead, let's go back to the night Dan applied, and follow the next ninety days. It's illustrative, one way it can go, and every deal moves at its own speed. But it's worth seeing, because the first ninety days are the part owners can't picture, and what you can't picture you don't start.
 
 [SLIDE: The first week | Illustrative.]
 [LAYOUT: image-left]
 [IMAGE: lead-scraping]
 [CAPTION: Building a list of owner-run businesses that fit the buy box.]
 
-The call is on the Thursday. The team goes through Sam's numbers with him and works out what his business can carry. Graham's business comes up straight away, and the rough numbers look close to the test. Sam decides to go ahead.
+The call is on the Thursday. The team goes through Dan's numbers with him and works out what his business can carry. Graham's business comes up straight away, and the rough numbers look close to the test. Dan decides to go ahead.
 
-The kickoff is the following week. His accountant sends the last two years of financials. Together with the team, Sam writes down his buy box for the first time: heating and cooling or something right next to it, inside forty minutes of his yard, an owner over sixty with no successor, and a business close to his own size. Graham's fits. So do six others he'd never thought about.
+The kickoff is the following week. His accountant sends the last two years of financials. Together with the team, Dan writes down his buy box for the first time: heating and cooling or something right next to it, inside forty minutes of his yard, an owner over sixty with no successor, and a business close to his own size. Graham's fits. So do six others he'd never thought about.
 
 [SLIDE: The first outreach | Illustrative.]
 [LAYOUT: image-left]
@@ -1274,16 +1274,16 @@ The kickoff is the following week. His accountant sends the last two years of fi
 [CAPTION: An owner outreach message template.]
 
 <!-- The weekly behaviour (25 owner contacts, scripts provided) shown as something an ordinary owner does, so the condition reads as doable. -->
-Then the outreach starts. Twenty-five owner contacts a week, using the scripts the team provides. Sam is nervous about the first few. By the end of the second week, they're just part of Monday morning.
+Then the outreach starts. Twenty-five owner contacts a week, using the scripts the team provides. Dan is nervous about the first few. By the end of the second week, they're just part of Monday morning.
 
-Most owners don't reply. A few do. One tells him politely that he's not interested. Another says, "Funny you should ask," and wants to talk. And Graham, when Sam calls him back, says yes to a coffee.
+Most owners don't reply. A few do. One tells him politely that he's not interested. Another says, "Funny you should ask," and wants to talk. And Graham, when Dan calls him back, says yes to a coffee.
 
 [SLIDE: The middle weeks | Illustrative.]
 [LAYOUT: statement]
 
-The working sessions every week become the anchor of Sam's week. He brings whatever came back: the owner who wants to meet, the numbers that need a second look, the question he didn't know how to answer. One business that looked perfect on the outside fails the test badly. Sam walks away from it, and feels, for the first time, what it's like to say no to a deal because the numbers told him to.
+The working sessions every week become the anchor of Dan's week. He brings whatever came back: the owner who wants to meet, the numbers that need a second look, the question he didn't know how to answer. One business that looked perfect on the outside fails the test badly. Dan walks away from it, and feels, for the first time, what it's like to say no to a deal because the numbers told him to.
 
-The coffee with Graham turns into a second conversation, the one where Graham asks how he'd be paid. Sam's ready for it. The team has helped him shape the structure: the lender at settlement, Graham's note over time, Graham's rollover for later, and the handover Graham wanted for his people.
+The coffee with Graham turns into a second conversation, the one where Graham asks how he'd be paid. Dan's ready for it. The team has helped him shape the structure: the lender at settlement, Graham's note over time, Graham's rollover for later, and the handover Graham wanted for his people.
 
 [SLIDE: The letter | Illustrative.]
 [LAYOUT: statement]
@@ -1291,28 +1291,28 @@ The coffee with Graham turns into a second conversation, the one where Graham as
 <!-- The emotional peak of the protagonist arc: the identity has shifted before the paperwork is final. -->
 And then one evening, at the same kitchen table, there's an email from Graham's accountant with a few changes marked up. The shape holds. A few days later, there's a signed letter of intent.
 
-It isn't the end of the deal. There's checking still to do, and contracts. But it's the moment Sam stops being an owner who'd like to buy something one day. He's a buyer with a deal on paper.
+It isn't the end of the deal. There's checking still to do, and contracts. But it's the moment Dan stops being an owner who'd like to buy something one day. He's a buyer with a deal on paper.
 
-Remember, that's one illustrative path. Some deals take longer, and some fall over and the next one goes through. What the engagement promises isn't Sam's timeline. It's that the team keeps working with you until there's a signed letter of intent, or you get your money back, when you keep the conditions.
+Remember, that's one illustrative path. Some deals take longer, and some fall over and the next one goes through. What the engagement promises isn't Dan's timeline. It's that the team keeps working with you until there's a signed letter of intent, or you get your money back, when you keep the conditions.
 
-[SLIDE: Sam, a year after his first deal | Illustrative: one way the year can look. A picture, not a forecast.]
+[SLIDE: Dan, a year after his first deal | Illustrative: one way the year can look. A picture, not a forecast.]
 [LAYOUT: section]
 [KICKER: Illustrative · A year later]
 
 <!-- FUTURE PACE (L5, E4): a process picture in close-up, present tense, sensory, with no earnings, no timing promise and no result claim. Labelled illustrative on screen and in the words. -->
-I want to show you one way a year can look. It's Sam's, it's illustrative, and it's a picture, not a forecast. Every deal is different, and nobody can promise you a deal. But I want you to see it clearly, because the picture is what pulls an owner through the hard weeks.
+I want to show you one way a year can look. It's Dan's, it's illustrative, and it's a picture, not a forecast. Every deal is different, and nobody can promise you a deal. But I want you to see it clearly, because the picture is what pulls an owner through the hard weeks.
 
-It's a Tuesday morning, a year after Sam's first deal settled.
+It's a Tuesday morning, a year after Dan's first deal settled.
 
-He's in the office before eight, but not because he has to be. There are two logos on the monthly report now, his and the one Graham built. Graham comes in on Thursdays. He's been helping with the handover, introducing Sam to the customers he's looked after for twenty years, and he seems lighter than he has in a long time. His note gets paid every month, out of the business he built, and he can see his people are looked after.
+He's in the office before eight, but not because he has to be. There are two logos on the monthly report now, his and the one Graham built. Graham comes in on Thursdays. He's been helping with the handover, introducing Dan to the customers he's looked after for twenty years, and he seems lighter than he has in a long time. His note gets paid every month, out of the business he built, and he can see his people are looked after.
 
 [SLIDE: What's different | Illustrative.]
 [LAYOUT: list]
 [DATA: The report | Two businesses on one page, read as a group]
-[DATA: The managers | One running each site, so Sam isn't the bottleneck in either]
-[DATA: The calls | Sam is the one ringing owners now, not the one waiting for the phone]
+[DATA: The managers | One running each site, so Dan isn't the bottleneck in either]
+[DATA: The calls | Dan is the one ringing owners now, not the one waiting for the phone]
 
-The manager at Graham's old site runs the floor there. Sam's own operations lead runs his. For the first time in years, Sam is reading the numbers of a group instead of running around inside one business.
+The manager at Graham's old site runs the floor there. Dan's own operations lead runs his. For the first time in years, Dan is reading the numbers of a group instead of running around inside one business.
 
 And here's the part he didn't expect. He's on the phone again, but the calls are different. He's ringing owners now. The plumber two suburbs over. The refrigeration business whose owner keeps talking about the coast. The calls are easier than the first one was, because he isn't asking anyone to take a chance on him anymore. He's done it once.
 
@@ -1320,16 +1320,16 @@ And here's the part he didn't expect. He's on the phone again, but the calls are
 [LAYOUT: statement]
 
 <!-- FUTURE PACE, emotional peak: contribution and significance needs (Robbins), told as a scene with sound and objects. Still no numbers or forecast. -->
-Sam remembers one morning from that year more than any other. It was the week the deal settled. Graham asked his whole crew to come in early, and he stood in the workshop between the vans, with the radio still going in the background, and told them himself: he was stepping back, Sam was taking over, nothing was changing for them, and he'd be around for the handover.
+Dan remembers one morning from that year more than any other. It was the week the deal settled. Graham asked his whole crew to come in early, and he stood in the workshop between the vans, with the radio still going in the background, and told them himself: he was stepping back, Dan was taking over, nothing was changing for them, and he'd be around for the handover.
 
-One of the older technicians shook Sam's hand afterwards and said, "Graham says you're all right. That's good enough for me."
+One of the older technicians shook Dan's hand afterwards and said, "Graham says you're all right. That's good enough for me."
 
 That's the moment the question got answered. Not in a contract. In a workshop, in front of twenty people who trusted the man who built it.
 
 [SLIDE: The conversation at home | Illustrative.]
 [LAYOUT: statement]
 
-And then there's the conversation at home that night. Sam tells his daughter that Easter is on. Not "I'll see". On. Because for the first time in years, the business doesn't fall over if he isn't there for a week. There's a manager at each site, and a structure that pays for itself, Graham's note and rollover included.
+And then there's the conversation at home that night. Dan tells his daughter that Easter is on. Not "I'll see". On. Because for the first time in years, the business doesn't fall over if he isn't there for a week. There's a manager at each site, and a structure that pays for itself, Graham's note and rollover included.
 
 That's what the deal was really for. Not the second logo on the report. The week at the beach.
 
@@ -1365,13 +1365,13 @@ None of that is a disaster. That's what makes it dangerous. Nothing goes wrong, 
 <!-- ROBBINS: Dickens, in miniature and true. The painful future is ordinary, specific and plausible, never catastrophic (E4, E2). -->
 Let me show you that first path as a scene, because it's easy to wave away as a list.
 
-It's a Tuesday, a year from now. Sam never rang Graham back. He meant to. Then there was the busy season, and a technician quit, and the moment passed.
+It's a Tuesday, a year from now. Dan never rang Graham back. He meant to. Then there was the busy season, and a technician quit, and the moment passed.
 
-On the way to a job, he drives past Graham's yard. The sign over the gate is new. It's the name of a group from interstate, the kind backed by a fund. Two of Graham's vans are already in the new colours. And the customer Sam has been trying to win for ten years got a call last week from the new owners, offering a service contract at a price Sam can't match.
+On the way to a job, he drives past Graham's yard. The sign over the gate is new. It's the name of a group from interstate, the kind backed by a fund. Two of Graham's vans are already in the new colours. And the customer Dan has been trying to win for ten years got a call last week from the new owners, offering a service contract at a price Dan can't match.
 
-Sam's business is still fine. That's the thing. It's still a good business. It's just that the owner down the road sold, and Sam wasn't the one who bought.
+Dan's business is still fine. That's the thing. It's still a good business. It's just that the owner down the road sold, and Dan wasn't the one who bought.
 
-And here's the uncomfortable part of that scene. Sam didn't make a bad decision. He didn't make a decision at all. He let the busy season make it for him. That's how most owners stay on the first path: not by choosing it, but by never choosing the other one.
+And here's the uncomfortable part of that scene. Dan didn't make a bad decision. He didn't make a decision at all. He let the busy season make it for him. That's how most owners stay on the first path: not by choosing it, but by never choosing the other one.
 
 [SLIDE: The other path | Illustrative: a picture, not a forecast.]
 [LAYOUT: statement]
@@ -2020,11 +2020,11 @@ If you have a question first, type it in the question box beside the video, and 
 <!-- The stay-to-the-end gift (Brunson), and the visible no: useful whether or not they apply. -->
 And for everyone who stayed to the end, the deal structure worksheet has just unlocked under the video. It walks you through one real target: the numbers, the test and the stack. If you apply, bring it to your call. If you don't, fill it in for one business this week anyway. It's yours either way.
 
-[SLIDE: Sam, one more time | Illustrative.]
+[SLIDE: Dan, one more time | Illustrative.]
 [LAYOUT: statement]
 
 <!-- STORY CLOSE: the protagonist's identity line, and the anchor. -->
-One last thing about Sam. When people ask him now what changed, he doesn't talk about the deal, or the bank, or the structure. He says it was the night he stopped asking whether he could afford Graham's business, and started asking whether it passed the test. Same man, same kitchen table. A different question.
+One last thing about Dan. When people ask him now what changed, he doesn't talk about the deal, or the bank, or the structure. He says it was the night he stopped asking whether he could afford Graham's business, and started asking whether it passed the test. Same man, same kitchen table. A different question.
 
 [SLIDE: Owners build. Buyers compound.]
 [LAYOUT: section]

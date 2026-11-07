@@ -51,21 +51,21 @@ Word counts per section: intro 1,760 (9.6 min) · content 6,060 (33.1 min) · tr
 - **Intro:** pace before lead (four true statements for the $1M+ owner) · negative command ("don't answer it yet") · the anchor
   "Owners build. Buyers compound." (a dark slide labelled "The line to remember", same words every time; six firings: hook, end of
   the ceiling, the desire peak before the button, the big domino, the identity statement, the close) · not-your-fault frame ·
-  two-agenda open (Fladlien): the ask is named in minute 4 · the protagonist Sam (an illustrative composite) and the **three
-  nested loops**: A Sam's Tuesday night, C the big domino, B the question every seller asks · qualification up front.
-- **Content:** story-led desire, not teaching. Sam's ceiling in close-up (sensory density) → Graham, the owner with no successor
+  two-agenda open (Fladlien): the ask is named in minute 4 · the protagonist Dan (an illustrative composite) and the **three
+  nested loops**: A Dan's Tuesday night, C the big domino, B the question every seller asks · qualification up front.
+- **Content:** story-led desire, not teaching. Dan's ceiling in close-up (sensory density) → Graham, the owner with no successor
   (the inciting incident) → the wrong maths and the right one (structure, the 1.5x test, the calculator as proof by experience)
   → the group picture (desire stacking: profit, time, exit, identity) → the button → the 90 booking forms as "people like you"
   → the seller's chair (perceptual positions) → the first conversation as a scene (the buyer's frame without a script).
   The opening hook question is answered in chapter 2 (an early payoff before the bigger loops).
 - **Transition:** the double tie-down (does it work, could you do it) answered silently, loop B closed ("Why should I trust you
   with my life's work?"), loop C closed with the big domino, the small dominoes knocked over one at a time, anchor.
-- **Offer:** loop A closed (Sam didn't buy a business that night, he applied: the story presupposes the CTA) · three steps to the
+- **Offer:** loop A closed (Dan didn't buy a business that night, he applied: the story presupposes the CTA) · three steps to the
   call · what happens on the call (concrete, no promised outcome) · the engagement on the 3C model, each C as what it is, why it
   matters, what it feels like · the shape of the ninety days and a Thursday in week six (future pacing of behaviour, built only
   from the guarantee's conditions) · the LOI guarantee and the 7-day money-back read word for word with every condition and what
   it doesn't promise · who it's not for (takeaway) · what the team won't do · real scarcity only · self-prediction question.
-- **Pitch:** Sam's ninety days and Sam a year after (future pace in close-up, labelled illustrative, no numbers or forecast) ·
+- **Pitch:** Dan's ninety days and Dan a year after (future pace in close-up, labelled illustrative, no numbers or forecast) ·
   two paths, the other Tuesday (Dickens-lite, ordinary not catastrophic) · cost of waiting (illustrative) · **Dilts' logical
   levels**, one slide per level, ending on "I'm a buyer" and the anchor · 39 owner questions, facts first then one varied
   Sleight-of-Mouth reframe each, bridging to the button · four scripted case walkthroughs (Priya, Tom, Leah, Mark), illustrative
@@ -96,7 +96,7 @@ and the 7-day refund, exact wording and conditions. Every other number is labell
    had legal review.
 5. **Scarcity:** the script says the team takes a limited number of engagements per intake, without a number. If
    `ENGAGEMENT_INTAKE_CAP` is set and you want the number spoken, swap in the bracketed owner note in "Why there's an application".
-6. **The composites:** Sam, Graham, Priya, Tom, Leah and Mark are illustrative and said to be so, on screen and in the voice. Tom
+6. **The composites:** Dan, Graham, Priya, Tom, Leah and Mark are illustrative and said to be so, on screen and in the voice. Tom
    mirrors the "5-6m" booking-form quote and Leah the "10 clinics" quote; both are framed as built from owners like them, not as
    those owners. Approve that framing.
 7. **Josh's voice version:** only once his professional clone is approved for this use (the footer then reads "Josh Li, in an AI
