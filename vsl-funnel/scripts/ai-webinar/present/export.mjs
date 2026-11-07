@@ -17,12 +17,12 @@ const OUT = path.join(HERE, 'out');
 const FILE = pathToFileURL(path.join(OUT, 'deck.html')).href;
 const shotsAt = process.argv.indexOf('--shots');
 const SHOTS = shotsAt > 0 ? path.resolve(process.argv[shotsAt + 1]) : null;
-// Fifteen builds worth a close look (slide title, build; -1 = the last build).
+// Fifteen builds worth a close look (slide title, build; -1 = the last build): the slides with deck originals first.
 const KEY = [
-  ['The Acquisition Masterclass', 0], ['Twice, the sellers financed the whole price', -1], ['What the ceiling costs', -1], ['Seventy-eight Saturdays', -1],
-  ['The answer to the first question', -1], ['The drive past the yard', -1], ["The table he'd rather sit at", -1], ['The button is under the video', -1],
-  ['The big domino', 1], ['Everything in one place', -1], ['One Tuesday, a year later', -1], ['The conversation at home', -1],
-  ['The same Tuesday, two ways', -1], ['What one more year of waiting costs', -1], ["I'm a buyer.", -1],
+  ['The Acquisition Masterclass', 0], ['Twice, the sellers financed the whole price', -1], ["Who's behind the method", -1], ['The owner with no successor', -1],
+  ['You can reach them first', -1], ['Two acquisitions, both seller financed', -1], ['What a holding company is for', -1], ['Back to the question', -1],
+  ['What the call can lead to', -1], ['The first week', -1], ['The first outreach', -1], ['A year from now', -1],
+  ['The big domino', 1], ['Everything in one place', -1], ["I'm a buyer.", -1],
 ];
 
 const b = await chromium.launch();
@@ -93,9 +93,10 @@ if (SHOTS) {
     const s = info.find((x) => x.title === title);
     if (!s) { warn.push(`key build not found: ${title}`); continue; }
     const k = kk < 0 ? s.steps : Math.min(kk, s.steps);
-    await q.evaluate(([i]) => window.__deck.go(Math.max(0, i - 1), 99), [s.i]);
+    // From the slide before at its last build, so every build of this one plays; the first slide starts at its own build 0.
+    await q.evaluate(([i]) => (i > 0 ? window.__deck.go(i - 1, 99) : window.__deck.go(0, 0)), [s.i]);
     await q.waitForTimeout(200);
-    for (let step = 0; step <= k; step++) { await q.evaluate(() => window.__deck.next()); await q.waitForTimeout(step === k ? 1700 : 650); }
+    for (let step = s.i > 0 ? 0 : 1; step <= k; step++) { await q.evaluate(() => window.__deck.next()); await q.waitForTimeout(step === k ? 1700 : 650); }
     idx++;
     await q.screenshot({ path: path.join(SHOTS, 'builds', `${String(idx).padStart(2, '0')}-${String(s.n).padStart(3, '0')}-${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)}-b${k}.png`) });
   }

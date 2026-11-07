@@ -160,6 +160,9 @@ h1,.h{font-weight:400;letter-spacing:-.022em;color:var(--ink)}
 .img{position:absolute;background:var(--panel);overflow:hidden}
 .img img{display:block;width:100%;height:100%;object-fit:cover}
 .img.contain img{object-fit:contain;padding:56px}
+.img.print{display:flex;align-items:center;justify-content:center}
+.img.print img{flex:none;object-fit:fill}
+.img.print.cut{align-items:flex-end}
 .ph{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:0 80px 96px}
 .ph .frame{position:absolute;inset:48px;border:1px solid var(--hair)}
 .ph .frame::before,.ph .frame::after{content:"";position:absolute;left:50%;top:50%;background:var(--hair)}

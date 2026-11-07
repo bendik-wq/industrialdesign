@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-The original images from Josh's March 2026 deck, for the AI-edition slides.
+The original images from Josh's deck ("The Dealmaker, Acquisition Masterclass", 127 slides, November 2026), for the
+AI-edition slides and the presented deck.
 
   python3 deck_images.py /path/to/deck.pdf   # extract everything, then resolve the mapping
   python3 deck_images.py --resolve           # re-resolve after editing deck-images.json (no PDF needed)
   python3 deck_images.py --status            # which mapped images exist, which are placeholders, which need consent
 
-Extraction (into deck/, gitignored; excluded slides are never extracted):
-  deck/embedded/img-PPP-NNN.png   every embedded image (pdfimages -png -p), PPP = slide number
-  deck/pages/page-PP.png          every slide rendered at 2x (pdftoppm -r 144), for screenshot-style slides
+Extraction (into deck/, gitignored: the repo is public, so neither the PDF nor anything taken from it is ever committed;
+excluded slides are never extracted):
+  deck/embedded/img-PPP-NNN.png   every embedded image (pdfimages -png -p), PPP = slide number; soft masks kept for cutouts
+  deck/pages/page-PPP.png         every slide rendered at 2x (pdftoppm -r 144, 2880x1620), for screenshot-style slides
   deck/contact.html               every slide with its embedded images, to check and correct deck-images.json
-  deck/resolved/<id>.png          what build.py puts on the webinar slides
+  deck/resolved/<id>.png          what build.py and present/build_deck.py put on the slides
 """
 import html, json, os, re, shutil, subprocess, sys
 
@@ -19,7 +21,7 @@ MAP = os.path.join(HERE, 'deck-images.json')
 WORK = os.path.join(HERE, 'deck')
 EMB, PAGES, RES = (os.path.join(WORK, d) for d in ('embedded', 'pages', 'resolved'))
 SCRIPT = os.path.join(HERE, 'script-ai.md')
-MIN_SIDE = 240  # smaller embedded images are logos and icons
+MIN_SIDE = 240  # smaller embedded images are logos, icons and headshots too small to show on their own
 
 
 def load():
@@ -62,7 +64,7 @@ def embedded_list(pdf, first, last):
 def extract(pdf):
     m = load()
     n = page_count(pdf)
-    if n != 88: print(f'warning: the deck has {n} slides, the mapping was written for 88. Check deck_slide numbers in deck/contact.html.')
+    if n != m.get('pages', n): print(f'warning: the deck has {n} slides, the mapping was written for {m["pages"]}. Check deck_slide numbers in deck/contact.html.')
     skip = {e['deck_slide'] for e in m['excluded']}
     for d in (EMB, PAGES): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
     index = []
@@ -70,17 +72,26 @@ def extract(pdf):
         run('pdfimages', '-png', '-p', '-f', str(a), '-l', str(b), pdf, os.path.join(EMB, 'img'))
         run('pdftoppm', '-png', '-r', '144', '-f', str(a), '-l', str(b), pdf, os.path.join(PAGES, 'page'))
         index += embedded_list(pdf, a, b)
-    # pdftoppm pads page numbers to the width of the last page; make them all two digits.
+    # pdftoppm pads page numbers to the width of the last page; make them all three digits.
     for f in os.listdir(PAGES):
         mm = re.match(r'page-0*(\d+)\.png$', f)
-        if mm: os.replace(os.path.join(PAGES, f), os.path.join(PAGES, f'page-{int(mm.group(1)):02d}.png'))
-    # Drop soft masks, stencils and anything icon-sized; keep a manifest of what is left.
-    keep = {}
+        if mm: os.replace(os.path.join(PAGES, f), os.path.join(PAGES, f'page-{int(mm.group(1)):03d}.png'))
+    # Drop stencils and anything icon-sized; a soft mask stays with the image it belongs to (cutout portraits).
+    # Keep a manifest of what is left.
+    keep, last = {}, None
     for page, num, typ, w, h in index:
         f = os.path.join(EMB, f'img-{page:03d}-{num:03d}.png')
         if not os.path.exists(f): continue
-        if typ != 'image' or min(w, h) < MIN_SIDE: os.remove(f); continue
-        keep.setdefault(page, []).append({'file': os.path.basename(f), 'w': w, 'h': h})
+        if typ == 'smask' and last and last['page'] == page and (last['w'], last['h']) == (w, h):
+            last['mask'] = os.path.basename(f); continue
+        if typ != 'image' or min(w, h) < MIN_SIDE: os.remove(f); last = None; continue
+        last = {'file': os.path.basename(f), 'w': w, 'h': h, 'page': page}
+        keep.setdefault(page, []).append(last)
+    for v in keep.values():
+        for e in v: e.pop('page', None)
+    used = {e.get('mask') for v in keep.values() for e in v}
+    for f in os.listdir(EMB):
+        if f not in used and f not in {e['file'] for v in keep.values() for e in v}: os.remove(os.path.join(EMB, f))
     json.dump(keep, open(os.path.join(WORK, 'embedded.json'), 'w'), indent=1)
     contact(n, skip, keep, m)
     print(f'extracted {sum(len(v) for v in keep.values())} embedded images and {n - len(skip)} slide renders into {WORK}')
@@ -94,7 +105,7 @@ def contact(n, skip, keep, m):
         if p in skip: rows.append(f'<section><h2>Slide {p}: excluded</h2></section>'); continue
         ims = ''.join(f'<figure><img src="embedded/{e["file"]}"><figcaption>pick {k} · {e["w"]}×{e["h"]}</figcaption></figure>' for k, e in enumerate(keep.get(p, [])))
         tag = f' · mapped: {html.escape(", ".join(used[p]))}' if p in used else ''
-        rows.append(f'<section><h2>Slide {p}{tag}</h2><div><figure><img src="pages/page-{p:02d}.png"><figcaption>page</figcaption></figure>{ims}</div></section>')
+        rows.append(f'<section><h2>Slide {p}{tag}</h2><div><figure><img src="pages/page-{p:03d}.png"><figcaption>page</figcaption></figure>{ims}</div></section>')
     open(os.path.join(WORK, 'contact.html'), 'w').write(
         '<!doctype html><meta charset="utf-8"><title>Deck images</title><style>body{font:14px/1.4 Inter,system-ui,sans-serif;margin:32px;background:#f7f6f3;color:#121212}'
         'section{border-top:1px solid #dcd9d2;padding:16px 0}h2{font-size:15px;font-weight:600;margin:0 0 10px}div{display:flex;gap:12px;flex-wrap:wrap}'
@@ -107,27 +118,38 @@ def resolve():
     m = load()
     if not os.path.isdir(PAGES): raise SystemExit('Nothing extracted yet: run python3 deck_images.py /path/to/deck.pdf first.')
     keep = json.load(open(os.path.join(WORK, 'embedded.json')))
-    os.makedirs(RES, exist_ok=True)
+    shutil.rmtree(RES, ignore_errors=True); os.makedirs(RES)
     for i in m['images']:
         p, out = i['deck_slide'], os.path.join(RES, f'{i["id"]}.png')
-        page = os.path.join(PAGES, f'page-{p:02d}.png')
-        src = None
+        page = os.path.join(PAGES, f'page-{p:03d}.png')
+        src, mask = None, None
         if i.get('source') == 'embedded':
             cands = keep.get(str(p), [])
             pick = i.get('pick', 'largest')
             if cands:
                 c = max(cands, key=lambda e: e['w'] * e['h']) if pick == 'largest' else cands[min(int(pick), len(cands) - 1)]
-                src = os.path.join(EMB, c['file'])
+                src = os.path.join(EMB, c['file']); mask = c.get('mask') and os.path.join(EMB, c['mask'])
             else:
                 print(f'{i["id"]}: no embedded image on slide {p}, using the slide render')
         src = src or page
         if not os.path.exists(src): print(f'{i["id"]}: slide {p} missing'); continue
         im = Image.open(src).convert('RGB')
-        if i.get('crop'):
-            x, y, w, h = i['crop']; W, H = im.size
-            im = im.crop((round(x * W), round(y * H), round((x + w) * W), round((y + h) * H)))
+        if i.get('matte') and mask:  # a cutout: lay it on the slot's own colour so it stands in the frame
+            bg = Image.new('RGB', im.size, i['matte'])
+            im = Image.composite(im, bg, Image.open(mask).convert('L'))
+        W, H = im.size
+        box = lambda x, y, w, h: (round(x * W), round(y * H), round((x + w) * W), round((y + h) * H))
+        if i.get('tiles'):  # several crops of one slide laid out in a grid (a wide row of portraits made to fit a tall slot)
+            parts = [im.crop(box(*t)) for t in i['tiles']]
+            cols = i.get('cols', 1); rows = -(-len(parts) // cols)
+            tw, th = max(p.size[0] for p in parts), max(p.size[1] for p in parts)
+            grid = Image.new('RGB', (cols * tw, rows * th), im.getpixel((4, 4)))
+            for k, part in enumerate(parts): grid.paste(part, ((k % cols) * tw, (k // cols) * th))
+            im = grid
+        elif i.get('crop'):
+            im = im.crop(box(*i['crop']))
         im.save(out, optimize=True)
-        print(f'{i["id"]}: slide {p} ({os.path.basename(src)}) -> {os.path.relpath(out, HERE)}')
+        print(f'{i["id"]}: slide {p} ({os.path.basename(src)}) -> {os.path.relpath(out, HERE)} {im.size[0]}x{im.size[1]}')
 
 
 def status():
@@ -140,7 +162,8 @@ def status():
         if im: where.setdefault(im.group(1), []).append(slide)
     used = set(where)
     ids = {i['id'] for i in m['images']}
-    for u in sorted(used - ids): print(f'script uses unknown image: {u}')
+    retired = {r['id']: r['reason'] for r in m.get('retired', [])}
+    for u in sorted(used - ids): print(f'script uses unknown image: {u}' + (f' (retired: {retired[u]})' if u in retired else ''))
     for i in m['images']:  # keep 'used_on' in the mapping honest
         got = sorted(where.get(i['id'], []))
         if sorted(i.get('used_on', [])) != got and sorted(i.get('used_on', [])) != sorted(g.split(' | ')[0] for g in got):
@@ -150,7 +173,7 @@ def status():
         flags = [('resolved' if have else 'placeholder'), ('used' if i['id'] in used else 'unused')]
         if i['consent'] == 'verify' and not i.get('confirmed'): flags.append('NEEDS OWNER CONSENT')
         if not i.get('slide_exact', True): flags.append(f'check slide number (range {i.get("range")})')
-        print(f'{i["id"]:22} slide {i["deck_slide"]:>2}  ' + ' · '.join(flags))
+        print(f'{i["id"]:22} slide {i["deck_slide"]:>3}  ' + ' · '.join(flags))
 
 
 if __name__ == '__main__':

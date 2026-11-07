@@ -404,8 +404,7 @@ Owners like him almost never list. They don't want their staff to find out, or t
 Which means the best businesses in your market aren't for sale. Not officially. They're waiting for the right person to ask.
 
 [SLIDE: Where the deals are | A listed business is an auction.]
-[LAYOUT: image-left]
-[IMAGE: listings-by-industry]
+[LAYOUT: statement]
 
 <!-- PARADIGM SHIFT 1 (external belief): the good deals are gone. Reframe: listings are auctions; the real deals are off market with owners like Graham. -->
 Most owners who think about buying open a business for sale website, scroll the listings, and decide the good deals are gone. About the listings, they're right. A listed business is an auction. A broker has been paid to get the highest price, and every buyer in the market can see it.
@@ -487,8 +486,8 @@ Your first acquisition is a structure problem, not a money problem.
 
 [SLIDE: Two acquisitions, both seller financed | In both, the sellers financed 100% of the price.]
 [LAYOUT: image-left]
-[IMAGE: josh-handshake]
-[CAPTION: Josh Li with a seller at signing.]
+[IMAGE: jc-clinic]
+[CAPTION: One of Josh Li's clinics in JC Health Group. The seller financed 100% of the price.]
 
 <!-- PROOF: Josh's own story, approved facts only. It is told as "what made it possible", which plants the seller's question (loop B) without closing it. -->
 Remember Josh's two acquisitions. In both of them, the sellers financed one hundred percent of the price. Josh didn't walk in with a pile of cash. What made it possible was a structure the sellers could say yes to, and a buyer they were willing to trust with the business they'd built.
@@ -652,7 +651,9 @@ With two businesses, some of the costs overlap: the software, the accounts, the 
 But the part that got to Dan wasn't any of that. It was the picture of himself at the head of a table, deciding what the group buys next, instead of at the kitchen table at twenty to ten, answering a technician about tomorrow.
 
 [SLIDE: What a holding company is for | One company that owns the businesses.]
-[LAYOUT: statement]
+[LAYOUT: image-left]
+[IMAGE: jc-clinic-front]
+[CAPTION: A clinic in JC Health Group, Josh Li's healthcare holding company.]
 
 <!-- PROOF by framing (approved fact: JC Health Group is Josh's own healthcare holding company). Identity: the viewer's business as the first piece of a group. -->
 It's worth noticing what kind of business JC Health Group is. It's a holding company: a company whose job is to own businesses, in Josh's case clinics. That's the shape Dan is starting to picture. Not one heating business that gets bigger. A company that owns heating businesses, with a manager in each.
@@ -1361,18 +1362,18 @@ If the answer is yes, press the button under the video now. Apply, and if it fit
 Before we jump a year ahead, let's go back to the night Dan applied, and follow the next ninety days. It's illustrative, one way it can go, and every deal moves at its own speed. But it's worth seeing, because the first ninety days are the part owners can't picture, and what you can't picture you don't start.
 
 [SLIDE: The first week | Illustrative.]
-[LAYOUT: image-left]
-[IMAGE: lead-scraping]
-[CAPTION: Building a list of owner-run businesses that fit the buy box.]
+[LAYOUT: image-full]
+[IMAGE: closing-six-steps]
+[CAPTION: The whole process, from Josh Li's deck. The first week starts at step one.]
 
 The call is on the Thursday. The team goes through Dan's numbers with him and works out what his business can carry. Graham's business comes up straight away, and the rough numbers look close to the test. Dan decides to go ahead.
 
 The kickoff is the following week. His accountant sends the last two years of financials. Together with the team, Dan writes down his buy box for the first time: heating and cooling or something right next to it, inside forty minutes of his yard, an owner over sixty with no successor, and a business close to his own size. Graham's fits. So do six others he'd never thought about.
 
 [SLIDE: The first outreach | Illustrative.]
-[LAYOUT: image-left]
+[LAYOUT: image-full]
 [IMAGE: outreach-dm]
-[CAPTION: An owner outreach message template.]
+[CAPTION: A real outreach message from Josh Li's playbook. This one recruits board members.]
 
 <!-- The weekly behaviour (25 owner contacts, scripts provided) shown as something an ordinary owner does, so the condition reads as doable. -->
 Then the outreach starts. Twenty-five owner contacts a week, using the scripts the team provides. Dan is nervous about the first few. On the very first one, his thumb hovers over send for most of a minute. By the end of the second week, they're just part of Monday morning, done before his first coffee.

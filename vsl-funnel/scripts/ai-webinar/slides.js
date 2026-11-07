@@ -150,6 +150,10 @@ h1,.h{font-family:Newsreader,Georgia,serif;font-weight:400;letter-spacing:-.022e
 .img img{display:block;width:100%;height:100%;object-fit:cover}
 .img.contain{padding:56px}
 .img.contain img{object-fit:contain}
+.img.cutout{padding:72px 72px 0}
+.img.cutout img{object-fit:contain;object-position:center bottom;max-height:780px;margin-top:auto}
+.img.cutout{display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.img.cutout img{width:auto;height:min(729px, 100%);max-width:100%}
 .ph{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 96px}
 .ph .sc{color:var(--ink3);margin-bottom:28px}
 .ph p{font:italic 400 44px/1.25 Newsreader,Georgia,serif;color:var(--ink2);max-width:760px;letter-spacing:-.01em}
@@ -182,7 +186,7 @@ const DAYS = ['Kickoff', 'Capacity', 'Buy box', 'Shortlist', 'Memo', 'Script', '
 function imageBlock(j, cls = '') {
   const im = j.image;
   if (!im) return '';
-  const fit = im.fit === 'contain' ? ' contain' : '';
+  const fit = im.fit === 'contain' ? ' contain' : im.fit === 'cutout' ? ' cutout' : '';
   if (im.src) {
     const data = fs.readFileSync(im.src).toString('base64');
     const mime = im.src.endsWith('.jpg') || im.src.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';

@@ -211,4 +211,18 @@ describe('/admin/deck', () => {
     expect(data.slides.length).toBe(DECK_DATA.slides.length);
     expect(html).toContain(`data-apply-origin="${ORIGIN}"`);
   });
+  it('the photos from Josh\'s deck: admins only, never from /assets, and only plain image names', async () => {
+    const out = await call('/admin/deck/img/josh-portrait.jpg');
+    expect(out.status).toBe(302);
+    expect(out.headers.get('content-type') ?? '').not.toContain('image/');
+    expect((await call('/admin/deck-img/josh-portrait.jpg')).status).toBe(404); // the folder itself is never served
+    const login = await call('/admin/login', { method: 'POST', headers: { ...same, 'content-type': 'application/x-www-form-urlencoded' }, body: 'password=devpass-owner-only' });
+    const owner = cookieOf(login, '_fa');
+    const r = await call('/admin/deck/img/josh-portrait.jpg', { headers: { cookie: owner } });
+    expect(r.status).toBe(200);
+    expect(r.headers.get('content-type')).toBe('image/jpeg');
+    expect(r.headers.get('cache-control') ?? '').toMatch(/no-store|private/); // never a shared cache
+    for (const bad of ['..%2Fadmin%2Findex.html', 'x.png', 'Josh.jpg', '.jpg']) expect((await call(`/admin/deck/img/${bad}`, { headers: { cookie: owner } })).status, bad).toBe(404);
+    for (const s of DECK_DATA.slides) if (s.image?.src) expect(s.image.src).toMatch(/^\/admin\/deck\/img\/[a-z0-9-]+\.jpg$/);
+  });
 });

@@ -15,7 +15,8 @@ import { buildId } from '../infra/build';
 export interface DeckSlide {
   n: number; chapter: number; title: string; sub: string; layout: string; scene: string | null;
   onscreen: string[]; data: string[][]; caption: string | null; kicker: string | null;
-  image: { id: string; what: string; slide: number; fit: string; credit: string; needsConsent: boolean; src: string | null } | null;
+  /** src: /admin/deck/img/<id>.jpg (admin-only, deckImageRoute) or null for a labelled slot; w, h: the picture's own pixels. */
+  image: { id: string; what: string; slide: number; fit: string; credit: string; needsConsent: boolean; src: string | null; w?: number; h?: number; zoom?: number } | null;
   notes: { text: string; aiOnly: boolean }[]; levers: string[]; cues: { id: string; label: string }[];
   poll: { id: string; q: string; options: string[] } | null;
   at: number; words: number; cam: 'orbit' | 'split' | 'spotlight' | 'stage' | 'vertical' | 'cinema';
@@ -64,4 +65,18 @@ export async function deckRoute(c: Context<AppEnv>) {
   c.header('cache-control', 'no-store');
   c.header('x-robots-tag', 'noindex');
   return c.html(deckPage(DECK_DATA, origin, buildId(c.env)));
+}
+
+/** The deck originals (photos and screenshots from Josh's own deck) are never committed, the repo being public, and never
+ * served from /assets (those bypass the Worker). present/build_deck.py writes them to public/admin/deck-img/; the Worker
+ * runs first for every path outside /assets/, so a direct request for that folder is a 404 and only this route serves them. */
+export const DECK_IMG = /^[a-z0-9][a-z0-9-]{0,60}\.jpg$/;
+
+/** GET /admin/deck/img/:file (behind requireAdmin): one deck original, read from the static assets the deploy uploaded. */
+export async function deckImageRoute(c: Context<AppEnv>) {
+  const file = c.req.param('file') ?? '';
+  if (!DECK_IMG.test(file)) return c.notFound();
+  const res = await c.env.ASSETS.fetch(new Request(new URL(`/admin/deck-img/${file}`, c.req.url)));
+  if (!res.ok) return c.notFound();
+  return new Response(res.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, max-age=3600', 'x-robots-tag': 'noindex', 'x-content-type-options': 'nosniff' } });
 }
