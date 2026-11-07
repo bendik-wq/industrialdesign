@@ -59,3 +59,8 @@
 .cv-prog-l { margin: 8px 0 0; font: 400 14px/1.4 var(--a-ui); color: var(--a-ink-2); }
 
 @media (prefers-reduced-motion: reduce) { .cv-anim .cv-sheet-in { animation: none; } .cv-opt, .cv-btn, .cv-prog-bar i, .cv-prog-mini span { transition: none; } }
+
+/* The narration asks for the application: the Apply button and the application card draw the eye for a few seconds (webinar-room.js). */
+@keyframes cv-nudge { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 30% { box-shadow: 0 0 0 6px var(--accent-tint, #eef2f8); } }
+.cta-nudge { animation: cv-nudge 1.6s ease-in-out 3; border-radius: 16px; }
+@media (prefers-reduced-motion: reduce) { .cta-nudge { animation: none; outline: 2px solid var(--accent, #0f2c5c); outline-offset: 4px; } }

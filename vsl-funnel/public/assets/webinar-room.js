@@ -294,7 +294,7 @@
       return;
     }
     cta.innerHTML = '<p class="lede"><strong>' + esc(q.heading || 'Want us to map out your first acquisition?') + '</strong> ' + esc(q.body || '') + '</p>' +
-      '<a class="btn btn-mega" href="' + esc(cfg.applyUrl) + '" target="_blank" rel="noopener" data-offer="call"><span class="btn-mega-main">' + esc(cfg.applied ? 'Book my strategy call' : (q.button || 'Apply for a strategy call')) + ' ' + arrow + '</span><span class="btn-mega-sub">' + esc(q.sub || '') + '</span></a>' +
+      '<a class="btn btn-mega" href="' + esc(cfg.applied ? cfg.applyUrl + '?to=book' : cfg.applyUrl) + '" target="_blank" rel="noopener" data-offer="call"><span class="btn-mega-main">' + esc(cfg.applied ? 'Book my strategy call' : (q.button || 'Apply for a strategy call')) + ' ' + arrow + '</span><span class="btn-mega-sub">' + esc(q.sub || '') + '</span></a>' +
       (cfg.selfServe ? '<p class="room-self"><button type="button" class="linkish" data-offer="self_serve">' + esc(q.secondary || 'Start now without a call') + '</button></p>' : '') +
       '<p class="muted small">Opens in a new tab, so the masterclass keeps playing.</p>';
     cta.addEventListener('click', function (e) {
@@ -341,12 +341,27 @@
     });
   }
 
+  // ── Nudges: where the narration asks for the application, the Apply button (and the application card) draw the eye ──
+  var nudged = {};
+  function maybeNudge(p) {
+    (cfg.ctaAt || []).forEach(function (at) {
+      if (nudged[at] || p < at || p > at + 20) return;
+      nudged[at] = true;
+      if (!cta || cta.hidden || cfg.booked) return;
+      var els = [cta].concat(Array.prototype.slice.call(document.querySelectorAll('.cv-appcard')));
+      els.forEach(function (el) { el.classList.remove('cta-nudge'); void el.offsetWidth; el.classList.add('cta-nudge'); });
+      setTimeout(function () { els.forEach(function (el) { el.classList.remove('cta-nudge'); }); }, 9000);
+      F.track('webinar_cta_cue', { at: at });
+    });
+  }
+
   // ── Tick ──
   function tick() {
     var p = pos();
     updateAgenda(p);
     maybePolls(p); maybeCalc(p); maybeBonus(p);
     if (cta && !cta.hidden) buildOffer();
+    maybeNudge(p);
   }
   setInterval(tick, 2000);
   setTimeout(tick, 1200);

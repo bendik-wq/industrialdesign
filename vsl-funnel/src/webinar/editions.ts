@@ -1,6 +1,6 @@
 import type { Settings } from '../settings';
 import { CHAPTER_RECAP, BUILDER_STEPS, BUYIN_AT, TAKEAWAYS, type Takeaway } from './experience';
-import { DEFAULT_CHAPTERS, DEFAULT_POLLS, type Chapter, type Poll } from './content';
+import { APPLY_POLL_COPY, DEFAULT_CHAPTERS, DEFAULT_POLLS, type Chapter, type Poll } from './content';
 import { AI_TIMELINE } from './edition-ai';
 import { parseRoomEdition } from '../rooms/intel';
 
@@ -37,6 +37,10 @@ export interface EditionTimeline {
   /** 'voiced' once rendered with the real voice; 'dry' while the audio is a silent placeholder. */
   mode: string;
   seconds: number;
+  /** What the recording sells at the pitch. 'apply' = apply and book a strategy call (no Sprint in the room). Absent = the Sprint. */
+  cta?: 'apply' | 'sprint';
+  /** Seconds where the narration asks the viewer to apply and book (the room nudges the button then). */
+  ctaAt?: number[];
 }
 
 export interface Edition {
@@ -54,6 +58,10 @@ export interface Edition {
   /** The recording the room plays when WEBINAR_VIDEO_SRC is blank (null = the existing fallback). */
   videoSrc: string | null;
   ready: boolean;
+  /** What the recording sells at the pitch: 'sprint' (the First Deal Sprint unlocks) or 'apply' (apply and book a call only). */
+  cta: 'apply' | 'sprint';
+  /** Seconds where the narration asks for the application (the room nudges the button). */
+  ctaAt: number[];
 }
 
 export const AI_VIDEO_SRC = '/assets/media/webinar/ai/index.m3u8';
@@ -75,19 +83,26 @@ const recorded = (): Edition => ({
   takeaways: TAKEAWAYS,
   videoSrc: null,
   ready: true,
+  cta: 'sprint',
+  ctaAt: [],
 });
 
-function fromTimeline(t: EditionTimeline): Edition {
+/** The AI edition from its generated timeline (exported for the tests). */
+export function fromTimeline(t: EditionTimeline): Edition {
+  const apply = t.cta === 'apply';
   return {
     name: 'ai',
     durationMin: t.durationMin, pitchAtMin: t.pitchAtMin, bonusAtMin: t.bonusAtMin, buyinAt: t.buyinAt, calcAt: t.calcAt,
     chapters: t.chapters,
     recap: (at) => t.recaps[String(at)] ?? '',
-    polls: DEFAULT_POLLS.filter((p) => t.polls[p.id] != null).map((p) => ({ ...p, at: t.polls[p.id] })),
+    // A recording that sells the call asks the pitch poll about the call, with the same answer values.
+    polls: DEFAULT_POLLS.filter((p) => t.polls[p.id] != null).map((p) => ({ ...p, ...(apply ? APPLY_POLL_COPY[p.id] : null), at: t.polls[p.id] })),
     steps: BUILDER_STEPS.map((s) => ({ ...s, at: t.steps[s.id] ?? s.at })),
     takeaways: t.takeaways,
     videoSrc: AI_VIDEO_SRC,
     ready: t.mode === 'voiced',
+    cta: apply ? 'apply' : 'sprint',
+    ctaAt: apply ? (t.ctaAt ?? []).filter((s) => Number.isFinite(s) && s >= t.pitchAtMin * 60).sort((a, b) => a - b) : [],
   };
 }
 
@@ -108,7 +123,7 @@ function roomEdition(raw: string): Edition | null {
   const e: Edition = {
     name: 'room', durationMin: r.durationMin, pitchAtMin: r.pitchAtMin, bonusAtMin: r.durationMin, buyinAt: r.pitchAtMin * 60, calcAt: null,
     chapters: r.chapters.length ? r.chapters : [{ at: 0, title: r.title }],
-    recap: () => '', polls: [], steps: [], takeaways: [], videoSrc: r.src, ready: true,
+    recap: () => '', polls: [], steps: [], takeaways: [], videoSrc: r.src, ready: true, cta: 'sprint', ctaAt: [],
   };
   roomCache = { raw, e };
   return e;

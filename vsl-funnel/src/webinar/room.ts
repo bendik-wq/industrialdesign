@@ -118,6 +118,8 @@ export async function roomExtras(rt: Runtime, reg: Registration) {
     answered: answered.results.map((r) => r.key),
     bonusAtSec: bonusAtMin(rt) * 60,
     calcAt: edition(rt.settings).calcAt,
+    // Where the narration asks for the application: the room nudges the Apply button (only once it is showing).
+    ctaAt: edition(rt.settings).ctaAt,
     qualified,
     selfServe: qualified && selfServeOn(rt),
     applied: Boolean(lead?.app_completed_at),

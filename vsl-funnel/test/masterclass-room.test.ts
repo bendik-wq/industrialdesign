@@ -148,6 +148,8 @@ describe('the application sheet in the masterclass room', () => {
     await Promise.all(pending);
     const expected = scoreApplication(APP_ANSWERS as never, { country: 'US', email: 'dana@example.com', phone: null, blocklist: [] });
     expect(r).toMatchObject({ ok: true, tier: expected.tier, score: expected.score });
+    // A and B tiers book straight from the room, through the registration's handoff to /book.
+    expect(r.book).toBe(expected.tier === 'C' ? null : `${rt.origin}/w/${TOKEN}?to=book`);
     expect(q("SELECT tier, score, app_completed_at IS NOT NULL AS done FROM leads WHERE id = 'l1'")[0]).toEqual({ tier: expected.tier, score: expected.score, done: 1 });
     expect(q("SELECT stage, funnel, value, detail FROM attr_stages WHERE reg_id = 'r1' AND stage = 'room_application'")).toEqual([{ stage: 'room_application', funnel: 'auto', value: expected.score, detail: expected.tier }]);
     expect(q("SELECT name, event_id FROM attr_capi WHERE lead_id = 'l1'")).toEqual([{ name: 'attr_room_application', event_id: 'room_application-r1' }]);

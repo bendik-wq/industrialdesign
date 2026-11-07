@@ -204,7 +204,8 @@ function body(j) {
     case 'title':
       return `${imageBlock(j)}<div class="c"><div class="sc kick">${esc(j.kicker || 'A masterclass from G&L M&A Advisory')}</div><h1 class="bal" data-fit="460">${typo(j.title)}</h1>${j.sub ? `<p class="sub bal">${typo(j.sub)}</p>` : ''}</div>`;
     case 'section':
-      return `<div class="c"><div class="big num">${esc(j.chapterNo)}</div><div><div class="sc">Chapter ${esc(j.chapterNo)} · ${esc(j.chapter)}</div><h1 class="bal" data-fit="380">${typo(j.title)}</h1>${j.sub ? `<p class="sub">${typo(j.sub)}</p>` : ''}${j.onscreen.length ? `<p class="sub">${j.onscreen.map(typo).join(' ')}</p>` : ''}</div></div>`;
+      // A [KICKER] marks a break inside a chapter (the anchor line, the big domino): no big chapter number, the kicker as the label.
+      return `<div class="c"><div class="big num">${j.kicker ? '' : esc(j.chapterNo)}</div><div><div class="sc">${j.kicker ? esc(j.kicker) : `Chapter ${esc(j.chapterNo)} · ${esc(j.chapter)}`}</div><h1 class="bal" data-fit="380">${typo(j.title)}</h1>${j.sub ? `<p class="sub">${typo(j.sub)}</p>` : ''}${j.onscreen.length ? `<p class="sub">${j.onscreen.map(typo).join(' ')}</p>` : ''}</div></div>`;
     case 'stat': {
       const [p, ...rest] = d;
       return `<div class="c">${head}<div class="prim${rest.length ? '' : ' solo'}"><div class="bignum num${rest.length ? '' : ' solo'}">${esc(p[0])}</div><div class="biglab bal">${typo(p[1] || '')}</div></div>
@@ -230,9 +231,12 @@ function body(j) {
         <div class="tot"><span class="l">${typo(tot[0])}</span><span class="v num">${esc(tot[1])}</span></div>${j.caption ? `<p class="note">${typo(j.caption)}</p>` : ''}</div></div>`;
     }
     case 'step': {
+      // The track: the [DATA] rows when given ("label | name", one per step), else the Sprint's seven days.
       const n = Number((j.title.match(/\d+/) || ['1'])[0]);
-      const track = DAYS.map((t, i) => `<div class="${i + 1 === n ? 'on' : i + 1 < n ? 'past' : ''}"><span>Day ${i + 1}</span><b>${esc(t)}</b></div>`).join('');
-      return `${imageBlock(j)}<div class="c"><div></div><div class="mid"><div class="dn num">${n}</div><div class="tx"><div class="sc">Day ${n} of 7 · The First Deal Sprint</div><h1 class="bal" data-fit="300">${typo(j.sub || j.title)}</h1>${j.caption ? `<p class="sub">${typo(j.caption)}</p>` : ''}</div></div><div class="track">${track}</div></div>`;
+      const steps = d.length ? d.map((r, i) => [r[1] ? r[0] : `Step ${i + 1}`, r[1] || r[0]]) : DAYS.map((t, i) => [`Day ${i + 1}`, t]);
+      const track = steps.map(([lab, t], i) => `<div class="${i + 1 === n ? 'on' : i + 1 < n ? 'past' : ''}"><span>${esc(lab)}</span><b>${esc(t)}</b></div>`).join('');
+      const kick = j.kicker || (d.length ? `Step ${n} of ${steps.length}` : `Day ${n} of 7 · The First Deal Sprint`);
+      return `${imageBlock(j)}<div class="c"><div></div><div class="mid"><div class="dn num">${n}</div><div class="tx"><div class="sc">${esc(kick)}</div><h1 class="bal" data-fit="300">${typo(j.sub || j.title)}</h1>${j.caption ? `<p class="sub">${typo(j.caption)}</p>` : ''}</div></div><div class="track" style="grid-template-columns:repeat(${steps.length},1fr)">${track}</div></div>`;
     }
     case 'image-full':
       return `${imageBlock(j)}<div class="cap"><div><div class="sc">${esc(j.chapter)}</div><h1 class="bal" data-fit="130">${typo(j.caption || j.onscreen[0] || j.title)}</h1></div><div class="cr">${typo(j.credit || '')}</div></div>`;
@@ -250,7 +254,7 @@ function page(j) {
   const chrome = L === 'image-full' ? '' : `<div class="top"><span class="sc">${L === 'title' || L === 'section' ? '' : `${esc(j.chapterNo)} · ${esc(j.chapter)}`}</span><span class="brand">G&amp;L M&amp;A Advisory</span></div><div class="toprule"></div>`;
   return `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style></head><body>
     <div class="slide L-${L}${dark ? ' dark' : ''}${j.image ? ' has-img' : ''}">${chrome}${body({ ...j, layout: L })}
-    <div class="foot"><span>The Acquisition Masterclass</span><span>Narrated by an AI voice · Method by Josh Li<span class="n">${String(j.n).padStart(2, '0')}</span></span></div></div></body></html>`;
+    <div class="foot"><span>The Acquisition Masterclass</span><span>${esc(String(j.footer || '').split(' · ').slice(1).join(' · ') || 'Narrated by an AI voice · Method by Josh Li')}<span class="n">${String(j.n).padStart(2, '0')}</span></span></div></div></body></html>`;
 }
 
 (async () => {

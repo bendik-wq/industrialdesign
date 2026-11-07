@@ -81,6 +81,22 @@ export const DEFAULT_POLLS: Poll[] = [
   },
 ];
 
+/**
+ * A recording that sells the strategy call instead of the Sprint (the AI edition's timeline with cta 'apply') asks
+ * the pitch poll about the call. Same ids and answer values, so scoring, the hot-lead ping and Funnel HQ read it as before.
+ */
+export const APPLY_POLL_COPY: Record<string, Pick<Poll, 'question' | 'options' | 'purpose'>> = {
+  soft_close: {
+    question: 'Is a strategy call with Josh’s team right for you?',
+    options: [
+      { value: 'yes', label: 'Yes, I’m applying' },
+      { value: 'more', label: 'I have a question first' },
+      { value: 'not_yet', label: 'Not yet' },
+    ],
+    purpose: 'Intent at the offer: yes should apply and book, a question goes to the team, not yet gets the follow-up emails.',
+  },
+};
+
 export interface WorksheetSection { heading: string; paras: string[]; rows?: [string, string][] }
 
 export const WORKSHEET: { title: string; intro: string; sections: WorksheetSection[]; disclaimer: string } = {

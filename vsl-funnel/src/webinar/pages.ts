@@ -19,7 +19,7 @@ import {
 import { PassError, activePass, confirmOnReturn, createCheckout, dealMaths, dealReviewPack, formatMoney, markPackViewed, passConfig, passCopy, passGate, registeredPassBlock, roomPassConfig, ticketFor } from './pass';
 import { sprintRoomConfig } from './sprint';
 import { sessionSlot } from '../audiences/enrich';
-import { editionName } from './editions';
+import { edition, editionName } from './editions';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -241,7 +241,10 @@ export async function roomPage(c: Context<AppEnv>, replay = false) {
   // Preview past the pitch: shown as a viewer for whom the Sprint unlocked at the pitch minute (bonus clock running from then).
   const pitchAt = session.starts_at + w.pitchAtMin * 60_000;
   const sprintReg = preview && Date.now() >= pitchAt ? { ...reg, offer_unlocked_at: pitchAt } : reg;
-  const sprintBase = holderPass?.active ? null : await sprintRoomConfig(rt, sprintReg, session, extras.qualified, { preview });
+  // A recording that sells the strategy call (the AI edition rendered with cta 'apply') never unlocks the Sprint:
+  // its pitch is the Apply and book button and the in-room application.
+  const applyOnly = edition(rt.settings).cta === 'apply';
+  const sprintBase = holderPass?.active || applyOnly ? null : await sprintRoomConfig(rt, sprintReg, session, extras.qualified, { preview });
   // The live room's conversion pieces (room-convert.ts): the Sprint's in-room payment sheet ("paying as", Whop's
   // embedded checkout) and the application sheet, offered at the edition's pitch minute.
   const convert = await import('./room-convert');
@@ -414,5 +417,8 @@ export async function applyHandoff(c: Context<AppEnv>) {
   const v = c.get('visitor');
   const reg: Registration | null = await getRegistration(rt, c.req.param('token') ?? '');
   if (reg && reg.new_lead && !v.leadId && !v.isBot) await linkVisitor(c.env, v.visitorId, reg.lead_id);
+  // ?to=book: sent from the room once the in-room application is in, straight to one-tap booking (/book sends
+  // anyone it can't place back to /apply, so this never skips the application).
+  if (c.req.query('to') === 'book') return c.redirect('/book?utm_source=webinar&utm_medium=webinar&utm_campaign=masterclass', 302);
   return c.redirect('/apply?utm_source=webinar&utm_medium=webinar&utm_campaign=masterclass', 302);
 }

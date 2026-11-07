@@ -16,13 +16,17 @@ Usage:
                               #  ever written by a real render without --out)
 
 Slide metadata in script-ai.md (not spoken; lines after a [SLIDE: ...] line, see README.md):
-  [LAYOUT: name]  [DATA: a | b | c] (repeatable)  [IMAGE: id from deck-images.json]  [CAPTION: text]
+  [LAYOUT: name]  [DATA: a | b | c] (repeatable)  [IMAGE: id from deck-images.json]  [CAPTION: text]  [KICKER: text]
+Margin notes: <!-- ... --> anywhere (one line or several) are stripped before parsing: never spoken, never on a slide.
+Any other line that starts with "[" is a note for the owner and is skipped (e.g. a bracketed conditional line).
+Room cues: [POLL: id] [CALCULATOR] [BUY-IN] [APPLY OPENS] (or the older [SPRINT UNLOCKS]) [CTA] (repeatable) [WORKSHEET]
 """
 import hashlib, json, os, re, subprocess, sys, shutil, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))  # scripts/ai-webinar
 REPO = os.environ.get('REPO') or os.path.abspath(os.path.join(HERE, '..', '..'))  # the vsl-funnel checkout this script sits in
-SCRIPT = os.path.join(HERE, 'script-ai.md')
+# --script FILE picks another script (script-ai-josh.md for Josh's cloned voice); --dump prints the parsed segments as JSON and stops.
+SCRIPT = os.path.join(HERE, sys.argv[sys.argv.index('--script') + 1]) if '--script' in sys.argv else os.path.join(HERE, 'script-ai.md')
 DRY = '--dry' in sys.argv; SAMPLE = '--sample' in sys.argv; SLIDES_ONLY = '--slides' in sys.argv
 _out = sys.argv[sys.argv.index('--out') + 1] if '--out' in sys.argv else (os.path.join(HERE, 'out-dry') if DRY or SLIDES_ONLY else None)
 OUT = os.path.abspath(_out) if _out else None  # None = the real, live build
@@ -35,45 +39,54 @@ DECK_MAP = os.path.join(HERE, 'deck-images.json'); DECK_RES = os.path.join(HERE,
 LAYOUTS = {'title', 'statement', 'section', 'stat', 'list', 'comparison', 'quote', 'table', 'offer', 'step', 'image-full', 'image-left'}
 VOICE = os.environ.get('VOICE_ID', 'G17SuINrv2H9FC6nvetn')  # Christopher: gentle, trustworthy British narrator (library voice, AI narration disclosed)
 MODEL = 'eleven_multilingual_v2'
-WPM = 165  # the cloned voice at speed 0.85 with paragraph breaks (measured 208 wpm at full speed)
-FOOTER = 'The Acquisition Masterclass · Narrated by an AI voice · Method by Josh Li'
+WPM = 183  # dry-run estimate: measured on the last voiced render (3,705 words in 20.3 min at speed 0.92, breaks included)
+# The disclosure on every slide: the AI narrator, or Josh's own voice recreated by AI (script-ai-josh.md).
+FOOTER = 'The Acquisition Masterclass · ' + ('Josh Li, in an AI version of his voice' if 'josh' in os.path.basename(SCRIPT) else 'Narrated by an AI voice · Method by Josh Li')
 
 # Key points shown in the room: (id, text, phrase in the script it lands on). Texts follow the room's copy rules.
 TAKEAWAYS = [
+    ('two-kinds', 'Owners build one customer and one hire at a time. Buyers compound, adding a business someone else already built.', 'A buyer compounds.'),
     ('structure-problem', 'Your first acquisition is a structure problem, not a money problem.', 'Your first acquisition is a structure problem'),
-    ('big-idea', 'Buy a business that is already built, and let commercial debt, seller finance and seller rollover pay the price instead of your savings.', 'A commercial lender, lending against the profit'),
-    ('revenue-gap', 'Illustrative: adding $500,000 of profit at a 15% margin takes about $3.3M of new revenue, or one acquisition of a business that already makes it.', 'At a fifteen percent margin'),
-    ('off-market', 'Listed businesses are auctions, and the best deals sit with owners who have no successor and have not listed yet.', "The best deals sit with owners who haven't listed"),
-    ('dscr', 'Debt service coverage is yearly profit divided by yearly debt payments, and lenders want to see about 1.5x or better.', "There's one number that stops"),
+    ('off-market', 'The best businesses to buy sit with owners who have no successor and have not listed.', 'The best businesses never reach a listing'),
+    ('three-sources', 'The price is paid from three places: commercial debt, seller finance and seller rollover, all from the profit of the business you buy.', 'Three places pay the price'),
+    ('dscr', 'Debt service coverage is yearly profit divided by yearly debt payments, and lenders want to see about 1.5x or better.', 'Lenders call it debt service coverage'),
     ('structures', 'Banks do not reject buyers, they reject structures.', "Banks don't reject buyers. They reject structures."),
-    ('multiples', 'Illustrative ranges: one small business trades at 3 to 5x profit, and a group of them at 8 to 12x.', 'A business is worth its profit multiplied'),
-    ('group-math', 'Illustrative: two businesses making $500,000 each are worth about $4M apart and $8M together as a group at 8x.', 'Two businesses making five hundred thousand each'),
-    ('sprint-days', 'The First Deal Sprint: in seven days, your acquisition capacity, your buy box, a first shortlist, a deal-structure memo, an outreach script and a Deal Plan session.', "Here's what happens, day by day."),
-    ('guarantee', 'The Sprint guarantee: if at the end of your Deal Plan session it was not worth far more than you paid, tell the team that day and the full fee is refunded.', 'Do the Sprint. Come to your Deal Plan session.'),
-    ('three-outcomes', 'The Sprint ends one of three ways: worth far more than you paid, refunded, or credited in full against the engagement.', 'So the Sprint ends one of three ways'),
+    ('multiples', 'Illustrative ranges: one owner-run business trades at 3 to 5x profit, and a group of them at 8 to 12x.', 'A group of them, with a manager in each'),
+    ('seller-order', 'Agree the shape of the deal with the seller first, then take it to the lender.', 'shape with the seller first'),
+    ('big-domino', 'You do not have to become a different person to buy a company. You have to be seen as the buyer, and the credibility can be borrowed.', 'You have to be seen as the buyer'),
+    ('the-call', 'The strategy call: your numbers, what your profit can carry at 1.5x, the business to buy first, and an honest answer on fit.', 'Here is what happens on the call'),
+    ('loi-guarantee', 'The engagement guarantee: no signed letter of intent in 90 days and the team keeps working at no extra cost, or you take a full refund, when the conditions are met.', "If you don't have a signed letter of intent within"),
 ]
 RECAPS = {
-    'One decision': 'What this masterclass is for, who it is for, and the First Deal Sprint named up front.',
-    'The real problem': 'Your first deal is a structure problem: commercial debt, seller finance and seller rollover, not your savings.',
-    'Where the deals are': 'Off market, with owners who have no successor, found through a buy box and a shortlist.',
-    'The test every deal has to pass': 'Yearly profit divided by yearly debt payments has to clear about 1.5x, and banks reject structures, not buyers.',
-    'Why this is worth so much more than the profit': 'Illustrative ranges of 3 to 5x profit for one business against 8 to 12x for a group.',
-    'The First Deal Sprint': 'The Sprint opened: seven days, one deal mapped out, day by day.',
-    'What it costs, and what protects you': 'The price, the ticket credit, the guarantee, the credit against the engagement, the bonus and when it closes.',
-    'Is this for you?': 'The reasons owners hold back, answered one at a time.',
+    'Owners build. Buyers compound.': 'Two kinds of owners, the ceiling most of them hit, and what this masterclass will show you.',
+    'The ceiling': 'Sam, an illustrative owner, at the point where more growth costs more of his life.',
+    'The owner down the road': 'The best deals are off market, with owners who have no successor.',
+    'How a business pays for itself': 'Commercial debt, seller finance and seller rollover, and the 1.5x test every deal has to pass.',
+    'What a group is worth': 'Illustrative ranges of 3 to 5x profit for one business against 8 to 12x for a group.',
+    'What 90 owners told us': 'What owners who booked a call wanted, and why the application asks what it asks.',
+    "The seller's side of the table": 'Why a retiring owner says yes to a note and a rollover, and the order: seller first, lender second.',
+    'The first conversation': 'What it sounds like when a buyer calls a seller, and the question that loses most first-time buyers.',
+    'Two yeses and the big domino': 'Does it work, could you do it, the question every seller asks, and the big domino.',
+    'What happens when you apply': 'The application, the booking, the strategy call, the 90-day engagement it can lead to, and its guarantee.',
+    'Twelve months from now': 'Sam a year after his first deal, and the two paths in front of you.',
+    "Who you're becoming": 'From owner to buyer, one level at a time.',
+    'The questions owners ask us': 'The reasons owners hold back, answered one at a time.',
+    'Three owners, three situations': 'Three illustrative owners and what the call would map for each.',
     'Your decision': 'Two ways to leave, permission to decide, and the worksheet.',
 }
-STEP_ANCHORS = {'size': ('chapter', 'The real problem'), 'where': ('chapter', 'Where the deals are'), 'test': ('chapter', 'The test every deal has to pass'),
-                'stack': ('cue', 'CALCULATOR'), 'group': ('chapter', 'Why this is worth so much more than the profit'), 'plan': ('cue', 'SPRINT UNLOCKS')}
+STEP_ANCHORS = {'size': ('chapter', 'The ceiling'), 'where': ('chapter', 'The owner down the road'), 'test': ('chapter', 'How a business pays for itself'),
+                'stack': ('cue', 'CALCULATOR'), 'group': ('chapter', 'What a group is worth'), 'plan': ('cue', 'PITCH')}
 
 
 def parse():
-    body = open(SCRIPT).read().split('\n---\n', 1)[1]
+    # Margin notes (<!-- ... -->) are for the owner: stripped before anything is parsed, so never voiced or shown.
+    body = re.sub(r'<!--.*?-->', '', open(SCRIPT).read().split('\n---\n', 1)[1], flags=re.S)
     segs, chapter, slide, onscreen, text, cues, meta = [], None, None, [], [], [], {}
     def flush():
         if slide is not None and (text or cues):
             segs.append({'chapter': chapter, 'slide': slide, 'onscreen': list(onscreen), 'text': ' <break time="0.6s" /> '.join(text), 'cues': list(cues),
-                         'layout': meta.get('layout', 'statement'), 'data': list(meta.get('data', [])), 'image': meta.get('image'), 'caption': meta.get('caption')})
+                         'layout': meta.get('layout', 'statement'), 'data': list(meta.get('data', [])), 'image': meta.get('image'), 'caption': meta.get('caption'),
+                         'kicker': meta.get('kicker')})
     for ln in body.split('\n'):
         s = ln.strip()
         if not s: continue
@@ -84,7 +97,7 @@ def parse():
         if m:
             flush(); text.clear(); cues.clear(); onscreen.clear(); meta = {}; slide = m.group(1); continue
         # Slide metadata: how the slide looks. Never spoken, so the audio cache is untouched by it.
-        m = re.match(r'\[(LAYOUT|DATA|IMAGE|CAPTION): (.*)\]$', s)
+        m = re.match(r'\[(LAYOUT|DATA|IMAGE|CAPTION|KICKER): (.*)\]$', s)
         if m:
             k, v = m.group(1).lower(), m.group(2).strip()
             if k == 'layout' and v not in LAYOUTS: raise SystemExit(f'unknown layout {v!r} on slide {slide!r}')
@@ -93,7 +106,7 @@ def parse():
             continue
         m = re.match(r'\[ON SCREEN: (.*)\]$', s)
         if m: onscreen.append(m.group(1)); continue
-        m = re.match(r'\[(POLL: \w+|CALCULATOR|BUY-IN|SPRINT UNLOCKS|WORKSHEET)\]$', s)
+        m = re.match(r'\[(POLL: \w+|CALCULATOR|BUY-IN|SPRINT UNLOCKS|APPLY OPENS|CTA|WORKSHEET)\]$', s)
         if m:
             # A cue starts its own segment so it lands exactly when the next words begin.
             flush(); text.clear(); cues.clear(); cues.append(m.group(1)); continue
@@ -169,13 +182,15 @@ def render_slides(segs):
         im = images.get(sg['image'])
         jobs.append({'file': os.path.join(SLIDES, f'{i:03d}.png'), 'title': title, 'sub': sub, 'onscreen': sg['onscreen'], 'chapter': sg['chapter'] or '',
                      'chapterNo': f'{chapters.index(sg["chapter"]) + 1:02d}', 'n': n, 'footer': FOOTER, 'layout': sg['layout'], 'data': sg['data'],
-                     'caption': sg['caption'], 'image': im, 'credit': im['credit'] if im else None})
+                     'caption': sg['caption'], 'kicker': sg.get('kicker'), 'image': im, 'credit': im['credit'] if im else None})
     json.dump(jobs, open(os.path.join(WORKDIR, 'slides.json'), 'w'), indent=1)
     subprocess.run(['node', os.path.join(HERE, 'slides.js'), os.path.join(WORKDIR, 'slides.json')], check=True)
 
 
 def main():
     segs = parse()
+    if '--dump' in sys.argv:  # for the copy audit (audit-script.ts): what is spoken and what is on screen, nothing else
+        print(json.dumps([{k: sg[k] for k in ('chapter', 'slide', 'onscreen', 'text', 'cues', 'layout', 'data', 'image', 'caption', 'kicker')} for sg in segs])); return
     chars = sum(len(s['text']) for s in segs)
     print(f'{len(segs)} segments, {chars} characters to voice' + (f', writing to {OUT}' if OUT else ', writing the LIVE media and timeline'))
     if OUT: os.makedirs(OUT, exist_ok=True)
@@ -205,12 +220,18 @@ def main():
     # Even loudness for speech (-16 LUFS) with peaks kept under -1.5 dB, so no line clips or drops away.
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', raw, '-c:v', 'copy', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=9', '-c:a', 'aac', '-b:a', '96k', '-ar', '44100', full], check=True)
     # Timeline from the real segment lengths.
-    t = 0.0; chapters, cues, starts = [], {}, []
+    t = 0.0; chapters, cues, starts, cta_at = [], {}, [], []
     for sg in segs:
         starts.append(t)
         if not chapters or chapters[-1]['title'] != sg['chapter']: chapters.append({'title': sg['chapter'], 'sec': t})
-        for c in sg['cues']: cues[c] = t
+        for c in sg['cues']:
+            if c == 'CTA': cta_at.append(round(t))  # repeatable: each spoken call to apply and book
+            else: cues[c] = t
         t += sg['dur']
+    # The pitch: where the room's offer appears. [APPLY OPENS] = the Apply and book button (this script), the older
+    # [SPRINT UNLOCKS] = the First Deal Sprint.
+    apply = 'APPLY OPENS' in cues
+    cues['PITCH'] = cues['APPLY OPENS'] if apply else cues['SPRINT UNLOCKS']
     total = t
     def at_phrase(ph):
         for st, sg in zip(starts, segs):
@@ -228,13 +249,15 @@ def main():
     for k, (kind, name) in STEP_ANCHORS.items(): steps[k] = round(chap_at[name] if kind == 'chapter' else cues[name])
     m = lambda sec: round(sec / 60, 2)
     timeline = {
-        'durationMin': m(total + 30), 'pitchAtMin': m(cues['SPRINT UNLOCKS']), 'bonusAtMin': m(cues['WORKSHEET']), 'buyinAt': round(cues['BUY-IN']),
+        'durationMin': m(total + 30), 'pitchAtMin': m(cues['PITCH']), 'bonusAtMin': m(cues['WORKSHEET']), 'buyinAt': round(cues['BUY-IN']),
         'calcAt': round(cues['CALCULATOR']),
         'chapters': [{'at': m(c['sec']), 'title': c['title']} for c in chapters],
         'recaps': {('%g' % m(c['sec'])): RECAPS[c['title']] for c in chapters},
         'polls': {k.split(': ')[1]: m(v) for k, v in cues.items() if k.startswith('POLL')},
         'steps': steps, 'takeaways': tk, 'mode': 'dry' if DRY else 'voiced', 'seconds': round(total),
     }
+    # This script sells the strategy call: the room shows Apply and book at the pitch (no Sprint), nudged at each [CTA].
+    if apply: timeline.update({'cta': 'apply', 'ctaAt': [x for x in cta_at if x >= round(cues['PITCH'])]})
     json.dump(timeline, open(os.path.join(WORKDIR, 'timeline.json'), 'w'), indent=1)
     ts = ('// Generated by the AI-edition build (scripts/ai-webinar/build.py) from the rendered audio. Do not edit by hand.\n'
           'import type { EditionTimeline } from \'./editions\';\n\n'
@@ -246,7 +269,7 @@ def main():
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', full, '-c', 'copy', '-hls_time', '6', '-hls_playlist_type', 'vod',
                     '-hls_segment_filename', os.path.join(OUT_MEDIA, '%03d.ts'), os.path.join(OUT_MEDIA, 'index.m3u8')], check=True)
     shutil.copy(os.path.join(SLIDES, '000.png'), os.path.join(OUT_MEDIA, 'poster.png'))
-    print(json.dumps({k: timeline[k] for k in ('durationMin', 'pitchAtMin', 'bonusAtMin', 'buyinAt', 'calcAt', 'polls', 'mode', 'seconds')}, indent=1))
+    print(json.dumps({k: timeline[k] for k in ('durationMin', 'pitchAtMin', 'bonusAtMin', 'buyinAt', 'calcAt', 'polls', 'mode', 'seconds', 'cta', 'ctaAt') if k in timeline}, indent=1))
 
 
 if __name__ == '__main__':

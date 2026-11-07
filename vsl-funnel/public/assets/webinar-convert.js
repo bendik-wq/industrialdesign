@@ -66,6 +66,7 @@
     F.track('cta_click', { id: 'webinar_application_' + stage });
   }
   function appCardHtml() {
+    if (A.submitted && A.book) return '<p class="now-eyebrow">' + esc(C.appEyebrow) + '</p><p class="cv-h">' + esc(C.appDoneHeading) + '</p><p class="small">' + esc(C.appDoneBook) + '</p><a class="cv-btn" href="' + esc(A.book) + '" target="_blank" rel="noopener" data-cv-book>' + esc(C.appBookButton) + ' ' + arrow + '</a>';
     if (A.submitted) return '<p class="now-eyebrow">' + esc(C.appEyebrow) + '</p><p class="cv-h">' + esc(C.appDoneHeading) + '</p><p class="small">' + esc(C.appDoneBody) + '</p>';
     return '<p class="now-eyebrow">' + esc(C.appEyebrow) + '</p><p class="cv-h">' + esc(C.appHeading) + '</p><p class="small">' + esc(C.appBody) + ' ' + esc(C.appPrefilled) + '</p>' +
       '<button type="button" class="cv-btn" data-cv-app="card">' + esc(C.appButton) + ' ' + arrow + '</button>';
@@ -100,6 +101,7 @@
     placeApp();
   }
   document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('[data-cv-book]')) F.track('cta_click', { id: 'webinar_book_from_room' });
     var b = e.target.closest && e.target.closest('[data-cv-app]');
     if (b) { e.preventDefault(); openApp(b.getAttribute('data-cv-app')); return; }
     // One click on the ticket's card is first; "Pay another way" under it opens the same payment sheet.
@@ -118,7 +120,12 @@
     appEvent('opened');
     F.track('cta_click', { id: 'webinar_application_open', label: where });
     function done() {
-      body.innerHTML = '<p class="cv-eyebrow">' + esc(C.appEyebrow) + '</p><h2 class="cv-title">' + esc(C.appDoneHeading) + '</h2><p>' + esc(C.appDoneBody) + '</p>' +
+      // Qualified (A or B tier): one-tap booking straight from the room. Otherwise the team replies by email.
+      var book = A.book || (preview ? '#' : null);
+      // The room's own Apply button now books too.
+      if (A.book) document.querySelectorAll('a[data-offer="call"]').forEach(function (a) { a.href = A.book; var m = a.querySelector('.btn-mega-main'); if (m && m.firstChild && m.firstChild.nodeType === 3) m.firstChild.nodeValue = C.appBookButton + ' '; });
+      body.innerHTML = '<p class="cv-eyebrow">' + esc(C.appEyebrow) + '</p><h2 class="cv-title">' + esc(C.appDoneHeading) + '</h2>' +
+        (book ? '<p>' + esc(C.appDoneBook) + '</p><a class="cv-btn" href="' + esc(book) + '" target="_blank" rel="noopener" data-cv-book>' + esc(C.appBookButton) + ' ' + arrow + '</a>' : '<p>' + esc(C.appDoneBody) + '</p>') +
         (sprintSlot && document.getElementById('sprint-offer') ? '<p class="cv-fine">' + esc(C.appDoneSprint) + '</p>' : '') +
         (preview ? '<p class="cv-preview">' + esc(C.appPreview) + '</p>' : '');
       placeApp();
@@ -152,7 +159,7 @@
       if (preview) { A.submitted = true; done(); return; }
       var btn = body.querySelector('[data-next]'); btn.disabled = true;
       post('/api/webinar/app', { answers: ans }).then(function (r) {
-        if (r && r.ok) { A.submitted = true; F.track('cta_click', { id: 'webinar_application_submitted' }); done(); return; }
+        if (r && r.ok) { A.submitted = true; A.book = r.book || null; F.track('cta_click', { id: 'webinar_application_submitted' }); done(); return; }
         btn.disabled = false;
         var at = r && r.field ? qs.map(function (z) { return z.id; }).indexOf(r.field) : -1;
         if (at >= 0) { i = at; draw(r.error); } else draw((r && r.error) || C.appFailed);

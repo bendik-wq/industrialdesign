@@ -39,6 +39,8 @@ export const CONVERT_COPY = {
   appDoneHeading: 'Your application is in',
   appDoneBody: 'Josh’s team reads it next and replies by email. Your answers stay with the team.',
   appDoneSprint: 'If you want your first deal mapped out in writing first, the First Deal Sprint is open to you in this room.',
+  appDoneBook: 'Pick a time for your strategy call now, while the masterclass is fresh. It takes one tap.',
+  appBookButton: 'Book my strategy call',
   appMissing: 'Answer this one to continue.',
   appFailed: 'Your application didn’t send just now. Try again in a moment.',
   appPreview: 'Preview: nothing is saved and no emails go.',
@@ -137,7 +139,9 @@ export async function submitMasterclassApplication(rt: Runtime, reg: Registratio
   await stageRow(rt, reg, 'room_application', now, { value: result.score, detail: result.tier });
   const { sendStageEvent } = await import('../attribution/hooks');
   await sendStageEvent(rt, { kind: 'room_application', funnel: 'auto', regId: reg.id, leadId: reg.lead_id }).catch(() => null);
-  return { ok: true as const, tier: result.tier, score: result.score };
+  // A and B tiers book straight from the room (one-tap booking on /book, through the registration's handoff link).
+  const book = result.tier === 'C' ? null : `${rt.origin}/w/${reg.token}?to=book`;
+  return { ok: true as const, tier: result.tier, score: result.score, book };
 }
 
 // ───────────── the Sprint's payment sheet ─────────────

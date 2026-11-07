@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { auditCopy } from '../src/content/copy-rules';
 import { AI_TIMELINE } from '../src/webinar/edition-ai';
-import { AI_VIDEO_SRC, allTakeaways, edition, editionName } from '../src/webinar/editions';
+import { AI_VIDEO_SRC, allTakeaways, edition, editionName, fromTimeline } from '../src/webinar/editions';
 import { webinarSettings } from '../src/webinar/webinar';
 
 const rt = (s: Record<string, string>) => ({ settings: s }) as unknown as Parameters<typeof webinarSettings>[0];
@@ -34,7 +34,10 @@ describe('editions', () => {
     expect(t.bonusAtMin).toBeLessThan(t.durationMin);
     expect(t.buyinAt).toBeLessThan(t.pitchAtMin * 60);
     expect(t.calcAt).toBeLessThan(t.pitchAtMin * 60);
-    expect(Object.keys(t.polls).sort()).toEqual(['blocker', 'own_cash', 'soft_close', 'target_type']);
+    // Every poll is one the room knows, the first one and the pitch poll are always there.
+    for (const id of Object.keys(t.polls)) expect(['target_type', 'timeline', 'blocker', 'own_cash', 'soft_close']).toContain(id);
+    expect(t.polls).toHaveProperty('target_type');
+    expect(t.polls).toHaveProperty('soft_close');
     for (const m of Object.values(t.polls)) expect(m).toBeLessThan(t.durationMin);
     expect(t.polls.soft_close).toBeGreaterThan(t.pitchAtMin);
     const ats = t.chapters.map((c) => c.at);
@@ -43,6 +46,20 @@ describe('editions', () => {
     const steps = Object.values(t.steps);
     expect(steps).toEqual([...steps].sort((a, b) => a - b));
     expect(Math.abs(t.steps.plan - t.pitchAtMin * 60)).toBeLessThanOrEqual(1);
+  });
+
+  it('a timeline that sells the call (cta apply) asks the pitch poll about the call and keeps only CTA cues after the pitch', () => {
+    const e = fromTimeline({ ...AI_TIMELINE, polls: { ...AI_TIMELINE.polls, timeline: 30 }, cta: 'apply', ctaAt: [600, AI_TIMELINE.pitchAtMin * 60 + 90, AI_TIMELINE.pitchAtMin * 60 + 30] });
+    expect(e.cta).toBe('apply');
+    expect(e.ctaAt).toEqual([AI_TIMELINE.pitchAtMin * 60 + 30, AI_TIMELINE.pitchAtMin * 60 + 90].filter((s) => s >= AI_TIMELINE.pitchAtMin * 60));
+    const soft = e.polls.find((p) => p.id === 'soft_close')!;
+    expect(soft.question).toMatch(/strategy call/);
+    expect(soft.options.map((o) => o.value)).toEqual(['yes', 'more', 'not_yet']);
+    expect(e.polls.map((p) => p.id)).toContain('timeline');
+    for (const line of [soft.question, ...soft.options.map((o) => o.label)]) expect(auditCopy(line), line).toEqual([]);
+    // Without it (the Sprint recordings), nothing changes.
+    expect(fromTimeline({ ...AI_TIMELINE, cta: undefined }).cta).toBe('sprint');
+    expect(edition({}).cta).toBe('sprint');
   });
 
   it('spaces the AI key points one at a time and keeps every line within the copy rules', () => {
