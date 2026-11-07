@@ -55,8 +55,20 @@
     return '<div class="top"><span class="sc">' + esc(label) + '</span><span class="brand">' + esc(D.brand) + '</span></div><div class="toprule"></div>';
   }
   function foot(s) { return '<div class="foot"><span>' + esc(D.title) + '</span><span>' + esc(D.presenter) + '<span class="n">' + pad(s.n) + '</span></span></div>'; }
-  function photo(im, cls) {
+  // Each photo slot's size and the room a print keeps around it [w, h, side, top, bottom] (deck.css).
+  var SLOT = { title: [920, 1080, 72, 72, 72], 'image-left': [880, 1080, 64, 72, 72], 'image-full': [1920, 760, 128, 56, 40], 'film-img': [920, 1080, 72, 72, 96], 'pf-img': [920, 1080, 72, 72, 96] };
+  var SHARP = 1.35; // the most a deck original is ever enlarged: past it a photo goes soft on a 1080p screen
+  function photo(im, cls, slot) {
     if (!im) return '';
+    var sl = SLOT[cls || slot];
+    if (im.src && im.w && im.h && sl) {
+      // Fill the slot when the original is big enough; else show it as a print at a size that stays sharp.
+      var cover = Math.max(sl[0] / im.w, sl[1] / im.h), cut = im.fit === 'cutout';
+      if (im.fit === 'cover' && cover <= SHARP) return '<div class="img ' + (cls || '') + '"><img src="' + esc(im.src) + '" alt="' + esc(im.what) + '"></div>';
+      var k = Math.min(SHARP, (sl[0] - 2 * sl[2]) / im.w, (sl[1] - sl[3] - (cut ? 0 : sl[4])) / im.h) * (im.zoom || 1); // zoom < 1: a quiet print
+      return '<div class="img print' + (cut ? ' cut' : '') + ' ' + (cls || '') + '" style="padding:' + sl[3] + 'px ' + sl[2] + 'px ' + (cut ? 0 : sl[4]) + 'px"><img src="' + esc(im.src) + '" alt="' + esc(im.what) +
+        '" style="width:' + Math.round(im.w * k) + 'px;height:' + Math.round(im.h * k) + 'px"></div>';
+    }
     if (im.src) return '<div class="img' + (im.fit === 'contain' ? ' contain' : '') + ' ' + (cls || '') + '"><img src="' + esc(im.src) + '" alt="' + esc(im.what) + '"></div>';
     return '<div class="img ' + (cls || '') + '"><div class="ph"><div class="frame"></div><div class="sc">Photo · deck slide ' + esc(im.slide) + '</div><p>' + typo(/\d/.test(im.what) ? 'An image from Josh\u2019s deck' : im.what) + '</p><div class="note">' +
       (im.needsConsent ? 'Shows once the deck is extracted and Josh approves it' : 'Shows once the deck is extracted') + '</div></div></div>';
@@ -75,7 +87,7 @@
   // ───────────── layouts ─────────────
   var L = {};
   L.title = function (s) {
-    return photo(s.image) + '<div class="c"><div class="sc kick"' + E(0) + '>' + esc(s.kicker || 'A masterclass from ' + D.brand) + '</div><h1 class="bal"' + E(1) + ' data-fit="520">' + typo(s.title) + '</h1>' +
+    return photo(s.image, '', 'title') + '<div class="c"><div class="sc kick"' + E(0) + '>' + esc(s.kicker || 'A masterclass from ' + D.brand) + '</div><h1 class="bal"' + E(1) + ' data-fit="520">' + typo(s.title) + '</h1>' +
       (s.sub ? '<p class="sub bal"' + E(2) + '>' + typo(s.sub) + '</p>' : '') + '<div class="byline"' + E(3) + '><span>' + esc(D.presenter) + '</span><span>' + esc(D.brand) + '</span></div></div>';
   };
   L.statement = function (s, o) {
@@ -145,11 +157,11 @@
       (s.caption ? '<p class="sub"' + B(1) + '>' + typo(s.caption) + '</p>' : '') + '</div></div><div class="track" style="grid-template-columns:repeat(' + steps.length + ',1fr)">' + track + '</div></div>';
   };
   L['image-left'] = function (s) {
-    return photo(s.image) + '<div class="c"><h1 class="bal"' + E(1) + ' data-fit="320">' + typo(s.title) + '</h1>' + (s.sub ? '<p class="sub"' + E(2) + '>' + typo(s.sub) + '</p>' : '') + take(s.onscreen, 1) + '</div>' +
+    return photo(s.image, '', 'image-left') + '<div class="c"><h1 class="bal"' + E(1) + ' data-fit="320">' + typo(s.title) + '</h1>' + (s.sub ? '<p class="sub"' + E(2) + '>' + typo(s.sub) + '</p>' : '') + take(s.onscreen, 1) + '</div>' +
       (s.caption || s.image ? '<div class="pic">' + (s.caption ? '<b>Pictured</b> · ' + typo(s.caption) + '<br>' : '') + typo(s.image ? s.image.credit : '') + '</div>' : '');
   };
   L['image-full'] = function (s) {
-    return photo(s.image) + '<div class="cap"><div><div class="sc"' + E(0) + '>' + esc(CH[s.chapter - 1].title) + '</div><h1 class="bal"' + E(1) + ' data-fit="130">' + typo(s.caption || s.onscreen[0] || s.title) + '</h1></div><div class="cr">' + typo(s.image ? s.image.credit : '') + '</div></div>';
+    return photo(s.image, '', 'image-full') + '<div class="cap"><div><div class="sc"' + E(0) + '>' + esc(CH[s.chapter - 1].title) + '</div><h1 class="bal"' + E(1) + ' data-fit="130">' + typo(s.caption || s.onscreen[0] || s.title) + '</h1></div><div class="cr">' + typo(s.image ? s.image.credit : '') + '</div></div>';
   };
   L.offer = L.statement;
 
@@ -570,6 +582,14 @@
     el.setAttribute('data-n', s.n);
     var body = scene ? SC[scene](s) : L[layout](s);
     el.innerHTML = (layout === 'image-full' ? '' : chrome(s)) + body + foot(s);
+    // A photo the deploy didn't upload (public/admin/deck-img is filled on the machine that deploys) falls back to its labelled slot.
+    if (s.image) Array.prototype.forEach.call(el.querySelectorAll('.img > img'), function (i) {
+      i.addEventListener('error', function () {
+        var d = i.parentNode, ph = document.createElement('div');
+        ph.innerHTML = photo({ id: s.image.id, what: s.image.what, slide: s.image.slide, needsConsent: s.image.needsConsent, src: null });
+        d.className = d.className.replace(/\b(print|cut|contain)\b/g, ''); d.removeAttribute('style'); d.innerHTML = ph.firstChild.innerHTML;
+      });
+    });
     var max = 0;
     el.querySelectorAll('[data-b]').forEach(function (x) { max = Math.max(max, Number(x.getAttribute('data-b'))); });
     el.querySelectorAll('[data-steps]').forEach(function (x) { x.getAttribute('data-steps').split('|').forEach(function (p) { max = Math.max(max, Number(p.split(':')[0])); }); });

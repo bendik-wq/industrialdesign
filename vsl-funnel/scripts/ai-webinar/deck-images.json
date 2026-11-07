@@ -1,33 +1,41 @@
 {
-  "deck": "Josh Li, The Acquisition Masterclass, March 2026 (88 slides, PDF)",
-  "credit": "From Josh Li's masterclass deck, March 2026 · slide {slide}",
-  "how": "deck_images.py extracts every embedded image (pdfimages -png) and a 2x render of every page (pdftoppm -r 144) into deck/ (gitignored), then resolves each entry below to deck/resolved/<id>.png. source 'embedded' takes the largest picture on that slide (or 'pick': its index on the slide, 0 = first); source 'page' takes the whole slide render, optionally cropped with 'crop': [left, top, width, height] as fractions of the page. 'slide_exact': false means the outline only gave a range, so check deck/contact.html and correct 'deck_slide' before publishing. 'consent': 'verify' = shows a person, a name or a private conversation: the owner confirms, then set 'confirmed': true (the voiced build refuses unconfirmed ones). 'used_on' lists the webinar slides ([SLIDE: ...] titles in script-ai.md) that show it.",
+  "deck": "Josh Li, The Dealmaker: Acquisition Masterclass, November 2026 (127 slides, PDF)",
+  "pages": 127,
+  "credit": "From Josh Li's deck, The Dealmaker · slide {slide}",
+  "how": "deck_images.py extracts every embedded image (pdfimages -png, soft masks kept for cutouts) and a 2x render of every page (pdftoppm -r 144, 2880x1620) into deck/ (gitignored: the repo is public, nothing from the PDF is committed), then resolves each entry below to deck/resolved/<id>.png. source 'embedded' takes the largest picture on that slide (or 'pick': its index on the slide, 0 = first, as listed in deck/contact.html); source 'page' takes the whole slide render. 'crop': [left, top, width, height] as fractions of the source; 'tiles': several such crops laid out in a grid of 'cols' columns (a wide row made to fit a tall slot); 'matte': the colour a cutout (an image with a soft mask) is laid on, the colour of the slot it stands in. 'fit': 'cover' fills the slot when the source is big enough, else the deck shows it as a print at a size that stays sharp; 'contain' always shows the whole image; 'cutout' stands it on the slot's bottom edge; 'zoom' below 1 shows a print smaller (a headline taken from the deck). 'consent': 'verify' = shows a person other than Josh, a client, a name or a private conversation: the owner confirms, then set 'confirmed': true (the voiced build refuses unconfirmed ones, and the presented deck shows a labelled slot instead). 'used_on' lists the webinar slides ([SLIDE: ...] titles in script-ai.md) that show it. 'retired' lists ids from the March 2026 deck that this deck has no source for.",
   "excluded": [
     {
-      "deck_slide": 55,
-      "reason": "crude wording"
-    },
-    {
-      "deck_slide": 62,
-      "reason": "adult-industry screenshot"
-    },
-    {
       "deck_slide": 81,
-      "reason": "crude wording"
+      "reason": "adult-industry listings in the lead-scraping screenshot"
+    }
+  ],
+  "retired": [
+    {
+      "id": "lead-scraping",
+      "reason": "the only lead-scraping screenshot is on slide 81, which is excluded"
+    },
+    {
+      "id": "listings-by-industry",
+      "reason": "not in The Dealmaker deck"
+    },
+    {
+      "id": "pension-loi-chat",
+      "reason": "not in The Dealmaker deck"
+    },
+    {
+      "id": "josh-with-jy",
+      "reason": "not in The Dealmaker deck (slide 88 shows Jy's LinkedIn card instead: kingvets-case)"
     }
   ],
   "images": [
     {
       "id": "josh-portrait",
-      "deck_slide": 10,
-      "slide_exact": false,
-      "range": [
-        10,
-        13
-      ],
+      "deck_slide": 11,
       "source": "embedded",
-      "fit": "cover",
-      "what": "Josh Li, from his bio slide",
+      "pick": 0,
+      "matte": "#ebe9e4",
+      "fit": "cutout",
+      "what": "Josh Li, the cutout portrait from his bio slide",
       "consent": "verify",
       "confirmed": true,
       "used_on": [
@@ -36,103 +44,51 @@
     },
     {
       "id": "josh-handshake",
-      "deck_slide": 8,
-      "slide_exact": true,
+      "deck_slide": 12,
       "source": "embedded",
-      "pick": "largest",
+      "pick": 0,
       "fit": "cover",
-      "what": "Josh shaking hands with a seller at signing",
+      "what": "Josh shaking hands with the seller of his first clinic",
       "consent": "verify",
       "confirmed": true,
       "used_on": [
-        "Who's behind the method",
+        "Twice, the sellers financed the whole price",
+        "Who's behind the method"
+      ]
+    },
+    {
+      "id": "jc-clinic",
+      "deck_slide": 37,
+      "source": "embedded",
+      "pick": 0,
+      "fit": "cover",
+      "what": "Josh's first clinic from the street (no people)",
+      "consent": "ok",
+      "confirmed": true,
+      "used_on": [
         "Two acquisitions, both seller financed"
       ]
     },
     {
-      "id": "client-loi-chats",
-      "deck_slide": 8,
-      "slide_exact": true,
-      "source": "page",
-      "fit": "contain",
-      "what": "Client LOI chats: Cam's LOIs, the $46M-revenue LOI and the $2M offer structure",
-      "consent": "verify",
-      "confirmed": false,
-      "used_on": []
-    },
-    {
-      "id": "josh-with-jy",
-      "deck_slide": 8,
-      "slide_exact": true,
+      "id": "jc-clinic-front",
+      "deck_slide": 12,
       "source": "embedded",
-      "pick": 1,
+      "pick": 2,
       "fit": "cover",
-      "what": "Josh with Jy (KingVets)",
-      "consent": "verify",
-      "confirmed": false,
-      "used_on": []
-    },
-    {
-      "id": "silver-tsunami",
-      "deck_slide": 16,
-      "slide_exact": false,
-      "range": [
-        16,
-        19
-      ],
-      "source": "page",
-      "fit": "contain",
-      "what": "The silver tsunami: business owners reaching retirement",
+      "what": "The shopfront of Josh's second clinic (no people)",
       "consent": "ok",
       "confirmed": true,
       "used_on": [
-        "The owner with no successor"
-      ]
-    },
-    {
-      "id": "transfer-of-wealth",
-      "deck_slide": 17,
-      "slide_exact": false,
-      "range": [
-        16,
-        19
-      ],
-      "source": "page",
-      "fit": "contain",
-      "what": "The transfer of wealth from retiring owners",
-      "consent": "ok",
-      "confirmed": true,
-      "used_on": []
-    },
-    {
-      "id": "listings-by-industry",
-      "deck_slide": 18,
-      "slide_exact": false,
-      "range": [
-        16,
-        19
-      ],
-      "source": "page",
-      "fit": "contain",
-      "what": "Businesses listed for sale, by industry",
-      "consent": "ok",
-      "confirmed": true,
-      "used_on": [
-        "Where the deals are"
+        "What a holding company is for"
       ]
     },
     {
       "id": "quadrant-article",
-      "deck_slide": 19,
-      "slide_exact": false,
-      "range": [
-        16,
-        19
-      ],
+      "deck_slide": 87,
       "source": "embedded",
       "pick": "largest",
       "fit": "contain",
-      "what": "News: Quadrant clinches $200m radiology network (Carlisle)",
+      "what": "News: Quadrant clinches $200m radiology clinics network Carlisle Health",
       "consent": "ok",
       "confirmed": true,
       "used_on": [
@@ -140,25 +96,65 @@
       ]
     },
     {
-      "id": "student-results",
-      "deck_slide": 29,
-      "slide_exact": true,
+      "id": "silver-tsunami",
+      "deck_slide": 49,
       "source": "page",
+      "crop": [
+        0.04,
+        0.27,
+        0.48,
+        0.41
+      ],
       "fit": "contain",
-      "what": "Student results: chats from Arthur, Cam, Jason and Jy",
-      "consent": "verify",
-      "confirmed": false,
+      "what": "The silver tsunami: a generation of owners reaching retirement",
+      "consent": "ok",
+      "confirmed": true,
+      "used_on": [
+        "The owner with no successor"
+      ],
+      "zoom": 0.6
+    },
+    {
+      "id": "transfer-of-wealth",
+      "deck_slide": 50,
+      "source": "page",
+      "crop": [
+        0.05,
+        0.17,
+        0.9,
+        0.3
+      ],
+      "fit": "contain",
+      "what": "The greatest transfer of wealth of all time",
+      "consent": "ok",
+      "confirmed": true,
       "used_on": []
     },
     {
       "id": "three-c-model",
-      "deck_slide": 30,
-      "slide_exact": false,
-      "range": [
-        30,
-        31
-      ],
+      "deck_slide": 58,
       "source": "page",
+      "tiles": [
+        [
+          0.045,
+          0.54,
+          0.22,
+          0.28
+        ],
+        [
+          0.343,
+          0.54,
+          0.22,
+          0.28
+        ],
+        [
+          0.64,
+          0.54,
+          0.22,
+          0.28
+        ]
+      ],
+      "cols": 1,
       "fit": "contain",
       "what": "The 3C model: Credibility, Capital, Closing",
       "consent": "ok",
@@ -169,11 +165,49 @@
     },
     {
       "id": "jc-health-board",
-      "deck_slide": 36,
-      "slide_exact": true,
+      "deck_slide": 62,
       "source": "page",
+      "tiles": [
+        [
+          0.057,
+          0.48,
+          0.15,
+          0.31
+        ],
+        [
+          0.205,
+          0.48,
+          0.15,
+          0.31
+        ],
+        [
+          0.353,
+          0.48,
+          0.15,
+          0.31
+        ],
+        [
+          0.502,
+          0.48,
+          0.15,
+          0.31
+        ],
+        [
+          0.65,
+          0.48,
+          0.15,
+          0.31
+        ],
+        [
+          0.798,
+          0.48,
+          0.15,
+          0.31
+        ]
+      ],
+      "cols": 2,
       "fit": "contain",
-      "what": "The JC Health Group board",
+      "what": "The JC Health Group board: six portraits with their roles",
       "consent": "verify",
       "confirmed": true,
       "used_on": [
@@ -183,15 +217,16 @@
     },
     {
       "id": "outreach-dm",
-      "deck_slide": 40,
-      "slide_exact": false,
-      "range": [
-        32,
-        46
-      ],
+      "deck_slide": 63,
       "source": "page",
+      "crop": [
+        0.05,
+        0.36,
+        0.78,
+        0.26
+      ],
       "fit": "contain",
-      "what": "The owner outreach DM template",
+      "what": "A real outreach message from Josh's playbook (this one recruits board members)",
       "consent": "verify",
       "confirmed": true,
       "used_on": [
@@ -199,31 +234,32 @@
       ]
     },
     {
-      "id": "kingvets-case",
-      "deck_slide": 44,
-      "slide_exact": false,
-      "range": [
-        32,
-        46
-      ],
-      "source": "page",
-      "fit": "contain",
-      "what": "Jy and KingVets: the case study",
-      "consent": "verify",
-      "confirmed": false,
-      "used_on": []
-    },
-    {
       "id": "vendor-finance",
-      "deck_slide": 49,
-      "slide_exact": false,
-      "range": [
-        47,
-        57
-      ],
+      "deck_slide": 68,
       "source": "page",
+      "tiles": [
+        [
+          0.065,
+          0.31,
+          0.272,
+          0.2
+        ],
+        [
+          0.365,
+          0.31,
+          0.272,
+          0.235
+        ],
+        [
+          0.663,
+          0.31,
+          0.272,
+          0.2
+        ]
+      ],
+      "cols": 1,
       "fit": "contain",
-      "what": "How vendor (seller) finance works",
+      "what": "The three ways a purchase is funded: vendor finance, commercial lending, vendor rollover",
       "consent": "ok",
       "confirmed": true,
       "used_on": [
@@ -231,31 +267,26 @@
       ]
     },
     {
-      "id": "pension-loi-chat",
-      "deck_slide": 52,
-      "slide_exact": false,
-      "range": [
-        47,
-        57
-      ],
-      "source": "page",
-      "fit": "contain",
-      "what": "Pension plan LOIs chat",
-      "consent": "verify",
-      "confirmed": false,
-      "used_on": []
-    },
-    {
       "id": "dscr",
-      "deck_slide": 57,
-      "slide_exact": false,
-      "range": [
-        47,
-        57
-      ],
+      "deck_slide": 71,
       "source": "page",
+      "tiles": [
+        [
+          0.055,
+          0.33,
+          0.43,
+          0.33
+        ],
+        [
+          0.525,
+          0.33,
+          0.43,
+          0.33
+        ]
+      ],
+      "cols": 1,
       "fit": "contain",
-      "what": "The 1.5x debt service coverage test",
+      "what": "Josh's two rules: free cash flow beats debt service, never below 1.5 DSCR",
       "consent": "ok",
       "confirmed": true,
       "used_on": [
@@ -263,31 +294,27 @@
       ]
     },
     {
-      "id": "closing-six-steps",
-      "deck_slide": 59,
-      "slide_exact": false,
-      "range": [
-        58,
-        72
-      ],
+      "id": "deal-structure",
+      "deck_slide": 76,
       "source": "page",
       "fit": "contain",
-      "what": "Closing: the six steps, as a flow diagram",
+      "what": "A worked structure: bank, seller rollover and seller finance stacked",
       "consent": "ok",
       "confirmed": true,
       "used_on": []
     },
     {
-      "id": "lead-scraping",
-      "deck_slide": 61,
-      "slide_exact": false,
-      "range": [
-        58,
-        72
-      ],
+      "id": "closing-six-steps",
+      "deck_slide": 80,
       "source": "page",
+      "crop": [
+        0.05,
+        0.26,
+        0.9,
+        0.48
+      ],
       "fit": "contain",
-      "what": "Lead scraping: building a list of owner-run businesses",
+      "what": "The whole process: the six steps from sourcing to post-closing",
       "consent": "ok",
       "confirmed": true,
       "used_on": [
@@ -295,63 +322,156 @@
       ]
     },
     {
-      "id": "saul-nda",
-      "deck_slide": 65,
-      "slide_exact": false,
-      "range": [
-        58,
-        72
+      "id": "qoe-pnl",
+      "deck_slide": 82,
+      "source": "embedded",
+      "pick": "largest",
+      "crop": [
+        0.13,
+        0.0,
+        0.87,
+        1.0
       ],
-      "source": "page",
       "fit": "contain",
-      "what": "Saul's NDA",
+      "what": "Five years of P&L on a real target, under review (the target's name is struck out)",
       "consent": "verify",
       "confirmed": false,
       "used_on": []
     },
     {
       "id": "nbio-redacted",
-      "deck_slide": 67,
-      "slide_exact": false,
-      "range": [
-        58,
-        72
-      ],
-      "source": "page",
+      "deck_slide": 83,
+      "source": "embedded",
+      "pick": "largest",
       "fit": "contain",
-      "what": "A non-binding indication of interest (redacted)",
+      "what": "A real non-binding indicative offer from Josh's group, the seller redacted",
       "consent": "verify",
       "confirmed": false,
       "used_on": []
     },
     {
-      "id": "qoe-pnl",
-      "deck_slide": 70,
-      "slide_exact": false,
-      "range": [
-        58,
-        72
-      ],
+      "id": "saul-nda",
+      "deck_slide": 85,
       "source": "page",
       "fit": "contain",
-      "what": "Quality of earnings and the P&L a lender reads",
+      "what": "A client's chat: first NDA signed on an electrical and aircon business",
+      "consent": "verify",
+      "confirmed": false,
+      "used_on": [],
+      "crop": [
+        0.62,
+        0.42,
+        0.33,
+        0.17
+      ]
+    },
+    {
+      "id": "client-loi-chats",
+      "deck_slide": 86,
+      "source": "embedded",
+      "pick": "largest",
+      "fit": "contain",
+      "what": "A client's chat: new LOI signed, with the deal terms",
       "consent": "verify",
       "confirmed": false,
       "used_on": []
     },
     {
-      "id": "deal-structure",
-      "deck_slide": 74,
-      "slide_exact": false,
-      "range": [
-        73,
-        79
-      ],
-      "source": "page",
+      "id": "kingvets-case",
+      "deck_slide": 88,
+      "source": "embedded",
+      "pick": "largest",
       "fit": "contain",
-      "what": "A worked deal structure: debt, seller note and rollover",
-      "consent": "ok",
-      "confirmed": true,
+      "what": "Jy and KingVets: his LinkedIn card",
+      "consent": "verify",
+      "confirmed": false,
+      "used_on": []
+    },
+    {
+      "id": "student-results",
+      "deck_slide": 91,
+      "source": "page",
+      "crop": [
+        0.055,
+        0.44,
+        0.89,
+        0.37
+      ],
+      "fit": "contain",
+      "what": "Four members' chats: deals signing (names partly struck out)",
+      "consent": "verify",
+      "confirmed": false,
+      "used_on": []
+    },
+    {
+      "id": "members-two-deals",
+      "deck_slide": 13,
+      "source": "embedded",
+      "pick": "largest",
+      "fit": "contain",
+      "what": "A members' group chat: two deals closed the same day",
+      "consent": "verify",
+      "confirmed": false,
+      "used_on": []
+    },
+    {
+      "id": "josh-with-director",
+      "deck_slide": 90,
+      "source": "embedded",
+      "pick": 2,
+      "fit": "cover",
+      "what": "Josh with an older man in a dark blazer (a partner or adviser; who he is needs checking)",
+      "consent": "verify",
+      "confirmed": false,
+      "used_on": []
+    },
+    {
+      "id": "josh-deal-team",
+      "deck_slide": 90,
+      "source": "page",
+      "crop": [
+        0.05,
+        0.62,
+        0.9,
+        0.27
+      ],
+      "fit": "contain",
+      "what": "Four photos of Josh with operators, advisers and partners",
+      "consent": "verify",
+      "confirmed": false,
+      "used_on": []
+    },
+    {
+      "id": "board-at-palace",
+      "deck_slide": 1,
+      "source": "embedded",
+      "pick": 3,
+      "fit": "cover",
+      "what": "An older man in a suit with Queen Elizabeth II (likely a JC Health director; check who)",
+      "consent": "verify",
+      "confirmed": false,
+      "used_on": []
+    },
+    {
+      "id": "board-with-former-pm",
+      "deck_slide": 1,
+      "source": "embedded",
+      "pick": 4,
+      "fit": "cover",
+      "what": "Three men at a Centre for Independent Studies event, one of them a former prime minister",
+      "consent": "verify",
+      "confirmed": false,
+      "used_on": []
+    },
+    {
+      "id": "christian-case",
+      "deck_slide": 89,
+      "source": "embedded",
+      "pick": "largest",
+      "fit": "cover",
+      "what": "Josh with a client in the street (the case study names him and lists a criminal record)",
+      "consent": "verify",
+      "confirmed": false,
       "used_on": []
     }
   ]

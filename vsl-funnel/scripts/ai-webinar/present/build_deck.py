@@ -9,8 +9,11 @@ What it writes:
   src/admin/deck-data.ts       every slide (layout, scene, on-screen text, data rows), the words Josh says on it
                                (the presenter notes), the NLP levers (the script's <!-- --> margin notes), the room cues,
                                the planned time and the face-cam layout Studio switches to. Served only by /admin/deck.
-  public/assets/deck/img/      deck originals (deck/resolved/<id>.png from deck_images.py) that may be shown: consent "ok",
-                               or "verify" with "confirmed": true. Others stay a labelled photo slot.
+  public/admin/deck-img/       deck originals (deck/resolved/<id>.png from deck_images.py) that the slides use and may show:
+                               consent "ok", or "verify" with "confirmed": true. Others stay a labelled photo slot. Never
+                               committed (the repo is public; .gitignore): they reach the deployed deck because the deploy
+                               uploads public/ as it is on disk, and only the admin route /admin/deck/img/<id>.jpg serves
+                               them (src/admin/deck.ts). So run deck_images.py and this script where you deploy from.
   present/out/deck.html        the same deck as one self-contained file (gitignored): open it offline, and the PDF export
                                (export.mjs) and the checks run on it.
 The words come from build.py --dump, so the deck shows and says exactly what the audit (audit-script.ts) checked.
@@ -23,7 +26,7 @@ REPO = os.path.abspath(os.path.join(AIW, '..', '..'))
 SCRIPT = 'script-ai-josh.md'
 OUT_TS = os.path.join(REPO, 'src', 'admin', 'deck-data.ts')
 ASSETS = os.path.join(REPO, 'public', 'assets', 'deck')
-IMG_OUT = os.path.join(ASSETS, 'img')
+IMG_OUT = os.path.join(REPO, 'public', 'admin', 'deck-img')  # never under /assets: those are served without the Worker
 OUT_DIR = os.path.join(HERE, 'out')
 WPM = 160  # live presenting pace (the AI voice runs at 183); the presenter view paces against it
 
@@ -74,10 +77,16 @@ def images():
     for e in m['images']:
         ok = e.get('consent') == 'ok' or e.get('confirmed') is True
         src = os.path.join(AIW, 'deck', 'resolved', f"{e['id']}.png")
+        f = src if ok and os.path.exists(src) else None
         out[e['id']] = {'id': e['id'], 'what': e['what'], 'slide': e['deck_slide'], 'fit': e.get('fit', 'cover'),
-                        'credit': m['credit'].format(slide=e['deck_slide']), 'file': src if ok and os.path.exists(src) else None,
-                        'needsConsent': not ok}
+                        'credit': m['credit'].format(slide=e['deck_slide']), 'file': f, 'needsConsent': not ok, 'size': size(f) if f else None,
+                        'zoom': e.get('zoom')}
     return out
+
+
+def size(f):
+    from PIL import Image
+    with Image.open(f) as im: return list(im.size)
 
 
 def build():
@@ -110,7 +119,7 @@ def build():
             'n': i + 1, 'chapter': ch, 'title': title, 'sub': sub, 'layout': sg['layout'], 'scene': scene,
             'onscreen': sg['onscreen'], 'data': [[c.strip() for c in row.split('|')] for row in sg['data']],
             'caption': sg['caption'], 'kicker': sg['kicker'],
-            'image': ({k: im[k] for k in ('id', 'what', 'slide', 'fit', 'credit', 'needsConsent')} | {'src': f"/assets/deck/img/{im['id']}.jpg" if im['file'] else None}) if im else None,
+            'image': ({k: im[k] for k in ('id', 'what', 'slide', 'fit', 'credit', 'needsConsent')} | (({'src': f"/admin/deck/img/{im['id']}.jpg", 'w': im['size'][0], 'h': im['size'][1]} | ({'zoom': im['zoom']} if im['zoom'] else {})) if im['file'] else {'src': None})) if im else None,
             'notes': [{'text': p, 'aiOnly': bool(re.search(r'AI version of my voice', p))} for p in paras],
             'levers': n['levers'], 'cues': [{'id': c, 'label': (f"Poll: {POLLS[c[6:]][0]}" if c.startswith('POLL: ') and c[6:] in POLLS else CUE_LABEL.get(c, c))} for c in s['cues']],
             'poll': {'id': polls[0], 'q': POLLS[polls[0]][0], 'options': POLLS[polls[0]][1]} if polls and polls[0] in POLLS else None,
@@ -141,11 +150,15 @@ def main():
         print('deck-data.ts is up to date'); return
     open(OUT_TS, 'w').write(src)
     # Deck originals that may be shown, as JPEGs next to the deck app (none until deck_images.py has run and consent is given).
-    shown = [i for i in imgs.values() if i['file']]
+    # Only the images the slides use; anything else in the folder (no longer used, or consent taken back) is removed.
+    used = {s['image']['id'] for s in deck['slides'] if s['image']}
+    shown = [i for i in imgs.values() if i['file'] and i['id'] in used]
+    os.makedirs(IMG_OUT, exist_ok=True)
+    for f in os.listdir(IMG_OUT):
+        if f not in {f"{i['id']}.jpg" for i in shown}: os.remove(os.path.join(IMG_OUT, f))
     if shown:
-        os.makedirs(IMG_OUT, exist_ok=True)
         for i in shown:
-            subprocess.run(['python3', '-c', 'import sys;from PIL import Image;im=Image.open(sys.argv[1]).convert("RGB");im.thumbnail((1920,1920));im.save(sys.argv[2],quality=86)',
+            subprocess.run(['python3', '-c', 'import sys;from PIL import Image;im=Image.open(sys.argv[1]).convert("RGB");im.thumbnail((1920,1920));im.save(sys.argv[2],quality=90)',
                             i['file'], os.path.join(IMG_OUT, f"{i['id']}.jpg")], check=True)
     # The standalone file: the deck app with its data and images inlined.
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -158,7 +171,7 @@ def main():
     html = page_html(json.dumps(data, ensure_ascii=False).replace('</', '<\\/'), f'<style>{css}</style>', f'<script>{js}</script>', apply_origin='https://apply.grosfjeld-li.com')
     open(os.path.join(OUT_DIR, 'deck.html'), 'w').write(html)
     print(f"{len(deck['slides'])} slides, {len(deck['chapters'])} chapters, planned {deck['plannedSec'] // 60} min at {WPM} wpm; "
-          f"{len(shown)} deck originals shown, {sum(1 for i in imgs.values() if not i['file'])} photo slots pending")
+          f"{len(shown)} deck originals shown, {sum(1 for s in deck['slides'] if s['image'] and not s['image']['src'])} photo slots waiting (extraction or consent)")
     print('wrote', os.path.relpath(OUT_TS, REPO), 'and', os.path.relpath(os.path.join(OUT_DIR, 'deck.html'), REPO))
 
 

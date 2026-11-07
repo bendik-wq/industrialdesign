@@ -6,3 +6,8 @@ node_modules/
 
 # Design-study screenshots of public pages (docs/webinar-research.md): never committed.
 docs/webinar-refs/
+# Photos and screenshots from Josh's own deck (scripts/ai-webinar/deck_images.py -> present/build_deck.py): the repo is
+# public, so they are never committed. The deploy uploads them from disk; only /admin/deck/img/* serves them.
+public/admin/deck-img/
+public/assets/deck/img/
+docs/dealmaker-deck-notes.md

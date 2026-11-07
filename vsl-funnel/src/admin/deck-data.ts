@@ -112,12 +112,14 @@ export const DECK_DATA: DeckData = {
 "kicker": "A masterclass from G&L M&A Advisory",
 "image": {
 "id": "josh-portrait",
-"what": "Josh Li, from his bio slide",
-"slide": 10,
-"fit": "cover",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 10",
+"what": "Josh Li, the cutout portrait from his bio slide",
+"slide": 11,
+"fit": "cutout",
+"credit": "From Josh Li's deck, The Dealmaker · slide 11",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/josh-portrait.jpg",
+"w": 483,
+"h": 540
 },
 "notes": [
 {
@@ -243,12 +245,14 @@ export const DECK_DATA: DeckData = {
 "kicker": "What's behind this masterclass",
 "image": {
 "id": "josh-handshake",
-"what": "Josh shaking hands with a seller at signing",
-"slide": 8,
+"what": "Josh shaking hands with the seller of his first clinic",
+"slide": 12,
 "fit": "cover",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 8",
+"credit": "From Josh Li's deck, The Dealmaker · slide 12",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/josh-handshake.jpg",
+"w": 480,
+"h": 640
 },
 "notes": [
 {
@@ -615,12 +619,14 @@ export const DECK_DATA: DeckData = {
 "kicker": null,
 "image": {
 "id": "josh-handshake",
-"what": "Josh shaking hands with a seller at signing",
-"slide": 8,
+"what": "Josh shaking hands with the seller of his first clinic",
+"slide": 12,
 "fit": "cover",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 8",
+"credit": "From Josh Li's deck, The Dealmaker · slide 12",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/josh-handshake.jpg",
+"w": 480,
+"h": 640
 },
 "notes": [
 {
@@ -1417,7 +1423,7 @@ export const DECK_DATA: DeckData = {
 "chapter": 3,
 "title": "Where the deals are",
 "sub": "A listed business is an auction.",
-"layout": "image-left",
+"layout": "statement",
 "scene": null,
 "onscreen": [
 "The best deals are off market, with owners who have no successor."
@@ -1425,15 +1431,7 @@ export const DECK_DATA: DeckData = {
 "data": [],
 "caption": null,
 "kicker": null,
-"image": {
-"id": "listings-by-industry",
-"what": "Businesses listed for sale, by industry",
-"slide": 18,
-"fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 18",
-"needsConsent": false,
-"src": null
-},
+"image": null,
 "notes": [
 {
 "text": "Most owners who think about buying open a business for sale website, scroll the listings, and decide the good deals are gone. About the listings, they're right. A listed business is an auction. A broker has been paid to get the highest price, and every buyer in the market can see it.",
@@ -1451,7 +1449,7 @@ export const DECK_DATA: DeckData = {
 "poll": null,
 "at": 1454,
 "words": 93,
-"cam": "split"
+"cam": "spotlight"
 },
 {
 "n": 33,
@@ -1466,12 +1464,15 @@ export const DECK_DATA: DeckData = {
 "kicker": null,
 "image": {
 "id": "silver-tsunami",
-"what": "The silver tsunami: business owners reaching retirement",
-"slide": 16,
+"what": "The silver tsunami: a generation of owners reaching retirement",
+"slide": 49,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 16",
+"credit": "From Josh Li's deck, The Dealmaker · slide 49",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/silver-tsunami.jpg",
+"w": 1383,
+"h": 665,
+"zoom": 0.6
 },
 "notes": [
 {
@@ -1614,12 +1615,14 @@ export const DECK_DATA: DeckData = {
 "kicker": null,
 "image": {
 "id": "quadrant-article",
-"what": "News: Quadrant clinches $200m radiology network (Carlisle)",
-"slide": 19,
+"what": "News: Quadrant clinches $200m radiology clinics network Carlisle Health",
+"slide": 87,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 19",
+"credit": "From Josh Li's deck, The Dealmaker · slide 87",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/quadrant-article.jpg",
+"w": 955,
+"h": 374
 },
 "notes": [
 {
@@ -1722,16 +1725,18 @@ export const DECK_DATA: DeckData = {
 "scene": null,
 "onscreen": [],
 "data": [],
-"caption": "Josh Li with a seller at signing.",
+"caption": "One of Josh Li's clinics in JC Health Group. The seller financed 100% of the price.",
 "kicker": null,
 "image": {
-"id": "josh-handshake",
-"what": "Josh shaking hands with a seller at signing",
-"slide": 8,
+"id": "jc-clinic",
+"what": "Josh's first clinic from the street (no people)",
+"slide": 37,
 "fit": "cover",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 8",
+"credit": "From Josh Li's deck, The Dealmaker · slide 37",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/jc-clinic.jpg",
+"w": 559,
+"h": 372
 },
 "notes": [
 {
@@ -1856,12 +1861,14 @@ export const DECK_DATA: DeckData = {
 "kicker": null,
 "image": {
 "id": "dscr",
-"what": "The 1.5x debt service coverage test",
-"slide": 57,
+"what": "Josh's two rules: free cash flow beats debt service, never below 1.5 DSCR",
+"slide": 71,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 57",
+"credit": "From Josh Li's deck, The Dealmaker · slide 71",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/dscr.jpg",
+"w": 1239,
+"h": 1068
 },
 "notes": [
 {
@@ -2301,13 +2308,23 @@ export const DECK_DATA: DeckData = {
 "chapter": 5,
 "title": "What a holding company is for",
 "sub": "One company that owns the businesses.",
-"layout": "statement",
+"layout": "image-left",
 "scene": null,
 "onscreen": [],
 "data": [],
-"caption": null,
+"caption": "A clinic in JC Health Group, Josh Li's healthcare holding company.",
 "kicker": null,
-"image": null,
+"image": {
+"id": "jc-clinic-front",
+"what": "The shopfront of Josh's second clinic (no people)",
+"slide": 12,
+"fit": "cover",
+"credit": "From Josh Li's deck, The Dealmaker · slide 12",
+"needsConsent": false,
+"src": "/admin/deck/img/jc-clinic-front.jpg",
+"w": 835,
+"h": 461
+},
 "notes": [
 {
 "text": "It's worth noticing what kind of business JC Health Group is. It's a holding company: a company whose job is to own businesses, in my case clinics. That's the shape Dan is starting to picture. Not one heating business that gets bigger. A company that owns heating businesses, with a manager in each.",
@@ -2325,7 +2342,7 @@ export const DECK_DATA: DeckData = {
 "poll": null,
 "at": 2364,
 "words": 87,
-"cam": "spotlight"
+"cam": "split"
 },
 {
 "n": 55,
@@ -2957,12 +2974,14 @@ export const DECK_DATA: DeckData = {
 "kicker": null,
 "image": {
 "id": "vendor-finance",
-"what": "How vendor (seller) finance works",
-"slide": 49,
+"what": "The three ways a purchase is funded: vendor finance, commercial lending, vendor rollover",
+"slide": 68,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 49",
+"credit": "From Josh Li's deck, The Dealmaker · slide 68",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/vendor-finance.jpg",
+"w": 784,
+"h": 1143
 },
 "notes": [
 {
@@ -3075,12 +3094,14 @@ export const DECK_DATA: DeckData = {
 "kicker": null,
 "image": {
 "id": "jc-health-board",
-"what": "The JC Health Group board",
-"slide": 36,
+"what": "The JC Health Group board: six portraits with their roles",
+"slide": 62,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 36",
+"credit": "From Josh Li's deck, The Dealmaker · slide 62",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/jc-health-board.jpg",
+"w": 864,
+"h": 1506
 },
 "notes": [
 {
@@ -3944,11 +3965,13 @@ export const DECK_DATA: DeckData = {
 "image": {
 "id": "three-c-model",
 "what": "The 3C model: Credibility, Capital, Closing",
-"slide": 30,
+"slide": 58,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 30",
+"credit": "From Josh Li's deck, The Dealmaker · slide 58",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/three-c-model.jpg",
+"w": 634,
+"h": 1359
 },
 "notes": [
 {
@@ -4725,20 +4748,22 @@ export const DECK_DATA: DeckData = {
 "chapter": 11,
 "title": "The first week",
 "sub": "Illustrative.",
-"layout": "image-left",
+"layout": "image-full",
 "scene": null,
 "onscreen": [],
 "data": [],
-"caption": "Building a list of owner-run businesses that fit the buy box.",
+"caption": "The whole process, from Josh Li's deck. The first week starts at step one.",
 "kicker": null,
 "image": {
-"id": "lead-scraping",
-"what": "Lead scraping: building a list of owner-run businesses",
-"slide": 61,
+"id": "closing-six-steps",
+"what": "The whole process: the six steps from sourcing to post-closing",
+"slide": 80,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 61",
+"credit": "From Josh Li's deck, The Dealmaker · slide 80",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/closing-six-steps.jpg",
+"w": 2592,
+"h": 778
 },
 "notes": [
 {
@@ -4762,20 +4787,22 @@ export const DECK_DATA: DeckData = {
 "chapter": 11,
 "title": "The first outreach",
 "sub": "Illustrative.",
-"layout": "image-left",
+"layout": "image-full",
 "scene": null,
 "onscreen": [],
 "data": [],
-"caption": "An owner outreach message template.",
+"caption": "A real outreach message from Josh Li's playbook. This one recruits board members.",
 "kicker": null,
 "image": {
 "id": "outreach-dm",
-"what": "The owner outreach DM template",
-"slide": 40,
+"what": "A real outreach message from Josh's playbook (this one recruits board members)",
+"slide": 63,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 40",
+"credit": "From Josh Li's deck, The Dealmaker · slide 63",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/outreach-dm.jpg",
+"w": 2246,
+"h": 421
 },
 "notes": [
 {
@@ -7919,12 +7946,14 @@ export const DECK_DATA: DeckData = {
 "kicker": null,
 "image": {
 "id": "jc-health-board",
-"what": "The JC Health Group board",
-"slide": 36,
+"what": "The JC Health Group board: six portraits with their roles",
+"slide": 62,
 "fit": "contain",
-"credit": "From Josh Li's masterclass deck, March 2026 · slide 36",
+"credit": "From Josh Li's deck, The Dealmaker · slide 62",
 "needsConsent": false,
-"src": null
+"src": "/admin/deck/img/jc-health-board.jpg",
+"w": 864,
+"h": 1506
 },
 "notes": [
 {

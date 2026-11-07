@@ -8,11 +8,13 @@ disclosed in the opening and on every slide). The script (v3, see WEBINAR-NOTES.
 (`VOICE_ID=<clone> python3 build.py --script script-ai-josh.md`; the slide footer then says it's an AI version of his voice).
 
 1. Put the ElevenLabs API key in `scripts/ai-webinar/.key` (never committed). It's the same key as Funnel HQ → Integrations → Voice.
-2. Drop Josh's March 2026 deck (PDF) anywhere and run `python3 deck_images.py /path/to/deck.pdf`. It extracts the original images into
-   `deck/` (gitignored), resolves the ones mapped in `deck-images.json` and prints what's left: open `deck/contact.html` to check the
-   slide numbers marked "check slide number", fix `deck_slide` / `pick` / `crop` in the mapping, then `python3 deck_images.py --resolve`.
-   Images marked `"consent": "verify"` (people, names, private chats) need the owner's OK, then `"confirmed": true`.
-   Slides 55, 62 and 81 are excluded and never extracted.
+2. Drop Josh's deck, "The Dealmaker" (127-slide PDF, November 2026, from the owner's Drive), anywhere outside the repo and run
+   `python3 deck_images.py /path/to/deck.pdf` (about two minutes). It extracts the original images into `deck/` (gitignored: the
+   repo is public, so neither the PDF nor anything from it is ever committed), resolves the ones mapped in `deck-images.json` and
+   prints what's left: open `deck/contact.html` to check, fix `deck_slide` / `pick` / `crop` / `tiles` in the mapping, then
+   `python3 deck_images.py --resolve`. Images marked `"consent": "verify"` (people other than Josh, clients, names, private chats)
+   need the owner's OK, then `"confirmed": true`. Slide 81 is excluded and never extracted. What the deck adds beyond the script,
+   and the approval list: `docs/dealmaker-deck-notes.md`.
 3. `python3 build.py --slides` renders only the slide PNGs into `out-dry/slides` (seconds, no audio). `python3 build.py --dry` builds
    everything with silent placeholder audio into `out-dry/` (no credit used, live files untouched). Missing images show as placeholders.
 4. `VOICE_SPEED=0.92 python3 build.py` renders the voice (about 110,000 characters for the v3 script after the November 2026 desire pass; cached by text, so re-runs only pay for changed slides),
@@ -70,5 +72,13 @@ click. Research behind it: `docs/webinar-research.md`.
   `node present/export.mjs --shots DIR` also steps through every build at 1920x1080, checks the layout and writes
   screenshots and contact sheets.
 - **Photos:** each slot says which original goes there until `deck_images.py` has run; an original with
-  `"consent": "verify"` stays a slot until it is `"confirmed": true`. Then rerun `build_deck.py`.
+  `"consent": "verify"` stays a slot until it is `"confirmed": true`. Then rerun `build_deck.py`. A small original is shown
+  as a print at no more than 1.35x its own pixels (so it stays sharp), a big one fills its slot; captions sit beside or below.
+- **How the photos reach the deployed deck (an upload step, nothing in git):** `build_deck.py` writes the photos the slides
+  use to `public/admin/deck-img/<id>.jpg` (gitignored; it also deletes any that are no longer used or approved). The deploy
+  uploads `public/` as it is on disk, so on the machine you deploy from, before `npm run deploy`:
+  `python3 scripts/ai-webinar/deck_images.py /path/to/deck.pdf && python3 scripts/ai-webinar/present/build_deck.py`.
+  They are never under `/assets/` (served without the Worker): the Worker runs first for every other path, a direct request
+  for `/admin/deck-img/...` is a 404, and only `/admin/deck/img/<id>.jpg` (admins only) serves them. Deploy without that
+  step and each photo falls back to its labelled slot; nothing else breaks.
 - **Presenting live:** the AI-voice disclosure paragraph is struck through in the presenter notes ("AI voice only, skip live").
