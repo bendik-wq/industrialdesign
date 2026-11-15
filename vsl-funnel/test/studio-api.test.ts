@@ -342,7 +342,7 @@ describe('the Drive folder scan', () => {
     await setSettings({ GOOGLE_CLIENT_ID: 'cid', GOOGLE_CLIENT_SECRET: 'sec', GOOGLE_REFRESH_TOKEN: 'tok', STUDIO_AUTO_EDIT: 'off' });
     expect((await p.scanDrive(await rtFor())).imported).toBe(1);
     const v = sdb.prepare("SELECT * FROM studio_videos WHERE drive_raw_id = 'H2'").get() as Record<string, unknown>;
-    expect(v).toMatchObject({ status: 'skipped', stage_detail: 'Automatic editing is off. Press Edit to start.' });
+    expect(v).toMatchObject({ status: 'skipped', stage_detail: 'Raw file saved. Editing is off.' });
     expect(await (await api(`/videos/${v.id}/retry`, { method: 'POST', body: '{}' })).json()).toEqual({ ok: true, status: 'in_drive' });
   });
   it('a drive.file connection asks to reconnect instead of scanning', async () => {

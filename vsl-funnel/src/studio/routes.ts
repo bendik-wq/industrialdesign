@@ -270,7 +270,8 @@ studioAdmin.post('/videos/:id/stream', async (c) => {
 studioAdmin.get('/videos/:id/raw', async (c) => {
   const v = await recording(c);
   if (!v || !v.raw_key || !c.env.STUDIO || v.status === 'recording') return bad(c, STUDIO_COPY.notFound, 404);
-  return streamObject(c, c.env.STUDIO, v.raw_key, v.mime?.split(';')[0] || 'video/webm');
+  const ext = /\.(\w{2,4})$/.exec(v.raw_key)?.[1] ?? 'webm';
+  return streamObject(c, c.env.STUDIO, v.raw_key, v.mime?.split(';')[0] || 'video/webm', c.req.query('download') ? `${(v.title || 'recording').slice(0, 80)} (raw).${ext}` : undefined);
 });
 studioAdmin.get('/videos/:id/edited', async (c) => {
   const v = await recording(c);

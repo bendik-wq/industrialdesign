@@ -18,7 +18,7 @@ const STAGES = [
 ];
 const STATUS_LABEL = {
   recording: 'Recording', uploaded: 'Uploaded', in_drive: 'In Drive', queued: 'Queued', transcribing: 'Transcribing',
-  planning: 'Planning the edit', rendering: 'Rendering', delivering: 'Delivering to Drive', done: 'Delivered', failed: 'Failed', skipped: 'Skipped',
+  planning: 'Planning the edit', rendering: 'Rendering', delivering: 'Delivering to Drive', done: 'Delivered', failed: 'Failed', skipped: 'Raw file',
 };
 const BRAIN = { claude: 'Claude', 'workers-ai': 'Workers AI' };
 const REASONS = { silence: 'Silence', filler: 'Filler words', retake: 'Retakes', other: 'Other cuts' };
@@ -328,7 +328,33 @@ function stripHtml(segs, chapters, total) {
 
 function copyBtn(text, label = 'Copy') { return text ? `<button type="button" class="sb-btn sb-btn-quiet sb-btn-sm" data-copy="${esc(text)}">${label}</button>` : ''; }
 
+const rawOnly = () => state.data?.settings?.autoEdit === false;
+
+function rawSheetHtml(v, events) {
+  const id = encodeURIComponent(v.id);
+  const total = Number(v.duration_s) || 0;
+  const res = v.height ? `${v.width || ''}${v.width ? '×' : ''}${v.height}` : '';
+  const size = v.raw_size ? `${(Number(v.raw_size) / 1e9).toFixed(2)} GB` : '';
+  const ready = v.raw_key && v.status !== 'recording';
+  return `<div class="sb-sheet-bar"><div style="min-width:0"><p class="sb-eyebrow" style="margin:0 0 2px">Raw file</p><h2 class="sb-h2" id="sb-sheet-title">${esc(v.title || 'Untitled recording')}</h2></div>
+      <button class="sb-x" data-sheet="close" aria-label="Close">×</button></div>
+    <div class="sb-sheet-body">
+      <section><div class="sb-player"><div class="sb-player-k"><span>The recording</span><span>${esc([clock(total), res, size].filter(Boolean).join(' · '))}</span></div>
+        ${ready ? `<video controls preload="metadata" playsinline src="${API}/videos/${id}/raw" poster="${API}/videos/${id}/thumb" data-raw></video>` : '<div class="sb-ph">The recording appears here once it is uploaded.</div>'}</div></section>
+      <section class="sb-two">
+        <div><p class="sb-sec-k"><span>Get the file</span></p><ul class="sb-lines">
+          <li><span style="flex:1">Download the raw file</span>${ready ? `<a class="sb-link" href="${API}/videos/${id}/raw?download=1">Download</a>` : '<span class="sb-muted">Still uploading</span>'}</li>
+          <li><span style="flex:1">In Google Drive</span>${v.drive_raw_link ? `<a class="sb-link" href="${esc(v.drive_raw_link)}" target="_blank" rel="noopener">Open in Drive</a>` : '<span class="sb-muted">Not in Drive yet</span>'}</li>
+        </ul>
+        ${state.guest ? '' : '<p class="sb-sec-k" style="margin-top:24px"><span>Actions</span></p><div class="sb-actions"><button class="sb-btn sb-btn-danger" data-sheet="delete">Delete</button></div>'}</div>
+        <div><p class="sb-sec-k"><span>What happened</span></p>
+          ${events.length ? `<ul class="sb-lines sb-events">${events.slice().reverse().map((e) => `<li><span class="t">${esc(when(e.at).split(', ').pop())}</span><span>${esc(e.message)}</span></li>`).join('')}</ul>` : '<p class="sb-muted" style="margin:0">Nothing yet.</p>'}</div>
+      </section>
+    </div>`;
+}
+
 function sheetHtml(v, events, plan) {
+  if (rawOnly() && !['done', 'delivering'].includes(v.status)) return rawSheetHtml(v, events);
   const id = encodeURIComponent(v.id);
   const total = Number(v.duration_s) || 0;
   const segs = planSegments(plan, total);

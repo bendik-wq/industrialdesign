@@ -139,8 +139,8 @@ async function afterRaw(rt: Runtime, v: VideoRow): Promise<Advance> {
   const flags = studioFlags(rt);
   const go = await getState(rt.env, `go:${v.id}`);
   if (!flags.autoEdit && !go) {
-    await moveTo(rt.env, v, 'skipped', { stage_detail: 'Automatic editing is off. Press Edit to start.' });
-    await addEvent(rt.env, v.id, 'skipped', 'Waiting for you: automatic editing is off');
+    await moveTo(rt.env, v, 'skipped', { stage_detail: 'Raw file saved. Editing is off.' });
+    await addEvent(rt.env, v.id, 'skipped', 'Kept as the raw file (editing is off)');
     return DONE('skipped');
   }
   await delState(rt.env, `go:${v.id}`);
@@ -507,7 +507,7 @@ export async function scanDrive(rt: Runtime, now = Date.now()): Promise<ScanResu
       const r = await rt.env.DB.prepare(
         `INSERT OR IGNORE INTO studio_videos (id, title, source, created_at, updated_at, mime, raw_key, raw_size, drive_raw_id, drive_raw_link, status, progress, stage_detail, markers_json)
          VALUES (?, ?, 'drive', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, '[]')`,
-      ).bind(id, title, at, at, f.mimeType ?? 'video/mp4', `raw/${id}.${extn}`, Number(f.size), f.id, f.webViewLink ?? null, status, flags.autoEdit ? 'Copying from Drive' : 'Automatic editing is off. Press Edit to start.').run();
+      ).bind(id, title, at, at, f.mimeType ?? 'video/mp4', `raw/${id}.${extn}`, Number(f.size), f.id, f.webViewLink ?? null, status, flags.autoEdit ? 'Copying from Drive' : 'Raw file saved. Editing is off.').run();
       if (!Number((r as { meta?: { changes?: number } }).meta?.changes ?? 0)) continue;
       imported++;
       await addEvent(rt.env, id, status, `Found in the Drive folder: ${f.name} (${gb(Number(f.size))})`, now);
