@@ -1,0 +1,139 @@
+<title>G&amp;L Ad Reel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap">
+<style>
+/* Layout: a dark screening room — one column of ad "reels", each a phone-shaped player beside its brief. Single deliberate dark look. */
+:root {
+  --bg: #0b0b0d;
+  --panel: #131316;
+  --line: #26252a;
+  --fg: #ece7de;
+  --muted: #8f897f;
+  --amber: #d9a45e;
+  --display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --body: "Inter", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 56px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: grid; gap: 14px; padding-bottom: 40px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--amber); }
+h1 { font: 400 clamp(40px, 7vw, 72px)/1.02 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+.lede { max-width: 62ch; color: var(--muted); margin: 0; }
+.ad { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 40px; padding-block: 48px; border-bottom: 1px solid var(--line); }
+@media (max-width: 720px) { .ad { grid-template-columns: minmax(0, 1fr); gap: 24px; } .phone { max-width: 300px; } }
+.phone { width: 100%; aspect-ratio: 9 / 16; background: #000; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; max-width: 100%; }
+.phone video { width: 100%; height: 100%; display: block; object-fit: cover; background: #000; }
+.brief { display: grid; gap: 18px; align-content: start; min-width: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font: 12px/1.4 var(--mono); color: var(--muted); }
+.meta b { color: var(--fg); font-weight: 500; }
+h2 { font: 400 clamp(30px, 4.4vw, 44px)/1.05 var(--display); margin: 0; text-wrap: balance; }
+.hook { font: 400 22px/1.35 var(--display); margin: 0; padding-left: 16px; border-left: 2px solid var(--amber); max-width: 40ch; }
+.shift { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; font-size: 14px; margin: 0; }
+.shift dt { font: 12px/1.6 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.shift dd { margin: 0; }
+ol.beats { margin: 0; padding: 0; list-style: none; counter-reset: b; display: grid; gap: 6px; }
+ol.beats li { counter-increment: b; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; font-size: 14px; }
+ol.beats li::before { content: attr(data-t); font: 12px/1.7 var(--mono); color: var(--amber); font-variant-numeric: tabular-nums; }
+.pending { display: grid; place-items: center; height: 100%; padding: 24px; text-align: center; font: 12px/1.6 var(--mono); color: var(--muted); }
+section.bank { padding-block: 48px; display: grid; gap: 20px; }
+.table { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 11px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--panel); }
+td:first-child { font: 12px/1.6 var(--mono); color: var(--amber); white-space: nowrap; }
+td.h { font: 400 17px/1.35 var(--display); }
+tr:last-child td { border-bottom: 0; }
+.notes { display: grid; gap: 10px; max-width: 68ch; color: var(--muted); font-size: 14px; }
+.notes p { margin: 0; }
+.notes b { color: var(--fg); font-weight: 500; }
+a { color: var(--amber); }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">G&amp;L M&amp;A Advisory · Paid social · v1 animatics</span>
+    <h1>The odds are 1&nbsp;in&nbsp;1.</h1>
+    <p class="lede">Three story ads built on the structure of the "Zone of Genius" reference: a certainty hook, cards that break mid-sentence, one controlling motif (the key), a villain, historical authority, the mechanism, Josh's approved proof, a desire montage, and a white identity card. Visuals are generated typography and motion graphics. Cinematic footage slots in once the video-generation key is connected.</p>
+  </header>
+
+  <article class="ad" id="a1">
+    <div class="phone"><video src="a1_one_in_one.mp4" poster="a1_one_in_one.jpg" controls playsinline preload="metadata"></video></div>
+    <div class="brief">
+      <div class="meta"><span><b>A1</b> flagship</span><span>9:16 · 1080×1920</span><span>about 1:35</span><span>Reels, Stories, Shorts</span></div>
+      <h2>1 in 1</h2>
+      <p class="hook">Do you know the odds you'll leave your business one day? 1 in 1. That's guaranteed.</p>
+      <dl class="shift"><dt>Belief now</dt><dd>Leaving the business is the end of the story.</dd><dt>Belief after</dt><dd>Every owner's exit is somebody's entry, and that somebody could be you.</dd></dl>
+      <ol class="beats">
+        <li data-t="0:00">Certainty hook: 1 in 1. You'll sell it, hand it down, or close the doors.</li>
+        <li data-t="0:12">The street at night, windows going dark: every owner will do the same.</li>
+        <li data-t="0:21">Turn: "But what are the odds that somebody is you?"</li>
+        <li data-t="0:25">Authority: the biggest companies weren't only built, they were bought.</li>
+        <li data-t="0:35">Villain: "work harder", 52 Saturdays filling up one by one.</li>
+        <li data-t="0:50">Belief shift: what if growth is something you buy? Seller finance, named.</li>
+        <li data-t="1:05">Proof: Josh's first two companies, both 100% seller financed.</li>
+        <li data-t="1:11">The reach: the second site, the van, the Saturday that's yours again.</li>
+        <li data-t="1:22">Bookend and white card: "Find out if you're ready to buy."</li>
+      </ol>
+    </div>
+  </article>
+
+  <article class="ad" id="a2">
+    <div class="phone"><video src="a2_buy_the_years.mp4" poster="a2_buy_the_years.jpg" controls playsinline preload="metadata"></video></div>
+    <div class="brief">
+      <div class="meta"><span><b>A2</b> belief shift</span><span>9:16 · 1080×1920</span><span>about 0:45</span><span>Reels, feed</span></div>
+      <h2>Buy the years</h2>
+      <p class="hook">Time is the one thing money can't buy. Everyone says so. They're wrong.</p>
+      <dl class="shift"><dt>Belief now</dt><dd>Growth takes decades of my own time.</dd><dt>Belief after</dt><dd>Someone already spent those decades, and I can buy them.</dd></dl>
+      <ol class="beats">
+        <li data-t="0:00">Contrarian hook, then "They're wrong" on a bass hit.</li>
+        <li data-t="0:07">A ticking clock: an owner spent 25 years finding customers, training the team, earning the name.</li>
+        <li data-t="0:17">25 squares fill: "You could spend the next 25 years doing the same."</li>
+        <li data-t="0:20">"Or you could buy them." Seller finance explained in one line.</li>
+        <li data-t="0:30">Proof, then "The years are for sale. Most owners never ask the price."</li>
+        <li data-t="0:39">White card.</li>
+      </ol>
+    </div>
+  </article>
+
+  <article class="ad" id="a3">
+    <div class="phone"><video src="a3_competitor.mp4" poster="a3_competitor.jpg" controls playsinline preload="metadata"></video></div>
+    <div class="brief">
+      <div class="meta"><span><b>A3</b> cutdown</span><span>9:16 · 1080×1920</span><span>0:28</span><span>Reels, Shorts</span></div>
+      <h2>Your competitor</h2>
+      <p class="hook">The odds your biggest competitor walks away one day? 1 in 1.</p>
+      <dl class="shift"><dt>Belief now</dt><dd>My competitor is a threat.</dd><dt>Belief after</dt><dd>My competitor's customers, team and phone number are an acquisition.</dd></dl>
+      <ol class="beats">
+        <li data-t="0:00">Certainty hook aimed at the owner's sharpest desire object.</li>
+        <li data-t="0:05">Their customers. Their team. Their phone number. Someone is going to own all of it.</li>
+        <li data-t="0:12">"Why not you?" Seller finance in one line, then Josh's proof.</li>
+        <li data-t="0:23">White card.</li>
+      </ol>
+    </div>
+  </article>
+
+  <section class="bank">
+    <span class="eyebrow">Hook bank · the next ones to cut</span>
+    <h2>More "1 in 1" openers</h2>
+    <div class="table"><table>
+      <thead><tr><th>#</th><th>Hook</th><th>Pivot</th></tr></thead>
+      <tbody>
+        <tr><td>A3</td><td class="h">Every business you drive past today will have a new owner one day. Every single one.</td><td>Most owners never ask who.</td></tr>
+        <tr><td>A4</td><td class="h">Every sign on your street will one day carry someone else's name.</td><td>Some of them could carry yours.</td></tr>
+        <tr><td>A5</td><td class="h">100% of business owners stop working one day. Not 99. 100.</td><td>The only choice is what you own when you do.</td></tr>
+        <tr><td>A6</td><td class="h">How many businesses will you build in your life? Probably one. How many could you own?</td><td>There's no rule that says you can only build.</td></tr>
+        <tr><td>B4</td><td class="h">You can buy a house someone else built. Nobody thinks twice. Why not a business?</td><td>The customers, team and name already exist.</td></tr>
+        <tr><td>C3</td><td class="h">The person selling a business can be the one who finances it.</td><td>It's called seller finance.</td></tr>
+        <tr><td>D2</td><td class="h">You will hand over the keys one day. The only question is how many sets you'll have.</td><td>One key becomes a ring of keys.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="notes">
+      <p><b>Guardrails.</b> The only result shown is Josh's own approved fact (two acquisitions, both 100% seller financed). There are no income claims, no countdowns and no "free". The CTA is "Apply for a strategy call". No hook calls out age, money or any other personal attribute.</p>
+      <p><b>Next pass.</b> Swap the motion graphics for generated cinematic footage in the reference's style (the street at dusk, a hand passing keys, a workshop at 9:40 pm), add a voiceover, then cut 4:5 feed and 16:9 YouTube versions.</p>
+    </div>
+  </section>
+</div>
