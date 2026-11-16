@@ -38,6 +38,8 @@ def compose(mod, mid_path):
     segs = mod.SCRIPT
     total = sum(g["d"] for g in segs)
     music = getattr(mod, "MUSIC", [(0, 1), (total * 0.3, 3), (total * 0.7, 5), (total - 6, 1)])
+    hits_only = bool(os.environ.get("HITS_ONLY"))
+    if hits_only: music = [(0, -1)]
     dark = getattr(mod, "DARK", [])  # [(start, end)] seconds
     hits, t = [], 0.0
     for g in segs:
@@ -138,11 +140,12 @@ def compose(mod, mid_path):
         ev.append((h + 0.5, mido.Message("note_off", channel=9, note=35, velocity=0)))
 
     # resolution on the white card
-    for n in CHORDS["Fadd9"]:
+    for n in ([] if hits_only else CHORDS["Fadd9"]):
         note(CH["slow"], n, white_at, total - white_at + 2.5, 72)
         note(CH["choir"], n + 12, white_at, total - white_at + 2.5, 52) if n > 50 else None
-    note(CH["piano"], 65, white_at, 4.0, 70); note(CH["piano"], 72, white_at + 0.4, 3.6, 62); note(CH["piano"], 77, white_at + 0.8, 3.2, 56)
-    note(CH["timp"], 41, white_at, 2.5, 90)
+    if not hits_only:
+        note(CH["piano"], 65, white_at, 4.0, 70); note(CH["piano"], 72, white_at + 0.4, 3.6, 62); note(CH["piano"], 77, white_at + 0.8, 3.2, 56)
+        note(CH["timp"], 41, white_at, 2.5, 90)
 
     # write
     mf = mido.MidiFile(ticks_per_beat=TPB); tr = mido.MidiTrack(); mf.tracks.append(tr)

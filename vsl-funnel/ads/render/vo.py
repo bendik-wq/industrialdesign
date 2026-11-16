@@ -1,6 +1,6 @@
-"""Narration for an ad script via Fish Audio TTS, timed to the cards.
+"""Narration for an ad script via Fish Audio TTS (through Treg), timed to the cards.
 
-  FISH_API_KEY=... python3 vo.py <script.py> <voice_id> <outdir>
+  TREG_TOKEN=... python3 vo.py <script.py> <voice_id> <outdir>
 
 Groups consecutive segments into sentences (a card split across several segments is read
 once), synthesises each sentence, then writes:
@@ -23,12 +23,25 @@ def say(text):
 
 
 def tts(text, voice, path, key):
-    body = json.dumps({"text": text, "reference_id": voice, "format": "wav", "sample_rate": SR,
-                       "latency": "normal", "prosody": {"speed": 0.92}}).encode()
-    req = urllib.request.Request("https://api.fish.audio/v1/tts", data=body, method="POST",
-                                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json", "model": "s1"})
-    with urllib.request.urlopen(req, timeout=120) as r, open(path + ".src", "wb") as f:
-        f.write(r.read())
+    """Fish Audio S2.1 Pro through the Treg gateway (MCP call_media); key = Treg team token."""
+    import base64
+    args = {"endpoint_id": "fishaudio.tts.s2-1-pro", "headers": {"model": "s2.1-pro"},
+            "body": {"text": text, "reference_id": voice, "format": "wav", "sample_rate": 44100,
+                     "prosody": {"speed": float(os.environ.get("VO_SPEED", "0.92"))}}}
+    payload = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "call_media", "arguments": args}}).encode()
+    req = urllib.request.Request("https://treg.to/mcp/", data=payload, method="POST", headers={
+        "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Accept": "application/json, text/event-stream"})
+    raw = urllib.request.urlopen(req, timeout=300).read().decode()
+    audio = None
+    for line in raw.splitlines():
+        line = line.removeprefix("data: ").strip()
+        if line.startswith("{"):
+            for c in (json.loads(line).get("result") or {}).get("content", []):
+                if c.get("type") == "audio": audio = base64.b64decode(c["data"])
+    if audio is None:
+        raise RuntimeError("no audio from Treg: " + raw[:400])
+    with open(path + ".src", "wb") as f:
+        f.write(audio)
     # normalise format, trim silence at both ends
     subprocess.run(["sox", path + ".src", "-r", str(SR), "-c", "1", "-b", "16", path, "silence", "1", "0.02", "0.5%",
                     "reverse", "silence", "1", "0.05", "0.5%", "reverse"], check=True)
@@ -39,7 +52,7 @@ def tts(text, voice, path, key):
 
 def main():
     script, voice, outdir = sys.argv[1], sys.argv[2], sys.argv[3]
-    key = os.environ["FISH_API_KEY"]
+    key = os.environ["TREG_TOKEN"]
     os.makedirs(outdir, exist_ok=True)
     s = importlib.util.spec_from_file_location("m", script); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
     segs = [dict(g) for g in m.SCRIPT]
