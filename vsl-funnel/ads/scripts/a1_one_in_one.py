@@ -56,8 +56,13 @@ SCRIPT = [
     # --- bookend closes ---
     dict(d=2.8, card="The odds you'll leave your business are 1 in 1.", size=64),
     dict(d=2.2, card="But the odds you're the one buying?"),
-    dict(d=0.9, card="That"),
+    dict(d=0.9, card="That", vo=""),
     dict(d=1.6, card="That part starts here."),
     dict(d=2.8, bg="white", card="Find out if you're ready to buy.", size=66, hold=True),
     dict(d=3.2, bg="white", card="G&L M&A Advisory", size=60, note="Apply for a strategy call", hold=True),
 ]
+
+# Score: (seconds, level 0-5). Quiet piano hook → street builds → authority swells →
+# villain drops dark → belief shift climbs → proof → full at the reach → solo piano bookend.
+MUSIC = [(0, 1), (12.0, 2), (23.8, 3), (34.7, 1), (44.0, 2), (52.1, 3), (60.0, 4), (73.8, 5), (84.0, 1)]
+DARK = [(34.7, 52.1)]

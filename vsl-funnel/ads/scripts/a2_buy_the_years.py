@@ -23,3 +23,6 @@ SCRIPT = [
     dict(d=2.8, bg="white", card="Find out if you're ready to buy.", size=66, hold=True),
     dict(d=3.0, bg="white", card="G&L M&A Advisory", size=60, note="Apply for a strategy call", hold=True),
 ]
+
+MUSIC = [(0, 1), (4.6, 2), (6.4, 3), (17.2, 4), (29.6, 5)]
+DARK = [(6.4, 17.2)]
