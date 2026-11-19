@@ -13,7 +13,8 @@ import importlib.util, json, os, re, subprocess, sys, urllib.request, wave
 import numpy as np
 
 SR = 48000
-SPOKEN = [(r"\b1 in 1\b", "one in one"), (r"100%", "one hundred percent"), (r"\b52\b", "fifty-two"),
+SPOKEN = [(r"\$1M\+", "a million dollars or more"), (r"\b1\.5x\b", "one and a half times"), (r"\$1 billion", "one billion dollars"),
+          (r"\$(\d+) million", r"\1 million dollars"), (r"\b1 in 1\b", "one in one"), (r"100%", "one hundred percent"), (r"\b52\b", "fifty-two"),
           (r"\b25\b", "twenty-five"), (r"G&L M&A Advisory", "G and L, M and A Advisory"), (r"&", "and")]
 
 

@@ -1,21 +1,23 @@
 # A1 · "1 in 1" — flagship story ad (~95 s). Structure modelled on ref D (bookended odds hook,
 # fragmented cards, one controlling motif = THE KEY, villain, historical authority, mechanism,
 # proof, desire montage, white identity card). Proof: only approved facts (WEBINAR-NOTES.md).
+import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _common import disqualify, mechanism, proof, cta
 TITLE = "1 in 1"
 SCRIPT = [
     # --- hook (bookend opens) ---
     dict(d=3.2, card="Do you know the odds you'll leave your business one day?", size=66),
-    dict(d=2.0, card="1 in 1.", big=True, hit=True),
-    dict(d=1.7, card="That's guaranteed."),
-    dict(d=1.4, card="You'll sell it.", bg="key"),
-    dict(d=1.4, card="Hand it down.", bg="key"),
-    dict(d=1.9, card="Or close the doors.", bg="key"),
+    dict(d=2.0, card="1 in 1.", big=True, hit=True, vo="One in one, and that's guaranteed."),
+    dict(d=1.7, card="That's guaranteed.", vo=""),
+    dict(d=1.4, card="You'll sell it.", bg="key", vo="You'll sell it, hand it down, or close the doors."),
+    dict(d=1.4, card="Hand it down.", bg="key", vo=""),
+    dict(d=1.9, card="Or close the doors.", bg="key", vo=""),
     dict(d=0.5),
     dict(d=2.6, bg="street", sub="Every owner on your street will do the same."),
     dict(d=2.6, bg="street", dim=True, sub="One by one, the keys change hands."),
     dict(d=2.4, bg="street", sub="Somebody is going to own what they built."),
-    dict(d=1.4, card="But what are the odds"),
-    dict(d=2.2, card="that somebody is you?", hit=True),
+    dict(d=1.8, card="The only question that matters:"),
+    dict(d=2.2, card="will that somebody be you?", hit=True),
     dict(d=0.5),
     # --- historical authority ---
     dict(d=1.5, card="For over a hundred years,", bg="ledger"),
@@ -28,38 +30,34 @@ SCRIPT = [
     dict(d=1.5, card="Then someone told you"),
     dict(d=1.3, card="the only way to grow"),
     dict(d=1.8, card="was to work harder."),
-    dict(d=2.4, bg="squares", n=18, sub="More hours. More staff. More ads."),
+    dict(d=2.6, bg="squares", n=18, sub="Longer hours, a bigger team, another ad budget."),
     dict(d=2.2, bg="squares", n=34, sub="One customer at a time."),
     dict(d=2.6, bg="squares", n=52, sub="52 Saturdays a year.", tick=True),
     dict(d=2.8, sub="And when it didn't grow fast enough, you thought it was you."),
     dict(d=2.2, sub="You may have even believed it."),
     dict(d=0.6),
     # --- belief shift ---
-    dict(d=1.3, card="But what if growth"),
-    dict(d=1.7, card="isn't something you build?"),
-    dict(d=2.3, card="What if it's something you buy?", hit=True),
+        dict(d=2.2, card="Growth isn't only something you build."),
+    dict(d=1.8, card="You can buy it.", hit=True),
     dict(d=3.0, bg="clock", sub="Somewhere near you, an owner spent decades building the customers, the team, the name."),
-    dict(d=2.6, bg="clock", tick=True, sub="A seller can agree to be paid over time,"),
-    dict(d=2.4, bg="clock", tick=True, sub="out of the profits of the business itself."),
-    dict(d=1.0, card="It's called"),
-    dict(d=2.0, card="seller finance."),
+    dict(d=2.4, card="And you don't need the cash to buy it.", hit=True),
+    *disqualify(),
+    *mechanism(),
     # --- proof (approved facts only) ---
-    dict(d=3.0, card="Josh Li bought his first two companies this way.", size=64, bg="key"),
-    dict(d=2.4, card="Both 100% seller financed.", size=64, bg="key", note="Josh Li · founder, JC Health Group"),
+    *proof(),
     # --- desire montage (the reach) ---
     dict(d=1.6, bg="warm", sub="The second site."),
     dict(d=1.7, bg="warm", sub="The van with your name on it."),
     dict(d=1.9, bg="warm", sub="The competitor who's now your team."),
     dict(d=2.2, bg="warm", sub="The Saturday that's yours again."),
-    dict(d=2.2, card="Imagine being the one who buys.", bg="warm"),
+    dict(d=2.2, card="Be the one who buys.", bg="warm"),
     dict(d=0.6),
     # --- bookend closes ---
     dict(d=2.8, card="The odds you'll leave your business are 1 in 1.", size=64),
     dict(d=2.2, card="But the odds you're the one buying?"),
     dict(d=0.9, card="That", vo=""),
     dict(d=1.6, card="That part starts here."),
-    dict(d=2.8, bg="white", card="Find out if you're ready to buy.", size=66, hold=True),
-    dict(d=3.2, bg="white", card="G&L M&A Advisory", size=60, note="Apply for a strategy call", hold=True),
+    *cta(),
 ]
 
 # Score: (seconds, level 0-5). Quiet piano hook → street builds → authority swells →
