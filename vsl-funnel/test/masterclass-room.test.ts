@@ -114,7 +114,7 @@ describe('the application sheet in the masterclass room', () => {
     expect(cfg.answers.revenue).toBe('3_10m'); // from the registration's revenue band
     expect(cfg.answers.business).toBe('HVAC');
     expect(cfg).toMatchObject({ name: 'Dana Lee', email: 'dana@example.com', submitted: false, preview: false });
-    expect(cfg.questions.map((qq) => qq.id)).toContain('why_now');
+    expect(cfg.questions.map((qq) => qq.id)).toEqual(['role', 'revenue', 'profit', 'timeline', 'readiness']);
     expect(await applicationConfig(rt, reg(), false)).toBeNull();
     // The AI edition's timeline moves the card with its pitch.
     rt = makeRt({ ...SETTINGS, WEBINAR_PITCH_AT: '' , WEBINAR_EDITION: 'ai' });
@@ -175,8 +175,8 @@ describe('the application sheet in the masterclass room', () => {
   });
   it('a missing answer points at its question', async () => {
     seed();
-    const { why_now: _w, ...partial } = APP_ANSWERS;
-    await expect(submitMasterclassApplication(rt, reg(), { answers: partial }, null)).rejects.toMatchObject({ field: 'why_now', status: 400 });
+    const { readiness: _r, ...partial } = APP_ANSWERS;
+    await expect(submitMasterclassApplication(rt, reg(), { answers: partial }, null)).rejects.toMatchObject({ field: 'readiness', status: 400 });
     await expect(submitMasterclassApplication(rt, reg(), { answers: { ...APP_ANSWERS, role: 'not-an-option' } }, null)).rejects.toMatchObject({ field: 'role' });
   });
 });

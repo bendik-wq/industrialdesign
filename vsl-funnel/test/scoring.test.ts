@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normaliseAnswer, scoreApplication, tierFromScore } from '../src/funnel/scoring';
-import { APPLICATION } from '../src/config';
+import { APPLICATION_ALL } from '../src/config';
 
 const strong = {
   business: 'Commercial HVAC services across Sydney, 25 staff',
@@ -17,7 +17,7 @@ const strong = {
 describe('scoreApplication', () => {
   it('scores a $3-10M owner ready to acquire as A', () => {
     const r = scoreApplication(strong, 'AU');
-    expect(r.score).toBe(100); // 103 raw points, clamped to 100
+    expect(r.score).toBe(88); // role 20 + revenue 22 + profit 16 + timeline 15 + readiness 15 (retired questions no longer score)
     expect(r.tier).toBe('A');
     expect(r.caps).toEqual([]);
   });
@@ -78,7 +78,7 @@ describe('scoreApplication', () => {
 });
 
 describe('normaliseAnswer', () => {
-  const q = (id: string) => APPLICATION.find((x) => x.id === id)!;
+  const q = (id: string) => APPLICATION_ALL.find((x) => x.id === id)!;
   it('validates single choice', () => {
     expect(normaliseAnswer(q('revenue'), 'gt10m')).toBe('gt10m');
     expect(normaliseAnswer(q('revenue'), 'lots')).toBeNull();

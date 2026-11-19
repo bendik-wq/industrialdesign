@@ -1,5 +1,5 @@
 import type { Runtime } from '../app';
-import { APPLICATION, BRAND, FAQS, VOICE_AGENT, voiceSystemPrompt } from '../config';
+import { APPLICATION, APPLICATION_ALL, BRAND, FAQS, VOICE_AGENT, voiceSystemPrompt } from '../config';
 import { hmacHex, safeEqual } from '../lib/crypto';
 import { newId, newRefCode } from '../lib/ids';
 import { getSecret } from '../lib/secret';
@@ -396,7 +396,7 @@ async function toolCalls(rt: Runtime, m: VapiMessage) {
 /** Maps structured call data onto application answers (only values that match an option, only where none exists). */
 export function answersFromCall(structured: Record<string, unknown>, existing: Record<string, unknown>) {
   const out: Record<string, string> = {};
-  for (const q of APPLICATION) {
+  for (const q of APPLICATION_ALL) { // retired questions too: the call still asks what the form no longer does
     if (q.type === 'contact' || existing[q.id] !== undefined) continue;
     const v = structured[q.id];
     if (typeof v !== 'string' || !v.trim()) continue;

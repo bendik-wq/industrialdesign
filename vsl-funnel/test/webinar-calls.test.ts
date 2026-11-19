@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Runtime } from '../src/app';
 import { auditCopy, auditEmail } from '../src/content/copy-rules';
 import { WEBINAR_CALL_CONSENT, recordCallConsent } from '../src/integrations/call-consent';
-import { CONSENT_COPY, consentBoxes } from '../src/integrations/consent-gate';
+import { CONSENT_COPY, CONSENT_ONE, consentBoxes } from '../src/integrations/consent-gate';
 import { handleElevenWebhook, processCallQueue, type OutboundCall } from '../src/integrations/elevenlabs';
 import {
   DEFAULT_STEPS, STEP_META, W_FIRST_MESSAGE, W_KINDS, buildWebinarAgent, callVariables, ctxForRef, finishWebinarCall, linkMail, planWebinarCalls, saveConfig, scriptIssues,
@@ -330,15 +330,16 @@ describe('consent, caps and calling hours', () => {
     expect((await getLead(rt.env, b))!.call_consent_at).toBeNull();
   });
 
-  it('the webinar, live and challenge forms carry the two unticked boxes with the same wording', () => {
+  it('the webinar, live and challenge forms carry the one unticked box with the same wording', () => {
     const html = fs.readFileSync(`${node.cwd()}/public/webinar.html`, 'utf8');
-    expect(html).toContain('<input type="checkbox" name="call_consent"><span data-slot="consent_call"></span>');
-    expect(html).toContain('<input type="checkbox" name="sms_consent"><span data-slot="consent_sms"></span>');
-    expect(fs.readFileSync(`${node.cwd()}/src/webinar/pages.ts`, 'utf8')).toContain('consent_call: esc(CONSENT_COPY.call), consent_sms: esc(CONSENT_COPY.sms)');
+    expect(html).toContain('<input type="checkbox" name="contact_consent"><span><strong data-slot="consent_one_label"></strong><br><small data-slot="consent_one_text"></small></span>');
+    expect(html).not.toContain('name="call_consent"');
+    expect(fs.readFileSync(`${node.cwd()}/src/webinar/pages.ts`, 'utf8')).toContain('consent_one_label: esc(CONSENT_ONE.label), consent_one_text: esc(CONSENT_ONE.text)');
     expect(fs.readFileSync(`${node.cwd()}/src/live/pages.ts`, 'utf8')).toContain("${consentBoxes('lv-check'");
     expect(fs.readFileSync(`${node.cwd()}/src/challenge/pages.ts`, 'utf8')).toContain("${consentBoxes('chx-check')}");
-    expect(consentBoxes('x')).toContain(`<input type="checkbox" name="call_consent"> <span>${CONSENT_COPY.call.replace(/&/g, '&amp;')}</span>`);
-    expect(fs.readFileSync(`${node.cwd()}/public/assets/webinar.js`, 'utf8')).toContain('call_consent: Boolean(reg.call_consent && reg.call_consent.checked)');
+    expect(consentBoxes('x')).toContain(`<input type="checkbox" name="contact_consent"> <span><strong>${CONSENT_ONE.label}</strong><br><small>${CONSENT_ONE.text.replace(/&/g, '&amp;')}</small></span>`);
+    expect(consentBoxes('x')).not.toMatch(/checked/);
+    expect(fs.readFileSync(`${node.cwd()}/public/assets/webinar.js`, 'utf8')).toContain('contact_consent: Boolean(reg.contact_consent && reg.contact_consent.checked)');
   });
 });
 

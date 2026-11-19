@@ -379,8 +379,8 @@ describe('the application in the room', () => {
     const other = seedReg(eventId, 'lr2', 'l2', 'rlr2', 'Bob C.');
     await savePush(rt, room.id, { id: 1, kind: 'application', ref: null, to: ['rlr1'], at: T0, open: true, by: 'hadmin' }, 1);
     await expect(submitRoomApplication(rt, room, other, { answers: APP_ANSWERS }, null)).rejects.toThrow(ENGAGE_COPY.errors.not_targeted);
-    const { why_now: _w, ...partial } = APP_ANSWERS;
-    await expect(submitRoomApplication(rt, room, who, { answers: partial }, null)).rejects.toMatchObject({ field: 'why_now' });
+    const { readiness: _r, ...partial } = APP_ANSWERS;
+    await expect(submitRoomApplication(rt, room, who, { answers: partial }, null)).rejects.toMatchObject({ field: 'readiness' });
   });
 });
 
@@ -696,8 +696,9 @@ describe('general admission links', () => {
     expect(JSON.stringify(JOIN_COPY)).not.toMatch(/[!—]/);
     const room = await createRoom(rt, { mode: 'webinar', title: 'Open session', refType: 'none' });
     const html = await joinSheet(rt, room, admissionOf(room), { action: '/x' });
-    expect(html).toContain('name="sms_consent"');
-    expect(html).toContain('name="call_consent"');
+    // One unticked box covers calls and texts.
+    expect(html).toContain('name="contact_consent"');
+    expect(html).not.toContain('name="sms_consent"');
     expect(html).not.toMatch(/checked/);
   });
 });

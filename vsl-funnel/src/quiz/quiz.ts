@@ -232,7 +232,7 @@ export async function registerFromQuiz(rt: Runtime, v: VisitorCtx, body: Record<
   if (!lead?.email) throw new ApplicationError(QUIZ_COPY.errors.expired, 'token', 409);
   const answers = parseAnswersJson(row);
   const target = quizTarget(rt.settings);
-  const base = { first_name: lead.first_name || row.first_name, email: lead.email, revenue: answers.revenue ?? '', pixel_eid: body.pixel_eid };
+  const base = { first_name: lead.first_name || row.first_name, email: lead.email, phone: lead.phone ?? '', revenue: answers.revenue ?? '', pixel_eid: body.pixel_eid };
   const now = Date.now();
   let next: string;
   let regId: string;

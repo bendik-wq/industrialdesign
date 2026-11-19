@@ -74,7 +74,7 @@ async function takeQuiz(b: ReturnType<typeof browser>, gate: Record<string, unkn
   const token = String(s.body.token);
   for (const [question, value] of Object.entries(ANSWERS)) expect((await b.post('/api/quiz/answer', { token, question, value })).status).toBe(200);
   expect((await b.post('/api/quiz/gate', { token })).status).toBe(200);
-  const lead = await b.post('/api/quiz/lead', { token, first_name: 'Dana', email: 'dana@example.com', answers: ANSWERS, consent_page: '/quiz', event_id: 'ql_evt_000001', ...gate });
+  const lead = await b.post('/api/quiz/lead', { token, first_name: 'Dana', email: 'dana@example.com', phone: '+12025550143', answers: ANSWERS, consent_page: '/quiz', event_id: 'ql_evt_000001', ...gate });
   await settle();
   return { token, lead };
 }
@@ -195,7 +195,7 @@ describe('quiz: the email gate', () => {
     vi.mocked(fetch).mockImplementationOnce(async () => new Response(JSON.stringify({ success: false, 'error-codes': ['invalid-input-response'] }), { headers: { 'content-type': 'application/json' } }));
     const b = browser();
     const s = await b.post('/api/quiz/start', {});
-    const r = await b.post('/api/quiz/lead', { token: s.body.token, first_name: 'Dana', email: 'dana@example.com', answers: ANSWERS, turnstile: 'bad' });
+    const r = await b.post('/api/quiz/lead', { token: s.body.token, first_name: 'Dana', email: 'dana@example.com', phone: '+12025550143', answers: ANSWERS, turnstile: 'bad' });
     expect(r).toMatchObject({ status: 403, body: { field: 'turnstile' } });
     expect(q('SELECT COUNT(*) AS n FROM leads')[0].n).toBe(0);
   });
@@ -205,7 +205,7 @@ describe('quiz: the email gate', () => {
     const statuses: number[] = [];
     for (let i = 0; i < 9; i++) {
       const s = await b.post('/api/quiz/start', {});
-      const r = await b.post('/api/quiz/lead', { token: s.body.token, first_name: 'Dana', email: `dana${i}@example.com`, answers: ANSWERS });
+      const r = await b.post('/api/quiz/lead', { token: s.body.token, first_name: 'Dana', email: `dana${i}@example.com`, phone: '+12025550143', answers: ANSWERS });
       statuses.push(r.status);
     }
     expect(statuses.slice(0, 8)).toEqual([200, 200, 200, 200, 200, 200, 200, 200]);
@@ -298,7 +298,7 @@ describe('quiz: tracking', () => {
     const s = await b.post('/api/quiz/start', {});
     const row = one('SELECT utm_source, utm_campaign, utm_content FROM quiz_responses WHERE token = ?', s.body.token);
     expect(row).toEqual({ utm_source: 'facebook', utm_campaign: 'quiz_test', utm_content: 'ad42' });
-    await b.post('/api/quiz/lead', { token: s.body.token, first_name: 'Dana', email: 'dana@example.com', answers: ANSWERS });
+    await b.post('/api/quiz/lead', { token: s.body.token, first_name: 'Dana', email: 'dana@example.com', phone: '+12025550143', answers: ANSWERS });
     expect(one('SELECT utm_source, utm_campaign FROM leads')).toEqual({ utm_source: 'facebook', utm_campaign: 'quiz_test' });
   });
 });

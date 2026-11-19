@@ -6,7 +6,7 @@ import { quizScreens, resultHtml, teaserLines } from '../src/quiz/pages';
 import { resultEmail, quizTarget } from '../src/quiz/quiz';
 import { APP_REVENUE_BAND } from '../src/sales/qualify';
 import { dealMath } from '../src/webinar/experience';
-import { CONSENT_COPY } from '../src/integrations/consent-gate';
+import { CONSENT_ONE } from '../src/integrations/consent-gate';
 
 const BEST: Answers = { revenue: '10_25m', industry: 'healthcare', goal: 'competitor', margin: 'gt30', debt: 'use', funding: 'structure', deals: '2', timeline: '90d', blocker: 'finding', team: 'yes' };
 const WORST: Answers = { revenue: 'lt1m', industry: 'other', goal: 'unsure', margin: 'lt10', debt: 'never', funding: 'unsure', deals: '0', timeline: 'exploring', blocker: 'time', team: 'no' };
@@ -156,11 +156,10 @@ describe('quiz: every user-facing string passes the copy rules', () => {
   it('renders the quiz with the consent wording the server stores, unticked, and the result with one gold action', () => {
     const html = quizScreens({ turnstile: true });
     const e = (x: string) => x.replace(/&/g, '&amp;');
-    expect(html).toContain(e(CONSENT_COPY.call));
-    expect(html).toContain(e(CONSENT_COPY.sms));
-    expect(html).toMatch(/name="call_consent">/);
-    expect(html).toMatch(/name="sms_consent">/);
-    expect(html).not.toMatch(/\schecked[\s>=]/); // the two consent boxes start unticked
+    expect(html).toContain(e(CONSENT_ONE.text));
+    expect(html).toMatch(/name="contact_consent">/);
+    expect(html).not.toMatch(/name="sms_consent"/);
+    expect(html).not.toMatch(/\schecked[\s>=]/); // the one consent box starts unticked
     expect(html.match(/data-screen="q"/g)).toHaveLength(10);
     expect(html).toContain('data-turnstile');
     const r = resultHtml({ firstName: 'Dana', score: 67, archetype: 'first_deal', gaps: ['funding', 'plan'], answers: MID, title: 'The Acquisition Masterclass', action: { target: 'webinar', under1m: false, options: [{ value: 'ws1', label: 'Tuesday 7pm', slot: 'tue_19' }] } });
