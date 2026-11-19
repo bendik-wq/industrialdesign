@@ -1,4 +1,4 @@
-import { APPLICATION, FAQS, VIDEOS } from '../config';
+import { APPLICATION, APPLICATION_ALL, FAQS, VIDEOS } from '../config';
 import { FAQ_VIDEOS } from '../content/faq-videos';
 import { hasContactBait } from '../lib/text';
 import type { Env } from '../env';
@@ -87,7 +87,7 @@ const TOPIC_WORDS: [RegExp, string][] = [
 const topicsOf = (text: string) => [...new Set(TOPIC_WORDS.filter(([re]) => re.test(text)).map(([, t]) => t))];
 
 function answerLabel(qid: string, value: unknown): string | null {
-  const q = APPLICATION.find((x) => x.id === qid);
+  const q = APPLICATION_ALL.find((x) => x.id === qid);
   if (!q || value == null) return null;
   if (q.type === 'text') return String(value).slice(0, 300);
   if (q.type === 'single') return q.options.find((o) => o.value === value)?.label ?? String(value);
@@ -228,7 +228,7 @@ export async function buildProfile(env: Env, lead: Lead, now = Date.now()): Prom
 
   // ── The application ──
   const labels: Record<string, string> = {};
-  for (const q of APPLICATION) if (q.type !== 'contact') { const l = answerLabel(q.id, answers[q.id]); if (l) labels[q.id] = l; }
+  for (const q of APPLICATION_ALL) if (q.type !== 'contact') { const l = answerLabel(q.id, answers[q.id]); if (l) labels[q.id] = l; }
   data.answers = labels;
   if (labels.business) add('a_business', `Their business: ${labels.business}.`, 7);
   if (labels.revenue) add('a_revenue', `Annual revenue: ${labels.revenue}.`, 4, ['growth']);

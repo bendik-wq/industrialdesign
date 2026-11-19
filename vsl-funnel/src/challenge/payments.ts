@@ -62,7 +62,7 @@ export async function registerChallenge(rt: Runtime, v: VisitorCtx, body: Record
   if (!band) throw new ApplicationError('Please pick your business’s annual revenue', 'revenue');
   if (!(await verifyTurnstile(rt, body.turnstile, v, 'challenge'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
-  if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number with its area code, or leave it blank', 'phone');
+  if (!phone) throw new ApplicationError('Please enter a valid mobile number, including area code', 'phone');
 
   const loaded = typeof body.cohort_id === 'string' && body.cohort_id
     ? await (async () => { const c = await getCohort(rt, body.cohort_id as string); return c ? { cohort: c, days: await getDays(rt, c.id) } : null; })()

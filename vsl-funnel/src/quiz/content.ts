@@ -208,7 +208,7 @@ export const QUIZ_COPY = {
     first_name: 'Please enter your first name',
     email: 'Please enter a valid email address',
     disposable: 'Please use your real email address. Your result goes there.',
-    phone: 'Please enter a valid mobile number, including area code, or leave it blank',
+    phone: 'Please enter a valid mobile number, including area code',
     answers: 'A few answers are missing. Go back and answer every question.',
     expired: 'This quiz has expired. Start again and it takes two minutes.',
     rate: 'Too many results from this connection. Please try again in an hour.',

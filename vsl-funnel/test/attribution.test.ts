@@ -152,7 +152,7 @@ describe('webinar attribution: capture', () => {
     db.prepare("INSERT INTO ad_entities (id, level, name, campaign_id, adset_id, updated_at) VALUES (?, 'ad', 'Ad one', 'c900', 'as900', ?)").run(ADID, now);
     const ev = await saveEvent(rt, { title: 'Buy your first competitor', starts_at: now + DAY, tz: 'America/New_York', duration_min: 120, join_url: 'https://zoom.us/j/1' });
     if (!ev.ok) throw new Error(ev.error);
-    const { reg } = await registerLive(rt, visitorCtx(), { first_name: 'Dana', email: 'dana@example.com', revenue: '3_10m', event_id: ev.id, pixel_eid: 'cpixel12345' });
+    const { reg } = await registerLive(rt, visitorCtx(), { first_name: 'Dana', phone: '+12025550143', email: 'dana@example.com', revenue: '3_10m', event_id: ev.id, pixel_eid: 'cpixel12345' });
     await flush();
     const c = db.prepare("SELECT * FROM attr_conversions WHERE kind = 'registered' AND ref_id = ?").get(reg.id) as Record<string, unknown>;
     expect(c).toMatchObject({ funnel: 'live', reg_id: reg.id, cohort_ref: ev.id, touches: 3, ft_source: 'youtube', ft_platform: 'YouTube', lt_source: 'facebook', lt_campaign: 'Live Nov', lt_ad_id: ADID, lt_adset_id: 'as900', lt_campaign_id: 'c900', fbclid: 'fbclid-abc', fbp: 'fb.1.1.1', via: 'live' });

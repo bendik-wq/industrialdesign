@@ -231,9 +231,9 @@ export async function register(rt: Runtime, v: VisitorCtx, body: Record<string, 
   const rate = (() => { try { const r = JSON.parse(row?.value ?? '{}') as { n?: number; t?: number }; return r.t && Date.now() - r.t < 3_600_000 ? { n: r.n ?? 0, t: r.t } : { n: 0, t: Date.now() }; } catch { return { n: 0, t: Date.now() }; } })();
   if (rate.n >= 8) throw new ApplicationError('Too many sign-ups from this connection. Please try again in an hour.', undefined, 429);
 
-  // Optional mobile, used only with one of the two unticked boxes (calls, texts) ticked.
+  // Required mobile; calls and texts only go out if the one consent box is ticked.
   const phone = typeof body.phone === 'string' && body.phone.trim() ? normalisePhone(body.phone, v.geo.country) : null;
-  if (typeof body.phone === 'string' && body.phone.trim() && !phone) throw new ApplicationError('Please enter a valid mobile number, including area code — or leave it blank', 'phone');
+  if (!phone) throw new ApplicationError('Please enter a valid mobile number, including area code', 'phone');
   const sessionId = typeof body.session_id === 'string' ? body.session_id : '';
   const session = sessionId.startsWith('jit:') ? await jitSession(rt, sessionId) : sessionId ? await getSession(rt, sessionId) : (await openSessions(rt, 1))[0] ?? null;
   if (!session || session.status !== 'scheduled' || session.starts_at < Date.now() - 10 * 60_000) throw new ApplicationError('That session is no longer available — please pick another time', 'session_id', 409);

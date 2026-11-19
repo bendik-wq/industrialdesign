@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
 import { render } from '../funnel/pages';
-import { CONSENT_COPY, CONSENT_LEGEND } from '../integrations/consent-gate';
+import { consentOne } from '../integrations/consent-gate';
 import { formatCallTime } from '../integrations/email';
 import { turnstileSiteKey } from '../infra/turnstile';
 import { sessionSlot } from '../audiences/enrich';
@@ -51,11 +51,8 @@ export function quizScreens(o: { turnstile: boolean }) {
         <label class="qz-field"><span>${esc(QUIZ_COPY.firstName)}</span><input name="first_name" autocomplete="given-name" required></label>
         <label class="qz-field"><span>${esc(QUIZ_COPY.email)}</span><input name="email" type="email" autocomplete="email" inputmode="email" required></label>
       </div>
-      <label class="qz-field"><span>${esc(QUIZ_COPY.phone)} <em>${esc(QUIZ_COPY.optional)}</em></span><input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
-      <fieldset class="qz-consent"><legend>${esc(CONSENT_LEGEND)}</legend>
-        <label class="qz-check"><input type="checkbox" name="call_consent"><span>${esc(CONSENT_COPY.call)}</span></label>
-        <label class="qz-check"><input type="checkbox" name="sms_consent"><span>${esc(CONSENT_COPY.sms)}</span></label>
-      </fieldset>
+      <label class="qz-field"><span>${esc(QUIZ_COPY.phone)}</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" required></label>
+      ${consentOne('qz-check')}
       ${o.turnstile ? '<div class="qz-ts" data-turnstile></div>' : ''}
       <button type="submit" class="qz-btn qz-btn-wide">${esc(QUIZ_COPY.gateButton)} ${ARROW}</button>
       <p class="qz-note">${esc(QUIZ_COPY.gateNote)} <a href="/privacy">${esc(QUIZ_COPY.privacy)}</a>.</p>

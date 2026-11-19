@@ -72,7 +72,7 @@ async function newEvent(o: { platform?: 'zoom' | 'room' } = {}) {
   return r.id;
 }
 async function register(eventId: string, email = 'dana@example.com') {
-  const r = await registerLive(rt, visitor(), { first_name: 'Dana', email, revenue: '3_10m', event_id: eventId, tz: NY });
+  const r = await registerLive(rt, visitor(), { first_name: 'Dana', phone: '+12025550143', email, revenue: '3_10m', event_id: eventId, tz: NY });
   await flush();
   return r.reg;
 }

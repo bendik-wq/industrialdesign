@@ -76,7 +76,7 @@ async function newEvent(o: { platform?: 'zoom' | 'room'; tz?: string } = {}) {
   return r.id;
 }
 async function register(eventId: string, o: { email?: string; v?: Partial<VisitorCtx>; body?: Record<string, unknown> } = {}) {
-  const r = await registerLive(rt, visitor(o.v), { first_name: 'Dana', email: o.email ?? 'dana@example.com', revenue: '3_10m', event_id: eventId, ...o.body });
+  const r = await registerLive(rt, visitor(o.v), { first_name: 'Dana', phone: '+12025550143', email: o.email ?? 'dana@example.com', revenue: '3_10m', event_id: eventId, ...o.body });
   await flush();
   return r.reg;
 }

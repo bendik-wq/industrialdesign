@@ -60,7 +60,7 @@
     e.preventDefault();
     var btn = reg.querySelector('button[type=submit]');
     var picked = reg.querySelector('input[name=session_id]:checked');
-    var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', sms_consent: Boolean(reg.sms_consent && reg.sms_consent.checked), call_consent: Boolean(reg.call_consent && reg.call_consent.checked), consent_page: location.pathname, session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36), pixel_eid: F.uid ? F.uid() : '' };
+    var body = { first_name: reg.first_name.value.trim(), email: reg.email.value.trim(), phone: reg.phone ? reg.phone.value.trim() : '', contact_consent: Boolean(reg.contact_consent && reg.contact_consent.checked), consent_page: location.pathname, session_id: picked ? picked.value : '', event_id: 'wr' + Date.now().toString(36), pixel_eid: F.uid ? F.uid() : '' };
     var rev = reg.querySelector('input[name=revenue]:checked');
     body.revenue = rev ? rev.value : '';
     body.headline = (window.FUNNEL && window.FUNNEL.webinar && window.FUNNEL.webinar.headline) || '';

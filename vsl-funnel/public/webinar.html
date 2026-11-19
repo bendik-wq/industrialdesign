@@ -67,11 +67,8 @@
                 <label class="opt"><input type="radio" name="revenue" value="50_100m"><span>$50M – $100M</span></label>
                 <label class="opt"><input type="radio" name="revenue" value="gt100m"><span>$100M+</span></label>
               </div></div>
-            <div class="field"><label for="w-phone">Mobile <span class="muted">(optional)</span></label><input id="w-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel"></div>
-            <fieldset class="consent-set"><legend data-slot="consent_legend"></legend>
-            <label class="check call-consent"><input type="checkbox" name="call_consent"><span data-slot="consent_call"></span></label>
-            <label class="check call-consent"><input type="checkbox" name="sms_consent"><span data-slot="consent_sms"></span></label>
-            </fieldset>
+            <div class="field"><label for="w-phone">Mobile</label><input id="w-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required></div>
+            <label class="check call-consent consent-one"><input type="checkbox" name="contact_consent"><span><strong data-slot="consent_one_label"></strong><br><small data-slot="consent_one_text"></small></span></label>
             <button class="a-gold wl-submit" type="submit" data-track="cta_click" data-track-id="webinar_register"><span data-slot="register_cta">Save my seat</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
             <p class="privacy-note" data-slot="register_note">We’ll email you your link, reminders before the session and the replay, plus a few follow-up emails about acquisitions. Unsubscribe any time. <a href="/privacy">Privacy policy</a>.</p>
           </form>

@@ -1,5 +1,5 @@
 import { playbackFor } from '../live/stream';
-import { CONSENT_COPY, CONSENT_LEGEND } from '../integrations/consent-gate';
+import { CONSENT_COPY, CONSENT_LEGEND, CONSENT_ONE } from '../integrations/consent-gate';
 import { turnstileSiteKey } from '../infra/turnstile';
 import type { Context } from 'hono';
 import { type AppEnv, runtimeFrom } from '../app';
@@ -66,7 +66,7 @@ export async function webinarLanding(c: Context<AppEnv>) {
       webinar_title: esc(w.title), duration: String(Math.round(w.durationMin)), hl_h1: hl.h1, hl_lede: esc(fitLength(hl.lede, w.durationMin)),
       hero_cta: esc(ticket ? ticket.copy.button : 'Save my seat'),
       // The two consent boxes: the exact wording the server stores with each consent (consent-gate.ts).
-      consent_legend: esc(CONSENT_LEGEND), consent_call: esc(CONSENT_COPY.call), consent_sms: esc(CONSENT_COPY.sms),
+      consent_legend: esc(CONSENT_LEGEND), consent_call: esc(CONSENT_COPY.call), consent_sms: esc(CONSENT_COPY.sms), consent_one_label: esc(CONSENT_ONE.label), consent_one_text: esc(CONSENT_ONE.text),
       ...(ticket ? { form_heading: esc(ticket.copy.formHeading), register_cta: esc(ticket.copy.button), register_note: `${esc(ticket.copy.privacy)} <a href="/privacy">Privacy policy</a>.` } : {}),
     },
     blocks: {

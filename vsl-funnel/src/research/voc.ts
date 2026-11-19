@@ -1,5 +1,5 @@
 import type { Runtime } from '../app';
-import { APPLICATION } from '../config';
+import { APPLICATION_ALL } from '../config';
 import { defang } from '../lib/text';
 import { clip, type ResearchItemInput } from './sources';
 
@@ -13,7 +13,7 @@ const leadLink = (id: string) => `/admin#lead=${encodeURIComponent(id)}`;
 const clean = (s: unknown, max = 1200) => clip(defang(String(s ?? '')), max);
 
 const LABELS = new Map<string, Map<string, string>>();
-for (const q of APPLICATION) if (q.type === 'single' || q.type === 'multi') LABELS.set(q.id, new Map(q.options.map((o) => [o.value, o.label])));
+for (const q of APPLICATION_ALL) if (q.type === 'single' || q.type === 'multi') LABELS.set(q.id, new Map(q.options.map((o) => [o.value, o.label])));
 export const answerLabel = (q: string, v: string) => LABELS.get(q)?.get(v) ?? v;
 
 /** Structured counts that need no AI: what held applicants back, their goal, and the objections logged on calls. */

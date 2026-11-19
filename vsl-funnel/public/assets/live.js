@@ -56,8 +56,8 @@
       var fd = new FormData(form);
       var body = {};
       fd.forEach(function (v, k) { body[k] = v; });
-      body.sms_consent = !!form.querySelector('[name=sms_consent]').checked;
-      body.call_consent = !!form.querySelector('[name=call_consent]').checked;
+      var one = form.querySelector('[name=contact_consent]');
+      body.contact_consent = !!(one && one.checked);
       body.consent_page = location.pathname;
       body.turnstile = tsToken;
       body.pixel_eid = F.uid ? F.uid() : '';

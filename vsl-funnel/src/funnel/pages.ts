@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import { CONSENT_COPY, CONSENT_LEGEND } from '../integrations/consent-gate';
+import { CONSENT_LEGEND, CONSENT_ONE } from '../integrations/consent-gate';
 import { turnstileSiteKey } from '../infra/turnstile';
 import { streamVideoSrc } from '../infra/cf-stream';
 import type { Settings } from '../settings';
@@ -257,8 +257,8 @@ function applicationConfig(c: Context<AppEnv>, lead: Lead | null) {
   return {
     questions: clientQuestions(),
     turnstileSiteKey: turnstileSiteKey(s),
-    // Two separate, unticked boxes (consent-gate.ts): the server stores this exact wording and its version with each consent.
-    consent: { call: CONSENT_COPY.call, sms: CONSENT_COPY.sms, legend: CONSENT_LEGEND },
+    // One unticked box for calls and texts (consent-gate.ts): the server stores this exact wording and its version.
+    consent: { label: CONSENT_ONE.label, text: CONSENT_ONE.text, legend: CONSENT_LEGEND },
     country: c.get('visitor').geo.country,
     // Talk instead of type: on unless turned off; the server fallback needs an ElevenLabs key.
     voiceInput: s.VOICE_INPUT.trim().toLowerCase() !== 'off',

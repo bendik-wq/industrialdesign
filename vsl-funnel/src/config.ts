@@ -41,7 +41,7 @@ export const VIDEOS: Record<'main' | 'breakout' | 'precall', VideoDef> = {
   // Final cuts (Oct 2026), streamed as HLS (1080p + 540p, 4-second segments) from public/assets/media/hls.
   // Chapter times come from the transcripts; CTA reveals at 60% (main) and the spoken call to action (part 2).
   // The button under the main VSL stays locked until 60% of the video (3:45 of 6:16), then unlocks.
-  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 225, lockCta: true, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/main/index.m3u8', defaultPoster: '/assets/media/main-poster.webp',
+  main: { id: 'vsl-main', srcSetting: 'VSL_MAIN_SRC', posterSetting: 'VSL_MAIN_POSTER', ctaRevealAt: 225, lockCta: false, gateContent: false, autoplayMuted: true, defaultSrc: '/assets/media/hls/main/index.m3u8', defaultPoster: '/assets/media/main-poster.webp',
     chapters: [
       { at: 0, title: 'the hook: doubling or tripling the business by buying a competitor' },
       { at: 20, title: 'Josh’s background and his two 100% seller-financed acquisitions' },
@@ -516,13 +516,17 @@ export interface Option {
   hidden?: boolean;
 }
 
-export type Question =
+/** retired: no longer asked (kept so answers from older applications still have labels). */
+export type Question = { retired?: boolean } & (
   | { id: 'contact'; type: 'contact'; title: string; help?: string }
   | { id: string; type: 'single' | 'multi'; title: string; help?: string; options: Option[] }
-  | { id: string; type: 'text'; title: string; help?: string; placeholder?: string; minLength: number; points: { minChars: number; points: number }[] };
+  | { id: string; type: 'text'; title: string; help?: string; placeholder?: string; minLength: number; points: { minChars: number; points: number }[] });
 
-/** One question per step (Typeform-style). Step 1 captures contact details so abandons can be recovered. */
-export const APPLICATION: Question[] = [
+/**
+ * Every question ever asked, including retired ones (for labels on older applications).
+ * The live application is APPLICATION below: contact, then five one-tap questions with four buttons each.
+ */
+export const APPLICATION_ALL: Question[] = [
   {
     id: 'contact',
     type: 'contact',
@@ -531,6 +535,7 @@ export const APPLICATION: Question[] = [
   },
   {
     id: 'business',
+    retired: true,
     type: 'text',
     title: 'What does your business do?',
     help: 'e.g. Commercial HVAC services, 25 staff',
@@ -558,11 +563,11 @@ export const APPLICATION: Question[] = [
       { value: 'lt1m', label: 'Under $1M', points: 0, flags: ['under_1m'] },
       { value: '1_3m', label: '$1M – $3M', points: 15, flags: ['small'] },
       { value: '3_10m', label: '$3M – $10M', points: 22 },
-      { value: '10_25m', label: '$10M – $25M', points: 25 },
-      { value: '25_50m', label: '$25M – $50M', points: 25 },
-      { value: '50_100m', label: '$50M – $100M', points: 25 },
-      { value: 'gt100m', label: '$100M+', points: 25 },
-      { value: 'gt10m', label: '$10M+', points: 25, hidden: true },
+      { value: 'gt10m', label: '$10M+', points: 25 },
+      { value: '10_25m', label: '$10M – $25M', points: 25, hidden: true },
+      { value: '25_50m', label: '$25M – $50M', points: 25, hidden: true },
+      { value: '50_100m', label: '$50M – $100M', points: 25, hidden: true },
+      { value: 'gt100m', label: '$100M+', points: 25, hidden: true },
     ],
   },
   {
@@ -574,14 +579,15 @@ export const APPLICATION: Question[] = [
       { value: 'loss', label: 'Break-even or loss-making', points: 0, flags: ['unprofitable'] },
       { value: 'lt250k', label: 'Under $250k', points: 8 },
       { value: '250k_1m', label: '$250k – $1M', points: 16 },
-      { value: 'p1_3m', label: '$1M – $3M', points: 20 },
-      { value: 'p3_10m', label: '$3M – $10M', points: 20 },
-      { value: 'pgt10m', label: '$10M+', points: 20 },
-      { value: 'gt1m', label: '$1M+', points: 20, hidden: true },
+      { value: 'gt1m', label: '$1M+', points: 20 },
+      { value: 'p1_3m', label: '$1M – $3M', points: 20, hidden: true },
+      { value: 'p3_10m', label: '$3M – $10M', points: 20, hidden: true },
+      { value: 'pgt10m', label: '$10M+', points: 20, hidden: true },
     ],
   },
   {
     id: 'goal',
+    retired: true,
     type: 'single',
     title: 'What’s your main goal for the next 2–3 years?',
     options: [
@@ -604,6 +610,7 @@ export const APPLICATION: Question[] = [
   },
   {
     id: 'blockers',
+    retired: true,
     type: 'multi',
     title: 'What’s held you back from acquiring so far?',
     help: 'Pick all that apply.',
@@ -623,11 +630,13 @@ export const APPLICATION: Question[] = [
     options: [
       { value: 'yes', label: 'Yes — if it’s a fit, I’m ready to move', points: 15 },
       { value: 'partner', label: 'Yes, but I’ll decide with my business partner', points: 9, flags: ['partner'] },
+      { value: 'need_info', label: 'Maybe, I need to see the numbers first', points: 6 },
       { value: 'not_now', label: 'Not right now', points: 0, flags: ['not_ready'] },
     ],
   },
   {
     id: 'why_now',
+    retired: true,
     type: 'text',
     title: 'Why now? What would doubling the size of your business change for you?',
     help: 'The more specific you are, the more useful your call will be.',
@@ -639,6 +648,9 @@ export const APPLICATION: Question[] = [
     ],
   },
 ];
+
+/** The live application: contact, then role, revenue, profit, timeline, readiness (one tap each). */
+export const APPLICATION: Question[] = APPLICATION_ALL.filter((q) => !q.retired);
 
 // ───────────────────────────── Scoring + routing ─────────────────────────────
 

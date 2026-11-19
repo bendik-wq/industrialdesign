@@ -162,13 +162,13 @@ export async function saveContact(rt: Runtime, v: VisitorCtx, body: Record<strin
 async function applyConsent(rt: Runtime, v: VisitorCtx, lead: Lead, phone: string, body: Record<string, unknown>, phoneChanged: boolean, now: number) {
   const G = await import('../integrations/consent-gate');
   const call = G.tickedCall(body), texts = G.tickedTexts(body);
-  await G.recordConsent(rt, lead.id, { phone, call, texts, source: 'apply', page: G.consentPage(body, '/apply'), ip: v.ip, userAgent: v.userAgent }, now);
+  await G.recordConsent(rt, lead.id, { phone, call, texts, source: 'apply', page: G.consentPage(body, '/apply'), ip: v.ip, userAgent: v.userAgent, copy: G.copyFor(body) }, now);
   if (phoneChanged) return; // nothing left to withdraw: the new number has only what was just ticked
   const hadTexts = Boolean(lead.sms_consent_at || lead.call_consent_at);
   const drop: ('call' | 'sms' | 'whatsapp')[] = [];
   const clear: Partial<Record<keyof Lead, null>> = {};
   if (!call && lead.call_consent_at) { drop.push('call'); clear.call_consent_at = null; clear.call_consent_text = null; }
-  if (!texts && hadTexts && body.sms_consent !== undefined) { drop.push('sms', 'whatsapp'); clear.sms_consent_at = null; clear.wa_consent_at = null; }
+  if (!texts && hadTexts && (body.sms_consent !== undefined || body.contact_consent !== undefined)) { drop.push('sms', 'whatsapp'); clear.sms_consent_at = null; clear.wa_consent_at = null; }
   if (!drop.length) return;
   await G.recordWithdrawal(rt, lead.id, drop, 'unticked', phone, now);
   await updateLead(rt.env, lead.id, clear);

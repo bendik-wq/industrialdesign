@@ -166,7 +166,7 @@ describe('cohort scheduling', () => {
 describe('ticket and VIP purchase paths', () => {
   it('registers, pays the ticket on the embedded form (card saved), then VIP in one click on that card', async () => {
     const { db, rt, id } = await setup();
-    const { reg } = await registerChallenge(rt, visitor(), { first_name: 'Dana', email: 'dana@example.com', revenue: '3_10m', cohort_id: id });
+    const { reg } = await registerChallenge(rt, visitor(), { first_name: 'Dana', phone: '+12025550143', email: 'dana@example.com', revenue: '3_10m', cohort_id: id });
     expect(reg.status).toBe('pending');
     expect(nextStep(rt, reg)).toBe(`https://apply.test/challenge/pay/${reg.token}`);
     const calls = stubWhop({ creates: [{ id: 'pay_t', status: 'paid' }, { id: 'pay_v', status: 'pending' }] });
@@ -198,7 +198,7 @@ describe('ticket and VIP purchase paths', () => {
 
   it('a declined VIP charge falls back to the card form; a hosted payment is settled by the webhook; a full refund ends the registration', async () => {
     const { db, rt, id } = await setup();
-    const { reg } = await registerChallenge(rt, visitor(), { first_name: 'Sam', email: 'sam@example.com', revenue: '1_3m', cohort_id: id });
+    const { reg } = await registerChallenge(rt, visitor(), { first_name: 'Sam', phone: '+12025550143', email: 'sam@example.com', revenue: '1_3m', cohort_id: id });
     stubWhop({ creates: [{ id: 'pay_t2', status: 'paid' }, { id: 'pay_v2' }], statuses: [{ status: 'canceled' }] });
     await payOrder(rt, reg, 'ticket', 'ctok_zzzzzz');
     const v = await oneClickVip(rt, (await getReg(rt, reg.token))!, { sleep: async () => null, tries: 1 });
@@ -220,11 +220,11 @@ describe('ticket and VIP purchase paths', () => {
 
   it('a free cohort confirms at once; registration closes when Day 1 ends; under-$1M still welcome', async () => {
     const { rt, id } = await setup({ settings: { ...BASE, CHALLENGE_PRICE: '0' } });
-    const { reg } = await registerChallenge(rt, visitor(), { first_name: 'Ana', email: 'ana@example.com', revenue: 'lt1m', cohort_id: id });
+    const { reg } = await registerChallenge(rt, visitor(), { first_name: 'Ana', phone: '+12025550143', email: 'ana@example.com', revenue: 'lt1m', cohort_id: id });
     expect(reg.status).toBe('paid');
     expect(challengeConfig(rt.settings)).toMatchObject({ free: true, vipLabel: '$300' });
     const late = await setup({ inMs: -2 * HOUR });
-    await expect(registerChallenge(late.rt, visitor({ ip: '198.51.100.1' }), { first_name: 'Bo', email: 'bo@example.com', revenue: '3_10m', cohort_id: late.id })).rejects.toThrow(/closed/);
+    await expect(registerChallenge(late.rt, visitor({ ip: '198.51.100.1' }), { first_name: 'Bo', phone: '+12025550143', email: 'bo@example.com', revenue: '3_10m', cohort_id: late.id })).rejects.toThrow(/closed/);
     expect(await nextCohort(late.rt)).toBeNull();
   });
 });
@@ -384,7 +384,7 @@ describe('emails timing', () => {
 describe('gating', () => {
   it('nothing on the hub or day pages for an unpaid registration; deposit needs a paid ticket; the report counts paid only', async () => {
     const { db, rt, id } = await setup({ inMs: 10 * MIN });
-    const { reg } = await registerChallenge(rt, visitor(), { first_name: 'Pat', email: 'pat@example.com', revenue: '3_10m', cohort_id: id });
+    const { reg } = await registerChallenge(rt, visitor(), { first_name: 'Pat', phone: '+12025550143', email: 'pat@example.com', revenue: '3_10m', cohort_id: id });
     expect(await joinDay(rt, reg, 1)).toBeNull();
     expect(await submitHomework(rt, reg, 1, { revenue: '1' })).toMatchObject({ ok: false });
     expect(await dayFeed(rt, reg, 1, {})).toMatchObject({ ok: false });

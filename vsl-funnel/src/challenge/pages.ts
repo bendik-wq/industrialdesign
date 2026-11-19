@@ -13,7 +13,7 @@ import { confirmOnReturn, hostedCheckout, nextStep, payFormConfig, payUrl, skipV
 import { offerView } from './offer';
 import { type ParticipantView, homeworkFor, joinDay, myPoll, participantView, pollResults, replayDay } from './room';
 import { DAYS_IN_CHALLENGE, type DayRow, ROOM_JOIN, countdownText, dayEnds, eventKey, formatDate, formatWhen } from './schedule';
-import { CONSENT_LEGEND, consentBoxes } from '../integrations/consent-gate';
+import { consentBoxes } from '../integrations/consent-gate';
 
 /**
  * The First Deal Challenge pages. One calm system (challenge.css, the same tokens as the masterclass room):
@@ -72,8 +72,8 @@ export function landingHtml(o: { next: LoadedCohort | null; now: number; ticketL
         <label class="chx-f"><span>Email</span><input name="email" type="email" autocomplete="email" required maxlength="120"></label>
         <label class="chx-f chx-f-wide"><span>Your business’s annual revenue</span><select name="revenue" required data-ch-band><option value="">Choose one</option>${bands.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('')}</select></label>
         <p class="chx-under" data-ch-under hidden>${esc(LANDING.under1m)}</p>
-        <label class="chx-f chx-f-wide"><span>Mobile (optional)</span><input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
-        <fieldset class="chx-consent chx-f-wide"><legend>${esc(CONSENT_LEGEND)}</legend>${consentBoxes('chx-check')}</fieldset>
+        <label class="chx-f chx-f-wide"><span>Mobile</span><input name="phone" type="tel" autocomplete="tel" required maxlength="30"></label>
+        <div class="chx-consent chx-f-wide">${consentBoxes('chx-check')}</div>
       </div>
       ${o.turnstile ? `<div class="cf-turnstile" data-sitekey="${esc(o.turnstile)}" data-size="flexible" data-appearance="interaction-only"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : ''}
       <button class="chx-buy" type="submit">${esc(cta)} ${ICON.arrow}</button>

@@ -118,7 +118,7 @@ export async function submitQuizLead(rt: Runtime, v: VisitorCtx, body: Record<st
   if (emailCheck.disposable) throw new ApplicationError(QUIZ_COPY.errors.disposable, 'email');
   const phoneTyped = typeof body.phone === 'string' && body.phone.trim() !== '';
   const phone = phoneTyped ? normalisePhone(body.phone, v.geo.country) : null;
-  if (phoneTyped && !phone) throw new ApplicationError(QUIZ_COPY.errors.phone, 'phone');
+  if (!phone) throw new ApplicationError(QUIZ_COPY.errors.phone, 'phone');
   if (!(await verifyTurnstile(rt, body.turnstile, v, 'quiz'))) throw new ApplicationError((await import('../infra/turnstile')).TURNSTILE_COPY.failed, 'turnstile', 403);
   if (!row.lead_at && (await ipLimited(rt, v))) throw new ApplicationError(QUIZ_COPY.errors.rate, undefined, 429);
 

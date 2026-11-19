@@ -69,9 +69,7 @@
         '<div class="field"><label for="last_name">Last name</label><input id="last_name" name="last_name" autocomplete="family-name" value="' + esc(contact.last_name) + '"></div></div>' +
         '<div class="field"><label for="email">Email</label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required value="' + esc(contact.email) + '"></div>' +
         '<div class="field"><label for="phone">Mobile</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="' + esc(PLACEHOLDER_PHONE[cfg.country] || '+61 412 345 678') + '" value="' + esc(contact.phone) + '"></div>' +
-        (cfg.consent ? '<fieldset class="consent-set"><legend>' + esc(cfg.consent.legend) + '</legend>' +
-          '<label class="check call-consent"><input type="checkbox" name="call_consent"' + (contact.call_consent ? ' checked' : '') + '><span>' + esc(cfg.consent.call) + '</span></label>' +
-          '<label class="check call-consent"><input type="checkbox" name="sms_consent"' + (contact.sms_consent ? ' checked' : '') + '><span>' + esc(cfg.consent.sms) + '</span></label></fieldset>' : '') +
+        (cfg.consent ? '<label class="check call-consent consent-one"><input type="checkbox" name="contact_consent"' + (contact.contact_consent || contact.call_consent ? ' checked' : '') + '><span><strong>' + esc(cfg.consent.label) + '</strong><br><small>' + esc(cfg.consent.text) + '</small></span></label>' : '') +
         navHtml('Continue', false);
     } else if (q.type === 'single' || q.type === 'multi') {
       var multi = q.type === 'multi';
@@ -149,8 +147,7 @@
       last_name: form.last_name.value,
       email: form.email.value,
       phone: form.phone.value,
-      call_consent: Boolean(form.call_consent && form.call_consent.checked),
-      sms_consent: Boolean(form.sms_consent && form.sms_consent.checked),
+      contact_consent: Boolean(form.contact_consent && form.contact_consent.checked),
       consent_page: location.pathname,
       turnstile: turnstileToken,
       event_id: F.uid()

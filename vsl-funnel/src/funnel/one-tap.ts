@@ -1,5 +1,5 @@
 import type { Runtime } from '../app';
-import { APPLICATION } from '../config';
+import { APPLICATION_ALL } from '../config';
 import { type CalEventType, calendlyConnected } from '../integrations/calendly';
 import {
   MIN_LEAD_MS, type CalQuestion, activeBooking, bookLeadSlot, cachedOpenTimes, eventTypeForUrl, forgetOpenTimes, formAnswers, matchChoice, openTimes, partsIn, validTimezone,
@@ -50,7 +50,7 @@ export const ONE_TAP_COPY = {
 // ───────────── what the application says, for the booking form ─────────────
 
 const optionLabel = (qid: string, v: unknown) => {
-  const q = APPLICATION.find((x) => x.id === qid);
+  const q = APPLICATION_ALL.find((x) => x.id === qid);
   if (!q || !('options' in q) || typeof v !== 'string') return typeof v === 'string' ? v : null;
   return q.options.find((o) => o.value === v)?.label ?? v;
 };

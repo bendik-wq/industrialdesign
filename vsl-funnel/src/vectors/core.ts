@@ -1,5 +1,5 @@
 import type { Runtime } from '../app';
-import { APPLICATION } from '../config';
+import { APPLICATION_ALL } from '../config';
 import { runWorkersAi } from '../infra/ai-gateway';
 import { flag } from '../settings';
 
@@ -105,7 +105,7 @@ export function leadText(l: LeadForText): string {
   let a: Record<string, unknown> = {};
   try { a = JSON.parse(l.answers || '{}') as Record<string, unknown>; } catch { a = {}; }
   const parts: string[] = [];
-  for (const q of APPLICATION) {
+  for (const q of APPLICATION_ALL) {
     if (q.type === 'contact') continue;
     const v = a[q.id];
     if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue;

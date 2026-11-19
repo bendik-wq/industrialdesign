@@ -35,11 +35,21 @@ export const CONSENT_COPY = {
   sms: 'Texts: G&L M&A Advisory (Josh Li’s team) may text me at this number by SMS or WhatsApp about my registration, application or strategy call and Josh’s offers, including automated texts. Consent isn’t required to register or buy. Message frequency varies. Msg & data rates may apply. Reply STOP to opt out.',
 };
 
-/** The line above the two boxes. */
-export const CONSENT_LEGEND = 'Calls and texts (optional, tick either, both or neither)';
+/**
+ * The one box (c4): a single unticked tick covers calls and texts. Not pre-ticked and not bundled with the form,
+ * so it stays valid consent (TCPA prior express written consent; AU Spam Act / DNCR); the form works without it.
+ */
+export const CONSENT_ONE = {
+  version: 'c4-2026-11',
+  label: 'Yes, call or text me about this',
+  text: 'G&L M&A Advisory (Josh Li’s team) may call and text me at this number (SMS or WhatsApp) about my registration, application or strategy call and Josh’s offers, including automated and AI-voice calls, which are recorded, and automated texts. Not required to register, apply or buy. Msg & data rates may apply. Reply STOP or say stop to opt out.',
+};
+
+/** The line above the box. */
+export const CONSENT_LEGEND = 'Calls and texts';
 
 /** Consent wording versions from before c3: every one of them said "call or text", so a call consent from then covers texts too. */
-const legacyCallCoversTexts = (version: string | null) => !version || !version.startsWith('c3');
+const legacyCallCoversTexts = (version: string | null) => !version || !version.startsWith('c3'); // c4 (one box) covers both
 /**
  * The application's old box (v1, v2) covered "my application and strategy call" only, and the old session text
  * boxes covered that session's reminders only: neither covers calls or texts that sell (the webinar, live and
@@ -184,8 +194,12 @@ export async function logGate(rt: Pick<Runtime, 'env'>, x: { leadId: string | nu
 // ───────────────────────────── recording consent ─────────────────────────────
 
 const ticked = (v: unknown) => v === true || v === 'true' || v === 'on' || v === '1';
-export const tickedCall = (body: Record<string, unknown>) => ticked(body.call_consent);
-export const tickedTexts = (body: Record<string, unknown>) => ticked(body.sms_consent);
+/** The one box (contact_consent) counts for both channels; the old separate boxes still work. */
+export const tickedOne = (body: Record<string, unknown>) => ticked(body.contact_consent);
+export const tickedCall = (body: Record<string, unknown>) => ticked(body.call_consent) || tickedOne(body);
+export const tickedTexts = (body: Record<string, unknown>) => ticked(body.sms_consent) || tickedOne(body);
+/** The wording to store: the one box's text when that box was ticked. */
+export const copyFor = (body: Record<string, unknown>) => (tickedOne(body) ? { version: CONSENT_ONE.version, call: CONSENT_ONE.text, sms: CONSENT_ONE.text } : undefined);
 
 export interface ConsentCapture {
   /** The number typed on the form. Consent is recorded only when it is the number on the lead now. */
@@ -254,12 +268,24 @@ export async function captureConsent(rt: Pick<Runtime, 'env'>, leadId: string, b
     const { updateLead } = await import('../funnel/leads');
     await updateLead(rt.env, leadId, { phone: o.phone });
   }
-  return recordConsent(rt, leadId, { phone: o.phone, call, texts, source: o.source, page: consentPage(body, o.page), ip: o.ip, userAgent: o.userAgent }, now);
+  return recordConsent(rt, leadId, { phone: o.phone, call, texts, source: o.source, page: consentPage(body, o.page), ip: o.ip, userAgent: o.userAgent, copy: copyFor(body) }, now);
 }
 
 const escHtml = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
 /** The two separate, unticked boxes (calls, texts) for a server-rendered form, in that form's own label class. */
 export function consentBoxes(labelClass: string, o: { checked?: { call?: boolean; texts?: boolean }; space?: string } = {}) {
+  const sp = o.space ?? ' ';
+  return consentOne(labelClass, { checked: Boolean(o.checked?.call || o.checked?.texts), space: sp });
+}
+
+/** The one unticked box for calls and texts, with the full wording under a short label. */
+export function consentOne(labelClass: string, o: { checked?: boolean; space?: string } = {}) {
+  const sp = o.space ?? ' ';
+  return `<label class="${escHtml(labelClass)} consent-box consent-one"><input type="checkbox" name="contact_consent"${o.checked ? ' checked' : ''}>${sp}<span><strong>${escHtml(CONSENT_ONE.label)}</strong><br><small>${escHtml(CONSENT_ONE.text)}</small></span></label>`;
+}
+
+/** The old two boxes (kept for reference by tests). */
+export function consentBoxesTwo(labelClass: string, o: { checked?: { call?: boolean; texts?: boolean }; space?: string } = {}) {
   const sp = o.space ?? ' ';
   return `<label class="${escHtml(labelClass)} consent-box"><input type="checkbox" name="call_consent"${o.checked?.call ? ' checked' : ''}>${sp}<span>${escHtml(CONSENT_COPY.call)}</span></label>
 <label class="${escHtml(labelClass)} consent-box"><input type="checkbox" name="sms_consent"${o.checked?.texts ? ' checked' : ''}>${sp}<span>${escHtml(CONSENT_COPY.sms)}</span></label>`;

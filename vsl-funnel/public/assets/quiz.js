@@ -133,7 +133,7 @@
       var btn = form.querySelector('button[type=submit]');
       var body = {
         first_name: form.first_name.value.trim(), email: form.email.value.trim(), phone: form.phone.value.trim(),
-        call_consent: form.call_consent.checked, sms_consent: form.sms_consent.checked, consent_page: '/quiz', answers: state.answers, event_id: uid('ql'),
+        contact_consent: Boolean(form.contact_consent && form.contact_consent.checked), consent_page: '/quiz', answers: state.answers, event_id: uid('ql'),
       };
       if (!body.first_name) { invalid('first_name'); return showError(errBox, 'Please enter your first name'); }
       if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(body.email)) { invalid('email'); return showError(errBox, 'Please enter a valid email address'); }
