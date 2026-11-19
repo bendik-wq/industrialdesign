@@ -119,7 +119,7 @@ export async function landingPage(c: Context<AppEnv>) {
     seo: true,
     // Prefill: a browser that came from our signed email link sees its details filled in (payment links).
     main: (await import('../sales/paylinks')).prefillInputs(landingHtml({ next, now, ticketLabel: cfg.ticketLabel, vipLabel: cfg.vipLabel, vipOn: cfg.vipOn, turnstile: turnstileSiteKey(rt.settings), free: cfg.free }),
-      c.get('visitor').leadId && !c.get('visitor').isBot ? await (await import('../sales/paylinks')).prefillFor(rt, c.get('visitor').leadId) : null),
+      null),
     config: { register: '/api/challenge/register', now },
   });
 }
