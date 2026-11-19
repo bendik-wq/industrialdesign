@@ -1,0 +1,93 @@
+<title>G&amp;L Ad Reel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap">
+<style>
+/* Layout: a dark screening room. A grid of phone-shaped players, each with its hook and the belief it installs. Single deliberate dark look. */
+:root {
+  --bg: #0b0b0d;
+  --panel: #131316;
+  --line: #26252a;
+  --fg: #ece7de;
+  --muted: #8f897f;
+  --amber: #d9a45e;
+  --display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --body: "Inter", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 56px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: grid; gap: 14px; padding-bottom: 36px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--amber); }
+h1 { font: 400 clamp(40px, 7vw, 72px)/1.02 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+.lede { max-width: 66ch; color: var(--muted); margin: 0; }
+.lede b { color: var(--fg); font-weight: 500; }
+.spine { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; padding: 0; list-style: none; }
+.spine li { font: 12px/1 var(--mono); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; background: var(--panel); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 40px 28px; padding-block: 40px; }
+.ad { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.phone { width: 100%; aspect-ratio: 9 / 16; background: #000; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; max-width: 100%; }
+.phone video { width: 100%; height: 100%; display: block; object-fit: cover; background: #000; }
+.brief { display: grid; gap: 10px; min-width: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 12px/1.4 var(--mono); color: var(--muted); align-items: center; }
+.tag { color: var(--amber); text-transform: uppercase; letter-spacing: .1em; }
+h2 { font: 400 28px/1.08 var(--display); margin: 0; text-wrap: balance; }
+.hook { font: 400 17px/1.4 var(--display); margin: 0; padding-left: 12px; border-left: 2px solid var(--amber); }
+.belief { margin: 0; font-size: 13.5px; color: var(--fg); }
+.belief span { display: block; font: 11px/1.6 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+section.more { padding-block: 40px; border-top: 1px solid var(--line); display: grid; gap: 18px; }
+h3 { font: 400 34px/1.1 var(--display); margin: 0; }
+.table { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font: 500 11px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--panel); }
+td:first-child { font: 12px/1.6 var(--mono); color: var(--amber); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+audio { width: 100%; min-width: 220px; height: 36px; }
+.notes { display: grid; gap: 10px; max-width: 70ch; color: var(--muted); font-size: 14px; }
+.notes p { margin: 0; }
+.notes b { color: var(--fg); font-weight: 500; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">G&amp;L M&amp;A Advisory · Paid social · v3 · <!--COUNT--> narrated story ads</span>
+    <h1>Install the belief. Then ask.</h1>
+    <p class="lede">Every ad runs the same spine, then turns away anyone who isn't an owner of a <b>profitable business doing $1M+ a year</b>. Narrated by a deep British voice, scored with an original cinematic cue that builds with the story, impacts on every reveal.</p>
+    <ul class="spine" aria-label="The spine of every ad">
+      <li>Certainty hook</li><li>$1M+ disqualifier</li><li>Old belief, named</li><li>Mechanism</li><li>Josh's proof</li><li>Cost of waiting</li><li>Apply</li>
+    </ul>
+  </header>
+
+  <div class="grid">
+<!--CARDS-->
+  </div>
+
+  <section class="more" id="voices">
+    <span class="eyebrow">Narrator · pick the voice</span>
+    <h3>Five voices, one line</h3>
+    <div class="table"><table>
+      <thead><tr><th>#</th><th>Voice</th><th>Listen</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>British, deep and measured (in the ads)</td><td><audio controls preload="none" src="v_british_deep.mp3"></audio></td></tr>
+        <tr><td>2</td><td>Exceptionally deep bass narrator (licensed)</td><td><audio controls preload="none" src="v_deep_bass.mp3"></audio></td></tr>
+        <tr><td>3</td><td>Callum, deep and steady (licensed)</td><td><audio controls preload="none" src="v_callum.mp3"></audio></td></tr>
+        <tr><td>4</td><td>The calm British morning walk (licensed)</td><td><audio controls preload="none" src="v_british_walk.mp3"></audio></td></tr>
+        <tr><td>5</td><td>Marcus, lighter and warm (licensed)</td><td><audio controls preload="none" src="v_marcus.mp3"></audio></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="more">
+    <span class="eyebrow">Guardrails</span>
+    <div class="notes">
+      <p><b>Proof.</b> The only results shown are Josh's own approved facts. History examples (Blockbuster, Kodak, Instagram, YouTube, Disney) are widely documented.</p>
+      <p><b>Funding.</b> Every ad names bank debt against the target's cash flow, seller finance and seller rollover, and the 1.5x coverage test.</p>
+      <p><b>Filter.</b> The disqualifier is about the business ($1M+ a year, profitable), never a personal attribute. No fake urgency, no guarantees, and the strategy call is never called free.</p>
+      <p><b>Audit.</b> Every narration passes the app's own copy auditor with zero flags.</p>
+    </div>
+  </section>
+</div>
