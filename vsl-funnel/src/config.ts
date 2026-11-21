@@ -530,7 +530,7 @@ export const APPLICATION_ALL: Question[] = [
   {
     id: 'contact',
     type: 'contact',
-    title: 'Let’s start with the basics',
+    title: 'Last step: where should we send your result?',
     
   },
   {

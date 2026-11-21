@@ -4,7 +4,9 @@
   'use strict';
   var F = window.funnel;
   var cfg = window.FUNNEL || {};
-  var questions = cfg.questions || [];
+  // Tap-only questions first; name, email and mobile come last, on the final screen.
+  var questions = (cfg.questions || []).filter(function (q) { return q.type !== 'contact'; })
+    .concat((cfg.questions || []).filter(function (q) { return q.type === 'contact'; }));
   var form = document.querySelector('[data-app]');
   var progress = document.querySelector('[data-progress]');
   var stepLabel = document.querySelector('[data-step-label]');
@@ -14,7 +16,7 @@
   var resume = cfg.resume || null;
   var answers = (resume && resume.answers) || {};
   var contact = (resume && resume.contact) || {};
-  var index = resume ? Math.min(resume.step || 0, questions.length - 1) : 0;
+  var index = 0;
   var busy = false;
   var turnstileToken = null;
 
@@ -65,12 +67,11 @@
     var html = '<div class="app-step" data-q="' + esc(q.id) + '"><h2 tabindex="-1">' + esc(q.title) + '</h2>' + (q.help ? '<p class="help">' + esc(q.help) + '</p>' : '');
 
     if (q.type === 'contact') {
-      html += '<div class="row2"><div class="field"><label for="first_name">First name</label><input id="first_name" name="first_name" autocomplete="given-name" required value="' + esc(contact.first_name) + '"></div>' +
-        '<div class="field"><label for="last_name">Last name</label><input id="last_name" name="last_name" autocomplete="family-name" value="' + esc(contact.last_name) + '"></div></div>' +
+      html += '<div class="field"><label for="first_name">First name</label><input id="first_name" name="first_name" autocomplete="given-name" required value="' + esc(contact.first_name) + '"></div>' +
         '<div class="field"><label for="email">Email</label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required value="' + esc(contact.email) + '"></div>' +
         '<div class="field"><label for="phone">Mobile</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="' + esc(PLACEHOLDER_PHONE[cfg.country] || '+61 412 345 678') + '" value="' + esc(contact.phone) + '"></div>' +
         (cfg.consent ? '<label class="check call-consent consent-one"><input type="checkbox" name="contact_consent"' + (contact.contact_consent || contact.call_consent ? ' checked' : '') + '><span><strong>' + esc(cfg.consent.label) + '</strong><br><small>' + esc(cfg.consent.text) + '</small></span></label>' : '') +
-        navHtml('Continue', false);
+        navHtml('See if I qualify', index > 0);
     } else if (q.type === 'single' || q.type === 'multi') {
       var multi = q.type === 'multi';
       var current = answers[q.id];
@@ -141,10 +142,11 @@
     render();
   }
 
+  // The final screen: create the lead, save every tapped answer, then submit. Nothing is sent before this.
   function saveContact() {
     var data = {
       first_name: form.first_name.value,
-      last_name: form.last_name.value,
+      last_name: '',
       email: form.email.value,
       phone: form.phone.value,
       contact_consent: Boolean(form.contact_consent && form.contact_consent.checked),
@@ -157,18 +159,22 @@
       refreshTurnstile();
       if (r.error) return showError(r.error, r.field === 'turnstile' ? null : r.field);
       if (r.leadEventId) F.pixel('Lead', r.leadEventId);
-      next();
+      var ids = questions.filter(function (q) { return q.type !== 'contact'; }).map(function (q) { return q.id; });
+      var chain = Promise.resolve(null);
+      ids.forEach(function (id) {
+        chain = chain.then(function (bad) { return bad || api('answer', { question: id, value: answers[id] }).then(function (a) { return a.error ? { a: a, id: id } : null; }); });
+      });
+      return chain.then(function (bad) {
+        if (bad) { index = Math.max(0, ids.indexOf(bad.id)); render(); return showError(bad.a.error); }
+        return submit();
+      });
     });
   }
 
   function saveAnswer(q, value) {
     answers[q.id] = value;
-    return api('answer', { question: q.id, value: value }).then(function (r) {
-      if (r._status === 409) { index = 0; render(); return showError(r.error); }
-      if (r.error) return showError(r.error, r.field);
-      if (index === questions.length - 1) return submit();
-      next();
-    });
+    next();
+    return Promise.resolve();
   }
 
   function submit() {
