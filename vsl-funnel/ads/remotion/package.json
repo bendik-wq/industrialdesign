@@ -1,0 +1,24 @@
+{
+  "name": "liquid-glass-ugc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remotion template: vertical AI-UGC talking-head ad wrapped in an Apple Liquid Glass look",
+  "scripts": {
+    "studio": "remotion studio --browser-executable=/opt/pw-browsers/chromium",
+    "typecheck": "tsc --noEmit",
+    "render": "./render.sh"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.545",
+    "@remotion/google-fonts": "4.0.545",
+    "@remotion/layout-utils": "4.0.545",
+    "@remotion/media-utils": "4.0.545",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.545"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.17",
+    "typescript": "5.9.3"
+  }
+}
