@@ -349,7 +349,7 @@ Buying means the customers, the staff and the profit are there on settlement day
 
 Structure it with seller finance, seller rollover and bank debt against the business's own cash flow, and the profit pays for the purchase.
 
-Paramount was doing about $1M in revenue at just over 10% margins when I bought it with 100% seller finance, and it's now moving into a facility three times the size.
+Paramount was doing about $1M in revenue at just over 10% margins when I bought it with 100% seller finance, and a couple of months ago it moved into a facility three times the size.
 
 Melton, my first, paid me about $150k in distributions in year one and has roughly tripled its revenue since.
 
@@ -379,7 +379,7 @@ If you run a $1M+ business and you've been told acquisitions mean betting your h
 
 Melton: 100% seller financed over 7 years at 4%, a 9-month payment holiday, no bond, and rent paid in arrears. It paid me about $150k in distributions in year one and has roughly tripled its revenue since.
 
-Paramount: doing about $1M in revenue at just over 10% margins when I bought it. 100% seller financed over 36 months with staged balloons, and 6 months interest-only to start. It's now moving into a facility three times the size.
+Paramount: doing about $1M in revenue at just over 10% margins when I bought it. 100% seller financed over 36 months with staged balloons, and 6 months interest-only to start. A couple of months ago it moved into a facility three times the size.
 
 No bank, no investors, no guarantee, and none of my own money.
 
