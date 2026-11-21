@@ -1,6 +1,13 @@
 node_modules/
 out/
-public/*.mp4
-public/*.wav
-public/*.mp3
+build/
+.remotion/
+# rendered / source media (drop clips into public/ locally, don't commit them)
 *.mp4
+*.mov
+*.webm
+*.m4a
+*.wav
+*.mp3
+*.png
+*.jpg

@@ -1,0 +1,202 @@
+{
+ "videoSrc": "standin.mp4",
+ "brand": "G&L M&A Advisory",
+ "words": [
+  {
+   "text": "If",
+   "start": 0.35,
+   "end": 0.6,
+   "highlight": false
+  },
+  {
+   "text": "you",
+   "start": 0.66,
+   "end": 0.955,
+   "highlight": false
+  },
+  {
+   "text": "own",
+   "start": 1.015,
+   "end": 1.31,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 1.37,
+   "end": 1.575,
+   "highlight": false
+  },
+  {
+   "text": "trades",
+   "start": 1.635,
+   "end": 2.065,
+   "highlight": true
+  },
+  {
+   "text": "business,",
+   "start": 2.125,
+   "end": 2.645,
+   "highlight": true
+  },
+  {
+   "text": "someone",
+   "start": 3.025,
+   "end": 3.5,
+   "highlight": false
+  },
+  {
+   "text": "is",
+   "start": 3.56,
+   "end": 3.81,
+   "highlight": false
+  },
+  {
+   "text": "about",
+   "start": 3.87,
+   "end": 4.255,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 4.315,
+   "end": 4.565,
+   "highlight": false
+  },
+  {
+   "text": "buy",
+   "start": 4.625,
+   "end": 4.92,
+   "highlight": true
+  },
+  {
+   "text": "it",
+   "start": 4.98,
+   "end": 5.23,
+   "highlight": false
+  },
+  {
+   "text": "cheap.",
+   "start": 5.29,
+   "end": 5.675,
+   "highlight": false
+  },
+  {
+   "text": "HVAC",
+   "start": 6.055,
+   "end": 6.395,
+   "highlight": true
+  },
+  {
+   "text": "add-on",
+   "start": 6.455,
+   "end": 6.885,
+   "highlight": false
+  },
+  {
+   "text": "deals",
+   "start": 6.945,
+   "end": 7.33,
+   "highlight": false
+  },
+  {
+   "text": "jumped",
+   "start": 7.39,
+   "end": 7.82,
+   "highlight": false
+  },
+  {
+   "text": "eighty-eight",
+   "start": 7.88,
+   "end": 8.58,
+   "highlight": true
+  },
+  {
+   "text": "percent",
+   "start": 8.64,
+   "end": 9.115,
+   "highlight": true
+  },
+  {
+   "text": "in",
+   "start": 9.175,
+   "end": 9.425,
+   "highlight": false
+  },
+  {
+   "text": "five",
+   "start": 9.485,
+   "end": 9.825,
+   "highlight": false
+  },
+  {
+   "text": "months.",
+   "start": 9.885,
+   "end": 10.315,
+   "highlight": false
+  },
+  {
+   "text": "They",
+   "start": 10.695,
+   "end": 11.035,
+   "highlight": false
+  },
+  {
+   "text": "buy",
+   "start": 11.095,
+   "end": 11.39,
+   "highlight": false
+  },
+  {
+   "text": "at",
+   "start": 11.45,
+   "end": 11.7,
+   "highlight": false
+  },
+  {
+   "text": "four",
+   "start": 11.76,
+   "end": 12.1,
+   "highlight": true
+  },
+  {
+   "text": "times",
+   "start": 12.16,
+   "end": 12.545,
+   "highlight": false
+  },
+  {
+   "text": "and",
+   "start": 12.605,
+   "end": 12.9,
+   "highlight": false
+  },
+  {
+   "text": "sell",
+   "start": 12.96,
+   "end": 13.3,
+   "highlight": false
+  },
+  {
+   "text": "at",
+   "start": 13.36,
+   "end": 13.61,
+   "highlight": false
+  },
+  {
+   "text": "twelve.",
+   "start": 13.67,
+   "end": 14.1,
+   "highlight": true
+  }
+ ],
+ "beats": [
+  {
+   "kind": "stat",
+   "start": 5.4,
+   "end": 10.2,
+   "title": "*+88%*",
+   "sub": "HVAC add-on deals (Jan to May 2025)",
+   "footnote": "Illustrative"
+  }
+ ]
+}
