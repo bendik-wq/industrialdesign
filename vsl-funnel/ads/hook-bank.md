@@ -110,7 +110,7 @@ Each: the line, the picture, the belief it shifts, and a copy block.
 - **Shift:** B1, B7.
 > Morgan paid about four hundred and eighty million dollars, merged it with the steelmakers he already controlled, and the new company was capitalised at one point four billion.
 >
-> The same mills under one roof were valued at almost three times the price.
+> It was the first billion-dollar company in history, and size was worth more than steel.
 >
 > That's the roll-up, and it works at every size. A group is worth more than its parts.
 
