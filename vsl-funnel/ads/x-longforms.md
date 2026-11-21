@@ -1,150 +1,130 @@
-# X long-forms for @thejoshli
+# X long-forms for @thejoshli (aggressive cut)
 
 ## LF1 · The payment holiday
 
-I bought a healthcare business at 25 with none of my own money, and the seller agreed to take no repayments for the first 9 months.
+At 25, unemployed, I bought a healthcare business without putting in a dollar, and the seller didn't take a single repayment for 9 months.
 
-Most owners think that's impossible.
+Meanwhile owners doing $5M a year are still paying an agency every month to rent customers they will never own.
 
-It's one of the oldest structures in business, and it works because of one thing every retiring owner wants more than a big cheque.
+If that's you, read to the end, because the deal I'm about to show you is sitting in your industry right now.
 
-If you already run a $1M+ business and you're still growing it with ads and hires, read this to the end.
+My first deal, Melton: 100% seller financed over 7 years at 4%, a 9-month payment holiday, no personal guarantee, no security, no bond, and rent paid in arrears.
 
-The exact terms on my first deal, Melton: 100% seller financed over 7 years at 4%, a 9-month payment holiday, no personal guarantee, no security, no bond, and rent paid in arrears.
+In year one I took about $150k in distributions from a business I'd put nothing into. It has roughly tripled its revenue since.
 
-In my first year of ownership I took about $150k in distributions, on a deal I'd put nothing into.
+My second deal, Paramount, was doing about $1M at just over 10% margins: 6 months interest-only, 100% seller financed over 36 months with staged balloons, and again no guarantee and no security.
 
-That clinic has roughly tripled its revenue since.
+Now ask yourself why a seller would agree to that.
 
-Why would a seller agree to that?
+Retiring owners aren't hunting for the biggest cheque. They want their business to outlive them, a buyer who looks serious, and to get paid.
 
-A retiring owner isn't optimising for the biggest cheque. They're optimising for three things:
+Give them all three, and price stops being the fight.
 
-1. Certainty that the business outlives them: their staff, their patients, their name.
-2. A buyer who looks serious. I had a board I'd recruited off LinkedIn, including a director who'd built fitness businesses to eight figures and owned a physio clinic.
-3. Getting paid. Over time is fine, as long as the business can clearly carry it.
+The only test that matters: the profit has to cover the repayments about 1.5 times. Fail it and you walk. Pass it and the business pays for itself.
 
-That third one is the whole game.
+Here's what should bother you.
 
-The test I use: the profit has to cover the repayments about one and a half times.
+I did this with no money, no experience and about a thousand cold calls.
 
-If it can't, the structure is wrong, and the seller isn't the problem.
+You have a profitable business, a team, cash flow a bank can read, and credit you've never pointed at an acquisition.
 
-My second deal, Paramount, was a clinic doing about $1M in revenue at just over 10% margins: 6 months interest-only, 100% seller financed over 36 months with staged balloons. Again, no guarantee and no security. Plenty of people online talk about seller finance; I don't know anyone else showing two 100% seller-financed deals with no guarantee and no security.
+Capital was never your problem. The playbook is.
 
-Here's what nobody tells owners doing $1M to $100M a year.
+Every month you grow 1% at a time with ads, someone else is buying the customers you're chasing, wholesale.
 
-You are a far better buyer than I was at 25.
+Doing $1M+ a year? DM me "HOLIDAY".
 
-You have a track record, a team, cash flow a bank can read, and credit you've never pointed at an acquisition.
-
-I had a phone and about a thousand cold calls.
-
-Every year you spend trying to grow 15% with ads, you're paying retail for customers.
-
-Acquisitions are wholesale.
-
-If your business does $1M+ a year and you want the breakdown of how these structures work in your industry, DM me "HOLIDAY".
+Under that, don't DM me. Go grow the core business first.
 
 ## LF2 · 92% just closed
 
-In 2022, about 510,000 small and mid-size businesses left the US market.
+In 2022, about 510,000 small and mid-size businesses left the US market, and 92% of them didn't sell.
 
-92% of them simply closed. Only 5% were sold.
+They just closed.
 
-Read that again.
+Customers, trained staff, cash flow, switched off, because nobody bothered to call.
 
-Plenty of those businesses had customers, trained staff and cash flow, and they were switched off because nobody asked to buy them.
+That isn't a sad statistic. It's the biggest transfer of customers in our lifetime, and most owners are sleeping through it.
 
-If you run a $1M+ business, this is the biggest opportunity of the next decade, and almost nobody at your level is positioned for it.
+If you run a $1M+ business, you are exactly the buyer those owners needed and never met.
 
-McKinsey expects about 6 million small and mid-size businesses to face an ownership change by 2035 as owners retire.
+McKinsey expects about 6 million small and mid-size businesses to face an ownership change by 2035. More than a million of them are viable to sell, worth up to $5 trillion.
 
-More than a million of them are viable to sell, worth up to $5 trillion.
+Here's why so many close instead:
 
-Here's why so many close instead of selling:
+1. No successor, and the kids don't want it.
+2. The only buyers who show up are tyre-kickers with a bank loan and a lowball offer.
+3. Nobody ever put a structure in front of them that pays them properly and keeps their staff employed.
 
-1. The owner has no successor, and the kids don't want it.
-2. The only buyers they meet are tyre-kickers asking for an SBA loan and a fire-sale price.
-3. Nobody ever offered them a structure that pays them properly and keeps their staff employed.
+So the doors lock, and the customers scatter to whoever's left in town. Possibly your competitor.
 
-So they lock the doors, sell the equipment, and the customers scatter to whoever's left.
+The winners of the next decade won't be the best marketers.
 
-Now flip it around.
+They'll be the owners who picked up the phone while everyone else was boosting posts.
 
-Every one of those businesses is a block of customers, staff and profit you'd spend years and a fortune building from scratch.
+I made about a thousand calls before my first deal. Four died on the table. The fifth, Melton, closed 100% seller financed with none of my money in it. Paramount followed on the same terms.
 
-The owners who win the next ten years won't be the best marketers.
+You don't need a thousand calls. You need a structure, a team a seller trusts, and the nerve to ask.
 
-They'll be the ones who picked up the phone first.
+Doing $1M+ a year? DM me "HANDOVER" and I'll show you how to find the ones who'll sell to you.
 
-That's how I bought my first clinic at 25: about a thousand cold calls, four deals that died, then a fifth that closed 100% seller financed with no money of mine in it.
-
-You don't need a thousand calls. You need a structure, a team the seller trusts, and a list of owners in your industry who are tired.
-
-If your business does $1M+ a year, DM me "HANDOVER" and I'll show you how to find the ones who'll sell to you.
+Under that, this isn't for you yet.
 
 ## LF3 · AI made ads free
 
-AI just made marketing free, and that's exactly why growing your business with marketing is about to get brutally expensive.
+Every competitor you have can now make a hundred ads before lunch.
 
-When a tool makes something free, everyone does it, and the value moves to whatever the tool can't produce.
+Congratulations. You're all bidding for the same customers, in the same auctions, and the price only moves one way.
 
-When anyone can spin up a hundred ads before lunch, every competitor of yours is bidding in the same auctions, flooding the same feeds and buying the same customers.
+AI didn't make marketing easier. It made it a knife fight.
 
-The one asset AI can't generate is a customer who already trusts you.
+When a tool makes something free, everyone does it, and the value moves to the one thing the tool can't produce.
 
-Ten years of relationships. A phone number people have saved. A local name their parents used.
+AI can't produce a customer who already trusts you.
 
-You can't prompt that into existence.
+Ten years of relationships, a number saved in someone's phone, a local name their parents used. You can't prompt that into existence.
 
-But you can buy it.
+You can buy it.
 
-When I bought my first clinic, I didn't buy a building. I bought about 13,000 people who already trusted that business, on day one.
+When I bought my first clinic, I didn't buy a building. I bought about 13,000 people who already trusted that business, on day one, with no ad spend, no funnel and no begging the algorithm.
 
-No ad spend, no funnel, and no waiting for the algorithm to like me.
+The deal was 100% seller financed, so the profit of the business paid for its own purchase. I did it again with Paramount.
 
-And the deal was 100% seller financed, so the profit of the business paid for its own purchase.
-
-Here's the shift owners doing $1M to $100M need to make.
-
-Stop asking "how do I get more customers?"
+If you run a $1M to $100M business, stop asking "how do I get more customers?"
 
 Start asking "who already has the customers I want, and is ready to stop?"
 
-In every industry, in every town, that answer is a retiring owner with a business full of trust and no succession plan.
+In every industry, in every town, the answer is a retiring owner with a business full of trust and no succession plan.
 
-AI is making marketing a race to the bottom.
+Marketing is a race to the bottom now.
 
-Acquisition is the way out of the race.
+Acquisition is how you leave the race.
 
-If your business does $1M+ a year, DM me "TRUST" and I'll send you how we structure these.
+Doing $1M+ a year? DM me "TRUST".
+
+Under that, grow the core first.
 
 ## LF4 · Rockefeller bought 22
 
-In 1872, John D. Rockefeller bought 22 of his rivals in about six weeks.
+Rockefeller didn't run better ads.
 
-He didn't out-refine them. He bought them.
-
-Within a decade, Standard Oil controlled about 90% of American refining.
+In 1872 he bought 22 of his rivals in about six weeks, and within a decade Standard Oil controlled about 90% of American refining.
 
 Every great fortune since has run the same play.
 
 In 1901, J.P. Morgan bought Carnegie Steel for about $480 million and merged it into U.S. Steel, the first billion-dollar company in history.
 
-In 1972, Warren Buffett paid $25 million for See's Candies. It's earned him over $2 billion since.
+In 1972, Warren Buffett paid $25 million for See's Candies. It has earned him over $2 billion since.
 
 In 2006, Google bought YouTube. Its ads alone brought in over $36 billion last year.
 
 In 2009, Disney paid $4 billion for Marvel. Within ten years Marvel films had grossed over $18 billion.
 
-Now here's the part that matters if you run a $1M+ business.
+Now look at your own industry.
 
-The same play is running in your industry right now, at your size.
+While you're testing headlines, private equity is buying HVAC companies, dental practices, vet clinics and physio groups, one acquisition at a time.
 
-Private equity firms are buying up HVAC companies, dental practices, vet clinics and physio groups, one acquisition at a time.
-
-Add-on deals for HVAC companies alone were up 88% in the first five months of 2025.
+HVAC add-on deals alone were up 88% in the first five months of 2025.
 
 They aren't smarter than you. They have a playbook:
 
@@ -153,93 +133,91 @@ They aren't smarter than you. They have a playbook:
 3. Run every site on one system.
 4. Repeat, and sell the group for more than the parts.
 
-I used that playbook on Melton and Paramount: both 100% seller financed, no guarantee, no security, and none of my own money.
+I ran that playbook on Melton and Paramount: both 100% seller financed, no guarantee, no security, and none of my own money.
 
-History doesn't need you to invent anything new.
+History doesn't need you to invent anything.
 
-It needs you to stop building one customer at a time.
+It needs you to stop building one customer at a time while someone else buys your market.
 
-If your business does $1M+ a year, DM me "PLAYBOOK".
+Doing $1M+ a year? DM me "PLAYBOOK".
 
 ## LF5 · Same business, two prices
 
-Two identical businesses. Same street, same customers, same $600k a year in profit.
+Two identical businesses: same street, same customers, same $600k a year in profit.
 
-One will make its buyer wealthy. The other will sink them.
+One makes its buyer wealthy. The other quietly ruins them.
 
 The only difference is the price, and how it's paid.
 
-If you've ever done an acquisition that looked great at signing and bled you a year later, this is why.
+If you've ever signed a deal that looked brilliant and bled you a year later, this is why.
 
-A bank doesn't ask whether a business is good. It asks whether the profit covers the repayments with room to spare.
+A bank doesn't care whether a business is good. It cares whether the profit covers the repayments with room to spare.
 
 My line is about 1.5x.
 
-Buy the first one at 3x earnings, seller financed over 7 years at 4%, and the profit covers the repayments about 1.7 times. It passes.
+Buy the first at 3x earnings, seller financed over 7 years at 4%, and the profit covers the repayments about 1.7 times. It passes.
 
 Buy the second at 4x on the same terms, and cover drops to about 1.3. It fails. (Illustrative numbers.)
 
 Nothing about the business changed. The structure did.
 
-The most common mistake I see: owners doing their first deal with 80 to 90% bank debt and a personal guarantee, with no advisors around them.
+And here's the trap most first-time buyers walk straight into: 80 to 90% bank debt, a personal guarantee, and no advisors around them.
 
-That's risk you don't need to take.
+The bank will happily take your house as security. That isn't the bank helping you. That's the bank protecting itself.
 
-Add 30% seller finance to take pressure off the debt, add a rollover so the seller keeps skin in the game, and the same deal breathes.
+Put 30% on seller finance to take pressure off the debt, add a rollover so the seller keeps skin in the game, and the same deal breathes.
 
-My own deals have been 100% seller financed with no guarantees. When I use commercial debt, it's always structured with rollover and seller finance alongside it.
+My deals, Melton and Paramount, were 100% seller financed with no guarantees. When I use commercial debt, it always comes with rollover and seller finance alongside it.
 
 Structured right, a deal frees up cash flow from month one.
 
-Structured wrong, a great business becomes a loan you pay for five years.
+Structured wrong, a great business becomes a five-year loan you regret.
 
-If your business does $1M+ a year and you want your next acquisition built to pass the test, DM me "STRUCTURE".
+Doing $1M+ a year? DM me "STRUCTURE" before you sign anything.
 
 ## LF6 · Platform or add-on
 
-I was once offered a big buyout-style deal on my healthcare group.
+Private equity already has a word for your business.
 
-It would have left me running it with zero ownership until exit.
+"Add-on."
 
-I said no, and the reason is the most important thing an owner doing $1M to $100M a year can understand right now.
+It means the thing they buy at a small multiple and bolt onto someone else's group.
 
-Private equity is rolling up your industry.
+I was once offered a big buyout-style deal on my healthcare group that would have left me running it with zero ownership until exit. I said no, because I'd rather be the platform than the add-on.
+
+Here's what's happening in your industry whether you're watching or not.
 
 HVAC add-on deals were up 88% in the first five months of 2025. Heartland Dental passed 2,000 offices, and one acquisition alone added 60.
 
 Wherever a market is fragmented and its owners are getting older, the same play runs.
 
-In five years, every owner in your industry will be one of two things: the platform, or the add-on.
-
-The add-on gets bought at a small-business multiple, roughly 3 to 5 times earnings.
+The add-on gets bought at roughly 3 to 5 times earnings.
 
 The platform gets valued at 8 to 12. (Illustrative ranges.)
 
-The same profit is priced completely differently depending on which side of the deal you're on.
+Same profit, priced completely differently, depending on which side of the table you sit.
 
-Most owners your size assume the platform role belongs to someone with a fund behind them.
+Most owners doing $1M to $100M assume the platform role belongs to someone with a fund behind them.
 
 It doesn't.
 
-Private equity's real edge was never the money. It's the playbook: find owners before they list, structure each deal so the target's profit pays for it, and run every site on one system.
+Private equity's edge was never the money. It's the playbook: find owners before they list, structure every deal so the target's profit pays for it, and run every site on one system.
 
 I've done two acquisitions that way, Melton and Paramount, both 100% seller financed, with no guarantees, no security and no investors.
 
-Turning down that offer meant keeping the platform.
+In five years your industry will be consolidated by someone.
 
-If your business does $1M+ a year, the question isn't whether your industry consolidates.
+Be the platform, or be on their list.
 
-It's whether you're the one doing it.
-
-DM me "PLATFORM".
+Doing $1M+ a year? DM me "PLATFORM".
 
 ## LF7 · I knew nothing about physio
 
 When I bought my first physio clinic, I knew almost nothing about physiotherapy.
 
-That turned out to be the least important thing in the deal.
+Two clinics later, it still hasn't mattered.
 
-If you're a business owner who thinks "I could never run a second business, I can barely run this one," read this.
+"I can barely run the one business I've got" is the most expensive sentence an owner can say.
 
 Running a business and doing the work inside it are two different jobs.
 
@@ -251,37 +229,35 @@ I recruited a board off LinkedIn, including a director who'd built fitness busin
 
 They covered leadership, operations, compliance, hiring and leases, everything I didn't know.
 
-Here's the belief that keeps most owners stuck at one business: that the second will be twice as hard as the first.
+The belief that keeps most owners stuck at one business is that the second will be twice as hard.
 
 It's the opposite.
 
-Your first business was tuition. You built the systems, hired the wrong people, fixed the cash flow, learned what a bad month feels like.
+Your first business was tuition. You built the systems, hired the wrong people, fixed the cash flow and learned what a bad month feels like.
 
 The second business inherits all of that on day one.
 
-Your systems, your suppliers, your finance function and your managers carry straight over, and your overheads spread across two sets of revenue.
+Your systems, suppliers, finance function and managers carry straight over, and your overheads spread across two sets of revenue.
 
-Today I own two clinics, Melton and Paramount, I work on the businesses instead of in them, and the group is doing a few million in revenue at around 20% margins.
+Today I own two clinics, Melton and Paramount. I work on the businesses instead of in them, and the group is doing a few million in revenue at around 20% margins.
 
 You already know how to run a business.
 
 Nobody taught you how to buy one.
 
-If your business does $1M+ a year, DM me "TEAM".
+Doing $1M+ a year? DM me "TEAM".
 
 ## LF8 · Sellers decide in minutes
 
-A retiring owner sorts you into one of two boxes very quickly: real buyer, or tyre-kicker.
+Sellers aren't ghosting you because your offer is too low.
+
+They're ghosting you because you look like a risk.
+
+A retiring owner sorts you into one of two boxes almost immediately: real buyer, or tyre-kicker.
 
 They don't read your spreadsheet. They read you.
 
-And almost every buyer fails the same three checks.
-
-If you run a $1M+ business and you've ever wondered why sellers ghost you, this is for you.
-
-An owner handing over 30 years of work isn't weighing your offer to the decimal point.
-
-Their brain is running three yes-or-no switches:
+An owner handing over 30 years of work is running three yes-or-no switches in their head:
 
 1. Serious? Do you have people around you who've done this before, or is it just you and a dream?
 2. Safe? Will my staff keep their jobs, will my customers be looked after, will my name survive?
@@ -291,59 +267,59 @@ Flip all three to yes, and the biggest cheque in the room stops mattering.
 
 Miss one, and you lose to a lower offer from someone who looked like a safer pair of hands.
 
-When I did my first deal at 25, I had no money and no track record.
+At 25 I had no money and no track record.
 
 What I had was a board I'd recruited myself, a clear plan to keep the staff, and a structure the business could clearly afford: 100% seller financed over 7 years at 4%, with a 9-month payment holiday.
 
-The seller said yes.
+The seller said yes. Then Paramount's seller said yes on the same principle.
 
-You already run a profitable business. You're starting with two of the three switches half-flipped.
+You already run a profitable business. Two of the three switches are half-flipped before you pick up the phone.
 
 The structure and the team are the part we build with you.
 
-If your business does $1M+ a year, DM me "SAFE".
+Doing $1M+ a year? DM me "SAFE".
 
 ## LF9 · The simplest path
 
 The simplest path I know from one business to an eight-figure group.
 
+The people selling courses on this don't want you to see how simple it is.
+
 No raise, no investors, and none of your own money in the deals, if you structure them right.
 
-If your business already does $1M+ a year, save this.
+Doing $1M+ a year? Save this.
 
 1. Build a board before you call anyone: a chair, a finance lead, a lawyer and an operator from your industry.
-2. Make a list of owners in your industry who are 60+, tired, and have no successor.
+2. List every owner in your industry who is 60+, tired, and has no successor.
 3. Call them yourself. The best businesses never reach a broker.
 4. Ask for an NDA and three years of financials. If they send them, they're serious.
 5. Offer a structure, not just a price: bank debt against the business's cash flow, seller finance, and seller rollover.
-6. Test every deal at about 1.5x cover. Walk away from the rest without a second thought.
+6. Test every deal at about 1.5x cover, and walk from the rest without a second thought.
 7. Keep the seller involved through the handover.
 8. Run every site on one system so nothing depends on you.
 9. Repeat, and one day sell the group for more than the sum of its parts.
 
-That's how I bought Melton at 25 and then Paramount, both 100% seller financed with no guarantee and no security. Melton paid me about $150k in distributions in its first year. When a seller won't carry the whole price, seller rollover and commercial debt close the gap, and the deal still has to pass the same test.
+That's how I bought Melton at 25 and then Paramount, both 100% seller financed with no guarantee and no security. Melton paid me about $150k in distributions in its first year.
 
-I think 2026 to 2033 is the biggest window for this in history.
+When a seller won't carry the whole price, seller rollover and commercial debt close the gap, and the deal still has to pass the same test.
 
-McKinsey expects about 6 million small and mid-size businesses to change hands by 2035 as owners retire.
+I think 2026 to 2033 is the biggest window for this in history. McKinsey expects about 6 million small and mid-size businesses to change hands by 2035.
 
-Someone will buy them.
+Someone is going to buy them.
 
-If your business does $1M+ a year, DM me "PATH".
+Doing $1M+ a year? DM me "PATH".
 
 ## LF10 · Build vs buy
 
-Opening a new dental practice costs $500k to $950k and takes 12 to 36 months to turn a profit.
+Before you sign a lease on your next location, read this. It could save you a year of losses.
 
-Buying one that's already profitable can cost you nothing down.
+A new dental practice costs $500k to $950k to open and takes 12 to 36 months to turn a profit.
 
-That gap is why the smartest operators stopped building first.
+One that's already profitable can be bought with nothing down.
 
-If you run a $1M+ business and your growth plan is "open another location", read this before you sign a lease.
+Opening a location is a bet you pay for up front. Buying one is a bet the seller already won.
 
-Building means you fund everything up front: the fit-out, the equipment, the hires, the marketing.
-
-Then you fund the losses while the place finds its feet, sometimes for years.
+Building means you fund the fit-out, the equipment, the hires and the marketing, then you fund the losses while it finds its feet.
 
 Buying means the customers, the staff and the profit are there on settlement day.
 
@@ -353,21 +329,21 @@ Paramount was doing about $1M in revenue at just over 10% margins when I bought 
 
 Melton, my first, paid me about $150k in distributions in year one and has roughly tripled its revenue since.
 
-I still grow organically too. But organic growth now sits on top of businesses I bought, not instead of them.
+I still grow organically. But organic growth now sits on top of businesses I bought, instead of replacing them.
 
 Build when nothing is for sale.
 
 Buy when something is.
 
-In most industries, something is.
+In most industries, something always is.
 
-If your business does $1M+ a year, DM me "BUY".
+Doing $1M+ a year? DM me "BUY" before you sign that lease.
 
 ## LF11 · 100% or nothing
 
-Every acquisition account online tells you to "use seller financing".
+Every acquisition guru online tells you to "use seller financing".
 
-Ask them one question: how much of the price did the seller actually finance?
+Ask them how much of the price the seller actually financed, and watch them change the subject.
 
 Surveys of buyers put the typical seller note at 10 to 20% of the price, with a bank loan and a personal guarantee carrying the rest.
 
@@ -385,11 +361,11 @@ No bank, no investors, no guarantee, and none of my own money.
 
 Here's why that matters more than the headline.
 
-A personal guarantee means a bad year in the business becomes a bad year for your family.
+A personal guarantee turns a bad year in the business into a bad year for your family.
 
 100% seller finance means there's no bank to answer to and no equity to raise.
 
-A payment holiday means the profit stays in the business while you take over.
+A payment holiday keeps the profit in the business while you take over.
 
 Sellers agree to it when three things are true: you look serious, their staff and name are safe with you, and the structure clearly pays them.
 
@@ -399,7 +375,7 @@ I don't know anyone else online showing two 100% seller-financed deals with no g
 
 If you do, send them my way.
 
-If your business does $1M+ a year, DM me "100" and I'll show you how we structure them.
+Doing $1M+ a year? DM me "100" and I'll show you how we structure them.
 
 ## Short posts
 
