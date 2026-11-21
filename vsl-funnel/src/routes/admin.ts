@@ -533,7 +533,19 @@ admin.get('/leads/:id', async (c) => {
     bookingMethod: lead.booked_at ? await (await import('../integrations/booking')).bookingMethodOf(runtimeFrom(c), lead) : null,
     // Consent per channel with its proof, opt-outs and recent blocked attempts (src/integrations/consent-gate.ts).
     consent: await consentSummary(c.env, lead).catch(() => null),
+    // The text thread (in and out, AI replies marked) and whether the AI texting agent may reply (src/integrations/sms-agent.ts).
+    texts: await (await import('../integrations/sms-agent')).leadTexts(runtimeFrom(c), lead.id).catch(() => null),
   });
+});
+
+// AI texting agent: pause or resume AI replies for one lead (a handoff pauses them automatically).
+admin.post('/leads/:id/ai-text', async (c) => {
+  const lead = await getLead(c.env, c.req.param('id'));
+  if (!lead) return c.json({ error: 'not found' }, 404);
+  const body = (await c.req.json().catch(() => ({}))) as { paused?: unknown };
+  const A = await import('../integrations/sms-agent');
+  await A.setPaused(runtimeFrom(c), lead.id, body.paused === true, 'team', body.paused === true ? 'paused in Funnel HQ' : null);
+  return c.json({ ok: true, texts: await A.leadTexts(runtimeFrom(c), lead.id) });
 });
 
 // Settings → Errors & jobs → Consent: blocked contact attempts by reason (7 days) and the owner's test sends.

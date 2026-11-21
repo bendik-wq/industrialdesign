@@ -325,7 +325,7 @@ async function stillOk(rt: Runtime, m: MsgRow, lead: Lead | null) {
   const dup = await rt.env.DB.prepare("SELECT 1 FROM ops_followup_messages WHERE lead_id = ? AND channel = ? AND id <> ? AND status IN ('sent', 'simulated') AND sent_at > ? LIMIT 1").bind(lead.id, m.channel, m.id, Date.now() - DAY).first();
   if (dup) return 'already followed up today';
   if (m.channel === 'sms') {
-    const today = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ?").bind(lead.id, Date.now() - DAY).first<{ n: number }>();
+    const today = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ? AND COALESCE(template, '') != 'ai_agent'").bind(lead.id, Date.now() - DAY).first<{ n: number }>();
     if ((today?.n ?? 0) >= 3) return 'daily text cap (3)';
   }
   return null;

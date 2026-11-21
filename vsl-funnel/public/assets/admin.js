@@ -1651,6 +1651,19 @@
     });
   }
 
+  /** The lead's text thread (newest first) with the AI texting agent's switch for this lead (src/integrations/sms-agent.ts). */
+  function textsHtml(t) {
+    if (!t) return '';
+    var a = t.agent || {}, msgs = t.messages || [];
+    var state = !a.on ? 'off for everyone (AI_TEXT_AGENT)' : !a.keySet ? 'off: add the Anthropic API key' : a.paused_at ? 'paused' + (a.reason ? ' (' + a.reason + ')' : '') + ' since ' + when(a.paused_at) : 'on';
+    var btn = a.on && a.keySet ? (a.paused_at ? '<button class="btn-sm" type="button" data-aitext="resume">Resume AI replies</button>' : '<button class="btn-sm ghost" type="button" data-aitext="pause">Pause AI replies</button>') : '';
+    var who = function (m) { return m.direction === 'in' ? 'Them' : m.template === 'ai_agent' ? 'AI (Sam)' : 'Us' + (m.sequence ? ' · ' + m.sequence : ''); };
+    return '<div class="card" id="ld-texts" style="margin-top:14px"><div class="card-head"><div><h2>Texts' + (msgs.length ? ' · ' + msgs.length : '') + '</h2><p class="sub">AI replies: <strong>' + esc(state) + '</strong></p></div><div>' + btn + '</div></div>' +
+      (msgs.length ? '<ul class="lines" style="list-style:none;padding:0;margin:0">' + msgs.map(function (m) {
+        return '<li style="padding:8px 0;border-top:1px solid var(--line, #e5e7eb)"><div class="row"><strong>' + esc(who(m)) + '</strong><span class="muted">' + esc(when(m.sent_at || m.created_at)) + (m.direction === 'out' && m.status !== 'sent' ? ' · ' + esc(m.status) : '') + '</span></div><div>' + esc(m.body || '') + '</div>' + (m.error ? '<div class="muted">' + esc(m.error) + '</div>' : '') + '</li>';
+      }).join('') + '</ul>' : '<p class="muted">No texts yet.</p>') + '</div>';
+  }
+
   function openLead(id, o) {
     closeDrawers();
     var pushed = false;
@@ -1683,6 +1696,7 @@
       var jumps = [['ld-pipeline', 'Pipeline'], ['ld-deal', 'Deal'], ['ld-contract', 'Contract'], ['ld-app', 'Application'], ['ld-video', 'Video'], ['ld-emails', 'Emails']]
         .concat(d.calendly && d.calendly.length ? [['ld-calendly', 'Bookings']] : [])
         .concat((d.voice && d.voice.length) || (d.bookingTools && d.bookingTools.length) ? [['ld-calls', 'AI calls']] : [])
+        .concat(d.texts && d.texts.messages && d.texts.messages.length ? [['ld-texts', 'Texts']] : [])
         .concat([['ld-buyer', 'Path to buy'], ['ld-journey', 'Journey']]);
 
       dr.innerHTML =
@@ -1726,6 +1740,7 @@
           return '<div style="margin:10px 0"><div class="row"><strong>' + esc(v.video_id) + '</strong><span class="muted">' + esc(when(v.started_at)) + ' · ' + esc(v.duration ? pct(Math.min(1, v.max_position / v.duration)) : '–') + ' reached · ' + esc(secs(v.watched_seconds)) + ' watched' + (v.cta_clicked ? ' · clicked CTA' : '') + '</span></div><div class="mini-ret" aria-hidden="true">' + String(v.buckets).split('').map(function (b) { return '<i' + (b === '1' ? ' class="on"' : '') + '></i>'; }).join('') + '</div></div>';
         }).join('') : '<p class="muted">No video views recorded.</p>') +
         '<h2 id="ld-emails" style="margin-top:14px">Emails</h2>' + (d.emails.length ? table([{ label: 'Email', html: function (m) { return esc(m.template) + '<div class="muted">' + esc(m.sequence) + '</div>'; } }, { label: 'Status', key: 'status' }, { label: 'When', nw: true, html: function (m) { return esc(when(m.sent_at || m.send_at)); } }, { label: 'Opened', html: function (m) { return m.opened_at ? '✓' : ''; } }, { label: 'Clicked', html: function (m) { return m.clicked_at ? '✓' : ''; } }, { label: 'Personal', html: function (m) { return m.personalized && m.personalized !== 'off' ? '<span class="pill" title="' + esc(m.facts_used || '') + '">' + esc(m.personalized) + '</span>' : ''; } }], d.emails) : '<p class="muted">None.</p>') + '</div></div>' +
+        '<div data-texts>' + textsHtml(d.texts) + '</div>' +
         '<div class="card" style="margin-top:14px" data-behaviour><div class="card-head"><div><h2>What they did → their emails</h2><p class="sub">Every email to this lead is rewritten around these, one or two at a time, never repeating.</p></div></div><p class="muted">Loading…</p></div>' +
         (d.calendly && d.calendly.length ? '<div class="card" id="ld-calendly" style="margin-top:14px"><h2>Calendly bookings · ' + d.calendly.length + '</h2>' + table([
           { label: 'Call', html: function (b) { return esc(when(b.start_at)); } },
@@ -1739,6 +1754,17 @@
         '<div class="card" id="ld-journey" style="margin-top:14px"><div class="card-head"><div><h2>Journey</h2><p class="sub">Every visit and action, server-side.</p></div><label class="muted"><input type="checkbox" data-all> show all events</label></div><ul class="timeline" data-tl>' + timeline() + '</ul></div>';
 
       dr.querySelector('.close').onclick = close;
+      // AI texting agent: pause / resume AI replies for this lead.
+      dr.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-aitext]');
+        if (!b) return;
+        b.disabled = true;
+        send('POST', 'leads/' + encodeURIComponent(l.id) + '/ai-text', { paused: b.getAttribute('data-aitext') === 'pause' }).then(function (r) {
+          if (r.error) { toast(r.error); b.disabled = false; return; }
+          d.texts = r.texts; var box = dr.querySelector('[data-texts]'); if (box) box.innerHTML = textsHtml(r.texts);
+          toast(b.getAttribute('data-aitext') === 'pause' ? 'AI replies paused' : 'AI replies on');
+        });
+      });
       // The drawer is the scroller and its head is sticky: land each section just under the head.
       dr.querySelectorAll('[data-jump]').forEach(function (b) {
         b.onclick = function () {

@@ -358,7 +358,7 @@ export async function sendSmsRow(rt: Runtime, row: SmsRow, sequences: SmsSequenc
     await rt.env.DB.prepare('UPDATE sms_messages SET status = ?, attempts = attempts - 1, send_at = ?, error = ? WHERE id = ?').bind(stale ? 'skipped' : 'pending', next ?? now, stale ? 'outside texting hours' : null, row.id).run();
     return stale ? 'skipped' : 'later';
   }
-  const today = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ?").bind(lead.id, now - DAY).first<{ n: number }>();
+  const today = await rt.env.DB.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ? AND COALESCE(template, '') != 'ai_agent'").bind(lead.id, now - DAY).first<{ n: number }>();
   if ((today?.n ?? 0) >= 3) { await skip('daily cap (3)'); return 'skipped'; }
   const before = await rt.env.DB.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') LIMIT 1").bind(lead.id).first();
   try {
@@ -489,7 +489,7 @@ export async function handleInboundSms(rt: Runtime, params: Record<string, strin
   return handleReplyWords(rt, lead, body, 'sms');
 }
 
-/** STOP / START / "C" to confirm, from a text or a WhatsApp message. Other replies ping the team. */
+/** STOP / START / "C" to confirm, from a text or a WhatsApp message. Other texts go to the AI texting agent, else ping the team. */
 export async function handleReplyWords(rt: Runtime, lead: Lead | null, body: string, channel: 'sms' | 'whatsapp'): Promise<{ kind: string; reply: string | null }> {
   const now = Date.now();
   if (STOP_WORDS.test(body)) {
@@ -521,6 +521,8 @@ export async function handleReplyWords(rt: Runtime, lead: Lead | null, body: str
   }
   if (lead) {
     await track(rt, await identityFromLead(rt.env, lead.id), { name: channel === 'whatsapp' ? 'whatsapp_reply' : 'sms_reply', source: 'webhook', localOnly: true });
+    // The AI texting agent (sms-agent.ts) answers ordinary texts; when it can't (off, paused, no key), the team is pinged as before.
+    if (await (await import('./sms-agent')).takeReply(rt, lead, channel).catch(() => false)) return { kind: 'ai_reply', reply: null };
     rt.waitUntil(notifySlack(rt, lead, channel === 'whatsapp' ? '💬 WhatsApp reply' : '💬 Text reply', [`“${plain(body.slice(0, 300))}”`, channel === 'whatsapp' ? 'Reply from the WhatsApp Business app within 24 hours.' : 'Reply from Twilio or your phone; the thread is on the lead in Funnel HQ.'], 'voice'));
   }
   return { kind: lead ? 'reply' : 'unknown', reply: null };

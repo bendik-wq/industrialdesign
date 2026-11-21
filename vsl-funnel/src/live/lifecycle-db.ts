@@ -196,7 +196,7 @@ export async function textClear(rt: Pick<Runtime, 'env'>, leadId: string, at: nu
 }
 /** For the AI call queue: the times of texts sent to this person around `at`. */
 export async function textsNear(rt: Pick<Runtime, 'env'>, leadId: string, at: number) {
-  const { results } = await rt.env.DB.prepare("SELECT sent_at FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated', 'sending') AND sent_at BETWEEN ? AND ?")
+  const { results } = await rt.env.DB.prepare("SELECT sent_at FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated', 'sending') AND sent_at BETWEEN ? AND ? AND COALESCE(template, '') != 'ai_agent'")
     .bind(leadId, at - HOUR, at + HOUR).all<{ sent_at: number }>().catch(() => ({ results: [] as { sent_at: number }[] }));
   return results.map((r) => r.sent_at).filter(Boolean);
 }

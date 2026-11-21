@@ -516,7 +516,7 @@ async function sendText(rt: Runtime, lead: Lead, reg: LiveReg, k: LiveMessage, e
       ON CONFLICT(lead_id, sequence, step) WHERE direction = 'out' DO NOTHING`).bind(newId('sm'), lead.id, seq, liveStep(reg, k), `live:${k}`, lead.phone, now, room, clear.why, now).run();
     return false;
   }
-  const today = await db.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ?").bind(lead.id, now - DAY).first<{ n: number }>();
+  const today = await db.prepare("SELECT COUNT(*) AS n FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') AND sent_at > ? AND COALESCE(template, '') != 'ai_agent'").bind(lead.id, now - DAY).first<{ n: number }>();
   if ((today?.n ?? 0) >= 3) return false;
   const before = await db.prepare("SELECT 1 FROM sms_messages WHERE lead_id = ? AND direction = 'out' AND status IN ('sent', 'simulated') LIMIT 1").bind(lead.id).first();
   const id = newId('sm');
