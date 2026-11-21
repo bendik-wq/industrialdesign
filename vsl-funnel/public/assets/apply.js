@@ -30,10 +30,13 @@
       .catch(function () { return { error: 'Connection problem — please check your internet and try again.', _status: 0 }; });
   }
 
+  // Segmented progress: one bar per screen, filled up to this one.
+  var bar = progress && progress.parentNode;
+  if (bar) { bar.innerHTML = ''; questions.forEach(function () { bar.appendChild(document.createElement('b')); }); }
   function setProgress() {
-    var pct = Math.round((index / questions.length) * 100);
-    progress.style.width = Math.max(4, pct) + '%';
-    stepLabel.textContent = 'Step ' + (index + 1) + ' of ' + questions.length;
+    if (bar) [].forEach.call(bar.children, function (b, i) { b.classList.toggle('on', i <= index); });
+    var taps = questions.length - 1;
+    stepLabel.textContent = questions[index].type === 'contact' ? 'Last step' : 'Question ' + (index + 1) + ' of ' + taps + ' · tap to answer';
     var secs = (questions.length - index) * 12;
     timeLeft.textContent = secs >= 60 ? 'About ' + Math.round(secs / 60) + ' min left' : 'About ' + secs + ' seconds left';
   }
@@ -71,16 +74,16 @@
         '<div class="field"><label for="email">Email</label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required value="' + esc(contact.email) + '"></div>' +
         '<div class="field"><label for="phone">Mobile</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="' + esc(PLACEHOLDER_PHONE[cfg.country] || '+61 412 345 678') + '" value="' + esc(contact.phone) + '"></div>' +
         (cfg.consent ? '<label class="check call-consent consent-one"><input type="checkbox" name="contact_consent"' + (contact.contact_consent || contact.call_consent ? ' checked' : '') + '><span><strong>' + esc(cfg.consent.label) + '</strong><br><small>' + esc(cfg.consent.text) + '</small></span></label>' : '') +
-        navHtml('See if I qualify', index > 0);
+        navHtml('See my result', index > 0) + '<p class="app-trust"><span>No spam</span><span>Takes 10 seconds</span></p>';
     } else if (q.type === 'single' || q.type === 'multi') {
       var multi = q.type === 'multi';
       var current = answers[q.id];
-      html += micHtml('Say your answer').replace('or type', 'or tap one') + '<div class="opts" role="' + (multi ? 'group' : 'radiogroup') + '">';
+      html += '<div class="opts' + (q.options.length > 4 ? ' opts-2' : '') + '" role="' + (multi ? 'group' : 'radiogroup') + '">';
       q.options.forEach(function (o, i) {
         var on = multi ? (current || []).indexOf(o.value) !== -1 : current === o.value;
         html += '<button type="button" class="opt" data-v="' + esc(o.value) + '" ' + (multi ? 'aria-pressed' : 'role="radio" aria-checked') + '="' + on + '"><span class="key">' + String.fromCharCode(65 + i) + '</span><span>' + esc(o.label) + '</span></button>';
       });
-      html += '</div>' + (multi ? navHtml('Continue', true) : '<div class="app-nav"><button type="button" class="back" data-back>← Back</button><span></span></div>');
+      html += '</div>' + (multi ? navHtml('Continue', true) : (index > 0 ? '<div class="app-nav"><button type="button" class="back" data-back>← Back</button><span></span></div>' : ''));
     } else if (q.type === 'text') {
       html += micHtml('Talk instead of typing') + '<div class="field"><textarea name="' + esc(q.id) + '" placeholder="' + esc(q.placeholder || '') + '" maxlength="2000">' + esc(answers[q.id] || '') + '</textarea></div>' +
         navHtml(isLast ? 'Submit my application' : 'Continue', true);

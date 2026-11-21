@@ -1047,3 +1047,45 @@ html.ot-open { overflow: hidden; }
   @keyframes ot-up { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
 }
 
+
+/* ── Application v3: tap-only, big targets, one question per screen ── */
+.form-card { border-radius: 18px; padding: 30px 30px 26px; }
+.app-progress { display: flex; gap: 6px; height: 6px; background: none; border-radius: 0; margin: 0 0 14px; overflow: visible; }
+.app-progress > b { flex: 1; height: 6px; border-radius: 6px; background: #e3e6ec; transition: background .3s ease; }
+.app-progress > b.on { background: #0f2c5c; }
+.app-progress > i { display: none; }
+.app-meta { font: 600 12px/1 var(--font); letter-spacing: .06em; text-transform: uppercase; color: #6b7385; margin-bottom: 20px; }
+.app-step { animation: appIn .32s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes appIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+.app-step h2 { font: 650 24px/1.22 var(--font); letter-spacing: -.02em; margin: 0 0 20px; }
+.opts { gap: 10px; }
+.opt { position: relative; min-height: 62px; padding: 14px 44px 14px 16px; gap: 14px; border: 1.5px solid #dde1e8; border-radius: 14px; font: 560 16.5px/1.3 var(--font); background: #fff; transition: border-color .15s, background .15s, transform .12s, box-shadow .15s; -webkit-tap-highlight-color: transparent; }
+.opt::after { content: ''; position: absolute; right: 18px; top: 50%; width: 8px; height: 8px; border-right: 2px solid #9aa3b2; border-top: 2px solid #9aa3b2; transform: translateY(-50%) rotate(45deg); opacity: .0; transition: opacity .15s, right .15s; }
+.opt:hover { border-color: #0f2c5c; background: #f7f9fc; box-shadow: 0 6px 18px -12px rgba(15, 44, 92, .45); }
+.opt:hover::after { opacity: 1; right: 16px; }
+.opt:active { transform: scale(.985); }
+.opt .key { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid #c9cfda; font: 650 13px/1 var(--font); color: #454e63; display: grid; place-items: center; background: #fff; }
+.opt[aria-checked="true"], .opt[aria-pressed="true"] { background: #0f2c5c; border-color: #0f2c5c; color: #fff; box-shadow: 0 10px 24px -14px rgba(15, 44, 92, .8); }
+.opt[aria-checked="true"] .key, .opt[aria-pressed="true"] .key { border: 0; background: rgba(255, 255, 255, .16); color: #fff; }
+.opt[aria-checked="true"]::after, .opt[aria-pressed="true"]::after { opacity: 1; border-color: #fff; }
+.app-nav { margin-top: 20px; }
+.app-nav .back { font: 500 14px/1 var(--font); color: #6b7385; background: none; border: 0; padding: 8px 0; cursor: pointer; }
+.app-step .field input { min-height: 54px; font-size: 17px; border-radius: 12px; }
+.app-step .field { margin-bottom: 12px; }
+.form-card .app-nav .btn { padding: 18px 24px; font-size: 17px; border-radius: 12px; }
+.consent-one { margin-top: 6px; }
+.consent-one strong { font-weight: 600; }
+.consent-one small { display: block; margin-top: 4px; font-size: 11.5px; line-height: 1.45; color: #6b7385; }
+.app-trust { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin: 14px 0 0; font: 500 12.5px/1.3 var(--font); color: #6b7385; }
+.app-trust span::before { content: '✓ '; color: #0f2c5c; font-weight: 700; }
+@media (max-width: 900px) { .apply-grid .form-card { order: -1; } }
+@media (max-width: 640px) { .form-card { padding: 22px 18px 20px; border-radius: 16px; } .app-step h2 { font-size: 22px; } .opt { min-height: 58px; font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { .app-step { animation: none; } .opt { transition: none; } }
+.app-step .opts-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.app-step .opts-2 .opt { padding-right: 14px; min-height: 58px; font-size: 15.5px; gap: 10px; }
+.app-step .opts-2 .opt::after { display: none; }
+.app-step .opts-2 .opt:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (max-width: 380px) { .app-step .opts-2 .opt .key { display: none; } }
+main.hero.compact:has(> .apply-section:first-child) { padding-top: 0; }
+@media (max-width: 900px) { main.hero.compact .apply-section { padding-block: 20px 56px; } }
+@media (max-width: 640px) { .app-step .opts-2 .opt .key { display: none; } .app-step .opts-2 .opt { white-space: nowrap; justify-content: center; text-align: center; padding: 12px 8px; } }

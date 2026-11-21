@@ -142,7 +142,7 @@ export const LANDING = {
   ctaLabel: 'See if you qualify',
   applyEyebrow: 'Apply',
   applyTitle: 'See if your business qualifies',
-  applySubtitle: 'Two minutes, ten questions. If you’re a fit, you’ll pick a time for an acquisition strategy call with Josh’s team.',
+  applySubtitle: 'Five taps, about 30 seconds. If you’re a fit, you’ll pick a time for an acquisition strategy call with Josh’s team.',
   /** What the call gives them. Keep these true to how your calls actually run. */
   applyPoints: [
     '<strong>A working session, not a pitch.</strong> We go through your numbers and your market.',
@@ -546,7 +546,7 @@ export const APPLICATION_ALL: Question[] = [
   {
     id: 'role',
     type: 'single',
-    title: 'What’s your role in the business?',
+    title: 'What’s your role?',
     options: [
       { value: 'owner', label: 'Founder / majority owner', points: 20 },
       { value: 'co_owner', label: 'Co-owner or partner', points: 16 },
@@ -557,32 +557,32 @@ export const APPLICATION_ALL: Question[] = [
   {
     id: 'revenue',
     type: 'single',
-    title: 'What’s the business’s annual revenue?',
+    title: 'Annual revenue?',
     help: 'Last financial year, roughly.',
     options: [
       { value: 'lt1m', label: 'Under $1M', points: 0, flags: ['under_1m'] },
       { value: '1_3m', label: '$1M – $3M', points: 15, flags: ['small'] },
       { value: '3_10m', label: '$3M – $10M', points: 22 },
-      { value: 'gt10m', label: '$10M+', points: 25 },
-      { value: '10_25m', label: '$10M – $25M', points: 25, hidden: true },
-      { value: '25_50m', label: '$25M – $50M', points: 25, hidden: true },
-      { value: '50_100m', label: '$50M – $100M', points: 25, hidden: true },
-      { value: 'gt100m', label: '$100M+', points: 25, hidden: true },
+      { value: '10_25m', label: '$10M – $25M', points: 25 },
+      { value: '25_50m', label: '$25M – $50M', points: 25 },
+      { value: '50_100m', label: '$50M – $100M', points: 25 },
+      { value: 'gt100m', label: '$100M+', points: 25 },
+      { value: 'gt10m', label: '$10M+', points: 25, hidden: true },
     ],
   },
   {
     id: 'profit',
     type: 'single',
-    title: 'Roughly what is its annual profit (EBITDA)?',
+    title: 'Annual profit (EBITDA)?',
     help: 'Lenders and sellers look at this first.',
     options: [
       { value: 'loss', label: 'Break-even or loss-making', points: 0, flags: ['unprofitable'] },
       { value: 'lt250k', label: 'Under $250k', points: 8 },
       { value: '250k_1m', label: '$250k – $1M', points: 16 },
-      { value: 'gt1m', label: '$1M+', points: 20 },
-      { value: 'p1_3m', label: '$1M – $3M', points: 20, hidden: true },
-      { value: 'p3_10m', label: '$3M – $10M', points: 20, hidden: true },
-      { value: 'pgt10m', label: '$10M+', points: 20, hidden: true },
+      { value: 'p1_3m', label: '$1M – $3M', points: 20 },
+      { value: 'p3_10m', label: '$3M – $10M', points: 20 },
+      { value: 'pgt10m', label: '$10M+', points: 20 },
+      { value: 'gt1m', label: '$1M+', points: 20, hidden: true },
     ],
   },
   {
@@ -600,7 +600,7 @@ export const APPLICATION_ALL: Question[] = [
   {
     id: 'timeline',
     type: 'single',
-    title: 'When would you want to close your first (or next) acquisition?',
+    title: 'When do you want to close your next acquisition?',
     options: [
       { value: '0_6', label: 'In the next 6 months', points: 15 },
       { value: '6_12', label: '6 – 12 months', points: 10 },
@@ -626,7 +626,7 @@ export const APPLICATION_ALL: Question[] = [
   {
     id: 'readiness',
     type: 'single',
-    title: 'If we show you a clear path on the call, are you ready to invest in getting it done?',
+    title: 'If it’s a fit, are you ready to move?',
     options: [
       { value: 'yes', label: 'Yes — if it’s a fit, I’m ready to move', points: 15 },
       { value: 'partner', label: 'Yes, but I’ll decide with my business partner', points: 9, flags: ['partner'] },
