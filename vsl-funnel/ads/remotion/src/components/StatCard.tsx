@@ -9,7 +9,7 @@ import {plain, RichText} from './RichText';
 
 const CARD_W = 900;
 const INNER_W = 780;
-const CENTER_Y = 0.335; // upper-middle, clear of the captions and of the very top of frame
+const CENTER_Y = 0.8; // lower third of frame: clear of the presenter's face and of the captions (62%)
 
 /** Glass stat card that springs up from below with a specular sheen sweep. Frame 0 = beat start. */
 export const StatCard: React.FC<{beat: Beat}> = ({beat}) => {

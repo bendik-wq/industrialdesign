@@ -49,7 +49,7 @@ export const groupWords = (words: Word[]): WordGroup[] => {
   return groups.map((ws, i) => {
     const next = groups[i + 1];
     const last = ws[ws.length - 1].end;
-    const hide = next && next[0].start - last < 0.9 ? next[0].start : last + HOLD;
+    const hide = next && next[0].start - last < 1.8 ? next[0].start : last + HOLD;
     return {words: ws, start: ws[0].start, hide};
   });
 };
