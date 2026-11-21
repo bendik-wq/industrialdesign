@@ -10,11 +10,11 @@ It's one of the oldest structures in business, and it works because of one thing
 
 If you already run a $1M+ business and you're still growing it with ads and hires, read this to the end.
 
-The exact terms on my first deal: 100% seller financed over 7 years at 4%, a 9-month payment holiday, no personal guarantee, no security, no bond, and rent paid in arrears.
-
-The clinic was doing about $1M in revenue at just over 10% margins.
+The exact terms on my first deal, Melton: 100% seller financed over 7 years at 4%, a 9-month payment holiday, no personal guarantee, no security, no bond, and rent paid in arrears.
 
 In my first year of ownership I took about $150k in distributions, on a deal I'd put nothing into.
+
+That clinic has roughly tripled its revenue since.
 
 Why would a seller agree to that?
 
@@ -30,7 +30,7 @@ The test I use: the profit has to cover the repayments about one and a half time
 
 If it can't, the structure is wrong, and the seller isn't the problem.
 
-My second deal was 6 months interest-only, 100% seller financed over 36 months with staged balloons. Again, no guarantee and no security.
+My second deal, Paramount, was a clinic doing about $1M in revenue at just over 10% margins: 6 months interest-only, 100% seller financed over 36 months with staged balloons. Again, no guarantee and no security. Plenty of people online talk about seller finance; I don't know anyone else showing two 100% seller-financed deals with no guarantee and no security.
 
 Here's what nobody tells owners doing $1M to $100M a year.
 
@@ -153,7 +153,7 @@ They aren't smarter than you. They have a playbook:
 3. Run every site on one system.
 4. Repeat, and sell the group for more than the parts.
 
-I used that playbook to buy my first clinic at 25 with none of my own money. 100% seller financed, 9-month payment holiday, no guarantee, no security.
+I used that playbook on Melton and Paramount: both 100% seller financed, no guarantee, no security, and none of my own money.
 
 History doesn't need you to invent anything new.
 
@@ -223,7 +223,7 @@ It doesn't.
 
 Private equity's real edge was never the money. It's the playbook: find owners before they list, structure each deal so the target's profit pays for it, and run every site on one system.
 
-I've done two acquisitions that way, both 100% seller financed, with no guarantees and no investors.
+I've done two acquisitions that way, Melton and Paramount, both 100% seller financed, with no guarantees, no security and no investors.
 
 Turning down that offer meant keeping the platform.
 
@@ -261,7 +261,7 @@ The second business inherits all of that on day one.
 
 Your systems, your suppliers, your finance function and your managers carry straight over, and your overheads spread across two sets of revenue.
 
-Today I own two clinics, I work on the businesses instead of in them, and the group is doing a few million in revenue at around 20% margins.
+Today I own two clinics, Melton and Paramount, I work on the businesses instead of in them, and the group is doing a few million in revenue at around 20% margins.
 
 You already know how to run a business.
 
@@ -321,7 +321,7 @@ If your business already does $1M+ a year, save this.
 8. Run every site on one system so nothing depends on you.
 9. Repeat, and one day sell the group for more than the sum of its parts.
 
-That's exactly how I bought my first clinic at 25, 100% seller financed with no guarantee and no security, and took about $150k in distributions in the first year.
+That's how I bought Melton at 25 and then Paramount, both 100% seller financed with no guarantee and no security. Melton paid me about $150k in distributions in its first year. When a seller won't carry the whole price, seller rollover and commercial debt close the gap, and the deal still has to pass the same test.
 
 I think 2026 to 2033 is the biggest window for this in history.
 
@@ -349,9 +349,9 @@ Buying means the customers, the staff and the profit are there on settlement day
 
 Structure it with seller finance, seller rollover and bank debt against the business's own cash flow, and the profit pays for the purchase.
 
-My first clinic was doing about $1M in revenue at just over 10% margins when I bought it with 100% seller finance.
+Paramount was doing about $1M in revenue at just over 10% margins when I bought it with 100% seller finance, and it's now moving into a facility three times the size.
 
-I took about $150k in distributions in year one, and that clinic has roughly tripled its revenue since.
+Melton, my first, paid me about $150k in distributions in year one and has roughly tripled its revenue since.
 
 I still grow organically too. But organic growth now sits on top of businesses I bought, not instead of them.
 
@@ -363,11 +363,49 @@ In most industries, something is.
 
 If your business does $1M+ a year, DM me "BUY".
 
+## LF11 · 100% or nothing
+
+Every acquisition account online tells you to "use seller financing".
+
+Ask them one question: how much of the price did the seller actually finance?
+
+Surveys of buyers put the typical seller note at 10 to 20% of the price, with a bank loan and a personal guarantee carrying the rest.
+
+That's seller financing with your house on the line.
+
+I've done two deals, Melton and Paramount. Both were 100% seller financed, with no personal guarantee and no security.
+
+If you run a $1M+ business and you've been told acquisitions mean betting your house, read this.
+
+Melton: 100% seller financed over 7 years at 4%, a 9-month payment holiday, no bond, and rent paid in arrears. It paid me about $150k in distributions in year one and has roughly tripled its revenue since.
+
+Paramount: doing about $1M in revenue at just over 10% margins when I bought it. 100% seller financed over 36 months with staged balloons, and 6 months interest-only to start. It's now moving into a facility three times the size.
+
+No bank, no investors, no guarantee, and none of my own money.
+
+Here's why that matters more than the headline.
+
+A personal guarantee means a bad year in the business becomes a bad year for your family.
+
+100% seller finance means there's no bank to answer to and no equity to raise.
+
+A payment holiday means the profit stays in the business while you take over.
+
+Sellers agree to it when three things are true: you look serious, their staff and name are safe with you, and the structure clearly pays them.
+
+When a seller won't carry the whole price, there are other ways in: seller rollover, a seller note, and commercial debt against the business's own cash flow. Every one of them still has to pass the same 1.5x test.
+
+I don't know anyone else online showing two 100% seller-financed deals with no guarantee and no security.
+
+If you do, send them my way.
+
+If your business does $1M+ a year, DM me "100" and I'll show you how we structure them.
+
 ## Short posts
 
 S1 · Banks don't reject buyers. They reject structures.
 
-S2 · My first acquisition: 100% seller financed, 7 years at 4%, a 9-month payment holiday, no guarantee and no security. I was 25 and unemployed. If you already run a $1M+ business, you're starting much further ahead than I was.
+S2 · My first acquisition, Melton: 100% seller financed, 7 years at 4%, a 9-month payment holiday, no guarantee and no security. I was 25 and unemployed. If you already run a $1M+ business, you're starting much further ahead than I was.
 
 S3 · In 2022, 92% of the small and mid-size businesses that exited the US market simply closed. Only 5% were sold. Somebody should have called them.
 
