@@ -1,0 +1,660 @@
+{
+ "videoSrc": "p3.mp4",
+ "brand": "G&L M&A Advisory",
+ "autoBrandBeats": false,
+ "durationInSeconds": 43.8,
+ "words": [
+  {
+   "text": "Stuck",
+   "start": 0.05,
+   "end": 0.306,
+   "highlight": false
+  },
+  {
+   "text": "at",
+   "start": 0.306,
+   "end": 0.562,
+   "highlight": false
+  },
+  {
+   "text": "five",
+   "start": 0.562,
+   "end": 1.074,
+   "highlight": false
+  },
+  {
+   "text": "million,",
+   "start": 1.074,
+   "end": 1.586,
+   "highlight": false
+  },
+  {
+   "text": "and",
+   "start": 1.586,
+   "end": 1.842,
+   "highlight": false
+  },
+  {
+   "text": "still",
+   "start": 1.842,
+   "end": 2.098,
+   "highlight": false
+  },
+  {
+   "text": "paying",
+   "start": 2.098,
+   "end": 2.354,
+   "highlight": false
+  },
+  {
+   "text": "for",
+   "start": 2.354,
+   "end": 2.611,
+   "highlight": false
+  },
+  {
+   "text": "ads?",
+   "start": 2.611,
+   "end": 2.867,
+   "highlight": false
+  },
+  {
+   "text": "So",
+   "start": 3.21,
+   "end": 3.89,
+   "highlight": false
+  },
+  {
+   "text": "you're",
+   "start": 3.89,
+   "end": 4.23,
+   "highlight": false
+  },
+  {
+   "text": "at",
+   "start": 4.23,
+   "end": 4.43,
+   "highlight": false
+  },
+  {
+   "text": "five",
+   "start": 4.43,
+   "end": 5.07,
+   "highlight": false
+  },
+  {
+   "text": "mill",
+   "start": 5.07,
+   "end": 5.25,
+   "highlight": false
+  },
+  {
+   "text": "today.",
+   "start": 5.25,
+   "end": 5.59,
+   "highlight": false
+  },
+  {
+   "text": "You're",
+   "start": 5.69,
+   "end": 6.37,
+   "highlight": false
+  },
+  {
+   "text": "probably",
+   "start": 6.37,
+   "end": 7.01,
+   "highlight": false
+  },
+  {
+   "text": "not",
+   "start": 7.01,
+   "end": 7.21,
+   "highlight": false
+  },
+  {
+   "text": "going",
+   "start": 7.21,
+   "end": 7.35,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 7.35,
+   "end": 7.41,
+   "highlight": false
+  },
+  {
+   "text": "get",
+   "start": 7.41,
+   "end": 7.51,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 7.51,
+   "end": 7.65,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 7.65,
+   "end": 7.73,
+   "highlight": false
+  },
+  {
+   "text": "10",
+   "start": 7.73,
+   "end": 7.95,
+   "highlight": true
+  },
+  {
+   "text": "mill",
+   "start": 7.95,
+   "end": 8.23,
+   "highlight": false
+  },
+  {
+   "text": "by",
+   "start": 8.23,
+   "end": 8.69,
+   "highlight": false
+  },
+  {
+   "text": "hiring",
+   "start": 8.69,
+   "end": 9.11,
+   "highlight": false
+  },
+  {
+   "text": "more,",
+   "start": 9.11,
+   "end": 9.43,
+   "highlight": false
+  },
+  {
+   "text": "advertising",
+   "start": 9.53,
+   "end": 9.89,
+   "highlight": false
+  },
+  {
+   "text": "more,",
+   "start": 9.89,
+   "end": 10.41,
+   "highlight": false
+  },
+  {
+   "text": "getting",
+   "start": 10.51,
+   "end": 12.11,
+   "highlight": false
+  },
+  {
+   "text": "more",
+   "start": 12.11,
+   "end": 12.57,
+   "highlight": false
+  },
+  {
+   "text": "of",
+   "start": 12.57,
+   "end": 12.79,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 12.79,
+   "end": 12.87,
+   "highlight": false
+  },
+  {
+   "text": "market.",
+   "start": 12.87,
+   "end": 13.23,
+   "highlight": false
+  },
+  {
+   "text": "You're",
+   "start": 13.53,
+   "end": 14.21,
+   "highlight": false
+  },
+  {
+   "text": "going",
+   "start": 14.21,
+   "end": 14.29,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 14.29,
+   "end": 14.37,
+   "highlight": false
+  },
+  {
+   "text": "get",
+   "start": 14.37,
+   "end": 14.49,
+   "highlight": false
+  },
+  {
+   "text": "more",
+   "start": 14.49,
+   "end": 14.69,
+   "highlight": false
+  },
+  {
+   "text": "of",
+   "start": 14.69,
+   "end": 14.81,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 14.81,
+   "end": 14.87,
+   "highlight": false
+  },
+  {
+   "text": "market",
+   "start": 14.87,
+   "end": 15.21,
+   "highlight": false
+  },
+  {
+   "text": "by",
+   "start": 15.21,
+   "end": 15.67,
+   "highlight": false
+  },
+  {
+   "text": "buying",
+   "start": 15.67,
+   "end": 16.23,
+   "highlight": true
+  },
+  {
+   "text": "your",
+   "start": 16.23,
+   "end": 16.55,
+   "highlight": false
+  },
+  {
+   "text": "competitors.",
+   "start": 16.55,
+   "end": 17.03,
+   "highlight": true
+  },
+  {
+   "text": "It's",
+   "start": 17.13,
+   "end": 17.47,
+   "highlight": false
+  },
+  {
+   "text": "much",
+   "start": 17.47,
+   "end": 17.59,
+   "highlight": false
+  },
+  {
+   "text": "easier",
+   "start": 17.59,
+   "end": 18.03,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 18.03,
+   "end": 18.17,
+   "highlight": false
+  },
+  {
+   "text": "get",
+   "start": 18.17,
+   "end": 18.31,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 18.31,
+   "end": 18.47,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 18.47,
+   "end": 18.55,
+   "highlight": false
+  },
+  {
+   "text": "10",
+   "start": 18.55,
+   "end": 18.95,
+   "highlight": true
+  },
+  {
+   "text": "million",
+   "start": 18.95,
+   "end": 19.63,
+   "highlight": true
+  },
+  {
+   "text": "from",
+   "start": 19.63,
+   "end": 21.03,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 21.03,
+   "end": 21.25,
+   "highlight": false
+  },
+  {
+   "text": "five",
+   "start": 21.25,
+   "end": 21.67,
+   "highlight": false
+  },
+  {
+   "text": "by",
+   "start": 21.67,
+   "end": 22.09,
+   "highlight": false
+  },
+  {
+   "text": "buying",
+   "start": 22.09,
+   "end": 22.55,
+   "highlight": true
+  },
+  {
+   "text": "another",
+   "start": 22.55,
+   "end": 22.77,
+   "highlight": false
+  },
+  {
+   "text": "five",
+   "start": 22.77,
+   "end": 23.17,
+   "highlight": false
+  },
+  {
+   "text": "mill.",
+   "start": 23.17,
+   "end": 23.43,
+   "highlight": false
+  },
+  {
+   "text": "Find",
+   "start": 23.53,
+   "end": 24.13,
+   "highlight": false
+  },
+  {
+   "text": "another",
+   "start": 24.13,
+   "end": 25.19,
+   "highlight": false
+  },
+  {
+   "text": "company.",
+   "start": 25.19,
+   "end": 26.37,
+   "highlight": false
+  },
+  {
+   "text": "Find",
+   "start": 26.55,
+   "end": 26.65,
+   "highlight": false
+  },
+  {
+   "text": "your",
+   "start": 26.65,
+   "end": 26.85,
+   "highlight": false
+  },
+  {
+   "text": "competitor",
+   "start": 26.85,
+   "end": 27.37,
+   "highlight": true
+  },
+  {
+   "text": "that's",
+   "start": 27.37,
+   "end": 28.17,
+   "highlight": false
+  },
+  {
+   "text": "doing",
+   "start": 28.17,
+   "end": 28.43,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 28.53,
+   "end": 29.13,
+   "highlight": false
+  },
+  {
+   "text": "five",
+   "start": 29.13,
+   "end": 29.35,
+   "highlight": false
+  },
+  {
+   "text": "mill.",
+   "start": 29.35,
+   "end": 29.57,
+   "highlight": false
+  },
+  {
+   "text": "Find",
+   "start": 29.67,
+   "end": 30.05,
+   "highlight": false
+  },
+  {
+   "text": "your",
+   "start": 30.05,
+   "end": 30.25,
+   "highlight": false
+  },
+  {
+   "text": "competitor",
+   "start": 30.25,
+   "end": 30.85,
+   "highlight": true
+  },
+  {
+   "text": "that's",
+   "start": 30.85,
+   "end": 31.77,
+   "highlight": false
+  },
+  {
+   "text": "selling",
+   "start": 31.77,
+   "end": 32.29,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 32.29,
+   "end": 32.49,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 32.49,
+   "end": 32.59,
+   "highlight": false
+  },
+  {
+   "text": "customers",
+   "start": 32.59,
+   "end": 32.99,
+   "highlight": false
+  },
+  {
+   "text": "that",
+   "start": 32.99,
+   "end": 33.23,
+   "highlight": false
+  },
+  {
+   "text": "you",
+   "start": 33.23,
+   "end": 33.39,
+   "highlight": false
+  },
+  {
+   "text": "want",
+   "start": 33.39,
+   "end": 33.63,
+   "highlight": false
+  },
+  {
+   "text": "and",
+   "start": 33.63,
+   "end": 34.17,
+   "highlight": false
+  },
+  {
+   "text": "you",
+   "start": 34.17,
+   "end": 34.33,
+   "highlight": false
+  },
+  {
+   "text": "take",
+   "start": 34.33,
+   "end": 34.59,
+   "highlight": false
+  },
+  {
+   "text": "their",
+   "start": 34.59,
+   "end": 34.79,
+   "highlight": false
+  },
+  {
+   "text": "business.",
+   "start": 34.79,
+   "end": 35.09,
+   "highlight": false
+  },
+  {
+   "text": "You",
+   "start": 35.23,
+   "end": 35.33,
+   "highlight": false
+  },
+  {
+   "text": "buy",
+   "start": 35.33,
+   "end": 35.63,
+   "highlight": true
+  },
+  {
+   "text": "their",
+   "start": 35.63,
+   "end": 35.87,
+   "highlight": false
+  },
+  {
+   "text": "business.",
+   "start": 35.87,
+   "end": 36.25,
+   "highlight": false
+  },
+  {
+   "text": "That",
+   "start": 36.35,
+   "end": 36.95,
+   "highlight": false
+  },
+  {
+   "text": "is",
+   "start": 36.95,
+   "end": 37.19,
+   "highlight": false
+  },
+  {
+   "text": "what",
+   "start": 37.19,
+   "end": 37.33,
+   "highlight": false
+  },
+  {
+   "text": "we",
+   "start": 37.33,
+   "end": 37.43,
+   "highlight": false
+  },
+  {
+   "text": "call",
+   "start": 37.43,
+   "end": 37.61,
+   "highlight": false
+  },
+  {
+   "text": "inorganic",
+   "start": 37.61,
+   "end": 38.41,
+   "highlight": false
+  },
+  {
+   "text": "growth,",
+   "start": 38.41,
+   "end": 38.83,
+   "highlight": false
+  },
+  {
+   "text": "acquisitions,",
+   "start": 38.93,
+   "end": 39.57,
+   "highlight": false
+  },
+  {
+   "text": "corporate",
+   "start": 39.67,
+   "end": 40.39,
+   "highlight": false
+  },
+  {
+   "text": "development.",
+   "start": 40.39,
+   "end": 41.11,
+   "highlight": false
+  }
+ ],
+ "beats": [
+  {
+   "kind": "stat",
+   "start": 0.15,
+   "end": 3.17,
+   "title": "*$5M \u2192 $10M* without more ads"
+  },
+  {
+   "kind": "lowerThird",
+   "start": 3.57,
+   "end": 6.57,
+   "title": "Josh Li \u00b7 G&L M&A Advisory"
+  },
+  {
+   "kind": "cta",
+   "start": 41.0,
+   "end": 43.8,
+   "title": "Doing *$1M+* a year?",
+   "sub": "Apply below",
+   "footnote": "G&L M&A Advisory"
+  }
+ ]
+}

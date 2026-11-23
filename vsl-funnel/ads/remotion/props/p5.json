@@ -1,0 +1,516 @@
+{
+ "videoSrc": "p5.mp4",
+ "brand": "G&L M&A Advisory",
+ "autoBrandBeats": false,
+ "durationInSeconds": 30.0,
+ "words": [
+  {
+   "text": "Think",
+   "start": 0.05,
+   "end": 0.225,
+   "highlight": false
+  },
+  {
+   "text": "you",
+   "start": 0.225,
+   "end": 0.4,
+   "highlight": false
+  },
+  {
+   "text": "need",
+   "start": 0.4,
+   "end": 0.575,
+   "highlight": false
+  },
+  {
+   "text": "industry",
+   "start": 0.575,
+   "end": 1.1,
+   "highlight": false
+  },
+  {
+   "text": "experience",
+   "start": 1.1,
+   "end": 1.801,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 1.801,
+   "end": 1.976,
+   "highlight": false
+  },
+  {
+   "text": "buy",
+   "start": 1.976,
+   "end": 2.151,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 2.151,
+   "end": 2.326,
+   "highlight": false
+  },
+  {
+   "text": "company?",
+   "start": 2.326,
+   "end": 2.851,
+   "highlight": false
+  },
+  {
+   "text": "company,",
+   "start": 3.19,
+   "end": 3.53,
+   "highlight": false
+  },
+  {
+   "text": "I've",
+   "start": 3.63,
+   "end": 3.79,
+   "highlight": false
+  },
+  {
+   "text": "never",
+   "start": 3.79,
+   "end": 3.87,
+   "highlight": false
+  },
+  {
+   "text": "been",
+   "start": 3.87,
+   "end": 4.09,
+   "highlight": false
+  },
+  {
+   "text": "in",
+   "start": 4.09,
+   "end": 4.19,
+   "highlight": false
+  },
+  {
+   "text": "health",
+   "start": 4.19,
+   "end": 4.39,
+   "highlight": false
+  },
+  {
+   "text": "care.",
+   "start": 4.39,
+   "end": 4.57,
+   "highlight": false
+  },
+  {
+   "text": "I'm",
+   "start": 4.93,
+   "end": 5.25,
+   "highlight": false
+  },
+  {
+   "text": "not",
+   "start": 5.25,
+   "end": 5.41,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 5.41,
+   "end": 5.53,
+   "highlight": false
+  },
+  {
+   "text": "doctor,",
+   "start": 5.53,
+   "end": 5.81,
+   "highlight": false
+  },
+  {
+   "text": "I'm",
+   "start": 5.97,
+   "end": 5.97,
+   "highlight": false
+  },
+  {
+   "text": "not",
+   "start": 5.97,
+   "end": 6.05,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 6.05,
+   "end": 6.13,
+   "highlight": false
+  },
+  {
+   "text": "health",
+   "start": 6.13,
+   "end": 6.33,
+   "highlight": false
+  },
+  {
+   "text": "care",
+   "start": 6.33,
+   "end": 6.51,
+   "highlight": false
+  },
+  {
+   "text": "professional.",
+   "start": 6.51,
+   "end": 7.05,
+   "highlight": false
+  },
+  {
+   "text": "Never",
+   "start": 7.15,
+   "end": 7.39,
+   "highlight": false
+  },
+  {
+   "text": "never",
+   "start": 7.49,
+   "end": 8.01,
+   "highlight": false
+  },
+  {
+   "text": "made",
+   "start": 8.01,
+   "end": 8.35,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 8.35,
+   "end": 8.61,
+   "highlight": false
+  },
+  {
+   "text": "single",
+   "start": 8.61,
+   "end": 8.87,
+   "highlight": false
+  },
+  {
+   "text": "dollar",
+   "start": 8.87,
+   "end": 9.25,
+   "highlight": false
+  },
+  {
+   "text": "in",
+   "start": 9.25,
+   "end": 9.95,
+   "highlight": false
+  },
+  {
+   "text": "health",
+   "start": 9.95,
+   "end": 10.79,
+   "highlight": false
+  },
+  {
+   "text": "care.",
+   "start": 10.79,
+   "end": 10.97,
+   "highlight": false
+  },
+  {
+   "text": "So",
+   "start": 11.07,
+   "end": 11.23,
+   "highlight": false
+  },
+  {
+   "text": "I",
+   "start": 11.23,
+   "end": 12.39,
+   "highlight": false
+  },
+  {
+   "text": "built",
+   "start": 12.39,
+   "end": 12.61,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 12.61,
+   "end": 12.81,
+   "highlight": false
+  },
+  {
+   "text": "board",
+   "start": 12.81,
+   "end": 13.03,
+   "highlight": true
+  },
+  {
+   "text": "of",
+   "start": 13.03,
+   "end": 13.19,
+   "highlight": false
+  },
+  {
+   "text": "directors.",
+   "start": 13.19,
+   "end": 13.59,
+   "highlight": false
+  },
+  {
+   "text": "Board",
+   "start": 13.69,
+   "end": 14.21,
+   "highlight": true
+  },
+  {
+   "text": "of",
+   "start": 14.21,
+   "end": 14.37,
+   "highlight": false
+  },
+  {
+   "text": "directors,",
+   "start": 14.37,
+   "end": 14.67,
+   "highlight": false
+  },
+  {
+   "text": "these",
+   "start": 14.67,
+   "end": 14.91,
+   "highlight": false
+  },
+  {
+   "text": "are",
+   "start": 14.91,
+   "end": 15.07,
+   "highlight": false
+  },
+  {
+   "text": "people,",
+   "start": 15.07,
+   "end": 15.37,
+   "highlight": false
+  },
+  {
+   "text": "national",
+   "start": 15.47,
+   "end": 16.45,
+   "highlight": false
+  },
+  {
+   "text": "CEOs",
+   "start": 16.45,
+   "end": 17.49,
+   "highlight": false
+  },
+  {
+   "text": "of",
+   "start": 17.49,
+   "end": 17.71,
+   "highlight": false
+  },
+  {
+   "text": "health",
+   "start": 17.71,
+   "end": 17.87,
+   "highlight": false
+  },
+  {
+   "text": "care",
+   "start": 17.87,
+   "end": 18.03,
+   "highlight": false
+  },
+  {
+   "text": "companies,",
+   "start": 18.03,
+   "end": 18.49,
+   "highlight": false
+  },
+  {
+   "text": "legal",
+   "start": 18.59,
+   "end": 19.13,
+   "highlight": false
+  },
+  {
+   "text": "guys,",
+   "start": 19.13,
+   "end": 19.59,
+   "highlight": false
+  },
+  {
+   "text": "finance",
+   "start": 19.89,
+   "end": 20.05,
+   "highlight": false
+  },
+  {
+   "text": "guys.",
+   "start": 20.05,
+   "end": 20.45,
+   "highlight": false
+  },
+  {
+   "text": "These",
+   "start": 20.73,
+   "end": 20.77,
+   "highlight": false
+  },
+  {
+   "text": "people",
+   "start": 20.77,
+   "end": 21.35,
+   "highlight": false
+  },
+  {
+   "text": "have",
+   "start": 21.35,
+   "end": 21.53,
+   "highlight": false
+  },
+  {
+   "text": "been",
+   "start": 21.53,
+   "end": 21.77,
+   "highlight": false
+  },
+  {
+   "text": "who",
+   "start": 21.77,
+   "end": 22.33,
+   "highlight": false
+  },
+  {
+   "text": "are",
+   "start": 22.33,
+   "end": 22.41,
+   "highlight": false
+  },
+  {
+   "text": "very",
+   "start": 22.41,
+   "end": 22.69,
+   "highlight": false
+  },
+  {
+   "text": "well",
+   "start": 22.69,
+   "end": 22.93,
+   "highlight": false
+  },
+  {
+   "text": "versed",
+   "start": 22.93,
+   "end": 23.39,
+   "highlight": false
+  },
+  {
+   "text": "across",
+   "start": 23.39,
+   "end": 23.71,
+   "highlight": false
+  },
+  {
+   "text": "health",
+   "start": 23.71,
+   "end": 24.55,
+   "highlight": false
+  },
+  {
+   "text": "care.",
+   "start": 24.55,
+   "end": 24.77,
+   "highlight": false
+  },
+  {
+   "text": "They",
+   "start": 24.87,
+   "end": 25.39,
+   "highlight": false
+  },
+  {
+   "text": "helped",
+   "start": 25.39,
+   "end": 25.57,
+   "highlight": false
+  },
+  {
+   "text": "me",
+   "start": 25.57,
+   "end": 25.71,
+   "highlight": false
+  },
+  {
+   "text": "do",
+   "start": 25.71,
+   "end": 25.87,
+   "highlight": false
+  },
+  {
+   "text": "my",
+   "start": 25.87,
+   "end": 26.01,
+   "highlight": false
+  },
+  {
+   "text": "first",
+   "start": 26.01,
+   "end": 26.27,
+   "highlight": false
+  },
+  {
+   "text": "deal,",
+   "start": 26.27,
+   "end": 26.47,
+   "highlight": false
+  },
+  {
+   "text": "let",
+   "start": 26.47,
+   "end": 26.65,
+   "highlight": false
+  },
+  {
+   "text": "me",
+   "start": 26.65,
+   "end": 26.75,
+   "highlight": false
+  },
+  {
+   "text": "run",
+   "start": 26.75,
+   "end": 26.99,
+   "highlight": false
+  },
+  {
+   "text": "that.",
+   "start": 26.99,
+   "end": 27.25,
+   "highlight": false
+  }
+ ],
+ "beats": [
+  {
+   "kind": "stat",
+   "start": 0.15,
+   "end": 3.15,
+   "title": "Never worked in healthcare. *Bought in anyway.*"
+  },
+  {
+   "kind": "lowerThird",
+   "start": 3.55,
+   "end": 6.55,
+   "title": "Josh Li \u00b7 G&L M&A Advisory"
+  },
+  {
+   "kind": "cta",
+   "start": 27.2,
+   "end": 30.0,
+   "title": "Doing *$1M+* a year?",
+   "sub": "Apply below",
+   "footnote": "G&L M&A Advisory"
+  }
+ ]
+}

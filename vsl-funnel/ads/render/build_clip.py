@@ -122,7 +122,7 @@ def main(cid):
             x, y, w, h = c['crop']
             return (f'crop={w}:{h}:{x}:{y},split[fg{n}][bg{n}];[bg{n}]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=40:2,eq=brightness=-0.18:saturation=0.9[bgb{n}];'
                     f'[fg{n}]scale={W}:-2:flags=lanczos[fgs{n}];[bgb{n}][fgs{n}]overlay=(W-w)/2:(H-h)/2-60')
-        return f'crop=1069:1900:1232:0,scale={W}:{H}:flags=lanczos'
+        return f'crop=1069:1900:1340:0,scale={W}:{H}:flags=lanczos'
     src = CL + f"src/{c['src']}.mp4"
     parts, fl, t, timeline = [], [], 0.0, []
     # 0: cold open video
