@@ -63,9 +63,9 @@ Not one in a million, and not "someday when the kids are older." One in one
 
 And you're still waiting for the right time to buy your second business?
 
-Nobody says this out loud: the right time already exists, and it's attached to a person: a 64-year-old owner who's tired, whose kids don't want the business, and whose accountant keeps asking about succession
+Nobody says this out loud, but the right time already exists, and it has a face: a 64-year-old owner who's tired, whose kids don't want the business, and whose accountant keeps asking about succession
 
-He's in your town right now. He'll sell to whoever asks first, on terms he can live with, and plenty of them will finance the deal themselves because he'd rather be paid over time than lock the doors and get nothing
+He's in your town right now. He'll sell to whoever asks first, on terms he can live with, and plenty of owners like him will finance the deal themselves because they'd rather be paid over time than lock the doors and get nothing
 
 In 2022 about 92% of the small and mid-size businesses that left the US market didn't sell. They just closed. Staff, customers and cash flow switched off because nobody called
 
@@ -271,3 +271,63 @@ The money for the deal was never the problem; the time you're burning is
 Doing $1M+ a year? DM me "START"
 
 Under that, don't DM me. Grow the core business first
+
+## W1 · Something is wrong with your brain
+
+If you would rather own one business than ten, something is wrong with how your brain is wired
+
+I mean that literally
+
+You were rewarded for twenty years for doing everything yourself. Every problem you solved with your own hands made you money. So your brain filed "control" under "safety" and "more" under "risk"
+
+That wiring got you to $1M, $3M, maybe $10M
+
+It is also the exact wiring that will keep you there forever
+
+Look at what it makes you believe:
+
+A second business feels like twice the work, when it inherits your systems, suppliers, managers and buying power on day one
+
+Debt feels dangerous, when the seller will finance the deal and the target's own profit pays the repayments one and a half times over
+
+And growth feels like something you build one customer at a time, while somebody else is buying your competitors with their sellers' money and adding whole companies in one signature
+
+None of those beliefs came from evidence. They came from fear dressed up as prudence
+
+Every serious fortune in history was bought, not built. Rockefeller bought 22 of his rivals in about six weeks. Private equity has spent 40 years buying businesses like yours with other people's money
+
+The owners who never rewire end up the same way: one business, one exit, sold at a small multiple to someone who thought bigger
+
+At 25, unemployed, with no experience, I bought my first company with 100% seller finance, 7 years at 4%, a 9-month payment holiday, no personal guarantee and no security. My brain had nothing to unlearn because I'd never been rewarded for doing it the slow way
+
+Yours does
+
+That's fixable, but only once you admit the problem is the wiring, not the market
+
+Doing $1M+ a year? DM me "REWIRE"
+
+## W2 · Stuffed
+
+Most large businesses aren't hungry anymore
+
+They're stuffed
+
+They hit $20M, $50M, $100M and something quietly switches off. New ideas get sent to a committee, fresh structures get "noted for next year", and the founder who used to call every customer now sits through quarterly reviews about culture
+
+And because they're full, they stop eating
+
+Nobody asks how the next $20M of revenue gets bought instead of built, or looks at the founder-owned competitors in the region who will sell to somebody in the next five years. Everyone assumes private equity will be the buyer, and that they will be the seller
+
+That's the moment a business starts dying, and it looks exactly like success from the inside
+
+I recently spoke with a lender bankrolling a private-equity healthcare roll-up that had stopped being hungry. Expensive executive, four clinics closed, a fund with nothing left, and meetings about values while the money ran out
+
+The hungry ones do the opposite. They treat every retiring competitor as a deal, structure acquisitions so the target's profit pays for them, use seller finance and rollover so the seller stays invested, and bring in people who have run the thing they're buying
+
+I've done it with 100% seller finance twice. I know which structures sellers and lenders will say yes to, and I can help you put that inside your group
+
+Most of you will scroll past this
+
+That's exactly the problem
+
+If you run a $10M+ business and you're still hungry, DM me "HUNGRY"
