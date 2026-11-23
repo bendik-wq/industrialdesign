@@ -1,0 +1,630 @@
+{
+ "videoSrc": "p2.mp4",
+ "brand": "G&L M&A Advisory",
+ "autoBrandBeats": false,
+ "durationInSeconds": 33.6,
+ "words": [
+  {
+   "text": "What",
+   "start": 0.05,
+   "end": 0.304,
+   "highlight": false
+  },
+  {
+   "text": "if",
+   "start": 0.304,
+   "end": 0.558,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 0.558,
+   "end": 0.813,
+   "highlight": false
+  },
+  {
+   "text": "seller",
+   "start": 0.813,
+   "end": 1.321,
+   "highlight": false
+  },
+  {
+   "text": "became",
+   "start": 1.321,
+   "end": 2.084,
+   "highlight": false
+  },
+  {
+   "text": "your",
+   "start": 2.084,
+   "end": 2.338,
+   "highlight": false
+  },
+  {
+   "text": "bank?",
+   "start": 2.338,
+   "end": 2.592,
+   "highlight": false
+  },
+  {
+   "text": "these",
+   "start": 2.93,
+   "end": 3.47,
+   "highlight": false
+  },
+  {
+   "text": "vendor",
+   "start": 3.47,
+   "end": 3.77,
+   "highlight": true
+  },
+  {
+   "text": "finance",
+   "start": 3.77,
+   "end": 4.23,
+   "highlight": false
+  },
+  {
+   "text": "structures",
+   "start": 4.23,
+   "end": 4.65,
+   "highlight": false
+  },
+  {
+   "text": "is",
+   "start": 4.65,
+   "end": 4.85,
+   "highlight": false
+  },
+  {
+   "text": "basically",
+   "start": 4.85,
+   "end": 5.25,
+   "highlight": false
+  },
+  {
+   "text": "an",
+   "start": 5.25,
+   "end": 5.47,
+   "highlight": false
+  },
+  {
+   "text": "IOU",
+   "start": 5.47,
+   "end": 6.09,
+   "highlight": true
+  },
+  {
+   "text": "to",
+   "start": 6.09,
+   "end": 6.49,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 6.49,
+   "end": 6.65,
+   "highlight": false
+  },
+  {
+   "text": "seller.",
+   "start": 6.65,
+   "end": 6.93,
+   "highlight": true
+  },
+  {
+   "text": "I'm",
+   "start": 7.03,
+   "end": 7.61,
+   "highlight": false
+  },
+  {
+   "text": "basically",
+   "start": 7.61,
+   "end": 8.03,
+   "highlight": false
+  },
+  {
+   "text": "saying",
+   "start": 8.03,
+   "end": 8.35,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 8.35,
+   "end": 8.51,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 8.51,
+   "end": 8.61,
+   "highlight": false
+  },
+  {
+   "text": "seller,",
+   "start": 8.61,
+   "end": 8.93,
+   "highlight": true
+  },
+  {
+   "text": "I'll",
+   "start": 9.03,
+   "end": 11.03,
+   "highlight": false
+  },
+  {
+   "text": "pay",
+   "start": 11.03,
+   "end": 11.29,
+   "highlight": false
+  },
+  {
+   "text": "you",
+   "start": 11.29,
+   "end": 11.63,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 11.63,
+   "end": 11.95,
+   "highlight": false
+  },
+  {
+   "text": "money",
+   "start": 11.95,
+   "end": 12.19,
+   "highlight": false
+  },
+  {
+   "text": "that",
+   "start": 12.19,
+   "end": 12.35,
+   "highlight": false
+  },
+  {
+   "text": "you",
+   "start": 12.35,
+   "end": 12.51,
+   "highlight": false
+  },
+  {
+   "text": "want",
+   "start": 12.51,
+   "end": 12.79,
+   "highlight": false
+  },
+  {
+   "text": "plus",
+   "start": 12.79,
+   "end": 14.17,
+   "highlight": false
+  },
+  {
+   "text": "more",
+   "start": 14.17,
+   "end": 14.65,
+   "highlight": false
+  },
+  {
+   "text": "for",
+   "start": 14.65,
+   "end": 15.29,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 15.29,
+   "end": 15.43,
+   "highlight": false
+  },
+  {
+   "text": "privilege",
+   "start": 15.43,
+   "end": 15.79,
+   "highlight": false
+  },
+  {
+   "text": "of",
+   "start": 15.79,
+   "end": 16.03,
+   "highlight": false
+  },
+  {
+   "text": "being",
+   "start": 16.03,
+   "end": 16.19,
+   "highlight": false
+  },
+  {
+   "text": "able",
+   "start": 16.19,
+   "end": 16.29,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 16.29,
+   "end": 16.41,
+   "highlight": false
+  },
+  {
+   "text": "pay",
+   "start": 16.41,
+   "end": 16.63,
+   "highlight": false
+  },
+  {
+   "text": "it",
+   "start": 16.63,
+   "end": 16.79,
+   "highlight": false
+  },
+  {
+   "text": "over",
+   "start": 16.79,
+   "end": 16.97,
+   "highlight": false
+  },
+  {
+   "text": "time.",
+   "start": 16.97,
+   "end": 17.23,
+   "highlight": false
+  },
+  {
+   "text": "Now",
+   "start": 17.33,
+   "end": 17.77,
+   "highlight": false
+  },
+  {
+   "text": "that's",
+   "start": 17.77,
+   "end": 18.03,
+   "highlight": false
+  },
+  {
+   "text": "essentially",
+   "start": 18.03,
+   "end": 18.33,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 18.33,
+   "end": 18.47,
+   "highlight": false
+  },
+  {
+   "text": "pitch.",
+   "start": 18.47,
+   "end": 18.75,
+   "highlight": false
+  },
+  {
+   "text": "Right,",
+   "start": 18.85,
+   "end": 18.95,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 19.07,
+   "end": 19.11,
+   "highlight": false
+  },
+  {
+   "text": "pitch",
+   "start": 19.11,
+   "end": 19.43,
+   "highlight": false
+  },
+  {
+   "text": "is",
+   "start": 19.43,
+   "end": 19.83,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 19.83,
+   "end": 20.03,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 20.03,
+   "end": 20.17,
+   "highlight": false
+  },
+  {
+   "text": "seller.",
+   "start": 20.17,
+   "end": 20.43,
+   "highlight": true
+  },
+  {
+   "text": "No",
+   "start": 20.53,
+   "end": 20.69,
+   "highlight": false
+  },
+  {
+   "text": "one's",
+   "start": 20.69,
+   "end": 20.99,
+   "highlight": false
+  },
+  {
+   "text": "going",
+   "start": 20.99,
+   "end": 21.09,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 21.09,
+   "end": 21.17,
+   "highlight": false
+  },
+  {
+   "text": "pay",
+   "start": 21.17,
+   "end": 21.41,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 21.41,
+   "end": 21.59,
+   "highlight": false
+  },
+  {
+   "text": "price",
+   "start": 21.59,
+   "end": 21.85,
+   "highlight": false
+  },
+  {
+   "text": "that",
+   "start": 21.85,
+   "end": 21.99,
+   "highlight": false
+  },
+  {
+   "text": "you",
+   "start": 21.99,
+   "end": 22.11,
+   "highlight": false
+  },
+  {
+   "text": "want.",
+   "start": 22.11,
+   "end": 22.33,
+   "highlight": false
+  },
+  {
+   "text": "You're",
+   "start": 22.43,
+   "end": 22.69,
+   "highlight": false
+  },
+  {
+   "text": "going",
+   "start": 22.69,
+   "end": 22.75,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 22.75,
+   "end": 22.95,
+   "highlight": false
+  },
+  {
+   "text": "spend",
+   "start": 22.95,
+   "end": 23.47,
+   "highlight": false
+  },
+  {
+   "text": "five",
+   "start": 23.47,
+   "end": 24.03,
+   "highlight": false
+  },
+  {
+   "text": "years,",
+   "start": 24.03,
+   "end": 24.27,
+   "highlight": false
+  },
+  {
+   "text": "ten",
+   "start": 24.27,
+   "end": 24.51,
+   "highlight": false
+  },
+  {
+   "text": "years",
+   "start": 24.51,
+   "end": 24.81,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 24.81,
+   "end": 25.05,
+   "highlight": false
+  },
+  {
+   "text": "try",
+   "start": 25.05,
+   "end": 25.25,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 25.25,
+   "end": 25.33,
+   "highlight": false
+  },
+  {
+   "text": "find",
+   "start": 25.33,
+   "end": 25.73,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 25.73,
+   "end": 25.91,
+   "highlight": false
+  },
+  {
+   "text": "dream",
+   "start": 25.91,
+   "end": 26.31,
+   "highlight": false
+  },
+  {
+   "text": "unicorn",
+   "start": 26.31,
+   "end": 26.81,
+   "highlight": false
+  },
+  {
+   "text": "buyer.",
+   "start": 26.81,
+   "end": 27.23,
+   "highlight": true
+  },
+  {
+   "text": "And",
+   "start": 27.33,
+   "end": 27.53,
+   "highlight": false
+  },
+  {
+   "text": "by",
+   "start": 27.53,
+   "end": 27.71,
+   "highlight": false
+  },
+  {
+   "text": "that",
+   "start": 27.71,
+   "end": 27.87,
+   "highlight": false
+  },
+  {
+   "text": "time,",
+   "start": 27.87,
+   "end": 28.17,
+   "highlight": false
+  },
+  {
+   "text": "you're",
+   "start": 28.29,
+   "end": 28.39,
+   "highlight": false
+  },
+  {
+   "text": "going",
+   "start": 28.39,
+   "end": 28.39,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 28.39,
+   "end": 28.49,
+   "highlight": false
+  },
+  {
+   "text": "probably",
+   "start": 28.49,
+   "end": 28.69,
+   "highlight": false
+  },
+  {
+   "text": "going",
+   "start": 28.69,
+   "end": 28.87,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 28.87,
+   "end": 28.93,
+   "highlight": false
+  },
+  {
+   "text": "shut",
+   "start": 28.93,
+   "end": 29.07,
+   "highlight": false
+  },
+  {
+   "text": "down",
+   "start": 29.07,
+   "end": 29.41,
+   "highlight": false
+  },
+  {
+   "text": "and",
+   "start": 29.41,
+   "end": 29.97,
+   "highlight": false
+  },
+  {
+   "text": "walk",
+   "start": 29.97,
+   "end": 30.21,
+   "highlight": false
+  },
+  {
+   "text": "away",
+   "start": 30.21,
+   "end": 30.41,
+   "highlight": false
+  },
+  {
+   "text": "with",
+   "start": 30.41,
+   "end": 30.59,
+   "highlight": false
+  },
+  {
+   "text": "nothing.",
+   "start": 30.59,
+   "end": 30.85,
+   "highlight": true
+  }
+ ],
+ "beats": [
+  {
+   "kind": "stat",
+   "start": 0.15,
+   "end": 2.89,
+   "title": "Make the *seller* your bank"
+  },
+  {
+   "kind": "lowerThird",
+   "start": 3.29,
+   "end": 6.29,
+   "title": "Josh Li \u00b7 G&L M&A Advisory"
+  },
+  {
+   "kind": "cta",
+   "start": 30.8,
+   "end": 33.6,
+   "title": "Doing *$1M+* a year?",
+   "sub": "Apply below",
+   "footnote": "G&L M&A Advisory"
+  }
+ ]
+}
