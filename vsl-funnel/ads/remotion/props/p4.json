@@ -1,0 +1,792 @@
+{
+ "videoSrc": "p4.mp4",
+ "brand": "G&L M&A Advisory",
+ "autoBrandBeats": false,
+ "durationInSeconds": 44.1,
+ "words": [
+  {
+   "text": "Experts",
+   "start": 0.05,
+   "end": 0.608,
+   "highlight": false
+  },
+  {
+   "text": "said",
+   "start": 0.608,
+   "end": 0.888,
+   "highlight": false
+  },
+  {
+   "text": "this",
+   "start": 0.888,
+   "end": 1.167,
+   "highlight": false
+  },
+  {
+   "text": "deal",
+   "start": 1.167,
+   "end": 1.446,
+   "highlight": false
+  },
+  {
+   "text": "was",
+   "start": 1.446,
+   "end": 1.725,
+   "highlight": false
+  },
+  {
+   "text": "impossible.",
+   "start": 1.725,
+   "end": 2.842,
+   "highlight": false
+  },
+  {
+   "text": "You",
+   "start": 3.18,
+   "end": 3.26,
+   "highlight": false
+  },
+  {
+   "text": "go",
+   "start": 3.26,
+   "end": 3.42,
+   "highlight": false
+  },
+  {
+   "text": "out",
+   "start": 3.42,
+   "end": 3.62,
+   "highlight": false
+  },
+  {
+   "text": "there,",
+   "start": 3.62,
+   "end": 3.82,
+   "highlight": false
+  },
+  {
+   "text": "most",
+   "start": 4.04,
+   "end": 4.16,
+   "highlight": false
+  },
+  {
+   "text": "people",
+   "start": 4.16,
+   "end": 4.6,
+   "highlight": false
+  },
+  {
+   "text": "who",
+   "start": 4.6,
+   "end": 4.92,
+   "highlight": false
+  },
+  {
+   "text": "teach",
+   "start": 4.92,
+   "end": 5.76,
+   "highlight": false
+  },
+  {
+   "text": "you",
+   "start": 5.76,
+   "end": 5.96,
+   "highlight": false
+  },
+  {
+   "text": "how",
+   "start": 5.96,
+   "end": 6.14,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 6.14,
+   "end": 6.22,
+   "highlight": false
+  },
+  {
+   "text": "buy",
+   "start": 6.22,
+   "end": 6.36,
+   "highlight": true
+  },
+  {
+   "text": "businesses,",
+   "start": 6.36,
+   "end": 6.84,
+   "highlight": false
+  },
+  {
+   "text": "who",
+   "start": 6.94,
+   "end": 7.14,
+   "highlight": false
+  },
+  {
+   "text": "are",
+   "start": 7.14,
+   "end": 7.3,
+   "highlight": false
+  },
+  {
+   "text": "in",
+   "start": 7.3,
+   "end": 7.42,
+   "highlight": false
+  },
+  {
+   "text": "acquisitions,",
+   "start": 7.42,
+   "end": 8.2,
+   "highlight": false
+  },
+  {
+   "text": "they",
+   "start": 8.56,
+   "end": 9.4,
+   "highlight": false
+  },
+  {
+   "text": "will",
+   "start": 9.4,
+   "end": 9.56,
+   "highlight": false
+  },
+  {
+   "text": "say",
+   "start": 9.56,
+   "end": 9.76,
+   "highlight": false
+  },
+  {
+   "text": "100",
+   "start": 9.76,
+   "end": 10.04,
+   "highlight": true
+  },
+  {
+   "text": "%",
+   "start": 10.04,
+   "end": 10.3,
+   "highlight": false
+  },
+  {
+   "text": "vendor",
+   "start": 10.3,
+   "end": 10.5,
+   "highlight": true
+  },
+  {
+   "text": "finance.",
+   "start": 10.5,
+   "end": 11.1,
+   "highlight": false
+  },
+  {
+   "text": "It",
+   "start": 11.2,
+   "end": 11.78,
+   "highlight": false
+  },
+  {
+   "text": "is",
+   "start": 11.78,
+   "end": 11.96,
+   "highlight": false
+  },
+  {
+   "text": "impossible,",
+   "start": 11.96,
+   "end": 12.5,
+   "highlight": true
+  },
+  {
+   "text": "impossible.",
+   "start": 12.6,
+   "end": 13.12,
+   "highlight": true
+  },
+  {
+   "text": "It's",
+   "start": 13.32,
+   "end": 13.4,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 13.4,
+   "end": 13.42,
+   "highlight": false
+  },
+  {
+   "text": "Now,",
+   "start": 13.52,
+   "end": 14.0,
+   "highlight": false
+  },
+  {
+   "text": "I'm",
+   "start": 14.0,
+   "end": 14.48,
+   "highlight": false
+  },
+  {
+   "text": "saying",
+   "start": 14.48,
+   "end": 14.72,
+   "highlight": false
+  },
+  {
+   "text": "this",
+   "start": 14.72,
+   "end": 14.9,
+   "highlight": false
+  },
+  {
+   "text": "as",
+   "start": 14.9,
+   "end": 15.1,
+   "highlight": false
+  },
+  {
+   "text": "someone",
+   "start": 15.1,
+   "end": 15.36,
+   "highlight": false
+  },
+  {
+   "text": "who",
+   "start": 15.36,
+   "end": 15.5,
+   "highlight": false
+  },
+  {
+   "text": "has",
+   "start": 15.5,
+   "end": 15.62,
+   "highlight": false
+  },
+  {
+   "text": "literally",
+   "start": 15.62,
+   "end": 15.96,
+   "highlight": false
+  },
+  {
+   "text": "done",
+   "start": 15.96,
+   "end": 16.38,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 16.38,
+   "end": 16.96,
+   "highlight": false
+  },
+  {
+   "text": "deals.",
+   "start": 16.96,
+   "end": 17.2,
+   "highlight": false
+  },
+  {
+   "text": "Done",
+   "start": 17.34,
+   "end": 17.58,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 17.58,
+   "end": 17.84,
+   "highlight": false
+  },
+  {
+   "text": "deals",
+   "start": 17.84,
+   "end": 18.14,
+   "highlight": false
+  },
+  {
+   "text": "at",
+   "start": 18.14,
+   "end": 18.32,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 18.32,
+   "end": 18.46,
+   "highlight": false
+  },
+  {
+   "text": "most",
+   "start": 18.46,
+   "end": 19.04,
+   "highlight": false
+  },
+  {
+   "text": "acquires",
+   "start": 19.04,
+   "end": 20.32,
+   "highlight": false
+  },
+  {
+   "text": "out",
+   "start": 20.32,
+   "end": 20.56,
+   "highlight": false
+  },
+  {
+   "text": "there",
+   "start": 20.56,
+   "end": 20.66,
+   "highlight": false
+  },
+  {
+   "text": "say",
+   "start": 20.66,
+   "end": 20.86,
+   "highlight": false
+  },
+  {
+   "text": "is",
+   "start": 20.86,
+   "end": 21.0,
+   "highlight": false
+  },
+  {
+   "text": "impossible.",
+   "start": 21.0,
+   "end": 21.38,
+   "highlight": true
+  },
+  {
+   "text": "Now",
+   "start": 21.48,
+   "end": 21.56,
+   "highlight": false
+  },
+  {
+   "text": "when",
+   "start": 21.56,
+   "end": 21.72,
+   "highlight": false
+  },
+  {
+   "text": "I",
+   "start": 21.72,
+   "end": 21.84,
+   "highlight": false
+  },
+  {
+   "text": "showed",
+   "start": 21.84,
+   "end": 22.6,
+   "highlight": false
+  },
+  {
+   "text": "it",
+   "start": 22.6,
+   "end": 22.78,
+   "highlight": false
+  },
+  {
+   "text": "to",
+   "start": 22.78,
+   "end": 22.92,
+   "highlight": false
+  },
+  {
+   "text": "my",
+   "start": 22.92,
+   "end": 23.04,
+   "highlight": false
+  },
+  {
+   "text": "billionaire",
+   "start": 23.04,
+   "end": 23.34,
+   "highlight": false
+  },
+  {
+   "text": "mentor,",
+   "start": 23.34,
+   "end": 23.78,
+   "highlight": false
+  },
+  {
+   "text": "I",
+   "start": 23.88,
+   "end": 23.92,
+   "highlight": false
+  },
+  {
+   "text": "said,",
+   "start": 23.92,
+   "end": 24.14,
+   "highlight": false
+  },
+  {
+   "text": "check",
+   "start": 24.42,
+   "end": 24.68,
+   "highlight": false
+  },
+  {
+   "text": "out",
+   "start": 24.68,
+   "end": 24.88,
+   "highlight": false
+  },
+  {
+   "text": "the",
+   "start": 24.88,
+   "end": 25.02,
+   "highlight": false
+  },
+  {
+   "text": "deal",
+   "start": 25.02,
+   "end": 25.24,
+   "highlight": false
+  },
+  {
+   "text": "that",
+   "start": 25.24,
+   "end": 25.4,
+   "highlight": false
+  },
+  {
+   "text": "I",
+   "start": 25.4,
+   "end": 25.5,
+   "highlight": false
+  },
+  {
+   "text": "did.",
+   "start": 25.5,
+   "end": 25.7,
+   "highlight": false
+  },
+  {
+   "text": "My",
+   "start": 26.06,
+   "end": 26.16,
+   "highlight": false
+  },
+  {
+   "text": "first",
+   "start": 26.16,
+   "end": 26.56,
+   "highlight": false
+  },
+  {
+   "text": "ever",
+   "start": 26.56,
+   "end": 26.72,
+   "highlight": false
+  },
+  {
+   "text": "deal,",
+   "start": 26.72,
+   "end": 27.06,
+   "highlight": false
+  },
+  {
+   "text": "100",
+   "start": 27.16,
+   "end": 27.94,
+   "highlight": true
+  },
+  {
+   "text": "%",
+   "start": 27.94,
+   "end": 28.18,
+   "highlight": false
+  },
+  {
+   "text": "vendor",
+   "start": 28.18,
+   "end": 28.44,
+   "highlight": true
+  },
+  {
+   "text": "finance,",
+   "start": 28.44,
+   "end": 29.12,
+   "highlight": false
+  },
+  {
+   "text": "pulled",
+   "start": 29.22,
+   "end": 29.7,
+   "highlight": false
+  },
+  {
+   "text": "out",
+   "start": 29.7,
+   "end": 29.92,
+   "highlight": false
+  },
+  {
+   "text": "six",
+   "start": 29.92,
+   "end": 30.18,
+   "highlight": false
+  },
+  {
+   "text": "figures",
+   "start": 30.18,
+   "end": 30.5,
+   "highlight": false
+  },
+  {
+   "text": "cash",
+   "start": 30.5,
+   "end": 30.78,
+   "highlight": false
+  },
+  {
+   "text": "straight",
+   "start": 30.78,
+   "end": 31.14,
+   "highlight": false
+  },
+  {
+   "text": "away",
+   "start": 31.14,
+   "end": 31.38,
+   "highlight": false
+  },
+  {
+   "text": "from",
+   "start": 31.38,
+   "end": 31.6,
+   "highlight": false
+  },
+  {
+   "text": "for",
+   "start": 31.6,
+   "end": 31.94,
+   "highlight": false
+  },
+  {
+   "text": "myself.",
+   "start": 31.94,
+   "end": 32.38,
+   "highlight": false
+  },
+  {
+   "text": "And",
+   "start": 32.38,
+   "end": 33.2,
+   "highlight": false
+  },
+  {
+   "text": "he",
+   "start": 33.2,
+   "end": 33.32,
+   "highlight": false
+  },
+  {
+   "text": "goes,",
+   "start": 33.32,
+   "end": 33.48,
+   "highlight": false
+  },
+  {
+   "text": "amazing.",
+   "start": 33.8,
+   "end": 34.22,
+   "highlight": false
+  },
+  {
+   "text": "Fantastic.",
+   "start": 34.32,
+   "end": 34.72,
+   "highlight": false
+  },
+  {
+   "text": "I've",
+   "start": 34.96,
+   "end": 35.1,
+   "highlight": false
+  },
+  {
+   "text": "never",
+   "start": 35.1,
+   "end": 35.32,
+   "highlight": false
+  },
+  {
+   "text": "seen",
+   "start": 35.32,
+   "end": 35.62,
+   "highlight": false
+  },
+  {
+   "text": "something",
+   "start": 35.62,
+   "end": 36.0,
+   "highlight": false
+  },
+  {
+   "text": "like",
+   "start": 36.0,
+   "end": 36.18,
+   "highlight": false
+  },
+  {
+   "text": "this",
+   "start": 36.18,
+   "end": 36.34,
+   "highlight": false
+  },
+  {
+   "text": "before.",
+   "start": 36.34,
+   "end": 36.68,
+   "highlight": false
+  },
+  {
+   "text": "And",
+   "start": 36.78,
+   "end": 37.08,
+   "highlight": false
+  },
+  {
+   "text": "this",
+   "start": 37.08,
+   "end": 37.22,
+   "highlight": false
+  },
+  {
+   "text": "is",
+   "start": 37.22,
+   "end": 37.4,
+   "highlight": false
+  },
+  {
+   "text": "mind",
+   "start": 37.4,
+   "end": 37.68,
+   "highlight": false
+  },
+  {
+   "text": "you,",
+   "start": 37.68,
+   "end": 37.86,
+   "highlight": false
+  },
+  {
+   "text": "this",
+   "start": 37.92,
+   "end": 38.0,
+   "highlight": false
+  },
+  {
+   "text": "is",
+   "start": 38.0,
+   "end": 38.12,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 38.12,
+   "end": 38.24,
+   "highlight": false
+  },
+  {
+   "text": "guy",
+   "start": 38.24,
+   "end": 38.4,
+   "highlight": false
+  },
+  {
+   "text": "that",
+   "start": 38.4,
+   "end": 38.58,
+   "highlight": false
+  },
+  {
+   "text": "has",
+   "start": 38.58,
+   "end": 38.78,
+   "highlight": false
+  },
+  {
+   "text": "a",
+   "start": 38.78,
+   "end": 38.98,
+   "highlight": false
+  },
+  {
+   "text": "30,",
+   "start": 38.98,
+   "end": 39.3,
+   "highlight": true
+  },
+  {
+   "text": "40",
+   "start": 39.38,
+   "end": 39.64,
+   "highlight": true
+  },
+  {
+   "text": "year",
+   "start": 39.64,
+   "end": 39.86,
+   "highlight": false
+  },
+  {
+   "text": "career",
+   "start": 39.86,
+   "end": 40.2,
+   "highlight": false
+  },
+  {
+   "text": "in",
+   "start": 40.2,
+   "end": 40.5,
+   "highlight": false
+  },
+  {
+   "text": "corporate",
+   "start": 40.5,
+   "end": 40.78,
+   "highlight": false
+  },
+  {
+   "text": "finance.",
+   "start": 40.78,
+   "end": 41.16,
+   "highlight": false
+  }
+ ],
+ "beats": [
+  {
+   "kind": "stat",
+   "start": 0.15,
+   "end": 3.14,
+   "title": "They said it was *impossible*"
+  },
+  {
+   "kind": "lowerThird",
+   "start": 3.54,
+   "end": 6.54,
+   "title": "Josh Li \u00b7 G&L M&A Advisory"
+  },
+  {
+   "kind": "cta",
+   "start": 41.3,
+   "end": 44.1,
+   "title": "Doing *$1M+* a year?",
+   "sub": "Apply below",
+   "footnote": "G&L M&A Advisory"
+  }
+ ]
+}

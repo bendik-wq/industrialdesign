@@ -55,7 +55,7 @@ VO_TEXT = {
  'c1': "Your bank said no to a million dollars. Here's why.",
  'c2': "What if the seller became your bank?",
  'c3': "Stuck at five million, and still paying for ads?",
- 'c4': "Experts called this deal impossible. He did it on his first one.",
+ 'c4': "Experts said this deal was impossible.",
  'c5': "Think you need industry experience to buy a company?",
 }
 
@@ -109,8 +109,13 @@ def main(cid):
         if spans and a - spans[-1][1] <= MAX_GAP: spans[-1][1] = max(spans[-1][1], b)
         else: spans.append([a, b])
     # cold open
-    vo = AI + c['cold'] + '_vo.wav'; vd = dur(vo)
-    cold_len = round(vd + 0.35, 2)
+    raw_vo = AI + c['cold'] + '_vo.wav'
+    tight = CL + f"{c['cold']}_vo_tight.wav"
+    sh(f'ffmpeg -y -i "{raw_vo}" -af "silenceremove=start_periods=1:start_threshold=-40dB,areverse,silenceremove=start_periods=1:start_threshold=-40dB,areverse,silenceremove=stop_periods=-1:stop_duration=0.12:stop_threshold=-40dB" -ar 48000 "{tight}.pre.wav"')
+    tempo = min(1.4, max(1.0, dur(tight + '.pre.wav') / 2.9))
+    sh(f'ffmpeg -y -i "{tight}.pre.wav" -af "atempo={tempo:.3f},volume=1.6" -ar 48000 "{tight}"')
+    vo = tight; vd = dur(vo); print(' cold VO', round(vd, 2), 's at', round(tempo, 2), 'x')
+    cold_len = round(vd + 0.25, 2)
     # source crop/scale filter
     def base_vf(n):
         if c['crop']:
