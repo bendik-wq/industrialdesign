@@ -59,6 +59,16 @@ VO_TEXT = {
  'c5': "Think you need industry experience to buy a company?",
 }
 
+CENTER_CROP = {'c4', 'c5', 'b2b'}   # landscape AI shots whose subject is centred: crop full-bleed
+
+def ai_vf(name, lab):
+    """filter (input -> 1080x1920) for an AI shot; landscape shots get a blur-fill unless centre-croppable."""
+    w, h = map(int, subprocess.check_output(f'ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "{AI}{name}.mp4"', shell=True).decode().split(',')[:2])
+    if h >= w or name in CENTER_CROP:
+        return f'scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}'
+    return (f'split[af{lab}][ab{lab}];[ab{lab}]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=40:2,eq=brightness=-0.2[abb{lab}];'
+            f'[af{lab}]scale=1350:-2,crop={W}:ih[afs{lab}];[abb{lab}][afs{lab}]overlay=0:(H-h)/2')
+
 def sh(c):
     r = subprocess.run(c, shell=True, capture_output=True, text=True)
     if r.returncode: raise SystemExit(r.stderr[-2500:])
@@ -112,7 +122,7 @@ def main(cid):
     parts, fl, t, timeline = [], [], 0.0, []
     # 0: cold open video
     ins = f' -i "{AI}{c["cold"]}.mp4" -i "{vo}"'
-    fl.append(f'[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},setsar=1,trim=0:{cold_len},setpts=PTS-STARTPTS,eq=contrast=1.08:saturation=1.1[cv]')
+    fl.append(f'[0:v]{ai_vf(c["cold"], "cold")},fps={FPS},setsar=1,trim=0:{cold_len},setpts=PTS-STARTPTS,eq=contrast=1.08:saturation=1.1[cv]')
     fl.append(f'[1:a]aformat=sample_rates=48000:channel_layouts=stereo,apad=whole_dur={cold_len}[ca]')
     vlabels, alabels = ['[cv]'], ['[ca]']
     t = cold_len
@@ -142,7 +152,7 @@ def main(cid):
         if st is None: continue
         d = 2.3
         ins += f' -i "{AI}{shot}.mp4"'
-        fl.append(f'[{bi}:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},setsar=1,trim=0.3:{0.3 + d},setpts=PTS-STARTPTS+{st:.3f}/TB,eq=contrast=1.06:saturation=1.1[br{k}]')
+        fl.append(f'[{bi}:v]{ai_vf(shot, f"b{k}")},fps={FPS},setsar=1,trim=0.3:{0.3 + d},setpts=PTS-STARTPTS+{st:.3f}/TB,eq=contrast=1.06:saturation=1.1[br{k}]')
         fl.append(f'{last}[br{k}]overlay=enable=\'between(t,{st:.3f},{st + d:.3f})\':eof_action=pass[ov{k}]'); last = f'[ov{k}]'
         print(' broll', shot, 'at', round(st, 2)); bi += 1
     fl.append(f'{last}tpad=stop_mode=clone:stop_duration={END_HOLD}[vout]')
