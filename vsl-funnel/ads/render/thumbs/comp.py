@@ -23,7 +23,8 @@ def font(name, size, wght=None):
 
 
 # ---------- plate ----------
-def plate(t, josh_x=0.70, head_top=0.07, zoom=1.5):
+def plate(t, josh_x=0.70, head_top=0.07, zoom=None):
+    zoom = zoom or ZOOM
     src = Image.open(D + f'clean_{t}.png').convert('RGB')
     m = Image.open(D + f'mask_{t}.png').convert('L')
     a = np.array(m) > 128
@@ -63,7 +64,8 @@ def grade_josh(img):
     a = a * np.array([1.04, 1.0, 0.95])                         # warm skin
     a = np.clip(a, 0, 1) ** 0.96
     out = Image.fromarray((a * 255).astype('uint8'))
-    return out.filter(ImageFilter.UnsharpMask(radius=3, percent=70, threshold=2))
+    out = out.filter(ImageFilter.UnsharpMask(radius=24, percent=22, threshold=0))
+    return out.filter(ImageFilter.UnsharpMask(radius=1.8, percent=135, threshold=1))
 
 
 def radial(cx, cy, r, color, strength):
@@ -110,7 +112,7 @@ class Pen:
         for i in range(n - 1):
             f = i / (n - 1)
             p = math.sin(math.pi * min(1, f * 1.15)) if taper else 1
-            ww = max(2, w * (0.35 + 0.65 * p)) * S
+            ww = max(3, 1.55 * w * (0.45 + 0.55 * p)) * S
             (x0, y0), (x1, y1) = pts[i], pts[i + 1]
             self.d.line([(x0 * S, y0 * S), (x1 * S, y1 * S)], fill=255, width=int(ww))
             r = ww / 2
@@ -188,14 +190,14 @@ def put(base, mask, color, alpha=1.0, glow=0, shadow=0):
 
 def text_mask(spec):
     """spec: list of (x, y, text, fontname, size, wght)."""
-    m = Image.new('L', (W, H), 0)
+    m = Image.new('L', (W * 2, H * 2), 0)
     d = ImageDraw.Draw(m)
     boxes = []
     for x, y, txt, fn, sz, wg in spec:
-        f = font(fn, sz, wg)
-        d.text((x, y), txt, font=f, fill=255, features=['lnum'])
-        boxes.append(d.textbbox((x, y), txt, font=f, features=['lnum']))
-    return m, boxes
+        f = font(fn, sz * 2, wg)
+        d.text((x * 2, y * 2), txt, font=f, fill=255, features=['lnum'])
+        boxes.append([v / 2 for v in d.textbbox((x * 2, y * 2), txt, font=f, features=['lnum'])])
+    return m.resize((W, H), Image.LANCZOS), boxes
 
 
 def bbox(spec):
@@ -215,6 +217,7 @@ def build(t, ivory_spec, gold_spec, scribble, note, out, josh_x=0.70):
     hl = np.asarray(Image.fromarray(hl.clip(0, 255).astype('uint8')).filter(ImageFilter.GaussianBlur(60))).astype(float)
     bg = bg + hl * 0.9                                                # highlight bloom
     bg = bg + radial(W * 1.02, -H * 0.05, 2300, (255, 170, 90), 0.22)  # warm window leak
+    bg = bg * 0.78
     bg = left_shade(bg)
     pen_back = Pen(7)
     if 'back' in scribble: scribble['back'](pen_back)
@@ -226,22 +229,23 @@ def build(t, ivory_spec, gold_spec, scribble, note, out, josh_x=0.70):
     arr = vignette(arr)
     # type
     iv, _ = text_mask(ivory_spec)
-    arr = put(arr, iv, IVORY, shadow=18)
+    arr = put(arr, iv, IVORY, shadow=7)
     gm, _ = text_mask(gold_spec)
-    arr = put(arr, gm, gold_fill(gm), shadow=18, glow=30)
+    arr = put(arr, gm, gold_fill(gm), shadow=7)
     pen = Pen(3)
     scribble['front'](pen)
     sm = pen.render()
     if note:
         nd = Image.new('L', (W, H), 0)
         x, y, txt, fn, sz, rot = note
-        tmp = Image.new('L', (W, H), 0)
-        ImageDraw.Draw(tmp).text((x, y), txt, font=font(fn, sz), fill=255, stroke_width=3, stroke_fill=255)
-        tmp = tmp.rotate(rot, center=(x, y), resample=Image.BICUBIC)
+        tmp = Image.new('L', (W * 2, H * 2), 0)
+        ImageDraw.Draw(tmp).text((x * 2, y * 2), txt, font=font(fn, sz * 2), fill=255, stroke_width=7, stroke_fill=255)
+        tmp = tmp.rotate(rot, center=(x * 2, y * 2), resample=Image.BICUBIC).resize((W, H), Image.LANCZOS)
         sm = ImageChops.lighter(sm, tmp)
-    arr = put(arr, sm, gold_fill(sm), shadow=10, glow=22)
+    col = gold_fill(sm) * 1.08 if SCRIB == 'gold' else np.array([250, 250, 246], float)
+    arr = put(arr, sm, np.clip(col, 0, 255), shadow=6)
     # grain
-    arr = arr + np.random.default_rng(1).normal(0, 3.2, arr.shape)
+    arr = arr + np.random.default_rng(1).normal(0, 1.6, arr.shape)
     Image.fromarray(arr.clip(0, 255).astype('uint8')).save(out)
     Image.open(out).resize((1600, 900), Image.LANCZOS).save(out.replace('.png', '_v.jpg'), quality=90)
 
@@ -279,7 +283,7 @@ def cfg_zero():
     def front(p):
         p.ellipse((zero + zw) / 2, (A[1] + A[3]) / 2 + 5, (zw - zero) / 2 + 65, (A[3] - A[1]) / 2 + 55, rot=8, w=14)
         p.underline(B[0], B[2], B[3] + 45, w=12)
-        p.curve((B[0] + 1900, B[3] + 380), (2150, B[3] + 400), (2220, B[3] - 40), w=13, hs=80)
+        p.curve((1660, B[3] + 330), (2000, B[3] + 360), (2050, B[3] - 230), w=13, hs=80)
     return dict(t=42, ivory=[b], gold=[a], scribble={'front': front},
                 note=(B[0] + 10, B[3] + 230, 'both 100% seller financed', HAND, 100, 3))
 
@@ -300,11 +304,13 @@ def cfg_banker():
 T = {'100m': 44, 'zero': 42, 'banker': 358}
 HEAD = None
 CUT_L = 640
+ZOOM = 1.25
+SCRIB = 'gold'
 CONFIGS = {'100m': cfg_100m, 'zero': cfg_zero, 'banker': cfg_banker}
 
 if __name__ == '__main__':
     for name in sys.argv[1:]:
         plate(T[name])
         c = CONFIGS[name]()
-        build(c['t'], c['ivory'], c['gold'], c['scribble'], c['note'], D + f'v2_{name}.png')
+        build(c['t'], c['ivory'], c['gold'], c['scribble'], c['note'], D + f'v4_{name}_{SCRIB}.png')
         print('done', name)

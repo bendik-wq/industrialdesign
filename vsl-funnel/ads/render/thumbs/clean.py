@@ -6,8 +6,12 @@ for t in sys.argv[1:]:
     white = (mn > 232) & (mx - mn < 22)
     yellow = (r > 215) & (g > 160) & (b < 110) & (r - b > 120)
     m = np.zeros(im.shape[:2], np.uint8)
-    reg = np.zeros_like(m); reg[:1400, :1350] = 1
+    reg = np.zeros_like(m); reg[:1400, :1350] = 1; reg[1800:, 600:] = 1
     m[(white | yellow) & (reg > 0)] = 255
+    bot = np.zeros_like(m); bot[1950:, 600:] = 1
+    m[(mn > 175) & (mx - mn < 30) & (bot > 0)] = 255
+    tx = (np.abs(cv2.Laplacian(cv2.cvtColor(im, cv2.COLOR_BGR2GRAY), cv2.CV_32F)) > 25) & (mn > 120) & (mx - mn < 45)
+    m[tx & (bot > 0)] = 255
     m = cv2.dilate(m, np.ones((15, 15), np.uint8))
     small = cv2.resize(im, None, fx=0.5, fy=0.5); sm = cv2.resize(m, None, fx=0.5, fy=0.5)
     fix = cv2.inpaint(small, sm, 12, cv2.INPAINT_TELEA)

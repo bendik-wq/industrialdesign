@@ -1,4 +1,17 @@
-# Josh Li YouTube thumbnail format v3 (current): "Purple cow"
+# Current format: v4 (v2 look, sharpened)
+
+Bendik's verdict: v3 (lime, Unbounded) looked cheap and was rejected; the v2 navy-and-gold scribble look is the direction. v4 changes from v2:
+- **Crop**: 1.25× instead of 1.5×, so the face is barely upscaled and stays crisp at 4K. Face sharpening is a large-radius clarity pass plus a fine unsharp mask.
+- **Background**: darkened by about 22% for stronger separation from Josh.
+- **Pen strokes**: about 1.5× heavier, with no glow, just a tight shadow.
+- **Type**: headline type and the handwritten note are rendered at 2× and downsampled for razor edges.
+- **Captions**: `clean.py` also removes the bottom subtitle band.
+
+Run `render/thumbs/comp.py 100m zero banker`. It writes `v4_<name>_gold.png`. Set `SCRIB = 'white'` for white pen strokes.
+
+---
+
+# Rejected: format v3: "Purple cow"
 
 The business-YouTube feed is navy, gold, red arrows and yellow Impact text, so v3 is built to be the one thumbnail that looks different in it, using Mr Beast-style click principles without copying his look:
 
