@@ -20,7 +20,7 @@ const CENTER_Y = 0.62; // fraction of frame height
 /** gel spring: quick, slightly under-damped so width overshoots and settles */
 const GEL = {damping: 13, stiffness: 190, mass: 0.85};
 
-export const Captions: React.FC<{words: Word[]; hideFrom?: number}> = ({words, hideFrom}) => {
+export const Captions: React.FC<{words: Word[]; hideFrom?: number; centerY?: number}> = ({words, hideFrom, centerY = CENTER_Y}) => {
   const frame = useCurrentFrame();
   const {fps, width: frameW, height: frameH} = useVideoConfig();
   const ready = useFontsReady();
@@ -89,7 +89,7 @@ export const Captions: React.FC<{words: Word[]; hideFrom?: number}> = ({words, h
   const scale = interpolate(presence, [0, 1], [0.55, 1], {extrapolateRight: 'clamp'});
 
   const cx = frameW / 2;
-  const cy = frameH * CENTER_Y;
+  const cy = frameH * centerY;
   // light slowly orbits so the rim highlight "moves" with the content
   const lightAngle = -40 + Math.sin(frame / 38) * 22 + (w - target) * 0.08;
 

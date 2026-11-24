@@ -1,4 +1,6 @@
-# InfoCardReel: card-over-head Reels format
+# InfoCardReel: liquid-glass card-over-head Reels format
+
+The card is a real Liquid Glass panel (`src/glass/Glass.tsx`). A blurred, enlarged copy of the clip fills the frame behind it, with warm and cool light pools, so the glass has something to refract. The sharp video feathers in from y 700, and captions use the glass capsule from `components/Captions.tsx` (centerY 0.845).
 
 A vertical 9:16 (1080×1920) Instagram Reel or Short:
 - **Top:** a white rounded info card. It has Josh's avatar and name, a dark label pill (DEAL BREAKDOWN, SELLER CHECKLIST, DUE DILIGENCE, NEWS…), a bold headline, label/value rows that pop in the moment Josh says them, and a small footnote.
