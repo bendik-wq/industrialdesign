@@ -3043,6 +3043,7 @@
     return Promise.all([api('sms/sequences', {}, { noRange: true }), api('sms', {}, { noRange: true }).catch(function () { return null; })]).then(function (r) {
       smsState = { data: r[0], status: r[1], seqs: JSON.parse(JSON.stringify(r[0].sequences)), sel: (smsState && smsState.sel) || 'booked', dirty: false };
       drawSms();
+      txLoad();
     });
   }
   function smsStat(seq, n) {
@@ -3070,6 +3071,118 @@
       '<li><strong>Templates</strong>: switch a sequence to “WhatsApp first”, then for each text click “Copy template text” and create it in WhatsApp Manager (category Utility for reminders, Marketing for nudges) with the same name. Once approved it sends on WhatsApp; until then it goes by SMS.</li>' +
       '<li>' + n_(w.reachable) + ' leads can get WhatsApp (they agreed or have messaged you) · ' + n_(w.sent) + ' WhatsApp messages sent. Template language: <span class="mono">' + esc(w.lang || 'en') + '</span>.</li></ol>';
   }
+  // ───────────── Telnyx setup (src/integrations/telnyx-setup.ts) ─────────────
+  // The profile's inbound webhook, the profile-level sender name, allowed countries, the number's profile; US 10DLC;
+  // an Australian number for two-way texts. Free fixes have their own buttons; paid steps only run on their own press.
+  var TX = { st: null, dlc: null, au: null, reqs: null, docs: {}, pick: '', order: null, msg: '', busy: false, loaded: false };
+  var TX_FIX_LABEL = { webhook: 'Point replies here', alpha: 'Remove the sender name', whitelist: 'Allow our countries', number: 'Put the number on the profile', profile: '' };
+  var BRAND_FIELDS = [
+    ['companyName', 'Legal company name'], ['displayName', 'Brand name people see'], ['entityType', 'Entity type'], ['ein', 'Tax ID (ABN)'],
+    ['einIssuingCountry', 'Tax ID country'], ['country', 'Country'], ['street', 'Street address'], ['city', 'City'], ['state', 'State'], ['postalCode', 'Postcode'],
+    ['website', 'Website'], ['vertical', 'Industry (vertical)'], ['firstName', 'Contact first name'], ['lastName', 'Contact last name'], ['email', 'Contact email'], ['phone', 'Contact phone (+61…)']];
+  function txOk(b) { return b ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'; }
+  function txInner() {
+    if (!TX.loaded) return '<h2>Telnyx setup</h2><p class="muted">Checking Telnyx…</p>';
+    var st = TX.st || {}, p = st.profile || {}, num = st.number || {}, probs = st.problems || [];
+    var h = '<h2>Telnyx setup</h2><p class="sub">Checked live with Telnyx using the key stored on the Worker.' + (TX.msg ? ' <strong>' + esc(TX.msg) + '</strong>' : '') + '</p>';
+    if (st.connected === false) return h + '<p class="bad">' + esc(st.error || 'Not connected') + '</p>';
+    var probKeys = probs.map(function (x) { return x.key; });
+    h += '<h3>1. Messaging profile</h3><ol class="sms-setup">' +
+      '<li>' + txOk(probKeys.indexOf('webhook') < 0 && p.id) + ' <strong>Replies reach Funnel HQ</strong>: <span class="mono">' + esc(p.webhook_url || 'not set') + '</span>' + (probKeys.indexOf('webhook') >= 0 ? ' <button class="btn-sm" data-txfix="webhook">' + TX_FIX_LABEL.webhook + '</button>' : '') + '</li>' +
+      '<li>' + txOk(!p.alpha_sender) + ' <strong>Sender</strong>: ' + (p.alpha_sender ? 'every text goes out as “' + esc(p.alpha_sender) + '”, which most countries refuse (and the US always does). <button class="btn-sm" data-txfix="alpha">' + TX_FIX_LABEL.alpha + '</button>' : 'from the number (Australian numbers still get the name or your Australian number).') + '</li>' +
+      '<li>' + txOk(probKeys.indexOf('whitelist') < 0) + ' <strong>Countries allowed</strong>: ' + esc((p.whitelisted_destinations || []).join(', ') || 'none') + (probKeys.indexOf('whitelist') >= 0 ? ' <button class="btn-sm" data-txfix="whitelist">' + TX_FIX_LABEL.whitelist + '</button>' : '') + '</li>' +
+      '<li>' + txOk(probKeys.indexOf('number') < 0 && num.phone_number) + ' <strong>Number</strong>: <span class="mono">' + esc(num.phone_number || 'SMS_FROM not found') + '</span> ' + esc([num.status, num.type].filter(Boolean).join(' · ')) + (probKeys.indexOf('number') >= 0 && num.phone_number ? ' <button class="btn-sm" data-txfix="number">' + TX_FIX_LABEL.number + '</button>' : '') + '</li>' +
+      (st.auNumber ? '<li>' + txOk(true) + ' <strong>Australian number</strong>: <span class="mono">' + esc(st.auNumber) + '</span> (texts to +61 come from it)</li>' : '') +
+      '</ol>' + (probs.length ? '<p>' + probs.map(function (x) { return '<span class="muted">' + esc(x.text) + '</span>'; }).join('<br>') + '</p><button class="btn-sm" data-txfix="all">Fix all free settings</button>' : '<p class="ok">All set.</p>');
+    // 2. 10DLC
+    var d = TX.dlc;
+    h += '<h3 style="margin-top:16px">2. US registration (10DLC)</h3>';
+    if (!d) h += '<p><button class="btn-sm ghost" data-txload="dlc">Check US registration</button></p>';
+    else {
+      if (d.error) h += '<p class="bad">' + esc(d.error) + '</p>';
+      h += (d.brands || []).length ? '<p><strong>Brand</strong>: ' + d.brands.map(function (b) { return esc(b.name || b.brandId) + ' · ' + esc(b.identityStatus || '') + (b.campaignsOk === false ? '' : ' <button class="btn-sm ghost" data-txcampaign="' + esc(b.brandId) + '">Create campaign (Telnyx charges vetting + monthly)</button>'); }).join('<br>') + '</p>' : '';
+      h += (d.campaigns || []).length ? '<p><strong>Campaigns</strong>: ' + d.campaigns.map(function (c) { return esc(c.campaignId) + ' · ' + esc(c.usecase || '') + ' · ' + esc(c.status || '') + (c.monthlyCost ? ' · $' + esc(c.monthlyCost) + '/mo' : '') + ' <button class="btn-sm ghost" data-txassign="' + esc(c.campaignId) + '">Use for ' + esc(d.number || 'the number') + '</button>'; }).join('<br>') + '</p>' : '';
+      h += '<p>' + txOk(d.assignment && d.assignment.campaignId) + ' ' + (d.assignment ? 'Number on campaign ' + esc(d.assignment.campaignId) + ' (' + esc(d.assignment.status || '') + ')' : 'The number isn’t on a campaign yet.') + '</p>';
+      if (!(d.brands || []).length) {
+        var def = d.brandDefaults || {};
+        h += '<p class="sub">Your real business details (carriers check them). Telnyx charges a one-off fee when you submit.</p><div class="tx-form" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">' +
+          BRAND_FIELDS.map(function (f) { return '<label><span class="muted">' + esc(f[1]) + '</span><input class="input" data-brand="' + f[0] + '" value="' + esc(def[f[0]] || '') + '"></label>'; }).join('') +
+          '</div><p><button class="btn-sm" data-txbrand>Register the brand</button></p>';
+      }
+      h += '<details><summary>What the campaign says (prefilled from your real texts and consent wording)</summary><pre class="mono" style="white-space:pre-wrap">' + esc(JSON.stringify(d.campaignPreview || {}, null, 2)) + '</pre></details>';
+    }
+    // 3. Australian number
+    h += '<h3 style="margin-top:16px">3. Australian number (people can reply)</h3>';
+    if (!TX.au) h += '<p><button class="btn-sm ghost" data-txload="au">Find Australian numbers</button></p>';
+    else {
+      if (TX.au.error) h += '<p class="bad">' + esc(TX.au.error) + '</p>';
+      h += (TX.au.numbers || []).map(function (n) { return '<label style="display:block"><input type="radio" name="txau" value="' + esc(n.phone_number) + '"' + (TX.pick === n.phone_number ? ' checked' : '') + '> <span class="mono">' + esc(n.phone_number) + '</span> ' + esc(n.region || '') + (n.monthly ? ' · ' + esc(n.currency || '') + ' ' + esc(n.monthly) + '/mo' : '') + (n.upfront ? ' + ' + esc(n.upfront) + ' upfront' : '') + '</label>'; }).join('') || '<p class="muted">No numbers returned.</p>';
+      if (TX.reqs) {
+        if (TX.reqs.error) h += '<p class="bad">' + esc(TX.reqs.error) + '</p>';
+        h += '<p class="sub">What Telnyx needs for an Australian mobile:</p>' + (TX.reqs.requirements || []).map(function (r) {
+          var doc = /document/i.test(r.type || '');
+          return '<div style="margin:6px 0"><strong>' + esc(r.name || r.id) + '</strong> <span class="muted">' + esc(r.description || '') + '</span><br>' +
+            (doc ? '<input type="file" data-txdoc="' + esc(r.id) + '"> <span class="muted">' + (TX.docs[r.id] ? 'uploaded ✓' : '') + '</span>' : '<input class="input" data-txreq="' + esc(r.id) + '" placeholder="' + esc(r.example || '') + '">') + '</div>';
+        }).join('');
+        h += '<p><button class="btn-sm" data-txorder>Order this number (Telnyx charges the price shown)</button></p>';
+      } else h += '<p><button class="btn-sm ghost" data-txload="reqs">Show what Telnyx needs</button></p>';
+      if (TX.order) h += '<p>Order <span class="mono">' + esc(TX.order.id || '') + '</span>: ' + esc(TX.order.status || '') + (TX.order.savedAsSender ? ' · now used for Australian texts ✓' : '') + (TX.order.error ? ' <span class="bad">' + esc(TX.order.error) + '</span>' : '') + ' <button class="btn-sm ghost" data-txorderstatus>Check status</button></p>';
+    }
+    return h;
+  }
+  function txDraw() { var el = document.querySelector('[data-telnyx]'); if (el) el.innerHTML = txInner(); }
+  function txLoad(force) {
+    if (TX.busy || (TX.loaded && !force)) return;
+    TX.busy = true;
+    api('telnyx/status', {}, { noRange: true }).then(function (r) { TX.st = r; }).catch(function (e) { TX.st = { connected: false, error: String(e && e.message || e) }; })
+      .then(function () { TX.loaded = true; TX.busy = false; txDraw(); });
+  }
+  function txPost(path, body) {
+    TX.msg = 'Working…'; txDraw();
+    return send('POST', path, body).then(function (r) { TX.msg = r && r.ok ? 'Done ✓' : (r && r.error) || 'Failed'; if (r && r.status && r.status.connected !== undefined) TX.st = r.status; txDraw(); return r; });
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-txfix],[data-txload],[data-txbrand],[data-txcampaign],[data-txassign],[data-txorder],[data-txorderstatus]');
+    if (!t) return;
+    if (t.hasAttribute('data-txfix')) return void txPost('telnyx/fix/' + t.getAttribute('data-txfix'), {});
+    if (t.hasAttribute('data-txload')) {
+      var w = t.getAttribute('data-txload'), path = w === 'dlc' ? 'telnyx/10dlc' : w === 'au' ? 'telnyx/au/numbers' : 'telnyx/au/requirements';
+      TX.msg = 'Asking Telnyx…'; txDraw();
+      return void api(path, {}, { noRange: true }).then(function (r) { TX[w] = r; TX.msg = ''; txDraw(); });
+    }
+    if (t.hasAttribute('data-txbrand')) {
+      var body = {}; document.querySelectorAll('[data-brand]').forEach(function (i) { body[i.getAttribute('data-brand')] = i.value; });
+      if (!confirm('Register this brand with US carriers? Telnyx charges a one-off fee.')) return;
+      return void txPost('telnyx/10dlc/brand', body).then(function () { TX.dlc = null; });
+    }
+    if (t.hasAttribute('data-txcampaign')) {
+      if (!confirm('Create the campaign? Telnyx charges a vetting fee and a monthly fee.')) return;
+      return void txPost('telnyx/10dlc/campaign', { brandId: t.getAttribute('data-txcampaign') }).then(function () { TX.dlc = null; txDraw(); });
+    }
+    if (t.hasAttribute('data-txassign')) return void txPost('telnyx/10dlc/assign', { campaignId: t.getAttribute('data-txassign') }).then(function () { TX.dlc = null; txDraw(); });
+    if (t.hasAttribute('data-txorder')) {
+      var pick = document.querySelector('input[name="txau"]:checked');
+      if (!pick) { TX.msg = 'Pick a number first.'; return void txDraw(); }
+      TX.pick = pick.value;
+      var reqs = [];
+      document.querySelectorAll('[data-txreq]').forEach(function (i) { if (i.value.trim()) reqs.push({ requirement_id: i.getAttribute('data-txreq'), field_value: i.value.trim() }); });
+      Object.keys(TX.docs).forEach(function (k) { reqs.push({ requirement_id: k, field_value: TX.docs[k] }); });
+      if (!confirm('Order ' + pick.value + '? Telnyx charges the price shown.')) return;
+      return void txPost('telnyx/au/order', { phone_number: pick.value, requirements: reqs }).then(function (r) { if (r && r.orderId) TX.order = { id: r.orderId, status: r.status }; txDraw(); });
+    }
+    if (t.hasAttribute('data-txorderstatus') && TX.order) return void api('telnyx/au/order/' + encodeURIComponent(TX.order.id), {}, { noRange: true }).then(function (r) { TX.order = r; txDraw(); });
+  });
+  document.addEventListener('change', function (e) {
+    var i = e.target;
+    if (i && i.name === 'txau') TX.pick = i.value;
+    if (!i || !i.hasAttribute || !i.hasAttribute('data-txdoc') || !i.files || !i.files[0]) return;
+    var fd = new FormData(); fd.append('file', i.files[0]);
+    TX.msg = 'Uploading…'; txDraw();
+    fetch('/admin/api/telnyx/au/document', { method: 'POST', credentials: 'same-origin', body: fd }).then(function (r) { return r.json(); }).then(function (r) {
+      if (r && r.ok) TX.docs[i.getAttribute('data-txdoc')] = r.id;
+      TX.msg = r && r.ok ? 'Uploaded ✓' : (r && r.error) || 'Upload failed'; txDraw();
+    });
+  });
   function drawSms() {
     var S = smsState, d = S.data, seq = S.seqs.filter(function (x) { return x.id === S.sel; })[0];
     var list = S.seqs.map(function (x) {
@@ -3099,7 +3212,7 @@
           (st.wa ? '' : '<div class="muted">No template yet: goes by SMS unless they messaged you on WhatsApp in the last 24 hours.</div>') + '</div>' : '') +
         '<div class="sms-foot"><span class="muted">' + esc(smsStat(seq.id, st.n)) + '</span><button class="btn-sm ghost" data-testone>Send me this one</button></div></div>';
     }).join('');
-    view.innerHTML = setupCard(S.status) +
+    view.innerHTML = setupCard(S.status) + '<div class="card" data-telnyx style="margin-top:14px">' + txInner() + '</div>' +
       '<div class="sms-grid"><div class="sms-list card"><h2>Sequences</h2><p class="sub">One per moment in the funnel.</p>' + list + '</div>' +
       '<div class="card sms-editor"><div class="sms-head"><div><h2>' + esc(d.triggers[seq.id] || seq.id) + '</h2><p class="sub">Starts when this happens and stops by itself once it’s done its job (e.g. they book). Texts go out by their timing; drag to organise.</p></div>' +
       '<div class="row"><select class="input" data-channel title="How these messages are sent"><option value="sms"' + (seq.channel !== 'whatsapp' ? ' selected' : '') + '>Send by SMS</option><option value="whatsapp"' + (seq.channel === 'whatsapp' ? ' selected' : '') + '>WhatsApp first, SMS if not</option></select><label class="chip-check"><input type="checkbox" data-enabled' + (seq.enabled ? ' checked' : '') + '> On</label><button class="btn-sm ghost" data-reset>Reset to default</button><button class="btn-sm" data-save' + (S.dirty ? '' : ' disabled') + '>' + (S.dirty ? 'Save changes' : 'Saved') + '</button></div></div>' +

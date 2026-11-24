@@ -8,6 +8,7 @@ import { mountAttributionAdmin } from '../attribution/routes';
 import { mountLiveAdmin } from '../live/funnel-routes';
 import { mountFunnelMaps } from '../admin/funnel-maps';
 import { mountQuizAdmin } from '../quiz/routes';
+import { mountTelnyxAdmin } from '../integrations/telnyx-setup';
 import type { Env } from '../env';
 import { demandPhrases, gatherInputs, generateSprint, listSprints, sprintMarkdown, type Sprint } from '../content/ideas';
 import { buildMiroBoard, docShell, sprintPage } from '../content/sprint-export';
@@ -104,6 +105,7 @@ mountDmAdmin(admin); // Instagram DM inbox: /admin/api/dm/* (src/dm/routes.ts)
 mountFunnelMaps(admin); // Funnel maps: /admin/api/maps* (src/admin/funnel-maps.ts)
 mountAttributionAdmin(admin); // Webinar attribution: /admin/api/attribution* (src/attribution/routes.ts)
 mountQuizAdmin(admin); // Funnel HQ → Quiz: /admin/api/quiz (src/quiz/report.ts)
+mountTelnyxAdmin(admin); // Funnel HQ → SMS → Telnyx setup: /admin/api/telnyx/* (src/integrations/telnyx-setup.ts)
 
 const filters = (c: { req: { query: () => Record<string, string> } }) => parseFilters(c.req.query());
 
