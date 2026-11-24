@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {AbsoluteFill, Img, OffthreadVideo, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, OffthreadVideo, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {measureText} from '@remotion/layout-utils';
 import {DISPLAY_FONT, TEXT_FONT} from './fonts';
 import {useFontsReady} from './useFontsReady';
@@ -45,133 +45,9 @@ const BAD = '#FF8A8A';
 const GOOD = '#6BEBA8';
 const ACCENT = '#FFD66B';
 
-/* deterministic pseudo-random */
-const rnd = (i: number, k: number) => {
-  const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453;
-  return x - Math.floor(x);
-};
-
-/* ---------- rising glass bubbles (real refraction) ---------- */
-const BUBBLES = Array.from({length: 9}, (_, i) => ({
-  x: i % 2 ? 50 + rnd(i, 1) * 220 : W - 50 - rnd(i, 1) * 220,
-  size: Math.round(34 + rnd(i, 2) * 92),
-  speed: 1.1 + rnd(i, 3) * 1.6, // px per frame
-  phase: rnd(i, 4) * (H + 300),
-  wob: 10 + rnd(i, 5) * 22,
-}));
-
-const Bubble: React.FC<{b: (typeof BUBBLES)[number]; frame: number}> = ({b, frame}) => {
-  const span = H + b.size * 2 + 200;
-  const y = H + b.size - ((frame * b.speed + b.phase) % span);
-  const x = b.x + Math.sin((frame + b.phase) / 28) * b.wob;
-  const sq = 1 + Math.sin((frame + b.phase) / 9) * 0.05; // gel wobble
-  return (
-    <div style={{position: 'absolute', left: x - b.size / 2, top: y - b.size / 2, width: b.size, height: b.size, transform: `scale(${sq}, ${2 - sq})`}}>
-      <Glass
-        width={b.size}
-        height={b.size}
-        bezel={Math.round(b.size * 0.42)}
-        refraction={Math.round(b.size * 0.9)}
-        blur={0}
-        saturate={1.6}
-        brightness={1.05}
-        highlightCap={1}
-        tint="radial-gradient(circle at 34% 28%, rgba(255,255,255,0.55) 0 7%, rgba(255,255,255,0.06) 26%, rgba(255,255,255,0) 60%)"
-        lightAngle={-40}
-        shadow={0.25}
-      />
-    </div>
-  );
-};
-
-/* ---------- raindrops sliding down the card glass ---------- */
-const Drop: React.FC<{i: number; frame: number; cardH: number}> = ({i, frame, cardH}) => {
-  const size = 12 + rnd(i, 7) * 14;
-  const x = 30 + rnd(i, 8) * (CARD_W - 60);
-  const cycle = 150 + rnd(i, 9) * 160;
-  const t = ((frame + rnd(i, 10) * cycle) % cycle) / cycle;
-  // drops cling, then slide with a little acceleration
-  const slide = t < 0.45 ? t * 0.08 : 0.036 + Math.pow((t - 0.45) / 0.55, 2) * 0.96;
-  const y = 18 + slide * (cardH - 40);
-  const op = interpolate(t, [0, 0.06, 0.9, 1], [0, 1, 1, 0]);
-  return (
-    <>
-      {/* wet trail */}
-      <div style={{position: 'absolute', left: x + size / 2 - 1.5, top: 18, width: 3, height: Math.max(0, y - 18), borderRadius: 3, background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.06))', opacity: op}} />
-      <div
-        style={{
-          position: 'absolute',
-          left: x,
-          top: y,
-          width: size,
-          height: size * 1.12,
-          borderRadius: '50% 50% 50% 50% / 45% 45% 55% 55%',
-          background: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0 10%, rgba(255,255,255,0.22) 32%, rgba(255,255,255,0.06) 62%, rgba(255,255,255,0) 72%)',
-          boxShadow: 'inset 0 -2px 3px rgba(255,255,255,0.35), 0 2px 4px rgba(0,0,0,0.25)',
-          border: '1px solid rgba(255,255,255,0.28)',
-          opacity: op,
-        }}
-      />
-    </>
-  );
-};
-
-/* ---------- bubble pop that delivers each value ---------- */
-const Pop: React.FC<{f: number}> = ({f}) => {
-  // f = frames since the row's moment
-  if (f < 0 || f > 26) return null;
-  const inflate = interpolate(f, [0, 7], [0.2, 1.15], {extrapolateRight: 'clamp'});
-  const popped = f >= 8;
-  const ring = interpolate(f, [8, 24], [0.9, 2.4], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const ringOp = interpolate(f, [8, 24], [0.9, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const S = 64;
-  return (
-    <div style={{position: 'absolute', right: -6, top: ROW_H / 2 - S / 2, width: S, height: S, pointerEvents: 'none'}}>
-      {!popped ? (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 999,
-            transform: `scale(${inflate})`,
-            background: 'radial-gradient(circle at 34% 30%, rgba(255,255,255,0.9) 0 9%, rgba(255,255,255,0.18) 30%, rgba(180,220,255,0.10) 60%, rgba(255,255,255,0.0) 72%)',
-            border: '1.5px solid rgba(255,255,255,0.55)',
-            boxShadow: 'inset 0 0 14px rgba(255,255,255,0.35)',
-          }}
-        />
-      ) : (
-        <>
-          <div style={{position: 'absolute', inset: 0, borderRadius: 999, border: '2px solid rgba(255,255,255,0.8)', transform: `scale(${ring})`, opacity: ringOp}} />
-          {Array.from({length: 8}, (_, k) => {
-            const a = (k / 8) * Math.PI * 2 + 0.3;
-            const d = interpolate(f, [8, 24], [S * 0.4, S * 1.25], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-            const fall = interpolate(f, [8, 26], [0, 18], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-            const s = 5 + (k % 3) * 2;
-            return (
-              <div
-                key={k}
-                style={{
-                  position: 'absolute',
-                  left: S / 2 + Math.cos(a) * d - s / 2,
-                  top: S / 2 + Math.sin(a) * d - s / 2 + fall,
-                  width: s,
-                  height: s,
-                  borderRadius: 999,
-                  background: 'radial-gradient(circle at 35% 30%, #fff 0 25%, rgba(255,255,255,0.35) 60%, rgba(255,255,255,0) 75%)',
-                  opacity: ringOp,
-                }}
-              />
-            );
-          })}
-        </>
-      )}
-    </div>
-  );
-};
-
 const Row: React.FC<{row: CardRow; first: boolean; reveal: number; f: number}> = ({row, first, reveal, f}) => {
   const {fps} = useVideoConfig();
-  const v = spring({frame: f - 8, fps, config: {damping: 9, stiffness: 210, mass: 0.6}}); // value pops when the bubble bursts
+  const v = spring({frame: f - 4, fps, config: {damping: 9, stiffness: 210, mass: 0.6}}); // value pops when the bubble bursts
   const color = row.tone === 'bad' ? BAD : row.tone === 'good' ? GOOD : '#FFFFFF';
   return (
     <div style={{position: 'relative', height: ROW_H * reveal, overflow: 'visible'}}>
@@ -182,6 +58,8 @@ const Row: React.FC<{row: CardRow; first: boolean; reveal: number; f: number}> =
           right: 0,
           top: 0,
           height: ROW_H,
+          borderRadius: 16,
+          background: `linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,${0.14 * interpolate(f, [4, 10, 34], [0, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}) 60%, rgba(255,255,255,0))`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -207,7 +85,6 @@ const Row: React.FC<{row: CardRow; first: boolean; reveal: number; f: number}> =
         >
           {row.value}
         </div>
-        <Pop f={f} />
       </div>
     </div>
   );
@@ -241,7 +118,7 @@ const GlassCard: React.FC<{p: InfoCardReelProps}> = ({p}) => {
   const flex = reveals.reduce((m, r) => (r.f >= 0 && r.f < 20 ? Math.max(m, Math.sin((r.f / 20) * Math.PI) * 0.012) : m), 0);
   const lightAngle = -35 + Math.sin(frame / 30) * 22 - (1 - Math.min(1, inP)) * 60;
   const sheenA = interpolate(frame, [8, 36], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const lastLand = reveals.reduce((m, r) => (r.f >= 8 && r.f < 34 ? (r.f - 8) / 26 : m), -1);
+  const lastLand = reveals.reduce((m, r) => (r.f >= 4 && r.f < 30 ? (r.f - 4) / 26 : m), -1);
   const sheen = sheenA > 0 && sheenA < 1 ? sheenA : lastLand > 0 && lastLand < 1 ? lastLand : undefined;
   const content = spring({frame: frame - 7, fps, config: {damping: 18, stiffness: 180}});
 
@@ -272,9 +149,6 @@ const GlassCard: React.FC<{p: InfoCardReelProps}> = ({p}) => {
         sheen={sheen}
         opacity={Math.min(1, inP * 1.6)}
       >
-        {[0, 1, 2, 3].map((i) => (
-          <Drop key={i} i={i} frame={frame} cardH={h} />
-        ))}
         <div
           style={{
             position: 'absolute',
@@ -286,11 +160,6 @@ const GlassCard: React.FC<{p: InfoCardReelProps}> = ({p}) => {
           }}
         >
           <div style={{display: 'flex', alignItems: 'center', gap: 18, height: 72}}>
-            {p.avatarSrc ? (
-              <div style={{width: 66, height: 66, borderRadius: 999, padding: 3, background: 'linear-gradient(140deg, rgba(255,255,255,0.9), rgba(255,255,255,0.15))', boxShadow: '0 6px 18px rgba(0,0,0,0.35)'}}>
-                <Img src={staticFile(p.avatarSrc)} style={{width: 60, height: 60, borderRadius: 999, objectFit: 'cover', display: 'block'}} />
-              </div>
-            ) : null}
             <div style={{flex: 1}}>
               <div style={{fontFamily: DISPLAY_FONT, fontWeight: 800, fontSize: 29, letterSpacing: '-0.01em'}}>{p.name}</div>
               {p.handle ? <div style={{fontFamily: TEXT_FONT, fontWeight: 500, fontSize: 21, color: 'rgba(255,255,255,0.65)'}}>{p.handle}</div> : null}
@@ -357,10 +226,6 @@ export const InfoCardReel: React.FC<InfoCardReelProps> = (p) => {
         <OffthreadVideo src={staticFile(p.videoSrc)} style={{width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${push})`, transformOrigin: '50% 30%'}} />
         <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 70%, rgba(0,0,0,0.45) 100%)'}} />
       </div>
-      {/* glass bubbles drift up through the whole scene (behind the card, over Josh) */}
-      {BUBBLES.map((b, i) => (
-        <Bubble key={i} b={b} frame={frame} />
-      ))}
       {ready ? <GlassCard p={p} /> : null}
       {ready ? <Captions words={p.words} centerY={0.845} /> : null}
     </AbsoluteFill>
