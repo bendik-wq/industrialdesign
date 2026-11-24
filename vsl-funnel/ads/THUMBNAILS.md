@@ -1,3 +1,18 @@
+# Format v7 (current): v6 + pattern-interrupt drawings
+
+The drawings now interact with Josh and the scene instead of sitting beside the text:
+- **Speech and thought bubbles**: banks saying "NO." / "YES!!" / "NOPE.", and Josh thinking "bargain?" or "too low?".
+- **Shock lines** radiating around Josh's head on the B&W "said no?" frame.
+- **Two keys hanging from his gesturing hand**, labelled #1 #2.
+- **Flames** on the headline and rising off the crashing chart, with a SALE price tag hanging off the line.
+- **A balance scale** tipping 1x vs 2x.
+- **Tally marks** for 20 years, plus a dying battery with Zzz.
+- **Staff running out an EXIT door.**
+
+Script: `render/thumbs/comp7.py` (the figure library lives there and in `comp6.py`). Outputs are `out/thumbs/v7_*`.
+
+---
+
 # Format v6 (current): Taki-style marker system + hand-drawn figures
 
 The style Bendik approved is v5's: real frames, marker caps and doodles. v6 adds:
