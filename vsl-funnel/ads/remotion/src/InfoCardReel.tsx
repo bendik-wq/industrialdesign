@@ -31,7 +31,8 @@ export type InfoCardReelProps = {
 };
 
 const W = 1080;
-const VIDEO_TOP = 820; // video panel occupies 820..1920
+const VIDEO_TOP = 700; // video panel occupies 700..1920
+const CARD_BOTTOM = 760; // card floats over the top edge of the video
 const BG = '#0D0E12';
 const INK = '#111216';
 const MUTED = '#6B6F78';
@@ -51,14 +52,14 @@ const Row: React.FC<{row: CardRow; first: boolean}> = ({row, first}) => {
         justifyContent: 'space-between',
         alignItems: 'baseline',
         gap: 24,
-        padding: '18px 0',
-        borderTop: first ? 'none' : '2px solid #ECECE8',
+        padding: '12px 0',
+        borderTop: first ? 'none' : '1.5px solid #ECECE8',
         opacity: s,
         transform: `translateY(${(1 - s) * 18}px)`,
       }}
     >
-      <div style={{fontFamily: TEXT_FONT, fontWeight: 600, fontSize: 31, color: MUTED, whiteSpace: 'nowrap'}}>{row.label}</div>
-      <div style={{fontFamily: DISPLAY_FONT, fontWeight: 800, fontSize: 38, color, textAlign: 'right', lineHeight: 1.15}}>{row.value}</div>
+      <div style={{fontFamily: TEXT_FONT, fontWeight: 600, fontSize: 24, color: MUTED, whiteSpace: 'nowrap'}}>{row.label}</div>
+      <div style={{fontFamily: DISPLAY_FONT, fontWeight: 800, fontSize: 29, color, textAlign: 'right', lineHeight: 1.15}}>{row.value}</div>
     </div>
   );
 };
@@ -71,35 +72,35 @@ const Card: React.FC<{p: InfoCardReelProps}> = ({p}) => {
     <div
       style={{
         position: 'absolute',
-        left: 56,
-        right: 56,
-        bottom: W * 0 + (1920 - VIDEO_TOP) + 36,
+        left: (W - 820) / 2,
+        width: 820,
+        bottom: 1920 - CARD_BOTTOM,
         background: '#FBFBF8',
-        borderRadius: 44,
-        padding: '40px 46px 30px',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.55), 0 2px 0 rgba(255,255,255,0.6) inset',
-        transform: `translateY(${(1 - s) * 60}px) scale(${0.94 + 0.06 * s})`,
+        borderRadius: 36,
+        padding: '28px 34px 22px',
+        boxShadow: '0 40px 90px rgba(0,0,0,0.6), 0 12px 24px rgba(0,0,0,0.35)',
+        transform: `translateY(${(1 - s) * 60 + Math.sin(frame / 22) * 7}px) rotate(${Math.sin(frame / 37) * 0.6}deg) scale(${0.94 + 0.06 * s})`,
         opacity: s,
         transformOrigin: '50% 100%',
       }}
     >
       {/* header */}
-      <div style={{display: 'flex', alignItems: 'center', gap: 20, marginBottom: 22}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16}}>
         {p.avatarSrc ? (
-          <Img src={staticFile(p.avatarSrc)} style={{width: 78, height: 78, borderRadius: 999, objectFit: 'cover'}} />
+          <Img src={staticFile(p.avatarSrc)} style={{width: 60, height: 60, borderRadius: 999, objectFit: 'cover'}} />
         ) : null}
         <div style={{flex: 1}}>
-          <div style={{fontFamily: DISPLAY_FONT, fontWeight: 800, fontSize: 34, color: INK, }}>
+          <div style={{fontFamily: DISPLAY_FONT, fontWeight: 800, fontSize: 28, color: INK, }}>
             {p.name}
           </div>
-          {p.handle ? <div style={{fontFamily: TEXT_FONT, fontWeight: 500, fontSize: 26, color: MUTED}}>{p.handle}</div> : null}
+          {p.handle ? <div style={{fontFamily: TEXT_FONT, fontWeight: 500, fontSize: 21, color: MUTED}}>{p.handle}</div> : null}
         </div>
-        <div style={{fontFamily: TEXT_FONT, fontWeight: 700, fontSize: 22, letterSpacing: 2, color: '#fff', background: INK, borderRadius: 999, padding: '10px 18px'}}>
+        <div style={{fontFamily: TEXT_FONT, fontWeight: 700, fontSize: 17, letterSpacing: 1.5, color: '#fff', background: INK, borderRadius: 999, padding: '8px 14px'}}>
           {p.card.kicker}
         </div>
       </div>
       {/* title */}
-      <div style={{fontFamily: DISPLAY_FONT, fontWeight: 900, fontSize: 54, lineHeight: 1.06, color: INK, letterSpacing: -1, marginBottom: 14}}>
+      <div style={{fontFamily: DISPLAY_FONT, fontWeight: 900, fontSize: 42, lineHeight: 1.06, color: INK, letterSpacing: -0.8, marginBottom: 8}}>
         {p.card.title}
       </div>
       {/* rows */}
@@ -109,7 +110,7 @@ const Card: React.FC<{p: InfoCardReelProps}> = ({p}) => {
         ))}
       </div>
       {p.card.footnote ? (
-        <div style={{fontFamily: TEXT_FONT, fontWeight: 500, fontSize: 21, color: '#9A9DA4', marginTop: 12}}>{p.card.footnote}</div>
+        <div style={{fontFamily: TEXT_FONT, fontWeight: 500, fontSize: 16, color: '#9A9DA4', marginTop: 8}}>{p.card.footnote}</div>
       ) : null}
     </div>
   );
@@ -171,7 +172,7 @@ export const InfoCardReel: React.FC<InfoCardReelProps> = (p) => {
       <AbsoluteFill style={{background: 'radial-gradient(900px 520px at 50% 22%, rgba(255,255,255,0.08), rgba(255,255,255,0) 70%)'}} />
       <div style={{position: 'absolute', left: 0, top: VIDEO_TOP, width: W, height: 1920 - VIDEO_TOP, overflow: 'hidden', opacity: fade}}>
         <OffthreadVideo src={staticFile(p.videoSrc)} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-        <div style={{position: 'absolute', inset: 0, background: `linear-gradient(${BG} 0%, rgba(13,14,18,0) 16%, rgba(13,14,18,0) 70%, rgba(13,14,18,0.55) 100%)`}} />
+        <div style={{position: 'absolute', inset: 0, background: `linear-gradient(${BG} 0%, rgba(13,14,18,0) 12%, rgba(13,14,18,0) 70%, rgba(13,14,18,0.55) 100%)`}} />
       </div>
       {ready ? <Card p={p} /> : null}
       {ready ? <Captions words={p.words} /> : null}

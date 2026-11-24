@@ -2,7 +2,8 @@
 
 A vertical 9:16 (1080×1920) Instagram Reel or Short:
 - **Top:** a white rounded info card. It has Josh's avatar and name, a dark label pill (DEAL BREAKDOWN, SELLER CHECKLIST, DUE DILIGENCE, NEWS…), a bold headline, label/value rows that pop in the moment Josh says them, and a small footnote.
-- **Bottom (y 820–1920):** Josh talking, cropped from the 4K footage, with word-by-word captions. The active word and highlighted keywords turn yellow.
+- **Card position:** the card is 820px wide and floats with a gentle bob, overlapping the top edge of the video so it hovers just above Josh's head.
+- **Bottom (y 700–1920):** Josh talking, cropped from the 4K footage, with word-by-word captions. The active word and highlighted keywords turn yellow.
 
 Row tones: `bad` = red, `good` = green, none = ink.
 
@@ -11,7 +12,7 @@ Row tones: `bad` = red, `good` = green, none = ink.
 2. **Cut and crop it** to the bottom panel:
    ```
    ffmpeg -ss START -to END -i SOURCE_4K.mp4 \
-     -vf "crop=1300:1324:1320:360,scale=1080:1100:flags=lanczos" \
+     -vf "crop=1260:1423:1350:360,scale=1080:1220:flags=lanczos" \
      -af "loudnorm=I=-14:TP=-1.5:LRA=11" -c:v libx264 -crf 16 -pix_fmt yuv420p -c:a aac -b:a 192k \
      public/reel_NAME.mp4
    ```
