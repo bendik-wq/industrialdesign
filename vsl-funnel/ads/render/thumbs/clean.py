@@ -12,7 +12,17 @@ for t in sys.argv[1:]:
     m[(mn > 175) & (mx - mn < 30) & (bot > 0)] = 255
     tx = (np.abs(cv2.Laplacian(cv2.cvtColor(im, cv2.COLOR_BGR2GRAY), cv2.CV_32F)) > 25) & (mn > 120) & (mx - mn < 45)
     m[tx & (bot > 0)] = 255
+    import os
+    if os.path.exists(f'mask_{t}.png'):
+        pm = cv2.imread(f'mask_{t}.png', 0) > 100
+        pm = cv2.dilate(pm.astype(np.uint8), np.ones((25, 25), np.uint8)) > 0
+        side = np.zeros_like(m); side[700:1450, :1750] = 1
+        txt2 = (np.abs(cv2.Laplacian(cv2.cvtColor(im, cv2.COLOR_BGR2GRAY), cv2.CV_32F)) > 30) & (mn > 150) & (mx - mn < 40)
+        m[txt2 & (side > 0) & (~pm)] = 255
+        m = cv2.dilate(m, np.ones((9, 9), np.uint8))
     m = cv2.dilate(m, np.ones((15, 15), np.uint8))
+    for (x0, y0, x1, y1) in {'296': [(0, 940, 1320, 1190)]}.get(t, []):
+        m[y0:y1, x0:x1] = 255
     small = cv2.resize(im, None, fx=0.5, fy=0.5); sm = cv2.resize(m, None, fx=0.5, fy=0.5)
     fix = cv2.inpaint(small, sm, 12, cv2.INPAINT_TELEA)
     fix = cv2.resize(fix, (im.shape[1], im.shape[0]), interpolation=cv2.INTER_CUBIC)

@@ -1,3 +1,20 @@
+# Format v6 (current): Taki-style marker system + hand-drawn figures
+
+The style Bendik approved is v5's: real frames, marker caps and doodles. v6 adds:
+- **Hand-drawn figures** in marker: bank building, crash chart, deal timeline, 2x badge, low battery and stick-figure staff, plus ✓ and ✗.
+- **A multi-colour marker palette**, using 2–3 colours per thumbnail: white #FCFCF8, yellow #FFC72C, green #50E88C, cyan #52CCFF, orange #FF8030, red #F5443A.
+- **Sharper lettering**: no stroke widening, rendered at 2×, with a tight soft shadow.
+- **New camera moments** from the episode: the side-glance (120s), the money gesture (296s), the explaining hands (164s) and the hand-at-collar (416s).
+- **New hook angles**, taken from Josh's own on-screen points:
+  - FIRE SALE (a business heading to zero);
+  - $250K PROFIT / $500K OFFER (2x);
+  - 20 YEARS, TIRED OWNER;
+  - HALF THE STAFF LEAVE? (the cash flow cost).
+
+Run `render/thumbs/comp6.py [name...]` to render the concepts `100m zero banker firesale multiple tired staff`. Outputs are `out/thumbs/v6_*`.
+
+---
+
 # Format v5: Taki Moore-style system, applied to Josh
 
 What Taki Moore's last 24 thumbnails have in common (studied Nov 2026):
