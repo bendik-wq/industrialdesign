@@ -1,3 +1,24 @@
+# Format v5: Taki Moore-style system, applied to Josh
+
+What Taki Moore's last 24 thumbnails have in common (studied Nov 2026):
+- **A real cinematic frame**: Josh mid-gesture and expressive, in a real location. No studio cut-out look.
+- **2–4 words of big hand-lettered marker caps** in white, placed in the empty part of the frame.
+- **One accent colour** for the key word: warm yellow #FFC42E (a red X and green tick only for a before/after).
+- **White hand-drawn doodles**: arrows, underlines, ticks and crosses. Sometimes whiteboard diagrams or a handwritten card held up.
+- **Black-and-white grades** on some, with only the accent in colour.
+- No boxes, no serif fonts, no logos.
+
+v5 applies this to Josh with Caveat Brush (condensed marker caps) on his real 4K frames:
+- `100m`: "$1M ✗ / ✓ $100M · BANKS PREFER IT", with Josh centred and gesturing.
+- `zero`: "$0 DOWN · 2 COMPANIES. · 100% seller financed", with an arrow to Josh.
+- `banker`: a B&W frame with "YOUR BANK / SAID NO? · here's why".
+
+Run `render/thumbs/comp5.py NAME`. Outputs are `out/thumbs/v5_*`.
+
+Upgrade for next time, in the Taki style: shoot Josh holding a real handwritten card or a whiteboard for the hook word. That is the strongest element in Taki's thumbnails and can't be faked well in post.
+
+---
+
 # Current format: v4 (v2 look, sharpened)
 
 Bendik's verdict: v3 (lime, Unbounded) looked cheap and was rejected; the v2 navy-and-gold scribble look is the direction. v4 changes from v2:
