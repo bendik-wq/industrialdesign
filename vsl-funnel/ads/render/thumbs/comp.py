@@ -36,7 +36,7 @@ def plate(t, josh_x=0.70, head_top=0.07, zoom=1.5):
     tp = int(top - head_top * ch)
     left = max(0, min(left, src.width - cw)); tp = max(0, min(tp, src.height - ch))
     box = (left, tp, left + cw, tp + ch)
-    ma = np.array(m); ma[:, :max(0, int(cx - 640))] = 0; ma[:, int(cx + 760):] = 0
+    ma = np.array(m).astype(float); xs = np.arange(ma.shape[1]); ma = (ma * np.clip((xs - (cx - CUT_L - 160)) / 320, 0, 1)[None, :]).astype('uint8')
     m = Image.fromarray(ma)
     img = src.crop(box).resize((W, H), Image.LANCZOS)
     msk = m.crop(box).resize((W, H), Image.LANCZOS)
@@ -299,6 +299,7 @@ def cfg_banker():
 
 T = {'100m': 44, 'zero': 42, 'banker': 358}
 HEAD = None
+CUT_L = 640
 CONFIGS = {'100m': cfg_100m, 'zero': cfg_zero, 'banker': cfg_banker}
 
 if __name__ == '__main__':

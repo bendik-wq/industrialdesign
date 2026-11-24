@@ -1,4 +1,30 @@
-# Josh Li YouTube thumbnail format v2: "Real frame, navy and gold annotated"
+# Josh Li YouTube thumbnail format v3 (current): "Purple cow"
+
+The business-YouTube feed is navy, gold, red arrows and yellow Impact text, so v3 is built to be the one thumbnail that looks different in it, using Mr Beast-style click principles without copying his look:
+
+- **One focal idea, 2–3 big words.** Everything else is small and supporting.
+- **Pattern interrupt colour**: the set is graded to black and white, Josh stays in full colour, and there is one accent of **electric acid lime #CCFF2E**. Nobody in finance uses it, and it pops on both YouTube's dark and light UI.
+- **A story object** that makes the idea concrete at a glance: a white loan slip stamped DECLINED next to "$100M APPROVED". The contrast is the curiosity gap.
+- **Sharp type**:
+  - Unbounded Black (wide, geometric, razor-edged) for the hook, set black on a lime block or white with a hard shadow.
+  - IBM Plex Mono for labels, giving a term-sheet / bank-terminal feel.
+  - No glow; everything is rendered at 2× and downsampled for crisp edges.
+- **Real face**: Josh's actual 4K frame, sharpened, with a saturation and contrast lift. Expressive mid-sentence moments work best.
+
+Script: `render/thumbs/comp3.py NAME` (it uses `comp.py` for the plate and mask). Fonts: Unbounded and IBM Plex Mono from github.com/google/fonts.
+
+Outputs (`out/thumbs/`, gitignored): `v3_100m_loan`, `v3_zero_down`, `v3_banker_no`.
+
+## Nano Banana upgrade (run when the VidLab key limit is raised)
+Feed the finished v3 PNG to `nano-banana-pro` (`resolution: 4k`, `aspect_ratio: 16:9`), turning the flat props into real objects while the face is locked:
+
+> Edit this image. Do NOT change the man's face, hair, expression or any text. Replace the flat white loan slip with a photoreal crumpled paper bank loan application lying at a slight angle with a real red rubber-stamp "DECLINED" impression, soft shadow, shallow depth of field. Keep the black-and-white background and the lime blocks exactly as they are.
+
+After generating, paste the original face region back over the result through the mask if the model drifts the face.
+
+---
+
+# Previous: format v2: "Real frame, navy and gold annotated"
 
 Built on a real 4K frame from the video itself: Josh's actual face and the actual set, never AI-generated. Everything premium is layered on top.
 
