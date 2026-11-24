@@ -4,6 +4,8 @@ import {parseMedia} from '@remotion/media-parser';
 import {LiquidGlassAd} from './LiquidGlassAd';
 import type {AdProps} from './types';
 import sample from '../props/test.json';
+import {InfoCardReel, InfoCardReelProps} from './InfoCardReel';
+import reelSample from '../props/reel_pe.json';
 
 const FPS = 30;
 
@@ -20,7 +22,22 @@ const calculateMetadata: CalculateMetadataFunction<AdProps> = async ({props}) =>
   return {durationInFrames: Math.max(1, Math.floor(seconds * FPS))};
 };
 
+const reelMeta: CalculateMetadataFunction<InfoCardReelProps> = async ({props}) => ({
+  durationInFrames: Math.max(1, Math.floor((props.durationInSeconds ?? 10) * FPS)),
+});
+
 export const RemotionRoot: React.FC = () => (
+  <>
+  <Composition
+    id="InfoCardReel"
+    component={InfoCardReel}
+    width={1080}
+    height={1920}
+    fps={FPS}
+    durationInFrames={FPS * 10}
+    defaultProps={reelSample as InfoCardReelProps}
+    calculateMetadata={reelMeta}
+  />
   <Composition
     id="LiquidGlassAd"
     component={LiquidGlassAd}
@@ -31,4 +48,5 @@ export const RemotionRoot: React.FC = () => (
     defaultProps={sample as AdProps}
     calculateMetadata={calculateMetadata}
   />
+  </>
 );

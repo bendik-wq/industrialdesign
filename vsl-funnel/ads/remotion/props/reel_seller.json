@@ -1,0 +1,496 @@
+{
+ "avatarSrc": "josh_avatar.jpg",
+ "name": "Josh Li",
+ "handle": "M&A \u00b7 2 companies, $0 down",
+ "videoSrc": "reel_seller.mp4",
+ "durationInSeconds": 35.5,
+ "card": {
+  "kicker": "SELLER CHECKLIST",
+  "title": "Who actually says yes to a no-money-down deal",
+  "rows": [
+   {
+    "label": "Who",
+    "value": "A motivated seller",
+    "at": 6.4
+   },
+   {
+    "label": "The deal",
+    "value": "No money down",
+    "at": 10.6
+   },
+   {
+    "label": "Why they sell",
+    "value": "Reasons beyond the money",
+    "at": 17.6,
+    "tone": "good"
+   },
+   {
+    "label": "What they accept",
+    "value": "Money paid over time",
+    "at": 32.5,
+    "tone": "good"
+   }
+  ],
+  "footnote": "From Josh's video on finding motivated sellers."
+ },
+ "words": [
+  {
+   "text": "Now",
+   "start": 0.0,
+   "end": 0.28
+  },
+  {
+   "text": "let's",
+   "start": 0.28,
+   "end": 0.88
+  },
+  {
+   "text": "go",
+   "start": 0.88,
+   "end": 1.02
+  },
+  {
+   "text": "back",
+   "start": 1.02,
+   "end": 1.2
+  },
+  {
+   "text": "to",
+   "start": 1.2,
+   "end": 1.5
+  },
+  {
+   "text": "the",
+   "start": 1.5,
+   "end": 2.68
+  },
+  {
+   "text": "capital",
+   "start": 2.68,
+   "end": 2.98
+  },
+  {
+   "text": "thing,",
+   "start": 2.98,
+   "end": 3.34
+  },
+  {
+   "text": "the",
+   "start": 3.88,
+   "end": 4.08
+  },
+  {
+   "text": "reason",
+   "start": 4.08,
+   "end": 4.42
+  },
+  {
+   "text": "why",
+   "start": 4.42,
+   "end": 4.7
+  },
+  {
+   "text": "I'm",
+   "start": 4.7,
+   "end": 4.88
+  },
+  {
+   "text": "saying",
+   "start": 4.88,
+   "end": 5.06
+  },
+  {
+   "text": "you",
+   "start": 5.06,
+   "end": 5.2
+  },
+  {
+   "text": "need",
+   "start": 5.2,
+   "end": 5.34
+  },
+  {
+   "text": "to",
+   "start": 5.34,
+   "end": 5.44
+  },
+  {
+   "text": "speak",
+   "start": 5.44,
+   "end": 5.64
+  },
+  {
+   "text": "to",
+   "start": 5.64,
+   "end": 5.82
+  },
+  {
+   "text": "motivated",
+   "start": 5.82,
+   "end": 6.26,
+   "highlight": true
+  },
+  {
+   "text": "sellers",
+   "start": 6.26,
+   "end": 6.62
+  },
+  {
+   "text": "because",
+   "start": 6.62,
+   "end": 7.38
+  },
+  {
+   "text": "you're",
+   "start": 7.38,
+   "end": 7.68
+  },
+  {
+   "text": "not",
+   "start": 7.68,
+   "end": 7.8
+  },
+  {
+   "text": "going",
+   "start": 7.8,
+   "end": 8.02
+  },
+  {
+   "text": "to",
+   "start": 8.02,
+   "end": 8.14
+  },
+  {
+   "text": "do",
+   "start": 8.14,
+   "end": 8.38
+  },
+  {
+   "text": "a",
+   "start": 8.38,
+   "end": 9.08
+  },
+  {
+   "text": "no",
+   "start": 9.08,
+   "end": 9.24
+  },
+  {
+   "text": "money",
+   "start": 9.24,
+   "end": 9.5,
+   "highlight": true
+  },
+  {
+   "text": "down",
+   "start": 9.5,
+   "end": 9.7
+  },
+  {
+   "text": "deal",
+   "start": 9.7,
+   "end": 9.96
+  },
+  {
+   "text": "with",
+   "start": 9.96,
+   "end": 10.42
+  },
+  {
+   "text": "an",
+   "start": 10.42,
+   "end": 11.133
+  },
+  {
+   "text": "unmotivated",
+   "start": 11.133,
+   "end": 11.847
+  },
+  {
+   "text": "seller.",
+   "start": 11.847,
+   "end": 12.56
+  },
+  {
+   "text": "Someone",
+   "start": 12.76,
+   "end": 13.12
+  },
+  {
+   "text": "who's",
+   "start": 13.12,
+   "end": 13.42
+  },
+  {
+   "text": "not",
+   "start": 13.42,
+   "end": 13.56
+  },
+  {
+   "text": "motivated",
+   "start": 13.56,
+   "end": 13.96,
+   "highlight": true
+  },
+  {
+   "text": "to",
+   "start": 13.96,
+   "end": 14.26
+  },
+  {
+   "text": "sell",
+   "start": 14.26,
+   "end": 14.52
+  },
+  {
+   "text": "outside",
+   "start": 14.52,
+   "end": 15.4
+  },
+  {
+   "text": "of",
+   "start": 15.4,
+   "end": 15.7
+  },
+  {
+   "text": "financial",
+   "start": 15.7,
+   "end": 16.34
+  },
+  {
+   "text": "gain.",
+   "start": 16.34,
+   "end": 16.56
+  },
+  {
+   "text": "You",
+   "start": 17.64,
+   "end": 18.14
+  },
+  {
+   "text": "want",
+   "start": 18.14,
+   "end": 18.28
+  },
+  {
+   "text": "to",
+   "start": 18.28,
+   "end": 18.36
+  },
+  {
+   "text": "look",
+   "start": 18.36,
+   "end": 18.48
+  },
+  {
+   "text": "for",
+   "start": 18.48,
+   "end": 18.6
+  },
+  {
+   "text": "people",
+   "start": 18.6,
+   "end": 18.76
+  },
+  {
+   "text": "who",
+   "start": 18.76,
+   "end": 18.92
+  },
+  {
+   "text": "are",
+   "start": 18.92,
+   "end": 19.02
+  },
+  {
+   "text": "motivated",
+   "start": 19.02,
+   "end": 19.26,
+   "highlight": true
+  },
+  {
+   "text": "to",
+   "start": 19.26,
+   "end": 19.54
+  },
+  {
+   "text": "sell",
+   "start": 19.54,
+   "end": 19.62
+  },
+  {
+   "text": "outside",
+   "start": 19.62,
+   "end": 20.12
+  },
+  {
+   "text": "of",
+   "start": 20.12,
+   "end": 20.3
+  },
+  {
+   "text": "financial",
+   "start": 20.3,
+   "end": 20.62
+  },
+  {
+   "text": "gain.",
+   "start": 20.62,
+   "end": 21.02
+  },
+  {
+   "text": "Only",
+   "start": 22.84,
+   "end": 23.4
+  },
+  {
+   "text": "these",
+   "start": 23.4,
+   "end": 23.76
+  },
+  {
+   "text": "types",
+   "start": 23.76,
+   "end": 24.06
+  },
+  {
+   "text": "of",
+   "start": 24.06,
+   "end": 24.2
+  },
+  {
+   "text": "people",
+   "start": 24.2,
+   "end": 24.44
+  },
+  {
+   "text": "will",
+   "start": 24.44,
+   "end": 24.64
+  },
+  {
+   "text": "accept",
+   "start": 24.64,
+   "end": 24.94
+  },
+  {
+   "text": "no",
+   "start": 24.94,
+   "end": 25.24
+  },
+  {
+   "text": "money",
+   "start": 25.24,
+   "end": 25.5,
+   "highlight": true
+  },
+  {
+   "text": "down",
+   "start": 25.5,
+   "end": 25.72
+  },
+  {
+   "text": "deals.",
+   "start": 25.72,
+   "end": 26.02
+  },
+  {
+   "text": "It's",
+   "start": 26.02,
+   "end": 26.78
+  },
+  {
+   "text": "not",
+   "start": 26.78,
+   "end": 27.62
+  },
+  {
+   "text": "only",
+   "start": 27.62,
+   "end": 28.06
+  },
+  {
+   "text": "99.9%",
+   "start": 28.06,
+   "end": 29.44
+  },
+  {
+   "text": "of",
+   "start": 29.44,
+   "end": 30.2
+  },
+  {
+   "text": "the",
+   "start": 30.2,
+   "end": 30.34
+  },
+  {
+   "text": "time",
+   "start": 30.34,
+   "end": 30.58,
+   "highlight": true
+  },
+  {
+   "text": "it's",
+   "start": 30.58,
+   "end": 31.32
+  },
+  {
+   "text": "these",
+   "start": 31.32,
+   "end": 31.44
+  },
+  {
+   "text": "people.",
+   "start": 31.44,
+   "end": 31.78
+  },
+  {
+   "text": "People",
+   "start": 32.54,
+   "end": 32.84
+  },
+  {
+   "text": "who",
+   "start": 32.84,
+   "end": 33.04
+  },
+  {
+   "text": "are",
+   "start": 33.04,
+   "end": 33.12
+  },
+  {
+   "text": "happy",
+   "start": 33.12,
+   "end": 33.38
+  },
+  {
+   "text": "to",
+   "start": 33.38,
+   "end": 33.56
+  },
+  {
+   "text": "accept",
+   "start": 33.56,
+   "end": 33.86
+  },
+  {
+   "text": "money",
+   "start": 33.86,
+   "end": 34.44,
+   "highlight": true
+  },
+  {
+   "text": "over",
+   "start": 34.44,
+   "end": 34.78
+  },
+  {
+   "text": "time.",
+   "start": 34.78,
+   "end": 35.26,
+   "highlight": true
+  }
+ ]
+}

@@ -22,7 +22,7 @@ if [ -n "$BROWSER" ] && [ -x "$BROWSER" ]; then
 fi
 
 mkdir -p "$(dirname "$OUT")"
-npx remotion render src/index.ts LiquidGlassAd "$OUT" \
+npx remotion render src/index.ts "${COMP:-LiquidGlassAd}" "$OUT" \
   --props="$PROPS" \
   --codec=h264 --crf=16 --pixel-format=yuv420p \
   --image-format=jpeg --jpeg-quality=95 \

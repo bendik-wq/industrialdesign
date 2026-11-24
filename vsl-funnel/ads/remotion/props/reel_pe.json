@@ -1,0 +1,770 @@
+{
+ "videoSrc": "reel_pe.mp4",
+ "avatarSrc": "josh_avatar.jpg",
+ "name": "Josh Li",
+ "handle": "M&A \u00b7 2 companies, $0 down",
+ "durationInSeconds": 49.7,
+ "card": {
+  "kicker": "DEAL BREAKDOWN",
+  "title": "The PE lowball most owners walk away from",
+  "rows": [
+   {
+    "label": "The business",
+    "value": "20\u201330 yr healthcare practice",
+    "at": 0.6
+   },
+   {
+    "label": "Profit",
+    "value": "~$250K a year",
+    "at": 19.6
+   },
+   {
+    "label": "PE offer",
+    "value": "$500K (2x profit)",
+    "at": 23.4,
+    "tone": "bad"
+   },
+   {
+    "label": "Owner's logic",
+    "value": "\u201cI'll just earn it in 2 years\u201d",
+    "at": 30.6
+   },
+   {
+    "label": "The catch",
+    "value": "Profit \u2260 cash in the bank",
+    "at": 42.4,
+    "tone": "good"
+   }
+  ],
+  "footnote": "Illustrative example from Josh's video, not a specific deal."
+ },
+ "words": [
+  {
+   "text": "And",
+   "start": 0.32,
+   "end": 0.58
+  },
+  {
+   "text": "if",
+   "start": 0.58,
+   "end": 0.84
+  },
+  {
+   "text": "you",
+   "start": 0.84,
+   "end": 0.92
+  },
+  {
+   "text": "go",
+   "start": 0.92,
+   "end": 1.04
+  },
+  {
+   "text": "into",
+   "start": 1.04,
+   "end": 1.28
+  },
+  {
+   "text": "a",
+   "start": 1.28,
+   "end": 1.62
+  },
+  {
+   "text": "hot",
+   "start": 1.62,
+   "end": 2.42
+  },
+  {
+   "text": "industry",
+   "start": 2.42,
+   "end": 2.82
+  },
+  {
+   "text": "like",
+   "start": 2.82,
+   "end": 3.0
+  },
+  {
+   "text": "healthcare,",
+   "start": 3.0,
+   "end": 3.46
+  },
+  {
+   "text": "chances",
+   "start": 4.1,
+   "end": 4.36
+  },
+  {
+   "text": "are",
+   "start": 4.36,
+   "end": 4.68
+  },
+  {
+   "text": "that",
+   "start": 4.68,
+   "end": 5.04
+  },
+  {
+   "text": "these",
+   "start": 5.04,
+   "end": 5.26
+  },
+  {
+   "text": "owners",
+   "start": 5.26,
+   "end": 5.52
+  },
+  {
+   "text": "have",
+   "start": 5.52,
+   "end": 5.72
+  },
+  {
+   "text": "spoken",
+   "start": 5.72,
+   "end": 6.08
+  },
+  {
+   "text": "to",
+   "start": 6.08,
+   "end": 6.44
+  },
+  {
+   "text": "some",
+   "start": 6.44,
+   "end": 7.16
+  },
+  {
+   "text": "private",
+   "start": 7.16,
+   "end": 7.5
+  },
+  {
+   "text": "equity,",
+   "start": 7.5,
+   "end": 7.9
+  },
+  {
+   "text": "some",
+   "start": 8.32,
+   "end": 8.5
+  },
+  {
+   "text": "corporate,",
+   "start": 8.5,
+   "end": 8.96
+  },
+  {
+   "text": "some",
+   "start": 9.32,
+   "end": 9.54
+  },
+  {
+   "text": "guy",
+   "start": 9.54,
+   "end": 9.74
+  },
+  {
+   "text": "who",
+   "start": 9.74,
+   "end": 10.1
+  },
+  {
+   "text": "wants",
+   "start": 10.1,
+   "end": 10.24
+  },
+  {
+   "text": "to",
+   "start": 10.24,
+   "end": 10.34
+  },
+  {
+   "text": "buy",
+   "start": 10.34,
+   "end": 10.52
+  },
+  {
+   "text": "their",
+   "start": 10.52,
+   "end": 10.68
+  },
+  {
+   "text": "business",
+   "start": 10.68,
+   "end": 10.98
+  },
+  {
+   "text": "and",
+   "start": 10.98,
+   "end": 11.6
+  },
+  {
+   "text": "they've",
+   "start": 11.6,
+   "end": 12.2
+  },
+  {
+   "text": "just",
+   "start": 12.2,
+   "end": 12.42
+  },
+  {
+   "text": "lowballed",
+   "start": 13.08,
+   "end": 13.84
+  },
+  {
+   "text": "the",
+   "start": 13.84,
+   "end": 13.86
+  },
+  {
+   "text": "guy",
+   "start": 13.86,
+   "end": 14.04
+  },
+  {
+   "text": "and",
+   "start": 14.04,
+   "end": 15.08
+  },
+  {
+   "text": "said,",
+   "start": 15.08,
+   "end": 15.42
+  },
+  {
+   "text": "yeah,",
+   "start": 15.66,
+   "end": 15.66
+  },
+  {
+   "text": "the",
+   "start": 15.8,
+   "end": 16.86
+  },
+  {
+   "text": "guy",
+   "start": 16.86,
+   "end": 17.1
+  },
+  {
+   "text": "might",
+   "start": 17.1,
+   "end": 17.28
+  },
+  {
+   "text": "be",
+   "start": 17.28,
+   "end": 17.42
+  },
+  {
+   "text": "doing,",
+   "start": 17.42,
+   "end": 17.66
+  },
+  {
+   "text": "the",
+   "start": 17.98,
+   "end": 18.7
+  },
+  {
+   "text": "guy",
+   "start": 18.7,
+   "end": 18.86
+  },
+  {
+   "text": "might",
+   "start": 18.86,
+   "end": 19.02
+  },
+  {
+   "text": "be",
+   "start": 19.02,
+   "end": 19.18
+  },
+  {
+   "text": "doing",
+   "start": 19.18,
+   "end": 19.34
+  },
+  {
+   "text": "200",
+   "start": 19.34,
+   "end": 19.8,
+   "highlight": true
+  },
+  {
+   "text": "something",
+   "start": 19.8,
+   "end": 20.06
+  },
+  {
+   "text": "grand",
+   "start": 20.06,
+   "end": 20.34
+  },
+  {
+   "text": "in",
+   "start": 20.34,
+   "end": 20.6
+  },
+  {
+   "text": "profit",
+   "start": 20.6,
+   "end": 20.88
+  },
+  {
+   "text": "and",
+   "start": 20.88,
+   "end": 21.14
+  },
+  {
+   "text": "then",
+   "start": 21.14,
+   "end": 21.26
+  },
+  {
+   "text": "the",
+   "start": 21.26,
+   "end": 21.5
+  },
+  {
+   "text": "private",
+   "start": 21.5,
+   "end": 21.84
+  },
+  {
+   "text": "equity",
+   "start": 21.84,
+   "end": 22.1
+  },
+  {
+   "text": "guys",
+   "start": 22.1,
+   "end": 22.34
+  },
+  {
+   "text": "would",
+   "start": 22.34,
+   "end": 22.46
+  },
+  {
+   "text": "be",
+   "start": 22.46,
+   "end": 22.56
+  },
+  {
+   "text": "like,",
+   "start": 22.56,
+   "end": 22.7
+  },
+  {
+   "text": "yep,",
+   "start": 22.76,
+   "end": 22.84
+  },
+  {
+   "text": "he's",
+   "start": 23.1,
+   "end": 23.2
+  },
+  {
+   "text": "500",
+   "start": 23.2,
+   "end": 23.42,
+   "highlight": true
+  },
+  {
+   "text": "grand.",
+   "start": 23.42,
+   "end": 23.74
+  },
+  {
+   "text": "Take",
+   "start": 24.26,
+   "end": 24.38
+  },
+  {
+   "text": "it",
+   "start": 24.38,
+   "end": 24.58
+  },
+  {
+   "text": "all",
+   "start": 24.58,
+   "end": 24.92
+  },
+  {
+   "text": "in",
+   "start": 24.92,
+   "end": 25.08
+  },
+  {
+   "text": "and",
+   "start": 25.08,
+   "end": 26.08
+  },
+  {
+   "text": "most",
+   "start": 26.08,
+   "end": 26.6
+  },
+  {
+   "text": "people",
+   "start": 26.6,
+   "end": 26.9
+  },
+  {
+   "text": "just",
+   "start": 26.9,
+   "end": 27.34
+  },
+  {
+   "text": "leave",
+   "start": 27.34,
+   "end": 27.62
+  },
+  {
+   "text": "it",
+   "start": 27.62,
+   "end": 27.78
+  },
+  {
+   "text": "because",
+   "start": 27.78,
+   "end": 28.0
+  },
+  {
+   "text": "in",
+   "start": 28.0,
+   "end": 28.22
+  },
+  {
+   "text": "their",
+   "start": 28.22,
+   "end": 28.52
+  },
+  {
+   "text": "head",
+   "start": 28.52,
+   "end": 28.9
+  },
+  {
+   "text": "they",
+   "start": 28.9,
+   "end": 29.4
+  },
+  {
+   "text": "go,",
+   "start": 29.4,
+   "end": 29.6
+  },
+  {
+   "text": "you're",
+   "start": 30.14,
+   "end": 30.4
+  },
+  {
+   "text": "going",
+   "start": 30.4,
+   "end": 30.48
+  },
+  {
+   "text": "to",
+   "start": 30.48,
+   "end": 30.56
+  },
+  {
+   "text": "give",
+   "start": 30.56,
+   "end": 30.66
+  },
+  {
+   "text": "me",
+   "start": 30.66,
+   "end": 30.78
+  },
+  {
+   "text": "500",
+   "start": 30.78,
+   "end": 31.12,
+   "highlight": true
+  },
+  {
+   "text": "grand,",
+   "start": 31.12,
+   "end": 31.5
+  },
+  {
+   "text": "I",
+   "start": 31.68,
+   "end": 31.76
+  },
+  {
+   "text": "make",
+   "start": 31.76,
+   "end": 31.92
+  },
+  {
+   "text": "250",
+   "start": 31.92,
+   "end": 32.34,
+   "highlight": true
+  },
+  {
+   "text": "grand",
+   "start": 32.34,
+   "end": 32.64
+  },
+  {
+   "text": "profit.",
+   "start": 32.64,
+   "end": 33.04
+  },
+  {
+   "text": "I",
+   "start": 33.6,
+   "end": 33.82
+  },
+  {
+   "text": "could",
+   "start": 33.82,
+   "end": 33.94
+  },
+  {
+   "text": "just",
+   "start": 33.94,
+   "end": 34.08
+  },
+  {
+   "text": "stay",
+   "start": 34.08,
+   "end": 34.58
+  },
+  {
+   "text": "in",
+   "start": 34.58,
+   "end": 34.68
+  },
+  {
+   "text": "this",
+   "start": 34.68,
+   "end": 34.76
+  },
+  {
+   "text": "business",
+   "start": 34.76,
+   "end": 35.0
+  },
+  {
+   "text": "for",
+   "start": 35.0,
+   "end": 35.18
+  },
+  {
+   "text": "two",
+   "start": 35.18,
+   "end": 35.34
+  },
+  {
+   "text": "years",
+   "start": 35.34,
+   "end": 35.52
+  },
+  {
+   "text": "and",
+   "start": 35.52,
+   "end": 35.66
+  },
+  {
+   "text": "get",
+   "start": 35.66,
+   "end": 35.72
+  },
+  {
+   "text": "500",
+   "start": 35.72,
+   "end": 35.98,
+   "highlight": true
+  },
+  {
+   "text": "grand.",
+   "start": 35.98,
+   "end": 36.26
+  },
+  {
+   "text": "An",
+   "start": 36.98,
+   "end": 37.4
+  },
+  {
+   "text": "owner",
+   "start": 37.4,
+   "end": 37.66
+  },
+  {
+   "text": "that",
+   "start": 37.66,
+   "end": 37.94
+  },
+  {
+   "text": "uses",
+   "start": 37.94,
+   "end": 39.26
+  },
+  {
+   "text": "that",
+   "start": 39.26,
+   "end": 39.56
+  },
+  {
+   "text": "rationale",
+   "start": 39.56,
+   "end": 40.0
+  },
+  {
+   "text": "doesn't",
+   "start": 40.0,
+   "end": 40.98
+  },
+  {
+   "text": "understand",
+   "start": 40.98,
+   "end": 41.36
+  },
+  {
+   "text": "finance.",
+   "start": 41.36,
+   "end": 41.8
+  },
+  {
+   "text": "It's",
+   "start": 42.06,
+   "end": 42.06
+  },
+  {
+   "text": "just",
+   "start": 42.06,
+   "end": 42.16
+  },
+  {
+   "text": "because",
+   "start": 42.16,
+   "end": 42.32
+  },
+  {
+   "text": "you",
+   "start": 42.32,
+   "end": 42.44
+  },
+  {
+   "text": "have",
+   "start": 42.44,
+   "end": 42.52
+  },
+  {
+   "text": "250k",
+   "start": 42.52,
+   "end": 43.1,
+   "highlight": true
+  },
+  {
+   "text": "profit,",
+   "start": 43.1,
+   "end": 43.5
+  },
+  {
+   "text": "doesn't",
+   "start": 43.6,
+   "end": 43.8
+  },
+  {
+   "text": "mean",
+   "start": 43.8,
+   "end": 43.98
+  },
+  {
+   "text": "you",
+   "start": 43.98,
+   "end": 44.14
+  },
+  {
+   "text": "have",
+   "start": 44.14,
+   "end": 44.26
+  },
+  {
+   "text": "250k",
+   "start": 44.26,
+   "end": 44.86,
+   "highlight": true
+  },
+  {
+   "text": "cash",
+   "start": 44.86,
+   "end": 45.26
+  },
+  {
+   "text": "at",
+   "start": 45.26,
+   "end": 45.38
+  },
+  {
+   "text": "the",
+   "start": 45.38,
+   "end": 45.46
+  },
+  {
+   "text": "end",
+   "start": 45.46,
+   "end": 45.58
+  },
+  {
+   "text": "of",
+   "start": 45.58,
+   "end": 45.66
+  },
+  {
+   "text": "the",
+   "start": 45.66,
+   "end": 45.78
+  },
+  {
+   "text": "year.",
+   "start": 45.78,
+   "end": 45.92
+  },
+  {
+   "text": "Now,",
+   "start": 47.18,
+   "end": 47.3
+  },
+  {
+   "text": "so",
+   "start": 47.68,
+   "end": 48.46
+  },
+  {
+   "text": "what",
+   "start": 48.46,
+   "end": 48.56
+  },
+  {
+   "text": "I'm",
+   "start": 48.56,
+   "end": 48.7
+  },
+  {
+   "text": "saying",
+   "start": 48.7,
+   "end": 48.9
+  },
+  {
+   "text": "is",
+   "start": 48.9,
+   "end": 49.24
+  }
+ ]
+}

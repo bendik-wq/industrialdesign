@@ -1,0 +1,554 @@
+{
+ "avatarSrc": "josh_avatar.jpg",
+ "name": "Josh Li",
+ "handle": "M&A \u00b7 2 companies, $0 down",
+ "videoSrc": "reel_staff.mp4",
+ "durationInSeconds": 32.45,
+ "card": {
+  "kicker": "DUE DILIGENCE",
+  "title": "The cost nobody puts in the valuation",
+  "rows": [
+   {
+    "label": "Business age",
+    "value": "20\u201330 years",
+    "at": 0.5
+   },
+   {
+    "label": "Long-serving staff",
+    "value": "Often leave with the owner",
+    "at": 3.75
+   },
+   {
+    "label": "After takeover",
+    "value": "Half the staff may leave",
+    "at": 5.55,
+    "tone": "bad"
+   },
+   {
+    "label": "The hit",
+    "value": "Cash flow + fewer people to bill",
+    "at": 14.25,
+    "tone": "bad"
+   },
+   {
+    "label": "The fix",
+    "value": "Structure it with vendor finance",
+    "at": 31.0,
+    "tone": "good"
+   }
+  ],
+  "footnote": "From Josh's video on structuring service-business deals."
+ },
+ "words": [
+  {
+   "text": "chances",
+   "start": 0.09,
+   "end": 0.49
+  },
+  {
+   "text": "are",
+   "start": 0.49,
+   "end": 0.71
+  },
+  {
+   "text": "a",
+   "start": 0.71,
+   "end": 0.83
+  },
+  {
+   "text": "business",
+   "start": 0.83,
+   "end": 1.03
+  },
+  {
+   "text": "that",
+   "start": 1.03,
+   "end": 1.25
+  },
+  {
+   "text": "old",
+   "start": 1.25,
+   "end": 1.59
+  },
+  {
+   "text": "has",
+   "start": 1.59,
+   "end": 1.89
+  },
+  {
+   "text": "had",
+   "start": 1.89,
+   "end": 2.13
+  },
+  {
+   "text": "long-standing",
+   "start": 2.13,
+   "end": 2.81
+  },
+  {
+   "text": "staff",
+   "start": 2.81,
+   "end": 3.33
+  },
+  {
+   "text": "that",
+   "start": 3.33,
+   "end": 3.91
+  },
+  {
+   "text": "are",
+   "start": 3.91,
+   "end": 3.99
+  },
+  {
+   "text": "also",
+   "start": 3.99,
+   "end": 4.39
+  },
+  {
+   "text": "exiting.",
+   "start": 4.39,
+   "end": 4.81
+  },
+  {
+   "text": "So",
+   "start": 5.45,
+   "end": 5.57
+  },
+  {
+   "text": "you've",
+   "start": 5.57,
+   "end": 5.85
+  },
+  {
+   "text": "also",
+   "start": 5.85,
+   "end": 6.13
+  },
+  {
+   "text": "got",
+   "start": 6.13,
+   "end": 6.41
+  },
+  {
+   "text": "to",
+   "start": 6.41,
+   "end": 6.47
+  },
+  {
+   "text": "consider",
+   "start": 6.47,
+   "end": 6.81
+  },
+  {
+   "text": "the",
+   "start": 6.81,
+   "end": 7.07
+  },
+  {
+   "text": "fact",
+   "start": 7.07,
+   "end": 7.25
+  },
+  {
+   "text": "that",
+   "start": 7.25,
+   "end": 7.59
+  },
+  {
+   "text": "when",
+   "start": 7.59,
+   "end": 8.09
+  },
+  {
+   "text": "you",
+   "start": 8.09,
+   "end": 8.17
+  },
+  {
+   "text": "take",
+   "start": 8.17,
+   "end": 8.47
+  },
+  {
+   "text": "over",
+   "start": 8.47,
+   "end": 8.75
+  },
+  {
+   "text": "this",
+   "start": 8.75,
+   "end": 8.87
+  },
+  {
+   "text": "business,",
+   "start": 8.87,
+   "end": 9.35
+  },
+  {
+   "text": "half",
+   "start": 9.71,
+   "end": 9.83,
+   "highlight": true
+  },
+  {
+   "text": "the",
+   "start": 9.83,
+   "end": 10.03
+  },
+  {
+   "text": "staff",
+   "start": 10.03,
+   "end": 10.27
+  },
+  {
+   "text": "want",
+   "start": 10.27,
+   "end": 10.47
+  },
+  {
+   "text": "to",
+   "start": 10.47,
+   "end": 10.57
+  },
+  {
+   "text": "leave.",
+   "start": 10.57,
+   "end": 10.73
+  },
+  {
+   "text": "And",
+   "start": 11.27,
+   "end": 11.41
+  },
+  {
+   "text": "now",
+   "start": 11.41,
+   "end": 11.61
+  },
+  {
+   "text": "this",
+   "start": 11.61,
+   "end": 11.75
+  },
+  {
+   "text": "is",
+   "start": 11.75,
+   "end": 11.89
+  },
+  {
+   "text": "a",
+   "start": 11.89,
+   "end": 11.99
+  },
+  {
+   "text": "cost,",
+   "start": 11.99,
+   "end": 12.19
+  },
+  {
+   "text": "this",
+   "start": 12.41,
+   "end": 12.51
+  },
+  {
+   "text": "is",
+   "start": 12.51,
+   "end": 12.61
+  },
+  {
+   "text": "going",
+   "start": 12.61,
+   "end": 12.75
+  },
+  {
+   "text": "to",
+   "start": 12.75,
+   "end": 12.77
+  },
+  {
+   "text": "be",
+   "start": 12.77,
+   "end": 12.87
+  },
+  {
+   "text": "a",
+   "start": 12.87,
+   "end": 12.93
+  },
+  {
+   "text": "cost",
+   "start": 12.93,
+   "end": 13.17
+  },
+  {
+   "text": "to",
+   "start": 13.17,
+   "end": 13.41
+  },
+  {
+   "text": "you",
+   "start": 13.41,
+   "end": 13.57
+  },
+  {
+   "text": "in",
+   "start": 13.57,
+   "end": 13.89
+  },
+  {
+   "text": "cash",
+   "start": 13.89,
+   "end": 14.17,
+   "highlight": true
+  },
+  {
+   "text": "flow,",
+   "start": 14.17,
+   "end": 14.47
+  },
+  {
+   "text": "but",
+   "start": 14.71,
+   "end": 14.99
+  },
+  {
+   "text": "also",
+   "start": 14.99,
+   "end": 15.53
+  },
+  {
+   "text": "it",
+   "start": 16.23,
+   "end": 16.47
+  },
+  {
+   "text": "means",
+   "start": 16.47,
+   "end": 16.69
+  },
+  {
+   "text": "you're",
+   "start": 16.69,
+   "end": 17.04
+  },
+  {
+   "text": "down",
+   "start": 17.04,
+   "end": 17.39
+  },
+  {
+   "text": "a",
+   "start": 17.39,
+   "end": 17.74
+  },
+  {
+   "text": "service",
+   "start": 17.74,
+   "end": 18.09
+  },
+  {
+   "text": "provider,",
+   "start": 18.09,
+   "end": 18.44
+  },
+  {
+   "text": "you're",
+   "start": 18.44,
+   "end": 18.79
+  },
+  {
+   "text": "down",
+   "start": 18.79,
+   "end": 19.14
+  },
+  {
+   "text": "bodies",
+   "start": 19.14,
+   "end": 19.49
+  },
+  {
+   "text": "who",
+   "start": 19.49,
+   "end": 19.91
+  },
+  {
+   "text": "can",
+   "start": 19.91,
+   "end": 20.01
+  },
+  {
+   "text": "actually",
+   "start": 20.01,
+   "end": 20.19
+  },
+  {
+   "text": "deliver",
+   "start": 20.19,
+   "end": 20.57
+  },
+  {
+   "text": "the",
+   "start": 20.57,
+   "end": 20.75
+  },
+  {
+   "text": "service",
+   "start": 20.75,
+   "end": 21.17
+  },
+  {
+   "text": "and",
+   "start": 21.17,
+   "end": 21.81
+  },
+  {
+   "text": "collect",
+   "start": 21.81,
+   "end": 21.99
+  },
+  {
+   "text": "the",
+   "start": 21.99,
+   "end": 22.21
+  },
+  {
+   "text": "cash.",
+   "start": 22.21,
+   "end": 22.47,
+   "highlight": true
+  },
+  {
+   "text": "So",
+   "start": 23.41,
+   "end": 23.61
+  },
+  {
+   "text": "all",
+   "start": 23.61,
+   "end": 23.87
+  },
+  {
+   "text": "of",
+   "start": 23.87,
+   "end": 24.01
+  },
+  {
+   "text": "this",
+   "start": 24.01,
+   "end": 24.13
+  },
+  {
+   "text": "you",
+   "start": 24.13,
+   "end": 24.25
+  },
+  {
+   "text": "have",
+   "start": 24.25,
+   "end": 24.35
+  },
+  {
+   "text": "to",
+   "start": 24.35,
+   "end": 24.47
+  },
+  {
+   "text": "consider",
+   "start": 24.47,
+   "end": 24.97
+  },
+  {
+   "text": "in",
+   "start": 24.97,
+   "end": 25.57
+  },
+  {
+   "text": "your",
+   "start": 25.57,
+   "end": 25.75
+  },
+  {
+   "text": "deal",
+   "start": 25.75,
+   "end": 25.97
+  },
+  {
+   "text": "structuring",
+   "start": 25.97,
+   "end": 26.53
+  },
+  {
+   "text": "and",
+   "start": 26.53,
+   "end": 27.325
+  },
+  {
+   "text": "the",
+   "start": 27.325,
+   "end": 28.12
+  },
+  {
+   "text": "perfect",
+   "start": 28.12,
+   "end": 28.915
+  },
+  {
+   "text": "way",
+   "start": 28.915,
+   "end": 29.71
+  },
+  {
+   "text": "to",
+   "start": 29.71,
+   "end": 29.83
+  },
+  {
+   "text": "do",
+   "start": 29.83,
+   "end": 30.03
+  },
+  {
+   "text": "it",
+   "start": 30.03,
+   "end": 30.25
+  },
+  {
+   "text": "is",
+   "start": 30.25,
+   "end": 30.71
+  },
+  {
+   "text": "to",
+   "start": 30.71,
+   "end": 30.91
+  },
+  {
+   "text": "do",
+   "start": 30.91,
+   "end": 31.09
+  },
+  {
+   "text": "a",
+   "start": 31.09,
+   "end": 31.21
+  },
+  {
+   "text": "vendor",
+   "start": 31.21,
+   "end": 31.45,
+   "highlight": true
+  },
+  {
+   "text": "finance",
+   "start": 31.45,
+   "end": 32.15,
+   "highlight": true
+  },
+  {
+   "text": "deal.",
+   "start": 32.15,
+   "end": 32.39
+  }
+ ]
+}
