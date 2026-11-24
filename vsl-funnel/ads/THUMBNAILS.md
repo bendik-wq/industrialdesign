@@ -1,54 +1,47 @@
-# Josh Li YouTube thumbnail format: "Navy & Gold Annotated"
+# Josh Li YouTube thumbnail format v2: "Real frame, navy and gold annotated"
 
-Premium 4K format for the G&L channel. Generated with Nano Banana Pro (VidLab `nano-banana-pro`, `resolution: 4k`, `aspect_ratio: 16:9`, about $0.08 each), using a sharp frame of Josh from the 4K source footage as the reference image.
+Built on a real 4K frame from the video itself: Josh's actual face and the actual set, never AI-generated. Everything premium is layered on top.
 
-## Why this palette
-Deep midnight navy (#0B1630) and warm metallic gold (#D4A853), with ivory (#F5EFE4) text.
-- It matches the brand already in Josh's edits: navy marble, serif type, gold underline scribbles.
-- Navy and gold read as private banking and old money, the opposite of the red/yellow "YouTube guru" look that dominates the business niche, so the thumbnail stands out in the feed.
-- Gold on navy keeps strong contrast at small sizes and on mobile.
-
-## Layout (every thumbnail)
-1. **Josh on the right third**: cut out, mid-chest up, about 70% of frame height, looking into the camera, warm key light and a thin gold rim light. No room background. No hands.
-2. **Headline on the left**: 2–5 words in a high-contrast serif (Playfair-style). One word or number is in gold and/or italic. That word is the hook.
-3. **Gold scribble annotations (the click triggers)**:
-   - a hand-drawn circle around the key number;
-   - a curved arrow pulling the eye from the text to Josh's face;
-   - an underline or a strike-through that creates contrast (e.g. "$1M" crossed out);
-   - a small handwritten note of 2–4 words that teases the payoff ("banks want this", "100% seller financed").
-4. **"G&L" wordmark** bottom-left in a thin gold serif.
-5. Lots of negative space. Nothing else: no logos, emojis or extra text.
+## The look
+- **Plate**: a 4K frame from the episode where Josh is looking into the lens mid-sentence (an expressive moment beats a posed one). Crop at 1.5× so he sits on the right third.
+- **Background**: the real set, kept recognisable (here the Pilates studio with its stairs and glass). It gets:
+  - a light blur for depth;
+  - a cinematic grade with teal shadows and warm highlights;
+  - a highlight bloom and a warm window light leak;
+  - a navy fade on the left so the type sits on it.
+- **Josh**: cut out with segmentation and kept sharp, with a contrast lift, a warm key on the face and a gold rim light on the left edge. Burnt-in captions are inpainted out of the frame first.
+- **Type**: Playfair Display with lining numerals.
+  - The hook word or number is in metallic gold (a vertical gradient with a soft glow).
+  - Support lines are ivory, in italic.
+- **Handwriting**: Homemade Apple, set like a fountain-pen note.
+- **Pen strokes**: drawn procedurally in gold, with tapered, slightly wobbly marks:
+  - a circle around the hook;
+  - a strike-through for contrast;
+  - a double underline;
+  - an arrow toward his face, only when there is room.
+- No logos or wordmarks, and a subtle film grain over everything.
 
 ## Headline rules
-- Use a number or a contrast where possible ($100M vs $1M, $0 down).
-- Keep it true. Only use real proof: two acquisitions, both 100% seller financed. No invented figures.
-- Never repeat the video title. The thumbnail is the tension, and the title is the explanation.
+- 2–5 words, with a number or a contrast ($100M vs ~~$1M~~, $0 down).
+- Real proof only: two acquisitions, both 100% seller financed.
+- Never repeat the video title.
 
-## Prompt template
-See `out/thumbs/p1.txt` (gitignored) or copy the block below and swap the TEXT and SCRIBBLE sections.
+## How to make one
+Scripts are in `render/thumbs/`:
+- `clean.py`: inpaints burnt-in captions out of `base_<t>.png`.
+- `comp.py`: the compositor. Each thumbnail is one `cfg_*` function (text lines, pen strokes, note), plus a frame time in `T`.
 
-```
-Ultra-premium 4K YouTube thumbnail, 16:9, for a business channel about buying companies. Editorial, clean, expensive, like a luxury finance magazine cover crossed with a hand-annotated whiteboard.
+Steps:
+1. Grab the frame: `ffmpeg -ss <sec> -i episode.mp4 -frames:v 1 base_<sec>.png`
+2. Make the mask: rembg `isnet-general-use` on the 1920px downscale → `mask_<sec>.png`. The 4K BiRefNet model runs out of memory here.
+3. Run `python3 clean.py <sec>`, then `python3 comp.py <name>`.
+4. Fonts come from github.com/google/fonts (OFL/Apache): Playfair Display (+Italic) and Homemade Apple.
+5. Export a 3840×2160 PNG master and a JPEG under 2 MB for YouTube.
 
-SUBJECT: the man in the reference image (keep his exact face, hair and identity), cut out cleanly and placed on the RIGHT third, framed from mid-chest up, large, filling about 70% of the frame height, <EXPRESSION>. Black crew-neck t-shirt. Soft warm key light from the left, thin warm gold rim light on hair and shoulder, crisp skin detail, razor sharp eyes. No hands visible.
-
-BACKGROUND: deep midnight navy (#0B1630) with a subtle dark marble swirl texture and a soft vignette, a faint warm glow behind his head. No room, no furniture.
-
-TEXT on the LEFT, exactly these words and nothing else:
-<LINES, each with font: ivory serif / huge gold serif italic>
-
-SCRIBBLE ANNOTATIONS in warm gold felt-marker / fountain-pen style, slightly imperfect confident strokes: <circle around X>, <curved arrow toward his face>, <underline / strike-through>. Small handwritten gold note beside the arrow: "<2-4 words>".
-
-Small refined wordmark bottom-left in thin gold serif: "G&L".
-Style: minimal, lots of negative space, high contrast, premium, cinematic grade, no clutter, no extra text, no logos, no emojis, no watermarks. All text perfectly spelled.
-```
-
-## Export
-- Master: 3840×2160 PNG.
-- Upload: 3840×2160 JPEG under 2 MB (YouTube's limit).
-- QA: check every letter of the generated text before uploading. The model sometimes misspells.
+`D` in `comp.py` points at the working folder holding the frames, masks and fonts. Change it for a new machine.
 
 ## Made so far
-- `100m_loan`: "$100M is easier than ~~$1M~~", for "Why It's Actually Easier To Get A $100M Loan…"
-- `zero_down`: "$0 down / 2 businesses.", for "I Bought Multiple Businesses With No Money Down…"
-- `banker_no` (prompt ready in p3, not generated yet: VidLab key limit): "Your banker said no?"
+`out/thumbs/` (gitignored):
+- `100m_loan`: "$100M is easier to borrow than ~~$1M~~"
+- `zero_down`: "$0 down. Two companies."
+- `banker_no`: "Your banker said no?"
