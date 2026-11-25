@@ -1,0 +1,728 @@
+{
+ "videoSrc": "reel_seller_pitch.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 53.46,
+ "card": {
+  "kicker": "THE PITCH",
+  "title": "The one line that gets sellers to finance you",
+  "rows": [
+   {
+    "label": "What it is",
+    "value": "An IOU to the seller",
+    "at": 3.92
+   },
+   {
+    "label": "The offer",
+    "value": "Your price. Plus more.",
+    "tone": "good",
+    "at": 8.84
+   },
+   {
+    "label": "The catch",
+    "value": "Paid over time",
+    "at": 15.16
+   },
+   {
+    "label": "Seller's reality",
+    "value": "No one pays full price in cash",
+    "tone": "bad",
+    "at": 22.82
+   },
+   {
+    "label": "Their choice",
+    "value": "Something over nothing",
+    "tone": "good",
+    "at": 52.5
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "these",
+   "start": 0.12,
+   "end": 2.04
+  },
+  {
+   "text": "vendor",
+   "start": 2.04,
+   "end": 2.34
+  },
+  {
+   "text": "finance",
+   "start": 2.34,
+   "end": 2.82
+  },
+  {
+   "text": "structures",
+   "start": 2.82,
+   "end": 3.2
+  },
+  {
+   "text": "is",
+   "start": 3.2,
+   "end": 3.4
+  },
+  {
+   "text": "basically",
+   "start": 3.4,
+   "end": 3.82
+  },
+  {
+   "text": "an",
+   "start": 3.82,
+   "end": 4.02
+  },
+  {
+   "text": "IOU",
+   "start": 4.02,
+   "end": 4.68,
+   "highlight": true
+  },
+  {
+   "text": "to",
+   "start": 4.68,
+   "end": 5.08
+  },
+  {
+   "text": "the",
+   "start": 5.08,
+   "end": 5.22
+  },
+  {
+   "text": "seller.",
+   "start": 5.22,
+   "end": 5.5
+  },
+  {
+   "text": "I'm",
+   "start": 6.34,
+   "end": 6.94
+  },
+  {
+   "text": "basically",
+   "start": 6.94,
+   "end": 7.32
+  },
+  {
+   "text": "saying",
+   "start": 7.32,
+   "end": 7.66
+  },
+  {
+   "text": "to",
+   "start": 7.66,
+   "end": 7.82
+  },
+  {
+   "text": "the",
+   "start": 7.82,
+   "end": 7.92
+  },
+  {
+   "text": "seller,",
+   "start": 7.92,
+   "end": 8.24
+  },
+  {
+   "text": "I'll",
+   "start": 8.74,
+   "end": 10.64
+  },
+  {
+   "text": "pay",
+   "start": 10.64,
+   "end": 10.92
+  },
+  {
+   "text": "you",
+   "start": 10.92,
+   "end": 11.3
+  },
+  {
+   "text": "the",
+   "start": 11.3,
+   "end": 11.58
+  },
+  {
+   "text": "money",
+   "start": 11.58,
+   "end": 11.82
+  },
+  {
+   "text": "that",
+   "start": 11.82,
+   "end": 11.98
+  },
+  {
+   "text": "you",
+   "start": 11.98,
+   "end": 12.14
+  },
+  {
+   "text": "want.",
+   "start": 12.14,
+   "end": 12.4
+  },
+  {
+   "text": "Plus",
+   "start": 13.34,
+   "end": 13.8
+  },
+  {
+   "text": "more",
+   "start": 13.8,
+   "end": 14.26
+  },
+  {
+   "text": "for",
+   "start": 14.26,
+   "end": 14.92
+  },
+  {
+   "text": "the",
+   "start": 14.92,
+   "end": 15.06
+  },
+  {
+   "text": "privilege",
+   "start": 15.06,
+   "end": 15.42
+  },
+  {
+   "text": "of",
+   "start": 15.42,
+   "end": 15.66
+  },
+  {
+   "text": "being",
+   "start": 15.66,
+   "end": 15.8
+  },
+  {
+   "text": "able",
+   "start": 15.8,
+   "end": 15.92
+  },
+  {
+   "text": "to",
+   "start": 15.92,
+   "end": 16.04
+  },
+  {
+   "text": "pay",
+   "start": 16.04,
+   "end": 16.24
+  },
+  {
+   "text": "it",
+   "start": 16.24,
+   "end": 16.4
+  },
+  {
+   "text": "over",
+   "start": 16.4,
+   "end": 16.6,
+   "highlight": true
+  },
+  {
+   "text": "time.",
+   "start": 16.6,
+   "end": 16.86,
+   "highlight": true
+  },
+  {
+   "text": "Now,",
+   "start": 18.34,
+   "end": 18.8
+  },
+  {
+   "text": "that's",
+   "start": 18.8,
+   "end": 19.06
+  },
+  {
+   "text": "essentially",
+   "start": 19.06,
+   "end": 19.36
+  },
+  {
+   "text": "the",
+   "start": 19.36,
+   "end": 19.48
+  },
+  {
+   "text": "pitch.",
+   "start": 19.48,
+   "end": 19.78
+  },
+  {
+   "text": "Right,",
+   "start": 20.32,
+   "end": 20.42
+  },
+  {
+   "text": "the",
+   "start": 20.52,
+   "end": 20.58
+  },
+  {
+   "text": "pitch",
+   "start": 20.58,
+   "end": 20.9
+  },
+  {
+   "text": "is",
+   "start": 20.9,
+   "end": 21.28
+  },
+  {
+   "text": "to",
+   "start": 21.28,
+   "end": 21.5
+  },
+  {
+   "text": "the",
+   "start": 21.5,
+   "end": 21.64
+  },
+  {
+   "text": "seller.",
+   "start": 21.64,
+   "end": 21.92
+  },
+  {
+   "text": "No",
+   "start": 22.72,
+   "end": 22.88
+  },
+  {
+   "text": "one's",
+   "start": 22.88,
+   "end": 23.18
+  },
+  {
+   "text": "going",
+   "start": 23.18,
+   "end": 23.28
+  },
+  {
+   "text": "to",
+   "start": 23.28,
+   "end": 23.34
+  },
+  {
+   "text": "pay",
+   "start": 23.34,
+   "end": 23.6
+  },
+  {
+   "text": "the",
+   "start": 23.6,
+   "end": 23.78
+  },
+  {
+   "text": "price",
+   "start": 23.78,
+   "end": 24.06
+  },
+  {
+   "text": "that",
+   "start": 24.06,
+   "end": 24.18
+  },
+  {
+   "text": "you",
+   "start": 24.18,
+   "end": 24.3
+  },
+  {
+   "text": "want.",
+   "start": 24.3,
+   "end": 24.52
+  },
+  {
+   "text": "You're",
+   "start": 25.2,
+   "end": 25.56
+  },
+  {
+   "text": "going",
+   "start": 25.56,
+   "end": 25.6
+  },
+  {
+   "text": "to",
+   "start": 25.6,
+   "end": 25.8
+  },
+  {
+   "text": "spend",
+   "start": 25.8,
+   "end": 26.3
+  },
+  {
+   "text": "five",
+   "start": 26.3,
+   "end": 26.88
+  },
+  {
+   "text": "years,",
+   "start": 26.88,
+   "end": 27.12
+  },
+  {
+   "text": "ten",
+   "start": 27.2,
+   "end": 27.36
+  },
+  {
+   "text": "years",
+   "start": 27.36,
+   "end": 27.64
+  },
+  {
+   "text": "to",
+   "start": 27.64,
+   "end": 27.9
+  },
+  {
+   "text": "try",
+   "start": 27.9,
+   "end": 28.1
+  },
+  {
+   "text": "to",
+   "start": 28.1,
+   "end": 28.18
+  },
+  {
+   "text": "find",
+   "start": 28.18,
+   "end": 28.58
+  },
+  {
+   "text": "the",
+   "start": 28.58,
+   "end": 28.76
+  },
+  {
+   "text": "dream",
+   "start": 28.76,
+   "end": 29.16
+  },
+  {
+   "text": "unicorn",
+   "start": 29.16,
+   "end": 29.66
+  },
+  {
+   "text": "buyer.",
+   "start": 29.66,
+   "end": 30.08
+  },
+  {
+   "text": "And",
+   "start": 31.14,
+   "end": 31.6
+  },
+  {
+   "text": "by",
+   "start": 31.6,
+   "end": 31.78
+  },
+  {
+   "text": "that",
+   "start": 31.78,
+   "end": 31.94
+  },
+  {
+   "text": "time,",
+   "start": 31.94,
+   "end": 32.24,
+   "highlight": true
+  },
+  {
+   "text": "you're",
+   "start": 32.36,
+   "end": 32.46
+  },
+  {
+   "text": "going",
+   "start": 32.46,
+   "end": 32.46
+  },
+  {
+   "text": "to",
+   "start": 32.46,
+   "end": 32.56
+  },
+  {
+   "text": "probably",
+   "start": 32.56,
+   "end": 32.76
+  },
+  {
+   "text": "going",
+   "start": 32.76,
+   "end": 32.94
+  },
+  {
+   "text": "to",
+   "start": 32.94,
+   "end": 33.0
+  },
+  {
+   "text": "shut",
+   "start": 33.0,
+   "end": 33.14
+  },
+  {
+   "text": "down",
+   "start": 33.14,
+   "end": 33.48
+  },
+  {
+   "text": "and",
+   "start": 33.48,
+   "end": 34.04
+  },
+  {
+   "text": "walk",
+   "start": 34.04,
+   "end": 34.26
+  },
+  {
+   "text": "away",
+   "start": 34.26,
+   "end": 34.48
+  },
+  {
+   "text": "with",
+   "start": 34.48,
+   "end": 34.66
+  },
+  {
+   "text": "nothing.",
+   "start": 34.66,
+   "end": 34.92,
+   "highlight": true
+  },
+  {
+   "text": "And",
+   "start": 37.46,
+   "end": 37.92
+  },
+  {
+   "text": "a",
+   "start": 37.92,
+   "end": 38.02
+  },
+  {
+   "text": "lot",
+   "start": 38.02,
+   "end": 38.12
+  },
+  {
+   "text": "of",
+   "start": 38.12,
+   "end": 38.3
+  },
+  {
+   "text": "owners",
+   "start": 38.3,
+   "end": 38.48
+  },
+  {
+   "text": "actually",
+   "start": 38.48,
+   "end": 38.86
+  },
+  {
+   "text": "intuitively",
+   "start": 38.86,
+   "end": 39.46
+  },
+  {
+   "text": "understand",
+   "start": 39.46,
+   "end": 40.06
+  },
+  {
+   "text": "that.",
+   "start": 40.06,
+   "end": 40.36
+  },
+  {
+   "text": "And",
+   "start": 40.96,
+   "end": 41.22
+  },
+  {
+   "text": "a",
+   "start": 41.22,
+   "end": 41.36
+  },
+  {
+   "text": "lot",
+   "start": 41.36,
+   "end": 41.44
+  },
+  {
+   "text": "of",
+   "start": 41.44,
+   "end": 41.6
+  },
+  {
+   "text": "owners",
+   "start": 41.6,
+   "end": 41.82
+  },
+  {
+   "text": "have",
+   "start": 41.82,
+   "end": 42.0
+  },
+  {
+   "text": "been",
+   "start": 42.0,
+   "end": 42.14
+  },
+  {
+   "text": "in",
+   "start": 42.14,
+   "end": 42.38
+  },
+  {
+   "text": "the",
+   "start": 42.38,
+   "end": 42.56
+  },
+  {
+   "text": "sale",
+   "start": 42.56,
+   "end": 42.78
+  },
+  {
+   "text": "process",
+   "start": 42.78,
+   "end": 43.2
+  },
+  {
+   "text": "already.",
+   "start": 43.2,
+   "end": 43.72
+  },
+  {
+   "text": "They",
+   "start": 44.0,
+   "end": 44.42
+  },
+  {
+   "text": "understand",
+   "start": 44.42,
+   "end": 44.84
+  },
+  {
+   "text": "that.",
+   "start": 44.84,
+   "end": 45.1
+  },
+  {
+   "text": "They're",
+   "start": 45.28,
+   "end": 45.34
+  },
+  {
+   "text": "not",
+   "start": 45.34,
+   "end": 45.46
+  },
+  {
+   "text": "getting",
+   "start": 45.46,
+   "end": 45.68
+  },
+  {
+   "text": "the",
+   "start": 45.68,
+   "end": 45.82
+  },
+  {
+   "text": "price",
+   "start": 45.82,
+   "end": 46.12
+  },
+  {
+   "text": "that",
+   "start": 46.12,
+   "end": 46.32
+  },
+  {
+   "text": "they're",
+   "start": 46.32,
+   "end": 46.76
+  },
+  {
+   "text": "after.",
+   "start": 46.76,
+   "end": 47.04
+  },
+  {
+   "text": "So",
+   "start": 48.16,
+   "end": 48.68
+  },
+  {
+   "text": "they",
+   "start": 48.68,
+   "end": 49.12
+  },
+  {
+   "text": "will",
+   "start": 49.12,
+   "end": 49.4
+  },
+  {
+   "text": "need",
+   "start": 49.4,
+   "end": 49.58
+  },
+  {
+   "text": "to",
+   "start": 49.58,
+   "end": 49.74
+  },
+  {
+   "text": "settle",
+   "start": 49.74,
+   "end": 50.02
+  },
+  {
+   "text": "on",
+   "start": 50.02,
+   "end": 50.56
+  },
+  {
+   "text": "something",
+   "start": 50.56,
+   "end": 52.4
+  },
+  {
+   "text": "rather",
+   "start": 52.4,
+   "end": 52.72
+  },
+  {
+   "text": "than",
+   "start": 52.72,
+   "end": 52.9
+  },
+  {
+   "text": "nothing.",
+   "start": 52.9,
+   "end": 53.16,
+   "highlight": true
+  }
+ ]
+}

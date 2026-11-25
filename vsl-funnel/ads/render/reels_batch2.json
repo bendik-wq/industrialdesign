@@ -1,0 +1,98 @@
+{
+ "bank_quota": {"src": "21oct", "near": 90,
+  "from": "It is easier, remember this", "to": "so they can hit their target and get their bonus",
+  "hl": ["quotas", "bonus", "million", "multi-million"],
+  "card": {"kicker": "BANK LOGIC", "title": "Why $100M is easier to borrow than $1M", "rows": [
+   {"label": "The banker has", "value": "Quotas every quarter", "say": "they've got quotas to hit"},
+   {"label": "He's paid on", "value": "Hitting targets → bonus", "say": "hit these numbers and you'll get a bonus"},
+   {"label": "Your $1M loan", "value": "Doesn't move his number", "say": "It's not by doing your little million dollar loan", "tone": "bad"},
+   {"label": "What he wants", "value": "Multi-million deals", "say": "dollar transactions, so it goes out", "tone": "good"}]}},
+
+ "bank_meeting": {"src": "21oct", "near": 250,
+  "from": "you present everything up front", "to": "they're going to take everything",
+  "hl": ["everything", "home", "guaranteed"],
+  "card": {"kicker": "BANK MEETING", "title": "How to ask a bank for money (and keep your house)", "rows": [
+   {"label": "Right way", "value": "Answer everything up front", "say": "you present everything up front", "tone": "good"},
+   {"label": "Their only question", "value": "“How much more do you want?”", "say": "how much more do you want", "tone": "good"},
+   {"label": "Most people ask", "value": "“How much can you give me?”", "say": "how much money can you give me", "tone": "bad"},
+   {"label": "What that costs you", "value": "Guarantees, assets, your home", "say": "we want you guaranteed", "tone": "bad"}]}},
+
+ "drop_dead": {"src": "21oct", "near": 400,
+  "from": "So if you drop dad right now", "to": "buy, optimize and flip at some point",
+  "fix": [["drop dad", "drop dead"]], "hl": ["money", "sell", "flip"],
+  "card": {"kicker": "OWNER TEST", "title": "If you dropped dead today, would it still make money?", "rows": [
+   {"label": "The test", "value": "Does it run without you?", "say": "does your business still make money"},
+   {"label": "Josh's company", "value": "Yes. Built that way.", "say": "I know mine does", "tone": "good"},
+   {"label": "The mindset", "value": "Begin with the end in mind", "say": "begin with the end in mind"},
+   {"label": "The strategy", "value": "Buy, optimise, flip", "say": "buy, optimize and flip", "tone": "good"}]}},
+
+ "dark_clinic": {"src": "23oct", "near": 395,
+  "cuts": [["I've been on this guy's", "Due to unforeseen circumstances"],
+           ["And he's just closed down shop", "How fucking sad, right?"],
+           ["So that's why vendor finance deals work", "give it to them over some time"]],
+  "hl": ["dark", "closed", "liquidate", "nothing", "time"],
+  "card": {"kicker": "TRUE STORY", "title": "The owner who wouldn't take my deal", "rows": [
+   {"label": "Following up", "value": "For a couple of years", "say": "Just following up, keeping tabs on him"},
+   {"label": "One day", "value": "His clinic was dark", "say": "noticed his clinic was dark"},
+   {"label": "The sign", "value": "“We're closed.”", "say": "a sign that says, we're closed", "tone": "bad"},
+   {"label": "Outcome", "value": "Liquidated", "say": "has had to liquidate", "tone": "bad"},
+   {"label": "The lesson", "value": "Paid over time beats nothing", "say": "vendor finance deals work because", "tone": "good"}]}},
+
+ "seller_pitch": {"src": "23oct", "near": 330,
+  "from": "these vendor finance structures", "to": "rather than nothing",
+  "hl": ["IOU", "over", "time", "nothing"],
+  "card": {"kicker": "THE PITCH", "title": "The one line that gets sellers to finance you", "rows": [
+   {"label": "What it is", "value": "An IOU to the seller", "say": "an IOU to the seller"},
+   {"label": "The offer", "value": "Your price. Plus more.", "say": "I'll pay you the money that you want", "tone": "good"},
+   {"label": "The catch", "value": "Paid over time", "say": "privilege of being able to pay it over time"},
+   {"label": "Seller's reality", "value": "No one pays full price in cash", "say": "No one's going to pay the price", "tone": "bad"},
+   {"label": "Their choice", "value": "Something over nothing", "say": "rather than nothing", "tone": "good"}]}},
+
+ "board": {"src": "23oct", "near": 620,
+  "from": "So how I did it with JC Health Group", "to": "They helped me do my first deal",
+  "hl": ["healthcare", "board", "directors"],
+  "card": {"kicker": "HOW I DID IT", "title": "Zero healthcare experience. Bought a clinic anyway.", "rows": [
+   {"label": "Healthcare experience", "value": "None", "say": "I've never been in healthcare", "tone": "bad"},
+   {"label": "What I did first", "value": "Built a board of directors", "say": "So I built a board of directors", "tone": "good"},
+   {"label": "Who's on it", "value": "Healthcare CEOs, legal, finance", "say": "national CEOs of healthcare companies"},
+   {"label": "Result", "value": "First clinic, bought", "say": "They helped me do my first deal", "tone": "good"}]}},
+
+ "bank_not_boss": {"src": "23oct", "near": 230,
+  "from": "But the reason why we like lending", "to": "From the vendor, him or herself",
+  "hl": ["dilute", "manager", "vendor"],
+  "card": {"kicker": "FUNDING", "title": "Why I'd rather owe a bank than sell equity", "rows": [
+   {"label": "Lender", "value": "No equity given up", "say": "you don't have to dilute yourself", "tone": "good"},
+   {"label": "The cost", "value": "Interest + monthly repayments", "say": "make you pay them back every month"},
+   {"label": "Bank's role", "value": "Debt owner, not your boss", "say": "The bank's not a manager", "tone": "good"},
+   {"label": "My favourite", "value": "Borrow from the seller", "say": "the third option, my favorite", "tone": "good"}]}},
+
+ "ceiling_5m": {"src": "26oct", "near": 500,
+  "from": "So you're at five mil today", "to": "That is what we call inorganic growth",
+  "hl": ["competitors", "five", "inorganic"],
+  "card": {"kicker": "GROWTH CEILING", "title": "Stuck at $5M? Buy your next $5M.", "rows": [
+   {"label": "You today", "value": "$5M revenue", "say": "So you're at five mil today"},
+   {"label": "Slow way", "value": "Hire more, advertise more", "say": "by hiring more, advertising more", "tone": "bad"},
+   {"label": "Fast way", "value": "Buy your competitors", "say": "by buying your competitors", "tone": "good"},
+   {"label": "The maths", "value": "$5M + $5M = $10M", "say": "by buying another five mill", "tone": "good"},
+   {"label": "What it's called", "value": "Inorganic growth", "say": "we call inorganic growth"}]}},
+
+ "kingpin": {"src": "26oct", "near": 860,
+  "from": "getting your first 100 clients", "to": "add millions to your company",
+  "fix": [["flama", "plumber"]], "hl": ["kingpin", "one", "millions"],
+  "card": {"kicker": "DEAL SOURCING", "title": "Your next acquisition is 50km down the road", "rows": [
+   {"label": "Skip", "value": "Your first 100 clients", "say": "just skip that", "tone": "good"},
+   {"label": "Where to look", "value": "25–50km away", "say": "Look 25 kilometers"},
+   {"label": "Who to buy", "value": "The local kingpin", "say": "buy out the kingpin"},
+   {"label": "How to find them", "value": "Google “[industry] near me”", "say": "Just Google, near me"},
+   {"label": "Hit rate", "value": "Call 100. It takes one.", "say": "It takes one, it takes one", "tone": "good"}]}},
+
+ "four_rooms": {"src": "26oct", "near": 640,
+  "from": "which is what we've recently done", "to": "very bankable narrative for an investor for a lender",
+  "hl": ["four", "rooms", "larger", "grow", "bankable"],
+  "card": {"kicker": "REAL DEAL", "title": "We bought a clinic that couldn't fit one more practitioner", "rows": [
+   {"label": "Before", "value": "4 rooms, 4 practitioners", "say": "We had four practitioners"},
+   {"label": "Problem", "value": "Physically maxed out", "say": "we can't fit any more people in", "tone": "bad"},
+   {"label": "Fix", "value": "Moved to a much larger site", "say": "much larger premises", "tone": "good"},
+   {"label": "Now", "value": "Room to grow", "say": "now there's room to grow", "tone": "good"},
+   {"label": "For lenders", "value": "A bankable story", "say": "very bankable narrative", "tone": "good"}]}}
+}

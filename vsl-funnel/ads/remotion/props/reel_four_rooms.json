@@ -1,0 +1,445 @@
+{
+ "videoSrc": "reel_four_rooms.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 35.7,
+ "card": {
+  "kicker": "REAL DEAL",
+  "title": "We bought a clinic that couldn't fit one more practitioner",
+  "rows": [
+   {
+    "label": "Before",
+    "value": "4 rooms, 4 practitioners",
+    "at": 18.24
+   },
+   {
+    "label": "Problem",
+    "value": "Physically maxed out",
+    "tone": "bad",
+    "at": 19.96
+   },
+   {
+    "label": "Fix",
+    "value": "Moved to a much larger site",
+    "tone": "good",
+    "at": 23.8
+   },
+   {
+    "label": "Now",
+    "value": "Room to grow",
+    "tone": "good",
+    "at": 27.86
+   },
+   {
+    "label": "For lenders",
+    "value": "A bankable story",
+    "tone": "good",
+    "at": 32.48
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "which",
+   "start": 0.12,
+   "end": 0.72
+  },
+  {
+   "text": "is",
+   "start": 0.72,
+   "end": 0.86
+  },
+  {
+   "text": "what",
+   "start": 0.86,
+   "end": 1.04
+  },
+  {
+   "text": "we've",
+   "start": 1.04,
+   "end": 1.24
+  },
+  {
+   "text": "recently",
+   "start": 1.24,
+   "end": 1.48
+  },
+  {
+   "text": "done",
+   "start": 1.48,
+   "end": 1.78
+  },
+  {
+   "text": "with",
+   "start": 1.78,
+   "end": 2.04
+  },
+  {
+   "text": "our",
+   "start": 2.04,
+   "end": 2.66
+  },
+  {
+   "text": "acquisition",
+   "start": 2.66,
+   "end": 3.52
+  },
+  {
+   "text": "back",
+   "start": 3.52,
+   "end": 4.5
+  },
+  {
+   "text": "in",
+   "start": 4.5,
+   "end": 4.72
+  },
+  {
+   "text": "April.",
+   "start": 4.72,
+   "end": 5.08
+  },
+  {
+   "text": "We",
+   "start": 5.36,
+   "end": 5.36
+  },
+  {
+   "text": "bought",
+   "start": 5.36,
+   "end": 5.56
+  },
+  {
+   "text": "a,",
+   "start": 5.56,
+   "end": 5.7
+  },
+  {
+   "text": "we",
+   "start": 5.7,
+   "end": 5.98
+  },
+  {
+   "text": "bought",
+   "start": 5.98,
+   "end": 6.16
+  },
+  {
+   "text": "a",
+   "start": 6.16,
+   "end": 6.3
+  },
+  {
+   "text": "clinic",
+   "start": 6.3,
+   "end": 6.54
+  },
+  {
+   "text": "had",
+   "start": 6.54,
+   "end": 7.32
+  },
+  {
+   "text": "four",
+   "start": 7.32,
+   "end": 7.56,
+   "highlight": true
+  },
+  {
+   "text": "practitioners.",
+   "start": 7.56,
+   "end": 8.24
+  },
+  {
+   "text": "There's,",
+   "start": 8.24,
+   "end": 8.64
+  },
+  {
+   "text": "it's",
+   "start": 8.92,
+   "end": 11.72
+  },
+  {
+   "text": "physically",
+   "start": 11.72,
+   "end": 12.18
+  },
+  {
+   "text": "limited.",
+   "start": 12.18,
+   "end": 12.58
+  },
+  {
+   "text": "Right.",
+   "start": 13.1,
+   "end": 13.18
+  },
+  {
+   "text": "With",
+   "start": 13.5,
+   "end": 13.58
+  },
+  {
+   "text": "there",
+   "start": 13.58,
+   "end": 13.74
+  },
+  {
+   "text": "was",
+   "start": 13.74,
+   "end": 13.92
+  },
+  {
+   "text": "a,",
+   "start": 13.92,
+   "end": 14.26
+  },
+  {
+   "text": "there's",
+   "start": 15.28,
+   "end": 17.06
+  },
+  {
+   "text": "only",
+   "start": 17.06,
+   "end": 17.2
+  },
+  {
+   "text": "four",
+   "start": 17.2,
+   "end": 17.44,
+   "highlight": true
+  },
+  {
+   "text": "rooms",
+   "start": 17.44,
+   "end": 17.76,
+   "highlight": true
+  },
+  {
+   "text": "there.",
+   "start": 17.76,
+   "end": 18.0
+  },
+  {
+   "text": "We",
+   "start": 18.14,
+   "end": 18.2
+  },
+  {
+   "text": "had",
+   "start": 18.2,
+   "end": 18.26
+  },
+  {
+   "text": "four",
+   "start": 18.26,
+   "end": 18.42,
+   "highlight": true
+  },
+  {
+   "text": "practitioners.",
+   "start": 18.42,
+   "end": 18.86
+  },
+  {
+   "text": "Right.",
+   "start": 18.86,
+   "end": 19.32
+  },
+  {
+   "text": "So",
+   "start": 19.7,
+   "end": 19.86
+  },
+  {
+   "text": "we",
+   "start": 19.86,
+   "end": 20.42
+  },
+  {
+   "text": "can't",
+   "start": 20.42,
+   "end": 20.66
+  },
+  {
+   "text": "fit",
+   "start": 20.66,
+   "end": 20.92
+  },
+  {
+   "text": "any",
+   "start": 20.92,
+   "end": 21.16
+  },
+  {
+   "text": "more",
+   "start": 21.16,
+   "end": 21.32
+  },
+  {
+   "text": "people",
+   "start": 21.32,
+   "end": 21.6
+  },
+  {
+   "text": "in.",
+   "start": 21.6,
+   "end": 21.78
+  },
+  {
+   "text": "Now",
+   "start": 22.88,
+   "end": 23.1
+  },
+  {
+   "text": "we've",
+   "start": 23.1,
+   "end": 23.26
+  },
+  {
+   "text": "moved",
+   "start": 23.26,
+   "end": 23.42
+  },
+  {
+   "text": "to",
+   "start": 23.42,
+   "end": 23.64
+  },
+  {
+   "text": "a",
+   "start": 23.64,
+   "end": 23.7
+  },
+  {
+   "text": "much",
+   "start": 23.7,
+   "end": 23.96
+  },
+  {
+   "text": "larger",
+   "start": 23.96,
+   "end": 24.3,
+   "highlight": true
+  },
+  {
+   "text": "premises.",
+   "start": 24.3,
+   "end": 24.78
+  },
+  {
+   "text": "We",
+   "start": 25.7,
+   "end": 25.9
+  },
+  {
+   "text": "have",
+   "start": 25.9,
+   "end": 26.06
+  },
+  {
+   "text": "restructured.",
+   "start": 26.06,
+   "end": 26.74
+  },
+  {
+   "text": "And",
+   "start": 27.4,
+   "end": 27.76
+  },
+  {
+   "text": "now",
+   "start": 27.76,
+   "end": 27.96
+  },
+  {
+   "text": "there's",
+   "start": 27.96,
+   "end": 28.22
+  },
+  {
+   "text": "room",
+   "start": 28.22,
+   "end": 28.52
+  },
+  {
+   "text": "to",
+   "start": 28.52,
+   "end": 28.76
+  },
+  {
+   "text": "grow.",
+   "start": 28.76,
+   "end": 29.04,
+   "highlight": true
+  },
+  {
+   "text": "And",
+   "start": 31.58,
+   "end": 32.06
+  },
+  {
+   "text": "that's",
+   "start": 32.06,
+   "end": 32.32
+  },
+  {
+   "text": "a",
+   "start": 32.32,
+   "end": 32.38
+  },
+  {
+   "text": "very",
+   "start": 32.38,
+   "end": 32.56
+  },
+  {
+   "text": "bankable",
+   "start": 32.56,
+   "end": 33.04,
+   "highlight": true
+  },
+  {
+   "text": "narrative",
+   "start": 33.04,
+   "end": 33.4
+  },
+  {
+   "text": "for",
+   "start": 33.4,
+   "end": 33.86
+  },
+  {
+   "text": "an",
+   "start": 33.86,
+   "end": 34.42
+  },
+  {
+   "text": "investor",
+   "start": 34.42,
+   "end": 34.78
+  },
+  {
+   "text": "for",
+   "start": 34.78,
+   "end": 35.04
+  },
+  {
+   "text": "a",
+   "start": 35.04,
+   "end": 35.14
+  },
+  {
+   "text": "lender.",
+   "start": 35.14,
+   "end": 35.4
+  },
+  {
+   "text": "Right.",
+   "start": 35.64,
+   "end": 35.68
+  }
+ ]
+}

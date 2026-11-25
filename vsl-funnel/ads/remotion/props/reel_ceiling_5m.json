@@ -1,0 +1,513 @@
+{
+ "videoSrc": "reel_ceiling_5m.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 42.62,
+ "card": {
+  "kicker": "GROWTH CEILING",
+  "title": "Stuck at $5M? Buy your next $5M.",
+  "rows": [
+   {
+    "label": "You today",
+    "value": "$5M revenue",
+    "at": 0.5
+   },
+   {
+    "label": "Slow way",
+    "value": "Hire more, advertise more",
+    "tone": "bad",
+    "at": 6.02
+   },
+   {
+    "label": "Fast way",
+    "value": "Buy your competitors",
+    "tone": "good",
+    "at": 13.7
+   },
+   {
+    "label": "The maths",
+    "value": "$5M + $5M = $10M",
+    "tone": "good",
+    "at": 20.58
+   },
+   {
+    "label": "What it's called",
+    "value": "Inorganic growth",
+    "at": 40.92
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "So",
+   "start": 0.12,
+   "end": 0.7
+  },
+  {
+   "text": "you're",
+   "start": 0.7,
+   "end": 1.04
+  },
+  {
+   "text": "at",
+   "start": 1.04,
+   "end": 1.24
+  },
+  {
+   "text": "five",
+   "start": 1.24,
+   "end": 1.88,
+   "highlight": true
+  },
+  {
+   "text": "mil",
+   "start": 1.88,
+   "end": 2.06
+  },
+  {
+   "text": "today.",
+   "start": 2.06,
+   "end": 2.4
+  },
+  {
+   "text": "You're",
+   "start": 3.64,
+   "end": 4.04
+  },
+  {
+   "text": "probably",
+   "start": 4.04,
+   "end": 4.72
+  },
+  {
+   "text": "not",
+   "start": 4.72,
+   "end": 4.9
+  },
+  {
+   "text": "going",
+   "start": 4.9,
+   "end": 5.04
+  },
+  {
+   "text": "to",
+   "start": 5.04,
+   "end": 5.1
+  },
+  {
+   "text": "get",
+   "start": 5.1,
+   "end": 5.2
+  },
+  {
+   "text": "to",
+   "start": 5.2,
+   "end": 5.34
+  },
+  {
+   "text": "the",
+   "start": 5.34,
+   "end": 5.44
+  },
+  {
+   "text": "10",
+   "start": 5.44,
+   "end": 5.64
+  },
+  {
+   "text": "mil",
+   "start": 5.64,
+   "end": 5.92
+  },
+  {
+   "text": "by",
+   "start": 5.92,
+   "end": 6.4
+  },
+  {
+   "text": "hiring",
+   "start": 6.4,
+   "end": 6.8
+  },
+  {
+   "text": "more,",
+   "start": 6.8,
+   "end": 7.12
+  },
+  {
+   "text": "advertising",
+   "start": 7.7,
+   "end": 8.06
+  },
+  {
+   "text": "more,",
+   "start": 8.06,
+   "end": 8.54
+  },
+  {
+   "text": "getting",
+   "start": 8.98,
+   "end": 10.5
+  },
+  {
+   "text": "more",
+   "start": 10.5,
+   "end": 10.96
+  },
+  {
+   "text": "of",
+   "start": 10.96,
+   "end": 11.18
+  },
+  {
+   "text": "the",
+   "start": 11.18,
+   "end": 11.26
+  },
+  {
+   "text": "market.",
+   "start": 11.26,
+   "end": 11.62
+  },
+  {
+   "text": "You're",
+   "start": 12.02,
+   "end": 12.6
+  },
+  {
+   "text": "going",
+   "start": 12.6,
+   "end": 12.68
+  },
+  {
+   "text": "to",
+   "start": 12.68,
+   "end": 12.76
+  },
+  {
+   "text": "get",
+   "start": 12.76,
+   "end": 12.88
+  },
+  {
+   "text": "more",
+   "start": 12.88,
+   "end": 13.08
+  },
+  {
+   "text": "of",
+   "start": 13.08,
+   "end": 13.22
+  },
+  {
+   "text": "the",
+   "start": 13.22,
+   "end": 13.26
+  },
+  {
+   "text": "market",
+   "start": 13.26,
+   "end": 13.6
+  },
+  {
+   "text": "by",
+   "start": 13.6,
+   "end": 14.06
+  },
+  {
+   "text": "buying",
+   "start": 14.06,
+   "end": 14.62
+  },
+  {
+   "text": "your",
+   "start": 14.62,
+   "end": 14.94
+  },
+  {
+   "text": "competitors.",
+   "start": 14.94,
+   "end": 15.44,
+   "highlight": true
+  },
+  {
+   "text": "It's",
+   "start": 15.94,
+   "end": 16.32
+  },
+  {
+   "text": "much",
+   "start": 16.32,
+   "end": 16.44
+  },
+  {
+   "text": "easier",
+   "start": 16.44,
+   "end": 16.88
+  },
+  {
+   "text": "to",
+   "start": 16.88,
+   "end": 17.02
+  },
+  {
+   "text": "get",
+   "start": 17.02,
+   "end": 17.16
+  },
+  {
+   "text": "to",
+   "start": 17.16,
+   "end": 17.32
+  },
+  {
+   "text": "the",
+   "start": 17.32,
+   "end": 17.4
+  },
+  {
+   "text": "10",
+   "start": 17.4,
+   "end": 17.82
+  },
+  {
+   "text": "million",
+   "start": 17.82,
+   "end": 18.48
+  },
+  {
+   "text": "from",
+   "start": 18.48,
+   "end": 19.88
+  },
+  {
+   "text": "the",
+   "start": 19.88,
+   "end": 20.1
+  },
+  {
+   "text": "five",
+   "start": 20.1,
+   "end": 20.48,
+   "highlight": true
+  },
+  {
+   "text": "by",
+   "start": 20.48,
+   "end": 20.94
+  },
+  {
+   "text": "buying",
+   "start": 20.94,
+   "end": 21.42
+  },
+  {
+   "text": "another",
+   "start": 21.42,
+   "end": 21.62
+  },
+  {
+   "text": "five",
+   "start": 21.62,
+   "end": 22.06,
+   "highlight": true
+  },
+  {
+   "text": "mill.",
+   "start": 22.06,
+   "end": 22.28
+  },
+  {
+   "text": "Find",
+   "start": 23.68,
+   "end": 24.36
+  },
+  {
+   "text": "another",
+   "start": 24.36,
+   "end": 25.04
+  },
+  {
+   "text": "company.",
+   "start": 25.04,
+   "end": 26.26
+  },
+  {
+   "text": "Find",
+   "start": 26.44,
+   "end": 26.54
+  },
+  {
+   "text": "your",
+   "start": 26.54,
+   "end": 26.74
+  },
+  {
+   "text": "competitor",
+   "start": 26.74,
+   "end": 27.26
+  },
+  {
+   "text": "that's",
+   "start": 27.26,
+   "end": 28.04
+  },
+  {
+   "text": "doing",
+   "start": 28.04,
+   "end": 28.32
+  },
+  {
+   "text": "the",
+   "start": 28.32,
+   "end": 29.62
+  },
+  {
+   "text": "five",
+   "start": 29.62,
+   "end": 29.82,
+   "highlight": true
+  },
+  {
+   "text": "mill.",
+   "start": 29.82,
+   "end": 30.08
+  },
+  {
+   "text": "Find",
+   "start": 31.36,
+   "end": 31.78
+  },
+  {
+   "text": "your",
+   "start": 31.78,
+   "end": 31.98
+  },
+  {
+   "text": "competitor",
+   "start": 31.98,
+   "end": 32.58
+  },
+  {
+   "text": "that's",
+   "start": 32.58,
+   "end": 33.52
+  },
+  {
+   "text": "selling",
+   "start": 33.52,
+   "end": 34.02
+  },
+  {
+   "text": "to",
+   "start": 34.02,
+   "end": 34.22
+  },
+  {
+   "text": "the",
+   "start": 34.22,
+   "end": 34.34
+  },
+  {
+   "text": "customers",
+   "start": 34.34,
+   "end": 34.7
+  },
+  {
+   "text": "that",
+   "start": 34.7,
+   "end": 34.96
+  },
+  {
+   "text": "you",
+   "start": 34.96,
+   "end": 35.12
+  },
+  {
+   "text": "want",
+   "start": 35.12,
+   "end": 35.36
+  },
+  {
+   "text": "and",
+   "start": 35.36,
+   "end": 35.88
+  },
+  {
+   "text": "you",
+   "start": 35.88,
+   "end": 36.06
+  },
+  {
+   "text": "take",
+   "start": 36.06,
+   "end": 36.34
+  },
+  {
+   "text": "their",
+   "start": 36.34,
+   "end": 36.52
+  },
+  {
+   "text": "business.",
+   "start": 36.52,
+   "end": 36.82
+  },
+  {
+   "text": "You",
+   "start": 36.98,
+   "end": 37.06
+  },
+  {
+   "text": "buy",
+   "start": 37.06,
+   "end": 37.36
+  },
+  {
+   "text": "their",
+   "start": 37.36,
+   "end": 37.62
+  },
+  {
+   "text": "business.",
+   "start": 37.62,
+   "end": 38.0
+  },
+  {
+   "text": "That",
+   "start": 40.1,
+   "end": 40.44
+  },
+  {
+   "text": "is",
+   "start": 40.44,
+   "end": 40.68
+  },
+  {
+   "text": "what",
+   "start": 40.68,
+   "end": 40.82
+  },
+  {
+   "text": "we",
+   "start": 40.82,
+   "end": 40.92
+  },
+  {
+   "text": "call",
+   "start": 40.92,
+   "end": 41.12
+  },
+  {
+   "text": "inorganic",
+   "start": 41.12,
+   "end": 41.9,
+   "highlight": true
+  },
+  {
+   "text": "growth.",
+   "start": 41.9,
+   "end": 42.32
+  }
+ ]
+}

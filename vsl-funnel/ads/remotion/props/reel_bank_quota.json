@@ -1,0 +1,735 @@
+{
+ "videoSrc": "reel_bank_quota.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 48.64,
+ "card": {
+  "kicker": "BANK LOGIC",
+  "title": "Why $100M is easier to borrow than $1M",
+  "rows": [
+   {
+    "label": "The banker has",
+    "value": "Quotas every quarter",
+    "at": 13.02
+   },
+   {
+    "label": "He's paid on",
+    "value": "Hitting targets \u2192 bonus",
+    "at": 24.68
+   },
+   {
+    "label": "Your $1M loan",
+    "value": "Doesn't move his number",
+    "tone": "bad",
+    "at": 33.62
+   },
+   {
+    "label": "What he wants",
+    "value": "Multi-million deals",
+    "tone": "good",
+    "at": 43.86
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "It",
+   "start": 0.12,
+   "end": 0.24
+  },
+  {
+   "text": "is",
+   "start": 0.24,
+   "end": 0.42
+  },
+  {
+   "text": "easier,",
+   "start": 0.42,
+   "end": 0.94
+  },
+  {
+   "text": "remember",
+   "start": 1.24,
+   "end": 2.06
+  },
+  {
+   "text": "this,",
+   "start": 2.06,
+   "end": 2.42
+  },
+  {
+   "text": "it",
+   "start": 2.48,
+   "end": 2.58
+  },
+  {
+   "text": "is",
+   "start": 2.58,
+   "end": 2.74
+  },
+  {
+   "text": "easier",
+   "start": 2.74,
+   "end": 3.28
+  },
+  {
+   "text": "for",
+   "start": 3.28,
+   "end": 4.36
+  },
+  {
+   "text": "a",
+   "start": 4.36,
+   "end": 4.48
+  },
+  {
+   "text": "bank,",
+   "start": 4.48,
+   "end": 4.76
+  },
+  {
+   "text": "for",
+   "start": 4.82,
+   "end": 5.26
+  },
+  {
+   "text": "a",
+   "start": 5.26,
+   "end": 5.38
+  },
+  {
+   "text": "banker",
+   "start": 5.38,
+   "end": 5.68
+  },
+  {
+   "text": "to",
+   "start": 5.68,
+   "end": 6.64
+  },
+  {
+   "text": "give",
+   "start": 6.64,
+   "end": 6.86
+  },
+  {
+   "text": "you",
+   "start": 6.86,
+   "end": 7.16
+  },
+  {
+   "text": "hundred",
+   "start": 7.16,
+   "end": 7.64
+  },
+  {
+   "text": "million",
+   "start": 7.64,
+   "end": 7.88,
+   "highlight": true
+  },
+  {
+   "text": "dollars",
+   "start": 7.88,
+   "end": 8.18
+  },
+  {
+   "text": "than",
+   "start": 8.18,
+   "end": 8.42
+  },
+  {
+   "text": "it",
+   "start": 8.42,
+   "end": 8.56
+  },
+  {
+   "text": "is",
+   "start": 8.56,
+   "end": 8.78
+  },
+  {
+   "text": "for",
+   "start": 8.78,
+   "end": 9.0
+  },
+  {
+   "text": "you,",
+   "start": 9.0,
+   "end": 9.1
+  },
+  {
+   "text": "them",
+   "start": 9.1,
+   "end": 9.32
+  },
+  {
+   "text": "to",
+   "start": 9.32,
+   "end": 9.42
+  },
+  {
+   "text": "give",
+   "start": 9.42,
+   "end": 9.54
+  },
+  {
+   "text": "you",
+   "start": 9.54,
+   "end": 9.68
+  },
+  {
+   "text": "a",
+   "start": 9.68,
+   "end": 9.74
+  },
+  {
+   "text": "million",
+   "start": 9.74,
+   "end": 9.92,
+   "highlight": true
+  },
+  {
+   "text": "dollars,",
+   "start": 9.92,
+   "end": 10.26
+  },
+  {
+   "text": "right?",
+   "start": 10.46,
+   "end": 10.62
+  },
+  {
+   "text": "Just",
+   "start": 10.94,
+   "end": 11.12
+  },
+  {
+   "text": "think",
+   "start": 11.12,
+   "end": 11.28
+  },
+  {
+   "text": "about",
+   "start": 11.28,
+   "end": 11.5
+  },
+  {
+   "text": "it,",
+   "start": 11.5,
+   "end": 11.72
+  },
+  {
+   "text": "they've",
+   "start": 11.92,
+   "end": 12.16
+  },
+  {
+   "text": "got",
+   "start": 12.16,
+   "end": 12.28
+  },
+  {
+   "text": "quotas,",
+   "start": 12.28,
+   "end": 12.8,
+   "highlight": true
+  },
+  {
+   "text": "they've",
+   "start": 12.92,
+   "end": 13.1
+  },
+  {
+   "text": "got",
+   "start": 13.1,
+   "end": 13.18
+  },
+  {
+   "text": "quotas",
+   "start": 13.18,
+   "end": 13.56,
+   "highlight": true
+  },
+  {
+   "text": "to",
+   "start": 13.56,
+   "end": 13.68
+  },
+  {
+   "text": "hit,",
+   "start": 13.68,
+   "end": 13.86
+  },
+  {
+   "text": "every",
+   "start": 14.56,
+   "end": 15.7
+  },
+  {
+   "text": "quarter,",
+   "start": 15.7,
+   "end": 16.12
+  },
+  {
+   "text": "every",
+   "start": 16.94,
+   "end": 17.14
+  },
+  {
+   "text": "year,",
+   "start": 17.14,
+   "end": 17.54
+  },
+  {
+   "text": "or",
+   "start": 18.28,
+   "end": 18.72
+  },
+  {
+   "text": "the",
+   "start": 18.72,
+   "end": 18.94
+  },
+  {
+   "text": "little",
+   "start": 18.94,
+   "end": 19.22
+  },
+  {
+   "text": "banker",
+   "start": 19.22,
+   "end": 19.52
+  },
+  {
+   "text": "minions,",
+   "start": 19.52,
+   "end": 19.86
+  },
+  {
+   "text": "they",
+   "start": 20.1,
+   "end": 20.18
+  },
+  {
+   "text": "get",
+   "start": 20.18,
+   "end": 20.32
+  },
+  {
+   "text": "their",
+   "start": 20.32,
+   "end": 20.5
+  },
+  {
+   "text": "little",
+   "start": 20.5,
+   "end": 20.7
+  },
+  {
+   "text": "targets,",
+   "start": 20.7,
+   "end": 21.1
+  },
+  {
+   "text": "their",
+   "start": 21.34,
+   "end": 21.34
+  },
+  {
+   "text": "numbers,",
+   "start": 21.34,
+   "end": 21.68
+  },
+  {
+   "text": "and",
+   "start": 22.38,
+   "end": 22.78
+  },
+  {
+   "text": "big",
+   "start": 22.78,
+   "end": 23.24
+  },
+  {
+   "text": "boss",
+   "start": 23.24,
+   "end": 23.46
+  },
+  {
+   "text": "man",
+   "start": 23.46,
+   "end": 23.64
+  },
+  {
+   "text": "says,",
+   "start": 23.64,
+   "end": 23.88
+  },
+  {
+   "text": "hey,",
+   "start": 23.88,
+   "end": 24.08
+  },
+  {
+   "text": "hit",
+   "start": 24.58,
+   "end": 24.6
+  },
+  {
+   "text": "these",
+   "start": 24.6,
+   "end": 24.82
+  },
+  {
+   "text": "numbers",
+   "start": 24.82,
+   "end": 25.08
+  },
+  {
+   "text": "and",
+   "start": 25.08,
+   "end": 25.46
+  },
+  {
+   "text": "you'll",
+   "start": 25.46,
+   "end": 25.58
+  },
+  {
+   "text": "get",
+   "start": 25.58,
+   "end": 25.68
+  },
+  {
+   "text": "a",
+   "start": 25.68,
+   "end": 25.78
+  },
+  {
+   "text": "bonus.",
+   "start": 25.78,
+   "end": 26.02,
+   "highlight": true
+  },
+  {
+   "text": "So",
+   "start": 29.24,
+   "end": 29.72
+  },
+  {
+   "text": "how",
+   "start": 29.72,
+   "end": 30.08
+  },
+  {
+   "text": "are",
+   "start": 30.08,
+   "end": 30.2
+  },
+  {
+   "text": "these",
+   "start": 30.2,
+   "end": 30.34
+  },
+  {
+   "text": "people",
+   "start": 30.34,
+   "end": 30.62
+  },
+  {
+   "text": "going",
+   "start": 30.62,
+   "end": 30.82
+  },
+  {
+   "text": "to",
+   "start": 30.82,
+   "end": 30.9
+  },
+  {
+   "text": "hit",
+   "start": 30.9,
+   "end": 31.12
+  },
+  {
+   "text": "their",
+   "start": 31.12,
+   "end": 31.54
+  },
+  {
+   "text": "targets",
+   "start": 31.54,
+   "end": 32.18
+  },
+  {
+   "text": "and",
+   "start": 32.18,
+   "end": 32.64
+  },
+  {
+   "text": "get",
+   "start": 32.64,
+   "end": 32.78
+  },
+  {
+   "text": "their",
+   "start": 32.78,
+   "end": 32.96
+  },
+  {
+   "text": "bonus?",
+   "start": 32.96,
+   "end": 33.3,
+   "highlight": true
+  },
+  {
+   "text": "It's",
+   "start": 33.52,
+   "end": 33.72
+  },
+  {
+   "text": "not",
+   "start": 33.72,
+   "end": 33.96
+  },
+  {
+   "text": "by",
+   "start": 33.96,
+   "end": 34.58
+  },
+  {
+   "text": "doing",
+   "start": 34.58,
+   "end": 34.88
+  },
+  {
+   "text": "your",
+   "start": 34.88,
+   "end": 35.08
+  },
+  {
+   "text": "little",
+   "start": 35.08,
+   "end": 35.36
+  },
+  {
+   "text": "million",
+   "start": 35.36,
+   "end": 36.08,
+   "highlight": true
+  },
+  {
+   "text": "dollar",
+   "start": 36.08,
+   "end": 36.4
+  },
+  {
+   "text": "loan,",
+   "start": 36.4,
+   "end": 36.7
+  },
+  {
+   "text": "it's",
+   "start": 36.84,
+   "end": 37.0
+  },
+  {
+   "text": "not",
+   "start": 37.0,
+   "end": 37.18
+  },
+  {
+   "text": "by",
+   "start": 37.18,
+   "end": 37.4
+  },
+  {
+   "text": "doing",
+   "start": 37.4,
+   "end": 37.62
+  },
+  {
+   "text": "your",
+   "start": 37.62,
+   "end": 37.8
+  },
+  {
+   "text": "shitty",
+   "start": 37.8,
+   "end": 38.06
+  },
+  {
+   "text": "little",
+   "start": 38.06,
+   "end": 38.36
+  },
+  {
+   "text": "$50",
+   "start": 38.36,
+   "end": 38.94
+  },
+  {
+   "text": ",000",
+   "start": 38.94,
+   "end": 39.32
+  },
+  {
+   "text": "dollar",
+   "start": 39.32,
+   "end": 39.58
+  },
+  {
+   "text": "loan.",
+   "start": 39.58,
+   "end": 39.82
+  },
+  {
+   "text": "The",
+   "start": 40.64,
+   "end": 40.98
+  },
+  {
+   "text": "bankers",
+   "start": 40.98,
+   "end": 41.36
+  },
+  {
+   "text": "that",
+   "start": 41.36,
+   "end": 41.46
+  },
+  {
+   "text": "want",
+   "start": 41.46,
+   "end": 41.62
+  },
+  {
+   "text": "to",
+   "start": 41.62,
+   "end": 41.72
+  },
+  {
+   "text": "get",
+   "start": 41.72,
+   "end": 41.9
+  },
+  {
+   "text": "money",
+   "start": 41.9,
+   "end": 42.2
+  },
+  {
+   "text": "out,",
+   "start": 42.2,
+   "end": 42.54
+  },
+  {
+   "text": "they",
+   "start": 42.64,
+   "end": 42.8
+  },
+  {
+   "text": "want",
+   "start": 42.8,
+   "end": 42.92
+  },
+  {
+   "text": "to",
+   "start": 42.92,
+   "end": 43.02
+  },
+  {
+   "text": "do",
+   "start": 43.02,
+   "end": 43.14
+  },
+  {
+   "text": "multi-million",
+   "start": 43.14,
+   "end": 43.76,
+   "highlight": true
+  },
+  {
+   "text": "dollar",
+   "start": 43.76,
+   "end": 43.96
+  },
+  {
+   "text": "transactions,",
+   "start": 43.96,
+   "end": 44.36
+  },
+  {
+   "text": "so",
+   "start": 44.36,
+   "end": 44.78
+  },
+  {
+   "text": "it",
+   "start": 44.78,
+   "end": 44.92
+  },
+  {
+   "text": "goes",
+   "start": 44.92,
+   "end": 45.14
+  },
+  {
+   "text": "out,",
+   "start": 45.14,
+   "end": 45.46
+  },
+  {
+   "text": "so",
+   "start": 45.84,
+   "end": 46.02
+  },
+  {
+   "text": "they",
+   "start": 46.02,
+   "end": 46.16
+  },
+  {
+   "text": "can",
+   "start": 46.16,
+   "end": 46.3
+  },
+  {
+   "text": "hit",
+   "start": 46.3,
+   "end": 46.54
+  },
+  {
+   "text": "their",
+   "start": 46.54,
+   "end": 46.74
+  },
+  {
+   "text": "target",
+   "start": 46.74,
+   "end": 47.14
+  },
+  {
+   "text": "and",
+   "start": 47.14,
+   "end": 47.66
+  },
+  {
+   "text": "get",
+   "start": 47.66,
+   "end": 47.82
+  },
+  {
+   "text": "their",
+   "start": 47.82,
+   "end": 48.02
+  },
+  {
+   "text": "bonus.",
+   "start": 48.02,
+   "end": 48.34,
+   "highlight": true
+  }
+ ]
+}

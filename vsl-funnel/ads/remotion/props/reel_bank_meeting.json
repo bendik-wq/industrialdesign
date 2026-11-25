@@ -1,0 +1,692 @@
+{
+ "videoSrc": "reel_bank_meeting.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 44.64,
+ "card": {
+  "kicker": "BANK MEETING",
+  "title": "How to ask a bank for money (and keep your house)",
+  "rows": [
+   {
+    "label": "Right way",
+    "value": "Answer everything up front",
+    "tone": "good",
+    "at": 0.5
+   },
+   {
+    "label": "Their only question",
+    "value": "\u201cHow much more do you want?\u201d",
+    "tone": "good",
+    "at": 8.24
+   },
+   {
+    "label": "Most people ask",
+    "value": "\u201cHow much can you give me?\u201d",
+    "tone": "bad",
+    "at": 22.4
+   },
+   {
+    "label": "What that costs you",
+    "value": "Guarantees, assets, your home",
+    "tone": "bad",
+    "at": 35.66
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "you",
+   "start": 0.12,
+   "end": 0.14
+  },
+  {
+   "text": "present",
+   "start": 0.14,
+   "end": 1.08
+  },
+  {
+   "text": "everything",
+   "start": 1.08,
+   "end": 1.6,
+   "highlight": true
+  },
+  {
+   "text": "up",
+   "start": 1.6,
+   "end": 1.84
+  },
+  {
+   "text": "front,",
+   "start": 1.84,
+   "end": 2.22
+  },
+  {
+   "text": "so",
+   "start": 2.5,
+   "end": 2.86
+  },
+  {
+   "text": "the",
+   "start": 2.86,
+   "end": 3.6
+  },
+  {
+   "text": "only",
+   "start": 3.6,
+   "end": 3.9
+  },
+  {
+   "text": "thing",
+   "start": 3.9,
+   "end": 4.12
+  },
+  {
+   "text": "left",
+   "start": 4.12,
+   "end": 4.38
+  },
+  {
+   "text": "for",
+   "start": 4.38,
+   "end": 4.6
+  },
+  {
+   "text": "them",
+   "start": 4.6,
+   "end": 4.74
+  },
+  {
+   "text": "to",
+   "start": 4.74,
+   "end": 4.9
+  },
+  {
+   "text": "say",
+   "start": 4.9,
+   "end": 5.16
+  },
+  {
+   "text": "is",
+   "start": 5.16,
+   "end": 5.64
+  },
+  {
+   "text": "how",
+   "start": 5.64,
+   "end": 6.78
+  },
+  {
+   "text": "much,",
+   "start": 6.78,
+   "end": 7.08
+  },
+  {
+   "text": "how",
+   "start": 7.26,
+   "end": 7.5
+  },
+  {
+   "text": "much",
+   "start": 7.5,
+   "end": 7.7
+  },
+  {
+   "text": "more,",
+   "start": 7.7,
+   "end": 7.92
+  },
+  {
+   "text": "how",
+   "start": 8.14,
+   "end": 8.34
+  },
+  {
+   "text": "much",
+   "start": 8.34,
+   "end": 8.52
+  },
+  {
+   "text": "more",
+   "start": 8.52,
+   "end": 8.68
+  },
+  {
+   "text": "do",
+   "start": 8.68,
+   "end": 8.78
+  },
+  {
+   "text": "you",
+   "start": 8.78,
+   "end": 8.86
+  },
+  {
+   "text": "want?",
+   "start": 8.86,
+   "end": 9.0
+  },
+  {
+   "text": "Do",
+   "start": 9.42,
+   "end": 9.84
+  },
+  {
+   "text": "you",
+   "start": 9.84,
+   "end": 9.92
+  },
+  {
+   "text": "want",
+   "start": 9.92,
+   "end": 10.1
+  },
+  {
+   "text": "some",
+   "start": 10.1,
+   "end": 10.34
+  },
+  {
+   "text": "more",
+   "start": 10.34,
+   "end": 10.46
+  },
+  {
+   "text": "money?",
+   "start": 10.46,
+   "end": 10.68
+  },
+  {
+   "text": "Right,",
+   "start": 11.76,
+   "end": 11.82
+  },
+  {
+   "text": "you",
+   "start": 11.96,
+   "end": 12.0
+  },
+  {
+   "text": "want",
+   "start": 12.0,
+   "end": 12.1
+  },
+  {
+   "text": "to,",
+   "start": 12.1,
+   "end": 12.22
+  },
+  {
+   "text": "and",
+   "start": 12.78,
+   "end": 15.08
+  },
+  {
+   "text": "compare",
+   "start": 15.08,
+   "end": 15.84
+  },
+  {
+   "text": "that",
+   "start": 15.84,
+   "end": 16.1
+  },
+  {
+   "text": "to",
+   "start": 16.1,
+   "end": 16.4
+  },
+  {
+   "text": "how",
+   "start": 16.4,
+   "end": 17.0
+  },
+  {
+   "text": "most",
+   "start": 17.0,
+   "end": 17.36
+  },
+  {
+   "text": "people",
+   "start": 17.36,
+   "end": 17.72
+  },
+  {
+   "text": "go",
+   "start": 17.72,
+   "end": 17.9
+  },
+  {
+   "text": "to",
+   "start": 17.9,
+   "end": 18.02
+  },
+  {
+   "text": "the",
+   "start": 18.02,
+   "end": 18.1
+  },
+  {
+   "text": "bank,",
+   "start": 18.1,
+   "end": 18.36
+  },
+  {
+   "text": "most",
+   "start": 18.54,
+   "end": 18.64
+  },
+  {
+   "text": "people",
+   "start": 18.64,
+   "end": 18.88
+  },
+  {
+   "text": "go",
+   "start": 18.88,
+   "end": 19.02
+  },
+  {
+   "text": "to",
+   "start": 19.02,
+   "end": 19.1
+  },
+  {
+   "text": "the",
+   "start": 19.1,
+   "end": 19.18
+  },
+  {
+   "text": "bank",
+   "start": 19.18,
+   "end": 19.42
+  },
+  {
+   "text": "and",
+   "start": 19.42,
+   "end": 19.6
+  },
+  {
+   "text": "they",
+   "start": 19.6,
+   "end": 19.72
+  },
+  {
+   "text": "go,",
+   "start": 19.72,
+   "end": 19.84
+  },
+  {
+   "text": "please,",
+   "start": 20.1,
+   "end": 20.48
+  },
+  {
+   "text": "I",
+   "start": 20.96,
+   "end": 21.32
+  },
+  {
+   "text": "want",
+   "start": 21.32,
+   "end": 21.42
+  },
+  {
+   "text": "to",
+   "start": 21.42,
+   "end": 21.48
+  },
+  {
+   "text": "buy",
+   "start": 21.48,
+   "end": 21.66
+  },
+  {
+   "text": "this,",
+   "start": 21.66,
+   "end": 22.0
+  },
+  {
+   "text": "how",
+   "start": 22.3,
+   "end": 22.46
+  },
+  {
+   "text": "much",
+   "start": 22.46,
+   "end": 22.74
+  },
+  {
+   "text": "money",
+   "start": 22.74,
+   "end": 23.0
+  },
+  {
+   "text": "can",
+   "start": 23.0,
+   "end": 23.18
+  },
+  {
+   "text": "you",
+   "start": 23.18,
+   "end": 23.26
+  },
+  {
+   "text": "give",
+   "start": 23.26,
+   "end": 23.42
+  },
+  {
+   "text": "me?",
+   "start": 23.42,
+   "end": 23.56
+  },
+  {
+   "text": "That's",
+   "start": 24.56,
+   "end": 24.96
+  },
+  {
+   "text": "not",
+   "start": 24.96,
+   "end": 25.08
+  },
+  {
+   "text": "how",
+   "start": 25.08,
+   "end": 25.36
+  },
+  {
+   "text": "you",
+   "start": 25.36,
+   "end": 25.78
+  },
+  {
+   "text": "get",
+   "start": 25.78,
+   "end": 25.88
+  },
+  {
+   "text": "money",
+   "start": 25.88,
+   "end": 26.1
+  },
+  {
+   "text": "in",
+   "start": 26.1,
+   "end": 26.54
+  },
+  {
+   "text": "the",
+   "start": 26.54,
+   "end": 26.66
+  },
+  {
+   "text": "corporate",
+   "start": 26.66,
+   "end": 26.9
+  },
+  {
+   "text": "world,",
+   "start": 26.9,
+   "end": 27.14
+  },
+  {
+   "text": "they",
+   "start": 27.5,
+   "end": 27.84
+  },
+  {
+   "text": "laugh",
+   "start": 27.84,
+   "end": 28.06
+  },
+  {
+   "text": "at",
+   "start": 28.06,
+   "end": 28.26
+  },
+  {
+   "text": "you,",
+   "start": 28.26,
+   "end": 28.34
+  },
+  {
+   "text": "right?",
+   "start": 28.72,
+   "end": 29.02
+  },
+  {
+   "text": "As",
+   "start": 29.52,
+   "end": 29.6
+  },
+  {
+   "text": "soon",
+   "start": 29.6,
+   "end": 29.76
+  },
+  {
+   "text": "as",
+   "start": 29.76,
+   "end": 29.9
+  },
+  {
+   "text": "you",
+   "start": 29.9,
+   "end": 30.02
+  },
+  {
+   "text": "start",
+   "start": 30.02,
+   "end": 30.2
+  },
+  {
+   "text": "doing",
+   "start": 30.2,
+   "end": 30.46
+  },
+  {
+   "text": "that",
+   "start": 30.46,
+   "end": 30.62
+  },
+  {
+   "text": "shit,",
+   "start": 30.62,
+   "end": 30.86
+  },
+  {
+   "text": "they're",
+   "start": 31.5,
+   "end": 32.34
+  },
+  {
+   "text": "going",
+   "start": 32.34,
+   "end": 32.38
+  },
+  {
+   "text": "to",
+   "start": 32.38,
+   "end": 32.42
+  },
+  {
+   "text": "take",
+   "start": 32.42,
+   "end": 32.58
+  },
+  {
+   "text": "you",
+   "start": 32.58,
+   "end": 32.72
+  },
+  {
+   "text": "for",
+   "start": 32.72,
+   "end": 32.88
+  },
+  {
+   "text": "a",
+   "start": 32.88,
+   "end": 33.02
+  },
+  {
+   "text": "ride,",
+   "start": 33.02,
+   "end": 33.3
+  },
+  {
+   "text": "they're",
+   "start": 33.92,
+   "end": 34.02
+  },
+  {
+   "text": "going",
+   "start": 34.02,
+   "end": 34.12
+  },
+  {
+   "text": "to",
+   "start": 34.12,
+   "end": 34.3
+  },
+  {
+   "text": "say,",
+   "start": 34.3,
+   "end": 34.92
+  },
+  {
+   "text": "we",
+   "start": 35.56,
+   "end": 35.68
+  },
+  {
+   "text": "want",
+   "start": 35.68,
+   "end": 35.82
+  },
+  {
+   "text": "you",
+   "start": 35.82,
+   "end": 35.94
+  },
+  {
+   "text": "guaranteed,",
+   "start": 35.94,
+   "end": 36.28,
+   "highlight": true
+  },
+  {
+   "text": "we",
+   "start": 36.8,
+   "end": 36.84
+  },
+  {
+   "text": "want",
+   "start": 36.84,
+   "end": 37.04
+  },
+  {
+   "text": "your",
+   "start": 37.04,
+   "end": 37.16
+  },
+  {
+   "text": "personal",
+   "start": 37.16,
+   "end": 37.56
+  },
+  {
+   "text": "assets,",
+   "start": 37.56,
+   "end": 38.92
+  },
+  {
+   "text": "we",
+   "start": 38.92,
+   "end": 39.26
+  },
+  {
+   "text": "want",
+   "start": 39.26,
+   "end": 39.42
+  },
+  {
+   "text": "your",
+   "start": 39.42,
+   "end": 39.54
+  },
+  {
+   "text": "home,",
+   "start": 39.54,
+   "end": 40.02,
+   "highlight": true
+  },
+  {
+   "text": "we",
+   "start": 40.86,
+   "end": 40.88
+  },
+  {
+   "text": "want",
+   "start": 40.88,
+   "end": 41.0
+  },
+  {
+   "text": "your",
+   "start": 41.0,
+   "end": 41.24
+  },
+  {
+   "text": "other,",
+   "start": 41.24,
+   "end": 41.74
+  },
+  {
+   "text": "your",
+   "start": 42.0,
+   "end": 42.16
+  },
+  {
+   "text": "business",
+   "start": 42.16,
+   "end": 42.46
+  },
+  {
+   "text": "as",
+   "start": 42.46,
+   "end": 42.74
+  },
+  {
+   "text": "collateral,",
+   "start": 42.74,
+   "end": 43.06
+  },
+  {
+   "text": "they're",
+   "start": 43.28,
+   "end": 43.3
+  },
+  {
+   "text": "going",
+   "start": 43.3,
+   "end": 43.4
+  },
+  {
+   "text": "to",
+   "start": 43.4,
+   "end": 43.46
+  },
+  {
+   "text": "take",
+   "start": 43.46,
+   "end": 43.64
+  },
+  {
+   "text": "everything,",
+   "start": 43.64,
+   "end": 44.34,
+   "highlight": true
+  }
+ ]
+}

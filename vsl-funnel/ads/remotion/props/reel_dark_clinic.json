@@ -1,0 +1,823 @@
+{
+ "videoSrc": "reel_dark_clinic.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 61.32,
+ "card": {
+  "kicker": "TRUE STORY",
+  "title": "The owner who wouldn't take my deal",
+  "rows": [
+   {
+    "label": "Following up",
+    "value": "For a couple of years",
+    "at": 4.7
+   },
+   {
+    "label": "One day",
+    "value": "His clinic was dark",
+    "at": 18.14
+   },
+   {
+    "label": "The sign",
+    "value": "\u201cWe're closed.\u201d",
+    "tone": "bad",
+    "at": 30.06
+   },
+   {
+    "label": "Outcome",
+    "value": "Liquidated",
+    "tone": "bad",
+    "at": 40.28
+   },
+   {
+    "label": "The lesson",
+    "value": "Paid over time beats nothing",
+    "tone": "good",
+    "at": 47.56
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "I've",
+   "start": 0.12,
+   "end": 0.7
+  },
+  {
+   "text": "been",
+   "start": 0.7,
+   "end": 0.86
+  },
+  {
+   "text": "on",
+   "start": 0.86,
+   "end": 2.02
+  },
+  {
+   "text": "this",
+   "start": 2.02,
+   "end": 2.22
+  },
+  {
+   "text": "guy's",
+   "start": 2.22,
+   "end": 2.58
+  },
+  {
+   "text": "ass",
+   "start": 2.58,
+   "end": 2.72
+  },
+  {
+   "text": "for",
+   "start": 2.72,
+   "end": 2.98
+  },
+  {
+   "text": "a",
+   "start": 2.98,
+   "end": 3.04
+  },
+  {
+   "text": "couple",
+   "start": 3.04,
+   "end": 3.26
+  },
+  {
+   "text": "of",
+   "start": 3.26,
+   "end": 3.42
+  },
+  {
+   "text": "years.",
+   "start": 3.42,
+   "end": 3.76
+  },
+  {
+   "text": "Just",
+   "start": 4.6,
+   "end": 5.08
+  },
+  {
+   "text": "following",
+   "start": 5.08,
+   "end": 5.56
+  },
+  {
+   "text": "up,",
+   "start": 5.56,
+   "end": 5.78
+  },
+  {
+   "text": "keeping",
+   "start": 5.96,
+   "end": 6.18
+  },
+  {
+   "text": "tabs",
+   "start": 6.18,
+   "end": 6.5
+  },
+  {
+   "text": "on",
+   "start": 6.5,
+   "end": 6.7
+  },
+  {
+   "text": "him.",
+   "start": 6.7,
+   "end": 6.9
+  },
+  {
+   "text": "Because",
+   "start": 7.14,
+   "end": 7.26
+  },
+  {
+   "text": "he's",
+   "start": 7.26,
+   "end": 7.64
+  },
+  {
+   "text": "been",
+   "start": 7.64,
+   "end": 7.8
+  },
+  {
+   "text": "wanting",
+   "start": 7.8,
+   "end": 8.0
+  },
+  {
+   "text": "to",
+   "start": 8.0,
+   "end": 8.16
+  },
+  {
+   "text": "sell",
+   "start": 8.16,
+   "end": 8.3
+  },
+  {
+   "text": "the",
+   "start": 8.3,
+   "end": 8.44
+  },
+  {
+   "text": "business,",
+   "start": 8.44,
+   "end": 8.74
+  },
+  {
+   "text": "but",
+   "start": 8.88,
+   "end": 8.96
+  },
+  {
+   "text": "hasn't",
+   "start": 8.96,
+   "end": 9.32
+  },
+  {
+   "text": "been",
+   "start": 9.32,
+   "end": 9.48
+  },
+  {
+   "text": "wanting",
+   "start": 9.48,
+   "end": 9.68
+  },
+  {
+   "text": "to",
+   "start": 9.68,
+   "end": 9.92
+  },
+  {
+   "text": "entertain",
+   "start": 9.92,
+   "end": 11.34
+  },
+  {
+   "text": "my",
+   "start": 11.34,
+   "end": 11.72
+  },
+  {
+   "text": "deals,",
+   "start": 11.72,
+   "end": 12.0
+  },
+  {
+   "text": "my",
+   "start": 12.22,
+   "end": 12.3
+  },
+  {
+   "text": "office.",
+   "start": 12.3,
+   "end": 12.6
+  },
+  {
+   "text": "And",
+   "start": 14.28,
+   "end": 14.76
+  },
+  {
+   "text": "one",
+   "start": 14.76,
+   "end": 14.98
+  },
+  {
+   "text": "day",
+   "start": 14.98,
+   "end": 15.2
+  },
+  {
+   "text": "I",
+   "start": 15.2,
+   "end": 15.32
+  },
+  {
+   "text": "was",
+   "start": 15.32,
+   "end": 15.44
+  },
+  {
+   "text": "driving",
+   "start": 15.44,
+   "end": 15.78
+  },
+  {
+   "text": "past.",
+   "start": 15.78,
+   "end": 16.1
+  },
+  {
+   "text": "I",
+   "start": 16.74,
+   "end": 16.9
+  },
+  {
+   "text": "looked",
+   "start": 16.9,
+   "end": 17.36
+  },
+  {
+   "text": "out",
+   "start": 17.36,
+   "end": 17.72
+  },
+  {
+   "text": "and",
+   "start": 17.72,
+   "end": 18.04
+  },
+  {
+   "text": "noticed",
+   "start": 18.04,
+   "end": 18.38
+  },
+  {
+   "text": "his",
+   "start": 18.38,
+   "end": 18.66
+  },
+  {
+   "text": "clinic",
+   "start": 18.66,
+   "end": 18.92
+  },
+  {
+   "text": "was",
+   "start": 18.92,
+   "end": 19.56
+  },
+  {
+   "text": "dark.",
+   "start": 19.56,
+   "end": 20.44,
+   "highlight": true
+  },
+  {
+   "text": "No",
+   "start": 20.84,
+   "end": 20.98
+  },
+  {
+   "text": "lights.",
+   "start": 20.98,
+   "end": 21.28
+  },
+  {
+   "text": "I",
+   "start": 22.84,
+   "end": 23.32
+  },
+  {
+   "text": "literally",
+   "start": 23.32,
+   "end": 23.6
+  },
+  {
+   "text": "pulled",
+   "start": 23.6,
+   "end": 23.88
+  },
+  {
+   "text": "over,",
+   "start": 23.88,
+   "end": 24.34
+  },
+  {
+   "text": "got",
+   "start": 24.88,
+   "end": 25.08
+  },
+  {
+   "text": "out",
+   "start": 25.08,
+   "end": 25.28
+  },
+  {
+   "text": "the",
+   "start": 25.28,
+   "end": 25.44
+  },
+  {
+   "text": "car,",
+   "start": 25.44,
+   "end": 25.66
+  },
+  {
+   "text": "checked",
+   "start": 26.34,
+   "end": 26.5
+  },
+  {
+   "text": "the",
+   "start": 26.5,
+   "end": 26.68
+  },
+  {
+   "text": "place",
+   "start": 26.68,
+   "end": 26.88
+  },
+  {
+   "text": "out.",
+   "start": 26.88,
+   "end": 27.18
+  },
+  {
+   "text": "And",
+   "start": 27.18,
+   "end": 27.32
+  },
+  {
+   "text": "I",
+   "start": 27.32,
+   "end": 27.38
+  },
+  {
+   "text": "see",
+   "start": 27.38,
+   "end": 27.58
+  },
+  {
+   "text": "on",
+   "start": 27.58,
+   "end": 27.88
+  },
+  {
+   "text": "the",
+   "start": 27.88,
+   "end": 28.0
+  },
+  {
+   "text": "front",
+   "start": 28.0,
+   "end": 28.32
+  },
+  {
+   "text": "sign,",
+   "start": 28.32,
+   "end": 28.6
+  },
+  {
+   "text": "front",
+   "start": 28.9,
+   "end": 29.08
+  },
+  {
+   "text": "door.",
+   "start": 29.08,
+   "end": 29.3
+  },
+  {
+   "text": "It's",
+   "start": 29.78,
+   "end": 29.96
+  },
+  {
+   "text": "a",
+   "start": 29.96,
+   "end": 29.98
+  },
+  {
+   "text": "sign",
+   "start": 29.98,
+   "end": 30.2
+  },
+  {
+   "text": "that",
+   "start": 30.2,
+   "end": 30.36
+  },
+  {
+   "text": "says,",
+   "start": 30.36,
+   "end": 30.78
+  },
+  {
+   "text": "we're",
+   "start": 31.68,
+   "end": 33.02
+  },
+  {
+   "text": "closed.",
+   "start": 33.02,
+   "end": 33.5,
+   "highlight": true
+  },
+  {
+   "text": "Due",
+   "start": 35.1,
+   "end": 35.66
+  },
+  {
+   "text": "to",
+   "start": 35.66,
+   "end": 35.8
+  },
+  {
+   "text": "unforeseen",
+   "start": 35.8,
+   "end": 36.22
+  },
+  {
+   "text": "circumstances,",
+   "start": 36.22,
+   "end": 36.58
+  },
+  {
+   "text": "And",
+   "start": 37.0,
+   "end": 37.66
+  },
+  {
+   "text": "he's",
+   "start": 37.66,
+   "end": 38.02
+  },
+  {
+   "text": "just",
+   "start": 38.02,
+   "end": 38.16
+  },
+  {
+   "text": "closed",
+   "start": 38.16,
+   "end": 38.44,
+   "highlight": true
+  },
+  {
+   "text": "down",
+   "start": 38.44,
+   "end": 38.72
+  },
+  {
+   "text": "shop.",
+   "start": 38.72,
+   "end": 38.94
+  },
+  {
+   "text": "He's",
+   "start": 39.08,
+   "end": 39.24
+  },
+  {
+   "text": "closed",
+   "start": 39.24,
+   "end": 39.42,
+   "highlight": true
+  },
+  {
+   "text": "down",
+   "start": 39.42,
+   "end": 39.66
+  },
+  {
+   "text": "shop",
+   "start": 39.66,
+   "end": 39.9
+  },
+  {
+   "text": "and",
+   "start": 39.9,
+   "end": 40.18
+  },
+  {
+   "text": "has",
+   "start": 40.18,
+   "end": 40.44
+  },
+  {
+   "text": "had",
+   "start": 40.44,
+   "end": 40.58
+  },
+  {
+   "text": "to",
+   "start": 40.58,
+   "end": 40.86
+  },
+  {
+   "text": "liquidate.",
+   "start": 40.86,
+   "end": 42.36,
+   "highlight": true
+  },
+  {
+   "text": "How",
+   "start": 43.06,
+   "end": 43.54
+  },
+  {
+   "text": "fucking",
+   "start": 43.54,
+   "end": 43.96
+  },
+  {
+   "text": "sad,",
+   "start": 43.96,
+   "end": 44.3
+  },
+  {
+   "text": "right?",
+   "start": 44.46,
+   "end": 44.58
+  },
+  {
+   "text": "So",
+   "start": 45.0,
+   "end": 45.44
+  },
+  {
+   "text": "that's",
+   "start": 45.44,
+   "end": 45.66
+  },
+  {
+   "text": "why",
+   "start": 45.66,
+   "end": 45.78
+  },
+  {
+   "text": "vendor",
+   "start": 45.78,
+   "end": 46.0
+  },
+  {
+   "text": "finance",
+   "start": 46.0,
+   "end": 46.4
+  },
+  {
+   "text": "deals",
+   "start": 46.4,
+   "end": 46.64
+  },
+  {
+   "text": "work.",
+   "start": 46.64,
+   "end": 46.92
+  },
+  {
+   "text": "Vendor",
+   "start": 47.46,
+   "end": 47.76
+  },
+  {
+   "text": "finance",
+   "start": 47.76,
+   "end": 47.96
+  },
+  {
+   "text": "deals",
+   "start": 47.96,
+   "end": 48.22
+  },
+  {
+   "text": "work",
+   "start": 48.22,
+   "end": 48.46
+  },
+  {
+   "text": "because",
+   "start": 48.46,
+   "end": 48.78
+  },
+  {
+   "text": "it's",
+   "start": 48.78,
+   "end": 49.28
+  },
+  {
+   "text": "an",
+   "start": 49.28,
+   "end": 49.4
+  },
+  {
+   "text": "option",
+   "start": 49.4,
+   "end": 49.74
+  },
+  {
+   "text": "for",
+   "start": 49.74,
+   "end": 50.02
+  },
+  {
+   "text": "people",
+   "start": 50.02,
+   "end": 50.3
+  },
+  {
+   "text": "to",
+   "start": 50.3,
+   "end": 50.42
+  },
+  {
+   "text": "get",
+   "start": 50.42,
+   "end": 50.54
+  },
+  {
+   "text": "paid",
+   "start": 50.54,
+   "end": 50.9
+  },
+  {
+   "text": "what",
+   "start": 50.9,
+   "end": 51.16
+  },
+  {
+   "text": "they",
+   "start": 51.16,
+   "end": 51.38
+  },
+  {
+   "text": "think",
+   "start": 51.38,
+   "end": 51.72
+  },
+  {
+   "text": "they",
+   "start": 51.72,
+   "end": 51.86
+  },
+  {
+   "text": "deserve.",
+   "start": 51.86,
+   "end": 52.22
+  },
+  {
+   "text": "And",
+   "start": 52.82,
+   "end": 53.06
+  },
+  {
+   "text": "in",
+   "start": 53.06,
+   "end": 53.12
+  },
+  {
+   "text": "fact,",
+   "start": 53.12,
+   "end": 53.32
+  },
+  {
+   "text": "what",
+   "start": 53.32,
+   "end": 53.54
+  },
+  {
+   "text": "they",
+   "start": 53.54,
+   "end": 53.68
+  },
+  {
+   "text": "do",
+   "start": 53.68,
+   "end": 53.9
+  },
+  {
+   "text": "deserve",
+   "start": 53.9,
+   "end": 54.34
+  },
+  {
+   "text": "and",
+   "start": 54.34,
+   "end": 55.62
+  },
+  {
+   "text": "what",
+   "start": 55.62,
+   "end": 55.76
+  },
+  {
+   "text": "the",
+   "start": 55.76,
+   "end": 55.9
+  },
+  {
+   "text": "market",
+   "start": 55.9,
+   "end": 56.16
+  },
+  {
+   "text": "just",
+   "start": 56.16,
+   "end": 56.42
+  },
+  {
+   "text": "won't",
+   "start": 56.42,
+   "end": 56.66
+  },
+  {
+   "text": "pay",
+   "start": 56.66,
+   "end": 56.9
+  },
+  {
+   "text": "them",
+   "start": 56.9,
+   "end": 57.12
+  },
+  {
+   "text": "today,",
+   "start": 57.12,
+   "end": 57.42
+  },
+  {
+   "text": "you",
+   "start": 58.22,
+   "end": 58.28
+  },
+  {
+   "text": "can",
+   "start": 58.28,
+   "end": 58.46
+  },
+  {
+   "text": "give",
+   "start": 58.46,
+   "end": 59.04
+  },
+  {
+   "text": "it",
+   "start": 59.04,
+   "end": 59.22
+  },
+  {
+   "text": "to",
+   "start": 59.22,
+   "end": 59.3
+  },
+  {
+   "text": "them",
+   "start": 59.3,
+   "end": 59.48
+  },
+  {
+   "text": "over",
+   "start": 59.48,
+   "end": 60.48
+  },
+  {
+   "text": "some",
+   "start": 60.48,
+   "end": 60.68
+  },
+  {
+   "text": "time.",
+   "start": 60.68,
+   "end": 61.02,
+   "highlight": true
+  }
+ ]
+}
