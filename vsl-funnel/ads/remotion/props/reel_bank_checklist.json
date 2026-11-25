@@ -1,0 +1,732 @@
+{
+ "videoSrc": "reel_bank_checklist.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 60.06,
+ "card": {
+  "kicker": "BANK CHECKLIST",
+  "title": "What a bank checks before it says yes",
+  "rows": [
+   {
+    "label": "1",
+    "value": "Revenue",
+    "at": 0.5
+   },
+   {
+    "label": "2",
+    "value": "Profitability",
+    "at": 4.3
+   },
+   {
+    "label": "3",
+    "value": "Staff super paid",
+    "at": 13.38
+   },
+   {
+    "label": "4",
+    "value": "Tax paid",
+    "at": 15.16
+   },
+   {
+    "label": "The test",
+    "value": "Free cash flow covers the debt",
+    "tone": "good",
+    "at": 57.66
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "The",
+   "start": 0.12,
+   "end": 0.16
+  },
+  {
+   "text": "bank",
+   "start": 0.16,
+   "end": 0.42
+  },
+  {
+   "text": "cares",
+   "start": 0.42,
+   "end": 0.98
+  },
+  {
+   "text": "about",
+   "start": 0.98,
+   "end": 1.88
+  },
+  {
+   "text": "revenue.",
+   "start": 1.88,
+   "end": 2.88,
+   "highlight": true
+  },
+  {
+   "text": "They",
+   "start": 4.2,
+   "end": 4.68
+  },
+  {
+   "text": "want",
+   "start": 4.68,
+   "end": 4.88
+  },
+  {
+   "text": "to",
+   "start": 4.88,
+   "end": 5.08
+  },
+  {
+   "text": "see",
+   "start": 5.08,
+   "end": 5.32
+  },
+  {
+   "text": "profitability.",
+   "start": 5.32,
+   "end": 5.98,
+   "highlight": true
+  },
+  {
+   "text": "I'll",
+   "start": 8.9,
+   "end": 9.38
+  },
+  {
+   "text": "take",
+   "start": 9.38,
+   "end": 9.86
+  },
+  {
+   "text": "it.",
+   "start": 9.86,
+   "end": 9.98
+  },
+  {
+   "text": "They",
+   "start": 10.28,
+   "end": 10.38
+  },
+  {
+   "text": "want",
+   "start": 10.38,
+   "end": 10.48
+  },
+  {
+   "text": "to",
+   "start": 10.48,
+   "end": 10.54
+  },
+  {
+   "text": "see",
+   "start": 10.54,
+   "end": 10.68
+  },
+  {
+   "text": "profitability,",
+   "start": 10.68,
+   "end": 11.24,
+   "highlight": true
+  },
+  {
+   "text": "and",
+   "start": 12.04,
+   "end": 12.52
+  },
+  {
+   "text": "they",
+   "start": 12.52,
+   "end": 12.72
+  },
+  {
+   "text": "care",
+   "start": 12.72,
+   "end": 12.94
+  },
+  {
+   "text": "about",
+   "start": 12.94,
+   "end": 13.14
+  },
+  {
+   "text": "your",
+   "start": 13.14,
+   "end": 13.28
+  },
+  {
+   "text": "superannuation",
+   "start": 13.28,
+   "end": 14.0
+  },
+  {
+   "text": "being",
+   "start": 14.0,
+   "end": 14.28
+  },
+  {
+   "text": "paid,",
+   "start": 14.28,
+   "end": 14.56
+  },
+  {
+   "text": "and",
+   "start": 14.56,
+   "end": 15.06
+  },
+  {
+   "text": "your",
+   "start": 15.06,
+   "end": 15.36
+  },
+  {
+   "text": "tax",
+   "start": 15.36,
+   "end": 15.98,
+   "highlight": true
+  },
+  {
+   "text": "being",
+   "start": 15.98,
+   "end": 16.26
+  },
+  {
+   "text": "paid.",
+   "start": 16.26,
+   "end": 16.46
+  },
+  {
+   "text": "So",
+   "start": 17.3,
+   "end": 17.46
+  },
+  {
+   "text": "if",
+   "start": 17.46,
+   "end": 17.76
+  },
+  {
+   "text": "those",
+   "start": 17.76,
+   "end": 18.32
+  },
+  {
+   "text": "things",
+   "start": 18.32,
+   "end": 18.58
+  },
+  {
+   "text": "are",
+   "start": 18.58,
+   "end": 18.74
+  },
+  {
+   "text": "done,",
+   "start": 18.74,
+   "end": 18.96
+  },
+  {
+   "text": "and",
+   "start": 19.96,
+   "end": 20.52
+  },
+  {
+   "text": "I'm",
+   "start": 20.52,
+   "end": 20.74
+  },
+  {
+   "text": "talking",
+   "start": 20.74,
+   "end": 20.94
+  },
+  {
+   "text": "in",
+   "start": 20.94,
+   "end": 21.24
+  },
+  {
+   "text": "Australian",
+   "start": 21.24,
+   "end": 21.68
+  },
+  {
+   "text": "terms,",
+   "start": 21.68,
+   "end": 22.1
+  },
+  {
+   "text": "but",
+   "start": 23.52,
+   "end": 23.74
+  },
+  {
+   "text": "the",
+   "start": 23.74,
+   "end": 24.32
+  },
+  {
+   "text": "retirement",
+   "start": 24.32,
+   "end": 24.7
+  },
+  {
+   "text": "account,",
+   "start": 24.7,
+   "end": 24.98
+  },
+  {
+   "text": "whatever",
+   "start": 25.1,
+   "end": 25.22
+  },
+  {
+   "text": "you",
+   "start": 25.22,
+   "end": 25.4
+  },
+  {
+   "text": "call",
+   "start": 25.4,
+   "end": 25.54
+  },
+  {
+   "text": "it",
+   "start": 25.54,
+   "end": 25.7
+  },
+  {
+   "text": "in",
+   "start": 25.7,
+   "end": 25.82
+  },
+  {
+   "text": "the",
+   "start": 25.82,
+   "end": 25.92
+  },
+  {
+   "text": "US,",
+   "start": 25.92,
+   "end": 26.14
+  },
+  {
+   "text": "IRA,",
+   "start": 26.44,
+   "end": 26.64
+  },
+  {
+   "text": "IRS,",
+   "start": 27.28,
+   "end": 27.54
+  },
+  {
+   "text": "some",
+   "start": 28.26,
+   "end": 28.26
+  },
+  {
+   "text": "shit",
+   "start": 28.26,
+   "end": 28.54
+  },
+  {
+   "text": "like",
+   "start": 28.54,
+   "end": 28.7
+  },
+  {
+   "text": "that.",
+   "start": 28.7,
+   "end": 28.94
+  },
+  {
+   "text": "But",
+   "start": 32.48,
+   "end": 33.04
+  },
+  {
+   "text": "in",
+   "start": 33.04,
+   "end": 33.16
+  },
+  {
+   "text": "Australia,",
+   "start": 33.16,
+   "end": 33.52
+  },
+  {
+   "text": "you've",
+   "start": 33.88,
+   "end": 34.0
+  },
+  {
+   "text": "got",
+   "start": 34.0,
+   "end": 34.08
+  },
+  {
+   "text": "revenue",
+   "start": 34.08,
+   "end": 34.62,
+   "highlight": true
+  },
+  {
+   "text": "coming",
+   "start": 34.62,
+   "end": 34.9
+  },
+  {
+   "text": "in,",
+   "start": 34.9,
+   "end": 35.14
+  },
+  {
+   "text": "you've",
+   "start": 35.46,
+   "end": 35.64
+  },
+  {
+   "text": "got",
+   "start": 35.64,
+   "end": 35.76
+  },
+  {
+   "text": "a",
+   "start": 35.76,
+   "end": 35.9
+  },
+  {
+   "text": "trading",
+   "start": 35.9,
+   "end": 36.18
+  },
+  {
+   "text": "history,",
+   "start": 36.18,
+   "end": 36.54
+  },
+  {
+   "text": "you've",
+   "start": 37.12,
+   "end": 37.22
+  },
+  {
+   "text": "got",
+   "start": 37.22,
+   "end": 37.44
+  },
+  {
+   "text": "your",
+   "start": 37.44,
+   "end": 38.06
+  },
+  {
+   "text": "superpaid,",
+   "start": 38.06,
+   "end": 38.64
+  },
+  {
+   "text": "sorry,",
+   "start": 39.0,
+   "end": 39.34
+  },
+  {
+   "text": "the",
+   "start": 39.52,
+   "end": 39.58
+  },
+  {
+   "text": "company",
+   "start": 39.58,
+   "end": 39.88
+  },
+  {
+   "text": "is",
+   "start": 39.88,
+   "end": 40.04
+  },
+  {
+   "text": "super-paid,",
+   "start": 40.04,
+   "end": 40.52
+  },
+  {
+   "text": "the",
+   "start": 40.82,
+   "end": 40.88
+  },
+  {
+   "text": "company's",
+   "start": 40.88,
+   "end": 41.28
+  },
+  {
+   "text": "taxes",
+   "start": 41.28,
+   "end": 41.56
+  },
+  {
+   "text": "paid,",
+   "start": 41.56,
+   "end": 41.86
+  },
+  {
+   "text": "that",
+   "start": 42.6,
+   "end": 42.86
+  },
+  {
+   "text": "is",
+   "start": 42.86,
+   "end": 43.02
+  },
+  {
+   "text": "a",
+   "start": 43.02,
+   "end": 43.18
+  },
+  {
+   "text": "prime",
+   "start": 43.18,
+   "end": 43.88
+  },
+  {
+   "text": "candidate",
+   "start": 43.88,
+   "end": 44.26
+  },
+  {
+   "text": "for",
+   "start": 44.26,
+   "end": 44.74
+  },
+  {
+   "text": "a",
+   "start": 44.74,
+   "end": 44.96
+  },
+  {
+   "text": "lender",
+   "start": 44.96,
+   "end": 45.14
+  },
+  {
+   "text": "to",
+   "start": 45.14,
+   "end": 45.36
+  },
+  {
+   "text": "be",
+   "start": 45.36,
+   "end": 45.44
+  },
+  {
+   "text": "like,",
+   "start": 45.44,
+   "end": 45.54
+  },
+  {
+   "text": "yeah,",
+   "start": 45.54,
+   "end": 45.72
+  },
+  {
+   "text": "how",
+   "start": 45.9,
+   "end": 46.06
+  },
+  {
+   "text": "much",
+   "start": 46.06,
+   "end": 46.18
+  },
+  {
+   "text": "money",
+   "start": 46.18,
+   "end": 46.34
+  },
+  {
+   "text": "you",
+   "start": 46.34,
+   "end": 46.48
+  },
+  {
+   "text": "want?",
+   "start": 46.48,
+   "end": 46.58
+  },
+  {
+   "text": "And",
+   "start": 47.82,
+   "end": 48.04
+  },
+  {
+   "text": "it's",
+   "start": 48.04,
+   "end": 48.16
+  },
+  {
+   "text": "about",
+   "start": 48.16,
+   "end": 48.32
+  },
+  {
+   "text": "presenting",
+   "start": 48.32,
+   "end": 49.06
+  },
+  {
+   "text": "the",
+   "start": 49.06,
+   "end": 49.66
+  },
+  {
+   "text": "case.",
+   "start": 49.66,
+   "end": 49.92
+  },
+  {
+   "text": "I",
+   "start": 50.58,
+   "end": 50.8
+  },
+  {
+   "text": "want",
+   "start": 50.8,
+   "end": 50.92
+  },
+  {
+   "text": "this",
+   "start": 50.92,
+   "end": 51.08
+  },
+  {
+   "text": "much",
+   "start": 51.08,
+   "end": 51.28
+  },
+  {
+   "text": "money,",
+   "start": 51.28,
+   "end": 51.56
+  },
+  {
+   "text": "and",
+   "start": 51.72,
+   "end": 52.12
+  },
+  {
+   "text": "this",
+   "start": 52.12,
+   "end": 52.66
+  },
+  {
+   "text": "is",
+   "start": 52.66,
+   "end": 52.78
+  },
+  {
+   "text": "how",
+   "start": 52.78,
+   "end": 52.92
+  },
+  {
+   "text": "much",
+   "start": 52.92,
+   "end": 53.16
+  },
+  {
+   "text": "money",
+   "start": 53.16,
+   "end": 53.54
+  },
+  {
+   "text": "the",
+   "start": 53.54,
+   "end": 54.12
+  },
+  {
+   "text": "asset",
+   "start": 54.12,
+   "end": 54.4
+  },
+  {
+   "text": "is",
+   "start": 54.4,
+   "end": 54.66
+  },
+  {
+   "text": "spitting",
+   "start": 54.66,
+   "end": 55.3
+  },
+  {
+   "text": "out",
+   "start": 55.3,
+   "end": 55.5
+  },
+  {
+   "text": "in",
+   "start": 55.5,
+   "end": 55.72
+  },
+  {
+   "text": "free",
+   "start": 55.72,
+   "end": 56.06
+  },
+  {
+   "text": "cash",
+   "start": 56.06,
+   "end": 56.3,
+   "highlight": true
+  },
+  {
+   "text": "flow,",
+   "start": 56.3,
+   "end": 56.56
+  },
+  {
+   "text": "right?",
+   "start": 56.84,
+   "end": 57.16
+  },
+  {
+   "text": "Free",
+   "start": 57.56,
+   "end": 57.68
+  },
+  {
+   "text": "cash",
+   "start": 57.68,
+   "end": 57.94,
+   "highlight": true
+  },
+  {
+   "text": "flow",
+   "start": 57.94,
+   "end": 58.22
+  },
+  {
+   "text": "covering",
+   "start": 58.22,
+   "end": 58.88
+  },
+  {
+   "text": "the",
+   "start": 58.88,
+   "end": 59.26
+  },
+  {
+   "text": "debt",
+   "start": 59.26,
+   "end": 59.4
+  },
+  {
+   "text": "service,",
+   "start": 59.4,
+   "end": 59.76
+  }
+ ]
+}
