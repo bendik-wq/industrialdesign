@@ -1,0 +1,385 @@
+{
+ "videoSrc": "reel_lease_tip.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 42.54,
+ "card": {
+  "kicker": "LEASING TIP",
+  "title": "Before you sign a lease, check this",
+  "rows": [
+   {
+    "label": "The building",
+    "value": "Architect-designed",
+    "at": 12.92
+   },
+   {
+    "label": "Built to",
+    "value": "Look pretty",
+    "tone": "bad",
+    "at": 28.02
+   },
+   {
+    "label": "Problem",
+    "value": "Not optimised for use",
+    "tone": "bad",
+    "at": 21.34
+   },
+   {
+    "label": "The tip",
+    "value": "Check the usable floor area",
+    "tone": "good",
+    "at": 34.3
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "And",
+   "start": 0.12,
+   "end": 0.44
+  },
+  {
+   "text": "if",
+   "start": 0.44,
+   "end": 1.02
+  },
+  {
+   "text": "you've",
+   "start": 1.02,
+   "end": 1.54
+  },
+  {
+   "text": "ever",
+   "start": 1.54,
+   "end": 1.86
+  },
+  {
+   "text": "been",
+   "start": 1.86,
+   "end": 2.1
+  },
+  {
+   "text": "in",
+   "start": 2.1,
+   "end": 2.24
+  },
+  {
+   "text": "construction",
+   "start": 2.24,
+   "end": 2.84
+  },
+  {
+   "text": "or",
+   "start": 2.84,
+   "end": 4.28
+  },
+  {
+   "text": "architecture,",
+   "start": 4.28,
+   "end": 5.26
+  },
+  {
+   "text": "now",
+   "start": 5.26,
+   "end": 6.34
+  },
+  {
+   "text": "you",
+   "start": 6.34,
+   "end": 6.58
+  },
+  {
+   "text": "look",
+   "start": 6.58,
+   "end": 6.72
+  },
+  {
+   "text": "at",
+   "start": 6.72,
+   "end": 6.84
+  },
+  {
+   "text": "this",
+   "start": 6.84,
+   "end": 6.96
+  },
+  {
+   "text": "building",
+   "start": 6.96,
+   "end": 7.3
+  },
+  {
+   "text": "from",
+   "start": 7.3,
+   "end": 7.72
+  },
+  {
+   "text": "the",
+   "start": 7.72,
+   "end": 7.88
+  },
+  {
+   "text": "outside,",
+   "start": 7.88,
+   "end": 8.3
+  },
+  {
+   "text": "from",
+   "start": 8.3,
+   "end": 8.8
+  },
+  {
+   "text": "kind",
+   "start": 8.8,
+   "end": 9.64
+  },
+  {
+   "text": "of",
+   "start": 9.64,
+   "end": 9.74
+  },
+  {
+   "text": "any",
+   "start": 9.74,
+   "end": 9.98
+  },
+  {
+   "text": "angle,",
+   "start": 9.98,
+   "end": 10.42
+  },
+  {
+   "text": "and",
+   "start": 11.36,
+   "end": 11.92
+  },
+  {
+   "text": "you",
+   "start": 11.92,
+   "end": 12.02
+  },
+  {
+   "text": "can",
+   "start": 12.02,
+   "end": 12.12
+  },
+  {
+   "text": "really",
+   "start": 12.12,
+   "end": 12.46
+  },
+  {
+   "text": "tell",
+   "start": 12.46,
+   "end": 12.82
+  },
+  {
+   "text": "it's",
+   "start": 12.82,
+   "end": 13.18
+  },
+  {
+   "text": "an",
+   "start": 13.18,
+   "end": 13.26
+  },
+  {
+   "text": "architecture's",
+   "start": 13.26,
+   "end": 14.06
+  },
+  {
+   "text": "job",
+   "start": 14.06,
+   "end": 14.26
+  },
+  {
+   "text": "and",
+   "start": 14.26,
+   "end": 15.14
+  },
+  {
+   "text": "not",
+   "start": 15.14,
+   "end": 15.34
+  },
+  {
+   "text": "a",
+   "start": 15.34,
+   "end": 15.72
+  },
+  {
+   "text": "business",
+   "start": 15.72,
+   "end": 18.76
+  },
+  {
+   "text": "guys",
+   "start": 18.76,
+   "end": 19.12
+  },
+  {
+   "text": "job,",
+   "start": 19.12,
+   "end": 19.4
+  },
+  {
+   "text": "oh",
+   "start": 19.6,
+   "end": 19.7
+  },
+  {
+   "text": "sorry,",
+   "start": 19.7,
+   "end": 19.88
+  },
+  {
+   "text": "not",
+   "start": 20.02,
+   "end": 20.08
+  },
+  {
+   "text": "a",
+   "start": 20.08,
+   "end": 20.2
+  },
+  {
+   "text": "builders",
+   "start": 20.2,
+   "end": 20.48
+  },
+  {
+   "text": "job,",
+   "start": 20.48,
+   "end": 20.82
+  },
+  {
+   "text": "because",
+   "start": 20.96,
+   "end": 21.24
+  },
+  {
+   "text": "it",
+   "start": 21.24,
+   "end": 23.02
+  },
+  {
+   "text": "is",
+   "start": 23.02,
+   "end": 23.2
+  },
+  {
+   "text": "not",
+   "start": 23.2,
+   "end": 23.44
+  },
+  {
+   "text": "optimized",
+   "start": 23.44,
+   "end": 25.86
+  },
+  {
+   "text": "for",
+   "start": 25.86,
+   "end": 26.24
+  },
+  {
+   "text": "use.",
+   "start": 26.24,
+   "end": 26.52,
+   "highlight": true
+  },
+  {
+   "text": "It",
+   "start": 27.68,
+   "end": 27.8
+  },
+  {
+   "text": "is",
+   "start": 27.8,
+   "end": 27.92
+  },
+  {
+   "text": "optimized",
+   "start": 27.92,
+   "end": 28.52
+  },
+  {
+   "text": "to",
+   "start": 28.52,
+   "end": 29.28
+  },
+  {
+   "text": "look",
+   "start": 29.28,
+   "end": 29.44
+  },
+  {
+   "text": "pretty.",
+   "start": 29.44,
+   "end": 29.76,
+   "highlight": true
+  },
+  {
+   "text": "So,",
+   "start": 33.54,
+   "end": 34.2
+  },
+  {
+   "text": "always",
+   "start": 34.2,
+   "end": 34.86
+  },
+  {
+   "text": "double",
+   "start": 34.86,
+   "end": 35.16
+  },
+  {
+   "text": "check",
+   "start": 35.16,
+   "end": 35.4
+  },
+  {
+   "text": "the",
+   "start": 35.4,
+   "end": 35.62
+  },
+  {
+   "text": "square-metre",
+   "start": 35.62,
+   "end": 36.34
+  },
+  {
+   "text": "coverage",
+   "start": 36.34,
+   "end": 36.78
+  },
+  {
+   "text": "when",
+   "start": 37.82,
+   "end": 38.48
+  },
+  {
+   "text": "you're",
+   "start": 38.48,
+   "end": 38.88
+  },
+  {
+   "text": "leasing",
+   "start": 38.88,
+   "end": 41.42,
+   "highlight": true
+  },
+  {
+   "text": "any",
+   "start": 41.42,
+   "end": 41.84
+  },
+  {
+   "text": "premises.",
+   "start": 41.84,
+   "end": 42.24
+  }
+ ]
+}

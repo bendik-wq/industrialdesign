@@ -79,7 +79,7 @@ def resolve(spec):
     hint = spec.get('near', 0)
     ranges = []
     for c in spec.get('cuts', [[spec.get('from'), spec.get('to')]]):
-        a = find(src, c[0], hint) - 0.12 if isinstance(c[0], str) else c[0]
+        a = max(0.0, find(src, c[0], hint) - 0.12) if isinstance(c[0], str) else c[0]
         b = find(src, c[1], a, end=True) + 0.30 if isinstance(c[1], str) else c[1]
         ranges.append((round(a, 3), round(b, 3)))
         hint = b
@@ -134,7 +134,7 @@ def build_multi(name, spec, ranges):
         os.remove(p)
     ws, off = [], 0.0
     for a, b in ranges:
-        for wd in words(src, a, b, spec.get('hl', ()), ()):
+        for wd in words(src, a, b, spec.get('hl', ()), spec.get('fix', ())):
             wd['start'] = round(wd['start'] + off, 3); wd['end'] = round(wd['end'] + off, 3); ws.append(wd)
         off += b - a
     card = json.loads(json.dumps(spec['card']))

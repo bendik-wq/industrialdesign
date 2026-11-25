@@ -1,0 +1,753 @@
+{
+ "videoSrc": "reel_no_close.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 64.02,
+ "card": {
+  "kicker": "OPERATOR",
+  "title": "We moved clinics without closing a single day",
+  "rows": [
+   {
+    "label": "Days closed during the move",
+    "value": "Zero",
+    "tone": "good",
+    "at": 1.86
+   },
+   {
+    "label": "Client complaints",
+    "value": "Pages of them",
+    "tone": "bad",
+    "at": 21.04
+   },
+   {
+    "label": "Fix it all first?",
+    "value": "We'd have had to shut down",
+    "tone": "bad",
+    "at": 47.78
+   },
+   {
+    "label": "Priority #1",
+    "value": "Make the money",
+    "tone": "good",
+    "at": 59.76
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "Setting",
+   "start": 0.12,
+   "end": 0.36
+  },
+  {
+   "text": "the",
+   "start": 0.36,
+   "end": 0.52
+  },
+  {
+   "text": "place",
+   "start": 0.52,
+   "end": 0.82
+  },
+  {
+   "text": "up,",
+   "start": 0.82,
+   "end": 1.14
+  },
+  {
+   "text": "so",
+   "start": 1.24,
+   "end": 1.44
+  },
+  {
+   "text": "we",
+   "start": 1.44,
+   "end": 1.76
+  },
+  {
+   "text": "didn't",
+   "start": 1.76,
+   "end": 2.4
+  },
+  {
+   "text": "have",
+   "start": 2.4,
+   "end": 2.6
+  },
+  {
+   "text": "to",
+   "start": 2.6,
+   "end": 2.8
+  },
+  {
+   "text": "close",
+   "start": 2.8,
+   "end": 3.34,
+   "highlight": true
+  },
+  {
+   "text": "down",
+   "start": 3.34,
+   "end": 4.4
+  },
+  {
+   "text": "a",
+   "start": 4.4,
+   "end": 4.7
+  },
+  {
+   "text": "single",
+   "start": 4.7,
+   "end": 5.16
+  },
+  {
+   "text": "day.",
+   "start": 5.16,
+   "end": 5.8
+  },
+  {
+   "text": "So",
+   "start": 6.32,
+   "end": 6.4
+  },
+  {
+   "text": "we've",
+   "start": 6.4,
+   "end": 6.72
+  },
+  {
+   "text": "been",
+   "start": 6.72,
+   "end": 6.9
+  },
+  {
+   "text": "operating,",
+   "start": 6.9,
+   "end": 7.64
+  },
+  {
+   "text": "right?",
+   "start": 8.14,
+   "end": 8.44
+  },
+  {
+   "text": "Even",
+   "start": 9.06,
+   "end": 9.34
+  },
+  {
+   "text": "though",
+   "start": 9.34,
+   "end": 9.7
+  },
+  {
+   "text": "the",
+   "start": 9.7,
+   "end": 9.92
+  },
+  {
+   "text": "walls",
+   "start": 9.92,
+   "end": 10.2
+  },
+  {
+   "text": "aren't",
+   "start": 10.2,
+   "end": 10.8
+  },
+  {
+   "text": "up,",
+   "start": 10.8,
+   "end": 10.96
+  },
+  {
+   "text": "right?",
+   "start": 11.64,
+   "end": 11.7
+  },
+  {
+   "text": "Even",
+   "start": 11.9,
+   "end": 12.16
+  },
+  {
+   "text": "though",
+   "start": 12.16,
+   "end": 12.4
+  },
+  {
+   "text": "people",
+   "start": 12.4,
+   "end": 12.82
+  },
+  {
+   "text": "are",
+   "start": 12.82,
+   "end": 13.0
+  },
+  {
+   "text": "complaining",
+   "start": 13.0,
+   "end": 13.54
+  },
+  {
+   "text": "about",
+   "start": 13.54,
+   "end": 13.88
+  },
+  {
+   "text": "the",
+   "start": 13.88,
+   "end": 14.06
+  },
+  {
+   "text": "privacy,",
+   "start": 14.06,
+   "end": 14.72
+  },
+  {
+   "text": "people",
+   "start": 15.66,
+   "end": 16.12
+  },
+  {
+   "text": "are,",
+   "start": 16.12,
+   "end": 16.48
+  },
+  {
+   "text": "where",
+   "start": 17.12,
+   "end": 19.06
+  },
+  {
+   "text": "are",
+   "start": 19.06,
+   "end": 19.16
+  },
+  {
+   "text": "they?",
+   "start": 19.16,
+   "end": 19.3
+  },
+  {
+   "text": "I've",
+   "start": 20.54,
+   "end": 20.88
+  },
+  {
+   "text": "got",
+   "start": 20.88,
+   "end": 20.94
+  },
+  {
+   "text": "a",
+   "start": 20.94,
+   "end": 21.04
+  },
+  {
+   "text": "whole",
+   "start": 21.04,
+   "end": 21.24
+  },
+  {
+   "text": "list",
+   "start": 21.24,
+   "end": 21.7
+  },
+  {
+   "text": "of",
+   "start": 21.7,
+   "end": 22.64
+  },
+  {
+   "text": "client",
+   "start": 22.64,
+   "end": 23.86
+  },
+  {
+   "text": "feedback,",
+   "start": 23.86,
+   "end": 24.44
+  },
+  {
+   "text": "things",
+   "start": 24.94,
+   "end": 25.62
+  },
+  {
+   "text": "that",
+   "start": 25.62,
+   "end": 25.78
+  },
+  {
+   "text": "people",
+   "start": 25.78,
+   "end": 26.08
+  },
+  {
+   "text": "have",
+   "start": 26.08,
+   "end": 26.42
+  },
+  {
+   "text": "written",
+   "start": 26.42,
+   "end": 27.58
+  },
+  {
+   "text": "down,",
+   "start": 27.58,
+   "end": 28.02
+  },
+  {
+   "text": "right?",
+   "start": 28.38,
+   "end": 28.46
+  },
+  {
+   "text": "Like,",
+   "start": 28.76,
+   "end": 28.76
+  },
+  {
+   "text": "look",
+   "start": 28.84,
+   "end": 29.04
+  },
+  {
+   "text": "at",
+   "start": 29.04,
+   "end": 29.14
+  },
+  {
+   "text": "their",
+   "start": 29.14,
+   "end": 29.26
+  },
+  {
+   "text": "shit.",
+   "start": 29.26,
+   "end": 29.44
+  },
+  {
+   "text": "People",
+   "start": 29.9,
+   "end": 30.06
+  },
+  {
+   "text": "have",
+   "start": 30.06,
+   "end": 30.24
+  },
+  {
+   "text": "written",
+   "start": 30.24,
+   "end": 30.56
+  },
+  {
+   "text": "down",
+   "start": 30.56,
+   "end": 30.74
+  },
+  {
+   "text": "full",
+   "start": 30.74,
+   "end": 31.08
+  },
+  {
+   "text": "pages",
+   "start": 31.08,
+   "end": 31.62
+  },
+  {
+   "text": "of",
+   "start": 31.62,
+   "end": 32.16
+  },
+  {
+   "text": "notes",
+   "start": 32.16,
+   "end": 32.68
+  },
+  {
+   "text": "and",
+   "start": 32.68,
+   "end": 33.1
+  },
+  {
+   "text": "things",
+   "start": 33.1,
+   "end": 33.4
+  },
+  {
+   "text": "for",
+   "start": 33.4,
+   "end": 34.0
+  },
+  {
+   "text": "us",
+   "start": 34.0,
+   "end": 34.12
+  },
+  {
+   "text": "to",
+   "start": 34.12,
+   "end": 34.28
+  },
+  {
+   "text": "implement.",
+   "start": 34.28,
+   "end": 34.66
+  },
+  {
+   "text": "Conventionally",
+   "start": 36.98,
+   "end": 37.58
+  },
+  {
+   "text": "speaking,",
+   "start": 37.58,
+   "end": 38.02
+  },
+  {
+   "text": "that's",
+   "start": 38.24,
+   "end": 38.54
+  },
+  {
+   "text": "the",
+   "start": 38.54,
+   "end": 38.64
+  },
+  {
+   "text": "first",
+   "start": 38.64,
+   "end": 38.88
+  },
+  {
+   "text": "thing",
+   "start": 38.88,
+   "end": 39.06
+  },
+  {
+   "text": "you",
+   "start": 39.06,
+   "end": 39.24
+  },
+  {
+   "text": "do.",
+   "start": 39.24,
+   "end": 39.4
+  },
+  {
+   "text": "You",
+   "start": 40.0,
+   "end": 40.18
+  },
+  {
+   "text": "address",
+   "start": 40.18,
+   "end": 40.66
+  },
+  {
+   "text": "all",
+   "start": 40.66,
+   "end": 41.06
+  },
+  {
+   "text": "these",
+   "start": 41.06,
+   "end": 41.34
+  },
+  {
+   "text": "priority",
+   "start": 41.34,
+   "end": 42.5
+  },
+  {
+   "text": "concerns",
+   "start": 42.5,
+   "end": 43.04
+  },
+  {
+   "text": "and",
+   "start": 43.04,
+   "end": 43.5
+  },
+  {
+   "text": "complaints",
+   "start": 43.5,
+   "end": 43.86
+  },
+  {
+   "text": "and",
+   "start": 43.86,
+   "end": 44.3
+  },
+  {
+   "text": "blah,",
+   "start": 44.3,
+   "end": 44.62
+  },
+  {
+   "text": "blah,",
+   "start": 44.86,
+   "end": 45.16
+  },
+  {
+   "text": "blah,",
+   "start": 45.3,
+   "end": 45.34
+  },
+  {
+   "text": "all",
+   "start": 45.54,
+   "end": 45.64
+  },
+  {
+   "text": "the",
+   "start": 45.64,
+   "end": 45.78
+  },
+  {
+   "text": "noise,",
+   "start": 45.78,
+   "end": 46.0
+  },
+  {
+   "text": "right?",
+   "start": 46.2,
+   "end": 46.3
+  },
+  {
+   "text": "If",
+   "start": 47.68,
+   "end": 47.96
+  },
+  {
+   "text": "we",
+   "start": 47.96,
+   "end": 48.12
+  },
+  {
+   "text": "did",
+   "start": 48.12,
+   "end": 48.36
+  },
+  {
+   "text": "all",
+   "start": 48.36,
+   "end": 48.62
+  },
+  {
+   "text": "that,",
+   "start": 48.62,
+   "end": 48.8
+  },
+  {
+   "text": "we",
+   "start": 50.54,
+   "end": 50.98
+  },
+  {
+   "text": "would",
+   "start": 50.98,
+   "end": 51.12
+  },
+  {
+   "text": "have",
+   "start": 51.12,
+   "end": 51.22
+  },
+  {
+   "text": "had",
+   "start": 51.22,
+   "end": 51.28
+  },
+  {
+   "text": "to",
+   "start": 51.28,
+   "end": 51.38
+  },
+  {
+   "text": "close",
+   "start": 51.38,
+   "end": 51.56,
+   "highlight": true
+  },
+  {
+   "text": "the",
+   "start": 51.56,
+   "end": 51.74
+  },
+  {
+   "text": "business.",
+   "start": 51.74,
+   "end": 52.02
+  },
+  {
+   "text": "We",
+   "start": 52.4,
+   "end": 52.72
+  },
+  {
+   "text": "would",
+   "start": 52.72,
+   "end": 52.88
+  },
+  {
+   "text": "have",
+   "start": 52.88,
+   "end": 53.0
+  },
+  {
+   "text": "had",
+   "start": 53.0,
+   "end": 53.08
+  },
+  {
+   "text": "to",
+   "start": 53.08,
+   "end": 53.18
+  },
+  {
+   "text": "shut",
+   "start": 53.18,
+   "end": 53.3,
+   "highlight": true
+  },
+  {
+   "text": "down.",
+   "start": 53.3,
+   "end": 53.54
+  },
+  {
+   "text": "We",
+   "start": 53.68,
+   "end": 53.76
+  },
+  {
+   "text": "wouldn't",
+   "start": 53.76,
+   "end": 54.02
+  },
+  {
+   "text": "have",
+   "start": 54.02,
+   "end": 54.14
+  },
+  {
+   "text": "been",
+   "start": 54.14,
+   "end": 54.4
+  },
+  {
+   "text": "able",
+   "start": 54.4,
+   "end": 55.24
+  },
+  {
+   "text": "to",
+   "start": 55.24,
+   "end": 55.4
+  },
+  {
+   "text": "keep",
+   "start": 55.4,
+   "end": 55.82
+  },
+  {
+   "text": "the",
+   "start": 55.82,
+   "end": 56.02
+  },
+  {
+   "text": "doors",
+   "start": 56.02,
+   "end": 56.2
+  },
+  {
+   "text": "open",
+   "start": 56.2,
+   "end": 56.58
+  },
+  {
+   "text": "and",
+   "start": 56.58,
+   "end": 56.7
+  },
+  {
+   "text": "the",
+   "start": 56.7,
+   "end": 56.8
+  },
+  {
+   "text": "lights",
+   "start": 56.8,
+   "end": 57.0
+  },
+  {
+   "text": "on.",
+   "start": 57.0,
+   "end": 57.26
+  },
+  {
+   "text": "So",
+   "start": 59.18,
+   "end": 59.66
+  },
+  {
+   "text": "priority",
+   "start": 59.66,
+   "end": 60.14
+  },
+  {
+   "text": "in",
+   "start": 60.14,
+   "end": 60.5
+  },
+  {
+   "text": "a",
+   "start": 60.5,
+   "end": 60.6
+  },
+  {
+   "text": "business",
+   "start": 60.6,
+   "end": 60.88
+  },
+  {
+   "text": "is",
+   "start": 60.88,
+   "end": 61.26
+  },
+  {
+   "text": "make",
+   "start": 61.26,
+   "end": 61.54
+  },
+  {
+   "text": "the",
+   "start": 61.54,
+   "end": 61.74
+  },
+  {
+   "text": "money.",
+   "start": 61.74,
+   "end": 62.0,
+   "highlight": true
+  },
+  {
+   "text": "Make",
+   "start": 62.94,
+   "end": 63.24
+  },
+  {
+   "text": "money.",
+   "start": 63.24,
+   "end": 63.72,
+   "highlight": true
+  }
+ ]
+}

@@ -1,0 +1,407 @@
+{
+ "videoSrc": "reel_inherit_culture.mp4",
+ "name": "Josh Li",
+ "handle": "2 companies, $0 down",
+ "durationInSeconds": 37.44,
+ "card": {
+  "kicker": "AFTER YOU BUY",
+  "title": "You don't build culture. You inherit it.",
+  "rows": [
+   {
+    "label": "Culture",
+    "value": "Inherited, not built",
+    "at": 1.32
+   },
+   {
+    "label": "New owner arrives",
+    "value": "The team freaks out",
+    "tone": "bad",
+    "at": 14.74
+   },
+   {
+    "label": "Expect",
+    "value": "Firings and resignations",
+    "tone": "bad",
+    "at": 18.1
+   },
+   {
+    "label": "If nobody's scrambling",
+    "value": "You're not doing enough",
+    "tone": "good",
+    "at": 34.06
+   }
+  ]
+ },
+ "words": [
+  {
+   "text": "when",
+   "start": 0.12,
+   "end": 0.18
+  },
+  {
+   "text": "you",
+   "start": 0.18,
+   "end": 0.28
+  },
+  {
+   "text": "buy",
+   "start": 0.28,
+   "end": 0.44
+  },
+  {
+   "text": "business,",
+   "start": 0.44,
+   "end": 0.84
+  },
+  {
+   "text": "you",
+   "start": 1.22,
+   "end": 1.3
+  },
+  {
+   "text": "aren't",
+   "start": 1.3,
+   "end": 1.66
+  },
+  {
+   "text": "building",
+   "start": 1.66,
+   "end": 2.06
+  },
+  {
+   "text": "culture,",
+   "start": 2.06,
+   "end": 2.68
+  },
+  {
+   "text": "you",
+   "start": 3.26,
+   "end": 3.96
+  },
+  {
+   "text": "inherit",
+   "start": 3.96,
+   "end": 4.46,
+   "highlight": true
+  },
+  {
+   "text": "it.",
+   "start": 4.46,
+   "end": 4.76
+  },
+  {
+   "text": "all",
+   "start": 5.18,
+   "end": 5.3
+  },
+  {
+   "text": "of",
+   "start": 5.3,
+   "end": 5.46
+  },
+  {
+   "text": "a",
+   "start": 5.46,
+   "end": 5.46
+  },
+  {
+   "text": "sudden",
+   "start": 5.46,
+   "end": 5.56
+  },
+  {
+   "text": "some",
+   "start": 5.56,
+   "end": 5.88
+  },
+  {
+   "text": "new",
+   "start": 5.88,
+   "end": 6.12
+  },
+  {
+   "text": "guy,",
+   "start": 6.12,
+   "end": 6.34
+  },
+  {
+   "text": "some",
+   "start": 6.5,
+   "end": 6.62
+  },
+  {
+   "text": "new",
+   "start": 6.62,
+   "end": 6.76
+  },
+  {
+   "text": "manager,",
+   "start": 6.76,
+   "end": 7.08
+  },
+  {
+   "text": "some",
+   "start": 7.24,
+   "end": 7.38
+  },
+  {
+   "text": "new",
+   "start": 7.38,
+   "end": 7.48
+  },
+  {
+   "text": "boss",
+   "start": 7.48,
+   "end": 7.74,
+   "highlight": true
+  },
+  {
+   "text": "comes",
+   "start": 7.74,
+   "end": 8.0
+  },
+  {
+   "text": "in.",
+   "start": 8.0,
+   "end": 8.28
+  },
+  {
+   "text": "And",
+   "start": 9.9,
+   "end": 10.22
+  },
+  {
+   "text": "just",
+   "start": 10.22,
+   "end": 10.4
+  },
+  {
+   "text": "by",
+   "start": 10.4,
+   "end": 10.88
+  },
+  {
+   "text": "default,",
+   "start": 10.88,
+   "end": 11.34
+  },
+  {
+   "text": "that",
+   "start": 11.58,
+   "end": 11.7
+  },
+  {
+   "text": "alone,",
+   "start": 11.7,
+   "end": 12.1
+  },
+  {
+   "text": "that",
+   "start": 12.6,
+   "end": 14.0
+  },
+  {
+   "text": "alone",
+   "start": 14.0,
+   "end": 14.64
+  },
+  {
+   "text": "freaks",
+   "start": 14.64,
+   "end": 16.42
+  },
+  {
+   "text": "people",
+   "start": 16.42,
+   "end": 16.72
+  },
+  {
+   "text": "out.",
+   "start": 16.72,
+   "end": 16.94
+  },
+  {
+   "text": "So,",
+   "start": 17.36,
+   "end": 17.5
+  },
+  {
+   "text": "expect",
+   "start": 18.0,
+   "end": 18.4
+  },
+  {
+   "text": "to",
+   "start": 18.4,
+   "end": 19.62
+  },
+  {
+   "text": "fire",
+   "start": 19.62,
+   "end": 19.94,
+   "highlight": true
+  },
+  {
+   "text": "and",
+   "start": 19.94,
+   "end": 20.7
+  },
+  {
+   "text": "expect",
+   "start": 20.7,
+   "end": 22.08
+  },
+  {
+   "text": "people",
+   "start": 22.08,
+   "end": 22.42
+  },
+  {
+   "text": "to",
+   "start": 22.42,
+   "end": 22.58
+  },
+  {
+   "text": "resign.",
+   "start": 22.58,
+   "end": 22.86,
+   "highlight": true
+  },
+  {
+   "text": "In",
+   "start": 24.84,
+   "end": 25.64
+  },
+  {
+   "text": "fact,",
+   "start": 25.64,
+   "end": 25.84
+  },
+  {
+   "text": "if",
+   "start": 26.34,
+   "end": 26.54
+  },
+  {
+   "text": "it",
+   "start": 26.54,
+   "end": 26.7
+  },
+  {
+   "text": "doesn't",
+   "start": 26.7,
+   "end": 26.98
+  },
+  {
+   "text": "happen,",
+   "start": 26.98,
+   "end": 27.34
+  },
+  {
+   "text": "if",
+   "start": 27.8,
+   "end": 31.32
+  },
+  {
+   "text": "it",
+   "start": 31.32,
+   "end": 31.42
+  },
+  {
+   "text": "does",
+   "start": 31.42,
+   "end": 31.56
+  },
+  {
+   "text": "happen,",
+   "start": 31.56,
+   "end": 31.9
+  },
+  {
+   "text": "you're",
+   "start": 31.9,
+   "end": 32.64
+  },
+  {
+   "text": "not",
+   "start": 32.64,
+   "end": 32.72
+  },
+  {
+   "text": "doing",
+   "start": 32.72,
+   "end": 32.94
+  },
+  {
+   "text": "a",
+   "start": 32.94,
+   "end": 33.04
+  },
+  {
+   "text": "good",
+   "start": 33.04,
+   "end": 33.14
+  },
+  {
+   "text": "enough",
+   "start": 33.14,
+   "end": 33.28
+  },
+  {
+   "text": "job.",
+   "start": 33.28,
+   "end": 33.52
+  },
+  {
+   "text": "People",
+   "start": 33.96,
+   "end": 34.12
+  },
+  {
+   "text": "should",
+   "start": 34.12,
+   "end": 34.28
+  },
+  {
+   "text": "be",
+   "start": 34.28,
+   "end": 34.4
+  },
+  {
+   "text": "scrambling",
+   "start": 34.4,
+   "end": 35.02,
+   "highlight": true
+  },
+  {
+   "text": "when",
+   "start": 35.02,
+   "end": 35.96
+  },
+  {
+   "text": "you",
+   "start": 35.96,
+   "end": 36.08
+  },
+  {
+   "text": "take",
+   "start": 36.08,
+   "end": 36.22
+  },
+  {
+   "text": "over",
+   "start": 36.22,
+   "end": 36.48
+  },
+  {
+   "text": "a",
+   "start": 36.48,
+   "end": 36.56
+  },
+  {
+   "text": "company.",
+   "start": 36.56,
+   "end": 37.14
+  }
+ ]
+}

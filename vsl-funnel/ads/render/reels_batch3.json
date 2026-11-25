@@ -1,0 +1,248 @@
+{
+ "inherit_culture": {
+  "src": "22oct",
+  "near": 180,
+  "cuts": [
+   [
+    "when you buy business, you aren't building culture",
+    "you inherit it."
+   ],
+   [
+    "all of a sudden some new guy",
+    "freaks people out"
+   ],
+   [
+    "So, expect to fire and expect people to resign",
+    "People should be scrambling when you take over a company"
+   ]
+  ],
+  "hl": [
+   "inherit",
+   "boss",
+   "fire",
+   "resign",
+   "scrambling"
+  ],
+  "card": {
+   "kicker": "AFTER YOU BUY",
+   "title": "You don't build culture. You inherit it.",
+   "rows": [
+    {
+     "label": "Culture",
+     "value": "Inherited, not built",
+     "say": "you aren't building culture, you inherit it"
+    },
+    {
+     "label": "New owner arrives",
+     "value": "The team freaks out",
+     "say": "freaks people out",
+     "tone": "bad"
+    },
+    {
+     "label": "Expect",
+     "value": "Firings and resignations",
+     "say": "expect to fire and expect people to resign",
+     "tone": "bad"
+    },
+    {
+     "label": "If nobody's scrambling",
+     "value": "You're not doing enough",
+     "say": "People should be scrambling",
+     "tone": "good"
+    }
+   ]
+  }
+ },
+ "no_close": {
+  "src": "22oct",
+  "near": 715,
+  "from": "Setting the place up, so we didn't have to close down",
+  "to": "So priority in a business is make the money. Make money.",
+  "hl": [
+   "close",
+   "money",
+   "shut"
+  ],
+  "card": {
+   "kicker": "OPERATOR",
+   "title": "We moved clinics without closing a single day",
+   "rows": [
+    {
+     "label": "Days closed during the move",
+     "value": "Zero",
+     "say": "didn't have to close down a single day",
+     "tone": "good"
+    },
+    {
+     "label": "Client complaints",
+     "value": "Pages of them",
+     "say": "a whole list of client feedback",
+     "tone": "bad"
+    },
+    {
+     "label": "Fix it all first?",
+     "value": "We'd have had to shut down",
+     "say": "If we did all that",
+     "tone": "bad"
+    },
+    {
+     "label": "Priority #1",
+     "value": "Make the money",
+     "say": "priority in a business is make the money",
+     "tone": "good"
+    }
+   ]
+  }
+ },
+ "lease_tip": {
+  "src": "22oct",
+  "near": 120,
+  "from": "And if you've ever been in construction or architecture",
+  "to": "when you're leasing any premises",
+  "fix": [
+   [
+    "square-mated",
+    "square-metre"
+   ]
+  ],
+  "hl": [
+   "pretty",
+   "use",
+   "lease",
+   "leasing"
+  ],
+  "card": {
+   "kicker": "LEASING TIP",
+   "title": "Before you sign a lease, check this",
+   "rows": [
+    {
+     "label": "The building",
+     "value": "Architect-designed",
+     "say": "it's an architecture's job"
+    },
+    {
+     "label": "Built to",
+     "value": "Look pretty",
+     "say": "optimized to look pretty",
+     "tone": "bad"
+    },
+    {
+     "label": "Problem",
+     "value": "Not optimised for use",
+     "say": "it is not optimized for use",
+     "tone": "bad"
+    },
+    {
+     "label": "The tip",
+     "value": "Check the usable floor area",
+     "say": "always double check the",
+     "tone": "good"
+    }
+   ]
+  }
+ },
+ "fund_asset": {
+  "src": "27oct",
+  "near": 0,
+  "cuts": [
+   [
+    "Now having no money is not the obstacle",
+    "not you"
+   ],
+   [
+    "So not having money, that's not the obstacle",
+    "cash on its own"
+   ],
+   [
+    "Understand that you don't need the money to buy a company",
+    "to buy the company"
+   ]
+  ],
+  "fix": [
+   [
+    "spin-out",
+    "spits out"
+   ]
+  ],
+  "hl": [
+   "obstacle",
+   "asset",
+   "cash",
+   "money"
+  ],
+  "card": {
+   "kicker": "FUNDING",
+   "title": "No money isn't what's stopping you",
+   "rows": [
+    {
+     "label": "The obstacle",
+     "value": "Not your bank balance",
+     "say": "Now having no money is not the obstacle",
+     "tone": "good"
+    },
+    {
+     "label": "Banks lend against",
+     "value": "The business, not you",
+     "say": "a bank lends against the business",
+     "tone": "good"
+    },
+    {
+     "label": "Your pitch",
+     "value": "Fund the asset",
+     "say": "Fund the asset, not you"
+    },
+    {
+     "label": "What you need",
+     "value": "A company that makes money",
+     "say": "You need a company that is making money",
+     "tone": "good"
+    }
+   ]
+  }
+ },
+ "bank_checklist": {
+  "src": "27oct",
+  "near": 200,
+  "from": "The bank cares about revenue",
+  "to": "covering the debt service",
+  "hl": [
+   "revenue",
+   "profitability",
+   "super",
+   "tax",
+   "cash"
+  ],
+  "card": {
+   "kicker": "BANK CHECKLIST",
+   "title": "What a bank checks before it says yes",
+   "rows": [
+    {
+     "label": "1",
+     "value": "Revenue",
+     "say": "The bank cares about revenue"
+    },
+    {
+     "label": "2",
+     "value": "Profitability",
+     "say": "They want to see profitability"
+    },
+    {
+     "label": "3",
+     "value": "Staff super paid",
+     "say": "superannuation being paid"
+    },
+    {
+     "label": "4",
+     "value": "Tax paid",
+     "say": "your tax being paid"
+    },
+    {
+     "label": "The test",
+     "value": "Free cash flow covers the debt",
+     "say": "Free cash flow covering the debt service",
+     "tone": "good"
+    }
+   ]
+  }
+ }
+}
