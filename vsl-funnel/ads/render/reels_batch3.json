@@ -121,15 +121,15 @@
      "say": "it's an architecture's job"
     },
     {
-     "label": "Built to",
-     "value": "Look pretty",
-     "say": "optimized to look pretty",
-     "tone": "bad"
-    },
-    {
      "label": "Problem",
      "value": "Not optimised for use",
      "say": "it is not optimized for use",
+     "tone": "bad"
+    },
+    {
+     "label": "Built to",
+     "value": "Look pretty",
+     "say": "optimized to look pretty",
      "tone": "bad"
     },
     {
