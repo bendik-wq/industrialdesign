@@ -9,7 +9,7 @@ specs.json: {"name": {"src": "21oct", "t0": 12.3, "t1": 48.0,
 Cuts + crops the clip into remotion/public/reel_<name>.mp4, writes remotion/props/reel_<name>.json.
 Transcripts (Whisper JSON with word timestamps) are read from $TRANSCRIPTS/t_<src>.json.
 """
-import json, os, subprocess, sys
+import json, os, re, subprocess, sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 REM = os.path.join(ROOT, '..', 'remotion')
@@ -32,7 +32,7 @@ def words(src, t0, t1, hl=(), fixes=()):
         for w in s.get('words', []):
             if w['start'] >= t0 - 0.05 and w['end'] <= t1 + 0.05:
                 t = w['word'].strip()
-                if out and t[:1] in '-.%' and t not in ('-',):
+                if out and (t[:1] in '-.%' or re.match(r',\d', t)) and t not in ('-',):
                     out[-1]['text'] += t
                     out[-1]['end'] = round(w['end'] - t0, 3)
                     continue
